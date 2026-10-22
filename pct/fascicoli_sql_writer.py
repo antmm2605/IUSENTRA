@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 
+from pct.json_snapshot_delta import merge_delta as _merge_delta
+
 COLUMNS = ('id', 'numero', 'titolo', 'tipo', 'stato', 'id_cliente', 'nome_cliente',
            'tribunale', 'sezione', 'giudice', 'numero_rg', 'anno_rg', 'controparte',
            'avvocato_referente', 'avvocato_dominus', 'data_apertura', 'data_chiusura',
@@ -25,32 +27,6 @@ class FascicoloConcurrentUpdate(RuntimeError):
 def encode_model(model):
     return json.dumps(model.to_dict(), sort_keys=True, separators=(',', ':'),
                       ensure_ascii=False, allow_nan=False)
-
-
-def _merge_delta(source, before, after):
-    if before == after:
-        return source
-    if isinstance(source, dict) and isinstance(before, dict) and isinstance(after, dict):
-        merged = dict(source)
-        for key in before.keys() - after.keys():
-            merged.pop(key, None)
-        for key, value in after.items():
-            if key not in before:
-                merged[key] = value
-            elif before[key] != value:
-                merged[key] = _merge_delta(source.get(key), before[key], value)
-        return merged
-    if all(isinstance(value, list) for value in (source, before, after)):
-        def indexed(values):
-            if any(not isinstance(value, dict) or not value.get('id') for value in values):
-                return None
-            mapping = {value['id']: value for value in values}
-            return mapping if len(mapping) == len(values) else None
-        old, original, new = indexed(before), indexed(source), indexed(after)
-        if old is not None and original is not None and new is not None:
-            return [_merge_delta(original.get(value['id']), old[value['id']], value)
-                    if value['id'] in old else value for value in after]
-    return after
 
 
 def _values(model, before_row=None, before_model=None):

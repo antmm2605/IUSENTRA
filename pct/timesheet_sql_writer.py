@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+from pct.json_snapshot_delta import merge_delta
+
 COLUMNS = ("id", "id_fascicolo", "id_cliente", "id_utente", "username", "data_attivita",
            "descrizione", "minuti", "valore_unitario", "fatturabile", "stato", "origine",
            "creato_il", "modificato_il", "dati_json")
@@ -16,12 +18,18 @@ def encode_model(entry):
     return json.dumps(entry.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def row_values(entry):
+def row_values(entry, *, original_row=None, original_model=None):
+    payload = entry.to_dict()
+    if original_row is not None:
+        source = json.loads(original_row['dati_json'] or '{}')
+        if not isinstance(source, dict):
+            raise ValueError('Metadati Timesheet non validi: nessun dato ignorato.')
+        payload = merge_delta(source, json.loads(original_model), payload)
     return (entry.id, entry.id_fascicolo or None, entry.id_cliente or None,
             entry.id_utente or None, entry.username, entry.data_attivita,
             entry.descrizione, int(entry.minuti or 0), float(entry.valore_unitario or 0),
             int(entry.fatturabile), entry.stato.value, entry.origine, entry.creato_il,
-            entry.modificato_il, json.dumps(entry.to_dict(), ensure_ascii=False))
+            entry.modificato_il, json.dumps(payload, ensure_ascii=False))
 
 
 def save_changes(database, *, original_rows, original_models, current, connection=None):
@@ -58,7 +66,8 @@ def save_changes(database, *, original_rows, original_models, current, connectio
             expected = tuple(value for name in COLUMNS for value in (before[name], before[name]))
             updated = conn.execute(
                 f"UPDATE timesheet_entries SET {','.join(name+'=?' for name in COLUMNS[1:])} "
-                f"WHERE {condition} RETURNING id", row_values(after)[1:] + expected).fetchone()
+                f"WHERE {condition} RETURNING id",
+                row_values(after, original_row=before, original_model=original_models[key])[1:] + expected).fetchone()
         if updated is None:
             raise TimesheetConflict("Voce Timesheet aggiornata da un altro processo: ricarica i dati prima di riprovare; la modifica non è stata registrata.")
 

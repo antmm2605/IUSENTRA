@@ -361,6 +361,12 @@ class GestioneClienti:
             changes = [key for key in sorted(set(current) | set(self._persisted_clienti)) if current.get(key) != self._persisted_clienti.get(key)]
             if not changes:
                 return
+            from pct.json_snapshot_delta import merge_delta
+            confirmed = {
+                key: merge_delta(self._persisted_sql_clienti[key], self._persisted_clienti[key], current[key])
+                if key in self._persisted_sql_clienti else current[key]
+                for key in changes if key in current
+            }
             postgres = hasattr(self._studio_db, "raw_conn")
             def _insert(conn, key):
                 query = "SELECT dati_json FROM clienti WHERE id = ?" + (" FOR UPDATE" if postgres else "")
@@ -372,7 +378,7 @@ class GestioneClienti:
                     conn.execute("DELETE FROM clienti WHERE id = ?", (key,))
                     return
                 c = self._clienti[key]
-                d = c.to_dict()
+                d = confirmed[key]
                 rec = d.get("recapiti") or {}
                 conn.execute("""
                     INSERT INTO clienti
@@ -397,11 +403,17 @@ class GestioneClienti:
                     __import__("datetime").datetime.now().isoformat(),
                     json.dumps(d, ensure_ascii=False),
                 ))
-            self._studio_db.salva_tabella("clienti", changes, _insert, delete_all=False)
+            try:
+                self._studio_db.salva_tabella("clienti", changes, _insert, delete_all=False)
+            except Exception:
+                # Un comando rifiutato non può riapparire nel successivo
+                # salvataggio di un'altra scheda sul medesimo gestore.
+                self._clienti = {key: Cliente.from_dict(value) for key, value in self._persisted_clienti.items()}
+                raise
             self._persisted_clienti = current
             for key in changes:
                 if key in current:
-                    self._persisted_sql_clienti[key] = current[key]
+                    self._persisted_sql_clienti[key] = confirmed[key]
                 else:
                     self._persisted_sql_clienti.pop(key, None)
             return

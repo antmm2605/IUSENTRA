@@ -42,7 +42,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 162 | tests/test_offline_case_capture.py, tests/test_fascicolo_edit_revision.py, tests/test_offline_atomic_business.py, tests/test_offline_replication.py, tests/test_offline_change_log.py ... |
+| coverage-critical | 163 | tests/test_clienti_concurrent_sql.py, tests/test_offline_case_capture.py, tests/test_fascicolo_edit_revision.py, tests/test_offline_atomic_business.py, tests/test_offline_replication.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -645,7 +645,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_workspace_intelligente.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | API contract | lex/tests/unit/test_sentenze_clienti_fix.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Clienti/anagrafiche | API contract | tests/test_lex_sentenze_clienti_fix.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| Clienti/anagrafiche | Backend | tests/test_clienti_concurrent_sql.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Clienti/anagrafiche | Backend | tests/test_clienti_concurrent_sql.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Backend | tests/test_clienti_workflow.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Clienti/anagrafiche | Frontend/UI | tests/test_clienti_cartella_agenda_links.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

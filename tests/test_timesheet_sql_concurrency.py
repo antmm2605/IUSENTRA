@@ -57,6 +57,20 @@ def test_modifiche_su_voci_distinte_non_si_sovrascrivono(managers):
     assert rows[second]["note"] == "Nota secondo processo"
 
 
+def test_normal_edit_and_reload_preserve_historical_sql_extensions(managers):
+    db, open_manager, first, _ = managers
+    source = json.loads(db.conn.execute('SELECT dati_json FROM timesheet_entries WHERE id=?', (first,)).fetchone()[0])
+    source['provenienza_storica'] = {'importazione': 'controllata', 'revisione': 3}
+    db.conn.execute('UPDATE timesheet_entries SET dati_json=? WHERE id=?', (json.dumps(source), first))
+    (getattr(db, 'raw_conn', None) or db.conn).commit()
+    manager = open_manager()
+    manager.aggiorna(first, minuti=20, note='Prima modifica')
+    open_manager().aggiorna(first, note='Seconda modifica')
+    stored = json.loads(db.conn.execute('SELECT dati_json FROM timesheet_entries WHERE id=?', (first,)).fetchone()[0])
+    assert stored['provenienza_storica'] == source['provenienza_storica']
+    assert stored['minuti'] == 20 and stored['note'] == 'Seconda modifica'
+
+
 def test_transazione_condivisa_conferma_solo_al_commit_esterno(managers):
     db, open_manager, _, _ = managers
     manager = open_manager()

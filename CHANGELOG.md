@@ -1,3 +1,10 @@
+# 2.447.4 — Conservazione dei dati anagrafici e Timesheet
+
+- Le modifiche ordinarie conservano i metadati storici SQL non modificati.
+- Un salvataggio anagrafico respinto non viene riproposto dal comando successivo su un'altra scheda.
+- Riutilizzata la stessa funzione di variazione già applicata ai fascicoli, mantenendo i controlli concorrenti.
+- Replica offline completa ancora disabilitata: questa correzione non ne dichiara l'attivazione.
+
 # 2.447.2 — Editor PDF locale
 
 - Modifica nativa del PDF nel browser, con versioni, revisione concorrente e salvataggio idempotente nell’archivio SQL.

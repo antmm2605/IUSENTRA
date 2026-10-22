@@ -21,13 +21,17 @@ def encode_model(scadenza):
     return json.dumps(scadenza.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def row_values(scadenza):
+def row_values(scadenza, *, source=None, original_model=None):
+    payload = scadenza.to_dict()
+    if source is not None:
+        from pct.calendar_sql_records import updated_payload
+        payload = updated_payload(source, original_model, payload)
     return (scadenza.id, scadenza.tipo.value, scadenza.stato.value, scadenza.titolo, scadenza.data_scadenza,
             scadenza.priorita.value, int(scadenza.perentorio), scadenza.note, scadenza.id_fascicolo or None,
             scadenza.id_appuntamento or None, scadenza.id_utente_responsabile,
             json.dumps(scadenza.giorni_preavviso, ensure_ascii=False),
             json.dumps(scadenza.avvisi_inviati, ensure_ascii=False), scadenza.completata_il,
-            scadenza.creata_il, json.dumps(scadenza.to_dict(), ensure_ascii=False))
+            scadenza.creata_il, json.dumps(payload, ensure_ascii=False))
 
 
 def write_changes(conn, *, original_rows, original_models, current):
@@ -54,7 +58,7 @@ def write_changes(conn, *, original_rows, original_models, current):
         if after is None:
             updated = conn.execute(f"DELETE FROM scadenze WHERE {condition} RETURNING id", expected).fetchone()
         else:
-            values = row_values(after)
+            values = row_values(after, source=before, original_model=json.loads(original_models[key]))
             updated = conn.execute(f"UPDATE scadenze SET {','.join(name+'=?' for name in COLUMNS[1:])} "
                                    f"WHERE {condition} RETURNING id", values[1:] + expected).fetchone()
         if updated is None:

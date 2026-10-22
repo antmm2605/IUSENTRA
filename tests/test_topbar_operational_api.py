@@ -2,12 +2,6 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-ROME_TZ = ZoneInfo("Europe/Rome")
-
-
-def _adesso_roma() -> datetime:
-    """Adesso in ora italiana, come lo intende la top bar."""
-    return datetime.now(ROME_TZ).replace(tzinfo=None)
 from pathlib import Path
 from urllib.parse import quote
 
@@ -20,6 +14,13 @@ from pct.notifications import NotificationRepository, NotificationService
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from web.app import create_app
 from web.services.notifications_runtime import notification_repository_settings
+
+ROME_TZ = ZoneInfo("Europe/Rome")
+
+
+def _adesso_roma() -> datetime:
+    """Adesso in ora italiana, come lo intende la top bar."""
+    return datetime.now(ROME_TZ).replace(tzinfo=None)
 
 
 def _write_studio_config(path: Path) -> None:
@@ -44,6 +45,8 @@ def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
+        "PCT_DATA_ROOT": str(tmp_path),
         "STORAGE_MODE_DEFAULT": "JSON",
         "SQLITE_MODE": False,
         "BOOTSTRAP_ADMIN_PASSWORD": "admin",
@@ -236,6 +239,8 @@ def _seed_persistent_topbar_notifications(app, user_id: str) -> None:
 
 def test_topbar_search_valida_query_auth_e_permessi(tmp_path: Path):
     app = create_app(_cfg_web(tmp_path))
+    assert app.config['PCT_DATA_ROOT'] == str(tmp_path)
+    assert app.config['TENANTS_REGISTRY'] == str(tmp_path / 'tenants.json')
     _create_user(app, "operatore", "Operatore123!")
     _create_user(
         app,

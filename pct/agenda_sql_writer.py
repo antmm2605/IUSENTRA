@@ -21,12 +21,16 @@ def encode_model(appuntamento):
     return json.dumps(appuntamento.to_dict(), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def row_values(appuntamento):
+def row_values(appuntamento, *, source=None, original_model=None):
     a = appuntamento
+    payload = a.to_dict()
+    if source is not None:
+        from pct.calendar_sql_records import updated_payload
+        payload = updated_payload(source, original_model, payload)
     return (a.id, a.tipo.value, a.stato.value, a.titolo, a.data_ora,
             a.durata_minuti, a.luogo, a.note, a.cliente, a.cf_cliente,
             a.procedimento, a.tribunale, a.note, a.creato_il,
-            json.dumps(a.to_dict(), ensure_ascii=False))
+            json.dumps(payload, ensure_ascii=False))
 
 
 def write_changes(conn, *, original_rows, original_models, current):
@@ -53,7 +57,7 @@ def write_changes(conn, *, original_rows, original_models, current):
         if after is None:
             updated = conn.execute(f"DELETE FROM appuntamenti WHERE {condition} RETURNING id", expected).fetchone()
         else:
-            values = row_values(after)
+            values = row_values(after, source=before, original_model=json.loads(original_models[key]))
             updated = conn.execute(f"UPDATE appuntamenti SET {','.join(name+'=?' for name in COLUMNS[1:])} "
                                    f"WHERE {condition} RETURNING id", values[1:] + expected).fetchone()
         if updated is None:

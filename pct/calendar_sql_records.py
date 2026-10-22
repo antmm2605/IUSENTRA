@@ -6,6 +6,23 @@ usate dalle procedure ordinarie, anche per i record storici.
 import json
 
 
+def updated_payload(row, original_model, current_model):
+    """Conserva estensioni non modificate dopo il confronto SQL dello snapshot.
+
+    I campi nativi mancanti ricevono gli stessi valori del writer precedente;
+    una variazione del modello non cancella i dati storici estranei ad essa.
+    Non è una fusione di due scritture concorrenti.
+    """
+    from pct.json_snapshot_delta import merge_delta
+    encoded = row.get('dati_json')
+    if not encoded:
+        return current_model
+    source = json.loads(encoded)
+    if not isinstance(source, dict) or not isinstance(original_model, dict) or not isinstance(current_model, dict):
+        raise ValueError('Snapshot JSON del calendario non valido: nessuna modifica registrata.')
+    return {**current_model, **merge_delta(source, original_model, current_model)}
+
+
 def appointment_from_row(row):
     from pct.agenda import Appuntamento
 

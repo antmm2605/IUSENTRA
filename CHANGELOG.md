@@ -1,3 +1,10 @@
+# 2.447.5 — Conservazione dello storico di Agenda e Scadenziario
+
+- Apertura di appuntamenti SQL con estensioni storiche senza perdere la voce.
+- Modifiche ordinarie conservano i metadati non modificati, con confronto concorrente dello snapshot.
+- I test della Topbar usano registro e radice temporanei espliciti.
+- Replica offline complessiva ancora disabilitata; questa correzione non ne dichiara l’attivazione.
+
 # 2.447.4 — Conservazione dei dati anagrafici e Timesheet
 
 - Le modifiche ordinarie conservano i metadati storici SQL non modificati.

@@ -111,7 +111,7 @@ class Appuntamento:
         # rimuovi campi calcolati se presenti
         for k in ("data_ora_dt", "fine_dt", "reminder_dt"):
             d.pop(k, None)
-        return cls(**d)
+        return cls(**{key: value for key, value in d.items() if key in cls.__dataclass_fields__})
 
 
 class Agenda:

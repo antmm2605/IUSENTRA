@@ -3,7 +3,7 @@
 import json
 
 import pytest
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 from pct.agenda import Agenda, Appuntamento, TipoAppuntamento, StatoAppuntamento
@@ -177,9 +177,18 @@ def test_route_eliminazione_agenda_restituisce_esito_json_per_react():
     assert 'message = "Voce eliminata dall\'agenda."' in source
     assert '"redirect": url_for("agenda_view")' in source
     assert 'return jsonify({"ok": False, "message": "Appuntamento non trovato."}), 404' in source
-    # Le rotte di scrittura dell'agenda esigono il permesso corrispondente.
-    assert source.count('_agenda_non_autorizzato("agenda.scrivi")') == 2
-    assert '_agenda_non_autorizzato("agenda.elimina")' in source
+    # Verifica ciascun comando, senza trattare un ulteriore controllo
+    # legittimo su un'altra route come una regressione del numero totale.
+    import ast
+    handlers = {node.name: node for node in ast.walk(ast.parse(source)) if isinstance(node, ast.FunctionDef)}
+    for name, permission in (('nuovo_appuntamento', 'agenda.scrivi'),
+                             ('modifica_appuntamento', 'agenda.scrivi'),
+                             ('cambia_stato', 'agenda.scrivi'),
+                             ('elimina_appuntamento', 'agenda.elimina')):
+        calls = [node for node in ast.walk(handlers[name]) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == '_agenda_non_autorizzato']
+        assert any(call.args and isinstance(call.args[0], ast.Constant)
+                   and call.args[0].value == permission for call in calls), name
 
 
 def test_per_giorno(agenda):
@@ -201,7 +210,6 @@ def test_per_settimana(agenda):
             data_ora=_domani_ore(h),
             durata_minuti=30,
         )
-    domani = date.today() + timedelta(days=1)
     risultati = agenda.per_settimana(date.today())
     assert len(risultati) >= 3
 

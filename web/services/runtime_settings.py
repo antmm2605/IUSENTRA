@@ -92,6 +92,8 @@ def apply_runtime_settings(
         "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
     )
     env_tenants_registry = os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
+    if cfg.get('PCT_DATA_ROOT') is not None:
+        app.config['PCT_DATA_ROOT'] = str(cfg['PCT_DATA_ROOT'])
     app.config["TENANTS_REGISTRY"] = cfg.get(
         "TENANTS_REGISTRY", env_tenants_registry
     )

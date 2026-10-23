@@ -560,10 +560,10 @@ class CatalogoOpenGA:
             for key, row in records.items():
                 source = {str(int(n)) for n in re.findall(r"\b\d+\b", row["oggetto"])}
                 scores[key] += .02 * len(numbers & source) / len(numbers)
-        codes = {code.lower() for code in re.findall(r"\b[a-zA-Z]+[0-9]+[a-zA-Z0-9]*\b", str(q))}
+        codes = {code.lower() for code in re.findall(r"\b[a-zA-Z]++[0-9]++[a-zA-Z0-9]*+\b", str(q))}
         if codes and not error:
             for key, row in records.items():
-                found = {code.lower() for code in re.findall(r"\b[a-zA-Z]+[0-9]+[a-zA-Z0-9]*\b", row["oggetto"])}
+                found = {code.lower() for code in re.findall(r"\b[a-zA-Z]++[0-9]++[a-zA-Z0-9]*+\b", row["oggetto"])}
                 scores[key] += .04 * len(codes & found) / len(codes)
         ranked = [records[key] for key in sorted(scores, key=lambda key: (-scores[key], order[key]))]
         # Presidio generale dei primi tre lessicali, non dei casi attesi.

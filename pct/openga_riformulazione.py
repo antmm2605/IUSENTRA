@@ -26,7 +26,7 @@ def numeri(text):
     return {str(int(n)) for n in re.findall(r"\b\d+\b",text)}
 
 def codici(text):
-    return {s.lower() for s in re.findall(r"\b[a-zA-Z]+[0-9]+[a-zA-Z0-9]*\b",text)}
+    return {s.lower() for s in re.findall(r"\b[a-zA-Z]++[0-9]++[a-zA-Z0-9]*+\b",text)}
 
 def valida(query, variante):
     if not isinstance(variante,str) or not 3 <= len(variante) <= 800:

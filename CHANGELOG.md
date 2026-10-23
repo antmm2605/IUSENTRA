@@ -9226,3 +9226,5 @@ Consolidati i sorgenti della biblioteca Codici e leggi recuperati dal server sen
 - Protezione degli aggiornamenti concorrenti del fascicolo, con conservazione della bozza e delle fonti documentali.
 - Mirror storico aggiornato dalle sole righe SQL confermate, con ripresa delle consegne fallite.
 - Replica offline completa ancora in sviluppo e disabilitata.
+
+Verifica 2.448.0: copertura critica nei 12 shard con ambiente identico, baseline 29.057/35.405 (82,0703%), candidata 29.101/35.448 (82,0949%). Dichiarata aggiunta di lex/evidence_scope.py con SHA: nessuna riga precedentemente coperta persa, perimetro comune e nuovo modulo soggetti agli stessi controlli. Il target del 100% resta aperto.

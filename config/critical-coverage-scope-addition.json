@@ -1,7 +1,7 @@
 {
-  "baseline_sha": "18e67b5f0910a43c0bf8b82235c264f34f63f783",
-  "reason": "Percorso dedicato dei template Lex: nuovo modulo misurato separatamente; regressioni e righe precedentemente coperte restano bloccanti.",
+  "baseline_sha": "5180092ee9edbb6a5e628c83707f336de98fd9a7",
+  "reason": "Nuovo modulo condiviso che impedisce la promozione delle evidenze private nel catalogo pubblico e nei dati di addestramento. Misurato nei 12 shard: nessuna riga precedentemente coperta persa, ambiente identico; perimetro comune e nuovo modulo restano soggetti al confronto senza riduzioni di soglia.",
   "files": {
-    "lex/http_template_bridge.py": "d5eadb28abfe744b878d1573579db4a1ad35e75390f10a160a43bcedbda4d1ef"
+    "lex/evidence_scope.py": "52dbb1ca108b5a0f9a112d18f319749a1ba86d68c56e0a1e8b0f9ddf60701185"
   }
 }

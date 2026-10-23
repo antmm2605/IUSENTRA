@@ -8,9 +8,9 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 335.
-- Endpoint con `_richiedi_auth`: 335/335.
-- Endpoint con metodo di scrittura o cancellazione: 175.
+- Endpoint React API censiti: 336.
+- Endpoint con `_richiedi_auth`: 336/336.
+- Endpoint con metodo di scrittura o cancellazione: 176.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
 - Parametri controllo bloccati: `tenant_id`, `tenant_slug`, `studio_id`, `studio_slug`, `user_id`, `api_key`, `token`, `access_token`, `refresh_token`, `redirect`, `redirect_url`, `return_url`, `next`, path filesystem.
@@ -171,6 +171,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `POST` | `/api/v1/ui/giurisprudenza/<judgment_id>/modifica` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/giurisprudenza/nuova` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/giurisprudenza/nuova` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `POST` | `/api/v1/ui/giurisprudenza/ricerca-amministrativa` | Giurisprudenza | P1 | `sessione/API tenant-aware` | archivio giurisprudenza | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/global-search` | Ricerca Studio | P1 | `sessione/API tenant-aware` | indici ricerca tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/import/quickorganizer` | Import Studio Telematico | P2 | `admin.configura oppure fascicoli.scrivi+clienti.scrivi` | pacchetti import, file documentali e staging tenant-aware | auth, tenant-aware, RBAC dominio, audit import, guardrail fase 5 |
 | `POST` | `/api/v1/ui/import/quickorganizer/anteprima` | Import Studio Telematico | P2 | `admin.configura oppure fascicoli.scrivi+clienti.scrivi` | pacchetti import, file documentali e staging tenant-aware | auth, tenant-aware, RBAC dominio, audit import, guardrail fase 5 |

@@ -1,3 +1,10 @@
+## 2.448.0 — Ricerca giurisprudenziale locale R6
+
+- Ricerca OpenGA in lista unica: filtri prima del top-k, varianti generali, classificatore locale verificato e risultati lessicali preservati in caso di errore.
+- Metadati amministrativi esplicitamente separati da motivazioni e principi; prove private vincolate a fascicolo, utente e sessione, escluse da corpus pubblici e preparazione training.
+- Motore opzionale separato dal processo web e installazione versionata con SHA dei soli dati pubblici. Nessun addestramento o migrazione dei corpus dello studio.
+- Banco di sviluppo: 58/60 contro 50/60 lessicale originale e 53/60 a parità di filtri. Nuovo campione congelato a motore invariato: 29/30 contro 27/30 originali e 28/30 con gli stessi filtri, nessuna perdita osservata; non sono garanzie di accuratezza generale.
+
 # 2.447.5 — Conservazione dello storico di Agenda e Scadenziario
 
 - Apertura di appuntamenti SQL con estensioni storiche senza perdere la voce.

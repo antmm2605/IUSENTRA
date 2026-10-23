@@ -1093,6 +1093,7 @@ class GestioneGiurisprudenza:
         stato_verifica: str = "",
         solo_con_pdf: bool = False,
         limit: int = 20,
+        solo_contenuto: bool = False,
     ) -> List[Dict[str, Any]]:
         return self._corpus.cerca_sentenze(
             q=q,
@@ -1101,6 +1102,7 @@ class GestioneGiurisprudenza:
             stato_verifica=stato_verifica,
             solo_con_pdf=solo_con_pdf,
             limit=limit,
+            solo_contenuto=solo_contenuto,
         )
 
     def scheda_corpus_professionale(self, sentenza_id: Any) -> Dict[str, Any] | None:
@@ -1881,10 +1883,11 @@ class GestioneGiurisprudenza:
                             "external_id": external_id,
                             "title": titolo,
                             "summary": _truncate(oggetto or f"{item.get('TIPO_RICORSO', '')} - {item.get('ESITO_PROVVEDIMENTO', '')}", 320),
-                            "massima": _truncate(oggetto, 220),
+                            "massima": "",
+                            "evidence_scope": "metadata_only",
                             "url": resource_url,
                             "data_deposito": item.get("DATA_PUBBLICAZIONE", ""),
-                            "data_decisione": item.get("DATA_PUBBLICAZIONE", ""),
+                            "data_decisione": "",
                             "tipo_provvedimento": tipo,
                             "numero_provvedimento": str(item.get("NUMERO_PROVVEDIMENTO") or ""),
                             "organo_giudicante": office_name,
@@ -1907,7 +1910,7 @@ class GestioneGiurisprudenza:
                             "raw_text": oggetto,
                             "mime_type": "application/json",
                             "identificatore_stabile": f"openga:{external_id}",
-                            "note_redazionali": "Scheda generata da dataset ufficiale OpenGA con classificazione automatica. Verificare solo eventuali affinamenti interni.",
+                            "note_redazionali": "Solo metadati OpenGA: oggetto ed esito non costituiscono massima o principio di diritto.",
                         }
                     )
         return candidates
@@ -2531,7 +2534,15 @@ class GestioneGiurisprudenza:
         record: Dict[str, Any],
         payload: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        from lex.evidence_scope import is_private_evidence
+
         raw_payload = dict(payload or {})
+        for candidate in (record, raw_payload):
+            metadata = candidate.get("metadata") or {}
+            if (is_private_evidence(candidate) or is_private_evidence(metadata)
+                    or candidate.get("shared_catalog_eligible") is False
+                    or (isinstance(metadata, dict) and metadata.get("shared_catalog_eligible") is False)):
+                raise ValueError("Documento privato: conservarlo nel fascicolo, non nel corpus giurisprudenziale.")
         source = self._source(record.get("source_system") or "") or self._source("manuale_interno")
         number = _clean_spaces(record.get("numero_provvedimento"))
         year = 0
@@ -2644,6 +2655,10 @@ class GestioneGiurisprudenza:
                     "dettaglio": official_pdf,
                 }
             )
+        from pct.giurisprudenza_evidenze import solo_metadati
+        metadata_only = solo_metadati(record)
+        if metadata_only:
+            massime, principles, norms, precedents = [], [], [], []
         return {
             "uuid_interno": record.get("identificatore_stabile") or record.get("id"),
             "fonte": {
@@ -2656,7 +2671,7 @@ class GestioneGiurisprudenza:
             },
             "ecli": record.get("ecli"),
             "numero_sentenza": number,
-            "anno_sentenza": year,
+            "anno_sentenza": year or record.get("anno") or 0,
             "organo_giudicante": record.get("organo_giudicante") or record.get("ufficio") or (source.nome if source else ""),
             "sezione": record.get("sezione"),
             "data_decisione": record.get("data_decisione"),
@@ -2668,10 +2683,10 @@ class GestioneGiurisprudenza:
             "grado_giudizio": record.get("grado"),
             "tipo_provvedimento": (record.get("tipo_provvedimento") or "provvedimento").lower(),
             "titolo": record.get("titolo"),
-            "oggetto": record.get("materia") or record.get("microtema"),
+            "oggetto": record.get("abstract") if metadata_only else (record.get("materia") or record.get("microtema")),
             "abstract": record.get("abstract"),
-            "principio_sintetico": record.get("principio_sintetico") or record.get("principio_diritto"),
-            "massima_ufficiale": record.get("massima"),
+            "principio_sintetico": "" if metadata_only else (record.get("principio_sintetico") or record.get("principio_diritto")),
+            "massima_ufficiale": "" if metadata_only else record.get("massima"),
             "testo_integrale": record.get("testo_integrale") or record.get("testo_normalizzato") or "",
             "esito": record.get("esito"),
             "orientamento": record.get("orientamento") or "non_classificato",

@@ -2,11 +2,14 @@
 
 Uso: python scripts/precedenti/openga.py --csv <cartella con i CSV *-sentenze-*.csv> --out <cartella>
 
-Fonte: https://openga.giustizia-amministrativa.it (CKAN; dati pubblicati senza licenza espressa, quindi aperti
-ai sensi dell'art. 52, comma 2, D.Lgs. 82/2005). I file contengono metadati, non il testo delle sentenze:
+Fonte: https://openga.giustizia-amministrativa.it (CKAN). La licenza deve essere verificata
+per ogni risorsa; non viene dedotta dalla sola disponibilita pubblica. I file contengono metadati, non il testo delle sentenze:
 sede, sezione, numero, date, rito, oggetto del ricorso ed esito. Produce:
   sentenze_ga.jsonl  una riga per sentenza, senza doppioni, esito normalizzato, oggetto ripulito da dati personali
-  esiti_ga.json      esiti per rito (e per sede), base per indicare all'avvocato come vanno ricorsi dello stesso tipo
+  esiti_ga.json      conteggi legacy: non usare per inferenze statistiche senza riconciliare i rapporti processuali
+
+Il catalogo candidato pct.openga_catalogo conserva risorse, revisioni e rapporti distinti.
+Questo esportatore storico non e il percorso di importazione del nuovo catalogo.
 """
 from __future__ import annotations
 
@@ -33,7 +36,16 @@ PERSONALI = [(re.compile(r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b"), "[codic
 
 def categoria(esito: str) -> str:
     e = (esito or "").upper()
-    return next((nome for chiave, nome in CATEGORIE if chiave in e), "altro")
+    # Esiti combinati e incidentali non dimostrano una vittoria o un rigetto integrale.
+    accoglie = any(token in e for token in ("ACCOGL", "ACCOLT"))
+    rigetta = any(token in e for token in ("RESPING", "RIGETT"))
+    if "INCIDENTAL" in e:
+        return "esito incidentale"
+    if accoglie and rigetta:
+        return "esito misto"
+    if "NON " in e:
+        return "non classificato"
+    return next((nome for chiave, nome in CATEGORIE if chiave in e), "non classificato")
 
 
 def ripulisci(oggetto: str) -> str:
@@ -81,7 +93,7 @@ def main(argv=None) -> int:
             tot = sum(c.values())
             if tot >= minimo:
                 res[k] = {"decisioni": tot, "esiti": dict(c.most_common()),
-                          "accolto_almeno_in_parte_pct": round(100 * (c["accolto"] + c["accolto in parte"] + c["commissario ad acta"]) / tot, 1)}  # in ottemperanza la nomina del commissario presuppone l’accoglimento
+                          "accolto_almeno_in_parte_pct": round(100 * (c["accolto"] + c["accolto in parte"]) / tot, 1)}
         return dict(sorted(res.items(), key=lambda kv: -kv[1]["decisioni"]))
 
     (out / "esiti_ga.json").write_text(json.dumps({"per_rito": tabella(per_rito, 30), "per_sede_e_rito": tabella(per_sede_rito, 30)},

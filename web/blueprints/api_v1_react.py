@@ -15102,6 +15102,25 @@ def giurisprudenza_page():
         ), 200
 
 
+@api_v1_react.post("/giurisprudenza/ricerca-amministrativa")
+@_richiedi_auth
+def giurisprudenza_ricerca_amministrativa():
+    if not g.get("utente_corrente"):
+        return jsonify({"ok": False, "message": "Sessione utente richiesta."}), 403
+    from web.services.openga_search import search_openga
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "message": "Dati della ricerca non validi."}), 400
+    try:
+        return jsonify(search_openga(payload, current_app.config))
+    except ValueError as exc:
+        # Gli errori di validazione sono formulati dal servizio, senza percorsi.
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception("Ricerca amministrativa non disponibile")
+        return jsonify({"ok": False, "message": "Ricerca amministrativa non disponibile. Riprova più tardi."}), 503
+
+
 @api_v1_react.get("/giurisprudenza/nuova")
 @_richiedi_auth
 def giurisprudenza_nuova_page():

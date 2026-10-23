@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from lex.schemas import LexSource
+from pct.giurisprudenza_evidenze import riferimento_metadati_confermato, solo_metadati, testo_metadati
 
 try:  # sola lettura: la ricerca non riallinea il repository ne' riesporta i JSON
     from web.helpers import get_giurisprudenza_readonly as _gestore_giurisprudenza
@@ -41,6 +42,8 @@ def _accorcia(text: str, limite: int) -> str:
 def _testo_fonte(row: dict, *, massima: str, dispositivo: str, principio: str) -> str:
     """Massima ufficiale prima, poi dispositivo: entro il limite del blocco il modello vede il principio."""
 
+    if solo_metadati(row):
+        return testo_metadati(row)
     parti: list[str] = []
     if massima:
         parti.append(f"Massima: {_accorcia(massima, _MASSIMA_MAX_CHARS) if dispositivo else massima}")
@@ -54,13 +57,15 @@ def _testo_fonte(row: dict, *, massima: str, dispositivo: str, principio: str) -
 
 
 def _riferimento_verificato(row: dict, official_url: str) -> bool:
+    if solo_metadati(row):
+        return False
     if row.get("verified_reference") is not None:
         return bool(row.get("verified_reference"))
     stato = str(row.get("stato_verifica") or "").strip()
     return stato == "verificata" and official_url.startswith(("http://", "https://"))
 
 
-def search_giurisprudenza_sources(message: str) -> list[LexSource]:
+def search_giurisprudenza_sources(message: str, *, include_metadata_only: bool = False) -> list[LexSource]:
     gestore = _gestore_giurisprudenza()
     rows = []
     if hasattr(gestore, "resolve_lex_giurisprudenza_route"):
@@ -68,10 +73,17 @@ def search_giurisprudenza_sources(message: str) -> list[LexSource]:
             rows = list((gestore.resolve_lex_giurisprudenza_route(message) or {}).get("corpus_rows") or [])
         except Exception:
             rows = []
+    if not include_metadata_only:
+        rows = [row for row in rows if not solo_metadati(row)]
     if not rows:
-        rows = list(gestore.cerca_corpus_professionale(q=message, limit=4) or [])
+        rows = list(gestore.cerca_corpus_professionale(q=message, limit=12,
+                    solo_contenuto=not include_metadata_only) or [])
     results: list[LexSource] = []
-    for row in rows[:4]:
+    for row in rows:
+        if len(results) >= 4:
+            break
+        if solo_metadati(row) and not include_metadata_only:
+            continue
         official_url = _first_non_empty(row.get("official_url"), row.get("url_pagina_ufficiale"), row.get("url_html_ufficiale"))
         organo = _first_non_empty(row.get("organo"), row.get("organo_giudicante"), row.get("court"), row.get("grado"))
         numero = _first_non_empty(row.get("numero_sentenza"), row.get("numero"))
@@ -80,7 +92,16 @@ def search_giurisprudenza_sources(message: str) -> list[LexSource]:
         massima = _compatto(_first_non_empty(row.get("massima_ufficiale")))
         dispositivo = _compatto(_first_non_empty(row.get("dispositivo"), row.get("esito")))
         principio = _compatto(_first_non_empty(row.get("principio_sintetico"), row.get("principio")))
+        metadata_only = solo_metadati(row)
+        if metadata_only:
+            massima, dispositivo, principio = "", "", ""
         metadata = {
+            "evidence_scope": "metadata_only" if metadata_only else "decision_content",
+            "verified_metadata": riferimento_metadati_confermato(row) if metadata_only else False,
+            "official_search_url": "https://www.giustizia-amministrativa.it/dcsnprr" if metadata_only else "",
+            "official_search_is_document": False if metadata_only else None,
+            "allowed_uses": ["estremi", "oggetto", "esito_dataset"] if metadata_only else [],
+            "full_text_available": bool(row.get("testo_integrale_presente")),
             "verified_reference": _riferimento_verificato(row, official_url),
             "official_url": official_url,
             "url": official_url,

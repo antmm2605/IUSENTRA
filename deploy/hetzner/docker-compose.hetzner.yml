@@ -46,6 +46,7 @@ x-iusentra-env: &iusentra-env
   LEX_THINK: ${LEX_THINK:-false}
   # Ricerca giuridica: indice vettoriale Normattiva (aggiornamento notturno nello scheduler-worker).
   LEX_EMBED_MODEL: ${LEX_EMBED_MODEL:-embeddinggemma:300m}
+  IUSENTRA_OPENGA_SEARCH_URL: ${IUSENTRA_OPENGA_SEARCH_URL:-http://openga-search:8092}
   LEX_VETTORI_NOTTURNO_MASSIMO: ${LEX_VETTORI_NOTTURNO_MASSIMO:-20000}
   LEX_EMBED_KEEP_ALIVE: ${LEX_EMBED_KEEP_ALIVE:-24h}
   IUSENTRA_NORMATTIVA_VIGENZA: ${IUSENTRA_NORMATTIVA_VIGENZA:-VIGENTE}

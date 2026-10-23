@@ -6,6 +6,7 @@ from dataclasses import asdict
 from typing import Any
 
 from lex.contracts import EvidenceItem
+from lex.evidence_scope import private_evidence_metadata
 
 
 def _clean(value: Any) -> str:
@@ -43,6 +44,8 @@ def build_attachment_evidence(
         name = _clean(raw.get("name")) or f"Documento {index}"
         attachment_id = _attachment_id(raw, index)
         metadata = {
+            **private_evidence_metadata(tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+                                        document_id=attachment_id, session_id=session_id),
             "origin": "user_attachment",
             "attachment_id": attachment_id,
             "tenant_id": tenant_id,

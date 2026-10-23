@@ -12,7 +12,6 @@ from typing import Any
 
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -212,6 +211,7 @@ AREA_RULES: tuple[tuple[str, ContractInfo], ...] = (
     ("/redazione-atti", ContractInfo("Redazione atti", "sessione/API tenant-aware", "P1", "produzione documenti", "DocumentDraftingResponse", "Documenti")),
     ("/legal-intelligence", ContractInfo("Ricerca legale", "sessione/API tenant-aware", "P1", "fonti e news", "LegalResearchResponse", "Lex")),
     ("/ricerca-legale", ContractInfo("Ricerca legale", "sessione/API tenant-aware", "P1", "fonti e news", "LegalResearchResponse", "Lex")),
+    ("/giurisprudenza/ricerca-amministrativa", ContractInfo("Giurisprudenza pubblica OpenGA", "sessione utente; soli metadati pubblici", "P1", "estremi, oggetto ed esito OpenGA; nessun fascicolo", "CaseLawResponse", "Ricerca")),
     ("/giurisprudenza", ContractInfo("Giurisprudenza", "sessione/API tenant-aware", "P1", "archivio giurisprudenza", "CaseLawResponse", "Lex")),
     ("/workflow-agents", ContractInfo("Regia Agentica Studio", "ai.usa/legal_skills.leggi + permessi azione", "P1", "run agentici redatti, proposte e metriche", "WorkflowAgentsResponse", "Lex")),
     ("/procedure-completion", ContractInfo("Procedure Completion Engine", "procedure_completion.leggi/esegui/approva/pubblica", "P1", "schede procedura, fonti, gap e review redatti", "ProcedureCompletionResponse", "Lex")),
@@ -510,6 +510,58 @@ def _operation(endpoint: Endpoint, frontend_links: dict[str, tuple[str, str]]) -
     if endpoint.full_path.startswith('/api/fatturazione/'):
         from tools.invoice_receipts_contract import apply_receipt_contract
         apply_receipt_contract(operation, endpoint.method)
+    if endpoint.function == "giurisprudenza_ricerca_amministrativa":
+        operation.update({'summary': 'Ricerca esplicita nei soli metadati pubblici OpenGA',
+         'description': 'Sessione utente richiesta; nessun import, addestramento o accesso ai fascicoli. Restituisce '
+                        'una sola lista di massimo dieci rapporti provvedimento-ricorso. La ricerca approfondita usa '
+                        'un motore sullo stesso host e può richiedere oltre un minuto. Oggetto ed esito non '
+                        'dimostrano motivazioni o principi. Se il classificatore o gli embedding non sono '
+                        "disponibili, conserva l'intera lista lessicale con avviso.",
+         'security': [{'cookieSession': []}],
+         'parameters': [],
+         'requestBody': {'required': True,
+                         'content': {'application/json': {'schema': {'type': 'object',
+                                                                     'required': ['q'],
+                                                                     'properties': {'q': {'type': 'string',
+                                                                                          'minLength': 1,
+                                                                                          'maxLength': 1000},
+                                                                                    'sede': {'type': 'string',
+                                                                                             'maxLength': 100},
+                                                                                    'dal': {'type': 'integer',
+                                                                                            'minimum': 1900,
+                                                                                            'maximum': 2100},
+                                                                                    'al': {'type': 'integer',
+                                                                                           'minimum': 1900,
+                                                                                           'maximum': 2100},
+                                                                                    'semantica': {'type': 'boolean',
+                                                                                                  'default': False}}}}}},
+         'x-data-classification': 'public_judicial_metadata_only',
+         'x-rbac-permission': 'sessione utente; la sola API key non abilita la ricerca'})
+        operation["responses"]["200"] = {'description': 'Esito della ricerca, catalogo non disponibile o richiesta concorrente dichiarati nel '
+                        'messaggio',
+         'content': {'application/json': {'schema': {'type': 'object',
+                                                     'required': ['ok', 'risultati', 'evidence_scope'],
+                                                     'properties': {'ok': {'type': 'boolean'},
+                                                                    'evidence_scope': {'type': 'string',
+                                                                                       'enum': ['metadata_only']},
+                                                                    'message': {'type': 'string'},
+                                                                    'semantic_available': {'type': 'boolean'},
+                                                                    'risultati': {'type': 'array',
+                                                                                  'maxItems': 10,
+                                                                                  'items': {'type': 'object',
+                                                                                            'description': 'Estremi, '
+                                                                                                           'oggetto, '
+                                                                                                           'esito, '
+                                                                                                           'identificativi '
+                                                                                                           'e '
+                                                                                                           'impronta '
+                                                                                                           'della '
+                                                                                                           'risorsa '
+                                                                                                           'ufficiale; '
+                                                                                                           'nessuna '
+                                                                                                           'massima '
+                                                                                                           'o '
+                                                                                                           'motivazione'}}}}}}}
     return operation
 
 

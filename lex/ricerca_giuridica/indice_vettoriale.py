@@ -126,7 +126,7 @@ class IndiceVettoriale:
         return self._mappe
 
     # ------------------------------------------------------------------ ricerca
-    def cerca(self, vettore: np.ndarray, *, k: int = 50, blocco: int = 8192) -> list[tuple[int, float]]:
+    def cerca(self, vettore: np.ndarray, *, k: int = 50, blocco: int = 8192, ids_ammessi: set[int] | None = None) -> list[tuple[int, float]]:
         """Prodotto scalare esatto a blocchi; restituisce (id chunk, coseno) in ordine decrescente."""
 
         from .costruzione_iniziale import disponibile
@@ -144,16 +144,31 @@ class IndiceVettoriale:
         scale = mappe["scale"]
         ids = mappe["ids"]
         k = max(1, int(k))
+        ammessi = None if ids_ammessi is None else np.asarray(sorted(ids_ammessi), dtype=np.int64)
+        if ammessi is not None and not ammessi.size:
+            return []
         migliori_punti: list[np.ndarray] = []
         migliori_righe: list[np.ndarray] = []
         for inizio in range(0, vettori.shape[0], blocco):
-            parte = np.asarray(vettori[inizio : inizio + blocco], dtype=np.float32)
-            punti = (parte @ domanda) * scale[inizio : inizio + blocco]
-            punti[ids[inizio : inizio + blocco] < 0] = -np.inf
+            ids_blocco = ids[inizio : inizio + blocco]
+            if ammessi is None:
+                posizioni = np.arange(inizio, min(inizio + blocco, vettori.shape[0]))
+                parte = np.asarray(vettori[inizio : inizio + blocco], dtype=np.float32)
+                punti = (parte @ domanda) * scale[inizio : inizio + blocco]
+                punti[ids_blocco < 0] = -np.inf
+            else:
+                validi = (ids_blocco >= 0) & np.isin(ids_blocco, ammessi)
+                if not validi.any():
+                    continue
+                posizioni = np.flatnonzero(validi) + inizio
+                parte = np.asarray(vettori[inizio : inizio + blocco][validi], dtype=np.float32)
+                punti = (parte @ domanda) * scale[inizio : inizio + blocco][validi]
             quanti = min(k, punti.shape[0])
             scelti = np.argpartition(-punti, quanti - 1)[:quanti]
             migliori_punti.append(punti[scelti])
-            migliori_righe.append(scelti + inizio)
+            migliori_righe.append(posizioni[scelti])
+        if not migliori_punti:
+            return []
         punti = np.concatenate(migliori_punti)
         righe = np.concatenate(migliori_righe)
         ordine = np.argsort(-punti)[:k]

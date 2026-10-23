@@ -117,7 +117,8 @@ _COLONNE_RICERCA = """
     s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
     s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza,
     s.tipo_provvedimento, s.relatore, s.data_decisione, s.esito, s.oggetto,
-    s.url_html_ufficiale
+    s.url_html_ufficiale, s.testo_integrale_presente,
+    (SELECT codice FROM fonti_giurisprudenza WHERE id=s.fonte_id) AS fonte_codice
 """
 
 _ORDINE_STORICO = """
@@ -472,6 +473,13 @@ class GestioneCorpusGiurisprudenza:
         chiave_naturale: bool = False,
     ) -> tuple[int, str]:
         normalized = dict(payload or {})
+        from lex.evidence_scope import is_private_evidence
+
+        if (is_private_evidence(normalized)
+                or is_private_evidence(normalized.get("metadata"))
+                or normalized.get("shared_catalog_eligible") is False
+                or (normalized.get("metadata") or {}).get("shared_catalog_eligible") is False):
+            raise ValueError("Documento privato: conservarlo nel fascicolo, non nel corpus giurisprudenziale.")
         normalized["uuid_interno"] = _derive_uuid(normalized)
         fonte_payload = dict(normalized.get("fonte") or {})
         codice_fonte = _clean_spaces(fonte_payload.get("codice") or normalized.get("fonte_codice") or "manuale_interno")
@@ -887,7 +895,20 @@ class GestioneCorpusGiurisprudenza:
         stato_verifica: str = "",
         solo_con_pdf: bool = False,
         limit: int = 20,
+        semantica: bool | None = None,
+        solo_contenuto: bool = False,
     ) -> list[dict[str, Any]]:
+        import os
+        if semantica is None:
+            semantica = os.getenv("LEX_GIURISPRUDENZA_SEMANTICA", "0") == "1"
+        if semantica and _clean_spaces(q):
+            try:
+                return self.cerca_sentenze_ibrida(q=q, organo_giudicante=organo_giudicante,
+                    materia_principale=materia_principale, stato_verifica=stato_verifica,
+                    solo_con_pdf=solo_con_pdf, limit=limit, solo_contenuto=solo_contenuto)
+            except Exception:
+                import logging
+                logging.getLogger(__name__).warning("Indice sentenze non disponibile: ricerca testuale", exc_info=True)
         filtri = ""
         filtri_params: list[Any] = []
         if _clean_spaces(organo_giudicante):
@@ -901,6 +922,8 @@ class GestioneCorpusGiurisprudenza:
             filtri_params.append(_clean_spaces(stato_verifica))
         if solo_con_pdf:
             filtri += " AND s.pdf_ufficiale_presente = 1"
+        if solo_contenuto:
+            filtri += " AND NOT EXISTS (SELECT 1 FROM fonti_giurisprudenza f WHERE f.id=s.fonte_id AND f.codice='openga' AND COALESCE(s.testo_integrale_presente,0)=0)"
         limite = max(1, int(limit))
         domanda = _clean_spaces(q)
         with self._connect() as conn:
@@ -934,6 +957,42 @@ class GestioneCorpusGiurisprudenza:
             risultato = (per_estremi + ordinate)[:limite]
             self._massime_pertinenti_prima(conn, risultato, termini)
             return risultato
+
+    def cerca_sentenze_ibrida(self, *, q="", embedder=None, folder=None, **filtri):
+        """Candidato locale esplicito: stessi filtri e stesse guardie del corpus."""
+        from pct.giurisprudenza_semantica import cerca, fondi, preserva_lessicali
+        limite = max(1, int(filtri.pop("limit", 20)))
+        lessicali = self.cerca_sentenze(q=q, limit=max(100, limite), semantica=False, **filtri)
+        if not _clean_spaces(q):
+            return lessicali[:limite]
+        semantici = cerca(self.db_path, q, embedder=embedder, folder=folder, limit=200)
+        ids = [sid for sid, _ in semantici]
+        ammessi = {}
+        with self._connect() as conn:
+            for start in range(0, len(ids), 200):
+                part = ids[start:start + 200]
+                if not part:
+                    continue
+                sql = f"SELECT {_COLONNE_RICERCA} FROM sentenze s WHERE s.id IN (" + ",".join("?" for _ in part) + ")"
+                params = list(part)
+                for key in ("organo_giudicante", "materia_principale", "stato_verifica"):
+                    if _clean_spaces(filtri.get(key)):
+                        sql += " AND s." + key + "=?"
+                        params.append(_clean_spaces(filtri[key]))
+                if filtri.get("solo_con_pdf"):
+                    sql += " AND s.pdf_ufficiale_presente=1"
+                if filtri.get("solo_contenuto"):
+                    sql += " AND NOT EXISTS (SELECT 1 FROM fonti_giurisprudenza f WHERE f.id=s.fonte_id AND f.codice='openga' AND COALESCE(s.testo_integrale_presente,0)=0)"
+                ammessi.update({int(row["id"]):dict(row) for row in conn.execute(sql, params)})
+        rows = {int(row["id"]):row for row in lessicali}
+        rows.update({sid:row for sid,row in ammessi.items() if sid not in rows})
+        ranking = fondi([int(row["id"]) for row in lessicali],
+                       [sid for sid,_ in semantici if sid in ammessi], limit=max(100, limite))
+        # Gli estremi esatti continuano a precedere la pertinenza semantica.
+        esatti = [int(row["id"]) for row in lessicali if row.get("trovata_per_estremi")]
+        ranking = list(dict.fromkeys(esatti + ranking))
+        ranking = preserva_lessicali(ranking, [int(row["id"]) for row in lessicali], limit=limite)
+        return [rows[sid] for sid in ranking]
 
     def _righe_per_estremi(
         self,
@@ -1006,6 +1065,9 @@ class GestioneCorpusGiurisprudenza:
     def can_cite_sentenza(self, record: dict[str, Any] | None) -> bool:
         if not record:
             return False
+        from pct.giurisprudenza_evidenze import solo_metadati
+        if solo_metadati(record):
+            return False  # estremi consultabili, ma nessun contenuto della decisione dimostrato
         stato = _clean_spaces(record.get("stato_verifica"))
         if stato not in {"verificata", "parzialmente_verificata"}:
             return False

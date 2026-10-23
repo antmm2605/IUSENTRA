@@ -42,6 +42,8 @@ class LexRetrievalCache:
     def build_key(self, request, context, workflow: str) -> str:
         payload = {
             "tenant_id": str(getattr(request, "tenant_id", "") or "").strip(),
+            "user_id": str(getattr(request, "user_id", "") or "").strip(),
+            "session_id": str(getattr(request, "session_id", "") or "").strip(),
             "workflow": str(workflow or "").strip(),
             "intent": str(getattr(request, "intent", "") or "").strip(),
             "query": str(getattr(request, "query", "") or "").strip(),

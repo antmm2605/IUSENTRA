@@ -1,3 +1,4 @@
+import { OpenGASearch } from './OpenGASearch'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
@@ -933,6 +934,7 @@ function GiurisprudenzaArchivePage() {
         <Metrics metrics={data.metrics} />
         <ContractStrip data={data} />
         <WarningList data={data} />
+        <OpenGASearch />
         <div id="filtri-giurisprudenza" />
         <Filters
           query={query}

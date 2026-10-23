@@ -10,12 +10,14 @@ from pathlib import Path
 from typing import Any
 
 from lex.contracts import EvidenceItem
+from lex.evidence_scope import private_evidence_metadata
 from lex.retrieval.document_parser_docling import (
     DocumentParseResult,
     is_docling_enabled,
     parse_document_with_docling,
 )
 from lex.retrieval.documenti_cache import MEMORIA_DOCUMENTI
+from pct.document_intelligence.security import DocumentAIPermissionDenied, DocumentAISecurityError
 from pct.formatting import format_date_it
 
 _MAX_EXCERPT = 1200   # caratteri massimi per singola evidenza
@@ -187,7 +189,7 @@ def _docling_chunk_items(
         if not text:
             continue
         metadata = {
-            "document_id": doc_id,
+            **private_evidence_metadata(fascicolo_id=pratica_id, document_id=doc_id),
             "source_hash": result.source_hash,
             "source_path": result.source_path,
             "parser": result.parser,
@@ -395,6 +397,8 @@ def _indexed_document_items(pratica_id: str, message: str, context: dict[str, An
     _prepare_index_for_lex(pratica_id, context)
     try:
         documents = list(service.list_fascicolo_documents(tenant_id, pratica_id, user_context) or [])
+    except (DocumentAIPermissionDenied, DocumentAISecurityError, PermissionError):
+        return []
     except Exception:
         return None
 
@@ -444,7 +448,8 @@ def _indexed_document_items(pratica_id: str, message: str, context: dict[str, An
                 content=content,
                 score=score,
                 metadata={
-                    "document_id": document.id,
+                    **private_evidence_metadata(tenant_id=tenant_id, fascicolo_id=pratica_id, document_id=document.id),
+                    "href": _document_href(pratica_id, str(document.id)),
                     "version_id": text_record.version_id,
                     "sha256": getattr(document, "sha256", ""),
                     "page_count": getattr(document, "page_count", None),
@@ -562,6 +567,7 @@ def search_document_sources(
             score = max(score - 0.18, 0.45)
 
         metadata = {
+            **private_evidence_metadata(fascicolo_id=pratica_id, document_id=doc_id),
             "tipo": tipo,
             "firmato": bool(getattr(doc, "firmato_digitalmente", False)),
             "data_documento": _clean(getattr(doc, "data_documento", "")),

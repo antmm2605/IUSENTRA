@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "scope": "metadata_only",
+  "model_embedding": "embeddinggemma:300m",
+  "digest_embedding": "85462619ee721b466c5927d109d4cb765861907d5417b9109caebc4e614679f1",
+  "relazioni": 497613,
+  "decisioni": 482894,
+  "unita": 497612,
+  "files": [
+    {
+      "file": "catalogo.db",
+      "sha256": "55de8f3db7197bf7faf9777c22f80ee4e560e8f6eeb56af352601cd0a33379e2",
+      "bytes": 519442432
+    },
+    {
+      "file": "inventario-risorse.json",
+      "sha256": "ab27f3ee7ae26bfe42fb94418a4365a01f8e242484f8b4746e136f5170d1bcaf",
+      "bytes": 123765
+    },
+    {
+      "file": "catalogo.db.vettori-oggetti/scale.f32",
+      "sha256": "00c87f51e71f3ae0ef00c1c39bc1c168053d051d483f8711acdc59315156e01a",
+      "bytes": 1990448
+    },
+    {
+      "file": "catalogo.db.vettori-oggetti/vettori.i8",
+      "sha256": "9699961a45947a6eca48a4ddea4e798132f23fb6630670010731a5aac340a883",
+      "bytes": 382166016
+    },
+    {
+      "file": "catalogo.db.vettori-oggetti/ids.i64",
+      "sha256": "f869a46f810d612a8cb2d75f9ff2f25387a6a6ff2e1a71e55c1c73693c8fd992",
+      "bytes": 3980896
+    },
+    {
+      "file": "catalogo.db.vettori-oggetti/meta.json",
+      "sha256": "f716ea447c2517932bdf804012ad4f4442954763df78bf739b2d630fd137d04d",
+      "bytes": 567
+    },
+    {
+      "file": "catalogo.db.vettori-oggetti/scope.json",
+      "sha256": "bfb3ad805d51d4d36e5072f6a74ecf5aab6dbf93352b9e9e406fbe5f029b3deb",
+      "bytes": 299
+    },
+    {
+      "file": "catalogo.db.vettori-oggetti/impronte.u64",
+      "sha256": "c1d316a296fc92b10c68dcef6d0d07544a6b5f27bed611191a65376f405458fa",
+      "bytes": 3980896
+    }
+  ]
+}

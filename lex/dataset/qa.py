@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
+
+from lex.evidence_scope import is_private_evidence
 
 from .models import DocumentChunk, QAGenerationTask, QAPair, clean_text, stable_id
 from .privacy import classify_privacy, redact_sensitive_for_dataset
@@ -52,6 +54,10 @@ def build_qa_generation_tasks(
     opts = policy or QAGenerationPolicy()
     tasks: list[QAGenerationTask] = []
     for chunk in chunks:
+        if (is_private_evidence(chunk.source.metadata)
+                or chunk.source.metadata.get("training_eligible") is False
+                or chunk.metadata.get("training_eligible") is False):
+            continue
         if len(chunk.text) < opts.min_chunk_chars:
             continue
         task_id = stable_id(chunk.chunk_id, "qa-task", opts.max_pairs_per_chunk, prefix="lex-qa-task-")

@@ -703,3 +703,9 @@ main.iu-content.iu-legal-fullscreen-mode .iu-legal-page {
     grid-template-columns: 1fr;
   }
 }
+
+.iu-openga-form { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+.iu-openga-form label { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+.iu-openga-form label:first-child { flex: 1 1 20rem; }
+.iu-openga-form input:not([type=checkbox]) { width: 100%; max-width: 100%; padding: .5rem; border: 1px solid currentColor; border-radius: .35rem; background: transparent; color: inherit; }
+.iu-openga-hash { overflow-wrap: anywhere; }

@@ -31,19 +31,12 @@ if ! docker container inspect "$name" >/dev/null 2>&1; then
     --tmpfs /tmp:rw,noexec,nosuid,size=128m -e LEX_EMBED_URL=http://ollama:11434 -e LEX_EMBED_MODEL=embeddinggemma:300m \
     -v "$root/catalogo:/catalogo:ro" -v "$root/modello:/modello:ro" "$image"
 fi
-# La ricerca reale verifica anche revisione embedding, pesi, indice e classificatore.
-docker exec -i "$name" python - <<'PYTEST'
-import json,time,urllib.request
-query="TAR L'Aquila: copie dei documenti comunali accessibili soltanto pagando quaranta euro per ciascun atto."
-body=json.dumps({'q':query,'semantica':True}).encode()
-t=time.perf_counter()
-request=urllib.request.Request('http://127.0.0.1:8092/search',body,{'Content-Type':'application/json'})
-result=json.load(urllib.request.urlopen(request,timeout=120))
-assert result['ok'] and result['semantic_available'] and result['evidence_scope']=='metadata_only', result.get('message')
-assert any(r['decisione_id']=='004|SENTENZA BREVE|2022|202200025' for r in result['risultati'])
-assert len(result['risultati'])<=10
-print(json.dumps({'ricerca_reale':'ok','secondi':round(time.perf_counter()-t,3),'risultati':len(result['risultati']),'scope':'metadata_only','training':False}))
-PYTEST
+# Gate congelato prima dei risultati; stesso server e classificatore persistenti.
+docker exec "$name" python /app/benchmark_server.py
+# Misure reali CPU del server, senza proiezioni dalla GPU locale.
+df -B1 /opt/iusentra
+du -sb "$root/catalogo" "$root/modello"
+docker stats --no-stream --format '{{.Name}} {{.MemUsage}} {{.CPUPerc}}' "$name"
 # Solo dopo il riscontro positivo si sposta l'alias; vecchi contenitori conservati per ripristino.
 for old in $(docker ps -q --filter label=io.iusentra.component=openga); do
   if [ "$(docker inspect -f '{{.Name}}' "$old")" != "/$name" ]; then

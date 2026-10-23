@@ -1,0 +1,242 @@
+[
+  {
+    "id": "SRV_01",
+    "q": "TAR Latina: cerco una decisione sulla Questura di Frosinone che ritira il permesso di usare il fucile per andare a caccia.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "001|SENTENZA|2023|202300194",
+    "attesa_relazione": "001|SENTENZA|2023|202300194|201800634"
+  },
+  {
+    "id": "SRV_02",
+    "q": "Consiglio di Stato: stop al cantiere e obbligo di togliere costruzioni irregolari, dopo il rifiuto di regolarizzarle con un titolo edilizio.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "002|SENTENZA|2023|202306975",
+    "attesa_relazione": "002|SENTENZA|2023|202306975|201906171"
+  },
+  {
+    "id": "SRV_03",
+    "q": "TAR Roma: controllo del GSE sui documenti di una centrale che produce elettricità con acqua a Pralungo, identificata come IAFR 2719.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "003|SENTENZA BREVE|2023|202312196",
+    "attesa_relazione": "003|SENTENZA BREVE|2023|202312196|202304808"
+  },
+  {
+    "id": "SRV_04",
+    "q": "TAR L'Aquila: contestazione della riorganizzazione interna degli uffici dei vigili urbani disposta il 9 agosto 2022.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "004|SENTENZA|2023|202300192",
+    "attesa_relazione": "004|SENTENZA|2023|202300192|202200380"
+  },
+  {
+    "id": "SRV_05",
+    "q": "TAR Pescara: revisione del permesso ambientale unico della ditta Sirolli a Poggiofiorito, adottata dagli uffici regionali per le emissioni.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "005|SENTENZA|2023|202300121",
+    "attesa_relazione": "005|SENTENZA|2023|202300121|202200248"
+  },
+  {
+    "id": "SRV_06",
+    "q": "TAR Bolzano: una famiglia vuole istruire il figlio a casa e contesta la risposta della scuola delle località ladine di Selva di Val Gardena.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "006|SENTENZA|2023|202300016",
+    "attesa_relazione": "006|SENTENZA|2023|202300016|202200164"
+  },
+  {
+    "id": "SRV_07",
+    "q": "TAR Potenza: condizioni imposte dal Comune per scavare il terreno pubblico allo scopo di posare cavi per internet veloce.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "007|SENTENZA|2023|202300674",
+    "attesa_relazione": "007|SENTENZA|2023|202300674|202300145"
+  },
+  {
+    "id": "SRV_08",
+    "q": "TAR Catanzaro: la Prefettura di Vibo Valentia ritira il via libera per passare dal soggiorno per impiego stagionale a quello per lavoro subordinato.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "008|SENTENZA BREVE|2023|202300538",
+    "attesa_relazione": "008|SENTENZA BREVE|2023|202300538|202300288"
+  },
+  {
+    "id": "SRV_09",
+    "q": "TAR Reggio Calabria: il Comune non prepara il piano personalizzato richiesto dai genitori per il figlio minorenne con disabilità.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "009|SENTENZA|2023|202300747",
+    "attesa_relazione": "009|SENTENZA|2023|202300747|202200460"
+  },
+  {
+    "id": "SRV_10",
+    "q": "TAR Napoli: richiesta di ottenere che sia rispettato un decreto della Corte di appello depositato il 25 maggio 2020, cronologico 1440.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "010|SENTENZA|2023|202305137",
+    "attesa_relazione": "010|SENTENZA|2023|202305137|202300862"
+  },
+  {
+    "id": "SRV_11",
+    "q": "TAR Salerno: il Comune di Positano rifiuta definitivamente di riconoscere la compatibilità delle opere con il paesaggio, con atto dell’agosto 2016.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "011|SENTENZA|2023|202300314",
+    "attesa_relazione": "011|SENTENZA|2023|202300314|201601775"
+  },
+  {
+    "id": "SRV_12",
+    "q": "TAR Bologna: richiesta di fare eseguire la decisione numero 426 del 2017 emessa dal giudice del lavoro del Tribunale bolognese.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "012|SENTENZA|2023|202300303",
+    "attesa_relazione": "012|SENTENZA|2023|202300303|202300186"
+  },
+  {
+    "id": "SRV_13",
+    "q": "TAR Parma: rifiuto definitivo del progetto di una struttura tecnica per le reti di telefonia commissionata da TIM e Vodafone.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "013|SENTENZA|2023|202300116",
+    "attesa_relazione": "013|SENTENZA|2023|202300116|202200159"
+  },
+  {
+    "id": "SRV_14",
+    "q": "TAR Trieste: controversia sull’allargamento ad altri paesi della Carnia degli accordi per prelevare e trasportare la spazzatura domestica.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "014|SENTENZA|2023|202300139",
+    "attesa_relazione": "014|SENTENZA|2023|202300139|202200467"
+  },
+  {
+    "id": "SRV_15",
+    "q": "TAR Genova: pagamento dell’indennizzo per processo troppo lungo e relativi interessi, riconosciuto dalla Corte di appello nel decreto cronologico 89 del 2021.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "015|SENTENZA|2023|202300126",
+    "attesa_relazione": "015|SENTENZA|2023|202300126|202200624"
+  },
+  {
+    "id": "SRV_16",
+    "q": "TAR Milano: una banca chiede che sia confermata la copertura offerta dal Fondo di garanzia per un finanziamento industriale, ma riceve un rifiuto.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "016|SENTENZA|2023|202302978",
+    "attesa_relazione": "016|SENTENZA|2023|202302978|202300936"
+  },
+  {
+    "id": "SRV_17",
+    "q": "TAR Brescia: installazione di un ripetitore per cellulari, permesso relativo al paesaggio negato e richiesta di riconoscere l’assenso formatosi senza risposta.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "017|SENTENZA|2023|202300938",
+    "attesa_relazione": "017|SENTENZA|2023|202300938|202300384"
+  },
+  {
+    "id": "SRV_18",
+    "q": "TAR Ancona: permesso per un impianto che trasforma rifiuti non pericolosi in biometano e fertilizzante compostato con trattamento sia senza sia con ossigeno.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "018|SENTENZA|2023|202300238",
+    "attesa_relazione": "018|SENTENZA|2023|202300238|202200553"
+  },
+  {
+    "id": "SRV_19",
+    "q": "TAR Campobasso: ordine dell’ufficio tecnico di abbattere un fabbricato e riportare il terreno alle condizioni precedenti entro tre mesi.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "019|SENTENZA|2023|202300223",
+    "attesa_relazione": "019|SENTENZA|2023|202300223|202200138"
+  },
+  {
+    "id": "SRV_20",
+    "q": "TAR Torino: misure urgenti del Comune sulle modalità di conduzione della casa famiglia Raggio di Sole a Castelrosso di Chivasso.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "020|SENTENZA|2023|202300703",
+    "attesa_relazione": "020|SENTENZA|2023|202300703|202100020"
+  },
+  {
+    "id": "SRV_21",
+    "q": "TAR Bari: esecuzione della decisione del giudice del lavoro di Foggia numero 3027 del 2021 su carriera e somme di stipendio non riconosciute.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "021|SENTENZA|2023|202300307",
+    "attesa_relazione": "021|SENTENZA|2023|202300307|202200685"
+  },
+  {
+    "id": "SRV_22",
+    "q": "TAR Lecce: assegnazione dell’incarico facoltativo di controllare i conti annuali dell’azienda sanitaria della provincia di Brindisi.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "022|SENTENZA BREVE|2023|202300578",
+    "attesa_relazione": "022|SENTENZA BREVE|2023|202300578|202201434"
+  },
+  {
+    "id": "SRV_23",
+    "q": "TAR Cagliari: mancato permesso di collocare un molo che galleggia a Conca Verde, nel territorio di Santa Teresa Gallura.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "023|SENTENZA|2023|202300387",
+    "attesa_relazione": "023|SENTENZA|2023|202300387|202100029"
+  },
+  {
+    "id": "SRV_24",
+    "q": "TAR Palermo: gara per prendere in locazione e montare macchinari a raggi X destinati alle valigie imbarcate nella stiva.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "024|SENTENZA|2023|202303321",
+    "attesa_relazione": "024|SENTENZA|2023|202303321|202300754"
+  },
+  {
+    "id": "SRV_25",
+    "q": "TAR Catania: richiesta dei documenti riguardanti la mancata inclusione nelle liste permanenti degli insegnanti di scuola materna ed elementare.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "025|SENTENZA|2023|202302220",
+    "attesa_relazione": "025|SENTENZA|2023|202302220|202101986"
+  },
+  {
+    "id": "SRV_26",
+    "q": "TAR Firenze: scelta dell’affidatario per i servizi delle biblioteche da parte dell’Unione comunale del Chianti fiorentino nel luglio 2023.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "026|SENTENZA|2023|202301113",
+    "attesa_relazione": "026|SENTENZA|2023|202301113|202300960"
+  },
+  {
+    "id": "SRV_27",
+    "q": "TAR Trento: l’ente previdenziale respinge la richiesta di integrazione salariale ordinaria con provvedimento del 28 febbraio 2023.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "027|SENTENZA|2023|202300167",
+    "attesa_relazione": "027|SENTENZA|2023|202300167|202300050"
+  },
+  {
+    "id": "SRV_28",
+    "q": "TAR Perugia: domanda perché venga rispettato il decreto della Corte di appello numero 1669 del 13 giugno 2017.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "028|SENTENZA|2023|202300474",
+    "attesa_relazione": "028|SENTENZA|2023|202300474|202200365"
+  },
+  {
+    "id": "SRV_29",
+    "q": "TAR Aosta: rigetto della domanda per costruire un ripetitore della rete cellulare, provvedimento 254 del 30 maggio 2022.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "029|SENTENZA|2023|202300011",
+    "attesa_relazione": "029|SENTENZA|2023|202300011|202200043"
+  },
+  {
+    "id": "SRV_30",
+    "q": "TAR Venezia: un lavoratore straniero vuole vedere i documenti della pratica per regolarizzare un impiego svolto in nero.",
+    "dal": 2023,
+    "al": 2023,
+    "attesa_decisione": "030|SENTENZA|2023|202301344",
+    "attesa_relazione": "030|SENTENZA|2023|202301344|202300611"
+  }
+]

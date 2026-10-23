@@ -11,3 +11,9 @@ Le 60 domande usate per sviluppare R6 non sono una validazione indipendente: 58/
 Non attivare l'indice Consulta su corpus diversi: va costruito o riconvalidato sulle fonti effettive del server. La funzione resta opt-in. Il catalogo OpenGA nuovo non attribuisce valore di precedente citabile a dati senza testo.
 
 La prova del contenitore CPU (4 core, 6 GiB di limite, runtime bloccato) ha riprodotto 29/30 contro 27/30 originali: massimo osservato circa 65 secondi, non uno SLA del server. La modalità rapida applica gli stessi filtri di sede senza modelli; quella approfondita è esplicita e usa una sola lista.
+
+## Gate ulteriore prima del collegamento al gestionale
+
+Il campione `benchmark-server-30.json` è congelato prima delle ricerche, con SHA nel protocollo e decisioni disgiunte dai 90 casi già esaminati. Usa 30 sedi e decisioni del 2023: è una prova di reperimento di record noti, non una valutazione universale né giuridica.
+
+L'attivazione esegue sul CPX42 le due ricerche con gli stessi filtri e registra la lista unica top 10, tempi a freddo e a caldo, memoria del processo e del contenitore, cache del classificatore e una ripetizione a caldo. Occorrono un vantaggio stretto della lista ibrida, zero perdite lessicali, zero fallback/errori, stesso processo e un solo caricamento del classificatore. In caso contrario il collegamento del gestionale resta invariato e il rapporto va analizzato senza ritoccare attesi o domande. Non si promettono 3 o 10 secondi prima di misurare il server CPU reale.

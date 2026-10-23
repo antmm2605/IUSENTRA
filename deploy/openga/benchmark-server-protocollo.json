@@ -1,0 +1,11 @@
+{
+  "congelato_utc": "2026-10-23T18:51:23.862021+00:00",
+  "sha256": "071ace4876fed5181a460f1a98f064991516e05778768c44181485126cdfe1d9",
+  "risultati_osservati": false,
+  "decisioni_disgiunte_dai_90": true,
+  "selezione": "primo record SHA ordinato di ciascuna delle prime 30 sedi, anno 2023, oggetto 100-420 caratteri; scelta prima delle ricerche",
+  "limite": "known-item metadata paraphrase, tutte decisioni 2023, non campione rappresentativo di ogni domanda; nessuna verità giuridica inferita",
+  "metrica": "unica lista top10, stessa query e stessi filtri per lessicale e R6; attesa esatta, nessun allargamento",
+  "gate": "R6 > lessicale; zero casi persi; nessun fallback/errore; processo server e classificatore persistenti; tempi/memoria/dimensioni pubblicati",
+  "nessun_training": true
+}

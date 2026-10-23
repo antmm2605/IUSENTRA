@@ -4,7 +4,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from pct.openga_search import search_openga
+from pct.openga_search import _reranker, search_openga
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -24,7 +24,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(404, {})
         from pct import __version__
         ready = Path(os.environ["IUSENTRA_OPENGA_CATALOGO_DB"]).is_file()
-        self.send(200 if ready else 503, {"configured": ready, "version": __version__, "training": False})
+        cache = _reranker.cache_info()
+        self.send(200 if ready else 503, {"configured": ready, "version": __version__, "training": False,
+                                        "pid": os.getpid(), "reranker_cache": {"caricati": cache.currsize,
+                                        "misses": cache.misses, "hits": cache.hits}})
 
     def do_POST(self):
         if self.path != "/search":

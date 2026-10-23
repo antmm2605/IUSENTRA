@@ -7,6 +7,7 @@ COPY pct ./pct
 COPY lex ./lex
 COPY scripts ./scripts
 COPY deploy/openga/server.py ./server.py
+COPY deploy/openga/benchmark_server.py deploy/openga/benchmark-server-30.json deploy/openga/benchmark-server-protocollo.json ./
 ENV PYTHONPATH=/app OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 TOKENIZERS_PARALLELISM=false HF_HUB_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 TRANSFORMERS_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1
 ENV IUSENTRA_OPENGA_CATALOGO_DB=/catalogo/catalogo.db IUSENTRA_OPENGA_RERANKER_DIR=/modello
 USER 65534:65534

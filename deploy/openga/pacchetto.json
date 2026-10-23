@@ -1,4 +1,7 @@
 {
+  "release_id": 422102151,
+  "release_tag": "openga-r6-20261023-dati",
+  "asset_id": 669788396,
   "asset": "openga-r6-dati.tar.gz",
   "bytes": 494236304,
   "sha256": "de283acaf0741ee78da8cc093bcd3f443281555d8704fed970ac6099d6169c93"

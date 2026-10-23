@@ -18,10 +18,18 @@ jobs:
   install:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # GitHub rende visibili le bozze solo a identita con accesso push.
+    # Il workflow usa esclusivamente GET: nessuna pubblicazione o modifica della release.
+    permissions:
+      contents: write
+      actions: read
+      checks: read
+      statuses: read
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Verifica SHA e CI prima dell'installazione
         env:
           GH_TOKEN: ${{ github.token }}
@@ -36,12 +44,18 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$RELEASE_TAG" =~ ^openga-r6-[0-9]{8}-dati$ ]]
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > release.json
+          test "$RELEASE_TAG" = "$(jq -r .release_tag deploy/openga/pacchetto.json)"
+          release=$(jq -er .release_id deploy/openga/pacchetto.json)
+          [[ "$release" =~ ^[0-9]+$ ]]
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release}" > release.json
           test "$(jq -r .draft release.json)" = true
+          test "$(jq -r .tag_name release.json)" = "$RELEASE_TAG"
           name=$(jq -r .asset deploy/openga/pacchetto.json)
           asset=$(jq -er --arg n "$name" '.assets[] | select(.name == $n) | .id' release.json)
-          gh api -H 'Accept: application/octet-stream' "repos/${GITHUB_REPOSITORY}/releases/assets/$asset" > "$RUNNER_TEMP/$name"
+          test "$asset" = "$(jq -r .asset_id deploy/openga/pacchetto.json)"
           expected=$(jq -r .sha256 deploy/openga/pacchetto.json)
+          test "$(jq -r --arg n "$name" '.assets[] | select(.name == $n) | .digest' release.json)" = "sha256:$expected"
+          gh api -H 'Accept: application/octet-stream' "repos/${GITHUB_REPOSITORY}/releases/assets/$asset" > "$RUNNER_TEMP/$name"
           printf '%s  %s\n' "$expected" "$RUNNER_TEMP/$name" | sha256sum -c -
       - name: Installa senza sovrascrivere corpus e avvia motore privato
         env:

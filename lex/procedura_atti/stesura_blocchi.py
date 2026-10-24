@@ -157,6 +157,7 @@ def verifica_rimedio_deciso(bozza: str, richiesta: str) -> list[tuple[str, str]]
 def verifica_fatti_nuovi(bozza: str, origine: str) -> list[tuple[str, str]]:
     """Controlla attribuzioni fattuali tipizzate; la norma non prova il contratto del caso."""
     problemi = []
+    origine_affermativa = re.sub(r"\bnon\s+(?:aggiungere|chiedere|richiedere)[^.;\n]*|\bsenza[^.;\n]*", "", origine, flags=re.IGNORECASE)
     tipi = {"locazione": r"locazion|affitt", "compravendita": r"compravendit|vendit", "appalto": r"appalt",
             "mutuo": r"mutu", "comodato": r"comodat", "lavoro": r"lavor", "assicurazione": r"assicura", "leasing": r"leasing"}
     for match in re.finditer(r"\bcontratto\s+di\s+(locazione|compravendita|appalto|mutuo|comodato|lavoro|assicurazione|leasing)\b", bozza, re.IGNORECASE):
@@ -166,9 +167,8 @@ def verifica_fatti_nuovi(bozza: str, origine: str) -> list[tuple[str, str]]:
     esclusivo = re.search(r"(?:esclusivamente|soltanto|solo)\s+(?:il\s+)?recesso", origine, re.IGNORECASE)
     if esclusivo and re.search(r"caparra", origine, re.IGNORECASE):
         for match in re.finditer(r"\brilascio\s+dell[’']?\s*(?:immobile|bene)|\brilascio\s+dell(?:o|a)\s+(?:immobile|bene)", bozza, re.IGNORECASE):
-            if not re.search(r"rilascio", origine, re.IGNORECASE):
+            if not re.search(r"rilascio", origine_affermativa, re.IGNORECASE):
                 problemi.append(("domanda_non_decisa", match.group(0)))
-    origine_affermativa = re.sub(r"\bnon\s+(?:aggiungere|chiedere|richiedere)[^.;\n]*|\bsenza[^.;\n]*", "", origine, flags=re.IGNORECASE)
     if esclusivo and re.search(r"caparra", origine, re.IGNORECASE):
         for match in re.finditer(r"\b(interessi|spese|compensazione|estinzione)\b", bozza, re.IGNORECASE):
             parola = match.group(1)

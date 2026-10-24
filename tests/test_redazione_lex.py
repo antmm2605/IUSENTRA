@@ -196,6 +196,7 @@ def test_natura_del_contratto_e_rilascio_non_possono_essere_inventati():
     bozza="Recesso dal contratto di locazione. Si chiede il rilascio dell’immobile."
     errori=verifica_fatti_nuovi(bozza,richiesta)
     assert {x[0] for x in errori}=={"natura_contratto_non_fornita","domanda_non_decisa"}
+    assert any(g[0]=="domanda_non_decisa" for g in verifica_fatti_nuovi("Si chiede il rilascio dell’immobile.",richiesta+" Non aggiungere rilascio di beni."))
     assert verifica_fatti_nuovi("Contratto di compravendita.","Le parti hanno stipulato una vendita.")==[]
     assert verifica_fatti_nuovi("Contratto di appalto.","Un appalto è documentato.")==[]
     assert verifica_fatti_nuovi("Si chiede il rilascio dell’immobile.","Si esercita esclusivamente il recesso con caparra e si chiede il rilascio.")==[]

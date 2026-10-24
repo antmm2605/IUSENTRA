@@ -26,6 +26,29 @@ def request(container, url, payload=None):
     return json.loads(command("docker", "exec", container, "python", "-c", code, json.dumps([url, payload])))
 
 
+
+def verify_reading(repo, container):
+    # Caso pubblico di collaudo: identità sempre letta dal catalogo installato.
+    code = ("import sqlite3,json;c=sqlite3.connect('file:/catalogo/catalogo.db?mode=ro',uri=True);"
+            "r=c.execute(\"SELECT a.relazione,a.risorsa,s.sha256 FROM attive a JOIN risorse s "
+            "ON s.id=a.risorsa WHERE a.sede='003' AND a.numero='202300001' "
+            "AND a.ricorso='202212886' LIMIT 1\").fetchone();"
+            "assert r,'Caso pubblico di collaudo assente';"
+            "print(json.dumps(dict(zip(('relazione_id','resource_id','resource_sha256'),r))))")
+    selected = json.loads(command("docker", "exec", container, "python", "-c", code))
+    identity = request("iusentra-app", f"http://{container}:8092/document-identity", selected)
+    if identity.get("ok") is not True:
+        raise ValueError("Identità della lettura non riscontrata nel servizio")
+    result = subprocess.run(["docker", "exec", "-i", "iusentra-app", "python", "-",
+                             json.dumps(identity["identita"])],
+                            input=(repo / "deploy/openga/verify_reading.py").read_text(),
+                            text=True, capture_output=True, check=True, timeout=180)
+    proof = json.loads(result.stdout.strip().splitlines()[-1])
+    if proof.get("stato") != "acquisito" or proof.get("caratteri", 0) < 300:
+        raise ValueError("Lettura pubblica non verificata")
+    print("LETTURA_UFFICIALE_SERVER_JSON=" + json.dumps(proof))
+    return proof
+
 def run(sha):
     if not re.fullmatch(r"[a-f0-9]{40}", sha):
         raise ValueError("SHA non valido")
@@ -105,6 +128,7 @@ def run(sha):
         candidate = request("iusentra-app", f"http://{name}:8092/search", {"q": "permesso soggiorno", "semantica": False})
         if candidate != baseline:
             raise ValueError("Ricerca di controllo diversa: collegamento preservato")
+        verify_reading(repo, name)
         subprocess.run(["docker", "network", "disconnect", network, old_name], check=True)
         switched = True
         subprocess.run(["docker", "network", "disconnect", network, name], check=True)

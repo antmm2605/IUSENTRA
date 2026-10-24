@@ -2033,7 +2033,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
             "/api/assistente/chat",
             json={
                 "allow_unbounded_generation": True,
-                "messages": [{"role": "user", "content": "Preparami una bozza di memoria per la pratica"}],
+                "messages": [{"role": "user", "content": "Spiegami in forma discorsiva un argomento generale"}],
             },
         )
 
@@ -2167,3 +2167,24 @@ def test_file_critici_non_contengono_marker_di_mojibake():
     assert "MOJIBAKE_PATTERN" in governance
     assert "_find_mojibake_or_non_utf8_files" in governance
     assert "non UTF-8" in governance
+
+
+def test_assistente_richiesta_redazione_usa_catalogo_senza_ollama(monkeypatch, tmp_path: Path):
+    from web.app import create_app
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
+
+    def non_chiamare_modello(*args, **kwargs):
+        raise AssertionError("La scelta del modello è una consultazione del catalogo, non generazione")
+
+    monkeypatch.setattr("lex.runtime_dependencies.requests.post", non_chiamare_modello)
+    with app.test_client() as client:
+        client.post("/login", data={"username": tenant_admin.username, "password": "PasswordSicura!123", "studio_slug": studio.slug}, follow_redirects=True)
+        response = client.post("/api/assistente/chat", json={"messages": [{"role": "user", "content": "scrvi ricrso decrto ingiuntvo"}]})
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Scegli il modello da produrre" in body
+    assert "CIV_RDI_001" in body
+    assert "[DONE]" in body

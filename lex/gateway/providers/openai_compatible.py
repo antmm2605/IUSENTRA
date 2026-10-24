@@ -34,6 +34,9 @@ class OpenAICompatibleProvider(BaseProvider):
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+        extra = kwargs.get("extra_body")
+        if isinstance(extra, dict):
+            payload.update({k: v for k, v in extra.items() if k not in payload})
 
         url = self.config.base_url.rstrip("/") + "/chat/completions"
 

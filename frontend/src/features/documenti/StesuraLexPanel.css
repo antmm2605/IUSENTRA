@@ -1,0 +1,20 @@
+.iu-rg-lex { display: grid; gap: 10px; }
+.iu-rg-lex .iu-rg-subtitle { align-items: center; display: flex; gap: var(--iu-od-space-2, 8px); margin: 0; }
+.iu-rg-lex .iu-rg-hint { color: var(--iu-od-muted, #6b7280); margin: 0; }
+.iu-rg-lex__campo { display: grid; gap: 4px; }
+.iu-rg-lex__campo textarea, .iu-rg-lex__campo select { width: 100%; }
+.iu-rg-lex__esito { display: grid; gap: 10px; }
+.iu-rg-lex__stato { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.iu-rg-lex__stato small { color: var(--iu-od-muted, #6b7280); }
+.iu-rg-lex__avvisi ul, .iu-rg-lex__verifiche ul { margin: 4px 0 0; padding-left: 1.25rem; }
+.iu-rg-lex__blocco { border: 1px solid var(--iu-od-border, #d1d5db); border-radius: 8px; padding: 10px 12px; }
+.iu-rg-lex__blocco header { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.iu-rg-lex__blocco header small { color: var(--iu-od-muted, #6b7280); }
+.iu-rg-lex__blocco p { margin: 8px 0 0; white-space: pre-wrap; }
+.iu-rg-lex__campo textarea, .iu-rg-lex__campo select {
+  background: var(--iu-od-surface, #fff);
+  border: 1px solid var(--iu-od-border, #d1d5db);
+  border-radius: 6px;
+  font: inherit;
+  padding: 8px 10px;
+}

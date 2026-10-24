@@ -39,6 +39,8 @@ class LexGateway:
         requested_provider: str | None = None,
         requested_model: str | None = None,
         system_prompt: str | None = None,
+        max_tokens: int = 2048,
+        extra_body: dict | None = None,
     ) -> ProviderResponse:
         self.rate_limiter.check(user_id)
 
@@ -85,7 +87,8 @@ class LexGateway:
                 messages=messages,
                 model=model,
                 temperature=0.2,
-                max_tokens=2048,
+                max_tokens=max_tokens,
+                **({"extra_body": extra_body} if extra_body else {}),
             )
 
         response = self.fallback.run(route.provider_order, call_provider)

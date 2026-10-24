@@ -18,6 +18,7 @@ import {
 import { formatEuroIt } from '../../formatting'
 import '../../components/RedazioneAttiPage.css'
 import { SchedaCompilazionePanel } from './SchedaCompilazionePanel'
+import { StesuraLexPanel } from './StesuraLexPanel'
 
 type PassoWizard = 1 | 2 | 3 | 4
 
@@ -387,6 +388,15 @@ function PassoAnteprima({
         </div>
       </section>
       {anteprima.scheda ? <SchedaCompilazionePanel scheda={anteprima.scheda} /> : null}
+      {anteprima.scheda ? (
+        <StesuraLexPanel
+          modelCode={modelCode}
+          fascicoloId={fascicoloId}
+          clienteId={clienteId}
+          valori={valori}
+          onInserisci={(campo, testo) => aggiornaValore(campo, testo)}
+        />
+      ) : null}
       <section aria-label="Campi mancanti">
         <h4 className="iu-rg-subtitle iu-rg-subtitle--warn"><FileWarning size={16} aria-hidden="true" /> Campi mancanti ({anteprima.campiMancanti.length})</h4>
         {anteprima.campiMancanti.length ? (

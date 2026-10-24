@@ -614,3 +614,60 @@ export async function generaRedazioneAtto(input: {
     richiedeConfermaAvvisi: payload.richiedeConfermaAvvisi === true,
   }
 }
+
+export type StesuraLexBlocco = { blocco: string; testo: string; campo: string }
+export type StesuraLexEsito = {
+  ok: boolean
+  errore: string
+  blocchi: StesuraLexBlocco[]
+  gravi: string[]
+  pendenti: string[]
+  stato: string
+  motivi: string[]
+  modelloAi: string
+  fonti: string[]
+}
+
+const voceRevisione = (item: unknown) => (Array.isArray(item) ? item.map((x) => display(x)).filter(Boolean).join(': ') : display(item))
+
+// Lex scrive le parti narrative della scheda (solo modello locale); nulla entra nell'atto senza scelta dell'avvocato.
+export async function stesuraLex(input: {
+  modelCode: string
+  fascicoloId: string
+  clienteId: string
+  oggetto: string
+  ruoloAssistito: string
+  valori: Record<string, string>
+}): Promise<StesuraLexEsito> {
+  const payload = await apiPostJson<Record<string, unknown>>(
+    '/api/v1/ui/redazione-atti/lex/blocchi',
+    {
+      modelCode: input.modelCode,
+      idFascicolo: input.fascicoloId,
+      idCliente: input.clienteId,
+      oggetto: input.oggetto,
+      ruoloAssistito: input.ruoloAssistito,
+      valori: input.valori,
+    },
+    { ok: false, errore: 'Lex non ha risposto.' },
+  )
+  const revisione = (payload.revisione && typeof payload.revisione === 'object' ? payload.revisione : {}) as Record<string, unknown>
+  const statoConsegna = (payload.statoConsegna && typeof payload.statoConsegna === 'object' ? payload.statoConsegna : {}) as Record<string, unknown>
+  return {
+    ok: payload.ok === true,
+    errore: display(payload.errore),
+    blocchi: list(payload.blocchi).map((item) => {
+      const voce = (item || {}) as Record<string, unknown>
+      return { blocco: display(voce.blocco), testo: text(voce.testo), campo: text(voce.campo) }
+    }).filter((voce) => voce.blocco && voce.testo),
+    gravi: list(revisione.gravi).map(voceRevisione).filter(Boolean),
+    pendenti: list(revisione.pendenti).map(voceRevisione).filter(Boolean),
+    stato: text(statoConsegna.stato),
+    motivi: list(statoConsegna.motivi).map((x) => display(x)).filter(Boolean),
+    modelloAi: display(payload.modelloAi),
+    fonti: list(payload.fonti).map((item) => {
+      const voce = (item || {}) as Record<string, unknown>
+      return [display(voce.n) && `[${display(voce.n)}]`, display(voce.sigla) || display(voce.atto), voce.articolo ? `art. ${display(voce.articolo)}` : ''].filter(Boolean).join(' ')
+    }).filter(Boolean),
+  }
+}

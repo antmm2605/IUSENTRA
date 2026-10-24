@@ -20,7 +20,8 @@ from .provenienza import sha256_testo
 SIGLE = {"codice_civile": "c.c.", "codice_procedura_civile": "c.p.c.", "codice_penale": "c.p.",
          "codice_procedura_penale": "c.p.p.", "codice_processo_amministrativo": "c.p.a.", "costituzione": "Cost.",
          "codice_crisi": "CCII", "codice_consumo": "cod. consumo", "codice_strada": "cod. strada",
-         "codice_privacy": "cod. privacy", "preleggi": "disp. prel. c.c."}
+         "codice_privacy": "cod. privacy", "preleggi": "disp. prel. c.c.",
+         "28/2010": "d.lgs. 28/2010", "115/2002": "d.P.R. 115/2002"}  # chiavi storiche dell'archivio senza tipo
 
 
 @dataclass

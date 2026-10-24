@@ -114,6 +114,18 @@ class GatewayConfig:
             timeout_seconds=int(os.getenv("LMSTUDIO_TIMEOUT_SECONDS", "120")),
         )
 
+        # llama.cpp «llama-server» sullo stesso host (API compatibile OpenAI): modelli GGUF grandi come il 35B MoE.
+        cfg.providers["llamacpp"] = ProviderConfig(
+            name="llamacpp",
+            kind="openai_compatible",
+            base_url=os.getenv("LLAMACPP_BASE_URL", "http://127.0.0.1:8090/v1").strip(),
+            api_key=os.getenv("LLAMACPP_API_KEY", ""),
+            default_model=os.getenv("LLAMACPP_DEFAULT_MODEL", "local-model").strip(),
+            is_local=True,
+            enabled=_env_bool("LLAMACPP_ENABLED", False),
+            timeout_seconds=int(os.getenv("LLAMACPP_TIMEOUT_SECONDS", "600")),
+        )
+
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
         cfg.providers["openrouter"] = ProviderConfig(
             name="openrouter",

@@ -1,3 +1,16 @@
+## 2.453.0 — Lex scrive le parti dell'atto nella redazione guidata
+
+- Nella redazione guidata, per i modelli con scheda, l'avvocato scrive cosa deve ottenere l'atto e Lex scrive le
+  parti narrative previste dalla scheda (fatto, diritto, istruttoria, conclusioni...): solo dati del fascicolo
+  risolti dalla scheda, scadenze del calcolatore e testo vigente delle norme della scheda dalla biblioteca, citate [n].
+- Ogni stesura passa dalla revisione indipendente (norme fuori dalle Fonti, date e importi senza provenienza,
+  conclusioni contro l'assistito, termini scaduti non segnalati) e riceve lo stato della consegna; le norme non ancora
+  approvate per la scheda tengono la bozza «con verifiche pendenti». I blocchi entrano nei campi del modello solo con
+  «Inserisci nel campo».
+- Solo modelli locali: nuovo provider `llamacpp` del gateway (`llama-server`, `LLAMACPP_ENABLED`, `LLAMACPP_BASE_URL`,
+  `LLAMACPP_DEFAULT_MODEL`, `LLAMACPP_TIMEOUT_SECONDS`), oltre a Ollama e LM Studio; scelta con `LEX_STESURA_PROVIDER`.
+- API `POST /api/v1/ui/redazione-atti/lex/blocchi` (permessi `ai.usa` e `fascicoli.leggi`).
+
 ## 2.452.0 — Pagina «Norme dei modelli d'atto»
 
 - Nuova pagina `/ricerca-legale/schede-atti` (collegata da «Codici e leggi»): esito dell'ultimo controllo notturno,

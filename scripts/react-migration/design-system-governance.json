@@ -57,6 +57,7 @@
     "frontend/src/components/strumenti/DocumentChecksTool.css": "Verifiche documentali negli strumenti forensi con token condivisi.",
     "frontend/src/components/OperationalLiveSync.css": "Avvisi della sincronizzazione condivisa: stato della connessione e conflitti preservati senza coprire i comandi; posizione adattiva, stampa esclusa, token del prodotto.",
     "frontend/src/components/fascicoli/CtuSection.css": "Sezione CTU separata per caricamento puntuale: incarichi, termini e bozze con campi adattivi e comandi accessibili coerenti con il fascicolo.",
+    "frontend/src/features/documenti/StesuraLexPanel.css": "Pannello della stesura di Lex nella redazione guidata (2.453.0): blocchi scritti da Lex, revisione indipendente e stato della consegna; token del design system, impaginazione responsive, nessuno stile inline.",
     "frontend/src/features/documenti/SchedaCompilazionePanel.css": "Scheda di compilazione condivisa tra redazione guidata e catalogo richiesta dalla patch utente: riuso delle regole esistenti, token del design system, provenienza espandibile e impaginazione responsive; nessun tema alternativo o stile inline."
   },
   "approvedCssFiles": [
@@ -199,7 +200,8 @@
     "frontend/src/components/strumenti/DocumentChecksTool.css",
     "frontend/src/components/OperationalLiveSync.css",
     "frontend/src/components/fascicoli/CtuSection.css",
-    "frontend/src/features/documenti/SchedaCompilazionePanel.css"
+    "frontend/src/features/documenti/SchedaCompilazionePanel.css",
+    "frontend/src/features/documenti/StesuraLexPanel.css"
   ],
   "allowedInlineStyles": [
     {

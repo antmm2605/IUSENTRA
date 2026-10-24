@@ -3,9 +3,15 @@
 - Nuova pagina `/ricerca-legale/schede-atti` (collegata da «Codici e leggi»): esito dell'ultimo controllo notturno,
   atti acquisiti dalle fonti ufficiali, proposte di revisione per tipo (norma cambiata con le differenze di testo,
   abrogata, assente, fonte da valutare) e norme di ogni modello con stato, approvazione e collegamento ufficiale.
-- Decisioni sulle proposte e approvazione delle norme vigenti di un modello riservate a `admin.configura`, con il
+- Decisioni sulle proposte e approvazione dei testi presenti in biblioteca di un modello riservate a `admin.configura`, con il
   nome dell'utente e la voce nel registro attivita'. Nessuna scheda viene modificata dalla pagina.
 - API `/api/v1/ui/schede-fonti` (riepilogo e proposte, norme di un modello, decisione, approvazione).
+- Approvazioni e note conservate nel database SQL del solo studio autenticato (SQLite e PostgreSQL), senza
+  ereditare decisioni dal registro pubblico. Letture pubbliche senza scritture; conflitti concorrenti e ritentativi governati.
+- Testi integrali consultabili prima della conferma; l'impronta comprende testo, URL e versione: una modifica
+  dopo la lettura impedisce l'approvazione. Catalogo completo dei modelli e proposte paginate, senza taglio silenzioso.
+- Prova in sola lettura delle norme e delle impronte nel container applicativo dopo il deploy.
+
 
 ## 2.451.0 — Biblioteca autoalimentata e presidio delle norme delle schede degli atti
 

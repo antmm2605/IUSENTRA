@@ -529,6 +529,15 @@ jobs:
             "${HETZNER_USER}@${HETZNER_HOST}" "docker exec -i -e LEX_MODELLO='$model' -e LEX_DIGEST='$digest' iusentra-app python -" \
             < deploy/hetzner/verify_lex_modello.py
 
+      - name: Verifica norme dei modelli nel container applicativo
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker exec -i iusentra-app python -' < deploy/hetzner/verifica_schede_fonti.py
+
       - name: Verifica fonti della release sul server
         if: ${{ steps.gate.outputs.superato != 'true' }}
         run: |

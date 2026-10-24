@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 448.
-- Endpoint P0/P1 contrattualizzati: 381.
+- Endpoint React API contrattualizzati: 452.
+- Endpoint P0/P1 contrattualizzati: 385.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 405.
+- Endpoint con provider verification auth-error: 409.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -378,6 +378,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Scadenziario | `/api/v1/ui/scadenziario/termini/override` | `POST` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario/termini/templates` | `GET` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario/termini/validate` | `POST` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Norme dei modelli | `/api/v1/ui/schede-fonti` | `GET` | Norme dei modelli | P1 | complete | auth-error | `ai.usa o fascicoli.leggi; scrittura admin.configura + CSRF` | `n/a` | current_tenant | complete-auth-error |
+| Norme dei modelli | `/api/v1/ui/schede-fonti/proposte/{proposta_id}/decisione` | `POST` | Norme dei modelli | P1 | complete | auth-error | `ai.usa o fascicoli.leggi; scrittura admin.configura + CSRF` | `n/a` | current_tenant | complete-auth-error |
+| Norme dei modelli | `/api/v1/ui/schede-fonti/schede/{scheda_id}` | `GET` | Norme dei modelli | P1 | complete | auth-error | `ai.usa o fascicoli.leggi; scrittura admin.configura + CSRF` | `n/a` | current_tenant | complete-auth-error |
+| Norme dei modelli | `/api/v1/ui/schede-fonti/schede/{scheda_id}/approva` | `POST` | Norme dei modelli | P1 | complete | auth-error | `ai.usa o fascicoli.leggi; scrittura admin.configura + CSRF` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio` | `GET` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/articoli/{article_id}/modifica` | `GET` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/articoli/{article_id}/modifica` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |

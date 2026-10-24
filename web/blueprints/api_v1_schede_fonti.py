@@ -22,6 +22,23 @@ def _biblioteca():
     return _normativa_db()
 
 
+def _studio_db(scrittura=False):
+    from web.services.tenant_paths import tenant_data_path
+    from web.services.storage_runtime import get_request_studio_db
+    anchor = tenant_data_path("CONFIG_STUDIO_DB", "./config/studio.json", "STUDIO_CONFIG", require_tenant=True)
+    backend = get_request_studio_db(anchor)
+    if backend is None:
+        # Anche gli studi con mirror storici JSON registrano queste nuove
+        # decisioni nel proprio SQL canonico, mai nel registro pubblico.
+        from pathlib import Path
+        from pct.storage import StudioDB
+        from web.services.storage_runtime import get_request_storage_runtime
+        profile = get_request_storage_runtime(anchor)
+        if scrittura or Path(profile.studio_db_path).is_file():
+            backend = StudioDB.get(profile.studio_db_path)
+    return backend
+
+
 def _utente():
     return g.get("utente_corrente")
 
@@ -63,9 +80,19 @@ def riepilogo():
         stato = request.args.get("stato", "aperta")
         if stato not in ("aperta", "approvata", "respinta"):
             stato = "aperta"
-        return jsonify(ok=True, riepilogo=runtime.riepilogo(_biblioteca()),
-                       proposte=runtime.proposte(_biblioteca(), stato=stato, **filtri), puo_decidere=_ha("admin.configura"))
-    except (OSError, sqlite3.Error, ValueError):
+        biblioteca, studio = _biblioteca(), _studio_db()
+        righe = runtime._elenco(biblioteca, studio)
+        proposte = runtime.proposte(biblioteca, stato=stato, studio_db=studio, righe=righe, **filtri)
+        try:
+            pagina = max(1, int(request.args.get("pagina", 1)))
+        except (TypeError, ValueError):
+            pagina = 1
+        pagine = max(1, (len(proposte) + 49) // 50)
+        pagina = min(pagina, pagine)
+        return jsonify(ok=True, riepilogo=runtime.riepilogo(biblioteca, studio_db=studio, righe=righe),
+                       proposte=proposte[(pagina - 1) * 50:pagina * 50], puo_decidere=_ha("admin.configura"),
+                       modelli=runtime._modelli(), paginazione={"pagina": pagina, "pagine": pagine, "totale": len(proposte)})
+    except (OSError, sqlite3.Error, ValueError, RuntimeError):
         return _non_disponibile()
 
 
@@ -76,17 +103,17 @@ def scheda(scheda_id: str):
     if negato is not None:
         return negato
     try:
-        dati = runtime.scheda(_biblioteca(), scheda_id)
-    except (OSError, sqlite3.Error, ValueError):
+        dati = runtime.scheda(_biblioteca(), scheda_id, studio_db=_studio_db())
+    except (OSError, sqlite3.Error, ValueError, RuntimeError):
         return _non_disponibile()
     if dati is None:
         return jsonify(ok=False, message="Modello d'atto non trovato."), 404
     return jsonify(ok=True, scheda=dati, puo_decidere=_ha("admin.configura"))
 
 
-@api_v1_schede_fonti.post("/proposte/<int:proposta_id>/decisione")
+@api_v1_schede_fonti.post("/proposte/<proposta_id>/decisione")
 @_richiedi_auth
-def decisione(proposta_id: int):
+def decisione(proposta_id: str):
     negato = _decisione_negata()
     if negato is not None:
         return negato
@@ -95,11 +122,17 @@ def decisione(proposta_id: int):
         return errore
     esito, nota = str(corpo.get("esito") or ""), str(corpo.get("nota") or "")[:2000]
     try:
-        runtime.decidi(_biblioteca(), proposta_id, esito, _nome_utente(), nota)
+        nuova = runtime.decidi(_biblioteca(), proposta_id, esito, _nome_utente(), nota, str(corpo.get("impronta") or ""), studio_db=_studio_db(scrittura=True))
+    except runtime.RevisioneCambiata as exc:
+        return jsonify(ok=False, message=str(exc)), 409
+    except KeyError:
+        return jsonify(ok=False, message="Elemento non trovato."), 404
     except ValueError as exc:
         return jsonify(ok=False, message=str(exc)), 400
-    except (OSError, sqlite3.Error):
+    except (OSError, sqlite3.Error, RuntimeError):
         return _non_disponibile()
+    if not nuova:
+        return jsonify(ok=True, message="Decisione già registrata.")
     _audit_event("schede_fonti.decisione", "schede_fonti", str(proposta_id), f"Proposta {esito}.")
     return jsonify(ok=True, message="Decisione registrata.")
 
@@ -110,11 +143,18 @@ def approva(scheda_id: str):
     negato = _decisione_negata()
     if negato is not None:
         return negato
+    corpo, errore = _request_json_object()
+    if errore is not None:
+        return errore
     try:
-        n = runtime.approva(_biblioteca(), scheda_id, _nome_utente())
+        n = runtime.approva(_biblioteca(), scheda_id, _nome_utente(), str(corpo.get("impronta") or ""), studio_db=_studio_db(scrittura=True))
+    except runtime.RevisioneCambiata as exc:
+        return jsonify(ok=False, message=str(exc)), 409
+    except KeyError:
+        return jsonify(ok=False, message="Elemento non trovato."), 404
     except ValueError as exc:
         return jsonify(ok=False, message=str(exc)), 400
-    except (OSError, sqlite3.Error):
+    except (OSError, sqlite3.Error, RuntimeError):
         return _non_disponibile()
     _audit_event("schede_fonti.approvazione", "schede_fonti", scheda_id, f"{n} norme approvate.")
     return jsonify(ok=True, message=f"{n} norme approvate per questo modello.", approvate=n)

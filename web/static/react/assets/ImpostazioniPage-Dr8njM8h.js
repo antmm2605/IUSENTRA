@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-D2-Yfdm-.js";export{e as ImpostazioniPage};

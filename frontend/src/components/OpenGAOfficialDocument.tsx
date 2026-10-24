@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiJson, apiPostJson } from '../lib/apiClient'
 import type { OpenGADecision } from '../opengaSearch'
+import { Button } from '../ui/Button'
 
 type Reading = {
   ok: boolean; stato: string; job_id?: string; message?: string
@@ -10,6 +11,7 @@ type Reading = {
 const unavailable: Reading = { ok: false, stato: 'intervento_necessario', message: 'Lettura non disponibile. Il risultato resta uno spunto.' }
 
 export function OpenGAOfficialDocument({ decision }: { decision: OpenGADecision }) {
+  const [retry, setRetry] = useState(0)
   const [result, setResult] = useState<Reading>({ ok: true, stato: 'in_corso', message: 'Avvio del recupero ufficiale…' })
   useEffect(() => {
     const controller = new AbortController()
@@ -30,15 +32,20 @@ export function OpenGAOfficialDocument({ decision }: { decision: OpenGADecision 
       }, 2000)
     }
     void apiPostJson<Reading>('/api/v1/ui/giurisprudenza/testo-ufficiale',
-      { relazione_id: decision.relazione_id, resource_id: decision.resource_id, resource_sha256: decision.resource_sha256 },
+      { relazione_id: decision.relazione_id, resource_id: decision.resource_id, resource_sha256: decision.resource_sha256, riprova: retry > 0 },
       unavailable, options).then(observe).catch(() => { if (!controller.signal.aborted) setResult(unavailable) })
     return () => { controller.abort(); if (timer) clearTimeout(timer) }
-  }, [decision.relazione_id, decision.resource_id, decision.resource_sha256])
+  }, [decision.relazione_id, decision.resource_id, decision.resource_sha256, retry])
   const document = result.documento
   return <section aria-label="Lettura del testo ufficiale">
     <p role="status">{result.message || (result.stato === 'acquisito' ? 'Testo ufficiale acquisito e identità riscontrata.' : 'Testo non acquisito: il risultato resta uno spunto.')}</p>
+    {result.stato !== 'in_corso' && result.stato !== 'acquisito' && <Button type="button" onClick={() => {
+      setResult({ ok: true, stato: 'in_corso', message: 'Nuovo tentativo di recupero…' })
+      setRetry(value => value + 1)
+    }}>Riprova il recupero</Button>}
     {result.stato === 'acquisito' && document && <>
       <p>Il testo è disponibile per la verifica dell’avvocato. Non approva automaticamente la scheda.</p>
+      {result.job_id && <p><a href={'/giurisprudenza/testo-ufficiale/' + encodeURIComponent(result.job_id) + '?embed=source'} target="_blank" rel="noopener noreferrer">Apri il testo da leggere</a></p>}
       <p><a href={document.provenienza.url} target="_blank" rel="noopener noreferrer">Apri questo documento ufficiale</a></p>
       <dl className="iu-legal-meta">
         <div><dt>Pubblicazione</dt><dd>{document.provenienza.versione}</dd></div>

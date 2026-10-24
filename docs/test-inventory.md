@@ -803,7 +803,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Tenant isolation | tests/test_lex_document_source_outcomes.py | 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_document_tools_auto_index.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_lex_fascicolo_documents_tools.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| File/document security | Tenant isolation | tests/test_openga_document_jobs.py | 401 anonimo, 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| File/document security | Tenant isolation | tests/test_openga_document_jobs.py | 401 anonimo, 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_run_fascicolo_document_presidio.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | File/document security | Tenant isolation | tests/test_signed_document_name_audit.py | tenant, feature flag, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | API contract | lex/tests/unit/test_guida_pratica_source.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../ui/Button'
 import { OpenGAOfficialLookup } from './OpenGAOfficialLookup'
 
-import { searchOpenGA, type OpenGAResult } from '../opengaSearch'
+import { searchOpenGA, officialDecisionNumber, type OpenGAResult } from '../opengaSearch'
 
 export function OpenGASearch() {
   const [q, setQ] = useState('')
@@ -33,7 +33,7 @@ export function OpenGASearch() {
   const visible = selected === 'deep' && deepReady ? deep : result
   return <section id="ricerca-openga" className="iu-od-source-card" aria-label="Ricerca decisioni amministrative">
     <h2>Decisioni amministrative</h2>
-    <p>Il catalogo cerca estremi, oggetto ed esito ufficiali. Per leggere motivazioni e dispositivo, apri «Trova il testo»: IUSENTRA proverà a recuperare e verificare il documento ufficiale. Oggetto ed esito, da soli, non dimostrano principi di diritto.</p>
+    <p>Il catalogo cerca estremi, oggetto ed esito ufficiali. Per leggere motivazioni e dispositivo, apri «Leggi il testo del provvedimento»: IUSENTRA proverà a recuperare e verificare il documento ufficiale. Oggetto ed esito, da soli, non dimostrano principi di diritto.</p>
     <form onSubmit={search} className="iu-openga-form" aria-busy={busy}>
       <label>Oggetto della ricerca<input value={q} onChange={e => setQ(e.target.value)} required maxLength={1000} disabled={busy} /></label>
       <label>Anno iniziale<input type="number" min="1900" max="2100" value={dal} onChange={e => setDal(e.target.value)} disabled={busy} /></label>
@@ -54,13 +54,12 @@ export function OpenGASearch() {
     {error && !result?.ok && <p role="alert">{error}</p>}
     {result?.message && <p role="status">{result.message}</p>}
     {visible?.ok && <>
-      <p>Nel modulo ufficiale indica sede, anno e numero del provvedimento riportati nella decisione. Il collegamento non apre direttamente il testo.</p>
       <p>Un’unica lista di massimo 10 decisioni. Oggetto ed esito non dimostrano il principio di diritto.</p>
       {([[selected === 'deep' ? 'Risultati approfonditi' : 'Risultati rapidi', visible.risultati]] as const).map(([title, rows]) => <section key={title}>
         <h3>{title}</h3>
         {!rows.length && <p>Nessun risultato in questa lista.</p>}
         <ol>{rows.map(row => <li key={row.relazione_id + row.oggetto + row.esito}>
-          <article><h4>{row.organo_giudicante} · {row.numero_sentenza}/{row.anno_sentenza}</h4>
+          <article><h4>{row.organo_giudicante} · {officialDecisionNumber(row.numero_sentenza, row.anno_sentenza)}/{row.anno_sentenza}</h4>
             <p>{row.oggetto}</p><p>Ricorso: {row.numero_ricorso} · Esito nel dato ufficiale: {row.esito || 'Non indicato'}</p>
             <OpenGAOfficialLookup decision={row} />
             <details><summary>Provenienza</summary><p>OpenGA · Risorsa {row.resource_id}</p><p className="iu-openga-hash">Impronta della fonte: {row.resource_sha256}</p></details>

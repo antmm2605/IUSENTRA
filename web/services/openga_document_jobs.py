@@ -1,6 +1,8 @@
 """Coda persistente per studio: acquisizione pubblica senza approvare la scheda."""
+import json
 from base64 import b64decode
 from binascii import Error as Base64Error
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from threading import Lock, Thread
@@ -9,6 +11,8 @@ from time import sleep
 from pct.legal_update_job_queue import LegalUpdateJobQueue
 from pct.openga_recupero import recupera_testo
 from web.services.openga_search import document_identity
+
+_READER_VERSION = "2.450.1"
 
 _LOCK = Lock()
 _RUNNING = set()
@@ -29,11 +33,42 @@ def start(app, *, db_path, payload):
                   payload["resource_id"] + ":" + payload["resource_sha256"]).encode()).hexdigest()
     job = queue.enqueue(source_code="openga_testo", dedupe_key=key,
         payload={"identita": identity, "catalogo": {k: payload[k] for k in
-                 ("relazione_id", "resource_id", "resource_sha256")}},
+                 ("relazione_id", "resource_id", "resource_sha256")},
+                 "lettore_versione": _READER_VERSION},
         max_attempts=3, timeout_seconds=180)
+    _retry_negative(queue, job.job_id, explicit=payload.get("riprova") is True)
     _ensure_worker(app, db_path)
     return status(db_path, job.job_id)
 
+
+
+def _retry_negative(queue, job_id, *, explicit):
+    # Atomic and scoped to this source. Preserve earlier outcomes, never reset
+    # an acquired document, and never automatically retry the same reader twice.
+    with queue.connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute("SELECT * FROM legal_update_jobs WHERE job_id=?",
+                                 (job_id,)).fetchone()
+        if not row or row["source_code"] != "openga_testo" or row["status"] not in {"completed", "failed", "timeout"}:
+            return
+        result = json.loads(row["result_json"])
+        payload = json.loads(row["payload_json"])
+        if result.get("stato") == "acquisito":
+            return
+        if not explicit and payload.get("lettore_versione") == _READER_VERSION:
+            return
+        history = payload.setdefault("tentativi_precedenti", [])
+        history.append({"status": row["status"], "result": result,
+                        "attempts": row["attempts"], "finished_at": row["finished_at"],
+                        "last_error": row["last_error"],
+                        "lettore_versione": payload.get("lettore_versione")})
+        payload["lettore_versione"] = _READER_VERSION
+        connection.execute(
+            "UPDATE legal_update_jobs SET status='queued', attempts=0, result_json='{}', "
+            "payload_json=?, last_error='', worker_id='', started_at='', finished_at='', updated_at=? "
+            "WHERE job_id=?",
+            (json.dumps(payload, ensure_ascii=False),
+             datetime.now(timezone.utc).isoformat(), job_id))
 
 def status(db_path, job_id):
     queue = _queue(db_path)

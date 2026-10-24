@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Testo del provvedimento</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/openga-documento-24501.css') }}">
+</head>
+<body>
+<main>
+<article>
+  <h1>Testo del provvedimento</h1>
+  <p>Documento acquisito dalla fonte ufficiale. La valutazione e l’utilizzo nell’atto restano dell’avvocato.</p>
+  <dl>
+    <dt>Pubblicazione</dt><dd>{{ documento.provenienza.versione }}</dd>
+    <dt>Acquisizione</dt><dd>{{ documento.provenienza.acquisita_il }}</dd>
+  </dl>
+  <p><a href="{{ documento.provenienza.url }}" target="_blank" rel="noopener noreferrer">Apri anche l’originale sul sito ufficiale</a></p>
+  <section aria-label="Testo integrale">
+    {% for paragraph in documento.testo.splitlines() %}
+      {% if paragraph.strip() %}<p>{{ paragraph }}</p>{% endif %}
+    {% endfor %}
+  </section>
+  <details><summary>Provenienza e integrità</summary>
+    <p>{{ documento.provenienza.url }}</p>
+    <p>SHA-256 del testo: {{ documento.provenienza.sha256 }}</p>
+    <p>SHA-256 dell’originale: {{ documento.raw_sha256 }}</p>
+  </details>
+</article>
+</main>
+</body>
+</html>

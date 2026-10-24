@@ -11,6 +11,32 @@ class DocumentoNonVerificato(ValueError):
     """Il documento non dimostra l'identità richiesta."""
 
 
+
+def parse_official_xml(raw):
+    """Ignore an external-only declaration; never load a DTD or expand entities."""
+    if not isinstance(raw, bytes) or not 0 < len(raw) <= 2_000_000:
+        raise DocumentoNonVerificato("Documento vuoto o troppo grande.")
+    cleaned = raw
+    opening = re.search(rb"<GA(?:\s|>)", raw)
+    prefix = raw[:opening.start()] if opening else raw
+    if b"<!DOCTYPE" in prefix:
+        # Some official legacy documents declare a SYSTEM DTD. Remove only that
+        # inert declaration, preserving the original bytes separately for SHA.
+        external_only = rb"""<!DOCTYPE\s+GA\s+SYSTEM\s+(?:"[^"<>\[\]]+"|'[^'<>\[\]]+')\s*>"""
+        prefix, count = re.subn(external_only, b"", prefix, count=1)
+        if count != 1 or b"<!DOCTYPE" in prefix:
+            raise DocumentoNonVerificato("DTD attivo o sottoinsieme interno non ammesso.")
+        cleaned = prefix + raw[opening.start():] if opening else prefix
+    try:
+        root = etree.fromstring(cleaned, etree.XMLParser(
+            resolve_entities=False, no_network=True, load_dtd=False, recover=False))
+    except (ValueError, TypeError, etree.XMLSyntaxError):
+        raise DocumentoNonVerificato("XML non valido.") from None
+    if root.getroottree().docinfo.doctype or any(isinstance(n, etree._Entity) for n in root.iter()):
+        raise DocumentoNonVerificato("Entità e DTD attivi non ammessi.")
+    return root
+
+
 def leggi_documento(raw, *, url, schema, anno, numero, ricorso, acquisita_il):
     """Accetta solo XML ufficiale completo con identità e URL concordanti.
 
@@ -40,8 +66,7 @@ def leggi_documento(raw, *, url, schema, anno, numero, ricorso, acquisita_il):
         if not re.fullmatch(r"[0-9]{2}/[0-9]{2}/[0-9]{4}", acquisita_il):
             raise ValueError()
         datetime.strptime(acquisita_il, "%d/%m/%Y").replace(tzinfo=timezone.utc)
-        root = etree.fromstring(raw, etree.XMLParser(
-            resolve_entities=False, no_network=True, load_dtd=False, recover=False))
+        root = parse_official_xml(raw)
     except (ValueError, TypeError, etree.XMLSyntaxError):
         raise DocumentoNonVerificato("XML o data di acquisizione non validi.") from None
     if root.getroottree().docinfo.doctype or any(isinstance(n, etree._Entity) for n in root.iter()):
@@ -50,12 +75,13 @@ def leggi_documento(raw, *, url, schema, anno, numero, ricorso, acquisita_il):
     if len(documents) != 1:
         raise DocumentoNonVerificato("Non è un singolo provvedimento ufficiale.")
     doc = documents[0]
-    fascicolo = doc.find("meta/descrittori/fascicolo")
-    registro = doc.find("meta/ricorso")
+    fascicoli = doc.findall("meta/descrittori/fascicolo")
+    fascicolo = fascicoli[0] if len(fascicoli) == 1 else None
+    registri = doc.findall("meta/ricorso")
     try:
         match = (fascicolo is not None and int(fascicolo.get("anno")) == anno
-                 and int(fascicolo.get("n")) == numero and registro is not None
-                 and registro.get("NRG") == ricorso)
+                 and int(fascicolo.get("n")) == numero
+                 and any(registro.get("NRG") == ricorso for registro in registri))
     except (TypeError, ValueError):
         match = False
     if not match:

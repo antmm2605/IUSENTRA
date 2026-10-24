@@ -4,6 +4,8 @@ import unicodedata
 
 from lxml import etree
 
+from pct.openga_documento import DocumentoNonVerificato, parse_official_xml
+
 _REGIONS = {
     "001": ("lazio", "latina"), "003": ("lazio", "roma"),
     "004": ("abruzzo", "aquila"), "005": ("abruzzo", "pescara"),
@@ -30,7 +32,7 @@ def _normal(text):
 def verifica_organo(raw, row):
     """Solo intestazione dell'organo: non città citate nei fatti o nei difensori."""
     try:
-        root = etree.fromstring(raw, etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False))
+        root = parse_official_xml(raw)
         if root.getroottree().docinfo.doctype:
             return False
         doc = root.find("Provvedimento")
@@ -42,7 +44,7 @@ def verifica_organo(raw, row):
         release = _normal(doc.findtext("meta/rilascio", ""))
         disposition = doc.find("dispositivo")
         closing = _normal(" ".join(disposition.itertext())) if disposition is not None else ""
-    except (etree.XMLSyntaxError, AttributeError, TypeError):
+    except (DocumentoNonVerificato, etree.XMLSyntaxError, AttributeError, TypeError):
         return False
     office = str(row.get("sede", ""))
     if office == "002":
@@ -82,8 +84,8 @@ def verifica_tipo(raw, row):
     if family is None:
         return False
     try:
-        root = etree.fromstring(raw, etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False))
+        root = parse_official_xml(raw)
         actual = _normal(root.findtext("Provvedimento/meta/tipologia", ""))
         return actual.startswith(family)
-    except (etree.XMLSyntaxError, TypeError):
+    except (DocumentoNonVerificato, etree.XMLSyntaxError, TypeError):
         return False

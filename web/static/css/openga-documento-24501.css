@@ -1,0 +1,10 @@
+/* Presentazione del solo documento acquisito; nessuna interfaccia gestionale. */
+body { margin: 0; background: white; color: #172033; font-family: Georgia, "Times New Roman", serif; line-height: 1.65; }
+main { max-width: 82ch; margin: auto; padding: 2rem 1.25rem; overflow-wrap: anywhere; }
+h1, dl, details { font-family: system-ui, sans-serif; }
+h1 { font-size: 1.5rem; }
+dt { font-weight: bold; }
+dd { margin: 0 0 .5rem; }
+details { margin-top: 2rem; font-size: .875rem; }
+summary { cursor: pointer; }
+@media print { main { padding: 0; } details { display: none; } }

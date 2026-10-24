@@ -332,3 +332,21 @@ def importa_materiale():
         current_app.logger.exception("Errore import materiale giurisprudenza: %s", exc)
         flash(f"Import assistito non riuscito: {exc}", "warning")
         return redirect(url_for("giurisprudenza.index"))
+
+@giurisprudenza.get("/testo-ufficiale/<job_id>")
+@_richiedi_login
+def testo_ufficiale(job_id):
+    """Read only: open a previously acquired document of the current study."""
+    from web.services.openga_document_jobs import status
+    try:
+        result = status(str(get_giurisprudenza().db_path), job_id)
+    except KeyError:
+        return "Testo non presente in questo studio.", 404
+    document = result.get("documento")
+    if result.get("stato") != "acquisito" or not document:
+        return "Il testo non è ancora disponibile o non ha superato la verifica.", 409
+    response = current_app.make_response(render_template(
+        "giurisprudenza/testo_ufficiale.html", documento=document))
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response

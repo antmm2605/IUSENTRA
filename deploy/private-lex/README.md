@@ -9,3 +9,5 @@ Il modello esistente resta su loopback 8090. Il ponte `bridge.py` può ascoltare
 Sul PC il servizio deve essere vincolato all'IP privato e al solo peer Hetzner; prima di rimuovere shields-up devono essere installate regole di ingresso dedicate che preservino le altre interfacce. Nessuna esposizione pubblica, Tailscale SSH, exit node o Funnel è richiesta.
 
 Le risposte vanno collaudate con casi inventati e marcate come bozze da revisionare. Questa configurazione non addestra modelli e non autorizza spegnimenti.
+
+Il collaudo `verify_questions.py` richiede singoli frammenti (fatti o conclusioni), non atti completi: controlla importi, dato mancante e rimedio. Il checker originale dei 300 caratteri resta attivo; un frammento corretto può essere classificato bozza incompleta. Il report conserva tale stato ed esclude soltanto questo rilievo di lunghezza dal giudizio funzionale del frammento. Tutti gli altri errori della revisione restano bloccanti. Questo collaudo non è una misura indipendente della qualità giuridica e conserva prima stesura e correzione.

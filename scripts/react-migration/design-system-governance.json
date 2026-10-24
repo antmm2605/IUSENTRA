@@ -113,6 +113,7 @@
     "frontend/src/components/QuickOrganizerImportPage.css",
     "frontend/src/components/RedazioneAttiPage.css",
     "frontend/src/components/ScadenziarioPage.css",
+    "frontend/src/components/SchedeFontiPage.css",
     "frontend/src/components/SitoStudioBuilderPage.css",
     "frontend/src/components/SitoStudioBuilderPage.panels.css",
     "frontend/src/components/SitoStudioPage.css",

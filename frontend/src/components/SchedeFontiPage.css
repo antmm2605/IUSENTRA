@@ -1,0 +1,21 @@
+.iu-sf-page { display: grid; gap: var(--iu-od-space-4); }
+.iu-sf-riepilogo, .iu-sf-filtri, .iu-sf-proposte, .iu-sf-dettaglio { padding: var(--iu-od-space-4); min-width: 0; }
+.iu-sf-badges { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.iu-sf-filtri { display: flex; flex-wrap: wrap; gap: var(--iu-od-space-3); }
+.iu-sf-filtri label { display: grid; gap: .4rem; font-size: .85rem; font-weight: 600; }
+.iu-sf-filtri select, .iu-sf-azioni input { padding: .55rem; border: 1px solid var(--iu-od-border); border-radius: .4rem; background: var(--iu-od-surface); color: var(--iu-od-text); }
+.iu-sf-workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--iu-od-space-4); align-items: start; } .iu-sf-workbench--dettaglio { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--iu-od-space-4); align-items: start; }
+.iu-sf-proposte ul, .iu-sf-norme { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--iu-od-space-3); }
+.iu-sf-proposte li, .iu-sf-norme li { display: grid; gap: .4rem; padding-bottom: var(--iu-od-space-3); border-bottom: 1px solid var(--iu-od-border); }
+.iu-sf-azioni { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.iu-sf-azioni input { flex: 1 1 14rem; min-width: 0; }
+.iu-sf-diff { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; max-height: 18rem; overflow: auto; }
+.iu-sf-dettaglio-head { display: flex; justify-content: space-between; gap: var(--iu-od-space-3); align-items: start; }
+@media (max-width: 900px) { .iu-sf-workbench--dettaglio { grid-template-columns: minmax(0, 1fr); } }
+.iu-sf-filtri label { flex: 0 1 16rem; min-width: 0; }
+.iu-sf-filtri select { width: 100%; }
+.iu-sf-dettaglio-head h2 { font-size: 1.15rem; line-height: 1.35; margin: .2rem 0 0; }
+.iu-sf-dettaglio-head p { margin: 0; font-size: .8rem; }
+.iu-sf-dettaglio { position: sticky; top: var(--iu-od-space-4); max-height: calc(100vh - 8rem); overflow: auto; }
+@media (max-width: 900px) { .iu-sf-dettaglio { position: static; max-height: none; } }
+.iu-sf-page section.iu-sf-filtri { display: flex; flex-direction: row; flex-wrap: wrap; align-items: end; }

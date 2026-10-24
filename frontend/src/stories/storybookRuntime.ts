@@ -458,6 +458,20 @@ function payloadFor(url: URL): ApiPayload {
       text: 'La capacità giuridica si acquista dal momento della nascita.\nI diritti che la legge riconosce a favore del concepito sono subordinati all’evento della nascita.',
       source_url: 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262', source_label: 'Normattiva' },
   }
+  if (url.pathname === '/api/v1/ui/schede-fonti') return {
+    ok: true, puo_decidere: true,
+    riepilogo: { eseguito_il: '2026-10-24T23:10:00', norme: 2473, stati: { presente: 2473 }, commi_abrogati: 75,
+      acquisiti: [{ chiave: 'legge_287_1990', articoli: 53, url: 'https://www.normattiva.it/' }], proposte_aperte: 1,
+      per_tipo: [{ tipo: 'norma_cambiata', etichetta: 'Norma cambiata', numero: 1 }] },
+    proposte: [{ id: 1, tipo: 'norma_cambiata', etichetta: 'Norma cambiata', scheda: 'CIV_ORD_023', titolo_scheda: 'Istanza di sostituzione del consulente tecnico',
+      atto: 'codice_procedura_civile', articolo: '196', motivo: 'Il testo vigente di art. 196 (codice_procedura_civile) è cambiato rispetto a quello approvato: verificare la scheda.',
+      differenze: '--- testo approvato\n+++ testo vigente\n-Il giudice ha sempre la facoltà...\n+Il giudice può sempre...', creata_il: '2026-10-24T23:10:00', decisa_da: '', nota: '' }],
+  }
+  if (url.pathname.startsWith('/api/v1/ui/schede-fonti/schede/')) return {
+    ok: true, puo_decidere: true,
+    scheda: { id: 'CIV_ORD_023', titolo: 'Istanza di sostituzione del consulente tecnico', proposte: [], norme: [
+      { atto: 'codice_procedura_civile', articolo: '196', perche: 'sostituzione del consulente', origine: 'base_normativa', stato: 'presente', url: 'https://www.normattiva.it/', aggiornato_al: '2026-10-09', commi_abrogati: 0, approvata: false, approvata_da: '', approvata_il: '' }] },
+  }
   if (url.pathname === '/api/v1/ui/controllo-studio') return controlloStudioPayload()
   if (url.pathname === '/api/v1/ui/preparazione-udienza') return elencoUdienzePayload()
   if (url.pathname.startsWith('/api/v1/ui/preparazione-udienza/')) return schedaUdienzaPayload()

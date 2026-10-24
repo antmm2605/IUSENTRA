@@ -127,6 +127,7 @@ _REACT_EXACT = {
     "/ricerca-legale/mediazione",
     "/ricerca-legale/news",
     "/ricerca-legale/ricerca",
+    "/ricerca-legale/schede-atti",
     "/sito-studio",
     "/sito-studio/builder",
     "/sito-studio/contatti",
@@ -453,6 +454,7 @@ def _excluded(path: str) -> bool:
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",
         "/ricerca-legale/ricerca",
+        "/ricerca-legale/schede-atti",
     }:
         return True
     # /legal-intelligence/daily/update/<id>/diff resta legacy (rendering server-side).

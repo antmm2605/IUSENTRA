@@ -64,7 +64,7 @@ export function CodiciLeggiPage() {
   }, [selectedId])
   function chooseAct(value: string) { setCategory(''); setAct(value); setArticle(''); setQuery(''); setFilters({ act: value, query: '', article: '', category: '', offset: 0 }) }
   function reset() { setAct(''); setQuery(''); setArticle(''); setCatalogQuery(''); setCategory(''); setFilters({ act: '', query: '', article: '', category: '', offset: 0 }) }
-  return <Page title="Codici e leggi" subtitle="Codici, leggi e decreti per materia, con testo integrale e ricerca per articolo." actions={<ButtonLink href="/ricerca-legale" tone="neutral">Ricerca legale</ButtonLink>}>
+  return <Page title="Codici e leggi" subtitle="Codici, leggi e decreti per materia, con testo integrale e ricerca per articolo." actions={<><ButtonLink href="/ricerca-legale/schede-atti" tone="neutral">Norme dei modelli d’atto</ButtonLink><ButtonLink href="/ricerca-legale" tone="neutral">Ricerca legale</ButtonLink></>}>
     <div className="iu-li-page iu-li-normativa">
       <section className="iu-od-source-card iu-li-normativa-filters" aria-label="Ricerca nei codici e nelle leggi">
         <header className="iu-li-section-head"><BookOpen size={20} aria-hidden="true"/><div><h2>Biblioteca normativa</h2><p>{acts.length.toLocaleString('it-IT')} atti · {acts.reduce((n, a) => n + a.articles, 0).toLocaleString('it-IT')} articoli consultabili</p></div></header>

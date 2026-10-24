@@ -1,3 +1,12 @@
+## 2.452.0 — Pagina «Norme dei modelli d'atto»
+
+- Nuova pagina `/ricerca-legale/schede-atti` (collegata da «Codici e leggi»): esito dell'ultimo controllo notturno,
+  atti acquisiti dalle fonti ufficiali, proposte di revisione per tipo (norma cambiata con le differenze di testo,
+  abrogata, assente, fonte da valutare) e norme di ogni modello con stato, approvazione e collegamento ufficiale.
+- Decisioni sulle proposte e approvazione delle norme vigenti di un modello riservate a `admin.configura`, con il
+  nome dell'utente e la voce nel registro attivita'. Nessuna scheda viene modificata dalla pagina.
+- API `/api/v1/ui/schede-fonti` (riepilogo e proposte, norme di un modello, decisione, approvazione).
+
 ## 2.451.0 — Biblioteca autoalimentata e presidio delle norme delle schede degli atti
 
 - Acquisizione automatica, ogni notte, degli atti citati dalle 195 schede dei modelli d'atto e assenti dalla

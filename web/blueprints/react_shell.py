@@ -165,6 +165,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/regia-agentica", "src/pages/workflow-agents/WorkflowAgentsHome.tsx"),
     ("/app/portale-clienti", "src/components/ClientPortalPage.tsx"),
     ("/portale-cliente", "src/components/ClientPortalPage.tsx"),
+    ("/ricerca-legale/schede-atti", "src/components/SchedeFontiPage.tsx"),
     ("/ricerca-legale/codici", "src/components/CodiciLeggiPage.tsx"),
     ("/ricerca-legale", "src/components/LegalIntelligencePage.tsx"),
     ("/giurisprudenza", "src/components/GiurisprudenzaPage.tsx"),

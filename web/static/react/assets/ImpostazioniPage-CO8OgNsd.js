@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BpK3wUkx.js";export{e as ImpostazioniPage};

@@ -62,6 +62,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "/api/v1/ui/ricerca-legale",
     ),
     BlueprintRegistration(
+        "api_v1_schede_fonti",
+        "web.blueprints.api_v1_schede_fonti",
+        "api_v1_schede_fonti",
+        "/api/v1/ui/schede-fonti",
+    ),
+    BlueprintRegistration(
         "api_v1_checklist",
         "web.blueprints.api_v1_checklist",
         "api_v1_checklist",

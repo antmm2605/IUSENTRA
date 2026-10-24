@@ -153,3 +153,38 @@ def test_verifica_rilascio_biblioteca_e_in_sola_lettura(ambiente, monkeypatch):
     assert esito["norme"] == 3 and esito["stati"]["presente"] == 1
     assert not esito["scritture"] and not esito["approvazioni_automatiche"]
     assert db.read_bytes() == prima
+
+
+def test_sceglie_modello_per_pertinenza_senza_confondere_assenza_di_risultati(tmp_path):
+    from lex.procedura_atti.scelta_modello import proponi_modelli
+    schede = tmp_path / "scelta"
+    schede.mkdir()
+    for sid, titolo in [("DIFFIDA", "Diffida ad adempiere contratto"), ("RICORSO", "Ricorso controversia lavoro")]:
+        (schede / (sid + ".json")).write_text(json.dumps({"id": sid, "titolo": titolo,
+            "template": ["PRO_001"], "base_normativa": [{"perche": titolo}]}), encoding="utf-8")
+    risultati = proponi_modelli("diffida ad adempiere contratto", "inadempimento contrattuale", cartella=schede, limite=1)
+    assert len(risultati) == 1 and risultati[0]["scheda"] == "DIFFIDA"
+    assert risultati[0]["punteggio"] > 0 and risultati[0]["titolo"] == "Diffida ad adempiere contratto"
+    assert proponi_modelli("", "", cartella=schede) == []
+    assert proponi_modelli("diffida", cartella=tmp_path / "vuota") == []
+
+
+def test_norma_di_un_campo_ha_fonte_unica_anche_se_gia_nella_base(ambiente):
+    db, schede, _ = ambiente
+    p = schede / "CAMPO.json"
+    p.write_text(json.dumps({"id": "CAMPO", "titolo": "Messa in mora", "base_normativa": [
+        {"atto": "codice_civile", "articolo": "1219", "perche": "base"}], "campi": [
+        {"campo": "intimazione", "obbligatorio": True, "norma": [
+         {"atto": "codice_civile", "articolo": "1219", "perche": "forma della intimazione"}]}]}), encoding="utf-8")
+    f = fonti_per_scheda("CAMPO", db, cartella=schede)
+    assert len(f.fonti) == 1 and not f.pendenze
+    assert f.requisiti == [{"campo": "intimazione", "norma": "art. 1219 c.c.",
+                           "perche": "forma della intimazione", "fonte": 1}]
+
+
+@pytest.mark.parametrize("atto,sigla", [("dlgs_168_2003", "d.lgs. 168/2003"),
+                                      ("reg_ue_2022_2065", "Reg. UE 2022/2065"),
+                                      ("atto_senza_sigla", "atto senza sigla")])
+def test_etichette_fonti_non_codificate(atto, sigla):
+    from lex.procedura_atti.fonti_scheda import _sigla
+    assert _sigla(atto) == sigla

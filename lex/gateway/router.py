@@ -39,7 +39,7 @@ class LexRouter:
                 provider_order=[requested_provider],
                 model=requested_model or provider.default_model,
                 reason="provider_richiesto",
-                external_allowed=provider.is_local or allow_external,
+                external_allowed=(not provider.is_local) and allow_external,
             )
 
         if privacy.sensitivity in {"sensitive", "highly_sensitive"}:

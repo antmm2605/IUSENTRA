@@ -169,3 +169,22 @@ def test_rimedio_deciso_intercetta_risposta_reale_contraddittoria():
     assert verifica_rimedio_deciso("Non si chiede la risoluzione. Si esercita il recesso.",richiesta)==[]
     assert verifica_rimedio_deciso("Si chiede la risoluzione.","Valutare i rimedi della caparra")==[]
     assert verifica_rimedio_deciso("Si chiede la risoluzione.","Solo recesso da contratto senza altre indicazioni")==[]
+
+
+def test_provider_privato_non_anonimizza_il_fascicolo_come_un_provider_esterno():
+    from lex.gateway.config import GatewayConfig
+    from lex.gateway.service import LexGateway
+    from lex.gateway.messages import ProviderResponse
+    cfg=GatewayConfig.from_env()
+    cfg.providers["llamacpp"].enabled=True
+    cfg.providers["llamacpp"].default_model="fixture-local"
+    gateway=LexGateway(cfg)
+    prompt="Fascicolo cliente Mario Rossi, codice fiscale RSSMRA80A01H501U: non alterare i fatti nel modello locale."
+    class Provider:
+        def chat(self, messages, **kwargs):
+            assert messages[1].content == prompt
+            return ProviderResponse(content="bozza",provider="llamacpp",model="fixture-local")
+    gateway.providers["llamacpp"]=Provider()
+    response=gateway.ask(user_id="fixture",prompt=prompt,requested_provider="llamacpp",allow_external=False)
+    assert response.raw["lex_route"]["external_allowed"] is False
+    assert response.raw["lex_route"]["provider_order"]==["llamacpp"]

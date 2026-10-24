@@ -1,0 +1,36 @@
+name: Verifica domande Lex privato
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Domande sintetiche attraverso il gateway nel container applicativo
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy 2>/dev/null || true' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts "${HETZNER_USER}@${HETZNER_HOST}" \
+            'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T app python -' \
+            < deploy/private-lex/verify_questions.py | tee synthetic-results.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lex-private-synthetic-questions
+          path: synthetic-results.log
+          retention-days: 7

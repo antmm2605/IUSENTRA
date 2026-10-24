@@ -662,6 +662,7 @@ def _deve_mantenere_vista_classica() -> bool:
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",
         "/ricerca-legale/ricerca",
+        "/ricerca-legale/schede-atti",
     }:
         return True
     if lower.startswith("/legal-intelligence/daily/"):

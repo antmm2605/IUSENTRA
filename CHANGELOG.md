@@ -5,6 +5,7 @@
   abrogata, assente, fonte da valutare) e norme di ogni modello con stato, approvazione e collegamento ufficiale.
 - Decisioni sulle proposte e approvazione dei testi presenti in biblioteca di un modello riservate a `admin.configura`, con il
   nome dell'utente e la voce nel registro attivita'. Nessuna scheda viene modificata dalla pagina.
+- La pagina resta React anche quando una finestra storica aggiunge `?_legacy=1`: nessuna caduta su una pagina inesistente.
 - API `/api/v1/ui/schede-fonti` (riepilogo e proposte, norme di un modello, decisione, approvazione).
 - Approvazioni e note conservate nel database SQL del solo studio autenticato (SQLite e PostgreSQL), senza
   ereditare decisioni dal registro pubblico. Letture pubbliche senza scritture; conflitti concorrenti e ritentativi governati.

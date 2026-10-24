@@ -174,3 +174,38 @@ def test_fonte_cambiata_dopo_approvazione_richiede_nuova_verifica(tmp_path):
         assert any(p["tipo"] == "norma_cambiata" for p in c.get("/api/v1/ui/schede-fonti").get_json()["proposte"])
         assert c.post(url+"/approva", json={"impronta": dopo["impronta"]}).status_code == 200
         assert not any(p["tipo"] == "norma_cambiata" for p in c.get("/api/v1/ui/schede-fonti").get_json()["proposte"])
+
+
+def test_pagina_solo_react_non_cade_in_404_con_parametro_legacy(monkeypatch):
+    from flask import Flask, g, jsonify
+    from types import SimpleNamespace
+    from web.bootstrap import react_route_gate as gate
+
+    app = Flask(__name__)
+    app.secret_key = "fixture-solo-react"
+    @app.before_request
+    def utente_fixture():
+        g.utente_corrente = SimpleNamespace(must_change_password=False)
+    monkeypatch.setattr(gate, "render_react_shell_response", lambda path, **kw: jsonify(shell="react", percorso=path))
+    gate.register_react_route_gate(app)
+    with app.test_client() as c:
+        for query in ("", "?_legacy=1", "?_legacy=true", "?_legacy=1&embed=source"):
+            r = c.get("/ricerca-legale/schede-atti" + query)
+            assert r.status_code == 200 and r.get_json() == {"shell": "react", "percorso": "ricerca-legale/schede-atti"}
+        assert c.get("/ricerca-legale/schede-atti/?_legacy=1").status_code == 200
+        # API, scritture e compatibilità delle altre pagine non cambiano.
+        assert c.get("/api/v1/ui/schede-fonti?_legacy=1").status_code == 404
+        assert c.post("/ricerca-legale/schede-atti?_legacy=1").status_code == 404
+        assert c.get("/clienti?_legacy=1").status_code == 404
+
+
+def test_pagina_reale_autenticata_resta_react_anche_nella_finestra_storica(tmp_path):
+    app = _app(tmp_path)
+    with app.test_client() as c:
+        _login(c)
+        for path in ("/ricerca-legale/schede-atti", "/ricerca-legale/schede-atti?_legacy=1"):
+            r = c.get(path)
+            assert r.status_code == 200
+            html = r.get_data(as_text=True)
+            assert 'type="module"' in html and '/static/react/' in html
+            assert 'Pagina non trovata' not in html

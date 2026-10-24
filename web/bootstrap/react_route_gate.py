@@ -573,7 +573,12 @@ def register_react_route_gate(app: Flask) -> None:
 
     @app.before_request
     def _react_route_gate():
-        if request.method != "GET" or _legacy_requested() or not _accepts_html():
+        if request.method != "GET" or not _accepts_html():
+            return None
+        # Questa pagina nasce in React e non ha un corrispettivo Jinja.
+        # Le finestre storiche possono aggiungere _legacy: non deve provocare un 404.
+        solo_react = _normalise_path(request.path).lower() == "/ricerca-legale/schede-atti"
+        if _legacy_requested() and not solo_react:
             return None
         raw_lower = (request.path or "/").lower()
         path = _normalise_path(request.path)

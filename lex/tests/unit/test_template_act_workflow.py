@@ -376,3 +376,18 @@ def test_modello_ambiguo_non_viene_precompilato_prima_della_scelta(monkeypatch):
     payload=service.run_template_act_workflow(_request("prepara un atto per Mario Rossi"),_base_context(),{"items":[]})
     assert "Scegli" in payload["answer"] and payload["prefill"]=={}
     assert not any(a["kind"]=="mutation" for a in payload["lex_actions"])
+
+
+def test_richieste_cortesi_usano_il_catalogo_prima_del_percorso_generale(monkeypatch):
+    from lex import http_bounded_bridge
+    from lex.http_template_bridge import template_http_payload
+
+    calls = []
+    monkeypatch.setattr(http_bounded_bridge, "build_bounded_http_payload", lambda **kwargs: calls.append(kwargs) or {"ok": True})
+    for question in ["Vorrei preparare un ricorso per decreto ingiuntivo", "Puoi preparare una procura alle liti", "Potresti aiutarmi a compilare un atto di citazione"]:
+        assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) == {"ok": True}
+        assert calls[-1]["studio_context"]["request_profile"]["source_mode"] == "internal"
+    count = len(calls)
+    for question in ["Come si prepara un ricorso per decreto ingiuntivo?", "Quali sono i termini per redigere una citazione?"]:
+        assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) is None
+    assert len(calls) == count

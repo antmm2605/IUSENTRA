@@ -15,7 +15,11 @@ def template_http_payload(*, user, studio, data: dict[str, Any], question: str, 
     if attachments or _manual_free_web_enabled(data):
         return None
     # La sola menzione di un atto in una domanda di diritto non è un comando.
-    if not re.match(r"\s*(?:usa|prepara|compila|redigi)\b", question, re.I):
+    comando = r"(?:usa|prepara|compila|redigi)\b"
+    infinito = r"(?:usare|preparare|compilare|redigere)\b"
+    richiesta = r"(?:vorrei|voglio|desidero)\s+" + infinito
+    domanda = r"(?:puoi|potresti)\s+(?:aiutarmi\s+a\s+)?" + infinito
+    if not re.match(r"\s*(?:" + comando + "|" + richiesta + "|" + domanda + ")", question, re.I):
         return None
     active = data.get("active_context") if isinstance(data.get("active_context"), dict) else {}
     if not _is_template_act_request(question, {"active_context": active}, {}):

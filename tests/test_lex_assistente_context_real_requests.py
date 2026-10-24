@@ -253,7 +253,7 @@ def test_assistente_context_ultime_udienze_legge_agenda_reale(tmp_path: Path):
     assert "Non ho trovato dati reali sufficienti" not in answer
 
 
-def test_assistente_context_diffida_compila_studio_e_cliente_senza_fonti_irreali(tmp_path: Path):
+def test_assistente_context_diffida_chiede_fascicolo_prima_di_compilare_senza_fonti_irreali(tmp_path: Path):
     app, studio, admin = _seed_studio_con_moscato(tmp_path)
 
     with app.test_client() as client:
@@ -270,13 +270,13 @@ def test_assistente_context_diffida_compila_studio_e_cliente_senza_fonti_irreali
     answer = payload.get("answer", "")
     assert response.status_code == 200
     assert payload["ok"] is True
-    assert "Studio Refactor" in answer
-    assert "Avv. Refactor" in answer
+    # Il cliente e identificato, ma non autorizza a scegliere una pratica o
+    # a inventare una bozza: prima serve la selezione esplicita del fascicolo.
     assert "Moscato Marco" in answer
-    assert "\n\n---\n\n" in answer
-    assert "\n**Fatto**\n\n" in answer
-    assert "\n1. " in answer
-    assert "\n2. " in answer
+    assert "Quale fascicolo o procedimento vuoi collegare?" in answer
+    assert "Nessuna bozza" in answer
+    assert "**Fatto**" not in answer
+    assert "Udienza istruttoria Moscato" not in answer
     assert "[Studio Legale / Avv. Nome Cognome]" not in answer
     assert "Fonti consultate" not in answer
     assert "Contesto fonte" not in answer

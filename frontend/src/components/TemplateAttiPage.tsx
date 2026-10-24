@@ -1628,7 +1628,7 @@ function ProfessionalTemplateEditorWorkspace({
   const lastPlainDraftFromEditorRef = useRef('')
   const panelRef = useRef<HTMLDivElement>(null)
   const freeEditorMode = isFreeEditorRoute()
-  const selectedTemplate = data.templateExamples.find((item) => item.id === selectedTemplateId) || (!freeEditorMode ? data.templateExamples.find((item) => item.selected) || data.templateExamples[0] : undefined)
+  const selectedTemplate = data.templateExamples.find((item) => item.id === selectedTemplateId) || (!freeEditorMode ? data.templateExamples.find((item) => item.selected) : undefined)
   const showTemplateFields = !freeEditorMode
   const documentDisplayTitle = freeEditorMode ? 'Documento libero' : selectedTemplate?.title || data.model.name
   const documentPanelSubtitle = freeEditorMode ? 'Foglio indipendente dai modelli' : selectedTemplate?.title || data.model.name
@@ -1688,7 +1688,7 @@ function ProfessionalTemplateEditorWorkspace({
       values[field.name] = fieldDisplayValue(field)
     })
     setFieldValues(values)
-    setSelectedTemplateId((current) => freeEditorMode ? '' : current || data.templateExamples.find((item) => item.selected)?.id || data.templateExamples[0]?.id || '')
+    setSelectedTemplateId((current) => freeEditorMode ? '' : current || data.templateExamples.find((item) => item.selected)?.id || '')
     setProposals(data.lexRevision.seedProposals)
     setStampPosition(data.editorLayout.stampPosition || 'top-center')
     setStampOffsetY(Number(data.editorLayout.stampOffsetY || 0))

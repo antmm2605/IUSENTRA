@@ -14,9 +14,10 @@ def impronta_scheda(scheda: dict) -> str:
 
 
 def impronta_fonti(caso: dict) -> str:
-    """Testi delle Fonti come arrivano al modello, piu' il loro elenco (atto, articolo)."""
+    """Testi delle Fonti come arrivano al modello piu' l'elenco completo, provenienza inclusa (tipo, URL, versione,
+    data di acquisizione, impronta): stesso testo con provenienza diversa = impronta diversa."""
     return _sha({"testi": {str(k): v for k, v in sorted(caso["fonti"].items())},
-                 "elenco": [(f["atto"], f["articolo"]) for f in caso["fonti_ref"]]})
+                 "elenco": caso["fonti_ref"]})
 
 
 def impronta_fascicolo(caso: dict) -> str:

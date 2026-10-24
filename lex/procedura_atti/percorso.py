@@ -10,7 +10,7 @@ Misura di riferimento (banco v7, 60 casi, valutazione cieca esplorativa, schede 
 sbagliati scendono da circa 35 a circa 5-10 su 60 rispetto alla stesura diretta. Non e' una garanzia di accuratezza.
 
 Formato del caso: {"fatti", "richiesta", "oggi" (gg/mm/aaaa), "parte_assistita": {"nome", "ruolo"},
-"controparte": {"nome", "ruolo"}, "fonti": {n: testo}, "fonti_ref": [{"n", "atto", "articolo", "sigla"}]}.
+"controparte": {"nome", "ruolo"}, "fonti": {n: testo}, "fonti_ref": [{"n", "atto", "articolo", "sigla", "provenienza"}]}; provenienza obbligatoria (provenienza.py).
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from .calcolatore import calcola_scheda
 from .contabilita import prospetto, verifica_credito
 from .impronte import impronta_fascicolo, impronta_fonti, impronta_scheda
+from .provenienza import verifica_provenienza
 from .requisiti_atti import modello_per, requisiti_mancanti
 from .revisione_indipendente import rivedi
 from .stato_consegna import stato
@@ -65,7 +66,7 @@ def validazione_valida(validazione: dict | None, scheda: dict, caso: dict) -> li
 
 
 def prepara(scheda: dict, caso: dict, validazione: dict | None, *, consenti_non_validata: bool = False) -> Preparazione:
-    errori = verifica(scheda, caso, caso["fonti"])
+    errori = verifica_provenienza(caso) + verifica(scheda, caso, caso["fonti"])
     if scheda.get("credito"):
         errori += verifica_credito(scheda["credito"], caso["fatti"])
     if errori:

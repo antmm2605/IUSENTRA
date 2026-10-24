@@ -8,12 +8,20 @@ import pytest
 
 from lex.procedura_atti import SchedaNonUtilizzabile, impronte, prepara, valuta
 from lex.procedura_atti.calcolatore import calcola_importi, euro
+from lex.procedura_atti.provenienza import sha256_testo
 from lex.procedura_atti.verifica_scheda import contraria, in_lettere
 
 FATTI = ("Il 10/03/2027 la sentenza n. 120/2027 del Tribunale di Lecce e' stata notificata a Rosa Fiorentino. "
          "Il credito riconosciuto e' di 12.400 euro; il 20/03/2027 la controparte ha versato un acconto di 2.400 euro.")
 FONTI = {1: "Art. 325 c.p.c. Il termine per proporre l'appello e' di trenta giorni dalla notificazione della sentenza.",
          2: "Art. 1194 c.c. Il debitore non puo' imputare il pagamento al capitale anziche' agli interessi e alle spese."}
+
+
+def _prov(n: int, fonti: dict, tipo: str = "norma", **diverso) -> dict:
+    p = {"tipo": tipo, "url": f"https://www.normattiva.it/fonte-{n}", "versione": "vigente al 01/03/2027",
+         "acquisita_il": "01/03/2027", "sha256": sha256_testo(fonti[n])}
+    p.update(diverso)
+    return p
 
 
 def _caso(**extra):
@@ -23,6 +31,8 @@ def _caso(**extra):
             "fonti": dict(FONTI), "fonti_ref": [{"n": 1, "atto": "codice_procedura_civile", "articolo": "325", "sigla": "c.p.c."},
                           {"n": 2, "atto": "codice_civile", "articolo": "1194", "sigla": "c.c."}]}
     caso.update(extra)
+    for f in caso["fonti_ref"]:
+        f.setdefault("provenienza", _prov(f["n"], caso["fonti"]))
     return caso
 
 
@@ -71,6 +81,40 @@ def test_validazione_non_vale_se_cambiano_le_fonti():
     c2 = _caso(fonti={**FONTI, 2: FONTI[2] + " Modificata."})
     with pytest.raises(SchedaNonUtilizzabile, match="fonti_sha256"):
         prepara(s, c2, v)
+
+
+@pytest.mark.parametrize("campo,valore", [("url", "https://www.gazzettaufficiale.it/altra"),
+                                           ("versione", "vigente al 01/04/2027"), ("acquisita_il", "02/03/2027")])
+def test_stesso_testo_con_provenienza_diversa_invalida_l_approvazione(campo, valore):
+    s, c = _scheda(), _caso()
+    v = _approvata(s, c)
+    c2 = _caso()
+    c2["fonti_ref"][0]["provenienza"] = _prov(1, c2["fonti"], **{campo: valore})
+    assert c2["fonti"] == c["fonti"]
+    with pytest.raises(SchedaNonUtilizzabile, match="fonti_sha256"):
+        prepara(s, c2, v)
+
+
+def test_fonte_senza_provenienza_o_con_testo_alterato_si_ferma():
+    c = _caso()
+    del c["fonti_ref"][1]["provenienza"]
+    with pytest.raises(SchedaNonUtilizzabile, match="provenienza mancante"):
+        prepara(_scheda(), c, None, consenti_non_validata=True)
+    c = _caso()
+    c["fonti_ref"][0]["provenienza"]["sha256"] = sha256_testo("altro testo")
+    with pytest.raises(SchedaNonUtilizzabile, match="non corrisponde all'impronta"):
+        prepara(_scheda(), c, None, consenti_non_validata=True)
+
+
+def test_decisione_senza_testo_integrale_resta_uno_spunto():
+    fonti = {**FONTI, 3: "Cass. civ. n. 1234/2026 - oggetto: appello; esito: rigetto."}
+    rif = {"n": 3, "atto": "cassazione_civile", "articolo": "1234/2026", "sigla": "Cass. civ."}
+    c = _caso(fonti=fonti)
+    c["fonti_ref"].append({**rif, "provenienza": _prov(3, fonti, tipo="decisione")})
+    with pytest.raises(SchedaNonUtilizzabile, match="resta uno spunto"):
+        prepara(_scheda(), c, None, consenti_non_validata=True)
+    c["fonti_ref"][-1]["provenienza"]["testo_integrale"] = True
+    assert prepara(_scheda(), c, None, consenti_non_validata=True).calcoli["termini"]
 
 
 def test_scheda_con_citazione_inventata_non_passa():

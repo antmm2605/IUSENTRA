@@ -1,3 +1,12 @@
+## 2.449.1 — Provenienza obbligatoria delle Fonti nella procedura atti
+
+- Ogni Fonte dichiara tipo, indirizzo ufficiale, versione, data di acquisizione e impronta SHA-256 del testo; la
+  provenienza entra per intero nell'impronta delle Fonti (art. 20 CAD).
+- Stesso testo con indirizzo, versione o data di acquisizione diversi invalida l'approvazione precedente.
+- Una decisione senza testo integrale ufficiale non diventa Fonte: i risultati R6 (estremi, oggetto, esito) restano
+  spunti separati. Testo diverso dall'impronta acquisita: la verifica si ferma.
+- Resta una libreria: nessun endpoint e nessun flusso dell'interfaccia attivati.
+
 ## 2.449.0 — Procedura atti: il codice decide, Lex scrive
 
 - Nuovo pacchetto `lex/procedura_atti/` (libreria senza effetti, non ancora collegata a endpoint o interfaccia):

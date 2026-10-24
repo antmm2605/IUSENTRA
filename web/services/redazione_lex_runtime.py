@@ -84,4 +84,6 @@ def stesura(*, model_code: str, risolta: dict, fascicolo: Any, cliente: Any, ogg
             "revisione": {k: [list(x) for x in v] for k, v in esito.revisione.items()},
             "statoConsegna": esito.stato_consegna, "modelloAi": esito.modello_ai,
             "fonti": [dict(r) for r in fonti.fonti_ref],
-            "pendenzeFonti": list(fonti.pendenze), "scadenze": scadenze}
+            "pendenzeFonti": list(fonti.pendenze), "scadenze": scadenze,
+            "primaStesura": esito.prima_stesura, "numeroStesure": esito.numero_stesure,
+            "revisionePrimaStesura": esito.revisione_prima_stesura}

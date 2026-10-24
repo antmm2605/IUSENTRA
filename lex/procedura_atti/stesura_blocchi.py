@@ -23,6 +23,8 @@ SISTEMA = (
     "- Scadenze e importi: riporta identici quelli calcolati dal software, non ricalcolarli.\n"
     "- Le decisioni esplicite dell’avvocato su rimedio e domande sono vincolanti: non sostituirle né cumularle. "
     "Il recesso con doppio della caparra non va chiamato risoluzione né affiancato al risarcimento.\n"
+    "- Le Fonti non sono fatti del caso: non dedurne natura del contratto, beni, date o domande. "
+    "Non aggiungere richieste, accessori o circostanze non espressamente forniti; segnala ciò che manca.\n"
     "- Non scrivere ragionamenti interni, note per te o riferimenti alla scheda."
 )
 # Blocco della scheda -> campi del modello del compilatore, in ordine di preferenza (parole chiave nel nome del blocco).
@@ -46,6 +48,9 @@ class EsitoStesura:
     stato_consegna: dict = field(default_factory=dict)
     testo: str = ""
     modello_ai: str = ""
+    prima_stesura: str = ""
+    revisione_prima_stesura: dict = field(default_factory=dict)
+    numero_stesure: int = 1
 
 
 # Budget del contesto (modello locale con 32k token): ogni Fonte oltre questa misura viene accorciata dichiarandolo,
@@ -142,10 +147,36 @@ def verifica_rimedio_deciso(bozza: str, richiesta: str) -> list[tuple[str, str]]
     for frase in re.split(r"[;\n]|(?<=[.!?])\s+", bozza or ""):
         for match in re.finditer(r"\brisol(?:uzione|to|ta|ti|te|vere)\b", frase, re.IGNORECASE):
             prima = frase[:match.start()].lower()
-            if re.search(r"(?:non\s+(?:si\s+)?(?:chiede|richiede|domanda)|si\s+esclude|senza\s+(?:chiedere|richiedere)|non\s+va\s+chiesta)[^,;]{0,100}$", prima):
+            if re.search(r"(?:non\s+(?:si\s+)?(?:chiede|richiede|domanda)|si\s+esclude|senza(?:\s+che[^,;]{0,50})?\s+(?:chiedere|richiedere)|non\s+va\s+chiesta)[^,;]{0,100}$", prima):
                 continue
             problemi.append(("rimedio_diverso_da_quello_deciso", frase.strip()[:200]))
             break
+    return problemi
+
+
+def verifica_fatti_nuovi(bozza: str, origine: str) -> list[tuple[str, str]]:
+    """Controlla attribuzioni fattuali tipizzate; la norma non prova il contratto del caso."""
+    problemi = []
+    tipi = {"locazione": r"locazion|affitt", "compravendita": r"compravendit|vendit", "appalto": r"appalt",
+            "mutuo": r"mutu", "comodato": r"comodat", "lavoro": r"lavor", "assicurazione": r"assicura", "leasing": r"leasing"}
+    for match in re.finditer(r"\bcontratto\s+di\s+(locazione|compravendita|appalto|mutuo|comodato|lavoro|assicurazione|leasing)\b", bozza, re.IGNORECASE):
+        tipo = match.group(1).lower()
+        if not re.search(tipi[tipo], origine, re.IGNORECASE):
+            problemi.append(("natura_contratto_non_fornita", match.group(0)))
+    esclusivo = re.search(r"(?:esclusivamente|soltanto|solo)\s+(?:il\s+)?recesso", origine, re.IGNORECASE)
+    if esclusivo and re.search(r"caparra", origine, re.IGNORECASE):
+        for match in re.finditer(r"\brilascio\s+dell[’']?\s*(?:immobile|bene)|\brilascio\s+dell(?:o|a)\s+(?:immobile|bene)", bozza, re.IGNORECASE):
+            if not re.search(r"rilascio", origine, re.IGNORECASE):
+                problemi.append(("domanda_non_decisa", match.group(0)))
+    origine_affermativa = re.sub(r"\bnon\s+(?:aggiungere|chiedere|richiedere)[^.;\n]*|\bsenza[^.;\n]*", "", origine, flags=re.IGNORECASE)
+    if esclusivo and re.search(r"caparra", origine, re.IGNORECASE):
+        for match in re.finditer(r"\b(interessi|spese|compensazione|estinzione)\b", bozza, re.IGNORECASE):
+            parola = match.group(1)
+            prima = bozza[max(0,match.start()-60):match.start()]
+            if re.search(r"(?:senza|non\s+(?:si\s+)?(?:chiede|richiede))[^,;\n]{0,50}$", prima, re.IGNORECASE):
+                continue
+            if not re.search(r"\b"+parola+r"\b", origine_affermativa, re.IGNORECASE):
+                problemi.append(("accessorio_non_deciso", match.group(0)))
     return problemi
 
 
@@ -164,8 +195,29 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
     caso = {"fonti": fonti.fonti, "fonti_ref": fonti.fonti_ref, "fatti": fatti_testo + "\n" + "\n".join(_dati_fascicolo(risolta)),
             "richiesta": oggetto + "\n" + blocco_scadenze, "oggi": oggi.strftime("%d/%m/%Y"),
             "parte_assistita": {"nome": assistito or "assistito", "ruolo": ruolo_assistito}, "controparte": {"nome": controparte or ""}}
-    revisione = rivedi(testo, caso, {"termini": termini, "importi": []})
-    revisione["gravi"].extend(verifica_rimedio_deciso(testo, oggetto))
+    def revisiona(bozza):
+        verifica = rivedi(bozza, caso, {"termini": termini, "importi": []})
+        verifica["gravi"].extend(verifica_rimedio_deciso(bozza, oggetto))
+        verifica["gravi"].extend(verifica_fatti_nuovi(bozza, caso["fatti"]+" "+oggetto))
+        return verifica
+
+    revisione = revisiona(testo)
+    prima_stesura, revisione_prima, numero_stesure = "", {}, 1
+    errori_correggibili = [g for g in revisione["gravi"] if g[0] != "vuoto"]
+    if errori_correggibili:
+        prima_stesura, revisione_prima, numero_stesure = testo, revisione, 2
+        correzioni = "\n".join(f"- {codice}: {dettaglio}" for codice, dettaglio in errori_correggibili)
+        richiesta_correzione = (msg + "\n\nLa prima bozza seguente contiene errori. Non è una Fonte né un fatto del fascicolo. "
+                               "Riscrivila una sola volta eliminando gli errori indicati, senza aggiungere dati, domande o accessori. "
+                               "Mantieni i titoli ### richiesti.\nERRORI DA CORREGGERE:\n" + correzioni
+                               + "\nBOZZA DA CORREGGERE:\n" + testo)
+        try:
+            corretta, modello_correzione = chiama_modello(SISTEMA, richiesta_correzione)
+            if str(corretta or "").strip():
+                testo, nome_modello = corretta, modello_correzione
+                revisione = revisiona(testo)
+        except (OSError, ValueError, RuntimeError):
+            revisione["pendenti"].append(("correzione_non_disponibile", "Conservata la prima bozza con i suoi errori; nessuna ulteriore ripresa automatica."))
     esito_stato = stato(testo, [], revisione, {"norme_mancanti": [], "dati_mancanti": []}, None)
     if fonti.pendenze and esito_stato["stato"] == "pronta_per_revisione_avvocato":
         esito_stato["stato"] = "bozza_con_verifiche_pendenti"
@@ -185,4 +237,5 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
         if da_confermare:
             esito_stato["motivi"].append("Sono presenti dati letti dai documenti ancora da confermare.")
     return EsitoStesura(blocchi=blocchi, campi=campi_per_blocchi(list(blocchi), campi_modello), revisione=revisione,
-                        stato_consegna=esito_stato, testo=testo, modello_ai=nome_modello)
+                        stato_consegna=esito_stato, testo=testo, modello_ai=nome_modello, prima_stesura=prima_stesura,
+                        revisione_prima_stesura=revisione_prima, numero_stesure=numero_stesure)

@@ -68,7 +68,7 @@ export function StesuraLexPanel({
   return (
     <section aria-label="Stesura di Lex" className="iu-rg-lex">
       <h4 className="iu-rg-subtitle"><Bot size={16} aria-hidden="true" /> Parti dell'atto scritte da Lex</h4>
-      <p className="iu-rg-hint">Lex usa solo i dati del fascicolo, le scadenze calcolate e il testo vigente delle norme della scheda. Il modello gira sul server dello studio: nessun dato esce.</p>
+      <p className="iu-rg-hint">Lex usa i dati del fascicolo, le scadenze calcolate e i testi delle norme della scheda. La stesura usa il modello dello studio, anche sul suo PC tramite rete privata, senza servizi AI esterni.</p>
       <label className="iu-rg-lex__campo">
         <span>Cosa deve ottenere l'atto per l'assistito</span>
         <textarea disabled={inCorso} maxLength={16000} rows={3} value={oggetto} onChange={(event) => setOggetto(event.target.value)} placeholder="Es. pagamento del prezzo della fornitura non saldata" />
@@ -90,6 +90,7 @@ export function StesuraLexPanel({
       {esito && esito.ok && stato ? (
         <div className="iu-rg-lex__esito">
           <p className="iu-rg-lex__stato"><Badge tone={stato.tone}>{stato.label}</Badge> <small>{esito.modelloAi}</small></p>
+          {esito.primaStesura ? <details><summary>Prima stesura e controllo della correzione ({esito.numeroStesure} stesure)</summary><p>Lex ha tentato una sola correzione degli errori rilevati. Anche la nuova bozza richiede la tua revisione.</p><ul>{esito.erroriPrimaStesura?.map((voce) => <li key={voce}>{voce}</li>)}</ul><pre>{esito.primaStesura}</pre></details> : null}
           {esito.gravi.length ? (
             <div className="iu-rg-lex__avvisi" role="alert">
               <strong>Errori trovati dalla revisione: correggere prima dell’inserimento.</strong>

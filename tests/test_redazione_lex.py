@@ -188,3 +188,47 @@ def test_provider_privato_non_anonimizza_il_fascicolo_come_un_provider_esterno()
     response=gateway.ask(user_id="fixture",prompt=prompt,requested_provider="llamacpp",allow_external=False)
     assert response.raw["lex_route"]["external_allowed"] is False
     assert response.raw["lex_route"]["provider_order"]==["llamacpp"]
+
+
+def test_natura_del_contratto_e_rilascio_non_possono_essere_inventati():
+    from lex.procedura_atti.stesura_blocchi import verifica_fatti_nuovi
+    richiesta="Alfa esercita esclusivamente il recesso con doppio della caparra: 4000 euro."
+    bozza="Recesso dal contratto di locazione. Si chiede il rilascio dell’immobile."
+    errori=verifica_fatti_nuovi(bozza,richiesta)
+    assert {x[0] for x in errori}=={"natura_contratto_non_fornita","domanda_non_decisa"}
+    assert verifica_fatti_nuovi("Contratto di compravendita.","Le parti hanno stipulato una vendita.")==[]
+    assert verifica_fatti_nuovi("Contratto di appalto.","Un appalto è documentato.")==[]
+    assert verifica_fatti_nuovi("Si chiede il rilascio dell’immobile.","Si esercita esclusivamente il recesso con caparra e si chiede il rilascio.")==[]
+    assert verifica_fatti_nuovi("Si chiede il rilascio dell’immobile.","Si chiede il rilascio.")==[]
+
+
+def test_conclusioni_esclusive_non_aggiungono_accessori():
+    from lex.procedura_atti.stesura_blocchi import verifica_fatti_nuovi, verifica_rimedio_deciso
+    richiesta="Si chiede esclusivamente il recesso con doppio della caparra, 4000 euro."
+    assert any(g[0]=="accessorio_non_deciso" for g in verifica_fatti_nuovi("4000 euro oltre interessi legali e spese.",richiesta))
+    assert verifica_fatti_nuovi("4000 euro senza interessi.",richiesta)==[]
+    assert verifica_fatti_nuovi("4000 euro oltre interessi.",richiesta+" Non aggiungere interessi.")
+    assert verifica_fatti_nuovi("4000 euro e interessi.",richiesta+" Si chiedono interessi.")==[]
+    assert verifica_rimedio_deciso("Senza che sia possibile chiedere la risoluzione.",richiesta)==[]
+
+
+def test_una_sola_correzione_conserva_prima_bozza_e_controlli():
+    errore=RISPOSTA.replace("[1]","ai sensi dell'art. 2043 c.c.")
+    calls=[]
+    def call(system,message):
+        calls.append(message)
+        return (errore if len(calls)==1 else RISPOSTA), "fixture"
+    args=dict(oggetto="recupero",risolta=_risolta(),fonti=FONTI,blocco_scadenze="",termini=[],fatti_testo="",oggi=date(2026,10,24),assistito="Mario Rossi",controparte="Beta s.r.l.",campi_modello=["facts"])
+    result=scrivi_blocchi(chiama_modello=call,**args)
+    assert len(calls)==2 and "ERRORI DA CORREGGERE" in calls[1]
+    assert result.prima_stesura==errore and result.testo==RISPOSTA
+    assert result.revisione_prima_stesura["gravi"] and not result.revisione["gravi"]
+    assert result.numero_stesure==2
+    calls.clear()
+    def failing(system,message):
+        calls.append(message)
+        if len(calls)==2:raise OSError("fixture offline")
+        return errore,"fixture"
+    failed=scrivi_blocchi(chiama_modello=failing,**args)
+    assert len(calls)==2 and failed.revisione["gravi"]
+    assert any(item[0]=="correzione_non_disponibile" for item in failed.revisione["pendenti"])

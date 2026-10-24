@@ -617,6 +617,9 @@ export async function generaRedazioneAtto(input: {
 
 export type StesuraLexBlocco = { blocco: string; testo: string; campo: string }
 export type StesuraLexEsito = {
+  primaStesura?: string
+  numeroStesure?: number
+  erroriPrimaStesura?: string[]
   ok: boolean
   errore: string
   blocchi: StesuraLexBlocco[]
@@ -654,6 +657,9 @@ export async function stesuraLex(input: {
   const revisione = (payload.revisione && typeof payload.revisione === 'object' ? payload.revisione : {}) as Record<string, unknown>
   const statoConsegna = (payload.statoConsegna && typeof payload.statoConsegna === 'object' ? payload.statoConsegna : {}) as Record<string, unknown>
   return {
+    primaStesura: text(payload.primaStesura),
+    numeroStesure: Number(payload.numeroStesure) || 1,
+    erroriPrimaStesura: list((payload.revisionePrimaStesura as Record<string, unknown> | undefined)?.gravi).map(voceRevisione),
     ok: payload.ok === true,
     errore: display(payload.errore),
     blocchi: list(payload.blocchi).map((item) => {

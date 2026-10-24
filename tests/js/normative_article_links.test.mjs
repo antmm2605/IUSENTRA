@@ -29,3 +29,12 @@ test('verifica ufficiale esplicita fuori iframe, senza aprire schemi arbitrari o
   assert.equal(openOfficialOutsideReader('/email','https://www.normattiva.it','1',origin),false)
   assert.equal(openOfficialOutsideReader(reader,'https://www.normattiva.it',null,origin),false)
 })
+
+
+test('la stesura resta legata a modello, pratica, cliente e dati correnti', async () => {
+  const { stesuraSnapshot } = await import('../../frontend/src/stesuraLexSnapshot.ts')
+  const first=stesuraSnapshot('modello','pratica','cliente','richiesta','attore',{b:'2',a:'1'})
+  assert.equal(first,stesuraSnapshot('modello','pratica','cliente','richiesta','attore',{a:'1',b:'2'}))
+  assert.notEqual(first,stesuraSnapshot('modello','altra-pratica','cliente','richiesta','attore',{a:'1',b:'2'}))
+  assert.notEqual(first,stesuraSnapshot('modello','pratica','cliente','richiesta','attore',{a:'diverso',b:'2'}))
+})

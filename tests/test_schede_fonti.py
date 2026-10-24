@@ -136,3 +136,20 @@ def test_rifiuta_akn_di_altro_atto_anche_con_articolo_richiesto(urn):
     with pytest.raises(ValueError, match="discordante"):
         converti(AttoScaricato(urn, xml, "t", "19940131", "094G0053", "20261024", URL, "abc"),
                  "legge_53_1994", "2026-10-24")
+
+
+def test_verifica_rilascio_biblioteca_e_in_sola_lettura(ambiente, monkeypatch):
+    import runpy
+    import pct.schede_fonti.verifica as modulo
+    db, schede, _ = ambiente
+    originale = modulo.verifica_schede
+    monkeypatch.setattr(modulo, "verifica_schede", lambda d: originale(d, schede))
+    import sqlite3
+    with sqlite3.connect(db) as conn:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    prima = db.read_bytes()
+    verifica = runpy.run_path(str(Path(__file__).resolve().parents[1] / "deploy/hetzner/verifica_fonti_lex.py"))["verifica_biblioteca_schede"]
+    esito = verifica(db)
+    assert esito["norme"] == 3 and esito["stati"]["presente"] == 1
+    assert not esito["scritture"] and not esito["approvazioni_automatiche"]
+    assert db.read_bytes() == prima

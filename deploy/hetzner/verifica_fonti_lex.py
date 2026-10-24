@@ -16,6 +16,18 @@ import sys
 from pathlib import Path
 
 
+def verifica_biblioteca_schede(db: Path) -> dict:
+    """Riscontro in sola lettura delle nuove schede sulla biblioteca distribuita."""
+    from pct.schede_fonti.verifica import riepilogo, verifica_schede
+
+    esiti = verifica_schede(db)
+    if not esiti or not any(e.stato == "presente" for e in esiti):
+        raise ValueError("biblioteca senza norme consultabili dalle schede")
+    risultato = riepilogo(esiti)
+    return {"norme": risultato["norme"], "stati": risultato["stati"],
+            "scritture": False, "approvazioni_automatiche": False}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", required=True)
@@ -85,6 +97,13 @@ def main(argv: list[str] | None = None) -> int:
         for riga in errori:
             print("KO", riga)
         return 1
+    biblioteca = db.with_name("codici_leggi.sqlite")
+    if biblioteca.is_file():
+        try:
+            print("BIBLIOTECA_SCHEDE_SERVER_JSON=" + json.dumps(verifica_biblioteca_schede(biblioteca)))
+        except Exception as exc:
+            print(f"KO verifica schede sulla biblioteca: {exc}")
+            return 1
     print("OK archivio Normattiva verificato")
     return 0
 

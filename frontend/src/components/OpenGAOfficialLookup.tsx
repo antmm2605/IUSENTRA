@@ -16,7 +16,7 @@ export function OpenGAOfficialLookup({ decision }: { decision: OpenGADecision })
       setMessage('Copia non disponibile: puoi selezionare gli estremi qui sotto.')
     }
   }
-  return <details className="iu-openga-official-lookup" onToggle={(event) => { if (event.currentTarget.open) setOpened(true) }}>
+  return <details className="iu-openga-official-lookup" onToggle={(event) => setOpened(event.currentTarget.open)}>
     <summary>Trova il testo sul sito ufficiale</summary>
     {opened && <OpenGAOfficialDocument decision={decision} />}
     <p>Se il recupero non riesce, questi estremi permettono la verifica nel modulo ufficiale:</p>

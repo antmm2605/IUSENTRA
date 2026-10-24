@@ -1145,6 +1145,15 @@ def _azioni_varianti(template: TemplateMatch) -> list[dict[str, Any]]:
             continue
         visti.add(code)
         risultati.append(_action("choose_model_"+code, title, "open", href="/template-atti/compila/"+code))
+    if len(risultati) < 2 and template.ambiguous:
+        from pct.compilatore_atti import elenco_modelli
+        validi = {m["code"] for m in elenco_modelli()}
+        for voce in template.options:
+            code = clean_spaces(voce.get("model_code"))
+            if code not in validi or code in visti:
+                continue
+            visti.add(code)
+            risultati.append(_action("choose_model_"+code, clean_spaces(voce.get("name")) or code, "open", href="/template-atti/compila/"+code))
     return risultati[:6]
 
 
@@ -1302,7 +1311,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
     validation: ValidationResult | None = None
     created: CreatedDocumentResult | None = None
     compliance: Any = None
-    if template.found and not lookup_only and not act_context.forbidden and not act_context.client_options and not act_context.case_options and act_context.cliente and act_context.fascicolo:
+    if template.found and not lookup_only and not act_context.forbidden and not act_context.client_options and not act_context.case_options and act_context.cliente and act_context.fascicolo and not template.ambiguous:
         prefill = build_prefill(template.model_code, act_context.fascicolo, act_context.cliente, act_context.utente, act_context.config,
                                 act_context.parti_ruoli or act_context.parti)
         manual_payload = metadata.get("template_payload") if isinstance(metadata.get("template_payload"), dict) else {}
@@ -1385,6 +1394,11 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
     elif act_context.forbidden:
         answer = "Non posso usare il fascicolo o il cliente collegato con i permessi disponibili. Non creo alcuna bozza."
         confidence = 0.2
+        answer_mode = "needs_review"
+    elif template.ambiguous:
+        answer = ("Ho trovato più modelli pertinenti. Scegli quello da produrre fra le alternative proposte; "
+                  "poi collegheremo cliente e fascicolo e completeremo soltanto i dati mancanti. Nessuna bozza è stata creata.")
+        confidence = 0.5
         answer_mode = "needs_review"
     elif act_context.client_options or act_context.case_options:
         choices = act_context.client_options or act_context.case_options

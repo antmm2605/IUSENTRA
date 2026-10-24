@@ -360,3 +360,19 @@ def test_nome_esatto_rispettato_in_tutte_le_aree_del_catalogo():
     for area,title in campione.items():
         risultati=search_template_models(title)
         assert risultati and normalize_text(risultati[0].name)==normalize_text(title), (area,title,[m.name for m in risultati[:3]])
+
+
+def test_modello_ambiguo_non_viene_precompilato_prima_della_scelta(monkeypatch):
+    from pct import template_atti_lex_service as service
+    original=service.resolve_template_for_query
+    def ambiguous(query,context):
+        match=original("atto di citazione",context)
+        match.ambiguous=True
+        match.options=[{"model_code":"CIV_CIT_001","name":"Atto di citazione"},{"model_code":"CIV_RDI_001","name":"Ricorso per decreto ingiuntivo"}]
+        return match
+    monkeypatch.setattr(service,"resolve_template_for_query",ambiguous)
+    def forbidden(*args,**kwargs):raise AssertionError("La scelta del modello spetta all’avvocato")
+    monkeypatch.setattr(service,"build_prefill",forbidden)
+    payload=service.run_template_act_workflow(_request("prepara un atto per Mario Rossi"),_base_context(),{"items":[]})
+    assert "Scegli" in payload["answer"] and payload["prefill"]=={}
+    assert not any(a["kind"]=="mutation" for a in payload["lex_actions"])

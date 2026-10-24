@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { ExternalLink, X } from 'lucide-react'
 import { apiPostJson, ensureJson } from '../api/client'
 import { Badge } from '../ui/Badge'
@@ -17,17 +18,19 @@ export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged
   const [busy, setBusy] = useState(true)
   const [salva, setSalva] = useState(false)
   const [carica, setCarica] = useState(0)
+  useOperationalRefresh(['fascicoli'], () => setCarica(n => n + 1))
   useBusyActivity(busy || salva, salva ? 'Registrazione dell’approvazione…' : 'Caricamento delle norme…')
   useEffect(() => {
     const controller = new AbortController()
-    setScheda(null); setErrore(''); setConferma(false); setBusy(true)
+    setErrore(''); setBusy(true)
     ensureJson<{ scheda: Scheda }>(`${base}/schede/${encodeURIComponent(schedaId)}`, { signal: controller.signal })
       .then(d => { if (!controller.signal.aborted) setScheda(d.scheda) })
       .catch(() => { if (!controller.signal.aborted) setErrore('Il modello non è disponibile. Riprova.') })
       .finally(() => { if (!controller.signal.aborted) setBusy(false) })
     return () => controller.abort()
   }, [schedaId, carica])
-  useEffect(() => { setMessaggio('') }, [schedaId])
+  useEffect(() => { setMessaggio(''); setScheda(null); setConferma(false) }, [schedaId])
+  useEffect(() => { setConferma(false) }, [scheda?.impronta])
   async function approva() {
     if (!scheda || !conferma || salva) return
     setSalva(true); setMessaggio('')

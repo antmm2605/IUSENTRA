@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { ShieldCheck } from 'lucide-react'
 import { apiPostJson, ensureJson } from '../api/client'
 import { Page } from '../ui/Page'
@@ -29,6 +30,7 @@ export function SchedeFontiPage() {
   const [selezione, setSelezione] = useState('')
   const [cerca, setCerca] = useState('')
   const [salvataggio, setSalvataggio] = useState('')
+  useOperationalRefresh(['fascicoli'], () => setCarica(n => n + 1))
   useBusyActivity(busy || !!salvataggio, 'Caricamento del presidio delle norme…')
   useEffect(() => {
     const controller = new AbortController()

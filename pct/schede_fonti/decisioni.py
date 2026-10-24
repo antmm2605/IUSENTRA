@@ -51,6 +51,13 @@ class DecisioniStudio:
             self.db.raw_conn.commit()
         else:
             self.db.conn.commit()
+        from pct.operational_live import ensure_domain_signal_schema, signal_domain_changed
+
+        ensure_domain_signal_schema(self.db.conn, "fascicoli")
+        if getattr(self.db, "backend_kind", "") == "postgresql":
+            self.db.raw_conn.commit()
+        else:
+            self.db.conn.commit()
         ora = datetime.now(timezone.utc).isoformat()
         rows = []
         for riferimento, digest, dati in eventi:
@@ -64,9 +71,11 @@ class DecisioniStudio:
                 if tipo == "proposta" and any(vecchio.get(k, "") != dati.get(k, "") for k in ("esito", "nota")):
                     raise ValueError("La proposta è già stata decisa: ricarica l'elenco.")
                 return
-            conn.execute("INSERT INTO schede_fonti_decisioni (id,tipo,riferimento,impronta,attore,creato_il,dati_json) "
-                         "VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
+            risultato = conn.execute("INSERT INTO schede_fonti_decisioni (id,tipo,riferimento,impronta,attore,creato_il,dati_json) "
+                         "VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING RETURNING id",
                          (ident, tipo, rif, digest, attore, ora, json.dumps(dati, ensure_ascii=False)))
+            if risultato.fetchone():
+                signal_domain_changed(conn, "fascicoli")
             if tipo == "proposta":
                 salvata = json.loads(conn.execute("SELECT dati_json FROM schede_fonti_decisioni WHERE id=?", (ident,)).fetchone()[0])
                 if any(salvata.get(k, "") != dati.get(k, "") for k in ("esito", "nota")):

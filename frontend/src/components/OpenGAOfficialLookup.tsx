@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import type { OpenGADecision } from '../opengaSearch'
+import { officialDecisionNumber, type OpenGADecision } from '../opengaSearch'
 import { Button } from '../ui/Button'
 
 export function OpenGAOfficialLookup({ decision }: { decision: OpenGADecision }) {
   const [message, setMessage] = useState('')
-  const number = /^\\d{9}$/.test(decision.numero_sentenza) && decision.numero_sentenza.startsWith(String(decision.anno_sentenza))
-    ? decision.numero_sentenza.slice(String(decision.anno_sentenza).length).replace(/^0+(?=\\d)/, '')
-    : decision.numero_sentenza
+  const number = officialDecisionNumber(decision.numero_sentenza, decision.anno_sentenza)
   const reference = decision.organo_giudicante + ' — provvedimento ' + decision.numero_sentenza + '/' + decision.anno_sentenza + ' — ricorso ' + decision.numero_ricorso
   async function copyReference() {
     try {

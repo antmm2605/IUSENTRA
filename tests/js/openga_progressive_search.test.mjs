@@ -2,7 +2,7 @@
 import './support/resolve_ts_extensionless.mjs'
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
-import { searchOpenGA } from '../../frontend/src/opengaSearch.ts'
+import { searchOpenGA, officialDecisionNumber } from '../../frontend/src/opengaSearch.ts'
 import { getActivities } from '../../frontend/src/ui/activity.ts'
 const originalFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = originalFetch })
@@ -64,4 +64,12 @@ test('i conteggi corpus attraversano il contratto frontend senza diventare sched
   assert.equal(page.sources[0].count, 0)
   assert.equal(page.sources[0].corpusCount, 22407)
   assert.equal(page.sources[1].corpusCount, null)
+})
+
+test('il numero del modulo ufficiale separa anno e progressivo solo nel formato dimostrato', () => {
+  assert.equal(officialDecisionNumber('202100148', 2021), '148')
+  assert.equal(officialDecisionNumber('202006342', 2020), '6342')
+  assert.equal(officialDecisionNumber('2021', 2021), '2021')
+  assert.equal(officialDecisionNumber('202000148', 2021), '202000148')
+  assert.equal(officialDecisionNumber('148', 2021), '148')
 })

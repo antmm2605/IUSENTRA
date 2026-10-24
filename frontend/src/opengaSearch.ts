@@ -31,3 +31,10 @@ export async function searchOpenGA(
   const deep = await request(true)
   if (!signal.aborted) onDeep(deep)
 }
+
+
+export function officialDecisionNumber(value: string, year: number): string {
+  return /^[0-9]{9}$/.test(value) && value.startsWith(String(year))
+    ? value.slice(String(year).length).replace(/^0+(?=[0-9])/, '')
+    : value
+}

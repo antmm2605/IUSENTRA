@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { officialDecisionNumber, type OpenGADecision } from '../opengaSearch'
+import { OpenGAOfficialDocument } from './OpenGAOfficialDocument'
 import { Button } from '../ui/Button'
 
 export function OpenGAOfficialLookup({ decision }: { decision: OpenGADecision }) {
   const [message, setMessage] = useState('')
+  const [opened, setOpened] = useState(false)
   const number = officialDecisionNumber(decision.numero_sentenza, decision.anno_sentenza)
   const reference = decision.organo_giudicante + ' — provvedimento ' + decision.numero_sentenza + '/' + decision.anno_sentenza + ' — ricorso ' + decision.numero_ricorso
   async function copyReference() {
@@ -14,9 +16,10 @@ export function OpenGAOfficialLookup({ decision }: { decision: OpenGADecision })
       setMessage('Copia non disponibile: puoi selezionare gli estremi qui sotto.')
     }
   }
-  return <details className="iu-openga-official-lookup">
+  return <details className="iu-openga-official-lookup" onToggle={(event) => { if (event.currentTarget.open) setOpened(true) }}>
     <summary>Trova il testo sul sito ufficiale</summary>
-    <p>Il testo non è incluso in questo risultato. Apri il modulo ufficiale e cerca con questi dati:</p>
+    {opened && <OpenGAOfficialDocument decision={decision} />}
+    <p>Se il recupero non riesce, questi estremi permettono la verifica nel modulo ufficiale:</p>
     <dl className="iu-legal-meta">
       <div><dt>Sede</dt><dd>{decision.organo_giudicante}</dd></div>
       <div><dt>Anno del provvedimento</dt><dd>{decision.anno_sentenza}</dd></div>
@@ -29,6 +32,6 @@ export function OpenGAOfficialLookup({ decision }: { decision: OpenGADecision })
       <a href="https://www.giustizia-amministrativa.it/dcsnprr" target="_blank" rel="noopener noreferrer">Apri il modulo ufficiale</a>
     </div>
     <p role="status">{message}</p>
-    <p>Il modulo si apre in una nuova scheda. Il collegamento diretto al documento non è disponibile nel catalogo.</p>
+    <p>Il modulo si apre in una nuova scheda. Il collegamento diretto viene mostrato solo dopo il riscontro del testo.</p>
   </details>
 }

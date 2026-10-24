@@ -72,6 +72,7 @@ def run(sha):
     # Ranking e pesi preservati nell'immagine di origine; nessuna installazione.
     dockerfile = (f"FROM {base_image}\n"
                   "COPY pct/openga_search.py /app/pct/openga_search.py\n"
+                  "COPY pct/openga_identita.py /app/pct/openga_identita.py\n"
                   "COPY pct/__init__.py /app/pct/__init__.py\n"
                   "COPY deploy/openga/server.py /app/server.py\n")
     image = "iusentra-openga:" + sha

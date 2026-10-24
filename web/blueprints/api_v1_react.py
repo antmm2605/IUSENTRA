@@ -15130,6 +15130,44 @@ def giurisprudenza_ricerca_amministrativa():
         return jsonify({"ok": False, "message": "Ricerca amministrativa non disponibile. Riprova più tardi."}), 503
 
 
+@api_v1_react.post("/giurisprudenza/testo-ufficiale")
+@_richiedi_auth
+def giurisprudenza_testo_ufficiale():
+    if not g.get("utente_corrente"):
+        return jsonify({"ok": False, "message": "Sessione utente richiesta."}), 403
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"ok": False, "message": "Riferimento non valido."}), 400
+    from web.services.openga_document_jobs import start
+    try:
+        result = start(current_app._get_current_object(),
+                       db_path=str(get_giurisprudenza().db_path), payload=payload)
+        _audit_event("giurisprudenza.testo.recupero", "giurisprudenza",
+                     result["job_id"], "Richiesta lettura di testo ufficiale pubblico.")
+        return jsonify(result), 202
+    except ValueError as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+    except Exception:
+        current_app.logger.exception("Avvio lettura ufficiale non disponibile")
+        return jsonify({"ok": False, "message": "Recupero non disponibile. Riprova più tardi."}), 503
+
+
+@api_v1_react.get("/giurisprudenza/testo-ufficiale/<job_id>")
+@_richiedi_auth
+def giurisprudenza_testo_ufficiale_stato(job_id):
+    if not g.get("utente_corrente"):
+        return jsonify({"ok": False, "message": "Sessione utente richiesta."}), 403
+    from web.services.openga_document_jobs import resume, status
+    try:
+        db_path = str(get_giurisprudenza().db_path)
+        result = status(db_path, job_id)
+        if result.get("stato") == "in_corso":
+            resume(current_app._get_current_object(), db_path)
+        return jsonify(result)
+    except KeyError:
+        return jsonify({"ok": False, "message": "Lettura non presente."}), 404
+
+
 @api_v1_react.get("/giurisprudenza/nuova")
 @_richiedi_auth
 def giurisprudenza_nuova_page():

@@ -10,6 +10,12 @@
 - Centesimi esatti, durate intere e identificativi univoci; corretti i controlli dei pagamenti.
 - Provenienza dichiarata e integrità restano distinte dall'autenticazione del fornitore e dalla validità giuridica.
 
+## 2.450.0 — Lettura governata dei testi ufficiali
+- Ogni risultato OpenGA usa lo stesso recuperatore: identità risolta dal catalogo corrente, URL candidati limitati e riscontro di organo, anno, numero e ricorso nel documento.
+- Lettura persistente per studio, originale conservato con impronte e provenienza; nessuna approvazione automatica della scheda.
+- Esiti espliciti quando il testo non è trovato o la fonte non consente l'acquisizione. I soli metadati restano spunti.
+- Download limitati, niente autenticazione o reindirizzamenti liberi; ricerca e indice restano invariati.
+
 ## 2.449.0 — Procedura atti: il codice decide, Lex scrive
 
 - Nuovo pacchetto `lex/procedura_atti/` (libreria senza effetti, non ancora collegata a endpoint o interfaccia):

@@ -32,7 +32,7 @@ class Handler(BaseHTTPRequestHandler):
                                         "misses": cache.misses, "hits": cache.hits}})
 
     def do_POST(self):
-        if self.path != "/search":
+        if self.path not in {"/search", "/document-identity"}:
             return self.send(404, {})
         try:
             size = int(self.headers.get("Content-Length", "0"))
@@ -41,7 +41,12 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(size))
             if not isinstance(body, dict):
                 raise TypeError()
-            result = search_openga(body, {})
+            if self.path == "/document-identity":
+                from pct.openga_identita import identita_catalogo
+                result = {"ok": True, "identita": identita_catalogo(
+                    os.environ["IUSENTRA_OPENGA_CATALOGO_DB"], body)}
+            else:
+                result = search_openga(body, {})
             self.send(200, result)
         except (ValueError, TypeError):
             self.send(400, {"ok": False, "message": "Richiesta non valida.", "evidence_scope": "metadata_only"})

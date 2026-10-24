@@ -356,3 +356,19 @@ scheda, fascicolo, Fonti e calcoli rispetto alla preparazione.
 Gli spunti R6 metadata_only non vengono promossi a Fonti né inseriti nel messaggio di stesura.
 Il catalogo dei requisiti degli atti resta provvisorio: occorre riscontro sulle norme vigenti
 prima del collegamento operativo. Nessun esito automatico certifica correttezza giuridica.
+
+
+### Lettura ufficiale OpenGA — 2.450.0
+Ingresso autenticato: POST giurisprudenza/testo-ufficiale; polling GET per job.
+Il browser fornisce soltanto relazione e risorsa con SHA. Il worker pubblico
+risolve l'identità nel catalogo corrente in sola lettura. Nessun URL del browser
+viene scaricato. Il processo web acquisisce il testo tramite trasporto limitato,
+riscontra gli estremi e l'organo e conserva originale, sezioni, provenienza e SHA
+nella coda LegalUpdateJobQueue, in un file derivato dal database del solo studio.
+Le letture si deduplicano per relazione/risorsa/versione. I job non approvano
+schede né modificano indice, catalogo o stato di verifica del corpus.
+L'utente vede il documento solo dopo esito acquisito; altrimenti resta uno spunto.
+Il testo pubblicato è distinto da motivazioni ricostruite: nessuna sintesi legale
+viene inventata. La successiva approvazione della scheda resta dell'avvocato.
+I metadati tecnici di rilascio non vengono esposti nel testo. Letture automatiche
+non riuscite devono avere esito esplicito, mai falsa attestazione di acquisizione.

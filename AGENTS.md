@@ -1112,3 +1112,15 @@ Rules:
 - Applicare la skill ufficiale Graphify a tutti i settori del codice del software, non soltanto al frontend. La procedura comune è `docs/AGENT_KNOWLEDGE.md`; i punti d’ingresso verificabili per settore sono in `tools/agent_knowledge/domains.json`. Ogni agente che analizza codice deve seguire la medesima procedura; le baseline storiche conservate restano immutabili.
 - Grafo complessivo locale: `C:/Users/antmm/.codex/knowledge/IUSENTRA/graphify-out/graph.json`. Verificarne esistenza, manifesto, diagnostica e attualità prima di usarlo. Il costruttore `tools/agent_knowledge/build_graph.py` usa soltanto sorgenti versionati e Graphify ufficiale; non importa né avvia IUSENTRA. Usare le interrogazioni ufficiali con `--graph`, poi leggere i sorgenti dei passaggi pertinenti, senza dichiarare coperti quelli esclusi o non riconosciuti.
 - Per ogni funzione seguire chiamanti, dipendenze, repository, eventi, API, interfaccia e test. Per le materie riutilizzare `lex/normativa/materie.py`, i cataloghi e le procedure esistenti: l’indice dell’agente non introduce regole giuridiche o classificazioni applicative nuove. Aggiornare il grafo in modo incrementale dopo le modifiche e conservare prove e limiti dell’analisi.
+
+## Persistenza nella risoluzione — direttiva utente 24/10/2026
+Davanti a un ostacolo non fermarsi al primo, secondo o terzo tentativo:
+ricostruire la causa, cercare alternative concrete nei sorgenti e nelle fonti
+ufficiali, provarle e conservare le evidenze, fino a risolvere il problema.
+Una soluzione deve funzionare sul caso reale e diventare una regola generale
+quando il difetto riguarda un intero flusso. Non sostituire la soluzione con
+un avviso se esistono ancora percorsi verificabili da esplorare. Non aggirare
+controlli di accesso, non indebolire verifiche e non dichiarare risolto ciò che
+non è provato. Se tutte le alternative praticabili dipendono da accesso o dati
+esterni indisponibili, documentare il blocco effettivo e l'intervento minimo
+necessario, conservando il lavoro e continuando le parti indipendenti.

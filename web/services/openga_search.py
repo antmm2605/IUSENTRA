@@ -62,3 +62,27 @@ def public_inventory(config):
         return {k: result[k] for k in ("ok", "evidence_scope", "decisioni", "relazioni")}
     except (requests.RequestException, ValueError):
         return unavailable
+
+
+def document_identity(payload, config):
+    import requests
+
+    from pct.openga_identita import identita_catalogo
+    endpoint = _endpoint(config)
+    if not endpoint:
+        path = config.get("OPENGA_CATALOGO_DB") or os.getenv("IUSENTRA_OPENGA_CATALOGO_DB")
+        if not path:
+            raise ValueError("Catalogo non disponibile.")
+        return identita_catalogo(path, payload)
+    data = {k: payload.get(k) for k in ("relazione_id", "resource_id", "resource_sha256")}
+    response = requests.post(endpoint.rstrip("/") + "/document-identity", json=data,
+                             timeout=(3, 10), allow_redirects=False)
+    if response.status_code == 400:
+        raise ValueError("Risultato non più presente: ripeti la ricerca.")
+    response.raise_for_status()
+    if len(response.content) > 8192:
+        raise ValueError("Identità non valida.")
+    result = response.json()
+    if not isinstance(result, dict) or result.get("ok") is not True or not isinstance(result.get("identita"), dict):
+        raise ValueError("Identità non riscontrata.")
+    return result["identita"]

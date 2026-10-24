@@ -172,6 +172,7 @@ class LegalUpdateJobQueue:
             self.recover_stale_running()
         now = _now()
         with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 """
                 SELECT * FROM legal_update_jobs

@@ -63,6 +63,8 @@ export type GiurisprudenzaSource = {
   stateTone: LegalTone
   resolutionNote: string
   count: number
+  corpusCount?: number | null
+  corpusFullTextCount?: number | null
   evidenceType: string
 }
 
@@ -388,6 +390,8 @@ function normaliseSource(input: unknown): GiurisprudenzaSource {
     stateTone: tone(item.stateTone),
     resolutionNote: display(item.resolutionNote),
     count: integer(item.count),
+    corpusCount: typeof item.corpusCount === 'number' && Number.isInteger(item.corpusCount) && item.corpusCount >= 0 ? item.corpusCount : null,
+    corpusFullTextCount: typeof item.corpusFullTextCount === 'number' && Number.isInteger(item.corpusFullTextCount) && item.corpusFullTextCount >= 0 ? item.corpusFullTextCount : null,
     evidenceType: display(item.evidenceType) || 'fonte',
   }
 }

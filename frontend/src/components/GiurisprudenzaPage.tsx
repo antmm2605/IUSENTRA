@@ -1,3 +1,4 @@
+import { GiurisprudenzaSources } from './GiurisprudenzaSources'
 import { OpenGASearch } from './OpenGASearch'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -210,67 +211,6 @@ function KnowledgeStatusPanel({ data }: { data: GiurisprudenzaPageData }) {
         {sections.map((section) => <KnowledgeStatusCard section={section} key={section.id} />)}
       </div>
     </section>
-  )
-}
-
-function SourceCard({ source }: { source: GiurisprudenzaSource }) {
-  return (
-    <article className="iu-legal-source iu-od-source-card">
-      <header className="iu-legal-source__header">
-        <div>
-          <span className="iu-od-source-badge">{source.kind || 'Fonte'}</span>
-          <h3>{source.label}</h3>
-        </div>
-        <Badge tone={source.stateTone}>{source.stateLabel || 'Censita'}</Badge>
-      </header>
-      <dl className="iu-legal-meta">
-        {source.coverage ? (
-          <div>
-            <dt>Copertura</dt>
-            <dd>{source.coverage}</dd>
-          </div>
-        ) : null}
-        {source.accessMode ? (
-          <div>
-            <dt>Accesso</dt>
-            <dd>{source.accessMode}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt>Provvedimenti</dt>
-          <dd>{source.count}</dd>
-        </div>
-      </dl>
-      {source.resolutionNote ? (
-        <p className="iu-legal-source__resolution">{source.resolutionNote}</p>
-      ) : null}
-      <footer className="iu-od-action-row iu-legal-source__actions">
-        {source.sourceHref ? (
-          <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">
-            <ExternalLink size={16} aria-hidden="true" />
-            Apri fonte
-          </ButtonLink>
-        ) : null}
-        {source.legacyHref ? (
-          <ButtonLink href={source.legacyHref} tone="neutral">
-            Scheda fonte
-          </ButtonLink>
-        ) : null}
-      </footer>
-    </article>
-  )
-}
-
-function SourcesPanel({ data }: { data: GiurisprudenzaPageData }) {
-  if (!data.sources.length) return null
-  return (
-    <Panel title="Fonti disponibili" subtitle="Banca dati interna, fonti ufficiali e fonti redazionali gia censite.">
-      <div className="iu-legal-source-grid">
-        {data.sources.map((source) => (
-          <SourceCard source={source} key={source.id} />
-        ))}
-      </div>
-    </Panel>
   )
 }
 
@@ -987,7 +927,7 @@ function GiurisprudenzaArchivePage() {
           <KnowledgeStatusPanel data={data} />
         </div>
         <div id="fonti-disponibili">
-          <SourcesPanel data={data} />
+          <GiurisprudenzaSources sources={data.sources} />
         </div>
       </div>
     </Page>

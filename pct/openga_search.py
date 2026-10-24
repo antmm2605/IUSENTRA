@@ -89,3 +89,22 @@ def search_openga(payload, config):
         return {**empty, "message": "Ricerca amministrativa non disponibile. Riprova più tardi."}
     finally:
         _SEARCH_LOCK.release()
+
+
+@lru_cache(maxsize=4)
+def _public_inventory(path, size, modified_ns):
+    # Solo il catalogo pubblico configurato: nessun corpus o percorso dello studio.
+    with closing(sqlite3.connect(Path(path).as_uri() + "?mode=ro", uri=True)) as connection:
+        relations, decisions = connection.execute("SELECT count(*),count(distinct decisione) FROM attive").fetchone()
+    return {"ok": True, "evidence_scope": "metadata_only", "decisioni": decisions, "relazioni": relations}
+
+
+def public_inventory(config):
+    data_dir = Path(config.get("DATA_DIR") or os.getenv("PCT_DATA_ROOT") or "/data")
+    path = Path(config.get("OPENGA_CATALOGO_DB") or os.getenv("IUSENTRA_OPENGA_CATALOGO_DB") or data_dir / "fonti_ufficiali/openga/catalogo.db")
+    unavailable = {"ok": False, "evidence_scope": "metadata_only", "message": "Conteggio del catalogo pubblico non disponibile."}
+    try:
+        stat = path.stat()
+        return dict(_public_inventory(str(path.resolve()), stat.st_size, stat.st_mtime_ns))
+    except (OSError, sqlite3.Error):
+        return unavailable

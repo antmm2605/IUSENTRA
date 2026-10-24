@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from datetime import UTC, datetime
+from typing import Any
 
+from web.services.giurisprudenza_inventory import attach_corpus_counts
 from web.services.lex_studio_knowledge_status import (
     GIURISPRUDENZA_AGENT_FOCUS,
     build_advanced_ai_section,
@@ -17,7 +19,7 @@ from web.services.lex_studio_knowledge_status import (
 
 
 def _iso_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _text(value: Any) -> str:
@@ -554,6 +556,7 @@ def build_react_giurisprudenza_payload(
     warnings: list[dict[str, str]] = []
     manager = get_giurisprudenza()
     sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
+    attach_corpus_counts(sources, manager)
     source_lookup = {source["id"]: source for source in sources if source.get("id")}
     filters = {
         "q": _text(query.get("q")),
@@ -611,7 +614,7 @@ def build_react_giurisprudenza_payload(
             "legacy_contract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
         },
         "metrics": [
-            _metric("provvedimenti", "Provvedimenti", int(stats.get("totale_sentenze") or len(records)), "Archivio interno", "primary"),
+            _metric("provvedimenti", "Schede dello studio", int(stats.get("totale_sentenze") or len(records)), "Archivio interno", "primary"),
             _metric("fonti", "Fonti censite", int(stats.get("fonti_attive") or len(sources)), "Archivio giurisprudenza", "info"),
             _metric("aree", "Aree coperte", int(stats.get("aree_coperte") or 0), "Classificazione disponibile", "neutral"),
             _metric("da_verificare", "Da verificare", int(stats.get("bozze_da_classificare") or 0), "Gestione governata", "warning"),

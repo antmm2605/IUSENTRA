@@ -10,7 +10,7 @@ import hashlib
 import json
 import sqlite3
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -96,7 +96,7 @@ class CatalogoOpenGA:
             raise ValueError("Impronta del file diversa dalla risorsa acquisita")
         rid = str(resource["id"])
         revision = digest + ":" + VERSIONE
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         with FileLock(str(self.path)), closing(self._connect()) as c:
             current = c.execute("SELECT * FROM risorse WHERE id=?", (rid,)).fetchone()
             if current and current["revisione"] == revision:
@@ -108,7 +108,7 @@ class CatalogoOpenGA:
                 }
             backup = None
             if current:
-                backup = str(self.path) + "." + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f") + ".bak"
+                backup = str(self.path) + "." + datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f") + ".bak"
                 with sqlite3.connect(backup) as b:
                     c.backup(b)
             count = valid = 0
@@ -330,7 +330,7 @@ class CatalogoOpenGA:
                         allowed = None
                         if sede or int(dal) != 1900 or int(al) != 2100:
                             allowed = {int(row[0]) for row in c.execute("SELECT r.id FROM attive r WHERE " + where, filters)}
-                        for row_id, score in index.cerca(EmbedderDomande(engine).vettore(query), k=500, ids_ammessi=allowed):
+                        for row_id, _score in index.cerca(EmbedderDomande(engine).vettore(query), k=500, ids_ammessi=allowed):
                             row = c.execute(
                                 "SELECT r.* FROM attive r WHERE r.id=? AND " + where, [row_id, *filters]
                             ).fetchone()
@@ -423,8 +423,8 @@ class CatalogoOpenGA:
             def identity(row):
                 return (row["relazione_id"], row["oggetto"], row["esito"])
 
-            from pct.openga_query import sedi_menzionate, varianti_query
             from pct.giurisprudenza_semantica import fondi
+            from pct.openga_query import sedi_menzionate, varianti_query
 
             with closing(sqlite3.connect(self.path.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
                 sedi = [r[0] for r in connection.execute("SELECT DISTINCT nome_sede FROM attive")]
@@ -477,15 +477,18 @@ class CatalogoOpenGA:
             "criterio_suggerimenti": "vettori_e_contesto_lessicale" if variants or ambiti else "vettori",
         }
 
-    def cerca_fusa(self, q, *, sede="", dal=1900, al=2100, limit=10, embedder=None, traccia=False, riformulatore=None, reranker=None):
+    def cerca_fusa(self, q, *, sede="", dal=1900, al=2100, limit=10, embedder=None, traccia=False, riformulatore=None, reranker=None, rerank_candidates=100):
         """Lista unica sperimentale: filtri espliciti prima del recupero e RRF.
 
         Il catalogo e il modello restano quelli originali; nessuna costruzione.
         Numero atteso, split del banco e anno non richiesto non sono input.
         """
         import re
-        from pct.openga_query import sede_richiesta, varianti_query, query_sostanziale, sedi_menzionate
 
+        from pct.openga_query import query_sostanziale, sede_richiesta, sedi_menzionate, varianti_query
+
+        if type(rerank_candidates) is not int or rerank_candidates not in (30, 40, 100):
+            raise ValueError("Pool del confronto non supportato")
         limit = min(100, max(1, int(limit)))
         with closing(sqlite3.connect(self.path.resolve().as_uri() + "?mode=ro", uri=True)) as c:
             sedi = dict(c.execute("SELECT DISTINCT sede,nome_sede FROM attive"))
@@ -577,7 +580,7 @@ class CatalogoOpenGA:
         if reranker is not None and not error:
             try:
                 import math
-                pool = ranked[:100]
+                pool = ranked[:rerank_candidates]
                 values = list(reranker(str(q), pool))
                 if len(values) != len(pool) or not all(math.isfinite(float(v)) for v in values):
                     raise ValueError("Punteggi del confronto non validi")

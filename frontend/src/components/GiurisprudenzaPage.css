@@ -709,3 +709,6 @@ main.iu-content.iu-legal-fullscreen-mode .iu-legal-page {
 .iu-openga-form label:first-child { flex: 1 1 20rem; }
 .iu-openga-form input:not([type=checkbox]) { width: 100%; max-width: 100%; padding: .5rem; border: 1px solid currentColor; border-radius: .35rem; background: transparent; color: inherit; }
 .iu-openga-hash { overflow-wrap: anywhere; }
+
+/* Spazio stabile: la disponibilità del riordino non sposta la lista in lettura. */
+.iu-openga-progress > p { min-block-size: 3lh; }

@@ -65,10 +65,14 @@ def test_route_reale_richiede_sessione_e_cerca_catalogo(tmp_path, monkeypatch):
     with app.test_client() as client:
         url = "/api/v1/ui/giurisprudenza/ricerca-amministrativa"
         assert client.post(url, json={"q": "soggiorno"}).status_code in {401, 403}
+        assert client.get("/api/v1/ui/giurisprudenza/catalogo-amministrativo").status_code in {401, 403}
         client.post("/login", data={"username": "admin-giurisprudenza", "password": "Admin1234!"})
         result = client.post(url, json={"q": "soggiorno"})
         assert result.status_code == 200
         assert result.json["ok"] and result.json["risultati"]
+        inventory = client.get("/api/v1/ui/giurisprudenza/catalogo-amministrativo")
+        assert inventory.status_code == 200 and inventory.json["decisioni"] == 1
+        assert inventory.json["evidence_scope"] == "metadata_only"
         assert client.get(url).status_code == 405
         assert client.post(url, json={"q": "soggiorno", "dal": 2026, "al": 2020}).status_code == 400
 
@@ -111,3 +115,44 @@ def test_sede_esplicita_guida_anche_la_modalita_rapida(tmp_path, monkeypatch):
     result = search_openga({"q": "TAR L’Aquila permesso soggiorno"}, {"OPENGA_CATALOGO_DB": str(db)})
     assert result["ok"] and result["risultati"]
     assert observed == [("004",)]
+
+
+def test_inventario_pubblico_sql_senza_modelli_o_scritture(tmp_path):
+    from pct.openga_search import public_inventory
+    path, meta = risorsa(tmp_path, [{"NUMERO_PROVVEDIMENTO": "1", "NUMERO_RICORSO": "A", "ESITO_PROVVEDIMENTO": "RESPINGE"}])
+    db = tmp_path / "catalogo.db"
+    CatalogoOpenGA(db).importa(path, meta)
+    before = hashlib.sha256(db.read_bytes()).hexdigest()
+    report = public_inventory({"OPENGA_CATALOGO_DB": str(db)})
+    assert report == {"ok": True, "evidence_scope": "metadata_only", "decisioni": 1, "relazioni": 1}
+    assert hashlib.sha256(db.read_bytes()).hexdigest() == before
+    missing = tmp_path / "altro/assente.db"
+    result = public_inventory({"OPENGA_CATALOGO_DB": str(missing)})
+    assert result["ok"] is False and "decisioni" not in result
+    assert not missing.parent.exists()
+
+
+def test_inventario_remoto_rifiuta_numeri_non_validi_e_non_inoltra_segreti(monkeypatch):
+    from web.services.openga_search import public_inventory
+    calls = []
+    result = {"ok": True, "evidence_scope": "metadata_only", "decisioni": 10, "relazioni": 11}
+    class Response:
+        content = b"{}"
+        def raise_for_status(self):
+            pass
+        def json(self):
+            return result
+    def get(url, **kwargs):
+        calls.append((url, kwargs))
+        return Response()
+    monkeypatch.setattr("requests.get", get)
+    config = {"OPENGA_SEARCH_URL": "http://openga-search:8092"}
+    assert public_inventory(config)["decisioni"] == 10
+    assert calls[0] == ("http://openga-search:8092/inventory", {"timeout": (1, 2), "allow_redirects": False})
+    for bad in (True, -1, "10", None):
+        result["decisioni"] = bad
+        assert not public_inventory(config)["ok"]
+    result["decisioni"] = 12
+    assert not public_inventory(config)["ok"]
+    with pytest.raises(ValueError):
+        public_inventory({"OPENGA_SEARCH_URL": "https://external.example:8092"})

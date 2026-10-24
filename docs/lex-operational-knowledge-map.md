@@ -310,3 +310,34 @@ Stato della prova: guardrail nativi su SQLite e PostgreSQL positivi, con date eq
 La proiezione è derivata: i messaggi SQL restano fonte primaria. Scritture native aggiornano fonte e indice nella medesima transazione; gli altri cambiamenti producono eventi puntuali nell'outbox esistente, senza una coda parallela. Migrazione separata, con backup nativo verificato, hash, autore e cursore SQL persistente; nessuna preparazione dello schema in una domanda. Il worker tratta soltanto consegne pendenti, con massimo cinque tentativi e causa conservata.
 
 Runtime attivo ancora41375ed64f/2.437.49. Restano aperti gli altri domini richiesti (Agenda, Scadenziario, depositi e notificazioni), collaudo reale visibile8080, gate, commit/deploy e pulizia della nuova tranche. Il pannello browser ha restituito non visibile durante il tentativo odierno: nessuna accettazione visiva positiva dichiarata. Dettagli, difetti trovati e riprove: docs/LEX_STUDIO_QUERY_ACCEPTANCE.md.
+
+
+## 23/10/2026 — Ricerca OpenGA progressiva, candidato in verifica
+
+La ricerca approfondita richiede prima la stessa ricerca lessicale autenticata e
+mostra immediatamente il suo esito. Il riordino approfondito viene richiesto solo
+dopo una risposta rapida valida e su scelta iniziale esplicita dell'avvocato.
+La lista approfondita pronta viene annunciata, senza sostituire quella visibile:
+il passaggio avviene soltanto con un comando esplicito, con ritorno alla rapida.
+Errori del secondo canale conservano la prima lista e sono dichiarati; uscita
+dalla pagina annulla la richiesta browser. Nessuna cache di query o dato di studio
+e nessuna modifica a fonti, indice, permessi o capacità probatoria metadata_only.
+Il pool operativo resta 100: 40 e 30 sono varianti da misurare su CPU server prima
+di qualsiasi promozione. Il banco server di 30 casi è ora banco di regressione;
+la conferma conclusiva richiede un ulteriore campione congelato prima dei risultati.
+Stato: implementazione e accettazione in corso, nessuna nuova misura prestazionale.
+
+
+### Contatori distinti di studio e archivio pubblico
+Le schede fonti contano le schede interne con judgment_count, non i corpus
+pubblici. La UI dichiara tale perimetro e carica separatamente il conteggio SQL
+del catalogo OpenGA dal servizio privato sullo stesso host. Il conteggio remoto
+non disponibile resta sconosciuto, mai trasformato in zero. L'inventario è
+read-only, non avvia modelli, non legge fascicoli e non crea tabelle o database.
+Gli archivi pubblici non vengono copiati nelle schede dello studio. L'apertura
+del testo ufficiale resta da completare: il modulo pubblico riscontra la
+decisione ma il documento ha fallito la prova browser; il client HTTP di ricerca
+pubblica ha ricevuto 403. Nessun aggiramento, token trasferito o download massivo.
+
+### Correzione leggibilità fonti (24 ottobre 2026)
+La pagina legge i conteggi per fonte dal solo corpus SQLite dello studio corrente in modalità read-only, separati dalle schede manuali e dal catalogo OpenGA condiviso. Database assente o illeggibile significa conteggio sconosciuto, non zero. Nessuna aggregazione fra studi. Il pannello del risultato OpenGA espone gli estremi copiabili e il modulo ufficiale; non dichiara un collegamento diretto al documento, che resta non disponibile nel catalogo. Il documento specifico segnalato dall'utente è consultabile nel suo Chrome; il fallimento del browser integrato non dimostra indisponibilità della fonte.

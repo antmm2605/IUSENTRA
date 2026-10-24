@@ -1,4 +1,5 @@
 import numpy as np
+
 from lex.ricerca_giuridica.indice_vettoriale import IndiceVettoriale
 from pct.openga_query import sede_richiesta
 
@@ -54,6 +55,7 @@ def test_topk_filtrato_corrisponde_al_calcolo_completo_su_blocchi(tmp_path,monke
 
 def test_varianti_duplicate_non_moltiplicano_il_consenso(tmp_path,monkeypatch):
     import sqlite3
+
     from pct.openga_catalogo import CatalogoOpenGA
     db=tmp_path/"catalog.db"
     with sqlite3.connect(db) as c:
@@ -77,7 +79,8 @@ def test_varianti_duplicate_non_moltiplicano_il_consenso(tmp_path,monkeypatch):
 def test_indice_assente_non_dichiara_ricerca_semantica_riuscita(tmp_path):
     from pct.openga_catalogo import CatalogoOpenGA
     catalog=CatalogoOpenGA(tmp_path/"catalog.db")
-    connection=catalog._connect();connection.close()
+    connection=catalog._connect()
+    connection.close()
     result=catalog.cerca_fusa("domanda di prova")
     assert result["risultati"]==[]
     assert "assente" in result["errore_semantico"]
@@ -86,17 +89,50 @@ def test_indice_assente_non_dichiara_ricerca_semantica_riuscita(tmp_path):
 
 def test_guasto_semantico_conserva_tutta_la_lista_non_solo_tre(tmp_path,monkeypatch):
     import sqlite3
+
     from pct.openga_catalogo import CatalogoOpenGA
     db=tmp_path/"catalog.db"
-    with sqlite3.connect(db) as c:c.execute("CREATE TABLE attive(sede TEXT,nome_sede TEXT)")
+    with sqlite3.connect(db) as c:
+        c.execute("CREATE TABLE attive(sede TEXT,nome_sede TEXT)")
     rows=[{"relazione_id":str(i),"oggetto":"oggetto "+str(i),"esito":"esito"} for i in range(8)]
     catalog=CatalogoOpenGA(db)
     def search(q,**kw):
-        if kw.get("semantica"):raise RuntimeError("embedding indisponibile")
+        if kw.get("semantica"):
+            raise RuntimeError("embedding indisponibile")
         return rows if q=="controversia esempio" else list(reversed(rows))
     monkeypatch.setattr(catalog,"cerca",search)
     calls=[]
-    def forbidden(*args):calls.append(True);raise AssertionError("non deve essere chiamato")
+    def forbidden(*args):
+        calls.append(True)
+        raise AssertionError("non deve essere chiamato")
     result=catalog.cerca_fusa("controversia esempio",reranker=forbidden)
     assert result["risultati"]==rows
     assert result["errore_semantico"] and not calls
+
+
+def test_pool_candidati_varia_solo_il_riordino_non_recupero(tmp_path, monkeypatch):
+    import sqlite3
+
+    import pytest
+
+    from pct.openga_catalogo import CatalogoOpenGA
+    db = tmp_path / "catalog.db"
+    with sqlite3.connect(db) as connection:
+        connection.execute("CREATE TABLE attive(sede TEXT,nome_sede TEXT)")
+    rows = [{"relazione_id": str(i), "oggetto": "descrizione " + str(i), "esito": "esito"} for i in range(120)]
+    catalog = CatalogoOpenGA(db)
+    monkeypatch.setattr(catalog, "cerca", lambda q, **kw: rows[:kw["limit"]])
+    seen = []
+    def rank(query, candidates):
+        seen.append(len(candidates))
+        return list(range(len(candidates)))
+    for pool in (30, 40, 100):
+        result = catalog.cerca_fusa("controversia", reranker=rank, rerank_candidates=pool)
+        assert seen[-1] == pool
+        assert result["risultati"][:3] == rows[:3]
+        assert len(result["risultati"]) == 10 and result["errore_reranker"] is None
+    catalog.cerca_fusa("controversia", reranker=rank)
+    assert seen[-1] == 100
+    for invalid in (True, "40", 40.0, 0, 29, 101):
+        with pytest.raises(ValueError, match="Pool"):
+            catalog.cerca_fusa("controversia", rerank_candidates=invalid)

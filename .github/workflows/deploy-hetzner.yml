@@ -397,6 +397,15 @@ jobs:
                  exit 1
                fi'
 
+      - name: Aggiorna inventario OpenGA preservando indice e modello
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "$HETZNER_USER@$HETZNER_HOST" \
+              "cd /opt/iusentra/repo && flock -w 30 /opt/iusentra/deploy.lock python3 deploy/openga/update_worker.py '$GITHUB_SHA'"
+
       - name: Verifiche post-deploy (rotte HTTPS pubbliche)
         if: ${{ steps.gate.outputs.superato != 'true' && env.HETZNER_DOMAIN != '' }}
         run: |

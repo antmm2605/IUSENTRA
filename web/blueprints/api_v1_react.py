@@ -15102,6 +15102,15 @@ def giurisprudenza_page():
         ), 200
 
 
+@api_v1_react.get("/giurisprudenza/catalogo-amministrativo")
+@_richiedi_auth
+def giurisprudenza_catalogo_amministrativo():
+    if not g.get("utente_corrente"):
+        return jsonify({"ok": False, "message": "Sessione utente richiesta."}), 403
+    from web.services.openga_search import public_inventory
+    return jsonify(public_inventory(current_app.config))
+
+
 @api_v1_react.post("/giurisprudenza/ricerca-amministrativa")
 @_richiedi_auth
 def giurisprudenza_ricerca_amministrativa():

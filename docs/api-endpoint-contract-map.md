@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 445.
-- Endpoint P0/P1 contrattualizzati: 378.
+- Endpoint React API contrattualizzati: 446.
+- Endpoint P0/P1 contrattualizzati: 379.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 402.
+- Endpoint con provider verification auth-error: 403.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -221,6 +221,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Giurisprudenza | `/api/v1/ui/giurisprudenza` | `GET` | Giurisprudenza | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/{judgment_id}/modifica` | `GET` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/{judgment_id}/modifica` | `POST` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Giurisprudenza | `/api/v1/ui/giurisprudenza/catalogo-amministrativo` | `GET` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/nuova` | `GET` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/nuova` | `POST` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Giurisprudenza pubblica OpenGA | `/api/v1/ui/giurisprudenza/ricerca-amministrativa` | `POST` | Giurisprudenza pubblica OpenGA | P1 | complete | auth-error | `sessione utente; soli metadati pubblici` | `n/a` | current_tenant | complete-auth-error |

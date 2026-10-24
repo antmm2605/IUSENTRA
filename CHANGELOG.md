@@ -1,3 +1,14 @@
+## 2.448.1 — Ricerca OpenGA progressiva e perimetro dei contatori
+
+- Mostra subito i risultati rapidi durante la ricerca approfondita; passaggio
+  esplicito fra liste, nessuna sostituzione automatica durante la lettura.
+- Distingue schede dello studio e decisioni del catalogo pubblico OpenGA con
+  conteggi SQL reali, separati e stato non disponibile senza falsi zeri.
+- Mantiene il pool operativo a 100 candidati; le riduzioni restano esperimenti
+  non attivati. Fonti, modello, indice e guardie metadata_only invariati.
+- Il collegamento al testo ufficiale resta un requisito aperto, non risolto dal
+  solo chiarimento del modulo generico. Nessuna promessa di nuove prestazioni.
+
 ## 2.448.0 — Ricerca giurisprudenziale locale R6
 
 - Ricerca OpenGA in lista unica: filtri prima del top-k, varianti generali, classificatore locale verificato e risultati lessicali preservati in caso di errore.

@@ -7,14 +7,9 @@ def search_openga(payload, config):
     import requests
 
     from pct.openga_search import search_openga as local_search
-    endpoint = config.get("OPENGA_SEARCH_URL") or os.getenv("IUSENTRA_OPENGA_SEARCH_URL", "")
+    endpoint = _endpoint(config)
     if not endpoint:
         return local_search(payload, config)
-    parsed = urlsplit(endpoint)
-    if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "openga-search", "host.docker.internal"}
-        or parsed.port != 8092 or parsed.username or parsed.password or parsed.path not in {"", "/"}
-        or parsed.query or parsed.fragment):
-        raise ValueError("Servizio di ricerca locale non configurato correttamente.")
     # Non inoltrare cookie, token, tenant, percorsi o altri campi al servizio pubblico.
     data = {key: payload[key] for key in ("q", "dal", "al", "sede", "semantica") if key in payload}
     try:
@@ -31,3 +26,39 @@ def search_openga(payload, config):
     except requests.RequestException:
         return {"ok": False, "risultati": [], "evidence_scope": "metadata_only",
                 "message": "Ricerca amministrativa non disponibile. Riprova più tardi."}
+
+
+def _endpoint(config):
+    endpoint = config.get("OPENGA_SEARCH_URL") or os.getenv("IUSENTRA_OPENGA_SEARCH_URL", "")
+    if not endpoint:
+        return ""
+    parsed = urlsplit(endpoint)
+    if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "openga-search", "host.docker.internal"}
+        or parsed.port != 8092 or parsed.username or parsed.password or parsed.path not in {"", "/"}
+        or parsed.query or parsed.fragment):
+        raise ValueError("Servizio di ricerca locale non configurato correttamente.")
+    return endpoint
+
+
+def public_inventory(config):
+    import requests
+
+    from pct.openga_search import public_inventory as local_inventory
+    endpoint = _endpoint(config)
+    if not endpoint:
+        return local_inventory(config)
+    unavailable = {"ok": False, "evidence_scope": "metadata_only", "message": "Conteggio del catalogo pubblico non disponibile."}
+    try:
+        response = requests.get(endpoint.rstrip("/") + "/inventory", timeout=(1, 2), allow_redirects=False)
+        response.raise_for_status()
+        if len(response.content) > 4096:
+            return unavailable
+        result = response.json()
+        if (not isinstance(result, dict) or result.get("ok") is not True
+            or result.get("evidence_scope") != "metadata_only"
+            or any(type(result.get(k)) is not int or result[k] < 0 for k in ("decisioni", "relazioni"))
+            or result["decisioni"] > result["relazioni"]):
+            return unavailable
+        return {k: result[k] for k in ("ok", "evidence_scope", "decisioni", "relazioni")}
+    except (requests.RequestException, ValueError):
+        return unavailable

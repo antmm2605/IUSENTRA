@@ -4,7 +4,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from pct.openga_search import _reranker, search_openga
+from pct.openga_search import _reranker, public_inventory, search_openga
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -20,6 +20,8 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
+        if self.path == "/inventory":
+            return self.send(200, public_inventory({}))
         if self.path != "/health":
             return self.send(404, {})
         from pct import __version__

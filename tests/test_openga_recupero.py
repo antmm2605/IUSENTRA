@@ -131,3 +131,10 @@ def test_download_stops_after_byte_limit(monkeypatch):
     monkeypatch.setattr("requests.Session", Session)
     with pytest.raises(ValueError, match="troppo grande"):
         _get_limitato("https://mdp.giustizia-amministrativa.it/visualizza/", headers={})
+
+
+def test_access_limit_stops_all_variants():
+    fetcher = Fetcher([response(http=429)])
+    result = recupera_testo(ROW, fetcher=fetcher, verifica_organo=lambda raw, row: True)
+    assert result["stato"] == "intervento_necessario"
+    assert len(fetcher.urls) == 1

@@ -79,3 +79,19 @@ def test_two_workers_cannot_claim_the_same_job(tmp_path):
     with ThreadPoolExecutor(max_workers=2) as pool:
         claimed = list(pool.map(claim, ["a", "b"]))
     assert [item.job_id for item in claimed if item] == [job.job_id]
+
+
+def test_busy_public_source_remains_queued_then_resumes(tmp_path, monkeypatch):
+    from contextlib import nullcontext
+    path = str(tmp_path / "studio.db")
+    queue = jobs._queue(path)
+    job = queue.enqueue(source_code="openga_testo", max_attempts=3, payload={"identita": {}})
+    values = iter([{"stato": "in_attesa"}, {"stato": "non_trovato"}])
+    monkeypatch.setattr(jobs, "recupera_testo", lambda identity: next(values))
+    monkeypatch.setattr(jobs, "sleep", lambda seconds: None)
+    app = SimpleNamespace(app_context=nullcontext, logger=SimpleNamespace(warning=lambda *args: None))
+    jobs._run(app, path)
+    final = queue.get(job.job_id)
+    assert final.status == "completed"
+    assert final.attempts == 2
+    assert final.result["stato"] == "non_trovato"

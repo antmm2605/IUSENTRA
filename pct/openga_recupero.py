@@ -93,7 +93,7 @@ def recupera_testo(row, *, fetcher=None, verifica_organo=riscontra_organo):
     Il verificatore d'organo è obbligatorio finché il registro delle forme
     ufficiali non è riscontrato: nessuna identità viene autocertificata.
     """
-    if not _LOCK.acquire(blocking=False):
+    if not _LOCK.acquire(timeout=15):
         return {"stato": "in_attesa", "message": "Un recupero è già in corso."}
     try:
         schema = _SCHEMI.get(str(row.get("sede", "")))
@@ -114,6 +114,9 @@ def recupera_testo(row, *, fetcher=None, verifica_organo=riscontra_organo):
             fetched = fetcher.fetch(url)
             if fetched.status in {"robots_blocked", "network_error", "too_large"}:
                 return {"stato": "intervento_necessario", "message": "La fonte non consente il recupero automatico in questo momento."}
+            if fetched.http_status in {401, 403, 429}:
+                return {"stato": "intervento_necessario",
+                        "message": "La fonte limita l'accesso automatico: nessun tentativo su altre varianti."}
             if fetched.status != "ok" or fetched.http_status != 200:
                 continue
             try:

@@ -4,6 +4,7 @@ from binascii import Error as Base64Error
 from hashlib import sha256
 from pathlib import Path
 from threading import Lock, Thread
+from time import sleep
 
 from pct.legal_update_job_queue import LegalUpdateJobQueue
 from pct.openga_recupero import recupera_testo
@@ -29,7 +30,7 @@ def start(app, *, db_path, payload):
     job = queue.enqueue(source_code="openga_testo", dedupe_key=key,
         payload={"identita": identity, "catalogo": {k: payload[k] for k in
                  ("relazione_id", "resource_id", "resource_sha256")}},
-        max_attempts=1, timeout_seconds=180)
+        max_attempts=3, timeout_seconds=180)
     _ensure_worker(app, db_path)
     return status(db_path, job.job_id)
 
@@ -82,8 +83,9 @@ def _run(app, db_path):
                 try:
                     result = recupera_testo(job.payload["identita"])
                     if result.get("stato") == "in_attesa":
-                        result = {"stato": "intervento_necessario",
-                                  "message": "Fonte occupata: riprova più tardi."}
+                        queue.fail(job.job_id, error="Fonte temporaneamente occupata.")
+                        sleep(2)
+                        continue
                     queue.complete(job.job_id, result=result)
                 except (OSError, ValueError, RuntimeError, KeyError):
                     queue.fail(job.job_id, error="Acquisizione non completata.")

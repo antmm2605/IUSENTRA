@@ -1,3 +1,20 @@
+## 2.451.0 — Biblioteca autoalimentata e presidio delle norme delle schede degli atti
+
+- Acquisizione automatica, ogni notte, degli atti citati dalle 195 schede dei modelli d'atto e assenti dalla
+  biblioteca «Codici e leggi»: testo vigente da Normattiva (Akoma Ntoso) o dall'Ufficio delle pubblicazioni UE,
+  importato solo se contiene tutti gli articoli richiesti, con URL, data di vigenza e impronte; backup prima di scrivere.
+  Prova reale su un archivio del 09/10/2026: 10 atti mancanti acquisiti (482 articoli), 2.473 norme su 2.473 presenti.
+- Verifica notturna di ogni norma delle schede: presenza, abrogazione dell'intero articolo (con l'atto abrogante),
+  commi abrogati, impronta del testo. Proposte motivate all'avvocato per norme cambiate (con le differenze di testo
+  rispetto a quello approvato), abrogate, assenti, e fonti specifiche del registro ufficiale non citate dalla scheda.
+  Nessuna scheda cambia da sola; l'approvazione vale per l'impronta esaminata (art. 20 CAD).
+- Fonti per Lex dalla scheda del modello: testo vigente con provenienza (formato 2.449.1), requisiti dei campi con la
+  loro norma, pendenze per norme non approvate o con proposte aperte. Proposta del modello dalla richiesta.
+- Misura sul banco v7 (60 casi, 403 articoli di riferimento): articoli giusti nei primi 20 della ricerca lessicale 81;
+  nelle schede dei 3 modelli proposti 203; insieme 238 (59%). Non e' una garanzia di completezza.
+- Comandi: `tools/schede_fonti.py notturno|proposte|decidi|approva-scheda`. Passaggio aggiunto agli archivi
+  ufficiali delle 23:00. Interfaccia per le proposte e collegamento al flusso di Lex: non ancora attivati.
+
 ## 2.450.1 — Apertura leggibile delle decisioni e recupero dei tentativi falliti
 
 - Il testo acquisito si apre in una pagina HTML di IUSENTRA, con provenienza e impronte; il collegamento all’originale resta disponibile. La ricerca manuale è separata dal lettore.

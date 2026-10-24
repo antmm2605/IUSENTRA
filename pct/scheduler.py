@@ -708,6 +708,18 @@ def start_scheduler(app):
                     ],
                 ),
                 (
+                    # Norme delle schede dei modelli d'atto: acquisizione delle fonti mancanti dalle fonti ufficiali,
+                    # verifica di presenza, abrogazione e impronta, proposte di revisione per l'avvocato.
+                    "schede atti: fonti e verifica norme",
+                    [
+                        sys.executable,
+                        "tools/schede_fonti.py",
+                        "notturno",
+                        "--db",
+                        str(Path(normativa_db).with_name("codici_leggi.sqlite")),
+                    ],
+                ),
+                (
                     "normattiva vettori lex",
                     comando_aggiornamento_vettori_normattiva(normativa_db, normativa_vettori),
                 ),

@@ -1,3 +1,4 @@
+import { NormativeArticleLink } from '../NormativeArticleLink'
 import { beginActivity } from '../../ui/activity'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
@@ -325,7 +326,7 @@ function FontiList({ fonti }: { fonti: FonteLettura[] }) {
           <li key={fonte.id}>
             <b>{fonte.norma}</b> — {fonte.titolo}
             {fonte.estratto ? <span>{fonte.estratto}</span> : null}
-            <small>{fonte.verifica} · {fonte.reader_url ? <button type="button" onClick={() => setSource({href: fonte.reader_url!, label: fonte.norma, context: fonte.titolo})}>Leggi il testo ufficiale</button> : fonte.url.startsWith('https://') ? <a href={fonte.url} target="_blank" rel="noopener noreferrer">Fonte ufficiale <ExternalLink size={11}/></a> : null}</small>
+            <small>{fonte.verifica} · {fonte.reader_url ? <button type="button" onClick={() => setSource({href: fonte.reader_url!, label: fonte.norma, context: fonte.titolo})}>Leggi il testo ufficiale</button> : fonte.url.startsWith('https://') ? <NormativeArticleLink url={fonte.url} article={fonte.norma}>Fonte ufficiale <ExternalLink size={11}/></NormativeArticleLink> : null}</small>
           </li>
         ))}
       </ul>

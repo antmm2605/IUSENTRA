@@ -136,9 +136,13 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
                    campi_modello: list[str], ruolo_assistito: str = "") -> EsitoStesura:
     """``chiama_modello(sistema, messaggio) -> (testo, nome_modello)``: il gateway di Lex (o un sostituto nei test)."""
     nomi = [b["blocco"] for b in risolta.get("scrive_lex", [])]
+    if not nomi:
+        raise ValueError("La scheda non contiene blocchi da scrivere.")
     msg = messaggio(oggetto, risolta, fonti, blocco_scadenze=blocco_scadenze, oggi=oggi, assistito=assistito,
                     controparte=controparte)
     testo, nome_modello = chiama_modello(SISTEMA, msg)
+    if not str(testo or "").strip():
+        raise ValueError("Il modello locale non ha restituito una bozza.")
     caso = {"fonti": fonti.fonti, "fonti_ref": fonti.fonti_ref, "fatti": fatti_testo + "\n" + "\n".join(_dati_fascicolo(risolta)),
             "richiesta": oggetto + "\n" + blocco_scadenze, "oggi": oggi.strftime("%d/%m/%Y"),
             "parte_assistita": {"nome": assistito or "assistito", "ruolo": ruolo_assistito}, "controparte": {"nome": controparte or ""}}
@@ -148,5 +152,18 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
         esito_stato["stato"] = "bozza_con_verifiche_pendenti"
     esito_stato["motivi"] = esito_stato.get("motivi", []) + [f"fonte: {p}" for p in fonti.pendenze]
     blocchi = dividi_blocchi(testo, nomi)
+    mancanti = [nome for nome in nomi if nome not in blocchi]
+    if mancanti:
+        esito_stato["stato"] = "bozza_incompleta"
+        esito_stato["motivi"] += ["Blocco non restituito: "+nome for nome in mancanti]
+    accorciate = [n for n, t in fonti.fonti.items() if len(t) > MAX_CARATTERI_FONTE]
+    da_confermare = any(c.get("stato") == "da_confermare" and str(c.get("valore") or "").strip() for c in risolta.get("campi", []))
+    if accorciate or da_confermare:
+        if esito_stato["stato"] == "pronta_per_revisione_avvocato":
+            esito_stato["stato"] = "bozza_con_verifiche_pendenti"
+        if accorciate:
+            esito_stato["motivi"].append("Fonti accorciate nel contesto del modello: esaminare i testi integrali "+", ".join(map(str, accorciate)))
+        if da_confermare:
+            esito_stato["motivi"].append("Sono presenti dati letti dai documenti ancora da confermare.")
     return EsitoStesura(blocchi=blocchi, campi=campi_per_blocchi(list(blocchi), campi_modello), revisione=revisione,
                         stato_consegna=esito_stato, testo=testo, modello_ai=nome_modello)

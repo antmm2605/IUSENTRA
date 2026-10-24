@@ -1,0 +1,32 @@
+name: Configura Lex privato
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verifica modello privato e prepara configurazione preservando le altre impostazioni
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+          LEX_KEY: ${{ secrets.LEX_PRIVATE_BRIDGE_API_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy 2>/dev/null || true' EXIT
+          code=$(base64 -w0 deploy/private-lex/configure_server.py)
+          python -c 'import os,json; print(json.dumps({"pc_address":"100.69.184.43","api_key":os.environ["LEX_KEY"]}))' | \
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts "${HETZNER_USER}@${HETZNER_HOST}" \
+            "python3 -c \"import base64;exec(base64.b64decode('$code'))\""

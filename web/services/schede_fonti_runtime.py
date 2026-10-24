@@ -181,3 +181,21 @@ def decidi(biblioteca, proposta_id, esito, avvocato, nota="", digest="", *, stud
         raise RevisioneCambiata("La proposta è già stata decisa: ricarica l'elenco.")
     DecisioniStudio(studio_db).registra("proposta", [(p["id"], digest, {"esito": esito, "nota": nota})], avvocato)
     return True
+
+
+class RepositoryFontiStudio:
+    """Adattatore in sola lettura per Lex: approvazioni solo del tenant corrente."""
+    def __init__(self, biblioteca, studio_db):
+        self.biblioteca = biblioteca
+        self.studio_db = studio_db
+        self._schede = {}
+
+    def norma(self, scheda_id, atto, articolo):
+        if scheda_id not in self._schede:
+            self._schede[scheda_id] = scheda(self.biblioteca, scheda_id, studio_db=self.studio_db)
+        dati = self._schede[scheda_id] or {}
+        n = next((n for n in dati.get("norme", []) if n["atto"] == atto and norm_articolo(n["articolo"]) == norm_articolo(articolo)), {})
+        return {"sha256_approvato": n.get("sha256", "") if n.get("approvata") else ""}
+
+    def proposte(self, *, scheda):
+        return proposte(self.biblioteca, studio_db=self.studio_db, scheda=scheda)

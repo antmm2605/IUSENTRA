@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 452.
-- Endpoint P0/P1 contrattualizzati: 385.
+- Endpoint React API contrattualizzati: 454.
+- Endpoint P0/P1 contrattualizzati: 387.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 409.
+- Endpoint con provider verification auth-error: 411.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -346,6 +346,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Redazione atti | `/api/v1/ui/redazione-atti/clienti/{id_cliente}/fascicoli` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/fascicoli/{id_fascicolo}/contesto` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/genera` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Redazione atti | `/api/v1/ui/redazione-atti/lex/blocchi` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/normativa` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/normativa/{model_code}` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/produci` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -365,6 +366,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/articoli` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/articoli/{article_id}` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/atti` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/normativa/visualizza` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/ricerca` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale/tabelle-normative/sincronizza` | `POST` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario` | `GET` | Scadenziario | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |

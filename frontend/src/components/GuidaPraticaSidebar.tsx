@@ -1,3 +1,4 @@
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useId, useState, type ReactNode } from 'react'
 import { AlertTriangle, BookOpen, Calculator, CheckCircle2, ChevronDown, ChevronUp, ClipboardCheck, FilePenLine, FileText, Gavel, Landmark, ListChecks, RefreshCw, Scale, ShieldCheck, TimerReset, UploadCloud, UsersRound } from 'lucide-react'
@@ -465,7 +466,7 @@ function NormativaTab({ guida }:{guida?:GuidaPratica}) {
                 <li key={itemKey('fonte-web', index, title)}>
                   <strong>{title}</strong>
                   <span>{[fonte.ente, fonte.ambito, fonte.verificato_il ? `verificata il ${formatItalianDate(fonte.verificato_il)}` : ''].filter(Boolean).join(' · ')}</span>
-                  {fonte.url ? <a href={fonte.url} target="_blank" rel="noreferrer">Apri fonte</a> : null}
+                  {fonte.url ? <NormativeArticleLink url={fonte.url} article={title}>Apri fonte</NormativeArticleLink> : null}
                 </li>
               )
             })}

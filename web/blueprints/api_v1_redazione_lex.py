@@ -5,9 +5,9 @@ Restituisce blocchi, revisione indipendente e stato della consegna; l'inseriment
 """
 from __future__ import annotations
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, g, jsonify
 
-from web.blueprints.api_v1_react import _richiedi_auth
+from web.blueprints.api_v1_react import _audit_event, _request_json_object, _richiedi_auth
 
 api_v1_redazione_lex = Blueprint("api_v1_redazione_lex", __name__)
 
@@ -27,9 +27,13 @@ def redazione_lex_blocchi():
         from web.services import redazione_lex_runtime as runtime
         from web.services.schede_compilazione_runtime import compilazione_per_modello
 
-        dati = request.get_json(silent=True) or {}
+        dati, errore_corpo = _request_json_object()
+        if errore_corpo is not None:
+            return errore_corpo
         model_code = str(dati.get("modelCode") or "").strip()
         oggetto = str(dati.get("oggetto") or "").strip()
+        if len(oggetto) > 16000:
+            return jsonify(ok=False, errore="Richiesta troppo lunga: riducila prima di riprovare."), 400
         valori = dati.get("valori") if isinstance(dati.get("valori"), dict) else {}
         if not oggetto:
             return jsonify(ok=False, errore="Scrivi la richiesta: cosa deve ottenere l'atto per l'assistito."), 200
@@ -45,11 +49,13 @@ def redazione_lex_blocchi():
         if not provider:
             return jsonify(ok=False, errore="Nessun modello AI locale attivo: abilita llama.cpp o Ollama sul server."), 200
         campi = [str(c.get("name") if isinstance(c, dict) else c) for c in (campi_modello(model_code) or [])]
+        from web.blueprints.api_v1_schede_fonti import _studio_db
         esito = runtime.stesura(model_code=model_code, risolta=risolta, fascicolo=fascicolo, cliente=cliente,
                                 oggetto=oggetto, ruolo_assistito=str(dati.get("ruoloAssistito") or ""),
                                 biblioteca=_normativa_db(),
                                 chiama_modello=runtime.chiamata_gateway(gateway, str(getattr(utente, "id", "")), provider),
-                                campi_modello=campi)
+                                campi_modello=campi, studio_db=_studio_db())
+        _audit_event("redazione_lex.blocchi", "modello_atto", model_code, "Bozza locale generata; nessun inserimento automatico.")
         return jsonify(ok=True, **esito), 200
     except Exception as exc:
         from flask import current_app

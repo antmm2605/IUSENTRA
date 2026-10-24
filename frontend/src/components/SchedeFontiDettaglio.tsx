@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { ExternalLink, X } from 'lucide-react'
 import { apiPostJson, ensureJson } from '../api/client'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { useBusyActivity } from '../ui/useBusyActivity'
 
-type Norma = { atto: string; articolo: string; perche: string; origine: string; stato: string; url: string; aggiornato_al: string; commi_abrogati: number; testo: string; differenze: string; approvata: boolean; approvata_da: string }
+type Norma = { atto: string; articolo: string; perche: string; origine: string; stato: string; url: string; aggiornato_al: string; commi_abrogati: number; testo: string; sha256: string; differenze: string; approvata: boolean; approvata_da: string }
 type Scheda = { id: string; titolo: string; norme: Norma[]; impronta: string }
 const base = '/api/v1/ui/schede-fonti'
 const STATI: Record<string, string> = { presente: 'Presente in biblioteca', abrogato: 'Abrogata', atto_assente: 'Atto assente', articolo_assente: 'Articolo assente' }
@@ -53,7 +54,7 @@ export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged
         <small>{n.origine === 'base_normativa' ? 'Base normativa' : `Campo «${n.origine.replace('campo:', '')}»`}: {n.perche}</small>
         {n.testo ? <details><summary>Testo da esaminare</summary><pre className="iu-sf-diff">{n.testo}</pre></details> : null}
         {n.differenze ? <details open><summary>Variazione rispetto all’approvazione</summary><pre className="iu-sf-diff">{n.differenze}</pre></details> : null}
-        {n.url ? <a href={n.url} target="_blank" rel="noopener noreferrer">Testo ufficiale <ExternalLink size={12} aria-hidden="true" /></a> : null}
+        {n.url ? <NormativeArticleLink url={n.url} article={n.articolo} act={n.atto} sha={n.sha256}>Testo ufficiale <ExternalLink size={12} aria-hidden="true" /></NormativeArticleLink> : null}
       </li>)}</ul>
       {puoDecidere && daApprovare ? <div className="iu-sf-azioni"><label><input type="checkbox" checked={conferma} onChange={e => setConferma(e.target.checked)} disabled={salva} /> Ho esaminato i testi presenti e le relative fonti.</label><Button onClick={approva} disabled={!conferma || salva}>Approva questi testi per lo studio</Button></div> : null}
     </> : null}

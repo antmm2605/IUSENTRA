@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -38,7 +39,7 @@ def provider_locale(gateway) -> str:
 
 def chiamata_gateway(gateway, user_id: str, provider: str):
     def chiama(sistema: str, messaggio: str):
-        risposta = gateway.ask(user_id=user_id, prompt=messaggio, task="redazione_atto", requested_provider=provider,
+        risposta = gateway.ask(user_id=user_id, prompt=messaggio, task="redazione_atto", requested_provider=provider, allow_external=False,
                                system_prompt=sistema, max_tokens=4096,
                                extra_body={"chat_template_kwargs": {"enable_thinking": False}})
         return risposta.content, f"{risposta.provider}:{risposta.model}"
@@ -50,9 +51,8 @@ def _testo_fatti(fascicolo: Any) -> str:
         from web.services.archivio_letture_runtime import fatti_fascicolo
 
         fatti = fatti_fascicolo(fascicolo) if fascicolo is not None else []
-    except Exception:
-        logger.warning("Fatti letti non disponibili per la stesura di Lex")
-        fatti = []
+    except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+        raise ValueError("Le letture del fascicolo non sono disponibili: riprovare prima della stesura.") from exc
     righe = []
     for f in fatti:
         d = f if isinstance(f, dict) else getattr(f, "__dict__", {})
@@ -68,11 +68,11 @@ def nome_cliente(cliente: Any) -> str:
 
 
 def stesura(*, model_code: str, risolta: dict, fascicolo: Any, cliente: Any, oggetto: str, ruolo_assistito: str,
-            biblioteca: Path, chiama_modello, campi_modello: list[str]) -> dict:
+            biblioteca: Path, chiama_modello, campi_modello: list[str], studio_db=None) -> dict:
     oggi = datetime.now(ROME_TZ).date()
-    from web.services.schede_fonti_runtime import repository
+    from web.services.schede_fonti_runtime import RepositoryFontiStudio
 
-    fonti = fonti_per_scheda(risolta["scheda"], Path(biblioteca), repository=repository(Path(biblioteca)), oggi=oggi)
+    fonti = fonti_per_scheda(risolta["scheda"], Path(biblioteca), repository=RepositoryFontiStudio(Path(biblioteca), studio_db), oggi=oggi)
     scadenze = scadenze_calcolate(risolta)
     esito = scrivi_blocchi(chiama_modello=chiama_modello, oggetto=oggetto, risolta=risolta, fonti=fonti,
                            blocco_scadenze=blocco_scadenze(risolta), termini=termini_da_scadenze(scadenze),

@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 API_BLUEPRINTS = (
     (REPO_ROOT / "web" / "blueprints" / "api_v1_schede_fonti.py", "api_v1_schede_fonti", "/api/v1/ui/schede-fonti"),
+    (REPO_ROOT / "web" / "blueprints" / "api_v1_redazione_lex.py", "api_v1_redazione_lex", "/api/v1/ui/redazione-atti/lex"),
     (REPO_ROOT / "web" / "bootstrap" / "invoice_receipts_routes.py", "app", ""),
     (REPO_ROOT / "web" / "blueprints" / "api_v1_react.py", "api_v1_react", "/api/v1/ui"),
     (

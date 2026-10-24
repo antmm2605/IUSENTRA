@@ -98,3 +98,62 @@ def test_provider_solo_locale(monkeypatch):
 def test_citazioni_risolte_nell_atto():
     ref = [{"n": 1, "articolo": "1218", "sigla": "c.c."}, {"n": 2, "articolo": "163", "sigla": "c.p.c."}]
     assert risolvi_citazioni("danno [1] e forme [1, 2]; ignoto [9]", ref) == "danno (art. 1218 c.c.) e forme (art. 1218 c.c.; art. 163 c.p.c.); ignoto [9]"
+
+
+def test_ponte_fonti_usa_solo_approvazioni_sql_del_proprio_studio(tmp_path):
+    from lex.procedura_atti.fonti_scheda import fonti_per_scheda
+    from pct.storage import StudioDB
+    from tests.test_api_schede_fonti import _biblioteca
+    from web.services.schede_fonti_runtime import RepositoryFontiStudio, approva, scheda
+    db=_biblioteca(tmp_path)
+    a=StudioDB(tmp_path/'a.sqlite'); b=StudioDB(tmp_path/'b.sqlite')
+    vista=scheda(db,'CIV_ORD_023',studio_db=a)
+    approva(db,'CIV_ORD_023','avvocato A',vista['impronta'],studio_db=a)
+    fa=fonti_per_scheda('CIV_ORD_023',db,repository=RepositoryFontiStudio(db,a))
+    fb=fonti_per_scheda('CIV_ORD_023',db,repository=RepositoryFontiStudio(db,b))
+    assert fa.fonti==fb.fonti
+    assert not any('non ancora approvato' in p for p in fa.pendenze)
+    assert any('non ancora approvato' in p for p in fb.pendenze)
+
+
+def test_chiamata_gateway_non_ammette_provider_esterni():
+    from web.services.redazione_lex_runtime import chiamata_gateway
+    class Gateway:
+        def ask(self, **kwargs):
+            assert kwargs['allow_external'] is False
+            assert kwargs['requested_provider']=='llamacpp'
+            return SimpleNamespace(content='bozza',provider='llamacpp',model='locale')
+    assert chiamata_gateway(Gateway(),'fixture','llamacpp')('sistema','messaggio')==('bozza','llamacpp:locale')
+
+
+def test_risposta_vuota_o_blocchi_mancanti_non_sono_consegna_pronta():
+    import pytest
+    args=dict(oggetto='recupero',risolta=_risolta(),fonti=FONTI,blocco_scadenze='',termini=[],fatti_testo='',oggi=date(2026,10,24),assistito='Mario Rossi',controparte='Beta s.r.l.',campi_modello=['facts'])
+    with pytest.raises(ValueError,match='non ha restituito'):
+        scrivi_blocchi(chiama_modello=lambda s,m: ('','locale'),**args)
+    esito=scrivi_blocchi(chiama_modello=lambda s,m: ('### Fatto\nIl prezzo non è pagato.','locale'),**args)
+    assert esito.stato_consegna['stato']=='bozza_incompleta'
+    assert any('Blocco non restituito' in m for m in esito.stato_consegna['motivi'])
+
+
+def test_limiti_fonti_campi_e_stati_pendenti():
+    import pytest
+
+    from lex.procedura_atti.stesura_blocchi import _fonte_per_messaggio, messaggio
+    assert _fonte_per_messaggio("breve") == "breve"
+    assert "accorciato" in _fonte_per_messaggio("riga\n" * 1000)
+    assert "accorciato" in _fonte_per_messaggio("a" * 4000)
+    assert campi_per_blocchi(["Corpo unico"], ["facts"]) == {"Corpo unico": "facts"}
+    assert campi_per_blocchi(["Corpo unico"], []) == {}
+    assert termini_da_scadenze([{"etichetta":"Primo giorno utile", "valore":"25/10/2026"}, {"etichetta":"Nessuna data", "valore":"da verificare"}]) == [{"descrizione":"Primo giorno utile", "scadenza":"25/10/2026", "per_agire":False}]
+    risolta={"scrive_lex":[{"blocco":"Fatto","compito":"Esporre i fatti"}],"campi":[{"stato":"da_confermare","valore":"dato letto","etichetta":"Evento"}]}
+    fonti=FontiScheda("fixture","fixture",fonti={1:"a"*4000},pendenze=["versione da verificare"])
+    args=dict(oggetto="fixture",risolta=risolta,fonti=fonti,blocco_scadenze="termine calcolato",termini=[],fatti_testo="dato letto",oggi=date(2026,10,24),assistito="",controparte="",campi_modello=[])
+    esito=scrivi_blocchi(chiama_modello=lambda s,m: ("### Fatto\nIl dato letto richiede conferma.","fixture"),**args)
+    assert esito.stato_consegna["stato"] != "pronta_per_revisione_avvocato"
+    assert any("accorciate" in m for m in esito.stato_consegna["motivi"])
+    assert any("confermare" in m for m in esito.stato_consegna["motivi"])
+    with pytest.raises(ValueError,match="non contiene"):
+        scrivi_blocchi(chiama_modello=lambda s,m: ("", "fixture"),**{**args,"risolta":{}})
+    msg=messaggio("fixture",{},FontiScheda("x","x"),blocco_scadenze="",oggi=date(2026,10,24),assistito="",controparte="")
+    assert "Nessuna Fonte disponibile" in msg

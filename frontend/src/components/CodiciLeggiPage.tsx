@@ -1,5 +1,6 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useState } from 'react'
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { BookOpen, Search, ExternalLink, X } from 'lucide-react'
 import { ensureJson } from '../api/client'
 import { Page } from '../ui/Page'
@@ -90,7 +91,7 @@ export function CodiciLeggiPage() {
         <section className="iu-od-source-card iu-li-normativa-reader" aria-label="Testo integrale dell’articolo" aria-busy={readerBusy}>
           {readerBusy ? <p role="status">Apertura dell’articolo…</p> : readerError ? <p role="alert">{readerError}</p> : selected ? <>
             <header><div><p>{selected.act_label || selected.act_title}</p><h2>Art. {selected.number}{selected.title ? ` — ${selected.title}` : ''}</h2></div><Button tone="neutral" aria-label="Chiudi articolo" onClick={() => { setSelected(null); setSelectedId(0) }}><X size={16}/></Button></header>
-            <div className="iu-li-normativa-actions"><Badge tone="neutral">{selected.only_heading ? 'Solo intestazione nella fonte' : 'Testo integrale'}</Badge><span>Edizione di riferimento: {dateIt(selected.updated_at)}</span>{selected.consolidated_at ? <span>Consolidato al {dateIt(selected.consolidated_at)}</span> : null}<a href={selected.source_url} rel="noreferrer">Verifica su {selected.source_label || 'Normattiva'} <ExternalLink size={14} aria-hidden="true"/></a></div>
+            <div className="iu-li-normativa-actions"><Badge tone="neutral">{selected.only_heading ? 'Solo intestazione nella fonte' : 'Testo integrale'}</Badge><span>Edizione di riferimento: {dateIt(selected.updated_at)}</span>{selected.consolidated_at ? <span>Consolidato al {dateIt(selected.consolidated_at)}</span> : null}<NormativeArticleLink url={selected.source_url} article={selected.number} articleId={selected.id} label="Articolo e provenienza">Articolo e provenienza <ExternalLink size={14} aria-hidden="true"/></NormativeArticleLink></div>
             <div className="iu-li-normativa-text">{selected.text}</div>{selected.only_heading ? <p>La fonte ufficiale acquisita contiene soltanto l’intestazione per questo numero. Verifica il collegamento ufficiale; qui non viene ricostruito un testo mancante.</p> : null}
           </> : <div className="iu-li-normativa-empty"><BookOpen size={32} aria-hidden="true"/><h2>Leggi l’articolo qui</h2><p>Scegli un codice o una legge e apri un risultato per consultarne il testo completo.</p></div>}
         </section>

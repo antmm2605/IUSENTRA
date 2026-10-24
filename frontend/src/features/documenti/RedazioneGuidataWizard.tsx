@@ -390,6 +390,7 @@ function PassoAnteprima({
       {anteprima.scheda ? <SchedaCompilazionePanel scheda={anteprima.scheda} /> : null}
       {anteprima.scheda ? (
         <StesuraLexPanel
+          key={`${modelCode}:${fascicoloId}:${clienteId}`}
           modelCode={modelCode}
           fascicoloId={fascicoloId}
           clienteId={clienteId}

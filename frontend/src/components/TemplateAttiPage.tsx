@@ -1,3 +1,4 @@
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
 import { AlertTriangle, ArrowLeft, Bot, BookOpen, BriefcaseBusiness, CheckCircle2, Code2, Columns3, Copy, Download, Eye, ExternalLink, FileDown, FilePlus2, FileSignature, FileText, Filter, HelpCircle, Layers, Move, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Save, Scale, ScanLine, Search, ShieldCheck, Sparkles, Tags, Type, UploadCloud, UserRound } from 'lucide-react'
@@ -1080,10 +1081,10 @@ function NormativeReferenceRow({ item }: { item: TemplateNormativeReference }) {
         </p>
       ) : null}
       {item.officialUrl ? (
-        <a className="iu-template-source-row__link" href={item.officialUrl} target="_blank" rel="noreferrer">
+        <NormativeArticleLink className="iu-template-source-row__link" url={item.officialUrl} article={item.article}>
           <ExternalLink size={14} aria-hidden="true" />
           Apri fonte ufficiale
-        </a>
+        </NormativeArticleLink>
       ) : null}
     </article>
   )
@@ -2931,7 +2932,7 @@ function ProfessionalTemplateEditorWorkspace({
                     <article key={ref.id || ref.title || ref.article}>
                       <strong>{ref.title || ref.sourceTitle || ref.article}</strong>
                       <span>{[ref.article, ref.coverageRole, ref.reasonForApplication].filter(Boolean).join(' - ')}</span>
-                      {ref.officialUrl ? <a href={ref.officialUrl} target="_blank" rel="noreferrer">Apri fonte</a> : null}
+                      {ref.officialUrl ? <NormativeArticleLink url={ref.officialUrl} article={ref.article}>Apri fonte</NormativeArticleLink> : null}
                       <button type="button" onClick={() => insertDocumentBlock(`Riferimento normativo: ${ref.title || ref.sourceTitle || ref.article}${ref.article ? `, ${ref.article}` : ''}.`)}>
                         Inserisci riferimento
                       </button>

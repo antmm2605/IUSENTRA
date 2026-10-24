@@ -1,3 +1,4 @@
+import { openOfficialOutsideReader } from '../normativeArticleLinks'
 import { openSourceWindow } from './sourceWindowEvents'
 import { type CSSProperties, type RefObject, lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -69,6 +70,7 @@ function sourceIframeSandbox(href: string): string {
         || normalizedPath.startsWith('/api/v1/ui/email/source/')
         || normalizedPath.startsWith('/api/v1/ui/fonti-procedurali/')
         || normalizedPath === '/api/v1/ui/document-reader/web'
+        || normalizedPath === '/api/v1/ui/ricerca-legale/normativa/visualizza'
         || /^\/api\/v1\/ui\/document-tools\/results\/[^/]+\/visualizza$/.test(normalizedPath)
         || /^\/api\/v1\/ui\/controllo-studio\/conoscenza-notifiche\/fonti\/[a-z0-9_]+$/.test(normalizedPath)
         || (normalizedPath.includes('/documenti/') && normalizedPath.includes('/visualizza'))
@@ -150,6 +152,7 @@ export function SourceDocumentReader({
         if (!raw || raw.startsWith('#') || event.button !== 0) return
         let url: URL
         try { url = new URL(raw, content.URL) } catch { return }
+        if (openOfficialOutsideReader(viewerHref, url.href, target?.getAttribute('data-official-outside-reader') || null, window.location.origin)) return
         if (url.protocol === 'mailto:') {
           let address: string
           try { address = decodeURIComponent(url.pathname) } catch { return }

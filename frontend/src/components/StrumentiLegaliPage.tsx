@@ -1,3 +1,4 @@
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Building2, CalendarPlus, Mail, MapPin, Phone } from 'lucide-react'
@@ -280,9 +281,9 @@ function Risultato({ esito, tool, dati }: { esito: EsitoCalcolo; tool: string; d
           {fonti.map((fonte, indice) => (
             <span key={fonte.url}>
               {indice > 0 ? ' · ' : ''}
-              <a href={fonte.url} target="_blank" rel="noreferrer">
+              <NormativeArticleLink url={fonte.url} article={fonte.title}>
                 {fonte.title || fonte.url}
-              </a>
+              </NormativeArticleLink>
             </span>
           ))}
         </p>

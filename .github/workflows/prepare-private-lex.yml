@@ -1,0 +1,38 @@
+name: Prepara rete privata Lex
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepara nodo senza esporre credenziali o riavviare l'applicazione
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy enrollment-private.txt 2>/dev/null || true' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts "${HETZNER_USER}@${HETZNER_HOST}" \
+            'python3 -' < deploy/private-lex/enroll_server.py > enrollment-private.txt
+          openssl pkeyutl -encrypt -pubin -inkey deploy/private-lex/enrollment-public.pem \
+            -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 \
+            -in enrollment-private.txt -out enrollment.enc
+          echo 'Preparazione eseguita. Esito cifrato: nessuna credenziale nei log.'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: private-lex-enrollment-encrypted
+          path: enrollment.enc
+          retention-days: 1

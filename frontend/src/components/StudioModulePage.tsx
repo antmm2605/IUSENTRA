@@ -1,3 +1,4 @@
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useState, type FormEvent, type MouseEvent } from 'react'
 import {
@@ -463,7 +464,7 @@ function ToolResultView({ state }: { state?: ToolResultState }) {
       {result.sources.length ? (
         <div className="iu-sm-result__sources">
           {result.sources.slice(0, 5).map((source) => (
-            <a href={source.url || '#'} key={`${source.title}-${source.url}`} target="_blank" rel="noreferrer">{source.title}</a>
+            <NormativeArticleLink url={source.url || '#'} article={source.title} key={`${source.title}-${source.url}`}>{source.title}</NormativeArticleLink>
           ))}
         </div>
       ) : null}

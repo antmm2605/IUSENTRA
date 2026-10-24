@@ -43,6 +43,14 @@ x-iusentra-env: &iusentra-env
   LEX_NUM_PREDICT: ${LEX_NUM_PREDICT:-700}
   LEX_TEMPERATURE: ${LEX_TEMPERATURE:-0.2}
   LEX_LLM_TIMEOUT_S: ${LEX_LLM_TIMEOUT_S:-300}
+  # Stesura privata: abilitata solo dopo il collaudo del ponte cifrato verso il PC.
+  LLAMACPP_ENABLED: ${LLAMACPP_ENABLED:-0}
+  LLAMACPP_BASE_URL: ${LLAMACPP_BASE_URL:-http://127.0.0.1:8090/v1}
+  LLAMACPP_API_KEY: ${LLAMACPP_API_KEY:-}
+  LLAMACPP_DEFAULT_MODEL: ${LLAMACPP_DEFAULT_MODEL:-local-model}
+  LLAMACPP_TIMEOUT_SECONDS: ${LLAMACPP_TIMEOUT_SECONDS:-600}
+  LEX_STESURA_PROVIDER: ${LEX_STESURA_PROVIDER:-}
+
   LEX_THINK: ${LEX_THINK:-false}
   # Ricerca giuridica: indice vettoriale Normattiva (aggiornamento notturno nello scheduler-worker).
   LEX_EMBED_MODEL: ${LEX_EMBED_MODEL:-embeddinggemma:300m}

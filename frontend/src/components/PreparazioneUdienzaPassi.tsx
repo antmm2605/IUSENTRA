@@ -1,3 +1,4 @@
+import { NormativeArticleLink } from './NormativeArticleLink'
 import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, FileText, MessageSquare, Plus, Scale, Trash2 } from 'lucide-react'
 import { dataIt, type Fonte, type SchedaUdienza, type TermineAssegnato } from './preparazioneUdienzaTipi'
@@ -21,7 +22,7 @@ function Norma({ fonte }: { fonte: Fonte }) {
     <details className="iu-pu-norma">
       <summary><BookOpen size={12}/> {fonte.norma}</summary>
       <p>{fonte.estratto}</p>
-      {fonte.url ? <a href={fonte.url} target="_blank" rel="noreferrer">Testo vigente su Normattiva <ExternalLink size={11}/></a> : null}
+      {fonte.url ? <NormativeArticleLink url={fonte.url} article={fonte.norma}>Testo acquisito e fonte <ExternalLink size={11}/></NormativeArticleLink> : null}
     </details>
   )
 }

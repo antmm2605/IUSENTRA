@@ -316,3 +316,30 @@ def normativa_articolo(article_id):
         return jsonify(ok=True, item=item)
     except (FileNotFoundError, OSError, sqlite3.Error):
         return jsonify(ok=False, message="Testo non disponibile. Riprova fra poco."), 503
+
+
+@api_v1_ricerca_legale.get("/normativa/visualizza")
+@_richiedi_auth
+def normativa_visualizza():
+    """Documento puntuale nel lettore nativo, senza incorporare siti esterni."""
+    denied = _permesso_normativa()
+    if denied is not None:
+        return denied
+    from flask import make_response
+    from web.services.normative_article_reader import ArticoloCambiato, documento_html, risolvi
+    try:
+        item = risolvi(_normativa_db(), ident=int(request.args.get("id") or 0),
+                       atto=request.args.get("atto", ""), articolo=request.args.get("articolo", ""),
+                       url=request.args.get("url", ""), sha=request.args.get("sha", ""))
+        response = make_response(documento_html(item))
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+    except ArticoloCambiato as exc:
+        return jsonify(ok=False, message=str(exc)), 409
+    except ValueError as exc:
+        return jsonify(ok=False, message=str(exc)), 400
+    except LookupError as exc:
+        return jsonify(ok=False, message=str(exc)), 404
+    except (OSError, sqlite3.Error):
+        return jsonify(ok=False, message="Archivio non disponibile. Riprova fra poco."), 503

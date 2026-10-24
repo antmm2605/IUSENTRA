@@ -33,7 +33,7 @@ export function OpenGASearch() {
   const visible = selected === 'deep' && deepReady ? deep : result
   return <section id="ricerca-openga" className="iu-od-source-card" aria-label="Ricerca decisioni amministrative">
     <h2>Decisioni amministrative</h2>
-    <p>Estremi, oggetto ed esito dai dati ufficiali OpenGA. Motivazioni e principi non sono disponibili: consulta il testo nella ricerca ufficiale prima di utilizzarli.</p>
+    <p>Il catalogo cerca estremi, oggetto ed esito ufficiali. Per leggere motivazioni e dispositivo, apri «Trova il testo»: IUSENTRA proverà a recuperare e verificare il documento ufficiale. Oggetto ed esito, da soli, non dimostrano principi di diritto.</p>
     <form onSubmit={search} className="iu-openga-form" aria-busy={busy}>
       <label>Oggetto della ricerca<input value={q} onChange={e => setQ(e.target.value)} required maxLength={1000} disabled={busy} /></label>
       <label>Anno iniziale<input type="number" min="1900" max="2100" value={dal} onChange={e => setDal(e.target.value)} disabled={busy} /></label>

@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CYSkCaPu.js";export{e as ImpostazioniPage};

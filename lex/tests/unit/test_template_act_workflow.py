@@ -291,3 +291,72 @@ def test_template_http_command_preserva_contesto_e_confini(monkeypatch):
     assert template_http_payload(**(base | {"question": "Quali norme regolano una diffida?"}), data=data) is None
     assert template_http_payload(**(base | {"question": "Prepara il caffè"}), data={}) is None
     assert len(calls) == 1
+
+
+def test_procura_senza_contesto_chiede_cliente_prima_di_valutare_una_bozza(monkeypatch):
+    from pct import template_atti_lex_service as service
+    from pct import template_normative_compliance
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Una bozza inesistente non deve essere precompilata o certificata")
+    monkeypatch.setattr(service,"build_prefill",forbidden)
+    monkeypatch.setattr(template_normative_compliance,"analyze_template_compliance",forbidden)
+    payload=service.run_template_act_workflow(_request("procura alle liti"),{}, {"items":[]})
+    assert "Per quale cliente" in payload["answer"]
+    assert "case_id" not in payload["answer"] and "affidabilità" not in payload["answer"]
+    assert payload["prefill"]=={} and payload["compliance"]=={} and payload["created_document"]=={}
+    assert payload["lex_actions"][0]["id"]=="select_drafting_context"
+    assert not any(action["kind"]=="mutation" for action in payload["lex_actions"])
+
+
+def test_filtri_catalogo_privilegiano_identita_su_allegati_comuni():
+    from pct.template_atti_lex_service import search_template_models
+    for richiesta, expected in [("Procura alle liti","CIV_PROC_001"),("Atto di citazione","CIV_CIT_001"),("Diffida e messa in mora","STR_DIFF_001")]:
+        risultati=search_template_models(richiesta)
+        assert risultati and risultati[0].model_code==expected
+    procure=search_template_models("procura alle liti",limit=20)
+    assert not any(r.model_code.startswith("AMM_") for r in procure)
+    assert search_template_models("procura alle liti Modello catalogo atti: Procura alle liti. Campi richiesti: facts, area.")[0].model_code=="CIV_PROC_001"
+    assert search_template_models("procura alle liti",model_code="CIV_PROC_003")[0].model_code=="CIV_PROC_003"
+
+
+def test_varianti_selezionabili_riusano_modelli_reali_e_non_creano_documenti():
+    payload=run_template_act_workflow(_request("procura alle liti"),{}, {"items":[]})
+    scelta=next(b for b in payload["message_blocks"] if b.get("title")=="Scegli il modello da produrre")
+    assert len(scelta["items"])>=3
+    assert any(a["label"]=="Procura generale alle liti" for a in scelta["items"])
+    assert all(a["kind"]=="open" and a["href"].startswith("/template-atti/compila/CIV_PROC_") for a in scelta["items"])
+    assert payload["created_document"]=={} and payload["compliance"]=={}
+
+
+def test_evidenza_generica_non_sostituisce_modello_scelto():
+    from lex.contracts import EvidenceItem
+    item=EvidenceItem(source_type="template_atto",source_id="CIV_PROCBASE_001",title="Generico",content="Procura",score=0.9,metadata={"model_code":"CIV_PROCBASE_001"})
+    payload=run_template_act_workflow(_request("procura alle liti",metadata={"model_code":"CIV_PROC_003"}),{}, {"items":[item]})
+    assert payload["template"]["model_code"]=="CIV_PROC_003"
+
+
+def test_catalogo_non_mostra_pec_o_altre_citazioni_non_usate_come_fonti():
+    from types import SimpleNamespace
+    from lex.contracts import Citation, ProviderDraft
+    from lex.formatting.answer_builder import AnswerBuilder
+    request=_request("procura alle liti")
+    payload=run_template_act_workflow(request,{}, {"items":[]})
+    draft=ProviderDraft(text=payload["answer"],metadata={"template_act":payload,"provider":"deterministic"})
+    evidence={"items":[],"citations":[Citation(source_type="anagrafica",source_id="smtp-config",title="PEC e canali email",excerpt="smtp.example:465")]}
+    response=AnswerBuilder()._build_template_act_response(request=request,draft=draft,verdict=SimpleNamespace(warnings=[],risk_level="medium"),evidence=evidence,confidence=0.5)
+    assert response.citations==[]
+    assert all("PEC" not in row["title"] for row in response.metadata["source_rows"])
+    assert "smtp.example" not in response.answer
+
+
+def test_nome_esatto_rispettato_in_tutte_le_aree_del_catalogo():
+    from pct.compilatore_atti import elenco_modelli
+    from pct.template_atti_lex_service import search_template_models, normalize_text
+    campione={}
+    for model in elenco_modelli():
+        if model.get("name") and model.get("area"):
+            campione.setdefault(model["area"],model["name"])
+    assert len(campione)>=5
+    for area,title in campione.items():
+        risultati=search_template_models(title)
+        assert risultati and normalize_text(risultati[0].name)==normalize_text(title), (area,title,[m.name for m in risultati[:3]])

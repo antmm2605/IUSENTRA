@@ -378,9 +378,13 @@ def _model_search_text(model: dict[str, Any], metadata: dict[str, Any]) -> str:
 def search_template_models(query: str, *, limit: int = 8, model_code: str = "") -> list[TemplateMatch]:
     from pct.compilatore_atti import elenco_modelli
 
+    # Il testo descrittivo del catalogo non è la richiesta dell'avvocato.
+    query = re.split(r"modello catalogo atti:", query, maxsplit=1, flags=re.IGNORECASE)[0] or query
     query_norm = normalize_text(query)
-    query_tokens = set(_tokens(query_norm))
+    parole_generiche = {"atto", "atti", "modello", "template", "prepara", "scrivi", "crea", "bozza", "per", "alle", "alla", "delle", "della", "del", "gli", "una", "uno", "con", "che", "dei", "dal", "come", "nel", "nella", "non", "sono", "il", "la", "le", "di", "in", "al", "lo"}
+    query_tokens = set(_tokens(query_norm)) - parole_generiche
     requested_code = clean_spaces(model_code).upper()
+    identita_pertinenti = set()
     matches: list[TemplateMatch] = []
     for model in elenco_modelli():
         code = clean_spaces(model.get("code")).upper()
@@ -395,7 +399,11 @@ def search_template_models(query: str, *, limit: int = 8, model_code: str = "") 
         if normalize_text(code) and normalize_text(code) in query_norm:
             score = max(score, 0.98)
         name_norm = normalize_text(model.get("name"))
-        if name_norm and name_norm in query_norm:
+        if query_tokens.intersection(set(_tokens(name_norm)) - parole_generiche):
+            identita_pertinenti.add(code)
+        if name_norm and name_norm == query_norm:
+            score = max(score, 1.0)
+        elif name_norm and name_norm in query_norm:
             score += 0.45
         if query_tokens:
             overlap = len(query_tokens.intersection(set(haystack.split())))
@@ -405,6 +413,9 @@ def search_template_models(query: str, *, limit: int = 8, model_code: str = "") 
         for phrases, codes, boost in _DIRECT_HINTS:
             if any(normalize_text(phrase) in query_norm for phrase in phrases) and code in codes:
                 score += boost
+                identita_pertinenti.add(code)
+        if requested_code == code or (normalize_text(code) and normalize_text(code) in query_norm):
+            identita_pertinenti.add(code)
         if score <= 0:
             continue
         score = min(round(score, 4), 0.99)
@@ -418,7 +429,9 @@ def search_template_models(query: str, *, limit: int = 8, model_code: str = "") 
                 metadata=metadata,
             )
         )
-    matches.sort(key=lambda item: (-item.score, item.model_code))
+    if identita_pertinenti:
+        matches = [match for match in matches if match.model_code in identita_pertinenti]
+    matches.sort(key=lambda item: (bool(requested_code and item.model_code != requested_code), -item.score, item.model_code))
     return matches[: max(1, int(limit or 8))]
 
 
@@ -1118,6 +1131,23 @@ def build_template_actions(
     return actions
 
 
+def _azioni_varianti(template: TemplateMatch) -> list[dict[str, Any]]:
+    from pct.template_atti_compiler_bindings import compiler_alias_specs, catalog_core_compiler_alias_specs
+
+    bindings = compiler_alias_specs() + catalog_core_compiler_alias_specs()
+    binding = next((b for b in bindings if b["compiler_code"] == template.model_code), None)
+    base = binding["base_code"] if binding else template.model_code
+    prima_parola = normalize_text(template.name).split()[0] if template.name else ""
+    risultati, visti = [], set()
+    for voce in bindings:
+        code, title = voce["compiler_code"], voce["title"]
+        if voce["base_code"] != base or code in visti or not normalize_text(title).startswith(prima_parola + " "):
+            continue
+        visti.add(code)
+        risultati.append(_action("choose_model_"+code, title, "open", href="/template-atti/compila/"+code))
+    return risultati[:6]
+
+
 def _source_rows(template: TemplateMatch, act_context: ActContext) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if template.found:
@@ -1163,12 +1193,12 @@ def build_template_message_blocks(
             {
                 "type": "template_act_card",
                 "title": template.name,
-                "subtitle": template.model_code,
+                "subtitle": "Modello del catalogo atti",
                 "url": template.metadata.get("source_url") or template.metadata.get("compile_url"),
                 "fields": [
                     {"label": "Area", "value": template.area},
                     {"label": "Precompilabile", "value": "Sì" if template.metadata.get("prefill_capable") else "No"},
-                    {"label": "Campi richiesti", "value": len(template.metadata.get("required_fields") or [])},
+                    {"label": "Dati ancora da completare", "value": len(prefill.missing_fields)} if prefill else {"label": "Passo successivo", "value": "Seleziona cliente e fascicolo"},
                 ],
             }
         )
@@ -1207,7 +1237,7 @@ def build_template_message_blocks(
     if missing_labels:
         blocks.append({"type": "missing_fields_card", "title": "Dati mancanti", "items": missing_labels[:16]})
     if source_rows:
-        blocks.append({"type": "source_card", "title": "Fonti interne", "items": source_rows})
+        blocks.append({"type": "source_card", "title": "Dati utilizzati e catalogo", "items": source_rows})
     if actions:
         blocks.append({"type": "actions", "title": "Azioni operative", "items": actions})
     return blocks
@@ -1223,8 +1253,12 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
     template = resolve_template_for_query(query, template_context)
     items = list((evidence or {}).get("items") or [])
     template_items = [item for item in items if clean_spaces(getattr(item, "source_type", "")).lower() == "template_atto"]
-    if template_items:
-        item = template_items[0]
+    selected_item = next((item for item in template_items
+                          if clean_spaces((getattr(item, "metadata", {}) or {}).get("model_code") or getattr(item, "source_id", "")) == template.model_code), None)
+    if selected_item is None and not template.found and template_items:
+        selected_item = template_items[0]
+    if selected_item is not None:
+        item = selected_item
         item_meta = dict(getattr(item, "metadata", {}) or {})
         template = TemplateMatch(
             model_code=clean_spaces(item_meta.get("model_code") or getattr(item, "source_id", "")),
@@ -1268,7 +1302,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
     validation: ValidationResult | None = None
     created: CreatedDocumentResult | None = None
     compliance: Any = None
-    if template.found and not lookup_only and not act_context.forbidden and not act_context.client_options and not act_context.case_options:
+    if template.found and not lookup_only and not act_context.forbidden and not act_context.client_options and not act_context.case_options and act_context.cliente and act_context.fascicolo:
         prefill = build_prefill(template.model_code, act_context.fascicolo, act_context.cliente, act_context.utente, act_context.config,
                                 act_context.parti_ruoli or act_context.parti)
         manual_payload = metadata.get("template_payload") if isinstance(metadata.get("template_payload"), dict) else {}
@@ -1319,6 +1353,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         explicit_create=explicit_create,
         compliance=compliance,
     ) if template.found else []
+    varianti = _azioni_varianti(template) if template.found and not act_context.forbidden else []
     source_rows = _source_rows(template, act_context)
     blocks = build_template_message_blocks(
         template=template,
@@ -1329,6 +1364,8 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         source_rows=source_rows,
     )
 
+    if len(varianti) > 1:
+        blocks.insert(0, {"type":"actions", "title":"Scegli il modello da produrre", "items":varianti})
     if not template.found:
         answer = (
             "Non ho trovato un modello reale del catalogo atti compatibile con la richiesta. "
@@ -1357,6 +1394,18 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         lines.append("Scegli il cliente o il fascicolo corretto prima della precompilazione.")
         answer = "\n".join(lines)
         confidence = 0.58
+        answer_mode = "needs_review"
+    elif not act_context.cliente or not act_context.fascicolo:
+        if not act_context.cliente:
+            answer = (f"Posso aiutarti a preparare {template.name.lower()}. Per quale cliente la vuoi preparare? "
+                      "Seleziona il cliente e il fascicolo nella redazione guidata: recupererò i dati già presenti "
+                      "e ti chiederò soltanto quelli mancanti. Nessuna bozza è stata creata.")
+        else:
+            answer = (f"Posso preparare {template.name.lower()} per {_label(act_context.cliente)}. "
+                      "Quale fascicolo o procedimento vuoi collegare? Dopo la selezione recupererò i dati "
+                      "già presenti, senza inventare quelli mancanti. Nessuna bozza è stata creata.")
+        actions.insert(0, _action("select_drafting_context", "Scegli cliente e fascicolo", "open", href="/redazione-atti"))
+        confidence = 0.5
         answer_mode = "needs_review"
     else:
         filled_count = len(prefill.filled_fields if prefill else [])

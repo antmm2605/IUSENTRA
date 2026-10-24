@@ -676,7 +676,9 @@ class AnswerBuilder:
         answer_mode = str(payload.get("answer_mode") or ("grounded" if payload.get("evidence_sufficient") else "needs_review"))
         return WorkflowLexResponse(
             answer=answer,
-            citations=list((evidence or {}).get("citations") or []),
+            # Il catalogo e le impostazioni non sono Fonti giuridiche della risposta.
+            # I dati realmente utilizzati restano nelle schede strutturate dedicate.
+            citations=[],
             warnings=self._unique_strings([*list(getattr(verdict, "warnings", []) or []), *action_warnings]),
             next_actions=action_labels,
             risk_level=str(getattr(verdict, "risk_level", "medium") or "medium"),

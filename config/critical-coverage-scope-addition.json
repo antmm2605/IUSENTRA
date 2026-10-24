@@ -1,9 +1,7 @@
 {
-  "baseline_sha": "a4a753eb8727bd897aae59aa2a7c6252cfff3163",
-  "reason": "Estensione dichiarata della libreria procedura atti: fonti della scheda con provenienza e proposta del modello. I test delle nuove funzioni sono inclusi nella misura critica. Il comparatore esistente continua a richiedere copertura almeno pari alla baseline sia sui singoli nuovi moduli sia sul perimetro comune e sul totale, senza righe precedentemente coperte perse. Nessuna esclusione o soglia modificata. Estensione 2.453.0: stesura dei blocchi con revisione e stati incompleti, coperta da test_redazione_lex nella medesima suite critica.",
+  "baseline_sha": "18a5b5395463d892206c22276af04e28ac8cbf8b",
+  "reason": "Estensione esplicita rispetto all’ultima versione realmente distribuita e verde: nuovo modulo stesura_blocchi, con test_redazione_lex nella suite critica. Manteniamo confronto completo, ambiente identico, nessuna riga precedentemente coperta persa e copertura non inferiore alla baseline sia sul perimetro comune sia sul totale. Nessuna soglia o esclusione modificata.",
   "files": {
-    "lex/procedura_atti/fonti_scheda.py": "ec7724f96a28aaf493f2230ab34f8c141bbd5b6f8f124e108cd8fa754a874032",
-    "lex/procedura_atti/scelta_modello.py": "b0f957a7337d78a36304bb18fea63fb07497fef18dbc8b458cc93140f74d3f78",
     "lex/procedura_atti/stesura_blocchi.py": "514b6a7050a2b470947d0060315717dee4f68d58abf44bebaefcf670154e7593"
   }
 }

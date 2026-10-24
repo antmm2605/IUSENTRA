@@ -1258,6 +1258,11 @@ def build_bounded_http_payload(
         *attachment_source_rows,
         *_source_rows(response, fascicolo_id=_clean_spaces(data.get("fascicolo_id"))),
     ]
+    if response.metadata.get("workflow") == "atto_da_template" and any(
+            block.get("type") == "source_card" for block in response.metadata.get("message_blocks", []) if isinstance(block, dict)):
+        # Catalogo e dati usati sono già nelle schede dedicate; non duplicarli come Fonti.
+        # Gli allegati realmente forniti rimangono invece nel percorso delle fonti documentali.
+        sources = list(attachment_source_rows)
     external_sources_used = bool(
         response.metadata.get("external_sources_used")
         or response.metadata.get("fallback_triggered")

@@ -1,4 +1,5 @@
 """Aggiornamento del servizio pubblico con riuso di dati e pesi."""
+import hashlib
 import json
 import re
 import shutil
@@ -26,6 +27,20 @@ def request(container, url, payload=None):
     return json.loads(command("docker", "exec", container, "python", "-c", code, json.dumps([url, payload])))
 
 
+
+
+def verify_sources(repo, container):
+    paths = ["pct/openga_catalogo.py", "pct/openga_query.py", "pct/openga_reranker.py",
+             "pct/openga_riformulazione.py", "pct/openga_search.py", "pct/openga_identita.py",
+             "pct/__init__.py", "server.py"]
+    code = ("import pathlib,hashlib,json,sys;paths=json.loads(sys.argv[1]);"
+            "print(json.dumps({p:hashlib.sha256((pathlib.Path('/app')/p).read_bytes()).hexdigest() for p in paths}))")
+    actual = json.loads(command("docker", "exec", container, "python", "-c", code, json.dumps(paths)))
+    expected = {p: hashlib.sha256((repo / ("deploy/openga/server.py" if p == "server.py" else p)).read_bytes()).hexdigest()
+                for p in paths}
+    if actual != expected:
+        raise ValueError("Sorgenti del servizio diversi dalla revisione verificata")
+    print("PARITA_SORGENTI_OPENGA_JSON=" + json.dumps(expected))
 
 def verify_reading(repo, container):
     # Caso pubblico di collaudo: identità sempre letta dal catalogo installato.
@@ -96,6 +111,7 @@ def run(sha):
     dockerfile = (f"FROM {base_image}\n"
                   "COPY pct/openga_search.py /app/pct/openga_search.py\n"
                   "COPY pct/openga_identita.py /app/pct/openga_identita.py\n"
+                  "COPY pct/openga_catalogo.py pct/openga_query.py pct/openga_reranker.py pct/openga_riformulazione.py /app/pct/\n"
                   "COPY pct/__init__.py /app/pct/__init__.py\n"
                   "COPY deploy/openga/server.py /app/server.py\n")
     image = "iusentra-openga:" + sha
@@ -128,6 +144,7 @@ def run(sha):
         candidate = request("iusentra-app", f"http://{name}:8092/search", {"q": "permesso soggiorno", "semantica": False})
         if candidate != baseline:
             raise ValueError("Ricerca di controllo diversa: collegamento preservato")
+        verify_sources(repo, name)
         verify_reading(repo, name)
         subprocess.run(["docker", "network", "disconnect", network, old_name], check=True)
         switched = True

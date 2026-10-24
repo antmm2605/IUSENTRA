@@ -83,7 +83,7 @@ def test_converte_akn_solo_articoli_del_corpo():
     <article><num>Art. 3-bis.</num><heading>(Notifica PEC)</heading><paragraph>1. La notificazione puo' eseguirsi a mezzo PEC.</paragraph></article>
     <article><num>Art. 4</num><mod><article><num>Art. 99</num><paragraph>testo modificato</paragraph></article></mod></article>
     </body><attachments><attachment><article><num>Art. 1</num><paragraph>allegato</paragraph></article></attachment></attachments></act></akomaNtoso>"""
-    righe = converti(AttoScaricato("u", xml, "t", "19940131", "094G0053", "20261024", URL, "abc"), "legge_53_1994", "2026-10-24")
+    righe = converti(AttoScaricato("urn:nir:stato:legge:1994;53", xml, "t", "19940131", "094G0053", "20261024", URL, "abc"), "legge_53_1994", "2026-10-24")
     assert [r["articolo"] for r in righe] == ["3bis", "4"]
     assert righe[0]["rubrica"] == "Notifica PEC" and righe[0]["provenienza_integrazione"]["sha256_akn"] == "abc"
 
@@ -127,3 +127,12 @@ def test_fonti_per_lex_con_provenienza_e_pendenze(ambiente):
     approva_scheda(repo, verifica_schede(db, schede), "PRO_001", "Avv. Rossi")
     f2 = fonti_per_scheda("PRO_001", db, repository=repo, cartella=schede)
     assert not any("non ancora approvato" in p for p in f2.pendenze)
+
+
+@pytest.mark.parametrize("urn", ["urn:nir:stato:legge:1995;53", "urn:nir:stato:legge:1994;54",
+                                  "urn:nir:stato:decreto.legge:1994;53", "urn:nir:stato:legge:1994-01-22;53"])
+def test_rifiuta_akn_di_altro_atto_anche_con_articolo_richiesto(urn):
+    xml = b'<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0"><act><meta><identification><FRBRWork><FRBRalias value="urn:nir:stato:legge:1994-01-21;53"/></FRBRWork></identification></meta><body><article><num>Art. 3-bis.</num><paragraph>Testo</paragraph></article></body></act></akomaNtoso>'
+    with pytest.raises(ValueError, match="discordante"):
+        converti(AttoScaricato(urn, xml, "t", "19940131", "094G0053", "20261024", URL, "abc"),
+                 "legge_53_1994", "2026-10-24")

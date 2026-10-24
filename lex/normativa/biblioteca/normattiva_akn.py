@@ -88,6 +88,17 @@ def converti(atto: AttoScaricato, chiave: str, raccolto_il: str) -> list[dict]:
     urn = next((v for v in root.xpath("//a:FRBRWork/a:FRBRalias/@value", namespaces=NS) if v.startswith("urn:nir:")), "")
     if not urn:
         raise ValueError(f"{atto.urn_richiesto}: URN assente nell'AKN")
+    # Il numero di articolo non identifica l'atto: il riscontro NIR deve
+    # concordare con tipo, anno, numero e data completa quando richiesta.
+    def identita(valore: str):
+        return re.fullmatch(r"urn:nir:stato:([^:]+):(\d{4}(?:-\d{2}-\d{2})?);(\d+)", valore)
+    richiesto, trovato = identita(atto.urn_richiesto), identita(urn)
+    if (not richiesto or not trovato
+            or richiesto[1] != trovato[1]
+            or richiesto[2][:4] != trovato[2][:4]
+            or int(richiesto[3]) != int(trovato[3])
+            or (len(richiesto[2]) > 4 and richiesto[2] != trovato[2])):
+        raise ValueError(f"{atto.urn_richiesto}: identita' dell'atto AKN discordante ({urn})")
     tipo = urn.split(":")[-2]
     numero, data = urn.split(";")[-1], urn.split(":")[-1].split(";")[0]
     titoli = root.xpath("//a:preface//a:docTitle", namespaces=NS)

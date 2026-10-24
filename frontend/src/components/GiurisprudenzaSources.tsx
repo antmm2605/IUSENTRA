@@ -56,7 +56,7 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
       </details>
       <footer className="iu-od-action-row iu-legal-source__actions">
         {source.id === 'openga' && <ButtonLink href="#ricerca-openga" tone="neutral">Cerca decisioni</ButtonLink>}
-        {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito ufficiale</ButtonLink>}
+        {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito della fonte</ButtonLink>}
         {source.legacyHref && <ButtonLink href={source.legacyHref} tone="neutral">Scheda fonte</ButtonLink>}
       </footer>
     </article>

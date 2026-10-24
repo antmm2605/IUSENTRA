@@ -20,33 +20,51 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
     return () => controller.abort()
   }, [hasOpenGA])
   if (!sources.length) return null
-  return <Panel title="Fonti e archivi" subtitle="Le schede dello studio e i cataloghi pubblici sono archivi distinti. I conteggi indicano sempre il proprio archivio.">
-    <div className="iu-legal-source-grid">{sources.map(source => {
-      const corpusReady = typeof source.corpusCount === 'number' && source.corpusCount > 0
-      const publicReady = source.id === 'openga' && inventory?.ok && Number.isInteger(inventory.decisioni)
-      return <article className="iu-legal-source iu-od-source-card" key={source.id}>
-        <header className="iu-legal-source__header"><div>
-          <span className="iu-od-source-badge">{source.kind || 'Fonte'}</span><h3>{source.label}</h3>
-        </div><Badge tone={publicReady || corpusReady ? 'success' : 'neutral'}>{publicReady ? 'Catalogo disponibile' : corpusReady ? 'Archivio disponibile' : source.id === 'manuale_interno' ? 'Archivio dello studio' : 'Sito esterno'}</Badge></header>
-        <dl className="iu-legal-meta">
-          {source.coverage && <div><dt>Copertura dichiarata dalla fonte</dt><dd>{source.coverage}</dd></div>}
-          {source.accessMode && <div><dt>Accesso alla fonte</dt><dd>{source.accessMode}</dd></div>}
-          <div><dt>Schede salvate nello studio</dt><dd>{source.count.toLocaleString('it-IT')}</dd></div>
-          {source.id !== 'openga' && source.id !== 'manuale_interno' && <div><dt>Decisioni nell’archivio collegato</dt><dd>{source.corpusCount == null ? 'Disponibilità non verificata' : source.corpusCount.toLocaleString('it-IT')}</dd></div>}
-          {corpusReady && <div><dt>Con testo integrale</dt><dd>{source.corpusFullTextCount?.toLocaleString('it-IT') ?? 'Non verificato'}</dd></div>}
-          {source.id === 'openga' && <div><dt>Decisioni nel catalogo pubblico installato</dt><dd>{publicReady
-            ? inventory.decisioni!.toLocaleString('it-IT')
-            : inventory === null ? 'Verifica in corso…' : 'Conteggio non disponibile'}</dd></div>}
-        </dl>
-        {source.id === 'openga' ? <p>Il catalogo pubblico contiene estremi, oggetto ed esito. Il conteggio non indica testi integrali o schede dello studio.</p>
-          : source.id !== 'manuale_interno' && <p>Il sito ufficiale resta consultabile separatamente. Le schede salvate nello studio non sono il totale delle decisioni della fonte.</p>}
-        {source.resolutionNote && <p className="iu-legal-source__resolution">{source.resolutionNote}</p>}
-        <footer className="iu-od-action-row iu-legal-source__actions">
-          {source.id === 'openga' && <ButtonLink href="#ricerca-openga" tone="neutral">Cerca nel catalogo OpenGA</ButtonLink>}
-          {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito della fonte</ButtonLink>}
-          {source.legacyHref && <ButtonLink href={source.legacyHref} tone="neutral">Scheda fonte</ButtonLink>}
-        </footer>
-      </article>
-    })}</div>
+  const isStudio = (source: GiurisprudenzaSource) =>
+    source.id === 'manuale_interno' || source.accessMode === 'Materiale autorizzato'
+  const isArchive = (source: GiurisprudenzaSource) =>
+    !isStudio(source) && (source.id === 'openga' || (source.corpusCount ?? 0) > 0)
+  const groups = [
+    { title: 'Archivi collegati a IUSENTRA', items: sources.filter(isArchive) },
+    { title: 'Siti ufficiali da consultare', items: sources.filter(source => !isArchive(source) && !isStudio(source)) },
+    { title: 'Materiale dello studio', items: sources.filter(isStudio) },
+  ]
+  function card(source: GiurisprudenzaSource) {
+    const publicReady = source.id === 'openga' && inventory?.ok && Number.isInteger(inventory.decisioni)
+    const corpusReady = (source.corpusCount ?? 0) > 0 && !isStudio(source)
+    const studio = isStudio(source)
+    return <article className="iu-legal-source iu-od-source-card" key={source.id}>
+      <header className="iu-legal-source__header"><div>
+        <span className="iu-od-source-badge">{source.kind || 'Fonte'}</span><h4>{source.label}</h4>
+      </div><Badge tone={publicReady || corpusReady ? 'success' : 'neutral'}>{publicReady || corpusReady ? 'Archivio presente' : studio ? 'Materiale dello studio' : 'Sito esterno'}</Badge></header>
+      {source.id === 'openga' ? <>
+        <p><strong>{publicReady ? inventory.decisioni!.toLocaleString('it-IT') + ' decisioni' : inventory === null ? 'Verifica del catalogo…' : 'Conteggio non disponibile'}</strong></p>
+        <p>Ricerca in IUSENTRA per estremi, oggetto ed esito. Il catalogo non comprende motivazioni e testi integrali.</p>
+      </> : corpusReady ? <>
+        <p><strong>{source.corpusCount!.toLocaleString('it-IT')} decisioni nell’archivio collegato</strong></p>
+        <p>{source.corpusFullTextCount?.toLocaleString('it-IT') ?? 'Numero non verificato'} con testo integrale.</p>
+      </> : studio ? <p>{source.count.toLocaleString('it-IT')} schede salvate nello studio.</p> : <>
+        <p>Consultazione sul sito ufficiale.</p>
+        <p>{source.corpusCount === 0 ? 'Nessuna decisione importata nel corpus dello studio.' : 'Disponibilità nel corpus dello studio non verificata.'}</p>
+      </>}
+      <details>
+        <summary>Copertura e accesso</summary>
+        {source.coverage && <p>{source.coverage}</p>}
+        {source.accessMode && <p>Accesso: {source.accessMode}.</p>}
+        {!studio && <p>Schede salvate nello studio: {source.count.toLocaleString('it-IT')}. Questo numero non è il totale della fonte.</p>}
+        {source.resolutionNote && <p>{source.resolutionNote}</p>}
+      </details>
+      <footer className="iu-od-action-row iu-legal-source__actions">
+        {source.id === 'openga' && <ButtonLink href="#ricerca-openga" tone="neutral">Cerca decisioni</ButtonLink>}
+        {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito ufficiale</ButtonLink>}
+        {source.legacyHref && <ButtonLink href={source.legacyHref} tone="neutral">Scheda fonte</ButtonLink>}
+      </footer>
+    </article>
+  }
+  return <Panel title="Fonti e archivi" subtitle="Gli archivi collegati contengono dati consultabili da IUSENTRA. I siti esterni si aprono separatamente e non sono archivi importati.">
+    {groups.filter(group => group.items.length > 0).map(group => <section key={group.title}>
+      <h3>{group.title}</h3>
+      <div className="iu-legal-source-grid">{group.items.map(card)}</div>
+    </section>)}
   </Panel>
 }

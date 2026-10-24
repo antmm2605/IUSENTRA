@@ -175,3 +175,12 @@ def test_explicit_retry_never_discards_a_verified_text(tmp_path, monkeypatch):
     assert repeated["stato"] == "acquisito"
     assert repeated["documento"]["testo"] == text
     assert queue.get(first["job_id"]).status == "completed"
+
+
+def test_reader_fingerprint_changes_when_its_code_changes(tmp_path):
+    source = tmp_path / "reader.py"
+    source.write_text("versione iniziale")
+    first = jobs._reader_fingerprint([source])
+    assert jobs._reader_fingerprint([source]) == first
+    source.write_text("gestisce i ricorsi riuniti")
+    assert jobs._reader_fingerprint([source]) != first

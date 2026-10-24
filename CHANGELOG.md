@@ -3,7 +3,7 @@
 - Il testo acquisito si apre in una pagina HTML di IUSENTRA, con provenienza e impronte; il collegamento all’originale resta disponibile. La ricerca manuale è separata dal lettore.
 - Corretta la lettura delle decisioni su ricorsi riuniti: il ricorso selezionato deve essere dichiarato nei metadati, anche quando non è il primo.
 - I richiami DTD esterni dei documenti storici vengono rimossi dal solo prologo senza contatti di rete o espansione di entità. Originale e sua impronta restano invariati; DTD interni ed entità attive rimangono respinti.
-- Gli esiti negativi precedenti vengono conservati e riconvalidati una volta dal lettore corretto; un nuovo tentativo esplicito è disponibile senza riavviare le letture riuscite.
+- Gli esiti negativi precedenti vengono conservati e riconvalidati una volta quando cambia l’impronta del codice del lettore; un nuovo tentativo esplicito è disponibile senza riavviare le letture riuscite.
 - Prova completa sui dieci risultati della ricerca segnalata: ricerca autenticata multi-studio, coda, recupero ufficiale e pagina HTML. Riuso dei 31 originali precedenti senza variazioni delle impronte.
 - Il gate server comprende Roma 6342/2020, Genova 341/2019 e il caso Roma precedente, verificando anche la coda persistente isolata. Nessuna scrittura nei dati degli studi durante il collaudo.
 

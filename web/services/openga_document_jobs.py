@@ -8,11 +8,24 @@ from pathlib import Path
 from threading import Lock, Thread
 from time import sleep
 
+from pct import openga_documento, openga_organi, openga_recupero
 from pct.legal_update_job_queue import LegalUpdateJobQueue
 from pct.openga_recupero import recupera_testo
 from web.services.openga_search import document_identity
 
-_READER_VERSION = "2.450.1"
+
+def _reader_fingerprint(paths):
+    digest = sha256()
+    for path in paths:
+        digest.update(path.name.encode() + b"\\0" + path.read_bytes() + b"\\0")
+    return digest.hexdigest()
+
+
+# A parser hotfix must also invalidate old negative outcomes within the same
+# release; successful documents remain reusable and are never discarded.
+_READER_VERSION = _reader_fingerprint([
+    Path(module.__file__) for module in (openga_documento, openga_organi, openga_recupero)
+] + [Path(__file__)])
 
 _LOCK = Lock()
 _RUNNING = set()

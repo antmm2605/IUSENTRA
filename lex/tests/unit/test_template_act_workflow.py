@@ -391,3 +391,79 @@ def test_richieste_cortesi_usano_il_catalogo_prima_del_percorso_generale(monkeyp
     for question in ["Come si prepara un ricorso per decreto ingiuntivo?", "Quali sono i termini per redigere una citazione?"]:
         assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) is None
     assert len(calls) == count
+
+
+def test_varianti_linguistiche_di_redazione_e_catalogo_reale(monkeypatch):
+    from lex import http_bounded_bridge
+    from lex.http_template_bridge import template_http_payload
+
+    calls = []
+    monkeypatch.setattr(http_bounded_bridge, "build_bounded_http_payload", lambda **kwargs: calls.append(kwargs) or {"ok": True})
+    forms = ["scrivi {}", "scrivimi {}", "redigi {}", "preparami {}", "compila {}", "crea {}", "fammi una bozza {}", "vorrei scrivere {}", "voglio redigere {}", "puoi preparare {}", "potresti aiutarmi a compilare {}", "per favore scrivi {}"]
+    acts = ["ricorso decreto ingiuntivo", "procura alle liti", "atto di citazione", "comparsa conclusionale", "ricorso tributario"]
+    for form in forms:
+        for act in acts:
+            question = form.format(act)
+            assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) == {"ok": True}, question
+    assert len(calls) == 60
+    for question in ["Come si scrive un ricorso?", "Quali termini ha il decreto ingiuntivo?", "Non scrivere un ricorso decreto ingiuntivo", "Scrivi una spiegazione del decreto ingiuntivo", "Puoi spiegarmi come preparare una citazione?", "Scrivi una poesia sul mare"]:
+        assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) is None, question
+    assert len(calls) == 60
+
+
+def test_richiesta_generica_non_sceglie_fascicoli_per_la_parola_ricorso():
+    context = _base_context()
+    context["fascicoli"] += [{"id": "altro-1", "titolo": "Alfa II ricorso contro Ente Beta", "oggetto": "decreto ingiuntivo"}, {"id": "altro-2", "titolo": "Gamma II ricorso contro Ente Beta"}]
+    payload = run_template_act_workflow(_request("Vorrei preparare un ricorso per decreto ingiuntivo"), context, {"items": []})
+    assert payload["act_context"]["client_id"] == ""
+    assert payload["act_context"]["fascicolo_id"] == ""
+    assert payload["act_context"]["parti"] == []
+    assert "Alfa II" not in payload["answer"] and "Gamma II" not in payload["answer"]
+    assert "Bianchi" not in str(payload["message_blocks"])
+
+
+def test_soggetti_globali_non_entrano_nel_fascicolo_selezionato(monkeypatch):
+    from pct import template_atti_lex_service as service
+
+    monkeypatch.setattr(service, "_parti_collegate", lambda _: [])
+    context = _base_context()
+    context["parti"] += [{"id": "non-collegata", "nome_completo": "Ente Estraneo", "tipo": "TipoSoggetto.PERSONA_GIURIDICA"}]
+    payload = service.run_template_act_workflow(_request("prepara procura alle liti", metadata={"active_context": {"client_id": "cli-rossi", "case_id": "fas-rossi"}}), context, {"items": []})
+    assert "Ente Estraneo" not in str(payload["act_context"]["parti"])
+
+
+def test_sinonimi_operativi_e_refusi_non_cambiano_i_fatti(monkeypatch):
+    from lex import http_bounded_bridge
+    from lex.http_template_bridge import template_http_payload
+    from pct.template_atti_lex_service import search_template_models
+
+    calls = []
+    monkeypatch.setattr(http_bounded_bridge, "build_bounded_http_payload", lambda **kwargs: calls.append(kwargs) or {"ok": True})
+    forms = ["devo produrre {}", "devo predisporre {}", "vorrei stendere {}", "predisponi {}", "stendi {}", "genera {}", "produci {}", "mi serve {}", "mi occorre {}", "ho bisogno di {}", "scrvi {}", "redgi {}"]
+    for form in forms:
+        for act in ["ricorso decreto ingiuntivo", "procura alle liti", "atto di citazione", "comparsa conclusionale", "ricorso tributario"]:
+            question = form.format(act)
+            assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) == {"ok": True}, question
+            assert calls[-1]["current_user_message"] == question
+    for question in ["scrvi ricrso decrto ingiuntvo", "redgi atto di citazone"]:
+        assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) == {"ok": True}, question
+    assert search_template_models("ricrso decrto ingiuntvo")[0].model_code == search_template_models("ricorso decreto ingiuntivo")[0].model_code
+    for question in ["mi serve sapere il termine per il ricorso", "devo capire come si scrive una citazione", "non predisporre una procura"]:
+        assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) is None
+
+
+def test_tipo_soggetto_collegato_mostrato_con_etichetta_leggibile(monkeypatch):
+    from pct import template_atti_lex_service as service
+
+    monkeypatch.setattr(service, "_parti_collegate", lambda _: [{"nome_completo": "Ente Collegato", "tipo": "TipoSoggetto.PERSONA_GIURIDICA"}])
+    payload = service.run_template_act_workflow(_request("prepara procura alle liti", metadata={"active_context": {"client_id": "cli-rossi", "case_id": "fas-rossi"}}), _base_context(), {"items": []})
+    card = next(b for b in payload["message_blocks"] if b.get("title") == "Ente Collegato")
+    assert card["subtitle"] == "Persona giuridica"
+
+
+def test_riferimento_rg_non_seleziona_tutte_le_pratiche_dello_stesso_anno():
+    from pct.template_atti_lex_service import _matches_query
+
+    assert _matches_query({"titolo": "Alfa", "rg_completo": "123/2026"}, "prepara ricorso per RG 123/2026")
+    assert not _matches_query({"titolo": "Beta", "rg_completo": "999/2026"}, "prepara ricorso per RG 123/2026")
+    assert not _matches_query({"titolo": "Alfa", "rg_completo": "123/2025"}, "prepara ricorso per RG 123/2026")

@@ -114,37 +114,26 @@ def _find_record_by_id(records: list[Any], record_id: str) -> Any | None:
 
 
 def _matches_query(row: Any, query: str) -> bool:
-    haystack = normalize_text(
-        " ".join(
-            clean_spaces(_value(row, key))
-            for key in (
-                "nome_completo",
-                "nome",
-                "cognome",
-                "ragione_sociale",
-                "titolo",
-                "numero",
-                "numero_rg",
-                "rg_completo",
-                "controparte",
-                "oggetto",
-                "email",
-                "pec",
-            )
-        )
-    )
-    if not haystack:
-        return False
+    """Riferimenti identificativi, mai coincidenze su oggetto o tipo dell'atto."""
     query_norm = normalize_text(query)
-    if haystack and haystack in query_norm:
-        return True
-    row_tokens = [token for token in haystack.split() if len(token) >= 3]
     query_tokens = set(_tokens(query_norm))
-    if not row_tokens or not query_tokens:
-        return False
-    if any(token in query_tokens for token in row_tokens if len(token) >= 4):
-        return True
-    return len([token for token in row_tokens if token in query_tokens]) >= min(2, len(row_tokens))
+    rg = re.search(r"\b(?:rg|r g)\s+(?:n\s+)?(\d{1,8})(?:\s+(\d{4}))?\b", query_norm)
+    if rg:
+        numero, anno = rg.groups()
+        estremi = normalize_text(_value(row, "rg_completo", "numero_rg", "numero")).split()
+        numeri = [v for v in estremi if v.isdigit()]
+        anno_record = clean_spaces(_value(row, "anno_rg", "anno"))
+        return (bool(numeri) and int(numeri[0]) == int(numero)
+                and (not anno or anno in numeri[1:] or anno_record == anno))
+    generiche = {"ricorso", "ricorsi", "atto", "atti", "citazione", "decreto", "ingiuntivo", "monitorio", "credito", "recupero", "opposizione", "procura", "memoria", "comparsa", "diffida", "precetto", "contratto", "lavoro", "tributario", "civile", "penale", "fascicolo", "pratica", "cliente", "contro", "per", "del", "della", "con", "una", "uno", "ii", "iii"}
+    # I nomi, gli identificativi e gli estremi possono identificare una pratica;
+    # «ricorso» presente nel titolo non identifica alcun cliente o fascicolo.
+    for key in ("nome_completo", "nome", "cognome", "ragione_sociale", "titolo", "numero", "numero_rg", "rg_completo", "email", "pec"):
+        tokens = set(_tokens(normalize_text(_value(row, key)))) - generiche
+        identificativi = {t for t in tokens if len(t) >= 4 and not t.isdigit()}
+        if identificativi.intersection(query_tokens):
+            return True
+    return False
 
 
 def _field_list(fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -375,18 +364,42 @@ def _model_search_text(model: dict[str, Any], metadata: dict[str, Any]) -> str:
     )
 
 
+def errore_battitura_minimo(a: str, b: str) -> bool:
+    """Un solo refuso (anche trasposizione), non somiglianza semantica giuridica."""
+    if a == b:
+        return True
+    if abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        diversi = [i for i, (x, y) in enumerate(zip(a, b)) if x != y]
+        return len(diversi) == 1 or (len(diversi) == 2 and diversi[1] == diversi[0] + 1
+                                   and a[diversi[0]] == b[diversi[1]] and a[diversi[1]] == b[diversi[0]])
+    corta, lunga = (a, b) if len(a) < len(b) else (b, a)
+    return any(lunga[:i] + lunga[i + 1:] == corta for i in range(len(lunga)))
+
+
 def search_template_models(query: str, *, limit: int = 8, model_code: str = "") -> list[TemplateMatch]:
     from pct.compilatore_atti import elenco_modelli
 
     # Il testo descrittivo del catalogo non è la richiesta dell'avvocato.
     query = re.split(r"modello catalogo atti:", query, maxsplit=1, flags=re.IGNORECASE)[0] or query
     query_norm = normalize_text(query)
+    models = elenco_modelli()
+    vocabolario = {word for model in models for word in normalize_text(model.get("name")).split() if len(word) >= 5}
+    parole = query_norm.split()
+    # Solo la ricerca nel catalogo: fatti, nomi e messaggio originale restano intatti.
+    for i, word in enumerate(parole):
+        if 5 <= len(word) <= 32 and word not in vocabolario:
+            candidati = [v for v in vocabolario if errore_battitura_minimo(word, v)]
+            if len(candidati) == 1:
+                parole[i] = candidati[0]
+    query_norm = " ".join(parole)
     parole_generiche = {"atto", "atti", "modello", "template", "prepara", "scrivi", "crea", "bozza", "per", "alle", "alla", "delle", "della", "del", "gli", "una", "uno", "con", "che", "dei", "dal", "come", "nel", "nella", "non", "sono", "il", "la", "le", "di", "in", "al", "lo"}
     query_tokens = set(_tokens(query_norm)) - parole_generiche
     requested_code = clean_spaces(model_code).upper()
     identita_pertinenti = set()
     matches: list[TemplateMatch] = []
-    for model in elenco_modelli():
+    for model in models:
         code = clean_spaces(model.get("code")).upper()
         try:
             metadata = template_metadata_for_model(code)
@@ -597,7 +610,6 @@ def resolve_act_context(
 
     clients = _live_records(context, "clienti") or _live_records(context, "clients")
     cases = _live_records(context, "fascicoli") or _live_records(context, "cases")
-    parties = _live_records(context, "parti") or _live_records(context, "soggetti") or _live_records(context, "parties")
     documents = _list_context_values(context, "documenti", "documents")
     users = _live_records(context, "utenti") or _live_records(context, "users")
 
@@ -610,8 +622,6 @@ def resolve_act_context(
         for cliente in list(anagrafica.get("clienti") or []):
             if _id(cliente) and not _find_record_by_id(clients, _id(cliente)):
                 clients.insert(0, cliente)
-        for soggetto in list(anagrafica.get("soggetti") or []):
-            parties.append(soggetto)
 
     result.cliente = _find_record_by_id(clients, result.client_id)
     result.fascicolo = _find_record_by_id(cases, result.fascicolo_id)
@@ -637,7 +647,7 @@ def resolve_act_context(
     if not result.fascicolo:
         case_matches = [row for row in cases if _matches_query(row, query)]
         if result.cliente:
-            case_matches = [row for row in case_matches if _case_belongs_to_client(row, result.cliente)] or case_matches
+            case_matches = [row for row in case_matches if _case_belongs_to_client(row, result.cliente)]
         if len(case_matches) == 1:
             result.fascicolo = case_matches[0]
             result.fascicolo_id = _id(result.fascicolo)
@@ -656,9 +666,10 @@ def resolve_act_context(
     if collegate:
         result.parti = collegate
     elif result.fascicolo:
-        result.parti = [p for p in _list_context_values(context, "parti", "soggetti", "parties") if isinstance(p, dict)]
+        result.parti = [p for p in _list_context_values(context, "parti", "soggetti", "parties")
+                        if clean_spaces(_value(p, "id_fascicolo", "fascicolo_id", "case_id")) == result.fascicolo_id]
     else:
-        result.parti = list(parties or [])
+        result.parti = []
     controparte = clean_spaces(_value(result.fascicolo, "controparte"))
     if controparte and not any(normalize_text(_label(row)) == normalize_text(controparte) for row in result.parti):
         result.parti.insert(0, {"id": "controparte", "nome_completo": controparte, "ruolo": "controparte"})
@@ -1236,7 +1247,7 @@ def build_template_message_blocks(
                 {
                     "type": "party_card",
                     "title": _label(party),
-                    "subtitle": clean_spaces(_value(party, "ruolo", "tipo")) or "Parte collegata",
+                    "subtitle": clean_spaces(getattr(_value(party, "ruolo", "tipo"), "value", _value(party, "ruolo", "tipo"))).split(".")[-1].replace("_", " ").capitalize() or "Parte collegata",
                 }
             )
     missing_labels = _field_names(prefill.missing_fields if prefill else [], limit=14)

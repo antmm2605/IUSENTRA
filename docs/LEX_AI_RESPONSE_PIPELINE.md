@@ -1136,3 +1136,18 @@ pubblica ha ricevuto 403. Nessun aggiramento, token trasferito o download massiv
 
 ### Correzione leggibilità fonti (24 ottobre 2026)
 La pagina legge i conteggi per fonte dal solo corpus SQLite dello studio corrente in modalità read-only, separati dalle schede manuali e dal catalogo OpenGA condiviso. Database assente o illeggibile significa conteggio sconosciuto, non zero. Nessuna aggregazione fra studi. Il pannello del risultato OpenGA espone gli estremi copiabili e il modulo ufficiale; non dichiara un collegamento diretto al documento, che resta non disponibile nel catalogo. Il documento specifico segnalato dall'utente è consultabile nel suo Chrome; il fallimento del browser integrato non dimostra indisponibilità della fonte.
+
+
+### Procedura atti 2.449.1: contratto delle Fonti
+lex.procedura_atti resta una libreria senza endpoint, UI, chiamate a modelli o persistenza.
+Il chiamante deve fornire per ogni riferimento la provenienza: tipo (norma/decisione),
+url (indirizzo ufficiale o archivio dichiarato), versione, acquisita_il (data reale
+gg/mm/aaaa), sha256 del testo effettivo; per le decisioni anche testo_integrale: true.
+Il controllo verifica struttura e impronta, non autentica il fornitore e non scarica
+il documento. Acquisizione governata e approvazione dell'avvocato restano distinte.
+Nessun valore sostitutivo viene generato per la provenienza mancante.
+L'impronta comprende l'intero riferimento e la provenienza. La valutazione ricontrolla
+scheda, fascicolo, Fonti e calcoli rispetto alla preparazione.
+Gli spunti R6 metadata_only non vengono promossi a Fonti né inseriti nel messaggio di stesura.
+Il catalogo dei requisiti degli atti resta provvisorio: occorre riscontro sulle norme vigenti
+prima del collegamento operativo. Nessun esito automatico certifica correttezza giuridica.

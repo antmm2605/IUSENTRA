@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from datetime import datetime
 
 CAMPI = ("tipo", "url", "versione", "acquisita_il", "sha256")
 TIPI = ("norma", "decisione")
@@ -25,23 +26,45 @@ def sha256_testo(testo: str) -> str:
 
 def verifica_provenienza(caso: dict) -> list[str]:
     e: list[str] = []
-    for f in caso.get("fonti_ref", []):
+    fonti, refs = caso.get("fonti"), caso.get("fonti_ref")
+    if not isinstance(fonti, dict) or not fonti or not isinstance(refs, list):
+        return ["Fonti: testi e riferimenti obbligatori"]
+    numeri = set()
+    for f in refs:
+        if not isinstance(f, dict):
+            e.append("Fonte: riferimento non strutturato")
+            continue
         n = f.get("n")
+        if type(n) is not int or n < 1 or n in numeri:
+            e.append("Fonte: numero non valido o duplicato")
+            continue
+        numeri.add(n)
         p = f.get("provenienza")
         if not isinstance(p, dict):
             e.append(f"Fonte [{n}]: provenienza mancante")
             continue
-        mancanti = [c for c in CAMPI if not str(p.get(c, "")).strip()]
+        mancanti = [c for c in CAMPI if not isinstance(p.get(c), str) or not p[c].strip()]
         if mancanti:
             e.append(f"Fonte [{n}]: provenienza incompleta ({', '.join(mancanti)})")
             continue
         if p["tipo"] not in TIPI:
             e.append(f"Fonte [{n}]: tipo di provenienza non ammesso ({p['tipo']})")
-        if not DATA.match(str(p["acquisita_il"])):
-            e.append(f"Fonte [{n}]: data di acquisizione non in formato gg/mm/aaaa")
-        testo = caso.get("fonti", {}).get(n, "")
+        if f.get("evidence_scope") == "metadata_only" or p.get("evidence_scope") == "metadata_only":
+            e.append(f"Fonte [{n}]: metadata_only resta uno spunto, non una Fonte")
+        try:
+            if not DATA.fullmatch(p["acquisita_il"]):
+                raise ValueError()
+            datetime.strptime(p["acquisita_il"], "%d/%m/%Y")
+        except ValueError:
+            e.append(f"Fonte [{n}]: data di acquisizione non valida in formato gg/mm/aaaa")
+        testo = fonti.get(n)
+        if not isinstance(testo, str) or not testo.strip():
+            e.append(f"Fonte [{n}]: testo assente")
+            continue
         if p["sha256"] != sha256_testo(testo):
-            e.append(f"Fonte [{n}]: il testo non corrisponde all'impronta acquisita")
+            e.append(f"Fonte [{n}]: SHA-256 del testo non corrisponde all'impronta acquisita")
         if p["tipo"] == "decisione" and p.get("testo_integrale") is not True:
             e.append(f"Fonte [{n}]: decisione senza testo integrale ufficiale: resta uno spunto, non una Fonte")
+    if any(type(n) is not int or n < 1 for n in fonti) or set(fonti) != numeri:
+        e.append("Fonti: numeri dei testi e dei riferimenti non corrispondenti")
     return e

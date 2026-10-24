@@ -13,36 +13,31 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-from .controlla_atto import controlla
+from .controlla_atto import controlla, ruolo
+from .denaro import EURO, NUMERO
+from .denaro import centesimi as _centesimi
+from .denaro import importi as _importi
 from .verifica_scheda import contraria
 
 DATA = re.compile(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b")
-EURO = re.compile(r"(?:€\s*|euro\s+)(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)|(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)\s*(?:€|euro\b)", re.I)
-PAGAMENTO = re.compile(r"(acconto|versat\w*|pagat\w*|bonific\w*|corrispost\w*|saldat\w*)[^.\n]{0,60}?(\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{2})?\s*(?:euro|€)|(\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{2})?\s*(?:euro|€)[^.\n]{0,40}?(acconto|versat\w*|pagat\w*|bonific\w*)", re.I)
+VERBO_PAGAMENTO = r"(?:acconto|versat\w*|pagat\w*|bonific\w*|corrispost\w*|saldat\w*)"
+PAGAMENTO_PRIMA = re.compile(VERBO_PAGAMENTO + r"[^.;\n]{0,60}?(" + NUMERO + r")\s*(?:euro|€)", re.I)
+PAGAMENTO_DOPO = re.compile(r"(" + NUMERO + r")\s*(?:euro|€)[^.;\n]{0,40}?" + VERBO_PAGAMENTO, re.I)
 
-
-def _centesimi(s: str) -> int | None:
-    t = s.replace(".", "").replace(",", ".")
-    try:
-        return round(float(t) * 100)
-    except ValueError:
-        return None
+def _pagamenti(testo):
+    prima = list(PAGAMENTO_PRIMA.finditer(testo))
+    for m in prima:
+        yield m.group(1), m.group(0)
+    for m in PAGAMENTO_DOPO.finditer(testo):
+        if not any(m.start() < p.end() and p.start() < m.end() for p in prima):
+            yield m.group(1), m.group(0)
 
 
 def _date(t: str) -> set[str]:
     return {f"{int(g):02d}/{int(m):02d}/{a}" for g, m, a in DATA.findall(t or "")}
 
 
-def _importi(t: str) -> set[int]:
-    out = set()
-    for m in re.finditer(r"\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?", t or ""):
-        v = _centesimi(m.group(0))
-        if v is not None:
-            out.add(v)
-    return out
-
-
-ASSENTE = re.compile(r"non\s+fornit|non\s+(?:è|e'|sono|risulta\w*|presente|present\w*|compres\w*|inclus\w*|tra)\b[^.\n]{0,25}(?:fonti|fornit)|da verificare|fuori dalle fonti|norm\w* mancant|mancant\w* (?:nelle|tra le) fonti|non disponibil|da acquisire|non (?:è|e') (?:tra|nelle) le fonti", re.I)
+ASSENTE = re.compile(r"non\s+fornit|non\s+(?:è|e'|sono|risulta\w*|presente|present\w*|compres\w*|inclus\w*|tra)\b[^.;\n]{0,25}(?:fonti|fornit)|da verificare|fuori dalle fonti|norm\w* mancant|mancant\w* (?:nelle|tra le) fonti|non disponibil|da acquisire|non (?:è|e') (?:tra|nelle) le fonti", re.I)
 
 
 def _dichiarata_assente(bozza: str, frammento: str) -> bool:
@@ -75,23 +70,21 @@ def rivedi(bozza: str, caso: dict, calcoli: dict) -> dict:
             continue
         gravi.append(g)
     for riga in (bozza or "").splitlines():
-        if contraria(riga):
+        if ruolo(caso["parte_assistita"]["ruolo"]) == "attivo" and contraria(riga):
             gravi.append(("conclusione_contraria_assistito", riga.strip()[:100]))
     origine = caso["fatti"] + " " + caso["richiesta"] + " " + caso["oggi"]
     date_ok = _date(origine) | _date(fonti_txt) | {t["scadenza"] for t in calcoli.get("termini", [])}
     for d in sorted(_date(bozza) - date_ok):
-        if d[:5] not in ("01/08", "31/08"):
-            pendenti.append(("data_senza_provenienza", d))
+        pendenti.append(("data_senza_provenienza", d))
     imp_ok = _importi(origine) | _importi(fonti_txt) | {i["centesimi"] for i in calcoli.get("importi", [])}
     for m in EURO.finditer(bozza or ""):
         c = _centesimi(m.group(1) or m.group(2))
         if c is not None and c not in imp_ok:
             pendenti.append(("importo_senza_provenienza", m.group(0).strip()))
-    for m in PAGAMENTO.finditer(caso["fatti"]):
-        cifra = m.group(2) or m.group(3)
+    for cifra, frase_pagamento in _pagamenti(caso["fatti"]):
         c = _centesimi(cifra)
         if c and c not in _importi(bozza):
-            gravi.append(("pagamento_ignorato", m.group(0).strip()[:80]))
+            gravi.append(("pagamento_ignorato", frase_pagamento.strip()[:80]))
     oggi = datetime.strptime(caso["oggi"], "%d/%m/%Y").date()
     for t in calcoli.get("termini", []):
         if not _per_agire(t):

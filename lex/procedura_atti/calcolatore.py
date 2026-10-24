@@ -47,15 +47,21 @@ def calcola_importi(importi: list[dict]) -> list[dict]:
     fatti: dict[str, int] = {}
     out = []
     for imp in importi:
+        if not imp.get("operandi") or imp.get("id") in fatti:
+            raise ValueError("Operandi mancanti o identificativo importo duplicato")
         valori = []
         for o in imp["operandi"]:
             p = o["provenienza"]
             if p.startswith("importo:"):
                 valori.append(fatti[p.split(":", 1)[1]])
             elif p == "moltiplicatore":
-                valori.append(int(o["valore"]))
+                if type(o.get("valore")) is not int:
+                    raise ValueError("Il moltiplicatore deve essere un intero")
+                valori.append(o["valore"])
             else:
-                valori.append(int(o["centesimi"]))
+                if type(o.get("centesimi")) is not int:
+                    raise ValueError("I centesimi devono essere interi")
+                valori.append(o["centesimi"])
         op = imp["operazione"]
         if op == "somma":
             tot = sum(valori)

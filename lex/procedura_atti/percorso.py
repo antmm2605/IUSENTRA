@@ -10,7 +10,7 @@ Misura di riferimento (banco v7, 60 casi, valutazione cieca esplorativa, schede 
 sbagliati scendono da circa 35 a circa 5-10 su 60 rispetto alla stesura diretta. Non e' una garanzia di accuratezza.
 
 Formato del caso: {"fatti", "richiesta", "oggi" (gg/mm/aaaa), "parte_assistita": {"nome", "ruolo"},
-"controparte": {"nome", "ruolo"}, "fonti": {n: testo}, "fonti_ref": [{"n", "atto", "articolo", "sigla", "provenienza"}]}; provenienza obbligatoria (provenienza.py).
+"controparte": {"nome", "ruolo"}, "fonti": {n: testo}, "fonti_ref": [{"n", "atto", "articolo", "sigla", "provenienza"}]}.
 """
 from __future__ import annotations
 
@@ -42,13 +42,14 @@ class SchedaNonUtilizzabile(ValueError):
         self.motivi = motivi
 
 
-@dataclass
+@dataclass(frozen=True)
 class Preparazione:
     calcoli: dict
     prospetto_credito: dict | None
     impronte: dict
     messaggio: str
     avvisi: list[str] = field(default_factory=list)
+    validata: bool = False
 
 
 def impronte(scheda: dict, caso: dict) -> dict:
@@ -61,12 +62,21 @@ def validazione_valida(validazione: dict | None, scheda: dict, caso: dict) -> li
     impronte di scheda, Fonti e fascicolo coincidono con quelle approvate."""
     if not validazione or validazione.get("esito") != "approvata":
         return ["scheda non approvata dall'avvocato"]
+    problemi_fonti = verifica_provenienza(caso)
+    if problemi_fonti:
+        return problemi_fonti
     attese = impronte(scheda, caso)
     return [f"impronta cambiata dopo l'approvazione: {k}" for k, h in attese.items() if validazione.get(k) != h]
 
 
 def prepara(scheda: dict, caso: dict, validazione: dict | None, *, consenti_non_validata: bool = False) -> Preparazione:
-    errori = verifica_provenienza(caso) + verifica(scheda, caso, caso["fonti"])
+    errori = verifica_provenienza(caso)
+    if errori:
+        raise SchedaNonUtilizzabile(errori)
+    try:
+        errori = verifica(scheda, caso, caso["fonti"])
+    except (KeyError, TypeError, ValueError, IndexError, AttributeError) as exc:
+        raise SchedaNonUtilizzabile(["Struttura della scheda non valida"]) from exc
     if scheda.get("credito"):
         errori += verifica_credito(scheda["credito"], caso["fatti"])
     if errori:
@@ -86,15 +96,27 @@ def prepara(scheda: dict, caso: dict, validazione: dict | None, *, consenti_non_
     messaggio = ("SCHEDA DECISA:\n" + json.dumps(decisa, ensure_ascii=False, indent=1)
                  + "\n\nRisultati del calcolatore (riportali identici):\n" + ("\n".join(righe) or "- nessun calcolo")
                  + "\n\n" + ISTRUZIONI)
-    return Preparazione(calc, pr, impronte(scheda, caso), messaggio, avvisi)
+    return Preparazione(calc, pr, impronte(scheda, caso), messaggio, avvisi, not avvisi)
 
 
 def valuta(bozza: str, scheda: dict, caso: dict, preparazione: Preparazione) -> dict:
+    problemi = verifica_provenienza(caso)
+    if problemi:
+        raise SchedaNonUtilizzabile(problemi)
+    if impronte(scheda, caso) != preparazione.impronte:
+        raise SchedaNonUtilizzabile(["Impronte cambiate dopo la preparazione"])
+    if preparazione.calcoli != calcola_scheda(scheda):
+        raise SchedaNonUtilizzabile(["Calcoli cambiati dopo la preparazione"])
+    credito_atteso = prospetto(scheda["credito"]) if scheda.get("credito") else None
+    if credito_atteso != preparazione.prospetto_credito:
+        raise SchedaNonUtilizzabile(["Prospetto cambiato dopo la preparazione"])
     rq = requisiti_mancanti(bozza, modello_per(scheda))
     rv = rivedi(bozza, caso, preparazione.calcoli)
+    rv["pendenti"] += [("termine_da_verificare", t["descrizione"]) for t in preparazione.calcoli.get("termini", []) if t.get("verifica_avvocato")]
     esito = stato(bozza, rq, rv, scheda, preparazione.prospetto_credito)
-    if preparazione.avvisi:
-        esito["motivi"] = [f"scheda non validata: {a}" for a in preparazione.avvisi] + esito["motivi"]
+    if not preparazione.validata:
+        motivi = preparazione.avvisi or ["approvazione non registrata"]
+        esito["motivi"] = [f"scheda non validata: {a}" for a in motivi] + esito["motivi"]
         if esito["stato"] == "pronta_per_revisione_avvocato":
             esito["stato"] = "bozza_con_verifiche_pendenti"
     return {"requisiti_mancanti": rq, "revisione_indipendente": rv, "stato_consegna": esito}

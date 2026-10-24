@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import re
 
+from .denaro import importi as importi_monetari
+
 CAMPI = ["forma_risposta", "parte_assistita", "controparte", "obiettivo_cliente", "rimedio", "domande",
          "punti_da_trattare", "termini", "importi", "norme_mancanti", "dati_mancanti"]
 CONTRARIA = re.compile(r"(rigettar\w*|respinger\w*|dichiarar\w*\s+(?:infondat\w*|inammissibil\w*|improcedibil\w*))\s+(?:il|la|l['’]|le|i)?\s*(?:presente\s+|propria\s+)?(ricorso|domanda|opposizione|reclamo|appello|istanza|impugnazione)", re.I)
@@ -18,6 +20,8 @@ DECINE_IT = {20: "venti", 30: "trenta", 40: "quaranta", 50: "cinquanta", 60: "se
 
 def in_lettere(n: int) -> str:
     """Numero in lettere come nei testi normativi (1-999): centottanta, novanta, ventuno, trecentosessantacinque."""
+    if n < 0 or n > 999:
+        return str(n)
     if n < 20:
         return UNITA_IT[n]
     if n < 100:
@@ -74,6 +78,15 @@ def verifica(scheda: dict, caso: dict, fonti: dict[int, str]) -> list[str]:
     visti: set[str] = set()
     for t in scheda["termini"]:
         tid = t.get("id", "?")
+        if not isinstance(tid, str) or not tid.strip() or tid == "?" or tid in visti:
+            e.append("termine: identificativo assente o duplicato")
+            continue
+        durata = t.get("durata", {})
+        if (type(durata.get("valore")) is not int or durata["valore"] < 1
+                or durata.get("unita") not in ("giorni", "mesi", "anni")
+                or t.get("direzione") not in ("avanti", "ritroso")):
+            e.append(f"termine {tid}: durata o direzione non valida")
+            continue
         visti.add(tid)
         ev = t.get("evento", {})
         if ev.get("da_termine"):
@@ -97,18 +110,26 @@ def verifica(scheda: dict, caso: dict, fonti: dict[int, str]) -> list[str]:
             e.append(f"termine {tid}: manca la motivazione della scelta della regola")
     ids = set()
     for imp in scheda["importi"]:
+        if not isinstance(imp.get("id"), str) or not imp["id"].strip() or imp["id"] in ids:
+            e.append("importo: identificativo assente o duplicato")
+            continue
+        if not imp.get("operandi"):
+            e.append(f"importo {imp['id']}: operandi mancanti")
         for o in imp.get("operandi", []):
             p = o.get("provenienza", "")
             if p == "fatti":
                 cit = _spazi(o.get("citazione"))
-                cifra = f"{int(o['centesimi']) // 100:,}".replace(",", ".")
-                if not cit or cit not in fatti or (cifra not in cit and cifra.replace(".", "") not in cit):
+                valore = o.get("centesimi")
+                if type(valore) is not int or not cit or cit not in fatti or valore not in importi_monetari(cit):
                     e.append(f"importo {imp.get('id')}: operando {o.get('centesimi')} senza citazione dai fatti")
             elif p.startswith("importo:"):
                 if p.split(":", 1)[1] not in ids:
                     e.append(f"importo {imp.get('id')}: rimanda a un importo non ancora calcolato")
             elif p == "moltiplicatore":
-                v = int(o.get("valore", 0))
+                if type(o.get("valore")) is not int:
+                    e.append(f"importo {imp['id']}: moltiplicatore non intero")
+                    continue
+                v = o["valore"]
                 cit = _spazi(o.get("citazione"))
                 fonti_tutte = " ".join(_spazi(x) for x in fonti.values())
                 citato = cit and (cit in fatti or cit in fonti_tutte) and (str(v) in cit or in_lettere(v) in cit)

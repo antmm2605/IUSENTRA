@@ -6,6 +6,9 @@
 - Una decisione senza testo integrale ufficiale non diventa Fonte: i risultati R6 (estremi, oggetto, esito) restano
   spunti separati. Testo diverso dall'impronta acquisita: la verifica si ferma.
 - Resta una libreria: nessun endpoint e nessun flusso dell'interfaccia attivati.
+- Riconvalida delle impronte e dei calcoli prima della revisione finale; richiami alle Fonti per numero, non posizione.
+- Centesimi esatti, durate intere e identificativi univoci; corretti i controlli dei pagamenti.
+- Provenienza dichiarata e integrità restano distinte dall'autenticazione del fornitore e dalla validità giuridica.
 
 ## 2.449.0 — Procedura atti: il codice decide, Lex scrive
 

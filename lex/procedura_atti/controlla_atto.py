@@ -74,7 +74,8 @@ def controlla(testo: str, caso: dict, fatti: str = "") -> dict:
         gravi.append(("vuoto", f"{len(t.strip())} caratteri"))
     if "<think>" in t or "Thinking..." in t or len(INGLESE.findall(t)) >= 6:
         gravi.append(("lingua", "ragionamento visibile o testo in inglese"))
-    fonti = {f["n"]: norm_art(f["articolo"]) for f in caso["fonti_ref"]}
+    riferimenti = {f["n"]: f for f in caso["fonti_ref"]}
+    fonti = {n: norm_art(f["articolo"]) for n, f in riferimenti.items()}
     testi_fonti = {int(m.group(1)): m.group(2) for m in re.finditer(r"(?:^|\n\n)\[(\d+)\] (.*?)(?=\n\n\[\d+\] |\Z)", caso.get("fonti", ""), re.S)}
     articoli_fonti = set(fonti.values())
     for m in ART.finditer(t):
@@ -88,10 +89,10 @@ def controlla(testo: str, caso: dict, fatti: str = "") -> dict:
                 gravi.append(("richiamo_inesistente", f"art. {m.group(1)} [{n}]"))
             elif fonti[n] != art and _richiamato_nel_testo(art, testi_fonti.get(n, "")):
                 avvisi.append(("rinvio_dentro_fonte", f"art. {m.group(1)} richiamato nel testo della Fonte [{n}]"))
-            elif fonti[n] != art or _atto_diverso(coda[: r.start()], caso["fonti_ref"][n - 1]):
+            elif fonti[n] != art or _atto_diverso(coda[: r.start()], riferimenti[n]):
                 if fonti[n] != art and any(f == art for f in fonti.values()) and RICH.search(coda[r.end(): r.end() + 6]):
                     continue  # «art. X [1][2]»: l'articolo e' una delle Fonti richiamate insieme
-                gravi.append(("numero_sbagliato", f"art. {m.group(1)} con [{n}] = art. {caso['fonti_ref'][n-1]['articolo']}"))
+                gravi.append(("numero_sbagliato", f"art. {m.group(1)} con [{n}] = art. {riferimenti[n]['articolo']}"))
         elif art in articoli_fonti:
             avvisi.append(("manca_richiamo", f"art. {m.group(1)}"))
         elif not SIGLA.search(coda):
@@ -114,7 +115,8 @@ def controlla(testo: str, caso: dict, fatti: str = "") -> dict:
             if "legittimit" not in m.group(0).lower() and "legittim" not in m.group(0).lower() and (
                     ALTRUI.search(t[m.end(): m.end() + 80]) or re.search(r"^.{0,30}?\b(di|da)\s+" + re.escape(nome_cp), t[m.end(): m.end() + 80], re.S)):
                 continue  # chiede di respingere la domanda dell'altra parte: e' a favore del cliente
-            gravi.append(("contro_il_cliente", m.group(0))); break
+            gravi.append(("contro_il_cliente", m.group(0)))
+            break
     if rr == "passivo" and CONTRO_PASSIVO.search(t):
         gravi.append(("contro_il_cliente", CONTRO_PASSIVO.search(t).group(0)))
     nome = caso["assistito"]["nome"]

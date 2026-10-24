@@ -14,6 +14,7 @@ la registra come dichiarata dall'avvocato e segnala quella «da_imputare».
 from __future__ import annotations
 
 from .calcolatore import euro
+from .denaro import importi as importi_monetari
 
 
 def _spazi(t: str) -> str:
@@ -22,10 +23,17 @@ def _spazi(t: str) -> str:
 
 def verifica_credito(credito: dict, fatti: str) -> list[str]:
     e, f = [], _spazi(fatti)
+    tutte = credito.get("voci", []) + credito.get("pagamenti", []) + credito.get("spese", [])
+    nomi = [v["id"] for v in tutte if v.get("id")]
+    if len(nomi) != len(set(nomi)):
+        e.append("Identificativi delle voci o dei pagamenti duplicati")
     ids = {v["id"] for v in credito.get("voci", [])}
     for v in credito.get("voci", []) + credito.get("pagamenti", []) + credito.get("spese", []):
         if not v.get("citazione") or _spazi(v["citazione"]) not in f:
             e.append(f"{v.get('id', v.get('descrizione', '?'))}: citazione non trovata nei fatti")
+        valore = v.get("centesimi")
+        if type(valore) is not int or valore < 0 or valore not in importi_monetari(v.get("citazione", "")):
+            e.append("Importo del credito non riscontrato nella citazione")
     for p in credito.get("pagamenti", []):
         imp = p.get("imputazione", "")
         if imp.startswith("voce:") and imp[5:] not in ids:

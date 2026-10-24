@@ -46,3 +46,23 @@ def test_decision_family_cannot_be_changed():
     assert verifica_tipo(raw, {"tipo": "SENTENZA BREVE"})
     assert not verifica_tipo(raw, {"tipo": "ORDINANZA"})
     assert not verifica_tipo(raw, {"tipo": ""})
+
+
+def test_aquila_deliberation_accepts_the_official_article():
+    raw = xml("Tribunale Amministrativo Regionale per l Abruzzo", "urn:nir:tar.abruzzo;sezione.1:sentenza")
+    raw = raw.replace(b"</Provvedimento>", b"<dispositivo>Cosi deciso in L'Aquila nella camera di consiglio.</dispositivo></Provvedimento>")
+    assert verifica_organo(raw, {"sede": "004"})
+    assert not verifica_organo(raw, {"sede": "005"})
+
+
+def test_trga_official_name_keeps_seat_and_urn_distinct():
+    trento = xml("Il Tribunale Regionale di Giustizia Amministrativa di Trento",
+                 "urn:nir:tar.trentino.alto.adige;sezione.1:sentenza")
+    bolzano = xml("Il Tribunale Regionale di Giustizia Amministrativa Sezione Autonoma di Bolzano",
+                  "urn:nir:tar.trentino.alto.adige;sezione.1:sentenza")
+    assert verifica_organo(trento, {"sede": "027"})
+    assert verifica_organo(bolzano, {"sede": "006"})
+    assert not verifica_organo(trento, {"sede": "006"})
+    assert not verifica_organo(bolzano, {"sede": "027"})
+    assert not verifica_organo(bolzano, {"sede": "003"})
+    assert not verifica_organo(bolzano.replace(b"tar.trentino.alto.adige", b"tar.lazio"), {"sede": "006"})

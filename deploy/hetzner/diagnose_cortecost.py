@@ -1,6 +1,9 @@
 """Diagnosi Consulta in sola lettura, senza dati identificativi degli studi."""
+import hashlib
 import json
+import shutil
 import subprocess
+from pathlib import Path
 
 command = ["docker", "compose", "--env-file", "/opt/iusentra/.env.hetzner", "-f", "/opt/iusentra/repo/deploy/hetzner/docker-compose.hetzner.yml"]
 container = subprocess.check_output(command + ["ps", "-q", "scheduler-worker"], text=True).strip()
@@ -28,8 +31,6 @@ if p.exists():
 subprocess.run(command + ["exec", "-T", "scheduler-worker", "python", "-"], input=code, text=True, check=True, timeout=90)
 
 # Solo metadati Git: nessun sorgente, credenziale o dato degli studi viene trasferito.
-import hashlib
-from pathlib import Path
 repo = Path("/opt/iusentra/repo")
 def git_metadata(*args):
     return subprocess.check_output(["git", "-C", str(repo), *args])
@@ -41,7 +42,7 @@ metadata = []
 for name in sorted(changed):
     path = repo / name
     row = {"path": name, "exists": path.is_file(), "symlink": path.is_symlink()}
-    original = subprocess.run(["git", "-C", str(repo), "show", "HEAD:" + name], capture_output=True)
+    original = subprocess.run(["git", "-C", str(repo), "show", "HEAD:" + name], capture_output=True, check=False)
     row["tracked_at_head"] = original.returncode == 0
     if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(repo):
         data = path.read_bytes()
@@ -50,3 +51,14 @@ for name in sorted(changed):
         row["matches_head_normalized"] = original.returncode == 0 and data.replace(b"\r\n", b"\n") == original.stdout.replace(b"\r\n", b"\n")
     metadata.append(row)
 print(json.dumps({"server_head": head, "source_changes_metadata": metadata}), flush=True)
+
+# Inventario tecnico in sola lettura per diagnosticare il preflight del deploy.
+print(json.dumps({"disk_free_bytes": shutil.disk_usage("/opt/iusentra").free}), flush=True)
+for label, args in (
+    ("docker_space", ["docker", "system", "df"]),
+    ("build_cache", ["docker", "buildx", "du", "--verbose"]),
+    ("containers", ["docker", "ps", "-a", "--format", "{{.Names}}\t{{.Image}}\t{{.Status}}"]),
+):
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
+    print(json.dumps({"diagnostic": label, "returncode": result.returncode,
+                      "output": result.stdout, "error": result.stderr}), flush=True)

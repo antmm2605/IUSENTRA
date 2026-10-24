@@ -53,15 +53,22 @@ def verifica_organo(raw, row):
     if not rule:
         return False
     region, city = rule
-    if "tribunale amministrativo" not in header:
+    trga = "tribunale regionale di giustizia amministrativa" in header
+    if "tribunale amministrativo" not in header and not trga:
+        return False
+    if office in {"006", "027"}:
+        if "tar trentino alto adige" not in urn:
+            return False
+    elif trga:
         return False
     if region and (region not in header or "tar " + region not in urn):
         return False
     # Tre riscontri documentali ammessi: intestazione, metadato di sede,
     # oppure formula di deliberazione del collegio nel dispositivo.
     # Una città menzionata nei fatti o nella difesa NON soddisfa il controllo.
+    city_pattern = r"(?:l )?aquila" if city == "aquila" else re.escape(city)
     deliberation = bool(city and re.search(
-        r"\bcosi deciso in " + re.escape(city) + r"\b(?: nella| in| il| con| all|$)", closing))
+        r"\bcosi deciso in " + city_pattern + r"\b(?: nella| in| il| con| all|$)", closing))
     if city and city not in header and " documentiga " + city + " " not in " " + release + " " and not deliberation:
         return False
     return bool(region or city)

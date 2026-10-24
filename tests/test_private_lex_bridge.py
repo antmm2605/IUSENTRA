@@ -42,3 +42,31 @@ def test_authentication_and_limits():
         server.shutdown()
         server.server_close()
         thread.join(3)
+
+
+def test_configurazione_server_atomica_senza_perdere_impostazioni(tmp_path, monkeypatch, capsys):
+    import io
+    import json
+    import os
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("private_config", "deploy/private-lex/configure_server.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    target=tmp_path/".env.hetzner"
+    target.write_text("OTHER_VALUE=preserved\nLLAMACPP_ENABLED=0\n")
+    monkeypatch.setattr(module,"Path",lambda name:target if name=="/opt/iusentra/.env.hetzner" else Path(name))
+    monkeypatch.setattr(module.subprocess,"check_output",lambda args:b'{"BackendState":"Running"}')
+    class Response(io.BytesIO):
+        pass
+    monkeypatch.setattr(module,"urlopen",lambda request,timeout:Response(b'{"data":[{"id":"fixture-model"}]}'))
+    key="fixture-key-never-real-"*3
+    monkeypatch.setattr(module.sys,"stdin",io.StringIO(json.dumps({"pc_address":"100.69.184.43","api_key":key})))
+    module.main()
+    text=target.read_text()
+    assert "OTHER_VALUE=preserved" in text and "LLAMACPP_ENABLED='1'" in text
+    assert text.count("LLAMACPP_ENABLED=")==1
+    assert "LLAMACPP_DEFAULT_MODEL='fixture-model'" in text
+    assert os.stat(target).st_mode & 0o777==0o600
+    backups=list(tmp_path.glob(".env.hetzner.before-private-lex-*"))
+    assert len(backups)==1 and backups[0].read_text()=="OTHER_VALUE=preserved\nLLAMACPP_ENABLED=0\n"
+    assert key not in capsys.readouterr().out

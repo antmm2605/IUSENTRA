@@ -21,6 +21,8 @@ SISTEMA = (
     "- Per le norme usa SOLO le Fonti numerate [1], [2]...: cita ogni affermazione giuridica con [n].\n"
     "- Usa SOLO i dati del fascicolo forniti; ogni dato che manca va scritto come [DATO MANCANTE: descrizione].\n"
     "- Scadenze e importi: riporta identici quelli calcolati dal software, non ricalcolarli.\n"
+    "- Le decisioni esplicite dell’avvocato su rimedio e domande sono vincolanti: non sostituirle né cumularle. "
+    "Il recesso con doppio della caparra non va chiamato risoluzione né affiancato al risarcimento.\n"
     "- Non scrivere ragionamenti interni, note per te o riferimenti alla scheda."
 )
 # Blocco della scheda -> campi del modello del compilatore, in ordine di preferenza (parole chiave nel nome del blocco).
@@ -131,6 +133,22 @@ def termini_da_scadenze(scadenze: list[dict]) -> list[dict]:
     return out
 
 
+def verifica_rimedio_deciso(bozza: str, richiesta: str) -> list[tuple[str, str]]:
+    """Presidio della scelta esplicita; non decide un rimedio al posto dell'avvocato."""
+    scelta_recesso = re.search(r"(?:esclusivamente|soltanto|solo)\s+(?:il\s+)?recesso", richiesta, re.IGNORECASE)
+    if not scelta_recesso or not re.search(r"caparra", richiesta, re.IGNORECASE):
+        return []
+    problemi = []
+    for frase in re.split(r"[;\n]|(?<=[.!?])\s+", bozza or ""):
+        for match in re.finditer(r"\brisol(?:uzione|to|ta|ti|te|vere)\b", frase, re.IGNORECASE):
+            prima = frase[:match.start()].lower()
+            if re.search(r"(?:non\s+(?:si\s+)?(?:chiede|richiede|domanda)|si\s+esclude|senza\s+(?:chiedere|richiedere)|non\s+va\s+chiesta)[^,;]{0,100}$", prima):
+                continue
+            problemi.append(("rimedio_diverso_da_quello_deciso", frase.strip()[:200]))
+            break
+    return problemi
+
+
 def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiScheda, blocco_scadenze: str,
                    termini: list[dict], fatti_testo: str, oggi: date, assistito: str, controparte: str,
                    campi_modello: list[str], ruolo_assistito: str = "") -> EsitoStesura:
@@ -147,6 +165,7 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
             "richiesta": oggetto + "\n" + blocco_scadenze, "oggi": oggi.strftime("%d/%m/%Y"),
             "parte_assistita": {"nome": assistito or "assistito", "ruolo": ruolo_assistito}, "controparte": {"nome": controparte or ""}}
     revisione = rivedi(testo, caso, {"termini": termini, "importi": []})
+    revisione["gravi"].extend(verifica_rimedio_deciso(testo, oggetto))
     esito_stato = stato(testo, [], revisione, {"norme_mancanti": [], "dati_mancanti": []}, None)
     if fonti.pendenze and esito_stato["stato"] == "pronta_per_revisione_avvocato":
         esito_stato["stato"] = "bozza_con_verifiche_pendenti"

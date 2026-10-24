@@ -157,3 +157,15 @@ def test_limiti_fonti_campi_e_stati_pendenti():
         scrivi_blocchi(chiama_modello=lambda s,m: ("", "fixture"),**{**args,"risolta":{}})
     msg=messaggio("fixture",{},FontiScheda("x","x"),blocco_scadenze="",oggi=date(2026,10,24),assistito="",controparte="")
     assert "Nessuna Fonte disponibile" in msg
+
+
+def test_rimedio_deciso_intercetta_risposta_reale_contraddittoria():
+    from lex.procedura_atti.stesura_blocchi import verifica_rimedio_deciso
+    richiesta="Rimedio deciso: esclusivamente recesso con doppio della caparra. Non chiedere risoluzione."
+    errata="Il contratto deve essere risolto per inadempimento. Si richiede il doppio della caparra."
+    assert verifica_rimedio_deciso(errata,richiesta)[0][0]=="rimedio_diverso_da_quello_deciso"
+    assert verifica_rimedio_deciso("Si chiede il recesso con doppio della caparra.",richiesta)==[]
+    assert verifica_rimedio_deciso("Si esclude espressamente ogni richiesta di risoluzione del contratto.",richiesta)==[]
+    assert verifica_rimedio_deciso("Non si chiede la risoluzione. Si esercita il recesso.",richiesta)==[]
+    assert verifica_rimedio_deciso("Si chiede la risoluzione.","Valutare i rimedi della caparra")==[]
+    assert verifica_rimedio_deciso("Si chiede la risoluzione.","Solo recesso da contratto senza altre indicazioni")==[]

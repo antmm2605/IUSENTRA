@@ -40,7 +40,9 @@ def main():
     lines = [line for line in original.splitlines() if line.split("=",1)[0].strip() not in values]
     lines.extend(name + "='" + value + "'" for name, value in values.items())
     temporary = path.with_name(path.name + ".private-lex-tmp")
-    with temporary.open("w", opener=lambda name, flags: os.open(name, flags, 0o600)) as stream:
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+    os.fchmod(descriptor, 0o600)
+    with os.fdopen(descriptor, "w") as stream:
         stream.write("\n".join(lines) + "\n")
         stream.flush()
         os.fsync(stream.fileno())

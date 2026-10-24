@@ -1,3 +1,16 @@
+## 2.449.0 — Procedura atti: il codice decide, Lex scrive
+
+- Nuovo pacchetto `lex/procedura_atti/` (libreria senza effetti, non ancora collegata a endpoint o interfaccia):
+  verifica della scheda su fatti e Fonti, calcolatore di termini (motore `pct.schede_termini`, art. 155 c.p.c.,
+  art. 2963 c.c., art. 172 c.p.p., L. 742/1969 solo se dichiarata) e di importi in centesimi, contabilita' del
+  credito con imputazione dichiarata (artt. 1193-1194 c.c.), requisiti per modello d'atto (art. 163 c.p.c., art. 414
+  c.p.c., art. 581 c.p.p., art. 18 d.lgs. 546/1992, art. 201 CCII, artt. 657-663 c.p.c.).
+- La validazione dell'avvocato vale solo per le impronte SHA-256 di scheda, Fonti e fascicolo approvate.
+- Revisione della bozza indipendente dalla scheda e tre stati della consegna; nessuno significa «atto corretto».
+- Misura esplorativa (banco v7, 60 casi, schede non ancora validate da un avvocato): con la scheda gli esiti
+  sbagliati scendono da circa 35 a circa 5-10 su 60. Addestramento Lex v4, seconda stesura guidata e smistatore
+  provati e non adottati. Non e' una garanzia di accuratezza generale.
+
 ## 2.448.1 — Ricerca OpenGA progressiva e perimetro dei contatori
 
 - Mostra subito i risultati rapidi durante la ricerca approfondita; passaggio

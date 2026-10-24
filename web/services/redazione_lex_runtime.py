@@ -2,8 +2,8 @@
 
 Il codice decide, Lex scrive: dati del fascicolo risolti dalla scheda (gestionale + archivio delle letture, nessuna
 lettura di documenti nella richiesta), scadenze dal calcolatore, Fonti della scheda con testo vigente e provenienza
-dalla biblioteca dei codici e delle leggi. Lex gira solo su un provider locale (llama.cpp o Ollama): gli atti dello
-studio non escono dal server. Revisione indipendente e stato della consegna accompagnano sempre i blocchi; nulla
+dalla biblioteca dei codici e delle leggi. Lex usa il provider locale configurato, anche sul PC dello studio
+tramite rete privata cifrata: nessun ripiego su altri modelli quando il provider è esplicito. Revisione indipendente e stato della consegna accompagnano sempre i blocchi; nulla
 viene inserito nell'atto senza che l'avvocato lo scelga.
 Base normativa: le norme dichiarate in ciascuna scheda (``base_normativa``); art. 13 L. 247/2012 e art. 14 CDF
 (responsabilita' dell'avvocato sull'atto, che resta bozza da revisionare).
@@ -28,12 +28,12 @@ PROVIDER_LOCALI = ("llamacpp", "ollama", "lmstudio")
 
 
 def provider_locale(gateway) -> str:
-    """Il primo provider locale abilitato, preferendo quello indicato in LEX_STESURA_PROVIDER."""
+    """Provider esplicito vincolante; scelta locale automatica solo senza configurazione."""
     preferito = os.getenv("LEX_STESURA_PROVIDER", "").strip()
     abilitati = [n for n in PROVIDER_LOCALI if n in getattr(gateway, "providers", {})
                  and gateway.config.providers[n].is_local]
-    if preferito in abilitati:
-        return preferito
+    if preferito:
+        return preferito if preferito in abilitati else ""
     return abilitati[0] if abilitati else ""
 
 

@@ -233,3 +233,14 @@ def test_una_sola_correzione_conserva_prima_bozza_e_controlli():
     failed=scrivi_blocchi(chiama_modello=failing,**args)
     assert len(calls)==2 and failed.revisione["gravi"]
     assert any(item[0]=="correzione_non_disponibile" for item in failed.revisione["pendenti"])
+
+
+def test_provider_pc_configurato_non_ripiega_sul_modello_server(monkeypatch):
+    from web.services.redazione_lex_runtime import provider_locale
+
+    monkeypatch.setenv("LEX_STESURA_PROVIDER", "llamacpp")
+    cfg = {"ollama": SimpleNamespace(is_local=True), "llamacpp": SimpleNamespace(is_local=True)}
+    gateway = SimpleNamespace(providers={"ollama": object()}, config=SimpleNamespace(providers=cfg))
+    assert provider_locale(gateway) == ""
+    gateway.providers["llamacpp"] = object()
+    assert provider_locale(gateway) == "llamacpp"

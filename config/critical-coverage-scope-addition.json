@@ -1,7 +1,18 @@
 {
-  "baseline_sha": "5180092ee9edbb6a5e628c83707f336de98fd9a7",
-  "reason": "Nuovo modulo condiviso che impedisce la promozione delle evidenze private nel catalogo pubblico e nei dati di addestramento. Misurato nei 12 shard: nessuna riga precedentemente coperta persa, ambiente identico; perimetro comune e nuovo modulo restano soggetti al confronto senza riduzioni di soglia.",
+  "baseline_sha": "8ff073a551572bc4fa44f049356f91d9e99c432b",
+  "reason": "Libreria procedura atti aggiunta al perimetro lex; test dedicati inclusi nella misura critica. Nessuna soglia ridotta: ogni modulo nuovo e il perimetro comune restano soggetti al comparatore esistente. Prova locale: 81 test, 531/583 istruzioni coperte; tutti i nuovi moduli oltre la percentuale baseline. La CI rimisura base e candidato nello stesso ambiente.",
   "files": {
-    "lex/evidence_scope.py": "52dbb1ca108b5a0f9a112d18f319749a1ba86d68c56e0a1e8b0f9ddf60701185"
+    "lex/procedura_atti/__init__.py": "25203923857deb3f176333fbb180250efa67609c7b0d2c5a60d5beb2a6fd9b9e",
+    "lex/procedura_atti/calcolatore.py": "f515feaf42836e6197a9b50aa49a1683b821a2bfba74049cb914f39dfb49a770",
+    "lex/procedura_atti/contabilita.py": "8242404192ffb1489bd5b3dc002279fd183ba6a2381cce773db492e369ddc2a5",
+    "lex/procedura_atti/controlla_atto.py": "14689b4d322f81e8e2f4ff6051cb82614ef178d5852237a55118555a0b0fde5c",
+    "lex/procedura_atti/denaro.py": "ed5f068a72b8f4ab744aecee2e8f02bf8cb977f7221155f2973b0f59951fc6e9",
+    "lex/procedura_atti/impronte.py": "9daeeb8948679aa517064b361c3abc789306bfa9579556a4d557f004fa91acf7",
+    "lex/procedura_atti/percorso.py": "73bee58fb7223e74a279b9820e5ea537b875746e467d22eddca0e297e9aa6198",
+    "lex/procedura_atti/provenienza.py": "a69fa8d694690f6d89dc5ef5111f5a1ed4902e4fa8f5e228a8c3100f06a8c4a5",
+    "lex/procedura_atti/requisiti_atti.py": "612f2d8c32cd39f92d270371f09bea04e4006381e4bc6fd73dbbd9c65e23d103",
+    "lex/procedura_atti/revisione_indipendente.py": "ecb780be06caefef14bd7a31a8015d191edbc2fdd844eca17275a393f4d44870",
+    "lex/procedura_atti/stato_consegna.py": "c4289913d6913219cc88571f2e2f8b005388c3bd5fd522634779ca2628b828be",
+    "lex/procedura_atti/verifica_scheda.py": "791142804d562010ffeac7f7cecd33f7a03154f69b0bd50f81b894d99ade80b7"
   }
 }

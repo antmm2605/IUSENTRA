@@ -2276,8 +2276,28 @@
     };
   }
 
+  // Conserva soltanto le scelte di catalogo già mostrate, mai comandi di scrittura o contesto interno.
+  function modelChoicesMemory(payload) {
+    var unified = unifiedChatPayload(payload);
+    var blocks = unified && Array.isArray(unified.renderer_blocks) ? unified.renderer_blocks : [];
+    var choices = [];
+    blocks.forEach(function (block) {
+      if (!block || block.type !== 'actions' || block.title !== 'Scegli il modello da produrre') return;
+      (Array.isArray(block.items) ? block.items : []).forEach(function (item) {
+        var href = String(item && item.href || '');
+        var label = String(item && item.label || '').trim().slice(0, 200);
+        if (choices.length >= 6 || !label || !/^\/template-atti\/compila\/[A-Za-z0-9_\-]+$/.test(href)) return;
+        if (!choices.some(function (choice) { return choice.href === href; })) {
+          choices.push({ label: label, href: href });
+        }
+      });
+    });
+    return choices;
+  }
+
   function answerStateMemory(payload) {
     var memory = {
+      model_choices: modelChoicesMemory(payload),
       confidence: payload.confidence,
       confidence_label: String(payload.confidenceLabel || payload.confidence_label || ''),
       confidence_reason: String(payload.confidenceReason || payload.confidence_reason || ''),
@@ -2299,6 +2319,14 @@
       answer: entry.content || '',
       referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
     });
+    var choices = modelChoicesMemory({ lex_unified_chat: { renderer_blocks: [{
+      type: 'actions', title: 'Scegli il modello da produrre', items: payload.model_choices,
+    }] } });
+    if (choices.length) {
+      payload.lex_unified_chat = { engine: 'Lex Template Atti', renderer_blocks: [{
+        type: 'actions', title: 'Scegli il modello da produrre', items: choices,
+      }] };
+    }
     if (payload.query_continuation) {
       var nextQueryPrompt = { legal_notifications: 'Mostra altre notificazioni', agenda: 'Mostra altri appuntamenti', deadlines: 'Mostra altre scadenze' }[payload.query_domain] || 'Mostra altre PEC';
       payload.lex_unified_chat = {
@@ -4057,6 +4085,7 @@
         state.thinking = null;
       },
       publicAnswerMemory: publicAnswerMemory,
+      answerStateMemory: answerStateMemory,
       conversationEntryPayload: conversationEntryPayload,
       historyForTest: function () { return state.history.slice(); },
       setRequestElementsForTest: function (elements) {

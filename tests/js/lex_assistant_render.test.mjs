@@ -406,3 +406,25 @@ const progressBubble = { set innerHTML(v) { progressTop += 824 }, querySelector(
 hooks.setRequestElementsForTest({ widget: { dataset: {} }, messages: progressScroller, bubble: progressBubble, status: null })
 hooks.renderThinkingForTest()
 assert.equal(progressTop, 400)
+
+// Le scelte dei modelli devono sopravvivere al ciclo JSON di ricaricamento della chat.
+const modelChoicePayload = { lex_unified_chat: { engine: 'Lex Template Atti', renderer_blocks: [
+  { type: 'actions', title: 'Scegli il modello da produrre', items: [
+    { label: 'Procura alle liti', href: '/template-atti/compila/CIV_PROC_001', secret: 'NON-CONSERVARE' },
+    { label: 'Procura generale', href: '/template-atti/compila/CIV_PROC_002' },
+    { label: 'Non eseguire', href: 'javascript:alert(1)', kind: 'mutation' },
+    { label: 'Non esporre', href: 'https://example.org/privato' },
+  ] },
+  { type: 'actions', title: 'Azioni operative', items: [{ label: 'Scrivi', href: '/documenti/crea', kind: 'mutation' }] },
+], private_context: 'NON-CONSERVARE' } };
+const modelChoiceMemory = hooks.answerStateMemory(modelChoicePayload);
+assert.equal(modelChoiceMemory.model_choices.length, 2);
+assert.doesNotMatch(JSON.stringify(modelChoiceMemory), /NON-CONSERVARE|javascript:|documenti\/crea|example.org/);
+const restoredModelChoice = hooks.conversationEntryPayload(JSON.parse(JSON.stringify({
+  content: 'Scegli il modello', meta: { answerState: modelChoiceMemory },
+})));
+const restoredModelChoiceHtml = hooks.buildAnswerHtml(restoredModelChoice, { includeExports: false });
+assert.match(restoredModelChoiceHtml, /Scegli il modello da produrre/);
+assert.match(restoredModelChoiceHtml, /href="\/template-atti\/compila\/CIV_PROC_001"/);
+assert.match(restoredModelChoiceHtml, /Procura generale/);
+assert.doesNotMatch(restoredModelChoiceHtml, /javascript:|Non eseguire|Non esporre/);

@@ -202,7 +202,16 @@ def test_scheduler_risolve_il_proprietario_senza_creare_baseline_json(proposal, 
     app.config.update(SECRET_KEY='controlled', BACKUP_ORA='02:00', WA_REMINDER_ORA='18:00',
         PCT_SCHEDULER_WORKER=True, MULTI_TENANT=True, TENANTS_REGISTRY=str(tmp_path / 'registry.json'),
         SCHEDULER_REGISTRY_DB=str(tmp_path / 'jobs.db'), FEATURE_FLAGS={'lex.dailyPlan.scheduledRuns': False})
+    # Il contratto qui e il job richiamato esplicitamente, non gli altri timer.
+    # Avviarli introdurrebbe letture concorrenti del Registry fittizio, specie
+    # nell'ora ripetuta del cambio all'ora solare.
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.schedulers.base import STATE_PAUSED
+
+    original_start = BackgroundScheduler.start
+    monkeypatch.setattr(BackgroundScheduler, 'start', lambda self: original_start(self, paused=True))
     scheduler = start_scheduler(app)
+    assert scheduler.state == STATE_PAUSED
     try:
         scheduler.get_job('time_tracking_passivo').func()
         assert resolved == ['owner']

@@ -38,7 +38,14 @@ def template_http_payload(*, user, studio, data: dict[str, Any], question: str, 
         return None
     oggetto = normalize_text(azione.group(1))
     if re.match(r"(?:un[ao]?\s+)?(?:spiegazione|analisi|sintesi|riassunto|commento|sapere|capire|parere\s+su)\b", oggetto):
-        return None
+        # Un parere con titolo completo del catalogo e un modello redigibile;
+        # una domanda informativa o un parere generico resta fuori dal percorso.
+        if not re.match(r"(?:un[ao]?\s+)?parere\s+su\b", oggetto):
+            return None
+        catalog_match = resolve_template_for_query(testo)
+        catalog_name = normalize_text(catalog_match.name)
+        if not catalog_match.found or not catalog_name or f" {catalog_name} " not in f" {oggetto} ":
+            return None
     active = data.get("active_context") if isinstance(data.get("active_context"), dict) else {}
     if not _is_template_act_request(question, {"active_context": active}, {}):
         # Riusa il catalogo reale anche per atti non compresi nei vecchi indizi HTTP.

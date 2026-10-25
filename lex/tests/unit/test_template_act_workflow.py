@@ -467,3 +467,105 @@ def test_riferimento_rg_non_seleziona_tutte_le_pratiche_dello_stesso_anno():
     assert _matches_query({"titolo": "Alfa", "rg_completo": "123/2026"}, "prepara ricorso per RG 123/2026")
     assert not _matches_query({"titolo": "Beta", "rg_completo": "999/2026"}, "prepara ricorso per RG 123/2026")
     assert not _matches_query({"titolo": "Alfa", "rg_completo": "123/2025"}, "prepara ricorso per RG 123/2026")
+
+
+def test_nome_completo_prevale_su_indizi_generici_e_non_inverte_atto_richiesto():
+    from pct.template_atti_lex_service import resolve_template_for_query
+
+    for name, code in [
+        ("Riscontro a Diffida", "STR_RISDIFF_001"),
+        ("Revoca del mandato difensivo", "CIV_PROC_008"),
+        ("Diffida ad adempiere", "STR_BLT_004"),
+    ]:
+        match = resolve_template_for_query("prepara " + name)
+        assert match.model_code == code, (name, match.to_dict())
+        assert not match.ambiguous, name
+
+
+def test_due_atti_distinti_richiedono_scelta_e_il_codice_esplicito_resta_vincolante():
+    from pct.template_atti_lex_service import resolve_template_for_query
+
+    question = "prepara diffida ad adempiere e riscontro a diffida"
+    match = resolve_template_for_query(question)
+    assert match.ambiguous
+    assert {"STR_RISDIFF_001", "STR_BLT_004"} <= {row["model_code"] for row in match.options}
+    selected = resolve_template_for_query(question, {"model_code": "STR_BLT_004"})
+    assert selected.model_code == "STR_BLT_004"
+    assert not selected.ambiguous
+
+
+def test_nome_identico_in_aree_diverse_mostra_entrambe_le_scelte():
+    from pct.template_atti_lex_service import resolve_template_for_query, _azioni_varianti
+
+    match = resolve_template_for_query("prepara istanza di rinvio")
+    assert match.ambiguous
+    actions = _azioni_varianti(match)
+    by_code = {row["href"].rsplit("/", 1)[-1]: row["label"] for row in actions}
+    assert "Civile" in by_code["CIV_SUC_005"]
+    assert "Penale" in by_code["PEN_RINV_001"]
+
+
+def test_nome_identico_di_un_alias_non_nasconde_il_modello_canonico():
+    from pct.template_atti_lex_service import resolve_template_for_query, _azioni_varianti
+
+    match = resolve_template_for_query("prepara lista testi")
+    assert match.model_code == "PEN_LISTATESTI_001"
+    assert not match.ambiguous
+    assert any(row["href"].endswith("/PEN_BLT_008") for row in _azioni_varianti(match))
+    assert resolve_template_for_query("prepara lista testi", {"model_code": "PEN_BLT_008"}).model_code == "PEN_BLT_008"
+
+
+def test_articoli_e_preposizioni_non_invertono_il_significato_dell_atto():
+    from pct.template_atti_lex_service import resolve_template_for_query
+
+    for question, code in [
+        ("scrivi riscontro diffida", "STR_RISDIFF_001"),
+        ("prepara revoca mandato difensivo", "CIV_PROC_008"),
+        ("prepara diffida adempiere", "STR_BLT_004"),
+        ("crea una diffida e messa in mora", "STR_DIFF_001"),
+        ("redigi opposizione decreto ingiuntivo", "CIV_OPPDI_001"),
+    ]:
+        match = resolve_template_for_query(question)
+        assert match.model_code == code, (question, match.to_dict())
+        assert not match.ambiguous, question
+
+
+def test_parere_con_titolo_del_catalogo_non_e_confuso_con_domanda_informativa(monkeypatch):
+    from lex import http_bounded_bridge
+    from lex.http_template_bridge import template_http_payload
+
+    calls = []
+    monkeypatch.setattr(http_bounded_bridge, "build_bounded_http_payload", lambda **kwargs: calls.append(kwargs) or {"ok": True})
+    question = "prepara un parere su operazione straordinaria"
+    assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) == {"ok": True}
+    assert calls[-1]["current_user_message"] == question
+    for question in ["mi serve sapere del parere su operazione straordinaria", "scrivi una spiegazione del parere su operazione straordinaria", "prepara un parere su un argomento non censito"]:
+        assert template_http_payload(user=object(), studio=object(), data={}, question=question, attachments=[]) is None
+    assert len(calls) == 1
+
+
+def test_ricerca_include_varianti_compilabili_del_catalogo_esteso():
+    from pct.template_atti_lex_service import resolve_template_for_query, _azioni_varianti
+    from pct.compilatore_atti import get_modello
+
+    for name, code in [
+        ("Ricorso monitorio per fatture commerciali", "MON_003"),
+        ("Atto di citazione con chiamata del terzo", "CIV_ORD_002"),
+        ("Ricorso ex art. 700 c.p.c.", "CAU_001"),
+    ]:
+        match = resolve_template_for_query("prepara " + name)
+        assert match.model_code == code or any(row["href"].endswith("/" + code) for row in _azioni_varianti(match))
+        assert get_modello(code) is not None
+    assert resolve_template_for_query("scrivi risposta alla diffida").model_code == "STR_RISDIFF_001"
+    assert resolve_template_for_query("prepara replica a diffida").model_code == "STR_RISDIFF_001"
+
+
+def test_istanza_specifica_non_propone_varianti_di_altre_istanze():
+    payload = run_template_act_workflow(_request("prepara istanza di ricerca telematica dei beni"), {}, {"items": []})
+    block = next(row for row in payload["message_blocks"] if row.get("title") == "Scegli il modello da produrre")
+    assert len(block["items"]) == 1
+    assert block["items"][0]["href"].endswith("/ESE_013")
+    assert "rinvio" not in str(block).lower()
+    assert "anticipazione" not in str(block).lower()
+    assert payload["created_document"] == {}
+    assert payload["explicit_create"] is False

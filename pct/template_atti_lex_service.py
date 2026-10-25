@@ -332,7 +332,8 @@ class CreatedDocumentResult:
 
 _DIRECT_HINTS: tuple[tuple[tuple[str, ...], tuple[str, ...], float], ...] = (
     (("atto di citazione", "citazione"), ("CIV_CIT_001",), 0.55),
-    (("crea diffida", "template diffida", "diffida"), ("STR_DIFF_001",), 0.52),
+    (("crea diffida", "template diffida", "diffida", "diffida e messa in mora", "diffida messa in mora"), ("STR_DIFF_001",), 0.52),
+    (("risposta a diffida", "replica a diffida"), ("STR_RISDIFF_001",), 0.56),
     (("opposizione a decreto ingiuntivo", "opposizione decreto ingiuntivo"), ("CIV_OPPDI_001",), 0.62),
     (("ricorso decreto ingiuntivo", "ricorso per decreto ingiuntivo"), ("CIV_RDI_001",), 0.62),
     (("decreto ingiuntivo",), ("CIV_RDI_001", "CIV_OPPDI_001"), 0.35),
@@ -378,13 +379,72 @@ def errore_battitura_minimo(a: str, b: str) -> bool:
     return any(lunga[:i] + lunga[i + 1:] == corta for i in range(len(lunga)))
 
 
-def search_template_models(query: str, *, limit: int = 8, model_code: str = "") -> list[TemplateMatch]:
-    from pct.compilatore_atti import elenco_modelli
+_PAROLE_FUNZIONALI_NOME = frozenset({
+    "a", "ad", "al", "allo", "alla", "agli", "alle", "da", "dal", "dallo", "dalla",
+    "di", "del", "dello", "della", "dei", "degli", "delle", "il", "lo", "la", "i", "gli", "le",
+    "un", "uno", "una", "per", "in", "con",
+})
 
+
+def _posizioni_frase_identita(query_norm: str, phrase: str) -> list[tuple[str, int, int]]:
+    words = [word for word in normalize_text(phrase).split() if word not in _PAROLE_FUNZIONALI_NOME]
+    if not words:
+        return []
+    functional = "|".join(sorted(_PAROLE_FUNZIONALI_NOME, key=len, reverse=True))
+    between = r"\s+(?:(?:" + functional + r")\s+)*"
+    pattern = r"(?<!\w)" + between.join(re.escape(word) for word in words) + r"(?!\w)"
+    return [(" ".join(words), match.start(), match.end()) for match in re.finditer(pattern, query_norm)]
+
+
+def _posizioni_identita(query_norm: str, name: str, code: str) -> list[tuple[str, int, int]]:
+    """Nomi e sinonimi governati: articoli/preposizioni facoltativi, fatti intatti."""
+    phrases = {normalize_text(name)}
+    for hints, codes, _boost in _DIRECT_HINTS:
+        if code in codes:
+            for phrase in hints:
+                normalized = normalize_text(phrase)
+                first, _, rest = normalized.partition(" ")
+                phrases.add(rest if first in {"crea", "prepara", "redigi", "compila", "scrivi", "template", "modello"} and rest else normalized)
+    return [position for phrase in phrases for position in _posizioni_frase_identita(query_norm, phrase)]
+
+
+def _specificita_nome_catalogo(query_norm: str, name: str) -> int:
+    return max((len(phrase.split()) for phrase, _, _ in _posizioni_frase_identita(query_norm, name)), default=0)
+
+
+def _specificita_nome(query_norm: str, name: str, code: str) -> int:
+    return max((len(phrase.split()) for phrase, _, _ in _posizioni_identita(query_norm, name, code)), default=0)
+
+
+def _famiglie_modelli() -> dict[str, str]:
+    from pct.template_atti_compiler_bindings import compiler_alias_specs, catalog_core_compiler_alias_specs
+
+    families = {}
+    for row in compiler_alias_specs() + catalog_core_compiler_alias_specs():
+        families.setdefault(row["compiler_code"], row["base_code"])
+    return families
+
+
+def _modelli_ricercabili() -> list[dict[str, Any]]:
+    from pct.compilatore_atti import elenco_modelli, get_modello
+
+    models = elenco_modelli()
+    seen = {model["code"] for model in models}
+    for code in _famiglie_modelli():
+        if code not in seen:
+            model = get_modello(code)
+            if model is not None:
+                models.append(model)
+                seen.add(code)
+    return models
+
+
+def search_template_models(query: str, *, limit: int = 8, model_code: str = "") -> list[TemplateMatch]:
     # Il testo descrittivo del catalogo non è la richiesta dell'avvocato.
     query = re.split(r"modello catalogo atti:", query, maxsplit=1, flags=re.IGNORECASE)[0] or query
     query_norm = normalize_text(query)
-    models = elenco_modelli()
+    models = _modelli_ricercabili()
+    virtual_aliases = {model["code"] for model in models if model.get("catalog_template_alias")}
     vocabolario = {word for model in models for word in normalize_text(model.get("name")).split() if len(word) >= 5}
     parole = query_norm.split()
     # Solo la ricerca nel catalogo: fatti, nomi e messaggio originale restano intatti.
@@ -444,7 +504,13 @@ def search_template_models(query: str, *, limit: int = 8, model_code: str = "") 
         )
     if identita_pertinenti:
         matches = [match for match in matches if match.model_code in identita_pertinenti]
-    matches.sort(key=lambda item: (bool(requested_code and item.model_code != requested_code), -item.score, item.model_code))
+    families = _famiglie_modelli()
+    matches.sort(key=lambda item: (bool(requested_code and item.model_code != requested_code),
+                                   -_specificita_nome(query_norm, item.name, item.model_code),
+                                   -_specificita_nome_catalogo(query_norm, item.name),
+                                   item.model_code != families.get(item.model_code, item.model_code),
+                                   item.model_code in virtual_aliases,
+                                   -item.score, item.model_code))
     return matches[: max(1, int(limit or 8))]
 
 
@@ -461,14 +527,29 @@ def resolve_template_for_query(query: str, context: dict[str, Any] | None = None
     if not matches:
         return TemplateMatch(found=False, reason="Nessun modello reale del catalogo atti corrisponde alla richiesta.")
     top = matches[0]
-    options = [match.to_dict() for match in matches[:5]]
-    direct_codes: set[str] = set()
     query_norm = normalize_text(query)
-    for phrases, codes, _boost in _DIRECT_HINTS:
-        if any(normalize_text(phrase) in query_norm for phrase in phrases):
-            direct_codes.update(codes)
-    direct_single = len(direct_codes) == 1 and top.model_code in direct_codes
-    if len(matches) > 1 and matches[1].score >= top.score - 0.06 and not requested_code and not direct_single:
+    identities = [(match, phrase, start, end) for match in matches
+                  for phrase, start, end in _posizioni_identita(query_norm, match.name, match.model_code)]
+    # «Riscontro a diffida» assorbe «diffida»; due nomi separati restano due scelte.
+    maximal = [(match, phrase) for match, phrase, start, end in identities
+               if not any(other_start <= start and other_end >= end and other_end - other_start > end - start
+                          for _, _, other_start, other_end in identities)]
+    if maximal:
+        families = _famiglie_modelli()
+        identities_by_code = {}
+        for match, phrase in maximal:
+            previous = identities_by_code.get(match.model_code)
+            if previous is None or len(phrase.split()) > len(previous[1].split()):
+                identities_by_code[match.model_code] = (match, phrase)
+        identity_keys = {(families.get(match.model_code, match.model_code), phrase)
+                         for match, phrase in identities_by_code.values()}
+        options_by_code = {match.model_code: match.to_dict() for match, _ in identities_by_code.values()}
+        options = list(options_by_code.values())[:5]
+        ambiguous = len(identity_keys) > 1
+    else:
+        options = [match.to_dict() for match in matches[:5]]
+        ambiguous = len(matches) > 1 and matches[1].score >= top.score - 0.06
+    if ambiguous and not requested_code:
         return TemplateMatch(
             model_code=top.model_code,
             name=top.name,
@@ -1144,27 +1225,53 @@ def build_template_actions(
 
 def _azioni_varianti(template: TemplateMatch) -> list[dict[str, Any]]:
     from pct.template_atti_compiler_bindings import compiler_alias_specs, catalog_core_compiler_alias_specs
+    from pct.compilatore_atti import get_modello
 
     bindings = compiler_alias_specs() + catalog_core_compiler_alias_specs()
     binding = next((b for b in bindings if b["compiler_code"] == template.model_code), None)
     base = binding["base_code"] if binding else template.model_code
     prima_parola = normalize_text(template.name).split()[0] if template.name else ""
     risultati, visti = [], set()
+    if template.ambiguous:
+        for option in template.options:
+            code = clean_spaces(option.get("model_code"))
+            if code in visti or get_modello(code) is None:
+                continue
+            title = clean_spaces(option.get("name")) or code
+            if sum(normalize_text(row.get("name")) == normalize_text(title) for row in template.options) > 1:
+                area = clean_spaces(option.get("area"))
+                if area:
+                    title += " — " + area.capitalize()
+            visti.add(code)
+            risultati.append(_action("choose_model_" + code, title, "open", href="/template-atti/compila/" + code))
+    if template.ambiguous:
+        return risultati[:6]
+    base_model = get_modello(base) or {}
+    generic_base = bool({"generico", "generica", "generici", "generiche"}.intersection(normalize_text(base_model.get("name")).split()))
+    specific_generic_model = generic_base and template.model_code != base
+    selected_name = " ".join(word for word in normalize_text(template.name).split() if word not in _PAROLE_FUNZIONALI_NOME)
+    candidates = []
     for voce in bindings:
         code, title = voce["compiler_code"], voce["title"]
         if voce["base_code"] != base or code in visti or not normalize_text(title).startswith(prima_parola + " "):
             continue
+        name = " ".join(word for word in normalize_text(title).split() if word not in _PAROLE_FUNZIONALI_NOME)
+        if specific_generic_model and name != selected_name:
+            continue
+        model = get_modello(code)
+        if model is not None:
+            candidates.append((voce, model))
+    if specific_generic_model:
+        catalog_candidates = [(voce, model) for voce, model in candidates if model.get("catalog_template_alias")]
+        candidates = catalog_candidates or candidates
+    for voce, _model in candidates:
+        code, title = voce["compiler_code"], voce["title"]
+        if code in visti:
+            continue
         visti.add(code)
-        risultati.append(_action("choose_model_"+code, title, "open", href="/template-atti/compila/"+code))
-    if len(risultati) < 2 and template.ambiguous:
-        from pct.compilatore_atti import elenco_modelli
-        validi = {m["code"] for m in elenco_modelli()}
-        for voce in template.options:
-            code = clean_spaces(voce.get("model_code"))
-            if code not in validi or code in visti:
-                continue
-            visti.add(code)
-            risultati.append(_action("choose_model_"+code, clean_spaces(voce.get("name")) or code, "open", href="/template-atti/compila/"+code))
+        risultati.append(_action("choose_model_" + code, title, "open", href="/template-atti/compila/" + code))
+        if len(risultati) >= 6:
+            break
     return risultati[:6]
 
 
@@ -1384,7 +1491,7 @@ def run_template_act_workflow(request: Any, context: dict[str, Any], evidence: d
         source_rows=source_rows,
     )
 
-    if len(varianti) > 1:
+    if len(varianti) > 1 or (varianti and varianti[0].get("href") != "/template-atti/compila/" + template.model_code):
         blocks.insert(0, {"type":"actions", "title":"Scegli il modello da produrre", "items":varianti})
     if not template.found:
         answer = (

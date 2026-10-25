@@ -10,6 +10,17 @@
 - Solo modelli locali: nuovo provider `llamacpp` del gateway (`llama-server`, `LLAMACPP_ENABLED`, `LLAMACPP_BASE_URL`,
   `LLAMACPP_DEFAULT_MODEL`, `LLAMACPP_TIMEOUT_SECONDS`), oltre a Ollama e LM Studio; scelta con `LEX_STESURA_PROVIDER`.
 - API `POST /api/v1/ui/redazione-atti/lex/blocchi` (permessi `ai.usa` e `fascicoli.leggi`).
+- Le richieste di redazione riconosciute aprono il percorso del catalogo senza invocare il modello: cliente e
+  fascicolo vengono chiesti quando mancano. Varianti linguistiche e refusi minimi riguardano soltanto la selezione
+  del modello; messaggio originale e fatti restano intatti. Le scelte restano disponibili dopo la ricarica.
+- Il nome completo dell'atto prevale sui frammenti generici: riscontro e diffida, revoca e procura restano distinti.
+  Due atti richiesti insieme o nomi uguali in aree diverse richiedono una scelta; le aree sono visibili nelle opzioni.
+  La ricerca include anche gli alias realmente compilabili; una specifica istanza non propone altre istanze
+  soltanto perché condividono il modello generico di partenza.
+  Parti e pratiche estranee non vengono aggiunte alle richieste generiche.
+- Il provider privato configurato per la stesura non ripiega su un altro modello. Una sola correzione automatica
+  conserva prima bozza ed errori e ripete tutti i controlli; date mancanti ed errori residui mantengono il blocco.
+- Il test del job di tracking richiama il job con lo scheduler in pausa, evitando interferenze dei timer del test.
 
 ## 2.452.0 — Pagina «Norme dei modelli d'atto»
 

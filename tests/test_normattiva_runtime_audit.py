@@ -32,3 +32,15 @@ def test_manifest_fingerprints_exact_files_without_mutating_database(tmp_path):
 
 def test_missing_file_is_not_claimed_equal(tmp_path):
     assert audit.file_sha(tmp_path / "absent") is None
+
+
+def test_library_never_uses_general_vectors_even_with_overlapping_chunk_ids(tmp_path, monkeypatch):
+    from lex.ricerca_giuridica.ibrida import cartella_vettori_predefinita
+    monkeypatch.setenv("LEX_EMBED_MODEL", "embeddinggemma:300m")
+    monkeypatch.delenv("LEX_CODICI_LEGGI_VETTORI_DIR", raising=False)
+    monkeypatch.delenv("LEX_NORMATTIVA_VETTORI_DIR", raising=False)
+    assert cartella_vettori_predefinita(tmp_path / "normattiva.sqlite") == tmp_path / "vettori_normattiva"
+    assert cartella_vettori_predefinita(tmp_path / "codici_leggi.sqlite") == tmp_path / "vettori_codici_leggi"
+    monkeypatch.setenv("LEX_NORMATTIVA_VETTORI_DIR", str(tmp_path / "general-custom"))
+    assert cartella_vettori_predefinita(tmp_path / "normattiva.sqlite") == tmp_path / "general-custom"
+    assert cartella_vettori_predefinita(tmp_path / "codici_leggi.sqlite") == tmp_path / "vettori_codici_leggi"

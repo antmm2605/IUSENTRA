@@ -40,11 +40,13 @@ jobs:
             [[ "$query" =~ ^[A-Za-z0-9+/=]+$ ]]
             extra="--queries-b64 $query"
           fi
-          for container in iusentra-app iusentra-scheduler-worker; do
-            ssh "${opts[@]}" "${HETZNER_USER}@${HETZNER_HOST}"               "docker exec -i $container python - $extra"               < deploy/hetzner/audit_normattiva_runtime.py > "$container.json"
+          for service in app scheduler-worker; do
+            container="iusentra-$service"
+            ssh "${opts[@]}" "${HETZNER_USER}@${HETZNER_HOST}"               "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T $service python - $extra"               < deploy/hetzner/audit_normattiva_runtime.py > "$container.json"
             python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(sys.argv[1], d["scope"], d["counts"], d["files"]["normattiva.sqlite"]["sha256"])' "$container.json"
           done
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: normattiva-runtime-audit
           path: iusentra-*.json

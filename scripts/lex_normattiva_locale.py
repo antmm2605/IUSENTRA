@@ -507,6 +507,10 @@ def _file_del_pacchetto(p: Percorsi, *, con_vettori: bool, con_jsonl: bool) -> l
     if con_vettori:
         for nome in FILE_VETTORI:
             voci.append((p.vettori / nome, f"normativa/vettori_normattiva/{nome}"))
+        # Manifest facoltativo della riconciliazione: entra negli stessi checksum.
+        canonico = p.vettori / "CANONICO.json"
+        if canonico.is_file():
+            voci.append((canonico, "normativa/vettori_normattiva/CANONICO.json"))
     if con_jsonl and p.jsonl.exists():
         voci.append((p.jsonl, "normativa/index/normattiva_chunks.jsonl"))
     return voci

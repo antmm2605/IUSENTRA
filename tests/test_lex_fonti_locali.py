@@ -228,7 +228,10 @@ def server(tmp_path, monkeypatch):
     home = tmp_path / "iusentra"
     data = home / "data"
     (data / "normativa" / "index").mkdir(parents=True)
-    (data / "normativa" / "normattiva.sqlite").write_bytes(b"VECCHIO-DB")
+    with sqlite3.connect(data / "normativa" / "normattiva.sqlite") as conn:
+        conn.execute("CREATE TABLE legacy_marker(value TEXT)")
+        conn.execute("INSERT INTO legacy_marker VALUES ('VECCHIO-DB')")
+    old_bytes = (data / "normativa" / "normattiva.sqlite").read_bytes()
     (data / "normativa" / "vettori_normattiva").mkdir()
     (data / "normativa" / "vettori_normattiva" / "meta.json").write_text("{\"vecchio\": true}")
     (data / "normativa" / "normattiva.sqlite-wal").write_bytes(b"wal")
@@ -255,7 +258,7 @@ def server(tmp_path, monkeypatch):
         "FONTI_LEX_ATTESA_WORKER_S": "4",
         "LEX_RICERCA_SEMANTICA": "0",
     }
-    return {"home": home, "data": data, "log": log, "env": ambiente}
+    return {"home": home, "data": data, "log": log, "env": ambiente, "old_bytes": old_bytes, "old_dump": _sql_dump(data / "normativa" / "normattiva.sqlite")}
 
 
 def _bash_fixture():
@@ -297,7 +300,7 @@ def test_carica_dry_run_non_tocca_nulla(tmp_path, server):
     r = _lancia(server, "--dry-run", str(pacchetto))
     assert r.returncode == 0, r.stdout + r.stderr
     assert "[dry-run]" in r.stdout and "compose stop scheduler-worker" in r.stdout
-    assert (server["data"] / "normativa" / "normattiva.sqlite").read_bytes() == b"VECCHIO-DB"
+    assert (server["data"] / "normativa" / "normattiva.sqlite").read_bytes() == server["old_bytes"]
     assert not server["log"].exists()  # nessun comando docker eseguito
     assert not list((server["home"]).glob("backups/*"))
 
@@ -309,7 +312,7 @@ def test_carica_checksum_errato_blocca_tutto(tmp_path, server):
     pacchetto.write_bytes(bytes(dati))
     r = _lancia(server, str(pacchetto))
     assert r.returncode != 0 and "checksum" in (r.stdout + r.stderr).lower()
-    assert (server["data"] / "normativa" / "normattiva.sqlite").read_bytes() == b"VECCHIO-DB"
+    assert (server["data"] / "normativa" / "normattiva.sqlite").read_bytes() == server["old_bytes"]
     assert not server["log"].exists()
 
 
@@ -324,11 +327,22 @@ def test_carica_sostituisce_con_backup_e_controllo(tmp_path, server):
     assert not wal.exists() or wal.read_bytes() != b"wal"  # il -wal del vecchio database non deve sopravvivere
     assert not list(norm.glob(".carica_fonti_lex_*")) and not list(norm.glob("*.vecchio_*"))
     backup = next((server["home"] / "backups").glob("fonti_lex_*"))
-    assert (backup / "normativa" / "normattiva.sqlite").read_bytes() == b"VECCHIO-DB"
+    assert _sql_dump(backup / "normativa" / "normattiva.sqlite") == server["old_dump"]
     chiamate = server["log"].read_text().splitlines()
-    ordine = [next(i for i, c in enumerate(chiamate) if chiave in c) for chiave in ("stop scheduler-worker", "up -d --no-deps scheduler-worker", "restart app", "exec -T scheduler-worker")]
+    ordine = [next(i for i, c in enumerate(chiamate) if chiave in c) for chiave in ("stop scheduler-worker", "up -d --no-deps scheduler-worker", "up -d --no-deps app", "exec -T scheduler-worker")]
     assert ordine == sorted(ordine)
     assert "OK archivio Normattiva verificato" in r.stdout
+
+
+def _sql_dump(db: Path) -> list[str]:
+    # Il backup SQLite conserva schema e contenuto; i contatori dell'header
+    # possono cambiare legittimamente rispetto alla copia fisica originale.
+    conn = sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True)
+    try:
+        assert conn.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+        return list(conn.iterdump())
+    finally:
+        conn.close()
 
 
 def conteggi_ok(db: Path) -> bool:
@@ -341,7 +355,7 @@ def test_carica_ripristina_il_backup_se_il_controllo_fallisce(tmp_path, server):
     r = _lancia(server, str(pacchetto))
     assert r.returncode != 0
     norm = server["data"] / "normativa"
-    assert (norm / "normattiva.sqlite").read_bytes() == b"VECCHIO-DB"
+    assert _sql_dump(norm / "normattiva.sqlite") == server["old_dump"]
     assert (norm / "vettori_normattiva" / "meta.json").read_text() == "{\"vecchio\": true}"
     chiamate = server["log"].read_text().splitlines()
     assert sum("up -d --no-deps scheduler-worker" in c for c in chiamate) >= 2  # riavviato anche dopo il ripristino
@@ -355,7 +369,7 @@ def test_ripristino_manuale_da_backup(tmp_path, server):
     r = _lancia(server, "--ripristina", str(backup))
     assert r.returncode == 0, r.stdout + r.stderr
     norm = server["data"] / "normativa"
-    assert (norm / "normattiva.sqlite").read_bytes() == b"VECCHIO-DB"
+    assert _sql_dump(norm / "normattiva.sqlite") == server["old_dump"]
     assert (norm / "vettori_normattiva" / "meta.json").read_text() == "{\"vecchio\": true}"
 
 
@@ -409,3 +423,13 @@ def test_intermedio_normattiva_valido_e_firmato_da_globalsign_root_r46():
         pytest.skip("openssl non installato")
     esito = subprocess.run(["openssl", "verify", "-CAfile", certifi.where(), str(pem)], capture_output=True, text=True)
     assert esito.returncode == 0, esito.stdout + esito.stderr
+
+
+def test_optional_canonical_manifest_is_included_in_roundtrip_checksums(tmp_path, formato):
+    p = _archivio(tmp_path / "pc")
+    canonical = p.vettori / "CANONICO.json"
+    canonical.write_text(json.dumps({"scope": "public_normattiva_only", "revision": "fixture"}))
+    package = locale.crea_pacchetto(p, formato=formato)
+    metadata = locale.controlla_pacchetto(package)
+    entry = next(x for x in metadata["file"] if x["percorso"] == "normativa/vettori_normattiva/CANONICO.json")
+    assert entry["sha256"] == locale.sha256_file(canonical)

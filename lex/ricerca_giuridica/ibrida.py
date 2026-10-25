@@ -53,10 +53,14 @@ _FALSI = {"0", "false", "no", "off", "disabilitato"}
 
 
 def cartella_vettori_predefinita(db_path: str | Path) -> Path:
-    configurata = str(os.getenv("LEX_NORMATTIVA_VETTORI_DIR", "") or "").strip()
+    # La biblioteca ha ID SQL propri: i vettori dell'archivio generale non
+    # possono essere applicati ai suoi chunk, anche quando condividono /data/normativa.
+    biblioteca = Path(db_path).name == "codici_leggi.sqlite"
+    variabile = "LEX_CODICI_LEGGI_VETTORI_DIR" if biblioteca else "LEX_NORMATTIVA_VETTORI_DIR"
+    configurata = str(os.getenv(variabile, "") or "").strip()
     if configurata:
         return Path(configurata)
-    name = "vettori_normattiva"
+    name = "vettori_codici_leggi" if biblioteca else "vettori_normattiva"
     if embeddinggemma2.configured():
         name += "_" + embeddinggemma2.REVISION + "_" + embeddinggemma2.PROFILE_SUFFIX.replace("-", "_")
     return Path(db_path).parent / name

@@ -9,8 +9,8 @@
 # Tornare indietro a mano:
 #   sudo /opt/iusentra/repo/deploy/hetzner/carica_fonti_lex.sh --ripristina /opt/iusentra/backups/fonti_lex_AAAAMMGG-HHMMSS
 #
-# Passi: checksum -> estrazione in cartella temporanea -> controllo SHA256SUMS interno -> stop scheduler-worker ->
-# backup con data (hard link, nessuna copia se stesso disco) -> sostituzione con rename -> permessi -> riavvio ->
+# Passi: checksum -> estrazione in cartella temporanea -> controllo SHA256SUMS interno -> stop worker e app ->
+# backup coerente e indipendente con data -> sostituzione con rename -> permessi -> riavvio ->
 # controllo (conteggi + ricerca "art. 2043 c.c.") -> in caso di errore ripristino del backup.
 set -euo pipefail
 
@@ -74,7 +74,7 @@ compose() { "$DOCKER" compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
 
 NORMATIVA="${DATA_DIR}/normativa"
 # Elementi sostituiti, relativi a <data>/normativa.
-ELEMENTI_FILE=("normattiva.sqlite" "index/normattiva_chunks.jsonl")
+ELEMENTI_FILE=("normattiva.sqlite")
 ELEMENTO_DIR="vettori_normattiva"
 
 tar_pacchetto() {
@@ -101,7 +101,7 @@ riavvia_servizi() {
   compose up -d --no-deps "$SERVIZIO_WORKER" || log "ATTENZIONE: riavvio di ${SERVIZIO_WORKER} non riuscito"
   if [ "$RIAVVIA_APP" = "1" ]; then
     log "riavvio ${SERVIZIO_APP} per riaprire il database"
-    compose restart "$SERVIZIO_APP" || log "ATTENZIONE: riavvio di ${SERVIZIO_APP} non riuscito"
+    compose up -d --no-deps "$SERVIZIO_APP" || log "ATTENZIONE: riavvio di ${SERVIZIO_APP} non riuscito"
   fi
   SERVIZI_FERMATI=0
 }
@@ -112,8 +112,24 @@ rimuovi_sidecar_db() {
 }
 
 copia_leggera() {
-  # Hard link se possibile (nessuno spazio extra), altrimenti copia.
-  cp -al "$1" "$2" 2>/dev/null || cp -a "$1" "$2"
+  # Backup indipendente: gli aggiornamenti successivi non devono mutarlo.
+  if [ -f "$1" ] && [ "$(basename "$1")" = "normattiva.sqlite" ]; then
+    python3 - "$1" "$2" <<'PYSQLITE'
+import os, shutil, sqlite3, sys
+from pathlib import Path
+with sqlite3.connect(Path(sys.argv[1]).resolve().as_uri() + "?mode=ro", uri=True) as src:
+    with sqlite3.connect(sys.argv[2]) as dest:
+        src.backup(dest)
+        if dest.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+            raise RuntimeError("Backup SQLite non integro")
+shutil.copystat(sys.argv[1], sys.argv[2])
+stat = Path(sys.argv[1]).stat()
+if hasattr(os, "chown"):
+    os.chown(sys.argv[2], stat.st_uid, stat.st_gid)
+PYSQLITE
+  else
+    cp -a --reflink=auto "$1" "$2"
+  fi
 }
 
 ripristina_da_backup() {
@@ -153,9 +169,12 @@ if [ -n "$RIPRISTINA_DA" ]; then
     cat "${RIPRISTINA_DA}/ELENCO.txt"
     exit 0
   fi
+  trap riavvia_servizi EXIT
   compose stop "$SERVIZIO_WORKER"; SERVIZI_FERMATI=1
+  if [ "$RIAVVIA_APP" = "1" ]; then compose stop "$SERVIZIO_APP"; fi
   ripristina_da_backup "$RIPRISTINA_DA"
   riavvia_servizi
+  trap - EXIT
   log "ripristino completato"
   exit 0
 fi
@@ -164,7 +183,7 @@ fi
 # 1. Checksum del pacchetto
 # ---------------------------------------------------------------------------------------------- #
 mkdir -p "$IUSENTRA_HOME" 2>/dev/null || true
-if command -v flock >/dev/null 2>&1 && exec 9>"${IUSENTRA_HOME}/.carica_fonti_lex.lock" 2>/dev/null; then
+if command -v flock >/dev/null 2>&1 && { exec 9>"${IUSENTRA_HOME}/.carica_fonti_lex.lock"; } 2>/dev/null; then
   flock -n 9 || fail "un'altra esecuzione di carica_fonti_lex.sh e' in corso"
 fi
 
@@ -180,14 +199,22 @@ N_CHUNK="$(printf '%s' "$META" | json_get 'd["conteggi"]["chunk"]')"
 CON_VETTORI="$(printf '%s' "$META" | json_get '1 if d["vettori"].get("presente") else 0')"
 RIGHE_VETTORI="$(printf '%s' "$META" | json_get 'd["vettori"].get("righe", -1) if d["vettori"].get("presente") else -1')"
 CON_JSONL="$(printf '%s' "$META" | json_get '1 if d.get("con_jsonl") else 0')"
+if [ "$CON_JSONL" = "1" ]; then ELEMENTI_FILE+=("index/normattiva_chunks.jsonl"); fi
 BYTE_TOTALI="$(printf '%s' "$META" | json_get 'sum(f["byte"] for f in d["file"])')"
 CREATO="$(printf '%s' "$META" | json_get 'd["creato"]')"
 log "pacchetto del ${CREATO}: ${N_DOC} documenti, ${N_ART} articoli, ${N_CHUNK} chunk, vettori=${CON_VETTORI}, jsonl=${CON_JSONL}, ${BYTE_TOTALI} byte decompressi"
 
-# Spazio: estrazione (1x); il backup usa hard link (0x se stesso disco).
+# Spazio: estrazione piu backup indipendente degli elementi realmente sostituiti.
 mkdir -p "$NORMATIVA" 2>/dev/null || true
 DISPONIBILE="$(df -PB1 "$DATA_DIR" 2>/dev/null | awk 'NR==2{print $4}')"
-NECESSARIO=$(( BYTE_TOTALI + BYTE_TOTALI / 10 ))
+BACKUP_BYTE=0
+for rel in "${ELEMENTI_FILE[@]}" "$ELEMENTO_DIR"; do
+  if [ -e "${NORMATIVA}/${rel}" ]; then
+    dimensione=$(du -sb "${NORMATIVA}/${rel}" | awk '{print $1}')
+    BACKUP_BYTE=$(( BACKUP_BYTE + dimensione ))
+  fi
+done
+NECESSARIO=$(( BYTE_TOTALI + BACKUP_BYTE + (BYTE_TOTALI + BACKUP_BYTE) / 10 ))
 if [ -n "${DISPONIBILE:-}" ] && [ "$DISPONIBILE" -lt "$NECESSARIO" ]; then
   fail "spazio insufficiente in ${DATA_DIR}: disponibili ${DISPONIBILE} byte, servono circa ${NECESSARIO}"
 fi
@@ -204,10 +231,11 @@ if [ "$DRY_RUN" = "1" ]; then
   tar_pacchetto "$PACCHETTO" -t | sed 's/^/    /'
   azione tar_pacchetto "$PACCHETTO" -x -p -C "$STAGING"
   azione compose stop "$SERVIZIO_WORKER"
+  if [ "$RIAVVIA_APP" = "1" ]; then azione compose stop "$SERVIZIO_APP"; fi
   azione mkdir -p "$BACKUP"
   for rel in "${ELEMENTI_FILE[@]}" "$ELEMENTO_DIR"; do
     if [ -e "${NORMATIVA}/${rel}" ]; then
-      azione cp -al "${NORMATIVA}/${rel}" "${BACKUP}/normativa/${rel}"
+      azione copia_leggera "${NORMATIVA}/${rel}" "${BACKUP}/normativa/${rel}"
     else
       log "(${rel}: non esiste ora, verra' creato)"
     fi
@@ -231,6 +259,9 @@ pulisci() {
   local codice=$?
   if [ "$codice" -ne 0 ] && [ "${#SOSTITUITI[@]}" -gt 0 ] && [ -n "$BACKUP" ] && [ -f "${BACKUP}/ELENCO.txt" ]; then
     log "ERRORE (codice ${codice}): ripristino del backup ${BACKUP}"
+    compose stop "$SERVIZIO_WORKER" || true
+    if [ "$RIAVVIA_APP" = "1" ]; then compose stop "$SERVIZIO_APP" || true; fi
+    SERVIZI_FERMATI=1
     ripristina_da_backup "$BACKUP" || log "RIPRISTINO FALLITO: ripristinare a mano con --ripristina ${BACKUP}"
     SERVIZI_FERMATI=1   # riavvia di nuovo worker e app sui file ripristinati
   fi
@@ -263,6 +294,7 @@ chmod -R u+rwX,go-rwx "${STAGING}/normativa"
 log "stop ${SERVIZIO_WORKER}"
 compose stop "$SERVIZIO_WORKER"
 SERVIZI_FERMATI=1
+if [ "$RIAVVIA_APP" = "1" ]; then compose stop "$SERVIZIO_APP"; fi
 
 mkdir -p "${BACKUP}/normativa/index"
 ELENCO=""
@@ -276,12 +308,29 @@ for rel in "${ELEMENTI_FILE[@]}" "$ELEMENTO_DIR"; do
 done
 printf '%s' "$ELENCO" > "${BACKUP}/ELENCO.txt"
 log "backup in ${BACKUP}"
+# Il candidato canonico non puo sovrascrivere aggiornamenti successivi al confronto.
+CANONICO="${STAGING}/normativa/${ELEMENTO_DIR}/CANONICO.json"
+if [ -f "$CANONICO" ] && [ -f "${BACKUP}/normativa/normattiva.sqlite" ]; then
+  python3 - "$CANONICO" "${BACKUP}" <<'PYBASE'
+import hashlib, json, sys
+from pathlib import Path
+manifest = json.loads(Path(sys.argv[1]).read_text())
+backup = Path(sys.argv[2])
+for rel, expected in manifest.get("baseline_server_files", {}).items():
+    path = backup / rel
+    with path.open("rb") as stream:
+        actual = hashlib.file_digest(stream, "sha256").hexdigest()
+    if actual != expected:
+        raise RuntimeError("Archivio aggiornato dopo il confronto: conservato senza sovrascrivere " + rel)
+PYBASE
+fi
 
 mkdir -p "${NORMATIVA}/index"
 SOSTITUITI+=("normattiva.sqlite")
 mv -f -T "${STAGING}/normativa/normattiva.sqlite" "${NORMATIVA}/normattiva.sqlite"
 rimuovi_sidecar_db
 if [ "$CON_JSONL" = "1" ] && [ -f "${STAGING}/normativa/index/normattiva_chunks.jsonl" ]; then
+  SOSTITUITI+=("index/normattiva_chunks.jsonl")
   mv -f -T "${STAGING}/normativa/index/normattiva_chunks.jsonl" "${NORMATIVA}/index/normattiva_chunks.jsonl"
 fi
 if [ "$CON_VETTORI" = "1" ]; then

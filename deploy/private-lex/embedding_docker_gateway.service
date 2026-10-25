@@ -1,0 +1,18 @@
+[Unit]
+Description=IUSENTRA embedding only gateway for local Docker
+After=docker.service ollama.service
+Requires=docker.service ollama.service
+
+[Service]
+User=antmm2605
+ExecStart=/usr/bin/python3 /home/antmm2605/.local/lib/iusentra/embedding_docker_gateway.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_INET
+
+[Install]
+WantedBy=multi-user.target

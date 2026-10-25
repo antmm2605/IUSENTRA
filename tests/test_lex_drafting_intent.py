@@ -380,3 +380,49 @@ class TestEvidenceRelevanceGuard:
         )
         assert verdict.allowed is True
         assert len(verdict.warnings) == 0
+
+
+def test_lettera_non_catalogo_conserva_profilo_e_ricerca_cliente():
+    from lex.http_bounded_bridge import _resolve_intent, _resolve_workflow_hint
+    from lex.retrieval.sources.studio_database import _query_variants
+
+    question = "riscontro personalizzato al cliente"
+    context = {"effective_question": question}
+    profile = {"intent": "bozza_lettera"}
+    assert _resolve_intent(question, context, profile) == "bozza_lettera"
+    assert _resolve_workflow_hint(context, profile) == "drafting_legal_letter"
+    variants = _query_variants(question, "drafting_legal_letter")
+    assert variants[0] == question
+    assert f"{question} cliente soggetto anagrafica" in variants
+    assert len(variants) == len(set(variants))
+
+
+def test_pipeline_lettera_mantiene_avviso_sui_riferimenti_non_riscontrati():
+    from lex.contracts import LexRequest
+    from lex.formatting.answer_builder import AnswerBuilder
+    from lex.guards.orchestrator import GuardOrchestrator
+    from lex.orchestrator_workflow import run_workflow
+
+    request = LexRequest(tenant_id="studio-test", user_id="utente-test", session_id="sessione-test",
+                         query="riscontro personalizzato al cliente", intent="bozza_lettera")
+    text = ("**BOZZA — DIFFIDA E MESSA IN MORA**\n\n"
+            "Con la presente si invita il destinatario a verificare quanto indicato dal cliente. "
+            "Ai sensi dell'art. 1219 c.c., si richiede un riscontro alla comunicazione. "
+            "I fatti, gli importi e le date restano da completare sulla base dei documenti.")
+    context = {"tenant_id": "studio-test", "permessi": {"can_use_lex": True}}
+    evidence = {"items": [], "source_comparison": [{"title": "Documenti del cliente"}]}
+    provider = SimpleNamespace(generate=lambda **kwargs: SimpleNamespace(text=text, metadata={"provider": "test"}))
+    orchestrator = SimpleNamespace(
+        workflow_router=SimpleNamespace(resolve_workflow=lambda req: "drafting_legal_letter"),
+        workflow_context_builder=SimpleNamespace(build_request_context=lambda req, wf: context),
+        retrieval_orchestrator=SimpleNamespace(collect=lambda req, ctx, wf: evidence),
+        provider_registry=SimpleNamespace(pick=lambda req, ctx, wf, ev: provider),
+        guard_orchestrator=GuardOrchestrator(), response_formatter=AnswerBuilder(),
+        memory=None, telemetry=None,
+    )
+    response = run_workflow(orchestrator, request)
+    assert "Da verificare prima dell'uso" in response.answer
+    assert "1219" in response.answer
+    assert any("Riferimenti giuridici da verificare" in warning for warning in response.warnings)
+    assert response.citations == []
+    assert response.risk_level != "low"

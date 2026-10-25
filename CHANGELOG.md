@@ -13,6 +13,8 @@
 - Le richieste di redazione riconosciute aprono il percorso del catalogo senza invocare il modello: cliente e
   fascicolo vengono chiesti quando mancano. Varianti linguistiche e refusi minimi riguardano soltanto la selezione
   del modello; messaggio originale e fatti restano intatti. Le scelte restano disponibili dopo la ricarica.
+- Il riferimento allo script Lex include la sua impronta, nelle shell React e classica: le correzioni delle
+  scelte arrivano anche ai browser con asset in cache, senza cancellare la conversazione.
 - Il nome completo dell'atto prevale sui frammenti generici: riscontro e diffida, revoca e procura restano distinti.
   Due atti richiesti insieme o nomi uguali in aree diverse richiedono una scelta; le aree sono visibili nelle opzioni.
   La ricerca include anche gli alias realmente compilabili; una specifica istanza non propone altre istanze

@@ -11079,3 +11079,15 @@ def test_logout_ripulisce_la_cache_del_browser(tmp_path: Path):
 
     assert uscita.status_code in {301, 302}
     assert uscita.headers.get("Clear-Site-Data") == '"cache"'
+
+
+@pytest.mark.parametrize("template_name", ["base.html", "react_shell.html"])
+def test_lex_script_cache_key_tracks_published_content(template_name):
+    """Le correzioni Lex arrivano anche a browser con lo script in cache."""
+    root = Path(__file__).resolve().parents[1]
+    script = root / "web/static/js/pct-lex-assistant.js"
+    digest = hashlib.sha256(script.read_bytes()).hexdigest()[:16]
+    template = (root / "web/templates" / template_name).read_text(encoding="utf-8")
+    reference = re.search(r'<script src="/static/js/pct-lex-assistant\.js\?([^"]+)"', template)
+    assert reference is not None
+    assert f"lex_status={digest}" in reference.group(1)

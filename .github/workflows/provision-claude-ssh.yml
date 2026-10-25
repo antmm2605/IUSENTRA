@@ -1,0 +1,40 @@
+name: Accesso SSH dedicato Claude PC
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-hetzner-production
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  provision:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Installa soltanto accesso dedicato senza distribuire applicazione
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy 2>/dev/null || true' EXIT
+          code=$(base64 -w0 deploy/hetzner/provision_claude_ssh.py)
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts "${HETZNER_USER}@${HETZNER_HOST}" \
+            "sudo -n python3 -c \"import base64;exec(base64.b64decode('$code'))\"" \
+            < deploy/hetzner/claude-pcantonio-20261025.pub > claude-access-public-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-ssh-public-report
+          path: claude-access-public-report.json
+          retention-days: 3

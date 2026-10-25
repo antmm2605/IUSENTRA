@@ -69,6 +69,41 @@ def main():
     run("runuser", "-u", USER, "--", "git", "config", "--global", "--add", "safe.directory", str(REPO))
     host = Path("/etc/ssh/ssh_host_ed25519_key.pub").read_text().split()
     prefs = json.loads(run("tailscale", "debug", "prefs").stdout)
+    # Preserve shields-up semantics for all new inbound Tailscale traffic except
+    # this single PC/SSH capability. Public interfaces are never matched.
+    if not shutil.which("nft"):
+        raise RuntimeError("nft unavailable: do not relax shields-up")
+    rules = ('table inet iusentra_claude_ssh { chain input { '
+             'type filter hook input priority -20; policy accept; '
+             'iifname "tailscale0" ct state established,related accept; '
+             'iifname "tailscale0" ip saddr 100.69.184.43 tcp dport 22 accept; '
+             'iifname "tailscale0" counter drop; } }\n')
+    config = Path("/etc/iusentra-claude-ssh.nft")
+    if config.exists() and config.read_text() != rules:
+        raise ValueError("Dedicated network policy changed: preserve it")
+    config.write_text(rules);config.chmod(0o600)
+    loader = Path("/usr/local/sbin/iusentra-claude-ssh-firewall")
+    loader_body = ('#!/bin/sh\nset -eu\n{ if /usr/sbin/nft list table inet iusentra_claude_ssh >/dev/null 2>&1; then '
+                   'printf "delete table inet iusentra_claude_ssh\\n"; fi; '
+                   'cat /etc/iusentra-claude-ssh.nft; } | /usr/sbin/nft -f -\n')
+    if loader.exists() and loader.read_text() != loader_body:
+        raise ValueError("Dedicated firewall loader changed")
+    loader.write_text(loader_body);loader.chmod(0o700)
+    unit = Path("/etc/systemd/system/iusentra-claude-ssh-firewall.service")
+    unit_body = ('[Unit]\nDescription=PC-only IUSENTRA Claude SSH over Tailscale\n'
+                 'Before=tailscaled.service\nAfter=network-pre.target\n'
+                 '[Service]\nType=oneshot\nExecStart=/usr/local/sbin/iusentra-claude-ssh-firewall\n'
+                 'RemainAfterExit=yes\n[Install]\nWantedBy=multi-user.target\n')
+    if unit.exists() and unit.read_text() != unit_body:
+        raise ValueError("Dedicated firewall service changed")
+    unit.write_text(unit_body);unit.chmod(0o644)
+    run("systemctl", "daemon-reload")
+    run("systemctl", "enable", "iusentra-claude-ssh-firewall.service")
+    run("systemctl", "restart", "iusentra-claude-ssh-firewall.service")
+    run("nft", "list", "table", "inet", "iusentra_claude_ssh")
+    run("tailscale", "set", "--shields-up=false")
+    prefs = json.loads(run("tailscale", "debug", "prefs").stdout)
+
     network = {"shields_up": prefs.get("ShieldsUp"),
                "ufw": run("ufw", "status", "verbose").stdout,
                "sshd_listeners": [x for x in run("sshd", "-T").stdout.splitlines()

@@ -13,10 +13,11 @@ def test_catalogo_codici_oggetto_pst_importato_da_xsd_ufficiali():
     rows = list_codici_oggetto_pst()
     codes = {row["codice"] for row in rows}
 
-    assert catalog["versione"] == "2026-09-11.pst-xsd-official"
+    # XSD SICI in esercizio dal 19/10/2026: 13 nuovi codici rispetto al catalogo precedente.
+    assert catalog["versione"] == "2026-10-19.pst-xsd-official"
     assert catalog["fonte"]["tipo"] == "PST_XSD"
     assert catalog["fonte"]["betaAmmessiProduzione"] is False
-    assert len(rows) == 1018
+    assert len(rows) == 1031
     assert "014001" in codes
     assert "111604" in codes
 
@@ -64,7 +65,7 @@ def test_normalizza_codice_oggetto_pst_da_valore_descrittivo_importato():
 def test_tutti_i_codici_oggetto_pst_ufficiali_arrivano_al_deposito():
     rows = list_codici_oggetto_pst()
 
-    assert len(rows) == 1018
+    assert len(rows) == 1031
     for row in rows:
         codice = row["codice"]
         descrizione = row["descrizione"]

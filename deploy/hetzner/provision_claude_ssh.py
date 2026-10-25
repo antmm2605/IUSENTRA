@@ -15,7 +15,13 @@ PEER = "100.69.184.43"
 REPO = Path("/opt/iusentra/repo")
 
 def run(*args):
-    return subprocess.run(args, check=True, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True)
+    if result.returncode:
+        detail = result.stderr[-2000:]
+        if args[:2] == ("systemctl", "restart"):
+            detail += subprocess.run(["journalctl", "-u", "iusentra-claude-ssh-firewall", "-n", "20", "--no-pager", "-o", "cat"], capture_output=True, text=True).stdout
+        raise RuntimeError(str(args[:2]) + ": " + detail)
+    return result
 
 def main():
     public = sys.stdin.read().strip()

@@ -68,8 +68,14 @@ def main():
     run("visudo", "-c")
     run("runuser", "-u", USER, "--", "git", "config", "--global", "--add", "safe.directory", str(REPO))
     host = Path("/etc/ssh/ssh_host_ed25519_key.pub").read_text().split()
+    prefs = json.loads(run("tailscale", "debug", "prefs").stdout)
+    network = {"shields_up": prefs.get("ShieldsUp"),
+               "ufw": run("ufw", "status", "verbose").stdout,
+               "sshd_listeners": [x for x in run("sshd", "-T").stdout.splitlines()
+                                  if x.startswith("listenaddress ")]}
+
     print(json.dumps({"user": USER, "peer": PEER, "repo": str(REPO),
-        "host_public_key": " ".join(host[:2]), "key_fingerprint": run("ssh-keygen", "-lf", str(auth)).stdout.strip(),
+        "network": network, "host_public_key": " ".join(host[:2]), "key_fingerprint": run("ssh-keygen", "-lf", str(auth)).stdout.strip(),
         "privilege": "repository write, sudo docker (root-equivalent), governed main deployment wrapper",
         "existing_keys_preserved": True, "application_deployed": False,
         "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat()}))

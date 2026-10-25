@@ -1,3 +1,21 @@
+## 2.453.1 — Dati del fascicolo corretti per la stesura di Lex e per l'atto
+
+- La stesura di Lex parte dagli stessi dati della generazione dell'atto (precompilazione dal gestionale, cliente,
+  parti, studio) e non piu' dai soli valori digitati: senza marcatori [DATO MANCANTE] nella scheda, cosi' un campo
+  vuoto resta una domanda o viene preso dai fatti letti invece di risultare compilato.
+- I fatti dell'archivio delle letture arrivano a Lex con categoria, etichetta, valore e stato (verificato o da
+  confermare); esclusi i fatti respinti e l'impronta tecnica del testo.
+- Il numero interno del fascicolo non viene piu' usato come numero di ruolo o di procedimento negli atti (comparsa,
+  atti penali, riferimento generico): senza R.G. il campo resta da indicare (art. 168 c.p.c.).
+- Motore documenti: la domanda letta nelle conclusioni si ferma a istruttoria, produzioni, procura e relata di
+  notifica (la relata non entra piu' nel petitum). I titoli sono distinti dai richiami a procura e notifica contenuti
+  nella domanda. Nuova versione del motore: i documenti si rileggono tramite il registro incrementale esistente.
+- Restano invariati generatore buste, codici oggetto, tipi di atto PST, firma e invio PEC; nessuna selezione automatica
+  di nuovi codici di deposito. Il collegamento delle note interne ai fatti della controparte non viene cambiato.
+
+- La richiesta di stesura rispetta la decisione di astensione della scheda prima di avviare il modello: nessuna
+  bozza quando manca un documento che la scheda dichiara indispensabile. Le regole delle schede restano invariate.
+
 ## 2.453.0 — Lex scrive le parti dell'atto nella redazione guidata
 
 - Nella redazione guidata, per i modelli con scheda, l'avvocato scrive cosa deve ottenere l'atto e Lex scrive le

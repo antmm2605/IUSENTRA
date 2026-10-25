@@ -1090,7 +1090,8 @@ MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
     },
     "CIV_COM_001": {
         "court_name": ["fascicolo.tribunale"],
-        "proceeding_number": ["fascicolo.rg_completo", "fascicolo.numero"],
+        # Solo il R.G. dell'ufficio: il numero interno del fascicolo non e' un numero di ruolo (art. 168 c.p.c.).
+        "proceeding_number": ["fascicolo.rg_completo"],
         "defendant": ["cliente.nome_completo", "fascicolo.nome_cliente"],
         "plaintiff": ["fascicolo.controparte"],
         "lawyer_tax_code": ["config.STUDIO_CF"],
@@ -1117,12 +1118,12 @@ MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
     },
     "PEN_PARTECIVBASE_001": {
         "civil_party": ["cliente.nome_completo", "fascicolo.nome_cliente"],
-        "criminal_proceeding_reference": ["fascicolo.rg_completo", "fascicolo.numero"],
+        "criminal_proceeding_reference": ["fascicolo.rg_completo"],
         "damage_description": ["fascicolo.note"],
         "supporting_documents": ["fascicolo.documenti[].nome"],
     },
     "PEN_LISTATESTI_001": {
-        "criminal_proceeding_reference": ["fascicolo.rg_completo", "fascicolo.numero"],
+        "criminal_proceeding_reference": ["fascicolo.rg_completo"],
         "witness_list_details": ["fascicolo.documenti[].nome"],
     },
 }
@@ -2223,7 +2224,9 @@ def _resolve_ufficio_label(fascicolo: Any) -> str:
 
 
 def _resolve_riferimento_procedimento(fascicolo: Any) -> str:
-    return _first_non_empty(getattr(fascicolo, "rg_completo", ""), getattr(fascicolo, "numero", ""))
+    # Solo il numero di ruolo dell'ufficio: il numero interno del fascicolo dello studio non identifica il procedimento
+    # (art. 168 c.p.c.; art. 335 c.p.p.) e in un atto depositato sarebbe un riferimento errato. Vuoto = dato da chiedere.
+    return _first_non_empty(getattr(fascicolo, "rg_completo", ""), "")
 
 
 def _normalize_form_value(value: Any, field_type: str) -> Any:

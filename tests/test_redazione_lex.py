@@ -244,3 +244,137 @@ def test_provider_pc_configurato_non_ripiega_sul_modello_server(monkeypatch):
     assert provider_locale(gateway) == ""
     gateway.providers["llamacpp"] = object()
     assert provider_locale(gateway) == "llamacpp"
+
+
+
+def test_domanda_si_ferma_alla_relata_di_notifica():
+    from types import SimpleNamespace
+
+    from pct.archivio_letture.estrazione_domanda import estrai_domanda
+
+    testo = ("ATTO DI CITAZIONE ... Conclusioni: condannare Rossi Mario al pagamento di euro 160.000,00. "
+             "RELATA DI NOTIFICA: notificato a mezzo PEC il 02/11/2026.")
+    fatto = estrai_domanda(testo, origine="nativo", contesto=SimpleNamespace(testo_secondario=""))[0]
+    assert fatto.valore == "condannare Rossi Mario al pagamento di euro 160.000,00."
+
+
+def test_numero_interno_non_diventa_numero_di_ruolo():
+    from pct.compilatore_atti import _resolve_riferimento_procedimento
+
+    assert _resolve_riferimento_procedimento(SimpleNamespace(rg_completo="", numero="2026/001")) == ""
+    assert _resolve_riferimento_procedimento(SimpleNamespace(rg_completo="1234/2026", numero="2026/001")) == "1234/2026"
+
+
+def test_domanda_non_tronca_richiami_a_procura_o_notifica():
+    from pct.archivio_letture.estrazione_domanda import estrai_domanda
+
+    for richiesta in (
+        "Si chiede dichiarare la nullità della procura alle liti e condannare la controparte al risarcimento.",
+        "Si chiede dichiarare la nullità della relata di notifica e revocare il provvedimento.",
+        "Si chiede ammettere in via istruttoria la prova per testimoni sui fatti dedotti.",
+    ):
+        fatti = estrai_domanda("ATTO DI CITAZIONE\nConclusioni: " + richiesta,
+                              origine="nativo", contesto=SimpleNamespace(testo_secondario=""))
+        assert fatti[0].valore == richiesta.removeprefix("Si ")
+
+
+def test_domanda_si_ferma_ai_titoli_di_sezione():
+    from pct.archivio_letture.estrazione_domanda import estrai_domanda
+
+    richiesta = "condannare la controparte al pagamento di euro 1000"
+    for titolo in ("PROCURA ALLE LITI", "In via istruttoria", "RELAZIONE DI NOTIFICAZIONE"):
+        testo = "ATTO DI CITAZIONE\nConclusioni: " + richiesta + "\n" + titolo + "\nTesto estraneo alla domanda."
+        fatti = estrai_domanda(testo, origine="nativo", contesto=SimpleNamespace(testo_secondario=""))
+        assert fatti[0].valore == richiesta
+        assert "Testo estraneo" not in fatti[0].valore
+
+
+def test_intestazione_senza_domanda_non_prende_il_testo_della_procura():
+    from pct.archivio_letture.estrazione_domanda import estrai_domanda
+
+    testo = "ATTO DI CITAZIONE\nCONCLUSIONI\nPROCURA ALLE LITI\nSi chiede il rilascio di copia."
+    assert estrai_domanda(testo, origine="nativo", contesto=SimpleNamespace(testo_secondario="")) == []
+
+
+def test_fatti_per_lex_includono_valore_stato_e_scartano_respinti(monkeypatch):
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import archivio_letture_runtime, redazione_lex_runtime
+
+    fatti = [
+        Fatto(categoria="data", campo="udienza", valore="15/03/2027", etichetta="Udienza", verifica="verificata"),
+        Fatto(categoria="evento", campo="domanda_atto", valore="Domanda da confermare", verifica="plausibile"),
+        Fatto(categoria="evento", campo="domanda_atto", valore="NON USARE", verifica="respinta"),
+        Fatto(categoria="evento", campo="impronta_testo_atto", valore="HASH TECNICO", verifica="verificata"),
+    ]
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", lambda fascicolo: fatti)
+    testo = redazione_lex_runtime._testo_fatti(SimpleNamespace(id="fixture"))
+    assert "data / Udienza: 15/03/2027 (verificato)" in testo
+    assert "Domanda da confermare (letto, da confermare)" in testo
+    assert "NON USARE" not in testo and "HASH TECNICO" not in testo
+
+
+def test_archivio_indisponibile_blocca_ancora_la_stesura(monkeypatch):
+    import pytest
+    from web.services import archivio_letture_runtime, redazione_lex_runtime
+
+    def indisponibile(_):
+        raise RuntimeError("fixture offline")
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", indisponibile)
+    with pytest.raises(ValueError, match="letture del fascicolo non sono disponibili"):
+        redazione_lex_runtime._testo_fatti(SimpleNamespace(id="fixture"))
+
+
+def test_api_stesura_riusa_prefill_reale_senza_marcatori(tmp_path, monkeypatch):
+    from lex.gateway import service
+    from tests.test_redazione_guidata import _app_redazione
+    from web.services import archivio_letture_runtime, redazione_lex_runtime, schede_compilazione_runtime
+
+    app, cliente, fascicolo = _app_redazione(tmp_path)
+    def modello_non_deve_partire():
+        raise AssertionError("La scheda richiede astensione prima del modello")
+    monkeypatch.setattr(service, "LexGateway", modello_non_deve_partire)
+    monkeypatch.setattr(redazione_lex_runtime, "provider_locale", lambda _: "llamacpp")
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", lambda _: [])
+    osservati = []
+    originale = schede_compilazione_runtime.compilazione_per_modello
+    def osserva(code, valori, caso):
+        osservati.append(dict(valori))
+        return originale(code, valori, caso)
+    monkeypatch.setattr(schede_compilazione_runtime, "compilazione_per_modello", osserva)
+    monkeypatch.setattr(redazione_lex_runtime, "stesura", lambda **kwargs: {"blocchi": [], "campiScheda": kwargs["risolta"]["campi"]})
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        richiesta = {"modelCode": "CIV_COM_001", "oggetto": "Prepara una comparsa dai dati collegati",
+                     "idFascicolo": fascicolo.id, "idCliente": cliente.id, "valori": {}}
+        result = client.post("/api/v1/ui/redazione-atti/lex/blocchi", json=richiesta).get_json()
+        assert result["ok"] is False
+        assert "citazione" in result["errore"].lower()
+        payload = osservati[-1]
+        assert payload["defendant"] == cliente.nome_completo
+        assert payload["court_name"] == "Tribunale di Palmi"
+        assert payload["proceeding_number"] == ""
+        assert not any("[DATO MANCANTE" in str(v) for k, v in payload.items() if not k.startswith("_"))
+        richiesta["valori"] = {"defendant": "Nome confermato dall’avvocato", "_object_code": "999999"}
+        result = client.post("/api/v1/ui/redazione-atti/lex/blocchi", json=richiesta).get_json()
+        assert result["ok"] is False
+        assert "citazione" in result["errore"].lower()
+        assert osservati[-1]["defendant"] == "Nome confermato dall’avvocato"
+        assert osservati[-1]["_object_code"] == payload["_object_code"]
+        assert osservati[-1]["_object_code"] != "999999"
+
+
+def test_prefill_civile_e_penale_conserva_rg_senza_usare_il_numero_interno():
+    from pct.compilatore_atti import prefill_payload
+    from tests.test_compilatore_atti import _fake_fascicolo, _fake_cliente, _fake_utente
+
+    for model, campo in (("CIV_COM_001", "proceeding_number"),
+                         ("PEN_PARTECIVBASE_001", "criminal_proceeding_reference"),
+                         ("PEN_LISTATESTI_001", "criminal_proceeding_reference")):
+        fascicolo = _fake_fascicolo()
+        fascicolo.rg_completo = ""
+        vuoto = prefill_payload(model, fascicolo=fascicolo, cliente=_fake_cliente(), utente=_fake_utente())
+        assert vuoto[campo] == ""
+        assert vuoto["case_id"] == fascicolo.id
+        fascicolo.rg_completo = "RG 1025/2024"
+        completo = prefill_payload(model, fascicolo=fascicolo, cliente=_fake_cliente(), utente=_fake_utente())
+        assert completo[campo] == "RG 1025/2024"

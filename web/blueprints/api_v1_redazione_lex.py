@@ -41,9 +41,28 @@ def redazione_lex_blocchi():
                                                                          str(dati.get("idCliente") or ""))
         if errore:
             return jsonify(ok=False, errore=errore), 200
-        risolta = compilazione_per_modello(model_code, valori, fascicolo)
+        # Stessa base della generazione dell'atto: dati del gestionale (prefill del compilatore dal fascicolo,
+        # cliente, parti e studio) piu' i valori dell'avvocato; i fatti letti arrivano dall'archivio delle letture.
+        from web.blueprints.api_v1_react import _studio_prefill_config
+        from web.blueprints.template_atti import _build_parti_template_context, _get_studio_timbro
+        from pct.compilatore_atti import merge_payload_with_form, prefill_payload
+
+        _, parti = _build_parti_template_context(fascicolo.id)
+        # Nessun marcatore [DATO MANCANTE] qui: un campo vuoto deve restare vuoto perche' la scheda lo riconosca come
+        # da chiedere o lo prenda dai fatti letti, invece di considerarlo compilato.
+        payload = prefill_payload(model_code, fascicolo=fascicolo, cliente=cliente, utente=utente,
+                                  config=_studio_prefill_config(), studio_timbro=_get_studio_timbro(), parti=parti)
+        valori_avvocato = {str(k): v for k, v in valori.items() if str(k).strip()}
+        if valori_avvocato:
+            payload = merge_payload_with_form(model_code, initial_payload=payload, form_data=valori_avvocato)
+        risolta = compilazione_per_modello(model_code, payload, fascicolo)
         if not risolta or not risolta.get("scrive_lex"):
             return jsonify(ok=False, errore="Per questo modello non c'e' una scheda con parti da far scrivere a Lex."), 200
+        from pct.schede_lex import decisione
+
+        scelta = decisione(risolta)
+        if scelta["esito"] == "astensione":
+            return jsonify(ok=False, errore=scelta["messaggio"]), 200
         gateway = LexGateway()
         provider = runtime.provider_locale(gateway)
         if not provider:

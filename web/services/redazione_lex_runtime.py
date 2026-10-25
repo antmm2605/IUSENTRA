@@ -54,9 +54,13 @@ def _testo_fatti(fascicolo: Any) -> str:
     except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
         raise ValueError("Le letture del fascicolo non sono disponibili: riprovare prima della stesura.") from exc
     righe = []
-    for f in fatti:
-        d = f if isinstance(f, dict) else getattr(f, "__dict__", {})
-        righe.append(" ".join(str(d.get(k) or "") for k in ("campo", "valore", "contesto") if d.get(k)))
+    for f in fatti:  # gia' filtrati dall'archivio: solo verificati, plausibili o corretti dall'avvocato
+        leggi = (lambda k: f.get(k)) if isinstance(f, dict) else (lambda k: getattr(f, k, ""))
+        if str(leggi("verifica") or "") in {"respinto", "respinta", "ignorata"} or leggi("categoria") == "evento" and leggi("campo") == "impronta_testo_atto":
+            continue
+        etichetta = str(leggi("etichetta") or leggi("campo") or leggi("categoria") or "")
+        stato = "verificato" if leggi("verifica") in {"verificata", "corretta"} else "letto, da confermare"
+        righe.append(f"- {leggi('categoria')} / {etichetta}: {leggi('valore')} ({stato})")
     return "\n".join(r for r in righe if r.strip())
 
 

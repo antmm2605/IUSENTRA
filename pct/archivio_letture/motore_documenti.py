@@ -34,7 +34,7 @@ VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+mod
 VERSIONE_MOTORE_DOCUMENTI_V15 = f"2026.09.26.motore-documenti.v15+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 # v16: i prospetti a tabella (voci, importi, prova dei conti). Si rilegge una
 # volta dal testo già indicizzato: nessuna nuova estrazione dai PDF.
-VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_ESTRAZIONE_TABELLE}+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}+date:{VERSIONE_DATE_PROCESSUALI}"
+VERSIONE_MOTORE_DOCUMENTI = f"2026.09.26.motore-documenti.v16+tabelle:{VERSIONE_ESTRAZIONE_TABELLE}+parti:{VERSIONE_ESTRAZIONE_PARTI}+ruolo-amministrativo+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}+date:{VERSIONE_DATE_PROCESSUALI}+domanda-confini"
 VERSIONE_MOTORE_DOCUMENTI += f"+copie:{VERSIONE_COPIE_ATTI}"
 VERSIONE_MOTORE_DOCUMENTI += f"+prove:{VERSIONE_PROVE_NOTIFICA}"
 VERSIONE_MOTORE_DOCUMENTI += f"+date-modello:{VERSIONE_DATE_CAMPI_MODELLI}"

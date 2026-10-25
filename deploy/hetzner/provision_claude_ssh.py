@@ -83,10 +83,13 @@ def main():
              'type filter hook input priority -20; policy accept; '
              'iifname "tailscale0" ct state established,related accept; '
              'iifname "tailscale0" ip saddr 100.69.184.43 tcp dport 22 accept; '
-             'iifname "tailscale0" counter drop; } }\n')
+             'iifname "tailscale0" counter drop; }\n}\n')
     config = Path("/etc/iusentra-claude-ssh.nft")
-    if config.exists() and config.read_text() != rules:
+    legacy_rules = rules.replace("drop; }\n}\n", "drop; } }\n")
+    if config.exists() and config.read_text() not in {rules, legacy_rules}:
         raise ValueError("Dedicated network policy changed: preserve it")
+    if config.exists() and config.read_text() == legacy_rules:
+        shutil.copy2(config, backup / "firewall-syntax-before.nft")
     config.write_text(rules);config.chmod(0o600)
     loader = Path("/usr/local/sbin/iusentra-claude-ssh-firewall")
     loader_body = ('#!/bin/sh\nset -eu\n{ if /usr/sbin/nft list table inet iusentra_claude_ssh >/dev/null 2>&1; then '

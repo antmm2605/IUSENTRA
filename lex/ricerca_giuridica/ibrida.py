@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 from pct import embeddinggemma2
 
-from .embedding import EmbedderDomande, EmbedderNonDisponibile, OllamaEmbedder
+from .embedding import EmbedderDomande, EmbedderNonDisponibile, OllamaEmbedder, testo_documento
 from .indice_fts import (
     BONUS_ARTICOLO_SENZA_CODICE,
     BONUS_ESATTO,
@@ -34,7 +34,7 @@ from .indice_fts import (
     deduplica_versioni,
     indice_fts_presente,
 )
-from .indice_vettoriale import IndiceIncompatibile, IndiceVettoriale
+from .indice_vettoriale import IndiceIncompatibile, IndiceVettoriale, _titolo_chunk, impronta_testo
 from .testo import AnalisiDomanda, analizza_domanda
 
 logger = logging.getLogger(__name__)
@@ -147,6 +147,33 @@ def fondi_rrf(
     return deduplica_versioni(uscita)
 
 
+def _verifica_firme_correnti(conn: sqlite3.Connection, firme: list[tuple[int, int]]) -> set[tuple[int, int]]:
+    """Controlla solo i candidati: nessuna scansione del corpus nella richiesta."""
+    if not firme:
+        return set()
+    richieste = set(firme)
+    ids = list(dict.fromkeys(ident for ident, _ in firme))
+    valide: set[tuple[int, int]] = set()
+    cursor = conn.cursor()
+    cursor.row_factory = sqlite3.Row
+    try:
+        for offset in range(0, len(ids), 500):
+            parte = ids[offset:offset + 500]
+            rows = cursor.execute(
+                "SELECT c.id AS chunk_id,c.chunk_text,a.article_number,a.article_title,d.titolo,d.numero,d.data_atto "
+                "FROM normative_chunks c JOIN normative_documents d ON d.id=c.document_id "
+                "LEFT JOIN normative_articles a ON a.id=c.article_id WHERE c.id IN ("
+                + ",".join("?" for _ in parte) + ")", parte,
+            ).fetchall()
+            for row in rows:
+                firma = (int(row["chunk_id"]), impronta_testo(testo_documento(_titolo_chunk(row), row["chunk_text"] or "")))
+                if firma in richieste:
+                    valide.add(firma)
+    finally:
+        cursor.close()
+    return valide
+
+
 @dataclass
 class MotoreRicercaNormattiva:
     """Ricerca su un database Normattiva con indice FTS5 ed eventuale indice vettoriale."""
@@ -241,11 +268,18 @@ class MotoreRicercaNormattiva:
         quanti = max(50, limite * 5)
         lessicali = [] if modalita == "semantica" else cerca_fts(conn, analisi, limite=quanti, vigenza=vigenza)
         semantici: list[tuple[int, float]] = []
+        scartati = 0
+
+        def verifica(firme):
+            nonlocal scartati
+            valide = _verifica_firme_correnti(conn, firme)
+            scartati = sum(firma not in valide for firma in firme)
+            return valide
         if modalita in {"ibrida", "semantica"} and self._indice is not None:
             vettore = self._vettore_domanda(domanda)
             if vettore is not None:
                 try:
-                    semantici = self._indice.cerca(vettore, k=quanti)
+                    semantici = self._indice.cerca(vettore, k=quanti, verifica=verifica)
                 except IndiceIncompatibile as exc:
                     self._motivo_semantica = f"indice vettoriale ignorato: {exc}"
                     self._indice = None
@@ -261,12 +295,13 @@ class MotoreRicercaNormattiva:
             ),
             "lessicali": len(lessicali),
             "semantici": len(semantici),
+            "semantici_scartati_non_aggiornati": scartati,
             "riferimento_esatto": analisi.riferimento_esatto,
             "articoli": analisi.articoli,
             "codice": analisi.codice,
             "termini": analisi.termini,
             "espansioni": analisi.espansioni,
-            "motivo_semantica": "" if semantici else self._motivo_semantica,
+            "motivo_semantica": (f"Esclusi {scartati} vettori non aggiornati al testo corrente" if scartati else "" if semantici else self._motivo_semantica),
         }
         return fusi[: max(1, int(limite))], dettagli
 

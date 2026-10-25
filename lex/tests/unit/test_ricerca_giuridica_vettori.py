@@ -406,3 +406,37 @@ def test_motore_riscalda_senza_indice(tmp_path):
     c.close()
     motore = MotoreRicercaNormattiva(tmp_path / "n.db")
     assert motore.riscalda(1.0) is False
+
+
+def test_semantic_candidates_are_checked_against_current_text_and_article(conn, tmp_path):
+    embedder = Contatore(64)
+    target = tmp_path / "verified-index"
+    iv.costruisci_indice(conn, target, embedder)
+    sincronizza_fts(conn)
+    motor = MotoreRicercaNormattiva(tmp_path / "n.db", target, embedder=embedder)
+    first, second = [r[0] for r in conn.execute("SELECT id FROM normative_chunks ORDER BY id LIMIT 2")]
+    conn.execute("UPDATE normative_chunks SET chunk_text='Il testo e cambiato' WHERE id=?", (first,))
+    conn.execute("UPDATE normative_chunks SET article_id=(SELECT article_id FROM normative_chunks WHERE id=?) WHERE id=?", (first, second))
+    conn.commit()
+    results, details = motor.cerca_id(conn, "risarcimento danno", modalita="semantica")
+    assert first not in {r.chunk_id for r in results}
+    assert second not in {r.chunk_id for r in results}
+    assert details["semantici_scartati_non_aggiornati"] == 2
+    assert "non aggiornati" in details["motivo_semantica"]
+    iv.costruisci_indice(conn, target, embedder)
+    motor = MotoreRicercaNormattiva(tmp_path / "n.db", target, embedder=embedder)
+    results, details = motor.cerca_id(conn, "risarcimento danno", modalita="semantica")
+    assert {first, second} <= {r.chunk_id for r in results}
+    assert details["semantici_scartati_non_aggiornati"] == 0
+
+
+def test_normattiva_without_text_fingerprints_does_not_claim_semantic_results(conn, tmp_path):
+    embedder = Contatore(64)
+    target = tmp_path / "without-fingerprints"
+    iv.costruisci_indice(conn, target, embedder)
+    sincronizza_fts(conn)
+    (target / "impronte.u64").unlink()
+    motor = MotoreRicercaNormattiva(tmp_path / "n.db", target, embedder=embedder)
+    results, details = motor.cerca_id(conn, "risarcimento danno", modalita="semantica")
+    assert not results and details["semantici"] == 0
+    assert "Impronte" in details["motivo_semantica"]

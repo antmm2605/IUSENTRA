@@ -126,7 +126,7 @@ class IndiceVettoriale:
         return self._mappe
 
     # ------------------------------------------------------------------ ricerca
-    def cerca(self, vettore: np.ndarray, *, k: int = 50, blocco: int = 8192, ids_ammessi: set[int] | None = None) -> list[tuple[int, float]]:
+    def cerca(self, vettore: np.ndarray, *, k: int = 50, blocco: int = 8192, ids_ammessi: set[int] | None = None, verifica: Callable[[list[tuple[int, int]]], set[tuple[int, int]]] | None = None) -> list[tuple[int, float]]:
         """Prodotto scalare esatto a blocchi; restituisce (id chunk, coseno) in ordine decrescente."""
 
         from .costruzione_iniziale import disponibile
@@ -172,11 +172,21 @@ class IndiceVettoriale:
         punti = np.concatenate(migliori_punti)
         righe = np.concatenate(migliori_righe)
         ordine = np.argsort(-punti)[:k]
-        return [
-            (int(ids[righe[i]]), float(punti[i]))
-            for i in ordine
-            if np.isfinite(punti[i]) and int(ids[righe[i]]) >= 0
-        ]
+        scelti = [i for i in ordine if np.isfinite(punti[i]) and int(ids[righe[i]]) >= 0]
+        if verifica is not None:
+            impronte = mappe.get("impronte")
+            if impronte is None:
+                try:
+                    impronte = np.fromfile(self.cartella / _FILE_IMPRONTE, dtype=np.uint64, count=self.righe)
+                except OSError as exc:
+                    raise IndiceIncompatibile("Impronte dei testi assenti: vettori non verificabili") from exc
+                if len(impronte) != self.righe:
+                    raise IndiceIncompatibile("Impronte dei testi incomplete: vettori non verificabili")
+                mappe["impronte"] = impronte
+            firme = [(int(ids[righe[i]]), int(impronte[righe[i]])) for i in scelti]
+            valide = verifica(firme)
+            scelti = [i for i, firma in zip(scelti, firme, strict=True) if firma in valide]
+        return [(int(ids[righe[i]]), float(punti[i])) for i in scelti]
 
 
 # ---------------------------------------------------------------------------------------------- #

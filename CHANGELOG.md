@@ -1,6 +1,7 @@
 ## 2.453.2 — Parità e isolamento degli indici Normattiva
 
 - La biblioteca Codici e leggi usa una cartella vettoriale distinta dall’archivio generale: gli ID SQL di cataloghi diversi non vengono associati agli stessi vettori. Testi, approvazioni e codici di deposito restano invariati.
+- Ogni candidato semantico Normattiva viene confrontato con l’impronta del testo attuale: un vettore rimasto indietro dopo un aggiornamento non contribuisce alla classifica. Il controllo riguarda soltanto i candidati, non scandisce il corpus nella richiesta.
 - Aggiunti strumenti in sola lettura per snapshot pubblico, impronte, confronto del percorso reale e campione congelato di 30 domande. La presenza di un indice non certifica da sola la copertura dei testi.
 - Il collegamento embedding dal Docker locale a WSL è limitato al solo modello embeddinggemma:300m sulla rete Docker, separato dalla generazione degli atti e dal modello 35B.
 - L’installazione usa backup SQLite coerenti e indipendenti, ferma i servizi durante lo scambio e ripristina i dati se la verifica fallisce. Rifiuta di sovrascrivere aggiornamenti successivi al confronto.

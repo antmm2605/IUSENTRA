@@ -6,14 +6,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1097.
+- File pytest censiti: 1098.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 125 |
-| Backend | 138 |
+| Backend | 139 |
 | E2E | 15 |
 | Frontend static gate | 1 |
 | Frontend/UI | 341 |
@@ -33,7 +33,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 31 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 75 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 90 |
-| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 205 |
+| 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 206 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
 | 09-misc | Test non classificati dalle fasi principali | 519 |
 
@@ -96,6 +96,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Audit | API contract | tests/test_audit_integrations.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Audit | Backend | tests/test_audit_canonical.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Backend | tests/test_audit_hashing.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Audit | Backend | tests/test_normattiva_runtime_audit.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Audit | Frontend/UI | tests/test_audit_merkle.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Audit | Frontend/UI | tests/test_audit_signing.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Audit | Frontend/UI | tests/test_functional_parity_audit.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

@@ -1,0 +1,51 @@
+name: Audit runtime pubblico Normattiva
+on:
+  workflow_dispatch:
+    inputs:
+      benchmark:
+        description: Esegue anche le 30 domande congelate sul percorso reale
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: normattiva-runtime-audit
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verifica read-only di app e worker sui soli cataloghi normativi
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+          BENCHMARK: ${{ inputs.benchmark }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_audit
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_audit 2>/dev/null || true' EXIT
+          opts=(-i "$HOME/.ssh/id_audit" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -o ServerAliveInterval=30)
+          extra=""
+          if [ "$BENCHMARK" = true ]; then
+            query=$(base64 -w0 deploy/hetzner/normattiva_parity_queries.json)
+            [[ "$query" =~ ^[A-Za-z0-9+/=]+$ ]]
+            extra="--queries-b64 $query"
+          fi
+          for container in iusentra-app iusentra-scheduler-worker; do
+            ssh "${opts[@]}" "${HETZNER_USER}@${HETZNER_HOST}"               "docker exec -i $container python - $extra"               < deploy/hetzner/audit_normattiva_runtime.py > "$container.json"
+            python -c 'import json,sys; d=json.load(open(sys.argv[1])); print(sys.argv[1], d["scope"], d["counts"], d["files"]["normattiva.sqlite"]["sha256"])' "$container.json"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: normattiva-runtime-audit
+          path: iusentra-*.json
+          retention-days: 7

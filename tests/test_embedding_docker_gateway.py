@@ -43,3 +43,8 @@ def test_tags_hide_generation_models_and_preserve_digest(monkeypatch):
             pass
     monkeypatch.setattr(gateway.http.client, "HTTPConnection", Connection)
     assert gateway.forward("GET", "/api/tags", None) == (200, {"models": [{"name": gateway.MODEL, "digest": "expected"}]})
+
+
+def test_gateway_has_dedicated_port_and_loopback_upstream_is_separate():
+    assert gateway.BIND == "172.17.0.1"
+    assert gateway.BIND_PORT == 11435

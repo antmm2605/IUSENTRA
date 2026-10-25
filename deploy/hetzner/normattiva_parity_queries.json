@@ -1,0 +1,217 @@
+{
+  "creato_utc": "2026-10-25T12:41:42.832309+00:00",
+  "scopo": "Confronto diagnostico Normattiva: domande congelate prima dei risultati. Non prova di accuratezza giuridica generale. Attesi identificati nel testo XML/importato, nessuna inferenza sulla vigenza odierna.",
+  "metrica": "articolo atteso tra primi10, stesso atto/data, esclusi suffissi diversi",
+  "casi": [
+    {
+      "id": 1,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "2043",
+      "domanda": "risarcimento del danno ingiusto causato con dolo o colpa"
+    },
+    {
+      "id": 2,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1385",
+      "domanda": "caparra confirmatoria restituzione del doppio"
+    },
+    {
+      "id": 3,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1453",
+      "domanda": "risoluzione del contratto per inadempimento e risarcimento"
+    },
+    {
+      "id": 4,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1218",
+      "domanda": "responsabilità del debitore che non esegue la prestazione"
+    },
+    {
+      "id": 5,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "2697",
+      "domanda": "chi deve provare i fatti del diritto fatto valere in giudizio"
+    },
+    {
+      "id": 6,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "2946",
+      "domanda": "prescrizione ordinaria dei diritti dieci anni"
+    },
+    {
+      "id": 7,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1490",
+      "domanda": "garanzia venditore per difetti della cosa venduta"
+    },
+    {
+      "id": 8,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1667",
+      "domanda": "garanzia appaltatore difformità e vizi opera"
+    },
+    {
+      "id": 9,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1571",
+      "domanda": "contratto godimento cosa mobile immobile verso corrispettivo"
+    },
+    {
+      "id": 10,
+      "data_atto": "1942-03-16",
+      "numero": "262",
+      "articolo": "1176",
+      "domanda": "diligenza professionale adempimento obbligazioni"
+    },
+    {
+      "id": 11,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "163",
+      "domanda": "contenuto obbligatorio atto di citazione"
+    },
+    {
+      "id": 12,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "166",
+      "domanda": "costituzione convenuto settanta giorni prima udienza"
+    },
+    {
+      "id": 13,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "167",
+      "domanda": "comparsa di risposta domande riconvenzionali decadenze"
+    },
+    {
+      "id": 14,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "155",
+      "domanda": "computo termini processuali sabato giorno festivo"
+    },
+    {
+      "id": 15,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "633",
+      "domanda": "decreto ingiuntivo credito somma liquida prova scritta"
+    },
+    {
+      "id": 16,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "474",
+      "domanda": "titolo esecutivo diritto certo liquido esigibile"
+    },
+    {
+      "id": 17,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "480",
+      "domanda": "precetto intimazione ad adempiere dieci giorni"
+    },
+    {
+      "id": 18,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "409",
+      "domanda": "controversie individuali lavoro subordinato"
+    },
+    {
+      "id": 19,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "414",
+      "domanda": "ricorso lavoro forma della domanda elementi obbligatori"
+    },
+    {
+      "id": 20,
+      "data_atto": "1940-10-28",
+      "numero": "1443",
+      "articolo": "700",
+      "domanda": "provvedimento urgenza pregiudizio imminente irreparabile"
+    },
+    {
+      "id": 21,
+      "data_atto": "1930-10-19",
+      "numero": "1398",
+      "articolo": "40",
+      "domanda": "rapporto causalità omesso impedimento evento obbligo giuridico"
+    },
+    {
+      "id": 22,
+      "data_atto": "1930-10-19",
+      "numero": "1398",
+      "articolo": "42",
+      "domanda": "responsabilità penale azione omissione coscienza volontà"
+    },
+    {
+      "id": 23,
+      "data_atto": "1930-10-19",
+      "numero": "1398",
+      "articolo": "43",
+      "domanda": "elemento psicologico reato dolo colpa preterintenzione"
+    },
+    {
+      "id": 24,
+      "data_atto": "1930-10-19",
+      "numero": "1398",
+      "articolo": "52",
+      "domanda": "legittima difesa necessità difendere diritto offesa ingiusta"
+    },
+    {
+      "id": 25,
+      "data_atto": "1930-10-19",
+      "numero": "1398",
+      "articolo": "56",
+      "domanda": "delitto tentato atti idonei diretti non equivoco"
+    },
+    {
+      "id": 26,
+      "data_atto": "2010-07-02",
+      "numero": "104",
+      "articolo": "29",
+      "domanda": "azione annullamento provvedimento amministrativo"
+    },
+    {
+      "id": 27,
+      "data_atto": "2010-07-02",
+      "numero": "104",
+      "articolo": "30",
+      "domanda": "azione condanna risarcimento danno amministrativo"
+    },
+    {
+      "id": 28,
+      "data_atto": "2010-07-02",
+      "numero": "104",
+      "articolo": "55",
+      "domanda": "misure cautelari collegiali giudice amministrativo"
+    },
+    {
+      "id": 29,
+      "data_atto": "2010-07-02",
+      "numero": "104",
+      "articolo": "60",
+      "domanda": "definizione giudizio amministrativo udienza cautelare"
+    },
+    {
+      "id": 30,
+      "data_atto": "2010-07-02",
+      "numero": "104",
+      "articolo": "116",
+      "domanda": "rito accesso documenti amministrativi"
+    }
+  ]
+}

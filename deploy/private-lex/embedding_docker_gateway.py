@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MODEL = "embeddinggemma:300m"
 BIND = "172.17.0.1"
+BIND_PORT = 11435
 NETWORKS = tuple(ipaddress.ip_network(n) for n in ("172.17.0.0/16", "172.18.0.0/16"))
 MAX_BODY = 1024 * 1024
 IN_FLIGHT = threading.BoundedSemaphore(2)
@@ -112,4 +113,4 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ThreadingHTTPServer((BIND, 11434), Handler).serve_forever()
+    ThreadingHTTPServer((BIND, BIND_PORT), Handler).serve_forever()

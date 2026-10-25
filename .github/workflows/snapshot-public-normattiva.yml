@@ -1,0 +1,44 @@
+name: Snapshot pubblico Normattiva
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: normattiva-public-snapshot
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Snapshot coerente dei soli dati normativi pubblici
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_snapshot
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_snapshot 2>/dev/null || true' EXIT
+          target="${HETZNER_USER}@${HETZNER_HOST}"
+          ident="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          opts=(-i "$HOME/.ssh/id_snapshot" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -o ServerAliveInterval=30)
+          ssh "${opts[@]}" "$target" "python3 - --run $ident" < deploy/hetzner/snapshot_normattiva_public.py | tee manifest-export.json
+          scp "${opts[@]}" "$target:/opt/iusentra/normattiva-parity/exports/$ident.tar.gz" public-normattiva.tar.gz
+          expected=$(python -c 'import json;print(json.load(open("manifest-export.json"))["sha256"])')
+          printf '%s  public-normattiva.tar.gz\n' "$expected" | sha256sum -c -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-normattiva-snapshot
+          path: |
+            manifest-export.json
+            public-normattiva.tar.gz
+          compression-level: 0
+          retention-days: 3

@@ -247,3 +247,52 @@ def test_provider_compliance_legge_controlli_blocchi_warning_e_gate_deposito():
     assert "Pre-deposito: non pronto. Procura mancante" in draft.text
     assert "caricare la procura firmata" in draft.text
 
+
+
+def test_diffida_fallback_usa_profilo_studio_reale_e_non_inventa_i_dati_mancanti(tmp_path):
+    import json
+    from flask import Flask
+
+    config = tmp_path / "studio.json"
+    config.write_text(json.dumps({
+        "studio": {"nome": "Studio Sintetico", "avvocato": "Avv. Esempio",
+                   "indirizzo": "Via Esempio 1", "city": "Torino", "province": "TO"},
+        "pec": {"indirizzo": "studio@example.test"},
+    }))
+    app = Flask(__name__)
+    app.config.update(STUDIO_CONFIG=str(config), STUDIO_NOME="Profilo superato")
+    before = config.read_bytes()
+    with app.app_context():
+        draft = DeterministicProvider().generate(
+            _request("diffida e messa in mora"),
+            {"studio_profile": {"nome": "Altro profilo"},
+             "sources": [{"id": "cliente:uno", "title": "Cliente Sintetico"}]},
+            _evidence(), "drafting_legal_letter",
+        )
+    assert "Studio Sintetico" in draft.text
+    assert "Avv. Esempio" in draft.text
+    assert "Via Esempio 1, Torino, TO" in draft.text
+    assert "studio@example.test" in draft.text
+    assert "Cliente Sintetico" in draft.text
+    assert "Profilo superato" not in draft.text
+    assert "Altro profilo" not in draft.text
+    assert "[Nome e Cognome / Ragione sociale della controparte]" in draft.text
+    assert "[€ importo]" in draft.text
+    assert "DA COMPLETARE" in draft.text
+    assert config.read_bytes() == before
+
+
+def test_diffida_fallback_non_sceglie_un_cliente_da_fonti_ambigue():
+    draft = DeterministicProvider().generate(
+        _request("diffida e messa in mora"),
+        {"studio": {"nome": "Studio Sintetico"}, "sources": [
+            "voce non strutturata", {"id": "fascicolo:uno", "title": "Pratica estranea"},
+            {"id": "cliente:uno", "title": "Primo Cliente"},
+            {"id": "cliente:due", "title": "Secondo Cliente"},
+        ]}, _evidence(), "drafting_legal_letter",
+    )
+    assert "[Nome del cliente - da completare]" in draft.text
+    assert "Primo Cliente" not in draft.text
+    assert "Secondo Cliente" not in draft.text
+    assert "Pratica estranea" not in draft.text
+    assert "[€ importo]" in draft.text

@@ -15,7 +15,7 @@ import tempfile
 import uuid
 import zipfile
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
@@ -102,6 +102,7 @@ class QuickOrganizerPackage:
     tables: dict[str, list[dict[str, Any]]]
     files: dict[str, PackageFile]
     source_kind: str = "package"
+    file_assignments: dict[str, str] = field(default_factory=dict)
 
     def table(self, name: str) -> list[dict[str, Any]]:
         return list(self.tables.get(TABLE_ALIASES.get(name.upper(), name.upper()), []))
@@ -475,7 +476,10 @@ def _files_from_zip_infos(archive: zipfile.ZipFile, names_to_skip: set[str] | No
         file_key = _file_key(filename)
         key = f"{section}:{file_key}"
         if key in files:
-            continue
+            raise QuickOrganizerImportError(
+                "Il pacchetto contiene file con lo stesso nome nella stessa sezione: "
+                "non è possibile associarli senza ambiguità. Conserva entrambi gli originali e verifica le associazioni."
+            )
         files[key] = PackageFile(
             name=filename,
             size=info.file_size,
@@ -778,10 +782,14 @@ def _deferred_repository_saves(
 
     if getattr(clienti, "_studio_db", None) is None:
         _defer(clienti, "_salva")
-    _defer(soggetti, "_salva")
-    _defer(soggetti, "_salva_parti")
-    _defer(fascicoli, "_salva")
-    if agenda is not None:
+    # SQL deve persistere i genitori prima delle relazioni con vincoli FK.
+    # Il differimento è riservato ai repository legacy su file.
+    if getattr(soggetti, "_studio_db", None) is None:
+        _defer(soggetti, "_salva")
+        _defer(soggetti, "_salva_parti")
+    if getattr(fascicoli, "_studio_db", None) is None:
+        _defer(fascicoli, "_salva")
+    if agenda is not None and getattr(agenda, "_studio_db", None) is None:
         _defer(agenda, "_salva")
     try:
         yield
@@ -811,6 +819,112 @@ def _align_repositories_to_matter_tenant(
         soggetti._studio_db = studio_db
         soggetti._soggetti = None
         soggetti._parti = None
+
+
+def validate_quickorganizer_identities(package: QuickOrganizerPackage) -> None:
+    for table, fields in (("PRATICHE", ("NUMEROPRATICA",)), ("NOMI", ("NUM_NOM",))):
+        seen = set()
+        for row in package.table(table):
+            key = _number(_row_value(row, *fields))
+            if key <= 0 or key in seen:
+                raise QuickOrganizerImportError(f"Identificativo mancante o ripetuto nella tabella {table}: controlla il pacchetto prima di importare.")
+            seen.add(key)
+    for table, id_field in (("TESTI", "Counter"), ("EMAILS", "Email_ID")):
+        seen = set()
+        for row in package.table(table):
+            filename = _normalise_filename(_row_value(row, "NOME_DOS"))
+            if not filename:
+                continue
+            key = (_number(_row_value(row, "NUMEROPRATICA", "NumeroPratica")), str(_number(_row_value(row, id_field)) or filename))
+            if key in seen:
+                raise QuickOrganizerImportError(f"Più originali hanno la stessa identità nella tabella {table}: nessuno viene scelto o escluso automaticamente.")
+            seen.add(key)
+
+
+def select_quickorganizer_package(package: QuickOrganizerPackage, selection: Any) -> QuickOrganizerPackage:
+    """Applica la scelta al pacchetto, mantenendo le relazioni necessarie."""
+    if selection is None:
+        return package
+    if not isinstance(selection, dict) or set(selection) - {"matterIds", "documents", "emails", "appointments", "unassigned", "fileAssignments", "excludedIds"}:
+        raise QuickOrganizerImportError("Selezione non valida. Controlla di nuovo il pacchetto.")
+    ids = selection.get("matterIds")
+    if not isinstance(ids, list) or not ids or any(not isinstance(value, str) for value in ids):
+        raise QuickOrganizerImportError("Seleziona almeno una pratica.")
+    flags = {key: selection.get(key, True) for key in ("documents", "emails", "appointments", "unassigned")}
+    if any(type(value) is not bool for value in flags.values()):
+        raise QuickOrganizerImportError("Opzioni di importazione non valide.")
+    def matter_id(row):
+        return str(_number(_row_value(row, "NUMEROPRATICA", "NumeroPratica")))
+    known = {matter_id(row) for row in package.table("PRATICHE")}
+    chosen = set(ids)
+    if not chosen <= known:
+        raise QuickOrganizerImportError("Una pratica selezionata non appartiene al pacchetto.")
+    tables = {name: [] for name in TABLES_REQUIRED}
+    tables["PRATICHE"] = [row for row in package.table("PRATICHE") if matter_id(row) in chosen]
+    tables["TAVOLA"] = [row for row in package.table("TAVOLA") if matter_id(row) in chosen]
+    people = {_number(_row_value(row, "NUM_NOM")) for row in tables["TAVOLA"]}
+    people.update(_number(_row_value(row, "TitolareID")) for row in tables["PRATICHE"])
+    tables["NOMI"] = [row for row in package.table("NOMI") if chosen == known or _number(_row_value(row, "NUM_NOM")) in people]
+    excluded = selection.get("excludedIds", [])
+    allowed_exclusions = {f"{table}:{index}" for table in ("TESTI", "EMAILS", "AGENDA") for index, _ in enumerate(package.table(table))}
+    if not isinstance(excluded, list) or any(not isinstance(key, str) or key not in allowed_exclusions for key in excluded):
+        raise QuickOrganizerImportError("Selezione dei singoli elementi non valida.")
+    excluded = set(excluded)
+    for table, flag in (("TESTI", "documents"), ("EMAILS", "emails"), ("AGENDA", "appointments")):
+        if flags[flag]:
+            tables[table] = [row for index, row in enumerate(package.table(table)) if matter_id(row) in chosen and f"{table}:{index}" not in excluded]
+    def identity(file):
+        return file.zip_member or str(file.source or file.name)
+    all_linked, selected_linked = set(), set()
+    for table, section in (("TESTI", "ATTI"), ("EMAILS", "EMAILS")):
+        for row in package.table(table):
+            file = _find_file(package, _row_value(row, "NOME_DOS"), section=section)
+            if file is not None and matter_id(row) in known:
+                all_linked.add(identity(file))
+        for row in tables[table]:
+            file = _find_file(package, _row_value(row, "NOME_DOS"), section=section)
+            if file is not None:
+                selected_linked.add(identity(file))
+    files = {key: file for key, file in package.files.items() if identity(file) in selected_linked or (flags["unassigned"] and identity(file) not in all_linked)}
+    assignments = selection.get("fileAssignments", {})
+    if not isinstance(assignments, dict):
+        raise QuickOrganizerImportError("Associazioni degli originali non valide.")
+    indexed_files = {f"FILE:{index}": file for index, file in enumerate(package.files.values())}
+    selected_identities = {identity(file) for file in files.values()}
+    resolved = {}
+    for key, target in assignments.items():
+        file = indexed_files.get(key)
+        if file is None or not isinstance(target, str) or target not in chosen or identity(file) in all_linked or identity(file) not in selected_identities:
+            raise QuickOrganizerImportError("Associa ogni originale non collegato a una pratica selezionata del pacchetto.")
+        resolved[identity(file)] = target
+    return QuickOrganizerPackage(package.source_path, tables, files, package.source_kind, resolved)
+
+
+def quickorganizer_inventory(package: QuickOrganizerPackage) -> list[dict[str, Any]]:
+    """Elenco completo per il controllo umano, senza leggere il contenuto dei file."""
+    rows = []
+    for table in TABLES_REQUIRED:
+        for index, row in enumerate(package.table(table)):
+            title = _text(_row_value(row, "PRATICA", "NOME_ATTO", "Subject", "NOME_DOS"))
+            if table == "NOMI":
+                title = " ".join(filter(None, (_text(_row_value(row, "COGNOME")), _text(_row_value(row, "NOME")))))
+            rows.append({"id": f"{table}:{index}", "category": table, "matterId": str(_number(_row_value(row, "NUMEROPRATICA", "NumeroPratica"))), "label": title or f"{table} · {index + 1}", "size": 0})
+    known = {_number(_row_value(row, "NUMEROPRATICA")) for row in package.table("PRATICHE")}
+    assigned = set()
+    for table, section in (("TESTI", "ATTI"), ("EMAILS", "EMAILS")):
+        for row in package.table(table):
+            file = _find_file(package, _row_value(row, "NOME_DOS"), section=section)
+            if file is not None and _number(_row_value(row, "NUMEROPRATICA", "NumeroPratica")) in known:
+                assigned.add(file.zip_member or str(file.source or file.name))
+    for index, file in enumerate(package.files.values()):
+        rows.append({"assigned": (file.zip_member or str(file.source or file.name)) in assigned, "id": f"FILE:{index}", "category": "FILE", "matterId": "", "label": file.zip_member or file.name, "size": file.size})
+    if package.source_path.suffix.lower() == ".zip":
+        known_members = {file.zip_member for file in package.files.values() if file.zip_member}
+        with zipfile.ZipFile(package.source_path) as archive:
+            for index, info in enumerate(archive.infolist()):
+                if not info.is_dir() and info.filename not in known_members:
+                    rows.append({"id": f"ARCHIVE:{index}", "category": "ARCHIVIO", "matterId": "", "label": info.filename, "size": info.file_size})
+    return rows
 
 
 def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, Any]:
@@ -936,6 +1050,7 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
     return {
         "ok": bool(pratiche),
         "sourceKind": package.source_kind,
+        "inventory": quickorganizer_inventory(package),
         "generatedAt": _iso_now(),
         "summary": {
             "matters": len(pratiche),
@@ -959,14 +1074,14 @@ def analyze_quickorganizer_package(package: QuickOrganizerPackage) -> dict[str, 
             "missingEmails": email_sample,
             "matters": [
                 {
-                    "id": str(_row_value(row, "NUMEROPRATICA")),
+                    "id": str(_number(_row_value(row, "NUMEROPRATICA"))),
                     "title": _text(_row_value(row, "PRATICA"), "Pratica senza titolo"),
                     "object": _text(_row_value(row, "OGGETTO_PRATICA")),
                     "status": _text(_row_value(row, "Stato_Pratica")) or ("Archiviata" if _matter_is_archived(row) else "Attiva"),
                     "rgStatus": _text(rg_info_by_matter.get(_number(_row_value(row, "NUMEROPRATICA")), {}).get("status")),
                     "rgLabel": _text(rg_info_by_matter.get(_number(_row_value(row, "NUMEROPRATICA")), {}).get("label")),
                 }
-                for row in pratiche[:8]
+                for row in pratiche
             ],
         },
         "warnings": warnings,
@@ -1093,8 +1208,12 @@ def _repair_imported_document_metadata(doc: Any, *, filename: str, table_name: s
     changed = False
     original_filename = _normalise_filename(filename)
     visible_name = _import_visible_document_name(table_name, original_filename)
+    # Un titolo rinominato dall'avvocato non è un errore di importazione.
+    prior_portal_name = _text(getattr(doc, "nome_portale", ""))
+    current_name = _text(getattr(doc, "nome", ""))
+    preserved_name = current_name if current_name and current_name not in {original_filename, prior_portal_name} else visible_name
     for attr, value in (
-        ("nome", visible_name),
+        ("nome", preserved_name),
         ("nome_originale", original_filename),
         ("nome_portale", visible_name),
     ):
@@ -1334,7 +1453,7 @@ def _client_placeholder_from_matter(
     row: Mapping[str, Any],
     *,
     provenance: str,
-) -> Cliente:
+) -> tuple[Cliente, bool]:
     title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica importata {_row_value(row, 'NUMEROPRATICA')}"
     expected_name = title.casefold()
     existing = next(
@@ -1346,7 +1465,7 @@ def _client_placeholder_from_matter(
         None,
     )
     if existing:
-        return existing
+        return existing, False
     cliente = clienti.nuovo(
         TipoCliente.PERSONA_GIURIDICA,
         ragione_sociale=title,
@@ -1356,7 +1475,7 @@ def _client_placeholder_from_matter(
         data_prima_acquisizione=_iso_date(_row_value(row, "DATA_APE")) or date.today().isoformat(),
     )
     cliente.tag = ["import-pratiche", "cliente-da-pratica"]
-    return clienti.aggiorna(cliente.id, tag=cliente.tag)
+    return clienti.aggiorna(cliente.id, tag=cliente.tag), True
 
 
 def _existing_matter_by_source(fascicoli: GestioneFascicoli, source_external_id: str, original_ids: set[str] | None = None) -> Any:
@@ -1892,7 +2011,12 @@ def import_quickorganizer_package(
     agenda_repo: Agenda | None = None,
     actor: str = "",
     allow_partial: bool = False,
+    progress: Callable[[str, int, int], None] | None = None,
+    analyze_unassigned: bool = False,
 ) -> dict[str, Any]:
+    validate_quickorganizer_identities(package)
+    report = progress or (lambda phase, done, total: None)
+    report("Controllo pacchetto", 0, 1)
     analysis = analyze_quickorganizer_package(package)
     if not allow_partial and not analysis.get("canImportComplete"):
         raise QuickOrganizerImportError(
@@ -1929,6 +2053,7 @@ def import_quickorganizer_package(
         "partyLinksCreated": 0,
         "mattersCreated": 0,
         "mattersUpdated": 0,
+        "mattersUnchanged": 0,
         "documentsImported": 0,
         "documentsMissing": 0,
         "documentsMetadataRepaired": 0,
@@ -1952,7 +2077,8 @@ def import_quickorganizer_package(
         agenda=agenda_repo,
     )
     with save_guard, _package_file_reader(package) as read_package_file:
-        for num, row in nomi_by_id.items():
+        for position, (num, row) in enumerate(nomi_by_id.items()):
+            report("Clienti e parti", position, len(nomi_by_id))
             if _is_client_control(row):
                 try:
                     client, created = _client_from_subject(clienti, row, provenance="Import pratiche")
@@ -1975,7 +2101,8 @@ def import_quickorganizer_package(
         matters_by_number: dict[int, Any] = {}
         matter_id_by_number: dict[int, str] = {}
         pratiche_by_number = {_number(_row_value(row, "NUMEROPRATICA")): row for row in pratiche}
-        for row in pratiche:
+        for position, row in enumerate(pratiche):
+            report("Pratiche", position, len(pratiche))
             number = _number(_row_value(row, "NUMEROPRATICA"))
             source_external_id = f"quickorganizer:{number}"
             client_id = ""
@@ -1998,14 +2125,14 @@ def import_quickorganizer_package(
                 except Exception:  # noqa: BLE001 - import deve proseguire sui fascicoli
                     errors.append(f"Cliente pratica {number}: import non completato per dati non coerenti.")
             if not client_id:
-                client = _client_placeholder_from_matter(
+                client, created = _client_placeholder_from_matter(
                     clienti,
                     row,
                     provenance="Import pratiche",
                 )
                 client_id = client.id
                 client_name = client.nome_completo
-                counters["clientsCreated"] += 1
+                counters["clientsCreated"] += 1 if created else 0
             original_ids = {
                 f"quickorganizer:testi:{_number(_row_value(d, 'Counter')) or _normalise_filename(_row_value(d, 'NOME_DOS'))}"
                 for d in testi_by_matter.get(number, [])
@@ -2111,8 +2238,10 @@ def import_quickorganizer_package(
                         payload.pop(field)
                 for field in payload:
                     payload[field] = max(_number(getattr(existing, field, 0)), _number(payload[field]))
-                matter = fascicoli.aggiorna(existing.id, **payload)
-                counters["mattersUpdated"] += 1
+                changes = {key: value for key, value in payload.items() if getattr(existing, key, None) != value}
+                matter = fascicoli.aggiorna(existing.id, **changes) if changes else existing
+                counters["mattersUpdated"] += 1 if changes else 0
+                counters["mattersUnchanged"] += 0 if changes else 1
             else:
                 title = _text(_row_value(row, "PRATICA")) or _text(_row_value(row, "OGGETTO_PRATICA")) or f"Pratica importata {number}"
                 matter = fascicoli.nuovo(
@@ -2142,7 +2271,8 @@ def import_quickorganizer_package(
                 after = len(soggetti.parti_fascicolo(matter.id))
                 counters["partyLinksCreated"] += max(after - before, 0)
 
-        for row in testi:
+        for position, row in enumerate(testi):
+            report("Documenti", position, len(testi))
             matter_number = _number(_row_value(row, "NUMEROPRATICA"))
             matter_id = matter_id_by_number.get(matter_number)
             filename = _normalise_filename(_row_value(row, "NOME_DOS"))
@@ -2193,10 +2323,12 @@ def import_quickorganizer_package(
                 tipo_atto_portale=table_document_name,
                 id_documento_portale=external_id,
                 nome_archivio=filename,
+                salvataggio_mirato=getattr(fascicoli, "_studio_db", None) is not None,
             )
             counters["documentsImported"] += 1
 
-        for row in emails:
+        for position, row in enumerate(emails):
+            report("Comunicazioni", position, len(emails))
             matter_number = _number(_row_value(row, "NumeroPratica"))
             matter_id = matter_id_by_number.get(matter_number)
             filename = _normalise_filename(_row_value(row, "NOME_DOS"))
@@ -2249,6 +2381,7 @@ def import_quickorganizer_package(
                 mittente_portale=_text(_row_value(row, "Mittente")),
                 id_documento_portale=external_id,
                 nome_archivio=filename,
+                salvataggio_mirato=getattr(fascicoli, "_studio_db", None) is not None,
             )
             counters["emailsImported"] += 1
 
@@ -2305,10 +2438,16 @@ def import_quickorganizer_package(
             for section, rows, field in (("ATTI", testi, "NUMEROPRATICA"), ("EMAILS", emails, "NumeroPratica"))
             for row in rows if _number(_row_value(row, field)) in valid_numbers
         ]
+        report("Recupero file senza collegamento", 0, len(package.files))
         recovery = recover_unassigned_originals(
             package, fascicoli=fascicoli, clienti=clienti, assigned_files=assigned_files,
-            read_file=read_package_file, actor=actor,
+            read_file=read_package_file, actor=actor, case_ids=set(matter_id_by_number.values()), progress=report, attempt_association=analyze_unassigned,
+            explicit_assignments={key: matter_id_by_number[int(value)] for key, value in package.file_assignments.items()},
         )
+    if counters["documentsMetadataRepaired"] or counters["emailsMetadataRepaired"]:
+        # I metadati riparati in memoria devono essere confermati prima dell'audit.
+        fascicoli._salva()
+    report("Verifica dei dati salvati", 0, 1)
     verification = audit_quickorganizer_import(
         package, fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, agenda_repo=agenda_repo,
     )
@@ -2504,7 +2643,7 @@ def audit_quickorganizer_import(
         expected_name = _document_name_from_table(row, DOCUMENT_TITLE_FIELDS, filename)
         if (
             doc
-            and _text(getattr(doc, "nome", "")) == expected_name
+            and bool(_text(getattr(doc, "nome", "")))
             and _text(getattr(doc, "nome_originale", "")) == filename
             and _text(getattr(doc, "nome_portale", "")) == expected_name
             and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)
@@ -2530,7 +2669,7 @@ def audit_quickorganizer_import(
         expected_name = _document_name_from_table(row, EMAIL_TITLE_FIELDS, filename)
         if (
             doc
-            and _text(getattr(doc, "nome", "")) == expected_name
+            and bool(_text(getattr(doc, "nome", "")))
             and _text(getattr(doc, "nome_originale", "")) == filename
             and _text(getattr(doc, "nome_portale", "")) == expected_name
             and (not expected_name or _text(getattr(doc, "tipo_atto_portale", "")) == expected_name)

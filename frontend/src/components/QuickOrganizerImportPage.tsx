@@ -24,10 +24,13 @@ import {
   formatImportNumber,
   getStudioTelematicoAutoPrepareStatus,
   getStudioTelematicoImportPage,
+  getStudioTelematicoImportProgress,
+  getStudioTelematicoStoredPreview,
   previewStudioTelematicoPackage,
   runStudioTelematicoImport,
   startStudioTelematicoAutoPrepare,
   type StudioTelematicoAnalysis,
+  type ImportSelection,
   type StudioTelematicoImportPage,
   type StudioTelematicoImportResult,
   type StudioTelematicoPrepareStatus,
@@ -190,7 +193,7 @@ function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
   const summary = result.summary
   const complete = result.complete === true && result.errors.length === 0
   return (
-    <ImportPanel title={complete ? 'Acquisizione verificata' : 'Acquisizione da verificare'} subtitle="Riepilogo delle acquisizioni nello studio">
+    <ImportPanel title={complete ? 'Selezione acquisita e verificata' : 'Acquisizione da verificare'} subtitle="Riepilogo delle acquisizioni nello studio">
       <div className="iu-st-import-result">
         <div className={complete ? 'iu-st-import-ok' : 'iu-st-import-warning'}>
           {complete ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
@@ -199,6 +202,7 @@ function ImportResult({ result }: { result: StudioTelematicoImportResult }) {
         <section className="iu-st-import-result-grid" aria-label="Esito import">
           <span><strong>{formatImportNumber(summary.mattersCreated)}</strong> nuove pratiche</span>
           <span><strong>{formatImportNumber(summary.mattersUpdated)}</strong> pratiche aggiornate</span>
+          <span><strong>{formatImportNumber(summary.mattersUnchanged)}</strong> pratiche già presenti e invariate</span>
           <span><strong>{formatImportNumber(summary.clientsCreated)}</strong> clienti creati</span>
           <span><strong>{formatImportNumber(summary.subjectsCreated)}</strong> anagrafiche create</span>
           <span><strong>{formatImportNumber(summary.documentsImported)}</strong> documenti acquisiti</span>
@@ -258,8 +262,21 @@ export function QuickOrganizerImportPage() {
   const [preview, setPreview] = useState<StudioTelematicoPreview | null>(null)
   const [previewState, setPreviewState] = useState<WorkState>('idle')
   const [importState, setImportState] = useState<WorkState>('idle')
+  const importInFlight = useRef(false)
+  const selectedStoredPackage = useRef('')
+  const previousImportRun = useRef<string | undefined>(undefined)
   const [message, setMessage] = useState('')
   const [allowPartial, setAllowPartial] = useState(false)
+  const [selection, setSelection] = useState<ImportSelection>({ matterIds: [], documents: true, emails: true, appointments: true, unassigned: true })
+  const [inventoryQuery, setInventoryQuery] = useState('')
+  const [analyzeUnassigned, setAnalyzeUnassigned] = useState(false)
+  const [inventoryPage, setInventoryPage] = useState(0)
+  useEffect(() => {
+    setSelection({ matterIds: preview?.analysis.samples.matters.map(matter => matter.id) || [], documents: true, emails: true, appointments: true, unassigned: true })
+    setInventoryQuery('')
+    setAnalyzeUnassigned(false)
+    setInventoryPage(0)
+  }, [preview?.importId])
   const [result, setResult] = useState<StudioTelematicoImportResult>(emptyStudioTelematicoResult)
   const [workProgress, setWorkProgress] = useState<WorkProgress>({ active: false, label: '', detail: '', value: 0 })
   const [autoPrepare, setAutoPrepare] = useState<StudioTelematicoPrepareStatus | null>(null)
@@ -303,6 +320,32 @@ export function QuickOrganizerImportPage() {
     }
   }, [autoPrepare?.status, autoPrepare?.statusUrl])
 
+  useEffect(() => {
+    if (importState !== 'loading' || !preview?.importId) return
+    const controller = new AbortController()
+    let pending = false
+    const poll = async () => {
+      if (pending) return
+      pending = true
+      try {
+        const state = await getStudioTelematicoImportProgress(preview.importId, controller.signal)
+        if (!state.ok || controller.signal.aborted || state.runId === previousImportRun.current) return
+        if (state.status === 'running') {
+          setWorkProgress({ active: true, label: state.phase, detail: state.total ? `${state.done} di ${state.total} elementi della fase corrente` : 'Operazione avviata sul server', value: state.total ? Math.round(state.done * 100 / state.total) : 0 })
+        } else if (['complete', 'partial', 'failed', 'interrupted'].includes(state.status)) {
+          const complete = state.status === 'complete'
+          setImportState(complete ? 'success' : 'error')
+          setWorkProgress({ active: false, label: complete ? 'Selezione acquisita e verificata' : 'Acquisizione da verificare', detail: 'Stato confermato dal server', value: 100 })
+          setMessage(complete ? 'Il server ha completato e verificato l’acquisizione selezionata.' : 'Il server segnala un’acquisizione incompleta o interrotta. Controlla il riepilogo e i fascicoli; conserva il pacchetto originale.')
+        }
+      } catch {
+        // Un errore del monitor non avvia né annulla l'importazione.
+      } finally { pending = false }
+    }
+    const timer = window.setInterval(() => { void poll() }, 2000)
+    return () => { controller.abort(); window.clearInterval(timer) }
+  }, [importState, preview?.importId])
+
   const analysis = preview?.analysis || null
   const sourcePathValue = sourcePath.trim()
   const uploadConfig = data.upload || emptyStudioTelematicoPage.upload
@@ -310,9 +353,9 @@ export function QuickOrganizerImportPage() {
   const largePackageSelected = Boolean(file && file.size > uploadConfig.directLimitBytes)
   const autoPrepareRunning = Boolean(autoPrepare && autoPrepareActive(autoPrepare.status))
   const canRun = useMemo(() => {
-    if (!data.permissions.canImport || !preview?.ok || importState === 'loading') return false
+    if (!selection.matterIds.length || !data.permissions.canImport || !preview?.ok || importState === 'loading') return false
     return Boolean(preview.analysis.canImportComplete || allowPartial)
-  }, [allowPartial, data.permissions.canImport, importState, preview])
+  }, [allowPartial, data.permissions.canImport, importState, preview, selection.matterIds.length])
 
   function triggerAutoPrepareDownload(downloadUrl: string) {
     if (!downloadUrl) return
@@ -358,11 +401,7 @@ export function QuickOrganizerImportPage() {
         setMessage(warnings[0]?.message || 'Pacchetto controllato con avvisi. Verifica il riepilogo prima di importare.')
         return
       }
-      setMessage('Pacchetto controllato. Avvio import definitivo automatico.')
-      if (!autoImportStartedRef.current) {
-        autoImportStartedRef.current = true
-        void handleImport(merged.preview.importId, false, true)
-      }
+      setMessage('Pacchetto controllato. Scegli i dati da acquisire e conferma l’importazione.')
     }
   }
 
@@ -480,7 +519,10 @@ export function QuickOrganizerImportPage() {
   }
 
   async function handleImport(importId = preview?.importId || '', allowPartialOverride = allowPartial, automatic = false) {
-    if (!importId) return
+    if (!importId || importInFlight.current) return
+    importInFlight.current = true
+    previousImportRun.current = (await getStudioTelematicoImportProgress(importId)).runId
+    setResult(emptyStudioTelematicoResult)
     setImportState('loading')
     setMessage(automatic
       ? 'Pacchetto completo: import definitivo automatico in corso.'
@@ -491,16 +533,32 @@ export function QuickOrganizerImportPage() {
       detail: 'Registro fascicoli, anagrafiche, documenti e messaggi',
       value: 55,
     })
-    const imported = await runStudioTelematicoImport(data.actions.run, importId, allowPartialOverride)
-    setResult(imported)
-    setImportState(imported.ok ? 'success' : 'error')
-    setWorkProgress({
-      active: false,
-      label: imported.ok ? (imported.complete ? 'Acquisizione verificata' : 'Acquisizione da verificare') : 'Import non completato',
-      detail: imported.ok ? 'Riepilogo acquisizioni pronto' : (imported.errore || 'Controlla gli avvisi'),
-      value: 100,
-    })
-    setMessage(imported.ok ? (imported.complete ? 'Acquisizione verificata.' : 'Acquisizione da verificare. Controlla gli elementi indicati nel riepilogo e conserva il pacchetto originale.') : imported.errore || 'Import non completato.')
+    try {
+      const imported = await runStudioTelematicoImport(data.actions.run, importId, allowPartialOverride, selection, analyzeUnassigned, preview?.sourceSha256 || '')
+      if (!imported.ok) {
+        const state = await getStudioTelematicoImportProgress(importId)
+        if (state.ok && state.status === 'running') {
+          setMessage('Il server sta ancora acquisendo i dati. L’avanzamento viene aggiornato automaticamente.')
+          return
+        }
+      }
+      setResult(imported)
+      setImportState(imported.ok ? 'success' : 'error')
+      setWorkProgress({
+        active: false,
+        label: imported.ok ? (imported.complete ? 'Selezione acquisita e verificata' : 'Acquisizione da verificare') : 'Import non completato',
+        detail: imported.ok ? 'Riepilogo acquisizioni pronto' : (imported.errore || 'Controlla gli avvisi'),
+        value: 100,
+      })
+      setMessage(imported.ok ? (imported.complete ? 'Selezione acquisita e verificata.' : 'Acquisizione da verificare. Controlla gli elementi indicati nel riepilogo e conserva il pacchetto originale.') : imported.errore || 'Import non completato.')
+    } catch {
+      setImportState('error')
+      setMessage('La risposta del server non è disponibile. L’importazione potrebbe essere ancora in corso: verifica i fascicoli prima di ripeterla.')
+      setWorkProgress({ active: false, label: 'Esito da verificare', detail: 'Risposta del server non ricevuta', value: 0 })
+    } finally {
+      importInFlight.current = false
+    }
+
   }
 
   return (
@@ -532,7 +590,7 @@ export function QuickOrganizerImportPage() {
               <span>Ogni pratica viene ricostruita con cliente, parti, documenti, comunicazioni e agenda quando i file sono presenti.</span>
             </div>
             <Badge tone={analysis ? completenessTone(analysis) : 'info'}>
-              {result.ok ? (result.complete ? 'Acquisizione verificata' : 'Da completare') : analysis ? (analysis.canImportComplete ? 'Pronto per importare' : 'Da completare') : 'In attesa pacchetto'}
+              {result.ok ? (result.complete ? 'Selezione acquisita e verificata' : 'Da completare') : analysis ? (analysis.canImportComplete ? 'Pronto per importare' : 'Da completare') : 'In attesa pacchetto'}
             </Badge>
           </section>
           <GuidedSteps data={data} />
@@ -546,8 +604,15 @@ export function QuickOrganizerImportPage() {
                     if (!stored?.analysis) return
                     setFile(null)
                     setSourcePath('')
-                    setPreview({ ...stored, ok: true })
-                    setPreviewState('success')
+                    selectedStoredPackage.current = stored.importId
+                    setPreview(null)
+                    setPreviewState('loading')
+                    void getStudioTelematicoStoredPreview(stored.importId).then(fresh => {
+                      if (selectedStoredPackage.current !== stored.importId) return
+                      setPreview(fresh.ok ? fresh : null)
+                      setPreviewState(fresh.ok ? 'success' : 'error')
+                      setMessage(fresh.ok ? 'Inventario aggiornato. Scegli gli elementi da acquisire.' : fresh.errore || 'Pacchetto non disponibile.')
+                    })
                     setImportState('idle')
                     setAutoPrepare(null)
                     autoImportStartedRef.current = false
@@ -568,8 +633,11 @@ export function QuickOrganizerImportPage() {
                 <span>{file ? fileLabel(file) : preview?.sourceName || fileLabel(file)}</span>
                 <input
                   type="file"
+                  disabled={importState === 'loading'}
                   accept={data.acceptedFiles}
                   onChange={(event) => {
+                    selectedStoredPackage.current = ''
+                    setPreviewState('idle')
                     autoImportStartedRef.current = false
                     setAutoPrepare(null)
                     setFile(event.currentTarget.files?.[0] || null)
@@ -591,9 +659,12 @@ export function QuickOrganizerImportPage() {
                 <span>Pacchetto grande sul PC</span>
                 <input
                   type="text"
+                  disabled={importState === 'loading'}
                   value={sourcePath}
                   placeholder={'C:\\Users\\utente\\Downloads\\PacchettoPratiche.zip'}
                   onChange={(event) => {
+                    selectedStoredPackage.current = ''
+                    setPreviewState('idle')
                     autoImportStartedRef.current = false
                     setAutoPrepare(null)
                     setSourcePath(event.currentTarget.value)
@@ -628,6 +699,35 @@ export function QuickOrganizerImportPage() {
             <>
               <SummaryCards analysis={analysis} />
               <MissingFiles analysis={analysis} />
+              <ImportPanel title="Scegli cosa acquisire" subtitle="Seleziona le pratiche e i contenuti. Clienti e parti necessari alle pratiche selezionate vengono inclusi per conservare i collegamenti.">
+                <fieldset disabled={importState === 'loading'}>
+                  <legend>Pratiche da importare</legend>
+                  <Button type="button" tone="neutral" onClick={() => setSelection(s => ({ ...s, matterIds: analysis.samples.matters.map(m => m.id), documents: true, emails: true, appointments: true, unassigned: true, excludedIds: [] }))}>Seleziona tutto</Button>
+                  <Button type="button" tone="neutral" onClick={() => setSelection(s => ({ ...s, matterIds: [] }))}>Deseleziona pratiche</Button>
+                  {analysis.samples.matters.map(matter => <label key={matter.id} style={{ display: 'block', padding: '0.35rem' }}>
+                    <input type="checkbox" checked={selection.matterIds.includes(matter.id)} onChange={event => { const checked = event.currentTarget.checked; setSelection(s => ({ ...s, matterIds: checked ? [...s.matterIds, matter.id] : s.matterIds.filter(id => id !== matter.id) })) }} /> {matter.title} · {matter.status}
+                  </label>)}
+                  {([['documents', 'Documenti'], ['emails', 'Comunicazioni'], ['appointments', 'Appuntamenti'], ['unassigned', 'Controlla e conserva anche i file senza collegamento certo']] as const).map(([key, label]) => <label key={key} style={{ display: 'block', padding: '0.35rem' }}>
+                    <input type="checkbox" checked={selection[key]} onChange={event => { const checked = event.currentTarget.checked; setSelection(s => ({ ...s, [key]: checked })) }} /> {label}
+                  </label>)}
+                  <label style={{ display: 'block', padding: '0.35rem' }}><input type="checkbox" checked={analyzeUnassigned} onChange={event => setAnalyzeUnassigned(event.currentTarget.checked)} /> Analizza anche il contenuto dei file senza pratica per cercare associazioni (può richiedere molto tempo).</label>
+                  <p>{selection.matterIds.length} pratiche selezionate su {analysis.samples.matters.length}. Gli elementi esclusi restano nel pacchetto originale.</p>
+                </fieldset>
+              </ImportPanel>
+              <ImportPanel title="Contenuto del pacchetto" subtitle="Elenco dei record riconosciuti e di tutti i file ZIP. Le voci ARCHIVIO sono file di supporto conservati nel pacchetto; non sono documenti associati a una pratica. La ricerca non cambia la selezione.">
+                <p><a href={`/api/v1/ui/import/quickorganizer/${encodeURIComponent(preview?.importId || '')}/pacchetto`} download>Scarica il pacchetto originale completo</a></p>
+                <label>Cerca nell’inventario <input type="search" value={inventoryQuery} onChange={event => { setInventoryQuery(event.currentTarget.value); setInventoryPage(0) }} /></label>
+                {(() => {
+                  const inventory = (analysis.inventory || []).filter(item => `${item.label} ${item.category} ${item.matterId}`.toLocaleLowerCase('it').includes(inventoryQuery.toLocaleLowerCase('it')))
+                  const pages = Math.max(1, Math.ceil(inventory.length / 50))
+                  return <>
+                    <p>{inventory.length} elementi · pagina {inventoryPage + 1} di {pages}</p>
+                    <ul>{inventory.slice(inventoryPage * 50, (inventoryPage + 1) * 50).map(item => <li key={item.id} style={{ overflowWrap: 'anywhere' }}>{['TESTI', 'EMAILS', 'AGENDA'].includes(item.category) ? <label><input type="checkbox" aria-label={`Importa ${item.label}`} disabled={importState === 'loading' || !selection.matterIds.includes(item.matterId) || !(item.category === 'TESTI' ? selection.documents : item.category === 'EMAILS' ? selection.emails : selection.appointments)} checked={selection.matterIds.includes(item.matterId) && (item.category === 'TESTI' ? selection.documents : item.category === 'EMAILS' ? selection.emails : selection.appointments) && !(selection.excludedIds || []).includes(item.id)} onChange={event => { const checked = event.currentTarget.checked; setSelection(s => ({ ...s, excludedIds: checked ? (s.excludedIds || []).filter(id => id !== item.id) : [...(s.excludedIds || []), item.id] })) }} /> Importa </label> : null}{item.category} · {item.label}{item.matterId ? ` · pratica ${item.matterId}` : ''}{item.size ? ` · ${formatImportNumber(item.size)} byte` : ''}{item.category === 'FILE' && !item.assigned ? <label> Associa a <select aria-label={`Pratica per ${item.label}`} value={selection.fileAssignments?.[item.id] || ''} disabled={importState === 'loading' || !selection.unassigned} onChange={event => { const value = event.currentTarget.value; setSelection(s => { const fileAssignments = { ...s.fileAssignments }; if (value) fileAssignments[item.id] = value; else delete fileAssignments[item.id]; return { ...s, fileAssignments } }) }}><option value="">Da associare</option>{analysis.samples.matters.filter(m => selection.matterIds.includes(m.id)).map(m => <option key={m.id} value={m.id}>{m.title}</option>)}</select></label> : null}{item.category === 'FILE' ? <a href={`/api/v1/ui/import/quickorganizer/${encodeURIComponent(preview?.importId || '')}/originale/${encodeURIComponent(item.id.split(':')[1])}`} download> Scarica originale</a> : null}</li>)}</ul>
+                    <Button type="button" tone="neutral" disabled={inventoryPage === 0} onClick={() => setInventoryPage(p => p - 1)}>Precedente</Button>
+                    <Button type="button" tone="neutral" disabled={inventoryPage + 1 >= pages} onClick={() => setInventoryPage(p => p + 1)}>Successiva</Button>
+                  </>
+                })()}
+              </ImportPanel>
               {!result.ok && analysis.warnings.length ? (
                 <ImportPanel title="Avvisi del controllo" subtitle="Elementi da verificare prima dell'acquisizione">
                   {analysis.warnings.map((warning) => <p key={warning.code}>{importUiText(warning.message)}</p>)}

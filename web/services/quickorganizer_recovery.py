@@ -15,6 +15,7 @@ from pct.fascicoli import TipoDocumento
 
 def association_description(evidence):
     labels = {
+        "assegnazione_esplicita": "scelta esplicita durante l’importazione",
         "codice_fiscale_cliente": "codice fiscale del cliente",
         "nome_completo_cliente": "nome completo del cliente",
         "numero_rg_e_anno": "numero e anno della pratica",
@@ -57,15 +58,17 @@ def resolve_original_case(text, cases, clienti):
     return matches[0] if len(owners) == 1 else None
 
 
-def recover_unassigned_originals(package, *, fascicoli, clienti, assigned_files, read_file, actor):
+def recover_unassigned_originals(package, *, fascicoli, clienti, assigned_files, read_file, actor, case_ids=None, progress=None, attempt_association=False, explicit_assignments=None):
     """Mantiene le versioni esistenti e rende esplicito ogni originale non associato."""
     def identity(file):
         return file.zip_member or str(file.source or file.name)
 
     assigned = {identity(file) for file in assigned_files if file is not None}
-    cases = fascicoli.tutti(archiviati=True)
+    cases = [case for case in fascicoli.tutti(archiviati=True) if case_ids is None or case.id in case_ids]
     result = {"recovered": 0, "alreadyPreserved": 0, "technicalLogs": 0, "pending": []}
-    for file in package.files.values():
+    for position, file in enumerate(package.files.values()):
+        if progress:
+            progress("Recupero file senza collegamento", position, len(package.files))
         if identity(file) in assigned:
             continue
         try:
@@ -76,22 +79,32 @@ def recover_unassigned_originals(package, *, fascicoli, clienti, assigned_files,
         suffix = Path(file.name).suffix.lower()
         # Le righe MailBee sono registri SMTP, non originali documentali.
         # Restano nel pacchetto: possono contenere dati e non si cancellano qui.
-        if suffix == ".txt" and re.match(rb"\s*\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\]\s*\[(?:INFO|SEND|RECV|ERROR)\]", raw):
+        if not (explicit_assignments or {}).get(identity(file)) and suffix == ".txt" and re.match(rb"\s*\[\d{2}:\d{2}:\d{2}(?:\.\d+)?\]\s*\[(?:INFO|SEND|RECV|ERROR)\]", raw):
             result["technicalLogs"] += 1
             continue
-        try:
-            extraction = extract_text_from_document(raw, file.name, suffix.lstrip("."))
-        except (OSError, ValueError):
-            result["pending"].append({"name": file.name, "reason": "Contenuto non leggibile"})
-            continue
-        decision = resolve_original_case(extraction.text, cases, clienti) if extraction.ok else None
+        explicit_target = (explicit_assignments or {}).get(identity(file))
+        if explicit_target:
+            if explicit_target not in {case.id for case in cases}:
+                raise ValueError("Pratica di destinazione non selezionata.")
+            decision = (explicit_target, ["assegnazione_esplicita"])
+        else:
+            if not attempt_association:
+                result["pending"].append({"name": file.name, "reason": "Originale verificato e conservato nel pacchetto; pratica da assegnare", "sha256": hashlib.sha256(raw).hexdigest()})
+                continue
+            try:
+                extraction = extract_text_from_document(raw, file.name, suffix.lstrip("."))
+            except (OSError, ValueError):
+                result["pending"].append({"name": file.name, "reason": "Contenuto non leggibile"})
+                continue
+            decision = resolve_original_case(extraction.text, cases, clienti) if extraction.ok else None
         if decision is None:
             result["pending"].append({"name": file.name, "reason": "Associazione non univoca" if extraction.ok else "Contenuto non leggibile"})
             continue
         fid, evidence = decision
         digest = hashlib.sha256(raw).hexdigest()
         case = fascicoli.get(fid)
-        existing = next((d for d in case.documenti if digest in {d.hash_sha256, d.hash_contenuto_sha256}), None)
+        source_id = "quickorganizer:unlinked-original:" + hashlib.sha256(identity(file).encode("utf-8")).hexdigest() + ":" + digest
+        existing = next((d for d in case.documenti if d.id_documento_portale == source_id), None)
         existing_path = fascicoli.percorso_documento(fid, existing.id) if existing else None
         if existing_path and existing_path.is_file() and hashlib.sha256(decrypt_doc(existing_path.read_bytes())).hexdigest() == digest:
             result["alreadyPreserved"] += 1
@@ -103,7 +116,7 @@ def recover_unassigned_originals(package, *, fascicoli, clienti, assigned_files,
             tags=["import-pratiche", "originale-recuperato"], caricato_da=actor,
             fonte_documento="IMPORT_ESTERNO", nome_originale=file.name, nome_portale=name,
             classificazione_portale="Gestionale precedente",
-            id_documento_portale="quickorganizer:unlinked-original:" + digest,
+            id_documento_portale=source_id,
             nome_archivio="originale_" + digest[:16] + suffix,
         )
         if hashlib.sha256(decrypt_doc(fascicoli.percorso_documento(fid, doc.id).read_bytes())).hexdigest() != digest:

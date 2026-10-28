@@ -50,7 +50,10 @@ export type StudioTelematicoImportPage = {
   }
 }
 
+export type ImportSelection = { excludedIds?: string[]; fileAssignments?: Record<string, string>; matterIds: string[]; documents: boolean; emails: boolean; appointments: boolean; unassigned: boolean }
+
 export type StudioTelematicoAnalysis = {
+  inventory?: Array<{ id: string; category: string; matterId: string; label: string; size: number; assigned?: boolean }>
   ok: boolean
   sourceKind: string
   generatedAt: string
@@ -120,6 +123,7 @@ export type StudioTelematicoImportResult = {
     subjectsCreated: number
     partyLinksCreated: number
     mattersCreated: number
+    mattersUnchanged: number
     mattersUpdated: number
     documentsImported: number
     documentsMissing: number
@@ -221,6 +225,7 @@ export const emptyStudioTelematicoResult: StudioTelematicoImportResult = {
     subjectsCreated: 0,
     partyLinksCreated: 0,
     mattersCreated: 0,
+    mattersUnchanged: 0,
     mattersUpdated: 0,
     documentsImported: 0,
     documentsMissing: 0,
@@ -264,6 +269,9 @@ function normaliseAnalysis(value: unknown): StudioTelematicoAnalysis {
   return {
     ok: boolValue(record.ok),
     sourceKind: stringValue(record.sourceKind),
+    inventory: (Array.isArray(record.inventory) ? record.inventory : []).filter(isRecord).map(item => ({
+      assigned: boolValue(item.assigned), id: stringValue(item.id), category: stringValue(item.category), matterId: stringValue(item.matterId), label: stringValue(item.label), size: numberValue(item.size),
+    })),
     generatedAt: stringValue(record.generatedAt),
     summary: {
       matters: numberValue(summary.matters),
@@ -463,7 +471,7 @@ export async function previewStudioTelematicoPackage(
   const sourcePath = stringValue(options.sourcePath).trim()
   try {
     if (file && options.chunked) {
-      return previewChunkedPackage(file, options.chunked)
+      return await previewChunkedPackage(file, options.chunked)
     }
     const isUpload = Boolean(file)
     const body = isUpload ? new FormData() : JSON.stringify({ sourcePath })
@@ -490,11 +498,14 @@ export async function runStudioTelematicoImport(
   endpoint: string,
   importId: string,
   allowPartial: boolean,
+  selection?: ImportSelection,
+  analyzeUnassigned = false,
+  sourceSha256 = '',
 ): Promise<StudioTelematicoImportResult> {
   const raw = await apiPostJson<unknown>(
     endpoint || emptyStudioTelematicoPage.actions.run,
-    { importId, allowPartial },
-    emptyStudioTelematicoResult,
+    { importId, allowPartial, selection, analyzeUnassigned, sourceSha256 },
+    { ...emptyStudioTelematicoResult, errore: 'Risposta non ricevuta. L’esito sul server deve essere verificato prima di ripetere l’importazione.' },
   )
   const record = isRecord(raw) ? raw : {}
   const summary = isRecord(record.summary) ? record.summary : {}
@@ -518,6 +529,7 @@ export async function runStudioTelematicoImport(
       subjectsCreated: numberValue(summary.subjectsCreated),
       partyLinksCreated: numberValue(summary.partyLinksCreated),
       mattersCreated: numberValue(summary.mattersCreated),
+      mattersUnchanged: numberValue(summary.mattersUnchanged),
       mattersUpdated: numberValue(summary.mattersUpdated),
       documentsImported: numberValue(summary.documentsImported),
       documentsMissing: numberValue(summary.documentsMissing),
@@ -537,5 +549,21 @@ export async function runStudioTelematicoImport(
       href: stringValue(matter.href, '/fascicoli'),
     })),
     errore: stringValue(record.errore || record.message),
+  }
+}
+
+
+export async function getStudioTelematicoImportProgress(importId: string, signal?: AbortSignal): Promise<{ ok: boolean; status: string; phase: string; done: number; total: number; runId?: string }> {
+  const fallback = { ok: false, status: 'unknown', phase: '', done: 0, total: 0 }
+  return apiJson(`/api/v1/ui/import/quickorganizer/${encodeURIComponent(importId)}/stato`, fallback, { signal, activity: false })
+}
+
+
+export async function getStudioTelematicoStoredPreview(importId: string): Promise<StudioTelematicoPreview> {
+  try {
+    const response = await fetch(`/api/v1/ui/import/quickorganizer/${encodeURIComponent(importId)}/anteprima`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    return normalisePreviewResponse(response, await jsonFromResponse(response))
+  } catch {
+    return { ...emptyPreview, errore: 'Impossibile controllare il pacchetto già caricato.' }
   }
 }

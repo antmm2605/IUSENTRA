@@ -24,6 +24,7 @@ import sqlite3
 import tempfile
 import time
 import unicodedata
+from zipfile import BadZipFile
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache, wraps
 from html import escape as html_escape, unescape as html_unescape
@@ -8298,6 +8299,81 @@ def studio_telematico_import_preview():
     return jsonify({"ok": True, **stage})
 
 
+@api_v1_react.get("/import/quickorganizer/<import_id>/anteprima")
+@_richiedi_auth
+def studio_telematico_stored_preview(import_id):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False}), 403
+    if not re.fullmatch(r"[a-f0-9]{32}", import_id):
+        return jsonify({"ok": False}), 400
+    try:
+        from web.services.quickorganizer_import import analyze_quickorganizer_package, _sha256_file
+        package, stage = load_staged_package(_studio_telematico_staging_root(), import_id)
+        return jsonify({"ok": True, "importId": import_id, "sourceName": stage.get("sourceName", ""), "sourceSha256": _sha256_file(package.source_path), "createdAt": stage.get("createdAt", ""), "analysis": analyze_quickorganizer_package(package)})
+    except (QuickOrganizerImportError, OSError, ValueError, BadZipFile):
+        return jsonify({"ok": False, "errore": "Il pacchetto conservato non è leggibile."}), 400
+
+
+@api_v1_react.get("/import/quickorganizer/<import_id>/pacchetto")
+@_richiedi_auth
+def studio_telematico_import_source(import_id):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False}), 403
+    if not re.fullmatch(r"[a-f0-9]{32}", import_id):
+        return jsonify({"ok": False}), 400
+    try:
+        package, stage = load_staged_package(_studio_telematico_staging_root(), import_id)
+        response = send_file(package.source_path, as_attachment=True, download_name=stage.get("sourceName") or "pacchetto-originale.zip")
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+    except (QuickOrganizerImportError, OSError, ValueError, BadZipFile):
+        return jsonify({"ok": False, "errore": "Pacchetto originale non disponibile."}), 400
+
+
+@api_v1_react.get("/import/quickorganizer/<import_id>/originale/<int:file_index>")
+@_richiedi_auth
+def studio_telematico_import_original(import_id, file_index):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False}), 403
+    if not re.fullmatch(r"[a-f0-9]{32}", import_id):
+        return jsonify({"ok": False}), 400
+    try:
+        package, _ = load_staged_package(_studio_telematico_staging_root(), import_id)
+        files = list(package.files.values())
+        if not 0 <= file_index < len(files):
+            return jsonify({"ok": False}), 404
+        original = files[file_index]
+        response = send_file(io.BytesIO(package.read_file(original)), download_name=original.name, as_attachment=True, mimetype="application/octet-stream")
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+    except (QuickOrganizerImportError, OSError, ValueError, BadZipFile):
+        return jsonify({"ok": False, "errore": "Originale non disponibile."}), 400
+
+
+@api_v1_react.get("/import/quickorganizer/<import_id>/stato")
+@_richiedi_auth
+def studio_telematico_import_progress(import_id):
+    if not _puo_importare_studio_telematico():
+        return jsonify({"ok": False}), 403
+    if not re.fullmatch(r"[a-f0-9]{32}", import_id):
+        return jsonify({"ok": False}), 400
+    from web.services.quickorganizer_progress import import_lock, ImportBusy
+    from web.services.quickorganizer_progress import read_import_progress
+    root = _studio_telematico_staging_root()
+    state = read_import_progress(root, import_id)
+    if state.get("status") == "running":
+        try:
+            with import_lock(Path(root) / ".import-in-progress.lock"):
+                state = read_import_progress(root, import_id)
+                if state.get("status") == "running":
+                    state["status"] = "interrupted"
+        except ImportBusy:
+            pass
+    return jsonify({"ok": True, **state})
+
+
 @api_v1_react.post("/import/quickorganizer/esegui")
 @_richiedi_auth
 def studio_telematico_import_run():
@@ -8306,22 +8382,48 @@ def studio_telematico_import_run():
 
     body = _request_payload()
     import_id = str(body.get("importId") or body.get("import_id") or "").strip()
-    allow_partial = bool(body.get("allowPartial") or body.get("importaParziale") or body.get("allow_partial"))
+    allow_partial = body.get("allowPartial", body.get("importaParziale", body.get("allow_partial", False)))
+    if type(allow_partial) is not bool:
+        return jsonify({"ok": False, "errore": "La conferma dell’importazione parziale deve essere esplicita."}), 400
+    analyze_unassigned = body.get("analyzeUnassigned", False)
+    if type(analyze_unassigned) is not bool:
+        return jsonify({"ok": False, "errore": "Opzione di analisi non valida."}), 400
     if not import_id:
         return jsonify({"ok": False, "errore": "Anteprima non trovata. Carica di nuovo il pacchetto."}), 400
 
+    from web.services.quickorganizer_progress import import_lock, ImportBusy
     try:
         storage_guard = _studio_telematico_storage_guard()
-        package, stage = load_staged_package(_studio_telematico_staging_root(), import_id)
-        result = import_quickorganizer_package(
-            package,
-            fascicoli=_fascicoli_loader()(),
-            clienti=get_clienti(),
-            soggetti=get_soggetti(),
-            agenda_repo=get_agenda(),
-            actor=_actor_label(),
-            allow_partial=allow_partial,
-        )
+        staging_root = _studio_telematico_staging_root()
+        with import_lock(Path(staging_root) / ".import-in-progress.lock"):
+            package, stage = load_staged_package(_studio_telematico_staging_root(), import_id)
+            from web.services.quickorganizer_import import select_quickorganizer_package, _sha256_file
+            expected_sha = body.get("sourceSha256") or stage.get("sourceSha256") or ""
+            if not isinstance(expected_sha, str) or not re.fullmatch(r"[a-fA-F0-9]{64}", expected_sha) or _sha256_file(package.source_path) != expected_sha.lower():
+                raise QuickOrganizerImportError("Il pacchetto è cambiato o non ha un’impronta verificabile. Controlla nuovamente l’anteprima prima di importare.")
+            package = select_quickorganizer_package(package, body.get("selection"))
+            from web.services.quickorganizer_progress import ImportProgress
+            progress = ImportProgress(staging_root, import_id)
+            try:
+                result = import_quickorganizer_package(
+                    package,
+                    fascicoli=_fascicoli_loader()(),
+                    clienti=get_clienti(),
+                    soggetti=get_soggetti(),
+                    agenda_repo=get_agenda(),
+                    actor=_actor_label(),
+                    allow_partial=allow_partial,
+                    progress=progress.update,
+                    analyze_unassigned=analyze_unassigned,
+                )
+            except Exception:
+                progress.finish("failed")
+                raise
+            else:
+                progress.finish("complete" if result.get("complete") else "partial")
+    except ImportBusy:
+        return jsonify({"ok": False, "errore": "Un’importazione è già in corso in questo studio. Attendi il suo esito prima di avviarne un’altra."}), 409
+
     except QuickOrganizerImportError as exc:
         return jsonify({"ok": False, "errore": exc.public_message, "codice": "import_non_completato"}), 400
     except Exception as exc:  # noqa: BLE001 - archivi cliente possono contenere dati non coerenti

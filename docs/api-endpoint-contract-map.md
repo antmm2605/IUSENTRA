@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 454.
+- Endpoint React API contrattualizzati: 458.
 - Endpoint P0/P1 contrattualizzati: 387.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 411.
+- Endpoint con provider verification auth-error: 415.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -229,6 +229,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Giurisprudenza | `/api/v1/ui/giurisprudenza/testo-ufficiale/{job_id}` | `GET` | Giurisprudenza | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca globale | `/api/v1/ui/global-search` | `GET` | Ricerca globale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/import/quickorganizer` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer/{import_id}/anteprima` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer/{import_id}/originale/{file_index}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer/{import_id}/pacchetto` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/import/quickorganizer/{import_id}/stato` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/import/quickorganizer/anteprima` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/import/quickorganizer/esegui` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/import/quickorganizer/preparazione` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

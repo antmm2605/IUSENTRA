@@ -34,6 +34,17 @@ from web.services.quickorganizer_import import (
 )
 
 
+def test_archivio_con_nomi_ambigui_non_esclude_un_originale():
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, 'w') as archive:
+        archive.writestr('ATTI/primo/documento.pdf', b'primo')
+        archive.writestr('ATTI/secondo/documento.pdf', b'secondo')
+    data.seek(0)
+    with zipfile.ZipFile(data) as archive:
+        with pytest.raises(QuickOrganizerImportError, match='stesso nome'):
+            quickorganizer_import._files_from_zip_infos(archive)
+
+
 def _write_package(path: Path, *, include_atto: bool = True, include_email: bool = True) -> Path:
     payload = {
         "format": "iusentra.quickorganizer.v1",
@@ -362,7 +373,7 @@ def test_unlinked_original_recovered_from_client_identity_and_reimport_idempoten
         archive.writestr("ATTI/originale-senza-relazione.rtf", raw)
     package = load_quickorganizer_package(rebuilt)
     _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
-    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test recupero", allow_partial=True)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, actor="Test recupero", allow_partial=True, analyze_unassigned=True)
     result = import_quickorganizer_package(package, **args)
     assert result["recovery"]["recovered"] == 1
     assert result["recovery"]["pending"] == []
@@ -384,7 +395,8 @@ def test_reimport_matches_original_documents_and_preserves_portal_case(tmp_path:
     fascicoli.aggiorna(matter.id, source="PST", source_external_id="pst:caso-verificato", numero_rg="4321", anno_rg=2026, note="Note aggiornate dall'avvocato")
     result = import_quickorganizer_package(package, **args)
     assert result["summary"]["mattersCreated"] == 0
-    assert result["summary"]["mattersUpdated"] == 1
+    assert result["summary"]["mattersUpdated"] == 0
+    assert result["summary"]["mattersUnchanged"] == 1
     assert len(fascicoli.tutti(archiviati=True)) == 1
     current = fascicoli.get(matter.id)
     assert current.source == "PST"
@@ -524,7 +536,8 @@ def test_import_studio_telematico_legge_documenti_da_atti_ed_emails(tmp_path: Pa
         actor="Operatore Test",
     )
 
-    assert second["summary"]["mattersUpdated"] == 1
+    assert second["summary"]["mattersUpdated"] == 0
+    assert second["summary"]["mattersUnchanged"] == 1
     assert second["summary"]["clientsCreated"] == 0
     assert second["summary"]["subjectsCreated"] == 0
     assert second["summary"]["duplicatesSkipped"] >= 3
@@ -1246,3 +1259,119 @@ def test_import_studio_telematico_blocca_pacchetto_senza_atti_o_emails(tmp_path:
     assert partial["summary"]["mattersCreated"] == 1
     assert partial["summary"]["documentsMissing"] == 1
     assert partial["summary"]["emailsMissing"] == 1
+
+
+def test_selection_excludes_documents_and_preserves_required_relations(tmp_path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "selection.zip"))
+    selected = quickorganizer_import.select_quickorganizer_package(package, {
+        "matterIds": ["101"], "documents": False, "emails": True,
+        "appointments": False, "unassigned": False,
+    })
+    assert not selected.table("TESTI")
+    assert not selected.table("AGENDA")
+    assert selected.table("EMAILS") == package.table("EMAILS")
+    assert selected.table("TAVOLA") == package.table("TAVOLA")
+    assert all(file.section == "EMAILS" for file in selected.files.values())
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti)
+    first = import_quickorganizer_package(selected, **args)
+    second = import_quickorganizer_package(selected, **args)
+    assert first["summary"]["documentsImported"] == 0
+    assert first["summary"]["emailsImported"] == 1
+    assert second["summary"]["mattersCreated"] == 0
+    assert second["summary"]["emailsImported"] == 0
+    assert package.table("TESTI")  # Il pacchetto originale resta integro.
+
+
+@pytest.mark.parametrize("selection", [
+    {"matterIds": []}, {"matterIds": ["999"]}, {"matterIds": [101]},
+    {"matterIds": ["101"], "emails": "false"}, {"matterIds": ["101"], "unexpected": True}, [],
+])
+def test_selection_rejects_invalid_input_before_writes(tmp_path, selection):
+    package = load_quickorganizer_package(_write_package(tmp_path / "selection.zip"))
+    with pytest.raises(QuickOrganizerImportError):
+        quickorganizer_import.select_quickorganizer_package(package, selection)
+
+
+def test_inventory_includes_all_records_and_files(tmp_path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "inventory.zip"))
+    inventory = analyze_quickorganizer_package(package)["inventory"]
+    assert len(inventory) == sum(len(package.table(t)) for t in quickorganizer_import.TABLES_REQUIRED) + len(package.files) + 1
+    assert any(item["category"] == "ARCHIVIO" and item["label"] == "quickorganizer-export.json" for item in inventory)
+    assert len({row["id"] for row in inventory}) == len(inventory)
+
+
+def test_progress_persists_across_readers_and_is_scoped_to_import(tmp_path):
+    from web.services.quickorganizer_progress import ImportProgress, read_import_progress
+    first = ImportProgress(tmp_path, "a" * 32)
+    first.update("Documenti", 3, 10)
+    state = read_import_progress(tmp_path, "a" * 32)
+    assert (state["status"], state["done"], state["total"]) == ("running", 3, 10)
+    assert read_import_progress(tmp_path, "b" * 32)["status"] == "idle"
+    second = ImportProgress(tmp_path, "a" * 32)
+    first.finish("complete")  # Un vecchio processo non chiude una nuova esecuzione.
+    assert read_import_progress(tmp_path, "a" * 32)["status"] == "running"
+    second.finish("partial")
+    assert read_import_progress(tmp_path, "a" * 32)["status"] == "partial"
+
+
+def test_explicit_assignment_preserves_distinct_identical_originals_without_extraction(tmp_path, monkeypatch):
+    source = _write_package(tmp_path / "explicit.zip")
+    with zipfile.ZipFile(source, "a") as archive:
+        archive.writestr("ATTI/uno.bin", b"stessi byte")
+        archive.writestr("ATTI/due.bin", b"stessi byte")
+    package = load_quickorganizer_package(source)
+    assignments = {item["id"]: "101" for item in analyze_quickorganizer_package(package)["inventory"] if item["category"] == "FILE" and not item["assigned"]}
+    selected = quickorganizer_import.select_quickorganizer_package(package, {"matterIds": ["101"], "fileAssignments": assignments})
+    import web.services.quickorganizer_recovery as recovery
+    def unexpected(*args, **kwargs):
+        raise AssertionError("Non deve rileggere il contenuto per una scelta esplicita")
+    monkeypatch.setattr(recovery, "extract_text_from_document", unexpected)
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, allow_partial=True)
+    first = import_quickorganizer_package(selected, **args)
+    second = import_quickorganizer_package(selected, **args)
+    assert first["recovery"]["recovered"] == 2
+    assert second["recovery"]["alreadyPreserved"] == 2
+    assert second["recovery"]["recovered"] == 0
+    assert not first["recovery"]["pending"]
+
+
+def test_individual_exclusion_cannot_return_through_recovery(tmp_path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "exclude.zip"))
+    selected = quickorganizer_import.select_quickorganizer_package(package, {"matterIds": ["101"], "excludedIds": ["EMAILS:0"], "unassigned": True})
+    assert not selected.table("EMAILS")
+    assert not any(file.section == "EMAILS" for file in selected.files.values())
+    with pytest.raises(QuickOrganizerImportError):
+        quickorganizer_import.select_quickorganizer_package(package, {"matterIds": ["101"], "excludedIds": ["NOMI:0"]})
+
+
+def test_duplicate_source_identity_is_rejected_before_creating_any_case(tmp_path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "duplicate-id.zip"))
+    package.tables["TESTI"].append({**package.tables["TESTI"][0], "NOME_DOS": "altro.pdf"})
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    with pytest.raises(QuickOrganizerImportError, match="stessa identità"):
+        import_quickorganizer_package(package, fascicoli=fascicoli, clienti=clienti, soggetti=soggetti, allow_partial=True)
+    assert not fascicoli.tutti(archiviati=True)
+
+
+def test_sql_reimport_keeps_user_title_and_persists_repaired_source_metadata(tmp_path):
+    package = load_quickorganizer_package(_write_package(tmp_path / "metadata.zip"))
+    _, fascicoli, clienti, soggetti = _sql_repositories(tmp_path)
+    args = dict(fascicoli=fascicoli, clienti=clienti, soggetti=soggetti)
+    import_quickorganizer_package(package, **args)
+    matter = fascicoli.tutti(archiviati=True)[0]
+    document = next(doc for doc in matter.documenti if doc.id_documento_portale.startswith("quickorganizer:testi:"))
+    document.nome = "Titolo deciso dall’avvocato.pdf"
+    document.classificazione_portale = "QuickOrganizer"
+    fascicoli._salva()
+    timestamp = matter.modificato_il
+    result = import_quickorganizer_package(package, **args)
+    assert result["summary"]["mattersUpdated"] == 0
+    assert result["verification"]["ok"]
+    _, reloaded, _, _ = _sql_repositories(tmp_path)
+    reloaded_matter = reloaded.get(matter.id)
+    repaired = next(doc for doc in reloaded_matter.documenti if doc.id == document.id)
+    assert repaired.nome == "Titolo deciso dall’avvocato.pdf"
+    assert repaired.classificazione_portale == "Gestionale precedente"
+    assert reloaded_matter.modificato_il == timestamp

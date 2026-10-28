@@ -25,7 +25,7 @@ x-iusentra-env: &iusentra-env
   WEB_CONCURRENCY: ${WEB_CONCURRENCY:-3}
   GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
   GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-1800}
-  GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-500}
+  GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-0}
   # Ollama: punta a http://ollama:11434 se il profilo `ai` è attivo,
   # altrimenti a http://host.docker.internal:11434 per istanza host-level.
   # Impostare PCT_LOCAL_AI_ENABLED=0 per disabilitare completamente l'AI locale.

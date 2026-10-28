@@ -15,7 +15,7 @@ from urllib.request import urlopen
 from urllib.error import URLError
 
 
-def _exercise_native_reader(tmp_path):
+def _exercise_native_reader(tmp_path, polling_requests=1):
     app = tmp_path / "controlled_native_reader.py"
     app.write_text("""import ctypes
 
@@ -35,6 +35,8 @@ def application(environ, start_response):
         port = sock.getsockname()[1]
     env = os.environ.copy()
     env.pop("GUNICORN_WORKER_CLASS", None)
+    env.pop("GUNICORN_MAX_REQUESTS", None)
+    env.pop("GUNICORN_MAX_REQUESTS_JITTER", None)
     env.update(GUNICORN_BIND=f"127.0.0.1:{port}", WEB_CONCURRENCY="1",
                GUNICORN_THREADS="2", GUNICORN_TIMEOUT="1", GUNICORN_GRACEFUL_TIMEOUT="1")
     config = Path(os.environ.get("IUSENTRA_TEST_GUNICORN_CONFIG") or (Path(__file__).resolve().parents[1] / "gunicorn.conf.py"))
@@ -57,7 +59,8 @@ def application(environ, start_response):
             with ThreadPoolExecutor(max_workers=1) as executor:
                 slow = executor.submit(urlopen, url + "/read", timeout=10)
                 time.sleep(.5)
-                assert urlopen(url, timeout=1.5).status == 200
+                for _ in range(polling_requests):
+                    assert urlopen(url, timeout=1.5).status == 200
                 assert slow.result(timeout=10).status == 200
             log.flush()
             log.seek(0)
@@ -73,6 +76,10 @@ class GunicornNativeReaderTest(unittest.TestCase):
     def test_worker_non_muore_ne_blocca_ui_durante_lettura_nativa(self):
         with tempfile.TemporaryDirectory(prefix="iusentra-native-reader-test-") as root:
             _exercise_native_reader(Path(root))
+
+    def test_polling_non_ricicla_worker_con_importazione_in_corso(self):
+        with tempfile.TemporaryDirectory(prefix="iusentra-import-polling-test-") as root:
+            _exercise_native_reader(Path(root), polling_requests=1200)
 
 
 if __name__ == "__main__":

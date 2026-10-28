@@ -1073,7 +1073,7 @@ def test_email_ordinaria_scrivi_restera_separata_da_email_pec(tmp_path, monkeypa
     GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
         ConfigStudio(
             smtp=ConfigSMTP(
-                host="smtp.example.it",
+                host="smtp.gmail.com",
                 port=587,
                 username="studio@example.it",
                 password="segreta",

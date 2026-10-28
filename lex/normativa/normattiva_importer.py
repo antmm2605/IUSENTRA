@@ -7,7 +7,7 @@ Uso tipico:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Iterable, Iterator, Any
 from zipfile import ZipFile, BadZipFile
@@ -54,6 +54,8 @@ class ArticleRecord:
     article_text: str
     topics: list[str]
     relevance_score: float
+    struttura_normativa: list[dict] = field(default_factory=list)
+    solo_intestazione_xml: bool = False
 
 
 @dataclass
@@ -75,6 +77,7 @@ class DocumentRecord:
     relevance_score: float
     is_relevant: bool
     articles: list[ArticleRecord]
+    componenti: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -146,8 +149,9 @@ def infer_tipo_atto_from_entry(entry: str) -> str | None:
 
 
 def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: str) -> DocumentRecord:
+    componenti = []
     if etree is not None:
-        parser = etree.XMLParser(recover=True, huge_tree=True, encoding="utf-8")
+        parser = etree.XMLParser(recover=True, huge_tree=True, encoding="utf-8", resolve_entities=False, no_network=True)
         root = etree.fromstring(xml_bytes, parser=parser)
         xpath = lambda expr: root.xpath(expr, namespaces=NIR_NS)
         string = lambda expr: clean_text(root.xpath(f"string({expr})", namespaces=NIR_NS))
@@ -161,6 +165,12 @@ def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: 
         data_pubblicazione = norm_date(string(".//nir:pubblicazione/@norm"))
         full_text = clean_text(" ".join(root.xpath(".//text()")))
 
+        from lex.normativa.identita_documento import urn_documento, url_documento
+        from lex.normativa.struttura import percorso_xml
+        identity = urn_documento(urn, entry, numero, data_atto) or url_documento(urn, entry, data_pubblicazione)
+        version_match = re.search(r"VIGENZA[_-](\d{4}-\d{2}-\d{2}|\d{8})", entry)
+        xml_digest = sha256_bytes(xml_bytes)
+        version = version_match.group(1) if version_match else "xml:" + xml_digest
         articles: list[ArticleRecord] = []
         for art in root.xpath(".//*[local-name()='articolo']"):
             art_num = clean_text(" ".join(art.xpath("./*[local-name()='num']//text()"))) or None
@@ -173,10 +183,22 @@ def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: 
                 article_text=art_text,
                 topics=topic_names(art_matches),
                 relevance_score=relevance_score(art_matches),
+                struttura_normativa=percorso_xml(art, identity, version, xml_digest) if identity else [],
+                solo_intestazione_xml=not any(_local_name(child.tag) not in {"num", "rubrica"}
+                                              and clean_text(" ".join(child.itertext())) for child in art),
             ))
+            # Confine fisico NIR, distinto dalla segmentazione testuale di ripiego.
+            # Gli ArticleRecord testuali preesistenti restano compatibili.
+            articles[-1].localizzatore_xml = art.getroottree().getpath(art)
+            annex = next((node for node in art.iterancestors() if _local_name(node.tag) == "annesso"), None)
+            articles[-1].partizione = annex.getroottree().getpath(annex) if annex is not None else "corpo"
+        # Il testo degli allegati non può estendere un articolo del corpo
+        # principale per il solo fatto di seguirlo nella serializzazione XML.
+        main_text = clean_text(" ".join(root.xpath(
+            ".//text()[not(ancestor::*[local-name()='annessi' or local-name()='annesso'])]")))
         articles = _merge_textual_articles(
             articles,
-            extract_textual_article_records(full_text, source_title=titolo or "", collection_name=collection_name),
+            extract_textual_article_records(main_text, source_title=titolo or "", collection_name=collection_name),
         )
     else:
         root = ET.fromstring(xml_bytes)  # type: ignore[name-defined]
@@ -189,6 +211,13 @@ def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: 
         data_pubblicazione = norm_date(_find_attr_et(root, "pubblicazione", "norm"))
         full_text = clean_text(" ".join(root.itertext()))
         articles = extract_textual_article_records(full_text, source_title=titolo or "", collection_name=collection_name)
+
+    if etree is not None:
+        for annex in root.xpath(".//*[local-name()='annesso'][not(ancestor::*[local-name()='annesso'])]"):
+            text = clean_text(" ".join(annex.itertext()))
+            if text and not annex.xpath(".//*[local-name()='articolo']"):
+                componenti.append({"localizzatore_xml":annex.getroottree().getpath(annex),
+                                   "testo":text,"sha256_testo":hashlib.sha256(text.encode()).hexdigest()})
 
     matches = detect_topics(titolo or "", full_text[:50000], collection_name=collection_name)
     score = relevance_score(matches)
@@ -212,6 +241,7 @@ def parse_xml(xml_bytes: bytes, *, zip_path: Path, entry: str, collection_name: 
         relevance_score=score,
         is_relevant=score > 0,
         articles=articles,
+        componenti=componenti,
     )
 
 
@@ -271,17 +301,18 @@ def _merge_textual_articles(existing: list[ArticleRecord], textual: list[Article
     """
     if not textual:
         return existing
-    chiavi_testuali = {chiave_numero(a.article_number or "") for a in textual if len(a.article_text) > SOLO_INTESTAZIONE_MAX}
-    base = [
-        a for a in existing
-        if not (solo_intestazione(a.article_text) and chiave_numero(a.article_number or a.article_text) in chiavi_testuali)
-    ]
+    complete = {chiave_numero(a.article_number or "") for a in existing
+                if not a.solo_intestazione_xml}
+    textual = [a for a in textual if chiave_numero(a.article_number or "") not in complete]
+    chiavi_testuali = {chiave_numero(a.article_number or "") for a in textual
+                      if len(a.article_text) > SOLO_INTESTAZIONE_MAX}
+    base = [a for a in existing
+            if not (a.solo_intestazione_xml
+                    and chiave_numero(a.article_number or a.article_text) in chiavi_testuali)]
     segmenti = [Segmento(a.article_number or "", a.article_text) for a in base] + [
-        Segmento(a.article_number or "", a.article_text) for a in textual
-    ]
+        Segmento(a.article_number or "", a.article_text) for a in textual]
     tenuti = {id(seg) for seg in deduplica(segmenti)}
-    tutti = base + textual
-    return [articolo for articolo, seg in zip(tutti, segmenti) if id(seg) in tenuti]
+    return [articolo for articolo, seg in zip(base + textual, segmenti) if id(seg) in tenuti]
 
 
 def _local_name(tag: str) -> str:
@@ -353,6 +384,15 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             FOREIGN KEY(article_id) REFERENCES normative_articles(id) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS normative_components (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_id INTEGER NOT NULL REFERENCES normative_documents(id),
+            localizzatore_xml TEXT NOT NULL,
+            testo TEXT NOT NULL,
+            sha256_testo TEXT NOT NULL,
+            UNIQUE(document_id,localizzatore_xml)
+        );
+
         CREATE TABLE IF NOT EXISTS normative_sync_runs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             raw_dir TEXT,
@@ -375,6 +415,7 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_normative_documents_topics ON normative_documents(topics);
         CREATE INDEX IF NOT EXISTS idx_normative_articles_document ON normative_articles(document_id);
         CREATE INDEX IF NOT EXISTS idx_normative_chunks_document ON normative_chunks(document_id);
+        CREATE INDEX IF NOT EXISTS idx_normative_chunks_article ON normative_chunks(article_id, id);
         """
     )
     conn.commit()
@@ -491,7 +532,7 @@ def insert_document(conn: sqlite3.Connection, doc: DocumentRecord, *, store_full
                 safe_json(doc.topics),
                 doc.relevance_score,
                 1 if doc.is_relevant else 0,
-                doc.text_content if store_full_text else None,
+                doc.text_content if store_full_text or not doc.articles else None,
             ),
         )
         if cur.rowcount == 0:
@@ -510,9 +551,11 @@ def insert_articles_and_chunks(
     jsonl_file,
     max_chunk_chars: int,
     only_relevant_articles: bool,
+    preserva_esistenti: bool = False,
 ) -> tuple[int, int]:
     articles_count = 0
     chunks_count = 0
+    structural_rows = []
 
     source_title = doc.titolo or doc.xml_entry
     base_meta = {
@@ -539,28 +582,31 @@ def insert_articles_and_chunks(
                 continue
             article_key = f"normattiva:{doc.xml_sha256}:art{index}"
             existing = conn.execute(
-                "SELECT id FROM normative_articles WHERE article_key = ?", (article_key,)
+                "SELECT id, article_number, article_text FROM normative_articles WHERE article_key = ?", (article_key,)
             ).fetchone()
             if existing:
                 # Import ripetuto dello stesso XML: si aggiorna l'articolo, non si duplica.
                 article_id = int(existing[0])
-                conn.execute(
-                    """
-                    UPDATE normative_articles
-                    SET document_id = ?, article_number = ?, article_title = ?, article_text = ?, topics = ?,
-                        relevance_score = ?
-                    WHERE id = ?
-                    """,
-                    (
-                        doc_id,
-                        article.article_number,
-                        article.article_title,
-                        article.article_text,
-                        safe_json(article.topics),
-                        article.relevance_score,
-                        article_id,
-                    ),
-                )
+                if preserva_esistenti and (existing[1] != article.article_number or existing[2] != article.article_text):
+                    raise ValueError("L'articolo esistente differisce dal medesimo XML: nessuna sovrascrittura automatica")
+                if not preserva_esistenti:
+                    conn.execute(
+                        """
+                        UPDATE normative_articles
+                        SET document_id = ?, article_number = ?, article_title = ?, article_text = ?, topics = ?,
+                            relevance_score = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            doc_id,
+                            article.article_number,
+                            article.article_title,
+                            article.article_text,
+                            safe_json(article.topics),
+                            article.relevance_score,
+                            article_id,
+                        ),
+                    )
             else:
                 cur = conn.execute(
                     """
@@ -580,7 +626,13 @@ def insert_articles_and_chunks(
                 )
                 article_id = int(cur.lastrowid)
                 articles_count += 1
+            if article.struttura_normativa:
+                structural_rows.append({"article_id": article_id, "articolo": article.article_number,
+                                        "ordinal": index - 1, "struttura_normativa": article.struttura_normativa})
+            from lex.normativa.qualita_testo import qualita_testo
             meta = dict(base_meta)
+            meta["consultazione_senza_testo"] = article.solo_intestazione_xml
+            meta["qualita_testo_normativo"] = qualita_testo(article.article_text, solo_rubrica=article.solo_intestazione_xml)
             meta.update({
                 "article_number": article.article_number,
                 "article_title": article.article_title,
@@ -588,6 +640,9 @@ def insert_articles_and_chunks(
                 "article_topics": article.topics,
                 "article_relevance_score": article.relevance_score,
             })
+            locator = getattr(article, "localizzatore_xml", "")
+            if locator:
+                meta.update(partizione_xml=getattr(article, "partizione", ""), localizzatore_xml=locator)
             for chunk_index, chunk_text in enumerate(chunk_texts(article.article_text, max_chunk_chars=max_chunk_chars), start=1):
                 chunk_key = f"normattiva:{doc.xml_sha256}:art{index}:chunk{chunk_index}"
                 chunks_count += insert_chunk(conn, doc_id, article_id, chunk_key, chunk_text, meta, jsonl_file)
@@ -596,6 +651,22 @@ def insert_articles_and_chunks(
             chunk_key = f"normattiva:{doc.xml_sha256}:doc:chunk{chunk_index}"
             chunks_count += insert_chunk(conn, doc_id, None, chunk_key, chunk_text, base_meta, jsonl_file)
 
+    for index, component in enumerate(doc.componenti, 1):
+        conn.execute("INSERT OR IGNORE INTO normative_components (document_id,localizzatore_xml,testo,sha256_testo) VALUES (?,?,?,?)",
+                     (doc_id,component["localizzatore_xml"],component["testo"],component["sha256_testo"]))
+        component_id = conn.execute("SELECT id FROM normative_components WHERE document_id=? AND localizzatore_xml=? AND sha256_testo=?",
+                                    (doc_id,component["localizzatore_xml"],component["sha256_testo"])).fetchone()
+        if component_id is None:
+            raise ValueError("Componente XML discordante: richiesta rettifica versionata")
+        meta = dict(base_meta, component_id=component_id[0], partizione_xml=component["localizzatore_xml"],
+                    ambito_testo="allegato_non_articolato")
+        for chunk_index, text in enumerate(chunk_texts(component["testo"],max_chunk_chars=max_chunk_chars),1):
+            key=f"normattiva:{doc.xml_sha256}:annesso{index}:chunk{chunk_index}"
+            chunks_count += insert_chunk(conn,doc_id,None,key,text,meta,jsonl_file)
+
+    if structural_rows:
+        from lex.normativa.struttura import salva_proiezione
+        salva_proiezione(conn, doc_id, structural_rows)
     return articles_count, chunks_count
 
 
@@ -734,7 +805,7 @@ def import_raw_dir(
                             doc,
                             jsonl_file=jf,
                             max_chunk_chars=max_chunk_chars,
-                            only_relevant_articles=True,
+                            only_relevant_articles=only_relevant,
                         )
                         stats.articles_imported += a_count
                         stats.chunks_written += c_count

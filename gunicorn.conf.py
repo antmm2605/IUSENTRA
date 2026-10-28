@@ -6,8 +6,10 @@ import os
 
 bind = os.getenv("GUNICORN_BIND") or f"0.0.0.0:{os.getenv('PORT', '8080')}"
 workers = int(os.getenv("WEB_CONCURRENCY", "1"))
-threads = int(os.getenv("GUNICORN_THREADS", "2"))
-worker_class = os.getenv("GUNICORN_WORKER_CLASS", "gevent")
+threads = int(os.getenv("GUNICORN_THREADS", "4"))
+# I lettori PDF/OCR nativi non cedono al loop gevent: il heartbeat deve
+# restare indipendente dalla richiesta lunga, senza alzare il timeout.
+worker_class = os.getenv("GUNICORN_WORKER_CLASS", "gthread")
 worker_connections = int(os.getenv("GUNICORN_WORKER_CONNECTIONS", "100"))
 timeout = int(os.getenv("GUNICORN_TIMEOUT", "120"))
 graceful_timeout = int(os.getenv("GUNICORN_GRACEFUL_TIMEOUT", "30"))

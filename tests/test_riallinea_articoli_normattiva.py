@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import os
+import json
 import sqlite3
 from pathlib import Path
+
+import pytest
 
 from lex.normativa.articoli_testuali import chiave_numero, dividi_in_articoli, solo_intestazione
 from lex.normativa.normattiva_importer import ensure_schema, extract_textual_article_records
@@ -119,3 +122,39 @@ def test_analizza_non_tocca_documenti_sani():
     articoli = [(1, "Art. 1.", "Art. 1. Il processo si svolge davanti al giudice."),
                 (2, "Art. 2.", "Art. 2. Le parti stanno in giudizio con un difensore, salvo l'art. 86.")]
     assert analizza(articoli).segmenti is None and not any(analizza(articoli).difetti.values())
+
+
+@pytest.mark.parametrize("metadata", [
+    {"localizzatore_xml": "/act/body/article[1]", "partizione_xml": "corpo"},
+    {"consultazione_provenienza": {"xml_sha256": "a" * 64, "url": "https://www.normattiva.it/"}},
+    {"consultazione_provenienza": {}},
+    "JSON non leggibile",
+])
+def test_riallineatore_non_riscrive_fonti_con_provenienza(tmp_path, metadata):
+    db, doc = _db_con_vecchia_divisione(tmp_path)
+    with sqlite3.connect(db) as c:
+        raw = metadata if isinstance(metadata, str) else json.dumps(metadata)
+        c.execute("UPDATE normative_chunks SET metadata_json=? WHERE document_id=?", (raw, doc))
+        before = {table: c.execute("SELECT * FROM " + table).fetchall()
+                  for table in ["normative_documents", "normative_articles", "normative_chunks"]}
+    result = riallinea(db)
+    assert result.documenti_fonti_preservate == 1
+    assert result.documenti_riallineati == 0
+    assert result.documenti_saltati == int(isinstance(metadata, str))
+    assert any("lettore nativo" in note for note in result.dettagli)
+    with sqlite3.connect(db) as c:
+        after = {table: c.execute("SELECT * FROM " + table).fetchall() for table in before}
+    assert after == before
+
+
+@pytest.mark.parametrize("number", ["I-bis", "314/2"])
+def test_numeri_nativi_non_vengono_reinterpretati_dal_correttore(tmp_path, number):
+    db, doc = _db_con_vecchia_divisione(tmp_path)
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE normative_articles SET article_number=? WHERE document_id=?", (number, doc))
+        before = conn.execute("SELECT * FROM normative_articles").fetchall()
+    result = riallinea(db)
+    assert result.documenti_fonti_preservate == 1
+    assert result.documenti_riallineati == 0
+    with sqlite3.connect(db) as conn:
+        assert conn.execute("SELECT * FROM normative_articles").fetchall() == before

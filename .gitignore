@@ -248,3 +248,6 @@ instance/cache/
 # Dati runtime creati in locale (incarichi CTU, prima nota): mai nel repository
 /ctu/
 /contabilita/
+
+# Output riproducibile della build Storybook; i sorgenti .storybook restano governati.
+/frontend/storybook-static/

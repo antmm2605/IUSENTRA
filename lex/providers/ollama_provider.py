@@ -370,6 +370,29 @@ class OllamaProvider(BaseProvider):
         if isinstance(evidence, dict) and "evidence_sufficient" in evidence:
             metadata["evidence_sufficient"] = bool(evidence.get("evidence_sufficient"))
 
+        # Le norme integrali che non entrano nel contesto vengono prima lette
+        # per parti dal medesimo provider. Nessun cambio di modello o di fonti.
+        from .lettura_normativa_rag import completa_lettura_normativa
+
+        def leggi_norma(sistema, messaggio):
+            reading_payload={**payload,"messages":[{"role":"system","content":sistema},
+                                                   {"role":"user","content":messaggio}]}
+            response=_call_ollama(reading_payload,api_base_url,timeout=settings.timeout_s)
+            leggi_norma.ultimo_uso=dict(getattr(response,"stats",{}) or {})
+            return str(response),model
+
+        try:
+            plan,trace=completa_lettura_normativa(piano=plan,system_prompt=system_prompt,
+                question=query,evidence=evidence,workflow=workflow_name,context=context,
+                settings=settings,chiama_modello=leggi_norma)
+            metadata["letture_fonti_normative"]=trace
+            metadata["prompt_budget"]=plan.metadata
+            payload["messages"]=plan.messages()
+        except (OSError,ValueError,TypeError,requests.RequestException) as exc:
+            metadata.update(status="lettura_fonti_non_completata",runtime_error_type=type(exc).__name__,
+                            skipped_generation_reason="normative_full_text_reading_incomplete")
+            return ProviderDraft(text="La lettura integrale delle norme non è ancora completata. Nessuna risposta giuridica parziale è stata generata; riprova la lettura delle fonti.",metadata=metadata)
+
         try:
             raw = _call_ollama(payload, api_base_url, timeout=settings.timeout_s)
             runtime_stats = dict(getattr(raw, "stats", {}) or {})
@@ -446,7 +469,8 @@ class OllamaProvider(BaseProvider):
                 retry_api_base_url = str(refreshed.get("api_base_url") or "").strip()
                 retry_model = str(refreshed.get("chat_model") or model).strip() or model
                 retry_keep_alive = str(refreshed.get("keep_alive") or keep_alive).strip() or keep_alive
-                if retry_api_base_url and retry_api_base_url != api_base_url:
+                if (retry_api_base_url and retry_api_base_url != api_base_url
+                        and not metadata.get("letture_fonti_normative")):
                     retry_payload = {
                         **payload,
                         "model": retry_model,

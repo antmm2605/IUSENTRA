@@ -198,7 +198,9 @@ def _set_smtp_send_timeout(client: Any, config: dict[str, Any]) -> None:
         sock.settimeout(max(int(config["timeout"]), SMTP_SEND_TIMEOUT_SECONDS))
 
 
-def _human_error(error: Exception, *, host: str = "", port: int | None = None) -> str:
+def _human_error(
+    error: Exception, *, host: str = "", port: int | None = None, verification: bool = False
+) -> str:
     endpoint = f" verso {host}:{port}" if host and port else ""
     if isinstance(error, PecBridgeValidationError):
         return str(error)
@@ -220,6 +222,11 @@ def _human_error(error: Exception, *, host: str = "", port: int | None = None) -
     if isinstance(error, ssl.SSLError):
         return f"Errore TLS/SSL SMTP PEC{endpoint}. Verifica porta, SSL/TLS e certificati del provider."
     if isinstance(error, smtplib.SMTPServerDisconnected):
+        if verification:
+            return (
+                f"Connessione SMTP PEC locale interrotta{endpoint} durante la verifica. "
+                "Nessuna email è stata inviata. Verifica porta e modalità SSL/TLS."
+            )
         return (
             "Connessione SMTP PEC locale interrotta"
             f"{endpoint}. Il provider ha chiuso la connessione durante la trasmissione. "
@@ -262,6 +269,7 @@ def test_pec_smtp_local(
                 exc,
                 host=str(config.get("host") or ""),
                 port=config.get("port"),
+                verification=True,
             ),
         }
     finally:

@@ -14,6 +14,7 @@ Responsabilità:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -167,13 +168,15 @@ def _identificativo(item: Any) -> str:
 def _vigenza(item: Any) -> str:
     value = _item_get(item, "vigenza", "stato_vigenza", "vigente")
     if value is True:
-        return "vigente"
+        return "edizione acquisita (fonte: vigente)"
     if value is False:
-        return "non vigente"
+        return "edizione segnalata dalla fonte come non vigente"
     text = _clean(value).lower()
     if not text:
         return ""
-    return {"originale": "testo originale", "true": "vigente", "false": "non vigente",
+    return {"originale": "testo originale", "true": "edizione acquisita (fonte: vigente)",
+            "vigente": "edizione acquisita (fonte: vigente)",
+            "false": "edizione segnalata dalla fonte come non vigente",
             "edizione_acquisita": "edizione acquisita, vigenza attuale non attestata"}.get(text, text)
 
 
@@ -205,7 +208,31 @@ def _fonte(item: Any) -> str:
     return title
 
 
+def _norma_integrale(item: Any) -> bool:
+    # Il tipo è assegnato dal retriever, non da metadata di documenti privati.
+    kind = item.get("source_type") if isinstance(item, dict) else getattr(item, "source_type", None)
+    return kind == "normativa_normattiva" and bool(_item_get(item, "normative_full_text"))
+
+
+def _norma_letta(item: Any) -> bool:
+    # Tipo assegnato esclusivamente alla vista interna dopo le letture.
+    kind = item.get("source_type") if isinstance(item, dict) else getattr(item, "source_type", None)
+    return kind == "normativa_letta_per_parti"
+
+
 def _testo(item: Any) -> str:
+    if _norma_letta(item):
+        view = _item_get(item,"normative_read_view")
+        expected = _item_get(item,"normative_read_view_sha256")
+        if not isinstance(view,str) or hashlib.sha256(view.encode()).hexdigest()!=expected:
+            raise ValueError("Vista letterale delle letture alterata")
+        return view
+    full = _item_get(item, "normative_full_text") if _norma_integrale(item) else None
+    if full:
+        expected = _item_get(item, "normative_full_text_sha256")
+        if not isinstance(full, str) or hashlib.sha256(full.encode()).hexdigest() != expected:
+            raise ValueError("Impronta del testo normativo non coincidente")
+        return full
     content = _clean(_item_get(item, "content", "excerpt", "testo", "text"))
     extra: list[str] = []
     for label, keys in (
@@ -237,9 +264,11 @@ def evidence_header(index: int, item: Any) -> str:
 
 def format_evidence_item(index: int, item: Any, *, max_chars: int = 1600) -> tuple[str, bool]:
     """Ritorna (blocco formattato, troncato?) oppure ("", False) se senza testo."""
-    testo = scrub_personal_data(_testo(item))
+    testo = _testo(item) if _norma_integrale(item) or _norma_letta(item) else scrub_personal_data(_testo(item))
     if not testo:
         return "", False
+    if _norma_integrale(item) or _norma_letta(item):
+        return f"{scrub_personal_data(evidence_header(index, item))}\n{testo}", False
     testo, troncato = _tronca(testo, max_chars)
     return f"{scrub_personal_data(evidence_header(index, item))}\n{testo}", troncato
 
@@ -492,6 +521,9 @@ def build_rag_prompt(
             # Ultima fonte ammessa: si accorcia se resta uno spazio utile,
             # altrimenti si escludono questa e tutte le meno rilevanti.
             spazio = _chars_for_tokens(disponibili - 1) - len(evidence_header(numero, item)) - 1
+            if _norma_integrale(item) or _norma_letta(item):
+                esclusi_budget.append(posizione)
+                continue
             if spazio >= 300:
                 blocco, _ = format_evidence_item(numero, item, max_chars=spazio)
                 troncato = True

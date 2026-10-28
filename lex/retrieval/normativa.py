@@ -53,15 +53,15 @@ def _official_archive_sources(message: str, *, diagnostics: list[str] | None = N
     sources: list[LexSource] = []
     if _search_normattiva is not None:
         try:
-            # Si leggono 8 risultati e si tengono i primi 4 pertinenti: un risultato scartato
-            # non deve far perdere l'articolo che lo segue in classifica.
-            for row in _search_normattiva(query, limit=8, diagnostics=diagnostics):
+            # Il catalogo completo e la biblioteca concorrono nello stesso pool.
+            # I testi integrali restano nel contesto, gli estratti servono alla UI.
+            for row in _search_normattiva(query, limit=50, diagnostics=diagnostics):
                 if exact_reference_only and row.get("riferimento_esatto") is not True:
                     continue
                 if not _riga_pertinente(query, row):
                     continue
                 sources.append(_archive_row_to_source(row, source_type="normativa_normattiva", default_title="Normattiva"))
-                if len(sources) >= 4:
+                if len(sources) >= 20:
                     break
         except NormativaIndexUnavailable:
             if diagnostics is not None:
@@ -69,6 +69,20 @@ def _official_archive_sources(message: str, *, diagnostics: list[str] | None = N
             logger.warning("Indice Normattiva non disponibile per la ricerca locale.")
         except Exception:
             pass
+    if not sources and not exact_reference_only:
+        from lex.normativa.biblioteca.recupero_domanda import recupera_nel_comando
+
+        recovered=recupera_nel_comando(query)
+        if recovered is not None:
+            a=recovered["articolo"]
+            d=a["provenienza_archivio"]
+            row={"titolo":d.get("titolo") or a["chiave"],"articolo_o_chunk":a["articolo"],
+                 "testo":a["testo"],"normative_full_text":a["testo"],"normative_full_text_sha256":a["sha256_testo"],
+                 "normative_article_id":a["article_id"],"document_id":a["document_id"],"chunk_id":"biblioteca:"+str(a["article_id"]),
+                 "archive_catalog":"biblioteca_codici_leggi","url_origine":d.get("urn"),"fonte":"Normattiva",
+                 "hash_sha256":d.get("xml_sha256"),"data_acquisizione":d.get("imported_at"),"data":d.get("data_atto"),
+                 "vigenza":"versione richiesta al "+recovered["data_riferimento"],"riferimento_esatto":True}
+            sources.append(_archive_row_to_source(row,source_type="normativa_normattiva",default_title="Normattiva"))
     if _search_gazzetta is not None and not exact_reference_only:
         try:
             for row in _search_gazzetta(query, limit=2):
@@ -194,15 +208,33 @@ def _archive_row_to_source(row: dict[str, Any], *, source_type: str, default_tit
         "document_id": row.get("document_id"),
         "chunk_rowid": row.get("chunk_rowid"),
     }
+    if source_type == "normativa_normattiva" and row.get("normative_full_text"):
+        metadata["normative_full_text"] = row["normative_full_text"]
+        metadata["normative_full_text_sha256"] = row["normative_full_text_sha256"]
+        metadata["normative_article_id"] = row.get("normative_article_id")
     articolo = _articolo_fonte(row) if source_type == "normativa_normattiva" else ""
     if articolo:
         metadata["articolo"] = articolo
     urn = str(row.get("url_origine") or "").strip()
-    if source_type == "normativa_normattiva" and urn.startswith("urn:nir:stato:"):
+    if source_type == "normativa_normattiva":
+        from lex.normativa.consultazione import url_fonte_da_metadata
         from lex.testi_ufficiali import chiave_articolo, collegamento_normattiva
 
-        metadata["urn"] = urn
-        metadata["official_url"] = collegamento_normattiva(urn.split("!")[0].split("~")[0], chiave_articolo(articolo))
+        if urn.startswith("urn:nir:"):
+            metadata["urn"] = urn
+        recorded_url=url_fonte_da_metadata(metadata_riga)
+        external_identity=urn.startswith(("urn:nir:unione.europea:","urn:nir:consiglio.nazionale.forense:"))
+        if external_identity:
+            metadata["official_url"] = recorded_url
+            if not recorded_url:
+                metadata["verified_reference"] = False
+                metadata["source_provenance_pending"] = True
+        elif urn.startswith("urn:nir:"):
+            # Conservare il collegamento puntuale dell'articolo nazionale:
+            # una URL generica dell'atto non deve sostituirlo.
+            metadata["official_url"] = collegamento_normattiva(urn.split("!")[0].split("~")[0], chiave_articolo(articolo))
+        elif recorded_url:
+            metadata["official_url"] = recorded_url
     vigenza = str(row.get("vigenza") or "").strip().lower()
     if vigenza:
         metadata["vigenza"] = vigenza

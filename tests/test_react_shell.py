@@ -1261,7 +1261,8 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     assert "Array.isArray(payload)" in appointment_page
     assert "Array.isArray(payload.data)" in appointment_page
     assert "agendaItemsFromPayload" in appointment_page
-    assert "const itemDataOra = asText(item.data_ora)" in appointment_page
+    assert "romeInstant(asText(item.data_ora))" in appointment_page
+    assert "if (itemStart === null) return false" in appointment_page
     assert ".catch(() =>" in appointment_page
     assert "Cliente senza nome" in appointment_page
     assert "/api/agenda?da=" in appointment_page

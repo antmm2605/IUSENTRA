@@ -76,6 +76,23 @@ def recover_unassigned_originals(package, *, fascicoli, clienti, assigned_files,
         except (OSError, ValueError):
             result["pending"].append({"name": file.name, "reason": "Originale non accessibile"})
             continue
+        digest = hashlib.sha256(raw).hexdigest()
+        source_id = "quickorganizer:unlinked-original:" + hashlib.sha256(identity(file).encode("utf-8")).hexdigest() + ":" + digest
+        explicit_target = (explicit_assignments or {}).get(identity(file))
+        if explicit_target and explicit_target not in {case.id for case in cases}:
+            raise ValueError("Pratica di destinazione non selezionata.")
+        preserved = [(case.id, doc) for case in cases if not explicit_target or case.id == explicit_target
+                     for doc in case.documenti if doc.id_documento_portale == source_id]
+        if len(preserved) > 1:
+            result["pending"].append({"name": file.name, "reason": "Originale gia registrato con associazioni multiple: verifica necessaria"})
+            continue
+        if preserved:
+            fid, existing = preserved[0]
+            existing_path = fascicoli.percorso_documento(fid, existing.id)
+            if not existing_path or not existing_path.is_file() or hashlib.sha256(decrypt_doc(existing_path.read_bytes())).hexdigest() != digest:
+                raise OSError("Originale gia registrato non integro o non accessibile: nessun duplicato creato.")
+            result["alreadyPreserved"] += 1
+            continue
         suffix = Path(file.name).suffix.lower()
         # Le righe MailBee sono registri SMTP, non originali documentali.
         # Restano nel pacchetto: possono contenere dati e non si cancellano qui.

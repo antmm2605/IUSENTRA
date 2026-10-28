@@ -28,7 +28,7 @@ def indicizza_salvataggio_editor(*, id_fasc: str, document_id: str, filename: st
             id_fasc,
             [source],
             document_ai_user_context(),
-            retry_errors=True,
+            retry_errors=False,
         )
     except Exception as exc:
         current_app.logger.warning("Indicizzazione Lex editor non completata per %s/%s: %s", id_fasc, filename, exc)

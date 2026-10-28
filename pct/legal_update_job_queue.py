@@ -196,6 +196,21 @@ class LegalUpdateJobQueue:
             claimed = conn.execute("SELECT * FROM legal_update_jobs WHERE job_id = ?", (row["job_id"],)).fetchone()
         return _row_to_job(claimed)
 
+    def claim(self, job_id: str, *, worker_id: str = "worker") -> LegalUpdateQueueJob | None:
+        """Lease atomico del solo oggetto richiesto, senza consumare altri job."""
+        now = _now()
+        with self.connect() as conn:
+            updated = conn.execute(
+                "UPDATE legal_update_jobs SET status='running', attempts=attempts+1, "
+                "worker_id=?, started_at=?, updated_at=?, last_error='' "
+                "WHERE job_id=? AND status='queued' AND attempts<max_attempts",
+                (_clean(worker_id), now, now, _clean(job_id)),
+            )
+            if updated.rowcount != 1:
+                return None
+            row = conn.execute("SELECT * FROM legal_update_jobs WHERE job_id=?", (_clean(job_id),)).fetchone()
+        return _row_to_job(row)
+
     def complete(self, job_id: str, *, result: Mapping[str, Any] | None = None, content_hash: str = "") -> LegalUpdateQueueJob:
         now = _now()
         with self.connect() as conn:

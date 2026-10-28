@@ -72,7 +72,7 @@ def indicizza_documento_lex(
                         id_fasc,
                         [source],
                         user_context,
-                        retry_errors=True,
+                        retry_errors=False,
                     )
                     for error in result.errors:
                         app_obj.logger.warning("Indicizzazione Lex: %s", error)

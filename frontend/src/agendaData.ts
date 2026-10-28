@@ -1,3 +1,4 @@
+import { romeDateKey, romeInstant, romeTime } from './agendaTime'
 import { normalizeSourceCandidates, type SourceCandidate } from './sourceEvidenceData'
 import type { Tone } from './data'
 
@@ -113,17 +114,12 @@ function parseDate(value: unknown): Date | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value
   const raw = asString(value)
   if (!raw) return null
-  const normalised = raw.includes('T') ? raw : `${raw}T00:00:00`
-  const parsed = new Date(normalised)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function pad(value: number): string {
-  return String(value).padStart(2, '0')
+  const normalised = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T00:00:00` : raw
+  return romeInstant(normalised)
 }
 
 export function toDateKey(value: Date): string {
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`
+  return romeDateKey(value)
 }
 
 export function startOfWeek(value = new Date()): Date {
@@ -169,7 +165,7 @@ export function rangeLabel(start: Date, end: Date): string {
 }
 
 function formatTime(value: Date): string {
-  return `${pad(value.getHours())}:${pad(value.getMinutes())}`
+  return romeTime(value)
 }
 
 function durationLabel(start: Date, end: Date): string {
@@ -466,10 +462,10 @@ export function moveEventToDay(event: AgendaEvent, dayIso: string): AgendaEvent 
 export function moveEventToDateTime(event: AgendaEvent, dayIso: string, time?: string): AgendaEvent {
   const start = parseDate(event.start) ?? new Date()
   const end = parseDate(event.end) ?? new Date(start.getTime() + 60 * 60000)
-  const target = parseDate(dayIso) ?? new Date()
-  const targetTime = time ? timeParts(time) : null
-  const movedStart = new Date(target)
-  movedStart.setHours(targetTime?.hours ?? start.getHours(), targetTime?.minutes ?? start.getMinutes(), 0, 0)
+  const targetTime = time || romeTime(start)
+  if (dayIso === romeDateKey(start) && targetTime === romeTime(start)) return event
+  const movedStart = romeInstant(`${dayIso}T${targetTime}`)
+  if (!movedStart) return event
   const durationMs = Math.max(60000, end.getTime() - start.getTime())
   const movedEnd = new Date(movedStart.getTime() + durationMs)
   return {

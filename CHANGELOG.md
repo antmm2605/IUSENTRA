@@ -1,3 +1,24 @@
+## 2.454.0 — Biblioteca normativa, provenienza e lettura controllata di Lex
+- Il deploy puo acquisire l’immagine precostruita dopo il backup preventivo, con budget fisici cumulativi, SHA dell’archivio e revisione Git verificati. I controlli sul server usano i cataloghi effettivamente configurati.
+- La sincronizzazione FTS confronta gli ID tramite gli indici SQL prima di leggere i soli testi mancanti. Conserva aggiornamento incrementale, idempotenza, avanzamento esatto e controllo degli orfani, evitando scansioni dei testi già indicizzati.
+- La verifica fisica delle Fonti riusa la conversione dell'XML fra link di articoli diversi, conservando i confronti di testo, identità, versione e provenienza. Gli output Storybook di collaudo restano fuori da Git e dall'immagine di produzione.
+- La stesura controlla provenienza e impronta di tutte le Fonti prima di chiamare Lex; le decisioni senza integrale restano spunti. La scelta dell'edizione distingue acquisizione documentata, data formale e importazione; i numeri XML «Art. 1.» sono riconosciuti con il lettore condiviso. Preleggi e codice civile conservano partizioni separate.
+
+- La ricerca combina riferimenti della scheda, proposte riscontrate e cataloghi indicizzati; il modello sceglie da un elenco chiuso e la classifica completa i posti disponibili. Identità, partizioni e versioni distinte non vengono fuse per il solo numero di articolo.
+- Le Fonti conservano testo integrale, URL ufficiale, edizione e impronte. Avvisi di abrogazione, sole rubriche e risposte riferite a un altro atto non diventano testi integrali verificati.
+- La lettura di Lex usa parti contigue del testo con riscontri letterali e ricevute di trasmissione; il ponte privato espone i controlli sul contesto e sul conteggio token. Questi riscontri attestano i contenuti trasmessi, non la correttezza giuridica della stesura.
+- L'archivio AKN mantiene originali e fotogrammi distinti, date formali, numerazioni storiche e provenienza del lettore. La riconvalida dei lettori precedenti avviene su una copia, con confronti puntuali e ripresa governata; non approva automaticamente l'applicabilità al fascicolo.
+- Date confermate, copertura dell'edizione e disposizioni transitorie sono controlli separati: l'approvazione di una regola non rende applicabile un testo di un'altra epoca. I riscontri mancanti restano espliciti nella consegna.
+- Un articolo sostituito da un avviso di abrogazione non elimina dalla ricerca le altre disposizioni integrali dello stesso atto. Il lettore conserva le numerazioni effettive e i riferimenti precedenti alle rettifiche senza usarli come Fonti correnti.
+- Le acquisizioni puntuali riusano il lettore AKN nativo, mantengono gli allegati separati e verificano la fonte fisica prima dell’importazione. I soli attributi tecnici discordanti possono essere interpretati mediante riscontri letterali, con impronte separate e originali immutati.
+- La distribuzione dei dati richiede un pacchetto verificato e identico in locale e sul server, indici coerenti e backup di ripristino; i materiali temporanei di acquisizione non fanno parte del pacchetto operativo.
+
+- Il filtro degli articoli condivide la grammatica del lettore, comprese numerazioni romane, suffissi e partizioni storiche. Un indice SQL derivato, costruito nella preparazione offline, evita scansioni durante la consultazione.
+- Il servizio dell'immagine dati riusa lo stesso dispositivo loop fra namespace e rifiuta associazioni duplicate, verificando backing file e UUID senza formattare o riavviare WSL.
+- La configurazione di coesistenza mantiene gli embedding su CPU attraverso il gateway Docker già governato e riserva la GPU al 35B della stesura, senza cambiare il modello della chat generale. Le definizioni Compose locale e server fissano la stessa versione e impronta del motore Ollama per evitare aggiornamenti divergenti tramite il tag `latest`.
+
+- Il riallineatore testuale precedente conserva le fonti dotate di struttura, localizzatori o provenienza registrata e distingue le numerazioni storiche dalla propria grammatica. Le correzioni richiedono il lettore nativo; metadati illeggibili restano segnalati senza riscrivere il testo.
+
 ## 2.453.2 — Parità e isolamento degli indici Normattiva
 
 - La biblioteca Codici e leggi usa una cartella vettoriale distinta dall’archivio generale: gli ID SQL di cataloghi diversi non vengono associati agli stessi vettori. Testi, approvazioni e codici di deposito restano invariati.

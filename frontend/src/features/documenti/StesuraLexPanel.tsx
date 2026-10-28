@@ -1,4 +1,5 @@
 import './StesuraLexPanel.css'
+import { FontiStesuraLex } from './FontiStesuraLex'
 import { useEffect, useRef, useState } from 'react'
 import { stesuraSnapshot } from '../../stesuraLexSnapshot'
 import { useBusyActivity } from '../../ui/useBusyActivity'
@@ -68,7 +69,7 @@ export function StesuraLexPanel({
   return (
     <section aria-label="Stesura di Lex" className="iu-rg-lex">
       <h4 className="iu-rg-subtitle"><Bot size={16} aria-hidden="true" /> Parti dell'atto scritte da Lex</h4>
-      <p className="iu-rg-hint">Lex usa i dati del fascicolo, le scadenze calcolate e i testi delle norme della scheda. La stesura usa il modello dello studio, anche sul suo PC tramite rete privata, senza servizi AI esterni.</p>
+      <p className="iu-rg-hint">Lex usa i dati del fascicolo, le scadenze calcolate e i testi normativi recuperati dalla biblioteca, dall’archivio generale e dalle fonti ufficiali. La stesura usa il modello dello studio, anche sul suo PC tramite rete privata, senza servizi AI esterni.</p>
       <label className="iu-rg-lex__campo">
         <span>Cosa deve ottenere l'atto per l'assistito</span>
         <textarea disabled={inCorso} maxLength={16000} rows={3} value={oggetto} onChange={(event) => setOggetto(event.target.value)} placeholder="Es. pagamento del prezzo della fornitura non saldata" />
@@ -119,7 +120,7 @@ export function StesuraLexPanel({
               <p>{blocco.testo}</p>
             </article>
           ))}
-          {esito.fonti.length ? <p className="iu-rg-hint">Fonti: {esito.fonti.join('; ')}</p> : null}
+          <FontiStesuraLex fonti={esito.fontiDettaglio || []} letture={esito.lettureFonti} />
         </div>
       ) : null}
     </section>

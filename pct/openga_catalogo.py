@@ -291,13 +291,23 @@ class CatalogoOpenGA:
                 filters.append(sede)
         with closing(sqlite3.connect(self.path.resolve().as_uri() + "?mode=ro", uri=True)) as c:
             c.row_factory = sqlite3.Row
-            lexical = c.execute(
-                """SELECT r.*,bm25(oggetti_fts) AS score FROM oggetti_fts
-              JOIN attive r ON r.id=oggetti_fts.rowid WHERE oggetti_fts MATCH ? AND """
-                + where
-                + " ORDER BY score LIMIT 200",
-                [_fts_or_query(query), *filters],
-            ).fetchall()
+            if query.isascii() and query.isdigit() and len(query) == 9:
+                # The object FTS does not contain decision or proceeding numbers.
+                # Exact public identifiers must be resolved in their own columns.
+                lexical = c.execute(
+                    "SELECT r.*,0 AS score FROM attive r WHERE " + where
+                    + " AND (r.numero=? OR r.ricorso=?)"
+                    + " ORDER BY r.anno DESC,r.sede,r.numero,r.ricorso,r.id LIMIT 200",
+                    [*filters, query, query],
+                ).fetchall()
+            else:
+                lexical = c.execute(
+                    """SELECT r.*,bm25(oggetti_fts) AS score FROM oggetti_fts
+                  JOIN attive r ON r.id=oggetti_fts.rowid WHERE oggetti_fts MATCH ? AND """
+                    + where
+                    + " ORDER BY score LIMIT 200",
+                    [_fts_or_query(query), *filters],
+                ).fetchall()
             if canale == "vettoriale":
                 lexical = []
             records = {int(r["id"]): dict(r) for r in lexical}

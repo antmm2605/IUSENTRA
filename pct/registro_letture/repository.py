@@ -146,6 +146,62 @@ def _lettore(valore: str) -> str:
     return lettore
 
 
+def _allinea_identita_ricevute(conn: sqlite3.Connection, schema: str) -> None:
+    """Migra il vecchio vincolo conservando ricevute, identificativi e indici."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        old_columns = ("tenant_id", "tipo", "oggetto_id", "sha256", "lettore")
+        old_indexes = {}
+        for index in conn.execute("PRAGMA index_list(letture)").fetchall():
+            if not index[2]:
+                continue
+            escaped = str(index[1]).replace('"', '""')
+            columns = tuple(entry[2] for entry in conn.execute(f'PRAGMA index_info("{escaped}")'))
+            if len(columns) == len(old_columns) and set(columns) == set(old_columns):
+                if index[4]:
+                    raise RegistroLettureError("Indice univoco parziale delle ricevute: migrazione dedicata necessaria.")
+                terms = []
+                for entry in conn.execute(f'PRAGMA index_xinfo("{escaped}")'):
+                    if not entry[5]:
+                        continue
+                    name = str(entry[2]).replace('"', '""')
+                    collation = str(entry[4] or "BINARY").replace('"', '""')
+                    direction = "DESC" if entry[3] else "ASC"
+                    terms.append(f'"{name}" COLLATE "{collation}" {direction}')
+                    if entry[2] == "tenant_id":
+                        terms.append('"fascicolo_id"')
+                old_indexes[str(index[1])] = f'CREATE UNIQUE INDEX "{escaped}" ON letture (' + ", ".join(terms) + ")"
+        if not old_indexes:
+            conn.commit()
+            return
+        create = re.search(r"CREATE TABLE IF NOT EXISTS letture \(.*?\n\);", schema, re.S)
+        if create is None:
+            raise RegistroLettureError("Schema delle ricevute non disponibile per la migrazione.")
+        # A rebuild must not cascade into externally linked records.
+        for table in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
+            escaped = str(table[0]).replace('"', '""')
+            if any(fk[2] == "letture" for fk in conn.execute(f'PRAGMA foreign_key_list("{escaped}")')):
+                raise RegistroLettureError("Ricevute con riferimenti esterni: migrazione dedicata necessaria.")
+        auxiliaries = [old_indexes.get(r[0], r[1]) for r in conn.execute("SELECT name, sql FROM sqlite_master WHERE tbl_name='letture' AND type IN ('index','trigger') AND sql IS NOT NULL")]
+        conn.execute(create.group(0).replace('IF NOT EXISTS letture (', 'letture_identita_nuova (', 1))
+        columns = [entry[1] for entry in conn.execute("PRAGMA table_info(letture)")]
+        new_columns = {entry[1] for entry in conn.execute("PRAGMA table_info(letture_identita_nuova)")}
+        if set(columns) != new_columns:
+            raise RegistroLettureError("Colonne delle ricevute non compatibili: migrazione annullata.")
+        names = ", ".join('"' + str(column).replace('"', '""') + '"' for column in columns)
+        conn.execute(f"INSERT INTO letture_identita_nuova ({names}) SELECT {names} FROM letture")
+        if conn.execute(f"SELECT {names} FROM letture EXCEPT SELECT {names} FROM letture_identita_nuova").fetchone() or conn.execute(f"SELECT {names} FROM letture_identita_nuova EXCEPT SELECT {names} FROM letture").fetchone():
+            raise RegistroLettureError("Confronto delle ricevute non riuscito: migrazione annullata.")
+        conn.execute("DROP TABLE letture")
+        conn.execute("ALTER TABLE letture_identita_nuova RENAME TO letture")
+        for statement in auxiliaries:
+            conn.execute(statement)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+
+
 def _allinea_vincolo_categorie(conn: sqlite3.Connection, schema: str) -> None:
     """Porta gli archivi SQLite già creati al vincolo delle categorie attuale.
 
@@ -208,6 +264,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                             if "duplicate column" not in str(exc).lower():
                                 raise
                 _allinea_vincolo_categorie(conn, schema)
+                _allinea_identita_ricevute(conn, schema)
 
     # ---- primitive ---------------------------------------------------------
 
@@ -477,9 +534,12 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         )
 
     def da_leggere(self, tenant_id: str, fascicolo_id: str, lettore: str, *, versione: str | None = None, oggetti: Iterable[Oggetto] | None = None, tipi: Iterable[str] | None = None) -> list[Oggetto]:
-        """Gli oggetti presenti che il lettore non ha ancora letto con l'impronta e la versione correnti."""
+        """Restituisce le fonti presenti senza un esito per l'impronta corrente.
+
+        Un errore resta visibile nel registro e richiede un recupero esplicito;
+        un cambio del lettore non riavvia da solo la lettura della stessa fonte.
+        """
         lettore = _lettore(lettore)
-        versione_corrente = versione if versione is not None else versione_lettore(lettore)
         elenco = list(oggetti) if oggetti is not None else self.oggetti(tenant_id, fascicolo_id)
         tipi_ammessi = {_tipo(t) for t in tipi} if tipi else None
         letti = {
@@ -490,36 +550,54 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             if not oggetto.presente or (tipi_ammessi and oggetto.tipo not in tipi_ammessi):
                 continue
             lettura = letti.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta))
-            if lettura is None or lettura.stato in {"errore", "in_corso"}:
-                mancanti.append(oggetto)
-            elif versione_corrente and lettura.versione_lettore != versione_corrente and not versione_compatibile_lettore(lettore, lettura.versione_lettore, versione_corrente):
+            if lettura is None:
                 mancanti.append(oggetto)
         return mancanti
+
+    def da_confermare(self, tenant_id: str, fascicolo_id: str, lettore: str, *, oggetti: Iterable[Oggetto]) -> list[Oggetto]:
+        """Fonti per cui una prova già acquisita può aggiornare la ricevuta.
+
+        Questa funzione non avvia la lettura. L'assenza di una ricevuta riuscita
+        include errori e tentativi interrotti, che restano distinti dal successo
+        fino a quando il chiamante non dispone di un riscontro positivo.
+        """
+        lettore = _lettore(lettore)
+        letture = {
+            (voce.tipo, voce.oggetto_id, voce.sha256): voce
+            for voce in self.letture(tenant_id, fascicolo_id, lettore=lettore)
+        }
+        return [oggetto for oggetto in oggetti if oggetto.presente and (
+            (esito := letture.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta))) is None
+            or esito.stato != "letto"
+        )]
 
     def segna_letto(self, tenant_id: str, fascicolo_id: str, oggetto: Oggetto, lettore: str, *, versione: str | None = None, stato: str = "letto", esito: dict[str, Any] | None = None, durata_ms: int = 0) -> Lettura:
         lettore = _lettore(lettore)
         if stato not in STATI_LETTURA:
             raise RegistroLettureError("Stato di lettura non valido.")
+        # La sola dimensione non identifica il contenuto: due file diversi
+        # possono avere lo stesso numero di byte. Senza un digest affidabile
+        # non possiamo confermare una lettura né riutilizzarla in seguito.
+        if stato == "letto":
+            digest = str(oggetto.sha256 or oggetto.sha256_archivio or "").strip()
+            if len(digest) != 64 or not all(char in "0123456789abcdefABCDEF" for char in digest):
+                raise RegistroLettureError("Impronta SHA-256 assente o non valida: lettura non confermata.")
         versione_corrente = versione if versione is not None else versione_lettore(lettore)
         tenant = _testo(tenant_id)
         adesso = _adesso()
-        chiave = (tenant, _tipo(oggetto.tipo), _testo(oggetto.oggetto_id), oggetto.impronta, lettore)
+        tipo, oggetto_id, digest = _tipo(oggetto.tipo), _testo(oggetto.oggetto_id), oggetto.impronta
         with self.connection() as conn:
-            esistente = conn.execute(
-                f"SELECT id FROM {self._tabella('letture')} WHERE {self._filtro('tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND lettore = ?')}",
-                chiave,
-            ).fetchone()
-            valori = {
-                "fascicolo_id": _testo(fascicolo_id), "versione_lettore": str(versione_corrente or ""), "stato": stato,
-                "esito_json": _json(esito or {}), "durata_ms": int(durata_ms or 0), "letto_il": adesso, "aggiornato_il": adesso,
-            }
-            if esistente:
-                self._aggiorna(conn, "letture", valori, "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND sha256 = ? AND lettore = ?", chiave)
-            else:
-                self._inserisci(conn, "letture", {
-                    "id": _nuovo_id("let"), "tenant_id": tenant, "tipo": chiave[1], "oggetto_id": chiave[2], "sha256": chiave[3], "lettore": lettore, **valori,
-                })
-        return Lettura(tipo=chiave[1], oggetto_id=chiave[2], sha256=chiave[3], lettore=lettore, versione_lettore=str(versione_corrente or ""), stato=stato, esito=dict(esito or {}), durata_ms=int(durata_ms or 0), letto_il=adesso)
+            conn.execute(
+                'INSERT INTO letture (id,tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore,'
+                'versione_lettore,stato,esito_json,durata_ms,letto_il,aggiornato_il) '
+                'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) '
+                'ON CONFLICT(tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore) DO UPDATE SET '
+                'versione_lettore=excluded.versione_lettore,stato=excluded.stato,esito_json=excluded.esito_json,'
+                'durata_ms=excluded.durata_ms,letto_il=excluded.letto_il,aggiornato_il=excluded.aggiornato_il',
+                (_nuovo_id("let"),tenant,_testo(fascicolo_id),tipo,oggetto_id,digest,lettore,
+                 str(versione_corrente or ""),stato,_json(esito or {}),int(durata_ms or 0),adesso,adesso),
+            )
+        return Lettura(tipo=tipo, oggetto_id=oggetto_id, sha256=digest, lettore=lettore, versione_lettore=str(versione_corrente or ""), stato=stato, esito=dict(esito or {}), durata_ms=int(durata_ms or 0), letto_il=adesso)
 
     def registra_controllo_metadati(self, tenant_id: str, fascicolo_id: str, oggetto: Oggetto, *, versione: str, esito: dict[str, Any]) -> None:
         """Checkpoint puntuale sul testo già letto; preserva stato e data della lettura."""
@@ -585,12 +663,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         return esito
 
     def fascicolo_invariato(self, tenant_id: str, fascicolo_id: str, lettore: str, impronta: str, *, versione: str | None = None) -> bool:
-        """Vero se il lettore ha già completato il fascicolo con questa impronta e questa versione."""
+        """Vero se il lettore ha già completato il fascicolo con questa impronta."""
         riga = self.impronta_fascicolo(tenant_id, fascicolo_id, lettore)
         if not riga or str(riga.get("stato") or "") != "completa":
             return False
-        versione_corrente = versione if versione is not None else versione_lettore(_lettore(lettore))
-        return _testo(riga.get("impronta")) == _testo(impronta) and (not versione_corrente or str(riga.get("versione_lettore") or "") == versione_corrente)
+        return _testo(riga.get("impronta")) == _testo(impronta)
 
     def segna_fascicolo(self, tenant_id: str, fascicolo_id: str, lettore: str, *, impronta: str, oggetti_totali: int, oggetti_letti: int, stato: str = "completa", versione: str | None = None, esito: dict[str, Any] | None = None) -> None:
         lettore = _lettore(lettore)
@@ -631,7 +708,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 # Il lettore esamina il fascicolo intero: conta l'impronta dell'ultimo giro completo.
                 riga = self.impronta_fascicolo(tenant, fascicolo, lettore)
                 impronta_propria = impronta_inventario(propri)
-                completa = bool(riga) and str(riga.get("stato") or "") == "completa" and _testo(riga.get("impronta")) in {impronta_propria, impronta_corrente} and (not versione or str(riga.get("versione_lettore") or "") == versione)
+                completa = bool(riga) and str(riga.get("stato") or "") == "completa" and _testo(riga.get("impronta")) in {impronta_propria, impronta_corrente}
                 if propri and not completa:
                     tutto_letto = False
                 ultima = str(riga.get("aggiornato_il") or "") if riga else ""
@@ -643,9 +720,6 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 lettura = per_chiave.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta, lettore))
                 if lettura is None:
                     stato = "da_leggere"
-                    mancanti += 1
-                elif lettura.stato == "letto" and versione and lettura.versione_lettore != versione and not versione_compatibile_lettore(lettore, lettura.versione_lettore, versione):
-                    stato = "regole_aggiornate"
                     mancanti += 1
                 elif lettura.stato == "letto":
                     stato = "letto"
@@ -830,7 +904,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 'INSERT INTO "letture" (id,tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore,'
                 'versione_lettore,stato,esito_json,durata_ms,letto_il,aggiornato_il) '
                 'VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?) '
-                'ON CONFLICT (tenant_id,tipo,oggetto_id,sha256,lettore) DO UPDATE SET '
+                'ON CONFLICT (tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore) DO UPDATE SET '
                 'stato=excluded.stato,esito_json=excluded.esito_json,aggiornato_il=excluded.aggiornato_il',
                 (_nuovo_id("let"), tenant, fascicolo, oggetto.tipo, oggetto.oggetto_id,
                  oggetto.impronta, "motore_documenti", versione_lettore("motore_documenti"),

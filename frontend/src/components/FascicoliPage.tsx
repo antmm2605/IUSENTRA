@@ -9941,6 +9941,9 @@ function DetailPage({ id }:{id:string}) {
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
             <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
+            <nav className="iu-fas-toolbar" aria-label="Cestino documenti del fascicolo">
+              <Button href={`/documenti?scope=cestino&fascicolo=${encodeURIComponent(f.id || id)}`}><Trash2 size={15}/> Cestino del fascicolo</Button>
+            </nav>
             {lazyStatus.lex === 'loaded' || lazyStatus.documenti === 'loaded' ? (
               <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             ) : lazyStatus.documenti === 'error' || lazyStatus.lex === 'error' ? (

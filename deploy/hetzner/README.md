@@ -294,3 +294,20 @@ del lavoro sia stata pulita. Il responsabile del rilascio deve riconciliare
 l'inventario, conservare le parti richieste dalle immagini e registrare
 spazio, elementi protetti ed eventuali problemi prima di chiudere il lavoro.
 Volumi, database, dati e progetti estranei restano esclusi.
+
+
+### Immagine verificata dopo il backup preventivo
+
+Per trasferire una build gia collaudata senza sommare il picco dell'immagine
+al picco del backup, impostare `IUSENTRA_PREBUILT_IMAGE_URL` e
+`IUSENTRA_PREBUILT_IMAGE_SHA256` nell'ambiente di deploy. L'URL deve indicare
+l'archivio della release esatta su un'origine autorizzata (per questo studio,
+il PC attraverso Tailscale). Il workflow conserva l'ordine CI, backup,
+installazione del modello, deploy. Solo in quest'ultimo passo il driver scarica
+il tar, ne verifica lo SHA prima di `docker load` e verifica il tag e la label
+`org.opencontainers.image.revision` contro il commit corrente. Il tar e limitato
+a 2 GiB; i budget di staging e Docker si sommano quando usano lo stesso disco.
+Gli errori bloccano il deploy senza passare a una build alternativa. Nessun
+container viene avviato dal caricatore e l'archivio temporaneo viene rimosso.
+Senza URL resta il percorso di build con i suoi controlli di spazio originali.
+Non precaricare l'immagine prima del backup quando il budget non lo permette.

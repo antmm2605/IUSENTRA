@@ -1,8 +1,8 @@
 """Il registro delle letture: che cosa è stato letto, che cosa no, che cosa è dubbio.
 
 Un documento invariato non torna da leggere; un hash diverso rimette in coda
-solo quel documento; una versione nuova del lettore rimette in coda tutto per
-quel lettore soltanto; le anomalie sulle date restano aperte finché
+solo quel documento; una versione nuova del lettore non riavvia la lettura;
+le anomalie sulle date restano aperte finché
 l'avvocato non le conferma o corregge.
 """
 
@@ -52,7 +52,7 @@ def test_schema_sqlite_e_postgresql_hanno_lo_stesso_contratto():
             assert f"    {colonna} " in blocco_sqlite, (tabella, colonna)
             assert f"    {colonna} " in blocco_postgres, (tabella, colonna)
     for schema in (sqlite, postgres):
-        assert "UNIQUE (tenant_id, tipo, oggetto_id, sha256, lettore)" in schema
+        assert "UNIQUE (tenant_id, fascicolo_id, tipo, oggetto_id, sha256, lettore)" in schema
         assert "stato IN ('letto', 'in_corso', 'errore', 'non_leggibile')" in schema
         assert "stato IN ('aperta', 'confermata', 'corretta', 'ignorata')" in schema
 
@@ -86,13 +86,13 @@ def test_da_leggere_segue_hash_e_versione_del_lettore(tmp_path: Path):
     assert [o.oggetto_id for o in registro.da_leggere(T, "F1", "ocr", versione="v1")] == ["d1"]
     # Un altro lettore non ha letto nulla.
     assert len(registro.da_leggere(T, "F1", "catalogo", versione="c1")) == 2
-    # Nuova versione del lettore OCR: tutto da rileggere, ma solo per l'OCR.
+    # Una nuova versione del lettore non rilegge automaticamente fonti immutate.
     registro.segna_letto(T, "F1", _doc("d1", "e" * 64), "ocr", versione="v1")
     assert registro.da_leggere(T, "F1", "ocr", versione="v1") == []
-    assert len(registro.da_leggere(T, "F1", "ocr", versione="v2")) == 2
-    # Un errore rimette in coda; «non leggibile» no.
+    assert registro.da_leggere(T, "F1", "ocr", versione="v2") == []
+    # Un errore rimane visibile, senza ripartenza automatica.
     registro.segna_letto(T, "F1", d2, "ocr", versione="v1", stato="errore")
-    assert [o.oggetto_id for o in registro.da_leggere(T, "F1", "ocr", versione="v1")] == ["d2"]
+    assert registro.da_leggere(T, "F1", "ocr", versione="v1") == []
     registro.segna_letto(T, "F1", d2, "ocr", versione="v1", stato="non_leggibile")
     assert registro.da_leggere(T, "F1", "ocr", versione="v1") == []
     with pytest.raises(RegistroLettureError):
@@ -107,7 +107,7 @@ def test_impronta_del_fascicolo_evita_di_rileggere(tmp_path: Path):
     assert registro.fascicolo_invariato(T, "F1", "indice_documentale", impronta, versione="x") is False
     registro.segna_fascicolo(T, "F1", "indice_documentale", impronta=impronta, oggetti_totali=2, oggetti_letti=2, versione="x")
     assert registro.fascicolo_invariato(T, "F1", "indice_documentale", impronta, versione="x") is True
-    assert registro.fascicolo_invariato(T, "F1", "indice_documentale", impronta, versione="y") is False
+    assert registro.fascicolo_invariato(T, "F1", "indice_documentale", impronta, versione="y") is True
     nuova = impronta_inventario(oggetti + [_doc("d3", "c" * 64)])
     assert nuova != impronta
     assert registro.fascicolo_invariato(T, "F1", "indice_documentale", nuova, versione="x") is False
@@ -128,8 +128,8 @@ def test_stato_fascicolo_per_lettore_e_per_oggetto(tmp_path: Path):
     assert stato.tutto_letto is False and stato.oggetti == 2
     per_oggetto = {voce["oggetto_id"]: voce["letture"] for voce in stato.per_oggetto}
     assert per_oggetto["d1"]["ocr"] == "letto" and per_oggetto["d2"]["ocr"] == "da_leggere"
-    # Versione del catalogo cambiata: «da rileggere», non «letto», e solo per quel lettore.
-    assert per_oggetto["d1"]["catalogo"] == "regole_aggiornate" and per_lettore["catalogo"].da_leggere == 2
+    # La ricevuta riuscita resta valida quando cambia soltanto il lettore.
+    assert per_oggetto["d1"]["catalogo"] == "letto" and per_lettore["catalogo"].da_leggere == 1
     registro.segna_letto(T, "F1", d2, "ocr")
     assert registro.stato_fascicolo(T, "F1", lettori=["ocr"]).tutto_letto is True
 

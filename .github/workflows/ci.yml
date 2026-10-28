@@ -391,9 +391,84 @@ jobs:
             label: "1/10"
           - phase: 2
             subshard: 1
-            total_subshards: 1
-            subdivide_items: false
-            label: "2/10"
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 1/16"
+          - phase: 2
+            subshard: 2
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 2/16"
+          - phase: 2
+            subshard: 3
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 3/16"
+          - phase: 2
+            subshard: 4
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 4/16"
+          - phase: 2
+            subshard: 5
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 5/16"
+          - phase: 2
+            subshard: 6
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 6/16"
+          - phase: 2
+            subshard: 7
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 7/16"
+          - phase: 2
+            subshard: 8
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 8/16"
+          - phase: 2
+            subshard: 9
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 9/16"
+          - phase: 2
+            subshard: 10
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 10/16"
+          - phase: 2
+            subshard: 11
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 11/16"
+          - phase: 2
+            subshard: 12
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 12/16"
+          - phase: 2
+            subshard: 13
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 13/16"
+          - phase: 2
+            subshard: 14
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 14/16"
+          - phase: 2
+            subshard: 15
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 15/16"
+          - phase: 2
+            subshard: 16
+            total_subshards: 16
+            subdivide_items: true
+            label: "2/10 parte 16/16"
           - phase: 3
             subshard: 1
             total_subshards: 3
@@ -431,34 +506,64 @@ jobs:
             label: "4/10 parte 4/4"
           - phase: 5
             subshard: 1
-            total_subshards: 6
+            total_subshards: 12
             subdivide_items: true
-            label: "5/10 parte 1/6"
+            label: "5/10 parte 1/12"
           - phase: 5
             subshard: 2
-            total_subshards: 6
+            total_subshards: 12
             subdivide_items: true
-            label: "5/10 parte 2/6"
+            label: "5/10 parte 2/12"
           - phase: 5
             subshard: 3
-            total_subshards: 6
+            total_subshards: 12
             subdivide_items: true
-            label: "5/10 parte 3/6"
+            label: "5/10 parte 3/12"
           - phase: 5
             subshard: 4
-            total_subshards: 6
+            total_subshards: 12
             subdivide_items: true
-            label: "5/10 parte 4/6"
+            label: "5/10 parte 4/12"
           - phase: 5
             subshard: 5
-            total_subshards: 6
+            total_subshards: 12
             subdivide_items: true
-            label: "5/10 parte 5/6"
+            label: "5/10 parte 5/12"
           - phase: 5
             subshard: 6
-            total_subshards: 6
+            total_subshards: 12
             subdivide_items: true
-            label: "5/10 parte 6/6"
+            label: "5/10 parte 6/12"
+          - phase: 5
+            subshard: 7
+            total_subshards: 12
+            subdivide_items: true
+            label: "5/10 parte 7/12"
+          - phase: 5
+            subshard: 8
+            total_subshards: 12
+            subdivide_items: true
+            label: "5/10 parte 8/12"
+          - phase: 5
+            subshard: 9
+            total_subshards: 12
+            subdivide_items: true
+            label: "5/10 parte 9/12"
+          - phase: 5
+            subshard: 10
+            total_subshards: 12
+            subdivide_items: true
+            label: "5/10 parte 10/12"
+          - phase: 5
+            subshard: 11
+            total_subshards: 12
+            subdivide_items: true
+            label: "5/10 parte 11/12"
+          - phase: 5
+            subshard: 12
+            total_subshards: 12
+            subdivide_items: true
+            label: "5/10 parte 12/12"
           - phase: 6
             subshard: 1
             total_subshards: 16

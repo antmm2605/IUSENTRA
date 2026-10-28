@@ -58,7 +58,9 @@ class Handler(BaseHTTPRequestHandler):
         if not hmac.compare_digest(supplied, "Bearer " + self.server.secret):
             self.answer(401, b'{"error":"authentication required"}')
             return
-        if (self.command, self.path) not in {("GET", "/v1/models"), ("POST", "/v1/chat/completions")}:
+        if (self.command, self.path) not in {("GET", "/v1/models"), ("POST", "/v1/chat/completions"),
+                                            ("GET", "/props"), ("POST", "/apply-template"),
+                                            ("POST", "/tokenize")}:
             self.answer(404, b'{"error":"unsupported endpoint"}')
             return
         if self.headers.get("Transfer-Encoding"):

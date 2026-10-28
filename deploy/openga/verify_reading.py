@@ -23,7 +23,8 @@ with tempfile.TemporaryDirectory(prefix="iusentra-lettura-collaudo-") as folder:
         time.sleep(0.5)
         result = status(path, result["job_id"])
     if result.get("stato") != "acquisito":
-        raise RuntimeError("Lettura ufficiale sul server non completata: " + result.get("stato", "ignoto"))
+        raise RuntimeError("Lettura ufficiale sul server non completata: " + result.get("stato", "ignoto")
+                           + "; diagnostica=" + json.dumps(result.get("diagnostica", [])))
     document = result["documento"]
     with app.test_request_context():
         rendered = render_template("giurisprudenza/testo_ufficiale.html", documento=document)

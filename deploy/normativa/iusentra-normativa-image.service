@@ -1,0 +1,12 @@
+[Unit]
+Description=IUSENTRA archivio normativo su immagine dati verificata
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/iusentra-normativa/mount_data_image.py --config /etc/iusentra/normativa-image.json
+RemainAfterExit=yes
+TimeoutStartSec=150
+
+[Install]
+WantedBy=multi-user.target

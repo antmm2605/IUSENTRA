@@ -62,10 +62,19 @@ def verify_reading(repo, container):
         identity = request("iusentra-app", f"http://{container}:8092/document-identity", reference)
         if identity.get("ok") is not True:
             raise ValueError("Identità della lettura non riscontrata nel servizio")
-        result = subprocess.run(["docker", "exec", "-i", "iusentra-app", "python", "-",
-                                 json.dumps(identity["identita"]), json.dumps(reference)],
-                                input=(repo / "deploy/openga/verify_reading.py").read_text(),
-                                text=True, capture_output=True, check=True, timeout=180)
+        try:
+            result = subprocess.run(["docker", "exec", "-i", "iusentra-app", "python", "-",
+                                     json.dumps(identity["identita"]), json.dumps(reference)],
+                                    input=(repo / "deploy/openga/verify_reading.py").read_text(),
+                                    text=True, capture_output=True, check=True, timeout=180)
+        except subprocess.CalledProcessError as exc:
+            # This subprocess reads only a public decision in a temporary queue.
+            # Preserve its diagnostic instead of hiding it behind the docker argv.
+            detail = (exc.stderr or "").strip()[-4000:] or "Nessuna diagnostica restituita."
+            raise RuntimeError(
+                f"Verifica lettura pubblica fallita ({reference['relazione_id']}, "
+                f"uscita {exc.returncode}):\n{detail}"
+            ) from None
         proof = json.loads(result.stdout.strip().splitlines()[-1])
         if (proof.get("stato") != "acquisito" or proof.get("caratteri", 0) < 300
                 or proof.get("coda_persistente_verificata") is not True

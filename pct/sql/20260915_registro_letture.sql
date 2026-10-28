@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS letture (
     durata_ms INTEGER NOT NULL DEFAULT 0,
     letto_il TEXT NOT NULL,
     aggiornato_il TEXT NOT NULL,
-    UNIQUE (tenant_id, tipo, oggetto_id, sha256, lettore)
+    UNIQUE (tenant_id, fascicolo_id, tipo, oggetto_id, sha256, lettore)
 );
 
 CREATE INDEX IF NOT EXISTS idx_letture_fascicolo_lettore

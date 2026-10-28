@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS letture (
     durata_ms INTEGER NOT NULL DEFAULT 0,
     letto_il TEXT NOT NULL,
     aggiornato_il TEXT NOT NULL,
-    UNIQUE (tenant_id, tipo, oggetto_id, sha256, lettore)
+    UNIQUE (tenant_id, fascicolo_id, tipo, oggetto_id, sha256, lettore)
 );
 
 CREATE INDEX IF NOT EXISTS idx_letture_fascicolo_lettore
@@ -238,3 +238,31 @@ CREATE TABLE IF NOT EXISTS letture_eventi_esiti (
     concluso_il TEXT NOT NULL DEFAULT '',
     UNIQUE(tenant_id,fascicolo_id,generation,attempt));
 CREATE INDEX IF NOT EXISTS idx_letture_eventi_esiti_worker ON letture_eventi_esiti(tenant_id,fascicolo_id,worker_id,generation);
+
+-- Ricevute distinte per fascicolo: i dati esistenti conservano gli stessi ID.
+-- Riconoscere le colonne, anche se il vincolo storico è stato rinominato.
+DO $$
+DECLARE
+    legacy_constraint RECORD;
+BEGIN
+    FOR legacy_constraint IN
+        SELECT c.conname FROM pg_constraint c
+        WHERE c.conrelid='letture'::regclass AND c.contype='u'
+          AND ARRAY(SELECT a.attname::text FROM unnest(c.conkey) AS key(attnum)
+                    JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=key.attnum
+                    ORDER BY a.attname) = ARRAY['lettore','oggetto_id','sha256','tenant_id','tipo']
+    LOOP
+        -- No CASCADE: external dependencies must abort the transaction.
+        EXECUTE format('ALTER TABLE letture DROP CONSTRAINT %I', legacy_constraint.conname);
+    END LOOP;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint c
+        WHERE c.conrelid='letture'::regclass AND c.contype='u'
+          AND ARRAY(SELECT a.attname::text FROM unnest(c.conkey) AS key(attnum)
+                    JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=key.attnum
+                    ORDER BY a.attname) = ARRAY['fascicolo_id','lettore','oggetto_id','sha256','tenant_id','tipo']
+    ) THEN
+        ALTER TABLE letture ADD CONSTRAINT letture_identita_fascicolo_key
+            UNIQUE (tenant_id,fascicolo_id,tipo,oggetto_id,sha256,lettore);
+    END IF;
+END $$;

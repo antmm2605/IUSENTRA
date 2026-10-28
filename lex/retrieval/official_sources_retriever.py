@@ -175,23 +175,18 @@ def search_normattiva(
         repo_path=DEFAULT_NORMATTIVA_DB,
     )
     if db_path is None:
-        from lex.ricerca_giuridica.testo import analizza_domanda, articolo_normalizzato
+        from .normativa_catalog import (
+            fondi_cataloghi,
+            leggi_testo_articolo,
+            query_indexed_catalogs,
+            runtime_general_path,
+        )
 
-        from .normativa_catalog import query_indexed_catalogs
-
-        batches = query_indexed_catalogs(db_target, query, materia=materia, vigenza=vigenza, limit=limit, diagnostics=diagnostics)
-        _, _, indexed = next(batches)
-        analysis = analizza_domanda(query, usa_tesauro=False)
-        covered = {articolo_normalizzato(str((row.get("metadata") or {}).get("article_number") or row.get("articolo_o_chunk") or ""))
-                   for row in indexed if row.get("riferimento_esatto") is True}
-        missing = set(analysis.articoli) - covered
-        if analysis.riferimento_esatto and missing:
-            for _, _, supplement in batches:
-                exact = [row for row in supplement if row.get("riferimento_esatto") is True
-                         and articolo_normalizzato(str((row.get("metadata") or {}).get("article_number") or row.get("articolo_o_chunk") or "")) in missing]
-                if exact:
-                    return [*exact, *indexed][:limit]
-        return indexed[:limit]
+        db_target = runtime_general_path()
+        batches = list(query_indexed_catalogs(db_target, query, materia=materia, vigenza=vigenza,
+                                             limit=max(limit, 20), diagnostics=diagnostics))
+        ranked = fondi_cataloghi(batches, limit=limit)
+        return [leggi_testo_articolo(row, db_target) for row in ranked]
     jsonl_target = _resolve_runtime_path(
         jsonl_path,
         env_names=("PCT_NORMATTIVA_JSONL", "PCT_LEX_NORMATTIVA_JSONL"),

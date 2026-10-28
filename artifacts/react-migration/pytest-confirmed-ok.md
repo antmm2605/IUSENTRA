@@ -7301,3 +7301,30 @@ Diagnosi prestazionale durante il collaudo: elenco PEC85,061secondi e worker tim
 22/10/2026 — Candidata2.447.3: riproduzione perdita aggiornamento fascicolo e guardrail correttivi; 74 casi PostgreSQL controllato,54 guardrail deposito/firma/modulo, typecheck e bundle753sorgenti/296asset positivi. Sono prove tecniche; accettazione8080,commit,CI,deploy e pulizia ancora richiesti. Rapporto artifacts/data-flow/fascicoli-sql-concorrenza-20261022.md.
 
 22/10/2026 — Accettazione reale candidata2.447.3 su8080: due schede,409senza perdita bozza,apertura confronto e nuovo salvataggio/riapertura; dati sintetici ripristinati. Finestra reale400/800pixel senza overflow, PDF2pagine modificato/salvato/riaperto conservando precedente. Rilascio remoto e pulizia ancora richiesti; replica completa disabilitata.
+
+
+27/10/2026 — Candidata 2.454.0, verifiche tecniche mirate (non accettazione utente): lettori AKN, trasporto, identità, versioni, metadati tecnici e proiezione verificati nel gruppo `01-lettori-proiezione-20261026.log`; le dieci failure di quel gruppo riguardavano la fixture di accesso GU senza ELI e i vecchi messaggi del parser. Fixture completata con ELI e controllo negativo su altra pubblicazione: 16/16 nel gruppo `02-accesso-GU-fixture-completa.xml`. Il gruppo `03-chiavi-partizioni-rilettura.xml` ha verificato 20 casi; l'unico caso residuo di recupero usava una fonte finta senza data dell'edizione: ricezione/versione rese esplicite, ripetizione positiva `04-recupero-versione-ricevuta.xml`. Nessun controllo di produzione indebolito.
+
+27/10/2026 — Candidata 2.454.0, gruppo `05-fonti-rag-runtime-mirati.xml`: 163 casi positivi e sette failure diagnosticate su aspettative o fixture non aggiornate: URL GU ufficiale rispetto a URL NIR, vecchia aspettativa di troncamento, AKN strutturale senza date/ELI, candidati privi di data di ricezione documentata. I nove casi del gruppo `07-regressioni-fixture-ricevute.xml` sono positivi dopo gli aggiornamenti; testi interi, pendenze, partizioni ed esiti negativi restano verificati. TypeScript positivo con Node Linux 24.22.1 e pnpm 11.22.0 isolati, `06-frontend-typecheck.log`. Log e XML integrali nel dossier dati `collaudi-24540`; nessuna dichiarazione di benchmark 35B, prova reale 8080, CI o rilascio.
+
+27/10/2026 — 2.454.0: 12 controlli metadati/JSON della Costituzione e 14 del lettore (incluse rettifiche con ID conservato) superati. Ruff E9,F63,F7,F82 sui Python modificati: esito 0. Build Vite nel bundle operativo e provenienza pubblicata: 767 sorgenti, 299 asset concordanti. Packaging sincronizzato. Non costituiscono accettazione browser o modello reale.
+
+27/10/2026 — candidata 2.454.0, aggiornamento dei guardrail: 324 test distinti con ultimo esito JUnit positivo; i risultati storici delle funzioni sostituite restano conservati separatamente. Sei controlli del mount coprono riuso del dispositivo fra namespace, creazione unica con `--nooverlap`, rifiuto dei duplicati e delle viste discordanti e modalità di sola verifica. Il helper versionato è stato confrontato con quello già installato e provato con `--check` sul mount reale, senza mount, smontaggi o riavvii. Il pre-push locale supera packaging, contratti, sorgenti React pubblicate, inventario test e lint. Il confronto degli ID della biblioteca online riscontra tutti i 255 documenti, 31.592 articoli e 50.311 chunk nella candidata senza discordanze. Questi sono guardrail e riscontri dei dati, non accettazione dell'intero flusso Lex.
+
+
+- 27/10/2026, integrazione 2.454.0 ancora aperta: 67 verifiche mirate su provenienza/stesura
+  (dossier 48); 19 su edizioni/partizioni/lettura (49); 35 su cache della rilettura,
+  normalizzazione fisica, schede e partizioni (61). Esiti sovrapposti, non sommare
+  come casi distinti. Storybook: 104 test/20 file positivi (59). Governance su
+  output Storybook ignorato come artefatto riproducibile: positivo (60). Prova
+  visiva reale, modello, CI dello SHA e deploy non ancora certificati.
+
+- 27/10/2026, dossier 62: gate locale rapido completo positivo, 28/28;
+  accessibilità Storybook 104/104. Configurazione e fonti al confine della stesura
+  sul database candidato: citazione 14, monitorio 16, procura/informative 7 Fonti;
+  ID/corpi/SHA riscontrati, zero errori di provenienza, nessuna inferenza simulata
+  presentata come prova del modello. Le 641 chiavi della biblioteca hanno tutte
+  una ricezione documentata nell'edizione scelta al 26/10/2026.
+
+
+27/10/2026, controllo FTS incrementale: 33 test passati nei cataloghi runtime e nelle partizioni versionate (log65). Verificati indice completo, idempotenza e avanzamento esatto; il percorso senza callback non esegue il conteggio globale dei pendenti. Non è prova visiva né collaudo del modello.

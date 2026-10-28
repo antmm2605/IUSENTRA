@@ -237,7 +237,7 @@ def test_formato_fonte_normativa_con_articolo_urn_vigenza_data():
     intestazione, testo = blocco.split("\n", 1)
     assert intestazione == (
         "[1] Codice civile (Normattiva) · art. 2044 · urn:nir:stato:regio.decreto:1942-03-16;262"
-        " · vigente · 16/03/1942"
+        " · edizione acquisita (fonte: vigente) · 16/03/1942"
     )
     assert testo.startswith("Art. 2044.")
     assert troncato is False

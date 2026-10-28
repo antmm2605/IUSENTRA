@@ -7,6 +7,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
+from pct.formatting import parse_datetime_rome
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 from web.services.pec_source_links import (
     control_tower_source_key,
@@ -985,8 +986,11 @@ def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) ->
     hearing_dt = _extract_hearing_datetime(title, notes) if _is_pec_operational_text(title, notes) else None
     if hearing_dt and start.hour == 9 and start.minute == 0 and hearing_dt.date() == start.date():
         start = hearing_dt
+    start = parse_datetime_rome(start)
+    if start is None:
+        return None
     duration = max(1, int(getattr(item, "durata_minuti", 60) or 60))
-    end = start + timedelta(minutes=duration)
+    end = (start.astimezone(timezone.utc) + timedelta(minutes=duration)).astimezone(start.tzinfo)
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
     matter_id = str(getattr(item, "id_fascicolo", "") or "")

@@ -664,3 +664,19 @@ def test_esiti_negativi_archivio_non_diventano_documenti_in_attesa():
     assert risultato["archivio"]["lettura_automatica"]["errori"] == 14
     assert any("14 esiti di lettura non riusciti" in voce for voce in risultato["lacune"])
     assert not any("in attesa di lettura" in voce for voce in risultato["lacune"])
+
+
+def test_udienza_trascorsa_senza_esito_chiede_l_esito_una_volta():
+    from datetime import date
+    from pct.fascicolo_lettura.prossimi_passi import _passi_udienze_senza_esito
+    app = [
+        {"tipo": "UDIENZA", "stato": "PROGRAMMATO", "data_ora": "2026-03-10T09:30:00"},
+        {"tipo": "UDIENZA", "stato": "PROGRAMMATO", "data_ora": "2026-06-12T10:00:00"},
+        {"tipo": "UDIENZA", "stato": "COMPLETATO", "data_ora": "2026-07-01T10:00:00"},
+        {"tipo": "UDIENZA", "stato": "ANNULLATO", "data_ora": "2026-08-01T10:00:00"},
+        {"tipo": "UDIENZA", "stato": "PROGRAMMATO", "data_ora": "2026-12-01T10:00:00"},
+        {"tipo": "SCADENZA", "stato": "PROGRAMMATO", "data_ora": "2026-05-01T10:00:00"},
+    ]
+    passi = _passi_udienze_senza_esito(app, date(2026, 10, 28))
+    assert len(passi) == 1 and "12/06/2026" in passi[0].azione and "un'altra udienza precedente" in passi[0].motivo
+    assert _passi_udienze_senza_esito(app[2:], date(2026, 10, 28)) == []

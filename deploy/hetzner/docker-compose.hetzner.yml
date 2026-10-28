@@ -23,7 +23,7 @@ x-iusentra-env: &iusentra-env
   # in kill-loop deterministici (Ollama in primis se il modello supera il cap).
   # Per riattivarli: IUSENTRA_APP_MEM_LIMIT ecc. nel .env e mem_limit nel compose.
   WEB_CONCURRENCY: ${WEB_CONCURRENCY:-3}
-  GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+  GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
   GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-1800}
   GUNICORN_MAX_REQUESTS: ${GUNICORN_MAX_REQUESTS:-500}
   # Ollama: punta a http://ollama:11434 se il profilo `ai` è attivo,
@@ -54,6 +54,7 @@ x-iusentra-env: &iusentra-env
   LEX_THINK: ${LEX_THINK:-false}
   # Ricerca giuridica: indice vettoriale Normattiva (aggiornamento notturno nello scheduler-worker).
   LEX_EMBED_MODEL: ${LEX_EMBED_MODEL:-embeddinggemma:300m}
+  LEX_EMBED_URL: ${LEX_EMBED_URL:-}
   IUSENTRA_OPENGA_SEARCH_URL: ${IUSENTRA_OPENGA_SEARCH_URL:-http://openga-search:8092}
   LEX_VETTORI_NOTTURNO_MASSIMO: ${LEX_VETTORI_NOTTURNO_MASSIMO:-20000}
   LEX_EMBED_KEEP_ALIVE: ${LEX_EMBED_KEEP_ALIVE:-24h}
@@ -116,8 +117,17 @@ x-iusentra-env: &iusentra-env
   PCT_NORMATIVE_TABLES_DB: /data/intelligence/tabelle_normative.json
   PCT_LEX_OFFICIAL_DB: /data/fonti_ufficiali/lex_sources.sqlite
   PCT_LEX_OFFICIAL_JSONL: /data/fonti_ufficiali/index/lex_sources_chunks.jsonl
-  PCT_NORMATTIVA_DB: /data/normativa/normattiva.sqlite
-  PCT_NORMATTIVA_JSONL: /data/normativa/index/normattiva_chunks.jsonl
+  # Il bundle pubblico viene preparato e verificato prima del cutover.
+  # I default conservano i percorsi delle installazioni precedenti.
+  PCT_NORMATTIVA_DB: ${PCT_NORMATTIVA_DB:-/data/normativa/normattiva.sqlite}
+  PCT_CODICI_LEGGI_DB: ${PCT_CODICI_LEGGI_DB:-}
+  PCT_NORMATTIVA_VERSIONI_DB: ${PCT_NORMATTIVA_VERSIONI_DB:-}
+  PCT_NORMATTIVA_LETTORI_MANIFEST: ${PCT_NORMATTIVA_LETTORI_MANIFEST:-}
+  PCT_NORMATTIVA_LETTORI_MANIFEST_SHA256: ${PCT_NORMATTIVA_LETTORI_MANIFEST_SHA256:-}
+  LEX_CODICI_LEGGI_VETTORI_DIR: ${LEX_CODICI_LEGGI_VETTORI_DIR:-}
+  LEX_BIBLIOTECA_VETTORI_DIR: ${LEX_BIBLIOTECA_VETTORI_DIR:-}
+  LEX_NORMATTIVA_VETTORI_DIR: ${LEX_NORMATTIVA_VETTORI_DIR:-}
+  PCT_NORMATTIVA_JSONL: ${PCT_NORMATTIVA_JSONL:-/data/normativa/index/normattiva_chunks.jsonl}
   PCT_VALIDATION_RUNS_DB: /data/intelligence/validation_runs.json
   PCT_REDACTION_ASSISTANT_DB: /data/intelligence/assistente_redazionale.json
   PCT_TELEMATICO_DB: /data/telematico/workflow.db
@@ -229,6 +239,7 @@ services:
       <<: *iusentra-env
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+      - ${IUSENTRA_PUBLIC_FONTI_DIR:-/opt/iusentra/data/normativa}:/opt/iusentra-fonti-24540:ro
       - ${IUSENTRA_BACKUP_DIR:-/opt/iusentra/backups}:/opt/iusentra/backups
       - /var/run/docker.sock:/var/run/docker.sock
       - /opt/iusentra:/host/opt/iusentra:ro
@@ -263,6 +274,7 @@ services:
       <<: *iusentra-env
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+      - ${IUSENTRA_PUBLIC_FONTI_DIR:-/opt/iusentra/data/normativa}:/opt/iusentra-fonti-24540:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -297,6 +309,7 @@ services:
       PCT_OCR_WORKERS: ${PCT_OCR_WORKERS:-2}
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+      - ${IUSENTRA_PUBLIC_FONTI_DIR:-/opt/iusentra/data/normativa}:/opt/iusentra-fonti-24540:ro
     networks:
       - default
       - audit-internal
@@ -370,7 +383,7 @@ services:
   # senza AI locale (solo provider deterministici e research esterno).
   ollama:
     profiles: ["ai"]
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.35.0@sha256:2a6e883b917fc543389599dae79918f5cac9e1438890506982f44aa4f5625d01
     restart: unless-stopped
     logging: *iusentra-logging
     environment:

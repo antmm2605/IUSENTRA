@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 from datetime import date
+import hashlib
+import copy
+import pytest
 from types import SimpleNamespace
 
 from lex.procedura_atti.fonti_scheda import FontiScheda
@@ -19,6 +22,13 @@ from tests.test_topbar_operational_api import _login
 FONTI = FontiScheda(scheda="CIV_ORD_001", titolo="Citazione",
                     fonti={1: "Codice civile, art. 1218. Il debitore che non esegue esattamente la prestazione dovuta e' tenuto al risarcimento del danno."},
                     fonti_ref=[{"n": 1, "atto": "c.c.", "articolo": "1218", "url": "https://www.normattiva.it/x"}])
+def _provenienza(testo):
+    return {"tipo": "norma", "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262",
+            "versione": "24/10/2026", "acquisita_il": "24/10/2026",
+            "sha256": hashlib.sha256(testo.encode()).hexdigest()}
+
+FONTI.fonti_ref[0]["provenienza"] = _provenienza(FONTI.fonti[1])
+
 RISPOSTA = """### Fatto
 Il sig. Mario Rossi ha consegnato la merce alla Beta s.r.l., che non ha pagato. [DATO MANCANTE: data della consegna]
 ### Diritto
@@ -141,17 +151,18 @@ def test_limiti_fonti_campi_e_stati_pendenti():
 
     from lex.procedura_atti.stesura_blocchi import _fonte_per_messaggio, messaggio
     assert _fonte_per_messaggio("breve") == "breve"
-    assert "accorciato" in _fonte_per_messaggio("riga\n" * 1000)
-    assert "accorciato" in _fonte_per_messaggio("a" * 4000)
+    assert _fonte_per_messaggio("riga\n" * 1000) == "riga\n" * 1000
+    assert _fonte_per_messaggio("a" * 4000) == "a" * 4000
     assert campi_per_blocchi(["Corpo unico"], ["facts"]) == {"Corpo unico": "facts"}
     assert campi_per_blocchi(["Corpo unico"], []) == {}
     assert termini_da_scadenze([{"etichetta":"Primo giorno utile", "valore":"25/10/2026"}, {"etichetta":"Nessuna data", "valore":"da verificare"}]) == [{"descrizione":"Primo giorno utile", "scadenza":"25/10/2026", "per_agire":False}]
     risolta={"scrive_lex":[{"blocco":"Fatto","compito":"Esporre i fatti"}],"campi":[{"stato":"da_confermare","valore":"dato letto","etichetta":"Evento"}]}
-    fonti=FontiScheda("fixture","fixture",fonti={1:"a"*4000},pendenze=["versione da verificare"])
+    fonti=FontiScheda("fixture","fixture",fonti={1:"a"*4000},fonti_ref=[{"n":1,"articolo":"1","atto":"fixture","provenienza":_provenienza("a"*4000)}],pendenze=["versione da verificare"])
     args=dict(oggetto="fixture",risolta=risolta,fonti=fonti,blocco_scadenze="termine calcolato",termini=[],fatti_testo="dato letto",oggi=date(2026,10,24),assistito="",controparte="",campi_modello=[])
     esito=scrivi_blocchi(chiama_modello=lambda s,m: ("### Fatto\nIl dato letto richiede conferma.","fixture"),**args)
     assert esito.stato_consegna["stato"] != "pronta_per_revisione_avvocato"
-    assert any("accorciate" in m for m in esito.stato_consegna["motivi"])
+    assert not any("accorciate" in m for m in esito.stato_consegna["motivi"])
+    assert any("versione da verificare" in m for m in esito.stato_consegna["motivi"])
     assert any("confermare" in m for m in esito.stato_consegna["motivi"])
     with pytest.raises(ValueError,match="non contiene"):
         scrivi_blocchi(chiama_modello=lambda s,m: ("", "fixture"),**{**args,"risolta":{}})
@@ -378,3 +389,20 @@ def test_prefill_civile_e_penale_conserva_rg_senza_usare_il_numero_interno():
         fascicolo.rg_completo = "RG 1025/2024"
         completo = prefill_payload(model, fascicolo=fascicolo, cliente=_fake_cliente(), utente=_fake_utente())
         assert completo[campo] == "RG 1025/2024"
+
+
+@pytest.mark.parametrize("difetto", ["mancante", "testo_alterato", "decisione_senza_integrale"])
+def test_provenienza_obbligatoria_prima_di_ogni_chiamata_modello(difetto):
+    fonti = copy.deepcopy(FONTI)
+    if difetto == "mancante":
+        del fonti.fonti_ref[0]["provenienza"]
+    elif difetto == "testo_alterato":
+        fonti.fonti[1] += " Testo aggiunto dopo l'acquisizione."
+    else:
+        fonti.fonti_ref[0]["provenienza"]["tipo"] = "decisione"
+    calls = []
+    with pytest.raises(ValueError, match="Fonti non verificabili"):
+        scrivi_blocchi(chiama_modello=lambda *args: calls.append(args), oggetto="recupero",
+                       risolta=_risolta(), fonti=fonti, blocco_scadenze="", termini=[], fatti_testo="",
+                       oggi=date(2026,10,24), assistito="Mario Rossi", controparte="Beta s.r.l.", campi_modello=[])
+    assert calls == []

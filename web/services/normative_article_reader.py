@@ -21,10 +21,8 @@ class ArticoloCambiato(ValueError):
 
 
 def numero_articolo(value):
-    value = re.sub(r"^\s*art(?:icolo)?\.?\s*", "", str(value or ""), flags=re.IGNORECASE).strip()
-    if not re.fullmatch(r"[0-9]{1,5}(?:[ .-]?[a-z]{2,24})?(?:\.[0-9]{1,4})?", value, re.IGNORECASE):
-        raise ValueError("Indica un singolo articolo da leggere.")
-    return norm_articolo(value)
+    from lex.normativa.biblioteca.identita import numero_articolo as convalida_numero
+    return convalida_numero(value)
 
 
 def _urn_da_url(url):
@@ -42,7 +40,23 @@ def _base_urn(urn):
 def _fonte_uguale(url, record):
     urn = _urn_da_url(url)
     if urn:
-        return _base_urn(urn) == _base_urn(record["urn"])
+        if _base_urn(urn) != _base_urn(record["urn"]):return False
+        requested=unquote(urlsplit(url).query)
+        selected=re.search(r"~art([^!&]+)",requested)
+        if selected and numero_articolo(selected[1])!=numero_articolo(record['number']):return False
+        # Il documento padre uguale non dimostra un allegato omonimo.
+        part=re.search(r";[0-9]+:([0-9]+)$",urn)
+        if part:
+            effective=_urn_da_url(record.get('source_url',''))
+            if not re.search(r";[0-9]+:[0-9]+$",effective):
+                effective=_urn_da_url(destinazione_ufficiale(record))
+            expected=re.search(r";[0-9]+:([0-9]+)$",effective)
+            if expected is None or expected[1]!=part[1]:return False
+        version=re.search(r"!vig=([^&]+)",requested)
+        if version:
+            actual=re.search(r"!vig=([^&]+)",unquote(urlsplit(record.get('source_url','')).query))
+            if actual is None or actual[1]!=version[1]:return False
+        return True
     a, b = urlsplit(url), urlsplit(record["source_url"])
     return a.scheme == "https" and not a.username and not a.password and (a.hostname, a.path, a.query) == (b.hostname, b.path, b.query)
 
@@ -78,25 +92,35 @@ def risolvi(db, *, ident=0, atto="", articolo="", url="", sha=""):
         raise ValueError("Riferimento non univoco: apri l'articolo dal suo catalogo.")
     trovati = []
     for row in rows:
-        item = dettaglio(Path(db), row[0])
+        item = dettaglio(Path(db), row[0], includi_archivio_generale=bool(ident))
         if not item or (numero and numero_articolo(item['number']) != numero):
             continue
-        if url and not atto and not _fonte_uguale(url, item):
+        if atto and item.get('act_key') != atto:
+            continue
+        if url and not _fonte_uguale(url, item):
             continue
         item['sha256'] = hashlib.sha256(item['text'].encode()).hexdigest()
         if sha and item['sha256'] != sha:
             continue
         trovati.append(item)
+    if ident and not trovati:
+        from lex.normativa.consultazione import dettagli_precedenti
+        for item in dettagli_precedenti(Path(db),ident,sha=sha):
+            if numero and numero_articolo(item['number'])!=numero:continue
+            if atto and item.get('act_key')!=atto:continue
+            if url and not _fonte_uguale(url,item):continue
+            trovati.append(item)
     if not trovati:
         if sha and rows:
             raise ArticoloCambiato("Il testo è cambiato rispetto alla selezione: ricarica il modello prima di leggerlo o approvarlo.")
         raise LookupError("Articolo non presente nella biblioteca con questo riferimento: nessun altro testo è stato sostituito.")
-    if len({(r['urn'], r['sha256'], r['updated_at']) for r in trovati}) != 1:
+    import json
+    if len({(r['urn'], r['sha256'], r['updated_at'],json.dumps(r.get('source_provenance') or {},sort_keys=True,ensure_ascii=False)) for r in trovati}) != 1:
         raise ArticoloCambiato("Il riferimento corrisponde a più testi distinti. Seleziona l'articolo preciso da Codici e leggi.")
     item = trovati[0]
     if item.get('only_heading') or not item.get('text', '').strip():
         raise LookupError("La biblioteca contiene solo l'intestazione: il testo integrale non è disponibile.")
-    item['article_url'] = destinazione_ufficiale(item)
+    item['article_url'] = '' if item.get('archived_import') else destinazione_ufficiale(item)
     return item
 
 
@@ -105,7 +129,9 @@ def destinazione_ufficiale(item):
     parts = urlsplit(url)
     if parts.scheme != 'https' or parts.username or parts.password or parts.hostname not in HOST_UFFICIALI:
         return ''
-    numero = numero_articolo(item['number'])
+    try:numero = numero_articolo(item['number'])
+    except ValueError:return ''
+    if '/' in numero or not numero[:1].isdigit():return ''
     if parts.hostname in {'www.normattiva.it', 'normattiva.it'}:
         urn = _urn_da_url(url) or _urn_canonico(item['urn'])
         known = any(_base_urn(urn) == c.urn for c in CODICI)
@@ -126,14 +152,25 @@ def destinazione_ufficiale(item):
 
 
 def documento_html(item):
-    title = 'Art. '+item['number']+' — '+item['act_label']
+    from pct.formatting import format_date_it
+    edition_label=format_date_it(item.get('updated_at')) or 'da riscontrare'
+    display_number=re.sub(r'^\s*art(?:icolo)?\.?\s*','',str(item['number']),flags=re.IGNORECASE)
+    title = 'Art. '+display_number+' — '+item['act_label']
     external = ("<p><a href='"+escape(item['article_url'],quote=True)+"' target='_blank' rel='noopener noreferrer' data-official-outside-reader='1'>Verifica questo articolo nella fonte ufficiale</a></p>") if item['article_url'] else "<p>Il collegamento della fonte identifica il documento completo; qui è già aperto l'articolo selezionato, senza ricerca manuale.</p>"
+    archival=''
+    heading='Testo acquisito dalla fonte ufficiale'
+    if item.get('archived_import'):
+        heading='Lettura archiviata precedente alla rettifica'
+        archival="<p role='note'><strong>Questa lettura tecnica è stata rettificata e non è utilizzabile come Fonte corrente.</strong> Il testo e l’impronta della precedente selezione restano conservati per confronto.</p>"
+        corrected=item.get('rettifica_corrente')
+        if corrected:
+            archival+="<section aria-label='Parte rettificata della stessa fonte'><h2>Parte rettificata della stessa fonte</h2><pre>"+escape(corrected['text'])+"</pre><p>SHA-256: <code>"+escape(corrected['sha256'])+"</code></p></section>"
     source = urlsplit(item['source_url'])
     source_link = ("<a href='"+escape(item['source_url'],quote=True)+"' target='_blank' rel='noopener noreferrer' data-official-outside-reader='1'>Documento della fonte da cui è stato acquisito il testo</a>") if source.scheme == 'https' and source.hostname in HOST_UFFICIALI and not source.username and not source.password else escape(item['source_url'])
     return ("<!doctype html><html lang='it'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
             "<link rel='stylesheet' href='/static/css/normative-article-reader.css'><title>"+escape(title)+"</title></head><body><main>"
-            "<header><p>Testo acquisito dalla fonte ufficiale</p><h1>"+escape(title)+"</h1><p>Edizione della biblioteca: "+escape(str(item['updated_at']))+"</p></header>"
-            "<article aria-label='Testo integrale dell’articolo'><pre>"+escape(item['text'])+"</pre></article>"+external+
+            "<header><p>"+escape(heading)+"</p><h1>"+escape(title)+"</h1><p>Edizione della biblioteca: "+escape(edition_label)+"</p></header>"
+            "<article aria-label='Testo integrale dell’articolo'><pre>"+escape(item['text'])+"</pre></article>"+archival+external+
             "<details><summary>Provenienza e impronta</summary><p>SHA-256: <code>"+escape(item['sha256'])+"</code></p><p>"
             +source_link+"</p>"
             "<p>Il collegamento completo è una verifica aggiuntiva: per leggere questo articolo non occorre cercarlo nel documento.</p></details></main></body></html>")

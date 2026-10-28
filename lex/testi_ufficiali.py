@@ -379,6 +379,15 @@ def risposta_articolo(domanda: str, percorso_db: str | Path, *, runtime_catalog:
     else:
         trovato = testo_articolo(percorso_db, richiesta)
     if trovato is None:
+        from lex.normativa.biblioteca.recupero_domanda import recupera_nel_comando
+
+        recovered=recupera_nel_comando(domanda)
+        if recovered is not None:
+            article=recovered["articolo"];doc=article["provenienza_archivio"]
+            trovato={"urn":doc.get("urn") or "","testo":article["testo"],
+                     "importato_il":doc.get("imported_at") or "",
+                     "vigenza":"versione richiesta al "+recovered["data_riferimento"]}
+    if trovato is None:
         collegamento = richiesta.collegamento()
         return {
             "testo": (

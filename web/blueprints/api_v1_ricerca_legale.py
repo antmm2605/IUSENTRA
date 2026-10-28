@@ -258,7 +258,8 @@ def _normativa_db():
     shared = _resolve_runtime_path(Path(explicit) if explicit else None,
         env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
         container_path=CONTAINER_NORMATTIVA_DB, repo_path=DEFAULT_NORMATTIVA_DB)
-    library = shared.with_name("codici_leggi.sqlite")
+    from lex.retrieval.normativa_catalog import library_path
+    library = library_path(shared)
     return library if library.is_file() else shared
 
 
@@ -294,7 +295,7 @@ def normativa_articoli():
         act = int(request.args.get("act") or 0)
         offset = max(0, int(request.args.get("offset") or 0))
         result = articoli(_normativa_db(), act=act, query=request.args.get("q", ""),
-            article=request.args.get("article", ""), category=request.args.get("category", ""), offset=offset)
+            article=request.args.get("article", ""), category=request.args.get("category", ""), offset=offset, includi_archivio_generale=True)
         return jsonify(ok=True, **result)
     except ValueError as exc:
         return jsonify(ok=False, message=str(exc)), 400
@@ -310,7 +311,7 @@ def normativa_articolo(article_id):
         return denied
     from lex.normativa.consultazione import dettaglio
     try:
-        item = dettaglio(_normativa_db(), article_id)
+        item = dettaglio(_normativa_db(), article_id, includi_archivio_generale=True)
         if item is None:
             return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
         return jsonify(ok=True, item=item)

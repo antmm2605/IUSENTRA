@@ -45,6 +45,7 @@ class EsitoRiallineamento:
     documenti_con_difetti: int = 0
     documenti_riallineati: int = 0
     documenti_saltati: int = 0
+    documenti_fonti_preservate: int = 0
     articoli_prima: int = 0
     articoli_dopo: int = 0
     chunk_inseriti: int = 0
@@ -179,6 +180,32 @@ def _togli_articoli(conn: sqlite3.Connection, doc_id: int) -> None:
     conn.execute("DELETE FROM normative_articles WHERE document_id = ?", (doc_id,))
 
 
+def _fonte_da_preservare(conn: sqlite3.Connection, doc_id: int, *, struttura_presente: bool) -> str:
+    """Il correttore testuale non sostituisce confini o provenienza di una fonte XML.
+
+    Questi indizi non certificano il contenuto: rendono necessaria la rilettura
+    nativa dell'edizione se emerge un difetto, anziché una riscrittura euristica.
+    """
+    if struttura_presente and conn.execute(
+        "SELECT 1 FROM normative_structure WHERE document_id=? LIMIT 1", (doc_id,)
+    ).fetchone():
+        return "struttura XML registrata"
+    for (raw,) in conn.execute(
+        "SELECT metadata_json FROM normative_chunks WHERE document_id=? "
+        "AND metadata_json IS NOT NULL AND metadata_json NOT IN ('','{}')", (doc_id,)
+    ):
+        try:
+            metadata = json.loads(raw)
+        except (TypeError, ValueError):
+            return "metadati da riscontrare con il lettore nativo"
+        if not isinstance(metadata, dict):
+            return "metadati non strutturati da riscontrare"
+        if (metadata.get("localizzatore_xml") or metadata.get("partizione_xml")
+                or "consultazione_provenienza" in metadata):
+            return "localizzatore XML o provenienza registrata"
+    return ""
+
+
 def riallinea(
     db_path: str | Path,
     *,
@@ -206,8 +233,20 @@ def riallinea(
                 f"SELECT id FROM normative_documents WHERE COALESCE(collection_name,'') NOT IN ({segnaposti}) ORDER BY id",
                 tuple(COLLEZIONI_ESCLUSE),
             ).fetchall()
+        struttura_presente = bool(conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='normative_structure'"
+        ).fetchone())
         with open(os.devnull, "w", encoding="utf-8") as nulla:
             for (doc_id,) in documenti:
+                motivo = _fonte_da_preservare(conn, doc_id, struttura_presente=struttura_presente)
+                if motivo:
+                    esito.documenti_esaminati += 1
+                    esito.documenti_fonti_preservate += 1
+                    if motivo.startswith("metadati"):
+                        esito.documenti_saltati += 1
+                    if len(esito.dettagli) < limite_dettagli:
+                        esito.dettagli.append(f"doc {doc_id}: {motivo}; nessun riallineamento testuale, usare il lettore nativo")
+                    continue
                 articoli = [
                     (int(r[0]), r[1], str(r[2] or ""))
                     for r in conn.execute(
@@ -218,6 +257,19 @@ def riallinea(
                 if not articoli:
                     continue
                 esito.documenti_esaminati += 1
+                from lex.normativa.biblioteca.identita import numero_articolo
+                try:
+                    numerazione_compatibile = all(
+                        numero_articolo(numero) == chiave_numero(numero)
+                        for _ident, numero, _testo in articoli if numero
+                    )
+                except ValueError:
+                    numerazione_compatibile = False
+                if not numerazione_compatibile:
+                    esito.documenti_fonti_preservate += 1
+                    if len(esito.dettagli) < limite_dettagli:
+                        esito.dettagli.append(f"doc {doc_id}: numerazione fuori dal correttore testuale; usare il lettore nativo")
+                    continue
                 analisi = analizza(articoli)
                 if not any(analisi.difetti.values()):
                     continue

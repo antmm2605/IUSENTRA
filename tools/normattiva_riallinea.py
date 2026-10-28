@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"Riallineamento articoli{' (solo analisi)' if args.analizza else ''}: {esito.documenti_esaminati} documenti "
             f"esaminati, {esito.documenti_con_difetti} con difetti, {esito.documenti_riallineati} riallineati, "
-            f"{esito.documenti_saltati} saltati; articoli {esito.articoli_prima} -> {esito.articoli_dopo}; "
+            f"{esito.documenti_saltati} saltati, {esito.documenti_fonti_preservate} fonti XML/provenienze preservate; articoli {esito.articoli_prima} -> {esito.articoli_dopo}; "
             f"{esito.chunk_inseriti} chunk, {esito.fts_indicizzati} indicizzati FTS in {esito.secondi}s"
         )
     if args.vettori and esito.documenti_riallineati and not args.analizza:

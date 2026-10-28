@@ -446,19 +446,17 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
     conteggi = {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0}
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_DOCUMENTI, tipi=("documento",))
     documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
-    # Ritenta le sole email escluse dall'estrattore precedente, senza invalidare
-    # le letture valide di tutti gli altri documenti.
-    letti_prima = {
-        (lettura.oggetto_id, lettura.sha256) for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
-        if lettura.stato == "non_leggibile" and (forza or (
-            (lettura.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI))
-    }
+    falliti = {
+        (lettura.tipo, lettura.oggetto_id, lettura.sha256)
+        for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
+        if lettura.stato in {"errore", "non_leggibile"}
+    } if forza else set()
     for oggetto in registro.oggetti(tenant, fascicolo_id):
         if oggetto.tipo != "documento" or oggetto in da_leggere:
             continue
-        # Con «forza» si rileggono tutti i documenti di questo fascicolo (e solo
-        # di questo), anche quelli già letti con la versione corrente.
-        if forza or (oggetto.oggetto_id, oggetto.impronta) in letti_prima:
+        # Il recupero esplicito riprova solo gli errori della fonte corrente;
+        # le letture riuscite restano valide finché il contenuto non cambia.
+        if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in falliti:
             da_leggere.append(oggetto)
     conteggi["da_leggere"] = len(da_leggere)
     scaglioni_cu: list[Any] | None = None
@@ -572,8 +570,6 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
         conteggi["rinviati"] = len(registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec")))
         return conteggi
     da_leggere = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
-    falliti = {(lettura.oggetto_id, lettura.sha256) for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE_PEC) if lettura.tipo == "allegato_pec" and lettura.stato == "non_leggibile" and (lettura.esito or {}).get("estrattore_versione") != VERSIONE_ESTRAZIONE_FORMATI}
-    da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "allegato_pec" and (o.oggetto_id, o.impronta) in falliti and o not in da_leggere)
     conteggi["da_leggere"] = len(da_leggere)
     per_id = {str(m.get("id")): m for m in messaggi}
     from web.helpers import get_clienti
@@ -808,9 +804,9 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
 
     Il ciclo è chiuso: quando tutto è letto e l'archivio ha confermato, il
     fascicolo resta **fermo** e questa funzione non apre più nulla. Si riattiva
-    su un documento nuovo, su un documento cambiato, su una PEC nuova, quando
-    cambiano le regole di un motore, o al ricontrollo periodico che fa da rete
-    di sicurezza se un evento è andato perso.
+    su un documento nuovo, su un documento cambiato, su una PEC nuova o al
+    ricontrollo periodico degli eventi non consegnati. Il cambio del lettore
+    non deve riavviare la lettura del contenuto invariato.
     """
     registro = registro or registro_corrente()
     tenant = tenant_corrente()

@@ -11,6 +11,50 @@ class OpenAICompatibleProvider(BaseProvider):
         self.name = config.name
         self.is_local = config.is_local
 
+    def misura_prompt(self, sistema: str, messaggio: str) -> dict:
+        """Tokenizer e template del solo llama-server locale realmente caricato.
+
+        Non esegue inferenza. Nessun invio aggiuntivo a provider esterni.
+        """
+        import hashlib
+        import time
+
+        if not self.is_local or self.name != "llamacpp":
+            raise ValueError("Misura del prompt riservata al provider llama.cpp locale")
+        base = self.config.base_url.rstrip("/")
+        if base.endswith("/v1"):
+            base = base[:-3]
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+        timeout = min(30, self.config.timeout_seconds)
+        cached = getattr(self, "_contesto_misurato", None)
+        if cached is None or time.monotonic() - cached[0] > 60:
+            response = requests.get(base + "/props", headers=headers, timeout=timeout)
+            response.raise_for_status()
+            props = response.json()
+            size = (props.get("default_generation_settings") or {}).get("n_ctx")
+            if type(size) is not int or size <= 0:
+                raise ValueError("llama-server non ha dichiarato la finestra effettiva del contesto")
+            cached = (time.monotonic(), size)
+            self._contesto_misurato = cached
+        response = requests.post(base + "/apply-template", headers=headers, timeout=timeout, json={
+            "messages": [{"role": "system", "content": sistema}, {"role": "user", "content": messaggio}],
+            "chat_template_kwargs": {"enable_thinking": False},
+        })
+        response.raise_for_status()
+        prompt = response.json().get("prompt")
+        if not isinstance(prompt, str) or not prompt:
+            raise ValueError("Template effettivo del modello non disponibile")
+        response = requests.post(base + "/tokenize", headers=headers, timeout=timeout,
+                                 json={"content": prompt, "add_special": False, "parse_special": True})
+        response.raise_for_status()
+        tokens = response.json().get("tokens")
+        if not isinstance(tokens, list) or any(type(t) is not int for t in tokens):
+            raise ValueError("Risposta del tokenizer non valida")
+        return {"tokens_input": len(tokens), "contesto": cached[1],
+                "sha256_template_applicato": hashlib.sha256(prompt.encode()).hexdigest()}
+
     def chat(
         self,
         messages: list[ChatMessage],

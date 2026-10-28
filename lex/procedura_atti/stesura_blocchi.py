@@ -20,6 +20,8 @@ SISTEMA = (
     "Sei Lex, assistente giuridico di uno studio legale italiano. Scrivi in italiano forense, preciso, senza saluti.\n"
     "- Per le norme usa SOLO le Fonti numerate [1], [2]...: cita ogni affermazione giuridica con [n].\n"
     "- Usa SOLO i dati del fascicolo forniti; ogni dato che manca va scritto come [DATO MANCANTE: descrizione].\n"
+    "- I dati marcati da confermare non sono fatti accertati: non presentarli come verificati.\n"
+    "- Il numero interno del fascicolo non è un R.G.: usa il ruolo giudiziario soltanto se fornito come tale.\n"
     "- Scadenze e importi: riporta identici quelli calcolati dal software, non ricalcolarli.\n"
     "- Le decisioni esplicite dell’avvocato su rimedio e domande sono vincolanti: non sostituirle né cumularle. "
     "Il recesso con doppio della caparra non va chiamato risoluzione né affiancato al risarcimento.\n"
@@ -51,19 +53,16 @@ class EsitoStesura:
     prima_stesura: str = ""
     revisione_prima_stesura: dict = field(default_factory=dict)
     numero_stesure: int = 1
+    letture_fonti: list[dict] = field(default_factory=list)
 
 
-# Budget del contesto (modello locale con 32k token): ogni Fonte oltre questa misura viene accorciata dichiarandolo,
-# cosi' Lex sa che il testo integrale esiste e non deve supplire con la memoria.
-MAX_CARATTERI_FONTE = 3500
+# I testi normativi sono interi: il budget del provider non puo essere
+# ottenuto omettendo commi senza che il modello li abbia ricevuti.
+MAX_CARATTERI_FONTE = 3500  # compatibilita degli import storici; non e un taglio
 
 
 def _fonte_per_messaggio(testo: str) -> str:
-    if len(testo) <= MAX_CARATTERI_FONTE:
-        return testo
-    taglio = testo.rfind("\n", 0, MAX_CARATTERI_FONTE)
-    taglio = taglio if taglio > MAX_CARATTERI_FONTE // 2 else MAX_CARATTERI_FONTE
-    return testo[:taglio].rstrip() + "\n[... testo accorciato: per le parti omesse scrivi [DATO MANCANTE: verifica del testo integrale]]"
+    return testo
 
 
 def _dati_fascicolo(risolta: dict) -> list[str]:
@@ -76,14 +75,17 @@ def _dati_fascicolo(risolta: dict) -> list[str]:
 
 
 def messaggio(oggetto: str, risolta: dict, fonti: FontiScheda, *, blocco_scadenze: str, oggi: date,
-              assistito: str, controparte: str) -> str:
+              assistito: str, controparte: str, fatti_testo: str = "", ruolo_assistito: str = "") -> str:
     compiti = "\n".join(f"### {b['blocco']}\n({b['compito']})" for b in risolta.get("scrive_lex", []))
     testo_fonti = "\n\n".join(f"[{n}] {_fonte_per_messaggio(t)}" for n, t in sorted(fonti.fonti.items())) or "Nessuna Fonte disponibile."
-    return (f"Atto: {risolta.get('titolo', '')}\nRichiesta dell'avvocato: {oggetto}\nData di oggi: {oggi.strftime('%d/%m/%Y')}\n"
-            f"Parte assistita: {assistito}\nControparte: {controparte}\n\nDati del fascicolo:\n"
+    return (f"Fonti normative da leggere (non sono fatti del fascicolo):\n{testo_fonti}\n\n"
+            f"Atto: {risolta.get('titolo', '')}\nRichiesta dell'avvocato: {oggetto}\nData di oggi: {oggi.strftime('%d/%m/%Y')}\n"
+            f"Parte assistita: {assistito}\nRuolo dell'assistito: {ruolo_assistito or 'da indicare'}\nControparte: {controparte}\n\nDati del fascicolo:\n"
             + ("\n".join(_dati_fascicolo(risolta)) or "- nessun dato oltre alla richiesta")
+            + (f"\n\nFatti letti dai documenti, con stato della verifica:\n{fatti_testo}" if fatti_testo else "")
             + (f"\n\n{blocco_scadenze}" if blocco_scadenze else "")
-            + f"\n\nFonti:\n{testo_fonti}\n\nScrivi SOLO queste parti dell'atto, ognuna sotto il proprio titolo ###, nell'ordine:\n{compiti}")
+            + f"\n\nScrivi SOLO queste parti dell'atto, ognuna sotto il proprio titolo ###, nell'ordine:\n{compiti}")
+
 
 
 def dividi_blocchi(testo: str, nomi: list[str]) -> dict[str, str]:
@@ -116,7 +118,7 @@ def campi_per_blocchi(nomi: list[str], campi_modello: list[str]) -> dict[str, st
 
 def risolvi_citazioni(testo: str, fonti_ref: list[dict]) -> str:
     """Nell'atto i richiami [n] diventano la norma citata, es. «(art. 163 c.p.c.)»; [n, m] diventano una sola parentesi."""
-    nomi = {int(r["n"]): f"art. {r['articolo']} {r.get('sigla') or r.get('atto', '')}".strip() for r in fonti_ref}
+    nomi = {int(r["n"]): ((f"art. {r['articolo']} " if r.get("articolo") else "") + str(r.get("sigla") or r.get("atto", ""))).strip() for r in fonti_ref}
 
     def sostituisci(m: re.Match) -> str:
         numeri = [int(x) for x in re.findall(r"\d+", m.group(0))]
@@ -187,9 +189,27 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
     nomi = [b["blocco"] for b in risolta.get("scrive_lex", [])]
     if not nomi:
         raise ValueError("La scheda non contiene blocchi da scrivere.")
+    from .provenienza import verifica_provenienza
+
+    errori_fonti = verifica_provenienza({"fonti": fonti.fonti, "fonti_ref": fonti.fonti_ref})
+    if errori_fonti:
+        raise ValueError("Fonti non verificabili: " + "; ".join(errori_fonti))
     msg = messaggio(oggetto, risolta, fonti, blocco_scadenze=blocco_scadenze, oggi=oggi, assistito=assistito,
-                    controparte=controparte)
+                    controparte=controparte,fatti_testo=fatti_testo,ruolo_assistito=ruolo_assistito)
+    from .lettura_fonti import prepara_letture
+
+    richiesta_lettura=oggetto+"\nParte assistita: "+assistito+"; ruolo: "+ruolo_assistito+"\nFatti con stato della verifica:\n"+fatti_testo
+    fonti_messaggio, letture = prepara_letture(fonti, richiesta=richiesta_lettura, chiama_modello=chiama_modello,
+                                               messaggio_caratteri=len(SISTEMA)+len(msg), messaggio=msg, sistema=SISTEMA)
+    if fonti_messaggio is not fonti:
+        msg=messaggio(oggetto,risolta,fonti_messaggio,blocco_scadenze=blocco_scadenze,oggi=oggi,
+                      assistito=assistito,controparte=controparte,fatti_testo=fatti_testo,ruolo_assistito=ruolo_assistito)
     testo, nome_modello = chiama_modello(SISTEMA, msg)
+    ricevuta={"sha256_messaggio":__import__("hashlib").sha256(msg.encode()).hexdigest(),
+              "modello":nome_modello,"uso":dict(getattr(chiama_modello,"ultimo_uso",{}) or {}),
+              "preflight":dict(getattr(chiama_modello,"ultimo_preflight",{}) or {})}
+    for lettura in letture:
+        lettura["stesura"]=ricevuta
     if not str(testo or "").strip():
         raise ValueError("Il modello locale non ha restituito una bozza.")
     caso = {"fonti": fonti.fonti, "fonti_ref": fonti.fonti_ref, "fatti": fatti_testo + "\n" + "\n".join(_dati_fascicolo(risolta)),
@@ -227,15 +247,12 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
     if mancanti:
         esito_stato["stato"] = "bozza_incompleta"
         esito_stato["motivi"] += ["Blocco non restituito: "+nome for nome in mancanti]
-    accorciate = [n for n, t in fonti.fonti.items() if len(t) > MAX_CARATTERI_FONTE]
     da_confermare = any(c.get("stato") == "da_confermare" and str(c.get("valore") or "").strip() for c in risolta.get("campi", []))
-    if accorciate or da_confermare:
+    if da_confermare:
         if esito_stato["stato"] == "pronta_per_revisione_avvocato":
             esito_stato["stato"] = "bozza_con_verifiche_pendenti"
-        if accorciate:
-            esito_stato["motivi"].append("Fonti accorciate nel contesto del modello: esaminare i testi integrali "+", ".join(map(str, accorciate)))
         if da_confermare:
             esito_stato["motivi"].append("Sono presenti dati letti dai documenti ancora da confermare.")
     return EsitoStesura(blocchi=blocchi, campi=campi_per_blocchi(list(blocchi), campi_modello), revisione=revisione,
                         stato_consegna=esito_stato, testo=testo, modello_ai=nome_modello, prima_stesura=prima_stesura,
-                        revisione_prima_stesura=revisione_prima, numero_stesure=numero_stesure)
+                        revisione_prima_stesura=revisione_prima, numero_stesure=numero_stesure, letture_fonti=letture)

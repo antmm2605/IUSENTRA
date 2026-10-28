@@ -644,6 +644,7 @@ def test_pec_imap():
 @_richiedi_login
 def ordinary_local_smtp_payload():
     """Credenziali del solo studio corrente per il trasporto locale richiesto."""
+    from web.services.ordinary_smtp_transport import ordinary_smtp_tls_options
     cfg = _get_gestore().config.smtp
     if not cfg.password:
         return jsonify({"ok": False, "errore": "Password email non disponibile. Inseriscila nelle impostazioni."}), 400
@@ -653,8 +654,7 @@ def ordinary_local_smtp_payload():
         "password": cfg.password,
         "smtp_host": cfg.host,
         "smtp_port": cfg.port,
-        "use_ssl": not cfg.use_tls,
-        "use_tls": cfg.use_tls,
+        **ordinary_smtp_tls_options(cfg.port, cfg.use_tls),
     }})
     response.headers["Cache-Control"] = "private, no-store"
     return response

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -23,14 +24,42 @@ def verifica_biblioteca_schede(db: Path) -> dict:
     esiti = verifica_schede(db)
     if not esiti or not any(e.stato == "presente" for e in esiti):
         raise ValueError("biblioteca senza norme consultabili dalle schede")
+    # Una sola norma presente non dimostra la copertura dei modelli.
+    # L'abrogazione documentata resta distinta dall'assenza del testo:
+    # l'applicabilita al fascicolo viene controllata nel percorso di stesura.
+    mancanti = [e for e in esiti if e.stato not in {"presente", "abrogato"}]
+    if mancanti:
+        raise ValueError(f"biblioteca con {len(mancanti)} riferimenti assenti, ambigui o non integrali")
     risultato = riepilogo(esiti)
     return {"norme": risultato["norme"], "stati": risultato["stati"],
             "scritture": False, "approvazioni_automatiche": False}
 
 
+def verifica_biblioteca_semantica(db: Path, motore_classe) -> dict:
+    """Prova ricerca semantica reale e copertura, senza confondere FTS e vettori."""
+    motore = motore_classe(db)
+    stato = motore.stato()
+    if not stato.get("semantica_attiva"):
+        raise ValueError("Indice vettoriale della biblioteca non attivo")
+    with sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True) as conn:
+        chunk = int(conn.execute("SELECT COUNT(*) FROM normative_chunks").fetchone()[0])
+    if not chunk or stato.get("righe_vettori") != chunk:
+        raise ValueError("Indice vettoriale e chunk della biblioteca non coincidono")
+    if not motore.riscalda(timeout=120):
+        raise ValueError("Modello di embedding della biblioteca non raggiungibile")
+    risultati = motore.cerca("responsabilita civile per danni ingiusti", limite=5, modalita="semantica")
+    if not any(r.get("ricerca", {}).get("rango_semantico", 0) > 0 for r in risultati):
+        raise ValueError("La ricerca della biblioteca non ha prodotto candidati semantici")
+    finale = motore.stato()
+    if not finale.get("semantica_attiva"):
+        raise ValueError("Indice semantico non compatibile con il modello attivo")
+    return {"chunk": chunk, "vettori": finale["righe_vettori"],
+            "modello": finale["modello"], "candidati_semantici": len(risultati)}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--db", required=True)
+    parser.add_argument("--db", default=os.environ.get("PCT_NORMATTIVA_DB") or "/data/normativa/normattiva.sqlite")
     parser.add_argument("--documenti", type=int, default=-1)
     parser.add_argument("--articoli", type=int, default=-1)
     parser.add_argument("--chunk", type=int, default=-1)
@@ -97,12 +126,15 @@ def main(argv: list[str] | None = None) -> int:
         for riga in errori:
             print("KO", riga)
         return 1
-    biblioteca = db.with_name("codici_leggi.sqlite")
+    from lex.retrieval.normativa_catalog import library_path
+    biblioteca = library_path(db)
     if biblioteca.is_file():
         try:
             print("BIBLIOTECA_SCHEDE_SERVER_JSON=" + json.dumps(verifica_biblioteca_schede(biblioteca)))
+            print("BIBLIOTECA_SEMANTICA_SERVER_JSON=" + json.dumps(
+                verifica_biblioteca_semantica(biblioteca, MotoreRicercaNormattiva)))
         except Exception as exc:
-            print(f"KO verifica schede sulla biblioteca: {exc}")
+            print(f"KO verifica della biblioteca: {exc}")
             return 1
     print("OK archivio Normattiva verificato")
     return 0

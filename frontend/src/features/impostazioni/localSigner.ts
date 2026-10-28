@@ -284,7 +284,7 @@ export async function testOrdinarySmtpViaLocalSigner(baseUrl: string, restartPro
     password: values.password,
     smtp_host: values.host,
     smtp_port: values.port,
-    use_ssl: !booleanValue(values.use_tls, true),
+    use_ssl: integerValue(values.port, 587) === 465 || !booleanValue(values.use_tls, true),
   }, savedPasswordState, true)
   return { ...result, message: result.message.replace(/PEC/g, 'email ordinaria') }
 }

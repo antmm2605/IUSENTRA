@@ -107,6 +107,33 @@ def _passi_scadenze(scadenze: list[dict[str, Any]], giorno_oggi: Any) -> list[Pa
     return passi
 
 
+def _passi_udienze_senza_esito(appuntamenti: list[dict[str, Any]], giorno_oggi: Any) -> list[Passo]:
+    """Udienza trascorsa ancora «programmata»: l'esito (rinvio, riserva, decisione, termini) non e' registrato.
+
+    Registrare l'esito dalla preparazione dell'udienza chiude l'appuntamento (COMPLETATO) e crea i seguiti
+    (rinvio in agenda, termini assegnati): il verbale d'udienza e i termini che ne decorrono (artt. 127-ter e
+    183 c.p.c.) non devono restare fuori dallo scadenziario. Base: art. 126 c.p.c. (verbale), art. 183 c.p.c.
+    """
+    if not giorno_oggi:
+        return []
+    trascorse = sorted({
+        giorno for appuntamento in appuntamenti or []
+        if pulisci(appuntamento.get("tipo")).upper() == "UDIENZA"
+        and pulisci(appuntamento.get("stato")).upper() in {"PROGRAMMATO", "CONFERMATO"}
+        and (giorno := data_da(appuntamento.get("data_ora"))) and giorno < giorno_oggi
+    })
+    if not trascorse:
+        return []
+    # Un passo solo, sull'ultima udienza: e' quella da cui dipendono rinvio e termini correnti.
+    altre = len(trascorse) - 1
+    ragione = ("udienza trascorsa senza esito registrato: rinvio, riserva, decisione o termini assegnati vanno inseriti "
+               "dalla preparazione dell'udienza, che aggiorna agenda e scadenziario")
+    if altre:
+        ragione += "; un'altra udienza precedente senza esito" if altre == 1 else f"; altre {altre} udienze precedenti senza esito"
+    return [Passo(0, f"Registrare l'esito dell'udienza del {data_it(trascorse[-1])}", ragione,
+                  data_it(trascorse[-1]), "agenda", ("cpc_183",), HREF_SCADENZE)]
+
+
 def _passi_regia(regia: dict[str, Any], gia: list[Passo]) -> list[Passo]:
     passi: list[Passo] = []
     if pulisci(regia.get("operational_state")) == "profilo_da_confermare" or pulisci(regia.get("page_state")) == "profilo_da_confermare":
@@ -318,6 +345,7 @@ def prossimi_passi(
     pec_letto: dict[str, Any],
     verifiche: dict[str, Any] | None = None,
     oggi: Any,
+    appuntamenti: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """I passi e lo stato dei passi (attivi o no, e perché)."""
     stato = stato_passi(intestazione)
@@ -327,6 +355,7 @@ def prossimi_passi(
     verifiche = dict(verifiche or {})
     passi: list[Passo] = []
     passi.extend(_passi_scadenze(scadenze, giorno_oggi))
+    passi.extend(_passi_udienze_senza_esito(list(appuntamenti or []), giorno_oggi))
     passi.extend(_passi_regia(regia, passi))
     passi.extend(_passi_depositi(depositi_letti, verifiche, giorno_oggi))
     passi.extend(_passi_notifiche(notifiche_lette))

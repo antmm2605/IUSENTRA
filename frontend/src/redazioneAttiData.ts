@@ -616,7 +616,11 @@ export async function generaRedazioneAtto(input: {
 }
 
 export type StesuraLexBlocco = { blocco: string; testo: string; campo: string }
+export type FonteStesuraLex = { n: string; etichetta: string; testo: string; url: string }
+
 export type StesuraLexEsito = {
+  fontiDettaglio?: FonteStesuraLex[]
+  lettureFonti?: { totale: number; perParti: number }
   primaStesura?: string
   numeroStesure?: number
   erroriPrimaStesura?: string[]
@@ -657,6 +661,12 @@ export async function stesuraLex(input: {
   const revisione = (payload.revisione && typeof payload.revisione === 'object' ? payload.revisione : {}) as Record<string, unknown>
   const statoConsegna = (payload.statoConsegna && typeof payload.statoConsegna === 'object' ? payload.statoConsegna : {}) as Record<string, unknown>
   return {
+    fontiDettaglio: list(payload.fonti).map((item) => {
+      const voce = (item || {}) as Record<string, unknown>
+      const provenienza = (voce.provenienza || {}) as Record<string, unknown>
+      return { n: display(voce.n), etichetta: [display(voce.sigla) || display(voce.atto), voce.articolo ? `art. ${display(voce.articolo)}` : ''].filter(Boolean).join(' '), testo: text(voce.testo), url: text(provenienza.url) }
+    }).filter((voce) => voce.testo),
+    lettureFonti: { totale: list(payload.lettureFonti).length, perParti: list(payload.lettureFonti).filter((item) => (item as Record<string, unknown>)?.modalita === 'lettura_per_parti').length },
     primaStesura: text(payload.primaStesura),
     numeroStesure: Number(payload.numeroStesure) || 1,
     erroriPrimaStesura: list((payload.revisionePrimaStesura as Record<string, unknown> | undefined)?.gravi).map(voceRevisione),

@@ -133,6 +133,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         intestazione=testata, fase_letta=fase_letta, depositi_letti=depositi_letti, notifiche_lette=notifiche_lette,
         documenti_letti=documenti_letti, scadenze=dati.scadenze, conformita=dati.conformita, regia=dati.regia,
         economico_letto=economico_letto, pec_letto=pec_letto, verifiche=dati.verifiche, oggi=oggi,
+        appuntamenti=dati.appuntamenti,
     )
     # Le schede procedurali pertinenti: rito, canale di deposito, canali di notifica usati.
     conoscenza = schede_per_fascicolo(

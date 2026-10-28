@@ -79,8 +79,9 @@ class EventoImportato:
             return "Tutto il giorno"
         try:
             dt = datetime.fromisoformat(self.data_ora)
-            fine = dt + timedelta(minutes=self.durata_minuti)
-            return f"{dt.strftime('%H:%M')} – {fine.strftime('%H:%M')}"
+            local = dt.replace(tzinfo=_ROME) if dt.tzinfo is None else dt.astimezone(_ROME)
+            fine = (local.astimezone(timezone.utc) + timedelta(minutes=self.durata_minuti)).astimezone(_ROME)
+            return f"{local.strftime('%H:%M')} – {fine.strftime('%H:%M')}"
         except Exception:
             return ""
 
@@ -170,8 +171,7 @@ def _parse_dt(value: str, params: Dict[str, str]) -> Tuple[Optional[datetime], b
             return None, True
 
     # Rimuovi eventuali caratteri extra
-    value = value.rstrip("Z") if value.endswith("Z") else value
-    is_utc = value.endswith("Z") or params.get("VALUE", "").upper() == "DATE-TIME"
+    is_utc = value.upper().endswith("Z")
 
     # Parsing del datetime
     fmt_candidates = ["%Y%m%dT%H%M%S", "%Y%m%dT%H%M%SZ", "%Y-%m-%dT%H:%M:%S"]
@@ -187,13 +187,14 @@ def _parse_dt(value: str, params: Dict[str, str]) -> Tuple[Optional[datetime], b
         return None, False
 
     # Aggiunge timezone
-    if "Z" in (params.get("VALUE", "") + value + "") or value.upper().endswith("Z"):
-        # UTC → converti in Rome (naive per storage)
-        dt = dt.replace(tzinfo=timezone.utc).astimezone(_ROME).replace(tzinfo=None)
+    if is_utc:
+        # UTC → Rome, conservando l’offset fino alla serializzazione
+        dt = dt.replace(tzinfo=timezone.utc).astimezone(_ROME)
     elif "TZID" in params:
         tz = _tz_from_tzid(params["TZID"])
-        dt = dt.replace(tzinfo=tz).astimezone(_ROME).replace(tzinfo=None)
-    # else: naive → trattato come Rome, non serve conversione
+        dt = dt.replace(tzinfo=tz).astimezone(_ROME)
+    else:
+        dt = dt.replace(tzinfo=_ROME)
 
     return dt, False
 
@@ -311,7 +312,8 @@ def parse_ics(testo: str) -> List[EventoImportato]:
             durata = _parse_duration(dur_value)
 
         if dt_end:
-            delta = dt_end - dt_start
+            delta = (dt_end.astimezone(timezone.utc) - dt_start.astimezone(timezone.utc)
+                     if not tutto_giorno else dt_end - dt_start)
             durata = max(int(delta.total_seconds() / 60), 1)
         elif not durata:
             durata = 1440 if tutto_giorno else 60  # default
@@ -346,7 +348,11 @@ def parse_ics(testo: str) -> List[EventoImportato]:
         if tutto_giorno:
             data_ora = dt_start.strftime("%Y-%m-%d")
         else:
-            data_ora = dt_start.strftime("%Y-%m-%dT%H:%M:%S")
+            # Conserva l’offset nell’ora ripetuta: il solo orario locale perde l’identità.
+            ambiguous = (dt_start.replace(fold=0).utcoffset() != dt_start.replace(fold=1).utcoffset()
+                         and dt_start.astimezone(timezone.utc).astimezone(_ROME).replace(tzinfo=None) == dt_start.replace(tzinfo=None))
+            data_ora = (dt_start.isoformat(timespec="seconds") if ambiguous
+                        else dt_start.replace(tzinfo=None).isoformat(timespec="seconds"))
 
         eventi.append(EventoImportato(
             uid=uid,

@@ -188,3 +188,115 @@ def test_eventi_deposito_e_famiglie_legali_aggiuntive():
         result = _classifica(subject, **kwargs)
         assert result["event_type"] == event_type
         assert result["family"] == family
+
+
+def test_esito_controlli_automatici_non_e_udienza_ne_scadenza():
+    # oggetti sintetici costruiti sui modelli reali (misura su replica studio, 27/10/2026)
+    for oggetto in (
+        "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO Note scritte in sostituzione udienza 123/2026",
+        "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO - Memoria - Tribunale di Bari",
+    ):
+        esito = classifica_pec_legale(subject=oggetto, sender="tribunale.bari@civile.ptel.giustiziacert.it",
+                                      attachments=["EsitoAtto.xml", "daticert.xml", "postacert.eml"])
+        assert esito["event_type"] == "esito_controlli"
+        assert esito["creates_deadline"] is False and esito["receipt"]["closes_deposit"] is False
+    acc = classifica_pec_legale(subject="POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO Note in sostituzione udienza 1/2026")
+    assert acc["event_type"] == "accettazione_deposito"
+
+
+def _comunicazione(oggetto: str) -> str:
+    # struttura di Comunicazione.xml (tag ministeriali); valori sintetici
+    return (f"<Comunicazione><CodiceUG>0000000</CodiceUG><NumeroRuolo>1/2026</NumeroRuolo><Oggetto>{oggetto}</Oggetto>"
+            "<Contenuto>Si comunica</Contenuto></Comunicazione>\n<mittente>tribunale.bari@civile.ptel.giustiziacert.it</mittente>")
+
+
+def test_comunicazione_cancelleria_usa_l_oggetto_del_registro():
+    attese = {
+        "FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA": ("udienza_sostituita_da_note_scritte", True),
+        "REVOCA UDIENZA E FISSAZIONE TERMINE PER NOTE IN SOST. UDIENZA": ("udienza_sostituita_da_note_scritte", True),
+        "RINVIO AD ALTRA UDIENZA DI DISCUSSIONE": ("rinvio_udienza", True),
+        "DIFFERIMENTO UDIENZA": ("rinvio_udienza", True),
+        "FISSAZIONE UDIENZA DI DISCUSSIONE": ("udienza_fissata", True),
+        "DESIGNAZIONE GIUDICE": ("designazione_giudice", False),
+        "ANNOTAZIONE": ("comunicazione_cancelleria", False),
+        "COSTITUZIONE PARTI": ("comunicazione_cancelleria", False),
+    }
+    for oggetto, (evento, scadenza) in attese.items():
+        esito = classifica_pec_legale(subject="POSTA CERTIFICATA: COMUNICAZIONE 1/2026 Tribunale di Bari",
+                                      body=_comunicazione(oggetto), attachments=["Comunicazione.xml", "daticert.xml"])
+        assert (esito["event_type"], esito["creates_deadline"]) == (evento, scadenza), oggetto
+
+
+def test_comunicazione_senza_ufficio_non_certifica_e_sentenze_restano_al_testo():
+    senza = classifica_pec_legale(subject="COMUNICAZIONE", body="<Comunicazione><Oggetto>DIFFERIMENTO UDIENZA</Oggetto></Comunicazione>")
+    assert senza["event_type"] != "rinvio_udienza"  # senza busta di un ufficio l'Oggetto non certifica nulla
+    sent = classifica_pec_legale(subject="POSTA CERTIFICATA: COMUNICAZIONE 2/2026",
+                                 body=_comunicazione("SENTENZA A VERBALE (art. 281 sexies cpc)") + "\nsentenza a verbale ex art. 281-sexies")
+    assert sent["event_type"] != "comunicazione_cancelleria"
+
+
+def test_oggetti_ufficiali_riconosciuti_senza_modelli():
+    casi = {
+        "POSTA CERTIFICATA: Notifica di scarto 12345678901": ("fattura_sdi", "fattura_sdi_scarto", False),
+        "POSTA CERTIFICATA: Notifica di mancata consegna 12345678901": ("fattura_sdi", "fattura_sdi_mancata_consegna", False),
+        "POSTA CERTIFICATA: Ricevuta di consegna 12345678901": ("fattura_sdi", "fattura_sdi", False),
+        "POSTA CERTIFICATA: Ricevuta di Avvenuta protocollazione": ("ente_pubblico", "ricevuta_protocollazione", False),
+        "POSTA CERTIFICATA: Notifica avvenuta registrazione protocollo n. 123 del 01-02-2026 - POSTA CERTIFICATA: Diffida":
+            ("ente_pubblico", "ricevuta_protocollazione", False),
+        "POSTA CERTIFICATA: Avviso FISSAZIONE UDIENZA per il ricorso 202600123 COD1tarve202600123_1":
+            ("comunicazione_pat", "udienza_fissata", True),
+        "POSTA CERTIFICATA: Avviso DEPOSITO SENTENZA per il ricorso 202600123 COD1tarrm202600123_1":
+            ("comunicazione_pat", "deposito_sentenza", True),
+        "POSTA CERTIFICATA: Avviso INVITO AL PAGAMENTO per il ricorso 202600123 COD1tarrc202600123_1":
+            ("comunicazione_pat", "invito_pagamento_contributo", True),
+        "POSTA CERTIFICATA: Avviso DEPOSITO MEMORIA per il ricorso 202600123 COD1tarve202600123_1":
+            ("comunicazione_pat", "avviso_segreteria_tar", False),
+        "POSTA CERTIFICATA: Registrazione 202600123 Istanza fissazione udienza - ricorso per ottemperanza":
+            ("comunicazione_pat", "deposito_pat_registrato", False),
+        "POSTA CERTIFICATA: Mancato deposito. Ricorso per l'ottemperanza": ("comunicazione_pat", "deposito_pat_non_riuscito", False),
+        "POSTA CERTIFICATA: Ricevuta protocollo": ("ente_pubblico", "ricevuta_protocollazione", False),
+        "POSTA CERTIFICATA: Protocollo nr: 1234 - del 01/02/2026 - AOOUSPRC - Contenzioso":
+            ("ente_pubblico", "comunicazione_ente_protocollata", False),
+        "POSTA CERTIFICATA: Hai terminato lo spazio su questa casella PEC": ("gestore_pec", "casella_pec_piena", False),
+    }
+    for oggetto, (famiglia, evento, scadenza) in casi.items():
+        r = classifica_pec_legale(subject=oggetto, body=oggetto)
+        assert (r["family"], r["event_type"], r["creates_deadline"]) == (famiglia, evento, scadenza), oggetto
+
+
+def test_ricevuta_pec_di_un_messaggio_protocollato_resta_ricevuta():
+    r = classifica_pec_legale(subject="ACCETTAZIONE: Protocollo nr: 12 - del 01/02/2026 - AOOUSPRC - Contenzioso",
+                              body="Ricevuta di accettazione")
+    assert r["event_type"] == "ricevuta_accettazione_pec"
+
+
+def test_istanza_o_attesa_di_fissazione_non_e_un_udienza_fissata():
+    for oggetto in ("ATTESA FISSAZIONE UDIENZA - pignoramento ex art. 543 bis", "Richiesta di fissazione udienza"):
+        r = classifica_pec_legale(subject=oggetto, body=oggetto)
+        assert r["event_type"] != "udienza_fissata" and not r["creates_deadline"]
+
+
+def test_testi_fissi_di_sistema_esecuzioni_protocollo_e_reindirizzamento():
+    casi = [
+        ("POSTA CERTIFICATA: Avviso di Disponibilità", "Avviso di disponibilità Ministero della Giustizia UNEP - TRIBUNALE DI BARI l'atto di PIGNORAMENTO è disponibile alla restituzione",
+         ("esecuzione", "atto_unep_disponibile", True)),
+        ("POSTA CERTIFICATA: Invio Dichiarazione di Terzo", "Si trasmette la dichiarazione (ex art. 547 cpc)", ("esecuzione", "dichiarazione_terzo", False)),
+        ("POSTA CERTIFICATA: Pratica 1 - Perdita di efficacia del pignoramento", "non ci risulta pervenuta alcuna notifica",
+         ("esecuzione", "inefficacia_pignoramento_segnalata", False)),
+        ("POSTA CERTIFICATA: Ricevuta protocollo - POSTA CERTIFICATA: Diffida", "ai sensi dell'art. 22 della legge 241/1990", ("ente_pubblico", "ricevuta_protocollazione", False)),
+        ("POSTA CERTIFICATA: R: Notificazione", "Ricevuta Automatica di Protocollo Numero: X. I messaggi in ingresso non saranno letti",
+         ("ente_pubblico", "ricevuta_protocollazione", False)),
+        ("POSTA CERTIFICATA: Diffida e messa in mora", "La Pec deve essere ritrasmessa all'unico indirizzo di posta certificata",
+         ("pec_da_reindirizzare", "pec_non_presa_in_carico", False)),
+    ]
+    for oggetto, corpo, (famiglia, evento, scadenza) in casi:
+        r = classifica_pec_legale(subject=oggetto, body=corpo)
+        assert (r["family"], r["event_type"], r["creates_deadline"]) == (famiglia, evento, scadenza), oggetto
+
+
+def test_biglietto_di_cancelleria_usa_l_oggetto_del_registro():
+    corpo = ("Tribunale di Bari -- Notificazione di cancelleria ai sensi del D.L. 179/2012 ... registro di cancelleria sono "
+             "associati a: Data Evento: 01/02/2026 Tipo Evento: X Oggetto: FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA "
+             "Descrizione: termine al 10/03/2026\nmittente@civile.ptel.giustiziacert.it")
+    r = classifica_pec_legale(subject="POSTA CERTIFICATA: Tribunale di Bari Notificazione ai sensi del D.L. 179/2012", body=corpo)
+    assert r["event_type"] == "udienza_sostituita_da_note_scritte" and r["creates_deadline"]

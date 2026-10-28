@@ -899,7 +899,10 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert 'command: ["python", "-m", "pct.scheduler_worker"]' in compose
     assert 'command: ["python", "-m", "pct.ocr_worker"]' in compose
     assert 'profiles: ["ollama-sidecar"]' in compose
-    assert "image: ollama/ollama:latest" in compose
+    expected_image = "ollama/ollama:0.35.0@sha256:2a6e883b917fc543389599dae79918f5cac9e1438890506982f44aa4f5625d01"
+    assert f"image: {expected_image}" in compose
+    hetzner = (REPO_ROOT / "deploy/hetzner/docker-compose.hetzner.yml").read_text(encoding="utf-8")
+    assert f"image: {expected_image}" in hetzner
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}" in compose
     assert "IUSENTRA_LOCAL_CONNECTOR_BASE_URL: ${IUSENTRA_LOCAL_CONNECTOR_BASE_URL:-http://host.docker.internal:27272}" in compose
     assert "PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db" in compose
@@ -924,7 +927,7 @@ def test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale():
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}" in compose
     assert "PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}" in compose
     assert "ollama:" in compose
-    assert "image: ollama/ollama:latest" in compose
+    assert "image: ollama/ollama:0.35.0@sha256:2a6e883b917fc543389599dae79918f5cac9e1438890506982f44aa4f5625d01" in compose
     assert "condition: service_healthy" in compose
     assert "exec -T ollama ollama pull" in deploy_script
     assert "${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data" in compose

@@ -66,3 +66,6 @@ Dockerfile
 docker-compose*.yml
 railway.toml
 render.yaml
+
+# Bundle Storybook di collaudo: mai nel contesto o nel runtime di produzione.
+/frontend/storybook-static/

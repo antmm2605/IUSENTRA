@@ -103,7 +103,8 @@ def test_runtime_keeps_the_larger_indexed_general_archive(tmp_path, monkeypatch)
     forbid_legacy(monkeypatch)
     rows = retriever.search_normattiva("art. 327 c.p.c.")
     assert rows and "archivio generale" in rows[0]["testo"]
-    assert not any("biblioteca separata" in row["testo"] for row in rows)
+    assert any("biblioteca separata" in row["testo"] for row in rows)
+    assert {row["archive_catalog"] for row in rows} == {"archivio_generale", "biblioteca_codici_leggi"}
 
 
 def test_missing_indexes_are_explicit_without_scanning(tmp_path, monkeypatch):
@@ -401,3 +402,52 @@ def test_normative_http_label_comes_from_actual_workflow(monkeypatch):
     assert payload["reference_label"] == "ricerca normativa locale"
     assert payload["focus_label"] == "ricerca normativa locale"
     assert payload["focus_topic"] == "ricerca_legale"
+
+
+def test_fts_incrementale_senza_callback_non_conta_tutti_i_pendenti(tmp_path):
+    path = archive(tmp_path / "incrementale.sqlite", text="Art. 327. Termine controllato.")
+    queries = []
+    with sqlite3.connect(path) as conn:
+        conn.set_trace_callback(queries.append)
+        first = sincronizza_fts(conn)
+        second = sincronizza_fts(conn)
+        assert first.indicizzati == 1
+        assert second.indicizzati == 0 and second.gia_presenti == 1
+        assert conn.execute("SELECT rowid FROM normative_fts").fetchall() == conn.execute(
+            "SELECT id FROM normative_chunks ORDER BY id"
+        ).fetchall()
+    normalized = [" ".join(query.upper().split()) for query in queries]
+    assert not any("SELECT COUNT(*) FROM NORMATIVE_CHUNKS C WHERE NOT EXISTS" in query for query in normalized)
+
+
+def test_fts_callback_conserva_totale_esatto_e_avanzamento(tmp_path):
+    path = archive(tmp_path / "avanzamento.sqlite", text="Art. 327. Primo termine controllato.")
+    archive(path, text="Art. 328. Secondo termine controllato.", article="328")
+    progress = []
+    with sqlite3.connect(path) as conn:
+        result = sincronizza_fts(conn, blocco=1, progresso=lambda done, total: progress.append((done, total)))
+        assert result.indicizzati == 2
+        assert progress == [(1, 2), (2, 2)]
+        assert conn.execute("SELECT rowid FROM normative_fts ORDER BY rowid").fetchall() == conn.execute(
+            "SELECT id FROM normative_chunks ORDER BY id"
+        ).fetchall()
+
+
+def test_fts_riscontro_id_con_buchi_e_orfano_non_legge_testi_gia_indicizzati(tmp_path):
+    path = archive(tmp_path / "buchi.sqlite", text="Primo termine.", article="327", indexed=True)
+    archive(path, text="Articolo rimosso prima della sincronizzazione.", article="328")
+    archive(path, text="Terzo termine da indicizzare.", article="329")
+    queries = []
+    progress = []
+    with sqlite3.connect(path) as conn:
+        conn.execute("DELETE FROM normative_chunks WHERE id=2")
+        conn.execute("INSERT INTO normative_fts_info(chunk_id,document_id) VALUES (999,1)")
+        conn.commit()
+        conn.set_trace_callback(queries.append)
+        result = sincronizza_fts(conn, blocco=1, progresso=lambda done, total: progress.append((done,total)))
+        assert result.indicizzati == 1 and result.orfani == 1
+        assert progress == [(1,1)]
+        assert conn.execute("SELECT rowid FROM normative_fts ORDER BY rowid").fetchall() == [(1,),(3,)]
+        assert not conn.execute("SELECT 1 FROM sqlite_temp_master WHERE name='_iusentra_fts_pending'").fetchone()
+    text_reads = [q for q in queries if "c.chunk_text" in q]
+    assert text_reads and all("WHERE c.id IN (SELECT chunk_id FROM temp._iusentra_fts_pending" in q for q in text_reads)

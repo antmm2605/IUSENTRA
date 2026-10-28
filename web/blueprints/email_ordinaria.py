@@ -331,7 +331,7 @@ def scrivi():
 
     try:
         from pct.messaggi import StatoMessaggio, GestioneMessaggi
-        from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer
+        from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer, ordinary_smtp_tls_options
 
         smtp_config = _messaggi_config_da_smtp()
         if ordinary_smtp_uses_local_signer(smtp_config.email.smtp_host):
@@ -355,7 +355,7 @@ def scrivi():
                 'command': command, 'actor': actor,
                 'scope': sha256(str(mailbox.attachments_dir.resolve()).encode()).hexdigest()})
             payload.update(ordinary_email=True,smtp_host=cfg.smtp_host,smtp_port=cfg.smtp_port,username=cfg.username,
-                           password=cfg.password,use_tls=cfg.use_tls,use_ssl=not cfg.use_tls)
+                           password=cfg.password,**ordinary_smtp_tls_options(cfg.smtp_port,cfg.use_tls))
             response = jsonify({'ok': True, 'local_signer_required': True,
                                 'local_payload': payload, 'confirmation_token': token})
             response.headers['Cache-Control'] = 'private, no-store'
@@ -392,7 +392,7 @@ def scrivi():
 @email_ordinaria.route('/trasporto')
 @_login_required
 def trasporto():
-    from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer
+    from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer, ordinary_smtp_tls_options
     from hashlib import sha256
     config = _get_config_smtp()
     scope = sha256(_cfg_path('EMAIL_ORDINARIA_DB', './email/ordinaria.json').encode()).hexdigest()

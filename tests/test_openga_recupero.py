@@ -138,3 +138,25 @@ def test_access_limit_stops_all_variants():
     result = recupera_testo(ROW, fetcher=fetcher, verifica_organo=lambda raw, row: True)
     assert result["stato"] == "intervento_necessario"
     assert len(fetcher.urls) == 1
+
+
+def test_server_error_is_not_reported_as_missing_document():
+    fetcher = Fetcher([response(status="http_error", http=503)])
+    result = recupera_testo(ROW, fetcher=fetcher, verifica_organo=lambda raw, row: True)
+    assert result["stato"] == "intervento_necessario"
+    assert len(fetcher.urls) == 1
+    assert result["diagnostica"][0]["stato_http"] == 503
+
+
+def test_rejected_source_preserves_fingerprint_and_reason_without_content():
+    from hashlib import sha256
+    raw = b"<html>temporarily unavailable</html>"
+    fetcher = Fetcher([response(raw)] * 3)
+    result = recupera_testo(ROW, fetcher=fetcher, verifica_organo=lambda raw, row: True)
+    assert result["stato"] == "non_trovato"
+    assert len(result["diagnostica"]) == 3
+    for evidence in result["diagnostica"]:
+        assert evidence["sha256"] == sha256(raw).hexdigest()
+        assert evidence["byte"] == len(raw)
+        assert evidence["rifiuto"] == "Non è un singolo provvedimento ufficiale."
+        assert "content" not in evidence

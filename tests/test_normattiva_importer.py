@@ -119,7 +119,15 @@ def test_normattiva_import_indicizza_articoli_codice_in_paragrafi_html(tmp_path:
     stats = import_raw_dir(raw_dir=raw_dir, db_path=db_path, jsonl_path=jsonl_path, min_score=0, limit=10)
     rows = search_normattiva("codice civile art. 2043", db_path=db_path, jsonl_path=jsonl_path, limit=5)
 
-    assert stats.articles_imported >= 4
+    # Il codice in paragrafi HTML resta nella propria partizione; non viene
+    # fuso con gli articoli NIR del decreto di approvazione.
+    assert stats.articles_imported == 1
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT count(*) FROM normative_components").fetchone()[0] == 1
+        main = conn.execute("SELECT article_text FROM normative_articles").fetchone()[0]
+        assert "2043" not in main
+        component = conn.execute("SELECT testo FROM normative_components").fetchone()[0]
+        assert "Risarcimento per fatto illecito" in component
     assert rows
     assert rows[0]["fonte"] == "Normattiva"
     assert "Codice civile" in rows[0]["titolo"]

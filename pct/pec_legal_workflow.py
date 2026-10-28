@@ -8,9 +8,12 @@ scarica contenuti esterni: classifica solo dati PEC gia' disponibili nel flusso.
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 from typing import Any, Iterable
 from urllib.parse import urlsplit
+
+from pct.pec_oggetti_ufficiali import classifica_oggetto_ufficiale
 
 
 FORWARD_PREFIX_RE = re.compile(r"^\s*(?:fwd?|i|r|re|rif|inoltro)\s*:\s*", re.I)
@@ -254,6 +257,59 @@ def _event_payload(
     }
 
 
+# Comunicazione.xml dei registri di cancelleria (Specifiche tecniche DGSIA, D.M. 44/2011 art. 34; art. 16 d.l.
+# 179/2012): <Oggetto> e' l'evento registrato dalla cancelleria, dato certificato e non dedotto dal testo.
+COMUNICAZIONE_OGGETTO_RE = re.compile(r"<Comunicazione\b.*?<Oggetto>\s*(.*?)\s*</Oggetto>", re.S | re.I)
+
+
+BIGLIETTO_OGGETTO_RE = re.compile(r"Tipo Evento:.{0,120}?Oggetto:\s*(.+?)(?:\s+Descrizione:|\r?\n|$)", re.S)
+
+
+def oggetto_comunicazione_cancelleria(text: str) -> str:
+    match = COMUNICAZIONE_OGGETTO_RE.search(text or "")
+    if not match and "notificazione di cancelleria" in _lower(text):
+        # Biglietto di cancelleria (art. 16 d.l. 179/2012): «Data Evento … Tipo Evento … Oggetto: …»
+        match = BIGLIETTO_OGGETTO_RE.search(text or "")
+    if not match or "giustiziacert" not in _lower(text):
+        return ""
+    return " ".join(html.unescape(match.group(1)).split())
+
+
+def _evento_da_comunicazione(oggetto: str, text: str) -> dict[str, Any] | None:
+    """Evento dal registro della cancelleria; None per le sentenze, gia' riconosciute dal testo del provvedimento."""
+    u = oggetto.upper()
+    if not u or "SENTENZA" in u:
+        return None
+    if "NOTE IN SOST" in u:
+        return _event_payload(
+            "udienza_sostituita_da_note_scritte",
+            f"Trattazione scritta (art. 127-ter c.p.c.): {oggetto}",
+            "alta",
+            "Leggere il provvedimento allegato, registrare il termine per il deposito delle note e la data che sostituisce "
+            "l'udienza; aggiornare o revocare l'udienza precedente senza cancellarne la storia.",
+            creates_deadline=True,
+        )
+    if "RINVIO" in u or "DIFFERIMENTO" in u:
+        return _event_payload("rinvio_udienza", f"Rinvio udienza: {oggetto}", "alta",
+                              "Aggiornare evento precedente, conservare vecchia data in timeline e creare nuova data.",
+                              creates_deadline=True)
+    if "FISSAZIONE UDIENZA" in u or "ANTICIPAZIONE UDIENZA" in u:
+        if _has_remote_hearing_url(text):
+            return _event_payload("udienza_online", f"Udienza online: {oggetto}", "alta",
+                                  "Salvare link, piattaforma, eventuale codice e creare promemoria tecnico.", creates_deadline=True)
+        return _event_payload("udienza_fissata", f"Udienza fissata: {oggetto}", "alta",
+                              "Creare o aggiornare scadenziario; la modalita' (presenza, remoto, note) va letta dal provvedimento.",
+                              creates_deadline=True)
+    if "SOSTITUZIONE GIUDICE" in u:
+        return _event_payload("sostituzione_giudice", "Sostituzione giudice", "media",
+                              "Aggiornare giudice del fascicolo, salvare precedente e attuale, verificare udienze future.")
+    if "DESIGNAZIONE GIUDICE" in u:
+        return _event_payload("designazione_giudice", "Designazione del giudice", "media",
+                              "Registrare il giudice designato nel fascicolo e verificare le udienze future.")
+    return _event_payload("comunicazione_cancelleria", f"Comunicazione di cancelleria: {oggetto}", "media",
+                          "Leggere comunicazione e allegato e collegarli al fascicolo; nessuna scadenza senza un termine nel provvedimento.")
+
+
 def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]:
     lower = _lower(text)
     has_video_link = _has_remote_hearing_url(text)
@@ -268,6 +324,15 @@ def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]
         return _event_payload("ricevuta_consegna_pec", "Ricevuta di avvenuta consegna", "alta", "Conservare la prova e collegarla al workflow notifiche/deposito.")
     if "mancata consegna" in lower:
         return _event_payload("mancata_consegna_pec", "Mancata consegna PEC", "rossa", "Creare alert immediato e coda di revisione.")
+    if "esito controlli automatici" in lower:
+        # Terza PEC del deposito telematico (Specifiche tecniche DGSIA, art. 34 D.M. 44/2011): l'esito e' in
+        # EsitoAtto.xml; non e' un'udienza anche se l'oggetto riporta l'atto depositato «in vista dell'udienza».
+        return _event_payload("esito_controlli", "Esito controlli automatici del deposito", "alta",
+                              "Leggere EsitoAtto.xml, collegare al deposito e segnalare anomalie WARN/ERROR/FATAL; "
+                              "non chiude il deposito senza l'esito dell'intervento della cancelleria.")
+    dal_registro = _evento_da_comunicazione(oggetto_comunicazione_cancelleria(text), text)
+    if dal_registro is not None:
+        return dal_registro
     if "sost. giudice" in lower or "sostituzione giudice" in lower:
         return _event_payload("sostituzione_giudice", "Sostituzione giudice", "media", "Aggiornare giudice del fascicolo, salvare precedente e attuale, verificare udienze future.")
     if _is_decisive_judgment_text(text):
@@ -294,7 +359,9 @@ def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]
         return _event_payload("udienza_online", "Udienza online", "alta", "Salvare link, piattaforma, eventuale codice e creare promemoria tecnico.", creates_deadline=True)
     if "udienza in presenza" in lower or ("udienza" in lower and has_place):
         return _event_payload("udienza_in_presenza", "Udienza in presenza", "alta", "Estrarre aula, piano, sezione e creare promemoria operativo.", creates_deadline=True)
-    if "udienza fissata" in lower or "avviso udienza" in lower or "fissazione udienza" in lower:
+    if ("udienza fissata" in lower or "avviso udienza" in lower or "fissazione udienza" in lower) and not re.search(
+        r"(istanza|attesa|richiesta|in attesa)\s+(di\s+)?fissazione\s+(dell'?\s*)?udienza", lower
+    ):
         return _event_payload("udienza_fissata", "Udienza fissata", "alta", "Creare o aggiornare scadenziario; se la modalità manca, segnare da verificare.", creates_deadline=True)
     if "deposito ricorso per cassazione" in lower and ("proc. pen" in lower or "rg app" in lower or "rg nr" in lower):
         return _event_payload("deposito_ricorso_cassazione_penale", "Deposito ricorso per Cassazione penale", "alta", "Classificare come penale/Cassazione, estrarre RG APP e RG NR, leggere messaggio originale allegato.")
@@ -416,7 +483,10 @@ def classifica_pec_legale(
     registri = estrai_registri(text)
     family, family_label = _classifica_famiglia(text, sender, registri)
     event = _classifica_evento(text, attachment_names)
-    if family == "fattura_sdi":
+    ufficiale = classifica_oggetto_ufficiale(subject, str(body or ""))
+    if ufficiale is not None:
+        family, family_label, event = ufficiale
+    elif family == "fattura_sdi":
         event = _event_payload(
             "fattura_sdi_mancata_consegna" if "mancata consegna" in _lower(text) else "fattura_sdi",
             "Fattura SDI - mancata consegna" if "mancata consegna" in _lower(text) else "Fattura elettronica SDI",

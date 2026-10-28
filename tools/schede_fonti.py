@@ -38,12 +38,17 @@ def notturno(args) -> int:
         print(f"ERRORE: biblioteca non trovata: {db}", file=sys.stderr)
         return 1
     acquisizione = acquisisci(db, Path(args.pacchetti or db.with_name("biblioteca_automatica")), simula=args.simula)
+    recuperi=[]
+    if not args.simula:
+        from lex.normativa.biblioteca.recupero import riprendi_pendenti
+
+        recuperi=riprendi_pendenti(db,db.parent/"recuperi_normativi")
     esiti = verifica_schede(db)
     repo = _repo(args)
     conteggi = registra_esiti(repo, esiti)
     conteggi["fonti_suggerite_nuove"] = fonti_suggerite(repo)
     rapporto = {"eseguito_il": dt.datetime.now().isoformat(timespec="seconds"), "acquisizione": acquisizione.to_dict(),
-                "verifica": riepilogo(esiti), "conteggi": conteggi, "proposte_aperte": len(repo.proposte())}
+                "recuperi_puntuali": recuperi, "verifica": riepilogo(esiti), "conteggi": conteggi, "proposte_aperte": len(repo.proposte())}
     Path(args.rapporto or db.with_name("schede_fonti_rapporto.json")).write_text(
         json.dumps(rapporto, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({k: rapporto[k] for k in ("conteggi", "proposte_aperte")} |

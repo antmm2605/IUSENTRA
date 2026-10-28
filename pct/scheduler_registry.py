@@ -1855,8 +1855,8 @@ def _job_trigger(job: dict[str, Any]):
     if kind == "manual":
         return None
     if kind == "interval":
-        return IntervalTrigger(minutes=max(1, int(job.get("interval_minutes") or 60)))
-    kwargs: dict[str, Any] = {"minute": str(job.get("minute") or "0")}
+        return IntervalTrigger(minutes=max(1, int(job.get("interval_minutes") or 60)), timezone="Europe/Rome")
+    kwargs: dict[str, Any] = {"minute": str(job.get("minute") or "0"), "timezone": "Europe/Rome"}
     if str(job.get("hour") or "").strip():
         kwargs["hour"] = str(job.get("hour")).strip()
     if str(job.get("day_of_week") or "").strip():

@@ -2374,7 +2374,7 @@ def _ensure_economic_document_ai_texts_for_fascicolo(
             fid,
             sources,
             document_ai_user_context(),
-            retry_errors=True,
+            retry_errors=False,
         )
         fascicoli_db_path, storage_root, structured_db = _current_fascicoli_catalog_paths()
         refreshed = document_ai_texts_for_catalog(
@@ -2468,7 +2468,7 @@ def _ensure_deadline_document_ai_texts_for_fascicolo(
             fid,
             sources,
             document_ai_user_context(),
-            retry_errors=True,
+            retry_errors=False,
         )
         fascicoli_db_path, storage_root, structured_db = _current_fascicoli_catalog_paths()
         refreshed = document_ai_texts_for_catalog(

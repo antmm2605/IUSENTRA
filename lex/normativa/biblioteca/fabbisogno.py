@@ -32,9 +32,16 @@ class Riferimento:
     origine: str  # "base_normativa" | "campo:<nome>"
 
 
-def riferimenti_schede(cartella: Path = CARTELLA_SCHEDE) -> list[Riferimento]:
+def riferimenti_schede(cartella: Path = CARTELLA_SCHEDE, *, solo_scheda: str = "") -> list[Riferimento]:
     out: list[Riferimento] = []
-    for f in sorted(Path(cartella).glob("*.json")):
+    if solo_scheda:
+        import re
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", solo_scheda):
+            raise ValueError("Identificatore della scheda non valido")
+        files = [Path(cartella) / (solo_scheda + ".json")]
+    else:
+        files = sorted(Path(cartella).glob("*.json"))
+    for f in files:
         d = json.loads(f.read_text(encoding="utf-8"))
         sid = str(d.get("id") or f.stem)
         for r in d.get("base_normativa") or []:
@@ -52,7 +59,7 @@ class Presenza:
     articoli: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
 
 
-def presenza_biblioteca(db: Path) -> Presenza:
+def presenza_biblioteca(db: Path, *, chiavi: set[str] | None = None) -> Presenza:
     p = Presenza()
     if not Path(db).is_file():
         return p
@@ -64,8 +71,10 @@ def presenza_biblioteca(db: Path) -> Presenza:
             p.atti[coll[len(COLLEZIONE):]] = int(doc_id)
         ids = list(p.atti.items())
         inverso = {v: k for k, v in ids}
-        for doc_id, numero in conn.execute("SELECT document_id, article_number FROM normative_articles"):
-            if doc_id in inverso:
+        relevant_ids=[doc_id for key,doc_id in ids if chiavi is None or key in chiavi]
+        for start in range(0,len(relevant_ids),500):
+            batch=relevant_ids[start:start+500]
+            for doc_id, numero in conn.execute("SELECT document_id, article_number FROM normative_articles WHERE document_id IN ("+",".join("?" for _ in batch)+")",batch):
                 p.articoli[inverso[doc_id]].add(norm_articolo(numero))
     return p
 
@@ -80,7 +89,7 @@ class Fabbisogno:
 
 def calcola_fabbisogno(db: Path, riferimenti: list[Riferimento] | None = None) -> Fabbisogno:
     refs = riferimenti if riferimenti is not None else riferimenti_schede()
-    pres = presenza_biblioteca(db)
+    pres = presenza_biblioteca(db,chiavi={r.atto for r in refs})
     atti: dict[str, list[Riferimento]] = defaultdict(list)
     articoli: list[Riferimento] = []
     presenti = 0

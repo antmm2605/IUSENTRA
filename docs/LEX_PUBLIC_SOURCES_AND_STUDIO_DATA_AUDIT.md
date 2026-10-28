@@ -1591,3 +1591,26 @@ non è accettata. Prova completa catalogo-coda-lettura: 3315 caratteri acquisiti
 non è stata eseguita: il servizio browser restituisce disabled. L'utente ha
 autorizzato esplicitamente l'eccezione visiva soltanto per la 2.450.0, mantenendo
 CI, backup, controlli server e allineamento locale. Rilascio ancora da verificare.
+
+### Biblioteca e Fonti di stesura — 2.454.0 (integrazione in verifica)
+Il coordinatore `redazione_lex_runtime.stesura` chiama prima
+`biblioteca.ricerca_fonti.integra_fonti`, poi `stesura_blocchi.scrivi_blocchi`.
+La ricerca fonde i candidati della biblioteca e delle schede; la scelta del modello
+è vincolata agli identificatori ricevuti e viene completata dalla classifica.
+`lettura_normativa_rag.completa_lettura_normativa` conserva il testo integrale
+se entra nel limite, oppure registra la lettura non completata. Le norme senza
+riscontro della versione e della provenienza non vengono certificate dal modello.
+
+Le importazioni esplicite verificano SHA dei file fisici, identità congiunta,
+partizione XML e intervallo di edizione. Le rettifiche dei soli metadati mantengono
+originale, derivato tecnico e prova del corpo invariato; non producono una nuova
+fonte ufficiale. La data di acquisizione proviene dalla ricevuta, mai dalla data
+SQL di importazione. Il registro delle transitorie richiede approvazioni riferite
+all'impronta della regola e riscontro fisico della fonte; non si creano approvazioni
+professionali automatiche. I riferimenti storici rimossi restano consultabili
+per ID e SHA e non diventano Fonti attive.
+
+Le prove automatiche sono guardrail tecnici. Al momento di questo aggiornamento
+restano da attestare integrazione finale dei dati, misura reale del 35B, prova
+visibile sulla copia reale8080, CI e parità dopo deploy. Nessuna copertura giuridica
+globale è dedotta dal conteggio dei file o degli articoli.

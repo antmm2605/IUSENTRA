@@ -32,9 +32,10 @@ LEX_CROSS_SUITE: tuple[Path, ...] = tuple(
 #  --core-total-shards nella matrice di .github/workflows/ci.yml.
 CORE_CI_TOTAL_SHARDS = 10
 CORE_CI_SUBSHARDS: dict[int, int] = {
+    2: 16,
     3: 3,
     4: 4,
-    5: 6,
+    5: 12,
     6: 16,
     7: 3,
     8: 3,

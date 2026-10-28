@@ -230,19 +230,25 @@ def sincronizza_fts(
     conn_row_factory = conn.row_factory
     conn.row_factory = sqlite3.Row
     try:
-        totale_da_fare = int(
-            conn.execute(
-                "SELECT COUNT(*) FROM normative_chunks c "
-                "WHERE NOT EXISTS (SELECT 1 FROM normative_fts_info i WHERE i.chunk_id = c.id)"
-            ).fetchone()[0]
+        # Riscontrare prima gli ID usando gli indici stretti: leggere la tabella
+        # dei testi per ogni ID gia presente provoca I/O inutile sui dischi HDD.
+        # La tabella temporanea appartiene solo a questa connessione; i testi
+        # vengono letti esclusivamente per gli ID realmente mancanti.
+        conn.execute("CREATE TEMP TABLE IF NOT EXISTS _iusentra_fts_pending (chunk_id INTEGER PRIMARY KEY)")
+        conn.execute("DELETE FROM temp._iusentra_fts_pending")
+        conn.execute(
+            "INSERT INTO temp._iusentra_fts_pending(chunk_id) "
+            "SELECT id FROM normative_chunks EXCEPT SELECT chunk_id FROM normative_fts_info"
         )
+        conn.commit()
+        totale_da_fare = int(conn.execute("SELECT COUNT(*) FROM temp._iusentra_fts_pending").fetchone()[0]) if progresso is not None else 0
         esito.gia_presenti = int(conn.execute("SELECT COUNT(*) FROM normative_fts_info").fetchone()[0])
         ultimo_id = 0
         while True:
             righe = conn.execute(
                 _SELEZIONE_CHUNK
-                + " WHERE c.id > ? AND NOT EXISTS (SELECT 1 FROM normative_fts_info i WHERE i.chunk_id = c.id)"
-                + " ORDER BY c.id LIMIT ?",
+                + " WHERE c.id IN (SELECT chunk_id FROM temp._iusentra_fts_pending "
+                + "WHERE chunk_id > ? ORDER BY chunk_id LIMIT ?) ORDER BY c.id",
                 (ultimo_id, max(1, int(blocco))),
             ).fetchall()
             if not righe:
@@ -273,8 +279,8 @@ def sincronizza_fts(
                 progresso(esito.indicizzati, totale_da_fare)
         esito.orfani = int(
             conn.execute(
-                "SELECT COUNT(*) FROM normative_fts_info i "
-                "WHERE NOT EXISTS (SELECT 1 FROM normative_chunks c WHERE c.id = i.chunk_id)"
+                "SELECT COUNT(*) FROM (SELECT chunk_id FROM normative_fts_info "
+                "EXCEPT SELECT id FROM normative_chunks)"
             ).fetchone()[0]
         )
         if esito.orfani:
@@ -284,6 +290,7 @@ def sincronizza_fts(
                 esito.orfani,
             )
     finally:
+        conn.execute("DROP TABLE IF EXISTS temp._iusentra_fts_pending")
         conn.row_factory = conn_row_factory
     esito.secondi = time.monotonic() - inizio
     return esito
@@ -479,7 +486,7 @@ def carica_chunk(conn: sqlite3.Connection, ids: list[int]) -> dict[int, dict[str
                 f"""
                 SELECT c.id AS chunk_id, c.chunk_key, c.chunk_text, c.metadata_json, d.id AS document_id,
                        d.titolo, d.data_atto, d.data_pubblicazione, d.urn, d.vigenza, d.zip_path,
-                       d.xml_entry, d.xml_sha256, d.imported_at, a.article_number, a.article_title
+                       d.xml_entry, d.xml_sha256, d.imported_at, d.numero, a.article_number, a.article_title
                 FROM normative_chunks c
                 JOIN normative_documents d ON d.id = c.document_id
                 LEFT JOIN normative_articles a ON a.id = c.article_id
@@ -492,6 +499,11 @@ def carica_chunk(conn: sqlite3.Connection, ids: list[int]) -> dict[int, dict[str
                     metadata = json.loads(riga["metadata_json"] or "{}")
                 except (TypeError, ValueError):
                     metadata = {}
+                from lex.normativa.identita_documento import urn_documento, url_documento
+
+                source_urn = urn_documento(riga["urn"], riga["xml_entry"], riga["numero"], riga["data_atto"])
+                metadata["urn_importata"] = riga["urn"]
+                metadata["xml_entry"] = riga["xml_entry"]
                 topics = metadata.get("topics")
                 risultato[int(riga["chunk_id"])] = {
                     "chunk_id": riga["chunk_key"] or riga["chunk_id"],
@@ -500,9 +512,9 @@ def carica_chunk(conn: sqlite3.Connection, ids: list[int]) -> dict[int, dict[str
                     "fonte": provenienza_atto(riga["urn"]),
                     "titolo": riga["titolo"],
                     "data": riga["data_atto"] or riga["data_pubblicazione"],
-                    "url_origine": riga["urn"] or riga["zip_path"],
+                    "url_origine": source_urn or url_documento(riga["urn"], riga["xml_entry"], riga["data_pubblicazione"]) or riga["zip_path"],
                     "path_origine": riga["zip_path"],
-                    "articolo_o_chunk": riga["article_number"] or metadata.get("article_number") or riga["chunk_id"],
+                    "articolo_o_chunk": riga["article_number"] or metadata.get("article_number") or "",
                     "rubrica": riga["article_title"] or metadata.get("article_title") or "",
                     "testo": riga["chunk_text"],
                     "materia": topics[0] if isinstance(topics, list) and topics else "",

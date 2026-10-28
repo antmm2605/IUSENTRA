@@ -5,7 +5,7 @@ Gestione appuntamenti, udienze, scadenze processuali e reminder.
 """
 
 import uuid
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, asdict, field
@@ -18,11 +18,26 @@ from pct.ical_import import EventoImportato
 _ROME_TZ = ZoneInfo("Europe/Rome")
 
 
+def _dt_utc(value: datetime | str, *, validate_local: bool = False) -> datetime:
+    """Istante UTC; le date legacy senza offset sono ore civili italiane.
+
+    Per l'ora ripetuta si conserva fold (default legacy: prima occorrenza).
+    Un offset esplicito distingue entrambe le occorrenze senza ambiguità.
+    """
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=_ROME_TZ)
+        instant = parsed.astimezone(timezone.utc)
+        if validate_local and instant.astimezone(_ROME_TZ).replace(tzinfo=None) != parsed.replace(tzinfo=None):
+            raise ValueError("Ora locale inesistente per il cambio all’ora legale: scegli un orario valido.")
+        return instant
+    return parsed.astimezone(timezone.utc)
+
+
 def _dt_locale(value: datetime | str) -> datetime:
     parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    if parsed.tzinfo is not None:
-        return parsed.astimezone(_ROME_TZ).replace(tzinfo=None)
-    return parsed
+    # Gli orari storici locali restano consultabili senza riscriverne la fonte.
+    return parsed if parsed.tzinfo is None else parsed.astimezone(_ROME_TZ).replace(tzinfo=None)
 
 
 class TipoAppuntamento(str, Enum):
@@ -90,12 +105,24 @@ class Appuntamento:
         return _dt_locale(self.data_ora)
 
     @property
+    def data_ora_utc(self) -> datetime:
+        return _dt_utc(self.data_ora)
+
+    @property
+    def fine_utc(self) -> datetime:
+        return self.data_ora_utc + timedelta(minutes=self.durata_minuti)
+
+    @property
     def fine_dt(self) -> datetime:
-        return self.data_ora_dt + timedelta(minutes=self.durata_minuti)
+        return self.fine_utc.astimezone(_ROME_TZ).replace(tzinfo=None)
 
     @property
     def reminder_dt(self) -> datetime:
-        return self.data_ora_dt - timedelta(minutes=self.reminder_minuti)
+        return self.reminder_utc.astimezone(_ROME_TZ).replace(tzinfo=None)
+
+    @property
+    def reminder_utc(self) -> datetime:
+        return _dt_utc(self.data_ora) - timedelta(minutes=self.reminder_minuti)
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -257,6 +284,7 @@ class Agenda:
         Returns:
             Appuntamento creato
         """
+        _dt_utc(data_ora, validate_local=True)  # Valida anche quando il controllo sovrapposizioni è disabilitato.
         # Controlla sovrapposizioni
         if not allow_overlap:
             sovrapposizioni = self._controlla_sovrapposizioni(data_ora, durata_minuti)
@@ -285,6 +313,8 @@ class Agenda:
         if expected_version is not None and expected_version != self.revision_token(id_app):
             from pct.agenda_sql_writer import AgendaConflict
             raise AgendaConflict("L’appuntamento è stato aggiornato. La tua bozza è conservata: confronta i dati aggiornati prima di salvare.")
+        if "data_ora" in campi:
+            _dt_utc(campi["data_ora"], validate_local=True)
         for k, v in campi.items():
             if hasattr(app, k):
                 setattr(app, k, v)
@@ -338,7 +368,7 @@ class Agenda:
         return candidati[0] if candidati else None
 
     def tutti(self) -> List[Appuntamento]:
-        return sorted(self._appuntamenti.values(), key=lambda a: a.data_ora)
+        return sorted(self._appuntamenti.values(), key=lambda a: _dt_utc(a.data_ora))
 
     def per_giorno(self, giorno: date) -> List[Appuntamento]:
         """Appuntamenti di un giorno specifico."""
@@ -365,7 +395,7 @@ class Agenda:
         """Appuntamenti di un cliente per ID (ordinati per data desc)."""
         return sorted(
             [a for a in self._appuntamenti.values() if a.id_cliente == id_cliente],
-            key=lambda a: a.data_ora,
+            key=lambda a: _dt_utc(a.data_ora),
             reverse=True,
         )
 
@@ -414,17 +444,17 @@ class Agenda:
         Restituisce gli appuntamenti il cui reminder scade entro N minuti.
         Utile per sistemi di notifica.
         """
-        adesso = datetime.now(_ROME_TZ).replace(tzinfo=None)
+        adesso = datetime.now(timezone.utc)
         soglia = adesso + timedelta(minutes=entro_minuti)
         return [
             a for a in self.tutti()
             if a.stato == StatoAppuntamento.PROGRAMMATO
-            and adesso <= a.reminder_dt <= soglia
+            and adesso <= a.reminder_utc <= soglia
         ]
 
     def scadenze_oggi(self) -> List[Appuntamento]:
         """Appuntamenti di oggi non ancora completati."""
-        oggi = date.today()
+        oggi = datetime.now(_ROME_TZ).date()
         return [
             a for a in self.per_giorno(oggi)
             if a.stato not in (StatoAppuntamento.COMPLETATO, StatoAppuntamento.ANNULLATO)
@@ -442,7 +472,7 @@ class Agenda:
         self, data_ora: str, durata_minuti: int, exclude_id: str = ""
     ) -> List[Appuntamento]:
         """Restituisce appuntamenti che si sovrappongono con la finestra data."""
-        nuovo_inizio = _dt_locale(data_ora)
+        nuovo_inizio = _dt_utc(data_ora, validate_local=True)
         nuovo_fine = nuovo_inizio + timedelta(minutes=durata_minuti)
 
         sovrapposti = []
@@ -451,7 +481,9 @@ class Agenda:
                 continue
             if a.stato in (StatoAppuntamento.ANNULLATO, StatoAppuntamento.COMPLETATO):
                 continue
-            if a.data_ora_dt < nuovo_fine and a.fine_dt > nuovo_inizio:
+            inizio = _dt_utc(a.data_ora)
+            fine = inizio + timedelta(minutes=a.durata_minuti)
+            if inizio < nuovo_fine and fine > nuovo_inizio:
                 sovrapposti.append(a)
         return sovrapposti
 
@@ -645,7 +677,7 @@ class Agenda:
     def statistiche(self) -> dict:
         """Riepilogo statistiche agenda."""
         tutti = self.tutti()
-        oggi = date.today()
+        oggi = datetime.now(_ROME_TZ).date()
         return {
             "totale": len(tutti),
             "oggi": len(self.per_giorno(oggi)),

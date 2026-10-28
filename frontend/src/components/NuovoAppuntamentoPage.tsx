@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import type { Tone } from '../data'
+import { romeInstant, romeTimeRange } from '../agendaTime'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { mergeRegistryRefresh } from '../features/anagrafiche/mergeRegistryRefresh'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
@@ -363,14 +364,6 @@ function formFromAgendaRecord(record: Record<string, unknown>, current: Appointm
   }
 }
 
-function minutesFromTime(value: string): number | null {
-  const [hourRaw, minuteRaw] = value.split(':')
-  const hour = Number(hourRaw)
-  const minute = Number(minuteRaw)
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
-  return hour * 60 + minute
-}
-
 function formatDateLabel(date: string): string {
   if (!date) return 'Data da impostare'
   try {
@@ -388,15 +381,8 @@ function formatDateLabel(date: string): string {
 
 function formatRange(form: AppointmentForm): string {
   if (!form.ora) return 'Ora da impostare'
-  const start = minutesFromTime(form.ora)
-  const duration = Math.max(Number(form.durata || 60), 1)
-  if (start === null) return form.ora
-  const end = start + duration
-  const h1 = String(Math.floor(start / 60)).padStart(2, '0')
-  const m1 = String(start % 60).padStart(2, '0')
-  const h2 = String(Math.floor((end % (24 * 60)) / 60)).padStart(2, '0')
-  const m2 = String(end % 60).padStart(2, '0')
-  return `${h1}:${m1} - ${h2}:${m2}`
+  if (!form.data) return 'Data da impostare'
+  return romeTimeRange(form.data, form.ora, Math.max(Number(form.durata || 60), 1))
 }
 
 function buildSuggestedTitle(form: AppointmentForm): string {
@@ -422,7 +408,8 @@ function buildSuggestedTitle(form: AppointmentForm): string {
 
 function formatAgendaItemRange(item: AgendaApiItem): string {
   try {
-    const start = new Date(asText(item.data_ora))
+    const start = romeInstant(asText(item.data_ora))
+    if (!start) return 'Orario non valido nel fuso italiano'
     const end = new Date(start.getTime() + Math.max(Number(item.durata_minuti ?? 60), 1) * 60000)
     return `${start.toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })}`
   } catch {
@@ -499,7 +486,7 @@ export function NuovoAppuntamentoPage() {
       id: 'quando',
       label: 'Data e ora',
       help: 'Necessarie per agenda, reminder e feed iCal/WebCal.',
-      ok: Boolean(form.data && form.ora),
+      ok: Boolean(form.data && form.ora && romeInstant(`${form.data}T${form.ora}`)),
       required: true,
     },
     {
@@ -539,21 +526,17 @@ export function NuovoAppuntamentoPage() {
   const requiredOk = qualityChecks.filter((check) => check.required).every((check) => check.ok)
 
   const conflicts = useMemo(() => {
-    const start = minutesFromTime(form.ora)
+    const start = romeInstant(`${form.data}T${form.ora}`)?.getTime() ?? null
     const duration = Math.max(Number(form.durata || 60), 1)
     if (!form.data || start === null || !Number.isFinite(duration)) return []
-    const end = start + duration
+    const end = start + duration * 60000
 
     return dayEvents.filter((item) => {
       if (item.id === editId) return false
       if (item.stato === 'ANNULLATO' || item.stato === 'COMPLETATO') return false
-      const itemDataOra = asText(item.data_ora)
-      const itemDate = itemDataOra.slice(0, 10)
-      const itemTime = itemDataOra.slice(11, 16)
-      if (itemDate !== form.data || !itemTime) return false
-      const itemStart = minutesFromTime(itemTime)
+      const itemStart = romeInstant(asText(item.data_ora))?.getTime() ?? null
       if (itemStart === null) return false
-      const itemEnd = itemStart + Math.max(Number(item.durata_minuti ?? 60), 1)
+      const itemEnd = itemStart + Math.max(Number(item.durata_minuti ?? 60), 1) * 60000
       return itemStart < end && itemEnd > start
     })
   }, [dayEvents, editId, form.data, form.durata, form.ora])

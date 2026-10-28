@@ -1,6 +1,7 @@
 """Recupero pubblico limitato: URL candidati mai certificati prima del riscontro."""
 from base64 import b64encode
 from datetime import datetime, timezone
+from hashlib import sha256
 from threading import Lock
 from time import monotonic
 from types import SimpleNamespace
@@ -107,29 +108,40 @@ def recupera_testo(row, *, fetcher=None, verifica_organo=riscontra_organo):
         ricorso = str(row["ricorso"])
         fetcher = fetcher or _FETCHER
         suffixes = ("11", "01", "20") if schema in {"cds", "cgagiur"} else ("01", "20", "11")
+        diagnostics = []
         for suffix in suffixes:
             url = "https://" + _HOST + "/visualizza/?" + urlencode({
                 "nodeRef": "", "schema": schema, "nrg": ricorso,
                 "nomeFile": f"{anno}{numero:05d}_{suffix}.html", "subDir": "Provvedimenti"})
             fetched = fetcher.fetch(url)
+            evidence = {"variante": suffix, "stato_http": fetched.http_status,
+                        "trasporto": fetched.status, "byte": len(fetched.content or b""),
+                        "sha256": sha256(fetched.content or b"").hexdigest()}
+            diagnostics.append(evidence)
+            if fetched.http_status >= 500:
+                return {"stato": "intervento_necessario", "diagnostica": diagnostics,
+                        "message": "La fonte ufficiale ha restituito un errore temporaneo; nessuna assenza del documento è attestata."}
             if fetched.status in {"robots_blocked", "network_error", "too_large"}:
-                return {"stato": "intervento_necessario", "message": "La fonte non consente il recupero automatico in questo momento."}
+                return {"stato": "intervento_necessario", "diagnostica": diagnostics, "message": "La fonte non consente il recupero automatico in questo momento."}
             if fetched.http_status in {401, 403, 429}:
                 return {"stato": "intervento_necessario",
-                        "message": "La fonte limita l'accesso automatico: nessun tentativo su altre varianti."}
+                        "diagnostica": diagnostics, "message": "La fonte limita l'accesso automatico: nessun tentativo su altre varianti."}
             if fetched.status != "ok" or fetched.http_status != 200:
                 continue
             try:
                 result = leggi_documento(fetched.content, url=url, schema=schema,
                     anno=anno, numero=numero, ricorso=ricorso,
                     acquisita_il=datetime.now(timezone.utc).strftime("%d/%m/%Y"))
-                if not verifica_organo(fetched.content, row) or not verifica_tipo(fetched.content, row):
+                evidence["organo"] = verifica_organo(fetched.content, row)
+                evidence["tipo"] = verifica_tipo(fetched.content, row)
+                if not evidence["organo"] or not evidence["tipo"]:
                     continue
-            except DocumentoNonVerificato:
+            except DocumentoNonVerificato as exc:
+                evidence["rifiuto"] = str(exc)
                 continue
             result["originale_base64"] = b64encode(fetched.content).decode("ascii")
-            return {"stato": "acquisito", "documento": result}
-        return {"stato": "non_trovato", "message": "Nessun testo corrispondente riscontrato; il risultato resta uno spunto."}
+            return {"stato": "acquisito", "documento": result, "diagnostica": diagnostics}
+        return {"stato": "non_trovato", "diagnostica": diagnostics, "message": "Nessun testo corrispondente riscontrato; il risultato resta uno spunto."}
     except (KeyError, TypeError, ValueError):
         return {"stato": "intervento_necessario", "message": "Estremi del catalogo incompleti o non validi."}
     finally:

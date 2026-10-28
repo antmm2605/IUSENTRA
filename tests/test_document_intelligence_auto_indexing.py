@@ -379,3 +379,20 @@ def test_hash_cambiato_marca_stale(tmp_path: Path, monkeypatch):
 
     assert summary.stale == 1
     assert summary.status == "stale"
+
+
+def test_failed_unchanged_document_is_not_automatically_read_again(tmp_path: Path, monkeypatch):
+    calls = []
+    def failed(*args):
+        calls.append(1)
+        return ExtractionResult(ok=False, text="", pages=[], extraction_engine="test",
+                                error_code="pdf_extraction_failed", error_message="failed")
+    monkeypatch.setattr("pct.document_intelligence.service.extract_text_from_document", failed)
+    service = _service(tmp_path)
+    indexer = DocumentAIIndexer(service)
+    source = _source(filename="atto.pdf", mime_type="application/pdf")
+    first = indexer.process(tenant_id="tenant-a", fascicolo_id="fas-1", sources=[source], user_context=_context())
+    second = indexer.process(tenant_id="tenant-a", fascicolo_id="fas-1", sources=[source], user_context=_context())
+    assert len(calls) == 1
+    assert first.errors and second.errors
+    assert len(service.repository.list_documents("tenant-a", "fas-1")) == 1

@@ -242,7 +242,7 @@ def start_scheduler(app):
     ora_backup = app.config.get("BACKUP_ORA", os.getenv("PCT_BACKUP_ORA", "02:00"))
     h, m = _parse_hhmm(ora_backup, "02:00")
 
-    @scheduler.scheduled_job(CronTrigger(hour=h, minute=m), id="backup_giornaliero")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=h, minute=m), id="backup_giornaliero")
     def _backup():
         with app.app_context():
             if _backup_jobs_disabled(app):
@@ -260,7 +260,7 @@ def start_scheduler(app):
                 return {"ok": False, "error": str(e)[:300]}
 
     # ---- Aggiornamento scadenze scadute (ogni notte alle 00:05) ----
-    @scheduler.scheduled_job(CronTrigger(hour=0, minute=5), id="aggiorna_scadute")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=0, minute=5), id="aggiorna_scadute")
     def _aggiorna_scadute():
         with app.app_context():
             try:
@@ -275,7 +275,7 @@ def start_scheduler(app):
     wa_ora = app.config.get("WA_REMINDER_ORA", os.getenv("PCT_WA_REMINDER_ORA", "18:00"))
     wh, wm = _parse_hhmm(wa_ora, "18:00")
 
-    @scheduler.scheduled_job(CronTrigger(hour=wh, minute=wm), id="wa_reminder")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=wh, minute=wm), id="wa_reminder")
     def _wa_reminder():
         with app.app_context():
             try:
@@ -306,7 +306,7 @@ def start_scheduler(app):
                 logger.error(f"[scheduler] WA reminder fallito: {e}")
 
     # ---- Aggiorna parcelle scadute (ogni giorno alle 01:00) ----
-    @scheduler.scheduled_job(CronTrigger(hour=1, minute=0), id="aggiorna_parcelle_scadute")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=1, minute=0), id="aggiorna_parcelle_scadute")
     def _parcelle_scadute():
         with app.app_context():
             try:
@@ -325,7 +325,7 @@ def start_scheduler(app):
     sync_uffici_ora = app.config.get("UFFICI_SYNC_ORA", os.getenv("PCT_UFFICI_SYNC_ORA", "03:30"))
     uh, um = _parse_hhmm(sync_uffici_ora, "03:30")
 
-    @scheduler.scheduled_job(CronTrigger(hour=uh, minute=um), id="sync_uffici")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=uh, minute=um), id="sync_uffici")
     def _sync_uffici():
         with app.app_context():
             try:
@@ -371,7 +371,7 @@ def start_scheduler(app):
     ).strip() or "sun"
 
     @scheduler.scheduled_job(
-        CronTrigger(day_of_week=cert_day, hour=cert_h, minute=cert_m),
+        CronTrigger(timezone="Europe/Rome", day_of_week=cert_day, hour=cert_h, minute=cert_m),
         id="pst_certificati_cifratura_weekly",
     )
     def _sync_certificati_cifratura_pst():
@@ -420,7 +420,7 @@ def start_scheduler(app):
     cortecost_day = str(os.getenv("PCT_CORTECOST_SYNC_GIORNO", "sat") or "sat").strip() or "sat"
 
     @scheduler.scheduled_job(
-        CronTrigger(day_of_week=cortecost_day, hour=cortecost_h, minute=cortecost_m),
+        CronTrigger(timezone="Europe/Rome", day_of_week=cortecost_day, hour=cortecost_h, minute=cortecost_m),
         id="corte_costituzionale_opendata_weekly",
     )
     def _corte_costituzionale_opendata_weekly():
@@ -585,6 +585,9 @@ def start_scheduler(app):
                 "PCT_NORMATTIVA_RAW_DIR",
                 "/data/normativa/raw",
             )
+            from lex.retrieval.normativa_catalog import library_path
+            from lex.ricerca_giuridica.ibrida import cartella_vettori_predefinita
+
             normativa_db = _runtime_path(
                 app,
                 "NORMATTIVA_DB",
@@ -716,12 +719,19 @@ def start_scheduler(app):
                         "tools/schede_fonti.py",
                         "notturno",
                         "--db",
-                        str(Path(normativa_db).with_name("codici_leggi.sqlite")),
+                        str(library_path(Path(normativa_db))),
                     ],
                 ),
                 (
                     "normattiva vettori lex",
                     comando_aggiornamento_vettori_normattiva(normativa_db, normativa_vettori),
+                ),
+                (
+                    "biblioteca vettori lex",
+                    comando_aggiornamento_vettori_normattiva(
+                        str(library_path(Path(normativa_db))),
+                        str(cartella_vettori_predefinita(library_path(Path(normativa_db)))),
+                    ),
                 ),
             ]
             results = [
@@ -736,7 +746,7 @@ def start_scheduler(app):
             )
             return results
 
-    @scheduler.scheduled_job(CronTrigger(hour=23, minute=0), id="legal_official_archives_daily")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=0), id="legal_official_archives_daily")
     def _legal_official_archives_daily():
         _run_official_archives_sync("daily")
 
@@ -748,7 +758,7 @@ def start_scheduler(app):
         with app.app_context():
             return run_registered_batch(app.config, scheduler_registry_repository(app.config))
 
-    @scheduler.scheduled_job(CronTrigger(hour=5, minute=45), id="legal_monitor_daily")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=5, minute=45), id="legal_monitor_daily")
     def _legal_monitor_daily():
         _run_legal_monitor(
             [
@@ -770,12 +780,12 @@ def start_scheduler(app):
             "daily",
         )
 
-    @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=15), id="legal_monitor_pst")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour="6,12,18", minute=15), id="legal_monitor_pst")
     def _legal_monitor_pst():
         from pct.legal_intelligence import official_telematic_source_ids
         _run_legal_monitor(list(official_telematic_source_ids()), "telematico")
 
-    @scheduler.scheduled_job(CronTrigger(hour=23, minute=15), id="legal_updates_batch")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():
         _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
 
@@ -783,7 +793,7 @@ def start_scheduler(app):
     # mediazione: la coda ha una scadenza per organismo, e girare ogni dieci
     # minuti significava rileggere quasi cinquecento righe per scoprire che
     # non era scaduto niente. A orario resta la sola rete di sicurezza.
-    @scheduler.scheduled_job(CronTrigger(hour=4, minute=40), id="mediazione_sources_refresh", max_instances=1, coalesce=True)
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=4, minute=40), id="mediazione_sources_refresh", max_instances=1, coalesce=True)
     def _mediazione_sources_refresh():
         from web.services.mediazione_source_runtime import refresh_mediazione_sources
         with app.app_context():
@@ -796,7 +806,7 @@ def start_scheduler(app):
     # infatti il bottone non tornava. Qui il tempo c'e'. Il risultato viene
     # scritto e il pannello lo legge gia' pronto. Non cancella niente.
     @scheduler.scheduled_job(
-        CronTrigger(hour=0, minute=40),
+        CronTrigger(timezone="Europe/Rome", hour=0, minute=40),
         id="censimento_spazio_notturno",
         max_instances=1,
         coalesce=True,
@@ -823,7 +833,7 @@ def start_scheduler(app):
     # dodici minuti per giro; il giro dopo riprende da dove si era fermato.
     # Quando non resta niente da rifare la passata torna subito e non costa nulla.
     @scheduler.scheduled_job(
-        CronTrigger(hour="1-4", minute="*/15"),
+        CronTrigger(timezone="Europe/Rome", hour="1-4", minute="*/15"),
         id="rag_rispezzatura_notturna",
         max_instances=1,
         coalesce=True,
@@ -849,7 +859,7 @@ def start_scheduler(app):
     # si guarda la Gazzetta ogni due mesi. Non si riscrive la soglia — si
     # prepara la riga e la conferma un avvocato, sull'atto.
     @scheduler.scheduled_job(
-        CronTrigger(month="1,3,5,7,9,11", day=1, hour=5, minute=10),
+        CronTrigger(timezone="Europe/Rome", month="1,3,5,7,9,11", day=1, hour=5, minute=10),
         id="patrocinio_adeguamento_bimestrale",
     )
     def _patrocinio_adeguamento():
@@ -866,7 +876,7 @@ def start_scheduler(app):
 
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)
-    @scheduler.scheduled_job(CronTrigger(hour=4, minute=30), id="sync_tabelle_normative_daily")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=4, minute=30), id="sync_tabelle_normative_daily")
     def _sync_tabelle_normative():
         with app.app_context():
             try:
@@ -1102,7 +1112,7 @@ def start_scheduler(app):
             "_TENANT_NOTIFICATION_ID": "default",
         }
 
-    @scheduler.scheduled_job(CronTrigger(minute=12), id="calendar_sync_hourly")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute=12), id="calendar_sync_hourly")
     def _calendar_sync_hourly():
         with app.app_context():
             try:
@@ -1136,7 +1146,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Calendar sync fallito: %s", e)
                 return {"ok": False, "error": str(e)[:300]}
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/10"), id="calendar_sync_engine_polling")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/10"), id="calendar_sync_engine_polling")
     def _calendar_sync_engine_polling():
         with app.app_context():
             try:
@@ -1183,7 +1193,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Calendar engine fallito: %s", e)
                 return {"ok": False, "error": str(e)[:300]}
 
-    @scheduler.scheduled_job(CronTrigger(minute=42), id="calendar_sync_engine_webcal")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute=42), id="calendar_sync_engine_webcal")
     def _calendar_sync_engine_webcal():
         with app.app_context():
             try:
@@ -1211,7 +1221,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Calendar WebCal engine fallito: %s", e)
                 return {"ok": False, "error": str(e)[:300]}
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/5"), id="calendar_sync_engine_retry")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/5"), id="calendar_sync_engine_retry")
     def _calendar_sync_engine_retry():
         with app.app_context():
             try:
@@ -1255,7 +1265,7 @@ def start_scheduler(app):
                 return {"ok": False, "job": "calendar_sync_engine_retry", "error": str(e)}
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="*/15"),
+        CronTrigger(timezone="Europe/Rome", minute="*/15"),
         id="mailbox_sync_runtime",
         max_instances=1,
         coalesce=True,
@@ -1355,7 +1365,7 @@ def start_scheduler(app):
                 return {"ok": False, "job": "mailbox_sync_runtime", "error": str(e)}
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="*/5"),
+        CronTrigger(timezone="Europe/Rome", minute="*/5"),
         id="pec_audit_pipeline_workers",
         max_instances=1,
         coalesce=True,
@@ -1520,7 +1530,7 @@ def start_scheduler(app):
                 return {"ok": False, "job": "pec_audit_pipeline_workers", "error": str(e)}
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="2-57/5"),
+        CronTrigger(timezone="Europe/Rome", minute="2-57/5"),
         id="agenda_scadenziario_notifications",
         max_instances=1,
         coalesce=True,
@@ -1568,7 +1578,7 @@ def start_scheduler(app):
                 }
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="4-59/15"),
+        CronTrigger(timezone="Europe/Rome", minute="4-59/15"),
         id="legal_notification_relata_presidio",
         max_instances=1,
         coalesce=True,
@@ -1627,7 +1637,7 @@ def start_scheduler(app):
                 }
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="13-58/15"),
+        CronTrigger(timezone="Europe/Rome", minute="13-58/15"),
         id="fascicoli_document_economic_presidio",
         max_instances=1,
         coalesce=True,
@@ -1666,7 +1676,7 @@ def start_scheduler(app):
                 return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="3-58/10"),
+        CronTrigger(timezone="Europe/Rome", minute="3-58/10"),
         id="archivio_letture_automatico",
         max_instances=1,
         coalesce=True,
@@ -1697,7 +1707,7 @@ def start_scheduler(app):
                 return {"ok": False, "job": "archivio_letture_automatico", "error": str(e)}
 
     @scheduler.scheduled_job(
-        CronTrigger(hour=4, minute=10),
+        CronTrigger(timezone="Europe/Rome", hour=4, minute=10),
         id="collaudo_lettore",
         max_instances=1,
         coalesce=True,
@@ -1837,7 +1847,7 @@ def start_scheduler(app):
                 daily_plan_full_lock.release()
 
     @scheduler.scheduled_job(
-        CronTrigger(minute="7-59/15"),
+        CronTrigger(timezone="Europe/Rome", minute="7-59/15"),
         id="daily_plan_incremental_refresh",
         max_instances=1,
         coalesce=True,
@@ -1908,7 +1918,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Digest PEC fallito: %s", e)
                 return {"ok": False, "error": str(e)[:300]}
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/20"), id="workspace_intelligence_snapshot")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/20"), id="workspace_intelligence_snapshot")
     def _workspace_intelligence_snapshot():
         with app.app_context():
             try:
@@ -1967,7 +1977,7 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Workspace intelligence fallito: %s", e)
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/30"), id="local_ai_maintenance")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/30"), id="local_ai_maintenance")
     def _local_ai_maintenance():
         with app.app_context():
             try:
@@ -2070,7 +2080,7 @@ def start_scheduler(app):
     # dieci minuti e per concludere che non c'era nulla da fare elencava
     # 37.000 file: 144 ricognizioni al giorno per reagire a qualcosa che
     # succede qualche volta a settimana.
-    @scheduler.scheduled_job(CronTrigger(hour=3, minute=25), id="lex_sentenza_economia_auto")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=3, minute=25), id="lex_sentenza_economia_auto")
     def _lex_sentenza_economia_auto():
         with app.app_context():
             try:
@@ -2182,7 +2192,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Sentenze Lex/economia automatiche fallite: %s", e)
                 return {"ok": False, "job": "lex_sentenza_economia_auto", "error": str(e)}
 
-    @scheduler.scheduled_job(CronTrigger(hour=1, minute=20), id="lex_operational_agents_nightly")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=1, minute=20), id="lex_operational_agents_nightly")
     def _lex_operational_agents_nightly():
         with app.app_context():
             try:
@@ -2204,7 +2214,7 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Agenti Lex notturni falliti: %s", e)
 
-    @scheduler.scheduled_job(CronTrigger(hour=2, minute=40), id="lex_autonomous_learning_nightly")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=2, minute=40), id="lex_autonomous_learning_nightly")
     def _lex_autonomous_learning_nightly():
         # Default OFF: il template di registro nasce enabled=False, quindi
         # apply_scheduler_registry mette il job in pausa all'avvio; si attiva
@@ -2230,7 +2240,7 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Apprendimento autonomo Lex fallito: %s", e)
 
-    @scheduler.scheduled_job(CronTrigger(hour=1, minute=45), id="lex_dataset_nightly")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=1, minute=45), id="lex_dataset_nightly")
     def _lex_dataset_nightly():
         with app.app_context():
             try:
@@ -2249,7 +2259,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Dataset Lex notturno fallito: %s", e)
                 raise
 
-    @scheduler.scheduled_job(CronTrigger(hour=0, minute=35), id="utf8_integrity_nightly")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=0, minute=35), id="utf8_integrity_nightly")
     def _utf8_integrity_nightly():
         with app.app_context():
             try:
@@ -2333,26 +2343,26 @@ def start_scheduler(app):
             except Exception as exc:
                 logger.error("[scheduler] Backup blindato %s fallito: %s", schedule_code, exc)
 
-    @scheduler.scheduled_job(CronTrigger(hour=7, minute=0), id="operational_crash_morning")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=7, minute=0), id="operational_crash_morning")
     def _operational_crash_morning():
         _run_operational_crash("morning")
 
-    @scheduler.scheduled_job(CronTrigger(hour=13, minute=30), id="operational_crash_midday")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=13, minute=30), id="operational_crash_midday")
     def _operational_crash_midday():
         _run_operational_crash("midday")
 
-    @scheduler.scheduled_job(CronTrigger(hour=19, minute=30), id="operational_crash_evening")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=19, minute=30), id="operational_crash_evening")
     def _operational_crash_evening():
         _run_operational_crash("evening")
 
-    @scheduler.scheduled_job(CronTrigger(hour=23, minute=50), id="operational_backup_nightly")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=50), id="operational_backup_nightly")
     def _operational_backup_nightly():
         return _run_operational_backup("nightly")
 
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
     # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO -> ACCETTATO_PEC -> CONSEGNATO)
     # interrogando PEC IMAP e PDP REST senza bloccare il thread principale.
-    @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="polling_esiti_deposito")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/15"), id="polling_esiti_deposito")
     def _polling_esiti_deposito():
         with app.app_context():
             try:
@@ -2422,7 +2432,7 @@ def start_scheduler(app):
     # Scansiona la casella PEC alla ricerca di email di cancelleria (ACCETTAZIONE,
     # RIFIUTO, ecc.) che contengono un numero RG e le associa automaticamente
     # ai fascicoli corrispondenti nella sezione "Comunicazioni di cancelleria".
-    @scheduler.scheduled_job(CronTrigger(minute="*/30"), id="poll_pec_cancelleria")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/30"), id="poll_pec_cancelleria")
     def _poll_pec_cancelleria():
         with app.app_context():
             try:
@@ -2488,7 +2498,7 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
 
-    @scheduler.scheduled_job(CronTrigger(hour="20", minute="30"), id="time_tracking_passivo")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour="20", minute="30"), id="time_tracking_passivo")
     def _time_tracking_passivo():
         """Proposte SQL per lo studio proprietario, mai voci fatturabili automatiche."""
         with app.app_context():
@@ -2518,7 +2528,7 @@ def start_scheduler(app):
                     if database is not None:
                         database.chiudi()
 
-    @scheduler.scheduled_job(CronTrigger(minute="*/30", hour="7-20"), id="sync_polisweb_registri")
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/30", hour="7-20"), id="sync_polisweb_registri")
     def _sync_polisweb_registri():
         with app.app_context():
             try:
@@ -2657,7 +2667,7 @@ def start_scheduler(app):
 
         scheduler.add_job(
             _scheduler_registry_tick,
-            CronTrigger(minute="*/1"),
+            CronTrigger(timezone="Europe/Rome", minute="*/1"),
             id="scheduler_registry_reload",
             replace_existing=True,
             max_instances=1,
@@ -2713,7 +2723,7 @@ def start_scheduler(app):
 
         scheduler.add_job(
             _catalogo_seconda_lettura,
-            CronTrigger(minute="*/2"),
+            CronTrigger(timezone="Europe/Rome", minute="*/2"),
             id="catalogo_seconda_lettura_lex",
             replace_existing=True,
             max_instances=1,

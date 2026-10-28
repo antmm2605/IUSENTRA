@@ -53,7 +53,7 @@ def fonti_per_scheda(scheda_id: str, db: Path, *, repository=None, cartella: Pat
     oggi = oggi or dt.date.today()
     d = json.loads((Path(cartella) / f"{scheda_id}.json").read_text(encoding="utf-8"))
     out = FontiScheda(scheda_id, str(d.get("titolo") or ""))
-    esiti = verifica_schede(db, cartella, solo_scheda=scheda_id)
+    esiti = verifica_schede(db, cartella, solo_scheda=scheda_id, alla_data=oggi)
     visti: dict[tuple[str, str], int] = {}
     for e in esiti:
         k = (e.atto, norm_articolo(e.articolo))
@@ -63,11 +63,24 @@ def fonti_per_scheda(scheda_id: str, db: Path, *, repository=None, cartella: Pat
         if k not in visti:
             n = len(visti) + 1
             visti[k] = n
-            testo = f"{_sigla(e.atto)} · art. {e.articolo} · testo vigente (biblioteca aggiornata al {e.aggiornato_al})\n{e.testo}"
+            try:
+                edizione = dt.date.fromisoformat(e.aggiornato_al).strftime("%d/%m/%Y")
+            except ValueError:
+                edizione = e.aggiornato_al
+            try:
+                acquisita_il = dt.date.fromisoformat(e.acquisita_il).strftime("%d/%m/%Y")
+            except ValueError:
+                acquisita_il = ""
+            testo = f"{_sigla(e.atto)} · art. {e.articolo} · edizione del {edizione} · acquisita il {acquisita_il or 'da riscontrare'}\n{e.testo}"
             out.fonti[n] = testo
+            from lex.normativa.provenienza_edizione import edizione_archiviata
+            edizione_fonte=edizione_archiviata(e.provenienza_archivio,{"redazione_id":e.aggiornato_al})
             out.fonti_ref.append({"n": n, "atto": e.atto, "articolo": e.articolo, "sigla": _sigla(e.atto),
-                                  "provenienza": {"tipo": "norma", "url": e.url, "versione": f"vigente, edizione {e.aggiornato_al}",
-                                                  "acquisita_il": oggi.strftime("%d/%m/%Y"), "sha256": sha256_testo(testo)}})
+                                  "provenienza": {"tipo": "norma", "url": e.url, "versione": f"edizione acquisita {edizione}",
+                                                  "acquisita_il": acquisita_il, "sha256": sha256_testo(testo),
+                                                  "sha256_testo_archiviato": e.sha256, "edizione_archiviata": edizione_fonte,
+                                                  "archivio": "biblioteca_codici_leggi",
+                                                  "document_id": e.document_id, "article_id": e.article_id}})
             if repository is not None:
                 stato = repository.norma(scheda_id, e.atto, k[1]) or {}
                 if stato.get("sha256_approvato") != e.sha256:

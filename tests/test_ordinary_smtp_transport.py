@@ -30,3 +30,9 @@ def test_settings_select_transport_without_sending_email(tmp_path, monkeypatch, 
         assert calls == []
         assert payload['local_signer_required'] is True
         assert payload['ok'] is False
+
+
+@pytest.mark.parametrize("port,starttls,expected", [(465,True,{"use_ssl":True,"use_tls":False}), (465,False,{"use_ssl":True,"use_tls":False}), (587,True,{"use_ssl":False,"use_tls":True})])
+def test_submission_465_richiede_tls_implicito(port,starttls,expected):
+    from web.services.ordinary_smtp_transport import ordinary_smtp_tls_options
+    assert ordinary_smtp_tls_options(port,starttls)==expected

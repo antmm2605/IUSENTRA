@@ -18,3 +18,5 @@
   font: inherit;
   padding: 8px 10px;
 }
+
+.iu-rg-lex__fonte-testo { margin: 0; max-width: 100%; overflow-wrap: anywhere; white-space: pre-wrap; }

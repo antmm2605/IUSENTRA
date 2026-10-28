@@ -1825,3 +1825,16 @@ def test_fascicolo_serializza_metadati_sync_portale(gf, fascicolo_base):
     assert ripristinato.has_conflicts is True
     assert ripristinato.document_sync_enabled is True
     assert ripristinato.events_sync_enabled is True
+
+
+def test_eliminazione_definitiva_non_esce_dall_archivio(gf, fascicolo_base, tmp_path):
+    doc = gf.aggiungi_documento(fascicolo_base.id, "atto.pdf", TipoDocumento.ALTRO, b"contenuto")
+    gf.rimuovi_documento(fascicolo_base.id, doc.id)
+    fuori = gf.documents_dir.parent / "documento-esterno.txt"
+    fuori.write_bytes(b"preservare")
+    nel_cestino = gf.get(fascicolo_base.id).documenti_cestino[0]
+    nel_cestino.percorso = "../documento-esterno.txt"
+    with pytest.raises(ValueError, match="Percorso del documento"):
+        gf.elimina_documento_definitivamente(fascicolo_base.id, doc.id)
+    assert fuori.read_bytes() == b"preservare"
+    assert any(item.id == doc.id for item in gf.get(fascicolo_base.id).documenti_cestino)

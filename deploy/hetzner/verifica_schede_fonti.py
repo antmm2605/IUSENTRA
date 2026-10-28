@@ -4,12 +4,14 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import os
 
 from web.services import schede_fonti_runtime as runtime
 
 
 def main():
-    db = Path("/data/normativa/codici_leggi.sqlite")
+    from lex.retrieval.normativa_catalog import library_path
+    db = library_path(Path(os.environ.get("PCT_NORMATTIVA_DB") or "/data/normativa/normattiva.sqlite"))
     if not db.is_file():
         raise RuntimeError("Biblioteca pubblica assente nel container applicativo")
     modelli = runtime._modelli()

@@ -22,6 +22,23 @@ TIPI_NIR = {
 }
 
 
+# Denominazioni letterali riscontrate negli XML primari; non dedotte dai numeri.
+PARTIZIONI_CODICI = {
+    "codice_civile": "CODICE CIVILE",
+    "preleggi": "Disposizioni sulla legge in generale",
+    "12/1941": "Ordinamento giudiziario",
+    "318/1942": "Disposizioni per l'attuazione del Codice Civile e disposizioni transitorie",
+    "1368/1941": "DISPOSIZIONI DI ATTUAZIONE DEL CODICE DI PROCEDURA CIVILE",
+    "175/2024": "Allegato",
+    "cpa_norme_attuazione": "Allegato 2 Norme di attuazione",
+    "cpa_norme_transitorie": "Allegato 3 Norme transitorie",
+    "cpa_norme_coordinamento": "Allegato 4 Norme di coordinamento e abrogazioni ",
+    "codice_procedura_civile": "CODICE DI PROCEDURA CIVILE",
+    "codice_penale": "Codice Penale",
+    "codice_processo_amministrativo": "Allegato 1 Codice del processo amministrativo",
+}
+
+
 @dataclass(frozen=True)
 class FonteAtto:
     chiave: str
@@ -33,6 +50,16 @@ class FonteAtto:
 
 def fonte_per_chiave(chiave: str) -> FonteAtto:
     c = str(chiave or "").strip().lower()
+    # Codici nominati: identita esplicite gia usate dal lettore ufficiale.
+    from lex.testi_ufficiali import CODICI
+
+    short = {"codice_civile":"cc","codice_procedura_civile":"cpc","codice_penale":"cp",
+             "codice_procedura_penale":"cpp","costituzione":"cost","preleggi":"cc"}.get(c)
+    if short:
+        official = next(x for x in CODICI if x.chiave == short)
+        urn = official.urn.replace("urn:nir:presidente.repubblica:decreto:","urn:nir:stato:decreto.del.presidente.della.repubblica:")
+        return FonteAtto(c,"normattiva",urn=urn)
+
     m = re.fullmatch(r"(legge|dlgs|dpr|dl|rd|lcost)_(\d+)_(\d{4})", c)
     if m:
         tipo, numero, anno = m.groups()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import date, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
@@ -145,8 +146,8 @@ def privacy_export_event(local_type: str, item: Appuntamento | Scadenza, privacy
     privacy = privacy_level if privacy_level in ALLOWED_PRIVACY else PRIVACY_REDUCED
     if local_type == "agenda":
         app = item
-        start = app.data_ora
-        end = app.fine_dt.isoformat(timespec="seconds")
+        start = app.data_ora_utc.astimezone(ZoneInfo("Europe/Rome")).isoformat(timespec="seconds")
+        end = app.fine_utc.astimezone(ZoneInfo("Europe/Rome")).isoformat(timespec="seconds")
         all_day = False
         categories = ["IUSENTRA-AGENDA", f"IUSENTRA-{app.tipo.value}"]
         clean_title = _calendar_visible_text(app.titolo, 140) or "Impegno di studio"

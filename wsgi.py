@@ -5,10 +5,9 @@ Uso:
     gunicorn wsgi:app
     gunicorn --bind 0.0.0.0:$PORT --worker-class gevent --workers 2 wsgi:app
 """
-# Il monkey patching deve avvenire prima di qualsiasi altro import
-# per rendere I/O e threading compatibili con gevent (necessario per SSE).
-from gevent import monkey
-monkey.patch_all()
+# La strategia di concorrenza appartiene al worker del server.
+# Gunicorn gevent applica già le proprie patch prima di caricare l'app;
+# imporle qui rompe i thread nativi del worker gthread e il suo heartbeat.
 
 from web.app import create_app
 

@@ -3083,7 +3083,14 @@ class GestioneFascicoli:
         doc = next((d for d in f.documenti_cestino if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel cestino.")
-        percorso = self.documents_dir / doc.percorso
+        rel = Path(str(doc.percorso or "").replace("\\", "/"))
+        root = self.documents_dir.resolve()
+        if not str(doc.percorso or "").strip() or rel.is_absolute() or ".." in rel.parts:
+            raise ValueError("Percorso del documento non valido: eliminazione non eseguita.")
+        percorso = self.documents_dir / rel
+        resolved = percorso.resolve()
+        if percorso.is_symlink() or resolved == root or not resolved.is_relative_to(root):
+            raise ValueError("Percorso del documento fuori dall'archivio: eliminazione non eseguita.")
         original_trash = list(f.documenti_cestino)
         original_modificato = f.modificato_il
         f.documenti_cestino = [d for d in f.documenti_cestino if d.id != id_doc]

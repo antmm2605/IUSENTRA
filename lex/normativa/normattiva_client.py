@@ -6,9 +6,12 @@ Endpoint allineati alla documentazione ufficiale Normattiva Open Data:
 - GET /collections/collection-predefinite
 - GET /collections/download/collection-preconfezionata?nome=...&formato=XML&formatoRichiesta=...
 
-Nota:
-- formatoRichiesta="O" è verificato per ORIGINALE.
-- formatoRichiesta="V" è predisposto per VIGENTE ma va confermato con un capture VIGENTE se il server lo rifiuta.
+Nota sulle etichette di richiesta:
+- O/V/M indicano i parametri trasmessi, non una certificazione del testo ricevuto.
+- Le raccolte XML di atti abrogati possono restituire il solo avviso di abrogazione
+  anche con O: originalità, versione e corpo vanno riscontrati sul documento.
+- Per la successione ufficiale dei testi usare l'export AKN multiversione e il
+  lettore dedicato, conservando payload, SHA e date FRBR/fotogrammi distinti.
 """
 
 from __future__ import annotations
@@ -85,6 +88,11 @@ def bundle_ca_normattiva() -> str | bool:
         return True
 
 
+def _sha256_file(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream,"sha256").hexdigest()
+
+
 @dataclass(frozen=True)
 class DownloadResult:
     collection_name: str
@@ -124,6 +132,25 @@ class NormattivaClient:
         names = sorted(set(_extract_collection_names(raw)), key=lambda x: x.lower())
         return names
 
+    def _get_public_download(self, url: str, **kwargs):
+        """Un solo retry di connessione per GET pubbliche idempotenti.
+
+        Le risposte HTTP, compresi 403/429, restano al chiamante e non vengono
+        ritentate. Non avvia nuove esportazioni asincrone.
+        """
+        for attempt in range(2):
+            try:
+                return self.session.get(url, **kwargs)
+            except requests.exceptions.SSLError:
+                raise
+            except (requests.ConnectionError, requests.Timeout) as exc:
+                if attempt:
+                    raise
+                import logging
+                logging.getLogger(__name__).warning("Normattiva download pubblico: %s, unico retry di connessione",type(exc).__name__)
+                time.sleep(2)
+        raise RuntimeError("Limite tentativi download pubblico")
+
     def download_collection(
         self,
         name: str,
@@ -158,7 +185,6 @@ class NormattivaClient:
         out_path = out_dir / f"{safe_name}_{formato.upper()}_{vigenza_norm}_{today}.zip"
 
         if out_path.exists() and not overwrite:
-            data = out_path.read_bytes()
             return DownloadResult(
                 collection_name=name,
                 formato=formato.upper(),
@@ -166,15 +192,16 @@ class NormattivaClient:
                 formato_richiesta=formato_richiesta,
                 url=DOWNLOAD_COLLECTION_URL,
                 output_path=str(out_path),
-                sha256=hashlib.sha256(data).hexdigest(),
-                size_bytes=len(data),
+                sha256=_sha256_file(out_path),
+                size_bytes=out_path.stat().st_size,
                 content_type="existing-file",
                 final_url="existing-file",
             )
 
-        response = self.session.get(
+        response = self._get_public_download(
             DOWNLOAD_COLLECTION_URL,
             params=params,
+            headers={"Accept-Encoding": "identity"},
             timeout=self.timeout,
             allow_redirects=True,
             stream=True,
@@ -186,21 +213,37 @@ class NormattivaClient:
 
         content_type = response.headers.get("content-type")
         tmp_path = out_path.with_suffix(".zip.part")
+        if tmp_path.exists():
+            # Un nuovo tentativo non distrugge i byte del precedente.
+            previous=tmp_path.with_name(tmp_path.name+".interrotto-"+str(time.time_ns()))
+            if previous.exists():
+                raise FileExistsError("Destinazione di conservazione parziale già presente")
+            tmp_path.rename(previous)
         sha = hashlib.sha256()
         size = 0
 
-        with tmp_path.open("wb") as f:
-            for chunk in response.iter_content(chunk_size=1024 * 256):
-                if not chunk:
-                    continue
-                f.write(chunk)
-                sha.update(chunk)
-                size += len(chunk)
+        try:
+            with tmp_path.open("wb") as f:
+                for chunk in response.iter_content(chunk_size=1024 * 256):
+                    if not chunk:
+                        continue
+                    f.write(chunk)
+                    sha.update(chunk)
+                    size += len(chunk)
+        except (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError):
+            from .trasferimento import riprendi_download_zip
+            response.close()
+            riprendi_download_zip(self.session,response,tmp_path,timeout=self.timeout)
+            size=tmp_path.stat().st_size
+            with tmp_path.open("rb") as source:
+                sha=hashlib.file_digest(source,"sha256")
 
-        first_bytes = tmp_path.read_bytes()[:4]
+        with tmp_path.open("rb") as source:
+            preview_bytes=source.read(500)
+        first_bytes=preview_bytes[:4]
         if not first_bytes.startswith(b"PK"):
             # Alcuni errori applicativi possono arrivare come JSON/HTML con status 200.
-            preview = tmp_path.read_bytes()[:500].decode("utf-8", errors="replace")
+            preview = preview_bytes.decode("utf-8", errors="replace")
             tmp_path.unlink(missing_ok=True)
             raise RuntimeError(
                 "Il file scaricato non sembra uno ZIP. "
@@ -212,7 +255,7 @@ class NormattivaClient:
             if existing == out_path or not existing.is_file():
                 continue
             try:
-                if hashlib.sha256(existing.read_bytes()).hexdigest() == sha.hexdigest():
+                if _sha256_file(existing) == sha.hexdigest():
                     tmp_path.unlink(missing_ok=True)
                     return DownloadResult(
                         collection_name=name,
@@ -249,6 +292,102 @@ class NormattivaClient:
             content_type=content_type,
             final_url=response.url,
         )
+
+    def request_export(self, filters: dict[str, Any], *, formato: str = "XML", vigenza: str = "V") -> str:
+        """Esportazione ufficiale responsive, senza email e senza dati privati.
+
+        Il limite ufficiale di 7000 atti resta applicato dal servizio. Il
+        chiamante salva token e intervallo prima di effettuare altre richieste.
+        """
+        import uuid
+
+        if vigenza not in {"O", "V", "M"} or formato not in {"XML", "AKN"}:
+            raise ValueError("Formato di esportazione non ammesso")
+        allowed = {"denominazioneAtto", "numeroProvvedimento", "annoProvvedimento", "meseProvvedimento",
+                   "giornoProvvedimento", "dataInizioEmanazione", "dataFineEmanazione",
+                   "dataInizioPubblicazione", "dataFinePubblicazione", "dataVigenza"}
+        if not isinstance(filters, dict) or not filters or set(filters) - allowed:
+            raise ValueError("Sono ammessi soltanto filtri normativi strutturati, mai fatti o testi privati")
+        for name, value in filters.items():
+            if name == "denominazioneAtto":
+                if not isinstance(value, str) or not value or len(value) > 150:
+                    raise ValueError("Tipo di atto non valido")
+            elif name.startswith("data"):
+                from datetime import datetime
+                if not isinstance(value, str):
+                    raise ValueError("Data del filtro non valida")
+                datetime.fromisoformat(value.replace("Z", "+00:00"))
+            elif type(value) is not int or value < 0:
+                raise ValueError("Identificatore normativo non valido")
+        response = self.session.post(
+            API_BASE + "/bff-opendata/v1/api/v1/ricerca-asincrona/nuova-ricerca",
+            json={"formato": formato, "richiestaExport": vigenza, "modalita": "R",
+                  "tipoRicerca": "A", "parametriRicerca": filters}, timeout=self.timeout,
+        )
+        response.raise_for_status()
+        token = response.text.strip().strip('"')
+        if str(uuid.UUID(token)) != token.lower():
+            raise ValueError("Token di esportazione non valido")
+        return token
+
+    def export_status(self, token: str) -> dict[str, Any]:
+        import uuid
+
+        token = str(uuid.UUID(token))
+        response = self.session.get(
+            API_BASE + "/bff-opendata/v1/api/v1/ricerca-asincrona/check-status/" + token,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        result = response.json()
+        if not isinstance(result, dict) or type(result.get("stato")) is not int:
+            raise ValueError("Stato di esportazione non valido")
+        return result
+
+    def download_export(self, token: str, *, output: Path) -> dict[str, Any]:
+        """Scarica il solo token ufficiale e conserva SHA e archivio originale."""
+        import uuid
+        import zipfile
+
+        token = str(uuid.UUID(token))
+        output = Path(output)
+        if output.exists():
+            raise FileExistsError("Archivio già presente: verificare l'impronta prima di riutilizzarlo")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        temporary = output.with_suffix(output.suffix + ".part")
+        if temporary.exists():
+            raise FileExistsError("Download parziale presente: non sovrascriverlo")
+        response = self._get_public_download(
+            API_BASE + "/bff-opendata/v1/api/v1/collections/download/collection-asincrona/" + token,
+            headers={"Accept-Encoding": "identity"}, timeout=self.timeout, stream=True,
+        )
+        response.raise_for_status()
+        digest = hashlib.sha256()
+        size = 0
+        try:
+            with temporary.open("xb") as target:
+                for chunk in response.iter_content(chunk_size=256 * 1024):
+                    if chunk:
+                        target.write(chunk)
+                        digest.update(chunk)
+                        size += len(chunk)
+        except (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError):
+            from .trasferimento import riprendi_download_zip
+            response.close()
+            riprendi_download_zip(self.session,response,temporary,timeout=self.timeout)
+            size=temporary.stat().st_size
+            with temporary.open("rb") as source:
+                digest=hashlib.file_digest(source,"sha256")
+        with zipfile.ZipFile(temporary) as archive:
+            if not any(info.filename.lower().endswith(".xml") and not info.is_dir() for info in archive.infolist()):
+                raise ValueError("Esportazione senza documenti XML: il parziale è conservato, nessuna fonte è stata acquisita")
+            if archive.testzip() is not None:
+                raise ValueError("Archivio ufficiale non integro")
+        temporary.replace(output)
+        from datetime import datetime, timezone
+        return {"output_path": str(output), "sha256": digest.hexdigest(), "size_bytes": size,
+                "ricevuto_utc":datetime.now(timezone.utc).isoformat(),
+                "fonte": "Normattiva OpenData — esportazione responsive"}
 
     def download_many(
         self,

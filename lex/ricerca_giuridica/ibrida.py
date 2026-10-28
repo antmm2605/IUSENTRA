@@ -58,8 +58,16 @@ def cartella_vettori_predefinita(db_path: str | Path) -> Path:
     biblioteca = Path(db_path).name == "codici_leggi.sqlite"
     variabile = "LEX_CODICI_LEGGI_VETTORI_DIR" if biblioteca else "LEX_NORMATTIVA_VETTORI_DIR"
     configurata = str(os.getenv(variabile, "") or "").strip()
-    if configurata:
-        return Path(configurata)
+    alias = str(os.getenv("LEX_BIBLIOTECA_VETTORI_DIR", "") or "").strip() if biblioteca else ""
+    if configurata and alias and Path(configurata).resolve() != Path(alias).resolve():
+        raise ValueError("Due configurazioni discordanti per l'indice della biblioteca")
+    if configurata or alias:
+        return Path(configurata or alias)
+    if biblioteca:
+        canonical = Path(db_path).parent / "vettori_codici_leggi"
+        historical = Path(db_path).parent / "vettori_biblioteca"
+        if not canonical.exists() and historical.exists():
+            return historical
     name = "vettori_codici_leggi" if biblioteca else "vettori_normattiva"
     if embeddinggemma2.configured():
         name += "_" + embeddinggemma2.REVISION + "_" + embeddinggemma2.PROFILE_SUFFIX.replace("-", "_")

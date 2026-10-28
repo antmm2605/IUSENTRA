@@ -550,6 +550,15 @@ jobs:
           ssh "${ssh_args[@]}" "$target" "$command --db /data/normativa/normattiva.sqlite" < deploy/hetzner/verifica_fonti_lex.py
           ssh "${ssh_args[@]}" "$target" "$command" < deploy/hetzner/verifica_cortecost.py
 
+      - name: Verifica cataloghi normativi effettivi della release Lex
+        if: ${{ steps.gate.outputs.superato != 'true' }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker exec -i iusentra-app python -' < deploy/hetzner/verifica_fonti_lex.py
+
       - name: Pulizia immagini e cache build Docker
         if: ${{ always() && steps.setup_ssh.outcome == 'success' }}
         run: |

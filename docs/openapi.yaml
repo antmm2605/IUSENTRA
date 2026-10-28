@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.453.2
+  version: 2.454.0
   description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-18.'
 servers:
 - url: https://app.iusentra.it
@@ -18255,7 +18255,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/articoli'
-      description: 'Contratto fase 6 derivato da `normativa_articoli` in `web/blueprints/api_v1_ricerca_legale.py:288`. Pagina/area
+      description: 'Contratto fase 6 derivato da `normativa_articoli` in `web/blueprints/api_v1_ricerca_legale.py:289`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_articoli_get
       security:
@@ -18301,7 +18301,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/articoli/{article_id}'
-      description: 'Contratto fase 6 derivato da `normativa_articolo` in `web/blueprints/api_v1_ricerca_legale.py:307`. Pagina/area
+      description: 'Contratto fase 6 derivato da `normativa_articolo` in `web/blueprints/api_v1_ricerca_legale.py:308`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_articolo_get
       security:
@@ -18353,7 +18353,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/atti'
-      description: 'Contratto fase 6 derivato da `normativa_atti` in `web/blueprints/api_v1_ricerca_legale.py:275`. Pagina/area
+      description: 'Contratto fase 6 derivato da `normativa_atti` in `web/blueprints/api_v1_ricerca_legale.py:276`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_atti_get
       security:
@@ -18399,7 +18399,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/visualizza'
-      description: 'Contratto fase 6 derivato da `normativa_visualizza` in `web/blueprints/api_v1_ricerca_legale.py:323`.
+      description: 'Contratto fase 6 derivato da `normativa_visualizza` in `web/blueprints/api_v1_ricerca_legale.py:324`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_visualizza_get
       security:

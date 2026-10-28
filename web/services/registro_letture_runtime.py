@@ -363,7 +363,7 @@ def _sincronizza_presidio_pec(fascicolo: Any, registro: RegistroLetture, tenant:
             if oggetto is not None:
                 letti.append(oggetto)
     if letti:
-        da_segnare = registro.da_leggere(tenant, fascicolo_id, "presidio_pec", oggetti=letti)
+        da_segnare = registro.da_confermare(tenant, fascicolo_id, "presidio_pec", oggetti=letti)
         if da_segnare:
             registro.segna_letti(tenant, fascicolo_id, da_segnare, "presidio_pec", esito={"fonte": "presidio PEC audit-grade"})
 

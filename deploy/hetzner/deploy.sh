@@ -407,8 +407,15 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   # Build once; app and workers use the same immutable release image.
   RELEASE_SHA="$(git rev-parse HEAD)"
   if ! docker image inspect "iusentra-app:${RELEASE_SHA}" >/dev/null 2>&1; then
-    check_build_capacity
-    docker build --label "org.opencontainers.image.revision=${RELEASE_SHA}" -t "iusentra-app:${RELEASE_SHA}" -f Dockerfile .
+    if [ -n "${IUSENTRA_PREBUILT_IMAGE_URL:-}" ]; then
+      # Il workflow ha già verificato CI e concluso il backup preventivo.
+      # Acquisizione e caricamento sequenziali evitano il picco con il backup.
+      python3 deploy/hetzner/load_verified_release_image.py \
+        --revision "$RELEASE_SHA" --directory "$IUSENTRA_HOME/import"
+    else
+      check_build_capacity
+      docker build --label "org.opencontainers.image.revision=${RELEASE_SHA}" -t "iusentra-app:${RELEASE_SHA}" -f Dockerfile .
+    fi
   fi
   # Anche un hotfix arrivato durante la build deve fermare il rimpiazzo.
   test -z "$(git status --porcelain)"

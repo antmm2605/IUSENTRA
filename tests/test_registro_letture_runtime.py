@@ -309,3 +309,53 @@ def test_get_letture_non_allinea_inventario_ne_scrive(monkeypatch, tmp_path: Pat
 
     assert payload["degradato"] == []
     assert payload["oggetti"] == 0
+
+
+def test_indice_non_considera_invariato_documento_senza_impronta(monkeypatch):
+    from web.services.document_intelligence_runtime import _registro_indice_documentale
+    from web.services import registro_letture_runtime
+
+    class Registro:
+        def fascicolo_invariato(self, *args):
+            return True
+
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente", lambda: Registro())
+    monkeypatch.setattr(registro_letture_runtime, "tenant_corrente", lambda: "studio")
+    source = SimpleNamespace(metadata={}, source_id="documento", filename="atto.pdf",
+                             sha256="", size_bytes=42)
+    assert _registro_indice_documentale("fascicolo", [source])["invariato"] is False
+    source.sha256 = "not-a-sha256"
+    assert _registro_indice_documentale("fascicolo", [source])["invariato"] is False
+    source.sha256 = "a" * 64
+    assert _registro_indice_documentale("fascicolo", [source])["invariato"] is True
+
+
+def test_indice_non_conferma_lettura_pronta_senza_testo():
+    from web.services.document_intelligence_runtime import _registra_indice_documentale
+
+    class Registro:
+        def __init__(self):
+            self.esiti = []
+            self.fascicolo = {}
+        def segna_letto(self, *args, **kwargs):
+            self.esiti.append(kwargs)
+        def segna_fascicolo(self, *args, **kwargs):
+            self.fascicolo = kwargs
+
+    registro = Registro()
+    oggetto = Oggetto(tipo="documento", oggetto_id="doc", sha256="a" * 64)
+    source = SimpleNamespace(metadata={}, source_id="doc", filename="atto.pdf",
+                             safe_filename="atto.pdf", supported=True,
+                             sha256="a" * 64, tenant_id="studio", fascicolo_id="fas")
+    record = SimpleNamespace(tenant_id="studio", fascicolo_id="fas", status="ready",
+                             sha256="a" * 64, current_version_id="v1", id="ai")
+    service = SimpleNamespace(
+        repository=SimpleNamespace(get_extracted_text=lambda *args: None),
+        list_fascicolo_documents=lambda *args: [record],
+    )
+    summary = SimpleNamespace(source_errors=[], ready=1, errors=0)
+    _registra_indice_documentale({"registro": registro, "tenant": "studio", "oggetti": [oggetto],
+                                  "impronta": "x"}, summary, [source], service=service,
+                                 tenant_id="studio", fascicolo_id="fas", user_context={})
+    assert registro.esiti[0]["stato"] == "errore"
+    assert registro.fascicolo["oggetti_letti"] == 0

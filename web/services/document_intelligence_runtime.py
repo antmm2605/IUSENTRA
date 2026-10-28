@@ -533,10 +533,9 @@ def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_do
                 non_leggibili.append(oggetto)
         fid = str(fascicolo_id or "")
         if letti:
-            da_segnare = registro.da_leggere(tenant, fid, "catalogo", oggetti=letti)
-            # L'impronta del registro deve dichiarare la versione effettiva
-            # dell'assegnazione; una riga v25 resta stale finché il refresh
-            # automatico non la rigenera a v28.
+            da_segnare = registro.da_confermare(tenant, fid, "catalogo", oggetti=letti)
+            # Registriamo la versione dell'assegnazione già acquisita senza
+            # riavviare la lettura solo perché è cambiato il lettore.
             for oggetto in da_segnare:
                 assignment = by_document.get((str(oggetto.oggetto_id or ""), str(oggetto.impronta or "")))
                 effective_version = str(getattr(assignment, "resolver_version", "") or "").strip()
@@ -583,7 +582,13 @@ def _registro_indice_documentale(fascicolo_id: str, sources: list[DocumentAISour
             "fascicolo_id": str(fascicolo_id or ""),
             "oggetti": oggetti,
             "impronta": impronta,
-            "invariato": bool(oggetti) and registro.fascicolo_invariato(tenant, str(fascicolo_id or ""), "indice_documentale", impronta),
+            # Dimension alone cannot distinguish two different same-sized files.
+            "invariato": bool(oggetti) and all(
+                len(o.sha256) == 64 and all(c in "0123456789abcdefABCDEF" for c in o.sha256)
+                for o in oggetti
+            ) and registro.fascicolo_invariato(
+                tenant, str(fascicolo_id or ""), "indice_documentale", impronta
+            ),
         }
     except Exception as exc:
         current_app.logger.debug("Registro letture non disponibile per l'indice documentale: %s", exc)
@@ -605,7 +610,7 @@ def _registra_indice_documentale(
     if repo is None:
         return
     try:
-        from pct.document_intelligence.indexer import _state_for_source
+        from pct.document_intelligence.indexer import _ready_source_has_extracted_text, _state_for_source
 
         tenant = str(registro.get("tenant") or "")
         oggetti = list(registro.get("oggetti") or [])
@@ -614,7 +619,13 @@ def _registra_indice_documentale(
         for source in sources:
             identificativo = str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or "")
             if identificativo:
-                stati[identificativo] = str(_state_for_source(source, records) or "")
+                stato = str(_state_for_source(source, records) or "")
+                if stato == "ready" and not _ready_source_has_extracted_text(
+                    service, tenant_id=tenant_id, fascicolo_id=fascicolo_id,
+                    source=source, records=records,
+                ):
+                    stato = "error"
+                stati[identificativo] = stato
         supportati = {
             str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or ""): bool(source.supported)
             for source in sources
@@ -638,7 +649,6 @@ def _registra_indice_documentale(
             elif not supportati.get(oggetto.oggetto_id, True):
                 # Formato non indicizzabile (binari, archivi): non e' un errore da ritentare.
                 repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="non_leggibile", esito={"stato": stato, "motivo": "formato non supportato"})
-                letti += 1
                 registrati += 1
             elif stato == "error" or errore:
                 repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="errore", esito={"stato": "error", "motivo": str(errore.get("message") or "Lettura precedente non completata."), "error_code": str(errore.get("error_code") or "source_processing_failed")})

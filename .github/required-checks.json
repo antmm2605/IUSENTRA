@@ -23,7 +23,10 @@
   "required_checks": [
     {
       "name": "Regressioni della copertura critica",
-      "events": ["push", "pull_request"]
+      "events": [
+        "push",
+        "pull_request"
+      ]
     },
     {
       "name": "Lint + syntax",
@@ -184,7 +187,6 @@
       "template": "Pytest core fase {i}/10",
       "values": [
         1,
-        2,
         10
       ],
       "events": [
@@ -211,9 +213,9 @@
       ]
     },
     {
-      "template": "Pytest core fase 5/10 parte {i}/6",
+      "template": "Pytest core fase 5/10 parte {i}/12",
       "start": 1,
-      "end": 6,
+      "end": 12,
       "events": [
         "push",
         "pull_request"
@@ -250,6 +252,15 @@
       "template": "Pytest core fase 9/10 parte {i}/6",
       "start": 1,
       "end": 6,
+      "events": [
+        "push",
+        "pull_request"
+      ]
+    },
+    {
+      "template": "Pytest core fase 2/10 parte {i}/16",
+      "start": 1,
+      "end": 16,
       "events": [
         "push",
         "pull_request"

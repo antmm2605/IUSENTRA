@@ -360,7 +360,7 @@ def test_unassigned_source_row_is_not_reported_as_complete(tmp_path: Path):
     assert any(w["code"] == "file_senza_pratica_valida" for w in result["warnings"])
 
 
-def test_unlinked_original_recovered_from_client_identity_and_reimport_idempotent(tmp_path: Path):
+def test_unlinked_original_recovered_from_client_identity_and_reimport_idempotent(tmp_path: Path, monkeypatch):
     source = _write_package(tmp_path / "source.zip")
     with zipfile.ZipFile(source) as archive:
         payload = json.loads(archive.read("quickorganizer-export.json"))
@@ -380,9 +380,19 @@ def test_unlinked_original_recovered_from_client_identity_and_reimport_idempoten
     matter = fascicoli.tutti(archiviati=True)[0]
     original = next(d for d in matter.documenti if d.nome_originale == "originale-senza-relazione.rtf")
     assert fascicoli.percorso_documento(matter.id, original.id).read_bytes() == raw
+    import web.services.quickorganizer_recovery as recovery
+    def unexpected(*args, **kwargs):
+        raise AssertionError("Originale invariato gia recuperato: estrazione ripetuta")
+    monkeypatch.setattr(recovery, "extract_text_from_document", unexpected)
     again = import_quickorganizer_package(package, **args)
     assert again["recovery"]["recovered"] == 0
     assert again["recovery"]["alreadyPreserved"] == 1
+    assert len(fascicoli.get(matter.id).documenti) == 3
+    stored_path = fascicoli.percorso_documento(matter.id, original.id)
+    stored_path.write_bytes(b"contenuto alterato per il solo test")
+    import pytest
+    with pytest.raises(OSError, match="nessun duplicato creato"):
+        import_quickorganizer_package(package, **args)
     assert len(fascicoli.get(matter.id).documenti) == 3
 
 

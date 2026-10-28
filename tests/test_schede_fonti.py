@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -57,7 +58,7 @@ def test_chiavi_e_fonti_ufficiali():
     assert fonte_per_chiave("dpr_396_2000").urn == "urn:nir:stato:decreto.del.presidente.della.repubblica:2000;396"
     assert fonte_per_chiave("legge_53_1994").urn == "urn:nir:stato:legge:1994;53"
     assert fonte_per_chiave("reg_ue_2022_2065").celex == "32022R2065"
-    assert fonte_per_chiave("codice_civile").tipo == "non_deducibile"
+    assert fonte_per_chiave("codice_civile").urn == "urn:nir:stato:regio.decreto:1942-03-16;262"
 
 
 def test_acquisisce_solo_se_il_testo_ufficiale_contiene_gli_articoli_richiesti(ambiente, monkeypatch):
@@ -78,14 +79,18 @@ def test_acquisisce_solo_se_il_testo_ufficiale_contiene_gli_articoli_richiesti(a
 
 def test_converte_akn_solo_articoli_del_corpo():
     xml = b"""<?xml version="1.0" encoding="UTF-8"?><akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0"><act>
-    <meta><identification><FRBRWork><FRBRalias value="urn:nir:stato:legge:1994-01-21;53"/></FRBRWork></identification></meta>
+    <meta><identification><FRBRWork><FRBRalias value="urn:nir:stato:legge:1994-01-21;53"/><FRBRdate date="1994-01-21"/><FRBRalias name="eli" value="eli/id/1994/01/31/094G0053/ORIGINAL"/></FRBRWork><FRBRExpression><FRBRdate date="2026-10-24"/></FRBRExpression></identification></meta>
     <preface><docTitle>Facolta' di notificazioni</docTitle></preface><body>
     <article><num>Art. 3-bis.</num><heading>(Notifica PEC)</heading><paragraph>1. La notificazione puo' eseguirsi a mezzo PEC.</paragraph></article>
     <article><num>Art. 4</num><mod><article><num>Art. 99</num><paragraph>testo modificato</paragraph></article></mod></article>
-    </body><attachments><attachment><article><num>Art. 1</num><paragraph>allegato</paragraph></article></attachment></attachments></act></akomaNtoso>"""
-    righe = converti(AttoScaricato("urn:nir:stato:legge:1994;53", xml, "t", "19940131", "094G0053", "20261024", URL, "abc"), "legge_53_1994", "2026-10-24")
-    assert [r["articolo"] for r in righe] == ["3bis", "4"]
-    assert righe[0]["rubrica"] == "Notifica PEC" and righe[0]["provenienza_integrazione"]["sha256_akn"] == "abc"
+    </body><attachments><attachment><doc name="Allegato di prova"><mainBody><article><num>Art. 1</num><paragraph>Testo autonomo dell allegato da mantenere separato.</paragraph></article></mainBody></doc></attachment></attachments></act></akomaNtoso>"""
+    righe = converti(AttoScaricato("urn:nir:stato:legge:1994;53", xml, "t", "19940131", "094G0053", "20261024", URL, hashlib.sha256(xml).hexdigest()), "legge_53_1994", "2026-10-24")
+    from lex.normativa.biblioteca.fabbisogno import norm_articolo
+    corpo = [r for r in righe if r["chiave"] == "legge_53_1994"]
+    assert [norm_articolo(r["articolo"]) for r in corpo] == ["3bis", "4"]
+    assert not any(norm_articolo(r["articolo"]) == "99" for r in righe)
+    assert any(r["chiave"] != "legge_53_1994" and norm_articolo(r["articolo"]) == "1" for r in righe)
+    assert righe[0]["rubrica"].strip("()") == "Notifica PEC" and righe[0]["provenienza_integrazione"]["sha256_akn"] == hashlib.sha256(xml).hexdigest()
 
 
 def test_verifica_abrogazione_cambio_testo_e_proposte(ambiente):
@@ -132,9 +137,9 @@ def test_fonti_per_lex_con_provenienza_e_pendenze(ambiente):
 @pytest.mark.parametrize("urn", ["urn:nir:stato:legge:1995;53", "urn:nir:stato:legge:1994;54",
                                   "urn:nir:stato:decreto.legge:1994;53", "urn:nir:stato:legge:1994-01-22;53"])
 def test_rifiuta_akn_di_altro_atto_anche_con_articolo_richiesto(urn):
-    xml = b'<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0"><act><meta><identification><FRBRWork><FRBRalias value="urn:nir:stato:legge:1994-01-21;53"/></FRBRWork></identification></meta><body><article><num>Art. 3-bis.</num><paragraph>Testo</paragraph></article></body></act></akomaNtoso>'
+    xml = b'<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0"><act><meta><identification><FRBRWork><FRBRalias value="urn:nir:stato:legge:1994-01-21;53"/><FRBRdate date="1994-01-21"/><FRBRalias name="eli" value="eli/id/1994/01/31/094G0053/ORIGINAL"/></FRBRWork><FRBRExpression><FRBRdate date="2026-10-24"/></FRBRExpression></identification></meta><body><article><num>Art. 3-bis.</num><paragraph>Testo</paragraph></article></body></act></akomaNtoso>'
     with pytest.raises(ValueError, match="discordante"):
-        converti(AttoScaricato(urn, xml, "t", "19940131", "094G0053", "20261024", URL, "abc"),
+        converti(AttoScaricato(urn, xml, "t", "19940131", "094G0053", "20261024", URL, hashlib.sha256(xml).hexdigest()),
                  "legge_53_1994", "2026-10-24")
 
 
@@ -188,3 +193,20 @@ def test_norma_di_un_campo_ha_fonte_unica_anche_se_gia_nella_base(ambiente):
 def test_etichette_fonti_non_codificate(atto, sigla):
     from lex.procedura_atti.fonti_scheda import _sigla
     assert _sigla(atto) == sigla
+
+
+def test_articoli_omonimi_nello_stesso_corpo_mantengono_localizzatori_distinti():
+    xml=b'''<akomaNtoso xmlns="http://docs.oasis-open.org/legaldocml/ns/akn/3.0"><act>
+    <meta><identification><FRBRWork><FRBRalias value="urn:nir:stato:legge:2020-01-01;1"/>
+    <FRBRdate date="2020-01-01"/></FRBRWork><FRBRExpression><FRBRdate date="2020-01-02"/>
+    </FRBRExpression></identification></meta><body>
+    <article><num>Art. 1.</num><paragraph>Prima disposizione autonoma presente nella fonte primaria.</paragraph></article>
+    <article><num>Art. 1.</num><paragraph>Seconda disposizione autonoma presente nella stessa fonte primaria.</paragraph></article>
+    </body></act></akomaNtoso>'''
+    atto=AttoScaricato("urn:nir:stato:legge:2020-01-01;1",xml,"","","","20261026",URL,hashlib.sha256(xml).hexdigest())
+    rows=converti(atto,"legge_1_2020","2026-10-26")
+    assert len(rows)==2 and len({r["chiave"] for r in rows})==2
+    assert len({r["provenienza_integrazione"]["localizzatore_xml"] for r in rows})==2
+    assert all(r["articolo"]=="1" and r["provenienza_integrazione"]["sha256_akn"]==atto.sha256_xml for r in rows)
+    assert "Prima disposizione" in rows[0]["testo"]
+    assert "Seconda disposizione" in rows[1]["testo"]

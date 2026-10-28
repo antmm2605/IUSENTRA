@@ -65,3 +65,28 @@ def test_release_reading_gate_requires_persisted_queue_proof(tmp_path, monkeypat
         update_worker.verify_reading(tmp_path, "candidato")
     proof["html_consultabile_verificato"] = True
     assert len(update_worker.verify_reading(tmp_path, "candidato")) == 3
+
+
+def test_reading_failure_preserves_inner_error_and_stops(tmp_path, monkeypatch):
+    import json
+    import subprocess
+
+    selected = [{"relazione_id": "015|SENTENZA|2019|201900341|201800345",
+                 "resource_id": "public", "resource_sha256": "a" * 64}] * 3
+    monkeypatch.setattr(update_worker, "command", lambda *args: json.dumps(selected))
+    monkeypatch.setattr(update_worker, "request", lambda *args: {"ok": True, "identita": {"sede": "015"}})
+    script = tmp_path / "deploy/openga/verify_reading.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("public verification")
+    calls = []
+
+    def fail(*args, **kwargs):
+        calls.append(args)
+        raise subprocess.CalledProcessError(1, args[0], stderr=
+            "RuntimeError: Lettura ufficiale sul server non completata: non_trovato")
+
+    monkeypatch.setattr(update_worker.subprocess, "run", fail)
+    with pytest.raises(RuntimeError, match="non_trovato") as error:
+        update_worker.verify_reading(tmp_path, "candidato")
+    assert selected[0]["relazione_id"] in str(error.value)
+    assert len(calls) == 1

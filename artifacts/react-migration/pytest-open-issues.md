@@ -3611,3 +3611,25 @@ deploy e pulizia. Gli altri incarichi generali rimangono aperti.
 22/10/2026 — Candidata2.447.3 aperta: confronto revisione modulo e SQL, protezione file/JSON. Due query di test PG con % letterale corrette usando parametri; nuova prova74casi positiva. Test legacy con registro tenant globale isolati dal processo di avvio generale, senza cambiare controlli prodotto. Mancano accettazione reale,rilascio e pulizia. Offline PC-online ancora disabilitato: trasporto,bootstrap,adattatori e collaudo integrale restano aperti.
 
 22/10/2026 — Harness supporto --mode code: setup.py protetto per solo commento versione e export privo di .git fisico. Non applicabile alla modifica prodotto autorizzata; non dichiarato positivo, checker invariato. Confermati invece guardrail di prodotto e accettazione8080descritti nel rapporto.
+
+
+27/10/2026 — 2.454.0 formalmente aperta. I gruppi tecnici iniziali hanno fatto emergere fixture prive delle nuove evidenze di ricezione/versione/ELI e un'aspettativa storica di accorciamento dei testi. Corrette le fixture e confermati i casi mirati nei gruppi 02/04/07; non sono stati ridotti controlli di identità, quote HTTP, integrità o provenienza. Restano integrazione finale dei dati, indici, misura originale richiesta, prova reale 35B e 8080, gate completi, commit/push, CI sullo stesso SHA, deploy, parità e pulizia. Il browser Work continua a segnalarsi disabilitato: nessuna deroga per 2.454.0 e nessuna accettazione visiva dichiarata. Generatore buste, codici deposito, firma, PEC e checkpoint invariati.
+
+27/10/2026 — Prima integrazione capsule fermata prima di SQL: il confronto della provenienza non considerava la serializzazione JSON della tupla di pubblicazione. Corretto confronto canonico, prova reale di roundtrip e alterazione GU: 12 test positivi; importazione ripresa sullo stesso lotto. Ruff ha individuato un import mancante di norm_articolo nel riscontro storico: corretto e provato insieme agli altri 13 test del lettore. Prova browser reale ancora non eseguita: servizio segnala Local browser use is disabled in Work settings; nessuna deroga 2.454.0.
+
+27/10/2026 — candidata 2.454.0 ancora aperta: nel riepilogo locale restano otto varianti PostgreSQL della suite preesistente `test_archivio_event_retry_budget`, selezionata incidentalmente dal filtro dei nomi, non eseguite perché manca il database PostgreSQL controllato di quella prova. Non sono conteggiate tra i 324 esiti positivi. Nessuna soglia o protezione attenuata. Restano distinti e obbligatori: conclusione e verifica della proiezione generale, benchmark originale richiesto dall'utente, misura del runtime con il 35B effettivo, accettazione reale su 8080, commit/push, CI dello stesso SHA, deploy e parità finale. Il catalogo, i vettori e la disponibilità del tokenizer non dimostrano da soli il testo realmente ricevuto e utilizzato nella stesura. L'immagine candidata del checkpoint a7880ba5 precede il riallineamento del helper e dei documenti: va ricostruita e riscontrata prima dell'accettazione.
+
+
+- 27/10/2026: gate locale 56 bloccato da runtime Chromium assente; installato il
+  solo headless shell richiesto dal lock Playwright sul disco dati. Gate 59:
+  Storybook 104/104 positivo, falso errore governance sui suoi bundle generati;
+  correzione mirata in .gitignore/.dockerignore, governance 60 positiva. Riesecuzione
+  congiunta 62 in corso: non anticiparne l'esito. Questi test automatici non
+  sostituiscono il browser reale richiesto per 2.454.0, tuttora non verificato.
+
+- Aggiornamento 27/10/2026: le anomalie ambiente/output generato dei dossier
+  56/59 sono risolte; 62 è verde 28/28. Restano separatamente aperti:
+  proiezione/verifica catalogo generale, misura originale richiesta dall'utente,
+  prova runtime del 35B, browser reale 8080, commit/push e CI/deploy del medesimo
+  SHA, parità finale e pulizia. Nessuna certificazione di questi gate dedotta
+  dai controlli rapidi o dalle storie di componenti.

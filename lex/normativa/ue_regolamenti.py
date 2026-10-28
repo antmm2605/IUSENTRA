@@ -489,7 +489,7 @@ def righe_jsonl(atto: AttoUE, *, chiave: str, url: str, consolidato_al: str = ""
         {
             "atto": atto.sigla, "chiave": chiave, "articolo": art.numero, "rubrica": art.rubrica, "testo": art.testo,
             "titolo_atto": titolo, "data_atto": atto.data_atto, "urn": urn_atto(atto), "fonte_testo": FONTE_TESTO,
-            "url": url, "raccolto_il": raccolto,
+            "url": url, "raccolto_il": raccolto, "consolidato_al": consolidato_al,
         }
         for art in atto.articoli
     ]
@@ -556,16 +556,31 @@ class EsitoAtto:
     errori: list[str] = field(default_factory=list)
     note: list[str] = field(default_factory=list)
     soppressi: list[int] = field(default_factory=list)
+    elenco_consolidati_verificato: bool = False
+    consolidati_riscontrati: list[str] = field(default_factory=list)
 
     @property
     def valido(self) -> bool:
         return self.atto is not None and not self.errori
 
 
+def verifica_identita(atto: AttoUE, reg: RegolamentoUE) -> None:
+    """Il titolo del documento ricevuto deve corrispondere al CELEX richiesto."""
+    try:
+        corrisponde=(int(atto.anno)==int(reg.anno) and int(atto.numero)==int(reg.numero))
+    except (TypeError,ValueError):
+        corrisponde=False
+    if not corrisponde:
+        raise ValueError("Identità del regolamento ricevuto discordante dal CELEX richiesto")
+
+
 def _atto_originale(reg: RegolamentoUE, cartella_cache: Path, *, sessione=None, offline: bool = False) -> AttoUE | None:
     try:
         percorso, _stato = scarica_documento(reg.celex, cartella_cache, sessione=sessione, offline=offline)
-        return dividi(percorso.read_bytes()) if percorso else None
+        if percorso is None:return None
+        atto=dividi(percorso.read_bytes())
+        verifica_identita(atto,reg)
+        return atto
     except Exception:  # noqa: BLE001
         return None
 
@@ -583,6 +598,8 @@ def prepara(reg: RegolamentoUE, cartella_cache: Path, *, consolidato: bool = Tru
                 elenco = sorted(p.stem for p in cartella_cache.glob(f"0{reg.celex[1:]}-*.*"))
             else:
                 elenco = consolidati_disponibili(reg.celex, sessione=sessione)
+                esito.elenco_consolidati_verificato = True
+            esito.consolidati_riscontrati = list(elenco)
             candidati = [c for c in sorted(elenco, reverse=True) if data_consolidato(c) <= limite][:1]
             if not candidati:
                 esito.note.append("nessun testo consolidato nell'elenco dell'Ufficio delle pubblicazioni")
@@ -599,6 +616,7 @@ def prepara(reg: RegolamentoUE, cartella_cache: Path, *, consolidato: bool = Tru
             continue
         try:
             atto = dividi(percorso.read_bytes())
+            verifica_identita(atto,reg)
         except ValueError as exc:
             esito.note.append(f"{celex}: {exc}")
             continue

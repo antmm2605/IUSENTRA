@@ -430,3 +430,14 @@ def test_tiscali_tls_esclude_dhe_senza_disabilitare_certificato():
     assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
     assert not any(c["kea"] == "kx-dhe" for c in context.get_ciphers())
     assert any(c["name"] == "AES256-SHA" for c in context.get_ciphers())
+
+
+def test_verifica_disconnessione_non_segnala_invio_duplicato():
+    class DisconnectingSmtp(_FakeSmtp):
+        def login(self, *args, **kwargs):
+            raise smtplib.SMTPServerDisconnected("closed")
+
+    result = _test_pec_smtp_local(_payload(), smtp_ssl_factory=DisconnectingSmtp)
+    assert result["ok"] is False
+    assert "Nessuna email è stata inviata" in result["messaggio"]
+    assert "duplicato" not in result["messaggio"]

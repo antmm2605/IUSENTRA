@@ -248,3 +248,23 @@ def test_canali_rifiutano_indice_o_modello_diverso_preservando_lessicali(tmp_pat
     assert result["lessicali"] == catalog.cerca("permesso", limit=10)
     assert result["errore_semantico"] and not result["semantici_aggiuntivi"]
     assert catalog.path.read_bytes() == before
+
+
+def test_exact_public_number_uses_identity_columns_and_keeps_filters(tmp_path):
+    path, meta = risorsa(tmp_path, [
+        {"NUMERO_PROVVEDIMENTO": "202600341", "NUMERO_RICORSO": "202500345", "ESITO_PROVVEDIMENTO": "ACCOGLIE"},
+        {"NUMERO_PROVVEDIMENTO": "202600342", "NUMERO_RICORSO": "202500346", "ESITO_PROVVEDIMENTO": "RESPINGE"},
+    ])
+    catalog = CatalogoOpenGA(tmp_path / "catalogo.db")
+    catalog.importa(path, meta)
+    before = catalog.path.read_bytes()
+    for query in ("202600341", "202500345"):
+        results = catalog.cerca(query, dal=2026, al=2026, sede="CDS")
+        assert len(results) == 1
+        assert results[0]["numero_sentenza"] == "202600341"
+        assert results[0]["numero_ricorso"] == "202500345"
+        assert results[0]["evidence_scope"] == "metadata_only"
+        assert catalog.cerca(query, dal=2025, al=2025) == []
+        assert catalog.cerca(query, sede="015") == []
+    assert catalog.cerca("202600999") == []
+    assert catalog.path.read_bytes() == before

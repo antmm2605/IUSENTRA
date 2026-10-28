@@ -121,7 +121,7 @@ from local_signer_mod.support_agent import SupportAgentFacade  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.138"
+VERSION = "1.6.139"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -13295,6 +13295,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/ptt/documenti",
             "/pec/smtp/test",
             "/pec/send",
+            "/email/send",
             "/scanner/acquire",
             "/portal-assistant/session/start",
             "/foreground/claim",
@@ -13380,6 +13381,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pec_smtp_test()
         elif path == "/pec/send":
             self._pec_send()
+        elif path == "/email/send":
+            self._ordinary_email_send()
         elif path == "/support/arm":
             self._support_facade().arm()
         elif path == "/support/disarm":
@@ -13454,6 +13457,13 @@ class _Handler(BaseHTTPRequestHandler):
     def _pec_send(self):
         self._send_json(send_pec_local(self._read_json()))
 
+    def _ordinary_email_send(self):
+        payload = self._read_json()
+        payload['ordinary_email'] = True
+        result = send_pec_local(payload)
+        result['messaggio'] = str(result.get('messaggio') or '').replace('PEC', 'email ordinaria')
+        self._send_json(result)
+
     def _ping(self):
         query_ping = parse_qs(urlparse(getattr(self, "path", "")).query or "")
         lib = _libreria_del_produttore(_produttore_richiesto((query_ping.get("produttore") or [""])[0]))
@@ -13462,6 +13472,7 @@ class _Handler(BaseHTTPRequestHandler):
         resp: dict = {
             "ok": True,
             "versione":          VERSION,
+            "ordinary_email": True,
             "piattaforma":       sys.platform,
             "libreria":          lib,
             "libreria_presente": lib is not None,

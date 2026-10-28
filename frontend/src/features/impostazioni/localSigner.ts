@@ -142,7 +142,7 @@ function localBaseUrl(baseUrl: string): string {
   return text(baseUrl, 'http://127.0.0.1:27272').replace(/\/+$/, '')
 }
 
-async function ensureLocalSignerService(baseUrl: string, restartProtocol: string): Promise<LocalSignerCheck | null> {
+export async function ensureLocalSignerService(baseUrl: string, restartProtocol: string, ordinaryEmail = false): Promise<LocalSignerCheck | null> {
   if (!isDesktopHost()) {
     return { ok: false, status: 'unsupported', message: 'Il controllo invio PEC richiede il PC dello studio.' }
   }
@@ -162,6 +162,7 @@ async function ensureLocalSignerService(baseUrl: string, restartProtocol: string
     return { ok: false, status: 'missing', message: 'Local Signer non rilevato. Avvia IUSENTRA Local Signer sul PC in uso e riprova.' }
   }
 
+  if (ordinaryEmail && payload.ordinary_email !== true) return { ok: false, status: 'warning', message: 'Aggiorna IUSENTRA Local Signer alla versione 1.6.139 o successiva dalle Impostazioni. Nessuna email è stata inviata.' }
   return null
 }
 
@@ -204,6 +205,7 @@ export async function testPecSmtpViaLocalSigner(
   restartProtocol: string,
   values: Record<string, unknown>,
   savedPasswordState: unknown,
+  ordinary = false,
 ): Promise<LocalSignerCheck> {
   const serviceError = await ensureLocalSignerService(baseUrl, restartProtocol)
   if (serviceError) return serviceError
@@ -211,17 +213,17 @@ export async function testPecSmtpViaLocalSigner(
   let payload: Record<string, unknown> = {
     indirizzo: text(values.indirizzo),
     username: text(values.username, text(values.indirizzo)),
-    password: text(values.password),
+    password: ordinary && typeof values.password === 'string' ? values.password : text(values.password),
     smtp_host: text(values.smtp_host),
     smtp_port: integerValue(values.smtp_port, 465),
     use_ssl: booleanValue(values.use_ssl, true),
   }
 
   if (!text(payload.password) && hasSavedSecret(savedPasswordState)) {
-    const saved = await fetchJsonWithTimeout('/impostazioni/pec/local-smtp-payload', 10000, {
+    const saved = await fetchJsonWithTimeout(ordinary ? '/impostazioni/smtp/local-smtp-payload' : '/impostazioni/pec/local-smtp-payload', 10000, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: new Headers({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      headers: new Headers({ 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '' }),
       body: JSON.stringify({}),
     })
     const savedPayload = objectValue(saved?.payload)
@@ -237,7 +239,7 @@ export async function testPecSmtpViaLocalSigner(
       ...savedPayload,
       indirizzo: text(payload.indirizzo, text(savedPayload.indirizzo)),
       username: text(payload.username, text(savedPayload.username, text(payload.indirizzo, text(savedPayload.indirizzo)))),
-      password: text(savedPayload.password),
+      password: ordinary && typeof savedPayload.password === 'string' ? savedPayload.password : text(savedPayload.password),
       smtp_host: text(payload.smtp_host, text(savedPayload.smtp_host)),
       smtp_port: integerValue(payload.smtp_port, integerValue(savedPayload.smtp_port, 465)),
       use_ssl: booleanValue(payload.use_ssl, booleanValue(savedPayload.use_ssl, true)),
@@ -269,4 +271,20 @@ export async function testPecSmtpViaLocalSigner(
     status: ok ? 'ready' : 'warning',
     message: text(result.messaggio, text(result.message, ok ? 'Connessione SMTP PEC riuscita.' : 'Verifica invio PEC non completata.')),
   }
+}
+
+export function ordinarySmtpUsesLocalSigner(host: unknown): boolean {
+  return !['smtp.gmail.com', 'smtp.googlemail.com'].includes(text(host).toLowerCase().replace(/\.$/, ''))
+}
+
+export async function testOrdinarySmtpViaLocalSigner(baseUrl: string, restartProtocol: string, values: Record<string, unknown>, savedPasswordState: unknown): Promise<LocalSignerCheck> {
+  const result = await testPecSmtpViaLocalSigner(baseUrl, restartProtocol, {
+    indirizzo: values.from_address || values.username,
+    username: values.username,
+    password: values.password,
+    smtp_host: values.host,
+    smtp_port: values.port,
+    use_ssl: !booleanValue(values.use_tls, true),
+  }, savedPasswordState, true)
+  return { ...result, message: result.message.replace(/PEC/g, 'email ordinaria') }
 }

@@ -640,6 +640,26 @@ def test_pec_imap():
     return jsonify(_test(pec))
 
 
+@impostazioni.route("/impostazioni/smtp/local-smtp-payload", methods=["POST"])
+@_richiedi_login
+def ordinary_local_smtp_payload():
+    """Credenziali del solo studio corrente per il trasporto locale richiesto."""
+    cfg = _get_gestore().config.smtp
+    if not cfg.password:
+        return jsonify({"ok": False, "errore": "Password email non disponibile. Inseriscila nelle impostazioni."}), 400
+    response = jsonify({"ok": True, "payload": {
+        "indirizzo": cfg.from_address or cfg.username,
+        "username": cfg.username,
+        "password": cfg.password,
+        "smtp_host": cfg.host,
+        "smtp_port": cfg.port,
+        "use_ssl": not cfg.use_tls,
+        "use_tls": cfg.use_tls,
+    }})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @impostazioni.route("/impostazioni/test/smtp", methods=["POST"])
 @_richiedi_login
 def test_smtp():
@@ -656,6 +676,9 @@ def test_smtp():
         from_name=cfg_smtp.from_name,
         use_tls=data.get("use_tls", cfg_smtp.use_tls),
     )
+    from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer
+    if ordinary_smtp_uses_local_signer(smtp.host):
+        return jsonify({"ok": False, "local_signer_required": True, "message": "La verifica SMTP email ordinaria si esegue dal PC in uso tramite Local Signer."})
     return jsonify(_test(smtp))
 
 

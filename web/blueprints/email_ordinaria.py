@@ -99,12 +99,12 @@ def _save_compose_attachments() -> list[str]:
     return saved
 
 
-def _get_gestore():
+def _get_gestore(*, load_catalog=True):
     return create_email_mailbox(
         db_path=_cfg_path(
             "EMAIL_ORDINARIA_DB",
             os.environ.get("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
-        )
+        ), load_catalog=load_catalog
     )
 
 
@@ -331,6 +331,35 @@ def scrivi():
 
     try:
         from pct.messaggi import StatoMessaggio, GestioneMessaggi
+        from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer
+
+        smtp_config = _messaggi_config_da_smtp()
+        if ordinary_smtp_uses_local_signer(smtp_config.email.smtp_host):
+            from pct.ordinary_local_smtp import LocalSmtpCommands, LocalSmtpConflict
+            from itsdangerous import URLSafeTimedSerializer
+            from hashlib import sha256
+            mailbox = _get_gestore(load_catalog=False)
+            actor = str(g.utente_corrente.id)
+            commands = LocalSmtpCommands(mailbox, actor)
+            command = form.get('local_command_id', '')
+            cfg = smtp_config.email
+            if not cfg.smtp_host or not cfg.username or not cfg.password:
+                raise ValueError('Configurazione SMTP incompleta.')
+            try:
+                payload = commands.prepare(command, sender=cfg.mittente_email or cfg.username,
+                    recipients=destinatario, subject=oggetto, body=corpo_testo,
+                    uploads=[u for u in request.files.getlist('allegati') if u and u.filename])
+            except LocalSmtpConflict as exc:
+                return jsonify({'ok': False, 'message': str(exc)}), 409
+            token = URLSafeTimedSerializer(current_app.secret_key, salt='ordinary-local-smtp').dumps({
+                'command': command, 'actor': actor,
+                'scope': sha256(str(mailbox.attachments_dir.resolve()).encode()).hexdigest()})
+            payload.update(ordinary_email=True,smtp_host=cfg.smtp_host,smtp_port=cfg.smtp_port,username=cfg.username,
+                           password=cfg.password,use_tls=cfg.use_tls,use_ssl=not cfg.use_tls)
+            response = jsonify({'ok': True, 'local_signer_required': True,
+                                'local_payload': payload, 'confirmation_token': token})
+            response.headers['Cache-Control'] = 'private, no-store'
+            return response
 
         messaggi = GestioneMessaggi(
             config=_messaggi_config_da_smtp(),
@@ -358,6 +387,44 @@ def scrivi():
             return jsonify({"ok": False, "message": "Invio email ordinaria non riuscito. Verifica destinatario, allegati e configurazione."}), 400
         flash("Invio email ordinaria non riuscito. Verifica destinatario, allegati e configurazione.", "danger")
         return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
+
+
+@email_ordinaria.route('/trasporto')
+@_login_required
+def trasporto():
+    from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer
+    from hashlib import sha256
+    config = _get_config_smtp()
+    scope = sha256(_cfg_path('EMAIL_ORDINARIA_DB', './email/ordinaria.json').encode()).hexdigest()
+    response = jsonify({'ok': True, 'scope': scope, 'local_signer_required': ordinary_smtp_uses_local_signer(getattr(config, 'host', ''))})
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response
+
+
+@email_ordinaria.route('/scrivi/conferma-locale', methods=['POST'])
+@_login_required
+def conferma_locale():
+    from hashlib import sha256
+    from itsdangerous import URLSafeTimedSerializer, BadSignature
+    from pct.ordinary_local_smtp import LocalSmtpCommands, LocalSmtpConflict
+    data = request.get_json(silent=True) or {}
+    if data.get('ok') is not True or data.get('inviato') is not True or data.get('canale') != 'locale':
+        return jsonify({'ok': False, 'message': 'Manca la conferma di invio SMTP dal PC.'}), 400
+    try:
+        signed = URLSafeTimedSerializer(current_app.secret_key, salt='ordinary-local-smtp').loads(
+            data.get('confirmation_token', ''), max_age=7*24*3600)
+        mailbox = _get_gestore(load_catalog=False)
+        actor = str(g.utente_corrente.id)
+        scope = sha256(str(mailbox.attachments_dir.resolve()).encode()).hexdigest()
+        if signed.get('actor') != actor or signed.get('scope') != scope:
+            raise BadSignature('Contesto discordante')
+        LocalSmtpCommands(mailbox, actor).confirm(signed['command'], message_id=str(data.get('message_id') or ''))
+    except (BadSignature, KeyError, ValueError, LocalSmtpConflict):
+        return jsonify({'ok': False, 'message': 'Conferma non valida per questo invio, utente o studio. Non rispedire il messaggio.'}), 409
+    response = jsonify({'ok': True, 'message': 'Email inviata dal PC e registrata negli Inviati.',
+                        'redirect': url_for('email_ordinaria.casella', cartella='INVIATI')})
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response
 
 
 @email_ordinaria.route("/messaggio/<id_email>")

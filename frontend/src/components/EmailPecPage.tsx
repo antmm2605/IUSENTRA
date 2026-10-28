@@ -1,3 +1,5 @@
+import { Button as ActionButton } from '../ui/Button'
+import { submitOrdinaryEmailViaTransport, hasUncertainOrdinaryEmail, acknowledgeUnsentOrdinaryEmail } from '../ordinaryEmailSend'
 import { beginActivity } from '../ui/activity'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -2461,6 +2463,12 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
   useBusyActivity(clientLoading, 'Ricerca dei clienti…')
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
   const [attachmentNames, setAttachmentNames] = useState<string[]>([])
+  const [uncertainLocalSend, setUncertainLocalSend] = useState(false)
+  const [checkedUnsent, setCheckedUnsent] = useState(false)
+  const submitOrdinary = async (form: HTMLFormElement) => {
+    try { return await submitOrdinaryEmailViaTransport(form) }
+    finally { setUncertainLocalSend(hasUncertainOrdinaryEmail()); setCheckedUnsent(false) }
+  }
 
   useEffect(() => {
     const query = clientQuery.trim()
@@ -2523,10 +2531,16 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
         <JsonPostForm
           className="iu-mail-compose-form"
           action={action}
+          customSubmit={isOrdinary ? submitOrdinary : undefined}
           encType="multipart/form-data"
           pendingMessage={isOrdinary ? 'Invio email in corso...' : 'Invio PEC in corso...'}
           successMessage={isOrdinary ? 'Email ordinaria inviata con successo.' : 'PEC inviata e registrata nello studio.'}
         >
+          {isOrdinary && uncertainLocalSend ? <div role="alert">
+            <p>Verifica prima la posta inviata del provider. Un esito mancante non significa che il messaggio non sia partito.</p>
+            <label><input type="checkbox" checked={checkedUnsent} onChange={event => setCheckedUnsent(event.currentTarget.checked)} /> Ho verificato che il messaggio non è stato inviato.</label>
+            <ActionButton type="button" disabled={!checkedUnsent} onClick={event => { const form = event.currentTarget.closest('form'); if (form && checkedUnsent) { acknowledgeUnsentOrdinaryEmail(form); setUncertainLocalSend(false); setCheckedUnsent(false) } }}>Prepara un nuovo tentativo</ActionButton>
+          </div> : null}
           {!isOrdinary && params.get('tipo') === 'notifica_l53' ? <input type="hidden" name="tipo_invio" value="notifica_l53" /> : null}
           {!isOrdinary ? <OfficePecLookupPanel onInsert={(pec) => setRecipient((current) => appendAddress(current, pec))} /> : null}
           <label>

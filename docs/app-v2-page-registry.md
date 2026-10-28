@@ -12,7 +12,7 @@ Questo registro è generato da `scripts/react-migration/generate_app_v2_page_reg
 - Route legacy operative: 17.
 - Route App V2 dichiarate in frontend: 16.
 - Alias legacy verso App V2 in frontend: 32.
-- Route Flask GET candidate rilevate fuori manifest: 338.
+- Route Flask GET candidate rilevate fuori manifest: 339.
 
 ### Distribuzione rischio
 
@@ -779,6 +779,7 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /email-ordinaria/messaggio/{id_email} | GET | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
 | /email-ordinaria/messaggio/{id_email}/allegato/{int:indice_allegato} | GET | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
 | /email-ordinaria/scrivi | GET,POST | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
+| /email-ordinaria/trasporto | GET | web/blueprints/email_ordinaria.py | email/dettaglio.html, email/scrivi.html |
 | /email/api/stats | GET | web/blueprints/email_client.py | email/client.html, email/dettaglio.html, email/impostazioni.html, email/scrivi.html |
 | /email/impostazioni | GET,POST | web/blueprints/email_client.py | email/client.html, email/dettaglio.html, email/impostazioni.html, email/scrivi.html |
 | /email/impostazioni | GET,POST | web/fatturazione.py | email/client.html, email/dettaglio.html, email/impostazioni.html, email/scrivi.html |
@@ -833,7 +834,6 @@ Queste route non vengono promosse dalla fase 3. Sono censite per impedire che re
 | /fascicoli/{id_fasc}/wizard/{id_template}/completa | GET | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /fascicoli/{id_fasc}/wizard/{id_template}/step/{int:n} | GET,POST | web/bootstrap/checklist_routes.py | checklist/dettaglio.html, checklist/lista.html, fascicoli/wizard_atto.html, fascicoli/wizard_completa.html |
 | /favicon.ico | GET | web/bootstrap/pwa_routes.py | offline.html |
-| /fonti/{source_id} | GET | web/blueprints/api_v1_ricerca_legale.py | non rilevato |
 
 ## Regola operativa fase 4
 

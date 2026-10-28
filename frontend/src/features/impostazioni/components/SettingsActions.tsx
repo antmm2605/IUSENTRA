@@ -14,7 +14,7 @@ import {
 } from '../localAi'
 import { saveSignatureCertificateStatus } from '../api'
 import { EmbeddingPreparationNotice } from './EmbeddingPreparationNotice'
-import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
+import { checkLocalSigner, testPecSmtpViaLocalSigner, testOrdinarySmtpViaLocalSigner, ordinarySmtpUsesLocalSigner, type LocalSignerCheck } from '../localSigner'
 import type { AiRuntimePayload, SettingTone, SettingsPayload, SettingsSection, TestResult } from '../types'
 
 function aiStatusLabel(aiStatus: AiRuntimePayload | null): string {
@@ -927,9 +927,27 @@ export function SettingsActions({
     )
   }
 
-  const tests = section === 'smtp'
-    ? [['smtp', 'Verifica invio email'], ['smtp-imap', 'Verifica ricezione email']]
-    : [['whatsapp', 'Invia test WhatsApp']]
+  if (section === 'smtp') {
+    const local = ordinarySmtpUsesLocalSigner(values.host || data.smtp.host)
+    const runCheck = async () => {
+      if (!local) { void onTest('smtp', values); return }
+      setPecChecking(true)
+      setPecLocalResult(null)
+      try {
+        setPecLocalResult(await testOrdinarySmtpViaLocalSigner(data.local_signer.base_url, data.local_signer.restart_protocol, { ...data.smtp, ...values }, data.smtp.password))
+      } finally { setPecChecking(false) }
+    }
+    return <div className="iu-settings-actions-panel">
+      <div><strong>Verifiche email ordinaria</strong><span>{local ? 'Il controllo SMTP parte dal PC in uso tramite Local Signer.' : 'Gmail usa il canale SMTP già configurato.'}</span></div>
+      <div className="iu-settings-actions-panel__buttons">
+        <Button type="button" variant="outline" disabled={pecChecking} onClick={() => { void runCheck() }}><Play data-icon="inline-start" />{pecChecking ? 'Verifica in corso' : 'Verifica invio email'}</Button>
+        <Button type="button" variant="outline" onClick={() => { setPecLocalResult(null); void onTest('smtp-imap', values) }}><Play data-icon="inline-start" />Verifica ricezione email</Button>
+      </div>
+      <ResultAlert result={local ? pecLocalResult || testResult : testResult} />
+    </div>
+  }
+
+  const tests = [['whatsapp', 'Invia test WhatsApp']]
 
   return (
     <div className="iu-settings-actions-panel">

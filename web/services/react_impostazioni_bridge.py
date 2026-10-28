@@ -990,6 +990,9 @@ def run_react_impostazioni_test(test_id: str, payload: dict[str, Any]) -> dict[s
             use_ssl=_bool(data.get("use_ssl"), cfg.pec.use_ssl),
         ))
     elif test_id == "smtp":
+        from web.services.ordinary_smtp_transport import ordinary_smtp_uses_local_signer
+        if ordinary_smtp_uses_local_signer(_text(data.get("host"), cfg.smtp.host)):
+            return {"ok": False, "local_signer_required": True, "message": "La verifica SMTP email ordinaria si esegue dal PC in uso tramite Local Signer."}
         result = test_smtp_email(ConfigSMTP(
             host=_text(data.get("host"), cfg.smtp.host),
             port=_int(data.get("port"), cfg.smtp.port, minimum=1),

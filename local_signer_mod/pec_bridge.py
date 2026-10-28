@@ -344,6 +344,7 @@ def send_pec_local(
 ) -> dict[str, Any]:
     config: dict[str, Any] = {}
     client = None
+    submission_started = False
     try:
         config = _payload_config(payload)
         message, recipients = _build_message(payload, config)
@@ -353,7 +354,11 @@ def send_pec_local(
             smtp_ssl_factory=smtp_ssl_factory,
         )
         _set_smtp_send_timeout(client, config)
-        client.send_message(message, from_addr=config["sender"], to_addrs=recipients)
+        submission_started = True
+        refused = client.send_message(message, from_addr=config["sender"], to_addrs=recipients)
+        if payload.get('ordinary_email') is True and refused:
+            return {'ok': False, 'inviato': False, 'canale': 'locale', 'submission_started': True,
+                    'messaggio': 'Il provider ha rifiutato alcuni destinatari. L’invio può essere parziale: verifica la casella prima di riprovare.'}
         return {
             "ok": True,
             "inviato": True,
@@ -366,6 +371,7 @@ def send_pec_local(
         return {
             "ok": False,
             "inviato": False,
+            **({"submission_started": submission_started} if payload.get("ordinary_email") is True else {}),
             "canale": "locale",
             "messaggio": _human_error(
                 exc,

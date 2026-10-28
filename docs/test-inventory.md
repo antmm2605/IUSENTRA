@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1101.
+- File pytest censiti: 1103.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 125 |
+| API contract | 126 |
 | Backend | 139 |
 | E2E | 15 |
 | Frontend static gate | 1 |
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 137 |
 | Security | 60 |
 | Smoke CLI | 6 |
-| Tenant isolation | 282 |
+| Tenant isolation | 283 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 90 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 206 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 522 |
+| 09-misc | Test non classificati dalle fasi principali | 524 |
 
 ## Suite CI aggiuntive
 
@@ -136,6 +136,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | API contract | tests/test_local_pec_runtime.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_normativa_runtime_catalog.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_ordinary_smtp_transport.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_packaging_consistency.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_payment_evidence.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_payment_links_sql.py | contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -604,6 +605,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_operational_read_revision.py | 403/RBAC, tenant, contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_operational_resilience.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_operational_surfaces.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_ordinary_local_smtp.py | 403/RBAC, tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pagamenti_webhook_studi.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_parcella_incassi_repository.py | 401 anonimo, tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_payment_confirmations.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

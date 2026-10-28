@@ -10252,3 +10252,22 @@ def test_firma_batch_segnala_documento_gia_firmato_dallo_stesso_certificato():
     assert gia["gia_firmato"] is True and gia["firmatario"] == "MARIO ROSSI" and "firmato_b64" not in gia
     # La sessione PIN resta valida: il documento successivo non chiede di nuovo il PIN.
     assert sessioni == [None, "sess-9"]
+
+
+def test_ordinary_email_endpoint_uses_existing_transport_and_marks_channel(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    def fake_send(payload):
+        captured['payload'] = payload
+        return {'ok': True, 'inviato': True, 'messaggio': 'PEC inviata'}
+    monkeypatch.setattr(module, 'send_pec_local', fake_send)
+    class Handler:
+        path = '/email/send'
+        def _cors_ok(self): return True
+        def _read_json(self): return {'smtp_host': 'smtp.example.test'}
+        def _send_json(self, value): captured['result'] = value
+        def _ordinary_email_send(self): module._Handler._ordinary_email_send(self)
+    module._Handler.do_POST(Handler())
+    assert captured['payload']['ordinary_email'] is True
+    assert captured['result']['inviato'] is True
+    assert captured['result']['messaggio'] == 'email ordinaria inviata'

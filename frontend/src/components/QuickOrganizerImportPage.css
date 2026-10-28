@@ -403,3 +403,6 @@
     width: 100%;
   }
 }
+
+.iu-st-import-choice { display: block; padding: 0.35rem; }
+.iu-st-import-inventory-item { overflow-wrap: anywhere; }

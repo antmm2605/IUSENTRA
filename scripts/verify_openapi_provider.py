@@ -89,6 +89,8 @@ def _sample_path(path: str) -> str:
         "id_contatto": "CONTATTO_TEST",
         "id_prenotazione": "PRENOTAZIONE_TEST",
         "page_id": "1",
+        "import_id": "IMPORT_TEST",
+        "file_index": "0",
         "revision_id": "1",
         "asset_id": "1",
         "job_id": "1",

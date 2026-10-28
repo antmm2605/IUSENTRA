@@ -151,6 +151,11 @@ def _connect_and_login(
     smtp_ssl_factory: Any = smtplib.SMTP_SSL,
 ) -> Any:
     context = ssl.create_default_context()
+    if config["host"].strip().lower().rstrip(".") == "smtp.tiscali.it":
+        # Tiscali advertises DHE parameters rejected by OpenSSL at its default
+        # security level. Exclude DHE; retain certificate/hostname verification.
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.set_ciphers("DEFAULT:!DHE:!aNULL:!eNULL")
     hostname_options: dict[str, str] = {}
     hostname = socket.getfqdn()
     if not hostname.isascii():

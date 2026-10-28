@@ -417,3 +417,16 @@ def test_message_id_ascii_preserva_dominio_pc_esistente(monkeypatch):
     message, _ = _build_message(payload, _payload_config(payload))
     assert str(message["Message-ID"]).endswith("@studio.example.test>")
     assert isinstance(message.as_bytes(), bytes)
+
+
+def test_tiscali_tls_esclude_dhe_senza_disabilitare_certificato():
+    import ssl
+    _FakeSmtp.instances.clear()
+    result = _test_pec_smtp_local(_payload(smtp_host="smtp.tiscali.it"), smtp_ssl_factory=_FakeSmtp)
+    assert result["ok"] is True
+    context = _FakeSmtp.instances[-1].context
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname is True
+    assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+    assert not any(c["kea"] == "kx-dhe" for c in context.get_ciphers())
+    assert any(c["name"] == "AES256-SHA" for c in context.get_ciphers())

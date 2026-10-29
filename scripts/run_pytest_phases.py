@@ -37,8 +37,8 @@ CORE_CI_SUBSHARDS: dict[int, int] = {
     4: 4,
     5: 12,
     6: 16,
-    7: 3,
-    8: 3,
+    7: 16,
+    8: 16,
     9: 6,
 }
 CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)

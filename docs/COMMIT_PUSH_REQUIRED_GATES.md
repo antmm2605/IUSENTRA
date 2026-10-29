@@ -112,8 +112,8 @@ Pytest core:
 - `CI / Pytest core fase 1/10`, `2/10`, `3/10`, `4/10`, `10/10`, su `push` e `pull_request`;
 - `CI / Pytest core fase 5/10 parte 1/6` fino a `parte 6/6`, su `push` e `pull_request`;
 - `CI / Pytest core fase 6/10 parte 1/16` fino a `parte 16/16`, su `push` e `pull_request`;
-- `CI / Pytest core fase 7/10 observability parte 1/3` fino a `parte 3/3`, su `push` e `pull_request`;
-- `CI / Pytest core fase 8/10 OCR parte 1/3` fino a `parte 3/3`, su `push` e `pull_request`;
+- `CI / Pytest core fase 7/10 observability parte 1/16` fino a `parte 16/16`, su `push` e `pull_request`;
+- `CI / Pytest core fase 8/10 OCR parte 1/16` fino a `parte 16/16`, su `push` e `pull_request`;
 - `CI / Pytest core fase 9/10 parte 1/6` fino a `parte 6/6`, su `push` e `pull_request`.
 
 Local Signer e PKCS#11:

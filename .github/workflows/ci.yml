@@ -646,34 +646,164 @@ jobs:
             label: "6/10 parte 16/16"
           - phase: 7
             subshard: 1
-            total_subshards: 3
+            total_subshards: 16
             subdivide_items: true
-            label: "7/10 observability parte 1/3"
+            label: "7/10 observability parte 1/16"
           - phase: 7
             subshard: 2
-            total_subshards: 3
+            total_subshards: 16
             subdivide_items: true
-            label: "7/10 observability parte 2/3"
+            label: "7/10 observability parte 2/16"
           - phase: 7
             subshard: 3
-            total_subshards: 3
+            total_subshards: 16
             subdivide_items: true
-            label: "7/10 observability parte 3/3"
+            label: "7/10 observability parte 3/16"
+          - phase: 7
+            subshard: 4
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 4/16"
+          - phase: 7
+            subshard: 5
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 5/16"
+          - phase: 7
+            subshard: 6
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 6/16"
+          - phase: 7
+            subshard: 7
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 7/16"
+          - phase: 7
+            subshard: 8
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 8/16"
+          - phase: 7
+            subshard: 9
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 9/16"
+          - phase: 7
+            subshard: 10
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 10/16"
+          - phase: 7
+            subshard: 11
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 11/16"
+          - phase: 7
+            subshard: 12
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 12/16"
+          - phase: 7
+            subshard: 13
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 13/16"
+          - phase: 7
+            subshard: 14
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 14/16"
+          - phase: 7
+            subshard: 15
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 15/16"
+          - phase: 7
+            subshard: 16
+            total_subshards: 16
+            subdivide_items: true
+            label: "7/10 observability parte 16/16"
           - phase: 8
             subshard: 1
-            total_subshards: 3
+            total_subshards: 16
             subdivide_items: true
-            label: "8/10 OCR parte 1/3"
+            label: "8/10 OCR parte 1/16"
           - phase: 8
             subshard: 2
-            total_subshards: 3
+            total_subshards: 16
             subdivide_items: true
-            label: "8/10 OCR parte 2/3"
+            label: "8/10 OCR parte 2/16"
           - phase: 8
             subshard: 3
-            total_subshards: 3
+            total_subshards: 16
             subdivide_items: true
-            label: "8/10 OCR parte 3/3"
+            label: "8/10 OCR parte 3/16"
+          - phase: 8
+            subshard: 4
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 4/16"
+          - phase: 8
+            subshard: 5
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 5/16"
+          - phase: 8
+            subshard: 6
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 6/16"
+          - phase: 8
+            subshard: 7
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 7/16"
+          - phase: 8
+            subshard: 8
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 8/16"
+          - phase: 8
+            subshard: 9
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 9/16"
+          - phase: 8
+            subshard: 10
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 10/16"
+          - phase: 8
+            subshard: 11
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 11/16"
+          - phase: 8
+            subshard: 12
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 12/16"
+          - phase: 8
+            subshard: 13
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 13/16"
+          - phase: 8
+            subshard: 14
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 14/16"
+          - phase: 8
+            subshard: 15
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 15/16"
+          - phase: 8
+            subshard: 16
+            total_subshards: 16
+            subdivide_items: true
+            label: "8/10 OCR parte 16/16"
           - phase: 9
             subshard: 1
             total_subshards: 6

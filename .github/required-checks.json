@@ -231,18 +231,18 @@
       ]
     },
     {
-      "template": "Pytest core fase 7/10 observability parte {i}/3",
+      "template": "Pytest core fase 7/10 observability parte {i}/16",
       "start": 1,
-      "end": 3,
+      "end": 16,
       "events": [
         "push",
         "pull_request"
       ]
     },
     {
-      "template": "Pytest core fase 8/10 OCR parte {i}/3",
+      "template": "Pytest core fase 8/10 OCR parte {i}/16",
       "start": 1,
-      "end": 3,
+      "end": 16,
       "events": [
         "push",
         "pull_request"

@@ -1,3 +1,9 @@
+## 2.457.7 — Termini e notifiche: correzioni giuridiche
+- Memorie art. 171-ter c.p.c. calcolate a ritroso dall'udienza, con anticipo al giorno utile precedente (art. 155 c.p.c.); riconvalida automatica delle memorie salvate con il vecchio calcolo, senza toccare le date modificate dall'avvocato.
+- Termine lungo di impugnazione (art. 327 c.p.c.) con sospensione feriale; preset della prescrizione breve con il profilo dei cinque anni.
+- Obblighi di notifica: relata con ricevuta di consegna e destinatari completi chiude l'obbligo; termine breve dalla notificazione della sentenza (art. 325 c.p.c.; art. 92 c.p.a.).
+- Giorno e ora italiani per le PEC del motore dell'archivio, i presìdi, lo scadenziario e il calendario Microsoft.
+
 ## 2.454.0 — Biblioteca normativa, provenienza e lettura controllata di Lex
 - Il deploy puo acquisire l’immagine precostruita dopo il backup preventivo, con budget fisici cumulativi, SHA dell’archivio e revisione Git verificati. I controlli sul server usano i cataloghi effettivamente configurati.
 - La sincronizzazione FTS confronta gli ID tramite gli indici SQL prima di leggere i soli testi mancanti. Conserva aggiornamento incrementale, idempotenza, avanzamento esatto e controllo degli orfani, evitando scansioni dei testi già indicizzati.

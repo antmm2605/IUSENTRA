@@ -16,7 +16,6 @@ eventi e catalogo (vista a buste), mai i file.
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any, Callable
 
 from pct.polisWeb import ClientPolisWebDemo, crea_client
@@ -26,6 +25,7 @@ from pct.scadenze_proposte_polisweb import (
     bozza_scadenza_fields,
     select_event_candidates,
 )
+from pct.ora_italiana import oggi_roma
 
 
 def _leggi_eventi_registro(
@@ -106,7 +106,7 @@ def _proponi_scadenze_da_eventi(
     note_esistenti = " \n ".join(str(getattr(item, "note", "") or "") for item in esistenti)
     candidati = select_event_candidates(
         eventi,
-        today=date.today(),
+        today=oggi_roma(),
         date_gia_presenti=date_gia_presenti,
     )
     creati = 0

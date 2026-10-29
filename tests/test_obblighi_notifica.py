@@ -137,3 +137,105 @@ def test_udienza_di_altro_atto_non_genera_termine():
         contesto={"udienze_future": ["2026-12-15"], "notifica_estero": False}, oggi=OGGI)[0]
     assert obbligo.scadenza == ""
     assert {v["campo"] for v in obbligo.dati_mancanti} == {"udienza", "pronuncia_decreto"}
+
+
+def _fatto(oggetto: str, categoria: str, campo: str, valore: str, *, verifica: str = "verificata", prove=None) -> Fatto:
+    return Fatto(categoria=categoria, campo=campo, valore=valore, valore_letto=valore, oggetto_id=oggetto, prove=prove or [], verifica=verifica)
+
+
+def _fascicolo_con_copia_notificata(*fatti_copia: Fatto):
+    from web.services.obblighi_notifica_runtime import raccogli
+
+    fascicolo = SimpleNamespace(id="F1", controparte="", avvocato_controparte="", documenti=[SimpleNamespace(id="di", nome="decreto_notificato.pdf")])
+    lato = [{"codice": "lato", "esito": "ok", "dettaglio": "agisce"}]
+    fatti = [
+        _fatto("di", "data", "provvedimento", "2026-09-10"),
+        _fatto("di", "parte", "assistito", "Verdi Giulia", prove=lato),
+        _fatto("di", "parte", "controparte", "Alfa S.r.l.", prove=[{"codice": "lato", "esito": "ok", "dettaglio": "resiste"}]),
+        *fatti_copia,
+    ]
+    documenti, parti, contesto = raccogli(fascicolo, fatti, {"di": "Decreto ingiuntivo"})
+    contesto.update(notifica_estero=False, sospensione_feriale=False)
+    return obblighi_del_fascicolo(documenti, parti, contesto=contesto, oggi=OGGI)[0]
+
+
+def test_relata_e_consegna_nella_copia_notificata_chiudono_l_obbligo():
+    # Prima della 2.457.7 la raccolta non produceva mai il collegamento all'atto: l'obbligo restava aperto per sempre.
+    obbligo = _fascicolo_con_copia_notificata(
+        _fatto("di", "prova_notifica", "relata", "relata"),
+        _fatto("di", "prova_notifica", "rdac", "rdac", verifica="plausibile"),
+    )
+    assert obbligo.stato == STATO_NOTIFICATO
+    assert obbligo.dati_mancanti == []
+
+
+def test_relata_senza_ricevuta_di_consegna_lascia_aperto_l_obbligo():
+    obbligo = _fascicolo_con_copia_notificata(_fatto("di", "prova_notifica", "relata", "relata"))
+    assert obbligo.stato == STATO_DA_NOTIFICARE
+    assert "ricevuta di avvenuta consegna" in obbligo.motivo
+
+
+def test_relata_non_confermata_lascia_aperto_l_obbligo():
+    obbligo = _fascicolo_con_copia_notificata(
+        _fatto("di", "prova_notifica", "relata", "relata", verifica="plausibile"),
+        _fatto("di", "prova_notifica", "rdac", "rdac"),
+    )
+    assert obbligo.stato == STATO_DA_NOTIFICARE
+    assert "va ancora confermata" in obbligo.motivo
+
+
+def test_relata_respinta_non_vale_come_prova():
+    obbligo = _fascicolo_con_copia_notificata(
+        _fatto("di", "prova_notifica", "relata", "relata", verifica="respinta"),
+        _fatto("di", "prova_notifica", "rdac", "rdac"),
+    )
+    assert obbligo.stato == STATO_DA_NOTIFICARE
+
+
+def test_relata_in_file_separato_non_si_collega_per_somiglianza():
+    from web.services.obblighi_notifica_runtime import prova_notifica
+
+    relata = [_fatto("rel", "prova_notifica", "relata", "relata"), _fatto("rel", "prova_notifica", "rdac", "rdac")]
+    prova = prova_notifica("rel", relata, {"rel": "Relata di notifica", "di": "Decreto ingiuntivo"})
+    assert prova["atto_documento_id"] == ""
+
+
+def test_destinatario_non_nominato_nella_prova_lascia_aperto_l_obbligo():
+    di = DocumentoCatalogato("d1", "decreto.pdf", "Decreto ingiuntivo", data="2026-09-10", nostro=True)
+    prova = {"documento_id": "d1", "atto_documento_id": "d1", "verificata": True, "consegna": True, "destinatari": ["Alfa S.r.l."]}
+    obbligo = obblighi_del_fascicolo([di], [Parte("Alfa S.r.l.", "controparte"), Parte("Beta Mario", "controparte")],
+                                     contesto={"prove_notifica": [prova], "notifica_estero": False, "sospensione_feriale": False}, oggi=OGGI)[0]
+    assert obbligo.stato == STATO_DA_NOTIFICARE
+    assert "non nomina tutti i destinatari" in obbligo.motivo
+
+
+def test_appello_termine_breve_dalla_notifica_della_sentenza():
+    # Art. 325 c.p.c.: notificata la sentenza, l'appello va notificato entro 30 giorni (prima dei 6 mesi dell'art. 327).
+    appello = DocumentoCatalogato("a1", "appello.pdf", "Atto di appello", nostro=True)
+    contesto = {"pubblicazioni_verificate": {"a1": "2026-06-15"}, "notifica_sentenza": "2026-09-01",
+                "notifica_estero": False, "sospensione_feriale": True}
+    obbligo = obblighi_del_fascicolo([appello], [Parte("Alfa S.r.l.", "controparte", difensore="Rosa Neri")], contesto=contesto, oggi=OGGI)[0]
+    assert obbligo.scadenza == "2026-10-01"
+    assert "art. 325" in obbligo.formula
+
+
+def test_appello_senza_notifica_della_sentenza_resta_il_termine_lungo():
+    appello = DocumentoCatalogato("a1", "appello.pdf", "Atto di appello", nostro=True)
+    contesto = {"pubblicazioni_verificate": {"a1": "2026-06-15"}, "notifica_estero": False, "sospensione_feriale": True}
+    obbligo = obblighi_del_fascicolo([appello], [Parte("Alfa S.r.l.", "controparte", difensore="Rosa Neri")], contesto=contesto, oggi=OGGI)[0]
+    assert obbligo.scadenza == "2027-01-15"  # 6 mesi + 31 giorni di agosto
+    assert obbligo.dati_mancanti == []
+
+
+def test_raccolta_legge_la_notifica_della_sentenza_dalla_copia_notificata():
+    from web.services.obblighi_notifica_runtime import raccogli
+
+    fascicolo = SimpleNamespace(id="F1", controparte="", avvocato_controparte="", documenti=[SimpleNamespace(id="sent", nome="sentenza_notificata.pdf")])
+    fatti = [
+        _fatto("sent", "prova_notifica", "relata", "relata"),
+        _fatto("sent", "prova_notifica", "rdac", "rdac"),
+        _fatto("sent", "data", "notifica", "2026-09-01"),
+        _fatto("sent", "parte", "controparte", "Alfa S.r.l."),
+    ]
+    _, _, contesto = raccogli(fascicolo, fatti, {"sent": "Sentenza"})
+    assert contesto["notifica_sentenza"] == "2026-09-01"

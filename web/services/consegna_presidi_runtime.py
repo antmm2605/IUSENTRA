@@ -34,6 +34,7 @@ from typing import Any
 
 from pct.archivio_letture.distribuzione import PRESIDI_CHE_SCRIVONO
 from pct.registro_letture import RegistroLetture
+from pct.ora_italiana import oggi_roma
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ def _consegna_scadenziario(fascicolo: Any, fatti: list[Any]) -> list[dict[str, s
                 "motivo": "Stesso adempimento già registrato; fonte collegata senza duplicarlo.",
             })
             continue
-        if giorno < date.today().isoformat():
+        if giorno < oggi_roma().isoformat():
             esiti.append({"fatto_id":fatto.id, "stato":"non_pertinente", "motivo":"Data storica del " + format_date_it(giorno) + ": conservata nella lettura, senza creare una nuova urgenza."})
             continue
         modalita = _modalita_termine(fatto.etichetta + " " + fatto.contesto)
@@ -201,7 +202,7 @@ def _consegna_agenda(fascicolo: Any, fatti: list[Any]) -> list[dict[str, str]]:
             esiti.append({"fatto_id": fatto.id, "stato": "rifiutato", "riferimento": incompleta.id,
                           "motivo": "Appuntamento con lo stesso R.G., giorno e ora ma identità incompleta: verifica cliente e ufficio prima di creare una seconda voce."})
             continue
-        if not giorno or giorno < date.today().isoformat():
+        if not giorno or giorno < oggi_roma().isoformat():
             esiti.append({"fatto_id":fatto.id, "stato":"non_pertinente", "motivo":"Data storica conservata nella lettura; non si crea un appuntamento passato."})
             continue
         if not ora:

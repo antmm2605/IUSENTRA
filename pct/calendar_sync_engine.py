@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
 
+from pct.ora_italiana import giorno_italiano
 from pct.agenda import Agenda, Appuntamento, StatoAppuntamento, TipoAppuntamento
 from pct.calendar_bindings import CalendarSyncRepository, now_iso
 from pct.calendar_conflicts import CalendarConflictRepository
@@ -415,7 +416,7 @@ class CalendarSyncEngine:
             scadenza = self.scadenziario.nuova(
                 titolo=title or "Scadenza calendario",
                 tipo=kind if isinstance(kind, TipoTermine) else TipoTermine.ALTRO,
-                data_scadenza=str(event.get("start") or "")[:10],
+                data_scadenza=giorno_italiano(event.get("start")),
                 descrizione=str(event.get("description") or ""),
                 note="Importata da calendario collegato.",
                 perentorio=False,
@@ -440,7 +441,7 @@ class CalendarSyncEngine:
             scadenza = self.scadenziario.get(local_id)
             if scadenza is None:
                 raise KeyError("Scadenza collegata non trovata.")
-            new_date = str(event.get("start") or "")[:10]
+            new_date = giorno_italiano(event.get("start"))
             if scadenza.perentorio and scadenza.data_scadenza and new_date and new_date != scadenza.data_scadenza and not force:
                 raise PermissionError("Scadenza perentoria da revisionare.")
             return self.scadenziario.aggiorna(
@@ -551,7 +552,7 @@ class CalendarSyncEngine:
                 local_changed = bool(local_hash and binding.get("content_hash") and local_hash != binding.get("content_hash"))
                 remote_changed = bool(remote_hash and binding.get("remote_content_hash") and remote_hash != binding.get("remote_content_hash"))
                 if local_type == "scadenza" and isinstance(local, Scadenza) and local.perentorio:
-                    new_date = str(event.get("start") or "")[:10]
+                    new_date = giorno_italiano(event.get("start"))
                     if new_date and local.data_scadenza and new_date != local.data_scadenza:
                         self.conflicts.create_conflict(
                             tenant_id=self.tenant_id,

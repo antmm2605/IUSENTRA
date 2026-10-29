@@ -10,6 +10,7 @@ from datetime import date
 from typing import Any, Iterable
 
 from pct.registro_letture.fatti_repository import Fatto, VERIFICHE_UTILI
+from pct.ora_italiana import oggi_roma
 
 FORZA_PROVA = {"deposito_prova": 6, "rdac": 5, "rac": 4, "relata": 3, "attestazione": 2, "atto_notificato": 1, "comunicazione_cancelleria": 0, "errore_consegna": 0}
 _ETICHETTA_VERIFICA = {"verificata": "verificata dal software", "plausibile": "da confermare", "corretta": "corretta dall'avvocato", "respinta": "respinta", "ignorata": "ignorata"}
@@ -37,7 +38,7 @@ def _istituto_del_fatto(fatto: Fatto):
 def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[dict[str, Any]]:
     """Le date di udienza e i termini letti, nella forma delle azioni del presidio documentale."""
     from .adempimenti import perentorieta_documentata
-    oggi = oggi or date.today()
+    oggi = oggi or oggi_roma()
     fatti = list(fatti)
     azioni: list[dict[str, Any]] = []
     visti: set[tuple[str, str, str]] = set()
@@ -154,7 +155,7 @@ def da_confermare_ora(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
     termine è scaduto, quindi la conferma non produrrebbe alcuna azione. Così
     il riquadro chiede due conferme utili invece di dodici indistinte.
     """
-    oggi = oggi or date.today()
+    oggi = oggi or oggi_roma()
     richieste: list[dict[str, Any]] = []
     visti: set[tuple[str, str, str]] = set()
     for fatto in fatti:
@@ -281,7 +282,7 @@ def eventi_letti(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[di
     diventano voci con una data, così non restano un numero nel riassunto.
     Un evento senza data non si mostra: in cronologia non avrebbe posto.
     """
-    oggi = oggi or date.today()
+    oggi = oggi or oggi_roma()
     voci: list[dict[str, Any]] = []
     visti: set[tuple[str, str, str]] = set()
     for fatto in fatti:

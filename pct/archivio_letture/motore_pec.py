@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from pct.ora_italiana import giorno_italiano, ora_italiana
 from pct.registro_letture.fatti_repository import Fatto
 
 from .ancoraggio import VERSIONE_DATE_PROCESSUALI
@@ -22,7 +23,7 @@ from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
 
 VERSIONE_MOTORE_PEC = "2026.10.07.motore-pec.v12+identita-fascicolo-allegati+contesto-economico+importi:" + VERSIONE_ESTRAZIONE_IMPORTI + "+date:" + VERSIONE_DATE_PROCESSUALI
-VERSIONE_MOTORE_PEC += "+prove:" + VERSIONE_PROVE_NOTIFICA
+VERSIONE_MOTORE_PEC += "+prove:" + VERSIONE_PROVE_NOTIFICA + "+ricezione-ora-italiana"
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),
@@ -42,14 +43,10 @@ def _giorno(valore: Any) -> str:
     return _testo(valore)[:10]
 
 
-def _ora(valore: Any) -> str:
-    testo = _testo(valore)
-    return testo[11:16] if len(testo) >= 16 and testo[10] in "T " else ""
-
-
 def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fatto]:
     """I fatti di un messaggio del presidio: udienze, termini, eventi, ricevute PEC."""
-    ricevuta_il = _giorno(messaggio.get("received_at"))
+    # Il presidio salva la ricezione in UTC («…Z»): giorno e ora si leggono in Italia.
+    ricevuta_il = giorno_italiano(_testo(messaggio.get("received_at")))
     oggetto = _testo(messaggio.get("subject"))
     mittente = _testo(messaggio.get("from"))
     fatti: list[Fatto] = []
@@ -65,7 +62,7 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
             ],
         ))
         if ricevuta_il and campo != "errore_consegna":
-            ora = _ora(messaggio.get("received_at"))
+            ora = ora_italiana(_testo(messaggio.get("received_at")))
             fatti.append(Fatto(
                 categoria="data", campo=campo_data, valore=ricevuta_il + (f"T{ora}" if ora else ""), valore_letto=_testo(messaggio.get("received_at"))[:25],
                 etichetta=f"{'Accettazione' if campo == 'rac' else 'Avvenuta consegna'} del {ricevuta_il[8:10]}/{ricevuta_il[5:7]}/{ricevuta_il[:4]}" + (f" ore {ora}" if ora else ""),

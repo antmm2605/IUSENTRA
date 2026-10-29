@@ -4,11 +4,38 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import requests
 
 from .base import CalendarProviderError, normalise_provider_event
 
+
+def _da_graph(valore: Any, *, all_day: bool) -> str:
+    """Graph risponde in UTC senza offset (intestazione Prefer): l'offset si rende esplicito.
+
+    Senza offset l'orario verrebbe letto come ora italiana e l'udienza si sposterebbe di una o due ore.
+    """
+    testo = str(valore or "").strip()
+    if not testo or all_day:
+        return testo[:10] if all_day else testo
+    if testo.endswith("Z") or "+" in testo[10:] or "-" in testo[10:]:
+        return testo
+    return testo[:19] + "+00:00"
+
+
+def _per_graph(valore: Any, *, all_day: bool) -> Any:
+    """Graph vuole data e ora senza offset nel fuso dichiarato (UTC): un orario italiano si converte."""
+    testo = str(valore or "").strip()
+    if all_day or len(testo) < 16:
+        return valore
+    try:
+        momento = datetime.fromisoformat(testo.replace("Z", "+00:00"))
+    except ValueError:
+        return valore
+    if momento.tzinfo is None:
+        momento = momento.replace(tzinfo=ZoneInfo("Europe/Rome"))
+    return momento.astimezone(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds")
 
 class MicrosoftCalendarProvider:
     provider_name = "microsoft"
@@ -80,8 +107,8 @@ class MicrosoftCalendarProvider:
                 "title": item.get("subject", "Evento calendario"),
                 "description": (item.get("body") or {}).get("content", ""),
                 "location": (item.get("location") or {}).get("displayName", ""),
-                "start": start.get("dateTime", ""),
-                "end": end.get("dateTime", ""),
+                "start": _da_graph(start.get("dateTime", ""), all_day=bool(item.get("isAllDay"))),
+                "end": _da_graph(end.get("dateTime", ""), all_day=bool(item.get("isAllDay"))),
                 "all_day": bool(item.get("isAllDay")),
                 "status": "cancelled" if item.get("isCancelled") else "confirmed",
                 "etag": item.get("@odata.etag", ""),
@@ -111,8 +138,8 @@ class MicrosoftCalendarProvider:
             "subject": event.get("title") or "Evento IUSENTRA",
             "body": {"contentType": "text", "content": event.get("description") or ""},
             "location": {"displayName": event.get("location") or ""},
-            "start": {"dateTime": event.get("start"), "timeZone": "UTC"},
-            "end": {"dateTime": event.get("end") or event.get("start"), "timeZone": "UTC"},
+            "start": {"dateTime": _per_graph(event.get("start"), all_day=bool(event.get("all_day"))), "timeZone": "UTC"},
+            "end": {"dateTime": _per_graph(event.get("end") or event.get("start"), all_day=bool(event.get("all_day"))), "timeZone": "UTC"},
             "isAllDay": bool(event.get("all_day")),
             "categories": list(event.get("categories") or []),
         }

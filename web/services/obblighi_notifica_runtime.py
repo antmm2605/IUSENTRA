@@ -11,11 +11,11 @@ una volta sola (il riferimento resta nella nota), come proposta da confermare.
 from __future__ import annotations
 
 import logging
-from datetime import date
 from dataclasses import replace
 from typing import Any
 
 from pct.obblighi_notifica import STATO_DA_NOTIFICARE, DocumentoCatalogato, Parte, obblighi_del_fascicolo
+from pct.ora_italiana import oggi_roma
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +43,41 @@ def _catalogo(fascicolo: Any) -> dict[str, str]:
     return {_testo(a.document_id): _testo(a.document_label) for a in assegnazioni if _testo(a.document_id) and _testo(a.document_label)}
 
 
+_VALIDE = {"verificata", "corretta"}
+_SCARTATE = {"respinta", "ignorata"}
+
+
+def prova_notifica(oid: str, elenco: list[Any], etichette: dict[str, str], *, data: str = "") -> dict[str, Any]:
+    """La prova di notifica di un documento, con l'atto a cui si riferisce e i destinatari che nomina.
+
+    L'atto è certo solo quando relata e ricevuta di avvenuta consegna stanno nella stessa copia notificata
+    dell'atto catalogato (art. 3-bis, comma 3, e art. 9 L. 53/1994: la notifica si perfeziona per il
+    destinatario con la ricevuta di avvenuta consegna). Una relata in un file separato non si collega per
+    somiglianza: l'obbligo resta aperto con il motivo.
+    """
+    prove = [f for f in elenco if f.categoria == "prova_notifica" and f.verifica not in _SCARTATE]
+    relate = [f for f in prove if f.campo == "relata"]
+    consegne = [f for f in prove if f.campo == "rdac"]
+    etichetta = etichette.get(oid, "").casefold()
+    nella_copia = bool(etichetta) and etichetta != "relata di notifica"
+    return {
+        "documento_id": oid,
+        "data": data,
+        "atto": " ".join(_testo(f.contesto)[:200] for f in prove),
+        "atto_documento_id": oid if nella_copia and relate else "",
+        "relata": bool(relate),
+        "consegna": bool(consegne),
+        "verificata": any(f.verifica in _VALIDE for f in relate) and bool(consegne),
+        "destinatari": sorted({_testo(f.valore) for f in elenco if f.categoria == "parte"
+                               and f.campo in {"controparte", "controinteressato"} and f.verifica not in _SCARTATE}),
+    }
+
+
 def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tuple[list[DocumentoCatalogato], list[Parte], dict[str, Any]]:
     """Documenti, parti e contesto per il calcolo, dai soli dati già letti."""
     from pct.archivio_letture.parti_fascicolo import parti_lette
 
-    oggi = date.today().isoformat()
+    oggi = oggi_roma().isoformat()
     per_oggetto: dict[str, list[Any]] = {}
     for fatto in fatti:
         per_oggetto.setdefault(_testo(getattr(fatto, "oggetto_id", "")), []).append(fatto)
@@ -87,8 +117,15 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
     prove = []
     for oid, elenco in per_oggetto.items():
         if any(f.categoria == "prova_notifica" and f.campo in {"relata", "rdac"} for f in elenco) or etichette.get(oid, "").casefold() == "relata di notifica":
-            prove.append({"documento_id": oid, "data": _data(oid, "notifica", "data_atto"), "atto": " ".join(_testo(f.contesto)[:200] for f in elenco if f.categoria == "prova_notifica")})
+            prove.append(prova_notifica(oid, elenco, etichette, data=_data(oid, "notifica", "data_atto")))
+    # Termine breve di impugnazione (art. 325 c.p.c.; art. 92 c.p.a.): solo se nel fascicolo c'è una sola
+    # copia notificata di sentenza, con relata e consegna, e la data della notificazione è letta e univoca.
+    notifiche_sentenza = {_data(prova["documento_id"], "notifica") for prova in prove
+                          if prova.get("verificata") and prova.get("atto_documento_id")
+                          and etichette.get(prova["documento_id"], "").casefold() == "sentenza"
+                          and prova["documento_id"] not in precedenti}
     contesto = {
+        "notifica_sentenza": next(iter(notifiche_sentenza)) if len(notifiche_sentenza) == 1 else "",
         "udienze_future": sorted({_testo(f.valore)[:10] for f in fatti if f.categoria == "data" and f.campo == "udienza" and f.verifica in {"verificata", "corretta"} and f.oggetto_id in nomi and f.oggetto_id not in precedenti and _testo(f.valore)[:10] >= oggi}),
         "date_sentenze": [d.data for d in documenti if d.etichetta.casefold() == "sentenza" and d.data],
         "data_provvedimento_impugnato": next((d.data for d in documenti if d.etichetta.casefold() == "provvedimento amministrativo" and d.data), ""),
@@ -157,7 +194,7 @@ def allinea_scadenze(fascicolo: Any, obblighi: list[dict[str, Any]] | None = Non
     fid = _testo(fascicolo.id)
     esistenti = " ".join(_testo(getattr(s, "note", "")) for s in gestore.tutte(id_fascicolo=fid, solo_aperte=False))
     conteggi = {"creati": 0, "esistenti": 0}
-    oggi = date.today().isoformat()
+    oggi = oggi_roma().isoformat()
     for obbligo in obblighi:
         if obbligo["stato"] != STATO_DA_NOTIFICARE or obbligo.get("dati_mancanti") or not obbligo["scadenza"] or obbligo["scadenza"] < oggi:
             continue
@@ -180,4 +217,4 @@ def allinea_scadenze(fascicolo: Any, obblighi: list[dict[str, Any]] | None = Non
     return conteggi
 
 
-__all__ = ["MARCATORE", "allinea_scadenze", "obblighi_fascicolo", "raccogli"]
+__all__ = ["MARCATORE", "allinea_scadenze", "obblighi_fascicolo", "prova_notifica", "raccogli"]

@@ -314,6 +314,10 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         db_path=_tenant_json_mirror_path(paths, "SCADENZIARIO_DB", "scadenziario/scadenze.json"),
         studio_db=backend,
     )
+    # Prima degli avvisi: le memorie 171-ter salvate con il vecchio calcolo in avanti tornano prima dell'udienza.
+    from pct.riconvalida_termini_ritroso import riconvalida_memorie_171ter
+
+    riconvalida_171ter = riconvalida_memorie_171ter(scadenziario)
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -328,6 +332,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "items": 0,
         "errors": 0,
         "expiredSupersededSources": 0,
+        "riconvalida171ter": riconvalida_171ter,
     }
     for user in recipients:
         try:

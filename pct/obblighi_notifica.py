@@ -34,6 +34,8 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any, Iterable
 
+from pct.ora_italiana import oggi_roma
+
 STATO_DA_NOTIFICARE = "da_notificare"
 STATO_NOTIFICATO = "notificato"
 STATO_DA_VERIFICARE = "da_verificare"
@@ -150,7 +152,9 @@ REGOLE: tuple[RegolaNotifica, ...] = (
         "atto di appello", "controparti_presso_difensore",
         ("art. 325 c.p.c.", "art. 327 c.p.c.", "art. 330 c.p.c."),
         termini=(Termine("pubblicazione", mesi=6, natura="perentorio",
-                         formula="entro 30 giorni dalla notificazione della sentenza (art. 325) e comunque entro 6 mesi dalla pubblicazione (art. 327)"),),
+                         formula="entro 30 giorni dalla notificazione della sentenza (art. 325) e comunque entro 6 mesi dalla pubblicazione (art. 327)"),
+                 Termine("notifica_sentenza", giorni=30, natura="perentorio",
+                         formula="entro 30 giorni dalla notificazione della sentenza (art. 325 c.p.c.)")),
         avvertenze="Si notifica al procuratore costituito della controparte (art. 330 c.p.c.).",
     ),
     RegolaNotifica(
@@ -158,7 +162,9 @@ REGOLE: tuple[RegolaNotifica, ...] = (
         "appello", "controparti_presso_difensore",
         ("art. 92 c.p.a.", "art. 94 c.p.a."),
         termini=(Termine("pubblicazione", mesi=6, natura="perentorio",
-                         formula="entro 60 giorni dalla notificazione della sentenza e comunque entro 6 mesi dalla pubblicazione (art. 92 c.p.a.)"),),
+                         formula="entro 60 giorni dalla notificazione della sentenza e comunque entro 6 mesi dalla pubblicazione (art. 92 c.p.a.)"),
+                 Termine("notifica_sentenza", giorni=60, natura="perentorio",
+                         formula="entro 60 giorni dalla notificazione della sentenza (art. 92, primo comma, c.p.a.)")),
         dopo="Deposito entro 30 giorni dall'ultima notificazione (art. 94 c.p.a.).",
     ),
     RegolaNotifica(
@@ -305,23 +311,51 @@ def _base(termine: Termine, documento: DocumentoCatalogato, contesto: dict[str, 
         return _giorno(documento.data)
     if termine.base == "provvedimento_impugnato":
         return _giorno((contesto.get("conoscenze_verificate") or {}).get(documento.id, ""))
+    if termine.base == "notifica_sentenza":
+        return _giorno(contesto.get("notifica_sentenza", ""))
     return None
 
 
-def _notificato(regola: RegolaNotifica, documento: DocumentoCatalogato, contesto: dict[str, Any]) -> bool:
+def _parole_nome(nome: str) -> frozenset[str]:
+    return frozenset(parola for parola in re.findall(r"[a-zàèéìòù']{3,}", str(nome or "").casefold()) if parola not in {"s.r.l", "srl", "spa", "s.p.a"})
+
+
+def _destinatari_completi(prova: dict[str, Any], destinatari: list[dict[str, str]]) -> bool:
+    """Ogni destinatario dell'obbligo è nominato nella prova (stesse parole del nome, in qualsiasi ordine)."""
+    if prova.get("destinatari_completi") is True:
+        return True
+    nominati = [_parole_nome(nome) for nome in prova.get("destinatari", ()) if _parole_nome(nome)]
+    attesi = [_parole_nome(d.get("nome", "")) for d in destinatari]
+    return bool(attesi) and all(atteso and any(atteso <= nome or nome <= atteso for nome in nominati) for atteso in attesi)
+
+
+def _notificato(regola: RegolaNotifica, documento: DocumentoCatalogato, contesto: dict[str, Any],
+                destinatari: list[dict[str, str]] | None = None) -> bool:
     """Solo una prova verificata dell'atto preciso e di tutti i destinatari."""
     for prova in contesto.get("prove_notifica", ()):
-        if (prova.get("atto_documento_id") == documento.id
-                and prova.get("verificata") is True and prova.get("destinatari_completi") is True):
+        if (prova.get("atto_documento_id") == documento.id and prova.get("verificata") is True
+                and _destinatari_completi(prova, list(destinatari or []))):
             return True
     return False
+
+
+def _motivo_prova_incompleta(documento: DocumentoCatalogato, contesto: dict[str, Any]) -> str:
+    for prova in contesto.get("prove_notifica", ()):
+        if prova.get("atto_documento_id") != documento.id:
+            continue
+        if not prova.get("consegna"):
+            return "La relata è nella copia notificata, ma manca la ricevuta di avvenuta consegna (art. 3-bis L. 53/1994)."
+        if prova.get("verificata") is not True:
+            return "La relata è nella copia notificata, ma la sua lettura va ancora confermata."
+        return "La relata non nomina tutti i destinatari dell'obbligo: verifica a chi è stato notificato l'atto."
+    return ""
 
 
 def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iterable[Parte], *, ufficio: str = "",
                            contesto: dict[str, Any] | None = None, oggi: date | None = None) -> list[ObbligoNotifica]:
     """Gli obblighi di notifica che nascono dai documenti del fascicolo."""
     contesto = dict(contesto or {})
-    oggi = oggi or date.today()
+    oggi = oggi or oggi_roma()
     parti = list(parti)
     esito: list[ObbligoNotifica] = []
     for documento in documenti:
@@ -336,12 +370,16 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                 obbligo.stato, obbligo.motivo = STATO_DA_VERIFICARE, "Dagli atti non risulta se l'atto è dello studio: confermare prima di notificare."
                 obbligo.dati_mancanti.append({"campo": "atto_studio", "documento_id": documento.id,
                     "descrizione": "La posizione della parte assistita in questo atto non è univoca: verifica l’epigrafe."})
-            if _notificato(regola, documento, contesto):
+            if _notificato(regola, documento, contesto, obbligo.destinatari):
                 obbligo.stato, obbligo.motivo = STATO_NOTIFICATO, "Prova verificata per questo atto e per tutti i destinatari."
+            elif obbligo.stato == STATO_DA_NOTIFICARE and (incompleta := _motivo_prova_incompleta(documento, contesto)):
+                obbligo.motivo = incompleta
             for termine in regola.termini:
                 if not obbligo.formula:
                     obbligo.natura, obbligo.formula = termine.natura, termine.formula
                 base = _base(termine, documento, contesto)
+                if base is None and termine.base == "notifica_sentenza":
+                    continue  # il termine breve decorre solo se la sentenza è stata notificata: senza notifica vale il lungo
                 if base is None:
                     descrizioni = {
                         "udienza": "Manca un’udienza univoca riferita a questo atto: verifica il decreto di fissazione o di rinvio.",

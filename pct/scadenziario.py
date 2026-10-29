@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pct.formatting import format_date_it
+from pct.ora_italiana import oggi_roma
 
 
 class TipoTermine(str, Enum):
@@ -211,6 +212,12 @@ def calcola_termine(data_inizio: date, giorni: int = 0, tipo: str = "liberi", so
         d = _aggiungi_anni_calendario(d, anni)
     if mesi:
         d = _aggiungi_mesi_calendario(d, mesi)
+        if sospensione_feriale:
+            # L. 742/1969: anche i termini a mesi (es. art. 327 c.p.c.) si allungano dei giorni di agosto attraversati.
+            base_mesi, spostata = d, None
+            while spostata != d:
+                spostata = d
+                d = base_mesi + timedelta(days=sum(1 for n in range((d - data_inizio).days) if (data_inizio + timedelta(days=n + 1)).month == 8))
     if giorni:
         if tipo_norm == "lavorativi":
             d = _aggiungi_giorni_lavorativi(d, giorni, sospensione_feriale=sospensione_feriale, escludi_inizio=escludi_inizio)
@@ -263,6 +270,9 @@ class ProfiloTermine:
     extend_if_final_saturday: bool = True
     apply_ferial_suspension: bool = True
     notes: str = ""
+    # «ritroso»: il termine si conta all'indietro dall'evento (es. memorie art. 171-ter c.p.c., «almeno
+    # quaranta giorni prima dell'udienza»); se l'ultimo giorno è sabato o festivo si anticipa (art. 155 c.p.c.).
+    direzione: str = "avanti"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -295,9 +305,14 @@ PROFILI_TERMINE_BUILTIN: Dict[str, ProfiloTermine] = {
     "TERM_3_HOURS": ProfiloTermine("TERM_3_HOURS", "Termine 3 ore", UnitaTermine.ORE.value, 3, extend_if_final_saturday=False, apply_ferial_suspension=False),
     "TERM_1_MONTH": ProfiloTermine("TERM_1_MONTH", "Termine 1 mese", UnitaTermine.MESI.value, 1, exclude_initial_day=False),
     "TERM_6_MONTHS": ProfiloTermine("TERM_6_MONTHS", "Termine 6 mesi", UnitaTermine.MESI.value, 6, exclude_initial_day=False, apply_ferial_suspension=False),
+    "TERM_6_MONTHS_FERIAL": ProfiloTermine("TERM_6_MONTHS_FERIAL", "Termine 6 mesi con sospensione feriale", UnitaTermine.MESI.value, 6, exclude_initial_day=False),
     "TERM_1_YEAR": ProfiloTermine("TERM_1_YEAR", "Termine 1 anno", UnitaTermine.ANNI.value, 1, exclude_initial_day=False, apply_ferial_suspension=False),
+    "TERM_5_YEARS": ProfiloTermine("TERM_5_YEARS", "Termine 5 anni", UnitaTermine.ANNI.value, 5, exclude_initial_day=False, apply_ferial_suspension=False),
     "TERM_10_YEARS": ProfiloTermine("TERM_10_YEARS", "Termine 10 anni", UnitaTermine.ANNI.value, 10, exclude_initial_day=False, apply_ferial_suspension=False),
     "TERM_30_DAYS_NO_FERIAL": ProfiloTermine("TERM_30_DAYS_NO_FERIAL", "Termine 30 giorni senza sospensione feriale", UnitaTermine.GIORNI.value, 30, apply_ferial_suspension=False),
+    "TERM_40_DAYS_BEFORE": ProfiloTermine("TERM_40_DAYS_BEFORE", "Termine 40 giorni prima dell'evento", UnitaTermine.GIORNI.value, 40, direzione="ritroso"),
+    "TERM_20_DAYS_BEFORE": ProfiloTermine("TERM_20_DAYS_BEFORE", "Termine 20 giorni prima dell'evento", UnitaTermine.GIORNI.value, 20, direzione="ritroso"),
+    "TERM_10_DAYS_BEFORE": ProfiloTermine("TERM_10_DAYS_BEFORE", "Termine 10 giorni prima dell'evento", UnitaTermine.GIORNI.value, 10, direzione="ritroso"),
 }
 
 
@@ -402,8 +417,11 @@ def _compute_raw_due(start_at: datetime, profile: ProfiloTermine, procedural_rul
                 trace.append(f"Ora sospesa per periodo feriale -> {_iso_dt(cursor)}")
             cursor += timedelta(hours=1)
         return cursor
+    if _a_ritroso(profile) and profile.unit != UnitaTermine.GIORNI.value:
+        raise ValueError("Il calcolo a ritroso è previsto solo per i termini a giorni")
     if profile.unit == UnitaTermine.GIORNI.value:
-        cursor = start_at + timedelta(days=1) if profile.exclude_initial_day else start_at
+        passo = timedelta(days=-1 if _a_ritroso(profile) else 1)
+        cursor = start_at + passo if profile.exclude_initial_day else start_at
         if profile.exclude_initial_day:
             trace.append(f"Escluso il giorno iniziale -> {_iso_dt(cursor)}")
         counted = 0
@@ -415,7 +433,7 @@ def _compute_raw_due(start_at: datetime, profile: ProfiloTermine, procedural_rul
                     return cursor
             else:
                 trace.append(f"Giorno sospeso per periodo feriale -> {cursor.date().isoformat()}")
-            cursor += timedelta(days=1)
+            cursor += passo
         return cursor
     base_due = datetime.combine(_aggiungi_mesi_calendario(start_at.date(), profile.quantity), start_at.time()) if profile.unit == UnitaTermine.MESI.value else datetime.combine(_aggiungi_anni_calendario(start_at.date(), profile.quantity), start_at.time())
     trace.append(f"Scadenza base a calendario comune -> {_iso_dt(base_due)}")
@@ -433,8 +451,21 @@ def _compute_raw_due(start_at: datetime, profile: ProfiloTermine, procedural_rul
         due = shifted
 
 
+def _a_ritroso(profile: ProfiloTermine) -> bool:
+    return str(getattr(profile, "direzione", "avanti") or "avanti") == "ritroso"
+
+
 def _roll_forward_legal_due(raw_due: datetime, profile: ProfiloTermine, legal_rules: List[RegolaCalendario], trace: List[str]) -> datetime:
     due = raw_due
+    if _a_ritroso(profile):
+        # Termine a ritroso: lo spostamento non può superare l'evento, quindi si anticipa al giorno utile precedente.
+        while True:
+            holiday = _has_blocking_rule(due, legal_rules, "legal")
+            blocked = (profile.extend_if_final_holiday and (due.weekday() == 6 or holiday)) or (profile.extend_if_final_saturday and due.weekday() == 5)
+            if not blocked:
+                return due
+            trace.append(f"Anticipo dal {due.date().isoformat()} al giorno utile precedente (termine a ritroso)")
+            due -= timedelta(days=1)
     while True:
         sunday = due.weekday() == 6
         saturday = due.weekday() == 5
@@ -542,20 +573,20 @@ def riepilogo_operativo_scadenza(*, trace: Optional[List[str]] = None, operation
 PRESET_TERMINI: Dict[str, Dict[str, Any]] = {
     "impugnazione_sentenza_civile": {"label": "Impugnazione sentenza civile", "giorni": 30, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 325 c.p.c. - 30 giorni dalla notifica della sentenza, con sospensione feriale se applicabile.", "profile_code": "TERM_30_DAYS", "source_event_type": "notifica", "operational_lead_business_days": 2},
     "appello_breve": {"label": "Appello (termine breve)", "giorni": 30, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 325 c.p.c. - 30 giorni dalla notifica della sentenza.", "profile_code": "TERM_30_DAYS", "source_event_type": "notifica", "operational_lead_business_days": 2},
-    "appello_lungo": {"label": "Appello (termine lungo)", "mesi": 6, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 327 c.p.c. - 6 mesi dal deposito della sentenza, computati a mesi di calendario comune.", "profile_code": "TERM_6_MONTHS", "source_event_type": "deposito_sentenza", "operational_lead_business_days": 5},
+    "appello_lungo": {"label": "Appello (termine lungo)", "mesi": 6, "tipo": "continui", "sospensione_feriale": True, "descrizione": "Art. 327 c.p.c. - 6 mesi dal deposito della sentenza, computati a mesi di calendario comune, più la sospensione feriale dal 1° al 31 agosto (L. 742/1969).", "profile_code": "TERM_6_MONTHS_FERIAL", "source_event_type": "deposito_sentenza", "operational_lead_business_days": 5},
     "cassazione_breve": {"label": "Ricorso in Cassazione (breve)", "giorni": 60, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 325 c.p.c. - 60 giorni dalla notifica.", "profile_code": "TERM_60_DAYS", "source_event_type": "notifica", "operational_lead_business_days": 3},
-    "cassazione_lungo": {"label": "Ricorso in Cassazione (lungo)", "mesi": 6, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 327 c.p.c. - 6 mesi dal deposito, computati a mesi di calendario comune.", "profile_code": "TERM_6_MONTHS", "source_event_type": "deposito_sentenza", "operational_lead_business_days": 5},
+    "cassazione_lungo": {"label": "Ricorso in Cassazione (lungo)", "mesi": 6, "tipo": "continui", "sospensione_feriale": True, "descrizione": "Art. 327 c.p.c. - 6 mesi dal deposito, computati a mesi di calendario comune, più la sospensione feriale dal 1° al 31 agosto (L. 742/1969).", "profile_code": "TERM_6_MONTHS_FERIAL", "source_event_type": "deposito_sentenza", "operational_lead_business_days": 5},
     "opposizione_decreto_ingiuntivo": {"label": "Opposizione decreto ingiuntivo", "giorni": 40, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 641 c.p.c. - 40 giorni dalla notifica.", "profile_code": "TERM_40_DAYS", "source_event_type": "notifica", "operational_lead_business_days": 2},
-    "memoria_ex_171_ter_n1": {"label": "Memoria art. 171-ter n. 1", "giorni": 40, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Prima memoria del rito ordinario post-Cartabia: 40 giorni prima dell'udienza.", "profile_code": "TERM_40_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 2},
-    "memoria_ex_171_ter_n2": {"label": "Memoria art. 171-ter n. 2", "giorni": 20, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Seconda memoria del rito ordinario post-Cartabia: 20 giorni prima dell'udienza.", "profile_code": "TERM_20_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 2},
-    "memoria_ex_171_ter_n3": {"label": "Memoria art. 171-ter n. 3", "giorni": 10, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Terza memoria del rito ordinario post-Cartabia: 10 giorni prima dell'udienza.", "profile_code": "TERM_10_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 1},
+    "memoria_ex_171_ter_n1": {"label": "Memoria art. 171-ter n. 1", "giorni": 40, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Prima memoria del rito ordinario post-Cartabia: 40 giorni prima dell'udienza.", "profile_code": "TERM_40_DAYS_BEFORE", "direzione": "ritroso", "source_event_type": "udienza", "operational_lead_business_days": 2},
+    "memoria_ex_171_ter_n2": {"label": "Memoria art. 171-ter n. 2", "giorni": 20, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Seconda memoria del rito ordinario post-Cartabia: 20 giorni prima dell'udienza.", "profile_code": "TERM_20_DAYS_BEFORE", "direzione": "ritroso", "source_event_type": "udienza", "operational_lead_business_days": 2},
+    "memoria_ex_171_ter_n3": {"label": "Memoria art. 171-ter n. 3", "giorni": 10, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Terza memoria del rito ordinario post-Cartabia: 10 giorni prima dell'udienza.", "profile_code": "TERM_10_DAYS_BEFORE", "direzione": "ritroso", "source_event_type": "udienza", "operational_lead_business_days": 1},
     "memoria_ex_183_co6_n1": {"label": "Memoria art. 183 co. 6 n. 1 (rito previgente)", "giorni": 30, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Preset legacy per fascicoli con rito previgente: 30 giorni.", "profile_code": "TERM_30_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 2},
     "memoria_ex_183_co6_n2": {"label": "Memoria art. 183 co. 6 n. 2 (rito previgente)", "giorni": 30, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Preset legacy per fascicoli con rito previgente: 30 giorni.", "profile_code": "TERM_30_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 2},
     "memoria_ex_183_co6_n3": {"label": "Memoria art. 183 co. 6 n. 3 (rito previgente)", "giorni": 20, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Preset legacy per fascicoli con rito previgente: 20 giorni.", "profile_code": "TERM_20_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 2},
     "comparsa_conclusionale": {"label": "Comparsa conclusionale", "giorni": 60, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 190 c.p.c. - 60 giorni.", "profile_code": "TERM_60_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 3},
     "memoria_replica": {"label": "Memoria di replica", "giorni": 20, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 190 c.p.c. - 20 giorni dopo la comparsa conclusionale.", "profile_code": "TERM_20_DAYS", "source_event_type": "deposito", "operational_lead_business_days": 1},
     "prescrizione_ordinaria": {"label": "Prescrizione ordinaria", "anni": 10, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2946 c.c. - 10 anni, computati secondo il calendario comune.", "profile_code": "TERM_10_YEARS", "source_event_type": "evento", "operational_lead_business_days": 30},
-    "prescrizione_breve_5anni": {"label": "Prescrizione breve (5 anni)", "anni": 5, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2948 c.c. - 5 anni, computati secondo il calendario comune.", "profile_code": "TERM_1_YEAR", "source_event_type": "evento", "operational_lead_business_days": 30},
+    "prescrizione_breve_5anni": {"label": "Prescrizione breve (5 anni)", "anni": 5, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2948 c.c. - 5 anni, computati secondo il calendario comune.", "profile_code": "TERM_5_YEARS", "source_event_type": "evento", "operational_lead_business_days": 30},
 }
 
 
@@ -566,6 +597,8 @@ def profilo_da_preset(preset_key: str) -> ProfiloTermine:
     code = preset.get("profile_code") or f"PRESET_{preset_key.upper()}"
     if code in PROFILI_TERMINE_BUILTIN:
         return PROFILI_TERMINE_BUILTIN[code]
+    if preset.get("direzione") == "ritroso":
+        raise ValueError(f"Preset '{preset_key}' a ritroso senza profilo dichiarato")
     return _profilo_custom(code=code, label=preset.get("label", preset_key), giorni=int(preset.get("giorni", 0) or 0), mesi=int(preset.get("mesi", 0) or 0), anni=int(preset.get("anni", 0) or 0), ore=int(preset.get("ore", 0) or 0), tipo=str(preset.get("tipo", "liberi")), sospensione_feriale=bool(preset.get("sospensione_feriale", True)))
 
 
@@ -658,14 +691,14 @@ class Scadenza:
         """
 
         due_date = self.data_scadenza_obj
-        if self.e_presidio_notifica and self.stato == StatoTermine.APERTO and due_date and due_date < date.today():
-            return date.today()
+        if self.e_presidio_notifica and self.stato == StatoTermine.APERTO and due_date and due_date < oggi_roma():
+            return oggi_roma()
         return due_date
 
     @property
     def giorni_alla_scadenza(self) -> Optional[int]:
         ds = self.data_calendario_obj
-        return (ds - date.today()).days if ds else None
+        return (ds - oggi_roma()).days if ds else None
 
     @property
     def raw_due_at_obj(self) -> Optional[datetime]:
@@ -1076,6 +1109,9 @@ class GestioneScadenziario:
             raise ValueError(f"Preset '{preset_key}' non trovato")
         if not data_decorrenza or not data_decorrenza.strip():
             raise ValueError("Data decorrenza obbligatoria per il calcolo del termine")
+        if preset.get("direzione") == "ritroso":
+            esito = self.calcola_avanzata(start_at=date.fromisoformat(data_decorrenza[:10]), profile=profilo_da_preset(preset_key))
+            return self.nuova(titolo=titolo, tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=esito.legal_due_at[:10], id_fascicolo=id_fascicolo, descrizione=preset.get("descrizione", ""), data_decorrenza=data_decorrenza, deadline_profile_code=preset.get("profile_code", ""), source_event_type=preset.get("source_event_type", ""), source_event_at=data_decorrenza, raw_due_at=esito.raw_due_at, legal_due_at=esito.legal_due_at, trace_json=json.dumps(esito.trace, ensure_ascii=False), **kwargs)
         d_scadenza = calcola_termine(date.fromisoformat(data_decorrenza), giorni=preset.get("giorni", 0), tipo=preset.get("tipo", "liberi"), sospensione_feriale=preset.get("sospensione_feriale", True), mesi=preset.get("mesi", 0), anni=preset.get("anni", 0))
         return self.nuova(titolo=titolo, tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=d_scadenza.isoformat(), id_fascicolo=id_fascicolo, descrizione=preset.get("descrizione", ""), data_decorrenza=data_decorrenza, deadline_profile_code=preset.get("profile_code", ""), source_event_type=preset.get("source_event_type", ""), source_event_at=data_decorrenza, **kwargs)
 
@@ -1170,14 +1206,14 @@ class GestioneScadenziario:
         return sorted(risultati, key=lambda s: s.data_scadenza or "9999-12-31")
 
     def imminenti(self, entro_giorni: int = 7) -> List[Scadenza]:
-        limite = (date.today() + timedelta(days=entro_giorni)).isoformat()
+        limite = (oggi_roma() + timedelta(days=entro_giorni)).isoformat()
         result = [s for s in self._scadenze.values() if s.stato == StatoTermine.APERTO and s.data_scadenza and s.data_scadenza <= limite]
         for s in result:
             s.aggiorna_priorita()
         return sorted(result, key=lambda s: s.data_scadenza)
 
     def scadute(self) -> List[Scadenza]:
-        oggi = date.today().isoformat()
+        oggi = oggi_roma().isoformat()
         result = [s for s in self._scadenze.values() if s.stato == StatoTermine.APERTO and s.data_scadenza < oggi]
         for s in result:
             s.stato = StatoTermine.SCADUTO
@@ -1190,7 +1226,7 @@ class GestioneScadenziario:
         return [s for s in self._scadenze.values() if s.data_scadenza.startswith(prefisso)]
 
     def scadenze_da_notificare(self) -> List[Tuple[Scadenza, int]]:
-        oggi = date.today()
+        oggi = oggi_roma()
         result: List[Tuple[Scadenza, int]] = []
         for s in self._scadenze.values():
             if s.stato != StatoTermine.APERTO or not s.data_scadenza:

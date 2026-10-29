@@ -41,7 +41,7 @@ def conferma_proposte_catalogo(fascicolo_id: str, *, user_context: dict[str, Any
         try:
             resolve_document_catalog_assignment(
                 str(fascicolo_id), documento_id, status="confirmed", note=NOTA_CONFERMA_MASSIVA,
-                evidence_acknowledged=True, user_context=user_context,
+                evidence_acknowledged=True, user_context=user_context, modalita="massiva",
             )
             confermate.append({"document_id": documento_id, "document_label": etichetta})
         except Exception as exc:  # una proposta che non si conferma non blocca le altre

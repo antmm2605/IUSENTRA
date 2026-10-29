@@ -1,0 +1,125 @@
+"""Etichette certe del catalogo: deposito telematico e decisioni dell'avvocato (dati sintetici)."""
+from __future__ import annotations
+
+import json
+from types import SimpleNamespace
+
+from pct.document_intelligence.verita import (
+    LIVELLO_AVVOCATO,
+    LIVELLO_DEPOSITO,
+    censisci,
+    chiave_portale,
+    etichetta_dal_portale,
+    etichette_dalle_decisioni,
+    riepilogo,
+)
+from web.services.document_catalog_conferma import NOTA_CONFERMA_MASSIVA
+from web.services.verita_catalogo_runtime import conferme_massive
+
+
+def _assegnazione(documento: str, voce: str, *, stato: str = "proposed", origine: str = "verified_snapshot", sezione: str = "atti"):
+    return SimpleNamespace(fascicolo_id="F1", document_id=documento, document_label=voce, document_section=sezione,
+                           status=stato, source_state=origine, document_sha256=f"sha-{documento}")
+
+
+def _documento(documento: str, classificazione: str = "", tipo_atto: str = ""):
+    return SimpleNamespace(id=documento, classificazione_portale=classificazione, tipo_atto_portale=tipo_atto,
+                           hash_sha256=f"sha-{documento}", eliminato_il="")
+
+
+def test_decisioni_dell_avvocato_ma_non_le_conferme_massive():
+    assegnazioni = [
+        _assegnazione("d1", "Atto di citazione", origine="manual_override", stato="confirmed"),
+        _assegnazione("d2", "Sentenza", stato="confirmed", sezione="provvedimenti"),
+        _assegnazione("d3", "Procura alle liti", stato="confirmed", sezione="procure"),
+        _assegnazione("d4", "Memoria difensiva", stato="rejected"),
+        _assegnazione("d5", "Querela"),  # proposta mai decisa
+    ]
+    etichette = {e.document_id: e for e in etichette_dalle_decisioni(assegnazioni, conferme_massive={"d3"})}
+    assert set(etichette) == {"d1", "d2", "d4"}
+    assert etichette["d1"].fonte == "correzione_avvocato" and etichette["d1"].livello == LIVELLO_AVVOCATO
+    assert etichette["d2"].fonte == "conferma_avvocato"
+    assert etichette["d4"].negativa is True
+
+
+def test_conferme_massive_dall_audit_nuovo_e_storico():
+    eventi = [
+        {"document_id": "d1", "event_type": "document_catalog.reviewed", "status": "confirmed", "payload": {"modalita": "massiva"}},
+        {"document_id": "d2", "event_type": "document_catalog.reviewed", "status": "confirmed",
+         "payload": {"note_length": len(NOTA_CONFERMA_MASSIVA)}},  # prima che l'audit dichiarasse la modalità
+        {"document_id": "d3", "event_type": "document_catalog.reviewed", "status": "confirmed", "payload": {"modalita": "singola"}},
+        # Una conferma massiva seguita da una correzione: conta la correzione.
+        {"document_id": "d4", "event_type": "document_catalog.reviewed", "status": "confirmed", "payload": {"modalita": "massiva"}},
+        {"document_id": "d4", "event_type": "document_catalog.overridden", "status": "confirmed", "payload": {}},
+    ]
+    assert conferme_massive(eventi) == {"d1", "d2"}
+
+
+def test_portale_etichetta_atti_principali_e_provvedimenti():
+    provvedimento = etichetta_dal_portale(_documento("p1", "PROVVEDIMENTO", "Provvedimento — Decreto Ingiuntivo"), fascicolo_id="F1")
+    ricorso = etichetta_dal_portale(_documento("a1", "ATTO", "Decreto Ingiuntivo"), fascicolo_id="F1")
+    assert provvedimento.etichetta == "Decreto ingiuntivo" and provvedimento.livello == LIVELLO_DEPOSITO
+    assert ricorso.etichetta == "Ricorso per decreto ingiuntivo"
+    # Un allegato appartiene alla busta del decreto ingiuntivo, ma non è un decreto ingiuntivo.
+    assert etichetta_dal_portale(_documento("x1", "ALLEGATO", "Decreto Ingiuntivo"), fascicolo_id="F1") is None
+    # Un tipo atto non dichiarato nella tabella non diventa un'etichetta per somiglianza.
+    assert etichetta_dal_portale(_documento("x2", "ATTO", "Istanza generica di visibilità"), fascicolo_id="F1") is None
+    assert chiave_portale(_documento("x3")) is None
+
+
+def test_censimento_conflitti_concordanza_e_tipi_non_mappati():
+    documenti = [
+        _documento("p1", "PROVVEDIMENTO", "Decreto Ingiuntivo"),
+        _documento("a1", "ATTO", "Decreto Ingiuntivo"),
+        _documento("a2", "ATTO", "Atto di citazione"),
+        _documento("a3", "ATTO", "Ricorso ex art. 702 bis"),
+    ]
+    assegnazioni = [
+        _assegnazione("p1", "Decreto ingiuntivo", sezione="provvedimenti"),  # il catalogo concorda
+        _assegnazione("a1", "Istanza"),  # il catalogo sbaglia
+        _assegnazione("a2", "Comparsa di costituzione e risposta", origine="manual_override", stato="confirmed"),
+        _assegnazione("x9", "Dati strutturati PST — DatiAtto", sezione="allegati"),
+    ]
+    censimento = censisci(documenti, assegnazioni, fascicolo_id="F1")
+    assert {(e.document_id, e.etichetta) for e in censimento["etichette"]} == {
+        ("p1", "Decreto ingiuntivo"), ("a1", "Ricorso per decreto ingiuntivo"), ("a2", "Comparsa di costituzione e risposta"),
+    }
+    assert censimento["conflitti"] == [{"document_id": "a2", "portale": "Atto di citazione", "avvocato": "Comparsa di costituzione e risposta"}]
+    assert censimento["portale_non_mappati"] == {"ATTO: ricorso ex art 702 bis": 1}
+    assert censimento["strutturali"] == 1
+
+    sintesi = riepilogo([censimento], minimo_per_voce=1)
+    assert sintesi["etichette_positive"] == 3
+    assert sintesi["per_livello"] == {"deposito_telematico": 2, "avvocato": 1}
+    assert sintesi["concordanza_catalogo_con_deposito"]["Ricorso per decreto ingiuntivo"] == {"misurati": 1, "concordi": 0}
+    assert sintesi["concordanza_catalogo_con_deposito"]["Decreto ingiuntivo"] == {"misurati": 1, "concordi": 1}
+
+
+def test_il_riepilogo_non_contiene_identificativi_ne_impronte():
+    censimento = censisci([_documento("DOC-SEGRETO", "ATTO", "Atto di citazione")],
+                          [_assegnazione("DOC-SEGRETO", "Atto di citazione")], fascicolo_id="FASC-SEGRETO")
+    testo = json.dumps(riepilogo([censimento]), ensure_ascii=False)
+    assert "SEGRETO" not in testo and "sha-" not in testo
+
+
+def test_repository_sqlite_elenca_le_decisioni_del_fascicolo_in_ordine(tmp_path):
+    from pct.document_intelligence.repository import DocumentAIRepository
+
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db", storage_root=tmp_path / "storage")
+    base = {"tenant_id": "tenant-a", "fascicolo_id": "fas-1", "document_id": "d1", "version_id": None, "user_id": "avv",
+            "sha256": "", "filename": ""}
+    repo.append_audit_event({**base, "id": "e1", "event_type": "document_catalog.reviewed", "timestamp": "2026-10-29T10:00:00Z",
+                             "status": "confirmed", "payload": {"modalita": "massiva"}})
+    repo.append_audit_event({**base, "id": "e2", "event_type": "document_catalog.overridden", "timestamp": "2026-10-29T10:05:00Z",
+                             "status": "confirmed", "payload": {"prima": {"voce": "Istanza"}, "dopo": {"voce": "Atto di citazione"}}})
+    repo.append_audit_event({**base, "id": "e3", "event_type": "document_ai.upload.completed", "timestamp": "2026-10-29T10:06:00Z"})
+    repo.append_audit_event({**base, "id": "e4", "fascicolo_id": "fas-2", "event_type": "document_catalog.reviewed",
+                             "timestamp": "2026-10-29T10:07:00Z", "status": "confirmed"})
+
+    eventi = repo.list_catalog_decision_events("tenant-a", "fas-1")
+
+    assert [e["event_type"] for e in eventi] == ["document_catalog.reviewed", "document_catalog.overridden"]
+    assert eventi[0]["payload"] == {"modalita": "massiva"} and eventi[0]["status"] == "confirmed"
+    assert eventi[1]["payload"]["dopo"] == {"voce": "Atto di citazione"}
+    assert conferme_massive(eventi) == set()  # l'ultima decisione su d1 è la correzione
+    repo.close()

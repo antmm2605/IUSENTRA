@@ -1038,6 +1038,33 @@ class DocumentAIRepository:
         last = sorted(events, key=lambda item: item.get("timestamp", ""), reverse=True)[0]
         return {"last_event": last.get("event_type"), "last_event_at": last.get("timestamp")}
 
+    def list_catalog_decision_events(self, tenant_id: str, fascicolo_id: str) -> list[dict[str, Any]]:
+        """Revisioni e correzioni del catalogo di un fascicolo, dalla più vecchia: documento, evento, esito e dettagli."""
+        tipi = ("document_catalog.reviewed", "document_catalog.overridden")
+        if self._backend:
+            rows = self._conn().execute(
+                """
+                SELECT document_id, event_type, payload_json, created_at FROM fascicolo_documenti_ai_audit
+                WHERE tenant_id = ? AND fascicolo_id = ? AND event_type IN (?, ?)
+                ORDER BY created_at ASC
+                """,
+                (tenant_id, fascicolo_id, *tipi),
+            ).fetchall()
+            eventi = []
+            for row in rows:
+                dati = json.loads(row["payload_json"] or "{}")
+                eventi.append({"document_id": str(row["document_id"] or ""), "event_type": row["event_type"],
+                               "status": str(dati.get("status") or ""), "payload": dict(dati.get("payload") or {}),
+                               "created_at": row["created_at"]})
+            return eventi
+        return [
+            {"document_id": str(row.get("document_id") or ""), "event_type": row.get("event_type"),
+             "status": str(row.get("status") or ""), "payload": dict(row.get("payload") or {}),
+             "created_at": row.get("timestamp")}
+            for row in sorted(self._data["audit_events"], key=lambda item: item.get("timestamp", ""))
+            if row.get("tenant_id") == tenant_id and row.get("fascicolo_id") == fascicolo_id and row.get("event_type") in tipi
+        ]
+
     # Catalogazione documentale: queste operazioni richiedono SQL. Il mirror JSON
     # di Document AI non può diventare fonte di verità per decisioni sul fascicolo.
     def _require_catalog_sql(self) -> None:

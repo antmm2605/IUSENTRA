@@ -1,0 +1,45 @@
+name: Censimento etichette certe del catalogo
+# Passo 1 del piano docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md (sezione 3, Fase 1): quante etichette certe ha lo
+# studio per voce del catalogo e quanto la catalogazione attuale concorda con il deposito telematico.
+# Sola lettura nel container scheduler-worker; il risultato contiene solo conteggi e voci.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  censimento:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Censimento in sola lettura
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T scheduler-worker python -' \
+            < deploy/hetzner/censimento_catalogo.py > censimento.json
+          jq -e '.studi' censimento.json > /dev/null
+          {
+            echo '## Censimento etichette certe'
+            echo
+            jq -r '.studi | to_entries[] | "### \(.key)\n- Fascicoli: \(.value.fascicoli), documenti: \(.value.documenti)\n- Etichette certe: \(.value.etichette_positive) (deposito telematico \(.value.per_livello.deposito_telematico), avvocato \(.value.per_livello.avvocato))\n- Voci con almeno 30 esempi: \(.value.voci_addestrabili | length)\n- Conferme massive escluse: \(.value.conferme_massive_escluse)\n- Conflitti deposito/avvocato: \(.value.conflitti_deposito_avvocato)\n"' censimento.json
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: censimento-catalogo
+          path: censimento.json
+          retention-days: 30

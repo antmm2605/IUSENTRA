@@ -33,10 +33,10 @@ def test_conferma_solo_le_proposte_con_prova_e_lascia_le_altre(monkeypatch):
     repository = _Repository(assegnazioni, {"A1": ["prova"], "A5": ["prova"]})
     confermate: list[tuple] = []
 
-    def finto_resolve(fascicolo_id, document_id, *, status, note, evidence_acknowledged, user_context=None):
+    def finto_resolve(fascicolo_id, document_id, *, status, note, evidence_acknowledged, user_context=None, modalita="singola"):
         if document_id == "D5":
             raise RuntimeError("catalogo bloccato")
-        confermate.append((fascicolo_id, document_id, status, note, evidence_acknowledged))
+        confermate.append((fascicolo_id, document_id, status, note, evidence_acknowledged, modalita))
         return {"document_id": document_id, "status": status}
 
     monkeypatch.setattr(servizio, "assert_document_ai_fascicolo_current_tenant", lambda fascicolo_id: None)
@@ -46,7 +46,8 @@ def test_conferma_solo_le_proposte_con_prova_e_lascia_le_altre(monkeypatch):
 
     esito = servizio.conferma_proposte_catalogo("F1", user_context={"user_id": "avv"})
 
-    assert confermate == [("F1", "D1", "confirmed", servizio.NOTA_CONFERMA_MASSIVA, True)]
+    # La conferma massiva si dichiara: non vale come etichetta decisa dall'avvocato per l'addestramento.
+    assert confermate == [("F1", "D1", "confirmed", servizio.NOTA_CONFERMA_MASSIVA, True, "massiva")]
     assert [voce["document_id"] for voce in esito["confermate"]] == ["D1"]
     assert [voce["document_id"] for voce in esito["senza_prova"]] == ["D2"]
     assert [voce["document_id"] for voce in esito["errori"]] == ["D5"]

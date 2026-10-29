@@ -70,4 +70,6 @@ def test_conferma_catalogo_traccia_lettura_e_tipologie_delle_evidenze(monkeypatc
         "evidence_acknowledged": True,
         "evidence_count": 2,
         "evidence_types": ["document_identity", "legal_source"],
+        "modalita": "singola",
+        "voce": audit[0]["payload"]["voce"],
     }

@@ -272,7 +272,13 @@ def resolve_document_catalog_assignment(
     note: str = "",
     evidence_acknowledged: bool = False,
     user_context: object | None = None,
+    modalita: str = "singola",
 ) -> dict[str, Any]:
+    """Conferma o respinge la voce proposta per un documento.
+
+    `modalita` distingue la conferma del singolo documento dalla conferma massiva del pannello: solo la prima vale
+    come etichetta decisa dall'avvocato per misurare e addestrare il catalogo (`pct.document_intelligence.verita`).
+    """
     assert_document_ai_fascicolo_current_tenant(fascicolo_id)
     tenant_id = document_ai_tenant_id()
     context = user_context if user_context is not None else document_ai_user_context()
@@ -304,7 +310,8 @@ def resolve_document_catalog_assignment(
         raise DocumentAINotFound("Catalogazione del documento non trovata")
     repository.append_audit_event(
         {
-            "id": f"catalog-review-{assignment.id}",
+            # Lo stesso documento può essere rivisto più volte: l'identificativo include il momento della revisione.
+            "id": f"catalog-review-{assignment.id}-{assignment.updated_at}",
             "tenant_id": tenant_id,
             "fascicolo_id": str(fascicolo_id),
             "document_id": str(document_id),
@@ -320,6 +327,8 @@ def resolve_document_catalog_assignment(
                 "evidence_acknowledged": bool(evidence_acknowledged) if status == "confirmed" else False,
                 "evidence_count": len(evidence),
                 "evidence_types": sorted({str(item.evidence_type or "") for item in evidence if item.evidence_type}),
+                "modalita": "massiva" if modalita == "massiva" else "singola",
+                "voce": str(getattr(assignment, "document_label", "") or ""),
             },
         }
     )
@@ -361,6 +370,7 @@ def override_document_catalog_assignment(
         else "catalogazione-documentale"
     )
     repository = build_document_ai_service().repository
+    precedente = repository.get_catalog_assignment(tenant_id, str(fascicolo_id), str(document_id))
     assignment = repository.override_catalog_assignment(
         tenant_id=tenant_id,
         fascicolo_id=str(fascicolo_id),
@@ -398,6 +408,11 @@ def override_document_catalog_assignment(
                     "deposit_candidate",
                 ],
                 "note_length": len(str(note or "")),
+                # Voce proposta prima della correzione e voce decisa: la coppia insegna dove il catalogo sbagliava.
+                "prima": {"voce": str(getattr(precedente, "document_label", "") or ""),
+                          "sezione": str(getattr(precedente, "document_section", "") or ""),
+                          "origine": str(getattr(precedente, "source_state", "") or "")},
+                "dopo": {"voce": str(document_label or ""), "sezione": str(document_section or "")},
             },
         }
     )

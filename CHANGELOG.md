@@ -1,3 +1,6 @@
+## 2.457.11 — Censimento del catalogo senza nomi dei clienti
+- Il riepilogo del censimento riporta solo voci del catalogo governato: il documento d'identità intitolato al titolare diventa il tipo di documento, le etichette scritte a mano o dedotte dal nome del file diventano «Voce fuori elenco». Nessun nome di cliente esce dal server.
+
 ## 2.457.10 — Etichette certe dai depositi e statistiche del catalogo
 - Le etichette del portale si leggono dai depositi registrati nel fascicolo con il resolver condiviso; il tipo atto del DatiAtto etichetta l'atto principale dei depositi dello studio.
 - Il censimento riporta stato e confidenza del catalogo e le voci quasi certe delle regole.

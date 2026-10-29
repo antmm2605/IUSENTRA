@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import Any
 
 from .decisioni import etichette_dalle_decisioni
@@ -21,6 +22,38 @@ _STRUTTURALI = ("Dati strutturati PST", "XML FatturaPA", "Ricevuta PCT", "Ricevu
 
 def _strutturale(etichetta: str) -> bool:
     return any(segno in etichetta for segno in _STRUTTURALI)
+
+
+VOCE_FUORI_ELENCO = "Voce fuori elenco"
+
+
+@lru_cache(maxsize=1)
+def _voci_note() -> frozenset[str]:
+    from pct.document_intelligence.catalog_lex import voci_catalogo
+
+    return frozenset(voce.label for voce in voci_catalogo())
+
+
+@lru_cache(maxsize=1)
+def _tipi_identita() -> tuple[str, ...]:
+    from pct.document_intelligence.catalog_identita_personale import TIPI
+
+    return tuple(etichetta for _chiave, etichetta, _espressione in TIPI)
+
+
+def voce_pubblicabile(etichetta: str) -> str:
+    """La voce come può uscire dal server: solo voci del catalogo governato, mai un nome.
+
+    Il catalogo intitola il documento d'identità al titolare («Carta d'identità di …») e conserva le etichette
+    scritte a mano o dedotte dal nome del file: nel riepilogo restano il tipo di documento o una voce generica.
+    """
+    voce = str(etichetta or "").strip()
+    if voce in _voci_note() or _strutturale(voce):
+        return voce
+    for tipo in _tipi_identita():
+        if voce == tipo or voce.startswith(f"{tipo} di "):
+            return tipo
+    return VOCE_FUORI_ELENCO
 
 
 # Confidenza delle regole: oltre questa soglia una proposta è «quasi certa» (titolo e riscontro nel corpo).
@@ -51,7 +84,7 @@ def statistiche_catalogo(assegnazioni: Iterable[Any]) -> dict[str, Any]:
         if stato == "proposed" and origine != "manual_override" and not _strutturale(voce):
             fasce[_fascia(confidenza)] += 1
             if confidenza >= CONFIDENZA_ARGENTO:
-                argento[voce] += 1
+                argento[voce_pubblicabile(voce)] += 1
     return {"stati": dict(stati), "fasce_confidenza_proposte": dict(fasce), "argento_per_voce": dict(argento)}
 
 
@@ -81,14 +114,16 @@ def censisci(documenti: Iterable[Any], assegnazioni: Iterable[Any], *, fascicolo
             etichette.append(etichetta)
         elif decisa.etichetta != etichetta.etichetta:
             # Prevale la decisione dell'avvocato su quel documento; il conflitto resta visibile.
-            conflitti.append({"document_id": etichetta.document_id, "portale": etichetta.etichetta, "avvocato": decisa.etichetta})
+            conflitti.append({"document_id": etichetta.document_id, "portale": voce_pubblicabile(etichetta.etichetta),
+                              "avvocato": voce_pubblicabile(decisa.etichetta)})
 
     concordanza: list[dict[str, str]] = []
     for etichetta in dal_portale:
         assegnazione = per_documento.get(etichetta.document_id)
         if assegnazione is None or str(getattr(assegnazione, "source_state", "")) == "manual_override":
             continue
-        concordanza.append({"voce": etichetta.etichetta, "catalogo": str(getattr(assegnazione, "document_label", "") or "")})
+        concordanza.append({"voce": voce_pubblicabile(etichetta.etichetta),
+                            "catalogo": voce_pubblicabile(str(getattr(assegnazione, "document_label", "") or ""))})
 
     non_mappati: Counter[str] = Counter(depositi.get("non_mappati") or {})
     for documento in documenti:
@@ -141,12 +176,13 @@ def riepilogo(censimenti: Iterable[dict[str, Any]], *, minimo_per_voce: int = 30
         massive += int(censimento.get("conferme_massive") or 0)
         non_mappati.update(censimento.get("portale_non_mappati") or {})
         for etichetta in censimento.get("etichette") or []:
+            voce = voce_pubblicabile(etichetta.etichetta)
             if etichetta.negativa:
-                negative[etichetta.etichetta] += 1
+                negative[voce] += 1
                 continue
             per_livello[etichetta.livello] += 1
             per_fonte[etichetta.fonte] += 1
-            per_voce[etichetta.etichetta] += 1
+            per_voce[voce] += 1
         for riga in censimento.get("concordanza") or []:
             misurati[riga["voce"]] += 1
             concordi[riga["voce"]] += int(riga["voce"] == riga["catalogo"])
@@ -157,7 +193,7 @@ def riepilogo(censimenti: Iterable[dict[str, Any]], *, minimo_per_voce: int = 30
         "per_livello": {"deposito_telematico": per_livello[LIVELLO_DEPOSITO], "avvocato": per_livello[LIVELLO_AVVOCATO]},
         "per_fonte": dict(per_fonte),
         "per_voce": dict(per_voce.most_common()),
-        "voci_addestrabili": sorted(voce for voce, n in per_voce.items() if n >= minimo_per_voce),
+        "voci_addestrabili": sorted(voce for voce, n in per_voce.items() if n >= minimo_per_voce and voce != VOCE_FUORI_ELENCO),
         "voci_sotto_soglia": sorted(voce for voce, n in per_voce.items() if n < minimo_per_voce),
         "rifiuti_avvocato": dict(negative),
         "conflitti_deposito_avvocato": conflitti,
@@ -169,11 +205,11 @@ def riepilogo(censimenti: Iterable[dict[str, Any]], *, minimo_per_voce: int = 30
         "catalogo_stati": dict(stati),
         "catalogo_fasce_confidenza_proposte": dict(fasce),
         "argento_per_voce": dict(argento.most_common()),
-        "voci_argento_addestrabili": sorted(voce for voce, n in argento.items() if n >= minimo_per_voce),
+        "voci_argento_addestrabili": sorted(voce for voce, n in argento.items() if n >= minimo_per_voce and voce != VOCE_FUORI_ELENCO),
         "concordanza_catalogo_con_deposito": {
             voce: {"misurati": misurati[voce], "concordi": concordi[voce]} for voce in sorted(misurati)
         },
     }
 
 
-__all__ = ["CONFIDENZA_ARGENTO", "censisci", "riepilogo", "statistiche_catalogo"]
+__all__ = ["CONFIDENZA_ARGENTO", "VOCE_FUORI_ELENCO", "censisci", "riepilogo", "statistiche_catalogo", "voce_pubblicabile"]

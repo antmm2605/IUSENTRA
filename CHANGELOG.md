@@ -5,6 +5,10 @@
 - PEC: classificatore unico delle ricevute; mancata consegna, non accettazione e virus mai lette come consegna; deposito rifiutato riconosciuto.
 - Notifiche e calendari: bozze escluse da avvisi e calendari esterni, errori per voce con nuovo tentativo, giorni di preavviso rispettati.
 - Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
+- Escluso dall'integrazione il declassamento del registro delle fonti senza impronta: bloccava ogni bozza finale degli atti e resta da completare.
+
+## 2.457.11 — Censimento del catalogo senza nomi dei clienti
+- Il riepilogo del censimento riporta solo voci del catalogo governato: il documento d'identità intitolato al titolare diventa il tipo di documento, le etichette scritte a mano o dedotte dal nome del file diventano «Voce fuori elenco». Nessun nome di cliente esce dal server.
 
 ## 2.457.10 — Etichette certe dai depositi e statistiche del catalogo
 - Le etichette del portale si leggono dai depositi registrati nel fascicolo con il resolver condiviso; il tipo atto del DatiAtto etichetta l'atto principale dei depositi dello studio.

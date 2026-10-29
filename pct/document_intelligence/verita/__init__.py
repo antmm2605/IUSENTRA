@@ -12,7 +12,7 @@ Gli XML con struttura ministeriale o FatturaPA si riconoscono già con certezza 
 non servono ad addestrare. Nessun testo dei documenti esce da qui: solo identificativi, voci e conteggi.
 """
 
-from .censimento import censisci, riepilogo
+from .censimento import censisci, riepilogo, voce_pubblicabile
 from .decisioni import etichette_dalle_decisioni
 from .depositi import etichette_dai_depositi
 from .modello import LIVELLO_AVVOCATO, LIVELLO_DEPOSITO, EtichettaCerta
@@ -28,4 +28,5 @@ __all__ = [
     "etichette_dai_depositi",
     "etichette_dalle_decisioni",
     "riepilogo",
+    "voce_pubblicabile",
 ]

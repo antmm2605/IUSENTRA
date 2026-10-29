@@ -225,3 +225,27 @@ def test_statistiche_del_catalogo_e_candidate_argento():
     assert statistiche["argento_per_voce"] == {"Sentenza": 1}
     assert statistiche["fasce_confidenza_proposte"] == {"96-100": 1, "75-89": 1}
     assert statistiche["stati"]["proposed/verified_snapshot"] == 3
+
+
+def test_il_riepilogo_non_porta_nomi_dei_clienti() -> None:
+    """Le voci intitolate al titolare o scritte a mano escono dal server solo come voce del catalogo."""
+    from pct.document_intelligence.verita import voce_pubblicabile
+    from pct.document_intelligence.verita.censimento import VOCE_FUORI_ELENCO
+
+    assert voce_pubblicabile("Carta d'identità di Mario Rossi") == "Carta d'identità"
+    assert voce_pubblicabile("Patente di guida di Mario Rossi") == "Patente di guida"
+    assert voce_pubblicabile("Sentenza") == "Sentenza"
+    assert voce_pubblicabile("Contratto di consulenza con Mario Rossi") == VOCE_FUORI_ELENCO
+
+    assegnazioni = [
+        SimpleNamespace(document_id=f"D{n}", document_label="Carta d'identità di Mario Rossi", status="proposed",
+                        source_state="verified_snapshot", confidence=99)
+        for n in range(3)
+    ] + [SimpleNamespace(document_id="X", document_label="Lettera a Mario Rossi", status="confirmed",
+                         source_state="manual_override", confidence=100, document_section="atti", fascicolo_id="F1",
+                         updated_by="avv", updated_at="2026-10-29", metadata={})]
+    esito = riepilogo([censisci([], assegnazioni, fascicolo_id="F1")], minimo_per_voce=1)
+    testo = json.dumps(esito, ensure_ascii=False)
+    assert "Rossi" not in testo
+    assert esito["argento_per_voce"] == {"Carta d'identità": 3}
+    assert VOCE_FUORI_ELENCO not in esito["voci_addestrabili"]

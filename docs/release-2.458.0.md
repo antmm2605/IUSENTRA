@@ -6,6 +6,7 @@
 - PEC: classificatore unico delle ricevute; mancata consegna, non accettazione e virus mai lette come consegna; deposito rifiutato riconosciuto.
 - Notifiche e calendari: bozze escluse da avvisi e calendari esterni, errori per voce con nuovo tentativo, giorni di preavviso rispettati.
 - Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
+- Escluso dall'integrazione il declassamento del registro delle fonti senza impronta: bloccava ogni bozza finale degli atti e resta da completare.
 
 ## Base normativa
 - Art. 155 c.p.c. (computo dei termini), artt. 163-bis, 166, 171-ter, 189, 415, 473-bis.16 c.p.c.; L. 742/1969 (sospensione feriale); L. 151/2025 (festività del 4 ottobre).

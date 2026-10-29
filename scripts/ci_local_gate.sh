@@ -31,7 +31,8 @@ if [ -z "$PY_BIN" ]; then
   for candidato in python3 python3.13 python3.12 /usr/bin/python3.12 /usr/bin/python3.13; do
     command -v "$candidato" >/dev/null 2>&1 || [ -x "$candidato" ] || continue
     if "$candidato" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null; then
-      PY_BIN="$candidato"
+      # Percorso assoluto: con il solo nome «python3» la funzione python3() qui sotto richiamerebbe se stessa.
+      PY_BIN="$(command -v "$candidato" || printf '%s' "$candidato")"
       break
     fi
   done
@@ -167,6 +168,10 @@ step "Governance repo"           python3 tools/check_repo_governance.py
 # Lezione del 13/09/2026: il gate locale non la eseguiva e una regressione del
 # rilevamento su sfondo chiaro e' arrivata fino alla CI.
 step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs tests/js/fascicolo_document_list.test.mjs tests/js/document_acquisition.test.mjs tests/js/lettura_fascicolo.test.mjs tests/js/letture_fascicolo.test.mjs tests/js/ocr_blocks.test.mjs tests/js/salvataggio_cliente.test.mjs tests/js/conversazione_portale.test.mjs
+# Replica dello step CI «Published React source provenance» (ci.yml, job «Lint + syntax»): il bundle
+# pubblicato registra l'impronta dei sorgenti, compreso frontend/package.json. Lezione del 29/10/2026:
+# il solo cambio di versione in package.json ha fermato la CI con il gate locale verde.
+step "Provenienza bundle React"  node frontend/scripts/check-published-react-sources.mjs
 step "Ordine hook React"         node frontend/scripts/check-hook-order.mjs
 step "React contracts"           node frontend/scripts/check-react-contracts.mjs
 step "Presidi notifiche legali"  node frontend/scripts/check-notifiche-legali-presidi.mjs

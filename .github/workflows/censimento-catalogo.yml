@@ -31,7 +31,10 @@ jobs:
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
             "${HETZNER_USER}@${HETZNER_HOST}" \
             'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T scheduler-worker python -' \
-            < deploy/hetzner/censimento_catalogo.py > censimento.json
+            < deploy/hetzner/censimento_catalogo.py > uscita.txt
+          # Solo la riga del risultato: i log dell'avvio dell'app non escono dal runner.
+          grep -m1 '^CENSIMENTO_JSON:' uscita.txt | sed 's/^CENSIMENTO_JSON://' | jq . > censimento.json
+          rm -f uscita.txt
           jq -e '.studi' censimento.json > /dev/null
           {
             echo '## Censimento etichette certe'

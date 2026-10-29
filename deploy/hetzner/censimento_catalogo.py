@@ -14,6 +14,8 @@ from __future__ import annotations
 import json
 import sys
 
+MARCATORE = "CENSIMENTO_JSON:"
+
 
 def main() -> int:
     sys.path.insert(0, "/app")
@@ -22,7 +24,8 @@ def main() -> int:
 
     app = create_scheduler_app()
     esito = censimento_studi(app)
-    print(json.dumps(esito, ensure_ascii=False, indent=2, sort_keys=True))
+    # L'avvio dell'app scrive log anche sullo standard output: il risultato è l'unica riga con questo marcatore.
+    print(MARCATORE + json.dumps(esito, ensure_ascii=False, sort_keys=True), flush=True)
     return 0
 
 

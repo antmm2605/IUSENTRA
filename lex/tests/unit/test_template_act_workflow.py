@@ -96,8 +96,11 @@ def test_template_workflow_riporta_scadenza_del_calcolatore_senza_creare_atto(mo
         }), _base_context(), {"items": []},
     )
     assert calls == ["fas-rossi"]
-    assert "29/01/2027" in payload["answer"]
-    assert payload["calculated_deadlines"]["scadenze"][0]["valore"] == "29/01/2027"
+    # Art. 166 c.p.c.: data prudenziale a giorni liberi, con la scadenza di legge a giorni pieni accanto.
+    assert "28/01/2027" in payload["answer"]
+    scadenza = payload["calculated_deadlines"]["scadenze"][0]
+    assert scadenza["valore"] == "28/01/2027"
+    assert "29/01/2027" in scadenza["spiegazione"]
     assert payload["created_document"] == {}
 
 

@@ -28,6 +28,11 @@ ANNO_INIZIO_FESTA_SAN_FRANCESCO = 2026
 _MATERIE_PENALI = frozenset({"penal", "penale"})
 _MATERIE_LAVORO = frozenset({"labor", "labour", "lavoro", "previdenza"})
 DEFAULT_REMINDER_THRESHOLDS = (30, 15, 7, 1, 0)
+# Termini «almeno N giorni prima dell'udienza» senza la parola «liberi» nella norma (artt. 166, 171-ter, 189, 415,
+# 473-bis.16 c.p.c.): lo studio adotta la data a giorni liberi come termine da rispettare (decisione dell'avvocato
+# del 29/10/2026) e mostra accanto la scadenza di legge secondo la lettura a giorni pieni. Un deposito alla data
+# prudenziale non è tardivo sotto nessuna delle due letture.
+LETTURA_PRUDENZIALE = "lettura_prudenziale"
 
 LEGAL_SOURCES = (
     {
@@ -252,9 +257,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 166 c.p.c.",
-        metadata={"source_event": "udienza"},
+        metadata={"source_event": "udienza", LETTURA_PRUDENZIALE: True},
         # v2: allineato alla lettura prudenziale a giorni liberi.
-        version=2,
+        version=3,
     ),
     DeadlineTemplate(
         code="CIV_MEMORIA_171_TER_1",
@@ -263,7 +268,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 171-ter c.p.c.",
-        metadata={"source_event": "udienza"},
+        metadata={"source_event": "udienza", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_MEMORIA_171_TER_2",
@@ -272,7 +279,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 171-ter c.p.c.",
-        metadata={"source_event": "udienza"},
+        metadata={"source_event": "udienza", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_MEMORIA_171_TER_3",
@@ -281,7 +290,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 171-ter c.p.c.",
-        metadata={"source_event": "udienza"},
+        metadata={"source_event": "udienza", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_DI_NOTIFICA_644",
@@ -326,7 +337,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 189, comma 1, c.p.c.",
-        metadata={"source_event": "udienza_rimessione"},
+        metadata={"source_event": "udienza_rimessione", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_CONCLUSIONALI_189",
@@ -335,7 +348,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 189, comma 1, c.p.c.",
-        metadata={"source_event": "udienza_rimessione"},
+        metadata={"source_event": "udienza_rimessione", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_REPLICHE_189",
@@ -344,7 +359,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 189, comma 1, c.p.c.",
-        metadata={"source_event": "udienza_rimessione"},
+        metadata={"source_event": "udienza_rimessione", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="FAM_473BIS_COSTITUZIONE",
@@ -353,7 +370,9 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         direction="backward",
         free_term=True,
         reference_law="Art. 473-bis.16 c.p.c.",
-        metadata={"source_event": "udienza_comparizione"},
+        metadata={"source_event": "udienza_comparizione", LETTURA_PRUDENZIALE: True},
+        # v2: lettura prudenziale a giorni liberi con scadenza di legge a giorni pieni (29/10/2026).
+        version=2,
     ),
     DeadlineTemplate(
         code="VR_MEMORIA_183_6_N1",
@@ -586,14 +605,32 @@ class ItalianDeadlineCalculator:
         if effective.extend_holiday:
             rules.append("holiday_extension")
 
+        prudenziale = effective.direction == "backward" and bool((effective.metadata or {}).get(LETTURA_PRUDENZIALE))
+        if prudenziale and not effective.free_term:
+            effective = replace(effective, free_term=True)
+            rules.append("free_term")
         raw = self._raw_deadline(input_date, effective, step, steps)
         adjusted = self._adjust_final(raw, effective, step, steps)
         review = self._requires_review(effective)
         confidence = "bassa" if effective.ferial_suspension_policy in {"manual_review", "partial"} else "media" if review else "alta"
         explanation = self._explain(input_date, raw, adjusted, effective, rules)
+        scadenza_di_legge = ""
+        if prudenziale:
+            pieni = replace(effective, free_term=False)
+            scadenza_di_legge = self._adjust_final(self._raw_deadline(input_date, pieni, step, []), pieni, step, []).isoformat()
+            rules.append("prudential_free_days_reading")
+            if scadenza_di_legge == adjusted.isoformat():
+                explanation += " La lettura a giorni liberi e quella a giorni pieni portano alla stessa data."
+            else:
+                explanation += (
+                    f" Data prudenziale a giorni liberi, da rispettare; la scadenza di legge secondo la lettura a giorni "
+                    f"pieni è il {date.fromisoformat(scadenza_di_legge).strftime('%d/%m/%Y')}."
+                )
         result = {
             "calculationId": str(uuid.uuid4()),
             "deadline": adjusted.isoformat(),
+            # Solo per i termini a lettura prudenziale: la scadenza di legge a giorni pieni (successiva).
+            "legalDeadline": scadenza_di_legge,
             "rawDeadline": raw.isoformat(),
             "inputDate": input_date.isoformat(),
             "direction": effective.direction,

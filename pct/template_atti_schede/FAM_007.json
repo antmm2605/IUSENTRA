@@ -303,6 +303,7 @@
      "base": "udienza",
      "direzione": "ritroso",
      "feriale": true,
+     "liberi": true,
      "giorni": 61
     }
    },

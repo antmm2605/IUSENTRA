@@ -34,11 +34,11 @@ def _deposito():
 
 def _udienza_memorie():
     return [letto("udienza", "Udienza di discussione", "udienza", "avviso di fissazione", [{"categoria": "data", "campo": "udienza"}], obbligatorio=False),
-            calcolo("documenti", "Ultimo giorno per i documenti", termine=T("udienza", 41, ritroso=True), regola="40 giorni liberi prima dell’udienza (dimezzati nei riti accelerati)",
+            calcolo("documenti", "Ultimo giorno per i documenti", termine=T("udienza", 41, ritroso=True, liberi=True), regola="40 giorni liberi prima dell’udienza (dimezzati nei riti accelerati)",
                     norma=[(CPA, "73", "documenti"), FERIALE_CPA]),
-            calcolo("memorie", "Ultimo giorno per le memorie", termine=T("udienza", 31, ritroso=True), regola="30 giorni liberi prima dell’udienza",
+            calcolo("memorie", "Ultimo giorno per le memorie", termine=T("udienza", 31, ritroso=True, liberi=True), regola="30 giorni liberi prima dell’udienza",
                     norma=[(CPA, "73", "memorie")]),
-            calcolo("repliche", "Ultimo giorno per le repliche", termine=T("udienza", 21, ritroso=True), regola="20 giorni liberi prima dell’udienza",
+            calcolo("repliche", "Ultimo giorno per le repliche", termine=T("udienza", 21, ritroso=True, liberi=True), regola="20 giorni liberi prima dell’udienza",
                     norma=[(CPA, "73", "repliche")])]
 
 

@@ -393,7 +393,7 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                     if obbligo.stato == STATO_DA_NOTIFICARE:
                         obbligo.motivo = obbligo.motivo or "La decorrenza non è ancora documentata: verifica la fonte nella stessa pagina."
                     continue
-                from pct.termini_processuali import ItalianDeadlineCalculator
+                from pct.termini_processuali import LETTURA_PRUDENZIALE, ItalianDeadlineCalculator
 
                 estero = contesto.get("notifica_estero")
                 feriale = termine.sospensione_feriale
@@ -407,6 +407,8 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                     ferial_suspension_policy="manual_review" if feriale is None else "applies" if feriale else "not_applicable",
                     reference_law="; ".join(regola.fonti), template_code=regola.id + ":" + termine.base,
                     case_reference=documento.id,
+                    # A ritroso lo studio rispetta la data a giorni liberi; quella a giorni pieni resta di legge.
+                    metadata={LETTURA_PRUDENZIALE: True} if termine.prima and not termine.liberi and not termine.mesi else {},
                 )
                 calcolo["formula"] = termine.formula
                 calcolo["evento_base"] = termine.base

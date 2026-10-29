@@ -127,7 +127,8 @@ def test_appello_lungo_iterazione_agosto_motore_uguale_scadenziario(pubblicazion
 def test_termini_prima_dell_udienza_tutti_liberi():
     for code in ("CIV_COSTITUZIONE_CONVENUTO_166", "CIV_MEMORIA_171_TER_1", "CIV_MEMORIA_171_TER_2", "CIV_MEMORIA_171_TER_3", "FAM_473BIS_COSTITUZIONE"):
         assert T[code].free_term is True, code
-    assert T["CIV_COSTITUZIONE_CONVENUTO_166"].version == 2
+    assert T["CIV_COSTITUZIONE_CONVENUTO_166"].version == 3  # v3: doppia data, prudenziale e di legge (29/10/2026)
+    assert all(T[c].metadata.get("lettura_prudenziale") for c in ("CIV_COSTITUZIONE_CONVENUTO_166", "CIV_MEMORIA_171_TER_1"))
     for profile in ("TERM_40_DAYS_BEFORE", "TERM_20_DAYS_BEFORE", "TERM_10_DAYS_BEFORE"):
         assert S.PROFILI_TERMINE_BUILTIN[profile].termine_libero is True
 

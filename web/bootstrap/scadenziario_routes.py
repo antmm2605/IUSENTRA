@@ -235,7 +235,7 @@ def register_scadenziario_routes(
                         tipo=TipoTermine(form["tipo"]),
                         data_scadenza=calc["result"].legal_due_at[:10],
                         id_fascicolo=form.get("id_fascicolo", ""),
-                        descrizione=form.get("descrizione", ""),
+                        descrizione=" ".join(parte for parte in (form.get("descrizione", ""), calc["result"].nota_scadenza_di_legge()) if parte),
                         data_decorrenza=calc["source_event_at"][:10],
                         perentorio=form.get("perentorio") == "1",
                         id_utente_responsabile=form.get("id_utente", ""),
@@ -648,7 +648,8 @@ def register_scadenziario_routes(
                         "operational_due_at": calc["result"].operational_due_at,
                         "office_mode_on_legal_due_date": calc["result"].office_mode_on_legal_due_date,
                         "trace": calc["result"].trace,
-                        "operational_notes": riepilogo_operativo_scadenza(
+                        "scadenza_di_legge": calc["result"].scadenza_di_legge,
+                        "operational_notes": [nota for nota in [calc["result"].nota_scadenza_di_legge()] if nota] + riepilogo_operativo_scadenza(
                             trace=calc["result"].trace,
                             operational_due_at=calc["result"].operational_due_at,
                             operational_lead_business_days=calc["operational_lead_business_days"],

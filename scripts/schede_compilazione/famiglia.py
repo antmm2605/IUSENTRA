@@ -45,7 +45,7 @@ def _violenza():
 
 def _termini_giudiziale():
     return [udienza("Prima udienza fissata dal decreto"),
-            calcolo("notifica", "Ultimo giorno per notificare ricorso e decreto", termine=T("udienza", 61, ritroso=True),
+            calcolo("notifica", "Ultimo giorno per notificare ricorso e decreto", termine=T("udienza", 61, ritroso=True, liberi=True),
                     regola="almeno 60 giorni liberi prima dell’udienza (esclusi il giorno della notifica e quello dell’udienza)" + DISCUSSA, norma=[(CPC, "473bis.14", "notifica del ricorso"), FERIALE]),
             calcolo("costituzione", "Termine per la costituzione del resistente", termine=T("udienza", 30, ritroso=True),
                     regola="almeno 30 giorni prima dell’udienza" + DISCUSSA, norma=[(CPC, "473bis.16", "costituzione del convenuto"), FERIALE]),

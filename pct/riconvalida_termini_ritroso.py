@@ -5,6 +5,10 @@ l'art. 171-ter c.p.c. fissa le memorie «almeno quaranta / venti / dieci giorni 
 riconvalida ricalcola a ritroso solo le scadenze aperte che portano ancora la data prodotta dal vecchio
 calcolo: una data modificata dall'avvocato non si tocca, riceve soltanto una nota da verificare.
 La correzione è idempotente: una scadenza già corretta non soddisfa più le condizioni.
+
+Dal 29/10/2026 lo studio usa la data prudenziale a giorni liberi come termine da rispettare, con la scadenza di
+legge a giorni pieni accanto. Anche le memorie salvate dalla 2.457.7 con la data a giorni pieni passano alla data
+prudenziale, con una nota che conserva la data precedente come scadenza di legge.
 """
 from __future__ import annotations
 
@@ -25,6 +29,9 @@ logger = logging.getLogger(__name__)
 _PRESET_RITROSO = {key: preset for key, preset in PRESET_TERMINI.items() if preset.get("direzione") == "ritroso"}
 _PROFILI_VECCHI = {preset["profile_code"].removesuffix("_BEFORE"): key for key, preset in _PRESET_RITROSO.items()}
 NOTA_CORRETTA = "Data ricalcolata a ritroso dall'udienza (art. 171-ter c.p.c.): prima risultava il {vecchia}."
+NOTA_PRUDENZIALE = ("Data anticipata alla lettura prudenziale a giorni liberi: prima risultava il {vecchia}, "
+                    "che resta la scadenza di legge secondo la lettura a giorni pieni.")
+_PROFILI_ATTUALI = {preset["profile_code"]: key for key, preset in _PRESET_RITROSO.items()}
 NOTA_DA_VERIFICARE = ("Verificare la data: la memoria art. 171-ter c.p.c. va depositata prima dell'udienza del {udienza} "
                       "(calcolo a ritroso: {nuova}).")
 
@@ -39,8 +46,9 @@ def _giorno(valore: Any) -> date | None:
 def _preset_della_scadenza(scadenza: Any) -> str:
     codice = str(getattr(scadenza, "deadline_profile_code", "") or "")
     testo = f"{getattr(scadenza, 'titolo', '')} {getattr(scadenza, 'descrizione', '')}".casefold()
-    if codice in _PROFILI_VECCHI and "171" in testo and str(getattr(scadenza, "source_event_type", "")) == "udienza":
-        return _PROFILI_VECCHI[codice]
+    profili = {**_PROFILI_VECCHI, **_PROFILI_ATTUALI}
+    if codice in profili and "171" in testo and str(getattr(scadenza, "source_event_type", "")) == "udienza":
+        return profili[codice]
     return ""
 
 
@@ -53,11 +61,26 @@ def riconvalida_memorie_171ter(scadenziario: GestioneScadenziario) -> dict[str, 
         chiave = _preset_della_scadenza(scadenza)
         udienza = _giorno(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", ""))
         attuale = _giorno(getattr(scadenza, "data_scadenza", ""))
-        if not chiave or udienza is None or attuale is None or attuale <= udienza:
+        if not chiave or udienza is None or attuale is None:
             continue
         preset = PRESET_TERMINI[chiave]
         calcolo = GestioneScadenziario.calcola_avanzata(start_at=udienza, profile=profilo_da_preset(chiave))
         nuova = calcolo.legal_due_at[:10]
+        if attuale.isoformat() == nuova:
+            continue
+        if attuale <= udienza:
+            # Memoria della 2.457.7 a giorni pieni: passa alla data prudenziale. Altre date restano dell'avvocato.
+            if attuale.isoformat() != calcolo.scadenza_di_legge[:10]:
+                continue
+            note = str(getattr(scadenza, "note", "") or "")
+            riga = NOTA_PRUDENZIALE.format(vecchia=attuale.strftime("%d/%m/%Y"))
+            try:
+                scadenziario.aggiorna(scadenza.id, data_scadenza=nuova, raw_due_at=calcolo.raw_due_at,
+                                      legal_due_at=calcolo.legal_due_at, note=f"{note}\n{riga}".strip())
+                esito["corrette"] += 1
+            except Exception:  # una scadenza non aggiornabile non blocca le altre
+                logger.exception("[riconvalida 171-ter] scadenza %s non aggiornata", getattr(scadenza, "id", ""))
+            continue
         vecchio_calcolo = calcola_termine(udienza, giorni=int(preset["giorni"]), tipo=preset.get("tipo", "liberi"),
                                           sospensione_feriale=bool(preset.get("sospensione_feriale", True)))
         legale_vecchio = _giorno(getattr(scadenza, "legal_due_at", ""))
@@ -66,7 +89,7 @@ def riconvalida_memorie_171ter(scadenziario: GestioneScadenziario) -> dict[str, 
         note = str(getattr(scadenza, "note", "") or "")
         try:
             if prodotta_dal_software:
-                riga = NOTA_CORRETTA.format(vecchia=vecchia)
+                riga = " ".join(parte for parte in (NOTA_CORRETTA.format(vecchia=vecchia), calcolo.nota_scadenza_di_legge()) if parte)
                 scadenziario.aggiorna(
                     scadenza.id, data_scadenza=nuova, raw_due_at=calcolo.raw_due_at, legal_due_at=calcolo.legal_due_at,
                     deadline_profile_code=preset["profile_code"], note=f"{note}\n{riga}".strip(),

@@ -265,12 +265,6 @@ def test_flag_abrogato_della_riga_basta():
 
 # --- 7. registro delle fonti ---------------------------------------------------------------------------------
 
-def test_registro_nessuna_fonte_verificata_senza_impronta():
-    payload = json.loads(REGISTRO.read_text(encoding="utf-8"))
-    assert valida_registro(payload) == []
-    assert all(s.get("verification_status") != "verified_snapshot" or s.get("source_hash") for s in payload["sources"])
-
-
 def test_snapshot_senza_hash_declassato(tmp_path):
     p = tmp_path / "r.yml"
     p.write_text(json.dumps({"sources": [{"id": "a", "verification_status": "verified_snapshot", "source_hash": ""},

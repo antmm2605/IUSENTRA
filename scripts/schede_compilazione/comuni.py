@@ -55,8 +55,12 @@ def calcolo(nome, etichetta, regola, termine=None, **kw) -> dict:
     return campo(nome, etichetta, fonte, **kw)
 
 
-def T(base, giorni=0, *, mesi=0, ritroso=False, feriale=True, sabato=True) -> dict:
+def T(base, giorni=0, *, mesi=0, ritroso=False, feriale=True, sabato=True, liberi=False) -> dict:
     """Termine calcolabile dal software (vedi ``pct/schede_termini.py``).
+
+    ``liberi=True`` per i termini che la norma dichiara «liberi» (giorni già contati escludendo anche quello
+    finale): non ricevono la lettura prudenziale. Ogni altro termine a ritroso («almeno N giorni prima») è proposto
+    a giorni liberi, con la scadenza di legge a giorni pieni accanto (decisione dell'avvocato del 29/10/2026).
 
     ``sabato=False`` per i termini sostanziali (art. 2963 c.c.) e per quelli penali (art. 172 c.p.p.): il sabato
     non è festivo e non proroga; l’art. 155, quinto comma, c.p.c. vale per i termini processuali civili.
@@ -64,6 +68,8 @@ def T(base, giorni=0, *, mesi=0, ritroso=False, feriale=True, sabato=True) -> di
     t = {"base": base, "direzione": "ritroso" if ritroso else "avanti", "feriale": feriale}
     if not sabato:
         t["sabato"] = False
+    if liberi:
+        t["liberi"] = True
     t.update({"mesi": mesi} if mesi else {"giorni": giorni})
     return t
 

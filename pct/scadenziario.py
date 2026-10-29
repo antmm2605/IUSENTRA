@@ -308,9 +308,21 @@ class EsitoCalcoloScadenza:
     operational_due_at: str | None
     office_mode_on_legal_due_date: str
     trace: List[str]
+    # Solo per i termini a ritroso «almeno N giorni prima»: legal_due_at è la data prudenziale a giorni liberi da
+    # rispettare; qui la scadenza di legge secondo la lettura a giorni pieni (decisione dell'avvocato del 29/10/2026).
+    scadenza_di_legge: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+    def nota_scadenza_di_legge(self) -> str:
+        """Riga da mostrare all'avvocato accanto alla data prudenziale; vuota se le due letture coincidono."""
+        if not self.scadenza_di_legge or self.scadenza_di_legge[:10] == self.legal_due_at[:10]:
+            return ""
+        prudenziale = date.fromisoformat(self.legal_due_at[:10]).strftime("%d/%m/%Y")
+        legge = date.fromisoformat(self.scadenza_di_legge[:10]).strftime("%d/%m/%Y")
+        return (f"Depositare entro il {prudenziale} (data prudenziale a giorni liberi). "
+                f"Scadenza di legge secondo la lettura a giorni pieni: {legge}.")
 
 
 PROFILI_TERMINE_BUILTIN: Dict[str, ProfiloTermine] = {
@@ -582,8 +594,14 @@ def calcola_scadenza_avanzata(start_at: str | datetime | date, profile: ProfiloT
     procedural_rules = list(procedural_rules or [])
     raw_due = _compute_raw_due(start_dt, profile, procedural_rules, trace)
     legal_due = _roll_forward_legal_due(raw_due, profile, national_rules + office_rules, trace)
+    scadenza_di_legge = ""
+    if _a_ritroso(profile) and getattr(profile, "termine_libero", False):
+        pieni = ProfiloTermine.from_dict({**profile.to_dict(), "termine_libero": False})
+        legge = _roll_forward_legal_due(_compute_raw_due(start_dt, pieni, procedural_rules, []), pieni, national_rules + office_rules, [])
+        scadenza_di_legge = _iso_dt(legge)
+        trace.append(f"Scadenza di legge secondo la lettura a giorni pieni -> {_iso_dt(legge)}")
     operational_due = _subtract_operational_business_days(legal_due, operational_lead_business_days, national_rules + studio_rules, trace)
-    return EsitoCalcoloScadenza(raw_due_at=_iso_dt(raw_due), legal_due_at=_iso_dt(legal_due), operational_due_at=_iso_dt(operational_due) if operational_due else None, office_mode_on_legal_due_date=_dominant_operating_mode(legal_due, office_rules, "legal"), trace=trace)
+    return EsitoCalcoloScadenza(raw_due_at=_iso_dt(raw_due), legal_due_at=_iso_dt(legal_due), operational_due_at=_iso_dt(operational_due) if operational_due else None, office_mode_on_legal_due_date=_dominant_operating_mode(legal_due, office_rules, "legal"), trace=trace, scadenza_di_legge=scadenza_di_legge)
 
 
 def riepilogo_operativo_scadenza(*, trace: Optional[List[str]] = None, operational_due_at: str | None = None, operational_lead_business_days: int = 0, october_observance_blocks: bool = False, office_patron_day: int = 0, office_patron_month: int = 0, office_operating_mode: str = ModalitaOperativa.APERTO.value) -> List[str]:
@@ -1173,7 +1191,8 @@ class GestioneScadenziario:
             raise ValueError("Data decorrenza obbligatoria per il calcolo del termine")
         if preset.get("direzione") == "ritroso":
             esito = self.calcola_avanzata(start_at=date.fromisoformat(data_decorrenza[:10]), profile=profilo_da_preset(preset_key))
-            return self.nuova(titolo=titolo, tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=esito.legal_due_at[:10], id_fascicolo=id_fascicolo, descrizione=preset.get("descrizione", ""), data_decorrenza=data_decorrenza, deadline_profile_code=preset.get("profile_code", ""), source_event_type=preset.get("source_event_type", ""), source_event_at=data_decorrenza, raw_due_at=esito.raw_due_at, legal_due_at=esito.legal_due_at, trace_json=json.dumps(esito.trace, ensure_ascii=False), **kwargs)
+            descrizione = " ".join(parte for parte in (preset.get("descrizione", ""), esito.nota_scadenza_di_legge()) if parte)
+            return self.nuova(titolo=titolo, tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=esito.legal_due_at[:10], id_fascicolo=id_fascicolo, descrizione=descrizione, data_decorrenza=data_decorrenza, deadline_profile_code=preset.get("profile_code", ""), source_event_type=preset.get("source_event_type", ""), source_event_at=data_decorrenza, raw_due_at=esito.raw_due_at, legal_due_at=esito.legal_due_at, trace_json=json.dumps(esito.trace, ensure_ascii=False), **kwargs)
         d_scadenza = calcola_termine(date.fromisoformat(data_decorrenza), giorni=preset.get("giorni", 0), tipo=preset.get("tipo", "liberi"), sospensione_feriale=preset.get("sospensione_feriale", True), mesi=preset.get("mesi", 0), anni=preset.get("anni", 0))
         return self.nuova(titolo=titolo, tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=d_scadenza.isoformat(), id_fascicolo=id_fascicolo, descrizione=preset.get("descrizione", ""), data_decorrenza=data_decorrenza, deadline_profile_code=preset.get("profile_code", ""), source_event_type=preset.get("source_event_type", ""), source_event_at=data_decorrenza, **kwargs)
 

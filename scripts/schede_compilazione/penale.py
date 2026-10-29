@@ -68,7 +68,7 @@ SCHEDE = [
            _base() + [
                letto("udienza", "Udienza dibattimentale", "udienza", "decreto che dispone il giudizio", [{"categoria": "data", "campo": "udienza"}],
                      se_manca="chiedere la data del dibattimento"),
-               calcolo("termine", "Ultimo giorno per depositare la lista", termine=T("udienza", 8, ritroso=True, sabato=False),
+               calcolo("termine", "Ultimo giorno per depositare la lista", termine=T("udienza", 8, ritroso=True, sabato=False, liberi=True),
                        regola="almeno 7 giorni prima del dibattimento, contati come liberi secondo la giurisprudenza prevalente, a pena di inammissibilità", norma=[(CPP, "468", "sette giorni liberi")]),
                avvocato("testi", "Testimoni e circostanze", "Nomi, recapiti e circostanze su cui ciascuno deve deporre", norma=[(CPP, "468", "indicazione delle circostanze")])],
            [("Lista", "testimoni e circostanze")], ["data del dibattimento non nota"]),

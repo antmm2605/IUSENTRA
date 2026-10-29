@@ -85,7 +85,10 @@ def _termine_calcolato(termine: dict[str, Any] | None, fatti: Any, oggi: date | 
     r = calcola(termine, base)
     scadenza = date.fromisoformat(r["scadenza"])
     oggi = oggi or datetime.now(ZoneInfo("Europe/Rome")).date()
+    legale = r.get("scadenza_di_legge") or ""
     return {"stato": "calcolato", "valore": scadenza.strftime("%d/%m/%Y"), "spiegazione": r["spiegazione"],
+            # Termini «almeno N giorni prima»: valore = data prudenziale da rispettare; qui la scadenza di legge.
+            "scadenza_di_legge": date.fromisoformat(legale).strftime("%d/%m/%Y") if legale else "",
             "scaduto": scadenza < oggi,
             "verifica_avvocato": r["verifica_avvocato"] or not any(
                 getattr(fatto, "verifica", "") in {"verificata", "corretta"} for fatto in fonti)}

@@ -138,6 +138,7 @@
      "direzione": "ritroso",
      "feriale": true,
      "sabato": false,
+     "liberi": true,
      "giorni": 8
     }
    },

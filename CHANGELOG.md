@@ -1,3 +1,11 @@
+## 2.458.0 — Data prudenziale e scadenza di legge; correzioni dell'audit del 29/10/2026
+- Termini «almeno N giorni prima dell'udienza» (artt. 166, 171-ter, 189, 415, 473-bis.16 c.p.c. e schede degli atti): la data da rispettare è quella prudenziale a giorni liberi; accanto si mostra la scadenza di legge secondo la lettura a giorni pieni. Motore dei termini, scadenziario, schede di Lex e obblighi di notifica usano la stessa regola; le memorie già salvate a giorni pieni passano alla data prudenziale con nota, senza toccare le date scelte dall'avvocato.
+- Festività del 4 ottobre dal 2026 (L. 151/2025); termini penali senza proroga del sabato; controversie di lavoro senza sospensione feriale anche nelle proposte da PEC; provenienza delle scadenze proposte dalle PEC.
+- Catalogo documenti: titolo dell'atto prima del corpo, normalizzazione OCR, nessuna proposta automatica dalle sole parole del corpo.
+- PEC: classificatore unico delle ricevute; mancata consegna, non accettazione e virus mai lette come consegna; deposito rifiutato riconosciuto.
+- Notifiche e calendari: bozze escluse da avvisi e calendari esterni, errori per voce con nuovo tentativo, giorni di preavviso rispettati.
+- Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
+
 ## 2.457.10 — Etichette certe dai depositi e statistiche del catalogo
 - Le etichette del portale si leggono dai depositi registrati nel fascicolo con il resolver condiviso; il tipo atto del DatiAtto etichetta l'atto principale dei depositi dello studio.
 - Il censimento riporta stato e confidenza del catalogo e le voci quasi certe delle regole.

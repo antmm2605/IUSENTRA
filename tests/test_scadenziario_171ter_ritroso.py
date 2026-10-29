@@ -138,3 +138,46 @@ def test_appello_lungo_include_la_sospensione_feriale() -> None:
     assert calcola_termine(date(2026, 3, 10), mesi=6, tipo="continui", sospensione_feriale=True).isoformat() == "2026-10-12"
     # Senza agosto nel periodo il termine resta di sei mesi.
     assert calcola_termine(date(2026, 1, 31), mesi=6, tipo="continui", sospensione_feriale=True).isoformat() == "2026-07-31"
+
+
+def test_doppia_data_prudenziale_e_di_legge() -> None:
+    esito = GestioneScadenziario.calcola_avanzata(start_at=date(2026, 11, 23), profile=profilo_da_preset("memoria_ex_171_ter_n1"))
+    assert esito.legal_due_at[:10] == "2026-10-13"
+    assert esito.scadenza_di_legge[:10] == "2026-10-14"
+    assert "Depositare entro il 13/10/2026" in esito.nota_scadenza_di_legge()
+    assert "14/10/2026" in esito.nota_scadenza_di_legge()
+
+
+def test_nuova_da_preset_riporta_la_scadenza_di_legge(tmp_path) -> None:
+    gs = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = gs.nuova_da_preset("memoria_ex_171_ter_n2", "Memoria 171-ter n. 2", "2026-11-23")
+    assert scadenza.data_scadenza == "2026-11-02"
+    assert "03/11/2026" in scadenza.descrizione
+
+
+def test_motore_termini_espone_la_scadenza_di_legge() -> None:
+    risultato = ItalianDeadlineCalculator().calculate_template(date(2026, 11, 23), _MODELLI["CIV_MEMORIA_171_TER_1"])
+    assert risultato["deadline"] == "2026-10-13"
+    assert risultato["legalDeadline"] == "2026-10-14"
+    assert "prudential_free_days_reading" in risultato["rulesApplied"]
+
+
+def test_riconvalida_porta_alla_data_prudenziale_le_memorie_a_giorni_pieni(tmp_path) -> None:
+    gs = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = _vecchia_memoria(gs, "2026-11-23", data="2026-10-14")
+    gs.aggiorna(scadenza.id, deadline_profile_code="TERM_40_DAYS_BEFORE")
+
+    assert riconvalida_memorie_171ter(gs) == {"corrette": 1, "da_verificare": 0}
+    corretta = gs.get(scadenza.id)
+    assert corretta.data_scadenza == "2026-10-13"
+    assert "14/10/2026" in corretta.note
+    assert riconvalida_memorie_171ter(gs) == {"corrette": 0, "da_verificare": 0}
+
+
+def test_riconvalida_non_tocca_una_data_anticipata_dall_avvocato(tmp_path) -> None:
+    gs = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
+    scadenza = _vecchia_memoria(gs, "2026-11-23", data="2026-10-05")
+    gs.aggiorna(scadenza.id, deadline_profile_code="TERM_40_DAYS_BEFORE")
+
+    assert riconvalida_memorie_171ter(gs) == {"corrette": 0, "da_verificare": 0}
+    assert gs.get(scadenza.id).data_scadenza == "2026-10-05"

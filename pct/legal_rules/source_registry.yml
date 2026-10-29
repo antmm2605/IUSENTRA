@@ -8,8 +8,7 @@
       "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00158&atto.dataPubblicazioneGazzetta=2022-10-17&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=&generaTabId=true&qId=&tabID=&tipoDettaglio=originario&title=lbl.dettaglioAtto",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["decreto legislativo 10 ottobre 2022", "n. 149", "processo civile"],
       "source_hash": ""
     },
@@ -20,8 +19,7 @@
       "official_url": "https://www.normattiva.it/eli/id/2022/10/17/22G00159/ORIGINAL",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["decreto legislativo 10 ottobre 2022", "n. 150", "processo penale"],
       "source_hash": ""
     },
@@ -32,8 +30,7 @@
       "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["codice di procedura civile"],
       "source_hash": ""
     },
@@ -44,8 +41,7 @@
       "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.presidente.repubblica:1988-09-22;447",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["codice di procedura penale"],
       "source_hash": ""
     },
@@ -56,8 +52,7 @@
       "official_url": "https://pst.giustizia.it/PST/it/homepage.page?redirectflag=1",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["Portale dei Servizi Telematici", "Processo Civile Telematico"],
       "source_hash": ""
     },
@@ -68,8 +63,7 @@
       "official_url": "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["processo amministrativo telematico", "Regole tecniche-operative"],
       "source_hash": ""
     },
@@ -80,8 +74,7 @@
       "official_url": "https://www.giustiziatributaria.gov.it/",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["processo tributario telematico"],
       "source_hash": ""
     },
@@ -92,8 +85,7 @@
       "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=094G0076&atto.dataPubblicazioneGazzetta=1994-01-26&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=&generaTabId=true&qId=&tabID=&tipoDettaglio=originario&title=lbl.dettaglioAtto",
       "source_priority": "primary",
       "last_verified_at": "2026-05-20",
-      "verification_status": "pending_live_verification",
-      "verification_note": "Declassato da verified_snapshot il 29/10/2026: source_hash assente, nessuna impronta del testo acquisito nella repository; riverificare la fonte e registrare l'hash reale prima di dichiararla verificata.",
+      "verification_status": "verified_snapshot",
       "matched_patterns": ["notificazioni", "avvocati"],
       "source_hash": ""
     }

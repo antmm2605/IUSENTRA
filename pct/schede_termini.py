@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Iterable
 
-from pct.termini_processuali import ItalianDeadlineCalculator
+from pct.termini_processuali import LETTURA_PRUDENZIALE, ItalianDeadlineCalculator
 
 # Evento di partenza → fatti dell'archivio delle letture da cui leggerne la data
 BASI = {
@@ -22,7 +22,7 @@ BASI = {
     "provvedimento": [{"categoria": "data", "campo": "provvedimento"}],
     "evento": [{"categoria": "data", "campo": "evento"}],
 }
-CHIAVI = {"base", "giorni", "mesi", "direzione", "feriale", "sabato"}
+CHIAVI = {"base", "giorni", "mesi", "direzione", "feriale", "sabato", "liberi"}
 
 
 def valida_termine(termine: dict[str, Any]) -> list[str]:
@@ -41,6 +41,8 @@ def valida_termine(termine: dict[str, Any]) -> list[str]:
         errori.append("feriale deve essere vero o falso")
     if "sabato" in termine and not isinstance(termine["sabato"], bool):
         errori.append("sabato deve essere vero o falso")
+    if "liberi" in termine and not isinstance(termine["liberi"], bool):
+        errori.append("liberi deve essere vero o falso")
     return errori
 
 
@@ -77,8 +79,14 @@ def calcola(termine: dict[str, Any], base: date) -> dict[str, Any]:
         raise ValueError("; ".join(errori))
     unita = "months" if termine.get("mesi") else "days"
     valore = int(termine.get("mesi") or termine.get("giorni"))
+    ritroso = termine["direzione"] == "ritroso"
+    # «Almeno N giorni prima»: data prudenziale a giorni liberi e, accanto, la scadenza di legge a giorni pieni.
+    # I termini che la norma dichiara già «liberi» (``liberi: true``) restano come scritti nella scheda.
+    prudenziale = ritroso and not termine.get("liberi")
     r = ItalianDeadlineCalculator().calculate(
-        base, valore, "backward" if termine["direzione"] == "ritroso" else "forward",
-        suspend_august=termine["feriale"], period_type=unita, extend_saturday=termine.get("sabato", True))
+        base, valore, "backward" if ritroso else "forward",
+        suspend_august=termine["feriale"], period_type=unita, extend_saturday=termine.get("sabato", True),
+        metadata={LETTURA_PRUDENZIALE: True} if prudenziale else {})
     return {"scadenza": r["deadline"], "base": base.isoformat(), "spiegazione": r["explanation"],
+            "scadenza_di_legge": r.get("legalDeadline") or "",
             "verifica_avvocato": bool(r.get("requiresLegalReview"))}

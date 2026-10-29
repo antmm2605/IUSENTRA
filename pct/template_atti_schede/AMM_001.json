@@ -336,6 +336,7 @@
      "base": "udienza",
      "direzione": "ritroso",
      "feriale": true,
+     "liberi": true,
      "giorni": 41
     }
    },
@@ -363,6 +364,7 @@
      "base": "udienza",
      "direzione": "ritroso",
      "feriale": true,
+     "liberi": true,
      "giorni": 31
     }
    },
@@ -385,6 +387,7 @@
      "base": "udienza",
      "direzione": "ritroso",
      "feriale": true,
+     "liberi": true,
      "giorni": 21
     }
    },

@@ -38,8 +38,12 @@ def calcola_termine(t: dict, precedenti: dict[str, str] | None = None) -> dict:
     dich = {"base": "evento", "direzione": t["direzione"], "feriale": bool(t["sospensione_feriale"]),
             "sabato": t["natura"] == "processuale"}
     dich.update({"giorni": n} if unita == "giorni" else {"mesi": n * 12 if unita == "anni" else n})
+    if t["direzione"] == "ritroso" and (t.get("liberi") or "liber" in str(t.get("regola") or "").casefold()):
+        dich["liberi"] = True  # la norma dice già «liberi» (es. art. 163-bis c.p.c.): nessun giorno prudenziale in più
     r = calcola(dich, base)
+    legale = r.get("scadenza_di_legge") or ""
     return {"id": t["id"], "descrizione": t["descrizione"], "scadenza": date.fromisoformat(r["scadenza"]).strftime("%d/%m/%Y"),
+            "scadenza_di_legge": date.fromisoformat(legale).strftime("%d/%m/%Y") if legale else "",
             "spiegazione": r["spiegazione"], "regola": t.get("regola"), "per_agire": t.get("per_agire"), "verifica_avvocato": r["verifica_avvocato"]}
 
 

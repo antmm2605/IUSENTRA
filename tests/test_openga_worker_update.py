@@ -55,7 +55,8 @@ def test_release_reading_gate_requires_persisted_queue_proof(tmp_path, monkeypat
     script = tmp_path / "deploy/openga/verify_reading.py"
     script.parent.mkdir(parents=True)
     script.write_text("script verificato")
-    proof = {"stato": "acquisito", "caratteri": 1000}
+    proof = {"stato": "acquisito", "caratteri": 1000, "lettura_confermata": True,
+             "approvazione_automatica": False, "scritture_dati_studio": False}
     monkeypatch.setattr(update_worker.subprocess, "run",
         lambda *args, **kwargs: SimpleNamespace(stdout=json.dumps(proof)))
     with pytest.raises(ValueError, match="coda"):

@@ -9,6 +9,11 @@ import tempfile
 import time
 from pathlib import Path
 
+if __package__:
+    from .verify_reading import expected_unavailability
+else:
+    from verify_reading import expected_unavailability
+
 
 def command(*args):
     return subprocess.check_output(args, text=True).strip()
@@ -58,6 +63,7 @@ def verify_reading(repo, container):
     if len(selected) != len(cases):
         raise ValueError("Casi di lettura incompleti")
     proofs = []
+    readings = set()
     for reference in selected:
         identity = request("iusentra-app", f"http://{container}:8092/document-identity", reference)
         if identity.get("ok") is not True:
@@ -76,12 +82,30 @@ def verify_reading(repo, container):
                 f"uscita {exc.returncode}):\n{detail}"
             ) from None
         proof = json.loads(result.stdout.strip().splitlines()[-1])
-        if (proof.get("stato") != "acquisito" or proof.get("caratteri", 0) < 300
-                or proof.get("coda_persistente_verificata") is not True
-                or proof.get("html_consultabile_verificato") is not True):
+        if proof.get("stato") == "acquisito":
+            if (proof.get("caratteri", 0) < 300
+                    or proof.get("lettura_confermata") is not True
+                    or proof.get("coda_persistente_verificata") is not True
+                    or proof.get("html_consultabile_verificato") is not True
+                    or proof.get("approvazione_automatica") is not False
+                    or proof.get("scritture_dati_studio") is not False):
+                raise ValueError("Lettura pubblica e coda non verificate")
+            readings.add(reference["relazione_id"])
+            print("LETTURA_UFFICIALE_SERVER_JSON=" + json.dumps(proof))
+        elif (expected_unavailability(identity["identita"], reference, proof)
+                and proof.get("fonte_indisponibile_verificata") is True
+                and proof.get("lettura_confermata") is False
+                and proof.get("caratteri") == 0
+                and proof.get("coda_persistente_verificata") is True
+                and proof.get("html_consultabile_verificato") is False
+                and proof.get("approvazione_automatica") is False
+                and proof.get("scritture_dati_studio") is False):
+            print("FONTE_INDISPONIBILE_SERVER_JSON=" + json.dumps(proof))
+        else:
             raise ValueError("Lettura pubblica e coda non verificate")
-        print("LETTURA_UFFICIALE_SERVER_JSON=" + json.dumps(proof))
         proofs.append(proof)
+    if len(readings) < 2:
+        raise ValueError("Almeno due letture pubbliche distinte devono riuscire")
     return proofs
 
 def run(sha):

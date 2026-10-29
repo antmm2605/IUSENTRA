@@ -12,11 +12,11 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 127 |
+| API contract | 128 |
 | Backend | 147 |
 | E2E | 15 |
 | Frontend static gate | 1 |
-| Frontend/UI | 366 |
+| Frontend/UI | 365 |
 | RBAC | 140 |
 | Security | 62 |
 | Smoke CLI | 6 |
@@ -987,6 +987,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | API contract | tests/test_lex_italian_response_guard.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_legal_source_engine.py | feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_lettura_fascicolo.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Lex/Ricerca | API contract | tests/test_lex_memory_answers.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_model_install.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_model_routing_governance.py | contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Lex/Ricerca | API contract | tests/test_lex_module.py | 401 anonimo, tenant, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -1043,7 +1044,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Lex/Ricerca | Frontend/UI | tests/test_lex_eval_scorecard_surface.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_lex_fonti_banco.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_lex_fonti_locali.py | contratto, file | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
-| Lex/Ricerca | Frontend/UI | tests/test_lex_memory_answers.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_lex_operational_query_dates.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_lex_operational_query_selection.py | 403/RBAC | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Lex/Ricerca | Frontend/UI | tests/test_lex_sources_and_studio_data.py | tenant | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

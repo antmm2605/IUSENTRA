@@ -14,7 +14,9 @@ from pathlib import Path
 from tests.test_lex_assistente_context_real_requests import _login, _seed_studio_con_moscato
 
 URL_2043 = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262~art2043!vig="
+MARCATORE_MEMORIA = "FonteMemoriaCollaudo2043"
 ESTRATTO_2043 = (
+    MARCATORE_MEMORIA + ": "
     "Art. 2043. Risarcimento per fatto illecito. Qualunque fatto doloso o colposo, "
     "che cagiona ad altri un danno ingiusto, obbliga colui che ha commesso il fatto a risarcire il danno."
 )
@@ -52,6 +54,17 @@ def _chiedi_2043(tmp_path: Path, monkeypatch, *, con_fiducia: bool) -> str:
     monkeypatch.setenv("PCT_DATA_ROOT", str(tmp_path / "data-root"))
     monkeypatch.delenv("IUSENTRA_DATA_DIR", raising=False)
     _semina_memoria(tmp_path / "data-root", con_fiducia=con_fiducia)
+    from lex.retrieval import normativa
+    from lex.retrieval.learning_memory import search_learning_memory
+    from lex.providers.registry import ProviderRegistry
+    from lex.providers.deterministic_provider import DeterministicProvider
+
+    # Il testo dell'art. 2043 può arrivare anche da altre fonti ufficiali:
+    # questa prova isola il canale memoria, senza rete o inferenze del modello.
+    monkeypatch.setattr(normativa, "_official_archive_sources", lambda *args, **kwargs: [])
+    monkeypatch.setattr(ProviderRegistry, "pick", lambda *args, **kwargs: DeterministicProvider())
+    letture = search_learning_memory("art. 2043 c.c.", memory_dir=tmp_path / "data-root" / "intelligence" / "lex_memory")
+    assert bool(letture) is con_fiducia
     app, studio, admin = _seed_studio_con_moscato(tmp_path / "app")
     with app.test_client() as client:
         _login(client, studio, admin)
@@ -68,8 +81,10 @@ def test_memoria_appresa_alimenta_la_risposta_con_ancora_ufficiale(tmp_path, mon
     answer = _chiedi_2043(tmp_path, monkeypatch, con_fiducia=True)
     assert "danno ingiusto" in answer  # testo della norma dall'estratto appreso
     assert "normattiva.it" in answer  # ancora ufficiale visibile nella risposta
+    assert MARCATORE_MEMORIA in answer  # prova che la fonte è proprio la memoria
 
 
 def test_senza_valutazione_di_fiducia_la_memoria_non_entra(tmp_path, monkeypatch):
     answer = _chiedi_2043(tmp_path, monkeypatch, con_fiducia=False)
     assert "danno ingiusto" not in answer  # fail-closed: lettura senza trust esclusa
+    assert MARCATORE_MEMORIA not in answer

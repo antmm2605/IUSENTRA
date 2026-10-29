@@ -1,3 +1,7 @@
+## 2.457.10 — Etichette certe dai depositi e statistiche del catalogo
+- Le etichette del portale si leggono dai depositi registrati nel fascicolo con il resolver condiviso; il tipo atto del DatiAtto etichetta l'atto principale dei depositi dello studio.
+- Il censimento riporta stato e confidenza del catalogo e le voci quasi certe delle regole.
+
 ## 2.457.9 — Censimento delle etichette certe: percorso dei fascicoli
 - Il censimento sul server percorre tutti i fascicoli dello studio, archiviati compresi; un fascicolo senza catalogo non lo interrompe.
 

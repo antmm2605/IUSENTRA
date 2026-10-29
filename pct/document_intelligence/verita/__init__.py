@@ -14,6 +14,7 @@ non servono ad addestrare. Nessun testo dei documenti esce da qui: solo identifi
 
 from .censimento import censisci, riepilogo
 from .decisioni import etichette_dalle_decisioni
+from .depositi import etichette_dai_depositi
 from .modello import LIVELLO_AVVOCATO, LIVELLO_DEPOSITO, EtichettaCerta
 from .portale import chiave_portale, etichetta_dal_portale
 
@@ -24,6 +25,7 @@ __all__ = [
     "censisci",
     "chiave_portale",
     "etichetta_dal_portale",
+    "etichette_dai_depositi",
     "etichette_dalle_decisioni",
     "riepilogo",
 ]

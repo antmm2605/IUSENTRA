@@ -13,7 +13,7 @@ from typing import Any
 
 from flask import Flask, g
 
-from pct.document_intelligence.verita import censisci, riepilogo
+from pct.document_intelligence.verita import censisci, etichette_dai_depositi, riepilogo
 from web.services.document_catalog_conferma import NOTA_CONFERMA_MASSIVA
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ def censimento_studio_corrente() -> list[dict[str, Any]]:
             continue
         documenti = [d for d in list(getattr(fascicolo, "documenti", []) or []) if not getattr(d, "eliminato_il", "")]
         censimenti.append(censisci(documenti, assegnazioni, fascicolo_id=str(fascicolo_id),
-                                   conferme_massive=conferme_massive(eventi)))
+                                   conferme_massive=conferme_massive(eventi), depositi=etichette_dai_depositi(fascicolo)))
     return censimenti
 
 

@@ -23,14 +23,53 @@ def _strutturale(etichetta: str) -> bool:
     return any(segno in etichetta for segno in _STRUTTURALI)
 
 
+# Confidenza delle regole: oltre questa soglia una proposta è «quasi certa» (titolo e riscontro nel corpo).
+CONFIDENZA_ARGENTO = 96
+
+
+def _fascia(confidenza: int) -> str:
+    if confidenza >= CONFIDENZA_ARGENTO:
+        return "96-100"
+    if confidenza >= 90:
+        return "90-95"
+    if confidenza >= 75:
+        return "75-89"
+    return "0-74"
+
+
+def statistiche_catalogo(assegnazioni: Iterable[Any]) -> dict[str, Any]:
+    """Stato e confidenza del catalogo; voci delle proposte «quasi certe» delle regole (candidate argento)."""
+    stati: Counter[str] = Counter()
+    fasce: Counter[str] = Counter()
+    argento: Counter[str] = Counter()
+    for assegnazione in assegnazioni:
+        stato = str(getattr(assegnazione, "status", "") or "")
+        origine = str(getattr(assegnazione, "source_state", "") or "")
+        voce = str(getattr(assegnazione, "document_label", "") or "")
+        confidenza = int(getattr(assegnazione, "confidence", 0) or 0)
+        stati[f"{stato}/{origine}"] += 1
+        if stato == "proposed" and origine != "manual_override" and not _strutturale(voce):
+            fasce[_fascia(confidenza)] += 1
+            if confidenza >= CONFIDENZA_ARGENTO:
+                argento[voce] += 1
+    return {"stati": dict(stati), "fasce_confidenza_proposte": dict(fasce), "argento_per_voce": dict(argento)}
+
+
 def censisci(documenti: Iterable[Any], assegnazioni: Iterable[Any], *, fascicolo_id: str,
-             conferme_massive: set[str] = frozenset()) -> dict[str, Any]:
-    """Etichette certe, conflitti e concordanza del catalogo per un fascicolo."""
+             conferme_massive: set[str] = frozenset(), depositi: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Etichette certe, conflitti e concordanza del catalogo per un fascicolo.
+
+    `depositi` è l'esito di `depositi.etichette_dai_depositi` per lo stesso fascicolo, se disponibile.
+    """
     documenti = list(documenti)
     assegnazioni = list(assegnazioni)
     per_documento = {str(getattr(a, "document_id", "") or ""): a for a in assegnazioni}
+    depositi = dict(depositi or {})
 
-    dal_portale = [e for e in (etichetta_dal_portale(d, fascicolo_id=fascicolo_id) for d in documenti) if e]
+    dal_portale_doc = {e.document_id: e for e in (etichetta_dal_portale(d, fascicolo_id=fascicolo_id) for d in documenti) if e}
+    for etichetta in depositi.get("etichette") or []:
+        dal_portale_doc.setdefault(etichetta.document_id, etichetta)
+    dal_portale = list(dal_portale_doc.values())
     dall_avvocato = etichette_dalle_decisioni(assegnazioni, conferme_massive=conferme_massive)
     avvocato_per_documento = {e.document_id: e for e in dall_avvocato if not e.negativa}
 
@@ -51,7 +90,7 @@ def censisci(documenti: Iterable[Any], assegnazioni: Iterable[Any], *, fascicolo
             continue
         concordanza.append({"voce": etichetta.etichetta, "catalogo": str(getattr(assegnazione, "document_label", "") or "")})
 
-    non_mappati: Counter[str] = Counter()
+    non_mappati: Counter[str] = Counter(depositi.get("non_mappati") or {})
     for documento in documenti:
         chiave = chiave_portale(documento)
         if chiave and chiave[0] in {ATTO, PROVVEDIMENTO} and etichetta_dal_portale(documento, fascicolo_id=fascicolo_id) is None:
@@ -67,6 +106,9 @@ def censisci(documenti: Iterable[Any], assegnazioni: Iterable[Any], *, fascicolo
         "portale_non_mappati": dict(non_mappati),
         "strutturali": strutturali,
         "conferme_massive": len(conferme_massive),
+        "depositi": dict(depositi.get("conteggi") or {}),
+        "fonti_documenti": dict(Counter(str(getattr(d, "fonte_documento", "") or "non indicata") for d in documenti)),
+        "catalogo": statistiche_catalogo(assegnazioni),
     }
 
 
@@ -80,7 +122,18 @@ def riepilogo(censimenti: Iterable[dict[str, Any]], *, minimo_per_voce: int = 30
     concordi: Counter[str] = Counter()
     misurati: Counter[str] = Counter()
     fascicoli = documenti = conflitti = strutturali = massive = 0
+    depositi: Counter[str] = Counter()
+    fonti_documenti: Counter[str] = Counter()
+    stati: Counter[str] = Counter()
+    fasce: Counter[str] = Counter()
+    argento: Counter[str] = Counter()
     for censimento in censimenti:
+        depositi.update(censimento.get("depositi") or {})
+        fonti_documenti.update(censimento.get("fonti_documenti") or {})
+        catalogo = censimento.get("catalogo") or {}
+        stati.update(catalogo.get("stati") or {})
+        fasce.update(catalogo.get("fasce_confidenza_proposte") or {})
+        argento.update(catalogo.get("argento_per_voce") or {})
         fascicoli += 1
         documenti += int(censimento.get("documenti") or 0)
         conflitti += len(censimento.get("conflitti") or [])
@@ -111,10 +164,16 @@ def riepilogo(censimenti: Iterable[dict[str, Any]], *, minimo_per_voce: int = 30
         "conferme_massive_escluse": massive,
         "xml_strutturali_esclusi": strutturali,
         "portale_non_mappati": dict(non_mappati.most_common(60)),
+        "depositi": dict(depositi),
+        "fonti_documenti": dict(fonti_documenti),
+        "catalogo_stati": dict(stati),
+        "catalogo_fasce_confidenza_proposte": dict(fasce),
+        "argento_per_voce": dict(argento.most_common()),
+        "voci_argento_addestrabili": sorted(voce for voce, n in argento.items() if n >= minimo_per_voce),
         "concordanza_catalogo_con_deposito": {
             voce: {"misurati": misurati[voce], "concordi": concordi[voce]} for voce in sorted(misurati)
         },
     }
 
 
-__all__ = ["censisci", "riepilogo"]
+__all__ = ["CONFIDENZA_ARGENTO", "censisci", "riepilogo", "statistiche_catalogo"]

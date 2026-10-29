@@ -158,3 +158,70 @@ def test_censimento_dello_studio_percorre_tutti_i_fascicoli_anche_archiviati(mon
     assert chiamate == [True]
     assert [c["fascicolo_id"] for c in censimenti] == ["F1"]  # F2 senza catalogo non ferma il censimento
     assert riepilogo(censimenti)["per_voce"] == {"Sentenza": 1}
+
+
+def _doc_fascicolo(id_doc: str, nome: str, **campi):
+    from pct.fascicoli import Documento, TipoDocumento
+
+    return Documento(id=id_doc, nome=nome, tipo=TipoDocumento.ALTRO, percorso=f"{id_doc}.pdf", hash_sha256=f"sha-{id_doc}", **campi)
+
+
+def test_depositi_dal_portale_etichettano_atto_e_provvedimento_ma_non_gli_allegati():
+    from pct.document_intelligence.verita import etichette_dai_depositi
+    from pct.fascicoli import EsitoDepositoPCT
+
+    deposito = EsitoDepositoPCT(
+        id="dep1", timestamp="2026-01-15T10:00:00", stato="ACCETTATO_CANCELLERIA", tipo_atto="Decreto Ingiuntivo",
+        pec_destinatario="", documenti_ids=["d1", "d2", "d3"], fonte_portale="PolisWeb",
+        documenti_portale=[
+            {"id_documento": "P-1", "nome": "ricorso.pdf", "tipo": "ATTO", "tipo_atto": "Decreto Ingiuntivo"},
+            {"id_documento": "P-2", "nome": "procura.pdf", "tipo": "ALLEGATO", "tipo_atto": "Decreto Ingiuntivo"},
+            {"id_documento": "P-3", "nome": "decreto.pdf", "tipo": "PROVVEDIMENTO", "tipo_atto": "Provvedimento — Decreto Ingiuntivo"},
+        ],
+    )
+    fascicolo = SimpleNamespace(id="F1", depositi_pct=[deposito], documenti=[
+        _doc_fascicolo("d1", "ricorso.pdf", id_documento_portale="P-1"),
+        _doc_fascicolo("d2", "procura.pdf", id_documento_portale="P-2"),
+        _doc_fascicolo("d3", "decreto.pdf", id_documento_portale="P-3"),
+    ])
+
+    esito = etichette_dai_depositi(fascicolo)
+
+    assert {(e.document_id, e.etichetta) for e in esito["etichette"]} == {
+        ("d1", "Ricorso per decreto ingiuntivo"), ("d3", "Decreto ingiuntivo")}
+    assert esito["conteggi"] == {"depositi_portale": 1}
+
+
+def test_deposito_dello_studio_etichetta_solo_l_atto_principale_e_conta_i_tipi_nuovi():
+    from pct.document_intelligence.verita import etichette_dai_depositi
+    from pct.fascicoli import EsitoDepositoPCT
+
+    nota = EsitoDepositoPCT(id="dep1", timestamp="2026-02-01T09:00:00", stato="INVIATO", tipo_atto="Note scritte",
+                            pec_destinatario="", documenti_ids=["n1", "a1"], nome_atto_principale="note.pdf")
+    nuovo = EsitoDepositoPCT(id="dep2", timestamp="2026-03-01T09:00:00", stato="INVIATO", tipo_atto="Istanza di visibilità",
+                             pec_destinatario="", documenti_ids=["i1"], nome_atto_principale="istanza.pdf")
+    fascicolo = SimpleNamespace(id="F1", depositi_pct=[nota, nuovo], documenti=[
+        _doc_fascicolo("n1", "note.pdf"), _doc_fascicolo("a1", "allegato.pdf"), _doc_fascicolo("i1", "istanza.pdf"),
+    ])
+
+    esito = etichette_dai_depositi(fascicolo)
+
+    assert [(e.document_id, e.etichetta, e.fonte) for e in esito["etichette"]] == [
+        ("n1", "Note di trattazione scritta", "deposito_telematico_studio")]
+    assert esito["non_mappati"] == {"studio: istanza di visibilita": 1}
+    assert esito["conteggi"] == {"depositi_studio": 2}
+
+
+def test_statistiche_del_catalogo_e_candidate_argento():
+    from pct.document_intelligence.verita.censimento import statistiche_catalogo
+
+    assegnazioni = [
+        SimpleNamespace(status="proposed", source_state="verified_snapshot", document_label="Sentenza", confidence=99),
+        SimpleNamespace(status="proposed", source_state="verified_snapshot", document_label="Istanza", confidence=80),
+        SimpleNamespace(status="review_required", source_state="review_required", document_label="Contenuto da verificare", confidence=40),
+        SimpleNamespace(status="proposed", source_state="verified_snapshot", document_label="Dati strutturati PST — Ricorso", confidence=99),
+    ]
+    statistiche = statistiche_catalogo(assegnazioni)
+    assert statistiche["argento_per_voce"] == {"Sentenza": 1}
+    assert statistiche["fasce_confidenza_proposte"] == {"96-100": 1, "75-89": 1}
+    assert statistiche["stati"]["proposed/verified_snapshot"] == 3

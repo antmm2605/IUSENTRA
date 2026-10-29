@@ -384,3 +384,70 @@ Lo script di addestramento sta in `tools/addestramento/` (fuori dal gestionale, 
 2. Indicare dove si trova sul PC il materiale D4 completo (i 12 casi sono un campione) e quanti casi contiene.
 3. Indicare quante ore di revisione può dedicare: ogni 50 casi rivisti servono circa 10 ore. È il fattore che limita la qualità del modello grande.
 4. Scegliere il fornitore della GPU cloud: si sceglie quando i casi approvati superano i 300; prima l'addestramento non conviene.
+
+---
+
+## 7. Addestramento del 35B: piano per risultati eccellenti (29/10/2026)
+
+### 7.1 Dati ricevuti
+
+- **Modello in uso:** `Qwen3.6-35B-A3B-UD-Q4_K_M.gguf` in WSL Ubuntu 24.04 sul PC (RTX 3060 12 GB, llama.cpp, ponte Tailscale verso il server).
+- **Materiale D4:** 120 casi distinti (15 materie × 8) e 1.039 esempi derivati dagli stessi casi, circa 8,7 per caso. Gli esempi derivati non sono casi indipendenti.
+- **Approvati dall'avvocato:** 12 casi D4 e 10 schede del banco v7 (60 casi in tutto).
+
+### 7.2 Perché l'addestramento v4 non ha migliorato (cause da verificare sui file)
+
+1. **Etichette non validate.** 108 casi su 120 non erano stati rivisti. Un errore in un caso si moltiplica per circa 8,7 esempi derivati: il modello impara l'errore con più forza della regola.
+2. **Prova e addestramento possono condividere lo stesso caso.** Se gli esempi derivati vengono divisi per esempio e non per caso, la misura risulta falsata. La divisione corretta è per caso, e per materia nella prova finale.
+3. **Poca varietà di decisioni.** 8 casi per materia non coprono le scelte che contano (rimedio, giudice, evento iniziale, norma, imputazione dei pagamenti). Il modello impara lo stile, non le distinzioni.
+4. **Formato diverso da quello in uso.** L'esempio di addestramento deve avere lo stesso modello di messaggio, le stesse Fonti numerate e la stessa scheda che Lex riceve in produzione. Il ragionamento va scritto in una sezione fissa, non improvvisato.
+5. **Si misura il modello che si usa.** L'addestramento avviene sui pesi bf16 originali, ma si misura il modello quantizzato UD-Q4_K_M che gira sul PC. La quantizzazione può cancellare parte del guadagno.
+
+### 7.3 Che cosa garantisce la correttezza, oltre all'addestramento
+
+Nessun addestramento rende un modello infallibile. La correttezza viene da tre livelli che restano tutti attivi:
+
+1. **Il software decide ciò che è calcolabile:** termini (art. 155 c.p.c., L. 742/1969), importi, imputazione dei pagamenti, requisiti dell'atto (`lex/procedura_atti`). Il modello non calcola date né importi.
+2. **Il modello decide ciò che richiede ragionamento giuridico**, cioè rimedio, giudice, norma, conclusioni e motivazione. Lo fa solo con le Fonti trasmesse e cita la Fonte di ogni scelta. Se la norma manca, la risposta è «non determinabile con le fonti disponibili».
+3. **La revisione indipendente controlla la bozza contro la scheda** prima della consegna: date ed importi identici, conclusioni complete, Fonti citate esistenti.
+
+L'addestramento migliora il secondo livello. Il risultato si misura sul banco approvato, campo per campo.
+
+### 7.4 Ore di revisione: la risposta
+
+Obiettivo misurabile: sul banco congelato (60 casi v7 approvati e 15 casi D4 tenuti da parte, uno per materia) **zero errori sulle decisioni** (rimedio, giudice, evento iniziale, norma applicata, conclusioni), **zero date o importi diversi dal calcolo** e **astensione corretta** quando la norma manca. Per raggiungerlo e dimostrarlo servono:
+
+| Passo | Casi | Minuti per caso | Ore |
+|---|---|---|---|
+| A. Completare il banco v7 (servono tutte le 60 schede approvate per misurare) | 50 | 10 (sola scheda) | ~8 |
+| B. Completare i casi D4 (scheda + bozza) | 108 | 12 | ~22 |
+| C. Nuovi casi mirati alle decisioni sbagliate dal modello, 15 materie × circa 14 casi | ~210 | 8 in media* | ~28 |
+| D. Revisione delle risposte sbagliate dopo ogni addestramento (2-3 giri) | ~60 | 10 | ~10 |
+| **Totale** | | | **circa 68 ore** |
+
+\* Il software prepara ogni caso e lo verifica da solo prima della revisione:
+- controlla la scheda (`verifica_scheda`), le Fonti e i calcoli;
+- confronta due stesure indipendenti.
+
+L'avvocato riceve per primi i casi con disaccordi (circa 60%, revisione completa di 12 minuti). Gli altri li vede in forma ridotta (circa 4 minuti): solo i punti di decisione da spuntare, non tutta la bozza.
+
+Distribuzione consigliata:
+
+- **Prima tappa: A + B, circa 30 ore.** Al termine c'è una misura certa di quanto rende il modello base con scheda ed esempi approvati e di quanto aggiunge l'addestramento. Senza questa tappa non si può dire che il modello risponde correttamente.
+- **Seconda tappa: C + D, circa 38 ore**, solo sulle materie e sulle decisioni dove la prima tappa mostra errori. Se una materia è già a zero errori, i suoi casi nuovi si riducono.
+
+Le correzioni dell'avvocato diventano coppie «risposta sbagliata / risposta corretta» per l'addestramento a preferenza (DPO). Sono gli esempi che correggono di più, perché insegnano proprio dove il modello sbagliava.
+
+### 7.5 Metodo di addestramento
+
+1. **Base:** `Qwen/Qwen3.6-35B-A3B` in bf16 (gli stessi pesi da cui deriva il GGUF in uso).
+2. **Primo stadio (SFT):** LoRA bf16 su una GPU cloud da 80 GB (H100 o A100). Ogni esempio contiene fatti, Fonti numerate e richiesta, seguiti da scheda con motivazione per punto e da bozza. Il formato è identico a quello di produzione.
+3. **Secondo stadio (DPO):** le correzioni dell'avvocato e le risposte del modello scartate dalla revisione indipendente.
+4. **Esportazione:** unione LoRA, conversione in GGUF UD-Q4_K_M (stessa quantizzazione), caricamento sul PC accanto al modello attuale con nome versionato.
+5. **Misura sul modello quantizzato.** Si confrontano il 35B base con scheda, il base con esempi approvati recuperati per materia e il modello addestrato. Si adotta solo se, rispetto al base, ha meno errori e nessuna regressione sui casi approvati.
+6. **Costo indicativo:** 3-5 corse di addestramento da 1-3 ore su una sola GPU da 80 GB, circa 10-15 ore GPU in tutto. Sul cloud vanno solo casi inventati e approvati.
+
+### 7.6 Che cosa serve per partire
+
+- Copiare in questa sessione, o in una cartella del repository riservata ai dati inventati, `casi_v4.jsonl`, `dataset_v4.zip` e il file del banco v7 (60 casi). Servono a verificare formato, divisione per caso ed errori del v4 prima di scrivere il generatore dei casi nuovi e lo strumento di revisione.
+- Confermare se nel PC c'è anche il file della corsa v4 (configurazione, LoRA, risultati): permette di capire con certezza perché non è stata adottata.

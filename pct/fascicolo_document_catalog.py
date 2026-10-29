@@ -24,6 +24,106 @@ from pct.presidio_processuale_ruleset import (
 
 MAX_CATALOG_TEXT_CHARS = 60000
 
+# Zona del titolo: il documento dichiara la propria natura nelle prime righe.
+# Oltre queste soglie una parola («sentenza», «udienza») e' una citazione nel
+# corpo, non l'identita' dell'atto (audit 29/10/2026).
+RIGHE_TITOLO_ATTO = 14
+CARATTERI_TITOLO_ATTO = 2400
+LUNGHEZZA_RIGA_TITOLO = 120
+CARATTERI_INTESTAZIONE = 1500
+
+# Esiti del classificatore storico nati da una parola chiave nel corpo, senza
+# titolo dell'atto: valgono come candidato da rivedere, mai come proposta
+# automatica (``resolve_document_catalog`` li porta in revisione).
+EVIDENZE_SOLO_TITOLO_O_STRUTTURA = frozenset({
+    "XML RT pagoPA: ricevuta contributo unificato",
+    "testo ministeriale: ruolo generale, parti e dati del procedimento",
+})
+PREFISSO_EVIDENZA_TITOLO = "titolo dell'atto"
+# Provvedimenti riconosciuti dalla riga del titolo («SENTENZA N. …»), non dal corpo.
+PREFISSO_EVIDENZA_INTESTAZIONE = "OCR intestazione:"
+
+
+_OCR_SILLABAZIONE = re.compile(
+    r"([A-Za-zÀ-ÖØ-öø-ÿ])-[ \t]*\r?\n[ \t]*(?:([a-zà-öø-ÿ][a-zà-öø-ÿ']*)|([A-ZÀ-ÖØ-Þ]{1,6})(?![A-Za-zÀ-ÖØ-öø-ÿ]))"
+)
+_OCR_TOKEN = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ0-9|]+")
+
+
+def _correggi_token_ocr(token: str, riga_maiuscola: bool) -> str:
+    lettere = [car for car in token if car.isalpha()]
+    if len(lettere) < 2:
+        return token
+    cifre = [car for car in token if car.isdigit()]
+    # 0/1 dentro una parola: solo se sono le uniche cifre e stanno fra lettere.
+    if cifre and set(cifre) <= {"0", "1"} and len(lettere) >= 3:
+        maiuscola = sum(1 for car in lettere if car.isupper()) >= sum(1 for car in lettere if car.islower())
+        caratteri = list(token)
+        for indice, car in enumerate(caratteri):
+            if car not in "01":
+                continue
+            prima = caratteri[indice - 1] if indice else ""
+            dopo = caratteri[indice + 1] if indice + 1 < len(caratteri) else ""
+            fra_lettere = prima.isalpha() and dopo.isalpha()
+            in_testa = indice == 0 and dopo.isalpha()
+            # «ACCESS0», «SEQUESTR0»: lo zero finale dopo almeno due lettere.
+            in_coda = car == "0" and not dopo and indice >= 2 and prima.isalpha() and caratteri[indice - 2].isalpha()
+            if not (fra_lettere or in_testa or in_coda):
+                continue
+            if car == "0":
+                caratteri[indice] = "O" if maiuscola else "o"
+            elif maiuscola:
+                caratteri[indice] = "I"
+        token = "".join(caratteri)
+    token = token.replace("|", "I") if any(car.isupper() for car in token) else token
+    if "l" not in token or token == "Il":
+        return token
+    altre_minuscole = [car for car in token if car.isalpha() and car.islower() and car != "l"]
+    if altre_minuscole:
+        return token
+    maiuscole = sum(1 for car in token if car.isupper())
+    if maiuscole >= 2 or token == "Dl" or (riga_maiuscola and maiuscole >= 1) or (riga_maiuscola and set(token) == {"l"}):
+        return token.replace("l", "I")
+    return token
+
+
+def normalizza_ocr_titoli(testo: Any) -> str:
+    """Corregge le confusioni OCR tipiche delle intestazioni prima del confronto.
+
+    «ATTO Dl PRECETTO», «TRlBUNALE», «C0MPARSA», «CITA-\\nZIONE»: la l minuscola
+    letta al posto della I maiuscola dentro una parola in maiuscolo, lo zero al
+    posto della O, la sillabazione a fine riga. Le parole in minuscolo e le
+    parole miste («Il», «dell») restano intatte; il testo non viene riscritto
+    altrove, la correzione serve solo al riconoscimento del titolo.
+    """
+
+    grezzo = str(testo or "")
+    if not grezzo:
+        return grezzo
+    grezzo = _OCR_SILLABAZIONE.sub(lambda m: m.group(1) + (m.group(2) or m.group(3) or ""), grezzo)
+    righe: list[str] = []
+    for riga in grezzo.split("\n"):
+        lettere = [car for car in riga if car.isalpha() and car != "l"]
+        maiuscole = sum(1 for car in lettere if car.isupper())
+        riga_maiuscola = len(lettere) >= 4 and maiuscole / len(lettere) >= 0.8
+        righe.append(_OCR_TOKEN.sub(lambda m: _correggi_token_ocr(m.group(0), riga_maiuscola), riga))
+    return "\n".join(righe)
+
+
+def _righe_titolo(testo: str) -> list[str]:
+    """Le righe brevi in testa al documento, normalizzate per il confronto."""
+
+    righe: list[str] = []
+    for grezza in str(testo or "")[:CARATTERI_TITOLO_ATTO].splitlines():
+        compatta = re.sub(r"\s+", " ", grezza).strip()
+        if not compatta:
+            continue
+        if len(compatta) <= LUNGHEZZA_RIGA_TITOLO:
+            righe.append(_slug(compatta))
+        if len(righe) >= RIGHE_TITOLO_ATTO:
+            break
+    return righe
+
 
 @dataclass(frozen=True, slots=True)
 class DocumentCatalogClassification:
@@ -248,6 +348,202 @@ def _provvedimento_result(
     )
 
 
+# Formule che solo un provvedimento del giudice porta in testa: davanti a
+# queste un «ricorso» nelle prime righe e' il ricorso deciso, non l'atto.
+_FORMULE_DECISIONE = (
+    r"\b(in\s+nome\s+del\s+popolo\s+italiano|repubblica\s+italiana|ha\s+pronunciato|"
+    r"pronuncia\s+la\s+seguente|ha\s+emesso\s+la\s+seguente|il\s+giudice\s+(?:letto|visto|vista|sciogliendo))\b"
+)
+
+# Titoli degli atti di parte (artt. 163, 125, 167, 171-ter, 190, 633, 645
+# c.p.c.): la riga del titolo prevale su ogni parola citata nel corpo.
+_TITOLI_ATTI_DI_PARTE: tuple[tuple[str, str], ...] = (
+    (
+        r"^(?:atto\s+di\s+)?citazione\s+in\s+opposizione\b|^(?:atto\s+di\s+)?opposizione\s+(?:a|al|avverso\s+(?:il\s+)?)\s*decreto\s+ingiuntivo\b",
+        "opposizione_decreto_ingiuntivo",
+    ),
+    (
+        r"^ricorso\s+per\s+(?:decreto\s+)?ingiuntivo\b|^ricorso\s+per\s+ingiunzione\b|^ricorso\s+monitorio\b",
+        "ricorso_decreto_ingiuntivo",
+    ),
+    (r"^(?:atto\s+di\s+)?citazione\b", "citazione"),
+    (r"^(?:atto\s+di\s+)?ricorso\b", "ricorso"),
+    (r"^comparsa\b|^atto\s+di\s+costituzione\b", "comparsa"),
+    (
+        r"^(?:memoria|memorie|istanza|controricorso|controdeduzioni|deduzioni|replica|reclamo|appello|"
+        r"atto\s+di\s+(?:appello|intervento|riassunzione)|motivi\s+(?:di\s+appello|aggiunti)|richiesta\s+di\s+riesame|"
+        r"note\s+(?:di|per|scritte|conclusiv\w*|conclusional\w*|difensiv\w*|autorizzat\w*|d\s+udienza|trattazione))\b",
+        "difensivo",
+    ),
+)
+
+
+_REGOLE_PRESIDIO_DI_IMPUGNAZIONE = frozenset({
+    "cassazione_civile",
+    "appello_civile_lavoro",
+    "impugnazione_amministrativa",
+    "impugnazione_tributaria",
+})
+
+
+def _titolo_atto_di_parte(testo: str, intestazione: str) -> DocumentCatalogClassification | None:
+    """Riconosce l'atto di parte dalla riga del titolo, prima del corpo."""
+
+    if _contains(intestazione, _FORMULE_DECISIONE):
+        return None
+    for riga in _righe_titolo(testo):
+        for modello, tipo_atto in _TITOLI_ATTI_DI_PARTE:
+            if not re.search(modello, riga):
+                continue
+            if tipo_atto == "opposizione_decreto_ingiuntivo":
+                return _result(
+                    role="atto_principale",
+                    label="Atto di citazione in opposizione a decreto ingiuntivo",
+                    section="atti",
+                    confidence=96,
+                    evidence=f"{PREFISSO_EVIDENZA_TITOLO}: citazione in opposizione a decreto ingiuntivo (art. 645 c.p.c.)",
+                    tipo_documento=TipoDocumento.CITAZIONE,
+                    deposit_role="atto_principale",
+                    deposit_candidate=True,
+                )
+            if tipo_atto == "ricorso_decreto_ingiuntivo":
+                return _result(
+                    role="atto_principale",
+                    label="Ricorso per decreto ingiuntivo",
+                    section="atti",
+                    confidence=96,
+                    evidence=f"{PREFISSO_EVIDENZA_TITOLO}: ricorso per decreto ingiuntivo (art. 633 c.p.c.)",
+                    tipo_documento=TipoDocumento.RICORSO,
+                    deposit_role="atto_principale",
+                    deposit_candidate=True,
+                )
+            if tipo_atto == "citazione":
+                return _result(
+                    role="atto_principale",
+                    label="Atto di citazione - atto principale",
+                    section="atti",
+                    confidence=96,
+                    evidence=f"{PREFISSO_EVIDENZA_TITOLO}: atto di citazione (art. 163 c.p.c.)",
+                    tipo_documento=TipoDocumento.CITAZIONE,
+                    deposit_role="atto_principale",
+                    deposit_candidate=True,
+                )
+            if tipo_atto == "ricorso":
+                return _result(
+                    role="atto_principale",
+                    label="Ricorso - atto principale",
+                    section="atti",
+                    confidence=96,
+                    evidence=f"{PREFISSO_EVIDENZA_TITOLO}: ricorso",
+                    tipo_documento=TipoDocumento.RICORSO,
+                    deposit_role="atto_principale",
+                    deposit_candidate=True,
+                )
+            return _result(
+                role="atto_difensivo",
+                label="Atto difensivo",
+                section="atti",
+                confidence=94,
+                evidence=f"{PREFISSO_EVIDENZA_TITOLO}: comparsa/memoria/note/istanza di parte",
+                tipo_documento=TipoDocumento.COMPARSA if tipo_atto == "comparsa" else TipoDocumento.MEMORIA,
+                deposit_role="atto_principale",
+                deposit_candidate=True,
+            )
+    return None
+
+
+def _provvedimento_nel_titolo(testo: str, intestazione: str, parola: str) -> str:
+    """La parola del provvedimento sta nella zona del titolo, non nel corpo.
+
+    Vale la riga breve che inizia con la parola («SENTENZA N. 456/2026»,
+    «ORDINANZA», «VERBALE DI UDIENZA») oppure, per i testi senza righe, la
+    parola nelle primissime battute dell'intestazione. Restituisce «riga»
+    (titolo su riga propria), «testa» (testo senza righe) o stringa vuota.
+    """
+
+    modello = rf"^(?:copia\s+)?(?:(?:la|il)\s+)?{parola}\b"
+    if any(re.search(modello, riga) for riga in _righe_titolo(testo)):
+        return "riga"
+    if "\n" not in str(testo or "").strip()[:CARATTERI_INTESTAZIONE] and _contains(intestazione[:200], rf"\b{parola}\b"):
+        return "testa"
+    return ""
+
+
+def _verbale_con_sentenza_contestuale(testo: str) -> bool:
+    """Verbale d'udienza in cui il giudice pronuncia sentenza (artt. 281-sexies, 429 c.p.c.)."""
+
+    try:
+        from pct.pec_legal_workflow import _is_decisive_judgment_text
+    except Exception:  # pragma: no cover - modulo PEC non disponibile
+        return False
+    grezzo = re.sub(r"\s+", " ", str(testo or ""))
+    return bool(
+        _is_decisive_judgment_text(grezzo)
+        or re.search(r"\bpronuncia\s+(?:la\s+seguente\s+)?sentenza\b|\bsentenza\s+contestuale\b", grezzo, re.IGNORECASE)
+    )
+
+
+def _decreto_ingiuntivo_split(testo: str, intestazione: str, full_text: str) -> DocumentCatalogClassification | None:
+    """Ricorso monitorio, decreto ingiuntivo e opposizione sono atti diversi.
+
+    Il ricorso (art. 633 c.p.c.) e la citazione in opposizione (art. 645
+    c.p.c.) sono atti di parte; il decreto (art. 641 c.p.c.) e' il
+    provvedimento del giudice e va fra i provvedimenti.
+    """
+
+    decreto = _result(
+        role="provvedimento",
+        label="Decreto ingiuntivo",
+        section="provvedimenti",
+        confidence=90,
+        evidence="OCR: decreto ingiuntivo con formula «ingiunge» (art. 641 c.p.c.)",
+        tipo_documento=TipoDocumento.DECRETO,
+        deposit_role="allegato",
+        deposit_candidate=True,
+    )
+    ingiunge = _contains(full_text, r"\bingiung(?:e|iamo)\b")
+    if ingiunge and _provvedimento_nel_titolo(testo, intestazione, r"decreto\s+ingiuntivo"):
+        return decreto
+    if _contains(intestazione, r"\bricorso\s+(?:per\s+)?(?:decreto\s+)?ingiuntiv\w*|\bricorso\s+per\s+ingiunzione\b|\bricorso\s+monitorio\b"):
+        return _result(
+            role="atto_principale",
+            label="Ricorso per decreto ingiuntivo",
+            section="atti",
+            confidence=90,
+            evidence="OCR: ricorso per decreto ingiuntivo (art. 633 c.p.c.)",
+            tipo_documento=TipoDocumento.RICORSO,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+        )
+    if _contains(intestazione, r"\bopposizione\s+(?:a|al|avverso)\s+(?:il\s+)?decreto\s+ingiuntivo\b|\bcitazione\s+in\s+opposizione\b"):
+        return _result(
+            role="atto_principale",
+            label="Atto di citazione in opposizione a decreto ingiuntivo",
+            section="atti",
+            confidence=90,
+            evidence="OCR: opposizione a decreto ingiuntivo (art. 645 c.p.c.)",
+            tipo_documento=TipoDocumento.CITAZIONE,
+            deposit_role="atto_principale",
+            deposit_candidate=True,
+        )
+    if ingiunge and _contains(intestazione, r"\bdecreto\s+ingiuntivo\b"):
+        return decreto
+    return None
+
+
+def _sentenza_contestuale_result(confidence: int, evidence: str) -> DocumentCatalogClassification:
+    return _result(
+        role="provvedimento",
+        label="Sentenza contestuale a verbale d'udienza",
+        section="provvedimenti",
+        confidence=confidence,
+        evidence=evidence,
+        tipo_documento=TipoDocumento.SENTENZA,
+        deposit_role="allegato",
+        deposit_candidate=True,
+    )
+
+
 def classify_fascicolo_document(
     doc: Any | None = None,
     *,
@@ -264,8 +560,12 @@ def classify_fascicolo_document(
 
     current_type, name_text, metadata_text = _metadata_for_document(doc, filename=filename, tipo=tipo)
     raw_extracted_text = _text(extracted_text)[:MAX_CATALOG_TEXT_CHARS]
-    ocr_text = _slug(raw_extracted_text)
+    # Il testo letto per riconoscere titoli e formule corregge le confusioni
+    # OCR; i controlli su XML e moduli ministeriali usano il testo originale.
+    testo_ocr = normalizza_ocr_titoli(raw_extracted_text)
+    ocr_text = _slug(testo_ocr)
     head_text = ocr_text[:8000]
+    intestazione = ocr_text[:CARATTERI_INTESTAZIONE]
     full_text = re.sub(r"\s+", " ", f"{metadata_text} {ocr_text}").strip()
     if not full_text:
         return _default_result(current_type)
@@ -305,6 +605,7 @@ def classify_fascicolo_document(
         name_text,
         r"\b(autocertificazion[ei]?|dichiarazion[ei]?|situazione\s+reddituale|carta\s+identita|codice\s+fiscale|contratto|lettera\s+di\s+diffida|diffida|richiesta\s+pagamento|annualita|documentazione|allegat[oi])\b",
     ) or _contains(name_text, r"\b(eml|msg)\b")
+
     # Lo stesso testo e le stesse regole producono un solo insieme di riscontri
     # per questa chiamata. Priorità, evidenze e classificazioni restano identiche.
     presidio_codes = {hit["code"] for hit in presidio_rule_hits(full_text)}
@@ -314,7 +615,20 @@ def classify_fascicolo_document(
     siamm_lsg = "siamm_lsg_liquidazione" in presidio_codes
     cu_context = _has_contributo_context(full_text) or cu_esenzione or cu_invito
 
-    if cu_context or _contains(full_text, r"\b(marca\s+da\s+bollo|bollo\s+digitale|diritti\s+di\s+cancelleria)\b"):
+    # Il titolo dell'atto di parte prevale su ogni parola del corpo: una
+    # citazione che chiama «a comparire all'udienza» non e' un verbale, una
+    # comparsa che richiama una «sentenza» della Cassazione non e' una sentenza,
+    # un ricorso che dichiara il contributo unificato non e' una ricevuta.
+    # Restano prima solo i presidi economici espressi (esenzione, invito al
+    # pagamento, patrocinio a spese dello Stato, SIAMM).
+    titolo_parte: DocumentCatalogClassification | None = None
+    if not (name_is_communication or supporting_attachment_name or cu_esenzione or cu_invito or gratuito_patrocinio or siamm_lsg):
+        titolo_parte = _titolo_atto_di_parte(testo_ocr, intestazione)
+    titolo_parte_generico = titolo_parte is not None and titolo_parte.label in {"Atto difensivo", "Ricorso - atto principale"}
+    if titolo_parte is not None and not titolo_parte_generico:
+        return titolo_parte
+
+    if titolo_parte is None and (cu_context or _contains(full_text, r"\b(marca\s+da\s+bollo|bollo\s+digitale|diritti\s+di\s+cancelleria)\b")):
         if cu_esenzione:
             return _result(
                 role="contributo_unificato",
@@ -366,7 +680,8 @@ def classify_fascicolo_document(
     # I documenti dell'ufficio non diventano automaticamente allegati di
     # deposito soltanto perché provengono dal Giudice di Pace/SIGP. Prima
     # della regola generica riconosciamo il loro contenuto processuale.
-    if (
+    decreto_ctu_in_testa = _provvedimento_nel_titolo(testo_ocr, intestazione, "decreto")
+    if titolo_parte is None and (
         _contains(full_text, r"\bdecreto\b")
         and _contains(full_text, r"\b(liquida|liquidazione|liquidare)\b")
         and _contains(full_text, r"\b(ctu|consulenza\s+tecnica)\b")
@@ -376,45 +691,70 @@ def classify_fascicolo_document(
             label="Decreto di liquidazione CTU",
             section="provvedimenti",
             confidence=98,
-            evidence="OCR: decreto di liquidazione con CTU/consulenza tecnica",
+            evidence=(
+                "OCR intestazione: decreto di liquidazione con CTU/consulenza tecnica"
+                if decreto_ctu_in_testa
+                else "OCR: decreto di liquidazione con CTU/consulenza tecnica"
+            ),
             tipo_documento=TipoDocumento.DECRETO,
             deposit_role="fuori_busta",
             deposit_candidate=False,
         )
 
-    if _contains(full_text, r"\bordinanza\b") and _contains(full_text, r"\b(udienza|il\s+giudice|dispone|fissa)\b"):
+    ordinanza_in_testa = _provvedimento_nel_titolo(testo_ocr, intestazione, "ordinanza") or (
+        "nome" if _contains(metadata_text, r"\bordinanza\b") else ""
+    )
+    verbale_in_testa = _provvedimento_nel_titolo(testo_ocr, intestazione, r"verbale") or (
+        "nome" if _contains(metadata_text, r"\bverbale\b") else ""
+    )
+
+    if titolo_parte is None and ordinanza_in_testa and _contains(full_text, r"\b(udienza|il\s+giudice|dispone|fissa)\b"):
         return _result(
             role="ordinanza_ufficio",
             label="Ordinanza dell'ufficio giudiziario",
             section="provvedimenti",
             confidence=95,
-            evidence="OCR: ordinanza con disposizione dell'ufficio/udienza",
+            evidence=(
+                "OCR intestazione: ordinanza con disposizione dell'ufficio/udienza"
+                if ordinanza_in_testa == "riga"
+                else "OCR: ordinanza con disposizione dell'ufficio/udienza"
+            ),
             tipo_documento=TipoDocumento.ORDINANZA,
             deposit_role="fuori_busta",
             deposit_candidate=False,
         )
 
-    if (
-        _contains(full_text, r"\bverbale\b")
+    if titolo_parte is None and (
+        verbale_in_testa
         and _contains(full_text, r"\b(operazioni\s+peritali|attivita\s+peritali)\b")
-    ) or (
-        _contains(full_text, r"\bverbale\b")
+    ) or titolo_parte is None and (
+        verbale_in_testa
         and _contains(full_text, r"\b(ufficio\s+del\s+giudice|tribunale|cancelleria)\b")
         and _contains(full_text, r"\budienza\b")
     ):
         label = "Verbale operazioni peritali" if _contains(full_text, r"\b(operazioni\s+peritali|attivita\s+peritali)\b") else "Verbale d'udienza"
+        if label == "Verbale d'udienza" and _verbale_con_sentenza_contestuale(testo_ocr):
+            return _sentenza_contestuale_result(
+                95,
+                ("OCR intestazione" if verbale_in_testa == "riga" else "OCR")
+                + ": verbale d'udienza con sentenza pronunciata contestualmente (artt. 281-sexies, 429 c.p.c.)",
+            )
         return _result(
             role="verbale_ufficio",
             label=label,
             section="provvedimenti",
             confidence=96,
-            evidence="OCR: verbale dell'ufficio giudiziario",
+            evidence=(
+                "OCR intestazione: verbale dell'ufficio giudiziario"
+                if verbale_in_testa == "riga"
+                else "OCR: verbale dell'ufficio giudiziario"
+            ),
             tipo_documento=TipoDocumento.VERBALE,
             deposit_role="fuori_busta",
             deposit_candidate=False,
         )
 
-    if _contains(full_text, r"\b(inizio|avvio)\s+(?:delle\s+)?attivita\s+peritali\b"):
+    if titolo_parte is None and _contains(full_text, r"\b(inizio|avvio)\s+(?:delle\s+)?attivita\s+peritali\b"):
         return _result(
             role="comunicazione_avvio_operazioni_peritali",
             label="Comunicazione avvio operazioni peritali",
@@ -426,7 +766,7 @@ def classify_fascicolo_document(
             deposit_candidate=False,
         )
 
-    if _contains(full_text, r"\b(nomina|designazione)\s+(?:del\s+)?ctp\b"):
+    if titolo_parte is None and _contains(full_text, r"\b(nomina|designazione)\s+(?:del\s+)?ctp\b"):
         return _result(
             role="nomina_ctp",
             label="Nomina di CTP",
@@ -438,7 +778,7 @@ def classify_fascicolo_document(
             deposit_candidate=True,
         )
 
-    if _contains(full_text, r"\b(relazione\s+peritale|perizia\s+(?:del|di)\s+ctu)\b"):
+    if titolo_parte is None and _contains(full_text, r"\b(relazione\s+peritale|perizia\s+(?:del|di)\s+ctu)\b"):
         return _result(
             role="relazione_peritale_ctu",
             label="Relazione peritale CTU",
@@ -484,6 +824,25 @@ def classify_fascicolo_document(
     ):
         if current_type == TipoDocumento.RICORSO or leading_main_ricorso_name:
             continue
+        if rule_code not in presidio_codes:
+            continue
+        # Un titolo generico di parte («RICORSO», «APPELLO») si precisa solo
+        # con le regole delle impugnazioni, mai con quelle che leggono nel
+        # corpo i richiami a udienze, termini, decreti o esecuzioni.
+        if titolo_parte is not None and rule_code not in _REGOLE_PRESIDIO_DI_IMPUGNAZIONE:
+            continue
+        # I termini delle memorie 171-ter li assegna il giudice: la regola
+        # vale per il suo provvedimento, non per comparse e memorie di parte
+        # che li richiamano.
+        if rule_code == "memorie_171_ter" and not _contains(
+            intestazione,
+            r"\b(decreto|ordinanza|provvedimento|il\s+giudice|il\s+presidente|verifiche\s+preliminari)\b",
+        ):
+            continue
+        if rule_code == "decreto_ingiuntivo_opposizione":
+            monitorio = _decreto_ingiuntivo_split(testo_ocr, intestazione, full_text)
+            if monitorio is not None:
+                return monitorio
         if rule_code in presidio_codes:
             return _result(
                 role=role,
@@ -495,6 +854,9 @@ def classify_fascicolo_document(
                 deposit_role=deposit_role,
                 deposit_candidate=deposit_role != "fuori_busta",
             )
+
+    if titolo_parte is not None:
+        return titolo_parte
 
     if (name_is_communication or communication) and not (
         current_type == TipoDocumento.RICORSO and not name_is_communication
@@ -675,14 +1037,26 @@ def classify_fascicolo_document(
     if current_type == TipoDocumento.VERBALE:
         return _provvedimento_result(TipoDocumento.VERBALE, confidence=86, evidence="tipo documento: verbale")
 
-    if _contains(full_text, r"\b(sentenza)\b"):
-        return _provvedimento_result(TipoDocumento.SENTENZA, confidence=88, evidence="OCR: sentenza")
-    if _contains(full_text, r"\b(ordinanza)\b"):
-        return _provvedimento_result(TipoDocumento.ORDINANZA, confidence=86, evidence="OCR: ordinanza")
-    if _contains(full_text, r"\b(decreto|decreto\s+ingiuntivo)\b"):
-        return _provvedimento_result(TipoDocumento.DECRETO, confidence=84, evidence="OCR: decreto")
-    if _contains(full_text, r"\b(verbale|verbale\s+di\s+udienza|udienza)\b"):
-        return _provvedimento_result(TipoDocumento.VERBALE, confidence=82, evidence="OCR: verbale/udienza")
+    # Le parole del provvedimento contano solo nella zona del titolo: nel corpo
+    # di un atto di parte «sentenza», «decreto» e «udienza» sono citazioni.
+    sentenza_in_testa = _provvedimento_nel_titolo(testo_ocr, intestazione, "sentenza")
+    if sentenza_in_testa or _contains(intestazione, r"\bin\s+nome\s+del\s+popolo\s+italiano\b"):
+        origine = "OCR intestazione" if sentenza_in_testa == "riga" else "OCR"
+        return _provvedimento_result(TipoDocumento.SENTENZA, confidence=88, evidence=f"{origine}: sentenza")
+    if ordinanza_in_testa:
+        origine = "OCR intestazione" if ordinanza_in_testa == "riga" else "OCR"
+        return _provvedimento_result(TipoDocumento.ORDINANZA, confidence=86, evidence=f"{origine}: ordinanza")
+    decreto_in_testa = _provvedimento_nel_titolo(testo_ocr, intestazione, "decreto")
+    if decreto_in_testa:
+        origine = "OCR intestazione" if decreto_in_testa == "riga" else "OCR"
+        return _provvedimento_result(TipoDocumento.DECRETO, confidence=84, evidence=f"{origine}: decreto")
+    if verbale_in_testa:
+        origine = "OCR intestazione" if verbale_in_testa == "riga" else "OCR"
+        if _verbale_con_sentenza_contestuale(testo_ocr):
+            return _sentenza_contestuale_result(
+                88, f"{origine}: verbale d'udienza con sentenza pronunciata contestualmente (artt. 281-sexies, 429 c.p.c.)"
+            )
+        return _provvedimento_result(TipoDocumento.VERBALE, confidence=82, evidence=f"{origine}: verbale")
 
     if notification:
         return _result(

@@ -291,6 +291,10 @@ def _deadline_date(scadenza: Any) -> date | None:
 
 def _deadline_status(scadenza: Any, today: date | None = None) -> str:
     state = _enum_value(getattr(scadenza, "stato", ""))
+    # Proposta non ancora confermata dall'avvocato: non e' un termine
+    # operativo (niente urgenze, notifiche, push o calendari esterni).
+    if state == StatoTermine.BOZZA.value:
+        return "draft"
     if state == StatoTermine.ANNULLATO.value:
         return "cancelled"
     if state == StatoTermine.COMPLETATO.value:
@@ -301,6 +305,39 @@ def _deadline_status(scadenza: Any, today: date | None = None) -> str:
     if due and due < (today or datetime.now(ROME_TZ).date()) and state != StatoTermine.COMPLETATO.value:
         return "overdue"
     return "open"
+
+
+def _reminder_thresholds(scadenza: Any) -> list[int]:
+    """Soglie di preavviso configurate sul termine (giorni prima della scadenza)."""
+
+    raw = getattr(scadenza, "giorni_preavviso", None)
+    if isinstance(raw, (int, str)):
+        raw = [raw]
+    if not isinstance(raw, (list, tuple, set)):
+        return []
+    thresholds: set[int] = set()
+    for value in raw:
+        try:
+            number = int(value)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= number <= 366:
+            thresholds.add(number)
+    return sorted(thresholds)
+
+
+def _reached_reminder_threshold(scadenza: Any, days: int) -> int | None:
+    """Soglia di preavviso piu' vicina gia' raggiunta (None se nessuna).
+
+    Con preavvisi [30, 15, 7, 3, 1, 0] e 10 giorni alla scadenza la soglia
+    raggiunta e' 15: la notifica resta una sola finche' non si supera la
+    soglia successiva (7), che genera una nuova notifica. A termine scaduto
+    restano raggiunte tutte le soglie, quindi resta valida la piu' bassa e non
+    parte un ulteriore avviso.
+    """
+
+    reached = [threshold for threshold in _reminder_thresholds(scadenza) if days <= threshold]
+    return min(reached) if reached else None
 
 
 def _case_lookup() -> dict[str, Any]:
@@ -564,7 +601,7 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
                     continue
                 status = _deadline_status(scadenza, day)
                 days = (due - day).days
-                if status in {"completed", "cancelled"}:
+                if status in {"completed", "cancelled", "draft"}:
                     continue
                 if due == day:
                     summary["deadlinesToday"] += 1
@@ -677,7 +714,7 @@ def quick_deadlines_payload(user: Any, *, full: bool = False) -> dict[str, Any]:
             summary["drafts"] += 1
             continue
         status = _deadline_status(scadenza, today)
-        if status in {"completed", "cancelled"}:
+        if status in {"completed", "cancelled", "draft"}:
             continue
         priority = _priority_from_deadline(scadenza, today)
         if due == today:
@@ -888,6 +925,9 @@ def agenda_scadenziario_notification_items(
     current = now or datetime.now(ROME_TZ)
     if current.tzinfo is None:
         current = current.replace(tzinfo=ROME_TZ)
+    else:
+        # Il confine di giornata e' quello italiano anche se arriva un "now" UTC.
+        current = current.astimezone(ROME_TZ)
     today = current.date()
     items: list[dict[str, Any]] = []
     upcoming_appointments: list[Any] = []
@@ -924,12 +964,16 @@ def agenda_scadenziario_notification_items(
                 )
                 due = _deadline_date(scadenza)
                 status = _deadline_status(scadenza, today)
-                if due is None or status in {"completed", "cancelled"}:
+                # Le BOZZE (proposte da confermare) non generano notifiche ne'
+                # Web Push: create_draft_date_proposals garantisce che non
+                # tocchino agenda, notifiche o calendari.
+                if due is None or status in {"completed", "cancelled", "draft"}:
                     continue
                 days = (due - today).days
-                if days > 2 and _priority_from_deadline(scadenza, today) != "urgent":
-                    continue
                 priority = _priority_from_deadline(scadenza, today)
+                reminder_threshold = _reached_reminder_threshold(scadenza, days)
+                if days > 2 and priority != "urgent" and reminder_threshold is None:
+                    continue
                 remote_hearing = _remote_hearing_notification_payload(scadenza)
                 deadline_message = (
                     "Scadenza oggi"
@@ -944,6 +988,14 @@ def agenda_scadenziario_notification_items(
                         deadline_message = f"{deadline_message} · {remote_label}"
                 pec_key = _pec_deadline_notification_key(scadenza)
                 notification_key = pec_key or f"deadline:{scadenza.id}:{due.isoformat()}"
+                if not pec_key and reminder_threshold is not None:
+                    # Una notifica (e un solo Web Push) per ogni soglia di
+                    # preavviso raggiunta: la chiave cambia solo al passaggio
+                    # di soglia, quindi il job ogni 5 minuti non ripete l'avviso
+                    # e la notifica della soglia precedente viene scadenzata.
+                    # Le chiavi PEC_AUDIT restano stabili perche' collegano
+                    # scadenza, udienza e pipeline PEC.
+                    notification_key = f"{notification_key}:preavviso:{reminder_threshold}"
                 if linked_appointment_id in upcoming_appointment_ids:
                     linked_notification_keys[linked_appointment_id] = notification_key
                 items.append(

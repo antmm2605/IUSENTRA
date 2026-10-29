@@ -242,6 +242,16 @@ def build_unverified_pdf_reply(question: str, sources: list[dict[str, Any]] | No
     )
 
 
+def _riferimenti_puntuali_non_verificati(draft_text: str, verified: list[dict[str, Any]]) -> list[str]:
+    from .hallucination_guard import _riferimenti_della_riga, _supported_by_evidence, extract_legal_references
+
+    puntuali = [ref for ref in extract_legal_references(draft_text) if ref.kind in {"case_law", "ecli"}]
+    if not puntuali:
+        return []
+    evidenze = [ref for row in verified for ref in _riferimenti_della_riga(row)]
+    return [ref.label for ref in puntuali if not _supported_by_evidence(ref, evidenze)]
+
+
 class LegalReferenceGuard:
     def check(self, **kwargs):
         request = kwargs.get("request")
@@ -307,6 +317,18 @@ class LegalReferenceGuard:
                 reasons=["Sentenze, sezioni, numeri, ECLI, PDF o link ufficiali richiedono una fonte verificata."],
                 risk_level="high",
             )
+
+        if workflow in _STRICT_WORKFLOWS and verified:
+            # Avere *qualche* fonte verificata non basta: ogni pronuncia citata nella bozza (organo, numero,
+            # anno o ECLI) deve ritrovarsi fra le fonti verificate, non fra spunti non riscontrati.
+            non_riscontrati = _riferimenti_puntuali_non_verificati(getattr(draft, "text", "") or "", verified)
+            if non_riscontrati:
+                return GuardVerdict(
+                    allowed=False,
+                    warnings=["Pronunce citate non presenti fra le fonti verificate: " + ", ".join(non_riscontrati[:4]) + "."],
+                    reasons=["Gli estremi giurisprudenziali della bozza devono coincidere con una fonte verificata."],
+                    risk_level="high",
+                )
 
         if contract.require_official_sources and workflow in _STRICT_WORKFLOWS and not verified:
             return GuardVerdict(

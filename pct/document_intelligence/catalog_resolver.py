@@ -14,7 +14,15 @@ from types import SimpleNamespace
 from typing import Any, Iterable
 
 from pct.fascicoli import TipoDocumento
-from pct.fascicolo_document_catalog import DocumentCatalogClassification, classify_fascicolo_document
+from pct.fascicolo_document_catalog import (
+    EVIDENZE_SOLO_TITOLO_O_STRUTTURA,
+    PREFISSO_EVIDENZA_INTESTAZIONE,
+    PREFISSO_EVIDENZA_TITOLO,
+    DocumentCatalogClassification,
+    _verbale_con_sentenza_contestuale,
+    classify_fascicolo_document,
+    normalizza_ocr_titoli,
+)
 from pct.presidio_processuale_ruleset import presidio_rule_hits
 from pct.template_atti_legal_sources import REGISTRY_VERSION, TEMPLATE_ATTI_LEGAL_SOURCES
 from .catalog_identita_personale import documento_identita_dal_nome, documento_identita_personale
@@ -35,7 +43,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.09.26.catalogo-fascicolo.v30-pronuncia-procura-foliario-ottemperanza-citazione-tipo"
+RESOLVER_VERSION = "2026.10.29.catalogo-fascicolo.v31-titolo-prima-del-corpo-ocr"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -303,6 +311,23 @@ def _content_excerpt(text: str, pattern: str) -> str:
     return f"Formula rilevata nel testo indicizzato: {formula}."
 
 
+def _sentenza_contestuale(result: Any) -> ContentIdentity:
+    """Il verbale in cui il giudice pronuncia sentenza (artt. 281-sexies e 429
+    c.p.c.) contiene la decisione: si cataloga come sentenza."""
+
+    return result(
+        role="provvedimento",
+        label="Sentenza contestuale a verbale d'udienza",
+        section="provvedimenti",
+        confidence=97,
+        evidence="verbale d'udienza con sentenza pronunciata contestualmente (artt. 281-sexies, 429 c.p.c.)",
+        tipo_documento=TipoDocumento.SENTENZA,
+        deposit_role="allegato",
+        deposit_candidate=True,
+        excerpt_pattern=r"\bsentenza\b",
+    )
+
+
 def _content_identity(
     extracted_text: str,
     *,
@@ -323,6 +348,9 @@ def _content_identity(
     raw = str(extracted_text or "").strip()
     if not raw:
         return None
+    # Titoli e formule si confrontano sul testo corretto dalle confusioni OCR
+    # tipiche delle intestazioni («ATTO Dl PRECETTO», «TRlBUNALE»).
+    raw = normalizza_ocr_titoli(raw)
     head = _normalise(raw[:12000])
 
     def result(
@@ -392,10 +420,16 @@ def _content_identity(
     if re.search(r"^fissazione udienza", head[:120]) and re.search(r"tribunale", head[:400]) and re.search(r"letto il ricorso.{0,180}fissa", head[:900]):
         return result(role="provvedimento", label="Decreto di fissazione udienza", section="provvedimenti", confidence=99, evidence="Intestazione Fissazione udienza e disposizione FISSA del giudice dopo la lettura del ricorso.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Fissazione udienza")
     if re.search(r"^tribunale", head) and re.search(r"successivamente oggi.{0,120}avanti al giudice", head[:700]) and re.search(r"il giudice.{0,70}(?:rinvia|dispone|assegna)", head[:1500]):
+        if _verbale_con_sentenza_contestuale(raw[:12000]):
+            return _sentenza_contestuale(result)
         return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=99, evidence="Ufficio, data della comparizione davanti al giudice e sua disposizione nel verbale.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Successivamente oggi")
     if re.search(r"studio legale", head[:250]) and re.search(r"oggetto richiesta pagamento", head[:1300]) and not re.search(r"^tribunale", head):
         return result(role="comunicazione", label="Richiesta stragiudiziale di pagamento", section="comunicazioni", confidence=97, evidence="Carta intestata dello studio, destinatari e oggetto Richiesta pagamento espressi nella lettera.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"Oggetto: Richiesta pagamento")
-    if re.search(r"\bverbale\s+(?:della\s+causa|d[’']?udienza|di\s+udienza)\b", head[:1200]) and re.search(r"\b(?:giudice|tribunale)\b", head[:1200]):
+    # Solo il verbale che si intitola tale: «come da verbale d'udienza» nel
+    # corpo di una comparsa è un richiamo.
+    if re.search(r"(?im)^[\W\d_]*verbale\s+(?:della\s+causa|d[’']?\s*udienza|di\s+udienza)\b", raw[:2400]) and re.search(r"\b(?:giudice|tribunale)\b", head[:1200]):
+        if _verbale_con_sentenza_contestuale(raw[:12000]):
+            return _sentenza_contestuale(result)
         return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=98, evidence="Intestazione del verbale e ufficio giudiziario nel contenuto.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"verbale")
 
     # Il giudice che, fuori udienza, rinvia d'ufficio la causa: e' un decreto,
@@ -462,6 +496,10 @@ def _content_identity(
     dal_titolo = identita_dal_titolo(raw)
     if dal_titolo is not None:
         fonte = str(dal_titolo.pop("fonte", "") or "")
+        # L'etichetta ricavata dal titolo in minuscolo («istanza di rinvio …»)
+        # resta un'etichetta di catalogo: iniziale maiuscola.
+        etichetta = str(dal_titolo.get("label") or "")
+        dal_titolo["label"] = etichetta[:1].upper() + etichetta[1:]
         return replace(result(**dal_titolo), fonte=fonte)
     if structural is not None:
         return result(**structural)
@@ -655,7 +693,11 @@ def _content_identity(
             excerpt_pattern=r"\b(?:bozza\s+di\s+)?perizia\s+tecnic\w*\b",
         )
 
-    if re.search(r"\bverbale\b", head) and re.search(r"\budienza\b", head):
+    # Il verbale si dichiara in testa: «verbale» e «udienza» nel corpo di un
+    # atto di parte sono richiami, non l'identità del documento.
+    if re.search(r"(?im)^[\W\d_]*verbale\b", raw[:2400]) and re.search(r"\budienza\b", head):
+        if _verbale_con_sentenza_contestuale(raw[:12000]):
+            return _sentenza_contestuale(result)
         return result(
             role="verbale_ufficio",
             label="Verbale d'udienza",
@@ -693,6 +735,36 @@ def _procedural_signal_evidence(extracted_text: str) -> list[DocumentCatalogEvid
         if len(evidence) == 6:
             break
     return evidence
+
+
+def _solo_parola_nel_corpo(classification: DocumentCatalogClassification) -> bool:
+    """L'esito storico nasce da parole chiave del corpo, senza titolo dell'atto."""
+
+    evidence = str(classification.evidence or "")
+    if classification.role == "da_verificare":
+        return False
+    return not (
+        evidence in EVIDENZE_SOLO_TITOLO_O_STRUTTURA
+        or evidence.startswith(PREFISSO_EVIDENZA_TITOLO)
+        or evidence.startswith(PREFISSO_EVIDENZA_INTESTAZIONE)
+    )
+
+
+def _keyword_only_content_classification(current: DocumentCatalogClassification) -> DocumentCatalogClassification:
+    """Una parola chiave nel corpo resta un candidato da rivedere (audit 29/10/2026).
+
+    «Sentenza», «ordinanza», «compenso» o «contratto» compaiono come citazioni
+    in qualunque atto, e una sola lettera letta male dall'OCR nel titolo basta
+    a far cadere la regola del titolo: il catalogo propone l'etichetta come
+    ipotesi, ma non la rende mai automatica né candidata alla busta.
+    """
+
+    return replace(
+        current,
+        confidence=min(int(current.confidence), 60),
+        evidence=f"{current.evidence}; parola chiave nel corpo senza titolo dell'atto: richiede verifica",
+        deposit_candidate=False,
+    )
 
 
 def _classify_indexed_content(extracted_text: str) -> DocumentCatalogClassification:
@@ -927,6 +999,8 @@ def resolve_document_catalog(
             if procedural_only or (content_classification.role != "da_verificare" and content_classification.confidence >= 75)
             else _insufficient_content_classification(metadata_classification)
         )
+        if identity is None and not procedural_only and classification is content_classification and _solo_parola_nel_corpo(classification):
+            classification = _keyword_only_content_classification(classification)
     source_rows = profile_source_rows(profile_id) if profile_id else []
     linked_ids = {row["id"] for row in source_rows}
     extra_ids = document_source_ids(classification.role, classification.section, profile_id)

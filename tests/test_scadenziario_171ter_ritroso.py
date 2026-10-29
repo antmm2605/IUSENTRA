@@ -1,7 +1,8 @@
 """Memorie art. 171-ter c.p.c.: «almeno quaranta / venti / dieci giorni prima dell'udienza».
 
 Fino alla 2.457.6 i preset dello scadenziario contavano in avanti dall'udienza: la memoria risultava dopo
-l'udienza. I valori attesi sono quelli del motore delle schede di Lex (`pct.schede_termini`), con anticipo al
+l'udienza. Dall'audit del 29/10/2026 «almeno N giorni prima» si legge prudenzialmente a giorni liberi (escluso
+anche il giorno finale), come i modelli CIV_MEMORIA_171_TER_* del motore `pct.termini_processuali`; anticipo al
 giorno utile precedente se l'ultimo giorno cade di sabato o festivo (art. 155 c.p.c.) e sospensione feriale
 dal 1° al 31 agosto (L. 742/1969).
 """
@@ -20,7 +21,9 @@ from pct.scadenziario import (
     calcola_termine,
     profilo_da_preset,
 )
-from pct.schede_termini import calcola as calcola_scheda
+from pct.termini_processuali import DEFAULT_TEMPLATES, ItalianDeadlineCalculator
+
+_MODELLI = {template.code: template for template in DEFAULT_TEMPLATES}
 
 
 def _legale(preset: str, udienza: str) -> str:
@@ -31,13 +34,13 @@ def _legale(preset: str, udienza: str) -> str:
 @pytest.mark.parametrize(
     ("preset", "udienza", "attesa"),
     [
-        ("memoria_ex_171_ter_n1", "2026-11-23", "2026-10-14"),
-        ("memoria_ex_171_ter_n2", "2026-11-23", "2026-11-03"),
-        ("memoria_ex_171_ter_n3", "2026-11-23", "2026-11-13"),
+        ("memoria_ex_171_ter_n1", "2026-11-23", "2026-10-13"),
+        ("memoria_ex_171_ter_n2", "2026-11-23", "2026-11-02"),
+        ("memoria_ex_171_ter_n3", "2026-11-23", "2026-11-12"),
         # Il conteggio a ritroso salta agosto (sospensione feriale).
         ("memoria_ex_171_ter_n1", "2026-09-20", "2026-07-10"),
-        # 07/12/2026 lunedì; 8 dicembre festivo non incide sul giorno finale.
-        ("memoria_ex_171_ter_n3", "2026-12-17", "2026-12-07"),
+        # Decimo giorno 07/12/2026; libero 06/12 domenica, 05/12 sabato -> venerdì 04/12/2026.
+        ("memoria_ex_171_ter_n3", "2026-12-17", "2026-12-04"),
     ],
 )
 def test_memorie_171ter_prima_dell_udienza(preset: str, udienza: str, attesa: str) -> None:
@@ -46,21 +49,23 @@ def test_memorie_171ter_prima_dell_udienza(preset: str, udienza: str, attesa: st
 
 
 def test_ultimo_giorno_festivo_si_anticipa() -> None:
-    # Udienza 05/01/2027: dieci giorni prima è il 26/12/2026 (Santo Stefano, sabato) → venerdì 24/12/2026.
+    # Udienza 05/01/2027: dieci giorni liberi prima è il 25/12/2026 (Natale) → giovedì 24/12/2026.
     assert _legale("memoria_ex_171_ter_n3", "2027-01-05") == "2026-12-24"
 
 
 @pytest.mark.parametrize("udienza", ["2026-11-23", "2026-09-20", "2027-01-05", "2027-03-01", "2026-10-05"])
 @pytest.mark.parametrize(("preset", "giorni"), [("memoria_ex_171_ter_n1", 40), ("memoria_ex_171_ter_n2", 20), ("memoria_ex_171_ter_n3", 10)])
-def test_stesso_risultato_del_motore_delle_schede(preset: str, giorni: int, udienza: str) -> None:
-    scheda = calcola_scheda({"base": "udienza", "giorni": giorni, "direzione": "ritroso", "feriale": True}, date.fromisoformat(udienza))
-    assert _legale(preset, udienza) == scheda["scadenza"]
+def test_stesso_risultato_del_motore_termini(preset: str, giorni: int, udienza: str) -> None:
+    modello = _MODELLI[f"CIV_MEMORIA_171_TER_{preset[-1]}"]
+    assert modello.base_value == giorni and modello.free_term is True
+    motore = ItalianDeadlineCalculator().calculate_template(date.fromisoformat(udienza), modello)
+    assert _legale(preset, udienza) == motore["deadline"]
 
 
 def test_nuova_da_preset_salva_la_data_a_ritroso(tmp_path) -> None:
     gs = GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
     scadenza = gs.nuova_da_preset("memoria_ex_171_ter_n1", "Memoria 171-ter n. 1", "2026-11-23")
-    assert scadenza.data_scadenza == "2026-10-14"
+    assert scadenza.data_scadenza == "2026-10-13"
     assert scadenza.deadline_profile_code == "TERM_40_DAYS_BEFORE"
     assert scadenza.source_event_at == "2026-11-23"
 
@@ -94,7 +99,7 @@ def test_riconvalida_corregge_le_memorie_del_vecchio_calcolo(tmp_path) -> None:
 
     corretta = gs.get(scadenza.id)
     assert esito == {"corrette": 1, "da_verificare": 0}
-    assert corretta.data_scadenza == "2026-10-14"
+    assert corretta.data_scadenza == "2026-10-13"
     assert corretta.deadline_profile_code == "TERM_40_DAYS_BEFORE"
     assert "ricalcolata a ritroso" in corretta.note
     # Idempotente: un secondo giro non cambia nulla.
@@ -110,7 +115,7 @@ def test_riconvalida_non_tocca_la_data_scelta_dall_avvocato(tmp_path) -> None:
     rimasta = gs.get(scadenza.id)
     assert esito == {"corrette": 0, "da_verificare": 1}
     assert rimasta.data_scadenza == "2026-12-20"
-    assert "14/10/2026" in rimasta.note
+    assert "13/10/2026" in rimasta.note
     assert riconvalida_memorie_171ter(gs) == {"corrette": 0, "da_verificare": 0}
 
 

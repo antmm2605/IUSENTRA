@@ -120,3 +120,157 @@ def classifica_oggetto_ufficiale(oggetto: str, corpo: str = "") -> tuple[str, st
             "casella_pec_piena", "Casella PEC piena", "rossa",
             "Liberare spazio subito: le PEC non consegnate per casella piena restano imputabili allo studio.")
     return None
+
+
+# ---------------------------------------------------------------------------
+# Ricevute PEC: classificatore unico usato da pipeline, control tower e workflow.
+#
+# Base normativa: d.P.R. 68/2005 (artt. 6, 8, 9, 10, 11 e 12) e regole tecniche del d.m. 2/11/2005
+# (allegato, §§ 2.1, 3.2-3.4): ogni ricevuta/avviso porta il tipo nell'attributo ``tipo`` di
+# <postacert> in daticert.xml, nell'intestazione ``X-Ricevuta`` e un oggetto a prefisso fisso
+# («ACCETTAZIONE:», «AVVISO DI NON ACCETTAZIONE:», «PRESA IN CARICO:», «CONSEGNA:»,
+# «AVVISO DI MANCATA CONSEGNA:», «PROBLEMA DI SICUREZZA:», «ANOMALIA MESSAGGIO:»). Dopo il prefisso
+# c'e' l'oggetto del messaggio originale: non va letto per decidere il tipo. ``posta-certificata``
+# e' la busta di un messaggio in arrivo, non una ricevuta.
+# Fail-safe: i tipi negativi si controllano prima di quelli positivi; un tipo sconosciuto non
+# diventa mai accettazione o consegna.
+# ---------------------------------------------------------------------------
+
+RICEVUTE_NEGATIVE = frozenset({"non_accettazione", "mancata_consegna", "preavviso_mancata_consegna", "rilevazione_virus"})
+RICEVUTE_PEC = frozenset({"accettazione", "presa_in_carico", "avvenuta_consegna", "anomalia", *RICEVUTE_NEGATIVE})
+
+_TIPI_DATICERT = {
+    "accettazione": "accettazione",
+    "non_accettazione": "non_accettazione",
+    "presa_in_carico": "presa_in_carico",
+    "avvenuta_consegna": "avvenuta_consegna",
+    "consegna": "avvenuta_consegna",
+    "errore_consegna": "mancata_consegna",
+    "mancata_consegna": "mancata_consegna",
+    "preavviso_errore_consegna": "preavviso_mancata_consegna",
+    "preavviso_mancata_consegna": "preavviso_mancata_consegna",
+    "rilevazione_virus": "rilevazione_virus",
+    "anomalia": "anomalia",
+    "non_pec": "anomalia",
+}
+# Tipi che dicono con certezza "non e' una ricevuta": il testo non puo' trasformarli in ricevuta.
+_TIPI_NON_RICEVUTA = frozenset({"posta_certificata"})
+
+_PREFISSO_INOLTRO = r"^\s*(?:(?:r|re|i|rif|fwd?|inoltro)\s*:\s*)*"
+_OGGETTO_RICEVUTA: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("non_accettazione", re.compile(r"avviso\s+di\s+non\s+accettazione\b[^:]{0,60}:", re.I)),
+    ("preavviso_mancata_consegna", re.compile(
+        r"avviso\s+di\s+mancata\s+consegna\s+per\s+sup(?:eramento|\.)?\s*(?:dei\s+)?t(?:empi|empo|\.)?\s*mass[^:]{0,30}:", re.I)),
+    ("mancata_consegna", re.compile(r"(?:avviso\s+di\s+mancata\s+consegna|mancata\s+consegna|errore\s+di\s+consegna)\b[^:]{0,60}:", re.I)),
+    ("rilevazione_virus", re.compile(r"(?:problema\s+di\s+sicurezza|avviso\s+di\s+rilevazione\s+virus)\s*:", re.I)),
+    ("anomalia", re.compile(r"anomalia\s+messaggio\s*:", re.I)),
+    ("presa_in_carico", re.compile(r"presa\s+in\s+carico\s*:", re.I)),
+    ("avvenuta_consegna", re.compile(r"consegna\s*:", re.I)),
+    ("accettazione", re.compile(r"accettazione\s*:", re.I)),
+)
+# Frasi standard dei gestori nel corpo della ricevuta (fallback quando mancano daticert e prefisso).
+_CORPO_RICEVUTA: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("non_accettazione", re.compile(
+        r"\bavviso\s+di\s+non\s+accettazione\b|\bnon[\s-]accettazione\b(?!\s+(?:del\s+|dell['’]\s*)?(?:deposito|atto|eredit))|\berrore\s+nell['’]\s*accettazione\b|"
+        r"\bmancata\s+accettazione\b(?!\s+(?:del\s+|dell['’]\s*)?(?:deposito|atto|busta|eredit))|"
+        r"\berrore\s+di\s+accettazione\b", re.I)),
+    ("preavviso_mancata_consegna", re.compile(r"\bpreavviso[\s-]+(?:di\s+)?(?:errore|mancata)[\s-]+consegna\b", re.I)),
+    ("mancata_consegna", re.compile(
+        r"\bavviso\s+di\s+mancata\s+consegna\b|\bmancata\s+consegna\b|\berrore[\s-]+(?:di\s+|nella\s+)?consegna\b|"
+        r"\bmessaggio\s+non\s+[eè]\s+stato\s+consegnato\b", re.I)),
+    ("rilevazione_virus", re.compile(r"\brilevazione[\s-]+virus\b|\bproblema\s+di\s+sicurezza\b", re.I)),
+    ("anomalia", re.compile(r"\banomalia\s+(?:nel\s+)?messaggio\b|\bbusta\s+di\s+anomalia\b", re.I)),
+    ("presa_in_carico", re.compile(r"\bricevuta\s+di\s+presa\s+in\s+carico\b", re.I)),
+    ("avvenuta_consegna", re.compile(
+        r"\bricevuta\s+(?:(?:completa|breve|sintetica)\s+)?di\s+avvenuta\s+consegna\b|"
+        r"\bstato\s+consegnato\s+nella\s+casella\s+di\s+destinazione\b", re.I)),
+    ("accettazione", re.compile(r"\bricevuta\s+di\s+accettazione\b|\b[eè]\s+stato\s+accettato\s+dal\s+sistema\b", re.I)),
+)
+_DATICERT_TIPO_ATTR = re.compile(r"<(?:[\w-]+:)?postacert\b[^>]*?\btipo\s*=\s*[\"']([^\"']+)[\"']", re.I)
+_DATICERT_TIPO_EL = re.compile(r"<(?:[\w-]+:)?tipo\b[^>]*>\s*([^<]+?)\s*</(?:[\w-]+:)?tipo>", re.I)
+
+
+def _chiave(valore: Any) -> str:
+    return re.sub(r"[\s-]+", "_", str(valore or "").strip().casefold())
+
+
+def normalizza_tipo_ricevuta(valore: Any) -> str:
+    """Valore di daticert/X-Ricevuta/etichetta interna → etichetta canonica ('' se non e' una ricevuta nota)."""
+    chiave = _chiave(valore)
+    if chiave in RICEVUTE_PEC:
+        return chiave
+    return _TIPI_DATICERT.get(chiave, "")
+
+
+def tipo_daticert(xml_text: Any) -> str:
+    """Attributo ``tipo`` di <postacert> (formato reale), con fallback sull'elemento <tipo>."""
+    testo = str(xml_text or "")
+    m = _DATICERT_TIPO_ATTR.search(testo)
+    if m:
+        return m.group(1).strip()
+    if "postacert" in testo.casefold():
+        m = _DATICERT_TIPO_EL.search(testo)
+        if m:
+            return m.group(1).strip()
+    return ""
+
+
+def tipo_ricevuta_da_oggetto(oggetto: Any, *, consenti_inoltro: bool = False) -> str:
+    """Tipo dal SOLO prefisso fisso dell'oggetto; l'oggetto originale dopo i due punti e' ignorato.
+
+    Con ``consenti_inoltro`` un prefisso «I:/Fwd:» e' tollerato solo per i tipi negativi: un avviso di
+    mancata consegna inoltrato va comunque presidiato, una ricevuta positiva inoltrata non e' prova."""
+    o = " ".join(str(oggetto or "").split())
+    for inoltrato in ((False, True) if consenti_inoltro else (False,)):
+        base = re.sub(_PREFISSO_INOLTRO, "", o, flags=re.I) if inoltrato else o
+        if inoltrato and base == o:
+            break
+        for etichetta, pattern in _OGGETTO_RICEVUTA:
+            if pattern.match(base.lstrip()):
+                if inoltrato and etichetta not in RICEVUTE_NEGATIVE:
+                    return ""
+                return etichetta
+    return ""
+
+
+def classifica_ricevuta_pec(
+    oggetto: Any = "",
+    corpo: Any = "",
+    *,
+    x_ricevuta: Any = "",
+    daticert_tipo: Any = "",
+    x_trasporto: Any = "",
+    usa_corpo: bool = True,
+) -> tuple[str, str]:
+    """(etichetta canonica, fonte) della ricevuta PEC; ("", fonte) se il messaggio non e' una ricevuta.
+
+    Ordine: tipo in daticert.xml → intestazione X-Ricevuta → prefisso fisso dell'oggetto → frasi
+    standard del corpo (negative prima delle positive, a parola intera)."""
+    for fonte, valore in (("daticert", daticert_tipo), ("x-ricevuta", x_ricevuta)):
+        chiave = _chiave(valore)
+        if not chiave:
+            continue
+        if chiave in _TIPI_NON_RICEVUTA:
+            return "", f"{fonte}:{chiave}"
+        etichetta = normalizza_tipo_ricevuta(chiave)
+        if etichetta:
+            return etichetta, fonte
+    trasporto = _chiave(x_trasporto)
+    if trasporto == "errore":
+        return "anomalia", "x-trasporto"
+    if trasporto == "posta_certificata" and not _chiave(x_ricevuta):
+        return "", "x-trasporto:posta_certificata"
+    o = " ".join(str(oggetto or "").split())
+    if _SDI.search(o):
+        return "", "oggetto:sdi"
+    etichetta = tipo_ricevuta_da_oggetto(o, consenti_inoltro=True)
+    if etichetta:
+        return etichetta, "oggetto"
+    if re.match(r"^\s*posta\s+certificata\s*:", o, re.I):
+        return "", "oggetto:posta_certificata"
+    if usa_corpo:
+        c = " ".join(str(corpo or "")[:20000].split())
+        for etichetta, pattern in _CORPO_RICEVUTA:
+            if pattern.search(c):
+                return etichetta, "corpo"
+    return "", ""

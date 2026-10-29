@@ -24,9 +24,8 @@ from pathlib import Path
 from typing import Any
 
 from legal_ocr.ner_legal import extract_numero_ruolo, extract_uffici
-from legal_regex.rules import validate_regex_pack
 from pct.email_client import _normalizza_testo_email_match, _tokenizza_email_match
-from pct.spese_liquidate_lettura import estrai_spese_liquidate
+from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, MONEY_RE, estrai_spese_liquidate, parse_importo
 
 DEFAULT_RULESET_PATH = Path(__file__).with_name("data") / "economic_legal_rules_v2026_07.json"
 _RULESET_CACHE: dict[str, dict[str, Any]] = {}
@@ -185,24 +184,99 @@ def _contains_any(text_norm: str, keywords: list[str]) -> bool:
 
 
 def _parse_importo_it(value: str) -> float | None:
-    raw = str(value or "").strip()
-    if not raw:
-        return None
-    raw = raw.replace(".", "").replace(",", ".")
-    try:
-        return round(float(raw), 2)
-    except ValueError:
-        return None
+    return parse_importo(value)
+
+
+# Importo con valuta dopo la cifra ("3.500,00 euro"): stessa grammatica degli
+# importi di `pct.spese_liquidate_lettura`, nessuna regex importo duplicata.
+_MONEY_SUFFIX_RE = re.compile(
+    r"(?<![\w.,])(?P<amount>" + MONEY_AMOUNT_PATTERN + r")\s*(?:euro\b|eur\b|€)",
+    re.IGNORECASE,
+)
 
 
 def _importi_rilevati(text: str) -> list[float]:
-    matches = validate_regex_pack(text).get("matches", {}).get("importi", [])
-    out: list[float] = []
-    for raw in matches:
-        parsed = _parse_importo_it(raw)
-        if parsed is not None:
-            out.append(parsed)
-    return out
+    """Importi in ordine di comparsa: "euro 1.200 ... euro 98" -> [1200, 98].
+
+    Usa la lettura condivisa (`MONEY_RE` + `parse_importo`): formati 1.234,56,
+    1.234, 1 234,00 da OCR, valuta prima o dopo l'importo.
+    """
+
+    raw = str(text or "")
+    spans: list[tuple[int, int, float]] = []
+    for pattern in (MONEY_RE, _MONEY_SUFFIX_RE):
+        for match in pattern.finditer(raw):
+            start, end = match.span("amount")
+            if any(start < other_end and end > other_start for other_start, other_end, _ in spans):
+                continue
+            parsed = parse_importo(match.group("amount"))
+            if parsed is not None:
+                spans.append((start, end, parsed))
+    return [value for _, _, value in sorted(spans)]
+
+
+# Tipo di provvedimento dall'intestazione (artt. 132, 134, 641 c.p.c.): il titolo
+# del documento prevale sulle parole del corpo, dove "sentenza n." e' spesso una
+# citazione e "P.Q.M." chiude anche le ordinanze.
+_SENTENZA_CITAZIONE_RE = re.compile(
+    r"\bsentenz[ae]\s+(?:n\.?|nn\.?|numero|del|della|dell|di|de[il]|citat[ae]|richiamat[ae]|impugnat[ae]|"
+    r"di\s+primo\s+grado|non\s+definitiv[ae]|parziale)\b|"
+    r"\b(?:cass(?:azione)?|corte|consiglio\s+di\s+stato|c\.?\s*cost)\.?[^.;]{0,40}\bsentenz[ae]\b|"
+    r"\b(?:con|la|una|nella|alla|dalla|dell[ae]?)\s+sentenz[ae]\b",
+    re.IGNORECASE,
+)
+
+
+def _tipo_da_intestazione(testo: str, provv: dict[str, Any]) -> str:
+    intestazione = provv.get("intestazione") or {}
+    if not isinstance(intestazione, dict) or not intestazione:
+        return ""
+    finestra = int(intestazione.get("finestra_caratteri") or 1500)
+    head = str(testo or "")[:finestra]
+    head_norm = _normalize(head)
+    titoli = intestazione.get("titoli") or {}
+    # 1) formula di pronuncia: "ha pronunciato la seguente ORDINANZA".
+    for formula in intestazione.get("formule") or []:
+        idx = head_norm.find(_normalize(formula))
+        if idx < 0:
+            continue
+        seguito = head_norm[idx + len(_normalize(formula)) : idx + len(_normalize(formula)) + 40]
+        for tipo, parole in titoli.items():
+            if any(seguito.lstrip(" :").startswith(_normalize(parola)) for parola in parole):
+                return str(tipo)
+    # 2) titolo in maiuscolo nelle prime righe: il primo che compare decide.
+    best: tuple[int, str] | None = None
+    for tipo, parole in titoli.items():
+        for parola in parole:
+            pattern = r"(?<![A-Za-z])" + r"\s+".join(re.escape(w.upper()) for w in str(parola).split()) + r"(?![A-Za-z])"
+            match = re.search(pattern, head)
+            if match and (best is None or match.start() < best[0]):
+                best = (match.start(), str(tipo))
+    return best[1] if best else ""
+
+
+def _tipo_provvedimento(testo: str, text_norm: str, provv: dict[str, Any]) -> str:
+    tipo = _tipo_da_intestazione(testo, provv)
+    if tipo:
+        return tipo
+    # Corpo: "sentenza" conta solo se non e' una citazione di altra sentenza.
+    senza_citazioni = _normalize(_SENTENZA_CITAZIONE_RE.sub(" ", str(testo or "")))
+    if _contains_any(senza_citazioni, provv.get("sentenza_keywords", [])):
+        return "sentenza"
+    if _contains_any(text_norm, provv.get("ordinanza_keywords", [])):
+        return "ordinanza"
+    if _contains_any(text_norm, provv.get("decreto_keywords", [])):
+        return "decreto"
+    if _contains_any(text_norm, provv.get("sentenza_keywords_deboli", [])):
+        return "sentenza"
+    return "incerto"
+
+
+_ESENZIONE_NEGATA_RE = re.compile(
+    r"\bnon\s+(?:(?:e|e'|è|risulta)\s+)?esent[ei]\b|\bnessuna\s+esenzione\b|"
+    r"\bnon\s+(?:sussiste|ricorre|spetta)\s+(?:alcuna\s+|l['’]\s*)?esenzione\b",
+    re.IGNORECASE,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -342,13 +416,7 @@ def extract_economics(testo: str, *, ruleset: dict[str, Any] | None = None) -> S
     spese_rules = rules.get("spese", {})
 
     provv = rules.get("provvedimento", {})
-    tipo = "incerto"
-    if _contains_any(text_norm, provv.get("sentenza_keywords", [])):
-        tipo = "sentenza"
-    elif _contains_any(text_norm, provv.get("ordinanza_keywords", [])):
-        tipo = "ordinanza"
-    elif _contains_any(text_norm, provv.get("decreto_keywords", [])):
-        tipo = "decreto"
+    tipo = _tipo_provvedimento(testo, text_norm, provv)
 
     esito_rules = rules.get("esito", {})
     esito = "incerto"
@@ -449,7 +517,7 @@ def assess_contributo_unificato(
 
     if _contains_any(text_norm, cu_rules.get("prenotato_debito_keywords", [])):
         status = "prenotato_a_debito"
-    elif _contains_any(text_norm, cu_rules.get("esente_keywords", [])):
+    elif _contains_any(text_norm, cu_rules.get("esente_keywords", [])) and not _ESENZIONE_NEGATA_RE.search(testo or ""):
         status = "esente"
     elif _contains_any(text_norm, cu_rules.get("insufficiente_keywords", [])):
         status = "insufficiente"

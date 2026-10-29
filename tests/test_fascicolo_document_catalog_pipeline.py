@@ -365,6 +365,9 @@ def test_pipeline_inferisce_rcd_da_due_documenti_concordanti(tmp_path):
         sha256="2" * 64,
         tipo_documento="MEMORIA",
         text=(
+            # Il titolo dell'atto in testa: una parola chiave nel solo corpo
+            # resta in revisione (audit catalogo 29/10/2026).
+            "NOTE PER L'UDIENZA\n"
             "Oggetto: risarcimento danni sinistro stradale. "
             "Si depositano note per l'udienza nel procedimento davanti al Giudice di Pace."
         ),

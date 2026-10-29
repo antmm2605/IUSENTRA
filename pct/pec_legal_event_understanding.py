@@ -20,6 +20,7 @@ from pct.legal_notification_rulepack import detect_notification_candidates
 from pct.pec_economia import classifica_contributo_unificato_pec, integra_contributo_unificato
 from pct.pec_legal_deadline_proposer import propose_legal_deadline
 from pct.pec_legal_workflow import classifica_pec_legale, estrai_registri
+from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, parse_importo
 
 SCHEMA = "iusentra.pec.legal_event_understanding.v2"
 RULEPACK_VERSION = "legal_pec_rules_v2026_08"
@@ -35,18 +36,44 @@ _PASSCODE_RE = re.compile(
 )
 _AULA_RE = re.compile(r"(?i)\baula\s+([A-Za-z0-9][A-Za-z0-9./_-]{0,20})")
 _PIANO_RE = re.compile(r"(?i)\b(?:piano|livello)\s+([A-Za-z0-9][A-Za-z0-9./_-]{0,20})")
-_EURO_RE = re.compile(r"(?i)(?:€|euro)\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)")
+# Importi: si riusa il pattern unico di `pct.spese_liquidate_lettura`
+# (1.234,56 / 1.234 / 1 234,00 OCR / € o "euro" prima o dopo). Il vecchio
+# pattern locale leggeva "€ 1.686" come 1,00.
+_AMT = r"(?P<amount>" + MONEY_AMOUNT_PATTERN + r")"
+_AMT_PREFIX = r"(?:€|euro|eur\b)\s*" + _AMT
+_AMT_SUFFIX = r"(?<![\w.,])" + _AMT + r"\s*(?:€|euro\b|eur\b)"
+_EURO_RE = re.compile(r"(?i)" + _AMT_PREFIX)
 _CU_RE = re.compile(
-    r"(?i)(?<!\w)(?:contributo\s+unificato|c\.?\s*u\.?|contributi\s+unificati)(?!\w)[^€\n\r]{0,80}(?:€|euro)\s*"
-    r"([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)"
+    r"(?i)(?<!\w)(?:contributo\s+unificato|c\.?\s*u\.?|contributi\s+unificati)(?!\w)[^€\n\r]{0,80}?"
+    r"(?:" + _AMT_PREFIX + r"|" + _AMT_SUFFIX.replace("amount", "amount_s") + r")"
 )
 _ESBORSI_RE = re.compile(
-    r"(?i)(?:di\s+cui\s+)?(?:€|euro)\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)\s+"
-    r"(?:per\s+)?(?:esborsi|spese\s+vive|spese)"
+    r"(?i)(?:di\s+cui\s+)?(?:€|euro|eur\b)\s*" + _AMT + r"\s+"
+    r"(?:per\s+)?(?:esborsi|spese\s+vive|spese(?!\s+generali))"
 )
 _LIQUIDA_RE = re.compile(
-    r"(?i)(?:liquid[ao](?:ndo)?|liquidata|liquidate)[^€\n\r]{0,120}(?:complessiva\s+somma\s+di\s+)?(?:€|euro)\s*"
-    r"([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)"
+    r"(?i)(?:liquid[ao](?:ndo)?|liquidata|liquidate)[^€\n\r]{0,120}?(?:complessiva\s+somma\s+di\s+)?"
+    r"(?:" + _AMT_PREFIX + r"|" + _AMT_SUFFIX.replace("amount", "amount_s") + r")"
+)
+# Patrocinio a spese dello Stato (artt. 74 ss. e 82 D.P.R. 115/2002): la sola
+# citazione del D.P.R. 115/2002 non basta, perche' lo stesso testo unico regola
+# anche il contributo unificato (art. 248: invito al pagamento).
+_GRATUITO_PATROCINIO_RE = re.compile(
+    r"(?i)\b(?:patrocinio\s+a\s+spese\s+dello\s+stato|gratuito\s+patrocinio|"
+    r"ammess[oaie]\s+al\s+(?:gratuito\s+)?patrocinio|ammissione\s+al\s+(?:gratuito\s+)?patrocinio|"
+    r"siamm|lsg|decreto\s+di\s+pagamento)\b"
+)
+_SPESE_COMPENSATE_RE = re.compile(
+    r"(?i)\b(?:compens[ao]\s+(?:(?:integralmente|interamente|totalmente|parzialmente|per\s+met[aà]|"
+    r"per\s+intero)\s+)?(?:tra\s+le\s+parti\s+)?le\s+spese|"
+    r"dichiara\s+(?:(?:integralmente|interamente|totalmente)\s+)?compensate\s+(?:tra\s+le\s+parti\s+)?le\s+spese|"
+    r"spese(?:\s+(?:di\s+lite|del\s+giudizio|processuali|legali))?\s+(?:integralmente\s+|interamente\s+)?compensate)\b"
+)
+# Compensazione parziale (art. 92 c.p.c.): la quota residua liquidata resta un
+# credito e non deve essere azzerata come "spese compensate".
+_SPESE_COMPENSATE_PARZIALE_RE = re.compile(
+    r"(?i)\b(?:compens[ao]\s+(?:parzialmente|per\s+met[aà]|per\s+(?:un|due)\s+terz[oi]|in\s+parte)|"
+    r"parzialmente\s+compensate|compensate\s+(?:per\s+met[aà]|in\s+parte|parzialmente)|restante\s+met[aà])\b"
 )
 _DECISIVE_JUDGMENT_EVENT = "sentenza_a_verbale"
 _HEARING_PRIMARY_EVENTS = {
@@ -465,16 +492,14 @@ def _evidence(source: str, text: str, *, confidence: float = 0.75) -> dict[str, 
     return {"source": _clean(source, 160), "text": _clean(text, 260), "confidence": confidence}
 
 
-def _money(value: str) -> float | None:
-    cleaned = _clean(value).replace(".", "").replace(" ", "").replace(",", ".")
-    try:
-        return round(float(cleaned), 2)
-    except ValueError:
-        return None
-
-
 def _amount(match: re.Match[str] | None) -> float | None:
-    return _money(match.group(1)) if match else None
+    if not match:
+        return None
+    groups = match.groupdict()
+    raw = groups.get("amount") or groups.get("amount_s")
+    if raw is None and match.re.groups:
+        raw = match.group(1)
+    return parse_importo(raw)
 
 
 def _extract_links(text: str, remote_report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -870,7 +895,7 @@ def _build_deadlines(
 def _extract_payments(text: str) -> list[dict[str, Any]]:
     lower = _norm(text)
     payments: list[dict[str, Any]] = []
-    if any(token in lower for token in ("patrocinio a spese dello stato", "gratuito patrocinio", "d.p.r. 115/2002", "dpr 115/2002", "siamm", "lsg", "decreto di pagamento")):
+    if _GRATUITO_PATROCINIO_RE.search(lower):
         payments.append(
             {
                 "payment_event_type": "gratuito_patrocinio",
@@ -883,7 +908,9 @@ def _extract_payments(text: str) -> list[dict[str, Any]]:
                 "evidence": [_evidence("testo PEC/provvedimento", "Patrocinio a spese dello Stato o decreto di pagamento rilevato.", confidence=0.85)],
             }
         )
-    if re.search(r"(?i)\bcompensa\s+(?:integralmente|parzialmente)?\s*le\s+spese|spese\s+compensate\b", text or ""):
+    partial_compensation = bool(_SPESE_COMPENSATE_PARZIALE_RE.search(text or ""))
+    liquidation_present = bool(_LIQUIDA_RE.search(text or ""))
+    if _SPESE_COMPENSATE_RE.search(text or "") and not (partial_compensation and liquidation_present):
         payments.append(
             {
                 "payment_event_type": "nessuno",
@@ -1008,7 +1035,7 @@ def _classify(
     additional = [
         ("deposito_sentenza", ("deposito sentenza", "pubblicazione sentenza")),
         ("sentenza_con_distrazione_spese", ("distrae", "antistatario", "procuratore antistatario")),
-        ("sentenza_con_spese_compensate", ("compensa le spese", "spese compensate")),
+        ("sentenza_con_spese_compensate", ("compensa le spese", "spese compensate", "compensate tra le parti le spese", "compensa integralmente", "compensa interamente")),
         ("udienza_sostituita_da_note_scritte", ("127-ter", "trattazione scritta", "note scritte")),
         ("decreto_171_bis", ("171-bis", "171 bis")),
         ("memorie_171_ter", ("171-ter", "171 ter")),

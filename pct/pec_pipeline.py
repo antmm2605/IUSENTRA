@@ -42,6 +42,13 @@ from pct.scadenze_proposte_pec import (
 )
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
+from pct.pec_oggetti_ufficiali import (
+    RICEVUTE_NEGATIVE,
+    classifica_ricevuta_pec,
+    normalizza_tipo_ricevuta,
+    tipo_daticert,
+    tipo_ricevuta_da_oggetto,
+)
 from pct import pec_profilo_ufficio
 from pct.pec_change_receipt import (
     PREVIOUS_DATE_LINE as CHANGE_RECEIPT_PREVIOUS_DATE_LINE,
@@ -1775,19 +1782,16 @@ def extract_procedural_dates(sources: dict[str, str], plain_text: str = "") -> l
 
 
 def receipt_type_from_text(text: str) -> tuple[str, list[str]]:
-    lower = text.lower()
-    mapping = [
-        ("accettazione", ("accettazione", "ricevuta di accettazione")),
-        ("avvenuta_consegna", ("avvenuta consegna", "consegna")),
-        ("mancata_consegna", ("mancata consegna", "non accettazione", "errore consegna")),
-        ("presa_in_carico", ("presa in carico",)),
-        ("anomalia", ("anomalia", "rilevazione virus")),
-    ]
-    for label, needles in mapping:
-        found = [needle for needle in needles if needle in lower]
-        if found:
-            return label, found
-    return "", []
+    """Tipo di ricevuta PEC dal solo testo (fallback quando mancano daticert e X-Ricevuta).
+
+    La prima riga e' l'oggetto: conta solo il suo prefisso fisso («CONSEGNA:», «AVVISO DI NON
+    ACCETTAZIONE:»…), non l'oggetto originale che lo segue; il resto e' letto solo per le frasi
+    standard dei gestori, tipi negativi prima dei positivi (d.P.R. 68/2005; d.m. 2/11/2005).
+    """
+    value = str(text or "")
+    subject = value.partition("\n")[0]
+    label, source = classifica_ricevuta_pec(subject, value)
+    return (label, [source]) if label else ("", [])
 
 
 def extract_rg_candidates(text: str) -> list[str]:
@@ -3424,8 +3428,31 @@ def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str
             "legal_due_at": str(legal_dl.get("deadline") or ""),
             "raw_due_at": str(legal_dl.get("raw_deadline") or legal_dl.get("deadline") or ""),
             "trace_json": json.dumps(legal_dl.get("steps") or [], ensure_ascii=False),
+            "provenienza": _legal_deadline_provenienza(proposal, legal_dl),
         },
     }
+
+
+def _legal_deadline_provenienza(proposal: dict[str, Any], legal_dl: dict[str, Any]) -> dict[str, Any]:
+    """Provenienza del termine legale proposto, da persistere nella Scadenza.
+
+    Riporta quanto già presente negli input (proposta del proponente e report):
+    ruleset, parola chiave e passaggio, modello, norma; messaggio, impronta del
+    documento e daticert solo se già disponibili, senza nuove letture.
+    """
+
+    provenienza = dict(legal_dl.get("provenienza") or {}) if isinstance(legal_dl.get("provenienza"), dict) else {}
+    for key in ("template_code", "template_version", "ruleset_version", "rule_file", "reference_law"):
+        if key not in provenienza and legal_dl.get(key) not in (None, ""):
+            provenienza[key] = legal_dl.get(key)
+    for key in ("source_message_id", "message_id", "document_sha256", "sha256", "daticert_id"):
+        value = proposal.get(key) or legal_dl.get(key)
+        if value:
+            provenienza.setdefault("source_message_id" if key == "message_id" else "document_sha256" if key == "sha256" else key, str(value))
+    candidate = proposal.get("detected_procedural_date")
+    if isinstance(candidate, dict) and candidate.get("source"):
+        provenienza.setdefault("source_document_name", clean_text(candidate.get("source") or "", 160))
+    return provenienza
 
 
 def _source_evidence_fields(proposal: dict[str, Any] | None, *, message_id: str) -> dict[str, Any]:
@@ -4126,51 +4153,147 @@ def detect_pec_legal_context(text: str) -> dict[str, Any]:
     }
 
 
+# Identita' di un termine generato da PEC, per riconoscere la stessa comunicazione arrivata con un
+# altro Message-ID quando il fascicolo non e' collegato (reinvio della cancelleria, doppio indirizzo).
+# Fail-safe: si accorpa solo con RG, ufficio, codice del termine e data tutti presenti e identici;
+# nel dubbio la seconda scadenza resta e viene marcata come possibile doppione, mai eliminata.
+PEC_DEADLINE_IDENTITY_PREFIX = "PEC_IDENTITA_TERMINE"
+PEC_DEADLINE_DUPLICATE_OF_PREFIX = "PEC_DOPPIONE_DI"
+PEC_DEADLINE_POSSIBLE_DUPLICATE_PREFIX = "PEC_POSSIBILE_DOPPIONE"
+_GENERIC_DEADLINE_PROFILE_CODES = frozenset({"", "PEC_AUTO_PRESIDIO"})
+
+
+def _deadline_identity_line(*, rg: Any, ufficio: Any, profile_code: Any, due_date: Any) -> str:
+    rg_match = re.search(r"\b(\d{1,7})\s*/\s*(\d{4})\b", str(rg or ""))
+    rg_value = f"{int(rg_match.group(1))}/{rg_match.group(2)}" if rg_match else ""
+    office = " ".join(re.sub(r"[^0-9a-zà-ù]+", " ", str(ufficio or "").casefold()).split())
+    code = clean_text(profile_code or "", 120).upper()
+    day = str(due_date or "")[:10]
+    return f"{PEC_DEADLINE_IDENTITY_PREFIX}:{rg_value}|{office}|{code}|{day}"
+
+
+def _deadline_identity_office_sender(parsed: dict[str, Any]) -> str:
+    """Indirizzo PEC dell'ufficio giudiziario mittente, quando l'ufficio non e' nel profilo.
+
+    Solo domini del circuito giustizia (comunicazioni di cancelleria, art. 16 d.l. 179/2012):
+    un mittente qualsiasi non identifica l'ufficio e lascia l'identita' incompleta (fail-safe)."""
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    for item in headers.get("from") or []:
+        email = str((item or {}).get("email") if isinstance(item, dict) else item or "").strip().casefold()
+        domain = email.rpartition("@")[2]
+        if domain and (domain.endswith("giustiziacert.it") or domain.endswith("ga-cert.it")):
+            return email
+    return ""
+
+
+def _deadline_identity_parts(line: str) -> tuple[str, str, str, str]:
+    raw = str(line or "").split(":", 1)[1] if ":" in str(line or "") else ""
+    parts = (raw.split("|") + ["", "", "", ""])[:4]
+    return parts[0], parts[1], parts[2], parts[3]
+
+
+def _unlinked_deadline_duplicate(
+    existing_items: Iterable[Any],
+    *,
+    identity_line: str,
+    title: str,
+    source_message_id: str,
+    marker: str,
+) -> tuple[Any | None, Any | None]:
+    """(stesso termine certo, possibile doppione) tra le scadenze PEC automatiche ancora attive."""
+    rg, office, code, day = _deadline_identity_parts(identity_line)
+    generic = code in _GENERIC_DEADLINE_PROFILE_CODES
+    certain: Any | None = None
+    doubtful: Any | None = None
+    for item in existing_items:
+        status = str(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", "")) or "")
+        if status == "ANNULLATO":
+            continue
+        note = str(getattr(item, "note", "") or "")
+        lines = [line.strip() for line in note.splitlines() if line.strip()]
+        if ("PEC_AUDIT:" not in note and "PEC_TERMINE_PROPOSTO:" not in note) or marker in lines:
+            continue
+        item_source = clean_text(getattr(item, "source_message_id", "") or "", 320)
+        if source_message_id and item_source == source_message_id:
+            continue
+        if str(getattr(item, "data_scadenza", "") or "")[:10] != day:
+            continue
+        item_code = clean_text(getattr(item, "deadline_profile_code", "") or "", 120).upper()
+        if item_code != code:
+            continue
+        same_title = clean_text(getattr(item, "titolo", "") or "", 120).casefold() == clean_text(title, 120).casefold()
+        identity = next((line for line in lines if line.startswith(f"{PEC_DEADLINE_IDENTITY_PREFIX}:")), "")
+        if identity:
+            item_rg, item_office, _item_code, _item_day = _deadline_identity_parts(identity)
+            if rg and office and item_rg == rg and item_office == office and (not generic or same_title):
+                certain = certain or item
+                continue
+            if (rg and item_rg and rg != item_rg) or (office and item_office and office != item_office):
+                continue
+            if (rg or office) and (item_rg or item_office) and (not generic or same_title):
+                doubtful = doubtful or item
+            continue
+        if same_title and not generic:
+            doubtful = doubtful or item
+    return certain, doubtful
+
+
+_ATTACHMENT_ACT_TOKENS = frozenset({
+    "atto", "atti", "ricorso", "citazione", "memoria", "memorie", "comparsa", "istanza", "decreto",
+    # Provvedimenti del giudice: in ATTACHMENT_CLASSES non esiste una classe dedicata, restano "atto".
+    "sentenza", "ordinanza", "verbale", "provvedimento",
+})
+_ATTACHMENT_RECEIPT_TOKENS = frozenset({"ricevuta", "ricevute", "accettazione", "consegna", "esito", "rdac", "rac"})
+# Documenti che contengono parole da ricevuta ma non sono ricevute PEC/PCT.
+_ATTACHMENT_NOT_RECEIPT_TOKENS = frozenset({"raccomandata", "fattura", "fatture", "parcella", "bonifico", "pagamento"})
+_ATTACHMENT_NOT_PROXY_TOKENS = frozenset({"pagamento", "pagamenti", "sepa", "bonifico", "rid"})
+
+
+def _attachment_name_tokens(name: str) -> set[str]:
+    """Parole del nome file: separatori e CamelCase («EsitoAtto.xml» → esito, atto, xml)."""
+    spaced = re.sub(r"(?<=[a-zà-ù])(?=[A-Z])", " ", str(name or ""))
+    return {token for token in re.split(r"[^0-9a-zà-ù]+", spaced.casefold()) if token}
+
+
+def _has_word(text: str, words: Iterable[str]) -> bool:
+    return any(re.search(rf"(?<![0-9a-zà-ù]){re.escape(word)}(?![0-9a-zà-ù])", text) for word in words)
+
+
 def classify_attachment(item: AttachmentPayload, message_context: str = "") -> tuple[str, float, str]:
     name = item.filename.lower()
     mime = item.content_type.lower()
-    name_context = f"{name} {mime}"
     context = f"{name} {mime} {message_context[:3000].lower()}"
-    if any(needle in name_context for needle in ("daticert.xml", "postacert.eml", "postacert.xml")):
+    tokens = _attachment_name_tokens(item.filename)
+    # 1. Nomi tecnici della busta PEC e messaggi annidati.
+    if any(needle in name for needle in ("daticert.xml", "postacert.eml", "postacert.xml")):
         return "daticert", 0.96, "nome tecnico PEC riconosciuto"
-    if ".eml" in name_context or "message/rfc822" in name_context:
+    if name.endswith(".eml") or "message/rfc822" in mime:
         return "eml", 0.95, "messaggio EML allegato o annidato"
-    if any(needle in name_context for needle in ("procura", "mandato")):
+    # 2. Firma staccata e certificati: non sono documenti (.p7m resta l'atto firmato).
+    if name.endswith((".p7s", ".cer", ".crl")) or "pkcs7-signature" in mime:
+        return "firma", 0.94, "firma staccata o certificato"
+    # 3. File tecnici del deposito (DatiAtto.xml, EsitoAtto.xml, IndiceBusta.xml, Comunicazione.xml…):
+    #    prima delle regole sul nome, perche' «Atto» nel nome non ne fa un atto processuale.
+    if name.endswith((".xml", ".xsd")) or tokens & {"segnatura", "indicebusta", "busta"}:
+        return "tecnico", 0.76, "file tecnico del deposito"
+    # 4. Regole sul solo nome, a parola intera (contratto_locazione non e' un «atto»).
+    if "procura" in tokens or ("mandato" in tokens and not tokens & _ATTACHMENT_NOT_PROXY_TOKENS):
         return "procura", 0.91, "nome riconducibile a procura"
-    if any(needle in name_context for needle in ("atto", "ricorso", "citazione", "memoria", "comparsa", "istanza", "decreto")):
-        return "atto", 0.86, "nome riconducibile ad atto processuale"
-    if any(needle in name_context for needle in ("ricevuta", "accettazione", "consegna", "esito", "rdac", "rac")):
+    if tokens & _ATTACHMENT_RECEIPT_TOKENS and not tokens & _ATTACHMENT_NOT_RECEIPT_TOKENS:
         return "ricevute", 0.88, "nome riconducibile a ricevuta PEC/PCT"
-    # Le regole tecniche guardano SOLO nome e MIME dell'allegato; quelle di
-    # contenuto possono guardare anche il corpo del messaggio. Finché tutte
-    # leggevano il contesto completo, una PEC del PCT — il cui corpo cita
-    # daticert.xml e postacert.eml — faceva classificare "daticert" ogni suo
-    # allegato, compreso il provvedimento da acquisire: e il provvedimento
-    # etichettato daticert viene poi escluso dall'OCR e trattato come file
-    # tecnico, quindi sparisce dai documenti da scaricare.
-    rules: list[tuple[str, float, tuple[str, ...], str, bool]] = [
-        ("daticert", 0.96, ("daticert.xml", "postacert.eml", "postacert.xml"), "nome tecnico PEC riconosciuto", True),
-        ("eml", 0.95, (".eml", "message/rfc822"), "messaggio EML allegato o annidato", True),
-        ("procura", 0.91, ("procura", "mandato alle liti"), "nome o testo riconducibile a procura", False),
-        ("ricevute", 0.88, ("ricevuta", "accettazione", "consegna", "esito", "rdac", "rac"), "ricevuta PEC/PCT riconosciuta", True),
-        ("atto", 0.84, ("atto", "ricorso", "citazione", "memoria", "comparsa", "istanza", "decreto"), "atto processuale riconosciuto", False),
-        ("istruttorio", 0.78, ("documento", "doc.", "allegato", "prova", "verbale", "relazione", "ctu"), "allegato istruttorio probabile", False),
-        ("tecnico", 0.76, (".xml", ".xsd", "segnatura", "busta", "indicebusta"), "file tecnico del deposito", True),
-        # La firma staccata non e' un documento: .p7m resta escluso perche' e'
-        # l'atto firmato, non la sola busta di firma.
-        ("firma", 0.94, (".p7s", "pkcs7-signature", ".cer", ".crl"), "firma staccata o certificato", True),
-    ]
-    # Due passaggi: prima tutte le regole su nome e MIME, poi quelle di
-    # contenuto. In un solo passaggio una regola di contenuto piu' in alto
-    # (es. "istruttorio") vincerebbe sul nome tecnico piu' in basso, perche' il
-    # corpo di una PEC del PCT contiene quasi sempre quelle parole.
-    for solo_nome_atteso in (True, False):
-        for label, score, needles, reason, solo_nome in rules:
-            if solo_nome is not solo_nome_atteso:
-                continue
-            ambito = name_context if solo_nome else context
-            if any(needle in ambito for needle in needles):
-                return label, score, reason
+    if tokens & _ATTACHMENT_ACT_TOKENS:
+        return "atto", 0.86, "nome riconducibile ad atto processuale"
+    # Le regole di contenuto guardano anche il corpo del messaggio, ma solo dopo
+    # quelle tecniche: il corpo di una PEC del PCT cita sempre daticert.xml e
+    # postacert.eml e farebbe classificare "daticert" anche il provvedimento.
+    content_rules: tuple[tuple[str, float, tuple[str, ...], str], ...] = (
+        ("procura", 0.91, ("mandato alle liti", "procura alle liti"), "nome o testo riconducibile a procura"),
+        ("atto", 0.84, ("atto", "ricorso", "citazione", "memoria", "comparsa", "istanza", "decreto"), "atto processuale riconosciuto"),
+        ("istruttorio", 0.78, ("documento", "doc.", "allegato", "prova", "verbale", "relazione", "ctu"), "allegato istruttorio probabile"),
+    )
+    for label, score, needles, reason in content_rules:
+        if _has_word(context, needles):
+            return label, score, reason
     if (mime.startswith("application/pdf") or name.endswith((".pdf", ".pdf.p7m"))) and any(
         needle in context for needle in ("giudice di pace", "notificazione", "d.l. 179/2012")
     ):
@@ -4426,9 +4549,34 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         sender, {name: text for name, text in xml_texts.items() if "daticert" in name.casefold()}
     )
     procedural_dates = extract_procedural_dates(xml_texts, plain_text=body_all)
-    receipt_xml_type = xml_tag_value(xml_joined, ("tipo", "tipoRicevuta", "ricevuta"))
-    receipt_text_type, receipt_features = receipt_type_from_text(body_all)
-    receipt_type = clean_text(receipt_xml_type).lower().replace(" ", "_") or receipt_text_type
+    # Tipo della ricevuta: nel daticert.xml reale e' l'ATTRIBUTO tipo di <postacert>
+    # (d.m. 2/11/2005, allegato § 2.1.1), non un elemento <tipo>; poi X-Ricevuta, il prefisso
+    # fisso dell'oggetto e solo infine le frasi standard del corpo (classificatore unico condiviso
+    # con control tower e workflow legale).
+    daticert_type = next(
+        (
+            found
+            for name, text in xml_texts.items()
+            if "daticert" in name.casefold() or "postacert" in name.casefold()
+            for found in [tipo_daticert(text) or xml_tag_value(text, ("tipo",))]
+            if found
+        ),
+        "",
+    ) or tipo_daticert(xml_joined)
+    if not daticert_type:
+        legacy_type = xml_tag_value(xml_joined, ("tipoRicevuta",))
+        daticert_type = legacy_type if normalizza_tipo_ricevuta(legacy_type) else ""
+    receipt_type, receipt_source = classifica_ricevuta_pec(
+        subject,
+        "\n".join([text_body, clean_text(html_leggibile)]),
+        x_ricevuta=decode_header_value(msg.get("X-Ricevuta", "")),
+        daticert_tipo=daticert_type,
+        x_trasporto=decode_header_value(msg.get("X-Trasporto", "")),
+        # Il Sistema di Interscambio scrive «mancata consegna» della fattura: non e' una ricevuta PEC.
+        usa_corpo=not sender.casefold().endswith("fatturapa.it"),
+    )
+    receipt_xml_type = daticert_type if receipt_type and receipt_source == "daticert" else ""
+    receipt_features = [receipt_source] if receipt_type else []
     receipt_original_message_id = _receipt_original_message_id(msg, xml_joined)
     receipt_recipient = _receipt_recipient_address(xml_joined, body_all)
     rg_values = extract_rg_candidates(body_all)
@@ -4477,6 +4625,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
             for item in attachments
         ],
         message_id=message_id,
+        receipt_type=receipt_type,
+        receipt_type_known=True,
     )
     procedural_profile = build_pec_procedural_profile(
         subject=subject,
@@ -4838,12 +4988,37 @@ def _pct_controls_non_blocking_acceptance(text: str) -> bool:
     )
 
 
+_PCT_DEPOSIT_NEGATION_RE = re.compile(
+    r"\bnon\s+(?:[eè]|e['’])\s+stat[oa]\s+accettat\w*|\bnon\s+accettat\w*|"
+    r"\bmancata\s+accettazione\s+(?:del\s+)?deposito\b|\bnon\s+accettazione\s+(?:del\s+)?deposito\b|"
+    r"\brifiut(?:o|ato|ata|ati)\b(?![^.;\n]{0,40}\bnotific)",
+    re.I,
+)
+
+
 def detect_pct_deposit_stage(parsed: dict[str, Any]) -> dict[str, Any]:
     subject = str((parsed.get("headers") or {}).get("subject") or "")
     body = str(((parsed.get("body") or {}).get("text") or ""))
     receipt = str((((parsed.get("fields") or {}).get("tipo_ricevuta") or {}).get("value") or ""))
     text = f"{subject} {body} {receipt}".lower()
-    if _contains_any(text, ("rifiuto deposito", "deposito rifiutato", "rifiutato dalla cancelleria", "rifiuto dell'atto")):
+    receipt_label = normalizza_tipo_ricevuta(receipt) or tipo_ricevuta_da_oggetto(subject, consenti_inoltro=True)
+    if receipt_label in RICEVUTE_NEGATIVE:
+        # Avviso di non accettazione / mancata consegna del messaggio di deposito: il deposito non
+        # e' arrivato all'ufficio (d.m. 44/2011 art. 13; d.P.R. 68/2005). Mai fase di accettazione.
+        return {
+            "id": "mancata_consegna_pec",
+            "order": 1,
+            "label": "Non accettazione o mancata consegna PEC",
+            "status": "danger",
+            "confidence": 0.92,
+            "reason": f"ricevuta PEC negativa ({receipt_label}): il messaggio di deposito non risulta consegnato",
+        }
+    if _contains_any(text, ("rifiuto deposito", "deposito rifiutato", "rifiutato dalla cancelleria", "rifiuto dell'atto")) or (
+        # Negazioni prima delle frasi di accettazione: «il deposito non e' stato accettato»
+        # contiene «accettato» ma e' un rifiuto.
+        _contains_any(text, ("deposito", "cancelleria"))
+        and _PCT_DEPOSIT_NEGATION_RE.search(text)
+    ):
         return {
             "id": "rifiuto_deposito",
             "order": 4,
@@ -8185,7 +8360,11 @@ class PecAuditRepository:
                         payload[key] = clean_text(match.group(1), 240)
                         break
             lowered = raw.casefold()
-            if "avviso di mancata consegna:" in lowered or "mancata_consegna" in lowered:
+            if any(
+                token in lowered
+                for token in ("avviso di mancata consegna:", "mancata_consegna", "avviso di non accettazione:",
+                              "non_accettazione", "non-accettazione", "errore-consegna", "errore_consegna")
+            ):
                 payload.setdefault("receipt_kind", "MANCATA_CONSEGNA")
             elif "consegna:" in lowered or "rdac" in lowered or "ricevuta completa di avvenuta consegna" in lowered:
                 payload.setdefault("receipt_kind", "RdAC")
@@ -8246,7 +8425,11 @@ class PecAuditRepository:
                     "categoria",
                 )
             )
-            if any(marker in raw for marker in ("mancata_consegna", "delivery_failure", "negative_delivery", "failed")):
+            if any(
+                marker in raw
+                for marker in ("mancata_consegna", "delivery_failure", "negative_delivery", "failed", "non_accettazione",
+                               "non-accettazione", "errore_consegna", "errore-consegna", "rilevazione_virus")
+            ):
                 return "failure"
             if any(marker in raw for marker in ("rdac", "avvenuta_consegna", "delivered_receipt", "delivery_receipt")):
                 return "rdac"
@@ -9091,13 +9274,22 @@ class PecAuditRepository:
             120,
         ).casefold()
         event_type = clean_text(report.get("event_type") or legal_workflow.get("event_type") or "", 120).casefold()
-        haystack = " ".join([subject, receipt_type, event_type]).casefold()
+        # Il tipo viene dal daticert/X-Ricevuta (valori «non-accettazione», «errore-consegna» normalizzati
+        # con '_'), poi dal SOLO prefisso fisso dell'oggetto: l'oggetto originale citato dopo «CONSEGNA:» o
+        # «ACCETTAZIONE:» (es. «mancata consegna merce», «non accettazione eredità») non decide nulla.
+        receipt_label = normalizza_tipo_ricevuta(receipt_type) or tipo_ricevuta_da_oggetto(subject, consenti_inoltro=True)
+        if not receipt_label:
+            receipt_label = {
+                "mancata_consegna_pec": "mancata_consegna",
+                "ricevuta_consegna_pec": "avvenuta_consegna",
+                "ricevuta_accettazione_pec": "accettazione",
+            }.get(event_type, "")
         kind: ReceiptKind | None = None
-        if any(token in haystack for token in ("mancata_consegna", "mancata consegna", "non_accettazione", "non accettazione")):
+        if receipt_label in RICEVUTE_NEGATIVE:
             kind = ReceiptKind.FAILURE
-        elif any(token in haystack for token in ("avvenuta_consegna", "avvenuta consegna", "ricevuta_consegna_pec", "consegna:")):
+        elif receipt_label == "avvenuta_consegna":
             kind = ReceiptKind.RDAC
-        elif any(token in haystack for token in ("accettazione", "ricevuta_accettazione_pec", "accettazione:")):
+        elif receipt_label == "accettazione":
             kind = ReceiptKind.RAC
         if kind is None:
             return {"skipped": True, "reason": "messaggio_non_ricevuta_notifica"}
@@ -11079,6 +11271,73 @@ class PecAuditRepository:
             return fallback
         except Exception:
             return {}
+
+    def _record_unlinked_duplicate_deadline(
+        self,
+        *,
+        manager: Any,
+        existing: Any,
+        message_id: str,
+        source_message_id: str,
+        target_date: str,
+        proposal: dict[str, Any],
+        reconciliation: dict[str, Any],
+        actor: str,
+    ) -> dict[str, Any]:
+        """Stessa comunicazione arrivata con un altro Message-ID: niente seconda scadenza.
+
+        La scadenza esistente resta l'unica e annota la PEC doppia con una riga dedicata, non con il
+        marcatore PEC_AUDIT: cosi' la riconciliazione di ciascuna PEC non tocca il termine dell'altra
+        e la rielaborazione della seconda PEC non crea un secondo appuntamento in agenda."""
+        existing_id = str(getattr(existing, "id", "") or "")
+        duplicate_line = f"{PEC_DEADLINE_DUPLICATE_OF_PREFIX}:{source_message_id or message_id}"
+        note = str(getattr(existing, "note", "") or "")
+        if duplicate_line not in {line.strip() for line in note.splitlines()}:
+            try:
+                existing = manager.aggiorna(
+                    existing_id,
+                    note="\n".join(
+                        part
+                        for part in (
+                            note.rstrip(),
+                            duplicate_line,
+                            "Stessa comunicazione ricevuta con un altro Message-ID: termine non duplicato.",
+                        )
+                        if part
+                    ),
+                ) or existing
+            except Exception:
+                pass
+            try:
+                with self.connect() as conn:
+                    self.append_audit(
+                        conn,
+                        action="pec.deadline.duplicate_unlinked",
+                        resource_type="pec_message",
+                        resource_id=message_id,
+                        payload={"due_date": target_date, "deadline_id": existing_id},
+                        actor=actor,
+                    )
+            except Exception:
+                pass
+        return {
+            "ok": True,
+            "message": "Scadenza già presente: stessa comunicazione ricevuta con un altro Message-ID.",
+            "deadline_id": existing_id,
+            "due_date": getattr(existing, "data_scadenza", target_date),
+            "agenda": {
+                "ok": True,
+                "agenda_id": clean_text(getattr(existing, "id_appuntamento", "") or "", 120),
+                "agenda_outcome": "skipped_duplicate_communication",
+            },
+            "calendar_sync": {"ok": True, "skipped": True},
+            "already_exists": True,
+            "duplicate_communication": True,
+            "proposal": proposal,
+            "reconciliation": reconciliation,
+            "scheduled_message_id": message_id,
+            "source_message_id": source_message_id or message_id,
+        }
 
     def _find_equivalent_automatic_deadline(
         self,
@@ -14491,9 +14750,34 @@ class PecAuditRepository:
                 from pct.scadenziario import StatoTermine, TipoTermine
 
                 manager = self._scadenziario_manager()
-                existing_notes = "\n".join(str(getattr(item, "note", "") or "") for item in manager.tutte(solo_aperte=False))
+                all_deadlines = list(manager.tutte(solo_aperte=False))
+                existing_notes = "\n".join(str(getattr(item, "note", "") or "") for item in all_deadlines)
                 for item in term_proposals:
                     if item.due_date < today_rome or item.marker(clean_id) in existing_notes:
+                        continue
+                    term_title = clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180)
+                    identity_line = _deadline_identity_line(
+                        rg=rg,
+                        ufficio=ufficio or _deadline_identity_office_sender(parsed),
+                        profile_code=item.code,
+                        due_date=item.due_date,
+                    )
+                    same_term, possible_duplicate = _unlinked_deadline_duplicate(
+                        all_deadlines,
+                        identity_line=identity_line,
+                        title=term_title,
+                        source_message_id=clean_id,
+                        marker=item.marker(clean_id),
+                    )
+                    if same_term is not None:
+                        # Stessa comunicazione arrivata con un altro Message-ID: la proposta esiste gia'.
+                        duplicate_line = f"{PEC_DEADLINE_DUPLICATE_OF_PREFIX}:{clean_id}"
+                        same_note = str(getattr(same_term, "note", "") or "")
+                        if duplicate_line not in same_note:
+                            manager.aggiorna(
+                                str(getattr(same_term, "id", "") or ""),
+                                note="\n".join((same_note.rstrip(), duplicate_line)),
+                            )
                         continue
                     scadenza = manager.nuova(
                         titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
@@ -14506,11 +14790,20 @@ class PecAuditRepository:
                         ),
                         data_decorrenza=item.dies_a_quo,
                         note="\n".join(
-                            (
+                            part
+                            for part in (
                                 item.marker(clean_id),
                                 f"Termine proposto: {item.summary()}",
                                 "Proposta in bozza: revisione professionale obbligatoria prima della conferma.",
+                                identity_line,
+                                (
+                                    f"{PEC_DEADLINE_POSSIBLE_DUPLICATE_PREFIX}:{getattr(possible_duplicate, 'id', '')} "
+                                    "Possibile doppione di una proposta gia' generata da un'altra PEC: verificare."
+                                )
+                                if possible_duplicate is not None
+                                else "",
                             )
+                            if part
                         ),
                         id_utente_responsabile=_deadline_responsible_actor(actor),
                         perentorio=item.perentorio,
@@ -16263,6 +16556,32 @@ class PecAuditRepository:
                 )
                 if equivalent is not None:
                     existing = equivalent
+            identity_line = _deadline_identity_line(
+                rg=profile.get("numero_rg") or next(iter(parsed.get("rg_candidates") or []), ""),
+                ufficio=profile.get("ufficio") or _deadline_identity_office_sender(parsed),
+                profile_code=legal_fields["profile_code"],
+                due_date=target_date,
+            )
+            possible_duplicate = None
+            if existing is None and not linked_fascicolo_id and term_modification is None:
+                same_deadline, possible_duplicate = _unlinked_deadline_duplicate(
+                    existing_items,
+                    identity_line=identity_line,
+                    title=title,
+                    source_message_id=_source_message_id or message_id,
+                    marker=marker,
+                )
+                if same_deadline is not None:
+                    return self._record_unlinked_duplicate_deadline(
+                        manager=manager,
+                        existing=same_deadline,
+                        message_id=message_id,
+                        source_message_id=_source_message_id or message_id,
+                        target_date=target_date,
+                        proposal=proposal,
+                        reconciliation=reconciliation,
+                        actor=actor,
+                    )
             if existing is None and linked_fascicolo_id and term_modification is None:
                 superseded = find_superseding_modification(
                     existing_items,
@@ -16515,6 +16834,14 @@ class PecAuditRepository:
                         f"Decorrenza letta: {proposal.get('source_event_at') or '-'}",
                         *remote_note_lines,
                         legal_fields["note_line"],
+                        identity_line,
+                        (
+                            f"{PEC_DEADLINE_POSSIBLE_DUPLICATE_PREFIX}:{getattr(possible_duplicate, 'id', '')} "
+                            "Possibile doppione di una scadenza gia' generata da un'altra PEC: verificare e annullare "
+                            "manualmente quella superflua."
+                        )
+                        if possible_duplicate is not None
+                        else "",
                     )
                     if part
                 ),

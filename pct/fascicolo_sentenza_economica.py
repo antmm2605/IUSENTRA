@@ -139,7 +139,12 @@ _CONTRIBUTO_DOCUMENT_PAYMENT_LABEL_RE = re.compile(
 _CONTRIBUTO_DOCUMENT_DUE_ANCHOR_RE = re.compile(
     r"\b(?:richiesta\s+(?:di\s+)?versamento|omesso\s+versamento|si\s+invita.{0,120}?a\s+pagare|"
     r"a\s+pagare\s+entro|somma\s+di\s+euro.{0,80}?per\s+omesso\s+versamento|"
-    r"importo\s+da\s+pagare|totale\s+da\s+pagare|avviso\s+(?:di\s+)?pagamento)\b",
+    r"importo\s+da\s+pagare|totale\s+da\s+pagare|avviso\s+(?:di\s+)?pagamento|"
+    # Invito al pagamento dell'ufficio (art. 248 D.P.R. 115/2002) e richiesta di
+    # integrazione del contributo versato in misura insufficiente (art. 13 c. 1-quater).
+    r"invito\s+al\s+pagamento|si\s+invita.{0,120}?a\s+versare|versare\s+la\s+somma|"
+    r"importo\s+dovuto|da\s+versare|differenza\s+dovuta|"
+    r"integrazione(?:\s+\w+){0,3}?\s+(?:del\s+)?(?:contributo|c\.?\s*u\.?|versamento|importo))\b",
     re.IGNORECASE | re.DOTALL,
 )
 _CONTRIBUTO_DOCUMENT_NON_PAYMENT_SOURCE_RE = re.compile(
@@ -199,12 +204,42 @@ _CONTRIBUTO_DOCUMENT_EXEMPT_RE = re.compile(
     r"(?:art\.?\s*9.{0,60}comma\s*1\s*[- ]?bis|art\.?\s*76|d\.?\s*p\.?\s*r\.?.{0,30}115)|"
     r"esente\s+(?:(?:dal|del)\s+)?(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
     r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
-    r"prenotazione\s+a\s+debito"
+    r"prenotazione\s+a\s+debito|"
+    r"prenotat[oaie]\s+a\s+debito"
     r")\b",
     re.IGNORECASE,
 )
+# Negazioni dell'esenzione: "non e' esente", "non sussiste esenzione" ecc. non
+# devono mai far nascere uno stato esente.
 _CONTRIBUTO_DOCUMENT_NOT_EXEMPT_RE = re.compile(
-    r"\b(?:non\s+esente|nessuna\s+esenzione|esenzione\s+non\s+(?:riconosciuta|ammessa))\b",
+    r"\b(?:non\s+(?:(?:è|e'|e|risulta|sono|siamo)\s+)?esent[eio]|nessuna\s+esenzione|"
+    r"esenzione\s+non\s+(?:riconosciuta|ammessa|spettante|applicabile|sussiste)|"
+    r"non\s+(?:sussiste|sussistono|ricorre|ricorrono|spetta|si\s+applica)\s+(?:alcuna\s+|l['’]\s*)?(?:ipotes[ie]\s+di\s+)?esenzione)",
+    re.IGNORECASE,
+)
+# Prenotazione a debito (artt. 131 e 158 D.P.R. 115/2002): il contributo non si
+# versa ora ma resta annotato; stato distinto dall'esenzione.
+_CONTRIBUTO_DOCUMENT_PRENOTATO_RE = re.compile(
+    r"\b(?:prenotazione\s+a\s+debito|prenotat[oaie]\s+a\s+debito)\b",
+    re.IGNORECASE,
+)
+# Esito negativo di un pagamento pagoPA/RT: la ricevuta non prova il versamento.
+_CONTRIBUTO_PAYMENT_NEGATIVE_RE = re.compile(
+    r"(?:\b(?:pagamento|versamento|transazione|operazione|addebito)\s+(?:non\s+(?:eseguit[oa]|effettuat[oa]|"
+    r"avvenut[oa]|riuscit[oa]|completat[oa]|andat[oa]\s+a\s+buon\s+fine)|annullat[oa]|rifiutat[oa]|"
+    r"fallit[oa]|stornat[oa]|revocat[oa]|respint[oa]|negat[oa])\b|"
+    r"\b(?:esito|stato)(?:\s+(?:del\s+)?(?:pagamento|versamento|transazione|operazione))?\s*[:\-]?\s*"
+    r"(?:negativo|ko|fallito|non\s+(?:eseguito|pagato|riuscito)|annullat[oa]|rifiutat[oa]|respint[oa])\b|"
+    r"\bnon\s+(?:è|e'|e)\s+andat[oa]\s+a\s+buon\s+fine\b|"
+    r"<\s*(?:[A-Za-z0-9_-]+:)?codiceEsitoPagamento\s*>\s*[1-9])",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_PAYMENT_DUE_AMOUNT_RE = re.compile(
+    r"\b(?:importo\s+dovuto|importo\s+da\s+pagare|totale\s+da\s+pagare|importo)\s*[:\-]?\s*(?:"
+    + MONEY_PREFIX_PATTERN
+    + r"\s*)?(?P<amount>"
+    + MONEY_AMOUNT_PATTERN
+    + r")",
     re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_STRONG_EXEMPT_RE = re.compile(
@@ -214,7 +249,7 @@ _CONTRIBUTO_DOCUMENT_STRONG_EXEMPT_RE = re.compile(
     r"esente\s+dal\s+pagamento|esenzione\s+(?:(?:dal|del)\s+pagamento\s+)?(?:dal|del)\s+"
     r"(?:contributo\s+unificat[oi]|c\.?\s*u\.?)|"
     r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato|"
-    r"prenotazione\s+a\s+debito)\b",
+    r"prenotazione\s+a\s+debito|prenotat[oaie]\s+a\s+debito)\b",
     re.IGNORECASE,
 )
 _CONTRIBUTO_DOCUMENT_ROLE_AMOUNT_RE = re.compile(
@@ -1126,8 +1161,13 @@ def _contributo_document_candidate_rejected(compact: str, match: re.Match[str]) 
     if _CONTRIBUTO_DOCUMENT_REJECT_RE.search(snippet):
         return True
     amount_context = compact[max(0, amount_start - 150) : min(len(compact), amount_end + 90)]
-    if _CONTRIBUTO_DOCUMENT_AMOUNT_NOISE_RE.search(amount_context):
-        return True
+    noise = [item.group(0) for item in _CONTRIBUTO_DOCUMENT_AMOUNT_NOISE_RE.finditer(amount_context)]
+    if noise:
+        # Il solo richiamo al D.P.R. 115/2002 non e' rumore in un invito al
+        # pagamento dell'ufficio (art. 248): li' l'importo e' il CU dovuto.
+        only_dpr_reference = all(re.match(r"d\.?\s*p\.?\s*r", item, re.IGNORECASE) for item in noise)
+        if not (only_dpr_reference and _CONTRIBUTO_DOCUMENT_DUE_ANCHOR_RE.search(amount_context)):
+            return True
     left = compact[max(0, amount_start - 140) : amount_start]
     near_left = compact[max(0, amount_start - 75) : amount_start]
     plain_left = _plain(left)
@@ -1209,12 +1249,15 @@ def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any
     if not match:
         return {}
     title = _snippet(compact, match.start(), match.end(), window=90)
+    prenotato = bool(_CONTRIBUTO_DOCUMENT_PRENOTATO_RE.search(compact))
     return {
         "esente": True,
         "importo": None,
         "titolo": title,
         "natura": "esenzione_contributo_unificato",
-        "label": "Contributo unificato esente",
+        "label": "Contributo unificato prenotato a debito" if prenotato else "Contributo unificato esente",
+        "status": "prenotato_a_debito" if prenotato else "esente",
+        "prenotato_a_debito": prenotato,
         "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
         "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
         "sha256": _text(metadata.get("sha256")),
@@ -1410,8 +1453,55 @@ def extract_contributo_unificato_document_evidence(
     text: str,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Legge l'importo da un PDF dedicato a CU/PagoPA senza confonderlo con Carta docente."""
+    """Legge l'importo da un PDF dedicato a CU/PagoPA senza confonderlo con Carta docente.
 
+    Qualunque percorso di lettura (ricevuta RT, importo a ruolo, F23, fallback
+    generico) passa dal controllo dell'esito: una ricevuta con esito negativo
+    (pagamento non eseguito, annullato, rifiutato) non prova il versamento del
+    contributo (art. 14 D.P.R. 115/2002) e non diventa mai "pagato".
+    """
+
+    evidence = _extract_contributo_unificato_document_evidence_core(text, metadata)
+    if not evidence or evidence.get("esente") is True:
+        return evidence
+    meta = metadata or {}
+    raw_label = " ".join(
+        _text(meta.get(key))
+        for key in ("filename", "original_filename", "safe_filename", "tipo_documento", "classification")
+    )
+    compact = _compact(f"{_document_label_detection_text(raw_label)} {_text(text)}")
+    if evidence.get("status") != "pagato" or not _CONTRIBUTO_PAYMENT_NEGATIVE_RE.search(compact):
+        return evidence
+    amount = evidence.get("importo")
+    if not isinstance(amount, (int, float)) or amount <= 0:
+        amount = None
+        for due in _CONTRIBUTO_PAYMENT_DUE_AMOUNT_RE.finditer(compact):
+            parsed = _parse_money(due.group("amount"))
+            if parsed is not None and parsed > 0:
+                amount = parsed
+                break
+    negative = _CONTRIBUTO_PAYMENT_NEGATIVE_RE.search(compact)
+    result = dict(evidence)
+    result.update(
+        {
+            # Nessun importo "versato": a valle (vista economica, archivio) un
+            # importo valorizzato verrebbe registrato come contributo pagato.
+            "importo": None,
+            "importo_non_pagato": amount,
+            "titolo": _snippet(compact, negative.start(), negative.end(), window=90) if negative else evidence.get("titolo"),
+            "natura": "pagamento_contributo_unificato_non_eseguito",
+            "label": "Pagamento contributo unificato non eseguito",
+            "status": "pagamento_non_eseguito",
+            "origine": "ricevuta_pagamento_esito_negativo",
+        }
+    )
+    return result
+
+
+def _extract_contributo_unificato_document_evidence_core(
+    text: str,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     meta = metadata or {}
     raw_label = " ".join(
         _text(meta.get(key))

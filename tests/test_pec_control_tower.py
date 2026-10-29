@@ -369,8 +369,10 @@ def test_pec_control_tower_api_ingest_list_and_confirm_deadline(tmp_path, monkey
         return str(paths[key])
 
     monkeypatch.setattr("web.blueprints.pec_control_tower_api.tenant_data_path", fake_tenant_data_path)
+    # La casella locale si apre con create_email_mailbox (web/blueprints/pec_control_tower_api.py,
+    # _email_manager): il doppio va iniettato li', non piu' sul costruttore GestioneEmailRicevute.
     monkeypatch.setattr(
-        "web.blueprints.pec_control_tower_api.GestioneEmailRicevute",
+        "web.blueprints.pec_control_tower_api.create_email_mailbox",
         lambda _path: _FakeEmailArchive({"pa-risposta": _sample_pa_pec()}),
     )
 

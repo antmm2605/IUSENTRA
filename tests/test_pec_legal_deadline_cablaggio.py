@@ -114,7 +114,9 @@ def test_legal_deadline_scadenza_fields_present():
     assert fields["title"].startswith("Opposizione")
     assert fields["source_event_type"] == "comunicazione"
     assert fields["source_event_at"] == "2026-07-01"
-    assert set(fields["extra"]) == {"legal_due_at", "raw_due_at", "trace_json"}
+    # Audit 29/10/2026: anche la provenienza del termine proposto passa alla Scadenza.
+    assert set(fields["extra"]) == {"legal_due_at", "raw_due_at", "trace_json", "provenienza"}
+    assert fields["extra"]["provenienza"]["template_code"] == "CIV_OPPOSIZIONE_127_TER"
     assert fields["extra"]["legal_due_at"] == "2026-07-06"
     assert fields["extra"]["trace_json"] and fields["extra"]["trace_json"] != "[]"
     assert "revisione professionale obbligatoria" in fields["note_line"]

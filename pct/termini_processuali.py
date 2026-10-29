@@ -13,7 +13,7 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -21,7 +21,12 @@ from typing import Any, Iterable, Mapping
 
 ENGINE_VERSION = "1.0.0"
 RULESET_VERSION = "IT-CPC-155-L742-2026.1"
-CALENDAR_VERSION = "IT-FESTIVITA-NAZIONALI-2026.1"
+# 2026.2: aggiunto il 4 ottobre (San Francesco d'Assisi) dal 2026, L. 151/2025.
+CALENDAR_VERSION = "IT-FESTIVITA-NAZIONALI-2026.2"
+ANNO_INIZIO_FESTA_SAN_FRANCESCO = 2026
+# Valori di ``matter_type`` che attivano le regole di materia del motore.
+_MATERIE_PENALI = frozenset({"penal", "penale"})
+_MATERIE_LAVORO = frozenset({"labor", "labour", "lavoro", "previdenza"})
 DEFAULT_REMINDER_THRESHOLDS = (30, 15, 7, 1, 0)
 
 LEGAL_SOURCES = (
@@ -101,7 +106,7 @@ def _easter(year: int) -> date:
 
 def national_holidays(year: int) -> set[date]:
     easter = _easter(year)
-    return {
+    feste = {
         date(year, 1, 1),
         date(year, 1, 6),
         easter + timedelta(days=1),
@@ -114,6 +119,12 @@ def national_holidays(year: int) -> set[date]:
         date(year, 12, 25),
         date(year, 12, 26),
     }
+    if year >= ANNO_INIZIO_FESTA_SAN_FRANCESCO:
+        # 4 ottobre, San Francesco d'Assisi: festività nazionale dal 2026
+        # (L. 8 ottobre 2025, n. 151, G.U. n. 236 del 10/10/2025, che modifica
+        # l'art. 2 L. 260/1949). Gli anni precedenti restano invariati.
+        feste.add(date(year, 10, 4))
+    return feste
 
 
 def _add_months(day: date, months: int) -> date:
@@ -227,13 +238,23 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         reference_law="Art. 165, primo comma, c.p.c.",
         metadata={"source_event": "notifica_citazione"},
     ),
+    # «Almeno N giorni prima dell'udienza» (artt. 166, 171-ter, 473-bis.16
+    # c.p.c.): si adotta uniformemente la lettura PRUDENZIALE a giorni liberi
+    # (free_term=True), che esclude sia il giorno dell'udienza sia il giorno
+    # finale e produce la data più anticipata. La scelta è prudenziale perché
+    # un deposito alla data anticipata non è mai tardivo sotto nessuna delle
+    # letture in circolazione. Lo scadenziario usa la stessa lettura nei
+    # profili TERM_*_DAYS_BEFORE (pct/scadenziario.py).
     DeadlineTemplate(
         code="CIV_COSTITUZIONE_CONVENUTO_166",
         name="Costituzione del convenuto e comparsa di risposta",
         base_value=70,
         direction="backward",
+        free_term=True,
         reference_law="Art. 166 c.p.c.",
         metadata={"source_event": "udienza"},
+        # v2: allineato alla lettura prudenziale a giorni liberi.
+        version=2,
     ),
     DeadlineTemplate(
         code="CIV_MEMORIA_171_TER_1",
@@ -460,7 +481,7 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         code="CUSTOM_PROCESSUALE",
         name="Termine processuale personalizzato",
         base_value=30,
-        reference_law="Configurazione studio",
+        reference_law="art. 155 c.p.c. (computo dei termini)",
         cartabia_compliant=False,
         metadata={"manual": True},
     ),
@@ -524,7 +545,12 @@ class ItalianDeadlineCalculator:
             version=_safe_int(options.get("template_version"), 1),
             metadata=dict(options.get("metadata") or {}),
         )
-        return self.calculate_template(input_date, template, case_reference=str(options.get("case_reference") or ""))
+        overrides = {}
+        if "force_ferial_suspension" in options:
+            overrides["force_ferial_suspension"] = options.get("force_ferial_suspension")
+        return self.calculate_template(
+            input_date, template, case_reference=str(options.get("case_reference") or ""), overrides=overrides
+        )
 
     def calculate_months(self, input_date: date, months: int, **options: Any) -> date:
         step = -1 if str(options.get("direction") or "forward") == "backward" else 1
@@ -543,8 +569,9 @@ class ItalianDeadlineCalculator:
             raise ValueError("Tipo periodo non supportato")
         if effective.direction not in {"forward", "backward"}:
             raise ValueError("Direzione calcolo non valida")
+        effective, matter_rules = self._apply_matter_rules(effective, overrides)
         step = 1 if effective.direction == "forward" else -1
-        rules: list[str] = ["dies_a_quo_excluded"]
+        rules: list[str] = ["dies_a_quo_excluded", *matter_rules]
         steps: list[dict[str, str]] = [
             {"code": "input_date", "label": "Data evento generatore", "date": input_date.isoformat()}
         ]
@@ -606,6 +633,38 @@ class ItalianDeadlineCalculator:
             })
         return rows
 
+    @staticmethod
+    def _apply_matter_rules(
+        template: DeadlineTemplate, overrides: Mapping[str, Any] | None
+    ) -> tuple[DeadlineTemplate, list[str]]:
+        """Regole imposte dalla materia, registrate in ``rulesApplied``.
+
+        - Penale: art. 172, comma 3, c.p.p. proroga di diritto solo il termine
+          che scade in giorno festivo; il sabato non proroga il termine penale
+          (la proroga del sabato è dell'art. 155 c.p.c.), quindi
+          ``extend_saturday`` è sempre disattivato.
+        - Lavoro e previdenza: art. 3 L. 742/1969 e art. 92 R.D. 12/1941, la
+          sospensione feriale non si applica. Resta attivabile solo con la
+          forzatura esplicita ``force_ferial_suspension`` (override o metadata
+          del modello), per i casi che il professionista valuta diversamente.
+        """
+
+        materia = str(template.matter_type or "").strip().lower()
+        regole: list[str] = []
+        if materia in _MATERIE_PENALI and template.extend_saturday:
+            template = replace(template, extend_saturday=False)
+            regole.append("penal_no_saturday_extension_art_172_cpp")
+        if materia in _MATERIE_LAVORO:
+            forzata = _parse_bool(dict(overrides or {}).get("force_ferial_suspension")) or _parse_bool(
+                (template.metadata or {}).get("force_ferial_suspension")
+            )
+            if forzata:
+                regole.append("labour_ferial_suspension_forced_override")
+            elif template.suspend_august:
+                template = replace(template, suspend_august=False)
+                regole.append("labour_no_ferial_suspension_art_3_l742_1969")
+        return template, regole
+
     def _ferial_active(self, template: DeadlineTemplate) -> bool:
         return bool(
             template.suspend_august
@@ -650,12 +709,21 @@ class ItalianDeadlineCalculator:
         return cursor
 
     def _shift_for_august_span(self, start: date, raw: date, step: int, steps: list[dict[str, str]]) -> date:
-        if step < 0:
-            span = self._august_days(raw, start)
-            shifted = raw - timedelta(days=span)
-        else:
-            span = self._august_days(start, raw)
-            shifted = raw + timedelta(days=span)
+        # L. 742/1969: il termine a mesi si allunga dei giorni di agosto
+        # attraversati. Lo spostamento può a sua volta attraversare altri giorni
+        # di agosto (es. scadenza grezza al 10 agosto): si itera finché il numero
+        # di giorni sospesi si stabilizza, come fa scadenziario.calcola_termine.
+        span = 0
+        shifted = raw
+        while True:
+            if step < 0:
+                nuovo_span = self._august_days(shifted, start)
+            else:
+                nuovo_span = self._august_days(start, shifted)
+            if nuovo_span == span:
+                break
+            span = nuovo_span
+            shifted = raw - timedelta(days=span) if step < 0 else raw + timedelta(days=span)
         if span:
             steps.append({"code": "ferial_month_shift", "label": f"Aggiunti {span} giorni di sospensione feriale", "date": shifted.isoformat()})
         return shifted
@@ -717,6 +785,10 @@ class ItalianDeadlineCalculator:
             parts.append("I giorni dal 1 al 31 agosto sono esclusi dal computo.")
         if template.urgent:
             parts.append("La materia urgente esclude la sospensione feriale nel calcolo automatico.")
+        if "labour_no_ferial_suspension_art_3_l742_1969" in rules:
+            parts.append("Controversia di lavoro o previdenza: sospensione feriale non applicata (art. 3 L. 742/1969; art. 92 R.D. 12/1941).")
+        if "penal_no_saturday_extension_art_172_cpp" in rules:
+            parts.append("Materia penale: il sabato non proroga il termine, solo il giorno festivo (art. 172, comma 3, c.p.p.).")
         if template.free_term:
             parts.append("Il termine libero esclude anche il giorno finale.")
         if adjusted != raw:

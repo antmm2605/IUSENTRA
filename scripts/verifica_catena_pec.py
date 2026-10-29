@@ -26,6 +26,7 @@ import argparse
 import json
 import os
 import sys
+import re
 from pathlib import Path
 from typing import Any
 
@@ -108,20 +109,39 @@ def _presidi_del_messaggio(percorsi: dict[str, Any], tenant: str, message_id: st
         return [{"id": "", "status": f"lettura non riuscita: {exc}", "priority": "", "fascicolo_id": "", "channel": ""}]
 
 
+# Marcatori con cui la pipeline lega scadenze e appuntamenti alla PEC d'origine:
+# presidio automatico, termini proposti dal provvedimento (pct/pec_provvedimento_terms.py)
+# e promemoria di ricezione della comunicazione in agenda.
+_PREFISSI_MARCATORE = ("PEC_AUDIT", "PEC_TERMINE_PROPOSTO", "PEC_RICEZIONE")
+
+
+def _marcatori_del_messaggio(message_id: str) -> tuple[str, ...]:
+    return tuple(f"{prefisso}:{message_id}" for prefisso in _PREFISSI_MARCATORE)
+
+
+def _contiene_marcatore(testo: str, marcatori: tuple[str, ...]) -> bool:
+    """Marcatore seguito da fine testo o da un separatore (non da altre cifre dell'id)."""
+
+    return any(
+        re.search(re.escape(marcatore) + r"(?![0-9A-Za-z_])", testo) for marcatore in marcatori
+    )
+
+
 def _scadenze_del_messaggio(percorsi: dict[str, Any], message_id: str) -> list[dict[str, Any]]:
-    """Scadenze generate dalla PEC: portano il marcatore `PEC_AUDIT:<id>`."""
+    """Scadenze generate dalla PEC: portano un marcatore della PEC (`PEC_AUDIT:<id>`,
+    `PEC_TERMINE_PROPOSTO:<id>` per i termini proposti dal provvedimento, `PEC_RICEZIONE:<id>`)."""
 
     from pct.scadenziario import GestioneScadenziario
 
     try:
         gestione = GestioneScadenziario(percorsi["SCADENZIARIO_DB"])
-        marcatore = f"PEC_AUDIT:{message_id}"
+        marcatori = _marcatori_del_messaggio(message_id)
         trovate = []
         for scadenza in gestione.tutte(solo_aperte=False):
             testo = " ".join(
                 _testo(getattr(scadenza, campo, "")) for campo in ("note", "external_uid", "titolo")
             )
-            if marcatore in testo:
+            if _contiene_marcatore(testo, marcatori):
                 trovate.append(
                     {
                         "id": _testo(getattr(scadenza, "id", "")),
@@ -142,13 +162,13 @@ def _appuntamenti_del_messaggio(percorsi: dict[str, Any], message_id: str) -> li
 
     try:
         agenda = Agenda(percorsi["AGENDA_DB"])
-        marcatore = f"PEC_AUDIT:{message_id}"
+        marcatori = _marcatori_del_messaggio(message_id)
         trovati = []
         for appuntamento in agenda.tutti():
             testo = " ".join(
                 _testo(getattr(appuntamento, campo, "")) for campo in ("note", "external_uid", "titolo", "descrizione")
             )
-            if marcatore in testo:
+            if _contiene_marcatore(testo, marcatori):
                 trovati.append(
                     {
                         "id": _testo(getattr(appuntamento, "id", "")),

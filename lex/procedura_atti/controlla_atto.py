@@ -16,16 +16,75 @@ from __future__ import annotations
 import re
 
 DATA = re.compile(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b")
-ART = re.compile(r"\bart(?:t)?\.\s*(\d+(?:\s*-?\s*(?:terdecies|duodecies|undecies|quinquies|septies|novies|decies|quater|sexies|octies|bis|ter))?(?:\.\d+)?)", re.I)
+ART = re.compile(r"\b(?:artt?\.|articol[oi]\b)\s*(\d+(?:\s*-?\s*(?:terdecies|duodecies|undecies|quinquies|septies|novies|decies|quater|sexies|octies|bis|ter))?(?:\.\d+)?)", re.I)
 RICH = re.compile(r"\[(\d{1,2})\]")
 INGLESE = re.compile(r"\b(the|and|of the|which|should|must|however|therefore|request|court)\b", re.I)
 ATTIVO = re.compile(r"ricorr|attor|oppon|reclam|appellant|istant|creditor|lavorator|contribuent|danneggiat|interessat|consumator|ricorrente|denunciant|querelant|persona offesa", re.I)
 PASSIVO = re.compile(r"resistent|convenut|oppost|appellat|debitor|esecutat|ingiunt|imputat|indagat|condannat", re.I)
 CONTRO_ATTIVO = re.compile(r"(rigettar[ei]|respinger[ei]|dichiarare inammissibile|dichiarare improcedibile)\s+(il|la|l')?\s*(presente\s+)?(ricorso|domanda|opposizione|reclamo|appello|istanza)|accertare\s+e?\s*(dichiarare\s+)?la\s+legittimit|dichiarare\s+legittim[oa]", re.I)
 CONTRO_PASSIVO = re.compile(r"(accoglier[ei])\s+(il|la|l')?\s*(ricorso|domanda|opposizione)\s+(avversari|di controparte|proposta da)", re.I)
-SIGLA = re.compile(r"^[^\n]{0,30}?(c\.\s?p\.\s?c|c\.\s?c\.|c\.\s?p\.\s?p|c\.\s?p\.(?!\s?[ac])|c\.\s?p\.\s?a|d\.\s?lgs|d\.\s?l\.|d\.\s?p\.\s?r|d\.\s?m\.|\bl\.\s|legge|ccii|cod\.|reg\.|regolamento \(|t\.u\.|disp\.\s?att|cost\.|costituzione|r\.d\.)", re.I)
+SIGLA = re.compile(r"^[^\n]{0,30}?(c\.\s?p\.\s?c|c\.\s?c\.|c\.\s?p\.\s?p|c\.\s?p\.(?!\s?[ac])|c\.\s?p\.\s?a|d\.\s?lgs|d\.\s?l\.|d\.\s?p\.\s?r|d\.\s?m\.|\bl\.\s|legge|ccii|cod\.|reg\.|regolamento \(|t\.u\.|disp\.\s?att|cost\.|costituzione|r\.d\.|cod\.\s?civ|cod\.\s?proc|codice\s+(?:civile|penale|di\s+procedura|del(?:la)?\s+\w+))", re.I)
 ALTRUI = re.compile(r"^.{0,60}?(propost[oa] da|di controparte|avversari|dell[ae]? (resistente|ricorrente|controparte|appellat|reclamat|attore|convenut))", re.I | re.S)
 SUFFISSI = "bis|ter|quater|quinquies|sexies|septies|octies|novies|decies|undecies|duodecies|terdecies"
+
+
+_CODICI = (("disp_att_cpc", r"disp(?:osizioni)?\.?\s*(?:di\s+)?att(?:uazione|\.)?\s*(?:del\s+)?(?:c\.\s?p\.\s?c\.?|cod(?:ice|\.)\s*(?:di\s+)?proc(?:edura|\.)\s*civ)"),
+           ("disp_prel_cc", r"disp(?:osizioni)?\.?\s*(?:sulla\s+legge\s+in\s+generale|prel(?:iminari|\.))"),
+           ("cpc", r"c\.\s?p\.\s?c\.?|cod(?:ice|\.)\s*(?:di\s+)?proc(?:edura|\.)\s*civ(?:ile|\.)?"),
+           ("cpp", r"c\.\s?p\.\s?p\.?|cod(?:ice|\.)\s*(?:di\s+)?proc(?:edura|\.)\s*pen(?:ale|\.)?"),
+           ("cpa", r"c\.\s?p\.\s?a\.?|codice\s+del\s+processo\s+amministrativo"),
+           ("cc", r"c\.\s?c\.|cod(?:ice|\.)\s*civ(?:ile|\.)?"),
+           ("cp", r"c\.\s?p\.(?!\s?[acp]\b)|cod(?:ice|\.)\s*pen(?:ale|\.)?"),
+           ("cost", r"cost\.|costituzione"),
+           ("ccii", r"ccii|codice\s+della\s+crisi"),
+           ("consumo", r"cod(?:ice|\.)\s*(?:del\s+)?consumo"),
+           ("strada", r"cod(?:ice|\.)\s*(?:della\s+)?strada"),
+           ("privacy", r"cod(?:ice|\.)\s*(?:della\s+)?privacy|codice\s+in\s+materia\s+di\s+protezione"))
+_TIPI_ATTO = (("dlgs", r"d\.\s?lgs\.?|decreto\s+legislativo"), ("dpr", r"d\.\s?p\.\s?r\.?|decreto\s+del\s+presidente\s+della\s+repubblica"),
+              ("dl", r"d\.\s?l\.|decreto[\s-]+legge"), ("dm", r"d\.\s?m\.?|decreto\s+ministeriale"), ("rd", r"r\.\s?d\.?|regio\s+decreto"),
+              ("reg_ue", r"reg(?:olamento|\.)\s*(?:\(?\s*ue\s*\)?|ce)"), ("l", r"l\.|legge"))
+
+
+def chiave_atto(testo: str) -> str | None:
+    """Atto scritto all'inizio di ``testo`` (dopo il numero dell'articolo), in forma confrontabile.
+
+    «c.c.»/«codice civile» -> "cc"; «d.lgs. 28/2010»/«decreto legislativo n. 28 del 2010» -> "dlgs:28/2010".
+    None quando l'atto non e' riconoscibile (clausola, rinvio interno, atto senza estremi).
+    """
+    t = re.sub(r"\s+", " ", (testo or "").lower()).strip()
+    t = re.sub(r"^(?:,?\s*(?:comma|co\.|c\.)\s*\d+\w*\s*,?\s*|,?\s*(?:primo|secondo|terzo|quarto|quinto|ultimo)\s+comma\s*,?\s*"
+               r"|,?\s*(?:n\.|lett\.|lettera)\s*\w+\)?\s*,?\s*)+", "", t)
+    t = re.sub(r"^(?:,\s*)?(?:del(?:la|lo|l'|le)?|dei|degli)\s+", "", t)
+    for chiave, rx in _CODICI:
+        if re.match(rf"(?:{rx})", t):
+            return chiave
+    for tipo, rx in _TIPI_ATTO:
+        m = re.match(rf"(?:{rx})\s*(?:n\.|numero)?\s*(\d{{1,5}})\s*(?:/\s*|,?\s+del\s+(?:\d{{1,2}}\s+\w+\s+)?)(\d{{4}})", t)
+        if m:
+            return f"{'l' if tipo == 'l' else tipo}:{int(m.group(1))}/{m.group(2)}"
+        m = re.match(rf"(?:{rx})\s*(?:\d{{1,2}}\s+\w+\s+)(\d{{4}}),?\s*n\.\s*(\d{{1,5}})", t)  # «d.lgs. 27 marzo 2026, n. 47»
+        if m:
+            return f"{tipo}:{int(m.group(2))}/{m.group(1)}"
+    return None
+
+
+def chiave_fonte(fonte: dict) -> str | None:
+    for valore in (fonte.get("sigla"), fonte.get("atto")):
+        valore = str(valore or "").strip()
+        if not valore:
+            continue
+        chiave = chiave_atto(valore) or chiave_atto(valore.replace("_", " "))
+        if chiave:
+            return chiave
+        m = re.fullmatch(r"(legge|dlgs|dpr|dl|rd|dm)_(\d+)_(\d{4})", valore)
+        if m:
+            return f"{'l' if m.group(1) == 'legge' else m.group(1)}:{int(m.group(2))}/{m.group(3)}"
+        sigle = {"codice_civile": "cc", "codice_procedura_civile": "cpc", "codice_penale": "cp", "codice_procedura_penale": "cpp",
+                 "codice_processo_amministrativo": "cpa", "costituzione": "cost", "codice_crisi": "ccii", "codice_consumo": "consumo",
+                 "codice_strada": "strada", "codice_privacy": "privacy", "preleggi": "disp_prel_cc"}
+        if valore in sigle:
+            return sigle[valore]
+    return None
 
 
 def _atto_diverso(tra: str, fonte: dict) -> bool:
@@ -94,7 +153,15 @@ def controlla(testo: str, caso: dict, fatti: str = "") -> dict:
                     continue  # «art. X [1][2]»: l'articolo e' una delle Fonti richiamate insieme
                 gravi.append(("numero_sbagliato", f"art. {m.group(1)} con [{n}] = art. {riferimenti[n]['articolo']}"))
         elif art in articoli_fonti:
-            avvisi.append(("manca_richiamo", f"art. {m.group(1)}"))
+            # Senza [n] il numero non basta: l'atto scritto dopo l'articolo deve essere quello di una Fonte
+            # con lo stesso articolo («art. 1219 c.p.c.» non e' coperto dalla Fonte «art. 1219 c.c.»).
+            prossimo = ART.search(coda)
+            atto_citato = chiave_atto(coda[: prossimo.start() if prossimo else 60][:60])
+            atti_fonte = {chiave_fonte(riferimenti[n]) for n, a in fonti.items() if a == art}
+            if atto_citato and None not in atti_fonte and atto_citato not in atti_fonte:
+                gravi.append(("norma_fuori_fonti", f"art. {m.group(1)} {coda[:25].strip()} (atto diverso dalle Fonti)"))
+            else:
+                avvisi.append(("manca_richiamo", f"art. {m.group(1)}"))
         elif not SIGLA.search(coda):
             avvisi.append(("rinvio_interno", f"art. {m.group(1)}"))  # clausola, punto o articolo senza fonte: non e' una norma citata
         else:

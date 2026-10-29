@@ -56,7 +56,9 @@ def test_gate_ok_restituisce_editor_url_e_scrive_editor():
         rendered_text="Atto di citazione",
         document_writer=writer,
         compliance_result=compliance,
-        requested_draft="final_draft",
+        # Fonti del registro senza impronta (audit 29/10/2026): solo bozza di lavoro confermata.
+        requested_draft="working_draft",
+        confirmed_warning=True,
     )
 
     assert result.ok is True
@@ -87,6 +89,8 @@ def test_bozza_archiviata_come_docx_reale_con_stili():
             '<p style="text-align:center"><strong>Atto di citazione</strong></p>'
         ),
         compliance_result=analyze_template_compliance("CIV_CIT_001", payload),
+        requested_draft="working_draft",
+        confirmed_warning=True,
     )
 
     assert result.ok, result.errors

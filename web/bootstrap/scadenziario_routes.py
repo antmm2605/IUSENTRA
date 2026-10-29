@@ -9,6 +9,7 @@ from typing import Any
 from web.blueprints.react_shell import render_react_shell_response
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
 from markupsafe import escape
+from pct.ora_italiana import oggi_roma
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -518,7 +519,7 @@ def register_scadenziario_routes(
             gs = get_scadenziario()
             agenda = get_agenda()
             alerts = []
-            oggi = date.today()
+            oggi = oggi_roma()  # giorno italiano (Europe/Rome), non quello UTC del server
             domani = oggi + timedelta(days=1)
             scadute = [
                 s

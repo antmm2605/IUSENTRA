@@ -314,13 +314,18 @@ def _festivita_nazionali(anno: int) -> set[date]:
     """Festività nazionali italiane (L. 260/1949 e successive)."""
 
     pasqua = _pasqua(anno)
-    return {
+    feste = {
         date(anno, 1, 1), date(anno, 1, 6), pasqua,
         date.fromordinal(pasqua.toordinal() + 1),  # lunedì dell'Angelo
         date(anno, 4, 25), date(anno, 5, 1), date(anno, 6, 2),
         date(anno, 8, 15), date(anno, 11, 1), date(anno, 12, 8),
         date(anno, 12, 25), date(anno, 12, 26),
     }
+    if anno >= 2026:
+        # 4 ottobre, San Francesco d'Assisi: festività nazionale dal 2026
+        # (L. 8 ottobre 2025, n. 151, G.U. n. 236 del 10/10/2025, che modifica l'art. 2 L. 260/1949).
+        feste.add(date(anno, 10, 4))
+    return feste
 
 
 def _parse_date(raw: Any) -> Optional[date]:

@@ -184,14 +184,18 @@ def verifica_fatti_nuovi(bozza: str, origine: str) -> list[tuple[str, str]]:
 
 def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiScheda, blocco_scadenze: str,
                    termini: list[dict], fatti_testo: str, oggi: date, assistito: str, controparte: str,
-                   campi_modello: list[str], ruolo_assistito: str = "") -> EsitoStesura:
-    """``chiama_modello(sistema, messaggio) -> (testo, nome_modello)``: il gateway di Lex (o un sostituto nei test)."""
+                   campi_modello: list[str], ruolo_assistito: str = "", scheda_atto: dict | None = None) -> EsitoStesura:
+    """``chiama_modello(sistema, messaggio) -> (testo, nome_modello)``: il gateway di Lex (o un sostituto nei test).
+
+    ``scheda_atto``: scheda con ``forma_risposta``/``modello_atto`` per i requisiti obbligatori dell'atto
+    (come ``percorso.valuta``); senza, il modello si ricava da ``risolta`` (``modello_atto`` o titolo).
+    """
     nomi = [b["blocco"] for b in risolta.get("scrive_lex", [])]
     if not nomi:
         raise ValueError("La scheda non contiene blocchi da scrivere.")
     from .provenienza import verifica_provenienza
 
-    errori_fonti = verifica_provenienza({"fonti": fonti.fonti, "fonti_ref": fonti.fonti_ref})
+    errori_fonti = verifica_provenienza({"fonti": fonti.fonti, "fonti_ref": fonti.fonti_ref}, oggi=oggi)
     if errori_fonti:
         raise ValueError("Fonti non verificabili: " + "; ".join(errori_fonti))
     msg = messaggio(oggetto, risolta, fonti, blocco_scadenze=blocco_scadenze, oggi=oggi, assistito=assistito,
@@ -238,7 +242,13 @@ def scrivi_blocchi(*, chiama_modello, oggetto: str, risolta: dict, fonti: FontiS
                 revisione = revisiona(testo)
         except (OSError, ValueError, RuntimeError):
             revisione["pendenti"].append(("correzione_non_disponibile", "Conservata la prima bozza con i suoi errori; nessuna ulteriore ripresa automatica."))
-    esito_stato = stato(testo, [], revisione, {"norme_mancanti": [], "dati_mancanti": []}, None)
+    from .requisiti_atti import modello_per, requisiti_mancanti
+
+    scheda_requisiti = scheda_atto if isinstance(scheda_atto, dict) else {
+        "forma_risposta": "atto", "modello_atto": str(risolta.get("modello_atto") or risolta.get("titolo") or "")}
+    # I requisiti si cercano nei blocchi scritti e nei dati del fascicolo che il modello d'atto inserisce.
+    requisiti = requisiti_mancanti(testo + "\n" + "\n".join(_dati_fascicolo(risolta)), modello_per(scheda_requisiti))
+    esito_stato = stato(testo, requisiti, revisione, {"norme_mancanti": [], "dati_mancanti": []}, None)
     if fonti.pendenze and esito_stato["stato"] == "pronta_per_revisione_avvocato":
         esito_stato["stato"] = "bozza_con_verifiche_pendenti"
     esito_stato["motivi"] = esito_stato.get("motivi", []) + [f"fonte: {p}" for p in fonti.pendenze]

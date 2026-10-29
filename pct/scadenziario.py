@@ -13,7 +13,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from pct.formatting import format_date_it
-from pct.ora_italiana import oggi_roma
+from pct.ora_italiana import ROME_TZ, oggi_roma
+from pct.termini_processuali import ANNO_INIZIO_FESTA_SAN_FRANCESCO
+
+
+def _adesso_roma() -> datetime:
+    """Ora corrente italiana (Europe/Rome) senza fuso: stesso formato ISO dei dati già salvati."""
+
+    return datetime.now(ROME_TZ).replace(tzinfo=None, microsecond=0)
 
 
 class TipoTermine(str, Enum):
@@ -126,7 +133,7 @@ def _calcola_pasqua(anno: int) -> date:
 
 def festività_italiane(anno: int) -> List[date]:
     pasqua = _calcola_pasqua(anno)
-    return [
+    feste = [
         date(anno, 1, 1),
         date(anno, 1, 6),
         pasqua,
@@ -140,6 +147,12 @@ def festività_italiane(anno: int) -> List[date]:
         date(anno, 12, 25),
         date(anno, 12, 26),
     ]
+    if anno >= ANNO_INIZIO_FESTA_SAN_FRANCESCO:
+        # 4 ottobre, San Francesco d'Assisi: festività nazionale dal 2026
+        # (L. 8 ottobre 2025, n. 151, G.U. n. 236 del 10/10/2025, modifica
+        # dell'art. 2 L. 260/1949). Stessa regola di termini_processuali.national_holidays.
+        feste.append(date(anno, 10, 4))
+    return feste
 
 
 def _festività_cache(anni: range) -> set[date]:
@@ -273,6 +286,11 @@ class ProfiloTermine:
     # «ritroso»: il termine si conta all'indietro dall'evento (es. memorie art. 171-ter c.p.c., «almeno
     # quaranta giorni prima dell'udienza»); se l'ultimo giorno è sabato o festivo si anticipa (art. 155 c.p.c.).
     direzione: str = "avanti"
+    # Termine «libero»: si esclude anche il giorno finale (dies ad quem). Per i termini «almeno N giorni
+    # prima dell'udienza» (artt. 166, 171-ter, 473-bis.16 c.p.c.) si adotta la lettura PRUDENZIALE a giorni
+    # liberi, la stessa dei modelli del motore termini_processuali: la data risulta anticipata di un giorno
+    # e un deposito a quella data non è mai tardivo sotto nessuna delle letture in circolazione.
+    termine_libero: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -310,9 +328,9 @@ PROFILI_TERMINE_BUILTIN: Dict[str, ProfiloTermine] = {
     "TERM_5_YEARS": ProfiloTermine("TERM_5_YEARS", "Termine 5 anni", UnitaTermine.ANNI.value, 5, exclude_initial_day=False, apply_ferial_suspension=False),
     "TERM_10_YEARS": ProfiloTermine("TERM_10_YEARS", "Termine 10 anni", UnitaTermine.ANNI.value, 10, exclude_initial_day=False, apply_ferial_suspension=False),
     "TERM_30_DAYS_NO_FERIAL": ProfiloTermine("TERM_30_DAYS_NO_FERIAL", "Termine 30 giorni senza sospensione feriale", UnitaTermine.GIORNI.value, 30, apply_ferial_suspension=False),
-    "TERM_40_DAYS_BEFORE": ProfiloTermine("TERM_40_DAYS_BEFORE", "Termine 40 giorni prima dell'evento", UnitaTermine.GIORNI.value, 40, direzione="ritroso"),
-    "TERM_20_DAYS_BEFORE": ProfiloTermine("TERM_20_DAYS_BEFORE", "Termine 20 giorni prima dell'evento", UnitaTermine.GIORNI.value, 20, direzione="ritroso"),
-    "TERM_10_DAYS_BEFORE": ProfiloTermine("TERM_10_DAYS_BEFORE", "Termine 10 giorni prima dell'evento", UnitaTermine.GIORNI.value, 10, direzione="ritroso"),
+    "TERM_40_DAYS_BEFORE": ProfiloTermine("TERM_40_DAYS_BEFORE", "Termine 40 giorni prima dell'evento", UnitaTermine.GIORNI.value, 40, direzione="ritroso", termine_libero=True),
+    "TERM_20_DAYS_BEFORE": ProfiloTermine("TERM_20_DAYS_BEFORE", "Termine 20 giorni prima dell'evento", UnitaTermine.GIORNI.value, 20, direzione="ritroso", termine_libero=True),
+    "TERM_10_DAYS_BEFORE": ProfiloTermine("TERM_10_DAYS_BEFORE", "Termine 10 giorni prima dell'evento", UnitaTermine.GIORNI.value, 10, direzione="ritroso", termine_libero=True),
 }
 
 
@@ -351,6 +369,19 @@ def _iso_dt(value: datetime) -> str:
     return value.replace(microsecond=0).isoformat()
 
 
+def _entro_validita(rule: RegolaCalendario, giorno: date) -> bool:
+    """Per le ricorrenze annuali, start_date/end_date (se valorizzate) delimitano gli anni di vigenza."""
+
+    try:
+        if rule.start_date and giorno < date.fromisoformat(str(rule.start_date)[:10]):
+            return False
+        if rule.end_date and giorno > date.fromisoformat(str(rule.end_date)[:10]):
+            return False
+    except ValueError:
+        return True
+    return True
+
+
 def _matches_rule(rule: RegolaCalendario, when: datetime, channel: str) -> bool:
     if not rule.is_enabled:
         return False
@@ -359,6 +390,8 @@ def _matches_rule(rule: RegolaCalendario, when: datetime, channel: str) -> bool:
     if channel == "operational" and not rule.applies_to_operational_deadlines:
         return False
     if rule.kind in {TipoRegolaCalendario.FESTIVITA_FISSA.value, TipoRegolaCalendario.PATRONO.value, TipoRegolaCalendario.OSSERVANZA.value}:
+        if not _entro_validita(rule, when.date()):
+            return False
         return bool(rule.month_num and rule.day_num and _same_month_day(when.date(), rule.month_num, rule.day_num))
     if rule.kind == TipoRegolaCalendario.FESTIVITA_MOBILE.value:
         return rule.code == "EASTER_MONDAY" and (_calcola_pasqua(when.year) + timedelta(days=1)) == when.date()
@@ -430,10 +463,16 @@ def _compute_raw_due(start_at: datetime, profile: ProfiloTermine, procedural_rul
                 counted += 1
                 if counted == profile.quantity:
                     trace.append(f"Giorno utile n.{counted} -> {_iso_dt(cursor)}")
-                    return cursor
+                    break
             else:
                 trace.append(f"Giorno sospeso per periodo feriale -> {cursor.date().isoformat()}")
             cursor += passo
+        if getattr(profile, "termine_libero", False):
+            # Termine libero: escluso anche il giorno finale, saltando i giorni sospesi (come il motore).
+            cursor += passo
+            while profile.apply_ferial_suspension and _is_procedural_suspension_day(cursor, procedural_rules):
+                cursor += passo
+            trace.append(f"Termine libero: escluso anche il giorno finale -> {_iso_dt(cursor)}")
         return cursor
     base_due = datetime.combine(_aggiungi_mesi_calendario(start_at.date(), profile.quantity), start_at.time()) if profile.unit == UnitaTermine.MESI.value else datetime.combine(_aggiungi_anni_calendario(start_at.date(), profile.quantity), start_at.time())
     trace.append(f"Scadenza base a calendario comune -> {_iso_dt(base_due)}")
@@ -499,7 +538,7 @@ def _subtract_operational_business_days(from_date: datetime, business_days: int,
 
 
 def regole_calendario_nazionali(include_october_observance_blocking: bool = False) -> List[RegolaCalendario]:
-    now_iso = datetime.now().isoformat(timespec="seconds")
+    now_iso = _adesso_roma().isoformat(timespec="seconds")
     return [
         RegolaCalendario(id="nat_0101", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.FESTIVITA_FISSA.value, code="NEW_YEAR", label="Capodanno", month_num=1, day_num=1, applies_to_legal_deadlines=True, applies_to_operational_deadlines=True, operating_mode=ModalitaOperativa.CHIUSO.value, priority=10, verified_at=now_iso),
         RegolaCalendario(id="nat_0106", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.FESTIVITA_FISSA.value, code="EPIPHANY", label="Epifania", month_num=1, day_num=6, applies_to_legal_deadlines=True, applies_to_operational_deadlines=True, operating_mode=ModalitaOperativa.CHIUSO.value, priority=10, verified_at=now_iso),
@@ -513,7 +552,11 @@ def regole_calendario_nazionali(include_october_observance_blocking: bool = Fals
         RegolaCalendario(id="nat_1225", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.FESTIVITA_FISSA.value, code="CHRISTMAS", label="Natale", month_num=12, day_num=25, applies_to_legal_deadlines=True, applies_to_operational_deadlines=True, operating_mode=ModalitaOperativa.CHIUSO.value, priority=10, verified_at=now_iso),
         RegolaCalendario(id="nat_1226", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.FESTIVITA_FISSA.value, code="ST_STEPHEN", label="Santo Stefano", month_num=12, day_num=26, applies_to_legal_deadlines=True, applies_to_operational_deadlines=True, operating_mode=ModalitaOperativa.CHIUSO.value, priority=10, verified_at=now_iso),
         RegolaCalendario(id="proc_ferrial_august", scope=AmbitoCalendario.PROCEDURALE.value, kind=TipoRegolaCalendario.SOSPENSIONE_PROCEDURALE.value, code="FERRIAL_AUGUST", label="Sospensione feriale 1-31 agosto", applies_to_legal_deadlines=True, applies_to_operational_deadlines=False, operating_mode=ModalitaOperativa.CHIUSO.value, priority=5, verified_at=now_iso, notes="Sospensione del decorso dei termini ove applicabile."),
-        RegolaCalendario(id="nat_1004_observance", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.OSSERVANZA.value, code="OCT_4_OBSERVANCE", label="4 ottobre - osservanza configurabile", month_num=10, day_num=4, applies_to_legal_deadlines=include_october_observance_blocking, applies_to_operational_deadlines=include_october_observance_blocking, operating_mode=ModalitaOperativa.CHIUSO.value if include_october_observance_blocking else ModalitaOperativa.APERTO.value, priority=50, verified_at=now_iso, notes="Osservanza civile non bloccante di default."),
+        # Dal 2026 il 4 ottobre (San Francesco d'Assisi) è festività nazionale a tutti gli effetti
+        # (L. 8 ottobre 2025, n. 151, G.U. n. 236 del 10/10/2025, che modifica l'art. 2 L. 260/1949):
+        # proroga i termini come le altre festività. Fino al 2025 resta la sola osservanza configurabile.
+        RegolaCalendario(id="nat_1004", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.FESTIVITA_FISSA.value, code="ST_FRANCIS", label="San Francesco d'Assisi", month_num=10, day_num=4, start_date="2026-01-01", applies_to_legal_deadlines=True, applies_to_operational_deadlines=True, operating_mode=ModalitaOperativa.CHIUSO.value, priority=10, verified_at=now_iso, notes="Festività nazionale dal 2026: L. 8 ottobre 2025, n. 151."),
+        RegolaCalendario(id="nat_1004_observance", scope=AmbitoCalendario.NAZIONALE.value, kind=TipoRegolaCalendario.OSSERVANZA.value, code="OCT_4_OBSERVANCE", label="4 ottobre - osservanza configurabile", month_num=10, day_num=4, end_date="2025-12-31", applies_to_legal_deadlines=include_october_observance_blocking, applies_to_operational_deadlines=include_october_observance_blocking, operating_mode=ModalitaOperativa.CHIUSO.value if include_october_observance_blocking else ModalitaOperativa.APERTO.value, priority=50, verified_at=now_iso, notes="Osservanza civile non bloccante di default fino al 2025; dal 2026 festività nazionale (L. 151/2025)."),
     ]
 
 
@@ -602,6 +645,20 @@ def profilo_da_preset(preset_key: str) -> ProfiloTermine:
     return _profilo_custom(code=code, label=preset.get("label", preset_key), giorni=int(preset.get("giorni", 0) or 0), mesi=int(preset.get("mesi", 0) or 0), anni=int(preset.get("anni", 0) or 0), ore=int(preset.get("ore", 0) or 0), tipo=str(preset.get("tipo", "liberi")), sospensione_feriale=bool(preset.get("sospensione_feriale", True)))
 
 
+def _provenienza_da_valore(valore: Any) -> Dict[str, Any]:
+    """Provenienza tollerante: dict, JSON testuale o assente (dati storici) -> dict."""
+
+    if isinstance(valore, dict):
+        return dict(valore)
+    if isinstance(valore, str) and valore.strip():
+        try:
+            letto = json.loads(valore)
+        except ValueError:
+            return {}
+        return letto if isinstance(letto, dict) else {}
+    return {}
+
+
 @dataclass
 class Scadenza:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -618,7 +675,7 @@ class Scadenza:
     avvisi_inviati: List[int] = field(default_factory=list)
     id_utente_responsabile: str = ""
     note: str = ""
-    creata_il: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
+    creata_il: str = field(default_factory=lambda: _adesso_roma().isoformat(timespec="seconds"))
     completata_il: str = ""
     perentorio: bool = False
     source_event_type: str = ""
@@ -666,6 +723,10 @@ class Scadenza:
     source_document_name: str = ""
     source_message_id: str = ""
     source_confidence: float = 0.0
+    # Provenienza dei termini proposti dalla PEC (facoltativa, vuota per i dati storici):
+    # versione e file del ruleset, parola chiave e passaggio riconosciuti, modello e
+    # versione del motore, norma di riferimento, messaggio/documento di origine.
+    provenienza: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def data_scadenza_obj(self) -> Optional[date]:
@@ -814,6 +875,7 @@ class Scadenza:
         payload["tipo"] = TipoTermine(payload.get("tipo", TipoTermine.ALTRO.value) if payload.get("tipo") in {e.value for e in TipoTermine} else TipoTermine.ALTRO.value)
         payload["priorita"] = PrioritaTermine(payload.get("priorita", PrioritaTermine.MEDIA.value) if payload.get("priorita") in {e.value for e in PrioritaTermine} else PrioritaTermine.MEDIA.value)
         payload["stato"] = StatoTermine(payload.get("stato", StatoTermine.APERTO.value) if payload.get("stato") in {e.value for e in StatoTermine} else StatoTermine.APERTO.value)
+        payload["provenienza"] = _provenienza_da_valore(payload.get("provenienza"))
         allowed = set(Scadenza.__dataclass_fields__.keys())
         scadenza = Scadenza(**{k: v for k, v in payload.items() if k in allowed})
         scadenza.sync_date_fields()
@@ -1138,7 +1200,7 @@ class GestioneScadenziario:
         if scadenza.stato == StatoTermine.ANNULLATO:
             raise ValueError("Una scadenza annullata resta nello storico e non può essere completata.")
         scadenza.stato = StatoTermine.COMPLETATO
-        scadenza.completata_il = datetime.now().isoformat(timespec="seconds")
+        scadenza.completata_il = _adesso_roma().isoformat(timespec="seconds")
         if note:
             scadenza.note = (scadenza.note + "\n" + note).strip()
         self._salva()
@@ -1157,7 +1219,7 @@ class GestioneScadenziario:
         if scadenza.stato != StatoTermine.BOZZA:
             raise ValueError("La scadenza non e' una proposta da confermare")
         scadenza.stato = StatoTermine.APERTO
-        riga = f"Proposta confermata il {datetime.now().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
+        riga = f"Proposta confermata il {_adesso_roma().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
         scadenza.note = (scadenza.note + "\n" + riga).strip()
         scadenza.aggiorna_priorita()
         self._salva()
@@ -1170,8 +1232,8 @@ class GestioneScadenziario:
         if scadenza.stato != StatoTermine.BOZZA:
             raise ValueError("La scadenza non e' una proposta da scartare")
         scadenza.stato = StatoTermine.ANNULLATO
-        scadenza.completata_il = datetime.now().isoformat(timespec="seconds")
-        riga = f"Proposta scartata il {datetime.now().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
+        scadenza.completata_il = _adesso_roma().isoformat(timespec="seconds")
+        riga = f"Proposta scartata il {_adesso_roma().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
         if motivo.strip():
             riga += f" - Motivo: {motivo.strip()}"
         scadenza.note = (scadenza.note + "\n" + riga).strip()

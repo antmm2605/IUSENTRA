@@ -152,12 +152,14 @@ def leggi_testo_articolo(row: dict, general: Path) -> dict:
     text = text or ""
     if not text.strip():
         raise NormativaIndexUnavailable("Articolo senza testo nell'archivio proprietario.")
-    return dict(row, testo=text, normative_full_text=text,
+    from .abrogazione import tagga_abrogazione
+
+    return tagga_abrogazione(dict(row, testo=text, normative_full_text=text,
                 articolo_o_chunk=row.get("articolo_o_chunk") if found["article_id"] is not None else "",
                 normative_scope="articolo" if found["article_id"] is not None else ("allegato_non_articolato" if component is not None else "atto_non_articolato"),
                 normative_component_locator=component["localizzatore_xml"] if component is not None else None,
                 normative_full_text_sha256=hashlib.sha256(text.encode()).hexdigest(),
-                normative_article_id=found["article_id"])
+                normative_article_id=found["article_id"]))
 
 
 def fondi_cataloghi(batches, *, limit: int) -> list[dict]:

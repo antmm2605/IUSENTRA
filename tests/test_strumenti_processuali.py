@@ -355,8 +355,12 @@ def test_l_attore_si_costituisce_entro_dieci_giorni_dalla_notificazione():
 
 
 def test_il_convenuto_si_costituisce_settanta_giorni_prima_dell_udienza():
-    """Art. 166 c.p.c.: termine a ritroso, con l'agosto escluso dal computo."""
+    """Art. 166 c.p.c.: termine a ritroso, con l'agosto escluso dal computo.
+
+    Dall'audit del 29/10/2026 i settanta giorni si contano liberi (lettura prudenziale,
+    uniforme a 171-ter e 473-bis.16): 10/09/2026 anziché 11/09/2026.
+    """
     esito = _termine("CIV_COSTITUZIONE_CONVENUTO_166", "2026-11-20")
     assert esito["durata"] == 70
     assert "ritroso" in esito["direzione"].lower()
-    assert esito["scadenza"] == "11/09/2026"
+    assert esito["scadenza"] == "10/09/2026"

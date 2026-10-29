@@ -26,12 +26,16 @@ def _clean(value: Any) -> str:
 # «Corte cost.», «C. cost.», «Corte Cost.» → «corte costituzionale»; «sent.»/«ord.» → sentenza/ordinanza.
 _CORTE_COST_BREVE = re.compile(r"\b(?:corte|c\.)\s*cost\.(?!\w)")
 _SENT_ORD_BREVE = re.compile(r"\b(sent|ord)\.(?=\s*(?:n\.|numero))")
+_CONS_STATO_BREVE = re.compile(r"\bcons\.\s*(?:di\s+)?st(?:ato|\.)(?!\w)")
+_TAR_BREVE = re.compile(r"\bt\.\s*a\.\s*r\.?(?!\w)")
 
 
 def _normalize(value: Any) -> str:
     text = _clean(value).lower()
     text = _CORTE_COST_BREVE.sub("corte costituzionale", text)
     text = _SENT_ORD_BREVE.sub(lambda m: "sentenza" if m.group(1) == "sent" else "ordinanza", text)
+    text = _CONS_STATO_BREVE.sub("consiglio di stato", text)
+    text = _TAR_BREVE.sub("tar", text)
     return (
         text.replace("codice civile", "c.c.")
         .replace("codice di procedura civile", "c.p.c.")
@@ -50,7 +54,37 @@ def _normalize(value: Any) -> str:
 # Le forme con cui un modello scrive gli stessi estremi: «articolo 2043», «artt. 1218
 # e 1223», «Cass. n. 123/2020», «L. 689/1981», «d.P.R. 115/2002», «D.L. 179/2012».
 _ARTICOLO = re.compile(r"\b(?:artt?\.|articol[oi])\s*(\d+[a-z]*(?:[-/]\w+)?)(?:\s*(?:,|e)\s*(\d+[a-z]*))?(?:\s*(?:,|del|della|del\s+codice)?\s*)(c\.c\.|c\.p\.c\.|c\.p\.p\.|c\.p\.|cost\.)?")
-_CASSAZIONE_BREVE = re.compile(r"\bcass\.?\s*(?:civ\.|pen\.|sez\.?\s*un\.|s\.u\.)?[^.\n;]{0,40}?(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*|\s+del\s+)(\d{4})")
+# Fra autorita' e numero il modello scrive sezione, data e abbreviazioni puntate («Cass. civ., sez. III,
+# 12 marzo 2021, n. 9999»): i punti delle abbreviazioni non chiudono la citazione, gli altri si'.
+_ABBREVIAZIONI = ("sez", "civ", "pen", "lav", "un", "unite", "trib", "sent", "ord", "s", "u", "sc", "amm", "pres",
+                  "rel", "ud", "dep", "pubbl", "giur", "sect", "cass", "c", "st", "reg", "sic", "camp", "lomb")
+_PUNTO_ABBREVIAZIONE = "(?:" + "|".join(rf"(?<=\b{a})" for a in _ABBREVIAZIONI) + r")\."
+_TRATTO_CITAZIONE = rf"(?:[^.\n;]|{_PUNTO_ABBREVIAZIONE})"
+_CASSAZIONE_BREVE = re.compile(
+    rf"\bcass\b\.?{_TRATTO_CITAZIONE}{{0,80}}?(?:n\.|numero)\s*(\d{{1,7}})(?:\s*/\s*(\d{{4}})|\s+del\s+(?:\d{{1,2}}\s+[a-z]+\s+)?(\d{{4}}))?"
+)
+_AUTORITA = re.compile(
+    rf"\b(cassazione|corte costituzionale|consiglio di stato|tar(?:\s+(?!n\.)[a-z]+)?)\b{_TRATTO_CITAZIONE}{{0,80}}?"
+    r"(?:sentenza|ordinanza|pronuncia|decreto)?\s*(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*(\d{4})|\s+del\s+(?:\d{1,2}\s+[a-z]+\s+)?(\d{4}))?"
+)
+_ANNO = re.compile(r"\b(?:19|20)\d{2}\b")
+_ECLI_CORTI = {"cass": "cassazione", "cost": "corte costituzionale", "cds": "consiglio di stato", "cga": "consiglio di stato"}
+
+
+def _anno_nel_tratto(tratto: str) -> str:
+    """Anno della data scritta fra autorita' e numero («Sez. Un., 12 marzo 2021, n. 9999»)."""
+    anni = _ANNO.findall(tratto)
+    return anni[-1] if anni else ""
+
+
+def _classe_autorita(autorita: str) -> str:
+    """Classe dell'organo: «sentenza»/«ordinanza» senza organo restano generiche (stringa vuota)."""
+    a = _clean(autorita).lower()
+    if a in {"sentenza", "ordinanza", "pronuncia", "decreto", ""}:
+        return ""
+    if a == "tar" or a.startswith("tar "):
+        return "tar"
+    return a
 
 
 def _add_reference(refs: list[_LegalReference], kind: str, key: str, label: str) -> None:
@@ -70,12 +104,9 @@ def extract_legal_references(text: Any) -> list[_LegalReference]:
         return []
 
     refs: list[_LegalReference] = []
-    authority_pattern = (
-        r"(cassazione|corte costituzionale|consiglio di stato|tar(?:\s+[a-z]+)?)"
-        r"[^.\n;]{0,80}?(?:sentenza|ordinanza|pronuncia)?\s*(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*|\s+del\s+)?(\d{4})?"
-    )
-    for match in re.finditer(authority_pattern, normalized):
-        authority, number, year = match.groups()
+    for match in _AUTORITA.finditer(normalized):
+        authority, number, year_slash, year_del = match.groups()
+        year = year_slash or year_del or _anno_nel_tratto(normalized[match.end(1):match.start(2)])
         key = f"{authority}:{number}:{year or ''}"
         _add_reference(refs, "case_law", key, match.group(0))
 
@@ -84,10 +115,18 @@ def extract_legal_references(text: Any) -> list[_LegalReference]:
         _add_reference(refs, "case_law", f"{kind}:{number}:{year}", match.group(0))
 
     for match in re.finditer(r"\becli:[a-z0-9:.]+", normalized):
-        _add_reference(refs, "ecli", match.group(0), match.group(0))
+        ecli = match.group(0).rstrip(".:")
+        _add_reference(refs, "ecli", ecli, ecli)
+        parti = ecli.split(":")
+        if len(parti) >= 5 and parti[1] == "it":
+            corte = _ECLI_CORTI.get(parti[2]) or ("tar" if parti[2].startswith("tar") else "")
+            numero = re.match(r"0*(\d{1,7})", parti[4])
+            if corte and numero and re.fullmatch(r"\d{4}", parti[3]):
+                _add_reference(refs, "case_law", f"{corte}:{numero.group(1)}:{parti[3]}", ecli)
 
     for match in _CASSAZIONE_BREVE.finditer(normalized):
-        number, year = match.groups()
+        number, year_slash, year_del = match.groups()
+        year = year_slash or year_del or _anno_nel_tratto(normalized[match.start():match.start(1)])
         _add_reference(refs, "case_law", f"cassazione:{number}:{year}", match.group(0))
 
     for match in _ARTICOLO.finditer(normalized):
@@ -172,13 +211,86 @@ def _supported_by_evidence(ref: _LegalReference, evidence_refs: Iterable[_LegalR
                 candidate_code = candidate_parts[2] if len(candidate_parts) > 2 else ""
                 if not ref_code or not candidate_code or ref_code == candidate_code:
                     return True
-        if ref.kind == "case_law" and candidate.kind == "case_law":
-            ref_parts = [part for part in ref.key.split(":") if part]
-            candidate_parts = [part for part in candidate.key.split(":") if part]
-            if len(ref_parts) >= 2 and len(candidate_parts) >= 2:
-                if ref_parts[-2:] == candidate_parts[-2:]:
-                    return True
+        if ref.kind == "case_law" and candidate.kind == "case_law" and _stessa_pronuncia(ref.key, candidate.key):
+            return True
     return False
+
+
+def _parti_pronuncia(key: str) -> tuple[str, str, str] | None:
+    parti = key.rsplit(":", 2)
+    if len(parti) != 3 or not parti[1].isdigit():
+        return None
+    return _classe_autorita(parti[0]), parti[1], parti[2]
+
+
+def _stessa_pronuncia(ref_key: str, candidate_key: str) -> bool:
+    """Stesso numero e anno e stesso organo: «Cass. n. 1234/2020» non e' «Cons. Stato n. 1234/2020».
+
+    Un riferimento che nomina l'organo esige un'evidenza dello stesso organo; un riferimento generico
+    («sentenza n. 1234/2020») e' coperto da qualunque evidenza con stesso numero e anno.
+    """
+    ref, candidate = _parti_pronuncia(ref_key), _parti_pronuncia(candidate_key)
+    if ref is None or candidate is None or ref[1] != candidate[1]:
+        return False
+    if ref[2] and ref[2] != candidate[2]:
+        return False
+    return not ref[0] or ref[0] == candidate[0]
+
+
+_AUTORITA_DA_HOST = (("cortedicassazione.it", "cassazione"), ("italgiure.giustizia.it", "cassazione"),
+                     ("cortecostituzionale.it", "corte costituzionale"))
+
+
+def _autorita_della_riga(row: Any) -> str:
+    """Organo dichiarato dalla riga di evidenza (campo autorita'/organo o dominio ufficiale), se univoco."""
+    get = (lambda k: row.get(k)) if isinstance(row, dict) else (lambda k: getattr(row, k, None))
+    metadata = dict(get("metadata") or {})
+    for value in (get("organo_giudicante"), metadata.get("organo_giudicante"), metadata.get("autorita"),
+                  metadata.get("court"), get("authority")):
+        for match in _AUTORITA.finditer(_normalize(f"{value or ''} n. 1/2000")):
+            return _classe_autorita(match.group(1))
+    url = _clean(get("official_url") or get("url") or metadata.get("official_url")).lower()
+    return next((corte for host, corte in _AUTORITA_DA_HOST if host in url), "")
+
+
+def _riferimenti_della_riga(row: Any) -> list[_LegalReference]:
+    refs = extract_legal_references(_text_from_row(row))
+    autorita = _autorita_della_riga(row)
+    if autorita:
+        for ref in list(refs):
+            parti = _parti_pronuncia(ref.key) if ref.kind == "case_law" else None
+            if parti is not None and not parti[0]:
+                _add_reference(refs, "case_law", f"{autorita}:{parti[1]}:{parti[2]}", ref.label)
+    return refs
+
+
+def _abrogazione_della_riga(row: Any) -> dict | None:
+    from lex.retrieval.abrogazione import abrogazione
+
+    get = (lambda k: row.get(k)) if isinstance(row, dict) else (lambda k: getattr(row, k, None))
+    metadata = dict(get("metadata") or {})
+    if get("abrogato") is True or metadata.get("abrogato") is True:
+        return {"abrogato": True, "abrogato_da": _clean(get("abrogato_da") or metadata.get("abrogato_da"))}
+    for field in ("content", "text", "excerpt", "testo", "normative_full_text"):
+        esito = abrogazione(get(field))
+        if esito:
+            return esito
+    return None
+
+
+def _numero_articolo(ref: _LegalReference) -> str:
+    parti = ref.key.split(":")
+    return parti[1] if len(parti) >= 2 else ""
+
+
+def _citato_come_abrogato(draft_text: str, numero: str) -> bool:
+    """Ogni citazione dell'articolo nella bozza dichiara nelle vicinanze che e' abrogato."""
+    testo = _normalize(draft_text)
+    occorrenze = list(re.finditer(rf"\b(?:artt?\.|articol[oi])\s*{re.escape(numero)}(?![\w])", testo))
+    if not occorrenze:
+        return False
+    return all(re.search(r"abrogat|abrogazione|non (?:piu|più) (?:vigente|in vigore)",
+                         testo[max(0, m.start() - 150): m.end() + 200]) for m in occorrenze)
 
 
 class HallucinationGuard:
@@ -196,8 +308,30 @@ class HallucinationGuard:
 
         rows = _evidence_rows(evidence)
         evidence_refs: list[_LegalReference] = []
+        abrogati: list[tuple[_LegalReference, str]] = []
         for row in rows:
-            evidence_refs.extend(extract_legal_references(_text_from_row(row)))
+            refs_riga = _riferimenti_della_riga(row)
+            evidence_refs.extend(refs_riga)
+            esito_abrogazione = _abrogazione_della_riga(row)
+            if esito_abrogazione:
+                abrogati.extend((ref, esito_abrogazione.get("abrogato_da", "")) for ref in refs_riga if ref.kind == "article")
+
+        # Un articolo che nelle evidenze e' solo un avviso di abrogazione non si cita come norma operativa.
+        operativi_abrogati = []
+        for ref in draft_refs:
+            if ref.kind != "article":
+                continue
+            for abrogato, da in abrogati:
+                if _supported_by_evidence(ref, [abrogato]) and not _citato_come_abrogato(draft_text, _numero_articolo(ref)):
+                    operativi_abrogati.append(f"{ref.label} (abrogato{' da ' + da if da else ''})")
+                    break
+        if operativi_abrogati:
+            return GuardVerdict(
+                allowed=False,
+                warnings=["Articoli citati come vigenti ma abrogati secondo le evidenze: " + ", ".join(operativi_abrogati[:4]) + "."],
+                reasons=["La bozza presenta come operativa una norma il cui testo archiviato e' un avviso di abrogazione."],
+                risk_level="high",
+            )
 
         strict = workflow in _STRICT_WORKFLOWS
         if strict and not rows:

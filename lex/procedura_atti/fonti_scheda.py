@@ -60,6 +60,17 @@ def fonti_per_scheda(scheda_id: str, db: Path, *, repository=None, cartella: Pat
         if e.stato != "presente":
             out.pendenze.append(f"{_sigla(e.atto)} art. {e.articolo}: {e.stato.replace('_', ' ')}")
             continue
+        from lex.normativa.provenienza_edizione import edizione_archiviata, riscontro_alla_data
+        edizione_fonte = e.edizione_archiviata or edizione_archiviata(e.provenienza_archivio, {"redazione_id": e.aggiornato_al})
+        vigenza = riscontro_alla_data(edizione_fonte, oggi)
+        if vigenza is False:
+            # L'edizione archiviata non copre la data di oggi: il testo non entra fra le Fonti (fail-closed).
+            out.pendenze.append(f"{_sigla(e.atto)} art. {e.articolo}: edizione archiviata non vigente al "
+                                f"{oggi.strftime('%d/%m/%Y')}, esclusa dalle Fonti")
+            continue
+        if vigenza is not True and k not in visti:
+            out.pendenze.append(f"{_sigla(e.atto)} art. {e.articolo}: vigenza al {oggi.strftime('%d/%m/%Y')} "
+                                "non riscontrata sull'edizione archiviata")
         if k not in visti:
             n = len(visti) + 1
             visti[k] = n
@@ -73,12 +84,11 @@ def fonti_per_scheda(scheda_id: str, db: Path, *, repository=None, cartella: Pat
                 acquisita_il = ""
             testo = f"{_sigla(e.atto)} · art. {e.articolo} · edizione del {edizione} · acquisita il {acquisita_il or 'da riscontrare'}\n{e.testo}"
             out.fonti[n] = testo
-            from lex.normativa.provenienza_edizione import edizione_archiviata
-            edizione_fonte=edizione_archiviata(e.provenienza_archivio,{"redazione_id":e.aggiornato_al})
             out.fonti_ref.append({"n": n, "atto": e.atto, "articolo": e.articolo, "sigla": _sigla(e.atto),
                                   "provenienza": {"tipo": "norma", "url": e.url, "versione": f"edizione acquisita {edizione}",
                                                   "acquisita_il": acquisita_il, "sha256": sha256_testo(testo),
                                                   "sha256_testo_archiviato": e.sha256, "edizione_archiviata": edizione_fonte,
+                                                  "riscontro_alla_data": vigenza,
                                                   "archivio": "biblioteca_codici_leggi",
                                                   "document_id": e.document_id, "article_id": e.article_id}})
             if repository is not None:

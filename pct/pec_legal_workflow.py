@@ -13,12 +13,14 @@ import re
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 
-from pct.pec_oggetti_ufficiali import classifica_oggetto_ufficiale
+from pct.pec_oggetti_ufficiali import classifica_oggetto_ufficiale, classifica_ricevuta_pec, tipo_daticert
 
 
 FORWARD_PREFIX_RE = re.compile(r"^\s*(?:fwd?|i|r|re|rif|inoltro)\s*:\s*", re.I)
 ROLE_RE = re.compile(
-    r"\b(?P<number>\d{1,7})\s*/\s*(?P<year>\d{4})\s*/\s*(?P<suffix>GDP|SIGP|CC|LAV|VG|FALL|ESM|ESIM|CASSCI|CASSPE|PENALE)\b",
+    r"\b(?P<number>\d{1,7})\s*/\s*(?P<year>\d{4})\s*(?:/\s*(?P<suffix>GDP|SIGP|CC|LAV|VG|FALL|ESM|ESIM|CASSCI|CASSPE|PENALE)"
+    # Ruolo del Giudice di Pace scritto «RG 1234/2025 GDP» (registro SIGP), senza la barra finale.
+    r"|\s+(?P<gdp>GDP|SIGP))\b",
     re.I,
 )
 RG_APP_RE = re.compile(r"\bn\.?\s*(?P<number>\d{1,7})[_/](?P<year>\d{4})\s*RG\s*APP\b", re.I)
@@ -183,7 +185,7 @@ def estrai_registri(text: str) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for match in ROLE_RE.finditer(text or ""):
-        suffix = match.group("suffix").upper()
+        suffix = (match.group("suffix") or match.group("gdp") or "").upper()
         key = (match.group("number"), match.group("year"), suffix)
         if key in seen:
             continue
@@ -310,20 +312,77 @@ def _evento_da_comunicazione(oggetto: str, text: str) -> dict[str, Any] | None:
                           "Leggere comunicazione e allegato e collegarli al fascicolo; nessuna scadenza senza un termine nel provvedimento.")
 
 
-def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]:
+# Ricevute PEC (d.P.R. 68/2005; d.m. 2/11/2005): l'etichetta viene dal classificatore unico
+# (daticert.xml, X-Ricevuta, prefisso fisso dell'oggetto). Le ricevute negative restano
+# «mancata_consegna_pec» (priorita' P0 a valle) con l'etichetta del tipo effettivo.
+_EVENTI_RICEVUTA: dict[str, tuple[str, str, str, str]] = {
+    "accettazione": ("ricevuta_accettazione_pec", "Ricevuta di accettazione PEC", "media",
+                     "Collegare alla notifica o al deposito senza chiudere il workflow se mancano consegna o esito."),
+    "presa_in_carico": ("ricevuta_accettazione_pec", "Ricevuta di presa in carico PEC", "media",
+                        "Prova parziale: collegare alla notifica o al deposito e attendere la ricevuta di consegna."),
+    "avvenuta_consegna": ("ricevuta_consegna_pec", "Ricevuta di avvenuta consegna", "alta",
+                          "Conservare la prova e collegarla al workflow notifiche/deposito."),
+    "mancata_consegna": ("mancata_consegna_pec", "Mancata consegna PEC", "rossa",
+                         "Creare alert immediato e coda di revisione."),
+    "preavviso_mancata_consegna": ("mancata_consegna_pec", "Preavviso di mancata consegna PEC (superati i tempi massimi)",
+                                   "rossa", "Creare alert immediato e coda di revisione."),
+    "non_accettazione": ("mancata_consegna_pec", "Avviso di non accettazione PEC", "rossa",
+                         "Il messaggio non e' partito: creare alert immediato, correggere e ritrasmettere."),
+    "rilevazione_virus": ("mancata_consegna_pec", "Rilevazione virus: messaggio PEC non consegnato", "rossa",
+                          "Creare alert immediato, verificare gli allegati e ritrasmettere."),
+}
+
+# Rifiuto/non accettazione del deposito da parte della cancelleria: va letto PRIMA delle frasi di
+# accettazione, che altrimenti vincerebbero su «il deposito non e' stato accettato».
+_RIFIUTO_DEPOSITO_RE = re.compile(
+    r"\brifiut\w*|\bnon\s+(?:[eè]|e['’])\s+stat[oa]\s+accettat\w*|\bnon\s+accettat\w*|"
+    r"\bmancata\s+accettazione\s+(?:del\s+)?deposito\b|\bnon\s+accettazione\s+(?:del\s+)?deposito\b",
+    re.I,
+)
+_RINVIO_UDIENZA_RE = re.compile(
+    r"\budienza\b[^.;\n<>]{0,60}?\b(?:[eè]\s+(?:stata\s+)?|viene\s+|risulta\s+)?rinviat\w*|"
+    r"\brinvio\b[^.;\n<>]{0,40}?\budienza\b",
+    re.I,
+)
+_NOTE_SCRITTE_RE = re.compile(
+    r"\b127[\s-]*ter\b|\btrattazione\s+scritta\b|\bnote\s+scritte\b|\bnote\s+in\s+sostituzione\b", re.I)
+_DECRETO_171_BIS_RE = re.compile(r"\b171[\s-]*bis\b", re.I)
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+
+
+def _testo_luogo(text: str) -> str:
+    """Testo per luogo/modalita' dell'udienza: senza indirizzi email (il mittente
+    «tribunale.x@…giustiziacert.it» non dice che l'udienza e' in presenza)."""
+    return _EMAIL_RE.sub(" ", str(text or ""))
+
+
+def _evento_ricevuta(etichetta: str) -> dict[str, Any] | None:
+    if etichetta == "anomalia":
+        return _event_payload("pec_non_riconosciuta", "Anomalia del messaggio PEC", "alta",
+                              "Messaggio con anomalia del gestore: verificare mittente e contenuto prima di usarlo.")
+    row = _EVENTI_RICEVUTA.get(etichetta)
+    if row is None:
+        return None
+    event_type, label, priority, action = row
+    return _event_payload(event_type, label, priority, action)
+
+
+def _classifica_evento(text: str, attachment_names: list[str], *, place_text: str | None = None) -> dict[str, Any]:
     lower = _lower(text)
     has_video_link = _has_remote_hearing_url(text)
-    has_place = any(token in lower for token in ("aula", "piano", "sezione", "in presenza", "tribunale"))
-    if "rifiuto deposito" in lower or "deposito rifiutato" in lower:
+    place_lower = _lower(_testo_luogo(text if place_text is None else place_text))
+    has_place = any(token in place_lower for token in ("aula", "piano", "sezione", "in presenza", "tribunale"))
+    deposit_outcome = any(
+        token in lower
+        for token in ("esito intervento", "accettazione deposito", "accettazione del deposito", "deposito accettato",
+                      "accettato dalla cancelleria", "rifiuto deposito", "deposito rifiutato")
+    )
+    if ("rifiuto deposito" in lower or "deposito rifiutato" in lower) or (
+        deposit_outcome and _RIFIUTO_DEPOSITO_RE.search(lower)
+    ):
         return _event_payload("rifiuto_deposito", "Rifiuto deposito", "rossa", "Aprire attività urgente e predisporre verifica per eventuale rideposito.")
     if "accettazione deposito" in lower or "deposito accettato" in lower:
         return _event_payload("accettazione_deposito", "Accettazione deposito", "alta", "Collegare al deposito e chiudere il workflow solo se ricevute ed esiti sono completi.", closes_deposit=True)
-    if "ricevuta di accettazione" in lower or "accettazione del messaggio" in lower:
-        return _event_payload("ricevuta_accettazione_pec", "Ricevuta di accettazione PEC", "media", "Collegare alla notifica o al deposito senza chiudere il workflow se mancano consegna o esito.")
-    if "avvenuta consegna" in lower or "ricevuta di consegna" in lower:
-        return _event_payload("ricevuta_consegna_pec", "Ricevuta di avvenuta consegna", "alta", "Conservare la prova e collegarla al workflow notifiche/deposito.")
-    if "mancata consegna" in lower:
-        return _event_payload("mancata_consegna_pec", "Mancata consegna PEC", "rossa", "Creare alert immediato e coda di revisione.")
     if "esito controlli automatici" in lower:
         # Terza PEC del deposito telematico (Specifiche tecniche DGSIA, art. 34 D.M. 44/2011): l'esito e' in
         # EsitoAtto.xml; non e' un'udienza anche se l'oggetto riporta l'atto depositato «in vista dell'udienza».
@@ -349,7 +408,25 @@ def _classifica_evento(text: str, attachment_names: list[str]) -> dict[str, Any]
         return _event_payload("deposito_sentenza", "Deposito sentenza o minuta", "alta", "Archiviare il provvedimento e creare attività per esame sentenza e valutazione impugnazione.", creates_deadline=True)
     if "decreto" in lower and "notificare" in lower or "ricorso da notificare" in lower:
         return _event_payload("decreto_o_ricorso_da_notificare", "Decreto o ricorso da notificare", "alta", "Preparare bozza notifica e relata; nessun invio senza approvazione umana.", creates_deadline=True)
-    if "rinvio udienza" in lower or "udienza rinviata" in lower:
+    if _NOTE_SCRITTE_RE.search(lower) and "udienza" in lower:
+        return _event_payload(
+            "udienza_sostituita_da_note_scritte",
+            "Trattazione scritta (art. 127-ter c.p.c.)",
+            "alta",
+            "Leggere il provvedimento allegato, registrare il termine per il deposito delle note e la data che sostituisce "
+            "l'udienza; aggiornare o revocare l'udienza precedente senza cancellarne la storia.",
+            creates_deadline=True,
+        )
+    if _DECRETO_171_BIS_RE.search(lower) and "decreto" in lower:
+        return _event_payload(
+            "decreto_171_bis",
+            "Decreto di verifiche preliminari (art. 171-bis c.p.c.)",
+            "alta",
+            "Leggere il decreto: conferma o differimento della prima udienza e termini delle memorie integrative "
+            "(art. 171-ter c.p.c.) da registrare dopo verifica.",
+            creates_deadline=True,
+        )
+    if _RINVIO_UDIENZA_RE.search(lower):
         return _event_payload("rinvio_udienza", "Rinvio udienza", "alta", "Aggiornare evento precedente, conservare vecchia data in timeline e creare nuova data.", creates_deadline=True)
     if "revoca udienza" in lower or "udienza revocata" in lower:
         return _event_payload("revoca_udienza", "Revoca udienza", "alta", "Sospendere l'evento e avvisare il responsabile senza cancellare la timeline.")
@@ -391,7 +468,9 @@ def _classifica_famiglia(text: str, sender: str, registri: list[dict[str, Any]])
         return "cassazione_penale", "Cassazione penale"
     if "cassazione" in lower:
         return "cassazione_civile", "Cassazione civile"
-    if any(item.get("registro_normalizzato") == "SIGP" for item in registri):
+    if any(item.get("registro_normalizzato") == "SIGP" for item in registri) or re.search(
+        r"\bgiudice\s+di\s+pace\b", lower
+    ):
         return "comunicazione_giudice_pace", "Comunicazione Giudice di Pace"
     if any(item.get("registro_normalizzato") == "LAV" for item in registri):
         return "comunicazione_lavoro", "Comunicazione lavoro"
@@ -439,6 +518,7 @@ def _classifica_famiglia(text: str, sender: str, registri: list[dict[str, Any]])
 
 
 def _modalita_udienza(text: str) -> dict[str, str]:
+    text = _testo_luogo(text)
     lower = _lower(text)
     link_match = re.search(r"https?://\S+", text or "")
     if link_match:
@@ -476,17 +556,31 @@ def classifica_pec_legale(
     recipients: Iterable[str] | None = None,
     attachments: Iterable[Any] | None = None,
     message_id: str = "",
+    receipt_type: str = "",
+    receipt_type_known: bool = False,
 ) -> dict[str, Any]:
     normalized_subject = normalizza_oggetto_pec(subject)
     attachment_names = _attachment_names(attachments or [])
     text = "\n".join([normalized_subject, str(body or ""), str(sender or ""), " ".join(attachment_names)])
     registri = estrai_registri(text)
     family, family_label = _classifica_famiglia(text, sender, registri)
-    event = _classifica_evento(text, attachment_names)
-    ufficiale = classifica_oggetto_ufficiale(subject, str(body or ""))
+    if not receipt_type_known:
+        # I messaggi del Sistema di Interscambio («Notifica di mancata consegna» della fattura) non sono
+        # ricevute PEC: per loro valgono solo daticert e prefisso dell'oggetto, non le frasi del testo.
+        receipt_type, _fonte = classifica_ricevuta_pec(
+            subject,
+            "\n".join([normalized_subject, str(body or "")]),
+            daticert_tipo=tipo_daticert(body),
+            usa_corpo=family != "fattura_sdi",
+        )
+    receipt_event = _evento_ricevuta(str(receipt_type or ""))
+    event = receipt_event or _classifica_evento(
+        text, attachment_names, place_text="\n".join([normalized_subject, str(body or "")])
+    )
+    ufficiale = None if receipt_event is not None else classifica_oggetto_ufficiale(subject, str(body or ""))
     if ufficiale is not None:
         family, family_label, event = ufficiale
-    elif family == "fattura_sdi":
+    elif family == "fattura_sdi" and receipt_event is None:
         event = _event_payload(
             "fattura_sdi_mancata_consegna" if "mancata consegna" in _lower(text) else "fattura_sdi",
             "Fattura SDI - mancata consegna" if "mancata consegna" in _lower(text) else "Fattura elettronica SDI",
@@ -494,7 +588,7 @@ def classifica_pec_legale(
             "Archiviare nel flusso fatturazione; non creare scadenza processuale.",
             human_review=False,
         )
-    modalita = _modalita_udienza(text)
+    modalita = _modalita_udienza("\n".join([normalized_subject, str(body or "")]))
     audit_events = [
         "PEC legale analizzata",
         f"Famiglia PEC riconosciuta: {family_label}",
@@ -513,6 +607,7 @@ def classifica_pec_legale(
         "priority": event["priority"],
         "azione_proposta": event["azione_proposta"],
         "registri": registri,
+        "receipt_type": str(receipt_type or ""),
         "udienza": modalita,
         "documents": {
             "has_daticert": any(name.lower() in {"daticert.xml", "postacert.xml"} for name in attachment_names),

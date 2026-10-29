@@ -22,6 +22,8 @@ from typing import Any, Iterable
 CATEGORIA_RICEVUTA_PAGAMENTO = "ricevuta_pagamento"
 CATEGORIA_ESENZIONE = "esenzione_autocertificazione"
 CATEGORIA_RICHIESTA_VERSAMENTO = "richiesta_versamento"
+STATO_PAGAMENTO_NON_ESEGUITO = "pagamento_non_eseguito"
+STATO_PRENOTATO_A_DEBITO = "prenotato_a_debito"
 
 _CATEGORIA_PRIORITA = {
     CATEGORIA_RICEVUTA_PAGAMENTO: 0,
@@ -42,6 +44,7 @@ class ClassificazioneContributoUnificato:
     fonte: str = ""
     origine: str = ""
     esente: bool = False
+    stato: str = ""
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -54,6 +57,7 @@ class ClassificazioneContributoUnificato:
             "fonte": self.fonte,
             "origine": self.origine,
             "esente": self.esente,
+            "stato": self.stato,
             "warnings": list(self.warnings),
         }
 
@@ -64,6 +68,9 @@ def _testo(value: Any) -> str:
 
 def _categoria_da_evidenza(evidence: dict[str, Any]) -> str:
     natura = _testo(evidence.get("natura"))
+    if _testo(evidence.get("status")) == STATO_PAGAMENTO_NON_ESEGUITO:
+        # Ricevuta con esito negativo: il contributo resta da versare.
+        return CATEGORIA_RICHIESTA_VERSAMENTO
     if evidence.get("esente") is True or natura == "esenzione_contributo_unificato":
         return CATEGORIA_ESENZIONE
     if natura == "richiesta_versamento_contributo_unificato" or _testo(evidence.get("status")) == "da_registrare":
@@ -73,6 +80,8 @@ def _categoria_da_evidenza(evidence: dict[str, Any]) -> str:
 
 def _classificazione_da_evidenza(evidence: dict[str, Any], fonte: str) -> ClassificazioneContributoUnificato:
     importo_raw = evidence.get("importo")
+    if importo_raw is None:
+        importo_raw = evidence.get("importo_non_pagato")
     try:
         importo = round(float(importo_raw), 2) if importo_raw is not None else None
     except (TypeError, ValueError):
@@ -86,6 +95,12 @@ def _classificazione_da_evidenza(evidence: dict[str, Any], fonte: str) -> Classi
         fonte=fonte,
         origine=_testo(evidence.get("origine")),
         esente=evidence.get("esente") is True,
+        stato=_testo(evidence.get("status")),
+        warnings=(
+            ["pagamento_contributo_unificato_non_eseguito"]
+            if _testo(evidence.get("status")) == STATO_PAGAMENTO_NON_ESEGUITO
+            else []
+        ),
     )
 
 
@@ -155,6 +170,8 @@ __all__ = [
     "CATEGORIA_ESENZIONE",
     "CATEGORIA_RICEVUTA_PAGAMENTO",
     "CATEGORIA_RICHIESTA_VERSAMENTO",
+    "STATO_PAGAMENTO_NON_ESEGUITO",
+    "STATO_PRENOTATO_A_DEBITO",
     "ClassificazioneContributoUnificato",
     "classifica_contributo_unificato_pec",
 ]

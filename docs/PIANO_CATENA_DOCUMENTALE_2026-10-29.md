@@ -451,3 +451,22 @@ Le correzioni dell'avvocato diventano coppie «risposta sbagliata / risposta cor
 
 - Copiare in questa sessione, o in una cartella del repository riservata ai dati inventati, `casi_v4.jsonl`, `dataset_v4.zip` e il file del banco v7 (60 casi). Servono a verificare formato, divisione per caso ed errori del v4 prima di scrivere il generatore dei casi nuovi e lo strumento di revisione.
 - Confermare se nel PC c'è anche il file della corsa v4 (configurazione, LoRA, risultati): permette di capire con certezza perché non è stata adottata.
+
+### 7.7 Il software aiuta il modello: normativa e giurisprudenza già presenti
+
+Osservazione dell'avvocato del 29/10/2026: il 35B deve lavorare insieme agli archivi del software, non da solo. Stato attuale:
+
+- **Normativa: già collegata.** La stesura riceve come Fonti il testo vigente degli articoli della scheda, letto dalla biblioteca «Codici e leggi», con impronta e provenienza (`lex/procedura_atti/fonti_scheda.py`).
+- **Ricerca normativa ibrida: già pronta, non ancora nella stesura.** Unisce l'indice lessicale e quello vettoriale (`lex/ricerca_giuridica/`) e trova articoli pertinenti oltre a quelli elencati nella scheda.
+- **Giurisprudenza: presente ma non usata nella stesura.** L'archivio esiste (`lex/retrieval/sources/giurisprudenza.py`, ricerca OpenGA, sentenze dello studio), con le guardie su ECLI, URL ufficiale e classe di affidabilità A.
+
+Piano:
+
+1. **Fonti allargate e controllate.** Alle Fonti della scheda si aggiungono:
+   - fino a 3-5 articoli trovati dalla ricerca ibrida, marcati «da verificare», mai al posto di quelli della scheda;
+   - fino a 3 decisioni dell'archivio, solo se il testo integrale è verificato e ha ECLI o URL ufficiale.
+   
+   Tutto resta numerato e citabile; ciò che non è nelle Fonti non si cita (guardie esistenti `citation_guard` e `hallucination_guard`).
+2. **Addestramento sullo stesso contesto.** Gli esempi di addestramento contengono le stesse Fonti allargate che il modello riceverà in produzione. Includono anche Fonti pertinenti ma inutili per il caso, così il modello impara a scegliere la norma giusta e a ignorare le altre: è il metodo detto RAFT, addestramento con documenti di disturbo. Così il modello impara a usare gli archivi, non a ricordarne il contenuto a memoria.
+3. **Quattro configurazioni sullo stesso banco:** 35B con sola scheda; con Fonti allargate; con Fonti allargate ed esempi approvati della stessa materia; addestrato con Fonti allargate. Si adotta la combinazione con meno errori. Se le Fonti allargate peggiorano una materia (per esempio perché introducono una giurisprudenza non pertinente), per quella materia restano spente.
+4. **Il controllo di ogni citazione resta attivo:** articolo vigente alla data del fatto, decisione con riferimento completo, nessuna massima senza testo verificato.

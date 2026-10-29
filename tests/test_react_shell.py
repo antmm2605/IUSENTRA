@@ -5595,9 +5595,11 @@ def test_react_agenda_limita_lookup_pec_al_periodo_e_contesti_necessari(monkeypa
 
 def test_react_agenda_presidio_notifica_sentenza_allineato_a_scadenziario(tmp_path: Path):
     app = _app(tmp_path)
+    from pct.ora_italiana import oggi_roma
     from web.services.react_agenda_bridge import build_react_agenda_payload
 
-    due_day = date.today()
+    # Il giorno dell'agenda è quello italiano: fra le 23 e la mezzanotte UTC date.today() è il giorno prima.
+    due_day = oggi_roma()
     agenda = Agenda(db_path=app.config["AGENDA_DB"])
     fascicoli = GestioneFascicoli(
         db_path=app.config["FASCICOLI_DB"],

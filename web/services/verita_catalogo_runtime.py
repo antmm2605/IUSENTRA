@@ -49,7 +49,9 @@ def censimento_studio_corrente() -> list[dict[str, Any]]:
     repository = build_document_ai_service().repository
     tenant_id = document_ai_tenant_id()
     censimenti = []
-    for fascicolo_id, fascicolo in get_fascicoli().items():
+    # Anche gli archiviati: le decisioni prese su un fascicolo chiuso restano etichette valide.
+    for fascicolo in get_fascicoli().tutti(archiviati=True):
+        fascicolo_id = str(getattr(fascicolo, "id", "") or "")
         try:
             assegnazioni = repository.list_catalog_assignments(tenant_id, str(fascicolo_id))
             eventi = repository.list_catalog_decision_events(tenant_id, str(fascicolo_id))

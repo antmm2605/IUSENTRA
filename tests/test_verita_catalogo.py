@@ -123,3 +123,38 @@ def test_repository_sqlite_elenca_le_decisioni_del_fascicolo_in_ordine(tmp_path)
     assert eventi[1]["payload"]["dopo"] == {"voce": "Atto di citazione"}
     assert conferme_massive(eventi) == set()  # l'ultima decisione su d1 è la correzione
     repo.close()
+
+
+def test_censimento_dello_studio_percorre_tutti_i_fascicoli_anche_archiviati(monkeypatch):
+    # Il primo censimento sul server (2.457.8) trattava il gestore dei fascicoli come un dizionario.
+    import web.helpers as helpers
+    import web.services.document_intelligence_runtime as di_runtime
+    from web.services.verita_catalogo_runtime import censimento_studio_corrente
+
+    fascicoli = [SimpleNamespace(id="F1", documenti=[_documento("p1", "PROVVEDIMENTO", "Sentenza")]),
+                 SimpleNamespace(id="F2", documenti=[_documento("a1", "ATTO", "Atto di citazione", )])]
+    chiamate = []
+
+    class _Gestore:
+        def tutti(self, archiviati=False):
+            chiamate.append(archiviati)
+            return fascicoli
+
+    class _Repository:
+        def list_catalog_assignments(self, tenant_id, fascicolo_id):
+            if fascicolo_id == "F2":
+                raise RuntimeError("catalogo non pronto")
+            return [_assegnazione("p1", "Sentenza", sezione="provvedimenti")]
+
+        def list_catalog_decision_events(self, tenant_id, fascicolo_id):
+            return []
+
+    monkeypatch.setattr(helpers, "get_fascicoli", lambda: _Gestore())
+    monkeypatch.setattr(di_runtime, "build_document_ai_service", lambda: SimpleNamespace(repository=_Repository()))
+    monkeypatch.setattr(di_runtime, "document_ai_tenant_id", lambda: "tenant")
+
+    censimenti = censimento_studio_corrente()
+
+    assert chiamate == [True]
+    assert [c["fascicolo_id"] for c in censimenti] == ["F1"]  # F2 senza catalogo non ferma il censimento
+    assert riepilogo(censimenti)["per_voce"] == {"Sentenza": 1}

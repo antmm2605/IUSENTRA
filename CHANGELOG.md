@@ -1,3 +1,6 @@
+## 2.457.9 — Censimento delle etichette certe: percorso dei fascicoli
+- Il censimento sul server percorre tutti i fascicoli dello studio, archiviati compresi; un fascicolo senza catalogo non lo interrompe.
+
 ## 2.457.8 — Etichette certe del catalogo documentale
 - Registro delle etichette certe: tipo atto dichiarato nel deposito telematico (PST) e decisioni dell'avvocato; conferme massive e XML strutturali esclusi.
 - Audit delle decisioni del catalogo con modalità della conferma, voce prima e dopo la correzione e identificativo univoco per le revisioni ripetute.

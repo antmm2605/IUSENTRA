@@ -36,6 +36,8 @@ jobs:
           grep -m1 '^CENSIMENTO_JSON:' uscita.txt | sed 's/^CENSIMENTO_JSON://' | jq . > censimento.json
           rm -f uscita.txt
           jq -e '.studi' censimento.json > /dev/null
+          # Solo conteggi e voci del catalogo: leggibili anche dal log del job.
+          jq -c . censimento.json
           {
             echo '## Censimento etichette certe'
             echo

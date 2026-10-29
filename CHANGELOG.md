@@ -1,3 +1,8 @@
+## 2.457.8 — Etichette certe del catalogo documentale
+- Registro delle etichette certe: tipo atto dichiarato nel deposito telematico (PST) e decisioni dell'avvocato; conferme massive e XML strutturali esclusi.
+- Audit delle decisioni del catalogo con modalità della conferma, voce prima e dopo la correzione e identificativo univoco per le revisioni ripetute.
+- Censimento in sola lettura sul server con soli conteggi, base per misurare e addestrare il classificatore dei documenti.
+
 ## 2.457.7 — Termini e notifiche: correzioni giuridiche
 - Memorie art. 171-ter c.p.c. calcolate a ritroso dall'udienza, con anticipo al giorno utile precedente (art. 155 c.p.c.); riconvalida automatica delle memorie salvate con il vecchio calcolo, senza toccare le date modificate dall'avvocato.
 - Termine lungo di impugnazione (art. 327 c.p.c.) con sospensione feriale; preset della prescrizione breve con il profilo dei cinque anni.

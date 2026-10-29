@@ -14,7 +14,12 @@ from defusedxml.common import DefusedXmlException
 _NAMESPACES = {"http://www.fatturapa.gov.it/sdi/messaggi/v1.0", "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fattura/messaggi/v1.0"}
 _STATUSES = {"RicevutaConsegna": "CONSEGNATA", "NotificaScarto": "SCARTATA", "RicevutaScarto": "SCARTATA",
     "NotificaMancataConsegna": "MANCATA_CONSEGNA", "RicevutaImpossibilitaRecapito": "MANCATA_CONSEGNA",
-    "NotificaDecorrenzaTermini": "DECORRENZA_TERMINI", "AttestazioneTrasmissioneFattura": "MANCATA_CONSEGNA"}
+    "NotificaDecorrenzaTermini": "DECORRENZA_TERMINI", "AttestazioneTrasmissioneFattura": "MANCATA_CONSEGNA",
+    "NotificaEsito": "ESITO_COMMITTENTE"}
+# NotificaEsito (SDICoop Trasmissione, notifica di esito committente verso il
+# trasmittente; fatture verso la PA, D.M. 55/2013): EC01 accettazione, EC02 rifiuto.
+_ESITI_COMMITTENTE = {"EC01": "ACCETTATA", "EC02": "RIFIUTATA"}
+_ESITI_COMMITTENTE_LABEL = {"EC01": "Fattura accettata dal committente", "EC02": "Fattura rifiutata dal committente"}
 
 
 def parse_sdi_receipt(xml_bytes: bytes) -> dict[str, Any] | None:
@@ -32,9 +37,19 @@ def parse_sdi_receipt(xml_bytes: bytes) -> dict[str, Any] | None:
     identifier, filename = field("IdentificativoSdI"), field("NomeFile")
     if not identifier or not filename:
         return None
+    descriptions = [str(node.text or "").strip()[:500] for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "Descrizione"][:25]
+    if kind == "NotificaEsito":
+        esito = field("Esito").upper()
+        if esito not in _ESITI_COMMITTENTE:
+            return None
+        descrizione = next((item for item in descriptions if item), "")
+        return {"kind": kind, "status": _ESITI_COMMITTENTE[esito], "sdi_id": identifier, "filename": filename,
+            "sha256": hashlib.sha256(xml_bytes).hexdigest(), "esito": esito,
+            "esito_label": _ESITI_COMMITTENTE_LABEL[esito], "esito_descrizione": descrizione,
+            "riferimento_fattura": field("NumeroFattura"), "message_id": field("MessageId"),
+            "errors": [descrizione] if esito == "EC02" and descrizione else []}
     return {"kind": kind, "status": _STATUSES[kind], "sdi_id": identifier, "filename": filename,
-        "sha256": hashlib.sha256(xml_bytes).hexdigest(),
-        "errors": [str(node.text or "").strip()[:500] for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "Descrizione"][:25]}
+        "sha256": hashlib.sha256(xml_bytes).hexdigest(), "errors": descriptions}
 
 
 def ingest_sdi_receipt(manager: Any, xml_bytes: bytes, *, tenant_id: str, source: dict[str, Any]) -> dict[str, Any]:
@@ -120,7 +135,7 @@ def ingest_sdi_receipt(manager: Any, xml_bytes: bytes, *, tenant_id: str, source
     states = {item["status"] for item in verified_receipts}
     existing_workflow = (getattr(invoice, "dati_personalizzati", {}) or {}).get("fatturapa_workflow") or {}
     manual = existing_workflow.get("sdi_manual_outcome") or {}
-    if manual.get("identifier") == receipt["sdi_id"] and manual.get("status") in set(_STATUSES.values()):
+    if manual.get("identifier") == receipt["sdi_id"] and manual.get("status") in set(_STATUSES.values()) - {"ESITO_COMMITTENTE"}:
         states.add(manual["status"])
     conflict = "SCARTATA" in states and bool(states & {"CONSEGNATA", "DECORRENZA_TERMINI"})
     current = str(getattr(invoice, "sdi_stato", "") or "")
@@ -154,11 +169,12 @@ def build_sdi_validation_report(parsed: dict[str, Any], attachments: list[dict[s
     provenance = acquisition.get("provenance") or {}
     results = acquisition.get("results") or []
     issues = []
-    labels = {"CONSEGNATA": "Fattura consegnata", "SCARTATA": "Fattura scartata", "MANCATA_CONSEGNA": "Fattura non recapitata", "DECORRENZA_TERMINI": "Decorrenza termini SdI"}
+    labels = {"CONSEGNATA": "Fattura consegnata", "SCARTATA": "Fattura scartata", "MANCATA_CONSEGNA": "Fattura non recapitata", "DECORRENZA_TERMINI": "Decorrenza termini SdI",
+        "ACCETTATA": "Fattura accettata dal committente", "RIFIUTATA": "Fattura rifiutata dal committente"}
     for receipt in receipts:
         state = receipt.get("status")
-        if state in {"SCARTATA", "MANCATA_CONSEGNA"}:
-            issues.append({"code": "sdi_" + str(state).lower(), "severity": "danger" if state == "SCARTATA" else "warning", "blocking": False,
+        if state in {"SCARTATA", "MANCATA_CONSEGNA", "RIFIUTATA"}:
+            issues.append({"code": "sdi_" + str(state).lower(), "severity": "danger" if state in {"SCARTATA", "RIFIUTATA"} else "warning", "blocking": False,
                 "title": labels[state], "detail": "; ".join(receipt.get("errors") or []) or labels[state]})
     if provenance.get("verified") is not True:
         issues.append({"code": "sdi_provenance_pending", "severity": "warning", "blocking": False,

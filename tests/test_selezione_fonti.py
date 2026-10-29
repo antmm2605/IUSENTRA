@@ -5,7 +5,7 @@ from lex.retrieval.selezione_fonti import leggi_scelta, prepara_fonti, Scelta
 
 def candidate(text):
     return {"testo":text,"riferimento":{"atto":"fixture","articolo":"1",
-        "provenienza":{"tipo":"norma","url":"https://example.org/fixture","versione":"test",
+        "provenienza":{"tipo":"norma","url":"https://www.normattiva.it/fixture","versione":"test",
                         "acquisita_il":"25/10/2026","sha256":hashlib.sha256(text.encode()).hexdigest()}}}
 
 def prepare(candidates, choice=Scelta((),()), required=None, **kw):

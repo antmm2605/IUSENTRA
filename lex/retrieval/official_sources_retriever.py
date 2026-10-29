@@ -168,6 +168,23 @@ def search_normattiva(
     jsonl_path: str | Path | None = None,
     diagnostics: list[str] | None = None,
 ) -> list[dict[str, Any]]:
+    from .abrogazione import tagga_abrogazione
+
+    # Gli articoli il cui testo e' solo l'avviso «ARTICOLO ABROGATO» escono marcati: mai come norma operativa.
+    return [tagga_abrogazione(row) for row in _search_normattiva_rows(
+        query, materia, vigenza, limit, db_path=db_path, jsonl_path=jsonl_path, diagnostics=diagnostics)]
+
+
+def _search_normattiva_rows(
+    query: str,
+    materia: str | None,
+    vigenza: str | None,
+    limit: int,
+    *,
+    db_path: str | Path | None,
+    jsonl_path: str | Path | None,
+    diagnostics: list[str] | None,
+) -> list[dict[str, Any]]:
     db_target = _resolve_runtime_path(
         db_path,
         env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),

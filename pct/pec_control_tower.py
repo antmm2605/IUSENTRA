@@ -25,6 +25,8 @@ import zipfile
 from typing import Any
 from xml.etree import ElementTree
 
+from pct.pec_oggetti_ufficiali import classifica_oggetto_ufficiale, classifica_ricevuta_pec, tipo_daticert
+
 try:  # pragma: no cover - zoneinfo è sempre disponibile sulle versioni supportate
     from zoneinfo import ZoneInfo
 except Exception:  # pragma: no cover
@@ -330,6 +332,7 @@ EXPECTED_DOCUMENTS: dict[str, list[str]] = {
     "CONTRATTO_DISDETTA_RECESSO": ["contratto", "disdetta o recesso", "prova ricezione", "bozza risposta"],
     "CLIENTE_DOCUMENTI": ["documenti ricevuti", "richiesta cliente", "istruzioni operative"],
     "PEC_OUTBOUND_PROOF": ["MIME inviato", "ricevuta di accettazione", "ricevuta di consegna", "daticert.xml"],
+    "FATTURA_SDI": ["ricevuta o notifica SdI", "file fattura", "identificativo SdI"],
     "UNKNOWN_LEGAL_RISK": ["MIME originale", "allegati", "classificazione avvocato"],
 }
 
@@ -345,6 +348,7 @@ LEGAL_ARTICLES: dict[str, list[str]] = {
     "CONTRATTO_DISDETTA_RECESSO": ["contratto e disciplina speciale di settore da verificare"],
     "CLIENTE_DOCUMENTI": ["incarico professionale e istruzioni del cliente"],
     "PEC_OUTBOUND_PROOF": ["DPR 68/2005", "CAD art. 48", "DM PEC 2 novembre 2005"],
+    "FATTURA_SDI": ["Specifiche tecniche FatturaPA (Agenzia delle Entrate)", "d.m. 55/2013"],
     "UNKNOWN_LEGAL_RISK": ["normativa da individuare dopo classificazione professionale"],
 }
 
@@ -1895,39 +1899,106 @@ def parse_pec_mime(raw_mime: bytes) -> dict[str, Any]:
     }
 
 
+# Etichetta canonica della ricevuta (classificatore unico di pct/pec_oggetti_ufficiali) → tipo
+# tecnico della control tower. Il tipo viene da daticert.xml / X-Ricevuta (d.P.R. 68/2005; d.m.
+# 2/11/2005); il testo conta solo per il prefisso fisso dell'oggetto e le frasi standard dei gestori.
+_TECHNICAL_BY_RECEIPT: dict[str, tuple[str, str, str]] = {
+    "non_accettazione": ("PEC_RECEIPT_NON_ACCEPTANCE", "OUTBOUND_PROOF", "failed_delivery"),
+    "mancata_consegna": ("PEC_RECEIPT_FAILED_DELIVERY", "OUTBOUND_PROOF", "failed_delivery"),
+    "preavviso_mancata_consegna": ("PEC_RECEIPT_FAILED_DELIVERY", "OUTBOUND_PROOF", "failed_delivery"),
+    # Virus rilevato: il messaggio non e' stato consegnato (prova negativa, mai consegna).
+    "rilevazione_virus": ("PEC_VIRUS_WARNING", "OUTBOUND_PROOF", "failed_delivery"),
+    "accettazione": ("PEC_RECEIPT_ACCEPTANCE", "OUTBOUND_PROOF", "acceptance"),
+    # Presa in carico tra gestori: prova parziale come l'accettazione, non e' consegna.
+    "presa_in_carico": ("PEC_RECEIPT_TAKEN_IN_CHARGE", "OUTBOUND_PROOF", "acceptance"),
+    "anomalia": ("PEC_ANOMALY", "INBOUND", ""),
+}
+
+
+def classify_receipt_label(parsed: dict[str, Any]) -> tuple[str, str]:
+    """(etichetta canonica, fonte) della ricevuta PEC per un messaggio gia' analizzato."""
+    headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
+    daticert = parsed.get("daticert") if isinstance(parsed.get("daticert"), dict) else {}
+    daticert_tipo = daticert.get("tipo") or tipo_daticert(daticert.get("raw_excerpt") or "")
+    body = parsed.get("body")
+    if not isinstance(body, str) or not body.strip():
+        body = parsed.get("search_text") or ""
+    return classifica_ricevuta_pec(
+        parsed.get("subject") or "",
+        body,
+        x_ricevuta=headers.get("x-ricevuta") or headers.get("x-tiporicevuta") or "",
+        daticert_tipo=daticert_tipo,
+        x_trasporto=headers.get("x-trasporto") or "",
+    )
+
+
 def classify_technical(parsed: dict[str, Any]) -> dict[str, Any]:
     headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
     daticert = parsed.get("daticert") if isinstance(parsed.get("daticert"), dict) else {}
-    text = _lower(" ".join([parsed.get("subject") or "", parsed.get("search_text") or "", daticert.get("tipo") or ""]))
     x_ricevuta = _lower(headers.get("x-ricevuta"))
-    x_trasporto = _lower(headers.get("x-trasporto"))
     receipt_type = _clean(daticert.get("tipo") or headers.get("x-tiporicevuta") or x_ricevuta)
     referred = _strip_message_id(headers.get("x-riferimento-message-id") or daticert.get("msgid") or "")
-    if "non-accettazione" in text or "non accettazione" in text:
-        return _technical("PEC_RECEIPT_NON_ACCEPTANCE", "OUTBOUND_PROOF", "failed_delivery", receipt_type, referred)
-    if "mancata consegna" in text or "avviso di mancata consegna" in text:
-        return _technical("PEC_RECEIPT_FAILED_DELIVERY", "OUTBOUND_PROOF", "failed_delivery", receipt_type, referred)
-    if "accettazione" in text or "ricevuta di accettazione" in text:
-        return _technical("PEC_RECEIPT_ACCEPTANCE", "OUTBOUND_PROOF", "acceptance", receipt_type, referred)
-    if "avvenuta consegna" in text or "ricevuta di consegna" in text or x_ricevuta:
-        if "sintetica" in text or "sintetica" in receipt_type.lower():
+    label, _source = classify_receipt_label(parsed)
+    if label == "avvenuta_consegna":
+        subtype = _lower(" ".join([receipt_type, headers.get("x-tiporicevuta") or "", daticert.get("tipo_ricevuta") or ""]))
+        subject = _lower(parsed.get("subject"))
+        if "sintetica" in subtype or "sintetica" in subject:
             typ = "PEC_RECEIPT_DELIVERY_SYNTHETIC"
-        elif "breve" in text or "breve" in receipt_type.lower():
+        elif "breve" in subtype or "breve" in subject:
             typ = "PEC_RECEIPT_DELIVERY_SHORT"
-        elif "completa" in text or "completa" in receipt_type.lower():
+        elif "completa" in subtype or "completa" in subject:
             typ = "PEC_RECEIPT_DELIVERY_COMPLETE"
         else:
             typ = "PEC_RECEIPT_DELIVERY"
-        return _technical(typ, "OUTBOUND_PROOF", "delivery", receipt_type, referred)
-    if "anomalia" in text or "errore" in x_trasporto:
-        return _technical("PEC_ANOMALY", "INBOUND", "", receipt_type, referred)
-    if "virus" in text:
-        return _technical("PEC_VIRUS_WARNING", "INBOUND", "", receipt_type, referred)
+        return _technical(typ, "OUTBOUND_PROOF", "delivery", receipt_type or label, referred)
+    if label in _TECHNICAL_BY_RECEIPT:
+        typ, direction, role = _TECHNICAL_BY_RECEIPT[label]
+        return _technical(typ, direction, role, receipt_type or label, referred)
     return _technical("PEC_INBOUND_CERTIFIED", "INBOUND", "", receipt_type, referred)
+
+
+def _legal_from_official_subject(parsed: dict[str, Any]) -> dict[str, Any] | None:
+    """Oggetti a formato fisso (SdI, segreteria TAR, enti, UNEP) e mittente SdI: prima delle parole chiave."""
+    subject = parsed.get("subject") or ""
+    body = parsed.get("body") if isinstance(parsed.get("body"), str) else ""
+    sender = _lower(parsed.get("sender"))
+    sender_domain = sender.rpartition("@")[2]
+    official = classifica_oggetto_ufficiale(subject, body or parsed.get("search_text") or "")
+    sdi_sender = sender_domain == "fatturapa.it" or sender_domain.endswith(".fatturapa.it")
+    if official is None and not sdi_sender:
+        return None
+    family, family_label, event = official if official is not None else ("fattura_sdi", "Fattura elettronica SDI", {
+        "event_type": "fattura_sdi", "event_label": "Messaggio del Sistema di Interscambio", "priority": "media",
+        "azione_proposta": "Archiviare nel flusso fatturazione; nessuna scadenza processuale.",
+    })
+    event_type = str(event.get("event_type") or family)
+    label = str(event.get("event_label") or family_label)
+    action = str(event.get("azione_proposta") or "")
+    risk = {"rossa": "critica", "alta": "alta", "media": "media", "bassa": "bassa"}.get(str(event.get("priority") or ""), "media")
+    if family == "fattura_sdi" or sdi_sender:
+        return _legal("FATTURA_SDI", event_type, label, risk, 0.95, action,
+                      "Messaggio del Sistema di Interscambio (FatturaPA): flusso fatturazione, non termine processuale.")
+    if family == "comunicazione_pat":
+        if event_type == "deposito_sentenza":
+            return _legal("PROVVEDIMENTO_GIUDIZIARIO", "sentenza_da_valutare_per_notifica", label, "alta", 0.92, action,
+                          "Avviso della segreteria del giudice amministrativo (art. 136 c.p.a.).")
+        return _legal("CANCELLERIA_PCT", event_type, label, risk, 0.9, action,
+                      "Avviso della segreteria del giudice amministrativo (art. 136 c.p.a.).")
+    if family == "ente_pubblico":
+        return _legal("ATTO_AMMINISTRATIVO_PA", event_type, label, risk, 0.9, action,
+                      "Ricevuta o comunicazione protocollata di un ente pubblico.")
+    if family == "esecuzione":
+        return _legal("CANCELLERIA_PCT", event_type, label, risk, 0.88, action,
+                      "Comunicazione dell'esecuzione (UNEP o terzo pignorato).")
+    return None
 
 
 def classify_legal(parsed: dict[str, Any], technical: dict[str, Any]) -> dict[str, Any]:
     text = _lower(" ".join([parsed.get("sender") or "", parsed.get("subject") or "", parsed.get("search_text") or ""]))
+    if not technical.get("receipt_role"):
+        official = _legal_from_official_subject(parsed)
+        if official is not None:
+            return official
     if technical.get("receipt_role"):
         if technical["receipt_role"] == "failed_delivery":
             return _legal(

@@ -10,7 +10,10 @@ REGOLE = (
     regola(
         "ricorso_decreto_ingiuntivo",
         r"ricorso\s+per\s+(?:decreto\s+)?ingiuntivo(?:\s+.*)?|ricorso\s+per\s+ingiunzione(?:\s+di\s+pagamento)?(?:\s+.*)?",
-        r"\bingiung\w+\b|\bcreditor\w*\b|\b63[3-9]\b",
+        # Anche «emissione del decreto … provvisoriamente esecutivo ex art. 642»:
+        # la parola «opposizione» nel corpo (l'avvertimento al debitore) non
+        # toglie al ricorso il suo titolo.
+        r"\bingiung\w+\b|\bcreditor\w*\b|\b63[3-9]\b|\b64[0-2]\b|\bemission\w*\s+del(?:l\s*)?\s*(?:decreto|ingiunzione)\b|\bprovvisoriamente\s+esecutiv\w*\b",
         "Ricorso per decreto ingiuntivo",
         role="atto_principale", section="atti", tipo=TipoDocumento.RICORSO,
         fonte="cpc_procedimento_monitorio", deposit_role="atto_principale",

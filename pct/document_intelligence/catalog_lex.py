@@ -90,35 +90,89 @@ def _normalizza(testo: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", grezzo).strip()
 
 
-def citazione_nel_testo(citazione: str, testo: str) -> bool:
-    """La frase citata c'e' davvero nel documento (a meno di spazi e punteggiatura).
+# Fra due parole consecutive della citazione l'OCR può inserire righe estranee
+# intere (firma digitale a margine, numero di pagina): mai parole dentro la riga.
+RIGHE_ESTRANEE_MASSIME = 2
+PAROLE_ESTRANEE_MASSIME = 30
 
-    L'OCR puo' inserire fra le parole di una frase righe estranee (la dicitura
-    della firma digitale a margine, un numero di pagina): la citazione vale
-    anche quando le sue parole compaiono tutte, nello stesso ordine, in un
-    tratto di testo non piu' lungo del triplo della citazione.
+
+def _parole_per_riga(testo: str) -> list[list[str]]:
+    """Le parole normalizzate di ogni riga, dopo la correzione OCR dei titoli."""
+    from pct.fascicolo_document_catalog import normalizza_ocr_titoli
+
+    corretto = normalizza_ocr_titoli(str(testo or ""))
+    righe = [_normalizza(riga).split() for riga in corretto.splitlines()]
+    return [riga for riga in righe if riga]
+
+
+def citazione_nel_testo(citazione: str, testo: str) -> bool:
+    """La frase citata c'e' davvero nel documento, parola per parola.
+
+    Sono tollerati spazi, punteggiatura, maiuscole, le confusioni OCR dei
+    titoli («Dl» per «DI») e gli a capo. L'OCR puo' inoltre inserire fra due
+    parole della frase righe estranee intere (la dicitura della firma digitale
+    a margine, un numero di pagina): la citazione vale anche allora, ma solo se
+    lo stacco cade a fine riga e salta righe intere. Parole sparse cucite da
+    punti diversi del testo non sono una citazione (audit 29/10/2026).
     """
-    cercata = _normalizza(citazione)
+    from pct.fascicolo_document_catalog import normalizza_ocr_titoli
+
+    cercata = _normalizza(normalizza_ocr_titoli(citazione))
     if len(cercata) < LUNGHEZZA_MINIMA_CITAZIONE:
         return False
-    normalizzato = _normalizza(testo)
-    if cercata in normalizzato:
-        return True
     parole = cercata.split()
-    testo_parole = normalizzato.split()
-    massimo = len(parole) * 3
-    for inizio, parola in enumerate(testo_parole):
-        if parola != parole[0]:
+    righe = _parole_per_riga(testo)
+    if f" {cercata} " in f" {' '.join(parola for riga in righe for parola in riga)} ":
+        return True
+    # (riga, posizione) di ogni parola: lo stacco ammesso e' solo fra righe.
+    posizioni = [(indice_riga, indice) for indice_riga, riga in enumerate(righe) for indice in range(len(riga))]
+    for riga0, parola0 in posizioni:
+        if righe[riga0][parola0] != parole[0]:
             continue
-        indice = 1
-        for posizione in range(inizio + 1, min(len(testo_parole), inizio + massimo)):
-            if indice == len(parole):
+        riga, posto = riga0, parola0
+        trovate = 1
+        while trovate < len(parole):
+            if posto + 1 < len(righe[riga]):
+                posto += 1
+                if righe[riga][posto] != parole[trovate]:
+                    break
+                trovate += 1
+                continue
+            # Fine riga: la parola seguente apre una delle prossime righe,
+            # dopo al piu' RIGHE_ESTRANEE_MASSIME righe estranee intere.
+            prossima = None
+            saltate = 0
+            for salto in range(0, RIGHE_ESTRANEE_MASSIME + 1):
+                candidata = riga + 1 + salto
+                if candidata >= len(righe):
+                    break
+                if righe[candidata][0] == parole[trovate]:
+                    prossima = candidata
+                    break
+                saltate += len(righe[candidata])
+                if saltate > PAROLE_ESTRANEE_MASSIME:
+                    break
+            if prossima is None:
                 break
-            if testo_parole[posizione] == parole[indice]:
-                indice += 1
-        if indice == len(parole):
+            riga, posto = prossima, 0
+            trovate += 1
+        if trovate == len(parole):
             return True
     return False
+
+
+# Le identità del resolver che non hanno una regola di titolo esigono
+# comunque la formula del loro tipo: una sentenza dichiara di esserlo in testa
+# o porta il dispositivo (art. 132 c.p.c.). Una citazione nel corpo di note o
+# memorie («si richiama la sentenza del …») non basta.
+_RISCONTRI_VOCI_RESOLVER: dict[str, str] = {
+    "Sentenza": (
+        r"\bin\s+nome\s+del\s+popolo\s+italiano\b|\bp\s*\.?\s*q\s*\.?\s*m\b|"
+        r"\bpronunciat\w*\s+la\s+seguente\s+sentenza\b|\bpronuncia\s+la\s+seguente\s+sentenza\b|"
+        r"\bha\s+pronunciato\s+la\s+(?:seguente|presente)\s+sentenza\b|(?m:^\s*sentenza\b)"
+    ),
+}
+_RISCONTRI_VOCI_RESOLVER["Sentenza di altro procedimento — precedente"] = _RISCONTRI_VOCI_RESOLVER["Sentenza"]
 
 
 def riscontro_natura_catalogo(etichetta: str, testo: str) -> bool:
@@ -129,9 +183,14 @@ def riscontro_natura_catalogo(etichetta: str, testo: str) -> bool:
     quando Lex riconosce un titolo diverso da quelli letterali. Non sono una
     nuova classificazione e non autorizzano effetti del documento.
     """
+    from pct.fascicolo_document_catalog import normalizza_ocr_titoli
+
     regole = [regola for regola in REGOLE_TITOLO if regola.label == etichetta]
     if not regole:
-        return True  # le identità del resolver seguono i rispettivi controlli
+        riscontro = _RISCONTRI_VOCI_RESOLVER.get(etichetta)
+        if riscontro is None:
+            return True  # le altre identità del resolver seguono i rispettivi controlli
+        return re.search(riscontro, normalizza_ocr_titoli(str(testo or ""))[:12000], re.IGNORECASE) is not None
     corpo = re.sub(r"\s+", " ", str(testo or "")).casefold()
     return any(re.search(regola.conferma, corpo, re.IGNORECASE) for regola in regole)
 
@@ -233,7 +292,8 @@ def _leggi_con_lex(
     voce = per_etichetta.get(etichetta)
     if voce is None:
         return EsitoLex("errore", etichetta, citazione, "etichetta fuori catalogo")
-    if not citazione_nel_testo(citazione, testo):
+    # La citazione si verifica solo su cio' che Lex ha letto davvero.
+    if not citazione_nel_testo(citazione, str(testo or "")[:CARATTERI_LETTI]):
         return EsitoLex("non_verificata", etichetta, citazione, motivo, voce)
     if not riscontro_natura_catalogo(etichetta, testo):
         return EsitoLex(

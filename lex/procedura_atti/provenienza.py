@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import hashlib
 import re
-from datetime import datetime
+from datetime import date, datetime
+from urllib.parse import urlparse
 
 CAMPI = ("tipo", "url", "versione", "acquisita_il", "sha256")
 TIPI = ("norma", "decisione")
@@ -24,8 +25,37 @@ def sha256_testo(testo: str) -> str:
     return hashlib.sha256((testo or "").encode("utf-8")).hexdigest()
 
 
-def verifica_provenienza(caso: dict) -> list[str]:
+def url_ufficiale(url: str) -> bool:
+    """Indirizzo http(s) su un dominio del catalogo delle fonti ufficiali (lex.research.official_sources)."""
+    try:
+        parsed = urlparse(str(url or "").strip())
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password:
+        return False
+    from lex.research.official_sources import OfficialSourcesCatalog
+
+    descrittore = OfficialSourcesCatalog().describe(f"{parsed.scheme}://{parsed.hostname}{parsed.path}")
+    return bool(descrittore is not None and descrittore.official and not descrittore.restricted)
+
+
+def _data_di_oggi(caso: dict, oggi: date | None) -> date:
+    if isinstance(oggi, date):
+        return oggi
+    try:
+        return datetime.strptime(str(caso.get("oggi") or ""), "%d/%m/%Y").date()
+    except ValueError:
+        return date.today()
+
+
+def verifica_provenienza(caso: dict, *, oggi: date | None = None) -> list[str]:
+    """Errori di provenienza delle Fonti (lista vuota = verificabili).
+
+    ``oggi``: data del confronto (default ``caso["oggi"]`` in gg/mm/aaaa, altrimenti la data di sistema):
+    una Fonte acquisita dopo «oggi» non e' una Fonte verificabile a quella data.
+    """
     e: list[str] = []
+    riferimento = _data_di_oggi(caso, oggi)
     fonti, refs = caso.get("fonti"), caso.get("fonti_ref")
     if not isinstance(fonti, dict) or not fonti or not isinstance(refs, list):
         return ["Fonti: testi e riferimenti obbligatori"]
@@ -49,14 +79,20 @@ def verifica_provenienza(caso: dict) -> list[str]:
             continue
         if p["tipo"] not in TIPI:
             e.append(f"Fonte [{n}]: tipo di provenienza non ammesso ({p['tipo']})")
+        if not url_ufficiale(p["url"]):
+            e.append(f"Fonte [{n}]: indirizzo non ufficiale o non http(s) ({p['url'][:80]})")
         if f.get("evidence_scope") == "metadata_only" or p.get("evidence_scope") == "metadata_only":
             e.append(f"Fonte [{n}]: metadata_only resta uno spunto, non una Fonte")
         try:
             if not DATA.fullmatch(p["acquisita_il"]):
                 raise ValueError()
-            datetime.strptime(p["acquisita_il"], "%d/%m/%Y")
+            acquisita = datetime.strptime(p["acquisita_il"], "%d/%m/%Y").date()
         except ValueError:
             e.append(f"Fonte [{n}]: data di acquisizione non valida in formato gg/mm/aaaa")
+        else:
+            if acquisita > riferimento:
+                e.append(f"Fonte [{n}]: acquisita il {p['acquisita_il']}, dopo la data di riferimento "
+                         f"{riferimento.strftime('%d/%m/%Y')}")
         testo = fonti.get(n)
         if not isinstance(testo, str) or not testo.strip():
             e.append(f"Fonte [{n}]: testo assente")

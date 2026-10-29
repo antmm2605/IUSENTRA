@@ -194,7 +194,9 @@ def test_norma_di_un_campo_ha_fonte_unica_anche_se_gia_nella_base(ambiente):
         {"campo": "intimazione", "obbligatorio": True, "norma": [
          {"atto": "codice_civile", "articolo": "1219", "perche": "forma della intimazione"}]}]}), encoding="utf-8")
     f = fonti_per_scheda("CAMPO", db, cartella=schede)
-    assert len(f.fonti) == 1 and not f.pendenze
+    # Fonte unica; l'unica pendenza ammessa e' la vigenza alla data non documentata dalla fixture (audit 29/10/2026).
+    assert len(f.fonti) == 1 and all("vigenza al" in p and "non riscontrata" in p for p in f.pendenze)
+    assert len(f.pendenze) == 1
     assert f.requisiti == [{"campo": "intimazione", "norma": "art. 1219 c.c.",
                            "perche": "forma della intimazione", "fonte": 1}]
 

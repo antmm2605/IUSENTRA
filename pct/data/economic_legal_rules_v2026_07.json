@@ -1,5 +1,5 @@
 {
-  "version": "2026.07",
+  "version": "2026.10.29",
   "ambito": "civile",
   "descrizione": "Regole deterministiche per il controllo economico-probatorio delle sentenze civili. Ogni gruppo di keyword è ancorato a una norma. NON applicare a penale/PAT/PTT (serve ruleset separato).",
   "fonti": {
@@ -12,26 +12,83 @@
   },
   "match": {
     "soglia_documento": 0.75,
-    "soglia_cliente": 0.30,
+    "soglia_cliente": 0.3,
     "rg_uguaglianza_esatta": true
   },
   "provvedimento": {
-    "sentenza_keywords": ["sentenza", "definitivamente pronunciando", "p.q.m.", "per questi motivi"],
-    "ordinanza_keywords": ["ordinanza", "cosi' provvede", "così provvede"],
-    "decreto_keywords": ["decreto", "decreta"]
+    "sentenza_keywords": [
+      "sentenza",
+      "definitivamente pronunciando"
+    ],
+    "ordinanza_keywords": [
+      "ordinanza",
+      "cosi' provvede",
+      "così provvede"
+    ],
+    "decreto_keywords": [
+      "decreto ingiuntivo",
+      "ingiunge",
+      "decreta"
+    ],
+    "sentenza_keywords_deboli": [
+      "p.q.m.",
+      "per questi motivi"
+    ],
+    "intestazione": {
+      "_nota": "Il tipo si legge prima dall'intestazione (prime righe): un'ordinanza che nel corpo cita una 'sentenza n.' o chiude con 'P.Q.M.' resta un'ordinanza.",
+      "finestra_caratteri": 1500,
+      "titoli": {
+        "decreto": [
+          "decreto ingiuntivo",
+          "decreto"
+        ],
+        "ordinanza": [
+          "ordinanza"
+        ],
+        "sentenza": [
+          "sentenza"
+        ]
+      },
+      "formule": [
+        "ha pronunciato la seguente",
+        "ha emesso la seguente",
+        "pronuncia la seguente",
+        "emette la seguente",
+        "ha reso la seguente"
+      ]
+    }
   },
   "esito": {
-    "favorevole_keywords": ["accoglie", "in accoglimento", "condanna la parte convenuta", "condanna il convenuto"],
-    "sfavorevole_keywords": ["rigetta", "respinge", "dichiara inammissibile", "dichiara improcedibile"],
-    "parziale_keywords": ["accoglie parzialmente", "in parziale accoglimento", "parzialmente"]
+    "favorevole_keywords": [
+      "accoglie",
+      "in accoglimento",
+      "condanna la parte convenuta",
+      "condanna il convenuto"
+    ],
+    "sfavorevole_keywords": [
+      "rigetta",
+      "respinge",
+      "dichiara inammissibile",
+      "dichiara improcedibile"
+    ],
+    "parziale_keywords": [
+      "accoglie parzialmente",
+      "in parziale accoglimento",
+      "parzialmente accoglie",
+      "accoglie in parte",
+      "accoglimento parziale"
+    ]
   },
   "spese": {
     "condanna_keywords": [
       "condanna alle spese",
       "al pagamento delle spese",
       "alla rifusione delle spese",
+      "alla rifusione",
       "rifusione delle spese",
-      "spese di lite",
+      "alle spese di lite",
+      "alle spese del giudizio",
+      "alle spese processuali",
       "spese liquidate",
       "liquida in complessiv",
       "liquidate in complessiv"
@@ -43,12 +100,23 @@
       "compensazione delle spese",
       "integrale compensazione",
       "compensate integralmente",
-      "compensate tra le parti"
+      "compensate tra le parti",
+      "compensa interamente",
+      "interamente compensate",
+      "dichiara compensate",
+      "compensate le spese"
     ],
     "compensazione_parziale_keywords": [
       "parzialmente compensate",
+      "compensa parzialmente",
       "compensa per la meta'",
-      "compensa nella misura"
+      "compensa per la meta",
+      "compensa per meta",
+      "per meta'",
+      "per metà",
+      "restante meta",
+      "compensa nella misura",
+      "compensate nella misura"
     ],
     "distrazione_keywords": [
       "distrae le spese",
@@ -73,14 +141,46 @@
     "spese_generali_pct": 15.0
   },
   "contributo_unificato": {
-    "pagato_keywords": ["contributo unificato versato", "contributo unificato pagato", "cu versato", "versamento del contributo unificato", "ricevuta di pagamento del contributo"],
-    "esente_keywords": ["esente dal contributo", "esenzione dal contributo unificato", "non soggetto a contributo", "contributo non dovuto"],
-    "prenotato_debito_keywords": ["prenotato a debito", "prenotazione a debito", "patrocinio a spese dello stato"],
-    "invito_keywords": ["invito al pagamento", "art. 248", "omesso versamento del contributo", "integrare il contributo"],
-    "insufficiente_keywords": ["contributo insufficiente", "versamento insufficiente", "importo inferiore al dovuto", "differenza da versare"]
+    "pagato_keywords": [
+      "contributo unificato versato",
+      "contributo unificato pagato",
+      "cu versato",
+      "versamento del contributo unificato",
+      "ricevuta di pagamento del contributo"
+    ],
+    "esente_keywords": [
+      "esente dal contributo",
+      "esenzione dal contributo unificato",
+      "non soggetto a contributo",
+      "contributo non dovuto"
+    ],
+    "prenotato_debito_keywords": [
+      "prenotato a debito",
+      "prenotazione a debito",
+      "patrocinio a spese dello stato"
+    ],
+    "invito_keywords": [
+      "invito al pagamento",
+      "art. 248",
+      "omesso versamento del contributo",
+      "integrare il contributo"
+    ],
+    "insufficiente_keywords": [
+      "contributo insufficiente",
+      "versamento insufficiente",
+      "importo inferiore al dovuto",
+      "differenza da versare"
+    ]
   },
   "esecutivita": {
-    "provvisoria_esecutivita_keywords": ["provvisoriamente esecutiva", "provvisoria esecutorieta'", "provvisoria esecutorietà"],
-    "titolo_esecutivo_keywords": ["titolo esecutivo", "in forma esecutiva"]
+    "provvisoria_esecutivita_keywords": [
+      "provvisoriamente esecutiva",
+      "provvisoria esecutorieta'",
+      "provvisoria esecutorietà"
+    ],
+    "titolo_esecutivo_keywords": [
+      "titolo esecutivo",
+      "in forma esecutiva"
+    ]
   }
 }

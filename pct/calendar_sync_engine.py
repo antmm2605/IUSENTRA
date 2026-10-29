@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
@@ -17,6 +17,10 @@ from pct.calendar_providers import build_default_providers, provider_for
 from pct.calendar_providers.base import CalendarProvider, event_content_hash, normalise_provider_event, parse_datetime, stable_hash
 from pct.scadenziario import GestioneScadenziario, Scadenza, StatoTermine, TipoTermine
 
+
+RETRY_MAX_ATTEMPTS = 5
+RETRY_BASE_DELAY = timedelta(minutes=5)
+RETRY_MAX_DELAY = timedelta(hours=6)
 
 PRIVACY_COMPLETE = "complete"
 PRIVACY_REDUCED = "professional_reduced"
@@ -107,6 +111,30 @@ def _date_plus_one(value: str) -> str:
         return (date.fromisoformat(value[:10]) + timedelta(days=1)).isoformat()
     except ValueError:
         return value
+
+
+def _utc_iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _parse_utc(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def retry_delay(attempts: int) -> timedelta:
+    """Backoff esponenziale limitato: 5, 10, 20, 40 minuti... fino a 6 ore."""
+
+    exponent = max(int(attempts or 1) - 1, 0)
+    return min(RETRY_BASE_DELAY * (2 ** min(exponent, 16)), RETRY_MAX_DELAY)
 
 
 def local_event_hash(local_type: str, item: Appuntamento | Scadenza | None) -> str:
@@ -201,7 +229,14 @@ def privacy_export_event(local_type: str, item: Appuntamento | Scadenza, privacy
             )
             description = "Dettagli riservati in IUSENTRA."
             location = ""
-        status = "cancelled" if scadenza.stato == StatoTermine.ANNULLATO else "confirmed"
+        if scadenza.stato == StatoTermine.ANNULLATO:
+            status = "cancelled"
+        elif scadenza.stato == StatoTermine.BOZZA:
+            # Difesa in profondita': una proposta non confermata non e' mai
+            # "confirmed" (push_local_event comunque non la pubblica).
+            status = "tentative"
+        else:
+            status = "confirmed"
     return {
         "title": title,
         "description": description,
@@ -307,12 +342,139 @@ class CalendarSyncEngine:
     def _remote_hash(self, event: dict[str, Any]) -> str:
         return event_content_hash(normalise_provider_event(event))
 
-    def push_local_event(self, local_type: str, local_id: str, account_id: str, calendar_id: str) -> dict[str, Any]:
+    # -- job di sincronizzazione e retry -------------------------------------
+
+    @staticmethod
+    def _job_target(job: dict[str, Any]) -> tuple[str, str, str, str, str]:
+        action = str(job.get("action") or "")
+        group = "local" if action in {"push", "delete"} else action
+        return (
+            group,
+            str(job.get("account_id") or ""),
+            str(job.get("calendar_id") or ""),
+            str(job.get("local_type") or ""),
+            str(job.get("local_id") or ""),
+        )
+
+    def _open_failed_job(self, target: tuple[str, str, str, str, str]) -> dict[str, Any] | None:
+        for job in self.repository.list_jobs(self.tenant_id, status="failed"):
+            if str(job.get("retry_state") or "") in {"resolved", "superseded"}:
+                continue
+            if self._job_target(job) == target:
+                return job
+        return None
+
+    def _start_job(
+        self,
+        *,
+        action: str,
+        account_id: str,
+        calendar_id: str,
+        local_type: str = "",
+        local_id: str = "",
+        retry_job: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Apre (o riprende) il job tracciato per un singolo elemento/calendario.
+
+        Un elemento che continua a fallire riusa sempre lo stesso job, cosi' i
+        tentativi si accumulano fino al limite e non nascono job duplicati.
+        """
+
+        context = {"calendar_id": calendar_id, "local_type": local_type, "local_id": local_id}
+        existing = retry_job
+        if existing is None:
+            probe = {"action": action, "account_id": account_id, **context}
+            existing = self._open_failed_job(self._job_target(probe))
+        if existing is not None:
+            return self.repository.update_job(existing["id"], action=action, status="running", **context)
+        job = self.repository.create_job(tenant_id=self.tenant_id, account_id=account_id, action=action, status="running")
+        return self.repository.update_job(job["id"], **context)
+
+    def _job_succeeded(self, job: dict[str, Any]) -> dict[str, Any]:
+        return self.repository.update_job(
+            job["id"],
+            status="success",
+            attempts=int(job.get("attempts") or 0) + 1,
+            error="",
+            retry_state="",
+            next_retry_at="",
+        )
+
+    def _job_noop(self, job: dict[str, Any] | None, reason: str) -> None:
+        """Chiude un job di retry che non ha piu' nulla da fare."""
+
+        if job is not None:
+            self.repository.update_job(job["id"], status="success", error="", retry_state="resolved", resolution=reason, next_retry_at="")
+
+    def _job_failed(self, job: dict[str, Any], exc: Exception, *, now: datetime | None = None) -> dict[str, Any]:
+        attempts = int(job.get("attempts") or 0) + 1
+        exhausted = attempts >= RETRY_MAX_ATTEMPTS
+        current = now or datetime.now(timezone.utc)
+        return self.repository.update_job(
+            job["id"],
+            status="failed",
+            attempts=attempts,
+            error=_short_text(str(exc) or type(exc).__name__, 300),
+            retry_state="exhausted" if exhausted else "pending",
+            next_retry_at="" if exhausted else _utc_iso(current + retry_delay(attempts)),
+        )
+
+    def _record_binding_error(self, binding: dict[str, Any] | None, exc: Exception | None) -> None:
+        if not binding or not binding.get("id"):
+            return
+        fields = dict(binding)
+        fields["last_error"] = "" if exc is None else _short_text(str(exc) or type(exc).__name__, 300)
+        fields["last_error_at"] = "" if exc is None else now_iso()
+        self.repository.upsert_binding(fields)
+
+    def _delete_with_job(
+        self,
+        account: dict[str, Any],
+        calendar: dict[str, Any],
+        binding: dict[str, Any],
+        *,
+        local_type: str,
+        local_id: str,
+        retry_job: dict[str, Any] | None,
+        reason: str = "",
+    ) -> dict[str, Any]:
+        job = self._start_job(
+            action="delete",
+            account_id=str(account.get("id") or ""),
+            calendar_id=str(calendar.get("id") or ""),
+            local_type=local_type,
+            local_id=local_id,
+            retry_job=retry_job,
+        )
+        try:
+            result = self.delete_remote_for_binding(account, calendar, binding, deleted_local=True)
+        except Exception as exc:
+            self._job_failed(job, exc)
+            self._record_binding_error(binding, exc)
+            calendar["last_error"] = "Sincronizzazione non riuscita."
+            self.repository.upsert_calendar(calendar)
+            raise
+        self._job_succeeded(job)
+        if reason:
+            result = {**result, "reason": reason}
+        return result
+
+    def push_local_event(
+        self,
+        local_type: str,
+        local_id: str,
+        account_id: str,
+        calendar_id: str,
+        *,
+        _retry_job: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         account = self.repository.get_account(account_id, self.tenant_id)
         calendar = self.repository.get_calendar(calendar_id, self.tenant_id)
         if not account or not calendar:
+            self._job_noop(_retry_job, "account_o_calendario_rimosso")
             raise KeyError("Account o calendario non trovato.")
         if str(calendar.get("direction") or "bidirectional") == "inbound":
+            self._job_noop(_retry_job, "solo_importazione")
             return {"ok": True, "skipped": True, "reason": "solo_importazione"}
         local = self._local_item(local_type, local_id)
         if local is None:
@@ -324,7 +486,8 @@ class CalendarSyncEngine:
                 local_id=local_id,
             )
             if binding:
-                return self.delete_remote_for_binding(account, calendar, binding, deleted_local=True)
+                return self._delete_with_job(account, calendar, binding, local_type=local_type, local_id=local_id, retry_job=_retry_job)
+            self._job_noop(_retry_job, "elemento_locale_rimosso")
             raise KeyError("Elemento locale non trovato.")
 
         binding = self.repository.find_binding(
@@ -338,14 +501,39 @@ class CalendarSyncEngine:
             local_type == "scadenza" and local.stato == StatoTermine.ANNULLATO
         ):
             if binding:
-                return self.delete_remote_for_binding(account, calendar, binding, deleted_local=True)
+                return self._delete_with_job(account, calendar, binding, local_type=local_type, local_id=local_id, retry_job=_retry_job)
+            self._job_noop(_retry_job, "annullato_senza_binding")
             return {"ok": True, "skipped": True, "reason": "annullato_senza_binding"}
+
+        if local_type == "scadenza" and local.stato == StatoTermine.BOZZA:
+            # Proposta non confermata: mai pubblicata sui calendari esterni.
+            # Se era gia' stata pubblicata (termine riportato in bozza), il
+            # relativo evento remoto viene rimosso una sola volta.
+            if binding and binding.get("external_event_id") and not binding.get("deleted_local_at"):
+                return self._delete_with_job(
+                    account,
+                    calendar,
+                    binding,
+                    local_type=local_type,
+                    local_id=local_id,
+                    retry_job=_retry_job,
+                    reason="bozza_non_confermata",
+                )
+            self._job_noop(_retry_job, "bozza_non_confermata")
+            return {"ok": True, "skipped": True, "reason": "bozza_non_confermata"}
 
         event = privacy_export_event(local_type, local, str(calendar.get("privacy_level") or PRIVACY_REDUCED))
         if binding:
             event["binding"] = binding
         provider = self._provider(account)
-        job = self.repository.create_job(tenant_id=self.tenant_id, account_id=account_id, action="push", status="running")
+        job = self._start_job(
+            action="push",
+            account_id=account_id,
+            calendar_id=calendar_id,
+            local_type=local_type,
+            local_id=local_id,
+            retry_job=_retry_job,
+        )
         try:
             result = provider.push_event(self._account_with_credentials(account), calendar, event)
             remote = normalise_provider_event(result.get("event") or {})
@@ -370,15 +558,18 @@ class CalendarSyncEngine:
                     "last_pushed_at": now_iso(),
                     "deleted_remote_at": "",
                     "deleted_local_at": "",
+                    "last_error": "",
+                    "last_error_at": "",
                 }
             )
             calendar["last_sync_at"] = now_iso()
             calendar["last_error"] = ""
             self.repository.upsert_calendar(calendar)
-            self.repository.update_job(job["id"], status="success", attempts=int(job.get("attempts") or 0) + 1)
+            self._job_succeeded(job)
             return {"ok": True, "binding": updated_binding, "event": remote}
         except Exception as exc:
-            self.repository.update_job(job["id"], status="failed", attempts=int(job.get("attempts") or 0) + 1, error=str(exc))
+            self._job_failed(job, exc)
+            self._record_binding_error(binding, exc)
             calendar["last_error"] = "Sincronizzazione non riuscita."
             self.repository.upsert_calendar(calendar)
             raise
@@ -489,16 +680,24 @@ class CalendarSyncEngine:
         self.repository.upsert_binding(binding)
         return {"ok": True, "deleted_remote": True}
 
-    def pull_remote_changes(self, account_id: str, calendar_id: str) -> dict[str, Any]:
+    def pull_remote_changes(
+        self,
+        account_id: str,
+        calendar_id: str,
+        *,
+        _retry_job: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         account = self.repository.get_account(account_id, self.tenant_id)
         calendar = self.repository.get_calendar(calendar_id, self.tenant_id)
         if not account or not calendar:
+            self._job_noop(_retry_job, "account_o_calendario_rimosso")
             raise KeyError("Account o calendario non trovato.")
         if str(calendar.get("direction") or "bidirectional") == "outbound":
+            self._job_noop(_retry_job, "solo_esportazione")
             return {"ok": True, "skipped": True, "reason": "solo_esportazione"}
         provider = self._provider(account)
         cursor = str(calendar.get("sync_cursor") or account.get("sync_cursor") or "")
-        job = self.repository.create_job(tenant_id=self.tenant_id, account_id=account_id, action="pull", status="running")
+        job = self._start_job(action="pull", account_id=account_id, calendar_id=calendar_id, retry_job=_retry_job)
         created = updated = deleted = conflicts = 0
         seen_external_ids: set[str] = set()
         try:
@@ -608,71 +807,94 @@ class CalendarSyncEngine:
             calendar["last_error"] = ""
             self.repository.upsert_account(account)
             self.repository.upsert_calendar(calendar)
-            self.repository.update_job(job["id"], status="success", attempts=int(job.get("attempts") or 0) + 1)
+            self._job_succeeded(job)
             return {"ok": True, "created": created, "updated": updated, "deleted": deleted, "conflicts": conflicts, "cursor": cursor_out}
         except Exception as exc:
-            self.repository.update_job(job["id"], status="failed", attempts=int(job.get("attempts") or 0) + 1, error=str(exc))
+            self._job_failed(job, exc)
             calendar["last_error"] = "Sincronizzazione non riuscita."
             self.repository.upsert_calendar(calendar)
             raise
 
     def sync_account(self, account_id: str) -> dict[str, Any]:
+        """Allinea un account: un errore su un elemento non blocca gli altri.
+
+        Ogni fallimento resta registrato sul job (con retry e backoff) e, se
+        esiste, sul binding; il report finale riporta ``ok=False`` e gli errori.
+        """
+
         account = self.repository.get_account(account_id, self.tenant_id)
         if not account:
             raise KeyError("Account calendario non trovato.")
         reports = []
         pulled = 0
         pushed = 0
+        skipped = 0
+        failed = 0
         conflicts = 0
+
+        def _push(calendar_id: str, local_type: str, local_id: str) -> None:
+            nonlocal pushed, skipped, failed
+            base = {"calendar_id": calendar_id, "phase": "push", "local_type": local_type, "local_id": local_id}
+            try:
+                outcome = self.push_local_event(local_type, local_id, account_id, calendar_id)
+            except Exception as exc:
+                failed += 1
+                reports.append({**base, "ok": False, "error": _short_text(str(exc) or type(exc).__name__, 300)})
+                return
+            if outcome.get("skipped"):
+                skipped += 1
+            else:
+                pushed += 1
+            reports.append({**base, **outcome})
+
         for calendar in self.repository.list_calendars(self.tenant_id, account_id=account_id):
             if not calendar.get("enabled", True):
                 continue
             direction = str(calendar.get("direction") or "bidirectional")
             role = str(calendar.get("role") or "completo")
             if direction in {"inbound", "bidirectional"}:
-                report = self.pull_remote_changes(account_id, calendar["id"])
-                pulled += int(report.get("created") or 0) + int(report.get("updated") or 0)
-                conflicts += int(report.get("conflicts") or 0)
-                reports.append(
-                    {
-                        "calendar_id": calendar["id"],
-                        "phase": "pull",
-                        **report,
-                    }
-                )
+                try:
+                    report = self.pull_remote_changes(account_id, calendar["id"])
+                except Exception as exc:
+                    failed += 1
+                    reports.append(
+                        {
+                            "calendar_id": calendar["id"],
+                            "phase": "pull",
+                            "ok": False,
+                            "error": _short_text(str(exc) or type(exc).__name__, 300),
+                        }
+                    )
+                else:
+                    pulled += int(report.get("created") or 0) + int(report.get("updated") or 0)
+                    conflicts += int(report.get("conflicts") or 0)
+                    reports.append(
+                        {
+                            "calendar_id": calendar["id"],
+                            "phase": "pull",
+                            **report,
+                        }
+                    )
             if direction in {"outbound", "bidirectional"}:
                 known_roles = {"agenda", "scadenze", "completo", "import_only", "export_only"}
                 include_agenda = role in {"agenda", "completo", "export_only"} or role not in known_roles
                 include_scadenze = role in {"scadenze", "completo", "export_only"} or role not in known_roles
                 if include_agenda:
                     for app in self.agenda.tutti():
-                        reports.append(
-                            {
-                                "calendar_id": calendar["id"],
-                                "phase": "push",
-                                "local_type": "agenda",
-                                "local_id": app.id,
-                                **self.push_local_event("agenda", app.id, account_id, calendar["id"]),
-                            }
-                        )
-                        pushed += 1
+                        _push(calendar["id"], "agenda", app.id)
                 if include_scadenze:
+                    # Tutti gli stati passano da push_local_event: le BOZZE non
+                    # vengono pubblicate (ed eventuali eventi gia' pubblicati
+                    # vengono rimossi), gli annullati cancellano il remoto.
                     for scadenza in self.scadenziario.tutte(solo_aperte=False):
-                        reports.append(
-                            {
-                                "calendar_id": calendar["id"],
-                                "phase": "push",
-                                "local_type": "scadenza",
-                                "local_id": scadenza.id,
-                                **self.push_local_event("scadenza", scadenza.id, account_id, calendar["id"]),
-                            }
-                        )
-                        pushed += 1
+                        _push(calendar["id"], "scadenza", scadenza.id)
         return {
-            "ok": True,
+            "ok": failed == 0,
             "account_id": account_id,
             "pulled": pulled,
             "pushed": pushed,
+            "skipped": skipped,
+            "failed": failed,
             "conflicts": conflicts,
             "reports": reports,
         }
@@ -760,14 +982,87 @@ class CalendarSyncEngine:
             return {"ok": True, "conflict": self.conflicts.resolve(conflict_id, resolution=strategy)}
         raise ValueError("Strategia conflitto non supportata.")
 
-    def sync_due_jobs(self) -> dict[str, Any]:
+    def sync_due_jobs(self, *, now: datetime | None = None) -> dict[str, Any]:
+        """Riprova calendari: riesegue i job falliti scaduti (backoff) o in coda.
+
+        - push/delete con contesto: ripubblica l'elemento (idempotente: il
+          binding esistente aggiorna l'evento remoto, non ne crea un altro);
+        - pull con contesto: rilegge il calendario;
+        - job senza contesto (storici o in coda): un solo ``sync_account`` per
+          account, poi il job viene chiuso (i fallimenti residui hanno ora un
+          job con contesto proprio);
+        - oltre ``RETRY_MAX_ATTEMPTS`` il job resta ``failed`` con
+          ``retry_state='exhausted'`` e non viene piu' ripreso in automatico.
+        """
+
+        current = now or datetime.now(timezone.utc)
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=timezone.utc)
         processed = 0
         failed = 0
-        for job in self.repository.list_jobs(self.tenant_id, status="queued"):
+        succeeded = 0
+        exhausted = 0
+        legacy_accounts: dict[str, list[dict[str, Any]]] = {}
+        due: list[dict[str, Any]] = []
+        for job in self.repository.list_jobs(self.tenant_id):
+            status = str(job.get("status") or "")
+            if status not in {"queued", "failed"}:
+                continue
+            retry_state = str(job.get("retry_state") or "")
+            if retry_state in {"resolved", "superseded", "exhausted"}:
+                continue
+            if status == "failed" and int(job.get("attempts") or 0) >= RETRY_MAX_ATTEMPTS:
+                self.repository.update_job(job["id"], retry_state="exhausted", next_retry_at="")
+                exhausted += 1
+                continue
+            next_retry = _parse_utc(job.get("next_retry_at"))
+            if next_retry is not None and next_retry > current:
+                continue
+            action = str(job.get("action") or "")
+            has_local = bool(job.get("calendar_id") and job.get("local_type") and job.get("local_id"))
+            if action in {"push", "delete"} and has_local:
+                due.append(job)
+            elif action == "pull" and job.get("calendar_id"):
+                due.append(job)
+            elif action in {"pull", "push", "delete", "renew_webhook"} and job.get("account_id"):
+                legacy_accounts.setdefault(str(job.get("account_id")), []).append(job)
+
+        for job in due:
+            processed += 1
             try:
-                if job.get("action") in {"pull", "push", "delete", "renew_webhook"}:
-                    self.repository.update_job(job["id"], status="success", attempts=int(job.get("attempts") or 0) + 1)
-                    processed += 1
+                if str(job.get("action")) == "pull":
+                    self.pull_remote_changes(str(job.get("account_id") or ""), str(job.get("calendar_id") or ""), _retry_job=job)
+                else:
+                    self.push_local_event(
+                        str(job.get("local_type") or ""),
+                        str(job.get("local_id") or ""),
+                        str(job.get("account_id") or ""),
+                        str(job.get("calendar_id") or ""),
+                        _retry_job=job,
+                    )
+                succeeded += 1
             except Exception:
                 failed += 1
-        return {"ok": failed == 0, "processed": processed, "failed": failed}
+
+        for account_id, jobs in legacy_accounts.items():
+            processed += 1
+            try:
+                report = self.sync_account(account_id)
+                ok = bool(report.get("ok"))
+            except Exception as exc:
+                ok = False
+                for job in jobs:
+                    self._job_failed(job, exc, now=current)
+            else:
+                for job in jobs:
+                    self.repository.update_job(
+                        job["id"],
+                        status="success" if ok else "failed",
+                        retry_state="resolved" if ok else "superseded",
+                        next_retry_at="",
+                    )
+            if ok:
+                succeeded += 1
+            else:
+                failed += 1
+        return {"ok": failed == 0, "processed": processed, "succeeded": succeeded, "failed": failed, "exhausted": exhausted}

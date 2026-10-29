@@ -66,11 +66,13 @@ from pct.tariffario import (
     tutte_le_materie,
     tutti_i_gradi,
 )
+from pct.ora_italiana import oggi_roma
 from pct.uffici_competenti import ricerca_uffici_competenti as ricerca_uffici_competenti_ministero
 
 
 def _today() -> date:
-    return date.today()
+    # Giorno italiano (Europe/Rome): il server gira in UTC e fra mezzanotte e le 2 sbaglierebbe giorno.
+    return oggi_roma()
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:

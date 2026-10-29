@@ -35,6 +35,10 @@ class EsitoNorma:
     document_id: int | None = None
     article_id: int | None = None
     provenienza_archivio: dict = field(default_factory=dict)
+    # Edizione archiviata (identificatori pubblici) e suo riscontro alla data richiesta: True/False/None
+    # (None = copertura della data non documentata). Non e' un giudizio di applicabilita' legale.
+    edizione_archiviata: dict = field(default_factory=dict)
+    riscontro_alla_data: bool | None = None
 
     def chiave(self) -> tuple[str, str, str]:
         return (self.scheda, self.atto, norm_articolo(self.articolo))
@@ -84,7 +88,7 @@ def verifica_schede(db: Path, cartella: Path = CARTELLA_SCHEDE, *, solo_scheda: 
                 key = coll[len(COLLEZIONE):]
                 if key not in priorities or priority > priorities[key]:
                     priorities[key] = priority
-                    ultimi[key] = (int(ident), red or "", urn or "", priority[1])
+                    ultimi[key] = (int(ident), red or "", urn or "", priority[1], xmlsha or "")
         for r in refs:
             base = dict(scheda=r.scheda, atto=r.atto, articolo=r.articolo, origine=r.origine, perche=r.perche)
             doc = ultimi.get(r.atto)
@@ -113,11 +117,15 @@ def verifica_schede(db: Path, cartella: Path = CARTELLA_SCHEDE, *, solo_scheda: 
             except (TypeError,ValueError):
                 metadata={}
             quality=qualita_testo(testo,solo_rubrica=isinstance(metadata,dict) and metadata.get("consultazione_senza_testo") is True)
+            from lex.normativa.provenienza_edizione import edizione_archiviata, riscontro_alla_data
+            edizione=edizione_archiviata(metadata if isinstance(metadata,dict) else {},
+                                         {"id":doc[0],"urn":doc[2],"redazione_id":doc[1],"xml_sha256":doc[4]})
             intero = bool(ABROGATO_INTERO.search(testo)) or quality=="avviso_abrogazione"
             esiti.append(EsitoNorma(
                 **base, stato="abrogato" if intero else ("testo_non_integrale" if quality!="testo_acquisito" else "presente"), sha256=sha_testo(testo), url=_url(riga[1], doc[2]),
                 aggiornato_al=doc[1], commi_abrogati=len(COMMI_ABROGATI.findall(testo)),
-                abrogato_da=(da.group(1).strip() if (intero and da) else ""), testo=testo, acquisita_il=doc[3][:10], document_id=doc[0], article_id=riga[2], provenienza_archivio=metadata if isinstance(metadata,dict) else {}))
+                abrogato_da=(da.group(1).strip() if (intero and da) else ""), testo=testo, acquisita_il=doc[3][:10], document_id=doc[0], article_id=riga[2], provenienza_archivio=metadata if isinstance(metadata,dict) else {},
+                edizione_archiviata=edizione, riscontro_alla_data=riscontro_alla_data(edizione,target)))
     return esiti
 
 
@@ -137,4 +145,5 @@ def riepilogo(esiti: list[EsitoNorma]) -> dict:
         stati[e.stato] = stati.get(e.stato, 0) + 1
     return {"norme": len(esiti), "stati": stati,
             "con_commi_abrogati": sum(1 for e in esiti if e.commi_abrogati),
-            "problemi": [{k: v for k, v in asdict(e).items() if k != "testo"} for e in esiti if e.stato != "presente"]}
+            "problemi": [{k: v for k, v in asdict(e).items() if k != "testo"} for e in esiti if e.stato != "presente"],
+            "vigenza_non_riscontrata": sum(1 for e in esiti if e.stato == "presente" and e.riscontro_alla_data is not True)}

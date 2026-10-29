@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1142.
+- File pytest censiti: 1144.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 128 |
+| API contract | 130 |
 | Backend | 147 |
 | E2E | 15 |
 | Frontend static gate | 1 |
@@ -30,19 +30,19 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 22 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 85 |
-| 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 31 |
+| 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 32 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 76 |
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 90 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 209 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 558 |
+| 09-misc | Test non classificati dalle fasi principali | 559 |
 
 ## Suite CI aggiuntive
 
 | Suite | Target | Esempi |
 | --- | --- | --- |
 | acquisition-ocr | 20 | tests/test_document_ocr.py, tests/test_document_ocr_documento.py, tests/test_document_ocr_formato.py, tests/test_editor_html_docx.py, tests/test_document_tools.py ... |
-| coverage-critical | 170 | tests/test_redazione_lex.py, tests/test_schede_fonti.py, tests/test_procedura_atti.py, tests/test_procedura_atti_provenienza.py, tests/test_procedura_atti_contratti.py ... |
+| coverage-critical | 175 | tests/test_normativa_full_text_prompt.py, tests/test_storage_postgres_contracts.py, tests/test_critical_source_reading_contracts.py, tests/test_selezione_fonti.py, tests/test_lettura_normativa_receipts.py ... |
 | e2e-nightly | 4 | tests/e2e/test_studio_reale_flow.py, tests/e2e/test_ai_pipeline_full.py, tests/e2e/test_tenant_migration_full.py, tests/e2e/test_operational_crash_day.py |
 | e2e-smoke | 1 | tests/e2e/test_studio_reale_flow.py |
 | legal-tools | 8 | tests/test_strumenti_legali.py, tests/test_strumenti_legali_end_to_end.py, tests/test_strumenti_processuali.py, tests/test_termini_processuali.py, tests/test_normative_tables.py ... |
@@ -57,6 +57,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Area | Tipo test | File | Copre | Gap | Stato |
 | --- | --- | --- | --- | --- | --- |
 | API contracts | API contract | tests/test_ci_no_regression_contract.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| API contracts | API contract | tests/test_critical_source_reading_contracts.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | API contracts | API contract | tests/test_data_flow_contract.py | 403/RBAC, tenant, contratto, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | API contracts | API contract | tests/test_document_capture_contracts.py | file | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | API contracts | API contract | tests/test_fascicolo_document_catalog_schema_contract.py | tenant, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
@@ -1189,6 +1190,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Tenant isolation | tests/test_telematico_dashboard.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_telematico_export_cache.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | API contract | tests/test_lex_model_runtime_tenant_cache.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Tenant isolation | API contract | tests/test_storage_postgres_contracts.py | 403/RBAC, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Tenant isolation | E2E | tests/e2e/test_tenant_migration_full.py | tenant | richiede ambiente/credenziali quando esce dal test client | censito |
 | Tenant isolation | Frontend/UI | tests/test_email_storage_errors.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Tenant isolation | Frontend/UI | tests/test_storage_governance.py | contratto, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

@@ -170,6 +170,11 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_tariffario.py",
     ),
     "coverage-critical": (
+        REPO_ROOT / "tests" / "test_normativa_full_text_prompt.py",
+        REPO_ROOT / "tests" / "test_storage_postgres_contracts.py",
+        REPO_ROOT / "tests" / "test_critical_source_reading_contracts.py",
+        REPO_ROOT / "tests" / "test_selezione_fonti.py",
+        REPO_ROOT / "tests" / "test_lettura_normativa_receipts.py",
         REPO_ROOT / "tests" / "test_redazione_lex.py",
         REPO_ROOT / "tests" / "test_schede_fonti.py",
         REPO_ROOT / "tests" / "test_procedura_atti.py",

@@ -1,7 +1,10 @@
 {
-  "baseline_sha": "18a5b5395463d892206c22276af04e28ac8cbf8b",
-  "reason": "Estensione esplicita rispetto all’ultima versione realmente distribuita e verde: nuovo modulo stesura_blocchi, con test_redazione_lex nella suite critica. Manteniamo confronto completo, ambiente identico, nessuna riga precedentemente coperta persa e copertura non inferiore alla baseline sia sul perimetro comune sia sul totale. Nessuna soglia o esclusione modificata.",
+  "baseline_sha": "104f234a17efea6696110e3ac6af23ac1a5583d6",
+  "reason": "Estensione esplicita del perimetro misurato rispetto alla ultima release distribuita e verde: lettura integrale a parti, vista RAG con ricevute, selezione fonti e backend PostgreSQL ora importato e provato. Suite estesa con contratti positivi e negativi, conservazione originali e rollback. Nessuna esclusione, soglia ridotta, riga precedentemente coperta persa o nuova baseline accettata automaticamente. Ogni modulo aggiunto deve mantenere almeno la percentuale della baseline, come il perimetro comune e il totale.",
   "files": {
-    "lex/procedura_atti/stesura_blocchi.py": "514b6a7050a2b470947d0060315717dee4f68d58abf44bebaefcf670154e7593"
+    "lex/procedura_atti/lettura_fonti.py": "251aac5d49ed01ca4212e5e7f9003a5862a9c90eeef94e2d7b5f390e03ae76fd",
+    "lex/providers/lettura_normativa_rag.py": "a1efd1ee0fc2d17e64eea191e65609b4ffe0ea213daf5d9859d9f947c08579bc",
+    "lex/retrieval/selezione_fonti.py": "8d3a842a73f1a210257502221fd36ddc9f51744dc14b55bc101b3ddd8b15d0b2",
+    "pct/storage_postgres.py": "604ecf2d8cef04d98d89c806e1aa916eaf728aeb58932bd64cae5114f80c893e"
   }
 }

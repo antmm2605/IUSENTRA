@@ -4,6 +4,8 @@ import unicodedata
 
 from lxml import etree
 
+from pct.openga_html import is_official_html, leggi_html
+
 from pct.openga_documento import DocumentoNonVerificato, parse_official_xml
 
 _REGIONS = {
@@ -32,18 +34,25 @@ def _normal(text):
 def verifica_organo(raw, row):
     """Solo intestazione dell'organo: non città citate nei fatti o nei difensori."""
     try:
-        root = parse_official_xml(raw)
-        if root.getroottree().docinfo.doctype:
-            return False
-        doc = root.find("Provvedimento")
-        if doc is None:
-            return False
-        # L'adunanza contiene il collegio e l'organo, non le parti né l'oggetto.
-        header = _normal(" ".join(doc.find("epigrafe/adunanza").itertext()))
-        urn = _normal(doc.findtext("meta/descrittori/urn", ""))
-        release = _normal(doc.findtext("meta/rilascio", ""))
-        disposition = doc.find("dispositivo")
-        closing = _normal(" ".join(disposition.itertext())) if disposition is not None else ""
+        html_format = is_official_html(raw)
+        if html_format:
+            document = leggi_html(raw)
+            header = _normal(document["organo_header"])
+            urn, release = "", ""
+            closing = _normal(document["chiusura"])
+        else:
+            root = parse_official_xml(raw)
+            if root.getroottree().docinfo.doctype:
+                return False
+            doc = root.find("Provvedimento")
+            if doc is None:
+                return False
+            # L'adunanza contiene il collegio e l'organo, non le parti né l'oggetto.
+            header = _normal(" ".join(doc.find("epigrafe/adunanza").itertext()))
+            urn = _normal(doc.findtext("meta/descrittori/urn", ""))
+            release = _normal(doc.findtext("meta/rilascio", ""))
+            disposition = doc.find("dispositivo")
+            closing = _normal(" ".join(disposition.itertext())) if disposition is not None else ""
     except (DocumentoNonVerificato, etree.XMLSyntaxError, AttributeError, TypeError):
         return False
     office = str(row.get("sede", ""))
@@ -59,11 +68,11 @@ def verifica_organo(raw, row):
     if "tribunale amministrativo" not in header and not trga:
         return False
     if office in {"006", "027"}:
-        if "tar trentino alto adige" not in urn:
+        if (html_format and not trga) or (not html_format and "tar trentino alto adige" not in urn):
             return False
     elif trga:
         return False
-    if region and (region not in header or "tar " + region not in urn):
+    if region and (region not in header or (not html_format and "tar " + region not in urn)):
         return False
     # Tre riscontri documentali ammessi: intestazione, metadato di sede,
     # oppure formula di deliberazione del collegio nel dispositivo.
@@ -84,6 +93,8 @@ def verifica_tipo(raw, row):
     if family is None:
         return False
     try:
+        if is_official_html(raw):
+            return _normal(leggi_html(raw)["tipo"]).startswith(family)
         root = parse_official_xml(raw)
         actual = _normal(root.findtext("Provvedimento/meta/tipologia", ""))
         return actual.startswith(family)

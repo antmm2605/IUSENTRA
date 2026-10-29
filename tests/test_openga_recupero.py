@@ -158,5 +158,5 @@ def test_rejected_source_preserves_fingerprint_and_reason_without_content():
     for evidence in result["diagnostica"]:
         assert evidence["sha256"] == sha256(raw).hexdigest()
         assert evidence["byte"] == len(raw)
-        assert evidence["rifiuto"] == "Non è un singolo provvedimento ufficiale."
+        assert evidence["rifiuto"] == "Documento HTML incompleto o con corpo ambiguo."
         assert "content" not in evidence

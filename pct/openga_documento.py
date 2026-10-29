@@ -6,6 +6,8 @@ from urllib.parse import parse_qs, urlsplit
 
 from lxml import etree
 
+from pct.openga_html import is_official_html, leggi_html
+
 
 class DocumentoNonVerificato(ValueError):
     """Il documento non dimostra l'identità richiesta."""
@@ -38,7 +40,7 @@ def parse_official_xml(raw):
 
 
 def leggi_documento(raw, *, url, schema, anno, numero, ricorso, acquisita_il):
-    """Accetta solo XML ufficiale completo con identità e URL concordanti.
+    """Accetta XML o HTML ufficiale completo con identità e URL concordanti.
 
     Il chiamante deve aver risolto schema e URL dal catalogo ufficiale. Questa
     funzione non effettua richieste e non certifica l'origine del trasporto.
@@ -66,8 +68,22 @@ def leggi_documento(raw, *, url, schema, anno, numero, ricorso, acquisita_il):
         if not re.fullmatch(r"[0-9]{2}/[0-9]{2}/[0-9]{4}", acquisita_il):
             raise ValueError()
         datetime.strptime(acquisita_il, "%d/%m/%Y").replace(tzinfo=timezone.utc)
+        if is_official_html(raw):
+            document = leggi_html(raw)
+            if (document["anno"] != anno or document["numero"] != numero
+                    or ricorso not in document["ricorsi"]):
+                raise DocumentoNonVerificato("Estremi HTML diversi dalla decisione richiesta.")
+            text = document["testo"]
+            return {"testo": text, "sezioni": document["sezioni"],
+                    "raw_sha256": sha256(raw).hexdigest(), "formato_originale": "html",
+                    "provenienza": {"tipo": "decisione", "url": url,
+                        "versione": document["pubblicazione"], "acquisita_il": acquisita_il,
+                        "sha256": sha256(text.encode()).hexdigest(), "testo_integrale": True},
+                    "approvazione_avvocato": False}
         root = parse_official_xml(raw)
-    except (ValueError, TypeError, etree.XMLSyntaxError):
+    except (ValueError, TypeError, etree.XMLSyntaxError) as exc:
+        if is_official_html(raw) and isinstance(exc, DocumentoNonVerificato):
+            raise
         raise DocumentoNonVerificato("XML o data di acquisizione non validi.") from None
     if root.getroottree().docinfo.doctype or any(isinstance(n, etree._Entity) for n in root.iter()):
         raise DocumentoNonVerificato("Entità e DTD non ammesse.")

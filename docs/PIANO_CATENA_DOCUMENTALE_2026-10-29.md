@@ -300,3 +300,87 @@ Ogni test misura un difetto reale e ha un criterio keep/discard. I test sintetic
 2. **Dove stanno i dati di addestramento.** Le etichette e i testi vengono dai documenti reali dello studio. Possono restare sul server (si addestra lì la Strada A) oppure essere esportati sul tuo PC per la Strada B. L'esportazione sarebbe pseudonimizzata, con codici fiscali, nomi e indirizzi sostituiti.
 3. **Flusso congelato ❄.** Autorizzi la modifica del confronto CU nella busta (Fase 5.5), oppure il controllo resta solo nel presidio?
 4. **Ordine.** Proposta: Fase 0 subito (errori giuridici), poi 1 → 2 → 3 in parallelo con 4-6.
+
+---
+
+## 6. Modelli e addestramento: risposte dell'avvocato e piano (29/10/2026)
+
+Decisioni ricevute: GPU **RTX 3060 12 GB**, addestramento **sul PC dell'avvocato**. Il modello grande da 35B (MoE, `llama.cpp` sul PC, ponte Tailscale `deploy/private-lex/`) resta sul PC; il suo addestramento può avvenire su GPU noleggiata a ore. Il file `Revisione_avvocato_Lex.docx` (SHA-256 `786b85011af3a8bc98a0950835f1a68f6cf5aee30a2068df878190870509f654`) è dichiarato dall'avvocato **approvato in tutte le scelte**. Contiene:
+
+- Parte A, 10 schede del banco v7: V7A_01, V7A_04, V7A_17, V7A_19, V7B_04, V7B_14, V7B_16, V7C_09, V7C_10, V7C_12;
+- Parte B, 12 casi del materiale D4, uno per materia: da D4_1_01 a D4_1_12, dal civile ordinario al penale.
+
+Nota di audit: nel file le caselle dell'esito sono vuote. L'approvazione va quindi registrata come dichiarazione dell'avvocato legata all'impronta del file. Per la regola già in vigore (`lex/procedura_atti/impronte.py`), l'approvazione vale solo per quel testo esatto e decade se scheda o norme cambiano.
+
+### 6.1 Esistono modelli già addestrati sul diritto italiano?
+
+Ricerca del 29/10/2026:
+
+- **Modelli generativi:** nessun modello aperto addestrato sul diritto italiano risulta pubblicato e mantenuto. Esistono solo lavori metodologici: Llama-3.1-8B adattato su Normattiva, senza pesi rilasciati. Nelle valutazioni 2026 su compiti giuridici multilingue l'italiano è la lingua in cui i modelli aperti rendono peggio. La base migliore resta un modello generale forte (la famiglia Qwen3.5 già in uso) con fonti e schede, completato dal nostro addestramento.
+- **Classificatori:** esiste **Italian-Legal-BERT** (`dlicari/Italian-Legal-BERT`, Apache 2.0, 110 milioni di parametri). È un BERT italiano preaddestrato su 3,7 GB di sentenze dell'Archivio giurisprudenziale nazionale. Non è un classificatore pronto, ma una base da specializzare sulle nostre voci; si addestra in pochi minuti sulla RTX 3060.
+- **Modelli italiani generali** (Minerva 7B della Sapienza, LLaMAntino): nessuna specializzazione giuridica e prestazioni inferiori a Qwen3.5 di pari taglia. Non conviene partire da loro.
+
+### 6.2 Quale modello per quale compito
+
+| Compito | Dove gira | Modello proposto | Addestramento |
+|---|---|---|---|
+| Catalogazione documenti (sezione e voce) | Server Hetzner CPX42: 8 vCPU, niente GPU | **A:** vettori `embeddinggemma:300m` + testa lineare `numpy` (nessuna nuova dipendenza). **A+:** Italian-Legal-BERT specializzato, solo se batte A in modo netto (richiederebbe `onnxruntime` nel prodotto: decisione dell'avvocato) | Sul PC (3060): minuti |
+| Seconda lettura con citazione (casi incerti) | Server | Spark-X2.5 4B attuale, oppure **Qwen3.5-4B con LoRA** sulle decisioni del catalogo | Sul PC (3060): QLoRA 4B in 1-3 ore |
+| Ricevute, esenzioni, identità (campi) | Server | Regole + parser certificati (XML, MRZ, RT); nessun modello generativo per i dati che decidono | — |
+| Ragionamento e stesura degli atti (schede, bozze) | **PC dell'avvocato**, via Tailscale | 35B MoE attuale (Qwen3.5-35B-A3B o equivalente: da confermare sul PC) | GPU cloud 80 GB |
+| Chat generale di Lex | Server | `qwen3.5:9b` attuale | Nessuno per ora |
+
+Regola di sicurezza: il server non dipende mai dal PC. Se il PC è spento, la stesura con il 35B si astiene con un messaggio chiaro, mentre catalogo, presìdi e scadenze continuano a funzionare.
+
+### 6.3 Il modello grande: ragionare come l'avvocato
+
+Obiettivo: davanti a un caso dell'avvocato, il 35B deve arrivare alle **stesse decisioni** delle schede approvate (rimedio, giudice, evento iniziale dei termini, norma applicata, imputazione dei pagamenti, conclusioni) e scrivere la bozza con la stessa struttura e lo stesso tono.
+
+Punto di partenza misurato:
+
+- CHANGELOG 2.449.0, banco v7 da 60 casi: con la scheda decisa dal codice gli esiti sbagliati scendono da circa 35 a 5-10 su 60.
+- Il precedente addestramento «Lex v4» è stato provato e **non adottato**: non migliorava.
+
+La lezione è che il modello va addestrato **a decidere la scheda**, non solo a scrivere, e che 22 casi approvati sono troppo pochi per un addestramento (insegnerebbero a memoria quei 22 testi).
+
+Percorso in quattro passi, ognuno misurato prima di passare al successivo:
+
+1. **Subito, senza addestramento: casi approvati come esempi.**
+   - I 12 casi D4 approvati entrano in una biblioteca dei «casi risolti dallo studio».
+   - Per ogni nuova richiesta Lex riceve il caso approvato della stessa materia come esempio di ragionamento, cioè scheda e bozza.
+   - Le 10 schede V7 approvate diventano il **banco congelato**: mai usate come esempio né per addestrare, servono solo a misurare.
+   - Misura: errori sul banco v7, prima e dopo.
+2. **Moltiplicare i casi approvati: obiettivo 300-500.**
+   - Il generatore D4 (casi inventati, nessun dato di clienti) produce schede e bozze per materia. Il codice calcola termini e importi (`lex/procedura_atti`); il 35B propone rimedio e ragionamento.
+   - L'avvocato li rivede nello stesso formato del file appena approvato.
+   - Per non spendere 60 ore di revisione, si rivedono **prima i casi in cui il 35B e il codice non sono d'accordo**, o in cui due stesure del modello divergono. Quelli concordi si campionano: uno su cinque, e se il campione ha errori si rivede tutto il lotto.
+   - Le correzioni dell'avvocato valgono doppio: insegnano proprio dove il modello sbaglia.
+   - Essendo casi inventati, per proporre le prime stesure si può usare anche un modello più grande in cloud, ma solo con l'autorizzazione dell'avvocato.
+3. **Addestramento del 35B su GPU cloud.**
+   - LoRA in bf16 su **una GPU da 80 GB** (A100 o H100). Per questo modello MoE la quantizzazione a 4 bit durante l'addestramento è sconsigliata dagli strumenti di riferimento (Unsloth). Indicativamente servono poche ore per 500-1000 esempi; le tariffe pubbliche partono da circa 1-3 $/ora per un A100 da 80 GB.
+   - Sul cloud vanno **solo i casi inventati approvati**, mai dati dello studio.
+   - Il formato degli esempi è quello già usato da `lex/dataset/llama_factory.py`: domanda, fatti, Fonti → scheda decisa → bozza. Per ogni scelta si conserva il ragionamento con la norma; le date non si chiedono al modello, le calcola il software.
+   - Si esporta in GGUF e si carica sul PC accanto al modello attuale, con nome versionato.
+4. **Adozione solo se migliora.**
+   - Confronto sul banco congelato (10 schede approvate) e sulla parte di prova del banco v7.
+   - Si mettono a confronto: 35B base + scheda, + esempi approvati, + LoRA.
+   - Si adotta solo se ha **meno esiti sbagliati** e **nessuna regressione** sui casi approvati.
+   - Anche dopo l'adozione restano attive le guardie esistenti: fonti obbligatorie, astensione «non determinabile con le fonti disponibili», date dal calcolo, revisione indipendente.
+
+### 6.4 I modelli piccoli sul PC (RTX 3060 12 GB)
+
+| Modello | Uso | Tempo indicativo sulla 3060 |
+|---|---|---|
+| Testa lineare su `embeddinggemma` | catalogo | pochi minuti, anche senza GPU |
+| Italian-Legal-BERT specializzato | catalogo (alternativa A+) | 10-30 minuti |
+| Qwen3.5-4B QLoRA | seconda lettura con citazione | 1-3 ore |
+| Qwen3.5-9B QLoRA (opzionale) | chat di Lex sul server | 3-8 ore, al limite dei 12 GB |
+
+Lo script di addestramento sta in `tools/addestramento/` (fuori dal gestionale, con dipendenze proprie). Legge un'esportazione pseudonimizzata: nomi, codici fiscali, indirizzi e importi identificativi sostituiti, con i documenti reali che non lasciano lo studio. Restituisce un file di pesi con impronta, versione e misure sul banco. Il server lo adotta solo se il banco della Fase 1 conferma il miglioramento.
+
+### 6.5 Cosa serve dall'avvocato
+
+1. Confermare il nome esatto del modello 35B sul PC: file GGUF e quantizzazione.
+2. Indicare dove si trova sul PC il materiale D4 completo (i 12 casi sono un campione) e quanti casi contiene.
+3. Indicare quante ore di revisione può dedicare: ogni 50 casi rivisti servono circa 10 ore. È il fattore che limita la qualità del modello grande.
+4. Scegliere il fornitore della GPU cloud: si sceglie quando i casi approvati superano i 300; prima l'addestramento non conviene.

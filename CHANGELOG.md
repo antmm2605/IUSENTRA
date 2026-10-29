@@ -5,6 +5,7 @@
 - PEC: classificatore unico delle ricevute; mancata consegna, non accettazione e virus mai lette come consegna; deposito rifiutato riconosciuto.
 - Notifiche e calendari: bozze escluse da avvisi e calendari esterni, errori per voce con nuovo tentativo, giorni di preavviso rispettati.
 - Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
+- Censimento del catalogo: oltre alle voci di Lex escono dal server anche le voci fisse scritte per esteso nel codice del catalogo (contributo unificato, iscrizione a ruolo, PEC di deposito, provvedimenti); restano escluse le etichette libere.
 - Escluso dall'integrazione il declassamento del registro delle fonti senza impronta: bloccava ogni bozza finale degli atti e resta da completare.
 
 ## 2.457.11 — Censimento del catalogo senza nomi dei clienti

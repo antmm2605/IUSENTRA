@@ -236,6 +236,11 @@ def test_il_riepilogo_non_porta_nomi_dei_clienti() -> None:
     assert voce_pubblicabile("Patente di guida di Mario Rossi") == "Patente di guida"
     assert voce_pubblicabile("Sentenza") == "Sentenza"
     assert voce_pubblicabile("Contratto di consulenza con Mario Rossi") == VOCE_FUORI_ELENCO
+    # Voci fisse del resolver e del catalogo del fascicolo, scritte per esteso nel codice.
+    assert voce_pubblicabile("Contributo unificato / esenzione") == "Contributo unificato / esenzione"
+    assert voce_pubblicabile("Messaggio email") == "Messaggio email"
+    assert voce_pubblicabile("Indice dei documenti depositati") == "Indice dei documenti depositati"
+    assert voce_pubblicabile("Istanza ex art 492.PDF") == VOCE_FUORI_ELENCO
 
     assegnazioni = [
         SimpleNamespace(document_id=f"D{n}", document_label="Carta d'identità di Mario Rossi", status="proposed",

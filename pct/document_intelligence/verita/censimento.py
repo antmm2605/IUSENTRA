@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Iterable
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from .decisioni import etichette_dalle_decisioni
@@ -27,11 +28,33 @@ def _strutturale(etichetta: str) -> bool:
 VOCE_FUORI_ELENCO = "Voce fuori elenco"
 
 
+# Moduli che scrivono le voci del catalogo: una voce scritta qui per esteso è una voce governata, mai un dato del cliente.
+_SORGENTI_DELLE_VOCI = ("pct/document_intelligence", "pct/fascicolo_document_catalog.py")
+
+
+@lru_cache(maxsize=1)
+def _sorgenti_del_catalogo() -> str:
+    radice = Path(__file__).resolve().parents[3]
+    testi = []
+    for voce in _SORGENTI_DELLE_VOCI:
+        percorso = radice / voce
+        for file in sorted(percorso.rglob("*.py")) if percorso.is_dir() else [percorso]:
+            if "verita" not in file.parts:
+                testi.append(file.read_text(encoding="utf-8", errors="ignore"))
+    return "\n".join(testi)
+
+
 @lru_cache(maxsize=1)
 def _voci_note() -> frozenset[str]:
     from pct.document_intelligence.catalog_lex import voci_catalogo
 
     return frozenset(voce.label for voce in voci_catalogo())
+
+
+@lru_cache(maxsize=4096)
+def _voce_scritta_nel_catalogo(voce: str) -> bool:
+    sorgenti = _sorgenti_del_catalogo()
+    return f'"{voce}"' in sorgenti or f"'{voce}'" in sorgenti
 
 
 @lru_cache(maxsize=1)
@@ -45,10 +68,11 @@ def voce_pubblicabile(etichetta: str) -> str:
     """La voce come può uscire dal server: solo voci del catalogo governato, mai un nome.
 
     Il catalogo intitola il documento d'identità al titolare («Carta d'identità di …») e conserva le etichette
-    scritte a mano o dedotte dal nome del file: nel riepilogo restano il tipo di documento o una voce generica.
+    scritte a mano o dedotte dal nome del file: nel riepilogo restano le voci scritte per esteso nel codice del
+    catalogo, il tipo di documento d'identità o una voce generica.
     """
     voce = str(etichetta or "").strip()
-    if voce in _voci_note() or _strutturale(voce):
+    if voce in _voci_note() or _strutturale(voce) or (voce and _voce_scritta_nel_catalogo(voce)):
         return voce
     for tipo in _tipi_identita():
         if voce == tipo or voce.startswith(f"{tipo} di "):

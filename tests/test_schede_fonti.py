@@ -146,7 +146,7 @@ def test_rifiuta_akn_di_altro_atto_anche_con_articolo_richiesto(urn):
 def test_verifica_rilascio_biblioteca_e_in_sola_lettura(ambiente, monkeypatch):
     import runpy
     import pct.schede_fonti.verifica as modulo
-    db, schede, _ = ambiente
+    db, schede, tmp = ambiente
     originale = modulo.verifica_schede
     monkeypatch.setattr(modulo, "verifica_schede", lambda d: originale(d, schede))
     import sqlite3
@@ -154,8 +154,20 @@ def test_verifica_rilascio_biblioteca_e_in_sola_lettura(ambiente, monkeypatch):
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     prima = db.read_bytes()
     verifica = runpy.run_path(str(Path(__file__).resolve().parents[1] / "deploy/hetzner/verifica_fonti_lex.py"))["verifica_biblioteca_schede"]
+    with pytest.raises(ValueError, match="riferimenti assenti"):
+        verifica(db)
+    assert db.read_bytes() == prima
+    norma = _riga("legge_53_1994", "3bis", "Art. 3-bis. (Notificazioni a mezzo PEC) La notificazione puo' eseguirsi a mezzo posta elettronica certificata.",
+                  urn="urn:nir:stato:legge:1994-01-21;53")
+    norma.update(titolo_atto="Legge 21 gennaio 1994, n. 53", data_atto="1994-01-21",
+                 url="https://www.normattiva.it/atto/caricaDettaglioAtto?atto.dataPubblicazioneGazzetta=1994-01-31&atto.codiceRedazionale=094G0053")
+    importa_fonti(_pacchetto(tmp / "completa", [norma]), db, "2026-10-24")
+    with sqlite3.connect(db) as conn:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    prima = db.read_bytes()
     esito = verifica(db)
-    assert esito["norme"] == 3 and esito["stati"]["presente"] == 1
+    assert esito["norme"] == 3 and esito["stati"]["presente"] == 2
+    assert esito["stati"]["abrogato"] == 1
     assert not esito["scritture"] and not esito["approvazioni_automatiche"]
     assert db.read_bytes() == prima
 

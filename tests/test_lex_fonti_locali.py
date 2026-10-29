@@ -21,7 +21,7 @@ from lex.normativa.normattiva_importer import import_raw_dir
 from lex.ricerca_giuridica import indice_vettoriale as iv
 from lex.ricerca_giuridica.embedding import EmbedderFinto
 from lex.ricerca_giuridica.indice_fts import sincronizza_fts
-from tests.test_normattiva_importer import NIR_CODE_XML
+from tests.test_normattiva_importer import NIR_CODE_XML as NIR_CODE_NON_ARTICOLATO_XML
 
 RADICE = Path(__file__).resolve().parents[1]
 SCRIPT_SH = RADICE / "deploy" / "hetzner" / "carica_fonti_lex.sh"
@@ -30,6 +30,20 @@ _spec = importlib.util.spec_from_file_location("lex_normattiva_locale", RADICE /
 locale = importlib.util.module_from_spec(_spec)
 sys.modules["lex_normattiva_locale"] = locale
 _spec.loader.exec_module(locale)
+
+# La ricerca puntuale richiede articoli strutturati: l'allegato originale
+# senza articolato rimane coperto separatamente e non diventa una falsa citazione.
+_ANNEX_ARTICOLATO = """<annesso><articolato>
+<articolo><num>Art. 2042.</num><rubrica>Carattere sussidiario dell'azione.</rubrica>
+<comma>L'azione di arricchimento non e' proponibile quando il danneggiato puo' esercitare un'altra azione.</comma></articolo>
+<articolo><num>Art. 2043.</num><rubrica>Risarcimento per fatto illecito.</rubrica>
+<comma>Qualunque fatto doloso o colposo, che cagiona ad altri un danno ingiusto, obbliga chi ha commesso il fatto a risarcire il danno.</comma></articolo>
+<articolo><num>Art. 2044.</num><rubrica>Legittima difesa.</rubrica></articolo>
+</articolato></annesso>"""
+NIR_CODE_XML = (NIR_CODE_NON_ARTICOLATO_XML.split("<annesso>", 1)[0]
+                + _ANNEX_ARTICOLATO
+                + NIR_CODE_NON_ARTICOLATO_XML.split("</annesso>", 1)[1])
+
 
 NIR_SECONDO = NIR_CODE_XML.replace("Approvazione del testo del Codice civile.", "Approvazione del testo del Codice di procedura civile.").replace(
     "<numDoc>262</numDoc>", "<numDoc>1443</numDoc>"
@@ -132,6 +146,19 @@ def test_verifica_locale_tre_ricerche(tmp_path, monkeypatch):
     p = _archivio(tmp_path / "pc", vettori=False)
     esiti = locale.esegui_ricerche_di_prova(p.db)
     assert len(esiti) == 3 and esiti[0]["ok"], esiti[0]
+    assert any("2043" in titolo for titolo in esiti[0]["migliori"])
+
+
+def test_annesso_non_articolato_non_diventa_un_articolo_esatto(tmp_path, monkeypatch):
+    monkeypatch.setenv("LEX_RICERCA_SEMANTICA", "0")
+    p = locale.Percorsi(tmp_path / "pc")
+    _zip(p.raw, "Codici_XML_ORIGINALE_2026-10-01.zip", NIR_CODE_NON_ARTICOLATO_XML, "RD_1942_262/a.xml")
+    assert import_raw_dir(raw_dir=p.raw, db_path=p.db, jsonl_path=p.jsonl, min_score=0).errors == 0
+    esiti = locale.esegui_ricerche_di_prova(p.db)
+    assert not esiti[0]["ok"] and esiti[1]["ok"]
+    with sqlite3.connect(p.db) as conn:
+        testo = conn.execute("SELECT testo FROM normative_components").fetchone()[0]
+        assert "2043" in testo and "danno ingiusto" in testo
 
 
 # ---------------------------------------------------------------------------------------------- #

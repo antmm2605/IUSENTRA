@@ -23,7 +23,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from addestra import MODELLO_BASE
-from dati import conversazione, disaccordi, gruppo, leggi_pacchetto, leggi_risposta, misura, voci_del_prefisso
+from dati import (
+    applica_decisioni,
+    conversazione,
+    disaccordi,
+    gruppo,
+    leggi_pacchetto,
+    leggi_risposta,
+    misura,
+    voci_del_prefisso,
+)
 
 
 def main() -> int:
@@ -34,6 +43,7 @@ def main() -> int:
     parser.add_argument("--modello", default=MODELLO_BASE)
     parser.add_argument("--codice-del-modello", action="store_true", help="trust_remote_code (Spark-X2.5)")
     parser.add_argument("--uscita", type=Path, required=True)
+    parser.add_argument("--decisioni", type=Path, help="JSONL delle decisioni sui disaccordi (verifica decisiva)")
     parser.add_argument("--massimo-per-gruppo", type=int, default=0, help="0 = tutte")
     args = parser.parse_args()
     if not args.senza_adattatore and not args.adattatore:
@@ -43,6 +53,7 @@ def main() -> int:
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
     prefisso, righe, manifesto = leggi_pacchetto(args.pacchetto)
+    righe = applica_decisioni(righe, args.decisioni)
     voci = voci_del_prefisso(prefisso)
     tokenizer = AutoTokenizer.from_pretrained(args.adattatore or args.modello, trust_remote_code=args.codice_del_modello)
     modello = AutoModelForCausalLM.from_pretrained(
@@ -69,7 +80,7 @@ def main() -> int:
                        "pacchetto": manifesto}
     tutti_disaccordi: list[dict] = []
     predizioni: list[dict] = []
-    for nome in ("verifica_avvocato", "verifica", "banco_inventati", "da_rivedere"):
+    for nome in ("verifica_decisioni", "verifica_avvocato", "verifica", "banco_inventati", "da_rivedere"):
         scelte = gruppo(righe, nome)
         if args.massimo_per_gruppo:
             scelte = scelte[:args.massimo_per_gruppo]

@@ -61,8 +61,9 @@ def risposta(testo: str, voce: str) -> str:
 
 
 def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInventato], voci: set[str],
-                  banco: Iterable[DocumentoInventato] = ()
+                  banco: Iterable[DocumentoInventato] = (), disaccordi: dict[str, str] | None = None
                   ) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]], dict[str, Any]]:
+    """`disaccordi`: documento → voce scelta con sicurezza dal classificatore piccolo contro le regole."""
     """Righe del dataset, corrispondenze codice → documento (solo server) e conteggi del manifesto."""
     righe: list[dict[str, Any]] = []
     corrispondenze: dict[str, dict[str, str]] = {}
@@ -86,7 +87,8 @@ def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInv
             gruppo = "verifica" if in_verifica(c.document_id) else "addestramento"
             riga.update(gruppo=gruppo, fonte="regole_quasi_certe", voce=c.voce, risposta=risposta(testo, c.voce))
         elif c.stato in {"proposed", "review_required"} and c.origine != "manual_override":
-            riga.update(gruppo="da_rivedere", fonte="regole_incerte", voce="", confidenza_regole=c.confidenza)
+            riga.update(gruppo="da_rivedere", fonte="regole_incerte", voce="", confidenza_regole=c.confidenza,
+                        voce_lineare=(disaccordi or {}).get(c.document_id, ""))
         else:
             scartati["fuori_elenco_o_gia_deciso"] += 1
             continue
@@ -116,12 +118,13 @@ def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInv
         righe.append({"id": _codice("banco", str(n), d.origine), "testo": d.testo, "gruppo": "banco_inventati",
                       "fonte": "inventato", "voce": d.voce, "voce_regole": d.voce, "voce_spark": "",
                       "risposta": risposta(d.testo, d.voce)})
+    disaccordi_esportati = sum(1 for r in righe if r.get("voce_lineare"))
     per_gruppo = Counter(r["gruppo"] for r in righe)
     per_fonte = Counter(f"{r['gruppo']}/{r['fonte']}" for r in righe)
     per_voce = Counter(r["voce"] for r in righe if r["gruppo"] == "addestramento")
     manifesto = {"formato": FORMATO, "righe": len(righe), "per_gruppo": dict(per_gruppo), "per_fonte": dict(per_fonte),
                  "voci_in_addestramento": len(per_voce), "voci_con_almeno_30": sum(1 for n in per_voce.values() if n >= 30),
-                 "scartati": dict(scartati)}
+                 "disaccordi_da_rivedere": disaccordi_esportati, "scartati": dict(scartati)}
     return righe, corrispondenze, manifesto
 
 

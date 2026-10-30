@@ -11,10 +11,17 @@ per gruppo e la cartella sul server (`/opt/iusentra/data/…/intelligence/addest
 Il file `corrispondenze.json` accanto al pacchetto **resta sul server**.
 
 ## 2. Copia sul PC (WSL Ubuntu)
+Il workflow copia il pacchetto (senza corrispondenze) nella cartella dell'utente `claude-iusentra` sul server.
 ```bash
 mkdir -p ~/iusentra-addestramento && chmod 700 ~/iusentra-addestramento
-scp -r root@IUSENTRA-SERVER:CARTELLA_DEL_PACCHETTO ~/iusentra-addestramento/pacchetto
+scp -r iusentra-claude:addestramento_catalogo/pacchetto_studio_1 ~/iusentra-addestramento/pacchetto
 ```
+
+## 2-bis. Decisioni sui disaccordi
+Le righe «da rivedere» con `voce_lineare` sono i disaccordi sicuri fra regole e classificatore piccolo. Le
+decisioni (dell'avvocato o, su sua autorizzazione del 30/10/2026, di Claude sui testi pseudonimizzati) vanno in
+`~/iusentra-addestramento/decisioni.jsonl`, una riga per documento: `{"id": codice, "voce": voce del catalogo,
+"fonte": "avvocato" | "claude"}`. `valuta.py` e `banco.py` le usano con `--decisioni` come verifica decisiva.
 
 ## 3. Ambiente
 ```bash

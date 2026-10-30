@@ -124,3 +124,19 @@ def test_banco_confronta_regole_lineare_e_modelli_sulle_stesse_righe(tmp_path):
     assert risultati["regole"]["banco_inventati"]["accuratezza"] == 100.0
     assert risultati["qwen"]["banco_inventati"]["giuste"] < risultati["qwen"]["banco_inventati"]["valutate"]
     assert risultati["lineare"]["banco_inventati"]["valutate"] == manifesto["per_gruppo"]["banco_inventati"]
+
+
+def test_decisioni_sui_disaccordi_diventano_verifica_con_la_fonte(tmp_path):
+    righe = [{"id": "a", "gruppo": "da_rivedere", "voce": "", "voce_lineare": "Sentenza"},
+             {"id": "b", "gruppo": "da_rivedere", "voce": ""},
+             {"id": "c", "gruppo": "addestramento", "voce": "Procura alle liti"}]
+    file = tmp_path / "decisioni.jsonl"
+    file.write_text("\n".join(json.dumps(d) for d in [
+        {"id": "a", "voce": "Verbale di udienza", "fonte": "claude"},
+        {"id": "c", "voce": "Sentenza", "fonte": "claude"}]), encoding="utf-8")
+    uscita = {r["id"]: r for r in dati_pc.applica_decisioni(righe, file)}
+    assert uscita["a"]["gruppo"] == "verifica_decisioni" and uscita["a"]["voce"] == "Verbale di udienza"
+    assert uscita["a"]["fonte"] == "decisione_claude"
+    assert uscita["b"]["gruppo"] == "da_rivedere"
+    # Una riga di addestramento non diventa verifica: resterebbe vista dal modello.
+    assert uscita["c"]["gruppo"] == "addestramento" and uscita["c"]["voce"] == "Procura alle liti"

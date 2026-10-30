@@ -1,7 +1,8 @@
 name: Pacchetto di addestramento del catalogo
 # Autorizzazione dell'avvocato del 30/10/2026: prepara sul server il pacchetto di addestramento del modello di
 # catalogazione (testi pseudonimizzati ed esempi inventati) da copiare sul suo PC via Tailscale. I testi NON passano
-# da GitHub: il job stampa solo conteggi e il percorso del pacchetto sul server.
+# da GitHub: il job stampa solo conteggi e il percorso del pacchetto sul server, copiato (senza le corrispondenze)
+# nella cartella dell'utente claude-iusentra, con cui il PC entra nel server via Tailscale.
 on:
   workflow_dispatch:
 permissions:
@@ -36,6 +37,17 @@ jobs:
           grep -m1 '^ESPORTAZIONE_JSON:' uscita.txt | sed 's/^ESPORTAZIONE_JSON://' | jq . > esportazione.json
           rm -f uscita.txt
           jq -e '.studi' esportazione.json > /dev/null
+          # Il pacchetto è scritto dal container come root (0600): lo si copia, senza le corrispondenze codice →
+          # documento, nella cartella dell'utente con cui il PC dello studio entra nel server.
+          for studio in $(jq -r '.studi | to_entries[] | select(.value.righe > 0) | .key' esportazione.json); do
+            sorgente=$(jq -r --arg s "$studio" '.studi[$s].cartella_pacchetto | sub("^/data"; "/opt/iusentra/data")' esportazione.json)
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
+              "set -euo pipefail; casa=\$(getent passwd claude-iusentra | cut -d: -f6); test -n \"\$casa\"; \
+               destinazione=\"\$casa/addestramento_catalogo/pacchetto_${studio}\"; \
+               install -d -o claude-iusentra -g claude-iusentra -m 700 \"\$casa/addestramento_catalogo\" \"\$destinazione\"; \
+               install -o claude-iusentra -g claude-iusentra -m 600 '${sorgente}/dataset.jsonl.gz' '${sorgente}/prefisso_domanda.txt' '${sorgente}/manifesto.json' \"\$destinazione/\"; \
+               echo \"Pacchetto per il PC: \$destinazione\""
+          done
           # Solo conteggi e voci pubblicabili: leggibili anche dal log del job.
           jq -c . esportazione.json
           {

@@ -14,7 +14,8 @@ Confronta, gruppo per gruppo:
   esempi di Qwen;
 - ogni modello passato con `--risultati` (le `predizioni.jsonl` di `valuta.py`).
 
-Gruppo decisivo: `verifica_avvocato` (decisioni dell'avvocato). Oltre all'accuratezza complessiva si riporta la
+Gruppi decisivi: `verifica_decisioni` (disaccordi decisi con `--decisioni`) e `verifica_avvocato` (decisioni
+dell'avvocato nel catalogo). Oltre all'accuratezza complessiva si riporta la
 media per voce, che non lascia nascondere le voci rare dietro le frequenti. Esce solo con conteggi.
 """
 
@@ -28,9 +29,9 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from dati import gruppo, leggi_pacchetto
+from dati import applica_decisioni, gruppo, leggi_pacchetto
 
-GRUPPI = ("verifica_avvocato", "verifica", "banco_inventati")
+GRUPPI = ("verifica_decisioni", "verifica_avvocato", "verifica", "banco_inventati")
 
 
 def _classificatore_lineare():
@@ -79,9 +80,11 @@ def main() -> int:
     parser.add_argument("--pacchetto", type=Path, required=True)
     parser.add_argument("--risultati", action="append", default=[], help="nome=cartella con predizioni.jsonl")
     parser.add_argument("--uscita", type=Path, required=True)
+    parser.add_argument("--decisioni", type=Path, help="JSONL delle decisioni sui disaccordi (verifica decisiva)")
     args = parser.parse_args()
 
     _prefisso, righe, manifesto = leggi_pacchetto(args.pacchetto)
+    righe = applica_decisioni(righe, args.decisioni)
     prova = {g: gruppo(righe, g) for g in GRUPPI}
     scelte: dict[str, dict[str, str]] = {
         "regole": {r["id"]: r.get("voce_regole", "") for g in GRUPPI for r in prova[g]},

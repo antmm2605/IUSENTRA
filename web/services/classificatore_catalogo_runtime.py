@@ -144,10 +144,15 @@ def esporta_studio_corrente(*, per_voce_inventati: int = 60) -> dict[str, Any]:
 
     voci = voci_catalogo()
     etichette = {voce.label for voce in voci}
+    intelligence = Path(get_fascicoli().db_path).resolve().parent.parent / "intelligence"
+    # I disaccordi sicuri dell'ultima misura del classificatore piccolo: i documenti da far decidere per primi.
+    file_disaccordi = intelligence / FILE_DISACCORDI
+    disaccordi = {d["document_id"]: d["voce_modello"] for d in json.loads(file_disaccordi.read_text(encoding="utf-8"))
+                  } if file_disaccordi.is_file() else {}
     righe, corrispondenze, manifesto = righe_dataset(
         campioni_studio_corrente(), documenti_inventati(per_voce_inventati, voci=etichette), etichette,
-        banco=documenti_inventati(10, voci=etichette, seme=SEME_BANCO))
-    radice = Path(get_fascicoli().db_path).resolve().parent.parent / "intelligence" / CARTELLA_ADDESTRAMENTO
+        banco=documenti_inventati(10, voci=etichette, seme=SEME_BANCO), disaccordi=disaccordi)
+    radice = intelligence / CARTELLA_ADDESTRAMENTO
     pacchetto = radice / "pacchetto"
     pacchetto.mkdir(parents=True, exist_ok=True, mode=0o700)
     dataset = "\n".join(json.dumps(riga, ensure_ascii=False) for riga in righe).encode("utf-8")

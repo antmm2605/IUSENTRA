@@ -31,6 +31,25 @@ def leggi_pacchetto(cartella: Path) -> tuple[str, list[dict[str, Any]], dict[str
     return prefisso, righe, manifesto
 
 
+def applica_decisioni(righe: list[dict[str, Any]], file: Path | None) -> list[dict[str, Any]]:
+    """Le righe «da rivedere» decise (dall'avvocato o, su sua autorizzazione, da Claude) diventano verifica.
+
+    Il file è JSONL: {"id": codice, "voce": voce del catalogo, "fonte": "avvocato" | "claude"}. La fonte resta
+    nella riga, così ogni misura dice chi ha deciso.
+    """
+    if not file:
+        return righe
+    decisioni = {d["id"]: d for d in map(json.loads, Path(file).read_text(encoding="utf-8").splitlines()) if d}
+    uscita = []
+    for riga in righe:
+        decisa = decisioni.get(riga["id"])
+        if decisa and riga.get("gruppo") == "da_rivedere" and decisa.get("voce"):
+            riga = {**riga, "gruppo": "verifica_decisioni", "voce": decisa["voce"],
+                    "fonte": f"decisione_{decisa.get('fonte') or 'avvocato'}"}
+        uscita.append(riga)
+    return uscita
+
+
 def gruppo(righe: Iterable[dict[str, Any]], nome: str) -> list[dict[str, Any]]:
     return [r for r in righe if r.get("gruppo") == nome]
 
@@ -103,5 +122,5 @@ def disaccordi(righe: list[dict[str, Any]], risposte: dict[str, dict[str, str]])
                    "voce_spark": riga.get("voce_spark", "")}
 
 
-__all__ = ["FORMATO", "NESSUNA_VOCE", "citazione_presente", "conversazione", "disaccordi", "gruppo",
+__all__ = ["FORMATO", "NESSUNA_VOCE", "applica_decisioni", "citazione_presente", "conversazione", "disaccordi", "gruppo",
            "leggi_pacchetto", "leggi_risposta", "misura", "voci_del_prefisso"]

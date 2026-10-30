@@ -1,5 +1,5 @@
 """Audit fonti 29/10/2026: vigenza alla data, provenienza ufficiale, norme fuori Fonti, estremi giurisprudenziali,
-articoli abrogati e registro delle fonti. Solo fixture sintetiche: nessun archivio reale, nessuna rete."""
+articoli abrogati. Solo fixture sintetiche: nessun archivio reale, nessuna rete."""
 from __future__ import annotations
 
 import datetime as dt
@@ -14,7 +14,6 @@ from lex.guards.legal_reference_guard import LegalReferenceGuard
 from lex.procedura_atti.controlla_atto import chiave_atto
 from lex.procedura_atti.fonti_scheda import FontiScheda, fonti_per_scheda
 from lex.procedura_atti.provenienza import sha256_testo, url_ufficiale, verifica_provenienza
-from lex.procedura_atti.registro_fonti import REGISTRO, carica_registro, stato_verifica_effettivo, valida_registro
 from lex.procedura_atti.revisione_indipendente import rivedi
 from lex.procedura_atti.stesura_blocchi import scrivi_blocchi
 from lex.retrieval.abrogazione import abrogazione, tagga_abrogazione
@@ -49,7 +48,7 @@ def scheda(tmp_path):
 
 
 def _con_esiti(monkeypatch, esiti):
-    import pct.schede_fonti.verifica as verifica
+    from pct.schede_fonti import verifica
 
     monkeypatch.setattr(verifica, "verifica_schede", lambda *a, **k: list(esiti))
 
@@ -231,6 +230,12 @@ def test_tag_abrogazione():
     assert abrogazione(TESTO_1219) is None
     riga = tagga_abrogazione({"testo": AVVISO_2409, "metadata": {}})
     assert riga["abrogato"] is True and riga["metadata"]["abrogato_da"].endswith("N. 47")
+    # Righe non strutturate o senza avviso restano come sono.
+    assert tagga_abrogazione(None) is None
+    assert tagga_abrogazione({"testo": TESTO_1219}) == {"testo": TESTO_1219}
+    # Rubrica fra numero e avviso; testo patologico con molte tabulazioni senza rallentamenti.
+    assert abrogazione("Art. 12 (Rubrica) ((ARTICOLO ABROGATO DALLA L. 1/2020))")["abrogato_da"] == "L. 1/2020"
+    assert abrogazione("art-" + "\t" * 100_000) is None
 
 
 def test_ricerca_normattiva_marca_gli_abrogati(monkeypatch):
@@ -261,15 +266,3 @@ def test_flag_abrogato_della_riga_basta():
             "abrogato_da": "d.lgs. 47/2026", "official_url": "https://www.normattiva.it/x"}
     h, _ = _guardie("Si applica l'art. 2409 c.c.", [riga])
     assert h.allowed is False
-
-
-# --- 7. registro delle fonti ---------------------------------------------------------------------------------
-
-def test_snapshot_senza_hash_declassato(tmp_path):
-    p = tmp_path / "r.yml"
-    p.write_text(json.dumps({"sources": [{"id": "a", "verification_status": "verified_snapshot", "source_hash": ""},
-                                         {"id": "b", "verification_status": "verified_snapshot", "source_hash": "f" * 64}]}))
-    payload = carica_registro(p)
-    assert [s["verification_status"] for s in payload["sources"]] == ["snapshot_senza_impronta", "verified_snapshot"]
-    assert valida_registro(json.loads(p.read_text())) == ["a: verified_snapshot senza source_hash SHA-256"]
-    assert stato_verifica_effettivo({"verification_status": "verified_snapshot", "source_hash": "non-hash"}) == "snapshot_senza_impronta"

@@ -6,6 +6,7 @@
 - Notifiche e calendari: bozze escluse da avvisi e calendari esterni, errori per voce con nuovo tentativo, giorni di preavviso rispettati.
 - Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
 - Censimento del catalogo: oltre alle voci di Lex escono dal server anche le voci fisse scritte per esteso nel codice del catalogo (contributo unificato, iscrizione a ruolo, PEC di deposito, provvedimenti); restano escluse le etichette libere.
+- Marcatura degli articoli abrogati con espressione regolare a tempo lineare (CodeQL py/polynomial-redos); rimosso il modulo del registro delle fonti non utilizzato; i test dell'audit fonti entrano nella copertura critica.
 - Escluso dall'integrazione il declassamento del registro delle fonti senza impronta: bloccava ogni bozza finale degli atti e resta da completare.
 
 ## 2.458.0 — 29 ottobre 2026

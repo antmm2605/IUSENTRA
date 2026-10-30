@@ -1,10 +1,7 @@
 {
-  "baseline_sha": "104f234a17efea6696110e3ac6af23ac1a5583d6",
-  "reason": "Estensione esplicita del perimetro misurato rispetto alla ultima release distribuita e verde: lettura integrale a parti, vista RAG con ricevute, selezione fonti e backend PostgreSQL ora importato e provato. Suite estesa con contratti positivi e negativi, conservazione originali e rollback. Nessuna esclusione, soglia ridotta, riga precedentemente coperta persa o nuova baseline accettata automaticamente. Ogni modulo aggiunto deve mantenere almeno la percentuale della baseline, come il perimetro comune e il totale.",
+  "baseline_sha": "bbe4f4d82d6983580d2c9817c8479dc467ba3078",
+  "reason": "Estensione esplicita del perimetro misurato rispetto all'ultima release distribuita e verde (2.457.11): marcatura degli articoli il cui testo archiviato e' solo un avviso di abrogazione, usata dalla ricerca normativa e dalla guardia anti-invenzione. Modulo coperto integralmente dai test dell'audit fonti del 29/10/2026, entrati nella suite critica. Nessuna esclusione, soglia ridotta, riga precedentemente coperta persa o nuova baseline accettata automaticamente.",
   "files": {
-    "lex/procedura_atti/lettura_fonti.py": "251aac5d49ed01ca4212e5e7f9003a5862a9c90eeef94e2d7b5f390e03ae76fd",
-    "lex/providers/lettura_normativa_rag.py": "a1efd1ee0fc2d17e64eea191e65609b4ffe0ea213daf5d9859d9f947c08579bc",
-    "lex/retrieval/selezione_fonti.py": "8d3a842a73f1a210257502221fd36ddc9f51744dc14b55bc101b3ddd8b15d0b2",
-    "pct/storage_postgres.py": "604ecf2d8cef04d98d89c806e1aa916eaf728aeb58932bd64cae5114f80c893e"
+    "lex/retrieval/abrogazione.py": "1422790aca10e54213fa5fecf7ac853a1376c84c0e8ec69204ce68fb30a57a46"
   }
 }

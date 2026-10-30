@@ -184,6 +184,7 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_calendar_microsoft_fuso.py",
         REPO_ROOT / "tests" / "test_scadenziario_171ter_ritroso.py",
         REPO_ROOT / "tests" / "test_verita_catalogo.py",
+        REPO_ROOT / "tests" / "test_fonti_audit_20261029.py",
         REPO_ROOT / "tests" / "test_normativa_full_text_prompt.py",
         REPO_ROOT / "tests" / "test_storage_postgres_contracts.py",
         REPO_ROOT / "tests" / "test_critical_source_reading_contracts.py",

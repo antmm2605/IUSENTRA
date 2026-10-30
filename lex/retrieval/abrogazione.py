@@ -11,7 +11,10 @@ from typing import Any
 
 from lex.normativa.qualita_testo import qualita_testo
 
-_ABROGATO_INTERO = re.compile(r"^\s*Art\.?\s*[\w\-.]+\s*(?:\([^)]*\))?\s*\(*\s*ARTICOLO\s+ABROGATO", re.I)
+# Nessun quantificatore sugli spazi in sequenza con un altro: tempo lineare anche su testi con molte tabulazioni.
+_ABROGATO_INTERO = re.compile(r"^\s*Art\.?\s*[\w.-]+(?:\s+\([^)]*\))?[\s(]*ARTICOLO\s+ABROGATO", re.I)
+# L'avviso sta nell'intestazione dell'articolo.
+_INTESTAZIONE = 400
 _ABROGATO_DA = re.compile(r"ABROGAT[OA]\s+DA(?:L|LLA|LL'|GLI|I)?\s+([^()]{5,160}?)\s*(?:\)\)|\)\s*$|$)", re.I)
 
 
@@ -19,9 +22,9 @@ def abrogazione(testo: Any) -> dict | None:
     """``{"abrogato": True, "abrogato_da": "..."}`` se il testo e' un avviso di abrogazione, altrimenti None."""
     if not isinstance(testo, str) or not testo.strip():
         return None
-    if qualita_testo(testo) != "avviso_abrogazione" and not _ABROGATO_INTERO.search(testo):
+    if qualita_testo(testo) != "avviso_abrogazione" and not _ABROGATO_INTERO.search(testo[:_INTESTAZIONE]):
         return None
-    da = _ABROGATO_DA.search(testo[:400])
+    da = _ABROGATO_DA.search(testo[:_INTESTAZIONE])
     return {"abrogato": True, "abrogato_da": " ".join(da.group(1).split()) if da else ""}
 
 

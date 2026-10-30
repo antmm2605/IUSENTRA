@@ -48,10 +48,10 @@ jobs:
                install -o claude-iusentra -g claude-iusentra -m 600 '${sorgente}/dataset.jsonl.gz' '${sorgente}/prefisso_domanda.txt' '${sorgente}/manifesto.json' \"\$destinazione/\"; \
                echo \"Pacchetto per il PC: \$destinazione\""
           done
-          # Solo conteggi e voci pubblicabili: leggibili anche dal log del job.
-          jq -c . esportazione.json
+          # Solo conteggi e voci pubblicabili: il percorso sul server contiene la cartella dello studio e resta fuori.
+          jq -c 'del(.studi[].cartella_pacchetto)' esportazione.json
           {
             echo '## Pacchetto di addestramento del catalogo'
             echo
-            jq -r '.studi | to_entries[] | "### \(.key)\n- Righe: \(.value.righe)\n- Per gruppo: \(.value.per_gruppo)\n- Cartella sul server: \(.value.cartella_pacchetto | sub("^/data"; "/opt/iusentra/data"))\n"' esportazione.json
+            jq -r '.studi | to_entries[] | "### \(.key)\n- Righe: \(.value.righe)\n- Per gruppo: \(.value.per_gruppo)\n- Copiato per il PC in addestramento_catalogo/pacchetto_\(.key)\n"' esportazione.json
           } >> "$GITHUB_STEP_SUMMARY"

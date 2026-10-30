@@ -242,6 +242,148 @@ def _note_trattazione(d: _Dati, g: random.Random) -> str:
             f"{d.citta}, {d.data}\nAvv. Studio Prova")
 
 
+def _gg(d: _Dati, g: random.Random, scarto: int = 0) -> str:
+    return f"{g.randint(1, 28):02d}/{g.randint(1, 12):02d}/{d.anno + scarto}"
+
+
+def _nota_iscrizione(d: _Dati, g: random.Random) -> str:
+    ufficio = g.choice(("TRIBUNALE ORDINARIO DI", "TRIBUNALE DI", "GIUDICE DI PACE DI"))
+    return (f"{g.choice(('NOTA DI ISCRIZIONE A RUOLO', 'Nota di iscrizione a ruolo', 'NOTA D’ISCRIZIONE A RUOLO'))}\n"
+            f"{ufficio} {d.citta.upper()}\n(nota di accompagnamento ex art. 71 disp. att. c.p.c.)\n"
+            f"Attore/Ricorrente: {d.parte}\nConvenuto/Resistente: {d.controparte}\n"
+            f"Procuratore: Avv. Studio Prova\nOggetto della domanda: {g.choice(('inadempimento contrattuale', 'risarcimento danni', 'pagamento somme'))}\n"
+            f"Codice oggetto: {g.randint(100000, 199999)}\nValore della causa: euro {g.randint(1000, 90000)},00\n"
+            f"Contributo unificato versato: euro {g.choice((98, 237, 518, 759))},00\nData: {d.data}")
+
+
+def _indice_documenti(d: _Dati, g: random.Random) -> str:
+    voci = ("Contratto", "Fatture", "Diffida", "Estratto conto", "Corrispondenza", "Ricevute di pagamento")
+    elenco = "\n".join(f"{n}. {v}" for n, v in enumerate(g.sample(voci, k=g.randint(3, 6)), start=1))
+    return (f"{g.choice(('INDICE DEI DOCUMENTI', 'Indice dei documenti', 'INDICE DOCUMENTI'))}\n"
+            f"{g.choice(('depositati con il deposito telematico', 'prodotti ai sensi dell’art. 74 disp. att. c.p.c.'))}\n"
+            f"nella causa n. {d.numero}/{d.anno} R.G. - {d.parte} contro {d.controparte}\n{elenco}")
+
+
+def _ricevuta_cu(d: _Dati, g: random.Random) -> str:
+    importo = g.choice((43, 98, 118, 237, 518, 759, 1214))
+    return (f"{g.choice(('RICEVUTA DI PAGAMENTO', 'Ricevuta telematica pagoPA', 'RICEVUTA TELEMATICA'))}\n"
+            f"Ente creditore: Ministero della Giustizia\nCausale: contributo unificato - "
+            f"{g.choice(('Tribunale', 'Corte d’Appello', 'Giudice di Pace'))} di {d.citta}\n"
+            f"Importo pagato: euro {importo},00\nData pagamento: {d.data}\n"
+            f"Codice IUV: {g.randint(10**16, 10**17 - 1)}\nPagatore: {d.parte}\nEsito: pagamento eseguito")
+
+
+def _esenzione_cu(d: _Dati, g: random.Random) -> str:
+    return (f"DICHIARAZIONE DI ESENZIONE DAL CONTRIBUTO UNIFICATO\n"
+            f"Il sottoscritto Avv. Studio Prova, difensore di {d.parte}, dichiara che il procedimento n. {d.numero}/{d.anno} "
+            f"è esente dal contributo unificato ai sensi dell'art. 10 D.P.R. 115/2002, "
+            f"{g.choice(('trattandosi di controversia di previdenza', 'essendo la parte titolare di reddito inferiore alla soglia', 'trattandosi di procedimento esente'))}.\n"
+            f"{d.citta}, {d.data}\nAvv. Studio Prova")
+
+
+def _invito_cu(d: _Dati, g: random.Random) -> str:
+    return (f"TRIBUNALE DI {d.citta.upper()}\nCANCELLERIA\nINVITO AL PAGAMENTO DEL CONTRIBUTO UNIFICATO\n"
+            f"ai sensi dell'art. 248 D.P.R. 115/2002\nProcedimento n. {d.numero}/{d.anno} R.G. - parte {d.parte}\n"
+            f"Si invita la parte a regolarizzare il pagamento del contributo unificato dovuto, pari a euro "
+            f"{g.choice((98, 237, 518))},00, entro trenta giorni dalla notifica del presente invito.\nIl Funzionario")
+
+
+def _patrocinio(d: _Dati, g: random.Random) -> str:
+    return (f"CONSIGLIO DELL'ORDINE DEGLI AVVOCATI DI {d.citta.upper()}\n"
+            f"DELIBERA DI AMMISSIONE AL PATROCINIO A SPESE DELLO STATO\n"
+            f"Vista l'istanza presentata da {d.parte} in data {d.data}, ai sensi degli artt. 74 e seguenti D.P.R. 115/2002,\n"
+            f"il Consiglio AMMETTE in via anticipata e provvisoria l'istante al gratuito patrocinio per la causa contro {d.controparte}.\n"
+            f"Il Consigliere segretario")
+
+
+def _proforma(d: _Dati, g: random.Random) -> str:
+    compenso = g.randint(800, 9000)
+    return (f"STUDIO LEGALE ESEMPIO\n{g.choice(('AVVISO DI PARCELLA', 'FATTURA PRO FORMA', 'Notula'))} n. {d.numero}/{d.anno}\n"
+            f"Cliente: {d.parte}\nPratica: {d.parte} / {d.controparte}\nCompenso professionale: euro {compenso},00\n"
+            f"Spese generali 15%: euro {compenso * 15 // 100},00\nCassa avvocati 4%\nIVA 22%\n"
+            f"Totale da corrispondere: euro {compenso * 14 // 10},00\nIl presente documento non costituisce fattura.")
+
+
+def _fattura(d: _Dati, g: random.Random) -> str:
+    imponibile = g.randint(500, 9000)
+    return (f"FATTURA n. {d.numero}/{d.anno} del {d.data}\nSTUDIO LEGALE ESEMPIO - P. IVA 0{g.randint(10**9, 10**10 - 1)}\n"
+            f"Cliente: {d.parte}\nDescrizione: prestazioni professionali {g.choice(('stragiudiziali', 'giudiziali', 'di consulenza'))}\n"
+            f"Imponibile: euro {imponibile},00\nCassa avvocati 4%\nIVA 22%\n"
+            f"Totale fattura: euro {imponibile * 13 // 10},00\nModalità di pagamento: bonifico")
+
+
+def _visura(d: _Dati, g: random.Random) -> str:
+    return (f"{g.choice(('Visura per soggetto', 'Visura per immobile', 'Visura catastale'))}\n"
+            f"Agenzia delle Entrate - Direzione Provinciale di {d.citta} - Ufficio Provinciale Territorio\n"
+            f"Servizi Catastali\nData: {d.data}\nCatasto dei Fabbricati\nComune di {d.citta}\n"
+            f"Foglio {g.randint(1, 80)} Particella {g.randint(1, 900)} Sub {g.randint(1, 30)}\n"
+            f"Categoria A/{g.randint(2, 7)} Classe {g.randint(1, 6)} Rendita euro {g.randint(200, 1500)},{g.randint(10, 99)}\n"
+            f"Intestato: {d.parte}")
+
+
+def _recapito_postale(d: _Dati, g: random.Random) -> str:
+    return (f"Poste Italiane\nDOCUMENTAZIONE DI RECAPITO\nRaccomandata n. {g.randint(10**11, 10**12 - 1)}\n"
+            f"Destinatario: {d.controparte}\n[ ] avvenuta consegna\n[ ] mancata consegna\n[ ] avvenuto ritiro\n"
+            f"Data: {d.data}\nFirma dell'addetto")
+
+
+def _avviso_ricevimento(d: _Dati, g: random.Random) -> str:
+    return (f"Poste Italiane\nAVVISO DI RICEVIMENTO\n{g.choice(('Raccomandata A.R.', 'Atti giudiziari - notificazione a mezzo posta'))}\n"
+            f"n. {g.randint(10**11, 10**12 - 1)}\nDestinatario: {d.controparte}, {d.citta}\nMittente: Avv. Studio Prova\n"
+            f"Consegnato il {d.data}\nFirma del ricevente")
+
+
+def _relazione_ctu(d: _Dati, g: random.Random) -> str:
+    return (f"TRIBUNALE DI {d.citta.upper()}\nCausa n. {d.numero}/{d.anno} R.G. - {d.parte} contro {d.controparte}\n"
+            f"{g.choice(('RELAZIONE PERITALE', 'Relazione peritale del CTU', 'PERIZIA DEL CTU'))}\n"
+            f"Il sottoscritto consulente tecnico d'ufficio, nominato con ordinanza del {_gg(d, g)}, rassegna le proprie risposte ai quesiti.\n"
+            f"1. Descrizione dei luoghi e delle operazioni svolte.\n2. Risposta ai quesiti.\n3. Conclusioni.\nIl CTU")
+
+
+def _decreto_ctu(d: _Dati, g: random.Random) -> str:
+    return (f"TRIBUNALE DI {d.citta.upper()}\nDECRETO DI LIQUIDAZIONE\nCausa n. {d.numero}/{d.anno} R.G.\n"
+            f"Il Giudice, vista l'istanza del CTU, esaminata la consulenza tecnica depositata,\n"
+            f"LIQUIDA al consulente tecnico d'ufficio la somma di euro {g.randint(800, 6000)},00 oltre accessori,\n"
+            f"ponendola provvisoriamente a carico di {d.parte}.\n{d.citta}, {d.data}\nIl Giudice")
+
+
+def _nomina_ctp(d: _Dati, g: random.Random) -> str:
+    return (f"TRIBUNALE DI {d.citta.upper()}\nCausa n. {d.numero}/{d.anno} R.G.\n"
+            f"{g.choice(('NOMINA DEL CTP', 'Nomina CTP', 'DESIGNAZIONE DEL CTP'))}\n"
+            f"Il sottoscritto difensore di {d.parte} nomina quale consulente tecnico di parte l'Ing. Esempio, "
+            f"che parteciperà alle operazioni peritali.\n{d.citta}, {d.data}\nAvv. Studio Prova")
+
+
+def _avvio_peritali(d: _Dati, g: random.Random) -> str:
+    return (f"Ing. Esempio - Consulente Tecnico d'Ufficio\nTribunale di {d.citta} - causa n. {d.numero}/{d.anno} R.G.\n"
+            f"Oggetto: comunicazione di {g.choice(('inizio', 'avvio'))} delle attività peritali\n"
+            f"Si comunica alle parti che le operazioni peritali avranno inizio il giorno {_gg(d, g, 1)} alle ore 10:00 "
+            f"presso {g.choice(('lo studio del CTU', 'i luoghi di causa'))}.\nIl CTU")
+
+
+def _accordo_mediazione(d: _Dati, g: random.Random) -> str:
+    return (f"{g.choice(('ACCORDO DI CONCILIAZIONE', 'Accordo di mediazione', 'ACCORDO DI CONCILIAZIONE'))}\n"
+            f"Organismo di mediazione Esempio iscritto al n. {g.randint(1, 1200)} del registro\n"
+            f"Procedimento n. {d.numero}/{d.anno} tra {d.parte} e {d.controparte}\n"
+            f"Le parti convengono quanto segue: {d.controparte} corrisponde a {d.parte} la somma di euro "
+            f"{g.randint(1000, 30000)},00 a saldo e stralcio di ogni pretesa.\n{d.citta}, {d.data}\nIl mediatore")
+
+
+def _modulo_mediazione(d: _Dati, g: random.Random) -> str:
+    return ("ISTANZA DI MEDIAZIONE\nOrganismo di mediazione Esempio\nParte istante: ______________\n"
+            "Codice fiscale: ______________\nParte invitata: ______________\nOggetto della controversia: ______________\n"
+            f"Valore della lite: ______________\n(D.Lgs. 28/2010) Modulo aggiornato al {d.anno}")
+
+
+def _procura_mediazione(d: _Dati, g: random.Random) -> str:
+    vuoto = g.random() < 0.5
+    chi = "______________" if vuoto else d.parte
+    return (f"Il sottoscritto {chi}, nato a {'______________' if vuoto else d.citta},\n"
+            f"conferisce procura speciale sostanziale a {'______________' if vuoto else 'Avv. Studio Prova'} "
+            f"per partecipare in suo nome al procedimento dinanzi all'Organismo di mediazione Esempio, "
+            f"con facoltà di conciliare e transigere.\n{d.citta}, {d.data}\nFirma {'______________' if vuoto else chi}")
+
+
 MODELLI_CONTENUTO: dict[str, Callable[[_Dati, random.Random], str]] = {
     "Sentenza": _sentenza,
     "Procura alle liti": _procura,
@@ -252,6 +394,27 @@ MODELLI_CONTENUTO: dict[str, Callable[[_Dati, random.Random], str]] = {
     "Richiesta stragiudiziale di pagamento": _richiesta_pagamento,
     "Messaggio PEC": _messaggio_pec,
     "Note di trattazione scritta": _note_trattazione,
+    "Nota di iscrizione a ruolo": _nota_iscrizione,
+    "Indice dei documenti depositati": _indice_documenti,
+    "Contributo unificato / pagamento": _ricevuta_cu,
+    "Contributo unificato / esenzione": _esenzione_cu,
+    "Contributo unificato / invito pagamento": _invito_cu,
+    "Patrocinio a spese dello Stato": _patrocinio,
+    "Proforma / avviso di parcella": _proforma,
+    "Fattura": _fattura,
+    "Visura catastale": _visura,
+    "Documentazione di recapito postale": _recapito_postale,
+    "Avviso di ricevimento postale": _avviso_ricevimento,
+    "Relazione peritale CTU": _relazione_ctu,
+    "Decreto di liquidazione CTU": _decreto_ctu,
+    "Nomina di CTP": _nomina_ctp,
+    "Comunicazione avvio operazioni peritali": _avvio_peritali,
+    "Accordo di mediazione": _accordo_mediazione,
+    "Modulo di istanza di mediazione": _modulo_mediazione,
+    # Con i campi vuoti il catalogo la riconosce come modulo, compilata come procura: si tengono solo quelli
+    # che il catalogo classifica come la voce attesa.
+    "Procura speciale per la mediazione": _procura_mediazione,
+    "Modulo di procura speciale per la mediazione": _procura_mediazione,
 }
 
 

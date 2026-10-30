@@ -142,3 +142,18 @@ def test_decisioni_sui_disaccordi_diventano_verifica_con_la_fonte(tmp_path):
     assert uscita["b"]["gruppo"] == "da_rivedere"
     # Una riga di addestramento non diventa verifica: resterebbe vista dal modello.
     assert uscita["c"]["gruppo"] == "addestramento" and uscita["c"]["voce"] == "Procura alle liti"
+
+
+def test_la_citazione_salta_numeri_di_pagina_e_non_mozza_le_parole():
+    for testo in ("TRIBUNALE ORDINARIO DI MILANO SEZIONE QUARTA CIVILE " * 8 + "\nricorso",
+                  "1\n2\n- - -\nATTO DI CITAZIONE\nper il sig. X",
+                  "Pag. 1 di 3\n\nALL'ILL.MO TRIBUNALE DI ROMA\nricorso ex art. 702-bis"):
+        assert citazione_nel_testo(citazione(testo), testo)
+    assert citazione("Pag. 1 di 3\n\nALL'ILL.MO TRIBUNALE DI ROMA\nricorso").startswith("ALL'ILL.MO")
+
+
+def test_gli_esempi_inventati_coprono_le_nuove_voci():
+    nuove = {"Nota di iscrizione a ruolo", "Contributo unificato / pagamento", "Relazione peritale CTU",
+             "Avviso di ricevimento postale", "Fattura", "Procura speciale per la mediazione"}
+    voci = {d.voce for d in documenti_inventati(3, voci=nuove)}
+    assert voci == nuove

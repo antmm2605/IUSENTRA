@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import Counter
 from collections.abc import Iterable
 from typing import Any
@@ -36,16 +37,38 @@ def _codice(*parti: str) -> str:
     return hashlib.sha256("|".join(parti).encode("utf-8")).hexdigest()[:20]
 
 
+_PAROLA = re.compile(r"[^\W\d_]{2,}")
+_NUMERO_PAGINA = re.compile(r"(?i)^\W*pag(?:ina|\.)?\s*\d")
+
+
+def _taglia(frase: str, massimo: int = 240) -> str:
+    """Taglio a parola intera: una parola mozzata non si ritrova nel testo e invalida la citazione."""
+    return frase if len(frase) <= massimo else frase[:massimo].rsplit(" ", 1)[0]
+
+
 def citazione(testo: str) -> str:
-    """Le righe d'intestazione dall'alto, unite fino ad almeno quattro parole (la verifica del catalogo
-    tollera gli a capo fra righe intere: `catalog_lex.citazione_nel_testo`)."""
-    righe: list[str] = []
-    for riga in str(testo or "").splitlines()[:15]:
-        if riga.strip():
-            righe.append(riga.strip())
-            if len(" ".join(righe).split()) >= 4:
+    """La prima frase d'intestazione dall'alto (almeno quattro parole) che si ritrova davvero nel testo.
+
+    Si salta ciò che precede l'intestazione e non la dimostra (numeri di pagina, righe di soli segni o cifre);
+    il taglio è a parola intera. La verifica tollera gli a capo fra righe intere: `catalog_lex.citazione_nel_testo`.
+    """
+    from pct.document_intelligence.catalog_lex import citazione_nel_testo
+
+    righe = [riga.strip() for riga in str(testo or "").splitlines()[:30] if riga.strip()]
+    prima = ""
+    for inizio, riga in enumerate(righe):
+        if not _PAROLA.search(riga) or _NUMERO_PAGINA.match(riga):
+            continue
+        scelte: list[str] = []
+        for seguente in righe[inizio:]:
+            scelte.append(seguente)
+            if len(_PAROLA.findall(" ".join(scelte))) >= 4:
                 break
-    return " ".join(righe)[:240]
+        frase = _taglia(" ".join(scelte))
+        prima = prima or frase
+        if citazione_nel_testo(frase, testo):
+            return frase
+    return prima
 
 
 def _citazione_valida(testo: str) -> bool:

@@ -212,3 +212,14 @@ def test_modello_del_catalogo_spark_con_riserva_qwen(monkeypatch):
     assert not runtime._modello_non_eseguibile("connection refused")
     runtime._MODELLI_NON_ESEGUIBILI.add("maternion/spark-x2.5:4b")
     assert runtime.modello_catalogo() == "qwen3:4b"
+
+
+def test_le_identita_certe_del_catalogo_sono_nell_elenco_chiuso():
+    """Una voce che il catalogo riconosce con certezza deve poter essere scelta anche da Lex e dal modello."""
+    import re
+    from pathlib import Path
+
+    sorgente = Path(__file__).resolve().parents[1] / "pct/document_intelligence/catalog_identity.py"
+    identita = set(re.findall(r"result\('([^']+)'", sorgente.read_text(encoding="utf-8")))
+    identita |= {"Procura speciale per la mediazione", "Contributo unificato / pagamento"}
+    assert identita <= {voce.label for voce in voci_catalogo()}

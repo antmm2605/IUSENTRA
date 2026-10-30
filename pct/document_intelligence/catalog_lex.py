@@ -71,6 +71,29 @@ _VOCI_DEL_RESOLVER = (
     VoceCatalogo("Messaggio PEC", "comunicazioni", "comunicazione", "fuori_busta", False),
     VoceCatalogo("Documento d'identità", "identita", "documento_identita", "allegato", True),
     VoceCatalogo("Attestazione di conformità", "allegati", "attestazione", "allegato", True),
+    # Identità certe di `catalog_identity` e voci del resolver che mancavano dall'elenco chiuso: senza, Lex e il
+    # modello addestrato non potevano scegliere documenti che il catalogo stesso riconosce (revisione 30/10/2026).
+    VoceCatalogo("Nota di iscrizione a ruolo", "atti", "nota_iscrizione_ruolo", "fuori_busta", False),
+    VoceCatalogo("Indice dei documenti depositati", "allegati", "indice_documenti", "fuori_busta", False),
+    VoceCatalogo("Contributo unificato / pagamento", "pagamenti", "contributo_unificato", "contributo_unificato", True),
+    VoceCatalogo("Contributo unificato / esenzione", "pagamenti", "contributo_unificato", "contributo_unificato", True),
+    VoceCatalogo("Contributo unificato / invito pagamento", "pagamenti", "contributo_unificato", "fuori_busta", False),
+    VoceCatalogo("Patrocinio a spese dello Stato", "pagamenti", "gratuito_patrocinio", "allegato", True),
+    VoceCatalogo("Proforma / avviso di parcella", "pagamenti", "proforma", "allegato", True),
+    VoceCatalogo("Fattura", "pagamenti", "fattura", "allegato", True),
+    VoceCatalogo("Avviso di ricevimento postale", "notifiche", "prova_notifica", "prova_notifica", True),
+    VoceCatalogo("Documentazione di recapito postale", "notifiche", "prova_notifica", "prova_notifica", True),
+    VoceCatalogo("Relazione peritale CTU", "allegati", "relazione_peritale_ctu", "allegato", True),
+    VoceCatalogo("Decreto di liquidazione CTU", "provvedimenti", "decreto_liquidazione_ctu", "fuori_busta", False),
+    VoceCatalogo("Nomina di CTP", "allegati", "nomina_ctp", "allegato", True),
+    VoceCatalogo("Comunicazione avvio operazioni peritali", "comunicazioni", "comunicazione_avvio_operazioni_peritali",
+                 "fuori_busta", False),
+    VoceCatalogo("Visura catastale", "allegati", "visura_catastale", "allegato", True),
+    VoceCatalogo("Accordo di mediazione", "allegati", "accordo_mediazione", "allegato", True),
+    VoceCatalogo("Modulo di istanza di mediazione", "allegati", "modulo_mediazione", "fuori_busta", False),
+    VoceCatalogo("Modulo di procura speciale per la mediazione", "procure", "modulo_procura_mediazione", "fuori_busta",
+                 False),
+    VoceCatalogo("Procura speciale per la mediazione", "procure", "procura_mediazione", "procura", True),
 )
 
 

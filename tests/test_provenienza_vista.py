@@ -54,7 +54,7 @@ def test_payload_probatorio_senza_testo_letto():
 def test_vista_elenca_catalogo_ed_editor(monkeypatch):
     from web.services import provenienza_runtime as runtime
 
-    confermata = _provenienza()
+    confermata = _provenienza(creato_il="2026-09-26T08:00:00+00:00")
     da_approvare = _provenienza(creato_il="2026-09-27T08:00:00+00:00", sha256_input="b" * 64)
     manomessa = {**_provenienza(creato_il="2026-09-25T08:00:00+00:00"), "modello": "altro"}
     assegnazioni = [

@@ -61,6 +61,8 @@ def main() -> int:
     tokenizer = AutoTokenizer.from_pretrained(args.modello, trust_remote_code=args.codice_del_modello)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    # Riempimento a sinistra: la risposta resta in fondo alla sequenza, dove la perdita la cerca.
+    tokenizer.padding_side = "left"
 
     def codifica(riga: dict) -> dict:
         domanda = tokenizer.apply_chat_template(conversazione(prefisso, riga, con_risposta=False), tokenize=False,
@@ -86,12 +88,31 @@ def main() -> int:
         target_modules="all-linear"))
     modello.print_trainable_parameters()
 
-    allenatore = Trainer(
+    class AllenatoreSullaRisposta(Trainer):
+        """La perdita si calcola solo sulla risposta (il JSON del catalogo, poche decine di token).
+
+        Il prefisso della domanda pesa da solo circa 2.500 token: proiettare sul vocabolario intero (152.000 voci
+        per Qwen) ogni posizione della sequenza non sta nei 12 GB della RTX 3060. Si proiettano solo le ultime
+        posizioni, quelle che predicono la risposta: la perdita è la stessa, la memoria scende di gigabyte.
+        """
+
+        def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+            etichette = inputs.pop("labels")
+            k = int((etichette != -100).sum(dim=1).max()) + 1
+            causale = model.get_base_model()
+            nascosti = causale.get_decoder()(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
+                                             use_cache=False).last_hidden_state
+            logit = causale.get_output_embeddings()(nascosti[:, -k:-1, :]).float()
+            perdita = torch.nn.functional.cross_entropy(logit.reshape(-1, logit.size(-1)),
+                                                        etichette[:, -k + 1:].reshape(-1), ignore_index=-100)
+            return (perdita, None) if return_outputs else perdita
+
+    allenatore = AllenatoreSullaRisposta(
         model=modello,
         args=TrainingArguments(
             output_dir=str(args.uscita / "passaggi"), per_device_train_batch_size=1,
             gradient_accumulation_steps=args.accumulo, num_train_epochs=args.epoche, learning_rate=args.passo,
-            lr_scheduler_type="cosine", warmup_ratio=0.03, bf16=True, logging_steps=10, save_steps=200,
+            lr_scheduler_type="cosine", warmup_steps=0.03, bf16=True, logging_steps=10, save_steps=200,
             save_total_limit=2, gradient_checkpointing=True, optim="paged_adamw_8bit", report_to=[], seed=20261030),
         train_dataset=dataset,
         data_collator=DataCollatorForSeq2Seq(tokenizer, padding=True, label_pad_token_id=-100),

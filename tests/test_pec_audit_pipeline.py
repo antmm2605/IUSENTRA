@@ -1715,7 +1715,13 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
 
+    from datetime import timedelta
+
+    from pct.ora_italiana import oggi_roma
+
     exact_link = "https://teams.microsoft.com/l/meetup-join/udienza-1263?context=%7B%22Tid%22%3A%22123%22%7D"
+    # Udienza sempre futura: lo scadenziario non programma un'udienza già passata.
+    udienza = (oggi_roma() + timedelta(days=60)).strftime("%d/%m/%Y")
     scadenziario_db = tmp_path / "scadenziario" / "scadenze.json"
     agenda_db = tmp_path / "agenda" / "appuntamenti.json"
     repo = PecAuditRepository(
@@ -1732,12 +1738,12 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     msg["Message-ID"] = "<udienza-audiovisiva-scadenziario@example.test>"
     msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Il link è nel PDF allegato.")
     msg.add_attachment(
-        """
+        f"""
         <Comunicazione>
           <NumeroRuolo>1263/2026/LAV</NumeroRuolo>
           <Oggetto>FISSAZIONE UDIENZA DI DISCUSSIONE</Oggetto>
           <Contenuto><![CDATA[
-          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15 con strumenti audiovisivi
+          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL {udienza} 09:15 con strumenti audiovisivi
           ]]></Contenuto>
         </Comunicazione>
         """.encode("utf-8"),
@@ -6833,6 +6839,13 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
     from scripts.audit_pec_operational_chain import audit_studio
     from scripts.presidia_pec_local_archive import presidia_studio
 
+    from datetime import timedelta
+
+    from pct.ora_italiana import oggi_roma
+
+    # Udienza sempre futura: lo scadenziario non programma un'udienza già passata.
+    udienza = oggi_roma() + timedelta(days=60)
+
     paths = {
         "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
         "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
@@ -6875,7 +6888,7 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
                 "Messaggio di posta certificata. Comunicazione di cancelleria. "
                 "Numero di Ruolo generale: 555/2026. "
                 "Oggetto: FISSAZIONE UDIENZA DI DISCUSSIONE. "
-                "Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15."
+                f"Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL {udienza:%d/%m/%Y} 09:15."
             ),
             allegati=[{"nome": "Comunicazione.xml", "mime": "application/xml", "size": 140}],
             message_id="<mail-pec-ricostruita@example.test>",
@@ -6901,7 +6914,7 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
     scadenze = GestioneScadenziario(paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
     pec_scadenze = [item for item in scadenze if "PEC_AUDIT:" in item.note]
     assert len(pec_scadenze) == 1
-    assert pec_scadenze[0].data_scadenza == "2026-10-29"
+    assert pec_scadenze[0].data_scadenza == udienza.isoformat()
     assert pec_scadenze[0].id_appuntamento
     appuntamenti_pec = [item for item in Agenda(paths["AGENDA_DB"]).tutti() if str(item.external_uid).startswith("PEC_AUDIT:")]
     assert len(appuntamenti_pec) == 1

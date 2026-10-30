@@ -569,7 +569,7 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              'cd /opt/iusentra/repo 2>/dev/null && if [ -f deploy/hetzner/cleanup_docker_images.sh ]; then bash deploy/hetzner/cleanup_docker_images.sh; else docker builder prune --all --force; fi; rm -rf /opt/iusentra/tmp-backup-snapshot'
+              'set -e; cd /opt/iusentra/repo; if [ -f deploy/hetzner/cleanup_docker_images.sh ]; then bash deploy/hetzner/cleanup_docker_images.sh; else echo "Pulizia non eseguita: script attribuito assente; cache e backup conservati."; fi'
 
       - name: Summary deploy
         if: always()

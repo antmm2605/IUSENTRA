@@ -1,6 +1,6 @@
 """UI adapters for the shared public SentenzeWeb owner."""
 
-from pct.sentenzeweb_corpus import configured_corpus
+from pct.sentenzeweb_corpus import configured_corpus, source_text_status
 
 
 def inventory(config=None):
@@ -46,6 +46,9 @@ def search(config, query=""):
                 "section": row["sezione"],
                 "date": row["data_deposito"],
                 "textAvailable": bool(row["testo_integrale_presente"]),
+                "textStatus": row.get("source_text_status", "empty"),
+                "textSourceUrl": row.get("text_source_url", ""),
+                "textSourceOfficial": row.get("text_source_official"),
                 "textHref": f"/giurisprudenza/sentenzeweb/{row['id']}/testo",
             }
             for row in records
@@ -74,6 +77,9 @@ def variants(config, record_id):
                 "title": row["titolo"],
                 "sha256": row["sha256"],
                 "chars": row["testo_estratto_chars"],
+                "textStatus": source_text_status(row.get("testo_estratto")),
+                "official": bool(row.get("ufficiale")),
+                "sourceUrl": row.get("url_origine") or "",
                 "textHref": f"/giurisprudenza/sentenzeweb/{int(record_id)}/documenti/{row['id']}/testo",
             }
             for row in record.get("documenti", [])

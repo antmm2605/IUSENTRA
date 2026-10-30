@@ -66,3 +66,33 @@ def test_verified_short_native_article_is_not_read_again_for_context(monkeypatch
         "normative_full_text_sha256": hashlib.sha256(text.encode()).hexdigest(),
     }, 1, archive="normattiva")
     assert bridge._complete_record_context_from_official_source(record, "art.2043 codice civile") == record
+
+
+from web.services import react_legal_intelligence_bridge as bridge
+
+def _article_identity_record(number,text,*,edition='a'*64,article_id=1,chunk='first'):
+ return bridge._safe_official_archive_record({'chunk_id':chunk,'hash_sha256':edition,'normative_article_id':article_id,'titolo':'c.c. — Codice civile','articolo_o_chunk':number,'testo':text,'url_origine':'urn:nir:stato:regio.decreto:1942-03-16;262','normative_scope':'articolo','normative_full_text':text,'normative_full_text_sha256':hashlib.sha256(text.encode()).hexdigest()},1,archive='normattiva')
+def test_same_act_url_keeps_article_identity_and_text():
+ a=_article_identity_record('2043','Art. 2043. Testo breve.',article_id=10,chunk='art2043')
+ b=_article_identity_record('2343','Art. 2343. Testo diverso molto piu lungo. '*40,article_id=11,chunk='art2343')
+ rows=bridge._dedupe_records([a,b]);assert len(rows)==2
+ selected=bridge._filter_records_for_exact_reference(rows,'codice civile articolo 2043')
+ assert len(selected)==1 and selected[0]['officialContext']==a['officialContext']
+ assert selected[0]['sourceExcerpt']==a['sourceExcerpt']
+ assert bridge._dedupe_records([b,a])==[b,a]
+def test_versions_same_number_remain_distinct():
+ a=_article_identity_record('2043','Art.2043. Edizione precedente.',edition='a'*64)
+ b=_article_identity_record('2043','Art.2043. Edizione successiva modificata.',edition='b'*64)
+ assert len(bridge._dedupe_records([a,b]))==2
+def test_multiple_chunks_same_verified_article_deduplicated():
+ a=_article_identity_record('2043','Art.2043. Testo completo.',chunk='chunk1')
+ b=_article_identity_record('2043','Art.2043. Testo completo.',chunk='chunk2')
+ assert bridge._dedupe_records([a,b])==[a]
+def test_generic_act_card_cannot_replace_verified_article():
+ a=_article_identity_record('2043','Art.2043. Testo completo.')
+ generic={'id':'generic','title':'Codice civile','sourceHref':a['sourceHref'],'sourceExcerpt':'Descrizione atto '*500,'contextCompleted':True}
+ rows=bridge._dedupe_records([a,generic]);assert len(rows)==2 and rows[0]==a
+def test_unverified_records_keep_existing_url_deduplication():
+ a={'id':'one','sourceHref':'https://example.org/act','subtitle':'breve'}
+ b={'id':'two','sourceHref':'https://example.org/act','subtitle':'testo lungo '*30}
+ assert len(bridge._dedupe_records([a,b]))==1

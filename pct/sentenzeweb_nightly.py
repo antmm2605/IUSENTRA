@@ -64,8 +64,16 @@ def run_nightly(config):
         progress = dict(
             connection.execute("SELECT seen,expected,status FROM sentenzeweb_progress WHERE id=1").fetchone()
         )
+    recovery_command = [sys.executable,
+        str(Path(__file__).resolve().parents[1] / "tools/sentenzeweb_recupera.py"),
+        "--directory", str(directory), "--max-records", "25"]
+    recovery = subprocess.run(recovery_command, capture_output=True, text=True,
+                              timeout=1200, check=False, env=environment)
+    if recovery.returncode not in (0, 75):
+        raise RuntimeError("Public recovery failed; native queue and preserved originals retained")
     return {
         "ok": True,
+        "recovery_status": "already_running" if recovery.returncode == 75 else "bounded_batch_completed",
         "status": progress["status"],
         "source_records": progress["seen"],
         "expected": progress["expected"],

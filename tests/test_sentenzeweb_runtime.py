@@ -135,3 +135,87 @@ def test_initial_list_is_bounded_and_does_not_run_relevance_search(tmp_path, mon
     result = search(config)
     assert result["available"] and len(result["records"]) == 1
     assert result["records"][0]["id"] == record_id
+
+
+def test_legacy_redaction_notice_never_becomes_readable_decision(tmp_path):
+    from pct.sentenzeweb_corpus import PublicSentenzeWebCorpus
+    from web.services.sentenzeweb_runtime import read_variant, variants
+
+    config, case_id = prepare(tmp_path)
+    notice = "!CORTE SUPREMA DI CASSAZIONE ITALGIUREWEB La sentenza richiesta è in fase di oscuramentoI"
+    owner = GestioneCorpusGiurisprudenza(str(tmp_path / "giurisprudenza_corpus.db"))
+    record = owner.get_sentenza(case_id)
+    record.update(testo_integrale=notice, testo_integrale_presente=True,
+                  stato_verifica="parzialmente_verificata", fonte_ufficiale_confermata=True,
+                  url_pagina_ufficiale="https://www.italgiure.giustizia.it/sncass/")
+    record["documenti"] = [{"tipo_documento": "testo_plain", "titolo": "Avviso originale",
+        "testo_estratto": notice, "ufficiale": True, "scaricato": True,
+        "sha256": "a" * 64, "url_origine": "https://www.italgiure.giustizia.it/sncass/"}]
+    owner.salva_sentenza(record)
+    response = search(config, "26870/2026")
+    assert response["records"][0]["textAvailable"] is False
+    assert response["records"][0]["textStatus"] == "source_notice"
+    assert read_text(config, case_id) == ""
+    public = PublicSentenzeWebCorpus(tmp_path / "giurisprudenza_corpus.db")
+    guarded = public.get_sentenza(case_id)
+    assert not public.can_cite_sentenza(guarded)
+    document = variants(config, case_id)["documents"][0]
+    assert document["textStatus"] == "source_notice" and document["official"] is True
+    assert read_variant(config, case_id, document["id"]) == notice
+    assert owner.get_sentenza(case_id)["testo_integrale"] == notice  # original preserved
+
+
+def test_alternative_transcription_keeps_explicit_nonofficial_provenance(tmp_path):
+    from web.services.sentenzeweb_runtime import variants
+
+    config, case_id = prepare(tmp_path)
+    owner = GestioneCorpusGiurisprudenza(str(tmp_path / "giurisprudenza_corpus.db"))
+    record = owner.get_sentenza(case_id)
+    record["documenti"] = [{"tipo_documento": "testo_plain", "titolo": "Trascrizione pubblicata",
+        "testo_estratto": "P.Q.M. Rigetta il ricorso.", "ufficiale": False,
+        "sha256": "b" * 64, "url_origine": "https://www.misterlex.it/cassazione-civile/2026/26870/"}]
+    owner.salva_sentenza(record)
+    document = variants(config, case_id)["documents"][0]
+    assert document["official"] is False
+    assert document["textStatus"] == "content_unreviewed"
+    assert document["sourceUrl"] == "https://www.misterlex.it/cassazione-civile/2026/26870/"
+
+
+@pytest.mark.parametrize('query', ['30750/2021', 'n. 30750/2021', '99999/2021'])
+def test_exact_reference_excludes_other_years_and_does_not_query_fts(tmp_path, query):
+    corpus = GestioneCorpusGiurisprudenza(str(tmp_path / 'corpus.db'))
+    for year in [2021, 2022]:
+        corpus.salva_sentenza({'uuid_interno':f'case-{year}', 'fonte_codice':'cassazione_sentenzeweb', 'fonte_nome':'Fonte sintetica', 'tipo_fonte':'ufficiale', 'organo_giudicante':'Corte di Cassazione', 'numero_sentenza':'30750', 'anno_sentenza':year, 'titolo':f'Cassazione 30750/{year}', 'testo_integrale':'Testo sintetico 30750 2021 2022.'})
+    original = corpus._connect
+    statements = []
+    def traced():
+        connection = original()
+        connection.set_trace_callback(statements.append)
+        return connection
+    corpus._connect = traced
+    rows = corpus.cerca_sentenze(q=query, semantica=False)
+    assert [r['anno_sentenza'] for r in rows] == ([] if query.startswith('99999') else [2021])
+    assert not any(' MATCH ' in sql for sql in statements)
+
+def test_exact_reference_keeps_filters_and_disables_semantic_fallback(tmp_path, monkeypatch):
+    corpus = GestioneCorpusGiurisprudenza(str(tmp_path / 'corpus.db'))
+    corpus.salva_sentenza({'uuid_interno':'exact', 'fonte_codice':'cassazione_sentenzeweb', 'fonte_nome':'Sintetica', 'tipo_fonte':'ufficiale', 'organo_giudicante':'Corte di Cassazione', 'numero_sentenza':'30750', 'anno_sentenza':2021, 'titolo':'Decisione', 'testo_integrale':'Testo sintetico.'})
+    def forbidden(**kwargs):
+        raise AssertionError('La ricerca esatta non deve attivare embedding')
+    monkeypatch.setattr(corpus,'cerca_sentenze_ibrida',forbidden)
+    assert corpus.cerca_sentenze(q='30750/2021',organo_giudicante='Altro organo',semantica=True)==[]
+    assert corpus.cerca_sentenze(q='30750/2021',solo_con_pdf=True,semantica=True)==[]
+    assert len(corpus.cerca_sentenze(q='30750/2021',semantica=True))==1
+
+def test_thematic_query_still_uses_full_text(tmp_path):
+    corpus = GestioneCorpusGiurisprudenza(str(tmp_path / 'corpus.db'))
+    corpus.salva_sentenza({'uuid_interno':'topic', 'fonte_codice':'cassazione_sentenzeweb', 'fonte_nome':'Sintetica', 'tipo_fonte':'ufficiale', 'organo_giudicante':'Corte di Cassazione', 'numero_sentenza':'10', 'anno_sentenza':2021, 'titolo':'Restituzione delle spese', 'testo_integrale':'Restituzione spese difensore distrattario.'})
+    assert len(corpus.cerca_sentenze(q='restituzione spese',semantica=False))==1
+
+def test_exact_ecli_never_returns_a_different_identity(tmp_path):
+    corpus = GestioneCorpusGiurisprudenza(str(tmp_path / 'corpus.db'))
+    for number in ['10','11']:
+        corpus.salva_sentenza({'uuid_interno':'ecli-'+number, 'fonte_codice':'cassazione_sentenzeweb', 'fonte_nome':'Sintetica', 'tipo_fonte':'ufficiale', 'organo_giudicante':'Corte di Cassazione', 'numero_sentenza':number, 'anno_sentenza':2021, 'ecli':f'ECLI:IT:CASS:2021:{number}', 'titolo':'Restituzione spese', 'testo_integrale':'Testo sintetico ECLI IT CASS 2021.'})
+    rows=corpus.cerca_sentenze(q='ecli:it:cass:2021:10',semantica=True)
+    assert len(rows)==1 and rows[0]['numero_sentenza']=='10'
+    assert corpus.cerca_sentenze(q='ECLI:IT:CASS:2021:999',semantica=True)==[]

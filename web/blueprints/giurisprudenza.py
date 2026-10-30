@@ -213,28 +213,44 @@ def sentenzeweb_variants(record_id: int):
     return response
 
 
+def _sentenzeweb_reader_response(record_id: int, document_id: int | None = None):
+    from web.services.sentenzeweb_reader import reader_document
+    from web.services.sentenzeweb_runtime import read_text, read_variant
+    if request.args.get("format") == "txt":
+        text = (read_variant(current_app.config, record_id, document_id) if document_id is not None
+                else read_text(current_app.config, record_id))
+        response = Response(text or "Testo archiviato non disponibile.", status=200 if text else 404,
+                            content_type="text/plain; charset=utf-8")
+    else:
+        if request.args.get("embed") != "source":
+            return redirect(url_for("giurisprudenza.index", sentenzeweb=record_id, **({"documento": document_id} if document_id is not None else {})))
+        try:
+            document = reader_document(current_app.config, record_id, document_id)
+        except (ValueError, OSError, sqlite3.Error):
+            response = Response("Il testo non può essere mostrato: verifica di integrità non completata.",
+                                status=503, content_type="text/plain; charset=utf-8")
+        else:
+            response = (Response(render_template("giurisprudenza/sentenzeweb_lettore.html", documento=document),
+                                 content_type="text/html; charset=utf-8") if document else
+                        Response("Testo archiviato non disponibile.", status=404,
+                                 content_type="text/plain; charset=utf-8"))
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = ("default-src 'none'; style-src 'self'; "
+        "base-uri 'none'; frame-ancestors 'self'; sandbox allow-same-origin")
+    return response
+
+
 @giurisprudenza.get("/sentenzeweb/<int:record_id>/documenti/<int:document_id>/testo")
 @_richiedi_login
 def sentenzeweb_variant_text(record_id: int, document_id: int):
-    from web.services.sentenzeweb_runtime import read_variant
-    text = read_variant(current_app.config, record_id, document_id)
-    response = Response(text or "Testo archiviato non disponibile.", status=200 if text else 404, content_type="text/plain; charset=utf-8")
-    response.headers["Cache-Control"] = "private, no-store"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
-    return response
+    return _sentenzeweb_reader_response(record_id, document_id)
 
 
 @giurisprudenza.get("/sentenzeweb/<int:record_id>/testo")
 @_richiedi_login
 def sentenzeweb_text(record_id: int):
-    from web.services.sentenzeweb_runtime import read_text
-    text = read_text(current_app.config, record_id)
-    response = Response(text or "Testo archiviato non disponibile.", status=200 if text else 404, content_type="text/plain; charset=utf-8")
-    response.headers["Cache-Control"] = "private, no-store"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
-    return response
+    return _sentenzeweb_reader_response(record_id)
 
 
 @giurisprudenza.get("/<judgment_id>/testo")

@@ -1,11 +1,12 @@
+import { openSourceWindow } from './sourceWindowEvents'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button, ButtonLink } from '../ui/Button'
 
-type Decision = { id: number; title: string; authority: string; date: string; textAvailable: boolean; textHref: string }
+type Decision = { id: number; title: string; authority: string; date: string; textAvailable: boolean; textHref: string; textStatus?: string; textSourceUrl?: string; textSourceOfficial?: boolean | null }
 type Result = { ok: boolean; available?: boolean; message?: string; caseCount?: number; received?: number; expected?: number; status?: string; records: Decision[] }
 
-type OriginalVariant = { id: number; title: string; sha256: string; chars: number; textHref: string }
+type OriginalVariant = { id: number; title: string; sha256: string; chars: number; textHref: string; textStatus?: string; official?: boolean; sourceUrl?: string }
 
 function SourceVariants({ recordId }: { recordId: number }) {
   const [documents, setDocuments] = useState<OriginalVariant[] | null>(null)
@@ -28,7 +29,7 @@ function SourceVariants({ recordId }: { recordId: number }) {
     <p>I diversi identificativi della fonte restano conservati. La loro presenza non determina quale variante sia giuridicamente applicabile.</p>
     {busy ? <p role="status">Lettura dei documenti archiviati…</p> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {documents?.length ? <ul>{documents.map(document => <li key={document.id}><ButtonLink href={document.textHref} target="_blank" rel="noreferrer">{document.title || 'Testo della fonte'}</ButtonLink><p>{document.chars.toLocaleString('it-IT')} caratteri · SHA-256 originale: {document.sha256}</p></li>)}</ul> : documents ? <p>Nessuna variante distinta registrata; il testo disponibile resta consultabile dal pulsante principale.</p> : null}
+    {documents?.length ? <ul>{documents.map(document => <li key={document.id}><ButtonLink href={document.textHref} target="_blank" rel="noreferrer">{document.title || 'Testo della fonte'}</ButtonLink>{document.textStatus === 'source_notice' ? <p>Avviso della fonte: il testo della decisione resta da recuperare.</p> : document.textStatus === 'empty' ? <p>Documento conservato senza testo estratto: recupero da completare.</p> : <p>{document.official === false ? 'Trascrizione da fonte non ufficiale; controllo professionale da completare.' : 'Contenuto della fonte; completezza e controllo professionale da verificare.'}</p>}{document.sourceUrl ? <ButtonLink href={document.sourceUrl} target="_blank" rel="noreferrer">Apri la fonte del documento</ButtonLink> : null}<p>{document.chars.toLocaleString('it-IT')} caratteri · SHA-256 archiviato: {document.sha256}</p></li>)}</ul> : documents ? <p>Nessuna variante distinta registrata; il testo disponibile resta consultabile dal pulsante principale.</p> : null}
   </details>
 }
 
@@ -39,6 +40,14 @@ export function SentenzeWebSearch() {
   const [error, setError] = useState('')
   const controller = useRef<AbortController | null>(null)
   const submittedQuery = useRef('')
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search)
+    const record = query.get('sentenzeweb') || ''
+    const document = query.get('documento') || ''
+    if (!/^\d+$/.test(record) || (document && !/^\d+$/.test(document))) return
+    const href = `/giurisprudenza/sentenzeweb/${record}${document ? `/documenti/${document}` : ''}/testo${window.location.hash}`
+    openSourceWindow({ href, label: 'Provvedimento della Cassazione', context: 'Archivio condiviso Cassazione' }, 'collegamento-cassazione', () => {})
+  }, [])
   const pending = useRef<Promise<boolean> | null>(null)
   function load(value: string, background = false): Promise<boolean> {
     // Live revisions join a pending read; only a user search supersedes it.
@@ -82,6 +91,6 @@ export function SentenzeWebSearch() {
     </form>
     {busy ? <p role="status">Lettura dell’archivio locale…</p> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {result?.records.length ? <ol>{result.records.map(record => <li key={record.id}><article><h3>{record.title}</h3><p>{record.authority} · deposito {record.date || 'non indicato'}</p>{record.textAvailable ? <ButtonLink href={record.textHref} target="_blank" rel="noreferrer">Leggi testo archiviato</ButtonLink> : <p>Record conservato: testo OCR da completare.</p>}<SourceVariants recordId={record.id} /></article></li>)}</ol> : result?.available && !busy ? <p>Nessuna decisione trovata con questa ricerca.</p> : null}
+    {result?.records.length ? <ol>{result.records.map(record => <li key={record.id}><article><h3>{record.title}</h3><p>{record.authority} · deposito {record.date || 'non indicato'}</p>{record.textAvailable ? <><ButtonLink href={record.textHref} target="_blank" rel="noreferrer">Leggi testo archiviato</ButtonLink>{record.textSourceOfficial === false ? <p>Trascrizione da fonte non ufficiale: identità collegata, revisione professionale da completare.</p> : null}{record.textSourceUrl ? <ButtonLink href={record.textSourceUrl} target="_blank" rel="noreferrer">Apri la fonte del testo</ButtonLink> : null}</> : <p>{record.textStatus === 'source_notice' ? 'La fonte contiene un avviso di oscuramento: recupero del testo da completare.' : 'Record conservato: testo OCR da completare.'}</p>}<SourceVariants recordId={record.id} /></article></li>)}</ol> : result?.available && !busy ? <p>Nessuna decisione trovata con questa ricerca.</p> : null}
   </section>
 }

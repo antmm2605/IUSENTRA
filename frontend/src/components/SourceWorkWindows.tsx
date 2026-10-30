@@ -1,9 +1,11 @@
+import { installInAppSourceNavigation } from './inAppSourceNavigation'
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { SourceDocumentWorkWindow } from './SourceDocumentModal'
 import { closeParentSourceOwner, openSourceWindow, clearSourceWindows, closeSourceWindow, sourceWindowsSnapshot, subscribeSourceWindows } from './sourceWindowEvents'
 import { sourceWorkDescriptor } from './sourceWorkDescriptor'
 export function SourceWorkWindows({ sessionKey }: { sessionKey: string }) {
   const session = useRef(sessionKey)
+  useEffect(installInAppSourceNavigation, [])
   useEffect(() => {
     const frameOwners = new WeakMap<HTMLIFrameElement, string>()
     let frameSequence = 0

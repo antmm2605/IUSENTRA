@@ -415,9 +415,10 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
         --revision "$RELEASE_SHA" --directory "$IUSENTRA_HOME/import"; then
         prebuilt_loaded=1
       else
-        # L'archivio configurato in .env.hetzner appartiene a un'altra release (o non è caricabile):
-        # nessuna immagine di un altro commit va in produzione, si costruisce quella di questo commit.
-        echo "Immagine precostruita non riferita a ${RELEASE_SHA:0:10}: build sul server." >&2
+        # Se e stata richiesta un'immagine verificata, non sostituirla
+        # con una build diversa da quella collaudata sul PC.
+        echo "Impossibile caricare l'immagine verificata della release: deploy interrotto." >&2
+        exit 1
       fi
     fi
     if [ "$prebuilt_loaded" != "1" ]; then

@@ -246,3 +246,24 @@ def test_incremental_metadata_correction_updates_same_case_without_text_duplicat
     with connect(a) as c:
         assert c.execute("SELECT hash_contenuto,updated_at FROM sentenze").fetchone() == before
         assert c.execute("SELECT count(*) FROM sentenze").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("text", [
+    "in fase di valutazione oscuramento",
+    "CORTE SUPREMA DI CASSAZIONE ITALGIUREWEB La sentenza richiesta è in fase di oscuramento",
+    "!CORTE SUPREMA DI CASSAZIONE ITALGIUREWEB La sentenza richiesta è in fase di oscuramentoI",
+    "!CORTE SUPREMA DI CASSAZIONE ITALGIUREWEB La sentenza richiesta è in fase di oscuramento*",
+    "CORTE SUPREMA DI CASSAZIONE ITALGIUREWEB La sentenza richiesta è in fase di oscuramento CO",
+    "CORTE SUPREMA DI CASSAZIONE\nITALGIUREWEB\nLa sentenza richiesta è in fase di valutazione per oscuramento",
+])
+def test_official_redaction_notices_are_not_decision_bodies(text):
+    assert acquisition.body_available(text) is False
+
+
+@pytest.mark.parametrize("text", [
+    "P.Q.M. Rigetta il ricorso.",
+    "La Corte rileva che la sentenza richiesta è in fase di oscuramento e decide sul ricorso.",
+    "CORTE SUPREMA DI CASSAZIONE ITALGIUREWEB La sentenza richiesta è in fase di oscuramento. Il ricorso è rigettato.",
+])
+def test_short_decision_or_quoted_notice_is_not_discarded(text):
+    assert acquisition.body_available(text) is True

@@ -470,3 +470,16 @@ def test_exact_download_resolves_existing_chunk_and_preserves_parent_checks(tmp_
         connection.execute("UPDATE normative_documents SET xml_sha256='changed'")
     with pytest.raises(NormativaIndexUnavailable):
         leggi_chunk_archiviato(key, path)
+
+
+def test_archive_fixture_is_stable_after_garbage_collection(tmp_path, monkeypatch):
+    """Il GC non deve cambiare la revisione di una fixture gia completata."""
+    import gc
+    from lex.retrieval.normativa_catalog import catalog_revision
+
+    gc.collect()
+    path = archive(tmp_path / "fixture-completed.sqlite")
+    monkeypatch.setenv("PCT_NORMATTIVA_DB", str(path))
+    before = catalog_revision()
+    gc.collect()
+    assert catalog_revision() == before

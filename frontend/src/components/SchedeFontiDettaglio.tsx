@@ -8,7 +8,7 @@ import { Button } from '../ui/Button'
 import { useBusyActivity } from '../ui/useBusyActivity'
 
 type Norma = { atto: string; articolo: string; perche: string; origine: string; stato: string; url: string; aggiornato_al: string; commi_abrogati: number; testo: string; sha256: string; differenze: string; approvata: boolean; approvata_da: string }
-type Scheda = { id: string; titolo: string; norme: Norma[]; impronta: string }
+type Scheda = { id: string; titolo: string; norme: Norma[]; impronta: string; stato_collegamento?: string; schede_collegate?: string[] }
 const base = '/api/v1/ui/schede-fonti'
 const STATI: Record<string, string> = { presente: 'Presente in biblioteca', abrogato: 'Abrogata', atto_assente: 'Atto assente', articolo_assente: 'Articolo assente' }
 export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged }: { schedaId: string; puoDecidere: boolean; onClose: () => void; onChanged: () => void }) {
@@ -19,6 +19,11 @@ export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged
   const [busy, setBusy] = useState(true)
   const [salva, setSalva] = useState(false)
   const [carica, setCarica] = useState(0)
+  const dettaglioRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    dettaglioRef.current?.scrollIntoView({ block: 'start' })
+    dettaglioRef.current?.focus({ preventScroll: true })
+  }, [schedaId, busy])
   const liveScheda = useRef(schedaId)
   liveScheda.current = schedaId
   useOperationalRefresh(['fascicoli', 'normativa'], async () => {
@@ -50,10 +55,12 @@ export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged
     finally { setSalva(false) }
   }
   const daApprovare = scheda?.norme.filter(n => n.stato === 'presente' && !n.approvata).length || 0
-  return <section className="iu-od-source-card iu-sf-dettaglio" aria-label="Norme del modello d’atto" aria-busy={busy || salva}>
+  return <section ref={dettaglioRef} tabIndex={-1} className="iu-od-source-card iu-sf-dettaglio" aria-label="Norme del modello d’atto" aria-busy={busy || salva}>
     <header className="iu-sf-dettaglio-head"><div><p>{schedaId}</p><h2>{scheda?.titolo || 'Modello d’atto'}</h2></div><Button tone="neutral" aria-label="Chiudi" onClick={onClose}><X size={16} /></Button></header>
+    {busy ? <p role="status">Caricamento delle norme del modello…</p> : null}
     {errore ? <p role="alert">{errore} <Button tone="neutral" onClick={() => setCarica(n => n + 1)}>Riprova</Button></p> : null}
     {messaggio ? <p role="status">{messaggio}</p> : null}
+    {scheda?.stato_collegamento === 'da_associare' ? <p role="status">Questa voce è presente nel catalogo, ma non ha ancora una scheda normativa specifica collegata. Il testo del modello non è stato escluso: i riferimenti devono essere associati e verificati prima di dichiararli completi.</p> : null}
     {scheda ? <><p>{scheda.norme.length} norme citate · {daApprovare} da approvare. Presenza in biblioteca e approvazione per questo studio sono due verifiche distinte.</p>
       <ul className="iu-sf-norme">{scheda.norme.map(n => <li key={`${n.atto}-${n.articolo}`}>
         <div><strong>Art. {n.articolo}</strong> <span>{n.atto.replace(/_/g, ' ')}</span></div>

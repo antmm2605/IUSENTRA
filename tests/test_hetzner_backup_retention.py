@@ -331,3 +331,19 @@ def test_backup_script_non_archivia_ollama_rigenerabile(tmp_path: Path):
 
     assert "./fascicoli/reale.txt" in listing
     assert "ollama" not in listing.lower()
+
+
+@pytest.mark.parametrize('mode,expected',[('missing',0),('ok',0),('failed',17)])
+def test_workflow_cleanup_is_scoped_and_preserves_failure(tmp_path,mode,expected):
+ import shlex, yaml
+ workflow=yaml.safe_load((REPO_ROOT / '.github/workflows/deploy-hetzner.yml').read_text());steps=[s for job in workflow['jobs'].values() for s in job.get('steps',[]) if s.get('name')=='Pulizia immagini e cache build Docker'];assert len(steps)==1
+ command=shlex.split(steps[0]['run'])[-1]
+ repo=tmp_path/'repo';repo.mkdir();snapshot=tmp_path/'tmp-backup-snapshot';snapshot.mkdir();(snapshot/'kept').write_text('backup')
+ command=command.replace('/opt/iusentra/repo',str(repo)).replace('/opt/iusentra/tmp-backup-snapshot',str(snapshot))
+ bindir=tmp_path/'bin';bindir.mkdir();calls=tmp_path/'docker.calls';docker=bindir/'docker';docker.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "'+str(calls)+'"\n');docker.chmod(0o700)
+ if mode!='missing':
+  script=repo/'deploy/hetzner/cleanup_docker_images.sh';script.parent.mkdir(parents=True);script.write_text('exit '+('17' if mode=='failed' else '0')+'\n')
+ env={**os.environ,'PATH':str(bindir)+':'+os.environ['PATH']};result=subprocess.run(['bash','-c',command],env=env,capture_output=True,text=True)
+ assert result.returncode==expected
+ assert not calls.exists(),'No global Docker command is authorized if cleanup helper is missing'
+ assert (snapshot/'kept').read_text()=='backup'

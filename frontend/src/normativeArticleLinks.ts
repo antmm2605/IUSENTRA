@@ -21,14 +21,3 @@ export function normativeReaderHref({ url = '', article = '', act = '', id = 0, 
   if (sha) params.set('sha', sha)
   return `/api/v1/ui/ricerca-legale/normativa/visualizza?${params}`
 }
-
-export function openOfficialOutsideReader(readerHref: string, destination: string, marker: string | null, origin: string) {
-  if (marker !== '1') return false
-  try {
-    const reader = new URL(readerHref, origin)
-    const target = new URL(destination, origin)
-    return reader.origin === origin && reader.pathname === '/api/v1/ui/ricerca-legale/normativa/visualizza'
-      && target.protocol === 'https:' && !target.username && !target.password && (!target.port || target.port === '443')
-      && ['www.normattiva.it', 'normattiva.it', 'eur-lex.europa.eu', 'publications.europa.eu', 'www.gazzettaufficiale.it', 'www.consigliodistrettuale.it', 'www.consiglionazionaleforense.it'].includes(target.hostname)
-  } catch { return false }
-}

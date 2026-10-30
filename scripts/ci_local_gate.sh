@@ -171,6 +171,7 @@ step "Test JS acquisizione"      node --test tests/js/document_capture.test.mjs 
 # Replica dello step CI «Published React source provenance» (ci.yml, job «Lint + syntax»): il bundle
 # pubblicato registra l'impronta dei sorgenti, compreso frontend/package.json. Lezione del 29/10/2026:
 # il solo cambio di versione in package.json ha fermato la CI con il gate locale verde.
+step "Test JS catalogo modelli" node --test tests/js/schede_modelli_catalogo.test.mjs
 step "Provenienza bundle React"  node frontend/scripts/check-published-react-sources.mjs
 step "Ordine hook React"         node frontend/scripts/check-hook-order.mjs
 step "React contracts"           node frontend/scripts/check-react-contracts.mjs

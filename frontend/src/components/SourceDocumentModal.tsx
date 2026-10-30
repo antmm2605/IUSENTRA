@@ -1,8 +1,7 @@
-import { openOfficialOutsideReader } from '../normativeArticleLinks'
 import { openSourceWindow } from './sourceWindowEvents'
 import { type CSSProperties, type RefObject, lazy, Suspense, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink, FileSearch, Globe, Mail } from 'lucide-react'
+import { FileSearch, Globe, Mail } from 'lucide-react'
 import { OperationalModal } from './OperationalModal'
 import { activateManagedWindowForNode } from './ManagedWindowState'
 import { useBusyActivity } from '../ui/useBusyActivity'
@@ -27,7 +26,9 @@ export function sourceViewerHref(source: Pick<SourceDocument, 'href'>, preview =
         )
         && parsed.pathname.includes('/allegato/')
       )
-      if (/^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(parsed.pathname)) {
+      if (/^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(parsed.pathname)) {
+        if (preview) parsed.searchParams.set('embed', 'source')
+      } else if (/^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(parsed.pathname)) {
         if (preview) parsed.searchParams.set('embed', 'source')
       } else if (isEmailAttachment) {
         if (preview) parsed.searchParams.set('viewer', 'mobile')
@@ -54,6 +55,8 @@ function sourceIframeSandbox(href: string): string {
   try {
     const parsed = new URL(href, window.location.origin)
     const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/'
+    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
+
     const trustedInternalReader = parsed.origin === window.location.origin
       && (
         /^\/fascicoli\/[a-zA-Z0-9_-]+$/.test(normalizedPath)
@@ -152,7 +155,6 @@ export function SourceDocumentReader({
         if (!raw || raw.startsWith('#') || event.button !== 0) return
         let url: URL
         try { url = new URL(raw, content.URL) } catch { return }
-        if (openOfficialOutsideReader(viewerHref, url.href, target?.getAttribute('data-official-outside-reader') || null, window.location.origin)) return
         if (url.protocol === 'mailto:') {
           let address: string
           try { address = decodeURIComponent(url.pathname) } catch { return }
@@ -170,7 +172,7 @@ export function SourceDocumentReader({
           if (url.origin === window.location.origin && !target?.classList.contains('reader-document-link') && target?.closest('.toolbar,header,nav')) return
           event.preventDefault()
           if (url.origin !== window.location.origin && publicLinkHandler.current?.(url.href)) return
-          setDestination({ href: `/api/v1/ui/document-reader/web?${new URLSearchParams({ url: url.href })}`, label: url.href, mail: false })
+          openSourceWindow({ href: `/api/v1/ui/document-reader/web?${new URLSearchParams({ url: url.href })}`, label: (target?.textContent || url.href).trim().slice(0, 240), context: label }, `collegamento:${viewerHref}`, () => {})
         }
       }
       const activateReader = () => {
@@ -305,11 +307,7 @@ export function SourceDocumentWorkWindow({ source, onClose, focusToken = 0 }: { 
       eyebrow={<><FileSearch size={14}/> {caseSource ? 'Contesto del fascicolo' : "Fonte dell'informazione"}</>}
       title={sourceTitle}
       subtitle={compactContext}
-      actions={source ? (
-        <>
-          <a className={caseSource ? undefined : "iu-source-original-icon"} href={originalHref} target={caseSource ? undefined : "_blank"} rel="noreferrer" aria-label={caseSource ? undefined : "Apri originale"} title={caseSource ? undefined : "Apri originale"}>{caseSource ? 'Apri fascicolo' : <ExternalLink size={16} aria-hidden="true"/>}</a>
-        </>
-      ) : null}
+      actions={source && caseSource ? <a href={originalHref}>Apri fascicolo</a> : null}
       onClose={() => { if (saving || dirty) { setDiscard(true); setCloseFocus(value => value + 1) } else onClose() }}
       boxClassName={`iu-source-reader-box${caseSource ? '' : ' iu-source-reader-box--compact'}`}
     >

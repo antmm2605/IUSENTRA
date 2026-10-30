@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { articleNumbers, normativeReaderHref, openOfficialOutsideReader } from '../../frontend/src/normativeArticleLinks.ts'
+import { articleNumbers, normativeReaderHref } from '../../frontend/src/normativeArticleLinks.ts'
 
 test('disposizione singola, suffissi e più articoli senza scambiare anni o numeri di legge', () => {
   assert.deepEqual(articleNumbers('167'), ['167'])
@@ -20,14 +20,14 @@ test('lettore nativo lega ID o atto/articolo alla SHA senza inoltrare testi al b
   assert.match(normativeReaderHref({id:8}),/id=8/)
 })
 
-test('verifica ufficiale esplicita fuori iframe, senza aprire schemi arbitrari o altri documenti', () => {
+test('le fonti ufficiali restano nel lettore del software', async () => {
+  const { inAppSourceDestination } = await import('../../frontend/src/components/inAppSourceNavigation.ts')
   const origin='https://app.iusentra.it'
-  const reader='/api/v1/ui/ricerca-legale/normativa/visualizza?id=1'
-  assert.equal(openOfficialOutsideReader(reader,'https://www.normattiva.it/uri-res/N2Ls?urn:x','1',origin),true)
-  assert.equal(openOfficialOutsideReader(reader,'https://evil.test/x','1',origin),false)
-  assert.equal(openOfficialOutsideReader(reader,'javascript:alert(1)','1',origin),false)
-  assert.equal(openOfficialOutsideReader('/email','https://www.normattiva.it','1',origin),false)
-  assert.equal(openOfficialOutsideReader(reader,'https://www.normattiva.it',null,origin),false)
+  const url='https://www.normattiva.it/uri-res/N2Ls?urn:x'
+  const source=inAppSourceDestination(url,'Fonte originale',origin,'_blank')
+  assert.equal(new URL(source.href,origin).pathname,'/api/v1/ui/document-reader/web')
+  assert.equal(new URL(source.href,origin).searchParams.get('url'),url)
+  assert.equal(inAppSourceDestination('javascript:alert(1)','Fonte',origin),null)
 })
 
 

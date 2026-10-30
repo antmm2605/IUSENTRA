@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import os
 import re
 import sqlite3
 import uuid
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -628,9 +631,22 @@ class GestioneCorpusGiurisprudenza:
         return sentenza_id, ("aggiornate" if current else "inserite")
 
     def _replace_documenti(self, conn: sqlite3.Connection, sentenza_id: int, rows: list[Any]) -> None:
-        conn.execute("DELETE FROM documenti_sentenza WHERE sentenza_id = ?", (sentenza_id,))
+        public = conn.execute("""SELECT 1 FROM sentenze s JOIN fonti_giurisprudenza f ON f.id=s.fonte_id
+            WHERE s.id=? AND f.codice='cassazione_sentenzeweb'""", (sentenza_id,)).fetchone() is not None
+        if not public:
+            conn.execute("DELETE FROM documenti_sentenza WHERE sentenza_id = ?", (sentenza_id,))
         for row in rows:
             item = {"titolo": row} if isinstance(row, str) else dict(row or {})
+            if public:
+                existing = conn.execute("""SELECT id,testo_estratto FROM documenti_sentenza
+                    WHERE sentenza_id=? AND url_origine=? AND sha256=?""",
+                    (sentenza_id, _normalize_url(item.get("url_origine")), _clean_spaces(item.get("sha256")))).fetchone()
+                if existing is not None:
+                    if existing["testo_estratto"] != _clean_spaces(item.get("testo_estratto")):
+                        raise ValueError("Stored public variant differs under the same source digest")
+                    conn.execute("UPDATE documenti_sentenza SET valido=?,titolo=? WHERE id=?",
+                        (_bool_int(item.get("valido", True)), _clean_spaces(item.get("titolo")), existing["id"]))
+                    continue
             conn.execute(
                 """
                 INSERT INTO documenti_sentenza (
@@ -886,6 +902,105 @@ class GestioneCorpusGiurisprudenza:
             ).fetchall()]
             return record
 
+    def append_public_transcription(self, sentenza_id, *, identity, text, source_url, text_sha256, source_html, promote_active=False):
+        """Append identity-checked public transcription without replacing original IDs."""
+        from pct.sentenzeweb_corpus import body_available
+        from pct.sentenzeweb_recovery import alternative_url, parse_alternative
+
+        raw = str(text or "")
+        if source_url != alternative_url(identity) or hashlib.sha256(raw.encode()).hexdigest() != text_sha256:
+            raise ValueError("Transcription source or digest differs")
+        if not body_available(raw):
+            raise ValueError("A source notice is not a decision transcription")
+        verified = parse_alternative(source_html, identity=identity, source_url=source_url)
+        if verified["text"] != raw:
+            raise ValueError("Transcription differs from preserved source HTML")
+        stored = _clean_spaces(raw)
+        with closing(self._connect()) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            parent = connection.execute(
+                "SELECT s.*,f.codice AS fonte_codice FROM sentenze s JOIN fonti_giurisprudenza f ON f.id=s.fonte_id WHERE s.id=?",
+                (int(sentenza_id),),
+            ).fetchone()
+            if parent is None or parent["fonte_codice"] != "cassazione_sentenzeweb":
+                raise ValueError("Not a shared public decision")
+            for name in ("organo_giudicante", "sezione", "numero_sentenza", "anno_sentenza", "data_deposito"):
+                if str(parent[name] or "") != str(identity.get(name) or ""):
+                    raise ValueError("Transcription belongs to another decision")
+            source_id = str(parent["uuid_interno"]).removeprefix("sentenzeweb:")
+            receipt = connection.execute(
+                """SELECT r.source_version FROM sentenzeweb_receipts r
+                JOIN sentenzeweb_aliases a ON a.source_id=r.source_id
+                WHERE r.source_id=? AND a.native_uuid=?""", (source_id, parent["uuid_interno"])
+            ).fetchone()
+            if receipt is None:
+                raise ValueError("Official identity receipt is missing")
+            connection.execute("""CREATE TABLE IF NOT EXISTS sentenzeweb_recovery_receipts (
+                source_id TEXT NOT NULL REFERENCES sentenzeweb_receipts(source_id) ON DELETE RESTRICT,
+                source_version INTEGER NOT NULL, provider TEXT NOT NULL,
+                native_id INTEGER NOT NULL REFERENCES sentenze(id) ON DELETE RESTRICT,
+                source_url TEXT NOT NULL, html_sha256 TEXT NOT NULL, text_sha256 TEXT NOT NULL,
+                html_path TEXT NOT NULL, text_path TEXT NOT NULL,
+                acquired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(source_id,provider,html_sha256,text_sha256))""")
+            originals = Path(self.db_path).resolve().parent / "recuperi"
+            originals.mkdir(mode=0o755, exist_ok=True)
+            if originals.is_symlink():
+                raise ValueError("Unexpected original recovery directory")
+            for digest, suffix, data in (
+                (verified["html_sha256"], ".html", source_html),
+                (text_sha256, ".txt", raw.encode()),
+            ):
+                artifact = originals / (digest + suffix)
+                if artifact.is_symlink():
+                    raise ValueError("Unexpected recovery artifact link")
+                try:
+                    with artifact.open("xb") as handle:
+                        os.chmod(artifact, 0o644)
+                        handle.write(data)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                except FileExistsError:
+                    pass
+                if hashlib.sha256(artifact.read_bytes()).hexdigest() != digest:
+                    raise ValueError("Preserved recovery original differs")
+            relative_text = "recuperi/" + text_sha256 + ".txt"
+            existing = connection.execute(
+                "SELECT id,testo_estratto FROM documenti_sentenza WHERE sentenza_id=? AND url_origine=? AND sha256=?",
+                (int(sentenza_id), source_url, text_sha256),
+            ).fetchone()
+            if existing is not None:
+                if existing["testo_estratto"] != stored:
+                    raise ValueError("Stored transcription differs under the same digest")
+                document_id = existing["id"]
+            else:
+                cursor = connection.execute(
+                    """INSERT INTO documenti_sentenza
+                    (sentenza_id,tipo_documento,titolo,mime_type,url_origine,path_locale,dimensione_bytes,sha256,
+                     testo_estratto,testo_estratto_chars,ufficiale,scaricato,valido)
+                    VALUES(?, 'testo_plain', ?, 'text/plain', ?, ?, ?, ?, ?, ?, 0, 1, 1)""",
+                    (int(sentenza_id), "Trascrizione MisterLex — fonte non ufficiale", source_url, relative_text,
+                     len(raw.encode()), text_sha256, stored, len(raw)),
+                )
+                document_id = cursor.lastrowid
+            connection.execute(
+                """INSERT OR IGNORE INTO sentenzeweb_recovery_receipts
+                (source_id,source_version,provider,native_id,source_url,html_sha256,text_sha256,html_path,text_path)
+                VALUES(?,?,'misterlex',?,?,?,?,?,?)""",
+                (source_id, int(receipt["source_version"]), int(sentenza_id), source_url,
+                 verified["html_sha256"], text_sha256, "recuperi/" + verified["html_sha256"] + ".html", relative_text),
+            )
+            promoted = bool(promote_active and not body_available(parent["testo_integrale"]))
+            if promoted:
+                connection.execute(
+                    """UPDATE sentenze SET testo_integrale=?,testo_integrale_presente=1,
+                    hash_contenuto=?,updated_at=CURRENT_TIMESTAMP WHERE id=?""",
+                    (stored, hashlib.sha256(stored.encode()).hexdigest(), int(sentenza_id)),
+                )
+            return {"document_id": int(document_id), "inserted": existing is None,
+                    "active_text_updated": promoted, "official": False, "professional_approval": False,
+                    "html_sha256": verified["html_sha256"], "text_sha256": text_sha256}
+
     def cerca_sentenze(
         self,
         *,
@@ -899,6 +1014,13 @@ class GestioneCorpusGiurisprudenza:
         solo_contenuto: bool = False,
     ) -> list[dict[str, Any]]:
         import os
+        domanda_esatta = _clean_spaces(q)
+        solo_estremi = bool(
+            _SOLO_ESTREMI_RE.fullmatch(domanda_esatta)
+            or _ECLI_RE.fullmatch(domanda_esatta)
+        )
+        if solo_estremi:
+            semantica = False
         if semantica is None:
             semantica = os.getenv("LEX_GIURISPRUDENZA_SEMANTICA", "0") == "1"
         if semantica and _clean_spaces(q):
@@ -931,6 +1053,10 @@ class GestioneCorpusGiurisprudenza:
                 sql = f"SELECT {_COLONNE_RICERCA} FROM sentenze s WHERE 1 = 1 {filtri} ORDER BY {_ORDINE_STORICO} LIMIT ?"
                 return [dict(row) for row in conn.execute(sql, (*filtri_params, limite)).fetchall()]
             per_estremi = self._righe_per_estremi(conn, domanda, filtri, filtri_params)
+            # Un identificativo completo non e una ricerca tematica: nessun
+            # risultato di altri anni e nessuna scansione FTS o semantica.
+            if solo_estremi:
+                return per_estremi[:limite]
             termini = _termini_fts(domanda)
             # Prima tutti i termini (AND), poi almeno uno (OR): le pronunce che li contengono tutti
             # entrano nella rosa anche se il loro bm25 in OR e' inferiore a quello di massime lunghe.

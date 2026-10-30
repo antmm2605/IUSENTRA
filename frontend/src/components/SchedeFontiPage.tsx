@@ -1,3 +1,5 @@
+import { SchedeModelliCatalogo } from './SchedeModelliCatalogo'
+import type { ModelloNorme } from '../schedeModelliCatalogo'
 import { useEffect, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { ShieldCheck } from 'lucide-react'
@@ -12,7 +14,7 @@ import './SchedeFontiPage.css'
 
 type Proposta = { id: string; impronta: string; tipo: string; etichetta: string; scheda: string; titolo_scheda: string; atto: string; articolo: string; motivo: string; differenze: string; creata_il: string; decisa_da: string; nota: string }
 type Riepilogo = { eseguito_il: string; norme: number; stati: Record<string, number>; commi_abrogati: number; acquisiti: { chiave: string; articoli: number; url: string }[]; proposte_aperte: number; per_tipo: { tipo: string; etichetta: string; numero: number }[] }
-type Risposta = { riepilogo: Riepilogo; proposte: Proposta[]; puo_decidere: boolean; modelli: { id: string; titolo: string }[]; paginazione: { pagina: number; pagine: number; totale: number } }
+type Risposta = { riepilogo: Riepilogo; proposte: Proposta[]; puo_decidere: boolean; modelli: ModelloNorme[]; paginazione: { pagina: number; pagine: number; totale: number } }
 const base = '/api/v1/ui/schede-fonti'
 function dataIt(v: string) { return v ? new Date(v).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' }) : 'non ancora eseguito' }
 
@@ -27,8 +29,6 @@ export function SchedeFontiPage() {
   const [busy, setBusy] = useState(true)
   const [carica, setCarica] = useState(0)
   const [pagina, setPagina] = useState(1)
-  const [selezione, setSelezione] = useState('')
-  const [cerca, setCerca] = useState('')
   const [salvataggio, setSalvataggio] = useState('')
   const liveFilter = useRef('')
   liveFilter.current = JSON.stringify([tipo, stato, pagina])
@@ -43,7 +43,7 @@ export function SchedeFontiPage() {
     setBusy(true); setErrore('')
     ensureJson<Risposta>(`${base}?${new URLSearchParams({ tipo, stato, pagina: String(pagina) })}`, { signal: controller.signal })
       .then(d => { if (!controller.signal.aborted) setDati(d) })
-      .catch(e => { if (!controller.signal.aborted) setErrore(e.status === 403 ? 'Non hai il permesso per consultare le norme dei modelli d’atto.' : 'Il presidio non è ancora disponibile: si aggiorna ogni notte.') })
+      .catch(e => { if (!controller.signal.aborted) setErrore(e.status === 403 ? 'Non hai il permesso per consultare le norme dei modelli d’atto.' : 'Non riesco a caricare il catalogo e lo stato dei controlli. Riprova.') })
       .finally(() => { if (!controller.signal.aborted) setBusy(false) })
     return () => controller.abort()
   }, [tipo, stato, carica, pagina])
@@ -66,11 +66,7 @@ export function SchedeFontiPage() {
         <div className="iu-sf-badges">{r.per_tipo.map(t => <Button key={t.tipo} tone="neutral" onClick={() => { setTipo(t.tipo); setStato('aperta'); setPagina(1) }}>{t.etichetta}: {t.numero}</Button>)}{r.commi_abrogati ? <Badge tone="neutral">Norme con commi abrogati: {r.commi_abrogati}</Badge> : null}</div>
         {r.acquisiti.length ? <p>Acquisiti stanotte dalle fonti ufficiali: {r.acquisiti.map(a => `${a.chiave.replace(/_/g, ' ')} (${a.articoli} articoli)`).join(', ')}.</p> : null}
       </section> : null}
-      <section className="iu-od-source-card iu-sf-filtri" aria-label="Consulta tutti i modelli">
-        <label>Cerca modello<input value={cerca} onChange={e => setCerca(e.target.value)} /></label>
-        <label>Modello d’atto<select value={selezione} onChange={e => setSelezione(e.target.value)}><option value="">Scegli un modello</option>{(dati?.modelli || []).filter(m => `${m.id} ${m.titolo}`.toLocaleLowerCase('it-IT').includes(cerca.toLocaleLowerCase('it-IT'))).map(m => <option key={m.id} value={m.id}>{m.id} — {m.titolo}</option>)}</select></label>
-        <Button disabled={!selezione} onClick={() => setScheda(selezione)}>Apri le norme del modello</Button>
-      </section>
+      <SchedeModelliCatalogo modelli={dati?.modelli || []} onSelect={setScheda} busy={busy} />
       <section className="iu-od-source-card iu-sf-filtri" aria-label="Filtri delle proposte">
         <label>Stato<select value={stato} onChange={e => { setStato(e.target.value); setPagina(1) }}><option value="aperta">Da decidere</option><option value="approvata">Approvate</option><option value="respinta">Respinte</option></select></label>
         <label>Tipo<select value={tipo} onChange={e => { setTipo(e.target.value); setPagina(1) }}><option value="">Tutte</option>{(r?.per_tipo || []).map(t => <option key={t.tipo} value={t.tipo}>{t.etichetta}</option>)}</select></label>

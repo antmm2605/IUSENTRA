@@ -31,6 +31,7 @@ from lex.ricerca_giuridica.testo import articolo_normalizzato, codice_da_atto
 CARTELLA = Path(__file__).resolve().parent
 RADICE = CARTELLA.parent.parent
 COMMIT_BASE = "50d9060"
+COMMIT_BASE_REPOSITORY = "cdddf70c8a83798efb1600e5a4aec8fc396bdbc3"
 K_MAX = 10
 
 
@@ -78,6 +79,14 @@ def _risolvi_commit_base() -> str:
     noto = subprocess.run(["git", "cat-file", "-e", f"{COMMIT_BASE}^{{commit}}"], cwd=RADICE, capture_output=True)
     if noto.returncode == 0:
         return COMMIT_BASE
+    # Canonical upstream commit, also usable after a filtered fetch in a shallow checkout.
+    # Keep the historical implementation unchanged: only resolve its authentic Git object.
+    versione = subprocess.run(
+        ["git", "show", f"{COMMIT_BASE_REPOSITORY}:pct/__init__.py"],
+        cwd=RADICE, capture_output=True, text=True,
+    )
+    if versione.returncode == 0 and '__version__ = "2.435.0"' in versione.stdout:
+        return COMMIT_BASE_REPOSITORY
     trovato = subprocess.run(
         ["git", "log", "--format=%H", "-1", "--grep=^2.435.0"], cwd=RADICE, capture_output=True, text=True
     ).stdout.strip()

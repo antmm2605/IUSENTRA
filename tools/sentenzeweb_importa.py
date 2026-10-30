@@ -35,20 +35,14 @@ def FileLock(path, timeout=0):
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pct.giurisprudenza_corpus import GestioneCorpusGiurisprudenza
+from pct.sentenzeweb_corpus import body_available
+from pct.sentenzeweb_recovery import enqueue_recovery
 
 URL = "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select"
 
 
 def scalar(x):
     return x[0] if isinstance(x, list) and x else x
-
-
-def body_available(text):
-    # Exact state actually observed in the official OCR field. Short decisions
-    # are not rejected just because of their size.
-    normalized = " ".join(str(text or "").split()).casefold()
-    return bool(normalized) and normalized != "in fase di valutazione oscuramento"
-
 
 
 def retry_transient_read(operation):
@@ -331,6 +325,13 @@ def run(a):
                         "INSERT OR REPLACE INTO sentenzeweb_aliases VALUES(?,?,?,?)",
                         (d["id"], aliases.get(d["id"], p["uuid_interno"]), h, now),
                     )
+                for item in native:
+                    if not body_available(item["testo_integrale"]):
+                        parent = c.execute("SELECT id FROM sentenze WHERE uuid_interno=?",
+                                           (item["uuid_interno"],)).fetchone()
+                        version = max(int(d["_version_"]) for d in docs
+                                      if aliases.get(d["id"]) == item["uuid_interno"])
+                        enqueue_recovery(c, parent[0], version)
                 done = nxt == state["cursor"]
                 seen = state["seen"] + len(docs)
                 status = (

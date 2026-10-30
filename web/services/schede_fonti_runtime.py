@@ -23,9 +23,8 @@ class RevisioneCambiata(ValueError):
 
 @lru_cache(maxsize=1)
 def _modelli():
-    return sorted([{"id": str(d.get("id") or p.stem), "titolo": str(d.get("titolo") or "")}
-                   for p in Path(CARTELLA_SCHEDE).glob("*.json")
-                   for d in [json.loads(p.read_text(encoding="utf-8"))]], key=lambda x: x["titolo"])
+    from web.services.schede_fonti_catalogo import catalogo_modelli
+    return catalogo_modelli(CARTELLA_SCHEDE)
 
 
 def _pubblico(biblioteca, tabella):
@@ -39,8 +38,17 @@ def _pubblico(biblioteca, tabella):
 
 
 def _norme_scheda(biblioteca, sid):
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", sid) or not (Path(CARTELLA_SCHEDE) / (sid + ".json")).is_file():
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", sid):
         return None
+    if not (Path(CARTELLA_SCHEDE) / (sid + ".json")).is_file():
+        from web.services.schede_fonti_catalogo import modello
+        item = modello(CARTELLA_SCHEDE, sid)
+        if item is None:
+            return None
+        linked = item["schede_normative"]
+        if len(linked) != 1:
+            return []
+        sid = linked[0]
     out, viste = [], set()
     for e in verifica_schede(Path(biblioteca), solo_scheda=sid):
         k = (e.atto, norm_articolo(e.articolo))
@@ -79,8 +87,12 @@ def scheda(biblioteca, scheda_id, *, studio_db):
             if not differenze:
                 differenze = "Testo identico; provenienza o versione della fonte cambiate. Occorre riesaminare la fonte."
         n.update(approvata=bool(e), approvata_da=e.get("attore", ""), approvata_il=e.get("creato_il", ""), differenze=differenze)
-    return {"id": scheda_id, "titolo": next((m["titolo"] for m in _modelli() if m["id"] == scheda_id), ""),
-            "norme": norme, "impronta": digest}
+    from web.services.schede_fonti_catalogo import modello, schede_index
+    item = modello(CARTELLA_SCHEDE, scheda_id)
+    title = item["titolo"] if item else str(schede_index(CARTELLA_SCHEDE).get(scheda_id, {}).get("titolo") or "")
+    return {"id": scheda_id, "titolo": title, "norme": norme, "impronta": digest,
+            "stato_collegamento": item["stato_norme"] if item else "associate",
+            "schede_collegate": item["schede_normative"] if item else [scheda_id]}
 
 
 def approva(biblioteca, scheda_id, avvocato, digest, *, studio_db):
@@ -98,7 +110,9 @@ def approva(biblioteca, scheda_id, avvocato, digest, *, studio_db):
 
 
 def _elenco(biblioteca, studio_db):
-    titoli = {m["id"]: m["titolo"] for m in _modelli()}
+    from web.services.schede_fonti_catalogo import schede_index
+    titoli = {sid: str(data.get("titolo") or sid) for sid, data in schede_index(CARTELLA_SCHEDE).items()}
+    titoli.update({m["id"]: m["titolo"] for m in _modelli()})
     correnti = {(n["scheda"], n["atto"], norm_articolo(n["articolo"])): n for n in _pubblico(biblioteca, "norme")}
     out = []
     for p in _pubblico(biblioteca, "proposte"):
@@ -125,6 +139,12 @@ def _elenco(biblioteca, studio_db):
         sid, n = e["scheda"], e["norma"]
         k = (sid, n["atto"], norm_articolo(n["articolo"]))
         current = correnti.get(k)
+        if current is None and sid.startswith("tpl_"):
+            from web.services.schede_fonti_catalogo import modello
+            template = modello(CARTELLA_SCHEDE, sid)
+            linked = template["schede_normative"] if template else []
+            if len(linked) == 1:
+                current = correnti.get((linked[0], *k[1:]))
         if not current or current["stato"] != "presente":
             continue
         if current["verificato_il"][:19] < e["creato_il"][:19]:

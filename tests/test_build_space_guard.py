@@ -66,14 +66,26 @@ def test_deploy_preflight_precedes_both_build_paths():
     assert 'check_build_capacity\n      docker build' in script
     assert 'else\n  check_build_capacity\n  docker compose' in script
 
-def test_prebuilt_image_of_another_commit_falls_back_to_build():
-    """L'archivio di .env.hetzner può riferirsi a un'altra release: si costruisce l'immagine del commit."""
-    script = (Path(__file__).parents[1] / "deploy/hetzner/deploy.sh").read_text(encoding="utf-8")
-    loader = script.index("load_verified_release_image.py")
-    fallback = script.index('if [ "$prebuilt_loaded" != "1" ]; then')
-    assert loader < fallback < script.index('docker build --label')
-    assert 'if python3 deploy/hetzner/load_verified_release_image.py' in script
-    assert "prebuilt_loaded=1" in script[loader:fallback]
+@pytest.mark.parametrize("configured,loader_exit,expected_exit,expected_build", [
+    (True, 1, 1, False), (True, 0, 0, False), (False, 1, 0, True),
+])
+def test_verified_image_failure_never_builds_an_untested_replacement(
+    configured, loader_exit, expected_exit, expected_build
+):
+    import subprocess
+    script = (Path(__file__).parents[1] / "deploy/hetzner/deploy.sh").read_text()
+    start = script.index('  if ! docker image inspect "iusentra-app:${RELEASE_SHA}"')
+    end = script.index('  # Anche un hotfix', start)
+    setup = (
+        'RELEASE_SHA=test\nIUSENTRA_HOME=/tmp\n'
+        + 'IUSENTRA_PREBUILT_IMAGE_URL=' + ('private' if configured else '') + '\n'
+        + 'docker() { if [ "$1" = image ]; then return 1; fi; echo BUILD; }\n'
+        + 'python3() { return ' + str(loader_exit) + '; }\n'
+        + 'check_build_capacity() { echo CAPACITY; }\n'
+    )
+    result = subprocess.run(['bash', '-c', setup + script[start:end]], text=True, capture_output=True)
+    assert result.returncode == expected_exit
+    assert ('BUILD' in result.stdout) == expected_build
 
 
 def test_measure_resolves_link_to_physical_volume(tmp_path):

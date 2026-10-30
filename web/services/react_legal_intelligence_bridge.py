@@ -800,6 +800,15 @@ def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_qu
 
 def _record_dedupe_key(record: Mapping[str, Any]) -> str:
     record_id = _text(record.get("id"))
+    if record.get("nativeArticleTextVerified") is True:
+        # La URL identifica l'atto, non l'articolo o la sua edizione.
+        # Non fondere il testo di articoli diversi sotto il primo titolo.
+        import hashlib
+        identity = _text(record.get("nativeArticleIdentity"))
+        if not identity:
+            identity = ":".join((_text(record.get("sourceHref")), record_id, _text(record.get("registryNumber")),
+                                 hashlib.sha256(_text(record.get("officialContext")).encode()).hexdigest()))
+        return "native-article:" + identity
     if record_id.startswith("template-atti-source:"):
         return record_id
     if record_id.startswith(("source-delivery:", "practice-research:", "practice-reference:")):
@@ -1850,6 +1859,8 @@ def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive
         "id": _text(row.get("chunk_id") or row.get("document_id") or row.get("id")) or f"{archive}_{index}",
         "officialContext": full_text if native_verified else "",
         "nativeArticleTextVerified": native_verified,
+        "nativeArticleIdentity": repr((source_identity, row.get("hash_sha256"), row.get("normative_article_id"),
+                                        chunk_label, row.get("normative_full_text_sha256"))) if native_verified else "",
         "kind": "normativa" if archive == "normattiva" else "news",
         "title": title,
         "subtitle": excerpt,

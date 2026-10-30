@@ -59,7 +59,9 @@ def test_accoglimento_pieno_non_diventa_parziale():
 
 def test_spiegazione_termine_a_ritroso_coerente_con_la_data():
     risultato = calcola(TERMINE, date(2025, 12, 2))
-    assert risultato['scadenza'] == '2025-09-23'
+    # Data prudenziale a giorni liberi; la scadenza di legge a giorni pieni resta accanto.
+    assert risultato['scadenza'] == '2025-09-22'
+    assert risultato['scadenza_di_legge'] == '2025-09-23'
     assert 'a ritroso' in risultato['spiegazione']
     assert 'escludendo il giorno' in risultato['spiegazione']
     assert 'giorno successivo' not in risultato['spiegazione']

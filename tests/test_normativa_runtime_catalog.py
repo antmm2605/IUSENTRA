@@ -3,6 +3,7 @@
 import hashlib
 import io
 import sqlite3
+from contextlib import closing
 from types import SimpleNamespace
 
 import pytest
@@ -24,7 +25,9 @@ def lexical_catalogs_only(monkeypatch):
 
 
 def archive(path, *, text=None, indexed=False, article="327"):
-    with sqlite3.connect(path) as conn:
+    # closing(): «with sqlite3.connect()» fa solo commit. Una connessione lasciata al garbage collector
+    # trasferisce il WAL nell'archivio a metà test e cambia la revisione su cui si basa la cache.
+    with closing(sqlite3.connect(path)) as conn, conn:
         importer.ensure_schema(conn)
         if text:
             document = importer.DocumentRecord(

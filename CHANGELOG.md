@@ -1,3 +1,9 @@
+## 2.461.0 — Pacchetto di addestramento del modello di catalogazione e banco di prova
+- Pacchetto per addestrare sul PC dello studio il modello di catalogazione (autorizzazione dell'avvocato del 30/10/2026): testi dei documenti pseudonimizzati (nomi noti al fascicolo e preceduti da titolo, indirizzi, nascita, codice fiscale, partita IVA, IBAN, contatti, numero di ruolo), codici opachi, corrispondenze solo sul server.
+- Documenti inventati per tutte le voci del catalogo (regole di titolo e voci riconosciute dal contenuto), accettati solo se il classificatore completo del catalogo assegna la voce prevista e la citazione è verificata.
+- Formato della seconda lettura di Lex (domanda e risposta JSON), gruppi di addestramento, verifica, decisioni dell'avvocato, banco inventato e proposte da rivedere.
+- Script del PC in tools/addestramento_catalogo (fuori dalle dipendenze del prodotto): QLoRA per Qwen 4B e Spark-X2.5 4B, misura e banco di prova che confronta regole, Spark del catalogo, classificatore lineare e modelli prima e dopo l'addestramento.
+
 ## 2.460.0 — Classificatore piccolo del catalogo sul server
 - Classificatore lineare (TF-IDF e regressione logistica in numpy) addestrato sul server sulle proposte quasi certe delle regole del catalogo; nessuna dipendenza nuova, nessuna GPU, nessun testo fuori dal server.
 - Misura in sola lettura del catalogo: accordo con le regole sui documenti tenuti da parte, fasce 90-95 e incerte, confronto con le decisioni dell'avvocato documento per documento.

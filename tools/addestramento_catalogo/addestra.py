@@ -78,7 +78,7 @@ def main() -> int:
     quantizzazione = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
                                         bnb_4bit_compute_dtype=torch.bfloat16)
     modello = AutoModelForCausalLM.from_pretrained(args.modello, quantization_config=quantizzazione, device_map="auto",
-                                                   torch_dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello)
+                                                   dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello)
     modello = prepare_model_for_kbit_training(modello, use_gradient_checkpointing=True)
     modello = get_peft_model(modello, LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",

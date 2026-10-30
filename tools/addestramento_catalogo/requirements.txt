@@ -1,7 +1,7 @@
 # Solo per l'addestramento sul PC dell'avvocato (WSL Ubuntu, RTX 3060 12 GB): NON sono dipendenze del prodotto.
 # torch va installato prima, con le ruote CUDA:
 #   pip install torch --index-url https://download.pytorch.org/whl/cu124
-transformers>=4.51
+transformers>=4.56  # «dtype» al posto di «torch_dtype» (sul PC è installata la 5.22)
 peft>=0.15
 bitsandbytes>=0.45
 accelerate>=1.6

@@ -46,7 +46,7 @@ def main() -> int:
     voci = voci_del_prefisso(prefisso)
     tokenizer = AutoTokenizer.from_pretrained(args.adattatore or args.modello, trust_remote_code=args.codice_del_modello)
     modello = AutoModelForCausalLM.from_pretrained(
-        args.modello, device_map="auto", torch_dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello,
+        args.modello, device_map="auto", dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello,
         quantization_config=BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4",
                                                bnb_4bit_compute_dtype=torch.bfloat16))
     if not args.senza_adattatore:

@@ -1,0 +1,45 @@
+name: Pacchetto di addestramento del catalogo
+# Autorizzazione dell'avvocato del 30/10/2026: prepara sul server il pacchetto di addestramento del modello di
+# catalogazione (testi pseudonimizzati ed esempi inventati) da copiare sul suo PC via Tailscale. I testi NON passano
+# da GitHub: il job stampa solo conteggi e il percorso del pacchetto sul server.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  esportazione:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Pacchetto pseudonimizzato sul server
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T scheduler-worker python -' \
+            < deploy/hetzner/esportazione_addestramento.py > uscita.txt
+          # Solo la riga del risultato: i log dell'avvio dell'app non escono dal runner.
+          grep -m1 '^ESPORTAZIONE_JSON:' uscita.txt | sed 's/^ESPORTAZIONE_JSON://' | jq . > esportazione.json
+          rm -f uscita.txt
+          jq -e '.studi' esportazione.json > /dev/null
+          # Solo conteggi e voci pubblicabili: leggibili anche dal log del job.
+          jq -c . esportazione.json
+          {
+            echo '## Pacchetto di addestramento del catalogo'
+            echo
+            jq -r '.studi | to_entries[] | "### \(.key)\n- Righe: \(.value.righe)\n- Per gruppo: \(.value.per_gruppo)\n- Cartella sul server: \(.value.cartella_pacchetto | sub("^/data"; "/opt/iusentra/data"))\n"' esportazione.json
+          } >> "$GITHUB_STEP_SUMMARY"

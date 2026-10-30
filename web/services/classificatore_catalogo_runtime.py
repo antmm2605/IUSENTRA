@@ -19,6 +19,7 @@ from flask import Flask, g
 from pct.document_intelligence.verita import etichette_dalle_decisioni
 from pct.document_intelligence.verita.classificatore import CARATTERI_LETTI
 from pct.document_intelligence.verita.esperimento import Campione, misura
+from pct.document_intelligence.verita.pseudonimi import CAMPI_PERSONE, parole_da_nascondere
 from web.services.verita_catalogo_runtime import conferme_massive
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,11 @@ def _testo(repository, tenant_id: str, assegnazione) -> str:
     return "" if testo.lstrip().startswith("PCTENC") else testo[:CARATTERI_LETTI]
 
 
+def _voce_spark(assegnazione) -> str:
+    lettura = dict((getattr(assegnazione, "metadata", None) or {}).get("lex_lettura") or {})
+    return str(lettura.get("etichetta") or "") if lettura.get("stato") == "scelta" else ""
+
+
 def campioni_studio_corrente() -> list[Campione]:
     """I campioni di ogni fascicolo dello studio già presente in `g`, archiviati compresi."""
     from web.helpers import get_fascicoli
@@ -46,6 +52,7 @@ def campioni_studio_corrente() -> list[Campione]:
     campioni: list[Campione] = []
     for fascicolo in get_fascicoli().tutti(archiviati=True):
         fascicolo_id = str(getattr(fascicolo, "id", "") or "")
+        nomi = frozenset(parole_da_nascondere(str(getattr(fascicolo, campo, "") or "") for campo in CAMPI_PERSONE))
         try:
             assegnazioni = repository.list_catalog_assignments(tenant_id, fascicolo_id)
             eventi = repository.list_catalog_decision_events(tenant_id, fascicolo_id)
@@ -68,6 +75,7 @@ def campioni_studio_corrente() -> list[Campione]:
                 stato=str(getattr(assegnazione, "status", "") or ""),
                 origine=str(getattr(assegnazione, "source_state", "") or ""),
                 voce_avvocato=decise.get(documento, ""),
+                voce_spark=_voce_spark(assegnazione), nomi=nomi,
             ))
     return campioni
 
@@ -110,4 +118,66 @@ def classificatore_studi(app: Flask, *, minimo_per_voce: int = 30) -> dict[str, 
     return risultato
 
 
-__all__ = ["FILE_DISACCORDI", "campioni_studio_corrente", "classificatore_studi"]
+CARTELLA_ADDESTRAMENTO = "addestramento_catalogo"
+
+
+def _scrivi_privato(percorso: Path, contenuto: bytes) -> None:
+    provvisorio = percorso.with_suffix(percorso.suffix + ".tmp")
+    descrittore = os.open(provvisorio, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descrittore, "wb") as uscita:
+        uscita.write(contenuto)
+    os.replace(provvisorio, percorso)
+
+
+def esporta_studio_corrente(*, per_voce_inventati: int = 60) -> dict[str, Any]:
+    """Scrive nella cartella dello studio il pacchetto per l'addestramento sul PC dell'avvocato.
+
+    `pacchetto/` contiene solo testi pseudonimizzati, esempi inventati, il prefisso della domanda e il manifesto;
+    la corrispondenza codice → documento resta fuori dal pacchetto e non va copiata.
+    """
+    import gzip
+
+    from pct.document_intelligence.catalog_lex import domanda, voci_catalogo
+    from pct.document_intelligence.verita.esportazione import righe_dataset
+    from pct.document_intelligence.verita.sintetici import documenti_inventati
+    from web.helpers import get_fascicoli
+
+    voci = voci_catalogo()
+    etichette = {voce.label for voce in voci}
+    righe, corrispondenze, manifesto = righe_dataset(
+        campioni_studio_corrente(), documenti_inventati(per_voce_inventati, voci=etichette), etichette)
+    radice = Path(get_fascicoli().db_path).resolve().parent.parent / "intelligence" / CARTELLA_ADDESTRAMENTO
+    pacchetto = radice / "pacchetto"
+    pacchetto.mkdir(parents=True, exist_ok=True, mode=0o700)
+    dataset = "\n".join(json.dumps(riga, ensure_ascii=False) for riga in righe).encode("utf-8")
+    _scrivi_privato(pacchetto / "dataset.jsonl.gz", gzip.compress(dataset, mtime=0))
+    _scrivi_privato(pacchetto / "prefisso_domanda.txt", domanda("", voci).encode("utf-8"))
+    _scrivi_privato(pacchetto / "manifesto.json", json.dumps(manifesto, ensure_ascii=False, indent=1).encode("utf-8"))
+    _scrivi_privato(radice / "corrispondenze.json", json.dumps(corrispondenze).encode("utf-8"))
+    return {**manifesto, "cartella_pacchetto": str(pacchetto)}
+
+
+def esportazione_studi(app: Flask) -> dict[str, Any]:
+    """Il pacchetto di addestramento di ogni studio attivo; restituisce solo conteggi e percorsi."""
+    from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
+
+    risultato: dict[str, Any] = {"studi": {}}
+    studi = _active_tenants(app)
+    if studi:
+        from pct.tenant import GestioneTenant
+
+        manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+        for numero, studio in enumerate(studi, start=1):
+            slug = str(getattr(studio, "slug", "") or "").lower()
+            with app.test_request_context(f"/__classificatore/esportazione/{slug}"):
+                _attach_tenant_context(manager, studio)
+                risultato["studi"][f"studio_{numero}"] = esporta_studio_corrente()
+    elif not app.config.get("MULTI_TENANT"):
+        with app.test_request_context("/__classificatore/esportazione/default"):
+            g.multi_tenant_enabled = False
+            risultato["studi"]["studio_1"] = esporta_studio_corrente()
+    return risultato
+
+
+__all__ = ["CARTELLA_ADDESTRAMENTO", "FILE_DISACCORDI", "campioni_studio_corrente", "classificatore_studi",
+           "esporta_studio_corrente", "esportazione_studi"]

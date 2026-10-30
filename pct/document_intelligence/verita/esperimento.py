@@ -33,6 +33,8 @@ class Campione:
     stato: str
     origine: str
     voce_avvocato: str = ""  # voce confermata o corretta documento per documento dall'avvocato
+    voce_spark: str = ""  # voce scelta dalla seconda lettura di Lex (Spark), se ammessa
+    nomi: frozenset[str] = frozenset()  # parole dei nomi di persona noti al fascicolo, per la pseudonimizzazione
 
 
 def _fascia(c: Campione) -> str:

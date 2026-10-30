@@ -18,7 +18,7 @@ REGOLE = (
     ),
     regola(
         "intimazione_sfratto",
-        r"(?:atto\s+di\s+)?intimazione\s+di\s+(?:sfratto|licenza)(?:\s+.*)?|sfratto\s+per\s+(?:morosit[aà]|finita\s+locazione)(?:\s+.*)?",
+        r"(?:atto\s+di\s+)?intimazione\s+di\s+(?:sfratto|licenza)(?:\s+.*)?|sfratto\s+per\s+(?:morosit[aà]|finita\s+locazione)(?:\s+.*)?|citazione\s+per\s+(?:la\s+)?convalida\s+(?:di|dello)\s+sfratto(?:\s+.*)?",
         r"\bsfratt\w+\b|\bmorosit\w+\b|\bcanon\w+\b|\blicenza\b|\brilascio\b|\bconvalida\b",
         "Intimazione di sfratto",
         role="atto_principale", section="atti", tipo=TipoDocumento.CITAZIONE,

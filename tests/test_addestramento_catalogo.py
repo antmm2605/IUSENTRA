@@ -168,4 +168,4 @@ def test_i_modelli_di_atti_danno_documenti_solo_con_la_voce_riconosciuta_dal_cat
     documenti = list(documenti_dai_modelli(2, voci={"Atto di citazione"}, per_voce=5, classifica=classifica))
     assert documenti and len(documenti) <= 5
     assert {d.voce for d in documenti} == {"Atto di citazione"}
-    assert all(d.origine.startswith("modello_atto:") and "Avv. Studio Prova" in d.testo for d in documenti)
+    assert all(d.origine.startswith("modello_atto:") and "avv. studio prova" in d.testo.lower() for d in documenti)

@@ -30,7 +30,7 @@ REGOLE = (
     ),
     regola(
         "opposizione_decreto_ingiuntivo",
-        r"(?:atto\s+di\s+citazione\s+in\s+)?opposizione\s+a\s+decreto\s+ingiuntivo(?:\s+.*)?|atto\s+di\s+citazione\s+in\s+opposizione(?:\s+.*)?",
+        r"(?:atto\s+di\s+citazione\s+in\s+)?opposizione\s+a\s+decreto\s+ingiuntivo(?:\s+.*)?|atto\s+di\s+citazione\s+in\s+opposizione(?:\s+.*)?|citazione\s+in\s+opposizione\s+a\s+decreto\s+ingiuntivo(?:\s+.*)?|opposizione\s+a\s+decreto\s+(?:ingiuntivo\s+)?(?:su|per)\s+saldo\s+di\s+conto(?:\s+.*)?",
         r"\bopponent\w+\b|\boppost\w+\b|\b645\b|\bdecreto\s+ingiuntivo\b",
         "Opposizione a decreto ingiuntivo",
         role="atto_principale", section="atti", tipo=TipoDocumento.CITAZIONE,
@@ -57,7 +57,7 @@ REGOLE = (
     ),
     regola(
         "ricorso_sequestro",
-        r"ricorso\s+per\s+sequestro(?:\s+(?:conservativo|giudiziario))?(?:\s+.*)?",
+        r"ricorso\s+per\s+sequestro(?:\s+(?:conservativo|giudiziario))?(?:\s+.*)?|sequestro\s+(?:conservativo|giudiziario)(?:\s+.*)?",
         r"\bsequestr\w+\b|\bpericulum\b|\bcredit\w+\b",
         "Ricorso per sequestro",
         role="atto_principale", section="atti", tipo=TipoDocumento.RICORSO,
@@ -84,7 +84,7 @@ REGOLE = (
     ),
     regola(
         "comparsa_costituzione",
-        r"comparsa\s+di\s+(?:costituzione(?:\s+e\s+risposta)?|risposta)(?:\s+.*)?",
+        r"comparsa\s+di\s+(?:costituzione(?:\s+e\s+risposta)?|risposta)(?:\s+.*)?|comparsa\s+(?:con\s+(?:domanda\s+riconvenzionale|chiamata\s+(?:in\s+causa\s+)?del\s+terzo)|del\s+conduttore|in\s+opposizione\s+a\s+decreto\s+ingiuntivo)(?:\s+.*)?",
         r"\bsi\s+costituisc\w+\b|\bconvenut\w+\b|\bresistent\w+\b",
         "Comparsa di costituzione e risposta",
         role="atto_difensivo", section="atti", tipo=TipoDocumento.COMPARSA,
@@ -158,7 +158,7 @@ REGOLE = (
     ),
     regola(
         "atto_citazione",
-        r"atto\s+di\s+citazione(?:\s+.*)?",
+        r"atto\s+di\s+citazione(?:\s+.*)?|citazione\s+per\s+.+",
         r"\bcit\w*\b.{0,200}\bcomparire\b|\binvit\w*\b.{0,200}\bcostituir\w*\b|\b163\b|\b166\b|\bavvertiment\w*\b",
         "Atto di citazione",
         role="atto_principale", section="atti", tipo=TipoDocumento.CITAZIONE,

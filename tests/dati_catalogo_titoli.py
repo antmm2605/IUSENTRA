@@ -164,9 +164,13 @@ CAMPIONI: dict[str, tuple[str, str, str]] = {
     "bolletta_utenza": ("ENEL ENERGIA\nBOLLETTA\nFornitura di energia elettrica - POD IT001E12345678\nCliente Mario Rossi. Consumo 320 kWh. Totale da pagare euro 95,00.", "Bolletta di utenza", "allegati"),
     # ── Generiche ──
     "ricorso": ("TRIBUNALE DI BARI\nRICORSO EX ART. 281-UNDECIES C.P.C.\nIl ricorrente Mario Rossi, premesso che ha stipulato un contratto di appalto, chiede la condanna della resistente al pagamento di euro 12.500,00.", "Ricorso introduttivo", "atti"),
-    "memoria": ("TRIBUNALE DI BARI\nMEMORIA DI REPLICA\nR.G. 1234/2026\nPer Mario Rossi. L'attore replica alla comparsa conclusionale avversaria.", "Memoria difensiva", "atti"),
-    "istanza": ("TRIBUNALE DI BARI - R.G. 1234/2026\nISTANZA DI RINVIO DELL'UDIENZA\nL'avv. Luca Bianchi chiede che l'udienza del 20/04/2026 sia rinviata per legittimo impedimento.", "Istanza di rinvio dell'udienza", "atti"),
+    "memoria": ("TRIBUNALE DI BARI\nMEMORIA AUTORIZZATA\nR.G. 1234/2026\nPer Mario Rossi. L'attore replica alla comparsa avversaria nel termine concesso dal giudice.", "Memoria difensiva", "atti"),
+    "istanza": ("TRIBUNALE DI BARI - R.G. 1234/2026\nISTANZA DI PASSAGGIO IN DECISIONE\nL'avv. Luca Bianchi chiede che la causa, matura per la decisione, sia trattenuta in decisione all'udienza del 20/04/2026.", "Istanza di passaggio in decisione", "atti"),
     "contratto": ("CONTRATTO DI APPALTO\nTra Mario Rossi (committente) e Alfa S.r.l. (appaltatore) si conviene e si stipula: l'appaltatore si obbliga a eseguire i lavori per il corrispettivo di euro 45.000,00.", "Contratto di appalto", "contratti"),
     "diffida": ("STUDIO LEGALE BIANCHI\nSpett.le Alfa S.r.l.\nOggetto: diffida e messa in mora\nIn nome e per conto del sig. Mario Rossi Vi diffido a completare i lavori entro 15 giorni, con avvertimento che in difetto si agirà giudizialmente.", "Lettera di diffida e messa in mora", "comunicazioni"),
     "lettera": ("STUDIO LEGALE BIANCHI\nSpett.le Alfa S.r.l.\nOggetto: contratto di appalto del 03/03/2025 - richiesta di chiarimenti\nGentile Amministratore, con la presente chiedo di conoscere lo stato dei lavori. Distinti saluti.", "Lettera", "comunicazioni"),
 }
+
+from tests.dati_catalogo_titoli_modelli import CAMPIONI_MODELLI  # noqa: E402
+
+CAMPIONI.update(CAMPIONI_MODELLI)

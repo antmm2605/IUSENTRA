@@ -18,7 +18,7 @@ REGOLE = (
     ),
     regola(
         "conferimento_incarico",
-        r"(?:conferimento|lettera)\s+(?:di\s+|dell.?\s*)?incarico(?:\s+.*)?|mandato\s+professionale(?:\s+.*)?|contratto\s+d.?\s*opera\s+professionale(?:\s+.*)?|accordo\s+sul\s+compenso(?:\s+.*)?",
+        r"(?:conferimento|lettera)\s+(?:di\s+|dell.?\s*)?incarico(?:\s+.*)?|mandato\s+professionale(?:\s+.*)?|contratto\s+d.?\s*opera\s+professionale(?:\s+.*)?|accordo\s+sul\s+compenso(?:\s+.*)?|incarico\s+professionale(?:\s+.*)?|accettazione\s+del\s+preventivo(?:\s+.*)?",
         r"\bincaric\w+\b|\bcompens\w+\b|\bavvocat\w+\b|\bcliente\b|\bmandat\w+\b",
         "Conferimento di incarico professionale",
         role="incarico", section="procure", tipo=TipoDocumento.CONTRATTO,

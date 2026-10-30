@@ -107,6 +107,26 @@ def voci_catalogo() -> list[VoceCatalogo]:
     return sorted(voci.values(), key=lambda voce: (voce.section, voce.label))
 
 
+# Le regole generiche e alcune identità usano il titolo come etichetta («Istanza di passaggio in decisione»,
+# «Contratto di appalto», «Verbale di mediazione — esito negativo»): l'elenco chiuso ha la voce da cui derivano.
+_RADICI_DELLE_ETICHETTE = (
+    ("Memoria integrativa ex art. 171-ter", "Memoria integrativa ex art. 171-ter c.p.c."),
+    ("Verbale di mediazione", "Verbale di mediazione"),
+    ("Istanza", "Istanza"),
+    ("Contratto", "Contratto"),
+)
+
+
+def voce_dell_elenco(etichetta: str, voci: set[str] | frozenset[str]) -> str:
+    """La voce dell'elenco chiuso a cui appartiene un'etichetta del catalogo ('' se nessuna)."""
+    if etichetta in voci:
+        return etichetta
+    for radice, voce in _RADICI_DELLE_ETICHETTE:
+        if etichetta.startswith(radice) and voce in voci:
+            return voce
+    return ""
+
+
 def _normalizza(testo: str) -> str:
     grezzo = unicodedata.normalize("NFKD", str(testo or "").casefold())
     grezzo = "".join(car for car in grezzo if unicodedata.category(car) != "Mn")
@@ -451,6 +471,7 @@ __all__ = [
     "MODELLO_PREDEFINITO",
     "NESSUNA_VOCE",
     "VERSIONE_LETTURA",
+    "voce_dell_elenco",
     "EsitoLex",
     "VoceCatalogo",
     "applica_esito",

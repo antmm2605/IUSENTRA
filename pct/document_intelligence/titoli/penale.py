@@ -111,7 +111,7 @@ REGOLE = (
     ),
     regola(
         "denuncia",
-        r"(?:atto\s+di\s+)?denuncia(?:\s+.*)?",
+        r"(?:atto\s+di\s+)?denuncia(?!\s+di\s+(?:nuova\s+opera|danno\s+temuto))(?:\s+.*)?",
         r"\bdenunci\w+\b|\breato\b|\bfatt[oi]\b|\bprocura\s+della\s+repubblica\b|\bcarabinieri\b|\bpolizia\b",
         "Denuncia",
         role="atto_principale", section="atti", tipo=TipoDocumento.ATTO_GIUDIZIARIO,

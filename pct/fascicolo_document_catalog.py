@@ -284,6 +284,18 @@ def _has_contributo_context(text: str) -> bool:
     )
 
 
+def _ricevuta_di_pagamento(name_text: str, full_text: str) -> bool:
+    """Il documento attesta un versamento (contributo, bollo, diritti), non lo cita soltanto."""
+    if _has_contributo_context(name_text) or _contains(name_text, r"\b(marca\s+da\s+bollo|bollo|f23|ricevuta)\b"):
+        return True
+    return _contains(
+        full_text,
+        r"\b(pagopa|pago\s+pa|iuv|ricevuta\s+(?:telematica|di\s+pagamento|di\s+versamento)|importo\s+(?:pagato|versato)|"
+        r"esito\s+(?:del\s+)?pagamento|pagamento\s+eseguito|avviso\s+(?:di\s+)?pagamento|0702100ts|f23|quietanza|"
+        r"marca\s+da\s+bollo|bollo\s+digitale|diritti\s+di\s+cancelleria|dati\s+specifici\s+riscossione|rt\s+xml)\b",
+    )
+
+
 def _has_pagopa_rt_contributo_context(raw_text: str, normalised_text: str) -> bool:
     raw = _text(raw_text)
     norm = _text(normalised_text)
@@ -651,7 +663,10 @@ def classify_fascicolo_document(
                 deposit_role="fuori_busta",
                 deposit_candidate=False,
             )
-        return _contributo_result()
+        # Un atto che dichiara il valore «ai fini del contributo unificato» (art. 14 D.P.R. 115/2002) non è la
+        # ricevuta del versamento: senza un segno del pagamento nel nome o nel testo la regola non scatta.
+        if _ricevuta_di_pagamento(name_text, full_text):
+            return _contributo_result()
 
     if gratuito_patrocinio:
         return _result(
@@ -964,18 +979,19 @@ def classify_fascicolo_document(
         label = "Contributo unificato / pagamento"
         if _contains(full_text, r"\b(esente|esenzione|non\s+dovuto|prenotazione\s+a\s+debito)\b"):
             label = "Contributo unificato / esenzione"
-        if label == "Contributo unificato / pagamento":
+        if label != "Contributo unificato / pagamento":
+            return _result(
+                role="contributo_unificato",
+                label=label,
+                section="pagamenti",
+                confidence=95,
+                evidence="nome o OCR: contributo/PagoPA/CU contestuale",
+                tipo_documento=TipoDocumento.DEPOSITO_PCT,
+                deposit_role="contributo_unificato",
+                deposit_candidate=True,
+            )
+        if _ricevuta_di_pagamento(name_text, full_text):
             return _contributo_result()
-        return _result(
-            role="contributo_unificato",
-            label=label,
-            section="pagamenti",
-            confidence=95,
-            evidence="nome o OCR: contributo/PagoPA/CU contestuale",
-            tipo_documento=TipoDocumento.DEPOSITO_PCT,
-            deposit_role="contributo_unificato",
-            deposit_candidate=True,
-        )
 
     if _contains(name_text, r"\b(nota\s+di\s+iscrizione\s+a\s+ruolo|iscrizione\s+a\s+ruolo|nir)\b") or _contains(
         head_text[:2000],

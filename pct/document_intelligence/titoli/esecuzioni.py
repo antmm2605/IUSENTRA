@@ -72,7 +72,7 @@ REGOLE = (
     ),
     regola(
         "atto_intervento",
-        r"(?:atto\s+di\s+|ricorso\s+per\s+)?intervento(?:\s+(?:nell.?\s*esecuzione|ex\s+art\.?\s*499).*)?",
+        r"(?:atto\s+di\s+|ricorso\s+per\s+)?intervento(?:\s+(?:nell.?\s*esecuzione|ex\s+art\.?\s*499).*)?|(?:atto\s+di\s+)?intervento\s+(?:del|dei)\s+credit\w+(?:\s+.*)?",
         r"\binterven\w+\b|\bcreditor\w*\b|\b499\b|\bpignoramento\b",
         "Atto di intervento nell'esecuzione",
         role="atto_principale", section="atti", tipo=TipoDocumento.ATTO_GIUDIZIARIO,

@@ -24,6 +24,8 @@ from collections import Counter
 from collections.abc import Iterable
 from typing import Any
 
+from pct.document_intelligence.catalog_lex import voce_dell_elenco
+
 from .censimento import CONFIDENZA_ARGENTO
 from .classificatore import in_verifica
 from .esperimento import Campione
@@ -97,8 +99,9 @@ def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInv
             continue
         testo = pseudonimizza(c.testo, set(c.nomi))
         codice = _codice(c.fascicolo_id, c.document_id)
-        riga: dict[str, Any] = {"id": codice, "testo": testo, "voce_regole": c.voce if c.voce in voci else "",
-                                "voce_spark": c.voce_spark if c.voce_spark in voci else ""}
+        voce_regole = voce_dell_elenco(c.voce, voci)
+        riga: dict[str, Any] = {"id": codice, "testo": testo, "voce_regole": voce_regole,
+                                "voce_spark": voce_dell_elenco(c.voce_spark, voci)}
         proposta = c.stato == "proposed" and c.origine != "manual_override"
         if c.voce_avvocato:
             if c.voce_avvocato not in voci:
@@ -106,9 +109,9 @@ def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInv
                 continue
             riga.update(gruppo="verifica_avvocato", fonte="avvocato", voce=c.voce_avvocato,
                         risposta=risposta(testo, c.voce_avvocato))
-        elif proposta and c.confidenza >= CONFIDENZA_ARGENTO and c.voce in voci:
+        elif proposta and c.confidenza >= CONFIDENZA_ARGENTO and voce_regole:
             gruppo = "verifica" if in_verifica(c.document_id) else "addestramento"
-            riga.update(gruppo=gruppo, fonte="regole_quasi_certe", voce=c.voce, risposta=risposta(testo, c.voce))
+            riga.update(gruppo=gruppo, fonte="regole_quasi_certe", voce=voce_regole, risposta=risposta(testo, voce_regole))
         elif c.stato in {"proposed", "review_required"} and c.origine != "manual_override":
             riga.update(gruppo="da_rivedere", fonte="regole_incerte", voce="", confidenza_regole=c.confidenza,
                         voce_lineare=(disaccordi or {}).get(c.document_id, ""))

@@ -244,3 +244,28 @@ def test_la_sentenza_della_causa_resta_un_provvedimento():
     )
     assert esito.document_label == "Sentenza"
     assert esito.document_section == "provvedimenti"
+
+
+# ── Contributo unificato: la ricevuta, non la dichiarazione di valore (30/10/2026) ──
+
+
+def test_un_atto_che_dichiara_il_valore_ai_fini_del_contributo_non_e_una_ricevuta():
+    from pct.document_intelligence.catalog_resolver import _classify_indexed_content
+
+    atto = ("STUDIO LEGALE BIANCHI\nVERBALE DI RIUNIONE PRELIMINARE\nper Mario Rossi contro Beta S.p.A.\n"
+            "Ai fini del contributo unificato si dichiara che il valore della causa è indeterminabile.")
+    assert _classify_indexed_content(atto).label != "Contributo unificato / pagamento"
+    ricevuta = ("RICEVUTA TELEMATICA pagoPA\nEnte creditore: Ministero della Giustizia\nCausale: contributo unificato\n"
+                "Importo pagato: euro 237,00\nCodice IUV: 12345678901234567\nEsito: pagamento eseguito")
+    assert _classify_indexed_content(ricevuta).label == "Contributo unificato / pagamento"
+
+
+def test_le_etichette_dal_titolo_si_riconducono_alla_voce_dell_elenco():
+    from pct.document_intelligence.catalog_lex import voce_dell_elenco, voci_catalogo
+
+    elenco = {voce.label for voce in voci_catalogo()}
+    assert voce_dell_elenco("Istanza di passaggio in decisione", elenco) == "Istanza"
+    assert voce_dell_elenco("Istanza di rinvio dell'udienza", elenco) == "Istanza di rinvio dell'udienza"
+    assert voce_dell_elenco("Contratto di appalto", elenco) == "Contratto"
+    assert voce_dell_elenco("Memoria integrativa ex art. 171-ter, n. 2, c.p.c.", elenco) == "Memoria integrativa ex art. 171-ter c.p.c."
+    assert voce_dell_elenco("Voce inesistente", elenco) == ""

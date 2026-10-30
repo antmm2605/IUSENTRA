@@ -18,7 +18,7 @@ REGOLE = (
     ),
     regola(
         "insinuazione_passivo",
-        r"(?:domanda|istanza|ricorso)\s+di\s+(?:ammissione|insinuazione)\s+al\s+passivo(?:\s+.*)?|insinuazione\s+al\s+passivo(?:\s+.*)?",
+        r"(?:domanda|istanza|ricorso)\s+di\s+(?:ammissione|insinuazione)\s+al\s+passivo(?:\s+.*)?|insinuazione\s+al\s+passivo(?:\s+.*)?|domanda\s+di\s+ammissione\s+(?:al\s+passivo\s+)?di\s+credit\w+(?:\s+.*)?",
         r"\bcurator\w+\b|\bpassivo\b|\bcredit\w+\b|\bprivileg\w+\b|\bchirograf\w+\b",
         "Domanda di ammissione al passivo",
         role="atto_principale", section="atti", tipo=TipoDocumento.RICORSO,
@@ -36,7 +36,7 @@ REGOLE = (
     ),
     regola(
         "piano_sovraindebitamento",
-        r"(?:piano|proposta)\s+(?:del\s+consumatore|di\s+ristrutturazione\s+dei\s+debiti)(?:\s+.*)?",
+        r"(?:piano|proposta|domanda)\s+(?:del\s+consumatore|di\s+ristrutturazione\s+dei\s+debiti)(?:\s+.*)?",
         r"\bsovraindebit\w+\b|\bdebit\w+\b|\bgestore\s+della\s+crisi\b|\bocc\b|\bconsumatore\b",
         "Piano di ristrutturazione dei debiti del consumatore",
         role="atto_principale", section="atti", tipo=TipoDocumento.RICORSO,

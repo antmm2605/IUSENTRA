@@ -34,6 +34,15 @@ REGOLE = (
         fonte="normattiva_d_lgs_25_2008_protezione_internazionale", deposit_role="atto_principale",
         evidence="titolo del ricorso e domanda di protezione internazionale (art. 35 D.Lgs. 25/2008)",
     ),
+    regola(
+        "ricongiungimento_familiare",
+        r"(?:istanza|domanda|richiesta|ricorso)\s+(?:di\s+|per\s+(?:il\s+)?)?ricongiungimento\s+familiare(?:\s+.*)?|nulla\s+osta\s+al\s+ricongiungimento(?:\s+.*)?",
+        r"\bricongiung\w+\b|\bfamiliar\w+\b|\bnulla\s+osta\b|\bsportello\s+unico\b|\b29\b",
+        "Istanza di ricongiungimento familiare",
+        role="atto_amministrativo", section="atti", tipo=TipoDocumento.RICORSO,
+        fonte="normattiva_tu_immigrazione_286_1998", deposit_role="atto_principale",
+        evidence="titolo dell'istanza e ricongiungimento con i familiari (artt. 29 e 30 D.Lgs. 286/1998)",
+    ),
 )
 
 __all__ = ["REGOLE"]

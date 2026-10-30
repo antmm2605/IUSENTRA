@@ -118,8 +118,14 @@ def main() -> int:
             nascosti = causale.get_decoder()(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
                                              use_cache=False).last_hidden_state
             logit = causale.get_output_embeddings()(nascosti[:, -k:-1, :]).float()
+            # Il Trainer passa num_items_in_batch e allora NON divide per l'accumulo: la perdita va normalizzata
+            # sui token di risposta dell'intero passo, altrimenti si somma sui micro-lotti (16 volte più grande).
+            somma = num_items_in_batch is not None
             perdita = torch.nn.functional.cross_entropy(logit.reshape(-1, logit.size(-1)),
-                                                        etichette[:, -k + 1:].reshape(-1), ignore_index=-100)
+                                                        etichette[:, -k + 1:].reshape(-1), ignore_index=-100,
+                                                        reduction="sum" if somma else "mean")
+            if somma:
+                perdita = perdita / torch.as_tensor(num_items_in_batch, device=perdita.device)
             return (perdita, None) if return_outputs else perdita
 
     class MemoriaGPU(TrainerCallback):

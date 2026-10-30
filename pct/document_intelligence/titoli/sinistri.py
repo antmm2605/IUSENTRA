@@ -18,7 +18,7 @@ REGOLE = (
     ),
     regola(
         "richiesta_risarcimento",
-        r"richiesta\s+(?:di\s+)?risarcimento(?:\s+(?:dei\s+)?danni)?(?:\s+.*)?|richiesta\s+danni(?:\s+.*)?",
+        r"richiesta\s+(?:stragiudiziale\s+)?(?:di\s+)?risarcimento(?:\s+(?:dei\s+)?danni)?(?:\s+.*)?|richiesta\s+danni(?:\s+.*)?",
         r"\bsinistro\b|\brisarc\w+\b|\bdann\w+\b|\bassicura\w+\b|\bresponsabil\w+\b",
         "Richiesta di risarcimento",
         role="corrispondenza_stragiudiziale", section="comunicazioni", tipo=TipoDocumento.COMUNICAZIONE,

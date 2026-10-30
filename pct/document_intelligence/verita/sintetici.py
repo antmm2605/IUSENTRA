@@ -460,14 +460,53 @@ def _ufficio_del_modello(autorita: str, d: _Dati, g: random.Random) -> str:
     return f"{scelta.upper()} DI {d.citta.upper()}"
 
 
+# I modelli intitolati per materia («Atto in materia di distanze», «Azione di recesso del socio») sono atti di
+# citazione: l'avvocato li intitola così e mette la materia nell'oggetto.
+_TITOLI_PER_MATERIA = re.compile(r"^(?:atto\s+(?:in\s+materia\s+di|su|per)|azione)\b", re.IGNORECASE)
+_UFFICI_GIUDIZIARI = re.compile(r"\b(?:tribunale|giudice|corte)\b", re.IGNORECASE)
+
+
+def _regola_del_titolo(titolo: str):
+    """La regola specifica che riconosce questa intestazione, per scrivere nel corpo il segno che la conferma.
+
+    Le regole larghe («ricorso …», «memoria …», «appello …») accettano qualunque titolo che inizi con quella
+    parola e distinguono l'atto solo dal corpo (ricorso tributario, al TAR, di lavoro): scriverne il segno
+    deciderebbe la voce al posto del catalogo. Restano escluse: si riconoscono perché accettano anche la
+    prima parola del titolo seguita da una parola qualsiasi.
+    """
+    from pct.document_intelligence.catalog_titoli import REGOLE_TITOLO
+
+    parole = titolo.split()
+    sonda = f"{parole[0]} zqxw" if parole else ""
+    specifiche = []
+    for regola in REGOLE_TITOLO:
+        modello = re.compile(rf"^(?:{regola.titolo})\s*$", re.IGNORECASE)
+        if modello.match(titolo) and not modello.match(sonda):
+            specifiche.append(regola)
+    # Due regole specifiche per lo stesso titolo (sospensione civile o tributaria) le distingue il corpo.
+    return specifiche[0] if len({regola.label for regola in specifiche}) == 1 else None
+
+
 def _documento_da_modello(modello: dict, d: _Dati, g: random.Random) -> str:
-    """Un atto completo costruito dal modello: ufficio competente, titolo, parti e le sezioni guidate del modello."""
+    """Un atto completo costruito dal modello: ufficio competente, titolo, parti e le sezioni guidate del modello.
+
+    Il corpo contiene il segno che ogni atto di quel tipo contiene (la regola di titolo lo dichiara): senza, il
+    catalogo giustamente non riconosce un documento che ha solo il titolo. La voce resta decisa dal catalogo.
+    """
     titolo = str(modello.get("titolo") or "").strip()
-    righe = [_ufficio_del_modello(str(modello.get("autorita") or ""), d, g),
-             titolo.upper() if g.random() < 0.7 else titolo,
-             g.choice((f"nell'interesse di {d.parte}, rappresentato e difeso dall'Avv. Studio Prova",
-                       f"per {d.parte} contro {d.controparte}",
-                       f"Procedimento n. {d.numero}/{d.anno} - {d.parte} / {d.controparte}"))]
+    autorita = str(modello.get("autorita") or "")
+    righe = [_ufficio_del_modello(autorita, d, g)]
+    regola = _regola_del_titolo(titolo)
+    if regola is None and _TITOLI_PER_MATERIA.match(titolo) and _UFFICI_GIUDIZIARI.search(autorita):
+        righe.append(g.choice(("ATTO DI CITAZIONE", "Atto di citazione")))
+        titolo = titolo[:1].lower() + titolo[1:]
+        regola = _regola_del_titolo("Atto di citazione")
+    righe.append(titolo.upper() if g.random() < 0.7 else titolo)
+    righe.append(g.choice((f"nell'interesse di {d.parte}, rappresentato e difeso dall'Avv. Studio Prova",
+                           f"per {d.parte} contro {d.controparte}",
+                           f"Procedimento n. {d.numero}/{d.anno} - {d.parte} / {d.controparte}")))
+    if regola is not None:
+        righe.append(f"{regola.evidence[:1].upper()}{regola.evidence[1:]}: {_esempio_da_pattern(regola.conferma, g)}.")
     for blocco in modello.get("blocchi_guidati") or ():
         if str(blocco).strip().lower() in _BLOCCHI_SENZA_TESTO:
             continue
@@ -485,8 +524,10 @@ def documenti_dai_modelli(per_modello: int = 3, *, voci: set[str], per_voce: int
     confidenza di almeno `CONFIDENZA_MINIMA`, e solo se è una voce dell'elenco chiuso. I modelli che il catalogo
     non riconosce restano fuori; ogni voce riceve al più `per_voce` documenti da questa fonte.
     """
+    from pct.document_intelligence.catalog_lex import voce_dell_elenco, voci_catalogo
     from pct.template_atti_unified_catalog import build_unified_template_catalog
 
+    elenco = {voce.label for voce in voci_catalogo()}
     g = random.Random(seme + 2)
     per_etichetta: dict[str, int] = {}
     for modello in build_unified_template_catalog():
@@ -498,6 +539,7 @@ def documenti_dai_modelli(per_modello: int = 3, *, voci: set[str], per_voce: int
                 break
             testo = _rifinisci(_documento_da_modello(modello, _dati(g), g), _dati(g), g)
             etichetta, confidenza = classifica(testo)
+            etichetta = voce_dell_elenco(etichetta, elenco)
             if etichetta in voci and confidenza >= CONFIDENZA_MINIMA and per_etichetta.get(etichetta, 0) < per_voce:
                 per_etichetta[etichetta] = per_etichetta.get(etichetta, 0) + 1
                 accettati += 1
@@ -513,8 +555,10 @@ def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, ten
     Ogni documento è prima classificato dal catalogo completo: entra solo con la voce prevista e una confidenza
     di almeno `CONFIDENZA_MINIMA`.
     """
+    from pct.document_intelligence.catalog_lex import voce_dell_elenco, voci_catalogo
     from pct.document_intelligence.catalog_titoli import REGOLE_TITOLO
 
+    elenco = {voce.label for voce in voci_catalogo()}
     if classifica is None:
         from pct.document_intelligence.catalog_resolver import _classify_indexed_content
 
@@ -537,13 +581,11 @@ def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, ten
                 break
             testo = genera()
             etichetta, confidenza = classifica(testo)
-            if etichetta == voce and confidenza >= CONFIDENZA_MINIMA:
+            if voce_dell_elenco(etichetta, elenco) == voce and confidenza >= CONFIDENZA_MINIMA:
                 accettati += 1
                 yield DocumentoInventato(voce=voce, origine=origine, testo=testo)
     if modelli_atti:
-        from pct.document_intelligence.catalog_lex import voci_catalogo
-
-        ammesse = set(voci) if voci is not None else {voce.label for voce in voci_catalogo()}
+        ammesse = set(voci) if voci is not None else elenco
         yield from documenti_dai_modelli(voci=ammesse, per_voce=per_voce, classifica=classifica, seme=seme)
 
 

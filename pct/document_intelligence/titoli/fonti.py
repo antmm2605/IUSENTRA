@@ -17,8 +17,11 @@ _CC = "regio.decreto:1942-03-16;262~art"
 _CPP = "decreto.del.presidente.della.repubblica:1988-09-22;447~art"
 
 
-def _fonte(label: str, urn: str, *, tipo: str = "normativa") -> dict[str, Any]:
-    return {"label": label, "official_url": _NORMATTIVA + urn, "verification_status": _VERIFICA, "source_type": tipo}
+_VERIFICA_MODELLI = "testo vigente consultato su Normattiva il 30/10/2026"
+
+
+def _fonte(label: str, urn: str, *, tipo: str = "normativa", verifica: str = _VERIFICA) -> dict[str, Any]:
+    return {"label": label, "official_url": _NORMATTIVA + urn, "verification_status": verifica, "source_type": tipo}
 
 
 FONTI_TITOLI: dict[str, dict[str, Any]] = {
@@ -33,6 +36,7 @@ FONTI_TITOLI: dict[str, dict[str, Any]] = {
     "normattiva_cpc_sfratto": _fonte("c.p.c., artt. 657 e 658: intimazione di licenza e di sfratto", _CPC + "658"),
     "normattiva_cpc_cautelari": _fonte("c.p.c., artt. 669-terdecies, 671 e 700: reclamo, sequestro e provvedimenti d'urgenza", _CPC + "700"),
     "normattiva_cpc_correzione_errore_materiale": _fonte("c.p.c., art. 287: correzione delle omissioni o degli errori materiali", _CPC + "287"),
+    "normattiva_legge_89_2001_pinto": _fonte("L. 89/2001, art. 3: ricorso per equa riparazione per irragionevole durata del processo", "legge:2001-03-24;89~art3", verifica=_VERIFICA_MODELLI),
     "normattiva_cpc_udienza_note_scritte": _fonte("c.p.c., art. 127-ter: deposito di note scritte in sostituzione dell'udienza", _CPC + "127ter"),
     # Codice civile
     "normattiva_cc_condominio": _fonte("c.c., artt. 1136-1138: assemblea, impugnazione delle deliberazioni e regolamento di condominio", _CC + "1136"),

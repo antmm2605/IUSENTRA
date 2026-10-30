@@ -5,6 +5,8 @@ Uso:
 
 Modelli base: Qwen 4B (scelta dell'avvocato del 30/10/2026) e, per il confronto, Spark-X2.5 4B con gli stessi esempi. Si addestrano solo gli adattatori LoRA su un modello
 quantizzato a 4 bit; la perdita è calcolata solo sulla risposta (il JSON del catalogo), non sulla domanda.
+Con `--domanda breve` (predefinita) l'elenco delle voci resta fuori dalla domanda: il modello le impara dagli
+esempi e `valuta.py` usa la stessa domanda, letta da `addestramento.json` dell'adattatore.
 Le righe «verifica», «verifica_avvocato» e «da_rivedere» non sono mai usate qui.
 """
 
@@ -17,7 +19,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from dati import conversazione, gruppo, leggi_pacchetto
+from dati import conversazione, gruppo, leggi_pacchetto, prefisso_breve
 
 MODELLO_BASE = "Qwen/Qwen3-4B-Instruct-2507"
 # Spark-X2.5 4B (iFLYTEK, Apache 2.0): la stessa famiglia della seconda lettura di Lex nel catalogo
@@ -37,21 +39,26 @@ def main() -> int:
     parser.add_argument("--accumulo", type=int, default=16)
     parser.add_argument("--passo", type=float, default=1e-4)
     parser.add_argument("--massimo-righe", type=int, default=0, help="0 = tutte; utile per una prova breve")
+    parser.add_argument("--domanda", choices=("breve", "completa"), default="breve",
+                        help="breve = senza l'elenco delle voci (sequenze di un terzo); completa = come Lex")
     args = parser.parse_args()
 
     import torch
     from datasets import Dataset
-    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from peft import LoraConfig, get_peft_model
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
         BitsAndBytesConfig,
         DataCollatorForSeq2Seq,
         Trainer,
+        TrainerCallback,
         TrainingArguments,
     )
 
     prefisso, righe, manifesto = leggi_pacchetto(args.pacchetto)
+    if args.domanda == "breve":
+        prefisso = prefisso_breve(prefisso)
     addestramento = gruppo(righe, "addestramento")
     random.Random(20261030).shuffle(addestramento)
     if args.massimo_righe:
@@ -76,12 +83,18 @@ def main() -> int:
     dataset = Dataset.from_list([codifica(r) for r in addestramento])
     # Una risposta troncata insegnerebbe JSON incompleti: si scartano le righe senza risposta intera.
     dataset = dataset.filter(lambda r: any(x != -100 for x in r["labels"][-8:]))
+    lunghezze = sorted(len(r) for r in dataset["input_ids"])
+    print(f"Token per esempio: mediana {lunghezze[len(lunghezze) // 2]}, massimo {lunghezze[-1]}", flush=True)
 
     quantizzazione = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
                                         bnb_4bit_compute_dtype=torch.bfloat16)
     modello = AutoModelForCausalLM.from_pretrained(args.modello, quantization_config=quantizzazione, device_map="auto",
-                                                   dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello)
-    modello = prepare_model_for_kbit_training(modello, use_gradient_checkpointing=True)
+                                                   dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello,
+                                                   attn_implementation="sdpa")
+    # Niente prepare_model_for_kbit_training: porterebbe in float32 il vocabolario (1,5 GB per Qwen, condiviso
+    # con l'uscita) e con lui tutto il flusso residuo salvato dal checkpointing. Si resta in bfloat16.
+    modello.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+    modello.config.use_cache = False
     modello = get_peft_model(modello, LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
         # Tutti gli strati lineari: vale per Qwen e per Spark, che chiamano diversamente le proiezioni.
@@ -107,22 +120,33 @@ def main() -> int:
                                                         etichette[:, -k + 1:].reshape(-1), ignore_index=-100)
             return (perdita, None) if return_outputs else perdita
 
+    class MemoriaGPU(TrainerCallback):
+        """Memoria e tempo dei primi passi: se il picco si avvicina ai 12 GB, WSL riversa nella RAM e rallenta."""
+
+        def on_step_end(self, args_, state, control, **kwargs):
+            if state.global_step <= 5 or state.global_step % 50 == 0:
+                print(f"passo {state.global_step}: picco GPU {torch.cuda.max_memory_allocated() / 2**20:.0f} MiB, "
+                      f"riservata {torch.cuda.memory_reserved() / 2**20:.0f} MiB", flush=True)
+
     allenatore = AllenatoreSullaRisposta(
         model=modello,
         args=TrainingArguments(
             output_dir=str(args.uscita / "passaggi"), per_device_train_batch_size=1,
             gradient_accumulation_steps=args.accumulo, num_train_epochs=args.epoche, learning_rate=args.passo,
             lr_scheduler_type="cosine", warmup_steps=0.03, bf16=True, logging_steps=10, save_steps=200,
-            save_total_limit=2, gradient_checkpointing=True, optim="paged_adamw_8bit", report_to=[], seed=20261030),
+            save_total_limit=2, gradient_checkpointing=True, optim="paged_adamw_8bit", report_to=[], seed=20261030,
+            gradient_checkpointing_kwargs={"use_reentrant": False}),
         train_dataset=dataset,
         data_collator=DataCollatorForSeq2Seq(tokenizer, padding=True, label_pad_token_id=-100),
+        callbacks=[MemoriaGPU()],
     )
     allenatore.train()
     args.uscita.mkdir(parents=True, exist_ok=True)
     modello.save_pretrained(args.uscita)
     tokenizer.save_pretrained(args.uscita)
     (args.uscita / "addestramento.json").write_text(json.dumps({
-        "modello_base": args.modello, "righe": len(dataset), "epoche": args.epoche, "manifesto": manifesto,
+        "modello_base": args.modello, "righe": len(dataset), "epoche": args.epoche, "domanda": args.domanda,
+        "manifesto": manifesto,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Adattatore salvato in {args.uscita}", flush=True)
     return 0

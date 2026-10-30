@@ -61,6 +61,16 @@ def conversazione(prefisso: str, riga: dict[str, Any], *, con_risposta: bool = T
     return messaggi
 
 
+def prefisso_breve(prefisso: str) -> str:
+    """La stessa domanda senza l'elenco delle voci: il modello addestrato le ha imparate dagli esempi.
+
+    L'elenco pesa da solo circa 2.000 token su ogni esempio: senza, le sequenze scendono a un terzo e
+    l'addestramento sta nei 12 GB della RTX 3060 senza riversarsi nella memoria condivisa (lentissima).
+    """
+    return re.sub(r"(?m)^- .+? \[[^\]]+\]\n", "", prefisso).replace(
+        "Voci del catalogo (etichetta [sezione]):\n", "Voci: quelle del catalogo IUSENTRA.\n")
+
+
 def voci_del_prefisso(prefisso: str) -> set[str]:
     """Le etichette dell'elenco chiuso («- Etichetta [sezione]») scritto nel prefisso."""
     return {m.group(1).strip() for m in re.finditer(r"(?m)^- (.+?) \[[^\]]+\]$", prefisso)}
@@ -123,4 +133,4 @@ def disaccordi(righe: list[dict[str, Any]], risposte: dict[str, dict[str, str]])
 
 
 __all__ = ["FORMATO", "NESSUNA_VOCE", "applica_decisioni", "citazione_presente", "conversazione", "disaccordi", "gruppo",
-           "leggi_pacchetto", "leggi_risposta", "misura", "voci_del_prefisso"]
+           "leggi_pacchetto", "leggi_risposta", "misura", "prefisso_breve", "voci_del_prefisso"]

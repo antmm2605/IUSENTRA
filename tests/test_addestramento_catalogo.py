@@ -76,6 +76,8 @@ def test_funzioni_del_pc_leggono_il_pacchetto_e_misurano(tmp_path):
     prefisso = domanda("", voci)
     assert dati_pc.NESSUNA_VOCE == NESSUNA_VOCE
     assert dati_pc.voci_del_prefisso(prefisso) == {v.label for v in voci}
+    breve = dati_pc.prefisso_breve(prefisso)
+    assert not dati_pc.voci_del_prefisso(breve) and breve.endswith("DOCUMENTO:\n") and len(breve) < len(prefisso) / 2
     righe, _, manifesto = righe_dataset([_campione(n, "Procura alle liti") for n in range(30)], [], {v.label for v in voci})
     (tmp_path / "manifesto.json").write_text(json.dumps(manifesto), encoding="utf-8")
     (tmp_path / "prefisso_domanda.txt").write_text(prefisso, encoding="utf-8")

@@ -278,7 +278,8 @@ def _rifinisci(testo: str, d: _Dati, g: random.Random) -> str:
 
 
 def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, tentativi: int = 5,
-                        classifica: Callable[[str], tuple[str, int]] | None = None) -> Iterator[DocumentoInventato]:
+                        classifica: Callable[[str], tuple[str, int]] | None = None,
+                        seme: int = _SEME) -> Iterator[DocumentoInventato]:
     """Fino a `per_voce` documenti per ogni regola di titolo e per ogni modello di contenuto.
 
     Ogni documento è prima classificato dal catalogo completo: entra solo con la voce prevista e una confidenza
@@ -293,7 +294,7 @@ def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, ten
             esito = _classify_indexed_content(testo)
             return str(esito.label or ""), int(esito.confidence or 0)
 
-    g = random.Random(_SEME)
+    g = random.Random(seme)
     sorgenti: list[tuple[str, str, Callable[[], str]]] = []
     for regola in REGOLE_TITOLO:
         sorgenti.append((regola.label, regola.id, lambda r=regola: _testo_da_regola(r, g)))
@@ -313,4 +314,6 @@ def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, ten
                 yield DocumentoInventato(voce=voce, origine=origine, testo=testo)
 
 
-__all__ = ["CONFIDENZA_MINIMA", "MODELLI_CONTENUTO", "DocumentoInventato", "documenti_inventati"]
+SEME_BANCO = _SEME + 1  # banco di prova: documenti diversi da quelli di addestramento
+
+__all__ = ["CONFIDENZA_MINIMA", "MODELLI_CONTENUTO", "SEME_BANCO", "DocumentoInventato", "documenti_inventati"]

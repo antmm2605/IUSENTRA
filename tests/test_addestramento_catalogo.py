@@ -89,3 +89,38 @@ def test_funzioni_del_pc_leggono_il_pacchetto_e_misurano(tmp_path):
     esito = dati_pc.misura(lette, risposte)
     assert esito["modello_giuste"] == esito["documenti"] == len(lette)
     assert dati_pc.leggi_risposta('{"etichetta": "Voce inventata"}', {"A"})["etichetta"] == ""
+
+
+def test_banco_confronta_regole_lineare_e_modelli_sulle_stesse_righe(tmp_path):
+    import banco  # tools/addestramento_catalogo, già nel percorso
+
+    voci = voci_catalogo()
+    etichette = {v.label for v in voci}
+    from pct.document_intelligence.verita.sintetici import SEME_BANCO
+
+    scelte = {"Sentenza", "Procura alle liti", "Verbale di udienza"}
+    righe, _, manifesto = righe_dataset([], documenti_inventati(20, voci=scelte), etichette,
+                                        banco=documenti_inventati(3, voci=scelte, seme=SEME_BANCO))
+    assert manifesto["per_gruppo"]["banco_inventati"] >= 6
+    pacchetto = tmp_path / "pacchetto"
+    pacchetto.mkdir()
+    (pacchetto / "manifesto.json").write_text(json.dumps(manifesto), encoding="utf-8")
+    (pacchetto / "prefisso_domanda.txt").write_text(domanda("", voci), encoding="utf-8")
+    (pacchetto / "dataset.jsonl.gz").write_bytes(gzip.compress("\n".join(json.dumps(r) for r in righe).encode()))
+    finto = tmp_path / "qwen"
+    finto.mkdir()
+    (finto / "predizioni.jsonl").write_text("\n".join(
+        json.dumps({"id": r["id"], "gruppo": r["gruppo"], "etichetta": "Sentenza"}) for r in righe
+        if r["gruppo"] == "banco_inventati"), encoding="utf-8")
+    sys_argv = ["banco.py", "--pacchetto", str(pacchetto), "--risultati", f"qwen={finto}", "--uscita", str(tmp_path / "esito")]
+    import sys as _sys
+
+    vecchi, _sys.argv = _sys.argv, sys_argv
+    try:
+        assert banco.main() == 0
+    finally:
+        _sys.argv = vecchi
+    risultati = json.loads((tmp_path / "esito" / "banco.json").read_text(encoding="utf-8"))["risultati"]
+    assert risultati["regole"]["banco_inventati"]["accuratezza"] == 100.0
+    assert risultati["qwen"]["banco_inventati"]["giuste"] < risultati["qwen"]["banco_inventati"]["valutate"]
+    assert risultati["lineare"]["banco_inventati"]["valutate"] == manifesto["per_gruppo"]["banco_inventati"]

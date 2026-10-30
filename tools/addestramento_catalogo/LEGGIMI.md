@@ -43,7 +43,29 @@ python tools/addestramento_catalogo/valuta.py --pacchetto ~/iusentra-addestramen
 `misura.json` contiene solo conteggi; `disaccordi.json` solo codici opachi e voci: sono i file da riportare.
 Il modello si adotta nel catalogo solo se, sulle decisioni dell'avvocato, sbaglia meno delle regole e di Spark.
 
-## 6. Cancellazione dei testi
+## 6. Spark-X2.5 con gli stessi esempi, per il confronto
+```bash
+python tools/addestramento_catalogo/addestra.py --pacchetto ~/iusentra-addestramento/pacchetto \
+  --modello XHToken/Spark-X2.5-4B --codice-del-modello --uscita ~/iusentra-addestramento/adattatore-spark
+python tools/addestramento_catalogo/valuta.py --pacchetto ~/iusentra-addestramento/pacchetto \
+  --modello XHToken/Spark-X2.5-4B --codice-del-modello --senza-adattatore --uscita ~/iusentra-addestramento/misura-spark-base
+python tools/addestramento_catalogo/valuta.py --pacchetto ~/iusentra-addestramento/pacchetto \
+  --modello XHToken/Spark-X2.5-4B --codice-del-modello --adattatore ~/iusentra-addestramento/adattatore-spark \
+  --uscita ~/iusentra-addestramento/misura-spark
+```
+
+## 7. Banco di prova
+```bash
+python tools/addestramento_catalogo/banco.py --pacchetto ~/iusentra-addestramento/pacchetto \
+  --risultati qwen_base=~/iusentra-addestramento/misura-base --risultati qwen_addestrato=~/iusentra-addestramento/misura \
+  --risultati spark_base=~/iusentra-addestramento/misura-spark-base --risultati spark_addestrato=~/iusentra-addestramento/misura-spark \
+  --uscita ~/iusentra-addestramento/banco
+```
+Confronta regole, Spark del catalogo, classificatore lineare, Qwen e Spark (prima e dopo l'addestramento) sugli
+stessi documenti mai visti. Il banco inventato verifica che ogni modello conosca tutte le voci; il confronto che
+decide è sui documenti reali, soprattutto sulle decisioni dell'avvocato.
+
+## 8. Cancellazione dei testi
 ```bash
 shred -u ~/iusentra-addestramento/pacchetto/dataset.jsonl.gz && rm -rf ~/iusentra-addestramento/pacchetto
 ```

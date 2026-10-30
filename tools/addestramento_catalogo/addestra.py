@@ -3,7 +3,7 @@
 Uso:
     python addestra.py --pacchetto ~/iusentra-addestramento/pacchetto --uscita ~/iusentra-addestramento/adattatore
 
-Modello base: Qwen 4B (scelta dell'avvocato del 30/10/2026). Si addestrano solo gli adattatori LoRA su un modello
+Modelli base: Qwen 4B (scelta dell'avvocato del 30/10/2026) e, per il confronto, Spark-X2.5 4B con gli stessi esempi. Si addestrano solo gli adattatori LoRA su un modello
 quantizzato a 4 bit; la perdita è calcolata solo sulla risposta (il JSON del catalogo), non sulla domanda.
 Le righe «verifica», «verifica_avvocato» e «da_rivedere» non sono mai usate qui.
 """
@@ -20,13 +20,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dati import conversazione, gruppo, leggi_pacchetto
 
 MODELLO_BASE = "Qwen/Qwen3-4B-Instruct-2507"
+# Spark-X2.5 4B (iFLYTEK, Apache 2.0): la stessa famiglia della seconda lettura di Lex nel catalogo
+# («maternion/spark-x2.5:4b» su Ollama). Architettura propria: si carica con il codice del modello.
+MODELLO_SPARK = "XHToken/Spark-X2.5-4B"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pacchetto", type=Path, required=True)
     parser.add_argument("--uscita", type=Path, required=True)
-    parser.add_argument("--modello", default=MODELLO_BASE)
+    parser.add_argument("--modello", default=MODELLO_BASE, help=f"es. {MODELLO_BASE} oppure {MODELLO_SPARK}")
+    parser.add_argument("--codice-del-modello", action="store_true",
+                        help="trust_remote_code: necessario per Spark-X2.5, che ha un'architettura propria")
     parser.add_argument("--epoche", type=float, default=1.0)
     parser.add_argument("--lunghezza-massima", type=int, default=4096)
     parser.add_argument("--accumulo", type=int, default=16)
@@ -53,7 +58,7 @@ def main() -> int:
         addestramento = addestramento[:args.massimo_righe]
     print(f"Righe di addestramento: {len(addestramento)} (pacchetto: {manifesto['per_gruppo']})", flush=True)
 
-    tokenizer = AutoTokenizer.from_pretrained(args.modello)
+    tokenizer = AutoTokenizer.from_pretrained(args.modello, trust_remote_code=args.codice_del_modello)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -73,11 +78,12 @@ def main() -> int:
     quantizzazione = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
                                         bnb_4bit_compute_dtype=torch.bfloat16)
     modello = AutoModelForCausalLM.from_pretrained(args.modello, quantization_config=quantizzazione, device_map="auto",
-                                                   torch_dtype=torch.bfloat16)
+                                                   torch_dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello)
     modello = prepare_model_for_kbit_training(modello, use_gradient_checkpointing=True)
     modello = get_peft_model(modello, LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]))
+        # Tutti gli strati lineari: vale per Qwen e per Spark, che chiamano diversamente le proiezioni.
+        target_modules="all-linear"))
     modello.print_trainable_parameters()
 
     allenatore = Trainer(

@@ -139,13 +139,14 @@ def esporta_studio_corrente(*, per_voce_inventati: int = 60) -> dict[str, Any]:
 
     from pct.document_intelligence.catalog_lex import domanda, voci_catalogo
     from pct.document_intelligence.verita.esportazione import righe_dataset
-    from pct.document_intelligence.verita.sintetici import documenti_inventati
+    from pct.document_intelligence.verita.sintetici import SEME_BANCO, documenti_inventati
     from web.helpers import get_fascicoli
 
     voci = voci_catalogo()
     etichette = {voce.label for voce in voci}
     righe, corrispondenze, manifesto = righe_dataset(
-        campioni_studio_corrente(), documenti_inventati(per_voce_inventati, voci=etichette), etichette)
+        campioni_studio_corrente(), documenti_inventati(per_voce_inventati, voci=etichette), etichette,
+        banco=documenti_inventati(10, voci=etichette, seme=SEME_BANCO))
     radice = Path(get_fascicoli().db_path).resolve().parent.parent / "intelligence" / CARTELLA_ADDESTRAMENTO
     pacchetto = radice / "pacchetto"
     pacchetto.mkdir(parents=True, exist_ok=True, mode=0o700)

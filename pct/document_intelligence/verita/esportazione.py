@@ -8,7 +8,8 @@ Righe per gruppo:
 - `addestramento`: proposte quasi certe delle regole (documenti reali pseudonimizzati) ed esempi inventati;
 - `verifica`: proposte quasi certe tenute da parte in modo stabile (mai viste in addestramento);
 - `verifica_avvocato`: decisioni dell'avvocato documento per documento, il confronto che misura chi sbaglia meno;
-- `da_rivedere`: proposte incerte delle regole, senza risposta; servono a trovare i disaccordi da rivedere.
+- `da_rivedere`: proposte incerte delle regole, senza risposta; servono a trovare i disaccordi da rivedere;
+- `banco_inventati`: documenti inventati con un altro seme, mai in addestramento: banco di prova di tutte le voci.
 
 Nessun identificativo del server lascia il server: ogni riga ha un codice opaco; la corrispondenza codice →
 documento resta in un file a parte, nella cartella dello studio sul server.
@@ -59,7 +60,8 @@ def risposta(testo: str, voce: str) -> str:
                       ensure_ascii=False)
 
 
-def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInventato], voci: set[str]
+def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInventato], voci: set[str],
+                  banco: Iterable[DocumentoInventato] = ()
                   ) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]], dict[str, Any]]:
     """Righe del dataset, corrispondenze codice → documento (solo server) e conteggi del manifesto."""
     righe: list[dict[str, Any]] = []
@@ -101,6 +103,17 @@ def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInv
             scartati["citazione_non_verificabile"] += 1
             continue
         righe.append({"id": _codice("inventato", str(n), d.origine), "testo": d.testo, "gruppo": "addestramento",
+                      "fonte": "inventato", "voce": d.voce, "voce_regole": d.voce, "voce_spark": "",
+                      "risposta": risposta(d.testo, d.voce)})
+    # Banco di prova inventato: generato con un altro seme, mai in addestramento; un testo già visto si scarta.
+    visti = {hashlib.sha256(r["testo"].encode("utf-8")).hexdigest() for r in righe if r["gruppo"] == "addestramento"}
+    for n, d in enumerate(banco):
+        impronta = hashlib.sha256(d.testo.encode("utf-8")).hexdigest()
+        if d.voce not in voci or impronta in visti or not _citazione_valida(d.testo):
+            scartati["banco_scartato"] += 1
+            continue
+        visti.add(impronta)
+        righe.append({"id": _codice("banco", str(n), d.origine), "testo": d.testo, "gruppo": "banco_inventati",
                       "fonte": "inventato", "voce": d.voce, "voce_regole": d.voce, "voce_spark": "",
                       "risposta": risposta(d.testo, d.voce)})
     per_gruppo = Counter(r["gruppo"] for r in righe)

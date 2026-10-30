@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1166.
+- File pytest censiti: 1167.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -17,7 +17,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | E2E | 15 |
 | Frontend static gate | 1 |
 | Frontend/UI | 373 |
-| RBAC | 142 |
+| RBAC | 143 |
 | Security | 65 |
 | Smoke CLI | 6 |
 | Tenant isolation | 289 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 91 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 211 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 577 |
+| 09-misc | Test non classificati dalle fasi principali | 578 |
 
 ## Suite CI aggiuntive
 
@@ -482,6 +482,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | RBAC | tests/test_assistente_focus.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_attestazione_conformita.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_caratteri_reali.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | RBAC | tests/test_classificatore_catalogo.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_collaudo_pec_ostili.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_compliance_cockpit.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | RBAC | tests/test_condivisione.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

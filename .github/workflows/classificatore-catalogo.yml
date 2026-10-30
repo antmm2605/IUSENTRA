@@ -1,0 +1,46 @@
+name: Classificatore piccolo del catalogo
+# Passo 3 del piano docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md: addestra sul server un classificatore lineare
+# sulle proposte quasi certe delle regole e misura dove la pensa diversamente da loro. Nel container
+# scheduler-worker; il catalogo non cambia. Il risultato contiene solo conteggi e voci pubblicabili; l'elenco
+# dei disaccordi resta nella cartella dello studio sul server.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  classificatore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Addestramento e misura sul server
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T scheduler-worker python -' \
+            < deploy/hetzner/classificatore_catalogo.py > uscita.txt
+          # Solo la riga del risultato: i log dell'avvio dell'app non escono dal runner.
+          grep -m1 '^CLASSIFICATORE_JSON:' uscita.txt | sed 's/^CLASSIFICATORE_JSON://' | jq . > classificatore.json
+          rm -f uscita.txt
+          jq -e '.studi' classificatore.json > /dev/null
+          # Solo conteggi e voci pubblicabili: leggibili anche dal log del job.
+          jq -c . classificatore.json
+          {
+            echo '## Classificatore piccolo del catalogo'
+            echo
+            jq -r '.studi | to_entries[] | "### \(.key)\n- Esito: \(.value.esito)\n- Esempi di addestramento: \(.value.esempi_addestramento), di verifica: \(.value.esempi_verifica)\n- Disaccordi sicuri con le regole: \(.value.disaccordi_sicuri // 0)\n"' classificatore.json
+          } >> "$GITHUB_STEP_SUMMARY"

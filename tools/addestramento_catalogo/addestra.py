@@ -36,7 +36,9 @@ def main() -> int:
                         help="trust_remote_code: necessario per Spark-X2.5, che ha un'architettura propria")
     parser.add_argument("--epoche", type=float, default=1.0)
     parser.add_argument("--lunghezza-massima", type=int, default=4096)
-    parser.add_argument("--accumulo", type=int, default=16)
+    parser.add_argument("--accumulo", type=int, default=16, help="esempi per aggiornamento dei pesi (lotto × accumulo)")
+    parser.add_argument("--lotto", type=int, default=1,
+                        help="esempi elaborati insieme sulla GPU: con la domanda breve 4 stanno nei 12 GB e dimezzano i tempi")
     parser.add_argument("--passo", type=float, default=1e-4)
     parser.add_argument("--massimo-righe", type=int, default=0, help="0 = tutte; utile per una prova breve")
     parser.add_argument("--domanda", choices=("breve", "completa"), default="breve",
@@ -131,8 +133,9 @@ def main() -> int:
     allenatore = AllenatoreSullaRisposta(
         model=modello,
         args=TrainingArguments(
-            output_dir=str(args.uscita / "passaggi"), per_device_train_batch_size=1,
-            gradient_accumulation_steps=args.accumulo, num_train_epochs=args.epoche, learning_rate=args.passo,
+            output_dir=str(args.uscita / "passaggi"), per_device_train_batch_size=args.lotto,
+            gradient_accumulation_steps=max(1, args.accumulo // args.lotto),
+            num_train_epochs=args.epoche, learning_rate=args.passo,
             lr_scheduler_type="cosine", warmup_steps=0.03, bf16=True, logging_steps=10, save_steps=200,
             save_total_limit=2, gradient_checkpointing=True, optim="paged_adamw_8bit", report_to=[], seed=20261030,
             gradient_checkpointing_kwargs={"use_reentrant": False}),

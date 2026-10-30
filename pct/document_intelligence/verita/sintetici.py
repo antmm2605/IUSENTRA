@@ -440,10 +440,75 @@ def _rifinisci(testo: str, d: _Dati, g: random.Random) -> str:
     return "\n".join(righe)
 
 
+# --- modelli di atti dello studio (1.320, tutte le materie) ---------------------------------------------------
+
+_SENZA_UFFICIO = ("nessuna", "da pratica", "garante", "agcom", "arera", "abf", "organismo")
+_BLOCCHI_SENZA_TESTO = {"intestazione", "firma"}
+
+
+def _ufficio_del_modello(autorita: str, d: _Dati, g: random.Random) -> str:
+    """L'ufficio competente secondo il modello, oppure la carta intestata dello studio per gli atti stragiudiziali."""
+    scelta = g.choice([parte.strip() for parte in str(autorita or "").split("/") if parte.strip()] or [""])
+    if not scelta or any(chiave in scelta.lower() for chiave in _SENZA_UFFICIO):
+        return g.choice(_UFFICI["studio"]).format(c=d.citta)
+    if scelta.lower().startswith(("tar", "tribunale amministrativo")):
+        return f"TRIBUNALE AMMINISTRATIVO REGIONALE DI {d.citta.upper()}"
+    if "consiglio di stato" in scelta.lower():
+        return "CONSIGLIO DI STATO\nSEZIONE QUARTA"
+    if "tributaria" in scelta.lower():
+        return f"CORTE DI GIUSTIZIA TRIBUTARIA DI PRIMO GRADO DI {d.citta.upper()}"
+    return f"{scelta.upper()} DI {d.citta.upper()}"
+
+
+def _documento_da_modello(modello: dict, d: _Dati, g: random.Random) -> str:
+    """Un atto completo costruito dal modello: ufficio competente, titolo, parti e le sezioni guidate del modello."""
+    titolo = str(modello.get("titolo") or "").strip()
+    righe = [_ufficio_del_modello(str(modello.get("autorita") or ""), d, g),
+             titolo.upper() if g.random() < 0.7 else titolo,
+             g.choice((f"nell'interesse di {d.parte}, rappresentato e difeso dall'Avv. Studio Prova",
+                       f"per {d.parte} contro {d.controparte}",
+                       f"Procedimento n. {d.numero}/{d.anno} - {d.parte} / {d.controparte}"))]
+    for blocco in modello.get("blocchi_guidati") or ():
+        if str(blocco).strip().lower() in _BLOCCHI_SENZA_TESTO:
+            continue
+        righe.append(str(blocco).strip().upper() if g.random() < 0.5 else str(blocco).strip())
+        righe.extend(_corpo(d, g)[:g.randint(1, 2)])
+    righe.append(f"{d.citta}, {d.data}\nAvv. Studio Prova")
+    return "\n".join(righe)
+
+
+def documenti_dai_modelli(per_modello: int = 3, *, voci: set[str], per_voce: int = 60, tentativi: int = 2,
+                          classifica: Callable[[str], tuple[str, int]], seme: int = _SEME) -> Iterator[DocumentoInventato]:
+    """Documenti costruiti dai modelli di atti dello studio, per coprire tutte le materie del catalogo dei modelli.
+
+    La voce non si presume dal titolo del modello: è quella che il catalogo riconosce nel documento con
+    confidenza di almeno `CONFIDENZA_MINIMA`, e solo se è una voce dell'elenco chiuso. I modelli che il catalogo
+    non riconosce restano fuori; ogni voce riceve al più `per_voce` documenti da questa fonte.
+    """
+    from pct.template_atti_unified_catalog import build_unified_template_catalog
+
+    g = random.Random(seme + 2)
+    per_etichetta: dict[str, int] = {}
+    for modello in build_unified_template_catalog():
+        if not str(modello.get("titolo") or "").strip():
+            continue
+        accettati = 0
+        for _ in range(per_modello * tentativi):
+            if accettati >= per_modello:
+                break
+            testo = _rifinisci(_documento_da_modello(modello, _dati(g), g), _dati(g), g)
+            etichetta, confidenza = classifica(testo)
+            if etichetta in voci and confidenza >= CONFIDENZA_MINIMA and per_etichetta.get(etichetta, 0) < per_voce:
+                per_etichetta[etichetta] = per_etichetta.get(etichetta, 0) + 1
+                accettati += 1
+                yield DocumentoInventato(voce=etichetta, origine=f"modello_atto:{modello.get('codice')}", testo=testo)
+
+
 def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, tentativi: int = 5,
                         classifica: Callable[[str], tuple[str, int]] | None = None,
-                        seme: int = _SEME) -> Iterator[DocumentoInventato]:
-    """Fino a `per_voce` documenti per ogni regola di titolo e per ogni modello di contenuto.
+                        seme: int = _SEME, modelli_atti: bool = True) -> Iterator[DocumentoInventato]:
+    """Fino a `per_voce` documenti per ogni regola di titolo e per ogni modello di contenuto, più quelli costruiti
+    dai modelli di atti dello studio (`documenti_dai_modelli`, se `modelli_atti`).
 
     Ogni documento è prima classificato dal catalogo completo: entra solo con la voce prevista e una confidenza
     di almeno `CONFIDENZA_MINIMA`.
@@ -475,8 +540,14 @@ def documenti_inventati(per_voce: int = 60, *, voci: set[str] | None = None, ten
             if etichetta == voce and confidenza >= CONFIDENZA_MINIMA:
                 accettati += 1
                 yield DocumentoInventato(voce=voce, origine=origine, testo=testo)
+    if modelli_atti:
+        from pct.document_intelligence.catalog_lex import voci_catalogo
+
+        ammesse = set(voci) if voci is not None else {voce.label for voce in voci_catalogo()}
+        yield from documenti_dai_modelli(voci=ammesse, per_voce=per_voce, classifica=classifica, seme=seme)
 
 
 SEME_BANCO = _SEME + 1  # banco di prova: documenti diversi da quelli di addestramento
 
-__all__ = ["CONFIDENZA_MINIMA", "MODELLI_CONTENUTO", "SEME_BANCO", "DocumentoInventato", "documenti_inventati"]
+__all__ = ["CONFIDENZA_MINIMA", "MODELLI_CONTENUTO", "SEME_BANCO", "DocumentoInventato", "documenti_dai_modelli",
+           "documenti_inventati"]

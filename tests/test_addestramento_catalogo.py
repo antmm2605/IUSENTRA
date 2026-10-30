@@ -34,7 +34,7 @@ def test_pseudonimizzazione_toglie_i_dati_e_conserva_l_atto():
 def test_esempi_inventati_classificati_dal_catalogo_con_la_voce_prevista():
     from pct.document_intelligence.catalog_resolver import _classify_indexed_content
 
-    esempi = list(documenti_inventati(per_voce=2))
+    esempi = list(documenti_inventati(per_voce=2, modelli_atti=False))
     assert len({e.voce for e in esempi}) >= 140
     for esempio in esempi[::25]:
         assert _classify_indexed_content(esempio.testo).label == esempio.voce
@@ -60,7 +60,7 @@ def test_esportazione_gruppi_codici_opachi_e_testi_pseudonimizzati():
     campioni = [_campione(n, "Procura alle liti") for n in range(40)]
     campioni.append(_campione(100, "Procura alle liti", confidenza=80))
     campioni.append(_campione(101, "Sentenza", confidenza=80, voce_avvocato="Procura alle liti"))
-    righe, corrispondenze, manifesto = righe_dataset(campioni, documenti_inventati(per_voce=1, voci={"Sentenza"}), voci)
+    righe, corrispondenze, manifesto = righe_dataset(campioni, documenti_inventati(per_voce=1, voci={"Sentenza"}, modelli_atti=False), voci)
     assert manifesto["formato"] == FORMATO
     gruppi = {r["gruppo"] for r in righe}
     assert gruppi == {"addestramento", "verifica", "verifica_avvocato", "da_rivedere"}
@@ -101,8 +101,8 @@ def test_banco_confronta_regole_lineare_e_modelli_sulle_stesse_righe(tmp_path):
     from pct.document_intelligence.verita.sintetici import SEME_BANCO
 
     scelte = {"Sentenza", "Procura alle liti", "Verbale di udienza"}
-    righe, _, manifesto = righe_dataset([], documenti_inventati(20, voci=scelte), etichette,
-                                        banco=documenti_inventati(3, voci=scelte, seme=SEME_BANCO))
+    righe, _, manifesto = righe_dataset([], documenti_inventati(20, voci=scelte, modelli_atti=False), etichette,
+                                        banco=documenti_inventati(3, voci=scelte, seme=SEME_BANCO, modelli_atti=False))
     assert manifesto["per_gruppo"]["banco_inventati"] >= 6
     pacchetto = tmp_path / "pacchetto"
     pacchetto.mkdir()
@@ -155,5 +155,17 @@ def test_la_citazione_salta_numeri_di_pagina_e_non_mozza_le_parole():
 def test_gli_esempi_inventati_coprono_le_nuove_voci():
     nuove = {"Nota di iscrizione a ruolo", "Contributo unificato / pagamento", "Relazione peritale CTU",
              "Avviso di ricevimento postale", "Fattura", "Procura speciale per la mediazione"}
-    voci = {d.voce for d in documenti_inventati(3, voci=nuove)}
+    voci = {d.voce for d in documenti_inventati(3, voci=nuove, modelli_atti=False)}
     assert voci == nuove
+
+
+def test_i_modelli_di_atti_danno_documenti_solo_con_la_voce_riconosciuta_dal_catalogo():
+    from pct.document_intelligence.verita.sintetici import documenti_dai_modelli
+
+    def classifica(testo: str) -> tuple[str, int]:
+        return ("Atto di citazione", 96) if "CITAZIONE" in testo.upper() else ("Atto difensivo", 99)
+
+    documenti = list(documenti_dai_modelli(2, voci={"Atto di citazione"}, per_voce=5, classifica=classifica))
+    assert documenti and len(documenti) <= 5
+    assert {d.voce for d in documenti} == {"Atto di citazione"}
+    assert all(d.origine.startswith("modello_atto:") and "Avv. Studio Prova" in d.testo for d in documenti)

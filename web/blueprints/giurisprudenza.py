@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from functools import wraps
+import sqlite3
 
-from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Response, Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.giurisprudenza import (
     ORIENTAMENTI,
@@ -11,7 +12,7 @@ from pct.giurisprudenza import (
     TIPI_PROVVEDIMENTO,
     USI_NEL_SOFTWARE,
 )
-from web.helpers import get_giurisprudenza
+from web.helpers import get_giurisprudenza, get_giurisprudenza_readonly
 from web.services.giurisprudenza_sync_runtime import (
     resolve_giurisprudenza_db_path,
     start_giurisprudenza_sync_job,
@@ -188,6 +189,70 @@ def dettaglio(judgment_id: str):
         raw_documents=[dict(item, downloaded_at_fmt=_fmt_datetime_it(item.get("downloaded_at", ""))) for item in gestore.raw_documents(judgment_id)],
         practice_links=gestore.practice_links(judgment_id),
     )
+
+
+@giurisprudenza.get("/sentenzeweb/api")
+@_richiedi_login
+def sentenzeweb_search():
+    from web.services.sentenzeweb_runtime import search
+    try:
+        result = jsonify(search(current_app.config, request.args.get("q", "")))
+    except (ValueError, OSError, sqlite3.Error):
+        result = jsonify({"ok": False, "message": "Archivio SentenzeWeb non disponibile. Nessun recupero esterno avviato."})
+        result.status_code = 503
+    result.headers["Cache-Control"] = "private, no-store"
+    return result
+
+
+@giurisprudenza.get("/sentenzeweb/<int:record_id>/documenti")
+@_richiedi_login
+def sentenzeweb_variants(record_id: int):
+    from web.services.sentenzeweb_runtime import variants
+    response = jsonify(variants(current_app.config, record_id))
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@giurisprudenza.get("/sentenzeweb/<int:record_id>/documenti/<int:document_id>/testo")
+@_richiedi_login
+def sentenzeweb_variant_text(record_id: int, document_id: int):
+    from web.services.sentenzeweb_runtime import read_variant
+    text = read_variant(current_app.config, record_id, document_id)
+    response = Response(text or "Testo archiviato non disponibile.", status=200 if text else 404, content_type="text/plain; charset=utf-8")
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
+    return response
+
+
+@giurisprudenza.get("/sentenzeweb/<int:record_id>/testo")
+@_richiedi_login
+def sentenzeweb_text(record_id: int):
+    from web.services.sentenzeweb_runtime import read_text
+    text = read_text(current_app.config, record_id)
+    response = Response(text or "Testo archiviato non disponibile.", status=200 if text else 404, content_type="text/plain; charset=utf-8")
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
+    return response
+
+
+@giurisprudenza.get("/<judgment_id>/testo")
+@_richiedi_login
+def testo_archiviato(judgment_id: str):
+    """Read the stored text in the current tenant, without external fetch or writes."""
+    record = get_giurisprudenza_readonly().get(judgment_id)
+    text = str((record or {}).get("testo_integrale") or (record or {}).get("testo_normalizzato") or "")
+    response = Response(
+        text if text else "Testo archiviato non disponibile.",
+        status=200 if text else 404,
+        content_type="text/plain; charset=utf-8",
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Content-Security-Policy"] = "default-src 'none'; sandbox"
+    response.headers["Content-Disposition"] = 'inline; filename="provvedimento.txt"'
+    return response
 
 
 @giurisprudenza.route("/<judgment_id>/modifica", methods=["GET", "POST"])

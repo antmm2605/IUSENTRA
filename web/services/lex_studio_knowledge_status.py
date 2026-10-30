@@ -274,23 +274,37 @@ def build_official_archive_section() -> dict[str, Any]:
         snapshot = {}
     normattiva = snapshot.get("normattiva") if isinstance(snapshot.get("normattiva"), Mapping) else {}
     gazzetta = snapshot.get("gazzetta") if isinstance(snapshot.get("gazzetta"), Mapping) else {}
+    from lex.retrieval.normativa_catalog import library_catalog_snapshot
+    import sqlite3
+
+    try:
+        library = library_catalog_snapshot()
+    except (OSError, sqlite3.Error, RuntimeError):
+        library = None
     return _section(
         "archivi_ufficiali",
         "Archivi ufficiali locali",
         "fonti",
         [
             _item(
+                "biblioteca_codici_leggi", "Biblioteca Codici e leggi",
+                library["acts"] if library is not None else "Non disponibile",
+                f"{library['articles']} articoli catalogati; stesso archivio della consultazione."
+                if library is not None else "Catalogo locale non consultabile; nessuna assenza dei testi attestata.",
+                "success" if library is not None else "warning",
+            ),
+            _item(
                 "normattiva_locale",
                 "Normattiva",
                 int(normattiva.get("documents") or 0),
-                f"{int(normattiva.get('articles') or 0)} articoli indicizzati",
+                f"{int(normattiva.get('articles') or 0)} articoli registrati nell’archivio generale; distinto dalla biblioteca.",
                 "success" if normattiva.get("available") else "neutral",
             ),
             _item(
                 "gazzetta_locale",
                 "Gazzetta Ufficiale",
                 int(gazzetta.get("documents") or 0),
-                f"{int(gazzetta.get('chunks') or 0)} estratti indicizzati",
+                f"{int(gazzetta.get('chunks') or 0)} estratti registrati nell’archivio Gazzetta dedicato.",
                 "success" if gazzetta.get("available") else "neutral",
             ),
         ],

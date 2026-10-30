@@ -1,4 +1,4 @@
-## 2.458.0 — Data prudenziale e scadenza di legge; correzioni dell'audit del 29/10/2026
+## 2.459.0 — Data prudenziale e scadenza di legge; correzioni dell'audit del 29/10/2026
 - Termini «almeno N giorni prima dell'udienza» (artt. 166, 171-ter, 189, 415, 473-bis.16 c.p.c. e schede degli atti): la data da rispettare è quella prudenziale a giorni liberi; accanto si mostra la scadenza di legge secondo la lettura a giorni pieni. Motore dei termini, scadenziario, schede di Lex e obblighi di notifica usano la stessa regola; le memorie già salvate a giorni pieni passano alla data prudenziale con nota, senza toccare le date scelte dall'avvocato.
 - Festività del 4 ottobre dal 2026 (L. 151/2025); termini penali senza proroga del sabato; controversie di lavoro senza sospensione feriale anche nelle proposte da PEC; provenienza delle scadenze proposte dalle PEC.
 - Catalogo documenti: titolo dell'atto prima del corpo, normalizzazione OCR, nessuna proposta automatica dalle sole parole del corpo.
@@ -7,6 +7,14 @@
 - Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
 - Censimento del catalogo: oltre alle voci di Lex escono dal server anche le voci fisse scritte per esteso nel codice del catalogo (contributo unificato, iscrizione a ruolo, PEC di deposito, provvedimenti); restano escluse le etichette libere.
 - Escluso dall'integrazione il declassamento del registro delle fonti senza impronta: bloccava ogni bozza finale degli atti e resta da completare.
+
+## 2.458.0 — 29 ottobre 2026
+
+- Ricerca esplicita collegata al motore e riferimento codice/articolo distinto dai documenti citanti; testo nativo e identità ufficiale preservati.
+- Catalogo condiviso tra consultazione, monitor e Giurisprudenza; cache e aggiornamento delle viste dipendono da contesto e revisioni, senza ripetere ricerche esterne.
+- Schede interne distinte da conferme di lettura; regressioni nuove incluse nella suite critica CI esistente.
+- Cassazione pubblica SentenzeWeb: corpus nativo condiviso, testi e varianti originali conservate, acquisizione riprendibile e aggiornamento notturno incrementale Europe/Rome.
+- Download dei testi archiviati risolto dal proprietario della fonte, con identità e digest verificati.
 
 ## 2.457.11 — Censimento del catalogo senza nomi dei clienti
 - Il riepilogo del censimento riporta solo voci del catalogo governato: il documento d'identità intitolato al titolare diventa il tipo di documento, le etichette scritte a mano o dedotte dal nome del file diventano «Voce fuori elenco». Nessun nome di cliente esce dal server.

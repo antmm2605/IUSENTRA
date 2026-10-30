@@ -789,6 +789,14 @@ def start_scheduler(app):
     def _legal_updates_batch():
         _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
 
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=35), id="cassazione_sentenzeweb_nightly", max_instances=1, coalesce=True)
+    def _cassazione_sentenzeweb_nightly():
+        from pct.sentenzeweb_nightly import run_nightly
+        with app.app_context():
+            result = run_nightly(app.config)
+            logger.info("[scheduler] SentenzeWeb: %s", result.get("status"))
+            return result
+
     # Le fonti degli organismi si ricontrollano quando qualcuno apre la
     # mediazione: la coda ha una scadenza per organismo, e girare ogni dieci
     # minuti significava rileggere quasi cinquecento righe per scoprire che

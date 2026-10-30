@@ -1,3 +1,4 @@
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -395,6 +396,12 @@ export default function StrumentiLegaliPage() {
       .catch(() => { if (!controller.signal.aborted) setPayload({ strumenti: [], categorie: [], tool_attivo: '', totale: 0, totale_in_react: 0, endpoint_calcolo: '', warning: 'Utility non disponibile. Riprova il caricamento.' }) })
     return () => controller.abort()
   }, [caricamento])
+
+  useOperationalRefresh(['normativa'], async () => {
+    const data = await caricaStrumentiLegali(toolDallUrl())
+    if (!data.strumenti.length && !data.endpoint_calcolo) throw new Error('Catalogo Utility non confermato.')
+    setPayload(data)
+  })
 
   // Voce del catalogo (`?app=`) e pratica (`?id_fascicolo=`): preset e precompilato dall'API applicazioni.
   useEffect(() => {

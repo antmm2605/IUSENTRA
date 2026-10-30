@@ -1,18 +1,20 @@
-# Release 2.458.0
+# 2.458.0 — Ricerca giuridica e aggiornamento delle viste
 
-- Termini «almeno N giorni prima dell'udienza» (artt. 166, 171-ter, 189, 415, 473-bis.16 c.p.c. e schede degli atti): la data da rispettare è quella prudenziale a giorni liberi; accanto si mostra la scadenza di legge secondo la lettura a giorni pieni. Motore dei termini, scadenziario, schede di Lex e obblighi di notifica usano la stessa regola; le memorie già salvate a giorni pieni passano alla data prudenziale con nota, senza toccare le date scelte dall'avvocato.
-- Festività del 4 ottobre dal 2026 (L. 151/2025); termini penali senza proroga del sabato; controversie di lavoro senza sospensione feriale anche nelle proposte da PEC; provenienza delle scadenze proposte dalle PEC.
-- Catalogo documenti: titolo dell'atto prima del corpo, normalizzazione OCR, nessuna proposta automatica dalle sole parole del corpo.
-- PEC: classificatore unico delle ricevute; mancata consegna, non accettazione e virus mai lette come consegna; deposito rifiutato riconosciuto.
-- Notifiche e calendari: bozze escluse da avvisi e calendari esterni, errori per voce con nuovo tentativo, giorni di preavviso rispettati.
-- Presidio economico: importi esatti, pagoPA non eseguito, prenotazione a debito, esiti SdI EC01/EC02.
-- Censimento del catalogo: oltre alle voci di Lex escono dal server anche le voci fisse scritte per esteso nel codice del catalogo (contributo unificato, iscrizione a ruolo, PEC di deposito, provvedimenti); restano escluse le etichette libere.
-- Escluso dall'integrazione il declassamento del registro delle fonti senza impronta: bloccava ogni bozza finale degli atti e resta da completare.
+La ricerca esplicita usa il motore esistente. Le richieste dirette codice/articolo distinguono numero normativo, identità del codice e ID interno; testo nativo completo conservato solo con digest corrispondente. I documenti che citano un articolo restano ricercabili. Il collegamento ufficiale conserva gli URN già presenti senza inventare identità mancanti.
 
-## Base normativa
-- Art. 155 c.p.c. (computo dei termini), artt. 163-bis, 166, 171-ter, 189, 415, 473-bis.16 c.p.c.; L. 742/1969 (sospensione feriale); L. 151/2025 (festività del 4 ottobre).
-- D.M. 44/2011 e Specifiche tecniche DGSIA per le ricevute PEC; D.P.R. 115/2002 per il contributo unificato; specifiche FatturaPA/SdI.
+Monitor, Codici e indicatore Giurisprudenza condividono il catalogo esistente e distinguono biblioteca da acquisizioni. Revisioni tenant e cache dipendono da contesto e dati; il refresh conserva filtri, selezioni e risultati senza ripetere ricerche esterne. Le schede interne non sono presentate come ricevute di lettura integrale.
 
-## Verifiche
-- Test nuovi: tests/test_scadenziario_171ter_ritroso.py (doppia data e riconvalida), tests/test_*_audit_20261029.py.
-- Gate locale completo verde prima del push.
+Validazione precedente all’integrazione dei nuovi commit di main:309test estesi,42test ricerca ultima versione e prove browser reali su8080. Gate completo del nuovo insieme integrato concluso: 45 controlli positivi, zero gate falliti. Sei casi PostgreSQL delle revisioni/identità provati separatamente su server16.15 isolato con driver/adattatore reali, zero saltati; non attesta tutti i percorsi PostgreSQL. Nuove regressioni ricerca e quelle ora/termini/catalogo sono registrate nella suite critica CI esistente. Nessuna importazione o promozione del corpus candidato; nessuna attestazione di copertura integrale, PostgreSQL o recuperabilità di ogni fonte esterna. Fonte Genova341/2019 resta indisponibile secondo policy già autorizzata.
+
+La candidata locale viene costruita da un tree Git immutabile senza creare commit. Il commit successivo alle prove visive deve avere esattamente quel tree; l’immagine di rilascio modifica soltanto le etichette, con strati del filesystem e configurazione operativa confrontati. Il bootstrap fuori da /app viene verificato per SHA, oltre ai file Python e React. Backup del database primario locale ripristinato separatamente: integrità positiva e0violazioniFK; non è un backup completo di documenti/allegati.
+
+
+Cassazione SentenzeWeb: acquisizione SQL riprendibile con originali e ricevute, lettura condivisa Giurisprudenza/Lex/Ricerca legale e job notturno incrementale23:35Europe/Rome. Varianti conservate, placeholder ufficiali senza falsa lettura. Ponte Tailscale ristretto per il server che non raggiunge direttamente la fonte, TLS verificato sul PC. Download dei testi nativi con controllo identità e digest; massime e abstract non generano nuovo testo integrale. Copertura storica finale e attivazione runtime devono essere riscontrate nelle ricevute di rilascio: non sono attestate dalla sola presenza del codice.
+
+La ricerca anti-duplicati dell’acquisitore riusa integralmente l’indice unico di identità già esistente, con espressioni COALESCE corrispondenti allo schema. Nessuna riduzione dei campi confrontati; verificati piani SQL e casi con numero/data diversi.
+
+Gli aggiornamenti incrementali applicano anche correzioni dei soli metadati, senza duplicare la sentenza o riscrivere il testo invariato; una nuova versione del testo conserva l’originale precedente. Cartella ausiliari WAL scrivibile e lettore SQL in sola lettura, verificati anche tra UID app/worker.
+
+Il collaudo reale ha individuato e corretto una discordanza nella scheda Corte di Cassazione: ora espone il conteggio dello stesso corpus pubblico usato dalla ricerca, distinto dai conteggi privati dello studio, senza sommare record potenzialmente sovrapposti.
+
+Il secondo collaudo reale ha rilevato il caricamento iniziale costoso e i comandi disabilitati durante gli aggiornamenti del corpus. L’elenco iniziale ora usa le ultime acquisizioni tramite chiave primaria; le ricerche esplicite mantengono il ranking nativo. Gli aggiornamenti live riutilizzano la richiesta pendente e non disabilitano i comandi di ricerca.

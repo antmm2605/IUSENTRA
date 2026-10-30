@@ -250,17 +250,9 @@ def importa_registro_mediazione():
 # Public legal texts share Normattiva's dedicated archive across studios;
 # authentication and the existing legal-research permissions remain required.
 def _normativa_db():
-    from pathlib import Path
-    from lex.retrieval.official_sources_retriever import (
-        _resolve_runtime_path, CONTAINER_NORMATTIVA_DB, DEFAULT_NORMATTIVA_DB,
-    )
-    explicit = current_app.config.get("NORMATTIVA_DB")
-    shared = _resolve_runtime_path(Path(explicit) if explicit else None,
-        env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
-        container_path=CONTAINER_NORMATTIVA_DB, repo_path=DEFAULT_NORMATTIVA_DB)
-    from lex.retrieval.normativa_catalog import library_path
-    library = library_path(shared)
-    return library if library.is_file() else shared
+    from lex.retrieval.normativa_catalog import consultation_path
+
+    return consultation_path()
 
 
 def _permesso_normativa():

@@ -42,3 +42,38 @@ def read_vertical_revisions(domains: set[str]) -> dict[str, int]:
                 conn.execute("PRAGMA query_only=ON")
                 include(read_tenant_live_revisions(conn, "economico", _tenant_id(), domains))
     return revisions
+
+
+def legal_source_file_revision() -> list:
+    """Invalidate legal projections from their tenant-owned repositories.
+
+    Stat only, including WAL and legacy owners still used by the runtime;
+    never instantiate writers, migrate, acquire or read document content.
+    """
+    from pct.legal_intelligence_repository import derive_legal_intelligence_repository_db_path
+    from pct.legal_update_repository import derive_legal_updates_db_path
+    from web.services.tenant_paths import tenant_data_path
+
+    paths = []
+    for key in ("LEGAL_INTELLIGENCE_DB", "LEGAL_UPDATES_DB", "NORMATIVE_TABLES_DB", "GIURISPRUDENZA_DB"):
+        value = tenant_data_path(key, require_tenant=True)
+        if not value:
+            continue
+        paths.append(Path(value))
+        if key == "LEGAL_INTELLIGENCE_DB":
+            paths.extend((Path(derive_legal_updates_db_path(value)),
+                          Path(derive_legal_intelligence_repository_db_path(value))))
+    from flask import current_app
+    import os
+    shared = current_app.config.get("IUSENTRA_SENTENZEWEB_DIRECTORY") or os.getenv("IUSENTRA_SENTENZEWEB_DIRECTORY")
+    if shared:
+        paths.append(Path(shared) / "giurisprudenza_corpus.db")
+    result = []
+    for path in sorted(set(paths), key=str):
+        for item in (path, Path(str(path) + "-wal")):
+            try:
+                stat = item.stat()
+                result.append((str(item), stat.st_ino, stat.st_size, stat.st_mtime_ns))
+            except FileNotFoundError:
+                result.append((str(item), "absent"))
+    return result

@@ -1,5 +1,10 @@
 # AGENTS.md — Istruzioni per Codex
 
+## Conoscenza persistente verificabile — direttiva utente 29/10/2026
+
+Prima di diagnosticare o modificare un modulo, leggere `docs/AGENT_KNOWLEDGE.md` e il relativo sottografo/registro di prove. Ambiente attuale: `/home/antmm2605/iusentra-software-knowledge/`, manifesto SHA per file; non usare il vecchio percorso Windows come prova di una mappa presente. Riutilizzare la mappa, controllare le impronte dei soli sorgenti pertinenti e aggiornare i collegamenti cambiati. Distinguere EXTRACTED, INFERRED e prova funzionale reale; presenza del simbolo o CI verde non dimostrano integrazione end-to-end. Non dichiarare completata la mappatura mentre estrazione, diagnostica o prove restano aperte. Non conservare dati tenant o segreti nella conoscenza dell'agente. La conoscenza persistente è nei file del progetto, non un aggiornamento dei pesi del modello.
+
+
 > Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
 
 ## Metodo di analisi Graphify per Codex — direttiva utente 20/10/2026

@@ -23,7 +23,7 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
   const isStudio = (source: GiurisprudenzaSource) =>
     source.id === 'manuale_interno' || source.accessMode === 'Materiale autorizzato'
   const isArchive = (source: GiurisprudenzaSource) =>
-    !isStudio(source) && (source.id === 'openga' || (source.corpusCount ?? 0) > 0)
+    !isStudio(source) && (source.id === 'openga' || (source.sharedCorpusCount ?? 0) > 0 || (source.corpusCount ?? 0) > 0)
   const groups = [
     { title: 'Archivi collegati a IUSENTRA', items: sources.filter(isArchive) },
     { title: 'Siti ufficiali da consultare', items: sources.filter(source => !isArchive(source) && !isStudio(source)) },
@@ -31,17 +31,22 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
   ]
   function card(source: GiurisprudenzaSource) {
     const publicReady = source.id === 'openga' && inventory?.ok && Number.isInteger(inventory.decisioni)
+    const sharedReady = source.id === 'cassazione' && (source.sharedCorpusCount ?? 0) > 0
     const corpusReady = (source.corpusCount ?? 0) > 0 && !isStudio(source)
     const studio = isStudio(source)
     return <article className="iu-legal-source iu-od-source-card" key={source.id}>
       <header className="iu-legal-source__header"><div>
         <span className="iu-od-source-badge">{source.kind || 'Fonte'}</span><h4>{source.label}</h4>
-      </div><Badge tone={publicReady || corpusReady ? 'success' : 'neutral'}>{publicReady || corpusReady ? 'Archivio presente' : studio ? 'Materiale dello studio' : 'Sito esterno'}</Badge></header>
+      </div><Badge tone={publicReady || sharedReady || corpusReady ? 'success' : 'neutral'}>{publicReady || sharedReady || corpusReady ? 'Archivio presente' : studio ? 'Materiale dello studio' : 'Sito esterno'}</Badge></header>
       {source.id === 'openga' ? <>
         <p><strong>{publicReady ? inventory.decisioni!.toLocaleString('it-IT') + ' decisioni' : inventory === null ? 'Verifica del catalogo…' : 'Conteggio non disponibile'}</strong></p>
         <p>Ricerca in IUSENTRA per estremi, oggetto ed esito. Il catalogo non comprende motivazioni e testi integrali.</p>
+      </> : sharedReady ? <>
+        <p><strong>{source.sharedCorpusCount!.toLocaleString('it-IT')} decisioni nell’archivio pubblico condiviso</strong></p>
+        <p>Testi scaricati consultabili dalla ricerca Cassazione. La disponibilità del testo è indicata per ogni decisione.</p>
+        {source.sharedCorpusStatus === 'running' && <p>Acquisizione storica in corso: il conteggio cresce con i dati salvati.</p>}
       </> : corpusReady ? <>
-        <p><strong>{source.corpusCount!.toLocaleString('it-IT')} decisioni nell’archivio collegato</strong></p>
+        <p><strong>{source.corpusCount!.toLocaleString('it-IT')} decisioni nel corpus dello studio</strong></p>
         <p>{source.corpusFullTextCount?.toLocaleString('it-IT') ?? 'Numero non verificato'} con testo integrale.</p>
       </> : studio ? <p>{source.count.toLocaleString('it-IT')} schede salvate nello studio.</p> : <>
         <p>Consultazione sul sito ufficiale.</p>
@@ -55,6 +60,7 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
         {source.resolutionNote && <p>{source.resolutionNote}</p>}
       </details>
       <footer className="iu-od-action-row iu-legal-source__actions">
+        {sharedReady && <ButtonLink href="#ricerca-cassazione" tone="neutral">Cerca nei testi Cassazione</ButtonLink>}
         {source.id === 'openga' && <ButtonLink href="#ricerca-openga" tone="neutral">Cerca decisioni</ButtonLink>}
         {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito della fonte</ButtonLink>}
         {source.legacyHref && <ButtonLink href={source.legacyHref} tone="neutral">Scheda fonte</ButtonLink>}

@@ -556,7 +556,7 @@ def build_react_giurisprudenza_payload(
     warnings: list[dict[str, str]] = []
     manager = get_giurisprudenza()
     sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
-    attach_corpus_counts(sources, manager)
+    attach_corpus_counts(sources, manager, config)
     source_lookup = {source["id"]: source for source in sources if source.get("id")}
     filters = {
         "q": _text(query.get("q")),

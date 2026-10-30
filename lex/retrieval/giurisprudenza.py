@@ -102,6 +102,7 @@ def search_giurisprudenza_sources(message: str, *, include_metadata_only: bool =
             "official_search_is_document": False if metadata_only else None,
             "allowed_uses": ["estremi", "oggetto", "esito_dataset"] if metadata_only else [],
             "full_text_available": bool(row.get("testo_integrale_presente")),
+            "stored_text_href": _first_non_empty(row.get("stored_text_href")),
             "verified_reference": _riferimento_verificato(row, official_url),
             "official_url": official_url,
             "url": official_url,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { NormativeArticleLink } from './NormativeArticleLink'
 import { ExternalLink, X } from 'lucide-react'
@@ -19,7 +19,14 @@ export function SchedeFontiDettaglio({ schedaId, puoDecidere, onClose, onChanged
   const [busy, setBusy] = useState(true)
   const [salva, setSalva] = useState(false)
   const [carica, setCarica] = useState(0)
-  useOperationalRefresh(['fascicoli'], () => setCarica(n => n + 1))
+  const liveScheda = useRef(schedaId)
+  liveScheda.current = schedaId
+  useOperationalRefresh(['fascicoli', 'normativa'], async () => {
+    if (salva) return false
+    const id = schedaId
+    const response = await ensureJson<{ scheda: Scheda }>(`${base}/schede/${encodeURIComponent(id)}`)
+    if (id === liveScheda.current) setScheda(response.scheda)
+  })
   useBusyActivity(busy || salva, salva ? 'Registrazione dell’approvazione…' : 'Caricamento delle norme…')
   useEffect(() => {
     const controller = new AbortController()

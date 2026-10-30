@@ -64,6 +64,8 @@ export type GiurisprudenzaSource = {
   resolutionNote: string
   count: number
   corpusCount?: number | null
+  sharedCorpusCount?: number | null
+  sharedCorpusStatus?: string
   corpusFullTextCount?: number | null
   evidenceType: string
 }
@@ -391,6 +393,8 @@ function normaliseSource(input: unknown): GiurisprudenzaSource {
     resolutionNote: display(item.resolutionNote),
     count: integer(item.count),
     corpusCount: typeof item.corpusCount === 'number' && Number.isInteger(item.corpusCount) && item.corpusCount >= 0 ? item.corpusCount : null,
+    sharedCorpusCount: typeof item.sharedCorpusCount === 'number' && Number.isInteger(item.sharedCorpusCount) && item.sharedCorpusCount >= 0 ? item.sharedCorpusCount : null,
+    sharedCorpusStatus: display(item.sharedCorpusStatus),
     corpusFullTextCount: typeof item.corpusFullTextCount === 'number' && Number.isInteger(item.corpusFullTextCount) && item.corpusFullTextCount >= 0 ? item.corpusFullTextCount : null,
     evidenceType: display(item.evidenceType) || 'fonte',
   }

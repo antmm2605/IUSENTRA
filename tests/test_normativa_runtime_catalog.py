@@ -451,3 +451,19 @@ def test_fts_riscontro_id_con_buchi_e_orfano_non_legge_testi_gia_indicizzati(tmp
         assert not conn.execute("SELECT 1 FROM sqlite_temp_master WHERE name='_iusentra_fts_pending'").fetchone()
     text_reads = [q for q in queries if "c.chunk_text" in q]
     assert text_reads and all("WHERE c.id IN (SELECT chunk_id FROM temp._iusentra_fts_pending" in q for q in text_reads)
+
+
+def test_exact_download_resolves_existing_chunk_and_preserves_parent_checks(tmp_path, monkeypatch):
+    from lex.retrieval.normativa_catalog import leggi_chunk_archiviato, NormativaIndexUnavailable
+    path = archive(tmp_path / "normattiva.sqlite", text="Art. 327. Testo conservato.", indexed=True)
+    with sqlite3.connect(path) as connection:
+        key = connection.execute("SELECT chunk_key FROM normative_chunks LIMIT 1").fetchone()[0]
+    before = path.read_bytes()
+    result = leggi_chunk_archiviato(key, path)
+    assert "Testo conservato" in result["normative_full_text"]
+    assert path.read_bytes() == before
+    assert leggi_chunk_archiviato("normattiva:absent", path) is None
+    with sqlite3.connect(path) as connection:
+        connection.execute("UPDATE normative_documents SET xml_sha256='changed'")
+    with pytest.raises(NormativaIndexUnavailable):
+        leggi_chunk_archiviato(key, path)

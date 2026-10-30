@@ -310,7 +310,9 @@ def test_sync_openga_importa_e_aggiorna_dataset_ufficiale(tmp_path: Path):
     assert rows[0]["sottobranca"] == "Revisione prezzi"
     assert rows[0]["materia"] == "Appalti pubblici"
     assert record["raw_documents_count"] == 1
-    assert record["text_versions_count"] == 1
+    assert record["text_versions_count"] == 0
+    assert not record.get("testo_integrale")
+    assert "Revisione prezzi" in record["abstract"]
 
     second_rows = [dict(first_rows[0], OGGETTO_RICORSO="Revisione prezzi, compensazione e riequilibrio del contratto pubblico.")]
     report_update = gestore.sync_sources(
@@ -336,8 +338,10 @@ def test_sync_openga_importa_e_aggiorna_dataset_ufficiale(tmp_path: Path):
     assert report_update["updated_total"] == 1
     assert report_update["changed_total"] == 1
     assert len(rows_after) == 1
-    assert updated_record["text_versions_count"] == 2
-    assert "compensazione" in updated_record["testo_normalizzato"].lower()
+    assert updated_record["text_versions_count"] == 0
+    assert not updated_record.get("testo_integrale")
+    assert not updated_record["testo_normalizzato"]
+    assert "compensazione" in updated_record["abstract"].lower()
 
 
 def test_sync_corte_costituzionale_importa_dataset_open_data(tmp_path: Path):
@@ -425,33 +429,16 @@ def test_sync_corte_costituzionale_usa_zip_diretto_se_pagina_indice_fallisce(tmp
     assert rows[0]["ecli"] == "ECLI:IT:COST:2026:88"
 
 
-def test_sync_fonte_pubblica_importa_candidati(tmp_path: Path):
+def test_sync_cassazione_delega_al_corpus_senza_importare_link(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("IUSENTRA_SENTENZEWEB_DIRECTORY", raising=False)
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
-    html = b"""
-    <html><head><title>Massimario Cassazione</title></head>
-    <body>
-      <main>
-        <a href="/sentenze/123">Sentenza n. 1234/2026 su consenso informato</a>
-        <p>Depositata il 10/04/2026 ECLI:IT:CASS:2026:1234</p>
-      </main>
-    </body></html>
-    """
-
-    report = gestore.sync_sources(
-        source_ids=["cassazione"],
-        request_get=lambda *args, **kwargs: DummyResponse(
-            html,
-            url="https://www.cortedicassazione.it/it/massimario.page",
-        ),
-    )
-
-    rows = gestore.cerca(source_system="cassazione")
-
+    def no_legacy_fetch(*args, **kwargs):
+        raise AssertionError("Un link del Massimario non è una decisione scaricata")
+    report = gestore.sync_sources(source_ids=["cassazione"], request_get=no_legacy_fetch)
     assert report["ok"] is True
-    assert report["imported_total"] == 1
-    assert len(rows) == 1
-    assert rows[0]["ecli"] == "ECLI:IT:CASS:2026:1234"
-    assert rows[0]["source_label"] == "Corte di Cassazione"
+    assert report["imported_total"] == 0
+    assert report["runs"][0]["status"] == "da_configurare"
+    assert gestore.cerca(source_system="cassazione") == []
 
 
 def test_sync_curia_importa_homepage_pubblica(tmp_path: Path):
@@ -619,6 +606,7 @@ def test_react_giurisprudenza_espone_presidio_dati_per_rag(tmp_path: Path):
             "numero_provvedimento": "9926/2026",
             "url_pagina_ufficiale": "https://www.cortedicassazione.it/",
             "massima": "Testo normalizzato disponibile per ricerca e Lex.",
+            "text_original": "Testo integrale sintetico presente nel documento di prova per Lex.",
             "stato_citabilita": "citabile",
         }
     )

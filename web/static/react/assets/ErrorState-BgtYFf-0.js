@@ -1,0 +1,1 @@
+import"./legalPrimitives-BOGs7erM.js";

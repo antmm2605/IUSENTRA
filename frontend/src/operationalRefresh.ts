@@ -1,6 +1,6 @@
 export const OPERATIONAL_REFRESH_EVENT = 'iusentra:operational-data-updated'
-export type OperationalDomain = 'agenda' | 'scadenze' | 'comunicazioni' | 'clienti' | 'soggetti' | 'fascicoli' | 'preventivi' | 'privacy' | 'timesheet' | 'utenti' | 'incassi' | 'fatturazione' | 'sito'
-export const operationalDomains: OperationalDomain[] = ['agenda', 'scadenze', 'comunicazioni', 'clienti', 'soggetti', 'fascicoli', 'preventivi', 'privacy', 'timesheet', 'utenti', 'incassi', 'fatturazione', 'sito']
+export type OperationalDomain = 'agenda' | 'scadenze' | 'comunicazioni' | 'clienti' | 'soggetti' | 'fascicoli' | 'preventivi' | 'privacy' | 'timesheet' | 'utenti' | 'incassi' | 'fatturazione' | 'sito' | 'normativa'
+export const operationalDomains: OperationalDomain[] = ['agenda', 'scadenze', 'comunicazioni', 'clienti', 'soggetti', 'fascicoli', 'preventivi', 'privacy', 'timesheet', 'utenti', 'incassi', 'fatturazione', 'sito', 'normativa']
 import type { OperationalRevisions } from './operationalRevisionProof'
 export function publishOperationalRefresh(domains: OperationalDomain[], options: { remote?: boolean; revisions?: OperationalRevisions; revisionContext?: string } = {}) {
   const distinct = [...new Set(domains)]

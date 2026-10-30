@@ -1,3 +1,5 @@
+import { SentenzeWebSearch } from './SentenzeWebSearch'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { GiurisprudenzaSources } from './GiurisprudenzaSources'
 import { OpenGASearch } from './OpenGASearch'
 import { useBusyActivity } from '../ui/useBusyActivity'
@@ -454,6 +456,12 @@ function RecordDetail({ record }: { record?: GiurisprudenzaRecord }) {
         </div>
       ) : null}
       <div className="iu-od-action-row iu-legal-detail__actions">
+        {record.fullTextAvailable ? (
+          <ButtonLink href={`/giurisprudenza/${encodeURIComponent(record.id)}/testo`} tone="primary" target="_blank" rel="noreferrer">
+            <FileText size={16} aria-hidden="true" />
+            Leggi testo archiviato
+          </ButtonLink>
+        ) : null}
         {record.sourceHref ? (
           <ButtonLink href={record.sourceHref} tone="primary" target="_blank" rel="noreferrer">
             <ExternalLink size={16} aria-hidden="true" />
@@ -813,6 +821,11 @@ function GiurisprudenzaArchivePage() {
       active = false
     }
   }, [])
+  useOperationalRefresh(['normativa'], async () => {
+    const payload = await getGiurisprudenzaPage()
+    if (!payload.source) throw new Error('Disponibilità archivi non confermata.')
+    setData(payload)
+  })
   useEffect(() => () => clearGiurisprudenzaFullscreen(), [])
 
   const areas = useMemo(() => [...new Set(data.records.map((record) => record.area).filter(Boolean))].sort(), [data.records])
@@ -874,7 +887,8 @@ function GiurisprudenzaArchivePage() {
         <Metrics metrics={data.metrics} />
         <ContractStrip data={data} />
         <WarningList data={data} />
-        <OpenGASearch />
+        <SentenzeWebSearch />
+      <OpenGASearch />
         <div id="filtri-giurisprudenza" />
         <Filters
           query={query}

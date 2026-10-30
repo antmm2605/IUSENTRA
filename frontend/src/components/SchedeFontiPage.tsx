@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { ShieldCheck } from 'lucide-react'
 import { apiPostJson, ensureJson } from '../api/client'
@@ -30,7 +30,13 @@ export function SchedeFontiPage() {
   const [selezione, setSelezione] = useState('')
   const [cerca, setCerca] = useState('')
   const [salvataggio, setSalvataggio] = useState('')
-  useOperationalRefresh(['fascicoli'], () => setCarica(n => n + 1))
+  const liveFilter = useRef('')
+  liveFilter.current = JSON.stringify([tipo, stato, pagina])
+  useOperationalRefresh(['fascicoli', 'normativa'], async () => {
+    const filter = liveFilter.current
+    const response = await ensureJson<Risposta>(`${base}?${new URLSearchParams({ tipo, stato, pagina: String(pagina) })}`)
+    if (filter === liveFilter.current) setDati(response)
+  })
   useBusyActivity(busy || !!salvataggio, 'Caricamento del presidio delle norme…')
   useEffect(() => {
     const controller = new AbortController()

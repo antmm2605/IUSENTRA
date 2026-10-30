@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
 import copy
+import logging
+import sqlite3
 import hashlib
 import io
 import json
@@ -1095,7 +1097,7 @@ class GestioneGiurisprudenza:
         limit: int = 20,
         solo_contenuto: bool = False,
     ) -> List[Dict[str, Any]]:
-        return self._corpus.cerca_sentenze(
+        rows = self._corpus.cerca_sentenze(
             q=q,
             organo_giudicante=organo_giudicante,
             materia_principale=materia_principale,
@@ -1105,10 +1107,34 @@ class GestioneGiurisprudenza:
             solo_contenuto=solo_contenuto,
         )
 
+        from pct.sentenzeweb_corpus import configured_corpus
+        try:
+            shared = configured_corpus()
+        except (OSError, ValueError, sqlite3.Error):
+            logging.getLogger(__name__).warning("Corpus pubblico SentenzeWeb non disponibile; risultati dello studio conservati")
+            shared = None
+        if shared is not None:
+            public_rows = shared.cerca_sentenze(q=q, organo_giudicante=organo_giudicante, materia_principale=materia_principale, stato_verifica=stato_verifica, solo_con_pdf=solo_con_pdf, limit=limit, solo_contenuto=solo_contenuto, semantica=False)
+            public_candidates = []
+            with shared._connect() as connection:
+                for source_row in public_rows:
+                    row = dict(source_row)
+                    original_id = int(row["id"])
+                    snippet = connection.execute("SELECT substr(testo_integrale,1,6000) FROM sentenze WHERE id=?", (original_id,)).fetchone()
+                    row.update(id=f"sentenzeweb:{original_id}", shared_public_corpus=True, stored_text_href=f"/giurisprudenza/sentenzeweb/{original_id}/testo", text=str(snippet[0] or "") if snippet else "")
+                    public_candidates.append(row)
+            from itertools import zip_longest
+            rows = [row for pair in zip_longest(rows, public_candidates) for row in pair if row is not None]
+        return rows[:max(1, int(limit))]
+
     def scheda_corpus_professionale(self, sentenza_id: Any) -> Dict[str, Any] | None:
         try:
+            if str(sentenza_id).startswith("sentenzeweb:"):
+                from pct.sentenzeweb_corpus import configured_corpus
+                shared = configured_corpus()
+                return shared.get_sentenza(int(str(sentenza_id).split(":", 1)[1])) if shared else None
             return self._corpus.get_sentenza(int(sentenza_id))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OSError, sqlite3.Error):
             return None
 
     def riferimento_professionale_verificato(self, sentenza_id: Any) -> bool:
@@ -1302,19 +1328,8 @@ class GestioneGiurisprudenza:
             judgments.append(record)
         self._data["judgments"] = judgments
         self._sync_practice_links(record)
-        self._store_text_version(
-            record["id"],
-            payload.get("text_original")
-            or "\n\n".join(
-                item
-                for item in [
-                    record.get("massima", ""),
-                    record.get("principio_diritto", ""),
-                    record.get("abstract", ""),
-                ]
-                if str(item or "").strip()
-            ),
-        )
+        # Notes and massime are searchable metadata, never the original judgment.
+        self._store_text_version(record["id"], payload.get("text_original") or "")
         self._sync_record_to_corpus(record, payload=payload)
         self._save()
         return record
@@ -1523,6 +1538,19 @@ class GestioneGiurisprudenza:
     ) -> Dict[str, Any]:
         started_at = _now_iso()
         run_id = uuid.uuid4().hex
+        if source.id == "cassazione":
+            from pct.sentenzeweb_corpus import configured_corpus
+            shared = configured_corpus()
+            run = {
+                "id": run_id, "source_id": source.id, "source_label": source.nome,
+                "started_at": started_at, "ended_at": _now_iso(), "checked_at": _now_iso(),
+                "status": "archivio_condiviso" if shared is not None else "da_configurare",
+                "items_found": 0, "items_imported": 0, "items_updated": 0, "items_skipped": 0,
+                "imported": 0, "updated": 0, "candidates": 0,
+                "message": "La Cassazione è gestita dal corpus pubblico condiviso e dal job SentenzeWeb notturno; questo comando non duplica il recupero storico." if shared is not None else "Configura il corpus SentenzeWeb condiviso prima dell'acquisizione Cassazione.",
+            }
+            self._append_sync_run(run)
+            return run
         if not source.supports_auto_sync:
             if source.fallback_source_id:
                 run = {
@@ -1689,7 +1717,7 @@ class GestioneGiurisprudenza:
             judgments[existing_idx] = record
             self._data["judgments"] = judgments
             self._store_raw_document(source, candidate, record["id"], checked_at, run_id=run_id)
-            self._store_text_version(record["id"], candidate.get("text_original") or payload.get("massima") or payload.get("abstract"))
+            self._store_text_version(record["id"], candidate.get("text_original") or "")
             self._sync_practice_links(record)
             self._sync_record_to_corpus(record, payload=payload)
             return "updated"
@@ -1697,7 +1725,7 @@ class GestioneGiurisprudenza:
         judgments.append(saved)
         self._data["judgments"] = judgments
         self._store_raw_document(source, candidate, saved["id"], checked_at, run_id=run_id)
-        self._store_text_version(saved["id"], candidate.get("text_original") or payload.get("massima") or payload.get("abstract"))
+        self._store_text_version(saved["id"], candidate.get("text_original") or "")
         self._sync_practice_links(saved)
         self._sync_record_to_corpus(saved, payload=payload)
         return "created"
@@ -2444,7 +2472,7 @@ class GestioneGiurisprudenza:
                 record["id"],
                 _now_iso(),
             )
-            self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or record.get("abstract") or "")
+            self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or "")
             self._sync_practice_links(record)
             self._sync_record_to_corpus(record, payload=payload)
             return {"created": False, "record": record}
@@ -2463,7 +2491,7 @@ class GestioneGiurisprudenza:
             record["id"],
             _now_iso(),
         )
-        self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or record.get("abstract") or "")
+        self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or "")
         self._sync_practice_links(record)
         self._sync_record_to_corpus(record, payload=payload)
         return {"created": True, "record": record}
@@ -2657,6 +2685,12 @@ class GestioneGiurisprudenza:
             )
         from pct.giurisprudenza_evidenze import solo_metadati
         metadata_only = solo_metadati(record)
+        # The normalized metadata row does not carry the separately stored body.
+        latest_text = self._latest_text_row(str(record.get("id") or "")) or {}
+        original_text = "" if metadata_only else (
+            raw_payload.get("text_original") or raw_payload.get("raw_text")
+            or latest_text.get("text_original") or ""
+        )
         if metadata_only:
             massime, principles, norms, precedents = [], [], [], []
         return {
@@ -2687,7 +2721,7 @@ class GestioneGiurisprudenza:
             "abstract": record.get("abstract"),
             "principio_sintetico": "" if metadata_only else (record.get("principio_sintetico") or record.get("principio_diritto")),
             "massima_ufficiale": "" if metadata_only else record.get("massima"),
-            "testo_integrale": record.get("testo_integrale") or record.get("testo_normalizzato") or "",
+            "testo_integrale": original_text,
             "esito": record.get("esito"),
             "orientamento": record.get("orientamento") or "non_classificato",
             "rilevanza": 80 if record.get("uso_nel_software") == "precedente forte" else 55,
@@ -2697,7 +2731,7 @@ class GestioneGiurisprudenza:
             "stato_verifica": stato_verifica,
             "fonte_ufficiale_confermata": fonte_confermata,
             "pdf_ufficiale_presente": bool(official_pdf),
-            "testo_integrale_presente": bool(record.get("testo_integrale") or record.get("testo_normalizzato")),
+            "testo_integrale_presente": bool(original_text),
             "url_pagina_ufficiale": official_page,
             "url_pdf_ufficiale": official_pdf,
             "url_html_ufficiale": official_page if official_page and not official_pdf else "",

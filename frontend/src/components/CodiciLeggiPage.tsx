@@ -1,5 +1,6 @@
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useBusyActivity } from '../ui/useBusyActivity'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NormativeArticleLink } from './NormativeArticleLink'
 import { BookOpen, Search, ExternalLink, X } from 'lucide-react'
 import { ensureJson } from '../api/client'
@@ -63,6 +64,21 @@ export function CodiciLeggiPage() {
     ensureJson<{ item: FullArticle }>(`${base}/articoli/${selectedId}`, { signal: controller.signal }).then(data => setSelected(data.item)).catch(() => { if (!controller.signal.aborted) setReaderError('Il testo non è disponibile. Riprova ad aprire l’articolo.') }).finally(() => { if (!controller.signal.aborted) setReaderBusy(false) })
     return () => controller.abort()
   }, [selectedId])
+  const liveSelection = useRef('')
+  liveSelection.current = JSON.stringify([filters, selectedId])
+  useOperationalRefresh(['normativa'], async () => {
+    const selection = liveSelection.current
+    const params = new URLSearchParams({ act: filters.act, q: filters.query, article: filters.article, category: filters.category, offset: String(filters.offset) })
+    const [catalogue, result, article] = await Promise.all([
+      ensureJson<{ ok: boolean; items: Act[] }>(`${base}/atti`),
+      ensureJson<Results>(`${base}/articoli?${params}`),
+      selectedId ? ensureJson<{ item: FullArticle }>(`${base}/articoli/${selectedId}`) : Promise.resolve(null),
+    ])
+    if (selection !== liveSelection.current) return
+    setActs(catalogue.items)
+    setResults(result)
+    if (article) setSelected(article.item)
+  })
   function chooseAct(value: string) { setCategory(''); setAct(value); setArticle(''); setQuery(''); setFilters({ act: value, query: '', article: '', category: '', offset: 0 }) }
   function reset() { setAct(''); setQuery(''); setArticle(''); setCatalogQuery(''); setCategory(''); setFilters({ act: '', query: '', article: '', category: '', offset: 0 }) }
   return <Page title="Codici e leggi" subtitle="Codici, leggi e decreti per materia, con testo integrale e ricerca per articolo." actions={<><ButtonLink href="/ricerca-legale/schede-atti" tone="neutral">Norme dei modelli d’atto</ButtonLink><ButtonLink href="/ricerca-legale" tone="neutral">Ricerca legale</ButtonLink></>}>

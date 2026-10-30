@@ -514,6 +514,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "15",
             built_in=True,
         ),
+        SchedulerTemplate("cassazione_sentenzeweb_nightly", "Cassazione SentenzeWeb", "Aggiornamenti legali", "Recupera nuovi provvedimenti e varianti dal corpus pubblico, con checkpoint SQL e deduplicazione. Non esegue letture dei fascicoli.", "cron", "23", "35", enabled=bool(cfg.get("IUSENTRA_SENTENZEWEB_DIRECTORY") or os.getenv("IUSENTRA_SENTENZEWEB_DIRECTORY")), built_in=True),
         SchedulerTemplate("sync_tabelle_normative_daily", "Tabelle normative", "Fonti e tabelle", "Aggiorna tassi, indici e tabelle normative.", "cron", "4", "30", built_in=True),
         SchedulerTemplate(
             "censimento_spazio_notturno",

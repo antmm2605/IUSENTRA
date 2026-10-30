@@ -127,6 +127,7 @@ export type LegalAutofetchLawyerReadiness = {
 
 export type LegalAutofetchMonitor = {
   generatedAt: string
+  localLibrary: { status: string; acts: number; articles: number }
   sourcesTotal: number
   sourcesReady: number
   sourcesNotReady: number
@@ -157,6 +158,7 @@ export const emptyLegalIntelligencePage: LegalIntelligencePageData = {
   filters: {},
   autofetchMonitor: {
     generatedAt: '',
+    localLibrary: { status: '', acts: 0, articles: 0 },
     sourcesTotal: 0,
     sourcesReady: 0,
     sourcesNotReady: 0,
@@ -336,6 +338,7 @@ function normaliseAutofetchMonitor(input: unknown): LegalAutofetchMonitor {
   const lawyerReadiness = asRecord(item.lawyer_readiness ?? item.lawyerReadiness)
   return {
     generatedAt: display(item.generated_at ?? item.generatedAt),
+    localLibrary: { status: display(asRecord(item.local_library).status), acts: integer(asRecord(item.local_library).acts), articles: integer(asRecord(item.local_library).articles) },
     sourcesTotal: integer(item.sources_total ?? item.sourcesTotal),
     sourcesReady: integer(item.sources_ready ?? item.sourcesReady),
     sourcesNotReady: integer(item.sources_not_ready ?? item.sourcesNotReady),

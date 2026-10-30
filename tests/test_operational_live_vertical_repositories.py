@@ -84,6 +84,12 @@ def test_sync_api_reads_vertical_counters_without_cross_tenant_data(tmp_path, mo
     import web.services.storage_runtime as storage_runtime
     import web.services.registro_letture_runtime as registry_runtime
 
+    from lex.retrieval import normativa_catalog
+    public_catalog = tmp_path / "public-catalog.sqlite"
+    public_catalog.write_bytes(b"synthetic public catalogue identity")
+    monkeypatch.setattr(normativa_catalog, "runtime_general_path", lambda: public_catalog)
+    monkeypatch.delenv("PCT_CODICI_LEGGI_DB", raising=False)
+
     central = sqlite3.connect(tmp_path / "studio.db")
     central.execute("CREATE TABLE operational_live_revisions(domain TEXT PRIMARY KEY,revision INTEGER)")
     central.execute("INSERT INTO operational_live_revisions VALUES ('fascicoli', 5)")
@@ -115,7 +121,11 @@ def test_sync_api_reads_vertical_counters_without_cross_tenant_data(tmp_path, mo
         payload = dict(response.json)
         context = payload.pop("revisionContext")
         assert len(context) == 64 and all(char in '0123456789abcdef' for char in context)
-        assert payload == {"ok": True, "revisions": {"fascicoli": 7}}
+        assert payload["ok"] is True
+        assert set(payload["revisions"]) == {"fascicoli", "normativa"}
+        assert payload["revisions"]["fascicoli"] == 7
+        assert type(payload["revisions"]["normativa"]) is int
+        assert 0 <= payload["revisions"]["normativa"] < 2 ** 48
         assert response.headers["Cache-Control"] == "no-store"
         # Il polling non crea segnali e non muta il contenuto delle fonti.
         assert app.test_client().get("/api/v1/ui/sync/revisions").json == response.json

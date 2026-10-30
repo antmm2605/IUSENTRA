@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BcRGSaGE.js";export{e as ImpostazioniPage};

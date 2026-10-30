@@ -113,7 +113,9 @@ def test_revisions_are_permission_filtered_and_bound_to_the_current_owner(rename
         g.tenant = SimpleNamespace(slug='studio')
         g.source = 'first'
         first = read_authorized_revision_snapshot(user)
-        assert first['revisions'] == {'fascicoli': 3}
+        assert first['revisions']['fascicoli'] == 3
+        assert set(first['revisions']) == {'fascicoli', 'normativa'}
+        assert isinstance(first['revisions']['normativa'], int)
         assert read_authorized_revision_snapshot(user) == first
         user.username = 'another'
         assert read_authorized_revision_snapshot(user)['context'] != first['context']
@@ -123,4 +125,4 @@ def test_revisions_are_permission_filtered_and_bound_to_the_current_owner(rename
         g.tenant.slug = 'studio'
         g.source = 'second'
         assert read_authorized_revision_snapshot(user)['context'] != first['context']
-    assert all(domains == {'fascicoli'} for domains in requested)
+    assert all(domains == {'fascicoli', 'normativa'} for domains in requested)

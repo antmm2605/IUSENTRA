@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import sqlite3
 from datetime import date, datetime
 from functools import wraps
 from pathlib import Path
@@ -374,6 +375,35 @@ def scheda_fonte(source_id: str):
 @legal_intelligence.route("/fonte/<string:source_id>/scarica", methods=["GET"])
 @_richiedi_login
 def scarica_fonte(source_id: str):
+    # Search results carry native document identities, not daily-monitor source
+    # codes. Resolve their owners before asking for a daily homepage snapshot.
+    if source_id.startswith(("normattiva:", "sentenzeweb:")):
+        from flask import Response
+        import hashlib
+        from lex.retrieval.normativa_catalog import NormativaIndexUnavailable, leggi_chunk_archiviato
+        try:
+            if source_id.startswith("normattiva:"):
+                row = leggi_chunk_archiviato(source_id)
+                text = str((row or {}).get("normative_full_text") or "")
+                title = str((row or {}).get("titolo") or "Fonte normativa")
+                official_url = str((row or {}).get("url_origine") or "")
+            else:
+                from pct.sentenzeweb_corpus import configured_corpus
+                corpus = configured_corpus(current_app.config)
+                row = corpus.get_sentenza(int(source_id.split(":", 1)[1])) if corpus else None
+                text = str((row or {}).get("testo_integrale") or "")
+                title = str((row or {}).get("titolo") or "Provvedimento")
+                official_url = str((row or {}).get("url_pagina_ufficiale") or "")
+        except (NormativaIndexUnavailable, ValueError, OSError, sqlite3.Error):
+            return Response("Fonte archiviata non riscontrata: nessun file esportato.", status=409, content_type="text/plain; charset=utf-8")
+        if not row or not text:
+            return Response("Testo archiviato non disponibile.", status=404, content_type="text/plain; charset=utf-8")
+        digest = hashlib.sha256(text.encode()).hexdigest()
+        body = f"Titolo: {title}\nIdentità archivio: {source_id}\nFonte: {official_url}\nSHA-256 del testo archiviato: {digest}\n\n" + text
+        response = send_file(io.BytesIO(body.encode("utf-8")), mimetype="text/plain; charset=utf-8", as_attachment=True, download_name="testo_archiviato.txt", max_age=0)
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
     try:
         latest = _daily_engine().latest_snapshot(source_id)
     except Exception as exc:

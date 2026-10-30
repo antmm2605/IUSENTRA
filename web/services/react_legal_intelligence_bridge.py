@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import re
 import os
+import re
+import sqlite3
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
 
@@ -755,6 +757,30 @@ def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query
 
 
 def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+    from lex.retrieval.official_sources_retriever import (
+        ARTICLE_QUERY_RE, CODE_TARGETS, _detect_code_target,
+        _extract_article_reference, _normalize_search_text,
+    )
+
+    code = _detect_code_target(search_query)
+    article = _extract_article_reference(search_query)
+    remainder = _normalize_search_text(ARTICLE_QUERY_RE.sub(" ", search_query, count=1))
+    if code:
+        for alias in sorted(CODE_TARGETS[code]["aliases"], key=len, reverse=True):
+            normalized_alias = _normalize_search_text(alias)
+            remainder = re.sub(rf"(?<!\w){re.escape(normalized_alias)}(?!\w)", " ", remainder)
+    direct_reference = not (set(remainder.split()) - {
+        "testo", "integrale", "vigente", "mostra", "leggi", "cerca",
+        "del", "dello", "della", "il", "lo", "l", "di",
+    })
+    if code and article and direct_reference:
+        # A numbered code article is not satisfied by a generic card mentioning
+        # "codice" or by the same number in another code. Use source identity.
+        def normalized(value):
+            return " ".join(str(value or "").lower().replace("-", " ").split())
+        return [record for record in records
+                if normalized(record.get("registryNumber")) == normalized(article)
+                and _detect_code_target(" ".join(_text(record.get(key)) for key in ("title", "sourceLabel"))) == code]
     records = [
         record
         for record in records
@@ -1251,7 +1277,7 @@ def _record_reliability_note(record: Mapping[str, Any]) -> str:
     source_href = _text(record.get("sourceHref"))
     if "ufficiale" in source_kind or _is_official_href(source_href):
         if bool(record.get("contextCompleted")):
-            return "Contesto letto in IUSENTRA da fonte ufficiale: usa la fonte originale solo per il controllo finale prima di atti, pareri o depositi."
+            return "Scheda interna associata a una fonte ufficiale. Verifica il testo originale, la data e la pertinenza prima dell’uso professionale."
         return "Fonte ufficiale o istituzionale: se il contesto non è completo in pagina, apri il testo originale per il controllo finale prima di atti, pareri o depositi."
     if "verificare" in source_kind:
         return "Fonte da controllare: usa il contesto come orientamento e verifica il testo originale prima dell'uso professionale."
@@ -1412,6 +1438,9 @@ def _context_has_navigation_noise(value: Any) -> bool:
 
 
 def _needs_live_official_context(record: Mapping[str, Any], search_query: str) -> bool:
+    if record.get("nativeArticleTextVerified") is True:
+        # Short articles can be complete: length alone must not reread them.
+        return False
     source_href = _text(record.get("sourceHref"))
     exact_reference = _looks_like_exact_legal_reference(search_query) or _looks_like_exact_legal_reference(record.get("title"))
     if _is_governed_sufficient_context(record, search_query):
@@ -1800,10 +1829,27 @@ def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive
     source_label = _text(row.get("fonte")) or ("Normattiva" if archive == "normattiva" else "Gazzetta Ufficiale")
     title = _text(row.get("titolo")) or source_label
     excerpt = _short(row.get("testo") or row.get("excerpt") or row.get("contenuto"), 640)
-    source_href = _safe_href(row.get("url_origine") or row.get("url"))
+    source_identity = _text(row.get("url_origine") or row.get("url"))
+    source_href = _safe_href(source_identity)
+    if archive == "normattiva" and re.fullmatch(
+        r"urn:nir:stato:[a-z.]+:\d{4}-\d{2}-\d{2};\d+(?:[!@][A-Za-z0-9.:;-]+)?", source_identity, re.IGNORECASE
+    ):
+        from urllib.parse import quote
+        # The index carries the authoritative NIR identity, not an HTTP URL.
+        # Link the existing identity; never manufacture one from the title/query.
+        source_href = "https://www.normattiva.it/uri-res/N2Ls?" + quote(source_identity, safe=":;.!@-")
     chunk_label = _text(row.get("articolo_o_chunk") or row.get("chunk") or row.get("chunk_id"))
+    import hashlib
+    full_text = str(row.get("normative_full_text") or "")
+    native_article = row.get("normative_scope") == "articolo"
+    native_verified = bool(native_article and full_text.strip() and
+                           hashlib.sha256(full_text.encode()).hexdigest() == row.get("normative_full_text_sha256"))
+    if native_verified and chunk_label:
+        title = f"{title} — Art. {chunk_label}"
     return {
         "id": _text(row.get("chunk_id") or row.get("document_id") or row.get("id")) or f"{archive}_{index}",
+        "officialContext": full_text if native_verified else "",
+        "nativeArticleTextVerified": native_verified,
         "kind": "normativa" if archive == "normattiva" else "news",
         "title": title,
         "subtitle": excerpt,
@@ -2916,6 +2962,20 @@ def _official_archive_records(warnings: list[dict[str, str]], search_query: str)
             )
         except Exception:
             warnings.append(_warning("gazzetta_non_disponibile", "Archivio Gazzetta Ufficiale non disponibile per questa ricerca."))
+    try:
+        from pct.sentenzeweb_corpus import configured_corpus
+        shared = configured_corpus()
+        if shared is not None:
+            with shared._connect() as connection:
+                for row in shared.cerca_sentenze(q=search_query, limit=8, semantica=False):
+                    body = connection.execute("SELECT substr(testo_integrale,1,6000) FROM sentenze WHERE id=?", (int(row["id"]),)).fetchone()
+                    if not body or not body[0]:
+                        continue
+                    record = _safe_search_record({"id": f"sentenzeweb:{row['id']}", "title": row["titolo"], "content": body[0], "official_url": row["url_pagina_ufficiale"], "authority": "Corte di Cassazione — SentenzeWeb", "type": "giurisprudenza", "published_at": row["data_deposito"], "is_official": True}, len(records) + 1, search_query=search_query)
+                    record.update(approvalLabel="testo archiviato", approvalTone="info", registryNumber=f"{row['numero_sentenza']}/{row['anno_sentenza']}", legacyHref="/giurisprudenza")
+                    records.append(record)
+    except (OSError, ValueError, sqlite3.Error):
+        warnings.append(_warning("cassazione_condivisa_non_disponibile", "Corpus condiviso Cassazione non disponibile; conservati gli altri risultati."))
     return records
 
 
@@ -3245,7 +3305,41 @@ def _autofetch_monitor(
         )
     except Exception:
         return {}
-    return monitor if isinstance(monitor, dict) else {}
+    return _monitor_biblioteca_locale(monitor, cfg_source) if isinstance(monitor, dict) else {}
+
+
+def _monitor_biblioteca_locale(monitor: dict, config: Mapping[str, Any] | None) -> dict:
+    """Affianca il catalogo già consultato dalla UI; non attesta aggiornamenti."""
+    from lex.retrieval.normativa_catalog import library_catalog_snapshot
+
+    result = dict(monitor)
+    try:
+        configured = (config or {}).get("NORMATTIVA_DB")
+        snapshot = library_catalog_snapshot(Path(configured) if configured else None)
+    except (OSError, sqlite3.Error, RuntimeError) as exc:
+        result["local_library"] = {"status": "non_disponibile", "acts": 0, "articles": 0,
+                                   "error": type(exc).__name__}
+        return result
+    rows = snapshot.pop("catalogue")
+    result["local_library"] = snapshot
+    by_key = {row["key"]: row for row in rows}
+    sources = []
+    for item in monitor.get("sources", []):
+        source = dict(item)
+        key = source.get("source_code")
+        matched = by_key.get(key)
+        if matched:
+            source["local_articles"] = int(matched.get("articles") or 0)
+            source["reason"] = (f"Biblioteca locale: {source['local_articles']} articoli catalogati, "
+                                "consultabili in Codici e leggi. "
+                                "Stato del repository aggiornamenti: " + str(source.get("reason") or "non disponibile"))
+        elif key in {"normattiva", "dati_normattiva"} and rows:
+            source["reason"] = (f"Biblioteca locale: {len(rows)} atti catalogati in Codici e leggi; "
+                                "non attesta la copertura dell'archivio generale. "
+                                "Stato del repository aggiornamenti: " + str(source.get("reason") or "non disponibile"))
+        sources.append(source)
+    result["sources"] = sources
+    return result
 
 
 def _source_delivery_index(audit: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
@@ -3328,6 +3422,12 @@ def _enrich_autofetch_monitor_for_lawyer(
             for document_key in ("raw_documents", "normalized_documents", "review_published")
         )
         monitor_status = _text(source.get("status"))
+        if not has_documents:
+            status_label = ("Biblioteca locale disponibile; aggiornamenti da verificare"
+                            if source.get("local_articles") else
+                            "Fonte disattivata" if not source.get("enabled", True) else
+                            "Acquisizione aggiornamenti non confermata")
+            activation_action = _text(source.get("reason"))
         if delivery:
             operational_sources += 1
             if status == "gap" or (monitor_status != "pronta" and not has_documents):

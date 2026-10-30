@@ -1711,7 +1711,12 @@ def test_scheduler_repairs_stale_zip_once_per_extraction_version(tmp_path):
     assert detail["validation_report"]["procedural_profile"]["remote_hearing"]["links"][0]["url"] == exact_link
 
 
-def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
+@pytest.mark.parametrize("days_offset", [-1, 30])
+def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path, days_offset):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    hearing_day = datetime.now(ZoneInfo("Europe/Rome")).date() + timedelta(days=days_offset)
     from pct.agenda import Agenda
     from pct.scadenziario import GestioneScadenziario, TipoTermine
 
@@ -1732,12 +1737,12 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     msg["Message-ID"] = "<udienza-audiovisiva-scadenziario@example.test>"
     msg.set_content("Comunicazione di cancelleria: udienza con strumenti audiovisivi. Il link è nel PDF allegato.")
     msg.add_attachment(
-        """
+        f"""
         <Comunicazione>
           <NumeroRuolo>1263/2026/LAV</NumeroRuolo>
           <Oggetto>FISSAZIONE UDIENZA DI DISCUSSIONE</Oggetto>
           <Contenuto><![CDATA[
-          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15 con strumenti audiovisivi
+          Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL {hearing_day.strftime('%d/%m/%Y')} 09:15 con strumenti audiovisivi
           ]]></Contenuto>
         </Comunicazione>
         """.encode("utf-8"),
@@ -1751,10 +1756,18 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path):
     repo.run_pending_jobs(limit=30, actor="pytest")
     scheduled = repo.schedule_deadline(ingest["id"], actor="pytest")
 
+    if days_offset < 0:
+        assert scheduled["ok"] is False
+        assert GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False) == []
+        assert [item for item in Agenda(str(agenda_db)).tutti()
+                if not item.external_uid.startswith("PEC_RICEZIONE:")] == []
+        return
+
     assert scheduled["ok"] is True
     scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
     assert len(scadenze) == 1
     assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].data_scadenza[:10] == hearing_day.isoformat()
     assert scadenze[0].remote_hearing_url == exact_link
     assert scadenze[0].remote_hearing_source == "13744017s.pdf.zip"
     assert scadenze[0].remote_hearing_verified is True
@@ -6827,6 +6840,10 @@ def test_schedule_deadline_fonde_pec_diverse_sullo_stesso_presidio_operativo(tmp
 
 
 def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_path):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    hearing_day = datetime.now(ZoneInfo("Europe/Rome")).date() + timedelta(days=30)
     from pct.agenda import Agenda
     from pct.email_client import CartellaEmail
     from pct.scadenziario import GestioneScadenziario
@@ -6875,7 +6892,7 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
                 "Messaggio di posta certificata. Comunicazione di cancelleria. "
                 "Numero di Ruolo generale: 555/2026. "
                 "Oggetto: FISSAZIONE UDIENZA DI DISCUSSIONE. "
-                "Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 29/10/2026 09:15."
+                f"Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL {hearing_day:%d/%m/%Y} 09:15."
             ),
             allegati=[{"nome": "Comunicazione.xml", "mime": "application/xml", "size": 140}],
             message_id="<mail-pec-ricostruita@example.test>",
@@ -6901,7 +6918,7 @@ def test_presidio_cli_ricostruisce_pec_locale_e_alimenta_catena_operativa(tmp_pa
     scadenze = GestioneScadenziario(paths["SCADENZIARIO_DB"]).tutte(solo_aperte=False)
     pec_scadenze = [item for item in scadenze if "PEC_AUDIT:" in item.note]
     assert len(pec_scadenze) == 1
-    assert pec_scadenze[0].data_scadenza == "2026-10-29"
+    assert pec_scadenze[0].data_scadenza == hearing_day.isoformat()
     assert pec_scadenze[0].id_appuntamento
     appuntamenti_pec = [item for item in Agenda(paths["AGENDA_DB"]).tutti() if str(item.external_uid).startswith("PEC_AUDIT:")]
     assert len(appuntamenti_pec) == 1

@@ -15360,7 +15360,19 @@ def _legal_intelligence_cache_key(page: str) -> tuple | None:
     tenant_slug = str(
         getattr(tenant, "slug", "") or getattr(g, "tenant_context_slug", "") or ""
     ).strip().lower()
-    return (page, tenant_slug)
+    # A refresh must not serve a previous revision during the TTL. Include
+    # the authorized owner context and revisions; failure disables reuse.
+    from web.services.operational_read_revision import read_authorized_revision_snapshot
+    try:
+        snapshot = read_authorized_revision_snapshot(g.get("utente_corrente"))
+        context = snapshot.get("context")
+        revisions = snapshot.get("revisions")
+        if not context or not revisions:
+            return None
+        return (page, tenant_slug, context, tuple(sorted(revisions.items())))
+    except Exception:
+        current_app.logger.warning("Cache ricerca non riutilizzata: revisione non disponibile")
+        return None
 
 
 def _legal_intelligence_ui_payload(page: str, legacy_contract: str):

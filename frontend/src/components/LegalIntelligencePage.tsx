@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { mediazioneWebsite } from '../lib/mediazioneWebsite'
 import { MediazioneOrganismoDetail } from './MediazioneOrganismoDetail'
 import {
@@ -285,7 +286,7 @@ function AcquisitionReadinessPanel({
   const cards = [
     {
       id: 'ready',
-      label: 'Fonti pronte',
+      label: 'Fonti acquisite negli aggiornamenti',
       value: monitor.sourcesReady,
       note: 'Con documenti letti, testo o schede pubblicate.',
       icon: <CheckCircle2 size={18} aria-hidden="true" />,
@@ -293,7 +294,7 @@ function AcquisitionReadinessPanel({
     },
     {
       id: 'blocked',
-      label: 'Fonti da completare',
+      label: 'Aggiornamenti da completare',
       value: monitor.sourcesNotReady,
       note: 'Manca acquisizione, testo, OCR o ultimo controllo automatico.',
       icon: <AlertTriangle size={18} aria-hidden="true" />,
@@ -573,7 +574,7 @@ function RecordCard({
       </dl>
       <div className="iu-li-evidence-row">
         <span className="iu-od-source-badge">{record.evidenceType || 'informazione'}</span>
-        {record.contextCompleted ? <span className="iu-od-source-badge">letto in IUSENTRA</span> : null}
+        {record.contextCompleted ? <span className="iu-od-source-badge">contesto in pagina</span> : null}
       </div>
       <footer className="iu-od-action-row iu-li-record__actions">
         <Button type="button" tone="primary" onClick={() => onOpen(record)}>
@@ -647,7 +648,7 @@ function RecordDetail({
           <span>Scheda interna IUSENTRA</span>
           <strong>{contextStatusLabel(record)}</strong>
         </div>
-        <p>Il contenuto utile allo studio è leggibile qui; il collegamento esterno resta un controllo finale sulla fonte originale.</p>
+        <p>La scheda raccoglie il contesto disponibile. La completezza della scheda non attesta la lettura integrale della fonte originale.</p>
       </section>
       <div className="iu-li-detail__reading">
         <h3>Contesto in IUSENTRA</h3>
@@ -673,7 +674,7 @@ function RecordDetail({
       ) : null}
       {record.officialContext ? (
         <section className="iu-li-detail__box iu-li-detail__official">
-          <h3>Testo letto in IUSENTRA</h3>
+          <h3>Contenuto disponibile in IUSENTRA</h3>
           <p>{record.officialContext}</p>
         </section>
       ) : null}
@@ -852,7 +853,7 @@ function RecordFilters({
               <select value={quality} onChange={(event) => onQuality(event.target.value)}>
                 <option value="">Tutte</option>
                 <option value="ufficiale">Solo fonti ufficiali</option>
-                <option value="letta">Letta in IUSENTRA</option>
+                <option value="letta">Con contesto in pagina</option>
                 <option value="link">Con fonte apribile</option>
               </select>
             </label>
@@ -1218,6 +1219,10 @@ export function LegalIntelligencePage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState(() => (['ricerca-legale', 'mediazione'].includes(currentView()) ? initialQuery() : ''))
   const [submittedQuery, setSubmittedQuery] = useState(() => (currentView() === 'ricerca-legale' ? initialQuery() : ''))
+  const [searchRun, setSearchRun] = useState(0)
+  const [searchStale, setSearchStale] = useState(false)
+  const searchIdentity = useRef('')
+  searchIdentity.current = `${view}|${submittedQuery}|${searchRun}`
   const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
   const [recordKind, setRecordKind] = useState(initialParams.get('tipo') || '')
   const [recordSource, setRecordSource] = useState(initialParams.get('fonte') || '')
@@ -1235,9 +1240,12 @@ export function LegalIntelligencePage() {
   useEffect(() => {
     let active = true
     setLoading(true)
-    loadPage(view, '')
+    loadPage(view, view === 'ricerca-legale' ? submittedQuery : '')
       .then((payload) => {
-        if (active) setData(payload)
+        if (active) {
+          setData(payload)
+          setSearchStale(false)
+        }
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -1245,9 +1253,23 @@ export function LegalIntelligencePage() {
     return () => {
       active = false
     }
-  }, [view])
+  }, [view, submittedQuery, searchRun])
+  useOperationalRefresh(['normativa'], async () => {
+    const identity = searchIdentity.current
+    // A background invalidation updates local projections, never repeats an
+    // explicit external search or replaces its results with the default list.
+    const payload = await loadPage(view, '')
+    if (identity !== searchIdentity.current) return false
+    if (!payload.source) throw new Error('Disponibilità fonti non confermata.')
+    if (view === 'ricerca-legale' && submittedQuery) {
+      setData(previous => ({ ...payload, records: previous.records, filters: previous.filters }))
+      setSearchStale(true)
+    } else {
+      setData(payload)
+    }
+  })
   useEffect(() => () => clearPageFullscreen(LEGAL_INTELLIGENCE_FULLSCREEN_CLASS), [])
-  const localFilter = view === 'ricerca-legale' ? submittedQuery : query
+  const localFilter = view === 'ricerca-legale' ? '' : query
   const locallyVisibleRecords = useMemo(() => data.records.filter((record) => includesText([
     record.title,
     record.subtitle,
@@ -1346,6 +1368,7 @@ export function LegalIntelligencePage() {
     setSelectedId('')
     updateSearchUrl(trimmed)
     setSubmittedQuery(trimmed)
+    setSearchRun(current => current + 1)
   }
   const submitSearch = () => {
     const trimmed = query.trim()
@@ -1429,6 +1452,7 @@ export function LegalIntelligencePage() {
       <div className={`iu-li-page iu-li-page--${view}`}>
         <WarningList data={data} />
         <NavigationTabs view={view} />
+        {searchStale ? <p role="status" className="iu-li-search-note">Le fonti locali sono cambiate. I risultati della ricerca restano visibili: premi Cerca per aggiornarli.</p> : null}
         {view !== 'mediazione' ? (
           <RecordFilters
             view={view}
@@ -1566,7 +1590,7 @@ function CollapsibleSourceDashboard({
         <SearchCheck size={18} aria-hidden="true" />
         <div>
           <strong>Stato fonti e acquisizioni</strong>
-          <span>{data.autofetchMonitor.sourcesReady} fonti pronte · {data.autofetchMonitor.sourcesNotReady} da completare</span>
+          <span>Biblioteca locale: {data.autofetchMonitor.localLibrary.acts} atti · {data.autofetchMonitor.localLibrary.articles} articoli catalogati. Aggiornamenti: {data.autofetchMonitor.sourcesReady} fonti acquisite · {data.autofetchMonitor.sourcesNotReady} da completare</span>
         </div>
         {open ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
       </button>

@@ -48,6 +48,23 @@ def library_path(general: Path) -> Path:
     return Path(configured) if configured else general.with_name("codici_leggi.sqlite")
 
 
+def consultation_path(general: Path | None = None) -> Path:
+    """Stesso archivio per consultazione, monitor e indicatori delle pagine."""
+    general = general if general is not None else runtime_general_path()
+    library = library_path(general)
+    return library if library.is_file() else general
+
+
+def library_catalog_snapshot(general: Path | None = None) -> dict:
+    """Solo catalogo già disponibile; nessuna acquisizione o attestazione vigenza."""
+    from lex.normativa.consultazione import catalogo
+
+    rows = catalogo(consultation_path(general))
+    return {"status": "catalogo_disponibile", "acts": len(rows),
+            "articles": sum(int(row.get("articles") or 0) for row in rows),
+            "catalogue": rows}
+
+
 def select_runtime_catalog(general: Path) -> tuple[Path, str]:
     if _indexed(general):
         return general, "archivio_generale"
@@ -179,3 +196,28 @@ def fondi_cataloghi(batches, *, limit: int) -> list[dict]:
             scored[key] = scored.get(key,0.0)+1/(60+rank)
     ordered = sorted(ranked, key=lambda k: (not bool(ranked[k].get("riferimento_esatto")), -scored[k]))
     return [ranked[k] for k in ordered[:limit]]
+
+
+def leggi_chunk_archiviato(chunk_key: str, general: Path | None = None) -> dict | None:
+    """Resolve the exact stored chunk key, then reuse the parent/digest checks."""
+    from lex.ricerca_giuridica.indice_fts import carica_chunk
+    general = Path(general) if general is not None else runtime_general_path()
+    matches = []
+    for path, label in ((general, "archivio_generale"), (library_path(general), "biblioteca_codici_leggi")):
+        if not path.is_file():
+            continue
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=2)) as connection:
+            row = connection.execute("SELECT id FROM normative_chunks WHERE chunk_key=?", (str(chunk_key),)).fetchone()
+            rows = list(carica_chunk(connection, [int(row[0])]).values()) if row else []
+        if rows:
+            candidate = annotate_rows(rows, label)[0]
+            parts = str(chunk_key).split(":")
+            if len(parts) < 3 or parts[0] != "normattiva" or parts[1] != candidate.get("hash_sha256"):
+                raise NormativaIndexUnavailable("Impronta della chiave diversa dal documento archiviato.")
+            matches.append(leggi_testo_articolo(candidate, general))
+    if not matches:
+        return None
+    identities = {(row.get("hash_sha256"), row.get("normative_full_text_sha256"), row.get("url_origine")) for row in matches}
+    if len(identities) != 1:
+        raise NormativaIndexUnavailable("Identità della fonte ambigua tra archivi: nessun testo esportato.")
+    return matches[0]

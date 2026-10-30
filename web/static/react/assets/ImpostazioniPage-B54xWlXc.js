@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CXQ_bKkl.js";export{e as ImpostazioniPage};

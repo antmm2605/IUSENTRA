@@ -1,3 +1,12 @@
+## 2.458.0 — 29 ottobre 2026
+
+- Ricerca esplicita collegata al motore e riferimento codice/articolo distinto dai documenti citanti; testo nativo e identità ufficiale preservati.
+- Catalogo condiviso tra consultazione, monitor e Giurisprudenza; cache e aggiornamento delle viste dipendono da contesto e revisioni, senza ripetere ricerche esterne.
+- Schede interne distinte da conferme di lettura; regressioni nuove incluse nella suite critica CI esistente.
+- Cassazione pubblica SentenzeWeb: corpus nativo condiviso, testi e varianti originali conservate, acquisizione riprendibile e aggiornamento notturno incrementale Europe/Rome.
+- Download dei testi archiviati risolto dal proprietario della fonte, con identità e digest verificati.
+
+
 ## 2.457.11 — Censimento del catalogo senza nomi dei clienti
 - Il riepilogo del censimento riporta solo voci del catalogo governato: il documento d'identità intitolato al titolare diventa il tipo di documento, le etichette scritte a mano o dedotte dal nome del file diventano «Voce fuori elenco». Nessun nome di cliente esce dal server.
 

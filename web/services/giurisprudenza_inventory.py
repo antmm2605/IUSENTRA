@@ -23,9 +23,17 @@ def corpus_inventory(manager):
         return None
 
 
-def attach_corpus_counts(sources, manager):
+def attach_corpus_counts(sources, manager, config=None):
+    from web.services.sentenzeweb_runtime import inventory as public_inventory
+
     inventory = corpus_inventory(manager)
+    try:
+        shared = public_inventory(config) if any(source["id"] == "cassazione" for source in sources) else {}
+    except (OSError, sqlite3.Error, ValueError):
+        shared = {}
     for source in sources:
+        source["sharedCorpusCount"] = shared.get("caseCount") if source["id"] == "cassazione" else None
+        source["sharedCorpusStatus"] = shared.get("status", "unknown") if source["id"] == "cassazione" else ""
         source["corpusCount"] = None
         source["corpusFullTextCount"] = None
         if inventory is not None:

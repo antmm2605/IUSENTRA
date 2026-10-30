@@ -13,6 +13,7 @@ DOMAIN_PERMISSIONS = {
     "preventivi": "fatturazione.leggi", "fatturazione": "fatturazione.leggi",
     "incassi": "fatturazione.leggi", "comunicazioni": "messaggi.leggi",
     "privacy": "utenti.leggi",
+    "normativa": ("ai.usa", "fascicoli.leggi"),
 }
 
 
@@ -33,7 +34,7 @@ def read_authorized_revisions(user, *, requested_domains=None):
     if user is None:
         raise PermissionError("Contesto utente non disponibile per le revisioni.")
     domains = {domain for domain, permission in DOMAIN_PERMISSIONS.items()
-               if user.ha_permesso(permission)
+               if any(user.ha_permesso(value) for value in (permission if isinstance(permission, tuple) else (permission,)))
                and (requested_domains is None or domain in requested_domains)}
     backend = get_request_studio_db(tenant_data_path("CLIENTI_DB", require_tenant=True))
     if backend is None:
@@ -42,6 +43,15 @@ def read_authorized_revisions(user, *, requested_domains=None):
     for domain, revision in read_vertical_revisions(domains).items():
         if domain in domains:
             revisions[domain] = revisions.get(domain, 0) + revision
+    if "normativa" in domains:
+        from lex.retrieval.normativa_catalog import catalog_revision
+        # Invalidation only: file/WAL identity is not proof of text, currency or
+        # a completed import. No DB scan, migration or document reading here.
+        from web.services.operational_live_sources import legal_source_file_revision
+        fingerprint = hashlib.sha256(json.dumps(
+            [catalog_revision(), legal_source_file_revision()]
+        ).encode()).hexdigest()
+        revisions["normativa"] = int(fingerprint[:12], 16)
     return revisions
 
 

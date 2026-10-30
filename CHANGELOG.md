@@ -3,6 +3,7 @@
 - Misura in sola lettura del catalogo: accordo con le regole sui documenti tenuti da parte, fasce 90-95 e incerte, confronto con le decisioni dell'avvocato documento per documento.
 - I disaccordi sicuri con le regole restano nella cartella dello studio sul server, base della revisione rapida; il riepilogo porta solo conteggi e voci pubblicabili.
 - Workflow manuale «Classificatore piccolo del catalogo» nel container scheduler-worker.
+- Deploy Hetzner: se l'immagine precostruita indicata in .env.hetzner appartiene a un'altra release, il deploy costruisce l'immagine del commit invece di fermarsi.
 
 ## 2.459.0 — Data prudenziale e scadenza di legge; correzioni dell'audit del 29/10/2026
 - Termini «almeno N giorni prima dell'udienza» (artt. 166, 171-ter, 189, 415, 473-bis.16 c.p.c. e schede degli atti): la data da rispettare è quella prudenziale a giorni liberi; accanto si mostra la scadenza di legge secondo la lettura a giorni pieni. Motore dei termini, scadenziario, schede di Lex e obblighi di notifica usano la stessa regola; le memorie già salvate a giorni pieni passano alla data prudenziale con nota, senza toccare le date scelte dall'avvocato.

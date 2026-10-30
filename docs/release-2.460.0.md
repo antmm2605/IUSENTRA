@@ -4,6 +4,7 @@
 - Misura in sola lettura del catalogo: accordo con le regole sui documenti tenuti da parte, fasce 90-95 e incerte, confronto con le decisioni dell'avvocato documento per documento.
 - I disaccordi sicuri con le regole restano nella cartella dello studio sul server, base della revisione rapida; il riepilogo porta solo conteggi e voci pubblicabili.
 - Workflow manuale «Classificatore piccolo del catalogo» nel container scheduler-worker.
+- Deploy Hetzner: se l'immagine precostruita indicata in .env.hetzner appartiene a un'altra release, il deploy costruisce l'immagine del commit invece di fermarsi.
 
 ## Base normativa
 - Art. 3 D.M. 44/2011 e art. 20 CAD (integrità dei documenti informatici letti): il classificatore legge solo i testi già estratti e registrati dal catalogo.

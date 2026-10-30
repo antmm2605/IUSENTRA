@@ -63,8 +63,18 @@ def test_deploy_preflight_precedes_both_build_paths():
     preflight = script.index("tools/check_build_space.py")
     assert preflight < script.index('docker build --label')
     assert preflight < script.index('"${PROFILE_ARGS[@]}" build')
-    assert 'check_build_capacity\n    docker build' in script
+    assert 'check_build_capacity\n      docker build' in script
     assert 'else\n  check_build_capacity\n  docker compose' in script
+
+def test_prebuilt_image_of_another_commit_falls_back_to_build():
+    """L'archivio di .env.hetzner può riferirsi a un'altra release: si costruisce l'immagine del commit."""
+    script = (Path(__file__).parents[1] / "deploy/hetzner/deploy.sh").read_text(encoding="utf-8")
+    loader = script.index("load_verified_release_image.py")
+    fallback = script.index('if [ "$prebuilt_loaded" != "1" ]; then')
+    assert loader < fallback < script.index('docker build --label')
+    assert 'if python3 deploy/hetzner/load_verified_release_image.py' in script
+    assert "prebuilt_loaded=1" in script[loader:fallback]
+
 
 def test_measure_resolves_link_to_physical_volume(tmp_path):
     real_disk = tmp_path / "physical"

@@ -1,5 +1,5 @@
 """CAS delle letture su SQL controllato; nessuna modifica ai dati operativi."""
-import json,os,sqlite3,unittest,uuid
+import os,sqlite3,unittest,uuid
 from contextlib import contextmanager
 from types import SimpleNamespace
 from tests.test_condivisioni_sql_repository import SQLFactory

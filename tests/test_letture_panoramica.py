@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from types import SimpleNamespace
 
 from pct.registro_letture import Oggetto, RegistroLetture
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config

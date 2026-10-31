@@ -94,6 +94,7 @@ class SQLiteSelection(SelectionChecks):
     backend = 'sqlite'
 
 
+@unittest.skipUnless(os.environ.get('AUDIT_POSTGRES_PASSWORD'), 'PostgreSQL controllato non configurato: eseguire nel profilo di test SQL.')
 class PostgreSQLSelection(SelectionChecks):
     backend = 'postgresql'
 

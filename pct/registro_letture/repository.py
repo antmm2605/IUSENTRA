@@ -20,7 +20,7 @@ from pct.postgres_runtime_support import PostgresRepositoryBackend
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
 from .event_retry import MAX_ATTEMPTS, deadline, retry_deadline, require_prepared
 from .fatti_repository import CATEGORIE, COLONNE_FATTI, FattiMixin
-from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_compatibile_lettore, versione_lettore
+from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
 from .modello import (
     GRAVITA,
     STATI_ANOMALIA,

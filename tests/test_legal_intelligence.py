@@ -7,6 +7,7 @@ from pct.legal_intelligence import (
     fonti_per_query,
 )
 from pct.normative_tables import FONTI_OPERATIVE, FonteOperativa
+from pct.pst_catalog import get_xsd_channel
 
 
 class DummyResponse:
@@ -263,24 +264,33 @@ def test_monitor_source_pst_xsd_sici_rileva_pacchetto_e_stato_production(tmp_pat
     db_path = tmp_path / "intelligence.json"
     gestore = GestioneLegalIntelligence(str(db_path))
 
-    detail_html = b"""
+    # Fixture allineata al canale SICI corrente del catalogo (pct/pst_catalog.py):
+    # pacchetto pubblicato il 22/07/2026 e messo in esercizio il 19/10/2026 (NWS5167).
+    # Il pacchetto e la news coincidono col catalogo, quindi nessun avviso di canale.
+    channel = get_xsd_channel("SICI")
+    detail_html = f"""
     <html><body>
-      <h4>XSD SICI - 12 maggio 2026</h4>
-      <a href="/PST/resources/cms/documents/XSD_SICI_20260508.zip">Nuovi XSD SICI - 12/05/2026</a>
-      <a href="/PST/resources/cms/documents/Nota_Modifiche_XSD__20250508.pdf">Nota modifiche XSD - 12/05/2026</a>
+      <h4>XSD SICI - 22 luglio 2026</h4>
+      <a href="/PST/resources/cms/documents/{channel.package_name}">Nuovi XSD SICI - 22/07/2026</a>
+      <a href="/PST/resources/cms/documents/Nota_Modifiche_XSD_20260720.pdf">Nota modifiche XSD - 22/07/2026</a>
     </body></html>
-    """
+    """.encode("utf-8")
     news_html = """
     <html><body>
-      <h4>martedi 12 maggio 2026</h4>
-      <p>Si anticipa a questo link la versione aggiornata degli schemi XSD per il SICI con le novit\u00e0
-      descritte nel seguente documento. I nuovi XSD saranno in esercizio a seguito dell'attivit\u00e0
-      di manutenzione prevista per il giorno 14/05/2026.</p>
+      <h4>lunedi 19 ottobre 2026</h4>
+      <p>Si comunica che i nuovi XSD per il SICI pubblicati il 22/07/2026 saranno in esercizio a seguito
+      dell'attivit\u00e0 di manutenzione prevista per il giorno 19/10/2026.</p>
     </body></html>
     """.encode("utf-8")
 
+    # La pagina di dettaglio non contiene il link alla news: il monitor usa la
+    # news di stato dichiarata dal catalogo del canale SICI, quindi il fake la
+    # riconosce dal catalogo invece che da un identificativo NWS fisso.
+    news_url = channel.status_source_news_url
+    assert "contentId=NWS" in news_url
+
     def fake_get(url, **kwargs):
-        if "NWS4877" in url:
+        if url == news_url:
             return DummyResponse(news_html, url=url)
         return DummyResponse(detail_html, url="https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277")
 
@@ -289,8 +299,8 @@ def test_monitor_source_pst_xsd_sici_rileva_pacchetto_e_stato_production(tmp_pat
     alert_types = {alert["alert_type"] for alert in result["alerts"]}
 
     assert result["ok"] is True
-    assert result["run"]["detected_package"] == "XSD_SICI_20260508.zip"
-    assert result["run"]["detected_package_date"] == "2026-05-12"
+    assert result["run"]["detected_package"] == channel.package_name == "XSD_SICI_20260720.zip"
+    assert result["run"]["detected_package_date"] == channel.package_date == "2026-07-22"
     assert result["run"]["detected_status"] == "production"
     assert "xsd_canale_da_aggiornare" not in alert_types
 

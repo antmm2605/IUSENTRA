@@ -4107,8 +4107,14 @@ class GestioneFascicoli:
         trovato = self._fascicoli.get(id_fasc)
         if trovato is not None:
             return trovato
-        if self._archivio_completo or self._studio_db is None:
+        if self._archivio_completo:
             return None
+        if self._studio_db is None:
+            # Studio configurato JSON: la lettura per chiave primaria non
+            # esiste, quindi si carica l'archivio (come `indice_leggero`).
+            # Restituire None farebbe sembrare inesistente un fascicolo vero.
+            self._assicura_archivio_completo()
+            return self._fascicoli.get(id_fasc)
         # Modalita' leggera: `id` e' PRIMARY KEY, quindi questa e' una
         # ricerca su indice, non una scansione.
         letto = self._carica_singolo(id_fasc)

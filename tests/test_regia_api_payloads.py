@@ -487,7 +487,13 @@ def test_preparazione_deposito_salva_una_sola_riga_in_unica_transazione(tmp_path
         profilo_deposito={"preparazione_busta": {"tipo_deposito_telematico_key": "OpposizioneDILavoro"}},
     )
 
-    assert calls == [("fascicoli", 1, False)]
+    # Una sola riga del fascicolo nella transazione SQL; la seconda scrittura è
+    # la conferma (post-commit) della consegna al mirror storico incrementale
+    # (pct/fascicoli_sql_mirror.deliver), che toglie la riga pendente da _meta.
+    assert calls == [("fascicoli", 1, False), ("_meta", 1, False)]
+    assert studio_db.fetchall_readonly(
+        "SELECT chiave FROM _meta WHERE chiave LIKE 'fascicoli-mirror:%'"
+    ) == []
     assert aggiornato.documenti[0].tipo == TipoDocumento.ATTO_GIUDIZIARIO
     assert aggiornato.profilo_deposito["preparazione_busta"]["tipo_deposito_telematico_key"] == "OpposizioneDILavoro"
     ricaricato = GestioneFascicoli(

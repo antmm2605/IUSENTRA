@@ -160,7 +160,9 @@ def test_le_sentenze_lex_girano_una_volta_a_notte():
     template = {t.key: t for t in default_scheduler_templates({})}["lex_sentenza_economia_auto"]
 
     assert (_campo(template.hour), _campo(template.minute)) == ("3", "25")
+    # Gli orari del codice sono in ora italiana: il CronTrigger dichiara il fuso.
     assert trigger_dichiarati_nel_codice()["lex_sentenza_economia_auto"] == {
+        "timezone": "Europe/Rome",
         "hour": "3",
         "minute": "25",
     }

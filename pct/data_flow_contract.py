@@ -216,7 +216,7 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
             ("Studio", "/studio"),
             ("Parcelle e Fatture", "/fatturazione/"),
             ("Preventivi e Incarichi", "/preventivi/"),
-            ("Compensi Forensi", "/compensi-forensi"),
+            ("Calcolo Tariffario", "/compensi-forensi"),
             ("Documenti", "/documenti"),
             ("Editor professionale", "/editor-professionale"),
             ("Editor libero", "/template-atti/editor"),
@@ -226,8 +226,9 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
             ("Legal Skills", "/legal-skills"),
             ("Regia Agentica", "/workflow-agents"),
             ("Archivio Giurisprudenza", "/giurisprudenza/"),
-            ("Strumenti Forensi", "/strumenti-legali/"),
-            ("Strumenti Operativi", "/strumenti-operativi"),
+            # «Utility» raccoglie strumenti forensi e operativi: la voce resta
+            # attiva anche su /strumenti-operativi (frontend/src/App.tsx).
+            ("Utility", "/strumenti-legali/"),
         ),
         api_routes=(
             "/api/v1/ui/studio",
@@ -272,7 +273,7 @@ APPLICATION_DATA_FLOW_AREAS: dict[str, DataFlowArea] = {
         label="Sito Studio",
         react_routes=("/sito-studio", "/sito-studio/builder", "/sito-studio/redazione-ai", "/sito-studio/contatti"),
         menu_items=(
-            ("Sito Studio", "/sito-studio/"),
+            ("Sito Web Studio", "/sito-studio/"),
             ("Builder Sito", "/sito-studio/builder"),
             ("Redazione AI Sito", "/sito-studio/redazione-ai"),
             ("Contatti Sito", "/sito-studio/contatti"),
@@ -500,21 +501,56 @@ def postgres_contract_tables() -> set[str]:
 
 
 def _literal_from_storage_postgres(name: str) -> Any:
+    """Legge ``name`` dal sorgente quando il modulo non è importabile.
+
+    Oltre all'assegnazione letterale applica le estensioni ``name += ...``
+    (es. lo schema delle caselle SQL ``_EMAIL_MAILBOX_DDL``), risolvendo i
+    soli nomi importati da moduli ``pct.*`` privi di dipendenze native.
+    """
+    import importlib
+
     source_path = Path(__file__).with_name("storage_postgres.py")
     try:
         tree = ast.parse(source_path.read_text(encoding="utf-8"))
-        for node in tree.body:
-            if isinstance(node, ast.Assign):
-                targets = node.targets
-            elif isinstance(node, ast.AnnAssign):
-                targets = [node.target]
-            else:
-                continue
-            if any(isinstance(target, ast.Name) and target.id == name for target in targets):
-                return ast.literal_eval(node.value)
     except Exception:
         return None
-    return None
+    namespace: dict[str, Any] = {}
+    value: Any = None
+    found = False
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and str(node.module or "").startswith("pct."):
+            for alias in node.names:
+                try:
+                    module = importlib.import_module(str(node.module))
+                    namespace[alias.asname or alias.name] = getattr(module, alias.name)
+                except Exception:
+                    continue
+            continue
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        elif isinstance(node, ast.AugAssign) and found and isinstance(node.op, ast.Add):
+            if isinstance(node.target, ast.Name) and node.target.id == name:
+                try:
+                    expression = ast.Expression(body=node.value)
+                    value = value + eval(  # noqa: S307 - sorgente del repository, nessun builtin
+                        compile(expression, str(source_path), "eval"),
+                        {"__builtins__": {}},
+                        dict(namespace),
+                    )
+                except Exception:
+                    continue
+            continue
+        else:
+            continue
+        if any(isinstance(target, ast.Name) and target.id == name for target in targets) and node.value is not None:
+            try:
+                value = ast.literal_eval(node.value)
+            except Exception:
+                return None
+            found = True
+    return value if found else None
 
 
 def _load_route_manifest(path: str | Path | None = None) -> list[dict[str, Any]]:

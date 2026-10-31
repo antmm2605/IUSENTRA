@@ -86,11 +86,21 @@ def test_new_document_reading_includes_model_dates_in_shared_motor():
 
 def test_model_date_rules_invalidate_previous_reading_version():
     from pct.archivio_letture.date_campi_modello import VERSIONE_DATE_CAMPI_MODELLI
-    from pct.archivio_letture.motore_documenti import VERSIONE_MOTORE_DOCUMENTI, VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+    from pct.archivio_letture.motore_documenti import (
+        VERSIONE_MOTORE_DOCUMENTI,
+        VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO,
+        VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI,
+    )
 
+    # Le regole dei modelli entrano nella versione del motore: una lettura fatta
+    # senza di esse non e' compatibile e va ripetuta. Componenti aggiunte dopo
+    # (es. «contratto-titolo-numerato») seguono la componente date-modello.
     suffix = '+date-modello:' + VERSIONE_DATE_CAMPI_MODELLI
-    assert VERSIONE_MOTORE_DOCUMENTI.endswith(suffix)
-    assert VERSIONE_MOTORE_DOCUMENTI.removesuffix(suffix) not in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+    assert suffix in VERSIONE_MOTORE_DOCUMENTI
+    assert VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO.endswith(suffix)
+    senza_date_modello = VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO.removesuffix(suffix)
+    assert senza_date_modello not in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+    assert all(suffix in versione for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI)
 
 
 ATTESTATION = '''ATTESTAZIONE DI CONFORMITÀ

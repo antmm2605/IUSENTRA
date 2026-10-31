@@ -892,6 +892,34 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "backup_base_id",
         "dati_json",
     ),
+    # Caselle PEC/email su SQL (pct/email_mailbox_repository.DDL): stesse
+    # colonne su SQLite e PostgreSQL.
+    "email_mailbox_records": (
+        "tenant_key",
+        "mailbox_kind",
+        "message_key",
+        "folder",
+        "read_state",
+        "message_date",
+        "payload_json",
+        "updated_at",
+    ),
+    "email_mailbox_bootstrap": (
+        "tenant_key",
+        "mailbox_kind",
+        "source_of_truth",
+        "initialized_at",
+    ),
+    "email_mailbox_audit": (
+        "audit_key",
+        "tenant_key",
+        "mailbox_kind",
+        "message_key",
+        "action",
+        "actor_key",
+        "changed_fields_json",
+        "created_at",
+    ),
 }
 
 

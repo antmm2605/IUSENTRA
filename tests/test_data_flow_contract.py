@@ -311,7 +311,11 @@ def test_topbar_operativa_resta_collegata_a_dati_reali_e_testi_professionali():
     assert "TopBarDeadlines" in topbar
     assert "TopBarRecentItems" in topbar
     assert "TopBarCreateMenu" in topbar
-    assert "Intl.DateTimeFormat('it-IT'" in topbar
+    # La data del giorno si forma nel hook condiviso, sul fuso di Roma.
+    studio_today = Path("frontend/src/hooks/useStudioToday.ts").read_text(encoding="utf-8")
+    assert "useStudioToday()" in topbar
+    assert "Intl.DateTimeFormat('it-IT'" in studio_today
+    assert "timeZone: ITALIAN_TIME_ZONE" in studio_today
     assert "fetchTodaySummary" in topbar_api
     assert "fetchNotifications" in topbar_api
     assert "fetchQuickDeadlines" in topbar_api

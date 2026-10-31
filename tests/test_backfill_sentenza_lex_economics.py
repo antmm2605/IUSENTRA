@@ -266,6 +266,7 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
         stato=StatoFascicolo.IN_CORSO,
         id_cliente="CLI-1",
         nome_cliente="Spagnolo Sara",
+        tribunale="Tribunale di Palmi",
         numero_rg="1548",
         anno_rg=2023,
         data_prossima_udienza="n.d.",
@@ -278,6 +279,7 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
         stato=StatoFascicolo.IN_CORSO,
         id_cliente="CLI-2",
         nome_cliente="Betti Alice",
+        tribunale="Tribunale di Palmi",
         numero_rg="2000",
         anno_rg=2023,
         data_prossima_udienza="n.d.",
@@ -416,18 +418,24 @@ def test_backfill_sentenza_dry_run_e_apply_su_tutti_i_documenti_tenant(tmp_path:
     fascicoli = json.loads((tenant_root / "fascicoli" / "fascicoli.json").read_text(encoding="utf-8"))
     aggiornato = fascicoli["FASC-1"]
     aggiornato_2 = fascicoli["FASC-2"]
-    assert aggiornato["stato"] == StatoFascicolo.DEFINITO.value
-    assert aggiornato["data_prossima_udienza"] == "2024-05-07"
-    assert aggiornato["pagamenti"]["contributo_unificato"]["status"] == "pagato"
+    # La pubblicazione della sentenza non e' una nuova udienza ne' una
+    # chiusura: stato e prossima udienza restano al verificatore del ciclo.
+    assert aggiornato["stato"] == StatoFascicolo.IN_CORSO.value
+    assert aggiornato["data_prossima_udienza"] == "n.d."
+    # La ricevuta letta propone l'importo; il pagamento si registra in conferma.
+    assert aggiornato["pagamenti"]["contributo_unificato"]["status"] == "da_registrare"
     assert aggiornato["pagamenti"]["contributo_unificato"]["importo"] == 98.0
+    assert aggiornato["pagamenti"]["contributo_unificato"]["natura"] == "pdf_contributo_unificato"
     assert aggiornato["pagamenti"]["liquidazione_giudice"]["importo"] == 1100.0
-    assert aggiornato["pagamenti"]["parcella"]["status"] == "da_emettere"
-    assert aggiornato_2["stato"] == StatoFascicolo.DEFINITO.value
-    assert aggiornato_2["data_prossima_udienza"] == "2024-05-08"
+    assert aggiornato["pagamenti"]["liquidazione_giudice"]["status"] == "da_registrare"
+    # La proforma nasce solo su richiesta esplicita, mai dal backfill.
+    assert "parcella" not in aggiornato["pagamenti"]
+    assert aggiornato_2["stato"] == StatoFascicolo.IN_CORSO.value
+    assert aggiornato_2["data_prossima_udienza"] == "n.d."
     assert aggiornato_2["pagamenti"]["liquidazione_giudice"]["importo"] == 900.0
     assert "contributo_unificato" not in aggiornato_2["pagamenti"]
-    parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
-    assert len(parcelle) == 2
+    assert "parcella" not in aggiornato_2["pagamenti"]
+    assert not (tenant_root / "fatturazione" / "parcelle.json").exists()
 
 
 def test_backfill_reset_elimina_importi_lex_errati_e_rigenera_compensi(tmp_path: Path):
@@ -455,6 +463,7 @@ def test_backfill_reset_elimina_importi_lex_errati_e_rigenera_compensi(tmp_path:
         stato=StatoFascicolo.IN_CORSO,
         id_cliente="CLI-RESET",
         nome_cliente="Rossi Mario",
+        tribunale="Tribunale di Palmi",
         numero_rg="466",
         anno_rg=2023,
         data_prossima_udienza="n.d.",
@@ -522,13 +531,13 @@ def test_backfill_reset_elimina_importi_lex_errati_e_rigenera_compensi(tmp_path:
     assert "contributo_unificato" not in aggiornato["pagamenti"]
     assert aggiornato["pagamenti"]["spese_esborsi"]["importo"] == 125.0
     assert aggiornato["pagamenti"]["spese_esborsi"]["natura"] == "spese_esborsi"
-    assert aggiornato["pagamenti"]["parcella"]["proforma_id"] != old_proforma.id
+    # Il reset elimina la vecchia proforma Lex errata; la nuova si predispone
+    # solo su richiesta esplicita dell'avvocato, non dal backfill.
+    assert "parcella" not in aggiornato["pagamenti"]
+    assert aggiornato["pagamenti"]["liquidazione_giudice"]["status"] == "da_registrare"
     parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
     assert old_proforma.id not in parcelle
-    assert len(parcelle) == 1
-    voci = next(iter(parcelle.values()))["voci"]
-    assert any(voce["tipo"] == "ONORARIO" and voce["prezzo_unitario"] == 1500.0 for voce in voci)
-    assert not any(voce["prezzo_unitario"] == 2454.68 for voce in voci)
+    assert parcelle == {}
 
 
 def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Path):
@@ -547,6 +556,7 @@ def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Pa
         stato=StatoFascicolo.IN_CORSO,
         id_cliente="CLI-MONT",
         nome_cliente="Montagnese Roberta",
+        tribunale="Tribunale di Vicenza",
         numero_rg="697",
         anno_rg=2025,
         data_prossima_udienza="n.d.",
@@ -605,28 +615,26 @@ def test_backfill_sentenza_carta_docente_compila_esborsi_e_parcella(tmp_path: Pa
     assert applied["totals"]["matrix_confirmed"] == 1
     fascicoli = json.loads((tenant_root / "fascicoli" / "fascicoli.json").read_text(encoding="utf-8"))
     aggiornato = fascicoli["FASC-MONT"]
-    assert aggiornato["data_prossima_udienza"] == "2025-09-23"
+    assert aggiornato["data_prossima_udienza"] == "n.d."
     assert aggiornato["pagamenti"]["liquidazione_giudice"]["importo"] == 321.5
-    assert aggiornato["pagamenti"]["contributo_unificato"]["status"] == "pagato"
+    assert aggiornato["pagamenti"]["contributo_unificato"]["status"] == "da_registrare"
     assert aggiornato["pagamenti"]["contributo_unificato"]["importo"] == 21.5
     assert aggiornato["pagamenti"]["contributo_unificato"]["natura"] == "pdf_contributo_unificato"
     assert aggiornato["pagamenti"]["contributo_unificato"]["label"] == "Contributo unificato da PDF"
-    assert "spese_esborsi" not in aggiornato["pagamenti"]
-    last_extraction = aggiornato["pagamenti"]["_sentenza_tribunale_lex_ai"]["last_extraction"]
+    # Stesso importo per contributo (da ricevuta) ed esborsi (da sentenza): non
+    # si riclassifica in silenzio, si apre una discordanza da verificare.
+    assert aggiornato["pagamenti"]["spese_esborsi"]["importo"] == 21.5
+    automation = aggiornato["pagamenti"]["_sentenza_tribunale_lex_ai"]
+    last_extraction = automation["last_extraction"]
     assert last_extraction["beneficio_cliente_importo"] == 500.0
-    assert "spese_esborsi_riclassificate_cu_pdf" in last_extraction["warnings"]
-    assert aggiornato["pagamenti"]["parcella"]["status"] == "da_emettere"
-    assert aggiornato["pagamenti"]["parcella"]["importo"] > 321.5
-    parcelle = json.loads((tenant_root / "fatturazione" / "parcelle.json").read_text(encoding="utf-8"))
-    assert len(parcelle) == 1
-    voci = next(iter(parcelle.values()))["voci"]
+    assert "contributo_esborsi_stesso_importo_da_verificare" in last_extraction["warnings"]
     assert any(
-        voce["tipo"] == "ANTICIPO"
-        and voce["prezzo_unitario"] == 21.5
-        and "Contributo unificato" in voce["descrizione"]
-        for voce in voci
+        item.get("motivo") == "possibile_sovrapposizione_contributo_esborsi" and item.get("stato") == "da_verificare"
+        for item in automation["discordanze"]
     )
-    assert not any("Spese ed esborsi" in voce["descrizione"] and voce["prezzo_unitario"] == 21.5 for voce in voci)
+    # La proforma nasce solo su richiesta esplicita, mai dal backfill.
+    assert "parcella" not in aggiornato["pagamenti"]
+    assert not (tenant_root / "fatturazione" / "parcelle.json").exists()
 
 
 def _doc_path(tenant_root: Path, document_id: str) -> Path:

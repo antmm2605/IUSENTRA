@@ -48,6 +48,7 @@ def test_menu_principale_usa_terminologia_forense(tmp_path: Path):
     assert "Servizi Telematici" in html
     assert "Redazione Atti" in html
     assert "Parcelle e Fatture" in html
-    assert "Compensi Forensi" in html
+    # La voce del menu verso /compensi-forensi si chiama «Calcolo Tariffario».
+    assert "Calcolo Tariffario" in html
     assert "Template Atti" not in html
     assert "PCT / Telematico" not in html

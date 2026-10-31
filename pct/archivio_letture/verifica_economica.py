@@ -89,13 +89,39 @@ def identita(testo: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:
     return [
         codice_fiscale_parte(testo, metadata),
         {"codice": "ufficio_economico", "esito": "ok" if office_ok else "attenzione",
-         "dettaglio": "Ufficio giudiziario della fonte concordante con il fascicolo." if office_ok else "Ufficio giudiziario della fonte non confermato per il fascicolo."},
+         "dettaglio": "Ufficio giudiziario della fonte concordante con il fascicolo." if office_ok else "Ufficio giudiziario della fonte non confermato per il fascicolo.",
+         "conflitto": bool(office_identity.get("conflicts"))},
         {"codice": "cliente_economico", "esito": "ok" if cliente_ok else "attenzione",
          "dettaglio": "Cliente del fascicolo presente nel documento." if cliente_ok else "Nome e cognome del cliente non confermati nel contenuto."},
         {"codice": "rg_economico", "esito": "ok" if rg_ok else "attenzione",
          "dettaglio": dettaglio_rg,
          "riferimenti_citati": [{"rg": f.valore, "contesto": f.contesto} for f in citati]},
     ]
+
+
+def identita_ricevuta_prima_del_ruolo(prove: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Ricevuta telematica pagata prima dell'iscrizione a ruolo: RG e ufficio non possono comparire.
+
+    La RT (schema PagamentiTelematiciGiustizia) del contributo per l'atto introduttivo si paga prima del
+    deposito, quando il numero di ruolo non esiste ancora, e indica come beneficiario il Ministero. Se la
+    ricevuta non cita alcun ruolo né un ufficio in contrasto e vi compaiono il cliente o il suo codice
+    fiscale, RG e ufficio si considerano riscontrati. L'uso dello stesso IUV in un altro fascicolo resta
+    segnalato dal registro dei pagamenti (`pct.pagamenti_giustizia_registro`).
+    """
+    per_codice = {p.get("codice"): p for p in prove}
+    rg, ufficio = per_codice.get("rg_economico", {}), per_codice.get("ufficio_economico", {})
+    persona_ok = per_codice.get("cliente_economico", {}).get("esito") == "ok" or (
+        per_codice.get("cf_economico", {}).get("esito") == "ok" and "concordante" in str(per_codice.get("cf_economico", {}).get("dettaglio")))
+    senza_ruolo = rg.get("esito") != "ok" and str(rg.get("dettaglio") or "").startswith("Numero e anno RG della pratica non presenti")
+    if not (persona_ok and senza_ruolo) or ufficio.get("conflitto"):
+        return prove
+    motivo = "Versamento anteriore all'iscrizione a ruolo: la ricevuta non può riportare RG e ufficio; cliente riscontrato."
+    aggiornate = []
+    for prova in prove:
+        if prova.get("codice") == "rg_economico" or (prova.get("codice") == "ufficio_economico" and ufficio.get("esito") != "ok"):
+            prova = {**prova, "esito": "ok", "dettaglio": motivo}
+        aggiornate.append(prova)
+    return aggiornate
 
 
 def ricevuta_xml(testo: str) -> tuple[bool, dict[str, Any]]:

@@ -86,6 +86,9 @@ CERTIFICATO = {
     "id": "5E864356",
     "score": 0.92,
     "reasons": ["RG citato dall'ufficio giudiziario del fascicolo"],
+    # Il collegamento automatico esige l'identita' congiunta: RG, cliente e
+    # ufficio giudiziario del fascicolo (pct.pec_pipeline.decidi_collegamento).
+    "identity_evidence": {"rg_match": True, "client_name_match": True, "office_match": True},
 }
 SOLO_RG = {"id": "5E864356", "score": 0.58, "reasons": ["RG coincidente"]}
 

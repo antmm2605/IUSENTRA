@@ -261,7 +261,12 @@ def importo_contributo_unificato(testo: str, *, metadata: dict[str, Any] | None 
     quando = data_del_versamento(grezzo)
     if quando:
         fatto.prove = list(fatto.prove) + [{"codice": "data", "esito": "ok", "dettaglio": quando}]
-    fatto.prove = list(fatto.prove) + identita(grezzo, meta)
+    prove_identita = identita(grezzo, meta)
+    if xml:
+        from .verifica_economica import identita_ricevuta_prima_del_ruolo
+
+        prove_identita = identita_ricevuta_prima_del_ruolo(prove_identita)
+    fatto.prove = list(fatto.prove) + prove_identita
     if xml:
         fatto.prove += [prova_ricevuta(dati_rt),
                         {"codice": "iuv_economico", "esito": "ok" if dati_rt.get("iuv") else "attenzione",

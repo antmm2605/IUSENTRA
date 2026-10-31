@@ -779,14 +779,28 @@ def _allinea_obblighi_notifica(fascicolo: Any) -> dict[str, Any]:
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 
+def _aggiorna_rag(fascicolo: Any, registro: RegistroLetture) -> dict[str, Any]:
+    """L'indice semantico dell'AI locale: se non termina si rimanda, senza far fallire catalogo e presìdi.
+
+    I frammenti senza vettore restano in attesa e il giro successivo li riprende: l'evento del
+    documento è già consegnato (fatti, catalogo, presìdi) e non va ripetuto per colpa del RAG.
+    """
+    try:
+        from web.services.rag_archivio_runtime import aggiorna_rag_da_archivio
+
+        return aggiorna_rag_da_archivio(fascicolo, registro)
+    except Exception as exc:
+        logger.warning("Indice semantico rimandato per il fascicolo %s: %s", getattr(fascicolo, "id", ""), exc)
+        return {"status": "rinviato", "motivo": f"{type(exc).__name__}: {exc}"[:200]}
+
+
 def _aggiorna_catalogo_sql(fascicolo: Any, registro: RegistroLetture) -> dict[str, Any]:
     """Aggiorna il solo derivato catalogo dai testi SQL, senza riaprire documenti."""
     try:
         from web.services.catalogo_archivio_runtime import aggiorna_catalogo_da_archivio
 
         report = aggiorna_catalogo_da_archivio(fascicolo, registro=registro)
-        from web.services.rag_archivio_runtime import aggiorna_rag_da_archivio
-        report["rag"] = aggiorna_rag_da_archivio(fascicolo, registro)
+        report["rag"] = _aggiorna_rag(fascicolo, registro)
         return report
     except Exception as exc:
         logger.exception("Aggiornamento catalogo SQL non riuscito per il fascicolo %s", getattr(fascicolo, "id", ""))

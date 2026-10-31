@@ -326,6 +326,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
 
     termini_lunghi = completa_termini_lunghi_runtime(_pec_audit_db_path_for_paths(paths), scadenziario, oggi=oggi_roma())
     rinnovi_documenti = _proponi_rinnovi_documenti(paths, backend, scadenziario, oggi_roma())
+    doppioni_riuniti = _riunisci_doppioni(scadenziario, agenda)
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -344,6 +345,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "memorieDaUdienza": memorie_da_udienza,
         "terminiLunghiSentenze": termini_lunghi,
         "rinnoviDocumentiIdentita": rinnovi_documenti,
+        "doppioniRiuniti": doppioni_riuniti,
     }
     for user in recipients:
         try:
@@ -526,6 +528,17 @@ def _notification_fascicolo_from_row(row: Any) -> SimpleNamespace:
         stato=_notification_text(_notification_row_value(row, "stato")),
         documenti=docs,
     )
+
+
+def _riunisci_doppioni(scadenziario: Any, agenda: Any) -> dict[str, Any]:
+    """Doppioni automatici già presenti (stessa scadenza o udienza da più fonti) riuniti in una voce."""
+    from pct.riunione_doppioni import riunisci
+
+    try:
+        return riunisci(scadenziario, agenda)
+    except Exception as exc:  # la riunione non deve fermare le notifiche
+        logging.getLogger(__name__).warning("Doppioni non riuniti: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 
 def _proponi_rinnovi_documenti(paths: Mapping[str, Any], backend: Any, scadenziario: Any, oggi: Any) -> dict[str, Any]:

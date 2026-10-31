@@ -14763,6 +14763,18 @@ class PecAuditRepository:
                 )
         if change is None and dies_day is not None:
             term_proposals = propose_provvedimento_terms(comm, dies_a_quo=dies_day, labour=labour)
+        if change is None and comm.kind == "sentenza" and fascicolo_id and self.scadenziario_db_path:
+            # Scadenze procedurali già passate alla sentenza: avviso all'avvocato, mai chiusura automatica.
+            try:
+                from pct.scadenze_superate_sentenza import segnala_scadenze_superate
+
+                segnala_scadenze_superate(
+                    self._scadenziario_manager(), fascicolo_id=fascicolo_id,
+                    giorno_sentenza=(dies_day or received.date()).isoformat(),
+                    origine=f"PEC di cancelleria del {received:%d/%m/%Y}",
+                )
+            except Exception as exc:  # l'avviso non deve fermare la registrazione della comunicazione
+                logging.getLogger(__name__).warning("Scadenze superate dalla sentenza non segnalate: %s", exc)
 
         new_label = ""
         if change is not None:

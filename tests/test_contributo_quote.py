@@ -69,3 +69,30 @@ def test_voce_precedente_senza_elenco_e_ricevuta_senza_contributo():
     assert voce_contributo_da_ricevuta("non un dizionario", SimpleNamespace(iuv="", data_esito_pagamento="", data_ricevuta=""),
                                        quote_della_ricevuta(_rt([("5.00", "Contributo unificato")]), 5.0),
                                        nome="x", documento_id="")["importo"] == 5.0
+
+
+def test_contributo_dal_testo_xml_conta_solo_la_quota_del_contributo():
+    from pct.contributo_quote import contributo_dal_testo_xml, natura_della_causale
+
+    rt = (
+        "<RT><datiPagamento><importoTotalePagato>545.00</importoTotalePagato>"
+        "<datiSingoloPagamento><singoloImportoPagato>518.00</singoloImportoPagato>"
+        "<causaleVersamento>Contributo unificato RG 12/2026</causaleVersamento></datiSingoloPagamento>"
+        "<pay:datiSingoloPagamento><pay:singoloImportoPagato>27,00</pay:singoloImportoPagato>"
+        "<pay:causaleVersamento>Anticipazione forfettaria art. 30</pay:causaleVersamento></pay:datiSingoloPagamento>"
+        "</datiPagamento></RT>"
+    )
+    assert contributo_dal_testo_xml(rt) == Decimal("518.00")
+    assert contributo_dal_testo_xml("<RT><datiSingoloPagamento><singoloImportoPagato>27.00</singoloImportoPagato>"
+                                    "<causaleVersamento>art. 30</causaleVersamento></datiSingoloPagamento></RT>") is None
+    assert contributo_dal_testo_xml("<datiSingoloPagamento><singoloImportoPagato>x</singoloImportoPagato>"
+                                    "</datiSingoloPagamento>") is None
+    assert contributo_dal_testo_xml("<datiSingoloPagamento><singoloImportoPagato>-1</singoloImportoPagato>"
+                                    "</datiSingoloPagamento>") is None
+    assert contributo_dal_testo_xml("nessuna quota") is None
+    assert natura_della_causale("diritti di copia") == "altre"
+
+    from pct.fascicolo_sentenza_economica import extract_contributo_unificato_document_evidence
+
+    evidence = extract_contributo_unificato_document_evidence(rt, {"filename": "rt.xml", "document_id": "RT-1"})
+    assert evidence["importo"] == 518.0 and evidence["status"] == "pagato"

@@ -1300,6 +1300,22 @@ def _extract_contributo_rt_payment_evidence(compact: str, metadata: dict[str, An
     )
     if not is_rt_receipt or not is_contributo_payment:
         return {}
+    from pct.contributo_quote import contributo_dal_testo_xml
+
+    quota = contributo_dal_testo_xml(compact)
+    if quota is not None:
+        # Una RT può pagare insieme contributo e anticipazione forfettaria (art. 30): conta solo la quota del contributo.
+        return {
+            "importo": float(quota),
+            "titolo": "Quote «contributo unificato» della ricevuta telematica",
+            "natura": "pdf_contributo_unificato",
+            "label": "Contributo unificato da ricevuta PagoPA",
+            "status": "pagato",
+            "filename": _text(metadata.get("filename") or metadata.get("original_filename") or metadata.get("safe_filename")),
+            "document_id": _text(metadata.get("document_id") or metadata.get("documento_id")),
+            "sha256": _text(metadata.get("sha256")),
+            "origine": "ricevuta_telematica_pagopa_contributo_unificato",
+        }
     for pattern in (
         _CONTRIBUTO_RT_XML_AMOUNT_RE,
         _CONTRIBUTO_RT_RFB_AMOUNT_RE,

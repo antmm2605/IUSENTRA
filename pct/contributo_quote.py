@@ -21,6 +21,40 @@ _CAUSALE_CU = re.compile(r"contributo\s+unificato", re.IGNORECASE)
 _CAUSALE_ART_30 = re.compile(r"anticipazion\w*\s+forfettari\w*|\bart\.?\s*30\b|diritti\s+forfettari", re.IGNORECASE)
 
 
+def natura_della_causale(causale: str) -> str:
+    """«contributo», «art_30» o «altre» secondo la causale della quota."""
+    if _CAUSALE_CU.search(causale):
+        return "contributo"
+    if _CAUSALE_ART_30.search(causale):
+        return "art_30"
+    return "altre"
+
+
+_QUOTA_XML = re.compile(r"<(?:[\w-]+:)?datiSingoloPagamento\b.*?</(?:[\w-]+:)?datiSingoloPagamento\s*>", re.IGNORECASE | re.DOTALL)
+
+
+def _campo_xml(blocco: str, nome: str) -> str:
+    trovato = re.search(rf"<(?:[\w-]+:)?{nome}\b[^>]*>(.*?)</", blocco, re.IGNORECASE | re.DOTALL)
+    return trovato.group(1).strip() if trovato else ""
+
+
+def contributo_dal_testo_xml(testo: str) -> Decimal | None:
+    """Somma delle quote «contributo unificato» di una RT letta come testo; None se non ci sono quote leggibili."""
+    contributo, trovate = Decimal(0), False
+    for blocco in _QUOTA_XML.finditer(str(testo or "")):
+        try:
+            importo = Decimal(_campo_xml(blocco.group(0), "singoloImportoPagato").replace(",", "."))
+        except InvalidOperation:
+            return None
+        if not importo.is_finite() or importo < 0:
+            return None
+        trovate = True
+        causale = f"{_campo_xml(blocco.group(0), 'causaleVersamento')} {_campo_xml(blocco.group(0), 'datiSpecificiRiscossione')}"
+        if natura_della_causale(causale) == "contributo":
+            contributo += importo
+    return contributo if trovate and contributo > 0 else None
+
+
 @dataclass(frozen=True)
 class QuoteRicevuta:
     contributo: Decimal
@@ -55,10 +89,10 @@ def quote_della_ricevuta(data: bytes, totale_dichiarato: float) -> QuoteRicevuta
         except InvalidOperation:
             return QuoteRicevuta(**{**vuote.__dict__, "errore": "Una quota della ricevuta non ha un importo valido."})
         tutte.append(importo)
-        causale = f"{campi.get('causaleVersamento', '')} {campi.get('datiSpecificiRiscossione', '')}"
-        if _CAUSALE_CU.search(causale):
+        natura = natura_della_causale(f"{campi.get('causaleVersamento', '')} {campi.get('datiSpecificiRiscossione', '')}")
+        if natura == "contributo":
             contributo += importo
-        elif _CAUSALE_ART_30.search(causale):
+        elif natura == "art_30":
             art_30 += importo
         else:
             altre += importo
@@ -72,4 +106,4 @@ def quote_della_ricevuta(data: bytes, totale_dichiarato: float) -> QuoteRicevuta
     return QuoteRicevuta(contributo, art_30, altre, totale)
 
 
-__all__ = ["QuoteRicevuta", "quote_della_ricevuta"]
+__all__ = ["QuoteRicevuta", "contributo_dal_testo_xml", "natura_della_causale", "quote_della_ricevuta"]

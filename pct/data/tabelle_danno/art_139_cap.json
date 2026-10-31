@@ -127,6 +127,20 @@
    "giorno_inabilita_assoluta": 54.8
   },
   {
+   "decorrenza": "2024-04-01",
+   "decreto": "D.M. 16 luglio 2024",
+   "gazzetta": "G.U. n. 173 del 25 luglio 2024 (24A03831)",
+   "primo_punto": 947.3,
+   "giorno_inabilita_assoluta": 55.24
+  },
+  {
+   "decorrenza": "2025-04-01",
+   "decreto": "D.M. 18 luglio 2025",
+   "gazzetta": "G.U. n. 176 del 31 luglio 2025 (25A04218)",
+   "primo_punto": 963.4,
+   "giorno_inabilita_assoluta": 56.18
+  },
+  {
    "decorrenza": "2026-04-01",
    "decreto": "D.M. 20 luglio 2026",
    "gazzetta": "G.U. n. 173 del 28 luglio 2026 (26A03765)",
@@ -134,5 +148,5 @@
    "giorno_inabilita_assoluta": 57.64
   }
  ],
- "nota_serie_decreti": "Ogni decreto resta in vigore finche' non interviene il successivo, quindi la ricerca prende l'ultimo decreto con decorrenza non successiva alla data di liquidazione. Gli anni 2008, 2020, 2021, 2024 e 2025 non compaiono: per quelle annualita' non e' stato reperito il testo ufficiale del decreto, e i valori applicabili restano quelli del decreto precedente presente in elenco."
+ "nota_serie_decreti": "Ogni decreto resta in vigore finche' non interviene il successivo, quindi la ricerca prende l'ultimo decreto con decorrenza non successiva alla data di liquidazione. Gli anni 2008, 2020 e 2021 non compaiono (2024 e 2025 aggiunti il 31/10/2026 dal testo in Gazzetta Ufficiale): per quelle annualita' non e' stato reperito il testo ufficiale del decreto, e i valori applicabili restano quelli del decreto precedente presente in elenco."
 }

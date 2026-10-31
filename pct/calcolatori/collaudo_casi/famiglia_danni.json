@@ -1,56 +1,567 @@
 {
  "_verificato_il": "2026-10-31",
  "successione_legittima": [
-  {"descrizione": "Coniuge e un figlio", "dati": {"successione_asse": "120000", "successione_coniuge": "1", "successione_figli": "1", "successione_ascendenti": "0", "successione_fratelli": "0"}, "attesi": {"rows": [{"importo": 60000.0}, {"importo": 60000.0}]}, "norma": "art. 581 c.c."},
-  {"descrizione": "Coniuge e tre figli", "dati": {"successione_asse": "120000", "successione_coniuge": "1", "successione_figli": "3", "successione_ascendenti": "0", "successione_fratelli": "0"}, "attesi": {"rows": [{"importo": 40000.0}, {"importo": 80000.0, "per_testa": 26666.67}]}, "norma": "art. 581 c.c."},
-  {"descrizione": "Coniuge e due genitori", "dati": {"successione_asse": "120000", "successione_coniuge": "1", "successione_figli": "0", "successione_ascendenti": "2", "successione_fratelli": "0"}, "attesi": {"rows": [{"importo": 80000.0}, {"importo": 40000.0, "per_testa": 20000.0}]}, "norma": "art. 582 c.c."},
-  {"descrizione": "Un genitore e tre fratelli", "dati": {"successione_asse": "120000", "successione_coniuge": "0", "successione_figli": "0", "successione_ascendenti": "1", "successione_fratelli": "3"}, "attesi": {"rows": [{"importo": 60000.0}, {"importo": 60000.0, "per_testa": 20000.0}]}, "norma": "art. 571, c. 1, c.c. (ai genitori almeno la metà)"},
-  {"descrizione": "Coniuge, due genitori e due fratelli", "dati": {"successione_asse": "120000", "successione_coniuge": "1", "successione_figli": "0", "successione_ascendenti": "2", "successione_fratelli": "2"}, "attesi": {"rows": [{"importo": 80000.0}, {"importo": 30000.0, "per_testa": 15000.0}, {"importo": 10000.0, "per_testa": 5000.0}]}, "norma": "art. 582 c.c. (agli ascendenti in ogni caso un quarto)"}
+  {
+   "descrizione": "Coniuge e un figlio",
+   "dati": {
+    "successione_asse": "120000",
+    "successione_coniuge": "1",
+    "successione_figli": "1",
+    "successione_ascendenti": "0",
+    "successione_fratelli": "0"
+   },
+   "attesi": {
+    "rows": [
+     {
+      "importo": 60000.0
+     },
+     {
+      "importo": 60000.0
+     }
+    ]
+   },
+   "norma": "art. 581 c.c."
+  },
+  {
+   "descrizione": "Coniuge e tre figli",
+   "dati": {
+    "successione_asse": "120000",
+    "successione_coniuge": "1",
+    "successione_figli": "3",
+    "successione_ascendenti": "0",
+    "successione_fratelli": "0"
+   },
+   "attesi": {
+    "rows": [
+     {
+      "importo": 40000.0
+     },
+     {
+      "importo": 80000.0,
+      "per_testa": 26666.67
+     }
+    ]
+   },
+   "norma": "art. 581 c.c."
+  },
+  {
+   "descrizione": "Coniuge e due genitori",
+   "dati": {
+    "successione_asse": "120000",
+    "successione_coniuge": "1",
+    "successione_figli": "0",
+    "successione_ascendenti": "2",
+    "successione_fratelli": "0"
+   },
+   "attesi": {
+    "rows": [
+     {
+      "importo": 80000.0
+     },
+     {
+      "importo": 40000.0,
+      "per_testa": 20000.0
+     }
+    ]
+   },
+   "norma": "art. 582 c.c."
+  },
+  {
+   "descrizione": "Un genitore e tre fratelli",
+   "dati": {
+    "successione_asse": "120000",
+    "successione_coniuge": "0",
+    "successione_figli": "0",
+    "successione_ascendenti": "1",
+    "successione_fratelli": "3"
+   },
+   "attesi": {
+    "rows": [
+     {
+      "importo": 60000.0
+     },
+     {
+      "importo": 60000.0,
+      "per_testa": 20000.0
+     }
+    ]
+   },
+   "norma": "art. 571, c. 1, c.c. (ai genitori almeno la metà)"
+  },
+  {
+   "descrizione": "Coniuge, due genitori e due fratelli",
+   "dati": {
+    "successione_asse": "120000",
+    "successione_coniuge": "1",
+    "successione_figli": "0",
+    "successione_ascendenti": "2",
+    "successione_fratelli": "2"
+   },
+   "attesi": {
+    "rows": [
+     {
+      "importo": 80000.0
+     },
+     {
+      "importo": 30000.0,
+      "per_testa": 15000.0
+     },
+     {
+      "importo": 10000.0,
+      "per_testa": 5000.0
+     }
+    ]
+   },
+   "norma": "art. 582 c.c. (agli ascendenti in ogni caso un quarto)"
+  }
  ],
  "quote_riserva": [
-  {"descrizione": "Coniuge solo", "dati": {"ris_patrimonio": "300000", "ris_debiti": "0", "ris_donazioni": "0", "ris_coniuge": "1", "ris_figli": "0", "ris_ascendenti": "0"}, "attesi": {"massa": 300000.0, "disponibile": 150000.0}, "norma": "art. 540 c.c."},
-  {"descrizione": "Coniuge e due figli", "dati": {"ris_patrimonio": "300000", "ris_debiti": "0", "ris_donazioni": "0", "ris_coniuge": "1", "ris_figli": "2", "ris_ascendenti": "0"}, "attesi": {"disponibile": 75000.0}, "norma": "art. 542, c. 2, c.c."},
-  {"descrizione": "Coniuge e un ascendente", "dati": {"ris_patrimonio": "300000", "ris_debiti": "0", "ris_donazioni": "0", "ris_coniuge": "1", "ris_figli": "0", "ris_ascendenti": "1"}, "attesi": {"disponibile": 75000.0}, "norma": "art. 544 c.c."},
-  {"descrizione": "Riunione fittizia con un figlio", "dati": {"ris_patrimonio": "250000", "ris_debiti": "50000", "ris_donazioni": "100000", "ris_coniuge": "0", "ris_figli": "1", "ris_ascendenti": "0"}, "attesi": {"massa": 300000.0, "disponibile": 150000.0}, "norma": "artt. 556 e 537, c. 1, c.c."},
-  {"descrizione": "Tre figli", "dati": {"ris_patrimonio": "300000", "ris_debiti": "0", "ris_donazioni": "0", "ris_coniuge": "0", "ris_figli": "3", "ris_ascendenti": "0"}, "attesi": {"disponibile": 100000.0}, "norma": "art. 537, c. 2, c.c."},
-  {"descrizione": "Coniuge e un figlio", "dati": {"ris_patrimonio": "300000", "ris_debiti": "0", "ris_donazioni": "0", "ris_coniuge": "1", "ris_figli": "1", "ris_ascendenti": "0"}, "attesi": {"disponibile": 100000.0}, "norma": "art. 542, c. 1, c.c."},
-  {"descrizione": "Ascendenti soli", "dati": {"ris_patrimonio": "300000", "ris_debiti": "0", "ris_donazioni": "0", "ris_coniuge": "0", "ris_figli": "0", "ris_ascendenti": "1"}, "attesi": {"disponibile": 200000.0}, "norma": "art. 538 c.c."}
+  {
+   "descrizione": "Coniuge solo",
+   "dati": {
+    "ris_patrimonio": "300000",
+    "ris_debiti": "0",
+    "ris_donazioni": "0",
+    "ris_coniuge": "1",
+    "ris_figli": "0",
+    "ris_ascendenti": "0"
+   },
+   "attesi": {
+    "massa": 300000.0,
+    "disponibile": 150000.0
+   },
+   "norma": "art. 540 c.c."
+  },
+  {
+   "descrizione": "Coniuge e due figli",
+   "dati": {
+    "ris_patrimonio": "300000",
+    "ris_debiti": "0",
+    "ris_donazioni": "0",
+    "ris_coniuge": "1",
+    "ris_figli": "2",
+    "ris_ascendenti": "0"
+   },
+   "attesi": {
+    "disponibile": 75000.0
+   },
+   "norma": "art. 542, c. 2, c.c."
+  },
+  {
+   "descrizione": "Coniuge e un ascendente",
+   "dati": {
+    "ris_patrimonio": "300000",
+    "ris_debiti": "0",
+    "ris_donazioni": "0",
+    "ris_coniuge": "1",
+    "ris_figli": "0",
+    "ris_ascendenti": "1"
+   },
+   "attesi": {
+    "disponibile": 75000.0
+   },
+   "norma": "art. 544 c.c."
+  },
+  {
+   "descrizione": "Riunione fittizia con un figlio",
+   "dati": {
+    "ris_patrimonio": "250000",
+    "ris_debiti": "50000",
+    "ris_donazioni": "100000",
+    "ris_coniuge": "0",
+    "ris_figli": "1",
+    "ris_ascendenti": "0"
+   },
+   "attesi": {
+    "massa": 300000.0,
+    "disponibile": 150000.0
+   },
+   "norma": "artt. 556 e 537, c. 1, c.c."
+  },
+  {
+   "descrizione": "Tre figli",
+   "dati": {
+    "ris_patrimonio": "300000",
+    "ris_debiti": "0",
+    "ris_donazioni": "0",
+    "ris_coniuge": "0",
+    "ris_figli": "3",
+    "ris_ascendenti": "0"
+   },
+   "attesi": {
+    "disponibile": 100000.0
+   },
+   "norma": "art. 537, c. 2, c.c."
+  },
+  {
+   "descrizione": "Coniuge e un figlio",
+   "dati": {
+    "ris_patrimonio": "300000",
+    "ris_debiti": "0",
+    "ris_donazioni": "0",
+    "ris_coniuge": "1",
+    "ris_figli": "1",
+    "ris_ascendenti": "0"
+   },
+   "attesi": {
+    "disponibile": 100000.0
+   },
+   "norma": "art. 542, c. 1, c.c."
+  },
+  {
+   "descrizione": "Ascendenti soli",
+   "dati": {
+    "ris_patrimonio": "300000",
+    "ris_debiti": "0",
+    "ris_donazioni": "0",
+    "ris_coniuge": "0",
+    "ris_figli": "0",
+    "ris_ascendenti": "1"
+   },
+   "attesi": {
+    "disponibile": 200000.0
+   },
+   "norma": "art. 538 c.c."
+  }
  ],
  "grado_parentela": [
-  {"descrizione": "Genitore e figlio", "dati": {"par_relazione": "genitore_figlio"}, "attesi": {"grado": 1}, "norma": "artt. 75-76 c.c."},
-  {"descrizione": "Fratelli", "dati": {"par_relazione": "fratelli"}, "attesi": {"grado": 2}, "norma": "art. 76 c.c."},
-  {"descrizione": "Zio e nipote", "dati": {"par_relazione": "zio_nipote"}, "attesi": {"grado": 3}, "norma": "art. 76 c.c."},
-  {"descrizione": "Cugini", "dati": {"par_relazione": "cugini"}, "attesi": {"grado": 4}, "norma": "art. 76 c.c."},
-  {"descrizione": "Figli di cugini", "dati": {"par_relazione": "cugini_secondi"}, "attesi": {"grado": 6}, "norma": "art. 76 c.c."},
-  {"descrizione": "Affine, fratello del coniuge", "dati": {"par_relazione": "fratelli", "par_affinita": "1"}, "attesi": {"grado": 2}, "norma": "art. 78 c.c."}
+  {
+   "descrizione": "Genitore e figlio",
+   "dati": {
+    "par_relazione": "genitore_figlio"
+   },
+   "attesi": {
+    "grado": 1
+   },
+   "norma": "artt. 75-76 c.c."
+  },
+  {
+   "descrizione": "Fratelli",
+   "dati": {
+    "par_relazione": "fratelli"
+   },
+   "attesi": {
+    "grado": 2
+   },
+   "norma": "art. 76 c.c."
+  },
+  {
+   "descrizione": "Zio e nipote",
+   "dati": {
+    "par_relazione": "zio_nipote"
+   },
+   "attesi": {
+    "grado": 3
+   },
+   "norma": "art. 76 c.c."
+  },
+  {
+   "descrizione": "Cugini",
+   "dati": {
+    "par_relazione": "cugini"
+   },
+   "attesi": {
+    "grado": 4
+   },
+   "norma": "art. 76 c.c."
+  },
+  {
+   "descrizione": "Figli di cugini",
+   "dati": {
+    "par_relazione": "cugini_secondi"
+   },
+   "attesi": {
+    "grado": 6
+   },
+   "norma": "art. 76 c.c."
+  },
+  {
+   "descrizione": "Affine, fratello del coniuge",
+   "dati": {
+    "par_relazione": "fratelli",
+    "par_affinita": "1"
+   },
+   "attesi": {
+    "grado": 2
+   },
+   "norma": "art. 78 c.c."
+  }
  ],
  "danno_parentale": [
-  {"descrizione": "Madre 45, figlio 15 convivente, E a 0", "dati": {"dp_categoria": "nucleo_primario", "dp_eta_vittima": "15", "dp_eta_congiunto": "45", "dp_convivenza": "convivenza", "dp_superstiti": "2", "dp_qualita_relazione": "assente"}, "attesi": {"punti_totali": 74, "importo": 289414.0}, "norma": "Tabelle integrate a punti Milano 2024, pp. 71-74"},
-  {"descrizione": "Stesso caso, E al massimo: tetto", "dati": {"dp_categoria": "nucleo_primario", "dp_eta_vittima": "15", "dp_eta_congiunto": "45", "dp_convivenza": "convivenza", "dp_superstiti": "2", "dp_qualita_relazione": "massima"}, "attesi": {"punti_totali": 104, "importo": 391103.18}, "norma": "Tabelle Milano 2024 (tetto della categoria)"},
-  {"descrizione": "Fratello non convivente, 5 superstiti", "dati": {"dp_categoria": "fratello_nipote", "dp_eta_vittima": "51", "dp_eta_congiunto": "45", "dp_convivenza": "nessuna", "dp_superstiti": "5", "dp_qualita_relazione": "assente"}, "attesi": {"punti_totali": 26, "importo": 44148.0}, "norma": "Tabelle Milano 2024, fratello/nipote"}
+  {
+   "descrizione": "Madre 45, figlio 15 convivente, E a 0",
+   "dati": {
+    "dp_categoria": "nucleo_primario",
+    "dp_eta_vittima": "15",
+    "dp_eta_congiunto": "45",
+    "dp_convivenza": "convivenza",
+    "dp_superstiti": "2",
+    "dp_qualita_relazione": "assente"
+   },
+   "attesi": {
+    "punti_totali": 74,
+    "importo": 289414.0
+   },
+   "norma": "Tabelle integrate a punti Milano 2024, pp. 71-74"
+  },
+  {
+   "descrizione": "Stesso caso, E al massimo: tetto",
+   "dati": {
+    "dp_categoria": "nucleo_primario",
+    "dp_eta_vittima": "15",
+    "dp_eta_congiunto": "45",
+    "dp_convivenza": "convivenza",
+    "dp_superstiti": "2",
+    "dp_qualita_relazione": "massima"
+   },
+   "attesi": {
+    "punti_totali": 104,
+    "importo": 391103.18
+   },
+   "norma": "Tabelle Milano 2024 (tetto della categoria)"
+  },
+  {
+   "descrizione": "Fratello non convivente, 5 superstiti",
+   "dati": {
+    "dp_categoria": "fratello_nipote",
+    "dp_eta_vittima": "51",
+    "dp_eta_congiunto": "45",
+    "dp_convivenza": "nessuna",
+    "dp_superstiti": "5",
+    "dp_qualita_relazione": "assente"
+   },
+   "attesi": {
+    "punti_totali": 26,
+    "importo": 44148.0
+   },
+   "norma": "Tabelle Milano 2024, fratello/nipote"
+  }
  ],
  "danno_premorienza": [
-  {"descrizione": "20 punti, 1 anno", "dati": {"pm_perc_ip": "20", "pm_anni": "1"}, "attesi": {"totale": 4454.0}, "norma": "Tabella Milano 2024 premorienza, p. 51"},
-  {"descrizione": "20 punti, 5 anni", "dati": {"pm_perc_ip": "20", "pm_anni": "5"}, "attesi": {"totale": 14476.0}, "norma": "Tabella Milano 2024 premorienza"}
+  {
+   "descrizione": "20 punti, 1 anno",
+   "dati": {
+    "pm_perc_ip": "20",
+    "pm_anni": "1"
+   },
+   "attesi": {
+    "totale": 4454.0
+   },
+   "norma": "Tabella Milano 2024 premorienza, p. 51"
+  },
+  {
+   "descrizione": "20 punti, 5 anni",
+   "dati": {
+    "pm_perc_ip": "20",
+    "pm_anni": "5"
+   },
+   "attesi": {
+    "totale": 14476.0
+   },
+   "norma": "Tabella Milano 2024 premorienza"
+  }
  ],
  "danno_terminale": [
-  {"descrizione": "Esempio ufficiale: 10 giorni", "dati": {"dt_giorni": "10", "dt_importo_primi_tre": "35247", "dt_personalizzazione": "50"}, "attesi": {"primi_tre_giorni": 35247.0, "giorni_successivi": 7993.0, "totale": 47236.5}, "norma": "Tabella Milano 2024 danno terminale, esempio p. 61"}
+  {
+   "descrizione": "Esempio ufficiale: 10 giorni",
+   "dati": {
+    "dt_giorni": "10",
+    "dt_importo_primi_tre": "35247",
+    "dt_personalizzazione": "50"
+   },
+   "attesi": {
+    "primi_tre_giorni": 35247.0,
+    "giorni_successivi": 7993.0,
+    "totale": 47236.5
+   },
+   "norma": "Tabella Milano 2024 danno terminale, esempio p. 61"
+  }
  ],
  "consenso_informato": [
-  {"descrizione": "Fascia lieve", "dati": {"ci_fascia": "lieve"}, "attesi": {"importo_minimo": 1162.0, "importo_massimo": 4649.0}, "norma": "Criteri Milano 2024, p. 98"},
-  {"descrizione": "Fascia grave", "dati": {"ci_fascia": "grave"}, "attesi": {"importo_minimo": 10461.0, "importo_massimo": 23245.0}, "norma": "Criteri Milano 2024, p. 99"}
+  {
+   "descrizione": "Fascia lieve",
+   "dati": {
+    "ci_fascia": "lieve"
+   },
+   "attesi": {
+    "importo_minimo": 1162.0,
+    "importo_massimo": 4649.0
+   },
+   "norma": "Criteri Milano 2024, p. 98"
+  },
+  {
+   "descrizione": "Fascia grave",
+   "dati": {
+    "ci_fascia": "grave"
+   },
+   "attesi": {
+    "importo_minimo": 10461.0,
+    "importo_massimo": 23245.0
+   },
+   "norma": "Criteri Milano 2024, p. 99"
+  }
  ],
  "diffamazione": [
-  {"descrizione": "Fascia media, riparazione", "dati": {"df_fascia": "media", "df_posizione": "0", "df_riparazione": "1"}, "attesi": {"importo_minimo": 23498.0, "importo_massimo": 35247.0, "riparazione_pecuniaria": {"minimo": 2937.25, "massimo": 7832.67}}, "norma": "Criteri Milano 2024; art. 12 L. 47/1948 (da 1/8 a 1/3)"},
-  {"descrizione": "Eccezionale 90.000, riparazione", "dati": {"df_fascia": "eccezionale", "df_importo_eccezionale": "90000", "df_riparazione": "1"}, "attesi": {"riparazione_pecuniaria": {"minimo": 11250.0, "massimo": 30000.0}}, "norma": "art. 12 L. 47/1948"}
+  {
+   "descrizione": "Fascia media, riparazione",
+   "dati": {
+    "df_fascia": "media",
+    "df_posizione": "0",
+    "df_riparazione": "1"
+   },
+   "attesi": {
+    "importo_minimo": 23498.0,
+    "importo_massimo": 35247.0,
+    "riparazione_pecuniaria": {
+     "minimo": 2937.25,
+     "massimo": 7832.67
+    }
+   },
+   "norma": "Criteri Milano 2024; art. 12 L. 47/1948 (da 1/8 a 1/3)"
+  },
+  {
+   "descrizione": "Eccezionale 90.000, riparazione",
+   "dati": {
+    "df_fascia": "eccezionale",
+    "df_importo_eccezionale": "90000",
+    "df_riparazione": "1"
+   },
+   "attesi": {
+    "riparazione_pecuniaria": {
+     "minimo": 11250.0,
+     "massimo": 30000.0
+    }
+   },
+   "norma": "art. 12 L. 47/1948"
+  }
  ],
  "capitalizzazione_rendita": [
-  {"descrizione": "Uomo 40 anni, 20 anni", "dati": {"cr_sesso": "maschi", "cr_eta": "40", "cr_reddito": "30000", "cr_anni": "20"}, "attesi": {"coefficiente": 18.18, "capitale": 545400.0}, "norma": "Tabelle Milano 2024 attualizzazione, p. 116"},
-  {"descrizione": "Donna 30 anni, 10 anni", "dati": {"cr_sesso": "femmine", "cr_eta": "30", "cr_reddito": "20000", "cr_anni": "10"}, "attesi": {"coefficiente": 9.61, "capitale": 192200.0}, "norma": "Tabelle Milano 2024, femmine"}
+  {
+   "descrizione": "Uomo 40 anni, 20 anni",
+   "dati": {
+    "cr_sesso": "maschi",
+    "cr_eta": "40",
+    "cr_reddito": "30000",
+    "cr_anni": "20"
+   },
+   "attesi": {
+    "coefficiente": 18.18,
+    "capitale": 545400.0
+   },
+   "norma": "Tabelle Milano 2024 attualizzazione, p. 116"
+  },
+  {
+   "descrizione": "Donna 30 anni, 10 anni",
+   "dati": {
+    "cr_sesso": "femmine",
+    "cr_eta": "30",
+    "cr_reddito": "20000",
+    "cr_anni": "10"
+   },
+   "attesi": {
+    "coefficiente": 9.61,
+    "capitale": 192200.0
+   },
+   "norma": "Tabelle Milano 2024, femmine"
+  }
  ],
  "reversibilita": [
-  {"descrizione": "Solo coniuge", "dati": {"rev_pensione_annua": "20000", "rev_coniuge": "1", "rev_figli": "0", "rev_genitori": "0", "rev_fratelli": "0", "rev_reddito_beneficiario": "0", "rev_trattamento_minimo": "7800", "rev_figli_tutelati": "0"}, "attesi": {"aliquota": 60.0, "reversibilita_spettante": 12000.0}, "norma": "art. 22 L. 903/1965; art. 1, c. 41, L. 335/1995"},
-  {"descrizione": "Coniuge e figlio", "dati": {"rev_pensione_annua": "20000", "rev_coniuge": "1", "rev_figli": "1", "rev_genitori": "0", "rev_fratelli": "0", "rev_reddito_beneficiario": "0", "rev_trattamento_minimo": "7800", "rev_figli_tutelati": "0"}, "attesi": {"aliquota": 80.0, "reversibilita_spettante": 16000.0}, "norma": "art. 1, c. 41, L. 335/1995"},
-  {"descrizione": "Coniuge con reddito oltre 3 volte il minimo", "dati": {"rev_pensione_annua": "20000", "rev_coniuge": "1", "rev_figli": "0", "rev_genitori": "0", "rev_fratelli": "0", "rev_reddito_beneficiario": "25000", "rev_trattamento_minimo": "7800", "rev_figli_tutelati": "0"}, "attesi": {"reversibilita_spettante": 10400.0}, "norma": "Tabella F L. 335/1995; Corte cost. 162/2022"}
+  {
+   "descrizione": "Solo coniuge",
+   "dati": {
+    "rev_pensione_annua": "20000",
+    "rev_coniuge": "1",
+    "rev_figli": "0",
+    "rev_genitori": "0",
+    "rev_fratelli": "0",
+    "rev_reddito_beneficiario": "0",
+    "rev_trattamento_minimo": "7800",
+    "rev_figli_tutelati": "0"
+   },
+   "attesi": {
+    "aliquota": 60.0,
+    "reversibilita_spettante": 12000.0
+   },
+   "norma": "art. 22 L. 903/1965; art. 1, c. 41, L. 335/1995"
+  },
+  {
+   "descrizione": "Coniuge e figlio",
+   "dati": {
+    "rev_pensione_annua": "20000",
+    "rev_coniuge": "1",
+    "rev_figli": "1",
+    "rev_genitori": "0",
+    "rev_fratelli": "0",
+    "rev_reddito_beneficiario": "0",
+    "rev_trattamento_minimo": "7800",
+    "rev_figli_tutelati": "0"
+   },
+   "attesi": {
+    "aliquota": 80.0,
+    "reversibilita_spettante": 16000.0
+   },
+   "norma": "art. 1, c. 41, L. 335/1995"
+  },
+  {
+   "descrizione": "Coniuge con reddito oltre 3 volte il minimo",
+   "dati": {
+    "rev_pensione_annua": "20000",
+    "rev_coniuge": "1",
+    "rev_figli": "0",
+    "rev_genitori": "0",
+    "rev_fratelli": "0",
+    "rev_reddito_beneficiario": "25000",
+    "rev_trattamento_minimo": "7800",
+    "rev_figli_tutelati": "0"
+   },
+   "attesi": {
+    "reversibilita_spettante": 10400.0
+   },
+   "norma": "Tabella F L. 335/1995; Corte cost. 162/2022"
+  }
+ ],
+ "usufrutto": [
+  {
+   "descrizione": "Usufruttuario di 15 anni",
+   "dati": {
+    "usu_valore_piena": "100000",
+    "usu_eta": "15",
+    "usu_quota_perc": "100"
+   },
+   "attesi": {
+    "valore_usufrutto": 95000.0,
+    "valore_nuda_proprieta": 5000.0,
+    "coefficiente": 38.0,
+    "saggio_riferimento": 2.5
+   },
+   "norma": "art. 46, c. 5-ter, e art. 48 D.P.R. 131/1986; all. 1 D.Lgs. 139/2024; D.M. 24/12/2025"
+  },
+  {
+   "descrizione": "Usufruttuario di 60 anni",
+   "dati": {
+    "usu_valore_piena": "100000",
+    "usu_eta": "60",
+    "usu_quota_perc": "100"
+   },
+   "attesi": {
+    "valore_usufrutto": 60000.0,
+    "coefficiente": 24.0
+   },
+   "norma": "all. 1 D.Lgs. 139/2024"
+  },
+  {
+   "descrizione": "Quota 50%, usufruttuario di 70 anni",
+   "dati": {
+    "usu_valore_piena": "200000",
+    "usu_eta": "70",
+    "usu_quota_perc": "50"
+   },
+   "attesi": {
+    "base_calcolo": 100000.0,
+    "valore_usufrutto": 40000.0,
+    "valore_nuda_proprieta": 60000.0
+   },
+   "norma": "all. 1 D.Lgs. 139/2024"
+  }
  ]
 }

@@ -206,8 +206,10 @@ class TestUsufrutto:
 
     def test_coefficiente_coerente_col_tasso(self, norme):
         result = usufrutto.calcola({"usu_valore_piena": "100000", "usu_eta": "70"}, norme)
+        # Art. 46, c. 5-ter, D.P.R. 131/1986: saggio di riferimento non inferiore al 2,5%.
+        assert result["saggio_riferimento"] == max(result["tasso_legale"], 2.5)
         assert result["coefficiente"] == pytest.approx(
-            result["percentuale_usufrutto"] / result["tasso_legale"], abs=0.01
+            result["percentuale_usufrutto"] / result["saggio_riferimento"], abs=0.01
         )
 
 

@@ -146,8 +146,10 @@ def test_riduzione_per_eta_dell_articolo_139():
 def test_decreto_vigente_e_l_ultimo_con_decorrenza_utile():
     assert art139.decreto_vigente(date(2026, 9, 13))["primo_punto"] == 988.45
     assert art139.decreto_vigente(date(2026, 9, 13))["giorno_inabilita_assoluta"] == 57.64
-    # Nel 2024 non è stato reperito un decreto: resta in vigore quello del 2023.
-    assert art139.decreto_vigente(date(2024, 6, 1))["primo_punto"] == 939.78
+    # D.M. 16/07/2024 (G.U. n. 173 del 25/07/2024) e D.M. 18/07/2025 (G.U. n. 176 del 31/07/2025).
+    assert art139.decreto_vigente(date(2024, 6, 1))["primo_punto"] == 947.30
+    assert art139.decreto_vigente(date(2025, 6, 1))["primo_punto"] == 963.40
+    assert art139.decreto_vigente(date(2024, 3, 31))["primo_punto"] == 939.78
     # Prima della prima decorrenza si usa comunque il decreto più antico noto.
     assert art139.decreto_vigente(date(2005, 1, 1))["primo_punto"] == 688.28
 

@@ -6,10 +6,12 @@ Base normativa:
   del tasso legale di interesse (art. 1284 c.c.).
 - Artt. 978 ss. c.c. (usufrutto).
 
-Le percentuali per fascia d'età del prospetto ministeriale sono stabili nel
-tempo; il coefficiente moltiplicatore annuale è per costruzione pari a
-percentuale/tasso legale. Il tasso legale corrente proviene dalle tabelle
-normative versionate del progetto (fail-closed se assente).
+Le percentuali per fascia d'età sono quelle del prospetto (allegato 1 al D.Lgs. 139/2024):
+coefficiente × saggio di riferimento. L'art. 46, c. 5-ter, D.P.R. 131/1986 vieta un saggio
+inferiore al 2,5% (dal 1° gennaio 2025; Corte cost. 89/2026 per il periodo anteriore): per il
+2026 il D.M. 24/12/2025 conferma il prospetto al 2,5% anche se il saggio legale è all'1,6%.
+Il prospetto arriva alla fascia 93-99 anni: oltre non c'è una regola e il calcolo non si fa.
+Collaudo normativo del 31/10/2026.
 """
 from __future__ import annotations
 
@@ -17,6 +19,8 @@ from datetime import date
 from typing import Any, Dict, List, Mapping
 
 from pct.calcolatori._base import safe_float, safe_int
+
+SAGGIO_MINIMO = 2.5
 
 # Prospetto allegato al D.P.R. 131/1986: (età massima inclusa, % usufrutto).
 _FASCE_USUFRUTTO: List[tuple[int, float]] = [
@@ -45,7 +49,10 @@ def _percentuale_per_eta(eta: int) -> float:
     for eta_max, percentuale in _FASCE_USUFRUTTO:
         if eta <= eta_max:
             return percentuale
-    return 5.0  # Oltre 99 anni il prospetto ministeriale non scende sotto questa soglia operativa.
+    raise ValueError(
+        "Il prospetto dei coefficienti (allegato 1 al D.Lgs. 139/2024) si ferma a 99 anni: "
+        "per un'età superiore la norma non indica un coefficiente, va valutato caso per caso."
+    )
 
 
 def _tasso_legale_corrente(norme: Any) -> tuple[float, Dict[str, str]]:
@@ -76,18 +83,15 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
 
     tasso_legale, fonte_tasso = _tasso_legale_corrente(norme)
     percentuale = _percentuale_per_eta(eta)
-    coefficiente = round(percentuale / tasso_legale, 2) if tasso_legale else 0.0
+    # Art. 46, c. 5-ter, D.P.R. 131/1986: saggio di riferimento non inferiore al 2,5%.
+    saggio_riferimento = max(tasso_legale, SAGGIO_MINIMO)
+    coefficiente = round(percentuale / saggio_riferimento, 2)
 
     base = round(valore_piena * quota_perc / 100.0, 2)
     valore_usufrutto = round(base * percentuale / 100.0, 2)
     valore_nuda = round(base - valore_usufrutto, 2)
 
     warnings: List[str] = []
-    if eta > 99:
-        warnings.append(
-            "Oltre i 99 anni il prospetto ministeriale non prevede una fascia dedicata: "
-            "è applicata la percentuale operativa minima, da verificare sul decreto vigente."
-        )
 
     return {
         "valore_piena": round(valore_piena, 2),
@@ -98,6 +102,7 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         "percentuale_nuda": round(100.0 - percentuale, 2),
         "coefficiente": coefficiente,
         "tasso_legale": tasso_legale,
+        "saggio_riferimento": saggio_riferimento,
         "valore_usufrutto": valore_usufrutto,
         "valore_nuda_proprieta": valore_nuda,
         "notes": [

@@ -78,6 +78,27 @@ def _citta_dell_ufficio(ufficio: str) -> str:
     return testo if len(testo) >= 3 else ""
 
 
+_UFFICIO_NEL_NOME = re.compile(
+    r"\b(?:tribunale|corte\s+d\s*appello|corte\s+di\s+appello|giudice\s+di\s+pace)\s+(?:di\s+)?([a-zàèéìòù]+(?:\s+[a-zàèéìòù]+){0,3})",
+    re.I,
+)
+
+
+def precedente_dal_nome(nome: str, ufficio: str) -> bool:
+    """Il nome del file indica un provvedimento di un altro ufficio giudiziario: è giurisprudenza prodotta.
+
+    Usato dove la lettura non ha ancora la natura documentale (fascicoli letti da motori precedenti):
+    «Tribunale-di-Cosenza-Sentenza-n.-394-2023» in un fascicolo del Tribunale di Locri non è la sentenza
+    della causa e non apre obblighi di notifica.
+    """
+    citta = _citta_dell_ufficio(ufficio)
+    piatto = re.sub(r"[^a-z0-9àèéìòù]+", " ", str(nome or "").casefold())
+    trovato = _UFFICIO_NEL_NOME.search(piatto)
+    if not citta or not trovato:
+        return False
+    return not f" {trovato.group(1)} ".startswith(f" {citta} ") and f" {citta} " not in f" {piatto} "
+
+
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", ufficio: str = "") -> tuple[str, str]:
     from .copie_atti import messaggio_strutturato
     if messaggio_strutturato(testo):

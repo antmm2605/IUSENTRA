@@ -87,3 +87,15 @@ def test_stesso_termine_da_due_copie_del_provvedimento_resta_una_scadenza():
     # Una voce inserita a mano resta confrontata con rigore.
     manuale = SimpleNamespace(stato="APERTO", data_scadenza="2026-12-17", titolo="Termine del 17/12/2026", descrizione="", note="")
     assert not _stessa_scadenza(manuale, altra_copia)
+
+
+def test_sentenza_di_altro_ufficio_dal_nome_e_un_precedente():
+    """Visto in produzione: sentenze di Vicenza e Cosenza «da notificare» in fascicoli di Locri e Palmi."""
+    from pct.archivio_letture.pertinenza_documentale import precedente_dal_nome
+
+    assert precedente_dal_nome("Tribunale-di-Cosenza-Sentenza-n.-394-2023-del-08.03.23", "TRIBUNALE DI LOCRI")
+    assert precedente_dal_nome("Sentenza_Tribunale_Vicenza_20-04-2023.PDF", "Tribunale di Palmi")
+    assert not precedente_dal_nome("Sentenza Tribunale di Locri n. 12.pdf", "TRIBUNALE DI LOCRI")
+    assert not precedente_dal_nome("Decreto fissazione udienza.PDF", "Tribunale di Locri")
+    assert not precedente_dal_nome("Sentenza Tribunale di Santa Maria Capua Vetere.pdf", "Tribunale di Santa Maria Capua Vetere")
+    assert not precedente_dal_nome("Sentenza Tribunale di Cosenza.pdf", "")

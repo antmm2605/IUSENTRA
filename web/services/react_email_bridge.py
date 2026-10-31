@@ -502,6 +502,11 @@ def _pec_presidio_index(db_path: str, *, tenant_id: str = "default", include_tel
         return {"by_email_id": {}, "by_message_id": {}}
 
 
+def id_email_gia_presidiate(db_path: str, *, tenant_id: str = "default") -> set[str]:
+    """Le PEC della casella già prese in carico dal presidio (acquisite, collegate, termine creato o già presidiate)."""
+    return set((_pec_presidio_index(db_path, tenant_id=tenant_id).get("by_email_id") or {}).keys())
+
+
 def _pec_audit_payload(summary: dict[str, Any] | None) -> dict[str, Any] | None:
     if not summary:
         return None

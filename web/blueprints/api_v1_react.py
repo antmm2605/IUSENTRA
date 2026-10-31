@@ -1983,6 +1983,13 @@ def _messaggi_tutti() -> list[Messaggio]:
             return []
 
 
+def _id_email_presidiate() -> set[str]:
+    from web.services.react_email_bridge import id_email_gia_presidiate
+
+    return id_email_gia_presidiate(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
+                                   tenant_id=_tenant_runtime_label())
+
+
 def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
     pec_emails = _safe("pec", lambda: gestore_panoramica(_email_manager).tutte(cartella=CartellaEmail.INBOX), [])
     ordinary_emails = _safe("email_ordinaria", lambda: gestore_panoramica(_ordinary_email_manager).tutte(cartella=CartellaEmail.INBOX), [])
@@ -1998,7 +2005,13 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
     )
     pec_rows: list[dict[str, Any]] = []
     mail_rows: list[dict[str, Any]] = []
-    pec_unread = sum(1 for email in pec_emails if getattr(email, "stato", "") == StatoEmail.NON_LETTA)
+    # «Da esaminare» = non aperte e non ancora prese in carico dal presidio PEC: le ricevute di
+    # accettazione e consegna e le comunicazioni già presidiate non sono lavoro per l'avvocato.
+    presidiate = _safe("pec_presidio", _id_email_presidiate, set())
+    pec_unread = sum(
+        1 for email in pec_emails
+        if getattr(email, "stato", "") == StatoEmail.NON_LETTA and str(getattr(email, "id", "") or "") not in presidiate
+    )
     for email in pec_emails:
         unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
         title = getattr(email, "mittente_nome", "") or getattr(email, "mittente", "") or "Mittente non indicato"
@@ -2547,7 +2560,7 @@ def _metrics(
         },
         {
             "id": "pec",
-            "label": "PEC da leggere",
+            "label": "PEC da esaminare",
             "value": pec_unread,
             "tag": "OGGI" if pec_unread else "",
             "tone": "primary",

@@ -42,7 +42,7 @@ export type DashboardData = {
 
 const emptyMetrics: Metric[] = [
   {id:'urgent',label:'Azioni urgenti',value:0,tag:'',tone:'danger',href:'/workspace-intelligente',actionLabel:'Vai alle azioni'},
-  {id:'pec',label:'PEC da leggere',value:0,tag:'',tone:'primary',href:'/email/',actionLabel:'Apri PEC'},
+  {id:'pec',label:'PEC da esaminare',value:0,tag:'',tone:'primary',href:'/email/',actionLabel:'Apri PEC'},
   {id:'messages',label:'Messaggi clienti',value:0,tag:'',tone:'success',href:'/messaggi',actionLabel:'Vai ai messaggi'},
   {id:'quotes',label:'Preventivi in scadenza',value:0,tag:'',tone:'purple',href:'/preventivi',actionLabel:'Apri preventivi'},
   {id:'engagements',label:'Conferimenti mancanti',value:0,tag:'',tone:'orange',href:'/preventivi',actionLabel:'Completa ora'}
@@ -269,7 +269,7 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
     {
       id: 'source-comunicazioni',
       title: 'PEC, email e messaggi',
-      description: `${pecUnread} PEC da leggere, ${dashboard.emails.length} email recenti e ${clientMessages} messaggi cliente recenti.`,
+      description: `${pecUnread} PEC da esaminare, ${dashboard.emails.length} email recenti e ${clientMessages} messaggi cliente recenti.`,
       href: '/email/',
       badge: `${pecUnread + clientMessages}`,
       tone: pecUnread || clientMessages ? 'primary' : 'neutral',

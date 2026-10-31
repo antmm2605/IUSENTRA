@@ -99,6 +99,12 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
         return None
 
     nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "")) for d in list(getattr(fascicolo, "documenti", []) or [])}
+    # Senza la natura documentale (letture di motori precedenti) vale il nome: un provvedimento di un
+    # altro ufficio è giurisprudenza prodotta, non un atto della causa da notificare.
+    from pct.archivio_letture.pertinenza_documentale import precedente_dal_nome
+
+    ufficio_fascicolo = _testo(getattr(fascicolo, "tribunale", "")) or _testo(getattr(fascicolo, "ufficio_giudiziario", ""))
+    precedenti |= {oid for oid, nome in nomi.items() if precedente_dal_nome(nome, ufficio_fascicolo)}
     documenti: list[DocumentoCatalogato] = []
     for oid, etichetta in etichette.items():
         if oid in precedenti or oid not in nomi:

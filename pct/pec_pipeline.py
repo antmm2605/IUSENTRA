@@ -9636,6 +9636,17 @@ class PecAuditRepository:
         candidati.discard("")
         return next(iter(candidati)) if len(candidati) == 1 else ""
 
+    def _pagopa_match_fascicolo_da_iuv(self, manager: Any, iuv_list: list[str]) -> str:
+        from pct.pagamenti_giustizia_registro import fascicolo_dell_avviso
+
+        try:
+            fascicoli = list(manager.tutti())
+        except Exception:
+            return ""
+        trovati = {fascicolo_dell_avviso(fascicoli, iuv) for iuv in iuv_list if iuv}
+        trovati.discard("")
+        return next(iter(trovati)) if len(trovati) == 1 else ""
+
     def reconcile_pagopa_payment_receipt(
         self,
         message_id: str,
@@ -9692,6 +9703,10 @@ class PecAuditRepository:
                     manager,
                     " ".join(rt.causale for _item, rt in ricevute),
                 )
+            if not fascicolo_id:
+                # Ricevuta pagata prima dell'iscrizione a ruolo: la causale non ha ancora l'RG,
+                # ma lo IUV è quello dell'avviso generato nel fascicolo (match univoco o nessuno).
+                fascicolo_id = self._pagopa_match_fascicolo_da_iuv(manager, [rt.iuv for _item, rt in ricevute])
             if not fascicolo_id:
                 return {
                     "ok": True,

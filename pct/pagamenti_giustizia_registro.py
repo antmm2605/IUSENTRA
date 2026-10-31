@@ -52,6 +52,25 @@ def usi_altrove(fascicoli: Iterable[Any], iuv: str, *, escludi: str = "") -> lis
     return usi
 
 
+def fascicolo_dell_avviso(fascicoli: Iterable[Any], iuv: str) -> str:
+    """Il fascicolo in cui è stato generato l'avviso pagoPA con questo IUV, solo se univoco.
+
+    Serve per la ricevuta pagata prima dell'iscrizione a ruolo, la cui causale non porta ancora
+    il numero di ruolo: lo IUV identifica il versamento (specifiche pagoPA) e l'avviso è nato nel fascicolo.
+    """
+    cercati = forme_iuv(iuv)
+    if not cercati:
+        return ""
+    trovati = set()
+    for fascicolo in fascicoli:
+        pagamenti = dict(getattr(fascicolo, "pagamenti", {}) or {})
+        for avviso in (dict(pagamenti.get("pagopa_portale") or {}).get("avvisi") or []):
+            if cercati & forme_iuv(dict(avviso).get("iuv") or dict(avviso).get("numero_avviso") or ""):
+                trovati.add(str(getattr(fascicolo, "id", "") or ""))
+    trovati.discard("")
+    return next(iter(trovati)) if len(trovati) == 1 else ""
+
+
 def avviso_riuso(usi: list[dict[str, str]]) -> str:
     if not usi:
         return ""

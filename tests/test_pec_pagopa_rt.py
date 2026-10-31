@@ -116,6 +116,35 @@ def test_match_ambiguo_non_aggancia(monkeypatch, ambiente):
     assert esito["reason"] == "fascicolo_non_determinabile"
 
 
+def test_ricevuta_prima_dell_iscrizione_a_ruolo_agganciata_per_iuv(monkeypatch, ambiente):
+    # Causale senza RG (pagamento prima dell'iscrizione): vale lo IUV dell'avviso generato nel fascicolo.
+    altro = ambiente.fascicoli.nuovo(titolo="Nuova causa", tipo=TipoFascicolo.CIVILE, nome_cliente="Verdi")
+    ambiente.fascicoli.aggiorna(altro.id, pagamenti={"pagopa_portale": {"avvisi": [{"numero_avviso": "301000000000012345"}]}})
+    causale = "Contributo unificato - Verdi c. Neri - Tribunale di Roma"
+    _prepara(monkeypatch, ambiente, [_payload("RT.xml", _rt_xml(iuv="01000000000012345", causale=causale))], {})
+    esito = ambiente.repo.reconcile_pagopa_payment_receipt("MSG-5")
+    assert esito["skipped"] is False and esito["fascicolo_id"] == altro.id
+    # Stesso IUV in due fascicoli: nessun aggancio automatico.
+    terzo = ambiente.fascicoli.nuovo(titolo="Copia", tipo=TipoFascicolo.CIVILE, nome_cliente="Verdi")
+    ambiente.fascicoli.aggiorna(terzo.id, pagamenti={"pagopa_portale": {"avvisi": [{"iuv": "01000000000012345"}]}})
+    _prepara(monkeypatch, ambiente, [_payload("RT2.xml", _rt_xml(iuv="01000000000012345", causale=causale, importo="98.00"))], {})
+    assert ambiente.repo.reconcile_pagopa_payment_receipt("MSG-6")["reason"] == "fascicolo_non_determinabile"
+
+
+def test_fascicolo_dell_avviso_senza_iuv_o_con_errore():
+    from pct.pagamenti_giustizia_registro import fascicolo_dell_avviso
+
+    assert fascicolo_dell_avviso([], "") == ""
+
+    class Guasto:
+        def tutti(self):
+            raise RuntimeError("archivio")
+
+    from pct.pec_pipeline import PecAuditRepository as Repo
+
+    assert Repo._pagopa_match_fascicolo_da_iuv(object.__new__(Repo), Guasto(), ["1"]) == ""
+
+
 def test_allegato_non_rt_ignorato(monkeypatch, ambiente):
     payloads = [
         _payload("fattura.xml", b"<fattura><importo>10</importo></fattura>"),

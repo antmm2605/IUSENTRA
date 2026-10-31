@@ -325,6 +325,7 @@ EXPECTED_DOCUMENTS: dict[str, list[str]] = {
     "CANCELLERIA_PCT": ["comunicazione di cancelleria", "provvedimento allegato", "busta o ricevuta PEC"],
     "PROVVEDIMENTO_GIUDIZIARIO": ["provvedimento", "relazione di cancelleria o comunicazione", "allegati ufficiali"],
     "NOTIFICA_CONTROPARTE": ["atto da notificare", "relata", "procura se necessaria", "ricevuta di accettazione", "ricevuta di consegna"],
+    "NOTIFICA_RICEVUTA": ["atto notificato", "relata di notifica", "procura della controparte"],
     "ATTO_AMMINISTRATIVO_PA": ["provvedimento o richiesta PA", "protocollo", "allegati richiamati", "bozza di riscontro"],
     "ENTE_RICHIESTA_RISCONTRO": ["richiesta ente", "documenti richiesti", "bozza risposta"],
     "ATTO_TRIBUTARIO_RISCOSSIONE": ["atto ricevuto", "notifica", "estratto ruolo o allegati", "prova data ricezione"],
@@ -341,6 +342,7 @@ LEGAL_ARTICLES: dict[str, list[str]] = {
     "CANCELLERIA_PCT": ["D.L. 179/2012", "regole tecniche PCT applicabili al registro da verificare"],
     "PROVVEDIMENTO_GIUDIZIARIO": ["codice di rito applicabile al provvedimento", "termini di impugnazione da confermare"],
     "NOTIFICA_CONTROPARTE": ["Legge 53/1994", "DPR 68/2005", "CAD art. 48"],
+    "NOTIFICA_RICEVUTA": ["Legge 53/1994, art. 3-bis", "art. 147, comma 3, c.p.c.", "termine dell'atto notificato (artt. 166, 325, 370, 480, 617, 641 c.p.c.)"],
     "ATTO_AMMINISTRATIVO_PA": ["norma del procedimento indicata nell'atto", "termine espresso da verificare"],
     "ENTE_RICHIESTA_RISCONTRO": ["norma del procedimento indicata nella richiesta"],
     "ATTO_TRIBUTARIO_RISCOSSIONE": ["disciplina tributaria dell'atto ricevuto da verificare"],
@@ -446,6 +448,7 @@ class PecControlTowerRepository:
         if not raw_mime:
             raise ValueError("MIME PEC mancante.")
         parsed = parse_pec_mime(raw_mime)
+        parsed["casella"] = {"account_email": account_email, "folder": folder}
         mime_sha256 = _sha256(raw_mime)
         existing = self.find_by_mime_sha256(mime_sha256)
         if existing:
@@ -1993,6 +1996,16 @@ def _legal_from_official_subject(parsed: dict[str, Any]) -> dict[str, Any] | Non
     return None
 
 
+def _notifica_l53_ricevuta(parsed: dict[str, Any]) -> bool:
+    from pct.notifiche_ricevute import direzione_notifica, oggetto_di_notifica_l53
+
+    casella = parsed.get("casella") if isinstance(parsed.get("casella"), dict) else {}
+    return oggetto_di_notifica_l53(parsed.get("subject") or "") and direzione_notifica(
+        casella=str(casella.get("account_email") or ""), mittente=str(parsed.get("sender") or ""),
+        cartella=str(casella.get("folder") or ""),
+    ) == "ricevuta"
+
+
 def classify_legal(parsed: dict[str, Any], technical: dict[str, Any]) -> dict[str, Any]:
     text = _lower(" ".join([parsed.get("sender") or "", parsed.get("subject") or "", parsed.get("search_text") or ""]))
     if not technical.get("receipt_role"):
@@ -2058,6 +2071,16 @@ def classify_legal(parsed: dict[str, Any], technical: dict[str, Any]) -> dict[st
             0.88,
             "Collega al fascicolo e verifica se genera termini o adempimenti.",
             "Mittente o contenuto riconducibile a cancelleria/PCT.",
+        )
+    if _notifica_l53_ricevuta(parsed):
+        return _legal(
+            "NOTIFICA_RICEVUTA",
+            "atto_notificato_al_cliente",
+            "Atto notificato dalla controparte",
+            "critica",
+            0.92,
+            "Verifica la notifica e conferma il termine proposto per la difesa del cliente.",
+            "PEC di notificazione L. 53/1994 arrivata nella casella dello studio da un altro difensore.",
         )
     if any(token in text for token in ("notifica", "relata", "legge 53", "l. 53", "controparte", "da notificare")):
         return _legal(
@@ -2156,7 +2179,7 @@ def _deadline_rule(legal: dict[str, Any], extracted: dict[str, Any]) -> dict[str
     category = legal.get("legal_category")
     event_type = legal.get("legal_event_type")
     code = ""
-    if category in {"CANCELLERIA_PCT", "PROVVEDIMENTO_GIUDIZIARIO"}:
+    if category in {"CANCELLERIA_PCT", "PROVVEDIMENTO_GIUDIZIARIO", "NOTIFICA_RICEVUTA"}:
         code = "PEC_CANCELLERIA_REVIEW_1D"
     elif category in {"ATTO_AMMINISTRATIVO_PA", "ENTE_RICHIESTA_RISCONTRO"} and extracted.get("termine_espresso"):
         code = "PEC_PA_RISCONTRO_TERMINE_ESPRESSO"
@@ -2191,6 +2214,8 @@ def _deadline_title(legal: dict[str, Any]) -> str:
         return "Valuta risposta a diffida"
     if category == "NOTIFICA_CONTROPARTE":
         return "Prepara o completa notifica"
+    if category == "NOTIFICA_RICEVUTA":
+        return "Verifica l'atto notificato al cliente e il termine"
     return "Classifica PEC e conferma adempimenti"
 
 

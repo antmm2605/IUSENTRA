@@ -147,3 +147,15 @@ def test_la_notifica_ricevuta_non_resta_in_attesa_di_ricevute_di_consegna():
     )
     assert not any(item.get("creates_notification_candidate") for item in capito["notifications"])
     assert any(item.get("codice_termine") == "opposizione_decreto_ingiuntivo" for item in capito["deadlines"])
+
+
+def test_la_torre_di_controllo_distingue_la_notifica_ricevuta_da_quella_da_preparare():
+    from pct.pec_control_tower import classify_legal
+
+    base = {"subject": "Notificazione ai sensi della legge n. 53 del 1994", "search_text": "decreto ingiuntivo"}
+    ricevuta = classify_legal({**base, "sender": "rossi@pec.avvocati.it",
+                               "casella": {"account_email": "studio@pec.it", "folder": "INBOX"}}, {})
+    assert ricevuta["legal_category"] == "NOTIFICA_RICEVUTA"
+    inviata = classify_legal({**base, "sender": "studio@pec.it",
+                              "casella": {"account_email": "studio@pec.it", "folder": "INBOX"}}, {})
+    assert inviata["legal_category"] == "NOTIFICA_CONTROPARTE"

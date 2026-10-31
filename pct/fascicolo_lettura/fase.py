@@ -109,7 +109,9 @@ def fase(
 
     if stato_codice in {"DEFINITO", "CHIUSO", "ARCHIVIATO"}:
         codice = CODICE_FASE_CHIUSA
-        descrizione = f"pratica {intestazione.get('stato')}"
+        stato_dichiarato = str(intestazione.get("stato") or "").strip().lower()
+        descrizione = {"definito": "pratica definita", "chiuso": "pratica chiusa", "archiviato": "pratica archiviata"}.get(
+            stato_dichiarato, f"pratica {stato_dichiarato}")
         prove.append(f"stato dichiarato: {intestazione.get('stato')}")
 
     prossima_udienza = ""
@@ -119,6 +121,12 @@ def fase(
     future = sorted(giorno for giorno in date_udienza if giorno and giorno_oggi and giorno >= giorno_oggi)
     if future:
         prossima_udienza = data_it(future[0])
+        if codice == CODICE_FASE_CHIUSA:
+            # Una causa chiusa non ha udienze future: o lo stato è sbagliato, o l'udienza va annullata in agenda.
+            incoerenze.append(
+                f"lo stato del fascicolo è «{intestazione.get('stato')}» ma risulta un'udienza il {prossima_udienza}: "
+                "verificare se la causa è ancora pendente o se l'udienza va tolta da agenda e scadenziario"
+            )
     return {
         "codice": codice,
         "descrizione": descrizione,

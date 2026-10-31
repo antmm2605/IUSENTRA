@@ -304,8 +304,18 @@ def test_fascicolo_chiuso_non_propone_adempimenti_di_fase():
     dati.scadenze = []
     lettura = costruisci_lettura(dati)
     assert lettura["fase"]["codice"] == "chiusa"
-    assert "pratica definito" in lettura["fase"]["descrizione"]
+    assert "pratica definita" in lettura["fase"]["descrizione"]
     assert not any("impugnazione" in passo["azione"].lower() for passo in lettura["prossimi_passi"])
+
+
+def test_fascicolo_chiuso_con_udienza_futura_e_incoerente():
+    """Visto in produzione il 31/10/2026: causa «definita» con udienza il 14/04/2027 e nessuna incoerenza."""
+    dati = _caso_completo()
+    dati.fascicolo["stato"] = "DEFINITO"
+    dati.scadenze = [{"id": "U1", "titolo": "Udienza di discussione", "data": (OGGI + timedelta(days=60)).isoformat(), "stato": "APERTO"}]
+    lettura = costruisci_lettura(dati)
+    assert lettura["fase"]["codice"] == "chiusa" and lettura["fase"]["prossima_udienza"]
+    assert any("udienza" in voce for voce in lettura["fase"]["incoerenze"])
 
 
 def test_atto_notificato_senza_deposito_richiama_il_termine_di_costituzione():

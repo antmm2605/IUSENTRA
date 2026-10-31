@@ -45,6 +45,25 @@ I doppioni già presenti nei dati restano finché non si riuniscono: serve un gi
 | Sentenze dei Tribunali di Vicenza e Cosenza «da notificare» in fascicoli di Locri e Palmi | esclude i precedenti solo se la lettura ha registrato la natura «precedente giurisprudenziale» | **errore**: i fascicoli letti con il motore v7 non hanno quel fatto | un provvedimento di un altro ufficio (dal nome del file) è giurisprudenza prodotta |
 | «Ricorso … (originale notificato)» proposto come da notificare | la prova di notifica non è stata letta (motore v7) | da verificare dopo la rilettura | rilettura (vedi §2) |
 
-## 5. Da completare in questo giro
+## 5. Catalogo dei documenti
 
-Catalogo dei documenti, regia del fascicolo, «Lettura del fascicolo», presidio economico, PEC del fascicolo.
+**In produzione gira la versione 2.461.1**: le versioni 2.463-2.464 (catalogo dai 1.320 modelli, contributo
+unificato solo con prova del pagamento, ricevute PEC riconosciute prima della seconda lettura) non sono state
+distribuite perché il deploy del 29/10 si era fermato su un turno CI oltre il tempo.
+
+| Visto (fascicolo A8B49265, causa di lavoro) | Con la versione attuale |
+|---|---|
+| «Ricorso.PDF», «Ricorso (originale notificato).pdf» → «Contributo unificato / pagamento» (95) | «Ricorso in materia di lavoro (art. 414 c.p.c.)» |
+| PEC «DEPOSITO TELEMATICO: Ricorso …» → «Contributo unificato / pagamento» | «PEC di deposito telematico» |
+| Ricevuta «ACCETTAZIONE: Notificazione L. 53/1994» → «Accettazione con beneficio d'inventario» (seconda lettura) | «Ricevuta PEC di accettazione» |
+| Ricorso depositato → «Ricorso al TAR» (seconda lettura) | «Ricorso in materia di lavoro (art. 414 c.p.c.)» |
+| Sentenze di altri uffici → «Sentenza» | precedente (dal contenuto e, ora, dal nome) |
+
+Rimedio: il deploy unico; il cambio di versione del catalogo (v32) fa riclassificare i documenti.
+
+## 6. Lettura del fascicolo e regia
+
+| Visto | Esito | Rimedio |
+|---|---|---|
+| A8B49265: fase «chiusa — pratica definito» con prossima udienza il 14/04/2027 e nessuna incoerenza | **errore**: stato e udienza si contraddicono senza avviso | incoerenza dichiarata («verificare se la causa è pendente o se l'udienza va tolta»); testo «pratica definita» |
+| Regia: «PROFILO_DA_CONFERMARE», completamento 0% | coerente con il profilo non confermato | — |

@@ -9,14 +9,17 @@ import pytest
 from lex.normativa.consultazione import articoli, catalogo, dettaglio, importa_fonti
 
 
-def source(tmp_path: Path, text: str = 'La responsabilità riguarda l’avvocato. ' * 100):
+def source(tmp_path: Path, text: str = 'La responsabilità riguarda l’avvocato. ' * 100, edizione: str = '2026-10-07'):
+    # La vigenza richiesta non può precedere l'edizione del testo: il pacchetto
+    # dichiara l'edizione consolidata e chiede la vigenza a quella stessa data.
     folder = tmp_path / 'pacchetto' / 'atti_codici'
     folder.mkdir(parents=True, exist_ok=True)
     rows = [dict(atto='c.c.', chiave='codice_civile', articolo='2545 quindecies',
                  rubrica='Controllo giudiziario', testo=text,
                  titolo_atto='Codice civile', data_atto='1942-03-16',
                  urn='urn:nir:stato:regio.decreto:1942-03-16;262',
-                 provenienza_integrazione={'id_fonte': 'fonte-ufficiale', 'vigenza_richiesta': '2026-10-07'})]
+                 consolidato_al=edizione,
+                 provenienza_integrazione={'id_fonte': 'fonte-ufficiale', 'vigenza_richiesta': edizione})]
     (folder / 'civile.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=False) + '\n' for r in rows), encoding='utf-8')
     return folder.parent, rows
 
@@ -75,7 +78,7 @@ def test_idempotency_and_saved_link_after_new_edition(tmp_path):
     previous = catalogo(db)[0]['id']
     second = importa_fonti(package, db, '2026-10-09')
     assert second['new_articles'] == 0
-    source(tmp_path, 'Testo aggiornato senza perdita della versione precedente.')
+    source(tmp_path, 'Testo aggiornato senza perdita della versione precedente.', edizione='2026-10-10')
     importa_fonti(package, db, '2026-10-10')
     assert len(catalogo(db)) == 1
     result = articoli(db, act=previous, article='2545 quindecies')

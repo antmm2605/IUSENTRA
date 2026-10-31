@@ -58,8 +58,14 @@ def test_wrapper_trasmette_confronto_del_secondo_lettore(monkeypatch, nome, pdf)
     from PIL import Image
 
     motore = "pdf-inspector:pp-ocrv6-small@oar-ocr-v0.7.0"
+    # Il payload legge le dimensioni della pagina dal PDF ricostruito:
+    # il riconoscimento simulato deve restituire un PDF reale di una pagina.
+    ricostruito = fitz.open()
+    ricostruito.new_page(width=595, height=842)
+    pdf_pagina = ricostruito.tobytes()
+    ricostruito.close()
     monkeypatch.setattr(documento, "recognize_page", lambda *args, **kwargs: OcrPageResult(
-        pdf=b"%PDF-1.4 prova", paragraphs=["Tribunale di Milano"], dpi=300,
+        pdf=pdf_pagina, paragraphs=["Tribunale di Milano"], dpi=300,
         blocks=[], figures=[], confidence=0.8, engine="tesseract",
         consenso=2, secondo_lettore=motore,
     ))
@@ -76,6 +82,7 @@ def test_wrapper_trasmette_confronto_del_secondo_lettore(monkeypatch, nome, pdf)
     payload = documento.come_payload(pagina)
     assert pagina.consenso == payload["consenso"] == 2
     assert pagina.secondo_lettore == payload["secondo_lettore"] == motore
+    assert payload["dimensioni_pt"] == {"larghezza": 595, "altezza": 842}
 
 
 def test_pagina_nativa_non_dichiara_confronto_ocr():

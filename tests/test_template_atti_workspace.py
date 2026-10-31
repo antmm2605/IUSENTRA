@@ -1,5 +1,3 @@
-import tempfile
-from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.compilatore_atti import MODEL_INDEX

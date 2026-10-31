@@ -616,7 +616,7 @@ def _cfg_web(tmp_path):
         "TESTING": True,
         "MULTI_TENANT": False,
         "BOOTSTRAP_ADMIN_PASSWORD": "admin",
-        "STORAGE_MODE_DEFAULT": "json",
+        "STORAGE_MODE_DEFAULT": "sqlite",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),

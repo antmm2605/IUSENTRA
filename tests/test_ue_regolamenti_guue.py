@@ -236,11 +236,15 @@ def test_righe_jsonl_nel_formato_del_gdpr_e_integrazione_con_riferimento_esatto(
                         consolidato_al="2015-02-26", raccolto_il="2026-10-05")
     prima = righe[0]
     assert set(prima) == {"atto", "chiave", "articolo", "rubrica", "testo", "titolo_atto", "data_atto", "urn", "fonte_testo",
-                          "url", "raccolto_il"}
+                          "url", "raccolto_il", "consolidato_al"}
+    # L'edizione consolidata viaggia con la riga: la consultazione la usa come
+    # data di versione del testo; il testo originale GUUE non ne dichiara una.
+    assert prima["consolidato_al"] == "2015-02-26"
     assert prima["atto"] == "Reg. UE 1215/2012" and prima["urn"] == "urn:nir:unione.europea:regolamento:2012-12-12;1215"
     assert prima["fonte_testo"] == "publications.europa.eu (GUUE)"
     assert prima["titolo_atto"].endswith("[Testo consolidato al 26/02/2015, Ufficio delle pubblicazioni UE]")
     originale = righe_jsonl(atto, chiave="reg_ue_2012_1215", url="u")[0]["titolo_atto"]
+    assert righe_jsonl(atto, chiave="reg_ue_2012_1215", url="u")[0]["consolidato_al"] == ""
     assert originale.endswith("[Testo originale pubblicato in GUUE: modifiche successive non incluse]")
     assert _numero_e_tipo(prima["urn"]) == ("1215", "Regolamento (UE)")
 
@@ -396,14 +400,17 @@ def test_provenienza_guue_e_cnf_nell_intestazione_della_fonte():
     assert provenienza_atto("urn:nir:stato:legge:1994-01-21;53") == "Normattiva"
     assert provenienza_atto("") == "Normattiva"
     assert _intestazione(_riga("urn:nir:unione.europea:regolamento:2012-12-12;1215", "Regolamento (UE) n. 1215/2012",
-                               "2012-12-12", "1215", "7")) == "[1] Reg. UE 1215/2012 (Bruxelles I-bis) (GUUE) · art. 7 · vigente · 12/12/2012"
+                               "2012-12-12", "1215", "7")) == ("[1] Reg. UE 1215/2012 (Bruxelles I-bis) (GUUE) · art. 7 · urn:nir:unione.europea:regolamento:2012-12-12;1215"
+                                                     " · edizione acquisita (fonte: vigente) · 12/12/2012")
     assert _intestazione(_riga("urn:nir:unione.europea:regolamento:2016-04-27;679", "Regolamento (UE) 2016/679",
-                               "2016-04-27", "679", "6")).startswith("[1] Regolamento (UE) 2016/679 (GDPR) (GUUE) · art. 6 · vigente")
+                               "2016-04-27", "679", "6")).startswith("[1] Regolamento (UE) 2016/679 (GDPR) (GUUE) · art. 6 · urn:nir:unione.europea:regolamento:2016-04-27;679 · edizione acquisita (fonte: vigente)")
     assert _intestazione(_riga("urn:nir:consiglio.nazionale.forense:codice.deontologico:2014-01-31", "Codice deontologico forense",
-                               "2014-01-31", "", "1")).startswith("[1] Codice deontologico forense (CNF) · art. 1 · vigente")
-    # gli atti Normattiva restano come prima
+                               "2014-01-31", "", "1")).startswith("[1] Codice deontologico forense (CNF) · art. 1 · urn:nir:consiglio.nazionale.forense:codice.deontologico:2014-01-31 · edizione acquisita (fonte: vigente)")
+    # l'intestazione cita l'URN e dichiara l'edizione acquisita (non la vigenza al caso);
+    # gli atti Normattiva seguono lo stesso formato
     assert _intestazione(_riga("urn:nir:stato:regio.decreto:1942-03-16;262", "Approvazione del testo del Codice civile.",
-                               "1942-03-16", "262", "2043")) == "[1] Codice civile (Normattiva) · art. 2043 · vigente · 16/03/1942"
+                               "1942-03-16", "262", "2043")) == ("[1] Codice civile (Normattiva) · art. 2043 · urn:nir:stato:regio.decreto:1942-03-16;262"
+                                                     " · edizione acquisita (fonte: vigente) · 16/03/1942")
 
 
 def test_ricerca_nell_archivio_porta_la_provenienza_guue(tmp_path):

@@ -30,6 +30,21 @@ class StudioBanco:
 
 
 def crea_studio(tmp_path: Path) -> StudioBanco:
+    """Lo studio di esempio, senza rete: il fascicolo con un ufficio verifica il certificato di cifratura PST
+    scaricandolo dal portale, e nel banco ogni tentativo restava appeso ai tempi di rete (circa 150 secondi
+    su 170 per shard). Il certificato risulta non verificato, come quando il portale non risponde."""
+    from unittest import mock
+
+    from pct.pst_cifratura import PSTCifraturaError
+
+    def _senza_rete(codice_ufficio: str, **_: Any) -> Any:
+        raise PSTCifraturaError("Certificato dell'ufficio non scaricato: il banco di prova non usa la rete.")
+
+    with mock.patch("pct.profilo_deposito.risolvi_certificato_cifratura_ufficio", _senza_rete):
+        return _crea_studio(tmp_path)
+
+
+def _crea_studio(tmp_path: Path) -> StudioBanco:
     from pct.agenda import Agenda, TipoAppuntamento
     from pct.clienti import GestioneClienti, TipoCliente
     from pct.fascicoli import GestioneFascicoli, TipoFascicolo

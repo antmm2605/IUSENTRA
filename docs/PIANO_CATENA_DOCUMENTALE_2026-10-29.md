@@ -626,3 +626,35 @@ Resta: conservazione del documento caricato in compilazione anagrafica, portale 
 - l'estrattore di Lex legge il testo nativo di tutte le pagine (OCR in richiesta solo sulle prime 15, le altre dichiarate) e dichiara il testo non riportato;
 - l'indice semantico che non termina si rimanda senza far fallire catalogo e presìdi.
 Resta: semaforo condiviso di Ollama, editor AI a parti, prove di Lex oltre il budget del prompt.
+
+### 9.10 Regole di procedura indicate dall'avvocato e verifica sulle PEC reali (31/10/2026, sera)
+
+Regole che ogni modifica futura deve rispettare:
+
+1. **Fonti certe o decisione dell'avvocato.** Ogni automatismo parte da una fonte certa; se manca, il
+   software deve cercarla (documenti del fascicolo, portale) oppure far decidere l'avvocato con un
+   avviso chiaro. Mai una data o una voce «di ripiego».
+2. **PEC e fascicoli sono il cuore.** Da lì partono tutti gli automatismi: la catena PEC → fascicolo →
+   letture → termini, notifiche, economia va seguita per intero a ogni modifica.
+3. **Copia informativa e copia certificata.** Il provvedimento allegato alla PEC di cancelleria è una
+   copia informativa: serve alla lettura del fascicolo, non alla notifica. La copia da notificare (e su
+   cui si attesta la conformità) è la copia informatica scaricata dal Portale dei Servizi Telematici,
+   che riporta i dati del deposito; il download resta dell'avvocato (autenticazione CNS/CIE/SPID), con
+   il collegamento già presente nei presìdi («Originale da acquisire»).
+4. **Termine lungo (art. 327 c.p.c.).** Decorre dal deposito della sentenza, mai dalla comunicazione.
+   Ordine delle fonti: data dell'evento nel registro di cancelleria → sentenza nel fascicolo telematico
+   (data del portale) → testo della comunicazione → timbro «pubbl. il» della sentenza con lo stesso
+   numero; mai la data di un precedente citato nella sentenza allegata.
+5. **Lavoro a evento, non a orario.** I passi si concatenano dall'evento che li richiede (documento o
+   PEC entrati nel fascicolo → lettura → presìdi di quel fascicolo), senza giri periodici che lavorano
+   anche quando nulla è cambiato e senza lavoro durante l'apertura delle pagine.
+
+Verifica sulle PEC reali: 40 PEC di sentenza e 6 presìdi di notifica letti alla fonte, insieme ai
+fascicoli collegati. Esiti e correzioni nel registro `docs/VERIFICA_PRODUZIONE_2026-10-31.md`
+(V18-V35). Rilasci: 2.466.1 (sblocco del deploy, Panoramica, motivi degli scarti), 2.467.0 (fonti
+certe dell'art. 327, provvedimento della PEC nel fascicolo, notifiche a evento, testi italiani).
+
+Ancora da fare, in ordine: scheda del fascicolo veloce (V21), scadenze superate dalla sentenza (V32),
+ordini di notifica nei decreti (V33), appuntamenti estranei (V31), Scadenziario leggero (V24),
+controllo delle modifiche sospeso a pagina nascosta (V22), testi tecnici (V25), telefono (V27), pagine
+lente (V23), nuovo addestramento del modello (V35), V11 e V13 dopo le prime notti di rilettura.

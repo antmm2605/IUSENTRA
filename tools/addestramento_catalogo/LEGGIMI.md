@@ -77,3 +77,29 @@ decide è sui documenti reali, soprattutto sulle decisioni dell'avvocato.
 shred -u ~/iusentra-addestramento/pacchetto/dataset.jsonl.gz && rm -rf ~/iusentra-addestramento/pacchetto
 ```
 L'adattatore (pesi LoRA) non contiene i testi in chiaro e può restare.
+
+## 9. Piano del 31/10/2026: misure corrette e nuovo addestramento di Qwen e Spark
+
+Esito del primo ciclo (Qwen addestrato sul pacchetto del 30/10): 86% sui 271 disaccordi (regole 13%),
+95% in verifica (regole 100%), 100% sul banco inventato; 37 risposte illeggibili (JSON troncato). Il Qwen
+di partenza risultava allo 0% per un difetto di lettura della voce, non del modello: `dati.leggi_risposta`
+ora riconosce la voce anche con la sezione «[…]», maiuscole o accenti diversi (solo corrispondenza
+esatta dopo la normalizzazione) e i JSON troncati; `valuta.py` salva `risposte_grezze.jsonl`.
+
+Errori principali del modello: sentenza citata come precedente letta come sentenza della causa (6),
+note 127-ter lette come decreto di fissazione udienza (4); 36 note d'iscrizione a ruolo etichettate
+«Nota di deposito» nelle decisioni perché la voce mancava nell'elenco del 30/10.
+
+Passi:
+1. Misure di partenza con gli strumenti corretti: Qwen di partenza, Qwen addestrato (riferimento),
+   Spark-X2.5 di partenza; `banco.py` sulle tre misure. Servono da punto zero, non per scegliere.
+2. Dopo il deploy della 2.467.0: nuovo pacchetto sul server con il catalogo aggiornato (voce «Nota di
+   iscrizione a ruolo», precedenti, 297 voci), le 36 etichette corrette e esempi mirati sugli errori
+   (sentenza della causa contro precedente citato; note 127-ter contro decreto di fissazione; messaggio
+   PEC contro lettera; decreto di rinvio contro decreto di fissazione). Le decisioni dell'avvocato restano
+   solo insieme di misura, mai di addestramento. Risposta corta e vincolata (voce e citazione).
+3. Addestramento di **Qwen e Spark** sullo stesso pacchetto con gli stessi parametri, poi misura di
+   entrambi sugli stessi documenti mai visti e `banco.py` con regole, lineare, Spark e i quattro modelli.
+4. Adozione solo se il modello batte le regole sui casi decisi dall'avvocato, come seconda lettura dei
+   soli casi incerti, in sottofondo; sui precedenti giurisprudenziali comanda la regola.
+5. Cancellazione dei testi (sezione 8) solo a misure complete, con la conferma dell'avvocato.

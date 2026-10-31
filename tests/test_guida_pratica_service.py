@@ -146,7 +146,7 @@ def test_all_official_pst_xsd_codes_have_curated_operational_guidance():
     official_codes = [row["codice"] for row in list_codici_oggetto_pst()]
     failures: list[tuple[str, str]] = []
 
-    assert len(official_codes) == 1018
+    assert len(official_codes) == 1031
     for codice in official_codes:
         guida = service.get_guidance(codice)
         atto = guida.get("atto_principale") or {}

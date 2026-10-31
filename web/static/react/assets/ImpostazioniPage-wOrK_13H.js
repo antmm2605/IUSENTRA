@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BFXUpbzn.js";export{e as ImpostazioniPage};

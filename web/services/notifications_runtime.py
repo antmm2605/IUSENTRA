@@ -1169,7 +1169,8 @@ def _sync_legal_notification_deadlines(
     if reconcile_existing:
         for deadline in existing:
             note = _notification_text(getattr(deadline, "note", ""))
-            if scoped_prefixes and not any(prefix in note for prefix in scoped_prefixes):
+            # Identità intera, non sottostringa: il presidio «P-1» non deve toccare le scadenze di «P-12».
+            if scoped_prefixes and not any(deadline_matches(note, prefix) for prefix in scoped_prefixes):
                 continue
             if not _deadline_is_operational_open(deadline):
                 continue

@@ -394,6 +394,13 @@ def test_materializzazione_mirata_unifica_stato_e_usa_solo_scadenziario(monkeypa
     repository = _FakeNotificationRepository(current_source_id)
     deadline_call: dict[str, Any] = {}
     monkeypatch.setattr(notifications_runtime, "_advanced_notification_items", lambda *args, **kwargs: [item])
+    # La riconciliazione dei doppioni legge il PEC_AUDIT_DB del tenant (provata a parte): qui i presidi selezionati
+    # restano quelli richiesti, senza mappature.
+    monkeypatch.setattr(
+        notifications_runtime,
+        "_correlate_notification_duplicates",
+        lambda _paths, _tenant, _database=None, selected_ids=(): {"selected_ids": tuple(selected_ids), "mapping": {}},
+    )
     monkeypatch.setattr(notifications_runtime, "_core_fascicolo_rows", lambda *args, **kwargs: [])
     monkeypatch.setattr(
         notifications_runtime,
@@ -433,7 +440,7 @@ def test_materializzazione_mirata_unifica_stato_e_usa_solo_scadenziario(monkeypa
     assert f"legal-notification-presidio:{presidio_id}:da_acquisire" in repository.expired_source_ids
     assert deadline_call["reconcile_existing"] is True
     assert (
-        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}:"
+        f"IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:{presidio_id}"
         in deadline_call["reconcile_source_prefixes"]
     )
     assert "AGENDA_DB" not in deadline_call
@@ -540,3 +547,12 @@ def test_import_e_importa_payload_inoltrano_sempre_il_target_document() -> None:
                 "tipoDocumento": "",
         },
     ]
+
+
+def test_la_riconciliazione_mirata_confronta_l_identita_intera_del_presidio() -> None:
+    from pct.pec_notification_presidio.deadline_projection import deadline_marker, deadline_matches
+
+    ambito = deadline_marker("legal-notification-presidio:P-1:da_preparare")
+    assert deadline_matches("IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:P-1", ambito)
+    assert deadline_matches("IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:P-1:da_acquisire", ambito)
+    assert not deadline_matches("IUSENTRA_LEGAL_NOTIFICATION:legal-notification-presidio:P-12", ambito)

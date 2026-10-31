@@ -33,6 +33,8 @@ def test_payload_pratica_usa_cliente_oggetto_rg_e_ufficio_del_tenant(monkeypatch
         "subject": "Carta docente - MIM",
         "rg": "1100/2026",
         "office": "Tribunale di Padova",
+        # Numero interno del fascicolo, aggiunto al payload il 24/10/2026 (5981a6ad7): qui il fascicolo non lo ha.
+        "number": "",
         "href": "/fascicoli/C3565650",
     }
 

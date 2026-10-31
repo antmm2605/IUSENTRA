@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-BucqHFV-.js";export{e as ImpostazioniPage};

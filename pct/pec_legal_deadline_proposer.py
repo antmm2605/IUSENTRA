@@ -140,31 +140,48 @@ def _sentence_decision_review_payload() -> dict[str, Any]:
     }
 
 
+_DATA_PUBBLICAZIONE = r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})"
 _PUBBLICAZIONE = re.compile(
-    r"\b(?:depositat[ao]|pubblicat[ao])\b[^.\n]{0,40}?\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b", re.IGNORECASE
+    r"\b(?:depositat[ao]|pubblicat[ao]|data\s+(?:di\s+|del\s+)?(?:deposito|pubblicazione))\b[^.\n]{0,40}?\b"
+    + _DATA_PUBBLICAZIONE + r"\b"
+    + r"|\bin\s+data\s+" + _DATA_PUBBLICAZIONE + r"\s*,?\s*(?:è|e'|e)\s+stat[ao]\s+(?:depositat[ao]|pubblicat[ao])\b",
+    re.IGNORECASE,
 )
 
 
-def _termine_lungo_327(text: str, comunicazione_date: Any, *, labour: bool | None = None) -> dict[str, Any] | None:
+def _termine_lungo_327(text: str, *, labour: bool | None = None) -> dict[str, Any] | None:
     """Termine lungo di impugnazione (art. 327 c.p.c.): sei mesi dalla pubblicazione della sentenza.
 
-    La comunicazione di deposito non fa decorrere il termine breve (art. 325), ma la pubblicazione fa
-    decorrere quello lungo, che vale se la sentenza non viene notificata. Decorre dalla data di deposito
-    letta nel testo; in mancanza dalla comunicazione di cancelleria, che nel PCT coincide di regola col
-    deposito (da verificare). Sospensione feriale salvo lavoro e previdenza (art. 3 L. 742/1969).
+    La comunicazione di cancelleria non fa decorrere alcun termine: né il breve (art. 325), né il lungo.
+    Il termine lungo decorre dalla pubblicazione, cioè dal deposito della sentenza (art. 133 c.p.c.), e vale
+    se la sentenza non viene notificata. Si calcola solo dalla data di deposito letta nel testo; se manca,
+    resta un promemoria senza data da completare con la data di deposito. Sospensione feriale salvo lavoro
+    e previdenza (art. 3 L. 742/1969).
     """
     trovata = _PUBBLICAZIONE.search(str(text or ""))
     pubblicazione: date | None = None
     if trovata:
-        giorno, mese, anno = (int(parte) for parte in trovata.groups())
+        giorno, mese, anno = (int(parte) for parte in trovata.groups() if parte is not None)
         try:
             pubblicazione = date(anno, mese, giorno)
         except ValueError:
             pubblicazione = None
-    letta_nel_testo = pubblicazione is not None
-    pubblicazione = pubblicazione or _parse_date(comunicazione_date)
     if pubblicazione is None:
-        return None
+        if trovata:
+            return None
+        return {
+            "ok": False,
+            "human_review_required": True,
+            "tipo": "perentorio",
+            "azione": "Impugnazione della sentenza — termine lungo: indicare la data di deposito",
+            "norma": "Art. 327 c.p.c.",
+            "template_code": "",
+            "reason": (
+                "Sentenza depositata: il termine lungo di sei mesi decorre dalla data di deposito (pubblicazione, "
+                "art. 133 c.p.c.), non dalla comunicazione di cancelleria. La data di deposito non si legge nella "
+                "comunicazione: indicarla per calcolare il termine."
+            ),
+        }
     template = _TEMPLATES_BY_CODE.get("CIV_APPELLO_LUNGO")
     if template is None:
         return None
@@ -175,7 +192,6 @@ def _termine_lungo_327(text: str, comunicazione_date: Any, *, labour: bool | Non
         matter_type="labor" if lavoro else template.matter_type, suspend_august=not lavoro,
         reference_law=template.reference_law,
     )
-    fonte = "data di deposito letta nella comunicazione" if letta_nel_testo else "data della comunicazione di cancelleria"
     return {
         **result,
         "ok": True,
@@ -188,9 +204,9 @@ def _termine_lungo_327(text: str, comunicazione_date: Any, *, labour: bool | Non
         "deadline": result["deadline"],
         "raw_deadline": result.get("rawDeadline"),
         "human_review_required": True,
-        "confidence": 0.8 if letta_nel_testo else 0.65,
+        "confidence": 0.8,
         "explanation": (
-            f"Sei mesi dalla pubblicazione ({fonte}: {pubblicazione.strftime('%d/%m/%Y')})"
+            f"Sei mesi dalla pubblicazione (data di deposito letta nella comunicazione: {pubblicazione.strftime('%d/%m/%Y')})"
             f"{'' if lavoro else ', con la sospensione feriale'}. Se la sentenza viene notificata vale il termine "
             "breve dell'art. 325 c.p.c. dalla notifica."
         ),
@@ -290,7 +306,7 @@ def propose_legal_deadline(
 
     rule, matched_keyword = _resolve_rule_match(text_norm, rules)
     if rule is None and is_deposito_sentenza:
-        return _termine_lungo_327(text, dies_a_quo_date, labour=labour)
+        return _termine_lungo_327(text, labour=labour)
     if rule is None:
         if any(_norm(kw) in text_norm for kw in rules.get("assegnazione_generica_keywords", [])):
             return {
@@ -322,7 +338,7 @@ def propose_legal_deadline(
     # termine breve ex art. 325, blocca sempre: il breve parte dalla notificazione
     # (evento distinto), mai dalla comunicazione di cancelleria.
     if template.reference_law.startswith("Art. 325") and is_deposito_sentenza:
-        lungo = _termine_lungo_327(text, dies_a_quo_date, labour=labour)
+        lungo = _termine_lungo_327(text, labour=labour)
         if lungo is not None:
             return lungo
         return {

@@ -47,17 +47,28 @@ def test_644_decreto_ingiuntivo_notifica():
 
 
 def test_deposito_sentenza_non_fa_decorrere_termine_breve():
-    # Regola art. 133/325: dalla sola comunicazione niente termine breve automatico.
+    # La comunicazione di cancelleria non fa decorrere alcun termine (né art. 325, né art. 327):
+    # senza la data di deposito nel testo resta un promemoria senza data.
     r = propose_legal_deadline(
         "Comunicazione di deposito sentenza. Termine breve per impugnare.",
         dies_a_quo_date="2026-03-02",
         event_type="deposito_sentenza",
     )
-    # Dal 31/10/2026 la pubblicazione fa decorrere il termine lungo (art. 327), mai quello breve (art. 325).
-    assert r["ok"] is True and r["norma"] == "Art. 327 c.p.c." and "325" not in r["norma"]
-    assert r["human_review_required"] is True
+    assert r["ok"] is False and r["human_review_required"] is True
+    assert r["norma"] == "Art. 327 c.p.c." and "deadline" not in r
+    assert "data di deposito" in r["reason"] and "non dalla comunicazione" in r["reason"]
+
+
+def test_termine_lungo_dalla_data_di_deposito_non_dalla_comunicazione():
     # 02/03 + 6 mesi = 02/09, + 31 giorni di agosto = sabato 03/10 → lunedì 05/10 (art. 155 c.p.c.).
-    assert "breve" in r["explanation"] and r["deadline"] == "2026-10-05"
+    for testo in (
+        "Si comunica che in data 02/03/2026 è stata depositata la sentenza n. 12/2026.",
+        "Comunicazione di cancelleria. Data deposito: 02/03/2026. Sentenza n. 12/2026.",
+        "Sentenza pubblicata il 02/03/2026",
+    ):
+        r = propose_legal_deadline(testo, dies_a_quo_date="2026-04-20", event_type="deposito_sentenza")
+        assert r["ok"] is True and r["dies_a_quo_date"] == "2026-03-02", testo
+        assert r["deadline"] == "2026-10-05" and "breve" in r["explanation"]
 
 
 def test_termine_lungo_dalla_data_di_deposito_letta_e_senza_feriale_nel_lavoro():

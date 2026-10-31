@@ -63,11 +63,15 @@ def promemoria(verifica: Any, oggi: date) -> list[str]:
     if not verifica.in_ambito:
         return ["Difesa o consulenza collegata a un procedimento giudiziario: fuori dagli obblighi di adeguata verifica "
                 "(art. 17 c. 7 D.Lgs. 231/2007)."]
-    scadenza_doc = _data(getattr(verifica, "documento_scadenza", ""))
     if not getattr(verifica, "documento_numero", ""):
         messaggi.append("Identifica il cliente con un documento d'identità valido e conservane copia (art. 19 c. 1 lett. a).")
-    elif scadenza_doc and scadenza_doc < oggi.isoformat():
-        messaggi.append("Il documento d'identità registrato è scaduto: acquisiscine uno valido.")
+    else:
+        from pct.scadenza_documento_identita import stato_documento
+
+        # Scaduto o in scadenza entro 60/30 giorni: preavviso per chiedere il rinnovo (artt. 18-19).
+        stato_doc = stato_documento(getattr(verifica, "documento_scadenza", ""), oggi)
+        if stato_doc["stato"] == "scaduto" or stato_doc["stato"].startswith("in_scadenza_") or stato_doc["stato"] == "data_non_valida":
+            messaggi.append(stato_doc["messaggio"])
     livello = verifica.livello_scelto or verifica.livello_suggerito().value
     if livello == LivelloVerifica.RAFFORZATA.value or verifica.cliente_pep or verifica.paese_alto_rischio:
         messaggi.append("Rischio elevato: verifica rafforzata (artt. 24-25) e valutazione della segnalazione di operazione "

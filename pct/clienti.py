@@ -106,9 +106,11 @@ class DocumentoIdentita:
 
     @property
     def scaduto(self) -> bool:
-        if not self.data_scadenza:
-            return False
-        return date.fromisoformat(self.data_scadenza) < date.today()
+        """Scaduto rispetto alla data italiana; una data scritta male non solleva eccezioni."""
+        from pct.ora_italiana import oggi_roma
+        from pct.scadenza_documento_identita import stato_documento
+
+        return stato_documento(self.data_scadenza, oggi_roma())["stato"] == "scaduto"
 
 
 @dataclass

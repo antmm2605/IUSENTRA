@@ -325,6 +325,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
     from web.services.termine_lungo_runtime import completa_termini_lunghi_runtime
 
     termini_lunghi = completa_termini_lunghi_runtime(_pec_audit_db_path_for_paths(paths), scadenziario, oggi=oggi_roma())
+    rinnovi_documenti = _proponi_rinnovi_documenti(paths, backend, scadenziario, oggi_roma())
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -342,6 +343,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "riconvalida171ter": riconvalida_171ter,
         "memorieDaUdienza": memorie_da_udienza,
         "terminiLunghiSentenze": termini_lunghi,
+        "rinnoviDocumentiIdentita": rinnovi_documenti,
     }
     for user in recipients:
         try:
@@ -524,6 +526,23 @@ def _notification_fascicolo_from_row(row: Any) -> SimpleNamespace:
         stato=_notification_text(_notification_row_value(row, "stato")),
         documenti=docs,
     )
+
+
+def _proponi_rinnovi_documenti(paths: Mapping[str, Any], backend: Any, scadenziario: Any, oggi: Any) -> dict[str, Any]:
+    """Documenti d'identità dei clienti in scadenza entro 60 giorni → voce di rinnovo nello scadenziario."""
+    from pct.clienti import GestioneClienti
+    from pct.scadenza_documento_identita import proponi_rinnovi
+
+    if not _notification_text(paths.get("CLIENTI_DB")) and not _notification_text(paths.get("STUDIO_DB")):
+        return {"proposte": 0, "date_non_valide": 0}
+    try:
+        clienti = GestioneClienti(
+            db_path=_tenant_json_mirror_path(paths, "CLIENTI_DB", "clienti/anagrafica.json"), studio_db=backend,
+        )
+        return proponi_rinnovi(clienti.tutti(), scadenziario, oggi=oggi)
+    except Exception as exc:  # il preavviso dei documenti non deve fermare le notifiche
+        logging.getLogger(__name__).warning("Rinnovi dei documenti d'identità non proposti: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 
 def _allinea_memorie_da_udienza(paths: Mapping[str, Any], database: Any, agenda: Any, scadenziario: Any) -> dict[str, Any]:

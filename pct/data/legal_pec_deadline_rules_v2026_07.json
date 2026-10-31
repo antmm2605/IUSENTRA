@@ -10,7 +10,9 @@
     "art_644_cpc": "Decreto ingiuntivo da notificare entro 60 giorni dalla pronuncia",
     "art_669_terdecies_cpc": "Reclamo cautelare entro 15 giorni",
     "art_380_bis_cpc": "Cassazione: richiesta decisione entro 40 giorni dalla comunicazione",
-    "art_641_cpc": "Opposizione a decreto ingiuntivo entro 40 giorni dalla notificazione"
+    "art_641_cpc": "Opposizione a decreto ingiuntivo entro 40 giorni dalla notificazione",
+    "art_305_cpc": "Processo interrotto: riassunzione entro tre mesi dalla conoscenza legale dell'interruzione",
+    "art_307_cpc": "Causa cancellata dal ruolo: riassunzione entro tre mesi, a pena di estinzione"
   },
   "blocco_art_325": {
     "keywords": ["deposito sentenza", "pubblicazione sentenza", "sentenza depositata", "sentenza pubblicata"],
@@ -26,6 +28,8 @@
     {"template_code": "CIV_CASSAZIONE_380_BIS", "articolo": "Art. 380-bis c.p.c.", "keywords": ["380-bis", "380 bis", "proposta di definizione", "richiesta di decisione della cassazione"], "dies_a_quo_type": "comunicazione", "tipo": "perentorio", "confidence": 0.8, "azione": "Richiesta di decisione dopo proposta ex art. 380-bis c.p.c. (40 giorni dalla comunicazione)"},
     {"template_code": "CIV_DI_NOTIFICA_644", "articolo": "Art. 644 c.p.c.", "keywords": ["decreto ingiuntivo", "notificare il decreto", "art. 644", "notifica del decreto ingiuntivo"], "dies_a_quo_type": "pronuncia_decreto", "tipo": "perentorio", "confidence": 0.75, "azione": "Notifica del decreto ingiuntivo ex art. 644 c.p.c. (60 giorni dalla pronuncia)"},
     {"template_code": "CIV_OPPOSIZIONE_DI", "articolo": "Art. 641 c.p.c.", "keywords": ["opposizione a decreto ingiuntivo", "641", "opporsi al decreto"], "dies_a_quo_type": "notificazione", "tipo": "perentorio", "confidence": 0.75, "azione": "Opposizione a decreto ingiuntivo ex art. 641 c.p.c. (40 giorni dalla notificazione)"},
-    {"template_code": "CIV_APPELLO_BREVE", "articolo": "Artt. 325 e 326 c.p.c.", "keywords": ["termine breve", "appello breve", "impugnazione breve"], "dies_a_quo_type": "notificazione", "tipo": "perentorio", "confidence": 0.7, "azione": "Appello - termine breve ex art. 325 c.p.c. (dalla notificazione, non dalla comunicazione)"}
+    {"template_code": "CIV_APPELLO_BREVE", "articolo": "Artt. 325 e 326 c.p.c.", "keywords": ["termine breve", "appello breve", "impugnazione breve"], "dies_a_quo_type": "notificazione", "tipo": "perentorio", "confidence": 0.7, "azione": "Appello - termine breve ex art. 325 c.p.c. (dalla notificazione, non dalla comunicazione)"},
+    {"template_code": "CIV_RIASSUNZIONE_307", "articolo": "Art. 307 c.p.c.", "keywords": ["cancellazione della causa dal ruolo", "cancellata dal ruolo", "cancellazione dal ruolo", "dispone la cancellazione"], "dies_a_quo_type": "comunicazione", "tipo": "perentorio", "confidence": 0.8, "azione": "Riassunzione della causa cancellata dal ruolo entro tre mesi (art. 307 c.p.c.), a pena di estinzione"},
+    {"template_code": "CIV_RIASSUNZIONE_305", "articolo": "Art. 305 c.p.c.", "keywords": ["dichiara interrotto il processo", "dichiara l'interruzione", "interruzione del processo", "processo interrotto"], "dies_a_quo_type": "comunicazione", "tipo": "perentorio", "confidence": 0.75, "azione": "Riassunzione del processo interrotto entro tre mesi dalla conoscenza legale dell'interruzione (art. 305 c.p.c.)"}
   ]
 }

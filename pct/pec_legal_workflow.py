@@ -302,6 +302,30 @@ def _evento_da_comunicazione(oggetto: str, text: str) -> dict[str, Any] | None:
         return _event_payload("udienza_fissata", f"Udienza fissata: {oggetto}", "alta",
                               "Creare o aggiornare scadenziario; la modalita' (presenza, remoto, note) va letta dal provvedimento.",
                               creates_deadline=True)
+    if "DECRETO INGIUNTIVO" in u or "INGIUNZIONE" in u:
+        if "RIGETT" in u:
+            return _event_payload("decreto_ingiuntivo_rigettato", f"Ricorso per decreto ingiuntivo rigettato: {oggetto}", "alta",
+                                  "Leggere il decreto di rigetto (art. 640 c.p.c.) e valutare con il cliente la riproposizione "
+                                  "della domanda o il giudizio ordinario.")
+        if "ESECUTOR" in u or "ESECUTIV" in u:
+            return _event_payload("decreto_ingiuntivo_esecutivo", f"Decreto ingiuntivo dichiarato esecutivo: {oggetto}", "alta",
+                                  "Verificare la dichiarazione di esecutorietà (artt. 647 e 654 c.p.c.), chiedere la copia "
+                                  "esecutiva e valutare il precetto.")
+        return _event_payload("decreto_ingiuntivo_emesso", f"Decreto ingiuntivo emesso: {oggetto}", "alta",
+                              "Scaricare il decreto e notificarlo entro 60 giorni dalla pronuncia, a pena di inefficacia "
+                              "(art. 644 c.p.c.).", creates_deadline=True)
+    if "CANCELLAZIONE" in u and "RUOLO" in u:
+        return _event_payload("cancellazione_dal_ruolo", f"Causa cancellata dal ruolo: {oggetto}", "rossa",
+                              "Riassumere entro tre mesi, altrimenti il processo si estingue (art. 307 c.p.c.).",
+                              creates_deadline=True)
+    if "INTERRUZIONE" in u or "INTERROTT" in u:
+        return _event_payload("interruzione_processo", f"Processo interrotto: {oggetto}", "rossa",
+                              "Riassumere entro tre mesi dalla conoscenza legale dell'interruzione (art. 305 c.p.c.).",
+                              creates_deadline=True)
+    if "RISERVA" in u:
+        return _event_payload("scioglimento_riserva", f"Riserva sciolta: {oggetto}", "alta",
+                              "Leggere l'ordinanza: registrare i termini assegnati (memorie, prove, CTU) e la prossima udienza.",
+                              creates_deadline=True)
     if "SOSTITUZIONE GIUDICE" in u:
         return _event_payload("sostituzione_giudice", "Sostituzione giudice", "media",
                               "Aggiornare giudice del fascicolo, salvare precedente e attuale, verificare udienze future.")

@@ -302,6 +302,28 @@ DEFAULT_TEMPLATES: tuple[DeadlineTemplate, ...] = (
         metadata={"source_event": "pronuncia_decreto"},
     ),
     DeadlineTemplate(
+        # Cancellazione della causa dal ruolo (artt. 181, 309 c.p.c.): riassunzione entro tre mesi, altrimenti
+        # il processo si estingue (art. 307, primo comma).
+        code="CIV_RIASSUNZIONE_307",
+        name="Riassunzione dopo la cancellazione dal ruolo",
+        base_value=3,
+        period_type="months",
+        suspend_august=True,
+        reference_law="Art. 307 c.p.c.",
+        metadata={"source_event": "cancellazione_dal_ruolo"},
+    ),
+    DeadlineTemplate(
+        # Interruzione del processo (artt. 299-301 c.p.c.): riassunzione entro tre mesi dalla conoscenza legale
+        # dell'evento interruttivo (art. 305, come letto da Corte cost. 159/1971).
+        code="CIV_RIASSUNZIONE_305",
+        name="Riassunzione dopo l'interruzione del processo",
+        base_value=3,
+        period_type="months",
+        suspend_august=True,
+        reference_law="Art. 305 c.p.c.",
+        metadata={"source_event": "dichiarazione_interruzione"},
+    ),
+    DeadlineTemplate(
         code="CIV_RECLAMO_CAUTELARE_669_TERDECIES",
         name="Reclamo cautelare",
         base_value=15,

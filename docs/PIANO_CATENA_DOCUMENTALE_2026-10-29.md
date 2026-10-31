@@ -611,3 +611,18 @@ Regola unica (`pct/agenda_eventi_equivalenti.py`): udienza equivalente = stesso 
 - conferma delle proposte di udienza (Polisweb e cancelleria) e importazione dello storico PDP.
 
 Restano: calendari esterni (confronto di contenuto prima di creare), torre di controllo PEC, procedura guidata di preparazione udienza, memorie 171-ter legate all'id dell'appuntamento (non più duplicate se l'udienza è una sola), indici per fascicolo e data al posto delle scansioni complete.
+
+### 9.9 Avanzamento dei punti 3, 5 e 6 (31/10/2026)
+
+**Punto 3, identità** (fatto, con test):
+- collegamento del documento d'identità al cliente solo con identità congiunta: nome + codice fiscale (anche omocodico) o data di nascita; un codice fiscale diverso esclude il cliente con il motivo; la pipeline principale ora riceve il cliente; versione del catalogo `v32-identita-congiunta` per rileggere i collegamenti fatti col solo nome;
+- scadenza del documento: preavviso a 60 e 30 giorni nello scadenziario (giro delle notifiche) e nell'antiriciclaggio; nessuna eccezione su date malformate; la data della scheda cliente prevale (`pct/scadenza_documento_identita.py`).
+Resta: conservazione del documento caricato in compilazione anagrafica, portale cliente dal lettore, audit di ogni lettura, confronto di nascita e residenza delle parti negli atti.
+
+**Punto 5, classificatore**: misura e dataset confrontano la decisione dell'avvocato con la voce **proposta dalle regole prima della correzione** (dall'evento `document_catalog.overridden`), non con quella già corretta.
+
+**Punto 6, velocità e AI locale**:
+- lettura a parti (`pct/lettura_a_parti.py`) in «Chiedi al fascicolo»: gli estratti oltre il contesto si leggono a gruppi, le note si uniscono; nessun taglio silenzioso; una parte non letta è dichiarata;
+- l'estrattore di Lex legge il testo nativo di tutte le pagine (OCR in richiesta solo sulle prime 15, le altre dichiarate) e dichiara il testo non riportato;
+- l'indice semantico che non termina si rimanda senza far fallire catalogo e presìdi.
+Resta: semaforo condiviso di Ollama, editor AI a parti, prove di Lex oltre il budget del prompt.

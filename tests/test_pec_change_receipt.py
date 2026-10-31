@@ -359,7 +359,7 @@ from pct.pec_change_receipt import classify_court_communication, communication_r
 from pct.pec_provvedimento_terms import is_labour_matter, propose_terms  # noqa: E402
 
 
-def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", ufficio: str = "TRIBUNALE ORDINARIO DI VICENZA", when: str = "Wed, 05 Aug 2026 08:39:12 +0200", tag: str = "x", data_evento: str = "") -> bytes:
+def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", ufficio: str = "TRIBUNALE ORDINARIO DI VICENZA", when: str = "Wed, 05 Aug 2026 08:39:12 +0200", tag: str = "x", data_evento: str = "", ricorrente: str = "") -> bytes:
     msg = EmailMessage()
     msg["From"] = "posta-certificata@legalmail.it"
     msg["To"] = "studio@pec.it"
@@ -373,7 +373,7 @@ def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", u
     )
     xml = (f"""<Comunicazione><NumeroRuolo>{rg}</NumeroRuolo><Oggetto>{oggetto}</Oggetto>
     <Contenuto><![CDATA[Ufficio: {ufficio}
-    Numero di Ruolo generale: {rg}
+    Numero di Ruolo generale: {rg}""" + (f"\n    Ricorr. principale: {ricorrente}" if ricorrente else "") + f"""
     Oggetto: {oggetto}
     Descrizione: {descrizione}""" + (f"\n    Data Evento: {data_evento}" if data_evento else "") + """]]></Contenuto></Comunicazione>""").encode()
     msg.add_attachment(xml, maintype="application", subtype="xml", filename="Comunicazione.xml")
@@ -522,3 +522,54 @@ def test_sentenza_senza_data_evento_prende_il_deposito_dalla_sentenza_allegata(t
         if "PEC_TERMINE_PROPOSTO:" in item.note and item.source_message_id == sentenza_id
     ]
     assert [item.data_decorrenza for item in bozze] == [deposito.isoformat()]
+
+
+def test_il_provvedimento_della_comunicazione_entra_nel_fascicolo_una_volta(tmp_path):
+    """Verifica del 31/10/2026: la sentenza arrivata con la PEC di cancelleria non era nel fascicolo."""
+    import io
+    import zipfile
+    from email import message_from_bytes
+
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento
+
+    repo, fascicolo = _repo_con_fascicolo(tmp_path)
+    pdf = b"%PDF-1.4\n% sentenza del giudice\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as archivio:
+        archivio.writestr("15494079s.pdf", pdf)
+    mime = message_from_bytes(_cancelleria_mime(
+        "SENTENZA A VERBALE (art. 127 ter cpc)", "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 1293/2026",
+        rg="523/2026/LAV", when="Thu, 29 Oct 2026 10:52:36 +0100", tag="provvedimento", ricorrente="BARILARO FRANCESCO",
+    ), policy=policy.SMTP)
+    mime.add_attachment(zip_buffer.getvalue(), maintype="application", subtype="zip", filename="15494079s.pdf.zip")
+    message_id = _run_cancelleria(repo, mime.as_bytes(policy=policy.SMTP), "INBOX:UID:381")
+    # Collegamento al fascicolo (in produzione dal ruolo e dalle parti; qui confermato con soglia di prova).
+    repo.link_fascicolo(message_id, threshold=0.5, actor="pytest")
+    repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
+
+    def _provvedimenti():
+        gestione = GestioneFascicoli(db_path=str(tmp_path / "fascicoli.json"), documents_dir=str(tmp_path / "docs"))
+        return [doc for doc in gestione.get(fascicolo.id).documenti if doc.fonte_documento == "PEC_CANCELLERIA"]
+
+    documenti = _provvedimenti()
+    assert [(doc.nome_originale, doc.tipo) for doc in documenti] == [("15494079s.pdf", TipoDocumento.SENTENZA)]
+    assert f"IUSENTRA_PROVVEDIMENTO_CANCELLERIA:{message_id}" in documenti[0].note
+    assert documenti[0].data_documento == "2026-10-29"
+    # Copia informativa: non è l'originale da notificare (quello si scarica dal portale).
+    assert "copia-informativa" in documenti[0].tags and "Non è la copia da notificare" in documenti[0].note
+    # Seconda elaborazione della stessa PEC: nessun doppione (stessa impronta).
+    repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
+    assert len(_provvedimenti()) == 1
+
+
+def test_i_file_tecnici_della_comunicazione_non_sono_provvedimenti():
+    from email.message import EmailMessage
+
+    from pct.pec_provvedimento_fascicolo import provvedimenti_allegati
+
+    msg = EmailMessage()
+    msg.set_content("Comunicazione")
+    msg.add_attachment(b"<Comunicazione/>", maintype="application", subtype="xml", filename="Comunicazione.xml")
+    msg.add_attachment(b"firma", maintype="application", subtype="pkcs7-signature", filename="smime.p7s")
+    msg.add_attachment(b"%PDF-1.4 decreto", maintype="application", subtype="pdf", filename="Decreto_153768904.pdf")
+    assert [nome for nome, _ in provvedimenti_allegati(msg.as_bytes())] == ["Decreto_153768904.pdf"]

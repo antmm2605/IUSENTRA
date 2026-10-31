@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import email
 import hashlib
+import logging
 import html
 import io
 import imaplib
@@ -5794,6 +5795,20 @@ def _operational_presidio_key_for_proposal(
     )
 
 
+def _notifica_documento_aggiunto(fascicolo_id: str, documento: Any) -> None:
+    """Nuovo documento nel fascicolo: inventario delle letture e lettura in sfondo (se c'è l'app)."""
+    try:
+        from flask import has_app_context
+
+        if not has_app_context():
+            return
+        from web.services.registro_letture_runtime import documento_aggiornato
+
+        documento_aggiornato(fascicolo_id, documento)
+    except Exception:  # pragma: no cover - l'evento non blocca l'archiviazione
+        pass
+
+
 def _notifica_pec_collegata(fascicolo_id: str) -> None:
     try:
         from flask import has_app_context
@@ -9359,6 +9374,57 @@ class PecAuditRepository:
         notification_id = clean_text(profile.get("notification_id"), 120)
         suffix = f" [Notifica_ID:{notification_id}]" if notification_id else ""
         return f"{label}: Notificazione ai sensi della legge n. 53 - 1994 e succ. mod.{suffix}"
+
+    def _save_court_provvedimento_to_fascicolo(
+        self, *, message_id: str, fascicolo_id: str, kind: str, event: str, received_day: str, actor: str,
+    ) -> dict[str, Any]:
+        """Archivia nel fascicolo i PDF del giudice allegati alla comunicazione di cancelleria (idempotente)."""
+        if not self.fascicoli_db_path or not fascicolo_id:
+            return {"ok": True, "skipped": "fascicolo_non_collegato", "archiviati": 0}
+        try:
+            from pct.fascicoli import GestioneFascicoli
+            from pct.pec_provvedimento_fascicolo import provvedimenti_allegati, tipo_documento
+
+            raw, _row = self.original_mime(message_id)
+            provvedimenti = provvedimenti_allegati(raw)
+            if not provvedimenti:
+                return {"ok": True, "skipped": "nessun_provvedimento", "archiviati": 0}
+            manager = GestioneFascicoli(
+                db_path=str(self.fascicoli_db_path),
+                documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
+                studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+            )
+            fascicolo = manager.get(fascicolo_id)
+            if fascicolo is None:
+                return {"ok": True, "skipped": "fascicolo_non_trovato", "archiviati": 0}
+            presenti = {
+                clean_text(getattr(doc, "hash_contenuto_sha256", "") or getattr(doc, "hash_sha256", ""), 80).lower()
+                for doc in list(getattr(fascicolo, "documenti", []) or [])
+            }
+            archiviati = 0
+            for nome, contenuto in provvedimenti:
+                impronta = hashlib.sha256(contenuto).hexdigest()
+                if impronta in presenti:
+                    continue
+                documento = manager.aggiungi_documento(
+                    fascicolo_id, nome, tipo_documento(kind, event), contenuto,
+                    note=(f"IUSENTRA_PROVVEDIMENTO_CANCELLERIA:{message_id}\n"
+                          f"Copia informativa del provvedimento allegata alla comunicazione di cancelleria ricevuta il "
+                          f"{received_day} ({clean_text(event, 160)}). Fonte: PEC di cancelleria, impronta SHA-256 "
+                          f"{impronta}.\nNon è la copia da notificare: per la notifica e l'attestazione di conformità "
+                          "serve la copia informatica scaricata dal Portale dei Servizi Telematici, che riporta i dati "
+                          "del deposito."),
+                    tags=["pec-cancelleria", "provvedimento", "copia-informativa"], data_documento=received_day, caricato_da=actor,
+                    fonte_documento="PEC_CANCELLERIA", nome_originale=nome, hash_contenuto_sha256=impronta,
+                    msg_id_portale=message_id,
+                )
+                presenti.add(impronta)
+                archiviati += 1
+                _notifica_documento_aggiunto(fascicolo_id, documento)
+            return {"ok": True, "archiviati": archiviati}
+        except Exception as exc:  # l'archiviazione non deve fermare la registrazione della comunicazione
+            logging.getLogger(__name__).warning("Provvedimento della PEC %s non archiviato nel fascicolo %s: %s", message_id, fascicolo_id, exc)
+            return {"ok": False, "errore": type(exc).__name__, "archiviati": 0}
 
     def _save_notification_receipt_to_fascicolo(
         self,
@@ -14586,6 +14652,11 @@ class PecAuditRepository:
         received = received.replace(second=0)
         message = message if isinstance(message, dict) else {}
         fascicolo_id = clean_text(message.get("linked_fascicolo_id") or stored_message.get("linked_fascicolo_id") or "", 120)
+        # Il provvedimento allegato alla comunicazione entra nel fascicolo: da lì partono le letture.
+        self._save_court_provvedimento_to_fascicolo(
+            message_id=clean_id, fascicolo_id=fascicolo_id, kind=comm.kind, event=comm.event,
+            received_day=received.date().isoformat(), actor=actor,
+        )
         rg = change_normalize_rg(profile.get("numero_rg"))
         agenda = self._agenda_manager()
         appointments = list(agenda.tutti())

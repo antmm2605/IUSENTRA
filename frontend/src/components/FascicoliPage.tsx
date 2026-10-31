@@ -6893,7 +6893,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           : 'Apri il controllo prioritario',
       ].join(' · ')
     : operational.summary || 'Apri i controlli del fascicolo'
-  const nextDeadline = data.deadlines[0] || data.appointments[0]
+  const nextDeadline = data.deadlines[0] || data.appointments.find((app) => !app.past)
   const notification = data.notificationRelata
   const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
   const contributoUnificato = data.fascicolo.paymentSummary.items.contributo_unificato
@@ -9639,7 +9639,7 @@ function DetailPage({ id }:{id:string}) {
   const notificationRelataCount = data.quickCounts.relata_notifica || notificationRelata.pendingPortalDocuments || notificationRelata.relataDocuments || notificationRelata.signedRelataDocuments || notificationRelata.proofDocuments || 0
   const qualityIssues = data.quality.filter((item) => !item.ok).length + (Number(f.alerts) || 0)
   const nextDeadline = data.deadlines[0]
-  const nextAppointment = data.appointments[0]
+  const nextAppointment = data.appointments.find((app) => !app.past)
   const preventivo = data.workflow.find((item) => /preventiv/i.test(item.label))
   const conferimento = data.workflow.find((item) => /conferiment|incaric/i.test(item.label))
   const notificationCommunicationDocuments = data.documents.filter(isNotificationCommunicationDocument)
@@ -10222,7 +10222,7 @@ function QuadroPage({ id }:{id:string}) {
   const qualityIssues = Math.max(0, data.quality.length - qualityOk + (Number(f.alerts) || 0))
   const qualityStatus = qualityIssues ? `${qualityIssues} ${qualityIssues === 1 ? 'verifica' : 'verifiche'}` : 'OK'
   const nextDeadline = data.deadlines[0]
-  const nextAppointment = data.appointments[0]
+  const nextAppointment = data.appointments.find((app) => !app.past)
   const valore = moneyFrom(data, 'valore', f.value || '€ 0,00')
   const compenso = moneyFrom(data, 'compenso', f.agreedFee || f.quotedValue || '€ 0,00')
   const parcelle = moneyFrom(data, 'parcelle')

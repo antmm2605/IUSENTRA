@@ -8908,24 +8908,42 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
 
 
 def _appointments(apps: Iterable[Any]) -> list[dict[str, Any]]:
-    out = []
+    """Agenda del fascicolo: prima i prossimi (dal più vicino), poi i passati (dal più recente).
+
+    Verifica del 31/10/2026 (V34): promemoria PEC del 2024-2025 e udienze del 2023 restavano in testa
+    all'elenco con il tono «da attenzionare» e la scheda li proponeva come prossimo appuntamento.
+    Il giorno di riferimento è quello di Roma.
+    """
+    oggi = oggi_rome()
+    prossimi: list[tuple[date, dict[str, Any]]] = []
+    passati: list[tuple[date, dict[str, Any]]] = []
     for app in apps:
-        aid = _text(getattr(app, "id", ""), f"app-{len(out)}")
+        aid = _text(getattr(app, "id", ""), f"app-{len(prossimi) + len(passati)}")
         raw = getattr(app, "data_ora", "") or getattr(app, "data_ora_dt", "")
-        out.append(
-            {
-                "id": aid,
-                "title": _short(getattr(app, "titolo", ""), 120) or "Appuntamento",
-                "date": _date_label(raw),
-                "time": _time_label(raw),
-                "place": _text(getattr(app, "luogo", "")),
-                "court": _text(getattr(app, "tribunale", "")),
-                "type": _enum_value(getattr(app, "tipo", "")),
-                "href": f"/agenda/{quote(aid, safe='')}",
-                "tone": "warning" if _parse_date(raw) and (_parse_date(raw) or date.max) <= date.today() + timedelta(days=1) else "primary",
-            }
-        )
-    return out
+        giorno = _parse_date(raw)
+        passato = bool(giorno and giorno < oggi)
+        if passato:
+            tono = "neutral"
+        elif giorno and giorno <= oggi + timedelta(days=1):
+            tono = "warning"
+        else:
+            tono = "primary"
+        voce = {
+            "id": aid,
+            "title": _short(getattr(app, "titolo", ""), 120) or "Appuntamento",
+            "date": _date_label(raw),
+            "time": _time_label(raw),
+            "place": _text(getattr(app, "luogo", "")),
+            "court": _text(getattr(app, "tribunale", "")),
+            "type": _enum_value(getattr(app, "tipo", "")),
+            "href": f"/agenda/{quote(aid, safe='')}",
+            "tone": tono,
+            "past": passato,
+        }
+        (passati if passato else prossimi).append((giorno or date.max, voce))
+    prossimi.sort(key=lambda coppia: coppia[0])
+    passati.sort(key=lambda coppia: coppia[0], reverse=True)
+    return [voce for _, voce in prossimi] + [voce for _, voce in passati]
 
 
 def _deposits(fascicolo: Any) -> list[dict[str, Any]]:

@@ -486,6 +486,8 @@ export type FascicoloAppointment = {
   type: string
   href: string
   tone: Tone
+  /** Appuntamento già passato (giorno di Roma): in coda all'elenco, mai «prossimo». */
+  past: boolean
 }
 
 export type FascicoloDepositReceiptStep = {
@@ -2563,7 +2565,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     }),
     appointments: asArray(payload.appointments).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
-      return { id: text(row.id, `app-${index}`), title: text(row.title ?? row.titolo, 'Appuntamento'), date: text(row.date ?? row.data), time: text(row.time ?? row.ora), place: text(row.place ?? row.luogo), court: text(row.court ?? row.tribunale), type: text(row.type ?? row.tipo), href: text(row.href, '/agenda'), tone: text(row.tone, 'primary') as Tone }
+      return { id: text(row.id, `app-${index}`), title: text(row.title ?? row.titolo, 'Appuntamento'), date: text(row.date ?? row.data), time: text(row.time ?? row.ora), place: text(row.place ?? row.luogo), court: text(row.court ?? row.tribunale), type: text(row.type ?? row.tipo), href: text(row.href, '/agenda'), tone: text(row.tone, 'primary') as Tone, past: row.past === true }
     }),
     documentPresidio: normalizeDocumentPresidio(payload.documentPresidio ?? payload.document_presidio),
     operationalPresidio: normalizeOperationalPresidio(payload.operationalPresidio ?? payload.operational_presidio),

@@ -28,3 +28,22 @@ def test_solo_il_ruolo_completo_del_fascicolo_e_le_voci_collegate():
     ]
     agenda = SimpleNamespace(tutti=lambda: voci)
     assert {a.id for a in _agenda_for_fascicolo(lambda: agenda, fascicolo)} == {"giusta", "collegata"}
+
+
+def test_agenda_del_fascicolo_prima_i_prossimi_poi_i_passati_in_tono_neutro(monkeypatch):
+    """V34: promemoria PEC del 2024 e udienze del 2023 non restano in testa né «da attenzionare»."""
+    from datetime import date
+    from types import SimpleNamespace
+
+    from web.services import react_fascicoli_bridge as bridge
+
+    monkeypatch.setattr(bridge, "oggi_rome", lambda: date(2026, 10, 31))
+    voci = bridge._appointments([
+        SimpleNamespace(id="A", titolo="Udienza del 20/04/2023", data_ora="2023-04-20T09:00:00", tipo="UDIENZA"),
+        SimpleNamespace(id="B", titolo="Classifica PEC e conferma adempimenti", data_ora="2024-06-04T09:00:00+02:00", tipo="SCADENZA"),
+        SimpleNamespace(id="C", titolo="Udienza di discussione", data_ora="2026-11-24T09:30:00", tipo="UDIENZA"),
+        SimpleNamespace(id="D", titolo="Termine note", data_ora="2026-11-01T09:00:00", tipo="SCADENZA"),
+    ])
+    assert [voce["id"] for voce in voci] == ["D", "C", "B", "A"]
+    assert [voce["tone"] for voce in voci] == ["warning", "primary", "neutral", "neutral"]
+    assert [voce["past"] for voce in voci] == [False, False, True, True]

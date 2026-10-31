@@ -234,6 +234,48 @@ def _messaggio_pec(d: _Dati, g: random.Random) -> str:
             f"Cordiali saluti\nAvv. Studio Prova")
 
 
+def _ricevuta_pec(tipo: str) -> Callable[[_Dati, random.Random], str]:
+    """Ricevute e avvisi del gestore PEC come li salva il fascicolo: oggetto a prefisso fisso e dati di certificazione."""
+    prefissi = {"accettazione": "ACCETTAZIONE", "consegna": "CONSEGNA", "presa": "PRESA IN CARICO",
+                "non_accettazione": "AVVISO DI NON ACCETTAZIONE", "mancata": "AVVISO DI MANCATA CONSEGNA",
+                "anomalia": "ANOMALIA MESSAGGIO"}
+    frasi = {"accettazione": "è stato accettato dal sistema ed inoltrato.",
+             "consegna": "è stato consegnato nella casella di destinazione.",
+             "presa": "è stato preso in carico dal gestore di posta del destinatario.",
+             "non_accettazione": "non è stato accettato dal sistema per il seguente errore: destinatario non valido.",
+             "mancata": "non è stato consegnato nella casella di destinazione entro le 24 ore.",
+             "anomalia": "è stato rilevato come anomalo dal gestore di posta: il messaggio non è firmato."}
+
+    def genera(d: _Dati, g: random.Random) -> str:
+        oggetto = g.choice((f"Notificazione ai sensi della legge n. 53 del 1994 - {d.parte}",
+                            f"DEPOSITO TELEMATICO - Atto di citazione - RG {d.numero}/{d.anno}", f"Trasmissione atti - {d.parte}"))
+        ora = f"{g.randint(8, 19):02d}:{g.randint(10, 59)}:{g.randint(10, 59)}"
+        return (f"Oggetto: {prefissi[tipo]}: {oggetto}\nDa: posta-certificata@pec.gestore-esempio.it\n"
+                f"A: studio.prova@pec.esempio.it\nData: {d.data} {ora}\n"
+                f"{g.choice(('Ricevuta', 'Avviso', 'Messaggio del gestore'))}\n"
+                f"Il giorno {d.data} alle ore {ora} (+0100) il messaggio \"{oggetto}\" proveniente da "
+                f"\"studio.prova@pec.esempio.it\" ed indirizzato a \"{d.controparte.split()[0].lower()}@pec.esempio.it\" "
+                f"{frasi[tipo]}\nIdentificativo messaggio: opec{g.randint(10**9, 10**10 - 1)}.{d.anno}@pec.gestore-esempio.it\n"
+                f"Allegati: daticert.xml, smime.p7s")
+    return genera
+
+
+def _ricevuta_pct(oggetto: str, corpo: str) -> Callable[[_Dati, random.Random], str]:
+    """Messaggi del sistema PCT dopo il deposito (Specifiche tecniche D.M. 44/2011, art. 13)."""
+    def genera(d: _Dati, g: random.Random) -> str:
+        return (f"Da: tribunale.{d.citta.lower().replace(' ', '')}@civile.ptel.giustiziacert.it\n"
+                f"A: studio.prova@pec.esempio.it\nOggetto: {oggetto} - RG {d.numero}/{d.anno}\nData: {d.data}\n"
+                f"Messaggio di posta elettronica certificata relativo al deposito telematico n. {g.randint(10**6, 10**7)}.\n"
+                f"{corpo}\nUfficio: Tribunale di {d.citta} - cancelleria\nBusta: {g.randint(10**8, 10**9)}.enc")
+    return genera
+
+
+def _email_ordinaria(d: _Dati, g: random.Random) -> str:
+    return (f"Da: {d.parte.split()[0].lower()}@posta-esempio.it\nA: info@studioprova.it\n"
+            f"Oggetto: {g.choice(('Documenti per la pratica', 'Domanda sulla causa', 'Appuntamento'))}\nData: {d.data}\n"
+            f"Buongiorno avvocato, Le invio quanto richiesto per la pratica {d.parte}. Resto a disposizione.\nCordiali saluti")
+
+
 def _note_trattazione(d: _Dati, g: random.Random) -> str:
     return (f"TRIBUNALE DI {d.citta.upper()}\nNOTE DI TRATTAZIONE SCRITTA\n(art. 127-ter c.p.c.)\n"
             f"nella causa n. {d.numero}/{d.anno} R.G. per {d.parte} contro {d.controparte}\n"
@@ -393,6 +435,21 @@ MODELLI_CONTENUTO: dict[str, Callable[[_Dati, random.Random], str]] = {
     "Carta d'identità": _carta_identita,
     "Richiesta stragiudiziale di pagamento": _richiesta_pagamento,
     "Messaggio PEC": _messaggio_pec,
+    "Messaggio di posta elettronica": _email_ordinaria,
+    "Ricevuta PEC di accettazione": _ricevuta_pec("accettazione"),
+    "Ricevuta PEC di avvenuta consegna": _ricevuta_pec("consegna"),
+    "Ricevuta PEC di presa in carico": _ricevuta_pec("presa"),
+    "Avviso PEC di non accettazione": _ricevuta_pec("non_accettazione"),
+    "Avviso PEC di mancata consegna": _ricevuta_pec("mancata"),
+    "Avviso PEC di anomalia": _ricevuta_pec("anomalia"),
+    "Ricevuta PCT — esito controlli automatici": _ricevuta_pct(
+        "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO", "Esito dei controlli automatici: deposito regolare, nessun errore bloccante."),
+    "Ricevuta PCT — accettazione della cancelleria": _ricevuta_pct(
+        "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO", "Il deposito è stato accettato dalla cancelleria ed è visibile nel fascicolo informatico."),
+    "Ricevuta PCT — rifiuto della cancelleria": _ricevuta_pct(
+        "POSTA CERTIFICATA: RIFIUTO DEPOSITO", "Il deposito è stato rifiutato dalla cancelleria: atto non riferibile al fascicolo indicato."),
+    "Ricevuta PCT — deposito telematico": _ricevuta_pct(
+        "POSTA CERTIFICATA: RICEVUTA DI DEPOSITO", "Si attesta la ricezione del deposito telematico nel sistema del dominio giustizia."),
     "Note di trattazione scritta": _note_trattazione,
     "Nota di iscrizione a ruolo": _nota_iscrizione,
     "Indice dei documenti depositati": _indice_documenti,

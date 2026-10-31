@@ -93,6 +93,19 @@ _VOCI_DEL_RESOLVER = (
     VoceCatalogo("Modulo di istanza di mediazione", "allegati", "modulo_mediazione", "fuori_busta", False),
     VoceCatalogo("Modulo di procura speciale per la mediazione", "procure", "modulo_procura_mediazione", "fuori_busta",
                  False),
+    # Messaggi e ricevute (catalog_titoli.identita_messaggio): il catalogo li riconosce, il modello deve poterli
+    # scegliere. Le ricevute PEC di accettazione e consegna sono la prova della notifica in proprio.
+    VoceCatalogo("Messaggio di posta elettronica", "comunicazioni", "corrispondenza", "fuori_busta", False),
+    VoceCatalogo("Ricevuta PEC di accettazione", "notifiche", "prova_notifica", "prova_notifica", True),
+    VoceCatalogo("Ricevuta PEC di avvenuta consegna", "notifiche", "prova_notifica", "prova_notifica", True),
+    VoceCatalogo("Ricevuta PEC di presa in carico", "comunicazioni", "ricevuta_pec", "fuori_busta", False),
+    VoceCatalogo("Avviso PEC di non accettazione", "comunicazioni", "ricevuta_pec", "fuori_busta", False),
+    VoceCatalogo("Avviso PEC di mancata consegna", "comunicazioni", "ricevuta_pec", "fuori_busta", False),
+    VoceCatalogo("Avviso PEC di anomalia", "comunicazioni", "ricevuta_pec", "fuori_busta", False),
+    VoceCatalogo("Ricevuta PCT — esito controlli automatici", "comunicazioni", "ricevuta_deposito", "fuori_busta", False),
+    VoceCatalogo("Ricevuta PCT — accettazione della cancelleria", "comunicazioni", "ricevuta_deposito", "fuori_busta", False),
+    VoceCatalogo("Ricevuta PCT — rifiuto della cancelleria", "comunicazioni", "ricevuta_deposito", "fuori_busta", False),
+    VoceCatalogo("Ricevuta PCT — deposito telematico", "comunicazioni", "ricevuta_deposito", "fuori_busta", False),
     VoceCatalogo("Procura speciale per la mediazione", "procure", "procura_mediazione", "procura", True),
 )
 

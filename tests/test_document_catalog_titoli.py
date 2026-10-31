@@ -269,3 +269,30 @@ def test_le_etichette_dal_titolo_si_riconducono_alla_voce_dell_elenco():
     assert voce_dell_elenco("Contratto di appalto", elenco) == "Contratto"
     assert voce_dell_elenco("Memoria integrativa ex art. 171-ter, n. 2, c.p.c.", elenco) == "Memoria integrativa ex art. 171-ter c.p.c."
     assert voce_dell_elenco("Voce inesistente", elenco) == ""
+
+
+# ── Ricevute del gestore PEC: lo stesso classificatore del presidio PEC (31/10/2026) ──
+
+
+@pytest.mark.parametrize(
+    ("prefisso", "frase", "etichetta", "sezione"),
+    [
+        ("ACCETTAZIONE", "è stato accettato dal sistema ed inoltrato.", "Ricevuta PEC di accettazione", "notifiche"),
+        ("CONSEGNA", "è stato consegnato nella casella di destinazione.", "Ricevuta PEC di avvenuta consegna", "notifiche"),
+        ("AVVISO DI MANCATA CONSEGNA", "non è stato consegnato nella casella di destinazione.", "Avviso PEC di mancata consegna", "comunicazioni"),
+        ("AVVISO DI NON ACCETTAZIONE", "non è stato accettato dal sistema.", "Avviso PEC di non accettazione", "comunicazioni"),
+    ],
+)
+def test_le_ricevute_pec_nel_fascicolo_hanno_la_loro_voce(prefisso, frase, etichetta, sezione):
+    testo = (f"Oggetto: {prefisso}: Notificazione ai sensi della legge n. 53 del 1994\nDa: posta-certificata@pec.gestore.it\n"
+             f"A: studio@pec.it\nIl giorno 10/03/2026 alle ore 10:15:22 (+0100) il messaggio proveniente da "
+             f"\"studio@pec.it\" ed indirizzato a \"controparte@pec.it\" {frase}\nIdentificativo messaggio: opec123@pec.gestore.it")
+    esito = _cataloga(testo, "ricevuta.eml")
+    assert esito.document_label == etichetta
+    assert esito.document_section == sezione
+
+
+def test_una_lettera_che_cita_la_ricevuta_di_accettazione_non_e_una_ricevuta():
+    lettera = ("STUDIO LEGALE BIANCHI\nSpett.le Alfa S.r.l.\nOggetto: notifica del ricorso\n"
+               "Vi informo che la ricevuta di accettazione della notifica è stata depositata in cancelleria. Distinti saluti.")
+    assert identita_messaggio(lettera) is None or not identita_messaggio(lettera)["label"].startswith(("Ricevuta PEC", "Avviso PEC"))

@@ -51,6 +51,55 @@ _RICEVUTE_DEPOSITO: tuple[tuple[str, str, str], ...] = (
     (r"rifiuto\s+(?:del\s+)?deposito|deposito\s+rifiutato|rifiutato\s+dalla\s+cancelleria", "Ricevuta PCT — rifiuto della cancelleria", "rifiuto del deposito da parte della cancelleria"),
     (r"ricevuta\s+di\s+deposito|deposito\s+telematico\s+-", "Ricevuta PCT — deposito telematico", "messaggio del deposito telematico"),
 )
+# Ricevute e avvisi del gestore PEC (D.P.R. 68/2005, artt. 6 e 8; D.M. 2/11/2005): il tipo lo decide il
+# classificatore unico del presidio PEC (`pct.pec_oggetti_ufficiali`), così fascicolo e presidio dicono la
+# stessa cosa. Accettazione e avvenuta consegna sono la prova della notifica in proprio (art. 3-bis L. 53/1994).
+_RICEVUTE_PEC: dict[str, tuple[str, str, str, bool]] = {
+    "accettazione": ("Ricevuta PEC di accettazione", "notifiche", "prova_notifica", True),
+    "avvenuta_consegna": ("Ricevuta PEC di avvenuta consegna", "notifiche", "prova_notifica", True),
+    "presa_in_carico": ("Ricevuta PEC di presa in carico", "comunicazioni", "fuori_busta", False),
+    "non_accettazione": ("Avviso PEC di non accettazione", "comunicazioni", "fuori_busta", False),
+    "mancata_consegna": ("Avviso PEC di mancata consegna", "comunicazioni", "fuori_busta", False),
+    "preavviso_mancata_consegna": ("Avviso PEC di mancata consegna", "comunicazioni", "fuori_busta", False),
+    "rilevazione_virus": ("Avviso PEC di mancata consegna", "comunicazioni", "fuori_busta", False),
+    "anomalia": ("Avviso PEC di anomalia", "comunicazioni", "fuori_busta", False),
+}
+# Il gestore scrive sempre questi dati: senza, una lettera che cita una «ricevuta di accettazione» non è la ricevuta.
+_CONFERMA_RICEVUTA_PEC = re.compile(
+    r"identificativo\s+(?:del\s+)?messaggio|accettato\s+dal\s+sistema|consegnat[oa]\s+nella\s+casella|"
+    r"non\s+[eè]\s+stato\s+(?:consegnato|accettato)|postacert|daticert|gestore\s+(?:di\s+posta|pec)|"
+    r"casella\s+di\s+destinazione",
+    re.IGNORECASE,
+)
+
+
+def identita_ricevuta_pec(testo: str) -> dict[str, Any] | None:
+    """Ricevuta o avviso del gestore PEC, dal tipo dichiarato (daticert, prefisso dell'oggetto, formula)."""
+    from pct.pec_oggetti_ufficiali import classifica_ricevuta_pec, tipo_daticert
+
+    grezzo = str(testo or "")
+    testa = grezzo[:1500]
+    if not _CONFERMA_RICEVUTA_PEC.search(grezzo[:6000]):
+        return None
+    oggetto = _OGGETTO_MESSAGGIO.search(testa)
+    righe = _righe_titolo(testa)
+    tipo, fonte = classifica_ricevuta_pec(
+        oggetto.group(1) if oggetto else (righe[0] if righe else ""), testa, daticert_tipo=tipo_daticert(grezzo),
+    )
+    voce = _RICEVUTE_PEC.get(tipo)
+    if voce is None:
+        return None
+    label, section, deposit_role, candidate = voce
+    return {
+        "label": label, "role": deposit_role if deposit_role == "prova_notifica" else "ricevuta_pec", "section": section,
+        "tipo_documento": TipoDocumento.NOTIFICA if section == "notifiche" else TipoDocumento.COMUNICAZIONE,
+        "confidence": 97,
+        "evidence": f"ricevuta del gestore PEC ({tipo}, letta da {fonte}) e dati di certificazione (D.P.R. 68/2005, art. 6)",
+        "deposit_role": deposit_role, "deposit_candidate": candidate,
+        "excerpt_pattern": _CONFERMA_RICEVUTA_PEC.pattern, "fonte": "catalog_pec_ricevute",
+    }
+
+
 _CONFERMA_DEPOSITO = re.compile(r"\bdeposito\b|\bgiustiziacert\b|\bptel\b|\bcancelleria\b|\bbusta\b", re.IGNORECASE)
 
 
@@ -121,6 +170,9 @@ def _etichetta_specifica(regola: RegolaTitolo, riga: str) -> str:
 def identita_messaggio(testo: str) -> dict[str, Any] | None:
     """Ricevute di deposito PCT e messaggi di posta: la busta prima del contenuto."""
     grezzo = str(testo or "")
+    ricevuta = identita_ricevuta_pec(grezzo)
+    if ricevuta is not None:
+        return ricevuta
     testa = grezzo[:1500]
     oggetto = _OGGETTO_MESSAGGIO.search(testa)
     ha_intestazione = bool(_INTESTAZIONE_MESSAGGIO.search(testa))
@@ -176,4 +228,4 @@ def identita_dal_titolo(testo: str) -> dict[str, Any] | None:
     return None
 
 
-__all__ = ["REGOLE_TITOLO", "RegolaTitolo", "identita_dal_titolo", "identita_messaggio"]
+__all__ = ["REGOLE_TITOLO", "RegolaTitolo", "identita_dal_titolo", "identita_messaggio", "identita_ricevuta_pec"]

@@ -100,7 +100,7 @@ def identita(testo: str, metadata: dict[str, Any]) -> list[dict[str, Any]]:
 
 def ricevuta_xml(testo: str) -> tuple[bool, dict[str, Any]]:
     """RT: esito reale e quota CU; totale misto CU/bollo mai attribuito al CU."""
-    from defusedxml import ElementTree
+    from pct.contributo_quote import quote_della_ricevuta
     from pct.pagamenti_giustizia import parse_rt
 
     if not str(testo).lstrip().startswith("<"):
@@ -111,32 +111,11 @@ def ricevuta_xml(testo: str) -> tuple[bool, dict[str, Any]]:
     ricevuta = parse_rt(raw)
     if ricevuta is None:
         return True, {"errore": "XML non riconosciuto come ricevuta telematica valida."}
-    root = ElementTree.fromstring(raw)
-    quote_cu: list[Decimal] = []
-    quote_tutte: list[Decimal] = []
-    for nodo in root.iter():
-        if nodo.tag.split("}")[-1] != "datiSingoloPagamento":
-            continue
-        campi = {el.tag.split("}")[-1]: str(el.text or "").strip() for el in nodo.iter()}
-        try:
-            importo = Decimal(campi.get("singoloImportoPagato", ""))
-            if not importo.is_finite() or importo < 0:
-                raise InvalidOperation
-        except InvalidOperation:
-            return True, {"errore": "Una quota della ricevuta non ha un importo valido."}
-        quote_tutte.append(importo)
-        causale = campi.get("causaleVersamento", "") + " " + campi.get("datiSpecificiRiscossione", "")
-        if re.search(r"contributo\s+unificato", causale, re.I):
-            quote_cu.append(importo)
-    totale = Decimal(str(ricevuta.importo_totale))
-    if not totale.is_finite() or totale < 0:
-        return True, {"errore": "Il totale della ricevuta non è un importo valido."}
-    if not quote_tutte or abs(sum(quote_tutte) - totale) > Decimal("0.01"):
-        return True, {"errore": "Le quote della ricevuta non coincidono con il totale pagato."}
-    if not quote_cu:
-        return True, {"errore": "La ricevuta non identifica separatamente il contributo unificato."}
+    quote = quote_della_ricevuta(raw, ricevuta.importo_totale)
+    if quote.errore:
+        return True, {"errore": quote.errore}
     return True, {
-        "importo": float(sum(quote_cu)), "status": "pagato" if ricevuta.pagamento_eseguito else "non_eseguito",
+        "importo": float(quote.contributo), "status": "pagato" if ricevuta.pagamento_eseguito else "non_eseguito",
         "esito_codice": ricevuta.esito_codice, "iuv": ricevuta.iuv, "iur": ricevuta.iur,
         "data": ricevuta.data_esito_pagamento or ricevuta.data_ricevuta,
         "titolo": "Quota contributo unificato nella ricevuta telematica",

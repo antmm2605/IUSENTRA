@@ -50,18 +50,14 @@ def registra_ricevuta_pagopa(gestore: Any, id_fasc: str, documento: Any, nome: s
     if not getattr(rt, "pagamento_eseguito", False):
         return 0
     try:
+        from pct.contributo_quote import quote_della_ricevuta
+
+        quote = quote_della_ricevuta(contenuto, rt.importo_totale)
         fascicolo = gestore.get(id_fasc)
         pagamenti = dict(getattr(fascicolo, "pagamenti", {}) or {})
-        pagamenti["contributo_unificato"] = {
-            "kind": "contributo_unificato", "status": "pagato", "previsto": True, "pagato": True,
-            "importo": float(rt.importo_totale), "valuta": "EUR",
-            "data_pagamento": str(rt.data_esito_pagamento or rt.data_ricevuta or ""),
-            "documento_fonte": nome, "documento_id": getattr(documento, "id", ""),
-            "origine": "Ricevuta telematica pagoPA caricata nel fascicolo",
-            "updated_by": "IUSENTRA automatico",
-            "note": f"Versamento provato dalla ricevuta telematica (IUV {rt.iuv or 'n.d.'}).",
-            "iuv": str(rt.iuv or ""),
-        }
+        pagamenti["contributo_unificato"] = voce_contributo_da_ricevuta(
+            pagamenti.get("contributo_unificato"), rt, quote, nome=nome, documento_id=str(getattr(documento, "id", "") or ""),
+        )
         if avviso_riuso:
             pagamenti["contributo_unificato"]["avviso_riuso"] = avviso_riuso
         gestore.aggiorna(id_fasc, pagamenti=pagamenti)
@@ -69,6 +65,30 @@ def registra_ricevuta_pagopa(gestore: Any, id_fasc: str, documento: Any, nome: s
         current_app.logger.exception("Registrazione del pagamento pagoPA non riuscita su %s", id_fasc)
         return 0
     return 1
+
+
+def voce_contributo_da_ricevuta(precedente: Any, rt: Any, quote: Any, *, nome: str, documento_id: str) -> dict[str, Any]:
+    """La voce del contributo unificato dopo una ricevuta: solo la quota del contributo (art. 13 D.P.R. 115/2002),
+    l'anticipazione forfettaria dell'art. 30 a parte, e le ricevute di un pagamento frazionato sommate per IUV."""
+    precedente = dict(precedente) if isinstance(precedente, dict) else {}
+    ricevute = [r for r in list(precedente.get("ricevute") or []) if isinstance(r, dict) and r.get("iuv") != str(rt.iuv or "")]
+    if not ricevute and precedente.get("iuv") and precedente.get("iuv") != str(rt.iuv or ""):
+        ricevute = [{"iuv": precedente.get("iuv"), "contributo": float(precedente.get("importo") or 0),
+                     "art_30": float(precedente.get("art_30") or 0), "documento_id": precedente.get("documento_id", ""),
+                     "data": precedente.get("data_pagamento", "")}]
+    ricevute.append({"iuv": str(rt.iuv or ""), "contributo": float(quote.contributo), "art_30": float(quote.art_30),
+                     "documento_id": documento_id, "data": str(rt.data_esito_pagamento or rt.data_ricevuta or "")})
+    contributo = round(sum(r["contributo"] for r in ricevute), 2)
+    nota = f"Versamento provato dalla ricevuta telematica (IUV {rt.iuv or 'n.d.'})."
+    if quote.errore:
+        nota += f" Da verificare: {quote.errore}"
+    return {
+        "kind": "contributo_unificato", "status": "pagato" if contributo > 0 else "da_verificare", "previsto": True,
+        "pagato": contributo > 0, "importo": contributo, "art_30": round(sum(r["art_30"] for r in ricevute), 2),
+        "valuta": "EUR", "data_pagamento": ricevute[-1]["data"], "documento_fonte": nome, "documento_id": documento_id,
+        "origine": "Ricevuta telematica pagoPA caricata nel fascicolo", "updated_by": "IUSENTRA automatico",
+        "note": nota, "iuv": str(rt.iuv or ""), "ricevute": ricevute,
+    }
 
 
 def _avviso_riuso(gestore: Any, id_fasc: str, rt: Any) -> str:
@@ -82,4 +102,4 @@ def _avviso_riuso(gestore: Any, id_fasc: str, rt: Any) -> str:
         return ""
 
 
-__all__ = ["registra_ricevuta_pagopa"]
+__all__ = ["registra_ricevuta_pagopa", "voce_contributo_da_ricevuta"]

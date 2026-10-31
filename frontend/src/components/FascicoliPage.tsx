@@ -251,6 +251,17 @@ const FASCICOLO_OFFICE_KIND_FILTERS = [
   { value: 'tribunale_minorenni', label: 'Minorenni' },
 ]
 
+
+/** «RG 901/2026 - Deposito note - 06/10/2026 - RG 901/2026» diventa «RG 901/2026 - Deposito note»: ruolo e data sono già mostrati (V27). */
+function titoloScadenzaSenzaRipetizioni(ruolo: string, titolo: string, data: string): string {
+  let testo = ` ${titolo} `
+  for (const ripetuto of [ruolo, data].map((valore) => valore.trim()).filter(Boolean)) {
+    testo = testo.split(` - ${ripetuto} `).join(' ').split(` ${ripetuto} - `).join(' ')
+  }
+  testo = testo.trim().replace(/\s+-\s*$/, '')
+  return ruolo ? `${ruolo} - ${testo}` : testo
+}
+
 function comuneOptionFromPayload(value: unknown): ComuneOption | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const row = value as Record<string, unknown>
@@ -4035,7 +4046,7 @@ function FascicoliListPage() {
             <AlertIcon />
             <div>
               <strong>{deadlineAlertHeading}</strong>
-              <div>{deadlineAlertItems.map((item) => <a href={`/scadenziario?focus=${encodeURIComponent(item.id)}`} key={item.id}>{item.matterRef} - {item.title} <span>{item.date}</span></a>)}</div>
+              <div>{deadlineAlertItems.map((item) => <a href={`/scadenziario?focus=${encodeURIComponent(item.id)}`} key={item.id}>{titoloScadenzaSenzaRipetizioni(item.matterRef, item.title, item.date)} <span>{item.date}</span></a>)}</div>
               <Button href={urgentDeadlinesHref}>Visualizza tutte le {deadlineCopy.urgent} scadenze</Button>
             </div>
           </section>

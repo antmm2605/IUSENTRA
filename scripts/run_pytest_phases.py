@@ -117,6 +117,8 @@ CORE_CI_PINNED_PHASES: dict[str, int] = {
 CORE_CI_REQUIRE_ITEM_SPLIT: frozenset[str] = frozenset(
     {"tests/test_react_shell.py"}
 )
+COMPLEMENTARE = "complementare"
+
 CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     # Archivio controllato obbligatorio SQLite/PostgreSQL; nessun dato studio.
     # Eseguire in quattro shard con --timeout-minutes 5 e database di prova.
@@ -137,6 +139,8 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
         REPO_ROOT / "tests" / "test_mailbox_native_sqlite_flow.py",
     ),
     "react-shell": (REPO_ROOT / "tests" / "test_react_shell.py",),
+    # Calcolata da discover_complementary_test_files: tutto ciò che non è altrove.
+    COMPLEMENTARE: (),
     "acquisition-ocr": (
         REPO_ROOT / "tests" / "test_document_ocr.py",
         REPO_ROOT / "tests" / "test_document_ocr_documento.py",
@@ -639,7 +643,22 @@ def discover_core_test_files() -> list[Path]:
     return sorted(deduped, key=rel)
 
 
+#  Suite «complementare»: ogni file di test che non sta nel core né in un'altra suite.
+#  Prima del 31/10/2026 circa 800 file non giravano in CI e si erano allontanati dal codice.
+#  Si esegue un file per processo (--batch-size 1) perché molti file condividono stato globale.
+
+
+def discover_complementary_test_files() -> list[Path]:
+    coperti = {rel(path) for path in discover_core_test_files()}
+    for name in CI_TEST_SUITES:
+        if name != COMPLEMENTARE:
+            coperti |= {rel(path) for path in discover_suite_test_files(name)}
+    return [path for path in discover_test_files() if rel(path) not in coperti]
+
+
 def discover_suite_test_files(suite_name: str) -> list[Path]:
+    if suite_name == COMPLEMENTARE:
+        return discover_complementary_test_files()
     try:
         targets = CI_TEST_SUITES[suite_name]
     except KeyError as exc:

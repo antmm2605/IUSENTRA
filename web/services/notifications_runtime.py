@@ -322,9 +322,10 @@ def materialize_agenda_scadenziario_notifications_for_paths(
     memorie_da_udienza = _allinea_memorie_da_udienza(paths, database_config, agenda, scadenziario)
     # Termine lungo (art. 327 c.p.c.) dalla data di deposito della sentenza, mai dalla comunicazione.
     from pct.ora_italiana import oggi_roma
-    from web.services.termine_lungo_runtime import completa_termini_lunghi_runtime
+    from web.services.termine_lungo_runtime import completa_termini_lunghi_runtime, riconvalida_termini_lunghi_runtime
 
     termini_lunghi = completa_termini_lunghi_runtime(_pec_audit_db_path_for_paths(paths), scadenziario, oggi=oggi_roma())
+    termini_lunghi["riconvalida"] = riconvalida_termini_lunghi_runtime(scadenziario)
     rinnovi_documenti = _proponi_rinnovi_documenti(paths, backend, scadenziario, oggi_roma())
     doppioni_riuniti = _riunisci_doppioni(scadenziario, agenda)
     recipients = notification_recipients_for_paths(paths, database=database_config)

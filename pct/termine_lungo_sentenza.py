@@ -102,6 +102,43 @@ def data_pubblicazione_della_sentenza(testo: str, numero: str) -> date | None:
     return next(iter(trovate)) if len(trovate) == 1 else None
 
 
+_CLASSE_SENTENZA = re.compile(r"sentenz", re.IGNORECASE)
+
+
+def _data_portale(valore: Any) -> date | None:
+    testo = str(valore or "").strip()
+    try:
+        return date.fromisoformat(testo[:10])
+    except ValueError:
+        trovata = re.match(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", testo)
+        if not trovata:
+            return None
+        try:
+            return date(int(trovata.group(3)), int(trovata.group(2)), int(trovata.group(1)))
+        except ValueError:
+            return None
+
+
+def data_deposito_dal_portale(documenti: Iterable[Any], *, comunicazione: date, finestra_giorni: int = 60) -> date | None:
+    """Data di deposito della sentenza nel fascicolo telematico (PST), fonte certa dell'art. 327 c.p.c.
+
+    Vale un documento scaricato dal portale (``fonte_documento`` PORTALE_TELEMATICO) classificato come
+    sentenza, depositato prima della comunicazione e non oltre ``finestra_giorni`` giorni prima. Se le
+    sentenze candidate hanno date diverse non si sceglie: decide l'avvocato. Le date dei documenti
+    importati dallo studio sono date di importazione e non contano.
+    """
+    trovate: set[date] = set()
+    for documento in documenti:
+        if str(getattr(documento, "fonte_documento", "") or "").strip().upper() != "PORTALE_TELEMATICO":
+            continue
+        if not _CLASSE_SENTENZA.search(str(getattr(documento, "classificazione_portale", "") or "")):
+            continue
+        giorno = _data_portale(getattr(documento, "data_deposito_portale", ""))
+        if giorno is not None and 0 <= (comunicazione - giorno).days <= finestra_giorni:
+            trovate.add(giorno)
+    return next(iter(trovate)) if len(trovate) == 1 else None
+
+
 def numero_sentenza(testo: str) -> str:
     trovato = _NUMERO.search(str(testo or ""))
     return re.sub(r"\s+", "", trovato.group(1)) if trovato else ""
@@ -207,7 +244,7 @@ def completa_termini_lunghi(
 
 
 __all__ = [
-    "MARCATORE", "completa_termini_lunghi", "data_pubblicazione", "data_pubblicazione_da_fatti",
+    "MARCATORE", "completa_termini_lunghi", "data_deposito_dal_portale", "data_pubblicazione", "data_pubblicazione_da_fatti",
     "data_pubblicazione_della_sentenza", "numero_della_comunicazione", "numero_sentenza",
     "proponi_termine_lungo", "scadenza_termine_lungo",
 ]

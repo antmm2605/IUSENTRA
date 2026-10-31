@@ -88,4 +88,26 @@ def completa_termini_lunghi_runtime(db_path: Path | None, scadenziario: Any, *, 
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 
-__all__ = ["comunicazioni_deposito_sentenza", "completa_termini_lunghi_runtime"]
+def _documenti_del_fascicolo(fascicolo_id: str) -> list[Any]:
+    from web.helpers import get_fascicoli
+
+    try:
+        fascicolo = get_fascicoli().get(fascicolo_id)
+    except Exception as exc:  # archivio non disponibile: si ricontrolla al giro successivo
+        logger.warning("Documenti del fascicolo %s non disponibili per il termine lungo: %s", fascicolo_id, exc)
+        return []
+    return list(getattr(fascicolo, "documenti", None) or [])
+
+
+def riconvalida_termini_lunghi_runtime(scadenziario: Any) -> dict[str, Any]:
+    """Bozze nate dalla data della comunicazione: fonte certa dai documenti o decisione dell'avvocato."""
+    from pct.riconvalida_termine_lungo import riconvalida_bozze
+
+    try:
+        return riconvalida_bozze(scadenziario, _fatti_del_fascicolo, _documenti_del_fascicolo)
+    except Exception as exc:
+        logger.warning("Bozze del termine lungo non riconvalidate: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+
+
+__all__ = ["comunicazioni_deposito_sentenza", "completa_termini_lunghi_runtime", "riconvalida_termini_lunghi_runtime"]

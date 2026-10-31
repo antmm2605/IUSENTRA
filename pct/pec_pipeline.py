@@ -14668,13 +14668,22 @@ class PecAuditRepository:
             # Nei documenti vale solo il timbro della sentenza con lo stesso numero della
             # comunicazione: le sentenze citate come precedenti hanno un altro numero.
             from pct.termine_lungo_sentenza import (
+                data_deposito_dal_portale,
                 data_pubblicazione,
                 data_pubblicazione_della_sentenza,
                 numero_della_comunicazione,
             )
 
+            if fascicolo_id and self.fascicoli_db_path:
+                # La sentenza depositata nel fascicolo telematico (PST) porta la data certa del deposito.
+                try:
+                    documenti_fascicolo = list(getattr(self._fascicoli_manager().get(fascicolo_id), "documenti", None) or [])
+                except Exception:
+                    documenti_fascicolo = []
+                dies_day = data_deposito_dal_portale(documenti_fascicolo, comunicazione=received.date())
             body_parts = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
-            dies_day = data_pubblicazione(str(body_parts.get("text") or body_parts.get("html_text") or ""))
+            if dies_day is None:
+                dies_day = data_pubblicazione(str(body_parts.get("text") or body_parts.get("html_text") or ""))
             if dies_day is None:
                 allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
                 dies_day = data_pubblicazione_della_sentenza(

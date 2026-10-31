@@ -571,3 +571,20 @@ Fatto, con test (copertura righe e rami 100% sui moduli nuovi):
 - Presidio notifiche: riconciliazione mirata per identità intera (il presidio «P-1» non tocca più «P-12»).
 
 Da progettare a sé: chiusura dell'obbligo di notifica **per destinatario** con le ricevute PEC. Serve un collegamento certo fra la PEC di notifica inviata (impronta SHA-256 dell'atto allegato, indirizzo di ciascun destinatario), le RdAC separate e l'atto catalogato; un collegamento per somiglianza di nomi chiuderebbe obblighi per errore. Fino ad allora l'obbligo resta aperto con il motivo (comportamento prudente attuale). ReGIndE e INI-PEC: in attesa della decisione dell'avvocato (sezione 9.4, punto 3).
+
+### 9.6 AI locale a parti: dove oggi il documento non arriva intero (censimento del 31/10/2026)
+
+Contesto del modello: `lex/settings.py` (`num_ctx` 8192, risposta 700 token). Tagli che oggi impediscono all'AI di leggere il documento per intero:
+
+| Percorso | Taglio | Compito dell'AI |
+|---|---|---|
+| Estrattore `lex/tools/_doc_extractor.py` | 12.000 caratteri e **solo le prime 15 pagine** (anche OCR) | alimenta Lex e gli strumenti |
+| Ricerca documenti di Lex `lex/retrieval/documenti.py` | 1.200 caratteri di testa (Docling escluso) | rispondere alle domande |
+| Strumenti operativi `lex/operational_knowledge/tools.py` | 1.200 caratteri di testa | prove per la risposta |
+| Contesto documento `lex/context/document_context.py` | 2.400 caratteri | contesto della risposta |
+| Budget del prompt `lex/providers/prompt_budget.py` | 12 prove da 1.600 caratteri, le altre escluse | tutte le risposte di Lex |
+| «Chiedi al fascicolo» / lettura del fascicolo `pct/local_ai.py` | nessun budget: oltre 8192 token **Ollama taglia in silenzio** | risposta e sintesi |
+| Bozza dell'editor `pct/editor_ai/` | testo intero senza budget: **taglio silenzioso** | stesura dell'atto |
+| Seconda lettura del catalogo `catalog_lex.py` | 4.000 caratteri (voluto: intestazione e titolo) | classificazione |
+
+Soluzione (punto 6): un solo lettore a parti, sul modello di `lex/procedura_atti/lettura_fonti.prepara_letture` (che misura il prompt reale, legge parti contigue, registra l'impronta di ogni parte e non taglia mai): se il testo sta nel contesto passa intero; altrimenti si divide in parti contigue senza perdite (`bounded_text_chunks`), ciascuna letta dal modello entro il budget, e i risultati si uniscono con la parte di provenienza. L'estrattore non si ferma più a 15 pagine. Una parte non letta lascia il documento «letto in parte» con l'indicazione della parte mancante. La classificazione resta sull'intestazione (scelta voluta). Nessun prompt supera più il contesto senza saperlo.

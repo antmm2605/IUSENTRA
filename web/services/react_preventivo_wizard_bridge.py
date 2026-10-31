@@ -114,38 +114,10 @@ def _strumenti_legali() -> GestioneStrumentiLegali:
     return _STRUMENTI_LEGALI
 
 
-def _cu_grade_from_label(grade_label: str) -> str:
-    lowered = _text(grade_label).lower()
-    if "cassazione" in lowered:
-        return "cassazione"
-    if "appello" in lowered or "consiglio di stato" in lowered or "secondo grado" in lowered:
-        return "appello"
-    return "primo_grado"
-
-
 def _cu_amount_for_practice(practice_id: str, *, value: float, grade_label: str) -> float | None:
-    grade = _cu_grade_from_label(grade_label)
-    if practice_id in {"atto_citazione", "opposizione_di", "comparsa_risposta", "risarcimento_danni"}:
-        result = _strumenti_legali().calcola_contributo_unificato(
-            {
-                "cu_categoria": "civile_ordinario",
-                "cu_grado": grade,
-                "cu_valore": value,
-                "cu_valore_tipo": "determinato" if value > 0 else "indeterminabile",
-            }
-        )
-        return round(float(result.get("base") or 0.0), 2)
-    if practice_id == "decreto_ingiuntivo":
-        result = _strumenti_legali().calcola_contributo_unificato(
-            {
-                "cu_categoria": "decreto_ingiuntivo",
-                "cu_grado": "primo_grado",
-                "cu_valore": value,
-                "cu_valore_tipo": "determinato" if value > 0 else "indeterminabile",
-            }
-        )
-        return round(float(result.get("base") or 0.0), 2)
-    return None
+    from pct.contributo_preventivo import contributo_per_preventivo
+
+    return contributo_per_preventivo(_strumenti_legali(), practice_id, valore=value, grado_scelto=grade_label)
 
 
 def _resolved_practice_expenses(practice: Any, *, value: float, grade_label: str) -> list[dict[str, Any]]:

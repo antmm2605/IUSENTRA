@@ -1,7 +1,10 @@
 {
-  "baseline_sha": "bbe4f4d82d6983580d2c9817c8479dc467ba3078",
-  "reason": "Estensione esplicita del perimetro misurato rispetto all'ultima release distribuita e verde (2.457.11): marcatura degli articoli il cui testo archiviato e' solo un avviso di abrogazione, usata dalla ricerca normativa e dalla guardia anti-invenzione. Modulo coperto integralmente dai test dell'audit fonti del 29/10/2026, entrati nella suite critica. Nessuna esclusione, soglia ridotta, riga precedentemente coperta persa o nuova baseline accettata automaticamente.",
+  "baseline_sha": "23f0f5dcd2b341beef11893255c07e4753dea6ef",
+  "reason": "Estensione esplicita del perimetro misurato rispetto all'ultima release distribuita e verde (2.466.1): Lex risponde ai calcoli con i calcolatori di Strumenti legali collaudati sulla norma (lex/calcoli_certi: riconoscimento dello strumento, estrazione dei dati dalla domanda, presentazione del risultato e delle stime motivate). Moduli coperti integralmente da tests/test_lex_calcoli_certi.py e tests/test_lex_calcoli_certi_rami.py, entrambi nella suite critica. Nessuna esclusione, soglia ridotta, riga precedentemente coperta persa o nuova baseline accettata automaticamente.",
   "files": {
-    "lex/retrieval/abrogazione.py": "1422790aca10e54213fa5fecf7ac853a1376c84c0e8ec69204ce68fb30a57a46"
+    "lex/calcoli_certi/__init__.py": "bb20321a1fa14095009283b3c0763e772dc42141db67d2691b62efcf356c8fa6",
+    "lex/calcoli_certi/estrazione.py": "79ff62fc8ed9cfc0cc3d215b04a4594f8f5d06eeaad2ca8a20ff7e6ac81c7cdc",
+    "lex/calcoli_certi/presentazione.py": "4aeab0a5e9d3acf05e4b4ec82bec7e9befa3debd5fdbf2ce002dc39aaef31dbe",
+    "lex/calcoli_certi/riconoscimento.py": "5be12fdc601e118f6c54176b06aaac7346cca64476ee6c5a7d1adb84f0e85103"
   }
 }

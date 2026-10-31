@@ -67,3 +67,25 @@ Rilascio nato dalla verifica sulle PEC reali e sui fascicoli collegati (registro
 - Gli indici FOI si scaricano dal servizio ufficiale ISTAT (esploradati.istat.it) nel lavoro notturno
   delle tabelle normative, solo se manca un mese già pubblicato; controlli su valori, continuità e
   rettifiche. Prova reale del 31/10/2026: luglio, agosto e settembre 2026 importati.
+
+## Scadenze, pagine e velocità
+
+- Scadenze di deposito adempiute (V28): il deposito telematico consegnato nel termine chiude la scadenza
+  compatibile con la nota della ricevuta (art. 16-bis, c. 7, D.L. 179/2012); se il tipo di atto non è
+  dichiarato, la scadenza riceve l'avviso e decide l'avvocato.
+- Scadenze superate dalla sentenza: avviso all'avvocato all'arrivo della PEC (V32); rito del lavoro con
+  i termini di notifica dell'art. 415 c.p.c. dal decreto (V33).
+- Scheda del fascicolo più veloce, lettura del fascicolo preparata in sfondo, agenda senza procedimenti
+  di altri fascicoli (V21, V31); agenda del fascicolo con prima i prossimi impegni (V34).
+- Panoramica: il quadro condiviso di una versione precedente non si mostra dopo il deploy (V36); tempi
+  dei singoli pezzi registrati nella misura della costruzione (V12).
+- Telefono e tablet: spunte di almeno 24 px e campi alti 44 px; scadenze leggibili nella lista dei
+  fascicoli (V27). Controllo delle modifiche rallentato a scheda del browser nascosta (V22).
+- Dati tecnici leggibili per l'avvocato, date italiane con l'ora di Roma, errori di rete in italiano
+  (V25, V26, V29).
+- Clienti: «Esporta» scarica il CSV, anche della sola selezione; i collaboratori del fascicolo non si
+  aprono più come dettaglio del fascicolo (V45).
+- Workflow «Analisi dei fatti respinti dal collaudo» in sola lettura, solo conteggi (V13).
+- Copertura critica: il perimetro misurato si estende dichiaratamente ai moduli `lex/calcoli_certi`,
+  coperti integralmente.
+

@@ -9,6 +9,28 @@ Prima di diagnosticare o modificare un modulo, leggere `docs/AGENT_KNOWLEDGE.md`
 
 > Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
 
+## Fonti certe, catena PEC-fascicolo e registro continuo — direttiva utente 31/10/2026
+
+Logica di lavoro da usare sempre, per ogni modifica e ogni sessione (Codex e Claude Code):
+
+1. **Fonti certe o decisione dell'avvocato.** Ogni automatismo parte da una fonte certa (norma,
+   registro di cancelleria, documento del fascicolo, portale ufficiale). Se manca, il software la
+   cerca oppure fa decidere l'avvocato con un avviso chiaro: mai date, voci o termini «di ripiego».
+2. **PEC e fascicoli sono il cuore.** Da lì partono gli automatismi: a ogni modifica si segue l'intera
+   catena PEC → fascicolo → letture → termini, notifiche, economia, e la si verifica su casi reali.
+3. **Copia informativa e copia certificata.** L'allegato della PEC di cancelleria è copia informativa
+   (serve alla lettura); la copia da notificare e da attestare è quella scaricata dal Portale dei
+   Servizi Telematici, che riporta i dati del deposito. Il termine lungo (art. 327 c.p.c.) decorre dal
+   deposito, mai dalla comunicazione (ordine delle fonti in `docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md` §9.10).
+4. **Lavoro a evento, non a orario.** I passi si concatenano dall'evento che li richiede (documento o
+   PEC entrati nel fascicolo → lettura → presìdi di quel fascicolo); niente giri periodici che lavorano
+   quando nulla è cambiato e niente elaborazioni durante l'apertura delle pagine.
+5. **Registro continuo.** Ogni problema trovato si annota in `docs/VERIFICA_PRODUZIONE_2026-10-31.md`
+   (problema visto, correzione, test che la prova, versione, stato) e si aggiorna a ogni passo:
+   «corretto» solo con il test, «verificato in produzione» solo dopo il controllo su app.iusentra.it.
+   Il piano operativo resta in `docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md` (sezione 9). A ogni
+   avanzamento si riporta all'avvocato cosa è risolto, cosa è in corso e cosa resta da risolvere.
+
 ## Metodo di analisi Graphify per Codex — direttiva utente 20/10/2026
 
 - Riferimento metodologico: https://github.com/Graphify-Labs/graphify. Applicarlo al ragionamento dell’agente e all’analisi del codice; questa direttiva non introduce Graphify nel prodotto, nei servizi o nelle dipendenze di IUSENTRA.

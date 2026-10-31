@@ -11,6 +11,7 @@ from datetime import date
 import pytest
 
 from pct.calcolatori.danno_biologico import art139, calcola, milano, regime, tabelle, tun
+from pct.strumenti_legali import GestioneStrumentiLegali
 
 
 # ── Integrità dei dati tabellari ──────────────────────────────────────────
@@ -212,7 +213,11 @@ def test_la_liquidazione_non_puo_precedere_il_sinistro():
 def test_calcolo_con_tabella_unica_nazionale():
     risultato = calcola(_payload())
     assert risultato["regime"] == regime.REGIME_TUN
-    assert risultato["danno_permanente"] == tun.danno_biologico(35, 40, 988.45)
+    # Liquidazione al 13/09/2026: tavola 1.B del D.M. MIMIT 28/09/2026 (G.U. n. 235
+    # del 09/10/2026, 26A05220), in vigore dal mese di aprile 2026; prima il test
+    # confrontava con la tavola del testo originario del D.P.R. 12/2025, superata.
+    assert risultato["danno_permanente"] == tun.danno_biologico(35, 40, 988.45, date(2026, 9, 13))
+    assert risultato["danno_permanente"] != tun.danno_biologico(35, 40, 988.45)
     assert risultato["danno_morale"] > 0
     assert risultato["subtotale"] == pytest.approx(
         risultato["danno_permanente"] + risultato["danno_morale"] + risultato["danno_temporaneo"]
@@ -260,3 +265,130 @@ def test_il_totale_è_la_somma_delle_voci_di_dettaglio():
 def test_eta_zero_usa_il_coefficiente_pieno():
     assert tun.coefficiente_eta(0) == tun.coefficiente_eta(1) == 1.0
     assert milano.demoltiplicatore_eta(0) == milano.demoltiplicatore_eta(1) == 1.0
+
+
+# ── Tavola 1.B aggiornata dai decreti MIMIT (art. 1, comma 2, D.P.R. 12/2025) ──
+#
+# Valori trascritti dai PDF ufficiali della Gazzetta Ufficiale: testo originario
+# (G.U. n. 40 del 18/02/2025, S.O. n. 4/L), D.M. 10/12/2025 (G.U. n. 299 del
+# 27/12/2025, S.O. n. 41, 25A06873) e D.M. 28/09/2026 (G.U. n. 235 del
+# 09/10/2026, S.O. n. 41, 26A05220).
+
+_ORIGINARIO = date(2025, 3, 5)
+_DM_2025 = date(2025, 6, 1)
+_DM_2026 = date(2026, 10, 31)
+
+
+def test_versioni_della_tavola_1b_complete_e_in_ordine():
+    versioni = tun.versioni_tavola_eta()
+    assert [v["decorrenza"] for v in versioni] == ["2025-03-05", "2025-04-01", "2026-04-01"]
+    assert [v.get("codice_redazionale") for v in versioni[1:]] == ["25A06873", "26A05220"]
+    for versione in versioni:
+        assert versione["url_ufficiale"].startswith("https://www.gazzettaufficiale.it/eli/gu/")
+        assert versione["gazzetta"]
+        mappa = tabelle.mappa_numerica(versione, "coefficiente_riduzione_eta")
+        assert sorted(mappa) == list(range(1, 101))
+        assert mappa[1] == 1.0
+        assert all(mappa[e] >= mappa[e + 1] for e in range(1, 100))
+
+
+@pytest.mark.parametrize(
+    "giorno,atteso",
+    [
+        (_DM_2025, {7: 0.97, 30: 0.857, 60: 0.711, 100: 0.533}),
+        (_DM_2026, {7: 0.971, 30: 0.858, 60: 0.714, 100: 0.542}),
+        (_ORIGINARIO, {7: 0.97, 30: 0.856, 60: 0.708, 100: 0.522}),
+    ],
+)
+def test_coefficienti_eta_pubblicati_per_ciascuna_versione(giorno, atteso):
+    for eta, coefficiente in atteso.items():
+        assert tun.coefficiente_eta(eta, giorno) == coefficiente
+
+
+@pytest.mark.parametrize(
+    "giorno,decorrenza",
+    [
+        (None, "2025-03-05"),
+        (date(2025, 3, 31), "2025-03-05"),
+        (date(2025, 4, 1), "2025-04-01"),
+        (date(2026, 3, 31), "2025-04-01"),
+        (date(2026, 4, 1), "2026-04-01"),
+        (date(2026, 10, 31), "2026-04-01"),
+    ],
+)
+def test_si_applica_la_tavola_vigente_alla_data(giorno, decorrenza):
+    assert tun.versione_tavola_eta(giorno)["decorrenza"] == decorrenza
+
+
+# Celle dell'allegato II, tabella 1 (solo danno biologico), dei due decreti.
+@pytest.mark.parametrize(
+    "giorno,primo_punto,punti,eta,valore_del_punto,atteso",
+    [
+        (_DM_2025, 963.40, 10, 1, 2_656.80, 26_568),
+        (_DM_2025, 963.40, 10, 30, 2_656.80, 22_769),
+        (_DM_2025, 963.40, 26, 40, 4_745.09, 99_685),
+        (_DM_2025, 963.40, 100, 100, 10_546.53, 562_130),
+        (_DM_2026, 988.45, 10, 7, 2_725.88, 26_468),
+        (_DM_2026, 988.45, 10, 30, 2_725.88, 23_388),
+        (_DM_2026, 988.45, 71, 10, 9_106.61, 618_120),
+        (_DM_2026, 988.45, 100, 100, 10_820.76, 586_485),
+        # Prodotto esatto 173.695,50 €: pubblicato 173.695.
+        (_DM_2026, 988.45, 44, 90, 6_806.25, 173_695),
+        # Prodotto esatto 368.880,50 €: pubblicato 368.880.
+        (_DM_2026, 988.45, 50, 1, 7_377.61, 368_880),
+    ],
+)
+def test_griglie_dei_decreti_di_aggiornamento(giorno, primo_punto, punti, eta, valore_del_punto, atteso):
+    assert tun.valore_punto(punti, primo_punto) == valore_del_punto
+    assert tun.danno_biologico(punti, eta, primo_punto, giorno) == atteso
+
+
+@pytest.mark.parametrize(
+    "giorno,primo_punto,livello,punti,eta,atteso",
+    [
+        (_DM_2025, 963.40, "minimo", 10, 30, 4_781),
+        # Prodotto esatto 7.000,50 €: pubblicato 7.001 (tabella 2.B, D.M. 10/12/2025).
+        (_DM_2025, 963.40, "medio", 12, 73, 7_001),
+        (_DM_2026, 988.45, "minimo", 10, 30, 4_911),
+        (_DM_2026, 988.45, "minimo", 10, 7, 5_558),
+        (_DM_2026, 988.45, "minimo", 44, 1, 116_196),
+        (_DM_2026, 988.45, "massimo", 100, 100, 351_891),
+        # Colonna B con mezzo centesimo esatto (1.598,585 €), testo originario.
+        (_ORIGINARIO, 947.30, "medio", 23, 1, 36_767),
+    ],
+)
+def test_danno_morale_delle_griglie_pubblicate(giorno, primo_punto, livello, punti, eta, atteso):
+    assert tun.danno_morale(punti, eta, primo_punto, livello, giorno) == atteso
+
+
+def test_colonna_b_arrotondata_al_pari_sul_mezzo_centesimo():
+    assert tun.valore_punto_morale(23, 947.30, "medio") == 1_598.58
+    assert tun.valore_punto_morale(44, 988.45, "minimo") == 2_640.82
+
+
+@pytest.mark.parametrize(
+    "liquidazione,eta,atteso",
+    [
+        ("2026-10-31", 30, 23_388.0),
+        ("2026-10-31", 7, 26_468.0),
+        ("2025-06-01", 30, 22_769.0),
+    ],
+)
+def test_calcolo_completo_sulla_tavola_vigente(liquidazione, eta, atteso):
+    risultato = calcola(_payload(
+        db_data_sinistro="2025-04-10", db_data_liquidazione=liquidazione, db_eta=eta, db_perc_ip=10,
+        db_giorni_itt=0, db_giorni_itp=0, db_morale_livello="nessuno",
+    ))
+    assert risultato["regime"] == regime.REGIME_TUN
+    assert risultato["danno_permanente"] == atteso
+    assert risultato["totale"] == atteso
+    codice = "26A05220" if liquidazione.startswith("2026") else "25A06873"
+    assert any(codice in sorgente["title"] for sorgente in risultato["sources"])
+    assert any("tavola 1.B" in nota and codice in nota for nota in risultato["notes"])
+
+
+def test_collaudo_normativo_del_danno_biologico():
+    from pct.calcolatori.collaudo import CASI, collauda
+
+    assert len(CASI["danno_biologico"]) >= 4
+    assert collauda(GestioneStrumentiLegali())["danno_biologico"] == []

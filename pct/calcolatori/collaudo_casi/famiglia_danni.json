@@ -563,5 +563,112 @@
    },
    "norma": "all. 1 D.Lgs. 139/2024"
   }
+ ],
+ "danno_biologico": [
+  {
+   "descrizione": "Art. 139, 5 punti, 30 anni, liquidazione 01/06/2025",
+   "dati": {
+    "db_ambito": "circolazione",
+    "db_data_sinistro": "2025-04-10",
+    "db_data_liquidazione": "2025-06-01",
+    "db_eta": "30",
+    "db_perc_ip": "5",
+    "db_giorni_itt": "0",
+    "db_giorni_itp": "0",
+    "db_perc_itp": "50",
+    "db_morale_livello": "nessuno",
+    "db_personalizzazione": "0"
+   },
+   "attesi": {
+    "regime": "art_139",
+    "danno_permanente": 6502.95,
+    "danno_morale": 0.0
+   },
+   "norma": "art. 139, comma 1, lett. a), e comma 6, D.Lgs. 209/2005; D.M. MIMIT 18/07/2025 (G.U. n. 176 del 31/07/2025, 25A04218): primo punto 963,40 euro dal 01/04/2025 (963,40 x 1,5 x 5 x 0,90)"
+  },
+  {
+   "descrizione": "Art. 139, 5 punti, 30 anni, liquidazione 31/10/2026",
+   "dati": {
+    "db_ambito": "circolazione",
+    "db_data_sinistro": "2026-05-01",
+    "db_data_liquidazione": "2026-10-31",
+    "db_eta": "30",
+    "db_perc_ip": "5",
+    "db_giorni_itt": "0",
+    "db_giorni_itp": "0",
+    "db_perc_itp": "50",
+    "db_morale_livello": "nessuno",
+    "db_personalizzazione": "0"
+   },
+   "attesi": {
+    "regime": "art_139",
+    "danno_permanente": 6672.04
+   },
+   "norma": "art. 139, comma 1, lett. a), e comma 6, D.Lgs. 209/2005; D.M. MIMIT 20/07/2026 (G.U. n. 173 del 28/07/2026, 26A03765): primo punto 988,45 euro dal 01/04/2026 (988,45 x 1,5 x 5 x 0,90)"
+  },
+  {
+   "descrizione": "Tabella unica, 10 punti, 30 anni, liquidazione 01/06/2025",
+   "dati": {
+    "db_ambito": "circolazione",
+    "db_data_sinistro": "2025-04-10",
+    "db_data_liquidazione": "2025-06-01",
+    "db_eta": "30",
+    "db_perc_ip": "10",
+    "db_giorni_itt": "0",
+    "db_giorni_itp": "0",
+    "db_perc_itp": "50",
+    "db_morale_livello": "nessuno",
+    "db_personalizzazione": "0"
+   },
+   "attesi": {
+    "regime": "tun",
+    "danno_permanente": 22769.0,
+    "totale": 22769.0
+   },
+   "norma": "art. 138 D.Lgs. 209/2005; D.P.R. 12/2025; D.M. MIMIT 10/12/2025 (G.U. n. 299 del 27/12/2025, S.O. n. 41, 25A06873), allegato II, tabella 1 - 2025: 10 punti, 30 anni"
+  },
+  {
+   "descrizione": "Tabella unica, 10 punti, 30 anni, liquidazione 31/10/2026",
+   "dati": {
+    "db_ambito": "circolazione",
+    "db_data_sinistro": "2026-05-01",
+    "db_data_liquidazione": "2026-10-31",
+    "db_eta": "30",
+    "db_perc_ip": "10",
+    "db_giorni_itt": "0",
+    "db_giorni_itp": "0",
+    "db_perc_itp": "50",
+    "db_morale_livello": "nessuno",
+    "db_personalizzazione": "0"
+   },
+   "attesi": {
+    "regime": "tun",
+    "danno_permanente": 23388.0,
+    "totale": 23388.0
+   },
+   "norma": "art. 138 D.Lgs. 209/2005; D.P.R. 12/2025; D.M. MIMIT 28/09/2026 (G.U. n. 235 del 09/10/2026, S.O. n. 41, 26A05220), allegato II, tabella 1 - 2026: 10 punti, 30 anni"
+  },
+  {
+   "descrizione": "Tabella unica, 10 punti, 7 anni, morale minimo, liquidazione 31/10/2026",
+   "dati": {
+    "db_ambito": "circolazione",
+    "db_data_sinistro": "2026-05-01",
+    "db_data_liquidazione": "2026-10-31",
+    "db_eta": "7",
+    "db_perc_ip": "10",
+    "db_giorni_itt": "0",
+    "db_giorni_itp": "0",
+    "db_perc_itp": "50",
+    "db_morale_livello": "minimo",
+    "db_personalizzazione": "0"
+   },
+   "attesi": {
+    "regime": "tun",
+    "danno_permanente": 26468.0,
+    "danno_morale": 5558.0,
+    "totale": 32026.0
+   },
+   "norma": "art. 138 D.Lgs. 209/2005; D.P.R. 12/2025; D.M. MIMIT 28/09/2026 (G.U. n. 235 del 09/10/2026, S.O. n. 41, 26A05220), allegato II, tabella 1 - 2026 e tabella 2.A (aumento minimo): 10 punti, 7 anni"
+  }
  ]
 }

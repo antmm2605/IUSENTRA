@@ -148,18 +148,21 @@ def _blocco_tun(dati: Dict[str, Any], righe: List[Dict[str, Any]], note: List[st
     dati["decreto"] = decreto
 
     punti, eta = dati["punti"], dati["eta"]
-    permanente = tun.danno_biologico(punti, eta, primo_punto)
+    alla_data = dati["data_liquidazione"]
+    tavola_eta = tun.versione_tavola_eta(alla_data)
+    dati["tavola_eta"] = tavola_eta
+    permanente = tun.danno_biologico(punti, eta, primo_punto, alla_data)
     righe.append(_riga(
         f"Danno biologico permanente — {punti} punti",
         permanente,
         f"{primo_punto:.2f} € x coefficiente {tun.coefficiente_biologico(punti)} "
-        f"x {punti} punti x riduzione eta' {tun.coefficiente_eta(eta):.3f}",
+        f"x {punti} punti x riduzione eta' {tun.coefficiente_eta(eta, alla_data):.3f}",
     ))
 
     livello = dati["livello_morale"]
     morale = 0.0
     if livello != "nessuno":
-        morale = tun.danno_morale(punti, eta, primo_punto, livello)
+        morale = tun.danno_morale(punti, eta, primo_punto, livello, alla_data)
         righe.append(_riga(
             f"Danno morale — incremento {LIVELLI_MORALE[livello][0].lower()}",
             morale,
@@ -182,6 +185,13 @@ def _blocco_tun(dati: Dict[str, Any], righe: List[Dict[str, Any]], note: List[st
     note.append(
         f"Valore del primo punto dal {decreto['decreto']} ({decreto['gazzetta']}): "
         f"{primo_punto:.2f} €, per rinvio dell'art. 2 del D.P.R. 12/2025 all'art. 139."
+    )
+    decorrenza_eta = tavola_eta["decorrenza"]
+    note.append(
+        f"Coefficienti di riduzione per l'eta' dalla tavola 1.B del {tavola_eta['decreto']} "
+        f"({tavola_eta['gazzetta']}), in vigore dal "
+        f"{decorrenza_eta[8:10]}/{decorrenza_eta[5:7]}/{decorrenza_eta[0:4]} "
+        "(art. 1, comma 2, D.P.R. 12/2025)."
     )
     note.append(
         "Il danno morale sull'inabilita' temporanea e' compreso fra il 30 e il 60 per cento "
@@ -336,6 +346,11 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         )
 
     fonti = [tabelle.fonte(identificativo) for identificativo in _fonti(scelta.codice)]
+    sorgenti = [fonte.come_sorgente() for fonte in fonti]
+    tavola_eta = dati.get("tavola_eta") or {}
+    if tavola_eta.get("codice_redazionale"):
+        # Tavola 1.B aggiornata da decreto MIMIT (art. 1, comma 2, D.P.R. 12/2025).
+        sorgenti.append({"title": f"{tavola_eta['decreto']} — {tavola_eta['gazzetta']}", "url": tavola_eta["url_ufficiale"]})
     return {
         "ambito": dati["ambito"],
         "ambito_label": regime.AMBITI[dati["ambito"]],
@@ -364,5 +379,5 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         "tabelle_applicate": [fonte.come_dizionario() for fonte in fonti],
         "notes": note,
         "warnings": avvisi,
-        "sources": [fonte.come_sorgente() for fonte in fonti],
+        "sources": sorgenti,
     }

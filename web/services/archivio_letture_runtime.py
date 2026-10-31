@@ -1273,7 +1273,15 @@ def _registra_esiti_udienze(fascicolo: Any) -> int:
 
         oggi = oggi_roma()
         eventi = eventi_letti(fatti_fascicolo(fascicolo), oggi=oggi)
-        return registra_esiti(get_scadenziario(), fascicolo_id=_testo(getattr(fascicolo, "id", "")), eventi=eventi, oggi=oggi)
+        scadenziario = get_scadenziario()
+        fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+        registrate = registra_esiti(scadenziario, fascicolo_id=fascicolo_id, eventi=eventi, oggi=oggi)
+        # Scadenze di deposito adempiute dal deposito consegnato nel termine (pct/deposito_adempimento.py).
+        from pct.deposito_adempimento import abbina_depositi
+        from web.services.correlazioni_ricevute_archivio import depositi_da_archivio
+
+        abbina_depositi(scadenziario, fascicolo_id=fascicolo_id, depositi=depositi_da_archivio(fascicolo))
+        return registrate
     except Exception as exc:  # l'esito non deve fermare la lettura del fascicolo
         logger.warning("Esiti delle udienze non registrati per %s: %s", getattr(fascicolo, "id", ""), exc)
         return 0

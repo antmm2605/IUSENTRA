@@ -500,3 +500,59 @@ Riassunto dettato dall'avvocato perché nessuna sessione lo perda. Ogni lavoro s
 **Ciò che ancora manca**: un classificatore addestrato sulle etichette certificate (XML di ricevute ed esiti, `Comunicazione.xml`, pagoPA, SdI, tipo atto PST) e sulle decisioni già prese dall'avvocato. Si misura contro le regole, sui dati reali, sul server, e si adotta solo dove riduce gli errori.
 
 **Metodo richiesto**: prima l'analisi di tutta la catena e dei percorsi esistenti, poi un piano di miglioramento su tutto, poi i test che dimostrano un miglioramento significativo. Si implementa solo dopo il via dell'avvocato.
+
+---
+
+## 9. Stato reale al 31/10/2026 e piano operativo aggiornato
+
+Verifica in sola lettura sul codice al commit `93e70dc18` (cinque analisi, una per catena). Fatto = verificato nel codice; nessuna prova funzionale sui dati reali è ancora stata eseguita.
+
+### 9.1 Stato per fase del piano
+
+| Fase | Stato | Note principali |
+|---|---|---|
+| 0 Correzioni giuridiche | G1, G3, G6, G7 fatti; G2, G4, G5 parziali | Quattro motori dei termini ancora attivi (anche `lex/workflows/termini_processuali_workflow.py:166`, senza art. 155 né sospensione feriale); `date.today()` residuo in presidio documentale e operativo, Polisweb, PTT, modifica termini PEC |
+| 1 Verità certificate e banco | Parziale | Arrivano solo tipo atto PST e tipo atto della busta, e solo nel censimento; `Comunicazione.xml`, RT, SdI, `.p7m` non diventano etichette; il confronto «regole» è falsato (usa l'etichetta già corretta); nessun banco sul server; prova divisa per documento, non per fascicolo |
+| 2 Classificatore addestrato | Avviato sul PC (Qwen QLoRA) | Addestrato su proposte delle regole ≥96, non sul livello A: impara a copiare le regole |
+| 3 Un solo flusso | Non fatto | Sei classificatori; tre OCR per file; presìdi serviti prima del catalogo; RAG lento fa fallire l'evento; nessun evento dopo Spark o la correzione dell'avvocato |
+| 4 Identità e anagrafica | Non avviata | Pipeline principale senza cliente; abbinamento dal solo nome; documento d'identità candidato al deposito; scadenza in due copie senza preavvisi; file della compilazione anagrafica scartato; controllo degli atti solo su nome e CF dell'assistito |
+| 5 Contributo ed economia | Non fatto | Stato del CU in 7 posti scritti da 6 percorsi; RT letta come totale o come quota; RT frazionate che si sovrascrivono; patrocinio letto come esenzione invece di prenotazione a debito; promemoria pagoPA come pagamento; proforma con il CU della sentenza; preventivi con importi fissi errati |
+| 6 Notifiche, scadenze, agenda | Parziale | Le notifiche **ricevute** non aprono termini (artt. 641, 325, 480/615); direzione L. 53 non distinta; obblighi non chiusi per destinatario dalle RAC/RdAC; niente ReGIndE/INI-PEC negli obblighi; fascia 21-7 non applicata; art. 327 non proposto; eventi di cancelleria generici; allegati PEC non catalogati; nessuna scadenza dedotta dall'udienza; rinvio che non sposta i termini; otto casi di doppione |
+| 7 Intuitività | Non avviata | — |
+
+### 9.2 Ordine di lavoro proposto (per rischio giuridico)
+
+1. **Termini e notifiche** (rischio di termini persi): un solo motore dei termini, anche per Lex; notifiche ricevute → termini; direzione L. 53; chiusura per destinatario; fascia 21-7; art. 327; eventi di cancelleria specifici da `Comunicazione.xml`; allegati PEC catalogati nel fascicolo; scadenze dall'udienza e rinvio.
+2. **Contributo ed economia**: registro unico del CU con quote (CU, art. 30, bollo), frazionato, prenotazione a debito, esenzioni art. 10 e 9 c. 1-bis, art. 14 e art. 16; proforma, preventivi e parcelle dal registro; un solo motore della sentenza. Il confronto nella busta resta ❄ (serve l'autorizzazione dell'avvocato).
+3. **Identità e anagrafica**: Fase 4 per intero.
+4. **Agenda senza doppioni**: registro unico degli eventi con fonti multiple, chiusura degli otto casi.
+5. **Catalogo e classificatore**: confronto corretto con la proposta originale delle regole; livello A (PST, busta, `Comunicazione.xml`, RT, SdI) in esportazione e misura; etichetta certificata prevalente; storia delle decisioni conservata; evento `catalogo.cambiato` che ricalcola obblighi, identità ed economia; banco sul server diviso per fascicolo; poi riaddestramento e adozione per voce.
+6. **Orchestrazione e velocità**: un solo OCR per file, regia di Ollama, RAG che non fa fallire l'evento, query O(K) invece di riletture complete.
+
+### 9.3 Test di accettazione (aggiunti a quelli della sezione 4)
+
+| Area | Test | Criterio |
+|---|---|---|
+| Termini | griglia di 2.000 casi sui quattro motori | 0 differenze; nessun `date.today()` nei moduli dei termini |
+| Notifiche ricevute | 20 PEC L. 53 ricevute (decreti, sentenze, precetti) | tipo e termine giusti in ≥19/20; 0 proposte «notificare entro 60 giorni» su decreti ricevuti |
+| Direzione | 10 PEC inviate e 10 ricevute | 20/20; nessuna attesa di RdAC su PEC ricevute |
+| Chiusura per destinatario | due destinatari, una RdAC e una mancata consegna | obbligo «parziale» con il destinatario nominato; chiusura alla seconda RdAC |
+| Fascia oraria e art. 327 | RdAC alle 22:10 del 31/07; sentenza depositata il 15/03 | decorrenza dalle 7:00 dell'01/08 con sospensione feriale; scadenza art. 327 al 15/10 |
+| Comunicazioni di cancelleria | 50 `Comunicazione.xml` reali | evento specifico ≥90%; provvedimento allegato catalogato ≥95% |
+| Scadenze dall'udienza | udienza verificata e rinvio di 30 giorni | 3 memorie 171-ter e costituzione in bozza; 4/4 spostate, tranne le modifiche manuali |
+| CU | RT 518 + 27; due RT da 259; patrocinio; promemoria; RT prima dell'RG | CU 518 e art. 30 27 in tutti i percorsi; 518 col frazionato; patrocinio `prenotato_a_debito`; 0 promemoria «pagati»; stato «pagato» senza RG |
+| Fonte unica CU | 50 fascicoli reali | 0 differenze fra deposito, scheda, proforma e presidio |
+| Identità | 30 documenti d'identità reali | ≥95% collegati al cliente giusto; 0 collegamenti a omonimi con CF o data di nascita diversi; 0 candidati al deposito |
+| Scadenza documento | data malformata; scadenza a 59 giorni | cruscotto senza eccezioni; preavviso a 60 e 30 giorni, una sola data |
+| Controllo atti | atti con data, luogo, residenza diversi, anche della controparte | una discordanza per campo; 0 falsi positivi su 20 atti corretti |
+| Doppioni | gli otto casi con 2-3 fonti | 1 riga e N fonti; secondo giro con 0 scritture |
+| Catalogo | documenti corretti dall'avvocato | «regole» misurate sulla proposta originale; 0 fascicoli sia in addestramento sia in prova; 0 etichette del catalogo contro un livello A |
+| Propagazione | correzione da «Sentenza» ad «Allegato» | entro il giro successivo 0 scadenze aperte di quell'obbligo |
+| Velocità | caricamento di un PDF scansionato; RAG oltre 60 s; 10.000 scadenze + 50 nuove | 1 OCR e 1 giro; evento riuscito con RAG rimandato; nessuna rilettura completa della tabella |
+
+### 9.4 Decisioni che servono all'avvocato
+
+1. Via libera all'ordine della sezione 9.2 (o un ordine diverso).
+2. Flusso congelato ❄: il confronto del CU nella busta e lo stato del patrocinio nel DatiAtto si correggono dentro la busta o solo a monte nel presidio?
+3. ReGIndE e INI-PEC: consultazione automatica degli elenchi pubblici dal server (con data di consultazione) oppure solo indirizzo inserito dall'avvocato?
+4. Corpus di verifica sui dati reali: autorizzazione a usare sul server, senza che nulla esca, PEC e documenti dello studio per i test di accettazione (20 notifiche ricevute, 50 comunicazioni di cancelleria, 30 documenti d'identità, 50 fascicoli per il CU).

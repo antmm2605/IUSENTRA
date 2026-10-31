@@ -52,6 +52,15 @@ _REGOLE: dict[str, tuple[str, str, bool]] = {
 }
 
 
+# Categorie in cui il contributo dipende dal valore dichiarato (art. 13, commi 1 e 6-quater; art. 14).
+DIPENDE_DAL_VALORE = frozenset({"civile_ordinario", "decreto_ingiuntivo", "lavoro", "tributario", "amministrativo_appalti"})
+
+
+def dipende_dal_valore(tipologia: str) -> bool:
+    regola = _REGOLE.get(str(tipologia or ""))
+    return regola is not None and regola[0] in DIPENDE_DAL_VALORE
+
+
 def grado_dal_testo(etichetta: str) -> str:
     testo = str(etichetta or "").casefold()
     if "cassazione" in testo:
@@ -83,4 +92,4 @@ def contributo_per_preventivo(calcolatore: Any, tipologia: str, *, valore: float
     return round(float(calcolatore.calcola_contributo_unificato(parametri).get("base") or 0.0), 2)
 
 
-__all__ = ["contributo_per_preventivo", "grado_dal_testo", "parametri_contributo"]
+__all__ = ["DIPENDE_DAL_VALORE", "contributo_per_preventivo", "dipende_dal_valore", "grado_dal_testo", "parametri_contributo"]

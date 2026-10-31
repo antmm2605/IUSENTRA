@@ -4149,6 +4149,12 @@ def _totale_pagamenti_registrati(items: dict[str, dict[str, Any]], payments: Any
     return round(totale, 2)
 
 
+def _registro_contributo(fascicolo: Any) -> dict[str, Any]:
+    from web.services.contributo_registro_runtime import registro_del_fascicolo
+
+    return registro_del_fascicolo(fascicolo)
+
+
 def payment_summary_for_fascicolo(
     fascicolo: Any,
     *,
@@ -4233,6 +4239,7 @@ def payment_summary_for_fascicolo(
         "items": items,
         "proformaPresidio": proforma_presidio,
         "analysis": analysis,
+        "registroContributo": _registro_contributo(fascicolo),
     }
 
 

@@ -56,3 +56,19 @@ def test_la_lettura_del_fascicolo_riallinea_solo_i_suoi_presidi(monkeypatch):
     monkeypatch.setattr(verifiche, "verifica_notifiche", _guasto)
     # Un guasto del registro notifiche non ferma la lettura del fascicolo.
     assert _riallinea_notifiche_del_fascicolo("F1")["errore"] == "RuntimeError"
+
+
+def test_la_lettura_del_fascicolo_si_prepara_in_sfondo_senza_fermare_la_lettura(monkeypatch):
+    """V21: la scheda «Lettura» (16-25 s alla prima apertura) si prepara alla fine della lettura in sfondo."""
+    import web.blueprints.api_v1_react as api
+    from web.services.archivio_letture_runtime import _prepara_lettura
+
+    chiesti = []
+    monkeypatch.setattr(api, "prepara_lettura_in_cache", lambda fid: chiesti.append(fid) or True)
+    assert _prepara_lettura("F1") is True and chiesti == ["F1"]
+
+    def _guasto(fid):
+        raise RuntimeError("archivio non disponibile")
+
+    monkeypatch.setattr(api, "prepara_lettura_in_cache", _guasto)
+    assert _prepara_lettura("F1") is False

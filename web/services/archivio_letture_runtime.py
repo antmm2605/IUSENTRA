@@ -1176,6 +1176,8 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             # Una relata o una ricevuta appena entrata può chiudere una notifica
                             # aperta: si riallineano solo i presìdi di questo fascicolo, ora.
                             _riallinea_notifiche_del_fascicolo(fascicolo_id)
+                            # La scheda «Lettura» si prepara ora: all'apertura è già pronta (V21).
+                            _prepara_lettura(fascicolo_id)
                             if evento.get("presidi"):
                                 from web.services.fascicolo_lettura_verifiche import esegui_verifiche
 
@@ -1241,6 +1243,17 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
     except Exception:
         logger.exception("Riletture notturne non accodate per %s", tenant_id or "studio")
         return 0
+
+
+def _prepara_lettura(fascicolo_id: str) -> bool:
+    """Lettura del fascicolo preparata in sfondo; un errore non ferma la lettura dei documenti."""
+    try:
+        from web.blueprints.api_v1_react import prepara_lettura_in_cache
+
+        return prepara_lettura_in_cache(fascicolo_id)
+    except Exception as exc:
+        logger.warning("Lettura del fascicolo %s non preparata in sfondo: %s", fascicolo_id, exc)
+        return False
 
 
 def _riallinea_notifiche_del_fascicolo(fascicolo_id: str) -> dict[str, Any]:

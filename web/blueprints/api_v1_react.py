@@ -46,7 +46,7 @@ from pct.auth import RuoloUtente, totp_uri
 from pct.busta import e_ricevuta_telematica_pagopa
 from pct.preventivi_sql_writer import PreventiviConflict
 from pct.clienti import Indirizzo, Recapiti, TipoCliente
-from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
+from pct.email_client import GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.fascicolo_document_catalog import classify_fascicolo_document
 from pct.deposito_datiatto_fields import normalize_deposito_professionista_role
@@ -9522,6 +9522,26 @@ def fascicolo_react_lettura(id_fasc: str):
     except Exception as exc:
         current_app.logger.exception("Lettura del fascicolo %s non completata: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Lettura del fascicolo non completata."}, 200)
+
+
+def prepara_lettura_in_cache(id_fasc: str) -> bool:
+    """Prepara la Lettura del fascicolo in sfondo, con la stessa chiave della scheda (V21, 31/10/2026).
+
+    Alla prima apertura la Lettura richiedeva 16-25 secondi: si prepara alla fine della lettura in
+    sfondo del fascicolo (documento o PEC entrati, rilettura notturna), così l'avvocato la trova pronta.
+    Serve il contesto del fascicolo già impostato in ``g`` dal chiamante.
+    """
+    from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
+
+    chiave = _lettura_cache_key(id_fasc)
+    if _LETTURA_CACHE.get(chiave) is not None:
+        return False
+    lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc)
+    if not lettura or bool((lettura.get("verifiche") or {}).get("in_corso")):
+        return False
+    risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
+    _LETTURA_CACHE.set(chiave, risposta.get_data())
+    return True
 
 
 @api_v1_react.get("/letture/panoramica")

@@ -201,7 +201,8 @@
     "frontend/src/components/OperationalLiveSync.css",
     "frontend/src/components/fascicoli/CtuSection.css",
     "frontend/src/features/documenti/SchedaCompilazionePanel.css",
-    "frontend/src/features/documenti/StesuraLexPanel.css"
+    "frontend/src/features/documenti/StesuraLexPanel.css",
+    "frontend/src/components/fascicoli/AgendaFascicolo.css"
   ],
   "allowedInlineStyles": [
     {

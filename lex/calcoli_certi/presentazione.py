@@ -15,6 +15,9 @@ _ETICHETTE = {
     "start_date": "Data iniziale", "label": "Descrizione", "mode": "Regime", "total_amount": "Totale dovuto",
     "total_interest": "Interessi totali", "segments": "Dettaglio per periodo", "from": "Dal", "to": "Al",
     "interest": "Interessi", "rate": "Tasso annuo", "reference_rate": "Tasso di riferimento",
+    "eta": "Età", "perc_ip": "Invalidità permanente (punti)", "giorni_itt": "Giorni di inabilità totale",
+    "giorni_itp": "Giorni di inabilità parziale", "perc_itp": "Percentuale dell'inabilità parziale",
+    "totale": "Totale", "subtotale": "Subtotale",
 }
 _EURO = re.compile(r"(total|totale|importo|interest|interessi|amount|capital|valore|base|compens|quota|spese|contributo|imposta|anticipazione|netto|lordo|residuo|canone|indennit|somma)")
 _TASSO = re.compile(r"(rate|tasso|aliquota|percentual)")
@@ -50,16 +53,16 @@ def valore_leggibile(chiave: str, valore: Any) -> str:
 
 
 def righe_sintetiche(risultato: dict[str, Any], limite: int = 12) -> list[str]:
-    righe: list[str] = []
+    righe: list[tuple[int, str]] = []
     for chiave, valore in risultato.items():
         if chiave in _NON_SINTETICHE or valore in (None, "", [], {}) or isinstance(valore, (dict, list)):
             continue
-        if _TECNICHE.search(chiave) and (f"{chiave}_label" in risultato or (chiave == "mode" and "label" in risultato)):
+        if f"{chiave}_label" in risultato or (chiave == "mode" and "label" in risultato):
             continue  # c'è già l'etichetta italiana dello stesso dato
-        righe.append(f"- {etichetta(chiave.removesuffix('_label'))}: **{valore_leggibile(chiave, valore)}**")
-        if len(righe) >= limite:
-            break
-    return righe
+        # prima i risultati in euro, poi i dati usati: il totale non resta mai fuori dal limite
+        importo = isinstance(valore, (int, float)) and not isinstance(valore, bool) and bool(_EURO.search(chiave))
+        righe.append((0 if importo else 1, f"- {etichetta(chiave.removesuffix('_label'))}: **{valore_leggibile(chiave, valore)}**"))
+    return [riga for _, riga in sorted(righe, key=lambda r: r[0])][:limite]
 
 
 def tabella_dettaglio(risultato: dict[str, Any], massimo: int = 6) -> list[str]:

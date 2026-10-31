@@ -73,3 +73,33 @@ def test_valori_in_formato_italiano():
     assert valore_leggibile("rate", 2.5) == "2,5%"
     assert valore_leggibile("start_date", "2024-01-31") == "31/01/2024"
     assert valore_leggibile("days", 366) == "366"
+
+
+def test_date_eta_punti_e_giorni_nominati_vanno_al_campo_giusto():
+    campi = schema_calcolatore("danno_biologico")["campi"]
+    dati = estrai(
+        "calcola il danno biologico: 10 punti, eta 30 anni, liquidazione 31/10/2026, sinistro del 05/03/2025, "
+        "20 giorni di inabilita totale e 40 giorni di inabilita parziale",
+        campi,
+    )
+    assert dati.valori["db_data_sinistro"] == "2025-03-05" and dati.valori["db_data_liquidazione"] == "2026-10-31"
+    assert dati.valori["db_eta"] == "30" and dati.valori["db_perc_ip"] == "10"
+    assert dati.valori["db_giorni_itt"] == "20" and dati.valori["db_giorni_itp"] == "40"
+
+
+def test_numero_ambiguo_resta_al_calcolatore():
+    campi = schema_calcolatore("danno_biologico")["campi"]
+    dati = estrai("calcola il danno biologico, eta 30 o eta 40, 10 punti, 15 giorni", campi)
+    assert "db_eta" not in dati.valori
+    assert "db_giorni_itt" not in dati.valori and "db_giorni_itp" not in dati.valori
+
+
+def test_lex_calcola_il_danno_biologico_con_la_tavola_vigente():
+    esito = risposta_calcolatore(
+        "calcola il danno biologico: persona di 7 anni di eta, 10 punti, sinistro 01/06/2026, liquidazione al 31/10/2026",
+        GestioneStrumentiLegali,
+    )
+    assert esito is not None and esito.tipo == "calcolatore:danno_biologico"
+    # cella dell'allegato II del D.M. 28/09/2026 (10 punti, 7 anni) e tabella 2.A
+    assert "€ 26.468,00" in esito.testo and "Totale: **€ 32.026,00**" in esito.testo
+    assert esito.testo.index("Totale") < esito.testo.index("Età")

@@ -25,8 +25,12 @@ Rilascio nato dalla verifica sulle PEC reali e sui fascicoli collegati (registro
   non carcerarie, proroga dei festivi), prescrizione civile (art. 2963, c. 3, c.c.), CTU (mezza
   vacazione), indennità di licenziamento (Corte cost. 118/2025), TFR, categoria F/7, quote di riserva,
   diffamazione, successione legittima (artt. 571 e 582 c.c.).
-- Restano esclusi da Lex finché non c'è la fonte ufficiale o una formula di legge: danno biologico,
-  usufrutto, Cassa Forense, maggior danno, assegno di mantenimento, lite temeraria, uffici competenti.
+- Danno biologico: la tabella unica nazionale usa la tavola 1.B vigente alla data di liquidazione
+  (D.M. MIMIT 10/12/2025 e 28/09/2026) e riproduce tutte le celle pubblicate nell'allegato II;
+  usufrutto con il saggio minimo del 2,5%. Entrambi sono ora fra i collaudati usati da Lex.
+- Lex assegna date, età, punti e giorni al campo che la domanda nomina; un numero ambiguo lo chiede.
+- Restano esclusi da Lex finché non c'è la fonte ufficiale o una formula di legge: Cassa Forense,
+  maggior danno, assegno di mantenimento, lite temeraria, uffici competenti.
 
 ## Udienze passate e agenda del fascicolo (V28, V40)
 

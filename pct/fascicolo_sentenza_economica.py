@@ -219,8 +219,11 @@ _CONTRIBUTO_DOCUMENT_NOT_EXEMPT_RE = re.compile(
 )
 # Prenotazione a debito (artt. 131 e 158 D.P.R. 115/2002): il contributo non si
 # versa ora ma resta annotato; stato distinto dall'esenzione.
+# Per la parte ammessa al patrocinio a spese dello Stato il contributo è prenotato a debito
+# (art. 131, comma 2, lett. a, D.P.R. 115/2002), non esente: si recupera se la controparte è condannata.
 _CONTRIBUTO_DOCUMENT_PRENOTATO_RE = re.compile(
-    r"\b(?:prenotazione\s+a\s+debito|prenotat[oaie]\s+a\s+debito)\b",
+    r"\b(?:prenotazione\s+a\s+debito|prenotat[oaie]\s+a\s+debito|"
+    r"(?:ammess[aoie]\s+al|ammissione\s+al)\s+patrocinio\s+a\s+spese\s+dello\s+stato)\b",
     re.IGNORECASE,
 )
 # Esito negativo di un pagamento pagoPA/RT: la ricevuta non prova il versamento.

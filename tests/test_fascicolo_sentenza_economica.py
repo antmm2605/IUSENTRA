@@ -551,6 +551,14 @@ def test_pagamento_eseguito_pagopa_resta_ricevuta(testo):
     assert contributo_ricevuta_di_pagamento_eseguito(testo) is True
 
 
+def test_patrocinio_a_spese_dello_stato_prenota_a_debito_il_contributo():
+    evidence = extract_contributo_unificato_document_evidence(
+        "Decreto di ammissione al patrocinio a spese dello Stato della parte ricorrente.",
+        {"filename": "ammissione.pdf", "document_id": "D-PSS"},
+    )
+    assert evidence["status"] == "prenotato_a_debito" and evidence["prenotato_a_debito"] is True
+
+
 def test_ricevuta_pagopa_esclude_le_commissioni_dal_contributo():
     evidence = extract_contributo_unificato_document_evidence(
         """

@@ -542,6 +542,10 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "web/blueprints/template_atti.py": [
             'render_react_shell_response(request.path.lstrip("/"))',
         ],
+        # Strumenti legali è solo React (31/10/2026): anche _legacy e i vecchi POST portano alla shell.
+        "web/blueprints/strumenti_legali.py": [
+            'render_react_shell_response("strumenti-legali")',
+        ],
     }
 
     for path in (
@@ -849,8 +853,6 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             "/preventivi/wizard?_legacy=1",
             "/preventivi/conferimento/nuovo?_legacy=1",
             "/tariffario?_legacy=1",
-            "/strumenti-legali/?tool=contributo_unificato&_legacy=1",
-            "/strumenti-legali/?tool=onorari_forensi&_legacy=1",
             "/timesheet?_legacy=1",
             "/portali/pst/acquisizione?_legacy=1",
             "/statistiche/?_legacy=1",
@@ -872,6 +874,11 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             response = client.get(route)
             assert response.status_code == 200, route
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+
+        for route in ("/strumenti-legali/?tool=contributo_unificato&_legacy=1", "/strumenti-legali/?tool=onorari_forensi&_legacy=1"):
+            solo_react = client.get(route)
+            assert solo_react.status_code == 200, route
+            assert "IUSENTRA - React Shell" in solo_react.get_data(as_text=True), route
 
         condivisioni_react = client.get("/cartelle-condivise?_legacy=1")
         assert condivisioni_react.status_code == 200

@@ -14763,6 +14763,22 @@ class PecAuditRepository:
                 )
         if change is None and dies_day is not None:
             term_proposals = propose_provvedimento_terms(comm, dies_a_quo=dies_day, labour=labour)
+        if change is None and comm.kind != "sentenza":
+            # Decreto del giudice del lavoro che ordina la notifica «nei termini di legge»: art. 415 c.p.c.
+            try:
+                from pct.notifica_ricorso_lavoro import proposte_art_415
+
+                allegati_415 = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
+                udienza_415 = None
+                try:
+                    udienza_415 = date.fromisoformat(str(comm.date or "")[:10]) if comm.date else None
+                except ValueError:
+                    udienza_415 = None
+                term_proposals = list(term_proposals) + proposte_art_415(
+                    "\n".join(_attachment_ocr_text(item) for item in allegati_415), udienza=udienza_415,
+                )
+            except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
+                logging.getLogger(__name__).warning("Termini dell'art. 415 non proposti: %s", exc)
         if change is None and comm.kind == "sentenza" and fascicolo_id and self.scadenziario_db_path:
             # Scadenze procedurali già passate alla sentenza: avviso all'avvocato, mai chiusura automatica.
             try:
@@ -14943,7 +14959,7 @@ class PecAuditRepository:
                         continue
                     scadenza = manager.nuova(
                         titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
-                        tipo=TipoTermine.IMPUGNAZIONE,
+                        tipo=TipoTermine.NOTIFICA if str(item.code).startswith("LAV_415_") else TipoTermine.IMPUGNAZIONE,
                         data_scadenza=item.due_date,
                         id_fascicolo=fascicolo_id,
                         descrizione=clean_text(

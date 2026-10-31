@@ -573,3 +573,34 @@ def test_i_file_tecnici_della_comunicazione_non_sono_provvedimenti():
     msg.add_attachment(b"firma", maintype="application", subtype="pkcs7-signature", filename="smime.p7s")
     msg.add_attachment(b"%PDF-1.4 decreto", maintype="application", subtype="pdf", filename="Decreto_153768904.pdf")
     assert [nome for nome, _ in provvedimenti_allegati(msg.as_bytes())] == ["Decreto_153768904.pdf"]
+
+
+def test_decreto_del_lavoro_con_ordine_di_notifica_propone_i_termini_dell_art_415(tmp_path):
+    """V33: testo reale dei decreti di Vicenza del 24/07 e del 09/10/2026 («nei termini di legge»)."""
+    from email import message_from_bytes
+
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    repo, _fascicolo = _repo_con_fascicolo(tmp_path)
+    oggi = datetime.now(ROME_TZ).date()
+    pronuncia, udienza = oggi - timedelta(days=1), oggi + timedelta(days=90)
+    mime = message_from_bytes(_cancelleria_mime(
+        "FISSAZIONE UDIENZA DI DISCUSSIONE", f"FISSATA UDIENZA DI DISCUSSIONE IL {udienza:%d/%m/%Y} 09:30 in presenza",
+        rg="523/2026/LAV", when=oggi.strftime("%a, %d %b %Y") + " 09:10:00 +0100", tag="decreto-415",
+    ), policy=policy.SMTP)
+    mime.add_attachment((
+        "TRIBUNALE ORDINARIO DI VICENZA Il Giudice del Lavoro, letto il ricorso, visto l'art. 415 c.p.c., FISSA l'udienza. "
+        "ORDINA che il ricorso con il pedissequo decreto sia notificato a cura dell'istante alla controparte nei termini di legge. "
+        f"Vicenza, {pronuncia:%d/%m/%Y} Il Giudice del Lavoro Dott."
+    ).encode(), maintype="text", subtype="plain", filename="decreto.txt")
+    message_id = _run_cancelleria(repo, mime.as_bytes(policy=policy.SMTP), "INBOX:UID:415")
+    bozze = {
+        item.deadline_profile_code: item
+        for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False)
+        if f"PEC_TERMINE_PROPOSTO:{message_id}" in item.note
+    }
+    assert set(bozze) >= {"LAV_415_NOTIFICA_TRENTA_GIORNI"}
+    trenta = bozze["LAV_415_NOTIFICA_TRENTA_GIORNI"]
+    assert trenta.tipo == TipoTermine.NOTIFICA and trenta.data_scadenza < udienza.isoformat()
+    if "LAV_415_NOTIFICA_DIECI_GIORNI" in bozze:  # dieci giorni dalla pronuncia, se non già passati
+        assert bozze["LAV_415_NOTIFICA_DIECI_GIORNI"].data_decorrenza == pronuncia.isoformat()

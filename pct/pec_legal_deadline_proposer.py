@@ -23,6 +23,7 @@ PEC persiste nella Scadenza per la verifica professionale.
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -139,6 +140,63 @@ def _sentence_decision_review_payload() -> dict[str, Any]:
     }
 
 
+_PUBBLICAZIONE = re.compile(
+    r"\b(?:depositat[ao]|pubblicat[ao])\b[^.\n]{0,40}?\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b", re.IGNORECASE
+)
+
+
+def _termine_lungo_327(text: str, comunicazione_date: Any, *, labour: bool | None = None) -> dict[str, Any] | None:
+    """Termine lungo di impugnazione (art. 327 c.p.c.): sei mesi dalla pubblicazione della sentenza.
+
+    La comunicazione di deposito non fa decorrere il termine breve (art. 325), ma la pubblicazione fa
+    decorrere quello lungo, che vale se la sentenza non viene notificata. Decorre dalla data di deposito
+    letta nel testo; in mancanza dalla comunicazione di cancelleria, che nel PCT coincide di regola col
+    deposito (da verificare). Sospensione feriale salvo lavoro e previdenza (art. 3 L. 742/1969).
+    """
+    trovata = _PUBBLICAZIONE.search(str(text or ""))
+    pubblicazione: date | None = None
+    if trovata:
+        giorno, mese, anno = (int(parte) for parte in trovata.groups())
+        try:
+            pubblicazione = date(anno, mese, giorno)
+        except ValueError:
+            pubblicazione = None
+    letta_nel_testo = pubblicazione is not None
+    pubblicazione = pubblicazione or _parse_date(comunicazione_date)
+    if pubblicazione is None:
+        return None
+    template = _TEMPLATES_BY_CODE.get("CIV_APPELLO_LUNGO")
+    if template is None:
+        return None
+    lavoro = is_labour_matter(text) if labour is None else bool(labour)
+    result = ItalianDeadlineCalculator().calculate(
+        pubblicazione, template.base_value, direction="forward", template_code=template.code,
+        template_name=template.name, template_version=template.version, period_type="months",
+        matter_type="labor" if lavoro else template.matter_type, suspend_august=not lavoro,
+        reference_law=template.reference_law,
+    )
+    fonte = "data di deposito letta nella comunicazione" if letta_nel_testo else "data della comunicazione di cancelleria"
+    return {
+        **result,
+        "ok": True,
+        "tipo": "perentorio",
+        "azione": "Impugnazione della sentenza — termine lungo (se la sentenza non viene notificata)",
+        "norma": "Art. 327 c.p.c.",
+        "template_code": template.code,
+        "dies_a_quo_type": "pubblicazione",
+        "dies_a_quo_date": pubblicazione.isoformat(),
+        "deadline": result["deadline"],
+        "raw_deadline": result.get("rawDeadline"),
+        "human_review_required": True,
+        "confidence": 0.8 if letta_nel_testo else 0.65,
+        "explanation": (
+            f"Sei mesi dalla pubblicazione ({fonte}: {pubblicazione.strftime('%d/%m/%Y')})"
+            f"{'' if lavoro else ', con la sospensione feriale'}. Se la sentenza viene notificata vale il termine "
+            "breve dell'art. 325 c.p.c. dalla notifica."
+        ),
+    }
+
+
 def _parse_date(value: Any) -> date | None:
     if isinstance(value, date):
         return value
@@ -231,6 +289,8 @@ def propose_legal_deadline(
     )
 
     rule, matched_keyword = _resolve_rule_match(text_norm, rules)
+    if rule is None and is_deposito_sentenza:
+        return _termine_lungo_327(text, dies_a_quo_date, labour=labour)
     if rule is None:
         if any(_norm(kw) in text_norm for kw in rules.get("assegnazione_generica_keywords", [])):
             return {
@@ -262,6 +322,9 @@ def propose_legal_deadline(
     # termine breve ex art. 325, blocca sempre: il breve parte dalla notificazione
     # (evento distinto), mai dalla comunicazione di cancelleria.
     if template.reference_law.startswith("Art. 325") and is_deposito_sentenza:
+        lungo = _termine_lungo_327(text, dies_a_quo_date, labour=labour)
+        if lungo is not None:
+            return lungo
         return {
             "ok": False,
             "human_review_required": True,

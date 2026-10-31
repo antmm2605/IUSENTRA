@@ -53,9 +53,23 @@ def test_deposito_sentenza_non_fa_decorrere_termine_breve():
         dies_a_quo_date="2026-03-02",
         event_type="deposito_sentenza",
     )
-    assert r["ok"] is False
+    # Dal 31/10/2026 la pubblicazione fa decorrere il termine lungo (art. 327), mai quello breve (art. 325).
+    assert r["ok"] is True and r["norma"] == "Art. 327 c.p.c." and "325" not in r["norma"]
     assert r["human_review_required"] is True
-    assert "325" in r["reason"] or "133" in r["reason"] or "breve" in r["reason"]
+    # 02/03 + 6 mesi = 02/09, + 31 giorni di agosto = sabato 03/10 → lunedì 05/10 (art. 155 c.p.c.).
+    assert "breve" in r["explanation"] and r["deadline"] == "2026-10-05"
+
+
+def test_termine_lungo_dalla_data_di_deposito_letta_e_senza_feriale_nel_lavoro():
+    letta = propose_legal_deadline("Sentenza n. 45/2026 depositata il 15/03/2026", dies_a_quo_date="2026-03-20",
+                                   event_type="deposito_sentenza")
+    assert letta["dies_a_quo_date"] == "2026-03-15" and letta["deadline"] == "2026-10-16"
+    lavoro = propose_legal_deadline("Sezione lavoro: sentenza depositata il 15/03/2026", dies_a_quo_date="2026-03-20",
+                                    event_type="deposito_sentenza")
+    assert lavoro["deadline"] == "2026-09-15"
+    impossibile = propose_legal_deadline("sentenza depositata il 31/02/2026", dies_a_quo_date="",
+                                         event_type="deposito_sentenza")
+    assert impossibile is None
 
 
 def test_assegna_termine_senza_durata_richiede_revisione():

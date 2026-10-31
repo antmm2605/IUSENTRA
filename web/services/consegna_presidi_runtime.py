@@ -98,6 +98,13 @@ def _stessa_scadenza(riga: Any, fatto: Any) -> bool:
     # non autorizza a sopprimere una notifica o un altro termine distinto.
     from pct.archivio_letture.identita_eventi import adempimento_fatto
     modalita = adempimento_fatto(fatto)
+    if "ARCHIVIO_FATTO:" in testo:
+        # Voce già creata dall'archivio: lo stesso provvedimento letto da un'altra copia (allegato PEC,
+        # documento del fascicolo) o una data generica «Termine del …» nello stesso giorno è lo stesso
+        # adempimento, salvo che i due testi indichino adempimenti diversi.
+        modalita = modalita or _modalita_termine(f"{_testo(getattr(fatto, 'etichetta', ''))} {_testo(getattr(fatto, 'contesto', ''))}")
+        della_riga = _modalita_termine(f"{_testo(getattr(riga, 'titolo', ''))} {_testo(getattr(riga, 'descrizione', ''))}")
+        return not modalita or not della_riga or modalita == della_riga
     if modalita:
         return modalita == _modalita_termine(getattr(riga, "titolo", ""))
     return bool(fatto.oggetto_id and fatto.oggetto_id in testo and _testo(riga.titolo) == _testo(fatto.etichetta))

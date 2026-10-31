@@ -62,3 +62,28 @@ def test_conferma_proposta_polisweb_non_duplica(tmp_path):
     nuova = next(a for a in agenda.tutti() if a.data_ora.startswith("2027-04-20"))
     assert ora_da_confermare(nuova) and nuova.id_fascicolo == "F-1"
     assert SimpleNamespace  # import usato
+
+
+def test_stesso_termine_da_due_copie_del_provvedimento_resta_una_scadenza():
+    """Visto in produzione il 31/10/2026: tre voci per lo stesso termine 127-ter del 17/12/2026."""
+    from web.services.consegna_presidi_runtime import _stessa_scadenza
+
+    contesto = "ASSEGNA alle parti, ai sensi dell'art. 127 ter c.p.c., termine del 17/12/2026 per il deposito di note scritte"
+    generica = SimpleNamespace(stato="APERTO", data_scadenza="2026-12-17", titolo="Termine del 17/12/2026",
+                               descrizione=contesto, note="Data verificata nell’archivio delle letture.\nARCHIVIO_FATTO:f1")
+    altra_copia = SimpleNamespace(id="f2", valore="2026-12-17", etichetta="Termine del 17/12/2026", contesto=contesto,
+                                  oggetto_id="DOC-2", tipo="documento", campo="termine", categoria="data")
+    specifica = SimpleNamespace(id="f3", valore="2026-12-17", etichetta="Deposito note scritte ex art. 127-ter c.p.c. — 17/12/2026",
+                                contesto=contesto, oggetto_id="DOC-3", tipo="documento", campo="termine", categoria="data")
+    assert _stessa_scadenza(generica, altra_copia) and _stessa_scadenza(generica, specifica)
+    # Un adempimento diverso nello stesso giorno resta distinto.
+    notifica = SimpleNamespace(id="f4", valore="2026-12-17", etichetta="Termine per la notifica del ricorso",
+                               contesto="termine del 17/12/2026 per la notifica del ricorso e del decreto",
+                               oggetto_id="DOC-4", tipo="documento", campo="termine", categoria="data")
+    from pct.archivio_letture.identita_eventi import adempimento_da_testo
+
+    if adempimento_da_testo(notifica.contesto):
+        assert not _stessa_scadenza(generica, notifica)
+    # Una voce inserita a mano resta confrontata con rigore.
+    manuale = SimpleNamespace(stato="APERTO", data_scadenza="2026-12-17", titolo="Termine del 17/12/2026", descrizione="", note="")
+    assert not _stessa_scadenza(manuale, altra_copia)

@@ -580,3 +580,25 @@ def test_ufficio_nella_tabella_del_registro_non_ingloba_etichetta_giudice():
     assert not evidence["conflicts"]
     wrong = document_case_identity_evidence(source.replace("DI PALMI", "DI TORINO"), case)
     assert not wrong["office_match"] and wrong["conflicts"]
+
+
+def test_i_motivi_degli_scarti_si_raggruppano_senza_i_valori_letti():
+    """V13: la quota di fatti respinti deve dire perché, raggruppando per controllo che li smentisce."""
+    from pct.archivio_letture.presidi import motivi_degli_scarti
+
+    def respinto(campo, valore, codice, dettaglio):
+        return Fatto(categoria="data", campo=campo, valore=valore, verifica="respinta",
+                     prove=[{"codice": "forma", "esito": "ok", "dettaglio": "data ben formata"},
+                            {"codice": codice, "esito": "respinta", "dettaglio": dettaglio}])
+
+    fatti = [
+        respinto("udienza", "2019-03-01", "orizzonte", "01/03/2019 precede l'apertura del fascicolo (12/05/2024)"),
+        respinto("udienza", "2018-07-11", "orizzonte", "11/07/2018 precede l'apertura del fascicolo (12/05/2024)"),
+        respinto("documento", "2026-31-02", "calendario", "«31/02/2026» non è una data"),
+        Fatto(categoria="data", campo="udienza", valore="2026-11-10", verifica="verificata"),
+    ]
+    motivi = motivi_degli_scarti(fatti)
+    assert motivi[0] == {"categoria": "data", "campo": "udienza", "numero": 2,
+                         "motivo": "orizzonte: … precede l'apertura del fascicolo (…)"}
+    assert motivi[1]["motivo"] == "calendario: «…» non è una data" and motivi[1]["numero"] == 1
+    assert riassunto_archivio(fatti)["motivi_scarto"] == motivi

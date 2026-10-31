@@ -6,6 +6,8 @@ I presìdi non rileggono i documenti: chiedono all'archivio i fatti utili
 
 from __future__ import annotations
 
+import re
+from collections import Counter
 from datetime import date
 from typing import Any, Iterable
 
@@ -319,6 +321,33 @@ def _forza_verifica(verifica: str) -> int:
     return {"corretta": 3, "verificata": 2, "plausibile": 1}.get(verifica, 0)
 
 
+def _motivo_scarto(fatto: Fatto) -> str:
+    """Il primo controllo che ha smentito il fatto, senza i valori letti (raggruppabile)."""
+    prova = next((p for p in fatto.prove if str(p.get("esito") or "") in {"respinta", "errore"}), None)
+    if prova is None:
+        return "nessun controllo dichiarato"
+    dettaglio = re.sub(r"«[^»]*»", "«…»", str(prova.get("dettaglio") or ""))
+    dettaglio = re.sub(r"\d+(?:[/.\-]\d+)*", "…", dettaglio)
+    return f"{prova.get('codice') or 'controllo'}: {dettaglio}".strip()[:140]
+
+
+def motivi_degli_scarti(fatti: Iterable[Fatto], *, limite: int = 10) -> list[dict[str, Any]]:
+    """Perché i fatti sono stati respinti: conteggio per dato letto e controllo che lo smentisce.
+
+    Rende spiegabile la quota di scarti del collaudo (verifica di produzione V13):
+    l'avvocato vede se si tratta di date fuori dall'orizzonte del fascicolo,
+    di ruoli di altri uffici o di letture non interpretabili.
+    """
+    conteggio: Counter[tuple[str, str, str]] = Counter()
+    for fatto in fatti:
+        if fatto.verifica == "respinta":
+            conteggio[(fatto.categoria, fatto.campo, _motivo_scarto(fatto))] += 1
+    return [
+        {"categoria": categoria, "campo": campo, "motivo": motivo, "numero": numero}
+        for (categoria, campo, motivo), numero in conteggio.most_common(limite)
+    ]
+
+
 def riassunto_archivio(fatti: Iterable[Fatto], *, oggi: date | None = None) -> dict[str, Any]:
     """Il riassunto per il pannello: quanti fatti per verdetto, udienze, termini, prove, ruoli, conferme utili."""
     elenco = list(fatti)
@@ -339,7 +368,8 @@ def riassunto_archivio(fatti: Iterable[Fatto], *, oggi: date | None = None) -> d
         "importi": len(importi_letti(utili)),
         "per_motore": {"documenti": sum(1 for fatto in utili if fatto.motore == "documenti"), "pec": sum(1 for fatto in utili if fatto.motore == "pec")},
         "da_confermare": da_confermare[:12],
+        "motivi_scarto": motivi_degli_scarti(elenco),
     }
 
 
-__all__ = ["CAMPI_DA_CONFERMARE", "ETICHETTE_EVENTO", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "eventi_letti", "importi_letti", "prospetti_letti", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]
+__all__ = ["CAMPI_DA_CONFERMARE", "ETICHETTE_EVENTO", "FORZA_PROVA", "da_confermare_ora", "etichetta_verifica", "eventi_letti", "importi_letti", "motivi_degli_scarti", "prospetti_letti", "prove_notifica_per_oggetto", "riassunto_archivio", "ruoli_letti", "udienze_e_termini"]

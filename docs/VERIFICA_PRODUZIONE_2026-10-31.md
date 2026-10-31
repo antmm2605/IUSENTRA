@@ -32,7 +32,7 @@ produzione** = da ricontrollare su app.iusentra.it dopo il deploy; **da fare** =
 | V12 | Panoramica costruita in 3,7 s, di cui 2,0 s per la posta | — | — | **da fare** (punto 6 del piano) |
 | V13 | 40-60% dei fatti respinti dal collaudo in tre fascicoli | — | — | **da analizzare** |
 | V15 | A8B49265: liquidazione delle spese presa dalla sentenza di Vicenza (precedente) | regola unica dei precedenti (fatto letto o nome del file con altro ufficio) per notifiche, economia della sentenza e importi | `tests/test_rilettura_notturna_catena.py::test_precedente_di_altro_ufficio_fuori_da_notifiche_ed_economia` | corretto · da verificare in produzione |
-| V16 | A8B49265: contributo «da registrare» con la ricevuta telematica nel fascicolo | la verifica d'identità esige il numero di ruolo nella ricevuta, che non può esserci se il pagamento precede l'iscrizione | — | **da fare**: identità per IUV univoco nello studio + causale/CF + data anteriore all'iscrizione |
+| V16 | A8B49265: contributo «da registrare» con la ricevuta telematica nel fascicolo | per la ricevuta telematica XML senza ruolo né ufficio in contrasto, RG e ufficio si riscontrano se compaiono cliente o codice fiscale (`identita_ricevuta_prima_del_ruolo`); il riuso dello IUV resta segnalato | `tests/test_ricevuta_prima_del_ruolo.py` | corretto · da verificare in produzione (dopo la rilettura del fascicolo) |
 | V14 | Versione in produzione 2.461.1 | deploy unico con tutti i controlli verdi | gate locale e CI | **da fare** |
 
 ## Dettaglio delle osservazioni

@@ -66,12 +66,20 @@ def test_scheda_parcella_link_di_pagamento_ed_eliminazione_della_bozza(tmp_path)
         # Una fattura emessa non si elimina: si annulla o si rettifica.
         emessa_scheda = client.get(f"/api/v1/ui/fatturazione/{emessa.id}").get_json()["item"]["sheetActions"]
         assert emessa_scheda["canDelete"] is False and "art. 26" in emessa_scheda["deleteBlockedReason"]
-        rifiuto = client.post(f"/api/v1/ui/fatturazione/{emessa.id}/elimina", json={})
+        revisione_emessa = client.get(f"/api/v1/ui/fatturazione/{emessa.id}").get_json()["item"]["revision"]
+        rifiuto = client.post(f"/api/v1/ui/fatturazione/{emessa.id}/elimina", json={"expectedRevision": revisione_emessa})
         assert rifiuto.status_code == 409
 
-        eliminata = client.post(f"/api/v1/ui/fatturazione/{bozza.id}/elimina", json={})
+        # L'eliminazione esige la revisione letta nella scheda: senza, si chiede
+        # di aggiornare (428); con una revisione superata, conflitto (409).
+        assert client.post(f"/api/v1/ui/fatturazione/{bozza.id}/elimina", json={}).status_code == 428
+        superata = client.post(f"/api/v1/ui/fatturazione/{bozza.id}/elimina", json={"expectedRevision": "revisione-superata"})
+        assert superata.status_code == 409
+        revisione = client.get(f"/api/v1/ui/fatturazione/{bozza.id}").get_json()["item"]["revision"]
+        assert revisione
+        eliminata = client.post(f"/api/v1/ui/fatturazione/{bozza.id}/elimina", json={"expectedRevision": revisione})
         assert eliminata.status_code == 200 and eliminata.get_json()["redirect_href"] == "/fatturazione"
-        assert client.post(f"/api/v1/ui/fatturazione/{bozza.id}/elimina", json={}).status_code == 404
+        assert client.post(f"/api/v1/ui/fatturazione/{bozza.id}/elimina", json={"expectedRevision": revisione}).status_code == 404
 
 
 def test_link_di_pagamento_non_serve_per_parcella_pagata(tmp_path):

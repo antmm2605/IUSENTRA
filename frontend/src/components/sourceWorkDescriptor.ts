@@ -15,6 +15,8 @@ export function sourceWorkDescriptor(value: unknown, origin: string): SourceDocu
       || /^\/api\/v1\/ui\/email\/source\/[^/]+$/.test(path)
       || /^\/api\/v1\/ui\/fonti-procedurali\//.test(path)
       || /^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(path)
+      || /^\/giurisprudenza\/corpus\/\d+(?:\/testo|\/documenti\/\d+\/pdf)$/.test(path)
+      || /^\/giurisprudenza\/corpus\/\d+\/traduzioni\/[0-9a-f]{32}$/.test(path)
       || path === '/api/v1/ui/document-reader/web'
       || path === '/api/v1/ui/ricerca-legale/normativa/visualizza'
       || /^\/api\/v1\/ui\/controllo-studio\/conoscenza-notifiche\/fonti\/[a-z0-9_]+$/.test(path)

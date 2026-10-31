@@ -9,7 +9,7 @@ export function inAppSourceDestination(href: string, label: string, origin: stri
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null
     const source = { href: url.pathname + url.search + url.hash, label: label.trim().slice(0, 240) || 'Documento', context: 'Consultazione della fonte in IUSENTRA' }
     if (url.origin !== origin) return { ...source, href: `/api/v1/ui/document-reader/web?${new URLSearchParams({ url: url.href })}` }
-    if (/^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(url.pathname) || target === '_blank') return sourceWorkDescriptor(source, origin)
+    if (/^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(url.pathname) || /^\/giurisprudenza\/corpus\/\d+(?:\/testo|\/documenti\/\d+\/pdf)$/.test(url.pathname) || /^\/giurisprudenza\/corpus\/\d+\/traduzioni\/[0-9a-f]{32}$/.test(url.pathname) || target === '_blank') return sourceWorkDescriptor(source, origin)
     return null
   } catch { return null }
 }

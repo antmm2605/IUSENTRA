@@ -5,7 +5,26 @@ from pathlib import Path
 
 from pct.sentenzeweb_corpus import configured_corpus, source_text_status, text_provenance
 
-HEADINGS = re.compile(r"(?<!\w)(?:RILEVATO\s+CHE:|CONSIDERATO\s+CHE:|FATTI DI CAUSA|RAGIONI DELLA DECISIONE|SVOLGIMENTO DEL PROCESSO|MOTIVI DELLA DECISIONE|P\s*\.\s*Q\s*\.\s*M\s*\.?)(?!\w)", re.I)
+STANDARD_HEADINGS = re.compile(r"(?<!\w)(?:RILEVATO\s+CHE:|CONSIDERATO\s+CHE:|FATTI DI CAUSA|RAGIONI DELLA DECISIONE|SVOLGIMENTO DEL PROCESSO|MOTIVI DELLA DECISIONE|P\s*\.\s*Q\s*\.\s*M\s*\.?)(?!\w)", re.I)
+# The official OCR also joins a capitalized next sentence to an uppercase heading.
+# Keep this alternative case-sensitive: ordinary words containing these letters
+# must never become section headings.
+JOINED_HEADINGS = re.compile(r"(?:RILEVATO\s+CHE:|CONSIDERATO\s+CHE:|FATTI DI CAUSA|RAGIONI DELLA DECISIONE|SVOLGIMENTO DEL PROCESSO|MOTIVI DELLA DECISIONE|P\s*\.\s*Q\s*\.\s*M\s*\.?)(?=[A-ZÀ-Ü][a-zà-ü])")
+SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?;])\s+(?=[A-ZÀ-Ü])")
+
+
+def _paragraphs(text):
+    """Bound long OCR runs at existing sentence spaces without rewriting words."""
+    for line in text.splitlines():
+        for paragraph in PARAGRAPH.split(line):
+            start = 0
+            for boundary in SENTENCE_BOUNDARY.finditer(paragraph):
+                if boundary.start() - start >= 650:
+                    yield paragraph[start:boundary.start()].strip()
+                    start = boundary.end()
+            if paragraph[start:].strip():
+                yield paragraph[start:].strip()
+
 PARAGRAPH = re.compile(r"(?<!\S)(?=\d{1,2}\.(?:-)?\s+[A-ZÀ-Ü])")
 
 
@@ -13,18 +32,17 @@ def text_blocks(text):
     """Only insert visual boundaries; all non-whitespace source characters survive."""
     blocks = []
     offset = 0
-    for match in HEADINGS.finditer(text):
-        before = text[offset:match.start()]
-        for line in before.splitlines():
-            for paragraph in PARAGRAPH.split(line):
-                if paragraph.strip():
-                    blocks.append({"kind": "paragraph", "text": paragraph.strip()})
+    matches = sorted([*STANDARD_HEADINGS.finditer(text), *JOINED_HEADINGS.finditer(text)],
+                     key=lambda match: (match.start(), -match.end()))
+    for match in matches:
+        if match.start() < offset:
+            continue
+        for paragraph in _paragraphs(text[offset:match.start()]):
+            blocks.append({"kind": "paragraph", "text": paragraph})
         blocks.append({"kind": "heading", "text": " ".join(match.group().split()), "anchor": "sezione-" + str(len(blocks))})
         offset = match.end()
-    for line in text[offset:].splitlines():
-        for paragraph in PARAGRAPH.split(line):
-            if paragraph.strip():
-                blocks.append({"kind": "paragraph", "text": paragraph.strip()})
+    for paragraph in _paragraphs(text[offset:]):
+        blocks.append({"kind": "paragraph", "text": paragraph})
     if re.sub(r"\s+", "", "".join(item["text"] for item in blocks)) != re.sub(r"\s+", "", text):
         raise ValueError("Reader formatting changed stored content")
     return blocks

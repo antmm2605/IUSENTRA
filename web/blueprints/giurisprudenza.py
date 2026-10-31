@@ -191,6 +191,190 @@ def dettaglio(judgment_id: str):
     )
 
 
+def _richiedi_corpus_lettura(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        from web.services.operational_read_revision import DOMAIN_PERMISSIONS
+        permission = getattr(g.get("utente_corrente"), "ha_permesso", lambda _name: False)
+        required = DOMAIN_PERMISSIONS["normativa"]
+        if not any(permission(name) for name in required):
+            return Response("Permesso di consultazione delle fonti richiesto.", status=403)
+        return fn(*args, **kwargs)
+    return _richiedi_login(wrapper)
+
+
+def _native_corpus_owner():
+    from web.helpers import get_giurisprudenza_corpus_readonly
+    return get_giurisprudenza_corpus_readonly()
+
+
+@giurisprudenza.get("/corpus/api")
+@_richiedi_corpus_lettura
+def native_corpus_search():
+    from web.services.giurisprudenza_native_runtime import search
+    try:
+        response=jsonify(search(_native_corpus_owner(),source=request.args.get("fonte",""),query=request.args.get("q","")))
+    except ValueError:
+        response=jsonify({"ok":False,"message":"Fonte o ricerca non valida.","records":[]});response.status_code=400
+    except (OSError,sqlite3.Error):
+        response=jsonify({"ok":False,"message":"Corpus locale non disponibile. Nessuno scaricamento avviato.","records":[]});response.status_code=503
+    response.headers["Cache-Control"]="private, no-store"
+    return response
+
+
+@giurisprudenza.get("/corpus/<int:record_id>/testo")
+@_richiedi_corpus_lettura
+def native_corpus_text(record_id):
+    from web.services.giurisprudenza_native_runtime import reader_document
+    if request.args.get("embed")!="source":
+        return redirect(url_for("giurisprudenza.index",corpus_documento=record_id))
+    try:
+        document=reader_document(_native_corpus_owner(),record_id)
+        if not document:return Response("Testo non disponibile nell'archivio dello studio.",status=404)
+        response=Response(document["text"],mimetype="text/plain") if request.args.get("format")=="txt" else Response(render_template("giurisprudenza/corpus_lettore.html",documento=document),mimetype="text/html")
+    except (ValueError,OSError,sqlite3.Error):
+        return Response("Lettura del testo conservato non riuscita. Nessuna acquisizione avviata.",status=503)
+    response.headers.update({"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; style-src 'self'; frame-ancestors 'self'; sandbox allow-same-origin"})
+    return response
+
+
+@giurisprudenza.get("/corpus/<int:record_id>/documenti/<int:document_id>/pdf")
+@_richiedi_corpus_lettura
+def native_corpus_pdf(record_id,document_id):
+    import os
+    from flask import send_file
+    from web.services.giurisprudenza_native_runtime import open_pdf
+    stream=None
+    try:
+        stream=open_pdf(_native_corpus_owner(),record_id,document_id)
+        if stream is None:return Response("Documento non disponibile nell'archivio dello studio.",status=404)
+        if request.args.get("viewer") == "mobile":
+            from pct.rendering_pdf import dimensioni_pagine
+            from web.bootstrap.fascicoli_document_helpers import pdf_mobile_preview_html
+            dimensions = dimensioni_pagine(stream)
+            pages = [url_for("giurisprudenza.native_corpus_pdf_page", record_id=record_id,
+                             document_id=document_id, page_number=page.numero) for page in dimensions]
+            html, status, headers = pdf_mobile_preview_html(nome_documento="Provvedimento conservato",
+                page_urls=pages, scarica_url=url_for("giurisprudenza.native_corpus_pdf",
+                record_id=record_id, document_id=document_id), page_dimensions=dimensions)
+            headers.update({"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'"})
+            return html, status, headers
+        size=os.fstat(stream.fileno()).st_size
+        response=send_file(stream,mimetype="application/pdf",download_name="provvedimento.pdf",as_attachment=False,conditional=False)
+        response.content_length=size
+        response.make_conditional(request.environ,accept_ranges=True,complete_length=size)
+        response.call_on_close(stream.close)
+    except (ValueError,OSError,sqlite3.Error):
+        if stream:stream.close()
+        return Response("Integrità del PDF conservato non confermata.",status=503)
+    finally:
+        if stream and request.args.get("viewer") == "mobile":
+            stream.close()
+    response.headers.update({"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"frame-ancestors 'self'"})
+    return response
+
+
+@giurisprudenza.get("/corpus/<int:record_id>/documenti/<int:document_id>/pagine/<int:page_number>.png")
+@_richiedi_corpus_lettura
+def native_corpus_pdf_page(record_id, document_id, page_number):
+    from pct.rendering_pdf import RenderingPdfError, pagina_png
+    from web.services.giurisprudenza_native_runtime import open_pdf
+    stream = None
+    try:
+        stream = open_pdf(_native_corpus_owner(), record_id, document_id)
+        if stream is None:
+            return Response("Documento non disponibile nell'archivio dello studio.", status=404)
+        try:
+            data = pagina_png(stream, numero_pagina=page_number, scala=1.5)
+        except RenderingPdfError:
+            return Response("Pagina del PDF non disponibile.", status=422)
+        response = Response(data, mimetype="image/png")
+        response.headers.update({"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+        return response
+    except (ValueError, OSError, sqlite3.Error):
+        return Response("Integrità del PDF conservato non confermata.", status=503)
+    finally:
+        if stream:
+            stream.close()
+
+
+def _translation_reply(action):
+    try:
+        response = jsonify(action())
+    except KeyError:
+        response = jsonify(ok=False, message="Fonte o traduzione non presente nello studio.")
+        response.status_code = 404
+    except ValueError as exc:
+        response = jsonify(ok=False, message=str(exc))
+        response.status_code = 409
+    except (OSError, sqlite3.Error):
+        response = jsonify(ok=False, message="Servizio di traduzione locale non disponibile. Nessun documento originale è stato modificato.")
+        response.status_code = 503
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@giurisprudenza.get("/corpus/<int:record_id>/traduzione-info")
+@_richiedi_corpus_lettura
+def native_translation_info(record_id):
+    from web.services.giurisprudenza_translation import original, LANGUAGES
+    def read():
+        record, _text = original(_native_corpus_owner(), record_id)
+        languages = sorted({str(item.get("lingua") or "").lower() for item in record.get("documenti", [])
+            if item.get("valido", True) and str(item.get("lingua") or "").lower() in LANGUAGES})
+        return {"ok": True, "title": record.get("titolo") or "Provvedimento", "languages": languages}
+    return _translation_reply(read)
+
+
+@giurisprudenza.post("/corpus/<int:record_id>/traduzioni")
+@_richiedi_corpus_lettura
+def native_translation_start(record_id):
+    from web.services.giurisprudenza_translation import start
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify(ok=False, message="Richiesta di traduzione non valida."), 400
+    return _translation_reply(lambda: start(_native_corpus_owner(), current_app.config, record_id,
+        str(payload.get("lingua") or ""), retry=payload.get("riprova") is True))
+
+
+@giurisprudenza.post("/corpus/<int:record_id>/traduzioni/<identity>/passo")
+@_richiedi_corpus_lettura
+def native_translation_step(record_id, identity):
+    from web.services.giurisprudenza_translation import step
+    return _translation_reply(lambda: step(_native_corpus_owner(), current_app.config, record_id, identity))
+
+
+@giurisprudenza.get("/corpus/<int:record_id>/traduzioni/<identity>/stato")
+@_richiedi_corpus_lettura
+def native_translation_status(record_id, identity):
+    from web.services.giurisprudenza_translation import status
+    return _translation_reply(lambda: status(_native_corpus_owner(), record_id, identity))
+
+
+@giurisprudenza.get("/corpus/<int:record_id>/traduzioni/<identity>")
+@_richiedi_corpus_lettura
+def native_translation_reader(record_id, identity):
+    import re
+    from web.services.giurisprudenza_translation import document
+    if not re.fullmatch(r"[0-9a-f]{32}", identity):
+        return Response("Traduzione non trovata.", status=404)
+    if request.args.get("embed") != "source":
+        return redirect(url_for("giurisprudenza.index", corpus_documento=record_id, corpus_traduzione=identity))
+    try:
+        data = document(_native_corpus_owner(), record_id, identity)
+        response = Response(render_template("giurisprudenza/traduzione_lettore.html", documento=data), content_type="text/html; charset=utf-8")
+    except KeyError:
+        return Response("Traduzione non presente nello studio.", status=404)
+    except ValueError:
+        return Response("Traduzione non completa o integrità non riscontrata. Apri l'originale o riprendi la traduzione.", status=409)
+    except (OSError, sqlite3.Error):
+        return Response("Archivio delle traduzioni non disponibile.", status=503)
+    response.headers.update({"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; style-src 'self'; base-uri 'none'; frame-ancestors 'self'; sandbox allow-same-origin"})
+    return response
+
+
 @giurisprudenza.get("/sentenzeweb/api")
 @_richiedi_login
 def sentenzeweb_search():

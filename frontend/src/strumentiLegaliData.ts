@@ -88,6 +88,19 @@ export async function eseguiCalcolo(
 /** Chiavi che il pannello rende in forma dedicata, non come riga di sintesi. */
 const CHIAVI_NON_SINTETICHE = new Set(['notes', 'warnings', 'sources', 'scadenze_proposte', 'scadenza_iso'])
 
+/** Presentazione italiana del calcolo interessi; i valori API restano numerici/ISO. */
+export function valoreRisultato(chiave: string, valore: unknown, tool = ''): string {
+  if (valore === null || valore === undefined || typeof valore === 'object') return ''
+  if (tool === 'interessi') {
+    if (['capital', 'total_amount', 'total_interest', 'interest'].includes(chiave) && typeof valore === 'number') return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: true }).format(valore)
+    if (['start_date', 'end_date', 'from', 'to'].includes(chiave) && typeof valore === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valore)) return valore.split('-').reverse().join('/')
+    if (['rate', 'reference_rate'].includes(chiave) && typeof valore === 'number') return `${valore.toLocaleString('it-IT', { maximumFractionDigits: 4 })}%`
+    if (chiave === 'mode') return valore === 'legali' ? 'Interessi legali' : valore === 'mora_commerciale' ? 'Mora commerciale' : String(valore)
+    if (typeof valore === 'number') return valore.toLocaleString('it-IT')
+  }
+  return String(valore)
+}
+
 /** Estrae le righe leggibili di un risultato, senza conoscere lo strumento. */
 export function righeRisultato(result: Record<string, unknown> | undefined, tool = ''): { label: string; value: string }[] {
   if (!result) return []
@@ -122,7 +135,7 @@ export function righeRisultato(result: Record<string, unknown> | undefined, tool
       ? formatEuroIt(valore)
       : tool === 'percentuali' && ['incidenza', 'variazione'].includes(chiave) && typeof valore === 'number'
         ? `${valore.toLocaleString('it-IT', { maximumFractionDigits: 4 })}%`
-        : String(valore)
+        : valoreRisultato(chiave, valore, tool)
     righe.push({ label: etichettaChiave(chiave), value })
   }
   return righe
@@ -141,7 +154,7 @@ export type TabellaRisultato = {
  * piano, parametri tabellari) e le colonne vengono dedotte dalle chiavi, così
  * la pagina non deve conoscere i singoli strumenti.
  */
-export function tabelleRisultato(result: Record<string, unknown> | undefined): TabellaRisultato[] {
+export function tabelleRisultato(result: Record<string, unknown> | undefined, tool = ''): TabellaRisultato[] {
   if (!result) return []
   const tabelle: TabellaRisultato[] = []
   for (const [chiave, valore] of Object.entries(result)) {
@@ -168,7 +181,7 @@ export function tabelleRisultato(result: Record<string, unknown> | undefined): T
         const riga: Record<string, string> = {}
         for (const campo of colonne) {
           const cella = voce[campo]
-          riga[campo] = cella === null || cella === undefined || typeof cella === 'object' ? '' : String(cella)
+          riga[campo] = valoreRisultato(campo, cella, tool)
         }
         return riga
       }),
@@ -178,6 +191,8 @@ export function tabelleRisultato(result: Record<string, unknown> | undefined): T
 }
 
 export function etichettaChiave(chiave: string): string {
+  const etichette: Record<string, string> = { capital: 'Capitale', covered_days: 'Giorni coperti', days: 'Giorni', end_date: 'Data finale', start_date: 'Data iniziale', label: 'Descrizione', mode: 'Regime', total_amount: 'Totale dovuto', total_interest: 'Interessi totali', segments: 'Dettaglio per periodo', from: 'Dal', to: 'Al', interest: 'Interessi', rate: 'Tasso annuo', reference_rate: 'Tasso di riferimento' }
+  if (etichette[chiave]) return etichette[chiave]
   const testo = chiave.replace(/_/g, ' ').trim()
   return testo.charAt(0).toUpperCase() + testo.slice(1)
 }

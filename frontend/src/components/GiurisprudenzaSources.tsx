@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { apiJson } from '../lib/apiClient'
 import type { GiurisprudenzaSource } from '../giurisprudenzaData'
 import { Badge } from '../ui/Badge'
-import { ButtonLink } from '../ui/Button'
+import { Button, ButtonLink } from '../ui/Button'
 import { Panel } from '../ui/Panel'
 
 type Inventory = { ok: boolean; decisioni?: number; relazioni?: number }
@@ -61,6 +61,7 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
       </details>
       <footer className="iu-od-action-row iu-legal-source__actions">
         {sharedReady && <ButtonLink href="#ricerca-cassazione" tone="neutral">Cerca nei testi Cassazione</ButtonLink>}
+        {corpusReady && !sharedReady && <Button type="button" tone="neutral" onClick={()=>window.dispatchEvent(new CustomEvent("iusentra:corpus-source",{detail:source.id}))}>Cerca e leggi i testi</Button>}
         {source.id === 'openga' && <ButtonLink href="#ricerca-openga" tone="neutral">Cerca decisioni</ButtonLink>}
         {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito della fonte</ButtonLink>}
         {source.legacyHref && <ButtonLink href={source.legacyHref} tone="neutral">Scheda fonte</ButtonLink>}

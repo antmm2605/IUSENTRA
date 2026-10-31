@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ documento.title }} — IUSENTRA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sentenzeweb-reader.css') }}">
+</head>
+<body>
+{% if request.args.get("embed") != "source" %}<header class="reader-toolbar"><a href="{{ url_for('giurisprudenza.index') }}">← Archivio Giurisprudenza</a><a href="?format=txt">Apri testo semplice</a><span>Stampa: Ctrl+P</span></header>{% endif %}
+<main>
+  <header class="reader-header">
+    <p class="eyebrow">IUSENTRA · Lettura del provvedimento</p>
+    <h1>{{ documento.title }}</h1>
+    <p>{{ documento.authority }}{% if documento.section %} · Sezione {{ documento.section }}{% endif %} · Deposito {{ documento.date|data_it }}</p>
+    <p class="source-label">{% if documento.text_source_official == false %}Trascrizione da fonte non ufficiale{% elif documento.text_source_official == true %}Testo archiviato dalla fonte ufficiale{% else %}Testo archiviato · provenienza da verificare{% endif %}</p>
+    {% if documento.text_source_url %}<p>Fonte della versione conservata: <code>{{ documento.text_source_url }}</code></p>{% endif %}
+    {% if documento.status == 'source_notice' %}<p role="status">La fonte contiene un avviso di oscuramento, non il testo della decisione.</p>{% endif %}
+    {% if documento.source_notice %}<p role="note">{{ documento.source_notice }}</p>{% endif %}
+    {% for item in documento.documents if item.language and item.language != "it" %}<p>Lingua del documento conservato: {{ item.language }}. Nessuna traduzione automatica aggiunta.</p>{% endfor %}
+  </header>
+  <nav class="reader-index" aria-label="Sezioni del provvedimento">
+    {% for block in documento.blocks if block.kind == 'heading' %}<a href="#{{ block.anchor }}">{{ block.text }}</a>{% endfor %}
+  </nav>
+  <article aria-label="Testo del provvedimento" class="decision-body">
+    {% for block in documento.blocks %}{% if block.kind == 'heading' %}<h2 id="{{ block.anchor }}">{{ block.text }}</h2>{% else %}<p>{{ block.text }}</p>{% endif %}{% endfor %}
+  </article>
+  <footer><p>Impaginazione di lettura del testo archiviato. Nessuna sintesi o approvazione giuridica aggiunta.</p>
+  <details><summary>Provenienza e integrità</summary><p>SHA-256 del testo visualizzato: <code>{{ documento.sha256 }}</code></p>{% if documento.original_sha256 %}<p>SHA-256 archiviato della versione: <code>{{ documento.original_sha256 }}</code></p>{% endif %}</details></footer>
+</main>
+</body></html>

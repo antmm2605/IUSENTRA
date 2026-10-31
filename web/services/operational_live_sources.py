@@ -60,6 +60,11 @@ def legal_source_file_revision() -> list:
         if not value:
             continue
         paths.append(Path(value))
+        if key == "GIURISPRUDENZA_DB":
+            from pct.giurisprudenza_corpus import derive_corpus_db_path
+            from pct.giurisprudenza_repository import derive_giurisprudenza_repository_db_path
+            paths.extend((Path(derive_corpus_db_path(value)),
+                          Path(derive_giurisprudenza_repository_db_path(value))))
         if key == "LEGAL_INTELLIGENCE_DB":
             paths.extend((Path(derive_legal_updates_db_path(value)),
                           Path(derive_legal_intelligence_repository_db_path(value))))

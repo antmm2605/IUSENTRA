@@ -202,3 +202,18 @@ def test_unchanged_release_still_restores_infrastructure(monkeypatch, caddy_pres
 
     monkeypatch.setattr(deploy.subprocess, "check_output", output)
     assert deploy.stack_services_ready(PurePosixPath("/repo")) is ready
+
+
+def test_public_corpus_configuration_reaches_portainer_and_all_app_services():
+    import yaml
+    root = Path(__file__).parents[1]
+    text = (root / 'deploy/hetzner/docker-compose.hetzner.yml').read_text()
+    expected = {'IUSENTRA_SENTENZEWEB_DIRECTORY': '/data/normativa/public-corpus',
+                'IUSENTRA_SENTENZEWEB_BRIDGE_URL': 'http://private-test/sentenzeweb',
+                'IUSENTRA_SENTENZEWEB_BRIDGE_TOKEN': 'synthetic-only-token'}
+    values = {p['name']: p['value'] for p in deploy.stack_environment(text, expected, root, 'a' * 40)}
+    parsed = yaml.safe_load(text)
+    for key, value in expected.items():
+        assert values[key] == "'" + value + "'"
+        for service in ('app', 'scheduler-worker', 'ocr-worker'):
+            assert parsed['services'][service]['environment'][key] == '${' + key + ':-}'

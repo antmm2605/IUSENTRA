@@ -264,6 +264,12 @@ def get_giurisprudenza_readonly() -> GestioneGiurisprudenza:
     return GestioneGiurisprudenza(db_path=_cfg("GIURISPRUDENZA_DB"), sync_repository_on_init=False)
 
 
+def get_giurisprudenza_corpus_readonly():
+    """Native public texts of the current studio, without schema or mirror writes."""
+    from pct.giurisprudenza_corpus import GestioneCorpusGiurisprudenza, derive_corpus_db_path
+    return GestioneCorpusGiurisprudenza(derive_corpus_db_path(_cfg("GIURISPRUDENZA_DB")),read_only=True)
+
+
 def get_calendar_sync() -> GestioneCalendarSync:
     return GestioneCalendarSync(db_path=_cfg("CALENDAR_SYNC_DB"))
 

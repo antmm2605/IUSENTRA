@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traduzione italiana — {{ documento.titolo }} — IUSENTRA</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='css/sentenzeweb-reader.css') }}">
+<link rel="stylesheet" href="{{ url_for('static',filename='css/giurisprudenza-traduzione.css') }}">
+</head><body><main>
+<header class="reader-header"><p class="eyebrow">IUSENTRA · Traduzione di servizio</p>
+<h1>{{ documento.titolo }}</h1>
+<p class="source-label">Traduzione automatica in italiano, non ufficiale e non asseverata.</p>
+<p>Confronta i passaggi con l’originale prima della citazione o dell’uso professionale. La traduzione non sostituisce il provvedimento conservato.</p>
+{% if documento.avvisi %}<p role="note">{{ documento.avvisi }} passaggi presentano difformità da verificare e sono segnalati sotto.</p>{% endif %}
+<nav><a href="{{ documento.originale_url }}">Leggi il testo originale</a></nav></header>
+<article aria-label="Traduzione con originale a confronto" class="decision-body">
+{% for parte in documento.parti %}<section class="translation-part"><h2>Passaggio {{ loop.index }}</h2>
+{% if parte.avviso %}<p class="translation-warning" role="note">{{ parte.avviso }}</p>{% endif %}
+<div class="translation-columns"><details open><summary>Originale ({{ documento.source_language }})</summary><p lang="{{ documento.source_language }}">{{ parte.originale }}</p></details>
+<section lang="it"><h3>Traduzione italiana</h3><p>{{ parte.traduzione }}</p></section></div></section>{% endfor %}
+</article><footer><details><summary>Motore, modello e integrità</summary><p>{{ documento.modello }} · {{ documento.motore }}</p><p>Revisione: <code>{{ documento.revisione }}</code></p><p>Impronta dell’originale: <code>{{ documento.source_sha256 }}</code></p><p>Nessuna approvazione giuridica aggiunta.</p></details></footer>
+</main></body></html>

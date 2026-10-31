@@ -1,3 +1,4 @@
+import { CorpusGiurisprudenzaSearch } from './CorpusGiurisprudenzaSearch'
 import { SentenzeWebSearch } from './SentenzeWebSearch'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { GiurisprudenzaSources } from './GiurisprudenzaSources'
@@ -888,6 +889,7 @@ function GiurisprudenzaArchivePage() {
         <ContractStrip data={data} />
         <WarningList data={data} />
         <SentenzeWebSearch />
+        <CorpusGiurisprudenzaSearch sources={data.sources} />
       <OpenGASearch />
         <div id="filtri-giurisprudenza" />
         <Filters

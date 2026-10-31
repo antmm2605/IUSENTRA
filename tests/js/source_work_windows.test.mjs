@@ -79,3 +79,28 @@ test('Cassazione e fonti web aprono il gestore interno senza nuova scheda', asyn
   assert.equal(inAppSourceDestination(external,'Scarica',origin,'_blank',true),null)
   assert.equal(inAppSourceDestination('/fascicoli/F1/deposito','Operazione',origin,'_blank'),null)
 })
+
+
+test('Corpus e PDF restano nel gestore interno senza inoltrare percorsi operativi', async () => {
+  const { inAppSourceDestination } = await import('../../frontend/src/components/inAppSourceNavigation.ts')
+  const { sourceWorkDescriptor } = await import('../../frontend/src/components/sourceWorkDescriptor.ts')
+  for (const href of ['/giurisprudenza/corpus/22419/testo#sezione-14','/giurisprudenza/corpus/22419/documenti/22419/pdf']) {
+    assert.equal(inAppSourceDestination(href,'Fonte',origin).href,href)
+    assert.equal(sourceWorkDescriptor({ ...source, href },origin).href,href)
+  }
+  for (const href of ['/giurisprudenza/corpus/1/elimina','/giurisprudenza/corpus/1/documenti/2/firma','/giurisprudenza/corpus/1/documenti/2/pdf/extra','https://outside.test/giurisprudenza/corpus/1/testo']) {
+    assert.equal(sourceWorkDescriptor({ ...source, href },origin),null)
+  }
+})
+
+
+test('Traduzioni verificate restano nel lettore interno senza accettare comandi o identità estranee', async () => {
+  const { inAppSourceDestination } = await import('../../frontend/src/components/inAppSourceNavigation.ts')
+  const { sourceWorkDescriptor } = await import('../../frontend/src/components/sourceWorkDescriptor.ts')
+  const href='/giurisprudenza/corpus/22418/traduzioni/'+'a'.repeat(32)+'?embed=source'
+  assert.equal(inAppSourceDestination(href,'Traduzione italiana',origin,'_blank').href,href)
+  assert.equal(sourceWorkDescriptor({...source,href},origin).href,href)
+  for (const invalid of [href.split('?')[0]+'/passo',href.replace('?embed=source','/stato'),href.replace('a'.repeat(32),'non-valida'),'https://outside.test'+href]) {
+    assert.equal(sourceWorkDescriptor({...source,href:invalid},origin),null)
+  }
+})

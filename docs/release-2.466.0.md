@@ -1,0 +1,7 @@
+# 2.466.0 — Catena documentale, verifica di produzione e integrazione del lavoro del PC
+
+Rilascio unico che porta in produzione il lavoro del piano `docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md` e le correzioni del registro `docs/VERIFICA_PRODUZIONE_2026-10-31.md` (punti V1-V16): termine lungo art. 327 c.p.c. dalla data di deposito della sentenza letta dai documenti, contributo unificato e registro del dovuto, identità congiunta del cliente, udienze e scadenze senza doppioni con riunione dei doppioni automatici già presenti, lettura a parti dei documenti grandi per l'AI locale, rilettura notturna graduale con il motore corrente, precedenti di altro ufficio esclusi da notifiche ed economia.
+
+Integra inoltre il lavoro non ancora pubblicato della copia del PC `iusentra-openga-validazione-20261023` (versione locale 2.461.2, vedi `docs/release-2.461.2.md`), con fusione a tre vie sulla base 1fb79a1f e impronta dell'archivio verificata: traduzione locale dei provvedimenti con modello e runtime verificati per impronta, lettura del corpus giurisprudenziale già acquisito senza scaricare nulla, lettore SentenzeWeb con intestazioni e paragrafi separati, ricerca diretta dell'articolo nativo verificato, calcolo interessi in italiano. Dal PC sono stati recuperati anche i documenti «Codici e leggi» e la nota 2.458.1; il resto del lavoro locale era già presente in versione più recente.
+
+Il flusso di deposito e la busta telematica non sono modificati.

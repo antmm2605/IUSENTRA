@@ -6,6 +6,8 @@ import { OperationalModal } from './OperationalModal'
 import { activateManagedWindowForNode } from './ManagedWindowState'
 import { useBusyActivity } from '../ui/useBusyActivity'
 
+const CorpusTranslationControl = lazy(() => import('./CorpusTranslationControl').then(module => ({default:module.CorpusTranslationControl})))
+
 const ViewerDocumentEditor = lazy(() => import('./ViewerDocumentEditor').then((module) => ({ default: module.ViewerDocumentEditor })))
 
 export type SourceDocument = {
@@ -27,6 +29,10 @@ export function sourceViewerHref(source: Pick<SourceDocument, 'href'>, preview =
         && parsed.pathname.includes('/allegato/')
       )
       if (/^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(parsed.pathname)) {
+        if (preview) parsed.searchParams.set('embed', 'source')
+      } else if (/^\/giurisprudenza\/corpus\/\d+\/documenti\/\d+\/pdf$/.test(parsed.pathname)) {
+        if (preview) parsed.searchParams.set('viewer', 'mobile')
+      } else if (/^\/giurisprudenza\/corpus\/\d+\/testo$/.test(parsed.pathname)) {
         if (preview) parsed.searchParams.set('embed', 'source')
       } else if (/^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(parsed.pathname)) {
         if (preview) parsed.searchParams.set('embed', 'source')
@@ -56,6 +62,11 @@ function sourceIframeSandbox(href: string): string {
     const parsed = new URL(href, window.location.origin)
     const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/'
     if (parsed.origin === window.location.origin && /^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
+
+    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/corpus\/\d+\/testo$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
+    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/corpus\/\d+\/traduzioni\/[0-9a-f]{32}$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
+    // Solo HTML generato dal lettore a pagine; nessun contenuto PDF attivo.
+    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/corpus\/\d+\/documenti\/\d+\/pdf$/.test(normalizedPath) && parsed.searchParams.get('viewer') === 'mobile') return 'allow-downloads allow-same-origin allow-scripts'
 
     const trustedInternalReader = parsed.origin === window.location.origin
       && (
@@ -123,6 +134,13 @@ export function SourceDocumentReader({
       const url = new URL(viewerHref, window.location.origin)
       return url.origin === window.location.origin && /^\/fascicoli\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname)
     } catch { return false }
+  })()
+  const corpusRecordId = (() => {
+    try {
+      const parsed = new URL(href, window.location.origin)
+      const match = parsed.origin === window.location.origin && parsed.pathname.match(/^\/giurisprudenza\/corpus\/(\d+)(?:\/testo|\/documenti\/\d+\/pdf)$/)
+      return match ? Number(match[1]) : null
+    } catch { return null }
   })()
   const readerNotice = notice || (caseContext ? 'Contesto del fascicolo: questa vista non costituisce il documento sorgente della scadenza.' : '')
 
@@ -211,6 +229,7 @@ export function SourceDocumentReader({
       data-rotation={normalizedRotation}
       style={{ '--iu-source-reader-rotation': `${normalizedRotation}deg` } as CSSProperties}
     >
+      {corpusRecordId !== null && <Suspense fallback={null}><CorpusTranslationControl recordId={corpusRecordId} label={label}/></Suspense>}
       {readerNotice ? (
         <div className="iu-source-document-reader__notice" role="status">
           {readerNotice}

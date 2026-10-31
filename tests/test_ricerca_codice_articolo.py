@@ -96,3 +96,19 @@ def test_unverified_records_keep_existing_url_deduplication():
  a={'id':'one','sourceHref':'https://example.org/act','subtitle':'breve'}
  b={'id':'two','sourceHref':'https://example.org/act','subtitle':'testo lungo '*30}
  assert len(bridge._dedupe_records([a,b]))==1
+
+
+def test_direct_verified_native_article_does_not_need_public_fallback():
+    record = _article_identity_record('2043', 'Art. 2043. Testo breve verificato.')
+    for query in ('codice civile articolo 2043', 'art. 2043 c.c.', 'testo integrale art.2043 codice civile'):
+        assert bridge._needs_public_fallback([record], query) is False
+
+
+def test_native_article_fallback_preserves_missing_identity_and_current_law_checks():
+    record = _article_identity_record('2043', 'Art. 2043. Testo breve verificato.')
+    for query in ('codice civile articolo 2044', 'art.2043 codice procedura civile',
+                  'testo vigente art.2043 codice civile', 'giurisprudenza relativa art.2043 codice civile'):
+        assert bridge._needs_public_fallback([record], query) is True
+    invalid = dict(record, nativeArticleTextVerified=False)
+    assert bridge._needs_public_fallback([invalid], 'codice civile articolo 2043') is True
+    assert bridge._needs_public_fallback([], 'codice civile articolo 2043') is True

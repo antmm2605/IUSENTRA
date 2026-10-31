@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { applicaPrecompilatoUtility, catalogoUtility, destinazioneUtility } from '../../frontend/src/utilityCatalog.ts'
-import { righeRisultato } from '../../frontend/src/strumentiLegaliData.ts'
+import { righeRisultato, tabelleRisultato } from '../../frontend/src/strumentiLegaliData.ts'
 
 test('quote monetarie e percentuali leggibili senza cambiare il payload numerico', () => {
   const result = { quota: 1234.56, incidenza: 20.25, variazione: -2.125 }
@@ -40,4 +40,25 @@ test('mantiene strumenti operativi e contesto del fascicolo senza destinazioni e
   assert.equal(catalogoUtility([tool], [lookup])[1].funzione, lookup)
   assert.equal(destinazioneUtility(lookup.href, 'CASE42'), '/applicazioni/comune?tipo=nascita&id_fascicolo=CASE42#risultato')
   for (const href of ['//esterno.example/', 'https://esterno.example/', 'javascript:alert(1)']) assert.equal(destinazioneUtility(href), '')
+})
+
+
+test('interessi: etichette italiane, euro, date e tassi anche nei periodi senza alterare dati', () => {
+  const result = { capital: 1000, covered_days: 2, days: 2, end_date: '2026-10-30', start_date: '2026-10-29', label: 'Interessi legali ex art. 1284 c.c.', mode: 'legali', total_amount: 1000.09, total_interest: 0.09,
+    segments: [{ days: 2, from: '2026-10-29', to: '2026-10-30', interest: 0.09, rate: 1.6, reference_rate: null }] }
+  const before = JSON.stringify(result)
+  const rows = Object.fromEntries(righeRisultato(result, 'interessi').map(row => [row.label, row.value.replace(/\u00a0/g, ' ')]))
+  assert.equal(rows['Capitale'], '1.000,00 €')
+  assert.equal(rows['Totale dovuto'], '1.000,09 €')
+  assert.equal(rows['Interessi totali'], '0,09 €')
+  assert.equal(rows['Data iniziale'], '29/10/2026')
+  assert.equal(rows['Data finale'], '30/10/2026')
+  assert.equal(rows['Regime'], 'Interessi legali')
+  const table = tabelleRisultato(result, 'interessi')[0]
+  assert.equal(table.titolo, 'Dettaglio per periodo')
+  assert.equal(table.righe[0].from, '29/10/2026')
+  assert.equal(table.righe[0].rate, '1,6%')
+  assert.equal(table.righe[0].reference_rate, '')
+  assert.equal(table.righe[0].interest.replace(/\u00a0/g, ' '), '0,09 €')
+  assert.equal(JSON.stringify(result), before)
 })

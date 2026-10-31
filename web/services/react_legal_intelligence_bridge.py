@@ -756,7 +756,7 @@ def _record_relevant_for_exact_reference(record: Mapping[str, Any], search_query
     return bool(re.search(rf"(?<!\d){re.escape(reference_number)}(?!\d)", haystack))
 
 
-def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+def _direct_code_article_reference(search_query: str) -> tuple[str, str]:
     from lex.retrieval.official_sources_retriever import (
         ARTICLE_QUERY_RE, CODE_TARGETS, _detect_code_target,
         _extract_article_reference, _normalize_search_text,
@@ -773,7 +773,14 @@ def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_qu
         "testo", "integrale", "vigente", "mostra", "leggi", "cerca",
         "del", "dello", "della", "il", "lo", "l", "di",
     })
-    if code and article and direct_reference:
+    return (code, article) if code and article and direct_reference else ("", "")
+
+
+def _filter_records_for_exact_reference(records: list[dict[str, Any]], search_query: str) -> list[dict[str, Any]]:
+    from lex.retrieval.official_sources_retriever import _detect_code_target
+
+    code, article = _direct_code_article_reference(search_query)
+    if code and article:
         # A numbered code article is not satisfied by a generic card mentioning
         # "codice" or by the same number in another code. Use source identity.
         def normalized(value):
@@ -3098,6 +3105,20 @@ def _is_weak_source_context(record: Mapping[str, Any], search_query: str) -> boo
 
 def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> bool:
     if not search_query:
+        return False
+    # A direct request for an already verified native article is fulfilled
+    # locally. General research and incomplete/mismatching sources still use
+    # the public fallback; this is not a legal-validation shortcut.
+    code, article = _direct_code_article_reference(search_query)
+    if (
+        code and article
+        and not re.search(r"\b(?:vigente|aggiornato|attuale)\b", search_query, re.IGNORECASE)
+        and any(
+            record.get("nativeArticleTextVerified") is True
+            and bool(_text(record.get("officialContext")))
+            for record in _filter_records_for_exact_reference(records, search_query)
+        )
+    ):
         return False
     if _query_requires_current_official_content(search_query) and not _has_current_official_content(records, search_query):
         return True

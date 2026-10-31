@@ -1,0 +1,31 @@
+services:
+  translation:
+    image: ${IUSENTRA_VERIFIED_IMAGE:?Immagine verificata obbligatoria}
+    entrypoint: ["python", "/app/deploy/translation/run_verified_worker.py"]
+    command: ["--model", "/model/Hy-MT2-7B-Q4_K_M.gguf", "--runtime", "/runtime"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 9g
+    cpus: 4
+    pids_limit: 128
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${IUSENTRA_TRANSLATION_MODEL:?Modello verificato obbligatorio}
+        target: /model/Hy-MT2-7B-Q4_K_M.gguf
+        read_only: true
+      - type: bind
+        source: ${IUSENTRA_TRANSLATION_RUNTIME:?Motore verificato obbligatorio}
+        target: /runtime
+        read_only: true
+      - type: bind
+        source: ${IUSENTRA_TRANSLATION_SOCKET_DIRECTORY:?Cartella tecnica del socket obbligatoria}
+        target: /run/translation
+    healthcheck:
+      test: ["CMD", "python", "-c", "from integrations.traduzione_locale.client import call,ALIAS; r=call({'IUSENTRA_TRANSLATION_SOCKET':'/run/translation/motore.sock'},'GET','/v1/models'); assert [x['id'] for x in r['data']]==[ALIAS]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s

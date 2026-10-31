@@ -328,3 +328,18 @@ def test_reader_recognizes_source_heading_split_across_inline_lines():
     blocks = text_blocks(text)
     assert [row["text"] for row in blocks if row["kind"] == "heading"] == ["RILEVATO CHE:", "CONSIDERATO CHE:", "P.Q.M."]
     assert "".join("".join(row["text"].split()) for row in blocks) == "".join(text.split())
+
+
+def test_reader_sections_joined_by_official_ocr_preserve_every_character():
+    from web.services.sentenzeweb_reader import text_blocks
+    text = "Premessa. RAGIONI DELLA DECISIONECon il primo motivo. " + ("Una frase della motivazione. " * 100) + "P.Q.MLa Corte rigetta."
+    blocks = text_blocks(text)
+    assert [row["text"] for row in blocks if row["kind"] == "heading"] == ["RAGIONI DELLA DECISIONE", "P.Q.M"]
+    assert len([row for row in blocks if row["kind"] == "paragraph"]) >= 5
+    assert "".join("".join(row["text"].split()) for row in blocks) == "".join(text.split())
+
+
+def test_reader_does_not_split_ordinary_words_or_lowercase_section_mentions():
+    from web.services.sentenzeweb_reader import text_blocks
+    text = "Le ragioni della decisioneConsentono una citazione, senza titolo autonomo."
+    assert text_blocks(text) == [{"kind": "paragraph", "text": text}]

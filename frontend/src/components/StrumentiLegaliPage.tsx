@@ -224,7 +224,7 @@ function Risultato({ esito, tool, dati }: { esito: EsitoCalcolo; tool: string; d
   const note = elencoTestuale(esito.result, 'notes')
   const avvisi = elencoTestuale(esito.result, 'warnings')
   const fonti = fontiRisultato(esito.result)
-  const tabelle = tabelleRisultato(esito.result)
+  const tabelle = tabelleRisultato(esito.result, tool)
 
   return (
     <section className="iu-tool-result" aria-live="polite">

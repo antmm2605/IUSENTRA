@@ -296,13 +296,20 @@ def _norma_da_testo(testo: Any) -> dict[str, str]:
     }
 
 class GestioneCorpusGiurisprudenza:
-    def __init__(self, db_path: str, schema_path: Path | None = None):
-        self.db_path = str(db_path)
+    def __init__(self, db_path: str, schema_path: Path | None = None, *, read_only: bool = False):
+        self.read_only = bool(read_only)
+        self.db_path = str(Path(db_path).resolve(strict=True)) if self.read_only else str(db_path)
         self.schema_path = Path(schema_path or SCHEMA_GIURISPRUDENZA_CORPUS)
-        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_schema()
+        if not self.read_only:
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+            self._ensure_schema()
 
     def _connect(self) -> sqlite3.Connection:
+        if getattr(self, "read_only", False):
+            conn = sqlite3.connect(Path(self.db_path).as_uri() + "?mode=ro", uri=True, timeout=5)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
+            return conn
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
@@ -1012,6 +1019,7 @@ class GestioneCorpusGiurisprudenza:
         limit: int = 20,
         semantica: bool | None = None,
         solo_contenuto: bool = False,
+        fonte_codice: str = "",
     ) -> list[dict[str, Any]]:
         import os
         domanda_esatta = _clean_spaces(q)
@@ -1027,12 +1035,15 @@ class GestioneCorpusGiurisprudenza:
             try:
                 return self.cerca_sentenze_ibrida(q=q, organo_giudicante=organo_giudicante,
                     materia_principale=materia_principale, stato_verifica=stato_verifica,
-                    solo_con_pdf=solo_con_pdf, limit=limit, solo_contenuto=solo_contenuto)
+                    solo_con_pdf=solo_con_pdf, limit=limit, solo_contenuto=solo_contenuto, fonte_codice=fonte_codice)
             except Exception:
                 import logging
                 logging.getLogger(__name__).warning("Indice sentenze non disponibile: ricerca testuale", exc_info=True)
         filtri = ""
         filtri_params: list[Any] = []
+        if _clean_spaces(fonte_codice):
+            filtri += " AND s.fonte_id IN (SELECT id FROM fonti_giurisprudenza WHERE codice=?)"
+            filtri_params.append(_clean_spaces(fonte_codice))
         if _clean_spaces(organo_giudicante):
             filtri += " AND s.organo_giudicante = ?"
             filtri_params.append(_clean_spaces(organo_giudicante))
@@ -1105,6 +1116,9 @@ class GestioneCorpusGiurisprudenza:
                     if _clean_spaces(filtri.get(key)):
                         sql += " AND s." + key + "=?"
                         params.append(_clean_spaces(filtri[key]))
+                if _clean_spaces(filtri.get("fonte_codice")):
+                    sql += " AND s.fonte_id IN (SELECT id FROM fonti_giurisprudenza WHERE codice=?)"
+                    params.append(_clean_spaces(filtri["fonte_codice"]))
                 if filtri.get("solo_con_pdf"):
                     sql += " AND s.pdf_ufficiale_presente=1"
                 if filtri.get("solo_contenuto"):

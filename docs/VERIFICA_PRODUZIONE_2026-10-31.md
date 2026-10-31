@@ -31,6 +31,8 @@ produzione** = da ricontrollare su app.iusentra.it dopo il deploy; **da fare** =
 | V11 | «Ricorso (originale notificato)» proposto come da notificare | dipende dalla rilettura (V3): la prova di notifica non era stata letta dal motore v7 | — | da verificare dopo V3 |
 | V12 | Panoramica costruita in 3,7 s, di cui 2,0 s per la posta | — | — | **da fare** (punto 6 del piano) |
 | V13 | 40-60% dei fatti respinti dal collaudo in tre fascicoli | — | — | **da analizzare** |
+| V15 | A8B49265: liquidazione delle spese presa dalla sentenza di Vicenza (precedente) | regola unica dei precedenti (fatto letto o nome del file con altro ufficio) per notifiche, economia della sentenza e importi | `tests/test_rilettura_notturna_catena.py::test_precedente_di_altro_ufficio_fuori_da_notifiche_ed_economia` | corretto · da verificare in produzione |
+| V16 | A8B49265: contributo «da registrare» con la ricevuta telematica nel fascicolo | la verifica d'identità esige il numero di ruolo nella ricevuta, che non può esserci se il pagamento precede l'iscrizione | — | **da fare**: identità per IUV univoco nello studio + causale/CF + data anteriore all'iscrizione |
 | V14 | Versione in produzione 2.461.1 | deploy unico con tutti i controlli verdi | gate locale e CI | **da fare** |
 
 ## Dettaglio delle osservazioni

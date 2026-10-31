@@ -40,7 +40,8 @@ MARCATORE = "SENTENZA_327:{comunicazione}"
 
 
 _DELLA_SENTENZA = re.compile(
-    r"\bsentenza\b[^.\n]{0,80}?\b(?:pubbl(?:\.|icat[ao])|depositat[ao])(?:\s+in\s+cancelleria)?\s+(?:il|in\s+data)?\s*"
+    # «Sentenza n. 254/2026 pubblicata il …»: il punto delle abbreviazioni (n., nr., num.) non chiude la frase.
+    r"\bsentenza\b(?:[^.\n]|(?<=\bn)\.|(?<=\bnr)\.|(?<=\bnum)\.){0,80}?\b(?:pubbl(?:\.|icat[ao])|depositat[ao])(?:\s+in\s+cancelleria)?\s+(?:il|in\s+data)?\s*"
     + _DATA + r"\b|\bpubbl\.\s+il\s+" + _DATA + r"\b",
     re.IGNORECASE,
 )

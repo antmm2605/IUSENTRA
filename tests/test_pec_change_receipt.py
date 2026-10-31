@@ -359,7 +359,7 @@ from pct.pec_change_receipt import classify_court_communication, communication_r
 from pct.pec_provvedimento_terms import is_labour_matter, propose_terms  # noqa: E402
 
 
-def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", ufficio: str = "TRIBUNALE ORDINARIO DI VICENZA", when: str = "Wed, 05 Aug 2026 08:39:12 +0200", tag: str = "x") -> bytes:
+def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", ufficio: str = "TRIBUNALE ORDINARIO DI VICENZA", when: str = "Wed, 05 Aug 2026 08:39:12 +0200", tag: str = "x", data_evento: str = "") -> bytes:
     msg = EmailMessage()
     msg["From"] = "posta-certificata@legalmail.it"
     msg["To"] = "studio@pec.it"
@@ -369,12 +369,13 @@ def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", u
     msg.set_content(
         "Messaggio di posta certificata. I dati di cancelleria sono associati a:\n"
         f"Oggetto: {oggetto}\nDescrizione: {descrizione}\n"
+        + (f"Data Evento: {data_evento}\n" if data_evento else "")
     )
-    xml = f"""<Comunicazione><NumeroRuolo>{rg}</NumeroRuolo><Oggetto>{oggetto}</Oggetto>
+    xml = (f"""<Comunicazione><NumeroRuolo>{rg}</NumeroRuolo><Oggetto>{oggetto}</Oggetto>
     <Contenuto><![CDATA[Ufficio: {ufficio}
     Numero di Ruolo generale: {rg}
     Oggetto: {oggetto}
-    Descrizione: {descrizione}]]></Contenuto></Comunicazione>""".encode()
+    Descrizione: {descrizione}""" + (f"\n    Data Evento: {data_evento}" if data_evento else "") + """]]></Contenuto></Comunicazione>""").encode()
     msg.add_attachment(xml, maintype="application", subtype="xml", filename="Comunicazione.xml")
     msg.add_attachment(b"<postacert><tipo>posta-certificata</tipo></postacert>", maintype="application", subtype="xml", filename="daticert.xml")
     return msg.as_bytes(policy=policy.SMTP)
@@ -436,6 +437,8 @@ def test_sentenza_estinzione_designazione_in_agenda_alla_ricezione_con_termini_i
             rg="523/2026/LAV",
             when=sentence_day.strftime("%a, %d %b %Y") + f" 08:39:12 {sentence_offset}",
             tag="sentenza",
+            # Pubblicata il giorno prima della comunicazione: il termine lungo parte dal deposito.
+            data_evento=(sentence_day - timedelta(days=1)).strftime("%d/%m/%Y"),
         ),
         "INBOX:UID:301",
     )
@@ -470,15 +473,19 @@ def test_sentenza_estinzione_designazione_in_agenda_alla_ricezione_con_termini_i
         if "PEC_TERMINE_PROPOSTO:" in item.note
     ]
     by_message = {(item.source_message_id, item.deadline_profile_code): item for item in drafts}
-    assert set(by_message) == {(sentenza_id, "CIV_APPELLO_LUNGO"), (estinzione_id, "CIV_APPELLO_LUNGO")}, "rito del lavoro: niente reclamo 308"
+    # L'estinzione comunicata senza data di deposito non ha termine datato: la comunicazione di
+    # cancelleria non fa decorrere il termine (artt. 133 e 327 c.p.c.). Rito del lavoro: niente reclamo 308.
+    assert set(by_message) == {(sentenza_id, "CIV_APPELLO_LUNGO")}
+    assert "Termine proposto" not in receipts[estinzione_id].note
     sentenza_draft = by_message[(sentenza_id, "CIV_APPELLO_LUNGO")]
+    assert sentenza_draft.data_decorrenza == (sentence_day - timedelta(days=1)).isoformat()
     assert sentenza_draft.stato == StatoTermine.BOZZA and sentenza_draft.tipo == TipoTermine.IMPUGNAZIONE
     assert sentenza_draft.perentorio is True and "Sospensione feriale non applicata" in sentenza_draft.descrizione
 
     # Idempotenza: nessun doppione di ricezioni o bozze.
     repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
     assert sum(1 for item in Agenda(str(tmp_path / "agenda.json")).tutti() if item.external_uid.startswith("PEC_RICEZIONE:")) == 3
-    assert len([item for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False) if "PEC_TERMINE_PROPOSTO:" in item.note]) == 2
+    assert len([item for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False) if "PEC_TERMINE_PROPOSTO:" in item.note]) == 1
 
 
 def test_ricevute_di_deposito_e_protocollo_non_diventano_ricezioni_di_cancelleria(tmp_path):
@@ -492,3 +499,26 @@ def test_ricevute_di_deposito_e_protocollo_non_diventano_ricezioni_di_cancelleri
     msg.set_content("Ricevuta di protocollo della PEC inviata.")
     _run_cancelleria(repo, msg.as_bytes(policy=policy.SMTP), "INBOX:UID:401")
     assert not [item for item in Agenda(str(tmp_path / "agenda.json")).tutti() if item.external_uid.startswith("PEC_RICEZIONE:")]
+
+
+def test_sentenza_senza_data_evento_prende_il_deposito_dalla_sentenza_allegata(tmp_path):
+    """La cancelleria allega di solito la sentenza: il suo timbro di pubblicazione fa decorrere l'art. 327 c.p.c."""
+    from email import message_from_bytes
+
+    repo, _fascicolo = _repo_con_fascicolo(tmp_path)
+    oggi = datetime.now(ROME_TZ).date()
+    deposito = oggi - timedelta(days=4)
+    mime = message_from_bytes(_cancelleria_mime(
+        "SENTENZA A VERBALE (art. 127 ter cpc)", "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 700/2026",
+        rg="523/2026/LAV", when=(oggi - timedelta(days=2)).strftime("%a, %d %b %Y") + " 09:10:00 +0100", tag="sentenza-allegata",
+    ), policy=policy.SMTP)
+    mime.add_attachment(
+        f"TRIBUNALE ORDINARIO DI VICENZA\nSentenza n. 700/2026 pubblicata il {deposito:%d/%m/%Y}\nRepubblica italiana".encode(),
+        maintype="text", subtype="plain", filename="sentenza.txt",
+    )
+    sentenza_id = _run_cancelleria(repo, mime.as_bytes(policy=policy.SMTP), "INBOX:UID:351")
+    bozze = [
+        item for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False)
+        if "PEC_TERMINE_PROPOSTO:" in item.note and item.source_message_id == sentenza_id
+    ]
+    assert [item.data_decorrenza for item in bozze] == [deposito.isoformat()]

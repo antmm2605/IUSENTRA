@@ -14650,12 +14650,30 @@ class PecAuditRepository:
             except Exception:
                 pass
         dies_day = None
-        for candidate_day in (comm.event_date, received.date().isoformat()):
+        # Sentenze ed estinzioni: il termine lungo (art. 327 c.p.c.) decorre dal deposito,
+        # mai dalla comunicazione di cancelleria (art. 133 c.p.c.). Valgono la data
+        # dell'evento nel registro o la data di deposito letta nel testo; senza di esse
+        # nessuna data inventata (resta il promemoria del proponente).
+        decisorio = comm.kind in {"sentenza", "estinzione"}
+        candidates: tuple[Any, ...] = (comm.event_date,) if decisorio else (comm.event_date, received.date().isoformat())
+        for candidate_day in candidates:
             try:
                 dies_day = date.fromisoformat(str(candidate_day or "")[:10])
                 break
             except ValueError:
                 continue
+        if dies_day is None and decisorio:
+            # Poi il testo della comunicazione e la sentenza allegata alla PEC, che porta il
+            # timbro di pubblicazione: di solito la cancelleria la allega (art. 133 c.p.c.).
+            from pct.termine_lungo_sentenza import data_pubblicazione
+
+            body_parts = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+            dies_day = data_pubblicazione(str(body_parts.get("text") or body_parts.get("html_text") or ""))
+            if dies_day is None:
+                allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
+                dies_day = data_pubblicazione(
+                    "\n".join(_attachment_ocr_text(item) for item in allegati), comunicazione=False,
+                )
         if change is None and dies_day is not None:
             term_proposals = propose_provvedimento_terms(comm, dies_a_quo=dies_day, labour=labour)
 

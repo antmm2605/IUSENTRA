@@ -170,3 +170,13 @@ def test_fatti_del_fascicolo_dall_archivio_o_vuoti(monkeypatch):
 
     monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", guasto)
     assert termine_lungo_runtime._fatti_del_fascicolo("F-1") == []
+
+
+def test_il_numero_della_sentenza_con_abbreviazione_non_nasconde_la_data_di_pubblicazione():
+    from datetime import date
+
+    from pct.termine_lungo_sentenza import data_pubblicazione
+
+    assert data_pubblicazione("Sentenza n. 700/2026 pubblicata il 02/10/2026", comunicazione=False) == date(2026, 10, 2)
+    assert data_pubblicazione("sentenza nr. 12/2025 depositata in cancelleria il 3.4.2025", comunicazione=False) == date(2025, 4, 3)
+    assert data_pubblicazione("Sentenza. Ricorso depositato il 01/01/2026", comunicazione=False) is None

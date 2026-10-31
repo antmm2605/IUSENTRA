@@ -498,6 +498,17 @@ def _fascicolo_rg_label(fascicolo: Any, fallback_context: str = "") -> str:
     return _pec_rg_label(fallback_context)
 
 
+def _is_termine_opposizione_127_ter(scadenza: Any, titolo_normalizzato: str) -> bool:
+    if str(getattr(scadenza, "deadline_profile_code", "") or "").upper() == "CIV_OPPOSIZIONE_127_TER":
+        return True
+    tipo = str(getattr(getattr(scadenza, "tipo", ""), "value", getattr(scadenza, "tipo", "")) or "").upper()
+    return (
+        tipo != "UDIENZA"
+        and titolo_normalizzato.startswith("opposizione")
+        and ("trattazione scritta" in titolo_normalizzato or "127-ter" in titolo_normalizzato)
+    )
+
+
 def _legal_scadenza_title(scadenza: Any, *, fascicolo: Any = None) -> str:
     if _is_document_presidio_cancelled(scadenza):
         return "Presidio documentale annullato"
@@ -516,9 +527,9 @@ def _legal_scadenza_title(scadenza: Any, *, fascicolo: Any = None) -> str:
         )
     raw_title = _visible_legal_text(getattr(scadenza, "titolo", ""), 112)
     raw_title_normalized = _normalise_for_matching(raw_title)
-    if "opposizione" in raw_title_normalized and (
-        "trattazione scritta" in raw_title_normalized or "127-ter" in raw_title_normalized
-    ):
+    # Il titolo «Opposizione alla trattazione scritta» spetta solo al termine di cinque giorni
+    # dalla comunicazione (art. 127-ter, comma 2, c.p.c.), non all'udienza sostituita dalle note.
+    if _is_termine_opposizione_127_ter(scadenza, raw_title_normalized):
         return "Opposizione alla trattazione scritta"
     if is_scadenza_pec(scadenza):
         summary = _pec_event_summary(context)

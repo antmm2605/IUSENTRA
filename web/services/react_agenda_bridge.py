@@ -660,7 +660,10 @@ def _legal_label(title: str, kind: str, notes: str = "") -> str:
         return "Sentenza da valutare per la notifica"
     if _is_sentence_decision_context(text):
         return "Sentenza da valutare per la notifica"
-    if "opposizione" in title_text and ("trattazione scritta" in title_text or "127-ter" in title_text):
+    # Un'udienza in trattazione scritta non è il termine per opporsi (art. 127-ter, comma 2, c.p.c.).
+    if kind_text != "udienza" and title_text.startswith("opposizione") and (
+        "trattazione scritta" in title_text or "127-ter" in title_text
+    ):
         return "Opposizione alla trattazione scritta"
     if "rinvio" in text or "rinviata" in text or "differimento" in text or "differita" in text:
         return "Rinvio udienza"

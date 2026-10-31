@@ -2,6 +2,8 @@
 
 ## Conoscenza persistente verificabile — direttiva utente 29/10/2026
 
+**Catena documentale, modelli e presìdi (vincolante, 31/10/2026):** ogni lavoro su catalogo dei documenti, classificatore addestrato, identità dei clienti, contributo unificato ed economia, presidio notifiche, scadenziario, agenda e calendari parte da `docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md`, sezione 8 (requisiti dell'avvocato) e dal suo piano a fasi; non si restringe il lavoro alla sola catalogazione e si implementa solo dopo il via dell'avvocato.
+
 Prima di diagnosticare o modificare un modulo, leggere `docs/AGENT_KNOWLEDGE.md` e il relativo sottografo/registro di prove. Ambiente attuale: `/home/antmm2605/iusentra-software-knowledge/`, manifesto SHA per file; non usare il vecchio percorso Windows come prova di una mappa presente. Riutilizzare la mappa, controllare le impronte dei soli sorgenti pertinenti e aggiornare i collegamenti cambiati. Distinguere EXTRACTED, INFERRED e prova funzionale reale; presenza del simbolo o CI verde non dimostrano integrazione end-to-end. Non dichiarare completata la mappatura mentre estrazione, diagnostica o prove restano aperte. Non conservare dati tenant o segreti nella conoscenza dell'agente. La conoscenza persistente è nei file del progetto, non un aggiornamento dei pesi del modello.
 
 

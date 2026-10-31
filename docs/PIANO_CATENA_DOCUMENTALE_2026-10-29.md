@@ -470,3 +470,33 @@ Piano:
 2. **Addestramento sullo stesso contesto.** Gli esempi di addestramento contengono le stesse Fonti allargate che il modello riceverà in produzione. Includono anche Fonti pertinenti ma inutili per il caso, così il modello impara a scegliere la norma giusta e a ignorare le altre: è il metodo detto RAFT, addestramento con documenti di disturbo. Così il modello impara a usare gli archivi, non a ricordarne il contenuto a memoria.
 3. **Quattro configurazioni sullo stesso banco:** 35B con sola scheda; con Fonti allargate; con Fonti allargate ed esempi approvati della stessa materia; addestrato con Fonti allargate. Si adotta la combinazione con meno errori. Se le Fonti allargate peggiorano una materia (per esempio perché introducono una giurisprudenza non pertinente), per quella materia restano spente.
 4. **Il controllo di ogni citazione resta attivo:** articolo vigente alla data del fatto, decisione con riferimento completo, nessuna massima senza testo verificato.
+
+---
+
+## 8. Requisiti dell'avvocato del 31/10/2026 (vincolanti)
+
+Riassunto dettato dall'avvocato perché nessuna sessione lo perda. Ogni lavoro su catalogo, modelli e presìdi parte da qui e dal piano sopra; la sola catalogazione non basta.
+
+**Classificatore dei documenti del fascicolo (Spark-X2.5 4B oggi), addestrato in locale sul PC dell'avvocato**, per riconoscere meglio:
+- la catalogazione degli atti;
+- i documenti d'identità dei clienti presenti nel fascicolo;
+- il contributo unificato e la sua ricevuta, l'autocertificazione del contributo, la certificazione di esenzione, anche da documenti letti con OCR.
+
+**Documenti d'identità**
+- assegnazione automatica del documento d'identità presente nel fascicolo alla cartella del cliente, con controllo della scadenza;
+- in compilazione anagrafica, lettura del documento e compilazione automatica dei campi;
+- controllo degli atti: i dati delle parti negli atti devono essere corretti rispetto al documento e alla scheda.
+
+**Presidio notifiche**: deve sapere quali atti vanno notificati, a chi e entro quando, e seguirne la prova.
+
+**Presidio scadenze**: controlla le scadenze in base alle normative vigenti; lo scadenziario si calcola secondo le norme e le scadenze da controllare.
+
+**Agenda e calendari** popolati automaticamente dal motore PEC e dal motore di lettura dei fascicoli, con controlli contro i doppioni.
+
+**Economia del fascicolo**: in tutti i fascicoli la vista economica (contributo, spese ed esborsi, liquidazione, parcella) è sincronizzata e collabora con il contesto economico del fascicolo.
+
+**Trasversale**: tutti i processi vanno analizzati e migliorati per essere veloci, conformi a tutte le norme e intuitivi per l'avvocato. Motori, modelli e acquisizione OCR dei documenti devono essere sincronizzati e collaborare.
+
+**Ciò che ancora manca**: un classificatore addestrato sulle etichette certificate (XML di ricevute ed esiti, `Comunicazione.xml`, pagoPA, SdI, tipo atto PST) e sulle decisioni già prese dall'avvocato. Si misura contro le regole, sui dati reali, sul server, e si adotta solo dove riduce gli errori.
+
+**Metodo richiesto**: prima l'analisi di tutta la catena e dei percorsi esistenti, poi un piano di miglioramento su tutto, poi i test che dimostrano un miglioramento significativo. Si implementa solo dopo il via dell'avvocato.

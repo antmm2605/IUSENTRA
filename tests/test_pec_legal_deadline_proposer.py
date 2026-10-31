@@ -78,9 +78,17 @@ def test_termine_lungo_dalla_data_di_deposito_letta_e_senza_feriale_nel_lavoro()
     lavoro = propose_legal_deadline("Sezione lavoro: sentenza depositata il 15/03/2026", dies_a_quo_date="2026-03-20",
                                     event_type="deposito_sentenza")
     assert lavoro["deadline"] == "2026-09-15"
-    impossibile = propose_legal_deadline("sentenza depositata il 31/02/2026", dies_a_quo_date="",
+    impossibile = propose_legal_deadline("sentenza depositata il 31/02/2026", dies_a_quo_date="2026-03-20",
                                          event_type="deposito_sentenza")
-    assert impossibile is None
+    assert impossibile["ok"] is False and "deadline" not in impossibile
+
+
+def test_termine_lungo_dalla_sentenza_allegata_alla_comunicazione():
+    r = propose_legal_deadline(
+        "Comunicazione di deposito sentenza", dies_a_quo_date="2026-04-20", event_type="deposito_sentenza",
+        testo_documenti="Il ricorso depositato il 10/01/2025 ... Sentenza n. 12/2026 pubbl. il 02/03/2026",
+    )
+    assert r["ok"] is True and r["dies_a_quo_date"] == "2026-03-02" and r["deadline"] == "2026-10-05"
 
 
 def test_assegna_termine_senza_durata_richiede_revisione():

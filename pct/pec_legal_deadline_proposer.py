@@ -23,12 +23,12 @@ PEC persiste nella Scadenza per la verifica professionale.
 from __future__ import annotations
 
 import json
-import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from pct.pec_provvedimento_terms import is_labour_matter
+from pct.termine_lungo_sentenza import data_pubblicazione
 from pct.termini_processuali import DEFAULT_TEMPLATES, ItalianDeadlineCalculator
 
 
@@ -140,16 +140,7 @@ def _sentence_decision_review_payload() -> dict[str, Any]:
     }
 
 
-_DATA_PUBBLICAZIONE = r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})"
-_PUBBLICAZIONE = re.compile(
-    r"\b(?:depositat[ao]|pubblicat[ao]|data\s+(?:di\s+|del\s+)?(?:deposito|pubblicazione))\b[^.\n]{0,40}?\b"
-    + _DATA_PUBBLICAZIONE + r"\b"
-    + r"|\bin\s+data\s+" + _DATA_PUBBLICAZIONE + r"\s*,?\s*(?:è|e'|e)\s+stat[ao]\s+(?:depositat[ao]|pubblicat[ao])\b",
-    re.IGNORECASE,
-)
-
-
-def _termine_lungo_327(text: str, *, labour: bool | None = None) -> dict[str, Any] | None:
+def _termine_lungo_327(text: str, *, documenti: str = "", labour: bool | None = None) -> dict[str, Any] | None:
     """Termine lungo di impugnazione (art. 327 c.p.c.): sei mesi dalla pubblicazione della sentenza.
 
     La comunicazione di cancelleria non fa decorrere alcun termine: né il breve (art. 325), né il lungo.
@@ -158,17 +149,8 @@ def _termine_lungo_327(text: str, *, labour: bool | None = None) -> dict[str, An
     resta un promemoria senza data da completare con la data di deposito. Sospensione feriale salvo lavoro
     e previdenza (art. 3 L. 742/1969).
     """
-    trovata = _PUBBLICAZIONE.search(str(text or ""))
-    pubblicazione: date | None = None
-    if trovata:
-        giorno, mese, anno = (int(parte) for parte in trovata.groups() if parte is not None)
-        try:
-            pubblicazione = date(anno, mese, giorno)
-        except ValueError:
-            pubblicazione = None
+    pubblicazione = data_pubblicazione(text) or data_pubblicazione(documenti, comunicazione=False)
     if pubblicazione is None:
-        if trovata:
-            return None
         return {
             "ok": False,
             "human_review_required": True,
@@ -179,7 +161,7 @@ def _termine_lungo_327(text: str, *, labour: bool | None = None) -> dict[str, An
             "reason": (
                 "Sentenza depositata: il termine lungo di sei mesi decorre dalla data di deposito (pubblicazione, "
                 "art. 133 c.p.c.), non dalla comunicazione di cancelleria. La data di deposito non si legge nella "
-                "comunicazione: indicarla per calcolare il termine."
+                "comunicazione né nella sentenza allegata: si cerca nei documenti del fascicolo, altrimenti va indicata."
             ),
         }
     template = _TEMPLATES_BY_CODE.get("CIV_APPELLO_LUNGO")
@@ -279,11 +261,14 @@ def propose_legal_deadline(
     event_type: str = "",
     ruleset: dict[str, Any] | None = None,
     labour: bool | None = None,
+    testo_documenti: str = "",
 ) -> dict[str, Any] | None:
     """Propone un termine LEGALE calcolato dal motore deterministico, o None se non
     riconosciuto. Ogni proposta porta `human_review_required=True` (mai definitiva).
 
     ``labour``: controversia di lavoro/previdenza; se None si riconosce dal testo.
+    ``testo_documenti``: testo letto negli allegati (la sentenza allegata alla comunicazione),
+    usato solo per leggere la data di deposito del termine lungo (art. 327 c.p.c.).
     """
 
     rules = ruleset or load_ruleset()
@@ -306,7 +291,7 @@ def propose_legal_deadline(
 
     rule, matched_keyword = _resolve_rule_match(text_norm, rules)
     if rule is None and is_deposito_sentenza:
-        return _termine_lungo_327(text, labour=labour)
+        return _termine_lungo_327(text, documenti=testo_documenti, labour=labour)
     if rule is None:
         if any(_norm(kw) in text_norm for kw in rules.get("assegnazione_generica_keywords", [])):
             return {
@@ -338,7 +323,7 @@ def propose_legal_deadline(
     # termine breve ex art. 325, blocca sempre: il breve parte dalla notificazione
     # (evento distinto), mai dalla comunicazione di cancelleria.
     if template.reference_law.startswith("Art. 325") and is_deposito_sentenza:
-        lungo = _termine_lungo_327(text, labour=labour)
+        lungo = _termine_lungo_327(text, documenti=testo_documenti, labour=labour)
         if lungo is not None:
             return lungo
         return {
@@ -433,6 +418,7 @@ def propose_from_parsed(
     comunicazione_date: str = "",
     udienza_date: str = "",
     ruleset: dict[str, Any] | None = None,
+    testo_documenti: str = "",
 ) -> dict[str, Any] | None:
     """Proponente dal PEC parsato: risolve la norma, sceglie il dies a quo corretto
     (comunicazione/udienza/notificazione) dai dati disponibili e delega al motore."""
@@ -450,12 +436,15 @@ def propose_from_parsed(
     rule = _resolve_rule(_norm(text), rules)
     if rule is None:
         return propose_legal_deadline(
-            text, dies_a_quo_date=comunicazione_date, event_type=event_type, ruleset=rules, labour=lavoro
+            text, dies_a_quo_date=comunicazione_date, event_type=event_type, ruleset=rules, labour=lavoro,
+            testo_documenti=testo_documenti,
         )
     dies = _resolve_dies_a_quo(
         str(rule.get("dies_a_quo_type") or ""), comunicazione_date=comunicazione_date, udienza_date=udienza_date
     )
-    return propose_legal_deadline(text, dies_a_quo_date=dies, event_type=event_type, ruleset=rules, labour=lavoro)
+    return propose_legal_deadline(
+        text, dies_a_quo_date=dies, event_type=event_type, ruleset=rules, labour=lavoro, testo_documenti=testo_documenti
+    )
 
 
 __all__ = ["load_ruleset", "propose_legal_deadline", "propose_from_parsed"]

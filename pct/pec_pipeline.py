@@ -6323,6 +6323,8 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
             event_type=event_type,
             comunicazione_date=_comm_iso,
             udienza_date=_hearing_iso,
+            # La sentenza allegata alla comunicazione porta il timbro di pubblicazione (art. 133 c.p.c.).
+            testo_documenti="\n".join(_attachment_ocr_text(item) for item in attachments if isinstance(item, dict)),
         )
         if isinstance(legal_deadline, dict):
             deadline_proposal = dict(deadline_proposal)

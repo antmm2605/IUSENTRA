@@ -537,7 +537,7 @@ Verifica in sola lettura sul codice al commit `93e70dc18` (cinque analisi, una p
 | Notifiche ricevute | 20 PEC L. 53 ricevute (decreti, sentenze, precetti) | tipo e termine giusti in ≥19/20; 0 proposte «notificare entro 60 giorni» su decreti ricevuti |
 | Direzione | 10 PEC inviate e 10 ricevute | 20/20; nessuna attesa di RdAC su PEC ricevute |
 | Chiusura per destinatario | due destinatari, una RdAC e una mancata consegna | obbligo «parziale» con il destinatario nominato; chiusura alla seconda RdAC |
-| Fascia oraria e art. 327 | RdAC alle 22:10 del 31/07; sentenza depositata il 15/03 | decorrenza dalle 7:00 dell'01/08 con sospensione feriale; scadenza art. 327 al 15/10 |
+| Fascia oraria e art. 327 | RdAC alle 22:10 del 31/07; sentenza depositata il 15/03 | decorrenza dalle 7:00 dell'01/08 con sospensione feriale; scadenza art. 327 al 16/10 (15/09 + 31 giorni di agosto) |
 | Comunicazioni di cancelleria | 50 `Comunicazione.xml` reali | evento specifico ≥90%; provvedimento allegato catalogato ≥95% |
 | Scadenze dall'udienza | udienza verificata e rinvio di 30 giorni | 3 memorie 171-ter e costituzione in bozza; 4/4 spostate, tranne le modifiche manuali |
 | CU | RT 518 + 27; due RT da 259; patrocinio; promemoria; RT prima dell'RG | CU 518 e art. 30 27 in tutti i percorsi; 518 col frazionato; patrocinio `prenotato_a_debito`; 0 promemoria «pagati»; stato «pagato» senza RG |
@@ -563,7 +563,7 @@ Fatto, con test (copertura righe e rami 100% sui moduli nuovi):
 
 - Lex calcola i termini col motore unico e la tabella normativa è una sola (art. 166 a 70 giorni prima, art. 92 c.p.a., art. 617, art. 307 a 3 mesi; nessun termine inventato); `oggi_roma()` nei presìdi, PolisWeb, PTT e modifica termini PEC.
 - Notifiche ricevute dalla controparte (`pct/notifiche_ricevute.py`, `pct/notifiche_ricevute_pec.py`): direzione dalla casella che riceve, perfezionamento per il destinatario (art. 147 c.p.c., consegna dopo le 21 → giorno dopo), termini di opposizione a decreto ingiuntivo, precetto, controricorso, appello o cassazione dalla sentenza notificata, costituzione del convenuto e dell'appellato a ritroso; nessun presidio in attesa di RAC/RdAC; torre di controllo con la categoria «Atto notificato dalla controparte».
-- Termine lungo di impugnazione (art. 327) proposto dalla PEC di deposito della sentenza; il termine breve resta escluso dalla sola comunicazione.
+- Termine lungo di impugnazione (art. 327): decorre **solo dalla data di deposito** della sentenza (art. 133 c.p.c.), mai dalla comunicazione di cancelleria, che non fa decorrere alcun termine. La data si legge nell'ordine: testo della comunicazione, timbro di pubblicazione della sentenza allegata, documenti del fascicolo già letti dall'archivio delle letture (solo se univoca; col numero della sentenza quando la comunicazione lo indica). Senza data resta un promemoria senza data. Il giro periodico (`web/services/termine_lungo_runtime.py`, regola in `pct/termine_lungo_sentenza.py`) propone la bozza in scadenziario; il termine breve resta escluso dalla sola comunicazione.
 - Eventi di cancelleria specifici da `Comunicazione.xml` (decreto ingiuntivo emesso, rigettato, esecutivo; cancellazione dal ruolo; interruzione; riserva sciolta) e termini di riassunzione (artt. 305 e 307).
 - Memorie 171-ter proposte dalla prima udienza in agenda e ricalcolate al rinvio (`pct/scadenze_da_udienza.py`), nel giro periodico delle notifiche.
 - Presidio notifiche: riconciliazione mirata per identità intera (il presidio «P-1» non tocca più «P-12»).

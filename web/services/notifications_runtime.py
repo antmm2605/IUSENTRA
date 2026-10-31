@@ -320,6 +320,11 @@ def materialize_agenda_scadenziario_notifications_for_paths(
 
     riconvalida_171ter = riconvalida_memorie_171ter(scadenziario)
     memorie_da_udienza = _allinea_memorie_da_udienza(paths, database_config, agenda, scadenziario)
+    # Termine lungo (art. 327 c.p.c.) dalla data di deposito della sentenza, mai dalla comunicazione.
+    from pct.ora_italiana import oggi_roma
+    from web.services.termine_lungo_runtime import completa_termini_lunghi_runtime
+
+    termini_lunghi = completa_termini_lunghi_runtime(_pec_audit_db_path_for_paths(paths), scadenziario, oggi=oggi_roma())
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -336,6 +341,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "expiredSupersededSources": 0,
         "riconvalida171ter": riconvalida_171ter,
         "memorieDaUdienza": memorie_da_udienza,
+        "terminiLunghiSentenze": termini_lunghi,
     }
     for user in recipients:
         try:

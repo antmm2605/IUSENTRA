@@ -170,3 +170,13 @@ def test_quadro_di_una_versione_precedente_non_viene_mostrato_dopo_il_deploy(mon
     assert payload["value"] == "nuovo"
     assert meta["hit"] is False and meta.get("stale", False) is False
     assert calls == [1, 1]
+
+
+def test_tempi_dei_pezzi_del_workspace_entrano_nel_riepilogo_della_costruzione():
+    from web.services.react_dashboard_build_context import registra_tempi
+
+    with contesto_costruzione_panoramica() as costruzione:
+        registra_tempi("workspace", {"scadenze": 0.25, "pratiche_doppie": 1.5})
+        registra_tempi("workspace", None)
+    assert costruzione.tempi["workspace.scadenze"] == 0.25
+    assert costruzione.tempi["workspace.pratiche_doppie"] == 1.5

@@ -149,6 +149,7 @@ from web.services.react_dashboard_build_context import (
     contesto_costruzione_panoramica,
     gestore_panoramica,
     misura_sorgente,
+    registra_tempi,
     server_timing_header,
 )
 from web.services.react_dashboard_health import (
@@ -1941,7 +1942,10 @@ def _workspace_overview() -> dict[str, Any]:
         giurisprudenza=gestore_panoramica(get_giurisprudenza_readonly),
         snapshot_path=str(current_app.config.get("WORKSPACE_INTELLIGENCE_DB", "")),
     )
-    return service.panoramica(horizon_days=14)
+    try:
+        return service.panoramica(horizon_days=14)
+    finally:
+        registra_tempi("workspace", getattr(service, "tempi_ultima_panoramica", None))
 
 
 def _email_manager() -> GestioneEmailRicevute:

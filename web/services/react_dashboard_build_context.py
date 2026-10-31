@@ -84,6 +84,17 @@ def misura_sorgente(label: str, func: Callable[[], T]) -> T:
         costruzione.tempi[label] = costruzione.tempi.get(label, 0.0) + (perf_counter() - start)
 
 
+def registra_tempi(prefisso: str, tempi: dict[str, float] | None) -> None:
+    """Aggiunge alla costruzione in corso tempi misurati altrove (es. i pezzi del workspace)."""
+
+    costruzione = _COSTRUZIONE.get()
+    if costruzione is None or not isinstance(tempi, dict):
+        return
+    for nome, secondi in tempi.items():
+        chiave = f"{prefisso}.{nome}"
+        costruzione.tempi[chiave] = costruzione.tempi.get(chiave, 0.0) + float(secondi or 0.0)
+
+
 def server_timing_header(riepilogo: dict[str, Any] | None) -> str:
     """Header ``Server-Timing`` leggibile negli strumenti del browser."""
 

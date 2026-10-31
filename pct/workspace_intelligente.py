@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+from time import perf_counter
 from typing import Any, Dict, Iterable, List, Optional
 from zoneinfo import ZoneInfo
 
@@ -917,19 +918,30 @@ class WorkspaceIntelligenteService:
         return hot[:limit]
 
     def panoramica(self, *, horizon_days: int = 14, hot_limit: int = 8) -> Dict[str, Any]:
-        urgent_deadlines = self.scadenziario.imminenti(entro_giorni=3)
-        horizon_deadlines = self.scadenziario.imminenti(entro_giorni=horizon_days)
-        appointments = self._appointments_upcoming(horizon_days=horizon_days, limit=12)
-        sync_profiles = self._sync_profiles_status()
-        fascicoli_hot = self._fascicoli_hot(horizon_days=horizon_days, limit=hot_limit)
+        # Tempi di ciascun pezzo, letti dalla Panoramica per dire dove va il tempo (V12).
+        tempi: Dict[str, float] = {}
+        self.tempi_ultima_panoramica = tempi
+
+        def misura(nome: str, calcolo: Any) -> Any:
+            inizio = perf_counter()
+            try:
+                return calcolo()
+            finally:
+                tempi[nome] = tempi.get(nome, 0.0) + perf_counter() - inizio
+
+        urgent_deadlines = misura("scadenze", lambda: self.scadenziario.imminenti(entro_giorni=3))
+        horizon_deadlines = misura("scadenze", lambda: self.scadenziario.imminenti(entro_giorni=horizon_days))
+        appointments = misura("appuntamenti", lambda: self._appointments_upcoming(horizon_days=horizon_days, limit=12))
+        sync_profiles = misura("calendari", self._sync_profiles_status)
+        fascicoli_hot = misura("fascicoli_attenzionati", lambda: self._fascicoli_hot(horizon_days=horizon_days, limit=hot_limit))
         try:
-            duplicate_groups = duplicate_practice_groups(
+            duplicate_groups = misura("pratiche_doppie", lambda: duplicate_practice_groups(
                 item for item in self.fascicoli.tutti() if not _stato_fascicolo_chiuso(item)
-            )
+            ))
         except Exception:
             duplicate_groups = []
-        due_notifications = self.scadenziario.scadenze_da_notificare()
-        reminders = self.agenda.prossimi_reminder(entro_minuti=180)
+        due_notifications = misura("notifiche_scadenze", self.scadenziario.scadenze_da_notificare)
+        reminders = misura("promemoria", lambda: self.agenda.prossimi_reminder(entro_minuti=180))
 
         office_sources = []
         seen_sources: set[str] = set()

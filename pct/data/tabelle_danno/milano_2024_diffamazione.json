@@ -8,8 +8,8 @@
  "ambito": "Danno non patrimoniale da diffamazione a mezzo stampa, radio, televisione e altri mezzi di comunicazione di massa.",
  "nota_rivalutazione": "Importi dell'edizione 2018 rivalutati secondo gli indici ISTAT dall'1.1.2018 all'1.1.2024, con coefficiente di rivalutazione 1,174901.",
  "importo_medio_liquidato": 30888.0,
- "riparazione_pecuniaria_quota_minima": 0.125,
- "riparazione_pecuniaria_quota_massima": 0.3333,
+ "riparazione_pecuniaria_quota_minima": "1/8",
+ "riparazione_pecuniaria_quota_massima": "1/3",
  "nota_riparazione": "La riparazione pecuniaria dell'art. 12 della legge sulla stampa (L. 47/1948) risulta tendenzialmente liquidata fra un ottavo e un terzo del danno riconosciuto.",
  "parametri": [
   "Notorieta' del diffamante",

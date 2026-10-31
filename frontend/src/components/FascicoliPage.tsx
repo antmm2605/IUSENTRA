@@ -202,6 +202,7 @@ import {
   readContributionMemory,
   type ContributoUnificatoMemory,
 } from './fascicoli/contributoUnificato'
+import { AgendaFascicolo } from './fascicoli/AgendaFascicolo'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -10004,7 +10005,7 @@ function DetailPage({ id }:{id:string}) {
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
             {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
           <DocumentPresidioPanel data={data} fascicoloId={f.id} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} onDone={refreshDocuments} onError={failDetail}/>
-            <div className="iu-fas-two-cols"><div><h3>Scadenze</h3>{data.deadlines.map((deadline) => <DeadlineRow deadline={deadline} key={deadline.id}/>)}{lazyStatus.scadenze === 'loaded' && !data.deadlines.length ? <p className="iu-empty">Nessuna scadenza collegata.</p> : null}<a className="iu-fas-inline-link" href={`/scadenziario/nuova?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuova scadenza</a></div><div><h3>Agenda</h3>{data.appointments.map((app) => <a className="iu-fas-deadline-row" href={app.href} key={app.id}><Badge tone={app.tone}>{app.type || 'agenda'}</Badge><strong>{app.title}</strong><span>{app.date} {app.time} {app.place}</span></a>)}{lazyStatus.scadenze === 'loaded' && !data.appointments.length ? <p className="iu-empty">Nessun appuntamento trovato.</p> : null}<a className="iu-fas-inline-link" href={`/agenda/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo appuntamento</a></div></div>
+            <AgendaFascicolo fascicoloId={f.id} scadenze={data.deadlines} appuntamenti={data.appointments} caricato={lazyStatus.scadenze === 'loaded'}/>
           </DetailSection>
           <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal + notificationRelataCount} defaultOpen={shouldAutoOpenCommunications} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>
             <span id="cancelleria" className="iu-fas-anchor-alias" aria-hidden="true"/>

@@ -13,6 +13,7 @@ danno riconosciuto.
 """
 from __future__ import annotations
 
+from fractions import Fraction
 from typing import Any, Dict, List, Mapping
 
 from pct.calcolatori._base import clean_text, safe_bool, safe_float
@@ -37,12 +38,14 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
     importo = esito["proposto"]
     chiede_riparazione = safe_bool(payload.get("df_riparazione"))
 
-    quota_min = float(dati["riparazione_pecuniaria_quota_minima"])
-    quota_max = float(dati["riparazione_pecuniaria_quota_massima"])
+    # Art. 12 L. 47/1948 (collaudo normativo del 31/10/2026): riparazione da 1/8 a 1/3 del
+    # danno; le quote sono frazioni esatte (es. "1/3"), non decimali troncati come 0,3333.
+    quota_min = Fraction(str(dati["riparazione_pecuniaria_quota_minima"]))
+    quota_max = Fraction(str(dati["riparazione_pecuniaria_quota_massima"]))
     riparazione = {
         "richiesta": chiede_riparazione,
-        "minimo": round(importo * quota_min, 2),
-        "massimo": round(importo * quota_max, 2),
+        "minimo": round(float(Fraction(str(importo)) * quota_min), 2),
+        "massimo": round(float(Fraction(str(importo)) * quota_max), 2),
     }
 
     note: List[str] = [

@@ -40,13 +40,11 @@ DATA_RIFORMA_SANZIONI = date(2024, 9, 1)
 _SANZIONI_VERSAMENTO = {
     "ante_2024": {
         "label": "Violazione commessa prima del 1° settembre 2024",
-        "giornaliera_percent": 1.0,
         "entro_90_percent": 15.0,
         "oltre_90_percent": 30.0,
     },
     "dal_2024": {
         "label": "Violazione commessa dal 1° settembre 2024",
-        "giornaliera_percent": 0.83,
         "entro_90_percent": 12.5,
         "oltre_90_percent": 25.0,
     },
@@ -112,9 +110,11 @@ def _regime(scadenza: date) -> str:
 def _sanzione_base_percent(regime: str, giorni: int) -> Dict[str, Any]:
     misure = _SANZIONI_VERSAMENTO[regime]
     if giorni <= 15:
-        percentuale = round(misure["giornaliera_percent"] * giorni, 4)
+        # Art. 13, c. 1, D.Lgs. 471/1997: «un quindicesimo per ciascun giorno di ritardo»
+        # della sanzione prevista entro 90 giorni (12,5/15 = 0,8333…%, non 0,83%).
+        percentuale = round(float(misure["entro_90_percent"]) * giorni / 15, 6)
         criterio = (
-            f"{misure['giornaliera_percent']}% per ciascuno dei {giorni} giorni di ritardo "
+            f"1/15 del {misure['entro_90_percent']}% per ciascuno dei {giorni} giorni di ritardo "
             "(ritardo non superiore a 15 giorni)"
         )
     elif giorni <= 90:

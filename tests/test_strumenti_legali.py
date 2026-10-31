@@ -1,3 +1,4 @@
+import pytest
 import os
 from urllib.parse import urlsplit
 
@@ -386,9 +387,10 @@ def test_pignoramento_pensione_ordinario_usa_minimo_vitale_2026(tmp_path):
         }
     )
 
-    assert result["minimo_protetto"] == 819.36
-    assert result["base_pignorabile"] == 680.64
-    assert result["quota_massima"] == 136.13
+    # Art. 545, c. 7, c.p.c. (art. 21-bis D.L. 115/2022): doppio dell'assegno sociale 2026, minimo 1.000 euro.
+    assert result["minimo_protetto"] == 1092.48
+    assert result["base_pignorabile"] == 407.52
+    assert result["quota_massima"] == 81.5
 
 
 def test_ctu_vacazioni_tutte_al_valore_della_prima(tmp_path):
@@ -492,10 +494,13 @@ def test_custodia_cautelare_calcola_timeline_principale(tmp_path):
         }
     )
 
-    assert result["interrogatorio_entra"] == "2026-04-06"
+    # Art. 172, c. 3, c.p.p. (collaudo normativo del 31/10/2026): il termine a giorni che scade
+    # in giorno festivo è prorogato al giorno successivo non festivo. Il 06/04/2026 è il lunedì
+    # dell'Angelo (L. 260/1949) e il 10/05/2026 è domenica.
+    assert result["interrogatorio_entra"] == "2026-04-07"
     assert result["riesame_entra"] == "2026-04-11"
     assert result["decisione_entra"] == "2026-04-14"
-    assert result["deposito_entra"] == "2026-05-10"
+    assert result["deposito_entra"] == "2026-05-11"
 
 
 def test_prescrizione_penale_restituisce_termine_base_e_massimo(tmp_path):
@@ -631,8 +636,9 @@ def test_pena_abbreviato_delitto_riduce_di_un_terzo(tmp_path):
         {"pena_anni": "3", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato"}
     )
 
-    assert esito["pena_base_giorni"] == 3 * 365
-    assert esito["pena_finale_giorni"] == 3 * 365 - (3 * 365) // 3
+    # Anno di 12 mesi da 30 giorni (art. 134 c.p.; collaudo normativo del 31/10/2026).
+    assert esito["pena_base_giorni"] == 3 * 360
+    assert esito["pena_finale_giorni"] == 3 * 360 - (3 * 360) // 3
     assert esito["pena_finale_testo"] == "2 anni"
     assert any("442" in passo["riferimento"] for passo in esito["passaggi"])
 
@@ -671,7 +677,7 @@ def test_pena_continuazione_non_supera_il_triplo(tmp_path):
         }
     )
 
-    assert esito["pena_finale_giorni"] == 3 * 365
+    assert esito["pena_finale_giorni"] == 3 * 360
     assert any("triplo" in avviso for avviso in esito["warnings"])
 
 
@@ -687,7 +693,7 @@ def test_pena_continuazione_recidiva_reiterata_ha_aumento_minimo(tmp_path):
         }
     )
 
-    base = 3 * 365
+    base = 3 * 360
     assert esito["pena_finale_giorni"] == base + base // 3
     assert any("un terzo" in avviso for avviso in esito["warnings"])
 
@@ -1398,15 +1404,15 @@ def test_ravvedimento_riduzione_di_un_decimo_entro_trenta_giorni(tmp_path):
 
 
 def test_ravvedimento_sanzione_giornaliera_entro_quindici_giorni(tmp_path):
-    """Art. 13 D.Lgs. 471/1997: 0,83% per giorno dal 1 settembre 2024."""
+    """Art. 13 D.Lgs. 471/1997 (D.Lgs. 87/2024): 1/15 del 12,5% per giorno, cioè 0,8333…%."""
 
     result = _gestore(tmp_path).calcola_ravvedimento_operoso(
         _payload_ravvedimento(rav_data_versamento="2026-01-18")
     )
 
     assert result["giorni_ritardo"] == 2
-    assert result["sanzione_percent"] == 1.66
-    assert result["sanzione_ridotta"] == 1.66
+    assert result["sanzione_percent"] == pytest.approx(12.5 * 2 / 15, abs=1e-6)
+    assert result["sanzione_ridotta"] == pytest.approx(1.67, abs=0.005)
 
 
 def test_ravvedimento_scaglioni_temporali_e_eventi(tmp_path):

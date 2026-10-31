@@ -59,6 +59,10 @@ _SCAGLIONI: Dict[int, List[tuple[float, float]]] = {
 _SOGLIA_NO_ACCONTO = 51.65
 _SOGLIA_UNICA_SOLUZIONE = 257.52
 _INTERESSE_RATEAZIONE_MENSILE = 0.33  # percento per mese, art. 20, c. 2, D.Lgs. 241/1997
+# Prima rata il 30 giugno, successive il 16 di ogni mese: la seconda paga 16 giorni di
+# interessi al 4% annuo (metodo commerciale, 4 × 16/360 = 0,18%), le altre +0,33% al mese
+# (D.M. 21/05/2009; istruzioni del modello Redditi). Verifica normativa del 31/10/2026.
+_INTERESSE_RATEAZIONE_SECONDA_RATA = 0.18
 
 
 def calcola_irpef(payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -218,7 +222,8 @@ def calcola_rateazione(payload: Mapping[str, Any]) -> Dict[str, Any]:
     righe: List[Dict[str, Any]] = []
     totale_interessi = 0.0
     for n in range(1, numero_rate + 1):
-        interessi = 0.0 if n == 1 else quota * _INTERESSE_RATEAZIONE_MENSILE / 100.0 * (n - 1)
+        percento = 0.0 if n == 1 else _INTERESSE_RATEAZIONE_SECONDA_RATA + _INTERESSE_RATEAZIONE_MENSILE * (n - 2)
+        interessi = quota * percento / 100.0
         totale_interessi += interessi
         righe.append(
             {
@@ -245,11 +250,10 @@ def calcola_rateazione(payload: Mapping[str, Any]) -> Dict[str, Any]:
             "calendario dell'anno.",
         ],
         "warnings": [
-            "Interessi calcolati a mesi interi (0,33% per mese di distanza dalla "
-            "prima rata): stima per ECCESSO rispetto alle tabelle ufficiali "
-            "dell'Agenzia delle Entrate, che computano i giorni commerciali "
-            "effettivi tra le scadenze (la prima frazione 30/6-16/7 vale circa "
-            "0,18%). Per gli importi F24 esatti usare le tabelle AE dell'anno.",
+            "Interessi secondo le scadenze ordinarie (prima rata 30 giugno): 0,18% "
+            "sulla seconda rata (16 luglio) e 0,33% in più per ogni mese successivo. "
+            "Con prima rata al 30 luglio (proroga) le frazioni cambiano: verificare "
+            "le tabelle dell'Agenzia delle Entrate dell'anno.",
             "La rateazione degli avvisi bonari (art. 3-bis D.Lgs. 462/1997, fino a "
             "20 rate trimestrali) segue regole e interessi diversi e non è gestita "
             "da questo calcolo.",

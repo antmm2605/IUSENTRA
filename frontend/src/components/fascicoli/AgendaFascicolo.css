@@ -1,0 +1,6 @@
+.iu-agenda-fascicolo{display:grid;gap:6px}
+.iu-agenda-fascicolo h3{margin:0}
+.iu-agenda-fascicolo__voce.is-passata{opacity:.75}
+.iu-agenda-fascicolo__passate{margin-top:6px;border-top:1px solid var(--iu-border,#e2e8f0);padding-top:6px}
+.iu-agenda-fascicolo__passate summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:800;color:var(--iu-slate-600,#475569)}
+.iu-agenda-fascicolo__azioni{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}

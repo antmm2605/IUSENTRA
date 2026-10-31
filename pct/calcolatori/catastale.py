@@ -147,6 +147,8 @@ _CATEGORIE: List[Dict[str, str]] = [
     {"categoria": "F/4", "descrizione": "Unità in corso di definizione"},
     {"categoria": "F/5", "descrizione": "Lastrici solari"},
     {"categoria": "F/6", "descrizione": "Fabbricato in attesa di dichiarazione"},
+    # Circolare Agenzia delle Entrate 18/E dell'08/06/2017 (collaudo normativo del 31/10/2026).
+    {"categoria": "F/7", "descrizione": "Infrastrutture di reti pubbliche di comunicazione"},
 ]
 
 

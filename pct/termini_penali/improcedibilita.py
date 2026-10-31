@@ -39,7 +39,9 @@ def calcola(dati: Mapping[str, Any]) -> dict[str, Any]:
     pronuncia = parse_date(dati.get("imp_data_pronuncia"))
     if not pronuncia:
         raise ValueError("Inserisci la data della sentenza impugnata.")
-    giorni_motivazione = safe_int(dati.get("imp_giorni_motivazione"), 15) or 15
+    # 0 è la motivazione contestuale (art. 544, c. 1, c.p.p.): solo il campo vuoto vale 15 giorni.
+    grezzo = str(dati.get("imp_giorni_motivazione") or "").strip()
+    giorni_motivazione = safe_int(grezzo, 15) if grezzo else 15
     if not 0 <= giorni_motivazione <= 90:
         raise ValueError("Il termine per la motivazione va da 0 (contestuale) a 90 giorni (art. 544 c.p.p.).")
     proposta = parse_date(dati.get("imp_data_impugnazione"))

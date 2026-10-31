@@ -1,0 +1,103 @@
+{
+ "_verificato_il": "2026-10-31",
+ "custodia_cautelare": [
+  {"descrizione": "Riesame: 10 giorni che scadono di domenica", "dati": {"custodia_tipo_misura": "carcere", "custodia_data_esecuzione": "2026-11-05"}, "attesi": {"riesame_entra": "2026-11-16"}, "norma": "art. 309, c. 1, c.p.p.; art. 172, cc. 3-4, c.p.p."},
+  {"descrizione": "Arresti domiciliari: interrogatorio entro 10 giorni", "dati": {"custodia_tipo_misura": "domiciliari", "custodia_data_esecuzione": "2026-11-02"}, "attesi": {"interrogatorio_entra": "2026-11-12", "riesame_entra": "2026-11-12"}, "norma": "art. 294, c. 1-bis, c.p.p.; art. 309, c. 1, c.p.p."}
+ ],
+ "custodia_durata": [
+  {"descrizione": "Indagini, massimo 5 anni", "dati": {"cus_fase": "indagini", "cus_data_inizio_fase": "2026-03-10", "cus_pena_massima_anni": "5", "cus_ergastolo": "0", "cus_delitto_407": "0"}, "attesi": {"scadenza_fase": "10/06/2026", "scadenza_complessiva": "10/03/2028"}, "norma": "art. 303, c. 1, lett. a) n. 1 e c. 4, lett. a), c.p.p."},
+  {"descrizione": "Indagini, massimo 10 anni", "dati": {"cus_fase": "indagini", "cus_data_inizio_fase": "2026-03-10", "cus_pena_massima_anni": "10", "cus_ergastolo": "0", "cus_delitto_407": "0"}, "attesi": {"scadenza_fase": "10/09/2026", "scadenza_complessiva": "10/03/2030"}, "norma": "art. 303, c. 1, lett. a) n. 2 e c. 4, lett. b), c.p.p."},
+  {"descrizione": "Indagini, massimo 20 anni", "dati": {"cus_fase": "indagini", "cus_data_inizio_fase": "2026-03-10", "cus_pena_massima_anni": "20", "cus_ergastolo": "0", "cus_delitto_407": "0"}, "attesi": {"scadenza_fase": "10/03/2027", "scadenza_complessiva": "10/03/2030"}, "norma": "art. 303, c. 1, lett. a) n. 3 e c. 4, lett. b), c.p.p."},
+  {"descrizione": "Appello dopo condanna a 4 anni", "dati": {"cus_fase": "appello", "cus_data_inizio_fase": "2026-09-01", "cus_data_inizio_esecuzione": "2026-03-10", "cus_pena_massima_anni": "10", "cus_ergastolo": "0", "cus_delitto_407": "0", "cus_condanna_anni": "4"}, "attesi": {"scadenza_fase": "01/09/2027", "prima_scadenza": "01/09/2027"}, "norma": "art. 303, c. 1, lett. c) n. 2, c.p.p."}
+ ],
+ "improcedibilita_penale": [
+  {"descrizione": "Appello ordinario, motivazione in 15 giorni", "dati": {"imp_data_fatto": "2021-03-01", "imp_grado": "appello", "imp_data_pronuncia": "2025-03-10", "imp_giorni_motivazione": "15", "imp_data_impugnazione": "2025-04-20", "imp_atti_pervenuti_prima": "0", "imp_proroghe_mesi": "0", "imp_giorni_sospensione": "0"}, "attesi": {"decorrenza": "23/06/2025", "definizione_entro": "23/06/2027"}, "norma": "art. 344-bis, cc. 1 e 3, c.p.p."},
+  {"descrizione": "Cassazione con proroga e sospensione", "dati": {"imp_data_fatto": "2021-03-01", "imp_grado": "cassazione", "imp_data_pronuncia": "2026-02-02", "imp_giorni_motivazione": "30", "imp_data_impugnazione": "2026-04-10", "imp_proroghe_mesi": "6", "imp_giorni_sospensione": "20"}, "attesi": {"decorrenza": "02/06/2026", "definizione_entro": "22/12/2027"}, "norma": "art. 344-bis, cc. 2, 3, 4 e 6, c.p.p."},
+  {"descrizione": "Motivazione contestuale, appello entro il 31/12/2024", "dati": {"imp_data_fatto": "2021-03-01", "imp_grado": "appello", "imp_data_pronuncia": "2024-03-04", "imp_giorni_motivazione": "0", "imp_data_impugnazione": "2024-03-20", "imp_atti_pervenuti_prima": "0"}, "attesi": {"decorrenza": "02/06/2024", "definizione_entro": "02/06/2027"}, "norma": "art. 344-bis, c. 3, e art. 544, c. 1, c.p.p.; art. 2, c. 5, L. 134/2021"}
+ ],
+ "impugnazioni": [
+  {"descrizione": "Appello, termine lungo con agosto, scade di domenica", "dati": {"imp_mezzo": "appello", "imp_data_pubblicazione": "2026-06-10", "imp_sospensione_feriale": "applica"}, "attesi": {"termine_lungo": "11/01/2027", "scadenza_effettiva": "11/01/2027"}, "norma": "art. 327 c.p.c.; L. 742/1969; art. 155, c. 4, c.p.c."},
+  {"descrizione": "Appello, termine breve con agosto, scade di sabato", "dati": {"imp_mezzo": "appello", "imp_data_pubblicazione": "2026-06-10", "imp_data_notificazione": "2026-07-20", "imp_sospensione_feriale": "applica"}, "attesi": {"termine_breve": "21/09/2026", "scadenza_effettiva": "21/09/2026"}, "norma": "art. 325 c.p.c.; L. 742/1969; art. 155, c. 5, c.p.c."},
+  {"descrizione": "Cassazione, termine breve con agosto", "dati": {"imp_mezzo": "cassazione", "imp_data_pubblicazione": "2026-06-10", "imp_data_notificazione": "2026-07-20", "imp_sospensione_feriale": "applica"}, "attesi": {"termine_breve": "19/10/2026"}, "norma": "art. 325, c. 2, c.p.c.; L. 742/1969"},
+  {"descrizione": "Cassazione, termine lungo che scade di sabato", "dati": {"imp_mezzo": "cassazione", "imp_data_pubblicazione": "2026-03-02", "imp_sospensione_feriale": "applica"}, "attesi": {"termine_lungo": "05/10/2026"}, "norma": "art. 327 c.p.c.; art. 155, c. 5, c.p.c."},
+  {"descrizione": "Appello senza sospensione feriale", "dati": {"imp_mezzo": "appello", "imp_data_pubblicazione": "2026-06-10", "imp_data_notificazione": "2026-07-20", "imp_sospensione_feriale": "esclusa"}, "attesi": {"termine_breve": "19/08/2026", "termine_lungo": "10/12/2026"}, "norma": "artt. 325, 327 e 155 c.p.c."}
+ ],
+ "indagini_preliminari": [
+  {"descrizione": "Delitto senza proroga, con agosto", "dati": {"ind_data_iscrizione": "2026-03-15", "ind_tipo": "delitto", "ind_proroga": "0"}, "attesi": {"chiusura_indagini": "15/04/2027"}, "norma": "art. 405, c. 2, c.p.p.; art. 240-bis disp. att. c.p.p.; L. 742/1969"},
+  {"descrizione": "Delitto con proroga, due agosti", "dati": {"ind_data_iscrizione": "2026-03-15", "ind_tipo": "delitto", "ind_proroga": "1"}, "attesi": {"chiusura_indagini": "16/11/2027"}, "norma": "artt. 406 e 407, c. 1, c.p.p.; L. 742/1969"},
+  {"descrizione": "Contravvenzione", "dati": {"ind_data_iscrizione": "2026-01-10", "ind_tipo": "contravvenzione", "ind_proroga": "0"}, "attesi": {"chiusura_indagini": "10/07/2026"}, "norma": "art. 405, c. 2, c.p.p."},
+  {"descrizione": "Criminalità organizzata: senza sospensione", "dati": {"ind_data_iscrizione": "2026-03-15", "ind_tipo": "delitto", "ind_proroga": "0", "tp_criminalita_organizzata": "1"}, "attesi": {"chiusura_indagini": "15/03/2027"}, "norma": "art. 2 L. 742/1969; art. 405, c. 2, c.p.p."}
+ ],
+ "pena_riti_alternativi": [
+  {"descrizione": "Abbreviato, delitto, 3 anni", "dati": {"pena_anni": "3", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato"}, "attesi": {"pena_finale_testo": "2 anni"}, "norma": "art. 442, c. 2, c.p.p."},
+  {"descrizione": "Abbreviato, contravvenzione, 2 anni", "dati": {"pena_anni": "2", "pena_tipo_reato": "contravvenzione", "pena_rito": "abbreviato"}, "attesi": {"pena_finale_testo": "1 anno"}, "norma": "art. 442, c. 2, c.p.p."},
+  {"descrizione": "Abbreviato, delitto, 1 anno e 6 mesi", "dati": {"pena_anni": "1", "pena_mesi": "6", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato"}, "attesi": {"pena_finale_testo": "1 anno"}, "norma": "art. 442, c. 2, c.p.p.; artt. 14 e 134 c.p."},
+  {"descrizione": "Patteggiamento, meno un terzo su 1 anno e 6 mesi", "dati": {"pena_anni": "1", "pena_mesi": "6", "pena_tipo_reato": "delitto", "pena_rito": "patteggiamento", "pena_frazione_patteggiamento": "un_terzo"}, "attesi": {"pena_finale_testo": "1 anno"}, "norma": "art. 444, c. 1, c.p.p.; art. 134 c.p."},
+  {"descrizione": "Abbreviato e mancata impugnazione", "dati": {"pena_anni": "3", "pena_tipo_reato": "delitto", "pena_rito": "abbreviato", "pena_mancata_impugnazione": "1"}, "attesi": {"pena_finale_testo": "1 anno e 8 mesi"}, "norma": "art. 442, cc. 2 e 2-bis, c.p.p."}
+ ],
+ "prescrizione": [
+  {"descrizione": "Decorrenza il 29 febbraio", "dati": {"presc_tipo": "ordinaria_10", "presc_data_decorrenza": "2016-02-29"}, "attesi": {"data_scadenza": "2026-02-28"}, "norma": "artt. 2946 e 2963, c. 4, c.c."},
+  {"descrizione": "Atto interruttivo", "dati": {"presc_tipo": "quinquennale_5", "presc_data_decorrenza": "2020-03-15", "presc_atto_interruttivo": "2022-06-10"}, "attesi": {"data_scadenza_post_interruzione": "2027-06-10"}, "norma": "artt. 2948, 2943 e 2945 c.c."},
+  {"descrizione": "Scadenza di domenica", "dati": {"presc_tipo": "ordinaria_10", "presc_data_decorrenza": "2016-03-15"}, "attesi": {"data_scadenza": "2026-03-16"}, "norma": "art. 2963, c. 3, c.c."},
+  {"descrizione": "Scadenza a Natale", "dati": {"presc_tipo": "quinquennale_5", "presc_data_decorrenza": "2021-12-25"}, "attesi": {"data_scadenza": "2026-12-28"}, "norma": "art. 2963, c. 3, c.c.; L. 260/1949"},
+  {"descrizione": "Scadenza a Ognissanti di domenica", "dati": {"presc_tipo": "breve_1", "presc_data_decorrenza": "2025-11-01"}, "attesi": {"data_scadenza": "2026-11-02"}, "norma": "art. 2963, c. 3, c.c."}
+ ],
+ "prescrizione_penale": [
+  {"descrizione": "Massimo 5 anni: minimo di 6", "dati": {"presc_data_fatto": "2016-03-10", "presc_ergastolo": "0", "presc_massimo_edittale_anni": "5", "presc_contravvenzione": "0", "presc_raddoppio": "0", "presc_interruzione": "quarto"}, "attesi": {"termine_base_anni": 6.0, "data_prescrizione_base": "2022-03-10", "data_prescrizione_massima": "2023-09-10"}, "norma": "art. 157, c. 1, e art. 161, c. 2, c.p."},
+  {"descrizione": "Massimo 10 anni", "dati": {"presc_data_fatto": "2021-05-20", "presc_ergastolo": "0", "presc_massimo_edittale_anni": "10", "presc_contravvenzione": "0", "presc_raddoppio": "0", "presc_interruzione": "quarto"}, "attesi": {"data_prescrizione_base": "2031-05-20", "data_prescrizione_massima": "2033-11-20"}, "norma": "artt. 157 e 161, c. 2, c.p."},
+  {"descrizione": "Contravvenzione", "dati": {"presc_data_fatto": "2022-01-15", "presc_ergastolo": "0", "presc_massimo_edittale_anni": "1", "presc_contravvenzione": "1", "presc_raddoppio": "0", "presc_interruzione": "quarto"}, "attesi": {"data_prescrizione_base": "2026-01-15", "data_prescrizione_massima": "2027-01-15"}, "norma": "art. 157, c. 1, c.p.; art. 161, c. 2, c.p."},
+  {"descrizione": "Recidiva reiterata: due terzi", "dati": {"presc_data_fatto": "2016-03-10", "presc_ergastolo": "0", "presc_massimo_edittale_anni": "5", "presc_contravvenzione": "0", "presc_raddoppio": "0", "presc_interruzione": "due_terzi"}, "attesi": {"data_prescrizione_massima": "2026-03-10"}, "norma": "art. 161, c. 2, c.p."},
+  {"descrizione": "Termini raddoppiati", "dati": {"presc_data_fatto": "2021-05-20", "presc_ergastolo": "0", "presc_massimo_edittale_anni": "5", "presc_contravvenzione": "0", "presc_raddoppio": "1", "presc_interruzione": "quarto"}, "attesi": {"termine_base_anni": 12.0, "data_prescrizione_base": "2033-05-20", "data_prescrizione_massima": "2036-05-20"}, "norma": "art. 157, c. 6, c.p.; art. 161, c. 2, c.p."},
+  {"descrizione": "100 giorni di sospensione", "dati": {"presc_data_fatto": "2016-03-10", "presc_ergastolo": "0", "presc_massimo_edittale_anni": "5", "presc_contravvenzione": "0", "presc_raddoppio": "0", "presc_interruzione": "quarto", "presc_giorni_sospensione": "100"}, "attesi": {"data_prescrizione_base": "2022-06-18", "data_prescrizione_massima": "2023-12-19"}, "norma": "art. 159, cc. 1 e 4, c.p."},
+  {"descrizione": "Ergastolo", "dati": {"presc_data_fatto": "2021-05-20", "presc_ergastolo": "1"}, "attesi": {"imprescrittibile": true}, "norma": "art. 157, ultimo comma, c.p."}
+ ],
+ "termini_penali": [
+  {"descrizione": "Motivazione in 15 giorni, con agosto", "dati": {"tp_atto": "impugnazione_sentenza", "tp_data_evento": "2026-07-01", "tp_motivazione": "quindici_giorni"}, "attesi": {"scadenza_iso": "2026-09-15"}, "norma": "artt. 544, c. 2, e 585 c.p.p.; L. 742/1969; art. 172 c.p.p."},
+  {"descrizione": "Motivazione contestuale, scadenza a Santo Stefano", "dati": {"tp_atto": "impugnazione_sentenza", "tp_data_evento": "2026-12-11", "tp_motivazione": "contestuale"}, "attesi": {"scadenza_iso": "2026-12-28"}, "norma": "art. 585 c.p.p.; art. 172, c. 3, c.p.p."},
+  {"descrizione": "Imputato assente: 15 giorni in più", "dati": {"tp_atto": "impugnazione_sentenza", "tp_data_evento": "2026-12-11", "tp_motivazione": "contestuale", "tp_assente": "1"}, "attesi": {"scadenza_iso": "2027-01-11"}, "norma": "art. 585, c. 1-bis, c.p.p."},
+  {"descrizione": "Riesame che scade di domenica", "dati": {"tp_atto": "riesame_personale", "tp_data_evento": "2026-11-05"}, "attesi": {"scadenza_iso": "2026-11-16"}, "norma": "art. 309, c. 1, c.p.p.; art. 172, c. 3, c.p.p."},
+  {"descrizione": "Opposizione a decreto penale con agosto", "dati": {"tp_atto": "opposizione_decreto_penale", "tp_data_evento": "2026-07-25"}, "attesi": {"scadenza_iso": "2026-09-09"}, "norma": "art. 461, c. 1, c.p.p.; L. 742/1969"},
+  {"descrizione": "Criminalità organizzata, scadenza di domenica", "dati": {"tp_atto": "opposizione_decreto_penale", "tp_data_evento": "2026-07-25", "tp_criminalita_organizzata": "1"}, "attesi": {"scadenza_iso": "2026-08-10"}, "norma": "art. 2 L. 742/1969; art. 172, c. 3, c.p.p."},
+  {"descrizione": "Opposizione all'archiviazione, violenza alla persona", "dati": {"tp_atto": "opposizione_archiviazione", "tp_data_evento": "2026-03-02", "tp_violenza_persona": "1"}, "attesi": {"scadenza_iso": "2026-04-01"}, "norma": "art. 408, c. 3-bis, c.p.p."}
+ ],
+ "termini_processuali": [
+  {"descrizione": "Opposizione a D.I. con agosto, scade di sabato", "dati": {"term_modello": "CIV_OPPOSIZIONE_DI", "term_data_evento": "2026-07-10", "term_urgente": "0"}, "attesi": {"scadenza": "21/09/2026", "scadenza_senza_proroghe": "19/09/2026"}, "norma": "art. 641 c.p.c.; L. 742/1969; art. 155, c. 5, c.p.c."},
+  {"descrizione": "Opposizione a D.I. che scade a Natale", "dati": {"term_modello": "CIV_OPPOSIZIONE_DI", "term_data_evento": "2026-11-15", "term_urgente": "0"}, "attesi": {"scadenza": "28/12/2026"}, "norma": "art. 641 c.p.c.; art. 155, cc. 4-5, c.p.c."},
+  {"descrizione": "Appello, termine lungo", "dati": {"term_modello": "CIV_APPELLO_LUNGO", "term_data_evento": "2026-06-10", "term_urgente": "0"}, "attesi": {"scadenza": "11/01/2027"}, "norma": "art. 327 c.p.c.; L. 742/1969; art. 155 c.p.c."},
+  {"descrizione": "Opposizione agli atti esecutivi a Capodanno", "dati": {"term_modello": "ESE_OPPOSIZIONE_ATTI_617", "term_data_evento": "2026-12-15", "term_urgente": "0"}, "attesi": {"scadenza": "04/01/2027"}, "norma": "art. 617 c.p.c.; art. 155 c.p.c."},
+  {"descrizione": "Reclamo cautelare in agosto", "dati": {"term_modello": "CIV_RECLAMO_CAUTELARE_669_TERDECIES", "term_data_evento": "2026-07-25", "term_urgente": "0"}, "attesi": {"scadenza": "10/08/2026"}, "norma": "art. 669-terdecies c.p.c.; art. 3 L. 742/1969; art. 155 c.p.c."}
+ ],
+ "perfezionamento_notifica": [
+  {"descrizione": "PEC consegnata dopo le 21, termine con agosto", "dati": {"not_canale": "pec", "not_data_invio": "2026-07-15", "not_ora_invio": "22:30", "not_data_consegna": "2026-07-15", "not_ora_consegna": "22:31", "not_termine_durata": "30", "not_termine_unita": "giorni", "not_sospensione_feriale": "applica"}, "attesi": {"dies_a_quo": "16/07/2026", "scadenza": "15/09/2026"}, "norma": "art. 147, cc. 2-3, c.p.c.; art. 155 c.p.c.; L. 742/1969"},
+  {"descrizione": "PEC consegnata di giorno", "dati": {"not_canale": "pec", "not_data_invio": "2026-07-15", "not_ora_invio": "10:30", "not_data_consegna": "2026-07-15", "not_ora_consegna": "10:31", "not_termine_durata": "30", "not_termine_unita": "giorni", "not_sospensione_feriale": "applica"}, "attesi": {"scadenza": "14/09/2026"}, "norma": "art. 147, c. 3, c.p.c.; art. 155 c.p.c."},
+  {"descrizione": "Posta con compiuta giacenza", "dati": {"not_canale": "posta", "not_data_invio": "2026-03-02", "not_esito_posta": "giacenza", "not_data_avviso": "2026-03-04", "not_termine_durata": "40", "not_termine_unita": "giorni", "not_sospensione_feriale": "applica"}, "attesi": {"perfezionamento_destinatario": "14/03/2026", "scadenza": "23/04/2026"}, "norma": "art. 8, c. 4, L. 890/1982; artt. 149 e 155 c.p.c."}
+ ],
+ "procedibilita_adr": [
+  {"descrizione": "Condominio", "dati": {"adr_materia": "condominio", "adr_procedimento": "ordinario", "adr_valore": "8000", "adr_consumatore": "0", "adr_data_avvio": "2026-07-10"}, "attesi": {"strumento": "mediazione", "condizione_procedibilita": true}, "norma": "art. 5, c. 1, D.Lgs. 28/2010"},
+  {"descrizione": "Circolazione 30.000", "dati": {"adr_materia": "circolazione", "adr_procedimento": "ordinario", "adr_valore": "30000", "adr_consumatore": "0", "adr_data_avvio": "2026-07-10"}, "attesi": {"strumento": "negoziazione", "condizione_procedibilita": true}, "norma": "art. 3, c. 1, D.L. 132/2014"},
+  {"descrizione": "Pagamento 40.000", "dati": {"adr_materia": "pagamento_somme", "adr_procedimento": "ordinario", "adr_valore": "40000", "adr_consumatore": "0", "adr_data_avvio": "2026-07-10"}, "attesi": {"strumento": "negoziazione", "condizione_procedibilita": true}, "norma": "art. 3, c. 1, D.L. 132/2014"},
+  {"descrizione": "Pagamento 60.000", "dati": {"adr_materia": "pagamento_somme", "adr_procedimento": "ordinario", "adr_valore": "60000", "adr_consumatore": "0", "adr_data_avvio": "2026-07-10"}, "attesi": {"strumento": "nessuno", "condizione_procedibilita": false}, "norma": "art. 3, c. 1, D.L. 132/2014"},
+  {"descrizione": "Contratto con consumatore", "dati": {"adr_materia": "pagamento_somme", "adr_procedimento": "ordinario", "adr_valore": "30000", "adr_consumatore": "1", "adr_data_avvio": "2026-07-10"}, "attesi": {"condizione_procedibilita": false}, "norma": "art. 3, c. 1, ultimo periodo, D.L. 132/2014"},
+  {"descrizione": "Locazione con monitorio", "dati": {"adr_materia": "locazione", "adr_procedimento": "ingiunzione", "adr_valore": "8000", "adr_consumatore": "0", "adr_data_avvio": "2026-07-10"}, "attesi": {"condizione_procedibilita": false}, "norma": "art. 5, c. 6, lett. a), D.Lgs. 28/2010"}
+ ],
+ "competenza_valore": [
+  {"descrizione": "Beni mobili 12.000", "dati": {"comp_materia": "beni_mobili", "comp_valore": "12000", "comp_data_introduzione": "2026-06-01"}, "attesi": {"giudice_competente": "Tribunale", "soglia_applicata": 10000.0}, "norma": "art. 7, c. 1, c.p.c. (D.Lgs. 149/2022)"},
+  {"descrizione": "Beni mobili sulla soglia", "dati": {"comp_materia": "beni_mobili", "comp_valore": "10000", "comp_data_introduzione": "2026-06-01"}, "attesi": {"giudice_competente": "Giudice di pace"}, "norma": "art. 7, c. 1, c.p.c."},
+  {"descrizione": "Circolazione 22.000", "dati": {"comp_materia": "danno_circolazione", "comp_valore": "22000", "comp_data_introduzione": "2026-06-01"}, "attesi": {"giudice_competente": "Giudice di pace", "soglia_applicata": 25000.0}, "norma": "art. 7, c. 2, c.p.c."},
+  {"descrizione": "Procedimento anteriore al 28/02/2023", "dati": {"comp_materia": "beni_mobili", "comp_valore": "8000", "comp_data_introduzione": "2023-01-15"}, "attesi": {"giudice_competente": "Tribunale", "soglia_applicata": 5000.0}, "norma": "art. 35, c. 1, D.Lgs. 149/2022 (L. 197/2022)"}
+ ],
+ "valore_causa": [
+  {"descrizione": "Somma con domande cumulate", "dati": {"val_criterio": "somma_mobili", "val_importo": "10000", "val_interessi_scaduti": "500", "val_spese_danni": "300", "val_altre_domande": "2000"}, "attesi": {"valore": 12800.0}, "norma": "artt. 10, c. 2, e 14 c.p.c."},
+  {"descrizione": "Alimenti", "dati": {"val_criterio": "alimenti", "val_importo": "1000"}, "attesi": {"valore": 2000.0}, "norma": "art. 13, c. 1, c.p.c."},
+  {"descrizione": "Rendita perpetua", "dati": {"val_criterio": "rendita_perpetua", "val_importo": "1000"}, "attesi": {"valore": 20000.0}, "norma": "art. 13, c. 2, c.p.c."},
+  {"descrizione": "Rendita temporanea 15 annualità", "dati": {"val_criterio": "rendita_temporanea", "val_importo": "1000", "val_annualita": "15"}, "attesi": {"valore": 10000.0}, "norma": "art. 13, c. 2, c.p.c."},
+  {"descrizione": "Immobile, proprietà", "dati": {"val_criterio": "immobile", "val_importo": "1000", "val_diritto": "proprieta"}, "attesi": {"valore": 200000.0}, "norma": "art. 15, c. 1, c.p.c."},
+  {"descrizione": "Immobile, usufrutto", "dati": {"val_criterio": "immobile", "val_importo": "1000", "val_diritto": "usufrutto"}, "attesi": {"valore": 100000.0}, "norma": "art. 15, c. 1, c.p.c."},
+  {"descrizione": "Immobile, servitù", "dati": {"val_criterio": "immobile", "val_importo": "1000", "val_diritto": "servitu"}, "attesi": {"valore": 50000.0}, "norma": "art. 15, c. 1, c.p.c."},
+  {"descrizione": "Opposizione di terzo", "dati": {"val_criterio": "opposizione_terzo", "val_importo": "5000"}, "attesi": {"valore": 5000.0}, "norma": "art. 17 c.p.c."}
+ ],
+ "conta_giorni": [
+  {"descrizione": "Dal 1 gennaio al 1 marzo 2026", "dati": {"giorni_data_inizio": "2026-01-01", "giorni_data_fine": "2026-03-01"}, "attesi": {"days": 59, "days_inclusive": 60}, "norma": "art. 2963 c.c.; art. 155, c. 1, c.p.c."},
+  {"descrizione": "Febbraio bisestile", "dati": {"giorni_data_inizio": "2024-02-01", "giorni_data_fine": "2024-03-01"}, "attesi": {"days": 29, "days_inclusive": 30}, "norma": "art. 2963 c.c."}
+ ]
+}

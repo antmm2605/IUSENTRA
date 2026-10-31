@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import quote
 
+from pct.scadenze_stato import aperta, esito_udienza_da_registrare, scaduta_da_chiudere
 from pct.guardiano_scadenze import build_guardiano_scadenze_payload
 from pct.scadenziario import (
     OFFICE_MODE_LABELS,
@@ -1208,7 +1209,7 @@ def _all_scadenze(gestione_scadenziario: Any) -> list[Any]:
 
 
 def _is_open(item: Any) -> bool:
-    return _enum_value(getattr(item, "stato", "")) == StatoTermine.APERTO.value and not _is_overdue(item)
+    return aperta(item)
 
 
 def _is_completed(item: Any) -> bool:
@@ -1216,18 +1217,17 @@ def _is_completed(item: Any) -> bool:
 
 
 def _is_overdue(item: Any) -> bool:
-    status = _enum_value(getattr(item, "stato", ""))
-    if status in {StatoTermine.COMPLETATO.value, StatoTermine.ANNULLATO.value}:
-        return False
-    days = getattr(item, "giorni_alla_scadenza", None)
-    if days is None:
-        days = _days_to(getattr(item, "data_scadenza", ""))
-    return status == StatoTermine.SCADUTO.value or bool(days is not None and days < 0)
+    """Adempimento passato e non chiuso; le udienze passate sono «esito da registrare» (V28)."""
+    return scaduta_da_chiudere(item)
+
+
+def _is_hearing_to_record(item: Any) -> bool:
+    return esito_udienza_da_registrare(item)
 
 
 def _effective_status(item: Any) -> str:
     status = _enum_value(getattr(item, "stato", StatoTermine.APERTO.value)) or StatoTermine.APERTO.value
-    if status == StatoTermine.APERTO.value and _is_overdue(item):
+    if status == StatoTermine.APERTO.value and (_is_overdue(item) or _is_hearing_to_record(item)):
         return StatoTermine.SCADUTO.value
     return status
 
@@ -1247,6 +1247,7 @@ def _summary(all_items: list[Any]) -> dict[str, int]:
         "high": sum(1 for item in open_items if _enum_value(getattr(item, "priorita", "")) == PrioritaTermine.ALTA.value),
         "completed": sum(1 for item in all_items if _is_completed(item)),
         "overdue": sum(1 for item in all_items if _is_overdue(item)),
+        "hearingsToRecord": sum(1 for item in all_items if _is_hearing_to_record(item)),
         "within7": sum(1 for item in open_items if (days(item) is not None and 0 <= int(days(item)) <= 7)),
         "advanced": sum(1 for item in all_items if _has_advanced_calculation(item)),
         "operative": sum(1 for item in all_items if bool(getattr(item, "operational_due_at", ""))),
@@ -1278,6 +1279,7 @@ def _facets(all_items: list[Any], summary: dict[str, int]) -> dict[str, list[dic
             _facet("alte", "Alta priorità", summary["high"]),
             _facet("completate", "Completate", summary["completed"]),
             _facet("scadute", "Scadute", summary["overdue"]),
+            _facet("esiti_udienza", "Esito udienza da registrare", summary.get("hearingsToRecord", 0)),
             _facet("imminenti", "Entro 7 gg", summary["within7"]),
             _facet("avanzate", "Avanzate", summary["advanced"]),
             _facet("operative", "Operative", summary["operative"]),
@@ -1361,6 +1363,8 @@ def _filtered_scadenze(
             scadenze = [item for item in scadenze if _is_completed(item)]
         elif search_view == "scadute":
             scadenze = [item for item in scadenze if _is_overdue(item)]
+        elif search_view == "esiti_udienza":
+            scadenze = [item for item in scadenze if _is_hearing_to_record(item)]
         elif search_view == "critiche":
             scadenze = [
                 item
@@ -1414,7 +1418,7 @@ def _filtered_scadenze(
         scadenze = [item for item in scadenze if _has_advanced_calculation(item)]
     if operative:
         scadenze = [item for item in scadenze if bool(getattr(item, "operational_due_at", ""))]
-    if vista == "scadute":
+    if vista in {"scadute", "esiti_udienza"}:
         scadenze.sort(
             key=lambda item: (
                 _date_sort_value(getattr(item, "data_scadenza", ""), overdue=True),
@@ -1597,6 +1601,17 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
             kind="filter",
             label="Apri scadute",
             view="scadute",
+        ),
+        _card(
+            "hearings_to_record",
+            "Udienze: esito da registrare",
+            "Udienze già passate: registra rinvio, riserva o decisione dal verbale o dal provvedimento.",
+            summary.get("hearingsToRecord", 0),
+            "warning" if summary.get("hearingsToRecord") else "neutral",
+            "calendar",
+            kind="filter",
+            label="Apri udienze passate",
+            view="esiti_udienza",
         ),
         _card(
             "critical",

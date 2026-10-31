@@ -1326,7 +1326,9 @@ def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: P
     assert scaduta.id not in ids
     assert payload["summary"]["pec"] == 1
     assert payload["summary"]["pec_future"] == 1
-    assert payload["summary"]["pec_overdue"] >= 1
+    # V28 (31/10/2026): un'udienza passata non è un termine scaduto ma un esito da registrare.
+    assert payload["summary"]["pec_overdue"] == 0
+    assert payload["summary"]["hearingsToRecord"] >= 1
 
 
 def test_react_scadenziario_calcolatore_non_ripete_template_identici():

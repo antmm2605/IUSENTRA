@@ -1,0 +1,47 @@
+{
+ "_verificato_il": "2026-10-31",
+ "percentuali": [
+  {"descrizione": "Quota, incidenza e variazione su base 200", "dati": {"perc_base": "200", "perc_percento": "15", "perc_parte": "50"}, "attesi": {"quota": 30.0, "incidenza": 25.0, "variazione": -75.0}, "norma": "aritmetica percentuale"}
+ ],
+ "piano_ammortamento": [
+  {"descrizione": "Francese, 10.000 al 6% in 12 rate mensili", "dati": {"amm_capitale": "10000", "amm_tasso_annuo": "6", "amm_durata_anni": "1", "amm_rate_anno": "12", "amm_tipo": "francese", "amm_data_prima_rata": "2026-01-31"}, "attesi": {"rata_iniziale": 860.66}, "norma": "rata costante R = C·i/(1-(1+i)^-n), i = TAN/12"},
+  {"descrizione": "Italiano, 12.000 al 6% in 12 rate mensili", "dati": {"amm_capitale": "12000", "amm_tasso_annuo": "6", "amm_durata_anni": "1", "amm_rate_anno": "12", "amm_tipo": "italiano", "amm_data_prima_rata": "2026-01-31"}, "attesi": {"rata_iniziale": 1060.0, "rata_finale": 1005.0, "totale_interessi": 390.0}, "norma": "quota capitale costante con interessi sul debito residuo"}
+ ],
+ "taeg": [
+  {"descrizione": "Senza spese: TAEG = tasso effettivo del TAN", "dati": {"taeg_capitale": "10000", "taeg_tan": "6", "taeg_durata_anni": "1", "taeg_rate_anno": "12", "taeg_spese_iniziali": "0", "taeg_spese_rata": "0", "taeg_spese_annue": "0"}, "attesi": {"taeg": 6.17, "rata": 860.66}, "norma": "Dir. 2008/48/CE all. I; art. 121 T.U.B. (D.Lgs. 141/2010)"},
+  {"descrizione": "Spese iniziali 200 e 2 euro per rata", "dati": {"taeg_capitale": "10000", "taeg_tan": "6", "taeg_durata_anni": "1", "taeg_rate_anno": "12", "taeg_spese_iniziali": "200", "taeg_spese_rata": "2", "taeg_spese_annue": "0"}, "attesi": {"taeg": 10.73, "erogato_netto": 9800.0, "costo_totale_credito": 551.97}, "norma": "Dir. 2008/48/CE all. I; art. 121 T.U.B."}
+ ],
+ "rendimento_bot": [
+  {"descrizione": "BOT 365 giorni a 98, nominale 1.000", "dati": {"bot_prezzo": "98", "bot_giorni": "365", "bot_nominale": "1000", "bot_commissioni": "0"}, "attesi": {"scarto_emissione": 20.0, "imposta_sostitutiva": 2.5, "esborso_totale": 982.5, "guadagno_netto": 17.5}, "norma": "D.Lgs. 239/1996 (imposta sostitutiva 12,5%)"}
+ ],
+ "pronti_contro_termine": [
+  {"descrizione": "Pronti 100, termine 101, 180 giorni", "dati": {"pct_prezzo_pronti": "100", "pct_prezzo_termine": "101", "pct_giorni": "180"}, "attesi": {"provento_lordo": 1.0, "ritenuta_fiscale": 0.26, "provento_netto": 0.74}, "norma": "art. 44, c. 1, lett. g-bis, TUIR; art. 3 D.L. 66/2014 (26%)"}
+ ],
+ "surroga": [
+  {"descrizione": "100.000 su 20 anni dal 5% al 3%", "dati": {"sur_debito_residuo": "100000", "sur_tan_attuale": "5", "sur_anni_residui": "20", "sur_tan_nuovo": "3", "sur_anni_nuovi": "20", "sur_rate_anno": "12"}, "attesi": {"rata_attuale": 659.96, "rata_nuova": 554.6, "risparmio_per_rata": 105.36}, "norma": "art. 120-quater T.U.B.; rata alla francese"}
+ ],
+ "interessi_acconti": [
+  {"descrizione": "Interessi legali 2025 su 10.000, acconto 1.000 l'01/07/2025", "dati": {"acc_tipo": "legali", "acc_capitale": "10000", "acc_data_inizio": "2025-01-01", "acc_data_fine": "2025-12-31", "acc_acconti": "2025-07-01 1000"}, "attesi": {"residuo_capitale": 9099.73, "residuo_interessi": 91.25, "totale_residuo": 9190.98}, "norma": "art. 1194 c.c.; art. 1284 c.c.; D.M. 10/12/2024 (2%)"}
+ ],
+ "nota_credito": [
+  {"descrizione": "Capitale 10.000 con interessi legali 2025, spese, compensi, CPA, IVA e acconto", "dati": {"note_creditore": "Creditore", "note_debitore": "Debitore", "note_capitale": "10000", "note_interessi_tipo": "legali", "note_data_inizio": "2025-01-01", "note_data_fine": "2025-12-31", "note_spese_vive": "500", "note_compensi": "1000", "note_cpa_perc": "4", "note_iva_perc": "22", "note_acconti": "200"}, "attesi": {"totale_lordo": 11968.8, "acconti": 200.0, "residuo": 11768.8}, "norma": "art. 1284 c.c.; art. 11 L. 576/1980 (CPA 4%); D.P.R. 633/1972 (IVA 22%)"}
+ ],
+ "pignoramento": [
+  {"descrizione": "Stipendio, credito ordinario: un quinto", "dati": {"pig_tipo_reddito": "stipendio", "pig_tipo_credito": "ordinario", "pig_importo_netto": "2000", "pig_aliquota_alimentare": ""}, "attesi": {"quota_massima": 400.0}, "norma": "art. 545, c. 4, c.p.c."},
+  {"descrizione": "Stipendio, esattoriale fra 2.500 e 5.000: un settimo", "dati": {"pig_tipo_reddito": "stipendio", "pig_tipo_credito": "esattoriale", "pig_importo_netto": "3000", "pig_aliquota_alimentare": ""}, "attesi": {"quota_massima": 428.57}, "norma": "art. 72-ter D.P.R. 602/1973"},
+  {"descrizione": "Pensione 2.000, credito ordinario", "dati": {"pig_tipo_reddito": "pensione", "pig_tipo_credito": "ordinario", "pig_importo_netto": "2000", "pig_aliquota_alimentare": ""}, "attesi": {"minimo_protetto": 1092.48, "base_pignorabile": 907.52, "quota_massima": 181.5}, "norma": "art. 545, c. 7, c.p.c. (art. 21-bis D.L. 115/2022): doppio dell'assegno sociale 2026 (546,24), minimo 1.000"},
+  {"descrizione": "Pensione 1.000: impignorabile", "dati": {"pig_tipo_reddito": "pensione", "pig_tipo_credito": "ordinario", "pig_importo_netto": "1000", "pig_aliquota_alimentare": ""}, "attesi": {"minimo_protetto": 1092.48, "base_pignorabile": 0.0, "quota_massima": 0.0}, "norma": "art. 545, c. 7, c.p.c. (D.L. 115/2022)"}
+ ],
+ "usura": [
+  {"descrizione": "Credito personale 3° trimestre 2026, tasso 18%", "dati": {"usura_tasso": "18", "usura_categoria": "credito_personale", "usura_data": "2026-08-15"}, "attesi": {"tegm": 11.68, "soglia": 18.6, "supera_soglia": false}, "norma": "art. 2 L. 108/1996; decreto MEF del trimestre 01/07-30/09/2026"},
+  {"descrizione": "Revolving 3° trimestre 2026: tetto di 8 punti", "dati": {"usura_tasso": "25", "usura_categoria": "carte_credito_revolving", "usura_data": "2026-08-15"}, "attesi": {"soglia": 24.21, "supera_soglia": true}, "norma": "art. 2, c. 4, L. 108/1996"}
+ ],
+ "canone_locazione": [
+  {"descrizione": "Canone 1.000 al 75%, gennaio 2024 - gennaio 2025", "dati": {"loc_canone": "1000", "loc_perc_adeguamento": "75", "loc_anno_base": "2024", "loc_mese_base": "1", "loc_anno_fine": "2025", "loc_mese_fine": "1"}, "attesi": {"canone_aggiornato": 1009.75}, "norma": "art. 32 L. 392/1978; L. 431/1998; variazione FOI accertata ISTAT +1,3%"},
+  {"descrizione": "Canone 1.000 al 75%, giugno 2025 - giugno 2026 (cambio di base)", "dati": {"loc_canone": "1000", "loc_perc_adeguamento": "75", "loc_anno_base": "2025", "loc_mese_base": "6", "loc_anno_fine": "2026", "loc_mese_fine": "6"}, "attesi": {"variazione_foi": 2.9, "canone_aggiornato": 1021.75}, "norma": "art. 32 L. 392/1978; FOI giugno 2026 +2,9%, raccordo 1,214"}
+ ],
+ "rivalutazione_istat": [
+  {"descrizione": "1.000 da gennaio 2020 a gennaio 2025 (FOI)", "dati": {"riv_importo": "1000", "riv_tipo": "foi", "riv_anno_base": "2020", "riv_mese_base": "1", "riv_anno_fine": "2025", "riv_mese_fine": "1"}, "attesi": {"variazione_perc": 17.7, "importo_rivalutato": 1177.0}, "norma": "indici FOI ISTAT (gennaio 2020 102,7; gennaio 2025 120,9), variazione a un decimale"},
+  {"descrizione": "1.000 da giugno 2025 a giugno 2026", "dati": {"riv_importo": "1000", "riv_tipo": "foi", "riv_anno_base": "2025", "riv_mese_base": "6", "riv_anno_fine": "2026", "riv_mese_fine": "6"}, "attesi": {"variazione_perc": 2.9, "importo_rivalutato": 1029.0}, "norma": "FOI giugno 2026 (base 2025), raccordo 1,214"}
+ ]
+}

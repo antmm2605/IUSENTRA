@@ -12,6 +12,7 @@ Base normativa (c.c., Libro II, Titolo I, Capo X):
 """
 from __future__ import annotations
 
+from fractions import Fraction
 from typing import Any, Dict, List, Mapping
 
 from pct.calcolatori._base import safe_bool, safe_float, safe_int
@@ -35,9 +36,11 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
 
     rows: List[Dict[str, Any]] = []
     notes: List[str] = []
+    quote_esatte: List[Fraction] = []
 
     def _riserva(label: str, quota: float, count: int = 1, riferimento: str = "") -> None:
         importo = round(massa * quota, 2)
+        quote_esatte.append(Fraction(quota).limit_denominator(1000))
         rows.append(
             {
                 "label": label,
@@ -71,8 +74,11 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         notes.append("In presenza di figli gli ascendenti non sono legittimari (art. 538 c.c.): la loro riserva non è calcolata.")
 
     quota_riservata = round(sum(row["quota_percent"] for row in rows), 2)
-    disponibile_perc = round(100.0 - quota_riservata, 2)
-    disponibile = round(massa * disponibile_perc / 100.0, 2)
+    # Artt. 537-544 c.c. (collaudo normativo del 31/10/2026): la disponibile si calcola sulle
+    # frazioni esatte di legge (1/3, 2/3, 1/4...), non sulle percentuali arrotondate.
+    disponibile_quota = Fraction(1) - sum(quote_esatte, Fraction(0))
+    disponibile_perc = round(float(disponibile_quota) * 100.0, 2)
+    disponibile = round(float(Fraction(str(massa)) * disponibile_quota), 2)
 
     if coniuge:
         notes.append(

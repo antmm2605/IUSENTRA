@@ -8,6 +8,7 @@ export type ScadenziarioView =
   | 'alte'
   | 'completate'
   | 'scadute'
+  | 'esiti_udienza'
   | 'imminenti'
   | 'avanzate'
   | 'operative'
@@ -481,7 +482,7 @@ function asArray(value: unknown): unknown[] {
 
 function safeView(value: unknown): ScadenziarioView {
   const text = asString(value, 'aperte')
-  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
+  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'esiti_udienza', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
   return allowed.includes(text as ScadenziarioView) ? text as ScadenziarioView : 'aperte'
 }
 

@@ -20,7 +20,7 @@ from pct.tariffario_catalogo import (
 )
 
 MAX_SYNC_RUNS = 200
-SEED_REVISION = "2026-09-14"
+SEED_REVISION = "2026-10-31"
 
 
 def _now_iso(now: Optional[datetime] = None) -> str:
@@ -1084,7 +1084,8 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {"rule_code": "esattoriale_fino_5000", "value": 14.2857, "unit": "percent"},
                 {"rule_code": "esattoriale_oltre_5000", "value": 20.0, "unit": "percent"},
                 {"rule_code": "alimentare_default", "value": 33.33, "unit": "percent"},
-                {"rule_code": "pensione_minimo_multiplier", "value": 1.5, "unit": "multiplier"},
+                {"rule_code": "pensione_minimo_multiplier", "value": 2.0, "unit": "multiplier"},
+                {"rule_code": "pensione_minimo_assoluto", "value": 1000.0, "unit": "eur"},
             ],
             "published_at": "2025-12-19",
             "effective_from": "2026-01-01",

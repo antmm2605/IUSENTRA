@@ -1,0 +1,87 @@
+{
+ "_verificato_il": "2026-10-31",
+ "irpef": [
+  {"descrizione": "Reddito 40.000, anno 2025 (23% / 35%)", "dati": {"irpef_reddito": "40000", "irpef_anno": "2025"}, "attesi": {"irpef_lorda": 10640.0}, "norma": "art. 11 TUIR come modificato da D.Lgs. 216/2023 e art. 1, c. 2, L. 207/2024"},
+  {"descrizione": "Reddito 40.000, anno 2026 (seconda aliquota al 33%)", "dati": {"irpef_reddito": "40000", "irpef_anno": "2026"}, "attesi": {"irpef_lorda": 10400.0}, "norma": "art. 11 TUIR; art. 1, c. 3, L. 199/2025"},
+  {"descrizione": "Reddito 60.000, anno 2026 (terzo scaglione)", "dati": {"irpef_reddito": "60000", "irpef_anno": "2026"}, "attesi": {"irpef_lorda": 18000.0}, "norma": "art. 11 TUIR; L. 199/2025"},
+  {"descrizione": "Reddito 20.000, anno 2024", "dati": {"irpef_reddito": "20000", "irpef_anno": "2024"}, "attesi": {"irpef_lorda": 4600.0}, "norma": "art. 11 TUIR; D.Lgs. 216/2023"}
+ ],
+ "acconto_imposte": [
+  {"descrizione": "Rigo differenza 50: acconto non dovuto", "dati": {"acc_rigo_differenza": "50", "acc_imposta": "irpef", "acc_isa": "0"}, "attesi": {"acconto_totale": 0.0}, "norma": "art. 17 D.P.R. 435/2001"},
+  {"descrizione": "Rigo 200: unica soluzione a novembre", "dati": {"acc_rigo_differenza": "200", "acc_imposta": "irpef", "acc_isa": "0"}, "attesi": {"acconto_totale": 200.0, "prima_rata": 0.0, "seconda_rata": 200.0}, "norma": "art. 17, c. 3, D.P.R. 435/2001"},
+  {"descrizione": "Rigo 1.000, soggetto non ISA: 40/60", "dati": {"acc_rigo_differenza": "1000", "acc_imposta": "irpef", "acc_isa": "0"}, "attesi": {"prima_rata": 400.0, "seconda_rata": 600.0}, "norma": "art. 17 D.P.R. 435/2001"},
+  {"descrizione": "Cedolare, rigo 1.000, soggetto ISA: 50/50", "dati": {"acc_rigo_differenza": "1000", "acc_imposta": "cedolare", "acc_isa": "1"}, "attesi": {"prima_rata": 500.0, "seconda_rata": 500.0}, "norma": "art. 58 D.L. 124/2019; art. 3, c. 4, D.Lgs. 23/2011"}
+ ],
+ "cedolare_secca": [
+  {"descrizione": "Canone libero 12.000 al 21%", "dati": {"cedolare_canone_annuo": "12000", "cedolare_aliquota": "21", "cedolare_annualita": "1"}, "attesi": {"imposta_annua": 2520.0, "totale_periodo": 2520.0}, "norma": "art. 3, c. 2, D.Lgs. 23/2011"},
+  {"descrizione": "Canone concordato 9.000 al 10%, 3 anni", "dati": {"cedolare_canone_annuo": "9000", "cedolare_aliquota": "10", "cedolare_annualita": "3"}, "attesi": {"imposta_annua": 900.0, "totale_periodo": 2700.0}, "norma": "art. 3, c. 2, D.Lgs. 23/2011; L. 431/1998"}
+ ],
+ "detrazione_canone": [
+  {"descrizione": "Contratto ordinario, reddito 14.000", "dati": {"detcan_reddito": "14000", "detcan_tipo": "ordinario", "detcan_canone": "6000"}, "attesi": {"detrazione": 300.0}, "norma": "art. 16, c. 01, TUIR"},
+  {"descrizione": "Canone concordato, reddito 20.000", "dati": {"detcan_reddito": "20000", "detcan_tipo": "concordato", "detcan_canone": "6000"}, "attesi": {"detrazione": 247.9}, "norma": "art. 16, c. 1, TUIR"},
+  {"descrizione": "Giovani 20-31 anni, reddito 12.000, canone 6.000", "dati": {"detcan_reddito": "12000", "detcan_tipo": "giovani", "detcan_canone": "6000"}, "attesi": {"detrazione": 1200.0}, "norma": "art. 16, c. 1-ter, TUIR (L. 234/2021)"},
+  {"descrizione": "Ordinario, reddito 35.000: non spetta", "dati": {"detcan_reddito": "35000", "detcan_tipo": "ordinario", "detcan_canone": "6000"}, "attesi": {"detrazione": 0.0}, "norma": "art. 16, c. 01, TUIR"}
+ ],
+ "detrazioni_familiari": [
+  {"descrizione": "Coniuge a carico, reddito 12.000", "dati": {"detfam_reddito": "12000", "detfam_coniuge": "1", "detfam_figli": "0", "detfam_figli_totali": "0", "detfam_altri": "0"}, "attesi": {"totale_detrazioni": 712.0}, "norma": "art. 12, c. 1, lett. a, TUIR"},
+  {"descrizione": "Coniuge a carico, reddito 30.000 (maggiorazione 20)", "dati": {"detfam_reddito": "30000", "detfam_coniuge": "1", "detfam_figli": "0", "detfam_figli_totali": "0", "detfam_altri": "0"}, "attesi": {"totale_detrazioni": 710.0}, "norma": "art. 12, c. 1, lett. b, TUIR"},
+  {"descrizione": "Coniuge a carico, reddito 60.000", "dati": {"detfam_reddito": "60000", "detfam_coniuge": "1", "detfam_figli": "0", "detfam_figli_totali": "0", "detfam_altri": "0"}, "attesi": {"totale_detrazioni": 345.0}, "norma": "art. 12, c. 1, lett. a, TUIR"},
+  {"descrizione": "Un figlio 21-30 anni e un ascendente, reddito 38.000", "dati": {"detfam_reddito": "38000", "detfam_coniuge": "0", "detfam_figli": "1", "detfam_figli_totali": "1", "detfam_altri": "1"}, "attesi": {"totale_detrazioni": 963.75}, "norma": "art. 12, c. 1, lett. c e d, TUIR (D.Lgs. 230/2021, L. 207/2024)"}
+ ],
+ "detrazioni_reddito": [
+  {"descrizione": "Lavoro dipendente 20.000", "dati": {"detred_reddito": "20000", "detred_tipo": "dipendente", "detred_determinato": "0", "detred_reddito_dipendente": "20000"}, "attesi": {"detrazione": 2642.21, "totale_con_misure_cuneo": 3602.21}, "norma": "art. 13, c. 1, lett. b, TUIR; art. 1, cc. 4-5, L. 207/2024"},
+  {"descrizione": "Lavoro dipendente 30.000", "dati": {"detred_reddito": "30000", "detred_tipo": "dipendente", "detred_determinato": "0", "detred_reddito_dipendente": "30000"}, "attesi": {"detrazione": 1801.19, "totale_con_misure_cuneo": 2801.19}, "norma": "art. 13, c. 1, lett. c, TUIR; art. 1, c. 6, L. 207/2024"},
+  {"descrizione": "Pensione 18.000", "dati": {"detred_reddito": "18000", "detred_tipo": "pensione", "detred_determinato": "0", "detred_reddito_dipendente": ""}, "attesi": {"detrazione": 1343.56}, "norma": "art. 13, c. 3, lett. b, TUIR"},
+  {"descrizione": "Altri redditi 16.000", "dati": {"detred_reddito": "16000", "detred_tipo": "altri_redditi", "detred_determinato": "0", "detred_reddito_dipendente": ""}, "attesi": {"detrazione": 957.97}, "norma": "art. 13, c. 5, lett. b, TUIR"}
+ ],
+ "fattura_agente": [
+  {"descrizione": "Provvigioni 10.000, ritenuta sul 50%", "dati": {"age_provvigioni": "10000", "age_collaboratori": "0"}, "attesi": {"iva": 2200.0, "ritenuta_acconto": 1150.0, "enasarco_agente": 850.0, "netto_a_pagare": 10200.0}, "norma": "art. 25-bis D.P.R. 600/1973; art. 16 D.P.R. 633/1972; Regolamento Enasarco"},
+  {"descrizione": "Provvigioni 10.000 con collaboratori: base 20%", "dati": {"age_provvigioni": "10000", "age_collaboratori": "1"}, "attesi": {"ritenuta_acconto": 460.0}, "norma": "art. 25-bis, c. 2, D.P.R. 600/1973"}
+ ],
+ "imposta_registro": [
+  {"descrizione": "Sentenza di condanna al pagamento di 50.000", "dati": {"reg_tipo_atto": "sentenza_condanna", "reg_valore": "50000", "reg_parti": "2"}, "attesi": {"imposta": 1500.0, "quota_parte": 750.0}, "norma": "art. 8, c. 1, lett. b, Tariffa parte I D.P.R. 131/1986"},
+  {"descrizione": "Sentenza di condanna di 5.000: imposta minima", "dati": {"reg_tipo_atto": "sentenza_condanna", "reg_valore": "5000", "reg_parti": "2"}, "attesi": {"imposta": 200.0}, "norma": "art. 8 Tariffa parte I e art. 41 D.P.R. 131/1986"},
+  {"descrizione": "Separazione o divorzio: atto esente", "dati": {"reg_tipo_atto": "sentenza_separazione", "reg_valore": "0", "reg_parti": "2"}, "attesi": {"imposta": 0.0}, "norma": "art. 19 L. 74/1987; Corte cost. 154/1999"}
+ ],
+ "imposte_compravendita": [
+  {"descrizione": "Da privato, non prima casa, 200.000", "dati": {"comp_regime": "privato", "comp_prezzo": "200000", "comp_valore_catastale": "0", "comp_prima_casa": "0", "comp_lusso": "0"}, "attesi": {"totale_imposte": 18100.0}, "norma": "art. 1 Tariffa parte I D.P.R. 131/1986; art. 10 D.Lgs. 23/2011"},
+  {"descrizione": "Prima casa, prezzo-valore 100.000", "dati": {"comp_regime": "privato", "comp_prezzo": "200000", "comp_valore_catastale": "100000", "comp_prima_casa": "1", "comp_lusso": "0"}, "attesi": {"totale_imposte": 2100.0}, "norma": "nota II-bis art. 1 Tariffa D.P.R. 131/1986; art. 1, c. 497, L. 266/2005"},
+  {"descrizione": "Prima casa, 30.000: minimo", "dati": {"comp_regime": "privato", "comp_prezzo": "30000", "comp_valore_catastale": "0", "comp_prima_casa": "1", "comp_lusso": "0"}, "attesi": {"totale_imposte": 1100.0}, "norma": "art. 1 Tariffa parte I D.P.R. 131/1986 (minimo 1.000)"},
+  {"descrizione": "Da impresa IVA, prima casa, 200.000", "dati": {"comp_regime": "iva", "comp_prezzo": "200000", "comp_valore_catastale": "0", "comp_prima_casa": "1", "comp_lusso": "0"}, "attesi": {"totale_imposte": 8600.0}, "norma": "Tabella A, parte II, n. 21, D.P.R. 633/1972; art. 40 D.P.R. 131/1986; D.Lgs. 347/1990"}
+ ],
+ "imposte_successione": [
+  {"descrizione": "Coniuge, quota 1.200.000", "dati": {"succ_quota": "1200000", "succ_rapporto": "coniuge_linea_retta", "succ_handicap": "0", "succ_valore_immobili": "0", "succ_prima_casa": "0"}, "attesi": {"imposta_successione": 8000.0}, "norma": "art. 2, c. 48, lett. a, D.L. 262/2006"},
+  {"descrizione": "Fratello, 300.000 con immobili 200.000", "dati": {"succ_quota": "300000", "succ_rapporto": "fratello_sorella", "succ_handicap": "0", "succ_valore_immobili": "200000", "succ_prima_casa": "0"}, "attesi": {"imposta_successione": 12000.0, "imposta_ipotecaria": 4000.0, "imposta_catastale": 2000.0, "totale_imposte": 18000.0}, "norma": "art. 2, c. 48, lett. b, D.L. 262/2006; D.Lgs. 347/1990"},
+  {"descrizione": "Altro soggetto, 100.000 in prima casa", "dati": {"succ_quota": "100000", "succ_rapporto": "altro", "succ_handicap": "0", "succ_valore_immobili": "100000", "succ_prima_casa": "1"}, "attesi": {"imposta_successione": 8000.0, "totale_imposte": 8400.0}, "norma": "art. 2, c. 48, lett. d, D.L. 262/2006; art. 69 L. 342/2000"},
+  {"descrizione": "Parente 4° grado con handicap grave, 2.000.000", "dati": {"succ_quota": "2000000", "succ_rapporto": "parente_4_affine_3", "succ_handicap": "1", "succ_valore_immobili": "0", "succ_prima_casa": "0"}, "attesi": {"imposta_successione": 30000.0}, "norma": "art. 2, cc. 48 e 49-bis, D.L. 262/2006"}
+ ],
+ "imu": [
+  {"descrizione": "Abitazione non principale, rendita 1.000, 1,06%", "dati": {"imu_rendita": "1000", "imu_gruppo": "a_non_a10", "imu_aliquota": "1.06", "imu_abitazione_principale": "0", "imu_lusso": "0", "imu_mesi": "12", "imu_quota": "100", "imu_residenti": "1"}, "attesi": {"base_imponibile": 168000.0, "imposta_annua": 1780.8}, "norma": "art. 1, cc. 745 e 754, L. 160/2019"},
+  {"descrizione": "Abitazione principale di lusso, rendita 2.000, 0,5%", "dati": {"imu_rendita": "2000", "imu_gruppo": "a_non_a10", "imu_aliquota": "0.5", "imu_abitazione_principale": "1", "imu_lusso": "1", "imu_mesi": "12", "imu_quota": "100", "imu_residenti": "1"}, "attesi": {"base_imponibile": 336000.0, "imposta_annua": 1480.0}, "norma": "art. 1, cc. 745, 748 e 749, L. 160/2019"},
+  {"descrizione": "Negozio C/1, 6 mesi, quota 50%", "dati": {"imu_rendita": "1000", "imu_gruppo": "c1", "imu_aliquota": "0.86", "imu_abitazione_principale": "0", "imu_lusso": "0", "imu_mesi": "6", "imu_quota": "50", "imu_residenti": "1"}, "attesi": {"base_imponibile": 57750.0, "imposta_annua": 124.16}, "norma": "art. 1, cc. 745, 748 e 761, L. 160/2019"},
+  {"descrizione": "Abitazione principale non di lusso: esente", "dati": {"imu_rendita": "1000", "imu_gruppo": "a_non_a10", "imu_aliquota": "0.86", "imu_abitazione_principale": "1", "imu_lusso": "0", "imu_mesi": "12", "imu_quota": "100", "imu_residenti": "1"}, "attesi": {"imposta_annua": 0.0}, "norma": "art. 1, c. 740, L. 160/2019"}
+ ],
+ "prestazione_occasionale": [
+  {"descrizione": "Compenso 1.000, committente sostituto", "dati": {"occ_compenso": "1000", "occ_rimborsi": "0", "occ_anticipazioni": "0", "occ_sostituto": "1"}, "attesi": {"ritenuta_acconto": 200.0, "bollo": 2.0}, "norma": "art. 25 D.P.R. 600/1973; D.P.R. 642/1972 Tariffa art. 13"},
+  {"descrizione": "Compenso 50, committente privato", "dati": {"occ_compenso": "50", "occ_rimborsi": "0", "occ_anticipazioni": "0", "occ_sostituto": "0"}, "attesi": {"ritenuta_acconto": 0.0, "bollo": 0.0}, "norma": "art. 25 D.P.R. 600/1973; D.P.R. 642/1972 Tariffa art. 13"}
+ ],
+ "rateazione_imposte": [
+  {"descrizione": "2.000 in 2 rate (30/6 e 16/7)", "dati": {"rate_importo": "2000", "rate_numero": "2"}, "attesi": {"totale_interessi": 1.8}, "norma": "art. 20 D.Lgs. 241/1997 (D.Lgs. 1/2024); D.M. 21/05/2009 (4% annuo)"},
+  {"descrizione": "7.000 in 7 rate (30/6 - 16/12)", "dati": {"rate_importo": "7000", "rate_numero": "7"}, "attesi": {"totale_interessi": 60.3}, "norma": "art. 20 D.Lgs. 241/1997; D.M. 21/05/2009"}
+ ],
+ "ravvedimento_operoso": [
+  {"descrizione": "Omesso versamento 10.000, 10 giorni (D.Lgs. 87/2024)", "dati": {"rav_tipo_violazione": "omesso_versamento", "rav_imposta": "10000", "rav_data_scadenza": "2025-03-17", "rav_data_versamento": "2025-03-27", "rav_evento": "nessuno"}, "attesi": {"sanzione_piena": 833.33, "sanzione_ridotta": 83.33, "interessi": 5.48, "totale_da_versare": 10088.81}, "norma": "art. 13, c. 1, D.Lgs. 471/1997 (D.Lgs. 87/2024); art. 13 D.Lgs. 472/1997; D.M. 10/12/2024"},
+  {"descrizione": "Omesso versamento 1.000, 183 giorni", "dati": {"rav_tipo_violazione": "omesso_versamento", "rav_imposta": "1000", "rav_data_scadenza": "2025-06-16", "rav_data_versamento": "2025-12-16", "rav_evento": "nessuno"}, "attesi": {"sanzione_piena": 250.0, "sanzione_ridotta": 31.25, "interessi": 10.03, "totale_da_versare": 1041.28}, "norma": "art. 13 D.Lgs. 471/1997; art. 13, c. 1, lett. b, D.Lgs. 472/1997"},
+  {"descrizione": "Regime anteriore, 20 giorni", "dati": {"rav_tipo_violazione": "omesso_versamento", "rav_imposta": "1000", "rav_data_scadenza": "2024-06-17", "rav_data_versamento": "2024-07-07", "rav_evento": "nessuno"}, "attesi": {"sanzione_piena": 150.0, "sanzione_ridotta": 15.0, "interessi": 1.37, "totale_da_versare": 1016.37}, "norma": "art. 13 D.Lgs. 471/1997 testo anteriore; art. 13 D.Lgs. 472/1997"}
+ ],
+ "regime_forfettario": [
+  {"descrizione": "Professionista, ricavi 50.000, contributi 5.000", "dati": {"forf_ricavi": "50000", "forf_gruppo": "professionali", "forf_contributi": "5000", "forf_startup": "0"}, "attesi": {"imponibile": 34000.0, "imposta_sostitutiva": 5100.0}, "norma": "art. 1, cc. 54 e 64, all. 4, L. 190/2014"},
+  {"descrizione": "Commercio, ricavi 50.000, nuova attività 5%", "dati": {"forf_ricavi": "50000", "forf_gruppo": "commercio", "forf_contributi": "0", "forf_startup": "1"}, "attesi": {"imponibile": 20000.0, "imposta_sostitutiva": 1000.0}, "norma": "art. 1, c. 65, all. 4, L. 190/2014"},
+  {"descrizione": "Costruzioni, ricavi 40.000, contributi 4.000", "dati": {"forf_ricavi": "40000", "forf_gruppo": "costruzioni", "forf_contributi": "4000", "forf_startup": "0"}, "attesi": {"imponibile": 30400.0, "imposta_sostitutiva": 4560.0}, "norma": "all. 4 L. 190/2014"}
+ ],
+ "scorporo_iva": [
+  {"descrizione": "Scorporo da 122 al 22%", "dati": {"iva_verso": "scorporo", "iva_importo": "122", "iva_aliquota": "22"}, "attesi": {"imponibile": 100.0, "iva": 22.0}, "norma": "art. 16 D.P.R. 633/1972"},
+  {"descrizione": "Aggiunta IVA 10% a 1.000", "dati": {"iva_verso": "aggiunta", "iva_importo": "1000", "iva_aliquota": "10"}, "attesi": {"iva": 100.0, "lordo": 1100.0}, "norma": "art. 16 D.P.R. 633/1972, Tabella A, parte III"},
+  {"descrizione": "Scorporo da 104 al 4%", "dati": {"iva_verso": "scorporo", "iva_importo": "104", "iva_aliquota": "4"}, "attesi": {"imponibile": 100.0, "iva": 4.0}, "norma": "art. 16 D.P.R. 633/1972, Tabella A, parte II"}
+ ]
+}

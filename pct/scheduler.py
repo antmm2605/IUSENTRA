@@ -912,6 +912,18 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Sync tabelle normative fallito: %s", e)
+            # Indici FOI dal servizio ufficiale ISTAT: solo se manca un mese già pubblicato.
+            try:
+                from pct.istat_aggiornamento import aggiorna_foi, scarica_https, serve_aggiornare
+                from pct.normative_tables import GestioneTabelleNormative
+                from pct.ora_italiana import oggi_roma
+
+                norme = GestioneTabelleNormative(app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"))
+                if serve_aggiornare(norme.rows("istat_foi"), oggi_roma()):
+                    esito_istat = aggiorna_foi(norme, scarica_https, oggi=oggi_roma())
+                    logger.info("[scheduler] Indici FOI ISTAT: %s", esito_istat)
+            except Exception as e:
+                logger.error("[scheduler] Aggiornamento indici FOI ISTAT fallito: %s", e)
 
     def _calendar_sync_targets():
         if app.config.get("MULTI_TENANT"):

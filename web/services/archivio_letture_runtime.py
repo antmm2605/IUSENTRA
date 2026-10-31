@@ -1176,6 +1176,8 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             # Una relata o una ricevuta appena entrata può chiudere una notifica
                             # aperta: si riallineano solo i presìdi di questo fascicolo, ora.
                             _riallinea_notifiche_del_fascicolo(fascicolo_id)
+                            # Le udienze passate ricevono l'esito dalle comunicazioni di cancelleria lette (V28).
+                            _registra_esiti_udienze(fascicolo)
                             # La scheda «Lettura» si prepara ora: all'apertura è già pronta (V21).
                             _prepara_lettura(fascicolo_id)
                             if evento.get("presidi"):
@@ -1254,6 +1256,27 @@ def _prepara_lettura(fascicolo_id: str) -> bool:
     except Exception as exc:
         logger.warning("Lettura del fascicolo %s non preparata in sfondo: %s", fascicolo_id, exc)
         return False
+
+
+def _registra_esiti_udienze(fascicolo: Any) -> int:
+    """Esito delle udienze passate dalle PEC di cancelleria già lette (pct/esito_udienza.py).
+
+    Fonte certa: il primo evento comunicato dalla cancelleria dal giorno dell'udienza in poi
+    (art. 136 c.p.c.; art. 16, c. 4, D.L. 179/2012). Senza evento l'udienza resta
+    «esito da registrare». Si esegue a evento, alla fine della lettura del fascicolo.
+    """
+    try:
+        from pct.archivio_letture.presidi import eventi_letti
+        from pct.esito_udienza import registra_esiti
+        from pct.ora_italiana import oggi_roma
+        from web.helpers import get_scadenziario
+
+        oggi = oggi_roma()
+        eventi = eventi_letti(fatti_fascicolo(fascicolo), oggi=oggi)
+        return registra_esiti(get_scadenziario(), fascicolo_id=_testo(getattr(fascicolo, "id", "")), eventi=eventi, oggi=oggi)
+    except Exception as exc:  # l'esito non deve fermare la lettura del fascicolo
+        logger.warning("Esiti delle udienze non registrati per %s: %s", getattr(fascicolo, "id", ""), exc)
+        return 0
 
 
 def _riallinea_notifiche_del_fascicolo(fascicolo_id: str) -> dict[str, Any]:

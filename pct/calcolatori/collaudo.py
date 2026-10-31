@@ -63,6 +63,45 @@ CASI: dict[str, tuple[CasoDiCollaudo, ...]] = {
 }
 
 
+def _casi_da_file() -> dict[str, tuple[CasoDiCollaudo, ...]]:
+    """Casi per area in ``collaudo_casi/*.json`` (verificati sulla norma dai collaudi del 31/10/2026)."""
+    import json
+    from pathlib import Path
+
+    casi: dict[str, tuple[CasoDiCollaudo, ...]] = {}
+    for percorso in sorted((Path(__file__).parent / "collaudo_casi").glob("*.json")):
+        dati = json.loads(percorso.read_text(encoding="utf-8"))
+        verificato = str(dati.get("_verificato_il") or "")
+        for tool, voci in dati.items():
+            if tool.startswith("_"):
+                continue
+            casi[tool] = tuple(
+                CasoDiCollaudo(v["descrizione"], dict(v["dati"]), dict(v["attesi"]), v["norma"], verificato)
+                for v in voci
+            )
+    return casi
+
+
+CASI.update(_casi_da_file())
+
+
+def _coincide(atteso: Any, ottenuto: Any) -> bool:
+    """Numeri con tolleranza di mezzo centesimo; dizionari ed elenchi come sottoinsiemi attesi."""
+    if isinstance(atteso, bool) or atteso is None:
+        return ottenuto == atteso
+    if isinstance(atteso, (int, float)):
+        try:
+            return abs(float(ottenuto) - float(atteso)) < 0.005
+        except (TypeError, ValueError):
+            return False
+    if isinstance(atteso, dict):
+        return isinstance(ottenuto, dict) and all(_coincide(v, ottenuto.get(k)) for k, v in atteso.items())
+    if isinstance(atteso, list):
+        return isinstance(ottenuto, list) and len(ottenuto) >= len(atteso) and all(
+            _coincide(a, o) for a, o in zip(atteso, ottenuto))
+    return ottenuto == atteso
+
+
 def esito_caso(gestore: Any, tool: str, caso: CasoDiCollaudo) -> str:
     """Stringa vuota se il caso è superato, altrimenti il motivo in italiano."""
     metodo = TOOL_METHODS.get(tool)
@@ -74,14 +113,7 @@ def esito_caso(gestore: Any, tool: str, caso: CasoDiCollaudo) -> str:
         return f"{caso.descrizione}: calcolo non eseguito ({type(exc).__name__})"
     for chiave, atteso in caso.attesi.items():
         ottenuto = risultato.get(chiave) if isinstance(risultato, dict) else None
-        if isinstance(atteso, float):
-            try:
-                uguale = abs(float(ottenuto) - atteso) < 0.005
-            except (TypeError, ValueError):
-                uguale = False
-        else:
-            uguale = ottenuto == atteso
-        if not uguale:
+        if not _coincide(atteso, ottenuto):
             return f"{caso.descrizione}: atteso {chiave}={atteso} ({caso.norma}), ottenuto {ottenuto}"
     return ""
 

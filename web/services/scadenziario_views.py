@@ -5,12 +5,14 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from pct.scadenze_stato import aperta, esito_udienza_da_registrare, scaduta_da_chiudere
 from pct.scadenziario import PrioritaTermine, Scadenza, StatoTermine, TipoTermine
 from pct.pec_operational_cleanup import is_legacy_pec_deadline
 
 
 VISTE_SCADENZIARIO_AMMESSE = {
     "aperte",
+    "esiti_udienza",
     "critiche",
     "alte",
     "completate",
@@ -29,6 +31,7 @@ VISTA_LABEL_SCADENZIARIO = {
     "alte": "scadenze ad alta priorità",
     "completate": "scadenze completate",
     "scadute": "scadenze scadute",
+    "esiti_udienza": "udienze passate con esito da registrare",
     "imminenti": "scadenze entro 7 giorni",
     "avanzate": "scadenze con calcolo avanzato",
     "operative": "scadenze operative",
@@ -60,14 +63,12 @@ def _deadline_days(scadenza: Scadenza) -> int | None:
 
 
 def _is_overdue(scadenza: Scadenza) -> bool:
-    if getattr(scadenza, "stato", None) == StatoTermine.SCADUTO:
-        return True
-    days = _deadline_days(scadenza)
-    return bool(days is not None and days < 0)
+    """Regola unica del dominio (V28): le udienze passate sono «esito da registrare»."""
+    return scaduta_da_chiudere(scadenza)
 
 
 def _is_effectively_open(scadenza: Scadenza) -> bool:
-    return getattr(scadenza, "stato", None) == StatoTermine.APERTO and not _is_overdue(scadenza)
+    return aperta(scadenza)
 
 
 def _is_currently_actionable(scadenza: Scadenza) -> bool:
@@ -128,6 +129,8 @@ def scadenze_per_vista(
         return _base(solo_aperte=False, stato=StatoTermine.COMPLETATO)
     if vista == "scadute":
         return _base(solo_aperte=False, stato=StatoTermine.SCADUTO)
+    if vista == "esiti_udienza":
+        return [item for item in _base(solo_aperte=False) if esito_udienza_da_registrare(item)]
     if vista == "critiche":
         return [s for s in _base(solo_aperte=True, stato=StatoTermine.APERTO) if s.priorita == PrioritaTermine.CRITICA]
     if vista == "alte":

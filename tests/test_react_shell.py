@@ -6239,7 +6239,9 @@ def test_react_fascicoli_mobile_mostra_lista_senza_spingere_le_card_fuori_viewpo
     assert f"{route_body}.iu-fas-stats{{order:2!important}}" in card_breakpoint_block
     assert f"{route_body}.iu-fas-layout{{order:3!important}}" in card_breakpoint_block
     assert f"{route_body}.iu-fas-deadline-alert{{order:4!important}}" in card_breakpoint_block
-    assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}" in card_breakpoint_block
+    # V27 (31/10/2026): le prime 3 scadenze per intero, senza scorrimento interno tagliato sotto il pulsante.
+    assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px}" in card_breakpoint_block
+    assert ".iu-fas-deadline-alert>div>div>a:nth-child(n+4){display:none}" in card_breakpoint_block
     assert f"{route_body}.iu-fas-hero{{order:1!important;display:grid!important;grid-template-columns:1fr!important}}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stats" in mobile_block
     # Su mobile gli indicatori stanno su due colonne, non su una striscia che
@@ -6251,7 +6253,9 @@ def test_react_fascicoli_mobile_mostra_lista_senza_spingere_le_card_fuori_viewpo
     assert f"{route_body}.iu-fas-stats{{order:2!important}}" in mobile_block
     assert f"{route_body}.iu-fas-layout{{order:3!important}}" in mobile_block
     assert f"{route_body}.iu-fas-deadline-alert{{order:4!important}}" in mobile_block
-    assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px;max-height:180px;overflow:auto;scrollbar-width:thin}" in mobile_block
+    # V27 (31/10/2026): le prime 3 scadenze per intero, senza scorrimento interno tagliato sotto il pulsante.
+    assert ".iu-fas-deadline-alert>div>div{display:grid;gap:6px}" in mobile_block
+    assert ".iu-fas-deadline-alert>div>div>a:nth-child(n+4){display:none}" in mobile_block
     assert ".iusentra-preset-active .iu-fascicoli-page .iu-fas-stat" in mobile_block
     # Nella griglia a due colonne la card non ha piu' una larghezza fissa da
     # striscia: prende la sua colonna e non scende sotto l'altezza leggibile.

@@ -116,7 +116,7 @@ function initialView(): ScadenziarioView {
   const params = new URLSearchParams(window.location.search)
   const focusId = routeDeadlineId()
   const raw = params.get('vista') || (focusId ? 'tutte' : 'aperte')
-  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
+  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'esiti_udienza', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
   return allowed.includes(raw as ScadenziarioView) ? raw as ScadenziarioView : 'aperte'
 }
 

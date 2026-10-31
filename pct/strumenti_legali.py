@@ -1350,7 +1350,7 @@ class GestioneStrumentiLegali:
                 if indice is None:
                     continue
                 anno_prec = self.norme.istat_index(tipo, anno - 1, mese)
-                variazione = round((indice / anno_prec - 1) * 100.0, 2) if anno_prec else None
+                variazione = round((indice / anno_prec - 1) * 100.0, 1) if anno_prec else None
                 mesi.append({"mese": mese, "indice": indice, "variazione_annua": variazione})
             if mesi:
                 righe.append({"anno": anno, "mesi": mesi})
@@ -1573,7 +1573,12 @@ class GestioneStrumentiLegali:
         minimo_protetto = 0.0
 
         if tipo_reddito == "pensione":
-            minimo_protetto = round(assegno_sociale * float(rules["pensione_minimo_multiplier"]["value"]), 2)
+            # Art. 545, c. 7, c.p.c. (art. 21-bis D.L. 115/2022): il doppio dell'assegno sociale,
+            # con un minimo di 1.000 euro (collaudo normativo del 31/10/2026).
+            minimo_protetto = round(max(
+                assegno_sociale * float(rules["pensione_minimo_multiplier"]["value"]),
+                float(rules.get("pensione_minimo_assoluto", {}).get("value", 1000.0)),
+            ), 2)
             base_pignorabile = max(0.0, importo - minimo_protetto)
             if base_pignorabile == 0:
                 warnings.append("L'importo indicato e interamente assorbito dal minimo vitale pensionistico 2026.")
@@ -1635,13 +1640,26 @@ class GestioneStrumentiLegali:
         notes: List[str] = []
         if modalita == "vacazioni":
             if vacazioni <= 0 and ore > 0:
-                vacazioni = max(1, math.ceil(ore / 2.0))
-                notes.append("Numero vacazioni ricavato arrotondando per eccesso ogni blocco di due ore.")
+                # Art. 4 L. 319/1980 (collaudo normativo del 31/10/2026): vacazione di due ore;
+                # l'onorario della vacazione si divide solo per metà e, trascorsa un'ora e un
+                # quarto, è dovuto interamente.
+                intere, resto = divmod(ore, 2.0)
+                if resto <= 0:
+                    frazione = 0.0
+                elif resto <= 1.25:
+                    frazione = 0.5
+                else:
+                    frazione = 1.0
+                vacazioni = intere + frazione
+                if float(vacazioni).is_integer():
+                    vacazioni = int(vacazioni)
+                notes.append("Numero vacazioni ricavato dalle ore: vacazione di due ore, mezza vacazione fino a "
+                             "un'ora e un quarto, intera oltre (art. 4 L. 319/1980).")
             if vacazioni <= 0:
                 raise ValueError("Indica le ore o il numero di vacazioni da liquidare.")
             # Corte cost. 16/2025: le vacazioni successive non possono valere meno della prima.
             successiva = max(vacazioni_cfg["successiva"], vacazioni_cfg["prima"])
-            onorario_base = vacazioni_cfg["prima"] + max(vacazioni - 1, 0) * successiva
+            onorario_base = vacazioni_cfg["prima"] * min(vacazioni, 1) + max(vacazioni - 1, 0) * successiva
             onorario_base = round(onorario_base, 2)
             if successiva > vacazioni_cfg["successiva"]:
                 notes.append("Ogni vacazione vale quanto la prima: Corte cost. 16/2025 ha dichiarato illegittimo l'art. 4 "
@@ -1911,8 +1929,10 @@ class GestioneStrumentiLegali:
                 _messaggio_indice_istat_mancante(self.norme, tipo, anno_fine, mese_fine, "periodo di rivalutazione")
             )
 
-        variazione_perc = round(((indice_fine / indice_base) - 1) * 100, 4)
-        importo_rivalutato = round(importo * (indice_fine / indice_base), 2)
+        # Variazione «accertata dall'ISTAT»: pubblicata e applicata con un decimale
+        # (servizio Rivaluta, comunicati mensili; collaudo normativo del 31/10/2026).
+        variazione_perc = round(((indice_fine / indice_base) - 1) * 100, 1)
+        importo_rivalutato = round(importo * (1 + variazione_perc / 100.0), 2)
         differenza = round(importo_rivalutato - importo, 2)
 
         mesi = {1:"gennaio",2:"febbraio",3:"marzo",4:"aprile",5:"maggio",6:"giugno",
@@ -1999,7 +2019,8 @@ class GestioneStrumentiLegali:
                 _messaggio_indice_istat_mancante(self.norme, "foi", anno_fine, mese_fine, "mese di aggiornamento del canone")
             )
 
-        variazione_foi = round(((indice_fine / indice_base) - 1) * 100, 4)
+        # Art. 32 L. 392/1978: variazione FOI «accertata dall'ISTAT», pubblicata con un decimale.
+        variazione_foi = round(((indice_fine / indice_base) - 1) * 100, 1)
         variazione_applicata = round(variazione_foi * perc_adeguamento / 100.0, 4)
         incremento = round(canone * variazione_applicata / 100.0, 2)
         canone_aggiornato = round(canone + incremento, 2)
@@ -2084,12 +2105,21 @@ class GestioneStrumentiLegali:
         esito_classe = "danger" if supera_soglia else "success"
 
         if soglia_data.get("fuori_periodo"):
+            # Fonti certe (collaudo del 31/10/2026): la soglia di un altro trimestre non decide
+            # l'usurarietà. Senza il decreto del trimestre dell'operazione l'esito non si dà.
+            esito = "NON_DETERMINABILE"
+            esito_classe = "warning"
+            supera_soglia = None
             warnings.append(
                 _messaggio_periodo_scaduto(
                     self.norme.periodo_coperto("tasso_usura", data_operazione),
                     "Tassi soglia antiusura",
                     "ogni trimestre con decreto del Ministero dell'economia",
                 )
+            )
+            warnings.append(
+                f"Esito non determinabile: le soglie del trimestre dell'operazione non sono caricate. "
+                f"I valori mostrati ({quarter}) sono solo di riferimento."
             )
 
         if categoria_input != categoria:
@@ -2100,10 +2130,12 @@ class GestioneStrumentiLegali:
             f"TEGM {quarter}: {tegm:.2f}%. Soglia = {tegm:.2f}% × 1,25 + 4 = {soglia:.2f}%."
         )
         notes.append(
-            f"Tasso applicato {tasso_applicato:.2f}% {'SUPERA' if supera_soglia else 'rispetta'} la soglia antiusura di {soglia:.2f}%."
+            f"Tasso applicato {tasso_applicato:.2f}% {'SUPERA' if supera_soglia else 'rispetta' if supera_soglia is False else 'da confrontare con'} la soglia antiusura di {soglia:.2f}%."
         )
 
-        if supera_soglia:
+        if supera_soglia is None:
+            pass
+        elif supera_soglia:
             eccesso = round(tasso_applicato - soglia, 4)
             warnings.append(
                 f"Il tasso applicato ({tasso_applicato:.2f}%) supera la soglia usura ({soglia:.2f}%) "
@@ -2317,10 +2349,18 @@ class GestioneStrumentiLegali:
 
         def _add_years(d: _date, n: int) -> _date:
             try:
-                return d.replace(year=d.year + n)
+                scadenza = d.replace(year=d.year + n)
             except ValueError:
                 # 29 feb su anno non bisestile
-                return d.replace(year=d.year + n, day=28)
+                scadenza = d.replace(year=d.year + n, day=28)
+            # Art. 2963, c. 3, c.c. (collaudo normativo del 31/10/2026): se il termine scade
+            # di domenica o in una festività nazionale è prorogato al primo giorno seguente
+            # non festivo; il sabato non è festivo nel diritto civile sostanziale.
+            from pct.termini_penali.calendario import festivo as _festivo
+
+            while _festivo(scadenza):
+                scadenza += timedelta(days=1)
+            return scadenza
 
         data_scadenza = _add_years(data_decorrenza, anni)
         giorni_residui = (data_scadenza - oggi).days
@@ -2403,7 +2443,7 @@ class GestioneStrumentiLegali:
             "aliquota": 0.03,
             "minimo": 200.0,
             "fisso": False,
-            "norma": "Art. 8 co. 1 lett. a) Tariffa DPR 131/1986",
+            "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986",
             "note": "Aliquota del 3% sul valore della condanna. Obbligo di registrazione entro 20 giorni dalla irrevocabilità.",
         },
         "sentenza_immobili": {
@@ -2415,19 +2455,19 @@ class GestioneStrumentiLegali:
             "note": "Per sentenze costitutive di diritti reali su immobili l'aliquota è quella dell'atto (9% su abitazioni, 12% su terreni agricoli).",
         },
         "decreto_ingiuntivo": {
-            "label": "Decreto ingiuntivo",
+            "label": "Decreto ingiuntivo non ancora esecutivo",
             "aliquota": 0.0,
-            "minimo": 200.0,
+            "minimo": 0.0,
             "fisso": True,
-            "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986",
-            "note": "Il decreto ingiuntivo non ancora esecutivo sconta €200 fissi. Se diventa definitivo (non opposto) scatta il 3% sul valore.",
+            "norma": "Art. 8 co. 1 Tariffa DPR 131/1986 (tassa i decreti ingiuntivi esecutivi)",
+            "note": "Il decreto ingiuntivo non ancora esecutivo non si registra: l'art. 8 della Tariffa colpisce i decreti ingiuntivi esecutivi. Quando diventa esecutivo (provvisoria esecuzione o mancata opposizione) sconta il 3% sul valore.",
         },
         "decreto_ingiuntivo_definitivo": {
             "label": "Decreto ingiuntivo definitivo (non opposto)",
             "aliquota": 0.03,
             "minimo": 200.0,
             "fisso": False,
-            "norma": "Art. 8 co. 1 lett. a) Tariffa DPR 131/1986",
+            "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986",
             "note": "Decorsi i termini di opposizione senza impugnazione, il DI è assimilato a sentenza di condanna e sconta il 3%.",
         },
         "verbale_conciliazione": {
@@ -2449,7 +2489,7 @@ class GestioneStrumentiLegali:
         "sentenza_separazione": {
             "label": "Sentenza/provvedimento di separazione o divorzio",
             "aliquota": 0.0,
-            "minimo": 200.0,
+            "minimo": 0.0,
             "fisso": True,
             "norma": "Art. 19 L. 74/1987 — esenzione",
             "note": "Gli atti del procedimento di separazione e divorzio sono esenti da imposte di bollo e registro ex art. 19 L. 74/1987.",
@@ -2484,7 +2524,7 @@ class GestioneStrumentiLegali:
         quota_parte = round(imposta / max(parti, 1), 2)
 
         if tipo == "sentenza_separazione":
-            notes.append("Esenzione totale ex art. 19 L. 74/1987. L'importo indicato (€200) è il bollo forfettario residuale in alcuni tribunali — verificare con la cancelleria.")
+            notes.append("Atto esente da imposta di registro e di bollo (art. 19 L. 74/1987, esteso alla separazione da Corte cost. 154/1999).")
         else:
             notes.append(info["note"])
             notes.append(
@@ -2532,7 +2572,9 @@ class GestioneStrumentiLegali:
 
         anni_equivalenti = round(anni_servizio + (mesi_servizio / 12.0), 4)
         quota_annua = round(retribuzione_annua / 13.5, 2)
-        quota_periodo = round(quota_annua * anni_equivalenti, 2)
+        # Art. 2120, c. 1, c.c. (collaudo normativo del 31/10/2026): quota per i mesi di servizio
+        # calcolata sui mesi esatti, senza arrotondare prima gli anni equivalenti.
+        quota_periodo = round(quota_annua / 12.0 * (anni_servizio * 12 + mesi_servizio), 2)
         coeff_rivalutazione = round(1.5 + (inflazione_perc * 0.75), 4)
         rivalutazione = round(montante_pregresso * (coeff_rivalutazione / 100.0), 2)
         totale_lordo = round(montante_pregresso + quota_periodo + rivalutazione - anticipazioni, 2)
@@ -2714,12 +2756,32 @@ class GestioneStrumentiLegali:
             raise ValueError("Inserisci una data di esecuzione valida della misura.")
 
         oggi = _today()
-        interrogatorio_entra = data_esecuzione + timedelta(days=5)
-        riesame_entra = data_esecuzione + timedelta(days=10)
-        decisione_entra = data_istanza_riesame + timedelta(days=10) if data_istanza_riesame else None
-        deposito_entra = data_decisione_riesame + timedelta(days=30) if data_decisione_riesame else None
+        # Collaudo normativo del 31/10/2026.
+        # Art. 172, c. 3, c.p.p.: il termine a giorni che scade di domenica o in giorno festivo
+        # è prorogato di diritto al giorno successivo non festivo (il sabato non è festivo).
+        from pct.termini_penali.calendario import festivo as _festivo
+
+        def _proroga(giorno: date) -> date:
+            while _festivo(giorno):
+                giorno += timedelta(days=1)
+            return giorno
+
+        # Art. 294, cc. 1 e 1-bis, c.p.p.: interrogatorio entro 5 giorni solo per la custodia
+        # in carcere, entro 10 giorni per le altre misure cautelari.
+        giorni_interrogatorio = 5 if tipo_misura == "carcere" else 10
+        interrogatorio_entra = _proroga(data_esecuzione + timedelta(days=giorni_interrogatorio))
+        riesame_entra = _proroga(data_esecuzione + timedelta(days=10))
+        # Art. 309, cc. 5 e 9, c.p.p.: i 10 giorni per la decisione decorrono dalla ricezione
+        # degli atti, non dall'istanza: la data mostrata è soltanto una stima.
+        decisione_entra = _proroga(data_istanza_riesame + timedelta(days=10)) if data_istanza_riesame else None
+        deposito_entra = _proroga(data_decisione_riesame + timedelta(days=30)) if data_decisione_riesame else None
 
         warnings: List[str] = []
+        if decisione_entra:
+            warnings.append(
+                "La data di decisione sul riesame è una stima: i 10 giorni decorrono dalla ricezione "
+                "degli atti da parte del tribunale (art. 309, cc. 5 e 9, c.p.p.), non dalla data dell'istanza."
+            )
         if oggi > interrogatorio_entra:
             warnings.append("Il termine ordinario per l'interrogatorio di garanzia risulta superato.")
         if oggi > riesame_entra and not data_istanza_riesame:
@@ -2735,7 +2797,7 @@ class GestioneStrumentiLegali:
         if data_istanza_riesame:
             timeline.append({"label": "Istanza di riesame depositata", "date": data_istanza_riesame.isoformat(), "date_it": _fmt_date_it(data_istanza_riesame)})
         if decisione_entra:
-            timeline.append({"label": "Decisione sul riesame entro", "date": decisione_entra.isoformat(), "date_it": _fmt_date_it(decisione_entra)})
+            timeline.append({"label": "Decisione sul riesame entro (stima)", "date": decisione_entra.isoformat(), "date_it": _fmt_date_it(decisione_entra)})
         if data_decisione_riesame:
             timeline.append({"label": "Decisione sul riesame", "date": data_decisione_riesame.isoformat(), "date_it": _fmt_date_it(data_decisione_riesame)})
         if deposito_entra:
@@ -3002,12 +3064,28 @@ class GestioneStrumentiLegali:
             elif fratelli > 0 and ascendenti == 0:
                 _append_row("Fratelli", 1 / 3, fratelli, "Quota dei collaterali in parti uguali.")
             else:
-                _append_row("Ascendenti e fratelli", 1 / 3, ascendenti + fratelli, "Riparto aggregato: il dettaglio interno va verificato caso per caso.")
-                notes.append("Concorso tra ascendenti e fratelli trattato in forma aggregata: verificare il dettaglio interno del terzo residuo.")
+                # Art. 582 c.c. (collaudo normativo del 31/10/2026): il terzo residuo va ad
+                # ascendenti e fratelli secondo l'art. 571 (per capi, ai genitori almeno la metà),
+                # salvo in ogni caso agli ascendenti il diritto a un quarto dell'eredità.
+                residuo = 1 / 3
+                quota_asc = max(residuo * max(ascendenti / (ascendenti + fratelli), 0.5), 1 / 4)
+                _append_row("Ascendenti", quota_asc, ascendenti,
+                            "Terzo residuo ripartito per capi con i fratelli; agli ascendenti almeno la metà del terzo "
+                            "e in ogni caso un quarto dell'eredità (artt. 571 e 582 c.c.).")
+                _append_row("Fratelli", residuo - quota_asc, fratelli,
+                            "Parte del terzo residuo che resta ai fratelli, in parti uguali (artt. 571 e 582 c.c.).")
         elif not coniuge and figli == 0 and ascendenti > 0 and fratelli == 0:
             _append_row("Ascendenti", 1.0, ascendenti, "Riparto in parti uguali nella linea ascendente indicata.")
         elif not coniuge and figli == 0 and fratelli > 0 and ascendenti == 0:
             _append_row("Fratelli", 1.0, fratelli, "Riparto in parti uguali tra i fratelli indicati.")
+        elif not coniuge and figli == 0 and ascendenti > 0 and fratelli > 0:
+            # Art. 571, c. 1, c.c. (collaudo normativo del 31/10/2026): genitori e fratelli
+            # succedono per capi, ma ai genitori spetta in ogni caso almeno la metà dell'eredità.
+            quota_asc = max(ascendenti / (ascendenti + fratelli), 0.5)
+            _append_row("Ascendenti", quota_asc, ascendenti,
+                        "Riparto per capi con i fratelli; ai genitori almeno la metà dell'eredità (art. 571, c. 1, c.c.).")
+            _append_row("Fratelli", 1.0 - quota_asc, fratelli,
+                        "Parte che resta ai fratelli, in parti uguali (art. 571, c. 1, c.c.).")
         else:
             _append_row("Ascendenti e fratelli", 1.0, max(1, ascendenti + fratelli), "Riparto aggregato per scenario misto da verificare puntualmente.")
             notes.append("Scenario misto collaterali/ascendenti trattato come quota aggregata per evitare semplificazioni scorrette.")
@@ -3069,22 +3147,30 @@ class GestioneStrumentiLegali:
         if mesi_servizio >= 12:
             anni_servizio += mesi_servizio // 12
             mesi_servizio = mesi_servizio % 12
-        anzianita = round(anni_servizio + (mesi_servizio / 12.0), 2)
+        # Art. 8 D.Lgs. 23/2015 (collaudo normativo del 31/10/2026): le frazioni d'anno si
+        # riproporzionano sui mesi esatti; l'anzianità non si arrotonda prima della moltiplicazione.
+        anzianita_esatta = anni_servizio + (mesi_servizio / 12.0)
+        anzianita = round(anzianita_esatta, 2)
 
         if regime == "jobs_act":
-            mensilita = min(36.0, max(6.0, round(anzianita * 2.0, 2)))
+            mensilita_esatte = min(36.0, max(6.0, anzianita_esatta * 2.0))
             regime_label = "Tutele crescenti"
             notes = ["Calcolo parametrato a 2 mensilita per anno di servizio, con minimo 6 e massimo 36."]
         elif regime == "piccola_impresa":
-            mensilita = min(6.0, max(3.0, round(anzianita * 1.0, 2)))
+            # Art. 9, c. 1, D.Lgs. 23/2015 dopo Corte cost. 118/2025 (collaudo normativo del
+            # 31/10/2026): importi dell'art. 3 dimezzati, minimo 3 e massimo 18 mensilità;
+            # il tetto di 6 mensilità è stato dichiarato illegittimo.
+            mensilita_esatte = min(18.0, max(3.0, anzianita_esatta * 1.0))
             regime_label = "Piccola impresa / tutela obbligatoria"
-            notes = ["Stima operativa parametrata a 1 mensilita per anno, con minimo 3 e massimo 6."]
+            notes = ["Importi dell'art. 3 dimezzati: 1 mensilita per anno di servizio, con minimo 3 e massimo 18 "
+                     "(art. 9, c. 1, D.Lgs. 23/2015; Corte cost. 118/2025)."]
         else:
-            mensilita = round(mensilita_preavviso, 2)
+            mensilita_esatte = mensilita_preavviso
             regime_label = "Indennita sostitutiva del preavviso"
             notes = ["Importo calcolato sulla mensilita di preavviso inserita manualmente."]
 
-        importo = round(retribuzione_mensile * mensilita, 2)
+        mensilita = round(mensilita_esatte, 2)
+        importo = round(retribuzione_mensile * mensilita_esatte, 2)
         return {
             "retribuzione_mensile": round(retribuzione_mensile, 2),
             "anni_servizio": anni_servizio,

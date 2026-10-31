@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from flask import current_app, g, session
 
+from pct.scadenze_stato import ESITO_UDIENZA, SCADUTA, stato_operativo
 from pct.agenda import TipoAppuntamento
 from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
@@ -299,12 +300,12 @@ def _deadline_status(scadenza: Any, today: date | None = None) -> str:
         return "cancelled"
     if state == StatoTermine.COMPLETATO.value:
         return "completed"
-    if state == StatoTermine.SCADUTO.value:
-        return "overdue"
-    due = _deadline_date(scadenza)
-    if due and due < (today or datetime.now(ROME_TZ).date()) and state != StatoTermine.COMPLETATO.value:
-        return "overdue"
-    return "open"
+    # Regola unica del dominio (V28): un'udienza passata non è un termine scaduto ma un
+    # esito da registrare, e non entra fra le scadute della barra.
+    stato = stato_operativo(scadenza, today or datetime.now(ROME_TZ).date())
+    if stato == ESITO_UDIENZA:
+        return "hearing_outcome"
+    return "overdue" if stato == SCADUTA else "open"
 
 
 def _reminder_thresholds(scadenza: Any) -> list[int]:
@@ -714,7 +715,7 @@ def quick_deadlines_payload(user: Any, *, full: bool = False) -> dict[str, Any]:
             summary["drafts"] += 1
             continue
         status = _deadline_status(scadenza, today)
-        if status in {"completed", "cancelled", "draft"}:
+        if status in {"completed", "cancelled", "draft", "hearing_outcome"}:
             continue
         priority = _priority_from_deadline(scadenza, today)
         if due == today:

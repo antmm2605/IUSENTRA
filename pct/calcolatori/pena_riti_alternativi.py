@@ -34,8 +34,11 @@ from typing import Any, Dict, List, Mapping, Tuple
 
 from pct.calcolatori._base import clean_text, safe_bool, safe_int
 
-GIORNI_ANNO = 365
+# Le frazioni di pena si calcolano su anni di 12 mesi (art. 134 c.p.: pene a anni, mesi e giorni);
+# anno e mese devono essere coerenti fra loro, altrimenti «1 anno e 6 mesi meno un terzo» darebbe
+# «12 mesi e 4 giorni» invece di 1 anno (collaudo normativo del 31/10/2026).
 GIORNI_MESE = 30
+GIORNI_ANNO = 12 * GIORNI_MESE
 
 _RITI = {
     "ordinario": "Rito ordinario (nessuna diminuzione per il rito)",

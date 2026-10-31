@@ -35,6 +35,12 @@ class Campione:
     voce_avvocato: str = ""  # voce confermata o corretta documento per documento dall'avvocato
     voce_spark: str = ""  # voce scelta dalla seconda lettura di Lex (Spark), se ammessa
     nomi: frozenset[str] = frozenset()  # parole dei nomi di persona noti al fascicolo, per la pseudonimizzazione
+    voce_proposta: str = ""  # voce proposta dalle regole prima della correzione dell'avvocato
+
+    @property
+    def voce_delle_regole(self) -> str:
+        """Ciò che le regole avevano proposto: dopo una correzione `voce` è già quella dell'avvocato."""
+        return self.voce_proposta or self.voce
 
 
 def _fascia(c: Campione) -> str:
@@ -98,7 +104,7 @@ def misura(campioni: list[Campione], *, minimo: int = 30) -> dict[str, Any]:
     giusti_modello = giusti_regole = 0
     for c, (voce, _p) in zip(decisi, previsioni(decisi)):
         giusti_modello += int(voce == c.voce_avvocato)
-        giusti_regole += int(c.voce == c.voce_avvocato)
+        giusti_regole += int(c.voce_delle_regole == c.voce_avvocato)
     riepilogo["decisioni_avvocato"] = {"documenti": len(decisi), "giuste_modello": giusti_modello,
                                        "giuste_regole": giusti_regole}
     coppie = Counter((voce_pubblicabile(d["voce_regole"]), d["voce_modello"]) for d in disaccordi)
@@ -109,7 +115,7 @@ def misura(campioni: list[Campione], *, minimo: int = 30) -> dict[str, Any]:
 
 
 def _disaccordo(c: Campione, voce: str, p: float, fascia: str) -> dict[str, Any]:
-    return {"document_id": c.document_id, "fascicolo_id": c.fascicolo_id, "voce_regole": c.voce,
+    return {"document_id": c.document_id, "fascicolo_id": c.fascicolo_id, "voce_regole": c.voce_delle_regole,
             "confidenza_regole": c.confidenza, "voce_modello": voce, "probabilita": round(p, 3), "fascia": fascia}
 
 

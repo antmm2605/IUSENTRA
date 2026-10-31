@@ -77,3 +77,24 @@ def test_runtime_salva_i_disaccordi_nella_cartella_dello_studio(tmp_path, monkey
     runtime._salva_disaccordi([{"document_id": "D1", "voce_regole": "A", "voce_modello": "B"}])
     salvati = json.loads((tmp_path / "intelligence" / runtime.FILE_DISACCORDI).read_text(encoding="utf-8"))
     assert salvati == [{"document_id": "D1", "voce_regole": "A", "voce_modello": "B"}]
+
+
+def test_voce_delle_regole_e_quella_proposta_prima_della_correzione():
+    from pct.document_intelligence.verita.esperimento import Campione
+    from web.services.classificatore_catalogo_runtime import voci_proposte_prima_della_correzione
+
+    eventi = [
+        {"event_type": "document_catalog.reviewed", "document_id": "D0", "payload": {}},
+        {"event_type": "document_catalog.overridden", "document_id": "D1",
+         "payload": {"prima": {"voce": "Atto di citazione", "origine": "rules"}, "dopo": {"voce": "Comparsa"}}},
+        {"event_type": "document_catalog.overridden", "document_id": "D1",
+         "payload": {"prima": {"voce": "Comparsa", "origine": "manual_override"}, "dopo": {"voce": "Memoria"}}},
+        {"event_type": "document_catalog.overridden", "document_id": "D2",
+         "payload": {"prima": {"voce": "Memoria", "origine": "manual_override"}}},
+        {"event_type": "document_catalog.overridden", "document_id": "", "payload": {"prima": {"voce": "X"}}},
+    ]
+    assert voci_proposte_prima_della_correzione(eventi) == {"D1": "Atto di citazione"}
+    corretto = Campione("D1", "F", "t", "Memoria", 99, "confirmed", "manual_override", voce_avvocato="Memoria",
+                        voce_proposta="Atto di citazione")
+    assert corretto.voce_delle_regole == "Atto di citazione"
+    assert Campione("D3", "F", "t", "Sentenza", 99, "proposed", "rules").voce_delle_regole == "Sentenza"

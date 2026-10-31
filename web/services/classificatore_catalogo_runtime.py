@@ -42,6 +42,23 @@ def _voce_spark(assegnazione) -> str:
     return str(lettura.get("etichetta") or "") if lettura.get("stato") == "scelta" else ""
 
 
+def voci_proposte_prima_della_correzione(eventi: list[dict[str, Any]]) -> dict[str, str]:
+    """Per ogni documento corretto, la voce proposta dal catalogo prima della prima correzione dell'avvocato.
+
+    Dopo una correzione la voce dell'assegnazione è quella dell'avvocato: confrontarla con la decisione
+    darebbe alle regole un merito che non hanno. Le correzioni successive non sono proposte delle regole.
+    """
+    proposte: dict[str, str] = {}
+    for evento in eventi:
+        if evento.get("event_type") != "document_catalog.overridden":
+            continue
+        documento = str(evento.get("document_id") or "")
+        prima = dict(dict(evento.get("payload") or {}).get("prima") or {})
+        if documento and documento not in proposte and prima.get("origine") != "manual_override" and prima.get("voce"):
+            proposte[documento] = str(prima["voce"])
+    return proposte
+
+
 def campioni_studio_corrente() -> list[Campione]:
     """I campioni di ogni fascicolo dello studio già presente in `g`, archiviati compresi."""
     from web.helpers import get_fascicoli
@@ -61,6 +78,7 @@ def campioni_studio_corrente() -> list[Campione]:
             continue
         decise = {e.document_id: e.etichetta for e in etichette_dalle_decisioni(assegnazioni, conferme_massive=conferme_massive(eventi))
                   if not e.negativa}
+        proposte = voci_proposte_prima_della_correzione(eventi)
         for assegnazione in assegnazioni:
             try:
                 testo = _testo(repository, tenant_id, assegnazione)
@@ -75,7 +93,7 @@ def campioni_studio_corrente() -> list[Campione]:
                 stato=str(getattr(assegnazione, "status", "") or ""),
                 origine=str(getattr(assegnazione, "source_state", "") or ""),
                 voce_avvocato=decise.get(documento, ""),
-                voce_spark=_voce_spark(assegnazione), nomi=nomi,
+                voce_spark=_voce_spark(assegnazione), nomi=nomi, voce_proposta=proposte.get(documento, ""),
             ))
     return campioni
 

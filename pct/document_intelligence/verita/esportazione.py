@@ -99,7 +99,7 @@ def righe_dataset(campioni: Iterable[Campione], inventati: Iterable[DocumentoInv
             continue
         testo = pseudonimizza(c.testo, set(c.nomi))
         codice = _codice(c.fascicolo_id, c.document_id)
-        voce_regole = voce_dell_elenco(c.voce, voci)
+        voce_regole = voce_dell_elenco(c.voce_delle_regole, voci)
         riga: dict[str, Any] = {"id": codice, "testo": testo, "voce_regole": voce_regole,
                                 "voce_spark": voce_dell_elenco(c.voce_spark, voci)}
         proposta = c.stato == "proposed" and c.origine != "manual_override"

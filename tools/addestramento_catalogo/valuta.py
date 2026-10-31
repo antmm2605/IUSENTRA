@@ -34,6 +34,7 @@ from dati import (
     leggi_risposta,
     misura,
     prefisso_breve,
+    prefisso_per_modello_di_partenza,
     voci_del_prefisso,
 )
 
@@ -62,6 +63,8 @@ def main() -> int:
     scheda = (args.adattatore / "addestramento.json") if args.adattatore and not args.senza_adattatore else None
     if scheda and scheda.is_file() and json.loads(scheda.read_text(encoding="utf-8")).get("domanda") == "breve":
         prefisso = prefisso_breve(prefisso)
+    if args.senza_adattatore:
+        prefisso = prefisso_per_modello_di_partenza(prefisso)
     tokenizer = AutoTokenizer.from_pretrained(args.adattatore or args.modello, trust_remote_code=args.codice_del_modello)
     modello = AutoModelForCausalLM.from_pretrained(
         args.modello, device_map="auto", dtype=torch.bfloat16, trust_remote_code=args.codice_del_modello,

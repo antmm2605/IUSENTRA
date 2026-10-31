@@ -183,3 +183,10 @@ def test_la_voce_si_legge_anche_con_sezione_maiuscole_o_risposta_troncata():
     assert leggi_risposta('{"etichetta": "Nessuna voce del catalogo"}', voci)["etichetta"] == NESSUNA_VOCE
     # Nessuna voce indovinata per somiglianza.
     assert leggi_risposta('{"etichetta": "Sentenze"}', voci)["etichetta"] == ""
+
+
+def test_il_modello_di_partenza_riceve_lo_schema_della_risposta():
+    from tools.addestramento_catalogo.dati import prefisso_per_modello_di_partenza
+
+    domanda = prefisso_per_modello_di_partenza("Voci del catalogo (etichetta [sezione]):\n- Sentenza [atti]\nRispondi solo con il JSON richiesto.")
+    assert '"etichetta"' in domanda and '"citazione"' in domanda and domanda.index("Sentenza") < domanda.index('"etichetta"')

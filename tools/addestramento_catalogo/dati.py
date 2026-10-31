@@ -97,6 +97,22 @@ def voce_dell_elenco(etichetta: str, voci: set[str]) -> str:
     return ""
 
 
+SCHEMA_RISPOSTA = (
+    '\nRispondi solo con questo JSON, senza altro testo: '
+    '{"etichetta": "<una voce dell\'elenco, scritta esattamente, oppure Nessuna voce del catalogo>", '
+    '"citazione": "<frase del documento, almeno 4 parole, copiata alla lettera>", "motivo": "<una riga>"}\n'
+)
+
+
+def prefisso_per_modello_di_partenza(prefisso: str) -> str:
+    """Il modello di partenza non ha imparato il campo «etichetta» dagli esempi: lo schema va scritto.
+
+    Misura del 31/10/2026: senza schema il Qwen di partenza rispondeva solo con «citazione» e
+    «motivo» (0 etichette su 23). Il modello addestrato resta interrogato con la sua domanda.
+    """
+    return prefisso.rstrip() + "\n" + SCHEMA_RISPOSTA + "\n"
+
+
 def leggi_risposta(testo: str, voci: set[str]) -> dict[str, str]:
     """Il JSON della risposta del modello; voce vuota se fuori dall'elenco chiuso o illeggibile."""
     testo = str(testo or "")

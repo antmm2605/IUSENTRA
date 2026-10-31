@@ -1,0 +1,50 @@
+name: Analisi dei fatti respinti dal collaudo
+# V13 del registro docs/VERIFICA_PRODUZIONE_2026-10-31.md: perché il collaudo dell'archivio delle letture
+# respinge il 40-60% dei fatti in alcuni fascicoli. Sola lettura nel container scheduler-worker; il risultato
+# contiene solo conteggi per esito, campo, motore e codice della prova, senza dati del cliente.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  analisi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Analisi in sola lettura
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            'cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T scheduler-worker python -' \
+            < deploy/hetzner/analisi_fatti_respinti.py > uscita.txt
+          # Solo la riga del risultato: i log dell'avvio dell'app non escono dal runner.
+          grep -m1 '^ANALISI_FATTI_JSON:' uscita.txt | sed 's/^ANALISI_FATTI_JSON://' | jq . > analisi.json
+          rm -f uscita.txt
+          jq -e '.studi' analisi.json > /dev/null
+          # Solo conteggi: leggibili anche dal log del job.
+          jq -c . analisi.json
+          {
+            echo '## Fatti respinti dal collaudo'
+            echo
+            jq -r '.studi | to_entries[] | "### \(.key)\n- Fatti: \(.value.fatti) in \(.value.fascicoli) fascicoli\n- Esiti: \(.value.esiti)\n- Prove respinte: \(.value.prove_respinte)\n"' analisi.json
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: analisi-fatti-respinti
+          path: analisi.json
+          retention-days: 30

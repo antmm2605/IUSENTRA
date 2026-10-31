@@ -103,9 +103,11 @@ class TestRivalutazioneMedia:
             {"rivm_importo": "10000", "rivm_anno_base": "2023", "rivm_anno_target": "2024", "rivm_tipo": "FOI"}
         )
         assert esito["importo_rivalutato"] > 10000
-        assert esito["coefficiente"] == pytest.approx(
-            esito["media_anno_target"] / esito["media_anno_base"], rel=1e-4
-        )
+        # Variazione media annua come la pubblica l'ISTAT, a un decimale (collaudo del 31/10/2026):
+        # 119,7 / 118,7 = +0,8%.
+        variazione = round((esito["media_anno_target"] / esito["media_anno_base"] - 1) * 100, 1)
+        assert esito["variazione_percentuale"] == variazione == 0.8
+        assert esito["coefficiente"] == pytest.approx(1 + variazione / 100)
 
     def test_anno_scoperto_fail_closed(self, gestore):
         with pytest.raises(ValueError):

@@ -130,3 +130,38 @@ def test_calcolo_storico_senza_avviso_di_copertura_parziale(tmp_path):
     assert esito["total_interest"] == 631.0
     assert esito["covered_days"] == esito["days"] == 1461
     assert not any("parzialmente" in w for w in esito["warnings"])
+
+
+def _mora(**extra):
+    from pct.strumenti_legali import GestioneStrumentiLegali
+
+    dati = {"int_tipo": "mora_commerciale", "int_capitale": "7300", "int_data_inizio": "2013-01-01", "int_data_fine": "2013-12-31"}
+    return GestioneStrumentiLegali().calcola_interessi({**dati, **extra})
+
+
+def test_contratto_anteriore_al_2013_mantiene_sette_punti():
+    esito = _mora(int_data_contratto="2012-03-01")
+    assert [s["rate"] for s in esito["segments"]] == [7.75, 7.5]
+    assert esito["total_interest"] == 556.55
+    assert any("01/03/2012" in w and "7 punti" in w for w in esito["warnings"])
+
+
+def test_contratto_dal_2013_e_data_assente_applicano_otto_punti():
+    assert [s["rate"] for s in _mora(int_data_contratto="2013-01-10")["segments"]] == [8.75, 8.5]
+    senza = _mora()
+    assert [s["rate"] for s in senza["segments"]] == [8.75, 8.5]
+    assert any("Data del contratto non indicata" in w for w in senza["warnings"])
+
+
+def test_contratto_anteriore_all_8_agosto_2002_fuori_dal_decreto():
+    import pytest
+
+    with pytest.raises(ValueError, match="08/08/2002"):
+        _mora(int_data_contratto="2002-08-07")
+
+
+def test_la_data_del_contratto_compare_solo_per_la_mora():
+    from pct.calcolatori.schema import schema_calcolatore
+
+    campo = next(c for c in schema_calcolatore("interessi")["campi"] if c["name"] == "int_data_contratto")
+    assert campo["quando"] == {"campo": "int_tipo", "valori": ["mora_commerciale"]}

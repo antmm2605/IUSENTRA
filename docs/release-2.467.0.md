@@ -36,8 +36,18 @@ Rilascio nato dalla verifica sulle PEC reali e sui fascicoli collegati (registro
   dal 1942, mora D.Lgs. 231/2002 dall'08/08/2002 (riferimento BCE +7 fino al 2012, +8 dal 2013), ogni
   periodo con decreto o comunicato in Gazzetta. Prima i calcoli su crediti anteriori al 2024 coprivano
   solo gli ultimi anni.
-- Restano esclusi da Lex finché non c'è la fonte ufficiale o una formula di legge: Cassa Forense,
-  assegno di mantenimento, lite temeraria, uffici competenti.
+- Mora commerciale: nuovo campo «Data del contratto». Per i contratti anteriori al 2013 la maggiorazione
+  resta di 7 punti anche nei semestri successivi (art. 3 D.Lgs. 192/2012); i contratti anteriori
+  all'08/08/2002 sono fuori dal decreto (art. 11). Se la data manca, il calcolo lo segnala.
+- Collaudati anche la rivalutazione su media annua ISTAT (variazione a un decimale), la tabella ISTAT
+  (indice come pubblicato, con la base 2025 dal 2026, e campo «Fino all'anno»), la tabella dei tassi e
+  gli uffici competenti.
+- Contributi Cassa Forense collaudati sul Regolamento unico (G.U. 238/2024) e sulla tabella dei minimi:
+  corretti i valori 2025 (aliquota 16%, minimi 2.750 e 350 euro, maternità 57,65) e il metodo
+  (soglia di copertura, tetto con 3% oltre, minimi ridotti, pensionati, soglia dei 10 euro); la
+  maternità 2026 non ancora pubblicata è segnalata e il totale è provvisorio.
+- Restano esclusi da Lex perché la legge non dà una formula (decide il giudice): assegno di
+  mantenimento e lite temeraria.
 
 ## Udienze passate e agenda del fascicolo (V28, V40)
 

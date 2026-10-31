@@ -147,6 +147,7 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
             {"name": "int_capitale", "label": "Capitale", "type": "number", "step": "0.01", "min": "0"},
             {"name": "int_data_inizio", "label": "Dal", "type": "date"},
             {"name": "int_data_fine", "label": "Al", "type": "date"},
+            {"name": "int_data_contratto", "label": "Data del contratto (solo mora commerciale)", "type": "date"},
         ],
     },
     "nota_credito": {
@@ -280,13 +281,23 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     },
     "contributi_cassa_forense": {
         "title": "Contributi Cassa Forense",
-        "subtitle": "Soggettivo, integrativo e maternita con aliquote annuali.",
+        "subtitle": "Soggettivo, integrativo e maternita secondo il Regolamento unico dal 2025.",
         "submit_label": "Calcola contributi",
         "method": "calcola_contributi_cassa_forense",
         "fields": [
-            {"name": "cf_anno", "label": "Anno", "type": "number", "step": "1", "min": "2020"},
-            {"name": "cf_reddito", "label": "Reddito professionale", "type": "number", "step": "0.01", "min": "0"},
-            {"name": "cf_compensi", "label": "Compensi IVA", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "cf_anno", "label": "Anno di competenza", "type": "number", "step": "1", "min": "2025"},
+            {"name": "cf_reddito", "label": "Reddito netto professionale", "type": "number", "step": "0.01", "min": "0"},
+            {"name": "cf_compensi", "label": "Volume d'affari IVA", "type": "number", "step": "0.01", "min": "0"},
+            {
+                "name": "cf_posizione",
+                "label": "Posizione contributiva",
+                "type": "select",
+                "options": [
+                    {"value": "ordinaria", "label": "Iscritto alla Cassa (minimi interi)"},
+                    {"value": "agevolata", "label": "Primi 6 anni, iscritto prima dei 35 anni"},
+                    {"value": "pensionato", "label": "Pensionato di vecchiaia iscritto all'Albo"},
+                ],
+            },
         ],
     },
     "prescrizione": {
@@ -1067,15 +1078,19 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
         metrics = [
             _metric("Anno", str(result.get("anno") or "")),
             _metric("Reddito", f"{_fmt_money(result.get('reddito'))}"),
-            _metric("Compensi", f"{_fmt_money(result.get('compensi'))}"),
+            _metric("Volume d'affari", f"{_fmt_money(result.get('compensi'))}"),
             _metric("Totale contributi", f"{_fmt_money(result.get('totale'))}"),
         ]
-        contributi = dict(result.get("contributi") or {})
+        # «contributi» è un elenco di voci (soggettivo, integrativo, maternità), non un dizionario.
         tables.append(
             {
                 "title": "Dettaglio contributi",
                 "headers": ["Voce", "Importo"],
-                "rows": [[str(key).replace("_", " ").title(), f"{_fmt_money(value)}"] for key, value in contributi.items()],
+                "rows": [
+                    [str(voce.get("label") or voce.get("tipo") or ""), f"{_fmt_money(voce.get('calcolato'))}"]
+                    for voce in result.get("contributi") or []
+                    if isinstance(voce, dict)
+                ],
             }
         )
     elif tool_id == "prescrizione":

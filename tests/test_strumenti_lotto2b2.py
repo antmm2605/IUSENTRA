@@ -76,12 +76,12 @@ class TestRateazione:
         esito = gestore.calcola_rateazione_imposte({"rate_importo": "3000", "rate_numero": "6"})
         assert len(esito["piano"]) == 6
         assert esito["piano"][0]["interessi"] == 0.0
-        # 0,33% mensile su 500 per (1+2+3+4+5) mesi = 24,75
-        assert esito["totale_interessi"] == pytest.approx(24.75)
-        # La semplificazione a mesi interi è dichiarata come stima per eccesso
-        # e la nota non cita più il regime P.IVA/fine mese abrogato dal
-        # D.Lgs. 1/2024.
-        assert any("ECCESSO" in w for w in esito["warnings"])
+        # Scadenze ordinarie (prima rata 30 giugno), collaudo del 31/10/2026:
+        # 500 x (0,18% + 0,51% + 0,84% + 1,17% + 1,50%) = 500 x 4,20% = 21,00
+        assert esito["totale_interessi"] == pytest.approx(21.0)
+        # Le frazioni sono dichiarate; la nota non cita più il regime P.IVA/fine
+        # mese abrogato dal D.Lgs. 1/2024.
+        assert any("0,18%" in w for w in esito["warnings"])
         testo_note = " ".join(esito["notes"])
         assert "1/2024" in testo_note
         assert "fine mese" not in testo_note

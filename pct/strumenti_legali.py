@@ -22,6 +22,7 @@ from pct.calcolatori import (
     danno_parentale as calc_danno_parentale,
     danno_premorienza as calc_danno_premorienza,
     capitalizzazione_rendita as calc_capitalizzazione,
+    cassa_forense as calc_cassa_forense,
     consenso_informato as calc_consenso_informato,
     danno_terminale as calc_danno_terminale,
     diffamazione as calc_diffamazione,
@@ -172,6 +173,10 @@ _NOTE_CODICE_FISCALE: tuple[str, ...] = (
 )
 
 
+# D.Lgs. 231/2002, art. 11 (contratti dall'8/8/2002) e D.Lgs. 192/2012, art. 3 (8 punti dal 1/1/2013).
+_MORA_231_DAL = date(2002, 8, 8)
+_MORA_8_PUNTI_DAL = date(2013, 1, 1)
+
 class GestioneStrumentiLegali:
     def __init__(self, normative_db_path: str = "./intelligence/tabelle_normative.json"):
         self.norme = GestioneTabelleNormative(db_path=normative_db_path)
@@ -199,7 +204,7 @@ class GestioneStrumentiLegali:
             {"id": "rivalutazione_istat", "title": "Rivalutazione monetaria ISTAT", "subtitle": "Calcolo FOI / NIC per danni, assegni divorzili, liquidazioni e adeguamenti.", "icon": "bi-graph-up-arrow", "categoria": "Danni"},
             {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock", "categoria": "Locazioni"},
             {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation", "categoria": "Credito"},
-            {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternità: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge", "categoria": "Previdenza"},
+            {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternità secondo il Regolamento unico della previdenza forense (dal 2025).", "icon": "bi-person-badge", "categoria": "Previdenza"},
             {"id": "prescrizione", "title": "Prescrizione civile", "subtitle": "Termini ordinari, brevi e gestione dell'eventuale atto interruttivo.", "icon": "bi-hourglass-bottom", "categoria": "Processo"},
             {"id": "danno_biologico", "title": "Danno biologico", "subtitle": "Art. 139 cod. ass., tabella unica nazionale D.P.R. 12/2025, tabelle milanesi 2024.", "icon": "bi-heart-pulse", "categoria": "Danni"},
             {"id": "imposta_registro", "title": "Imposta di registro", "subtitle": "Atti giudiziari con minimo fisso, aliquota e quota per parte.", "icon": "bi-receipt", "categoria": "Fiscale"},
@@ -373,6 +378,7 @@ class GestioneStrumentiLegali:
             "int_capitale": prefill.get("valore_causa", ""),
             "int_data_inizio": today,
             "int_data_fine": today,
+            "int_data_contratto": "",
             "note_tribunale": prefill.get("tribunale", ""),
             "note_rg": prefill.get("rg", ""),
             "note_creditore": prefill.get("creditore", ""),
@@ -424,6 +430,7 @@ class GestioneStrumentiLegali:
             "cf_anno": str(_today().year),
             "cf_reddito": "",
             "cf_compensi": "",
+            "cf_posizione": "ordinaria",
             # Prescrizione civile
             "presc_tipo": "ordinaria_10",
             "presc_data_decorrenza": today,
@@ -711,6 +718,7 @@ class GestioneStrumentiLegali:
             # Tabella ISTAT
             "istat_tipo": "FOI",
             "istat_anni": "5",
+            "istat_anno_fine": "",
             # Tabella tassi
             "tassi_vista": "entrambe",
             # TAEG
@@ -1130,6 +1138,16 @@ class GestioneStrumentiLegali:
 
         periods: List[InterestPeriod] = self.norme.interest_periods(mode)
         label = "Interessi legali ex art. 1284 c.c." if mode == "legali" else "Interessi moratori ex D.Lgs. 231/2002"
+        data_contratto = _parse_date(payload.get("int_data_contratto")) if mode == "mora_commerciale" else None
+        if data_contratto and data_contratto < _MORA_231_DAL:
+            # art. 11, c. 1, D.Lgs. 231/2002: il decreto non si applica ai contratti anteriori all'8 agosto 2002.
+            raise ValueError(
+                "Il D.Lgs. 231/2002 non si applica ai contratti conclusi prima dell'08/08/2002 (art. 11): "
+                "usa gli interessi legali."
+            )
+        # art. 3 D.Lgs. 192/2012: gli 8 punti valgono per i contratti conclusi dal 01/01/2013;
+        # per quelli anteriori la maggiorazione resta di 7 punti anche nei semestri successivi.
+        sette_punti = bool(data_contratto and data_contratto < _MORA_8_PUNTI_DAL)
 
         segments: List[Dict[str, Any]] = []
         warnings: List[str] = []
@@ -1144,7 +1162,10 @@ class GestioneStrumentiLegali:
                 continue
             days = _days_inclusive(overlap_start, overlap_end)
             denominator = _year_denominator(overlap_start)
-            interest = round(capitale * (period.rate / 100.0) * (days / denominator), 2)
+            rate = period.rate
+            if sette_punti and period.start >= _MORA_8_PUNTI_DAL and period.reference_rate is not None:
+                rate = round(period.reference_rate + 7.0, 2)
+            interest = round(capitale * (rate / 100.0) * (days / denominator), 2)
             total_interest += interest
             covered_days += days
             segments.append(
@@ -1153,7 +1174,7 @@ class GestioneStrumentiLegali:
                     "from": overlap_start.isoformat(),
                     "to": overlap_end.isoformat(),
                     "days": days,
-                    "rate": period.rate,
+                    "rate": rate,
                     "interest": interest,
                     "reference_rate": period.reference_rate,
                     "source": period.source.to_dict(),
@@ -1173,11 +1194,16 @@ class GestioneStrumentiLegali:
                 "e di 8 punti dal 2013 (D.Lgs. 231/2002, art. 5; D.Lgs. 192/2012), salvo diverse pattuizioni "
                 "valide nei limiti di legge."
             )
-            if data_inizio < date(2013, 1, 1) and data_fine >= date(2013, 1, 1):
+            if sette_punti and data_fine >= _MORA_8_PUNTI_DAL:
                 warnings.append(
-                    "Gli 8 punti valgono per i contratti conclusi dal 01/01/2013 (art. 3 D.Lgs. 192/2012): se il "
-                    "contratto è anteriore, nei semestri dal 2013 la maggiorazione resta di 7 punti e il calcolo "
-                    "va ridotto di un punto su quei semestri."
+                    f"Contratto del {data_contratto.strftime('%d/%m/%Y')}, anteriore al 01/01/2013: nei semestri "
+                    "dal 2013 la maggiorazione applicata è di 7 punti (art. 3 D.Lgs. 192/2012)."
+                )
+            elif not data_contratto and data_fine >= _MORA_8_PUNTI_DAL:
+                warnings.append(
+                    "Data del contratto non indicata: dal 2013 sono applicati 8 punti, che valgono per i contratti "
+                    "conclusi dal 01/01/2013 (art. 3 D.Lgs. 192/2012). Per un contratto anteriore indica la data: "
+                    "la maggiorazione resta di 7 punti."
                 )
 
         tabella_tassi = "mora_commerciale" if mode == "mora_commerciale" else "interesse_legale"
@@ -1352,6 +1378,12 @@ class GestioneStrumentiLegali:
         mese_fine = int(ultimo.get("month", 0))
         if not anno_fine:
             raise ValueError("Indici ISTAT non disponibili nel modulo normativo.")
+        richiesto = int(_safe_float(payload.get("istat_anno_fine"), 0.0))
+        if richiesto:
+            if richiesto > anno_fine:
+                raise ValueError(f"Gli indici ISTAT pubblicati arrivano a {mese_fine:02d}/{anno_fine}.")
+            if richiesto < anno_fine:
+                anno_fine, mese_fine = richiesto, 12
         righe: List[Dict[str, Any]] = []
         for anno in range(anno_fine - anni_richiesti + 1, anno_fine + 1):
             mesi: List[Dict[str, Any]] = []
@@ -1359,9 +1391,21 @@ class GestioneStrumentiLegali:
                 indice = self.norme.istat_index(tipo, anno, mese)
                 if indice is None:
                     continue
+                # Si mostra l'indice come pubblicato, con la sua base (dal 2026 base 2025=100):
+                # l'indice riportato alla base 2015 serve solo ai confronti interni.
+                pubblicato = self.norme.istat_index_pubblicato(tipo, anno, mese) or {}
+                ufficiale = self.norme.istat_variation_yoy(tipo, anno, mese)
                 anno_prec = self.norme.istat_index(tipo, anno - 1, mese)
-                variazione = round((indice / anno_prec - 1) * 100.0, 1) if anno_prec else None
-                mesi.append({"mese": mese, "indice": indice, "variazione_annua": variazione})
+                variazione = (
+                    float(ufficiale) if ufficiale is not None
+                    else (round((indice / anno_prec - 1) * 100.0, 1) if anno_prec else None)
+                )
+                mesi.append({
+                    "mese": mese,
+                    "indice": pubblicato.get("index", indice),
+                    "base": pubblicato.get("base"),
+                    "variazione_annua": variazione,
+                })
             if mesi:
                 righe.append({"anno": anno, "mesi": mesi})
         righe_piatte = [
@@ -1369,6 +1413,7 @@ class GestioneStrumentiLegali:
                 "anno": blocco["anno"],
                 "mese": voce["mese"],
                 "indice": voce["indice"],
+                "base": voce["base"],
                 "variazione_annua": voce["variazione_annua"],
             }
             for blocco in righe
@@ -1380,8 +1425,9 @@ class GestioneStrumentiLegali:
             "anni": righe,
             "righe": righe_piatte,
             "notes": [
-                "Indici ISTAT versionati nel modulo normativo interno; le variazioni annue "
-                "confrontano lo stesso mese dell'anno precedente."
+                "Indici ISTAT come pubblicati, con la base di riferimento (da gennaio 2026 base "
+                "2025=100); la variazione annua è quella pubblicata dall'ISTAT sullo stesso mese "
+                "dell'anno precedente, anche a cavallo del cambio di base."
             ],
         }
 
@@ -2193,108 +2239,21 @@ class GestioneStrumentiLegali:
         }
 
     def calcola_contributi_cassa_forense(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
-        """Calcola contributi Cassa Forense per l'anno e i dati reddituali indicati."""
-        anno = _safe_int(payload.get("cf_anno")) or _today().year
-        reddito = _safe_float(payload.get("cf_reddito"))
-        compensi = _safe_float(payload.get("cf_compensi"))
+        """Contributi Cassa Forense secondo il Regolamento unico in vigore dal 2025.
 
-        contributi = self.norme.contributi_cassa_forense_anno(anno)
-        sources = self._sources_for_codes("cassa_forense_portale", "cassa_forense_contributi_2026", "cassa_forense_art11")
-        warnings: List[str] = []
-        notes: List[str] = []
-
-        if not contributi:
-            raise ValueError(
-                f"Dati Cassa Forense non disponibili per il {anno}. "
-                "Aggiorna la tabella da /legal-intelligence."
-            )
-
-        rows_anno = contributi
-        result_rows: List[Dict[str, Any]] = []
-        totale = 0.0
-
-        for r in rows_anno:
-            tipo = r.get("tipo", "")
-            aliquota = float(r.get("aliquota", 0.0))
-            minimo = float(r.get("minimo_eur", 0.0))
-            label = r.get("label", tipo)
-            note_row = r.get("note", "")
-            base = r.get("base", "")
-            calcolato = 0.0
-            base_usata = 0.0
-            if r.get("status") == "da_definire":
-                warnings.append(
-                    f"{label}: importo da definire nella fonte ufficiale; non viene applicato automaticamente."
-                )
-                result_rows.append({
-                    "tipo": tipo,
-                    "label": label,
-                    "base": base,
-                    "aliquota": aliquota,
-                    "minimo": minimo,
-                    "base_usata": 0.0,
-                    "calcolato": 0.0,
-                    "note": note_row,
-                    "status": "da_definire",
-                })
-                continue
-
-            if tipo == "soggettivo" and reddito > 0:
-                base_usata = reddito
-                calcolato = round(reddito * aliquota / 100.0, 2)
-                if calcolato < minimo:
-                    notes.append(f"{label}: calcolato {format_euro_it(calcolato)} < minimo {format_euro_it(minimo)} → applicato il minimo.")
-                    calcolato = minimo
-            elif tipo == "integrativo" and compensi > 0:
-                base_usata = compensi
-                calcolato = round(compensi * aliquota / 100.0, 2)
-                if calcolato < minimo:
-                    notes.append(f"{label}: calcolato {format_euro_it(calcolato)} < minimo {format_euro_it(minimo)} → applicato il minimo.")
-                    calcolato = minimo
-            elif tipo == "maternita_assistenza":
-                calcolato = minimo
-                base_usata = 0.0
-            elif tipo == "soggettivo" and reddito <= 0:
-                calcolato = minimo
-                notes.append(f"{label}: reddito non indicato, applicato il minimo di iscrizione {format_euro_it(minimo)}.")
-            elif tipo == "integrativo" and compensi <= 0:
-                calcolato = minimo
-                notes.append(f"{label}: compensi non indicati, applicato il minimo {format_euro_it(minimo)}.")
-
-            totale += calcolato
-            result_rows.append({
-                "tipo": tipo,
-                "label": label,
-                "aliquota": aliquota,
-                "minimo_eur": minimo,
-                "base_usata": round(base_usata, 2),
-                "calcolato": round(calcolato, 2),
-                "base": base,
-                "note": note_row,
-            })
-
-        # Nota su contributo integrativo (addebitabile al cliente)
-        integrativo = next((r for r in result_rows if r["tipo"] == "integrativo"), None)
-        if integrativo:
-            notes.append(
-                f"Il contributo integrativo ({integrativo['aliquota']:.0f}%) e addebitabile al cliente "
-                "in aggiunta al compenso ex art. 11 L. 576/1980."
-            )
-        notes.append(
-            "Scadenza dichiarazione e pagamento: 31 ottobre dell'anno successivo (Cassa Forense). "
-            "Verificare eventuali rateizzazioni o esoneri previsti dal regolamento vigente."
+        Calcolo in ``pct.calcolatori.cassa_forense`` (artt. 30-41 Regolamento unico della
+        previdenza forense, G.U. n. 238 del 10/10/2024); valori per anno nella tabella
+        ``contributi_cassa_forense`` verificata sulla tabella ufficiale Cassa Forense.
+        """
+        risultato = calc_cassa_forense.calcola(payload, self.norme, anno_corrente=_today().year)
+        risultato["sources"] = self._sources_for_codes(
+            "cassa_forense_regolamento_unico",
+            "cassa_forense_note_mod5_2026",
+            "cassa_forense_contributi_2026",
+            "cassa_forense_portale",
+            "cassa_forense_art11",
         )
-
-        return {
-            "anno": anno,
-            "reddito": round(reddito, 2),
-            "compensi": round(compensi, 2),
-            "contributi": result_rows,
-            "totale": round(totale, 2),
-            "notes": notes,
-            "warnings": warnings,
-            "sources": sources,
-        }
+        return risultato
 
     # ------------------------------------------------------------------ #
     #  NUOVO — Calcolo termini di prescrizione                           #

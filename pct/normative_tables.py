@@ -586,12 +586,43 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "cassa_forense_contributi_2026": FonteOperativa(
         code="cassa_forense_contributi_2026",
-        title="Cassa Forense - contributi minimi obbligatori 2026",
+        title="Cassa Forense - tabella ufficiale contributi minimi 2012-2026 (consultata il 31/10/2026)",
         url="https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf",
         note=(
-            "Tabella ufficiale contributi minimi: per il 2026 contributo soggettivo minimo € 2.790, "
-            "aliquota autoliquidazione 17%, contributo integrativo minimo € 355 con aliquota 4%; "
-            "contributo maternita indicato come da definire nella tabella consultata."
+            "Per anno: minimo soggettivo intero e ridotto, reddito di copertura, aliquota in autoliquidazione, "
+            "minimo integrativo intero e ridotto, contributo di maternità e tetto reddituale. "
+            "2025: 2.750 (ridotto 1.375), copertura 17.188, 16%, integrativo 350 (175), maternità 57,65, tetto 130.000. "
+            "2026: 2.790 (ridotto 1.395), copertura 16.412, 17%, integrativo 355 (177,50), tetto 131.800, "
+            "maternità «da definire». Versione PDF consultata il 2026-10-31."
+        ),
+        change_detection="availability_only",
+    ),
+    "cassa_forense_regolamento_unico": FonteOperativa(
+        code="cassa_forense_regolamento_unico",
+        title=(
+            "Regolamento unico della previdenza forense in vigore dal 01/01/2025 (delibera Comitato dei Delegati "
+            "23/05/2024, ministeriale 27/09/2024, G.U. S.G. n. 238 del 10/10/2024)"
+        ),
+        url="https://www.cassaforense.it/media/pedlynkt/regolamento-unico-previdenza-forense.pdf",
+        note=(
+            "Artt. 30 (soggettivo 16% 2025, 17% 2026, 18% dal 2027; 3% oltre il tetto; pensionati 12%), "
+            "31 (integrativo 4% sul volume d'affari IVA), 32 (maternità), 34 (rivalutazione minimi e tetto), "
+            "37 (minimi, riduzione alla metà per i primi 6 anni se iscritti prima dei 35 anni), "
+            "41 (autoliquidazione all'euro più vicino; non dovuta sotto i dieci euro). Consultato il 2026-10-31. "
+            "Comunicato di approvazione in G.U.: "
+            "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+            "atto.dataPubblicazioneGazzetta=2024-10-10&atto.codiceRedazionale=24A05286"
+        ),
+        change_detection="availability_only",
+    ),
+    "cassa_forense_note_mod5_2026": FonteOperativa(
+        code="cassa_forense_note_mod5_2026",
+        title="Cassa Forense - note illustrative Mod. 5/2026 (redditi 2025)",
+        url="https://www.cassaforense.it/media/btuftmyc/note-illustrative-mod5-2026.pdf",
+        note=(
+            "Determinazione dei contributi per status professionale: minimo soggettivo fino a 17.188 euro di "
+            "reddito, 16% sul reddito eccedente fino a 130.000 euro, 3% oltre; integrativo 4% del volume "
+            "d'affari con minimo 350 (175 ridotto). Consultate il 2026-10-31."
         ),
         change_detection="availability_only",
     ),
@@ -1805,6 +1836,10 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "2015_2025": "G.U. Serie Generale n. 201 del 31/08/2026, comunicato ISTAT 26A04494",
                 },
                 "medie_annue": {2020: 102.3, 2021: 104.2, 2022: 112.6, 2023: 118.7, 2024: 119.7, 2025: 121.4},
+                # Verificate il 31/10/2026 sugli indici mensili ufficiali (servizio SDMX ISTAT, flusso
+                # IT1,169_745_DF_DCSP_FOI1B2015_1, FOI senza tabacchi 00ST, base 2015): la media dei
+                # dodici mesi arrotondata a un decimale coincide per ogni anno.
+                "fonte_medie_annue": "https://esploradati.istat.it/SDMXWS/rest/data/IT1,169_745_DF_DCSP_FOI1B2015_1,1.0/?startPeriod=2020&format=csv",
                 "note": (
                     "Indice al netto dei tabacchi, come pubblicato dai comunicati ISTAT in "
                     "Gazzetta Ufficiale ai sensi dell'art. 81 L. 392/1978 e dell'art. 54 "
@@ -1851,59 +1886,84 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "title": "Contributi Cassa Forense",
             "category": "previdenza",
             "description": (
-                "Aliquote e minimali contributivi Cassa Forense per anno. "
-                "Comprende: contributo soggettivo (% sul reddito netto), contributo integrativo "
-                "(% sui compensi, addebitabile al cliente ex L. 576/1980), contributo di maternita "
-                "e assistenza. Fonte ufficiale: comunicati annuali Cassa Forense."
+                "Minimi, soglie di copertura, aliquote e tetti reddituali Cassa Forense per anno di competenza "
+                "(Regolamento unico della previdenza forense in vigore dal 2025). Comprende contributo "
+                "soggettivo, contributo integrativo (4% del volume d'affari IVA, ripetibile verso il cliente) "
+                "e contributo di maternità. Fonte: tabella ufficiale contributi minimi Cassa Forense, "
+                "consultata il 31/10/2026."
             ),
             "strategy": "seed_mirror",
-            "source_codes": ["cassa_forense_portale", "cassa_forense_contributi_2026", "cassa_forense_art11"],
+            "source_codes": [
+                "cassa_forense_contributi_2026",
+                "cassa_forense_regolamento_unico",
+                "cassa_forense_note_mod5_2026",
+                "cassa_forense_portale",
+                "cassa_forense_art11",
+            ],
             "watch_source_ids": ["cassa_forense", "gazzetta_ufficiale"],
+            # Valori verificati il 31/10/2026 su
+            # https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf (righe 2025 e 2026)
+            # e sugli artt. 30, 31, 37 del Regolamento unico
+            # (https://www.cassaforense.it/media/pedlynkt/regolamento-unico-previdenza-forense.pdf).
+            # Correzione del 31/10/2026: il seed precedente indicava per il 2025 aliquota 15%, minimo
+            # soggettivo 2.625, minimo integrativo 700 e maternità 183, valori senza riscontro nelle fonti.
             "rows": [
                 {
                     "year": 2025,
                     "tipo": "soggettivo",
-                    "aliquota": 15.0,
-                    "minimo_eur": 2625.0,
+                    "aliquota": 16.0,
+                    "minimo_eur": 2750.0,
+                    "minimo_ridotto_eur": 1375.0,
+                    "copertura_eur": 17188.0,
+                    "tetto_eur": 130000.0,
+                    "aliquota_oltre_tetto": 3.0,
+                    "aliquota_pensionati": 12.0,
                     "base": "reddito_netto_professionale",
                     "label": "Contributo soggettivo 2025",
-                    "note": "Aliquota 15% sul reddito netto professionale. Minimo € 2.625.",
+                    "note": "Art. 30, c. 1, e art. 37 Regolamento unico; tabella ufficiale: minimo 2.750 (ridotto 1.375) fino a 17.188 euro di reddito, 16% oltre fino al tetto di 130.000, 3% oltre il tetto.",
                 },
                 {
                     "year": 2025,
                     "tipo": "integrativo",
                     "aliquota": 4.0,
-                    "minimo_eur": 700.0,
-                    "base": "compensi_lordi",
+                    "minimo_eur": 350.0,
+                    "minimo_ridotto_eur": 175.0,
+                    "base": "volume_affari_iva",
                     "label": "Contributo integrativo 2025",
-                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo € 700.",
+                    "note": "Art. 31, c. 7, e art. 37 Regolamento unico: 4% del volume d'affari IVA, minimo 350 (ridotto 175).",
                 },
                 {
                     "year": 2025,
                     "tipo": "maternita_assistenza",
                     "aliquota": 0.0,
-                    "minimo_eur": 183.0,
+                    "minimo_eur": 57.65,
                     "base": "importo_fisso",
-                    "label": "Contributo maternita/assistenza 2025",
-                    "note": "Importo fisso € 183 annuo.",
+                    "label": "Contributo di maternità 2025",
+                    "note": "Art. 32 Regolamento unico; importo 2025 di 57,65 euro dalla tabella ufficiale Cassa Forense.",
                 },
                 {
                     "year": 2026,
                     "tipo": "soggettivo",
                     "aliquota": 17.0,
                     "minimo_eur": 2790.0,
+                    "minimo_ridotto_eur": 1395.0,
+                    "copertura_eur": 16412.0,
+                    "tetto_eur": 131800.0,
+                    "aliquota_oltre_tetto": 3.0,
+                    "aliquota_pensionati": 12.0,
                     "base": "reddito_netto_professionale",
                     "label": "Contributo soggettivo 2026",
-                    "note": "Aliquota 17% in autoliquidazione Mod. 5. Minimo € 2.790 secondo tabella ufficiale Cassa Forense.",
+                    "note": "Art. 30, c. 2, lett. a), Regolamento unico (17% per il 2026); tabella ufficiale: minimo 2.790 (ridotto 1.395) fino a 16.412 euro di reddito, tetto 131.800, 3% oltre il tetto.",
                 },
                 {
                     "year": 2026,
                     "tipo": "integrativo",
                     "aliquota": 4.0,
                     "minimo_eur": 355.0,
-                    "base": "compensi_lordi",
+                    "minimo_ridotto_eur": 177.5,
+                    "base": "volume_affari_iva",
                     "label": "Contributo integrativo 2026",
-                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo € 355 secondo tabella ufficiale Cassa Forense.",
+                    "note": "Art. 31, c. 7, e art. 37 Regolamento unico: 4% del volume d'affari IVA; tabella ufficiale: minimo 355 (ridotto 177,50).",
                 },
                 {
                     "year": 2026,
@@ -1912,18 +1972,20 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                     "minimo_eur": 0.0,
                     "status": "da_definire",
                     "base": "importo_fisso",
-                    "label": "Contributo maternita/assistenza 2026",
-                    "note": "Importo da definire nella tabella ufficiale Cassa Forense consultata: non usare come importo definitivo.",
+                    "label": "Contributo di maternità 2026",
+                    "note": "Indicato «DA DEFINIRE» nella tabella ufficiale Cassa Forense consultata il 31/10/2026: non applicato.",
                 },
             ],
             "defaults": {
                 "note": (
-                    "Aggiornare annualmente con la circolare Cassa Forense da "
-                    "https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf"
+                    "Aggiornare ogni anno dalla tabella ufficiale "
+                    "https://www.cassaforense.it/media/pkxmzmvw/tabella-contributi-minimi.pdf "
+                    "(minimi e tetto rivalutati ex art. 34 Regolamento unico)."
                 ),
                 "aggiornamento": "annuale",
+                "verificato_il": "2026-10-31",
             },
-            "published_at": "2025-12-01",
+            "published_at": "2026-10-31",
             "effective_from": "2025-01-01",
         },
         # ── Soglie appalti pubblici (ANAC) ────────────────────────────────────
@@ -2532,20 +2594,20 @@ class GestioneTabelleNormative:
         return 4.0
 
     def cassa_forense_minimo_integrativo(self, year: Optional[int] = None) -> float:
-        """Minimo del contributo integrativo Cassa Forense per l'anno. Fallback: 700."""
+        """Minimo del contributo integrativo Cassa Forense per l'anno (art. 37 Regolamento unico).
+
+        Solo l'anno esatto della tabella ufficiale: 0.0 se l'anno non è pubblicato, mai un
+        importo di ripiego (il vecchio ripiego di 700 euro non aveva riscontro nelle fonti).
+        """
         try:
             rows = self.rows("contributi_cassa_forense")
             target_year = year or date.today().year
             candidates = [r for r in rows if int(r.get("year", 0)) == target_year and r.get("tipo") == "integrativo"]
-            if not candidates:
-                candidates = [r for r in rows if r.get("tipo") == "integrativo"]
-                if candidates:
-                    candidates.sort(key=lambda r: int(r.get("year", 0)), reverse=True)
             if candidates:
-                return float(candidates[0].get("minimo_eur", 700.0))
+                return float(candidates[0].get("minimo_eur") or 0.0)
         except Exception:
             pass
-        return 700.0
+        return 0.0
 
     def contributi_cassa_forense_anno(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
         """Tutti i contributi Cassa Forense per l'anno indicato."""

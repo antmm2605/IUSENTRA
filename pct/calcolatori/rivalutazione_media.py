@@ -15,8 +15,9 @@ Base metodologica:
   rivalutazione liquidatoria non riduce il credito sotto il nominale —
   il tool espone sia il valore statistico sia l'importo liquidabile.
 
-Coefficiente = media aritmetica degli indici mensili dell'anno di arrivo
-diviso la media dell'anno di partenza. L'anno di partenza deve avere la
+Coefficiente = 1 + variazione percentuale tra la media annua dell'anno di
+arrivo e quella dell'anno di partenza, arrotondata a un decimale come la
+pubblica l'ISTAT. L'anno di partenza deve avere la
 media definitiva (12 mesi); per l'anno di arrivo in corso la media
 parziale è marcata come stima provvisoria.
 """
@@ -81,7 +82,10 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         )
     media_target, mesi_target = _media_annua(norme, tipo, anno_target)
 
-    coefficiente = media_target / media_base
+    # Variazione media annua «accertata dall'ISTAT»: pubblicata con un decimale e applicata
+    # così, come nella rivalutazione mese su mese (collaudo normativo del 31/10/2026).
+    variazione = round((media_target / media_base - 1) * 100.0, 1)
+    coefficiente = 1 + variazione / 100.0
     rivalutato = round(importo * coefficiente, 2)
     liquidabile = max(rivalutato, round(importo, 2))
 
@@ -106,7 +110,7 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         "importo_liquidabile": liquidabile,
         "differenza": round(rivalutato - importo, 2),
         "coefficiente": round(coefficiente, 6),
-        "variazione_percentuale": round((coefficiente - 1) * 100.0, 2),
+        "variazione_percentuale": variazione,
         "indice": tipo.upper(),
         "media_anno_base": round(media_base, 3),
         "media_anno_target": round(media_target, 3),

@@ -404,6 +404,9 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _numero("int_capitale", "Capitale"),
             _data("int_data_inizio", "Dal"),
             _data("int_data_fine", "Al"),
+            _quando(_data("int_data_contratto", "Data del contratto",
+                          aiuto="Per i contratti anteriori al 01/01/2013 la maggiorazione resta di 7 punti (art. 3 D.Lgs. 192/2012)."),
+                    "int_tipo", "mora_commerciale"),
         ],
     },
     "nota_credito": {
@@ -500,9 +503,21 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
     "contributi_cassa_forense": {
         "azione": "Calcola contributi",
         "campi": [
-            _intero("cf_anno", "Anno", minimo=2000),
-            _numero("cf_reddito", "Reddito netto professionale"),
-            _numero("cf_compensi", "Compensi lordi fatturati"),
+            _intero("cf_anno", "Anno di competenza", minimo=2025,
+                    aiuto="Dal 2025 (Regolamento unico della previdenza forense in vigore dal 01/01/2025)."),
+            _numero("cf_reddito", "Reddito netto professionale (IRPEF)"),
+            _numero("cf_compensi", "Volume d'affari IVA",
+                    aiuto="In regime fiscale agevolato: totale lordo fatturato (art. 31, c. 2, Regolamento unico)."),
+            _scelta(
+                "cf_posizione",
+                "Posizione contributiva",
+                [
+                    ("ordinaria", "Iscritto alla Cassa (minimi interi)"),
+                    ("agevolata", "Primi 6 anni, iscritto prima dei 35 anni (minimi ridotti alla metà)"),
+                    ("pensionato", "Pensionato di vecchiaia iscritto all'Albo"),
+                ],
+                aiuto="Art. 37, cc. 2-3, e art. 30, c. 3, Regolamento unico della previdenza forense.",
+            ),
         ],
     },
     "prescrizione": {
@@ -1050,6 +1065,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
                 [("FOI", "FOI (famiglie operai e impiegati)"), ("NIC", "NIC (intera collettività)")],
             ),
             _intero("istat_anni", "Anni da mostrare", minimo=1, massimo=15),
+            _intero("istat_anno_fine", "Fino all'anno (vuoto: ultimo pubblicato)", minimo=1947, massimo=2100),
         ],
     },
     "tabella_tassi": {

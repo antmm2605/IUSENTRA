@@ -101,10 +101,29 @@ def oggetto_di_notifica_l53(oggetto: str) -> bool:
     return bool(_OGGETTO_L53.search(str(oggetto or "")))
 
 
+def _carattere_indirizzo(carattere: str, *, locale: bool) -> bool:
+    return carattere.isalnum() or carattere in ("_.-+" if locale else "_.-")
+
+
 def _indirizzo(valore: Any) -> str:
+    """Il primo indirizzo email del testo (es. «Nome <a@b.it>»), altrimenti il testo normalizzato.
+
+    Scansione lineare attorno alla «@»: niente espressione regolare non ancorata,
+    che su un'intestazione costruita ad arte cresce in tempo quadratico (ReDoS).
+    """
     testo = str(valore or "").strip().casefold()
-    trovato = re.search(r"[\w.+-]+@[\w.-]+", testo)
-    return trovato.group(0) if trovato else testo
+    posizione = testo.find("@")
+    while posizione != -1:
+        inizio = posizione
+        while inizio > 0 and _carattere_indirizzo(testo[inizio - 1], locale=True):
+            inizio -= 1
+        fine = posizione + 1
+        while fine < len(testo) and _carattere_indirizzo(testo[fine], locale=False):
+            fine += 1
+        if inizio < posizione and fine > posizione + 1:
+            return testo[inizio:fine]
+        posizione = testo.find("@", posizione + 1)
+    return testo
 
 
 def direzione_notifica(*, casella: str, mittente: str, cartella: str = "") -> str:

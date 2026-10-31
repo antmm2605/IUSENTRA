@@ -159,3 +159,17 @@ def test_la_torre_di_controllo_distingue_la_notifica_ricevuta_da_quella_da_prepa
     inviata = classify_legal({**base, "sender": "studio@pec.it",
                               "casella": {"account_email": "studio@pec.it", "folder": "INBOX"}}, {})
     assert inviata["legal_category"] == "NOTIFICA_CONTROPARTE"
+
+
+def test_indirizzo_del_mittente_lineare_anche_su_intestazioni_costruite_ad_arte():
+    """CodeQL py/polynomial-redos: la ricerca dell'indirizzo non deve degenerare su testi lunghi."""
+    import time
+
+    from pct.notifiche_ricevute import _indirizzo, direzione_notifica
+
+    assert _indirizzo("Avv. Rossi <Mario.Rossi+pec@PEC.Avvocati.IT>") == "mario.rossi+pec@pec.avvocati.it"
+    assert _indirizzo("x@@y") == "x@@y" and _indirizzo("@x") == "@x"
+    assert direzione_notifica(casella="studio@pec.it", mittente="Studio <STUDIO@pec.it>") == "inviata"
+    inizio = time.perf_counter()
+    _indirizzo("+" * 200_000 + "@")
+    assert time.perf_counter() - inizio < 0.5

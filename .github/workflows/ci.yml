@@ -1011,7 +1011,7 @@ jobs:
     name: Baseline copertura critica parte ${{ matrix.shard }}/12
     runs-on: ubuntu-latest
     needs: critical-coverage-environment
-    timeout-minutes: 12
+    timeout-minutes: 18
     strategy:
       fail-fast: false
       matrix:
@@ -1038,9 +1038,12 @@ jobs:
           git worktree add --detach "$RUNNER_TEMP/critical-baseline" "$BASELINE_SHA"
           cd "$RUNNER_TEMP/critical-baseline"
           COVERAGE_FILE="$GITHUB_WORKSPACE/.coverage.critical.${{ matrix.shard }}" \
+          # La versione già accettata si rimisura con i suoi test e la sua divisione in parti:
+          # il suo tempo non dipende dalla candidata. Con 5 minuti la parte 6 della 2.461.1
+          # (oltre 300 s) bloccava ogni deploy dal 29/10; le parti della candidata restano a 5.
           PYTHONPATH="$PWD" python scripts/run_pytest_phases.py \
             --suite coverage-critical --suite-shard ${{ matrix.shard }} --suite-total-shards 12 \
-            --suite-subdivide-items --timeout-minutes 5 -- \
+            --suite-subdivide-items --timeout-minutes 10 -- \
             --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres \
             --cov=pct.telematico_repository --cov=pct.telematico_workflow \
             --cov-config=config/coverage-critical.ini --cov-report=

@@ -176,3 +176,23 @@ def test_layout_stamp_e_fonti_influenzano_affidabilita():
     assert result.source_pack
     assert any(source.verification_status for source in result.source_pack)
     assert result.reliability_score.value <= 0.79
+
+
+def test_fonte_non_verificata_produce_avviso_e_non_conformita_piena(monkeypatch):
+    """Il percorso «fonte non verificata → avviso» resta coperto anche con il registro verificato."""
+    from dataclasses import replace
+
+    originale = CartabiaContextualComplianceEngine._sources_for
+
+    def non_verificate(self, ids):
+        return [replace(fonte, verification_status="da_verificare") for fonte in originale(self, ids)]
+
+    monkeypatch.setattr(CartabiaContextualComplianceEngine, "_sources_for", non_verificate)
+    result = analyze_template_compliance(
+        "CIV_CIT_001",
+        _base_payload(court_name="Tribunale di Roma", plaintiff="Mario Rossi", defendant="Bianchi",
+                      claim_subject="Domanda di adempimento", case_value="10000"),
+    )
+    dati = result.to_dict() if hasattr(result, "to_dict") else result
+    assert "fonti_primarie_non_verificate_online" in dati["risk_flags"]
+    assert any(c["id"] == "SOURCES_VERIFICATION" and c["state"] == "warning" for c in dati["checks"])

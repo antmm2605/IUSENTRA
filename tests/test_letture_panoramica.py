@@ -90,3 +90,17 @@ def test_l_endpoint_della_panoramica_richiede_autenticazione(tmp_path: Path):
         risposta = client.get("/api/v1/ui/letture/panoramica")
 
     assert risposta.status_code in (401, 403)
+
+
+def test_un_fascicolo_letto_con_regole_superate_non_e_fermo():
+    from pct.archivio_letture import VERSIONE_MOTORE_DOCUMENTI
+    from web.services.archivio_letture_runtime import stato_lettura_fascicolo
+
+    attuale = {"stato": "completa", "versione_lettore": VERSIONE_MOTORE_DOCUMENTI}
+    assert stato_lettura_fascicolo({}, {}) == "mai_letto"
+    assert stato_lettura_fascicolo(attuale, {}) == "fermo"
+    assert stato_lettura_fascicolo(attuale, {"stato": "completa"}) == "fermo"
+    assert stato_lettura_fascicolo({"stato": "completa", "versione_lettore": "2026.09.16.motore-documenti.v7"}, {}) == "da_aggiornare"
+    assert stato_lettura_fascicolo({"stato": "errore"}, {}) == "in_errore"
+    assert stato_lettura_fascicolo(attuale, {"stato": "parziale"}) == "da_leggere"
+    assert stato_lettura_fascicolo({}, {"stato": "completa"}) == "fermo"

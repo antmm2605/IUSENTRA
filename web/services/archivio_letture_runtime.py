@@ -1243,6 +1243,24 @@ def lettura_dopo_evento(fascicolo_id: str) -> bool:
         return False
 
 
+def stato_lettura_fascicolo(documenti: dict[str, Any], pec: dict[str, Any]) -> str:
+    """mai_letto, in_errore, fermo, da_aggiornare o da_leggere, dalle righe del registro dei due motori.
+
+    Fermo solo se letto con le regole correnti: un fascicolo letto da un motore superato non ha le
+    estrazioni nuove (date, parti, importi, ricevute) e non va dichiarato in pari.
+    """
+    stato_documenti, stato_pec = _testo(documenti.get("stato")), _testo(pec.get("stato"))
+    if not documenti and not pec:
+        return "mai_letto"
+    if "errore" in (stato_documenti, stato_pec):
+        return "in_errore"
+    if stato_documenti in ("", "completa") and stato_pec in ("", "completa"):
+        if documenti and _testo(documenti.get("versione_lettore")) != VERSIONE_MOTORE_DOCUMENTI:
+            return "da_aggiornare"
+        return "fermo"
+    return "da_leggere"
+
+
 def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[str, Any]:
     """Lo stato della lettura su tutti i fascicoli dello studio, in una schermata.
 
@@ -1272,7 +1290,8 @@ def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[s
 
     fascicoli = list(get_fascicoli().tutti(archiviati=True))
     voci: list[dict[str, Any]] = []
-    totali = {"fascicoli": 0, "fermi": 0, "da_leggere": 0, "in_errore": 0, "mai_letti": 0, "oggetti_letti": 0, "oggetti_non_leggibili": 0}
+    totali = {"fascicoli": 0, "fermi": 0, "da_leggere": 0, "in_errore": 0, "mai_letti": 0, "da_aggiornare": 0,
+              "oggetti_letti": 0, "oggetti_non_leggibili": 0}
     for fascicolo in fascicoli:
         fascicolo_id = _testo(getattr(fascicolo, "id", ""))
         if not fascicolo_id:
@@ -1285,17 +1304,9 @@ def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[s
         non_leggibili = int(per_stato.get("non_leggibile", 0))
         totali["oggetti_letti"] += letti
         totali["oggetti_non_leggibili"] += non_leggibili
-        stato_documenti = _testo(documenti.get("stato"))
-        stato_pec = _testo(pec.get("stato"))
-        if not documenti and not pec:
-            stato = "mai_letto"
-        elif "errore" in (stato_documenti, stato_pec):
-            stato = "in_errore"
-        elif stato_documenti == "completa" and stato_pec in ("", "completa"):
-            stato = "fermo"
-        else:
-            stato = "da_leggere"
-        totali[{"fermo": "fermi", "da_leggere": "da_leggere", "in_errore": "in_errore", "mai_letto": "mai_letti"}[stato]] += 1
+        stato = stato_lettura_fascicolo(documenti, pec)
+        totali[{"fermo": "fermi", "da_leggere": "da_leggere", "in_errore": "in_errore", "mai_letto": "mai_letti",
+                "da_aggiornare": "da_aggiornare"}[stato]] += 1
         if stato == "fermo" and not includi_fermi:
             continue
         voci.append({
@@ -1312,7 +1323,7 @@ def panoramica_letture(*, includi_fermi: bool = True, limite: int = 0) -> dict[s
             "ultimaLettura": _iso_a_etichetta(_testo(documenti.get("aggiornato_il")) or _testo(pec.get("aggiornato_il"))),
             "versioneMotore": _testo(documenti.get("versione_lettore")),
         })
-    ordine = {"in_errore": 0, "mai_letto": 1, "da_leggere": 2, "fermo": 3}
+    ordine = {"in_errore": 0, "mai_letto": 1, "da_leggere": 2, "da_aggiornare": 3, "fermo": 4}
     voci.sort(key=lambda v: (ordine.get(v["stato"], 9), v["numero"] or v["fascicoloId"]))
     if limite > 0:
         voci = voci[:limite]

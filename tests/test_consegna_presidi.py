@@ -28,13 +28,24 @@ from pct.archivio_letture.deduplica import fatti_canonici
 from pct.fascicoli import TipoDocumento, TipoFascicolo
 from pct.archivio_letture.presidi import eventi_letti
 from pct.registro_letture import Fatto
-from tests.test_react_shell import _app
+from tests.test_react_shell import _app as _base_app, _prepara_schema_documentale
 
 DECRETO = [
     "TRIBUNALE ORDINARIO DI VICENZA - R.G. 1084/2026",
     "Il Giudice fissa l'udienza di discussione per il giorno 16/12/2026 alle ore 9.30",
     "e assegna termine perentorio fino al 30/11/2026 per il deposito delle note.",
 ]
+
+
+def _app(tmp_path):
+    """App di prova con lo schema documentale preparato nel modo governato.
+
+    Il repository SQL dei documenti non si crea più da solo alla consultazione:
+    va preparato prima (``prepare_document_ai_schema``), come in produzione.
+    """
+    app = _base_app(tmp_path)
+    _prepara_schema_documentale(app)
+    return app
 
 
 def _pdf(righe: list[str]) -> bytes:

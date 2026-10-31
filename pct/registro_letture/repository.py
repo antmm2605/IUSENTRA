@@ -550,7 +550,10 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
             if not oggetto.presente or (tipi_ammessi and oggetto.tipo not in tipi_ammessi):
                 continue
             lettura = letti.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta))
-            if lettura is None:
+            # «in_corso» non è un esito: è la fonte riaperta (es. testo OCR
+            # pronto, `accoda_testo_ocr`) in attesa della lettura nel contesto
+            # dello studio. Escluderla la lascerebbe «da leggere» per sempre.
+            if lettura is None or lettura.stato == "in_corso":
                 mancanti.append(oggetto)
         return mancanti
 

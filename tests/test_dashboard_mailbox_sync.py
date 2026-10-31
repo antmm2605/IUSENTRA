@@ -7,6 +7,7 @@ import pytest
 
 from pct.config_studio import ConfigPEC, ConfigSMTP, ConfigStudio, GestioneConfigStudio
 from pct.email_client import GestioneEmailRicevute
+from tests.mailbox_test_support import sql_mailbox
 from tests.test_email_client import _autentica_admin_session, _cfg_web
 from web.app import create_app
 from web.services import mailbox_sync_runtime as runtime
@@ -15,8 +16,8 @@ from web.services.tenant_paths import TenantDataPathError
 
 def _paths(tmp_path: Path) -> dict[str, str]:
     return {
-        "EMAIL_CASELLA_DB": str(tmp_path / "pec" / "casella.json"),
-        "EMAIL_ORDINARIA_DB": str(tmp_path / "mail" / "ordinaria.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(tmp_path / "email" / "ordinaria.json"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
         "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
@@ -203,6 +204,9 @@ def test_sync_pec_e_ordinaria_usano_database_separati(tmp_path, monkeypatch):
             )
         )
     )
+    # Le caselle sono SQL: il test le crea vuote in modo esplicito, mai da mirror.
+    sql_mailbox(paths["EMAIL_CASELLA_DB"])
+    sql_mailbox(paths["EMAIL_ORDINARIA_DB"])
     ctx = runtime.mailbox_context_from_paths(paths, tenant_label="studio-a")
     observed: list[str] = []
 
@@ -233,6 +237,7 @@ def test_sync_pec_automatico_aggiorna_depositi_e_cancelleria(tmp_path, monkeypat
             )
         )
     )
+    sql_mailbox(paths["EMAIL_CASELLA_DB"])
     ctx = runtime.mailbox_context_from_paths(paths, tenant_label="studio-a")
     observed: dict[str, str] = {}
 

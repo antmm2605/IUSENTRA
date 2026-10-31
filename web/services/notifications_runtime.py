@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 from pathlib import Path
@@ -318,6 +319,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
     from pct.riconvalida_termini_ritroso import riconvalida_memorie_171ter
 
     riconvalida_171ter = riconvalida_memorie_171ter(scadenziario)
+    memorie_da_udienza = _allinea_memorie_da_udienza(paths, database_config, agenda, scadenziario)
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -333,6 +335,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "errors": 0,
         "expiredSupersededSources": 0,
         "riconvalida171ter": riconvalida_171ter,
+        "memorieDaUdienza": memorie_da_udienza,
     }
     for user in recipients:
         try:
@@ -515,6 +518,42 @@ def _notification_fascicolo_from_row(row: Any) -> SimpleNamespace:
         stato=_notification_text(_notification_row_value(row, "stato")),
         documenti=docs,
     )
+
+
+def _allinea_memorie_da_udienza(paths: Mapping[str, Any], database: Any, agenda: Any, scadenziario: Any) -> dict[str, Any]:
+    """Memorie 171-ter proposte dalle prime udienze in agenda e riallineate ai rinvii (pct.scadenze_da_udienza).
+
+    Gira prima degli avvisi; un errore non ferma le notifiche dello studio.
+    """
+    from pct.ora_italiana import oggi_roma
+    from pct.scadenze_da_udienza import allinea_udienze
+
+    try:
+        oggi = oggi_roma()
+        udienze = [
+            appuntamento for appuntamento in agenda.tutti()
+            if _notification_text(getattr(appuntamento, "id_fascicolo", ""))
+            and str(getattr(appuntamento, "data_ora", "") or "")[:10] >= oggi.isoformat()
+        ]
+        if not udienze:
+            return {"proposte": 0, "ricalcolate": 0, "da_verificare": 0}
+        tipi = {
+            _notification_text(_notification_row_value(riga, "id")): _notification_text(_notification_row_value(riga, "tipo"))
+            for riga in _fascicolo_tipi_rows(paths, database, {getattr(u, "id_fascicolo", "") for u in udienze})
+        }
+        return allinea_udienze(udienze, scadenziario, tipi, oggi=oggi)
+    except Exception as exc:  # il presidio delle memorie non deve fermare le notifiche
+        logging.getLogger(__name__).warning("Memorie dalla prima udienza non allineate: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+
+
+def _fascicolo_tipi_rows(paths: Mapping[str, Any], database: Any, fascicolo_ids: set[str]) -> list[Any]:
+    backend = _core_backend_for_paths(paths, database)
+    fetchall = getattr(backend, "fetchall_readonly", None) if backend is not None else None
+    ids = sorted({_notification_text(value) for value in fascicolo_ids if _notification_text(value)})
+    if not callable(fetchall) or not ids:
+        return []
+    return list(fetchall(f"SELECT id, tipo FROM fascicoli WHERE id IN ({','.join('?' for _ in ids)})", tuple(ids)) or [])
 
 
 def _core_fascicolo_rows(

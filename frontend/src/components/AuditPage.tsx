@@ -19,6 +19,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { displaySourceLabel, displayWritesLabel, sanitizeDisplayText } from '../displayText'
+import { testoLeggibile, valoreLeggibile } from '../datiLeggibili'
 import './AuditPage.css'
 
 function actionTone(action: AuditAction) {
@@ -77,7 +78,7 @@ function AuditRecordItem({ record, onDetail }: { record: AuditRecord; onDetail: 
       <div className="iu-audit-event__main">
         <time>{formatTimestamp(record.timestamp)}</time>
         <h2>{record.action}</h2>
-        <p>{record.details || record.resourceNote || 'Nessun dettaglio testuale registrato.'}</p>
+        <p>{testoLeggibile(record.details) || record.resourceNote || 'Nessun dettaglio testuale registrato.'}</p>
         <div className="iu-audit-event__badges">
           <Badge tone={record.resultTone}>{record.result}</Badge>
           {record.resourceBadgeLabel ? <Badge tone={record.resourceTone}>{record.resourceBadgeLabel}</Badge> : null}
@@ -109,13 +110,13 @@ function DetailPanel({ detail }: { detail: AuditEventDetail | null }) {
           <strong>{detail.action}</strong>
           <span>{formatTimestamp(detail.timestamp)}</span>
         </div>
-        <p>{detail.details || 'Nessun dettaglio testuale.'}</p>
+        <p>{testoLeggibile(detail.details) || 'Nessun dettaglio testuale.'}</p>
         {payloadRows.length ? (
           <dl>
             {payloadRows.map(([key, value]) => (
               <div key={key}>
                 <dt>{sanitizeDisplayText(key.replace(/[_-]+/g, ' '))}</dt>
-                <dd>{sanitizeDisplayText(typeof value === 'string' || typeof value === 'number' ? String(value) : String(JSON.stringify(value) ?? ''))}</dd>
+                <dd>{sanitizeDisplayText(valoreLeggibile(value))}</dd>
               </div>
             ))}
           </dl>

@@ -148,6 +148,21 @@ def _text(value: Any) -> str:
     return " ".join(str(value or "").split())
 
 
+def _campione_leggibile(valore: Any) -> str:
+    """Una riga di tabella normativa come «nome: valore», date e decimali italiani (non un dizionario Python, V25)."""
+    if isinstance(valore, dict):
+        parti = []
+        for chiave, dato in list(valore.items())[:6]:
+            testo = str(dato)
+            if isinstance(dato, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", dato):
+                testo = f"{dato[8:10]}/{dato[5:7]}/{dato[:4]}"
+            elif isinstance(dato, float):
+                testo = f"{dato:g}".replace(".", ",")
+            parti.append(f"{str(chiave).replace('_', ' ')} {testo}")
+        return ", ".join(parti)
+    return _text(valore)
+
+
 def _short(value: Any, limit: int = 220) -> str:
     text = _text(value)
     if len(text) <= limit:
@@ -2162,7 +2177,7 @@ def _normative_table_record(
     if total_rows:
         source_excerpt_parts.append(f"Righe strutturate: {total_rows}.")
     if samples:
-        source_excerpt_parts.append("Dati campione: " + "; ".join(_short(sample, 120) for sample in samples[:3]) + ".")
+        source_excerpt_parts.append("Dati campione: " + "; ".join(_short(_campione_leggibile(sample), 120) for sample in samples[:3]) + ".")
     if source_titles:
         source_excerpt_parts.append("Fonti: " + "; ".join(source_titles[:4]) + ".")
     if source_codes:

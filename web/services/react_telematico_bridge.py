@@ -171,6 +171,17 @@ SURFACE_SPECS = {
 }
 
 
+
+def _stato_elenco_uffici(stato: dict[str, Any]) -> str:
+    """Provenienza e data dell'elenco uffici in italiano (V25: niente codici tecnici né date ISO)."""
+    from web.services.react_piattaforma_sezioni import data_ora
+
+    origine = {"bundle": "elenco interno", "sync_multi": "fonti ufficiali", "pst": "Portale dei Servizi Telematici"}.get(
+        str(stato.get("sorgente") or "bundle"), str(stato.get("sorgente") or "elenco interno")
+    )
+    quando = data_ora(stato.get("aggiornato_il"))
+    return f"Origine: {origine}" + (f", aggiornato il {quando}." if quando else ".")
+
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -1283,7 +1294,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             {
                 "tone": "warning" if stato.get("scaduta") else "success",
                 "title": "Stato elenco uffici",
-                "body": f"Sorgente: {stato.get('sorgente', 'bundle')} - aggiornato il {stato.get('aggiornato_il', '')}.",
+                "body": _stato_elenco_uffici(stato),
             }
         ],
         "lexSuggestions": [

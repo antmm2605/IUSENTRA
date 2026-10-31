@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
+from web.services.react_piattaforma_sezioni import data_ora
+
 
 LEGAL_AGENT_FOCUS: tuple[str, ...] = (
     "fonti_legal_update",
@@ -166,7 +168,7 @@ def build_lex_agent_metric(
     if review:
         note = f"{ok}/{total} pronti, {review} da verificare"
     if latest:
-        note = f"{note}. Ultimo controllo: {latest}"
+        note = f"{note}. Ultimo controllo: {data_ora(latest)}"
     return _metric("agenti_lex", "Agenti Lex", ok, note, "success" if total and ok == total else "warning")
 
 
@@ -186,7 +188,7 @@ def build_lex_operational_section(
             "copertura_agenti",
             "Agenti controllati",
             f"{ok}/{total}" if total else 0,
-            f"Ultimo controllo: {latest}" if latest else "Controllo notturno non ancora confermato.",
+            f"Ultimo controllo: {data_ora(latest)}" if latest else "Controllo notturno non ancora confermato.",
             "success" if total and ok == total else "warning",
         ),
         _item(

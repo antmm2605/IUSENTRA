@@ -20,6 +20,7 @@ import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { displaySourceLabel, displayWritesLabel, sanitizeDisplayText } from '../displayText'
 import { testoLeggibile, valoreLeggibile } from '../datiLeggibili'
+import { formatDateTimeIt } from '../formatting'
 import './AuditPage.css'
 
 function actionTone(action: AuditAction) {
@@ -290,7 +291,7 @@ export function AuditPage() {
           <Panel title="Presidio dati" subtitle="Origine dati e protezioni operative.">
             <div className="iu-audit-contract">
               <span>Origine: {displaySourceLabel(data.source)}</span>
-              <span>Generato: {data.generated_at || 'non disponibile'}</span>
+              <span>Generato: {formatDateTimeIt(data.generated_at, 'non disponibile')}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
               <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
               <span>Dettagli filtrati: si</span>

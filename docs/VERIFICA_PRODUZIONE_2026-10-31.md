@@ -8,7 +8,7 @@ Strumenti: browser senza interfaccia (Playwright) con la sessione dell'utente e 
 pagine (`/api/v1/ui/...`). Campione: Panoramica, Fascicoli, Scadenziario, Agenda, Casella PEC, Letture e
 verifiche, Notifiche legali, fascicoli 916F1CAE, 9C089DF5, 58B19578, A8B49265.
 
-**Versione in produzione al momento della verifica: 2.461.1.** Le versioni 2.463-2.464 non erano state
+**Versione in produzione al momento della verifica: 2.461.1.** Giro completo del pomeriggio (V18-V29): 94 pagine React su computer e telefono, 8 schede di fascicolo con tutte le schede interne, 40 PEC di sentenza lette alla fonte; solo lettura, scritture bloccate dal browser di prova. Le versioni 2.463-2.464 non erano state
 distribuite (deploy del 29/10 fermo su un turno CI oltre il tempo).
 
 ## Registro dei punti
@@ -35,6 +35,18 @@ produzione** = da ricontrollare su app.iusentra.it dopo il deploy; **da fare** =
 | V16 | A8B49265: contributo «da registrare» con la ricevuta telematica nel fascicolo | per la ricevuta telematica XML senza ruolo né ufficio in contrasto, RG e ufficio si riscontrano se compaiono cliente o codice fiscale (`identita_ricevuta_prima_del_ruolo`); il riuso dello IUV resta segnalato | `tests/test_ricevuta_prima_del_ruolo.py` | corretto · da verificare in produzione (dopo la rilettura del fascicolo) |
 | V14 | Versione in produzione 2.461.1 | deploy unico con tutti i controlli verdi | gate locale e CI | **da fare** |
 | V17 | Lavoro presente solo sul PC dell'avvocato (copie WSL non pubblicate) | inventario in sola lettura dal PC; recuperati documenti «Codici e leggi», nota 2.458.1 e copia `openga-validazione` 2.461.2 (fusione a tre vie, impronta dell'archivio verificata); il resto era già in main in versione più recente | 144 test della copia passati dopo la fusione; gate locale | corretto · **richiede il deploy** |
+| V18 | Deploy bloccato dal 29/10: la rimisura della copertura della versione accettata (2.461.1) supera 5 minuti nella parte 6; CodeQL segnala un'espressione regolare quadratica sul mittente | baseline con 10 minuti (la candidata resta a 5); scansione lineare dell'indirizzo | `tests/test_notifiche_ricevute.py::test_indirizzo_del_mittente_lineare_anche_su_intestazioni_costruite_ad_arte` | corretto · richiede il deploy (2.466.1) |
+| V19 | Notifiche legali: 18 s per aprire l'elenco, che riallineava 50 presìdi dello studio a ogni consultazione | l'elenco è una sola lettura; il riallineamento avviene quando nel fascicolo entra un documento o una PEC, solo per i suoi presìdi | `tests/test_notification_presidia_reconcile_runtime.py` | corretto |
+| V20 | 31 proposte «Impugnazione sentenza - termine lungo» su 40 calcolate dalla ricezione della PEC (la comunicazione non fa decorrere il termine); il lettore delle date prendeva i precedenti citati nella sentenza allegata | per sentenze ed estinzioni: data dell'evento del registro, testo della comunicazione o timbro della sentenza con lo stesso numero; mai la ricezione, mai un precedente citato | `tests/test_pec_change_receipt.py`, `tests/test_termine_lungo_sentenza.py` (casi dalle PEC reali) | corretto per le nuove PEC · **le 33 bozze esistenti senza data certa richiedono una decisione** |
+| V21 | Scheda fascicolo: circa 25 chiamate all'apertura (una per scheda, anche non aperta): lettura 10,4 s, documenti 7,6 s, provenienza AI 5,9 s; cambio scheda 2-9 s | — | — | **da fare**: caricare ogni scheda quando viene aperta |
+| V22 | Controllo delle modifiche (`sync/revisions`) ogni 2 s anche con la pagina in secondo piano | — | — | **da fare**: sospendere quando la scheda del browser non è visibile |
+| V23 | Pagine lente: Ricerca legale 8,4 s, Servizi telematici 7,5 s, Template atti 6,8 s, Database 8,9 s | — | — | **da analizzare** |
+| V24 | Scadenziario: 658 KB a ogni apertura, di cui 335 KB di calcolatore e 63 KB di guardiano | — | — | **da fare**: calcolatore e guardiano su richiesta |
+| V25 | Dati tecnici mostrati all'avvocato: JSON grezzo (Audit, Registro attività), dizionario Python (Ricerca legale), date ISO «2026-10-31T14:43:41Z» (Template atti, Redazione atti, Giurisprudenza, Tribunali) | — | — | **da fare** |
+| V26 | Testi in inglese («Failed to fetch», «Mirror: OK», «Calendar Sync», «Open Data») e accenti mancanti («gia», «piu») in circa 50 testi | — | — | **da fare** |
+| V27 | Telefono: campi di ricerca alti 25 px e caselle di spunta 13-18 px; nella lista fascicoli il pulsante copre la terza scadenza e la barra in basso taglia «Ricerca» | — | — | **da fare** |
+| V28 | Scadenze passate ancora aperte (10 «scadute da chiudere», es. deposito note 127-ter del 06/10) e conteggio diverso tra Fascicoli (9) e Scadenziario (10) | — | — | **da analizzare**: chiusura automatica quando il deposito risulta dai documenti |
+| V29 | La Panoramica, a ogni apertura, avvia l'aggiornamento delle notizie (POST) | — | — | **da analizzare** |
 
 ## Dettaglio delle osservazioni
 

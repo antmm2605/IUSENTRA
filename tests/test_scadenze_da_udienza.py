@@ -90,6 +90,7 @@ def test_il_giro_periodico_allinea_solo_le_udienze_future_collegate(scadenziario
 def test_il_giro_delle_notifiche_allinea_le_memorie_e_non_si_ferma_sugli_errori(scadenziario, monkeypatch):
     from web.services import notifications_runtime
 
+    assert notifications_runtime._fascicolo_tipi_rows({}, None, set()) == []
     agenda = SimpleNamespace(tutti=lambda: [_udienza("2099-03-15", id_fascicolo="F-1")])
     monkeypatch.setattr(notifications_runtime, "_fascicolo_tipi_rows", lambda *_a: [{"id": "F-1", "tipo": "CIVILE"}])
     esito = notifications_runtime._allinea_memorie_da_udienza({}, None, agenda, scadenziario)
@@ -98,4 +99,3 @@ def test_il_giro_delle_notifiche_allinea_le_memorie_e_non_si_ferma_sugli_errori(
     assert notifications_runtime._allinea_memorie_da_udienza({}, None, vuota, scadenziario)["proposte"] == 0
     rotta = SimpleNamespace(tutti=lambda: (_ for _ in ()).throw(RuntimeError("agenda non disponibile")))
     assert "errore" in notifications_runtime._allinea_memorie_da_udienza({}, None, rotta, scadenziario)
-    assert notifications_runtime._fascicolo_tipi_rows({}, None, set()) == []

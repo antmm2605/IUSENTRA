@@ -3132,3 +3132,11 @@ body.iu-agenda-planner-expanded .iu-ag-planner.is-expanded .iu-ag-calendar-card{
 
 /* Comandi del documento: focus riconoscibile anche nella barra compatta. */
 .iu-fatt-modal__tabs button:focus-visible { outline: 2px solid var(--iu-blue-600); outline-offset: -3px; }
+
+/* Telefono e tablet (V27, verifica del 31/10/2026): caselle di spunta da 13-16 px e campi di ricerca
+   alti 17-25 px non si toccano con il dito. Solo sui dispositivi touch: almeno 24 px per spunte e
+   scelte (WCAG 2.2, 2.5.8) e 44 px di altezza per campi e menu; sul computer nulla cambia. */
+@media (pointer:coarse){
+  input[type=checkbox],input[type=radio]{width:24px;height:24px;min-width:24px;min-height:24px}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]),select{min-height:44px}
+}

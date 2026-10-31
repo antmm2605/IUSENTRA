@@ -15,7 +15,9 @@ def test_memorie_171_ter_calcolate_a_ritroso():
     esito = risposta_certa("Quali sono i termini delle memorie 171-ter se l'udienza è il 20 gennaio 2027?")
     assert esito is not None
     assert "10/12/2026" in esito.testo and "30/12/2026" in esito.testo and "08/01/2027" in esito.testo
-    assert "11/11/2026" in esito.testo  # costituzione del convenuto, 70 giorni
+    # Costituzione del convenuto: 70 giorni liberi prima (art. 166 c.p.c.,
+    # audit termini 29/10/2026), quindi martedi 10/11/2026 e non 11/11.
+    assert "Costituzione del convenuto: entro martedì 10/11/2026" in esito.testo
 
 
 def test_appello_breve_lungo_e_cassazione():

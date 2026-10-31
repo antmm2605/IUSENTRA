@@ -16,6 +16,7 @@ from web.services.pec_pipeline_runtime import (
     repository_from_paths,
 )
 from web.services import pec_pipeline_runtime
+from tests.mailbox_test_support import sql_mailbox
 
 
 def _paths(tmp_path: Path) -> dict[str, str]:
@@ -94,7 +95,7 @@ def _archivia_email_ordinaria(gestore: GestioneEmailRicevute, *, email_id: str) 
 
 def test_acquisizione_automatica_ingerisce_solo_pec_nuove(tmp_path: Path) -> None:
     paths = _paths(tmp_path)
-    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
     _archivia_pec(
         gestore,
         email_id="MAIL-AUTO-1",
@@ -121,7 +122,7 @@ def test_acquisizione_automatica_ingerisce_solo_pec_nuove(tmp_path: Path) -> Non
 
 def test_acquisizione_automatica_non_ritenta_le_missing_mime(tmp_path: Path) -> None:
     paths = _paths(tmp_path)
-    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
     _archivia_pec(
         gestore,
         email_id="MAIL-SENZA-EML",
@@ -143,7 +144,7 @@ def test_acquisizione_automatica_non_ritenta_le_missing_mime(tmp_path: Path) -> 
 
 def test_acquisizione_rispetta_il_budget_per_giro(tmp_path: Path) -> None:
     paths = _paths(tmp_path)
-    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
     for index in range(3):
         _archivia_pec(
             gestore,
@@ -161,7 +162,7 @@ def test_acquisizione_rispetta_il_budget_per_giro(tmp_path: Path) -> None:
 
 def test_acquisizione_full_scan_marca_le_pec_gia_presidiate(tmp_path: Path, monkeypatch) -> None:
     paths = _paths(tmp_path)
-    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
     _archivia_pec(
         gestore,
         email_id="MAIL-GIA-PRESIDIATA",
@@ -181,7 +182,7 @@ def test_acquisizione_full_scan_marca_le_pec_gia_presidiate(tmp_path: Path, monk
 
 def test_acquisizione_incrementale_legge_solo_nuovi_arrivi_dopo_cursor(tmp_path: Path) -> None:
     paths = _paths(tmp_path)
-    gestore = GestioneEmailRicevute(paths["EMAIL_CASELLA_DB"])
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
     _archivia_pec(
         gestore,
         email_id="MAIL-CURSOR-1",

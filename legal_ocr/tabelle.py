@@ -137,12 +137,29 @@ def da_pdfplumber(pagina: Any, numero: int) -> list[Tabella]:
     return tabelle
 
 
+def _celle_pymupdf(pagina: Any, tabella: Any) -> list[list[Any]]:
+    """Il testo di ogni cella letto dalla pagina dentro i bordi della cella.
+
+    `Table.extract()` di PyMuPDF 2.x ricompone le celle carattere per
+    carattere e perde spazi e separatori («Fasedistudio», «€121500 . ,»):
+    la lettura della pagina ritagliata sulla cella conserva il testo
+    dell'autore. Se le celle non sono disponibili si usa `extract()`.
+    """
+    righe_tabella = getattr(tabella, "rows", None)
+    if not righe_tabella:
+        return tabella.extract()
+    return [
+        [pagina.get_text("text", clip=tuple(cella)) if cella else None for cella in riga.cells]
+        for riga in righe_tabella
+    ]
+
+
 def da_pymupdf(pagina: Any, numero: int) -> list[Tabella]:
     """Le tabelle disegnate di una pagina PyMuPDF (motore di lettura unico)."""
     tabelle: list[Tabella] = []
     try:
         trovate = pagina.find_tables(strategy="lines")
-        grezze = [t.extract() for t in getattr(trovate, "tables", []) or []]
+        grezze = [_celle_pymupdf(pagina, t) for t in getattr(trovate, "tables", []) or []]
     except Exception:
         grezze = []
     for grezza in grezze:

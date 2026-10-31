@@ -7,6 +7,7 @@ pannello «Letture e verifiche» espone l'archivio e la decisione sui fatti.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -167,8 +168,10 @@ def test_il_motore_pec_alimenta_l_archivio_dal_presidio_pec(tmp_path: Path):
         with repository.connect() as conn:
             conn.execute(
                 "INSERT INTO pec_messages (id, tenant_id, account_email, folder, mime_sha256, mime_size, original_mime, received_at, ingested_at, status, quality_status, signature_status, linked_fascicolo_id, metadata_json) "
-                "VALUES ('M1', 'default', 'studio@pec.it', 'INBOX', 'sha-m1', 10, X'00', '2026-09-02T09:00:00', '2026-09-02T09:00:00', 'linked', 'verde', 'valida', ?, ?)",
-                (fascicolo_id, json.dumps(metadata)),
+                "VALUES ('M1', 'default', 'studio@pec.it', 'INBOX', ?, 1, X'00', '2026-09-02T09:00:00', '2026-09-02T09:00:00', 'linked', 'verde', 'valida', ?, ?)",
+                # Impronta SHA-256 reale del MIME originale: il registro conferma
+                # una lettura solo con un digest valido.
+                (hashlib.sha256(b"\x00").hexdigest(), fascicolo_id, json.dumps(metadata)),
             )
             conn.execute("INSERT INTO pec_parsed_versions (id, message_id, version, parser_version, parsed_json, parsed_sha256, created_at) VALUES ('v1','M1',1,'1','{}','p1','2026-09-02T09:05:00')")
             conn.execute("INSERT INTO pec_legal_events (id, tenant_id, message_id, parsed_version_id, rulepack_version, family, primary_event, priority, confidence, human_review_required, event_json, event_sha256, created_at) VALUES ('E1','default','M1','v1','1','cancelleria','fissazione_udienza','alta',0.9,0,'{}','h1','2026-09-02T09:05:00')")
@@ -499,15 +502,20 @@ def test_forza_rilegge_solo_i_due_documenti_presenti_del_fascicolo_da_testi_sql(
         SimpleNamespace(id="DOC-1", nome="decreto.pdf", tipo="DECRETO", hash_sha256="a" * 64, classificazione_portale=""),
         SimpleNamespace(id="DOC-2", nome="relata.pdf", tipo="ALTRO", hash_sha256="b" * 64, classificazione_portale=""),
     ]
+    letto_doc = SimpleNamespace(id="DOC-3", nome="comparsa.pdf", tipo="ALTRO", hash_sha256="d" * 64, classificazione_portale="")
     altro_doc = SimpleNamespace(id="DOC-ALTRO", nome="altro.pdf", tipo="ALTRO", hash_sha256="c" * 64, classificazione_portale="")
-    target = SimpleNamespace(id="09131014", documenti=target_docs)
+    target = SimpleNamespace(id="09131014", documenti=[*target_docs, letto_doc])
     altro = SimpleNamespace(id="ALTRO-FASCICOLO", documenti=[altro_doc])
 
-    for fascicolo, documenti in ((target, target_docs), (altro, [altro_doc])):
+    # Il recupero esplicito (forza) riprova solo le letture in errore della
+    # fonte corrente: una lettura riuscita resta valida finche' il contenuto
+    # non cambia, e i documenti di altri fascicoli non si toccano.
+    for fascicolo, documenti in ((target, [*target_docs, letto_doc]), (altro, [altro_doc])):
         oggetti = [Oggetto(tipo="documento", oggetto_id=doc.id, nome=doc.nome, sha256=doc.hash_sha256) for doc in documenti]
         registro.registra_inventario("studio", fascicolo.id, oggetti)
         for oggetto in oggetti:
-            registro.segna_letto("studio", fascicolo.id, oggetto, runtime.LETTORE_DOCUMENTI, esito={"origine": "indice"})
+            stato = "letto" if oggetto.oggetto_id == letto_doc.id else "errore"
+            registro.segna_letto("studio", fascicolo.id, oggetto, runtime.LETTORE_DOCUMENTI, stato=stato, esito={"origine": "indice"})
 
     letti: list[tuple[str, str]] = []
 

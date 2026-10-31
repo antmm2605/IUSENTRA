@@ -5,9 +5,10 @@ from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
-from pct.email_client import EmailRicevuta, GestioneEmailRicevute
+from pct.email_client import EmailRicevuta
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.pdp_penale_workflow import PDPPenaleWorkflowRepository
+from tests.mailbox_test_support import sql_mailbox
 from web.app import create_app
 
 #  La sincronizzazione PEC guarda soltanto gli ultimi 60 giorni: una PEC con
@@ -425,7 +426,7 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
             )
             assert deposit.status_code == 200
 
-            ge = GestioneEmailRicevute(db_path=cfg["EMAIL_CASELLA_DB"])
+            ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
             ge.aggiungi(
                 EmailRicevuta(
                     id="mail-pdp-001",
@@ -701,7 +702,7 @@ def test_sync_pec_trova_messaggi_vecchi_e_non_li_duplica(tmp_path: Path):
         try:
             case_id = str(repo.list_cases_for_practice(fasc_id)[0]["id"])
 
-            ge = GestioneEmailRicevute(db_path=cfg["EMAIL_CASELLA_DB"])
+            ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
             ge.aggiungi(
                 EmailRicevuta(
                     id="mail-pdp-vecchia",
@@ -773,7 +774,7 @@ def test_sync_pec_non_riesamina_le_pec_gia_lette(tmp_path: Path):
         repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
         try:
             case_id = str(repo.list_cases_for_practice(fasc_id)[0]["id"])
-            ge = GestioneEmailRicevute(db_path=cfg["EMAIL_CASELLA_DB"])
+            ge = sql_mailbox(cfg["EMAIL_CASELLA_DB"])
             #  Una pertinente e una che non riguarda questo procedimento.
             ge.aggiungi(
                 EmailRicevuta(

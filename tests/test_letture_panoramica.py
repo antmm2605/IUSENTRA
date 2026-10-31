@@ -8,6 +8,7 @@ qualcosa da leggere, se e' in errore o se non e' mai stato esaminato.
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -23,7 +24,9 @@ def _registro(tmp_path: Path) -> RegistroLetture:
 
 
 def _oggetto(indice: int) -> Oggetto:
-    return Oggetto(tipo="documento", oggetto_id=f"DOC{indice}", nome=f"atto{indice}.pdf", sha256=f"h{indice}")
+    # Il registro conferma una lettura solo con un'impronta SHA-256 valida
+    # (64 cifre esadecimali): la sola dimensione non identifica il contenuto.
+    return Oggetto(tipo="documento", oggetto_id=f"DOC{indice}", nome=f"atto{indice}.pdf", sha256=hashlib.sha256(f"atto{indice}".encode()).hexdigest())
 
 
 def test_il_registro_risponde_per_tutti_i_fascicoli_in_una_lettura(tmp_path: Path):

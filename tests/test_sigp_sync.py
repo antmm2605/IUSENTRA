@@ -122,7 +122,10 @@ def test_sigp_sync_non_esposto_in_menu_e_download_senza_preflight_pin():
 
     assert "url_for('sigp_sync.index')" not in base
     assert "SIGP - Giudice di Pace" not in base
-    assert "Attività Studio" in base
+    # Il menu dei servizi telematici resta (il vecchio gruppo «Attività Studio»
+    # è stato riorganizzato): il SIGP si raggiunge dai portali, non da una voce propria.
+    assert "Servizi Telematici" in base
+    assert "url_for('polisWeb_home')" in base
     assert "integrations.sigp.routes" not in registry
     assert "integrations.sigp_sync.routes" not in registry
     assert "web.blueprints.sigp_redirects" in registry

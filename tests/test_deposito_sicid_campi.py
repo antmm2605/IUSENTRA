@@ -7,7 +7,8 @@ from lxml import etree
 
 from pct.busta import BustaTelematica
 from pct.datiatto_xsd import validate_datiatto_xml
-from pct.deposito_sicid_campi import SICID_ATTI_SENZA_ISTANZA_MANUALE
+from pct.deposito_datiatto_fields import studio_telematico_type_contract
+from pct.deposito_sicid_campi import SICID_ATTI_SENZA_ISTANZA_MANUALE, SICID_CITAZIONE_DATA_UNICA
 from pct.deposito_studio_telematico_validation import validate_studio_telematico_deposit
 from pct.deposito_telematico_catalogo import resolve_deposit_type_payload
 from scripts.audit_deposito_catalogo_end_to_end import _dati_busta_for, _sample_pdf
@@ -20,8 +21,17 @@ def test_campi_sicid_non_bloccano_xml_senza_istanza_manuale(key, tmp_path):
     fields = {field["id"]: field for field in entry["schema"]["inputFields"]}
     assert "cci" not in fields
     assert "istanza" not in fields
-    assert fields["sub_procedimento"]["required"] is False
-    assert fields["sub_procedimento"]["group"] == "Dati facoltativi del deposito"
+    # Il sub-procedimento si chiede solo dove il contratto ministeriale del
+    # tipo di deposito abilita txtSub_Procedimento (gli atti di parte); negli
+    # atti introduttivi il controllo è disabilitato e il campo non compare.
+    controls = (studio_telematico_type_contract(key) or {}).get("controls") or {}
+    sub_abilitato = str((controls.get("txtSub_Procedimento") or {}).get("Enabled") or "").casefold() == "true"
+    if sub_abilitato:
+        assert fields["sub_procedimento"]["required"] is False
+        assert fields["sub_procedimento"]["group"] == "Dati facoltativi del deposito"
+    else:
+        assert key.startswith("Introduttivi_SICID::")
+        assert "sub_procedimento" not in fields
 
     dati = _dati_busta_for(entry, _sample_pdf(tmp_path / "atto.pdf"))
     extra = dict(dati.datiatto_extra)
@@ -54,7 +64,12 @@ def test_campi_sicid_non_bloccano_xml_senza_istanza_manuale(key, tmp_path):
 
 
 def test_altri_tipi_conservano_requisito_istanza_e_dati_obbligatori():
-    key = "Introduttivi_SICID::Citazione"
+    # La Citazione SICID non chiede più l'istanza (Introduttivi.xsd v7:
+    # istanze minOccurs=0, una sola Datacitazione): il requisito resta sui
+    # tipi fuori dall'elenco, come l'opposizione agli atti esecutivi SIECIC.
+    assert "Introduttivi_SICID::Citazione" in SICID_CITAZIONE_DATA_UNICA
+    key = "Parte_ESECUZIONI_SIECIC::OpposizioneAttiEsecutivi"
+    assert key not in SICID_ATTI_SENZA_ISTANZA_MANUALE
     entry = resolve_deposit_type_payload(key)
     assert entry is not None
     assert any(field["id"] == "istanza" and field["required"] for field in entry["schema"]["inputFields"])

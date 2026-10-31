@@ -6,13 +6,18 @@ def test_topbar_notifications_e_scadenze_non_pollano_a_pannelli_chiusi():
     deadlines = Path("frontend/src/hooks/useQuickDeadlines.ts").read_text(encoding="utf-8")
 
     assert "if (!open) return" in notifications
-    assert "window.setInterval(load, 30000)" in notifications
+    # Il polling a pannello aperto non ricarica durante un salvataggio in corso.
+    assert "window.setInterval(() => { if (!saving.current) void load({ silent: true }) }, 30000)" in notifications
     assert "const interval = open ? 30000 : 60000" not in notifications
     assert "iusentra:notifications-updated" in notifications
 
     assert "if (!open) return" in deadlines
-    assert "window.setInterval(load, 120000)" in deadlines
+    assert "window.setInterval(() => load({ silent: true }), 120000)" in deadlines
     assert "Pre-fetch al mount" not in deadlines
+    # Gli aggiornamenti operativi arrivano dal bus condiviso, ma ricaricano
+    # solo a pannello aperto.
+    assert "useOperationalRefresh(['agenda', 'scadenze', 'comunicazioni'], () => { if (open && !saving.current)" in notifications
+    assert "useOperationalRefresh(['agenda', 'scadenze'], () => { if (open) load({ silent: true }) })" in deadlines
 
 
 def test_topbar_notifiche_legge_solo_il_repository_persistente():

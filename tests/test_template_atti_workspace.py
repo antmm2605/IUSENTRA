@@ -4,6 +4,7 @@ from pathlib import Path
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.compilatore_atti import MODEL_INDEX
 from pct.template_atti import GestioneTemplateAtti
+from pct.template_atti_preparation import prepare_catalog
 from web.app import create_app
 
 
@@ -51,6 +52,14 @@ def _bootstrap_app(tmp_path):
         password="Avv12345!",
         ruolo=RuoloUtente.AVVOCATO,
         email="avvocato@example.com",
+    )
+    # Come per un nuovo studio (GestioneTenant.crea): il catalogo SQL dei
+    # modelli si predispone prima dell'avvio, mai nella prima consultazione.
+    prepare_catalog(
+        cfg["TEMPLATE_ATTI_DB"],
+        backup_dir=tmp_path / "backup" / "template-catalog",
+        postgres_dsn="",
+        writers_drained=True,
     )
     return cfg, create_app(cfg)
 

@@ -19,6 +19,7 @@ from email import policy
 from email.message import EmailMessage
 from pathlib import Path
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.pec_change_receipt import (
@@ -31,6 +32,8 @@ from pct.pec_change_receipt import (
 from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 from tests.test_pec_audit_pipeline import _repo_con_fascicolo
 from tests.test_pec_term_modification import _modifica_termine_mime, _termine_presidiato
+
+ROME_TZ = ZoneInfo("Europe/Rome")
 
 
 def _it(value: date) -> str:
@@ -333,7 +336,8 @@ def test_agenda_react_mostra_la_ricezione_con_etichetta_e_date():
     )
     event = _agenda_event(item)
     assert event is not None
-    assert event["start"] == "2026-09-10T14:58"
+    # Dalla 2.3xx l'Agenda espone l'orario con l'offset Europe/Rome (CEST a settembre).
+    assert event["start"] == "2026-09-10T14:58+02:00"
     assert event["legalLabel"] == "PEC ricevuta · Rinvio udienza"
     assert event["sourceKind"] == "pec" and "pec_abc" in event["sourceHref"]
     assert "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)" in event["detailLines"]
@@ -419,15 +423,18 @@ def _run_cancelleria(repo, mime: bytes, uid: str):
 
 def test_sentenza_estinzione_designazione_in_agenda_alla_ricezione_con_termini_in_bozza(tmp_path):
     repo, fascicolo = _repo_con_fascicolo(tmp_path)
-    today = date.today()
+    today = datetime.now(ROME_TZ).date()
     sentence_day = today - timedelta(days=3)
+    # Offset reale di Europe/Rome per quel giorno (CET/CEST): la ricezione
+    # resta alle 08:39 ora italiana anche a cavallo del cambio d'ora.
+    sentence_offset = datetime(sentence_day.year, sentence_day.month, sentence_day.day, 8, 39, 12, tzinfo=ROME_TZ).strftime("%z")
     sentenza_id = _run_cancelleria(
         repo,
         _cancelleria_mime(
             "SENTENZA A VERBALE (art. 127 ter cpc)",
             "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 659/2026",
             rg="523/2026/LAV",
-            when=sentence_day.strftime("%a, %d %b %Y") + " 08:39:12 +0200",
+            when=sentence_day.strftime("%a, %d %b %Y") + f" 08:39:12 {sentence_offset}",
             tag="sentenza",
         ),
         "INBOX:UID:301",

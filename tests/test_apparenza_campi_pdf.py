@@ -58,6 +58,19 @@ def _inchiostro(dati: bytes) -> int:
         documento.close()
 
 
+def _nome_campo(annotazione) -> str:
+    """Il nome del campo a cui appartiene il widget.
+
+    PyMuPDF 2.x (MuPDF 1.28) scrive il campo e il suo widget come due oggetti:
+    il nome ``/T`` sta sul campo genitore e il widget lo eredita tramite
+    ``/Parent``. I moduli reali degli organismi usano entrambe le forme.
+    """
+    nome = annotazione.get("/T")
+    if nome is None and annotazione.get("/Parent") is not None:
+        nome = annotazione["/Parent"].get_object().get("/T")
+    return str(nome or "")
+
+
 def _scrivi_valore(dati: bytes, testo: str, *, con_apparenza: bool) -> bytes:
     from pypdf import PdfReader, PdfWriter
     from pypdf.generic import NameObject, TextStringObject
@@ -69,7 +82,7 @@ def _scrivi_valore(dati: bytes, testo: str, *, con_apparenza: bool) -> bytes:
     for pagina in scrittore.pages:
         for riferimento in pagina.get("/Annots") or []:
             annotazione = riferimento.get_object()
-            if str(annotazione.get("/T") or "") != NOME_CAMPO:
+            if _nome_campo(annotazione) != NOME_CAMPO:
                 continue
             annotazione[NameObject("/V")] = TextStringObject(testo)
             if con_apparenza:

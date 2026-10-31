@@ -49,6 +49,18 @@ def _valori_nel_pdf(dati: bytes) -> dict[str, object]:
     return {nome: voce.get("/V") for nome, voce in campi.items()}
 
 
+def _nome_campo(annotazione) -> str:
+    """Il nome del campo del widget, anche quando lo eredita dal genitore.
+
+    PyMuPDF 2.x (MuPDF 1.28) separa campo e widget: ``/T`` sta sul campo
+    genitore e il widget lo eredita tramite ``/Parent``.
+    """
+    nome = annotazione.get("/T")
+    if nome is None and annotazione.get("/Parent") is not None:
+        nome = annotazione["/Parent"].get_object().get("/T")
+    return str(nome or "")
+
+
 def test_il_valore_scritto_si_rilegge_dal_modulo():
     compilato = compila_pdf(_modulo_vuoto(), {"nome_istante": "Antonio Affinito"})
 
@@ -68,7 +80,7 @@ def test_il_campo_compilato_ha_un_apparenza_disegnata():
     trovato = False
     for riferimento in annotazioni:
         annotazione = riferimento.get_object()
-        if str(annotazione.get("/T") or "") != "nome_istante":
+        if _nome_campo(annotazione) != "nome_istante":
             continue
         trovato = True
         assert annotazione.get("/AP"), "il campo compilato non ha apparenza disegnata"

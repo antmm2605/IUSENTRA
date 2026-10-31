@@ -31,6 +31,12 @@ class Checks(unittest.TestCase):
     def setUp(self):
         self.tenant='controlled-'+uuid.uuid4().hex
         self.reg=object.__new__(ControlledRegistro)
+        # Il registro e' costruito senza __init__ per usare la connessione SQL
+        # controllata: si dichiarano gli attributi che __init__ imposterebbe
+        # (scrittura ammessa, backend coerente con quello in prova).
+        self.reg.read_only=False
+        self.reg.backend_kind='postgres' if self.backend=='postgresql' else 'sqlite'
+        self.reg._pg=SimpleNamespace(close=lambda:None) if self.backend=='postgresql' else None
         @contextmanager
         def connection():
             db=self.factory.new()

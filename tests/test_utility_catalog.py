@@ -41,7 +41,13 @@ def test_catalogo_non_carica_moduli_eseguibili_che_non_vengono_aperti(monkeypatc
 
 def test_alias_catalogo_aprono_unica_superficie_senza_rimuovere_dettagli():
     source = Path('frontend/src/App.tsx').read_text(encoding='utf-8')
-    assert "{ label: 'Utility', icon: Wrench, href: '/strumenti-legali/' }" in source
+    # La voce di navigazione ora dichiara anche gruppo e parole chiave della
+    # ricerca rapida: resta una sola voce «Utility» verso /strumenti-legali/.
+    assert (
+        "{ group: 'ricerca', keywords: 'strumenti calcolo calcoli calcolatori utilità utilita', "
+        "label: 'Utility', icon: Wrench, href: '/strumenti-legali/' }"
+    ) in source
+    assert source.count("label: 'Utility',") == 1
     assert "{ label: 'Strumenti Operativi'," not in source
     assert "!isApplicazionePage && ['/strumenti-legali', '/strumenti-operativi', '/applicazioni'].includes(routeKey)" in source
     assert "new URLSearchParams(window.location.search).get('app_id')" in source

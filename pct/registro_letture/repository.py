@@ -557,6 +557,23 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
                 mancanti.append(oggetto)
         return mancanti
 
+    def superati(self, tenant_id: str, fascicolo_id: str, lettore: str, *, versione: str, tipi: Iterable[str] | None = None) -> list[Oggetto]:
+        """Fonti presenti lette con esito positivo da una versione del lettore diversa da quella corrente.
+
+        Servono alla rilettura graduale: le regole nuove (date, parti, importi, natura del documento)
+        arrivano anche ai documenti già letti. Le decisioni dell'avvocato sui fatti restano intatte.
+        """
+        lettore = _lettore(lettore)
+        tipi_ammessi = {_tipo(t) for t in tipi} if tipi else None
+        presenti = {(o.tipo, o.oggetto_id, o.impronta): o for o in self.oggetti(tenant_id, fascicolo_id)
+                    if o.presente and (not tipi_ammessi or o.tipo in tipi_ammessi)}
+        return [
+            presenti[(lettura.tipo, lettura.oggetto_id, lettura.sha256)]
+            for lettura in self.letture(tenant_id, fascicolo_id, lettore=lettore)
+            if lettura.stato == "letto" and lettura.versione_lettore != versione
+            and (lettura.tipo, lettura.oggetto_id, lettura.sha256) in presenti
+        ]
+
     def da_confermare(self, tenant_id: str, fascicolo_id: str, lettore: str, *, oggetti: Iterable[Oggetto]) -> list[Oggetto]:
         """Fonti per cui una prova già acquisita può aggiornare la ricevuta.
 

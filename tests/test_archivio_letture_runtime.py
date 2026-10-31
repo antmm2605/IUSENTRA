@@ -458,7 +458,7 @@ def test_tick_riprende_solo_eventi_pending_o_con_lease_scaduta_dopo_riavvio(monk
         monkeypatch.setattr(runtime, "avvia_lettura_in_background", avvia)
         report = runtime.riprendi_eventi_lettura(app, limite_per_tenant=10)
 
-    assert report == {"tenant": 1, "trovati": 2, "avviati": 2}
+    assert {k: report[k] for k in ("tenant", "trovati", "avviati")} == {"tenant": 1, "trovati": 2, "avviati": 2}
     assert avviati == [
         ("09131014", "single-studio", False),
         ("LEASE-SCADUTA", "single-studio", False),
@@ -575,3 +575,37 @@ def test_unavailable_queue_schema_cannot_confirm_saved_readings(tmp_path, monkey
         payload = stato_letture_payload(matter,segna_visto=False)
         assert not payload['tutto_letto']
         assert any(row['passo'] == 'archivio delle letture' and 'Coda letture non preparata' in row['motivo'] for row in payload['degradato'])
+
+
+def test_rilettura_superati_dai_testi_salvati_senza_riaprire_file(monkeypatch, tmp_path: Path):
+    """Un documento letto da un motore superato si rilegge dal testo salvato; senza testo resta com'è."""
+    from types import SimpleNamespace
+
+    from pct.archivio_letture.collaudo import Contesto
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from web.services import archivio_letture_runtime as runtime
+
+    app = _app(tmp_path)
+    registro = RegistroLetture(tmp_path / "registro-riletture.db")
+    con_testo = SimpleNamespace(id="DOC-T", nome="decreto.pdf", tipo="DECRETO", hash_sha256="e" * 64, classificazione_portale="")
+    senza_testo = SimpleNamespace(id="DOC-S", nome="scansione.pdf", tipo="ALTRO", hash_sha256="f" * 64, classificazione_portale="")
+    fascicolo = SimpleNamespace(id="F-RIL", documenti=[con_testo, senza_testo])
+    oggetti = [Oggetto(tipo="documento", oggetto_id=d.id, nome=d.nome, sha256=d.hash_sha256) for d in fascicolo.documenti]
+    registro.registra_inventario("studio", fascicolo.id, oggetti)
+    for oggetto in oggetti:
+        registro.segna_letto("studio", fascicolo.id, oggetto, runtime.LETTORE_DOCUMENTI, versione="2026.09.16.motore-documenti.v7")
+
+    def testi(fascicolo_, documento):
+        return [("indice", "Udienza del 6 ottobre 2027 alle ore 14:00.")] if documento.id == "DOC-T" else []
+
+    monkeypatch.setattr(runtime, "testi_documento", testi)
+    monkeypatch.setattr(runtime, "_bytes_documento", lambda *a: (_ for _ in ()).throw(AssertionError("file riaperto")))
+    monkeypatch.setattr("web.services.sentenza_economic_runtime._cu_tiers", lambda: [])
+    with app.app_context():
+        senza = runtime._leggi_documenti(fascicolo, registro, "studio", Contesto(), forza=False, limite=200)
+        report = runtime._leggi_documenti(fascicolo, registro, "studio", Contesto(), forza=False, limite=200,
+                                          rileggi_superati=True)
+    assert senza["da_leggere"] == 0
+    assert report["da_leggere"] == 2 and report["riletti"] == 1 and report["riletture_senza_testo"] == 1
+    versioni = {l.oggetto_id: l.versione_lettore for l in registro.letture("studio", fascicolo.id, lettore=runtime.LETTORE_DOCUMENTI)}
+    assert versioni["DOC-T"] == runtime.VERSIONE_MOTORE_DOCUMENTI and versioni["DOC-S"].endswith("v7")

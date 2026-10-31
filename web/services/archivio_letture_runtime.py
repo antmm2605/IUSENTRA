@@ -438,7 +438,7 @@ def _avvocati_dello_studio() -> list[str]:
     return [n for n in nomi if n]
 
 
-def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, *, forza: bool, limite: int) -> dict[str, int]:
+def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto: Contesto, *, forza: bool, limite: int, rileggi_superati: bool = False) -> dict[str, int]:
     from web.helpers import get_clienti
     id_cliente = str(getattr(fascicolo, "id_cliente", "") or "")
     cliente = get_clienti().get(id_cliente) if id_cliente else None
@@ -458,7 +458,16 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
         # le letture riuscite restano valide finché il contenuto non cambia.
         if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in falliti:
             da_leggere.append(oggetto)
+    # Rilettura graduale con il motore corrente: solo dai testi già salvati, mai riaprendo i file.
+    da_rileggere = {
+        (o.tipo, o.oggetto_id, o.impronta)
+        for o in (registro.superati(tenant, fascicolo_id, LETTORE_DOCUMENTI, versione=VERSIONE_MOTORE_DOCUMENTI, tipi=("documento",))
+                  if rileggi_superati else [])
+    }
+    gia = {(o.tipo, o.oggetto_id, o.impronta) for o in da_leggere}
+    da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if (o.tipo, o.oggetto_id, o.impronta) in da_rileggere - gia)
     conteggi["da_leggere"] = len(da_leggere)
+    conteggi["riletti"] = 0
     scaglioni_cu: list[Any] | None = None
     documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
     for oggetto in da_leggere[:limite]:
@@ -471,6 +480,11 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "documento non più presente nel fascicolo"}, versione=VERSIONE_MOTORE_DOCUMENTI)
             continue
         letture = testi_documento(fascicolo, documento)
+        if not letture and (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere:
+            conteggi["riletture_senza_testo"] = conteggi.get("riletture_senza_testo", 0) + 1
+            continue  # senza testo salvato resta la lettura precedente: nessun file riaperto
+        if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere:
+            conteggi["riletti"] += 1
         if not letture:
             from web.services.archivio_testo_contenitori import estrai_contenuto
             data = _bytes_documento(fascicolo_id, documento)
@@ -813,7 +827,7 @@ def _aggiorna_catalogo_sql(fascicolo: Any, registro: RegistroLetture) -> dict[st
         }
 
 
-def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False) -> dict[str, Any]:
+def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False, rileggi_superati: bool = False) -> dict[str, Any]:
     """Un giro del ciclo: i motori leggono solo ciò che manca, l'archivio conferma, poi ci si ferma.
 
     Il ciclo è chiuso: quando tutto è letto e l'archivio ha confermato, il
@@ -835,6 +849,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         # documento nuovo.
         prima = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=_impronta_viva(fascicolo))
         mancanti_motori, errori_motori = _mancanti_motori(registro, tenant, fascicolo_id)
+        if rileggi_superati and registro.superati(tenant, fascicolo_id, LETTORE_DOCUMENTI, versione=VERSIONE_MOTORE_DOCUMENTI, tipi=("documento",)):
+            mancanti_motori = mancanti_motori or 1
         if not prima.da_leggere and not mancanti_motori:
             metadati = {}
             consegne = {}
@@ -876,7 +892,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
         contesto.avvocati_studio = tuple(dict.fromkeys([*contesto.avvocati_studio, *_avvocati_dello_studio()]))
         riconvalidati = _riconvalida(fascicolo, registro, tenant)
-        documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite)
+        documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite, rileggi_superati=rileggi_superati)
         pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
         promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
     except Exception as exc:
@@ -897,7 +913,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
         invalida_lettura(fascicolo_id)
-    chiusi_documenti = documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
+    chiusi_documenti = (documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
+                        + int(documenti.get("riletture_senza_testo") or 0))
     chiusi_pec = pec["letti"] + pec["assenti"]
     restano = max(0, documenti["da_leggere"] - chiusi_documenti) + max(0, pec["da_leggere"] - chiusi_pec)
     restano += int(metadati.get("restano") or 0)
@@ -1141,7 +1158,8 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                         _riconvalida(fascicolo, registro, tenant_slug or tenant_id)
                     forza_giro = bool(evento.get("forza"))
                     while True:
-                        report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro, recupera_metadati=True)
+                        report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro, recupera_metadati=True,
+                                                 rileggi_superati=True)
                         forza_giro = False
                         consegne = dict(report.get("consegne") or {})
                         catalogo = dict(report.get("catalogo") or {})
@@ -1163,7 +1181,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             break
                         documenti = dict(report.get("documenti") or {})
                         pec = dict(report.get("pec") or {})
-                        progresso = sum(int(documenti.get(campo) or 0) for campo in ("letti", "senza_testo", "assenti"))
+                        progresso = sum(int(documenti.get(campo) or 0) for campo in ("letti", "senza_testo", "assenti", "riletture_senza_testo"))
                         progresso += sum(int(pec.get(campo) or 0) for campo in ("letti", "assenti"))
                         progresso += int((report.get("metadati") or {}).get("controllati") or 0)
                         if progresso <= 0:
@@ -1191,6 +1209,37 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
     return True
 
 
+RILETTURE_PER_GIRO = 2
+ORE_RILETTURA = range(0, 6)  # di notte, ora italiana: nessun carico durante il lavoro dello studio
+
+
+def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
+    """Fascicoli letti con un motore documenti superato, i più vecchi per primi."""
+    righe = [r for r in registro.righe_fascicoli(tenant_id, lettore=LETTORE_DOCUMENTI)
+             if _testo(r.get("stato")) == "completa" and _testo(r.get("versione_lettore")) != VERSIONE_MOTORE_DOCUMENTI]
+    righe.sort(key=lambda r: _testo(r.get("aggiornato_il")))
+    return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)] if _testo(r.get("fascicolo_id"))]
+
+
+def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
+                              limite: int = RILETTURE_PER_GIRO) -> int:
+    """Di notte accoda pochi fascicoli da aggiornare: la rilettura usa solo i testi già salvati."""
+    from datetime import datetime
+
+    from pct.ora_italiana import ROME_TZ
+
+    if (datetime.now(ROME_TZ).hour if ora is None else ora) not in ORE_RILETTURA:
+        return 0
+    try:
+        da_aggiornare = fascicoli_da_aggiornare(registro, tenant_id, limite=limite)
+        for fascicolo_id in da_aggiornare:
+            registro.accoda_evento(tenant_id, fascicolo_id)
+        return len(da_aggiornare)
+    except Exception:
+        logger.exception("Riletture notturne non accodate per %s", tenant_id or "studio")
+        return 0
+
+
 def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:
     """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
     targets: list[tuple[str, dict[str, Any]]] = []
@@ -1207,9 +1256,10 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
     else:
         targets.append(("", {}))
 
-    trovati = avviati = 0
+    trovati = avviati = accodati = 0
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)
+        accodati += accoda_riletture_notturne(registro, tenant_id)
         eventi = registro.eventi_da_riprendere(tenant_id, limite=limite_per_tenant)
         trovati += len(eventi)
         for evento in eventi:
@@ -1222,7 +1272,7 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
                 _accoda_evento=False,
             ):
                 avviati += 1
-    return {"tenant": len(targets), "trovati": trovati, "avviati": avviati}
+    return {"tenant": len(targets), "trovati": trovati, "avviati": avviati, "riletture_accodate": accodati}
 
 
 def _contesto_corrente() -> tuple[dict[str, Any], str]:

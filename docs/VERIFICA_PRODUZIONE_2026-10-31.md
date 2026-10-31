@@ -34,6 +34,7 @@ produzione** = da ricontrollare su app.iusentra.it dopo il deploy; **da fare** =
 | V15 | A8B49265: liquidazione delle spese presa dalla sentenza di Vicenza (precedente) | regola unica dei precedenti (fatto letto o nome del file con altro ufficio) per notifiche, economia della sentenza e importi | `tests/test_rilettura_notturna_catena.py::test_precedente_di_altro_ufficio_fuori_da_notifiche_ed_economia` | corretto · da verificare in produzione |
 | V16 | A8B49265: contributo «da registrare» con la ricevuta telematica nel fascicolo | per la ricevuta telematica XML senza ruolo né ufficio in contrasto, RG e ufficio si riscontrano se compaiono cliente o codice fiscale (`identita_ricevuta_prima_del_ruolo`); il riuso dello IUV resta segnalato | `tests/test_ricevuta_prima_del_ruolo.py` | corretto · da verificare in produzione (dopo la rilettura del fascicolo) |
 | V14 | Versione in produzione 2.461.1 | deploy unico con tutti i controlli verdi | gate locale e CI | **da fare** |
+| V17 | Lavoro presente solo sul PC dell'avvocato (copie WSL non pubblicate) | inventario in sola lettura dal PC; recuperati documenti «Codici e leggi», nota 2.458.1 e copia `openga-validazione` 2.461.2 (fusione a tre vie, impronta dell'archivio verificata); il resto era già in main in versione più recente | 144 test della copia passati dopo la fusione; gate locale | corretto · **richiede il deploy** |
 
 ## Dettaglio delle osservazioni
 

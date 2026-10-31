@@ -56,11 +56,12 @@ def test_citazione_ok_applica_fonti_ragioni_layout_e_timbro():
         ),
     )
 
-    # Fonti del registro senza impronta del testo: non verificate (audit fonti 29/10/2026), quindi avviso.
-    assert result.overall_state == "warning"
-    assert "fonti_primarie_non_verificate_online" in result.risk_flags
-    assert result.can_generate_final_draft is False
-    assert result.can_open_editor is False
+    # Il declassamento del registro fonti senza impronta (sessione 29/10/2026)
+    # e' stato escluso dalla 2.458.0: le fonti restano verified_snapshot.
+    assert result.overall_state == "ok"
+    assert "fonti_primarie_non_verificate_online" not in result.risk_flags
+    assert result.can_generate_final_draft is True
+    assert result.can_open_editor is True
     assert result.layout_compliance and result.layout_compliance.layout_profile_id == "civil_pct_act_layout"
     assert result.page_stamp_compliance and result.page_stamp_compliance.repeat_on_each_page is True
     assert result.page_stamp_compliance.position == "top_left"
@@ -129,8 +130,8 @@ def test_diffida_ok_non_applica_regole_pct_generiche():
         ),
     )
 
-    assert result.overall_state == "warning"  # fonti del registro non verificate (nessuna impronta)
-    assert "fonti_primarie_non_verificate_online" in result.risk_flags
+    assert result.overall_state == "ok"
+    assert "fonti_primarie_non_verificate_online" not in result.risk_flags
     assert result.layout_compliance and result.layout_compliance.layout_profile_id == "civil_extrajudicial_pec_layout"
     assert all("PCT" not in ref.title for ref in result.normative_references)
 

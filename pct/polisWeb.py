@@ -36,6 +36,7 @@ from xml.sax.saxutils import escape as _xml_escape
 
 from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
 from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, risolvi_ufficio
+from pct.ora_italiana import oggi_roma
 
 # ---------------------------------------------------------------- PST endpoints
 # I web service del PST sono accessibili con autenticazione a certificato.
@@ -1636,7 +1637,7 @@ def _sincronizza_metadati_fascicolo_polisweb(
 
     riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
     avvisi: List[str] = []
-    oggi_iso = date.today().isoformat()
+    oggi_iso = oggi_roma().isoformat()
     data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione)
     data_udienza = _parse_data(fascicolo_pw.data_udienza)
 
@@ -2254,9 +2255,9 @@ class ClientPolisWeb:
                 stato_fascicolo_da_descrizione_portale,
             )
 
-            data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione) or date.today().isoformat()
+            data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione) or oggi_roma().isoformat()
             data_udienza = _parse_data(fascicolo_pw.data_udienza)
-            data_prossima_udienza = data_udienza if data_udienza and data_udienza >= date.today().isoformat() else ""
+            data_prossima_udienza = data_udienza if data_udienza and data_udienza >= oggi_roma().isoformat() else ""
 
             # 1. Mappa il tipo ruolo → TipoFascicolo
             tipo_map = {
@@ -2310,7 +2311,7 @@ class ClientPolisWeb:
                 data_apertura=data_iscrizione,
                 data_prima_udienza=data_udienza or "",
                 data_prossima_udienza=data_prossima_udienza,
-                note=fascicolo_pw.note or f"Importato da PolisWeb il {date.today()}",
+                note=fascicolo_pw.note or f"Importato da PolisWeb il {oggi_roma()}",
                 source="PST",
                 source_external_id=chiave_esterna_fascicolo_polisweb(fascicolo_pw),
                 codice_ufficio_portale=fascicolo_pw.codice_ufficio,

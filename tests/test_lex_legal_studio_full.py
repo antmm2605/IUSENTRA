@@ -404,8 +404,9 @@ class TestTC12CalcoloScadenza:
     def test_termine_non_esistente(self):
         from lex.tools.legal_studio_tools import calculate_deadline
         result = calculate_deadline("tipo_inesistente", data_decorrenza="2025-01-01")
-        assert result["ok"] is True
-        assert result["giorni"] == 30  # default
+        # Un termine senza norma non si inventa (principio delle fonti certe).
+        assert result["ok"] is False
+        assert "norma" in result["errore"]
 
     def test_urgente_flag(self):
         from datetime import date, timedelta

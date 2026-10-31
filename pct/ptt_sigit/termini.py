@@ -21,6 +21,7 @@ from datetime import date
 from typing import Any
 
 from pct.scadenziario import calcola_termine
+from pct.ora_italiana import oggi_roma
 
 
 def _data(valore: Any) -> date | None:
@@ -32,7 +33,7 @@ def _data(valore: Any) -> date | None:
 
 def termini(procedimento: dict[str, Any], *, oggi: date | None = None) -> list[dict[str, Any]]:
     """Le scadenze che derivano dalle date del procedimento, con il loro fondamento."""
-    oggi = oggi or date.today()
+    oggi = oggi or oggi_roma()
     esito = []
     notifica_ricorso = _data(procedimento.get("notificaRicorso"))
     if notifica_ricorso:

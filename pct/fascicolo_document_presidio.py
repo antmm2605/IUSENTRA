@@ -10,6 +10,7 @@ from legal_ocr.formulario.date import normalizza_data_ocr
 from pct.formatting import format_date_it
 from pct.registro_letture.verifica import verifica_date_lette
 from pct.registro_letture.verifica_date import interpreta_data, orizzonte_fascicolo
+from pct.ora_italiana import oggi_roma
 
 
 _DATE_RE = re.compile(r"\b(?P<day>[0-3]?\d)[./-](?P<month>[01]?\d)[./-](?P<year>(?:19|20)\d{2})\b")
@@ -565,7 +566,7 @@ def analyze_fascicolo_document_texts(
 ) -> dict[str, Any]:
     """`fatti_archivio`: i fatti già collaudati dall'archivio delle letture; per i
     documenti che l'archivio ha letto le date vengono da lì, senza rileggere il testo."""
-    today = today or date.today()
+    today = today or oggi_roma()
     metadata_by_document = metadata_by_document or {}
     procedural_actions: list[dict[str, Any]] = []
     review_actions: list[dict[str, Any]] = []

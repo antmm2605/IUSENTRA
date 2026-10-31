@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
+from pct.ora_italiana import oggi_roma
 
 
 @dataclass
@@ -38,7 +39,7 @@ class EventoRegistro:
         if not self.data:
             return False
         try:
-            return date.fromisoformat(self.data) >= date.today()
+            return date.fromisoformat(self.data) >= oggi_roma()
         except ValueError:
             return False
 

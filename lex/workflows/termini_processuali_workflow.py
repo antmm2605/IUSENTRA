@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 
@@ -36,6 +36,8 @@ _TERMINI: dict[str, dict[str, Any]] = {
         "giorni": 30,
         "label": "Appello sentenza lavoro",
         "norma": "art. 434 c.p.c.",
+        # L. 742/1969, art. 3: la sospensione feriale non si applica alle controversie di lavoro.
+        "sospensione_feriale": False,
     },
     "ricorso_cassazione": {
         "giorni": 60,
@@ -46,7 +48,8 @@ _TERMINI: dict[str, dict[str, Any]] = {
     "opposizione_sanzione_amministrativa": {
         "giorni": 30,
         "label": "Opposizione a sanzione amministrativa",
-        "norma": "art. 22 L. 689/1981",
+        "norma": "art. 7 D.Lgs. 150/2011 (già art. 22 L. 689/1981)",
+        "nota": "60 giorni se il ricorrente risiede all'estero.",
     },
     "ricorso_tar": {
         "giorni": 60,
@@ -54,24 +57,28 @@ _TERMINI: dict[str, dict[str, Any]] = {
         "norma": "art. 29 D.Lgs. 104/2010",
     },
     "appello_tar": {
-        "giorni": 30,
+        "giorni": 60,
         "label": "Appello al Consiglio di Stato",
-        "norma": "art. 91 D.Lgs. 104/2010",
+        "norma": "art. 92 D.Lgs. 104/2010",
+        "nota": "Termine dimezzato a 30 giorni nei riti abbreviati (art. 119 c.p.a.); termine lungo di 6 mesi dalla pubblicazione.",
     },
     "reclamo_cautelare": {
         "giorni": 15,
         "label": "Reclamo cautelare",
         "norma": "art. 669-terdecies c.p.c.",
     },
-    "opposizione_esecuzione": {
+    "opposizione_atti_esecutivi": {
         "giorni": 20,
-        "label": "Opposizione all'esecuzione",
-        "norma": "art. 615 c.p.c.",
+        "label": "Opposizione agli atti esecutivi",
+        "norma": "art. 617 c.p.c.",
+        "nota": "L'opposizione all'esecuzione (art. 615 c.p.c.) non ha un termine in giorni: va proposta prima della vendita o dell'assegnazione.",
     },
     "costituzione_convenuto": {
-        "giorni": 20,
+        "giorni": 70,
         "label": "Costituzione del convenuto",
         "norma": "art. 166 c.p.c.",
+        "direzione": "ritroso",
+        "nota": "Almeno 70 giorni prima dell'udienza indicata nell'atto di citazione: la data da indicare è quella dell'udienza.",
     },
     "iscrizione_ruolo_civile": {
         "giorni": 10,
@@ -79,14 +86,17 @@ _TERMINI: dict[str, dict[str, Any]] = {
         "norma": "art. 165 c.p.c.",
     },
     "riassunzione_causa": {
-        "giorni": 90,
+        "giorni": 0,
+        "mesi": 3,
         "label": "Riassunzione causa interrotta o sospesa",
-        "norma": "art. 307 c.p.c.",
+        "norma": "artt. 297, 305 e 307 c.p.c.",
     },
     "querela": {
         "giorni": 90,
         "label": "Querela di parte",
         "norma": "art. 124 c.p.",
+        # Termine sostanziale, non processuale: non si sospende ad agosto.
+        "sospensione_feriale": False,
     },
     "impugnazione_decreto_penale": {
         "giorni": 15,
@@ -132,6 +142,18 @@ def _termine_penale(info: dict, decorrenza: date) -> str:
     return "\n".join(righe)
 
 
+def _scadenza(decorrenza: date, *, giorni: int, mesi: int, info: dict) -> date:
+    """La scadenza col motore unico dei termini: dies a quo escluso, sospensione feriale (L. 742/1969) se
+    applicabile, proroga al primo giorno non festivo (art. 155 c.p.c.); a ritroso si anticipa."""
+    from pct.termini_processuali import ItalianDeadlineCalculator
+
+    esito = ItalianDeadlineCalculator().calculate(
+        decorrenza, mesi or giorni, direction="backward" if info.get("direzione") == "ritroso" else "forward",
+        period_type="months" if mesi else "days", suspend_august=bool(info.get("sospensione_feriale", True)),
+    )
+    return date.fromisoformat(esito["deadline"])
+
+
 def _format_data(d: date) -> str:
     return d.strftime("%d/%m/%Y")
 
@@ -151,7 +173,9 @@ def calcola_termine(
             "così posso calcolare la scadenza dalla data che mi indichi."
         )
 
-    oggi = date.today()
+    from pct.ora_italiana import oggi_roma
+
+    oggi = oggi_roma()
     if data_decorrenza_iso:
         try:
             from datetime import datetime
@@ -164,14 +188,16 @@ def calcola_termine(
     if info.get("penale") and giorni_override is None:
         return _termine_penale(info, decorrenza)
     giorni = giorni_override if giorni_override is not None else int(info["giorni"])
-    scadenza = decorrenza + timedelta(days=giorni)
+    mesi = 0 if giorni_override is not None else int(info.get("mesi") or 0)
+    scadenza = _scadenza(decorrenza, giorni=giorni, mesi=mesi, info=info)
     restanti = (scadenza - oggi).days
+    ritroso = info.get("direzione") == "ritroso"
 
     lines = [
         f"**{info['label']}** ({info['norma']})",
         "",
-        f"- Decorrenza: {_format_data(decorrenza)}",
-        f"- Termine: {giorni} giorni",
+        f"- {'Udienza' if ritroso else 'Decorrenza'}: {_format_data(decorrenza)}",
+        f"- Termine: {f'{mesi} mesi' if mesi else f'{giorni} giorni'}{' prima' if ritroso else ''}",
         f"- Scadenza: **{_format_data(scadenza)}**",
         f"- Giorni restanti: {'**SCADUTO**' if restanti < 0 else ('**URGENTE** — ' if restanti <= 7 else '') + str(restanti) + ' gg'}",
         "",

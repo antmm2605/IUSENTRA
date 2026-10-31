@@ -25,7 +25,9 @@ def _safe_import(module_path: str):
 
 
 def _current_date() -> date:
-    return date.today()
+    from pct.ora_italiana import oggi_roma
+
+    return oggi_roma()
 
 
 def _format_data(d: Any) -> str:
@@ -144,39 +146,13 @@ def get_fascicolo_context(fascicolo_id: str, *, tenant_id: str = "") -> dict[str
 # 2. Calcolo scadenze e termini processuali                            #
 # ------------------------------------------------------------------ #
 
-_TERMINI_PROCESSUALI: dict[str, int] = {
-    "opposizione_decreto_ingiuntivo": 40,
-    "appello_sentenza_civile": 30,
-    "appello_sentenza_lavoro": 30,
-    "ricorso_cassazione": 60,
-    "opposizione_sanzione_amministrativa": 30,
-    "ricorso_tar": 60,
-    "appello_tar": 30,
-    "reclamo_cautelare": 15,
-    "opposizione_sequestro": 20,
-    "opposizione_esecuzione": 20,
-    "costituzione_convenuto": 20,
-    "notifica_atto_introduttivo": 90,
-    "iscrizione_ruolo_civile": 10,
-    "riassunzione_causa": 90,
-}
+# Una sola tabella dei termini, quella del workflow di Lex: norma, giorni o mesi, verso e sospensione feriale.
+# Un termine che non è in tabella non si calcola: non si inventano termini (principio delle fonti certe).
+from lex.workflows.termini_processuali_workflow import _TERMINI as _TERMINI_NORMATIVI  # noqa: E402
 
-_TERMINI_LABELS: dict[str, str] = {
-    "opposizione_decreto_ingiuntivo": "Opposizione a decreto ingiuntivo (art. 645 c.p.c.)",
-    "appello_sentenza_civile": "Appello sentenza civile (art. 325 c.p.c.)",
-    "appello_sentenza_lavoro": "Appello sentenza lavoro (art. 434 c.p.c.)",
-    "ricorso_cassazione": "Ricorso in Cassazione (art. 325 c.p.c.)",
-    "opposizione_sanzione_amministrativa": "Opposizione a sanzione amministrativa (L. 689/1981)",
-    "ricorso_tar": "Ricorso al TAR (D.Lgs. 104/2010 art. 29)",
-    "appello_tar": "Appello Consiglio di Stato (D.Lgs. 104/2010 art. 91)",
-    "reclamo_cautelare": "Reclamo cautelare (art. 669-terdecies c.p.c.)",
-    "opposizione_sequestro": "Opposizione a sequestro",
-    "opposizione_esecuzione": "Opposizione all'esecuzione (art. 615 c.p.c.)",
-    "costituzione_convenuto": "Costituzione convenuto (art. 166 c.p.c.)",
-    "notifica_atto_introduttivo": "Notifica atto introduttivo al convenuto",
-    "iscrizione_ruolo_civile": "Iscrizione a ruolo causa civile",
-    "riassunzione_causa": "Riassunzione causa (art. 307 c.p.c.)",
-}
+
+def _etichetta(info: dict[str, Any]) -> str:
+    return f"{info['label']} ({info['norma']})"
 
 
 def calculate_deadline(
@@ -202,23 +178,33 @@ def calculate_deadline(
     else:
         decorrenza = oggi
 
-    giorni = giorni_personalizzati if giorni_personalizzati is not None else _TERMINI_PROCESSUALI.get(tipo_termine, 30)
-    scadenza = decorrenza + timedelta(days=giorni)
-    label = _TERMINI_LABELS.get(tipo_termine, tipo_termine.replace("_", " "))
+    from lex.workflows.termini_processuali_workflow import _scadenza
+
+    info = _TERMINI_NORMATIVI.get(tipo_termine)
+    if info is None and giorni_personalizzati is None:
+        return {"ok": False, "tipo_termine": tipo_termine,
+                "errore": "Termine non presente nella tabella normativa: indicare giorni e norma di riferimento."}
+    info = info or {"label": tipo_termine.replace("_", " "), "norma": "termine indicato dall'utente"}
+    giorni = giorni_personalizzati if giorni_personalizzati is not None else int(info.get("giorni") or 0)
+    mesi = 0 if giorni_personalizzati is not None else int(info.get("mesi") or 0)
+    scadenza = _scadenza(decorrenza, giorni=giorni, mesi=mesi, info=info)
     restanti = (scadenza - oggi).days
 
     return {
         "ok": True,
         "tipo_termine": tipo_termine,
-        "label": label,
+        "label": _etichetta(info),
         "data_decorrenza": _format_data(decorrenza),
         "giorni": giorni,
+        "mesi": mesi,
+        "direzione": info.get("direzione", "avanti"),
         "scadenza": _format_data(scadenza),
         "giorni_restanti": restanti,
         "urgente": restanti <= 7,
         "scaduto": restanti < 0,
         "avvertenza": (
-            "Verificare sospensioni feriali (1-31 agosto) e festività ai sensi dell'art. 155 c.p.c."
+            "Calcolo con dies a quo escluso, sospensione feriale dal 1° al 31 agosto dove si applica (L. 742/1969) "
+            "e proroga al primo giorno non festivo (art. 155 c.p.c.). Verificare le festività locali."
             if not escludi_festivi else ""
         ),
     }
@@ -227,8 +213,8 @@ def calculate_deadline(
 def list_termini_disponibili() -> list[dict[str, Any]]:
     """Elenca i tipi di termine processuale disponibili."""
     return [
-        {"key": k, "label": _TERMINI_LABELS[k], "giorni": v}
-        for k, v in _TERMINI_PROCESSUALI.items()
+        {"key": k, "label": _etichetta(info), "giorni": int(info.get("giorni") or 0), "mesi": int(info.get("mesi") or 0)}
+        for k, info in _TERMINI_NORMATIVI.items()
     ]
 
 

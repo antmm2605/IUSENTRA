@@ -5,6 +5,7 @@ from typing import Any, Iterable
 from urllib.parse import quote
 
 from pct.formatting import format_date_it, format_euro_it
+from pct.ora_italiana import oggi_roma
 
 
 def _text(value: Any, default: str = "") -> str:
@@ -609,7 +610,7 @@ def build_fascicolo_operational_presidio(
     sentenze_economiche: dict[str, Any] | None = None,
     today: date | None = None,
 ) -> dict[str, Any]:
-    today = today or date.today()
+    today = today or oggi_roma()
     fid = _text(getattr(fascicolo, "id", ""))
     document_sector = _document_sector(document_presidio or {}, fid=fid, today=today)
     pec_sector = _pec_sector(document_presidio or {}, deposits or [], document_sector["actions"], fid=fid)

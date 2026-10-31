@@ -25,6 +25,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Iterable
+from pct.ora_italiana import oggi_roma
 
 MODIFICATION_LINE_PREFIX = "PEC_MODIFICA_TERMINE"
 HUMAN_LINE_PREFIX = "Modifica termine:"
@@ -268,7 +269,7 @@ def find_deadline_to_modify(
         return None
     if modification.family == "generico" and len(candidates) != 1:
         return None
-    reference = modification.event_date or date.today().isoformat()
+    reference = modification.event_date or oggi_roma().isoformat()
 
     def _distance(item: Any) -> tuple[int, int]:
         due = str(getattr(item, "data_scadenza", "") or "")[:10]

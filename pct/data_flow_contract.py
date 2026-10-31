@@ -534,7 +534,7 @@ def _literal_from_storage_postgres(name: str) -> Any:
             if isinstance(node.target, ast.Name) and node.target.id == name:
                 try:
                     expression = ast.Expression(body=node.value)
-                    value = value + eval(  # noqa: S307 - sorgente del repository, nessun builtin
+                    value = value + eval(  # sorgente del repository, senza builtin
                         compile(expression, str(source_path), "eval"),
                         {"__builtins__": {}},
                         dict(namespace),

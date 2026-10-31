@@ -525,6 +525,32 @@ def test_pdf_contributo_unificato_legge_campo_rt_pagopa_senza_simbolo_euro():
     assert evidence["document_id"] == "DOC-CU-RT"
 
 
+@pytest.mark.parametrize("testo", [
+    "PROMEMORIA DI PAGAMENTO pagoPA - Ministero della Giustizia\nTipo pagamento: Contributo unificato\n"
+    "Codice avviso: 301000000000000001\nImporto: 518,00",
+    "AVVISO DI PAGAMENTO pagoPA\nTipo pagamento: Contributo unificato\nImporto da pagare: 518,00\nPagabile entro il 30/11/2026",
+    "pagoPA\nTipo pagamento: Contributo unificato\nImporto: 518,00",
+])
+def test_avviso_o_promemoria_pagopa_non_e_contributo_pagato(testo):
+    from pct.fascicolo_sentenza_economica import contributo_ricevuta_di_pagamento_eseguito
+
+    assert contributo_ricevuta_di_pagamento_eseguito(testo) is False
+    evidence = extract_contributo_unificato_document_evidence(testo, {"filename": "promemoria.pdf", "document_id": "D"})
+    assert evidence.get("status") != "pagato"
+
+
+@pytest.mark.parametrize("testo", [
+    "pagoPA - Tipo pagamento: Contributo unificato - Importo: 518,00 - Data pagamento: 02/03/2026",
+    "Promemoria pagoPA - Tipo pagamento: Contributo unificato - Importo: 518,00 - Pagamento eseguito",
+    "<RT><datiPagamento><datiSingoloPagamento><causaleVersamento>Contributo unificato</causaleVersamento>"
+    "<singoloImportoPagato>518.00</singoloImportoPagato></datiSingoloPagamento></datiPagamento></RT>",
+])
+def test_pagamento_eseguito_pagopa_resta_ricevuta(testo):
+    from pct.fascicolo_sentenza_economica import contributo_ricevuta_di_pagamento_eseguito
+
+    assert contributo_ricevuta_di_pagamento_eseguito(testo) is True
+
+
 def test_ricevuta_pagopa_esclude_le_commissioni_dal_contributo():
     evidence = extract_contributo_unificato_document_evidence(
         """

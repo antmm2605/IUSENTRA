@@ -283,7 +283,19 @@ _CONTRIBUTO_RT_PAYMENT_TYPE_RE = re.compile(
     re.IGNORECASE,
 )
 _CONTRIBUTO_RT_RECEIPT_RE = re.compile(
-    r"\b(?:ricevuta\s+(?:telematica\s+)?(?:di\s+)?pagamento|rt\s*xml|pagopa|pago\s*pa)\b",
+    r"\b(?:ricevuta\s+(?:telematica\s+)?(?:di\s+)?pagamento|rt\s*xml)\b",
+    re.IGNORECASE,
+)
+# Un avviso o un promemoria pagoPA dice quanto pagare, non che si è pagato: l'importo
+# indicato non è contributo versato (art. 13 D.P.R. 115/2002; la prova è la RT).
+_CONTRIBUTO_PAGOPA_RE = re.compile(r"\b(?:pagopa|pago\s*pa)\b", re.IGNORECASE)
+_CONTRIBUTO_PAGAMENTO_ESEGUITO_RE = re.compile(
+    r"\b(?:identificativo\s+univoco\s+(?:di\s+)?riscossione|iur|data\s+(?:del\s+)?pagamento|"
+    r"pagamento\s+eseguito|esito\s+(?:del\s+)?pagamento\s*:\s*(?:0|eseguit\w*|positiv\w*)|importo\s+(?:totale\s+)?(?:versato|pagato))\b",
+    re.IGNORECASE,
+)
+_CONTRIBUTO_DA_PAGARE_RE = re.compile(
+    r"\b(?:promemoria(?:\s+di\s+pagamento)?|da\s+pagare|pagabile|importo\s+da\s+(?:pagare|versare))\b",
     re.IGNORECASE,
 )
 _CONTRIBUTO_RT_XML_RE = re.compile(
@@ -1265,8 +1277,20 @@ def _extract_contributo_exemption_evidence(compact: str, metadata: dict[str, Any
     }
 
 
+def contributo_ricevuta_di_pagamento_eseguito(compact: str) -> bool:
+    """Ricevuta di un pagamento eseguito, non avviso o promemoria pagoPA (che dicono solo cosa pagare)."""
+    if _CONTRIBUTO_RT_XML_RE.search(compact):
+        return True
+    eseguito = bool(_CONTRIBUTO_PAGAMENTO_ESEGUITO_RE.search(compact))
+    if _CONTRIBUTO_DA_PAGARE_RE.search(compact) and not eseguito:
+        return False
+    if _CONTRIBUTO_RT_RECEIPT_RE.search(compact):
+        return True
+    return bool(_CONTRIBUTO_PAGOPA_RE.search(compact) and eseguito)
+
+
 def _extract_contributo_rt_payment_evidence(compact: str, metadata: dict[str, Any]) -> dict[str, Any]:
-    is_rt_receipt = bool(_CONTRIBUTO_RT_RECEIPT_RE.search(compact) or _CONTRIBUTO_RT_XML_RE.search(compact))
+    is_rt_receipt = contributo_ricevuta_di_pagamento_eseguito(compact)
     is_contributo_payment = bool(
         _CONTRIBUTO_RT_PAYMENT_TYPE_RE.search(compact)
         or _CONTRIBUTO_RT_XML_CONTRIBUTO_RE.search(compact)

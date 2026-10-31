@@ -40,6 +40,7 @@ from pct.scadenze_proposte_pec import (
     bozza_scadenza_fields,
     select_draft_candidates,
 )
+from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
 from pct.pec_oggetti_ufficiali import (
@@ -6312,7 +6313,12 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
         _comm_iso = _field_date_value(parsed, "data_consegna", "data_invio")
         _hearing_raw = clean_text(procedural_profile.get("udienza_data_ora") or "", 80)
         _hearing_iso = parse_italian_date(_hearing_raw.split()[0]) if _hearing_raw else ""
-        legal_deadline = propose_from_parsed(
+        # Notifica L. 53 ricevuta dalla controparte: il termine decorre dal perfezionamento per il destinatario
+        # (art. 147 c.p.c.) secondo l'atto notificato, non dalle regole delle comunicazioni di cancelleria.
+        legal_deadline = proposta_notifica_ricevuta(
+            parsed, attachment_names=[str(item.get("filename") or "") for item in attachments],
+            consegna_iso=_comm_iso,
+        ) or propose_from_parsed(
             parsed,
             event_type=event_type,
             comunicazione_date=_comm_iso,
@@ -9041,6 +9047,8 @@ class PecAuditRepository:
             row = self.get_message_row(conn, message_id)
             raw_mime = bytes(row["original_mime"])
             parsed = parse_pec_message(raw_mime)
+            # La casella che ha ricevuto il messaggio distingue la notifica L. 53 inviata da quella ricevuta.
+            parsed["casella"] = {"account_email": str(row["account_email"] or ""), "folder": str(row["folder"] or "")}
             previous = self.latest_parsed_row(conn, message_id)
             version = int(previous["version"] if previous else 0) + 1
             parsed_hash = sha256_json(parsed)

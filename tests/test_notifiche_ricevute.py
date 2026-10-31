@@ -83,3 +83,67 @@ def test_senza_udienza_o_con_data_impossibile_il_termine_a_ritroso_non_si_propon
 def test_un_atto_non_riconosciuto_non_apre_termini():
     assert atto_notificato("Trasmissione documenti") is None
     assert termini_da_notifica_ricevuta("Trasmissione documenti", consegna=CONSEGNA) == []
+
+
+# ── Dalla PEC letta allo scadenziario ──────────────────────────────────────
+
+
+def _pec(testo: str, *, mittente: str = "Avv. Rossi <rossi@pec.avvocati.it>", casella: str = "studio@pec.it",
+         oggetto: str = "Notificazione ai sensi della legge n. 53 del 1994", data: str = "Fri, 31 Jul 2026 22:10:05 +0200"):
+    from email.message import EmailMessage
+
+    from pct.pec_pipeline import parse_pec_message
+
+    messaggio = EmailMessage()
+    messaggio["From"], messaggio["To"], messaggio["Subject"], messaggio["Date"] = mittente, casella, oggetto, data
+    messaggio.set_content(testo)
+    parsed = parse_pec_message(messaggio.as_bytes())
+    parsed["casella"] = {"account_email": casella, "folder": "INBOX"}
+    return parsed
+
+
+def test_il_decreto_ingiuntivo_notificato_apre_i_40_giorni_dal_perfezionamento():
+    from pct.pec_pipeline import build_validation_report
+
+    report = build_validation_report(_pec("Si notifica il decreto ingiuntivo n. 123/2026 del Tribunale di Bari."), [])
+    proposta = report["deadline_proposal"]["legal_deadline_proposal"]
+    # Consegna il 31/07 alle 22:10 → perfezionata il 01/08; agosto sospeso; 40° giorno sabato 10/10 → lunedì 12/10.
+    assert proposta["ok"] is True and proposta["norma"] == "art. 641 c.p.c."
+    assert proposta["dies_a_quo_date"] == "2026-08-01" and proposta["deadline"] == "2026-10-12"
+
+
+def test_la_stessa_pec_inviata_dallo_studio_resta_una_notifica_in_uscita():
+    from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
+
+    parsed = _pec("Si notifica il decreto ingiuntivo n. 123/2026.", mittente="studio@pec.it")
+    assert proposta_notifica_ricevuta(parsed, consegna_iso="2026-07-31T20:10:05Z") is None
+
+
+def test_notifica_ricevuta_con_atto_non_riconosciuto_o_senza_data_resta_da_verificare():
+    from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
+
+    assert proposta_notifica_ricevuta(_pec("Si notifica l'atto allegato."), consegna_iso="2026-07-31T20:10:05Z")["ok"] is False
+    assert proposta_notifica_ricevuta(_pec("decreto ingiuntivo"), consegna_iso="")["ok"] is False
+    assert proposta_notifica_ricevuta(_pec("decreto ingiuntivo", oggetto="Trasmissione atti"), consegna_iso="x") is None
+
+
+def test_in_materia_di_lavoro_niente_sospensione_feriale_e_il_precetto_porta_anche_il_secondo_termine():
+    from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
+
+    lavoro = proposta_notifica_ricevuta(
+        _pec("Sezione Lavoro - si notifica la sentenza del Tribunale di Bari in materia di lavoro."),
+        consegna_iso="2026-07-10T08:00:00Z",
+    )
+    assert lavoro["deadline"] == "2026-08-10"  # 30 giorni senza agosto sospeso: domenica 09/08 → lunedì 10/08
+    precetto = proposta_notifica_ricevuta(_pec("ATTO DI PRECETTO"), consegna_iso="2026-03-02T08:00:00Z")
+    assert [t["codice_termine"] for t in precetto["altri_termini"]] == ["opposizione_atti_esecutivi_precetto"]
+
+
+def test_la_notifica_ricevuta_non_resta_in_attesa_di_ricevute_di_consegna():
+    from pct.pec_legal_event_understanding import build_legal_event_understanding
+
+    capito = build_legal_event_understanding(
+        _pec("Si notifica il decreto ingiuntivo n. 123/2026."), {}, dies_a_quo_date="2026-07-31T20:10:05Z",
+    )
+    assert not any(item.get("creates_notification_candidate") for item in capito["notifications"])
+    assert any(item.get("codice_termine") == "opposizione_decreto_ingiuntivo" for item in capito["deadlines"])

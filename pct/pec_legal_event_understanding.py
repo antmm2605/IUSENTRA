@@ -1193,6 +1193,41 @@ def _safe_title(priority: str, classification: dict[str, Any], hearings: list[di
     return f"{priority} - {primary.capitalize()}"
 
 
+def _notifica_l53_ricevuta(headers: dict[str, Any], casella: dict[str, Any] | None) -> bool:
+    from pct.notifiche_ricevute import direzione_notifica, oggetto_di_notifica_l53
+
+    if not casella or not oggetto_di_notifica_l53(_clean(headers.get("subject"))):
+        return False
+    return direzione_notifica(
+        casella=_clean(casella.get("account_email")), mittente=_clean(headers.get("from")),
+        cartella=_clean(casella.get("folder")),
+    ) == "ricevuta"
+
+
+def _termini_notifica_ricevuta(text: str, consegna_iso: str, nomi_allegati: Iterable[str]) -> list[dict[str, Any]]:
+    from pct.notifiche_ricevute import termini_da_notifica_ricevuta
+
+    try:
+        consegna = datetime.fromisoformat(str(consegna_iso or "").replace("Z", "+00:00"))
+    except ValueError:
+        return []
+    return termini_da_notifica_ricevuta(text, consegna=consegna, nomi_allegati=nomi_allegati)
+
+
+def _come_notifica_ricevuta(item: dict[str, Any]) -> dict[str, Any]:
+    """La notifica L. 53 ricevuta non attende RAC e RdAC: è l'atto notificato al cliente."""
+    if item.get("notification_case") != "l53_sent":
+        return item
+    return {
+        **item,
+        "event_type": "notification_l53_received",
+        "notification_case": "l53_received",
+        "creates_notification_candidate": False,
+        "reason": "PEC di notificazione L. 53/1994 ricevuta da un altro difensore: è l'atto notificato al cliente.",
+        "proposed_action": "Verificare la notifica e confermare il termine proposto per la difesa del cliente.",
+    }
+
+
 def build_legal_event_understanding(
     parsed: dict[str, Any],
     report: dict[str, Any] | None = None,
@@ -1200,8 +1235,12 @@ def build_legal_event_understanding(
     dies_a_quo_date: str = "",
     attachments: Iterable[dict[str, Any]] | None = None,
     rulepack: dict[str, Any] | None = None,
+    casella: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Produce il JSON V2 unico per PEC, Lex, audit, agenda e scadenziario.
+
+    ``casella`` (indirizzo e cartella della casella che ha ricevuto il messaggio) distingue la notifica
+    L. 53/1994 inviata dallo studio da quella ricevuta dalla controparte, che apre i termini del cliente.
 
     La funzione non invia PEC, non deposita atti e non calcola termini conclusivi:
     estrae fatti, proposte e rischi con evidenze e revisione umana obbligatoria nei
@@ -1285,6 +1324,9 @@ def build_legal_event_understanding(
         report,
         attachments=operative_attachments,
     )
+    if _notifica_l53_ricevuta(headers, casella or _dict(parsed.get("casella"))):
+        deadlines.extend(_termini_notifica_ricevuta(text, dies_a_quo_date, attachment_names))
+        notifications = [_come_notifica_ricevuta(item) for item in notifications]
     priority = _priority(classification, deadlines, hearings, payments, pct)
     notification_priorities = {str(item.get("priority") or "P3") for item in notifications}
     if "P0" in notification_priorities:

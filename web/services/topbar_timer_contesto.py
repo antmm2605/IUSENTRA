@@ -33,10 +33,11 @@ def nome_cliente(cliente: Any) -> str:
     return _testo(getattr(cliente, "nome_completo", "")) if cliente is not None else ""
 
 
-def collegamenti(case_id: str, client_id: str) -> dict[str, Any]:
+def collegamenti(case_id: str, client_id: str, *, fascicolo: Any = None) -> dict[str, Any]:
     """Nomi leggibili del fascicolo e del cliente collegati a un timer o a una voce."""
 
-    fascicolo = get_fascicoli().get(case_id) if case_id else None
+    if fascicolo is None and case_id:
+        fascicolo = get_fascicoli().get(case_id)
     if fascicolo is not None and not client_id:
         client_id = _testo(getattr(fascicolo, "id_cliente", ""))
     cliente = get_clienti().get(client_id) if client_id else None
@@ -104,9 +105,10 @@ def cerca(testo: str) -> list[dict[str, Any]]:
 def per_identificativo(case_id: str, client_id: str) -> list[dict[str, Any]]:
     """Il fascicolo o il cliente aperto nella pagina, con il nome da mostrare nel timer."""
 
-    info = collegamenti(_testo(case_id), _testo(client_id))
+    # Una sola lettura del fascicolo per richiesta: la barra in alto la chiede su ogni scheda (V21).
+    fascicolo = get_fascicoli().get(_testo(case_id)) if case_id else None
+    info = collegamenti(_testo(case_id), _testo(client_id), fascicolo=fascicolo)
     if case_id and info["caseLabel"]:
-        fascicolo = get_fascicoli().get(case_id)
         return [{"kind": "case", "caseId": case_id, "clientId": _testo(getattr(fascicolo, "id_cliente", "")) or None,
                  "label": info["caseLabel"], "detail": info["clientLabel"] or ""}]
     if client_id and info["clientLabel"]:

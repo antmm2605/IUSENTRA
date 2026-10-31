@@ -1850,6 +1850,15 @@ def _next_hearing_value(fascicolo: Any, apps: Iterable[Any] | None = None) -> st
     return ""
 
 
+def _ruolo_diverso(procedimento: Any, rg_key: str) -> bool:
+    """La voce dichiara un numero di ruolo (numero/anno) diverso da quello del fascicolo."""
+    trovato = re.search(r"(\d{1,7})\s*/\s*(\d{4})", _text(procedimento))
+    atteso = re.search(r"(\d{1,7})\s*/\s*(\d{4})", _text(rg_key))
+    if not trovato or not atteso:
+        return False
+    return (int(trovato.group(1)), trovato.group(2)) != (int(atteso.group(1)), atteso.group(2))
+
+
 def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list[Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     source_external_id = _text(getattr(fascicolo, "source_external_id", ""))
@@ -1860,10 +1869,11 @@ def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list
             source_external_id,
             rg_key,
             f"RG {rg_key}" if rg_key else "",
-            _text(getattr(fascicolo, "numero_rg", "")),
         )
         if value
     }
+    # Il solo numero di ruolo («538») non identifica il procedimento: compare negli hash delle PEC e nei
+    # ruoli di altri anni (verifica del 31/10/2026, V31). Si cercano ruolo completo e identificativi.
     snapshot = getattr(fascicolo, "source_snapshot", None)
     if isinstance(snapshot, dict):
         terms.add(_text(snapshot.get("external_id")))
@@ -1902,7 +1912,10 @@ def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list
                 if _text(value)
             )
         )
-        if direct_match or any(term in haystack for term in normalized_terms):
+        if not direct_match and _ruolo_diverso(getattr(app, "procedimento", ""), rg_key):
+            continue
+        parole = f" {haystack} "
+        if direct_match or any(f" {term} " in parole for term in normalized_terms):
             if app_id and app_id in seen:
                 continue
             seen.add(app_id)
@@ -8269,6 +8282,19 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 path = gestore_fascicoli.percorso_documento_lettura(fid, _text(getattr(doc, "id", "")))
             else:
                 path = gestore_fascicoli.percorso_documento(fid, _text(getattr(doc, "id", "")))
+        except OSError:
+            return fallback
+        except Exception:
+            return {"signed": False, "profile": "", "ready": False, "missing": [], "needs_refresh": False}
+        from web.services.firma_documento_cache import esito_firma
+
+        nomi = tuple(_text(nome) for nome in (*display_names, getattr(doc, "nome", ""), getattr(doc, "nome_originale", ""),
+                                               getattr(doc, "nome_portale", ""), fallback_signed))
+        # Lo stesso file non modificato non si rilegge né si decifra a ogni apertura della scheda (V21).
+        return esito_firma(str(path), nomi, lambda: _signature_state_from_file(doc, path, fallback, display_names))
+
+    def _signature_state_from_file(doc: Any, path: Any, fallback: dict[str, Any], display_names: tuple[Any, ...]) -> dict[str, Any]:
+        try:
             raw_data = Path(path).read_bytes()
             from web.services.document_crypto import decrypt_doc
 

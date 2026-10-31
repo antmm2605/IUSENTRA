@@ -9375,6 +9375,36 @@ class PecAuditRepository:
         suffix = f" [Notifica_ID:{notification_id}]" if notification_id else ""
         return f"{label}: Notificazione ai sensi della legge n. 53 - 1994 e succ. mod.{suffix}"
 
+    def _propaga_fascicolo_alle_voci(self, message_id: str, fascicolo_id: str) -> dict[str, int]:
+        """Agenda e scadenziario: le voci di questa PEC senza fascicolo ricevono quello appena collegato.
+
+        Verifica del 31/10/2026 (V31): la ricezione della comunicazione creava la voce prima del
+        collegamento; la voce restava senza fascicolo e la scheda di un altro fascicolo dello stesso
+        cliente la mostrava. Si completano solo le voci senza fascicolo: mai uno spostamento.
+        """
+        esito = {"agenda": 0, "scadenze": 0}
+        chiave = clean_text(message_id, 180)
+        if not chiave or not fascicolo_id:
+            return esito
+        try:
+            if self.agenda_db_path:
+                agenda = self._agenda_manager()
+                for voce in list(agenda.tutti()):
+                    traccia = f"{getattr(voce, 'external_uid', '') or ''} {getattr(voce, 'note', '') or ''}"
+                    if chiave in traccia and not clean_text(getattr(voce, "id_fascicolo", ""), 120):
+                        agenda.modifica(str(getattr(voce, "id", "")), id_fascicolo=fascicolo_id)
+                        esito["agenda"] += 1
+            if self.scadenziario_db_path:
+                scadenziario = self._scadenziario_manager()
+                for voce in list(scadenziario.tutte(solo_aperte=False)):
+                    traccia = f"{getattr(voce, 'source_message_id', '') or ''} {getattr(voce, 'note', '') or ''}"
+                    if chiave in traccia and not clean_text(getattr(voce, "id_fascicolo", ""), 120):
+                        scadenziario.aggiorna(str(getattr(voce, "id", "")), id_fascicolo=fascicolo_id)
+                        esito["scadenze"] += 1
+        except Exception as exc:  # il completamento non deve fermare il collegamento della PEC
+            logging.getLogger(__name__).warning("Fascicolo non propagato alle voci della PEC %s: %s", chiave, exc)
+        return esito
+
     def _save_court_provvedimento_to_fascicolo(
         self, *, message_id: str, fascicolo_id: str, kind: str, event: str, received_day: str, actor: str,
     ) -> dict[str, Any]:
@@ -10524,6 +10554,8 @@ class PecAuditRepository:
             # Il registro delle letture deve sapere subito che il fascicolo ha una
             # PEC nuova: senza l'evento la lettura aspettava fino a 24 ore.
             _notifica_pec_collegata(fascicolo_id)
+            # Voci d'agenda e scadenze nate dalla PEC prima del collegamento ricevono il fascicolo (V31).
+            self._propaga_fascicolo_alle_voci(message_id, fascicolo_id)
         if fascicolo_id:
             # Il presidio viene materializzato dal job "validate", che gira PRIMA
             # di questo: al suo passaggio il fascicolo non era ancora collegato e

@@ -543,8 +543,12 @@ def test_il_provvedimento_della_comunicazione_entra_nel_fascicolo_una_volta(tmp_
     ), policy=policy.SMTP)
     mime.add_attachment(zip_buffer.getvalue(), maintype="application", subtype="zip", filename="15494079s.pdf.zip")
     message_id = _run_cancelleria(repo, mime.as_bytes(policy=policy.SMTP), "INBOX:UID:381")
+    ricezione = next(item for item in Agenda(str(tmp_path / "agenda.json")).tutti() if message_id in item.external_uid)
+    assert ricezione.id_fascicolo == ""  # la ricezione nasce prima del collegamento
     # Collegamento al fascicolo (in produzione dal ruolo e dalle parti; qui confermato con soglia di prova).
     repo.link_fascicolo(message_id, threshold=0.5, actor="pytest")
+    # V31: la voce nata prima del collegamento riceve il fascicolo.
+    assert next(item for item in Agenda(str(tmp_path / "agenda.json")).tutti() if item.id == ricezione.id).id_fascicolo == fascicolo.id
     repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
 
     def _provvedimenti():

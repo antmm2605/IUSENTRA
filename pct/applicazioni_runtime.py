@@ -591,9 +591,9 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "maggior_danno": {
-        "title": "Maggior danno da svalutazione",
-        "subtitle": "Art. 1224 co. 2 c.c.: rivalutazione ISTAT più interessi legali sulla base scelta.",
-        "submit_label": "Calcola maggior danno",
+        "title": "Rivalutazione e interessi sui crediti di valore",
+        "subtitle": "Cass. SS.UU. 1712/1995: rivalutazione ISTAT più interessi legali compensativi sulla base scelta.",
+        "submit_label": "Calcola rivalutazione e interessi",
         "method": "calcola_maggior_danno",
         "fields": [
             {"name": "md_importo", "label": "Importo", "type": "number", "step": "0.01", "min": "0"},

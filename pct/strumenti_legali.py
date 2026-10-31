@@ -216,7 +216,7 @@ class GestioneStrumentiLegali:
             {"id": "indennita_licenziamento", "title": "Indennità di licenziamento", "subtitle": "Tutele crescenti, piccole imprese e stima delle mensilità riconoscibili.", "icon": "bi-person-x", "categoria": "Lavoro"},
             {"id": "piano_ammortamento", "title": "Piano di Ammortamento", "subtitle": "Metodo francese o italiano, rata, interessi e sviluppo rateale completo.", "icon": "bi-table", "categoria": "Finanza"},
             {"id": "interessi_acconti", "title": "Interessi con acconti", "subtitle": "Imputazione degli acconti prima a interessi e poi a capitale ex art. 1194 c.c.", "icon": "bi-cash-coin", "categoria": "Credito"},
-            {"id": "maggior_danno", "title": "Maggior danno da svalutazione", "subtitle": "Art. 1224 co. 2 c.c.: capitale rivalutato ISTAT più interessi legali del periodo.", "icon": "bi-graph-down-arrow", "categoria": "Credito"},
+            {"id": "maggior_danno", "title": "Rivalutazione e interessi sui crediti di valore", "subtitle": "Cass. SS.UU. 1712/1995: capitale rivalutato ISTAT e interessi legali compensativi anno per anno.", "icon": "bi-graph-down-arrow", "categoria": "Credito"},
             {"id": "crediti_lavoro", "title": "Crediti di lavoro: rivalutazione e interessi", "subtitle": "Art. 429 co. 3 c.p.c. con divieto di cumulo per il pubblico impiego (art. 22 co. 36 L. 724/1994).", "icon": "bi-briefcase-fill", "categoria": "Lavoro"},
             {"id": "danno_parentale", "title": "Danno da perdita parentale", "subtitle": "Tabelle integrate a punti Milano 2024, con i cinque parametri di Cass. 10579/2021.", "icon": "bi-people", "categoria": "Danni"},
             {"id": "danno_premorienza", "title": "Danno da premorienza", "subtitle": "Menomazione permanente e morte per causa diversa prima della liquidazione (Milano 2024).", "icon": "bi-hourglass", "categoria": "Danni"},
@@ -608,7 +608,7 @@ class GestioneStrumentiLegali:
             "acc_data_inizio": today,
             "acc_data_fine": today,
             "acc_acconti": "",
-            # Maggior danno da svalutazione
+            # Rivalutazione e interessi sui crediti di valore
             "md_importo": prefill.get("valore_causa", ""),
             "md_tipo_indice": "foi",
             "md_base_interessi": "rivalutato_annuale",

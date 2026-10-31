@@ -3,7 +3,7 @@
 Ogni modulo copre una materia con base normativa dichiarata nel docstring:
 
 - ``interessi_acconti``: imputazione degli acconti ex art. 1194 c.c.
-- ``maggior_danno``: maggior danno da svalutazione ex art. 1224, comma 2, c.c.
+- ``maggior_danno``: rivalutazione e interessi compensativi sui crediti di valore (Cass. SS.UU. 1712/1995).
 - ``danno_biologico``: liquidazione del danno biologico sulle tabelle vigenti
   (art. 139 D.Lgs. 209/2005, tabella unica nazionale del D.P.R. 12/2025,
   tabelle milanesi edizione 2024).

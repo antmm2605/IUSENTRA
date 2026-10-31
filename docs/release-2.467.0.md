@@ -29,8 +29,11 @@ Rilascio nato dalla verifica sulle PEC reali e sui fascicoli collegati (registro
   (D.M. MIMIT 10/12/2025 e 28/09/2026) e riproduce tutte le celle pubblicate nell'allegato II;
   usufrutto con il saggio minimo del 2,5%. Entrambi sono ora fra i collaudati usati da Lex.
 - Lex assegna date, età, punti e giorni al campo che la domanda nomina; un numero ambiguo lo chiede.
+- Il «Maggior danno da svalutazione» diventa «Rivalutazione e interessi sui crediti di valore»
+  (Cass. SS.UU. 1712/1995), con la variazione ISTAT a un decimale e l'avviso sui debiti di valuta
+  (art. 1224, c. 2, c.c.; Cass. SS.UU. 19499/2008). È fra i collaudati usati da Lex.
 - Restano esclusi da Lex finché non c'è la fonte ufficiale o una formula di legge: Cassa Forense,
-  maggior danno, assegno di mantenimento, lite temeraria, uffici competenti.
+  assegno di mantenimento, lite temeraria, uffici competenti.
 
 ## Udienze passate e agenda del fascicolo (V28, V40)
 

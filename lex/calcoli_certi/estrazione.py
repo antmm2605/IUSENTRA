@@ -6,6 +6,8 @@
   importo, canone, retribuzione…), poi ai successivi;
 - scelte: l'opzione il cui nome compare nella domanda; se non compare si usa la
   prima del modulo e la risposta lo dichiara come ipotesi da correggere;
+- mesi: «da gennaio 2024 a marzo 2025» (o 01/2024 e 03/2025) vanno ai campi
+  anno/mese iniziali e finali, solo se nella domanda ci sono esattamente due mesi;
 - età, punti di invalidità e giorni: solo se la domanda li nomina in modo univoco
   («età 30 anni», «10 punti», «20 giorni di inabilità totale»); un numero che
   potrebbe andare a due campi resta fuori e lo chiede il calcolatore.
@@ -31,6 +33,9 @@ _PERCENTUALE = re.compile(r"percentual|tasso|aliquota|invalidit|%")
 _ETA = (re.compile(r"\beta\b[^\d,;.]{0,15}?(\d{1,3})\b"), re.compile(r"\b(\d{1,3})\s*anni\s*(?:di|d')\s*eta\b"))
 _PUNTI = re.compile(r"\b(\d{1,3}(?:,\d+)?)\s*punt[io]\b")
 _GIORNI = r"\b(\d{1,4})\s*(?:gg|giorni)\b"
+_MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
+         "ottobre", "novembre", "dicembre")
+_MESE_ANNO = re.compile(r"\b(" + "|".join(_MESI) + r")\s+(\d{4})\b|(?<![\d/])(\d{1,2})/(\d{4})\b")
 _GENERICHE = {"giorni", "di", "del", "della", "per", "art", "inabilita", "durata", "in"}
 
 
@@ -65,9 +70,10 @@ def _visibile(campo: dict[str, Any], valori: dict[str, str], campi: list[dict[st
 def estrai(domanda: str, campi: list[dict[str, Any]]) -> DatiEstratti:
     testo = _norm(domanda)
     esito = DatiEstratti()
+    _assegna_mesi(testo, campi, esito)
     # 1. scelte: prima, perché decidono quali altri campi sono visibili
     for campo in campi:
-        if campo.get("type") != "select" or not campo.get("options"):
+        if campo.get("type") != "select" or not campo.get("options") or campo["name"] in esito.valori:
             continue
         opzioni = campo["options"]
         trovata = next((o for o in opzioni if _norm(o.get("label", "")) and _norm(o.get("label", "")) in testo), None)
@@ -95,6 +101,23 @@ def estrai(domanda: str, campi: list[dict[str, Any]]) -> DatiEstratti:
         esito.valori[campo["name"]] = valore
     _numeri_nominati(testo, visibili, esito)
     return esito
+
+
+def _assegna_mesi(testo: str, campi: list[dict[str, Any]], esito: DatiEstratti) -> None:
+    nomi = {c["name"] for c in campi}
+    prefisso = next((n[: -len("anno_base")] for n in nomi if n.endswith("anno_base")), None)
+    if prefisso is None or not {f"{prefisso}{s}" for s in ("mese_base", "anno_fine", "mese_fine")} <= nomi:
+        return
+    mesi = []
+    for m in _MESE_ANNO.finditer(testo):
+        mese = _MESI.index(m.group(1)) + 1 if m.group(1) else int(m.group(3))
+        if 1 <= mese <= 12:
+            mesi.append((mese, m.group(2) or m.group(4)))
+    if len(mesi) != 2:
+        return
+    for (mese, anno), fine in zip(mesi, ("base", "fine")):
+        esito.valori[f"{prefisso}anno_{fine}"] = anno
+        esito.valori[f"{prefisso}mese_{fine}"] = str(mese)
 
 
 def _parole_chiave(campo: dict[str, Any]) -> list[str]:

@@ -18,6 +18,7 @@ SINONIMI: dict[str, tuple[str, ...]] = {
     "prescrizione": ("prescrizione civile", "si prescrive", "prescritto"),
     "prescrizione_penale": ("prescrizione del reato", "prescrizione penale"),
     "danno_biologico": ("danno biologico", "punti di invalidita", "micropermanenti"),
+    "maggior_danno": ("credito di valore", "crediti di valore", "interessi compensativi"),
     "tfr": ("tfr", "trattamento di fine rapporto"),
     "onorari_forensi": ("compenso dell'avvocato", "parametri forensi", "dm 55/2014", "d.m. 55/2014"),
     "indennita_mediazione": ("indennita di mediazione", "spese di mediazione"),

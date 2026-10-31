@@ -103,3 +103,21 @@ def test_lex_calcola_il_danno_biologico_con_la_tavola_vigente():
     # cella dell'allegato II del D.M. 28/09/2026 (10 punti, 7 anni) e tabella 2.A
     assert "€ 26.468,00" in esito.testo and "Totale: **€ 32.026,00**" in esito.testo
     assert esito.testo.index("Totale") < esito.testo.index("Età")
+
+
+def test_mesi_iniziale_e_finale_dalla_domanda():
+    campi = schema_calcolatore("rivalutazione_istat")["campi"]
+    dati = estrai("rivaluta 1.000 euro da gennaio 2020 a 01/2025", campi)
+    assert (dati.valori["riv_anno_base"], dati.valori["riv_mese_base"]) == ("2020", "1")
+    assert (dati.valori["riv_anno_fine"], dati.valori["riv_mese_fine"]) == ("2025", "1")
+    assert "riv_mese_base" not in estrai("rivaluta 1.000 euro da gennaio 2020", campi).valori
+
+
+def test_lex_calcola_il_credito_di_valore_con_gli_interessi_compensativi():
+    esito = risposta_calcolatore(
+        "calcola rivalutazione e interessi compensativi sul credito di valore di 10.000 euro "
+        "da gennaio 2024 a gennaio 2025",
+        GestioneStrumentiLegali,
+    )
+    assert esito is not None and esito.tipo == "calcolatore:maggior_danno"
+    assert "€ 10.130,00" in esito.testo and "1224" in esito.testo

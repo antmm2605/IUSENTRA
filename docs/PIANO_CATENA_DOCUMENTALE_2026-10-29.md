@@ -588,3 +588,15 @@ Contesto del modello: `lex/settings.py` (`num_ctx` 8192, risposta 700 token). Ta
 | Seconda lettura del catalogo `catalog_lex.py` | 4.000 caratteri (voluto: intestazione e titolo) | classificazione |
 
 Soluzione (punto 6): un solo lettore a parti, sul modello di `lex/procedura_atti/lettura_fonti.prepara_letture` (che misura il prompt reale, legge parti contigue, registra l'impronta di ogni parte e non taglia mai): se il testo sta nel contesto passa intero; altrimenti si divide in parti contigue senza perdite (`bounded_text_chunks`), ciascuna letta dal modello entro il budget, e i risultati si uniscono con la parte di provenienza. L'estrattore non si ferma più a 15 pagine. Una parte non letta lascia il documento «letto in parte» con l'indicazione della parte mancante. La classificazione resta sull'intestazione (scelta voluta). Nessun prompt supera più il contesto senza saperlo.
+
+### 9.7 Avanzamento del punto 2 (31/10/2026)
+
+Fatto, con test:
+- RT pagoPA: si registra solo la quota «contributo unificato», l'art. 30 a parte; pagamenti frazionati sommati per IUV, nessun doppio conteggio (`pct/contributo_quote.py`, `ricevuta_pagopa_runtime.voce_contributo_da_ricevuta`); anche l'economia della sentenza legge la sola quota.
+- Avviso o promemoria pagoPA non vale come pagamento (`contributo_ricevuta_di_pagamento_eseguito`).
+- Patrocinio a spese dello Stato: contributo prenotato a debito, non esente (art. 131).
+- RT pagata prima dell'iscrizione a ruolo: aggancio al fascicolo dallo IUV dell'avviso generato nel fascicolo, solo se univoco.
+- Preventivi: contributo dal calcolatore dell'art. 13 per 25 tipologie (`pct/contributo_preventivo.py`); corretti appello CdS (975, non 1.300) e silenzio/accesso (300, non 325).
+- Registro del contributo del fascicolo (`pct/registro_contributo.py`): dovuto (artt. 13-14), pagato, art. 30, esente, prenotato a debito, insufficiente con differenza (art. 16); esposto nel presidio economico («Contributo dovuto»).
+
+Resta (dopo i punti 3-6): esenzione riconosciuta dal contenuto e non dal nome del file; un solo motore per la sentenza; bridge economico dedicato; il bundle React si ricompila nel passo finale.

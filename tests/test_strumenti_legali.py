@@ -605,7 +605,8 @@ def test_catalogo_moduli_include_nuovi_e_moduli_storici(tmp_path):
     }.issubset(ids)
 
 
-def test_strumenti_legali_index_renderizza_nuovi_moduli(tmp_path):
+def test_strumenti_legali_solo_react_anche_con_legacy_e_post(tmp_path):
+    """La vista Jinja non esiste più: _legacy e i vecchi moduli in POST arrivano alla pagina React."""
     from web.app import create_app
 
     app = create_app(_cfg_web(tmp_path))
@@ -613,17 +614,15 @@ def test_strumenti_legali_index_renderizza_nuovi_moduli(tmp_path):
         login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
         assert login.status_code == 200
 
-        response = client.get("/strumenti-legali/?_legacy=1")
-        body = response.get_data(as_text=True)
+        legacy = client.get("/strumenti-legali/?_legacy=1&tool=interessi")
+        inviato = client.post("/strumenti-legali/", data={"tool": "interessi", "int_capitale": "1000"})
 
-    assert response.status_code == 200
-    assert "TFR" in body
-    assert "Onorari Forensi" in body
-    assert "Custodia Cautelare" in body
-    assert "Piano di Ammortamento" in body
-    assert "Prescrizione civile" in body
-    assert "Danno biologico" in body
-    assert "Imposta di registro" in body
+    assert legacy.status_code == 200
+    corpo = legacy.get_data(as_text=True)
+    assert 'id="root"' in corpo or "react" in corpo.lower()
+    assert "tool-form-grid" not in corpo
+    assert inviato.status_code == 303
+    assert inviato.headers["Location"].endswith("/strumenti-legali/?tool=interessi")
 
 
 # ── Pena, attenuanti e riti alternativi ────────────────────────────────────

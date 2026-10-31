@@ -87,6 +87,14 @@ function CampoModulo({
             </option>
           ))}
         </select>
+      ) : campo.type === 'textarea' ? (
+        <textarea
+          id={id}
+          className="iu-input"
+          rows={5}
+          value={valore}
+          onChange={(event) => onChange(campo.name, event.target.value)}
+        />
       ) : (
         <input
           id={id}

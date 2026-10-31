@@ -4,7 +4,8 @@ import { formatEuroIt } from './formatting'
 export type CampoStrumento = {
   name: string
   label: string
-  type: 'number' | 'select' | 'date' | 'text'
+  /** `textarea`: una voce per riga, celle separate da «;» (bilanci e prospetti delle stime motivate). */
+  type: 'number' | 'select' | 'date' | 'text' | 'textarea'
   value: string
   help?: string
   min?: number

@@ -21,13 +21,10 @@ PAYLOAD_STRUMENTI: Dict[str, Dict[str, str]] = {
         "acc_isa": "0",
     },
     "assegno_mantenimento": {
-        "man_tipo": "figli",
-        "man_reddito_obbligato": "10000",
-        "man_reddito_beneficiario": "10000",
-        "man_figli": "1",
-        "man_collocamento_paritetico": "0",
-        "man_casa_assegnata": "0",
-        "man_durata_matrimonio": "10",
+        "man_percorso": "figli",
+        "mf_reddito_a": "3000",
+        "mf_reddito_b": "1500",
+        "mf_voci": "spese correnti; 800; ordinaria; B\nscuola; 100; ordinaria; A",
     },
     "canone_locazione": {
         "loc_canone": "800",
@@ -259,13 +256,10 @@ PAYLOAD_STRUMENTI: Dict[str, Dict[str, str]] = {
         "irpef_anno": "2026",
     },
     "lite_temeraria": {
+        "lt_presupposti": "sussistono",
         "lt_compenso": "10000",
         "lt_parti": "1",
-        "lt_valore_elevato": "0",
-        "lt_processo_lungo": "0",
-        "lt_piu_parti": "0",
-        "lt_dolo": "0",
-        "lt_affaticamento": "0",
+        "lt_scenario": "base",
     },
     "maggior_danno": {
         "md_importo": "10000",

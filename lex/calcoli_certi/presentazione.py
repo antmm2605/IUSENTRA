@@ -65,22 +65,34 @@ def righe_sintetiche(risultato: dict[str, Any], limite: int = 12) -> list[str]:
     return [riga for _, riga in sorted(righe, key=lambda r: r[0])][:limite]
 
 
-def tabella_dettaglio(risultato: dict[str, Any], massimo: int = 6) -> list[str]:
+def _liste_di_voci(risultato: dict[str, Any]):
+    """Gli elenchi di voci del risultato, anche dentro una sezione (es. «comma 3 → scenari»)."""
     for chiave, valore in risultato.items():
-        if chiave in _NON_SINTETICHE or not isinstance(valore, list) or not valore:
+        if chiave in _NON_SINTETICHE or chiave == "scheda_di_calcolo":
             continue
-        voci = [v for v in valore if isinstance(v, dict)]
-        if len(voci) != len(valore):
-            continue
-        righe = [f"{etichetta(chiave)}:"]
+        if isinstance(valore, list) and valore and all(isinstance(v, dict) for v in valore):
+            yield chiave, valore
+        elif isinstance(valore, dict):
+            for interna, contenuto in valore.items():
+                if isinstance(contenuto, list) and contenuto and all(isinstance(v, dict) for v in contenuto):
+                    yield f"{chiave} {interna}", contenuto
+
+
+def tabella_dettaglio(risultato: dict[str, Any], massimo: int = 6, tabelle: int = 2) -> list[str]:
+    righe: list[str] = []
+    for numero, (chiave, voci) in enumerate(_liste_di_voci(risultato)):
+        if numero >= tabelle:
+            break
+        if righe:
+            righe.append("")
+        righe.append(f"{etichetta(chiave)}:")
         for voce in voci[:massimo]:
             parti = [f"{etichetta(k)} {valore_leggibile(k, v)}" for k, v in voce.items()
                      if not isinstance(v, (dict, list)) and v not in (None, "")]
             righe.append("- " + ", ".join(parti[:6]))
         if len(voci) > massimo:
             righe.append(f"- … altre {len(voci) - massimo} righe nella pagina dello strumento.")
-        return righe
-    return []
+    return righe
 
 
 def testi(risultato: dict[str, Any], chiave: str) -> list[str]:

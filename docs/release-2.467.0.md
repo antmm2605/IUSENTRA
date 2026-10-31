@@ -46,8 +46,12 @@ Rilascio nato dalla verifica sulle PEC reali e sui fascicoli collegati (registro
   corretti i valori 2025 (aliquota 16%, minimi 2.750 e 350 euro, maternità 57,65) e il metodo
   (soglia di copertura, tetto con 3% oltre, minimi ridotti, pensionati, soglia dei 10 euro); la
   maternità 2026 non ancora pubblicata è segnalata e il totale è provvisorio.
-- Restano esclusi da Lex perché la legge non dà una formula (decide il giudice): assegno di
-  mantenimento e lite temeraria.
+- Mantenimento e lite temeraria sono ora stime motivate, non formule: presupposti, conti e valutazioni
+  separati, scheda di calcolo e tre stati (dati insufficienti, stima da verificare, proposta validata).
+  Mantenimento in tre percorsi (figli art. 337-ter, separazione art. 156, divorzio art. 5 L. 898/1970);
+  lite temeraria con comma 3 secondo l'Osservatorio di Milano 2024, prospetto danni dei commi 1-2 e
+  comma 4 a favore della Cassa delle ammende per i procedimenti instaurati dopo il 28/02/2023.
+- Strumenti legali è solo React: la vecchia vista Jinja è stata eliminata.
 
 ## Udienze passate e agenda del fascicolo (V28, V40)
 

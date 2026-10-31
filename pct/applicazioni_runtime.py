@@ -56,6 +56,20 @@ def _tabella_voci(result: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _campi_da_schema(tool_id: str) -> List[Dict[str, Any]]:
+    """I campi di uno strumento presi dallo schema unico dei calcolatori (stessi nomi e scelte)."""
+    from pct.calcolatori.schema import schema_calcolatore
+
+    campi = []
+    for campo in (schema_calcolatore(tool_id) or {}).get("campi", []):
+        voce = {k: v for k, v in campo.items() if k in {"name", "label", "type", "options", "help"} and v not in (None, "")}
+        for chiave in ("min", "max", "step"):
+            if campo.get(chiave) is not None:
+                voce[chiave] = str(campo[chiave])
+        campi.append(voce)
+    return campi
+
+
 TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "uffici_competenti": {
         "title": "Uffici competenti per Comune",
@@ -753,28 +767,11 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "lite_temeraria": {
-        "title": "Lite temeraria — art. 96 comma 3 c.p.c.",
-        "subtitle": "Somma equitativa parametrata al compenso liquidato, criteri Osservatorio Milano 2024.",
-        "submit_label": "Calcola importo",
+        "title": "Lite temeraria — art. 96 c.p.c.",
+        "subtitle": "Stima motivata: scenari del comma 3 (Osservatorio Milano 2024), danni dei commi 1-2 e comma 4 separati.",
+        "submit_label": "Prepara il prospetto",
         "method": "calcola_lite_temeraria",
-        "fields": [
-            {"name": "lt_compenso", "label": "Compenso defensionale liquidato", "type": "number", "step": "0.01", "min": "0"},
-            {"name": "lt_parti", "label": "Parti vittoriose", "type": "number", "step": "1", "min": "1"},
-        ] + [
-            {
-                "name": nome,
-                "label": etichetta,
-                "type": "select",
-                "options": [{"value": "0", "label": "No"}, {"value": "1", "label": "Sì"}],
-            }
-            for nome, etichetta in (
-                ("lt_valore_elevato", "Valore della causa elevato"),
-                ("lt_processo_lungo", "Durata del processo protratta"),
-                ("lt_piu_parti", "Più parti vittoriose subiscono l'abuso"),
-                ("lt_dolo", "Elemento soggettivo particolarmente intenso"),
-                ("lt_affaticamento", "Affaticamento rilevante della parte abusata"),
-            )
-        ],
+        "fields": _campi_da_schema("lite_temeraria"),
     },
     "danno_premorienza": {
         "title": "Danno da premorienza",
@@ -844,43 +841,11 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
         ],
     },
     "assegno_mantenimento": {
-        "title": "Assegno di mantenimento",
-        "subtitle": "Stima orientativa per figli e coniuge su criteri di prassi dichiarati.",
-        "submit_label": "Stima assegno",
+        "title": "Mantenimento: figli, coniuge separato, assegno divorzile",
+        "subtitle": "Stima motivata in tre percorsi, con ipotesi, valutazioni e stato della proposta.",
+        "submit_label": "Prepara la stima motivata",
         "method": "stima_assegno_mantenimento",
-        "fields": [
-            {
-                "name": "man_tipo",
-                "label": "Tipo di assegno",
-                "type": "select",
-                "options": [
-                    {"value": "figli", "label": "Mantenimento figli"},
-                    {"value": "coniuge", "label": "Assegno al coniuge"},
-                ],
-            },
-            {"name": "man_reddito_obbligato", "label": "Reddito mensile obbligato", "type": "number", "step": "0.01", "min": "0"},
-            {"name": "man_reddito_beneficiario", "label": "Reddito mensile beneficiario", "type": "number", "step": "0.01", "min": "0"},
-            {"name": "man_figli", "label": "Numero figli", "type": "number", "step": "1", "min": "0"},
-            {
-                "name": "man_collocamento_paritetico",
-                "label": "Collocamento paritetico",
-                "type": "select",
-                "options": [
-                    {"value": "0", "label": "No"},
-                    {"value": "1", "label": "Sì"},
-                ],
-            },
-            {
-                "name": "man_casa_assegnata",
-                "label": "Casa familiare assegnata",
-                "type": "select",
-                "options": [
-                    {"value": "0", "label": "No"},
-                    {"value": "1", "label": "Sì"},
-                ],
-            },
-            {"name": "man_durata_matrimonio", "label": "Durata matrimonio (anni)", "type": "number", "step": "1", "min": "0"},
-        ],
+        "fields": _campi_da_schema("assegno_mantenimento"),
     },
 }
 
@@ -1337,19 +1302,33 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
                     f"{result.get('quota_perc', 100)}%"),
         ]
     elif tool_id == "lite_temeraria":
+        comma3 = result.get("comma_3") or {}
+        comma4 = result.get("comma_4_cassa_delle_ammende") or {}
         metrics = [
-            _metric("Compenso liquidato", f"{_fmt_money(result.get('compenso'))}"),
-            _metric("Riducibile fino a", f"{_fmt_money(result.get('importo_minimo'))}"),
-            _metric("Aumentabile fino a", f"{_fmt_money(result.get('importo_massimo'))}"),
-            _metric("Proposta sugli indici", f"{_fmt_money(result.get('importo_proposto'))}"),
+            _metric("Stato", str(result.get("stato_label") or "")),
+            _metric("Presupposti", str(result.get("presupposti") or "")),
+            _metric("Comma 3 — scenario scelto", str(comma3.get("scenario_scelto_dall_avvocato") or "non stimato")),
+            _metric("Comma 4 — Cassa delle ammende", str(comma4.get("applicabile") or "")),
         ]
         tables.append(
             {
-                "title": "Indici di graduazione",
-                "headers": ["Indice", "Ricorre"],
+                "title": "Comma 3 — scenari (Osservatorio di Milano 2024)",
+                "headers": ["Scenario", "Coefficiente", "Per parte", "Tutte le parti"],
                 "rows": [
-                    [str(riga.get("label") or ""), "Sì" if riga.get("presente") else "No"]
-                    for riga in list(result.get("indici") or [])
+                    [str(r.get("scenario") or ""), str(r.get("coefficiente") or ""), _fmt_money(r.get("importo_per_parte")),
+                     _fmt_money(r.get("importo_tutte_le_parti"))]
+                    for r in list(comma3.get("scenari") or [])
+                ],
+            }
+        )
+        tables.append(
+            {
+                "title": "Commi 1 e 2 — prospetto dei danni",
+                "headers": ["Voce", "Importo", "Prova", "Collegamento", "Stato"],
+                "rows": [
+                    [str(r.get("voce") or ""), _fmt_money(r.get("importo")) if r.get("importo") is not None else "non quantificabile",
+                     str(r.get("prova") or ""), str(r.get("collegamento_con_la_condotta") or ""), str(r.get("stato") or "")]
+                    for r in list(result.get("prospetto_danni_commi_1_2") or [])
                 ],
             }
         )
@@ -1398,23 +1377,23 @@ def build_tool_result(tool_id: str, result: Mapping[str, Any]) -> Dict[str, Any]
             }
         )
     elif tool_id == "assegno_mantenimento":
+        importo = result.get("trasferimento_di_base_mensile", result.get("differenza_economica_da_esaminare"))
         metrics = [
-            _metric("Tipo", str(result.get("label") or "")),
-            _metric("Stima mensile", f"{_fmt_money(result.get('stima_mensile'))}"),
-            _metric("Stima annua", f"{_fmt_money(result.get('stima_annua'))}"),
+            _metric("Percorso", str(result.get("label") or "")),
+            _metric("Stato", str(result.get("stato_label") or "")),
+            _metric("Risultato del modello", _fmt_money(importo) if importo is not None else "non calcolato",
+                    str(result.get("direzione_trasferimento") or "")),
         ]
+        fascia = result.get("fascia_di_sensibilita") or {}
+        if fascia:
+            metrics.append(_metric("Fascia di sensibilità", f"{_fmt_money(fascia.get('da'))} – {_fmt_money(fascia.get('a'))}",
+                                   str(fascia.get("spiegazione") or "")))
+        scheda = result.get("scheda_di_calcolo") or {}
         tables.append(
             {
-                "title": "Criteri applicati",
-                "headers": ["Criterio", "Dettaglio", "Importo progressivo"],
-                "rows": [
-                    [
-                        str(row.get("label") or ""),
-                        str(row.get("detail") or ""),
-                        f"{_fmt_money(row.get('importo'))}",
-                    ]
-                    for row in list(result.get("criteri") or [])
-                ],
+                "title": "Valutazioni (art. 337-ter c.c., art. 156 c.c., art. 5 L. 898/1970)",
+                "headers": ["Criterio", "Valutazione"],
+                "rows": [[str(r.get("criterio") or ""), str(r.get("valutazione") or "")] for r in list(scheda.get("valutazioni") or [])],
             }
         )
 

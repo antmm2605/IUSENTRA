@@ -247,25 +247,26 @@ class TestQuoteRiserva:
 
 
 class TestAssegnoMantenimento:
-    def test_figli_con_riduzioni(self):
-        pieno = assegno_mantenimento.calcola(
-            {"man_tipo": "figli", "man_reddito_obbligato": "2500", "man_figli": "2"}
-        )
-        paritetico = assegno_mantenimento.calcola(
-            {"man_tipo": "figli", "man_reddito_obbligato": "2500", "man_figli": "2", "man_collocamento_paritetico": "1"}
-        )
-        assert paritetico["stima_mensile"] < pieno["stima_mensile"]
-        assert pieno["stima_annua"] == pytest.approx(pieno["stima_mensile"] * 12, abs=0.01)
+    """Stima motivata in tre percorsi: nessuna percentuale di prassi senza fonte (31/10/2026)."""
 
-    def test_coniuge_senza_divario_stima_zero(self):
-        result = assegno_mantenimento.calcola(
-            {"man_tipo": "coniuge", "man_reddito_obbligato": "2000", "man_reddito_beneficiario": "2500"}
-        )
-        assert result["stima_mensile"] == 0.0
+    def test_figli_riparto_proporzionale_del_bilancio(self):
+        result = assegno_mantenimento.calcola({
+            "man_percorso": "figli", "mf_reddito_a": "3000", "mf_reddito_b": "1500",
+            "mf_voci": "spese correnti; 800; ordinaria; B\nscuola; 100; ordinaria; A",
+        })
+        assert result["trasferimento_di_base_mensile"] == pytest.approx(500.0)
+        assert result["stato"] == "stima_da_verificare"
 
-    def test_avvertenza_di_stima_sempre_presente(self):
-        result = assegno_mantenimento.calcola({"man_tipo": "figli", "man_reddito_obbligato": "2000", "man_figli": "1"})
-        assert any("stima" in warning.lower() for warning in result["warnings"])
+    def test_coniuge_differenza_non_e_l_assegno(self):
+        result = assegno_mantenimento.calcola({
+            "man_percorso": "separazione", "mc_fabbisogno": "1400", "mc_risorse_richiedente": "2500", "mc_addebito": "no",
+        })
+        assert result["differenza_economica_da_esaminare"] == 0.0
+        assert "stima_mensile" not in result
+
+    def test_senza_bilancio_dati_insufficienti(self):
+        result = assegno_mantenimento.calcola({"man_percorso": "figli", "mf_reddito_a": "2000"})
+        assert result["stato"] == "dati_insufficienti"
 
 
 class TestNuoviTerminiProcessuali:
@@ -389,9 +390,10 @@ class TestWiringApplicativo:
             "usufrutto": {"usu_valore_piena": "150000", "usu_eta": "55", "usu_quota_perc": "100"},
             "quote_riserva": {"ris_patrimonio": "500000", "ris_coniuge": "1", "ris_figli": "1"},
             "assegno_mantenimento": {
-                "man_tipo": "figli",
-                "man_reddito_obbligato": "2500",
-                "man_figli": "1",
+                "man_percorso": "figli",
+                "mf_reddito_a": "2500",
+                "mf_reddito_b": "1200",
+                "mf_voci": "spese correnti; 600; ordinaria; B",
             },
         }
         for tool_id, payload in payloads.items():

@@ -98,11 +98,20 @@ def risposta_calcolatore(domanda: str, gestore_factory: Callable[[], Any]) -> Ri
         return None
     if not isinstance(risultato, dict):
         return None
-    righe = [f"**{titolo}** — calcolo del software con le tabelle normative vigenti:", ""]
+    scheda = risultato.get("scheda_di_calcolo") if isinstance(risultato.get("scheda_di_calcolo"), dict) else None
+    if scheda is not None:
+        # Stima motivata: conti sui dati e sulle ipotesi, non un importo stabilito dalla legge.
+        righe = [f"**{titolo}** — stima motivata del software (metodo {scheda.get('metodo', '')}, versione "
+                 f"{scheda.get('versione', '')}): conti sui dati e sulle ipotesi dichiarate, non un importo stabilito dalla legge.", ""]
+    else:
+        righe = [f"**{titolo}** — calcolo del software con le tabelle normative vigenti:", ""]
     righe += presentazione.righe_sintetiche(risultato)
     dettaglio = presentazione.tabella_dettaglio(risultato)
     if dettaglio:
         righe += ["", *dettaglio]
+    da_completare = [str(v) for v in (scheda or {}).get("da_completare") or []]
+    if da_completare:
+        righe += ["", "Da completare prima di una proposta:", *[f"- {v}" for v in da_completare[:6]]]
     if dati.ipotesi:
         righe += ["", "Ho considerato (correggimi se diverso): " + "; ".join(dati.ipotesi) + "."]
     note = presentazione.testi(risultato, "notes")[:4]

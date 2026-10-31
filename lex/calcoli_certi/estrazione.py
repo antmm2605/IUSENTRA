@@ -75,6 +75,8 @@ def estrai(domanda: str, campi: list[dict[str, Any]]) -> DatiEstratti:
     for campo in campi:
         if campo.get("type") != "select" or not campo.get("options") or campo["name"] in esito.valori:
             continue
+        if not _visibile(campo, esito.valori, campi):
+            continue  # una scelta di un altro percorso non è un'ipotesi di questa risposta
         opzioni = campo["options"]
         trovata = next((o for o in opzioni if _norm(o.get("label", "")) and _norm(o.get("label", "")) in testo), None)
         if trovata is None:

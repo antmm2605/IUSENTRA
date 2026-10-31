@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
 from functools import wraps
 
-from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, g, jsonify, redirect, request, url_for
 
 from pct.calcolatori.metodi import TOOL_METHODS  # noqa: F401  (fonte unica nel dominio, usata anche da Lex)
 from pct.strumenti_legali import GestioneStrumentiLegali
@@ -41,15 +40,6 @@ def _gestore_strumenti() -> GestioneStrumentiLegali:
     )
 
 
-def _resolve_context():
-    fascicoli = sorted(get_fascicoli().tutti(archiviati=True), key=lambda f: ((f.data_apertura or ""), f.numero), reverse=True)
-    clienti_map = {c.id: c for c in get_clienti().tutti()}
-    id_fascicolo = request.values.get("id_fascicolo", "").strip()
-    fascicolo_sel = get_fascicoli().get(id_fascicolo) if id_fascicolo else None
-    cliente_sel = clienti_map.get(fascicolo_sel.id_cliente) if fascicolo_sel and fascicolo_sel.id_cliente else None
-    return fascicoli, clienti_map, fascicolo_sel, cliente_sel
-
-
 def _json_result(fn_name: str):
     gestore = _gestore_strumenti()
     payload = request.get_json(silent=True) if request.is_json else request.form
@@ -64,58 +54,17 @@ def _json_result(fn_name: str):
 @strumenti_legali.route("/", methods=["GET", "POST"])
 @_richiedi_login
 def index():
-    gestore = _gestore_strumenti()
-    fascicoli, clienti_map, fascicolo_sel, cliente_sel = _resolve_context()
-    studio = _studio_context()
-    prefill = gestore.build_prefill(
-        fascicolo=fascicolo_sel,
-        cliente=cliente_sel,
-        studio=studio,
-        utente=g.get("utente_corrente"),
-    )
-    form_state = gestore.build_form_state(prefill, request.form if request.method == "POST" else None)
-    active_tool = request.values.get("tool", "").strip() or "contributo_unificato"
-    results = {}
-    onorari_options = gestore.opzioni_onorari_forensi()
-    selected_onorari_fasi = (
-        request.form.getlist("onorari_fasi")
-        if request.method == "POST" and active_tool == "onorari_forensi"
-        else ["STUDIO", "INTRODUTTIVA", "ISTRUTTORIA", "DECISIONALE"]
-    )
+    """La pagina è solo React (richiesta dell'avvocato del 31/10/2026): niente più vista Jinja.
+
+    Anche le finestre storiche con ``_legacy`` o un vecchio modulo inviato in POST ricevono la pagina
+    React; i calcoli passano dalle API ``/strumenti-legali/api/*`` e da ``/api/v1/ui/strumenti-legali``.
+    """
+    from web.blueprints.react_shell import render_react_shell_response
 
     if request.method == "POST":
-        try:
-            fn_name = TOOL_METHODS.get(active_tool)
-            if fn_name:
-                results[active_tool] = getattr(gestore, fn_name)(request.form)
-            else:
-                flash("Strumento richiesto non riconosciuto.", "warning")
-        except ValueError as exc:
-            flash(str(exc), "danger")
-        except Exception as exc:
-            current_app.logger.exception("Errore strumenti_legali.index: %s", exc)
-            flash(f"Errore durante il calcolo: {exc}", "danger")
-
-    return render_template(
-        "strumenti_legali/index.html",
-        oggi=date.today(),
-        fascicoli=fascicoli,
-        clienti_map=clienti_map,
-        fascicolo_sel=fascicolo_sel,
-        cliente_sel=cliente_sel,
-        studio=studio,
-        prefill=prefill,
-        form_state=form_state,
-        active_tool=active_tool,
-        results=results,
-        moduli=gestore.catalogo_moduli(),
-        opzioni_cu=gestore.opzioni_contributo_unificato(),
-        opzioni_cu_valore=gestore.opzioni_valore_contributo_unificato(),
-        opzioni_pena=gestore.opzioni_pena_riti_alternativi(),
-        opzioni_termini=gestore.opzioni_termini_processuali(),
-        onorari_options=onorari_options,
-        selected_onorari_fasi=selected_onorari_fasi,
-    )
+        parametri = {k: v for k, v in request.values.items() if k in {"tool", "id_fascicolo"} and v}
+        return redirect(url_for("strumenti_legali.index", **parametri), code=303)
+    return render_react_shell_response("strumenti-legali")
 
 
 @strumenti_legali.route("/api/prefill/<id_fascicolo>", methods=["GET"])

@@ -51,6 +51,11 @@ def _testo(nome: str, etichetta: str, *, aiuto: str = "") -> CampoSchema:
     return {"name": nome, "label": etichetta, "type": "text", "help": aiuto}
 
 
+def _righe(nome: str, etichetta: str, *, aiuto: str = "") -> CampoSchema:
+    """Testo su più righe: una riga per voce, celle separate da «;»."""
+    return {"name": nome, "label": etichetta, "type": "textarea", "help": aiuto}
+
+
 def _dinamico(nome: str, etichetta: str, sorgente: str, *, aiuto: str = "") -> CampoSchema:
     """Select le cui opzioni vivono già nel dominio e vanno risolte a runtime.
 
@@ -178,15 +183,46 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
         ],
     },
     "assegno_mantenimento": {
-        "azione": "Stima assegno",
+        "azione": "Prepara la stima motivata",
         "campi": [
-            _scelta("man_tipo", "Tipo di assegno", [("figli", "Mantenimento figli"), ("coniuge", "Assegno al coniuge")]),
-            _numero("man_reddito_obbligato", "Reddito mensile obbligato"),
-            _numero("man_reddito_beneficiario", "Reddito mensile beneficiario"),
-            _intero("man_figli", "Numero figli"),
-            _si_no("man_collocamento_paritetico", "Collocamento paritetico"),
-            _si_no("man_casa_assegnata", "Casa familiare assegnata"),
-            _intero("man_durata_matrimonio", "Durata del matrimonio (anni)"),
+            _scelta("man_percorso", "Percorso", [
+                ("figli", "Mantenimento dei figli (art. 337-ter c.c.)"),
+                ("separazione", "Coniuge nella separazione (art. 156 c.c.)"),
+                ("divorzio", "Assegno divorzile (art. 5, c. 6, L. 898/1970)"),
+            ]),
+            _quando(_numero("mf_reddito_a", "Reddito netto mensile del genitore A (con le entrate ricorrenti)"), "man_percorso", "figli"),
+            _quando(_numero("mf_reddito_b", "Reddito netto mensile del genitore B (con le entrate ricorrenti)"), "man_percorso", "figli"),
+            _quando(_righe("mf_voci", "Bilancio del figlio, una voce per riga",
+                           aiuto="descrizione; importo o intervallo (es. 800-1000); ordinaria o straordinaria; A, B o entrambi; documento"),
+                    "man_percorso", "figli"),
+            _quando(_numero("mf_assegno_unico", "Assegno unico mensile (registrato a parte)"), "man_percorso", "figli"),
+            _quando(_scelta("mf_assegno_unico_percettore", "Chi percepisce l'assegno unico", [("", "Non indicato"), ("A", "Genitore A"), ("B", "Genitore B")]), "man_percorso", "figli"),
+            _quando(_testo("mf_patrimonio", "Patrimonio e disponibilità abitative (descrizione, senza redditi presunti)"), "man_percorso", "figli"),
+            _quando(_testo("mf_val_permanenza", "Valutazione: tempi di permanenza presso ciascun genitore"), "man_percorso", "figli"),
+            _quando(_testo("mf_val_abitazione", "Valutazione: situazione abitativa"), "man_percorso", "figli"),
+            _quando(_testo("mf_val_cura", "Valutazione: compiti domestici e di cura"), "man_percorso", "figli"),
+            _quando(_testo("mf_val_esigenze", "Valutazione: esigenze attuali e specifiche del figlio"), "man_percorso", "figli"),
+            _quando(_testo("mf_val_tenore", "Valutazione: tenore di vita in costanza di convivenza"), "man_percorso", "figli"),
+            _quando(_si_no("mf_validata", "Proposta validata dall'avvocato"), "man_percorso", "figli"),
+            _quando(_testo("mf_motivazione", "Motivazione dell'avvocato"), "man_percorso", "figli"),
+            _quando(_scelta("mc_addebito", "Separazione addebitabile al richiedente", [("da_accertare", "Da accertare"), ("no", "No"), ("si", "Sì")]), "man_percorso", "separazione"),
+            _quando(_testo("mc_fabbisogno", "Fabbisogno mensile assunto nel modello (importo o intervallo)",
+                           aiuto="Ricostruito sul tenore di vita (separazione) o sui mezzi adeguati (divorzio); es. 1300-1500"),
+                    "man_percorso", "separazione", "divorzio"),
+            _quando(_numero("mc_risorse_richiedente", "Risorse mensili del richiedente"), "man_percorso", "separazione", "divorzio"),
+            _quando(_numero("mc_reddito_altro", "Reddito mensile dell'altro coniuge"), "man_percorso", "separazione", "divorzio"),
+            _quando(_testo("mc_val_tenore", "Valutazione: tenore di vita matrimoniale e prova"), "man_percorso", "separazione"),
+            _quando(_testo("mc_val_capacita", "Valutazione: capacità lavorativa del richiedente"), "man_percorso", "separazione"),
+            _quando(_testo("mc_val_circostanze", "Valutazione: altre circostanze e redditi dell'obbligato"), "man_percorso", "separazione"),
+            _quando(_intero("mc_durata_matrimonio", "Durata del matrimonio in anni (registrata, senza coefficiente)"), "man_percorso", "divorzio"),
+            _quando(_testo("mc_val_condizioni", "Valutazione: condizioni dei coniugi ed età"), "man_percorso", "divorzio"),
+            _quando(_testo("mc_val_contributo", "Valutazione: contributo alla famiglia e al patrimonio"), "man_percorso", "divorzio"),
+            _quando(_testo("mc_val_prospettive", "Valutazione: prospettive reddituali e rinunce professionali"), "man_percorso", "divorzio"),
+            _quando(_testo("mc_val_ragioni", "Valutazione: ragioni della decisione"), "man_percorso", "divorzio"),
+            _quando(_righe("mc_compensative", "Componente compensativa, una voce per riga",
+                           aiuto="descrizione; importo mensile proposto o intervallo; prova"), "man_percorso", "divorzio"),
+            _quando(_si_no("mc_validata", "Proposta validata dall'avvocato"), "man_percorso", "separazione", "divorzio"),
+            _quando(_testo("mc_motivazione", "Motivazione dell'avvocato"), "man_percorso", "separazione", "divorzio"),
         ],
     },
     "danno_parentale": {
@@ -312,19 +348,27 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
         ],
     },
     "lite_temeraria": {
-        "azione": "Calcola importo",
+        "azione": "Prepara il prospetto",
         "campi": [
-            _numero(
-                "lt_compenso",
-                "Compenso defensionale liquidato",
-                aiuto="Solo il compenso di avvocato, senza rimborso forfettario e accessori.",
-            ),
-            _intero("lt_parti", "Parti vittoriose", minimo=1, aiuto="Numero delle parti che hanno subito l'abuso."),
-            _si_no("lt_valore_elevato", "Valore della causa elevato"),
-            _si_no("lt_processo_lungo", "Durata del processo protratta"),
-            _si_no("lt_piu_parti", "Più parti vittoriose subiscono l'abuso"),
-            _si_no("lt_dolo", "Elemento soggettivo particolarmente intenso"),
-            _si_no("lt_affaticamento", "Affaticamento rilevante della parte abusata"),
+            _scelta("lt_presupposti", "Presupposti dell'abuso (non la sola soccombenza)", [
+                ("da_verificare", "Da verificare"), ("sussistono", "Sussistono (mala fede o colpa grave)"), ("non_sussistono", "Non sussistono"),
+            ]),
+            _data("lt_data_instaurazione", "Data di instaurazione del procedimento", aiuto="Per il comma 4: procedimenti instaurati dopo il 28/02/2023."),
+            _scelta("lt_metodo", "Metodo per il comma 3", [("osservatorio_milano_2024", "Osservatorio di Milano 2024 (compenso × 0,5 / 1 / 1,5)"), ("nessuno", "Nessuna stima del comma 3")]),
+            _numero("lt_compenso", "Compenso difensivo di riferimento",
+                    aiuto="Solo il compenso di avvocato, senza rimborso forfettario e accessori."),
+            _scelta("lt_compenso_origine", "Origine del compenso", [("liquidato", "Liquidato nel provvedimento"), ("ipotizzato", "Ipotizzato per la simulazione")]),
+            _intero("lt_parti", "Parti vittoriose abusate", minimo=1),
+            _si_no("lt_valore_elevato", "Indice: valore della causa"),
+            _si_no("lt_processo_lungo", "Indice: durata del processo"),
+            _si_no("lt_piu_parti", "Indice: più parti vittoriose abusate"),
+            _si_no("lt_dolo", "Indice: intensità dell'elemento soggettivo"),
+            _si_no("lt_affaticamento", "Indice: affaticamento della parte abusata"),
+            _scelta("lt_scenario", "Scenario scelto dall'avvocato", [("", "Non scelto"), ("ridotto", "Ridotto (× 0,5)"), ("base", "Base (× 1)"), ("elevato", "Elevato (× 1,5)")]),
+            _righe("lt_danni", "Danni dei commi 1 e 2, una voce per riga",
+                   aiuto="descrizione; importo o «non quantificabile»; metodo; prova; collegamento con la condotta; incluso, escluso o da verificare"),
+            _si_no("lt_validata", "Proposta validata dall'avvocato"),
+            _testo("lt_motivazione", "Motivazione dell'avvocato"),
         ],
     },
     "danno_premorienza": {

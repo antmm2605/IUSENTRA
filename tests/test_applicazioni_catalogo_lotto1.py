@@ -7,16 +7,13 @@ mai promesse a vuoto nel catalogo.
 
 from __future__ import annotations
 
-import re
-from pathlib import Path
-
 from pct.applicazioni_catalogo import catalogo_applicazioni
+from pct.calcolatori.metodi import TOOL_METHODS
 
 
 def _tools_reali() -> set[str]:
-    testo = Path("web/blueprints/strumenti_legali.py").read_text(encoding="utf-8")
-    blocco = re.search(r"TOOL_METHODS[^=]*=\s*\{(.*?)\}", testo, re.S)
-    return set(re.findall(r'"([a-z_0-9]+)"\s*:', blocco.group(1)))
+    # Fonte unica degli strumenti (usata da pagina, API e Lex): pct/calcolatori/metodi.py.
+    return set(TOOL_METHODS)
 
 
 def test_voci_operative_su_strumenti_puntano_a_tool_esistenti():

@@ -19,6 +19,8 @@ SINONIMI: dict[str, tuple[str, ...]] = {
     "prescrizione_penale": ("prescrizione del reato", "prescrizione penale"),
     "danno_biologico": ("danno biologico", "punti di invalidita", "micropermanenti"),
     "maggior_danno": ("credito di valore", "crediti di valore", "interessi compensativi"),
+    "lite_temeraria": ("lite temeraria", "responsabilita aggravata", "art. 96 c.p.c."),
+    "assegno_mantenimento": ("assegno di mantenimento", "mantenimento del figlio", "mantenimento dei figli", "mantenimento del coniuge", "assegno divorzile"),
     "tfr": ("tfr", "trattamento di fine rapporto"),
     "onorari_forensi": ("compenso dell'avvocato", "parametri forensi", "dm 55/2014", "d.m. 55/2014"),
     "indennita_mediazione": ("indennita di mediazione", "spese di mediazione"),

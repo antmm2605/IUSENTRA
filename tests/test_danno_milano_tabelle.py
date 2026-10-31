@@ -206,32 +206,32 @@ def test_terminale_calcola_i_giorni_dalle_date():
 
 
 def test_esempio_pubblicato_dell_articolo_96_comma_3():
-    """Il documento: compenso 5.000 € → 5.000 €, riducibile a 2.500, aumentabile a 7.500."""
+    """Il documento: compenso 5.000 € → 5.000 €, riducibile a 2.500, aumentabile a 7.500 (tre scenari)."""
     from pct.calcolatori import lite_temeraria
 
-    risultato = lite_temeraria.calcola({"lt_compenso": 5000})
-    assert risultato["importo_base"] == 5_000.00
-    assert risultato["importo_minimo"] == 2_500.00
-    assert risultato["importo_massimo"] == 7_500.00
-    assert risultato["importo_proposto"] == 5_000.00
+    risultato = lite_temeraria.calcola({"lt_compenso": 5000, "lt_presupposti": "sussistono", "lt_scenario": "base"})
+    assert [s["importo_per_parte"] for s in risultato["comma_3"]["scenari"]] == [2_500.00, 5_000.00, 7_500.00]
+    assert risultato["somme_a_favore_della_parte_comma_3"] == 5_000.00
 
 
-def test_gli_indici_di_graduazione_non_superano_il_massimo():
+def test_gli_indici_di_graduazione_non_scelgono_lo_scenario():
+    """Gli indici descrivono l'abuso: la scelta dello scenario resta motivata dall'avvocato."""
     from pct.calcolatori import lite_temeraria
 
     risultato = lite_temeraria.calcola({
-        "lt_compenso": 5000, "lt_valore_elevato": "1", "lt_processo_lungo": "1",
+        "lt_compenso": 5000, "lt_presupposti": "sussistono", "lt_valore_elevato": "1", "lt_processo_lungo": "1",
         "lt_piu_parti": "1", "lt_dolo": "1", "lt_affaticamento": "1",
     })
-    assert risultato["coefficiente"] == 1.5
-    assert risultato["importo_proposto"] == risultato["importo_massimo"]
+    assert risultato["comma_3"]["scenario_scelto_dall_avvocato"] == "non scelto"
+    assert risultato["somme_a_favore_della_parte_comma_3"] is None
+    assert risultato["stato"] == "stima_da_verificare"
 
 
-def test_l_articolo_96_richiede_il_compenso_liquidato():
+def test_senza_compenso_ne_danni_dati_insufficienti():
     from pct.calcolatori import lite_temeraria
 
-    with pytest.raises(ValueError, match="compenso"):
-        lite_temeraria.calcola({"lt_compenso": 0})
+    risultato = lite_temeraria.calcola({"lt_compenso": 0})
+    assert risultato["stato"] == "dati_insufficienti"
 
 
 # ── Consenso informato ───────────────────────────────────────────────────

@@ -154,3 +154,19 @@ def test_endpoint_panoramica_serve_il_quadro_condiviso_e_misura_la_costruzione(t
     assert second.headers["X-IUSENTRA-Cache"] == "HIT"
     assert second.get_json()["cache"]["shared"] is True
     assert revalidate.status_code == 200 and revalidate.get_json()["cache"]["stale"] is False
+
+
+def test_quadro_di_una_versione_precedente_non_viene_mostrato_dopo_il_deploy(monkeypatch):
+    """Verifica del 31/10/2026: dopo il deploy la Panoramica mostrava per ore il quadro della versione sostituita."""
+    import pct
+
+    calls: list[int] = []
+    monkeypatch.setattr(pct, "__version__", "1.0.0")
+    cache.get_dashboard_payload_swr("k1", "utente-a", _builder(calls, "vecchio"), day="2026-09-10")
+    _svuota_cache_worker()
+
+    monkeypatch.setattr(pct, "__version__", "1.0.1")
+    payload, meta = cache.get_dashboard_payload_swr("k1", "utente-a", _builder(calls, "nuovo"), day="2026-09-10")
+    assert payload["value"] == "nuovo"
+    assert meta["hit"] is False and meta.get("stale", False) is False
+    assert calls == [1, 1]

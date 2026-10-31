@@ -65,7 +65,12 @@ def _chiave_invalidazione() -> str:
 
 
 def _entry_key(stable_key: str) -> str:
-    digest = hashlib.sha256(str(stable_key or "default").encode("utf-8")).hexdigest()
+    # La versione fa parte della chiave: dopo un deploy il quadro costruito dalla versione
+    # precedente non si mostra più, nemmeno «in aggiornamento» (verifica del 31/10/2026:
+    # la Panoramica mostrava per ore il quadro della versione sostituita).
+    from pct import __version__
+
+    digest = hashlib.sha256(f"{__version__}|{stable_key or 'default'}".encode()).hexdigest()
     return f"{_KEY_PREFIX}{digest}"
 
 

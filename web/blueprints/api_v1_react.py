@@ -1991,27 +1991,25 @@ def _id_email_presidiate() -> set[str]:
 
 
 def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
-    pec_emails = _safe("pec", lambda: gestore_panoramica(_email_manager).tutte(cartella=CartellaEmail.INBOX), [])
-    ordinary_emails = _safe("email_ordinaria", lambda: gestore_panoramica(_ordinary_email_manager).tutte(cartella=CartellaEmail.INBOX), [])
-    pec_emails = sorted(
-        pec_emails,
-        key=lambda email: _parse_datetime(getattr(email, "timestamp", "")) or datetime.min,
-        reverse=True,
-    )
-    ordinary_emails = sorted(
-        ordinary_emails,
-        key=lambda email: _parse_datetime(getattr(email, "timestamp", "")) or datetime.min,
-        reverse=True,
-    )
+    from web.services.email_storage_runtime import create_email_mailbox as _crea_casella
+    from web.services.react_dashboard_email import quadro_cartella_arrivo
+
+    def _quadro(config_key: str, default: str, factory: Callable[[], Any]) -> tuple[list[Any], set[str]]:
+        # Solo le righe che la Panoramica mostra e gli identificativi dei non letti:
+        # caricare tutta la casella costava circa 2 secondi (verifica di produzione V12).
+        return quadro_cartella_arrivo(
+            _tenant_cfg_value(config_key, default), crea_casella=_crea_casella,
+            gestore_completo=lambda: gestore_panoramica(factory), parse=_parse_datetime, limite=limit,
+        )
+
+    pec_emails, pec_non_lette = _safe("pec", lambda: _quadro("EMAIL_CASELLA_DB", "./email/casella.json", _email_manager), ([], set()))
+    ordinary_emails, _ = _safe("email_ordinaria", lambda: _quadro("EMAIL_ORDINARIA_DB", "./email/ordinaria.json", _ordinary_email_manager), ([], set()))
     pec_rows: list[dict[str, Any]] = []
     mail_rows: list[dict[str, Any]] = []
     # «Da esaminare» = non aperte e non ancora prese in carico dal presidio PEC: le ricevute di
     # accettazione e consegna e le comunicazioni già presidiate non sono lavoro per l'avvocato.
     presidiate = _safe("pec_presidio", _id_email_presidiate, set())
-    pec_unread = sum(
-        1 for email in pec_emails
-        if getattr(email, "stato", "") == StatoEmail.NON_LETTA and str(getattr(email, "id", "") or "") not in presidiate
-    )
+    pec_unread = len(pec_non_lette - presidiate)
     for email in pec_emails:
         unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
         title = getattr(email, "mittente_nome", "") or getattr(email, "mittente", "") or "Mittente non indicato"

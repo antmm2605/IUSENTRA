@@ -162,6 +162,30 @@ class EmailMailboxRepository:
             (self.tenant, self.kind),
         ).fetchone()[0])
 
+    def riepilogo_cartella(self, folder: str = 'INBOX', *, recenti: int = 60) -> dict:
+        """Quadro sintetico di una cartella senza caricare l'intero catalogo.
+
+        Usa solo le colonne indicizzate ``folder``/``read_state``/``message_date``:
+        gli identificativi dei messaggi non letti e i ``recenti`` messaggi più
+        nuovi per data dichiarata (il chiamante riordina per data effettiva).
+        Serve alla Panoramica, che mostra pochi messaggi e un conteggio.
+        """
+        self._assert_initialized()
+        scope = (self.tenant, self.kind, str(folder))
+        non_lette = [
+            str(row[0]) for row in self.db.conn.execute(
+                'SELECT message_key FROM email_mailbox_records '
+                "WHERE tenant_key=? AND mailbox_kind=? AND folder=? AND read_state='NON_LETTA'",
+                scope,
+            ).fetchall()
+        ]
+        righe = self.db.conn.execute(
+            'SELECT payload_json FROM email_mailbox_records WHERE tenant_key=? AND mailbox_kind=? AND folder=? '
+            'ORDER BY message_date DESC, message_key DESC LIMIT ?',
+            scope + (max(1, min(int(recenti), 500)),),
+        ).fetchall()
+        return {'non_lette': non_lette, 'recenti': [json.loads(row[0]) for row in righe]}
+
     def query_records(self, *, ranges=(), direction='', folder='', deposit_status='', limit=50, cursor=None):
         """Pagina SQL consultiva; mai load, deduplicazione, import o salvataggio."""
         self._assert_initialized()

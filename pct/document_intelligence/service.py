@@ -126,9 +126,12 @@ class DocumentAIService:
         fascicoli_repository: Any = None,
         *,
         max_size_bytes: int = DEFAULT_MAX_DOCUMENT_AI_BYTES,
+        identita_cliente: Any = None,
     ):
         self.repository = repository
         self.fascicoli_repository = fascicoli_repository
+        # Nome, codice fiscale e data di nascita del cliente del fascicolo (identità congiunta del catalogo).
+        self.identita_cliente = identita_cliente
         self.max_size_bytes = max_size_bytes
         self.last_upload_result: dict[str, Any] | None = None
 
@@ -376,7 +379,12 @@ class DocumentAIService:
             if fascicolo is not None:
                 from .catalog_pipeline import FascicoloDocumentCatalogPipeline
 
-                catalog = FascicoloDocumentCatalogPipeline(self.repository).run(
+                identita = self.identita_cliente(fascicolo) if callable(self.identita_cliente) else {}
+                catalog = FascicoloDocumentCatalogPipeline(
+                    self.repository, client_name=str(identita.get("nome") or ""), client_id=str(identita.get("id") or ""),
+                    client_tax_code=str(identita.get("codice_fiscale") or ""),
+                    client_birth_date=str(identita.get("data_nascita") or ""),
+                ).run(
                     tenant_id=tenant_id, fascicolo=fascicolo, sources=list(sources or []),
                     actor=user_id_from_context(user_context), process=True,
                 )

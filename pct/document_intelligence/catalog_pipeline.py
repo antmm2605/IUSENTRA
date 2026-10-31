@@ -52,11 +52,13 @@ class FascicoloDocumentCatalogPipeline:
     mirror JSON a fonte dei risultati. L'estrazione viene prima da Document AI.
     """
 
-    def __init__(self, repository: DocumentAIRepository, *, text_provider: Callable[[str], str] | None = None, client_name: str = "", client_id: str = "") -> None:
+    def __init__(self, repository: DocumentAIRepository, *, text_provider: Callable[[str], str] | None = None, client_name: str = "", client_id: str = "", client_tax_code: str = "", client_birth_date: str = "") -> None:
         self.repository = repository
         self.text_provider = text_provider
         self.client_name = client_name
         self.client_id = client_id
+        self.client_tax_code = client_tax_code
+        self.client_birth_date = client_birth_date
 
     def ensure_rule_inventory(self, tenant_id: str) -> str:
         rule_set_id = self.repository.ensure_catalog_rule_set(
@@ -303,6 +305,11 @@ class FascicoloDocumentCatalogPipeline:
             )
             from .catalog_identita_personale import documento_identita_personale
             identity = documento_identita_personale(text, cliente=self.client_name) or {}
+            from .catalog_identita_personale import riscontro_identita
+            check = riscontro_identita(text, codice_fiscale=self.client_tax_code, data_nascita=self.client_birth_date) \
+                if identity.get("titolare") else {}
+            # Identità congiunta: il nome da solo non collega; un codice fiscale diverso esclude il cliente.
+            bound = check.get("esito") == "concorde"
             from hashlib import sha256
             from .catalog_identita_personale import normalizza
             identity_text_hash = sha256(normalizza(text).encode("utf-8")).hexdigest() if identity else ""
@@ -323,8 +330,9 @@ class FascicoloDocumentCatalogPipeline:
                 metadata={
                     "automatic_classification": bool(self.text_provider is not None and resolution.status == "proposed" and resolution.confidence >= 95),
                     "identity_holder": identity.get("titolare", ""),
-                    "identity_binding_verified": bool(identity.get("titolare") and source.metadata.get("identity_binding_verified")),
-                    "identity_client_id": self.client_id if identity.get("titolare") else "",
+                    "identity_binding_verified": bool(identity.get("titolare") and (bound or source.metadata.get("identity_binding_verified"))),
+                    "identity_client_id": self.client_id if identity.get("titolare") and check.get("esito") != "discordante" else "",
+                    "identity_check": check,
                     "identity_type": identity.get("tipo_identita", ""),
                     "identity_content_sha256": identity_text_hash,
                     "reading_source": "archivio_letture" if self.text_provider else "document_ai_sql",

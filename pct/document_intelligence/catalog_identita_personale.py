@@ -240,6 +240,64 @@ def documento_identita_personale(testo: str, *, cliente: str = "") -> dict[str, 
     )
 
 
+_CODICE_FISCALE = re.compile(r"\b[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]\b")
+_DATA = re.compile(r"\b(\d{1,2})[./ -](\d{1,2})[./ -](\d{4})\b")
+_OMOCODIA = dict(zip("LMNPQRSTUV", "0123456789"))
+
+
+def _forma_ordinaria(codice: str) -> str:
+    caratteri = list(codice[:15])
+    for posizione in (6, 7, 9, 10, 12, 13, 14):
+        caratteri[posizione] = _OMOCODIA.get(caratteri[posizione], caratteri[posizione])
+    return "".join(caratteri)
+
+
+def codici_fiscali_letti(testo: str) -> set[str]:
+    """I codici fiscali del testo con carattere di controllo valido (D.M. 23/12/1976)."""
+    from pct.codice_fiscale import _checksum
+
+    trovati = set()
+    for codice in _CODICE_FISCALE.findall(str(testo or "").upper()):
+        try:
+            if _checksum(codice[:15]) == codice[15]:
+                trovati.add(codice)
+        except KeyError:
+            continue
+    return trovati
+
+
+def date_lette(testo: str) -> set[str]:
+    trovate = set()
+    for giorno, mese, anno in _DATA.findall(str(testo or "")):
+        try:
+            from datetime import date
+
+            trovate.add(date(int(anno), int(mese), int(giorno)).isoformat())
+        except ValueError:
+            continue
+    return trovate
+
+
+def riscontro_identita(testo: str, *, codice_fiscale: str = "", data_nascita: str = "") -> dict[str, str]:
+    """Identità congiunta oltre al nome: codice fiscale concordante, o data di nascita se il CF non si legge.
+
+    «concorde» collega il documento al cliente; «discordante» lo esclude con il motivo; «da_verificare»
+    lascia la conferma all'avvocato (art. 18 D.Lgs. 231/2007: identificazione su documento valido).
+    """
+    cf_cliente = str(codice_fiscale or "").strip().upper()
+    letti = codici_fiscali_letti(testo)
+    if cf_cliente and letti:
+        if any(_forma_ordinaria(letto) == _forma_ordinaria(cf_cliente) for letto in letti if len(cf_cliente) == 16):
+            return {"esito": "concorde", "motivo": "codice fiscale del documento uguale a quello della scheda cliente"}
+        return {"esito": "discordante", "motivo": "il codice fiscale letto nel documento è diverso da quello della scheda cliente"}
+    nascita = str(data_nascita or "").strip()[:10]
+    if nascita and nascita in date_lette(testo):
+        return {"esito": "concorde", "motivo": "data di nascita del documento uguale a quella della scheda cliente"}
+    if not cf_cliente and not nascita:
+        return {"esito": "da_verificare", "motivo": "scheda cliente senza codice fiscale né data di nascita"}
+    return {"esito": "da_verificare", "motivo": "codice fiscale e data di nascita non riscontrati nel documento letto"}
+
+
 def documento_identita_dal_nome(nome_file: str) -> str:
     """L'etichetta del documento di riconoscimento se il nome del file lo dice senza ambiguità («Carta d'identità.PDF»)."""
     base = re.sub(r"\.(?:pdf|jpe?g|png|tiff?|p7m|heic)$", "", str(nome_file or "").strip(), flags=re.IGNORECASE)
@@ -255,4 +313,7 @@ def documento_identita_dal_nome(nome_file: str) -> str:
     return "Documento d'identità"
 
 
-__all__ = ["CAMPI", "FONTE", "TIPI", "documento_identita_dal_nome", "documento_identita_personale", "normalizza"]
+__all__ = [
+    "CAMPI", "FONTE", "TIPI", "codici_fiscali_letti", "date_lette", "documento_identita_dal_nome",
+    "documento_identita_personale", "normalizza", "riscontro_identita",
+]

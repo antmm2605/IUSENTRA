@@ -99,7 +99,9 @@ def build_document_ai_service() -> DocumentAIService:
         anchor, structured_db=structured_db,
         initialize_schema=structured_db is None,
     )
-    service = DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size)
+    from web.services.identita_cliente_runtime import identita_del_cliente
+
+    service = DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size, identita_cliente=identita_del_cliente)
     if consultazione:
         g._document_ai_service_consultazione = (key, service)
     return service
@@ -179,14 +181,16 @@ def build_document_catalog_payload(
         else "catalogazione-documentale"
     )
     from web.services.archivio_letture_runtime import testi_indice_archivio
-    from web.helpers import get_clienti
-    client_id = str(getattr(fascicolo, "id_cliente", "") or "")
-    client = get_clienti().get(client_id) if client_id else None
-    client_name = str(getattr(client, "nome_completo", "") or getattr(fascicolo, "nome_cliente", "") or "")
+    from web.services.identita_cliente_runtime import identita_del_cliente
+
+    identita = identita_del_cliente(fascicolo)
     # Le acquisizioni terminano prima della transazione di catalogazione: OCR
     # e impronte possono usare repository verticali con connessioni proprie.
     texts = testi_indice_archivio(fascicolo) if process else {}
-    pipeline = FascicoloDocumentCatalogPipeline(service.repository, text_provider=lambda document_id: texts.get(document_id, ""), client_name=client_name, client_id=client_id)
+    pipeline = FascicoloDocumentCatalogPipeline(
+        service.repository, text_provider=lambda document_id: texts.get(document_id, ""), client_name=identita["nome"],
+        client_id=identita["id"], client_tax_code=identita["codice_fiscale"], client_birth_date=identita["data_nascita"],
+    )
     run = pipeline.run(
         tenant_id=tenant_id,
         fascicolo=fascicolo,

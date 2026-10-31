@@ -43,7 +43,7 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.10.29.catalogo-fascicolo.v31-titolo-prima-del-corpo-ocr"
+RESOLVER_VERSION = "2026.10.31.catalogo-fascicolo.v32-identita-congiunta"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.

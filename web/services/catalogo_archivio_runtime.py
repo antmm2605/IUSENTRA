@@ -105,8 +105,12 @@ def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, appli
             precedente = repository.get_catalog_assignment(tenant, fascicolo.id, source.source_id, document_sha256=source.sha256)
             if precedente is not None:
                 precedenti[source.source_id] = precedente
+    from web.services.identita_cliente_runtime import identita_del_cliente
+
+    identita = identita_del_cliente(fascicolo)
     pipeline = FascicoloDocumentCatalogPipeline(repository, text_provider=lambda doc_id: texts.get(doc_id, ''),
-        client_name=_text(getattr(fascicolo, 'nome_cliente', '')), client_id=_text(getattr(fascicolo, 'id_cliente', '')))
+        client_name=identita['nome'], client_id=identita['id'], client_tax_code=identita['codice_fiscale'],
+        client_birth_date=identita['data_nascita'])
     run = pipeline.run(tenant_id=tenant, fascicolo=fascicolo, sources=sources, actor=actor, process=True, retry=retry)
     report['run'] = run.to_dict()
     report['status'] = 'error' if run.errors else ('updated' if run.processed else 'unchanged')

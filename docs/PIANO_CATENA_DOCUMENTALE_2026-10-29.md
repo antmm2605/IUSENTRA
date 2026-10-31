@@ -497,6 +497,8 @@ Riassunto dettato dall'avvocato perché nessuna sessione lo perda. Ogni lavoro s
 
 **Trasversale**: tutti i processi vanno analizzati e migliorati per essere veloci, conformi a tutte le norme e intuitivi per l'avvocato. Motori, modelli e acquisizione OCR dei documenti devono essere sincronizzati e collaborare.
 
+**AI locale e documenti grandi** (aggiunto il 31/10/2026): l'AI locale non deve bloccarsi né leggere un documento a metà. Se il documento supera il contesto del modello, il software lo divide da solo in parti (chunk) entro il budget del contesto, le fa leggere tutte nell'ordine e unisce i risultati; nessun taglio silenzioso del testo. Se una parte non si legge, il documento risulta letto in parte, con l'indicazione di quale parte manca, mai come letto per intero.
+
 **Ciò che ancora manca**: un classificatore addestrato sulle etichette certificate (XML di ricevute ed esiti, `Comunicazione.xml`, pagoPA, SdI, tipo atto PST) e sulle decisioni già prese dall'avvocato. Si misura contro le regole, sui dati reali, sul server, e si adotta solo dove riduce gli errori.
 
 **Metodo richiesto**: prima l'analisi di tutta la catena e dei percorsi esistenti, poi un piano di miglioramento su tutto, poi i test che dimostrano un miglioramento significativo. Si implementa solo dopo il via dell'avvocato.

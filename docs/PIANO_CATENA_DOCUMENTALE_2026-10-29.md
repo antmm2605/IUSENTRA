@@ -600,3 +600,14 @@ Fatto, con test:
 - Registro del contributo del fascicolo (`pct/registro_contributo.py`): dovuto (artt. 13-14), pagato, art. 30, esente, prenotato a debito, insufficiente con differenza (art. 16); esposto nel presidio economico («Contributo dovuto»).
 
 Resta (dopo i punti 3-6): esenzione riconosciuta dal contenuto e non dal nome del file; un solo motore per la sentenza; bridge economico dedicato; il bundle React si ricompila nel passo finale.
+
+### 9.8 Agenda senza doppioni: mappa degli scrittori e avanzamento (31/10/2026)
+
+Prima del 31/10 nessuna chiave comune: ogni scrittore usava la propria (marcatore PEC, `ARCHIVIO_FATTO`, uid del calendario, bozza Polisweb) e la stessa udienza vista da due fonti diventava due voci. `EventiUniciRepository` si riempie solo da `riunisci_udienza`, che nessuno chiama.
+
+Regola unica (`pct/agenda_eventi_equivalenti.py`): udienza equivalente = stesso fascicolo o stesso RG, stesso giorno, ora uguale oppure «ora da confermare»; la seconda fonte diventa «Fonte aggiuntiva» della voce esistente e l'ora certa sostituisce il segnaposto. Applicata a:
+- motore PEC (`_sync_pec_deadline_to_agenda`), che ora marca le 09:00 provvisorie come «ora da confermare»;
+- archivio delle letture (`consegna_presidi_runtime._consegna_agenda`): l'ora letta sostituisce il segnaposto della PEC;
+- conferma delle proposte di udienza (Polisweb e cancelleria) e importazione dello storico PDP.
+
+Restano: calendari esterni (confronto di contenuto prima di creare), torre di controllo PEC, procedura guidata di preparazione udienza, memorie 171-ter legate all'id dell'appuntamento (non più duplicate se l'udienza è una sola), indici per fascicolo e data al posto delle scansioni complete.

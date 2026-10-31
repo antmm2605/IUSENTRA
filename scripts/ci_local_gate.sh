@@ -54,20 +54,50 @@ pytest_core_ci() {
   # passo curato. La CI su 2.321.0 non l'aveva mostrato perche' il lint era
   # rosso e gli shard erano stati saltati; appena il lint e' tornato verde il
   # test e' fallito in CI con il gate locale verde.
-  local shard part parts
+  # IUSENTRA_GATE_PARALLELO=N (31/10/2026): N shard insieme, come le macchine
+  # separate della CI, ognuno con la propria cartella temporanea; stessi test,
+  # cambia solo l'ordine. Il gate da solo durava circa 2 ore e mezza.
+  local shard part parts commands=()
   for shard in $(seq 1 10); do
-    printf '  core-%02d/10\n' "$shard"
     parts=$(python3 -c "from scripts.run_pytest_phases import CORE_CI_SUBSHARDS; print(CORE_CI_SUBSHARDS.get($shard, 1))") || return 1
     for part in $(seq 1 "$parts"); do
       if [ "$parts" -gt 1 ]; then
-        python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 \
-          --core-subshard "$part" --core-total-subshards "$parts" --core-subdivide-items --timeout-minutes 5 || return 1
+        commands+=("$shard.$part|--core-shard $shard --core-total-shards 10 --core-subshard $part --core-total-subshards $parts --core-subdivide-items --timeout-minutes 5")
       else
-        python3 scripts/run_pytest_phases.py --core-shard "$shard" --core-total-shards 10 --timeout-minutes 5 || return 1
+        commands+=("$shard.1|--core-shard $shard --core-total-shards 10 --timeout-minutes 5")
       fi
     done
   done
-  return 0
+  local paralleli="${IUSENTRA_GATE_PARALLELO:-1}"
+  if [ "$paralleli" -le 1 ]; then
+    local item
+    for item in "${commands[@]}"; do
+      printf '  core %s\n' "${item%%|*}"
+      # shellcheck disable=SC2086
+      python3 scripts/run_pytest_phases.py ${item#*|} || return 1
+    done
+    return 0
+  fi
+  local cartella esito=0 item etichetta
+  cartella=$(mktemp -d)
+  printf '%s\n' "${commands[@]}" | PY_BIN="$PY_BIN" CARTELLA="$cartella" xargs -P "$paralleli" -I{} bash -c '
+    item="{}"; etichetta="${item%%|*}"; argomenti="${item#*|}"
+    mkdir -p "$CARTELLA/tmp-$etichetta"
+    if TMPDIR="$CARTELLA/tmp-$etichetta" "$PY_BIN" scripts/run_pytest_phases.py $argomenti > "$CARTELLA/core-$etichetta.log" 2>&1; then
+      echo ok > "$CARTELLA/core-$etichetta.esito"
+    else
+      echo fallito > "$CARTELLA/core-$etichetta.esito"
+    fi'
+  for item in "${commands[@]}"; do
+    etichetta="${item%%|*}"
+    printf '  core %s: %s\n' "$etichetta" "$(cat "$cartella/core-$etichetta.esito" 2>/dev/null || echo assente)"
+    if [ "$(cat "$cartella/core-$etichetta.esito" 2>/dev/null)" != "ok" ]; then
+      esito=1
+      tail -40 "$cartella/core-$etichetta.log"
+    fi
+  done
+  rm -rf "$cartella"
+  return "$esito"
 }
 
 PASS=0

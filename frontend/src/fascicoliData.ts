@@ -72,6 +72,32 @@ export type FascicoloProformaPresidio = {
   requiresAction: boolean
 }
 
+export type FascicoloRegistroContributo = {
+  stato: string
+  etichetta: string
+  dovuto: number | null
+  baseDovuto: string
+  pagato: number
+  art30: number
+  differenza: number | null
+  avvisi: string[]
+}
+
+export function normalizeRegistroContributo(value: unknown): FascicoloRegistroContributo {
+  const raw = isRecord(value) ? value : {}
+  const nullableNumber = (item: unknown) => (item === null || item === undefined || item === '' ? null : number(item))
+  return {
+    stato: text(raw.stato),
+    etichetta: text(raw.etichetta),
+    dovuto: nullableNumber(raw.dovuto),
+    baseDovuto: text(raw.base_dovuto ?? raw.baseDovuto),
+    pagato: number(raw.pagato),
+    art30: number(raw.art_30 ?? raw.art30),
+    differenza: nullableNumber(raw.differenza),
+    avvisi: Array.isArray(raw.avvisi) ? raw.avvisi.map((item) => text(item)).filter(Boolean) : [],
+  }
+}
+
 export type FascicoloPaymentSummary = {
   stato: 'completo' | 'parziale' | 'da_presidiare' | 'non_previsto'
   statoLabel: string
@@ -87,6 +113,7 @@ export type FascicoloPaymentSummary = {
   updatedBy: string
   items: Record<FascicoloPaymentKind, FascicoloPaymentItem>
   proformaPresidio: FascicoloProformaPresidio
+  registroContributo: FascicoloRegistroContributo
   analysis: {
     status: string
     statusLabel: string
@@ -1292,6 +1319,7 @@ function createEmptyPaymentSummary(id = ''): FascicoloPaymentSummary {
     updatedAtLabel: '',
     updatedBy: '',
     items,
+    registroContributo: normalizeRegistroContributo(null),
     proformaPresidio: {
       status: 'non_applicabile',
       statusLabel: 'Non ancora dovuta',
@@ -1760,6 +1788,7 @@ export function normalizePaymentSummary(value: unknown, id = ''): FascicoloPayme
     updatedBy: text(value.updatedBy ?? value.updated_by),
     items,
     proformaPresidio: normalizeProformaPresidio(value.proformaPresidio ?? value.proforma_presidio, id),
+    registroContributo: normalizeRegistroContributo(value.registroContributo ?? value.registro_contributo),
     analysis: {
       status: text(analysis.status ?? analysis.stato),
       statusLabel: text(analysis.statusLabel ?? analysis.status_label, 'Da analizzare'),

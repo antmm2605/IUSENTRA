@@ -6169,6 +6169,23 @@ function paymentNote(item: FascicoloPaymentItem): string {
   return [item.metodo, item.documentoFonte, item.note, item.updatedAtLabel].map(cleanDisplayText).filter(Boolean).join(' · ')
 }
 
+function registroContributoRows(registro: FascicoloPaymentSummary['registroContributo']) {
+  if (!registro.stato) return []
+  const euro = (value: number) => value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+  const tone = registro.stato === 'insufficiente' ? 'danger'
+    : registro.stato === 'pagato' || registro.stato === 'esente' || registro.stato === 'prenotato_a_debito' ? 'success'
+      : 'warning'
+  const note = [...registro.avvisi, registro.art30 > 0 ? `Anticipazione forfettaria art. 30: ${euro(registro.art30)}.` : ''].filter(Boolean).join(' ')
+  return [{
+    key: 'registro_contributo',
+    label: 'Contributo dovuto',
+    value: registro.dovuto === null ? 'Da verificare' : euro(registro.dovuto),
+    status: registro.etichetta,
+    tone,
+    note: note || registro.baseDovuto,
+  }]
+}
+
 function economicControlPaymentRow(item: FascicoloPaymentItem, label = item.displayLabel, fallback = 'n.d.') {
   return {
     key: item.kind,
@@ -6374,6 +6391,7 @@ function EconomicControlModal({
       tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning',
       note: contribution.origine || contribution.note || 'Collega ricevuta PagoPA, F23/F24 o documento di esenzione quando disponibile.',
     },
+    ...registroContributoRows(summary.registroContributo),
     economicControlPaymentRow(expenses, 'Spese/esborsi'),
     economicControlPaymentRow(items.fondo_spese, 'Fondo spese'),
     economicControlPaymentRow(items.liquidazione_giudice, 'Liquidazione'),

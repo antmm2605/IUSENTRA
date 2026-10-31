@@ -364,7 +364,7 @@ function PassoAnteprima({
   return (
     <div className="iu-rg-panel">
       <p className="iu-rg-hint">
-        Modello selezionato: <strong>{modelName || anteprima.model.name}</strong>. I campi sotto sono gia' compilati con i dati reali; i mancanti restano evidenziati e puoi completarli ora.
+        Modello selezionato: <strong>{modelName || anteprima.model.name}</strong>. I campi sotto sono già compilati con i dati reali; i mancanti restano evidenziati e puoi completarli ora.
       </p>
       <section aria-label="Campi compilati dai dati reali">
         <h4 className="iu-rg-subtitle"><CheckCircle2 size={16} aria-hidden="true" /> Campi compilati automaticamente ({anteprima.campiTrovati.length})</h4>

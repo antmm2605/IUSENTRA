@@ -2620,7 +2620,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
           <Panel title={isOrdinary ? 'Canale ordinario' : 'Canale PEC'} subtitle="Controllo operativo" icon={isOrdinary ? <Mail size={17} /> : <ShieldCheck size={17} />}>
             <div className="iu-mail-compose-checks">
               <span><CheckCircle2 size={16} /> Invio collegato alla casella selezionata.</span>
-              <span><Paperclip size={16} /> Puoi aggiungere uno o piu allegati prima dell'invio.</span>
+              <span><Paperclip size={16} /> Puoi aggiungere uno o più allegati prima dell'invio.</span>
               <span><CheckCircle2 size={16} /> Rientro automatico in <strong>{isOrdinary ? 'Email ordinaria' : 'Email PEC'}</strong>.</span>
               <span><Settings2 size={16} /> <a href={settingsHref}>{isOrdinary ? 'Configurazione SMTP/IMAP' : 'Configurazione PEC'}</a>.</span>
             </div>

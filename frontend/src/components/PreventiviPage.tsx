@@ -1099,7 +1099,7 @@ function RecordsPanel({ data, onReload, metricFilter }: { data: PreventiviPageDa
     return (
       <EmptyState
         title="Nessun preventivo o incarico in archivio"
-        message="Quando saranno disponibili dati reali, compariranno qui con cliente, fascicolo, stato e importi gia determinati dal sistema."
+        message="Quando saranno disponibili dati reali, compariranno qui con cliente, fascicolo, stato e importi già determinati dal sistema."
         action={<ButtonLink href="/preventivi/wizard" tone="primary">Preventivo guidato</ButtonLink>}
       />
     )

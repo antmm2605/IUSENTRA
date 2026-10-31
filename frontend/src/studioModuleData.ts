@@ -125,7 +125,7 @@ export const studioModules: StudioModuleConfig[] = [
     lexContext: 'compensi-forensi',
     lexLabel: 'Lex aiuta a verificare fase, valore, complessità e coerenza del compenso.',
     kpis: [
-      { label: 'Fonte calcolo', value: 'Parametri', note: 'tariffario e percorso guidato gia presenti', tone: 'primary' },
+      { label: 'Fonte calcolo', value: 'Parametri', note: 'tariffario e percorso guidato già presenti', tone: 'primary' },
       { label: 'Risultato', value: 'Preventivo', note: 'riuso diretto nel percorso incarichi', tone: 'success' },
       { label: 'Controllo', value: 'Registro', note: 'traccia calcolo e log compensi', tone: 'warning' },
     ],

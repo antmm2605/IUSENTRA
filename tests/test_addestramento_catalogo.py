@@ -169,3 +169,17 @@ def test_i_modelli_di_atti_danno_documenti_solo_con_la_voce_riconosciuta_dal_cat
     assert documenti and len(documenti) <= 5
     assert {d.voce for d in documenti} == {"Atto di citazione"}
     assert all(d.origine.startswith("modello_atto:") and "avv. studio prova" in d.testo.lower() for d in documenti)
+
+
+def test_la_voce_si_legge_anche_con_sezione_maiuscole_o_risposta_troncata():
+    """Misura del 31/10/2026: il Qwen di partenza risultava illeggibile al 100% per il formato della voce."""
+    from tools.addestramento_catalogo.dati import NESSUNA_VOCE, leggi_risposta
+
+    voci = {"Sentenza", "Nota di deposito", "Decreto di fissazione udienza"}
+    assert leggi_risposta('{"etichetta": "Sentenza [atti]", "citazione": "x"}', voci)["etichetta"] == "Sentenza"
+    assert leggi_risposta('Risposta: {"etichetta": "nota di deposito"}', voci)["etichetta"] == "Nota di deposito"
+    troncata = '{"etichetta": "Decreto di fissazione udienza", "citazione": "il giudice fissa", "motivo": "il decreto'
+    assert leggi_risposta(troncata, voci)["etichetta"] == "Decreto di fissazione udienza"
+    assert leggi_risposta('{"etichetta": "Nessuna voce del catalogo"}', voci)["etichetta"] == NESSUNA_VOCE
+    # Nessuna voce indovinata per somiglianza.
+    assert leggi_risposta('{"etichetta": "Sentenze"}', voci)["etichetta"] == ""

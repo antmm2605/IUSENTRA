@@ -173,7 +173,7 @@ export function LegalSkillsRunPage() {
                   {can('legal_skills.approva') ? (
                     <Button type="button" variant="outline" onClick={approve} disabled={!result.needs_review}>
                       <CheckCircle2 aria-hidden="true" />
-                      {result.needs_review ? 'Approva risultato' : 'Gia approvato'}
+                      {result.needs_review ? 'Approva risultato' : 'Già approvato'}
                     </Button>
                   ) : null}
                   <Button asChild type="button" variant="outline"><a href={`/legal-skills/runs/${result.run_id}`}>Apri revisione</a></Button>

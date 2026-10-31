@@ -1722,7 +1722,7 @@ export function DocumentEditorPage() {
         link.remove()
         URL.revokeObjectURL(url)
         setPdfAnnotations([])
-        setPdfStatus(`Copia scaricata: ${nome}. L'originale nel fascicolo non e' stato toccato.`)
+        setPdfStatus(`Copia scaricata: ${nome}. L'originale nel fascicolo non è stato toccato.`)
         setStatus({ tone: 'success', label: 'Copia scaricata' })
         return
       }

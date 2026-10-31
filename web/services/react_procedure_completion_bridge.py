@@ -134,7 +134,7 @@ def build_dashboard_payload(service: ProcedureCompletionService, context: dict[s
             "published": sum(1 for card in cards if card.get("status") == "published"),
             "gapsBlocking": sum(1 for gap in gaps if str(gap.get("severita")) == "blocking"),
         },
-        "disclaimer": "Ogni scheda resta una bozza per revisione avvocato finche' non pubblicata.",
+        "disclaimer": "Ogni scheda resta una bozza per revisione avvocato finché non pubblicata.",
     }
 
 

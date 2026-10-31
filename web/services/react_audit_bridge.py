@@ -228,7 +228,7 @@ def build_react_audit_payload(
         {"id": "negati", "label": "Negati", "value": by_result.get("NEGATO", 0), "note": "Tentativi non autorizzati", "tone": "warning"},
         {"id": "errori", "label": "Errori", "value": by_result.get("ERRORE", 0), "note": "Eventi con errore", "tone": "danger"},
         {"id": "attivi", "label": "Risorse attive", "value": int(summary.get("attivi", 0) or 0), "note": "Riconosciute nel database", "tone": "success"},
-        {"id": "storici", "label": "Risorse storiche", "value": int(summary.get("storici", 0) or 0), "note": "Non piu presenti con lo stesso ID", "tone": "warning"},
+        {"id": "storici", "label": "Risorse storiche", "value": int(summary.get("storici", 0) or 0), "note": "Non più presenti con lo stesso ID", "tone": "warning"},
     ]
 
     sections = [
@@ -244,7 +244,7 @@ def build_react_audit_payload(
         },
         {
             "id": "azioni_frequenti",
-            "title": "Azioni piu frequenti",
+            "title": "Azioni più frequenti",
             "kind": "distribution",
             "items": [
                 {"id": f"azione-{index}", "label": label, "value": count, "note": "", "tone": "primary"}

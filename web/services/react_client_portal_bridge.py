@@ -1195,7 +1195,7 @@ def _sync_profile_to_cliente(client_id: str, core: dict[str, str], anagrafica: d
     `Cliente.recapiti`, l'indirizzo in `Cliente.indirizzo_residenza`, la
     scadenza del documento in `Cliente.documento`. La mappa dei campi e i
     metodi giusti del gestore si usano qui; dove la scheda e' vuota si scrive,
-    dove dice gia' qualcosa di diverso non si sovrascrive di nascosto: la
+    dove dice già qualcosa di diverso non si sovrascrive di nascosto: la
     divergenza torna al chiamante, che la segnala allo studio (GDPR art. 16).
 
     Restituisce le divergenze trovate: campo del portale -> (in scheda, dichiarato).

@@ -164,7 +164,7 @@ export function AgendaImportPage() {
           <Panel title="Prima di importare" subtitle="Controlli operativi" icon={<CalendarCheck size={17} />}>
             <div className="iu-agenda-import-checklist">
               <span>Gli eventi vengono mostrati in anteprima prima del salvataggio.</span>
-              <span>Gli orari gia occupati restano presidiati dal controllo dell'agenda.</span>
+              <span>Gli orari già occupati restano presidiati dal controllo dell'agenda.</span>
               <span>Le sorgenti remote possono essere collegate alla sincronizzazione calendari.</span>
             </div>
           </Panel>

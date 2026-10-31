@@ -234,7 +234,7 @@ export function AuditPage() {
               />
             ))}
           </section>
-          <Panel title="Filtri" subtitle="Ricerca locale sui record gia caricati.">
+          <Panel title="Filtri" subtitle="Ricerca locale sui record già caricati.">
             <div className="iu-audit-filters">
               <label className="iu-audit-search">
                 <span>Testo</span>

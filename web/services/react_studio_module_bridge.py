@@ -696,7 +696,7 @@ def _build_fatturazione(get_fatturazione: Callable[[], Any], get_clienti: Callab
             _operation(
                 "nuova-parcella",
                 "Nuova parcella",
-                "Crea una parcella usando il percorso gia' controllato dello studio.",
+                "Crea una parcella usando il percorso già controllato dello studio.",
                 form={
                     "action": "/fatturazione/nuova",
                     "method": "POST",
@@ -811,7 +811,7 @@ def _build_preventivi(
             _operation(
                 "nuovo-preventivo",
                 "Nuovo preventivo",
-                "Crea una proposta economica usando il percorso gia' controllato dello studio.",
+                "Crea una proposta economica usando il percorso già controllato dello studio.",
                 form={
                     "action": "/preventivi/nuovo",
                     "method": "POST",
@@ -836,7 +836,7 @@ def _build_preventivi(
                         _field("note", "Note", "textarea"),
                     ],
                 },
-                warnings=["Il calcolo finale viene eseguito dalla funzione gia' controllata dello studio."],
+                warnings=["Il calcolo finale viene eseguito dalla funzione già controllata dello studio."],
             ),
             _operation(
                 "conferimento-incarico",
@@ -929,7 +929,7 @@ def _build_timesheet(
             _operation(
                 "nuova-attivita",
                 "Nuova attività",
-                "Registra una voce tempo usando il percorso gia' controllato dello studio.",
+                "Registra una voce tempo usando il percorso già controllato dello studio.",
                 form={
                     "action": "/timesheet/nuovo",
                     "method": "POST",
@@ -1238,7 +1238,7 @@ def _build_generic(module_id: str, get_clienti: Callable[[], Any], get_fascicoli
             _operation(
                 module_id,
                 "Funzione operativa",
-                "Questa funzione usa dati reali e azioni gia' collegate.",
+                "Questa funzione usa dati reali e azioni già collegate.",
                 actions=[_action("Apri modulo", f"/{module_id}")],
                 records=[
                     _record(getattr(item, "id", ""), getattr(item, "titolo", "") or getattr(item, "nome_completo", ""), getattr(item, "numero_rg", ""), href=f"/fascicoli/{getattr(item, 'id', '')}")

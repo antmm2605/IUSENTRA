@@ -76,15 +76,39 @@ def voci_del_prefisso(prefisso: str) -> set[str]:
     return {m.group(1).strip() for m in re.finditer(r"(?m)^- (.+?) \[[^\]]+\]$", prefisso)}
 
 
+def _campo(testo: str, nome: str) -> str:
+    """Il valore di un campo anche da un JSON troncato («"etichetta": "…"» completo basta)."""
+    trovato = re.search(rf'"{nome}"\s*:\s*"((?:[^"\\]|\\.)*)"', testo)
+    return trovato.group(1).replace('\\"', '"').strip() if trovato else ""
+
+
+def voce_dell_elenco(etichetta: str, voci: set[str]) -> str:
+    """La voce dell'elenco chiuso scritta dal modello, anche con la sezione «[…]», maiuscole o accenti diversi.
+
+    Solo corrispondenza esatta dopo la normalizzazione: nessuna voce indovinata per somiglianza.
+    """
+    pulita = re.sub(r"\s*\[[^\]]*\]\s*$", "", str(etichetta or "")).strip().strip("«»\"'").strip()
+    if pulita in voci or pulita == NESSUNA_VOCE:
+        return pulita
+    chiave = _normalizza(pulita)
+    for voce in (*voci, NESSUNA_VOCE):
+        if _normalizza(voce) == chiave:
+            return voce
+    return ""
+
+
 def leggi_risposta(testo: str, voci: set[str]) -> dict[str, str]:
     """Il JSON della risposta del modello; voce vuota se fuori dall'elenco chiuso o illeggibile."""
-    corpo = re.search(r"\{.*\}", str(testo or ""), re.DOTALL)
+    testo = str(testo or "")
+    corpo = re.search(r"\{.*\}", testo, re.DOTALL)
     try:
         dati = json.loads(corpo.group(0)) if corpo else {}
     except json.JSONDecodeError:
         dati = {}
-    etichetta = str(dati.get("etichetta") or "").strip()
-    return {"etichetta": etichetta if etichetta in voci or etichetta == NESSUNA_VOCE else "",
+    if not isinstance(dati, dict) or not dati.get("etichetta"):
+        # Risposta troncata o con testo intorno: valgono i campi completi.
+        dati = {campo: _campo(testo, campo) for campo in ("etichetta", "citazione", "motivo")}
+    return {"etichetta": voce_dell_elenco(str(dati.get("etichetta") or ""), voci),
             "citazione": str(dati.get("citazione") or ""), "motivo": str(dati.get("motivo") or "")}
 
 

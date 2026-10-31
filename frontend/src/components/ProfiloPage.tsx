@@ -143,7 +143,7 @@ export function ProfiloPage() {
         <Panel title="Verifica in due passaggi" subtitle="Protezione dell'account personale" icon={<ShieldCheck size={17} />}>
           <div className="iu-profile-2fa">
             <strong>{data.security.twoFactorEnabled ? 'Verifica attiva' : 'Verifica non attiva'}</strong>
-            <span>{data.security.twoFactorEnabled ? 'Ogni accesso puo essere confermato con codice temporaneo.' : 'Aggiungi un codice temporaneo generato dalla tua app di autenticazione.'}</span>
+            <span>{data.security.twoFactorEnabled ? 'Ogni accesso può essere confermato con codice temporaneo.' : 'Aggiungi un codice temporaneo generato dalla tua app di autenticazione.'}</span>
           </div>
 
           {!data.security.twoFactorEnabled && !data.security.setupSecret ? (

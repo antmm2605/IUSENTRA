@@ -56,7 +56,7 @@ export function LexPanel({
       ) : (
         <IusEmptyState
           title="Fonti utilizzate: nessuna fonte disponibile"
-          message="Lex puo aprirsi, ma deve dichiarare il limite prima di generare contenuti legali."
+          message="Lex può aprirsi, ma deve dichiarare il limite prima di generare contenuti legali."
           area="lex"
           tone="warning"
         />

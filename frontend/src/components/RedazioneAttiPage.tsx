@@ -1,3 +1,4 @@
+import { formatDateTimeIt } from '../formatting'
 import { useEffect, useState } from 'react'
 import { BookOpen, BriefcaseBusiness, FileText, RefreshCw, Sparkles } from 'lucide-react'
 import { Badge } from '../ui/Badge'
@@ -64,7 +65,7 @@ function Records({ data }: { data: RedazioneAttiPageData }) {
       ) : (
         <EmptyState
           title="Nessun punto operativo disponibile"
-          message="La pagina resta neutra finche' non sono disponibili collegamenti consultabili."
+          message="La pagina resta neutra finché non sono disponibili collegamenti consultabili."
         />
       )}
     </Panel>
@@ -133,7 +134,7 @@ export function RedazioneAttiPage() {
         <div id="redazione-guidata" tabIndex={-1}><RedazioneGuidataWizard /></div>
         <Records data={data} />
         <aside className="iu-redazione-source iu-od-meta">
-          Stato collegamenti governato - aggiornato {data.generated_at || 'non indicato'}
+          Stato collegamenti governato - aggiornato {formatDateTimeIt(data.generated_at, 'non indicato')}
         </aside>
       </div>
     </Page>

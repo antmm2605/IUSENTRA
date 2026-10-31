@@ -1,3 +1,4 @@
+import { formatDateTimeIt } from '../formatting'
 import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
@@ -3961,7 +3962,7 @@ function TemplateCatalogView() {
           </nav>
         ) : null}
         <aside className="iu-template-source iu-od-meta">
-          Presidio dati: {displaySourceLabel(data.source)} - aggiornato {data.generated_at || 'non indicato'}
+          Presidio dati: {displaySourceLabel(data.source)} - aggiornato {formatDateTimeIt(data.generated_at, 'non indicato')}
         </aside>
       </div>
     </Page>

@@ -1000,7 +1000,7 @@ def build_react_fatturazione_payload(
     if route == "/fatturazione/nuova" and not _can(current_user, "fatturazione.scrivi"):
         warnings.append({
             "code": "permesso_creazione_mancante",
-            "message": "L'utente corrente puo' consultare la pagina ma non creare parcelle.",
+            "message": "L'utente corrente può consultare la pagina ma non creare parcelle.",
         })
 
     raw_query = query if isinstance(query, dict) else {}
@@ -1490,7 +1490,7 @@ def _validate_payload(
     issued_at = _as_date(payload.get("data_emissione"), "data_emissione", errors, required=True)
     due_at = _as_date(payload.get("data_scadenza"), "data_scadenza", errors, required=True)
     if issued_at and due_at and due_at < issued_at:
-        errors["data_scadenza"] = "La scadenza non puo' precedere la data di emissione."
+        errors["data_scadenza"] = "La scadenza non può precedere la data di emissione."
 
     raw_options = payload.get("opzioni_fiscali") or {}
     if not isinstance(raw_options, dict):

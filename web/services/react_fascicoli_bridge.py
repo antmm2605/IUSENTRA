@@ -549,7 +549,7 @@ def _audit_trail(fid: str) -> dict[str, Any]:
                 **fallback,
                 "enabled": bool(diagnostics.get("enabled")),
                 "status": "configuration_required",
-                "message": "Presidio probatorio da configurare: scarico prova non disponibile finche' archiviazione immutabile e firma non sono attive.",
+                "message": "Presidio probatorio da configurare: scarico prova non disponibile finché archiviazione immutabile e firma non sono attive.",
                 "configuration": diagnostics,
             }
         service = current_app.extensions.get("legal_audit_service")

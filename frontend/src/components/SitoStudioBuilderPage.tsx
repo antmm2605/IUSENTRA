@@ -601,7 +601,7 @@ function BuilderLivePreview({
       <header className="iu-builder-preview-head">
         <div>
           <h2>Anteprima live</h2>
-          <p>Spazio anteprima grande e piu leggibile</p>
+          <p>Spazio anteprima grande e più leggibile</p>
         </div>
         <div className="iu-builder-device-tabs" aria-label="Formato anteprima">
           {(['desktop', 'tablet', 'mobile'] as const).map((value) => (
@@ -1019,7 +1019,7 @@ export function SitoStudioBuilderPage() {
             <Field label="Provincia" value={siteDraft.province} onChange={(province) => setSite({ province })} />
           </div>
           <Field label="Logo" value={siteDraft.logoUrl} onChange={(logoUrl) => setSite({ logoUrl })} />
-          <SectionTitle icon={WandSparkles} title="Wizard guidato" subtitle="Prepara pagine e blocchi usando dati reali gia presenti." />
+          <SectionTitle icon={WandSparkles} title="Wizard guidato" subtitle="Prepara pagine e blocchi usando dati reali già presenti." />
           <button className="iu-builder-primary" type="button" onClick={generateSite} disabled={busy}><WandSparkles size={15} /> Genera bozza sito</button>
         </div>
       )
@@ -1102,7 +1102,7 @@ export function SitoStudioBuilderPage() {
     if (activeTab === 'contenuti') {
       return (
         <div className="iu-builder-tab-stack">
-          <SectionTitle icon={Type} title="Testi del blocco" subtitle="La scheda piu usata: modifica testi e pulsanti." />
+          <SectionTitle icon={Type} title="Testi del blocco" subtitle="La scheda più usata: modifica testi e pulsanti." />
           {selectedBlock ? (
             <>
               <ButtonGroup

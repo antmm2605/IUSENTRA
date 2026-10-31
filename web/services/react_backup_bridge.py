@@ -308,7 +308,7 @@ def create_react_backup(
 
     note = _text(payload.get("note", ""))
     if len(note) > 240:
-        errors["note"] = "La nota puo' contenere al massimo 240 caratteri."
+        errors["note"] = "La nota può contenere al massimo 240 caratteri."
     if "<" in note or ">" in note:
         errors["note"] = "La nota non accetta markup."
 
@@ -387,7 +387,7 @@ def verify_react_backup_integrity(
         return _result(
             ok=False,
             message="Backup non verificabile.",
-            errors={"backupId": "La copia indicata non puo' essere verificata."},
+            errors={"backupId": "La copia indicata non può essere verificata."},
         )
 
     updated = manager.get(backup_id) or record

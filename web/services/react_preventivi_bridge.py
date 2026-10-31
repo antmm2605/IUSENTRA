@@ -697,7 +697,7 @@ def _validate_preventivo_payload(payload: dict[str, Any], *, get_clienti: Callab
     issued_at = _as_date(payload.get("data_emissione"), "data_emissione", errors, required=True)
     due_at = _as_date(payload.get("data_scadenza"), "data_scadenza", errors, required=True)
     if issued_at and due_at and due_at < issued_at:
-        errors["data_scadenza"] = "La scadenza non puo' precedere la data di emissione."
+        errors["data_scadenza"] = "La scadenza non può precedere la data di emissione."
     raw_voices = payload.get("voci")
     if not isinstance(raw_voices, list):
         errors["voci"] = "Aggiungi almeno una voce."

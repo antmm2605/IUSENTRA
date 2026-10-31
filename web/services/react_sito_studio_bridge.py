@@ -464,7 +464,7 @@ def build_react_sito_contatti_payload(
         "canLinkClient": can_manage,
         "canLinkMatter": False,
         "canUpdateBookingStatus": can_manage,
-        "unsupportedReason": "Sono abilitate le azioni sicure gia collegate: creazione cliente, collegamento cliente e approvazione o rifiuto prenotazioni.",
+        "unsupportedReason": "Sono abilitate le azioni sicure già collegate: creazione cliente, collegamento cliente e approvazione o rifiuto prenotazioni.",
         "rollback": {
             "label": "Percorso di recupero",
             "href": "/sito-studio/contatti?_legacy=1",
@@ -545,7 +545,7 @@ def link_react_sito_contatto(id_contatto: str, payload: dict[str, Any], *, get_c
         return _mutation_error("Richiesta contatto non trovata.", "id_contatto")
     existing = _text(submission.get("lead_cliente_id"))
     if existing:
-        return {"ok": True, "message": "Cliente gia' collegato alla richiesta.", "errors": {}, "item": _contact(submission)}
+        return {"ok": True, "message": "Cliente già collegato alla richiesta.", "errors": {}, "item": _contact(submission)}
     cliente_id = _text(payload.get("cliente_id"))
     if cliente_id:
         if get_clienti is not None:

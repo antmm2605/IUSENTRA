@@ -10,7 +10,9 @@ il confronto che conta), `banco_inventati` (tutte le voci, documenti inventati m
 incerte: solo i disaccordi con le regole). Escono:
 - `misura.json`: soli conteggi, da riportare;
 - `disaccordi.json`: codici opachi e voci, da riportare sul server per la revisione dell'avvocato;
-- `predizioni.jsonl`: la voce scelta per ogni codice, per il confronto di `banco.py`.
+- `predizioni.jsonl`: la voce scelta per ogni codice, per il confronto di `banco.py`;
+- `risposte_grezze.jsonl`: le risposte integrali, per rianalizzare la lettura senza ripetere la misura
+  (contengono brani pseudonimizzati: restano sul PC e si cancellano con il pacchetto).
 Il modello si adotta nel catalogo solo se sulle decisioni dell'avvocato sbaglia meno delle regole e di Spark.
 """
 
@@ -70,15 +72,19 @@ def main() -> int:
 
         modello = PeftModel.from_pretrained(modello, args.adattatore)
     modello.eval()
+    # Risposte integrali (restano sul PC con il pacchetto): una misura si rianalizza senza ripeterla.
+    grezze: list[dict[str, str]] = []
 
     def rispondi(riga: dict) -> dict[str, str]:
         testo = tokenizer.apply_chat_template(conversazione(prefisso, riga, con_risposta=False), tokenize=False,
                                               add_generation_prompt=True)
         ingresso = tokenizer(testo, return_tensors="pt").to(modello.device)
         with torch.no_grad():
-            uscita = modello.generate(**ingresso, max_new_tokens=220, do_sample=False,
+            uscita = modello.generate(**ingresso, max_new_tokens=400, do_sample=False,
                                       pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id)
-        return leggi_risposta(tokenizer.decode(uscita[0][ingresso["input_ids"].shape[1]:], skip_special_tokens=True), voci)
+        grezza = tokenizer.decode(uscita[0][ingresso["input_ids"].shape[1]:], skip_special_tokens=True)
+        grezze.append({"id": riga["id"], "risposta": grezza})
+        return leggi_risposta(grezza, voci)
 
     args.uscita.mkdir(parents=True, exist_ok=True)
     risultato: dict = {"modello": args.modello, "adattatore": None if args.senza_adattatore else str(args.adattatore),
@@ -104,6 +110,8 @@ def main() -> int:
     (args.uscita / "misura.json").write_text(json.dumps(risultato, ensure_ascii=False, indent=1), encoding="utf-8")
     (args.uscita / "predizioni.jsonl").write_text("\n".join(json.dumps(p, ensure_ascii=False) for p in predizioni),
                                                  encoding="utf-8")
+    (args.uscita / "risposte_grezze.jsonl").write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in grezze),
+                                                      encoding="utf-8")
     (args.uscita / "disaccordi.json").write_text(json.dumps(tutti_disaccordi, ensure_ascii=False, indent=1),
                                                 encoding="utf-8")
     print(f"Misura in {args.uscita / 'misura.json'}", flush=True)

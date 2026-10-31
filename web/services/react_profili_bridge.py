@@ -292,7 +292,7 @@ def update_react_profili_payload(
     denied = _normalise_permission_list(payload.get("deniedPermissions"), "deniedPermissions", errors)
     conflicts = sorted(set(extra) & set(denied))
     if conflicts:
-        errors["permissions"] = f"Un permesso non puo' essere insieme aggiunto e rimosso: {', '.join(conflicts)}."
+        errors["permissions"] = f"Un permesso non può essere insieme aggiunto e rimosso: {', '.join(conflicts)}."
 
     for permission in extra:
         if not _can(current_user, permission):

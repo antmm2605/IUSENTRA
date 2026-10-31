@@ -11,31 +11,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping
 
+from pct.calcolatori.metodi import sorgenti_opzioni  # noqa: F401  (riesportata per gli import esistenti)
 from pct.calcolatori.schema import schema_calcolatore
 
 # Strumenti che non sono un modulo di calcolo ma una pagina propria della shell
 # React: il catalogo li dichiara con `componente`, la pagina monta quel componente.
 COMPONENTI_DEDICATI: frozenset[str] = frozenset({"ocr-documento", "impronta-documenti", "confronta-testi"})
-
-
-def sorgenti_opzioni(gestore: Any) -> Dict[str, List[Dict[str, str]]]:
-    """Cataloghi di opzioni già esposti dal dominio, indicizzati per nome.
-
-    Gli schemi dichiarano ``options_from`` invece di congelare gli elenchi:
-    materie e gradi del D.M. 55/2014 e categorie del contributo unificato
-    restano una fonte sola, quella del gestore.
-    """
-
-    onorari = gestore.opzioni_onorari_forensi()
-    return {
-        "onorari_materie": list(onorari.get("materie", [])),
-        "onorari_gradi": list(onorari.get("gradi", [])),
-        "onorari_complessita": list(onorari.get("complessita", [])),
-        "onorari_fasi": list(onorari.get("fasi", [])),
-        "contributo_unificato_categorie": list(gestore.opzioni_contributo_unificato()),
-        "contributo_unificato_valore": list(gestore.opzioni_valore_contributo_unificato()),
-        "termini_processuali_modelli": list(gestore.opzioni_termini_processuali()),
-    }
 
 
 def _normalizza_opzioni(voci: Iterable[Mapping[str, Any]]) -> List[Dict[str, str]]:

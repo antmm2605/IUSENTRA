@@ -261,6 +261,12 @@ def _risposta_contributo(testo: str, _date: list[date], strumenti: Callable[[], 
     return RispostaCerta("\n".join(righe), [{"title": "D.P.R. 115/2002, art. 13", "url": "https://www.normattiva.it/eli/id/2002/06/15/002G0139/CONSOLIDATED"}], "contributo_unificato")
 
 
+def _gestore_strumenti() -> Any:
+    from pct.strumenti_legali import GestioneStrumentiLegali
+
+    return GestioneStrumentiLegali()
+
+
 def risposta_certa(
     domanda: str,
     *,
@@ -284,6 +290,12 @@ def risposta_certa(
         if esito is not None:
             return esito
     esito = _risposta_contributo(testo, date_, strumenti)
+    if esito is not None:
+        return esito
+    # Tutti gli altri calcolatori collaudati sulla norma (V37): il software calcola, non il modello.
+    from lex.calcoli_certi import risposta_calcolatore
+
+    esito = risposta_calcolatore(domanda, strumenti or _gestore_strumenti)
     if esito is not None:
         return esito
     from lex.testi_ufficiali import risposta_articolo, risposta_sentenza

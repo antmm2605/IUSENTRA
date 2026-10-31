@@ -41,7 +41,7 @@ produzione** = da ricontrollare su app.iusentra.it dopo il deploy; **da fare** =
 | V21 | Scheda fascicolo: circa 25 chiamate all'apertura (una per scheda, anche non aperta): lettura 10,4 s, documenti 7,6 s, provenienza AI 5,9 s; cambio scheda 2-9 s | — | — | **da fare**: caricare ogni scheda quando viene aperta |
 | V22 | Controllo delle modifiche (`sync/revisions`) ogni 2 s anche con la pagina in secondo piano | — | — | **da fare**: sospendere quando la scheda del browser non è visibile |
 | V23 | Pagine lente: Ricerca legale 8,4 s, Servizi telematici 7,5 s, Template atti 6,8 s, Database 8,9 s | — | — | **da analizzare** |
-| V24 | Scadenziario: 658 KB a ogni apertura, di cui 335 KB di calcolatore e 63 KB di guardiano | — | — | **da fare**: calcolatore e guardiano su richiesta |
+| V24 | Scadenziario: 658 KB misurati con una chiamata di prova; la pagina chiede già il calcolatore escluso e scarica 342 KB (72 scadenze, 40 proposte, guardiano 63 KB) | — | rimisura del 31/10 sulla chiamata reale della pagina | **priorità bassa**: il costo vero è il tempo del server (2,1 s, vedi V23) |
 | V25 | Dati tecnici mostrati all'avvocato: JSON grezzo (Audit, Registro attività), dizionario Python (Ricerca legale), date ISO «2026-10-31T14:43:41Z» (Template atti, Redazione atti, Giurisprudenza, Tribunali) | — | — | **da fare** |
 | V26 | Testi in inglese («Failed to fetch», «Mirror: OK», «Calendar Sync», «Open Data») e accenti mancanti («gia», «piu») in circa 50 testi | — | — | **da fare** |
 | V27 | Telefono: campi di ricerca alti 25 px e caselle di spunta 13-18 px; nella lista fascicoli il pulsante copre la terza scadenza e la barra in basso taglia «Ricerca» | — | — | **da fare** |

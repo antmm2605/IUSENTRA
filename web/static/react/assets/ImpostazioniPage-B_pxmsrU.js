@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-C0Nfb_W5.js";export{e as ImpostazioniPage};

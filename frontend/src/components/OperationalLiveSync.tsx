@@ -84,11 +84,21 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
           await navigator.locks.request(`iusentra-live:${sessionKey}`, { ifAvailable: true }, async lock => { if (lock) await request() })
         } else await request()
       } finally {
-        if (active) timer = setTimeout(() => { void poll() }, Math.min(2000 * 2 ** failures, 30000))
+        // Scheda nascosta: niente controllo ogni 2 secondi per nessuno (verifica del 31/10/2026);
+        // al ritorno sulla scheda il controllo riparte subito.
+        const nascosta = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+        if (active) timer = setTimeout(() => { void poll() }, nascosta ? 60000 : Math.min(2000 * 2 ** failures, 30000))
       }
     }
+    const visibile = () => {
+      if (!active || document.visibilityState !== 'visible') return
+      clearTimeout(timer)
+      receivedAt = 0
+      void poll()
+    }
+    document.addEventListener('visibilitychange', visibile)
     void poll()
-    return () => { active = false; clearTimeout(timer); controller?.abort(); channel?.close() }
+    return () => { active = false; clearTimeout(timer); controller?.abort(); channel?.close(); document.removeEventListener('visibilitychange', visibile) }
   }, [enabled, sessionKey])
   if (!error && !failedViews.length) return null
   return <aside className="iu-operational-live-notices" aria-label="Stato della sincronizzazione">

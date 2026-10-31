@@ -20,7 +20,7 @@ from pct.tariffario_catalogo import (
 )
 
 MAX_SYNC_RUNS = 200
-SEED_REVISION = "2026-10-31"
+SEED_REVISION = "2026-10-31b"
 
 
 def _now_iso(now: Optional[datetime] = None) -> str:
@@ -380,15 +380,31 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "interesse_legale_2024": FonteOperativa(
         code="interesse_legale_2024",
-        title="G.U. - saggio interessi legali 2024",
-        url="https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?art.codiceRedazionale=23A00141&art.dataPubblicazioneGazzetta=2023-01-16&art.flagTipoArticolo=0&art.idArticolo=1&art.idGruppo=1&art.idSottoArticolo=1&art.idSottoArticolo1=10&art.progressivo=16&art.versione=1",
-        note="Misura del saggio legale pari al 2,50% dal 1 gennaio 2024.",
+        title="G.U. n. 288/2023 - saggio degli interessi legali dal 1 gennaio 2024",
+        # URL corretto il 31/10/2026: il precedente puntava alla L. 197/2022 (23A00141).
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=23A06669&atto.dataPubblicazioneGazzetta=2023-12-11"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note=(
+            "D.M. MEF 29 novembre 2023: saggio ex art. 1284 c.c. al 2,50% dal 1 gennaio 2024. "
+            "G.U. Serie generale n. 288 dell'11 dicembre 2023 (23A06669). Consultato il 2026-10-31."
+        ),
     ),
     "interesse_legale_2025": FonteOperativa(
         code="interesse_legale_2025",
-        title="G.U. - saggio interessi legali 2025",
-        url="https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?art.codiceRedazionale=012G0252&art.dataPubblicazioneGazzetta=2012-12-29&art.flagTipoArticolo=0&art.idArticolo=1&art.idGruppo=0&art.idSottoArticolo=1&art.idSottoArticolo1=10&art.progressivo=20&art.versione=1",
-        note="Dal 1 gennaio 2025 il saggio legale e pari al 2,00%.",
+        title="G.U. n. 294/2024 - saggio degli interessi legali dal 1 gennaio 2025",
+        # URL corretto il 31/10/2026: il precedente puntava alla L. 228/2012 (012G0252).
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=24A06721&atto.dataPubblicazioneGazzetta=2024-12-16"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note=(
+            "D.M. MEF 10 dicembre 2024: saggio ex art. 1284 c.c. al 2% dal 1 gennaio 2025. "
+            "G.U. Serie generale n. 294 del 16 dicembre 2024 (24A06721). Consultato il 2026-10-31."
+        ),
     ),
     "interesse_legale_2026": FonteOperativa(
         code="interesse_legale_2026",
@@ -667,6 +683,37 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         note="Testo vigente del Codice dei contratti pubblici (in vigore dal 1 luglio 2023), rilevante per studi che assistono in appalti e concessioni.",
     ),
 }
+
+# Serie storiche dei saggi legale (art. 1284 c.c.) e moratorio commerciale
+# (D.Lgs. 231/2002): righe e fonti stanno nel modulo dati versionato
+# ``pct/data/tassi_storici.json``, letto dai testi ufficiali di Gazzetta Ufficiale
+# e Normattiva il 31/10/2026 (regola delle fonti certe). Se il file manca
+# l'import fallisce: niente tabelle tassi senza la loro fonte.
+_TASSI_STORICI_PATH = Path(__file__).resolve().parent / "data" / "tassi_storici.json"
+
+
+def _carica_tassi_storici() -> Dict[str, Any]:
+    dati = json.loads(_TASSI_STORICI_PATH.read_text(encoding="utf-8"))
+    for code, fonte in dict(dati.get("fonti") or {}).items():
+        if code in FONTI_OPERATIVE:
+            raise ValueError(f"Fonte storica duplicata in FONTI_OPERATIVE: {code}")
+        FONTI_OPERATIVE[code] = FonteOperativa(code=code, **fonte)
+    return dati
+
+
+_TASSI_STORICI: Dict[str, Any] = _carica_tassi_storici()
+
+
+def _righe_storiche(table_id: str) -> List[Dict[str, Any]]:
+    return [dict(row) for row in _TASSI_STORICI.get(table_id) or []]
+
+
+def _codici_fonte(rows: Iterable[Mapping[str, Any]], *extra: str) -> List[str]:
+    codici: List[str] = []
+    for code in [*(str(row.get("source_code") or "") for row in rows), *extra]:
+        if code and code not in codici:
+            codici.append(code)
+    return codici
 
 
 def _slug_component(value: str) -> str:
@@ -958,6 +1005,36 @@ def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
 
 
 def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
+    interesse_legale_rows = _righe_storiche("interesse_legale") + [
+        {"start": "2024-01-01", "end": "2024-12-31", "rate": 2.50, "label": "Interesse legale 2024",
+         "source_code": "interesse_legale_2024", "decreto": "D.M. MEF 29 novembre 2023",
+         "gazzetta": "G.U. Serie generale n. 288 dell'11 dicembre 2023 (23A06669)"},
+        {"start": "2025-01-01", "end": "2025-12-31", "rate": 2.00, "label": "Interesse legale 2025",
+         "source_code": "interesse_legale_2025", "decreto": "D.M. MEF 10 dicembre 2024",
+         "gazzetta": "G.U. Serie generale n. 294 del 16 dicembre 2024 (24A06721)"},
+        {"start": "2026-01-01", "end": "2026-12-31", "rate": 1.60, "label": "Interesse legale 2026",
+         "source_code": "interesse_legale_2026", "decreto": "D.M. MEF 10 dicembre 2025",
+         "gazzetta": "G.U. Serie generale n. 289 del 13 dicembre 2025 (25A06705)"},
+    ]
+    _magg_8 = "art. 2, lett. e), D.Lgs. 231/2002 come modificato dal D.Lgs. 192/2012 (+8 punti)"
+    mora_commerciale_rows = _righe_storiche("mora_commerciale") + [
+        {"start": "2025-01-01", "end": "2025-06-30", "rate": 11.15, "reference_rate": 3.15, "maggiorazione": 8.0,
+         "label": "Mora commerciale 1 semestre 2025", "source_code": "mora_231_2025_h1",
+         "comunicato": "Comunicato MEF, G.U. Serie generale n. 63 del 17 marzo 2025 (25A01696)",
+         "norma_maggiorazione": _magg_8},
+        {"start": "2025-07-01", "end": "2025-12-31", "rate": 10.15, "reference_rate": 2.15, "maggiorazione": 8.0,
+         "label": "Mora commerciale 2 semestre 2025", "source_code": "mora_231_2025_h2",
+         "comunicato": "Comunicato MEF, G.U. Serie generale n. 161 del 14 luglio 2025 (25A03971)",
+         "norma_maggiorazione": _magg_8},
+        {"start": "2026-01-01", "end": "2026-06-30", "rate": 10.15, "reference_rate": 2.15, "maggiorazione": 8.0,
+         "label": "Mora commerciale 1 semestre 2026", "source_code": "mora_231_2026_h1",
+         "comunicato": "Comunicato MEF, G.U. Serie generale n. 15 del 20 gennaio 2026 (26A00172)",
+         "norma_maggiorazione": _magg_8},
+        {"start": "2026-07-01", "end": "2026-12-31", "rate": 10.40, "reference_rate": 2.40, "maggiorazione": 8.0,
+         "label": "Mora commerciale 2 semestre 2026", "source_code": "mora_231_2026_h2",
+         "comunicato": "Comunicato MEF, G.U. Serie generale n. 163 del 16 luglio 2026 (26A03514)",
+         "norma_maggiorazione": _magg_8},
+    ]
     definitions = {
         "contributo_unificato_civile": {
             "id": "contributo_unificato_civile",
@@ -1039,36 +1116,46 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "id": "interesse_legale",
             "title": "Interessi legali",
             "category": "tassi",
-            "description": "Saggi di interesse legale articolati per periodo di validita.",
+            "description": (
+                "Saggi di interesse legale ex art. 1284 c.c. per anno solare dal 19/04/1942: "
+                "testo originario (5%), L. 353/1990 (10%), L. 662/1996 (5%) e decreti annuali "
+                "del Ministro del tesoro / dell'economia e delle finanze."
+            ),
             "strategy": "seed_mirror",
-            "source_codes": ["interesse_legale_2024", "interesse_legale_2025", "interesse_legale_2026"],
+            "source_codes": _codici_fonte(interesse_legale_rows),
             "watch_source_ids": ["gazzetta_ufficiale"],
-            "rows": [
-                {"start": "2024-01-01", "end": "2024-12-31", "rate": 2.50, "label": "Interesse legale 2024", "source_code": "interesse_legale_2024"},
-                {"start": "2025-01-01", "end": "2025-12-31", "rate": 2.00, "label": "Interesse legale 2025", "source_code": "interesse_legale_2025"},
-                {"start": "2026-01-01", "end": "2026-12-31", "rate": 1.60, "label": "Interesse legale 2026",
-                 "source_code": "interesse_legale_2026", "decreto": "D.M. MEF 10 dicembre 2025",
-                 "gazzetta": "G.U. Serie generale n. 289 del 13 dicembre 2025 (25A06705)"},
+            "rows": interesse_legale_rows,
+            "notes": [
+                "Una riga per anno solare (giorni effettivi su 365/366); negli anni senza nuovo decreto "
+                "il saggio resta invariato (art. 1284, primo comma, c.c.) e la riga cita il decreto vigente.",
             ],
-            "published_at": "2025-12-31",
-            "effective_from": "2024-01-01",
+            "published_at": "2025-12-13",
+            "effective_from": "1942-04-19",
         },
         "mora_commerciale": {
             "id": "mora_commerciale",
             "title": "Interessi moratori ex D.Lgs. 231/2002",
             "category": "tassi",
-            "description": "Tassi di mora commerciale per semestre con riferimento BCE.",
+            "description": (
+                "Tassi di mora commerciale per semestre: tasso di riferimento BCE comunicato dal MEF in "
+                "Gazzetta Ufficiale maggiorato di 7 punti fino al 31/12/2012 e di 8 punti dal 01/01/2013."
+            ),
             "strategy": "seed_mirror",
-            "source_codes": ["mora_231_2025_h1", "mora_231_2025_h2", "mora_231_2026_h1", "mora_231_2026_h2"],
+            "source_codes": _codici_fonte(
+                mora_commerciale_rows, "dlgs_231_2002_art5_originario", "dlgs_192_2012"
+            ),
             "watch_source_ids": ["gazzetta_ufficiale"],
-            "rows": [
-                {"start": "2025-01-01", "end": "2025-06-30", "rate": 11.15, "reference_rate": 3.15, "label": "Mora commerciale 1 semestre 2025", "source_code": "mora_231_2025_h1"},
-                {"start": "2025-07-01", "end": "2025-12-31", "rate": 10.15, "reference_rate": 2.15, "label": "Mora commerciale 2 semestre 2025", "source_code": "mora_231_2025_h2"},
-                {"start": "2026-01-01", "end": "2026-06-30", "rate": 10.15, "reference_rate": 2.15, "label": "Mora commerciale 1 semestre 2026", "source_code": "mora_231_2026_h1"},
-                {"start": "2026-07-01", "end": "2026-12-31", "rate": 10.40, "reference_rate": 2.40, "label": "Mora commerciale 2 semestre 2026", "source_code": "mora_231_2026_h2"},
+            "rows": mora_commerciale_rows,
+            "notes": [
+                "Art. 11 D.Lgs. 231/2002: la disciplina si applica ai contratti conclusi dall'8 agosto 2002; "
+                "la serie parte da quella data (tasso del 2 semestre 2002 dal comunicato in G.U. n. 33/2003).",
+                "Maggiorazione: 7 punti (art. 5 D.Lgs. 231/2002, testo originario) per i semestri fino al "
+                "2 semestre 2012; 8 punti dal 1 semestre 2013 (D.Lgs. 192/2012). L'art. 3 D.Lgs. 192/2012 "
+                "applica gli 8 punti alle transazioni concluse dal 01/01/2013: per contratti anteriori la "
+                "maggiorazione resta di 7 punti anche nei semestri successivi.",
             ],
-            "published_at": "2026-01-20",
-            "effective_from": "2025-01-01",
+            "published_at": "2026-07-16",
+            "effective_from": "2002-08-08",
         },
         "pignoramento_soglie": {
             "id": "pignoramento_soglie",

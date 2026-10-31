@@ -114,9 +114,13 @@ def test_lo_strumento_avvisa_quando_il_trimestre_non_copre_la_data(gestore):
 
 
 def test_la_mora_commerciale_e_il_riferimento_piu_otto_punti(norme):
-    """Art. 5 D.Lgs. 231/2002: maggiorazione di otto punti percentuali."""
+    """Maggiorazione di otto punti dal 2013 (art. 2, lett. e), D.Lgs. 231/2002 come
+    modificato dal D.Lgs. 192/2012); fino al 2 semestre 2012 sette punti (art. 5
+    D.Lgs. 231/2002, testo originario). La serie storica dal 2002 è stata aggiunta il
+    31/10/2026: prima la tabella partiva dal 2025 e il test vedeva solo righe a +8."""
     for riga in norme.rows("mora_commerciale"):
-        assert riga["rate"] == pytest.approx(riga["reference_rate"] + 8, abs=0.001), riga["label"]
+        punti = 7 if riga["start"] < "2013-01-01" else 8
+        assert riga["rate"] == pytest.approx(riga["reference_rate"] + punti, abs=0.001), riga["label"]
 
 
 def test_secondo_semestre_2026_della_mora_commerciale(norme):

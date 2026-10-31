@@ -34,16 +34,10 @@ class CasoDiCollaudo:
 
 _CU = "art. 13, comma 1, D.P.R. 115/2002"
 _CU_GRADI = "art. 13, commi 1-bis e 3, D.P.R. 115/2002 (appello +50%, cassazione doppio, monitorio metà)"
-_INTERESSI_2024 = "art. 1284 c.c.; D.M. Economia 29/11/2023 (saggio 2,5% dal 01/01/2024)"
-_INTERESSI_2025 = "art. 1284 c.c.; D.M. Economia 10/12/2024 (saggio 2,0% dal 01/01/2025)"
 
 
 def _cu(valore: str, categoria: str = "civile_ordinario", grado: str = "primo_grado") -> dict[str, str]:
     return {"cu_categoria": categoria, "cu_grado": grado, "cu_valore": valore}
-
-
-def _interessi(capitale: str, dal: str, al: str) -> dict[str, str]:
-    return {"int_tipo": "legali", "int_capitale": capitale, "int_data_inizio": dal, "int_data_fine": al}
 
 
 CASI: dict[str, tuple[CasoDiCollaudo, ...]] = {
@@ -56,10 +50,7 @@ CASI: dict[str, tuple[CasoDiCollaudo, ...]] = {
         CasoDiCollaudo("appello: aumento della metà", _cu("42350", grado="appello"), {"totale": 777.0}, _CU_GRADI, "2026-10-31"),
         CasoDiCollaudo("cassazione: doppio", _cu("42350", grado="cassazione"), {"totale": 1036.0}, _CU_GRADI, "2026-10-31"),
     ),
-    "interessi": (
-        CasoDiCollaudo("10.000 euro per l'anno 2024", _interessi("10000", "2024-01-01", "2024-12-31"), {"total_interest": 250.0}, _INTERESSI_2024, "2026-10-31"),
-        CasoDiCollaudo("10.000 euro per l'anno 2025", _interessi("10000", "2025-01-01", "2025-12-31"), {"total_interest": 200.0}, _INTERESSI_2025, "2026-10-31"),
-    ),
+    # «interessi»: casi in collaudo_casi/credito.json (serie storica dal 1942, collaudo del 31/10/2026)
 }
 
 

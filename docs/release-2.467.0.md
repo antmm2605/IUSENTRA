@@ -32,6 +32,10 @@ Rilascio nato dalla verifica sulle PEC reali e sui fascicoli collegati (registro
 - Il «Maggior danno da svalutazione» diventa «Rivalutazione e interessi sui crediti di valore»
   (Cass. SS.UU. 1712/1995), con la variazione ISTAT a un decimale e l'avviso sui debiti di valuta
   (art. 1224, c. 2, c.c.; Cass. SS.UU. 19499/2008). È fra i collaudati usati da Lex.
+- Interessi legali e mora commerciale con la serie storica completa dai testi ufficiali: saggio legale
+  dal 1942, mora D.Lgs. 231/2002 dall'08/08/2002 (riferimento BCE +7 fino al 2012, +8 dal 2013), ogni
+  periodo con decreto o comunicato in Gazzetta. Prima i calcoli su crediti anteriori al 2024 coprivano
+  solo gli ultimi anni.
 - Restano esclusi da Lex finché non c'è la fonte ufficiale o una formula di legge: Cassa Forense,
   assegno di mantenimento, lite temeraria, uffici competenti.
 

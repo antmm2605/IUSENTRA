@@ -1168,7 +1168,17 @@ class GestioneStrumentiLegali:
             warnings.append("Il periodo indicato e coperto solo parzialmente dalle tabelle ufficiali caricate: il risultato riguarda i giorni effettivamente mappati.")
 
         if mode == "mora_commerciale":
-            warnings.append("Il tasso moratorio e calcolato come tasso BCE di riferimento maggiorato di 8 punti, salvo diverse pattuizioni valide nei limiti di legge.")
+            warnings.append(
+                "Tasso moratorio: tasso BCE di riferimento maggiorato di 7 punti per i semestri fino al 2012 "
+                "e di 8 punti dal 2013 (D.Lgs. 231/2002, art. 5; D.Lgs. 192/2012), salvo diverse pattuizioni "
+                "valide nei limiti di legge."
+            )
+            if data_inizio < date(2013, 1, 1) and data_fine >= date(2013, 1, 1):
+                warnings.append(
+                    "Gli 8 punti valgono per i contratti conclusi dal 01/01/2013 (art. 3 D.Lgs. 192/2012): se il "
+                    "contratto è anteriore, nei semestri dal 2013 la maggiorazione resta di 7 punti e il calcolo "
+                    "va ridotto di un punto su quei semestri."
+                )
 
         tabella_tassi = "mora_commerciale" if mode == "mora_commerciale" else "interesse_legale"
         copertura = self.norme.periodo_coperto(tabella_tassi, data_fine)
@@ -1411,7 +1421,8 @@ class GestioneStrumentiLegali:
         risultato["sources"] = list(fonti_uniche.values())
         risultato["notes"] = [
             "Tassi versionati nel modulo normativo interno con fonte ufficiale per periodo; "
-            "per la mora commerciale il tasso e' BCE di riferimento + 8 punti (D.Lgs. 231/2002)."
+            "per la mora commerciale il tasso e' BCE di riferimento + 7 punti fino al 2012 e + 8 punti dal 2013 "
+            "(D.Lgs. 231/2002; D.Lgs. 192/2012)."
         ]
         return risultato
 

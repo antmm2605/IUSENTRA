@@ -35,7 +35,8 @@ def _della_pratica(riga: dict[str, Any], chiavi: set[tuple[str, str]]) -> bool:
 
 def _udienza_in_agenda(fascicolo: Any, udienza: dict[str, Any]) -> str:
     quando = udienza["quando"]
-    if "T" not in quando:
+    ora_certa = "T" in quando
+    if not ora_certa:
         quando += "T09:00"
     inizio = datetime.fromisoformat(quando).replace(tzinfo=ROMA)
     if inizio < datetime.now(ROMA):
@@ -43,12 +44,22 @@ def _udienza_in_agenda(fascicolo: Any, udienza: dict[str, Any]) -> str:
     from pct.agenda import TipoAppuntamento
 
     agenda = current_app.extensions["core_runtime"]["get_agenda"]()
+    from pct.agenda_eventi_equivalenti import ORA_DA_CONFERMARE, riunisci_fonte, udienza_equivalente
+
+    procedimento = f"{fascicolo.numero_rg}/{fascicolo.anno_rg}" if fascicolo.numero_rg else ""
+    equivalente = udienza_equivalente(agenda.tutti(), id_fascicolo=str(getattr(fascicolo, "id", "") or ""),
+                                      procedimento=procedimento, data_ora=quando, ora_certa=ora_certa)
+    if equivalente is not None:
+        return str(getattr(riunisci_fonte(agenda, equivalente, fonte="storico udienze del PDP", data_ora=quando,
+                                          ora_certa=ora_certa), "id", "") or "")
     luogo = " · ".join(filter(None, (udienza.get("luogo"), f"aula {udienza['aula']}" if udienza.get("aula") else "")))
     appuntamento = agenda.aggiungi(
         f"Udienza penale – {fascicolo.titolo}", TipoAppuntamento.UDIENZA, quando, luogo=luogo, allow_overlap=True,
         procedimento=f"{fascicolo.numero_rg}/{fascicolo.anno_rg}" if fascicolo.numero_rg else "",
         tribunale=fascicolo.tribunale, cliente=fascicolo.nome_cliente, id_cliente=fascicolo.id_cliente,
-        note=f"Dallo storico udienze del PDP. {udienza.get('causale') or ''}".strip(),
+        id_fascicolo=str(getattr(fascicolo, "id", "") or ""),
+        note=(f"Dallo storico udienze del PDP. {udienza.get('causale') or ''}".strip()
+              + ("" if ora_certa else f"\n{ORA_DA_CONFERMARE}")),
     )
     return str(getattr(appuntamento, "id", "") or "")
 

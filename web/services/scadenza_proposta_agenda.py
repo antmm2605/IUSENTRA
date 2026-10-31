@@ -51,6 +51,18 @@ def crea_agenda_da_udienza_confermata(
             anno = str(getattr(fascicolo, "anno_rg", "") or "").strip()
             if numero and anno:
                 procedimento = f"RG {numero}/{anno}"
+    from pct.agenda_eventi_equivalenti import ORA_DA_CONFERMARE, riunisci_fonte, udienza_equivalente
+
+    fonte = f"Proposta di udienza confermata: {getattr(scadenza, 'id', '')}"
+    equivalente = udienza_equivalente(gestione_agenda.tutti(), id_fascicolo=str(getattr(scadenza, "id_fascicolo", "") or ""),
+                                      procedimento=procedimento, data_ora=data_ora, ora_certa=bool(orario))
+    if equivalente is not None:
+        appuntamento = riunisci_fonte(gestione_agenda, equivalente, fonte=fonte, data_ora=data_ora, ora_certa=bool(orario))
+        try:
+            gestione_scadenziario.aggiorna(scadenza.id, id_appuntamento=str(getattr(appuntamento, "id", "") or ""))
+        except Exception:
+            pass
+        return True
     appuntamento = gestione_agenda.aggiungi(
         titolo=str(getattr(scadenza, "titolo", "") or "Udienza"),
         tipo=TipoAppuntamento.UDIENZA,
@@ -59,7 +71,8 @@ def crea_agenda_da_udienza_confermata(
         allow_overlap=True,
         procedimento=procedimento,
         avvocato=attore,
-        note="Creato dalla conferma di una proposta di udienza.",
+        id_fascicolo=str(getattr(scadenza, "id_fascicolo", "") or ""),
+        note="Creato dalla conferma di una proposta di udienza." + ("" if orario else f"\n{ORA_DA_CONFERMARE}"),
     )
     appuntamento_id = str(getattr(appuntamento, "id", "") or "")
     if appuntamento_id:

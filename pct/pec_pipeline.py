@@ -41,6 +41,7 @@ from pct.scadenze_proposte_pec import (
     select_draft_candidates,
 )
 from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
+from pct.agenda_eventi_equivalenti import ORA_DA_CONFERMARE, riunisci_fonte, udienza_equivalente
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
 from pct.pec_oggetti_ufficiali import (
@@ -14141,10 +14142,12 @@ class PecAuditRepository:
             remote_hearing_payload = report.get("remote_hearing") if isinstance(report.get("remote_hearing"), dict) else {}
             operational_message = _procedural_operational_message(profile, remote_hearing_payload)
             data_ora = _agenda_datetime_for_pec_proposal(target_date, proposal, report, remote_extra)
+            ora_segnaposto = False
             if not data_ora:
                 fallback_day = _date_from_iso_or_it(target_date) if proposal.get("force_agenda_without_time") else None
                 if fallback_day:
                     data_ora = datetime.combine(fallback_day, datetime.min.time()).replace(hour=9).isoformat(timespec="seconds")
+                    ora_segnaposto = True
                 else:
                     return {
                         "ok": False,
@@ -14185,6 +14188,7 @@ class PecAuditRepository:
                     f"Tipo evento: {proposal.get('source_event_type') or report.get('event_type') or '-'}",
                     f"Decorrenza letta: {proposal.get('source_event_at') or '-'}",
                     "Fonte: pipeline PEC audit-grade.",
+                    ORA_DA_CONFERMARE if ora_segnaposto else "",
                 )
                 if part
             )
@@ -14201,15 +14205,31 @@ class PecAuditRepository:
                     stato_ical="CONFIRMED",
                     organizzatore=_deadline_responsible_actor(actor),
                 )
-                last_report = agenda.upsert_da_evento_importato(
-                    event,
-                    provider="pec_audit",
-                    source_url=source_url,
-                    profile_id="pec_scadenziario",
-                    default_tipo=TipoAppuntamento.UDIENZA if is_hearing else TipoAppuntamento.SCADENZA,
-                    reminder_minuti=1440,
-                    allow_overlap=True,
-                )
+                # La stessa udienza già in agenda da un'altra fonte (altra PEC, documenti, portale, calendario):
+                # la PEC diventa una prova in più della voce esistente, non una seconda voce.
+                equivalente = None
+                if is_hearing and agenda.trova_per_uid_esterno(event_uid, provider="pec_audit", profile_id="pec_scadenziario") is None:
+                    equivalente = udienza_equivalente(
+                        agenda.tutti(), id_fascicolo=linked_fascicolo_id, procedimento=agenda_procedimento,
+                        data_ora=agenda_data_ora, ora_certa=not ora_segnaposto,
+                    )
+                if equivalente is not None:
+                    last_report = {
+                        "outcome": "merged_existing",
+                        "appuntamento": riunisci_fonte(agenda, equivalente, fonte=f"PEC_AUDIT:{message_id}",
+                                                       data_ora=agenda_data_ora, ora_certa=not ora_segnaposto),
+                        "message": "Udienza già in agenda: la PEC è stata aggiunta come fonte.",
+                    }
+                else:
+                    last_report = agenda.upsert_da_evento_importato(
+                        event,
+                        provider="pec_audit",
+                        source_url=source_url,
+                        profile_id="pec_scadenziario",
+                        default_tipo=TipoAppuntamento.UDIENZA if is_hearing else TipoAppuntamento.SCADENZA,
+                        reminder_minuti=1440,
+                        allow_overlap=True,
+                    )
                 if last_report.get("outcome") != "conflict":
                     appuntamento = last_report.get("appuntamento")
                     agenda_id = str(getattr(appuntamento, "id", "") or "")

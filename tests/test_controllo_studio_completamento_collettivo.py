@@ -43,7 +43,8 @@ def test_completa_1222_in_una_transazione_preservando_futuro_metadata_e_mirror(d
     riga = dict(db.conn.execute("SELECT * FROM scadenze WHERE id = ?", (ids[-1],)).fetchone())
     assert riga["stato"] == "COMPLETATO"
     assert "operatore-prova" in riga["note"]
-    assert riga["completata_il"].endswith("+02:00")
+    # Ora italiana: +01:00 in inverno, +02:00 in estate (la data di oggi decide quale).
+    assert riga["completata_il"][-6:] in {"+01:00", "+02:00"}
     assert json.loads(riga["dati_json"])["metadato_origine"] == "conservare"
     assert json.loads(mirror.read_text(encoding="utf-8"))[ids[-1]]["stato"] == "COMPLETATO"
     ripetuta = completa_scadute(db, mirror, ids, oggi=date(2026, 9, 30))

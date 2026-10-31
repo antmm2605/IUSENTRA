@@ -556,3 +556,16 @@ Verifica in sola lettura sul codice al commit `93e70dc18` (cinque analisi, una p
 2. Flusso congelato ❄: il confronto del CU nella busta e lo stato del patrocinio nel DatiAtto si correggono dentro la busta o solo a monte nel presidio?
 3. ReGIndE e INI-PEC: consultazione automatica degli elenchi pubblici dal server (con data di consultazione) oppure solo indirizzo inserito dall'avvocato?
 4. Corpus di verifica sui dati reali: autorizzazione a usare sul server, senza che nulla esca, PEC e documenti dello studio per i test di accettazione (20 notifiche ricevute, 50 comunicazioni di cancelleria, 30 documenti d'identità, 50 fascicoli per il CU).
+
+### 9.5 Avanzamento del punto 1 (31/10/2026)
+
+Fatto, con test (copertura righe e rami 100% sui moduli nuovi):
+
+- Lex calcola i termini col motore unico e la tabella normativa è una sola (art. 166 a 70 giorni prima, art. 92 c.p.a., art. 617, art. 307 a 3 mesi; nessun termine inventato); `oggi_roma()` nei presìdi, PolisWeb, PTT e modifica termini PEC.
+- Notifiche ricevute dalla controparte (`pct/notifiche_ricevute.py`, `pct/notifiche_ricevute_pec.py`): direzione dalla casella che riceve, perfezionamento per il destinatario (art. 147 c.p.c., consegna dopo le 21 → giorno dopo), termini di opposizione a decreto ingiuntivo, precetto, controricorso, appello o cassazione dalla sentenza notificata, costituzione del convenuto e dell'appellato a ritroso; nessun presidio in attesa di RAC/RdAC; torre di controllo con la categoria «Atto notificato dalla controparte».
+- Termine lungo di impugnazione (art. 327) proposto dalla PEC di deposito della sentenza; il termine breve resta escluso dalla sola comunicazione.
+- Eventi di cancelleria specifici da `Comunicazione.xml` (decreto ingiuntivo emesso, rigettato, esecutivo; cancellazione dal ruolo; interruzione; riserva sciolta) e termini di riassunzione (artt. 305 e 307).
+- Memorie 171-ter proposte dalla prima udienza in agenda e ricalcolate al rinvio (`pct/scadenze_da_udienza.py`), nel giro periodico delle notifiche.
+- Presidio notifiche: riconciliazione mirata per identità intera (il presidio «P-1» non tocca più «P-12»).
+
+Da progettare a sé: chiusura dell'obbligo di notifica **per destinatario** con le ricevute PEC. Serve un collegamento certo fra la PEC di notifica inviata (impronta SHA-256 dell'atto allegato, indirizzo di ciascun destinatario), le RdAC separate e l'atto catalogato; un collegamento per somiglianza di nomi chiuderebbe obblighi per errore. Fino ad allora l'obbligo resta aperto con il motivo (comportamento prudente attuale). ReGIndE e INI-PEC: in attesa della decisione dell'avvocato (sezione 9.4, punto 3).

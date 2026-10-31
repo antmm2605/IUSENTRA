@@ -188,8 +188,19 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
+const ERRORE_DI_RETE = 'Collegamento con il server non riuscito: controlla la connessione e riprova tra poco.'
+
+/** Il browser segnala i problemi di rete con un messaggio tecnico in inglese («Failed to fetch»). */
+async function richiesta(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch {
+    throw new Error(ERRORE_DI_RETE)
+  }
+}
+
 export async function loadNotiziario(): Promise<NotiziarioPayload> {
-  const response = await fetch('/api/v1/ui/notiziario', {
+  const response = await richiesta('/api/v1/ui/notiziario', {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   })
@@ -201,7 +212,7 @@ export async function loadNotiziario(): Promise<NotiziarioPayload> {
 }
 
 export async function refreshNotiziario(): Promise<NotiziarioPayload> {
-  const response = await fetch('/api/v1/ui/notiziario/aggiorna', {
+  const response = await richiesta('/api/v1/ui/notiziario/aggiorna', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
@@ -214,7 +225,7 @@ export async function refreshNotiziario(): Promise<NotiziarioPayload> {
 }
 
 export async function updateNotiziarioInteraction(id: string, patch: InteractionPatch): Promise<NotiziarioItem> {
-  const response = await fetch(`/api/v1/ui/notiziario/${encodeURIComponent(id)}/interazione`, {
+  const response = await richiesta(`/api/v1/ui/notiziario/${encodeURIComponent(id)}/interazione`, {
     method: 'PATCH',
     credentials: 'same-origin',
     headers: {
@@ -231,7 +242,7 @@ export async function updateNotiziarioInteraction(id: string, patch: Interaction
 }
 
 export async function loadNotiziarioSource(source: NotiziarioQuickSource): Promise<NotiziarioSourceReader> {
-  const response = await fetch(`/api/v1/ui/notiziario/fonti/${encodeURIComponent(source.id)}`, {
+  const response = await richiesta(`/api/v1/ui/notiziario/fonti/${encodeURIComponent(source.id)}`, {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   })

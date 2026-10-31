@@ -72,6 +72,36 @@ def data_pubblicazione(testo: str, *, comunicazione: bool = True) -> date | None
     return None
 
 
+_NUMERO_COMUNICAZIONE = re.compile(r"\bNUMERO\s+(\d{1,6}\s*/\s*\d{4})\b", re.IGNORECASE)
+
+
+def numero_della_comunicazione(testo: str) -> str:
+    """Numero della sentenza nella comunicazione di cancelleria («… CON NUMERO 809/2026»)."""
+    trovato = _NUMERO_COMUNICAZIONE.search(str(testo or "")) or _NUMERO.search(str(testo or ""))
+    return re.sub(r"\s+", "", trovato.group(1)) if trovato else ""
+
+
+def data_pubblicazione_della_sentenza(testo: str, numero: str) -> date | None:
+    """La data di pubblicazione della sentenza con quel numero, letta in un documento (timbro «pubbl. il»).
+
+    Una sentenza cita spesso precedenti («sentenza n. 1842/2022 pubblicata il 16.03.2022»): vale
+    solo la data legata allo stesso numero della sentenza comunicata; senza numero non si legge nulla.
+    """
+    numero = re.sub(r"\s+", "", str(numero or ""))
+    if not numero:
+        return None
+    trovate: set[date] = set()
+    for trovata in _DELLA_SENTENZA.finditer(str(testo or "")):
+        if numero not in re.sub(r"\s+", "", trovata.group(0)):
+            continue
+        giorno, mese, anno = (int(parte) for parte in trovata.groups() if parte is not None)
+        try:
+            trovate.add(date(anno, mese, giorno))
+        except ValueError:
+            continue
+    return next(iter(trovate)) if len(trovate) == 1 else None
+
+
 def numero_sentenza(testo: str) -> str:
     trovato = _NUMERO.search(str(testo or ""))
     return re.sub(r"\s+", "", trovato.group(1)) if trovato else ""
@@ -177,6 +207,7 @@ def completa_termini_lunghi(
 
 
 __all__ = [
-    "MARCATORE", "completa_termini_lunghi", "data_pubblicazione", "data_pubblicazione_da_fatti", "numero_sentenza",
+    "MARCATORE", "completa_termini_lunghi", "data_pubblicazione", "data_pubblicazione_da_fatti",
+    "data_pubblicazione_della_sentenza", "numero_della_comunicazione", "numero_sentenza",
     "proponi_termine_lungo", "scadenza_termine_lungo",
 ]

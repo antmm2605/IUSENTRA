@@ -14665,14 +14665,21 @@ class PecAuditRepository:
         if dies_day is None and decisorio:
             # Poi il testo della comunicazione e la sentenza allegata alla PEC, che porta il
             # timbro di pubblicazione: di solito la cancelleria la allega (art. 133 c.p.c.).
-            from pct.termine_lungo_sentenza import data_pubblicazione
+            # Nei documenti vale solo il timbro della sentenza con lo stesso numero della
+            # comunicazione: le sentenze citate come precedenti hanno un altro numero.
+            from pct.termine_lungo_sentenza import (
+                data_pubblicazione,
+                data_pubblicazione_della_sentenza,
+                numero_della_comunicazione,
+            )
 
             body_parts = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
             dies_day = data_pubblicazione(str(body_parts.get("text") or body_parts.get("html_text") or ""))
             if dies_day is None:
                 allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
-                dies_day = data_pubblicazione(
-                    "\n".join(_attachment_ocr_text(item) for item in allegati), comunicazione=False,
+                dies_day = data_pubblicazione_della_sentenza(
+                    "\n".join(_attachment_ocr_text(item) for item in allegati),
+                    numero_della_comunicazione(f"{comm.event} {comm.description}"),
                 )
         if change is None and dies_day is not None:
             term_proposals = propose_provvedimento_terms(comm, dies_a_quo=dies_day, labour=labour)

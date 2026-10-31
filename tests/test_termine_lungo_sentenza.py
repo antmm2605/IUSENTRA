@@ -180,3 +180,18 @@ def test_il_numero_della_sentenza_con_abbreviazione_non_nasconde_la_data_di_pubb
     assert data_pubblicazione("Sentenza n. 700/2026 pubblicata il 02/10/2026", comunicazione=False) == date(2026, 10, 2)
     assert data_pubblicazione("sentenza nr. 12/2025 depositata in cancelleria il 3.4.2025", comunicazione=False) == date(2025, 4, 3)
     assert data_pubblicazione("Sentenza. Ricorso depositato il 01/01/2026", comunicazione=False) is None
+
+
+def test_nei_documenti_vale_solo_la_sentenza_comunicata_non_i_precedenti_citati():
+    """Verifica sulle PEC reali del 31/10/2026: la sentenza allegata cita precedenti con la loro data."""
+    from datetime import date
+
+    from pct.termine_lungo_sentenza import data_pubblicazione_della_sentenza, numero_della_comunicazione
+
+    numero = numero_della_comunicazione("SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 700/2026")
+    assert numero == "700/2026"
+    citazione = "il Consiglio di Stato, con sentenza n. 1842/2022 pubblicata il 16.03.2022, mutando orientamento"
+    assert data_pubblicazione_della_sentenza(citazione, numero) is None
+    timbro = citazione + "\nSentenza n. 700/2026 pubbl. il 02/10/2026 RG n. 523/2026"
+    assert data_pubblicazione_della_sentenza(timbro, numero) == date(2026, 10, 2)
+    assert data_pubblicazione_della_sentenza(timbro, "") is None

@@ -13,8 +13,9 @@ import re
 from pathlib import Path
 
 _ENC_MAGIC = b"PCTENC\x01"
-_MAX_TEXT_CHARS = 12_000   # limite caratteri per singolo documento
-_MAX_PAGES = 15
+_MAX_TEXT_CHARS = 12_000   # limite caratteri per singolo documento (oltre: dichiarato «letto in parte»)
+_MAX_PAGES = 15            # pagine lette con OCR nella richiesta; il testo nativo si legge su tutte le pagine
+NOTA_LETTO_IN_PARTE = "[Documento letto in parte: il testo prosegue oltre quanto riportato qui.]"
 
 
 def _doc_key() -> bytes | None:
@@ -70,13 +71,15 @@ def _pdf_to_text(data: bytes) -> str:
         from pct.document_intelligence.pdf_quality import score_extracted_text_quality
 
         with pdfplumber.open(io.BytesIO(data)) as pdf:
+            ocr_saltate = 0
             for i, page in enumerate(pdf.pages):
-                if i >= _MAX_PAGES:
-                    break
                 text = (page.extract_text() or "").strip()
                 quality = score_extracted_text_quality(text)
                 if text and not quality.cid_placeholders and quality.score >= 0.55:
                     lines.append(text)
+                elif i >= _MAX_PAGES:
+                    # L'OCR delle pagine oltre la quindicesima resta al motore OCR in sfondo: si dichiara.
+                    ocr_saltate += 1
                 else:
                     # Lettura ottica con il motore unico dello studio.
                     try:
@@ -88,6 +91,8 @@ def _pdf_to_text(data: bytes) -> str:
                             lines.append(ocr_text)
                     except Exception:
                         pass
+            if ocr_saltate:
+                lines.append(f"[Pagine scansionate non lette in questa consultazione: {ocr_saltate}. {NOTA_LETTO_IN_PARTE}]")
     except Exception:
         pass
     return "\n\n".join(lines)
@@ -117,7 +122,10 @@ def _docx_to_text(data: bytes) -> str:
 def _normalize(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", str(text or ""))
     text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()[:_MAX_TEXT_CHARS]
+    text = text.strip()
+    if len(text) <= _MAX_TEXT_CHARS:
+        return text
+    return f"{text[:_MAX_TEXT_CHARS]}\n{NOTA_LETTO_IN_PARTE}"
 
 
 def extract_text_from_bytes(data: bytes, filename: str) -> str:

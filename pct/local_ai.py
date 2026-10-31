@@ -619,6 +619,63 @@ def _think_non_supportato(exc: Exception) -> bool:
         return False
 
 
+_SEGNAPOSTO_ESTRATTI = "<<ESTRATTI_DEL_FASCICOLO>>"
+_LIVELLI_SINTESI = 3
+
+
+def _prompt_lettura_parte(domanda: str, parte: str, numero: int, totale: int) -> str:
+    return "\n".join([
+        "Sei l'assistente locale di IUSENTRA. Leggi questa parte degli estratti del fascicolo.",
+        f"Parte {numero} di {totale}. Domanda dell'avvocato: {domanda.strip()}",
+        "Riporta solo i fatti, le date, gli importi e i passaggi utili a rispondere, ciascuno con la sua "
+        "citazione [Fonte n]. Non inventare nulla; se la parte non contiene nulla di utile scrivi «Nulla di pertinente».",
+        "",
+        parte,
+    ])
+
+
+def _prompt_entro_il_contesto(client: Any, model_name: str, prepared: dict[str, Any], *, keep_alive: str) -> tuple[str, dict[str, Any]]:
+    """Il prompt finale entro il contesto del modello, leggendo a parti gli estratti che non ci stanno.
+
+    Senza questo passaggio Ollama tagliava in silenzio gli estratti oltre il contesto.
+    """
+    from pct.lettura_a_parti import budget_caratteri, gruppi_entro_budget, leggi_a_parti
+
+    prompt = str(prepared.get("prompt") or "")
+    template = str(prepared.get("prompt_template") or "")
+    blocchi = [str(blocco) for blocco in list(prepared.get("prompt_blocks") or []) if str(blocco)]
+    budget = budget_caratteri()
+    if len(prompt) <= budget or _SEGNAPOSTO_ESTRATTI not in template or not blocchi:
+        return prompt, {}
+    domanda = str(prepared.get("question") or "")
+    spazio_finale = max(budget - len(template), 1200)
+    spazio_parte = max(budget - len(_prompt_lettura_parte(domanda, "", 1, 1)) - 200, 1200)
+
+    def leggi(parte: str, numero: int, totale: int) -> str:
+        risposta = _genera_risposta_completa(client, model_name, _prompt_lettura_parte(domanda, parte, numero, totale),
+                                             keep_alive=keep_alive)
+        return str(risposta.get("response") or "")
+
+    esito = leggi_a_parti(gruppi_entro_budget(blocchi, budget=spazio_parte), leggi)
+    totali, mancanti = esito.totali, list(esito.mancanti)
+    note = esito.risultati
+    for _livello in range(_LIVELLI_SINTESI):
+        if len("\n\n".join(note)) <= spazio_finale or len(note) <= 1:
+            break
+        sintesi = leggi_a_parti(gruppi_entro_budget(note, budget=spazio_parte), leggi)
+        note = sintesi.risultati or note
+    nota = esito.nota() if mancanti or totali > 1 else ""
+    incluse: list[str] = []
+    for voce in note:
+        if len("\n\n".join([*incluse, voce])) > spazio_finale and incluse:
+            # Mai un taglio silenzioso: si dichiara quali note restano fuori dalla risposta finale.
+            nota = f"{nota} Note non entrate nella sintesi finale: {len(note) - len(incluse)} di {len(note)}.".strip()
+            break
+        incluse.append(voce)
+    estratti = "\n\n".join(incluse) if incluse else "Nessun estratto letto."
+    return template.replace(_SEGNAPOSTO_ESTRATTI, estratti), {"parti": totali, "mancanti": mancanti, "nota": nota}
+
+
 def _genera_risposta_completa(client: Any, model_name: str, prompt: str, *, keep_alive: str) -> dict[str, Any]:
     """/api/generate con lo stesso contesto di Lex (num_ctx) e senza ragionamento (think=False).
 
@@ -3357,6 +3414,7 @@ class LocalAIService:
         scadenze: Iterable[Any],
         rag_rows: list[dict[str, Any]],
         snapshot: dict[str, Any] | None = None,
+        rag_context_override: str | None = None,
     ) -> str:
         fascicolo_lines = [
             f"ID fascicolo: {getattr(fascicolo, 'id', '')}",
@@ -3419,10 +3477,10 @@ class LocalAIService:
                 fascicolo_lines.extend(f"- {item}" for item in snapshot.get("prossime_azioni") or [])
         context = "\n".join(line for line in fascicolo_lines if _clean_spaces(line))
         rag_coverage = "\n".join(self._rag_coverage_lines(fascicolo, rag_rows))
-        rag_context = "\n\n---\n\n".join(
-            f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}"
-            for idx, row in enumerate(rag_rows)
-        ) or "Nessun documento indicizzato rilevante."
+        blocks = [f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}" for idx, row in enumerate(rag_rows)]
+        rag_context = rag_context_override if rag_context_override is not None else (
+            "\n\n---\n\n".join(blocks) or "Nessun documento indicizzato rilevante."
+        )
         return "\n".join(
             [
                 "Sei l'assistente locale operativo di IUSENTRA per studi legali italiani.",
@@ -3490,7 +3548,7 @@ class LocalAIService:
             practice_id=practice_id,
             top_k=self._fascicolo_rag_top_k(fascicolo),
         )
-        prompt = self._prompt_for_fascicolo(
+        prompt_args = dict(
             fascicolo=fascicolo,
             question=question,
             workspace=workspace,
@@ -3500,11 +3558,15 @@ class LocalAIService:
             rag_rows=rag_rows,
             snapshot=snapshot,
         )
+        prompt = self._prompt_for_fascicolo(**prompt_args)
         return {
             "ok": True,
             "query_type": "fascicolo_ai",
             "question": question,
             "prompt": prompt,
+            # Per la lettura a parti: lo stesso prompt con gli estratti al posto del segnaposto.
+            "prompt_template": self._prompt_for_fascicolo(**prompt_args, rag_context_override=_SEGNAPOSTO_ESTRATTI),
+            "prompt_blocks": [f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}" for idx, row in enumerate(rag_rows)],
             "sources": rag_rows,
             "citations": self._compact_citations(rag_rows),
             "indexing": indexing,
@@ -3601,10 +3663,13 @@ class LocalAIService:
         client = self._ollama_client(self._load_settings())
         chat_model = str(runtime.get("chat_model") or self._active_model("chat") or "")
         started = time.time()
-        response = _genera_risposta_completa(client, chat_model, str(prepared.get("prompt") or ""), keep_alive=keep_alive)
+        prompt, lettura = _prompt_entro_il_contesto(client, chat_model, prepared, keep_alive=keep_alive)
+        response = _genera_risposta_completa(client, chat_model, prompt, keep_alive=keep_alive)
         answer = str(response.get("response") or "").strip()
         if str(prepared.get("query_type") or "") == "fascicolo_ai":
             answer = self._polish_fascicolo_answer(answer)
+        if lettura.get("nota"):
+            answer = f"{answer}\n\n_{lettura['nota']}_".strip()
         duration_ms = int((time.time() - started) * 1000)
         with self._connect() as conn:
             conn.execute(
@@ -3637,6 +3702,7 @@ class LocalAIService:
             "runtime": runtime,
             "indexing": prepared.get("indexing"),
             "embedding": prepared.get("embedding"),
+            "lettura": lettura,
         }
 
     def _polish_fascicolo_answer(self, answer: str) -> str:

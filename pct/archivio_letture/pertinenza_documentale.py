@@ -1,6 +1,7 @@
 """Distingue la natura della fonte e il procedimento prima di proporre termini."""
 from __future__ import annotations
 import re
+from typing import Any, Iterable
 from pct.registro_letture.fatti_repository import Fatto
 
 def _documento_identita_strutturale(head: str) -> bool:
@@ -97,6 +98,25 @@ def precedente_dal_nome(nome: str, ufficio: str) -> bool:
     if not citta or not trovato:
         return False
     return not f" {trovato.group(1)} ".startswith(f" {citta} ") and f" {citta} " not in f" {piatto} "
+
+
+def precedenti_del_fascicolo(fascicolo: Any, fatti: Iterable[Any] = ()) -> set[str]:
+    """I documenti del fascicolo che sono giurisprudenza prodotta, non atti della causa.
+
+    Dal fatto letto («natura_documentale = precedente_giurisprudenziale») o, per le letture di motori
+    precedenti, dal nome del file che indica un altro ufficio. Esclusi da notifiche, economia e importi.
+    """
+    precedenti = {
+        str(getattr(f, "oggetto_id", "") or "") for f in fatti
+        if getattr(f, "campo", "") == "natura_documentale" and getattr(f, "valore", "") == "precedente_giurisprudenziale"
+        and getattr(f, "verifica", "") not in {"respinta", "ignorata"}
+    }
+    ufficio = str(getattr(fascicolo, "tribunale", "") or getattr(fascicolo, "ufficio_giudiziario", "") or "")
+    for documento in list(getattr(fascicolo, "documenti", []) or []):
+        if precedente_dal_nome(str(getattr(documento, "nome", "") or ""), ufficio):
+            precedenti.add(str(getattr(documento, "id", "") or ""))
+    precedenti.discard("")
+    return precedenti
 
 
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", ufficio: str = "") -> tuple[str, str]:

@@ -3641,7 +3641,12 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         from pct.archivio_letture.presidi import importi_letti
     except Exception:
         return {}
-    fatti_importo = _fatti_archivio(fascicolo, categoria="importo")
+    from pct.archivio_letture.pertinenza_documentale import precedenti_del_fascicolo
+
+    # Gli importi di una sentenza di un'altra causa (precedente prodotto) non sono conti di questo fascicolo.
+    precedenti = precedenti_del_fascicolo(
+        fascicolo, _fatti_archivio(fascicolo, categoria="evento", campo="natura_documentale", canonico=False))
+    fatti_importo = [f for f in _fatti_archivio(fascicolo, categoria="importo") if f.oggetto_id not in precedenti]
     letti = importi_letti(fatti_importo)
     esito: dict[str, dict[str, Any]] = {}
     from pct.archivio_letture.presidio_economico import contributo_verificato

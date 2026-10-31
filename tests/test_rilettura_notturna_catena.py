@@ -112,3 +112,33 @@ def test_rilettura_notturna_dell_intera_catena(tmp_path: Path):
         from web.services.obblighi_notifica_runtime import obblighi_fascicolo
 
         assert not any("Cosenza" in str(o.get("documento") or "") for o in obblighi_fascicolo(_fascicolo(app, fascicolo_id)))
+
+
+def test_precedente_di_altro_ufficio_fuori_da_notifiche_ed_economia(tmp_path: Path):
+    """Visto in produzione: liquidazione delle spese presa dalla sentenza di Vicenza allegata come precedente."""
+    from types import SimpleNamespace
+
+    from pct.archivio_letture.pertinenza_documentale import precedenti_del_fascicolo
+
+    fascicolo = SimpleNamespace(tribunale="Tribunale di Torino", documenti=[
+        SimpleNamespace(id="D1", nome="Sentenza_Tribunale_Vicenza_20-04-2023.PDF"),
+        SimpleNamespace(id="D2", nome="decreto.pdf"),
+        SimpleNamespace(id="D3", nome="nota.pdf"),
+    ])
+    fatti = [SimpleNamespace(oggetto_id="D3", campo="natura_documentale", valore="precedente_giurisprudenziale", verifica="verificata"),
+             SimpleNamespace(oggetto_id="D2", campo="natura_documentale", valore="precedente_giurisprudenziale", verifica="respinta")]
+    assert precedenti_del_fascicolo(fascicolo, fatti) == {"D1", "D3"}
+
+    app = _app(tmp_path)
+    fascicolo_id = _semina(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+        from web.services.react_fascicoli_bridge import _importi_dall_archivio
+
+        f = _fascicolo(app, fascicolo_id)
+        runtime.leggi_fascicolo(f)
+        voci = _importi_dall_archivio(_fascicolo(app, fascicolo_id), {})
+        documenti = {d.id: d.nome for d in _fascicolo(app, fascicolo_id).documenti}
+        for voce in voci.values():
+            for fonte in voce.get("fontiVerifica") or []:
+                assert "Cosenza" not in documenti.get(str(fonte.get("documentoId")), "")

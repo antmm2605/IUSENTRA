@@ -295,7 +295,9 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
     audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=str(getattr(fascicolo, "id", "") or ""))
     report = {"ok": True, "analyzed": 0, "skipped": 0, "missing_text": 0, "errors": 0, "candidates": 0}
     from web.services.archivio_letture_runtime import fatti_fascicolo
-    esclusi = {f.oggetto_id for f in fatti_fascicolo(fascicolo, canonico=False) if f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale"}
+    from pct.archivio_letture.pertinenza_documentale import precedenti_del_fascicolo
+
+    esclusi = precedenti_del_fascicolo(fascicolo, fatti_fascicolo(fascicolo, canonico=False))
     da_analizzare: list[Any] = []
     for documento in getattr(fascicolo, "documenti", []) or []:
         if _document_id(documento) in esclusi or not _is_sentenza_candidate(documento):
@@ -428,7 +430,9 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
     fascicolo = _resolve_fascicolo(fascicolo_id) if fascicolo_id else None
     if fascicolo is not None:
         fatti = fatti_fascicolo(fascicolo, canonico=False)
-        esclusi = {f.oggetto_id for f in fatti if f.campo == "natura_documentale" and f.valore == "precedente_giurisprudenziale"}
+        from pct.archivio_letture.pertinenza_documentale import precedenti_del_fascicolo
+
+        esclusi = precedenti_del_fascicolo(fascicolo, fatti)
         impronte = {_document_id(d): _document_hash(d) for d in getattr(fascicolo, "documenti", [])}
         audits = [a for a in audits if str(a.get("documento_id") or "") not in esclusi
                   and (a.get("fonte") not in {"FASCICOLO_AUTO", "ARCHIVIO_LETTURE"}

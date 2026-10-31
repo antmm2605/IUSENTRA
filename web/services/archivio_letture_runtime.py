@@ -1173,6 +1173,9 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             from web.services.discordanze_letture_runtime import verifica_discordanze_fascicolo
 
                             verifica_discordanze_fascicolo(fascicolo)
+                            # Una relata o una ricevuta appena entrata può chiudere una notifica
+                            # aperta: si riallineano solo i presìdi di questo fascicolo, ora.
+                            _riallinea_notifiche_del_fascicolo(fascicolo_id)
                             if evento.get("presidi"):
                                 from web.services.fascicolo_lettura_verifiche import esegui_verifiche
 
@@ -1238,6 +1241,23 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
     except Exception:
         logger.exception("Riletture notturne non accodate per %s", tenant_id or "studio")
         return 0
+
+
+def _riallinea_notifiche_del_fascicolo(fascicolo_id: str) -> dict[str, Any]:
+    """Presìdi di notifica aperti del fascicolo riallineati alle prove appena lette.
+
+    Sostituisce il riallineamento che l'elenco «Notifiche legali» faceva a ogni
+    apertura su 50 presìdi dello studio (circa 18 secondi in produzione): ora
+    avviene una volta, quando nel fascicolo entra un documento o una PEC.
+    Base normativa: L. 53/1994 art. 3-bis; art. 196-undecies disp. att. c.p.c.
+    """
+    try:
+        from web.services.fascicolo_lettura_verifiche import verifica_notifiche
+
+        return verifica_notifiche(fascicolo_id)
+    except Exception as exc:  # la notifica non deve fermare la lettura del fascicolo
+        logger.warning("Presìdi di notifica del fascicolo %s non riallineati: %s", fascicolo_id, exc)
+        return {"esaminati": 0, "riallineati": 0, "errore": f"{type(exc).__name__}"}
 
 
 def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:

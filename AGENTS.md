@@ -30,6 +30,9 @@ Logica di lavoro da usare sempre, per ogni modifica e ogni sessione (Codex e Cla
    «corretto» solo con il test, «verificato in produzione» solo dopo il controllo su app.iusentra.it.
    Il piano operativo resta in `docs/PIANO_CATENA_DOCUMENTALE_2026-10-29.md` (sezione 9). A ogni
    avanzamento si riporta all'avvocato cosa è risolto, cosa è in corso e cosa resta da risolvere.
+6. **Azioni richieste all'avvocato.** Quando serve un suo intervento (conferma in un'altra sessione,
+   comando sul PC, accesso a un portale), indicare sempre: dove (nome esatto della sessione o della
+   finestra), il testo o il comando esatto da incollare, e cosa deve vedere se è andato a buon fine.
 
 ## Metodo di analisi Graphify per Codex — direttiva utente 20/10/2026
 

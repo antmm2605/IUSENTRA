@@ -489,6 +489,10 @@ def _excluded(path: str) -> bool:
     # finche' il relativo flusso React non copre l'intera procedura.
     if lower.startswith("/fascicoli/") and "/wizard/" in lower:
         return True
+    # Collaboratori del singolo fascicolo (condividi/revoca): non c'è ancora in React; la shell lo
+    # leggerebbe come dettaglio del fascicolo. Resta la pagina classica finché non è portata (V45).
+    if lower.startswith("/fascicoli/") and lower.endswith("/collaboratori"):
+        return True
     # Copertine (fascicolo e faldone del cliente): documenti da stampare, non pagine.
     if lower.endswith("/copertina"):
         return True

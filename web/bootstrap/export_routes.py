@@ -57,6 +57,10 @@ def register_export_routes(
         tipo = TipoCliente(tipo_f) if tipo_f else None
         stato = StatoCliente(stato_f) if stato_f else None
         clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
+        # «Esporta selezione» della pagina React: solo i clienti scelti.
+        scelti = {v.strip() for v in request.args.get("ids", "").split(",") if v.strip()}
+        if scelti:
+            clienti = [c for c in clienti if str(getattr(c, "id", "")) in scelti]
         righe = []
         for c in clienti:
             d = c.to_dict()

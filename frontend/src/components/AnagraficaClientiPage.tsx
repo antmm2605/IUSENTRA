@@ -753,7 +753,7 @@ export function AnagraficaClientiPage() {
           <p>Persone fisiche e giuridiche assistite dallo studio, con stato, recapiti, procedimenti, qualità dati e privacy sempre leggibili.</p>
         </div>
         <div className="iu-cli-hero__actions">
-          <Button href="/clienti/esporta"><Download size={15}/> Esporta</Button>
+          <Button href="/clienti/export.csv"><Download size={15}/> Esporta</Button>
           <Button href="/clienti?stato=ARCHIVIATO"><Archive size={15}/> Archivio clienti</Button>
           <Button variant="primary" href="/clienti/nuovo"><UserPlus size={16}/> Nuovo cliente</Button>
         </div>
@@ -802,7 +802,7 @@ export function AnagraficaClientiPage() {
           {selectedVisible ? (
             <div className="iu-cli-bulkbar">
               <strong>{selectedVisible} clienti selezionati</strong>
-              <a href="/clienti/esporta"><Download size={14}/> Esporta selezione</a>
+              <a href={`/clienti/export.csv?ids=${encodeURIComponent([...selected].join(','))}`}><Download size={14}/> Esporta selezione</a>
               <a href="#lex" data-lex-open data-lex-context="clienti"><Sparkles size={14}/> Chiedi controllo a Lex</a>
               <button type="button" onClick={handleBulkDelete} disabled={bulkDeleting}>
                 <Trash2 size={14}/> {bulkDeleting ? 'Eliminazione...' : 'Elimina selezione'}

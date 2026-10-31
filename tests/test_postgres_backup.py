@@ -4,13 +4,18 @@ import os
 
 import pytest
 
-pytest.importorskip('psycopg2.extensions', reason='Richiede il parser libpq nativo, non lo stub dei test Windows')
-
 from scripts.postgres_backup import backup_postgres
 
 
 @pytest.fixture
-def tools(monkeypatch):
+def libpq():
+    # Solo i test che arrivano al parsing del DSN richiedono libpq nativo:
+    # i guardrail che precedono la connessione girano anche senza PostgreSQL.
+    pytest.importorskip('psycopg2.extensions', reason='Richiede il parser libpq nativo, non lo stub dei test Windows')
+
+
+@pytest.fixture
+def tools(monkeypatch, libpq):
     monkeypatch.setattr('scripts.postgres_backup.shutil.which', lambda name, **kwargs: '/tools/' + name)
 
 
@@ -47,6 +52,22 @@ def test_strumenti_assenti_non_creano_backup(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError, match='non disponibili'):
         backup_postgres('dbname=controlled', path)
     assert not path.exists()
+
+
+@pytest.mark.skipif(os.name != 'posix', reason='Il percorso fisso del client PostgreSQL 16 vale sui server POSIX')
+def test_client_postgresql_16_cercato_solo_nel_percorso_dedicato(monkeypatch, tmp_path):
+    cercati = []
+
+    def which(name, **kwargs):
+        cercati.append((name, kwargs.get('path')))
+        return None
+
+    monkeypatch.setattr('scripts.postgres_backup.shutil.which', which)
+    with pytest.raises(RuntimeError, match='nessun backup confermato'):
+        backup_postgres('dbname=controlled', tmp_path / 'backup.dump')
+    # Mai il client piu' recente trovato nel PATH: un dump 17 non si ripristina sul server 16.
+    assert cercati == [('pg_dump', '/usr/lib/postgresql/16/bin'), ('pg_restore', '/usr/lib/postgresql/16/bin')]
+    assert not (tmp_path / 'backup.dump').exists()
 
 
 @pytest.mark.parametrize('phase', ['dump', 'empty', 'verify'])

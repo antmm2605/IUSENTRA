@@ -56,3 +56,19 @@ def test_nome_davvero_diverso_resta_una_discordanza():
 def test_cliente_ente_confrontato_con_ente():
     assert discordanza_nome("Comune di Locri", "Comune di Siderno")
     assert not discordanza_nome("Comune di Locri", "Comune di Locri")
+
+
+def test_le_discordanze_registrate_con_regole_superate_non_si_mostrano():
+    from web.services.discordanze_letture_runtime import ancora_discordante
+
+    ente = {'codice': 'nome_cliente_atto', 'valoreAnagrafica': 'Scarfò Emanuela',
+            'fonti': [{'valore': "MINISTERO DELL'ISTRUZIONE E DEL MERITO", 'citazione': ''}]}
+    secondo_nome = {'codice': 'nome_cliente_atto', 'valoreAnagrafica': 'Maione Marzia',
+                    'fonti': [{'valore': 'Leonora Marzia Maione', 'citazione': ''}]}
+    vera = {'codice': 'nome_cliente_atto', 'valoreAnagrafica': 'Maione Marzia',
+            'fonti': [{'valore': 'Rossi Giovanni', 'citazione': ''}]}
+    cf_letto_male = {'codice': 'cf_cliente_atto', 'valoreAnagrafica': 'RSSMRA80A01H501U', 'valoriAtto': ['RSSMRA80A01H501X']}
+    assert not ancora_discordante(ente)
+    assert not ancora_discordante(secondo_nome)
+    assert ancora_discordante(vera)
+    assert not ancora_discordante(cf_letto_male)

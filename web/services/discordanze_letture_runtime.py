@@ -115,9 +115,31 @@ def pubblica_discordanza_nome_cliente(fascicolo, nome_anagrafica, fonti, *, cf_a
     repo.riconcilia(tenant, fascicolo.id, 'nome_cliente_atto', voci)
 
 
+def ancora_discordante(voce):
+    """Le regole di confronto correnti applicate a una discordanza già registrata (sola lettura).
+
+    Le discordanze aperte con regole superate (enti al posto del cliente, secondo nome, codici fiscali letti
+    male) si chiudono alla rilettura del fascicolo; finché questa non è avvenuta non si mostrano più
+    (verifica del 01/11/2026: 11 delle 13 discordanze erano false).
+    """
+    from pct.archivio_letture.confronto_cliente import discordanza_codice_fiscale, discordanza_nome
+    codice = str(voce.get('codice') or '')
+    anagrafica = str(voce.get('valoreAnagrafica') or '')
+    fonti = list(voce.get('fonti') or [])
+    if codice == 'nome_cliente_atto':
+        return any(discordanza_nome(f.get('valore'), anagrafica, citazione=f.get('citazione')) for f in fonti) or (
+            not fonti and any(discordanza_nome(v, anagrafica) for v in voce.get('valoriAtto') or []))
+    if codice == 'cf_cliente_atto':
+        return any(discordanza_codice_fiscale(v, anagrafica) for v in voce.get('valoriAtto') or [])
+    return True
+
+
 def riepilogo_discordanze(page=1):
     repo, tenant = repository()
     result = repo.aperte(tenant,page=page)
+    vere = [voce for voce in result['voci'] if ancora_discordante(voce)]
+    result['totale'] = max(0, int(result.get('totale') or 0) - (len(result['voci']) - len(vere)))
+    result['voci'] = vere
     from web.services.controllo_studio_letture import repository as letture
     from web.services.registro_letture_runtime import utente_corrente_id
     archivio = letture()

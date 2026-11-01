@@ -29,7 +29,10 @@ def registry_outbox_writer(registry):
         finally:
             backend.close()
     else:
-        conn = sqlite3.connect(registry.db_path.resolve().as_uri() + '?mode=rw', uri=True, timeout=5)
+        # 60 s: durante il deploy e il recupero delle letture la versione in servizio scrive a lungo; con 5 s la
+        # preparazione del registro falliva con «database is locked» e fermava il deploy (01/11/2026).
+        conn = sqlite3.connect(registry.db_path.resolve().as_uri() + '?mode=rw', uri=True, timeout=60)
+        conn.execute('PRAGMA busy_timeout = 60000')
         conn.row_factory = sqlite3.Row
         try:
             with conn:

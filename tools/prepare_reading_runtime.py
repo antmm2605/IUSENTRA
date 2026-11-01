@@ -31,6 +31,34 @@ def prepare_queue(registry, tenant, destination):
     return not ready
 
 
+def _recupera(registry, writer, recover, adesso):
+    from web.services.registro_letture_runtime import tenant_corrente
+    with writer(registry) as conn:
+        recovered = recover(conn, tenant_corrente(), adesso())
+        conn.commit()
+    return recovered
+
+
+def _con_riprova(operazione, tentativi=3, pausa=20):
+    """Il deploy gira mentre la versione in servizio scrive il registro: un blocco temporaneo si ritenta.
+
+    Verifica del 01/11/2026: il deploy della 2.470.9 si fermava su «database is locked» durante il recupero
+    delle letture. Solo il blocco si ritenta; ogni altro errore ferma il deploy come prima.
+    """
+    import sqlite3
+    import time
+
+    for tentativo in range(1, tentativi + 1):
+        try:
+            return operazione()
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower() or tentativo == tentativi:
+                raise
+            print(json.dumps(dict(status='registro_occupato', tentativo=tentativo)), flush=True)
+            time.sleep(pausa)
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tenant-registry', required=True)
@@ -64,14 +92,13 @@ def main():
             except FileNotFoundError:
                 print(json.dumps(dict(tenant=slug, status='registro_non_provisionato')), flush=True)
                 continue
-            changed = prepare_queue(registry, tenant_corrente(), args.backup_dir / slug / 'letture')
+            changed = _con_riprova(lambda: prepare_queue(registry, tenant_corrente(), args.backup_dir / slug / 'letture'))
             anchor = fascicoli_db_path()
             # Riscontro SELECT dello schema corretto, senza caricare i fascicoli.
             DocumentAIRepository.from_fascicoli_db(anchor,
                 structured_db=get_request_studio_db(anchor), initialize_schema=False)
-            with registry_outbox_writer(registry) as conn:
-                recovered = recover_prepared_schema_failures(conn, tenant_corrente(), _adesso())
-                conn.commit()
+            recovered = _con_riprova(lambda: _recupera(registry, registry_outbox_writer,
+                                                       recover_prepared_schema_failures, _adesso))
             print(json.dumps(dict(tenant=slug, changed=changed, recovered=len(recovered))), flush=True)
 
 

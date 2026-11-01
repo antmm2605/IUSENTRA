@@ -37,7 +37,12 @@ def _backup_sqlite(source: Path, destination: Path) -> dict[str, object]:
     source_connection = sqlite3.connect(source_uri, uri=True, timeout=60)
     destination_connection = sqlite3.connect(destination, timeout=60)
     try:
-        source_connection.backup(destination_connection, pages=8192, sleep=0.05)
+        # Copia in un solo passo. A blocchi (8192 pagine con pausa) SQLite ricomincia da capo ogni volta che un
+        # altro processo scrive: durante il recupero delle letture il backup preventivo non finiva mai e il
+        # deploy della 2.470.10 si è fermato per tempo scaduto (01/11/2026). In un solo passo la lettura
+        # tiene il database coerente il tempo della copia; chi scrive attende (timeout delle connessioni).
+        source_connection.execute("PRAGMA busy_timeout = 60000")
+        source_connection.backup(destination_connection, pages=-1)
     finally:
         destination_connection.close()
         source_connection.close()

@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1224.
+- File pytest censiti: 1225.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,7 +16,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 173 |
 | E2E | 15 |
 | Frontend static gate | 1 |
-| Frontend/UI | 392 |
+| Frontend/UI | 393 |
 | RBAC | 150 |
 | Security | 65 |
 | Smoke CLI | 6 |
@@ -26,7 +26,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Fase | Descrizione | File censiti |
 | --- | --- | --- |
-| 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 28 |
+| 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 29 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 22 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 37 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 90 |
@@ -1010,6 +1010,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Impostazioni | Backend | tests/test_config_studio_smtp.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Frontend/UI | tests/test_backup.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Impostazioni | Frontend/UI | tests/test_ci_coverage_config.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Impostazioni | Frontend/UI | tests/test_hetzner_backup_sotto_scrittura.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Impostazioni | Frontend/UI | tests/test_hetzner_performance_config.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Impostazioni | Security | tests/test_postgres_backup.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Impostazioni | Tenant isolation | tests/test_hetzner_backup_retention.py | tenant, feature flag, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

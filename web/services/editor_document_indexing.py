@@ -23,7 +23,10 @@ def indicizza_salvataggio_editor(*, id_fasc: str, document_id: str, filename: st
             source_type="editor_professionale",
             metadata={"trigger": "editor_salva"},
         )
-        build_document_ai_service().process_lex_indexing_sources(
+        from web.services.document_intelligence_runtime import indicizza_e_registra
+
+        indicizza_e_registra(
+            build_document_ai_service(),
             tenant_id,
             id_fasc,
             [source],

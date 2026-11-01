@@ -121,7 +121,9 @@ def read_client_case_document(manager: Any, repository: Any, tenant: str, case_i
             source = source_from_uploaded_document(tenant_id=tenant, fascicolo_id=case_id,
                 document_id=str(selected[0].id), filename=name, content=raw,
                 metadata={'reason': 'client_identity_read', 'documento_id': str(selected[0].id)})
-            outcome = service.process_lex_indexing_sources(tenant, case_id, [source], user_context, retry_errors=True)
+            from web.services.document_intelligence_runtime import indicizza_e_registra
+
+            outcome = indicizza_e_registra(service, tenant, case_id, [source], user_context, retry_errors=True)
             if outcome.errors:
                 raise ClientDocumentReaderError('Lettura del documento d’identità non completata: ' + '; '.join(outcome.errors), status_code=422)
             return read_client_case_document(manager, repository, tenant, case_id, client_id,

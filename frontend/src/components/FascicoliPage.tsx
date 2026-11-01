@@ -10013,7 +10013,7 @@ function DetailPage({ id }:{id:string}) {
             </DetailSection>
           ) : null}
           <DetailSection id="editor-fascicolo" title="Editor e redazione" icon={<Edit3 size={17}/>} defaultOpen={activeHashSection === 'editor-fascicolo'} onOpen={() => setEditorVisited(true)}>
-            <nav className="iu-fas-toolbar" aria-label="Scrittura nel fascicolo">
+            <nav className="iu-fas-toolbar iu-fas-azioni" aria-label="Scrittura nel fascicolo">
               <Button href={`/editor-professionale?fascicolo=${encodeURIComponent(f.id || id)}`}><Edit3 size={15}/> Modifica documenti e versioni</Button>
               <Button href="#documenti"><BookOpen size={15}/> Consulta le fonti</Button>
               {f.clientId ? <Button href={`/clienti/${encodeURIComponent(f.clientId)}/modifica?id_fascicolo=${encodeURIComponent(f.id || id)}`}><UserRound size={15}/> Anagrafica da documento</Button> : null}
@@ -10046,7 +10046,7 @@ function DetailPage({ id }:{id:string}) {
               <summary><UploadCloud size={15}/> Aggiungi documenti, scanner e riconoscimento del testo</summary>
               <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
             </details>
-            <nav className="iu-fas-toolbar" aria-label="Cestino documenti del fascicolo">
+            <nav className="iu-fas-toolbar iu-fas-azioni" aria-label="Cestino documenti del fascicolo">
               <Button href={`/documenti?scope=cestino&fascicolo=${encodeURIComponent(f.id || id)}`}><Trash2 size={15}/> Cestino del fascicolo</Button>
             </nav>
           </DetailSection>

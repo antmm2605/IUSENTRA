@@ -2393,8 +2393,11 @@ def _ensure_economic_document_ai_texts_for_fascicolo(
             # mancanti li leggeranno i motori in sfondo, una volta sola.
             _avvia_lettura_archivio_in_sfondo(fascicolo)
             return {}
+        from web.services.document_intelligence_runtime import indicizza_e_registra
+
         service = build_document_ai_service()
-        service.process_lex_indexing_sources(
+        indicizza_e_registra(
+            service,
             tenant_id,
             fid,
             sources,
@@ -2487,8 +2490,11 @@ def _ensure_deadline_document_ai_texts_for_fascicolo(
             # leggono i motori in sfondo e sarà disponibile al giro successivo.
             _avvia_lettura_archivio_in_sfondo(fascicolo)
             return existing
+        from web.services.document_intelligence_runtime import indicizza_e_registra
+
         service = build_document_ai_service()
-        service.process_lex_indexing_sources(
+        indicizza_e_registra(
+            service,
             tenant_id,
             fid,
             sources,

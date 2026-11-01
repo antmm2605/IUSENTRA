@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from pathlib import Path
 from typing import Any
 
@@ -623,8 +625,13 @@ def _registra_indice_documentale(
     tenant_id: str,
     fascicolo_id: str,
     user_context: object,
+    chiudi_fascicolo: bool = True,
 ) -> None:
-    """Segna nel registro i documenti indicizzati e, se tutto e' pronto, il fascicolo completo."""
+    """Segna nel registro i documenti indicizzati e, se tutto e' pronto, il fascicolo completo.
+
+    Con ``chiudi_fascicolo=False`` (fonti parziali: un solo documento salvato o caricato) si segnano solo
+    i documenti: l'impronta di poche fonti non è quella del fascicolo e non può chiuderne il giro.
+    """
     repo = registro.get("registro")
     if repo is None:
         return
@@ -675,6 +682,8 @@ def _registra_indice_documentale(
         # Il giro e' completo quando ogni documento ha un esito registrato con questa
         # impronta, leggibile o no: la Lettura non riproverà da sola gli stessi errori.
         completa = bool(oggetti) and registrati == len(oggetti)
+        if not chiudi_fascicolo:
+            return
         repo.segna_fascicolo(
             tenant, fascicolo_id, "indice_documentale", impronta=str(registro.get("impronta") or ""),
             oggetti_totali=len(oggetti), oggetti_letti=letti, stato="completa" if completa else "parziale",
@@ -682,6 +691,32 @@ def _registra_indice_documentale(
         )
     except Exception as exc:
         current_app.logger.debug("Registro letture non aggiornato per l'indice documentale: %s", exc)
+
+
+def indicizza_e_registra(
+    service: DocumentAIService,
+    tenant_id: str,
+    fascicolo_id: str,
+    sources: list[DocumentAISource],
+    user_context: object,
+    **opzioni: Any,
+) -> Any:
+    """Indicizza le fonti indicate e ne segna l'esito nel registro delle letture.
+
+    Va usata al posto di ``process_lex_indexing_sources`` da chi indicizza pochi documenti (editor,
+    caricamento, ricerca di importi, documento d'identità): senza la registrazione quei documenti
+    restavano «da leggere» per sempre per l'indice documentale (analisi del 01/11/2026).
+    """
+    result = service.process_lex_indexing_sources(tenant_id, fascicolo_id, sources, user_context, **opzioni)
+    try:
+        registro = _registro_indice_documentale(fascicolo_id, list(sources))
+        _registra_indice_documentale(
+            registro, result.summary, list(sources), service=service, tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id, user_context=user_context, chiudi_fascicolo=False,
+        )
+    except Exception as exc:
+        logging.getLogger(__name__).debug("Indice documentale non registrato per %s: %s", fascicolo_id, exc)
+    return result
 
 
 def _lex_summary_needs_automatic_processing(summary: LexIndexingSummary, sources: list[DocumentAISource]) -> bool:

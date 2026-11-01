@@ -541,7 +541,7 @@ export function RedazioneGuidataWizard({ initialMatter }: { initialMatter?: { id
           <p className="iu-redazione-eyebrow">Nuova redazione</p>
           <h2>Dal fascicolo reale all'atto pronto nell'editor</h2>
           <span>
-            {cliente ? `Cliente: ${cliente.label}` : 'Seleziona il cliente per iniziare'}
+            {cliente ? `Cliente: ${cliente.label}` : matterId ? (contestoCaricamento ? 'Lettura dei dati del fascicolo…' : 'Cliente non collegato al fascicolo') : 'Seleziona il cliente per iniziare'}
             {fascicolo ? ` - Fascicolo: ${fascicolo.numero || fascicolo.titolo}` : ''}
             {modello ? ` - Atto: ${modello.name}` : ''}
           </span>

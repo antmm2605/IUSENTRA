@@ -3704,3 +3704,7 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-relata-monitorati>summary h4{margin:0}
 .iu-fas-parti-lette{display:grid;gap:6px;margin:8px 0}
 .iu-fas-parti-lette p{margin:0;font-size:13px}
+/* Righe di azioni nel dettaglio: pulsanti alla loro larghezza, non le 14 colonne dei filtri dell'elenco. */
+.iu-fas-toolbar.iu-fas-azioni{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.iu-fas-toolbar.iu-fas-azioni>*{flex:0 1 auto;white-space:nowrap}
+@media(max-width:640px){.iu-fas-toolbar.iu-fas-azioni>*{flex:1 1 100%;justify-content:center}}

@@ -2488,23 +2488,50 @@ class LocalAIService:
     # oppure None; lo imposta chi costruisce il servizio dentro l'applicazione.
     registro_letture: Any = None
 
-    def _registra_lettura_rag(self, fascicolo: Any, doc: Any, outcome: dict[str, Any]) -> None:
+    def _stato_registro_rag(self, fascicolo: Any) -> dict[str, Any] | None:
+        """Registro, oggetti e letture RAG già registrate del fascicolo: una lettura per fascicolo, non per documento."""
         risolutore = getattr(self, "registro_letture", None)
         if not callable(risolutore):
-            return
+            return None
         try:
             coppia = risolutore()
             if not coppia:
-                return
+                return None
             registro, tenant = coppia
+            fascicolo_id = str(getattr(fascicolo, "id", "") or "")
+            return {
+                "registro": registro, "tenant": tenant,
+                "oggetti": {o.oggetto_id: o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo == "documento"},
+                "letti": {(l.oggetto_id, l.sha256) for l in registro.letture(tenant, fascicolo_id, lettore="rag_locale") if l.stato == "letto"},
+            }
+        except Exception as exc:
+            logger.debug("Registro letture non disponibile per il RAG locale: %s", exc)
+            return None
+
+    def _registra_lettura_rag(self, fascicolo: Any, doc: Any, outcome: dict[str, Any], stato_registro: dict[str, Any] | None = None) -> None:
+        risolutore = getattr(self, "registro_letture", None)
+        if stato_registro is None and not callable(risolutore):
+            return
+        try:
             from pct.registro_letture.inventario import oggetto_da_documento
 
-            oggetto = registro.oggetto(tenant, str(getattr(fascicolo, "id", "") or ""), "documento", str(getattr(doc, "id", "") or ""))
+            if stato_registro is not None:
+                registro, tenant = stato_registro["registro"], stato_registro["tenant"]
+                oggetto = stato_registro["oggetti"].get(str(getattr(doc, "id", "") or ""))
+            else:
+                coppia = risolutore()
+                if not coppia:
+                    return
+                registro, tenant = coppia
+                oggetto = registro.oggetto(tenant, str(getattr(fascicolo, "id", "") or ""), "documento", str(getattr(doc, "id", "") or ""))
             if oggetto is None:
                 oggetto = oggetto_da_documento(doc, fascicolo, cifratura_attiva=bool(_doc_key()))
             if oggetto is None:
                 return
             stato = str(outcome.get("status") or "")
+            # Documento invariato e già registrato come letto: nessuna nuova scrittura a ogni giro di manutenzione.
+            if stato == "skipped" and stato_registro is not None and (oggetto.oggetto_id, oggetto.impronta) in stato_registro["letti"]:
+                return
             if stato in {"indexed", "skipped"}:
                 registro.segna_letto(tenant, str(getattr(fascicolo, "id", "") or ""), oggetto, "rag_locale", esito={"chunk": int(outcome.get("chunk_count") or 0)})
             elif stato == "unsupported":
@@ -2526,6 +2553,7 @@ class LocalAIService:
         docs = list(getattr(fascicolo, "documenti", []) or [])
         if limit:
             docs = docs[:limit]
+        stato_registro = self._stato_registro_rag(fascicolo)
         for doc in docs:
             try:
                 raw_path = getattr(doc, "percorso", "")
@@ -2542,7 +2570,7 @@ class LocalAIService:
                     original_detached_path=str(detached_candidate) if detached_candidate else None,
                 )
                 results[outcome["status"]] = results.get(outcome["status"], 0) + 1
-                self._registra_lettura_rag(fascicolo, doc, outcome)
+                self._registra_lettura_rag(fascicolo, doc, outcome, stato_registro)
                 if outcome["status"] == "indexed":
                     results["indexed_items"].append(
                         {

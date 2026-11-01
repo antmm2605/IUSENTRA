@@ -67,7 +67,10 @@ def indicizza_documento_lex(
                         metadata=metadata or {},
                     )
                     service = build_document_ai_service()
-                    result = service.process_lex_indexing_sources(
+                    from web.services.document_intelligence_runtime import indicizza_e_registra
+
+                    result = indicizza_e_registra(
+                        service,
                         tenant_id,
                         id_fasc,
                         [source],

@@ -90,3 +90,51 @@ def test_un_documento_aggiunto_fuori_dalla_richiesta_mette_il_fascicolo_in_coda(
         fascicolo = fascicoli.nuovo("Import / Prova", TipoFascicolo.CIVILE, nome_cliente="Anna Bianchi")
         fascicoli.aggiungi_documento(fascicolo.id, nome_file="decreto.pdf", tipo=TipoDocumento.ALTRO, contenuto=DECRETO)
         assert fascicolo.id in {e["fascicolo_id"] for e in registro_corrente().eventi_da_riprendere()}
+
+
+def test_chi_indicizza_pochi_documenti_li_segna_nel_registro_senza_chiudere_il_fascicolo(monkeypatch):
+    from types import SimpleNamespace
+
+    from web.services import document_intelligence_runtime as runtime
+
+    registrati = []
+    monkeypatch.setattr(runtime, "_registro_indice_documentale", lambda fid, sources: {"registro": object(), "oggetti": ["x"]})
+    monkeypatch.setattr(runtime, "_registra_indice_documentale", lambda registro, summary, sources, **kw: registrati.append(kw))
+    service = SimpleNamespace(process_lex_indexing_sources=lambda *a, **k: SimpleNamespace(summary="riepilogo", errors=[]))
+    esito = runtime.indicizza_e_registra(service, "studio", "F1", ["fonte"], object(), retry_errors=False)
+    assert esito.summary == "riepilogo"
+    assert registrati and registrati[0]["chiudi_fascicolo"] is False and registrati[0]["fascicolo_id"] == "F1"
+
+
+def test_nessuna_via_web_indicizza_senza_registrare():
+    from pathlib import Path
+
+    radice = Path(__file__).resolve().parents[1] / "web"
+    dirette = [
+        str(percorso.relative_to(radice)) for percorso in radice.rglob("*.py")
+        if "process_lex_indexing_sources(" in percorso.read_text(encoding="utf-8")
+    ]
+    assert dirette == ["services/document_intelligence_runtime.py"]
+
+
+def test_il_rag_legacy_non_riscrive_le_letture_dei_documenti_invariati(tmp_path: Path):
+    from types import SimpleNamespace
+
+    from pct.local_ai import LocalAIService
+    from pct.registro_letture import Oggetto, RegistroLetture
+
+    registro = RegistroLetture(tmp_path / "registro-rag.db")
+    oggetto = Oggetto(tipo="documento", oggetto_id="D1", nome="atto.pdf", sha256="a" * 64)
+    registro.registra_inventario("studio", "F1", [oggetto])
+    registro.segna_letto("studio", "F1", oggetto, "rag_locale")
+    servizio = LocalAIService.__new__(LocalAIService)
+    servizio.registro_letture = lambda: (registro, "studio")
+    scritture = []
+    originale = registro.segna_letto
+    registro.segna_letto = lambda *a, **k: scritture.append(a) or originale(*a, **k)
+    fascicolo, doc = SimpleNamespace(id="F1"), SimpleNamespace(id="D1")
+    stato = servizio._stato_registro_rag(fascicolo)
+    servizio._registra_lettura_rag(fascicolo, doc, {"status": "skipped"}, stato)
+    assert scritture == []
+    servizio._registra_lettura_rag(fascicolo, doc, {"status": "indexed", "chunk_count": 3}, stato)
+    assert len(scritture) == 1

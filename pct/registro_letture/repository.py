@@ -8,6 +8,7 @@ che cosa manca e registra che cosa è stato fatto.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sqlite3
 import uuid
@@ -38,6 +39,10 @@ from .modello import (
 
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
+
+logger = logging.getLogger(__name__)
+# Archivi SQLite già preparati (schema e WAL) in questo processo.
+_SQLITE_PRONTI: set[str] = set()
 
 TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache", "letture_eventi", "letture_eventi_esiti", "letture_sintesi_fascicolo")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
@@ -148,8 +153,23 @@ def _lettore(valore: str) -> str:
     return lettore
 
 
+def _vecchio_vincolo_ricevute(conn: sqlite3.Connection) -> bool:
+    """Lettura senza blocco: esiste ancora l'indice univoco delle ricevute senza il fascicolo?"""
+    vecchie = {"tenant_id", "tipo", "oggetto_id", "sha256", "lettore"}
+    for index in conn.execute("PRAGMA index_list(letture)").fetchall():
+        if not index[2]:
+            continue
+        escaped = str(index[1]).replace('"', '""')
+        colonne = [entry[2] for entry in conn.execute(f'PRAGMA index_info("{escaped}")')]
+        if len(colonne) == len(vecchie) and set(colonne) == vecchie:
+            return True
+    return False
+
+
 def _allinea_identita_ricevute(conn: sqlite3.Connection, schema: str) -> None:
     """Migra il vecchio vincolo conservando ricevute, identificativi e indici."""
+    if not _vecchio_vincolo_ricevute(conn):
+        return  # migrazione già fatta: nessun blocco in scrittura all'apertura del registro
     conn.execute("BEGIN IMMEDIATE")
     try:
         old_columns = ("tenant_id", "tipo", "oggetto_id", "sha256", "lettore")
@@ -253,9 +273,29 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             if not self.db_path.is_file():
                 raise FileNotFoundError(self.db_path)
         else:
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            schema = SCHEMA_SQLITE.read_text(encoding="utf-8")
-            with sqlite3.connect(str(self.db_path)) as conn:
+            self._prepara_sqlite()
+
+    def _prepara_sqlite(self) -> None:
+        """Schema e modalità WAL una volta per processo, non a ogni richiesta.
+
+        Verifica del 01/11/2026: senza WAL una scrittura lunga (lettura dei fascicoli, recupero completo) bloccava
+        ogni lettura del registro oltre l'attesa di 5 secondi, e lo schema rieseguito a ogni apertura faceva
+        fallire la Panoramica, le discordanze e le stesse letture con «database is locked». Con il WAL chi legge
+        non attende chi scrive (stessa scelta degli altri archivi SQLite: scheduler, OCR, telematico).
+        """
+        chiave = str(self.db_path.resolve())
+        if chiave in _SQLITE_PRONTI and self.db_path.is_file():
+            return
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        schema = SCHEMA_SQLITE.read_text(encoding="utf-8")
+        conn = sqlite3.connect(str(self.db_path), timeout=30)
+        try:
+            conn.execute("PRAGMA busy_timeout = 30000")
+            try:
+                conn.execute("PRAGMA journal_mode = WAL")
+            except sqlite3.OperationalError as exc:  # un'altra connessione la imposterà al prossimo avvio
+                logger.warning("Registro delle letture: modalità WAL non impostata ora (%s)", exc)
+            with conn:
                 conn.executescript(schema)
                 colonne_eventi = {row[1] for row in conn.execute('PRAGMA table_info(letture_eventi)')}
                 for campo in ("pending_presidi", "claimed_presidi"):
@@ -267,6 +307,9 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                                 raise
                 _allinea_vincolo_categorie(conn, schema)
                 _allinea_identita_ricevute(conn, schema)
+        finally:
+            conn.close()
+        _SQLITE_PRONTI.add(chiave)
 
     # ---- primitive ---------------------------------------------------------
 

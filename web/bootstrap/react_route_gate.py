@@ -276,6 +276,19 @@ _REDIRECT_PORTALI = {
     "/polisweb/fascicolo-wizard": "pst",
     "/pdp/documenti": "pdp",
 }
+# Alias storici senza pagina propria (giro visivo 01/11/2026: rispondevano 404): portano alla pagina canonica.
+_REDIRECT_ALIAS = {
+    "/pst": "/polisweb",
+    "/ptt": "/sigit",
+    "/portali": "/telematico",
+    "/portali/pst": "/polisweb",
+    "/portali/pdp": "/pdp",
+    "/portali/pat": "/pat",
+    "/portali/ptt": "/sigit",
+    "/portali/sigit": "/sigit",
+    "/telematici": "/telematico",
+    "/preventivi/conferimento": "/preventivi",
+}
 _PARAMETRI_PORTALI = (("codice_ufficio", "ufficio_codice"), ("numero_rg", "numero"), ("anno_rg", "anno"), ("id_fasc", "id_fasc"))
 
 
@@ -604,6 +617,9 @@ def register_react_route_gate(app: Flask) -> None:
         portale = _redirect_portale(path)
         if portale is not None:
             return portale
+        alias = _REDIRECT_ALIAS.get(path.lower())
+        if alias is not None:
+            return redirect(alias + ("?" + request.query_string.decode("utf-8", "replace") if request.query_string else ""))
         sito = _REDIRECT_SITO.get(path.lower())
         if sito is not None:
             return redirect(sito)

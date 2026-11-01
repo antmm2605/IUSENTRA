@@ -1,0 +1,45 @@
+name: Diagnosi errori app Hetzner
+on:
+  workflow_dispatch:
+    inputs:
+      filtro:
+        description: "Testo da cercare nello scheletro dell'errore (rotta, file o eccezione)"
+        required: false
+        default: ""
+      servizi:
+        description: "Servizi compose da leggere"
+        required: false
+        default: "app scheduler-worker"
+      da:
+        description: "Finestra dei log (es. 48h)"
+        required: false
+        default: "48h"
+permissions:
+  contents: read
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Leggi lo scheletro degli errori senza modifiche
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+          FILTRO: ${{ inputs.filtro }}
+          SERVIZI: ${{ inputs.servizi }}
+          DA: ${{ inputs.da }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          printf -v remoto 'FILTRO=%q SERVIZI=%q DA=%q python3 -' "$FILTRO" "$SERVIZI" "$DA"
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" "$remoto" < deploy/hetzner/diagnosi_errori_app.py

@@ -9111,7 +9111,9 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
     assert attivita_response.status_code == 200
     assert payload["fascicolo"]["leadLawyer"] == "Avv. Refactor"
     assert profile["Avv. referente"] == "Avv. Refactor"
-    assert profile["Prossima udienza"] != "n.d."
+    # Udienza di 21 giorni fa: non è «prossima», si mostra come ultima udienza (verifica del 01/11/2026).
+    assert "Prossima udienza" not in profile
+    assert profile["Ultima udienza"] == (date.today() - timedelta(days=21)).strftime("%d/%m/%Y")
     assert profile["Chiusura"] != "n.d."
     assert profile["Ultimo sync"] == imported_at_it
     assert payload["fascicolo"]["notes"] == f"Importato da PolisWeb il {imported_at_it}"

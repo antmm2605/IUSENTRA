@@ -51,6 +51,15 @@ def mark_worker_started(now: datetime | None = None) -> None:
         return
 
 
+def worker_started_at() -> datetime | None:
+    """Ora di avvio del worker corrente, se il marcatore esiste."""
+
+    try:
+        return datetime.fromtimestamp(WORKER_START_MARKER.stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
 def worker_startup_grace_active(
     now: datetime | None = None,
     *,
@@ -81,8 +90,15 @@ def presidio_heartbeat(
     *,
     now: datetime | None = None,
     jobs: tuple[tuple[str, str, int], ...] = PRESIDIO_JOBS,
+    avvio_worker: datetime | None = None,
 ) -> dict[str, Any]:
-    """Stato dei presidi ricavato dal registro pianificazioni."""
+    """Stato dei presidi ricavato dal registro pianificazioni.
+
+    Un fallimento concluso prima dell'avvio del worker corrente appartiene alla versione precedente: resta
+    segnalato come degrado, ma non è un guasto certo di questo worker e non annulla l'attesa del primo giro
+    (deploy della 2.470.12, 01/11/2026: lo scheduler appena installato risultava guasto per un errore
+    della versione sostituita e il deploy si fermava nell'attesa di salute).
+    """
 
     adesso = now or datetime.now(timezone.utc)
     try:
@@ -123,7 +139,8 @@ def presidio_heartbeat(
             problema = ""
         if problema:
             degradati += 1
-        if enabled and status in {"failed", "missed"}:
+        precedente = bool(avvio_worker and finished_at and finished_at < avvio_worker)
+        if enabled and status in {"failed", "missed"} and not precedente:
             guasti_certi += 1
         voci.append(
             {
@@ -215,7 +232,7 @@ def presidio_heartbeat_for_config(config: Mapping[str, Any] | None = None) -> di
 
     percorso = registry_db_path(config)
     try:
-        return presidio_heartbeat(_RegistroSoloLettura(percorso))
+        return presidio_heartbeat(_RegistroSoloLettura(percorso), avvio_worker=worker_started_at())
     except Exception as exc:
         return {
             "ok": False,
@@ -263,6 +280,7 @@ __all__ = [
     "WORKER_STARTUP_GRACE_MINUTES",
     "mark_worker_started",
     "worker_startup_grace_active",
+    "worker_started_at",
     "format_heartbeat_lines",
     "presidio_heartbeat",
     "presidio_heartbeat_for_config",

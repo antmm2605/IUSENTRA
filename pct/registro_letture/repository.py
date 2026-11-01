@@ -166,6 +166,11 @@ def _vecchio_vincolo_ricevute(conn: sqlite3.Connection) -> bool:
     return False
 
 
+# Attesa massima di chi scrive sul registro occupato: la lettura notturna e i presìdi scrivono insieme
+# mentre l'AI locale satura il processore; 30 secondi non bastavano (verifica del 01/11/2026).
+ATTESA_SCRITTURA_MS = 120_000
+
+
 def _allinea_identita_ricevute(conn: sqlite3.Connection, schema: str) -> None:
     """Migra il vecchio vincolo conservando ricevute, identificativi e indici."""
     if not _vecchio_vincolo_ricevute(conn):
@@ -328,11 +333,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             conn = sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True, timeout=30)
             conn.execute("PRAGMA query_only = ON")
         else:
-            conn = sqlite3.connect(str(self.db_path), timeout=30)
+            conn = sqlite3.connect(str(self.db_path), timeout=ATTESA_SCRITTURA_MS / 1000)
         conn.row_factory = sqlite3.Row
-        # Stessa attesa dell'apertura (30 s): con 5 s il giro notturno e il giro ogni 10 minuti che scrivono
-        # insieme facevano fallire le letture con «database is locked» (verifica del 01/11/2026: 99 fascicoli).
-        conn.execute("PRAGMA busy_timeout = 30000")
+        # Con 5 s il giro notturno e il giro ogni 10 minuti che scrivono insieme facevano fallire le letture
+        # con «database is locked» (verifica del 01/11/2026: 99 fascicoli); con 30 s ancora sotto carico.
+        conn.execute(f"PRAGMA busy_timeout = {30000 if self.read_only else ATTESA_SCRITTURA_MS}")
         return conn
 
     def close(self) -> None:

@@ -46,11 +46,21 @@ def test_fascicoli_da_aggiornare_i_piu_vecchi_per_primi_e_solo_di_notte(tmp_path
     registro.segna_fascicolo(TENANT, "F-ROTTO", "motore_documenti", impronta="i", oggetti_totali=1, oggetti_letti=0,
                              stato="errore", versione="v7")
     elenco = runtime.fascicoli_da_aggiornare(registro, TENANT, limite=10)
-    assert set(elenco) == {"F-VECCHIO", "F-MEDIO"} and "F-NUOVO" not in elenco
+    # Anche il fascicolo rimasto in errore torna in coda (01/11/2026: 99 fascicoli esclusi per sempre).
+    assert set(elenco) == {"F-VECCHIO", "F-MEDIO", "F-ROTTO"} and "F-NUOVO" not in elenco
     assert runtime.fascicoli_da_aggiornare(registro, TENANT, limite=1) == elenco[:1]
     assert runtime.accoda_riletture_notturne(registro, TENANT, ora=14) == 0
     assert runtime.accoda_riletture_notturne(registro, TENANT, ora=2, limite=2) == 2
-    assert {e["fascicolo_id"] for e in registro.eventi_da_riprendere(TENANT, limite=10)} == set(elenco)
+    assert {e["fascicolo_id"] for e in registro.eventi_da_riprendere(TENANT, limite=10)} == set(elenco[:2])
+
+
+def test_un_fascicolo_in_errore_con_versione_corrente_torna_in_coda(tmp_path):
+    registro = _registro(tmp_path)
+    registro.segna_fascicolo(TENANT, "F-LOCK", "motore_documenti", impronta="", oggetti_totali=0, oggetti_letti=0,
+                             stato="errore", versione=VERSIONE_MOTORE_DOCUMENTI, esito={"motivo": "OperationalError: database is locked"})
+    registro.segna_fascicolo(TENANT, "F-OK", "motore_documenti", impronta="i", oggetti_totali=1, oggetti_letti=1,
+                             versione=VERSIONE_MOTORE_DOCUMENTI)
+    assert runtime.fascicoli_da_aggiornare(registro, TENANT, limite=10) == ["F-LOCK"]
 
 
 def test_accodamento_che_fallisce_non_ferma_il_giro():

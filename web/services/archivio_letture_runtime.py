@@ -1277,14 +1277,20 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
     return True
 
 
-RILETTURE_PER_GIRO = 2
+# Quattro fascicoli ogni 10 minuti tra mezzanotte e le 6: circa 144 per notte. Con 2 per giro i 190 fascicoli
+# letti da un motore vecchio richiedevano tre notti senza intoppi (verifica del 01/11/2026).
+RILETTURE_PER_GIRO = 4
 ORE_RILETTURA = range(0, 6)  # di notte, ora italiana: nessun carico durante il lavoro dello studio
 
 
 def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
-    """Fascicoli letti con un motore documenti superato, i più vecchi per primi."""
+    """Fascicoli da riprendere di notte, i più vecchi per primi: letti con un motore documenti superato, oppure
+    rimasti in errore o a metà. I fascicoli in errore restavano esclusi per sempre (verifica del 01/11/2026:
+    99 fascicoli fermi per «database is locked» e tempo esaurito nella rilettura notturna).
+    """
     righe = [r for r in registro.righe_fascicoli(tenant_id, lettore=LETTORE_DOCUMENTI)
-             if _testo(r.get("stato")) == "completa" and _testo(r.get("versione_lettore")) != VERSIONE_MOTORE_DOCUMENTI]
+             if _testo(r.get("stato")) in {"errore", "parziale"}
+             or _testo(r.get("versione_lettore")) != VERSIONE_MOTORE_DOCUMENTI]
     righe.sort(key=lambda r: _testo(r.get("aggiornato_il")))
     return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)] if _testo(r.get("fascicolo_id"))]
 

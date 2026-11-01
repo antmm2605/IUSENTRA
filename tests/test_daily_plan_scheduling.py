@@ -175,3 +175,19 @@ def test_nessuna_scrittura_su_agenda():
     dopo = esito.scheduled[0].to_dict()
     cambiati = {k for k in prima if prima[k] != dopo[k]}
     assert cambiati <= {"scheduled_start", "estimated_minutes", "in_backlog", "updated_at"}
+
+
+def test_avvisi_uguali_raggruppati_con_il_numero_delle_attivita():
+    # Verifica a vista del 01/11/2026: otto righe identiche in testa al piano.
+    blocchi = [_blocco(8, minuti=30), _blocco(9, minuti=600)]  # tutto occupato
+    items = []
+    for n in range(8):
+        item = _item(f"remoto{n}", priority="P0", minutes=20)
+        item.title = "Collegamento per udienza da remoto non verificato"
+        items.append(item)
+    esito = plan_day(items, blocchi, target_date=TARGET)
+    assert len(esito.scheduled) == 8  # una trova posto nella mezz'ora libera, sette restano senza orario
+    assert esito.warnings == [
+        "Nessuna fascia libera sufficiente per «Collegamento per udienza da remoto non verificato»: "
+        "da incastrare manualmente o delegare. (7 attività)"
+    ]

@@ -201,7 +201,20 @@ def plan_day(
             result.backlog.append(item)
 
     result.used_minutes = used
+    result.warnings = _avvisi_raggruppati(result.warnings)
     return result
+
+
+def _avvisi_raggruppati(avvisi: list[str]) -> list[str]:
+    """Un avviso per tipo, con il numero delle attività: otto righe identiche non aiutano l'avvocato.
+
+    Verifica a vista del 01/11/2026: «Nessuna fascia libera sufficiente per …» compariva una volta per ogni
+    collegamento da remoto da verificare, otto righe uguali in testa al piano.
+    """
+    conteggi: dict[str, int] = {}
+    for avviso in avvisi:
+        conteggi[avviso] = conteggi.get(avviso, 0) + 1
+    return [avviso if n == 1 else f"{avviso} ({n} attività)" for avviso, n in conteggi.items()]
 
 
 def fixed_block_from_agenda(entry: dict[str, Any]) -> FixedBlock | None:

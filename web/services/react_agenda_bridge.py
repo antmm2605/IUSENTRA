@@ -963,6 +963,16 @@ def _sync_status(item: Any) -> str:
     return "locale"
 
 
+def _etichetta_ora_appuntamento(start: datetime) -> str:
+    """Mezzanotte esatta è un'ora non letta (data senza orario dalla PEC o dal provvedimento), non un'udienza alle 00:00.
+
+    Verifica a vista del 01/11/2026: «Fissazione udienza … 00:00» in agenda.
+    """
+    if start.hour == 0 and start.minute == 0:
+        return "Orario da verificare"
+    return start.strftime("%H:%M")
+
+
 def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) -> dict[str, Any] | None:
     # L'Agenda operativa non deve riproporre appuntamenti già chiusi o
     # annullati: restano nello storico del repository, ma non sono attività
@@ -987,7 +997,8 @@ def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) ->
     )
     title = str(getattr(item, "titolo", "") or "Appuntamento")
     hearing_dt = _extract_hearing_datetime(title, notes) if _is_pec_operational_text(title, notes) else None
-    if hearing_dt and start.hour == 9 and start.minute == 0 and hearing_dt.date() == start.date():
+    # Ora predefinita (9:00) o mancante (00:00): vale l'orario scritto nella PEC o nell'atto, se c'è.
+    if hearing_dt and (start.hour, start.minute) in {(9, 0), (0, 0)} and hearing_dt.date() == start.date():
         start = hearing_dt
     start = parse_datetime_rome(start)
     if start is None:
@@ -1014,7 +1025,7 @@ def _agenda_event(item: Any, *, pec_profile: Mapping[str, Any] | None = None) ->
         "status": _enum_value(getattr(item, "stato", "PROGRAMMATO")),
         "start": start.isoformat(timespec="minutes"),
         "end": end.isoformat(timespec="minutes"),
-        "timeLabel": start.strftime("%H:%M"),
+        "timeLabel": _etichetta_ora_appuntamento(start),
         "durationLabel": f"{duration} min",
         "location": str(getattr(item, "luogo", "") or ""),
         "court": str(getattr(item, "tribunale", "") or ""),

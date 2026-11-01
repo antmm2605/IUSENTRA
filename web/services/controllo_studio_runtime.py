@@ -110,6 +110,9 @@ def _frase(voci: list, incassi: dict[str, Any]) -> str:
     parti = []
     if scadute:
         parti.append(f"{scadute} {'termine scaduto' if scadute == 1 else 'termini scaduti'} da verificare")
+    esiti = sum(1 for v in voci if v.fascia == "esito_udienza")
+    if esiti:
+        parti.append(f"{esiti} {'udienza passata' if esiti == 1 else 'udienze passate'} con l'esito da registrare")
     if oggi:
         parti.append(f"{oggi} {'cosa' if oggi == 1 else 'cose'} da fare oggi")
     if udienze_domani:

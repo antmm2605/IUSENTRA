@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import quote, urlencode
 
 from pct.controllo_studio.voce import Azione, Voce, quando_etichetta
+from pct.scadenze_stato import esito_udienza_da_registrare, scaduta_da_chiudere
 from pct.formatting import format_datetime_it, parse_datetime_rome
 
 ORIZZONTE_GIORNI = 30
@@ -77,15 +78,21 @@ def voci_scadenze(scadenze: list[Any], fascicoli: dict[str, Any], oggi: date) ->
         if not giorno or giorno > limite:
             continue
         perentorio = bool(_valore(scadenza, "perentorio", False))
-        scaduta = giorno < oggi.isoformat()
+        # Stessa regola dello scadenziario (V28): un'udienza passata non è un termine scaduto, ne va registrato
+        # l'esito. Verifica a vista del 01/11/2026: «10 termini scaduti» qui, «3 scadute da chiudere» nello
+        # scadenziario; la differenza erano 7 udienze già tenute.
+        esito_udienza = esito_udienza_da_registrare(scadenza, oggi)
+        scaduta = scaduta_da_chiudere(scadenza, oggi)
         vicina = giorno <= (oggi + timedelta(days=2)).isoformat()
         fascicolo = fascicoli.get(str(_valore(scadenza, "id_fascicolo") or ""))
         tipo = str(_valore(scadenza, "tipo") or "").replace("_", " ").capitalize()
         voci.append(Voce(
             id=f"scadenza-{scadenza.id}", area="scadenze", titolo=str(_valore(scadenza, "titolo") or "Termine"),
             dettaglio=" · ".join(p for p in (tipo, "termine perentorio" if perentorio else "") if p),
-            data=giorno, gravita="critica" if (scaduta or (vicina and perentorio)) else "alta" if vicina else "normale",
-            etichetta=f"Scaduto {quando_etichetta(giorno, oggi).lower()}" if scaduta else quando_etichetta(giorno, oggi),
+            data=giorno, gravita="critica" if (scaduta or (vicina and perentorio)) else "alta" if (vicina or esito_udienza) else "normale",
+            etichetta=("Esito da registrare" if esito_udienza
+                       else f"Scaduto {quando_etichetta(giorno, oggi).lower()}" if scaduta else quando_etichetta(giorno, oggi)),
+            fascia="esito_udienza" if esito_udienza else "",
             fascicolo=rif_fascicolo(fascicolo),
             azioni=[Azione("Apri il termine", href=f"/scadenziario/{quote(str(scadenza.id))}/modifica", principale=True),
                     Azione("Segna fatto", endpoint=f"/api/v1/ui/controllo-studio/scadenze/{quote(str(scadenza.id))}/completa",

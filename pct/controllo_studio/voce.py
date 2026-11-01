@@ -15,6 +15,8 @@ AREE = {
 }
 FASCE = {
     "scaduto": "Scaduto: da recuperare subito",
+    # Udienze già tenute: non scadono, se ne registra l'esito (artt. 126 e 127-ter c.p.c.; regola V28).
+    "esito_udienza": "Udienze passate: esito da registrare",
     "oggi": "Oggi",
     "domani": "Domani",
     "settimana": "Nei prossimi 7 giorni",
@@ -95,7 +97,7 @@ def quando_etichetta(giorno: str, oggi: date) -> str:
 def ordina(voci: list[Voce], oggi: date) -> list[Voce]:
     ordine_fasce = list(FASCE)
     for voce in voci:
-        if voce.fascia != "da_leggere":
+        if voce.fascia not in ("da_leggere", "esito_udienza"):
             voce.fascia = fascia(voce.data, oggi)
     return sorted(voci, key=lambda v: (ordine_fasce.index(v.fascia), GRAVITA.index(v.gravita) if v.gravita in GRAVITA else 2,
                                        v.data or "9999", v.ora or "99:99", v.titolo))

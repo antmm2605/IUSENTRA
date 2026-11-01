@@ -69,3 +69,26 @@ def test_accodamento_che_fallisce_non_ferma_il_giro():
             raise RuntimeError("registro")
 
     assert runtime.accoda_riletture_notturne(Guasto(), TENANT, ora=1) == 0
+
+
+def test_recupero_completo_mette_in_coda_tutti_i_fascicoli_da_riprendere(tmp_path, monkeypatch):
+    """01/11/2026: avvio manuale del recupero dalla console «Pianificazioni», a qualsiasi ora."""
+    from types import SimpleNamespace
+
+    registro = _registro(tmp_path)
+    for fid, versione, stato in (("F-V7", "v7", "completa"), ("F-ERR", VERSIONE_MOTORE_DOCUMENTI, "errore"),
+                                 ("F-OK", VERSIONE_MOTORE_DOCUMENTI, "completa")):
+        registro.segna_fascicolo(TENANT, fid, "motore_documenti", impronta="i", oggetti_totali=1, oggetti_letti=1,
+                                 stato=stato, versione=versione)
+    monkeypatch.setattr(runtime, "_studi_della_coda", lambda app: [(TENANT, {})])
+    monkeypatch.setattr(runtime, "registro_per_percorsi", lambda paths: registro)
+    esito = runtime.accoda_recupero_completo(SimpleNamespace(config={}))
+    assert esito == {"studi": 1, "accodati": 2}
+    assert {e["fascicolo_id"] for e in registro.eventi_da_riprendere(TENANT, limite=10)} == {"F-V7", "F-ERR"}
+
+
+def test_il_recupero_completo_e_una_pianificazione_della_console():
+    from pct.scheduler_registry import default_scheduler_templates
+
+    voce = next(t for t in default_scheduler_templates({}) if t.key == "letture_recupero_completo")
+    assert voce.built_in and voce.day_of_week == "sun" and voce.name == "Recupero completo delle letture"

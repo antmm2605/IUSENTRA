@@ -1371,8 +1371,7 @@ def _riallinea_notifiche_del_fascicolo(fascicolo_id: str) -> dict[str, Any]:
         return {"esaminati": 0, "riallineati": 0, "errore": f"{type(exc).__name__}"}
 
 
-def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:
-    """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
+def _studi_della_coda(app: Any) -> list[tuple[str, dict[str, Any]]]:
     targets: list[tuple[str, dict[str, Any]]] = []
     if app.config.get("MULTI_TENANT"):
         from pct.tenant import GestioneTenant, StatoTenant
@@ -1386,7 +1385,32 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
             targets.append((_testo(studio.slug), paths))
     else:
         targets.append(("", {}))
+    return targets
 
+
+def accoda_recupero_completo(app: Any, *, limite_per_tenant: int = 1000) -> dict[str, int]:
+    """Recupero completo, avviato a mano dalla console «Pianificazioni» (o la domenica notte).
+
+    Mette in coda tutti i fascicoli letti con un motore superato o rimasti in errore o a metà; li legge poi il
+    giro ogni 10 minuti, venti per studio alla volta. Non legge nulla qui (richiesta dell'avvocato del 01/11/2026:
+    recuperare subito le letture ferme, a studio chiuso).
+    """
+    studi = accodati = 0
+    for tenant_id, paths in _studi_della_coda(app):
+        studi += 1
+        registro = registro_per_percorsi(paths)
+        try:
+            for fascicolo_id in fascicoli_da_aggiornare(registro, tenant_id, limite=limite_per_tenant):
+                registro.accoda_evento(tenant_id, fascicolo_id)
+                accodati += 1
+        except Exception:
+            logger.exception("Recupero completo delle letture non accodato per %s", tenant_id or "studio")
+    return {"studi": studi, "accodati": accodati}
+
+
+def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:
+    """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
+    targets = _studi_della_coda(app)
     trovati = avviati = accodati = 0
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)

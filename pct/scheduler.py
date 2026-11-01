@@ -1696,6 +1696,27 @@ def start_scheduler(app):
                 return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
 
     @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", day_of_week="sun", hour=0, minute=17),
+        id="letture_recupero_completo",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=3600,
+    )
+    def _letture_recupero_completo():
+        # Si avvia a mano dalla console «Pianificazioni» quando le letture sono rimaste indietro; da solo gira la
+        # domenica notte. Mette in coda i fascicoli da aggiornare: li legge il giro ogni 10 minuti.
+        with app.app_context():
+            try:
+                from web.services.archivio_letture_runtime import accoda_recupero_completo
+
+                esito = accoda_recupero_completo(app)
+                logger.info("[scheduler] Recupero completo delle letture: %d fascicoli messi in coda", int(esito.get("accodati") or 0))
+                return {"ok": True, "job": "letture_recupero_completo", **esito}
+            except Exception as e:
+                logger.error("[scheduler] Recupero completo delle letture fallito: %s", e)
+                return {"ok": False, "job": "letture_recupero_completo", "error": str(e)}
+
+    @scheduler.scheduled_job(
         CronTrigger(timezone="Europe/Rome", minute="3-58/10"),
         id="archivio_letture_automatico",
         max_instances=1,

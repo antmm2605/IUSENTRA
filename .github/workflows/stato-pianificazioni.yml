@@ -4,6 +4,10 @@ name: Stato delle pianificazioni
 on:
   workflow_dispatch:
     inputs:
+      attiva:
+        description: "Pianificazioni spente da riaccendere (identificativi separati da virgola)"
+        required: false
+        default: ""
       esegui:
         description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura)"
         required: false
@@ -25,9 +29,10 @@ jobs:
           SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
           KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
           ESEGUI: ${{ inputs.esegui }}
+          ATTIVA: ${{ inputs.attiva }}
         run: |
           set -euo pipefail
-          case "$ESEGUI" in *[!A-Za-z0-9_,-]*) echo "Identificativi non validi"; exit 1;; esac
+          case "$ESEGUI$ATTIVA" in *[!A-Za-z0-9_,-]*) echo "Identificativi non validi"; exit 1;; esac
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
@@ -36,11 +41,11 @@ jobs:
           trap 'shred -u ~/.ssh/id_deploy' EXIT
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
             "${HETZNER_USER}@${HETZNER_HOST}" \
-            "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e ESEGUI='${ESEGUI}' scheduler-worker python -" \
+            "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e ESEGUI='${ESEGUI}' -e ATTIVA='${ATTIVA}' scheduler-worker python -" \
             < deploy/hetzner/stato_pianificazioni.py > uscita.txt
           grep -m1 '^STATO_PIANIFICAZIONI_JSON:' uscita.txt | sed 's/^STATO_PIANIFICAZIONI_JSON://' | jq . > stato.json
           rm -f uscita.txt
-          jq -c '.avviati' stato.json
+          jq -c '.accese, .avviati' stato.json
           jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), (.ultima.errore // "")] | @tsv' stato.json
       - uses: actions/upload-artifact@v7
         with:

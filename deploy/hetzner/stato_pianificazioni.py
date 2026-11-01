@@ -3,7 +3,8 @@
 Per ogni pianificazione: attiva o spenta, ultima esecuzione (esito, inizio, fine, durata) e conteggio degli esiti
 nelle ultime 48 ore. Nessun dato del cliente: dell'errore esce solo la prima riga, con identificativi mascherati.
 
-Con la variabile ``ESEGUI`` (identificativi separati da virgola) chiede un'esecuzione manuale, come il pulsante
+Con la variabile ``ATTIVA`` (identificativi separati da virgola) riaccende pianificazioni spente, come
+l'interruttore della console. Con la variabile ``ESEGUI`` (identificativi separati da virgola) chiede un'esecuzione manuale, come il pulsante
 «Esegui» della console «Pianificazioni»; il worker la avvia entro un minuto.
 
 Uso sul server:
@@ -37,6 +38,13 @@ def main() -> int:
 
     app = create_scheduler_app()
     repo = scheduler_registry_repository(app.config)
+    accese = []
+    for job_id in [j.strip() for j in os.getenv("ATTIVA", "").split(",") if j.strip()]:
+        try:
+            repo.save_job(job_id, {"enabled": True}, updated_by="verifica-claude")
+            accese.append({"job": job_id, "esito": "attivata"})
+        except Exception as exc:  # pianificazione sconosciuta
+            accese.append({"job": job_id, "esito": _breve(f"{type(exc).__name__}: {exc}")})
     richieste = [j.strip() for j in os.getenv("ESEGUI", "").split(",") if j.strip()]
     avviati = []
     for job_id in richieste:
@@ -69,7 +77,7 @@ def main() -> int:
                     "durata_s": round(int(ultima[4] or 0) / 1000, 1), "messaggio": _breve(ultima[5]), "errore": _breve(ultima[6]),
                 }
             pianificazioni.append(voce)
-    print(MARCATORE + json.dumps({"avviati": avviati, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
+    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
     return 0
 
 

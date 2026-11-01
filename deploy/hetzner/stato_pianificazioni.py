@@ -83,7 +83,21 @@ def main() -> int:
             if fallita:
                 voce["ultimo_fallimento"] = {"inizio": fallita[0], "errore": _breve(fallita[1])}
             pianificazioni.append(voce)
-    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
+    registri = []
+    import glob
+    import sqlite3
+    for percorso in sorted(set(glob.glob("/data/**/intelligence/registro_letture.db", recursive=True))):
+        voce = {"file_mb": round(os.path.getsize(percorso) / 1e6, 1)}
+        wal = percorso + "-wal"
+        voce["wal_mb"] = round(os.path.getsize(wal) / 1e6, 1) if os.path.exists(wal) else None
+        try:  # sola lettura: la domanda non cambia la modalità
+            conn = sqlite3.connect(f"file:{percorso}?mode=ro", uri=True, timeout=5)
+            voce["journal_mode"] = conn.execute("PRAGMA journal_mode").fetchone()[0]
+            conn.close()
+        except Exception as exc:
+            voce["journal_mode"] = _breve(f"{type(exc).__name__}: {exc}")
+        registri.append(voce)
+    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "registri_letture": registri, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
     return 0
 
 

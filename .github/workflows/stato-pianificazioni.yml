@@ -49,7 +49,7 @@ jobs:
             < deploy/hetzner/stato_pianificazioni.py > uscita.txt
           grep -m1 '^STATO_PIANIFICAZIONI_JSON:' uscita.txt | sed 's/^STATO_PIANIFICAZIONI_JSON://' | jq . > stato.json
           rm -f uscita.txt
-          jq -c '.accese, .avviati' stato.json
+          jq -c '.accese, .avviati, .registri_letture' stato.json
           jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), ((.ultima.durata_s // 0)|tostring) + " s", (.ultime_48h|tostring), (.ultima.errore // ""), (.ultimo_fallimento.errore // "")] | @tsv' stato.json
           # Consumo del server: carico, memoria, disco e risorse di ogni container (nessun dato del cliente).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \

@@ -50,7 +50,7 @@ jobs:
           grep -m1 '^STATO_PIANIFICAZIONI_JSON:' uscita.txt | sed 's/^STATO_PIANIFICAZIONI_JSON://' | jq . > stato.json
           rm -f uscita.txt
           jq -c '.accese, .avviati' stato.json
-          jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), ((.ultima.durata_s // 0)|tostring) + " s", (.ultime_48h|tostring), (.ultima.errore // "")] | @tsv' stato.json
+          jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), ((.ultima.durata_s // 0)|tostring) + " s", (.ultime_48h|tostring), (.ultima.errore // ""), (.ultimo_fallimento.errore // "")] | @tsv' stato.json
           # Consumo del server: carico, memoria, disco e risorse di ogni container (nessun dato del cliente).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
             'echo "== carico"; uptime; nproc; echo "== memoria"; free -m; echo "== disco"; df -h /opt/iusentra | tail -1; echo "== container"; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"; echo "== processi più pesanti"; ps -eo pcpu,pmem,etime,comm --sort=-pcpu | head -12'
@@ -63,7 +63,7 @@ jobs:
             'echo "== disco per cartella"; du -sh /opt/iusentra/backups /opt/iusentra/data /var/lib/docker 2>/dev/null; echo "== backup"; ls -la --time-style=+%d/%m-%H:%M /opt/iusentra/backups 2>/dev/null | head -40; du -sh /opt/iusentra/backups/* 2>/dev/null | sort -h | tail -20; echo "== docker"; docker system df'
           # Errori recenti dell'app: solo punti del codice e tipo d'errore (il messaggio, che può contenere dati, si taglia).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
-            'echo "== errori recenti (app e scheduler)"; for c in iusentra-app iusentra-scheduler-worker-1; do echo "-- $c"; docker logs --since 60m "$c" 2>&1 | grep -E "^\s+File \"/app/|^[A-Za-z_.]*(Error|Exception|Timeout)[A-Za-z]*(:|$)|non disponibile" | sed -E "s/^([A-Za-z_.]*(Error|Exception|Timeout)[A-Za-z]*):.*/\1/; s/(non disponibile).*/\1/" | tail -40; done'
+            'echo "== errori recenti (app e scheduler)"; for c in iusentra-app iusentra-scheduler-worker-1; do echo "-- $c"; docker logs --since 60m "$c" 2>&1 | grep -E "^\s+File \"/app/|^[A-Za-z0-9_.]*(Error|Exception|Timeout)[A-Za-z]*(:|$)|non disponibile" | sed -E "s/^([A-Za-z0-9_.]*(Error|Exception|Timeout)[A-Za-z]*):( database is locked| disk I\/O error)?.*/\1\3/; s/(non disponibile).*/\1/" | tail -40; done'
       - uses: actions/upload-artifact@v7
         with:
           name: stato-pianificazioni

@@ -76,6 +76,12 @@ def main() -> int:
                     "origine": ultima[0], "esito": ultima[1], "inizio": ultima[2], "fine": ultima[3],
                     "durata_s": round(int(ultima[4] or 0) / 1000, 1), "messaggio": _breve(ultima[5]), "errore": _breve(ultima[6]),
                 }
+            fallita = conn.execute(
+                "SELECT started_at, error_message FROM scheduled_job_runs WHERE job_id = ? AND status = 'failed' "
+                "ORDER BY id DESC LIMIT 1", (job_id,),
+            ).fetchone()
+            if fallita:
+                voce["ultimo_fallimento"] = {"inizio": fallita[0], "errore": _breve(fallita[1])}
             pianificazioni.append(voce)
     print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
     return 0

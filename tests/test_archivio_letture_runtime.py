@@ -713,3 +713,26 @@ def test_il_giro_automatico_parte_dai_fascicoli_esaminati_da_piu_tempo(tmp_path:
     with app.app_context():
         runtime.lettura_automatica_corrente(limite_oggetti=2)
     assert ordine == ["C3", "B2"]  # prima il mai letto, poi il più vecchio; A1 aspetta il giro dopo
+
+
+def test_un_giro_completo_chiude_l_errore_di_un_tentativo_precedente(tmp_path: Path):
+    """01/11/2026: 99 fascicoli restavano «in errore» per un «database is locked» notturno già superato."""
+    app = _app(tmp_path)
+    fid, _, _ = _seed(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        registro, tenant = registro_corrente(), tenant_corrente()
+        registro.accoda_evento(tenant, fid)
+        with registro.connection() as conn:
+            conn.execute("UPDATE letture_eventi SET stato='idle', attempts=3, last_error='database is locked', "
+                         "last_error_code='OperationalError' WHERE fascicolo_id=?", (fid,))
+        assert registro.esito_evento(tenant, fid)["stato"] == "failed"
+        esito = runtime.leggi_fascicolo(_fascicolo(app, fid))
+        assert esito["restano"] == 0
+        assert registro.esito_evento(tenant, fid)["stato"] != "failed"
+        with registro.connection() as conn:
+            conn.execute("UPDATE letture_eventi SET last_error='database is locked' WHERE fascicolo_id=?", (fid,))
+        runtime.leggi_fascicolo(_fascicolo(app, fid))  # fascicolo fermo: anche qui l'errore superato si chiude
+        assert registro.esito_evento(tenant, fid)["stato"] != "failed"

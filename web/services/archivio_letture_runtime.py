@@ -792,6 +792,13 @@ def _segna_ciclo(registro: RegistroLetture, tenant: str, fascicolo_id: str, *, i
         logger.debug("Stato del ciclo non registrato per %s: %s", fascicolo_id, exc)
 
 
+def _azzera_errore_coda(registro: RegistroLetture, tenant: str, fascicolo_id: str) -> None:
+    try:
+        registro.azzera_errore_evento(tenant, fascicolo_id)
+    except Exception as exc:
+        logger.debug("Errore della coda non azzerato per %s: %s", fascicolo_id, exc)
+
+
 def _aggiorna_sintesi(fascicolo: Any, registro: RegistroLetture, *, solo_se_cambiata: bool = False) -> None:
     from web.services.sintesi_fascicolo_runtime import aggiorna_sintesi_fascicolo
 
@@ -908,6 +915,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
             # Fascicolo fermo: la riga di sintesi si riscrive solo se è cambiata l'identità (stato, date, cliente…).
             _aggiorna_sintesi(fascicolo, registro, solo_se_cambiata=True)
+            if not int(metadati.get("restano") or 0):
+                _azzera_errore_coda(registro, tenant, fascicolo_id)
             return {
                 "inventario": {},
                 "documenti": {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0},
@@ -977,6 +986,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     )
     _segna_riga_pec(registro, tenant, fascicolo_id, impronta=impronta)
     _aggiorna_sintesi(fascicolo, registro)
+    if restano == 0:
+        _azzera_errore_coda(registro, tenant, fascicolo_id)
     dopo = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=impronta)
     return {
         "inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "riconvalidati": riconvalidati,

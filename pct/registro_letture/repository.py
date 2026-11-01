@@ -287,7 +287,9 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
         else:
             conn = sqlite3.connect(str(self.db_path), timeout=30)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA busy_timeout = 5000")
+        # Stessa attesa dell'apertura (30 s): con 5 s il giro notturno e il giro ogni 10 minuti che scrivono
+        # insieme facevano fallire le letture con «database is locked» (verifica del 01/11/2026: 99 fascicoli).
+        conn.execute("PRAGMA busy_timeout = 30000")
         return conn
 
     def close(self) -> None:
@@ -845,6 +847,22 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
         if result['stato'] == 'idle' and result['last_error']:
             result['stato'] = 'failed'
         return result
+
+    def azzera_errore_evento(self, tenant_id: str, fascicolo_id: str) -> bool:
+        """Un giro successivo ha letto tutto il fascicolo: l'errore di un tentativo precedente non vale più.
+
+        Senza questa chiusura il pannello mostrava «elaborazione automatica non conclusa» per sempre, anche a
+        fascicolo letto per intero dal giro ordinario.
+        """
+        with self.connection() as conn:
+            self._require_event_retry(conn)
+            self._prepare_live_write(conn)
+            cursore = conn.execute(
+                "UPDATE letture_eventi SET last_error='', last_error_code='', attempts=0, aggiornato_il=? "
+                "WHERE tenant_id=? AND fascicolo_id=? AND stato='idle' AND last_error<>''",
+                (_adesso(), _testo(tenant_id), _testo(fascicolo_id)),
+            )
+            return bool(getattr(cursore, "rowcount", 0))
 
     def stato_evento(self, tenant_id: str, fascicolo_id: str) -> str:
         return self.esito_evento(tenant_id, fascicolo_id)['stato']

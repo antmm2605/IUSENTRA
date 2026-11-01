@@ -8,6 +8,10 @@ on:
         description: "Pianificazioni spente da riaccendere (identificativi separati da virgola)"
         required: false
         default: ""
+      pulisci_cache_docker:
+        description: "Svuota la cache di costruzione Docker inutilizzata (nessun dato, backup o immagine in uso)"
+        type: boolean
+        default: false
       esegui:
         description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura)"
         required: false
@@ -50,6 +54,10 @@ jobs:
           # Consumo del server: carico, memoria, disco e risorse di ogni container (nessun dato del cliente).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
             'echo "== carico"; uptime; nproc; echo "== memoria"; free -m; echo "== disco"; df -h /opt/iusentra | tail -1; echo "== container"; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"; echo "== processi più pesanti"; ps -eo pcpu,pmem,etime,comm --sort=-pcpu | head -12'
+          if [ "${{ inputs.pulisci_cache_docker }}" = "true" ]; then
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
+              'echo "== pulizia cache di costruzione Docker"; df -h /opt/iusentra | tail -1; docker builder prune -af | tail -1; df -h /opt/iusentra | tail -1'
+          fi
           # Occupazione del disco: cartelle dei backup e di Docker (solo dimensioni e nomi delle cartelle tecniche).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
             'echo "== disco per cartella"; du -sh /opt/iusentra/backups /opt/iusentra/data /var/lib/docker 2>/dev/null; echo "== backup"; ls -la --time-style=+%d/%m-%H:%M /opt/iusentra/backups 2>/dev/null | head -40; du -sh /opt/iusentra/backups/* 2>/dev/null | sort -h | tail -20; echo "== docker"; docker system df'

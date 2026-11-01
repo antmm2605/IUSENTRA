@@ -340,7 +340,8 @@ class RetrievalOrchestrator:
 
         queries = self.query_planner.plan(request, context, workflow)
         sources = self.source_router.resolve(request, context, workflow)
-        studio_seed_results = [] if requests_local_normative_only(request, workflow) else self._studio_context_seed_results(context, workflow)
+        solo_fonti_locali = requests_local_normative_only(request, workflow)
+        studio_seed_results = [] if solo_fonti_locali else self._studio_context_seed_results(context, workflow)
 
         internal_sources = [source for source in sources if not self._is_official_web_source(source)]
         external_sources = [source for source in sources if self._is_official_web_source(source)]
@@ -472,7 +473,8 @@ class RetrievalOrchestrator:
                 exact_court=reference_live.court,
             )
             official_exact_already_found = precheck.match_status == "exact_match"
-        if not official_exact_already_found and should_run_public_research(
+        # Richiesta limitata esplicitamente ai testi locali: la ricerca pubblica sul web non parte mai.
+        if not solo_fonti_locali and not official_exact_already_found and should_run_public_research(
             workflow,
             sufficient,
             bool(getattr(request, "allow_external_research", True)),

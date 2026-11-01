@@ -5,6 +5,7 @@ import { changeSelectionCase, changeSelectedDate, linkedDateFormat, textCase, li
 import { clearSpellingMarks, showSpellingMarks, documentLanguageSource, grammarRanges, type SpellingMark } from '../editorSpelling'
 import {
   AlignCenter,
+  BookOpen,
   AlignJustify,
   AlignLeft,
   AlignRight,
@@ -55,6 +56,7 @@ import { Modal } from '../ui/legalPrimitives'
 import { csrfToken } from '../formSubmit'
 import { FascicoloSearchSelect } from './FascicoloSearchSelect'
 import { EditorLinkedFieldsPanel, type LinkedEditorField, type LinkedEditorContext } from './EditorLinkedFieldsPanel'
+import { EditorNormativaPanel } from './EditorNormativaPanel'
 import { EditorPersonalTemplates } from './EditorPersonalTemplates'
 import {
   emptyDocumentEditorPayload,
@@ -456,6 +458,7 @@ export function DocumentEditorPage() {
   const standaloneDraft = !route && window.location.pathname.endsWith('/editor-professionale') && new URLSearchParams(window.location.search).get('modalita') === 'editor'
   const [draftSaveOpen, setDraftSaveOpen] = useState(false)
   const [linkedFieldsOpen, setLinkedFieldsOpen] = useState(false)
+  const [normativaOpen, setNormativaOpen] = useState(false)
   const [personalTemplatesOpen, setPersonalTemplatesOpen] = useState(false)
   const [templateMatterSelectionOpen, setTemplateMatterSelectionOpen] = useState(false)
   const [stampOpen, setStampOpen] = useState(false)
@@ -2687,6 +2690,7 @@ export function DocumentEditorPage() {
             <ToolbarButton title="Tabella" onClick={openTablePicker}><Table size={16}/></ToolbarButton>
             <ToolbarButton title="Casella di testo" onClick={insertTextBox}><FileText size={16}/></ToolbarButton>
             <button className="iu-de-tool iu-de-tool--wide" type="button" aria-expanded={linkedFieldsOpen} onClick={() => setLinkedFieldsOpen(value => !value)}>Dati collegati</button>
+            <button className="iu-de-tool iu-de-tool--wide" type="button" aria-expanded={normativaOpen} title="Consulta codici e leggi mentre scrivi" onClick={() => setNormativaOpen(value => !value)}><BookOpen size={15}/> Normativa</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => setPersonalTemplatesOpen(true)}>Modelli</button>
             <button className="iu-de-tool iu-de-tool--wide" type="button" onClick={() => void loadStamp()}>Timbro studio</button>
             <ToolbarButton title="Inserisci immagine" onClick={chooseImage}><ImagePlus size={16}/></ToolbarButton>
@@ -2867,6 +2871,7 @@ export function DocumentEditorPage() {
               </div>
             </section>
             {linkedFieldsOpen && <EditorLinkedFieldsPanel catalogLoading={draftCatalogLoading} catalogError={draftCatalogError} matterId={route?.idFascicolo || draftMatter} options={draftMatters} onMatterChange={standaloneDraft ? setDraftMatter : undefined} onInsert={insertLinkedField} onRefreshFields={compareLinkedFields} onClose={() => setLinkedFieldsOpen(false)} disabled={!editorEnabled || draftBusy || draftIntent.current !== null}/>}
+            {normativaOpen && <EditorNormativaPanel onClose={() => setNormativaOpen(false)}/>}
             </div>
           </section>
             </div>

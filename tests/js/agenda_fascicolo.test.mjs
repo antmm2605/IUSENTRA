@@ -14,3 +14,16 @@ test('agenda del fascicolo: prossimi in ordine, poi i passati dal più recente',
   assert.deepEqual(voci.map((v) => v.titolo), ['domani', 'note', 'udienza', 'vecchia', 'udienza-2023'])
   assert.deepEqual(voci.map((v) => v.passata), [false, false, false, true, true])
 })
+
+test('agenda compatta: solo i prossimi impegni, al massimo cinque, con il conteggio degli altri', async () => {
+  const { prossimiImpegni } = await import('../../frontend/src/components/fascicoli/agendaFascicoloVoci.ts')
+  const voci = vociAgendaFascicolo(
+    ['a', 'b', 'c', 'd', 'e', 'f'].map((id, i) => scadenza(id, `2026-11-1${i}`)).concat([scadenza('passata', '2026-10-01')]),
+    [],
+    '2026-11-01',
+  )
+  const { voci: prime, altri } = prossimiImpegni(voci)
+  assert.deepEqual(prime.map((v) => v.titolo), ['a', 'b', 'c', 'd', 'e'])
+  assert.equal(altri, 1)
+  assert.ok(prime.every((v) => !v.passata))
+})

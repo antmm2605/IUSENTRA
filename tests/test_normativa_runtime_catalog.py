@@ -311,6 +311,31 @@ def test_local_normative_request_does_not_reintroduce_studio_seed(tmp_path, monk
     assert result["items"] == []
 
 
+def test_local_normative_request_never_runs_public_web_research(tmp_path, monkeypatch):
+    """«Solo le fonti locali»: la ricerca pubblica sul web non parte, anche se troverebbe risultati (CI del 01/11/2026)."""
+    from lex.retrieval import orchestrator as modulo
+    from lex.retrieval.source_router import SourceRouter
+
+    general = archive(tmp_path / "normattiva.sqlite")
+    monkeypatch.setenv("PCT_NORMATTIVA_DB", str(general))
+    chiamate = []
+
+    def ricerca_web(*args, **kwargs):
+        chiamate.append(True)
+        return {"public_sources": [{"id": "live-web-search:x", "title": "Normattiva", "excerpt": "testo", "official": True}],
+                "public_official_sources": ["Normattiva"]}
+
+    monkeypatch.setattr(modulo, "run_public_research_for_request", ricerca_web)
+    monkeypatch.setattr(modulo, "should_run_public_research", lambda *args, **kwargs: True)
+    monkeypatch.setattr(NormativeSource, "search", lambda *args: [])
+    request = LexRequest(tenant_id="controlled", user_id="tester", session_id="web",
+        query="Analizza l'art. 327 c.p.c. usando solo le fonti locali acquisite.")
+    retrieval = RetrievalOrchestrator(source_router=SourceRouter(), retrieval_cache=LexRetrievalCache())
+    result = retrieval.collect(request, {}, "normativa")
+    assert result["items"] == []
+    assert chiamate == []
+
+
 def test_local_normative_scope_preserves_linked_case_requests():
     from lex.retrieval.source_router import SourceRouter
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, current_app, g, jsonify, request
 
 
 def register_controllo_studio_routes(app: Flask, core: dict[str, Any]) -> None:
@@ -74,7 +74,15 @@ def register_controllo_studio_routes(app: Flask, core: dict[str, Any]) -> None:
             return jsonify({"ok": False, "message": "Pagina non valida."}), 400
         if pagina < 1 or pagina > 10000:
             return jsonify({"ok": False, "message": "Pagina non valida."}), 400
-        return jsonify(riepilogo_discordanze(pagina))
+        try:
+            return jsonify(riepilogo_discordanze(pagina))
+        except RuntimeError:
+            # Senza studio identificato non ci sono confronti da mostrare: riepilogo vuoto, non un errore 500.
+            return jsonify({"ok": True, "disponibile": False, "voci": [], "lettureInCorso": 0, "totale": 0,
+                            "pagina": pagina, "altre": False, "revisione": "", "nonLette": 0})
+        except Exception:
+            current_app.logger.exception("Riepilogo delle discordanze non disponibile")
+            return jsonify({"ok": False, "message": "Il riepilogo delle verifiche non è disponibile. Riprova tra poco."}), 503
 
     @app.route("/api/v1/ui/controllo-studio/conoscenza-notifiche")
     def controllo_studio_conoscenza_notifiche():

@@ -4,3 +4,12 @@
 .iu-agenda-fascicolo__passate{margin-top:6px;border-top:1px solid var(--iu-border,#e2e8f0);padding-top:6px}
 .iu-agenda-fascicolo__passate summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:800;color:var(--iu-slate-600,#475569)}
 .iu-agenda-fascicolo__azioni{display:flex;flex-wrap:wrap;gap:12px;margin-top:4px}
+.iu-agenda-compatta{display:grid;gap:6px;border:1px solid var(--iu-border,#dde2e8);border-radius:8px;background:#fff;padding:10px 12px;margin-bottom:10px}
+.iu-agenda-compatta header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.iu-agenda-compatta header strong{display:flex;align-items:center;gap:6px}
+.iu-agenda-compatta__voce{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) max-content;align-items:center;gap:8px;min-height:36px;padding:4px 6px;border-radius:6px;color:inherit;text-decoration:none}
+.iu-agenda-compatta__voce:hover{background:#f4f7fb}
+.iu-agenda-compatta__voce.is-oggi{background:#fff7e6}
+.iu-agenda-compatta__quando{font-variant-numeric:tabular-nums;color:var(--iu-slate-600,#475569);font-size:12px}
+.iu-agenda-compatta__titolo{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:640px){.iu-agenda-compatta__voce{grid-template-columns:minmax(0,1fr) max-content;min-height:44px}.iu-agenda-compatta__quando{grid-column:1/-1}}

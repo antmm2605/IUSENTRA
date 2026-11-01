@@ -203,6 +203,7 @@ import {
   type ContributoUnificatoMemory,
 } from './fascicoli/contributoUnificato'
 import { AgendaFascicolo } from './fascicoli/AgendaFascicolo'
+import { AgendaFascicoloCompatta } from './fascicoli/AgendaFascicoloCompatta'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -9797,6 +9798,12 @@ function DetailPage({ id }:{id:string}) {
     const currentId = f.id || id
     setContributoMemory(readContributionMemory(currentId))
   }, [f.id, id])
+  // Agenda compatta in testa al fascicolo: le scadenze si caricano appena il fascicolo è pronto.
+  useEffect(() => {
+    if (loading || !(f.id || id)) return
+    loadLazySection('scadenze')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, f.id, id])
   useEffect(() => {
     if (loading) return undefined
     const openHashSection = () => {
@@ -9925,6 +9932,7 @@ function DetailPage({ id }:{id:string}) {
         </aside>
         <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
+          <AgendaFascicoloCompatta fascicoloId={f.id || id} scadenze={data.deadlines} appuntamenti={data.appointments} stato={lazyStatus.scadenze} onTutti={openSection('udienze', 'scadenze')}/>
           <RegiaOperativaSection
             data={data}
             onDone={refreshDetail}

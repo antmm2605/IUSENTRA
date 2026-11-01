@@ -970,6 +970,12 @@ jobs:
         run: pip install -r .ci-critical-env/critical-env-freeze.txt
 
       - name: Run critical coverage shard
+        env:
+          # Misura isolata dalla rete (01/11/2026): un test non può dipendere da cosa risponde
+          # in quel momento un motore di ricerca esterno. Stesso isolamento per baseline e candidata.
+          HTTP_PROXY: http://127.0.0.1:9
+          HTTPS_PROXY: http://127.0.0.1:9
+          NO_PROXY: localhost,127.0.0.1,::1
         shell: bash
         run: |
           # Target storici coverage-critical inclusi dal runner:
@@ -1033,6 +1039,11 @@ jobs:
       - name: Misura la precedente versione accettata
         env:
           BASELINE_SHA: ${{ needs.critical-coverage-environment.outputs.baseline_sha }}
+          # Misura isolata dalla rete (01/11/2026): un test non può dipendere da cosa risponde
+          # in quel momento un motore di ricerca esterno. Stesso isolamento per baseline e candidata.
+          HTTP_PROXY: http://127.0.0.1:9
+          HTTPS_PROXY: http://127.0.0.1:9
+          NO_PROXY: localhost,127.0.0.1,::1
         shell: bash
         run: |
           git worktree add --detach "$RUNNER_TEMP/critical-baseline" "$BASELINE_SHA"

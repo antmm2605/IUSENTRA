@@ -48,3 +48,9 @@ export function vociAgendaFascicolo(scadenze: FascicoloDeadline[], appuntamenti:
   return [...prossime, ...passate]
 }
 
+
+/** I primi impegni non passati per l'agenda compatta in testa al fascicolo. */
+export function prossimiImpegni(voci: Voce[], quanti = 5): { voci: Voce[]; altri: number } {
+  const prossime = voci.filter((v) => !v.passata)
+  return { voci: prossime.slice(0, quanti), altri: Math.max(0, prossime.length - quanti) }
+}

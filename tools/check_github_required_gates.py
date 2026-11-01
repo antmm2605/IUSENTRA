@@ -244,12 +244,18 @@ def _run_sort_key(run: dict[str, Any]) -> str:
 
 
 def _prefer_success_over_duplicate_cancelled(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
-    """Keep a successful twin-branch run when a later duplicate is only cancelled/skipped."""
-    candidate_conclusion = str(candidate.get("conclusion") or "")
-    current_conclusion = str(current.get("conclusion") or "")
-    if candidate_conclusion in {"cancelled", "skipped"} and current_conclusion == "success":
+    """A cancelled/skipped twin never hides a real run of the same check on the same SHA.
+
+    Verifica del 01/11/2026: con la copia del ramo di sessione annullata e la CI di ``main`` ancora in corso,
+    la copia annullata (con data di fine più recente) veniva scelta e il gate chiudeva in errore prima che
+    la CI vera finisse. Una copia annullata vale solo se è l'unica.
+    """
+    annullate = {"cancelled", "skipped"}
+    candidate_cancelled = str(candidate.get("conclusion") or "") in annullate
+    current_cancelled = str(current.get("conclusion") or "") in annullate
+    if candidate_cancelled and not current_cancelled:
         return False
-    if candidate_conclusion == "success" and current_conclusion in {"cancelled", "skipped"}:
+    if current_cancelled and not candidate_cancelled:
         return True
     return _run_sort_key(candidate) > _run_sort_key(current)
 

@@ -13,6 +13,7 @@ from web.bootstrap.register_blueprints import register_blueprints
 from web.bootstrap.react_route_gate import register_react_route_gate
 from web.bootstrap.studio_operations_wiring import register_studio_operations
 from web.bootstrap.telematico_surface_wiring import register_telematico_surfaces
+from web.services.registro_letture_osservatore import registra_osservatore_documenti
 from web.services.support_runtime import register_support_websocket
 
 
@@ -56,3 +57,5 @@ def register_app_wiring(
     register_blueprints(app)
     register_react_route_gate(app)
     register_support_websocket(app)
+    # Ogni modifica ai documenti, da qualunque via, arriva al registro delle letture.
+    registra_osservatore_documenti(app)

@@ -20,6 +20,7 @@ from pct.postgres_runtime_support import PostgresRepositoryBackend
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
 from .event_retry import MAX_ATTEMPTS, deadline, retry_deadline, require_prepared
 from .fatti_repository import CATEGORIE, COLONNE_FATTI, FattiMixin
+from .sintesi import COLONNE_SINTESI, SintesiMixin
 from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
 from .modello import (
     GRAVITA,
@@ -38,7 +39,7 @@ from .modello import (
 SCHEMA_SQLITE = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture.sql"
 SCHEMA_POSTGRES = Path(__file__).resolve().parent.parent / "sql" / "20260915_registro_letture_postgres.sql"
 
-TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache", "letture_eventi", "letture_eventi_esiti")
+TABELLE = ("letture_oggetti", "letture", "letture_fascicoli", "letture_viste", "letture_anomalie", "letture_fatti", "letture_consegne", "letture_payload_cache", "letture_eventi", "letture_eventi_esiti", "letture_sintesi_fascicolo")
 _TABELLA_SQL = {tabella: f'"{tabella}"' for tabella in TABELLE}
 COLONNE: dict[str, tuple[str, ...]] = {
     "letture_oggetti": (
@@ -65,6 +66,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
     "letture_payload_cache": ("id", "tenant_id", "fascicolo_id", "cache_key", "payload_json", "expires_at", "creato_il", "aggiornato_il"),
     "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "pending_presidi", "claimed_presidi", "attempts", "available_at", "last_error", "last_error_code", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
     "letture_eventi_esiti": ("id", "tenant_id", "fascicolo_id", "generation", "attempt", "worker_id", "stato", "error_code", "errore", "iniziato_il", "concluso_il"),
+    "letture_sintesi_fascicolo": COLONNE_SINTESI,
 }
 _COLONNA_SQL = {colonna: f'"{colonna}"' for colonne in COLONNE.values() for colonna in colonne}
 _FILTRI_SQL = {
@@ -235,7 +237,7 @@ def _allinea_vincolo_categorie(conn: sqlite3.Connection, schema: str) -> None:
     conn.executescript(schema)
 
 
-class RegistroLetture(FattiMixin, ConsegneMixin):
+class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
     """Il registro delle letture di uno studio (con l'archivio dei fatti letti dai motori)."""
 
     def __init__(self, db_path: str | Path = "", *, postgres_dsn: str = "", read_only: bool = False) -> None:
@@ -563,14 +565,18 @@ class RegistroLetture(FattiMixin, ConsegneMixin):
         Servono alla rilettura graduale: le regole nuove (date, parti, importi, natura del documento)
         arrivano anche ai documenti già letti. Le decisioni dell'avvocato sui fatti restano intatte.
         """
+        from .lettori import versioni_compatibili_lettore
+
         lettore = _lettore(lettore)
+        # Una lettura di una versione dichiarata compatibile non impone la rilettura (lettori.py).
+        valide = set(versioni_compatibili_lettore(lettore, versione)) | {versione}
         tipi_ammessi = {_tipo(t) for t in tipi} if tipi else None
         presenti = {(o.tipo, o.oggetto_id, o.impronta): o for o in self.oggetti(tenant_id, fascicolo_id)
                     if o.presente and (not tipi_ammessi or o.tipo in tipi_ammessi)}
         return [
             presenti[(lettura.tipo, lettura.oggetto_id, lettura.sha256)]
             for lettura in self.letture(tenant_id, fascicolo_id, lettore=lettore)
-            if lettura.stato == "letto" and lettura.versione_lettore != versione
+            if lettura.stato == "letto" and lettura.versione_lettore not in valide
             and (lettura.tipo, lettura.oggetto_id, lettura.sha256) in presenti
         ]
 

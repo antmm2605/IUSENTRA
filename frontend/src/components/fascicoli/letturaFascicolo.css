@@ -177,3 +177,16 @@
 
 .iu-fas-lettura__state.iu-fas-letture__degradato{display:block;overflow-wrap:anywhere}
 .iu-fas-letture__degradato ul{margin:4px 0 0;padding-left:16px}
+.iu-fas-registro{border:1px solid #d9e7ef;border-radius:10px;background:#fff;padding:6px 10px;margin:8px 0;font-size:12px;color:#41617a}
+.iu-fas-registro>summary{cursor:pointer;min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-weight:800;color:#1f3b52}
+.iu-fas-registro>summary span{font-weight:600;color:#5b7489}
+.iu-fas-registro__identita{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px 12px;margin:6px 0}
+.iu-fas-registro__identita div{display:grid;gap:1px}
+.iu-fas-registro__identita dt{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#6b8296}
+.iu-fas-registro__identita dd{margin:0;font-weight:700;color:#1f3b52}
+.iu-fas-registro__lettori{width:100%;border-collapse:collapse;margin:6px 0}
+.iu-fas-registro__lettori th,.iu-fas-registro__lettori td{text-align:left;padding:5px 6px;border-top:1px solid #edf2f6;font-variant-numeric:tabular-nums}
+.iu-fas-registro__lettori thead th{font-size:10.5px;text-transform:uppercase;color:#6b8296;border-top:0}
+.iu-fas-registro__lettori tr.is-warning th{color:#9a5b00}
+.iu-fas-registro__lettori tr.is-danger th{color:#b42318}
+@media(max-width:640px){.iu-fas-registro__lettori thead th:nth-child(4),.iu-fas-registro__lettori td:nth-child(4){display:none}}

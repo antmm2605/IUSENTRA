@@ -3698,3 +3698,9 @@ body.iu-fascicoli-table-expanded{
 .iu-fas-deposit-correction__actions{display:flex;flex-wrap:wrap;gap:8px}
 .iu-fas-deposit-correction__actions .iu-fas-side-link{min-height:44px;white-space:normal}
 .iu-fas-deposit-correction summary{cursor:pointer;min-height:44px;display:list-item;align-content:center}
+.iu-fas-aggiungi-documenti{border:1px dashed var(--iu-border,#cbd5e1);border-radius:8px;padding:6px 12px;margin:10px 0}
+.iu-fas-aggiungi-documenti>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;font-weight:700}
+.iu-fas-relata-monitorati>summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.iu-fas-relata-monitorati>summary h4{margin:0}
+.iu-fas-parti-lette{display:grid;gap:6px;margin:8px 0}
+.iu-fas-parti-lette p{margin:0;font-size:13px}

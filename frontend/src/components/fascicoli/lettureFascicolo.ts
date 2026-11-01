@@ -103,6 +103,52 @@ export interface LettureFascicolo {
   anomalie: AnomaliaLettura[]
   anomalie_aperte: number
   archivio?: ArchivioLetture
+  sintesi?: SintesiRegistro | null
+}
+
+// La riga di sintesi del registro delle letture: identità del fascicolo e stato di ogni lettore.
+export interface SintesiRegistroLettore {
+  etichetta: string
+  versione: string
+  letti: number
+  da_leggere: number
+  errori: number
+  ultima_lettura: string
+  completa: boolean
+}
+
+export interface SintesiRegistro {
+  fascicolo_id: string
+  cliente: string
+  tipo_pratica: string
+  ufficio: string
+  numero_rg: string
+  anno_rg: string
+  stato: string
+  data_apertura: string
+  data_definizione: string
+  data_archiviazione: string
+  prossima_udienza: string
+  documenti_presenti: number
+  pec_collegate: number
+  allegati_pec: number
+  da_leggere: number
+  aggiornato_il: string
+  lettori: Record<string, SintesiRegistroLettore>
+}
+
+const STATI_FASCICOLO: Record<string, string> = { APERTO: 'Aperto', IN_CORSO: 'In corso', SOSPESO: 'Sospeso', DEFINITO: 'Definito', ARCHIVIATO: 'Archiviato' }
+
+export function etichettaStatoFascicolo(stato: string): string {
+  return STATI_FASCICOLO[String(stato || '').toUpperCase()] || String(stato || '').replace(/_/g, ' ').toLowerCase()
+}
+
+// I lettori della sintesi in ordine: prima chi ha ancora da leggere o errori, poi gli altri per nome.
+export function lettoriSintesi(sintesi: SintesiRegistro): Array<SintesiRegistroLettore & { id: string }> {
+  return Object.entries(sintesi.lettori || {})
+    .map(([id, voce]) => ({ id, ...voce }))
+    .filter((voce) => voce.letti || voce.da_leggere || voce.errori)
+    .sort((a, b) => (Number(b.da_leggere > 0 || b.errori > 0) - Number(a.da_leggere > 0 || a.errori > 0)) || a.etichetta.localeCompare(b.etichetta, 'it'))
 }
 
 export interface EsitoAggiornamentoLetture {

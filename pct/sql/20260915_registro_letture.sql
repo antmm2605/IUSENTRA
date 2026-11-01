@@ -237,3 +237,31 @@ CREATE TABLE IF NOT EXISTS letture_eventi_esiti (
     concluso_il TEXT NOT NULL DEFAULT '',
     UNIQUE(tenant_id,fascicolo_id,generation,attempt));
 CREATE INDEX IF NOT EXISTS idx_letture_eventi_esiti_worker ON letture_eventi_esiti(tenant_id,fascicolo_id,worker_id,generation);
+
+-- Riga di sintesi per fascicolo (01/11/2026): identità del fascicolo e stato di ogni lettore in un solo posto.
+-- La scrive il registro dopo ogni giro di lettura; elenco, panoramica e pannelli la leggono senza riaprire nulla.
+CREATE TABLE IF NOT EXISTS letture_sintesi_fascicolo (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    id_cliente TEXT NOT NULL DEFAULT '',
+    cliente TEXT NOT NULL DEFAULT '',
+    tipo_pratica TEXT NOT NULL DEFAULT '',
+    ufficio TEXT NOT NULL DEFAULT '',
+    numero_rg TEXT NOT NULL DEFAULT '',
+    anno_rg TEXT NOT NULL DEFAULT '',
+    stato TEXT NOT NULL DEFAULT '',
+    data_apertura TEXT NOT NULL DEFAULT '',
+    data_definizione TEXT NOT NULL DEFAULT '',
+    data_archiviazione TEXT NOT NULL DEFAULT '',
+    prossima_udienza TEXT NOT NULL DEFAULT '',
+    documenti_presenti INTEGER NOT NULL DEFAULT 0,
+    pec_collegate INTEGER NOT NULL DEFAULT 0,
+    allegati_pec INTEGER NOT NULL DEFAULT 0,
+    impronta_inventario TEXT NOT NULL DEFAULT '',
+    da_leggere INTEGER NOT NULL DEFAULT 0,
+    lettori_json TEXT NOT NULL DEFAULT '{}',
+    aggiornato_il TEXT NOT NULL,
+    UNIQUE (tenant_id, fascicolo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_letture_sintesi_da_leggere ON letture_sintesi_fascicolo (tenant_id, da_leggere);

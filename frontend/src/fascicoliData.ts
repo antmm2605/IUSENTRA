@@ -3268,7 +3268,7 @@ export function getFascicoliArchive(): Promise<FascicoliPageData> {
   return strictFetch('/api/v1/ui/fascicoli/archivio', normalizePagePayload)
 }
 
-export function getFascicoloDetail(id: string, options: { include?: 'all' | FascicoloDetailSection[]; confirmRevision?: boolean } = {}): Promise<FascicoloDetailData> {
+export function getFascicoloDetail(id: string, options: { include?: 'all' | Array<FascicoloDetailSection | 'catalogo_depositi'>; confirmRevision?: boolean } = {}): Promise<FascicoloDetailData> {
   const query = new URLSearchParams()
   if (options.include === 'all') query.set('include', 'all')
   else if (Array.isArray(options.include) && options.include.length) query.set('include', options.include.join(','))

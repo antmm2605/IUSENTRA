@@ -395,3 +395,16 @@ def test_il_gate_attende_i_job_pendenti_anche_dopo_un_fallimento(monkeypatch) ->
 
     assert letture["n"] == 2
     assert esito == 1
+
+
+def test_copia_annullata_non_nasconde_la_ci_vera_ancora_in_corso():
+    """01/11/2026: la copia annullata del ramo di sessione faceva fallire il gate prima della fine della CI di main."""
+    from tools.check_github_required_gates import latest_check_runs_by_name
+
+    in_corso = {"name": "Regressioni della copertura critica", "status": "in_progress", "conclusion": None, "started_at": "2026-11-01T11:20:00Z"}
+    annullata = {"name": "Regressioni della copertura critica", "status": "completed", "conclusion": "cancelled", "completed_at": "2026-11-01T11:22:00Z"}
+    for ordine in ([in_corso, annullata], [annullata, in_corso]):
+        assert latest_check_runs_by_name(ordine)["Regressioni della copertura critica"]["status"] == "in_progress"
+    riuscita = {**in_corso, "status": "completed", "conclusion": "success", "completed_at": "2026-11-01T11:45:00Z"}
+    assert latest_check_runs_by_name([annullata, riuscita])["Regressioni della copertura critica"]["conclusion"] == "success"
+    assert latest_check_runs_by_name([annullata])["Regressioni della copertura critica"]["conclusion"] == "cancelled"

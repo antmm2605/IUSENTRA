@@ -18,6 +18,19 @@ from pct.fascicoli import TipoDocumento, TipoFascicolo
 from tests.test_react_shell import _app as _base_app, _prepara_schema_documentale
 
 
+@pytest.fixture(autouse=True)
+def _oggi_fisso(monkeypatch):
+    """I documenti di prova fissano udienze e termini nell'autunno 2026: «oggi» resta prima di quelle date.
+
+    Senza questo, dal 01/11/2026 il termine del 31/10/2026 era già passato e il test cambiava esito da solo.
+    """
+    from datetime import date
+
+    import pct.archivio_letture.presidi as presidi
+
+    monkeypatch.setattr(presidi, "oggi_roma", lambda: date(2026, 10, 1))
+
+
 def _app(tmp_path):
     app = _base_app(tmp_path)
     _prepara_schema_documentale(app)
@@ -55,12 +68,20 @@ RELATA = _pdf([
 
 
 def _seed(app) -> tuple[str, str, str]:
-    with app.app_context():
-        fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
-        fascicolo = fascicoli.nuovo("Bianchi / Delta S.r.l.", TipoFascicolo.CIVILE, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", numero_rg="777", anno_rg=2026)
-        decreto = fascicoli.aggiungi_documento(fascicolo.id, nome_file="decreto.pdf", tipo=TipoDocumento.ALTRO, contenuto=DECRETO)
-        relata = fascicoli.aggiungi_documento(fascicolo.id, nome_file="atto.pdf", tipo=TipoDocumento.ALTRO, contenuto=RELATA)
-        return fascicolo.id, decreto.id, relata.id
+    """Documenti già presenti prima della lettura: senza l'evento in coda che l'archivio emetterebbe."""
+    from pct.fascicoli_osservatori import registra_osservatore, rimuovi_osservatore
+    from web.services.registro_letture_osservatore import osservatore_documenti
+
+    rimuovi_osservatore(osservatore_documenti)
+    try:
+        with app.app_context():
+            fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
+            fascicolo = fascicoli.nuovo("Bianchi / Delta S.r.l.", TipoFascicolo.CIVILE, nome_cliente="Anna Bianchi", tribunale="Tribunale di Torino", numero_rg="777", anno_rg=2026)
+            decreto = fascicoli.aggiungi_documento(fascicolo.id, nome_file="decreto.pdf", tipo=TipoDocumento.ALTRO, contenuto=DECRETO)
+            relata = fascicoli.aggiungi_documento(fascicolo.id, nome_file="atto.pdf", tipo=TipoDocumento.ALTRO, contenuto=RELATA)
+            return fascicolo.id, decreto.id, relata.id
+    finally:
+        registra_osservatore(osservatore_documenti)
 
 
 def _fascicolo(app, fascicolo_id: str):
@@ -595,7 +616,10 @@ def test_rilettura_superati_dai_testi_salvati_senza_riaprire_file(monkeypatch, t
     for oggetto in oggetti:
         registro.segna_letto("studio", fascicolo.id, oggetto, runtime.LETTORE_DOCUMENTI, versione="2026.09.16.motore-documenti.v7")
 
-    def testi(fascicolo_, documento):
+    chiamate = []
+
+    def testi(fascicolo_, documento, *, preferisci_salvati=False):
+        chiamate.append((documento.id, preferisci_salvati))
         return [("indice", "Udienza del 6 ottobre 2027 alle ore 14:00.")] if documento.id == "DOC-T" else []
 
     monkeypatch.setattr(runtime, "testi_documento", testi)
@@ -607,5 +631,54 @@ def test_rilettura_superati_dai_testi_salvati_senza_riaprire_file(monkeypatch, t
                                           rileggi_superati=True)
     assert senza["da_leggere"] == 0
     assert report["da_leggere"] == 2 and report["riletti"] == 1 and report["riletture_senza_testo"] == 1
-    versioni = {l.oggetto_id: l.versione_lettore for l in registro.letture("studio", fascicolo.id, lettore=runtime.LETTORE_DOCUMENTI)}
-    assert versioni["DOC-T"] == runtime.VERSIONE_MOTORE_DOCUMENTI and versioni["DOC-S"].endswith("v7")
+    # nella rilettura si preferiscono i testi già salvati
+    assert chiamate and all(solo for _, solo in chiamate)
+    letture = {l.oggetto_id: l for l in registro.letture("studio", fascicolo.id, lettore=runtime.LETTORE_DOCUMENTI)}
+    assert letture["DOC-T"].versione_lettore == runtime.VERSIONE_MOTORE_DOCUMENTI
+    # Senza testo salvato la lettura precedente resta valida e passa alla versione corrente: il giro non la ripropone.
+    assert letture["DOC-S"].versione_lettore == runtime.VERSIONE_MOTORE_DOCUMENTI
+    assert letture["DOC-S"].esito.get("rilettura", "").startswith("nessun testo salvato")
+    with app.app_context():
+        ancora = runtime._leggi_documenti(fascicolo, registro, "studio", Contesto(), forza=False, limite=200, rileggi_superati=True)
+    assert ancora["da_leggere"] == 0
+    assert registro.superati("studio", fascicolo.id, runtime.LETTORE_DOCUMENTI, versione=runtime.VERSIONE_MOTORE_DOCUMENTI) == []
+
+
+def test_il_giro_automatico_rilegge_i_documenti_della_versione_precedente(tmp_path: Path, monkeypatch):
+    """Verifica del 01/11/2026: un fascicolo chiuso restava «da leggere» dopo il cambio di versione del motore."""
+    app = _app(tmp_path)
+    fid, _, _ = _seed(app)
+    with app.app_context():
+        from web.services import archivio_letture_runtime as runtime
+
+        primo = runtime.lettura_automatica_corrente(limite_oggetti=50)
+        assert primo["documenti_letti"] >= 2
+        nuova = runtime.VERSIONE_MOTORE_DOCUMENTI + "-nuova"
+        monkeypatch.setattr(runtime, "VERSIONE_MOTORE_DOCUMENTI", nuova)
+        # Versione nuova non dichiarata compatibile con le precedenti: le letture vecchie vanno rifatte.
+        monkeypatch.setattr("pct.archivio_letture.motore_documenti.VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI", (nuova,))
+        # Testo già salvato nell'indice: la rilettura non riapre il PDF.
+        monkeypatch.setattr(runtime, "_testo_indice", lambda f, d: "Udienza del 6 ottobre 2027 alle ore 14:00.")
+        monkeypatch.setattr(runtime, "_testo_nativo", lambda *a, **k: (_ for _ in ()).throw(AssertionError("PDF riaperto nella rilettura")))
+        runtime.lettura_automatica_corrente(limite_oggetti=50)
+        # Dopo il giro nessuna lettura resta della versione precedente (riletta dal testo salvato o confermata)
+        registro, tenant = runtime.registro_corrente(), runtime.tenant_corrente()
+        assert registro.superati(tenant, fid, runtime.LETTORE_DOCUMENTI, versione=nuova) == []
+        letture = registro.letture(tenant, fid, lettore=runtime.LETTORE_DOCUMENTI)
+        assert letture and all(l.versione_lettore == nuova for l in letture if l.stato == "letto")
+        fermo = runtime.lettura_automatica_corrente(limite_oggetti=50)
+        assert fermo["documenti_letti"] == 0
+
+
+def test_la_riga_del_motore_pec_conta_pec_e_allegati_letti(tmp_path: Path):
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from web.services import archivio_letture_runtime as runtime
+
+    registro = RegistroLetture(tmp_path / "registro-pec.db")
+    oggetti = [Oggetto(tipo="pec", oggetto_id="M1", nome="pec.eml", sha256="a" * 64),
+               Oggetto(tipo="allegato_pec", oggetto_id="A1", nome="atto.pdf", sha256="b" * 64)]
+    registro.registra_inventario("studio", "F-PEC", oggetti)
+    registro.segna_letto("studio", "F-PEC", oggetti[0], runtime.LETTORE_PEC, versione=runtime.VERSIONE_MOTORE_PEC)
+    runtime._segna_riga_pec(registro, "studio", "F-PEC", impronta="x")
+    riga = next(r for r in registro.righe_fascicoli("studio", lettore=runtime.LETTORE_PEC) if r["fascicolo_id"] == "F-PEC")
+    assert (riga["oggetti_totali"], riga["oggetti_letti"], riga["stato"]) == (2, 1, "parziale")

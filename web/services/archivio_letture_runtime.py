@@ -310,22 +310,27 @@ def _testo_indice(fascicolo: Any, documento: Any) -> str:
     return testi_indice_archivio(fascicolo).get(str(documento.id), "")
 
 
-def testi_documento(fascicolo: Any, documento: Any) -> list[tuple[str, str]]:
-    """Le letture disponibili del documento, dalla più affidabile: (origine, testo)."""
+def testi_documento(fascicolo: Any, documento: Any, *, preferisci_salvati: bool = False) -> list[tuple[str, str]]:
+    """Le letture disponibili del documento, dalla più affidabile: (origine, testo).
+
+    Con ``preferisci_salvati`` (rilettura con il motore corrente) bastano i testi già salvati (OCR e
+    indice documentale) e il file non si riapre; solo un documento senza alcun testo salvato si legge dal
+    PDF, una volta per versione del motore, perché la lettura viene poi registrata.
+    """
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    letture: list[tuple[str, str]] = []
-    nativo = _testo_nativo(fascicolo_id, documento)
-    if nativo:
-        letture.append(("nativo", nativo))
+    salvati: list[tuple[str, str]] = []
     ocr = _testo_ocr(documento)
     if ocr.strip():
-        letture.append(("ocr", ocr))
+        salvati.append(("ocr", ocr))
     indice = _testo_indice(fascicolo, documento)
     if indice.lstrip().startswith("PCTENC"):
         indice = ""  # encrypted storage is never readable evidence
     if indice.strip() and indice.strip() != ocr.strip():
-        letture.append(("indice", indice))
-    return letture
+        salvati.append(("indice", indice))
+    if preferisci_salvati and salvati:
+        return salvati
+    nativo = _testo_nativo(fascicolo_id, documento)
+    return ([("nativo", nativo)] if nativo else []) + salvati
 
 
 # ---- le date già note (per il collaudo) ------------------------------------------
@@ -479,10 +484,18 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
             conteggi["assenti"] += 1
             registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "documento non più presente nel fascicolo"}, versione=VERSIONE_MOTORE_DOCUMENTI)
             continue
-        letture = testi_documento(fascicolo, documento)
-        if not letture and (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere:
+        rilettura = (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere
+        letture = testi_documento(fascicolo, documento, preferisci_salvati=True) if rilettura else testi_documento(fascicolo, documento)
+        if not letture and rilettura:
             conteggi["riletture_senza_testo"] = conteggi.get("riletture_senza_testo", 0) + 1
-            continue  # senza testo salvato resta la lettura precedente: nessun file riaperto
+            # Senza testo salvato resta la lettura precedente, nessun file riaperto; la si porta alla
+            # versione corrente con il suo esito, altrimenti il fascicolo tornerebbe «da rileggere» a ogni giro.
+            precedente = next((lt for lt in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
+                               if (lt.tipo, lt.oggetto_id, lt.sha256) == (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta)), None)
+            esito_precedente = dict(precedente.esito) if precedente is not None else {}
+            esito_precedente["rilettura"] = "nessun testo salvato: confermata la lettura precedente"
+            registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="letto", esito=esito_precedente, versione=VERSIONE_MOTORE_DOCUMENTI)
+            continue
         if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere:
             conteggi["riletti"] += 1
         if not letture:
@@ -592,7 +605,7 @@ def _leggi_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, contesto:
     codice_fiscale_cliente = _testo(getattr(cliente, "codice_fiscale", ""))
     allegati: dict[str, dict[str, Any]] = {}
     if any(o.tipo == "allegato_pec" for o in da_leggere):
-        for riga in _righe_pec_collegate(fascicolo_id):
+        for riga in _righe_pec_collegate(fascicolo_id, con_testo=True):
             for allegato in list(riga.get("allegati") or []):
                 allegati[str(allegato.get("id") or "")] = allegato
     from web.services.pec_pipeline_runtime import repository_for_current_request
@@ -779,6 +792,31 @@ def _segna_ciclo(registro: RegistroLetture, tenant: str, fascicolo_id: str, *, i
         logger.debug("Stato del ciclo non registrato per %s: %s", fascicolo_id, exc)
 
 
+def _aggiorna_sintesi(fascicolo: Any, registro: RegistroLetture, *, solo_se_cambiata: bool = False) -> None:
+    from web.services.sintesi_fascicolo_runtime import aggiorna_sintesi_fascicolo
+
+    aggiorna_sintesi_fascicolo(fascicolo, registro=registro, solo_se_cambiata=solo_se_cambiata)
+
+
+def _segna_riga_pec(registro: RegistroLetture, tenant: str, fascicolo_id: str, *, impronta: str) -> None:
+    """La riga del motore PEC per il fascicolo: PEC e allegati presenti e quanti risultano letti (cumulativo).
+
+    Senza questa riga la panoramica delle letture mostrava sempre zero PEC lette.
+    """
+    try:
+        propri = [o for o in registro.oggetti(tenant, fascicolo_id) if o.tipo in {"pec", "allegato_pec"}]
+        if not propri:
+            return
+        mancanti = registro.da_leggere(tenant, fascicolo_id, LETTORE_PEC, tipi=("pec", "allegato_pec"))
+        registro.segna_fascicolo(
+            tenant, fascicolo_id, LETTORE_PEC, impronta=impronta,
+            oggetti_totali=len(propri), oggetti_letti=len(propri) - len(mancanti),
+            stato="completa" if not mancanti else "parziale", versione=VERSIONE_MOTORE_PEC,
+        )
+    except Exception as exc:
+        logger.debug("Riga del motore PEC non registrata per %s: %s", fascicolo_id, exc)
+
+
 def _consegna_ai_presidi(fascicolo: Any, registro: RegistroLetture) -> dict[str, Any]:
     """L'archivio consegna ai presìdi che scrivono; un guasto qui non ferma il ciclo."""
     try:
@@ -868,6 +906,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
                 metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
                 consegne = _consegna_ai_presidi(fascicolo, registro)
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
+            # Fascicolo fermo: la riga di sintesi si riscrive solo se è cambiata l'identità (stato, date, cliente…).
+            _aggiorna_sintesi(fascicolo, registro, solo_se_cambiata=True)
             return {
                 "inventario": {},
                 "documenti": {"da_leggere": 0, "letti": 0, "senza_testo": 0, "assenti": 0, "fatti": 0, "verificati": 0},
@@ -935,6 +975,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         stato="completa" if restano == 0 else "parziale",
         motivo="" if restano == 0 else f"{restano} oggetti oltre il tetto di questo giro",
     )
+    _segna_riga_pec(registro, tenant, fascicolo_id, impronta=impronta)
+    _aggiorna_sintesi(fascicolo, registro)
     dopo = stato_ciclo_fascicolo(fascicolo_id, registro, tenant, impronta=impronta)
     return {
         "inventario": inventario, "documenti": documenti, "pec": pec, "promossi": promossi, "riconvalidati": riconvalidati,
@@ -1488,7 +1530,9 @@ def lettura_automatica_corrente(*, limite_oggetti: int = 150, usa_marker_schedul
             report["restano"] += 1
             continue
         try:
-            esito = leggi_fascicolo(fascicolo, limite=residuo, registro=registro)
+            # Anche i documenti letti da una versione precedente del motore: senza rilettura un fascicolo chiuso,
+            # in cui non entra più nulla, restava per sempre «da leggere» (verifica del 01/11/2026: 76 oggetti).
+            esito = leggi_fascicolo(fascicolo, limite=residuo, registro=registro, rileggi_superati=True)
         except Exception as exc:
             logger.warning("Lettura automatica non completata per il fascicolo %s: %s", getattr(fascicolo, "id", ""), exc)
             continue

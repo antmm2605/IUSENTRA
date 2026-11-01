@@ -1678,7 +1678,7 @@ const DEPOSIT_PHASE_IDS = [
 ] as const
 
 type DepositPhaseId = typeof DEPOSIT_PHASE_IDS[number]
-const DEPOSIT_DETAIL_INCLUDE = ['documenti', 'depositi', 'regia', 'relata', 'audit'] as const
+const DEPOSIT_DETAIL_INCLUDE = ['documenti', 'depositi', 'regia', 'relata', 'audit', 'catalogo_depositi'] as const
 
 function isDepositPhaseId(value: string): value is DepositPhaseId {
   return DEPOSIT_PHASE_IDS.includes(value as DepositPhaseId)

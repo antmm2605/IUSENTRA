@@ -86,6 +86,16 @@ def get_clienti() -> GestioneClienti:
     return GestioneClienti(db_path=_cfg("CLIENTI_DB"), studio_db=_studio_db("CLIENTI_DB"))
 
 
+# Le sezioni del dettaglio leggono un solo fascicolo con lo stesso costruttore del dettaglio: anche i servizi interni
+# (indice documentale, tenant del documento) chiedono `get_fascicoli().get(id)`. Prima ogni sezione ricaricava tutti i
+# fascicoli dello studio più volte per richiesta (verifica del 01/11/2026: «Documenti e atti» in 7,7 s).
+_SEZIONI_DETTAGLIO_FASCICOLO = frozenset({
+    "api_v1_react.fascicolo_react_documenti", "api_v1_react.fascicolo_react_attivita",
+    "api_v1_react.fascicolo_react_scadenze", "api_v1_react.fascicolo_react_depositi",
+    "api_v1_react.fascicolo_react_relata", "api_v1_react.fascicolo_react_audit", "api_v1_react.fascicolo_react_lex",
+})
+
+
 def get_fascicoli() -> GestioneFascicoli:
     # Cartella, dettaglio e catalogo consultano una sola istantanea per richiesta.
     # g vive per una richiesta: nuovi comandi, utenti e studi lo ricreano.
@@ -93,6 +103,7 @@ def get_fascicoli() -> GestioneFascicoli:
         "api_v1_react.cliente_cartella_react",
         "api_v1_react.fascicolo_react_dettaglio",
         "api_v1_documenti_ai.catalogazione_documentale_fascicolo",
+        *_SEZIONI_DETTAGLIO_FASCICOLO,
     }
     paths = (_cfg("FASCICOLI_DB"), _cfg("FASCICOLI_DOCS"), _cfg("FASCICOLI_ARCH"))
     studio_db = _studio_db("FASCICOLI_DB")
@@ -107,7 +118,7 @@ def get_fascicoli() -> GestioneFascicoli:
     )
     single_sql_projection = studio_db is not None and has_request_context() and request.method == "GET" and request.endpoint in {
         "api_v1_react.fascicolo_react_dettaglio", "api_v1_react.cliente_cartella_react", "editor_new_document_matters",
-        "api_v1_documenti_ai.catalogazione_documentale_fascicolo",
+        "api_v1_documenti_ai.catalogazione_documentale_fascicolo", *_SEZIONI_DETTAGLIO_FASCICOLO,
     }
     manager = GestioneFascicoli(
         db_path=paths[0],

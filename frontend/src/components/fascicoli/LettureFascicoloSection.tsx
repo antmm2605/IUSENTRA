@@ -19,6 +19,7 @@ import {
   type LettureFascicolo,
 } from './lettureFascicolo'
 import { PartiLetteSection } from './PartiLetteSection'
+import { SintesiRegistroCard } from './SintesiRegistroCard'
 import { ObblighiNotificaSection } from './ObblighiNotificaSection'
 import { ProspettiTabellaSection } from './ProspettiTabellaSection'
 import { ProvenienzaAISection } from './ProvenienzaAISection'
@@ -207,6 +208,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
           ))}
         </ul>
       ) : null}
+      <SintesiRegistroCard sintesi={letture?.sintesi}/>
       <ObblighiNotificaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
       <PartiLetteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
       <ProspettiTabellaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>

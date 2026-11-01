@@ -136,28 +136,41 @@ def cifratura_attiva() -> bool:
 
 # ---- inventario ---------------------------------------------------------------
 
-def _righe_pec_collegate(fascicolo_id: str) -> list[dict[str, Any]]:
-    """I messaggi PEC collegati al fascicolo con i loro allegati, dal presidio audit-grade."""
+def _righe_pec_collegate(fascicolo_id: str, *, con_testo: bool = False) -> list[dict[str, Any]]:
+    """I messaggi PEC collegati al fascicolo con i loro allegati, dal presidio audit-grade.
+
+    L'inventario e l'impronta del fascicolo servono solo identità e SHA-256: il testo OCR degli allegati
+    si legge solo quando un motore deve davvero leggerli (``con_testo``). Gli allegati arrivano con una
+    sola query per fascicolo, non una per messaggio.
+    """
     try:
         from web.services.pec_pipeline_runtime import repository_for_current_request
 
         repository = repository_for_current_request()
         tenant = str(getattr(repository, "tenant_id", "default") or "default")
-        righe: list[dict[str, Any]] = []
+        colonna_testo = ", a.ocr_text" if con_testo else ""
         with repository.connect() as conn:
             messaggi = conn.execute(
                 "SELECT id, mime_sha256, mime_size, received_at, metadata_json FROM pec_messages WHERE tenant_id=? AND linked_fascicolo_id=? ORDER BY received_at DESC",
                 (tenant, fascicolo_id),
             ).fetchall()
-            for messaggio in messaggi:
-                riga = dict(messaggio)
-                allegati = conn.execute(
-                    "SELECT id, attachment_index, filename, sha256, size_bytes, ocr_text FROM pec_attachments WHERE message_id=? AND parsed_version_id=("
-                    "SELECT id FROM pec_parsed_versions WHERE message_id=? ORDER BY version DESC LIMIT 1) ORDER BY attachment_index",
-                    (riga["id"], riga["id"]),
-                ).fetchall()
-                riga["allegati"] = [dict(allegato) for allegato in allegati]
-                righe.append(riga)
+            allegati = conn.execute(
+                "SELECT a.message_id, a.id, a.attachment_index, a.filename, a.sha256, a.size_bytes" + colonna_testo +
+                " FROM pec_attachments a JOIN pec_messages m ON m.id=a.message_id"
+                " WHERE m.tenant_id=? AND m.linked_fascicolo_id=? AND a.parsed_version_id=("
+                "SELECT v.id FROM pec_parsed_versions v WHERE v.message_id=a.message_id ORDER BY v.version DESC LIMIT 1)"
+                " ORDER BY a.message_id, a.attachment_index",
+                (tenant, fascicolo_id),
+            ).fetchall() if messaggi else []
+        per_messaggio: dict[str, list[dict[str, Any]]] = {}
+        for allegato in allegati:
+            riga = dict(allegato)
+            per_messaggio.setdefault(str(riga.pop("message_id")), []).append(riga)
+        righe: list[dict[str, Any]] = []
+        for messaggio in messaggi:
+            riga = dict(messaggio)
+            riga["allegati"] = per_messaggio.get(str(riga["id"]), [])
+            righe.append(riga)
         return righe
     except Exception as exc:
         # Presidio non inizializzato o casella assente: l'inventario resta ai documenti.
@@ -208,11 +221,21 @@ def _fascicolo(fascicolo_id: str) -> Any:
 
 # ---- eventi -------------------------------------------------------------------
 
+def _segna_evento_inviato(fascicolo_id: str) -> None:
+    try:
+        from web.services.registro_letture_osservatore import segna_evento_inviato
+
+        segna_evento_inviato(fascicolo_id)
+    except Exception:
+        pass
+
+
 def documento_aggiornato(fascicolo_id: str, documento: Any = None, *, solo_nome: bool = False) -> None:
     """Un documento è stato caricato o sostituito: inventario allineato e lettura invalidata."""
     fascicolo_id = str(fascicolo_id or "").strip()
     if not fascicolo_id:
         return
+    _segna_evento_inviato(fascicolo_id)
     try:
         registro = registro_corrente()
         if solo_nome and documento is not None:
@@ -252,6 +275,7 @@ def documento_rimosso(fascicolo_id: str, documento_id: str) -> None:
     fascicolo_id = str(fascicolo_id or "").strip()
     if not fascicolo_id:
         return
+    _segna_evento_inviato(fascicolo_id)
     try:
         registro_corrente().rimuovi_oggetto(tenant_corrente(), fascicolo_id, "documento", str(documento_id or ""))
     except Exception as exc:
@@ -264,6 +288,7 @@ def pec_collegata(fascicolo_id: str) -> None:
     fascicolo_id = str(fascicolo_id or "").strip()
     if not fascicolo_id:
         return
+    _segna_evento_inviato(fascicolo_id)
     try:
         fascicolo = _fascicolo(fascicolo_id)
         if fascicolo is not None:
@@ -490,6 +515,8 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         "anomalie": anomalie,
         "anomalie_aperte": len(anomalie),
         "lettori_censiti": [{"id": chiave, **valori} for chiave, valori in LETTORI.items()],
+        # La riga di sintesi del registro: identità del fascicolo e stato di ogni lettore, già materializzata.
+        "sintesi": passo("riga di sintesi del registro", lambda: registro.sintesi(tenant, fascicolo_id), None),
     }
 
 

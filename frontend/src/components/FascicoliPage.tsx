@@ -344,6 +344,13 @@ const fascicoloStatusEditOptions: Array<{ value: Exclude<FascicoloStato, 'tutti'
   { value: 'archiviato', label: 'Archiviato' },
 ]
 
+// «da_archiviare» è lo stato DEFINITO con l'archivio pronto: nella select di gestione resta «Definito»,
+// altrimenti il browser mostrerebbe la prima opzione («Aperto») per un fascicolo già concluso.
+function statoSelezionabile(status: string): string {
+  const valore = String(status || '').toUpperCase()
+  return valore === 'DA_ARCHIVIARE' ? 'DEFINITO' : valore
+}
+
 function initialListView(): ListView {
   const params = new URLSearchParams(window.location.search)
   return (params.get('vista') || params.get('view')) === 'economica' ? 'economica' : 'operativa'
@@ -2114,7 +2121,7 @@ function CatalogazioneDocumentalePanel({
     }
   }
 
-  if (!enabled) return <p className="iu-empty">Apri la sezione documenti per leggere il catalogo SQL del fascicolo.</p>
+  if (!enabled) return <p className="iu-empty">Apri la sezione documenti per vedere l'elenco dei documenti del fascicolo.</p>
   const summary = payload?.summary
   return (
     <section id="catalogazione-documentale" className={`iu-fas-catalog ${catalogOpen ? 'is-expanded' : 'is-collapsed'}`} aria-label="Catalogazione documentale del fascicolo">
@@ -4276,7 +4283,9 @@ function getBoolValue(data: FascicoloFormData, key: string): boolean {
 }
 
 function StatoPraticaField({ data }:{data:FascicoloFormData}) {
-  const current = getValue(data, 'statoPraticaOperativa') || (getValue(data, 'statusRaw') === 'ARCHIVIATO' ? 'archiviata' : 'aperta')
+  // Senza uno stato operativo scelto dall'avvocato vale lo stato del fascicolo: un fascicolo definito non si mostra «Aperta».
+  const statoFascicolo = getValue(data, 'statusRaw').toUpperCase()
+  const current = getValue(data, 'statoPraticaOperativa') || ({ ARCHIVIATO: 'archiviata', DEFINITO: 'definita', SOSPESO: 'sospesa' } as Record<string, string>)[statoFascicolo] || 'aperta'
   return (
     <SelectField
       label={NUOVO_FASCICOLO_LABELS.fields.statoPratica}
@@ -5035,7 +5044,7 @@ function SourceSnapshotPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
     { label: 'Riferimento', value: snapshot.externalId || fascicolo.sourceExternalId || 'n.d.', mono: true },
     { label: 'Ufficio', value: [snapshot.ufficioNome, snapshot.ufficioCodice].filter(Boolean).join(' - ') || fascicolo.court || 'n.d.' },
     { label: 'Procedimento', value: snapshot.procedimento || fascicolo.procedureType || 'n.d.' },
-    { label: 'Stato portale', value: snapshot.stato || fascicolo.syncStatus || 'n.d.' },
+    { label: 'Stato portale all’acquisizione', value: snapshot.stato || fascicolo.syncStatus || 'n.d.' },
     { label: 'Data iscrizione', value: snapshot.dataIscrizione || 'n.d.' },
     { label: 'Data udienza', value: snapshot.dataUdienza || 'n.d.' },
     { label: 'Dati letti', value: `${Number(counts.parti || 0)} parti, ${Number(counts.documenti || 0)} documenti, ${Number(counts.depositi || 0)} depositi, ${Number(counts.eventi || 0)} eventi` },
@@ -6051,7 +6060,7 @@ function FascicoloContextMenu({
         <FascicoloContextMenuItem icon={<ClipboardCheck size={16}/>} label="Compilatore atti" note="Modelli e bozze dal fascicolo" href={compilerHref} onSelect={onClose}/>
         <FascicoloContextMenuItem icon={<FileDown size={16}/>} label="PDF fascicolo" note={exportPdfHref ? "Scarica il fascicolo in PDF" : "PDF non disponibile"} href={exportPdfHref} disabled={!exportPdfHref} onSelect={onClose}/>
         <FascicoloContextMenuItem icon={<FileArchive size={16}/>} label="Scarica ZIP" note={archiveZipHref ? "Archivio documenti del fascicolo" : "ZIP non ancora disponibile"} href={archiveZipHref} disabled={!archiveZipHref} onSelect={onClose}/>
-        <FascicoloContextMenuItem icon={<Fingerprint size={16}/>} label="Audit" note={auditBundleHref ? 'Scarica bundle eventi e prove' : 'Apri eventi e prove del fascicolo'} href={auditBundleHref} onSelect={auditBundleHref ? onClose : () => onSection('audit', 'audit')}/>
+        <FascicoloContextMenuItem icon={<Fingerprint size={16}/>} label="Audit" note={auditBundleHref ? 'Scarica il pacchetto di eventi e prove' : 'Apri eventi e prove del fascicolo'} href={auditBundleHref} onSelect={auditBundleHref ? onClose : () => onSection('audit', 'audit')}/>
       </div>
     </aside>
   )
@@ -7130,8 +7139,8 @@ function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
         </section>
       ) : null}
       {monitor.documents.length ? (
-        <section className="iu-fas-relata-list">
-          <h4>Documenti monitorati</h4>
+        <details className="iu-fas-relata-list iu-fas-relata-monitorati">
+          <summary><h4>Documenti monitorati ({monitor.documents.length})</h4></summary>
           {monitor.documents.map((doc, index) => (
             <article key={doc.id || `${doc.name}-${index}`}>
               <FileText size={16}/>
@@ -7141,7 +7150,7 @@ function NotificationRelataMonitor({ data }:{data:FascicoloDetailData}) {
               </div>
             </article>
           ))}
-        </section>
+        </details>
       ) : null}
       {!monitor.releasedDocuments.length && !monitor.documents.length ? (
         <p className="iu-empty">Nessun documento d'ufficio da acquisire. Il collegamento al Portale Servizi resta pronto con dati del fascicolo.</p>
@@ -7831,6 +7840,42 @@ function depositHasPersistedDryRunProof(dep: FascicoloDeposit): boolean {
   return dep.simulated || /prova\s+senza\s+invio/.test(text)
 }
 
+// La stessa ricevuta acquisita più volte (stessa impronta SHA-256) si mostra una volta sola:
+// le copie restano nel fascicolo, ma l'elenco delle comunicazioni non le ripete.
+function unaVoltaPerContenuto<T extends { hash?: string }>(docs: T[]): T[] {
+  const viste = new Set<string>()
+  return docs.filter((doc) => {
+    const impronta = String(doc.hash || '').trim().toLowerCase()
+    if (!impronta) return true
+    if (viste.has(impronta)) return false
+    viste.add(impronta)
+    return true
+  })
+}
+
+// Parti lette dal portale e non ancora registrate come soggetti: si mostrano con la loro fonte,
+// senza crearle in automatico (l'anagrafica la conferma l'avvocato).
+function partiLetteDaRegistrare(snapshot: { parti: string[]; controparti: string[] } | undefined, registrati: Array<{ name: string }>): string[] {
+  const noti = new Set(registrati.map((party) => party.name.trim().toLowerCase()))
+  const visti = new Set<string>()
+  return [...(snapshot?.parti || []), ...(snapshot?.controparti || [])].filter((nome) => {
+    const chiave = nome.trim().toLowerCase()
+    if (!chiave || noti.has(chiave) || visti.has(chiave)) return false
+    visti.add(chiave)
+    return true
+  })
+}
+
+function PartiLetteDalPortale({ nomi }: { nomi: string[] }) {
+  if (!nomi.length) return null
+  return (
+    <div className="iu-fas-parti-lette">
+      <p><strong>Parti lette dal portale</strong> · da registrare come soggetti del fascicolo</p>
+      <div className="iu-fas-source-parties">{nomi.map((nome) => <span key={nome}>{nome}</span>)}</div>
+    </div>
+  )
+}
+
 function isCancelleriaCommunication(dep: FascicoloDeposit): boolean {
   const text = depositCommunicationText(dep)
   return /(accettazion|consegna|rdac|rac|esito|cancelleria|deposito|busta)/.test(text)
@@ -8025,7 +8070,7 @@ function DocumentUploadWorkspace({
 
 function documentCatalogMethodLabel(doc: FascicoloDocument): { label: string; tone: FascicoloRow['tone']; detail: string } {
   if (doc.catalogMethod === 'contenuto') return { label: 'Catalogato dal contenuto', tone: 'success', detail: doc.catalogEvidence || 'Classificazione prodotta dalla lettura indicizzata.' }
-  if (doc.catalogMethod === 'manuale') return { label: 'Catalogazione confermata manualmente', tone: 'primary', detail: doc.catalogEvidence || 'Correzione registrata nel catalogo SQL del fascicolo.' }
+  if (doc.catalogMethod === 'manuale') return { label: 'Catalogazione confermata manualmente', tone: 'primary', detail: doc.catalogEvidence || 'Correzione registrata nell’elenco dei documenti del fascicolo.' }
   if (doc.catalogMethod === 'metadati_portale') return { label: 'Metadati del portale: contenuto non letto', tone: 'info', detail: doc.catalogEvidence || 'Acquisisci il file per permettere lettura e catalogazione.' }
   return { label: 'Da indicizzare: contenuto non letto', tone: 'warning', detail: doc.catalogEvidence || 'Esegui la lettura documentale prima di usare una classificazione.' }
 }
@@ -9519,7 +9564,7 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPrevi
             <span><Badge tone={audit.summary.tsaVerified ? 'success' : 'neutral'}>{audit.summary.tsaVerified}</Badge><strong>TSA verificata</strong></span>
           </div> : null}
           <div className="iu-fas-audit-actions">
-            {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica bundle fascicolo</a> : null}
+            {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica il pacchetto probatorio</a> : null}
           </div>
         </>
       ) : loadState === 'error' ? (
@@ -9532,10 +9577,10 @@ function AuditTrailSection({ audit, bundleHref, onOpen, onOpenDocuments, onPrevi
         <div className="iu-fas-empty-action">
           <Badge tone={audit.enabled ? 'warning' : 'neutral'}>{audit.enabled ? 'Nessuna evidenza' : 'Da configurare'}</Badge>
           <strong>{audit.enabled ? 'Nessun riscontro operativo o probatorio registrato per questo fascicolo.' : 'Presidio probatorio non attivo per questo studio.'}</strong>
-          <p>{audit.message || (audit.enabled ? 'Le consultazioni e i download compaiono qui dopo l’azione; firme, ricevute e pacchetti probatori restano tracciati separatamente.' : 'Attivare il presidio audit prima di usare il bundle come prova operativa.')}</p>
+          <p>{audit.message || (audit.enabled ? 'Le consultazioni e i download compaiono qui dopo l’azione; firme, ricevute e pacchetti probatori restano tracciati separatamente.' : 'Attivare il presidio audit prima di usare il pacchetto come prova operativa.')}</p>
           <div>
             <a href="#documenti" onClick={onOpenDocuments}><FileText size={14}/> Apri documenti e registra una verifica</a>
-            {audit.enabled ? <span>Il bundle si abilita dopo il primo evento registrato.</span> : null}
+            {audit.enabled ? <span>Il pacchetto probatorio si scarica dopo il primo evento registrato.</span> : null}
           </div>
         </div>
       ) : null}
@@ -9658,7 +9703,7 @@ function DetailPage({ id }:{id:string}) {
   const nextAppointment = data.appointments.find((app) => !app.past)
   const preventivo = data.workflow.find((item) => /preventiv/i.test(item.label))
   const conferimento = data.workflow.find((item) => /conferiment|incaric/i.test(item.label))
-  const notificationCommunicationDocuments = data.documents.filter(isNotificationCommunicationDocument)
+  const notificationCommunicationDocuments = unaVoltaPerContenuto(data.documents.filter(isNotificationCommunicationDocument))
   const comunicazioniRows = data.deposits.filter((dep) => !isCancelleriaCommunication(dep))
   const cancelleriaRows = data.deposits.filter(isCancelleriaCommunication)
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
@@ -9981,15 +10026,11 @@ function DetailPage({ id }:{id:string}) {
             <Suspense fallback={<LoadingState title="Caricamento documenti d’ufficio" message="Preparazione degli strumenti di consultazione in corso."/>}>
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
-            <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
-            <nav className="iu-fas-toolbar" aria-label="Cestino documenti del fascicolo">
-              <Button href={`/documenti?scope=cestino&fascicolo=${encodeURIComponent(f.id || id)}`}><Trash2 size={15}/> Cestino del fascicolo</Button>
-            </nav>
             {lazyStatus.lex === 'loaded' || lazyStatus.documenti === 'loaded' ? (
               <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             ) : lazyStatus.documenti === 'error' || lazyStatus.lex === 'error' ? (
               <div className="iu-fas-lex__warnings" role="alert"><p>Caricamento dell’indice non riuscito. I conteggi non sono disponibili.</p><button type="button" className="iu-fas-catalog__retry" onClick={() => loadLazySection('documenti')}><RefreshCw size={14}/> Riprova caricamento</button></div>
-            ) : lazyStatus.documenti === 'loading' ? <LoadingState title="Caricamento documenti" message="Lettura del catalogo SQL del fascicolo in corso."/> : <p className="iu-empty">Apri la sezione documenti per caricare il catalogo del fascicolo.</p>}
+            ) : lazyStatus.documenti === 'loading' ? <LoadingState title="Caricamento documenti" message="Lettura dell’elenco dei documenti del fascicolo in corso."/> : <p className="iu-empty">Apri la sezione documenti per caricare il catalogo del fascicolo.</p>}
             <CatalogazioneDocumentalePanel
               fascicoloId={f.id || id}
               enabled={lazyStatus.documenti === 'loaded'}
@@ -10000,6 +10041,14 @@ function DetailPage({ id }:{id:string}) {
               onDone={refreshDetail}
               onError={failDetail}
             />
+            {/* Prima l'elenco dei documenti; caricamento, scanner e riconoscimento del testo si aprono su richiesta. */}
+            <details className="iu-fas-aggiungi-documenti" open={!data.quickCounts.documenti}>
+              <summary><UploadCloud size={15}/> Aggiungi documenti, scanner e riconoscimento del testo</summary>
+              <DocumentUploadWorkspace data={data} onDone={refreshDocuments} onError={failDetail}/>
+            </details>
+            <nav className="iu-fas-toolbar" aria-label="Cestino documenti del fascicolo">
+              <Button href={`/documenti?scope=cestino&fascicolo=${encodeURIComponent(f.id || id)}`}><Trash2 size={15}/> Cestino del fascicolo</Button>
+            </nav>
           </DetailSection>
           <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.quickCounts.attivita || 0} defaultOpen={activeHashSection === 'attivita'} onOpen={() => loadLazySection('attivita')}>
             <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
@@ -10078,19 +10127,19 @@ function DetailPage({ id }:{id:string}) {
               </div>
             </div>
           </DetailSection>
-          <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong><span>{item.from} → {item.to}</span><p>{item.notes}</p></article>)}{!data.history.length ? <div className="iu-fas-empty-action"><Badge tone="neutral">Nessun evento</Badge><strong>Nessun avanzamento registrato.</strong><p>Registra l'attività o una scadenza effettiva: lo storico del fascicolo verrà aggiornato con data, autore ed esito.</p><div><a href="#attivita" onClick={openSection('attivita', 'attivita')}><ListChecks size={14}/> Registra attività processuale</a><a href="#udienze" onClick={openSection('udienze', 'scadenze')}><CalendarDays size={14}/> Registra udienza o termine</a></div></div> : null}</div></DetailSection>
+          <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong>{item.from && item.to ? <span>{item.from} → {item.to}</span> : null}<p>{item.notes}</p></article>)}{!data.history.length ? <div className="iu-fas-empty-action"><Badge tone="neutral">Nessun evento</Badge><strong>Nessun avanzamento registrato.</strong><p>Registra l'attività o una scadenza effettiva: lo storico del fascicolo verrà aggiornato con data, autore ed esito.</p><div><a href="#attivita" onClick={openSection('attivita', 'attivita')}><ListChecks size={14}/> Registra attività processuale</a><a href="#udienze" onClick={openSection('udienze', 'scadenze')}><CalendarDays size={14}/> Registra udienza o termine</a></div></div> : null}</div></DetailSection>
           <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} loading={lazyStatus.audit === 'loading'} loadState={lazyStatus.audit} defaultOpen={activeHashSection === 'audit'}/>
         </div>
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>} defaultOpen={activeHashSection === 'gestione'}>
-            <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
+            <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={statoSelezionabile(f.status)}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={openPagoPaModal}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'} onToggle={setCtuVisible}><Suspense fallback={<LoadingState title="Caricamento incarichi CTU" message="Preparazione della sezione richiesta in corso."/>}><CtuSection key={f.id} fascicoloId={f.id} active={ctuVisible}/></Suspense></DetailSection>
           <DetailSection id="conservazione" title="Conservazione a norma" icon={<Archive size={17}/>} defaultOpen={activeHashSection === 'conservazione'}><Suspense fallback={<p className="iu-empty">Caricamento…</p>}><ConservazionePanel fascicoloId={f.id}/></Suspense></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>
-          <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
+          <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length && !partiLetteDaRegistrare(f.sourceSnapshot, data.parties).length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><PartiLetteDalPortale nomi={partiLetteDaRegistrare(f.sourceSnapshot, data.parties)}/><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>
         </div>
       </section>

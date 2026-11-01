@@ -27,3 +27,11 @@ test('agenda compatta: solo i prossimi impegni, al massimo cinque, con il conteg
   assert.equal(altri, 1)
   assert.ok(prime.every((v) => !v.passata))
 })
+
+test('registro del fascicolo: prima i motori con letture in sospeso, stato in italiano', async () => {
+  const { lettoriSintesi, etichettaStatoFascicolo } = await import('../../frontend/src/components/fascicoli/lettureFascicolo.ts')
+  const voce = (etichetta, letti, da_leggere, errori = 0) => ({ etichetta, versione: 'v1', letti, da_leggere, errori, ultima_lettura: '', completa: !da_leggere })
+  const ordine = lettoriSintesi({ lettori: { ocr: voce('OCR', 5, 0), motore_documenti: voce('Motore documenti', 70, 6), vuoto: voce('Mai usato', 0, 0) } })
+  assert.deepEqual(ordine.map((v) => v.id), ['motore_documenti', 'ocr'])
+  assert.equal(etichettaStatoFascicolo('DEFINITO'), 'Definito')
+})

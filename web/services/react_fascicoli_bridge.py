@@ -1821,13 +1821,25 @@ def _activity_is_hearing(activity: Any) -> bool:
     return "UDIENZA" in raw_type or "UDIENZA" in title
 
 
+def _hearing_row(fascicolo: Any, apps: Iterable[Any] | None = None) -> tuple[str, str]:
+    """Etichetta onesta: «Prossima udienza» solo per una data futura, altrimenti «Ultima udienza»."""
+    value = _next_hearing_value(fascicolo, apps)
+    parsed = _parse_date(value) if value else None
+    if parsed is not None and parsed < datetime.now(ROME_TZ).date():
+        return "Ultima udienza", _date_label(value)
+    return "Prossima udienza", _date_label(value)
+
+
 def _next_hearing_value(fascicolo: Any, apps: Iterable[Any] | None = None) -> str:
+    # «Oggi» dell'avvocato in Europe/Rome; una data registrata come prossima udienza ma già trascorsa
+    # non prevale su un'udienza futura letta dall'agenda o dalle attività.
+    today = datetime.now(ROME_TZ).date()
     direct = _text(getattr(fascicolo, "data_prossima_udienza", ""))
-    if direct:
+    direct_date = _parse_date(direct) if direct else None
+    if direct and (direct_date is None or direct_date >= today):
         return direct
-    today = date.today()
     future_dates: list[date] = []
-    past_dates: list[date] = []
+    past_dates: list[date] = [direct_date] if direct_date else []
     for activity in getattr(fascicolo, "attivita", []) or []:
         if not _activity_is_hearing(activity):
             continue
@@ -6065,6 +6077,17 @@ def _fast_documents_count(fascicolo: Any) -> int:
             return int(getattr(fascicolo, "documenti_conteggio", 0) or 0)
         except (TypeError, ValueError):
             return 0
+    # Il numero mostrato all'avvocato è quello dei file presenti nel fascicolo (verifica del 01/11/2026:
+    # 78 file contro 90 «documenti» della fotografia del portale). La fotografia vale solo se il fascicolo
+    # non ha ancora file, ed è esposta a parte come documenti noti al portale.
+    try:
+        presenti = len(getattr(fascicolo, "documenti", []) or [])
+    except TypeError:
+        presenti = 0
+    return presenti or _portal_documents_count(fascicolo)
+
+
+def _portal_documents_count(fascicolo: Any) -> int:
     source_snapshot = getattr(fascicolo, "source_snapshot", {}) or {}
     counts = source_snapshot.get("counts") if isinstance(source_snapshot, dict) else {}
     if isinstance(counts, dict):
@@ -6075,10 +6098,7 @@ def _fast_documents_count(fascicolo: Any) -> int:
                 value = 0
             if value:
                 return value
-    try:
-        return len(getattr(fascicolo, "documenti", []) or [])
-    except TypeError:
-        return 0
+    return 0
 
 
 def _governed_documents_count(fascicolo: Any) -> int:
@@ -7666,7 +7686,7 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
         ("Compenso pattuito", _euro(getattr(fascicolo, "compenso_pattuito", 0)), False, ""),
         ("Apertura", _date_label(getattr(fascicolo, "data_apertura", "")), False, ""),
         ("Prima udienza", _date_label(getattr(fascicolo, "data_prima_udienza", "")), False, ""),
-        ("Prossima udienza", _date_label(_next_hearing_value(fascicolo, apps)), False, ""),
+        (*_hearing_row(fascicolo, apps), False, ""),
         ("Chiusura", _date_label(_closure_date_value(fascicolo)), False, ""),
         ("Fonte portale", getattr(fascicolo, "source", ""), False, ""),
         ("Dati letti dal portale", source_summary, False, ""),
@@ -9115,19 +9135,39 @@ def _parties(
     return out
 
 
+_ETICHETTE_STATO = {"APERTO": "Aperto", "IN_CORSO": "In corso", "SOSPESO": "Sospeso", "DEFINITO": "Definito", "ARCHIVIATO": "Archiviato"}
+# Identificativi interni dei documenti (docai-<hash>, doc-<uuid>) non dicono nulla all'avvocato.
+_ID_TECNICO_DOCUMENTO_RE = re.compile(r"\s*;?\s*Documento:\s*doc(?:ai)?-[0-9a-f-]{8,}", re.IGNORECASE)
+
+
+def _etichetta_stato(value: Any) -> str:
+    raw = _text(value)
+    return _ETICHETTE_STATO.get(raw.upper(), raw.replace("_", " ").capitalize() if raw else "")
+
+
 def _history(fascicolo: Any) -> list[dict[str, str]]:
+    """Avanzamento leggibile: stati in italiano, nessun passaggio fittizio, nessuna voce ripetuta."""
     out = []
+    viste: set[tuple[str, str, str]] = set()
     for item in getattr(fascicolo, "avanzamento", []) or []:
-        out.append(
-            {
-                "date": _date_label(getattr(item, "data", "")),
-                "description": _short(_italian_dates_in_text(getattr(item, "descrizione", "")), 160),
-                "from": _text(getattr(item, "stato_precedente", "")),
-                "to": _text(getattr(item, "stato_nuovo", "")),
-                "notes": _short(_italian_dates_in_text(getattr(item, "note", "")), 180),
-                "lawyer": _text(getattr(item, "avvocato", "")),
-            }
-        )
+        precedente = _etichetta_stato(getattr(item, "stato_precedente", ""))
+        nuovo = _etichetta_stato(getattr(item, "stato_nuovo", ""))
+        if precedente == nuovo:
+            precedente = nuovo = ""
+        note = _ID_TECNICO_DOCUMENTO_RE.sub("", _text(getattr(item, "note", ""))).strip(" ;")
+        voce = {
+            "date": _date_label(getattr(item, "data", "")),
+            "description": _short(_italian_dates_in_text(getattr(item, "descrizione", "")), 160),
+            "from": precedente,
+            "to": nuovo,
+            "notes": _short(_italian_dates_in_text(note), 180),
+            "lawyer": _text(getattr(item, "avvocato", "")),
+        }
+        chiave = (voce["date"], voce["description"], voce["notes"])
+        if chiave in viste:
+            continue
+        viste.add(chiave)
+        out.append(voce)
     return out
 
 
@@ -9221,22 +9261,32 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
             {"label": "PTT Tributario", "value": "Fascicoli tributari", "note": "termini, depositi e accesso al SIGIT", "href": "/sigit", "tone": "info"},
             {"label": "Telecontenzioso", "value": "Stato del ricorso", "note": "udienze ed esito dal SIGIT", "href": "https://sigit.finanze.it/Sigit/index.do", "tone": "neutral"},
         ]
+    if tipo == "PENALE":
+        # Processo penale telematico (art. 111-bis c.p.p.; D.M. 217/2023): l'avvocato deposita dal PDP,
+        # non con la busta PCT; IUSENTRA prepara, controlla e registra.
+        return [
+            {"label": "Deposito telematico", "value": "Deposito penale", "note": "prepara, controlla e registra i depositi del PDP", "href": f"/fascicoli/{encoded_fid}#penale-pdp", "tone": "success"},
+            {"label": "PDP Penale", "value": "Portale deposito atti penali", "note": "accesso dal browser con CNS/CIE", "href": "/pdp", "tone": "info"},
+        ]
+    # Civile, lavoro, famiglia, impresa e volontaria giurisdizione: PCT (D.M. 44/2011, art. 196-quater disp. att. c.p.c.).
+    # Le schede di PDP, PAT e PTT non riguardano questo fascicolo e non si mostrano.
     return [
         {"label": "Deposito telematico", "value": "Prepara", "note": "busta, firma, PEC e ricevute", "href": f"/fascicoli/{encoded_fid}/deposito/prepara", "tone": "success"},
         {"label": "PolisWeb / PST", "value": "Apri", "note": "consultazione e acquisizione guidata", "href": f"/polisWeb?id_fasc={fid}", "tone": "primary"},
-        {"label": "PDP Penale", "value": "Deposito penale" if tipo == "PENALE" else "Solo fascicoli penali", "note": "prepara, controlla e registra i depositi del PDP" if tipo == "PENALE" else "il deposito penale si usa nei fascicoli penali", "href": f"/fascicoli/{fid}#penale-pdp" if tipo == "PENALE" else "/pdp", "tone": "info" if tipo == "PENALE" else "neutral"},
-        {"label": "PAT", "value": "Collega", "note": "amministrativo", "href": "/pat", "tone": "info"},
-        {"label": "PTT / SIGIT", "value": "Collega", "note": "tributario", "href": "/sigit", "tone": "warning"},
         {"label": "Checklist deposito", "value": "Verifica", "note": "busta, firme, PDF/A", "href": "/deposito/checklist", "tone": "success"},
     ]
 
 
 def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]) -> list[dict[str, Any]]:
     governed_documents = _fast_documents_count(fascicolo)
-    physical_documents = len(getattr(fascicolo, "documenti", []) or [])
-    documents_label = f"{governed_documents} elementi"
-    if governed_documents != physical_documents:
-        documents_label = f"{governed_documents} elementi, {physical_documents} file acquisiti"
+    present_documents = len(getattr(fascicolo, "documenti", []) or [])
+    portal_documents = _portal_documents_count(fascicolo)
+    if present_documents:
+        documents_label = f"{present_documents} elementi nel fascicolo"
+        if portal_documents and portal_documents != present_documents:
+            documents_label += f", {portal_documents} noti al portale"
+    else:
+        documents_label = f"{portal_documents} elementi noti al portale, nessun file acquisito" if portal_documents else "0 elementi"
     return [
         {"label": "Dati principali", "value": "titolo, tipo, ufficio", "ok": bool(getattr(fascicolo, "titolo", "") and getattr(fascicolo, "tipo", "")), "tone": "success"},
         {"label": "Cliente", "value": _fascicolo_client_label(fascicolo), "ok": bool(cliente), "tone": "success" if cliente else "warning"},
@@ -9476,6 +9526,9 @@ def build_react_fascicolo_detail_payload(
     load_deadlines = include_all or "scadenze" in include or "deadlines" in include
     load_deposits = include_all or "depositi" in include or "deposits" in include
     load_regia = include_all or "regia" in include or "practice_engine" in include
+    # Il catalogo dei 283 tipi di deposito (circa 2,7 MB) serve solo alla pagina del deposito telematico: il dettaglio
+    # del fascicolo non lo usa e lo riceveva a ogni apertura di Comunicazioni o della regia (verifica del 01/11/2026).
+    load_deposit_catalog = include_all or "catalogo_depositi" in include
     load_relata = include_all or "relata" in include or "relata_notifica" in include
     load_audit = include_all or "audit" in include
     load_lex = include_all or load_documents or "lex" in include or "lex_indexing" in include
@@ -9757,10 +9810,16 @@ def build_react_fascicolo_detail_payload(
             lambda: build_deposit_catalog_payload(include_entries=True),
             {},
         )
-        if load_deposits or load_regia
+        if load_deposit_catalog
         else {}
     )
-    initial_lettura = _safe("initial_lettura", lambda: _initial_lettura_fascicolo(fid), None)
+    # La lettura già pronta (circa 140 KB) serve all'apertura del fascicolo: le sezioni caricate dopo
+    # (documenti, scadenze, depositi…) non la usano e non la rispediscono (verifica del 01/11/2026).
+    initial_lettura = (
+        _safe("initial_lettura", lambda: _initial_lettura_fascicolo(fid), None)
+        if not include or include_all or "lettura" in include
+        else None
+    )
     return {
         "source": "repository_reali",
         "generatedAt": _now(),

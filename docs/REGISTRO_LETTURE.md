@@ -80,8 +80,13 @@ Il registro delle letture (`pct/registro_letture/`) è la memoria comune:
   (`aperta`, `confermata`, `corretta`, `ignorata`).
 
 Un documento invariato non si rilegge. Cambia l'hash, si rilegge solo quello.
-Cambia la versione di un lettore (nuovo motore OCR, nuovo risolutore del
-catalogo), torna da leggere tutto per quel lettore soltanto.
+Il cambio di versione di un lettore **non** riapre da solo gli oggetti
+(`da_leggere` e `fascicolo_invariato` guardano l'impronta, non la versione):
+la rilettura con le regole nuove passa da `superati()`, che esclude le
+versioni dichiarate compatibili in `lettori.py`. I motori dell'archivio
+rileggono prima dai testi già salvati (OCR, indice documentale); solo un
+documento senza alcun testo salvato si rilegge dal PDF, una volta per
+versione, perché la lettura viene poi registrata (verifica del 01/11/2026).
 
 ## Dove sta
 
@@ -293,3 +298,27 @@ niente.
 Riporta se il registro si apre, dove sta il ciclo di ogni fascicolo e perché,
 che cosa hanno scritto i motori per categoria e verdetto, quanto ogni presidio
 ha preso e quanto gli resta, quali categorie nessun presidio usa.
+
+## Riga di sintesi per fascicolo ed eventi da ogni via (2.470.0)
+
+Direttiva dell'avvocato del 01/11/2026: ogni motore deve sapere a quale fascicolo e a quale cliente
+appartiene ciò che legge, quanti documenti contiene il fascicolo, che cosa ha già letto e quando, e
+leggere solo i documenti aggiunti o modificati.
+
+- **Riga di sintesi** (`letture_sintesi_fascicolo`, `pct/registro_letture/sintesi.py`): una riga per
+  fascicolo con l'identità canonica (`pct/registro_letture/identita.py`: cliente e `id_cliente`, tipo
+  pratica, ufficio, RG, stato, data di apertura, data di definizione, data di archiviazione, prossima
+  udienza solo futura), documenti, PEC e allegati presenti, impronta dell'inventario, quanti oggetti
+  restano da leggere e, per ogni lettore, letti, da leggere, errori, versione e data dell'ultima lettura.
+  La scrive il giro di lettura del fascicolo (`archivio_letture_runtime.leggi_fascicolo`); se il fascicolo è
+  fermo la riscrive solo quando l'identità cambia. Si legge con `registro.sintesi()` e
+  `registro.sintesi_studio()`; nel fascicolo è la scheda «Registro del fascicolo» di «Letture e verifiche».
+- **Eventi da ogni via** (`pct/fascicoli_osservatori.py`, `web/services/registro_letture_osservatore.py`):
+  i metodi dell'archivio dei fascicoli che aggiungono, sostituiscono, rimuovono, ripristinano, eliminano o
+  copiano un documento (anche nella fusione dei doppioni) avvisano il registro. Nella richiesta web le
+  modifiche diventano un solo `documento_aggiornato` per fascicolo alla fine della richiesta, salvo che la
+  rotta l'abbia già inviato; fuori dalla richiesta (import, job, worker) il fascicolo si accoda e lo
+  scheduler lo riprende. Import massivo, editor, firma, CTU, PagoPA e portale non restano più senza evento.
+- **Motore PEC**: scrive la propria riga in `letture_fascicoli` (PEC e allegati presenti e letti); l'impronta
+  del fascicolo si calcola con una sola query sugli allegati, senza leggerne il testo OCR.
+

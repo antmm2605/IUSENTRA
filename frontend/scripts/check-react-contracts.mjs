@@ -1769,7 +1769,7 @@ assertContains(fascicoli, 'Apri fonte', 'presidio documenti apre la fonte colleg
 assertContains(fascicoli, 'Prepara scadenza', 'presidio documenti precompila la scadenza senza registrarla automaticamente')
 assertContains(fascicoli, "if (section === 'scadenze') return ['scadenze', 'documenti']", 'apertura diretta delle udienze carica anche i metadati della fonte')
 assertContains(fascicoli, 'Registra attività processuale', 'avanzamento vuoto porta alla registrazione reale di attività')
-assertContains(fascicoli, 'Il bundle si abilita dopo il primo evento registrato.', 'audit non propone bundle vuoti')
+assertContains(fascicoli, 'Il pacchetto probatorio si scarica dopo il primo evento registrato.', 'audit non propone bundle vuoti')
 assertContains(fascicoli, 'iu-fas-quadro-mini__action', 'ogni mini-card del quadro espone un’azione contestuale')
 assertContains(fascicoli, 'actionLabel="Apri controlli economici"', 'asse economico del quadro ha un’azione contestuale')
 assertContains(fascicoliCss, '.iu-fascicolo-quadro-page .iu-fas-quadro-flow{display:grid!important', 'mini-carte del quadro non vengono compresse da regole generiche')

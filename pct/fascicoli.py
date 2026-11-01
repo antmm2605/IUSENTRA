@@ -15,6 +15,7 @@ import zipfile
 import hashlib
 import re
 import shutil
+from pct.fascicoli_osservatori import documenti_cambiati
 from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -1830,6 +1831,7 @@ class GestioneFascicoli:
             self._salva_fascicoli_parziale(touched_fascicoli)
         return report
 
+    @documenti_cambiati("copiato")
     def _copia_documento_su_fascicolo_principale(
         self,
         primary: "Fascicolo",
@@ -2274,6 +2276,7 @@ class GestioneFascicoli:
     # ---------------------------------------------------------------- Documenti
 
     @serialized_documents
+    @documenti_cambiati("aggiunto")
     def aggiungi_documento(
         self,
         id_fasc: str,
@@ -2605,6 +2608,7 @@ class GestioneFascicoli:
         return doc
 
     @serialized_documents
+    @documenti_cambiati("sostituito")
     def sostituisci_documento(
         self,
         id_fasc: str,
@@ -2996,6 +3000,7 @@ class GestioneFascicoli:
             "depositi_toccati": len(depositi_toccati),
         }
 
+    @documenti_cambiati("rimosso")
     def rimuovi_documento(
         self,
         id_fasc: str,
@@ -3037,6 +3042,7 @@ class GestioneFascicoli:
             doc.eliminato_da = original_eliminato_da
             raise
 
+    @documenti_cambiati("ripristinato")
     def ripristina_documento(self, id_fasc: str, id_doc: str) -> Documento:
         """Ripristina nel fascicolo un documento presente nel cestino."""
 
@@ -3076,6 +3082,7 @@ class GestioneFascicoli:
         return doc
 
     @serialized_documents
+    @documenti_cambiati("eliminato")
     def elimina_documento_definitivamente(self, id_fasc: str, id_doc: str) -> None:
         """Cancella definitivamente un documento già spostato nel cestino."""
 

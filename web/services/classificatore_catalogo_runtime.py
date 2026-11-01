@@ -79,6 +79,13 @@ def campioni_studio_corrente() -> list[Campione]:
         decise = {e.document_id: e.etichetta for e in etichette_dalle_decisioni(assegnazioni, conferme_massive=conferme_massive(eventi))
                   if not e.negativa}
         proposte = voci_proposte_prima_della_correzione(eventi)
+        try:
+            from pct.document_intelligence.verita import etichette_dai_depositi
+
+            certificate = {e.document_id: e.etichetta for e in etichette_dai_depositi(fascicolo)["etichette"]}
+        except Exception:  # un deposito illeggibile non ferma la misura
+            logger.debug("Etichette dei depositi non disponibili per %s", fascicolo_id, exc_info=True)
+            certificate = {}
         for assegnazione in assegnazioni:
             try:
                 testo = _testo(repository, tenant_id, assegnazione)
@@ -94,6 +101,7 @@ def campioni_studio_corrente() -> list[Campione]:
                 origine=str(getattr(assegnazione, "source_state", "") or ""),
                 voce_avvocato=decise.get(documento, ""),
                 voce_spark=_voce_spark(assegnazione), nomi=nomi, voce_proposta=proposte.get(documento, ""),
+                voce_certificata=certificate.get(documento, ""),
             ))
     return campioni
 

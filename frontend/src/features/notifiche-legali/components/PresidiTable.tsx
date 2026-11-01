@@ -1,5 +1,5 @@
 import { ChevronRight, Clock3, FileText, Scale, UsersRound } from 'lucide-react'
-import { formatDateTimeIt } from '@/formatting'
+import { formatDateIt, formatDateTimeIt } from '@/formatting'
 import { Button } from '@/ui/Button'
 import { DataTable, type DataTableColumn } from '@/ui/DataTable'
 import { EmptyState } from '@/ui/EmptyState'
@@ -76,6 +76,11 @@ function StatusCell({ item }: { item: PresidioSummary }) {
           <Clock3 size={14} aria-hidden="true" />
           Termine {formatDateTimeIt(item.explicit_due_at, 'da verificare')}
         </time>
+      ) : item.legal_term ? (
+        <a className="nlp-deadline" href={item.legal_term.href}>
+          <Clock3 size={14} aria-hidden="true" />
+          {item.legal_term.label}: {formatDateIt(item.legal_term.date) || 'da verificare'} · {item.legal_term.state}
+        </a>
       ) : <small>Nessun termine espresso</small>}
       {item.assigned_user ? <small>Assegnata a {item.assigned_user.label}</small> : null}
     </div>

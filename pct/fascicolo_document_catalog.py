@@ -633,8 +633,17 @@ def classify_fascicolo_document(
     # un ricorso che dichiara il contributo unificato non e' una ricevuta.
     # Restano prima solo i presidi economici espressi (esenzione, invito al
     # pagamento, patrocinio a spese dello Stato, SIAMM).
+    # Un atto di parte che nel corpo dichiara l'esenzione dal contributo unificato (art. 9 e art. 76
+    # D.P.R. 115/2002, di solito nella dichiarazione di valore) resta l'atto: l'esenzione resta fra i
+    # riscontri economici del documento. È un documento di esenzione quando lo dice il nome del file o
+    # quando manca il titolo di un atto (misura del 01/11/2026: il classificatore concordava
+    # solo su 4 dei 113 casi così etichettati).
+    esenzione_dal_nome = _contains(
+        name_text, r"\b(esenzion[ei]|esent[ei]|non\s+debenza|prenotazione\s+a\s+debito|contributo\s+unificato)\b"
+    )
     titolo_parte: DocumentCatalogClassification | None = None
-    if not (name_is_communication or supporting_attachment_name or cu_esenzione or cu_invito or gratuito_patrocinio or siamm_lsg):
+    if not (name_is_communication or supporting_attachment_name or (cu_esenzione and esenzione_dal_nome)
+            or cu_invito or gratuito_patrocinio or siamm_lsg):
         titolo_parte = _titolo_atto_di_parte(testo_ocr, intestazione)
     titolo_parte_generico = titolo_parte is not None and titolo_parte.label in {"Atto difensivo", "Ricorso - atto principale"}
     if titolo_parte is not None and not titolo_parte_generico:

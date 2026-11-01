@@ -116,12 +116,22 @@ export type PresidioRecipientSummary = {
   failure_reason?: string
 }
 
+/** Termine di legge già in scadenziario per il fascicolo (es. art. 327 c.p.c. per le sentenze). */
+export type PresidioLegalTerm = {
+  date: string
+  label: string
+  state: string
+  note: string
+  href: string
+}
+
 export type PresidioSummary = {
   id: string
   practice: PresidioPractice
   document: PresidioDocumentSummary | null
   source_effective_at: string
   explicit_due_at?: string | null
+  legal_term?: PresidioLegalTerm | null
   notification_case: string
   notification_case_label: string
   channel: string

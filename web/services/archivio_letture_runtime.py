@@ -704,6 +704,14 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict
         esito["fatti"] = len(registro.riconvalida_fatti(tenant, fascicolo_id, esclusioni_oggetto=esclusioni))
     except Exception as exc:
         logger.debug("Riconvalida dei fatti non riuscita per %s: %s", fascicolo_id, exc)
+    try:
+        # Le discordanze già aperte si ripassano con le regole di oggi (2.469.0: codici fiscali letti male,
+        # enti al posto del cliente, secondo nome): quelle che oggi non nascerebbero si chiudono da sole.
+        from web.services.discordanze_letture_runtime import verifica_discordanze_fascicolo
+
+        verifica_discordanze_fascicolo(fascicolo)
+    except Exception as exc:
+        logger.debug("Riconvalida delle discordanze non riuscita per %s: %s", fascicolo_id, exc)
     return esito
 
 

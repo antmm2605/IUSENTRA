@@ -53,7 +53,9 @@ _ITALIAN_DATE_TEXT_PATTERN = (
 )
 _SENTENZA_DATE_RE = re.compile(
     r"\bsentenza\s+n\.?\s*(?P<num>\d+)\s*/\s*(?P<year>\d{4}).{0,120}?"
-    r"\bpubbl(?:icata|icato|\.?)\s*(?:il)?\s*(?P<date>\d{1,2}/\d{1,2}/\d{4})",
+    # Civile: «pubbl. il»; tributario, amministrativo e penale: «depositata (in segreteria/cancelleria) il».
+    r"\b(?:pubbl(?:icata|icato|\.?)|depositat[ao](?:\s+in\s+(?:cancelleria|segreteria))?)\s*(?:il|in\s+data)?\s*"
+    r"(?P<date>\d{1,2}/\d{1,2}/\d{4})",
     re.IGNORECASE | re.DOTALL,
 )
 # La sentenza a verbale ex art. 127-ter c.p.c. non ha l'intestazione
@@ -66,7 +68,7 @@ _SENTENZA_TEXTUAL_DATE_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 _RG_RE = re.compile(
-    r"\b(?:n\.?\s*)?R\.?\s*G\.?\s*(?:n\.?\s*)?(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})",
+    r"\b(?:n\.?\s*)?R\.?\s*G\.?\s*(?:R\.?\s*)?(?:n\.?\s*)?(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})",
     re.IGNORECASE,
 )
 # Forma con il marcatore DOPO il numero, tipica delle sentenze di merito:
@@ -412,6 +414,12 @@ class SentenzaEconomicaExtraction:
     beneficio_cliente_tipo: str = ""
     spese_generali: bool = False
     antistatario: bool = False
+    # Direzione del capo spese (artt. 91-93 c.p.c., art. 133 D.P.R. 115/2002): impostata dopo aver
+    # riconosciuto cliente e fascicolo, perché dipende da chi è il cliente nel processo.
+    liquidazione_intera: float | None = None
+    spese_condannato: str = ""
+    spese_beneficiario: str = ""
+    spese_quota_dovuta: float = 1.0
     warnings: list[str] = field(default_factory=list)
     discordanze: list[dict[str, Any]] = field(default_factory=list)
 
@@ -596,6 +604,7 @@ def apply_sentenza_tribunale_automation(
             warnings=list(context.warnings),
         )
     apply_contributo_unificato_pdf_evidence(extraction, metadata)
+    applica_direzione_spese(extraction, text, fascicolo, metadata)
 
     document_key = _document_key(metadata)
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
@@ -1082,6 +1091,44 @@ def _parse_italian_date(value: str) -> str:
         return date(int(match.group("year")), month, int(match.group("day"))).isoformat()
     except ValueError:
         return ""
+
+
+def applica_direzione_spese(
+    extraction: SentenzaEconomicaExtraction, text: str, fascicolo: Any, metadata: dict[str, Any] | None = None
+) -> SentenzaEconomicaExtraction:
+    """Tiene come compenso liquidato solo la condanna della controparte, per la quota dovuta.
+
+    Cliente condannato (art. 91 c.p.c.), pagamento a favore dello Stato (art. 133 D.P.R. 115/2002) o
+    condannato non riconoscibile: l'importo resta fra gli avvisi e non diventa un credito dello studio.
+    Compensazione parziale (art. 92 c.p.c.): conta solo la quota non compensata.
+    """
+    from pct.spese_liquidate_esito import CLIENTE, STATO, capo_spese
+
+    if extraction.liquidazione_importo is None:
+        return extraction
+    capo = capo_spese(text, _client_candidates(fascicolo, metadata))
+    extraction.liquidazione_intera = extraction.liquidazione_importo
+    extraction.spese_condannato = capo.condannato
+    extraction.spese_beneficiario = capo.beneficiario
+    extraction.spese_quota_dovuta = capo.quota_dovuta
+    if not capo.credito_dello_studio:
+        motivo = ("spese_liquidate_a_carico_del_cliente" if capo.condannato == CLIENTE
+                  else "spese_liquidate_a_favore_dello_stato" if capo.beneficiario == STATO
+                  else "condannato_alle_spese_non_riconosciuto")
+        extraction.warnings.append(motivo)
+        extraction.discordanze.append({
+            "kind": "liquidazione_giudice", "motivo": motivo, "importo": extraction.liquidazione_importo,
+            "contesto": extraction.liquidazione_titolo, "dettaglio": "; ".join(capo.motivi),
+        })
+        extraction.liquidazione_importo = None
+        return extraction
+    if capo.quota_da_verificare:
+        extraction.warnings.append("compensazione_parziale_quota_da_verificare")
+    if any("senza la parte nominata" in motivo for motivo in capo.motivi):
+        extraction.warnings.append("parte_condannata_non_nominata_verificare")
+    if capo.quota_dovuta < 1:
+        extraction.liquidazione_importo = round(extraction.liquidazione_importo * capo.quota_dovuta, 2)
+    return extraction
 
 
 def _extract_liquidazione(text: str) -> tuple[float | None, str]:
@@ -1746,7 +1793,14 @@ def _extract_amount_near(text: str, patterns: tuple[re.Pattern[str], ...], *, wi
             left = max(0, keyword.start() - window)
             right = min(len(text), keyword.end() + window)
             for money in _MONEY_RE.finditer(text, left, right):
-                distance = min(abs(money.start() - keyword.start()), abs(money.end() - keyword.end()))
+                # Distanza fra i due tratti, non fra i loro inizi: in «euro 98,00 per esborsi ed euro 1.500,00
+                # per compensi» l'importo degli esborsi è quello che li precede con «per».
+                if money.end() <= keyword.start():
+                    between = text[money.end():keyword.start()]
+                    distance = 0 if re.fullmatch(r"\s*(?:per|a\s+titolo\s+di)\s*", between, re.IGNORECASE) else keyword.start() - money.end()
+                else:
+                    distance = money.start() - keyword.end()
+                distance = max(distance, 0)
                 if best is None or distance < best[0]:
                     best = (distance, money)
     if best is None:

@@ -9,6 +9,14 @@ Prima di diagnosticare o modificare un modulo, leggere `docs/AGENT_KNOWLEDGE.md`
 
 > Direttiva utente 13/10/2026: `main` è il solo branch operativo e predefinito per commit, push e deploy. Le istruzioni storiche sui branch gemelli e sul doppio push sono sostituite: nessun mirroring. I vecchi branch restano conservati come riferimenti storici; `chore/monorepo-foundation` resta intoccabile. Tutti i gate CI e le verifiche reali restano obbligatori.
 
+## Tutte le materie giuridiche — direttiva utente 01/11/2026
+
+- Ogni funzione, regola, lettore, classificatore, presidio, calcolo e test va progettato e collaudato per **tutte le materie** che uno studio legale può trattare, non solo per le pratiche già presenti nei dati dello studio: civile e procedura civile, famiglia, lavoro e previdenza, penale, amministrativo e appalti, tributario, impresa e crisi, banca e assicurazioni, consumatori, privacy e digitale, ambiente ed edilizia, circolazione, immigrazione, professione forense, diritto dell’Unione europea, militare e le altre della tassonomia `lex/normativa/materie.py` (`MATERIE`, 20 materie). I portali sono già integrati su tutte le giurisdizioni (PST civile, PDP penale, PAT amministrativo, PTT/SIGIT tributario): le funzioni costruite sopra devono avere la stessa copertura.
+- Quando una materia, un rito o un tipo di atto non compare nelle PEC o nei documenti dello studio, gli esempi si costruiscono dalle fonti ufficiali (Normattiva, Gazzetta Ufficiale, portali del Ministero e della Giustizia amministrativa e tributaria, specifiche DGSIA): testi sintetici con la formula reale dell’atto e la norma citata, mai inventati senza fonte. Ogni insieme di esempi dichiara materia, rito, norma e URL della fonte consultata con la data.
+- I collaudi (corpus OCR, casi dei calcolatori, esempi del classificatore, casi dei presìdi) coprono ciascuna materia: un caso positivo e un caso che non deve essere preso. Una regola collaudata su una sola materia non è conclusa.
+- Le misure di qualità (classificatore, letture, presìdi) si riportano per materia: una media alta che nasconde una materia scoperta non basta.
+- Mappa del software: prima di modificare un’area consultare il grafo Graphify secondo [Conoscenza del software per gli agenti](docs/AGENT_KNOWLEDGE.md) e aggiornarlo dopo la modifica.
+
 ## Fonti certe, catena PEC-fascicolo e registro continuo — direttiva utente 31/10/2026
 
 Logica di lavoro da usare sempre, per ogni modifica e ogni sessione (Codex e Claude Code):

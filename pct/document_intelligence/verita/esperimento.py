@@ -36,6 +36,12 @@ class Campione:
     voce_spark: str = ""  # voce scelta dalla seconda lettura di Lex (Spark), se ammessa
     nomi: frozenset[str] = frozenset()  # parole dei nomi di persona noti al fascicolo, per la pseudonimizzazione
     voce_proposta: str = ""  # voce proposta dalle regole prima della correzione dell'avvocato
+    voce_certificata: str = ""  # voce dichiarata nel deposito telematico (livello A): prevale sulle regole
+
+    @property
+    def etichetta(self) -> str:
+        """L'etichetta su cui il modello impara e si misura: la certificata, se c'è, altrimenti quella delle regole."""
+        return self.voce_certificata or self.voce
 
     @property
     def voce_delle_regole(self) -> str:
@@ -57,12 +63,14 @@ def _fascia(c: Campione) -> str:
 def misura(campioni: list[Campione], *, minimo: int = 30) -> dict[str, Any]:
     """Addestra, misura e restituisce il riepilogo pubblicabile e l'elenco dei disaccordi (solo per il server)."""
     utili = [c for c in campioni if c.testo.strip()]
-    quasi_certe = [c for c in utili if _fascia(c) == "quasi_certa" and not _strutturale(c.voce)
-                   and voce_pubblicabile(c.voce) == c.voce]
-    per_voce = Counter(c.voce for c in quasi_certe)
+    # Esempi: le etichette certificate dei depositi (piano del 29/10/2026, Fase 1-2) e le proposte quasi certe delle
+    # regole. Su un documento certificato vale l'etichetta del deposito, anche se le regole dicono altro.
+    quasi_certe = [c for c in utili if (c.voce_certificata and voce_pubblicabile(c.voce_certificata) == c.voce_certificata)
+                   or (_fascia(c) == "quasi_certa" and not _strutturale(c.voce) and voce_pubblicabile(c.voce) == c.voce)]
+    per_voce = Counter(c.etichetta for c in quasi_certe)
     voci = {v for v, n in per_voce.items() if n >= minimo}
-    addestramento = [c for c in quasi_certe if c.voce in voci and not in_verifica(c.document_id)]
-    verifica = [c for c in quasi_certe if c.voce in voci and in_verifica(c.document_id)]
+    addestramento = [c for c in quasi_certe if c.etichetta in voci and not in_verifica(c.document_id)]
+    verifica = [c for c in quasi_certe if c.etichetta in voci and in_verifica(c.document_id)]
     riepilogo: dict[str, Any] = {
         "documenti_con_testo": len(utili), "senza_testo": len(campioni) - len(utili),
         "voci_del_modello": sorted(voci), "esempi_addestramento": len(addestramento), "esempi_verifica": len(verifica),
@@ -70,17 +78,22 @@ def misura(campioni: list[Campione], *, minimo: int = 30) -> dict[str, Any]:
     if len({c.voce for c in addestramento}) < 2:
         riepilogo["esito"] = "esempi insufficienti per addestrare"
         return {"riepilogo": riepilogo, "disaccordi": []}
-    modello = addestra([c.testo for c in addestramento], [c.voce for c in addestramento])
+    modello = addestra([c.testo for c in addestramento], [c.etichetta for c in addestramento])
 
     def previsioni(gruppo: list[Campione]) -> list[tuple[str, float]]:
         return modello.predici([c.testo for c in gruppo]) if gruppo else []
 
     accordo: Counter[str] = Counter()
+    errori: Counter[tuple[str, str]] = Counter()
     for c, (voce, _p) in zip(verifica, previsioni(verifica)):
-        accordo[c.voce] += int(voce == c.voce)
+        accordo[c.etichetta] += int(voce == c.etichetta)
+        if voce != c.etichetta:
+            errori[(c.etichetta, voce)] += 1
     riepilogo["verifica_quasi_certe"] = {
         "accordo_totale": sum(accordo.values()),
-        "per_voce": {v: {"esempi": sum(1 for c in verifica if c.voce == v), "accordo": accordo[v]} for v in sorted(voci)},
+        "per_voce": {v: {"esempi": sum(1 for c in verifica if c.etichetta == v), "accordo": accordo[v]} for v in sorted(voci)},
+        # Dove finiscono gli esempi su cui modello e regole non coincidono: solo voci del catalogo e conteggi.
+        "errori_per_coppia": {f"{r} → {m}": n for (r, m), n in errori.most_common(30)},
     }
 
     disaccordi: list[dict[str, Any]] = []
@@ -99,6 +112,15 @@ def misura(campioni: list[Campione], *, minimo: int = 30) -> dict[str, Any]:
                 conteggi["discorda"] += 1
                 disaccordi.append(_disaccordo(c, voce, p, fascia))
         riepilogo[f"fascia_{fascia}"] = {"documenti": len(gruppo), **dict(conteggi)}
+
+    # Il confronto che conta: sui documenti certificati tenuti da parte, chi sbaglia meno fra modello e regole.
+    certificati = [c for c in utili if c.voce_certificata and in_verifica(c.document_id)]
+    giusti_modello_cert = sum(int(voce == c.voce_certificata) for c, (voce, _p) in zip(certificati, previsioni(certificati)))
+    riepilogo["verifica_certificate"] = {
+        "documenti": len(certificati), "giuste_modello": giusti_modello_cert,
+        "giuste_regole": sum(int(c.voce_delle_regole == c.voce_certificata) for c in certificati),
+        "esempi_certificati_in_addestramento": sum(1 for c in addestramento if c.voce_certificata),
+    }
 
     decisi = [c for c in utili if c.voce_avvocato]
     giusti_modello = giusti_regole = 0

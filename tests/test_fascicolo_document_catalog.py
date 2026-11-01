@@ -633,3 +633,26 @@ def test_reclassify_catalog_apply_corregge_atti_esistenti(tmp_path: Path):
     assert report["ok"] is True
     assert by_name["atto-generico.pdf"].tipo == TipoDocumento.SENTENZA
     assert by_name["Ricorso introduttivo.pdf"].tipo == TipoDocumento.RICORSO
+
+
+def test_ricorso_che_dichiara_l_esenzione_resta_il_ricorso():
+    """Misura del 01/11/2026: la dichiarazione di esenzione nel corpo non fa del ricorso un documento di esenzione."""
+    testo = (
+        "TRIBUNALE DI LOCRI\nSEZIONE LAVORO\nRICORSO EX ART. 414 C.P.C.\n"
+        "Il ricorrente, rappresentato e difeso dall'avv. Tizio, espone quanto segue. "
+        + "Il rapporto di lavoro si è svolto regolarmente. " * 60
+        + "Dichiarazione di valore: la causa è esente dal pagamento del contributo unificato "
+        "ai sensi dell'art. 9, comma 1-bis, D.P.R. 115/2002."
+    )
+    esito = classify_fascicolo_document(filename="Ricorso lavoro.pdf", extracted_text=testo)
+    assert esito.label != "Contributo unificato / esenzione"
+    assert esito.section == "atti"
+
+
+def test_documento_di_esenzione_dal_nome_resta_esenzione():
+    testo = (
+        "RICORSO\nLa parte dichiara che il procedimento è esente dal pagamento del contributo unificato "
+        "ai sensi dell'art. 9, comma 1-bis, D.P.R. 115/2002."
+    )
+    esito = classify_fascicolo_document(filename="Esenzione contributo unificato.pdf", extracted_text=testo)
+    assert esito.label == "Contributo unificato / esenzione"

@@ -35,6 +35,46 @@ _NUMERO = re.compile(r"\bsentenza\s+(?:definitiva\s+|non\s+definitiva\s+)?n\.?\s
 _DI_SENTENZA = re.compile(r"\bsentenz[ae]\b", re.IGNORECASE)
 _DI_DEPOSITO = re.compile(r"\bdeposit|\bpubbl", re.IGNORECASE)
 _CORTE_APPELLO = re.compile(r"\bcorte\s+d.?\s*appello\b|\bcorte\s+di\s+appello\b", re.IGNORECASE)
+# Giurisdizione della sentenza (direttiva del 01/11/2026: tutte le materie). Il termine lungo di sei mesi vale
+# nel civile (art. 327 c.p.c.), nell'amministrativo (art. 92, c. 3, c.p.a.) e nel tributario (art. 327 c.p.c.
+# richiamato dall'art. 49 e dall'art. 51 D.Lgs. 546/1992); la sospensione feriale vale in tutti e tre (art. 1
+# L. 742/1969). Nel penale i termini sono quelli dell'art. 585 c.p.p. (15, 30 o 45 giorni secondo il deposito
+# della motivazione, art. 544 c.p.p.): il termine di sei mesi non si propone mai.
+_AMMINISTRATIVO = re.compile(r"\btribunale\s+amministrativo\s+regionale\b|\bT\.?A\.?R\.?\b|\bconsiglio\s+di\s+stato\b|"
+                             r"\bc\.?p\.?a\.?\b|\bsegreteria\s+(?:della\s+)?sezione\b", re.IGNORECASE)
+_TRIBUTARIO = re.compile(r"\bcorte\s+di\s+giustizia\s+tributaria\b|\bcommissione\s+tributaria\b|\b546/1992\b", re.IGNORECASE)
+_PENALE = re.compile(r"\bprocedimento\s+penale\b|\bimputat[oaie]\b|\bR\.?G\.?N\.?R\.?\b|\bc\.?p\.?p\.?\b|"
+                     r"\bG\.?I\.?P\.?\b|\bG\.?U\.?P\.?\b|\bcorte\s+d.?\s*assise\b|\bsentenza\s+penale\b", re.IGNORECASE)
+
+
+TERMINE_BREVE = {
+    "civile": "art. 325 c.p.c.: 30 giorni per l'appello, 60 per il ricorso per cassazione",
+    "amministrativo": "art. 92, c. 1, c.p.a.: 60 giorni",
+    "tributario": "art. 51 D.Lgs. 546/1992: 60 giorni",
+    "penale": "art. 585 c.p.p.",
+}
+
+
+def giurisdizione(testo: str) -> str:
+    """civile, amministrativo, tributario o penale, dal testo della comunicazione o della sentenza."""
+    valore = str(testo or "")
+    if _PENALE.search(valore):
+        return "penale"
+    if _TRIBUTARIO.search(valore):
+        return "tributario"
+    if _AMMINISTRATIVO.search(valore):
+        return "amministrativo"
+    return "civile"
+
+
+def azione_e_norma(testo: str) -> tuple[str, str]:
+    """L'impugnazione e la norma del termine lungo per la giurisdizione della sentenza."""
+    tipo = giurisdizione(testo)
+    if tipo == "amministrativo":
+        return "Appello al Consiglio di Stato", "art. 92, c. 3, c.p.a."
+    if tipo == "tributario":
+        return "Appello alla Corte di giustizia tributaria di secondo grado", "art. 327 c.p.c. e art. 51 D.Lgs. 546/1992"
+    return ("Ricorso per cassazione" if _CORTE_APPELLO.search(str(testo or "")) else "Appello"), "art. 327 c.p.c."
 _CAMPI_DATA = {"deposito", "provvedimento"}
 MARCATORE = "SENTENZA_327:{comunicazione}"
 
@@ -190,20 +230,23 @@ def proponi_termine_lungo(
     from pct.scadenziario import StatoTermine, TipoTermine
 
     marcatore = MARCATORE.format(comunicazione=comunicazione_id)
+    if giurisdizione(testo) == "penale":
+        # Art. 585 c.p.p.: nessun termine di sei mesi per la sentenza penale.
+        return False
     esistenti = scadenziario.tutte(solo_aperte=False, id_fascicolo=fascicolo_id)
     if any(marcatore in str(getattr(scadenza, "note", "") or "") for scadenza in esistenti):
         return False
     esito = scadenza_termine_lungo(pubblicazione, lavoro=lavoro)
     if esito["deadline"] < oggi.isoformat():
         return False
-    azione = "Ricorso per cassazione" if _CORTE_APPELLO.search(str(testo or "")) else "Appello"
+    azione, norma = azione_e_norma(testo)
     numero = numero_sentenza(testo)
     scadenza = scadenziario.nuova(
-        titolo=f"{azione} — termine lungo art. 327 c.p.c." + (f" (sentenza n. {numero})" if numero else ""),
+        titolo=f"{azione} — termine lungo {norma}" + (f" (sentenza n. {numero})" if numero else ""),
         tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=esito["deadline"], id_fascicolo=fascicolo_id,
         descrizione=(f"Sei mesi dal deposito della sentenza del {pubblicazione.strftime('%d/%m/%Y')}"
                      f"{'' if lavoro else ', con la sospensione feriale'}. Se la sentenza viene notificata vale il "
-                     "termine breve dell'art. 325 c.p.c. dalla notifica."),
+                     f"termine breve dalla notifica ({TERMINE_BREVE[giurisdizione(testo)]})."),
         data_decorrenza=pubblicazione.isoformat(), perentorio=True, source_event_type="deposito_sentenza",
         source_event_at=pubblicazione.isoformat(), raw_due_at=esito["rawDeadline"], legal_due_at=esito["deadline"],
     )

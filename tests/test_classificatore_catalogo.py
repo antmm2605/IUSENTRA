@@ -98,3 +98,19 @@ def test_voce_delle_regole_e_quella_proposta_prima_della_correzione():
                         voce_proposta="Atto di citazione")
     assert corretto.voce_delle_regole == "Atto di citazione"
     assert Campione("D3", "F", "t", "Sentenza", 99, "proposed", "rules").voce_delle_regole == "Sentenza"
+
+
+def test_etichetta_certificata_prevale_sulle_regole_e_si_misura_a_parte():
+    """Piano del 29/10/2026: l'etichetta del deposito telematico (livello A) prevale sulle regole."""
+    campioni = [_campione(n, v) for v in INTESTAZIONI for n in range(60)]
+    # Documenti che le regole chiamano «Procura alle liti» (con poca confidenza) ma che il deposito certifica come sentenze.
+    for n in range(100, 140):
+        c = _campione(n, "Procura alle liti", confidenza=80, testo=f"{INTESTAZIONI['Sentenza']} numero {n}")
+        c.voce_certificata = "Sentenza"
+        campioni.append(c)
+    riepilogo = misura(campioni, minimo=30)["riepilogo"]
+    certificate = riepilogo["verifica_certificate"]
+    assert certificate["documenti"] == sum(1 for n in range(100, 140) if in_verifica(f"Pro-{n}"))
+    assert certificate["giuste_modello"] == certificate["documenti"]
+    assert certificate["giuste_regole"] == 0
+    assert certificate["esempi_certificati_in_addestramento"] == 40 - certificate["documenti"]

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Download, Eye, FileDown, FileText, UserRound } from 'lucide-react'
 import { ApiClientError } from '@/lib/apiClient'
-import { formatDateTimeIt } from '@/formatting'
+import { formatDateIt, formatDateTimeIt } from '@/formatting'
 import { IusSkeletonTable } from '@/components/iusentra'
 import { SourceDocumentModal, type SourceDocument } from '@/components/SourceDocumentModal'
 import { Button, ButtonLink } from '@/ui/Button'
@@ -96,6 +96,9 @@ export default function PresidioDetailDrawer({
                 <div><dt>Canale</dt><dd>{detail.channel_label}</dd></div>
                 <div><dt>Data sorgente</dt><dd>{formatDateTimeIt(detail.source_effective_at, 'Non disponibile')}</dd></div>
                 <div><dt>Termine</dt><dd>{formatDateTimeIt(detail.explicit_due_at, 'Nessun termine espresso')}</dd></div>
+                {detail.legal_term ? (
+                  <div><dt>{detail.legal_term.label}</dt><dd><a href={detail.legal_term.href}>{formatDateIt(detail.legal_term.date) || 'da verificare'}</a> · {detail.legal_term.state}. {detail.legal_term.note}</dd></div>
+                ) : null}
               </dl>
               <p><strong>Motivo:</strong> {detail.detection_reason}</p>
               <p><strong>Prossima azione:</strong> {detail.next_action}</p>

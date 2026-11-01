@@ -14,6 +14,7 @@ def repository():
 
 
 def verifica_discordanze_fascicolo(fascicolo):
+    from pct.archivio_letture.confronto_cliente import discordanza_codice_fiscale, discordanza_nome
     from pct.archivio_letture.parti_fascicolo import parti_lette, stesso_nome
     from web.helpers import get_clienti
     from web.services.archivio_letture_runtime import fatti_fascicolo
@@ -31,11 +32,11 @@ def verifica_discordanze_fascicolo(fascicolo):
         if len(parti) != 1 or parti[0].ruolo != 'assistito' or fatto.oggetto_id not in docs:
             continue
         confrontabili = True
-        if not stesso_nome(parti[0].nome, nome):
+        if discordanza_nome(parti[0].nome, nome, citazione=fatto.contesto, cf_anagrafica=cf):
             fonti_nome.append({'id':fatto.oggetto_id, 'sha256':fatto.sha256,
                                'valore':parti[0].nome, 'citazione':fatto.contesto[:300]})
     if nome and confrontabili:
-        pubblica_discordanza_nome_cliente(fascicolo, nome, fonti_nome)
+        pubblica_discordanza_nome_cliente(fascicolo, nome, fonti_nome, cf_anagrafica=cf)
     voci = []
     if cf:
         docs = {d.id:d for d in fascicolo.documenti}
@@ -46,7 +47,8 @@ def verifica_discordanze_fascicolo(fascicolo):
             if len(parti) != 1 or parti[0].ruolo != 'assistito' or not stesso_nome(parti[0].nome,fascicolo.nome_cliente):
                 continue
             actual = parti[0].codice_fiscale
-            if not actual or actual == cf:
+            # Un codice che non supera il carattere di controllo è una lettura sbagliata, non un dato diverso.
+            if not discordanza_codice_fiscale(actual, cf):
                 continue
             doc = docs.get(fatto.oggetto_id)
             if not doc:
@@ -71,14 +73,14 @@ def verifica_discordanze_fascicolo(fascicolo):
         repo.riconcilia(tenant,fascicolo.id,'cf_cliente_atto',voci)
 
 
-def pubblica_discordanza_nome_cliente(fascicolo, nome_anagrafica, fonti):
+def pubblica_discordanza_nome_cliente(fascicolo, nome_anagrafica, fonti, *, cf_anagrafica=''):
     """Materializza un confronto provato; non modifica cliente o collegamenti.
 
     Le fonti vengono dai motori condivisi o da una riconvalida puntuale già
     verificata. L'assenza di fatti non invoca questa funzione e non supera
     una discordanza precedente. La GET della top bar resta soltanto SQL.
     """
-    from pct.archivio_letture.parti_fascicolo import stesso_nome
+    from pct.archivio_letture.confronto_cliente import discordanza_nome
     repo, tenant = repository()
     docs = {str(d.id):d for d in fascicolo.documenti}
     prove = {}
@@ -88,7 +90,7 @@ def pubblica_discordanza_nome_cliente(fascicolo, nome_anagrafica, fonti):
         impronta = str(fonte.get('sha256') or '').strip()
         if doc is None or not valore or len(impronta) != 64:
             raise ValueError('Confronto del nome senza documento e impronta verificabili')
-        if stesso_nome(valore, nome_anagrafica):
+        if not discordanza_nome(valore, nome_anagrafica, citazione=fonte.get('citazione'), cf_anagrafica=cf_anagrafica):
             continue
         prove[(doc.id, impronta, valore)] = {
             'id':doc.id, 'sha256':impronta, 'label':doc.nome, 'valore':valore,

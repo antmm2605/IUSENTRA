@@ -16,6 +16,10 @@
 - I punti d’ingresso per settore sono in `tools/agent_knowledge/domains.json`; materie e procedure restano quelle dei cataloghi reali. Conservare provenienza e distinzione EXTRACTED/INFERRED; verificare manualmente i passaggi non risolti.
 - Non modificare la skill ufficiale, non introdurre Graphify nelle dipendenze del prodotto e non indicizzare dati dello studio. Il grafo non sostituisce i test reali o le baseline congelate.
 
+## Tutte le materie giuridiche — direttiva utente 01/11/2026
+
+- Ogni funzione si progetta e si collauda per **tutte le materie** (civile, famiglia, lavoro, penale, amministrativo, tributario, impresa e crisi, consumatori e le altre di `lex/normativa/materie.py`), non solo per le pratiche già nello studio. Per le materie assenti dai dati dello studio gli esempi si costruiscono dalle fonti ufficiali, con norma, URL e data. Regola completa in [AGENTS.md](AGENTS.md).
+
 ## Autorizzazioni generali
 
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.

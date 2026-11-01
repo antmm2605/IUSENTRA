@@ -189,7 +189,7 @@ def test_depositi_dal_portale_etichettano_atto_e_provvedimento_ma_non_gli_allega
 
     assert {(e.document_id, e.etichetta) for e in esito["etichette"]} == {
         ("d1", "Ricorso per decreto ingiuntivo"), ("d3", "Decreto ingiuntivo")}
-    assert esito["conteggi"] == {"depositi_portale": 1}
+    assert esito["conteggi"] == {"depositi_portale": 1, "file_portale_collegati": 3}
 
 
 def test_deposito_dello_studio_etichetta_solo_l_atto_principale_e_conta_i_tipi_nuovi():
@@ -254,3 +254,26 @@ def test_il_riepilogo_non_porta_nomi_dei_clienti() -> None:
     assert "Rossi" not in testo
     assert esito["argento_per_voce"] == {"Carta d'identità": 3}
     assert VOCE_FUORI_ELENCO not in esito["voci_addestrabili"]
+
+
+def test_tipo_generico_della_busta_e_nome_con_estensioni_di_firma():
+    """Censimento del 01/11/2026: «ricorso» generico e nomi «.pdf.p7m» lasciavano lo studio senza etichette certe."""
+    from pct.document_intelligence.verita import etichette_dai_depositi
+
+    deposito = SimpleNamespace(id="DEP-G", documenti_portale=[], documenti_ids=["a1", "a2"], tipo_atto="Ricorso",
+                               nome_atto_principale="Ricorso_Rossi.pdf.p7m")
+    fascicolo = SimpleNamespace(id="F9", depositi_pct=[deposito], documenti=[
+        SimpleNamespace(id="a1", nome="Ricorso Rossi.pdf", nome_originale="", hash_sha256="h1", eliminato_il=""),
+        SimpleNamespace(id="a2", nome="Procura.pdf", nome_originale="", hash_sha256="h2", eliminato_il=""),
+    ])
+    esito = etichette_dai_depositi(fascicolo)
+    assert [(e.document_id, e.etichetta) for e in esito["etichette"]] == [("a1", "Ricorso - atto principale")]
+    assert esito["non_mappati"] == {}
+
+
+def test_deposito_del_portale_senza_file_collegati_e_contato():
+    from pct.document_intelligence.verita import etichette_dai_depositi
+
+    deposito = SimpleNamespace(id="DEP-P", documenti_portale=[{"id": "P-9"}], documenti_ids=[], tipo_atto="")
+    esito = etichette_dai_depositi(SimpleNamespace(id="F8", depositi_pct=[deposito], documenti=[]))
+    assert esito["conteggi"]["depositi_portale_senza_file_collegati"] == 1

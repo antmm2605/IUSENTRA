@@ -14,6 +14,7 @@ il resolver condiviso del fascicolo (`GestioneFascicoli._trova_documento_portale
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from types import SimpleNamespace
 from typing import Any
@@ -37,11 +38,26 @@ TIPI_DEPOSITO_STUDIO: dict[str, tuple[str, str]] = {
     "memoria integrativa": ("Memoria integrativa ex art. 171-ter c.p.c.", "atti"),
     "precisazione delle conclusioni": ("Precisazione delle conclusioni", "atti"),
     "ricorso in materia di lavoro": ("Ricorso in materia di lavoro (art. 414 c.p.c.)", "atti"),
+    # Tipi generici della busta (censimento del 01/11/2026: 48 «ricorso» e 1 «istanza» senza voce): la busta
+    # certifica la natura dell'atto principale, non il rito; la voce resta quella generica del catalogo.
+    "ricorso": ("Ricorso - atto principale", "atti"),
+    "istanza": ("Istanza", "atti"),
 }
 
 
 def _testo(valore: Any) -> str:
     return " ".join(str(valore or "").split()).strip()
+
+
+def _nome_atto(valore: Any) -> str:
+    """Nome dell'atto senza estensioni di firma e formato: «Ricorso.pdf.p7m» e «ricorso.pdf» sono lo stesso atto."""
+    nome = _testo(valore).casefold()
+    while True:
+        ridotto = re.sub(r"\.(?:p7m|pdf|tsd|m7m)$", "", nome)
+        if ridotto == nome:
+            break
+        nome = ridotto
+    return re.sub(r"[\s_\-]+", " ", nome).strip()
 
 
 def _documenti_del_deposito(fascicolo: Any, deposito: Any) -> list[Any]:
@@ -64,6 +80,10 @@ def etichette_dai_depositi(fascicolo: Any) -> dict[str, Any]:
         documenti = _documenti_del_deposito(fascicolo, deposito)
         if list(getattr(deposito, "documenti_portale", []) or []):
             conteggi["depositi_portale"] += 1
+            # Diagnosi del censimento: un deposito del portale senza file del fascicolo collegati non dà etichette.
+            conteggi["file_portale_collegati"] += len(documenti)
+            if not documenti:
+                conteggi["depositi_portale_senza_file_collegati"] += 1
             for documento in documenti:
                 riga = GestioneFascicoli._trova_documento_portale_correlato(documento, deposito)
                 if riga is None:
@@ -80,9 +100,9 @@ def etichette_dai_depositi(fascicolo: Any) -> dict[str, Any]:
                     non_mappati[f"portale {classificazione}: {_normalizza(metadati.get('tipo_atto_portale'))}"] += 1
             continue
         conteggi["depositi_studio"] += 1
-        principale = _testo(getattr(deposito, "nome_atto_principale", "")).casefold()
-        atti = [d for d in documenti if principale and principale in {_testo(getattr(d, "nome", "")).casefold(),
-                                                                      _testo(getattr(d, "nome_originale", "")).casefold()}]
+        principale = _nome_atto(getattr(deposito, "nome_atto_principale", ""))
+        atti = [d for d in documenti if principale and principale in {_nome_atto(getattr(d, "nome", "")),
+                                                                      _nome_atto(getattr(d, "nome_originale", ""))}]
         tipo = _normalizza(getattr(deposito, "tipo_atto", ""))
         if len(atti) != 1 or not tipo:
             conteggi["depositi_studio_senza_atto_principale"] += 1

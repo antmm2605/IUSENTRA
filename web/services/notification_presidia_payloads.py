@@ -289,10 +289,16 @@ def _notification_case_label(value: Any) -> str:
     return NOTIFICATION_CASE_LABELS.get(case.casefold(), "Notifica legale da verificare")
 
 
-def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: list[Mapping[str, Any]], documents: list[Mapping[str, Any]], assignees: list[dict[str, str]]) -> dict[str, Any]:
+def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: list[Mapping[str, Any]], documents: list[Mapping[str, Any]], assignees: list[dict[str, str]], termini: dict[str, Any] | None = None) -> dict[str, Any]:
+    from web.services.notification_legal_terms import termine_per_presidio
+
     status = str(projection.get("status") or row.get("status") or "DETECTED")
     channel = str(projection.get("channel") or row.get("channel") or "pec").lower()
+    fascicolo_id = str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")
+    caso = str(projection.get("notificationCase") or row.get("notification_case") or "")
     return {
+        # Termine di legge già in scadenziario (art. 327 c.p.c.) per le sentenze: mai calcolato qui.
+        "legal_term": termine_per_presidio(caso, fascicolo_id, termini if termini is not None else {}),
         "id": str(projection.get("id") or row.get("id") or ""),
         "practice": _practice_payload(str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")),
         "document": _document_summary(documents),
@@ -360,7 +366,8 @@ def build_presidia_list_payload(repo: Any, filters: Mapping[str, Any]) -> dict[s
     docs = _query_many(repo, "pec_legal_notification_documents", ids, "ORDER BY authoritative DESC, created_at DESC, id DESC")
     recipients = _query_many(repo, "pec_legal_notification_recipients", ids, "ORDER BY required DESC, updated_at DESC, id DESC")
     assignees = _user_options()
-    items = [_summary(item, rows.get(str(item["id"]), {}), recipients.get(str(item["id"]), []), docs.get(str(item["id"]), []), assignees) for item in public["items"]]
+    termini: dict[str, Any] = {}
+    items = [_summary(item, rows.get(str(item["id"]), {}), recipients.get(str(item["id"]), []), docs.get(str(item["id"]), []), assignees, termini) for item in public["items"]]
     return {
         "ok": True,
         "items": items,

@@ -81,6 +81,7 @@
     "frontend/src/components/CrmPage.css",
     "frontend/src/components/DocumentEditorPage.css",
     "frontend/src/components/EditorLinkedFieldsPanel.css",
+    "frontend/src/components/EditorNormativaPanel.css",
     "frontend/src/components/EditorPersonalTemplates.css",
     "frontend/src/components/DocumentToolsPage.css",
     "frontend/src/components/DocumentiAIPage.css",

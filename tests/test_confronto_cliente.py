@@ -72,3 +72,15 @@ def test_le_discordanze_registrate_con_regole_superate_non_si_mostrano():
     assert not ancora_discordante(secondo_nome)
     assert ancora_discordante(vera)
     assert not ancora_discordante(cf_letto_male)
+
+
+def test_titolo_professionale_e_frammento_di_indirizzo_non_sono_discordanze():
+    """Verifica a vista del 01/11/2026: «Ass. Ed.» davanti al nome e «Int.3 P.2» (interno e piano) letti come nomi."""
+    from web.services.discordanze_letture_runtime import ancora_discordante
+
+    falsa = {'codice': 'nome_cliente_atto', 'valoreAnagrafica': 'Rossi Maria Rosa',
+             'fonti': [{'valore': 'Ass. Ed. Rossi Maria Rosa', 'citazione': ''}, {'valore': 'Int.3 P.2', 'citazione': ''}]}
+    assert not ancora_discordante(falsa)
+    assert not discordanza_nome('Int.3 P.2', 'Rossi Maria Rosa')
+    assert not discordanza_nome('Ass. Ed. Rossi Maria Rosa', 'Rossi Maria Rosa')
+    assert discordanza_nome('Rossi Marta Rosa', 'Rossi Maria Rosa')

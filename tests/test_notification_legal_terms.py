@@ -57,3 +57,16 @@ def test_ordine_di_notifica_nel_rito_del_lavoro_mostra_il_termine_dell_art_415(m
     termine = termine_per_presidio("explicit_order", "F1", cache)
     assert termine["date"] == "2026-11-05" and "415" in termine["label"]
     assert termine_per_presidio("judgment_to_notify_review", "F1", cache)["date"] == "2027-04-01"
+
+
+def test_termine_lungo_proposto_dalla_pec_di_cancelleria():
+    """Verifica a vista del 01/11/2026: la sentenza aveva il termine lungo in scadenziario, proposto dalla PEC."""
+    note = "PEC_TERMINE_PROPOSTO:msg1:CIV_APPELLO_LUNGO\nTermine proposto: Impugnazione sentenza - termine lungo"
+    scadenziario = Scadenziario([
+        SimpleNamespace(id="S9", data_scadenza="2027-04-29", note=note, stato=SimpleNamespace(value="BOZZA"),
+                        id_fascicolo="F1", titolo="Impugnazione sentenza - termine lungo - RG 1/2026"),
+        _scadenza("S8", "2026-12-01", "PEC_TERMINE_PROPOSTO:msg2:LAV_415_NOTIFICA"),
+    ])
+    termine = termine_lungo_del_fascicolo("F1", scadenziario)
+    assert termine["date"] == "2027-04-29" and termine["href"] == "/scadenziario/S9"
+    assert termine["label"].endswith("(art. 327 c.p.c.)")

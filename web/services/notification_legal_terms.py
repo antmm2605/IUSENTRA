@@ -17,6 +17,15 @@ from typing import Any
 from urllib.parse import quote
 
 MARCATORE = "SENTENZA_327:"
+# Stesso termine proposto dalla PEC di cancelleria che comunica il deposito della sentenza
+# (`pct.pec_provvedimento_terms`, codice CIV_APPELLO_LUNGO): senza questo il presidio scriveva «Nessun termine
+# espresso» accanto a sentenze con il termine lungo già in scadenziario (verifica a vista del 01/11/2026).
+MARCATORE_PEC = "PEC_TERMINE_PROPOSTO:"
+CODICE_PEC_LUNGO = ":CIV_APPELLO_LUNGO"
+
+
+def _e_termine_lungo(note: str) -> bool:
+    return MARCATORE in note or any(MARCATORE_PEC in riga and riga.rstrip().endswith(CODICE_PEC_LUNGO) for riga in note.splitlines())
 
 
 def _valore(oggetto: Any, nome: str) -> str:
@@ -32,14 +41,18 @@ def termine_lungo_del_fascicolo(fascicolo_id: str, scadenziario: Any) -> dict[st
         scadenze = scadenziario.tutte(solo_aperte=False, id_fascicolo=fascicolo_id)
     except Exception:
         return None
-    candidati = [s for s in scadenze if MARCATORE in _valore(s, "note") and _valore(s, "stato").upper() not in {"COMPLETATO", "ANNULLATO"}]
+    candidati = [s for s in scadenze if _e_termine_lungo(_valore(s, "note")) and _valore(s, "stato").upper() not in {"COMPLETATO", "ANNULLATO"}]
     if not candidati:
         return None
     scelta = min(candidati, key=lambda s: _valore(s, "data_scadenza"))
+    # Il titolo della scadenza porta già impugnazione e norma della giurisdizione (c.p.c., c.p.a., D.Lgs. 546/1992);
+    # quello proposto dalla PEC non ha la norma, che si aggiunge.
+    titolo = _valore(scelta, "titolo") or "Termine lungo per impugnare"
+    if "art." not in titolo:
+        titolo = f"{titolo} (art. 327 c.p.c.)"
     return {
         "date": _valore(scelta, "data_scadenza")[:10],
-        # Il titolo della scadenza porta già impugnazione e norma della giurisdizione (c.p.c., c.p.a., D.Lgs. 546/1992).
-        "label": _valore(scelta, "titolo") or "Termine lungo per impugnare",
+        "label": titolo,
         "state": "bozza da confermare" if _valore(scelta, "stato").upper() == "BOZZA" else "in scadenziario",
         "note": "Notificando la sentenza decorre per la controparte il termine breve dalla notifica.",
         "href": f"/scadenziario/{quote(_valore(scelta, 'id'), safe='')}",

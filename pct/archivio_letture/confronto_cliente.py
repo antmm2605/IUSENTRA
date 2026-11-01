@@ -42,8 +42,12 @@ def _e_ente(nome: str) -> bool:
 
 def nome_confrontabile(nome_letto: Any, nome_anagrafica: Any) -> bool:
     """Il nome letto è quello di una persona e il cliente è una persona: il confronto ha senso."""
+    # Cifre o parole di una lettera non sono un nome: «Int.3 P.2» è l'interno e il piano dell'indirizzo letto
+    # accanto alla parte (verifica a vista del 01/11/2026).
+    if re.search(r"\d", str(nome_letto or "")):
+        return False
     parole = [p for p in semplice(nome_letto).split() if p not in _TITOLI]
-    if not 2 <= len(parole) <= 5:
+    if not 2 <= len(parole) <= 5 or any(len(p) < 2 for p in parole):
         return False
     return not (_e_ente(str(nome_letto or "")) and not _e_ente(str(nome_anagrafica or "")))
 

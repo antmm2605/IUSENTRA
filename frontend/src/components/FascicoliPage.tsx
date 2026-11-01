@@ -2121,7 +2121,7 @@ function CatalogazioneDocumentalePanel({
     }
   }
 
-  if (!enabled) return <p className="iu-empty">Apri la sezione documenti per vedere l'elenco dei documenti del fascicolo.</p>
+  if (!enabled) return <p className="iu-empty">L’elenco dei documenti compare appena il caricamento è concluso.</p>
   const summary = payload?.summary
   return (
     <section id="catalogazione-documentale" className={`iu-fas-catalog ${catalogOpen ? 'is-expanded' : 'is-collapsed'}`} aria-label="Catalogazione documentale del fascicolo">

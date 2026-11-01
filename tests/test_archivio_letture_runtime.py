@@ -682,3 +682,34 @@ def test_la_riga_del_motore_pec_conta_pec_e_allegati_letti(tmp_path: Path):
     runtime._segna_riga_pec(registro, "studio", "F-PEC", impronta="x")
     riga = next(r for r in registro.righe_fascicoli("studio", lettore=runtime.LETTORE_PEC) if r["fascicolo_id"] == "F-PEC")
     assert (riga["oggetti_totali"], riga["oggetti_letti"], riga["stato"]) == (2, 1, "parziale")
+
+
+def test_il_giro_automatico_parte_dai_fascicoli_esaminati_da_piu_tempo(tmp_path: Path, monkeypatch):
+    """01/11/2026: con l'ordine fisso per codice il tetto si esauriva sui primi fascicoli e gli altri restavano fermi."""
+    from types import SimpleNamespace
+
+    from pct.registro_letture import RegistroLetture
+    from web.services import archivio_letture_runtime as runtime
+
+    app = _app(tmp_path)
+    registro = RegistroLetture(tmp_path / "registro-rotazione.db")
+    for fid in ("A1", "B2"):
+        registro.segna_fascicolo("studio", fid, runtime.LETTORE_DOCUMENTI, impronta="x", oggetti_totali=1, oggetti_letti=1)
+    with registro.connection() as conn:  # A1 esaminato più di recente di B2
+        conn.execute("UPDATE letture_fascicoli SET aggiornato_il = '2026-11-01T10:00:00' WHERE fascicolo_id = 'A1'")
+        conn.execute("UPDATE letture_fascicoli SET aggiornato_il = '2026-09-17T15:03:00' WHERE fascicolo_id = 'B2'")
+    fascicoli = [SimpleNamespace(id=fid, stato="DEFINITO") for fid in ("A1", "B2", "C3")]
+    monkeypatch.setattr("web.helpers.get_fascicoli", lambda: SimpleNamespace(tutti=lambda archiviati=True: list(fascicoli)))
+    monkeypatch.setattr(runtime, "registro_corrente", lambda: registro)
+    monkeypatch.setattr(runtime, "tenant_corrente", lambda: "studio")
+    ordine = []
+
+    def leggi(fascicolo, **_k):
+        ordine.append(fascicolo.id)
+        return {"documenti": {"letti": 1}, "pec": {}, "promossi": 0, "restano": 0}
+
+    monkeypatch.setattr(runtime, "leggi_fascicolo", leggi)
+    monkeypatch.setattr(runtime, "_sveglia_lettura_sentenze", lambda report: None)
+    with app.app_context():
+        runtime.lettura_automatica_corrente(limite_oggetti=2)
+    assert ordine == ["C3", "B2"]  # prima il mai letto, poi il più vecchio; A1 aspetta il giro dopo

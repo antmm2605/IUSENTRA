@@ -1523,8 +1523,19 @@ def lettura_automatica_corrente(*, limite_oggetti: int = 150, usa_marker_schedul
     fascicoli = list(get_fascicoli().tutti(archiviati=True))
     report = {"fascicoli": len(fascicoli), "esaminati": 0, "documenti_letti": 0, "pec_lette": 0, "fatti": 0, "verificati": 0, "promossi": 0, "senza_testo": 0, "restano": 0, "saltati": 0}
     residuo = max(1, int(limite_oggetti))
-    # Prima i fascicoli aperti, poi gli archiviati.
-    fascicoli.sort(key=lambda f: (1 if _testo(getattr(getattr(f, "stato", ""), "value", getattr(f, "stato", ""))).upper() == "ARCHIVIATO" else 0, _testo(getattr(f, "id", ""))))
+    # Prima i fascicoli aperti, poi gli archiviati; dentro ciascun gruppo prima i mai letti e poi quelli
+    # esaminati da più tempo. Con l'ordine fisso per codice il tetto di oggetti si esauriva sempre sui primi
+    # fascicoli e quelli in fondo all'elenco non venivano mai raggiunti (verifica del 01/11/2026: fascicolo
+    # fermo al 17/09/2026). Ogni giro aggiorna la riga del fascicolo, quindi l'elenco ruota da solo.
+    try:
+        ultimo_giro = {_testo(r.get("fascicolo_id")): _testo(r.get("aggiornato_il")) for r in registro.righe_fascicoli(tenant_corrente(), lettore=LETTORE_DOCUMENTI)}
+    except Exception:
+        ultimo_giro = {}
+    fascicoli.sort(key=lambda f: (
+        1 if _testo(getattr(getattr(f, "stato", ""), "value", getattr(f, "stato", ""))).upper() == "ARCHIVIATO" else 0,
+        ultimo_giro.get(_testo(getattr(f, "id", "")), ""),
+        _testo(getattr(f, "id", "")),
+    ))
     for fascicolo in fascicoli:
         if residuo <= 0:
             report["restano"] += 1

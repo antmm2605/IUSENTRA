@@ -189,3 +189,27 @@ def test_proiezione_riusa_transazione_sotto_spill_sqlite(tmp_path):
             assert writer.execute('SELECT COUNT(*) FROM receipt_archive_query_rows').fetchone()[0] == 0
     finally:
         registry.close()
+
+
+def test_consegne_fallite_per_blocco_temporaneo_si_riarmano_nella_preparazione(registry, monkeypatch, tmp_path):
+    # Deploy del 01/11/2026: consegne FAILED per «database is locked» fermavano ogni preparazione.
+    from web.services.receipt_archive_runtime import prepare_archive_receipts
+
+    put(registry, 'one')
+    prepare(registry)
+    monkeypatch.setattr('scripts.query_index_backup.verified_backup',
+                        lambda *_: (tmp_path / 'controlled-snapshot', 'a' * 64))
+    with connessione_registro(registry) as conn:
+        conn.execute("UPDATE letture_oggetti SET nome='Ricevuta aggiornata' WHERE tenant_id='study-a'")
+        conn.execute("UPDATE transactional_outbox SET status='FAILED',attempts=5,"
+                     "available_at='2999-01-01T00:00:00+00:00' WHERE tenant_id='study-a' AND aggregate_type=?",
+                     (AGGREGATE,))
+        conn.commit()
+        assert conn.execute("SELECT COUNT(*) FROM transactional_outbox WHERE tenant_id='study-a' "
+                            "AND aggregate_type=? AND status='FAILED'", (AGGREGATE,)).fetchone()[0] >= 1
+    result = prepare_archive_receipts(registry, 'study-a', tmp_path / 'backup', max_batches=3)
+    assert result['phase'] == 'COMPLETED'
+    with connessione_registro(registry) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM transactional_outbox WHERE tenant_id='study-a' "
+                            "AND aggregate_type=? AND status IN ('PENDING','FAILED')", (AGGREGATE,)).fetchone()[0] == 0
+        assert ReceiptArchiveQuery(conn, 'study-a').list_page()['rows'][0]['title'] == 'Ricevuta aggiornata'

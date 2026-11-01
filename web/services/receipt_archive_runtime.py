@@ -25,6 +25,16 @@ def resume_archive_owner(registry, tenant, *, limit=50):
         return dict(result, not_migrated=0)
 
 
+def _riarma_consegne(registry, tenant):
+    from datetime import UTC, datetime
+
+    with registry_outbox_writer(registry) as conn:
+        conn.execute("UPDATE transactional_outbox SET status='PENDING',attempts=0,available_at=? "
+                     "WHERE tenant_id=? AND aggregate_type=? AND event_type=? AND status IN ('PENDING','FAILED')",
+                     (datetime.now(UTC).isoformat(), tenant, AGGREGATE, EVENT))
+        conn.commit()
+
+
 def prepare_archive_receipts(registry, tenant, destination, *, max_batches=100):
     from scripts.query_index_backup import verified_backup
 
@@ -59,6 +69,11 @@ def prepare_archive_receipts(registry, tenant, destination, *, max_batches=100):
             conn.commit()
     if not complete:
         raise RuntimeError('Preparazione ricevute non terminata: cursore conservato per la ripresa.')
+    # Le consegne fallite per un blocco temporaneo del registro (verifica del 01/11/2026: «database is locked»
+    # durante il recupero delle letture) restavano FAILED o rimandate e fermavano ogni deploy, perché la
+    # preparazione le contava ma non le ritentava. Dopo il backup verificato si rimettono in coda: la
+    # proiezione ricalcola il fascicolo ed è ripetibile senza effetti doppi.
+    _riarma_consegne(registry, tenant)
     # La preparazione può generare più di un lotto di eventi. Non dichiarare
     # concluso il catalogo lasciando consegne pendenti o rimandate dal retry.
     for _ in range(max_batches):

@@ -35,8 +35,11 @@ def verifica_biblioteca_schede(db: Path) -> dict:
             "scritture": False, "approvazioni_automatiche": False}
 
 
-def verifica_biblioteca_semantica(db: Path, motore_classe) -> dict:
+def verifica_biblioteca_semantica(db: Path, motore_classe, *, tentativi: int = 4, pausa: float = 20.0, attesa=None) -> dict:
     """Prova ricerca semantica reale e copertura, senza confondere FTS e vettori."""
+    import time
+
+    attesa = attesa or time.sleep
     motore = motore_classe(db)
     stato = motore.stato()
     if not stato.get("semantica_attiva"):
@@ -45,10 +48,19 @@ def verifica_biblioteca_semantica(db: Path, motore_classe) -> dict:
         chunk = int(conn.execute("SELECT COUNT(*) FROM normative_chunks").fetchone()[0])
     if not chunk or stato.get("righe_vettori") != chunk:
         raise ValueError("Indice vettoriale e chunk della biblioteca non coincidono")
-    if not motore.riscalda(timeout=120):
-        raise ValueError("Modello di embedding della biblioteca non raggiungibile")
-    risultati = motore.cerca("responsabilita civile per danni ingiusti", limite=5, modalita="semantica")
-    if not any(r.get("ricerca", {}).get("rango_semantico", 0) > 0 for r in risultati):
+    # Subito dopo il deploy Ollama può essere occupato dal modello di Lex appena verificato: la
+    # ricerca semantica usa un limite breve (4 s). Si riprova dopo un nuovo riscaldamento, senza
+    # abbassare il requisito: servono candidati con rango semantico reale (deploy del 01/11/2026).
+    risultati: list = []
+    for tentativo in range(tentativi):
+        if not motore.riscalda(timeout=120):
+            raise ValueError("Modello di embedding della biblioteca non raggiungibile")
+        risultati = motore.cerca("responsabilita civile per danni ingiusti", limite=5, modalita="semantica")
+        if any(r.get("ricerca", {}).get("rango_semantico", 0) > 0 for r in risultati):
+            break
+        if tentativo + 1 < tentativi:
+            attesa(pausa)
+    else:
         raise ValueError("La ricerca della biblioteca non ha prodotto candidati semantici")
     finale = motore.stato()
     if not finale.get("semantica_attiva"):

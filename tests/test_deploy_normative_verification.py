@@ -53,7 +53,7 @@ def test_deploy_blocca_semantica_assente_o_non_realmente_usata(tmp_path, failure
             return [{"ricerca": {"rango_semantico": 0 if failure == "solo_lessicale" else 1}}]
 
     with pytest.raises(ValueError):
-        verification.verifica_biblioteca_semantica(db, FakeEngine)
+        verification.verifica_biblioteca_semantica(db, FakeEngine, attesa=lambda secondi: None)
 
 
 def test_deploy_accetta_solo_candidati_effettivamente_semantici(tmp_path):
@@ -71,3 +71,26 @@ def test_deploy_accetta_solo_candidati_effettivamente_semantici(tmp_path):
 
     report = verification.verifica_biblioteca_semantica(db, FakeEngine)
     assert report == {"chunk": 1, "vettori": 1, "modello": "embeddinggemma:300m", "candidati_semantici": 1}
+
+
+def test_deploy_riprova_la_ricerca_semantica_se_ollama_e_occupato(tmp_path):
+    """Dopo il deploy il primo tentativo può scadere (Ollama impegnato dal modello di Lex): si riprova."""
+    import sqlite3
+    db = tmp_path / "codici_leggi.sqlite"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE normative_chunks(id INTEGER PRIMARY KEY)")
+        conn.execute("INSERT INTO normative_chunks VALUES(1)")
+    chiamate = []
+
+    class FakeEngine:
+        def __init__(self, path): pass
+        def stato(self): return {"semantica_attiva": True, "righe_vettori": 1, "modello": "embeddinggemma:300m"}
+        def riscalda(self, timeout): return True
+        def cerca(self, query, *, limite, modalita):
+            chiamate.append(1)
+            return [{"ricerca": {"rango_semantico": 1 if len(chiamate) >= 2 else 0}}]
+
+    pause = []
+    report = verification.verifica_biblioteca_semantica(db, FakeEngine, attesa=pause.append)
+    assert report["candidati_semantici"] == 1 and len(chiamate) == 2 and pause == [20.0]
+

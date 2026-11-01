@@ -6568,12 +6568,20 @@ def _deadline_rows_from_scadenze(
     resolved_matter_ids: dict[str, str] | None = None,
     include_overdue: bool = True,
 ) -> list[dict[str, Any]]:
-    today = date.today()
+    from pct.ora_italiana import oggi_roma
+    from pct.scadenze_stato import esito_udienza_da_registrare
+
+    today = oggi_roma()
     horizon = today + timedelta(days=days)
     out: list[dict[str, Any]] = []
     for scadenza in scadenze:
         due = _parse_date(getattr(scadenza, "data_scadenza", "") or getattr(scadenza, "data", ""))
         if not due or due > horizon or (not include_overdue and due < today):
+            continue
+        # Un'udienza passata non è una scadenza scaduta ma un esito da registrare (V28; artt. 126 e 127-ter
+        # c.p.c.): la pagina Fascicoli contava «9 scadute» dove Scadenziario e Controllo Studio ne contano 3
+        # (verifica a vista del 01/11/2026).
+        if due < today and esito_udienza_da_registrare(scadenza, today):
             continue
         fid = _resolved_scadenza_fascicolo_id(scadenza, resolved_matter_ids)
         matter = items_by_id.get(fid, {})
@@ -6978,7 +6986,9 @@ def build_react_fascicoli_payload(
             include_overdue=False,
         )
         _conta_tempo_fase("scadenze_elenco", round(1000 * (time.monotonic() - inizio_scadenze)))
-        today = date.today()
+        from pct.ora_italiana import oggi_roma
+
+        today = oggi_roma()
         base = {
             "items": sorted_items,
             "lightItems": light_items,

@@ -1705,3 +1705,17 @@ def test_elenco_legge_importi_ed_esenzioni_in_una_sola_interrogazione(tmp_path, 
     assert con_precarico == senza_precarico
     assert "518" in str(con_precarico[creati[0].id])
     assert "esenzione" in str(con_precarico[creati[1].id]).lower()
+
+
+def test_udienza_passata_non_e_scadenza_scaduta_nella_pagina_fascicoli():
+    """V28 anche nella pagina Fascicoli: un'udienza passata è un esito da registrare (verifica del 01/11/2026)."""
+    from types import SimpleNamespace
+
+    from pct.ora_italiana import oggi_roma
+    from web.services.react_fascicoli_bridge import _deadline_rows_from_scadenze
+
+    ieri = (oggi_roma() - timedelta(days=3)).isoformat()
+    udienza = SimpleNamespace(id="U1", data_scadenza=ieri, titolo="Udienza", stato="APERTO", tipo=SimpleNamespace(value="UDIENZA"), id_fascicolo="F1")
+    termine = SimpleNamespace(id="T1", data_scadenza=ieri, titolo="Note scritte", stato="APERTO", tipo=SimpleNamespace(value="DEPOSITO"), id_fascicolo="F1")
+    righe = _deadline_rows_from_scadenze([udienza, termine], {"F1": {"ref": "2026/1"}}, days=7, include_overdue=True)
+    assert [riga["id"] for riga in righe] == ["T1"]

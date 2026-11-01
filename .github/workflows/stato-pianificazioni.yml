@@ -46,7 +46,10 @@ jobs:
           grep -m1 '^STATO_PIANIFICAZIONI_JSON:' uscita.txt | sed 's/^STATO_PIANIFICAZIONI_JSON://' | jq . > stato.json
           rm -f uscita.txt
           jq -c '.accese, .avviati' stato.json
-          jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), (.ultima.errore // "")] | @tsv' stato.json
+          jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), ((.ultima.durata_s // 0)|tostring) + " s", (.ultime_48h|tostring), (.ultima.errore // "")] | @tsv' stato.json
+          # Consumo del server: carico, memoria, disco e risorse di ogni container (nessun dato del cliente).
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
+            'echo "== carico"; uptime; nproc; echo "== memoria"; free -m; echo "== disco"; df -h /opt/iusentra | tail -1; echo "== container"; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"; echo "== processi più pesanti"; ps -eo pcpu,pmem,etime,comm --sort=-pcpu | head -12'
       - uses: actions/upload-artifact@v7
         with:
           name: stato-pianificazioni

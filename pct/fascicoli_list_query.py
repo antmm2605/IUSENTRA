@@ -174,14 +174,28 @@ def install_registry_events(conn, *, tenant, postgres=False):
                 '(OLD.tenant_id=NEW.tenant_id AND OLD.fascicolo_id=NEW.fascicolo_id),FALSE)', postgres=postgres)
 
 
-def assert_registry_ready(conn, tenant):
+def registry_pending_cases(conn, tenant, *, limit=2000):
+    """I fascicoli con un aggiornamento puntuale del catalogo non ancora confermato (in attesa o fallito)."""
+    rows = conn.execute('SELECT DISTINCT aggregate_id FROM transactional_outbox WHERE tenant_id=? AND aggregate_type=? '
+        "AND event_type=? AND status IN ('PENDING','FAILED') LIMIT ?", (tenant, AGGREGATE, EVENT_TYPE, int(limit))).fetchall()
+    return {str(row[0]).removeprefix('case:') for row in rows}
+
+
+def assert_registry_ready(conn, tenant, *, in_corso_ammessi=False):
+    """Registro delle fonti preparato per lo studio; restituisce i fascicoli ancora in aggiornamento.
+
+    Con ``in_corso_ammessi`` gli aggiornamenti puntuali in corso non fermano la consultazione: la lettura
+    automatica scrive di continuo nel registro e bloccare l'intero elenco per una sola riga in sospeso
+    lasciava l'avvocato senza fascicoli (01/11/2026). Le righe in aggiornamento sono restituite e
+    dichiarate nella pagina; un registro non preparato resta un errore.
+    """
     owner = conn.execute('SELECT tenant_key,version FROM fascicoli_list_registry_owner WHERE tenant_key=?', (tenant,)).fetchone()
     if owner is None or owner[0] != tenant or owner[1] != VERSION:
         raise FascicoliListNotReady('Registro delle fonti non preparato per il catalogo dello studio.')
-    pending = conn.execute('SELECT 1 FROM transactional_outbox WHERE tenant_id=? AND aggregate_type=? '
-        "AND event_type=? AND status IN ('PENDING','FAILED') LIMIT 1", (tenant, AGGREGATE, EVENT_TYPE)).fetchone()
-    if pending is not None:
+    pending = registry_pending_cases(conn, tenant)
+    if pending and not in_corso_ammessi:
         raise FascicoliListNotReady('Nuove fonti del fascicolo: aggiornamento puntuale non ancora confermato.')
+    return pending
 
 
 class FascicoliListNotReady(RuntimeError):

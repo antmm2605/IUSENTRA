@@ -362,6 +362,8 @@ export type FascicoliFilterPreferencesResult = {
 export type FascicoliPageData = {
   source: string
   generatedAt: string
+  /** Fascicoli con un aggiornamento puntuale ancora in corso: mostrati, non nascosti. */
+  refreshPending?: { count: number; onPage: number }
   contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   summary: FascicoliSummary
   cardSummary: FascicoliSummary
@@ -2007,6 +2009,9 @@ function normalizePagePayload(payload: unknown): FascicoliPageData {
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at, ''),
+    refreshPending: isRecord(payload.refreshPending)
+      ? { count: number(payload.refreshPending.count) || 0, onPage: number(payload.refreshPending.onPage) || 0 }
+      : undefined,
     contracts: isRecord(payload.contracts) ? {
       mock_fallback: bool(payload.contracts.mock_fallback),
       read_only: payload.contracts.read_only !== false,
@@ -3093,7 +3098,16 @@ async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fa
   return fallback
 }
 
-async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T): Promise<T> {
+/** Dopo un riavvio il catalogo dei fascicoli si riallinea per qualche decina di secondi (503 «not_ready»):
+ *  si attende fino a circa un minuto invece di arrendersi dopo meno di un secondo (01/11/2026). */
+export const NOT_READY_DELAYS_MS = [2000, 3000, 5000, 8000, 10000, 15000, 15000]
+
+function isNotReady(status: number, payload: unknown): boolean {
+  return status === 503 && isRecord(payload) && text(payload.code).endsWith('not_ready')
+}
+
+async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T, wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => globalThis.setTimeout(resolve, ms))): Promise<T> {
+  let notReadyAttempts = 0
   for (let attempt = 0; attempt < 3; attempt += 1) {
     let response: Response
     try {
@@ -3106,6 +3120,12 @@ async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T):
     if (response.ok) return normalizer(await response.json())
     const errorPayload = await response.json().catch(() => ({}))
     const serverMessage = isRecord(errorPayload) ? text(errorPayload.message ?? errorPayload.messaggio ?? errorPayload.errore ?? errorPayload.error) : ''
+    if (isNotReady(response.status, errorPayload) && notReadyAttempts < NOT_READY_DELAYS_MS.length) {
+      await wait(NOT_READY_DELAYS_MS[notReadyAttempts])
+      notReadyAttempts += 1
+      attempt -= 1
+      continue
+    }
     if (!transientFetchStatuses.has(response.status) || attempt === 2) {
       throw new Error(serverMessage || `Dati non caricati dal server (${response.status}).`)
     }
@@ -3113,6 +3133,8 @@ async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T):
   }
   throw new Error('Dati non caricati dal server.')
 }
+
+export const strictFetchForTest = strictFetch
 
 function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
   const query = new URLSearchParams()

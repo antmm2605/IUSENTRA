@@ -24,7 +24,7 @@ def catalog_exists(conn, table, *, postgres=False):
     return conn.execute(sql, (table,)).fetchone() is not None
 
 
-def registry_ready(tenant):
+def registry_ready(tenant, *, in_corso_ammessi=False):
     try:
         registry = registro_corrente(sola_lettura=True)
     except FileNotFoundError as exc:
@@ -32,7 +32,7 @@ def registry_ready(tenant):
     with connessione_registro(registry) as conn:
         if not catalog_exists(conn, 'fascicoli_list_registry_owner', postgres=registry.backend_kind == 'postgres'):
             raise FascicoliListNotReady('Catalogo delle fonti non preparato: recupero governato necessario.')
-        assert_registry_ready(conn, tenant)
+        return assert_registry_ready(conn, tenant, in_corso_ammessi=in_corso_ammessi)
 
 
 def native_list_repository(database, anchor):
@@ -116,7 +116,7 @@ def build_fascicoli_list_request(**params):
     tenant = document_ai_tenant_id()
     with request_studio_reader(anchor) as database:
         postgres = getattr(database, 'backend_kind', '') == 'postgresql'
-        registry_ready(tenant)
+        in_aggiornamento = set(registry_ready(tenant, in_corso_ammessi=True))
         repository = FascicoliListQuery(database, tenant)
         with catalog_snapshot(database):
             if not catalog_exists(database.conn, 'fascicoli_list_owner', postgres=postgres):
@@ -124,5 +124,15 @@ def build_fascicoli_list_request(**params):
             payload = build_sql_list_payload(repository,
                 enrich_economic=lambda items: enrich_economic_page(database, tenant, anchor, items), **params)
         repository._ready()
-        registry_ready(tenant)
-        return payload
+        in_aggiornamento |= set(registry_ready(tenant, in_corso_ammessi=True))
+        return segna_in_aggiornamento(payload, in_aggiornamento)
+
+
+def segna_in_aggiornamento(payload, in_aggiornamento):
+    """Le righe con un aggiornamento puntuale ancora in corso sono dichiarate, non nascoste."""
+    for item in payload.get('items') or []:
+        if isinstance(item, dict) and str(item.get('id') or '') in in_aggiornamento:
+            item['refreshPending'] = True
+    payload['refreshPending'] = {'count': len(in_aggiornamento),
+                                 'onPage': sum(1 for item in payload.get('items') or [] if isinstance(item, dict) and item.get('refreshPending'))}
+    return payload

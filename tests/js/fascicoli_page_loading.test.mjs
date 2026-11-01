@@ -76,3 +76,23 @@ test('la sottoscrizione archivio non certifica quella mancante nell’elenco pri
  assert.doesNotMatch(listFunctionSource(source),/useOperationalRefresh/)
  assert.throws(()=>listFunctionSource('function ArchivePage(){return null}'),/elenco principale/)
 })
+test('catalogo in riallineamento dopo un riavvio: si attende invece di lasciare l’elenco vuoto',async()=>{
+ const {strictFetchForTest,NOT_READY_DELAYS_MS}=await import('../../frontend/src/fascicoliData.ts')
+ let chiamate=0
+ globalThis.fetch=async()=>{chiamate+=1
+  return chiamate<4
+   ?{ok:false,status:503,json:async()=>({ok:false,code:'fascicoli_catalog_not_ready',message:'Aggiornamento dei fascicoli in corso. Riprova tra poco.'})}
+   :{ok:true,status:200,json:async()=>({ok:true})}}
+ const attese=[]
+ const esito=await strictFetchForTest('/api/v1/ui/fascicoli',p=>p,async ms=>{attese.push(ms)})
+ assert.deepEqual(esito,{ok:true})
+ assert.equal(chiamate,4)
+ assert.deepEqual(attese,NOT_READY_DELAYS_MS.slice(0,3))
+})
+test('catalogo mai pronto: dopo l’attesa massima il messaggio del server arriva all’avvocato',async()=>{
+ const {strictFetchForTest,NOT_READY_DELAYS_MS}=await import('../../frontend/src/fascicoliData.ts')
+ globalThis.fetch=async()=>({ok:false,status:503,json:async()=>({code:'fascicoli_catalog_not_ready',message:'Aggiornamento dei fascicoli in corso. Riprova tra poco.'})})
+ const attese=[]
+ await assert.rejects(strictFetchForTest('/x',p=>p,async ms=>{attese.push(ms)}),/Aggiornamento dei fascicoli in corso/)
+ assert.equal(attese.filter(ms=>NOT_READY_DELAYS_MS.includes(ms)).length>=NOT_READY_DELAYS_MS.length,true)
+})

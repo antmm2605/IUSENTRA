@@ -96,7 +96,7 @@ def prepare_catalog(database, *, tenant, anchor, destination, limit=100, max_bat
             from web.services.fascicoli_list_runtime import registry_ready
             from pct.fascicoli_list_query import FascicoliListQuery
             FascicoliListQuery(database, tenant)._ready()
-            registry_ready(tenant)
+            registry_ready(tenant, in_corso_ammessi=True)
             return dict(phase='COMPLETED', prepared=False)
     proof_path, proof_digest = _backup_pair(database, registry, native, tenant, destination)
     try:
@@ -131,7 +131,7 @@ def prepare_catalog(database, *, tenant, anchor, destination, limit=100, max_bat
                     break
             writer.repository._ready()
             from web.services.fascicoli_list_runtime import registry_ready
-            registry_ready(tenant)
+            registry_ready(tenant, in_corso_ammessi=True)
         return dict(migration_id=state['id'], phase=state['phase'], prepared=True,
                     processed_this_run=processed, backup_sha256=proof_digest)
     except Exception:

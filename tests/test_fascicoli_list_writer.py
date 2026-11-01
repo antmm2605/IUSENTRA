@@ -32,6 +32,8 @@ def test_registro_condiviso_aggiorna_solo_studi_registrati(snapshot_registry):
     with connessione_registro(registry) as conn:
         with pytest.raises(FascicoliListNotReady):
             assert_registry_ready(conn, 'studio')
+        # La consultazione non si ferma: le righe in aggiornamento sono restituite e dichiarate.
+        assert assert_registry_ready(conn, 'studio', in_corso_ammessi=True) == {'F1'}
         assert_registry_ready(conn, 'secondo')
         owners = {row[0] for row in conn.execute('SELECT DISTINCT tenant_id FROM transactional_outbox').fetchall()}
         assert owners == {'studio'}
@@ -121,3 +123,11 @@ def test_scadenza_cambia_fascicolo_senza_leggere_pratiche_estranee(catalog, snap
         matching = actual == expected
         assert matching, [key for key in actual if actual[key] != expected.get(key)]
         assert calls == []
+
+
+def test_elenco_dichiara_le_righe_in_aggiornamento_senza_nasconderle():
+    from web.services.fascicoli_list_runtime import segna_in_aggiornamento
+    payload = segna_in_aggiornamento({'items': [{'id': 'F1'}, {'id': 'F2'}]}, {'F2', 'F9'})
+    assert [item.get('refreshPending', False) for item in payload['items']] == [False, True]
+    assert payload['refreshPending'] == {'count': 2, 'onPage': 1}
+

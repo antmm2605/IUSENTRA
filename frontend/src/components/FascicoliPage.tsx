@@ -4095,6 +4095,9 @@ function FascicoliListPage() {
 
       <section className="iu-fas-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione fascicoli...' : 'Dati aggiornati'}</span>
+        {!loading && data.refreshPending?.count ? (
+          <small role="status">{data.refreshPending.count === 1 ? '1 fascicolo' : `${data.refreshPending.count} fascicoli`} in aggiornamento dopo nuove letture di documenti o PEC: i loro dati si completano tra pochi secondi.</small>
+        ) : null}
         <small><ShieldCheck size={14}/> Vista operativa aggiornata con salvataggi tracciati e controlli di studio già governati.</small>
         {selectedVisible ? <small className="iu-fas-selected">{selectedVisible} selezionati</small> : null}
       </section>

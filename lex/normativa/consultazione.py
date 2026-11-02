@@ -346,7 +346,8 @@ def catalogo(db: Path) -> list[dict]:
         """, (COLLECTION + '%',))]
 
 
-def articoli(db: Path, *, act: int = 0, query: str = '', article: str = '', category: str = '', offset: int = 0, limit: int = 30, includi_archivio_generale: bool = False) -> dict:
+def articoli(db: Path, *, act: int = 0, query: str = '', article: str = '', category: str = '', offset: int = 0, limit: int = 30, includi_archivio_generale: bool = False, materie: tuple[str, ...] = ()) -> dict:
+    """`materie`: limita la ricerca agli atti della biblioteca di quelle materie (pannello Normativa del fascicolo)."""
     offset = max(0, offset)
     limit = min(100, max(1, limit))
     acts = catalogo(db)
@@ -357,8 +358,8 @@ def articoli(db: Path, *, act: int = 0, query: str = '', article: str = '', cate
         if previous and previous[0].startswith(COLLECTION):
             key = previous[0][len(COLLECTION):]
             act = next((r['id'] for r in acts if r['key'] == key), act)
-    ids = [r['id'] for r in acts if (not act or r['id'] == act) and (not category or r['category'] == category)]
-    generale = includi_archivio_generale and not category and bool(query.strip() or article.strip() or act)
+    ids = [r['id'] for r in acts if (not act or r['id'] == act) and (not category or r['category'] == category) and (not materie or r['materia'] in materie)]
+    generale = includi_archivio_generale and not category and not materie and bool(query.strip() or article.strip() or act)
     if generale:
         # Ricerca pubblica paginata: nessuna lista di centinaia di migliaia di
         # documenti inviata al browser o enumerata nella richiesta.

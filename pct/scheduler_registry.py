@@ -2213,6 +2213,9 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
             continue
         existing = scheduler.get_job(job_id)
         manual_job_id = f"manual_{job_id}_{run_id[:8]}"
+        from pct.scheduler_corsie import corsia_del_lavoro
+
+        corsia = corsia_del_lavoro(job_id)
         try:
             if existing and job.get("built_in"):
                 scheduler.add_job(
@@ -2222,6 +2225,7 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
                     id=manual_job_id,
                     replace_existing=True,
                     max_instances=1,
+                    executor=corsia,
                 )
             else:
                 scheduler.add_job(
@@ -2230,6 +2234,7 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
                     id=manual_job_id,
                     replace_existing=True,
                     max_instances=1,
+                    executor=corsia,
                 )
             dispatched += 1
         except Exception as exc:

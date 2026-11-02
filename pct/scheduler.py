@@ -228,8 +228,12 @@ def start_scheduler(app):
     # lasciando lo studio senza PEC lavorate senza che nulla sembrasse rotto.
     # Cinque minuti di tolleranza fanno recuperare il giro; max_instances=1 e
     # coalesce evitano che i giri arretrati si accumulino e saturino la CPU.
+    # Un lavoro alla volta per corsia (pct/scheduler_corsie.py): prima erano dieci thread condivisi.
+    from pct.scheduler_corsie import esecutori
+
     scheduler = BackgroundScheduler(
         timezone="Europe/Rome",
+        executors=esecutori(),
         job_defaults={"misfire_grace_time": 300, "coalesce": True, "max_instances": 1},
     )
     # Il cron mattutino, il recupero post-avvio e il primo giro incrementale
@@ -1799,6 +1803,21 @@ def start_scheduler(app):
             "0", "false", "off", "no", ""
         }
 
+    def _daily_plan_recovery_first_attempt_today() -> bool:
+        """Al massimo un recupero post-avvio al giorno (pct/scheduler_recupero_piano.py)."""
+        if registry_repo is None:
+            return True
+        from pct.scheduler_recupero_piano import annota_tentativo, recupero_gia_tentato
+
+        cartella = Path(registry_repo.db_path).parent
+        oggi = _scheduler_rome_now(app).date()
+        if recupero_gia_tentato(cartella, oggi):
+            logger.warning(
+                "[scheduler] Piano del giorno: recupero dopo il riavvio già tentato oggi, non si ripete."
+            )
+            return False
+        return annota_tentativo(cartella, oggi)
+
     def _daily_plan_registry_recovery_enabled() -> bool:
         try:
             job = registry_repo.get_job("studio_daily_operational_plan") if registry_repo else None
@@ -2846,6 +2865,12 @@ def start_scheduler(app):
     except Exception as exc:
         logger.warning("[scheduler] Registro pianificazioni non disponibile: %s", exc)
 
+    try:
+        from pct.scheduler_corsie import assegna_corsie
+
+        logger.info("[scheduler] Corsie dei lavori: %s", assegna_corsie(scheduler))
+    except Exception as exc:
+        logger.error("[scheduler] Corsie dei lavori non assegnate: %s", exc)
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler
@@ -2854,6 +2879,7 @@ def start_scheduler(app):
         and _daily_plan_enabled()
         and _daily_plan_scheduled_runs_enabled()
         and _daily_plan_registry_recovery_enabled()
+        and _daily_plan_recovery_first_attempt_today()
     ):
         try:
             scheduler.add_job(

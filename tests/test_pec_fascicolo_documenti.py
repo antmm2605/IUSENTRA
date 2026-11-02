@@ -118,7 +118,7 @@ def test_stessa_pec_due_volte_e_documento_gia_scaricato_non_creano_doppioni(tmp_
 def test_collegamento_proposto_non_salva_nulla_fino_alla_conferma(tmp_path):
     repo, fascicolo = _ambiente(tmp_path)
     message_id = _ingesta(repo, _comunicazione("proposta"), "INBOX:UID:3")
-    _certifica(repo, message_id, fascicolo.id, stato="automatico")  # collegamento non certificato
+    _certifica(repo, message_id, fascicolo.id, stato="proposte")  # collegamento solo proposto
     esito = processa_messaggio(repo, message_id, eventi=lambda *a: None)
     assert esito["stato"] == "in_attesa_conferma" and not _documenti(tmp_path, fascicolo.id)
     assert stato_flusso(repo)["in_attesa_conferma"] == 1
@@ -295,3 +295,13 @@ def test_esito_della_pianificazione_notturna_solo_conteggi(tmp_path):
     # Solo numeri e date tecniche: nessun nome di file, cliente o indirizzo nel testo dell'esito.
     testo = json.dumps([report, stato])
     assert "Decreto" not in testo and "@" not in testo and "Rossi" not in testo
+
+
+def test_collegamento_automatico_del_linker_entra_nel_fascicolo(tmp_path):
+    """Ruolo, cliente e ufficio coincidenti: documenti salvati senza attendere la conferma (richiesta del 02/11/2026)."""
+    repo, fascicolo = _ambiente(tmp_path)
+    message_id = _ingesta(repo, _comunicazione("automatica"), "INBOX:UID:31")
+    _certifica(repo, message_id, fascicolo.id, stato="automatico")
+    esito = processa_messaggio(repo, message_id, eventi=lambda *a: None)
+    assert esito["stato"] == "completato" and esito["salvati"] == 1
+    assert len(_documenti(tmp_path, fascicolo.id)) == 1

@@ -30,7 +30,11 @@ from pct.pec_pipeline import LINK_STATI_CERTIFICATI
 logger = logging.getLogger(__name__)
 
 #: Gli esiti del linker che rendono certo il collegamento PEC → fascicolo.
-STATI_COLLEGAMENTO_CERTI = frozenset(LINK_STATI_CERTIFICATI)
+# «automatico»: il linker ha trovato coincidenti ruolo, cliente e ufficio (pct/pec_pipeline.decidi_collegamento).
+# L'avvocato ha chiesto (02/11/2026) che i documenti delle PEC entrino nel fascicolo in modo del tutto automatico:
+# anche questi collegamenti alimentano il fascicolo, con la provenienza scritta nel documento. Le sole «proposte»
+# (identità incompleta o ambigua) restano in attesa della conferma.
+STATI_COLLEGAMENTO_CERTI = frozenset(LINK_STATI_CERTIFICATI) | {"automatico"}
 
 Eventi = Callable[[str, int, bool], None]
 _SCHEMI_PRONTI: set[str] = set()

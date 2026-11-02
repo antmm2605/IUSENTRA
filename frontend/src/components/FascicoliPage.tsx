@@ -88,6 +88,7 @@ import {
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { ContropartiRegistriField, type ControparteCandidata } from '../features/fascicoli/ContropartiRegistriField'
+import { DocumentoOriginePec } from '../features/fascicoli/DocumentoOriginePec'
 import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import DocumentCapture from './documentCapture/DocumentCapture'
@@ -8157,7 +8158,7 @@ function DocumentRow({ doc, onPreview, onDone, onError, hideCatalogSummary = fal
           </button>
         ) : null}
       </div>
-      <div><strong>{doc.name}</strong><span>{doc.type} · {doc.size || 'dimensione n.d.'} · {doc.documentDate || doc.uploadedAt || 'data n.d.'}</span>{doc.notes ? <p>{doc.notes}</p> : null}{!hideCatalogSummary ? <small className="iu-fas-doc-catalog-state"><Badge tone={catalogMethod.tone}>{catalogMethod.label}</Badge>{catalogMethod.detail}</small> : null}{tags.length ? <em>{tags.join(', ')}</em> : null}</div>
+      <div><strong>{doc.name}</strong><span>{doc.type} · {doc.size || 'dimensione n.d.'} · {doc.documentDate || doc.uploadedAt || 'data n.d.'}</span><DocumentoOriginePec origine={doc.pecOrigin} nome={doc.name}/>{doc.notes ? <p>{doc.notes}</p> : null}{!hideCatalogSummary ? <small className="iu-fas-doc-catalog-state"><Badge tone={catalogMethod.tone}>{catalogMethod.label}</Badge>{catalogMethod.detail}</small> : null}{tags.length ? <em>{tags.join(', ')}</em> : null}</div>
       {renaming ? (
         <form className="iu-fas-doc-rename-form" onSubmit={submitRename}>
           <input value={draftName} onChange={(event) => setDraftName(event.currentTarget.value)} aria-label={`Nuovo nome file ${doc.name}`} />

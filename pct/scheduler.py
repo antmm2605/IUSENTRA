@@ -1772,6 +1772,36 @@ def start_scheduler(app):
                 logger.error("[scheduler] Collaudo del lettore fallito: %s", e)
                 return {"ok": False, "job": "collaudo_lettore", "error": str(e)}
 
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", hour="0-5", minute=50),
+        id="pec_fascicolo_documenti_recupero",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=1800,
+    )
+    def _pec_fascicolo_documenti_recupero():
+        # Corsia lunga, di notte: le PEC già collegate con certezza portano nel fascicolo provvedimenti, atti ed
+        # .eml di prova, a lotti limitati e riprendibili (pct/pec_fascicolo_documenti). Le PEC nuove passano dal
+        # linker del presidio; qui solo l'arretrato e i collegamenti certificati da altre vie.
+        with app.app_context():
+            try:
+                from web.services.pec_fascicolo_documenti_runtime import limite_recupero, recupero_per_studi
+
+                targets, no_target_reason = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("pec_fascicolo_documenti_recupero", no_target_reason)
+                report = recupero_per_studi(targets, limite=limite_recupero(app.config))
+                totali = report.get("totals") or {}
+                logger.info(
+                    "[scheduler] PEC nei fascicoli: %d PEC esaminate, %d documenti e %d .eml salvati, %d in attesa di conferma, %d errori, %d restano",
+                    int(totali.get("esaminati") or 0), int(totali.get("salvati") or 0), int(totali.get("eml_salvati") or 0),
+                    int(totali.get("in_attesa_conferma") or 0), int(totali.get("errori") or 0), int(totali.get("restano") or 0),
+                )
+                return report
+            except Exception as e:
+                logger.error("[scheduler] PEC nei fascicoli fallito: %s", e)
+                return {"ok": False, "job": "pec_fascicolo_documenti_recupero", "error": str(e)}
+
     def _daily_plan_enabled() -> bool:
         try:
             from web.services.feature_flags import is_feature_enabled

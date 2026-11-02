@@ -174,3 +174,14 @@ CAMPIONI: dict[str, tuple[str, str, str]] = {
 from tests.dati_catalogo_titoli_modelli import CAMPIONI_MODELLI  # noqa: E402
 
 CAMPIONI.update(CAMPIONI_MODELLI)
+
+from tests.dati_catalogo_titoli_estesa_fonti_superiori import CAMPIONI as _C1  # noqa: E402
+from tests.dati_catalogo_titoli_estesa_impresa import CAMPIONI as _C2  # noqa: E402
+from tests.dati_catalogo_titoli_estesa_penale import CAMPIONI as _C3  # noqa: E402
+from tests.dati_catalogo_titoli_estesa_persone import CAMPIONI as _C4  # noqa: E402
+from tests.dati_catalogo_titoli_estesa_pubblico import CAMPIONI as _C5  # noqa: E402
+from tests.dati_catalogo_titoli_estesa_settori import CAMPIONI as _C6  # noqa: E402
+from tests.dati_catalogo_titoli_estesa_tributi_lavoro import CAMPIONI as _C7  # noqa: E402
+
+for _campioni in (_C1, _C2, _C3, _C4, _C5, _C6, _C7):
+    CAMPIONI.update(_campioni)

@@ -426,6 +426,35 @@ def _procura_mediazione(d: _Dati, g: random.Random) -> str:
             f"con facoltà di conciliare e transigere.\n{d.citta}, {d.data}\nFirma {'______________' if vuoto else chi}")
 
 
+def _memoria_conclusionale(d: _Dati, g: random.Random) -> str:
+    # Art. 190 c.p.c.: comparse conclusionali e memorie di replica dopo la precisazione delle conclusioni.
+    return (f"TRIBUNALE DI {d.citta.upper()}\nR.G. n. {d.numero}/{d.anno}\n"
+            f"{g.choice(('MEMORIA CONCLUSIONALE', 'Memoria conclusionale', 'MEMORIA CONCLUSIONALE EX ART. 190 C.P.C.'))}\n"
+            f"nell'interesse di {d.parte}, rappresentato e difeso dall'Avv. Studio Prova, contro {d.controparte}.\n"
+            f"Nel termine assegnato ai sensi dell'art. 190 c.p.c. si illustrano le ragioni a sostegno delle conclusioni "
+            f"già precisate.\n{g.choice(_FRASI).format(p=d.parte, n=d.numero, a=d.anno, d=d.data, k=d.pagine)}\n"
+            f"Si insiste per l'accoglimento delle conclusioni rassegnate.\n{d.citta}, {d.data}\nAvv. Studio Prova")
+
+
+def _comunicazione_cancelleria(d: _Dati, g: random.Random) -> str:
+    # Art. 136 c.p.c. e art. 45 disp. att. c.p.c.: biglietto di cancelleria comunicato via PEC (art. 16 D.L. 179/2012).
+    evento = g.choice(("è stato depositato il provvedimento del giudice", "è stata fissata l'udienza del "
+                       f"{g.randint(1, 28):02d}/{g.randint(1, 12):02d}/{d.anno + 1}",
+                       "il giudice ha sciolto la riserva"))
+    return (f"TRIBUNALE DI {d.citta.upper()}\n{g.choice(('COMUNICAZIONE DI CANCELLERIA', 'Comunicazione di cancelleria', 'NOTIFICAZIONE DI CANCELLERIA'))}\n"
+            f"Procedimento n. {d.numero}/{d.anno} R.G. tra {d.parte} e {d.controparte}.\n"
+            f"Si comunica ai sensi dell'art. 136 c.p.c. che nel procedimento indicato {evento}.\n"
+            f"Il Funzionario giudiziario")
+
+
+def _rinvio_ufficio(d: _Dati, g: random.Random) -> str:
+    # Art. 82 disp. att. c.p.c.: rinvio d'ufficio dell'udienza disposto dal giudice fuori udienza.
+    return (f"TRIBUNALE DI {d.citta.upper()}\nR.G. n. {d.numero}/{d.anno}\n"
+            f"Il Giudice, {g.choice(('per esigenze di ruolo', 'per impedimento del magistrato', 'per il carico del ruolo'))}, "
+            f"rinvia d'ufficio la causa all'udienza del {g.randint(1, 28):02d}/{g.randint(1, 12):02d}/{d.anno + 1}, "
+            f"con gli stessi incombenti.\nSi comunichi alle parti.\n{d.citta}, {d.data}\nIl Giudice")
+
+
 MODELLI_CONTENUTO: dict[str, Callable[[_Dati, random.Random], str]] = {
     "Sentenza": _sentenza,
     "Procura alle liti": _procura,
@@ -472,6 +501,9 @@ MODELLI_CONTENUTO: dict[str, Callable[[_Dati, random.Random], str]] = {
     # che il catalogo classifica come la voce attesa.
     "Procura speciale per la mediazione": _procura_mediazione,
     "Modulo di procura speciale per la mediazione": _procura_mediazione,
+    "Comparsa conclusionale": _memoria_conclusionale,
+    "Comunicazione di cancelleria": _comunicazione_cancelleria,
+    "Decreto di rinvio d'ufficio dell'udienza": _rinvio_ufficio,
 }
 
 
@@ -531,13 +563,13 @@ def _regola_del_titolo(titolo: str):
     deciderebbe la voce al posto del catalogo. Restano escluse: si riconoscono perché accettano anche la
     prima parola del titolo seguita da una parola qualsiasi.
     """
-    from pct.document_intelligence.catalog_titoli import REGOLE_TITOLO
+    from pct.document_intelligence.catalog_titoli import REGOLE_TITOLO, _modello
 
     parole = titolo.split()
     sonda = f"{parole[0]} zqxw" if parole else ""
     specifiche = []
     for regola in REGOLE_TITOLO:
-        modello = re.compile(rf"^(?:{regola.titolo})\s*$", re.IGNORECASE)
+        modello = _modello(rf"^(?:{regola.titolo})\s*$")  # compilato una volta: oltre 700 regole
         if modello.match(titolo) and not modello.match(sonda):
             specifiche.append(regola)
     # Due regole specifiche per lo stesso titolo (sospensione civile o tributaria) le distingue il corpo.

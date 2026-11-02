@@ -68,7 +68,7 @@ FONTI_TITOLI: dict[str, dict[str, Any]] = {
     "normattiva_dpr_602_1973_riscossione": _fonte("D.P.R. 602/1973, artt. 25, 50 e 86: cartella di pagamento, intimazione e fermo amministrativo", "decreto.del.presidente.della.repubblica:1973-09-29;602~art25"),
     "normattiva_d_lgs_218_1997_adesione": _fonte("D.Lgs. 218/1997, art. 6: istanza di accertamento con adesione", "decreto.legislativo:1997-06-19;218~art6"),
     # Gli artt. 18-23 del D.Lgs. 546/1992 sono abrogati dal D.Lgs. 175/2024 (Testo unico della giustizia tributaria): la fonte è il testo unico.
-    "normattiva_d_lgs_546_1992_controdeduzioni": _fonte("D.Lgs. 175/2024 (Testo unico giustizia tributaria), artt. 64 e 69: ricorso e costituzione della parte resistente con controdeduzioni (ex artt. 18 e 23 D.Lgs. 546/1992)", "decreto.legislativo:2024-11-14;175~art69"),
+    "normattiva_d_lgs_546_1992_controdeduzioni": _fonte("D.Lgs. 546/1992, artt. 18 e 23: ricorso e costituzione della parte resistente con controdeduzioni (vigenti fino al 31/12/2026; dal 01/01/2027 artt. 64 e 69 D.Lgs. 175/2024, Testo unico giustizia tributaria)", "decreto.legislativo:1992-12-31;546~art23"),
     "normattiva_dpr_322_1998_dichiarazioni": _fonte("D.P.R. 322/1998, artt. 1 e 4: dichiarazione dei redditi e certificazione unica", "decreto.del.presidente.della.repubblica:1998-07-22;322~art4"),
     "normattiva_dpcm_159_2013_isee": _fonte("D.P.C.M. 159/2013, art. 10: dichiarazione sostitutiva unica e attestazione ISEE", "decreto.del.presidente.del.consiglio.dei.ministri:2013-12-05;159~art10"),
     # Lavoro
@@ -84,5 +84,19 @@ FONTI_TITOLI: dict[str, dict[str, Any]] = {
     "normattiva_d_lgs_231_2007_adeguata_verifica": _fonte("D.Lgs. 231/2007, art. 18: adeguata verifica della clientela", "decreto.legislativo:2007-11-21;231~art18"),
     "normattiva_d_lgs_28_2010_art_11_proposta": _fonte("D.Lgs. 28/2010, art. 11: proposta del mediatore e verbale di accordo", "decreto.legislativo:2010-03-04;28~art11"),
 }
+
+
+def _fonti_estese() -> dict[str, dict[str, Any]]:
+    from . import (estesa_fonti_superiori, estesa_impresa, estesa_penale, estesa_persone, estesa_pubblico,
+                   estesa_settori, estesa_tributi_lavoro)
+
+    unite: dict[str, dict[str, Any]] = {}
+    for modulo in (estesa_penale, estesa_pubblico, estesa_tributi_lavoro, estesa_persone, estesa_impresa,
+                   estesa_settori, estesa_fonti_superiori):
+        unite.update(modulo.FONTI)
+    return unite
+
+
+FONTI_TITOLI.update(_fonti_estese())
 
 __all__ = ["FONTI_TITOLI"]

@@ -19,6 +19,13 @@ from . import (
     crisi_procedure,
     deposito,
     esecuzioni,
+    estesa_fonti_superiori,
+    estesa_impresa,
+    estesa_penale,
+    estesa_persone,
+    estesa_pubblico,
+    estesa_settori,
+    estesa_tributi_lavoro,
     esecuzioni_atti,
     famiglia,
     generiche,
@@ -42,6 +49,14 @@ from ._modello import CONFIDENZA_TITOLO, RegolaTitolo, regola
 from .fonti import FONTI_TITOLI
 
 AREE: tuple[tuple[str, tuple[RegolaTitolo, ...]], ...] = (
+    # Materie aggiunte il 02/11/2026: titoli specifici, prima delle aree generali che potrebbero assorbirli.
+    ("estesa_penale", estesa_penale.REGOLE),
+    ("estesa_pubblico", estesa_pubblico.REGOLE),
+    ("estesa_tributi_lavoro", estesa_tributi_lavoro.REGOLE),
+    ("estesa_persone", estesa_persone.REGOLE),
+    ("estesa_impresa", estesa_impresa.REGOLE),
+    ("estesa_settori", estesa_settori.REGOLE),
+    ("estesa_fonti_superiori", estesa_fonti_superiori.REGOLE),
     ("esecuzioni", esecuzioni.REGOLE),
     ("esecuzioni_atti", esecuzioni_atti.REGOLE),
     ("penale", penale.REGOLE),

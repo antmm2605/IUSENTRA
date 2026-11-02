@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any
 
+from .catalog_titoli import _modello
 from .models import DocumentCatalogAssignment, DocumentCatalogCandidate, DocumentCatalogEvidence, new_id, utc_now
 from .titoli import REGOLE_TITOLO
 
@@ -248,7 +249,7 @@ def riscontro_natura_catalogo(etichetta: str, testo: str) -> bool:
             return True  # le altre identità del resolver seguono i rispettivi controlli
         return re.search(riscontro, normalizza_ocr_titoli(str(testo or ""))[:12000], re.IGNORECASE) is not None
     corpo = re.sub(r"\s+", " ", str(testo or "")).casefold()
-    return any(re.search(regola.conferma, corpo, re.IGNORECASE) for regola in regole)
+    return any(_modello(regola.conferma).search(corpo) for regola in regole)
 
 
 def schema_risposta(voci: list[VoceCatalogo]) -> dict[str, Any]:

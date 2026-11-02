@@ -75,7 +75,9 @@ REGOLE = (
     ),
     regola(
         "comparsa_conclusionale",
-        r"comparsa\s+conclusionale(?:\s+.*)?",
+        # «Memoria conclusionale» è lo stesso atto dell'art. 190 c.p.c.: prima la leggeva la regola generica delle
+        # memorie come «Memoria difensiva» (verifica del 02/11/2026).
+        r"comparsa\s+conclusionale(?:\s+.*)?|memoria\s+conclusi(?:onale|va)(?:\s+.*)?",
         r"\bconclusion\w*\b|\bconclude\b",
         "Comparsa conclusionale",
         role="atto_difensivo", section="atti", tipo=TipoDocumento.COMPARSA,

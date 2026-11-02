@@ -22,6 +22,7 @@ allega una sentenza è un messaggio, come già vale per le ricevute PEC.
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 from typing import Any
 
 from pct.fascicoli import TipoDocumento
@@ -118,6 +119,16 @@ def _normalizza(testo: str) -> str:
     return re.sub(r"\s+", " ", str(testo or "")).casefold()
 
 
+@lru_cache(maxsize=None)
+def _modello(espressione: str) -> re.Pattern[str]:
+    """Espressioni delle regole compilate una volta sola.
+
+    Con le regole di tutte le materie (oltre 700, 02/11/2026) la cache interna di `re` (512 voci) si svuotava a ogni
+    documento e ogni classificazione ricompilava tutte le espressioni: circa 0,4 secondi invece di pochi millesimi.
+    """
+    return re.compile(espressione, re.IGNORECASE)
+
+
 def _titolo_trovato(regola: RegolaTitolo, righe: list[str]) -> str:
     """La riga del titolo che soddisfa la regola, se esiste.
 
@@ -128,7 +139,7 @@ def _titolo_trovato(regola: RegolaTitolo, righe: list[str]) -> str:
     cautelare.
     """
     prefisso = r"(?:(?:oggetto|subject)\s*:\s*)?" if regola.section == "comunicazioni" else ""
-    modello = re.compile(rf"^{prefisso}(?:{regola.titolo})\s*$", re.IGNORECASE)
+    modello = _modello(rf"^{prefisso}(?:{regola.titolo})\s*$")
     for riga in righe:
         if len(riga) <= LUNGHEZZA_MASSIMA_RIGA_TITOLO and modello.match(riga):
             return riga
@@ -220,7 +231,7 @@ def identita_dal_titolo(testo: str) -> dict[str, Any] | None:
         riga = _titolo_trovato(regola, righe)
         if not riga:
             continue
-        conferma = re.compile(regola.conferma, re.IGNORECASE)
+        conferma = _modello(regola.conferma)
         corpo_da_verificare = grezzo[:12000] if regola.id == "tessera_sanitaria" else corpo
         if not conferma.search(corpo_da_verificare):
             continue

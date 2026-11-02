@@ -14812,18 +14812,21 @@ class PecAuditRepository:
             except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
                 logging.getLogger(__name__).warning("Termini dell'art. 415 non proposti: %s", exc)
         note_127_ter = None
+        provvedimento = None
         if change is None and comm.kind not in {"sentenza", "estinzione"}:
-            # Decreto che sostituisce «l'udienza già fissata» con note scritte senza scriverne la data
-            # (art. 127-ter c.p.c.): termine in bozza alla data dell'udienza del fascicolo (pct/note_127_ter).
+            # Il provvedimento del giudice allegato alla comunicazione (pct/provvedimenti): udienze e modalità,
+            # termini scritti dal giudice o fissati dalla legge, adempimenti e domande all'avvocato. Il decreto
+            # ex art. 127-ter c.p.c. senza data è un suo caso (pct/note_127_ter). Le bozze passano dal
+            # meccanismo dei termini proposti qui sotto, senza doppioni con gli altri percorsi della PEC.
             try:
-                note_127_ter = self._esamina_decreto_note_127_ter(
+                provvedimento, proposte_provvedimento = self._esamina_provvedimento_giudice(
                     detail, parsed, profile, report, fascicolo_id=fascicolo_id, rg=rg, appuntamenti=appointments,
-                    comunicata_il=received.date(),
+                    comunicata_il=received.date(), gia_proposti=[item.code for item in term_proposals],
                 )
-                if note_127_ter is not None:
-                    term_proposals = list(term_proposals) + list(note_127_ter.proposte)
+                note_127_ter = provvedimento.note_127_ter if provvedimento is not None else None
+                term_proposals = list(term_proposals) + list(proposte_provvedimento)
             except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
-                logging.getLogger(__name__).warning("Decreto ex art. 127-ter non esaminato: %s", exc)
+                logging.getLogger(__name__).warning("Provvedimento del giudice non esaminato: %s", exc)
         if change is None and comm.kind == "sentenza" and fascicolo_id and self.scadenziario_db_path:
             # Scadenze procedurali già passate alla sentenza: avviso all'avvocato, mai chiusura automatica.
             try:
@@ -14865,7 +14868,7 @@ class PecAuditRepository:
                     for item in term_proposals
                     if item.due_date >= today_rome
                 ),
-                *(note_127_ter.righe_descrizione() if note_127_ter is not None else ()),
+                *(provvedimento.righe_descrizione() if provvedimento is not None else ()),
                 f"Attività per l'avvocato: {communication_activity(comm)}",
                 f"Fascicolo: {fascicolo_id}" if fascicolo_id else "",
                 "Fonte: comunicazione di cancelleria ricevuta via PEC.",
@@ -15078,6 +15081,7 @@ class PecAuditRepository:
             "previous_dates": previous_days,
             "proposed_deadlines": proposed_deadlines,
             "note_127_ter": note_127_ter.come_dizionario() if note_127_ter is not None else {},
+            "provvedimento": provvedimento.come_dizionario(fascicolo_id) if provvedimento is not None else {},
             "labour_matter": labour,
             "reason": reason,
         }
@@ -15096,7 +15100,7 @@ class PecAuditRepository:
                 pass
         return {"ok": True, "recorded": outcome, **payload}
 
-    def _esamina_decreto_note_127_ter(
+    def _esamina_provvedimento_giudice(
         self,
         detail: dict[str, Any],
         parsed: dict[str, Any],
@@ -15107,12 +15111,14 @@ class PecAuditRepository:
         rg: str,
         appuntamenti: list[Any],
         comunicata_il: date | None = None,
-    ) -> Any:
-        """Decreto ex art. 127-ter c.p.c. senza data propria: udienza del fascicolo, bozza o «da verificare».
+        gia_proposti: list[str] | None = None,
+    ) -> tuple[Any, list[Any]]:
+        """Il provvedimento comunicato via PEC letto con ``pct.provvedimenti``: esito e bozze da proporre.
 
-        Solo lettura: la bozza la crea il chiamante con il meccanismo dei termini proposti.
+        Solo lettura: le bozze le crea il chiamante con il meccanismo dei termini proposti. Sono esclusi i
+        codici già proposti dagli altri percorsi della stessa PEC e le scadenze equivalenti già nel fascicolo.
         """
-        from pct.note_127_ter.esame_pec import esamina_decreto_pec
+        from pct.provvedimenti import esamina_provvedimento, proposte_scadenziario
 
         body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
         allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
@@ -15131,19 +15137,26 @@ class PecAuditRepository:
             and str(getattr(item, "id_fascicolo", "") or "") == fascicolo_id
             for item in scadenze
         )
-        return esamina_decreto_pec(
+        oggi = datetime.now(ROME_TZ).date()
+        collegato = fascicolo_id if fascicolo is not None else ""
+        esito = esamina_provvedimento(
             testo,
-            oggi=datetime.now(ROME_TZ).date(),
+            oggi=oggi,
             comunicata_il=comunicata_il,
-            fascicolo_id=fascicolo_id if fascicolo is not None else "",
+            fascicolo_id=collegato,
             rg=rg,
             ufficio=clean_text(profile.get("ufficio") or getattr(fascicolo, "tribunale", "") or "", 180),
             giudice=clean_text(profile.get("giudice") or getattr(fascicolo, "giudice", "") or "", 120),
+            materia=str(getattr(getattr(fascicolo, "tipo", ""), "value", getattr(fascicolo, "tipo", "")) or ""),
             prossima_udienza=getattr(fascicolo, "data_prossima_udienza", "") if fascicolo is not None else "",
             appuntamenti=appuntamenti,
             scadenze=scadenze,
             opposizione_proposta=opposizione,
         )
+        # Il proponente dei termini legali della PEC ha già il suo percorso (es. opposizione ex art. 127-ter).
+        codici = [*(gia_proposti or []), str(legale.get("template_code") or "")]
+        bozze = proposte_scadenziario(esito, oggi=oggi, fascicolo_id=collegato, scadenze=scadenze, codici_gia_proposti=codici)
+        return esito, bozze
 
     def record_pec_schedule_change_receipts(
         self,

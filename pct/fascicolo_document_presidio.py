@@ -6,7 +6,6 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable
 
-from legal_ocr.formulario.date import normalizza_data_ocr
 from pct.formatting import format_date_it
 from pct.registro_letture.verifica import verifica_date_lette
 from pct.registro_letture.verifica_date import interpreta_data, orizzonte_fascicolo
@@ -341,7 +340,7 @@ def _cita_127(text: str, suffisso: str) -> bool:
 
 #: azioni che chiedono una verifica all'avvocato, non adempimenti letti
 NOTE_127_TER_DA_VERIFICARE = "verifica_udienza_127_ter"
-_REVIEW_ACTION_TYPES = {"verifica_collegamento_documento", NOTE_127_TER_DA_VERIFICARE}
+_REVIEW_ACTION_TYPES = {"verifica_collegamento_documento", NOTE_127_TER_DA_VERIFICARE, "provvedimento_da_verificare"}
 
 
 def _analyze_127_ter(
@@ -458,6 +457,28 @@ def _note_127_ter_su_udienza_fissata(
             + (f"; deposito entro le ore {decreto.ora_limite}, come invita il decreto." if decreto.ora_limite else ".")
         ),
     )
+
+
+def _analyze_provvedimento(
+    text: str, *, source: str, document_id: str, fascicolo: Any, today: date | None,
+) -> tuple[Any, list[dict[str, Any]]]:
+    """Il provvedimento del giudice letto con ``pct.provvedimenti``: termini di legge e relativi, attese, domande.
+
+    Il decreto ex art. 127-ter c.p.c. resta all'analisi dedicata; le date scritte in chiaro le legge
+    l'analisi generica. Il documento non porta la data della comunicazione: ciò che ne decorre si chiede.
+    """
+    from pct.provvedimenti import esamina_provvedimento
+    from pct.provvedimenti.presidio import azioni_presidio
+
+    try:
+        esito = esamina_provvedimento(
+            text, oggi=today or oggi_roma(), fascicolo_id=_text(_value(fascicolo, "id")) if fascicolo is not None else "",
+            materia=_value(fascicolo, "tipo") if fascicolo is not None else "",
+            prossima_udienza=_value(fascicolo, "data_prossima_udienza") if fascicolo is not None else "",
+        )
+    except Exception:  # la lettura del provvedimento non deve fermare il presidio
+        return None, []
+    return esito, azioni_presidio(esito, source=source, document_id=document_id, crea_azione=_make_action)
 
 
 def _analyze_127_bis(text: str, *, source: str, document_id: str) -> tuple[list[dict[str, Any]], list[str]]:
@@ -638,6 +659,7 @@ def analyze_fascicolo_document_texts(
     review_actions: list[dict[str, Any]] = []
     warnings: list[str] = []
     sources: list[dict[str, str]] = []
+    provvedimenti: list[dict[str, Any]] = []
     fatti_per_documento: dict[str, list[Any]] = {}
     for fatto in list(fatti_archivio or []):
         fatti_per_documento.setdefault(_text(getattr(fatto, "oggetto_id", "")), []).append(fatto)
@@ -687,13 +709,17 @@ def analyze_fascicolo_document_texts(
         procedural_actions.extend(found)
         warnings.extend(local_warnings)
         procedural_actions.extend(_analyze_generic_procedural_text(text, source=source, document_id=document_id))
+        esito_provv, azioni_provv = _analyze_provvedimento(text, source=source, document_id=document_id, fascicolo=fascicolo, today=today)
+        procedural_actions.extend(azioni_provv)
+        if esito_provv is not None:
+            provvedimenti.append({"documentId": document_id, "source": source, **esito_provv.come_dizionario(_text(_value(fascicolo, "id")))})
 
     procedural_actions = _applica_correzioni_date(procedural_actions, correzioni)
     anomalie_date = _anomalie_date(procedural_actions, fascicolo, today)
     deduped: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for action in [*procedural_actions, *review_actions]:
-        key = (_text(action.get("type")), _text(action.get("dateIso")), _compact_key(action.get("source")))
+        key = (_text(action.get("type")), _text(action.get("dateIso")), _compact_key(action.get("source")) + _text(action.get("ruleId")))
         if key in seen:
             continue
         seen.add(key)
@@ -736,6 +762,8 @@ def analyze_fascicolo_document_texts(
         "sources": sources[:8],
         # Le date lette che non convincono: l'avvocato le conferma o le corregge nel registro delle letture.
         "dateAnomalie": anomalie_date[:12],
+        # I provvedimenti del giudice letti nei documenti (pct/provvedimenti): voci con regola, norme, prova e dati.
+        "provvedimenti": provvedimenti[:8],
     }
 
 

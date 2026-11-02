@@ -736,3 +736,33 @@ def test_un_giro_completo_chiude_l_errore_di_un_tentativo_precedente(tmp_path: P
             conn.execute("UPDATE letture_eventi SET last_error='database is locked' WHERE fascicolo_id=?", (fid,))
         runtime.leggi_fascicolo(_fascicolo(app, fid))  # fascicolo fermo: anche qui l'errore superato si chiude
         assert registro.esito_evento(tenant, fid)["stato"] != "failed"
+
+
+def test_la_ripresa_della_coda_non_supera_le_letture_contemporanee(monkeypatch, tmp_path: Path):
+    """02/11/2026: con 241 fascicoli in coda il tick avviava 20 letture al minuto e il worker finiva la memoria."""
+    from web.services import archivio_letture_runtime as runtime
+    from web.services.registro_letture_runtime import registro_corrente
+
+    app = _app(tmp_path)
+    avviati: list[str] = []
+
+    def avvia(_app, fascicolo_id, **kwargs):
+        avviati.append(fascicolo_id)
+        runtime._ATTIVE.add(fascicolo_id)
+        return True
+
+    monkeypatch.setattr(runtime, "avvia_lettura_in_background", avvia)
+    monkeypatch.setattr(runtime, "_ATTIVE", set())
+    with app.app_context():
+        registro = registro_corrente()
+        for indice in range(30):
+            registro.accoda_evento("single-studio", f"F{indice:03d}")
+        primo = runtime.riprendi_eventi_lettura(app, limite_per_tenant=20)
+        secondo = runtime.riprendi_eventi_lettura(app, limite_per_tenant=20)
+        runtime._ATTIVE.clear()
+        terzo = runtime.riprendi_eventi_lettura(app, limite_per_tenant=20)
+
+    assert primo["avviati"] == runtime.LETTURE_CONCORRENTI
+    assert secondo["avviati"] == 0
+    assert terzo["avviati"] == runtime.LETTURE_CONCORRENTI
+    assert len(avviati) == 2 * runtime.LETTURE_CONCORRENTI

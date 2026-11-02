@@ -48,6 +48,11 @@ BYTE_MASSIMI_EMAIL = 128 * 1024 * 1024
 VERSIONE_ESTRAZIONE_FORMATI = "2026.09.17.v4"
 _LOCK = threading.Lock()
 _IN_CORSO: set[str] = set()
+# Letture in sfondo vive nel processo dello scheduler (thread e loro riprese a 30 secondi). Il tick di ogni minuto
+# ne avviava fino a 20 per studio senza contare quelle ancora in corso: il 02/11/2026, con 241 fascicoli rimessi in
+# coda, il processo è arrivato a 112 thread e 18 GB ed è stato chiuso tre volte dal kernel per memoria esaurita.
+LETTURE_CONCORRENTI = 2
+_ATTIVE: set[str] = set()
 _SCHEDULER_IDLE_MARKER = "archivio_letture_scheduler_idle.json"
 _SCHEDULER_IDLE_ORE_DEFAULT = 24
 ROME = ZoneInfo("Europe/Rome")
@@ -1181,6 +1186,13 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
         return False
 
     def corsa() -> None:
+        try:
+            _corsa()
+        finally:
+            with _LOCK:
+                _ATTIVE.discard(fascicolo_id)
+
+    def _corsa() -> None:
         worker_id = f"{os.getpid()}-{threading.get_ident()}-{uuid.uuid4().hex}"
         while True:
             evento = registro.reclama_evento(tenant_id, fascicolo_id, worker_id)
@@ -1265,16 +1277,29 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                 with _LOCK:
                     _IN_CORSO.discard(fascicolo_id)
             if not riuscito:
-                if ancora_pendente:
-                    timer = threading.Timer(30.0, corsa)
-                    timer.daemon = True
-                    timer.start()
+                # L'evento resta in coda (pending con attesa): lo riprende il tick, entro il limite di letture
+                # contemporanee. Un Timer qui creava thread fuori da ogni conteggio.
                 return
             if not ancora_pendente:
                 return
 
-    threading.Thread(target=corsa, name=f"archivio-letture-{fascicolo_id}", daemon=True).start()
+    with _LOCK:
+        if fascicolo_id in _ATTIVE:
+            return False
+        _ATTIVE.add(fascicolo_id)
+    try:
+        threading.Thread(target=corsa, name=f"archivio-letture-{fascicolo_id}", daemon=True).start()
+    except Exception:
+        with _LOCK:
+            _ATTIVE.discard(fascicolo_id)
+        raise
     return True
+
+
+def letture_attive() -> int:
+    """Letture in sfondo vive in questo processo (thread avviati e non ancora conclusi)."""
+    with _LOCK:
+        return len(_ATTIVE)
 
 
 # Quattro fascicoli ogni 10 minuti tra mezzanotte e le 6: circa 144 per notte. Con 2 per giro i 190 fascicoli
@@ -1415,9 +1440,14 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)
         accodati += accoda_riletture_notturne(registro, tenant_id)
-        eventi = registro.eventi_da_riprendere(tenant_id, limite=limite_per_tenant)
+        liberi = LETTURE_CONCORRENTI - letture_attive()
+        if liberi <= 0:
+            continue
+        eventi = registro.eventi_da_riprendere(tenant_id, limite=min(limite_per_tenant, liberi))
         trovati += len(eventi)
         for evento in eventi:
+            if letture_attive() >= LETTURE_CONCORRENTI:
+                break
             slug = _testo(evento.get("tenant_id")) or tenant_id
             if avvia_lettura_in_background(
                 app,

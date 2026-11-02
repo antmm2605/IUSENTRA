@@ -69,6 +69,12 @@ FONTI: dict[str, dict[str, Any]] = {
         verifica=VERIFICA_CPC_133),
     "cpc_136": _norma("art. 136 c.p.c.", "Comunicazioni", _CPC, "136",
         "Il cancelliere fa le comunicazioni prescritte dalla legge o dal giudice; la comunicazione è effettuata a mezzo posta elettronica certificata all'indirizzo risultante dai pubblici elenchi o al domicilio digitale speciale eletto."),
+    # Limite delle «regole dello studio» (pct/passaggi/vincoli.py): una correzione
+    # dell'avvocato non può eliminare, abbreviare o prorogare un termine perentorio.
+    "cpc_153": _norma("art. 153 c.p.c.", "Improrogabilità dei termini perentori", _CPC, "153",
+        "I termini perentori non possono essere abbreviati o prorogati, nemmeno sull'accordo delle parti.",
+        verifica=("primo comma, testo vigente; URN Normattiva verificato il 02/11/2026 (il servizio ha restituito "
+                  "l'indice dell'atto ma non il testo dell'articolo: estratto da riscontrare alla prossima consultazione)")),
     "cpc_147": _norma("art. 147 c.p.c.", "Tempo delle notificazioni", _CPC, "147",
         "Le notificazioni a mezzo PEC possono essere eseguite senza limiti orari; si perfezionano per il notificante quando è generata la ricevuta di accettazione e per il destinatario quando è generata la ricevuta di avvenuta consegna; se questa è generata tra le 21 e le 7, la notificazione si intende perfezionata per il destinatario alle ore 7."),
     "cpc_163bis": _norma("art. 163-bis c.p.c.", "Termini per comparire", _CPC, "163bis",

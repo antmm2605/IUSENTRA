@@ -1,0 +1,42 @@
+/* Passaggi spiegabili del software e regole dello studio: card compatte, token condivisi, nessuno stile inline. */
+.iu-passaggi{display:grid;gap:9px;padding:12px;border:1px solid var(--iu-border);border-radius:14px;background:#fff;min-width:0}
+.iu-passaggi__testa{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.iu-passaggi__testa h4{display:inline-flex;align-items:center;gap:6px;margin:0;color:#10243d;font-size:13px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+.iu-passaggi__testa span,.iu-passaggi__nota{margin:0;color:var(--iu-slate-500);font-size:12px;font-weight:700;line-height:1.45}
+.iu-passaggi__gruppo{display:grid;gap:6px;margin:0}
+.iu-passaggi__gruppo h5{margin:4px 0 0;color:#10243d;font-size:12px;font-weight:900}
+.iu-passaggi__lista{display:grid;gap:7px;margin:0;padding:0;list-style:none;counter-reset:passaggio}
+.iu-passaggio{display:grid;gap:6px;padding:10px;border:1px solid #d9e7ef;border-radius:11px;background:#fff;min-width:0}
+.iu-passaggio.is-da_chiedere{border-color:#fca5a5;background:#fff8f8}
+.iu-passaggio.is-da_confermare{border-color:#f3d293;background:#fffdf7}
+.iu-passaggio.is-escluso_dallo_studio{opacity:.75;background:#f8fafc}
+.iu-passaggio__testa{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iu-passaggio__titolo{flex:1 1 220px;min-width:0;color:#13233a;font-size:13px;font-weight:900;overflow-wrap:anywhere}
+.iu-passaggio p{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin:0;color:#334155;font-size:12px;line-height:1.45}
+.iu-passaggio p>span:first-child{color:var(--iu-slate-500);font-weight:800}
+.iu-passaggio__norme a{color:#1d4ed8;font-weight:800}
+.iu-passaggio__dettagli{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 12px;margin:0}
+.iu-passaggio__dettagli div{min-width:0}
+.iu-passaggio__dettagli dt{display:inline-flex;align-items:center;gap:4px;color:var(--iu-slate-500);font-size:11px;font-weight:800}
+.iu-passaggio__dettagli dd{margin:0;color:#13233a;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.iu-passaggio__vincoli{color:#92400e!important;font-weight:800}
+.iu-passaggio__studio{padding:6px 8px;border-radius:8px;background:#eef6ff;color:#1e3a8a!important}
+.iu-passaggio__rifiuto{padding:6px 8px;border-radius:8px;background:#fff7ed;color:#9a3412!important}
+.iu-correggi-regola__form{display:grid;gap:10px}
+.iu-correggi-regola__form fieldset{display:grid;gap:4px;margin:0;padding:0;border:0}
+.iu-correggi-regola__form legend,.iu-correggi-regola__form>label,.iu-correggi-regola__valore label{margin-bottom:2px;color:#10243d;font-size:12px;font-weight:900}
+.iu-correggi-regola__scelta{display:flex;align-items:center;gap:8px;min-height:32px;font-size:13px}
+.iu-correggi-regola__valore{display:grid;gap:4px}
+.iu-correggi-regola__valore select{min-height:34px;padding:0 8px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;font-size:13px}
+.iu-correggi-regola__errore{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;margin:0;padding:8px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:12px;font-weight:700}
+.iu-correggi-regola__ok{margin:0;padding:8px;border-radius:8px;background:#ecfdf5;color:#065f46;font-size:12px;font-weight:700}
+.iu-regole-studio{display:grid;gap:8px}
+.iu-regole-studio__lista{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.iu-regola-studio{display:grid;gap:5px;padding:10px;border:1px solid #d9e7ef;border-radius:11px;background:#fff}
+.iu-regola-studio.is-disattiva{opacity:.7;background:#f8fafc}
+.iu-regola-studio__testa{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.iu-regola-studio__testa strong{flex:1 1 220px;min-width:0;font-size:13px;overflow-wrap:anywhere}
+.iu-regola-studio p{margin:0;color:#334155;font-size:12px;line-height:1.45}
+.iu-regola-studio__azioni{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.iu-regola-studio__azioni input{max-width:160px}
+@media (max-width:640px){.iu-passaggio__dettagli{grid-template-columns:minmax(0,1fr)}.iu-regola-studio__azioni input{max-width:none;flex:1 1 100%}}

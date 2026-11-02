@@ -1,6 +1,6 @@
 import { NormativeArticleLink } from '../NormativeArticleLink'
 import { beginActivity } from '../../ui/activity'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { formatDateIt } from '../../formatting'
@@ -25,6 +25,8 @@ import {
 import './letturaFascicolo.css'
 
 const EVENTI_VISIBILI = 6
+// I passaggi spiegabili si caricano a parte: non pesano sul pacchetto del fascicolo.
+const PassaggiFascicoloSection = lazy(() => import('../../features/passaggi/components/PassaggiFascicoloSection').then((modulo) => ({ default: modulo.PassaggiFascicoloSection })))
 
 function isScheda(valore: SchedaProcedurale | Record<string, never> | undefined): valore is SchedaProcedurale {
   return Boolean(valore && Array.isArray((valore as SchedaProcedurale).fasi))
@@ -254,6 +256,10 @@ export function LetturaFascicoloPanel({
       </section>
 
       <LettureFascicoloSection active={active} key={fascicoloId} fascicoloId={fascicoloId} refreshKey={registroRevision} onAggiornato={() => void load()}/>
+
+      <Suspense fallback={null}>
+        <PassaggiFascicoloSection active={active} key={`passaggi-${fascicoloId}`} fascicoloId={fascicoloId}/>
+      </Suspense>
 
       <section className="iu-fas-lettura__blocco iu-fas-lettura__economico" aria-label="Presidio economico del fascicolo">
         <div className="iu-fas-lettura__section-head">

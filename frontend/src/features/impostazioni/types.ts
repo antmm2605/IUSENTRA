@@ -13,6 +13,7 @@ export type SettingsSection =
   | 'notifiche'
   | 'backup'
   | 'calendari'
+  | 'regole_studio'
 
 export type SettingTone = 'primary' | 'success' | 'warning' | 'danger' | 'neutral' | 'info'
 
@@ -86,6 +87,7 @@ export type SettingsPayload = {
   notifiche: Record<string, unknown>
   backup: Record<string, unknown>
   calendari: Record<string, unknown>
+  regole_studio?: Record<string, unknown>
   warnings: Array<{ code: string; message: string }>
   message?: string
   updated_section?: SettingsSection

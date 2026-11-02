@@ -18,6 +18,7 @@ import { MiaFirmaPanel } from './components/MiaFirmaPanel'
 import { SettingsActions } from './components/SettingsActions'
 import { NotificationsSettingsPanel } from './components/NotificationsSettingsPanel'
 import { PaymentsSettingsPanel } from './components/PaymentsSettingsPanel'
+import { RegoleStudioPanel } from '../passaggi/components/RegoleStudioPanel'
 import { SettingsSectionForm } from './components/SettingsSectionForm'
 import { SettingsSummary } from './components/SettingsSummary'
 import { payloadForSection, rawPayloadForSection, useImpostazioni } from './hooks/useImpostazioni'
@@ -125,6 +126,8 @@ export function ImpostazioniPage() {
                           onSave={settings.save}
                           onReload={settings.load}
                         />
+                      ) : section.id === 'regole_studio' ? (
+                        <RegoleStudioPanel />
                       ) : section.id === 'mia_firma' ? (
                         <MiaFirmaPanel />
                       ) : section.id === 'calendari' ? (
@@ -181,7 +184,7 @@ export function ImpostazioniPage() {
         </div>
       ) : null}
 
-      {!settings.loading && settings.data.ok && !canUpdate && settings.activeSection !== 'mia_firma' ? (
+      {!settings.loading && settings.data.ok && !canUpdate && settings.activeSection !== 'mia_firma' && settings.activeSection !== 'regole_studio' ? (
         <Alert className="iu-settings-alert is-warning">
           <AlertTriangle />
           <AlertTitle>Permesso richiesto</AlertTitle>

@@ -58,7 +58,8 @@
     "frontend/src/components/OperationalLiveSync.css": "Avvisi della sincronizzazione condivisa: stato della connessione e conflitti preservati senza coprire i comandi; posizione adattiva, stampa esclusa, token del prodotto.",
     "frontend/src/components/fascicoli/CtuSection.css": "Sezione CTU separata per caricamento puntuale: incarichi, termini e bozze con campi adattivi e comandi accessibili coerenti con il fascicolo.",
     "frontend/src/features/documenti/StesuraLexPanel.css": "Pannello della stesura di Lex nella redazione guidata (2.453.0): blocchi scritti da Lex, revisione indipendente e stato della consegna; token del design system, impaginazione responsive, nessuno stile inline.",
-    "frontend/src/features/documenti/SchedaCompilazionePanel.css": "Scheda di compilazione condivisa tra redazione guidata e catalogo richiesta dalla patch utente: riuso delle regole esistenti, token del design system, provenienza espandibile e impaginazione responsive; nessun tema alternativo o stile inline."
+    "frontend/src/features/documenti/SchedaCompilazionePanel.css": "Scheda di compilazione condivisa tra redazione guidata e catalogo richiesta dalla patch utente: riuso delle regole esistenti, token del design system, provenienza espandibile e impaginazione responsive; nessun tema alternativo o stile inline.",
+    "frontend/src/features/passaggi/passaggi.css": "Passaggi spiegabili del software e regole dello studio richiesti dall'avvocato il 02/11/2026: card compatte dei passaggi con regola, norma, prove e correzioni, dialogo «Correggi la regola» ed elenco delle regole; token condivisi, nessun tema alternativo, nessuno stile inline."
   },
   "approvedCssFiles": [
     "frontend/src/components/ControlloStudioPage.css",
@@ -204,7 +205,8 @@
     "frontend/src/components/fascicoli/CtuSection.css",
     "frontend/src/features/documenti/SchedaCompilazionePanel.css",
     "frontend/src/features/documenti/StesuraLexPanel.css",
-    "frontend/src/components/fascicoli/AgendaFascicolo.css"
+    "frontend/src/components/fascicoli/AgendaFascicolo.css",
+    "frontend/src/features/passaggi/passaggi.css"
   ],
   "allowedInlineStyles": [
     {

@@ -1,0 +1,9 @@
+[
+ {"id":"affitto_fondo_rustico","nome":"Affitto di fondo rustico","rif":["L. 203/1982"]},
+ {"id":"accordo_agrario_deroga","nome":"Accordo agrario in deroga","rif":["art. 45 L. 203/1982"],"note":"Richiede l'assistenza delle organizzazioni professionali agricole: la sola presenza dell'avvocato non basta. Vietate nuove mezzadrie e colonie parziarie."},
+ {"id":"soccida","nome":"Soccida","rif":["artt. 2170-2186 c.c."]},
+ {"id":"compartecipazione_stagionale","nome":"Compartecipazione stagionale","rif":["art. 45 L. 203/1982"]},
+ {"id":"cessione_prodotti_agricoli","nome":"Cessione e fornitura di prodotti agricoli e alimentari","rif":["D.Lgs. 198/2021, artt. 3-5"],"forma":"scritta_ad_substantiam","note":"Termini di pagamento e pratiche commerciali sleali."},
+ {"id":"filiera","nome":"Contratti di coltivazione, allevamento, conferimento e filiera","rif":["D.Lgs. 198/2021"]},
+ {"id":"contoterzismo","nome":"Contoterzismo agricolo","rif":["artt. 1655 ss. c.c.","artt. 2222 ss. c.c."]}
+]

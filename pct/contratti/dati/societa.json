@@ -1,0 +1,18 @@
+[
+ {"id":"societa_persone","nome":"Contratto di società semplice, SNC e SAS","rif":["artt. 2247 ss. c.c.","artt. 2251 ss. c.c.","artt. 2291 ss. c.c.","artt. 2313 ss. c.c."]},
+ {"id":"societa_capitali","nome":"Atto costitutivo e statuto di SPA, SAPA e SRL","rif":["artt. 2328 ss. c.c.","artt. 2452 ss. c.c.","artt. 2463 ss. c.c."],"forma":"atto_pubblico","note":"La costituzione richiede atto pubblico notarile e iscrizione nel registro delle imprese."},
+ {"id":"cooperativa","nome":"Costituzione di cooperativa","rif":["artt. 2511 ss. c.c."],"forma":"atto_pubblico"},
+ {"id":"cessione_quote_srl","nome":"Cessione di quote di SRL","rif":["artt. 2469-2470 c.c."],"forma":"scrittura_autenticata","note":"Deposito al registro imprese tramite notaio o intermediario abilitato (art. 36, comma 1-bis, D.L. 112/2008)."},
+ {"id":"cessione_azioni","nome":"Cessione di azioni","rif":["artt. 2355-2355-bis c.c.","TUF eventuale"]},
+ {"id":"patti_parasociali","nome":"Patti parasociali e sindacati di voto o blocco","rif":["art. 1322 c.c.","artt. 2341-bis, 2341-ter c.c.","artt. 122-123 TUF"],"note":"Durata massima cinque anni per le società di capitali (art. 2341-bis c.c.)."},
+ {"id":"accordo_investimento","nome":"Accordo di investimento, ingresso del socio e aumento di capitale","rif":["artt. 2438 ss. c.c.","artt. 2481 ss. c.c."]},
+ {"id":"opzioni_societarie","nome":"Opzioni put/call, prelazione, co-vendita e trascinamento","rif":["art. 1322 c.c.","art. 1331 c.c."]},
+ {"id":"finanziamento_soci","nome":"Finanziamento soci e accordi infragruppo","rif":["artt. 1813 ss. c.c.","art. 2467 c.c.","art. 2497-quinquies c.c."]},
+ {"id":"cessione_azienda","nome":"Cessione d'azienda o di ramo d'azienda","rif":["artt. 2555-2560 c.c.","art. 2112 c.c."],"forma":"scrittura_autenticata","note":"Forma autenticata per l'iscrizione nel registro imprese (art. 2556 c.c.); procedura sindacale ex art. 47 L. 428/1990 se oltre 15 dipendenti."},
+ {"id":"affitto_azienda","nome":"Affitto e usufrutto d'azienda","rif":["artt. 2561-2562 c.c."],"forma":"scrittura_autenticata"},
+ {"id":"joint_venture","nome":"Joint venture contrattuale o societaria","rif":["art. 1322 c.c."],"qual":"atipico"},
+ {"id":"consorzio","nome":"Consorzio e società consortile","rif":["artt. 2602 ss. c.c.","art. 2615-ter c.c."]},
+ {"id":"contratto_rete","nome":"Contratto di rete","rif":["art. 3, commi 4-ter ss., D.L. 5/2009"],"forma":"scrittura_autenticata"},
+ {"id":"associazione_partecipazione","nome":"Associazione in partecipazione e cointeressenza","rif":["artt. 2549-2554 c.c."]},
+ {"id":"preparatori_straordinarie","nome":"Accordi preparatori a fusione, scissione e trasformazione","rif":["artt. 2498 ss. c.c.","artt. 2501 ss. c.c.","artt. 2506 ss. c.c."]}
+]

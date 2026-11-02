@@ -1,0 +1,22 @@
+{
+  "data_ricognizione": "2026-11-02",
+  "stato_verifica": "da_verificare_su_fonte_ufficiale",
+  "fonte_ufficiale_consultazione": "https://www.normattiva.it",
+  "aree": {
+    "immobili": "Immobili, locazioni ed edilizia",
+    "commercio": "Vendite, commercio, distribuzione e servizi alle imprese",
+    "societa": "Società, acquisizioni e organizzazione d'impresa",
+    "credito": "Finanziamenti, credito, garanzie e assicurazioni",
+    "lavoro": "Lavoro e collaborazioni",
+    "professioni": "Incarichi professionali",
+    "digitale": "Software, dati, intelligenza artificiale e proprietà intellettuale",
+    "consumatori": "Consumatori ed e-commerce",
+    "famiglia": "Famiglia, patrimonio e successioni",
+    "agricoltura": "Agricoltura, allevamento e filiera alimentare",
+    "trasporti": "Trasporti, logistica, turismo e custodia",
+    "pubblico": "Pubblica amministrazione e settori regolamentati",
+    "controversie": "Prevenzione e chiusura delle controversie",
+    "figure_rare": "Figure tipiche meno frequenti",
+    "accessori": "Accordi preparatori, clausole e atti collegati"
+  }
+}

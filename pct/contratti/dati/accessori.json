@@ -1,0 +1,10 @@
+[
+ {"id":"lettera_intenti","nome":"Lettera d'intenti, memorandum e term sheet","rif":["artt. 1337-1338 c.c."],"qual":"accessorio","note":"Distinguere le parti vincolanti da quelle negoziali."},
+ {"id":"nda","nome":"Accordo di riservatezza, esclusiva delle trattative e accesso ai documenti","rif":["art. 1322 c.c.","artt. 98-99 D.Lgs. 30/2005"],"qual":"accessorio"},
+ {"id":"opzione_prelazione","nome":"Opzione, prelazione e preliminare","rif":["art. 1331 c.c.","art. 1351 c.c."],"qual":"accessorio"},
+ {"id":"modificativo","nome":"Accordo modificativo, proroga, rinnovo, cessione e subentro","rif":["art. 1406 c.c."],"qual":"accessorio"},
+ {"id":"risoluzione_consensuale","nome":"Risoluzione consensuale, recesso e restituzione dei beni","rif":["art. 1372 c.c."],"qual":"accessorio"},
+ {"id":"clausole_rischio","nome":"Penale, caparra, garanzia, manleva e limitazione di responsabilità","rif":["artt. 1382-1386 c.c.","art. 1229 c.c."],"qual":"accessorio"},
+ {"id":"atti_unilaterali","nome":"Procura, quietanza, ricognizione di debito e remissione","rif":["art. 1324 c.c.","art. 1988 c.c.","art. 1236 c.c."],"qual":"atto_collegato","note":"Atti collegati, non necessariamente contratti."},
+ {"id":"allegati_tecnici","nome":"Allegati tecnici, capitolati, inventari, verbali di consegna e collaudo","rif":["art. 1322 c.c."],"qual":"atto_collegato"}
+]

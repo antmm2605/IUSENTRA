@@ -1,0 +1,16 @@
+[
+ {"id":"appalto_pubblico","nome":"Appalto pubblico di lavori, servizi e forniture","rif":["D.Lgs. 36/2023, art. 18"],"note":"Affidamento, esecuzione e modifiche soggetti a regole proprie."},
+ {"id":"accordo_quadro","nome":"Accordo quadro","rif":["art. 59 D.Lgs. 36/2023"]},
+ {"id":"subappalto_pubblico","nome":"Subappalto pubblico","rif":["art. 119 D.Lgs. 36/2023"]},
+ {"id":"modifiche_esecuzione","nome":"Modifiche del contratto in esecuzione","rif":["art. 120 D.Lgs. 36/2023"]},
+ {"id":"concessione","nome":"Concessione di lavori o servizi","rif":["D.Lgs. 36/2023, Libro IV"]},
+ {"id":"ppp","nome":"Partenariato pubblico-privato e finanza di progetto","rif":["artt. 174 ss. D.Lgs. 36/2023"]},
+ {"id":"accordi_art11","nome":"Accordi integrativi o sostitutivi del provvedimento","rif":["art. 11 L. 241/1990"]},
+ {"id":"accordi_art15","nome":"Accordi tra amministrazioni","rif":["art. 15 L. 241/1990"]},
+ {"id":"convenzione_urbanistica","nome":"Convenzione urbanistica","rif":["disciplina urbanistica nazionale e regionale"]},
+ {"id":"terzo_settore","nome":"Convenzioni con enti del Terzo settore","rif":["artt. 55-57 D.Lgs. 117/2017"]},
+ {"id":"sanita","nome":"Prestazioni sanitarie e convenzioni con strutture","rif":["D.Lgs. 502/1992","L. 24/2017"]},
+ {"id":"energia","nome":"Fornitura energetica e accordi di acquisto di energia","rif":["regolazione ARERA"]},
+ {"id":"epc","nome":"Contratto di rendimento energetico (EPC)","rif":["D.Lgs. 102/2014, allegato 8"]},
+ {"id":"rifiuti","nome":"Gestione, raccolta, trasporto e trattamento dei rifiuti","rif":["D.Lgs. 152/2006"]}
+]

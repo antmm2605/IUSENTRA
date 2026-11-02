@@ -1,0 +1,15 @@
+[
+ {"id":"transazione","nome":"Transazione semplice o novativa","rif":["artt. 1965-1976 c.c."],"note":"Forma scritta ad probationem (art. 1967 c.c.); ad substantiam se riguarda diritti immobiliari."},
+ {"id":"saldo_stralcio","nome":"Accordo a saldo e stralcio","rif":["artt. 1965 ss. c.c.","art. 1236 c.c."]},
+ {"id":"piano_rientro","nome":"Piano di rientro e dilazione","rif":["artt. 1230 ss. c.c."]},
+ {"id":"cessione_beni_creditori","nome":"Cessione dei beni ai creditori","rif":["artt. 1977-1986 c.c."],"forma":"scritta_ad_substantiam"},
+ {"id":"sequestro_convenzionale","nome":"Sequestro convenzionale","rif":["artt. 1798-1802 c.c."]},
+ {"id":"negoziazione_assistita","nome":"Convenzione di negoziazione assistita e accordo finale","rif":["artt. 2 ss. e 5 D.L. 132/2014"]},
+ {"id":"accordo_mediazione","nome":"Accordo raggiunto in mediazione","rif":["artt. 11-12 D.Lgs. 28/2010"]},
+ {"id":"compromesso","nome":"Compromesso e clausola compromissoria","rif":["artt. 806-808 c.p.c."],"forma":"scritta_ad_substantiam"},
+ {"id":"arbitrato_irrituale","nome":"Arbitrato irrituale","rif":["art. 808-ter c.p.c."],"forma":"scritta_ad_substantiam"},
+ {"id":"composizione_negoziata","nome":"Accordi di composizione negoziata della crisi","rif":["art. 23 D.Lgs. 14/2019"]},
+ {"id":"piano_attestato","nome":"Accordi in esecuzione di piani attestati","rif":["art. 56 D.Lgs. 14/2019"]},
+ {"id":"accordi_ristrutturazione","nome":"Accordi di ristrutturazione dei debiti","rif":["artt. 57 ss. D.Lgs. 14/2019"],"note":"Effetti verso i creditori solo con omologazione."},
+ {"id":"moratoria","nome":"Convenzione di moratoria","rif":["art. 62 D.Lgs. 14/2019"]}
+]

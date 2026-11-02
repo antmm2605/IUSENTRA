@@ -1,0 +1,49 @@
+{
+  "regole_comuni": [
+    ["Definizione, autonomia contrattuale e disciplina generale", "artt. 1321-1324 c.c."],
+    ["Accordo, causa, oggetto e forma richiesta", "art. 1325 c.c."],
+    ["Proposta, accettazione, proposta irrevocabile, opzione", "artt. 1326-1336 c.c."],
+    ["Correttezza delle trattative e responsabilità precontrattuale", "artt. 1337-1338 c.c."],
+    ["Condizioni generali, moduli e clausole ad approvazione specifica", "artt. 1341-1342 c.c."],
+    ["Liceità della causa e requisiti dell'oggetto", "artt. 1343-1349 c.c."],
+    ["Forma scritta, preliminare e forma convenzionale", "artt. 1350-1352 c.c."],
+    ["Condizioni sospensive e risolutive", "artt. 1353-1361 c.c."],
+    ["Interpretazione del contratto", "artt. 1362-1371 c.c."],
+    ["Efficacia, recesso e buona fede nell'esecuzione", "artt. 1372-1381 c.c."],
+    ["Penale e caparra", "artt. 1382-1386 c.c."],
+    ["Rappresentanza, procura e conflitto d'interessi", "artt. 1387-1400 c.c."],
+    ["Cessione del contratto e contratto a favore di terzo", "artt. 1406-1413 c.c."],
+    ["Simulazione, nullità, annullamento, rescissione e risoluzione", "artt. 1414-1469 c.c."]
+  ],
+  "dimensione_internazionale": [
+    ["Legge applicabile alle obbligazioni contrattuali", "Reg. CE 593/2008 (Roma I), artt. 3, 4, 6, 8, 9"],
+    ["Giurisdizione e circolazione delle decisioni nell'UE", "Reg. UE 1215/2012 (Bruxelles I-bis)"],
+    ["Vendita internazionale di merci", "Convenzione di Vienna 1980, quando applicabile"],
+    ["Arbitrato e riconoscimento dei lodi stranieri", "Convenzione di New York 1958"],
+    ["Distribuzione e restrizioni concorrenziali", "artt. 101-102 TFUE"],
+    ["Trasferimenti internazionali di dati", "Capo V GDPR"]
+  ],
+  "scheda_controllo": [
+    ["funzione", "Funzione dell'operazione", "Risultato che il cliente intende ottenere"],
+    ["qualificazione", "Qualificazione", "Contratto tipico, atipico, misto o accordo accessorio"],
+    ["parti", "Parti ammesse", "Privati, consumatori, professionisti, imprese, soggetti autorizzati"],
+    ["normativa", "Normativa", "Articoli applicabili, disposizioni speciali e decorrenze"],
+    ["forma", "Forma", "Scrittura privata, autenticazione, atto pubblico o altre formalità"],
+    ["contenuti_obbligatori", "Contenuti obbligatori", "Informazioni e clausole imposte dalla disciplina specifica"],
+    ["clausole_negoziabili", "Clausole negoziabili", "Alternative, limiti e conseguenze della scelta"],
+    ["documentazione", "Documentazione", "Identità, poteri di firma, titoli, autorizzazioni e allegati"],
+    ["adempimenti", "Adempimenti successivi", "Registrazione, trascrizione, comunicazioni e depositi"],
+    ["esecuzione", "Esecuzione e cessazione", "Scadenze, verifiche, rinnovi, recesso, restituzioni e garanzie"],
+    ["controllo_professionale", "Controllo professionale", "Questioni aperte, verifica giurisprudenziale e approvazione del testo"],
+    ["versione", "Versione", "Data di verifica normativa e modelli sostituiti"]
+  ],
+  "novita_2026": [
+    {"id": "servizi_finanziari_distanza", "titolo": "Servizi finanziari a distanza", "norma": "D.Lgs. 209/2025; artt. 59-bis-59-terdecies Codice del consumo", "decorrenza": "2026-06-19", "aree": ["consumatori", "credito"]},
+    {"id": "recesso_online", "titolo": "Funzione di recesso tramite interfaccia online", "norma": "art. 54-bis Codice del consumo (D.Lgs. 209/2025)", "decorrenza": "2026-06-19", "aree": ["consumatori"]},
+    {"id": "credito_consumatori", "titolo": "Nuova disciplina del credito ai consumatori (regime transitorio)", "norma": "D.Lgs. 212/2025", "decorrenza": "2026-11-20", "aree": ["credito", "consumatori"]},
+    {"id": "dichiarazioni_ambientali", "titolo": "Dichiarazioni ambientali e informazione ai consumatori", "norma": "D.Lgs. 30/2026 (dir. UE 2024/825)", "decorrenza": "2026-09-27", "aree": ["consumatori", "commercio"]},
+    {"id": "data_act", "titolo": "Data Act: decorrenze differenziate", "norma": "Reg. UE 2023/2854, art. 50", "decorrenza": "2025-09-12", "aree": ["digitale"]},
+    {"id": "ia_professioni", "titolo": "Informazione al cliente sull'uso dell'IA nelle professioni intellettuali", "norma": "art. 13 L. 132/2025", "decorrenza": "2025-10-10", "aree": ["professioni", "digitale"]},
+    {"id": "odr_dismessa", "titolo": "Piattaforma europea ODR dismessa: non citarla come servizio operativo", "norma": "Reg. UE 2024/3228", "decorrenza": "2025-07-20", "aree": ["consumatori"]}
+  ]
+}

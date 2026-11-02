@@ -1,0 +1,21 @@
+[
+ {"id":"subordinato_indeterminato","nome":"Lavoro subordinato a tempo indeterminato","rif":["artt. 2094 ss. c.c.","art. 1 D.Lgs. 81/2015","D.Lgs. 152/1997"],"note":"Coordinare con il CCNL applicabile e gli obblighi informativi."},
+ {"id":"tempo_determinato","nome":"Lavoro a tempo determinato","rif":["artt. 19-29 D.Lgs. 81/2015"]},
+ {"id":"part_time","nome":"Lavoro a tempo parziale","rif":["artt. 4-12 D.Lgs. 81/2015"]},
+ {"id":"intermittente","nome":"Lavoro intermittente","rif":["artt. 13-18 D.Lgs. 81/2015"]},
+ {"id":"apprendistato","nome":"Apprendistato","rif":["artt. 41-47 D.Lgs. 81/2015"]},
+ {"id":"somministrazione_lavoro","nome":"Somministrazione di lavoro","rif":["artt. 30-40 D.Lgs. 81/2015"]},
+ {"id":"cococo","nome":"Collaborazione coordinata e continuativa","rif":["art. 409, n. 3, c.p.c.","art. 2 D.Lgs. 81/2015"],"note":"Rischio di eterorganizzazione: si applica la disciplina del lavoro subordinato."},
+ {"id":"opera","nome":"Lavoro autonomo e contratto d'opera","rif":["artt. 2222-2228 c.c.","L. 81/2017"]},
+ {"id":"lavoro_agile","nome":"Accordo individuale di lavoro agile","rif":["artt. 18-23 L. 81/2017"],"qual":"accessorio"},
+ {"id":"domestico","nome":"Lavoro domestico","rif":["artt. 2240 ss. c.c.","L. 339/1958","CCNL lavoro domestico"]},
+ {"id":"sportivo","nome":"Lavoro sportivo","rif":["D.Lgs. 36/2021, artt. 25 ss."]},
+ {"id":"prestazioni_occasionali","nome":"Prestazioni occasionali","rif":["art. 54-bis D.L. 50/2017"]},
+ {"id":"patto_prova","nome":"Patto di prova","rif":["art. 2096 c.c."],"qual":"accessorio","forma":"scritta_ad_substantiam"},
+ {"id":"non_concorrenza_dipendente","nome":"Patto di non concorrenza del dipendente","rif":["art. 2125 c.c."],"qual":"accessorio","forma":"scritta_ad_substantiam","note":"Nullo senza corrispettivo e limiti di oggetto, tempo e luogo."},
+ {"id":"riservatezza_invenzioni","nome":"Accordi su riservatezza, invenzioni e remunerazione variabile","rif":["art. 2105 c.c.","art. 64 D.Lgs. 30/2005"],"qual":"accessorio"},
+ {"id":"distacco","nome":"Distacco del lavoratore","rif":["art. 30 D.Lgs. 276/2003"]},
+ {"id":"risoluzione_consensuale_lavoro","nome":"Risoluzione consensuale e accordi di uscita","rif":["art. 26 D.Lgs. 151/2015","art. 2113 c.c."]},
+ {"id":"conciliazione_lavoro","nome":"Conciliazione lavoristica","rif":["artt. 410-411 c.p.c.","art. 2113 c.c.","art. 2-ter D.L. 132/2014"],"note":"Inoppugnabilità solo nelle sedi protette."},
+ {"id":"tirocinio","nome":"Convenzione di tirocinio e progetto formativo","rif":["disciplina regionale applicabile"],"qual":"atto_collegato","note":"Non è un contratto di lavoro."}
+]

@@ -1,0 +1,13 @@
+[
+ {"id":"trasporto","nome":"Trasporto di persone e di cose","rif":["artt. 1678-1702 c.c."]},
+ {"id":"spedizione","nome":"Spedizione","rif":["artt. 1737-1741 c.c."]},
+ {"id":"logistica","nome":"Servizi logistici integrati","rif":["art. 1677-bis c.c."]},
+ {"id":"deposito","nome":"Deposito ordinario e irregolare","rif":["artt. 1766-1782 c.c."],"forma":"libera"},
+ {"id":"deposito_albergo","nome":"Deposito in albergo","rif":["artt. 1783-1786 c.c."]},
+ {"id":"magazzini_generali","nome":"Deposito nei magazzini generali","rif":["artt. 1787-1797 c.c."]},
+ {"id":"custodia_veicoli","nome":"Custodia, rimessaggio e parcheggio di veicoli","rif":["art. 1322 c.c."],"qual":"atipico"},
+ {"id":"diporto","nome":"Locazione e noleggio di unità da diporto","rif":["D.Lgs. 171/2005, artt. 42 ss."]},
+ {"id":"navigazione","nome":"Locazione, noleggio e trasporto marittimo o aeronautico","rif":["Codice della navigazione"]},
+ {"id":"pacchetto_turistico","nome":"Pacchetto turistico e servizi turistici collegati","rif":["D.Lgs. 79/2011, allegato, artt. 32 ss."]},
+ {"id":"ospitalita_eventi","nome":"Ospitalità alberghiera, eventi e catering","rif":["art. 1322 c.c."],"qual":"misto"}
+]

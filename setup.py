@@ -1,4 +1,4 @@
-# version: 2.470.16
+# version: 2.471.0
 from pathlib import Path
 import sys
 
@@ -29,6 +29,7 @@ setup(
             "data/fonts/firma/*.txt",
             "sql/*.sql",
             "template_atti_catalogo_data/*.json",
+            "contratti/dati/*.json",
             "legal_rules/*.yml",
             "legal_rules/*.md",
         ],

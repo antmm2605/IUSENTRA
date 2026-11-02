@@ -249,6 +249,11 @@ for _id, _voce in FONTI.items():
         _voce["reader_url"] = "/api/v1/ui/fonti-procedurali/dgsia_2024/visualizza"
         _voce["verifica"] = "PDF ufficiale PST, con rettifiche del 16/09/2024 e 30/10/2024; consultato il 16/09/2026."
 
+# Norme delle regole che leggono i provvedimenti del giudice (pct/provvedimenti), verificate il 02/11/2026.
+from pct.procedura_fasi.fonti_provvedimenti import FONTI_PROVVEDIMENTI  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_PROVVEDIMENTI.items() if chiave not in FONTI})
+
 
 def fonte(identificativo: str) -> dict[str, Any]:
     """La voce del registro, o un dizionario vuoto se l'identificativo non esiste."""

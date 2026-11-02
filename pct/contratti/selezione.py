@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from pct.contratti.catalogo import famiglia, regole_comuni
+from pct.contratti.catalogo import clausole_della_famiglia, controlli_comuni, domande_comuni, famiglia, regole_comuni
 
 _FORME_PUBBLICO_UFFICIALE = {"scrittura_autenticata", "atto_pubblico"}
 
@@ -22,12 +22,15 @@ def _soddisfa(quando: dict, fatti: dict) -> bool | None:
         if chiave not in fatti or fatti[chiave] in (None, ""):
             return None
         valore = fatti[chiave]
-        if isinstance(atteso, dict) and "maggiore_di" in atteso:
+        if isinstance(atteso, dict):
             try:
-                if not float(valore) > float(atteso["maggiore_di"]):
-                    return False
+                numero = float(valore)
             except (TypeError, ValueError):
                 return None
+            if "maggiore_di" in atteso and not numero > float(atteso["maggiore_di"]):
+                return False
+            if "minore_di" in atteso and not numero < float(atteso["minore_di"]):
+                return False
         elif isinstance(atteso, list):
             if valore not in atteso:
                 return False
@@ -58,7 +61,7 @@ def valuta(contratto_id: str, fatti: dict | None = None, oggi: date | None = Non
     variante = varianti[0] if len(varianti) == 1 else None
 
     esiti, sospesi = [], []
-    for controllo in contratto.controlli:
+    for controllo in (*contratto.controlli, *controlli_comuni()):
         stato = _soddisfa(controllo.quando, fatti)
         voce = {"id": controllo.id, "esito": controllo.esito,
                 "messaggio": controllo.messaggio, "norma": controllo.norma}
@@ -67,7 +70,7 @@ def valuta(contratto_id: str, fatti: dict | None = None, oggi: date | None = Non
         elif stato is None:
             sospesi.append(voce)
 
-    domande_aperte = [d.id for d in contratto.domande if d.id not in fatti]
+    domande_aperte = [d.id for d in (*contratto.domande, *domande_comuni()) if d.id not in fatti]
     punti_avvocato = [e for e in esiti if e["esito"] == "valutazione_avvocato"]
     if contratto.varianti and variante is None:
         punti_avvocato.append({"id": "variante", "esito": "valutazione_avvocato", "norma": "",
@@ -100,7 +103,7 @@ def valuta(contratto_id: str, fatti: dict | None = None, oggi: date | None = Non
             "normativa": riferimenti,
             "forma": forma["forma"],
             "contenuti_obbligatori": [e["messaggio"] for e in esiti if e["esito"] == "blocco"],
-            "clausole_negoziabili": list(contratto.clausole),
+            "clausole_negoziabili": list(clausole_della_famiglia(contratto)),
             "documentazione": fatti.get("documentazione", ""),
             "adempimenti": [e["messaggio"] for e in esiti if e["esito"] == "adempimento"],
             "esecuzione": fatti.get("esecuzione", ""),

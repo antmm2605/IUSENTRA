@@ -1,0 +1,28 @@
+{
+  "domande": [
+    {"id": "parte_consumatore", "testo": "Una delle parti è un consumatore (persona fisica che agisce fuori dall'attività professionale)?"},
+    {"id": "parte_estera", "testo": "Una parte ha sede o residenza all'estero o il contratto si esegue all'estero?"},
+    {"id": "firmatario_rappresentante", "testo": "Una parte firma tramite rappresentante, procuratore o organo di società?"},
+    {"id": "condizioni_generali", "testo": "Il testo è predisposto da una parte per una serie di contratti (condizioni generali o modulo)?"},
+    {"id": "riguarda_immobili", "testo": "Il contratto trasferisce o costituisce diritti reali su immobili o li vincola per più di nove anni?"},
+    {"id": "dati_personali", "testo": "L'esecuzione comporta il trattamento di dati personali di terzi?"},
+    {"id": "penale_o_caparra", "testo": "Sono previste penale o caparra?"},
+    {"id": "limitazione_responsabilita", "testo": "Sono previste esclusioni o limitazioni di responsabilità?"},
+    {"id": "clausola_arbitrale", "testo": "Si vuole devolvere le controversie ad arbitri?"},
+    {"id": "firma_digitale", "testo": "Il contratto sarà sottoscritto con firma digitale o elettronica qualificata?"}
+  ],
+  "controlli": [
+    {"id": "consumatore_vessatorie", "quando": {"parte_consumatore": true}, "esito": "valutazione_avvocato", "messaggio": "Contratto con consumatore: verificare le clausole vessatorie (presunzione e nullità di protezione); la doppia firma non le rende valide.", "norma": "artt. 33-38 D.Lgs. 206/2005"},
+    {"id": "consumatore_foro", "quando": {"parte_consumatore": true}, "esito": "adempimento", "messaggio": "Indicare come competente il foro di residenza o domicilio del consumatore: la deroga a suo svantaggio è vessatoria.", "norma": "art. 33, comma 2, lett. u), D.Lgs. 206/2005"},
+    {"id": "legge_applicabile", "quando": {"parte_estera": true}, "esito": "valutazione_avvocato", "messaggio": "Scegliere legge applicabile e giurisdizione; restano le tutele inderogabili di consumatore e lavoratore.", "norma": "Reg. CE 593/2008 artt. 3, 6, 8; Reg. UE 1215/2012"},
+    {"id": "poteri_firma", "quando": {"firmatario_rappresentante": true}, "esito": "adempimento", "messaggio": "Acquisire procura o visura con i poteri di firma; la procura deve avere la forma del contratto.", "norma": "artt. 1387-1400 c.c.; art. 1392 c.c."},
+    {"id": "doppia_sottoscrizione", "quando": {"condizioni_generali": true}, "esito": "adempimento", "messaggio": "Clausole onerose da approvare specificamente per iscritto (elenco e seconda sottoscrizione).", "norma": "artt. 1341-1342 c.c."},
+    {"id": "forma_immobili", "quando": {"riguarda_immobili": true}, "esito": "blocco", "messaggio": "Forma scritta a pena di nullità; per la trascrizione serve atto pubblico o scrittura autenticata.", "norma": "artt. 1350, 2643, 2657 c.c."},
+    {"id": "privacy_ruoli", "quando": {"dati_personali": true}, "esito": "adempimento", "messaggio": "Qualificare i ruoli privacy (titolare, responsabile, contitolare) e predisporre gli accordi.", "norma": "artt. 24, 26, 28 GDPR"},
+    {"id": "penale_riducibile", "quando": {"penale_o_caparra": true}, "esito": "avviso", "messaggio": "La penale manifestamente eccessiva è riducibile dal giudice; distinguere caparra confirmatoria e penitenziale.", "norma": "artt. 1382-1386 c.c."},
+    {"id": "esonero_dolo", "quando": {"limitazione_responsabilita": true}, "esito": "valutazione_avvocato", "messaggio": "Nullo l'esonero per dolo o colpa grave e per violazione di norme di ordine pubblico.", "norma": "art. 1229 c.c."},
+    {"id": "arbitrato_forma", "quando": {"clausola_arbitrale": true}, "esito": "adempimento", "messaggio": "Clausola compromissoria per iscritto, con indicazione del numero e modo di nomina degli arbitri; specifica approvazione se in condizioni generali.", "norma": "artt. 808, 809 c.p.c."},
+    {"id": "firma_elettronica", "quando": {"firma_digitale": true}, "esito": "avviso", "messaggio": "La firma digitale soddisfa la forma scritta; per le forme autenticate serve l'autentica del pubblico ufficiale.", "norma": "artt. 20-21 D.Lgs. 82/2005"},
+    {"id": "antiriciclaggio_comune", "quando": {}, "esito": "adempimento", "messaggio": "Verificare se l'operazione rientra negli obblighi di adeguata verifica dell'avvocato.", "norma": "artt. 3 e 17 D.Lgs. 231/2007"}
+  ]
+}

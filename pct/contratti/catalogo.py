@@ -55,6 +55,31 @@ def _contratto(area: str, voce: dict) -> Contratto:
 
 
 @lru_cache(maxsize=1)
+def libreria_clausole() -> dict:
+    return _leggi("_clausole.json")
+
+
+def clausole_della_famiglia(contratto: Contratto) -> tuple[str, ...]:
+    """Chiavi delle clausole della bozza: proprie della famiglia o predefinite, più le finali."""
+    lib = libreria_clausole()
+    base = contratto.clausole or tuple(lib["predefinite"])
+    return tuple(dict.fromkeys((*base, *lib["finali"])))
+
+
+@lru_cache(maxsize=1)
+def _comuni() -> dict:
+    return _leggi("_domande_comuni.json")
+
+
+def domande_comuni() -> tuple[Domanda, ...]:
+    return tuple(Domanda(id=d["id"], testo=d["testo"]) for d in _comuni()["domande"])
+
+
+def controlli_comuni() -> tuple[Controllo, ...]:
+    return tuple(Controllo(**c) for c in _comuni()["controlli"])
+
+
+@lru_cache(maxsize=1)
 def _indice() -> dict[str, Contratto]:
     meta = _leggi("_aree.json")
     indice: dict[str, Contratto] = {}
@@ -63,6 +88,11 @@ def _indice() -> dict[str, Contratto]:
             if voce["id"] in indice:
                 raise CatalogoContrattiNonValido(f"id duplicato: {voce['id']}")
             indice[voce["id"]] = _contratto(area, voce)
+    note = set(libreria_clausole()["clausole"])
+    for contratto in indice.values():
+        mancanti = set(contratto.clausole) - note
+        if mancanti:
+            raise CatalogoContrattiNonValido(f"{contratto.id}: clausole senza testo {sorted(mancanti)}")
     return indice
 
 
@@ -85,7 +115,8 @@ def carica_catalogo() -> dict:
     for chiave, titolo in meta["aree"].items():
         voci = [
             {"id": c.id, "nome": c.nome, "qualificazione": c.qualificazione, "forma": c.forma,
-             "riferimenti": list(c.riferimenti), "guidato": bool(c.domande)}
+             "riferimenti": list(c.riferimenti), "guidato": bool(c.domande),
+             "pubblico_ufficiale": c.forma in ("scrittura_autenticata", "atto_pubblico")}
             for c in _indice().values() if c.area == chiave
         ]
         aree.append({"id": chiave, "titolo": titolo, "voci": voci})

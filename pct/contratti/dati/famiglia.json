@@ -1,14 +1,151 @@
 [
- {"id":"convivenza","nome":"Contratto di convivenza","rif":["art. 1, commi 50-64, L. 76/2016"],"forma":"scrittura_autenticata","note":"L'avvocato può autenticare questo contratto e deve trasmetterlo al Comune entro 10 giorni; il potere non si estende ad altri contratti."},
- {"id":"convenzioni_matrimoniali","nome":"Convenzioni matrimoniali","rif":["artt. 159-166 c.c."],"forma":"atto_pubblico"},
- {"id":"fondo_patrimoniale","nome":"Costituzione di fondo patrimoniale","rif":["artt. 167-171 c.c."],"forma":"atto_pubblico"},
- {"id":"donazione","nome":"Donazione ordinaria, modale o remuneratoria","rif":["artt. 769 ss. c.c.","art. 782 c.c."],"forma":"atto_pubblico","note":"Atto pubblico con due testimoni, salvo donazione di modico valore (art. 783 c.c.)."},
- {"id":"patto_famiglia","nome":"Patto di famiglia","rif":["artt. 768-bis-768-octies c.c."],"forma":"atto_pubblico"},
- {"id":"divisione_ereditaria","nome":"Divisione ereditaria e accordi tra coeredi","rif":["artt. 713 ss. c.c."]},
- {"id":"vendita_eredita","nome":"Vendita di eredità già aperta","rif":["artt. 1542-1547 c.c."]},
- {"id":"vitalizio","nome":"Rendita vitalizia e accordi di mantenimento o assistenza","rif":["artt. 1872-1881 c.c.","art. 1322 c.c."]},
- {"id":"trust","nome":"Trust e accordi fiduciari","rif":["L. 364/1989 (Convenzione dell'Aja)"]},
- {"id":"atto_destinazione","nome":"Atto di destinazione","rif":["art. 2645-ter c.c."],"forma":"atto_pubblico"},
- {"id":"dopo_di_noi","nome":"Strumenti patrimoniali per persone con disabilità","rif":["L. 112/2016, art. 6"]},
- {"id":"accordi_separazione","nome":"Accordi di separazione, divorzio e modifica delle condizioni","rif":["art. 6 D.L. 132/2014"],"note":"Procedura di negoziazione assistita con nulla osta o autorizzazione del PM."}
+ {
+  "id": "convivenza",
+  "nome": "Contratto di convivenza",
+  "rif": [
+   "art. 1, commi 50-64, L. 76/2016"
+  ],
+  "forma": "scrittura_autenticata",
+  "note": "L'avvocato può autenticare questo contratto e deve trasmetterlo al Comune entro 10 giorni; il potere non si estende ad altri contratti.",
+  "domande": [
+   {
+    "id": "conviventi_liberi",
+    "testo": "Entrambi i conviventi sono maggiorenni e non vincolati da matrimonio o unione civile?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "requisiti_conv",
+    "quando": {
+     "conviventi_liberi": false
+    },
+    "esito": "blocco",
+    "messaggio": "Contratto nullo in presenza di vincolo matrimoniale o unione civile.",
+    "norma": "art. 1, comma 57, L. 76/2016"
+   },
+   {
+    "id": "trasmissione",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "L'avvocato che autentica trasmette copia al Comune di residenza entro dieci giorni.",
+    "norma": "art. 1, comma 52, L. 76/2016"
+   }
+  ]
+ },
+ {
+  "id": "convenzioni_matrimoniali",
+  "nome": "Convenzioni matrimoniali",
+  "rif": [
+   "artt. 159-166 c.c."
+  ],
+  "forma": "atto_pubblico"
+ },
+ {
+  "id": "fondo_patrimoniale",
+  "nome": "Costituzione di fondo patrimoniale",
+  "rif": [
+   "artt. 167-171 c.c."
+  ],
+  "forma": "atto_pubblico"
+ },
+ {
+  "id": "donazione",
+  "nome": "Donazione ordinaria, modale o remuneratoria",
+  "rif": [
+   "artt. 769 ss. c.c.",
+   "art. 782 c.c."
+  ],
+  "forma": "atto_pubblico",
+  "note": "Atto pubblico con due testimoni, salvo donazione di modico valore (art. 783 c.c.).",
+  "domande": [
+   {
+    "id": "modico_valore",
+    "testo": "La donazione ha modico valore di beni mobili?"
+   },
+   {
+    "id": "donatario_legittimario",
+    "testo": "Esistono legittimari potenzialmente lesi?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "forma_donazione",
+    "quando": {
+     "modico_valore": false
+    },
+    "esito": "blocco",
+    "messaggio": "Atto pubblico con due testimoni a pena di nullità.",
+    "norma": "art. 782 c.c.; art. 48 L. 89/1913"
+   },
+   {
+    "id": "legittima",
+    "quando": {
+     "donatario_legittimario": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Rischio di riduzione e collazione: valutare la tutela dei legittimari.",
+    "norma": "artt. 553 ss., 737 ss. c.c."
+   }
+  ]
+ },
+ {
+  "id": "patto_famiglia",
+  "nome": "Patto di famiglia",
+  "rif": [
+   "artt. 768-bis-768-octies c.c."
+  ],
+  "forma": "atto_pubblico"
+ },
+ {
+  "id": "divisione_ereditaria",
+  "nome": "Divisione ereditaria e accordi tra coeredi",
+  "rif": [
+   "artt. 713 ss. c.c."
+  ]
+ },
+ {
+  "id": "vendita_eredita",
+  "nome": "Vendita di eredità già aperta",
+  "rif": [
+   "artt. 1542-1547 c.c."
+  ]
+ },
+ {
+  "id": "vitalizio",
+  "nome": "Rendita vitalizia e accordi di mantenimento o assistenza",
+  "rif": [
+   "artt. 1872-1881 c.c.",
+   "art. 1322 c.c."
+  ]
+ },
+ {
+  "id": "trust",
+  "nome": "Trust e accordi fiduciari",
+  "rif": [
+   "L. 364/1989 (Convenzione dell'Aja)"
+  ]
+ },
+ {
+  "id": "atto_destinazione",
+  "nome": "Atto di destinazione",
+  "rif": [
+   "art. 2645-ter c.c."
+  ],
+  "forma": "atto_pubblico"
+ },
+ {
+  "id": "dopo_di_noi",
+  "nome": "Strumenti patrimoniali per persone con disabilità",
+  "rif": [
+   "L. 112/2016, art. 6"
+  ]
+ },
+ {
+  "id": "accordi_separazione",
+  "nome": "Accordi di separazione, divorzio e modifica delle condizioni",
+  "rif": [
+   "art. 6 D.L. 132/2014"
+  ],
+  "note": "Procedura di negoziazione assistita con nulla osta o autorizzazione del PM."
+ }
 ]

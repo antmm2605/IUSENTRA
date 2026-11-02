@@ -1,0 +1,288 @@
+[
+ {
+  "id": "societa_persone",
+  "nome": "Contratto di società semplice, SNC e SAS",
+  "rif": [
+   "artt. 2247 ss. c.c.",
+   "artt. 2251 ss. c.c.",
+   "artt. 2291 ss. c.c.",
+   "artt. 2313 ss. c.c."
+  ]
+ },
+ {
+  "id": "societa_capitali",
+  "nome": "Atto costitutivo e statuto di SPA, SAPA e SRL",
+  "rif": [
+   "artt. 2328 ss. c.c.",
+   "artt. 2452 ss. c.c.",
+   "artt. 2463 ss. c.c."
+  ],
+  "forma": "atto_pubblico",
+  "note": "La costituzione richiede atto pubblico notarile e iscrizione nel registro delle imprese."
+ },
+ {
+  "id": "cooperativa",
+  "nome": "Costituzione di cooperativa",
+  "rif": [
+   "artt. 2511 ss. c.c."
+  ],
+  "forma": "atto_pubblico"
+ },
+ {
+  "id": "cessione_quote_srl",
+  "nome": "Cessione di quote di SRL",
+  "rif": [
+   "artt. 2469-2470 c.c."
+  ],
+  "forma": "scrittura_autenticata",
+  "note": "Deposito al registro imprese tramite notaio o intermediario abilitato (art. 36, comma 1-bis, D.L. 112/2008).",
+  "clausole": [
+   "oggetto",
+   "quote_prezzo",
+   "pagamento",
+   "quote_condizioni",
+   "quote_garanzie",
+   "riservatezza",
+   "comunicazioni",
+   "legge_foro",
+   "spese_contratto"
+  ],
+  "domande": [
+   {
+    "id": "prelazione_statutaria",
+    "testo": "Lo statuto prevede prelazione o gradimento?"
+   },
+   {
+    "id": "cedente_coniugato_comunione",
+    "testo": "Il cedente è coniugato in comunione legale?"
+   },
+   {
+    "id": "due_diligence",
+    "testo": "È stata svolta una due diligence?"
+   },
+   {
+    "id": "quote_pegno",
+    "testo": "Le quote sono gravate da pegno o vincoli?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "prelazione",
+    "quando": {
+     "prelazione_statutaria": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Esperire la procedura statutaria di prelazione o gradimento prima del trasferimento.",
+    "norma": "art. 2469 c.c."
+   },
+   {
+    "id": "comunione",
+    "quando": {
+     "cedente_coniugato_comunione": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Verificare se le quote ricadono in comunione legale e acquisire il consenso del coniuge.",
+    "norma": "artt. 177, 180 c.c."
+   },
+   {
+    "id": "dd",
+    "quando": {
+     "due_diligence": false
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Senza due diligence rafforzare dichiarazioni, garanzie e indennizzi.",
+    "norma": "art. 1322 c.c."
+   },
+   {
+    "id": "vincoli_quote",
+    "quando": {
+     "quote_pegno": true
+    },
+    "esito": "blocco",
+    "messaggio": "Liberare le quote o ottenere il consenso del creditore pignoratizio.",
+    "norma": "artt. 2471-bis, 2784 c.c."
+   },
+   {
+    "id": "deposito_ri",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Deposito al registro imprese entro 30 giorni tramite notaio o intermediario abilitato.",
+    "norma": "art. 2470 c.c.; art. 36 D.L. 112/2008"
+   }
+  ]
+ },
+ {
+  "id": "cessione_azioni",
+  "nome": "Cessione di azioni",
+  "rif": [
+   "artt. 2355-2355-bis c.c.",
+   "TUF eventuale"
+  ]
+ },
+ {
+  "id": "patti_parasociali",
+  "nome": "Patti parasociali e sindacati di voto o blocco",
+  "rif": [
+   "art. 1322 c.c.",
+   "artt. 2341-bis, 2341-ter c.c.",
+   "artt. 122-123 TUF"
+  ],
+  "note": "Durata massima cinque anni per le società di capitali (art. 2341-bis c.c.).",
+  "domande": [
+   {
+    "id": "durata_anni",
+    "testo": "Durata in anni",
+    "tipo": "numero"
+   },
+   {
+    "id": "societa_quotata",
+    "testo": "La società è quotata?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "durata_patti",
+    "quando": {
+     "durata_anni": {
+      "maggiore_di": 5
+     }
+    },
+    "esito": "blocco",
+    "messaggio": "Durata massima cinque anni per le società per azioni.",
+    "norma": "art. 2341-bis c.c."
+   },
+   {
+    "id": "tuf_patti",
+    "quando": {
+     "societa_quotata": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Comunicazione Consob, pubblicazione per estratto e deposito al registro imprese.",
+    "norma": "art. 122 TUF"
+   }
+  ]
+ },
+ {
+  "id": "accordo_investimento",
+  "nome": "Accordo di investimento, ingresso del socio e aumento di capitale",
+  "rif": [
+   "artt. 2438 ss. c.c.",
+   "artt. 2481 ss. c.c."
+  ]
+ },
+ {
+  "id": "opzioni_societarie",
+  "nome": "Opzioni put/call, prelazione, co-vendita e trascinamento",
+  "rif": [
+   "art. 1322 c.c.",
+   "art. 1331 c.c."
+  ]
+ },
+ {
+  "id": "finanziamento_soci",
+  "nome": "Finanziamento soci e accordi infragruppo",
+  "rif": [
+   "artt. 1813 ss. c.c.",
+   "art. 2467 c.c.",
+   "art. 2497-quinquies c.c."
+  ]
+ },
+ {
+  "id": "cessione_azienda",
+  "nome": "Cessione d'azienda o di ramo d'azienda",
+  "rif": [
+   "artt. 2555-2560 c.c.",
+   "art. 2112 c.c."
+  ],
+  "forma": "scrittura_autenticata",
+  "note": "Forma autenticata per l'iscrizione nel registro imprese (art. 2556 c.c.); procedura sindacale ex art. 47 L. 428/1990 se oltre 15 dipendenti.",
+  "domande": [
+   {
+    "id": "dipendenti_numero",
+    "testo": "Numero di dipendenti dell'azienda",
+    "tipo": "numero"
+   },
+   {
+    "id": "debiti_contabili",
+    "testo": "Esistono debiti risultanti dalle scritture contabili?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "sindacale",
+    "quando": {
+     "dipendenti_numero": {
+      "maggiore_di": 15
+     }
+    },
+    "esito": "adempimento",
+    "messaggio": "Comunicazione alle rappresentanze sindacali almeno 25 giorni prima.",
+    "norma": "art. 47 L. 428/1990"
+   },
+   {
+    "id": "debiti",
+    "quando": {
+     "debiti_contabili": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "L'acquirente risponde dei debiti risultanti dai libri contabili: regolare garanzie e manleve.",
+    "norma": "art. 2560 c.c."
+   },
+   {
+    "id": "lavoratori",
+    "quando": {},
+    "esito": "avviso",
+    "messaggio": "I rapporti di lavoro proseguono con il cessionario.",
+    "norma": "art. 2112 c.c."
+   }
+  ]
+ },
+ {
+  "id": "affitto_azienda",
+  "nome": "Affitto e usufrutto d'azienda",
+  "rif": [
+   "artt. 2561-2562 c.c."
+  ],
+  "forma": "scrittura_autenticata"
+ },
+ {
+  "id": "joint_venture",
+  "nome": "Joint venture contrattuale o societaria",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "consorzio",
+  "nome": "Consorzio e società consortile",
+  "rif": [
+   "artt. 2602 ss. c.c.",
+   "art. 2615-ter c.c."
+  ]
+ },
+ {
+  "id": "contratto_rete",
+  "nome": "Contratto di rete",
+  "rif": [
+   "art. 3, commi 4-ter ss., D.L. 5/2009"
+  ],
+  "forma": "scrittura_autenticata"
+ },
+ {
+  "id": "associazione_partecipazione",
+  "nome": "Associazione in partecipazione e cointeressenza",
+  "rif": [
+   "artt. 2549-2554 c.c."
+  ]
+ },
+ {
+  "id": "preparatori_straordinarie",
+  "nome": "Accordi preparatori a fusione, scissione e trasformazione",
+  "rif": [
+   "artt. 2498 ss. c.c.",
+   "artt. 2501 ss. c.c.",
+   "artt. 2506 ss. c.c."
+  ]
+ }
+]

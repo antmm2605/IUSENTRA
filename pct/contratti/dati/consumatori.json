@@ -1,0 +1,116 @@
+[
+ {
+  "id": "vendita_consumatore",
+  "nome": "Vendita di beni al consumatore, anche con elementi digitali",
+  "rif": [
+   "artt. 128-135-septies Codice del consumo"
+  ]
+ },
+ {
+  "id": "contenuti_digitali",
+  "nome": "Fornitura di contenuti e servizi digitali",
+  "rif": [
+   "artt. 135-octies ss. Codice del consumo"
+  ]
+ },
+ {
+  "id": "distanza_fuori_locali",
+  "nome": "Contratti a distanza o fuori dai locali commerciali",
+  "rif": [
+   "artt. 45 ss. Codice del consumo",
+   "art. 54-bis Codice del consumo"
+  ]
+ },
+ {
+  "id": "condizioni_online",
+  "nome": "Condizioni di vendita online, abbonamenti e rinnovi",
+  "rif": [
+   "Codice del consumo",
+   "D.Lgs. 70/2003"
+  ],
+  "note": "La doppia firma non sana una clausola vessatoria verso il consumatore (artt. 33-38).",
+  "domande": [
+   {
+    "id": "cita_odr",
+    "testo": "Il testo rimanda alla piattaforma europea ODR?"
+   },
+   {
+    "id": "recesso_online",
+    "testo": "È presente la funzione di recesso tramite interfaccia online?"
+   },
+   {
+    "id": "claim_ambientali",
+    "testo": "Sono presenti dichiarazioni ambientali sul prodotto?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "odr",
+    "quando": {
+     "cita_odr": true
+    },
+    "esito": "blocco",
+    "messaggio": "Piattaforma ODR dismessa dal 20 luglio 2025: eliminare il rinvio.",
+    "norma": "Reg. UE 2024/3228"
+   },
+   {
+    "id": "recesso_interfaccia",
+    "quando": {
+     "recesso_online": false
+    },
+    "esito": "blocco",
+    "messaggio": "Prevedere la funzione di recesso online.",
+    "norma": "art. 54-bis Codice del consumo"
+   },
+   {
+    "id": "green_claims",
+    "quando": {
+     "claim_ambientali": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Verificare le dichiarazioni ambientali.",
+    "norma": "D.Lgs. 30/2026"
+   }
+  ],
+  "clausole": [
+   "oggetto",
+   "corrispettivo",
+   "pagamento",
+   "ecom_recesso",
+   "ecom_garanzia",
+   "privacy",
+   "ecom_reclami",
+   "legge_foro"
+  ]
+ },
+ {
+  "id": "piattaforme",
+  "nome": "Termini di piattaforme e marketplace",
+  "rif": [
+   "Codice del consumo",
+   "Reg. UE 2022/2065"
+  ]
+ },
+ {
+  "id": "multiproprieta",
+  "nome": "Multiproprietà, prodotti vacanza, rivendita e scambio",
+  "rif": [
+   "artt. 69-81 Codice del consumo"
+  ]
+ },
+ {
+  "id": "servizi_finanziari_distanza",
+  "nome": "Commercializzazione a distanza di servizi finanziari",
+  "rif": [
+   "artt. 59-bis-59-terdecies Codice del consumo",
+   "D.Lgs. 209/2025"
+  ]
+ },
+ {
+  "id": "garanzie_commerciali",
+  "nome": "Garanzie commerciali e servizi di assistenza aggiuntivi",
+  "rif": [
+   "art. 135-quinquies Codice del consumo"
+  ]
+ }
+]

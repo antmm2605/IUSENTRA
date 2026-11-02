@@ -1,0 +1,249 @@
+[
+ {
+  "id": "mutuo",
+  "nome": "Mutuo fruttifero o infruttifero",
+  "rif": [
+   "artt. 1813-1822 c.c."
+  ],
+  "note": "Interessi ultralegali solo per iscritto (art. 1284 c.c.); limiti usura L. 108/1996.",
+  "domande": [
+   {
+    "id": "interessi_convenuti",
+    "testo": "Sono convenuti interessi?"
+   },
+   {
+    "id": "mutuante_professionale",
+    "testo": "Il mutuante eroga finanziamenti professionalmente?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "interessi_scritti",
+    "quando": {
+     "interessi_convenuti": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Interessi ultralegali per iscritto; verificare la soglia antiusura.",
+    "norma": "art. 1284 c.c.; L. 108/1996"
+   },
+   {
+    "id": "riserva_tub",
+    "quando": {
+     "mutuante_professionale": true
+    },
+    "esito": "blocco",
+    "messaggio": "Attività di finanziamento riservata a soggetti autorizzati.",
+    "norma": "art. 106 TUB"
+   }
+  ]
+ },
+ {
+  "id": "finanziamento_fondiario",
+  "nome": "Finanziamento ipotecario e fondiario",
+  "rif": [
+   "D.Lgs. 385/1993 (TUB), artt. 38 ss."
+  ],
+  "note": "Erogazione riservata a soggetti autorizzati."
+ },
+ {
+  "id": "credito_immobiliare_consumatori",
+  "nome": "Credito immobiliare ai consumatori",
+  "rif": [
+   "artt. 120-quinquies ss. TUB"
+  ]
+ },
+ {
+  "id": "credito_consumatori",
+  "nome": "Credito ai consumatori e finanziamenti collegati",
+  "rif": [
+   "artt. 121 ss. TUB",
+   "D.Lgs. 212/2025"
+  ]
+ },
+ {
+  "id": "apertura_credito",
+  "nome": "Apertura di credito",
+  "rif": [
+   "artt. 1842-1845 c.c."
+  ]
+ },
+ {
+  "id": "anticipazione_bancaria",
+  "nome": "Anticipazione bancaria",
+  "rif": [
+   "artt. 1846-1851 c.c."
+  ]
+ },
+ {
+  "id": "sconto",
+  "nome": "Sconto bancario",
+  "rif": [
+   "artt. 1858-1860 c.c."
+  ]
+ },
+ {
+  "id": "deposito_bancario",
+  "nome": "Deposito bancario e conto corrente bancario",
+  "rif": [
+   "artt. 1834 ss. c.c.",
+   "artt. 1852 ss. c.c."
+  ]
+ },
+ {
+  "id": "conto_corrente_ordinario",
+  "nome": "Conto corrente ordinario tra parti",
+  "rif": [
+   "artt. 1823-1833 c.c."
+  ]
+ },
+ {
+  "id": "leasing_finanziario",
+  "nome": "Leasing finanziario",
+  "rif": [
+   "art. 1, commi 136-140, L. 124/2017"
+  ]
+ },
+ {
+  "id": "cessione_credito",
+  "nome": "Cessione del credito, pro soluto o pro solvendo",
+  "rif": [
+   "artt. 1260-1267 c.c."
+  ],
+  "forma": "libera"
+ },
+ {
+  "id": "factoring",
+  "nome": "Factoring",
+  "rif": [
+   "L. 52/1991"
+  ]
+ },
+ {
+  "id": "fideiussione",
+  "nome": "Fideiussione specifica o omnibus",
+  "rif": [
+   "artt. 1936-1957 c.c."
+  ],
+  "note": "Omnibus: indicare l'importo massimo garantito (art. 1938 c.c.); verificare i profili antitrust sullo schema ABI.",
+  "clausole": [
+   "oggetto",
+   "fideiussione_importo",
+   "fideiussione_escussione",
+   "comunicazioni",
+   "legge_foro"
+  ],
+  "domande": [
+   {
+    "id": "omnibus",
+    "testo": "Garantisce obbligazioni future o indeterminate (omnibus)?"
+   },
+   {
+    "id": "fideiussore_consumatore",
+    "testo": "Il fideiussore è una persona fisica estranea all'attività?"
+   },
+   {
+    "id": "schema_abi",
+    "testo": "Il testo riproduce lo schema ABI 2003?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "massimo",
+    "quando": {
+     "omnibus": true
+    },
+    "esito": "blocco",
+    "messaggio": "Fideiussione per obbligazioni future: indicare l'importo massimo garantito.",
+    "norma": "art. 1938 c.c."
+   },
+   {
+    "id": "abi",
+    "quando": {
+     "schema_abi": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Clausole dello schema ABI (reviviscenza, rinuncia ex 1957, sopravvivenza) dichiarate in contrasto con la concorrenza: valutare la nullità parziale.",
+    "norma": "Cass. S.U. 41994/2021; art. 2 L. 287/1990"
+   },
+   {
+    "id": "fid_cons",
+    "quando": {
+     "fideiussore_consumatore": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Fideiussore consumatore: verificare clausole vessatorie e foro.",
+    "norma": "artt. 33-38 D.Lgs. 206/2005"
+   }
+  ]
+ },
+ {
+  "id": "mandato_credito",
+  "nome": "Mandato di credito",
+  "rif": [
+   "artt. 1958-1959 c.c."
+  ]
+ },
+ {
+  "id": "garanzia_autonoma",
+  "nome": "Garanzia autonoma, performance bond, a prima richiesta",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "pegno",
+  "nome": "Pegno di beni, crediti o partecipazioni",
+  "rif": [
+   "artt. 2784 ss. c.c."
+  ]
+ },
+ {
+  "id": "pegno_non_possessorio",
+  "nome": "Pegno mobiliare non possessorio",
+  "rif": [
+   "art. 1 D.L. 59/2016"
+  ],
+  "note": "Iscrizione nel registro informatizzato presso l'Agenzia delle Entrate."
+ },
+ {
+  "id": "ipoteca_volontaria",
+  "nome": "Costituzione di ipoteca volontaria",
+  "rif": [
+   "artt. 2808 ss. c.c.",
+   "art. 2821 c.c."
+  ],
+  "forma": "scrittura_autenticata"
+ },
+ {
+  "id": "escrow",
+  "nome": "Escrow e deposito fiduciario",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "delegazione_accollo",
+  "nome": "Delegazione, espromissione e accollo",
+  "rif": [
+   "artt. 1268-1276 c.c."
+  ]
+ },
+ {
+  "id": "assicurazione",
+  "nome": "Assicurazione danni, vita, RC e riassicurazione",
+  "rif": [
+   "artt. 1882-1932 c.c.",
+   "D.Lgs. 209/2005"
+  ]
+ },
+ {
+  "id": "servizi_investimento",
+  "nome": "Servizi di investimento, gestione, consulenza e derivati",
+  "rif": [
+   "D.Lgs. 58/1998 (TUF), artt. 21-24-bis"
+  ],
+  "note": "Attività riservata: la redazione da parte dell'avvocato non abilita la controparte."
+ }
+]

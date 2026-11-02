@@ -1,0 +1,289 @@
+[
+ {
+  "id": "sviluppo_software",
+  "nome": "Sviluppo software, sito, applicazione e integrazioni",
+  "rif": [
+   "art. 1322 c.c.",
+   "artt. 1655 ss. c.c.",
+   "artt. 2222 ss. c.c.",
+   "L. 633/1941, artt. 64-bis ss."
+  ],
+  "qual": "misto",
+  "note": "Commissionare lo sviluppo non trasferisce automaticamente tutti i diritti: titolarità, licenze di terzi e dati vanno disciplinati.",
+  "varianti": [
+   {
+    "id": "appalto",
+    "nome": "Sviluppo in appalto (impresa organizzata)",
+    "rif": [
+     "artt. 1655 ss. c.c."
+    ],
+    "quando": {
+     "fornitore_impresa": true
+    }
+   },
+   {
+    "id": "opera",
+    "nome": "Sviluppo come contratto d'opera (professionista singolo)",
+    "rif": [
+     "artt. 2222 ss. c.c."
+    ],
+    "quando": {
+     "fornitore_impresa": false
+    }
+   },
+   {
+    "id": "agile",
+    "nome": "Sviluppo iterativo (agile) a tempo e materiali",
+    "rif": [
+     "art. 1322 c.c."
+    ],
+    "quando": {
+     "metodo_agile": true
+    }
+   }
+  ],
+  "domande": [
+   {
+    "id": "fornitore_impresa",
+    "testo": "Il fornitore è un'impresa organizzata (e non un professionista singolo)?"
+   },
+   {
+    "id": "metodo_agile",
+    "testo": "Lo sviluppo segue un metodo iterativo senza specifiche chiuse?"
+   },
+   {
+    "id": "cessione_diritti",
+    "testo": "Il committente vuole la titolarità esclusiva del codice?"
+   },
+   {
+    "id": "componenti_open_source",
+    "testo": "Il software incorpora componenti open source o di terzi?"
+   },
+   {
+    "id": "tratta_dati_personali",
+    "testo": "Il fornitore tratta dati personali per conto del committente?"
+   },
+   {
+    "id": "usa_ia",
+    "testo": "Il software sviluppa o integra sistemi di IA?"
+   },
+   {
+    "id": "committente_finanziario",
+    "testo": "Il committente è un'entità finanziaria soggetta a DORA?"
+   },
+   {
+    "id": "committente_consumatore",
+    "testo": "Il committente è un consumatore?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "titolarita",
+    "quando": {
+     "cessione_diritti": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Disciplinare cessione dei diritti patrimoniali, consegna dei sorgenti e documentazione.",
+    "norma": "artt. 64-bis, 107 ss. L. 633/1941"
+   },
+   {
+    "id": "licenze_terzi",
+    "quando": {
+     "componenti_open_source": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Inventario delle licenze di terzi e compatibilità con la distribuzione (copyleft).",
+    "norma": "L. 633/1941"
+   },
+   {
+    "id": "dpa",
+    "quando": {
+     "tratta_dati_personali": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Accordo titolare-responsabile del trattamento.",
+    "norma": "art. 28 GDPR"
+   },
+   {
+    "id": "ai_act",
+    "quando": {
+     "usa_ia": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Identificare ruoli (fornitore/deployer), categoria di rischio e calendario degli obblighi.",
+    "norma": "Reg. UE 2024/1689; L. 132/2025"
+   },
+   {
+    "id": "dora",
+    "quando": {
+     "committente_finanziario": true
+    },
+    "esito": "blocco",
+    "messaggio": "Servizio ICT a entità finanziaria: clausole obbligatorie DORA.",
+    "norma": "art. 30 Reg. UE 2022/2554"
+   },
+   {
+    "id": "collaudo",
+    "quando": {},
+    "esito": "avviso",
+    "messaggio": "Definire collaudo, garanzia, livelli di servizio, uscita e assistenza alla migrazione.",
+    "norma": "artt. 1665-1667 c.c."
+   }
+  ],
+  "clausole": [
+   "oggetto",
+   "sw_specifiche",
+   "corrispettivo",
+   "pagamento",
+   "sw_collaudo",
+   "sw_titolarita",
+   "sw_sorgenti",
+   "sw_garanzia",
+   "riservatezza",
+   "privacy",
+   "sw_responsabilita",
+   "sw_uscita",
+   "recesso",
+   "risoluzione",
+   "legge_foro"
+  ]
+ },
+ {
+  "id": "licenza_software",
+  "nome": "Licenza software, distribuzione e sublicenza",
+  "rif": [
+   "L. 633/1941, artt. 64-bis ss."
+  ]
+ },
+ {
+  "id": "saas_cloud",
+  "nome": "SaaS, cloud, hosting e servizi informatici gestiti",
+  "rif": [
+   "GDPR",
+   "Reg. UE 2023/2854"
+  ]
+ },
+ {
+  "id": "manutenzione_sla",
+  "nome": "Manutenzione, assistenza, livelli di servizio e continuità",
+  "rif": [
+   "artt. 1655 ss. c.c."
+  ]
+ },
+ {
+  "id": "software_escrow",
+  "nome": "Deposito del codice sorgente (software escrow)",
+  "rif": [
+   "art. 1322 c.c.",
+   "artt. 1766 ss. c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "sistemi_ia",
+  "nome": "Sviluppo, fornitura e utilizzo di sistemi di IA",
+  "rif": [
+   "Reg. UE 2024/1689",
+   "L. 132/2025",
+   "GDPR"
+  ]
+ },
+ {
+  "id": "marchio",
+  "nome": "Licenza e cessione di marchio",
+  "rif": [
+   "art. 23 D.Lgs. 30/2005"
+  ]
+ },
+ {
+  "id": "brevetto_design",
+  "nome": "Licenza e cessione di brevetto, disegno o modello",
+  "rif": [
+   "D.Lgs. 30/2005, artt. 63 ss."
+  ]
+ },
+ {
+  "id": "know_how_nda",
+  "nome": "Trasferimento di know-how e accordi di segretezza",
+  "rif": [
+   "artt. 98-99 D.Lgs. 30/2005",
+   "art. 1322 c.c."
+  ]
+ },
+ {
+  "id": "diritti_autore",
+  "nome": "Cessione o licenza di diritti patrimoniali d'autore",
+  "rif": [
+   "artt. 107 ss. L. 633/1941"
+  ],
+  "forma": "scritta",
+  "note": "Forma scritta ad probationem (art. 110 L. 633/1941)."
+ },
+ {
+  "id": "edizione",
+  "nome": "Contratto di edizione",
+  "rif": [
+   "artt. 118-135 L. 633/1941"
+  ]
+ },
+ {
+  "id": "rappresentazione",
+  "nome": "Rappresentazione ed esecuzione di opere",
+  "rif": [
+   "artt. 136-141 L. 633/1941"
+  ]
+ },
+ {
+  "id": "produzione_contenuti",
+  "nome": "Produzione audiovisiva, musicale e contenuti digitali",
+  "rif": [
+   "L. 633/1941"
+  ]
+ },
+ {
+  "id": "immagine",
+  "nome": "Utilizzo commerciale dell'immagine",
+  "rif": [
+   "art. 10 c.c.",
+   "artt. 96-97 L. 633/1941"
+  ]
+ },
+ {
+  "id": "dpa_art28",
+  "nome": "Accordo titolare-responsabile (DPA)",
+  "rif": [
+   "art. 28 GDPR"
+  ],
+  "qual": "accessorio"
+ },
+ {
+  "id": "contitolarita",
+  "nome": "Accordo tra contitolari",
+  "rif": [
+   "art. 26 GDPR"
+  ],
+  "qual": "accessorio"
+ },
+ {
+  "id": "trasferimenti_dati",
+  "nome": "Trasferimenti internazionali di dati personali",
+  "rif": [
+   "artt. 44-49 GDPR"
+  ],
+  "qual": "accessorio"
+ },
+ {
+  "id": "data_act",
+  "nome": "Condivisione e accesso a dati industriali o di prodotti connessi",
+  "rif": [
+   "Reg. UE 2023/2854"
+  ]
+ },
+ {
+  "id": "outsourcing_ict_finanza",
+  "nome": "Outsourcing ICT nel settore finanziario",
+  "rif": [
+   "Reg. UE 2022/2554 (DORA), art. 30"
+  ]
+ }
+]

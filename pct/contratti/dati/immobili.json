@@ -1,0 +1,509 @@
+[
+ {
+  "id": "compravendita_immobiliare",
+  "nome": "Compravendita di immobile",
+  "rif": [
+   "artt. 1470 ss. c.c.",
+   "artt. 1537-1541 c.c.",
+   "art. 1350 c.c.",
+   "art. 2657 c.c."
+  ],
+  "forma": "scritta_ad_substantiam",
+  "note": "La trascrizione richiede atto pubblico o scrittura privata autenticata (art. 2657 c.c.): lo studio redige e negozia, la stipula avviene davanti al notaio.",
+  "domande": [
+   {
+    "id": "immobile_da_costruire",
+    "testo": "L'immobile è da costruire o in corso di costruzione?"
+   },
+   {
+    "id": "vendita_a_corpo",
+    "testo": "La vendita è a corpo (e non a misura)?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "trascrizione_notaio",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Per trascrizione e opponibilità serve atto pubblico o scrittura privata autenticata: coordinare il notaio.",
+    "norma": "art. 2657 c.c."
+   },
+   {
+    "id": "dlgs122",
+    "quando": {
+     "immobile_da_costruire": true
+    },
+    "esito": "blocco",
+    "messaggio": "Immobile da costruire: applicare D.Lgs. 122/2005 (fideiussione, polizza, forma notarile).",
+    "norma": "D.Lgs. 122/2005, artt. 2-6"
+   }
+  ]
+ },
+ {
+  "id": "vendita_nuda_proprieta",
+  "nome": "Vendita di nuda proprietà e trasferimento di diritti reali",
+  "rif": [
+   "artt. 1470 ss. c.c.",
+   "artt. 978 ss. c.c."
+  ],
+  "forma": "scritta_ad_substantiam"
+ },
+ {
+  "id": "preliminare_immobiliare",
+  "nome": "Preliminare di compravendita immobiliare",
+  "rif": [
+   "art. 1351 c.c.",
+   "art. 2645-bis c.c.",
+   "art. 2932 c.c."
+  ],
+  "forma": "scritta_ad_substantiam",
+  "domande": [
+   {
+    "id": "trascrivere_preliminare",
+    "testo": "Le parti vogliono trascrivere il preliminare?"
+   },
+   {
+    "id": "immobile_da_costruire",
+    "testo": "L'immobile è da costruire?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "trascrizione_preliminare",
+    "quando": {
+     "trascrivere_preliminare": true
+    },
+    "esito": "adempimento",
+    "messaggio": "La trascrizione del preliminare richiede atto pubblico o scrittura privata autenticata.",
+    "norma": "art. 2645-bis c.c."
+   },
+   {
+    "id": "preliminare_da_costruire",
+    "quando": {
+     "immobile_da_costruire": true
+    },
+    "esito": "blocco",
+    "messaggio": "Preliminare di immobile da costruire: forma di atto pubblico o scrittura privata autenticata e tutele D.Lgs. 122/2005.",
+    "norma": "art. 6 D.Lgs. 122/2005"
+   }
+  ]
+ },
+ {
+  "id": "acquisto_da_costruire",
+  "nome": "Preliminare e acquisto di immobile da costruire",
+  "rif": [
+   "D.Lgs. 122/2005, artt. 2-6"
+  ],
+  "forma": "atto_pubblico"
+ },
+ {
+  "id": "permuta_immobiliare",
+  "nome": "Permuta immobiliare (anche terreno contro unità da costruire)",
+  "rif": [
+   "artt. 1552-1555 c.c.",
+   "D.Lgs. 122/2005 eventuale"
+  ],
+  "forma": "scritta_ad_substantiam"
+ },
+ {
+  "id": "locazione_abitativa",
+  "nome": "Locazione abitativa",
+  "rif": [
+   "L. 431/1998",
+   "artt. 1571 ss. c.c."
+  ],
+  "note": "Durata, rinnovo, recesso e derogabilità cambiano per variante: non uniformare in un unico modello.",
+  "varianti": [
+   {
+    "id": "canone_libero",
+    "nome": "Canone libero (4+4)",
+    "rif": [
+     "art. 2, comma 1, L. 431/1998"
+    ],
+    "quando": {
+     "regime_canone": "libero",
+     "durata_transitoria": false
+    }
+   },
+   {
+    "id": "canone_concordato",
+    "nome": "Canone concordato (3+2)",
+    "rif": [
+     "art. 2, comma 3, L. 431/1998",
+     "accordi territoriali"
+    ],
+    "quando": {
+     "regime_canone": "concordato",
+     "durata_transitoria": false
+    }
+   },
+   {
+    "id": "transitoria",
+    "nome": "Transitoria",
+    "rif": [
+     "art. 5, comma 1, L. 431/1998",
+     "D.M. 16 gennaio 2017"
+    ],
+    "quando": {
+     "durata_transitoria": true,
+     "conduttore_studente": false
+    }
+   },
+   {
+    "id": "studenti",
+    "nome": "Studenti universitari",
+    "rif": [
+     "art. 5, commi 2-3, L. 431/1998",
+     "D.M. 16 gennaio 2017"
+    ],
+    "quando": {
+     "conduttore_studente": true
+    }
+   }
+  ],
+  "domande": [
+   {
+    "id": "regime_canone",
+    "testo": "Regime del canone",
+    "tipo": "scelta",
+    "opzioni": [
+     "libero",
+     "concordato"
+    ]
+   },
+   {
+    "id": "durata_transitoria",
+    "testo": "Esigenza transitoria documentata (durata da 1 a 18 mesi)?"
+   },
+   {
+    "id": "conduttore_studente",
+    "testo": "Il conduttore è uno studente universitario fuori sede?"
+   },
+   {
+    "id": "comune_accordo_territoriale",
+    "testo": "Esiste un accordo territoriale vigente nel Comune?"
+   },
+   {
+    "id": "cedolare_secca",
+    "testo": "Il locatore intende optare per la cedolare secca?"
+   },
+   {
+    "id": "deposito_mensilita",
+    "testo": "Mensilità di deposito cauzionale",
+    "tipo": "numero"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "accordo_territoriale",
+    "quando": {
+     "regime_canone": "concordato",
+     "comune_accordo_territoriale": false
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Canone concordato senza accordo territoriale accertato: verificare l'accordo applicabile e l'attestazione di rispondenza.",
+    "norma": "art. 2, comma 3, L. 431/1998"
+   },
+   {
+    "id": "deposito_oltre_tre",
+    "quando": {
+     "deposito_mensilita": {
+      "maggiore_di": 3
+     }
+    },
+    "esito": "blocco",
+    "messaggio": "Deposito cauzionale oltre tre mensilità.",
+    "norma": "art. 11 L. 392/1978"
+   },
+   {
+    "id": "registrazione",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Registrazione entro 30 giorni a cura del locatore e comunicazione all'amministratore di condominio.",
+    "norma": "art. 1, comma 346, L. 311/2004; art. 13 L. 431/1998"
+   },
+   {
+    "id": "ape",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Clausola e allegazione APE.",
+    "norma": "art. 6 D.Lgs. 192/2005"
+   }
+  ],
+  "clausole": [
+   "oggetto",
+   "durata_locazione",
+   "canone_locazione",
+   "deposito_cauzionale",
+   "oneri_accessori",
+   "recesso_conduttore",
+   "sublocazione_divieto",
+   "riconsegna",
+   "ape_clausola",
+   "privacy",
+   "comunicazioni",
+   "modifiche",
+   "legge_foro"
+  ]
+ },
+ {
+  "id": "locazione_uso_diverso",
+  "nome": "Locazione commerciale, professionale, artigianale, industriale o alberghiera",
+  "rif": [
+   "L. 392/1978, artt. 27 ss."
+  ],
+  "domande": [
+   {
+    "id": "contatto_pubblico",
+    "testo": "L'attività comporta contatti diretti con il pubblico?"
+   },
+   {
+    "id": "rinuncia_indennita",
+    "testo": "Il locatore chiede la rinuncia all'indennità di avviamento?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "indennita_avviamento",
+    "quando": {
+     "rinuncia_indennita": true,
+     "contatto_pubblico": true
+    },
+    "esito": "blocco",
+    "messaggio": "L'indennità per la perdita dell'avviamento non è rinunciabile preventivamente.",
+    "norma": "artt. 34 e 79 L. 392/1978"
+   },
+   {
+    "id": "durata_minima",
+    "quando": {},
+    "esito": "valutazione_avvocato",
+    "messaggio": "Verificare durata minima (6 o 9 anni) e derogabilità per grandi locazioni.",
+    "norma": "artt. 27, 79 L. 392/1978"
+   }
+  ],
+  "clausole": [
+   "oggetto",
+   "durata_locazione",
+   "canone_locazione",
+   "deposito_cauzionale",
+   "oneri_accessori",
+   "recesso_conduttore",
+   "sublocazione_divieto",
+   "riconsegna",
+   "ape_clausola",
+   "comunicazioni",
+   "modifiche",
+   "legge_foro"
+  ]
+ },
+ {
+  "id": "locazione_turistica",
+  "nome": "Locazione turistica e breve",
+  "rif": [
+   "artt. 1571 ss. c.c.",
+   "art. 1 L. 431/1998",
+   "art. 4 D.L. 50/2017"
+  ],
+  "note": "Aggiungere la disciplina turistica regionale e il codice identificativo dove previsto."
+ },
+ {
+  "id": "sublocazione",
+  "nome": "Sublocazione e cessione della locazione",
+  "rif": [
+   "art. 1594 c.c.",
+   "art. 2 L. 431/1998",
+   "art. 36 L. 392/1978"
+  ]
+ },
+ {
+  "id": "comodato_immobiliare",
+  "nome": "Comodato immobiliare",
+  "rif": [
+   "artt. 1803-1812 c.c."
+  ],
+  "forma": "libera",
+  "clausole": [
+   "comodato_uso",
+   "riconsegna",
+   "comunicazioni",
+   "legge_foro"
+  ],
+  "domande": [
+   {
+    "id": "durata_determinata",
+    "testo": "È fissata una durata o un uso determinato?"
+   },
+   {
+    "id": "comodato_familiare",
+    "testo": "Il comodato è destinato ad abitazione familiare?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "precario",
+    "quando": {
+     "durata_determinata": false
+    },
+    "esito": "avviso",
+    "messaggio": "Senza termine il comodante può chiedere la restituzione in ogni momento (precario).",
+    "norma": "art. 1810 c.c."
+   },
+   {
+    "id": "familiare",
+    "quando": {
+     "comodato_familiare": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Comodato per esigenze familiari: il vincolo di destinazione può durare oltre la crisi coniugale; regolare termine e restituzione.",
+    "norma": "art. 1809 c.c."
+   },
+   {
+    "id": "registrazione_comodato",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Registrazione obbligatoria se in forma scritta (imposta fissa).",
+    "norma": "art. 5 Tariffa parte I D.P.R. 131/1986"
+   }
+  ]
+ },
+ {
+  "id": "rent_to_buy",
+  "nome": "Rent to buy",
+  "rif": [
+   "art. 23 D.L. 133/2014"
+  ],
+  "forma": "scrittura_autenticata",
+  "note": "Trascrizione ex art. 2645-bis c.c.: serve forma idonea."
+ },
+ {
+  "id": "leasing_immobiliare",
+  "nome": "Leasing immobiliare e abitativo",
+  "rif": [
+   "art. 1, commi 136-140, L. 124/2017",
+   "L. 208/2015"
+  ]
+ },
+ {
+  "id": "diritti_reali_minori",
+  "nome": "Costituzione di superficie, usufrutto, uso, abitazione e servitù",
+  "rif": [
+   "artt. 952 ss. c.c.",
+   "artt. 978 ss. c.c.",
+   "artt. 1021 ss. c.c.",
+   "artt. 1027 ss. c.c."
+  ],
+  "forma": "scritta_ad_substantiam"
+ },
+ {
+  "id": "divisione_immobiliare",
+  "nome": "Divisione immobiliare e scioglimento della comunione",
+  "rif": [
+   "artt. 1111 ss. c.c.",
+   "artt. 713 ss. c.c."
+  ],
+  "forma": "scritta_ad_substantiam"
+ },
+ {
+  "id": "appalto_edilizio",
+  "nome": "Appalto di costruzione, ristrutturazione, manutenzione e impianti",
+  "rif": [
+   "artt. 1655-1677 c.c."
+  ],
+  "clausole": [
+   "oggetto",
+   "appalto_opera",
+   "corrispettivo",
+   "pagamento",
+   "durata",
+   "appalto_sicurezza",
+   "appalto_collaudo",
+   "risoluzione",
+   "recesso",
+   "legge_foro"
+  ],
+  "domande": [
+   {
+    "id": "committente_consumatore",
+    "testo": "Il committente è un privato consumatore?"
+   },
+   {
+    "id": "bonus_fiscali",
+    "testo": "I lavori fruiscono di detrazioni o bonus edilizi?"
+   },
+   {
+    "id": "subappalto_previsto",
+    "testo": "È previsto il subappalto?"
+   },
+   {
+    "id": "titolo_edilizio",
+    "testo": "Serve un titolo edilizio (CILA, SCIA, permesso)?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "subappalto_autorizzazione",
+    "quando": {
+     "subappalto_previsto": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Subappalto solo con autorizzazione del committente.",
+    "norma": "art. 1656 c.c."
+   },
+   {
+    "id": "bonus",
+    "quando": {
+     "bonus_fiscali": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Verificare requisiti, asseverazioni, congruità e responsabilità connesse alle detrazioni edilizie.",
+    "norma": "normativa fiscale vigente sulle detrazioni edilizie"
+   },
+   {
+    "id": "titolo",
+    "quando": {
+     "titolo_edilizio": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Allegare il titolo edilizio e indicare il direttore lavori.",
+    "norma": "D.P.R. 380/2001"
+   },
+   {
+    "id": "sicurezza_cantiere",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Verifica idoneità tecnico-professionale, DURC, notifica preliminare se dovuta.",
+    "norma": "artt. 90, 99 D.Lgs. 81/2008"
+   }
+  ]
+ },
+ {
+  "id": "subappalto_edilizio",
+  "nome": "Subappalto edilizio",
+  "rif": [
+   "art. 1656 c.c.",
+   "D.Lgs. 81/2008"
+  ]
+ },
+ {
+  "id": "incarico_tecnico",
+  "nome": "Progettazione, direzione lavori e prestazioni tecniche",
+  "rif": [
+   "artt. 2230 ss. c.c."
+  ]
+ },
+ {
+  "id": "property_management",
+  "nome": "Gestione immobiliare, property management e coworking",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "amministratore_condominio",
+  "nome": "Incarico all'amministratore e convenzioni condominiali",
+  "rif": [
+   "artt. 1129, 1130, 1138 c.c."
+  ]
+ }
+]

@@ -1,0 +1,339 @@
+[
+ {
+  "id": "vendita_mobili",
+  "nome": "Vendita di beni mobili, merci, macchinari e attrezzature",
+  "rif": [
+   "artt. 1470 ss. c.c.",
+   "artt. 1510 ss. c.c."
+  ],
+  "forma": "libera"
+ },
+ {
+  "id": "vendita_cosa_futura_altrui",
+  "nome": "Vendita di cosa futura o altrui",
+  "rif": [
+   "art. 1472 c.c.",
+   "artt. 1478-1480 c.c."
+  ]
+ },
+ {
+  "id": "patto_riscatto",
+  "nome": "Vendita con patto di riscatto",
+  "rif": [
+   "artt. 1500-1509 c.c."
+  ],
+  "note": "Valutare il rischio di patto commissorio (art. 2744 c.c.)."
+ },
+ {
+  "id": "vendita_prova",
+  "nome": "Vendita con riserva di gradimento, a prova o su campione",
+  "rif": [
+   "artt. 1520-1522 c.c."
+  ]
+ },
+ {
+  "id": "riserva_proprieta",
+  "nome": "Vendita con riserva della proprietà",
+  "rif": [
+   "artt. 1523-1526 c.c."
+  ]
+ },
+ {
+  "id": "vendita_documenti",
+  "nome": "Vendita su documenti",
+  "rif": [
+   "artt. 1527-1530 c.c."
+  ]
+ },
+ {
+  "id": "permuta_beni",
+  "nome": "Permuta di beni",
+  "rif": [
+   "artt. 1552-1555 c.c."
+  ],
+  "forma": "libera"
+ },
+ {
+  "id": "estimatorio",
+  "nome": "Contratto estimatorio (conto vendita)",
+  "rif": [
+   "artt. 1556-1558 c.c."
+  ]
+ },
+ {
+  "id": "somministrazione",
+  "nome": "Somministrazione periodica o continuativa",
+  "rif": [
+   "artt. 1559-1570 c.c."
+  ]
+ },
+ {
+  "id": "fornitura_da_produrre",
+  "nome": "Fornitura di beni da produrre e appalto industriale",
+  "rif": [
+   "artt. 1470 ss. c.c.",
+   "artt. 1655 ss. c.c."
+  ],
+  "qual": "misto",
+  "note": "Qualificazione secondo la prestazione prevalente."
+ },
+ {
+  "id": "appalto_servizi",
+  "nome": "Appalto di servizi, manutenzione, pulizie, assistenza e outsourcing",
+  "rif": [
+   "artt. 1655 ss. c.c.",
+   "art. 1677 c.c."
+  ]
+ },
+ {
+  "id": "subfornitura",
+  "nome": "Subfornitura produttiva",
+  "rif": [
+   "L. 192/1998"
+  ],
+  "forma": "scritta_ad_substantiam",
+  "note": "Divieto di abuso di dipendenza economica (art. 9 L. 192/1998).",
+  "domande": [
+   {
+    "id": "termini_pagamento_giorni",
+    "testo": "Termine di pagamento in giorni",
+    "tipo": "numero"
+   },
+   {
+    "id": "dipendenza_economica",
+    "testo": "Il subfornitore dipende economicamente dal committente?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "pag60",
+    "quando": {
+     "termini_pagamento_giorni": {
+      "maggiore_di": 60
+     }
+    },
+    "esito": "blocco",
+    "messaggio": "Termine di pagamento oltre i sessanta giorni dalla consegna.",
+    "norma": "art. 3 L. 192/1998"
+   },
+   {
+    "id": "abuso",
+    "quando": {
+     "dipendenza_economica": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Rischio di abuso di dipendenza economica.",
+    "norma": "art. 9 L. 192/1998"
+   }
+  ]
+ },
+ {
+  "id": "agenzia",
+  "nome": "Agenzia commerciale, mono o plurimandataria",
+  "rif": [
+   "artt. 1742-1753 c.c.",
+   "AEC applicabili"
+  ],
+  "forma": "scritta",
+  "clausole": [
+   "agenzia_zona",
+   "agenzia_provvigioni",
+   "obblighi_parti",
+   "agenzia_indennita",
+   "agenzia_non_concorrenza",
+   "riservatezza",
+   "privacy",
+   "comunicazioni",
+   "legge_foro"
+  ],
+  "domande": [
+   {
+    "id": "agente_societa",
+    "testo": "L'agente opera in forma di società di capitali?"
+   },
+   {
+    "id": "esclusiva",
+    "testo": "È prevista esclusiva di zona?"
+   },
+   {
+    "id": "patto_non_concorrenza",
+    "testo": "Si vuole un patto di non concorrenza post-contrattuale?"
+   },
+   {
+    "id": "agente_estero",
+    "testo": "L'agente opera fuori dall'Italia?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "enasarco",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Iscrizione e contributi Enasarco e FIRR secondo gli AEC applicabili.",
+    "norma": "L. 12/1973; AEC"
+   },
+   {
+    "id": "ncc_agenzia",
+    "quando": {
+     "patto_non_concorrenza": true
+    },
+    "esito": "blocco",
+    "messaggio": "Patto per iscritto, massimo due anni, stessa zona/clientela/prodotti, con indennità.",
+    "norma": "art. 1751-bis c.c."
+   },
+   {
+    "id": "forma_scritta_agenzia",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Contratto e modifiche provati per iscritto; ciascuna parte ha diritto a copia firmata.",
+    "norma": "art. 1742, comma 2, c.c."
+   },
+   {
+    "id": "agente_ue",
+    "quando": {
+     "agente_estero": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Indennità di cessazione inderogabile nella UE (dir. 86/653/CEE): verificare legge applicabile.",
+    "norma": "Reg. CE 593/2008; dir. 86/653/CEE"
+   },
+   {
+    "id": "qualificazione_agenzia",
+    "quando": {},
+    "esito": "avviso",
+    "messaggio": "Verificare la stabilità dell'incarico: se manca, il rapporto può essere procacciamento d'affari.",
+    "norma": "art. 1742 c.c."
+   }
+  ]
+ },
+ {
+  "id": "procacciamento",
+  "nome": "Procacciamento d'affari",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico",
+  "note": "Il nome non impedisce la riqualificazione come agenzia."
+ },
+ {
+  "id": "commissione",
+  "nome": "Commissione",
+  "rif": [
+   "artt. 1731-1736 c.c."
+  ]
+ },
+ {
+  "id": "mandato",
+  "nome": "Mandato commerciale, con o senza rappresentanza",
+  "rif": [
+   "artt. 1703-1730 c.c."
+  ]
+ },
+ {
+  "id": "mediazione_affari",
+  "nome": "Mediazione e incarico di intermediazione",
+  "rif": [
+   "artt. 1754-1765 c.c.",
+   "L. 39/1989"
+  ]
+ },
+ {
+  "id": "distribuzione",
+  "nome": "Distribuzione, concessione di vendita e rivendita esclusiva",
+  "rif": [
+   "art. 1322 c.c.",
+   "artt. 101-102 TFUE",
+   "Reg. UE 2022/720"
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "franchising",
+  "nome": "Franchising e master franchising",
+  "rif": [
+   "L. 129/2004"
+  ],
+  "forma": "scritta_ad_substantiam",
+  "note": "Informativa precontrattuale almeno 30 giorni prima (art. 4 L. 129/2004).",
+  "clausole": [
+   "oggetto",
+   "franchising_know_how",
+   "franchising_diritti",
+   "franchising_durata",
+   "riservatezza",
+   "privacy",
+   "recesso",
+   "risoluzione",
+   "legge_foro"
+  ],
+  "domande": [
+   {
+    "id": "informativa_consegnata",
+    "testo": "Il documento informativo è stato consegnato almeno 30 giorni prima della firma?"
+   },
+   {
+    "id": "durata_anni",
+    "testo": "Durata in anni",
+    "tipo": "numero"
+   },
+   {
+    "id": "affiliante_sperimentato",
+    "testo": "La formula è stata sperimentata sul mercato?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "informativa_30",
+    "quando": {
+     "informativa_consegnata": false
+    },
+    "esito": "blocco",
+    "messaggio": "Consegnare copia del contratto e documento informativo almeno 30 giorni prima.",
+    "norma": "art. 4 L. 129/2004"
+   },
+   {
+    "id": "durata_tre",
+    "quando": {
+     "durata_anni": {
+      "minore_di": 3
+     }
+    },
+    "esito": "blocco",
+    "messaggio": "Durata non inferiore a tre anni per l'ammortamento dell'investimento.",
+    "norma": "art. 3, comma 3, L. 129/2004"
+   },
+   {
+    "id": "sperimentazione",
+    "quando": {
+     "affiliante_sperimentato": false
+    },
+    "esito": "blocco",
+    "messaggio": "L'affiliante deve aver sperimentato sul mercato la propria formula commerciale.",
+    "norma": "art. 3, comma 2, L. 129/2004"
+   },
+   {
+    "id": "antitrust_franchising",
+    "quando": {},
+    "esito": "valutazione_avvocato",
+    "messaggio": "Verificare clausole di esclusiva e prezzi rispetto al regolamento sugli accordi verticali.",
+    "norma": "Reg. UE 2022/720"
+   }
+  ]
+ },
+ {
+  "id": "sponsorizzazione",
+  "nome": "Sponsorizzazione, pubblicità, merchandising e promozione",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "noleggio_beni",
+  "nome": "Noleggio di beni mobili e attrezzature",
+  "rif": [
+   "artt. 1571 ss. c.c."
+  ],
+  "qual": "misto"
+ }
+]

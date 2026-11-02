@@ -17,6 +17,7 @@ from web.blueprints.react_shell import _applicazione_react, render_react_shell_r
 
 _REACT_PREFIXES = (
     "/",
+    "/contratti",
     "/agenda",
     "/applicazioni",
     "/backup",

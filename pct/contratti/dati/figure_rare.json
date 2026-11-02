@@ -1,0 +1,8 @@
+[
+ {"id":"riporto","nome":"Riporto","rif":["artt. 1548-1551 c.c."]},
+ {"id":"rendita_perpetua","nome":"Rendita perpetua","rif":["artt. 1861-1871 c.c."]},
+ {"id":"anticresi","nome":"Anticresi","rif":["artt. 1960-1964 c.c."],"forma":"scritta_ad_substantiam"},
+ {"id":"gioco_scommessa","nome":"Gioco e scommessa","rif":["artt. 1933-1935 c.c."],"note":"La previsione civilistica non equivale a liceità dell'attività."},
+ {"id":"favore_terzo","nome":"Contratto a favore di terzo","rif":["artt. 1411-1413 c.c."],"qual":"accessorio"},
+ {"id":"persona_da_nominare","nome":"Contratto per persona da nominare","rif":["artt. 1401-1405 c.c."],"qual":"accessorio"}
+]

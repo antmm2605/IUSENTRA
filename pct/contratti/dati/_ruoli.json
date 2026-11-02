@@ -1,0 +1,23 @@
+{
+ "predefiniti": ["Prima parte", "Seconda parte"],
+ "per_contratto": {
+  "locazione_abitativa": ["Locatore", "Conduttore"], "locazione_uso_diverso": ["Locatore", "Conduttore"], "locazione_turistica": ["Locatore", "Conduttore"],
+  "sublocazione": ["Sublocatore", "Subconduttore"], "comodato_immobiliare": ["Comodante", "Comodatario"],
+  "compravendita_immobiliare": ["Venditore", "Acquirente"], "preliminare_immobiliare": ["Promittente venditore", "Promissario acquirente"],
+  "vendita_mobili": ["Venditore", "Acquirente"], "vendita_consumatore": ["Venditore", "Consumatore"], "condizioni_online": ["Professionista", "Cliente"],
+  "appalto_edilizio": ["Committente", "Appaltatore"], "appalto_servizi": ["Committente", "Appaltatore"], "subappalto_edilizio": ["Appaltatore", "Subappaltatore"],
+  "incarico_avvocato": ["Cliente", "Avvocato"], "consulenza_professionale": ["Cliente", "Professionista"], "incarico_tecnico": ["Committente", "Professionista"],
+  "sviluppo_software": ["Committente", "Fornitore"], "licenza_software": ["Licenziante", "Licenziatario"], "saas_cloud": ["Cliente", "Fornitore"],
+  "marchio": ["Titolare", "Licenziatario"], "nda": ["Parte divulgante", "Parte ricevente"], "dpa_art28": ["Titolare del trattamento", "Responsabile del trattamento"],
+  "agenzia": ["Preponente", "Agente"], "franchising": ["Affiliante", "Affiliato"], "commissione": ["Committente", "Commissionario"], "mandato": ["Mandante", "Mandatario"],
+  "subfornitura": ["Committente", "Subfornitore"], "distribuzione": ["Fornitore", "Distributore"], "somministrazione": ["Somministrante", "Somministrato"],
+  "cessione_quote_srl": ["Cedente", "Cessionario"], "cessione_azioni": ["Cedente", "Cessionario"], "cessione_azienda": ["Cedente", "Cessionario"], "affitto_azienda": ["Concedente", "Affittuario"],
+  "mutuo": ["Mutuante", "Mutuatario"], "fideiussione": ["Creditore", "Fideiussore"], "cessione_credito": ["Cedente", "Cessionario"], "pegno": ["Creditore pignoratizio", "Costituente"],
+  "subordinato_indeterminato": ["Datore di lavoro", "Lavoratore"], "tempo_determinato": ["Datore di lavoro", "Lavoratore"], "part_time": ["Datore di lavoro", "Lavoratore"],
+  "apprendistato": ["Datore di lavoro", "Apprendista"], "cococo": ["Committente", "Collaboratore"], "opera": ["Committente", "Prestatore d'opera"],
+  "non_concorrenza_dipendente": ["Datore di lavoro", "Lavoratore"], "lavoro_agile": ["Datore di lavoro", "Lavoratore"], "domestico": ["Datore di lavoro", "Lavoratore domestico"],
+  "donazione": ["Donante", "Donatario"], "convivenza": ["Primo convivente", "Secondo convivente"], "vitalizio": ["Vitaliziante", "Vitaliziato"],
+  "transazione": ["Prima parte", "Seconda parte"], "trasporto": ["Mittente", "Vettore"], "deposito": ["Depositante", "Depositario"],
+  "affitto_fondo_rustico": ["Concedente", "Affittuario"], "noleggio_beni": ["Noleggiatore", "Utilizzatore"], "mediazione_affari": ["Incaricante", "Mediatore"]
+ }
+}

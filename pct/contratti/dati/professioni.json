@@ -1,0 +1,186 @@
+[
+ {
+  "id": "consulenza_professionale",
+  "nome": "Incarico di consulenza e prestazione professionale",
+  "rif": [
+   "artt. 2230-2238 c.c."
+  ]
+ },
+ {
+  "id": "incarico_avvocato",
+  "nome": "Conferimento di incarico all'avvocato e accordo sul compenso",
+  "rif": [
+   "art. 13 L. 247/2012",
+   "art. 2233 c.c.",
+   "D.M. 55/2014"
+  ],
+  "note": "Equo compenso e parametri forensi non si applicano indistintamente come tariffa obbligatoria: verificare l'ambito della L. 49/2023.",
+  "varianti": [
+   {
+    "id": "giudiziale",
+    "nome": "Incarico giudiziale",
+    "rif": [
+     "art. 13 L. 247/2012",
+     "D.M. 55/2014"
+    ],
+    "quando": {
+     "tipo_incarico": "giudiziale"
+    }
+   },
+   {
+    "id": "stragiudiziale",
+    "nome": "Incarico stragiudiziale",
+    "rif": [
+     "art. 13 L. 247/2012"
+    ],
+    "quando": {
+     "tipo_incarico": "stragiudiziale"
+    }
+   },
+   {
+    "id": "continuativo",
+    "nome": "Assistenza continuativa o convenzione con impresa",
+    "rif": [
+     "art. 13 L. 247/2012",
+     "L. 49/2023"
+    ],
+    "quando": {
+     "tipo_incarico": "continuativo"
+    }
+   }
+  ],
+  "domande": [
+   {
+    "id": "tipo_incarico",
+    "testo": "Tipo di incarico",
+    "tipo": "scelta",
+    "opzioni": [
+     "giudiziale",
+     "stragiudiziale",
+     "continuativo"
+    ]
+   },
+   {
+    "id": "cliente_consumatore",
+    "testo": "Il cliente è un consumatore?"
+   },
+   {
+    "id": "cliente_grande_impresa",
+    "testo": "Il cliente è banca, assicurazione o impresa con più di 50 dipendenti o ricavi oltre 10 milioni, oppure PA?"
+   },
+   {
+    "id": "compenso_a_quota_lite",
+    "testo": "Il compenso è in percentuale sul valore dell'affare o della pretesa?"
+   },
+   {
+    "id": "patto_cessione_lite",
+    "testo": "È previsto che l'avvocato riceva in pagamento una quota del bene oggetto della lite?"
+   },
+   {
+    "id": "uso_ia",
+    "testo": "Lo studio utilizza sistemi di IA nell'attività per il cliente?"
+   },
+   {
+    "id": "compenso_scritto",
+    "testo": "Il compenso è pattuito per iscritto?"
+   }
+  ],
+  "controlli": [
+   {
+    "id": "patto_quota_lite",
+    "quando": {
+     "patto_cessione_lite": true
+    },
+    "esito": "blocco",
+    "messaggio": "Vietati i patti con cui l'avvocato percepisce in tutto o in parte una quota del bene oggetto della prestazione o della ragione litigiosa.",
+    "norma": "art. 13, comma 4, L. 247/2012"
+   },
+   {
+    "id": "percentuale",
+    "quando": {
+     "compenso_a_quota_lite": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Compenso a percentuale ammesso solo sul valore dell'affare o su quanto si prevede possa giovarsene il cliente: verificare la formulazione.",
+    "norma": "art. 13, comma 3, L. 247/2012"
+   },
+   {
+    "id": "equo_compenso",
+    "quando": {
+     "cliente_grande_impresa": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Ambito della legge sull'equo compenso: compenso non inferiore ai parametri, clausole vessatorie nulle.",
+    "norma": "artt. 2-3 L. 49/2023"
+   },
+   {
+    "id": "vessatorie_consumatore",
+    "quando": {
+     "cliente_consumatore": true
+    },
+    "esito": "valutazione_avvocato",
+    "messaggio": "Cliente consumatore: verificare le clausole ex artt. 33-38 Codice del consumo e l'informativa sul compenso.",
+    "norma": "artt. 33-38 D.Lgs. 206/2005"
+   },
+   {
+    "id": "informativa_ia",
+    "quando": {
+     "uso_ia": true
+    },
+    "esito": "adempimento",
+    "messaggio": "Informare il cliente sui sistemi di IA utilizzati, con linguaggio chiaro.",
+    "norma": "art. 13 L. 132/2025"
+   },
+   {
+    "id": "preventivo_scritto",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Comunicare per iscritto la prevedibile misura del costo, distinguendo oneri, spese e compenso; estremi della polizza RC.",
+    "norma": "art. 13, commi 5-6, L. 247/2012"
+   },
+   {
+    "id": "antiriciclaggio",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Adeguata verifica della clientela quando ricorrono le operazioni previste.",
+    "norma": "D.Lgs. 231/2007"
+   },
+   {
+    "id": "privacy_incarico",
+    "quando": {},
+    "esito": "adempimento",
+    "messaggio": "Informativa sul trattamento dei dati personali.",
+    "norma": "artt. 13-14 GDPR"
+   }
+  ],
+  "clausole": [
+   "incarico_oggetto",
+   "incarico_compenso",
+   "incarico_spese",
+   "incarico_polizza",
+   "incarico_recesso",
+   "incarico_ia",
+   "incarico_antiriciclaggio",
+   "conservazione_documenti",
+   "privacy",
+   "comunicazioni",
+   "legge_foro"
+  ]
+ },
+ {
+  "id": "collaborazione_professionisti",
+  "nome": "Collaborazione tra professionisti e condivisione di struttura",
+  "rif": [
+   "art. 1322 c.c."
+  ],
+  "qual": "atipico"
+ },
+ {
+  "id": "associazione_professionale",
+  "nome": "Associazione o società tra professionisti",
+  "rif": [
+   "L. 247/2012",
+   "art. 4-bis L. 247/2012"
+  ]
+ }
+]

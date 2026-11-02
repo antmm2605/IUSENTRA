@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { ApplicazionePage } from '../../components/ApplicazionePage'
 import { ChecklistAttiPage } from '../../components/ChecklistAttiPage'
+import { ContrattiPage } from '../../components/ContrattiPage'
 import { CodiciLeggiPage } from '../../components/CodiciLeggiPage'
 import { DocumentEditorPage } from '../../components/DocumentEditorPage'
 import { DocumentToolsPage } from '../../components/DocumentToolsPage'
@@ -37,6 +38,7 @@ export const CodiciLeggi: Story = createPageStory({ sourcePath: 'src/components/
 export const NormeModelliAtto: Story = createPageStory({ sourcePath: 'src/components/SchedeFontiPage.tsx', title: 'Norme dei modelli d’atto', render: () => <SchedeFontiPage /> })
 export const ContenutiSitoStudio: Story = createPageStory({ sourcePath: 'src/components/SitoStudioContenutiPage.tsx', title: 'Contenuti del sito dello studio', render: () => <SitoStudioContenutiPage /> })
 export const ChecklistAtti: Story = createPageStory({ sourcePath: 'src/components/ChecklistAttiPage.tsx', title: 'Checklist degli atti', render: () => <ChecklistAttiPage /> })
+export const Contratti: Story = createPageStory({ sourcePath: 'src/components/ContrattiPage.tsx', title: 'Catalogo dei contratti', render: () => <ContrattiPage percorso="/contratti" /> })
 export const Applicazione: Story = createPageStory({ sourcePath: 'src/components/ApplicazionePage.tsx', title: 'Funzione del catalogo applicazioni', render: () => <ApplicazionePage applicazione="interessi-legali" /> })
 export const SchedaRicercaLegale: Story = createPageStory({ sourcePath: 'src/components/RicercaLegaleSchedaPage.tsx', title: 'Scheda della Ricerca legale', render: () => <RicercaLegaleSchedaPage /> })
 export const Giurisprudenza: Story = createPageStory({ sourcePath: 'src/components/GiurisprudenzaPage.tsx', title: 'Archivio giurisprudenza', render: () => <GiurisprudenzaPage /> })

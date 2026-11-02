@@ -102,6 +102,7 @@ def _react_static_dir() -> Path:
 
 
 _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
+    ("/contratti", "src/components/ContrattiPage.tsx"),
     ("/agenda/nuovo", "src/components/NuovoAppuntamentoPage.tsx"),
     ("/agenda", "src/components/AgendaPage.tsx"),
     ("/timesheet", "src/components/TimesheetPage.tsx"),

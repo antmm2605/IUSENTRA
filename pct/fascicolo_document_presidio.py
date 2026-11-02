@@ -334,10 +334,22 @@ def duplicate_practice_groups(fascicoli: Iterable[Any]) -> list[dict[str, Any]]:
     return out
 
 
-def _analyze_127_ter(text: str, *, source: str, document_id: str) -> tuple[list[dict[str, Any]], list[str]]:
+def _cita_127(text: str, suffisso: str) -> bool:
+    """Art. 127-ter o 127-bis c.p.c. anche scritto senza trattino («127ter», come nei decreti reali)."""
+    return bool(re.search(rf"\b127\s*{suffisso}\b", _fold(text).replace("-", " ")))
+
+
+#: azioni che chiedono una verifica all'avvocato, non adempimenti letti
+NOTE_127_TER_DA_VERIFICARE = "verifica_udienza_127_ter"
+_REVIEW_ACTION_TYPES = {"verifica_collegamento_documento", NOTE_127_TER_DA_VERIFICARE}
+
+
+def _analyze_127_ter(
+    text: str, *, source: str, document_id: str, fascicolo: Any = None, today: date | None = None,
+) -> tuple[list[dict[str, Any]], list[str]]:
     actions: list[dict[str, Any]] = []
     warnings: list[str] = []
-    if "127 ter" not in _fold(text).replace("-", " "):
+    if not _cita_127(text, "ter"):
         return actions, warnings
     notes_date = (
         _date_near(text, r"(?:termine|scadenza).*?(?:deposito\s+di\s+)?note\s+scritte", after=False)
@@ -390,14 +402,68 @@ def _analyze_127_ter(text: str, *, source: str, document_id: str) -> tuple[list[
                 )
             )
     else:
-        warnings.append(f"{source}: rilevato art. 127-ter c.p.c. ma non una data certa del termine note.")
+        riferito = _note_127_ter_su_udienza_fissata(text, source=source, document_id=document_id, fascicolo=fascicolo, today=today)
+        if riferito:
+            actions.append(riferito)
+        else:
+            warnings.append(f"{source}: rilevato art. 127-ter c.p.c. ma non una data certa del termine note.")
     return actions, warnings
+
+
+def _note_127_ter_su_udienza_fissata(
+    text: str, *, source: str, document_id: str, fascicolo: Any, today: date | None,
+) -> dict[str, Any] | None:
+    """Decreto che sostituisce «l'udienza già fissata» senza data (art. 127-ter c.p.c.).
+
+    Il termine perentorio scade alla data dell'udienza futura del fascicolo, alle 09:30 se il
+    decreto invita al deposito entro quell'ora. Senza una sola udienza futura il presidio chiede
+    all'avvocato quale udienza è sostituita: nessuna data indovinata (pct/note_127_ter).
+    """
+    from pct.note_127_ter import riconosci_decreto, udienza_riferita
+
+    decreto = riconosci_decreto(text)
+    if decreto is None or not decreto.senza_data:
+        return None
+    udienza = udienza_riferita(
+        prossima_udienza=_value(fascicolo, "data_prossima_udienza") if fascicolo is not None else "",
+        oggi=today or oggi_roma(),
+    )
+    if udienza.giorno is None:
+        return _make_action(
+            action_type=NOTE_127_TER_DA_VERIFICARE,
+            title="Indicare quale udienza sostituisce il decreto di trattazione scritta (art. 127-ter c.p.c.)",
+            due=None,
+            source=source,
+            document_id=document_id,
+            tone="warning",
+            priority="important",
+            description=(
+                "Il decreto sostituisce l'udienza già fissata con note scritte senza indicarne la data e il fascicolo "
+                "non ha una sola udienza futura: il termine perentorio per le note scade il giorno di quell'udienza."
+            ),
+        )
+    return _make_action(
+        action_type="note_127_ter",
+        title="Deposito note scritte ex art. 127-ter c.p.c.",
+        due=udienza.giorno,
+        source=source,
+        document_id=document_id,
+        peremptory=True,
+        tone="danger",
+        priority="urgent",
+        time_value=decreto.ora_limite,
+        description=(
+            "Il decreto sostituisce l'udienza già fissata con note scritte (sole istanze e conclusioni): il termine "
+            "perentorio scade alla data di quell'udienza, presa dal fascicolo"
+            + (f"; deposito entro le ore {decreto.ora_limite}, come invita il decreto." if decreto.ora_limite else ".")
+        ),
+    )
 
 
 def _analyze_127_bis(text: str, *, source: str, document_id: str) -> tuple[list[dict[str, Any]], list[str]]:
     actions: list[dict[str, Any]] = []
     warnings: list[str] = []
-    if "127 bis" not in _fold(text).replace("-", " ") and "audiovisiv" not in _fold(text):
+    if not _cita_127(text, "bis") and "audiovisiv" not in _fold(text):
         return actions, warnings
     hearing_date = _date_near(text, r"(?:udienza|comparizione|discussione)", after=True) or _parse_date(text)
     hearing_time = _time_near(text, hearing_date)
@@ -461,7 +527,7 @@ def _analyze_generic_procedural_text(text: str, *, source: str, document_id: str
 
     actions: list[dict[str, Any]] = []
     folded = _fold(text)
-    if "127 ter" in folded.replace("-", " ") or "127 bis" in folded.replace("-", " "):
+    if _cita_127(text, "ter") or _cita_127(text, "bis"):
         return actions
     for fatto in estrai_date(text, origine="indice"):
         if fatto.campo not in {"udienza", "termine", "costituzione"}:
@@ -614,10 +680,12 @@ def analyze_fascicolo_document_texts(
             )
             warnings.append(f"{source}: collegamento da verificare, nessun termine è stato escluso automaticamente.")
             continue
-        for analyzer in (_analyze_127_ter, _analyze_127_bis):
-            found, local_warnings = analyzer(text, source=source, document_id=document_id)
-            procedural_actions.extend(found)
-            warnings.extend(local_warnings)
+        found, local_warnings = _analyze_127_ter(text, source=source, document_id=document_id, fascicolo=fascicolo, today=today)
+        procedural_actions.extend(found)
+        warnings.extend(local_warnings)
+        found, local_warnings = _analyze_127_bis(text, source=source, document_id=document_id)
+        procedural_actions.extend(found)
+        warnings.extend(local_warnings)
         procedural_actions.extend(_analyze_generic_procedural_text(text, source=source, document_id=document_id))
 
     procedural_actions = _applica_correzioni_date(procedural_actions, correzioni)
@@ -643,7 +711,7 @@ def analyze_fascicolo_document_texts(
         if (parsed := _parse_date(item.get("dateIso"))) and parsed >= today
     ]
     next_action = upcoming[0] if upcoming else (deduped[0] if deduped else None)
-    procedural_count = sum(1 for action in deduped if _text(action.get("type")) != "verifica_collegamento_documento")
+    procedural_count = sum(1 for action in deduped if _text(action.get("type")) not in _REVIEW_ACTION_TYPES)
     review_count = len(deduped) - procedural_count
     status = "presidiato" if procedural_count else ("da_verificare" if sources or warnings else "non_disponibile")
     tone = "success" if status == "presidiato" else ("warning" if status == "da_verificare" else "neutral")

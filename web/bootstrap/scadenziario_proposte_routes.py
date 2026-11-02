@@ -12,6 +12,7 @@ from collections.abc import Callable
 
 from flask import Flask, g, jsonify, request
 
+from pct.note_127_ter.udienza_cartolare import segna_udienza_cartolare
 from pct.scadenziario import GestioneScadenziario, TipoTermine
 from web.services.scadenza_proposta_agenda import crea_agenda_da_udienza_confermata
 
@@ -61,7 +62,18 @@ def register_scadenziario_proposte_routes(
                     sync_pubblica("modifica", "agenda", id_sc)
             except Exception:
                 agenda_creata = False
+        # Note scritte ex art. 127-ter c.p.c.: confermato il termine, l'udienza collegata diventa cartolare.
+        cartolare = False
+        if get_agenda is not None:
+            try:
+                cartolare = segna_udienza_cartolare(scadenza, gestione_agenda=get_agenda())
+                if cartolare:
+                    sync_pubblica("modifica", "agenda", scadenza.id_appuntamento)
+            except Exception:
+                cartolare = False
         message = f"Proposta confermata: la scadenza del {scadenza.data_scadenza[:10]} è ora operativa."
+        if cartolare:
+            message += " L'udienza collegata è sostituita da note scritte (cartolare)."
         if agenda_creata:
             message += " Udienza aggiunta anche in agenda."
         return jsonify({"ok": True, "message": message, "messaggio": message, "id": scadenza.id, "agenda_creata": agenda_creata})

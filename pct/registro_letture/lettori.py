@@ -22,6 +22,12 @@ LETTORI: dict[str, dict[str, Any]] = {
         "livello": "oggetto",
         "tipi": ("documento", "allegato_pec"),
     },
+    "proposta_definizione": {
+        "etichetta": "Sentenza e definizione",
+        "descrizione": "Proposta di definizione del fascicolo dalla sentenza che decide la causa, da confermare dall'avvocato",
+        "livello": "oggetto",
+        "tipi": ("documento",),
+    },
     "ocr": {
         "etichetta": "Testo e ricerca",
         "descrizione": "Riconoscimento del testo e indice di ricerca a testo pieno",
@@ -143,6 +149,7 @@ def _versione_presidio_economico() -> str:
 
 _VERSIONI: dict[str, Callable[[], str]] = {
     "sentenza_da_archiviare": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["RULE"]).RULE,
+    "proposta_definizione": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["VERSIONE_PROPOSTA"]).VERSIONE_PROPOSTA,
     "ocr": _versione_ocr,
     "indice_documentale": _versione_indice_documentale,
     "catalogo": _versione_catalogo,

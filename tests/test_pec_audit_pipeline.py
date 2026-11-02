@@ -7367,7 +7367,9 @@ def test_il_numero_di_ruolo_certificato_collega_il_fascicolo(tmp_path):
     report = repo.run_pending_jobs(limit=40)
     link = next(job["result"] for job in report["jobs"] if job["job_type"] == "link")
 
-    assert link["status"] == "automatico"
+    # Ruolo con anno, cliente e ufficio coincidenti con un solo fascicolo: collegamento certo
+    # (pct/pec_collegamento_certo, regola del 02/11/2026), non più solo «automatico».
+    assert link["status"] == "ruolo_cliente_ufficio_verificati"
     assert link["fascicolo_id"] == fascicolo.id
     reasons = link["candidates"][0]["reasons"]
     assert "RG certificato dall'XML ministeriale" in reasons

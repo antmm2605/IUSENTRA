@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from flask import current_app, g, session
 
 from pct.scadenze_stato import ESITO_UDIENZA, SCADUTA, stato_operativo
+from pct.proposte_decorse import AZIONABILE as PROPOSTA_AZIONABILE, classifica as classifica_proposta
 from pct.agenda import TipoAppuntamento
 from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
@@ -712,7 +713,10 @@ def quick_deadlines_payload(user: Any, *, full: bool = False) -> dict[str, Any]:
         # contatore dedicato, fuori dai conteggi urgenti (convenzione dello
         # scadenziario: vivono nella coda finche' l'avvocato non decide).
         if _enum_value(getattr(scadenza, "stato", "")) == StatoTermine.BOZZA.value:
-            summary["drafts"] += 1
+            # Una proposta con il termine già decorso non si chiede più di confermare
+            # (pct.proposte_decorse): non entra fra le proposte né fra le urgenze.
+            if classifica_proposta(scadenza, today) == PROPOSTA_AZIONABILE:
+                summary["drafts"] += 1
             continue
         status = _deadline_status(scadenza, today)
         if status in {"completed", "cancelled", "draft", "hearing_outcome"}:

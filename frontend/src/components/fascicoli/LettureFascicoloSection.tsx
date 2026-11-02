@@ -23,6 +23,7 @@ import { SintesiRegistroCard } from './SintesiRegistroCard'
 import { ObblighiNotificaSection } from './ObblighiNotificaSection'
 import { ProspettiTabellaSection } from './ProspettiTabellaSection'
 import { ProvenienzaAISection } from './ProvenienzaAISection'
+import { SentenzaProposteSection } from './SentenzaProposteSection'
 
 const OGGETTI_VISIBILI = 6
 
@@ -197,6 +198,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
           </ul>
         </div>
       ) : null}
+      <SentenzaProposteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision} onAggiornato={onAggiornato}/>
       {letture ? (
         <ul className="iu-fas-letture__lettori">
           {lettoriVisibili.map((voce) => (

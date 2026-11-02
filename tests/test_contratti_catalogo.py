@@ -72,3 +72,12 @@ def test_ecommerce_odr_dismessa_e_novita():
 def test_contratto_sconosciuto_fail_closed():
     with pytest.raises(LookupError):
         famiglia("contratto_inventato")
+
+
+def test_scheda_mostra_i_titoli_delle_clausole_non_le_chiavi():
+    """La scheda di controllo è letta dall'avvocato: niente chiavi tecniche come «durata_locazione» (02/11/2026)."""
+    from pct.contratti.selezione import valuta
+
+    clausole = valuta("locazione_abitativa")["scheda"]["clausole_negoziabili"]
+    assert clausole
+    assert not any("_" in titolo for titolo in clausole)

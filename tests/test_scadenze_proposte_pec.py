@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from types import SimpleNamespace
 
+from pct.ora_italiana import oggi_roma
 from pct.pec_pipeline import PecAuditRepository
 from pct.scadenze_proposte_pec import (
     MAX_PROPOSTE_PER_MESSAGGIO,
@@ -246,7 +247,8 @@ def test_payload_scadenziario_espone_coda_proposte_e_non_le_conta_tra_le_aperte(
         tipo=TipoTermine.ADEMPIMENTO,
         data_scadenza=(TODAY + timedelta(days=3)).isoformat(),
     )
-    bozza = _nuova_bozza(manager)
+    # Proposta futura rispetto al giorno reale: una proposta decorsa non si chiede più di confermare.
+    bozza = _nuova_bozza(manager, giorni=(oggi_roma() - TODAY).days + 12)
 
     payload = build_react_scadenziario_payload(
         gestione_scadenziario=manager,

@@ -130,9 +130,13 @@ def recupera_giudice(fascicolo, registro, tenant, *, limite=200):
     from web.services.archivio_letture_runtime import _bytes_documento, _testo_nativo
 
     documents = {str(d.id): d for d in fascicolo.documenti}
-    economic_ids = {key for key, doc in documents.items()
-                    if str(getattr(getattr(doc, "tipo", ""), "value", getattr(doc, "tipo", ""))).upper()
-                    in {"SENTENZA", "ORDINANZA", "DECRETO", "VERBALE"}}
+    from pct.archivio_letture.natura_provvedimento import TIPI_PROVVEDIMENTO, tipo_normalizzato
+
+    economic_ids = {key for key, doc in documents.items() if tipo_normalizzato(getattr(doc, "tipo", "")) in TIPI_PROVVEDIMENTO}
+    # Anche le sentenze salvate con un tipo generico (dal nome del file): il motore
+    # documenti vi ha già letto il compenso liquidato con identità del fascicolo.
+    economic_ids.update(f.oggetto_id for f in registro.fatti(tenant, str(fascicolo.id), tipo="documento", motore="documenti")
+                        if f.campo in {"liquidazione_giudice", "importi_identita_non_verificata"} and f.oggetto_id in documents)
 
     contribution_ids = {f.oggetto_id for f in registro.fatti(tenant, str(fascicolo.id), tipo="documento", motore="documenti", verifiche=None)
                         if f.campo in {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato"}}

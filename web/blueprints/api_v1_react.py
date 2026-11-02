@@ -9665,6 +9665,48 @@ def fascicolo_react_letture_fatto(id_fasc: str, fatto_id: str):
         return _jsonify_public_payload({"ok": False, "errore": "Decisione non registrata."}, 200)
 
 
+@api_v1_react.get("/fascicoli/<id_fasc>/letture/sentenza")
+@_richiedi_auth
+def fascicolo_react_letture_sentenza(id_fasc: str):
+    """Proposte dalla sentenza da confermare: definizione del fascicolo e crediti del capo spese."""
+    try:
+        from web.services.sentenza_proposte_runtime import proposte_sentenza_payload
+
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        return _jsonify_public_payload({"ok": True, "proposte": proposte_sentenza_payload(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Proposte dalla sentenza del fascicolo %s non disponibili: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Proposte dalla sentenza non disponibili."}, 200)
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/letture/sentenza/definizione")
+@_richiedi_auth
+def fascicolo_react_letture_sentenza_definizione(id_fasc: str):
+    """L'avvocato conferma o respinge la definizione del fascicolo proposta dalla sentenza."""
+    try:
+        from web.services.registro_letture_runtime import utente_corrente_id
+        from web.services.sentenza_proposte_runtime import decidi_definizione, proposte_sentenza_payload
+
+        fascicolo = _fascicoli_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
+        payload = _request_payload()
+        try:
+            decisione = decidi_definizione(fascicolo, str(payload.get("propostaId") or ""),
+                                           esito=str(payload.get("esito") or "").strip().lower(), utente=utente_corrente_id())
+        except ValueError as errore:
+            return _jsonify_public_payload({"ok": False, "errore": str(errore)}, 200)
+        _LETTURA_CACHE.invalidate(_lettura_cache_key(id_fasc))
+        _audit_event("fascicoli.letture.definizione", "fascicolo", id_fasc, f"definizione da sentenza → {decisione['esito']}")
+        fascicolo = _fascicoli_loader()().get(str(id_fasc or "").strip()) or fascicolo
+        return _jsonify_public_payload({"ok": True, "decisione": decisione, "proposte": proposte_sentenza_payload(fascicolo)})
+    except Exception as exc:
+        current_app.logger.exception("Decisione sulla definizione del fascicolo %s non registrata: %s", id_fasc, exc)
+        return _jsonify_public_payload({"ok": False, "errore": "Decisione non registrata."}, 200)
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/letture/parti")
 @_richiedi_auth
 def fascicolo_react_letture_parti(id_fasc: str):

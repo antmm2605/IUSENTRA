@@ -5,9 +5,12 @@ from typing import Any
 from pct.registro_letture.fatti_repository import Fatto
 
 def estrai_controllo_economico(testo: str, *, origine: str, metadata: dict[str, Any]) -> list[Fatto]:
+    from .natura_provvedimento import e_provvedimento
+
     fascicolo = metadata.get("fascicolo")
-    tipo = str(metadata.get("tipo_documento") or "").upper().split(".")[-1]
-    if fascicolo is None or tipo not in {"SENTENZA", "ORDINANZA", "DECRETO", "VERBALE"}:
+    # Il tipo dal nome del file non basta a escludere una sentenza: vale anche il testo.
+    if fascicolo is None or not e_provvedimento(metadata.get("tipo_documento"), testo=testo,
+                                               etichetta_catalogo=metadata.get("etichetta_catalogo") or ""):
         return []
     from pct.sentenza_economic_audit import build_audit
     audit = build_audit(

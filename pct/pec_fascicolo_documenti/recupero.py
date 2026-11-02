@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from pct.pec_collegamento_certo_riconvalida import riconvalida_collegamenti
 from pct.pec_fascicolo_documenti import registro as reg
 from pct.pec_fascicolo_documenti.flusso import Eventi, _schema, processa_messaggio
 
@@ -23,9 +24,18 @@ _CODA = (
 
 
 def recupera_storico(repo: Any, *, limite: int = 50, actor: str = "pec-fascicolo-recupero", eventi: Eventi | None = None) -> dict[str, Any]:
-    """Un lotto del recupero storico; restituisce i conteggi del giro e quanti messaggi restano in coda."""
+    """Un lotto del recupero storico; restituisce i conteggi del giro e quanti messaggi restano in coda.
+
+    Prima un lotto della riconvalida dei collegamenti (``pct/pec_collegamento_certo_riconvalida``): le PEC
+    rimaste proposte che oggi hanno ruolo, cliente e ufficio coincidenti con un solo fascicolo si collegano
+    e portano i loro documenti nel fascicolo senza intervento.
+    """
     _schema(repo)
     iniziato = reg.adesso()
+    try:
+        riconvalida = riconvalida_collegamenti(repo, actor=actor)
+    except Exception as exc:  # la riconvalida non ferma il recupero dei messaggi già collegati
+        riconvalida = {"ok": False, "errore": type(exc).__name__}
     with repo.connect() as conn:
         ids = [riga[0] for riga in conn.execute(
             f"SELECT m.id {_CODA} ORDER BY m.received_at ASC, m.id ASC LIMIT ?", (repo.tenant_id, max(1, int(limite))),
@@ -46,7 +56,7 @@ def recupera_storico(repo: Any, *, limite: int = 50, actor: str = "pec-fascicolo
     with repo.connect() as conn:
         conteggi["restano"] = int(conn.execute(f"SELECT COUNT(*) {_CODA}", (repo.tenant_id,)).fetchone()[0])
         reg.registra_giro(conn, repo.tenant_id, "recupero", iniziato, conteggi)
-    return {"ok": conteggi["errori"] == 0, **conteggi}
+    return {"ok": conteggi["errori"] == 0, **conteggi, "riconvalida": riconvalida}
 
 
 def stato_flusso(repo: Any) -> dict[str, Any]:

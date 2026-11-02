@@ -10,6 +10,17 @@ type Fonte = { id: string; href: string; label: string; valore: string; citazion
 type Discordanza = { chiave: string; codice: string; revisione: string; giaLetta: boolean; titolo: string; cliente: string; fascicolo: string; fascicoloId: string; rg: string; numeroFascicolo: string; valoreAnagrafica: string; valoriAtto: string[]; fonti: Fonte[]; nota: string }
 type Riepilogo = { ok: boolean; nonLette: number; revisione: string; voci: Discordanza[]; lettureInCorso: number; totale: number; pagina: number; altre: boolean }
 
+const chiaveVoce = (voce: Discordanza) => `${voce.fascicoloId}:${voce.chiave}:${voce.revisione}`
+
+// Solo identificativi tecnici delle verifiche già mostrate (nessun dato personale), per questo browser.
+function mostrate(storageKey: string): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(storageKey) || '[]') as string[]) } catch { return new Set() }
+}
+
+function ricorda(storageKey: string, chiavi: string[]) {
+  try { localStorage.setItem(storageKey, JSON.stringify([...new Set([...mostrate(storageKey), ...chiavi])].slice(-500))) } catch { /* La finestra resta chiusa fino al prossimo caricamento. */ }
+}
+
 export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string }) {
   const [payload, setPayload] = useState<Riepilogo | null>(null)
   const [open, setOpen] = useState(false)
@@ -40,9 +51,11 @@ export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string 
         if (!active) return
         setPayload(previous => previous?.revisione === result.revisione && previous.pagina > 1 ? { ...previous, lettureInCorso: result.lettureInCorso } : result)
         setError('')
-        let previous = seen.current
-        try { previous ||= sessionStorage.getItem(storageKey) || '' } catch { /* Il digest resta in memoria. */ }
-        if (result.nonLette > 0 && !result.lettureInCorso && previous !== result.revisione) {
+        // Apertura automatica solo per verifiche non lette mai mostrate prima a questo utente: la revisione del riepilogo
+        // cambia a ogni lettura dello studio e riapriva la finestra su ogni pagina (segnalazione del 02/11/2026).
+        const nuove = result.voci.filter(voce => !voce.giaLetta).map(chiaveVoce).filter(chiave => !mostrate(storageKey).has(chiave))
+        if (nuove.length && !result.lettureInCorso) {
+          ricorda(storageKey, nuove)
           seen.current = result.revisione
           setOpen(true)
         }
@@ -59,7 +72,7 @@ export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string 
   const close = () => {
     if (payload) {
       seen.current = payload.revisione
-      try { sessionStorage.setItem(storageKey, payload.revisione) } catch { /* Nessun dato personale viene salvato nel browser. */ }
+      ricorda(storageKey, payload.voci.map(chiaveVoce))
     }
     setOpen(false)
   }

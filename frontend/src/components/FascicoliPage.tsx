@@ -4288,11 +4288,15 @@ function StatoPraticaField({ data }:{data:FascicoloFormData}) {
   // Senza uno stato operativo scelto dall'avvocato vale lo stato del fascicolo: un fascicolo definito non si mostra «Aperta».
   const statoFascicolo = getValue(data, 'statusRaw').toUpperCase()
   const current = getValue(data, 'statoPraticaOperativa') || ({ ARCHIVIATO: 'archiviata', DEFINITO: 'definita', SOSPESO: 'sospesa' } as Record<string, string>)[statoFascicolo] || 'aperta'
+  // Uno stato importato fuori elenco (es. «In attesa esito deposito») resta selezionato: senza questa voce il menu
+  // mostrava «Bozza» e il salvataggio la scriveva sul fascicolo (verifica a vista del 02/11/2026).
+  const opzioni: Array<{ value: string; label: string }> = STATI_PRATICA.map((stato) => ({ value: stato.value, label: stato.label }))
+  if (!opzioni.some((opzione) => opzione.value === current)) opzioni.unshift({ value: current, label: current })
   return (
     <SelectField
       label={NUOVO_FASCICOLO_LABELS.fields.statoPratica}
       name="stato_pratica_operativa"
-      options={STATI_PRATICA.map((stato) => ({ value: stato.value, label: stato.label }))}
+      options={opzioni}
       defaultValue={current}
     />
   )

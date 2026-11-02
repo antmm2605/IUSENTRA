@@ -840,6 +840,17 @@ def _consegna_ai_presidi(fascicolo: Any, registro: RegistroLetture) -> dict[str,
         return {"errore": f"{type(exc).__name__}: {exc}"[:200], "consegnati": 0, "non_pertinenti": 0, "rifiutati": 0}
 
 
+def _proposte_definizione(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, Any]:
+    """La sentenza che decide la causa diventa una proposta di definizione, da confermare dall'avvocato."""
+    try:
+        from web.services.sentenza_proposte_runtime import aggiorna_proposte_definizione
+
+        return aggiorna_proposte_definizione(fascicolo, registro, tenant)
+    except Exception as exc:
+        logger.warning("Proposte di definizione non aggiornate per %s: %s", getattr(fascicolo, "id", ""), exc)
+        return {"errore": type(exc).__name__}
+
+
 def _allinea_obblighi_notifica(fascicolo: Any) -> dict[str, Any]:
     """Il presidio notifiche: dai documenti catalogati gli obblighi con scadenza entrano nello scadenziario."""
     try:
@@ -917,6 +928,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
 
                 metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
                 consegne = _consegna_ai_presidi(fascicolo, registro)
+                consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
             # Fascicolo fermo: la riga di sintesi si riscrive solo se è cambiata l'identità (stato, date, cliente…).
             _aggiorna_sintesi(fascicolo, registro, solo_se_cambiata=True)
@@ -973,6 +985,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
     from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
     economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
+    consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
         invalida_lettura(fascicolo_id)
     chiusi_documenti = (documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
@@ -1320,6 +1333,18 @@ def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite
     return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)] if _testo(r.get("fascicolo_id"))]
 
 
+def fascicoli_senza_proposte_correnti(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
+    """Fascicoli letti dai motori ma non ancora esaminati dal lettore delle proposte di definizione."""
+    from pct.fascicolo_sentenza_archiviazione import VERSIONE_PROPOSTA
+
+    esaminati = {_testo(r.get("fascicolo_id")) for r in registro.righe_fascicoli(tenant_id, lettore="proposta_definizione")
+                 if _testo(r.get("versione_lettore")) == VERSIONE_PROPOSTA and _testo(r.get("stato")) == "completa"}
+    righe = sorted((r for r in registro.righe_fascicoli(tenant_id, lettore=LETTORE_DOCUMENTI)
+                    if _testo(r.get("fascicolo_id")) and _testo(r.get("fascicolo_id")) not in esaminati),
+                   key=lambda r: _testo(r.get("aggiornato_il")))
+    return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)]]
+
+
 def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
                               limite: int = RILETTURE_PER_GIRO) -> int:
     """Di notte accoda pochi fascicoli da aggiornare: la rilettura usa solo i testi già salvati."""
@@ -1331,6 +1356,9 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
         return 0
     try:
         da_aggiornare = fascicoli_da_aggiornare(registro, tenant_id, limite=limite)
+        # Lo storico delle sentenze già lette: i fascicoli che il lettore delle
+        # proposte di definizione non ha ancora esaminato con la regola corrente.
+        da_aggiornare += [f for f in fascicoli_senza_proposte_correnti(registro, tenant_id, limite=limite) if f not in da_aggiornare]
         for fascicolo_id in da_aggiornare:
             registro.accoda_evento(tenant_id, fascicolo_id)
         return len(da_aggiornare)

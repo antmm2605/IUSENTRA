@@ -36,7 +36,7 @@ def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limi
             esito = {"ok": False, "errori": 1, "errore": type(exc).__name__}
         for chiave in _SOMME:
             totali[chiave] += int(esito.get(chiave) or 0)
-        studi.append({"studio": etichetta, **{k: v for k, v in esito.items() if k in (*_SOMME, "ok", "errore")}})
+        studi.append({"studio": etichetta, **{k: v for k, v in esito.items() if k in (*_SOMME, "ok", "errore", "riconvalida")}})
     return {"ok": totali["errori"] == 0, "job": "pec_fascicolo_documenti_recupero", "limite": limite,
             "studi": len(studi), "totals": totali, "tenants": studi}
 

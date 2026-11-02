@@ -66,6 +66,7 @@ def messaggi_da_rivedere(repo: Any) -> list[str]:
 
 def _decisione_per(repo: Any, message_id: str) -> dict[str, Any] | None:
     """Cosa deciderebbe il collegatore adesso, senza scrivere niente."""
+    from pct.pec_collegamento_certo import applica_collegamento_certo
     from pct.pec_pipeline import decidi_collegamento
 
     with repo.connect() as conn:
@@ -73,8 +74,8 @@ def _decisione_per(repo: Any, message_id: str) -> dict[str, Any] | None:
         if riga is None:
             return None
         parsed = json.loads(riga["parsed_json"])
-    _, candidati = repo._fascicoli_candidates(parsed)
-    return decidi_collegamento(candidati)
+    seeds, candidati = repo._fascicoli_candidates(parsed)
+    return applica_collegamento_certo(decidi_collegamento(candidati), seeds.get("collegamento_certo"))
 
 
 def esamina(repo: Any, *, studio: str = "", limite: int = 0) -> EsitoStudio:

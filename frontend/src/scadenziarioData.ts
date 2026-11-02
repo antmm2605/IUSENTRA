@@ -147,6 +147,11 @@ export type ScadenziarioRow = {
   deleteHref: string
 }
 
+export type ScadenziarioExpiredProposal = ScadenziarioRow & {
+  verificationNote: string
+  closeHref: string
+}
+
 export type ScadenziarioDraftProposal = ScadenziarioRow & {
   sourceOrigin: 'pec' | 'registro' | 'ctu' | 'interno'
   sourceOriginLabel: string
@@ -266,6 +271,7 @@ export type ScadenziarioPageData = {
   items: ScadenziarioRow[]
   guardian: DeadlineGuardian
   draftProposals: ScadenziarioDraftProposal[]
+  expiredProposals: { label: string; items: ScadenziarioExpiredProposal[] }
   overduePreview: ScadenziarioRow[]
   nextItems: ScadenziarioRow[]
   operativeCards: ScadenziarioActionCard[]
@@ -401,6 +407,7 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     message: 'Il Guardiano valuta le scadenze aperte dello studio.',
   },
   draftProposals: [],
+  expiredProposals: { label: '', items: [] },
   overduePreview: [],
   nextItems: [],
   operativeCards: [],
@@ -904,6 +911,16 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
           discardHref: asString(item.discardHref),
         }
       }),
+      expiredProposals: (() => {
+        const group = (payload.expiredProposals && typeof payload.expiredProposals === 'object' ? payload.expiredProposals : {}) as Record<string, unknown>
+        return {
+          label: asString(group.label) || 'Termini proposti già decorsi — verifica dell’avvocato',
+          items: asArray(group.items).map((raw) => {
+            const item = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+            return { ...normalizeRow(raw), verificationNote: asString(item.verificationNote), closeHref: asString(item.closeHref) }
+          }),
+        }
+      })(),
       overduePreview: asArray(payload.overduePreview).map(normalizeRow),
       nextItems: asArray(payload.nextItems).map(normalizeRow),
       operativeCards: normalizeCards(payload.operativeCards),

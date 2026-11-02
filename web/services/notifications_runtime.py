@@ -328,6 +328,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
     termini_lunghi["riconvalida"] = riconvalida_termini_lunghi_runtime(scadenziario)
     rinnovi_documenti = _proponi_rinnovi_documenti(paths, backend, scadenziario, oggi_roma())
     doppioni_riuniti = _riunisci_doppioni(scadenziario, agenda)
+    proposte_decorse = _chiudi_proposte_decorse(scadenziario)
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -347,6 +348,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "terminiLunghiSentenze": termini_lunghi,
         "rinnoviDocumentiIdentita": rinnovi_documenti,
         "doppioniRiuniti": doppioni_riuniti,
+        "proposteDecorse": proposte_decorse,
     }
     for user in recipients:
         try:
@@ -539,6 +541,17 @@ def _riunisci_doppioni(scadenziario: Any, agenda: Any) -> dict[str, Any]:
         return riunisci(scadenziario, agenda)
     except Exception as exc:  # la riunione non deve fermare le notifiche
         logging.getLogger(__name__).warning("Doppioni non riuniti: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+
+
+def _chiudi_proposte_decorse(scadenziario: Any) -> dict[str, Any]:
+    """Proposte mai confermate con il termine già decorso: superate o da verificare (pct.proposte_decorse)."""
+    from pct.proposte_decorse import riconvalida_proposte_decorse
+
+    try:
+        return riconvalida_proposte_decorse(scadenziario)
+    except Exception as exc:  # la riconvalida non deve fermare le notifiche
+        logging.getLogger(__name__).warning("Proposte decorse non riconvalidate: %s", exc)
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 

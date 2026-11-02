@@ -11,9 +11,15 @@ from __future__ import annotations
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
-from pct.contratti.catalogo import clausole_della_famiglia, controlli_comuni, domande_comuni, famiglia, regole_comuni
+from pct.contratti.catalogo import clausole_della_famiglia, controlli_comuni, domande_comuni, famiglia, libreria_clausole, regole_comuni
 
 _FORME_PUBBLICO_UFFICIALE = {"scrittura_autenticata", "atto_pubblico"}
+
+
+def _titoli_clausole(chiavi) -> list[str]:
+    """Titoli italiani delle clausole per la scheda (la chiave tecnica resta solo se manca il titolo)."""
+    libreria = libreria_clausole().get("clausole", {})
+    return [str((libreria.get(chiave) or {}).get("titolo") or chiave) for chiave in chiavi]
 
 
 def _soddisfa(quando: dict, fatti: dict) -> bool | None:
@@ -103,7 +109,7 @@ def valuta(contratto_id: str, fatti: dict | None = None, oggi: date | None = Non
             "normativa": riferimenti,
             "forma": forma["forma"],
             "contenuti_obbligatori": [e["messaggio"] for e in esiti if e["esito"] == "blocco"],
-            "clausole_negoziabili": list(clausole_della_famiglia(contratto)),
+            "clausole_negoziabili": _titoli_clausole(clausole_della_famiglia(contratto)),
             "documentazione": fatti.get("documentazione", ""),
             "adempimenti": [e["messaggio"] for e in esiti if e["esito"] == "adempimento"],
             "esecuzione": fatti.get("esecuzione", ""),

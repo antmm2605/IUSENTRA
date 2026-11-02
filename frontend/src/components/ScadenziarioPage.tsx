@@ -54,6 +54,7 @@ import {
   type ScadenziarioActionCard,
   type DeadlineGuardian,
   type ScadenziarioDraftProposal,
+  type ScadenziarioExpiredProposal,
   type ScadenziarioPageData,
   type ScadenziarioPriority,
   type ScadenziarioQuery,
@@ -297,6 +298,39 @@ function DraftProposalsPanel({ proposals, onConfirm, onDiscard, onOpenSource }:{
             <div className="iu-scad-proposal__actions">
               <button type="button" className="iu-scad-proposal__confirm" onClick={() => onConfirm(item)}><CheckCircle2 size={15}/> Conferma scadenza</button>
               <button type="button" className="iu-scad-proposal__discard" onClick={() => onDiscard(item)}><X size={15}/> Scarta</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ExpiredProposalsPanel({ group, onClose }:{group:{label:string; items:ScadenziarioExpiredProposal[]}; onClose:(item:ScadenziarioExpiredProposal)=>void}) {
+  const [expanded, setExpanded] = useState(false)
+  if (!group.items.length) return null
+  const count = group.items.length
+  return (
+    <section className="iu-scad-proposals" aria-label={group.label}>
+      <header className="iu-scad-proposals__head">
+        <span className="iu-scad-proposals__eyebrow"><FileSearch size={15}/> {group.label}</span>
+        <strong>{count === 1 ? '1 termine proposto è decorso senza conferma' : `${count} termini proposti sono decorsi senza conferma`}</strong>
+        <p>Termini perentori mai confermati il cui mancato rispetto può produrre decadenza: verifica se l’atto è stato compiuto in tempo, poi chiudi la voce.</p>
+        <button className="iu-button" type="button" aria-expanded={expanded} aria-controls="iu-scad-decorsi-elenco" onClick={() => setExpanded(value => !value)}>
+          <ChevronDown size={15} aria-hidden="true"/>{expanded ? 'Riduci' : `Verifica ${count} ${count === 1 ? 'termine' : 'termini'}`}
+        </button>
+      </header>
+      <div id="iu-scad-decorsi-elenco" className="iu-scad-proposals__list" hidden={!expanded}>
+        {group.items.map((item) => (
+          <article key={item.id} className="iu-scad-proposal">
+            <div className="iu-scad-proposal__top">
+              <Badge tone="warning">{item.statusLabel}</Badge>
+              <strong>{item.dateLabel}</strong>
+            </div>
+            <p className="iu-scad-proposal__title">{item.title}</p>
+            <p className="iu-scad-proposal__source">{item.verificationNote}{item.fascicoloLabel ? <> · {item.fascicoloLabel}</> : null}</p>
+            <div className="iu-scad-proposal__actions">
+              <button type="button" className="iu-scad-proposal__discard" onClick={() => onClose(item)}><CheckCircle2 size={15}/> Verificato: chiudi</button>
             </div>
           </article>
         ))}
@@ -1267,6 +1301,17 @@ export function ScadenziarioPage() {
       .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Scarto non riuscito'))
   }
 
+  const runCloseExpiredProposal = (item: ScadenziarioExpiredProposal) => {
+    const motivo = window.prompt('Esito della verifica del termine decorso (facoltativo):', 'Termine decorso verificato dall’avvocato')
+    if (motivo === null) return
+    const body = new URLSearchParams()
+    body.set('motivo', motivo)
+    setStatusLine(`Chiusura del termine decorso "${item.title}"...`)
+    postDeadlineAction(item.closeHref, 'Chiudi termine decorso', body)
+      .then((message) => { setStatusLine(message); load() })
+      .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Chiusura non riuscita'))
+  }
+
   const runBulkComplete = () => {
     const completableIds = selectedCompletableIds
     if (!completableIds.length) {
@@ -1519,6 +1564,7 @@ export function ScadenziarioPage() {
       <GuardianPanel guardian={data.guardian} loading={loading}/>
 
       <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal} onOpenSource={(row) => setSourcePreview({ ...row })}/>
+      <ExpiredProposalsPanel group={data.expiredProposals} onClose={runCloseExpiredProposal}/>
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
         <label className="iu-scad-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca per titolo, descrizione, fascicolo, ufficio..."/></label>

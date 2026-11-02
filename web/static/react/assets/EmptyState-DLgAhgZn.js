@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-BvLC-E52.js";import{Bt as t}from"./app-Cb5yNlVn.js";var n=e();function r({title:e,message:r,action:i}){return(0,n.jsx)(t,{title:e,message:r,action:i,className:`iu-empty-state`})}export{r as t};

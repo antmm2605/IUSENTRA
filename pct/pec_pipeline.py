@@ -34,6 +34,8 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from pct.pec_case_identity import case_identity_evidence, client_tax_code_from_documents
+from pct.pec_collegamento_certo import STATO_CERTO as LINK_STATO_RUOLO_CLIENTE_UFFICIO
+from pct.pec_collegamento_certo import applica_collegamento_certo, cerca_collegamento_certo
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
 from pct.scadenze_proposte_pec import (
@@ -6408,7 +6410,11 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
 
 
 # Stati di collegamento PEC→fascicolo che il linker automatico non deve sovrascrivere.
-LINK_STATI_CERTIFICATI = frozenset({"ruolo_certificato_ufficio", "ricevuta_identificativi_verificati", "manuale"})
+# «ruolo_cliente_ufficio_verificati»: ruolo con anno, nome e cognome del cliente e ufficio coincidenti con un
+# solo fascicolo (pct/pec_collegamento_certo.py, regola dell'avvocato del 02/11/2026).
+LINK_STATI_CERTIFICATI = frozenset({
+    "ruolo_certificato_ufficio", "ricevuta_identificativi_verificati", "manuale", LINK_STATO_RUOLO_CLIENTE_UFFICIO,
+})
 
 
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any]:
@@ -10229,6 +10235,12 @@ class PecAuditRepository:
             key=lambda item: (bool(item.get("exact_receipt_reference")), not bool(item.get("identity_conflicts")), float(item["score"])),
             reverse=True,
         )
+        # Ruolo, cliente e ufficio su tutti i fascicoli (non solo i primi cinque candidati): l'unicità si
+        # verifica sull'intero archivio. L'esito resta nei seeds del collegamento, come prova.
+        try:
+            seeds["collegamento_certo"] = cerca_collegamento_certo(parsed, fascicoli, profilo=profile, clienti=clients_by_id)
+        except Exception as exc:  # fail-closed: senza verifica resta la decisione ordinaria
+            seeds["collegamento_certo"] = {"fascicolo_id": "", "motivo": "verifica_non_eseguita", "errore": type(exc).__name__}
         return seeds, candidates[:5]
 
     def _upsert_pct_deposit_from_report(
@@ -10510,6 +10522,8 @@ class PecAuditRepository:
             # dell'RG nudo: vale solo quando il mittente e' l'ufficio di quel
             # procedimento su dominio ministeriale e il messaggio porta un atto.
             decisione = decidi_collegamento(candidates, threshold=threshold)
+            # Ruolo, cliente e ufficio coincidenti con un solo fascicolo: collegamento certo (pct/pec_collegamento_certo).
+            decisione = applica_collegamento_certo(decisione, seeds.get("collegamento_certo"))
             score = decisione["score"]
             fascicolo_id = decisione["fascicolo_id"]
             status = decisione["status"]

@@ -41,10 +41,41 @@ def _ultima_esecuzione(app: Any) -> dict[str, Any]:
             "durata_s": round(int(riga[4] or 0) / 1000, 1)}
 
 
+def _diagnosi_collegamenti(repo: Any) -> dict[str, Any]:
+    """Solo conteggi: perché una PEC non risulta collegata (ultimo esito del linker, famiglia dell'evento)."""
+    t = repo.tenant_id
+    ultimo = (
+        "SELECT l.message_id, l.status, l.fascicolo_id FROM pec_fascicolo_links l "
+        "JOIN (SELECT message_id, MAX(created_at) c FROM pec_fascicolo_links GROUP BY message_id) u "
+        "ON u.message_id=l.message_id AND u.c=l.created_at"
+    )
+    with repo.connect() as conn:
+        def gruppi(sql: str) -> dict[str, int]:
+            return {str(r[0] or "(vuoto)"): int(r[1]) for r in conn.execute(sql, (t,)).fetchall()}
+
+        return {
+            "messaggi": int(conn.execute("SELECT COUNT(*) FROM pec_messages WHERE tenant_id=?", (t,)).fetchone()[0]),
+            "per_stato_messaggio": gruppi("SELECT status, COUNT(*) FROM pec_messages WHERE tenant_id=? GROUP BY status"),
+            "ultimo_esito_linker": gruppi(
+                f"SELECT x.status || CASE WHEN x.fascicolo_id<>'' THEN ' (con fascicolo)' ELSE '' END, COUNT(*) "
+                f"FROM ({ultimo}) x JOIN pec_messages m ON m.id=x.message_id WHERE m.tenant_id=? GROUP BY 1"),
+            "senza_esito_linker": int(conn.execute(
+                "SELECT COUNT(*) FROM pec_messages m WHERE m.tenant_id=? AND NOT EXISTS "
+                "(SELECT 1 FROM pec_fascicolo_links l WHERE l.message_id=m.id)", (t,)).fetchone()[0]),
+            "famiglia_non_collegate": gruppi(
+                "SELECT e.family, COUNT(DISTINCT m.id) FROM pec_messages m JOIN pec_legal_events e ON e.message_id=m.id "
+                "WHERE m.tenant_id=? AND m.linked_fascicolo_id='' GROUP BY e.family ORDER BY 2 DESC LIMIT 15"),
+            "famiglia_collegate": gruppi(
+                "SELECT e.family, COUNT(DISTINCT m.id) FROM pec_messages m JOIN pec_legal_events e ON e.message_id=m.id "
+                "WHERE m.tenant_id=? AND m.linked_fascicolo_id<>'' GROUP BY e.family ORDER BY 2 DESC LIMIT 15"),
+        }
+
+
 def main() -> int:
     sys.path.insert(0, "/app")
     from pct.scheduler_worker import create_scheduler_app
     from web.services.pec_fascicolo_documenti_runtime import recupero_per_studi, stato_per_studi, studi_attivi
+    from web.services.pec_pipeline_runtime import repository_from_paths
 
     app = create_scheduler_app()
     with app.app_context():
@@ -57,6 +88,12 @@ def main() -> int:
         for numero, voce in enumerate(stato_per_studi(studi), start=1):
             voce.pop("studio", None)
             stato.append({"studio": f"studio_{numero}", **voce})
+        if os.getenv("DIAGNOSI", "").strip() == "1":
+            for numero, (etichetta, paths) in enumerate(studi, start=1):
+                try:
+                    stato[min(numero, len(stato)) - 1]["diagnosi"] = _diagnosi_collegamenti(repository_from_paths(paths, tenant_label=etichetta))
+                except Exception as exc:
+                    stato[min(numero, len(stato)) - 1]["diagnosi"] = {"errore": type(exc).__name__}
         try:
             pianificazione = _ultima_esecuzione(app)
         except Exception as exc:  # registro delle pianificazioni non raggiungibile

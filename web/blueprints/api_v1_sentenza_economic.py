@@ -20,6 +20,7 @@ from web.services.sentenza_economic_runtime import (
     analyze_fascicolo_document,
     build_sentenza_economic_payload,
     confirm_economic_action,
+    genera_parcella_from_event,
 )
 from web.services.tenant_api_auth import api_key_valid_for_request
 
@@ -84,3 +85,10 @@ def sentenza_economic_analyze():
 @_studio_auth_required
 def sentenza_economic_confirm():
     return _json(confirm_economic_action(_json_body()))
+
+
+@api_v1_sentenza_economic.post("/parcella")
+@_studio_auth_required
+def sentenza_economic_parcella():
+    """Parcella dal credito del capo spese già confermato dall'avvocato (artt. 91 e 93 c.p.c.)."""
+    return _json(genera_parcella_from_event(_json_body()))

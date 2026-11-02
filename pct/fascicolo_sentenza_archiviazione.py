@@ -7,9 +7,11 @@ from zoneinfo import ZoneInfo
 from typing import Any
 from pct.fascicoli import AvanzamentoPratica, StatoFascicolo
 from pct.pec_case_identity import document_case_identity_evidence
-from pct.spese_liquidate_lettura import compatta_testo, estrai_spese_liquidate
+from pct.spese_liquidate_lettura import estrai_spese_liquidate
 
-RULE = 'sentenza-propria-da-archiviare-v2-componenti'
+RULE = 'sentenza-propria-da-archiviare-v3-conclusiva'
+# Lettore «proposta_definizione»: cambia con la regola e con la lettura del dispositivo.
+VERSIONE_PROPOSTA = RULE + '+proposta-avvocato.v1'
 
 def verifica_sentenza_da_archiviare(*, fascicolo: Any, testo: str, fonte: dict[str, Any], cliente: dict[str, Any] | None = None) -> dict[str, Any]:
     result = {'eligible': False, 'rule': RULE, 'fascicolo_id': str(fascicolo.id), 'source': fonte,
@@ -35,25 +37,22 @@ def verifica_sentenza_da_archiviare(*, fascicolo: Any, testo: str, fonte: dict[s
     result['party_tax_code'] = tax_identity
     if tax_identity['conflicts'] or (tax_identity['party_tax_code_present'] and not tax_identity['client_tax_code_match']):
         return {**result, 'reason': 'Codice fiscale della parte non concordante o non verificabile nell’anagrafica.'}
-    text = compatta_testo(testo)
-    if not re.search(r'\bsentenza\b', text[:6000], re.I):
-        return {**result, 'reason': 'Documento non riconosciuto come sentenza.'}
-    # Un unico dispositivo conclusivo: citazioni o più provvedimenti richiedono
-    # lettura separata, mai promozione del fascicolo sulla sola parola sentenza.
-    markers = list(re.finditer(r'(?<!\w)p\s*\.?\s*q\s*\.?\s*m\s*\.(?!\w)', text, re.I))
-    if len(markers) != 1:
-        return {**result, 'reason': 'Dispositivo conclusivo unico non determinato.'}
-    dispositivo = text[markers[0].end():]
-    if not re.search(r'\bdefinitivamente\s+pronunciando\b', dispositivo[:700], re.I):
-        return {**result, 'reason': 'Decisione conclusiva del procedimento non dimostrata.'}
-    if re.search(r'\b(?:non\s+definitiv\w*|riserv\w*\s+(?:la\s+)?decisione|rimett\w*\s+(?:la\s+)?causa)\b', dispositivo, re.I):
-        return {**result, 'reason': 'Dispositivo non conclusivo o con prosecuzione del giudizio.'}
+    # Il testo decide il grado? Regola condivisa con la proposta di definizione:
+    # sentenze non definitive, parziali o con prosecuzione non definiscono nulla.
+    from pct.sentenza_conclusiva import valuta_sentenza
+
+    valutazione = valuta_sentenza(testo)
+    result['grado'] = valutazione['grado']
+    if not valutazione['conclusiva']:
+        return {**result, 'reason': valutazione['motivo']}
+    dispositivo = valutazione['dispositivo']
+    # Il capo spese è un dato in più, non una condizione: le spese compensate
+    # (art. 92 c.p.c.) definiscono il giudizio come una condanna alle spese.
     amount, quote = estrai_spese_liquidate(dispositivo)
-    if amount is None or not quote:
-        return {**result, 'reason': 'Valore liquidato nel dispositivo non determinato.'}
-    return {**result, 'eligible': True, 'amount': amount, 'quote': quote,
+    return {**result, 'eligible': True, 'amount': amount, 'quote': quote or '',
+            'compensate': valutazione['compensate'],
             'decision_sha256': hashlib.sha256(dispositivo.encode('utf-8')).hexdigest(),
-            'reason': 'Sentenza propria conclusiva con valore e fonte verificati.'}
+            'reason': valutazione['motivo']}
 
 
 def applica_sentenza_da_archiviare(*, fascicoli_repository: Any, fascicolo_id: str,
@@ -65,7 +64,7 @@ def applica_sentenza_da_archiviare(*, fascicoli_repository: Any, fascicolo_id: s
         return {'changed': False, 'reason': 'Fascicolo non disponibile.'}
     source = verifica['source']
     note = ('Sentenza conclusiva della pratica; fonte ' + str(source.get('name') or source.get('document_id') or source.get('message_id'))
-            + (' / '+source['component_path'] if source.get('component_path') else '') + '; SHA-256 ' + source['sha256'] + '; capo economico: ' + verifica['quote']
+            + (' / '+source['component_path'] if source.get('component_path') else '') + '; SHA-256 ' + source['sha256'] + '; capo economico: ' + (verifica.get('quote') or 'spese non liquidate nel dispositivo')
             + '. Predisposizione all’archivio; termini, attività e verifiche residue restano attivi. Non certifica il passaggio in giudicato.')
     from pct.stato_fascicolo import Prova, ammessa, avanzamento
     import json
@@ -119,5 +118,5 @@ def applica_sentenza_da_archiviare(*, fascicoli_repository: Any, fascicolo_id: s
     fascicoli_repository._fascicoli[fascicolo_id]=current
     fascicoli_repository._rigenera_mirror_fascicoli_json()
     return {'changed':True,'state':current.stato.value,'ready':current.archivio_pronto,
-            'source':source,'amount':verifica['amount'],'rule':RULE}
+            'source':source,'amount':verifica.get('amount'),'rule':RULE}
 

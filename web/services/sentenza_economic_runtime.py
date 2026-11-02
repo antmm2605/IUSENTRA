@@ -298,9 +298,13 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
     from pct.archivio_letture.pertinenza_documentale import precedenti_del_fascicolo
 
     esclusi = precedenti_del_fascicolo(fascicolo, fatti_fascicolo(fascicolo, canonico=False))
+    # Il motore documenti riconosce la sentenza anche dal testo: un documento con
+    # il suo controllo economico è candidato qualunque tipo gli abbia dato il nome del file.
+    fatti = fatti_fascicolo(fascicolo, canonico=False, verifiche=("verificata", "corretta", "plausibile"))
+    correnti = {f.oggetto_id: f for f in fatti if f.campo == "controllo_economico"}
     da_analizzare: list[Any] = []
     for documento in getattr(fascicolo, "documenti", []) or []:
-        if _document_id(documento) in esclusi or not _is_sentenza_candidate(documento):
+        if _document_id(documento) in esclusi or not (_is_sentenza_candidate(documento) or _document_id(documento) in correnti):
             continue
         report["candidates"] += 1
         if _already_analyzed([a for a in audits if a.get("fonte") == "ARCHIVIO_LETTURE"], documento):
@@ -317,8 +321,6 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
         SentenzaEconomicAudit, SentenzaIdentityMatch, SentenzaEconomicExtraction,
         SpeseLiquidate, ContributoUnificatoAudit, EconomicAction,
     )
-    fatti = fatti_fascicolo(fascicolo, canonico=False, verifiche=("verificata", "corretta", "plausibile"))
-    correnti = {f.oggetto_id: f for f in fatti if f.campo == "controllo_economico"}
     for documento in da_analizzare:
         doc_id = _document_id(documento)
         fatto = correnti.get(doc_id)
@@ -569,6 +571,12 @@ def genera_parcella_from_event(payload: dict[str, Any]) -> dict[str, Any]:
     fascicolo = _resolve_fascicolo(fascicolo_id)
     if fascicolo is None:
         return {"ok": False, "code": "not_found", "message": "Fascicolo non trovato."}
+    from web.services.sentenza_proposte_runtime import _parcelle_per_evento
+
+    gia_generata = _parcelle_per_evento(fascicolo_id).get(event_id)
+    if gia_generata:
+        # Una parcella per credito: il secondo clic non duplica la voce.
+        return {"ok": True, "eventId": event_id, "parcella": gia_generata, "alreadyPresent": True}
     try:
         from web.helpers import get_fatturazione
         from pct.sentenza_economic_workflow import genera_parcella_da_credito

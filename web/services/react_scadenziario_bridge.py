@@ -26,6 +26,7 @@ from pct.scadenziario import (
     profili_termine_builtin,
 )
 from pct.pec_operational_cleanup import is_legacy_pec_deadline
+from pct.proposte_decorse import GRUPPO_DA_VERIFICARE, MARCATORE_SUPERATA, dividi_proposte, riga_da_verificare
 from pct.termini_processuali import (
     CALENDAR_VERSION,
     DeadlinePracticeRepository,
@@ -393,6 +394,9 @@ def _has_advanced_calculation(scadenza: Any) -> bool:
 
 
 def _reconciliation_reason(scadenza: Any) -> str:
+    superata = re.search(rf"(?:^|\n){MARCATORE_SUPERATA}: ([^\n]+)", str(getattr(scadenza, "note", "") or ""))
+    if superata:
+        return _visible_legal_text(superata.group(1), 900)
     match = re.search(
         r'(?:^|\n)Rettifica (?:automatica|documentata) della lettura: (.+)',
         str(getattr(scadenza, 'note', '') or ''),
@@ -1161,7 +1165,7 @@ def _row(
         "priorityLabel": _priority_label(priority),
         "tone": _tone_for(priority, status, days),
         "status": status,
-        "statusLabel": _status_label(status),
+        "statusLabel": "Proposta superata" if status == "ANNULLATO" and MARCATORE_SUPERATA in str(getattr(scadenza, "note", "") or "") else _status_label(status),
         "days": days,
         "daysLabel": _days_label(days),
         "overdue": overdue,
@@ -1828,14 +1832,17 @@ def build_react_scadenziario_payload(
             agenda_contexts = []
     display_events: dict[str, Mapping[str, Any]] = {}
     bozze = []
+    bozze_decorse: list[Any] = []
     if not compact:
         try:
-            bozze = list(gestione_scadenziario.bozze())
+            # Una proposta il cui termine è già decorso non si chiede più di confermare (artt. 152-155 c.p.c.):
+            # le perentorie con decadenza vanno nel gruppo da verificare, le altre aspettano la chiusura.
+            bozze, bozze_decorse = dividi_proposte(gestione_scadenziario.bozze())
         except Exception:
-            bozze = []
+            bozze, bozze_decorse = [], []
     # Le proposte restano escluse dalle viste operative, ma le loro fonti
     # devono essere risolte nello stesso caricamento SQL delle righe visibili.
-    pec_profile_items = [*filtered, *bozze]
+    pec_profile_items = [*filtered, *bozze, *bozze_decorse]
     pec_profiles = _latest_pec_profiles(
         pec_profile_items,
         pec_audit_db=pec_audit_db,
@@ -1943,6 +1950,21 @@ def build_react_scadenziario_payload(
             row["confirmHref"] = f"/scadenziario/{item_id}/conferma-proposta"
             row["discardHref"] = f"/scadenziario/{item_id}/scarta-proposta"
             draft_proposals.append(row)
+    expired_proposals: list[dict[str, Any]] = []
+    for item in bozze_decorse:
+        row = _row(
+            item,
+            gestione_fascicoli=gestione_fascicoli,
+            gestione_utenti=gestione_utenti,
+            pec_profile=pec_profile_for_item(item, pec_profiles),
+            control_tower_source=control_tower_sources.get(control_tower_source_key(item)),
+        )
+        # Non è un'urgenza: è un termine già decorso che l'avvocato verifica e poi chiude.
+        row["tone"] = "warning"
+        row["statusLabel"] = "Termine proposto già decorso"
+        row["verificationNote"] = riga_da_verificare(item).split(": ", 1)[1]
+        row["closeHref"] = f"/scadenziario/{row['id']}/scarta-proposta"
+        expired_proposals.append(row)
     query["includeCalculator"] = include_calculator
     return {
         "generatedAt": _iso_now(),
@@ -1958,6 +1980,7 @@ def build_react_scadenziario_payload(
         "items": rows,
         "guardian": guardian,
         "draftProposals": draft_proposals,
+        "expiredProposals": {"label": GRUPPO_DA_VERIFICARE, "items": expired_proposals},
         "overduePreview": overdue_preview,
         "nextItems": next_items,
         "operativeCards": _operative_cards(summary),

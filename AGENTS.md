@@ -42,6 +42,28 @@ Logica di lavoro da usare sempre, per ogni modifica e ogni sessione (Codex e Cla
    comando sul PC, accesso a un portale), indicare sempre: dove (nome esatto della sessione o della
    finestra), il testo o il comando esatto da incollare, e cosa deve vedere se è andato a buon fine.
 
+## Metodo di lavoro sul codice — direttiva utente 02/11/2026
+
+Principi adottati su richiesta dell'avvocato (dalle osservazioni di Andrej Karpathy sugli errori tipici degli
+agenti che scrivono codice, raccolte nel repository pubblico `multica-ai/andrej-karpathy-skills`). Valgono per
+Codex, Claude Code e ogni agente delegato; non sostituiscono le regole di questo file, che prevalgono.
+
+1. **Pensare prima di scrivere.** Dichiarare le ipotesi; se una richiesta ha più letture possibili, dirle invece
+   di sceglierne una in silenzio; proporre la strada più semplice se esiste; chiedere quando la scelta spetta
+   davvero all'avvocato (senza fermarsi su ciò che le regole di questo file già decidono).
+2. **Prima la semplicità.** Scrivere solo ciò che il compito richiede: niente funzioni speculative, astrazioni
+   non necessarie o gestione di errori per casi impossibili. Resta ferma la regola contro le semplificazioni
+   riduttive dei requisiti: semplice non vuol dire incompleto.
+3. **Modifiche chirurgiche.** Toccare solo ciò che serve, nello stile del codice esistente; nessun refactor non
+   richiesto. Il codice morto o i difetti notati fuori dal compito si segnalano, non si cancellano di nascosto;
+   si rimuovono solo gli import e le funzioni resi orfani dalla propria modifica.
+4. **Esecuzione guidata dall'obiettivo.** Trasformare ogni compito in obiettivi verificabili: per un difetto,
+   prima il test che lo riproduce (deve fallire), poi la correzione (il test passa); dichiarare un breve piano
+   con il controllo di ogni passo e verificare anche dal vero (deploy, online, PC e telefono) come chiede
+   l'avvocato.
+
+Questi principi privilegiano la prudenza sulla velocità; per le operazioni banali si usa il buon senso.
+
 ## Metodo di analisi Graphify per Codex — direttiva utente 20/10/2026
 
 - Riferimento metodologico: https://github.com/Graphify-Labs/graphify. Applicarlo al ragionamento dell’agente e all’analisi del codice; questa direttiva non introduce Graphify nel prodotto, nei servizi o nelle dipendenze di IUSENTRA.

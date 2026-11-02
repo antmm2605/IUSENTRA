@@ -52,8 +52,16 @@ function Pratiche({ pratiche }: { pratiche: SintesiPratica[] | null }) {
   )
 }
 
+// Una risposta senza l'elenco delle aree (servizio non pronto, dati di prova) vale come catalogo non disponibile:
+// la pagina mostra il messaggio invece di rompersi.
+function catalogoValido(dati: Catalogo): Catalogo {
+  if (dati?.ok && !Array.isArray(dati.aree)) return { ok: false, message: 'Catalogo dei contratti non disponibile.' } as Catalogo
+  return dati
+}
+
 function RegoleComuni({ catalogo }: { catalogo: Catalogo }) {
   const regole = catalogo.regole_comuni
+  if (!regole) return null
   return (
     <div className="iu-ctr-regole">
       <details>
@@ -89,19 +97,20 @@ export function ContrattiCatalogo() {
 
   useEffect(() => {
     let attivo = true
-    getCatalogo().then((dati) => { if (attivo) setCatalogo(dati) })
-    getPratiche().then((dati) => { if (attivo) setPratiche(dati.ok ? dati.pratiche : []) })
+    getCatalogo().then((dati) => { if (attivo) setCatalogo(catalogoValido(dati)) })
+    getPratiche().then((dati) => { if (attivo) setPratiche(dati.ok && Array.isArray(dati.pratiche) ? dati.pratiche : []) })
     return () => { attivo = false }
   }, [])
 
   const aree = useMemo(() => {
     if (!catalogo?.ok) return []
     const chiave = normalizza(ricerca.trim())
-    return catalogo.aree
+    // Una risposta senza aree (servizio non pronto, dati di prova) mostra il catalogo vuoto invece di rompere la pagina.
+    return (catalogo.aree ?? [])
       .filter((voce) => !area || voce.id === area)
       .map((voce) => ({
         ...voce,
-        voci: voce.voci.filter((c) => (!soloGuidati || c.guidato) && (!chiave || normalizza(`${c.nome} ${c.riferimenti.join(' ')}`).includes(chiave))),
+        voci: (voce.voci ?? []).filter((c) => (!soloGuidati || c.guidato) && (!chiave || normalizza(`${c.nome} ${(c.riferimenti ?? []).join(' ')}`).includes(chiave))),
       }))
       .filter((voce) => voce.voci.length)
   }, [catalogo, area, ricerca, soloGuidati])

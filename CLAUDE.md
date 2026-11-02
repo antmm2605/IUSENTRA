@@ -4,7 +4,7 @@
 
 ## Coordinamento Codex / Claude Code
 
-- `AGENTS.md` è la fonte canonica comune per Codex e Claude Code. Se questo file contiene istruzioni divergenti o più vecchie, prevale sempre `AGENTS.md`.
+- `AGENTS.md` è la fonte canonica comune per Codex e Claude Code. Il metodo di lavoro sul codice (pensare prima di scrivere, semplicità, modifiche chirurgiche, obiettivi verificabili) è nella sezione «Metodo di lavoro sul codice» di `AGENTS.md`. Se questo file contiene istruzioni divergenti o più vecchie, prevale sempre `AGENTS.md`.
 - Claude Code deve lavorare nella stessa copia reale `D:\legale\IUSENTRA`, senza cloni paralleli o worktree temporanee lasciate a fine lavoro.
 - Prima di modificare: eseguire `git status --short`, verificare il branch corrente e leggere le sezioni pertinenti di `AGENTS.md`, `docs/`, `ops/`, `deploy/hetzner/` e `.github/`.
 - A fine lavoro i branch `main`, locali e remoti, devono puntare allo stesso commit; se una protezione GitHub blocca il push diretto, correggere i check e documentare il push riuscito.

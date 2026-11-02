@@ -14,6 +14,7 @@ import {
   ReceiptText,
   Send,
   ShieldCheck,
+  UserCheck,
   type LucideIcon,
 } from 'lucide-react'
 import type { SettingsField, SettingsSection, SettingTone } from './types'
@@ -39,6 +40,7 @@ export const SETTINGS_SECTIONS: Array<{
   { id: 'notifiche', label: 'Notifiche', description: 'Messaggi WhatsApp, promemoria e registro dello studio.', icon: Bell, tone: 'success' },
   { id: 'backup', label: 'Backup', description: 'Copie, verifica e scaricamento protetto dei dati dello studio.', icon: CloudUpload, tone: 'warning' },
   { id: 'calendari', label: 'Calendari', description: 'Collega agenda e scadenze ai calendari usati dallo studio.', icon: CalendarSync, tone: 'primary' },
+  { id: 'regole_studio', label: 'Regole dello studio', description: 'Le correzioni degli avvocati ai passaggi del software: il software le applica ai casi simili, mai oltre i vincoli di legge.', icon: UserCheck, tone: 'info' },
 ]
 
 export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
@@ -230,4 +232,5 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
   notifiche: [],
   backup: [],
   calendari: [],
+  regole_studio: [],
 }

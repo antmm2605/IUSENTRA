@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1232.
+- File pytest censiti: 1234.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 151 |
 | Security | 65 |
 | Smoke CLI | 6 |
-| Tenant isolation | 297 |
+| Tenant isolation | 299 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 93 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 215 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 630 |
+| 09-misc | Test non classificati dalle fasi principali | 632 |
 
 ## Suite CI aggiuntive
 
@@ -710,6 +710,8 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Tenant isolation | tests/test_ordinary_local_smtp.py | 403/RBAC, tenant, contratto, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pagamenti_webhook_studi.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_parcella_incassi_repository.py | 401 anonimo, tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_passaggi_api.py | 401 anonimo, 403/RBAC, tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/test_passaggi_regole_studio.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_payment_confirmations.py | tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pec_control_tower.py | 403/RBAC, tenant, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_pec_deadline_legacy_repair.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

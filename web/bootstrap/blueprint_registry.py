@@ -182,6 +182,7 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("api_v1_editor_ai", "web.blueprints.api_v1_editor_ai", "api_v1_editor_ai", "/api/v1/ui"),
     BlueprintRegistration("api_v1_lex_learning", "web.blueprints.api_v1_lex_learning", "api_v1_lex_learning", "/api/v1/ui"),
     BlueprintRegistration("api_v1_daily_plan", "web.blueprints.api_v1_daily_plan", "api_v1_daily_plan", "/api/v1/ui"),
+    BlueprintRegistration("api_v1_passaggi", "web.blueprints.api_v1_passaggi", "api_v1_passaggi", "/api/v1/ui"),
     BlueprintRegistration(
         "api_v1_portale_token",
         "web.blueprints.api_v1_portale_token",

@@ -9446,7 +9446,9 @@ class PecAuditRepository:
                           "del deposito."),
                     tags=["pec-cancelleria", "provvedimento", "copia-informativa"], data_documento=received_day, caricato_da=actor,
                     fonte_documento="PEC_CANCELLERIA", nome_originale=nome, hash_contenuto_sha256=impronta,
-                    msg_id_portale=message_id,
+                    # Chiave per allegato: con il solo Message-ID il secondo provvedimento della stessa PEC
+                    # veniva assorbito dal primo come «stesso documento del portale».
+                    msg_id_portale=f"{message_id}#{impronta[:16]}",
                 )
                 presenti.add(impronta)
                 archiviati += 1
@@ -10603,6 +10605,9 @@ class PecAuditRepository:
             draft_proposals = self.create_draft_date_proposals(message_id, actor=actor)
         except Exception as exc:  # pragma: no cover - il collegamento resta valido
             draft_proposals = {"ok": False, "created": 0, "message": str(exc)[:180]}
+        # Ultimo passo: con il collegamento certo, provvedimenti, atti ed .eml di prova entrano nei documenti
+        # del fascicolo (pct/pec_fascicolo_documenti); un collegamento solo proposto resta in attesa di conferma.
+        fascicolo_documents = self._documenti_pec_nel_fascicolo(message_id, actor=actor)
         return {
             "message_id": message_id,
             "status": status,
@@ -10615,7 +10620,21 @@ class PecAuditRepository:
             "change_receipt": change_receipt,
             "draft_proposals": draft_proposals,
             "notification_presidia": presidia_dopo_collegamento,
+            "fascicolo_documents": fascicolo_documents,
         }
+
+    def _documenti_pec_nel_fascicolo(self, message_id: str, *, actor: str, fascicolo_id: str = "") -> dict[str, Any]:
+        """PEC → documenti del fascicolo; un errore non tocca il collegamento né il presidio."""
+        if not self.fascicoli_db_path:
+            return {"ok": True, "stato": "fascicoli_non_configurati"}
+        try:
+            from pct.pec_fascicolo_documenti import conferma_collegamento, processa_messaggio
+
+            if fascicolo_id:
+                return conferma_collegamento(self, message_id, fascicolo_id, actor=actor)
+            return processa_messaggio(self, message_id, actor=actor)
+        except Exception as exc:  # pragma: no cover - difesa: il flusso registra già i propri errori
+            return {"ok": False, "stato": "errore", "errore": type(exc).__name__}
 
     def recover_stale_jobs(self, *, older_than_seconds: int = 21600, actor: str = "pec-worker") -> dict[str, int]:
         """Chiude i job rimasti `running` dopo un arresto senza rieseguirli alla cieca.
@@ -13002,7 +13021,7 @@ class PecAuditRepository:
             """
             SELECT * FROM pec_fascicolo_links
             WHERE message_id=?
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, rowid DESC
             LIMIT 1
             """,
             (message_id,),
@@ -13812,9 +13831,12 @@ class PecAuditRepository:
         with self.connect() as conn:
             self.append_audit(conn, action="pec.fascicolo.saved", resource_type="pec_message", resource_id=message_id, payload={"fascicolo_id": target_id, "document_id": getattr(doc, "id", "")}, actor=actor)
         document_id = getattr(doc, "id", "")
+        # Il salvataggio dell'avvocato conferma il fascicolo della PEC: anche gli atti allegati entrano nei documenti.
+        documenti_fascicolo = self._documenti_pec_nel_fascicolo(message_id, actor=actor, fascicolo_id=target_id)
         return {
             "ok": True,
             "message": "MIME PEC salvato nel fascicolo.",
+            "documenti_fascicolo": documenti_fascicolo,
             "fascicolo_id": target_id,
             "document_id": document_id,
             "fascicolo_href": f"/fascicoli/{target_id}",

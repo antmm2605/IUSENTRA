@@ -154,6 +154,28 @@ Il marker documentale è calcolato da fascicolo, documento e hash SHA-256. Se il
 
 Retention: policy predefinita `pec-default-10y`, legal hold attivo e azione `review`; la funzione `apply_retention_policy()` produce report e audit, senza cancellare automaticamente dati probatori.
 
+## PEC → documenti del fascicolo
+
+Quando una PEC è collegata con certezza a un fascicolo (ultimo esito del linker in `LINK_STATI_CERTIFICATI`
+oppure conferma dell'avvocato con «Salva nel fascicolo»), `pct/pec_fascicolo_documenti/` porta nei documenti
+del fascicolo:
+
+- i provvedimenti e gli atti allegati (PDF, `.p7m` firmati conservati come originali, Word/RTF/ODT, anche dentro
+  uno ZIP); per gli uffici giudiziari la fonte è `PEC_CANCELLERIA` (copia informativa);
+- l'`.eml` della notificazione L. 53/1994 e delle sue ricevute (accettazione, avvenuta consegna completa,
+  mancata consegna), con lo stesso marcatore della riconciliazione del presidio notifiche
+  (`IUSENTRA_LEGAL_NOTIFICATION_RECEIPT:`), così la prova si riusa senza doppioni.
+
+Restano fuori, con il motivo: `daticert.xml`, involucro `postacert.eml`, firma `smime.p7s`, XML tecnici,
+immagini del corpo, ricevute del deposito telematico (flusso del deposito intoccato) e ricevute di PEC che
+non sono notifiche. Un collegamento automatico o proposto non salva nulla: il messaggio resta «in attesa di
+conferma». Registro SQL nello stesso `pec_audit.sqlite` (solo SQLite, come il resto del presidio):
+`pec_fascicolo_documenti`, `pec_fascicolo_documenti_messaggi`, `pec_fascicolo_documenti_giri`; evidenza nella
+catena `pec_audit_log` (`pec.fascicolo_documenti.salvati`). Le PEC già collegate le recupera la pianificazione
+notturna `pec_fascicolo_documenti_recupero` (corsia lunga, 100 messaggi per studio a giro,
+`IUSENTRA_PEC_FASCICOLO_RECUPERO_LIMITE`). Verifica sul server:
+`deploy/hetzner/verifica_pec_fascicolo.py` (solo conteggi).
+
 ## Fonti ufficiali consultate
 
 - Portale Servizi Telematici, comunicazioni e notificazioni telematiche: https://servizipst.giustizia.it/PST/it/pst_1_7.wp

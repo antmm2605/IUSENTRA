@@ -416,6 +416,8 @@ export type FascicoloDocument = {
   catalogSourceState: string
   depositRole: string
   depositCandidate?: boolean
+  /** Documento entrato da una PEC collegata: «da PEC del gg/mm/aaaa» e link alla PEC. */
+  pecOrigin?: { label: string; href: string } | null
   actions: {
     acquire: string
     preview: string

@@ -32,6 +32,7 @@ from flask import current_app, has_app_context
 from web.services.deposito_participant_correction import participant_correction_sources
 from web.services.react_dashboard_time import oggi_rome
 from web.services.archivio_fatti_precaricati import istantanea_dettaglio
+from web.services.pec_origine_documento import origine_pec
 
 from pct import __version__ as APP_VERSION
 from pct.fascicoli import AvanzamentoPratica, EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
@@ -8505,6 +8506,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "catalogSourceState": catalog_source_state,
                 "depositRole": deposit_role,
                 "depositCandidate": deposit_candidate,
+                "pecOrigin": origine_pec(doc),
                 "actions": {
                     "preview": f"/fascicoli/{fid}/documenti/{did}/visualizza",
                     "download": f"/fascicoli/{fid}/documenti/{did}/scarica",

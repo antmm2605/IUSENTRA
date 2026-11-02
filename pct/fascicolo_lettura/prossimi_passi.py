@@ -27,6 +27,7 @@ from .fase import (
     CODICE_FASE_PREPARATORIA,
 )
 from .modello import Passo
+from .passi_note_127_ter import passi_note_127_ter
 
 GIORNI_PROSSIMI = 30
 MASSIMO_PASSI = 10
@@ -355,6 +356,7 @@ def prossimi_passi(
     verifiche = dict(verifiche or {})
     passi: list[Passo] = []
     passi.extend(_passi_scadenze(scadenze, giorno_oggi))
+    passi.extend(passi_note_127_ter(scadenze, intestazione=intestazione, documenti_letti=documenti_letti, pec_letto=pec_letto, giorno_oggi=giorno_oggi))
     passi.extend(_passi_udienze_senza_esito(list(appuntamenti or []), giorno_oggi))
     passi.extend(_passi_regia(regia, passi))
     passi.extend(_passi_depositi(depositi_letti, verifiche, giorno_oggi))

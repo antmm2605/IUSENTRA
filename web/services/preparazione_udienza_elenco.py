@@ -108,6 +108,10 @@ def avvia(*, agenda: Any, fascicoli: Any, preparazioni: Any, id_appuntamento: st
     rg = str(getattr(fascicolo, "numero_rg", "") or "")
     sessione = SessioneWizardPro.nuova(id_fascicolo=fascicolo.id, titolo=f"Udienza {'R.G. ' + rg + ' — ' if rg else ''}{fascicolo.titolo}",
                                        id_appuntamento=str(getattr(appuntamento, "id", "") or ""), avvocato=avvocato)
+    # Udienza sostituita da note scritte (art. 127-ter c.p.c.): la preparazione nasce «cartolare».
+    from pct.note_127_ter.udienza_cartolare import tipo_udienza_iniziale
+
+    sessione.tipo_udienza = tipo_udienza_iniziale(appuntamento) or sessione.tipo_udienza
     nomi = nomi_documenti(fascicolo)
     sessione.checklist_documenti = [DocumentoChecklist(id_documento=d.id, label=nomi[str(d.id)],
                                                        tipo=str(getattr(d.tipo, "value", d.tipo)), obbligatorio=False, stato="da_portare",

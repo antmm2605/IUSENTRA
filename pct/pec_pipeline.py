@@ -14811,6 +14811,19 @@ class PecAuditRepository:
                 )
             except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
                 logging.getLogger(__name__).warning("Termini dell'art. 415 non proposti: %s", exc)
+        note_127_ter = None
+        if change is None and comm.kind not in {"sentenza", "estinzione"}:
+            # Decreto che sostituisce «l'udienza già fissata» con note scritte senza scriverne la data
+            # (art. 127-ter c.p.c.): termine in bozza alla data dell'udienza del fascicolo (pct/note_127_ter).
+            try:
+                note_127_ter = self._esamina_decreto_note_127_ter(
+                    detail, parsed, profile, report, fascicolo_id=fascicolo_id, rg=rg, appuntamenti=appointments,
+                    comunicata_il=received.date(),
+                )
+                if note_127_ter is not None:
+                    term_proposals = list(term_proposals) + list(note_127_ter.proposte)
+            except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
+                logging.getLogger(__name__).warning("Decreto ex art. 127-ter non esaminato: %s", exc)
         if change is None and comm.kind == "sentenza" and fascicolo_id and self.scadenziario_db_path:
             # Scadenze procedurali già passate alla sentenza: avviso all'avvocato, mai chiusura automatica.
             try:
@@ -14852,6 +14865,7 @@ class PecAuditRepository:
                     for item in term_proposals
                     if item.due_date >= today_rome
                 ),
+                *(note_127_ter.righe_descrizione() if note_127_ter is not None else ()),
                 f"Attività per l'avvocato: {communication_activity(comm)}",
                 f"Fascicolo: {fascicolo_id}" if fascicolo_id else "",
                 "Fonte: comunicazione di cancelleria ricevuta via PEC.",
@@ -14991,7 +15005,10 @@ class PecAuditRepository:
                         continue
                     scadenza = manager.nuova(
                         titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
-                        tipo=TipoTermine.NOTIFICA if str(item.code).startswith("LAV_415_") else TipoTermine.IMPUGNAZIONE,
+                        tipo=(
+                            TipoTermine(item.tipo_termine) if getattr(item, "tipo_termine", "")
+                            else TipoTermine.NOTIFICA if str(item.code).startswith("LAV_415_") else TipoTermine.IMPUGNAZIONE
+                        ),
                         data_scadenza=item.due_date,
                         id_fascicolo=fascicolo_id,
                         descrizione=clean_text(
@@ -15022,6 +15039,8 @@ class PecAuditRepository:
                         source_event_type="comunicazione_cancelleria",
                         source_event_at=item.dies_a_quo,
                         source_message_id=clean_id,
+                        # Orario operativo, modalità d'udienza e udienza collegata (note ex art. 127-ter c.p.c.).
+                        **dict(getattr(item, "campi_scadenza", None) or {}),
                     )
                     proposed_deadlines.append(
                         {"deadline_id": str(getattr(scadenza, "id", "") or ""), "code": item.code, "due_date": item.due_date}
@@ -15058,6 +15077,7 @@ class PecAuditRepository:
             "closed_deadline_ids": closed_deadline_ids,
             "previous_dates": previous_days,
             "proposed_deadlines": proposed_deadlines,
+            "note_127_ter": note_127_ter.come_dizionario() if note_127_ter is not None else {},
             "labour_matter": labour,
             "reason": reason,
         }
@@ -15075,6 +15095,55 @@ class PecAuditRepository:
             except Exception:
                 pass
         return {"ok": True, "recorded": outcome, **payload}
+
+    def _esamina_decreto_note_127_ter(
+        self,
+        detail: dict[str, Any],
+        parsed: dict[str, Any],
+        profile: dict[str, Any],
+        report: dict[str, Any],
+        *,
+        fascicolo_id: str,
+        rg: str,
+        appuntamenti: list[Any],
+        comunicata_il: date | None = None,
+    ) -> Any:
+        """Decreto ex art. 127-ter c.p.c. senza data propria: udienza del fascicolo, bozza o «da verificare».
+
+        Solo lettura: la bozza la crea il chiamante con il meccanismo dei termini proposti.
+        """
+        from pct.note_127_ter.esame_pec import esamina_decreto_pec
+
+        body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
+        allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
+        testo = "\n".join([str(body.get("text") or body.get("html_text") or ""), *(_attachment_ocr_text(item) for item in allegati)])
+        fascicolo = None
+        if fascicolo_id and self.fascicoli_db_path:
+            try:
+                fascicolo = self._fascicoli_manager().get(fascicolo_id)
+            except Exception:
+                fascicolo = None
+        scadenze = list(self._scadenziario_manager().tutte(solo_aperte=False)) if self.scadenziario_db_path else []
+        proposta = report.get("deadline_proposal") if isinstance(report.get("deadline_proposal"), dict) else {}
+        legale = proposta.get("legal_deadline_proposal") if isinstance(proposta.get("legal_deadline_proposal"), dict) else {}
+        opposizione = legale.get("template_code") == "CIV_OPPOSIZIONE_127_TER" or any(
+            str(getattr(item, "deadline_profile_code", "") or "") == "CIV_OPPOSIZIONE_127_TER"
+            and str(getattr(item, "id_fascicolo", "") or "") == fascicolo_id
+            for item in scadenze
+        )
+        return esamina_decreto_pec(
+            testo,
+            oggi=datetime.now(ROME_TZ).date(),
+            comunicata_il=comunicata_il,
+            fascicolo_id=fascicolo_id if fascicolo is not None else "",
+            rg=rg,
+            ufficio=clean_text(profile.get("ufficio") or getattr(fascicolo, "tribunale", "") or "", 180),
+            giudice=clean_text(profile.get("giudice") or getattr(fascicolo, "giudice", "") or "", 120),
+            prossima_udienza=getattr(fascicolo, "data_prossima_udienza", "") if fascicolo is not None else "",
+            appuntamenti=appuntamenti,
+            scadenze=scadenze,
+            opposizione_proposta=opposizione,
+        )
 
     def record_pec_schedule_change_receipts(
         self,

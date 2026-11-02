@@ -866,6 +866,34 @@ def start_scheduler(app):
                 logger.error("[scheduler] Rispezzatura chunk RAG fallita: %s", e)
                 return None
 
+    # ---- Profili procedurali dei fascicoli (corsia lunga, 02:55, a lotti per studio) ----
+    # I fascicoli rimasti senza profilo si ripassano con il resolver corrente: con dati certi
+    # concordi il rito si imposta da solo (fonte nell'audit), gli altri restano da confermare.
+    # Un profilo già salvato non si tocca: il giro è idempotente e a regime non fa nulla.
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", hour=2, minute=55),
+        id="profili_procedurali_riconvalida",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=1800,
+    )
+    def _profili_procedurali_riconvalida():
+        with app.app_context():
+            try:
+                from web.services.profilo_procedurale_runtime import riconvalida_profili_notturna
+
+                esito = riconvalida_profili_notturna(app)
+                totali = esito.get("totals") or {}
+                logger.info(
+                    "[scheduler] Profili procedurali: %d impostati, %d da confermare, %d restano, %d errori",
+                    int(totali.get("impostati") or 0), int(totali.get("da_confermare") or 0),
+                    int(totali.get("restano") or 0), int(totali.get("errori") or 0),
+                )
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Riconvalida profili procedurali fallita: %s", e)
+                return {"ok": False, "job": "profili_procedurali_riconvalida", "error": str(e)}
+
     # ---- Adeguamento della soglia del patrocinio (art. 77 D.P.R. 115/2002) ----
     # Il decreto e' biennale, ma la data di pubblicazione non e' prevedibile:
     # si guarda la Gazzetta ogni due mesi. Non si riscrive la soglia — si

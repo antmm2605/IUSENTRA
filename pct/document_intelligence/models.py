@@ -176,6 +176,10 @@ class LexIndexingSummary(SerializableDataclass):
     archived: int = 0
     warnings: list[str] = field(default_factory=list)
     source_errors: list[dict[str, Any]] = field(default_factory=list)
+    # Fonti che la legge rende illeggibili allo studio (busta Atto.enc cifrata
+    # per l'ufficio, D.M. 44/2011 art. 14): non sono errori né documenti da verificare.
+    not_applicable: int = 0
+    source_notes: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(slots=True)

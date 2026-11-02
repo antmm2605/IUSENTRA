@@ -20,7 +20,7 @@ _LABELS_3 = [
     (5200.0, float("inf"), "Da € 5.200 a € 26.000"),
 ]
 _LABELS_7 = [
-    (0.0, 1100.0, "Fino a € 1.100 (o indeterminabile)"),
+    (0.0, 1100.0, "Fino a € 1.100"),
     (1100.0, 5200.0, "Da € 1.100 a € 5.200"),
     (5200.0, 26000.0, "Da € 5.200 a € 26.000"),
     (26000.0, 52000.0, "Da € 26.000 a € 52.000"),
@@ -59,7 +59,7 @@ PHASE_LABEL_BY_KEY = {
     "decisionale": "Decisionale",
     "esecutiva": "Esecutiva",
     "attivazione": "Attivazione",
-    "rivitalizzazione": "Rivitalizzazione",
+    "rivitalizzazione": "Negoziazione",
     "negoziazione": "Negoziazione",
     "conciliazione": "Conciliazione",
     "compenso_unico": "Compenso unico",
@@ -191,7 +191,7 @@ TARIFFARIO_REFERENCE_ROWS: List[Dict[str, Any]] = [
         "reference_code": "dm55_art19",
         "title": "D.M. 10 marzo 2014, n. 55",
         "article": "art. 19",
-        "description": "Per mediazione e negoziazione assistita i valori medi possono essere aumentati o diminuiti entro il limite del 50%.",
+        "description": "Attività stragiudiziale, comprese mediazione e negoziazione assistita: i valori medi possono essere aumentati fino al 50% o diminuiti non oltre il 50%.",
         "url": _URL_DM55,
         "domains": ["tariffario", "preventivi", "parcelle"],
     },
@@ -763,8 +763,8 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "requires_value": True,
         "phase_keys": ["attivazione", "rivitalizzazione", "conciliazione"],
         "suggested_practice_id": "mediazione",
-        "summary": "Mediazione civile con riparto operativo su attivazione, rivitalizzazione e conciliazione.",
-        "base_note": "Valori letti dalla tabella 27 con mapping attivazione / rivitalizzazione / conciliazione.",
+        "summary": "Mediazione civile con riparto operativo sulle fasi di attivazione, negoziazione e conciliazione (art. 20, comma 1-bis, D.M. 55/2014).",
+        "base_note": "Valori letti dalla tabella 27: fasi di attivazione, negoziazione e conciliazione.",
     },
     {
         "profile_code": "negoziazione_assistita",
@@ -2489,7 +2489,7 @@ _upsert_rows(
             "phase_keys": ["attivazione", "rivitalizzazione", "conciliazione"],
             "suggested_practice_id": "mediazione",
             "summary": "Mediazione civile e commerciale.",
-            "base_note": "Valori letti dalla tabella 27 con mapping attivazione / rivitalizzazione / conciliazione.",
+            "base_note": "Valori letti dalla tabella 27: fasi di attivazione, negoziazione e conciliazione.",
         },
         {
             "profile_code": "negoziazione_assistita",
@@ -3832,8 +3832,8 @@ def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapp
         label = "Ricostruzione dichiarata"
         badge = "warning"
         note = (
-            "La regola usa un mapping operativo di fase rispetto alle colonne ufficiali della tabella: "
-            + ", ".join(mapped_phase_keys)
+            "La regola collega le proprie fasi alle colonne ufficiali della tabella: "
+            + ", ".join(PHASE_LABEL_BY_KEY.get(key, key).lower() for key in mapped_phase_keys)
             + "."
         )
     elif snapshot_origin == "seed":

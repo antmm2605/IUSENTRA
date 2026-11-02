@@ -20,6 +20,7 @@ from pct.fascicoli_sql_writer import FascicoloConcurrentUpdate
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
+from web.services.fascicolo_copertina import contesto_copertina
 from web.services.fascicolo_controparti_aggiuntive import (
     collega_controparti_aggiuntive,
     leggi_controparti_aggiuntive,
@@ -204,6 +205,7 @@ def register_fascicoli_management_routes(
                 "fascicoli/copertina.html",
                 fascicolo=fascicolo,
                 cliente=cliente,
+                copertina=contesto_copertina(fascicolo, _avvocato_titolare_studio()),
                 studio_nome=cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale"),
                 oggi=date.today(),
             )

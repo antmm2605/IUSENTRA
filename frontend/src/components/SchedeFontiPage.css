@@ -1,3 +1,4 @@
+@import '../theme/impeccable-open-design.css';
 .iu-sf-page { display: grid; gap: var(--iu-od-space-4); }
 .iu-sf-riepilogo, .iu-sf-filtri, .iu-sf-proposte, .iu-sf-dettaglio { padding: var(--iu-od-space-4); min-width: 0; }
 .iu-sf-badges { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
@@ -33,3 +34,9 @@
 .iu-sf-modello-apri { font: inherit; color: inherit; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: .2em; }
 .iu-sf-modello-apri:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .iu-sf-dettaglio { scroll-margin-top: 5rem; }
+
+/* Catalogo modelli: spaziatura interna della card e azioni affiancate senza andare a capo. */
+.iu-sf-catalogo{padding:var(--iu-od-space-5);min-width:0}
+.iu-sf-catalogo-azioni{display:flex;flex-direction:column;align-items:stretch;gap:.5rem;flex:0 0 auto}
+.iu-sf-catalogo-azioni .iu-btn{white-space:nowrap;justify-content:center}
+@media(max-width:650px){.iu-sf-catalogo{padding:var(--iu-od-space-4)}.iu-sf-catalogo-azioni{flex-direction:row;flex-wrap:wrap;width:100%}}

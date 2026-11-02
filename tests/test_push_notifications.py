@@ -536,6 +536,25 @@ def test_topbar_ripulisce_piattaforma_generica_da_record_persistito():
     assert "Piattaforma: altra" not in item["message"]
 
 
+def test_trattazione_scritta_non_diventa_udienza_audiovisiva():
+    """Art. 127-ter c.p.c.: la sola modalità scritta (o in presenza) non genera
+    l'avviso «Udienza audiovisiva da verificare», riservato all'art. 127-bis."""
+    for modalita in ("trattazione scritta", "in presenza", "note_scritte"):
+        scadenza = SimpleNamespace(
+            remote_hearing_detected=False,
+            remote_hearing_mode=modalita,
+            hearing_mode="note_scritte",
+            remote_hearing_url="",
+            remote_hearing_source="Decreto di fissazione del termine per note scritte",
+            remote_hearing_verified=False,
+            remote_hearing_pdf_required=False,
+        )
+        assert _remote_hearing_notification_payload(scadenza) == {}
+
+    audiovisiva = SimpleNamespace(remote_hearing_detected=False, remote_hearing_mode="audiovisiva")
+    assert _remote_hearing_notification_payload(audiovisiva)["remoteHearingDetected"] is True
+
+
 def test_notifiche_agenda_scadenziario_conservano_link_audiovisivo_fino_al_web_push(tmp_path):
     remote_url = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_agenda"
     hearing = SimpleNamespace(

@@ -508,6 +508,8 @@ def ajax_parametri_dm55():
 
 def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     """Genera PDF professionale del preventivo con ReportLab."""
+    from pct.tariffario import etichetta_fase as _etichetta_fase
+
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.units import mm
@@ -606,7 +608,7 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     ]]
     for v in p.voci:
         voci_data.append([
-            Paragraph(v.descrizione, style_body),
+            Paragraph(_etichetta_fase(v.descrizione), style_body),
             Paragraph(v.tipo.value, ParagraphStyle("tv", parent=style_small, alignment=TA_RIGHT)),
             Paragraph(format_euro_it(v.importo), ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
         ])

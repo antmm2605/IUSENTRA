@@ -1212,7 +1212,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "id": "assegno_sociale",
             "title": "Assegno sociale",
             "category": "previdenza",
-            "description": "Importi annuali dell'assegno sociale utili ai limiti di pignorabilita.",
+            "description": "Importo mensile dell'assegno sociale, base del minimo impignorabile di stipendi e pensioni (art. 545 c.p.c.).",
             "strategy": "seed_mirror",
             "source_codes": ["assegno_sociale_2026"],
             "watch_source_ids": ["gazzetta_ufficiale"],
@@ -1275,7 +1275,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "category": "registri_ministeriali",
             "description": (
                 "Elenco consultabile degli organismi di mediazione italiani, sincronizzato quando "
-                "il registro ministeriale diretto e disponibile."
+                "il registro ministeriale diretto è disponibile."
             ),
             "strategy": "live_registry",
             "source_codes": ["registro_mediazione_portale", "registro_mediazione_diretto"],

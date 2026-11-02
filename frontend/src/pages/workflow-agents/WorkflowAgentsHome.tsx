@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
-import { AgentMetricsPanel } from './AgentMetricsPanel'
+import { AgentMetricsPanel, percentualeIt } from './AgentMetricsPanel'
 import { fetchWorkflowAgentsHome, previewWorkflowAgent, type WorkflowAgentsHomePayload } from './api'
 
 export function WorkflowAgentsHome() {
@@ -51,7 +51,7 @@ export function WorkflowAgentsHome() {
       actions={<Button asChild variant="outline"><a href="/workflow-agents/approvals"><ShieldCheck aria-hidden="true" /> Coda approvazioni</a></Button>}
     >
       {error ? <IusErrorState title="Avviso operativo" message={error} /> : null}
-      <AgentMetricsPanel metrics={payload.metrics} />
+      <AgentMetricsPanel metrics={payload.metrics} titoli={Object.fromEntries(payload.workflows.map((workflow) => [workflow.code, workflow.title]))} />
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {payload.workflows.map((workflow) => (
@@ -68,7 +68,7 @@ export function WorkflowAgentsHome() {
             </CardContent>
             <CardFooter className="justify-between gap-2">
               <Button type="button" onClick={() => runPreview(workflow.code)} disabled={!canPreview || busyCode === workflow.code}>
-                <PlayCircle aria-hidden="true" /> Esegui preview
+                <PlayCircle aria-hidden="true" /> Esegui anteprima
               </Button>
               {!payload.feature_flags.writeActions ? <Badge variant="outline">Scritture spente</Badge> : null}
             </CardFooter>
@@ -81,9 +81,10 @@ export function WorkflowAgentsHome() {
         {payload.latest_runs.length ? payload.latest_runs.map((run) => (
           <a key={run.id} className="rounded-md border px-3 py-2 text-sm transition hover:bg-muted" href={`/workflow-agents/runs/${run.id}`}>
             <strong>{run.plan.title}</strong>
-            <span className="ml-2 text-muted-foreground">{run.metrics?.saving_percentage ?? 0}% riduzione misurata</span>
+            {run.created_at ? <span className="ml-2 text-muted-foreground">{new Date(run.created_at).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span> : null}
+            <span className="ml-2 text-muted-foreground">{percentualeIt(run.metrics?.saving_percentage)} riduzione stimata</span>
           </a>
-        )) : <IusEmptyState title="Nessun percorso ancora eseguito" message="Avvia una preview per generare piano, evidenze e proposte approvabili." icon={Bot} />}
+        )) : <IusEmptyState title="Nessun percorso ancora eseguito" message="Avvia un'anteprima per generare piano, evidenze e proposte approvabili." icon={Bot} />}
       </section>
     </IusPageShell>
   )

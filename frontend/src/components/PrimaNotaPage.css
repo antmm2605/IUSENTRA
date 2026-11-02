@@ -104,3 +104,6 @@
 .iu-pn-command-status { margin: 8px 0; color: var(--iu-text, #111827); font-size: 14px; }
 .iu-pn-page>*{min-width:0}
 @media(max-width:480px){.iu-pn-page{padding-inline:12px}.iu-pn-hero__stats{gap:6px}.iu-pn-hero__stats article{min-width:0;flex:1;padding:9px 6px}.iu-pn-form{grid-template-columns:minmax(0,1fr)}.iu-pn-form__actions{flex-wrap:wrap}.iu-pn-annual__row{flex-wrap:wrap}.iu-pn-recon__upload{max-width:100%;box-sizing:border-box}}
+/* Riga vuota: su schermo stretto il messaggio resta nella parte visibile della tabella scorrevole. */
+.iu-pn-empty>span{position:sticky;left:12px;display:inline-block;max-width:calc(100vw - 72px);white-space:normal}
+@media (max-width:768px){.iu-pn-empty{text-align:left;padding-inline:0}}

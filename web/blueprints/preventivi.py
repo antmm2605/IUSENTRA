@@ -40,7 +40,7 @@ from pct.preventivi import (
     normalizza_modello_clausola_controversie,
     testo_predefinito_clausola_controversie,
 )
-from pct.tariffario import parse_numero_locale
+from pct.tariffario import etichetta_fase, parse_numero_locale
 from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_summary
 from web.services.mediazione_dm150_runtime import (
     calcola_mediazione_odm_da_context,
@@ -2403,7 +2403,7 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     ]]
     for v in p.voci:
         voci_data.append([
-            Paragraph(v.descrizione, style_body),
+            Paragraph(etichetta_fase(v.descrizione), style_body),
             Paragraph(v.tipo.value, ParagraphStyle("tv", parent=style_small, alignment=TA_RIGHT)),
             Paragraph(format_euro_it(v.importo), ParagraphStyle("iv", parent=style_body, alignment=TA_RIGHT)),
         ])

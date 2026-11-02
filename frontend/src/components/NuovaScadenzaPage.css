@@ -475,8 +475,11 @@
 @media(max-width:820px){
   .iu-deadline-page{padding:12px 10px calc(98px + env(safe-area-inset-bottom, 0px))}
   .iu-deadline-hero{grid-template-columns:1fr;padding:16px;border-radius:18px}
+  /* Il preset rende l'intestazione flex in riga: su telefono i pulsanti finivano in una
+     colonna di 72px, una sillaba per riga. Qui si va in colonna. */
+  .iusentra-route-preset--active .iusentra-route-sequence>section.iu-deadline-hero[data-iusentra-sequence-slot="page-header"]{flex-direction:column!important;align-items:stretch!important}
   .iu-deadline-hero h1{font-size:24px}
-  .iu-deadline-hero__actions{justify-content:flex-start}
+  .iu-deadline-hero__actions{justify-content:flex-start;width:100%}
   .iu-deadline-ghost{flex:1}
   .iu-deadline-form-grid{grid-template-columns:1fr;gap:11px;padding:12px}
   .iu-deadline-field,.iu-deadline-field.is-wide,.iu-deadline-toggle-field{grid-column:1}

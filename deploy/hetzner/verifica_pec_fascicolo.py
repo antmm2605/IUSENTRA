@@ -65,6 +65,9 @@ def _diagnosi_collegamenti(repo: Any) -> dict[str, Any]:
             "famiglia_non_collegate": gruppi(
                 "SELECT e.family, COUNT(DISTINCT m.id) FROM pec_messages m JOIN pec_legal_events e ON e.message_id=m.id "
                 "WHERE m.tenant_id=? AND m.linked_fascicolo_id='' GROUP BY e.family ORDER BY 2 DESC LIMIT 15"),
+            "riconvalida_esiti": gruppi(
+                "SELECT esito, COUNT(*) FROM pec_collegamento_certo_verifiche WHERE tenant_id=? GROUP BY esito ORDER BY 2 DESC")
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE name='pec_collegamento_certo_verifiche'").fetchone() else {},
             "famiglia_collegate": gruppi(
                 "SELECT e.family, COUNT(DISTINCT m.id) FROM pec_messages m JOIN pec_legal_events e ON e.message_id=m.id "
                 "WHERE m.tenant_id=? AND m.linked_fascicolo_id<>'' GROUP BY e.family ORDER BY 2 DESC LIMIT 15"),

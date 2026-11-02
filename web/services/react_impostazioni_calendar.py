@@ -15,6 +15,7 @@ from pct.agenda import TipoAppuntamento
 from pct.calendar_bindings import now_iso
 from pct.calendar_credentials import CalendarCredentialError
 from pct.calendar_sync_engine import CalendarSyncEngine, PRIVACY_BUSY, PRIVACY_COMPLETE, PRIVACY_REDUCED
+from pct.pec_operational_cleanup import is_legacy_pec_deadline
 from web.services.tenant_api_auth import api_key_valid_for_request
 
 
@@ -373,7 +374,8 @@ def build_calendario_payload(*, get_calendar_sync: Any, get_agenda: Any, get_sca
         "active_profiles": sum(1 for item in profiles if item.get("enabled"))
         + sum(1 for item in engine_payload.get("connected_calendars", []) if item.get("enabled")),
         "agenda_count": len(get_agenda().tutti()),
-        "deadline_count": len(get_scadenziario().tutte()),
+        # Stesso conteggio delle «Aperte» dello Scadenziario (senza le vecchie scadenze PEC dismesse).
+        "deadline_count": sum(1 for item in get_scadenziario().tutte() if not is_legacy_pec_deadline(item)),
         "can_update": _can("admin.configura"),
         **engine_payload,
         "exports": {

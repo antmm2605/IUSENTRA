@@ -58,12 +58,28 @@ def ruolo_fascicolo(fascicolo: Any) -> tuple[str, str] | None:
     return chiave_ruolo(f"{numero}/{anno}") if anno not in {"", "0"} else None
 
 
+# Forme del numero di ruolo usate dai sistemi ministeriali e dai depositi, oltre a «RG 123/2025»: oggetto delle
+# comunicazioni di cancelleria SICID/SIECIC «COMUNICAZIONE 2539/2025/LAV», oggetto dei depositi «RG: 2539 - 2025»,
+# «procedimento n. 1165/2023». Il registro finale (LAV, CC, VG…) resta fuori dalla chiave: l'ufficio lo verifica
+# il terzo controllo. Fonte: art. 16 D.L. 179/2012; Specifiche tecniche DGSIA (Comunicazione.xml, oggetto PEC).
+_RUOLO_MINISTERIALE = (
+    re.compile(r"\bCOMUNICAZIONE\s+(\d{1,7})\s*/\s*(\d{4})\s*/\s*[A-Z]{2,6}\b", re.I),
+    re.compile(r"\bR\.?\s*G\.?\s*(?:n\.?|nr\.?|numero)?\s*[:.]?\s*(\d{1,7})\s*[-/]\s*(\d{4})\b", re.I),
+    re.compile(r"\bprocedimento\s+(?:n\.?|nr\.?|numero)\s*(\d{1,7})\s*/\s*(\d{4})\b", re.I),
+)
+
+
+def _ruoli_nel_testo(testo: str) -> list[str]:
+    return [f"{m.group(1)}/{m.group(2)}" for pattern in _RUOLO_MINISTERIALE for m in pattern.finditer(testo or "")]
+
+
 def ruoli_della_pec(parsed: dict[str, Any], profilo: dict[str, Any]) -> set[tuple[str, str]]:
     from pct.pec_pipeline import extract_rg_candidates
 
+    testo = " ".join(_testi(parsed))
     valori: list[Any] = list(parsed.get("rg_candidates") or [])
     valori += [profilo.get(k) for k in ("numero_ruolo_certificato", "numero_rg", "rg", "numero_ruolo")]
-    valori += extract_rg_candidates(" ".join(_testi(parsed)))
+    valori += extract_rg_candidates(testo) + _ruoli_nel_testo(testo)
     return {chiave for chiave in map(chiave_ruolo, valori) if chiave}
 
 
@@ -222,7 +238,12 @@ def cerca_collegamento_certo(parsed: dict[str, Any], fascicoli: Iterable[Any], *
         if all(verifiche.values()):
             tre.append(fascicolo)
     if not tre:
-        return {**esito, "motivo": "controlli_incompleti" if esito["corrispondenze"] else "ruolo_di_nessun_fascicolo"}
+        if not esito["corrispondenze"]:
+            return {**esito, "motivo": "ruolo_di_nessun_fascicolo"}
+        manca_cliente = not any(c["cliente"] for c in esito["corrispondenze"])
+        manca_ufficio = not any(c["ufficio"] for c in esito["corrispondenze"])
+        dettaglio = "cliente_e_ufficio" if manca_cliente and manca_ufficio else "cliente" if manca_cliente else "ufficio" if manca_ufficio else "combinazione"
+        return {**esito, "motivo": "controlli_incompleti", "manca": dettaglio}
     if len(tre) > 1:
         return {**esito, "motivo": "piu_fascicoli"}
     [fascicolo] = tre

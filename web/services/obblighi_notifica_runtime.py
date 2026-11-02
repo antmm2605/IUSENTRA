@@ -135,6 +135,13 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
         "date_sentenze": [d.data for d in documenti if d.etichetta.casefold() == "sentenza" and d.data],
         "data_provvedimento_impugnato": next((d.data for d in documenti if d.etichetta.casefold() == "provvedimento amministrativo" and d.data), ""),
         "prove_notifica": prove,
+        # La fase del procedimento (pct.obblighi_notifica_atto): sentenza nel fascicolo, udienze già
+        # tenute, fascicolo definito. Solo dati già letti e verificati, mai dai precedenti prodotti.
+        "sentenze": [d.id for d in documenti if d.etichetta.casefold().startswith("sentenza") and "precedente" not in d.etichetta.casefold()],
+        "udienze_tenute": sorted({_testo(f.valore)[:10] for f in fatti if f.categoria == "data" and f.campo == "udienza" and f.verifica in {"verificata", "corretta"} and f.oggetto_id in nomi and f.oggetto_id not in precedenti and _testo(f.valore)[:10] < oggi}),
+        "fascicolo_definito": _testo(getattr(getattr(fascicolo, "stato", ""), "value", getattr(fascicolo, "stato", ""))).upper() in {"DEFINITO", "ARCHIVIATO"},
+        "nomi_documenti": nomi,
+        "documenti_atti": [d.id for d in documenti if d.etichetta.casefold() != "relata di notifica"],
     }
     return documenti, parti, contesto
 
@@ -186,7 +193,8 @@ def obblighi_fascicolo(fascicolo: Any) -> list[dict[str, Any]]:
                 item.update(scadenza="", calcoli=[], stato="da_verificare", motivo="Regime precedente o speciale: verifica la norma applicabile prima di calcolare.")
             esito.append(item)
     from pct.archivio_letture.copie_atti import riunisci_obblighi
-    return riunisci_obblighi(esito, identita)
+    from pct.obblighi_notifica_atto import una_voce_per_atto
+    return una_voce_per_atto(riunisci_obblighi(esito, identita), contesto)
 
 
 def allinea_scadenze(fascicolo: Any, obblighi: list[dict[str, Any]] | None = None) -> dict[str, int]:

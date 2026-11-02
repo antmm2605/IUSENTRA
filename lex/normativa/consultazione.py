@@ -131,7 +131,41 @@ CODE_LABELS = {
     'cpa_norme_coordinamento': 'Processo amministrativo — norme di coordinamento',
 }
 
-def _label(key: str, title: str) -> str:
+# Sigle uniformi nelle etichette del catalogo (verifica visiva LEX-09): il titolo
+# importato da Normattiva usa minuscole e forme estese ("l.", "d.lgs.",
+# "decreto.luogotenenziale"); la pagina mostra le sigle d'uso forense.
+_SIGLE_TITOLO = (
+    (re.compile(r'^l\.\s*cost\.\s*', re.I), 'L. cost. '),
+    (re.compile(r'^d\.\s*lgs\.\s*', re.I), 'D.Lgs. '),
+    (re.compile(r'^d\.\s*l\.\s*', re.I), 'D.L. '),
+    (re.compile(r'^d\.\s*p\.\s*r\.\s*', re.I), 'D.P.R. '),
+    (re.compile(r'^d\.\s*m\.\s*', re.I), 'D.M. '),
+    (re.compile(r'^r\.\s*d\.\s*l\.\s*', re.I), 'R.D.L. '),
+    (re.compile(r'^r\.\s*d\.\s*', re.I), 'R.D. '),
+    (re.compile(r'^regio\s+decreto-legge\s+', re.I), 'R.D.L. '),
+    (re.compile(r'^decreto\.luogotenenziale\s+', re.I), 'D.Lgt. '),
+    (re.compile(r'^l\.\s*', re.I), 'L. '),
+)
+# Sigla dall'URN quando il titolo comincia con il solo numero ("271/1989 — ...").
+_SIGLE_URN = (
+    ('decreto.legislativo', 'D.Lgs.'), ('decreto.legge', 'D.L.'),
+    ('decreto.del.presidente.della.repubblica', 'D.P.R.'), ('regio.decreto', 'R.D.'),
+    ('legge.costituzionale', 'L. cost.'), ('legge', 'L.'),
+)
+
+
+def _sigla_uniforme(label: str, urn: str = '') -> str:
+    for pattern, sigla in _SIGLE_TITOLO:
+        if pattern.match(label):
+            return pattern.sub(sigla, label, count=1)
+    if re.match(r'^\d+/\d{4}\s+—', label):
+        for marker, sigla in _SIGLE_URN:
+            if f':{marker}:' in (urn or ''):
+                return f'{sigla} {label}'
+    return label
+
+
+def _label(key: str, title: str, urn: str = '') -> str:
     if key in CODE_LABELS:
         return CODE_LABELS[key]
     if key in ETICHETTE:
@@ -142,6 +176,10 @@ def _label(key: str, title: str) -> str:
     parts = label.split(' — ')
     if len(parts) == 2 and parts[0] == parts[1]:
         label = parts[0]
+    label = _sigla_uniforme(label.strip(), urn)
+    # Punto finale del titolo ufficiale tolto, ma non quello di una sigla ("c.p.c.").
+    if re.search(r'[^\W\d_]{4,}\.$', label):
+        label = label[:-1]
     return label if len(label) <= 150 else label[:147].rstrip() + '…'
 
 def _catalogue_row(row):
@@ -152,7 +190,7 @@ def _catalogue_row(row):
     item['urn'] = identity or item['urn']
     key = item.pop('collection')[len(COLLECTION):]
     item['key'] = key
-    item['label'] = _label(key, item['title'])
+    item['label'] = _label(key, item['title'], item.get('urn') or '')
     item['category'] = 'Regolamenti UE' if key.startswith('reg_ue_') else 'Deontologia' if key.startswith('codice_deontologico') else 'Codici' if (key.startswith('codice_') or (key in CODE_LABELS and item['label'].startswith('Codice ')) or key == '152/2006') else 'Regolamenti e attuazione' if item['label'].startswith('Regolamento ') else 'Costituzione e disposizioni' if key in ('costituzione', 'preleggi', '1368/1941', '318/1942', '271/1989', 'cpa_norme_attuazione', 'cpa_norme_transitorie', 'cpa_norme_coordinamento', 'militari_attuazione_1023_1941') else 'Leggi e testi unici'
     item['materia'] = materia(key, item.get('urn') or '', item['title'])
     item['tipo'] = tipo(item['category'], key, item.get('urn') or '')

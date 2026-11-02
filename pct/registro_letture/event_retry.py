@@ -2,6 +2,16 @@
 from datetime import datetime, timedelta
 
 MAX_ATTEMPTS = 3
+# Una prenotazione scaduta perché il processo è stato riavviato (deploy, memoria
+# esaurita) non è un tentativo fallito: il lavoro salvato resta e il giro riparte
+# da lì. Il limite evita soltanto il giro infinito di un fascicolo che fa cadere
+# il servizio a ogni lettura (verifica del 02/11/2026).
+MAX_INTERRUZIONI = 6
+LEASE_SECONDS = 1800
+# Il testo scritto dalle versioni fino alla 2.476.0 quando tre riavvii consumavano il budget.
+ERRORE_TEMPO_STORICO = 'Tempo disponibile per la lettura esaurito dopo tre tentativi.'
+ERRORE_SOSPESA = ('Lettura sospesa dopo interruzioni ripetute senza avanzamento: '
+                  'riprende da sola nella fascia notturna.')
 FIELDS = {
     'attempts': 'INTEGER NOT NULL DEFAULT 0',
     'available_at': "TEXT NOT NULL DEFAULT ''",

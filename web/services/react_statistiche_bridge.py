@@ -9,6 +9,8 @@ from datetime import date, datetime, timezone
 from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
+from pct.pec_operational_cleanup import is_legacy_pec_deadline
+
 
 MONTH_LABELS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
 
@@ -268,7 +270,13 @@ def build_react_statistiche_payload(
     conferimenti_lista = _safe("conferimenti_lista", warnings, lambda: list(preventivi.tutti_conferimenti()), []) if preventivi else []
     timesheet_lista = _safe("timesheet_lista", warnings, lambda: _all(timesheet), []) if timesheet else []
 
-    scadenze_oggi = sum(1 for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "APERTO" and _parse_date(getattr(item, "data_scadenza", "")) == today)
+    # Stesso insieme delle «Aperte» dello Scadenziario: le vecchie scadenze PEC dismesse
+    # non compaiono nello scadenziario e non si contano qui.
+    scadenze_aperte = [
+        item for item in scadenze
+        if _enum_value(getattr(item, "stato", "")).upper() == "APERTO" and not is_legacy_pec_deadline(item)
+    ]
+    scadenze_oggi = sum(1 for item in scadenze_aperte if _parse_date(getattr(item, "data_scadenza", "")) == today)
     scadute_oggi = sum(1 for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "SCADUTO" and _parse_date(getattr(item, "data_scadenza", "")) == today)
     productivity = _productivity(fascicoli, scadenze)
 
@@ -290,8 +298,8 @@ def build_react_statistiche_payload(
         {
             "id": "scadenze",
             "label": "Scadenze aperte",
-            "value": scadenze_stats.get("aperte", scadenze_stats.get("totale", len(scadenze))),
-            "note": f"Oggi: {scadenze_oggi} aperte" + (f", {scadute_oggi} scadut{'a' if scadute_oggi == 1 else 'e'}" if scadute_oggi else ""),
+            "value": len(scadenze_aperte) if scadenze else scadenze_stats.get("aperte", 0),
+            "note": f"Oggi: {scadenze_oggi} apert{'a' if scadenze_oggi == 1 else 'e'}" + (f", {scadute_oggi} scadut{'a' if scadute_oggi == 1 else 'e'}" if scadute_oggi else ""),
             "tone": "warning" if scadenze_oggi else "neutral",
         },
         {
@@ -317,7 +325,10 @@ def build_react_statistiche_payload(
             "id": "produttivita",
             "label": "Chiusure entro termine",
             "value": f"{productivity['tasso_scadenze_rispettate_pct']}%" if productivity['tasso_scadenze_rispettate_pct'] is not None else "Non disponibile",
-            "note": f"Date di chiusura registrate: {productivity['scadenze_completate']}",
+            "note": (
+                f"Su {productivity['chiusure_entro_termine'] + productivity['chiusure_dopo_termine']} chiusure con data verificabile"
+                f" (completate in tutto: {productivity['scadenze_completate']})"
+            ),
             "tone": "success",
         },
     ]
@@ -341,7 +352,7 @@ def build_react_statistiche_payload(
     timesheet_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in timesheet_lista)
 
     active_matters = [item for item in fascicoli if _enum_value(getattr(item, "stato", "")).upper() not in {"CHIUSO", "DEFINITO", "ARCHIVIATO"}]
-    open_deadlines = [item for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "APERTO"]
+    open_deadlines = scadenze_aperte
     today_appointments = _safe("agenda_oggi_elenco", warnings, lambda: list(agenda.per_giorno(today)) if agenda else [], [])
     metric_sections = {
         "fascicoli": [

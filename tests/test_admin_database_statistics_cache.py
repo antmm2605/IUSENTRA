@@ -68,7 +68,11 @@ def test_expiration_reloads_even_when_metadata_has_not_changed(tmp_path, monkeyp
     clock = [100.0]
     monkeypatch.setattr(cache, "monotonic", lambda: clock[0])
     mirror_statistics(stats)
-    clock[0] = 131.0
+    # ADM-29: la firma dei file prova che nulla e' cambiato; il TTL resta solo il limite di vita della voce.
+    clock[0] = 100.0 + cache._TTL_SECONDS - 1
+    mirror_statistics(stats)
+    assert stats.calls == 1
+    clock[0] = 100.0 + cache._TTL_SECONDS + 1
     mirror_statistics(stats)
     assert stats.calls == 2
 

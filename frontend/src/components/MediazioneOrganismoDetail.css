@@ -1,3 +1,4 @@
+@import '../theme/impeccable-open-design.css';
 .iu-med-detail { padding: var(--iu-space-3); color: var(--iu-od-text); }
 .iu-med-detail h3, .iu-med-detail h4 { margin: 0 0 var(--iu-space-3); }
 .iu-med-detail__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--iu-space-3); margin: 0 0 var(--iu-space-3); }

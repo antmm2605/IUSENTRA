@@ -467,3 +467,26 @@ def test_coverage_endpoint(tmp_path):
     assert risposta.status_code == 200
     fonti = risposta.get_json()["fonti"]
     assert fonti["pec"]["stato"] == "ok"
+
+
+def test_anteprima_su_richiesta_non_salva_il_piano(tmp_path):
+    """STU-19: Domani/Dopodomani senza snapshot → anteprima solo con ?anteprima=1."""
+    from datetime import timedelta
+
+    from pct.ora_italiana import oggi_roma
+
+    domani = (oggi_roma() + timedelta(days=1)).isoformat()
+    lontano = (oggi_roma() + timedelta(days=30)).isoformat()
+    app = _app(tmp_path)
+    with app.test_client() as client:
+        anteprima = client.get(f"/api/v1/ui/daily-plan?user=u1&date={domani}&anteprima=1", headers=HEADERS)
+        dopo = client.get(f"/api/v1/ui/daily-plan?user=u1&date={domani}", headers=HEADERS)
+        oltre = client.get(f"/api/v1/ui/daily-plan?user=u1&date={lontano}&anteprima=1", headers=HEADERS)
+    assert anteprima.status_code == 200
+    payload = anteprima.get_json()
+    assert payload["stato"] == "anteprima"
+    assert payload["modalita_generazione"] == "anteprima"
+    assert "ETag" not in anteprima.headers
+    assert any("Anteprima" in avviso for avviso in payload["avvisi"])
+    assert dopo.get_json()["stato"] == "non_generato"  # nulla salvato come piano definitivo
+    assert oltre.get_json()["stato"] == "non_generato"

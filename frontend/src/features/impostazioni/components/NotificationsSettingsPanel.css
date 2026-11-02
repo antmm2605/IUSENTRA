@@ -245,6 +245,14 @@
   }
 
   .iu-notify-compose header {
+    flex-wrap: wrap;
+  }
+
+  .iu-notify-compose header div {
+    flex: 1 1 200px;
+  }
+
+  .iu-notify-compose header {
     align-items: flex-start;
   }
 }

@@ -168,3 +168,33 @@ __all__ = [
     "SUPERATA", "classifica", "dividi_proposte", "e_127_ter", "giorno_termine", "produce_decadenza",
     "riconvalida_proposte_decorse",
 ]
+
+
+#: margine massimo fra comunicazione e termine di opposizione: 5 giorni (art. 127-ter, comma 2,
+#: c.p.c.), proroga al primo giorno non festivo (art. 155 c.p.c.) e sospensione feriale dal 1° al
+#: 31 agosto (art. 1 L. 742/1969). Oltre questo margine la data registrata non può essere giusta.
+MARGINE_OPPOSIZIONE_127_TER_GIORNI = 45
+
+
+def opposizione_127_ter_incoerente(scadenza: Any) -> bool:
+    """Opposizione alla trattazione scritta con data lontana dalla comunicazione da cui decorre.
+
+    Il termine è di cinque giorni dalla comunicazione (art. 127-ter, comma 2, c.p.c.): una data
+    a mesi di distanza è quasi sempre la data dell'udienza sostituita letta al posto del termine.
+    Non si corregge nulla: la voce va segnalata come «data da verificare».
+    """
+    codice = _valore(scadenza, "deadline_profile_code").upper()
+    titolo = _valore(scadenza, "titolo").lower()
+    if codice != "CIV_OPPOSIZIONE_127_TER" and not ("opposizion" in titolo and _RE_127_TER.search(titolo)):
+        return False
+    giorno = giorno_termine(scadenza)
+    if giorno is None:
+        return False
+    for campo in ("data_decorrenza", "source_event_at", "creata_il"):
+        testo = giorno_italiano(_valore(scadenza, campo))
+        try:
+            base = date.fromisoformat(testo[:10])
+        except ValueError:
+            continue
+        return (giorno - base).days > MARGINE_OPPOSIZIONE_127_TER_GIORNI
+    return False

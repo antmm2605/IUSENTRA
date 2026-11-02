@@ -944,7 +944,7 @@ function StatsStrip({ data }:{data: ClientiNuovoData}) {
       <article><UsersRound size={20}/><span>Clienti</span><strong>{data.stats.totalClients}</strong><small>{data.stats.activeClients} attivi</small></article>
       <article><UserRound size={20}/><span>Persone fisiche</span><strong>{data.stats.physicalClients}</strong><small>PF in archivio</small></article>
       <article><Building2 size={20}/><span>Persone giuridiche</span><strong>{data.stats.legalClients}</strong><small>Società ed enti</small></article>
-      <article><ClipboardCheck size={20}/><span>Da completare</span><strong>{data.stats.missingRegistry}</strong><small>{data.stats.expiredDocuments} documenti scaduti</small></article>
+      <article><ClipboardCheck size={20}/><span>Da completare</span><strong>{data.stats.missingRegistry}</strong><small>{data.stats.expiredDocuments === 1 ? '1 documento scaduto' : `${data.stats.expiredDocuments} documenti scaduti`}</small></article>
     </section>
   )
 }
@@ -2019,7 +2019,8 @@ export function NuovoClientePage() {
         </div>
       </section>
 
-      <StatsStrip data={data}/>
+      {/* Gli indicatori riguardano l'anagrafica clienti: nella scheda soggetto non hanno senso. */}
+      {tab === 'cliente' ? <StatsStrip data={data}/> : null}
 
       <div className="iu-cln-tabs" role="group" aria-label="Scelta anagrafica">
         <button type="button" className={tab === 'cliente' ? 'is-active' : ''} aria-pressed={tab === 'cliente'} onClick={() => setTab('cliente')} disabled={data.mode === 'edit_subject'}><UserPlus size={17}/>{data.mode === 'edit' ? 'Cliente' : 'Nuovo Cliente'}</button>

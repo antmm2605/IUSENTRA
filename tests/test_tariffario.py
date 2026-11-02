@@ -217,8 +217,8 @@ def test_valore_zero_con_complessita_parametrizza_indeterminabile():
 
     assert risultato.complessita_stimata == "molto_alta"
     assert risultato.valore_input == 0
-    assert risultato.valore_calcolo == 520001.0
-    assert risultato.scaglione == "Oltre € 520.000"
+    assert risultato.valore_calcolo == 390000.0
+    assert risultato.scaglione == "Da € 260.000 a € 520.000"
     assert "valore indeterminabile parametrizzato" in risultato.note.lower()
 
 

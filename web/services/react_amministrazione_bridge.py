@@ -162,14 +162,13 @@ def build_react_amministrazione_payload(
         _module("utenti", "Utenti", "/utenti", "utenti", "Lista utenti e stato account operativo."),
         _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "utenti", "Creazione utente con validazioni e tracciamento."),
         _module("profili", "Profili", "/profili", "permessi", "Matrice ruoli, categorie e permessi personalizzati."),
-        _module("audit", "Registro attivita", "/audit", "sicurezza", "Eventi di controllo e dettaglio consultabile."),
-        _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Superficie operativa del registro audit."),
+        _module("audit", "Registro attività", "/audit", "sicurezza", "Eventi di controllo e dettaglio consultabile."),
         _module(
             "import-pratiche",
             "Importa pratiche",
             "/importa-pratiche",
             "fascicoli",
-            "Percorso guidato per acquisire pratiche, ATTI, EMAILS e anagrafiche del cliente.",
+            "Percorso guidato per acquisire pratiche, atti, email e anagrafiche del cliente.",
         ),
         _module("backup", "Backup", "/backup", "governance", "Controllo backup disponibile nello stesso ambiente operativo."),
     ]
@@ -180,7 +179,7 @@ def build_react_amministrazione_payload(
                 "Coerenza dati",
                 "/amministrazione?tab=consistenza-dati",
                 "governance",
-                "Lettura SQL dei domini P0, outbox e anomalie senza usare mirror JSON.",
+                "Controllo dei dati principali nell'archivio SQL, degli eventi in coda e delle anomalie.",
             )
         )
     legacy_routes = [
@@ -235,7 +234,7 @@ def build_react_amministrazione_payload(
         }
     ]
     if not _can(current_user, "audit.leggi"):
-        warnings.append({"code": "permesso_audit_mancante", "message": "L'utente corrente non ha il permesso audit.leggi."})
+        warnings.append({"code": "permesso_audit_mancante", "message": "Il tuo profilo non ha il permesso di consultare il registro attività."})
     return {
         "ok": True,
         "source": "repository_reali",
@@ -253,8 +252,8 @@ def build_react_amministrazione_payload(
             _metric("utenti", "Utenti", total_users, "Account nell'archivio utenti", "primary"),
             _metric("attivi", "Utenti attivi", active_count, "Operatori abilitati", "success" if active_count else "warning"),
             _metric("profili", "Profili usati", len([role for role, count in role_counter.items() if role and count]), "Ruoli con almeno un operatore", "info"),
-            _metric("audit", "Eventi audit", audit_count, "Eventi amministrativi registrati", "neutral"),
-            _metric("override", "Override permessi", override_count, "Utenti con regole personalizzate", "warning" if override_count else "neutral"),
+            _metric("audit", "Eventi nel registro", audit_count, "Eventi amministrativi registrati", "neutral"),
+            _metric("override", "Permessi personalizzati", override_count, "Utenti con regole personalizzate", "warning" if override_count else "neutral"),
         ],
         "sections": [
             _section(
@@ -291,8 +290,7 @@ def build_react_amministrazione_payload(
             ),
             _action("utenti", "Apri utenti", "/utenti", "primary"),
             _action("profili", "Apri profili", "/profili", "primary"),
-            _action("audit", "Apri audit", "/audit", "neutral"),
-            _action("registro", "Registro attivita", "/registro-attivita", "neutral"),
+            _action("audit", "Apri registro attività", "/audit", "neutral"),
             _action("import-pratiche", "Importa pratiche", "/importa-pratiche", "primary"),
             _action("backup", "Apri backup", "/backup", "neutral"),
         ],

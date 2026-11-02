@@ -94,6 +94,11 @@ def _save_audit(audit: Any, *, fascicolo: Any, repo: Any, fonte: str,
     for azione in audit.azioni:
         if azione.type not in _ACTION_BENEFICIARY_EVENTS:
             continue
+        gemello = _credito_gemello(repo, tenant_id, fascicolo_id, saved, azione)
+        if gemello is not None:
+            # Lo stesso credito arrivato da un'altra via (PEC, documento, analisi ripetuta): non nasce un doppione.
+            eventi.append({**gemello, "already_present": True, "changed": False})
+            continue
         eventi.append(repo.add_economic_event(
             tenant_id,
             fascicolo_id=fascicolo_id,
@@ -127,6 +132,68 @@ def _save_audit(audit: Any, *, fascicolo: Any, repo: Any, fonte: str,
     )
 
     return {"ok": True, "audit": saved, "eventi": eventi, "detail": audit_dict}
+
+
+def _credito_gemello(repo: Any, tenant_id: str, fascicolo_id: str, saved: dict[str, Any], azione: Any) -> dict[str, Any] | None:
+    """Il credito già registrato da un'altra fonte con stessa impronta o stesso capo spese, natura, beneficiario e importo."""
+    from pct.sentenza_automatica import CREDITI, gruppi_crediti
+
+    if azione.type not in CREDITI:
+        return None
+    sorgente = str(saved.get("id") or "")
+    eventi = [e for e in repo.list_economic_events(tenant_id, fascicolo_id=fascicolo_id)
+              if e.get("source_type") == "sentenza_economic_audit" and str(e.get("source_id") or "") != sorgente]
+    if not eventi:
+        return None
+    candidato = {"id": "", "event_type": azione.type, "beneficiary_type": azione.beneficiary_type,
+                 "amount": azione.amount, "source_id": sorgente, "status": "to_review", "created_at": "~"}
+    audits = [*repo.list_sentenza_audits(tenant_id, fascicolo_id=fascicolo_id), saved]
+    for gruppo in gruppi_crediti([*eventi, candidato], audits):
+        if len(gruppo) > 1 and any(e is candidato for e in gruppo):
+            return next(e for e in gruppo if e is not candidato)
+    return None
+
+
+def _fondi_doppioni_salvati(repo: Any, tenant_id: str, fascicolo_id: str) -> int:
+    """Riconvalida: i doppioni già salvati e ancora da confermare si chiudono sul credito che resta."""
+    from pct.sentenza_automatica import STATO_DOPPIONE, doppioni_da_chiudere
+
+    try:
+        audits = repo.list_sentenza_audits(tenant_id, fascicolo_id=fascicolo_id)
+        eventi = [e for e in repo.list_economic_events(tenant_id, fascicolo_id=fascicolo_id)
+                  if e.get("source_type") == "sentenza_economic_audit"]
+        chiusi = 0
+        for doppione, resta in doppioni_da_chiudere(eventi, audits):
+            chiusi += int(repo.aggiorna_evento_se(
+                tenant_id, doppione, da_stato="to_review", a_stato=STATO_DOPPIONE, revisore="riconvalida:doppione",
+                nota={"kind": "doppione", "credito": resta, "motivo": "Stesso credito dalla stessa sentenza"}))
+        return chiusi
+    except Exception:
+        from flask import current_app
+        current_app.logger.exception("Doppioni dei crediti da sentenza non riconvalidati")
+        return 0
+
+
+def fonte_audit(audit: dict[str, Any], inventory: list[Any], fascicolo_id: str) -> dict[str, str] | None:
+    """Il documento o l'allegato PEC presente nel fascicolo da cui è nato il controllo economico."""
+    from urllib.parse import quote, urlencode
+
+    sha = str(audit.get("document_hash_sha256") or "").lower()
+    if not sha:
+        return None
+    for obj in inventory:
+        if not obj.presente or obj.impronta.lower() != sha:
+            continue
+        if audit.get("message_id"):
+            if obj.tipo != "allegato_pec" or obj.origine != audit["message_id"]:
+                continue
+            href = "/api/v1/ui/email/source/" + quote(obj.origine, safe="") + "?" + urlencode({"name": obj.nome, "sha256": sha})
+        else:
+            if obj.tipo != "documento" or obj.oggetto_id != audit.get("documento_id"):
+                continue
+            href = f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(obj.oggetto_id, safe='')}/visualizza"
+        return {"href": href, "label": obj.nome, "documentoId": obj.oggetto_id if obj.tipo == "documento" else "", "sha256": sha}
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -314,6 +381,7 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
     if not da_analizzare:
         # Tutte le sentenze candidate sono gia' state analizzate con questa impronta:
         # i testi del catalogo non si caricano nemmeno.
+        report["doppioni_fusi"] = _fondi_doppioni_salvati(repo, tenant_id, str(fascicolo.id))
         report["riscontro_cu"] = _reconcile_archived_cu(fascicolo, repo, tenant_id)
         return report
     import json
@@ -347,6 +415,7 @@ def ensure_fascicolo_sentenza_economic_analysis(fascicolo_id: str) -> dict[str, 
             from flask import current_app
             current_app.logger.exception("Consegna economica dall’archivio non riuscita")
             report["errors"] += 1
+    report["doppioni_fusi"] = _fondi_doppioni_salvati(repo, tenant_id, str(fascicolo.id))
     report["riscontro_cu"] = _reconcile_archived_cu(fascicolo, repo, tenant_id)
     return report
 
@@ -443,10 +512,13 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
 
         validi = {a["id"] for a in audits}
         events = [e for e in events if e.get("source_type") != "sentenza_economic_audit" or e.get("source_id") in validi]
+    # Un credito una volta sola, anche se la sentenza è arrivata da più vie: la decisione dell'avvocato prevale.
+    from pct.sentenza_automatica import fondi_doppioni
+
+    events = fondi_doppioni(events, audits)
     summary = build_sentenze_economiche_summary(audits, events)
     # Ogni card economica apre solo le fonti degli eventi che la alimentano.
     # Nessuna associazione per importo, nome file o documento più recente.
-    from urllib.parse import quote, urlencode
     from web.services.registro_letture_runtime import registro_corrente
     inventory = registro_corrente().oggetti(tenant_id, fascicolo_id) if fascicolo else []
     by_audit = {str(a["id"]): a for a in audits}
@@ -466,26 +538,14 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
             audit = by_audit.get(str(event.get("source_id") or ""))
             if not audit or event.get("source_type") != "sentenza_economic_audit":
                 continue
-            sha = str(audit.get("document_hash_sha256") or "").lower()
-            if not sha:
+            fonte = fonte_audit(audit, inventory, fascicolo_id)
+            if fonte is None or fonte["href"] in seen:
                 continue
-            for obj in inventory:
-                if not obj.presente or obj.impronta.lower() != sha:
-                    continue
-                if audit.get("message_id"):
-                    if obj.tipo != "allegato_pec" or obj.origine != audit["message_id"]:
-                        continue
-                    href = "/api/v1/ui/email/source/" + quote(obj.origine, safe="") + "?" + urlencode({"name":obj.nome,"sha256":sha})
-                else:
-                    if obj.tipo != "documento" or obj.oggetto_id != audit.get("documento_id"):
-                        continue
-                    href = f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(obj.oggetto_id, safe='')}/visualizza"
-                if href in seen:
-                    continue
-                seen.add(href)
-                detail = audit.get("audit") or {}
-                capo = (detail.get("sentenza") or {}).get("spese_liquidate") or {}
-                sources.append({"href":href,"label":obj.nome,"context":str(capo.get("testo_capo_spese") or "Fonte della voce economica")})
+            seen.add(fonte["href"])
+            detail = audit.get("audit") or {}
+            capo = (detail.get("sentenza") or {}).get("spese_liquidate") or {}
+            sources.append({"href": fonte["href"], "label": fonte["label"],
+                            "context": str(capo.get("testo_capo_spese") or "Fonte della voce economica")})
         card["sources"] = sources
     return {"ok": True, "fascicoloId": fascicolo_id, "audits": audits, "eventi": events, "summary": summary, "autoAnalysis": auto_report}
 

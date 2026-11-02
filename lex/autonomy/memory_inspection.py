@@ -10,6 +10,7 @@ e liste vuote, mai eccezioni verso la superficie.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +62,16 @@ def _proposal_row(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _proposta_ammissibile(record: dict[str, Any]) -> bool:
+    from lex.learning.legal_language_analyzer import termine_candidato_ammissibile
+
+    payload = record.get("payload") if isinstance(record.get("payload"), dict) else {}
+    if _text(payload.get("kind")) != "ontologia":
+        return True
+    termine = re.search(r"'([^']+)'", _text(payload.get("title")))
+    return termine is None or termine_candidato_ammissibile(termine.group(1))
+
+
 def _reading_row(record: dict[str, Any]) -> dict[str, Any]:
     payload = record.get("payload") if isinstance(record.get("payload"), dict) else {}
     citations = payload.get("citations_normalized")
@@ -86,10 +97,13 @@ def inspect_memory(
 
     base = Path(memory_dir) if memory_dir else default_memory_dir()
     conteggi = {collection: _count_lines(base / f"{collection}.jsonl") for collection in COLLECTIONS}
+    # Le proposte di ontologia registrate prima dell'estensione delle parole
+    # vuote ("termine può", "consenso dovrebbe") non si mostrano più (LEX-18).
     proposte = [
         _proposal_row(record)
-        for record in _tail_records(base / "improvement_proposals.jsonl", proposals_limit)
-    ]
+        for record in _tail_records(base / "improvement_proposals.jsonl", proposals_limit * 3)
+        if _proposta_ammissibile(record)
+    ][:proposals_limit]
     letture = [
         _reading_row(record)
         for record in _tail_records(base / "source_readings.jsonl", readings_limit)

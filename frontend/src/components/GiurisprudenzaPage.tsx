@@ -913,7 +913,7 @@ function GiurisprudenzaArchivePage() {
           <div className="iu-legal-workbench__main">
         <Panel
           title="Sentenze e provvedimenti"
-          subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} schede disponibili.`}
+          subtitle={`${visibleRecords.length} ${visibleRecords.length === 1 ? 'scheda visibile' : 'schede visibili'} su ${data.records.length} ${data.records.length === 1 ? 'disponibile' : 'disponibili'}.`}
           actions={
             query || area || grade || source || verification ? (
               <Button type="button" tone="neutral" onClick={resetFilters}>

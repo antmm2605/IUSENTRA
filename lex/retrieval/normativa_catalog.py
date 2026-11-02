@@ -119,13 +119,30 @@ def catalog_revision() -> list:
     general = runtime_general_path()
     revisions = []
     for path in (general, library_path(general)):
-        for item in (path, Path(str(path) + "-wal")):
-            try:
-                stat = item.stat()
-                revisions.append((str(item), stat.st_ino, stat.st_size, stat.st_mtime_ns))
-            except OSError as exc:
-                revisions.append((str(item), type(exc).__name__))
+        try:
+            stat = path.stat()
+            revisions.append((str(path), stat.st_ino, stat.st_size, stat.st_mtime_ns))
+        except OSError as exc:
+            revisions.append((str(path), type(exc).__name__))
+        revisions.append(wal_revision(Path(str(path) + "-wal")))
     return revisions
+
+
+def wal_revision(wal: Path) -> tuple:
+    """Impronta del WAL che ignora il file vuoto creato e rimosso da una sola lettura.
+
+    Una connessione che legge crea il WAL vuoto e, chiudendosi per ultima, lo
+    rimuove: assente e vuoto sono lo stesso stato. Solo un WAL con pagine
+    scritte cambia la revisione (verifica visiva LEX-20: ogni ricerca faceva
+    comparire «Le fonti locali sono cambiate» e ricaricava la pagina).
+    """
+    try:
+        stat = wal.stat()
+    except OSError:
+        return (str(wal), "vuoto")
+    if stat.st_size == 0:
+        return (str(wal), "vuoto")
+    return (str(wal), stat.st_size, stat.st_mtime_ns)
 
 
 def annotate_rows(rows: list[dict], catalog: str) -> list[dict]:

@@ -520,6 +520,23 @@ def _audit_kind_tone(kind: str) -> str:
     return "primary"
 
 
+_AUDIT_SLOT_RE = re.compile(r"\bSlot ([A-Z][A-Z0-9_]+)")
+_AUDIT_PROFILE_CODE_RE = re.compile(r"\b(?:del )?profilo [A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+", re.IGNORECASE)
+
+
+def _operational_audit_text(value: Any) -> str:
+    """Il registro operativo resta integro nei dati; all'avvocato le chiavi diventano parole.
+
+    «Slot DOCUMENTI_RETRIBUTIVI collegato…» → «Documento richiesto «Documenti retributivi» collegato…»;
+    «Profilo PROC_LAV_RETRIB_001 applicato.» → «Profilo procedurale applicato.» (verifica visiva 02/11/2026).
+    """
+    text = _text(value)
+    if not text:
+        return ""
+    text = _AUDIT_SLOT_RE.sub(lambda m: "Documento richiesto «" + _readable_source_key(m.group(1)) + "»", text)
+    return _AUDIT_PROFILE_CODE_RE.sub(lambda m: ("del " if m.group(0).lower().startswith("del ") else "") + ("Profilo" if m.group(0)[:1] == "P" else "profilo") + " procedurale", text)
+
+
 def _audit_trail(fid: str) -> dict[str, Any]:
     tenant_id = _current_tenant_id()
     fallback = {
@@ -645,8 +662,8 @@ def _merge_practice_audit(
                 "tsaVerified": False,
                 "tone": _audit_kind_tone(kind),
                 "proofHref": "",
-                "message": _text(getattr(row, "message", "")),
-                "reason": _text(getattr(row, "reason", "")),
+                "message": _operational_audit_text(getattr(row, "message", "")),
+                "reason": _operational_audit_text(getattr(row, "reason", "")),
                 "operational": True,
                 "sourceDocumentId": document_id,
                 "sourceDocumentLabel": document_name,
@@ -1027,24 +1044,6 @@ def _resolve_fascicolo(repo: Any, requested_id: str) -> Any:
     return None
 
 
-def _idrata_documenti_se_serve(repo: Any, fascicolo: Any) -> Any:
-    """Carica gli allegati di un fascicolo letto in modalita' elenco.
-
-    Solo per i pochi fascicoli mostrati a schermo: e' molto meno che leggere
-    l'archivio documentale di tutte le pratiche dello studio, ed e' l'unico
-    modo per avere i documenti dove servono sul serio.
-    """
-    if not getattr(fascicolo, "documenti_non_caricati", False):
-        return fascicolo
-    idrata = getattr(repo, "idrata_documenti", None)
-    if not callable(idrata):
-        return fascicolo
-    try:
-        return idrata(fascicolo)
-    except Exception:
-        return fascicolo
-
-
 def _idrata_fascicoli_collegati(repo: Any, righe: Iterable[Any]) -> list[Any]:
     """Sostituisce le righe dell'indice leggero con i fascicoli per intero.
 
@@ -1186,9 +1185,20 @@ def _activity_source_document_payload(fascicolo_id: str, activity: Any) -> dict[
     }
 
 
+# Riferimenti interni scritti nelle note storiche (id agenda, id operazione, id dei fatti dell'archivio):
+# restano nei dati e nell'audit, l'avvocato vede solo il testo (verifica visiva 02/11/2026).
+_ACTIVITY_TECHNICAL_REFERENCE_RE = re.compile(
+    r"(?:Scadenza/agenda collegate:\s*[0-9A-Fa-f]{6,}\.?"
+    r"|Operazione\s+eventi-unici-[0-9a-f]+\.?"
+    r"|\s*Prove:\s*fat_[0-9a-f]+(?:\s*,\s*fat_[0-9a-f]+)*\.?)"
+)
+
+
 def _activity_notes_for_user(value: Any) -> str:
     text = _text(value)
     text = _ACTIVITY_DOCUMENT_SOURCE_MARKER_RE.sub("", text)
+    text = _ACTIVITY_TECHNICAL_REFERENCE_RE.sub("", text)
+    text = re.sub(r"[ \t]{2,}", " ", text).strip()
     return _short(text, 900)
 
 
@@ -1298,7 +1308,60 @@ def _source_label_for_document(doc: Any) -> str:
         return "Documento importato"
     if source in {"PORTALE_TELEMATICO", "PST", "POLISWEB"}:
         return "Portale Servizi"
-    return _text(source, "Studio")
+    return _DOCUMENT_SOURCE_LABELS.get(source) or _readable_source_key(source) or "Studio"
+
+
+# Provenienze registrate in `fonte_documento`: all'avvocato si mostra l'etichetta italiana, mai la chiave.
+_DOCUMENT_SOURCE_LABELS = {
+    "CARICAMENTO_STUDIO": "Studio",
+    "REDAZIONE_STUDIO": "Redazione dello studio",
+    "APERTURA_FASCICOLO_VELOCE": "Apertura del fascicolo",
+    "COPIA_RUOTATA_DA_LETTORE": "Copia raddrizzata dal lettore",
+    "CTU_LIQUIDAZIONE": "Liquidazione CTU",
+    "DOCUMENTI_AI_SERVER": "Documenti dello studio",
+    "EDITOR_AI_LEX": "Editor con Lex",
+    "NOTIFICA_LEGALE": "Notifica legale",
+    "PAGOPA_RT_PEC": "Ricevuta PagoPA via PEC",
+    "PEC_AUDIT_NOTIFICATION_RECEIPT": "Ricevuta PEC di notifica",
+    "PEC_AUDIT_PIPELINE": "PEC dello studio",
+    "PEC_CANCELLERIA": "PEC di cancelleria",
+}
+
+
+# Fonte del fascicolo (`fascicolo.source`) e stato di allineamento col portale, in italiano.
+_PORTAL_SOURCE_LABELS = {
+    "IMPORT_PRATICHE": "Importazione pratiche",
+    "PRATICHE": "Importazione pratiche",
+    "PST": "Portale Servizi Telematici",
+    "POLISWEB": "Portale Servizi Telematici",
+    "PDP": "Portale deposito atti penali",
+    "PAT": "Processo amministrativo telematico",
+    "PTT": "Processo tributario telematico",
+    "PEC": "PEC",
+    "CARTACEO": "Fascicolo cartaceo",
+    "AGENDA": "Agenda dello studio",
+}
+_PORTAL_SYNC_LABELS = {
+    "IMPORTATO": "importato dal portale",
+    "SINCRONIZZATO": "allineato al portale",
+    "LOCALE": "solo dati dello studio",
+}
+
+
+def _portal_source_label(value: Any) -> str:
+    key = _text(getattr(value, "value", value)).strip()
+    return _PORTAL_SOURCE_LABELS.get(key.upper()) or (_readable_source_key(key) if key.isupper() or "_" in key else key)
+
+
+def _portal_sync_label(value: Any) -> str:
+    key = _text(getattr(value, "value", value)).strip() or "LOCALE"
+    return _PORTAL_SYNC_LABELS.get(key.upper()) or _readable_source_key(key).lower()
+
+
+def _readable_source_key(source: str) -> str:
+    """Una chiave non censita diventa testo leggibile («NUOVA_FONTE» → «Nuova fonte»)."""
+    words = _text(source).replace("_", " ").strip().lower()
+    return words[:1].upper() + words[1:] if words else ""
 
 
 def _portal_class_for_document(doc: Any) -> str:
@@ -5728,9 +5791,30 @@ def _type_for_filters(fascicolo: Any) -> str:
     return _enum_value(getattr(fascicolo, "tipo", "ALTRO")).lower()
 
 
+# Etichette italiane delle opzioni (mai «Iscrizione A Ruolo» o «Ctu» dal Title Case dell'enum).
+_OPTION_LABELS = {
+    "ISCRIZIONE_A_RUOLO": "Iscrizione a ruolo",
+    "TERMINE_SCADENZA": "Termine o scadenza",
+    "ACCESSO_ATTI": "Accesso agli atti",
+    "CTU": "CTU",
+    "SENTENZA_EMESSA": "Sentenza emessa",
+    "COMUNICAZIONE_CANCELLERIA": "Comunicazione di cancelleria",
+    "DEPOSITO_ATTI": "Deposito atti",
+    "IN_ATTESA": "In attesa",
+    "NON_APPLICABILE": "Non applicabile",
+    "ATTO_GIUDIZIARIO": "Atto giudiziario",
+    "DEPOSITO_PCT": "Deposito PCT",
+    "IN_CORSO": "In corso",
+}
+
+
 def _option(value: Any) -> dict[str, str]:
     raw = _enum_value(value)
-    return {"value": raw, "label": raw.replace("_", " ").title()}
+    label = _OPTION_LABELS.get(raw.upper())
+    if not label:
+        words = raw.replace("_", " ").lower()
+        label = words[:1].upper() + words[1:]
+    return {"value": raw, "label": label}
 
 
 def _options() -> dict[str, list[dict[str, str]]]:
@@ -6068,7 +6152,15 @@ def _next_deadline(
 def _next_deadline_date_value(fascicolo: Any, next_deadline: Any | None) -> str:
     if next_deadline:
         return _text(getattr(next_deadline, "data_scadenza", "") or getattr(next_deadline, "data", ""))
-    return _text(_next_hearing_value(fascicolo))
+    # Senza termini aperti la colonna «Prossima scadenza» mostra solo un'udienza futura: l'ultima udienza
+    # già tenuta (es. 20/04/2023) non è una scadenza prossima (verifica visiva 02/11/2026).
+    # Per le pratiche definite o archiviate resta la data dell'ultima udienza/decisione, che è il riferimento atteso.
+    hearing = _text(_next_hearing_value(fascicolo))
+    closed = _enum_value(getattr(fascicolo, "stato", "")) in {StatoFascicolo.DEFINITO.value, StatoFascicolo.ARCHIVIATO.value}
+    parsed = _parse_date(hearing) if hearing else None
+    if not closed and parsed is not None and parsed < datetime.now(ROME_TZ).date():
+        return ""
+    return hearing
 
 
 def _workspace_counts(fascicolo: Any) -> dict[str, int]:
@@ -6813,7 +6905,17 @@ def _pagination(page: int, page_size: int, total: int) -> dict[str, int]:
 
 
 def enrich_economic_list_items(items, *, gf, fascicoli_for_summary, duplicate_groups_by_key, parcelle_by_fasc):
-    """Procedura economica nativa, condivisa dal percorso paginato e dai controlli storici."""
+    """Vista economica dell'elenco: sola lettura di dati gia' consolidati.
+
+    L'elenco e' un endpoint caldo (FAS-01): per ogni riga legge soltanto il
+    marcatore del presidio documentale salvato nel fascicolo, i fatti SQL
+    dell'archivio delle letture e le parcelle. Non idrata gli allegati, non
+    interroga l'indice Document AI e non ricalcola l'impronta dei documenti:
+    quella lettura appartiene al presidio economico pianificato e al dettaglio
+    del fascicolo. Se il consolidamento manca o e' superato, la riga lo dice
+    («Da analizzare», «Da rianalizzare») invece di rifarlo nella richiesta.
+    """
+    del gf  # la vista non rilegge i fascicoli: resta nella firma per i chiamanti
     fascicoli_by_id = {_text(getattr(value, "id", "")): value for value in fascicoli_for_summary}
     enriched_items: list[dict[str, Any]] = []
     for item in items:
@@ -6823,47 +6925,21 @@ def enrich_economic_list_items(items, *, gf, fascicoli_for_summary, duplicate_gr
             enriched_items.append(item)
             continue
         enriched = dict(item)
-        # La vista economica legge davvero i documenti. Se il fascicolo
-        # arriva dall'elenco senza allegati va idratato adesso, altrimenti
-        # `has_documents` direbbe «nessun documento» — che non e' la
-        # stessa cosa di «non li ho letti» — e il ripiego darebbe una
-        # risposta sbagliata senza segnalare niente.
-        fascicolo = _idrata_documenti_se_serve(gf, fascicolo)
-        related_fascicoli = [
-            _idrata_documenti_se_serve(gf, riga)
-            for riga in _related_duplicate_fascicoli(fascicoli_for_summary, fascicolo)
-        ]
-        parcelle = parcelle_by_fasc.get(fid, [])
-        duplicate_group = duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo))
-        if getattr(fascicolo, "documenti_non_caricati", False):
-            # Idratazione non riuscita: non si puo' decidere. Meglio
-            # dichiararlo che far passare il ripiego per un risultato.
-            current_app.logger.warning(
-                "Vista economica: documenti non leggibili per il fascicolo %s, "
-                "riepilogo economico calcolato senza di essi.",
-                fid,
-            )
-        has_documents = bool(getattr(fascicolo, "documenti", []) or [])
-        if has_documents:
-            enriched["paymentSummary"] = payment_summary_for_fascicolo(
-                fascicolo,
-                automatic=True,
-                related_fascicoli=related_fascicoli,
-                parcelle=parcelle,
-                duplicate_group=duplicate_group,
-            )
+        enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
+            fascicolo,
+            related_fascicoli=_related_duplicate_fascicoli(fascicoli_for_summary, fascicolo),
+            parcelle=parcelle_by_fasc.get(fid, []),
+            duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
+        )
+        # Prossima data certa gia' scritta e collaudata dai motori nell'archivio
+        # delle letture (query SQL, nessun documento riaperto). Solo per le
+        # righe che hanno documenti: senza documenti l'archivio e' vuoto.
+        if _positive_int(item.get("documents"), 0, minimum=0, maximum=10**9) > 0:
             automatic_deadline = _automatic_next_deadline_from_documents(fascicolo)
             automatic_deadline_date = _next_deadline_date_value(fascicolo, automatic_deadline)
             if automatic_deadline_date:
                 enriched["nextDeadline"] = _date_label(automatic_deadline_date)
                 enriched["nextDeadlineIso"] = automatic_deadline_date
-        else:
-            enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
-                fascicolo,
-                related_fascicoli=related_fascicoli,
-                parcelle=parcelle,
-                duplicate_group=duplicate_group,
-            )
         enriched_items.append(enriched)
     return enriched_items
 
@@ -7140,6 +7216,38 @@ def _uffici_cache_path() -> str:
     if repo_data.exists():
         return str(repo_data)
     return "/data/uffici/uffici_giudiziari.json"
+
+
+JUDICIAL_OFFICES_SEARCH_HREF = "/api/v1/ui/uffici-giudiziari/opzioni"
+
+
+def judicial_office_search_options(query: str, *, limit: int = 30) -> list[dict[str, Any]]:
+    """Uffici giudiziari che contengono tutte le parole cercate (autocomplete del form).
+
+    FAS-13: il form del fascicolo non scarica piu' l'intero registro
+    (oltre 1.300 uffici, ~400 KB); chiede solo le voci che servono mentre
+    l'avvocato scrive. Il valore inviato dal form resta il nome dell'ufficio.
+    """
+    tokens = [token for token in _text(query).casefold().split() if token]
+    if not tokens:
+        return []
+    limit = max(1, min(int(limit or 30), 60))
+    out: list[dict[str, Any]] = []
+    for option in _judicial_office_options():
+        testo = f"{option['label']} {option['code']} {option['ministerialCode']}".casefold()
+        if all(token in testo for token in tokens):
+            out.append(option)
+            if len(out) >= limit:
+                break
+    return out
+
+
+def _judicial_office_selected_options(*names: Any) -> list[dict[str, Any]]:
+    """Solo l'ufficio gia' indicato nel fascicolo: serve a mostrarne codici e PEC."""
+    wanted = {_text(name).casefold() for name in names if _text(name)}
+    if not wanted:
+        return []
+    return [option for option in _judicial_office_options() if option["value"].casefold() in wanted]
 
 
 def _judicial_office_options() -> list[dict[str, Any]]:
@@ -7622,7 +7730,10 @@ def build_react_fascicolo_form_payload(
         "clients": _client_options(get_clienti),
         "subjects": _subject_options(get_soggetti, get_clienti),
         "linkedSubjects": linked_subjects,
-        "judicialOffices": _judicial_office_options(),
+        "judicialOffices": _judicial_office_selected_options(
+            getattr(fascicolo, "tribunale", "") if fascicolo else query.get("tribunale", ""),
+        ),
+        "judicialOfficesSearch": JUDICIAL_OFFICES_SEARCH_HREF,
         "types": _select_options(TipoFascicolo),
         "states": _select_options(StatoFascicolo),
         "studio": {
@@ -7706,9 +7817,9 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
         ("Prima udienza", _date_label(getattr(fascicolo, "data_prima_udienza", "")), False, ""),
         (*_hearing_row(fascicolo, apps), False, ""),
         ("Chiusura", _date_label(_closure_date_value(fascicolo)), False, ""),
-        ("Fonte portale", getattr(fascicolo, "source", ""), False, ""),
+        ("Fonte portale", _portal_source_label(getattr(fascicolo, "source", "")), False, ""),
         ("Dati letti dal portale", source_summary, False, ""),
-        ("Ultimo sync", _date_label(getattr(fascicolo, "last_sync_at", "")), False, ""),
+        ("Ultimo allineamento", _date_label(getattr(fascicolo, "last_sync_at", "")) if _text(getattr(fascicolo, "last_sync_at", "")) else "", False, ""),
     ]
     return [
         {"label": label, "value": _text(value, "n.d."), "mono": mono, "href": href}
@@ -9312,8 +9423,8 @@ def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]
         {"label": "Parti", "value": f"{len(parti)} soggetti", "ok": bool(parti or getattr(fascicolo, "controparte", "")), "tone": "success" if parti else "warning"},
         {"label": "Documenti", "value": documents_label, "ok": bool(governed_documents), "tone": "primary"},
         {"label": "Scadenze", "value": f"{len(scadenze)} termini", "ok": bool(scadenze), "tone": "warning" if scadenze else "neutral"},
-        {"label": "Controlli conformita", "value": "attivi" if getattr(fascicolo, "compliance_controls_enabled", True) else "disattivati", "ok": bool(getattr(fascicolo, "compliance_controls_enabled", True)), "tone": "success" if getattr(fascicolo, "compliance_controls_enabled", True) else "orange"},
-        {"label": "Sync portale", "value": _text(getattr(fascicolo, "sync_status", ""), "locale"), "ok": not bool(getattr(fascicolo, "has_conflicts", False)), "tone": "danger" if getattr(fascicolo, "has_conflicts", False) else "success"},
+        {"label": "Controlli di conformità", "value": "attivi" if getattr(fascicolo, "compliance_controls_enabled", True) else "disattivati", "ok": bool(getattr(fascicolo, "compliance_controls_enabled", True)), "tone": "success" if getattr(fascicolo, "compliance_controls_enabled", True) else "orange"},
+        {"label": "Allineamento portale", "value": _portal_sync_label(getattr(fascicolo, "sync_status", "")), "ok": not bool(getattr(fascicolo, "has_conflicts", False)), "tone": "danger" if getattr(fascicolo, "has_conflicts", False) else "success"},
     ]
 
 
@@ -9926,9 +10037,10 @@ def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], ge
             {"id": "zip", "label": "ZIP archivio", "description": "Archivio documentale dei fascicoli chiusi", "href": "/fascicoli/<id>/archivio/scarica", "tone": "neutral"},
         ],
         "fields": [
+            # Solo le colonne che l'export CSV/PDF contiene davvero (web/bootstrap/export_routes.py).
             {"key": "numero", "label": "Numero interno", "checked": True},
             {"key": "rg", "label": "N. causa / RG", "checked": True},
-            {"key": "titolo", "label": "Titolo e oggetto", "checked": True},
+            {"key": "titolo", "label": "Titolo", "checked": True},
             {"key": "tipo", "label": "Tipo fascicolo", "checked": True},
             {"key": "stato", "label": "Stato", "checked": True},
             {"key": "cliente", "label": "Cliente", "checked": True},
@@ -9936,22 +10048,12 @@ def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], ge
             {"key": "tribunale", "label": "Ufficio giudiziario", "checked": True},
             {"key": "date", "label": "Date apertura/chiusura", "checked": True},
             {"key": "avvocato", "label": "Avvocato referente", "checked": True},
-            {"key": "economico", "label": "Valori economici", "checked": False},
-            {"key": "contributo_unificato_stato", "label": "Contributo unificato - stato", "checked": True},
-            {"key": "contributo_unificato_importo", "label": "Contributo unificato - importo", "checked": True},
-            {"key": "fondo_spese_stato", "label": "Spese/esborsi - stato", "checked": True},
-            {"key": "fondo_spese_importo", "label": "Spese/esborsi - importo", "checked": True},
-            {"key": "liquidazione_giudice_stato", "label": "Liquidazione giudice - stato", "checked": True},
-            {"key": "liquidazione_giudice_importo", "label": "Liquidazione giudice - importo", "checked": True},
-            {"key": "parcella_stato", "label": "Parcella - stato", "checked": True},
-            {"key": "parcella_importo", "label": "Parcella - importo", "checked": True},
-            {"key": "totale_registrato", "label": "Totale registrato", "checked": True},
-            {"key": "sync", "label": "Sync e fonte portale", "checked": False},
         ],
         "presets": [
             {"label": "Attivi", "description": "Tutti i fascicoli non archiviati", "href": "/fascicoli/export.pdf", "tone": "primary"},
             {"label": "Da archiviare", "description": "Fascicoli definiti pronti per conservazione", "href": "/fascicoli/export.pdf?stato=DEFINITO", "tone": "warning"},
-            {"label": "CSV completo", "description": "Base dati per controllo di studio", "href": "/fascicoli/export.csv", "tone": "success"},
+            {"label": "CSV completo", "description": "Tutti i fascicoli con i campi indicati", "href": "/fascicoli/export.csv", "tone": "success"},
+            {"label": "CSV economico", "description": "Tutti i fascicoli con contributo unificato, spese, liquidazione, parcella e totale registrato", "href": "/export/fascicoli.csv", "tone": "purple"},
             {"label": "Archivio", "description": "Controllo fascicoli chiusi", "href": "/fascicoli/archivio", "tone": "neutral"},
         ],
         "recent": recent,

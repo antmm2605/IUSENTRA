@@ -281,7 +281,7 @@ function CompensationBaseSection({
         { value: 'bassa', label: 'Bassa', description: '', enabled: true },
         { value: 'media', label: 'Media/Base', description: '', enabled: true },
         { value: 'alta', label: 'Alta', description: '', enabled: true },
-        { value: 'molto_alta', label: 'Molto alta / oltre € 520.000', description: '', enabled: true },
+        { value: 'molto_alta', label: 'Molto alta', description: '', enabled: true },
       ]
   const allPhases = dynamic.phaseOptions.length
     ? dynamic.phaseOptions
@@ -337,7 +337,7 @@ function CompensationBaseSection({
           label="Complessità stimata"
           value={form.complessita}
           options={selectableComplexity}
-          help="Molto alta usa il valore indeterminabile parametrizzato oltre € 520.000: verifica la congruita prima dell'invio al cliente."
+          help="Con valore indeterminabile, Molto alta indica la particolare importanza: scaglione fino a € 520.000 (art. 5, comma 6, D.M. 55/2014). Verifica la congruità prima dell'invio al cliente."
           onChange={(value) => onChange({ ...form, complessita: value })}
         />
         <div className="iu-tar-switch-row">

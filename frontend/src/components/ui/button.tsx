@@ -9,7 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        // «bg-primary» coincide con la classe Bootstrap 5 (con !important) caricata dalla shell:
+        // il pulsante principale usa la classe del design system (ADM-30).
+        default: "iu-ui-button--primary text-primary-foreground [a]:hover:bg-primary/80",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 345.
-- Endpoint con `_richiedi_auth`: 345/345.
+- Endpoint React API censiti: 346.
+- Endpoint con `_richiedi_auth`: 346/346.
 - Endpoint con metodo di scrittura o cancellazione: 178.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
@@ -370,6 +370,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/template-atti/compila/<model_code>` | Template atti | P1 | `sessione/API tenant-aware` | modelli e compilazione | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/territorio/comuni` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/timesheet` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/uffici-giudiziari/opzioni` | API React operativa | P2 | `sessione/API tenant-aware` | payload applicativo tenant-aware | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/utenti` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/utenti/<id_utente>/permessi` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `POST` | `/api/v1/ui/utenti/<id_utente>/profilo` | Utenti | P0 | `utenti.leggi/scrivi` | account, ruoli, credenziali temporanee | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

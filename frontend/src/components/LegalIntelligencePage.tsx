@@ -548,7 +548,8 @@ function RecordCard({
   ].filter((item) => item[1])
   const stateLabel = record.approvalLabel || record.stateLabel
   const stateTone = record.approvalLabel ? record.approvalTone : record.stateTone
-  const summaryItems = contextItems(record).slice(0, 2)
+  // La riga di sintesi non ripete l'estratto già mostrato sotto il titolo (verifica visiva LEX-07).
+  const summaryItems = contextItems(record).filter((item) => !record.sourceExcerpt || !sameContextText(item, record.sourceExcerpt)).slice(0, 2)
   const pointPreview = record.keyPoints.slice(0, 2)
   const checkPreview = record.operationalChecks.slice(0, 1)
   return (
@@ -1590,7 +1591,7 @@ function CollapsibleSourceDashboard({
         <SearchCheck size={18} aria-hidden="true" />
         <div>
           <strong>Stato fonti e acquisizioni</strong>
-          <span>Biblioteca locale: {data.autofetchMonitor.localLibrary.acts} atti · {data.autofetchMonitor.localLibrary.articles} articoli catalogati. Aggiornamenti: {data.autofetchMonitor.sourcesReady} fonti acquisite · {data.autofetchMonitor.sourcesNotReady} da completare</span>
+          <span>Biblioteca locale: {Number(data.autofetchMonitor.localLibrary.acts).toLocaleString('it-IT')} atti · {Number(data.autofetchMonitor.localLibrary.articles).toLocaleString('it-IT')} articoli catalogati. Aggiornamenti: {data.autofetchMonitor.sourcesReady} fonti acquisite · {data.autofetchMonitor.sourcesNotReady} da completare</span>
         </div>
         {open ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
       </button>

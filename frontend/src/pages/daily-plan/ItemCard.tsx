@@ -78,8 +78,8 @@ export function ItemCard({ item, onOpenDetail, busy, onAzione, onOpenSource, dat
         <Badge variant="outline">{dailyPlanStatusLabel[item.stato] || item.stato}</Badge>
         {item.scadenza_label ? (
           <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
-            <CalendarClock size={13} aria-hidden="true" /> Termine {item.scadenza_label}
-            {termine ? (
+            <CalendarClock size={13} aria-hidden="true" /> {item.tipo_azione === 'hearing_outcome' ? 'Udienza del' : 'Termine'} {item.scadenza_label}
+            {termine && item.tipo_azione !== 'hearing_outcome' ? (
               <span className={termine.tono === 'neutral' ? '' : termine.tono === 'danger' ? 'font-medium text-destructive' : 'font-medium text-amber-700 dark:text-amber-300'}>
                 · {termine.label}
               </span>

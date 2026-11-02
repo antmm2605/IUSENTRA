@@ -227,6 +227,9 @@ class ResolverResult:
     reason: str
     alternatives: list[dict[str, Any]] = field(default_factory=list)
     needs_manual_confirmation: bool = False
+    # True quando il profilo deriva da dati certi (codice oggetto PST ufficiale concorde, rito fissato
+    # da più dati concordi): si imposta da solo con la fonte dichiarata, senza conferma.
+    automatic: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -235,6 +238,7 @@ class ResolverResult:
             "reason": self.reason,
             "alternatives": list(self.alternatives),
             "needs_manual_confirmation": bool(self.needs_manual_confirmation),
+            "automatic": bool(self.automatic),
         }
 
 

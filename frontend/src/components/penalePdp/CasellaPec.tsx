@@ -19,7 +19,7 @@ export function CasellaPec() {
   if (!stato.supportata) {
     return (
       <p className="iu-pdp-casella">
-        <Inbox size={15}/> Capienza PEC non misurabile{stato.messaggio ? `: ${stato.messaggio}` : ' (il server non la espone)'}.
+        <Inbox size={15}/> Capienza PEC non misurabile{stato.messaggio ? `: ${stato.messaggio}` : ' (il gestore della casella non la comunica)'}.
         <a href={stato.avvisiPst} target="_blank" rel="noreferrer"><ExternalLink size={13}/> Controlla gli avvisi in cancelleria</a>
       </p>
     )

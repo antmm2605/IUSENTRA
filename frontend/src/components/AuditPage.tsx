@@ -37,8 +37,11 @@ function formatTimestamp(value: string): string {
   if (Number.isNaN(parsed.getTime())) return value
   return new Intl.DateTimeFormat('it-IT', {
     timeZone: 'Europe/Rome',
-    dateStyle: 'short',
-    timeStyle: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(parsed)
 }
 
@@ -64,7 +67,7 @@ function Warnings({ data }: { data: AuditPageData }) {
       <div className="iu-audit-warnings">
         {data.warnings.map((warning) => (
           <div className="iu-audit-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{sanitizeDisplayText(warning.code)}</Badge>
+            <Badge tone="warning">Avviso</Badge>
             <span>{warning.message}</span>
           </div>
         ))}

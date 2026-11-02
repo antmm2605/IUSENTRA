@@ -35,3 +35,22 @@ test('registro del fascicolo: prima i motori con letture in sospeso, stato in it
   assert.deepEqual(ordine.map((v) => v.id), ['motore_documenti', 'ocr'])
   assert.equal(etichettaStatoFascicolo('DEFINITO'), 'Definito')
 })
+
+test('agenda del fascicolo: la stessa udienza come scadenza e come appuntamento compare una volta', () => {
+  const voci = vociAgendaFascicolo(
+    [scadenza('Udienza da portale', '2027-01-13', { priority: 'BASSA' }), scadenza('Termine note', '2027-01-13', { peremptory: true })],
+    [appuntamento('Udienza da portale', '13/01/2027')],
+    '2026-11-02',
+  )
+  assert.deepEqual(voci.map((v) => `${v.genere}:${v.titolo}`), ['scadenza:Termine note', 'appuntamento:Udienza da portale'])
+})
+
+test('agenda del fascicolo: termine perentorio anche in agenda resta una sola voce, la scadenza', () => {
+  const titolo = 'Riassegnazione termine per note - 04/11/2026'
+  const voci = vociAgendaFascicolo(
+    [scadenza(titolo, '2026-11-04', { peremptory: true, priority: 'CRITICA' })],
+    [appuntamento(titolo, '04/11/2026', { type: 'SCADENZA' })],
+    '2026-11-02',
+  )
+  assert.deepEqual(voci.map((v) => `${v.genere}:${v.perentorio}`), ['scadenza:true'])
+})

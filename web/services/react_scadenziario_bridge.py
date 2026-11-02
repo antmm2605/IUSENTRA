@@ -2257,7 +2257,7 @@ def build_react_scadenziario_nuova_payload(
         "mode": mode,
         "id_scadenza": id_scadenza if mode == "edit" else "",
         "tipi": [
-            {"value": tipo.value, "label": tipo.value, "description": _label_from_enum(tipo)}
+            {"value": tipo.value, "label": _type_label(tipo), "description": _label_from_enum(tipo)}
             for tipo in TipoTermine
         ],
         "preset_list": _preset_options(),

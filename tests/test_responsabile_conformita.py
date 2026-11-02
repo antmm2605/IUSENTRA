@@ -150,7 +150,7 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert payload["fascicolo"]["id"] == fasc.id
     assert payload["fascicolo"]["complianceControlsEnabled"] is True
     quality = {item["label"]: item for item in payload["quality"]}
-    assert quality["Controlli conformita"]["value"] == "attivi"
+    assert quality["Controlli di conformità"]["value"] == "attivi"
     assert payload["actions"]["complianceOn"].endswith("?enabled=1")
     assert payload["actions"]["complianceOff"].endswith("?enabled=0")
     assert isinstance(payload["operationalPresidio"], dict)
@@ -232,7 +232,7 @@ def test_dettaglio_fascicolo_consente_disattivare_controlli_conformita(tmp_path)
     assert detail.status_code == 200
     assert payload["fascicolo"]["complianceControlsEnabled"] is False
     quality = {item["label"]: item for item in payload["quality"]}
-    assert quality["Controlli conformita"]["value"] == "disattivati"
+    assert quality["Controlli di conformità"]["value"] == "disattivati"
 
 
 def test_dettaglio_fascicolo_separa_istanze_e_scadenze(tmp_path):

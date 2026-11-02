@@ -174,6 +174,8 @@
 }
 
 @media(max-width:760px){
+  .iusentra-route-preset--active .iusentra-route-sequence.iu-clienti-new-page > section.iu-cln-hero[data-iusentra-sequence-slot="page-header"]{flex-direction:column!important;align-items:stretch!important}
+  .iusentra-route-preset--active .iusentra-route-sequence.iu-clienti-new-page > section.iu-cln-hero[data-iusentra-sequence-slot="page-header"] .iu-cln-hero__actions{width:100%;justify-content:flex-start}
   .iu-cln-hero h1{font-size:25px}
   .iu-cln-tabs{top:calc(var(--iu-topbar-h) + 4px);overflow:auto;align-items:stretch}
   .iu-cln-tabs button{min-width:max-content}

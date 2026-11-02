@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional
 
 from pct.legal_platform_catalog import build_operational_fields
+from pct.tariffario import etichetta_fase
 
 
 def carica_log_calcolo(raw: Any) -> Dict[str, Any]:
@@ -172,7 +173,7 @@ def _variation_list(variation_map: Dict[str, Any]) -> List[Dict[str, Any]]:
             {
                 "fase": str(fase),
                 "pct": round(pct, 2),
-                "label": f"{fase}: {'+' if pct > 0 else ''}{pct:.0f}%",
+                "label": f"{etichetta_fase(fase)}: {'+' if pct > 0 else ''}{pct:.0f}%",
             }
         )
     return rows

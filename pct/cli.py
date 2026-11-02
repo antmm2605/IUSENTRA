@@ -1,4 +1,5 @@
 from pct.formatting import format_date_it, format_euro_it
+from pct.tariffario import etichetta_fase
 """
 Interfaccia a riga di comando per il sistema PCT.
 """
@@ -1514,7 +1515,7 @@ def cmd_tar_calcola(materia, grado, valore, fasi):
         click.echo("-" * 68)
         for fase, sc in r.dettaglio.items():
             click.echo(
-                f"{fase.value:<22} {format_euro_it(sc.minimo):>14} {format_euro_it(sc.base):>14} {format_euro_it(sc.massimo):>14}"
+                f"{etichetta_fase(fase.value):<22} {format_euro_it(sc.minimo):>14} {format_euro_it(sc.base):>14} {format_euro_it(sc.massimo):>14}"
             )
         click.echo("-" * 68)
         click.echo(

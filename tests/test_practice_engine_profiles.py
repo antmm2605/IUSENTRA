@@ -80,7 +80,8 @@ def test_resolver_da_preventivo_conferimento_fascicolo_e_fallback_manuale():
 
     unknown = resolve_practice_profile(payload={"oggetto": ""})
     assert unknown.needs_manual_confirmation is True
-    assert unknown.alternatives
+    # Senza dati del procedimento nessuna alternativa: mai un elenco fisso di pratiche estranee.
+    assert unknown.alternatives == []
 
 
 def test_codice_oggetto_pst_lavoro_risolve_canale_deposito_senza_manualita():

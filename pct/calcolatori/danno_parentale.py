@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Mapping
 
-from pct.calcolatori._base import clean_text, safe_int
+from pct.calcolatori._base import clean_text, fmt_eur, safe_int
 from pct.calcolatori.danno_biologico import parentale, tabelle
 
 # Il parametro E della tabella e' rimesso all'apprezzamento del giudice fino al
@@ -101,8 +101,8 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         )
     if lordo > cap:
         avvisi.append(
-            f"L'importo per punti ({lordo:,.2f} €) supera il tetto della categoria: la "
-            f"liquidazione e' ricondotta a {cap:,.2f} €, salvo circostanze eccezionali motivate."
+            f"L'importo per punti ({fmt_eur(lordo)} €) supera il tetto della categoria: la "
+            f"liquidazione e' ricondotta a {fmt_eur(cap)} €, salvo circostanze eccezionali motivate."
             .replace(",", "@").replace(".", ",").replace("@", ".")
         )
 

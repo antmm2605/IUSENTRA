@@ -18,6 +18,7 @@ import logging
 import json
 import os
 import threading
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -30,6 +31,13 @@ from pct.archivio_letture import VERSIONE_MOTORE_DOCUMENTI, VERSIONE_MOTORE_PEC,
 from pct.archivio_letture.ciclo import StatoCiclo, stato_ciclo
 from pct.archivio_letture.collaudo import Contesto, contesto_da_fascicolo
 from pct.registro_letture import Fatto, Oggetto, RegistroLetture
+from web.services.archivio_letture_tentativi import (
+    OGGETTI_PER_GIRO,
+    SECONDI_PER_TURNO,
+    errore_di_sistema,
+    lettura_non_riuscita,
+    progresso_giro,
+)
 from web.services.lettura_cache import invalida_lettura
 from web.services.registro_letture_runtime import (
     _righe_pec_collegate,
@@ -478,73 +486,90 @@ def _leggi_documenti(fascicolo: Any, registro: RegistroLetture, tenant: str, con
     da_leggere.extend(o for o in registro.oggetti(tenant, fascicolo_id) if (o.tipo, o.oggetto_id, o.impronta) in da_rileggere - gia)
     conteggi["da_leggere"] = len(da_leggere)
     conteggi["riletti"] = 0
-    scaglioni_cu: list[Any] | None = None
+    cache: dict[str, Any] = {}
     documenti = {str(getattr(d, "id", "")): d for d in list(getattr(fascicolo, "documenti", []) or [])}
+    conteggi["chiusi_per_errore"] = 0
+    conteggi["errori_temporanei"] = 0
     for oggetto in da_leggere[:limite]:
-        documento = documenti.get(oggetto.oggetto_id)
-        if documento is None:
-            # L'oggetto è nell'inventario ma il documento non c'è più: senza questa
-            # chiusura resterebbe «da leggere» per sempre e la lettura automatica
-            # non risulterebbe mai completa.
-            conteggi["assenti"] += 1
-            registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "documento non più presente nel fascicolo"}, versione=VERSIONE_MOTORE_DOCUMENTI)
-            continue
-        rilettura = (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere
-        letture = testi_documento(fascicolo, documento, preferisci_salvati=True) if rilettura else testi_documento(fascicolo, documento)
-        if not letture and rilettura:
-            conteggi["riletture_senza_testo"] = conteggi.get("riletture_senza_testo", 0) + 1
-            # Senza testo salvato resta la lettura precedente, nessun file riaperto; la si porta alla
-            # versione corrente con il suo esito, altrimenti il fascicolo tornerebbe «da rileggere» a ogni giro.
-            precedente = next((lt for lt in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
-                               if (lt.tipo, lt.oggetto_id, lt.sha256) == (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta)), None)
-            esito_precedente = dict(precedente.esito) if precedente is not None else {}
-            esito_precedente["rilettura"] = "nessun testo salvato: confermata la lettura precedente"
-            registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="letto", esito=esito_precedente, versione=VERSIONE_MOTORE_DOCUMENTI)
-            continue
-        if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere:
-            conteggi["riletti"] += 1
-        if not letture:
-            from web.services.archivio_testo_contenitori import estrai_contenuto
-            data = _bytes_documento(fascicolo_id, documento)
-            nome = str(getattr(documento, "percorso", "") or oggetto.nome)
-            estratto = estrai_contenuto(data, nome)
-            if estratto.testo.strip() and not estratto.errori:
-                letture = [(estratto.origine, estratto.testo)]
-            else:
-                conteggi["senza_testo"] += 1
-                motivo = "; ".join(estratto.errori) or "Il file è leggibile ma non contiene testo estraibile."
-                registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": motivo, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI}, versione=VERSIONE_MOTORE_DOCUMENTI)
-                continue
-        oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oggetto.oggetto_id) or oggetto
-        origine, testo = letture[0]
-        contesto_documento = Contesto(
-            oggi=contesto.oggi,
-            anno_riferimento=contesto.anno_riferimento,
-            data_minima=contesto.data_minima,
-            numero_rg=contesto.numero_rg,
-            anno_rg=contesto.anno_rg,
-            ufficio_giudiziario=contesto.ufficio_giudiziario,
-            date_note=contesto.date_note,
-            importi_noti=contesto.importi_noti,
-            avvocati_studio=contesto.avvocati_studio,
-            cliente=contesto.cliente,
-        )
-        if len(letture) > 1:
-            contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
-        metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
-        if scaglioni_cu is None:
-            # Gli scaglioni del contributo unificato si leggono una volta per fascicolo.
-            from web.services.sentenza_economic_runtime import _cu_tiers
-            scaglioni_cu = _cu_tiers()
-        metadata.update(codice_fiscale_cliente=getattr(cliente, "codice_fiscale", ""), fascicolo=fascicolo, documento_id=documento.id,
-                        document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=scaglioni_cu)
-        fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
-        registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
-        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
-        conteggi["letti"] += 1
-        conteggi["fatti"] += len(fatti)
-        conteggi["verificati"] += sum(1 for f in fatti if f.verifica == "verificata")
+        try:
+            _leggi_un_documento(fascicolo, registro, tenant, fascicolo_id, contesto, oggetto, documenti=documenti,
+                                da_rileggere=da_rileggere, cliente=cliente, conteggi=conteggi, cache=cache)
+        except Exception as exc:
+            # Il guasto resta sul documento: il fascicolo prosegue con gli altri (archivio_letture_tentativi).
+            if errore_di_sistema(exc):
+                raise
+            chiuso = lettura_non_riuscita(registro, tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, VERSIONE_MOTORE_DOCUMENTI, exc)
+            conteggi["chiusi_per_errore" if chiuso else "errori_temporanei"] += 1
     return conteggi
+
+
+def _leggi_un_documento(fascicolo: Any, registro: RegistroLetture, tenant: str, fascicolo_id: str, contesto: Contesto, oggetto: Oggetto, *,
+                        documenti: dict[str, Any], da_rileggere: set[tuple[str, str, str]], cliente: Any,
+                        conteggi: dict[str, int], cache: dict[str, Any]) -> None:
+    """Un documento: legge, registra i fatti e segna la lettura; aggiorna i conteggi del giro."""
+    documento = documenti.get(oggetto.oggetto_id)
+    if documento is None:
+        # L'oggetto è nell'inventario ma il documento non c'è più: senza questa
+        # chiusura resterebbe «da leggere» per sempre e la lettura automatica
+        # non risulterebbe mai completa.
+        conteggi["assenti"] += 1
+        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": "documento non più presente nel fascicolo"}, versione=VERSIONE_MOTORE_DOCUMENTI)
+        return
+    rilettura = (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere
+    letture = testi_documento(fascicolo, documento, preferisci_salvati=True) if rilettura else testi_documento(fascicolo, documento)
+    if not letture and rilettura:
+        conteggi["riletture_senza_testo"] = conteggi.get("riletture_senza_testo", 0) + 1
+        # Senza testo salvato resta la lettura precedente, nessun file riaperto; la si porta alla
+        # versione corrente con il suo esito, altrimenti il fascicolo tornerebbe «da rileggere» a ogni giro.
+        precedente = next((lt for lt in registro.letture(tenant, fascicolo_id, lettore=LETTORE_DOCUMENTI)
+                           if (lt.tipo, lt.oggetto_id, lt.sha256) == (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta)), None)
+        esito_precedente = dict(precedente.esito) if precedente is not None else {}
+        esito_precedente["rilettura"] = "nessun testo salvato: confermata la lettura precedente"
+        registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="letto", esito=esito_precedente, versione=VERSIONE_MOTORE_DOCUMENTI)
+        return
+    if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in da_rileggere:
+        conteggi["riletti"] += 1
+    if not letture:
+        from web.services.archivio_testo_contenitori import estrai_contenuto
+        data = _bytes_documento(fascicolo_id, documento)
+        nome = str(getattr(documento, "percorso", "") or oggetto.nome)
+        estratto = estrai_contenuto(data, nome)
+        if estratto.testo.strip() and not estratto.errori:
+            letture = [(estratto.origine, estratto.testo)]
+        else:
+            conteggi["senza_testo"] += 1
+            motivo = "; ".join(estratto.errori) or "Il file è leggibile ma non contiene testo estraibile."
+            registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, stato="non_leggibile", esito={"motivo": motivo, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI}, versione=VERSIONE_MOTORE_DOCUMENTI)
+            return
+    oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oggetto.oggetto_id) or oggetto
+    origine, testo = letture[0]
+    contesto_documento = Contesto(
+        oggi=contesto.oggi,
+        anno_riferimento=contesto.anno_riferimento,
+        data_minima=contesto.data_minima,
+        numero_rg=contesto.numero_rg,
+        anno_rg=contesto.anno_rg,
+        ufficio_giudiziario=contesto.ufficio_giudiziario,
+        date_note=contesto.date_note,
+        importi_noti=contesto.importi_noti,
+        avvocati_studio=contesto.avvocati_studio,
+        cliente=contesto.cliente,
+    )
+    if len(letture) > 1:
+        contesto_documento.testo_secondario, contesto_documento.etichetta_secondario = letture[1][1], {"ocr": "lettura OCR", "indice": "indice documentale", "nativo": "testo nativo del PDF"}[letture[1][0]]
+    metadata = {"tipo_documento": _testo(getattr(documento, "tipo", "")), "classification": _testo(getattr(documento, "classificazione_portale", ""))}
+    if "scaglioni_cu" not in cache:
+        # Gli scaglioni del contributo unificato si leggono una volta per fascicolo.
+        from web.services.sentenza_economic_runtime import _cu_tiers
+        cache["scaglioni_cu"] = _cu_tiers()
+    metadata.update(codice_fiscale_cliente=getattr(cliente, "codice_fiscale", ""), fascicolo=fascicolo, documento_id=documento.id,
+                    document_hash_sha256=_testo(getattr(documento, "hash_sha256", "")), cu_tiers=cache["scaglioni_cu"])
+    fatti = _attribuisci(leggi_testo(testo, origine=origine, contesto=contesto_documento, nome=oggetto.nome, metadata=metadata), oggetto, "documenti")
+    registro.registra_fatti(tenant, fascicolo_id, oggetto, "documenti", fatti, versione=VERSIONE_MOTORE_DOCUMENTI)
+    registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE_DOCUMENTI, esito={"origine": origine, "estrattore_versione": VERSIONE_ESTRAZIONE_FORMATI, "letture": [o for o, _ in letture], "fatti": len(fatti), "verificati": sum(1 for f in fatti if f.verifica == "verificata")}, versione=VERSIONE_MOTORE_DOCUMENTI)
+    conteggi["letti"] += 1
+    conteggi["fatti"] += len(fatti)
+    conteggi["verificati"] += sum(1 for f in fatti if f.verifica == "verificata")
 
 
 def _bytes_allegato_pec(oggetto: Any, repository: Any, cache: dict[str, bytes]) -> bytes:
@@ -896,7 +921,7 @@ def _aggiorna_catalogo_sql(fascicolo: Any, registro: RegistroLetture) -> dict[st
         }
 
 
-def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False, rileggi_superati: bool = False) -> dict[str, Any]:
+def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False, rileggi_superati: bool = False, rinvia_derivati: bool = False) -> dict[str, Any]:
     """Un giro del ciclo: i motori leggono solo ciò che manca, l'archivio conferma, poi ci si ferma.
 
     Il ciclo è chiuso: quando tutto è letto e l'archivio ha confermato, il
@@ -904,6 +929,10 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     su un documento nuovo, su un documento cambiato, su una PEC nuova o al
     ricontrollo periodico degli eventi non consegnati. Il cambio del lettore
     non deve riavviare la lettura del contenuto invariato.
+
+    Con ``rinvia_derivati`` (lettura a pezzi della coda) un giro che lascia oggetti
+    da leggere salva soltanto le letture: consegna ai presìdi, catalogo, indice
+    semantico e analisi economica si eseguono una volta, al giro che chiude il fascicolo.
     """
     registro = registro or registro_corrente()
     tenant = tenant_corrente()
@@ -980,19 +1009,23 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     if recupera_metadati:
         from web.services.giudice_archivio_recovery import recupera_giudice
         metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
-    consegne = _consegna_ai_presidi(fascicolo, registro)
-    catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
-    consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
-    from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
-    economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
-    consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
-    if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
-        invalida_lettura(fascicolo_id)
     chiusi_documenti = (documenti["letti"] + documenti["senza_testo"] + documenti["assenti"]
-                        + int(documenti.get("riletture_senza_testo") or 0))
+                        + int(documenti.get("riletture_senza_testo") or 0) + int(documenti.get("chiusi_per_errore") or 0))
     chiusi_pec = pec["letti"] + pec["assenti"]
     restano = max(0, documenti["da_leggere"] - chiusi_documenti) + max(0, pec["da_leggere"] - chiusi_pec)
     restano += int(metadati.get("restano") or 0)
+    consegne: dict[str, Any] = {}
+    catalogo: dict[str, Any] = {}
+    economia: Any = {}
+    if not (rinvia_derivati and restano > 0):
+        consegne = _consegna_ai_presidi(fascicolo, registro)
+        catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
+        consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
+        from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
+        economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
+        consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
+    if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
+        invalida_lettura(fascicolo_id)
     # L'archivio conferma: il ciclo si chiude quando non resta nulla da leggere.
     impronta = _impronta_viva(fascicolo)
     _segna_ciclo(
@@ -1213,7 +1246,9 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                 return
             with _LOCK:
                 _IN_CORSO.add(fascicolo_id)
-            riuscito = False
+            generazione = int(evento["generation"])
+            inizio_turno = time.monotonic()
+            riuscito = sospeso = perso = False
             errore_evento = codice_errore = ""
             try:
                 with app.test_request_context("/__archivio-letture/" + fascicolo_id):
@@ -1236,6 +1271,8 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                     if fascicolo is None:
                         raise RuntimeError("Fascicolo accodato non disponibile.")
                     _indicizza_fonti_pendenti(fascicolo_id, tenant_slug)
+                    # L'indicizzazione può durare: la prenotazione si proroga prima di leggere.
+                    registro.rinnova_evento(tenant_id, fascicolo_id, worker_id, generazione)
                     if evento.get("presidi"):
                         # Il comando puntuale deve aggiornare anche i fatti
                         # storici superati dalle regole correnti. Solo brani
@@ -1244,8 +1281,10 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                         _riconvalida(fascicolo, registro, tenant_slug or tenant_id)
                     forza_giro = bool(evento.get("forza"))
                     while True:
+                        # A pezzi: ogni giro legge al più OGGETTI_PER_GIRO oggetti e li salva; un riavvio
+                        # perde al massimo il giro in corso, mai il lavoro già registrato.
                         report = leggi_fascicolo(fascicolo, forza=forza_giro, registro=registro, recupera_metadati=True,
-                                                 rileggi_superati=True)
+                                                 rileggi_superati=True, limite=OGGETTI_PER_GIRO, rinvia_derivati=True)
                         forza_giro = False
                         consegne = dict(report.get("consegne") or {})
                         catalogo = dict(report.get("catalogo") or {})
@@ -1272,23 +1311,33 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                                 esegui_verifiche(app, fascicolo_id, paths=dict(paths or {}), tenant_slug=tenant_slug)
                             riuscito = True
                             break
-                        documenti = dict(report.get("documenti") or {})
-                        pec = dict(report.get("pec") or {})
-                        progresso = sum(int(documenti.get(campo) or 0) for campo in ("letti", "senza_testo", "assenti", "riletture_senza_testo"))
-                        progresso += sum(int(pec.get(campo) or 0) for campo in ("letti", "assenti"))
-                        progresso += int((report.get("metadati") or {}).get("controllati") or 0)
-                        if progresso <= 0:
+                        if progresso_giro(report) <= 0:
                             raise RuntimeError(f"Lettura ferma con {restano} oggetti ancora da lavorare.")
+                        # Il giro ha salvato letture: la prenotazione si proroga e il budget dei tentativi riparte.
+                        if not registro.rinnova_evento(tenant_id, fascicolo_id, worker_id, generazione, progresso=True):
+                            perso = True
+                            break
+                        if time.monotonic() - inizio_turno >= SECONDI_PER_TURNO:
+                            # Turno esaurito senza errori: il fascicolo torna in coda e riprende da qui.
+                            sospeso = True
+                            break
             except Exception as exc:
                 errore_evento, codice_errore = str(exc), type(exc).__name__
                 logger.exception("Lettura in sfondo del fascicolo %s interrotta", fascicolo_id)
             finally:
-                ancora_pendente = registro.concludi_evento(
-                    tenant_id, fascicolo_id, worker_id, int(evento["generation"]), riuscito=riuscito,
-                    **({"errore": errore_evento, "codice_errore": codice_errore} if not riuscito else {})
-                )
+                ancora_pendente = False
+                if sospeso:
+                    registro.sospendi_evento(tenant_id, fascicolo_id, worker_id, generazione)
+                elif not perso:
+                    ancora_pendente = registro.concludi_evento(
+                        tenant_id, fascicolo_id, worker_id, generazione, riuscito=riuscito,
+                        **({"errore": errore_evento, "codice_errore": codice_errore} if not riuscito else {})
+                    )
                 with _LOCK:
                     _IN_CORSO.discard(fascicolo_id)
+            if sospeso or perso:
+                # Il tick riprende il fascicolo in coda, entro LETTURE_CONCORRENTI, dopo gli altri in attesa.
+                return
             if not riuscito:
                 # L'evento resta in coda (pending con attesa): lo riprende il tick, entro il limite di letture
                 # contemporanee. Un Timer qui creava thread fuori da ogni conteggio.
@@ -1333,18 +1382,6 @@ def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite
     return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)] if _testo(r.get("fascicolo_id"))]
 
 
-def fascicoli_senza_proposte_correnti(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
-    """Fascicoli letti dai motori ma non ancora esaminati dal lettore delle proposte di definizione."""
-    from pct.fascicolo_sentenza_archiviazione import VERSIONE_PROPOSTA
-
-    esaminati = {_testo(r.get("fascicolo_id")) for r in registro.righe_fascicoli(tenant_id, lettore="proposta_definizione")
-                 if _testo(r.get("versione_lettore")) == VERSIONE_PROPOSTA and _testo(r.get("stato")) == "completa"}
-    righe = sorted((r for r in registro.righe_fascicoli(tenant_id, lettore=LETTORE_DOCUMENTI)
-                    if _testo(r.get("fascicolo_id")) and _testo(r.get("fascicolo_id")) not in esaminati),
-                   key=lambda r: _testo(r.get("aggiornato_il")))
-    return [_testo(r.get("fascicolo_id")) for r in righe[:max(0, limite)]]
-
-
 def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
                               limite: int = RILETTURE_PER_GIRO) -> int:
     """Di notte accoda pochi fascicoli da aggiornare: la rilettura usa solo i testi già salvati."""
@@ -1355,10 +1392,9 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
     if (datetime.now(ROME_TZ).hour if ora is None else ora) not in ORE_RILETTURA:
         return 0
     try:
+        # Solo le riletture pesanti: lo storico delle proposte dalla sentenza ha il suo lotto leggero
+        # (proposte_storico_runtime, a ogni giro della coda).
         da_aggiornare = fascicoli_da_aggiornare(registro, tenant_id, limite=limite)
-        # Lo storico delle sentenze già lette: i fascicoli che il lettore delle
-        # proposte di definizione non ha ancora esaminato con la regola corrente.
-        da_aggiornare += [f for f in fascicoli_senza_proposte_correnti(registro, tenant_id, limite=limite) if f not in da_aggiornare]
         for fascicolo_id in da_aggiornare:
             registro.accoda_evento(tenant_id, fascicolo_id)
         return len(da_aggiornare)
@@ -1461,13 +1497,48 @@ def accoda_recupero_completo(app: Any, *, limite_per_tenant: int = 1000) -> dict
     return {"studi": studi, "accodati": accodati}
 
 
+# Fascicoli fermi in errore rimessi in coda per giro dello scheduler: a lotti, la coda li legge due alla volta.
+LOTTO_RIPRESA_FERME = 20
+# Un fascicolo sospeso si riprova una sola volta per notte: fermo da almeno sei ore.
+ORE_FERMO_PRIMA_DELLA_RIPRESA = 6
+
+
+def riprendi_letture_ferme(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
+                           limite: int = LOTTO_RIPRESA_FERME) -> int:
+    """Nessun fascicolo resta fermo per sempre in «Lettura interrotta».
+
+    - Subito, a lotti: i fascicoli fermati dal vecchio conteggio dei riavvii (``ERRORE_TEMPO_STORICO``,
+      fino alla 2.476.0 tre riavvii per memoria esaurita bastavano a fermarli). È la riconvalida
+      dello stato storico: idempotente, perché la ripresa azzera l'errore.
+    - Di notte (00-06 ora italiana): ogni altro fascicolo fermo da almeno sei ore riparte con un
+      budget nuovo, una volta per notte.
+    La ripresa non rilegge nulla di già letto: il registro dice cosa manca.
+    """
+    from pct.ora_italiana import ROME_TZ
+
+    ripresi = 0
+    try:
+        ripresi += len(registro.riprendi_letture_ferme(tenant_id, limite=limite, solo_tempo_esaurito=True))
+        ora_corrente = datetime.now(ROME_TZ).hour if ora is None else ora
+        if ora_corrente in ORE_RILETTURA:
+            ripresi += len(registro.riprendi_letture_ferme(tenant_id, limite=RILETTURE_PER_GIRO,
+                                                           ferme_da_secondi=ORE_FERMO_PRIMA_DELLA_RIPRESA * 3600))
+    except Exception:
+        logger.exception("Letture ferme non riprese per %s", tenant_id or "studio")
+    return ripresi
+
+
 def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:
     """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
     targets = _studi_della_coda(app)
-    trovati = avviati = accodati = 0
+    trovati = avviati = accodati = ripresi_fermi = proposte_storico = 0
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)
         accodati += accoda_riletture_notturne(registro, tenant_id)
+        ripresi_fermi += riprendi_letture_ferme(registro, tenant_id)
+        from web.services.proposte_storico_runtime import esamina_proposte_storico_studio
+
+        proposte_storico += int(esamina_proposte_storico_studio(app, registro, tenant_id, paths).get("fascicoli") or 0)
         liberi = LETTURE_CONCORRENTI - letture_attive()
         if liberi <= 0:
             continue
@@ -1485,7 +1556,8 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
                 _accoda_evento=False,
             ):
                 avviati += 1
-    return {"tenant": len(targets), "trovati": trovati, "avviati": avviati, "riletture_accodate": accodati}
+    return {"tenant": len(targets), "trovati": trovati, "avviati": avviati, "riletture_accodate": accodati,
+            "ferme_riprese": ripresi_fermi, "proposte_storico": proposte_storico}
 
 
 def _contesto_corrente() -> tuple[dict[str, Any], str]:

@@ -123,7 +123,7 @@ type BuilderMutationResult = {
 }
 
 const tabs: Array<{ id: BuilderTabId; label: string; short: string; icon: LucideIcon; description: string }> = [
-  { id: 'setup', label: 'Setup', short: 'Setup', icon: Settings2, description: 'Dati studio, contatti e avvio guidato.' },
+  { id: 'setup', label: 'Avvio', short: 'Avvio', icon: Settings2, description: 'Dati studio, contatti e avvio guidato.' },
   { id: 'pagine', label: 'Pagine', short: 'Pagine', icon: FileText, description: 'Pagine, indirizzi e menu del sito.' },
   { id: 'blocchi', label: 'Blocchi', short: 'Blocchi', icon: Layers3, description: 'Struttura della pagina selezionata.' },
   { id: 'contenuti', label: 'Contenuti', short: 'Testi', icon: Type, description: 'Testi, pulsanti, bio e FAQ.' },
@@ -135,7 +135,7 @@ const tabs: Array<{ id: BuilderTabId; label: string; short: string; icon: Lucide
   { id: 'pubblica', label: 'Pubblica', short: 'Pubblica', icon: Rocket, description: 'Controlli finali, URL pubblico e versioni.' },
 ]
 
-const starterPages = ['Home', 'Chi siamo', 'Aree di attivita', 'Professionisti', 'Contatti', 'Blog / News', 'Privacy', 'Cookie', 'Note legali']
+const starterPages = ['Home', 'Chi siamo', 'Aree di attività', 'Professionisti', 'Contatti', 'Blog / News', 'Privacy', 'Cookie', 'Note legali']
 const blockedClaims = ['Risultato garantito', 'Vinceremo la causa', 'Successo assicurato', 'Miglior avvocato', 'Leader assoluto', 'Garanzia di vittoria']
 const fontOptions = [
   'system_professional',
@@ -169,6 +169,12 @@ const sectionTitleSizeOptions = ['22px', '24px', '26px', '30px', '34px']
 const lineHeightOptions = ['1.35', '1.5', '1.65', '1.8']
 const sectionSpacingOptions = ['18px', '24px', '28px', '36px', '44px']
 const cardPaddingOptions = ['14px', '18px', '20px', '24px', '30px']
+// Etichette per misura: la stessa misura ha nomi diversi a seconda del controllo (testo, titoli, spazi).
+const headingSizeLabels: Record<string, string> = { '28px': 'Compatto', '32px': 'Normale', '34px': 'Bilanciato', '38px': 'Editoriale', '42px': 'Grande', '48px': 'Molto grande' }
+const sectionTitleSizeLabels: Record<string, string> = { '22px': 'Compatto', '24px': 'Normale', '26px': 'Bilanciato', '30px': 'Ampio', '34px': 'Molto ampio' }
+const sectionSpacingLabels: Record<string, string> = { '18px': 'Compatto', '24px': 'Normale', '28px': 'Bilanciato', '36px': 'Ampio', '44px': 'Molto ampio' }
+const cardPaddingLabels: Record<string, string> = { '14px': 'Compatto', '18px': 'Ridotto', '20px': 'Normale', '24px': 'Comodo', '30px': 'Ampio' }
+const buttonRadiusLabels: Record<string, string> = { '6px': 'Netto', '10px': 'Sobrio', '16px': 'Arrotondato', '999px': 'Pillola' }
 const buttonRadiusOptions = ['6px', '10px', '16px', '999px']
 const shadowOptions = ['none', 'soft', 'deep', 'layered']
 const animationOptions = ['none', 'fade-up', 'soft-reveal', 'scale-in', 'slide-up']
@@ -327,12 +333,12 @@ function Field({
   )
 }
 
-function SelectField({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) {
+function SelectField({ label, value, values, labels, onChange }: { label: string; value: string; values: string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
   return (
     <label className="iu-builder-field">
       <span>{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {values.map((entry) => <option value={entry} key={entry}>{optionLabel(entry)}</option>)}
+        {values.map((entry) => <option value={entry} key={entry}>{labels?.[entry] || optionLabel(entry)}</option>)}
       </select>
     </label>
   )
@@ -597,11 +603,11 @@ function BuilderLivePreview({
   }
 
   return (
-    <section className="iu-builder-preview-shell" aria-label="Anteprima live">
+    <section className="iu-builder-preview-shell" aria-label="Anteprima del sito">
       <header className="iu-builder-preview-head">
         <div>
-          <h2>Anteprima live</h2>
-          <p>Spazio anteprima grande e più leggibile</p>
+          <h2>Anteprima del sito</h2>
+          <p>Le modifiche si vedono subito, prima della pubblicazione.</p>
         </div>
         <div className="iu-builder-device-tabs" aria-label="Formato anteprima">
           {(['desktop', 'tablet', 'mobile'] as const).map((value) => (
@@ -1015,11 +1021,11 @@ export function SitoStudioBuilderPage() {
           </div>
           <Field label="Indirizzo" value={siteDraft.address} onChange={(address) => setSite({ address })} />
           <div className="iu-builder-two">
-            <Field label="Citta" value={siteDraft.city} onChange={(city) => setSite({ city })} />
+            <Field label="Città" value={siteDraft.city} onChange={(city) => setSite({ city })} />
             <Field label="Provincia" value={siteDraft.province} onChange={(province) => setSite({ province })} />
           </div>
           <Field label="Logo" value={siteDraft.logoUrl} onChange={(logoUrl) => setSite({ logoUrl })} />
-          <SectionTitle icon={WandSparkles} title="Wizard guidato" subtitle="Prepara pagine e blocchi usando dati reali già presenti." />
+          <SectionTitle icon={WandSparkles} title="Avvio guidato" subtitle="Prepara pagine e blocchi usando dati reali già presenti." />
           <button className="iu-builder-primary" type="button" onClick={generateSite} disabled={busy}><WandSparkles size={15} /> Genera bozza sito</button>
         </div>
       )
@@ -1186,19 +1192,19 @@ export function SitoStudioBuilderPage() {
             <SelectField label="Interlinea" value={theme.typography.line_height || '1.65'} values={lineHeightOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'typography', 'line_height', value))} />
           </div>
           <div className="iu-builder-two">
-            <SelectField label="Titolo hero" value={theme.typography.heading_size || '34px'} values={headingSizeOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'typography', 'heading_size', value))} />
-            <SelectField label="Titoli sezioni" value={theme.typography.section_title_size || '26px'} values={sectionTitleSizeOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'typography', 'section_title_size', value))} />
+            <SelectField label="Titolo principale" value={theme.typography.heading_size || '34px'} values={headingSizeOptions} labels={headingSizeLabels} onChange={(value) => setThemeDraft(setThemeValue(theme, 'typography', 'heading_size', value))} />
+            <SelectField label="Titoli sezioni" value={theme.typography.section_title_size || '26px'} values={sectionTitleSizeOptions} labels={sectionTitleSizeLabels} onChange={(value) => setThemeDraft(setThemeValue(theme, 'typography', 'section_title_size', value))} />
           </div>
           <SectionTitle icon={PanelBottom} title="Layout e spaziature" />
           <div className="iu-builder-two">
-            <SelectField label="Spazio sezioni" value={theme.layout.section_spacing || '28px'} values={sectionSpacingOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'layout', 'section_spacing', value))} />
-            <SelectField label="Padding card" value={theme.layout.card_padding || '20px'} values={cardPaddingOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'layout', 'card_padding', value))} />
+            <SelectField label="Spazio sezioni" value={theme.layout.section_spacing || '28px'} values={sectionSpacingOptions} labels={sectionSpacingLabels} onChange={(value) => setThemeDraft(setThemeValue(theme, 'layout', 'section_spacing', value))} />
+            <SelectField label="Margine interno schede" value={theme.layout.card_padding || '20px'} values={cardPaddingOptions} labels={cardPaddingLabels} onChange={(value) => setThemeDraft(setThemeValue(theme, 'layout', 'card_padding', value))} />
           </div>
-          <SelectField label="Raggio bottoni" value={theme.layout.button_radius || '999px'} values={buttonRadiusOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'layout', 'button_radius', value))} />
+          <SelectField label="Raggio bottoni" value={theme.layout.button_radius || '999px'} values={buttonRadiusOptions} labels={buttonRadiusLabels} onChange={(value) => setThemeDraft(setThemeValue(theme, 'layout', 'button_radius', value))} />
           <SectionTitle icon={PanelBottom} title="Effetti professionali" />
           <SelectField label="Movimento sezioni" value={theme.effects.animation || 'fade-up'} values={animationOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'effects', 'animation', value))} />
-          <SelectField label="Ombra card" value={theme.effects.card_shadow || 'none'} values={shadowOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'effects', 'card_shadow', value))} />
-          <SelectField label="Header" value={theme.effects.fixed_header || 'none'} values={headerEffectOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'effects', 'fixed_header', value))} />
+          <SelectField label="Ombra schede" value={theme.effects.card_shadow || 'none'} values={shadowOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'effects', 'card_shadow', value))} />
+          <SelectField label="Intestazione" value={theme.effects.fixed_header || 'none'} values={headerEffectOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'effects', 'fixed_header', value))} />
           <SelectField label="Separatore sezioni" value={theme.effects.section_divider || 'none'} values={sectionDividerOptions} onChange={(value) => setThemeDraft(setThemeValue(theme, 'effects', 'section_divider', value))} />
           <div className="iu-builder-effect-list">
             {[
@@ -1256,7 +1262,7 @@ export function SitoStudioBuilderPage() {
               <article className="iu-builder-empty-media">
                 <ImagePlus size={18} />
                 <strong>Nessuna immagine caricata</strong>
-                <small>Carica logo, immagine hero o foto dello studio per usarle nella preview live.</small>
+                <small>Carica logo, immagine hero o foto dello studio per usarle nell'anteprima.</small>
               </article>
             )}
           </div>
@@ -1351,11 +1357,11 @@ export function SitoStudioBuilderPage() {
   const hasPayload = data.ok && Boolean(data.activePageId)
 
   return (
-    <main className="iu-content iu-builder-pro" aria-label="Sito Studio Builder Pro">
+    <main className="iu-content iu-builder-pro" aria-label="Costruttore del sito dello studio">
       <header className="iu-builder-topbar-pro">
         <div>
-          <h1 data-allow-technical-text="true">Sito Studio Builder Pro</h1>
-          <p>Pannello stretto con tab verticali, anteprima live grande.</p>
+          <h1>Costruttore del sito</h1>
+          <p>Dati dello studio, pagine, testi e aspetto del sito con l'anteprima accanto.</p>
         </div>
         <div>
           <button type="button" onClick={saveCurrentWork} disabled={busy || loading}><Save size={15} /> Salva</button>

@@ -63,7 +63,7 @@ export function phaseKeyLabel(key: string): string {
     decisionale: 'Decisionale',
     esecutiva: 'Esecutiva',
     attivazione: 'Attivazione',
-    rivitalizzazione: 'Rivitalizzazione',
+    rivitalizzazione: 'Negoziazione',
     negoziazione: 'Negoziazione',
     conciliazione: 'Conciliazione',
     compenso_unico: 'Compenso unico',

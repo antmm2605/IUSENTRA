@@ -8,8 +8,8 @@ import {
   ReceiptText,
   UserPlus,
 } from 'lucide-react'
-import { useCallback, useMemo, useRef, type ReactNode } from 'react'
-import { useClickOutside } from '../../hooks/useClickOutside'
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import type { TopbarCreateAction, TopbarCreateContext } from '../../types/topbar'
 
@@ -192,7 +192,20 @@ export function TopBarCreateMenu({
     onClose()
   }, [onClose, open])
   useKeyboardShortcut(matchAnyKey, handleEscape, open)
-  useClickOutside(ref, open, onClose)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (!open) return
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (ref.current?.contains(target) || panelRef.current?.contains(target)) return
+      onClose()
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [onClose, open])
+  // Sul telefono la barra delle azioni è nascosta (index.css, max-width 720px) e il menu
+  // si apre da «Comandi studio»: il pannello va portato fuori dal contenitore invisibile.
+  const triggerHidden = open && Boolean(ref.current) && ref.current?.getClientRects().length === 0
 
   return (
     <div className="iu-topbar-popover" ref={ref}>
@@ -200,8 +213,9 @@ export function TopBarCreateMenu({
         {icon}
         <span>Nuovo</span>
       </button>
-      {open ? (
-        <div className="iu-topbar-panel iu-create-menu" role="menu" aria-label="Crea nuovo elemento">
+      {open ? (() => {
+        const panel = (
+        <div ref={panelRef} className={`iu-topbar-panel iu-create-menu${triggerHidden ? ' iu-create-menu--portal' : ''}`} role="menu" aria-label="Crea nuovo elemento">
           <header>
             <strong>{context.contextType === 'case' ? 'Azioni fascicolo' : context.contextType === 'client' ? 'Azioni cliente' : 'Crea rapidamente'}</strong>
             <small>{context.contextId ? 'Contesto corrente rilevato' : 'Azioni generali dello studio'}</small>
@@ -218,7 +232,9 @@ export function TopBarCreateMenu({
             ))}
           </div>
         </div>
-      ) : null}
+        )
+        return triggerHidden ? createPortal(panel, document.body) : panel
+      })() : null}
     </div>
   )
 }

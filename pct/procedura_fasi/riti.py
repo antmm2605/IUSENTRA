@@ -70,15 +70,21 @@ SCHEDE_RITO: dict[str, dict[str, Any]] = {
     "lavoro": {
         "codice": "lavoro",
         "nome": "Rito del lavoro",
-        "base": "c.p.c., artt. 414, 415, 416 e 435",
+        "base": "c.p.c., artt. 414, 415, 416, 420, 429, 433, 434 e 435",
         "fasi": [
             _fase("introduttiva", "Ricorso, decreto e notifica",
                   _adempimento("Depositare il ricorso con i documenti", "il giudice fissa l'udienza con decreto entro cinque giorni; fra deposito e udienza non più di sessanta giorni", "cpc_414", "cpc_415", parte="ricorrente"),
-                  _adempimento("Notificare ricorso e decreto al convenuto", "prima dell'udienza, nei termini dell'art. 415", "cpc_415", "l53_art3bis", parte="ricorrente"),
-                  _adempimento("Costituirsi con memoria difensiva (domande riconvenzionali ed eccezioni a pena di decadenza)", "almeno dieci giorni prima dell'udienza", "cpc_416", parte="convenuto")),
+                  # Amministrazioni statali: art. 415, settimo comma, c.p.c. rinvia alle leggi speciali (art. 11 R.D. 1611/1933).
+                  _adempimento("Notificare ricorso e decreto al convenuto", "prima dell'udienza, nei termini dell'art. 415", "cpc_415", "l53_art3bis", "rd1611_art11", parte="ricorrente"),
+                  _adempimento("Costituirsi con memoria difensiva (domande riconvenzionali ed eccezioni a pena di decadenza)", "almeno dieci giorni prima dell'udienza", "cpc_416", "cpc_417bis", parte="convenuto")),
+            _fase("discussione", "Udienza di discussione",
+                  _adempimento("Comparire personalmente all'udienza di discussione (interrogatorio libero, tentativo di conciliazione, proposta del giudice)", "alla data fissata con il decreto; la mancata comparizione personale senza giustificato motivo è valutabile ai fini del giudizio", "cpc_415", "cpc_420")),
+            _fase("decisoria", "Decisione",
+                  _adempimento("Pronuncia della sentenza con lettura del dispositivo e delle ragioni della decisione", "nell'udienza, esaurita la discussione; nei casi di particolare complessità deposito nel termine non superiore a sessanta giorni fissato nel dispositivo, con comunicazione alle parti", "cpc_429", "cpc_430")),
             _fase("appello", "Appello",
-                  _adempimento("Depositare il ricorso in appello e notificarlo con il decreto", "il presidente fissa l'udienza entro sessanta giorni; l'appellante notifica ricorso e decreto nei dieci giorni successivi al deposito del decreto", "cpc_435", parte="appellante"),
-                  _adempimento("Termini per impugnare", "trenta giorni dalla notificazione della sentenza; sei mesi dalla pubblicazione", "cpc_325", "cpc_327", template="CIV_APPELLO_BREVE")),
+                  _adempimento("Depositare il ricorso in appello e notificarlo con il decreto", "il presidente fissa l'udienza entro sessanta giorni; l'appellante notifica ricorso e decreto nei dieci giorni successivi al deposito del decreto", "cpc_433", "cpc_435", parte="appellante"),
+                  # Nel rito del lavoro l'appello si propone con il deposito del ricorso (art. 434, secondo comma, c.p.c.).
+                  _adempimento("Termini per impugnare", "deposito del ricorso in appello entro trenta giorni dalla notificazione della sentenza (quaranta se notificata all'estero); senza notificazione, sei mesi dalla pubblicazione", "cpc_434", "cpc_327", template="CIV_APPELLO_BREVE")),
         ],
     },
     "decreto_ingiuntivo": {

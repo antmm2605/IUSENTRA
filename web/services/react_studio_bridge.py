@@ -224,7 +224,6 @@ def build_react_studio_payload(
         _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "amministrazione", "Creazione utente con permessi e registro."),
         _module("profili", "Profili", "/profili", "amministrazione", "Matrice ruoli e permessi operativa."),
         _module("registro", "Registro attività", "/audit", "sicurezza", "Registro consultabile dallo studio."),
-        _module("registro-attivita", "Registro attività", "/registro-attivita", "sicurezza", "Percorso operativo del registro attività."),
         _module("backup", "Backup", "/backup", "governance", "Stato backup e verifiche operative."),
         _module("fatturazione", "Fatturazione", "/fatturazione", "economico", "Documenti economici nel cruscotto."),
         _module("fatturazione-nuova", "Nuova fattura", "/fatturazione/nuova", "economico", "Creazione fattura con controlli applicativi."),

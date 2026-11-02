@@ -240,7 +240,7 @@ def generate_automatic_site(payload: dict[str, Any]) -> dict[str, Any]:
             },
         )
     _ensure_generated_page(site_id, "Chi siamo", "chi-siamo", "Presentazione dello studio.")
-    _ensure_generated_page(site_id, "Aree di attivita", "aree-attivita", "Servizi e ambiti operativi da personalizzare.")
+    _ensure_generated_page(site_id, "Aree di attività", "aree-attivita", "Servizi e ambiti operativi da personalizzare.")
     _ensure_generated_page(site_id, "FAQ", "faq", "Domande frequenti da verificare prima della pubblicazione.", block_type="faq")
     _ensure_generated_page(site_id, "Contatti", "contatti-studio", "Recapiti, sedi e richiesta informazioni.", block_type="contact_form")
     audit_studio_site_action(

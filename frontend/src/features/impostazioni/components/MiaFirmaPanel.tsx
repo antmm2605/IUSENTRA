@@ -57,7 +57,7 @@ const ETICHETTE_UTENTE: Record<string, string> = {
 const CANALI: Array<{ id: Canale; titolo: string; testo: string; icona: typeof Users }> = [
   { id: 'studio', titolo: 'Come lo studio', testo: 'Uso la firma impostata dall’amministratore.', icona: Users },
   { id: 'pkcs11', titolo: 'Il mio dispositivo', testo: 'Smart card o token USB sul mio PC, con il Local Signer.', icona: Usb },
-  { id: 'remota', titolo: 'La mia firma remota', testo: 'Certificato nel server del prestatore: firmo anche dal telefono.', icona: CloudCog },
+  { id: 'remota', titolo: 'La mia firma remota', testo: 'Certificato custodito dal prestatore: firmo anche dal telefono.', icona: CloudCog },
 ]
 
 const prestatori = catalogoFirma.prestatori as VocePrestatore[]

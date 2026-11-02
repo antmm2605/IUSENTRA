@@ -7,7 +7,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import url_for
+from flask import g, has_app_context, url_for
 
 from pct.telematico_truth_registry import (
     build_capability_truth_registry,
@@ -192,6 +192,9 @@ def _safe(label: str, func: Callable[[], Any], fallback: Any, logger: Any | None
     except Exception as exc:  # pragma: no cover - guardrail operativo
         if logger:
             logger.exception("Bridge React telematico: sorgente non disponibile (%s): %s", label, exc)
+        if has_app_context():
+            # ADM-29: una costruzione con un ripiego non e' riuscita e non va riusata.
+            g.setdefault("_react_telematico_failures", []).append(label)
         return fallback
 
 
@@ -552,7 +555,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             metrics=[
                 {"label": "Pratiche", "value": channel.get("cases", 0)},
                 {"label": "Import completi", "value": channel.get("importCompleted", 0)},
-                {"label": "Da presidiare", "value": channel.get("attentionNeeded", 0)},
+                {"label": "Attività del canale da fare", "value": channel.get("attentionNeeded", 0)},
             ],
         ),
         _surface_card(

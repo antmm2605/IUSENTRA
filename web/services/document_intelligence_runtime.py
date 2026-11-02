@@ -636,6 +636,7 @@ def _registra_indice_documentale(
     if repo is None:
         return
     try:
+        from pct.document_intelligence.busta_cifrata import CODICE_BUSTA_CIFRATA, NOTA_BUSTA_CIFRATA, causa_busta_cifrata, e_busta_cifrata
         from pct.document_intelligence.indexer import _ready_source_has_extracted_text, _state_for_source
 
         tenant = str(registro.get("tenant") or "")
@@ -659,7 +660,7 @@ def _registra_indice_documentale(
         # Esiti per identità e impronta: il nome può contenere due punti ed essere duplicato.
         errori_per_fonte = {
             (str(item.get("document_id") or item.get("source_id") or ""), str(item.get("sha256") or "")): item
-            for item in list(getattr(summary, "source_errors", []) or [])
+            for item in [*list(getattr(summary, "source_errors", []) or []), *list(getattr(summary, "source_notes", []) or [])]
             if str(item.get("tenant_id") or "") == tenant_id
             and str(item.get("fascicolo_id") or "") == fascicolo_id
         }
@@ -675,6 +676,11 @@ def _registra_indice_documentale(
             elif not supportati.get(oggetto.oggetto_id, True):
                 # Formato non indicizzabile (binari, archivi): non e' un errore da ritentare.
                 repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="non_leggibile", esito={"stato": stato, "motivo": "formato non supportato"})
+                registrati += 1
+            elif (stato == "error" or errore) and (
+                    causa_busta_cifrata(errore.get("error_code"), errore.get("message")) or e_busta_cifrata(oggetto.nome)):
+                # Busta Atto.enc cifrata per l'ufficio (D.M. 44/2011 art. 14): non applicabile, mai errore.
+                repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="non_leggibile", esito={"stato": "not_applicable", "motivo": NOTA_BUSTA_CIFRATA, "error_code": CODICE_BUSTA_CIFRATA})
                 registrati += 1
             elif stato == "error" or errore:
                 repo.segna_letto(tenant, fascicolo_id, oggetto, "indice_documentale", stato="errore", esito={"stato": "error", "motivo": str(errore.get("message") or "Lettura precedente non completata."), "error_code": str(errore.get("error_code") or "source_processing_failed")})

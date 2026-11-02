@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   anomalieOrdinate,
+  avanzamentoDocumenti,
   etichettaCampo,
   fraseCollaudo,
   fraseLetturaAutomatica,
@@ -142,9 +143,12 @@ test('esiti negativi conclusi non diventano tutto letto o in coda', () => {
 test('errore della coda resta visibile anche senza oggetti e non diventa tutto letto', () => {
   const failed = { stato_coda: 'failed', tentativi: 3, errore_evento: 'Schema non preparato', in_corso: false, completa: false }
   const result = riassuntoLetture(letture({ oggetti: 0, tutto_letto: true, archivio: { lettura_automatica: failed } }))
-  assert.equal(result.tono, 'danger')
+  assert.equal(result.tono, 'warning')
   assert.doesNotMatch(result.testo, /Tutto letto|Nessun oggetto/)
   assert.match(fraseLetturaAutomatica(failed), /Schema non preparato/)
+  // L'avvocato non deve «risolvere la causa»: il software riprende da solo.
+  assert.doesNotMatch(fraseLetturaAutomatica(failed), /risolto la causa/)
+  assert.match(fraseLetturaAutomatica(failed), /riprende da solo nella fascia notturna/)
   const pending = { ...failed, stato_coda: 'pending', prossimo_tentativo_it: '20/10/2026 10:30' }
   assert.match(fraseLetturaAutomatica(pending), /20\/10\/2026 10:30/)
 })
@@ -156,4 +160,17 @@ test('un passo non verificato non mostra un esito positivo storico', () => {
     archivio: { lettura_automatica: { completa: true } } }))
   assert.equal(result.tono,'warning')
   assert.doesNotMatch(result.testo,/Tutto letto|Nessun documento/)
+})
+
+
+test('lettura a più riprese: lo stato reale n di m documenti letti, anche se sospesa', () => {
+  const documenti = { letti: 23, da_leggere: 18, errori: 0 }
+  const inCorso = { stato_coda: 'pending', in_corso: true, completa: false, da_leggere: 18, documenti }
+  assert.equal(avanzamentoDocumenti(inCorso), '23 di 41 documenti letti')
+  assert.match(fraseLetturaAutomatica(inCorso), /Lettura in corso a più riprese: 23 di 41 documenti letti/)
+  assert.match(riassuntoLetture(letture({ oggetti: 41, archivio: { lettura_automatica: inCorso } })).testo, /a più riprese: 23 di 41/)
+  const sospesa = { ...inCorso, stato_coda: 'failed', in_corso: false, tentativi: 3, errore_evento: '' }
+  assert.match(fraseLetturaAutomatica(sospesa), /Lettura sospesa con 23 di 41 documenti letti/)
+  assert.doesNotMatch(fraseLetturaAutomatica(sospesa), /risolto la causa|Ultimo motivo/)
+  assert.match(riassuntoLetture(letture({ oggetti: 41, archivio: { lettura_automatica: sospesa } })).testo, /Lettura sospesa: 23 di 41 documenti letti/)
 })

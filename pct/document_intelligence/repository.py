@@ -1000,17 +1000,20 @@ class DocumentAIRepository:
         """Causa dell'ultima lavorazione negativa della versione richiesta."""
         if self._backend:
             rows = self._conn().execute(
-                """SELECT payload_json FROM fascicolo_documenti_ai_audit
+                """SELECT event_type, payload_json FROM fascicolo_documenti_ai_audit
                 WHERE tenant_id = ? AND fascicolo_id = ? AND document_id = ? AND version_id = ?
                 ORDER BY created_at DESC LIMIT 20""",
                 (tenant_id, fascicolo_id, document_id, version_id),
             ).fetchall()
-            events = [json.loads(row["payload_json"] or "{}") for row in rows]
+            events = [{**json.loads(row["payload_json"] or "{}"), "event_type": row["event_type"]} for row in rows]
         else:
             events = sorted((row for row in self._data["audit_events"]
                 if row.get("tenant_id") == tenant_id and row.get("fascicolo_id") == fascicolo_id
                 and row.get("document_id") == document_id and row.get("version_id") == version_id),
                 key=lambda row: str(row.get("timestamp") or ""), reverse=True)[:20]
+        # La riclassificazione (busta cifrata, D.M. 44/2011 art. 14) supera le cause precedenti
+        # della stessa versione anche a parità di secondo nel timestamp.
+        events.sort(key=lambda event: str(event.get("event_type") or "") != "document_ai.extraction.reclassified")
         for event in events:
             if event.get("error_code") or event.get("error_message"):
                 return {"error_code": str(event.get("error_code") or "source_processing_failed"),

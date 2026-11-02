@@ -230,7 +230,7 @@ def build_react_profili_payload(
                 "id": "ruoli",
                 "label": "Ruoli gestibili",
                 "value": len(roles),
-                "note": "SUPERADMIN escluso dalla gestione studio",
+                "note": "Il superamministratore della piattaforma è escluso dalla gestione dello studio",
                 "tone": "primary",
             },
             {
@@ -242,7 +242,7 @@ def build_react_profili_payload(
             },
             {
                 "id": "override",
-                "label": "Utenti con override",
+                "label": "Utenti con permessi personalizzati",
                 "value": len(override_users),
                 "note": "Eccezioni sui permessi base",
                 "tone": "warning" if override_users else "neutral",

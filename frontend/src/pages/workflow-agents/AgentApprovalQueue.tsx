@@ -63,6 +63,7 @@ export function AgentApprovalQueue() {
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-muted-foreground">
               <p>{proposal.impact || 'Proposta operativa in attesa di revisione.'}</p>
+              {proposal.created_at ? <p>Proposta del {new Date(proposal.created_at).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}{proposal.fascicolo_id ? ` · fascicolo ${proposal.fascicolo_id}` : ' · nessun fascicolo collegato'}</p> : null}
               <div className="flex flex-wrap gap-2">
                 <Button type="button" onClick={() => approve(proposal)} disabled={busyId === proposal.id}><CheckCircle2 aria-hidden="true" /> Approva</Button>
                 <Button type="button" variant="outline" onClick={() => reject(proposal)} disabled={busyId === proposal.id}><XCircle aria-hidden="true" /> Rifiuta</Button>
@@ -70,7 +71,7 @@ export function AgentApprovalQueue() {
               </div>
             </CardContent>
           </Card>
-        )) : <IusEmptyState title="Nessuna proposta in attesa" message="Le prossime preview agentiche appariranno qui prima di qualsiasi scrittura." icon={ShieldCheck} />}
+        )) : <IusEmptyState title="Nessuna proposta in attesa" message="Le prossime anteprime della regia appariranno qui prima di qualsiasi scrittura." icon={ShieldCheck} />}
       </div>
     </IusPageShell>
   )

@@ -25,7 +25,7 @@ from pct.pec_collegamento_certo import STATO_CERTO, cerca_collegamento_certo
 #: Ultimi esiti del linker che la riconvalida riprende (le PEC senza collegamento certo).
 ESITI_DA_RICONVALIDARE = ("proposte", "rg_non_sufficiente", "identita_incompleta", "nessun_candidato")
 #: Cambia quando cambia la regola: tutte le verifiche precedenti tornano in coda.
-VERSIONE_REGOLA = "1"
+VERSIONE_REGOLA = "2"  # 2: forme ministeriali del numero di ruolo («COMUNICAZIONE n/aaaa/LAV», «RG: n - aaaa»)
 LIMITE_PREDEFINITO = 500
 
 SCHEMA = """
@@ -88,7 +88,8 @@ def riconvalida_collegamenti(repo: Any, *, limite: int = LIMITE_PREDEFINITO, act
             parsed = json.loads(letta["parsed_json"] or "{}") if letta else {}
             # Prima la verifica leggera; il linker, solo se un fascicolo soddisfa i tre controlli, rifà tutto
             # (codice fiscale letto dai documenti compreso) e decide lui.
-            esito = cerca_collegamento_certo(parsed, fascicoli)["motivo"] if parsed else "pec_non_letta"
+            trovato = cerca_collegamento_certo(parsed, fascicoli) if parsed else {"motivo": "pec_non_letta"}
+            esito = trovato["motivo"] + (f":{trovato['manca']}" if trovato.get("manca") else "")
             if parsed and esito == "ruolo_cliente_ufficio_coincidenti":
                 esito = str(repo.link_fascicolo(message_id, actor=actor).get("status") or "")
             chiave = "collegati" if esito == STATO_CERTO else "non_certi"

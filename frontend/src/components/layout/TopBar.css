@@ -1200,6 +1200,17 @@ textarea[data-iusentra-voice-preview="ascolto"]{
 .iu-create-menu{
   width:min(440px,calc(100vw - 24px));
 }
+/* Telefono: il menu «Nuovo» aperto da «Comandi studio» vive nel body, sotto la barra in alto. */
+.iu-create-menu.iu-create-menu--portal{
+  position:fixed;
+  top:64px;
+  right:10px;
+  left:10px;
+  z-index:1300;
+  width:auto;
+  max-height:calc(100dvh - 154px);
+  overflow:auto;
+}
 .iu-create-menu__list{
   display:grid;
   gap:2px;

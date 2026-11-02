@@ -128,6 +128,11 @@
   letter-spacing: 0;
 }
 
+.iu-audit-event__main h2,
+.iu-audit-event__main p {
+  overflow-wrap: anywhere;
+}
+
 .iu-audit-event__main p {
   margin: 0;
   color: var(--iu-slate-600);

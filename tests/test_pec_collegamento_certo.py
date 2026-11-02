@@ -238,3 +238,16 @@ def test_riconvalida_dello_storico_a_lotti_e_idempotente(tmp_path):
     assert all(_ultimo_esito(repo, mid) == (STATO_CERTO, fascicolo.id) for mid in ids)
     assert all(len(_documenti_da_pec(gestione, fascicolo.id, mid)) == 1 for mid in ids)
     assert riconvalida_collegamenti(repo, limite=10)["esaminati"] == 0
+
+
+def test_numero_di_ruolo_nelle_forme_ministeriali():
+    """Oggetti reali delle comunicazioni di cancelleria e dei depositi (verifica a vista del 02/11/2026)."""
+    from pct.pec_collegamento_certo import ruoli_della_pec
+
+    def ruoli(oggetto):
+        return ruoli_della_pec({"headers": {"subject": oggetto}, "body": {"text": ""}}, {})
+
+    assert ruoli("POSTA CERTIFICATA: COMUNICAZIONE 2539/2025/LAV") == {("2539", "2025")}
+    assert ruoli("DEPOSITO TELEMATICO: Ricorso RG: 2539 - 2025 [JQ205-L01]") == {("2539", "2025")}
+    assert ruoli("Comunicazione - procedimento n. 1165/2023") == {("1165", "2023")}
+    assert ruoli("Fattura n. 12/2025 del 3/2025") == set()

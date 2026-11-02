@@ -304,7 +304,7 @@ def _section_status(
         _status("Firma Digitale", cfg.firma.backend_firma_operativo_safe != "nessuno", "Local Signer gestisce la firma dal PC."),
         _status("Email SMTP", bool(cfg.smtp.host and cfg.smtp.username), "Posta ordinaria separata dalla PEC."),
         _status("WhatsApp", bool(cfg.whatsapp.twilio_sid or cfg.whatsapp.callmebot_key), "Promemoria e comunicazioni cliente."),
-        _status("Scheduler", bool(cfg.scheduler.backup_abilitato or cfg.scheduler.wa_reminder_abilitato), "Backup e promemoria automatici."),
+        _status("Automazioni", bool(cfg.scheduler.backup_abilitato or cfg.scheduler.wa_reminder_abilitato), "Backup e promemoria automatici."),
         _status("AI Locale", bool(cfg.ai.enabled), "Assistente attivo sul PC dello studio."),
         _status("Canali SdI", bool(getattr(cfg.sdi, "canale_configurato", False)), "FatturaPA tramite portale, intermediario o canale accreditato."),
         _status("Pagamenti", bool((pagamenti or {}).get("provider_attivi")), "Canali, bonifico e link parcella."),

@@ -92,6 +92,29 @@
   gap: 10px;
 }
 
+.iu-rc-page,
+.iu-rc-import,
+.iu-rc-azioni,
+.iu-rc-page label {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.iu-rc-page > *,
+.iu-rc-import > *,
+.iu-rc-azioni > *,
+.iu-rc-page label {
+  min-width: 0;
+}
+
+.iu-rc-import > span {
+  overflow-wrap: anywhere;
+}
+
+.iu-rc-page select,
+.iu-rc-page input {
+  max-width: 100%;
+}
+
 .iu-rc-page label {
   display: grid;
   gap: 3px;
@@ -246,6 +269,15 @@
   .iu-rc-import__campi label,
   .iu-rc-azioni__avanza label {
     width: 100%;
+  }
+
+  .iu-rc-hero__numeri {
+    width: 100%;
+  }
+
+  .iu-rc-hero__numeri article {
+    flex: 1;
+    min-width: 0;
   }
 
   .iu-rc-tabella thead tr {

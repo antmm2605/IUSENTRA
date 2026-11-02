@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from pct.formatting import parse_datetime_rome
+from pct.scadenze_stato import esito_udienza_da_registrare
 
 from ..models import OperationalSignal, SignalEvidence, SourceCoverage
 from .base import CollectorContext, CollectorResult, unavailable_result
@@ -20,6 +21,10 @@ FUTURE_WINDOW_DAYS = 14
 HEARING_PREP_WINDOW_DAYS = 2
 
 _CLOSED_DEADLINE_STATES = {"completata", "chiusa", "annullata"}
+_ESITO_UDIENZA_REASON = (
+    "Udienza già tenuta: registrare rinvio, riserva o decisione dal verbale o dal provvedimento "
+    "(artt. 126 e 127-ter c.p.c.)."
+)
 _CANCELLED_APPOINTMENT_STATES = {"annullato", "cancellato"}
 
 
@@ -116,22 +121,26 @@ class ScadenzarioCollector:
             max_watermark = max(max_watermark, creata)
             titolo = str(getattr(sc, "titolo", "") or "Scadenza")
             due_iso = due.isoformat() if due else ""
+            # Regola V28 (pct.scadenze_stato): un'udienza passata e ancora aperta non e'
+            # un termine scaduto ma un esito da registrare dal verbale o dal provvedimento
+            # (artt. 126 e 127-ter c.p.c.); nessun termine perentorio ne dipende.
+            esito_udienza = esito_udienza_da_registrare(sc, planning_day)
             signals.append(
                 OperationalSignal(
                     id=f"sig_sc_{scadenza_id}",
                     tenant_id=ctx.tenant_id,
                     source_type=self.source_type,
                     source_id=scadenza_id,
-                    kind="deadline_fulfill",
-                    title=titolo,
+                    kind="hearing_outcome" if esito_udienza else "deadline_fulfill",
+                    title=f"Registrare l'esito dell'udienza: {titolo}" if esito_udienza else titolo,
                     dedupe_key="",
                     fascicolo_id=fascicolo_id,
                     responsible_user_id=responsabile,
-                    reason=_scadenza_reason(ctx, sc, perentorio),
+                    reason=_ESITO_UDIENZA_REASON if esito_udienza else _scadenza_reason(ctx, sc, perentorio),
                     due_at=due_iso,
-                    peremptory=perentorio,
-                    blocking=perentorio,
-                    legal_risk="high" if perentorio else "medium",
+                    peremptory=perentorio and not esito_udienza,
+                    blocking=perentorio and not esito_udienza,
+                    legal_risk="medium" if esito_udienza else ("high" if perentorio else "medium"),
                     confidence=0.95,
                     href=f"/scadenziario?scadenza={scadenza_id}" if scadenza_id else "/scadenziario",
                     metadata={"scadenziario_id": scadenza_id, **origin_event_metadata(sc)},

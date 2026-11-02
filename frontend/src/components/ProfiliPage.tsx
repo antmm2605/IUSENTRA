@@ -181,8 +181,7 @@ function Matrix({
               {rows.map((row) => (
                 <article className="iu-profiles-permission" role="row" key={row.id} style={rowStyle}>
                   <div className="iu-profiles-permission__label" role="cell">
-                    <strong>{permissionLabel(permissions.get(row.permission), row)}</strong>
-                    <span>{row.permission}</span>
+                    <strong title={`Codice del permesso: ${row.permission}`}>{permissionLabel(permissions.get(row.permission), row)}</strong>
                   </div>
                   {roles.map((role) => {
                     const grant = row.grants.find((item) => item.role === role)
@@ -331,8 +330,7 @@ function OverrideEditor({
                 return (
                   <article className="iu-profiles-editor-row" key={`editor-${row.id}`}>
                     <div>
-                      <strong>{row.label}</strong>
-                      <span>{row.permission}</span>
+                      <strong title={`Codice del permesso: ${row.permission}`}>{row.label}</strong>
                     </div>
                     <Badge tone={baseGranted ? 'success' : 'neutral'}>{baseGranted ? 'dal ruolo' : 'non base'}</Badge>
                     <label className="iu-profiles-check">

@@ -381,7 +381,7 @@ function ClienteMobileCard({
   return (
     <article className="iu-cli-mobile-card" onContextMenu={(event) => onOpenQuickPanel(event, item)}>
       <header>
-        <label><input type="checkbox" checked={checked} onChange={onToggle}/><span>{item.name}</span></label>
+        <label><input type="checkbox" checked={checked} onChange={onToggle} aria-label={`Seleziona ${item.name}`}/><span>Seleziona</span></label>
         <Badge tone={item.tone}>{formatClienteStatus(item.status)}</Badge>
       </header>
       <a href={item.href} className="iu-cli-mobile-card__title">{item.name}</a>

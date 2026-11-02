@@ -215,11 +215,14 @@
 .iu-prev-form-grid--parameters > :nth-child(2),
 .iu-prev-form-grid--parameters > :nth-child(4),
 .iu-prev-form-grid--parameters > :nth-child(5) {
-  grid-column: span 2;
+  grid-column: span 3;
 }
 
+/* Oggetto deposito e classificazione a tutta riga, dopo i parametri: in 4 colonne su 12
+   le tendine Area e Gruppo restavano troncate. */
 .iu-prev-form-grid--parameters > :nth-child(3) {
-  grid-column: span 4;
+  grid-column: 1 / -1;
+  order: 1;
 }
 
 .iu-prev-form-grid--conferimento > :nth-child(-n + 6) {

@@ -42,7 +42,7 @@ CAPABILITY_TRUTH_POLICY: dict[str, dict[str, Any]] = {
         "proof": "Import controllato in fascicolo, agenda, scadenze e documenti tenant-aware.",
         "scope": "Importa dati già autorizzati e file ottenuti dal portale nel fascicolo dello studio.",
         "studio_requirement": "Certificato locale valido e conferma dell’avvocato sui dati acquisiti.",
-        "limit": "Non usa credenziali del portale sul server.",
+        "limit": "Non conserva credenziali del portale nel gestionale.",
         "source_ids": ("pst_giustizia", "pst_servizi_web"),
     },
     "pct_prevalidazione_civile": {

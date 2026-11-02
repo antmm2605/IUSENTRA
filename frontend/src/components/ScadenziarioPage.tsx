@@ -150,7 +150,9 @@ function normaliseText(value: string): string {
 function sourceLabel(source: string): string {
   if (source === 'repository_reali') return 'dati dello studio'
   if (source === 'errore_controllato') return 'dati parziali'
-  return source || 'dati aggiornati'
+  // Valori tecnici (es. «empty» del modello vuoto mentre i dati arrivano) non vanno in pagina.
+  if (source === 'empty') return 'caricamento in corso'
+  return 'dati aggiornati'
 }
 
 function isInsideQuery(item: ScadenziarioRow, query: string): boolean {

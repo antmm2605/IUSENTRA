@@ -21,12 +21,20 @@ function giornoIso(data: string, iso = ''): string {
   return parti ? `${parti[3]}-${parti[2]}-${parti[1]}` : ''
 }
 
+function normalizza(testo: string): string {
+  return testo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+function eUdienza(v: Voce): boolean {
+  return /udienz/.test(normalizza(`${v.titolo} ${v.etichetta}`))
+}
+
 export function oggiRoma(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 }
 
 export function vociAgendaFascicolo(scadenze: FascicoloDeadline[], appuntamenti: FascicoloAppointment[], oggi = oggiRoma()): Voce[] {
-  const voci: Voce[] = [
+  let voci: Voce[] = [
     ...scadenze.map((s): Voce => {
       const giorno = giornoIso(s.date, s.dateIso)
       return {
@@ -43,6 +51,17 @@ export function vociAgendaFascicolo(scadenze: FascicoloDeadline[], appuntamenti:
       }
     }),
   ]
+  // Lo stesso impegno registrato sia come scadenza sia come appuntamento d'agenda si mostra una volta sola
+  // (verifica visiva 02/11/2026): resta la scadenza se è perentoria, altrimenti l'appuntamento, che porta ora e luogo.
+  const chiave = (v: Voce) => `${v.giorno}|${normalizza(v.titolo)}`
+  const perentorieUguali = new Set(voci.filter((v) => v.genere === 'scadenza' && v.perentorio && v.giorno).map(chiave))
+  const udienzeAgenda = new Set(voci.filter((v) => v.genere === 'appuntamento' && eUdienza(v)).map((v) => v.giorno))
+  const titoliAgenda = new Set(voci.filter((v) => v.genere === 'appuntamento').map(chiave))
+  voci = voci.filter((v) => {
+    if (!v.giorno) return true
+    if (v.genere === 'appuntamento') return !perentorieUguali.has(chiave(v))
+    return v.perentorio || !(titoliAgenda.has(chiave(v)) || (eUdienza(v) && udienzeAgenda.has(v.giorno)))
+  })
   const prossime = voci.filter((v) => !v.passata).sort((x, y) => (x.giorno || '9999').localeCompare(y.giorno || '9999'))
   const passate = voci.filter((v) => v.passata).sort((x, y) => y.giorno.localeCompare(x.giorno))
   return [...prossime, ...passate]

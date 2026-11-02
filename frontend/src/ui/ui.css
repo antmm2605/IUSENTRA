@@ -988,3 +988,11 @@ body.react-shell-page .iu-content.iu-page-loading {
 .iu-drawer:has(.nlp-detail) .iu-drawer__panel>header h2{overflow-wrap:anywhere}
 .iu-drawer:has(.nlp-detail) .iu-drawer__panel>header button{flex:0 0 44px;min-width:44px;min-height:44px}
 .iu-drawer:has(.nlp-detail) .iu-drawer__panel>div{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-top:14px}
+
+/* Su tablet e telefono l'intestazione del pannello va in colonna (ius-section-header):
+   titolo e sottotitolo restano allineati a sinistra invece di centrarsi (verifica visiva 02/11/2026). */
+@media (max-width: 920px) {
+  .iu-panel__header.ius-section-header {
+    align-items: flex-start;
+  }
+}

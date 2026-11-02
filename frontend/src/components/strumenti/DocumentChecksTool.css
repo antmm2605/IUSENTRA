@@ -1,3 +1,4 @@
+@import '../../theme/impeccable-open-design.css';
 .iu-document-checks { display: grid; gap: 12px; min-width: 0; }
 .iu-document-checks p { margin: 0; line-height: 1.5; }
 .iu-document-checks__inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

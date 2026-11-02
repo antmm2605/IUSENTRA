@@ -94,6 +94,43 @@ def _tone_from_state(value: Any) -> str:
     return "neutral"
 
 
+_CHANNEL_LABELS = {
+    "NESSUNO": "Nessun deposito telematico",
+    "PST_GDP": "PST · Giudice di pace",
+    "PST_CONCORSUALE": "PST · procedure concorsuali",
+}
+_STATE_LABELS = {
+    "draft_professionale": "Bozza professionale",
+    "pronto": "Pronto",
+    "depositabile": "Depositabile",
+    "catalogo": "Catalogo",
+}
+
+
+def _tassonomia(value: str) -> str:
+    """Voci di catalogo in italiano: «Core civile» è il nucleo essenziale della materia."""
+    if value.casefold().startswith("core "):
+        resto = value[5:].strip()
+        return f"{resto[:1].upper()}{resto[1:]} essenziale" if resto else value
+    return value
+
+
+def _channel_label(value: str) -> str:
+    return _CHANNEL_LABELS.get(value.upper(), value) if value else value
+
+
+def _state_label(value: str) -> str:
+    return _STATE_LABELS.get(value.lower(), value.replace("_", " ").capitalize())
+
+
+def _variable_label(name: str) -> str:
+    try:
+        from pct.template_atti_prefill import FIELD_LABELS
+    except Exception:  # etichetta leggibile anche senza il catalogo delle etichette
+        FIELD_LABELS = {}
+    return FIELD_LABELS.get(name) or name.strip("_").replace("_", " ").capitalize()
+
+
 def _variable_names(values: Any) -> list[dict[str, str]]:
     names: list[dict[str, str]] = []
     seen: set[str] = set()
@@ -104,7 +141,7 @@ def _variable_names(values: Any) -> list[dict[str, str]]:
             kind = _text(entry.get("type") or entry.get("tipo") or "metadato")
         else:
             name = _text(entry)
-            label = name
+            label = _variable_label(name)
             kind = "metadato"
         if not name or name in seen:
             continue
@@ -175,13 +212,13 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "title": _text(row.get("titolo")) or _text(row.get("name")) or "Template",
         "subtitle": _text(row.get("tipo_atto") or row.get("procedimento") or row.get("fase")),
         "description": _short(row.get("descrizione"), 220),
-        "category": _text(row.get("categoria_suite_label") or row.get("famiglia") or row.get("macro_area")),
-        "matter": _text(row.get("materia") or row.get("area")),
+        "category": _tassonomia(_text(row.get("categoria_suite_label") or row.get("famiglia") or row.get("macro_area"))),
+        "matter": _tassonomia(_text(row.get("materia") or row.get("area"))),
         "area": _text(row.get("area") or row.get("macro_area")),
         "branch": _text(row.get("branca") or row.get("sottobranca")),
-        "channel": channel or "Canale non indicato",
+        "channel": _channel_label(channel) or "Canale non indicato",
         "portal": _text(row.get("portale_deposito")),
-        "stateLabel": state.capitalize(),
+        "stateLabel": _state_label(state),
         "stateTone": _tone_from_state(state),
         "complianceLabel": _compliance_label(
             cartabia_state=cartabia_state,
@@ -223,7 +260,7 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
         "matter": _text(getattr(template, "branca", "") or getattr(template, "sottobranca", "")),
         "area": _text(getattr(template, "area", "")),
         "branch": _text(getattr(template, "sottobranca", "")),
-        "channel": channel or "Canale non indicato",
+        "channel": _channel_label(channel) or "Canale non indicato",
         "portal": _text(getattr(template, "profilo_deposito", "")),
         "stateLabel": "Sistema" if state == "built-in" else "Studio",
         "stateTone": "info" if state == "built-in" else "primary",
@@ -254,7 +291,15 @@ def _counter_section(
     values: list[str],
     empty: str,
 ) -> dict[str, Any]:
-    counter = Counter(value for value in values if value)
+    # Stessa voce scritta con maiuscole diverse («Lavoro e previdenza» / «Lavoro e Previdenza») conta una volta.
+    counter: Counter[str] = Counter()
+    forme: dict[str, str] = {}
+    for value in values:
+        if not value:
+            continue
+        chiave = value.casefold()
+        forme.setdefault(chiave, value)
+        counter[forme[chiave]] += 1
     items = [
         _item(key.lower().replace(" ", "_") or f"{sid}_{index}", key, count, "", "neutral")
         for index, (key, count) in enumerate(counter.most_common(), start=1)
@@ -346,17 +391,17 @@ def build_react_template_atti_payload(
             _metric("timbro", "Timbro automatico", inventory_stats.get("with_timbro_automatico", 0), "Applicato dal renderer", "success"),
         ],
         "sections": [
-            _counter_section("categorie", "Categorie", "distribution", categories, "Nessuna categoria disponibile."),
-            _counter_section("materie", "Materie", "distribution", matters, "Nessuna materia disponibile."),
-            _counter_section("canali", "Canali", "distribution", channels, "Nessun canale indicato."),
+            _counter_section("categorie", "Categorie", "Modelli per categoria", categories, "Nessuna categoria disponibile."),
+            _counter_section("materie", "Materie", "Modelli per materia", matters, "Nessuna materia disponibile."),
+            _counter_section("canali", "Canali", "Modelli per canale di deposito", channels, "Nessun canale indicato."),
             _section(
                 "presidi",
                 "Produzione documentale",
-                "presidio",
+                "Funzioni attive",
                 [
                     _item("scheda", "Scheda template", "in pagina", "Dettaglio aperto senza uscire dal catalogo", "success"),
                     _item("redazione", "Produzione atti", "in pagina", "Avvio diretto in Redazione Atti", "success"),
-                    _item("cartabia", "Verifica conformita", "governata", "Controlli tracciati con stato di revisione", "warning"),
+                    _item("cartabia", "Verifica conformità", "tracciata", "Controlli tracciati con stato di revisione", "warning"),
                     _item("timbro", "Timbro studio", "automatico", "Intestazione configurabile applicata agli atti", "success" if stamp_preview.get("lines") else "warning"),
                 ],
                 "Nessun presidio rilevato.",

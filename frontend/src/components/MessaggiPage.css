@@ -28,6 +28,8 @@
 .iu-msg-focus dt{color:var(--iu-slate-500);font-size:11px;font-weight:950;text-transform:uppercase}
 .iu-msg-focus dd{margin:2px 0 0;color:#0f172a;font-size:13px;font-weight:900}
 .iu-msg-focus__actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.iu-msg-focus__error{grid-column:1/-1}
+.iu-msg-focus__error dd{color:var(--iu-warning-700,#92400e);font-weight:800;line-height:1.45}
 .iu-msg-focus__actions a,.iu-msg-focus__actions button{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:#0f172a;text-decoration:none;font-size:12px;font-weight:950;cursor:pointer}
 .iu-msg-focus__actions a:first-child{background:#0f2442;color:#fff}
 .iu-msg-focus__actions form{margin:0}
@@ -77,8 +79,9 @@
 .iu-msg-channel-picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .iu-msg-channel-card{position:relative;display:grid;gap:8px;min-height:138px;padding:14px;border:1px solid var(--iu-border);border-radius:18px;background:#fff;cursor:pointer;box-shadow:0 10px 22px rgba(15,23,42,.04)}
 .iu-msg-channel-card input{position:absolute;opacity:0;pointer-events:none}
-.iu-msg-channel-card>span{width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:rgba(37,99,235,.1);color:var(--iu-blue-700)}
+.iu-msg-channel-card>span:not(.ius-status-badge){width:40px;height:40px;display:grid;place-items:center;border-radius:14px;background:rgba(37,99,235,.1);color:var(--iu-blue-700)}
 .iu-msg-channel-card strong{color:#0f172a;font-weight:950}
+.iu-msg-channel-card>.ius-status-badge{justify-self:start}
 .iu-msg-channel-card small{color:var(--iu-slate-500);font-size:12px;font-weight:750;line-height:1.35}
 .iu-msg-channel-card.is-active{border-color:rgba(37,99,235,.45);box-shadow:0 16px 35px rgba(37,99,235,.13)}
 .iu-msg-channel-card.is-active:after{content:'';position:absolute;right:13px;top:13px;width:10px;height:10px;border-radius:999px;background:var(--iu-blue-600);box-shadow:0 0 0 5px rgba(37,99,235,.12)}
@@ -93,7 +96,7 @@
 .iu-msg-compose-field small{color:var(--iu-slate-500);font-size:12px;font-weight:700}
 .iu-msg-templates{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .iu-msg-templates button{min-height:34px;padding:0 11px;border:1px solid var(--iu-border);border-radius:999px;background:var(--iu-slate-50);color:var(--iu-slate-700);font-weight:900;cursor:pointer}
-.iu-msg-submitbar{position:sticky;bottom:82px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--iu-border);border-radius:18px;background:rgba(255,255,255,.94);box-shadow:var(--iu-shadow-card);backdrop-filter:blur(16px)}
+.iu-msg-submitbar{position:sticky;bottom:16px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--iu-border);border-radius:18px;background:rgba(255,255,255,.94);box-shadow:var(--iu-shadow-card);backdrop-filter:blur(16px)}
 .iu-msg-submitbar button,.iu-msg-submitbar a{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 15px;border-radius:13px;text-decoration:none;font-weight:950}
 .iu-msg-submitbar button{border:0;background:#0f2442;color:#fff;cursor:pointer}
 .iu-msg-submitbar a{border:1px solid var(--iu-border);background:#fff;color:var(--iu-slate-700)}
@@ -126,14 +129,18 @@
 }
 
 @media(max-width:620px){
+  .iusentra-route-preset--active .iusentra-route-sequence.iu-msg-page > section.iu-msg-hero[data-iusentra-sequence-slot="page-header"]{flex-direction:column!important;align-items:stretch!important}
+  .iusentra-route-preset--active .iusentra-route-sequence.iu-msg-page > section.iu-msg-hero[data-iusentra-sequence-slot="page-header"] .iu-msg-hero__actions{width:100%;justify-content:flex-start}
   .iu-msg-stats{grid-template-columns:1fr}
   .iu-msg-filters{grid-template-columns:1fr}
   .iu-msg-row{grid-template-columns:40px minmax(0,1fr);padding:12px}
   .iu-msg-avatar{width:40px;height:40px;border-radius:13px}
   .iu-msg-actions{grid-column:1/-1;justify-content:flex-end}
   .iu-msg-line{align-items:flex-start;flex-direction:column;gap:3px}
-  .iu-msg-submitbar{bottom:76px;align-items:stretch;flex-direction:column}
-  .iu-msg-submitbar span{margin-left:0}
+  .iu-msg-submitbar{bottom:82px;flex-wrap:wrap;padding:8px;border-radius:15px}
+  .iu-msg-submitbar button,.iu-msg-submitbar a{flex:1 1 0;min-height:40px}
+  .iu-msg-submitbar span{flex-basis:100%;margin-left:0}
+  .iu-msg-submitbar .iu-msg-submitbar__hint{display:none}
 }
 
 @media(prefers-reduced-motion:reduce){

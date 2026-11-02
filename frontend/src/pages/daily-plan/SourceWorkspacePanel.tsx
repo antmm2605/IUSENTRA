@@ -69,11 +69,11 @@ export function SourceWorkspacePanel({
       </div>
 
       {operativo.scadenza_label ? (
-        <div className={`grid gap-1 rounded-md border px-3 py-2 ${tonoTermine[termine?.tono || 'neutral']}`}>
+        <div className={`grid gap-1 rounded-md border px-3 py-2 ${tonoTermine[operativo.tipo_azione === 'hearing_outcome' ? 'warning' : termine?.tono || 'neutral']}`}>
           <span className="flex items-center gap-1.5 font-semibold">
-            <CalendarClock size={15} aria-hidden="true" /> Termine {operativo.scadenza_label}
+            <CalendarClock size={15} aria-hidden="true" /> {operativo.tipo_azione === 'hearing_outcome' ? 'Udienza del' : 'Termine'} {operativo.scadenza_label}
           </span>
-          {termine ? <span className="text-xs font-medium">{termine.label}</span> : null}
+          {termine && operativo.tipo_azione !== 'hearing_outcome' ? <span className="text-xs font-medium">{termine.label}</span> : null}
           {termine?.anomalo ? (
             <span className="flex items-start gap-1.5 text-xs leading-5">
               <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" /> {avvisoTermineAnomalo}

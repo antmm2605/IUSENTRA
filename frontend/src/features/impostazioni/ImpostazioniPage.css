@@ -820,6 +820,11 @@
     grid-template-columns: 1fr;
   }
 
+  /* Su telefono il riepilogo (13 schede) segue le sezioni: schede e moduli restano in cima. */
+  .iu-settings-summary {
+    order: 0;
+  }
+
   .iu-settings-form__actions,
   .iu-settings-actions-panel__buttons {
     justify-content: stretch;

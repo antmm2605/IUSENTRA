@@ -998,7 +998,12 @@
 
 @media(max-width:1480px){
   .iu-scad-actions-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .iu-scad-layout{grid-template-columns:1fr}
+  /* Il preset con colonna laterale (iusentra-design-system.css) rimetteva il Briefing Lex
+     accanto alla tabella anche sotto i 1480px: la tabella restava a 720px con Priorità,
+     Fascicolo e Giorni nascoste dietro lo scorrimento. Sotto questa soglia si va a capo. */
+  .iu-scad-layout,
+  .iusentra-route-preset--active .iu-scad-layout.iusentra-route-grid[data-iusentra-layout-has-rail="true"]{grid-template-columns:1fr!important}
+  .iusentra-route-preset--active .iu-scad-layout.iusentra-route-grid>*{grid-column:1!important}
   .iu-scad-calculator__grid{grid-template-columns:1fr}
   .iu-scad-inspector{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

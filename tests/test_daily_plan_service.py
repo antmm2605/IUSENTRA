@@ -335,3 +335,28 @@ def test_sintesi_lex_cache_su_plan_version(world):
     dopo2 = service.read_plan(user_id="u1", target_date=DATE)
     assert dopo2.plan_version != dopo.plan_version
     assert dopo2.lex_summary == ""
+
+
+def test_anteprima_di_domani_calcolata_in_lettura_senza_salvare(world):
+    """STU-19: anteprima su richiesta per una data senza snapshot, nulla di persistito."""
+    world.scadenze = [_scadenza("domani", 1, perentorio=True, responsabile="u1")]
+    world.appuntamenti = [_udienza("udienza-domani", 1)]
+    service = world.service()
+    domani = (TODAY + timedelta(days=1)).isoformat()
+
+    piano = service.preview_plan(user_id="u1", target_date=domani)
+
+    assert piano.generation_mode == "anteprima"
+    assert piano.target_date == domani
+    assert any(item.title == "Scadenza domani" for item in piano.work_items)
+    assert all(item.id.startswith("anteprima-") and item.available_actions == [] for item in piano.work_items)
+    assert "Anteprima" in piano.warnings[0]
+    # nessuna scrittura: niente snapshot, attività o segnali per il giorno
+    assert service.read_plan(user_id="u1", target_date=domani) is None
+    assert world.repo.list_items(domani) == []
+    assert world.repo.list_active_signals(limit=10) == []
+
+    from pct.daily_plan.serializers import plan_summary_payload
+
+    payload = plan_summary_payload(piano)
+    assert payload["stato"] == "anteprima" and payload["versione_piano"] == ""

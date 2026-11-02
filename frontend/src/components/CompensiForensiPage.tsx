@@ -92,8 +92,7 @@ export function CompensiForensiPage() {
   const [data, setData] = useState<CompensiForensiPageData>(emptyCompensiForensiPage)
   const [loading, setLoading] = useState(true)
   const [calculating, setCalculating] = useState(false)
-  const [saving, setSaving] = useState(false)
-  useBusyActivity(saving, 'Salvataggio dei compensi…')
+  useBusyActivity(calculating, 'Calcolo dei compensi…')
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [result, setResult] = useState<CompensiForensiCalculationResult | null>(null)
@@ -111,12 +110,12 @@ export function CompensiForensiPage() {
       .then((payload) => {
         setData(payload)
         const firstArea = payload.parameters.areas[0]?.value || ''
-        const firstProceeding = payload.parameters.proceedings[0]?.value || ''
         const firstComplexity = payload.parameters.complexities.find((item) => item.value === 'media')?.value
           || payload.parameters.complexities[0]?.value
           || 'media'
+        // Il procedimento parte da «Standard di studio»: un procedimento di un'altra area
+        // non deve restare in memoria senza comparire nella tendina.
         if (!area) setArea(firstArea)
-        if (!proceeding) setProceeding(firstProceeding)
         if (!complexity) setComplexity(firstComplexity)
       })
       .finally(() => setLoading(false))
@@ -132,14 +131,12 @@ export function CompensiForensiPage() {
   }, [fullscreen])
 
   const filteredProceedings = useMemo(() => {
-    if (!area) return data.parameters.proceedings
-    const filtered = data.parameters.proceedings.filter((item) => item.area === area)
-    return filtered.length ? filtered : data.parameters.proceedings
+    if (!area) return []
+    return data.parameters.proceedings.filter((item) => item.area === area)
   }, [area, data.parameters.proceedings])
 
   async function runCalculation() {
     setCalculating(true)
-    setSaving(true)
     setSuccess('')
     setError('')
     const response = await calculateCompensiForensi({
@@ -153,7 +150,6 @@ export function CompensiForensiPage() {
       opzioni_fiscali: data.parameters.fiscal_options,
     })
     setCalculating(false)
-    setSaving(false)
     if (!response.ok || !response.result) {
       setError(response.message)
       return
@@ -204,7 +200,6 @@ export function CompensiForensiPage() {
       <div className={`iu-comp-page iu-od-stack${fullscreen ? ' iu-comp-page--fullscreen' : ''}`}>
         {fullscreen ? <Button type="button" tone="neutral" onClick={() => setFullscreen(false)}><Minimize2 size={16} aria-hidden="true" />Riduci</Button> : null}
         {calculating ? <LoadingState title="Calcolo compensi" message="Elaborazione del risultato in corso." /> : null}
-        {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta in corso.</div> : null}
         {success ? <div className="iu-comp-state iu-comp-state--success" role="status">{success}</div> : null}
         {error ? <div className="iu-comp-state iu-comp-state--error" role="alert">{error}</div> : null}
         <WarningList data={data} />
@@ -216,7 +211,7 @@ export function CompensiForensiPage() {
             <div className="iu-comp-form">
               <label>
                 <span>Area</span>
-                <select value={area} onChange={(event) => setArea(event.target.value)}>
+                <select value={area} onChange={(event) => { setArea(event.target.value); setProceeding('') }}>
                   <option value="">Seleziona area</option>
                   {data.parameters.areas.map((item) => (
                     <option value={item.value} key={item.value}>{item.label}</option>

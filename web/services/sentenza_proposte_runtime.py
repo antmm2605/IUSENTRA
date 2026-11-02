@@ -1,12 +1,13 @@
-"""Proposte dalla sentenza: definizione del fascicolo e crediti liquidati, sempre da confermare.
+"""Dalla sentenza: definizione del fascicolo e crediti liquidati, automatici solo se certi.
 
-La sentenza letta nel fascicolo non cambia nulla da sola. Il lettore
-«proposta_definizione» del registro delle letture esamina, in sfondo e solo sui
-testi già salvati, i documenti nuovi o letti con una regola superata; se il
-testo è una sentenza del procedimento che decide la causa nel grado (art. 132
-c.p.c.; art. 88 c.p.a.) registra una proposta. L'avvocato la conferma o la
-respinge dal pannello «Letture e verifiche»: solo la conferma porta il
-fascicolo a «definito», con la sentenza come fonte nella cronologia.
+Il lettore «proposta_definizione» del registro delle letture esamina, in
+sfondo e solo sui testi già salvati, i documenti nuovi o letti con una regola
+superata; se il testo è una sentenza del procedimento che decide la causa nel
+grado (art. 132 c.p.c.; art. 88 c.p.a.) e il credito delle spese si legge con
+certezza (`pct.sentenza_automatica`), registra credito e definizione con autore
+«automatico dalla sentenza» (`sentenza_automatica_runtime`), annullabili
+dall'avvocato. Negli altri casi registra una proposta che l'avvocato conferma
+o respinge dal pannello «Letture e verifiche».
 
 Il pannello mostra anche i crediti che il controllo economico ha letto nel
 capo spese (art. 91 c.p.c. a favore del cliente, art. 93 c.p.c. distratti al
@@ -94,6 +95,13 @@ def _da_esaminare(registro: Any, tenant: str, fascicolo_id: str) -> list[Any]:
     return list(unici.values())
 
 
+def _passaggio_dispositivo(testo: str) -> str:
+    """Le prime righe del dispositivo letto: la citazione che l'avvocato riscontra nella sentenza."""
+    from pct.sentenza_conclusiva import valuta_sentenza
+
+    return " ".join(valuta_sentenza(testo)["dispositivo"].split())[:300]
+
+
 def esamina_oggetto(*, fascicolo: Any, oggetto: Any, documento: Any, testo: str, catalogo: tuple[str, str] = ("", ""),
                     cliente: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """L'esito del lettore per un documento; None se il testo non c'è ancora e serve per decidere."""
@@ -112,7 +120,8 @@ def esamina_oggetto(*, fascicolo: Any, oggetto: Any, documento: Any, testo: str,
     return {
         "pertinente": True, "proposta": bool(verifica.get("eligible")), "motivo": _testo(verifica.get("reason")),
         "grado": _testo(verifica.get("grado")), "importo": verifica.get("amount"), "capo_spese": _testo(verifica.get("quote"))[:400],
-        "compensate": bool(verifica.get("compensate")), "estremi": _estremi(testo) if verifica.get("eligible") else {},
+        "compensate": bool(verifica.get("compensate")), "estremi": _estremi(testo),
+        "dispositivo": _passaggio_dispositivo(testo) if verifica.get("eligible") else "",
     }
 
 
@@ -121,14 +130,15 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
     from web.services.archivio_letture_runtime import testi_indice_archivio
 
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    report = {"esaminati": 0, "proposte": 0, "in_attesa_testo": 0, "errori": 0}
+    report = {"esaminati": 0, "proposte": 0, "automatiche": 0, "in_attesa_testo": 0, "errori": 0}
     if not fascicolo_id:
         return report
     pendenti = _da_esaminare(registro, tenant, fascicolo_id)
     precedenti = {(r.oggetto_id, r.sha256): r for r in registro.letture(tenant, fascicolo_id, lettore=LETTORE)}
     if pendenti:
         documenti = {_testo(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
-        chiuso = _stato(fascicolo) in STATI_CHIUSI
+        # Un fascicolo già definito si esamina ancora: il credito certo della sentenza va registrato lo stesso.
+        chiuso = _stato(fascicolo) == "ARCHIVIATO"
         testi = {} if chiuso else testi_indice_archivio(fascicolo)
         catalogo = {} if chiuso else _catalogo(fascicolo_id)
         cliente = {} if chiuso else _cliente(fascicolo)
@@ -142,7 +152,7 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
                                          esito={"pertinente": False, "motivo": "Documento non più presente nel fascicolo."})
                     continue
                 if chiuso:
-                    esito = {"pertinente": False, "proposta": False, "motivo": "Fascicolo già definito o archiviato."}
+                    esito = {"pertinente": False, "proposta": False, "motivo": "Fascicolo archiviato."}
                 else:
                     esito = esamina_oggetto(fascicolo=fascicolo, oggetto=oggetto, documento=documento,
                                             testo=testi.get(oggetto.oggetto_id, ""), catalogo=catalogo.get(oggetto.oggetto_id, ("", "")),
@@ -156,11 +166,17 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
                         report["in_attesa_testo"] += 1
                     continue
                 vecchia = precedenti.get((oggetto.oggetto_id, oggetto.impronta))
-                if vecchia is not None and vecchia.esito.get("decisione"):
-                    # La decisione dell'avvocato sulla stessa fonte resta valida anche con la regola nuova.
-                    esito["decisione"] = vecchia.esito["decisione"]
+                for chiave in ("decisione", "automatica"):
+                    if vecchia is not None and vecchia.esito.get(chiave):
+                        # Decisione dell'avvocato e registrazione automatica (anche annullata) restano con la regola nuova.
+                        esito[chiave] = vecchia.esito[chiave]
+                automatica = _registra_se_certa(fascicolo, oggetto, testi.get(oggetto.oggetto_id, ""), esito)
                 registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE, versione=VERSIONE_PROPOSTA, esito=esito)
+                if automatica:
+                    _dopo_decisione(fascicolo_id, registro, esito["decisione"], oggetto.impronta,
+                                    rationale="Registrazione automatica dalla sentenza: identità, dispositivo e credito certi")
                 report["esaminati"] += 1
+                report["automatiche"] += int(automatica)
                 report["proposte"] += int(bool(esito.get("proposta")) and not esito.get("decisione"))
             except Exception as exc:
                 report["errori"] += 1
@@ -173,6 +189,21 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
     except Exception as exc:
         logger.debug("Riga del lettore proposte non registrata per %s: %s", fascicolo_id, exc)
     return report
+
+
+def _registra_se_certa(fascicolo: Any, oggetto: Any, testo: str, esito: dict[str, Any]) -> bool:
+    """Caso certo: credito e definizione registrati in automatico; caso incerto: il motivo resta nell'esito."""
+    if not esito.get("proposta") or esito.get("decisione") or esito.get("automatica"):
+        return False
+    from web.services.sentenza_automatica_runtime import registra_se_certa
+
+    registrazione = registra_se_certa(fascicolo=fascicolo, oggetto=oggetto, testo=testo, esito=esito)
+    if not registrazione.get("registrata"):
+        esito["non_automatica"] = registrazione.get("motivi") or []
+        return False
+    esito["automatica"] = registrazione
+    esito["decisione"] = {"esito": "automatica", "da": registrazione["da"], "il": registrazione["il"]}
+    return True
 
 
 def proposte_definizione(fascicolo: Any, registro: Any, tenant: str) -> list[dict[str, Any]]:
@@ -193,7 +224,9 @@ def proposte_definizione(fascicolo: Any, registro: Any, tenant: str) -> list[dic
             "documentoId": lettura.oggetto_id,
             "documento": _testo(oggetto.nome) or "Sentenza",
             "anteprima": f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(lettura.oggetto_id, safe='')}/visualizza",
+            "citazione": _testo(esito.get("dispositivo")) or _testo(esito.get("capo_spese")),
             "motivo": _testo(esito.get("motivo")),
+            "nonAutomatica": [_testo(m) for m in esito.get("non_automatica") or [] if _testo(m)],
             "numero": _testo(estremi.get("numero")), "anno": _testo(estremi.get("anno")), "data": _testo(estremi.get("data")),
             "importo": esito.get("importo"), "importoLabel": _euro(esito.get("importo")) if esito.get("importo") is not None else "",
             "capoSpese": _testo(esito.get("capo_spese")), "compensate": bool(esito.get("compensate")),
@@ -216,8 +249,34 @@ def _parcelle_per_evento(fascicolo_id: str) -> dict[str, str]:
     return esito
 
 
-def crediti_da_sentenza(fascicolo_id: str) -> tuple[bool, list[dict[str, Any]]]:
-    """I crediti letti nel capo spese, da confermare o già confermati, con la parcella se generata."""
+def _fonti_crediti(fascicolo_id: str, audits: list[dict[str, Any]], registro: Any, tenant: str) -> dict[str, dict[str, Any]]:
+    """Per ogni controllo economico: documento da visualizzare, passaggio del capo spese, numero e data della sentenza."""
+    from web.services.sentenza_economic_runtime import fonte_audit
+
+    try:
+        inventario = registro.oggetti(tenant, fascicolo_id)
+        estremi = {r.sha256.lower(): (r.esito or {}).get("estremi") or {}
+                   for r in registro.letture(tenant, fascicolo_id, lettore=LETTORE) if r.stato == "letto"}
+    except Exception:
+        inventario, estremi = [], {}
+    fonti = {}
+    for audit in audits:
+        fonte = fonte_audit(audit, inventario, fascicolo_id) or {}
+        capo = (((audit.get("audit") or {}).get("sentenza") or {}).get("spese_liquidate") or {}).get("testo_capo_spese")
+        dati = estremi.get(_testo(audit.get("document_hash_sha256")).lower()) or {}
+        fonti[_testo(audit.get("id"))] = {"href": fonte.get("href", ""), "documento": fonte.get("label", ""),
+                                         "citazione": _testo(capo)[:400], "numero": _testo(dati.get("numero")),
+                                         "anno": _testo(dati.get("anno")), "data": _testo(dati.get("data"))}
+    return fonti
+
+
+def crediti_da_sentenza(fascicolo_id: str, registro: Any = None, tenant: str = "") -> tuple[bool, list[dict[str, Any]]]:
+    """I crediti letti nel capo spese, una volta sola, da confermare o già confermati, con fonte e parcella.
+
+    I crediti registrati in automatico si mostrano con la loro registrazione (`registrazioni_automatiche`).
+    """
+    from pct.sentenza_automatica import AUTORE
+
     try:
         from web.services.sentenza_economic_runtime import build_sentenza_economic_payload
 
@@ -228,18 +287,21 @@ def crediti_da_sentenza(fascicolo_id: str) -> tuple[bool, list[dict[str, Any]]]:
     if not payload.get("ok"):
         return False, []
     parcelle = _parcelle_per_evento(fascicolo_id)
+    fonti = _fonti_crediti(fascicolo_id, payload.get("audits") or [], registro, tenant) if registro is not None else {}
     crediti = []
     for evento in payload.get("eventi") or []:
         tipo = _testo(evento.get("event_type"))
         stato = _testo(evento.get("status"))
-        if tipo not in EVENTI_CREDITO or stato not in _ETICHETTE_STATO:
+        if tipo not in EVENTI_CREDITO or stato not in _ETICHETTE_STATO or _testo(evento.get("reviewed_by")) == AUTORE:
             continue
         evento_id = _testo(evento.get("id"))
+        gemelli = [evento_id, *[_testo(e) for e in evento.get("duplicati") or []]]
         crediti.append({
             "eventId": evento_id, "tipo": tipo, "etichetta": EVENTI_CREDITO[tipo],
             "importo": evento.get("amount"), "importoLabel": _euro(evento.get("amount")) if evento.get("amount") is not None else "",
             "stato": stato, "statoLabel": _ETICHETTE_STATO[stato],
-            "parcella": parcelle.get(evento_id, ""),
+            "parcella": next((parcelle[e] for e in gemelli if e in parcelle), ""),
+            **fonti.get(_testo(evento.get("source_id")), {"href": "", "documento": "", "citazione": "", "numero": "", "anno": "", "data": ""}),
         })
     return True, crediti
 
@@ -247,22 +309,29 @@ def crediti_da_sentenza(fascicolo_id: str) -> tuple[bool, list[dict[str, Any]]]:
 def proposte_sentenza_payload(fascicolo: Any) -> dict[str, Any]:
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
+    from web.services.sentenza_automatica_runtime import registrazioni_automatiche
+
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    registro = registro_corrente(sola_lettura=True)
-    attivo, crediti = crediti_da_sentenza(fascicolo_id)
-    return {"stato": _stato(fascicolo), "definizione": proposte_definizione(fascicolo, registro, tenant_corrente()),
-            "crediti": crediti, "controlloEconomicoAttivo": attivo}
+    registro, tenant = registro_corrente(sola_lettura=True), tenant_corrente()
+    attivo, crediti = crediti_da_sentenza(fascicolo_id, registro, tenant)
+    return {"stato": _stato(fascicolo), "definizione": proposte_definizione(fascicolo, registro, tenant),
+            "crediti": crediti, "automatiche": registrazioni_automatiche(fascicolo, registro, tenant, _parcelle_per_evento(fascicolo_id)),
+            "controlloEconomicoAttivo": attivo}
 
 
 def decidi_definizione(fascicolo: Any, proposta_id: str, *, esito: str, utente: str = "") -> dict[str, Any]:
-    """Conferma (fascicolo definito, con la sentenza come fonte) o respingi la proposta."""
+    """Conferma (fascicolo definito, con la sentenza come fonte) o respingi la proposta; annulla una registrazione automatica."""
     from pct.fascicoli import StatoFascicolo
     from pct.stato_fascicolo import Prova, ammessa
     from web.helpers import get_fascicoli
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
+    if esito == "annulla":
+        from web.services.sentenza_automatica_runtime import annulla_automatica
+
+        return annulla_automatica(fascicolo, proposta_id, utente=utente)
     if esito not in {"conferma", "respingi"}:
-        raise ValueError("Decisione non valida: conferma o respingi.")
+        raise ValueError("Decisione non valida: conferma, respingi o annulla.")
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     oggetto_id, _, impronta = _testo(proposta_id).rpartition(":")
     registro, tenant = registro_corrente(), tenant_corrente()
@@ -292,14 +361,15 @@ def decidi_definizione(fascicolo: Any, proposta_id: str, *, esito: str, utente: 
     return {"proposta": proposta_id, **decisione}
 
 
-def _dopo_decisione(fascicolo_id: str, registro: Any, decisione: dict[str, Any], impronta: str) -> None:
+def _dopo_decisione(fascicolo_id: str, registro: Any, decisione: dict[str, Any], impronta: str,
+                    rationale: str = "Decisione dell'avvocato sulla proposta di definizione") -> None:
     """Traccia firmata della decisione, sintesi e cache allineate: errori qui non annullano la decisione."""
     try:
         from web.services.sentenza_economic_runtime import _repo, _tenant_id
 
         _repo().record_decision(tenant_id=_tenant_id(), actor_id=decisione["da"] or "avvocato", kind="definizione_da_sentenza",
                                 subject_ref=fascicolo_id, decision=decisione["esito"],
-                                rationale="Decisione dell'avvocato sulla proposta di definizione", evidence={"sha256": impronta})
+                                rationale=rationale, evidence={"sha256": impronta})
     except Exception:
         logger.debug("Decisione sulla definizione non registrata nella traccia firmata", exc_info=True)
     try:

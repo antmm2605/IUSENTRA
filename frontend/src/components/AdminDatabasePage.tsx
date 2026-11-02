@@ -179,7 +179,7 @@ function ModuleTable({ modules, filtered }: { modules: AdminDatabaseModule[]; fi
               <td data-label="Dimensione">{module.sizeLabel}</td>
               <td data-label="Ultima modifica">{module.lastModifiedLabel}</td>
               <td>
-                <Badge tone={module.status.tone}>{module.mirror ? `Mirror: ${module.status.label}` : module.status.label}</Badge>
+                <Badge tone={module.status.tone}>{module.mirror ? `Copia di compatibilità: ${module.status.label}` : module.status.label}</Badge>
                 {module.status.message ? <span>{module.status.message}</span> : null}
               </td>
             </tr>

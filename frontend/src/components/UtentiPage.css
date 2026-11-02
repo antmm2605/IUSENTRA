@@ -1,3 +1,4 @@
+@import '../theme/impeccable-open-design.css';
 .iu-users-kpis,
 .iu-users-grid,
 .iu-users-new,
@@ -381,6 +382,7 @@
   display: grid;
   gap: 6px;
   margin: 0;
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid var(--iu-border);
   border-radius: 10px;
@@ -394,10 +396,16 @@
 
 .iu-users-perm {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   font-size: 0.86rem;
+}
+
+.iu-users-perm > span {
+  flex: 1 1 120px;
+  min-width: 0;
 }
 
 .iu-users-perm small {
@@ -406,8 +414,10 @@
 }
 
 .iu-users-perm select {
+  flex: 0 1 170px;
+  min-width: 0;
   min-height: 32px;
-  max-width: 170px;
+  max-width: 100%;
 }
 
 main .iu-users-distribution button.iu-users-distribution__item,

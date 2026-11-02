@@ -50,16 +50,97 @@ def test_new_generation_is_not_delayed_by_old_failed_work(registry, clock):
     assert state['attempts'] == 1 and state['last_error'] == ''
 
 
+def _scade(registry, case='case-a'):
+    with registry.connection() as conn:
+        conn.execute("UPDATE letture_eventi SET lease_until=? WHERE tenant_id=? AND fascicolo_id=?",
+                     ('2000-01-01T00:00:00Z', 'study-a', case))
+
+
 def test_expired_leases_have_a_finite_budget_and_preserve_the_cause(registry, clock):
+    """Le prime MAX_INTERRUZIONI scadenze (riavvii) non contano; oltre, tre scadenze senza avanzamento sospendono."""
+    from pct.registro_letture.event_retry import ERRORE_SOSPESA, MAX_INTERRUZIONI
     registry.accoda_evento('study-a', 'case-a')
-    for attempt in range(1, 4):
-        assert registry.reclama_evento('study-a', 'case-a', 'worker-' + str(attempt))
-        with registry.connection() as conn:
-            conn.execute("UPDATE letture_eventi SET lease_until=? WHERE tenant_id=? AND fascicolo_id=?",
-                         ('2000-01-01T00:00:00Z', 'study-a', 'case-a'))
+    for claim in range(1, MAX_INTERRUZIONI + 4):
+        assert registry.reclama_evento('study-a', 'case-a', 'worker-' + str(claim)), claim
+        _scade(registry)
     assert registry.reclama_evento('study-a', 'case-a', 'one-too-many') is None
     state = registry.esito_evento('study-a', 'case-a')
-    assert state['stato'] == 'failed' and state['attempts'] == 3 and state['last_error']
+    assert state['stato'] == 'failed' and state['attempts'] == 3 and state['last_error'] == ERRORE_SOSPESA
+    with registry.connection() as conn:
+        assert conn.execute("SELECT count(*) FROM letture_eventi_esiti WHERE fascicolo_id='case-a' AND stato='expired'").fetchone()[0] == MAX_INTERRUZIONI + 3
+
+
+def test_lease_expired_by_restart_is_not_a_failed_attempt(registry, clock):
+    """Deploy o memoria esaurita: la prenotazione scade, ma il tentativo non è fallito."""
+    registry.accoda_evento('study-a', 'case-a')
+    for claim in range(1, 4):
+        assert registry.reclama_evento('study-a', 'case-a', 'worker-' + str(claim))
+        assert registry.esito_evento('study-a', 'case-a')['attempts'] == 1
+        _scade(registry)  # il processo è stato riavviato: nessuno conclude la prenotazione
+    event = registry.reclama_evento('study-a', 'case-a', 'after-deploy')
+    assert event == {'generation': 1, 'forza': False}
+    state = registry.esito_evento('study-a', 'case-a')
+    assert state['stato'] == 'running' and state['attempts'] == 1 and state['last_error'] == ''
+    assert registry.concludi_evento('study-a', 'case-a', 'after-deploy', 1) is False
+    assert registry.esito_evento('study-a', 'case-a')['stato'] == 'idle'
+    with registry.connection() as conn:
+        progressivi = [r[0] for r in conn.execute("SELECT attempt FROM letture_eventi_esiti WHERE fascicolo_id='case-a' ORDER BY attempt").fetchall()]
+    assert progressivi == [1, 2, 3, 4]
+
+
+def test_progress_renews_lease_and_restores_budget(registry, clock):
+    registry.accoda_evento('study-a', 'case-a')
+    registry.reclama_evento('study-a', 'case-a', 'worker')
+    with registry.connection() as conn:
+        conn.execute("UPDATE letture_eventi SET attempts=2 WHERE fascicolo_id='case-a'")
+    clock[0] = '2026-10-20T00:20:00Z'
+    assert registry.rinnova_evento('study-a', 'case-a', 'worker', 1, progresso=True)
+    state = registry.esito_evento('study-a', 'case-a')
+    assert state['attempts'] == 0
+    with registry.connection() as conn:
+        assert conn.execute("SELECT lease_until FROM letture_eventi WHERE fascicolo_id='case-a'").fetchone()[0] == '2026-10-20T00:50:00Z'
+    assert not registry.rinnova_evento('study-a', 'case-a', 'another-worker', 1)
+
+
+def test_suspended_turn_requeues_without_error_and_keeps_presidi(registry, clock):
+    registry.accoda_evento('study-a', 'case-a', presidi=True)
+    assert registry.reclama_evento('study-a', 'case-a', 'worker') == {'generation': 1, 'forza': False, 'presidi': True}
+    assert registry.sospendi_evento('study-a', 'case-a', 'worker', 1)
+    state = registry.esito_evento('study-a', 'case-a')
+    assert state['stato'] == 'pending' and state['attempts'] == 0 and state['last_error'] == '' and state['available_at'] == ''
+    assert [e['fascicolo_id'] for e in registry.eventi_da_riprendere('study-a')] == ['case-a']
+    assert registry.reclama_evento('study-a', 'case-a', 'next-turn') == {'generation': 1, 'forza': False, 'presidi': True}
+    assert not registry.sospendi_evento('study-a', 'case-a', 'worker', 1)
+
+
+def test_stuck_legacy_timeouts_are_requeued_in_batches_idempotently(registry, clock):
+    """Riconvalida: i fascicoli fermi con il vecchio «tempo esaurito» ripartono, a lotti e una volta sola."""
+    from pct.registro_letture.event_retry import ERRORE_TEMPO_STORICO
+    for case in ('old-1', 'old-2', 'old-3', 'real-error'):
+        registry.accoda_evento('study-a', case, presidi=True)
+        registry.reclama_evento('study-a', case, 'worker')
+    with registry.connection() as conn:
+        # Come scriveva la 2.476.0 al terzo riavvio: presìdi richiesti conservati, errore storico.
+        conn.execute("UPDATE letture_eventi SET stato='idle',worker_id='',lease_until='',attempts=3,last_error=?,"
+                     "pending_presidi=claimed_presidi,claimed_presidi=0,"
+                     "last_error_code='LeaseExpired' WHERE fascicolo_id LIKE 'old-%'", (ERRORE_TEMPO_STORICO,))
+    registry.concludi_evento('study-a', 'real-error', 'worker', 1, riuscito=False, errore='Causa vera')
+    with registry.connection() as conn:
+        conn.execute("UPDATE letture_eventi SET stato='idle',available_at='',attempts=3 WHERE fascicolo_id='real-error'")
+    primo = registry.riprendi_letture_ferme('study-a', limite=2, solo_tempo_esaurito=True)
+    secondo = registry.riprendi_letture_ferme('study-a', limite=2, solo_tempo_esaurito=True)
+    assert len(primo) == 2 and len(secondo) == 1 and not set(primo) & set(secondo)
+    assert registry.riprendi_letture_ferme('study-a', limite=2, solo_tempo_esaurito=True) == []
+    for case in ('old-1', 'old-2', 'old-3'):
+        state = registry.esito_evento('study-a', case)
+        assert state['stato'] == 'pending' and state['attempts'] == 0 and state['generation'] == 2 and not state['last_error']
+    assert registry.esito_evento('study-a', 'real-error')['stato'] == 'failed'
+    assert registry.reclama_evento('study-a', 'old-1', 'w')['presidi']
+    # La ripresa notturna prende anche gli altri fermi, ma solo se fermi da abbastanza tempo.
+    assert registry.riprendi_letture_ferme('study-a', ferme_da_secondi=6 * 3600) == []
+    clock[0] = '2026-10-20T07:00:00Z'
+    assert registry.riprendi_letture_ferme('study-a', ferme_da_secondi=6 * 3600) == ['real-error']
+    assert registry.riprendi_letture_ferme('study-a', ferme_da_secondi=6 * 3600) == []
 
 
 def test_preparation_recovery_is_targeted_idempotent_and_retains_history(registry, clock):

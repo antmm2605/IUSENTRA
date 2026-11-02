@@ -8,9 +8,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from .busta_cifrata import causa_busta_cifrata, e_busta_cifrata, nota_non_applicabile, separa_non_applicabili
 from .models import LexIndexingSummary
 from .security import DocumentAIValidationError
 from .index_retry import index_source, native_engine_is_current
+from .motivi_lettura import motivo_per_avvocato
 from .index_outcomes import source_error, source_error_key, source_identity
 from .sources import DocumentAISource
 
@@ -20,6 +22,7 @@ _INDEXING = "indexing"
 _QUEUED = "queued"
 _STALE = "stale"
 _ARCHIVED = "archived"
+_NOT_APPLICABLE = "not_applicable"
 _STATE_PRIORITY = {
     "not_indexed": 0,
     _ERROR: 1,
@@ -101,16 +104,25 @@ class DocumentAIIndexer:
                 matching = [record for record in records
                             if record.tenant_id == tenant_id and record.fascicolo_id == fascicolo_id
                             and record.sha256 == source.sha256 and record.status == _ERROR]
+                failure = None
                 if matching:
                     record = max(matching, key=lambda item: (item.updated_at, item.id))
                     outcome = self.service.repository.latest_processing_error(tenant_id, fascicolo_id, record.id, record.current_version_id)
                     failure = {**source_identity(source), **outcome,
                                "document_id": str(source.metadata.get("documento_id") or source.source_id),
                                "filename": source.filename}
-                    source_errors.append(failure)
-                    errors.append(f"{source.filename}: {failure['message']}")
-                skipped += 1
-                continue
+                busta = failure is not None and causa_busta_cifrata(failure.get("error_code"), failure.get("message"))
+                if failure is not None and not busta:
+                    failure["message"] = motivo_per_avvocato(failure.get("error_code"), failure.get("message"))
+                if not (busta and not e_busta_cifrata(source.filename) and source.supported):
+                    # Un messaggio fallito storicamente solo per Atto.enc si rilegge con le regole
+                    # correnti (la busta ora si annota): una volta, poi l'esito è pronto o un errore vero.
+                    if failure is not None:
+                        source_errors.append(failure)
+                        if not busta:
+                            errors.append(f"{source.filename}: {failure['message']}")
+                    skipped += 1
+                    continue
             if not source.supported:
                 errors.append(f"{source.filename}: formato non supportato per indicizzazione Lex.")
                 skipped += 1
@@ -127,10 +139,13 @@ class DocumentAIIndexer:
                 indexed += 1
             except Exception as exc:
                 failure = source_error(source, exc)
+                if e_busta_cifrata(source.filename):
+                    failure = nota_non_applicabile(failure)
                 source_errors.append(failure)
                 if source.sha256:
                     failed_hashes[source.sha256] = failure
-                errors.append(f"{source.filename}: {failure['message']}")
+                if not causa_busta_cifrata(failure.get("error_code"), failure.get("message")):
+                    errors.append(f"{source.filename}: {failure['message']}")
         refreshed = self.service.list_fascicolo_documents(tenant_id, fascicolo_id, user_context)
         summary = build_lex_indexing_summary(sources=sources, records=refreshed, extra_warnings=errors, source_errors=source_errors)
         return DocumentAIIndexingResult(summary=summary, indexed=indexed, skipped=skipped, errors=errors)
@@ -211,10 +226,21 @@ def build_lex_indexing_summary(
     source_errors: list[dict[str, Any]] | None = None,
 ) -> LexIndexingSummary:
     source_keys = {source_error_key(source_identity(source)) for source in sources if _state_for_source(source, records) != _READY}
-    failures = [dict(item) for item in list(source_errors or []) if source_error_key(item) in source_keys]
-    failed_keys = {source_error_key(item) for item in failures}
+    failures, notes = separa_non_applicabili(
+        dict(item) for item in list(source_errors or []) if source_error_key(item) in source_keys)
+    noted = {source_error_key(item) for item in notes}
+    for source in sources:
+        # Busta Atto.enc in errore senza esito registrato (riepilogo senza elaborazione).
+        key = source_error_key(source_identity(source))
+        if key not in noted and e_busta_cifrata(source.filename) and _state_for_source(source, records) == _ERROR:
+            notes.append(nota_non_applicabile({**source_identity(source), "filename": source.filename,
+                                               "document_id": str(source.metadata.get("documento_id") or source.source_id)}))
+            noted.add(key)
+    failed_keys = {source_error_key(item) for item in failures} - noted
+    failures = [item for item in failures if source_error_key(item) not in noted]
     states = [
-        _ERROR if source_error_key(source_identity(source)) in failed_keys and _state_for_source(source, records) != _READY
+        _NOT_APPLICABLE if source_error_key(source_identity(source)) in noted
+        else _ERROR if source_error_key(source_identity(source)) in failed_keys and _state_for_source(source, records) != _READY
         else _state_for_source(source, records)
         for source in sources
     ]
@@ -222,7 +248,9 @@ def build_lex_indexing_summary(
     total = len(sources)
     last_indexed_at = _last_ready_update(records)
     status = _overall_status(total=total, counts=counts)
-    warnings = _indexing_warnings(sources, records, extra_warnings=extra_warnings)
+    warnings = _indexing_warnings(
+        [source for source in sources if source_error_key(source_identity(source)) not in noted], records,
+        extra_warnings=[item for item in list(extra_warnings or []) if not causa_busta_cifrata("", item)])
     return LexIndexingSummary(
         total_documents=total,
         ready=int(counts[_READY]),
@@ -236,6 +264,8 @@ def build_lex_indexing_summary(
         status=status,
         warnings=warnings,
         source_errors=failures,
+        not_applicable=int(counts[_NOT_APPLICABLE]),
+        source_notes=notes,
     )
 
 
@@ -328,7 +358,7 @@ def _overall_status(*, total: int, counts: Counter[str]) -> str:
         return "stale"
     if counts[_INDEXING] or counts[_QUEUED] or counts["not_indexed"]:
         return "working"
-    if counts[_READY] == total:
+    if counts[_READY] + counts[_NOT_APPLICABLE] == total:
         return "ready"
     return "partial"
 

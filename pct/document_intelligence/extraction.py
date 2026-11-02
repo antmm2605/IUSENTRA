@@ -20,6 +20,7 @@ from shutil import which
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from .busta_cifrata import CODICE_BUSTA_CIFRATA, NOTA_BUSTA_CIFRATA, e_busta_cifrata
 from .models import DocumentAIPageText
 from .pdf_quality import has_only_signature_text, repair_pdf_cid_placeholders, score_extracted_text_quality
 from pct.formatting import format_datetime_it
@@ -120,6 +121,8 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str, *,
         return result
 
     ext = str(file_type or "").lower().lstrip(".")
+    if ext == "enc" or (ext == "bin" and e_busta_cifrata(filename)):
+        return _busta_cifrata_non_applicabile()
     # Il nome storico può essere .pdf o .bin mentre il payload è una PEC EML.
     # Le intestazioni MIME prevalgono sull'estensione per evitare un recupero
     # binario che scambi il contenitore per il testo dell'atto.
@@ -128,7 +131,7 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str, *,
         headers = BytesHeaderParser(policy=policy.default).parsebytes(content[:65536])
         if headers.get("From") and headers.get("Subject") and headers.get("MIME-Version"):
             return _extract_eml(content)
-    if ext in {"enc", "p7s"}:
+    if ext == "p7s":
         from .container_metadata import extract_cms_metadata
         return extract_cms_metadata(content)
     if ext == "bin":
@@ -780,6 +783,9 @@ def _extract_zip(content: bytes) -> ExtractionResult:
             entries = [entry for entry in archive.infolist() if not entry.is_dir()]
             chunks.append("File contenuti nell'archivio: " + ", ".join(entry.filename for entry in entries[:80]))
             for entry in entries[:20]:
+                if e_busta_cifrata(entry.filename):
+                    chunks.append(f"[{entry.filename}]\n{NOTA_BUSTA_CIFRATA}")
+                    continue
                 if entry.file_size > 5 * 1024 * 1024:
                     warnings.append(f"{entry.filename}: file interno troppo grande per estrazione immediata.")
                     continue
@@ -969,8 +975,17 @@ def _email_part_text(part: Message | EmailMessage, payload: bytes) -> str:
         return text
 
 
+def _busta_cifrata_non_applicabile() -> ExtractionResult:
+    """La busta Atto.enc è cifrata per l'ufficio (D.M. 44/2011 art. 14): non applicabile, mai decifrata."""
+    return ExtractionResult(ok=False, text="", pages=[], extraction_engine="busta_cifrata.v1",
+                            error_code=CODICE_BUSTA_CIFRATA, error_message=NOTA_BUSTA_CIFRATA)
+
+
 def _extract_eml_attachment(filename: str, payload: bytes) -> tuple[str, list[str]]:
     clean_name = Path(str(filename or "allegato")).name
+    if e_busta_cifrata(clean_name):
+        # La busta non rende incompleta la lettura del messaggio: si annota, non si legge.
+        return f"[Allegato: {clean_name}]\n{NOTA_BUSTA_CIFRATA}", []
     if not payload:
         return "", [f"{clean_name}: allegato vuoto o non leggibile."]
     file_type = _file_type_from_payload(payload, clean_name, fallback=Path(clean_name).suffix.lower().lstrip("."))

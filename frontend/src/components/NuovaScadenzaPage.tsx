@@ -156,19 +156,19 @@ type CheckItem = {
 type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 const fallbackTypes: SelectOption[] = [
-  { value: 'UDIENZA', label: 'UDIENZA' },
-  { value: 'DEPOSITO_MEMORIA', label: 'DEPOSITO_MEMORIA' },
-  { value: 'DEPOSITO_ATTO', label: 'DEPOSITO_ATTO' },
-  { value: 'NOTIFICA', label: 'NOTIFICA' },
-  { value: 'IMPUGNAZIONE', label: 'IMPUGNAZIONE' },
-  { value: 'RISPOSTA_ECCEZIONE', label: 'RISPOSTA_ECCEZIONE' },
-  { value: 'PAGAMENTO', label: 'PAGAMENTO' },
-  { value: 'PRESCRIZIONE', label: 'PRESCRIZIONE' },
-  { value: 'DECADENZA', label: 'DECADENZA' },
-  { value: 'ADEMPIMENTO', label: 'ADEMPIMENTO' },
-  { value: 'TERMINE_PERENTORIO', label: 'TERMINE_PERENTORIO' },
-  { value: 'TERMINE_ORDINATORIO', label: 'TERMINE_ORDINATORIO' },
-  { value: 'ALTRO', label: 'ALTRO' },
+  { value: 'UDIENZA', label: 'Udienza' },
+  { value: 'DEPOSITO_MEMORIA', label: 'Deposito memoria' },
+  { value: 'DEPOSITO_ATTO', label: 'Deposito atto' },
+  { value: 'NOTIFICA', label: 'Notifica' },
+  { value: 'IMPUGNAZIONE', label: 'Impugnazione' },
+  { value: 'RISPOSTA_ECCEZIONE', label: 'Risposta/eccezione' },
+  { value: 'PAGAMENTO', label: 'Pagamento' },
+  { value: 'PRESCRIZIONE', label: 'Prescrizione' },
+  { value: 'DECADENZA', label: 'Decadenza' },
+  { value: 'ADEMPIMENTO', label: 'Adempimento' },
+  { value: 'TERMINE_PERENTORIO', label: 'Termine perentorio' },
+  { value: 'TERMINE_ORDINATORIO', label: 'Termine ordinatorio' },
+  { value: 'ALTRO', label: 'Altro' },
 ]
 
 const fallbackOfficeModes: OfficeModeOption[] = [
@@ -842,7 +842,7 @@ export function NuovaScadenzaPage() {
                   <small>Titolo, tipo, fascicolo, responsabile, descrizione e note</small>
                 </span>
               </div>
-              <Badge tone={typeTone[form.tipo] || 'neutral'}>{form.tipo}</Badge>
+              <Badge tone={typeTone[form.tipo] || 'neutral'}>{displayText(fallbackTypes.find((item) => item.value === form.tipo)?.label || form.tipo)}</Badge>
             </header>
 
             <div className="iu-deadline-form-grid">

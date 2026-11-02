@@ -21,6 +21,8 @@ from datetime import date
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
+from pct.scadenze_stato import esito_udienza_da_registrare
+
 __all__ = ["build_regia_worklist", "countdown_scadenza"]
 
 # Punteggi di urgenza: piu' basso = piu' in alto nella coda.
@@ -87,7 +89,12 @@ def build_regia_worklist(
         priority = enum_value(getattr(scadenza, "priorita", ""))
         due = parse_date(getattr(scadenza, "data_scadenza", ""))
         label, tone, rank = countdown_scadenza(due, oggi)
-        overdue_or_today = rank in {_RANK_SCADUTA, _RANK_SCADE_OGGI}
+        esito_udienza = esito_udienza_da_registrare(scadenza, oggi)
+        if esito_udienza:
+            # Regola V28 (pct.scadenze_stato): l'udienza passata non «scade», se ne
+            # registra l'esito dal verbale o dal provvedimento (artt. 126 e 127-ter c.p.c.).
+            label, tone, rank = "ESITO UDIENZA DA REGISTRARE", "warning", _RANK_CRITICA
+        overdue_or_today = esito_udienza or rank in {_RANK_SCADUTA, _RANK_SCADE_OGGI}
         if priority not in priorita_urgenti and not overdue_or_today:
             continue
         deadline_id = str(getattr(scadenza, "id", "") or "")

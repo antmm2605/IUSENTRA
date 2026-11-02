@@ -40,7 +40,7 @@ function WarningPanel({ data }: { data: AmministrazionePageData }) {
       <div className="iu-adminhub-warnings">
         {data.warnings.map((warning) => (
           <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
+            <Badge tone="warning">Avviso</Badge>
             <span>{warning.message}</span>
           </div>
         ))}
@@ -84,7 +84,7 @@ function SecurityPanel({ data }: { data: AmministrazionePageData }) {
           <small>Apri registro →</small>
         </ButtonLink>
         <ButtonLink href="/utenti?stato=override" tone="neutral" aria-label="Apri utenti con permessi personalizzati">
-          <span>Override permessi</span>
+          <span>Permessi personalizzati</span>
           <strong>{formatValue(security.permissionOverrides || 0)}</strong>
           <small>Filtra utenti →</small>
         </ButtonLink>
@@ -190,7 +190,7 @@ function ProductReadinessView({ data, loading, error }: { data: ProductReadiness
           {data.warnings.length ? (
             <Panel title="Avvisi di verità" subtitle="Condizioni che impediscono una dichiarazione di completezza">
               <div className="iu-adminhub-warnings">
-                {data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">{warning.code}</Badge><span>{warning.message}</span></div>)}
+                {data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">Avviso</Badge><span>{warning.message}</span></div>)}
               </div>
             </Panel>
           ) : null}
@@ -252,7 +252,7 @@ function DataConsistencyView({ data, loading, error, onRefresh, filters, onFilte
               <span>Tenant: {data.tenantScope || 'studio corrente'} · I mirror JSON non sono stati letti né usati come fallback.</span>
             </div>
           </section>
-          {data.warnings.length ? <Panel title="Anomalie da presidiare"><div className="iu-adminhub-warnings">{data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">{warning.code}</Badge><span>{warning.message}</span></div>)}</div></Panel> : null}
+          {data.warnings.length ? <Panel title="Anomalie da presidiare"><div className="iu-adminhub-warnings">{data.warnings.map((warning) => <div className="iu-adminhub-warning" key={`${warning.code}-${warning.message}`}><Badge tone="warning">Avviso</Badge><span>{warning.message}</span></div>)}</div></Panel> : null}
           <section className="iu-readiness-kpis iu-consistency-kpis" aria-label="Riepilogo coerenza dati">
             <KpiCard label="Domini leggibili" value={formatValue(readableDomains)} note={`${data.domains.length} domini P0 censiti`} onClick={()=>{setMode('domini');setReadableOnly(true)}} active={mode==='domini'&&readableOnly} actionLabel="Consulta domini" />
             <KpiCard label="Eventi in attesa" value={data.outbox.readable?formatValue(data.outbox.pending):'Non disponibile'} note="Eventi interni da elaborare" onClick={()=>showEvents('PENDING')} active={mode==='eventi'&&filters.status==='PENDING'} actionLabel="Consulta eventi" />

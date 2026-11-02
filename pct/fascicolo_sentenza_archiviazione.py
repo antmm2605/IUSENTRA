@@ -10,8 +10,9 @@ from pct.pec_case_identity import document_case_identity_evidence
 from pct.spese_liquidate_lettura import estrai_spese_liquidate
 
 RULE = 'sentenza-propria-da-archiviare-v3-conclusiva'
-# Lettore «proposta_definizione»: cambia con la regola e con la lettura del dispositivo.
-VERSIONE_PROPOSTA = RULE + '+proposta-avvocato.v1'
+# Lettore «proposta_definizione»: cambia con la regola, con la lettura del dispositivo e con la
+# registrazione automatica dei casi certi (pct/sentenza_automatica.py): lo storico si riesamina sui testi salvati.
+VERSIONE_PROPOSTA = RULE + '+proposta-avvocato.v1+automatica.v1'
 
 def verifica_sentenza_da_archiviare(*, fascicolo: Any, testo: str, fonte: dict[str, Any], cliente: dict[str, Any] | None = None) -> dict[str, Any]:
     result = {'eligible': False, 'rule': RULE, 'fascicolo_id': str(fascicolo.id), 'source': fonte,

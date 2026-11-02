@@ -54,14 +54,16 @@ export type StatoAggiornamentoPianoResponse = {
 
 export async function fetchPianoGiorno(
   signal?: AbortSignal,
-  opts: { user?: string; date?: string } = {},
+  opts: { user?: string; date?: string; anteprima?: boolean } = {},
 ): Promise<PianoGiornoPayload> {
   const params = new URLSearchParams()
   if (opts.user) params.set('user', opts.user)
   if (opts.date) params.set('date', opts.date)
+  // Anteprima su richiesta: calcolata in lettura dal server, mai salvata come piano.
+  if (opts.anteprima) params.set('anteprima', '1')
   const query = params.toString()
   const url = `/api/v1/ui/daily-plan${query ? `?${query}` : ''}`
-  const cacheKey = `${opts.user || ''}|${opts.date || ''}`
+  const cacheKey = `${opts.user || ''}|${opts.date || ''}|${opts.anteprima ? 'anteprima' : ''}`
   const cached = pianoCache.get(cacheKey)
   try {
     const response = await fetch(url, {

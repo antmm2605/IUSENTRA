@@ -8,10 +8,10 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 462.
+- Endpoint React API contrattualizzati: 463.
 - Endpoint P0/P1 contrattualizzati: 391.
 - Endpoint con provider verification 200 rappresentativa: 31.
-- Endpoint con provider verification auth-error: 419.
+- Endpoint con provider verification auth-error: 420.
 - Endpoint pubblici della pagina di accesso (stato 200, scritture in errore sicuro senza credenziali): 3.
 - Endpoint pubblici Portale Cliente verificati con errore sicuro senza token valido: 40.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
@@ -463,6 +463,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Template atti | `/api/v1/ui/template-atti/studio/nuovo` | `POST` | Template atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/territorio/comuni` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/timesheet` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/uffici-giudiziari/opzioni` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Utenti | `/api/v1/ui/utenti` | `GET` | Utenti | P0 | verified | success+auth-error | `utenti.leggi/scrivi` | `n/a` | current_tenant | verified |
 | Utenti | `/api/v1/ui/utenti/{id_utente}/permessi` | `POST` | Utenti | P0 | complete | auth-error | `utenti.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |
 | Utenti | `/api/v1/ui/utenti/{id_utente}/profilo` | `POST` | Utenti | P0 | complete | auth-error | `utenti.leggi/scrivi` | `n/a` | current_tenant | complete-auth-error |

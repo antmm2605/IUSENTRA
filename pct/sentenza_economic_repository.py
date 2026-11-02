@@ -512,6 +512,30 @@ class SentenzaEconomicRepository:
             (tenant_id, event_id),
         )
 
+    def aggiorna_evento_se(self, tenant_id: str, event_id: str, *, da_stato: str, a_stato: str, revisore: str,
+                           da_revisore: str | None = None, nota: dict[str, Any] | None = None) -> bool:
+        """Cambia lo stato di un evento solo se è ancora quello atteso: una decisione intanto registrata resta.
+
+        Usato dalla registrazione automatica dalla sentenza, dal suo annullamento e dalla
+        fusione dei doppioni; `nota` si aggiunge alle evidenze dell'evento come traccia.
+        """
+        with self.connection() as conn:
+            self._prepare_live_write(conn)
+            riga = _row_dict(conn.execute(
+                "SELECT * FROM fascicolo_economic_events WHERE tenant_id=? AND id=?", (tenant_id, event_id)).fetchone())
+            if not riga or riga.get("status") != da_stato or (da_revisore is not None and riga.get("reviewed_by") != da_revisore):
+                return False
+            evidenze = json_loads(riga.get("evidence_json"), [])
+            if nota:
+                evidenze.append(dict(nota))
+            aggiornata = conn.execute(
+                "UPDATE fascicolo_economic_events SET status=?,reviewed_by=?,reviewed_at=?,evidence_json=? "
+                "WHERE tenant_id=? AND id=? AND status=? AND reviewed_by=? RETURNING id",
+                (a_stato, str(revisore or ""), utc_now(), json_dumps(evidenze), tenant_id, event_id,
+                 riga.get("status"), riga.get("reviewed_by") or ""),
+            ).fetchone()
+            return aggiornata is not None
+
     def reconcile_contributo_checks(self, tenant_id: str, fascicolo_id: str,
                                    resolution: dict[str, Any] | None) -> dict[str, int]:
         """Riconcilia solo la richiesta automatica di prova CU mancante.

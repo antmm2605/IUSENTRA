@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping
 from pct.formatting import format_date_it, format_datetime_it, parse_datetime_rome
-from web.services.admin_database_statistics_cache import mirror_statistics
+from web.services.admin_database_statistics_cache import mirror_statistics, sqlite_statistics, usage_statistics
 
 # Traced operational constructors still use these files directly. A SQL studio
 # profile alone must never classify them as compatibility mirrors.
@@ -53,7 +53,7 @@ def _module_kind(module: dict[str, Any], *, json_is_mirror: bool = False) -> dic
     if name == "search_index":
         return {"label": "SQLite", "tone": "info"}
     if json_is_mirror:
-        return {"label": "Mirror compatibilità", "tone": "neutral"}
+        return {"label": "Copia di compatibilità", "tone": "neutral"}
     if bool(module.get("migrabile_sqlite")):
         return {"label": "JSON core", "tone": "primary"}
     return {"label": "JSON", "tone": "neutral"}
@@ -224,17 +224,17 @@ def build_react_admin_database_payload(
 
     database = get_database()
     stats = mirror_statistics(database)
-    usage = database.analisi_uso()
+    usage = usage_statistics(database)
     sqlite_info = None
     sqlite_role = ""
     sqlite_path = _text(studio_db_path)
     if sqlite_path:
-        sqlite_info = database.statistiche_sqlite(sqlite_path)
+        sqlite_info = sqlite_statistics(database, sqlite_path)
         if sqlite_info:
             sqlite_role = "operativo"
     if not sqlite_info:
         snapshot_path = latest_sqlite_snapshot_path(backup_dir)
-        sqlite_info = database.statistiche_sqlite(snapshot_path)
+        sqlite_info = sqlite_statistics(database, snapshot_path)
         sqlite_path = snapshot_path
         sqlite_role = "snapshot" if sqlite_info else ""
     sqlite_payload = _sqlite_payload(sqlite_info, path=sqlite_path, role=sqlite_role)

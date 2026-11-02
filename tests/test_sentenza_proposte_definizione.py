@@ -142,7 +142,7 @@ def ambiente(tmp_path, monkeypatch):
     monkeypatch.setattr(archivio, "testi_indice_archivio", lambda _f: testi)
     monkeypatch.setattr(runtime, "_catalogo", lambda _fid: {})
     monkeypatch.setattr(runtime, "_cliente", lambda _f: {})
-    monkeypatch.setattr(runtime, "crediti_da_sentenza", lambda _fid: (True, []))
+    monkeypatch.setattr(runtime, "crediti_da_sentenza", lambda *_a, **_k: (True, []))
     monkeypatch.setattr(runtime, "_dopo_decisione", lambda *a, **k: None)
     monkeypatch.setattr(registro_runtime, "registro_corrente", lambda **_: registro)
     monkeypatch.setattr(registro_runtime, "tenant_corrente", lambda: "studio")

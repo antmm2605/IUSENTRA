@@ -6,6 +6,7 @@ truth. Le scritture restano sul servizio operativo ``/messaggi/nuovo``.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timedelta, timezone
@@ -105,6 +106,37 @@ def _channel_label(value: str) -> str:
     return {"EMAIL": "Email", "SMS": "SMS", "WHATSAPP": "WhatsApp"}.get(value, value)
 
 
+_TECHNICAL_ERROR = re.compile(
+    r"NoneType|object at 0x|<class |Traceback|Errno|Exception|Error\b|^\(|has no attribute|is required|not supported",
+)
+
+
+def _readable_error(raw: Any, stato: str, canale: str) -> str:
+    """Motivo dell'errore leggibile dall'avvocato.
+
+    Lo storico conserva il testo dell'eccezione: se è un messaggio tecnico
+    (eccezione Python, codice di libreria) non va mostrato com'è, ma ricondotto
+    a un'indicazione operativa sul canale; i motivi già in italiano restano.
+    """
+    text = _text(raw)
+    if stato != StatoMessaggio.FALLITO.value:
+        return text
+    label = _channel_label(canale) or "di invio"
+    if not text:
+        return f"Motivo non registrato: verifica la configurazione del canale {label} e ripeti l'invio."
+    if _TECHNICAL_ERROR.search(text):
+        if "has no attribute" in text and "NoneType" in text:
+            return (
+                f"Invio non riuscito: la configurazione del canale {label} era incompleta al momento dell'invio. "
+                "Completa i parametri in Impostazioni e ripeti l'invio."
+            )
+        return (
+            f"Invio non riuscito: il servizio {label} ha restituito un errore tecnico. "
+            "Verifica i parametri del canale in Impostazioni e ripeti l'invio."
+        )
+    return text
+
+
 def _client_lookup(clienti: list[Any]) -> dict[str, Any]:
     return {str(getattr(cliente, "id", "") or ""): cliente for cliente in clienti if str(getattr(cliente, "id", "") or "")}
 
@@ -170,7 +202,7 @@ def _message_item(message: Any, clienti_by_id: dict[str, Any]) -> dict[str, Any]
         "clientHref": f"/clienti/{id_cliente}/cartella" if id_cliente else "",
         "detailHref": f"/messaggi/{item_id}",
         "whatsappLink": whatsapp_link,
-        "error": _text(getattr(message, "errore", "")),
+        "error": _readable_error(getattr(message, "errore", ""), stato, canale),
         "note": _text(getattr(message, "note", "")),
         "initials": _initials(recipient),
         "manualWhatsapp": manual_whatsapp,

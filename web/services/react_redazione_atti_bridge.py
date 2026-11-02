@@ -140,7 +140,9 @@ def build_react_redazione_atti_payload(
             "id": "workflow_template",
             "title": "Catalogo template",
             "subtitle": "Punto di ingresso operativo",
-            "meta": f"{len(template_refs)} template e {len(production_models)} modelli produttivi",
+            # Totale reale dei modelli dello studio, come nel riquadro «Modelli dello studio»: i riferimenti
+            # in pagina sono solo un'anteprima.
+            "meta": f"{len(studio_templates)} modelli dello studio e il catalogo professionale",
             "stateLabel": "In pagina",
             "stateTone": "primary",
             "href": "/template-atti/catalogo",

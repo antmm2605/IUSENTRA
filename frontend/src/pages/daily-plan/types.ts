@@ -58,6 +58,7 @@ export const dailyPlanStatusLabel: Record<string, string> = {
 
 export const dailyPlanActionKindLabel: Record<string, string> = {
   deadline_fulfill: 'Gestione termine',
+  hearing_outcome: 'Esito udienza da registrare',
   pec_deadline: 'Termine PEC',
   pec_review: 'Presidio PEC',
   hearing_attend: 'Udienza',
@@ -121,7 +122,7 @@ export type AgendaOggiEntry = {
 
 export type PianoGiornoPayload = {
   ok: boolean
-  stato: 'pronto' | 'non_generato' | 'errore'
+  stato: 'pronto' | 'non_generato' | 'anteprima' | 'errore'
   data: string
   data_label: string
   utente: string

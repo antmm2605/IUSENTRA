@@ -30,6 +30,7 @@ ONEROSE = {
     "recesso": "facoltà di recesso", "recesso_conduttore": "recesso del conduttore", "risoluzione": "clausola risolutiva espressa",
     "sw_responsabilita": "limitazione di responsabilità", "legge_foro": "deroga alla competenza dell'autorità giudiziaria",
     "sublocazione_divieto": "divieto di sublocazione e cessione",
+    "recesso_conduttore_diverso": "recesso del conduttore", "sublocazione_diverso": "limiti alla sublocazione e alla cessione",
     "cessione_contratto": "divieto di cessione del contratto", "agenzia_non_concorrenza": "patto di non concorrenza",
     "agenzia_zona": "esclusiva", "sw_garanzia": "limitazioni della garanzia", "riservatezza": "obblighi di riservatezza post-contrattuali",
     "fideiussione_escussione": "rinuncia all'eccezione di preventiva escussione", "incarico_recesso": "recesso dall'incarico",
@@ -101,6 +102,9 @@ def componi(contratto_id: str, dati: dict | None = None, fatti: dict | None = No
     libreria = libreria_clausole()["clausole"]
     chiavi = clausole_della_famiglia(contratto)
     onerose = [f"art. {i} ({ONEROSE[c]})" for i, c in enumerate(chiavi, start=1) if c in ONEROSE]
+    if not onerose:
+        # Nessuna clausola onerosa (art. 1341, comma 2, c.c.): niente articolo di approvazione specifica vuoto.
+        chiavi = tuple(c for c in chiavi if c != "approvazione_specifica")
     articoli, da_completare = [], []
     for numero, chiave in enumerate(chiavi, start=1):
         clausola = libreria[chiave]

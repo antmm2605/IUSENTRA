@@ -138,6 +138,7 @@ function MessageRow({ item }:{ item: MessageItem }) {
           <span>{item.createdLabel || item.createdAt}</span>
         </div>
         <p>{item.preview}</p>
+        {item.status === 'FALLITO' && item.error ? <p className="iu-msg-warning">{item.error}</p> : null}
         <div className="iu-msg-meta">
           <ChannelBadge channel={item.channel} label={item.channelLabel}/>
           <MessageStatus item={item}/>
@@ -200,6 +201,7 @@ function MessageFocus({ item }:{item: MessageItem}) {
         <div><dt>Destinatario</dt><dd>{item.recipient || item.destination}</dd></div>
         <div><dt>Stato</dt><dd><MessageStatus item={item}/></dd></div>
         <div><dt>Creato</dt><dd>{item.createdLabel || item.createdAt || '-'}</dd></div>
+        {item.status === 'FALLITO' && item.error ? <div className="iu-msg-focus__error"><dt>Motivo dell'errore</dt><dd>{item.error}</dd></div> : null}
       </dl>
       <div className="iu-msg-focus__actions">
         <a href={`/messaggi/nuovo?canale=${encodeURIComponent(item.channel)}&destinatario=${encodeURIComponent(item.destination)}&oggetto=${encodeURIComponent(`Re: ${item.subject || ''}`)}`}><Send size={15}/>Rispondi</a>
@@ -491,7 +493,7 @@ export function NuovoMessaggioPage() {
             <button type="submit" disabled={submitState.saving}><Send size={17}/>{submitState.saving ? 'Invio...' : 'Invia'}</button>
             <a href="/messaggi">Annulla</a>
             <SubmitNotice state={submitState}/>
-            {!submitState.message ? <span>{loading ? 'Caricamento dati...' : 'Invio governato dai servizi dello studio'}</span> : null}
+            {!submitState.message ? <span className="iu-msg-submitbar__hint">{loading ? 'Caricamento dati...' : 'Invio governato dai servizi dello studio'}</span> : null}
           </div>
         </form>
 

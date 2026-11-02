@@ -263,6 +263,14 @@ def _status_tone(status: str) -> str:
     }.get(status.upper(), "neutral")
 
 
+# Origine della proforma mostrata nell'elenco. Le bozze automatiche del presidio economico
+# riportano un importo lordo indicativo senza IVA, Cassa e spese generali impostate.
+_PROFORMA_SOURCE_LABELS = {
+    "lex_ai_sentenza_tribunale": "Sentenza Lex AI",
+    "presidio_economico_fascicolo_definito": "Bozza automatica · fiscalità da completare",
+}
+
+
 def _status_label(status: str) -> str:
     return {
         "PAGATA": "Pagata",
@@ -735,7 +743,7 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "stateTone": _status_tone(status),
         "isProforma": _is_proforma(parcella),
         "documentKindLabel": _document_kind_label(parcella),
-        "proformaSourceLabel": "Sentenza Lex AI" if _text(getattr(parcella, "origine", "")) == "lex_ai_sentenza_tribunale" else "",
+        "proformaSourceLabel": _PROFORMA_SOURCE_LABELS.get(_text(getattr(parcella, "origine", "")), ""),
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
         "bankTransferReceived": False,
         "detailHref": f"/fatturazione?id_documento={pid}" if pid else "",
@@ -1132,7 +1140,7 @@ def build_react_fatturazione_payload(
         "warnings": warnings,
         "metrics": [
             _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)) if financial_available else "Da riscontrare", f"Anno {stats.get('anno', anno)}", "primary"),
-            _metric("incassato", "Incassato", _money(stats.get("incassato", 0)) if financial_available else "Da riscontrare", "Valori dal servizio fatturazione", "success"),
+            _metric("incassato", "Incassato", _money(stats.get("incassato", 0)) if financial_available else "Da riscontrare", f"Incassi registrati nel {stats.get('anno', anno)}", "success"),
             _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)) if financial_available else "Da riscontrare", "Parcelle emesse, non ancora scadute (tutti gli anni)", "warning"),
             _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)) if financial_available else "Da riscontrare", "Parcelle scadute e non pagate (tutti gli anni)", "danger" if stats.get("scaduto", 0) else "neutral"),
         ],

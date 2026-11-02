@@ -14,6 +14,7 @@ from collections import Counter
 from lex.autonomy.models import ImprovementProposal
 from lex.autonomy.safety import assert_no_autonomous_code_write
 from lex.knowledge.knowledge_base import KnowledgeBase
+from lex.learning.legal_language_analyzer import termine_candidato_ammissibile
 
 # P1: atti citati con sigle non ancora coperte dagli estrattori deterministici.
 _UNRECOGNIZED_ACT_RE = re.compile(
@@ -143,14 +144,16 @@ def _p4_ontologia(terms: list[dict]) -> list[ImprovementProposal]:
         normalized = str(payload.get("normalized") or "").strip()
         if occurrences < _MIN_ONTOLOGY_OCCURRENCES or not normalized:
             continue
+        if not termine_candidato_ammissibile(normalized):
+            continue
         proposals.append(
             ImprovementProposal(
                 kind="ontologia",
                 title=f"Aggiungere il concetto '{normalized}' all'ontologia giuridica",
                 description=(
                     f"Il termine '{normalized}' ricorre {occurrences} volte nei testi analizzati "
-                    f"(area {payload.get('area') or 'n.d.'}) ma non è nell'ontologia: aggiungerlo a "
-                    "LEGAL_ONTOLOGY con sinonimi e fonti primarie verificate."
+                    f"(area {payload.get('area') or 'non indicata'}) ma non è nell'ontologia giuridica di Lex: "
+                    "valutarne l'aggiunta con sinonimi e fonti primarie verificate."
                 ),
                 target_module="lex/knowledge/legal_ontology.py",
                 confidence=0.7,

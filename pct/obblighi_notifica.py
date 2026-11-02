@@ -88,7 +88,7 @@ REGOLE: tuple[RegolaNotifica, ...] = (
         ),
         avvertenze="Entro 10 giorni dalla pronuncia del decreto (art. 415, quarto comma: termine ordinatorio). "
                    "Pubblico impiego: notifica presso l'amministrazione (art. 144, secondo comma) o, per le amministrazioni statali, "
-                   "presso l'Avvocatura dello Stato competente (art. 415, settimo comma); l'amministrazione può stare in giudizio con propri funzionari (art. 417-bis).",
+                   "presso l'Avvocatura dello Stato competente (art. 415, settimo comma); in primo grado l'amministrazione può stare in giudizio avvalendosi direttamente di propri dipendenti (art. 417-bis).",
     ),
     RegolaNotifica(
         "semplificato_281undecies", ("Ricorso nel procedimento semplificato di cognizione", "Ricorso ex art. 281-undecies c.p.c.", "Ricorso ex art. 702-bis / rito semplificato"),
@@ -219,7 +219,7 @@ class ObbligoNotifica:
     def to_dict(self) -> dict[str, Any]:
         return {
             "chiave": self.chiave, "regola": self.regola.id, "documentoId": self.documento.id, "documento": self.documento.nome,
-            "etichetta": self.documento.etichetta, "atti": self.regola.atti, "stato": self.stato, "motivo": self.motivo,
+            "etichetta": self.documento.etichetta, "dataAtto": self.documento.data, "atti": self.regola.atti, "stato": self.stato, "motivo": self.motivo,
             "scadenza": self.scadenza, "natura": self.natura, "formula": self.formula, "destinatari": list(self.destinatari),
             "fonti": list(self.regola.fonti), "dopo": self.regola.dopo, "avvertenze": self.regola.avvertenze,
             "facoltativa": self.regola.facoltativa,

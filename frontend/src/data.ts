@@ -253,7 +253,7 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
     {
       id: 'source-agenda',
       title: 'Agenda e calendari',
-      description: `${dashboard.agenda.length} appuntamenti nell’orizzonte della dashboard, pronti per sincronizzazione calendari.`,
+      description: `${dashboard.agenda.length} appuntamenti fra oggi e i prossimi giorni, pronti per la sincronizzazione dei calendari.`,
       href: '/agenda',
       badge: `${dashboard.agenda.length}`,
       tone: dashboard.agenda.length ? 'primary' : 'neutral',
@@ -261,7 +261,7 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
     {
       id: 'source-fascicoli',
       title: 'Fascicoli',
-      description: `${openMatters} fascicoli attivi e ${dashboard.matters.length} pratiche con priorita alta nel riepilogo operativo.`,
+      description: `${openMatters} fascicoli non archiviati (in corso e definiti) e ${dashboard.matters.length} pratiche con priorità alta nel riepilogo operativo.`,
       href: '/fascicoli',
       badge: `${openMatters}`,
       tone: dashboard.matters.length ? 'orange' : 'neutral',

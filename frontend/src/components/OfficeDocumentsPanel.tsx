@@ -1016,7 +1016,7 @@ function OfficeDocumentsPstPanel({ data, onDone, onError, openOfficeDocumentsReq
         <div>
           <span className="iu-fas-office-docs__eyebrow"><FolderSearch2 size={15}/> Fascicolo d’ufficio</span>
           <strong>Documenti disponibili presso l’ufficio</strong>
-          <p>{officeName} · R.G. {rgNumber || 'n.d.'}/{rgYear || 'n.d.'}</p>
+          <p>{officeName} · {rgNumber && rgYear ? `R.G. ${rgNumber}/${rgYear}` : rgNumber ? `R.G. ${rgNumber} (anno da completare)` : 'R.G. da acquisire'}</p>
         </div>
         <div className="iu-fas-office-docs__head-actions">
           <button

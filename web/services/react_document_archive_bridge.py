@@ -29,6 +29,7 @@ _TYPE_LABELS = {
     "DEPOSITO_PCT": "Deposito telematico",
     "NOTIFICA": "Notifica legale",
     "CONTRATTO": "Contratto",
+    "PARCELLA": "Parcella",
     "ALTRO": "Altro documento",
 }
 
@@ -39,7 +40,30 @@ _SOURCE_LABELS = {
     "PST": "Portale Servizi",
     "POLISWEB": "Portale Servizi",
     "CARICAMENTO_STUDIO": "Studio",
+    "PEC_CANCELLERIA": "PEC di cancelleria",
+    "PEC_AUDIT_PIPELINE": "Presidio PEC",
+    "PEC_AUDIT_NOTIFICATION_RECEIPT": "Ricevuta di notifica PEC",
+    "PAGOPA_RT_PEC": "Ricevuta pagoPA via PEC",
+    "NOTIFICA_LEGALE": "Notifica legale",
+    "REDAZIONE_STUDIO": "Redazione dello studio",
+    "EDITOR_AI_LEX": "Editor con Lex",
+    "DOCUMENTI_AI_SERVER": "Lettura assistita",
+    "APERTURA_FASCICOLO_VELOCE": "Apertura del fascicolo",
+    "COPIA_RUOTATA_DA_LETTORE": "Copia ruotata dal lettore",
+    "CTU_LIQUIDAZIONE": "Liquidazione CTU",
 }
+
+# Formati riconosciuti: il suffisso del nome conta come formato solo se è un'estensione di file
+# reale. Nomi come «Ricorso 23.11.2025» o «atto ric. Compagnone» non hanno estensione.
+_FORMATI_NOTI = frozenset(
+    "pdf p7m p7s m7m tsd tsr xml eml msg doc docx docm odt rtf txt html htm zip rar 7z enc "
+    "jpg jpeg png gif bmp tif tiff webp heic svg xls xlsx xlsm ods csv ppt pptx odp json ics vcf "
+    "mp3 mp4 m4a wav ogg mov avi".split()
+)
+# Marcatori tecnici che le pipeline scrivono in testa alle note (es. «IUSENTRA_PROVVEDIMENTO_CANCELLERIA:<id>»):
+# servono al software per l'idempotenza, non all'avvocato.
+_MARCATORE_NOTE = re.compile(r"^IUSENTRA_[A-Z_]+:\S*\s*$")
+_DATA_ISO = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 
 
 def _text(value: Any, default: str = "") -> str:
@@ -51,13 +75,25 @@ def _enum_value(value: Any) -> str:
     return _text(getattr(value, "value", value)).upper()
 
 
-def _format_name(value: Any) -> str:
-    name = _text(value).lower()
-    for compound in (".pdf.p7m", ".xml.p7m", ".docx.p7m", ".doc.p7m"):
-        if name.endswith(compound):
-            return compound[1:].upper()
-    match = re.search(r"\.([a-z0-9]{1,10})$", name)
-    return match.group(1).upper() if match else "ALTRO"
+def _format_name(*values: Any) -> str:
+    """Formato dal primo nome con un'estensione riconosciuta (nome, nome originale, percorso)."""
+    for value in values:
+        name = _text(value).lower()
+        for compound in (".pdf.p7m", ".xml.p7m", ".docx.p7m", ".doc.p7m"):
+            if name.endswith(compound):
+                return compound[1:].upper()
+        match = re.search(r"\.([a-z0-9]{1,5})$", name)
+        if match and match.group(1) in _FORMATI_NOTI:
+            return match.group(1).upper()
+    return "ALTRO"
+
+
+def _public_notes(value: Any) -> str:
+    """Note leggibili: senza marcatori tecnici e con le date in formato italiano."""
+    righe = [riga for riga in _text(value).splitlines() if not _MARCATORE_NOTE.match(riga.strip())]
+    testo = "\n".join(righe).strip()
+    testo = re.sub(r"^IUSENTRA_[A-Z_]+:\S+\s*", "", testo)
+    return _DATA_ISO.sub(lambda m: f"{m.group(3)}/{m.group(2)}/{m.group(1)}", testo)
 
 
 def _bytes_label(value: Any) -> str:
@@ -117,14 +153,14 @@ def _row(fascicolo: Any, documento: Any, *, in_trash: bool) -> dict[str, Any]:
         "originalName": _text(getattr(documento, "nome_originale", "")),
         "type": raw_type,
         "typeLabel": _TYPE_LABELS.get(raw_type, raw_type.replace("_", " ").title()),
-        "format": _format_name(name),
+        "format": _format_name(name, getattr(documento, "nome_originale", ""), getattr(documento, "percorso", "")),
         "size": _bytes_label(getattr(documento, "dimensione_bytes", 0)),
         "sizeBytes": int(getattr(documento, "dimensione_bytes", 0) or 0),
         "uploadedAt": format_datetime_it(uploaded_at),
         "uploadedAtIso": uploaded_at,
         "documentDate": format_date_it(document_date),
         "documentDateIso": document_date,
-        "notes": _text(getattr(documento, "note", "")),
+        "notes": _public_notes(getattr(documento, "note", "")),
         "tags": [_text(tag) for tag in (getattr(documento, "tags", []) or []) if _text(tag)],
         "source": _source_label(documento),
         "inTrash": in_trash,
@@ -241,7 +277,7 @@ def build_react_document_archive_payload(
         },
         "facets": {
             "types": _facet(type_counts, _TYPE_LABELS),
-            "formats": _facet(format_counts),
+            "formats": _facet(format_counts, {"ALTRO": "Altro formato"}),
             "matters": [{**facet, 'client': matter_clients.get(facet['value'], '')} for facet in _facet(matter_counts, matter_labels)],
         },
         "pagination": {

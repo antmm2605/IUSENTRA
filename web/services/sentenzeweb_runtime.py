@@ -27,7 +27,7 @@ def search(config, query=""):
             "ok": True,
             "available": False,
             "records": [],
-            "message": "Corpus condiviso SentenzeWeb non configurato.",
+            "message": "Archivio delle sentenze della Cassazione non ancora attivato su questa installazione: la ricerca nei testi scaricati non è disponibile.",
         }
     query = str(query).strip()
     if len(query) > 500:

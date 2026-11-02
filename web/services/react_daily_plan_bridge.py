@@ -58,13 +58,31 @@ class DailyPlanForbidden(PermissionError):
     pass
 
 
-def build_react_daily_plan_payload(*, target_date: str = "", user_id: str) -> dict[str, Any]:
+#: giorni futuri per cui si può chiedere l'anteprima (Domani, Dopodomani e la settimana)
+ANTEPRIMA_GIORNI_MASSIMI = 7
+
+
+def build_react_daily_plan_payload(*, target_date: str = "", user_id: str, anteprima: bool = False) -> dict[str, Any]:
     service = service_for_current_request()
     target = target_date or service.clock.today().isoformat()
     plan = service.read_plan(user_id=user_id, target_date=target)
     if plan is None:
+        if anteprima and _anteprima_ammessa(target, service.clock.today()):
+            # Solo su richiesta esplicita dell'avvocato: i collettori girano in lettura,
+            # nulla viene salvato come piano definitivo.
+            return plan_summary_payload(service.preview_plan(user_id=user_id, target_date=target))
         return plan_missing_payload(target, user_id)
     return plan_summary_payload(plan)
+
+
+def _anteprima_ammessa(target: str, oggi: Any) -> bool:
+    from datetime import date
+
+    try:
+        giorno = date.fromisoformat(target)
+    except ValueError:
+        return False
+    return 0 <= (giorno - oggi).days <= ANTEPRIMA_GIORNI_MASSIMI
 
 
 def daily_plan_coverage_payload(*, target_date: str = "") -> dict[str, Any]:

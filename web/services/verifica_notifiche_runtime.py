@@ -23,7 +23,7 @@ def verifica_fascicolo(fascicolo) -> dict:
         if item["scadenza"]:
             item["verifiche"].insert(0, "Data proposta dalla regola: conferma nel calcolatore dei termini con il profilo del procedimento.")
         if item["stato"] == "notificato":
-            item["verifiche"] = ["Prova riferita espressamente all'atto e a tutti i destinatari."]
+            item["verifiche"] = [item["motivo"] if item.get("prove_documenti") else "Prova riferita espressamente all'atto e a tutti i destinatari."]
         item["source_href"] = f"/fascicoli/{fascicolo.id}/documenti/{item['documentoId']}/visualizza"
     return {"ok": True, "fascicolo_id": str(fascicolo.id), "obblighi": obblighi,
             "puo_verificare": bool(user and user.ha_permesso("fascicoli.scrivi")),

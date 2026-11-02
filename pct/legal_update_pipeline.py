@@ -1179,7 +1179,20 @@ def _review_needs_publication_verification(review: dict[str, Any]) -> bool:
     return False
 
 
-def _verification_publication_context(verification: dict[str, Any]) -> tuple[str, str]:
+def _conferma_pertinente(excerpt: str, titolo: str) -> bool:
+    """La conferma riguarda la stessa notizia: numeri dell'atto o almeno due parole del titolo (senza titolo non si filtra)."""
+    titolo_pulito = _clean_spaces(titolo).lower()
+    if not titolo_pulito:
+        return True
+    testo = excerpt.lower()
+    numeri = {numero for numero in re.findall(r"\b\d{2,}\b", titolo_pulito) if not re.fullmatch(r"(19|20)\d{2}", numero)}
+    if numeri and any(re.search(rf"\b{numero}\b", testo) for numero in numeri):
+        return True
+    parole = {parola for parola in re.findall(r"[a-zàèéìòù]{5,}", titolo_pulito)}
+    return sum(1 for parola in parole if parola in testo) >= 2
+
+
+def _verification_publication_context(verification: dict[str, Any], titolo: str = "") -> tuple[str, str]:
     if not verification.get("ok"):
         return "", ""
     confirmations = [row for row in list(verification.get("confirmations") or []) if isinstance(row, dict)]
@@ -1189,6 +1202,10 @@ def _verification_publication_context(verification: dict[str, Any]) -> tuple[str
     for row in confirmations:
         excerpt = _clean_spaces(row.get("excerpt") or row.get("full_context") or row.get("content"))
         if not excerpt:
+            continue
+        # Un frammento troncato a metà parola e privo di legami con la notizia è un
+        # risultato di ricerca estraneo, non una conferma (verifica visiva LEX-21).
+        if excerpt[:1].islower() and not _conferma_pertinente(excerpt, titolo):
             continue
         key = excerpt.lower()[:140]
         if key in seen:
@@ -1211,7 +1228,7 @@ def _review_with_verification_publication_context(
 ) -> dict[str, Any]:
     if not verification:
         return review
-    summary, context = _verification_publication_context(verification)
+    summary, context = _verification_publication_context(verification, _clean_spaces(review.get("title")))
     if not summary and not context:
         return review
     enriched = dict(review)

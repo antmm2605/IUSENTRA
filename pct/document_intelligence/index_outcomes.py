@@ -22,5 +22,7 @@ def source_error(source: DocumentAISource, exc: Exception) -> dict[str, Any]:
         from .security import DocumentAIValidationError
         code = "source_validation_failed" if isinstance(exc, DocumentAIValidationError) else "source_processing_failed"
         message = str(exc) if isinstance(exc, DocumentAIValidationError) else "Indicizzazione della fonte non completata."
+    from .motivi_lettura import motivo_per_avvocato
+
     return {**source_identity(source), "document_id": str(source.metadata.get("documento_id") or source.source_id),
-            "filename": source.filename, "error_code": code, "message": message}
+            "filename": source.filename, "error_code": code, "message": motivo_per_avvocato(code, message)}

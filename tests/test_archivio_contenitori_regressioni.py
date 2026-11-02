@@ -32,7 +32,7 @@ def test_email_senza_estensione_non_indicizza_base64_o_busta_cifrata():
     assert result.ok
     assert result.extraction_engine == "email.message.v2"
     assert "Si trasmette il deposito" in result.text
-    assert "non è stato decifrato" in result.text
+    assert "Busta cifrata per l'ufficio" in result.text
     assert "TESTO_CIFRATO_NON_LEGGIBILE" not in result.text
     assert "Content-Transfer-Encoding" not in result.text
     assert len(result.text) < 1500

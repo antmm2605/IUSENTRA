@@ -6,7 +6,10 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 from typing import Any, Callable
 
+import re
+
 from pct.motore_preventivo import catalogo_wizard_counts
+from pct.tariffario_catalogo import phase_catalog_by_materia, rule_lookup
 from web.services.react_tariffario_compute import build_react_tariffario_run_payload
 
 
@@ -140,22 +143,50 @@ def _permissions(current_user: Any | None) -> dict[str, bool]:
     }
 
 
+def _proceedings(regole: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Procedimenti selezionabili: una voce per regola tariffaria, tutte le regole.
+
+    Si usano solo i codici regola (non i codici profilo, che coincidono in parte con
+    quelli delle regole e non sono riconosciuti dal motore come regola): ogni voce porta
+    con sé tabella e grado corretti. Le etichette uguali nella stessa area si
+    distinguono con il grado.
+    """
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in regole:
+        code = _text(row.get("rule_code"))
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        rows.append(
+            {
+                "value": code,
+                "label": _text(row.get("label")) or _text(row.get("table_label")) or "Parametro tariffario",
+                "area": _text(row.get("materia_label")),
+                "grade": _text(row.get("grado_input_value")),
+                "_summary": _text(row.get("summary")).rstrip("."),
+            }
+        )
+    for attempt in ("grade", "_summary"):
+        counts: dict[tuple[str, str], int] = {}
+        for row in rows:
+            counts[(row["area"], row["label"])] = counts.get((row["area"], row["label"]), 0) + 1
+        for row in rows:
+            extra = row[attempt]
+            if counts[(row["area"], row["label"])] > 1 and extra and extra.lower() not in row["label"].lower():
+                row["label"] = f"{row['label']} ({extra})"
+    for row in rows:
+        row.pop("_summary", None)
+    return rows
+
+
 def _parameters(profili: list[dict[str, Any]], regole: list[dict[str, Any]]) -> dict[str, Any]:
     areas = sorted({_text(row.get("materia_label")) for row in profili + regole if _text(row.get("materia_label"))})
-    proceedings = [
-        {
-            "value": _text(row.get("profile_code")) or _text(row.get("rule_code")),
-            "label": _text(row.get("label")) or _text(row.get("table_label")) or "Parametro tariffario",
-            "area": _text(row.get("materia_label")),
-            "grade": _text(row.get("grado_input_value")),
-        }
-        for row in (profili[:80] + regole[:80])
-    ]
     return {
         "areas": [{"value": area, "label": area} for area in areas],
-        "proceedings": [row for row in proceedings if row["value"] or row["label"]],
+        "proceedings": _proceedings(regole),
+        # Il motore conosce quattro livelli di complessità (pct.tariffario.ComplessitaStimata).
         "complexities": [
-            {"value": "minima", "label": "Minima"},
             {"value": "bassa", "label": "Bassa"},
             {"value": "media", "label": "Media"},
             {"value": "alta", "label": "Alta"},
@@ -253,6 +284,38 @@ def _audit(get_utenti: Callable[[], Any] | None, current_user: Any, resource_id:
         pass
 
 
+def _phase_key(value: str) -> str:
+    text = _text(value).lower().replace("’", "'")
+    text = re.sub(r"^fase\s+(?:di|della|dello|del|dell')?\s*", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _fasi_richieste(area: str, payload: dict[str, Any]) -> tuple[list[str], str]:
+    """Riconosce le fasi indicate a testo; una fase sconosciuta non si ignora in silenzio."""
+    raw = payload.get("fasi") or ([payload.get("fase")] if _text(payload.get("fase")) else [])
+    if not isinstance(raw, list):
+        raw = [raw]
+    catalog = phase_catalog_by_materia().get(area) or []
+    if not raw:
+        return [], ""
+    if not catalog:
+        return [_text(item) for item in raw if _text(item)], ""
+    chosen: list[str] = []
+    for item in raw:
+        wanted = _phase_key(item)
+        if not wanted:
+            continue
+        exact = [row["value"] for row in catalog if wanted in {_phase_key(row["value"]), _phase_key(row["label"])}]
+        partial = [row["value"] for row in catalog if len(wanted) >= 4 and _phase_key(row["value"]).startswith(wanted)]
+        found = exact or (partial if len(partial) == 1 else [])
+        if not found:
+            ammesse = ", ".join(row["label"] for row in catalog)
+            return [], f"Fase «{_text(item)}» non prevista per quest'area. Fasi ammesse: {ammesse}."
+        if found[0] not in chosen:
+            chosen.append(found[0])
+    return chosen, ""
+
+
 def calculate_react_compensi_forensi(
     *,
     get_normative_tables: Callable[[], Any],
@@ -282,12 +345,23 @@ def calculate_react_compensi_forensi(
     value = _text(payload.get("valore_controversia")) or "0"
     if not area:
         return _validation_error("Seleziona l'area del calcolo.", {"area": "Campo obbligatorio."})
+    procedimento = _text(payload.get("procedimento"))
+    if procedimento:
+        regola = rule_lookup(procedimento)
+        if not regola or _text(regola.get("materia_label")) != area:
+            return _validation_error(
+                "Il procedimento scelto non appartiene all'area indicata: sceglilo di nuovo.",
+                {"procedimento": "Procedimento non coerente con l'area."},
+            )
+    fasi, fase_error = _fasi_richieste(area, payload)
+    if fase_error:
+        return _validation_error(fase_error, {"fase": "Fase non riconosciuta."})
     calc_payload = {
         "materia": area,
-        "regola_tariffaria": _text(payload.get("procedimento")),
+        "regola_tariffaria": procedimento,
         "valore": value,
         "complessita": _text(payload.get("complessita")) or "media",
-        "fasi": payload.get("fasi") or ([payload.get("fase")] if _text(payload.get("fase")) else []),
+        "fasi": fasi,
         "spese_generali": True,
         "bonus_telematico": False,
     }

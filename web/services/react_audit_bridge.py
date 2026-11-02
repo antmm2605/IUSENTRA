@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Callable
 
+from web.services.audit_leggibile import esito_registro, etichetta_azione, etichetta_risorsa, testo_dettagli
 from web.services.audit_surface import build_audit_view
 
 
@@ -110,16 +111,17 @@ def _details_payload(details: str) -> dict[str, Any]:
 
 
 def _normalise_record(row: dict[str, Any]) -> dict[str, Any]:
-    result = _text(row.get("esito") or "OK").upper()
+    result = esito_registro(row.get("esito"))
     resource_state = _text(row.get("resource_state"))
-    details = _safe_string(row.get("dettagli"))
+    details = _safe_string(testo_dettagli(row.get("dettagli")))
     return {
         "id": _text(row.get("id") or row.get("timestamp") or row.get("azione")),
         "timestamp": _text(row.get("timestamp")),
         "userId": _text(row.get("id_utente")),
         "username": _text(row.get("username")) or "Utente non indicato",
-        "action": _text(row.get("azione")) or "azione non indicata",
-        "resourceType": _text(row.get("risorsa_tipo")),
+        "action": etichetta_azione(row.get("azione")),
+        "actionCode": _text(row.get("azione")),
+        "resourceType": etichetta_risorsa(row.get("risorsa_tipo")),
         "resourceId": _text(row.get("risorsa_id")),
         "details": details,
         "ip": _text(row.get("ip")),
@@ -319,7 +321,7 @@ def build_react_audit_detail_payload(
     return {"ok": True, "message": "Dettaglio evento caricato.", "errors": {}, "item": detail}, 200
 
 
-def build_react_audit_error_payload(message: str = "Registro attivita non disponibile.", *, route: str = "/audit") -> dict[str, Any]:
+def build_react_audit_error_payload(message: str = "Registro attività non disponibile.", *, route: str = "/audit") -> dict[str, Any]:
     return {
         "ok": False,
         "source": "errore_controllato",

@@ -24,7 +24,7 @@ LETTORI: dict[str, dict[str, Any]] = {
     },
     "proposta_definizione": {
         "etichetta": "Sentenza e definizione",
-        "descrizione": "Proposta di definizione del fascicolo dalla sentenza che decide la causa, da confermare dall'avvocato",
+        "descrizione": "Definizione del fascicolo e credito delle spese dalla sentenza che decide la causa: automatici solo se certi, altrimenti da confermare dall'avvocato",
         "livello": "oggetto",
         "tipi": ("documento",),
     },

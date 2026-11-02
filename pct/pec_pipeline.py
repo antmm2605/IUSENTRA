@@ -38,6 +38,7 @@ from pct.pec_collegamento_certo import STATO_CERTO as LINK_STATO_RUOLO_CLIENTE_U
 from pct.pec_collegamento_certo import applica_collegamento_certo, cerca_collegamento_certo
 from pct.email_client import cartelle_imap_standard
 from pct.pec_legal_deadline_proposer import propose_from_parsed
+from pct.scadenze_titolo_avvocato import conserva_scelta_titolo, titolo_scelto_da_avvocato
 from pct.scadenze_proposte_pec import (
     bozza_marker,
     bozza_scadenza_fields,
@@ -5279,6 +5280,15 @@ def _normalise_event_phrase(value: str) -> str:
     return text[:1].upper() + text[1:].lower()
 
 
+_PAROLE_RINVIO = frozenset({"rinvio", "rinviata", "rinviato", "di", "del", "dell", "della", "d", "udienza", "l", "la"})
+
+
+def _dettaglio_rinvio(oggetto: str) -> str:
+    """Parte dell'oggetto che aggiunge qualcosa a «Rinvio udienza» (vuota se è solo una ripetizione)."""
+    parole = re.findall(r"[0-9A-Za-zÀ-ÿ.\-]+", oggetto.lower())
+    return " ".join(parola for parola in parole if parola not in _PAROLE_RINVIO)
+
+
 def _hearing_event_summary(parsed: dict[str, Any], candidate: dict[str, Any]) -> str:
     profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
     context = clean_text(candidate.get("context") or "", 520)
@@ -5297,7 +5307,12 @@ def _hearing_event_summary(parsed: dict[str, Any], candidate: dict[str, Any]) ->
     if "differimento udienza" in haystack:
         return "Differimento udienza"
     if "rinvio" in haystack or "rinviata" in haystack or "rinviato" in haystack:
-        if object_norm and "rinvio" in object_norm.lower():
+        # L'oggetto del registro ripete spesso l'evento («Rinvio di udienza»): si aggiunge
+        # solo se porta un'informazione in più, per non generare «Rinvio udienza - Rinvio di udienza».
+        if object_norm and "rinvio" in object_norm.lower() and _dettaglio_rinvio(object_norm):
+            resto = re.sub(r"^rinvio\s+(?:di\s+|dell['’]\s*|della\s+)?udienza\b[\s:\-]*", "", object_norm, flags=re.I)
+            if resto != object_norm:
+                return f"Rinvio udienza {resto}"
             return f"Rinvio udienza - {object_norm}"
         return "Rinvio udienza"
     if "fissazione udienza" in haystack or "fissata udienza" in haystack:
@@ -5622,7 +5637,7 @@ def _deadline_updates_for_existing(existing: Any, proposal: dict[str, Any], *, t
     updates: dict[str, Any] = {}
     current_title = clean_text(getattr(existing, "titolo", "") or "", 160)
     generated_from_pec = "PEC_AUDIT:" in str(getattr(existing, "note", "") or "")
-    if title and current_title != title and (
+    if title and current_title != title and not titolo_scelto_da_avvocato(existing) and (
         generated_from_pec
         or current_title.startswith(("Udienza da PEC", "Termine da PEC", "Valuta termini da notifica PEC", "Data processuale"))
     ):
@@ -15282,6 +15297,8 @@ class PecAuditRepository:
             120,
         )
         previous_note = str(getattr(previous, "note", "") or "").rstrip()
+        if titolo_scelto_da_avvocato(previous):
+            new_title = str(getattr(previous, "titolo", "") or new_title)
         updates: dict[str, Any] = {
             "data_scadenza": new_date,
             "operational_due_at": new_date,
@@ -17093,6 +17110,9 @@ class PecAuditRepository:
                     for field, value in authoritative_updates.items():
                         if getattr(existing, field, None) != value:
                             updates[field] = value
+                # Titolo cambiato dall'avvocato (pct.scadenze_titolo_avvocato): la manutenzione
+                # PEC riallinea date e profilo, mai il titolo, e conserva la traccia della scelta.
+                updates = conserva_scelta_titolo(updates, existing)
                 current_note = str(updates.get("note") or getattr(existing, "note", "") or "")
                 current_note_lines = {line.strip() for line in current_note.splitlines() if line.strip()}
                 if marker not in current_note_lines:

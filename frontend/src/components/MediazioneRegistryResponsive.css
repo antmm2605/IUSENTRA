@@ -1,3 +1,4 @@
+@import '../theme/impeccable-open-design.css';
 /* Keep the same fields and inline detail, without a horizontal hunt for actions. */
 @media (max-width: 1100px) {
   #registro-mediazione .iu-li-registry-table-wrap { overflow: visible; border: 0; }

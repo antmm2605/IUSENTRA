@@ -81,6 +81,28 @@ class Fase(str, Enum):
     CONCILIAZIONE = "Fase di conciliazione"
 
 
+# Art. 20, comma 1-bis, D.M. 55/2014 (testo vigente dal 23/10/2022): nella mediazione e
+# nella negoziazione assistita le fasi sono «dell'attivazione», «di negoziazione» e «di
+# conciliazione»; l'aumento del 30% con accordo riguarda attivazione e negoziazione.
+# La chiave interna storica «rivitalizzazione» (Fase.RIVITALIZZAZIONE, colonna Istruttoria
+# della Tabella 27, maggiorata del 30% con l'accordo) è la fase di negoziazione: resta
+# invariata nei dati salvati, ma all'avvocato si mostra sempre la denominazione della norma.
+_ETICHETTE_FASI_ART20 = (
+    ("Fase di rivitalizzazione", "Fase di negoziazione"),
+    ("fase di rivitalizzazione", "fase di negoziazione"),
+    ("Rivitalizzazione", "Negoziazione"),
+    ("rivitalizzazione", "negoziazione"),
+)
+
+
+def etichetta_fase(testo: object) -> str:
+    """Testo da mostrare: sostituisce la chiave interna storica con la fase dell'art. 20 c. 1-bis."""
+    out = "" if testo is None else str(testo)
+    for interna, mostrata in _ETICHETTE_FASI_ART20:
+        out = out.replace(interna, mostrata)
+    return out
+
+
 class LivelloCompenso(str, Enum):
     MINIMO = "minimo"
     BASE = "base"
@@ -238,7 +260,7 @@ _LABELS_3 = [
     (5200, float("inf"), "Da € 5.200 a € 26.000 (limite GdP)"),
 ]
 _LABELS_7 = [
-    (0, 1100, "Fino a € 1.100 (o indeterminabile)"),
+    (0, 1100, "Fino a € 1.100"),
     (1100, 5200, "Da € 1.100 a € 5.200"),
     (5200, 26000, "Da € 5.200 a € 26.000"),
     (26000, 52000, "Da € 26.000 a € 52.000"),
@@ -289,11 +311,14 @@ def _sc(valore: float) -> ScaglioneFase:
     return ScaglioneFase(base=float(valore))
 
 
+# Art. 5, comma 6, D.M. 55/2014 (testo vigente dal 23/10/2022): le cause di valore
+# indeterminabile valgono da € 26.000 a € 260.000 secondo oggetto e complessità; se di
+# particolare importanza, "entro lo scaglione fino a euro 520.000". Mai oltre € 520.000.
 _COMPLESSITA_VIRTUAL_VALUE = {
     ComplessitaStimata.BASSA: 39000.0,
     ComplessitaStimata.MEDIA: 156000.0,
-    ComplessitaStimata.ALTA: 390000.0,
-    ComplessitaStimata.MOLTO_ALTA: 520001.0,
+    ComplessitaStimata.ALTA: 156000.0,
+    ComplessitaStimata.MOLTO_ALTA: 390000.0,
 }
 
 
@@ -531,7 +556,7 @@ def _fallback_gdp() -> list[Scaglione]:
 
 def _fallback_civile() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
+        Scaglione(0, 1100, "Fino a € 1.100", {
             Fase.STUDIO.value: _sc(131),
             Fase.INTRODUTTIVA.value: _sc(196),
             Fase.ISTRUTTORIA.value: _sc(295),
@@ -572,7 +597,7 @@ def _fallback_civile() -> list[Scaglione]:
 
 def _fallback_lavoro() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
+        Scaglione(0, 1100, "Fino a € 1.100", {
             Fase.STUDIO.value: _sc(105),
             Fase.INTRODUTTIVA.value: _sc(157),
             Fase.ISTRUTTORIA.value: _sc(236),
@@ -619,7 +644,7 @@ def _fallback_penale() -> list[Scaglione]:
 
 def _fallback_amministrativo() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
+        Scaglione(0, 1100, "Fino a € 1.100", {
             Fase.STUDIO.value: _sc(140),
             Fase.INTRODUTTIVA.value: _sc(210),
             Fase.ISTRUTTORIA.value: _sc(315),
@@ -690,7 +715,7 @@ def _fallback_mediazione() -> list[Scaglione]:
 
     Ripartizione percentuale fasi (orientamento CNF):
       Fase di attivazione:      40 %
-      Fase di rivitalizzazione: 35 %
+      Fase di rivitalizzazione (= fase di negoziazione, art. 20 c. 1-bis): 35 %
       Fase di conciliazione:    25 %  (solo se accordo raggiunto)
     """
     vals = _mediazione_scaglioni_snapshot()
@@ -1263,8 +1288,9 @@ def calcola_compenso(
         else:
             valore_calcolo = tabella[0].valore_da
             note_parts.append(
-                "Valore non determinato o pari a zero: per default IUSENTRA applica il primo scaglione tabellare disponibile. "
-                "La complessita stimata continua a incidere sulla forbice minimo / base / massimo del compenso."
+                "Valore non indicato: applicato il primo scaglione tabellare. Se la causa e' di valore indeterminabile, "
+                "l'art. 5, comma 6, D.M. 55/2014 la considera di valore tra € 26.000 e € 260.000 (fino a € 520.000 se di "
+                "particolare importanza): indicare il valore o scegliere la complessita' molto alta."
             )
 
     sc = tabella[-1]
@@ -1322,7 +1348,7 @@ def calcola_compenso(
     totale_con_spese = round(tot_base + spese_gen, 2)
 
     if fasi_mancanti:
-        note_parts.append("Fasi non presenti nella tabella selezionata: " + ", ".join(fasi_mancanti) + ".")
+        note_parts.append("Fasi non presenti nella tabella selezionata: " + etichetta_fase(", ".join(fasi_mancanti)) + ".")
     if bonus_telematico:
         note_parts.append("Bonus telematico +30% applicato sul compenso base.")
     if materia == Materia.PENALE:
@@ -1333,7 +1359,8 @@ def calcola_compenso(
         )
     if valore_indeterminabile_parametrizzato and complessita_norm == ComplessitaStimata.MOLTO_ALTA:
         note_parts.append(
-            "Complessita molto alta: valore indeterminabile parametrizzato nella fascia oltre € 520.000; verificare congruita prima dell'invio al cliente."
+            "Complessita' molto alta: causa di valore indeterminabile di particolare importanza, collocata nello scaglione "
+            "fino a € 520.000 (art. 5, comma 6, D.M. 55/2014); verificare la congruita' prima dell'invio al cliente."
         )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
@@ -1345,7 +1372,7 @@ def calcola_compenso(
     if _variazioni:
         note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")
     if _maggiorazioni:
-        fasi_maggiorate = ", ".join(sorted(_maggiorazioni.keys()))
+        fasi_maggiorate = etichetta_fase(", ".join(sorted(_maggiorazioni.keys())))
         maggiorazioni_pct = sorted(
             {
                 int(round((float(valore) - 1.0) * 100))

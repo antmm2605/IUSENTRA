@@ -1159,6 +1159,33 @@ def _email_row(
     return row
 
 
+
+# Stati del flusso PCT (D.M. 44/2011: accettazione, consegna, controlli automatici,
+# intervento della cancelleria) mostrati in italiano nel filtro «Esito PCT».
+_PCT_STATUS_LABELS = {
+    "PROVA_SENZA_INVIO": "Prova senza invio",
+    "INVIATO": "Inviato",
+    "ACCETTATO_PEC": "Accettazione PEC",
+    "CONSEGNATO": "Consegna al Ministero",
+    "WARN_CONTROLLI": "Controlli automatici con avvisi",
+    "CONTROLLI_SUPERATI": "Controlli automatici superati",
+    "ERRORE_CONTROLLI": "Controlli automatici con errori",
+    "ACCETTATO_CANCELLERIA": "Accettato dalla cancelleria",
+    "RIFIUTATO_CANCELLERIA": "Rifiutato dalla cancelleria",
+    "ERRORE": "Errore del deposito",
+    "IMPORTATO_DA_PORTALE": "Importato dal portale",
+    "IMPORTATO_DA_PST": "Importato dal PST",
+}
+
+
+def _pct_status_label(value: Any) -> str:
+    code = str(value or "").strip().upper()
+    if code in _PCT_STATUS_LABELS:
+        return _PCT_STATUS_LABELS[code]
+    text = code.replace("_", " ").lower()
+    return text[:1].upper() + text[1:]
+
+
 def _facet(value: str, label: str, count: int) -> dict[str, Any]:
     return {"value": value, "label": label, "count": int(count or 0)}
 
@@ -1535,7 +1562,7 @@ def build_react_email_payload(
             ],
             "pctStatuses": [
                 _facet("", "Tutti gli esiti", len(all_emails) + len(audit_only_summaries)),
-                *[_facet(value, value, count) for value, count in sorted(pct_counts.items())],
+                *[_facet(value, _pct_status_label(value), count) for value, count in sorted(pct_counts.items())],
             ],
         },
         "actions": {

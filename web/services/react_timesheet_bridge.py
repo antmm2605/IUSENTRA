@@ -12,6 +12,22 @@ from pct.timesheet import StatoTimesheet
 from web.services.ui_localization import format_date, parse_temporal_value
 
 
+# Provenienza della voce in italiano: le chiavi tecniche non arrivano all'avvocato.
+ORIGIN_LABELS = {
+    "manuale-ui": "Inserimento manuale",
+    "timer-topbar": "Timer della barra in alto",
+    "tracking_passivo": "Rilevazione automatica del tempo",
+    "timesheet": "Timesheet",
+}
+
+
+def _origin_label(value: Any) -> str:
+    origine = _safe_text(value)
+    if not origine:
+        return ""
+    return ORIGIN_LABELS.get(origine, origine.replace("_", " ").replace("-", " ").capitalize())
+
+
 STATUS_LABELS = {
     StatoTimesheet.APERTO.value: "Aperta",
     StatoTimesheet.VALIDATO.value: "Validata",
@@ -147,7 +163,7 @@ def _entry_payload(entry: Any, clienti_by_id: dict[str, Any], fascicoli_by_id: d
         "status": status,
         "statusLabel": STATUS_LABELS.get(status, status),
         "statusTone": STATUS_TONES.get(status, "neutral"),
-        "origin": _safe_text(getattr(entry, "origine", "")),
+        "origin": _origin_label(getattr(entry, "origine", "")),
         "notes": _safe_text(getattr(entry, "note", "")),
         "context": _safe_text(dati_json.get("contesto", "")),
         "stateAction": f"/timesheet/{entry_id}/stato",

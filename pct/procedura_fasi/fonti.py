@@ -35,10 +35,14 @@ VERIFICA_NORMATTIVA_20 = "testo vigente consultato su Normattiva il 20/09/2026"
 VERIFICA_CPC_133 = (
     "testo vigente come sostituito dal D.Lgs. 31 ottobre 2024, n. 164; consultato su Normattiva il 20/09/2026"
 )
+# La «verifica» si mostra all'avvocato: dice da dove viene il testo e quando è stato consultato.
+# La copia conservata nel repository resta nel campo «copia_conservata» (provenienza per l'audit),
+# mai nel testo visibile.
 VERIFICA_DGSIA = (
     "Specifiche tecniche DGSIA 7 agosto 2024 (art. 34 D.M. 44/2011), PDF ufficiale scaricato dal PST e "
-    "conservato in docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf; consultato il 14/09/2026"
+    "conservato fra le fonti ufficiali del software; consultato il 14/09/2026"
 )
+COPIA_DGSIA = "docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf"
 _PST_DOWNLOAD = "https://pst.giustizia.it/PST/it/download.page"
 
 
@@ -58,6 +62,7 @@ def _dgsia(articolo: int, titolo: str, estratto: str) -> dict[str, Any]:
         "titolo": titolo,
         "url": _PST_DOWNLOAD,
         "verifica": VERIFICA_DGSIA,
+        "copia_conservata": COPIA_DGSIA,
         "estratto": estratto,
     }
 
@@ -190,9 +195,10 @@ FONTI: dict[str, dict[str, Any]] = {
         "url": "https://www.giustizia-amministrativa.it/documents/20142/74204502/Pubblicazione%2BRegole%2Btecnico-operative%2BPAT.pdf/db2b8d35-4e88-c32a-a7c6-15715348d34b?t=1748969121419",
         "verifica": (
             "documento ufficiale della Giustizia amministrativa «Nuove regole tecnico-operative del PAT» (d.P.C.S. 9 maggio 2025), "
-            "PDF scaricato il 24/08/2026 e conservato in docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf "
-            "(SHA-256 ceba3e41…d075); consultato il 15/09/2026"
+            "PDF scaricato il 24/08/2026 e conservato fra le fonti ufficiali del software; consultato il 15/09/2026"
         ),
+        "copia_conservata": "docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf",
+        "impronta_copia": "SHA-256 ceba3e41…d075",
         "estratto": (
             "accanto al consueto uso dei moduli di deposito trasmessi tramite posta elettronica certificata – i quali, nella fase a regime, "
             "come individuata dal d.P.C.S. 9 maggio 2025, rivestiranno una valenza residuale – per l'incardinamento dei ricorsi e per la "
@@ -253,6 +259,11 @@ for _id, _voce in FONTI.items():
 from pct.procedura_fasi.fonti_provvedimenti import FONTI_PROVVEDIMENTI  # noqa: E402
 
 FONTI.update({chiave: voce for chiave, voce in FONTI_PROVVEDIMENTI.items() if chiave not in FONTI})
+
+# Rito del lavoro: udienza, decisione, appello e notificazioni allo Stato, verificate il 02/11/2026.
+from pct.procedura_fasi.fonti_lavoro import FONTI_LAVORO  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_LAVORO.items() if chiave not in FONTI})
 
 
 def fonte(identificativo: str) -> dict[str, Any]:

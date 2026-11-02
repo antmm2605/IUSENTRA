@@ -170,7 +170,16 @@ export function CodiceOggettoPstSearch({
           count: (current?.count || 0) + 1,
         })
       })
-    return Array.from(groups.values()).sort((left, right) => left.label.localeCompare(right.label, 'it'))
+    // Lo stesso gruppo del catalogo ministeriale compare in più aree: senza area l'elenco mostrerebbe
+    // voci identiche con conteggi diversi (verifica visiva 02/11/2026). Si distingue con l'area.
+    const disambigua = (options: CatalogOption[], suffix: (option: CatalogOption) => string) => {
+      const repeated = new Map<string, number>()
+      options.forEach((option) => repeated.set(option.label, (repeated.get(option.label) || 0) + 1))
+      return options.map((option) => (repeated.get(option.label) || 0) > 1 ? { ...option, label: `${option.label} ${suffix(option)}` } : option)
+    }
+    const withArea = disambigua(Array.from(groups.values()), (option) => `— ${option.value.split('::')[0]}`)
+    return disambigua(withArea, (option) => `(codice ${option.value.split('::')[1] || 'n.d.'})`)
+      .sort((left, right) => left.label.localeCompare(right.label, 'it'))
   }, [areaFilter, registerFilter])
   const registerOptions = useMemo(() => catalogOptions(
     CODICI_OGGETTO_PST

@@ -27,7 +27,8 @@ from dataclasses import dataclass, field
 
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_PARTI = "2026.10.11.parti-v4.3-enfasi-epigrafe"
+VERSIONE_ESTRAZIONE_PARTI = "2026.11.02.parti-v4.4-enti-cf-adiacente"
+VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI = "2026.10.11.parti-v4.3-enfasi-epigrafe"
 _CF = re.compile(r"\b([A-Z]{3}\s?[A-Z]{3}\s?\d{2}[A-Z]\d{2}\s?[A-Z]\d{3}[A-Z])\b")
 # Conserva il codice esplicitamente dichiarato anche se il formato o il
 # carattere finale sono errati. La verifica resta separata dalla lettura:
@@ -73,6 +74,7 @@ _CTU = re.compile(
     rf"(?:dott\.?(?:ssa)?|ing\.?|arch\.?|geom\.?|prof\.?(?:ssa)?|rag\.?)?\s*({_NOME})",
     re.IGNORECASE,
 )
+_SOCIETA_NOME = re.compile(r"\b(?:s\.?\s*r\.?\s*l|s\.?\s*p\.?\s*a|s\.?\s*a\.?\s*s|s\.?\s*n\.?\s*c|soc\.?\s*coop|societ[aà]|consorzio|fondazione|associazione|condominio)\b", re.IGNORECASE)
 _RUOLI_PROCESSUALI = re.compile(
     r"\b(ricorrent[ei]|resistent[ei]|attor[ei]|attrice|convenut[oaie]|appellant[ei]|appellat[oaie]|opponent[ei]|oppost[oaie]|"
     r"reclamant[ei]|reclamat[oaie]|intervenut[oaie]|terz[oaie]\s+chiamat[oaie]|controinteressat[oaie]|creditor[ei]|debitor[ei])\b",
@@ -204,6 +206,26 @@ _ANCORA_PERSONA = re.compile(
 )
 
 
+# La domanda dell'atto («condannarsi il Ministero…», «accertare che l'Agenzia…»)
+# nomina l'ente come destinatario della pronuncia, non come parte dell'epigrafe.
+_PETITUM = re.compile(r"\b(?:condann\w*|accert\w*|dichiar\w*|ordin\w*|ingiung\w*|intim\w*|annull\w*|disappl\w*)\s+(?:che\s+)?(?:il|lo|la|l['’]|i|gli|le)?\s*$", re.IGNORECASE)
+# Una sola parola generica non identifica un ente: «Ministero», «Comune», «Agenzia»
+# senza la denominazione non sono il nome di una parte.
+_ENTE_GENERICO = {"ministero", "agenzia", "comune", "regione", "provincia", "istituto", "ufficio scolastico", "azienda", "universita"}
+# I dati identificativi stanno nella stessa frase del nome (art. 163, terzo comma, n. 2, c.p.c.;
+# art. 125 c.p.c.): oltre il punto e virgola o la riga vuota comincia un altro soggetto o un'altra frase.
+_FINE_FRASE_DATI = re.compile(r";|\n[^\S\n]*\n|\b(?:voglia|chied(?:e|ono)|condann\w*)\b", re.IGNORECASE)
+
+
+def ente_generico(nome: str) -> bool:
+    return _semplice(nome) in _ENTE_GENERICO
+
+
+def _frase_del_nome(dati: str) -> str:
+    fine = _FINE_FRASE_DATI.search(dati)
+    return dati[: fine.start()] if fine else dati[:400]
+
+
 def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
     """Una o più parti dello stesso lato: ognuna parte dal suo nome, con i suoi dati e il suo difensore."""
     ancore: list[tuple[int, str]] = []
@@ -216,7 +238,9 @@ def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
             ancore.append((m.start(2) + nome.start(), nome.group(0)))
     for m in _ENTE.finditer(blocco[:1500]):
         prima = blocco[max(0, m.start() - 60):m.start()].casefold()
-        if "difes" in prima or "domicil" in prima:
+        if "difes" in prima or "domicil" in prima or _PETITUM.search(blocco[max(0, m.start() - 60):m.start()]):
+            continue
+        if ente_generico(_taglia_ente(m.group(1))):
             continue
         # «MINISTERO DELL'ISTRUZIONE E DEL MERITO, c.f.»: il nome dell'ente prevale
         # sul pezzo che sembra un nome di persona dentro la sua denominazione.
@@ -247,10 +271,14 @@ def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
         if nome_difensore and re.search(r"\b(?:entramb\w|tutt\w|congiuntamente)\b", pezzo[:difensore.start() if difensore else len(pezzo)], re.IGNORECASE):
             difensore_comune = nome_difensore
         fine_dati = min([m.start() for m in (difensore, avvocatura) if m is not None], default=len(pezzo))
-        dati = pezzo[:fine_dati]
-        cf = _CF_DICHIARATO.search(dati) or _CF.search(dati.upper())
+        dati = _frase_del_nome(pezzo[:fine_dati])
+        # Un ente pubblico o una società ha un codice fiscale numerico di 11 cifre: il codice
+        # alfanumerico di 16 caratteri è di una persona fisica (D.P.R. 605/1973, art. 3; D.M. 23/12/1976)
+        # e non si attribuisce mai all'ente, anche se compare vicino.
+        persona = not (ente or _SOCIETA_NOME.search(nome))
+        cf = (_CF_DICHIARATO.search(dati) or _CF.search(dati.upper())) if persona else None
         partita = _PIVA_ENTE.search(dati)
-        posizione = _RUOLI_PROCESSUALI.search(pezzo)
+        posizione = _RUOLI_PROCESSUALI.search(_frase_del_nome(pezzo))
         parti.append(ParteLetta(
             nome=nome, ruolo=lato,
             codice_fiscale=re.sub(r"\s+", "", cf.group(1)).upper() if cf else (partita.group(1) if partita else ""),
@@ -350,4 +378,4 @@ def fatti_parti(testo: str, *, origine: str, avvocati_studio: list[str] | None =
     return fatti
 
 
-__all__ = ["ParteLetta", "VERSIONE_ESTRAZIONE_PARTI", "cf_valido", "estrai_parti", "fatti_parti"]
+__all__ = ["ParteLetta", "VERSIONE_ESTRAZIONE_PARTI", "VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI", "cf_valido", "ente_generico", "estrai_parti", "fatti_parti"]

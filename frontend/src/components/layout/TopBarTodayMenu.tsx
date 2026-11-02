@@ -5,6 +5,14 @@ import { useClickOutside } from '../../hooks/useClickOutside'
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut'
 import { useTodaySummary } from '../../hooks/useTodaySummary'
 
+/** Giorno gg/mm di una voce che non cade nella data del riepilogo (scadute e prossimi giorni). */
+function otherDayLabel(itemDate: string, day: string | undefined) {
+  const iso = String(itemDate || '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || !day || iso === day) return ''
+  const [year, month, dayOfMonth] = iso.split('-')
+  return `${iso < day ? 'scaduta il' : 'scade il'} ${dayOfMonth}/${month}/${year}`
+}
+
 function formatType(type: string) {
   return {
     hearing: 'Udienza',
@@ -81,10 +89,10 @@ export function TopBarTodayMenu({
               <div className="iu-panel-list">
                 {filtered.length ? filtered.slice(pageOffset, pageOffset + 40).map((item) => (
                   <a className={`iu-panel-item is-${item.priority}`} href={item.href} title={item.title} key={`${item.type}-${item.id}`}>
-                    <span>{item.time ?? formatType(item.type).slice(0, 3)}</span>
+                    <span>{item.time ?? (item.type === 'deadline' && item.date ? `${item.date.slice(8, 10)}/${item.date.slice(5, 7)}` : formatType(item.type).slice(0, 3))}</span>
                     <span>
                       <strong>{item.title}</strong>
-                      <small>{formatType(item.type)}{item.clientName ? ` - ${item.clientName}` : ''}</small>
+                      <small>{formatType(item.type)}{item.type === 'deadline' && otherDayLabel(item.date, data?.date) ? ` ${otherDayLabel(item.date, data?.date)}` : ''}{item.clientName ? ` - ${item.clientName}` : ''}</small>
                     </span>
                   </a>
                 )) : <p className="iu-panel-state">{filter !== 'all' || query ? 'Nessuna voce corrisponde ai filtri.' : 'Nessuna urgenza o attività per oggi.'}</p>}

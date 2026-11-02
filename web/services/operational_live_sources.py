@@ -74,11 +74,14 @@ def legal_source_file_revision() -> list:
     if shared:
         paths.append(Path(shared) / "giurisprudenza_corpus.db")
     result = []
+    from lex.retrieval.normativa_catalog import wal_revision
+
     for path in sorted(set(paths), key=str):
-        for item in (path, Path(str(path) + "-wal")):
-            try:
-                stat = item.stat()
-                result.append((str(item), stat.st_ino, stat.st_size, stat.st_mtime_ns))
-            except FileNotFoundError:
-                result.append((str(item), "absent"))
+        try:
+            stat = path.stat()
+            result.append((str(path), stat.st_ino, stat.st_size, stat.st_mtime_ns))
+        except FileNotFoundError:
+            result.append((str(path), "absent"))
+        # WAL vuoto e WAL assente sono lo stesso stato: una lettura non è un cambiamento (LEX-20).
+        result.append(wal_revision(Path(str(path) + "-wal")))
     return result

@@ -388,7 +388,7 @@ export function PrimaNotaPage() {
               {data.movimenti.length ? data.movimenti.map((movimento) => (
                 <MovementRow movimento={movimento} onDone={() => load()} onMessage={showMessage} key={movimento.id} activeReversal={activeReversal} setActiveReversal={setActiveReversal}/>
               )) : (
-                <tr><td colSpan={7} className="iu-pn-empty">Nessun movimento nel periodo: registra il primo o riconcilia le parcelle pagate.</td></tr>
+                <tr><td colSpan={7} className="iu-pn-empty"><span>Nessun movimento nel periodo: registra il primo o riconcilia le parcelle pagate.</span></td></tr>
               )}
             </tbody>
           </table>

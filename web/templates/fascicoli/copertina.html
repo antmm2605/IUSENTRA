@@ -247,8 +247,6 @@
 </head>
 <body>
 {% set empty = '-' %}
-{% set stato_value = fascicolo.stato.value if fascicolo.stato and fascicolo.stato.value is defined else fascicolo.stato|string %}
-{% set tipo_value = fascicolo.tipo.value if fascicolo.tipo and fascicolo.tipo.value is defined else fascicolo.tipo|string %}
 
 <div class="screen-actions">
   <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn-action">Indietro</a>
@@ -295,27 +293,27 @@
         </div>
 
         <div class="data-label">Titolare pratica</div>
-        <div class="data-val {% if not fascicolo.avvocato_referente %}empty{% endif %}">{{ fascicolo.avvocato_referente or empty }}</div>
+        <div class="data-val {% if not copertina.titolare %}empty{% endif %}">{{ copertina.titolare or empty }}</div>
 
         <div class="data-label">Responsabile pratica</div>
         <div class="data-val {% if not fascicolo.avvocato_dominus %}empty{% endif %}">{{ fascicolo.avvocato_dominus or empty }}</div>
 
         <div class="data-label">Stato della pratica</div>
-        <div class="data-val"><span class="stato-badge">{{ stato_value.replace('_', ' ') }}</span></div>
+        <div class="data-val"><span class="stato-badge">{{ copertina.stato_label }}</span></div>
       </div>
     </section>
 
     <section class="data-section">
       <div class="data-section-title">Dati giudiziari</div>
       <div class="data-grid">
-        <div class="data-label">Autorita giudiziaria</div>
+        <div class="data-label">Autorità giudiziaria</div>
         <div class="data-val {% if not fascicolo.tribunale %}empty{% endif %}">{{ fascicolo.tribunale or empty }}</div>
 
         <div class="data-label">Sezione</div>
         <div class="data-val {% if not fascicolo.sezione %}empty{% endif %}">{{ fascicolo.sezione or empty }}</div>
 
-        <div class="data-label">Registro</div>
-        <div class="data-val">{{ tipo_value|lower }}</div>
+        <div class="data-label">Materia</div>
+        <div class="data-val">{{ copertina.tipo_label }}</div>
 
         <div class="data-label">N. RG</div>
         <div class="data-val {% if not fascicolo.numero_rg %}empty{% endif %}">
@@ -334,7 +332,7 @@
         {% endif %}
 
         {% if fascicolo.data_prossima_udienza %}
-        <div class="data-label">Prossima udienza</div>
+        <div class="data-label">{{ copertina.udienza_label }}</div>
         <div class="data-val">{{ fascicolo.data_prossima_udienza|fmt_data }}</div>
         {% endif %}
 

@@ -79,7 +79,7 @@ export interface ArchivioLetture {
   eventi: number
   per_motore: { documenti: number; pec: number }
   da_confermare: FattoDaConfermare[]
-  lettura_automatica: { stato_coda?: 'idle' | 'pending' | 'running' | 'failed'; tentativi?: number; errore_evento?: string; codice_errore_evento?: string; prossimo_tentativo?: string; prossimo_tentativo_it?: string; in_corso: boolean; errori?: number; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[] }
+  lettura_automatica: { stato_coda?: 'idle' | 'pending' | 'running' | 'failed'; tentativi?: number; errore_evento?: string; codice_errore_evento?: string; prossimo_tentativo?: string; prossimo_tentativo_it?: string; in_corso: boolean; errori?: number; da_leggere: number; completa: boolean; ultima_lettura: string; ultima_lettura_it: string; in_attesa?: OggettoInAttesa[]; documenti?: { letti?: number; da_leggere?: number; errori?: number } }
   collaudo_lettore: { eseguito: boolean; superato?: boolean; corretti?: number; totali?: number; eseguito_il_it?: string; casi_falliti?: string[] }
 }
 
@@ -171,11 +171,28 @@ export function tonoGravita(gravita: AnomaliaLettura['gravita']): TonoLettura {
   return 'info'
 }
 
+type LetturaAutomatica = ArchivioLetture['lettura_automatica']
+
+// «n di m documenti letti» dal motore documenti: lo stato reale di una lettura fatta a più riprese.
+export function avanzamentoDocumenti(automatica: LetturaAutomatica | undefined): string {
+  const documenti = automatica?.documenti
+  if (!documenti) return ''
+  const letti = documenti.letti || 0
+  const totale = letti + (documenti.da_leggere || 0) + (documenti.errori || 0)
+  return totale ? `${letti} di ${totale} document${totale === 1 ? 'o' : 'i'} lett${letti === 1 ? 'o' : 'i'}` : ''
+}
+
+function letturaAPiuRiprese(automatica: LetturaAutomatica | undefined): boolean {
+  const documenti = automatica?.documenti
+  return Boolean(documenti && (documenti.letti || 0) > 0 && (documenti.da_leggere || 0) > 0)
+}
+
 // Il riassunto in una riga: «tutto letto», oppure quanti oggetti aspettano quali lettori.
 export function riassuntoLetture(letture: LettureFascicolo): { testo: string; tono: TonoLettura } {
   const automatica = letture.archivio?.lettura_automatica
-  if (automatica?.stato_coda === 'failed') return { testo: `Lettura interrotta dopo ${automatica.tentativi || 0} tentativi. I risultati già salvati sono conservati.`, tono: 'danger' }
+  if (automatica?.stato_coda === 'failed') return { testo: `Lettura sospesa${avanzamentoDocumenti(automatica) ? `: ${avanzamentoDocumenti(automatica)}` : ''}. Riprende da sola nella notte; i risultati già salvati sono conservati.`, tono: 'warning' }
   if (automatica?.stato_coda === 'pending' && automatica.prossimo_tentativo_it) return { testo: `Nuovo tentativo programmato per ${automatica.prossimo_tentativo_it}.`, tono: 'warning' }
+  if ((automatica?.stato_coda === 'pending' || automatica?.stato_coda === 'running') && letturaAPiuRiprese(automatica)) return { testo: `Lettura in corso a più riprese: ${avanzamentoDocumenti(automatica)}.`, tono: 'info' }
   if (letture.degradato?.length) return { testo: 'Verifica delle letture incompleta. Consulta le cause; i risultati già salvati sono conservati.', tono: 'warning' }
   if (!letture.oggetti) return { testo: 'Nessun documento o PEC da leggere.', tono: 'neutral' }
   const erroriArchivio = automatica?.errori || 0
@@ -275,8 +292,14 @@ export function fraseCollaudo(collaudo: ArchivioLetture['collaudo_lettore'] | un
 
 export function fraseLetturaAutomatica(stato: ArchivioLetture['lettura_automatica'] | undefined): string {
   if (!stato) return ''
-  if (stato.stato_coda === 'failed') return `Elaborazione interrotta: ${(stato.errore_evento || 'tentativi esauriti').replace(/[.!\s]+$/, '')}. Puoi riprovare dopo aver risolto la causa; i risultati già salvati sono conservati.`
+  if (stato.stato_coda === 'failed') {
+    // L'avvocato non deve risolvere nulla: il software riprende da solo e legge solo ciò che manca.
+    const avanzamento = avanzamentoDocumenti(stato)
+    const motivo = (stato.errore_evento || '').replace(/[.!\s]+$/, '')
+    return `Lettura sospesa${avanzamento ? ` con ${avanzamento}` : ''}. Il software la riprende da solo nella fascia notturna, leggendo solo ciò che manca; puoi anche usare «Riprova lettura». I risultati già salvati sono conservati.${motivo ? ` Ultimo motivo registrato: ${motivo}.` : ''}`
+  }
   if (stato.stato_coda === 'pending' && stato.prossimo_tentativo_it) return `Ultimo tentativo non riuscito: ${stato.errore_evento || 'elaborazione non completata'}. Nuovo tentativo automatico alle ${stato.prossimo_tentativo_it}.`
+  if ((stato.stato_coda === 'pending' || stato.stato_coda === 'running') && letturaAPiuRiprese(stato)) return `Lettura in corso a più riprese: ${avanzamentoDocumenti(stato)}. Ogni ripresa legge solo i documenti mancanti.`
   if (stato.errori) return `Lettura incompleta: ${stato.errori} esiti non leggibili. Consulta le cause registrate.`
   if (stato.in_corso) return 'Lettura automatica in corso.'
   if (stato.da_leggere) {

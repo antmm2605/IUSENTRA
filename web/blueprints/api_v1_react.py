@@ -81,6 +81,7 @@ from pct.notifiche_legali import (
 )
 from pct.preventivi import StatoPreventivo
 from pct.pec_pipeline import extract_message_parts, message_from_bytes
+from pct.pec_operational_cleanup import is_legacy_pec_deadline
 from pct.practice_engine.deposit_orchestrator import prepare_deposit, send_deposit
 from pct.practice_engine.deposit_readiness import run_predeposit_check
 from pct.practice_engine.evaluator import build_regia_payload, ensure_evidence_pack, ensure_profile_for_fascicolo
@@ -183,6 +184,7 @@ from web.services.react_fascicoli_bridge import (
     clear_react_fascicoli_base_cache,
     fasi_lente,
     generate_react_fascicolo_proforma,
+    judicial_office_search_options,
     run_react_fascicoli_economic_presidio,
     update_react_fascicolo_deposit_value,
     update_react_fascicolo_payment,
@@ -2098,14 +2100,34 @@ def _client_message_rows(limit: int = 5) -> tuple[list[dict[str, Any]], int]:
 
 
 def _agenda_rows(limit: int = 6) -> list[dict[str, Any]]:
+    """Impegni di oggi e dei prossimi giorni, in ordine di data e ora (Europe/Rome).
+
+    Oggi e i giorni successivi hanno ciascuno il proprio limite: gli impegni di oggi
+    non devono far sparire quelli di domani (la Panoramica scriveva «Nessun impegno
+    programmato» con un'udienza fissata il giorno dopo).
+    """
     today = oggi_rome()
     until = today + timedelta(days=14)
     appuntamenti = _safe("agenda", lambda: gestore_panoramica(get_agenda).tutti(), [])
-    rows: list[dict[str, Any]] = []
+    datati: list[tuple[datetime, Any]] = []
     for item in appuntamenti:
         parsed = _parse_datetime(getattr(item, "data_ora", ""))
         if not parsed or parsed.date() < today or parsed.date() > until:
             continue
+        datati.append((parsed.replace(tzinfo=None), item))
+    datati.sort(key=lambda coppia: coppia[0])
+    rows: list[dict[str, Any]] = []
+    di_oggi = 0
+    successivi = 0
+    for parsed, item in datati:
+        if parsed.date() == today:
+            if di_oggi >= limit:
+                continue
+            di_oggi += 1
+        else:
+            if successivi >= limit:
+                break
+            successivi += 1
         subtitle = " - ".join(
             part
             for part in [
@@ -2128,9 +2150,15 @@ def _agenda_rows(limit: int = 6) -> list[dict[str, Any]]:
                 href=f"/agenda/{quote(item_id)}" if item_id else "/agenda",
             )
         )
-        if len(rows) >= limit:
-            break
     return rows
+
+
+def _etichetta_termine_urgente(data_scadenza: Any) -> str:
+    """«Scaduto il …» per i termini gia' decorsi, «Scade …» per gli altri (giorno di Roma)."""
+    giorno = _parse_date(data_scadenza)
+    if giorno is not None and giorno < oggi_rome():
+        return f"Scaduto il {giorno.strftime('%d/%m/%Y')}"
+    return f"Scade {_format_date(data_scadenza)}"
 
 
 def _today_operations(overview: dict[str, Any], limit: int = 6) -> list[dict[str, Any]]:
@@ -2153,7 +2181,7 @@ def _today_operations(overview: dict[str, Any], limit: int = 6) -> list[dict[str
                 _row(
                     deadline_id,
                     getattr(scadenza, "titolo", "") or "Scadenza urgente",
-                    f"Scade {_format_date(getattr(scadenza, 'data_scadenza', ''))}",
+                    _etichetta_termine_urgente(getattr(scadenza, "data_scadenza", "")),
                     badge="Apri",
                     tone="danger",
                     href=f"/scadenziario/{quote(deadline_id)}" if deadline_id else "/scadenziario",
@@ -2324,12 +2352,18 @@ def _high_priority_matters(limit: int = 4) -> list[dict[str, Any]]:
 
 
 def _deadline_distribution() -> list[dict[str, Any]]:
-    scadenze = _safe("scadenziario", lambda: gestore_panoramica(get_scadenziario).tutte(solo_aperte=True), [])
+    # Stesso insieme delle «Aperte» dello Scadenziario: le vecchie scadenze PEC dismesse
+    # non si mostrano nello scadenziario e non si contano nella Panoramica.
+    scadenze = [
+        item
+        for item in _safe("scadenziario", lambda: gestore_panoramica(get_scadenziario).tutte(solo_aperte=True), [])
+        if not is_legacy_pec_deadline(item)
+    ]
     buckets = {
         PrioritaTermine.CRITICA.value: {"label": "scadenze critiche", "tone": "danger", "count": 0},
-        PrioritaTermine.ALTA.value: {"label": "scadenze ad alta priorita", "tone": "warning", "count": 0},
-        PrioritaTermine.MEDIA.value: {"label": "scadenze a priorita media", "tone": "primary", "count": 0},
-        PrioritaTermine.BASSA.value: {"label": "scadenze a bassa priorita", "tone": "success", "count": 0},
+        PrioritaTermine.ALTA.value: {"label": "scadenze ad alta priorità", "tone": "warning", "count": 0},
+        PrioritaTermine.MEDIA.value: {"label": "scadenze a priorità media", "tone": "primary", "count": 0},
+        PrioritaTermine.BASSA.value: {"label": "scadenze a bassa priorità", "tone": "success", "count": 0},
     }
     for scadenza in scadenze:
         priority = _enum_value(getattr(scadenza, "priorita", PrioritaTermine.MEDIA.value))
@@ -2538,7 +2572,7 @@ def _lex_suggestions(
     if missing_engagements_count:
         suggestions.append("Genera o firma i conferimenti incarico collegati ai preventivi pronti.")
     if list(high_priority_matters):
-        suggestions.append("Apri i fascicoli con priorita alta e controlla scadenze, udienze e documenti recenti.")
+        suggestions.append("Apri i fascicoli con priorità alta e controlla scadenze, udienze e documenti recenti.")
     return suggestions[:3]
 
 
@@ -6354,20 +6388,59 @@ def cartelle_condivise_react_payload():
     ))
 
 
+_TELEMATICO_PAYLOAD_CACHE = ReactPayloadTTLCache(
+    ttl_seconds=float(os.getenv("IUSENTRA_REACT_TELEMATICO_TTL_SECONDS") or 60),
+    max_entries=16,
+)
+
+
+def _telematico_dashboard_cache_key() -> tuple | None:
+    """ADM-29: riuso solo a fascicoli e archivio telematico invariati."""
+    if not _TELEMATICO_PAYLOAD_CACHE.enabled:
+        return None
+    from web.services.react_revision_cache import revision_cache_key
+
+    try:
+        telematico_db = tenant_data_path(
+            "TELEMATICO_DB", current_app.config.get("TELEMATICO_DB", "./telematico/workflow.db"), require_tenant=True,
+        )
+        # Stato degli accessi ai portali: dipende dalla configurazione dello studio (firma, PEC).
+        config_studio = current_app.config.get("CONFIG_STUDIO_DB", "")
+        config_studio = tenant_data_path("CONFIG_STUDIO_DB", config_studio, require_tenant=True) if config_studio else ""
+    except Exception:
+        return None
+    return revision_cache_key("telematico", domains={"fascicoli"}, files=[telematico_db, config_studio])
+
+
 @api_v1_react.get("/telematico")
 @_richiedi_auth
 def telematico_react_dashboard():
-    return jsonify(
-        build_react_telematico_payload(
-            get_telematico=_telematico_loader(),
-            get_fascicoli=get_fascicoli,
-            build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
-            get_legal_intelligence=get_legal_intelligence,
-            prepare_dashboard=_telematico_runtime_func("backfill_telematico_from_existing_fascicoli"),
-            dashboard_warning_message=_telematico_runtime_func("telematico_dashboard_warning_message"),
-            logger=current_app.logger,
-        )
+    cache_key = _telematico_dashboard_cache_key()
+    if cache_key is not None:
+        cached = _TELEMATICO_PAYLOAD_CACHE.get(cache_key)
+        if cached is not None:
+            response = current_app.response_class(cached, mimetype="application/json")
+            response.headers["X-IUSENTRA-Cache"] = "HIT"
+            return response
+    g._react_telematico_failures = []
+    payload = build_react_telematico_payload(
+        get_telematico=_telematico_loader(),
+        get_fascicoli=get_fascicoli,
+        build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
+        get_legal_intelligence=get_legal_intelligence,
+        prepare_dashboard=_telematico_runtime_func("backfill_telematico_from_existing_fascicoli"),
+        dashboard_warning_message=_telematico_runtime_func("telematico_dashboard_warning_message"),
+        logger=current_app.logger,
     )
+    response = jsonify(payload)
+    response.headers["X-IUSENTRA-Cache"] = "MISS"
+    # Solo le costruzioni riuscite: nessun avviso di allineamento e nessun ripiego.
+    if cache_key is not None and not payload.get("notices") and not g.get("_react_telematico_failures"):
+        # La chiave si ricalcola: il riallineamento puo' aver scritto l'archivio.
+        final_key = _telematico_dashboard_cache_key()
+        if final_key is not None:
+            _TELEMATICO_PAYLOAD_CACHE.set(final_key, response.get_data())
+    return response
 
 
 @api_v1_react.get("/telematico/pratiche")
@@ -8948,7 +9021,10 @@ def _fascicoli_list_cache_key() -> tuple | None:
         ("parcella", request.args.get("parcella", "").strip()),
         *(('field_' + field, value) for field, value in sorted(_fascicoli_request_field_filters().items())),
     )
-    return ("fascicoli-list", tenant_slug, user_key, args)
+    # L'archivio dei fascicoli fa parte dell'identità: due applicazioni nello stesso processo
+    # (test, installazioni con più radici dati) con lo stesso nome di studio non si scambiano l'elenco.
+    archivio = str(current_app.config.get("FASCICOLI_DB") or current_app.config.get("DATA_ROOT") or "").strip()
+    return ("fascicoli-list", tenant_slug, archivio, user_key, args)
 
 
 @api_v1_react.get("/fascicoli")
@@ -9258,6 +9334,21 @@ def fascicolo_react_modifica(id_fasc: str):
         correction_context={"active": False, "title": "", "help": "", "highlight": ""},
         studio_avvocato_titolare=_studio_avvocato_titolare(),
     ))
+
+
+@api_v1_react.get("/uffici-giudiziari/opzioni")
+@_richiedi_auth
+def uffici_giudiziari_opzioni_react():
+    """Autocomplete degli uffici per il form del fascicolo (FAS-13: niente registro intero nel form)."""
+    try:
+        limit = int(request.args.get("limit", "30") or "30")
+    except ValueError:
+        limit = 30
+    try:
+        return jsonify({"ok": True, "items": judicial_office_search_options(request.args.get("q", ""), limit=limit)})
+    except Exception as exc:
+        current_app.logger.exception("Errore ricerca uffici giudiziari: %s", exc)
+        return jsonify({"ok": False, "items": [], "message": "Ricerca degli uffici non disponibile."}), 200
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
@@ -13477,6 +13568,17 @@ def _react_template_field_note(prefill: dict[str, Any]) -> dict[str, str] | None
     return None
 
 
+def _react_template_field_label(name: str, label: Any = "") -> str:
+    """Etichetta italiana del campo: le chiavi tecniche (``practice_reference``) non arrivano all'avvocato."""
+    from pct.template_atti_prefill import FIELD_LABELS
+
+    testo = str(label or "").strip()
+    tecnica = name.strip("_").replace("_", " ").strip()
+    if testo and testo.casefold() != tecnica.casefold():
+        return testo
+    return FIELD_LABELS.get(name) or FIELD_LABELS.get(name.strip("_")) or FIELD_LABELS.get(f"_{name}") or tecnica.capitalize()
+
+
 def _react_template_office_options(
     field: dict[str, Any],
     *,
@@ -13487,6 +13589,10 @@ def _react_template_office_options(
     label = str(field.get("label") or "").casefold()
     text = f"{name} {label}"
     if not any(token in text for token in ("court", "tribunale", "ufficio", "giudice", "autorita", "authority")):
+        return []
+    # Il catalogo degli uffici giudiziari non contiene le Corti di giustizia tributaria né gli enti
+    # impositori (D.Lgs. 546/1992): proporre tribunali e giudici di pace sarebbe una scelta errata.
+    if any(token in text for token in ("tax", "tribut", "impositore", "resistant")):
         return []
 
     fascicolo_office = _react_template_attr(selected_fascicolo, "tribunale", "ufficio_giudiziario")
@@ -13499,6 +13605,9 @@ def _react_template_office_options(
         allowed_types = {"CA"}
     elif "procura" in context:
         allowed_types = {"PC", "PG"}
+    elif "proceeding_authority" in name or "procedente" in label:
+        # Nel procedimento penale l'autorità procedente è anche il pubblico ministero (art. 50 c.p.p.).
+        allowed_types = {"OR", "GP", "TM", "CA", "PC", "PG"}
     else:
         allowed_types = {"OR", "GP", "TM", "CA"}
 
@@ -13590,7 +13699,7 @@ def _react_template_field_payload(
         field_type = "select"
     return {
         "name": name,
-        "label": str(field.get("label") or name.replace("_", " ").title()).strip(),
+        "label": _react_template_field_label(name, field.get("label")),
         "type": field_type,
         "placeholder": str(
             field.get("placeholder")
@@ -13659,7 +13768,7 @@ def _react_template_context_fields_payload(
             _react_template_field_payload(
                 {
                     "name": name,
-                    "label": str(prefill.get("label") or name.replace("_", " ").title()),
+                    "label": _react_template_field_label(name, prefill.get("label")),
                     "type": "textarea" if "\n" in rendered_value or name in {"practice_data"} else "text",
                     "placeholder": str(prefill.get("missing_reason") or ""),
                     "required": False,

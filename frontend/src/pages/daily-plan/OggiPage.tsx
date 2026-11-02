@@ -34,6 +34,7 @@ import {
   fetchStatoAggiornamento,
   richiediAggiornamento,
 } from './api'
+import { oggiRoma } from './termine'
 import type { AttivitaPiano, PianoGiornoPayload } from './types'
 
 export function OggiPage() {
@@ -59,9 +60,10 @@ export function OggiPage() {
   }, [])
 
   const writeProposalsEnabled = isFeatureFlagEnabledSync('lex.dailyPlan.writeProposals')
+  const [anteprimaRichiesta, setAnteprimaRichiesta] = useState(false)
 
   const carica = useCallback((signal?: AbortSignal) => {
-    return fetchPianoGiorno(signal, { date: dataSelezionata })
+    return fetchPianoGiorno(signal, { date: dataSelezionata, anteprima: anteprimaRichiesta })
       .then((data) => {
         setPiano(data)
         if (!data.ok && data.stato !== 'non_generato') {
@@ -80,7 +82,7 @@ export function OggiPage() {
         })
       })
       .catch(() => undefined)
-  }, [dataSelezionata])
+  }, [dataSelezionata, anteprimaRichiesta])
 
   const cambiaData = useCallback((value: string) => {
     if (value === dataSelezionata) return
@@ -98,6 +100,7 @@ export function OggiPage() {
     setAggiornamentoMessaggio('')
     setAggiornamentoRichiesto(false)
     setAggiornamentoJobId('')
+    setAnteprimaRichiesta(false)
     setLoading(true)
   }, [dataSelezionata])
 
@@ -240,14 +243,26 @@ export function OggiPage() {
   }
 
   const nonGenerato = piano.stato === 'non_generato'
+  const anteprima = piano.stato === 'anteprima'
   const oraGenerazione = formatTimeIt(piano.generato_il, '')
+  const dataFutura = dataSelezionata > oggiRoma()
+  const mostraAnteprima = () => {
+    setLoading(true)
+    setAnteprimaRichiesta(true)
+  }
+  // In anteprima le voci non sono salvate: si apre direttamente la fonte (scadenza, agenda, PEC).
+  const apriVoceAnteprima = (item: AttivitaPiano) => {
+    if (item.apri) window.location.assign(item.apri)
+  }
+  const apriDettaglio = anteprima ? apriVoceAnteprima : setDettaglio
+  const apriFonteVoce = anteprima ? (item: AttivitaPiano) => apriVoceAnteprima(item) : apriFonte
 
   return (
     <IusPageShell
       title="Piano del giorno"
       description={
         piano.data_label
-          ? `Piano operativo del ${piano.data_label}${oraGenerazione ? ` · aggiornato alle ${oraGenerazione}` : ''}`
+          ? `${anteprima ? 'Anteprima del piano del' : 'Piano operativo del'} ${piano.data_label}${oraGenerazione ? ` · ${anteprima ? 'calcolata' : 'aggiornato'} alle ${oraGenerazione}` : ''}`
           : 'Il tuo piano operativo della giornata.'
       }
       icon={Sunrise}
@@ -283,6 +298,7 @@ export function OggiPage() {
           {piano.riepilogo.da_rivedere ? (
             <Badge variant="outline">{piano.riepilogo.da_rivedere} da confermare</Badge>
           ) : null}
+          {anteprima ? <Badge variant="outline">Anteprima, non salvata</Badge> : null}
           {!piano.copertura_completa && !nonGenerato ? (
             <Badge variant="destructive" className="gap-1">
               <AlertTriangle size={12} aria-hidden="true" /> Copertura incompleta
@@ -310,10 +326,18 @@ export function OggiPage() {
           message="Il piano della giornata corrente viene preparato automaticamente alle 05:30, ora italiana, e si recupera da solo se la prima elaborazione non è disponibile. Per una data futura puoi richiedere un aggiornamento aggiuntivo senza bloccare la pagina."
           icon={Sunrise}
           action={
-            <Button type="button" variant="outline" onClick={aggiorna} disabled={aggiornamentoRichiesto}>
-              <RefreshCw aria-hidden="true" className={aggiornamentoRichiesto ? 'animate-spin' : ''} />
-              Richiedi aggiornamento
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              {dataFutura ? (
+                <Button type="button" onClick={mostraAnteprima}>
+                  <Sunrise aria-hidden="true" />
+                  Mostra anteprima
+                </Button>
+              ) : null}
+              <Button type="button" variant="outline" onClick={aggiorna} disabled={aggiornamentoRichiesto}>
+                <RefreshCw aria-hidden="true" className={aggiornamentoRichiesto ? 'animate-spin' : ''} />
+                Richiedi aggiornamento
+              </Button>
+            </div>
           }
         />
       ) : (
@@ -323,10 +347,10 @@ export function OggiPage() {
             icon={ListTodo}
             items={piano.sezioni.da_fare_ora}
             emptyText="Nessuna urgenza per la data selezionata."
-            onOpenDetail={setDettaglio}
+            onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}
-            onOpenSource={apriFonte}
+            onOpenSource={apriFonteVoce}
             dataPiano={piano.data}
           />
 
@@ -337,10 +361,10 @@ export function OggiPage() {
             icon={Mail}
             items={piano.sezioni.pec}
             emptyText="Nessuna comunicazione in attesa di presidio."
-            onOpenDetail={setDettaglio}
+            onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}
-            onOpenSource={apriFonte}
+            onOpenSource={apriFonteVoce}
             dataPiano={piano.data}
           />
           <ActivitySection
@@ -348,10 +372,10 @@ export function OggiPage() {
             icon={FolderKanban}
             items={piano.sezioni.fascicoli}
             emptyText="Nessun fascicolo richiede interventi questa settimana."
-            onOpenDetail={setDettaglio}
+            onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}
-            onOpenSource={apriFonte}
+            onOpenSource={apriFonteVoce}
             dataPiano={piano.data}
           />
           <ActivitySection
@@ -359,10 +383,10 @@ export function OggiPage() {
             icon={Euro}
             items={piano.sezioni.economico}
             emptyText="Preventivi, parcelle e incassi sono sotto controllo."
-            onOpenDetail={setDettaglio}
+            onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}
-            onOpenSource={apriFonte}
+            onOpenSource={apriFonteVoce}
             dataPiano={piano.data}
           />
 
@@ -372,27 +396,27 @@ export function OggiPage() {
               icon={Users}
               items={codaStudio}
               emptyText=""
-              onOpenDetail={setDettaglio}
+              onOpenDetail={apriDettaglio}
               onAction={azione}
               busyId={busyId}
-              onOpenSource={apriFonte}
+              onOpenSource={apriFonteVoce}
               dataPiano={piano.data}
             />
           ) : null}
 
-          <BacklogSection
+          {anteprima ? null : <BacklogSection
             aperto={backlogAperto}
             items={backlog}
             restanti={backlogCursor ? backlogTotale - backlog.length : 0}
             totalePiano={piano.riepilogo.backlog || 0}
             onApri={apriBacklog}
             onAltri={backlogAltri}
-            onOpenDetail={setDettaglio}
+            onOpenDetail={apriDettaglio}
             onAction={azione}
             busyId={busyId}
-            onOpenSource={apriFonte}
+            onOpenSource={apriFonteVoce}
             dataPiano={piano.data}
-          />
+          />}
         </>
       )}
 

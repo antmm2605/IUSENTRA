@@ -35,7 +35,7 @@ from __future__ import annotations
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict, List, Mapping
 
-from pct.calcolatori._base import clean_text, safe_float, safe_int
+from pct.calcolatori._base import clean_text, fmt_eur, safe_float, safe_int
 
 PRIMO_ANNO_REGOLAMENTO_UNICO = 2025
 SOGLIA_ECCEDENZA_NON_DOVUTA = 10.0  # art. 41, c. 2, Regolamento unico
@@ -115,7 +115,7 @@ def calcola(payload: Mapping[str, Any], norme: Any, *, anno_corrente: int) -> Di
         minimo_sogg = 0.0
         fino_tetto = min(reddito, tetto) * aliquota_usata / 100.0
         notes.append(
-            f"Pensionato di vecchiaia: {aliquota_usata:.0f}% fino al tetto di {tetto:,.2f} euro e "
+            f"Pensionato di vecchiaia: {aliquota_usata:.0f}% fino al tetto di {fmt_eur(tetto)} euro e "
             f"{aliquota_oltre:.0f}% oltre, senza contributo minimo soggettivo (art. 30, c. 3, e art. 37, c. 3)."
         )
     else:
@@ -124,9 +124,9 @@ def calcola(payload: Mapping[str, Any], norme: Any, *, anno_corrente: int) -> Di
         copertura = float(sogg["copertura_eur"])
         fino_tetto = max(0.0, min(reddito, tetto) - copertura) * aliquota / 100.0
         notes.append(
-            f"Contributo soggettivo: minimo di {minimo_sogg:,.2f} euro (copre il reddito fino a "
-            f"{copertura:,.2f} euro) più il {aliquota:g}% sul reddito eccedente fino al tetto di "
-            f"{tetto:,.2f} euro e il {aliquota_oltre:g}% oltre il tetto (art. 30 e art. 37 Regolamento unico)."
+            f"Contributo soggettivo: minimo di {fmt_eur(minimo_sogg)} euro (copre il reddito fino a "
+            f"{fmt_eur(copertura)} euro) più il {aliquota:g}% sul reddito eccedente fino al tetto di "
+            f"{fmt_eur(tetto)} euro e il {aliquota_oltre:g}% oltre il tetto (art. 30 e art. 37 Regolamento unico)."
         )
     ecc_sogg = _eccedenza(fino_tetto + oltre_tetto, notes, "Contributo soggettivo")
     totale_sogg = _cent(minimo_sogg + ecc_sogg)
@@ -139,8 +139,8 @@ def calcola(payload: Mapping[str, Any], norme: Any, *, anno_corrente: int) -> Di
     totale_int = _cent(minimo_int + ecc_int)
     if dovuto_int < minimo_int:
         notes.append(
-            f"Contributo integrativo: {aliquota_int:g}% del volume d'affari ({_cent(dovuto_int):,.2f} euro) "
-            f"inferiore al minimo di {minimo_int:,.2f} euro: è dovuto il minimo (art. 37)."
+            f"Contributo integrativo: {aliquota_int:g}% del volume d'affari ({fmt_eur(_cent(dovuto_int))} euro) "
+            f"inferiore al minimo di {fmt_eur(minimo_int)} euro: è dovuto il minimo (art. 37)."
         )
     notes.append(
         f"Il contributo integrativo del {aliquota_int:g}% si applica in fattura ed è ripetibile nei confronti "

@@ -57,8 +57,10 @@ def test_molto_alta_parametrizza_valore_indeterminabile_in_fascia_alta():
     )
     payload = risultato.to_dict()
 
-    assert risultato.valore_calcolo == 520001.0
+    # Art. 5, comma 6, D.M. 55/2014: indeterminabile di particolare importanza
+    # "entro lo scaglione fino a euro 520.000", mai nella fascia oltre.
+    assert risultato.valore_calcolo == 390000.0
     assert risultato.complessita_stimata == "molto_alta"
-    assert risultato.scaglione == "Oltre € 520.000"
+    assert risultato.scaglione == "Da € 260.000 a € 520.000"
     assert payload["audit_tariffario"]["valore_indeterminabile_parametrizzato"] is True
     assert "valore indeterminabile parametrizzato" in risultato.note.lower()

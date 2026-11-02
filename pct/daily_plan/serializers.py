@@ -139,7 +139,7 @@ def plan_summary_payload(plan: DailyPlan) -> dict[str, Any]:
 
     return {
         "ok": True,
-        "stato": "pronto",
+        "stato": "anteprima" if plan.generation_mode == "anteprima" else "pronto",
         "data": plan.target_date,
         "data_label": _format_date_it(plan.target_date),
         "utente": plan.user_id,
@@ -174,7 +174,7 @@ def plan_missing_payload(target_date: str, user_id: str) -> dict[str, Any]:
         "sezioni": {"da_fare_ora": [], "pec": [], "fascicoli": [], "economico": [], "da_assegnare": []},
         "agenda_oggi": [],
         "avvisi": [
-            "Il piano della data selezionata non è ancora disponibile: la giornata corrente viene preparata automaticamente alle 05:30 e recuperata dal servizio automatico se manca lo snapshot."
+            "Il piano della data selezionata non è ancora disponibile: la giornata corrente viene preparata automaticamente alle 05:30 (e ripresa dal servizio automatico se quella preparazione manca). Per i giorni successivi consulta agenda e scadenziario."
         ],
         "sintesi": "Il piano operativo della data selezionata non è ancora disponibile.",
         "sintesi_da_lex": False,

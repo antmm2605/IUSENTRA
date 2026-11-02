@@ -248,11 +248,11 @@ try {
     if (colors[2]) { colorSetter.call(colors[2], '#0f9f8f'); colors[2].dispatchEvent(new Event('input', { bubbles: true })); colors[2].dispatchEvent(new Event('change', { bubbles: true })) }
     setSelect('Font', 'garamond_legal')
     setSelect('Dimensione testo', '18px')
-    setSelect('Titolo hero', '48px')
+    setSelect('Titolo principale', '48px')
     setSelect('Titoli sezioni', '34px')
     setSelect('Movimento sezioni', 'scale-in')
-    setSelect('Ombra card', 'layered')
-    setSelect('Header', 'transparent')
+    setSelect('Ombra schede', 'layered')
+    setSelect('Intestazione', 'transparent')
     setSelect('Separatore sezioni', 'accent-line')
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const page = document.querySelector('.iu-builder-public-page')
@@ -325,7 +325,7 @@ try {
     .filter((line) => /error|uncaught|failed/i.test(line))
 
   const failures = []
-  if (base.h1 !== 'Sito Studio Builder Pro') failures.push('titolo_non_esatto')
+  if (base.h1 !== 'Costruttore del sito') failures.push('titolo_non_esatto')
   if (base.activeTab !== 'Aspetto') failures.push('tab_aspetto_non_attiva')
   if (base.tabCount !== 10) failures.push('tab_count')
   if (Math.abs(base.panel.width - 380) > 18) failures.push('pannello_380px')

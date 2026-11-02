@@ -447,7 +447,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
   }
 
   return (
-    <Panel title="Form preventivo" subtitle="Salvataggio con validazione, permessi e audit.">
+    <Panel title="Dati del preventivo" subtitle="Il salvataggio controlla i dati e resta registrato nello storico dello studio.">
       <form className="iu-prev-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
         <div className="iu-prev-form-grid">
@@ -516,7 +516,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
         </label>
         <section className="iu-prev-form-note" aria-label="Presidio operativo">
           <AlertTriangle size={17} />
-          <span>Il sistema determina importi finali, parametri forensi, numerazione e persistenza.</span>
+          <span>Importi finali, parametri forensi e numerazione sono calcolati dal sistema al salvataggio.</span>
         </section>
         <div className="iu-prev-action-row">
           <Button type="submit" tone="primary" disabled={saveStatus === 'saving' || !data.permissions.canCreate}>
@@ -602,7 +602,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
   }
 
   return (
-    <Panel title="Form conferimento incarico" subtitle="Salvataggio con validazione, permessi e audit.">
+    <Panel title="Dati del conferimento d’incarico" subtitle="Il salvataggio controlla i dati e resta registrato nello storico dello studio.">
       <form className="iu-prev-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
         <div className="iu-prev-form-grid">
@@ -1109,7 +1109,7 @@ function RecordsPanel({ data, onReload, metricFilter }: { data: PreventiviPageDa
     <section className="iu-prev-records" aria-label="Archivio preventivi e conferimenti">
       <Panel
         title="Archivio preventivi e incarichi"
-        subtitle={`${filtered.length} elementi visualizzati su ${data.records.length}`}
+        subtitle={`${filtered.length} ${filtered.length === 1 ? 'elemento visualizzato' : 'elementi visualizzati'} su ${data.records.length}`}
         actions={(
           <div className="iu-prev-action-row">
             <ButtonLink href="/preventivi/wizard" tone="primary">Preventivo guidato</ButtonLink>
@@ -1157,6 +1157,7 @@ function RecordsPanel({ data, onReload, metricFilter }: { data: PreventiviPageDa
 function ArchiveView({ data, onReload }: { data: PreventiviPageData; onReload: (data: PreventiviPageData) => void }) {
   const [metricFilter, setMetricFilter] = useState(() => {
     const value = new URLSearchParams(window.location.search).get('metric') || ''
+    if (!value && /^\/preventivi\/conferimento\/?$/i.test(window.location.pathname)) return 'conferimenti'
     return ['preventivi_totali', 'preventivi_aperti', 'preventivi_accettati', 'conferimenti'].includes(value) ? value : ''
   })
   return (
@@ -1286,7 +1287,7 @@ export function PreventiviPage() {
     ? 'Archivio mandato con indicatori, stati, dettaglio operativo e collegamenti reali.'
     : mode === 'detail-conferimento'
       ? 'Dettaglio operativo con cliente, fascicolo, firma, PDF e stato incarico.'
-    : 'Pagina operativa con salvataggio validato e fonte dati governata.'
+    : 'Compila i dati: importi e parametri forensi sono controllati al salvataggio.'
   const hasData = mode === 'detail-conferimento'
     ? Boolean(conferimentoDetail)
     : data.records.length > 0 || data.clients.length > 0 || data.metrics.length > 0 || data.sections.some((section) => section.items.length > 0)

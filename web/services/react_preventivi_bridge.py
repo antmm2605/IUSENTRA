@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 from pct.formatting import format_euro_it
+from pct.tariffario import etichetta_fase
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
@@ -922,7 +923,7 @@ def build_react_preventivo_detail_payload(
     clienti = {_text(getattr(cliente, "id", "")): cliente for cliente in clienti_list}
     fascicoli = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli_list}
     item = _preventivo_record(preventivo, clienti, fascicoli)
-    item["voci"] = [{"descrizione": _text(getattr(voce, "descrizione", "")), "tipo": _enum(getattr(voce, "tipo", "")), "importoDisplay": _money(getattr(voce, "importo", 0))} for voce in list(getattr(preventivo, "voci", []) or [])]
+    item["voci"] = [{"descrizione": etichetta_fase(_text(getattr(voce, "descrizione", ""))), "tipo": _enum(getattr(voce, "tipo", "")), "importoDisplay": _money(getattr(voce, "importo", 0))} for voce in list(getattr(preventivo, "voci", []) or [])]
     return {"ok": True, "source": "repository_reali", "generated_at": _iso_now(), "contracts": _contracts("/preventivi"), "item": item, "warnings": warnings}, 200
 
 

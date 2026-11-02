@@ -336,7 +336,9 @@ def _supplemental_profiles() -> list[PracticeProfile]:
         requires_human_review=True,
         requires_registry_enrollment=True,
     )
-    return [lavoro_retribuzione, sigp]
+    from .profili_rito import profili_di_rito
+
+    return [lavoro_retribuzione, sigp, *profili_di_rito()]
 
 
 def list_profiles() -> list[PracticeProfile]:

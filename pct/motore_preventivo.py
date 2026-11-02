@@ -186,7 +186,7 @@ def _adr_variation_policy(kind: str) -> Dict[str, Any]:
                 "key": key,
                 "label": {
                     "attivazione": "Fase di attivazione",
-                    "rivitalizzazione": "Fase di rivitalizzazione",
+                    "rivitalizzazione": "Fase di negoziazione",
                     "negoziazione": "Fase di negoziazione",
                     "conciliazione": "Fase di conciliazione",
                 }.get(key, key),
@@ -199,7 +199,7 @@ def _adr_variation_policy(kind: str) -> Dict[str, Any]:
             "phase_keys": agreement_phase_keys,
             "description": (
                 "Se la procedura si conclude con accordo, i compensi delle fasi di attivazione "
-                "e negoziazione/rivitalizzazione sono aumentati del 30%, ferma la fase di conciliazione."
+                "e di negoziazione sono aumentati del 30%, ferma la fase di conciliazione (art. 20, comma 1-bis, D.M. 55/2014)."
             ),
         },
         "references": [

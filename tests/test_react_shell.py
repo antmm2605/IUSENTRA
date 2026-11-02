@@ -1354,7 +1354,7 @@ def test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative():
     assert "data.actions.newDeadline" in page_source
     assert "data.actions.newMatter" in page_source
     assert "data.actions.newMessage" in page_source
-    assert "Faldone cliente" in page_source
+    assert "Faldone cliente (PDF)" in page_source
     assert "?_legacy=1" not in page_source
     assert "FloatingLex" in page_source
     assert "/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella" in data_source
@@ -3423,7 +3423,7 @@ def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: 
         "Firma Digitale",
         "Email SMTP",
         "WhatsApp",
-        "Scheduler",
+        "Automazioni",
             "AI Locale",
             "Pagamenti",
             "Notifiche",
@@ -8814,8 +8814,9 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert form["fascicolo"]["leadLawyer"] == "Avv. Refactor"
     assert form["guardrails"]["channel"] == "PCT_TELEMATICO"
     assert form["guardrails"]["requiredOpeningFields"] == ["titolo", "tipo", "oggetto", "autorità giudiziaria", "controparte"]
-    assert new_form["judicialOffices"]
-    assert any("Tribunale" in office["label"] for office in new_form["judicialOffices"])
+    # FAS-13: il form non porta l'intero registro uffici, solo il collegamento alla ricerca.
+    assert new_form["judicialOffices"] == []
+    assert new_form["judicialOfficesSearch"] == "/api/v1/ui/uffici-giudiziari/opzioni"
     assert "subjects" in new_form
     assert new_form["guardrails"]["channel"] == "PDP_PENALE"
     assert new_form["guardrails"]["channelLabel"] == "PDP Penale"
@@ -8824,8 +8825,10 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert source_form["fascicolo"]["codiceOggettoPst"] == "014001"
     assert source_form["fascicolo"]["fonteCodiceOggetto"] == "PST_XSD"
     assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"
-    assert any(field["key"] == "contributo_unificato_stato" for field in export_payload["fields"])
-    assert any(field["key"] == "totale_registrato" for field in export_payload["fields"])
+    # I campi dichiarati sono le colonne reali dell'export; le voci economiche hanno il loro CSV (verifica visiva 02/11/2026).
+    assert not any(field["key"] == "contributo_unificato_stato" for field in export_payload["fields"])
+    assert any(preset["href"] == "/export/fascicoli.csv" for preset in export_payload["presets"])
+    assert not any(field["key"] == "totale_registrato" for field in export_payload["fields"])
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
 
 
@@ -9056,11 +9059,14 @@ def test_react_fascicolo_import_quickorganizer_compila_dati_deposito(tmp_path: P
     assert profile["Cliente"] == "Spagnolo Sara (da collegare in anagrafica)"
     assert payload["fascicolo"]["codiceOggettoPst"] == "222050 - Retribuzione"
     assert profile["Codice oggetto"] == "222050 - Retribuzione"
-    assert payload["regia"]["page_state"] == "profilo_da_confermare"
+    # Codice oggetto PST ufficiale 222050 concorde con tipo Lavoro e Tribunale: il profilo si imposta da solo.
+    assert payload["regia"]["page_state"] == "operativa"
     assert payload["regia"]["header"]["channel"] == "PCT lavoro / SICID"
     assert payload["regia"]["header"]["channelCode"] == "PCT_LAVORO"
-    assert payload["regia"]["profile"]["candidate"]["code"] == "PROC_LAV_RETRIB_001"
-    assert payload["regia"]["profile"]["needs_manual_confirmation"] is True
+    assert payload["regia"]["profile"]["code"] == "PROC_LAV_RETRIB_001"
+    assert payload["regia"]["profile"]["needsManualConfirmation"] is False
+    assert payload["regia"]["profile"]["automatic"] is True
+    assert "codice oggetto PST ufficiale 222050" in payload["regia"]["profile"]["reason"]
     assert [doc["name"] for doc in documents[:2]] == ["Provvedimento - sentenza", "Atto giudiziario"]
     imported_documents = [doc for doc in documents if doc["id"] in {documents[0]["id"], documents[1]["id"]}]
     assert all(not doc["name"].startswith("202603") for doc in imported_documents)
@@ -9115,7 +9121,7 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
     assert "Prossima udienza" not in profile
     assert profile["Ultima udienza"] == (date.today() - timedelta(days=21)).strftime("%d/%m/%Y")
     assert profile["Chiusura"] != "n.d."
-    assert profile["Ultimo sync"] == imported_at_it
+    assert profile["Ultimo allineamento"] == imported_at_it
     assert payload["fascicolo"]["notes"] == f"Importato da PolisWeb il {imported_at_it}"
     assert any(
         item.get("notes") == f"Evento acquisito il {imported_at_it}"

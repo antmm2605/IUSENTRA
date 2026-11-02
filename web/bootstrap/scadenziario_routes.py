@@ -10,6 +10,7 @@ from web.blueprints.react_shell import render_react_shell_response
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
 from markupsafe import escape
 from pct.ora_italiana import oggi_roma
+from pct.scadenze_titolo_avvocato import traccia_titolo_avvocato
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -395,7 +396,7 @@ def register_scadenziario_routes(
                         operational_lead_business_days=0,
                         october_observance_blocks=False,
                     )
-                gs.aggiorna(id_sc, **update_kwargs)
+                gs.aggiorna(id_sc, **update_kwargs, **traccia_titolo_avvocato(sc, update_kwargs["titolo"]))  # titolo dell'avvocato: la manutenzione PEC non lo riscrive
                 audit("scadenziario.modifica", "scadenza", id_sc)
                 flash("Scadenza aggiornata.", "success")
                 sync_pubblica("modifica", "scadenze", id_sc)

@@ -148,19 +148,53 @@ def _text(value: Any) -> str:
     return " ".join(str(value or "").split())
 
 
+# Etichette italiane delle colonne delle tabelle normative (pct/normative_tables.py):
+# la scheda non deve mostrare le chiavi tecniche del database (verifica visiva LEX-06).
+_ETICHETTE_CAMPIONE = {
+    "year": "anno", "month": "mese", "base": "base", "index": "indice", "variation_yoy": "variazione annua",
+    "category": "categoria", "label": "voce", "amount": "importo", "monthly_amount": "importo mensile",
+    "rate": "tasso", "reference_rate": "tasso di riferimento", "max_value": "fino a", "from_value": "da",
+    "to_value": "a", "threshold_eur": "soglia", "value": "valore", "unit": "unità", "start": "dal",
+    "end": "al", "effective_from": "in vigore dal", "spese_avvio": "spese di avvio",
+    "spese_primo_incontro": "spese del primo incontro", "tabella_a_minimo": "minimo tabella A",
+    "aliquota": "aliquota", "minimo_eur": "minimo", "minimo_ridotto_eur": "minimo ridotto",
+    "maggiorazione": "maggiorazione", "tegm": "TEGM", "soglia": "soglia", "quarter": "trimestre",
+    "tipo": "tipo", "decreto": "decreto",
+}
+_CHIAVI_CAMPIONE_TECNICHE = {"id", "source_code", "source_codes", "watch_source_ids", "rule_code", "strategy",
+                             "data_hash", "created_at", "updated", "sync_status", "kind", "table_id", "note", "notes",
+                             "description", "title", "published_at", "status", "warning", "defaults"}
+
+
 def _campione_leggibile(valore: Any) -> str:
-    """Una riga di tabella normativa come «nome: valore», date e decimali italiani (non un dizionario Python, V25)."""
+    """Una riga di tabella normativa come «nome valore», con etichette italiane, date e decimali italiani (V25, LEX-06)."""
     if isinstance(valore, dict):
         parti = []
-        for chiave, dato in list(valore.items())[:6]:
+        for chiave, dato in valore.items():
+            nome = str(chiave)
+            if nome in _CHIAVI_CAMPIONE_TECNICHE or nome.endswith("_id") or dato in (None, "", [], {}):
+                continue
+            if isinstance(dato, (dict, list)):
+                continue
             testo = str(dato)
             if isinstance(dato, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", dato):
                 testo = f"{dato[8:10]}/{dato[5:7]}/{dato[:4]}"
             elif isinstance(dato, float):
                 testo = f"{dato:g}".replace(".", ",")
-            parti.append(f"{str(chiave).replace('_', ' ')} {testo}")
+            elif isinstance(dato, str) and re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)+", dato):
+                testo = dato.replace("_", " ")
+            parti.append(f"{_ETICHETTE_CAMPIONE.get(nome, nome.replace('_', ' '))} {testo}")
+            if len(parti) >= 4:
+                break
         return ", ".join(parti)
     return _text(valore)
+
+
+def _avviso_fonte_leggibile(avviso: Any) -> str:
+    """Avviso di sincronizzazione senza codici HTTP grezzi (LEX-06)."""
+    testo = _text(avviso)
+    testo = re.sub(r":?\s*HTTP\s*\d{3}\b", ": la fonte ufficiale non ha risposto all'ultimo controllo", testo)
+    return testo
 
 
 def _short(value: Any, limit: int = 220) -> str:
@@ -1281,6 +1315,8 @@ def _record_follow_up_query(record: Mapping[str, Any]) -> str:
         _text(record.get("branch")),
         _text(record.get("sourceLabel")),
     ]
+    # Le chiavi tecniche delle fonti (es. gazzetta_ufficiale) non entrano nella ricerca proposta (LEX-22).
+    parts = [part for part in parts if not re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)+(?:,\s*[a-z0-9]+(?:_[a-z0-9]+)+)*", part)]
     return _short(" ".join(part for part in parts if part), 180)
 
 
@@ -2136,7 +2172,9 @@ def _normative_table_checks(row: Mapping[str, Any], sample_rows: list[dict[str, 
     if "mediazione" in haystack:
         checks.append("Verificare materia obbligatoria, invito, organismo competente, adesione, verbale ed effetti sui termini.")
     if sample_rows:
-        checks.append("Campione dati letto dal tenant: " + "; ".join(_short(row, 90) for row in sample_rows[:2]))
+        campioni = [_short(_campione_leggibile(row), 90) for row in sample_rows[:2]]
+        if any(campioni):
+            checks.append("Righe lette dalla tabella dello studio: " + "; ".join(c for c in campioni if c))
     return checks[:6]
 
 
@@ -2158,7 +2196,7 @@ def _normative_table_record(
         "da verificare": "controllo automatico da completare",
     }.get(status.lower(), status.replace("_", " "))
     warning = _short(row.get("last_warning"), 360)
-    source_titles, source_urls, source_codes = _normative_sources(row)
+    source_titles, source_urls, _source_codes = _normative_sources(row)
     samples = _normative_table_rows(manager, table_id, limit=3)
     sample_count = len(samples)
     try:
@@ -2176,14 +2214,14 @@ def _normative_table_record(
     ]
     if total_rows:
         source_excerpt_parts.append(f"Righe strutturate: {total_rows}.")
-    if samples:
-        source_excerpt_parts.append("Dati campione: " + "; ".join(_short(_campione_leggibile(sample), 120) for sample in samples[:3]) + ".")
+    campioni = [_short(_campione_leggibile(sample), 120) for sample in samples[:3]]
+    campioni = [campione for campione in campioni if campione]
+    if campioni:
+        source_excerpt_parts.append("Esempi di righe: " + "; ".join(campioni) + ".")
     if source_titles:
         source_excerpt_parts.append("Fonti: " + "; ".join(source_titles[:4]) + ".")
-    if source_codes:
-        source_excerpt_parts.append("Codici fonte: " + ", ".join(source_codes[:8]) + ".")
     if warning:
-        source_excerpt_parts.append("Avviso: " + warning)
+        source_excerpt_parts.append("Avviso: " + _avviso_fonte_leggibile(warning))
     excerpt = _short(" ".join(part for part in source_excerpt_parts if part), 900)
     key_points = [
         f"Tabella: {title}",

@@ -3113,7 +3113,9 @@
       return;
     }
 
-    badge.textContent = label;
+    // Il nome tecnico del modello resta nel suggerimento, non nel testo (verifica visiva LEX-28).
+    badge.textContent = ok ? 'Motore AI attivo' : label;
+    badge.title = ok ? 'Modello in uso: ' + label : '';
     badge.classList.toggle('is-offline', !ok);
     badge.classList.toggle('is-online', ok);
   }

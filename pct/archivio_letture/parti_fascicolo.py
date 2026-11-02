@@ -135,6 +135,63 @@ def _dettaglio(fatto: Any, codice: str) -> str:
     return ""
 
 
+_CONNETTIVI = {"di", "da", "del", "della", "delle", "dello", "dei", "degli", "dell", "e", "ed", "per", "la", "le", "il", "lo",
+               "gli", "l", "d", "in", "pro", "tempore", "persona"}
+_ENTI_GENERICI = {"ministero", "agenzia", "comune", "regione", "provincia", "istituto", "ufficio scolastico", "azienda", "universita"}
+
+
+def _ente_generico(nome: str) -> bool:
+    return semplice(nome) in _ENTI_GENERICI
+
+
+def _identita(voce: ParteDelFascicolo) -> str:
+    """Lo stesso soggetto: codice fiscale numerico di 11 cifre o nome senza articoli e preposizioni."""
+    if len(voce.codice_fiscale) == 11:
+        return "cf:" + voce.codice_fiscale
+    return "nome:" + " ".join(sorted(p for p in _parole(voce.nome) if p not in _CONNETTIVI))
+
+
+def _chiavi(voce: ParteDelFascicolo) -> set[str]:
+    nome = _identita(ParteDelFascicolo(nome=voce.nome, ruolo=voce.ruolo))
+    return {nome, _identita(voce)}
+
+
+def _fondi_varianti(voci: list[ParteDelFascicolo]) -> tuple[list[ParteDelFascicolo], dict[int, set[str]]]:
+    """Varianti dello stesso ente (stesso codice di 11 cifre o stesso nome normalizzato) e stesso ruolo: una voce.
+
+    Restituisce anche, per ogni voce tenuta, le chiavi di tutte le varianti fuse.
+    """
+    per_identita: dict[str, ParteDelFascicolo] = {}
+    chiavi: dict[int, set[str]] = {}
+    nomi_cf: dict[str, str] = {}
+    for voce in voci:
+        if len(voce.codice_fiscale) == 11:
+            nomi_cf.setdefault(_identita(ParteDelFascicolo(nome=voce.nome, ruolo=voce.ruolo)), "cf:" + voce.codice_fiscale)
+    esito: list[ParteDelFascicolo] = []
+    for voce in voci:
+        identita = _identita(voce)
+        identita = nomi_cf.get(identita, identita)  # la variante senza codice segue quella con il codice
+        chiave = f"{identita}|{voce.ruolo}"
+        prima = per_identita.get(chiave)
+        if prima is None:
+            per_identita[chiave] = voce
+            chiavi[id(voce)] = _chiavi(voce)
+            esito.append(voce)
+            continue
+        chiavi[id(prima)] |= _chiavi(voce)
+        prima.codice_fiscale = prima.codice_fiscale or voce.codice_fiscale
+        prima.codice_fiscale_valido = prima.codice_fiscale_valido or voce.codice_fiscale_valido
+        prima.difensore = prima.difensore or voce.difensore
+        prima.posizione = prima.posizione or voce.posizione
+        if voce.verifica in {"verificata", "corretta"}:
+            prima.verifica = voce.verifica
+        prima.fatti.extend(f for f in voce.fatti if f not in prima.fatti)
+        prima.oggetti.extend(o for o in voce.oggetti if o not in prima.oggetti)
+        if len(voce.nome) > len(prima.nome):
+            prima.nome = voce.nome  # la denominazione più completa
+    return esito, chiavi
+
+
 def parti_lette(fatti: Iterable[Any]) -> list[ParteDelFascicolo]:
     """Le parti dell'archivio, una voce per persona e ruolo, la lettura più solida per prima."""
     voci: dict[tuple[str, str], ParteDelFascicolo] = {}
@@ -148,10 +205,14 @@ def parti_lette(fatti: Iterable[Any]) -> list[ParteDelFascicolo]:
         nome = " ".join(str(getattr(fatto, "valore", "") or "").split())
         if ruolo not in RUOLI_LETTI or not nome:
             continue
+        if _ente_generico(nome):
+            continue  # «Ministero» senza denominazione: frase della domanda, non una parte
         cf_grezzo = str(getattr(fatto, "valore_letto", "") or "")
         cf = cf_grezzo if re.fullmatch(r"[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]|\d{11}", cf_grezzo) else ""
         if not cf and re.fullmatch(r"[A-Z0-9]{16}", cf_grezzo) and _dettaglio(fatto, "codice_fiscale").startswith(cf_grezzo + " ("):
             cf = cf_grezzo  # dichiarato nella fonte, non certificato valido
+        if len(cf) == 16 and tipo_soggetto(nome) != "PERSONA_FISICA":
+            cf = ""  # il codice di una persona fisica non appartiene mai a un ente o a una società
         chiave = (" ".join(sorted(_parole(nome))), ruolo)
         voce = voci.get(chiave)
         if voce is None:
@@ -169,9 +230,10 @@ def parti_lette(fatti: Iterable[Any]) -> list[ParteDelFascicolo]:
         oggetto = str(getattr(fatto, "oggetto_id", "") or "")
         if oggetto and oggetto not in voce.oggetti:
             voce.oggetti.append(oggetto)
+    voci_uniche, chiavi = _fondi_varianti(list(voci.values()))
     # Una parte con il lato riconosciuto rende superflua la stessa persona letta «senza lato».
-    certe = {" ".join(sorted(_parole(v.nome))) for v in voci.values() if v.ruolo != "parte"}
-    elenco = [v for v in voci.values() if not (v.ruolo == "parte" and " ".join(sorted(_parole(v.nome))) in certe)]
+    certe = {chiave for v in voci_uniche if v.ruolo != "parte" for chiave in chiavi[id(v)]}
+    elenco = [v for v in voci_uniche if not (v.ruolo == "parte" and _chiavi(v) & certe)]
     ordine = {ruolo: indice for indice, ruolo in enumerate(RUOLI_LETTI)}
     return sorted(elenco, key=lambda v: (ordine.get(v.ruolo, 9), 0 if v.certa else 1, v.nome))
 

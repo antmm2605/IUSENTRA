@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 from flask import current_app, g, session
 
 from pct.scadenze_stato import ESITO_UDIENZA, SCADUTA, stato_operativo
-from pct.proposte_decorse import AZIONABILE as PROPOSTA_AZIONABILE, classifica as classifica_proposta
+from pct.proposte_decorse import AZIONABILE as PROPOSTA_AZIONABILE, classifica as classifica_proposta, opposizione_127_ter_incoerente
 from pct.agenda import TipoAppuntamento
 from pct.email_client import CartellaEmail, GestioneEmailRicevute
 from pct.fatturazione import StatoParcella
@@ -981,7 +981,15 @@ def agenda_scadenziario_notification_items(
                     continue
                 remote_hearing = _remote_hearing_notification_payload(scadenza)
                 deadline_message = (
-                    "Scadenza oggi"
+                    # Regola V28 (pct.scadenze_stato): l'udienza passata non e' una scadenza
+                    # superata, se ne registra l'esito (artt. 126 e 127-ter c.p.c.).
+                    "Udienza passata: esito da registrare"
+                    if status == "hearing_outcome"
+                    # Opposizione ex art. 127-ter, comma 2, c.p.c.: 5 giorni dalla comunicazione;
+                    # una data a mesi di distanza è da verificare, non «Scade tra N giorni».
+                    else "Data da verificare: l'opposizione va proposta entro 5 giorni dalla comunicazione"
+                    if opposizione_127_ter_incoerente(scadenza)
+                    else "Scadenza oggi"
                     if days == 0
                     else "Scadenza superata"
                     if days < 0
@@ -1281,7 +1289,10 @@ def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
         access_info = ""
     if platform.casefold() in GENERIC_REMOTE_HEARING_PLATFORMS:
         platform = ""
-    if not any((detected, mode, verified_url, source, pdf_required)):
+    # Solo un collegamento audiovisivo (art. 127-bis c.p.c.) rilevato, verificato
+    # o da leggere nel PDF genera l'avviso: la modalità da sola (es. trattazione
+    # scritta ex art. 127-ter o udienza in presenza) non è un'udienza da remoto.
+    if not any((detected, verified_url, pdf_required)):
         return {}
     return {
         "remoteHearingDetected": bool(detected or verified_url or pdf_required),
@@ -1309,6 +1320,10 @@ def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
 
 
 def _remote_hearing_notification_label(payload: dict[str, Any]) -> str:
+    # Solo l'udienza da remoto (art. 127-bis c.p.c.) ha un collegamento audiovisivo:
+    # la trattazione scritta (art. 127-ter c.p.c.) o in presenza non porta questa etichetta.
+    if not payload.get("remoteHearingDetected"):
+        return ""
     platform = _clean_text(payload.get("remoteHearingPlatform"), limit=80)
     if payload.get("remoteHearingUrl"):
         return f"Collegamento audiovisivo verificato{f' su {platform}' if platform else ''}"

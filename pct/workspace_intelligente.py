@@ -14,6 +14,7 @@ from pct.fascicolo_document_presidio import duplicate_practice_groups
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.scadenziario import GestioneScadenziario, RegolaCalendario, Scadenza
+from pct.scadenze_stato import esito_udienza_da_registrare
 from pct.workspace_intelligence_repository import (
     WorkspaceIntelligenceRepository,
     derive_workspace_intelligence_repository_db_path,
@@ -537,7 +538,15 @@ class WorkspaceIntelligenteService:
         ]
         aperte.sort(key=lambda row: row.data_scadenza or "9999-12-31")
         future = [row for row in aperte if (row.giorni_alla_scadenza or 0) >= 0]
-        overdue = [row for row in aperte if row.giorni_alla_scadenza is not None and row.giorni_alla_scadenza < 0]
+        # Regola V28 (pct.scadenze_stato): un'udienza passata e' un esito da registrare,
+        # non un termine scaduto; non rende «urgente» il fascicolo.
+        overdue = [
+            row
+            for row in aperte
+            if row.giorni_alla_scadenza is not None
+            and row.giorni_alla_scadenza < 0
+            and not esito_udienza_da_registrare(row)
+        ]
         return {
             "aperte": aperte,
             "future": future,
@@ -771,7 +780,7 @@ class WorkspaceIntelligenteService:
         elif scadenze_scadute:
             first = scadenze_scadute[0]
             actions.append(
-                f"Chiudere o riallineare subito la scadenza '{first.titolo}' perche' risulta gia' scaduta."
+                f"Chiudere o riallineare subito la scadenza «{first.titolo}» perché risulta già scaduta."
             )
         elif scadenze_future:
             first = scadenze_future[0]
@@ -785,7 +794,7 @@ class WorkspaceIntelligenteService:
 
         if documentale.get("documenti_portale_mancanti"):
             actions.append(
-                f"Allineare {documentale['documenti_portale_mancanti']} documenti del portale con classificazione ufficiale e identificativi del deposito."
+                (f"Allineare {documentale['documenti_portale_mancanti']} documenti del portale con classificazione ufficiale e identificativi del deposito." if documentale['documenti_portale_mancanti'] != 1 else "Allineare 1 documento del portale con classificazione ufficiale e identificativo del deposito.")
             )
         elif presidio.get("udienza_passata_non_allineata"):
             actions.append("Storicizzare l'udienza gia' trascorsa o aggiornare il fascicolo con il relativo provvedimento.")
@@ -929,8 +938,14 @@ class WorkspaceIntelligenteService:
             finally:
                 tempi[nome] = tempi.get(nome, 0.0) + perf_counter() - inizio
 
-        urgent_deadlines = misura("scadenze", lambda: self.scadenziario.imminenti(entro_giorni=3))
-        horizon_deadlines = misura("scadenze", lambda: self.scadenziario.imminenti(entro_giorni=horizon_days))
+        # Le udienze gia' passate (esito da registrare) non sono termini urgenti: stessa
+        # regola di Scadenziario, Controllo Studio e barra in alto (pct.scadenze_stato).
+        urgent_deadlines = misura("scadenze", lambda: [
+            row for row in self.scadenziario.imminenti(entro_giorni=3) if not esito_udienza_da_registrare(row)
+        ])
+        horizon_deadlines = misura("scadenze", lambda: [
+            row for row in self.scadenziario.imminenti(entro_giorni=horizon_days) if not esito_udienza_da_registrare(row)
+        ])
         appointments = misura("appuntamenti", lambda: self._appointments_upcoming(horizon_days=horizon_days, limit=12))
         sync_profiles = misura("calendari", self._sync_profiles_status)
         fascicoli_hot = misura("fascicoli_attenzionati", lambda: self._fascicoli_hot(horizon_days=horizon_days, limit=hot_limit))
@@ -981,7 +996,7 @@ class WorkspaceIntelligenteService:
                 {
                     "tone": "danger",
                     "title": "Presidiare le scadenze urgenti",
-                    "description": f"{len(urgent_deadlines)} termini entro 3 giorni da verificare o depositare.",
+                    "description": f"{len(urgent_deadlines)} termini scaduti o in scadenza entro 3 giorni da verificare o depositare.",
                     "href": "/scadenziario",
                 }
             )

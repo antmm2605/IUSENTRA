@@ -36,6 +36,7 @@ DEFAULT_EFFORT_MINUTES: dict[str, int] = {
     "pec_review": 15,
     "pec_deadline": 20,
     "deadline_fulfill": 45,
+    "hearing_outcome": 15,
     "hearing_prepare": 45,
     "document_review": 30,
     "relata_completion": 25,

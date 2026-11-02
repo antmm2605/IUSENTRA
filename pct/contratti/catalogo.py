@@ -63,6 +63,10 @@ def clausole_della_famiglia(contratto: Contratto) -> tuple[str, ...]:
     """Chiavi delle clausole della bozza: proprie della famiglia o predefinite, più le finali."""
     lib = libreria_clausole()
     base = contratto.clausole or tuple(lib["predefinite"])
+    if contratto.id in lib.get("foro_immobile_per", ()):
+        # Locazione, comodato di immobili e affitto d'azienda: giudice del luogo dell'immobile (art. 21 c.p.c.)
+        # e clausole di deroga alla competenza nulle (art. 447-bis, comma 2, c.p.c.).
+        base = tuple("foro_immobile" if chiave == "legge_foro" else chiave for chiave in base)
     return tuple(dict.fromkeys((*base, *lib["finali"])))
 
 

@@ -134,9 +134,9 @@ DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
 # Tutti i permessi disponibili nel sistema, raggruppati per categoria.
 # Ogni voce: (categoria, chiave_permesso, etichetta_breve)
 TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
-    ("Tenant",       "tenant.leggi",         "Visibilita tenant"),
-    ("Tenant",       "tenant.configura",     "Configura tenant"),
-    ("Tenant",       "tenant.impersona",     "Impersona tenant"),
+    ("Studi",        "tenant.leggi",         "Visibilità studio"),
+    ("Studi",        "tenant.configura",     "Configura studio (piattaforma)"),
+    ("Studi",        "tenant.impersona",     "Accedi come altro studio"),
     ("Fascicoli",    "fascicoli.leggi",      "Visualizza"),
     ("Fascicoli",    "fascicoli.scrivi",     "Crea / Modifica"),
     ("Fascicoli",    "fascicoli.archivia",   "Archivia"),

@@ -283,12 +283,12 @@
   ],
   "clausole": [
    "oggetto",
-   "durata_locazione",
-   "canone_locazione",
+   "durata_locazione_diverso",
+   "canone_locazione_diverso",
    "deposito_cauzionale",
    "oneri_accessori",
-   "recesso_conduttore",
-   "sublocazione_divieto",
+   "recesso_conduttore_diverso",
+   "sublocazione_diverso",
    "riconsegna",
    "ape_clausola",
    "comunicazioni",
@@ -311,7 +311,7 @@
   "nome": "Sublocazione e cessione della locazione",
   "rif": [
    "art. 1594 c.c.",
-   "art. 2 L. 431/1998",
+   "art. 2 L. 392/1978",
    "art. 36 L. 392/1978"
   ]
  },
@@ -324,7 +324,7 @@
   "forma": "libera",
   "clausole": [
    "comodato_uso",
-   "riconsegna",
+   "riconsegna_comodato",
    "comunicazioni",
    "legge_foro"
   ],

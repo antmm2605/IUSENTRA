@@ -704,6 +704,16 @@ main.iu-content.iu-legal-fullscreen-mode .iu-legal-page {
   }
 }
 
+/* Archivi Cassazione e testi acquisiti: la card del tema non ha spaziatura interna propria. */
+#ricerca-cassazione, #ricerca-corpus { padding: var(--iu-od-space-5); min-width: 0; }
+#ricerca-cassazione h2, #ricerca-corpus h2 { margin: 0; font-size: 1.15rem; }
+#ricerca-cassazione p, #ricerca-corpus p { margin: 0; }
+#ricerca-cassazione ol, #ricerca-corpus ol { display: grid; gap: var(--iu-od-space-3); list-style: none; margin: 0; padding: 0; }
+#ricerca-cassazione li article, #ricerca-corpus li article { display: grid; gap: var(--iu-od-space-2); justify-items: start; padding: var(--iu-od-space-3) var(--iu-od-space-4); border: 1px solid var(--iu-od-border); border-radius: var(--iu-od-source-card-radius); background: var(--iu-od-surface); }
+#ricerca-cassazione li h3, #ricerca-corpus li h3 { margin: 0; font-size: 1rem; }
+#ricerca-cassazione select, #ricerca-corpus select { width: 100%; padding: .5rem; border: 1px solid currentColor; border-radius: .35rem; background: transparent; color: inherit; }
+@media (max-width: 560px) { #ricerca-cassazione, #ricerca-corpus { padding: var(--iu-od-space-4); } }
+
 .iu-openga-form { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
 .iu-openga-form label { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
 .iu-openga-form label:first-child { flex: 1 1 20rem; }

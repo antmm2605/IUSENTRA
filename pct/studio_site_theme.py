@@ -135,7 +135,7 @@ def _home_blocks(tone: str) -> list[dict[str, Any]]:
                 {"title": "Aggiornamenti", "text": "Comunicazioni chiare sullo stato pratica."},
             ],
         ),
-        _block("practice_areas", title="Aree di attivita"),
+        _block("practice_areas", title="Aree di attività"),
         _block("process_steps", title="Come lavoriamo"),
         _block("team", title="Professionisti"),
         _block("booking_cta", title="Prenota un confronto", button_text="Apri agenda"),

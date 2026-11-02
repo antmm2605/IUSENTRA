@@ -8,7 +8,7 @@ const CAMPI_SCHEDA: [string, string][] = [
 ]
 
 function valoreScheda(valore: unknown): string {
-  if (Array.isArray(valore)) return valore.length ? valore.map(String).join('; ') : '—'
+  if (Array.isArray(valore)) return valore.length ? valore.map((voce) => String(voce).trim().replace(/[.;]+$/, '')).join('; ') : '—'
   if (valore && typeof valore === 'object') {
     const v = valore as Record<string, unknown>
     if (v.verifica_normativa) return `Verifica normativa del ${String(v.verifica_normativa).split('-').reverse().join('/')} — da verificare sulla fonte ufficiale`

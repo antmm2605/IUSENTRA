@@ -21,10 +21,10 @@ export function CompensiCatalogWindow({ kind, records, onClose, focusToken, canO
   const title = kind === 'profili' ? 'Profili tariffari' : 'Regole disponibili'
   return <OperationalModal open focusToken={focusToken} ariaLabel={title} title={title} eyebrow="Catalogo compensi" subtitle="Dati delle tabelle normative dello studio. Il calcolo mantiene i parametri già inseriti." bodyClassName="iu-comp-catalog-body" onClose={onClose}>
     <div ref={catalogRef} className="iu-comp-catalog">
-      <label>Ricerca nel catalogo<input type="search" value={query} onChange={event => { setQuery(event.currentTarget.value); setPage(0) }} placeholder="Nome, materia, grado o codice…"/></label>
+      <label>Ricerca nel catalogo<input type="search" value={query} onChange={event => { setQuery(event.currentTarget.value); setPage(0) }} placeholder="Nome, materia o grado…"/></label>
       <p role="status">{filtered.length} {filtered.length === 1 ? 'voce' : 'voci'}{query ? ' nella ricerca' : ' disponibili'}</p>
       <ul>{filtered.slice(currentPage * 30, (currentPage + 1) * 30).map(record => <li key={`${record.kind}:${record.id}`}>
-        <div><strong>{record.title}</strong><span>{record.subtitle}</span><small>{record.meta} · {record.id}</small></div>
+        <div><strong>{record.title}</strong><span>{record.subtitle}</span><small>{record.meta}</small></div>
         {canOpenTariffario ? <a href={record.href}>Apri nel tariffario</a> : null}
       </li>)}</ul>
       {!filtered.length ? <p>Nessuna voce corrisponde alla ricerca.</p> : null}

@@ -1304,7 +1304,7 @@ export function AgendaPage() {
         <Kpi icon={<CalendarCheck size={19}/>} label="Periodo" active={quickFilter === 'periodo'} onClick={() => applyQuickFilter('periodo')} value={counts.week} note="eventi nel periodo"/>
         <Kpi icon={<Landmark size={19}/>} label="Udienze" active={quickFilter === 'udienze'} onClick={() => applyQuickFilter('udienze')} value={counts.hearings} note="da presidiare"/>
         <Kpi icon={<ListChecks size={19}/>} label="Scadenze" active={quickFilter === 'scadenze'} onClick={() => applyQuickFilter('scadenze')} value={counts.deadlines} note="termini e depositi"/>
-        <Kpi icon={<Bell size={19}/>} label="Alert" active={quickFilter === 'alert'} onClick={() => applyQuickFilter('alert')} value={counts.critical} note="priorità alta o critica"/>
+        <Kpi icon={<Bell size={19}/>} label="Avvisi" active={quickFilter === 'alert'} onClick={() => applyQuickFilter('alert')} value={counts.critical} note="priorità alta o critica"/>
       </section>
 
       <FloatingLex />

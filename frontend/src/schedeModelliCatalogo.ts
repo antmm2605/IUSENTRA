@@ -4,6 +4,19 @@ export const filtriModelliVuoti: FiltriModelli = { testo: '', materia: '', tipo:
 export function testoRicercaModello(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('it-IT').replace(/[_.,;:/()-]+/g, ' ').replace(/\s+/g, ' ').trim()
 }
+/** Stessa materia scritta in due modi dai due cataloghi: un solo nome nel filtro (verifica visiva LEX-08). */
+const MATERIE_EQUIVALENTI: Record<string, string> = {
+  amministrativo: 'Diritto amministrativo',
+  civile: 'Diritto civile',
+  penale: 'Diritto penale',
+  tributario: 'Diritto tributario',
+  'diritto del lavoro': 'Lavoro e previdenza',
+  'lavoro e previdenza': 'Lavoro e previdenza',
+}
+export function materiaCanonica(materia: string) {
+  const nome = (materia || '').trim()
+  return MATERIE_EQUIVALENTI[nome.toLocaleLowerCase('it-IT')] ?? nome
+}
 export function indicizzaModelli(rows: ModelloNorme[]) {
   return rows.map(row => ({ row, testo: testoRicercaModello(`${row.codice} ${row.titolo} ${row.materia} ${row.tipo} ${row.provenienza} ${row.ricerca}`) }))
 }
@@ -11,7 +24,7 @@ export function filtraModelli(index: ReturnType<typeof indicizzaModelli>, filter
   const query = testoRicercaModello(filter.testo)
   const exactCode = index.some(({ row }) => testoRicercaModello(row.codice) === query)
   const terms = query.split(' ').filter(Boolean)
-  return index.filter(({ row, testo }) => (!filter.materia || row.materia === filter.materia)
+  return index.filter(({ row, testo }) => (!filter.materia || materiaCanonica(row.materia) === materiaCanonica(filter.materia))
     && (!filter.tipo || row.tipo === filter.tipo) && (!filter.provenienza || row.provenienza === filter.provenienza)
     && (!filter.norme || row.stato_norme === filter.norme) && (exactCode ? testoRicercaModello(row.codice) === query : terms.every(term => testo.includes(term)))).map(item => item.row)
 }

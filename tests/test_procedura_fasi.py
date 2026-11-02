@@ -51,8 +51,18 @@ def test_le_regole_pat_sono_citate_dal_documento_ufficiale_archiviato():
     voce = FONTI["cpa_dpcm_40_2016"]
     assert "giustizia-amministrativa.it" in voce["url"]
     assert "Formweb" in voce["estratto"] and "sottoscrizione digitale" in voce["estratto"]
-    assert "docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf" in voce["verifica"]
-    assert Path("docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf").exists()
+    assert voce["copia_conservata"] == "docs/specs/ministero/fonti_ufficiali/2026-08-24/pat-regole-tecnico-operative-2025.pdf"
+    assert Path(voce["copia_conservata"]).exists()
+
+
+def test_la_verifica_mostrata_non_contiene_percorsi_interni():
+    """FAS-27: all'avvocato la fonte e l'URL ufficiale, mai il percorso della copia nel repository."""
+    from pathlib import Path
+
+    for identificativo, voce in FONTI.items():
+        assert "docs/" not in voce["verifica"] and ".pdf" not in voce["verifica"], identificativo
+        if voce.get("copia_conservata"):
+            assert Path(voce["copia_conservata"]).exists(), identificativo
 
 
 def test_le_norme_di_normattiva_usano_l_urn_del_testo_vigente():

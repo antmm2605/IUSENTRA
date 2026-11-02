@@ -61,6 +61,7 @@ _SECTOR_BY_SOURCE = {
 
 _DOMAIN_ACTIONS_BY_KIND = {
     "deadline_fulfill": ("create_task", "create_deadline"),
+    "hearing_outcome": ("create_task",),
     "pec_deadline": ("create_task", "create_deadline"),
     "hearing_attend": ("create_task", "create_calendar_proposal"),
     "hearing_link_missing": ("create_task",),
@@ -161,6 +162,78 @@ class DailyPlanService:
             warnings=[str(w) for w in (snapshot.get("warnings") or [])],
             lex_summary=str(snapshot.get("lex_summary") or ""),
             lex_summary_version=str(snapshot.get("lex_summary_version") or ""),
+        )
+
+    def preview_plan(self, *, user_id: str, target_date: str) -> DailyPlan:
+        """Anteprima del piano di una data senza snapshot, calcolata in lettura.
+
+        Stessi collettori, correlazione, priorità e pianificazione del giro notturno, ma
+        nessuna scrittura: niente watermark, segnali, attività o snapshot. Il piano
+        definitivo resta quello preparato dal servizio automatico; l'anteprima è
+        marcata ``generation_mode="anteprima"`` e le sue voci non hanno azioni.
+        """
+        planning_day = _planning_day(target_date, self.clock.today())
+        target = planning_day.isoformat()
+        ctx = self.context_factory(None)
+        ctx.planning_date = planning_day
+        ctx.watermarks = self.repository.get_watermarks()
+        results: list[CollectorResult] = []
+        fixed_agenda: list[dict[str, Any]] = []
+        for collector in (
+            ScadenzarioCollector(),
+            AgendaCollector(),
+            PecSignalCollector(),
+            CasePresidioCollector(),
+            EconomicSignalCollector(),
+        ):
+            result = collector.collect(ctx)
+            results.append(result)
+            fixed_agenda.extend(result.fixed_agenda)
+        collected = [signal for result in results for signal in result.signals]
+        groups = merge_signals(collapse_same_source_duplicates(correlate(collected, clock=self.clock)))
+        resolver = self.resolver_factory()
+        fascicoli_lookup = self.fascicoli_lookup_factory()
+        drafts = [
+            (group, self._item_from_group(group, resolver, fascicoli_lookup, target, planning_day))
+            for group in groups
+        ]
+        drafts.sort(key=lambda pair: rank_sort_key(pair[0], _DecisionShim(pair[1].priority), today=planning_day))
+        items: list[DailyWorkItem] = []
+        for rank, (_, item) in enumerate(drafts):
+            item.item_rank = rank
+            item.id = "anteprima-" + hashlib.sha256(item.dedupe_key.encode("utf-8")).hexdigest()[:16]
+            item.available_actions = []  # anteprima: nessuna azione, solo lettura
+            items.append(item)
+        user_items = [item for item in items if item.assigned_user_id == user_id]
+        user_agenda = [
+            entry
+            for entry in fixed_agenda
+            if not user_id or resolver.resolve_label(str(entry.get("avvocato") or "")) in ("", user_id)
+        ]
+        warnings = [
+            "Anteprima calcolata ora dalle fonti dello studio: non è il piano definitivo, che il "
+            "servizio automatico prepara alle 05:30 del giorno indicato. Le attività non si "
+            "possono gestire da qui."
+        ]
+        if user_id:
+            blocks = [block for entry in user_agenda if (block := fixed_block_from_agenda(entry)) is not None]
+            warnings.extend(plan_day(user_items, blocks, target_date=planning_day).warnings)
+        coverage, coverage_warnings = build_coverage_report(
+            results, watermarks=self.repository.get_watermarks(), clock=self.clock
+        )
+        return DailyPlan(
+            id="",
+            tenant_id=self.repository.tenant_id,
+            target_date=target,
+            user_id=user_id,
+            plan_version="",
+            generated_at=self.clock.now().isoformat(timespec="seconds"),
+            generation_mode="anteprima",
+            coverage=coverage,
+            summary=_summary_of(user_items, unassigned=[item for item in items if not item.assigned_user_id]),
+            work_items=[item for item in user_items if not item.in_backlog],
+            fixed_agenda_items=user_agenda,
+            warnings=warnings + list(coverage_warnings),
         )
 
     def missing_snapshot_user_ids(self, *, target_date: str = "") -> set[str]:

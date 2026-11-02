@@ -182,7 +182,8 @@ def daily_plan_home():
         return err
     target_date = str(request.args.get("date") or "").strip()
     try:
-        payload = build_react_daily_plan_payload(target_date=target_date, user_id=user_id)
+        anteprima = str(request.args.get("anteprima") or "") == "1"
+        payload = build_react_daily_plan_payload(target_date=target_date, user_id=user_id, anteprima=anteprima)
     except Exception as exc:
         body, status = daily_plan_error_payload(exc)
         return jsonify(body), status

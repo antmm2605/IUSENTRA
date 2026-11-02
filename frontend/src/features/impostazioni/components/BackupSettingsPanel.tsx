@@ -72,8 +72,11 @@ export function BackupSettingsPanel({ data, onReload }: { data: SettingsPayload;
   const selectedId = selected || text(backups[0]?.id)
   const selectedBackup = backups.find((item) => text(item.id) === selectedId)
   const selectedParts = Array.isArray(selectedBackup?.components) ? (selectedBackup?.components as unknown[]).map((item) => text(item)).filter(Boolean) : []
-  const canCreate = Boolean(actions.canCreate || data.permissions.can_manage_backup)
-  const canVerify = Boolean(actions.canVerify || data.permissions.can_manage_backup)
+  // Le copie dall'applicazione restano spente finché lo studio non le abilita (pct/backup.py, fail-closed):
+  // in quel caso il pannello non le propone come «pronte».
+  const backupDisabled = Boolean(actions.backupDisabled)
+  const canCreate = !backupDisabled && Boolean(actions.canCreate || data.permissions.can_manage_backup)
+  const canVerify = !backupDisabled && Boolean(actions.canVerify || data.permissions.can_manage_backup)
   const canDownload = Boolean(actions.canDownload)
 
   async function runCreate() {
@@ -128,7 +131,8 @@ export function BackupSettingsPanel({ data, onReload }: { data: SettingsPayload;
       {message ? <p className="iu-backup-settings__message">{message}</p> : null}
 
       <section className="iu-backup-settings__box">
-        <header><Archive aria-hidden="true" /><strong>Crea copia</strong><IusStatusBadge tone={canCreate ? 'success' : 'warning'}>{canCreate ? 'pronto' : 'permesso richiesto'}</IusStatusBadge></header>
+        <header><Archive aria-hidden="true" /><strong>Crea copia</strong><IusStatusBadge tone={canCreate ? 'success' : 'warning'}>{canCreate ? 'pronto' : backupDisabled ? 'non attive' : 'permesso richiesto'}</IusStatusBadge></header>
+        {backupDisabled ? <p className="iu-backup-settings__message">Le copie dall'applicazione non sono attive per questo studio: l'archivio dello studio viene copiato dall'infrastruttura prima di ogni aggiornamento del gestionale. Per attivarle serve l'abilitazione dell'amministratore di sistema.</p> : null}
         <div className="iu-backup-settings__grid">
           <label><span>Tipo copia</span><select value={type} disabled={!canCreate || busy === 'create'} onChange={(event) => setType(event.currentTarget.value)}><option value="COMPLETO">Completa</option><option value="INCREMENTALE">Incrementale</option></select></label>
           <label><span>Nota</span><Textarea value={note} maxLength={240} disabled={!canCreate || busy === 'create'} onChange={(event) => setNote(event.currentTarget.value)} /></label>

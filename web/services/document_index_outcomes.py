@@ -1,8 +1,10 @@
 """Proiezione degli esiti SQL delle fonti, senza lettura del contenuto."""
 from __future__ import annotations
 
+from pct.document_intelligence.busta_cifrata import CODICE_BUSTA_CIFRATA, causa_busta_cifrata
 from pct.document_intelligence.indexer import _state_for_source, build_lex_indexing_summary
 from pct.document_intelligence.index_outcomes import source_identity
+from pct.document_intelligence.motivi_lettura import motivo_per_avvocato
 from pct.registro_letture import versione_lettore
 
 
@@ -30,6 +32,7 @@ def summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, 
         return summary
     records = service.list_fascicolo_documents(tenant_id, fascicolo_id, context)
     failures = []
+    da_riclassificare = []
     for source in sources:
         if _state_for_source(source, records) == "ready":
             continue
@@ -38,6 +41,7 @@ def summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, 
         matching = [record for record in records
                     if record.tenant_id == tenant_id and record.fascicolo_id == fascicolo_id
                     and source.sha256 and record.sha256 == source.sha256 and record.status == "error"]
+        record = None
         if matching:
             record = max(matching, key=lambda item: (item.updated_at, item.id))
             outcome = service.repository.latest_processing_error(tenant_id, fascicolo_id, record.id, record.current_version_id)
@@ -46,8 +50,22 @@ def summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, 
                        "message": str(reading.esito.get("motivo") or "Lettura precedente non completata.")}
         else:
             continue
-        failures.append({**source_identity(source), **outcome, "document_id": document_id,
-                         "filename": source.filename})
+        failure = {**source_identity(source), **outcome, "document_id": document_id, "filename": source.filename,
+                   "message": (str(outcome.get("message") or "")
+                               if causa_busta_cifrata(outcome.get("error_code"), outcome.get("message"))
+                               else motivo_per_avvocato(outcome.get("error_code"), outcome.get("message")))}
+        failures.append(failure)
+        if causa_busta_cifrata(outcome.get("error_code"), outcome.get("message")):
+            audit = record is not None and outcome.get("error_code") != CODICE_BUSTA_CIFRATA
+            if audit or reading is not None:
+                da_riclassificare.append({**failure, "causa_precedente": str(outcome.get("message") or ""),
+                                          "record_id": record.id if audit else "",
+                                          "version_id": record.current_version_id if audit else ""})
+    if da_riclassificare:
+        from web.services.document_index_riconvalida import riclassifica_buste_cifrate
+
+        riclassifica_buste_cifrate(service, tenant_id, fascicolo_id, da_riclassificare,
+                                   letture_in_errore=errors, context=context)
     if not failures:
         return summary
     return build_lex_indexing_summary(sources=sources, records=records, source_errors=failures,

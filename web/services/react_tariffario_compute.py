@@ -19,6 +19,7 @@ from pct.tariffario import (
     LivelloCompenso,
     Materia,
     calcola_compenso,
+    etichetta_fase,
     livello_compenso_da_complessita,
 )
 from pct.tariffario_catalogo import (
@@ -344,7 +345,7 @@ def _table_payload(risultato: Any, selected: str) -> dict[str, Any]:
         rows.append(
             {
                 "id": _text(fase).lower().replace(" ", "_").replace("/", "_"),
-                "label": fase,
+                "label": etichetta_fase(fase),
                 "kind": "phase",
                 "values": {
                     LivelloCompenso.MINIMO.value: _euro(values[0]),
@@ -779,8 +780,8 @@ def _run_engine(
         {"label": "Regola", "value": risultato_dict.get("rule_label") or risultato_dict.get("rule_code") or state.get("regola_tariffaria", "Standard")},
         {"label": "Tabella", "value": f"{risultato_dict.get('table_code', '')} - {risultato_dict.get('table_label', '')}".strip(" -")},
         {"label": "Scaglione", "value": risultato.scaglione},
-        {"label": "Fasi", "value": ", ".join(risultato.fasi_selezionate)},
-        {"label": "Complessita", "value": "molto alta / oltre € 520.000" if complessita == "molto_alta" else complessita},
+        {"label": "Fasi", "value": etichetta_fase(", ".join(risultato.fasi_selezionate))},
+        {"label": "Complessità", "value": {"bassa": "Bassa", "media": "Media", "alta": "Alta", "molto_alta": "Molto alta"}.get(complessita, complessita)},
     ]
     selected_summary = risultato.riepilogo_livello(selected)
     return {

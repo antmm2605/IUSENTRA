@@ -16,6 +16,24 @@ from pct.reports import fascicolo_pdf, lista_clienti_pdf, lista_fascicoli_pdf, s
 from pct.scadenziario import PrioritaTermine, TipoTermine
 
 
+def _enum_export(enum_cls, valore: str):
+    """Valore di filtro dell'export: sconosciuto o vuoto = nessun filtro (mai un errore 500)."""
+    chiave = str(valore or "").strip().upper()
+    if not chiave or chiave == "TUTTI":
+        return None
+    try:
+        return enum_cls(chiave)
+    except ValueError:
+        return None
+
+
+def _stato_export(valore: str) -> tuple[StatoFascicolo | None, bool]:
+    """«DA_ARCHIVIARE» è lo stato derivato dell'elenco: fascicolo DEFINITO pronto per l'archivio."""
+    if str(valore or "").strip().upper() == "DA_ARCHIVIARE":
+        return StatoFascicolo.DEFINITO, True
+    return _enum_export(StatoFascicolo, valore), False
+
+
 def register_export_routes(
     app: Flask,
     *,
@@ -83,15 +101,20 @@ def register_export_routes(
         audit("clienti.export_csv")
         return _csv_response(righe, f"clienti_{date.today().isoformat()}.csv")
 
-    @app.route("/fascicoli/export.csv")
-    def export_fascicoli_csv():
+    def _fascicoli_da_esportare() -> list:
+        """Fascicoli filtrati come nell'elenco: «da archiviare» è un DEFINITO pronto per l'archivio."""
         gf = get_fascicoli()
         testo = request.args.get("q", "").strip()
-        stato_f = request.args.get("stato", "")
-        tipo_f = request.args.get("tipo", "")
-        stato = StatoFascicolo(stato_f) if stato_f else None
-        tipo = TipoFascicolo(tipo_f) if tipo_f else None
+        stato, solo_pronti = _stato_export(request.args.get("stato", ""))
+        tipo = _enum_export(TipoFascicolo, request.args.get("tipo", ""))
         fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+        if solo_pronti:
+            fascicoli = [f for f in fascicoli if bool(getattr(f, "archivio_pronto", False))]
+        return list(fascicoli)
+
+    @app.route("/fascicoli/export.csv")
+    def export_fascicoli_csv():
+        fascicoli = _fascicoli_da_esportare()
         righe = []
         for f in fascicoli:
             d = f.to_dict()
@@ -116,14 +139,8 @@ def register_export_routes(
 
     @app.route("/fascicoli/export.pdf")
     def export_fascicoli_pdf():
-        gf = get_fascicoli()
-        testo = request.args.get("q", "").strip()
-        stato_f = request.args.get("stato", "")
-        tipo_f = request.args.get("tipo", "")
         try:
-            stato = StatoFascicolo(stato_f) if stato_f else None
-            tipo = TipoFascicolo(tipo_f) if tipo_f else None
-            fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+            fascicoli = _fascicoli_da_esportare()
             studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
             mesi_it = [
                 "Gennaio",

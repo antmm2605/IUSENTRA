@@ -488,7 +488,7 @@ function PermessiEditor({
               const scelta = scelte[voce.key] || 'ruolo'
               return (
                 <label className="iu-users-perm" key={voce.key}>
-                  <span>{voce.label} <small>{voce.key}</small></span>
+                  <span title={`Codice del permesso: ${voce.key}`}>{voce.label}</span>
                   <select
                     value={scelta}
                     disabled={!modificabile || stato === 'saving'}

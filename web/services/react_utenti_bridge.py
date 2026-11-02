@@ -196,7 +196,7 @@ def _payload_from_manager(manager: Any, current_user: Any, warnings: list[dict[s
             },
             {
                 "id": "override",
-                "label": "Override permessi",
+                "label": "Permessi personalizzati",
                 "value": int(stats.get("con_override", sum(1 for user in users if user["hasOverride"])) or 0),
                 "note": "Utenti con permessi personalizzati",
                 "tone": "info",

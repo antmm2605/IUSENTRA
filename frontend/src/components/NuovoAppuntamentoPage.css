@@ -700,8 +700,16 @@
     font-size:24px;
   }
 
+  /* Il preset rende l'intestazione flex in riga: su telefono «Agenda» e «Sincronizza
+     calendari» si sovrapponevano. Qui si va in colonna. */
+  .iusentra-route-preset--active .iusentra-route-sequence>section.iu-appt-hero[data-iusentra-sequence-slot="page-header"]{
+    flex-direction:column!important;
+    align-items:stretch!important;
+  }
+
   .iu-appt-hero__actions{
     justify-content:flex-start;
+    width:100%;
   }
 
   .iu-appt-ghost{

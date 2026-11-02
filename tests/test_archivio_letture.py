@@ -273,7 +273,7 @@ def test_il_motore_pec_traduce_il_presidio_in_fatti():
     assert per[("evento", "fissazione_udienza", "udienza")].verifica == "verificata"
     prove_decorrenza = per[("data", "decorrenza", "2026-09-10")].prove
     assert any(prova.get("codice") == "base_normativa" and "171-ter" in prova.get("dettaglio", "") for prova in prove_decorrenza)
-    assert any(prova.get("codice") == "procedura" and "REGISTRO_LETTURE" in prova.get("dettaglio", "") for prova in prove_decorrenza)
+    assert any(prova.get("codice") == "procedura" and prova.get("dettaglio", "").startswith("Registro delle letture") and "docs/" not in prova.get("dettaglio", "") for prova in prove_decorrenza)
 
 
 def test_le_viste_per_i_presidi():

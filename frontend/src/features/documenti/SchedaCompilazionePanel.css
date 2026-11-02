@@ -1,3 +1,4 @@
+@import '../../theme/impeccable-open-design.css';
 .iu-rg-scheda { display: grid; gap: 8px; }
 .iu-rg-scheda-domande ol { margin: 0; padding-left: 1.25rem; display: grid; gap: 6px; }
 .iu-rg-scheda-domande small, .iu-rg-scheda-campi small { display: block; color: var(--iu-od-muted, #6b7280); }

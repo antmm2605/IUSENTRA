@@ -733,6 +733,30 @@ async function fetchPecAuditSourceDetail(id: string): Promise<EmailDetailData> {
   return auditDetailFromPayload(payload)
 }
 
+/** Stati del flusso PCT (D.M. 44/2011: accettazione, consegna, controlli automatici, cancelleria) in italiano. */
+const PCT_STATUS_LABELS: Record<string, string> = {
+  PROVA_SENZA_INVIO: 'Prova senza invio',
+  INVIATO: 'Inviato',
+  ACCETTATO_PEC: 'Accettazione PEC',
+  CONSEGNATO: 'Consegna al Ministero',
+  WARN_CONTROLLI: 'Controlli automatici con avvisi',
+  CONTROLLI_SUPERATI: 'Controlli automatici superati',
+  ERRORE_CONTROLLI: 'Controlli automatici con errori',
+  ACCETTATO_CANCELLERIA: 'Accettato dalla cancelleria',
+  RIFIUTATO_CANCELLERIA: 'Rifiutato dalla cancelleria',
+  ERRORE: 'Errore del deposito',
+  IMPORTATO_DA_PORTALE: 'Importato dal portale',
+  IMPORTATO_DA_PST: 'Importato dal PST',
+}
+
+export function pctStatusLabel(value: string): string {
+  const code = String(value || '').trim().toUpperCase()
+  if (!code) return ''
+  if (PCT_STATUS_LABELS[code]) return PCT_STATUS_LABELS[code]
+  const text = code.replace(/_/g, ' ').toLowerCase()
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 export function folderLabel(value: EmailFolder): string {
   if (value === 'TUTTE') return 'Tutte le cartelle'
   if (value === 'INVIATI') return 'Inviati'

@@ -44,10 +44,11 @@
 .iusentra-preset-active main :is(.iu-adminhub-kpis,.iu-readiness-kpis) .ius-metric-card__main > strong { grid-row:1;grid-column:2;font-size:23px; }
 .iusentra-preset-active main :is(.iu-adminhub-kpis,.iu-readiness-kpis) .ius-metric-card__main > small { grid-row:2;grid-column:1/-1; }
 .iusentra-preset-active main :is(.iu-adminhub-kpis,.iu-readiness-kpis) .ius-metric-card__main > em { grid-row:3;grid-column:1/-1;font-size:11px; }
-main .iu-adminhub-module.iu-button { display:grid; text-align:left;white-space:normal; }
-main .iu-adminhub-list__item.iu-button { display:grid; text-align:left;white-space:normal; }
-main .iu-adminhub-security>.iu-button { display:grid; align-content:start; justify-items:start;gap:6px;min-height:88px;padding:12px;text-align:left;white-space:normal; }
-main .iu-adminhub-security>.iu-button small { font-size:12px;color:var(--iu-text-subtle); }
+/* Il pulsante del design system ha classe iu-btn: le righe-collegamento restano allineate a sinistra. */
+main .iu-adminhub-module:is(.iu-btn,.iu-button) { display:grid; justify-content:stretch; text-align:left;white-space:normal; }
+main .iu-adminhub-list__item:is(.iu-btn,.iu-button) { display:grid; justify-content:stretch; text-align:left;white-space:normal;padding:10px 12px; }
+main .iu-adminhub-security>:is(.iu-btn,.iu-button) { display:grid; justify-content:stretch; align-content:start; justify-items:start;gap:6px;min-height:88px;padding:12px;text-align:left;white-space:normal; }
+main .iu-adminhub-security>:is(.iu-btn,.iu-button) small { font-size:12px;color:var(--iu-text-subtle); }
 .iu-adminhub-filters { display:flex;align-items:end;flex-wrap:wrap;gap:12px; }
 .iu-adminhub-filters label { display:grid;gap:6px;flex:1 1 230px;min-width:0;font-size:12px;font-weight:750; }
 .iu-adminhub-filters input {width:100%;min-height:44px;padding:10px 12px;color:var(--iu-text-strong);background:var(--iu-surface-solid);border:1px solid var(--iu-border);border-radius:10px; }

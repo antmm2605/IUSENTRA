@@ -36,7 +36,7 @@ function sourceLabel(source: string): string {
 }
 
 function textOrDash(value: string): string {
-  return value || 'n.d.'
+  return value || 'Non indicato'
 }
 
 function emptySubmit(): SubmitState {

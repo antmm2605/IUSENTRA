@@ -22,7 +22,7 @@ from .estrazione_date import estrai_date
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE, estrai_importi
 from .estrazione_istituti import VERSIONE_ESTRAZIONE_ISTITUTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA, estrai_prove_notifica
-from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI
+from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI
 from .estrazione_ruolo import estrai_ruoli
 from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
 
@@ -58,6 +58,13 @@ VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(versione.replace(VERSIONE_DATE_PR
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
     versione.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE)
     for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+)
+# Parti v4.4 (enti senza codice di persona fisica, codice adiacente al nome, domanda
+# dell'atto non è epigrafe): nessuna rilettura storica; le letture già archiviate
+# sono corrette nell'aggregazione di `parti_fascicolo.parti_lette`.
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
+    versione.replace(VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI)
+    for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI if VERSIONE_ESTRAZIONE_PARTI in versione
 )
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}

@@ -183,7 +183,8 @@ export function CartellaClientePage() {
     if (data.cliente.missingFields.length) warnings.push(`Anagrafica incompleta: ${data.cliente.missingFields.join(', ')}`)
     if (!data.cliente.privacyOk) warnings.push('Privacy e consenso trattamento da verificare.')
     if (data.cliente.documentExpired) warnings.push('Documento d’identità scaduto o da aggiornare.')
-    if (!data.cliente.email && !data.cliente.phone && !data.cliente.pec) warnings.push('Nessun recapito operativo registrato.')
+    const noContacts = !data.cliente.email && !data.cliente.phone && !data.cliente.pec
+    if (noContacts && !data.cliente.missingFields.some((field) => /recapit/i.test(field))) warnings.push('Nessun recapito operativo registrato.')
     return warnings
   }, [data])
 
@@ -209,7 +210,7 @@ export function CartellaClientePage() {
         <div className="iu-cart-hero-actions">
           <Button href={data.actions.editClient || data.cliente.editHref} variant="secondary"><PencilLine size={16}/>Modifica anagrafica</Button>
           <Button href={data.actions.newMatter || '/fascicoli/nuovo'}><Plus size={16}/>Nuovo fascicolo</Button>
-          <a href={data.actions.dossier || data.actions.folder || data.cliente.folderHref}>Faldone cliente</a>
+          {data.actions.dossier ? <Button href={data.actions.dossier} variant="secondary"><Download size={16}/>Faldone cliente (PDF)</Button> : null}
         </div>
       </div>
 
@@ -225,7 +226,7 @@ export function CartellaClientePage() {
       ) : null}
 
       <section className="iu-cart-stats" aria-label="Indicatori cartella cliente">
-        <StatCard icon={<BriefcaseBusiness size={18}/>} value={data.summary.activeMatters} label="Fascicoli attivi" tone="primary" selected={catalogArea === 'matters'} onClick={() => openCatalog('matters')} disabled={Boolean(errore)}/>
+        <StatCard icon={<BriefcaseBusiness size={18}/>} value={data.summary.activeMatters} label="Fascicoli in gestione" tone="primary" selected={catalogArea === 'matters'} onClick={() => openCatalog('matters')} disabled={Boolean(errore)}/>
         <StatCard icon={<CalendarDays size={18}/>} value={data.summary.deadlines} label="Scadenze aperte" tone={data.summary.overdueDeadlines ? 'danger' : 'warning'} selected={catalogArea === 'deadlines'} onClick={() => openCatalog('deadlines')} disabled={Boolean(errore)}/>
         <StatCard icon={<FileText size={18}/>} value={data.summary.documents} label="Documenti" tone="neutral" selected={catalogArea === 'documents'} onClick={() => openCatalog('documents')} disabled={Boolean(errore)}/>
         <StatCard icon={<MessageCircle size={18}/>} value={data.summary.messages} label="Comunicazioni" tone="success" selected={catalogArea === 'messages'} onClick={() => openCatalog('messages')} disabled={Boolean(errore)}/>
@@ -240,7 +241,7 @@ export function CartellaClientePage() {
               <button type="button" className="iu-button iu-button--secondary" onClick={() => setIdentitySource({href: item.href, label: item.title, context: data.cliente.name})}>Visualizza documento</button>
             </article>
           ))}</div>
-        ) : <EmptyBlock>Nessun documento d’identità con titolare riscontrato è collegato ai fascicoli della cliente.</EmptyBlock>}
+        ) : <EmptyBlock>Nessun documento d’identità con titolare riscontrato è collegato ai fascicoli del cliente.</EmptyBlock>}
       </Panel>
       <Panel title="Antiriciclaggio" icon={<ShieldCheck size={17}/>} subtitle="Adeguata verifica, profilatura del rischio e fascicolo da conservare dieci anni (D.Lgs. 231/2007).">
         <Suspense fallback={<p>Carico l’adeguata verifica…</p>}><ClienteAntiriciclaggio idCliente={idCliente}/></Suspense>
@@ -269,8 +270,8 @@ export function CartellaClientePage() {
         </div>
 
         <div className="span8">
-          <Panel title="Fascicoli attivi" icon={<FolderOpen size={17}/>} count={data.matters.active.length}>
-            {data.matters.active.length ? <div className="iu-cart-matter-grid">{data.matters.active.map((item) => <MatterCard key={item.id} item={item}/>)}</div> : <EmptyBlock>Nessun fascicolo attivo collegato.</EmptyBlock>}
+          <Panel title="Fascicoli in gestione" subtitle="Aperti, in corso, sospesi e definiti non ancora archiviati." icon={<FolderOpen size={17}/>} count={data.matters.active.length}>
+            {data.matters.active.length ? <div className="iu-cart-matter-grid">{data.matters.active.map((item) => <MatterCard key={item.id} item={item}/>)}</div> : <EmptyBlock>Nessun fascicolo in gestione collegato.</EmptyBlock>}
           </Panel>
         </div>
         <div className="span4">

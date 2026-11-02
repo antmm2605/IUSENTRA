@@ -228,6 +228,8 @@
 
 .iu-notiziario__filters button,
 .iu-notiziario__status-filters button {
+  /* Le schede delle fonti scorrono in orizzontale: non si comprimono sotto il testo. */
+  flex: 0 0 auto;
   min-height: 36px;
   padding: 0 10px;
   border: 1px solid transparent;

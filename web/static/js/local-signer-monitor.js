@@ -150,6 +150,13 @@
   }
 
   function requestProtocol(uri) {
+    // In una finestra di lavoro (pagina incorporata) il link al protocollo
+    // iusentra-local-signer:// porterebbe il riquadro stesso su un indirizzo
+    // bloccato dalla CSP frame-src, lasciando la finestra bianca: l'avvio del
+    // Local Signer resta alla pagina principale.
+    if (window.self !== window.top) {
+      return;
+    }
     triggerHiddenLink(uri, {});
   }
 
@@ -163,6 +170,9 @@
 
   function layoutBanner(el) {
     const narrow = window.matchMedia('(max-width: 767px)').matches;
+    // La posizione fissa non dipende dal CSS Bootstrap esterno (CDN): se non
+    // arriva, l'avviso resterebbe in fondo al documento sotto la barra laterale.
+    el.style.position = 'fixed';
     el.style.left = narrow ? '12px' : 'auto';
     el.style.right = narrow ? '12px' : '88px';
     el.style.bottom = narrow ? '88px' : '16px';

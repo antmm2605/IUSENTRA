@@ -43,7 +43,7 @@ export function TopBarDeadlines({
         <div className="iu-topbar-panel iu-deadline-panel" role="dialog" aria-label="Scadenze rapide">
           <header>
             <strong>Scadenze rapide</strong>
-            <small>Oggi, domani e prossimi 7 giorni</small>
+            <small>Scadute, prossimi 7 giorni e termini urgenti</small>
           </header>
           {loading ? <p className="iu-panel-state"><Loader2 className="iu-spin" size={16} /> Caricamento scadenze...</p> : null}
           {error ? <p className="iu-panel-state is-error">{error}</p> : null}

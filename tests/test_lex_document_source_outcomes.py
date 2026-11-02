@@ -226,3 +226,18 @@ def test_esito_pronto_corrente_prevale_sulla_causa_negativa_storica(tmp_path):
         assert summary.source_errors == []
     finally:
         repository.structured_db.close()
+
+
+def test_motivo_errore_lettura_spiega_azione_all_avvocato():
+    """FAS-18: il motivo mostrato dice che cosa fare, senza eccezioni grezze né codici."""
+    from pct.document_intelligence.busta_cifrata import CODICE_BUSTA_CIFRATA, NOTA_BUSTA_CIFRATA
+    from pct.document_intelligence.motivi_lettura import motivo_per_avvocato
+
+    vecchio = motivo_per_avvocato("source_processing_failed", "Causa della precedente lettura non disponibile nel registro.")
+    assert "registro" not in vecchio and "Riprova errori" in vecchio
+    grezzo = motivo_per_avvocato("pdf_extraction_failed", "PdfReadError: EOF marker not found")
+    assert "PdfReadError" not in grezzo and "Riprova errori" in grezzo
+    assert motivo_per_avvocato(CODICE_BUSTA_CIFRATA, NOTA_BUSTA_CIFRATA) == NOTA_BUSTA_CIFRATA
+    assert motivo_per_avvocato("email_reading_incomplete", "Allegato cifrato: originale in chiaro necessario.") == \
+        "Allegato cifrato: originale in chiaro necessario."
+    assert "Ricaricare" in motivo_per_avvocato("source_unavailable")

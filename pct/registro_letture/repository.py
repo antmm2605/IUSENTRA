@@ -19,7 +19,16 @@ from typing import Any, Iterable
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
-from .event_retry import MAX_ATTEMPTS, deadline, retry_deadline, require_prepared
+from .event_retry import (
+    ERRORE_SOSPESA,
+    ERRORE_TEMPO_STORICO,
+    LEASE_SECONDS,
+    MAX_ATTEMPTS,
+    MAX_INTERRUZIONI,
+    deadline,
+    retry_deadline,
+    require_prepared,
+)
 from .fatti_repository import CATEGORIE, COLONNE_FATTI, FattiMixin
 from .sintesi import COLONNE_SINTESI, SintesiMixin
 from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
@@ -1004,7 +1013,14 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             )
             return self._accoda_evento_conn(conn, tenant, fascicolo, False, adesso)
 
-    def reclama_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, *, lease_seconds: int = 1800) -> dict[str, Any] | None:
+    def reclama_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, *, lease_seconds: int = LEASE_SECONDS) -> dict[str, Any] | None:
+        """Prenota la lettura del fascicolo per un lavoratore, con una scadenza (lease).
+
+        Il budget di tre tentativi conta solo i giri falliti senza avanzamento. Una
+        prenotazione scaduta perché il servizio è stato riavviato non è un tentativo
+        fallito (fino a ``MAX_INTERRUZIONI`` per generazione): i documenti già letti
+        sono salvati e il giro riprende da lì.
+        """
         tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
         if not tenant or not fascicolo or not worker:
             return None
@@ -1022,32 +1038,125 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             eligible = row['stato'] == 'pending' and (not row['available_at'] or row['available_at'] <= now)
             if not expired and not eligible:
                 return None
+            attempts = int(row['attempts'])
             if expired:
                 conn.execute("UPDATE letture_eventi_esiti SET stato='expired',error_code='LeaseExpired',"
-                             "errore='Il servizio di lettura non ha concluso entro il tempo previsto.',concluso_il=? WHERE tenant_id=? AND fascicolo_id=? "
+                             "errore='Il servizio di lettura si è interrotto prima della fine del giro.',concluso_il=? WHERE tenant_id=? AND fascicolo_id=? "
                              "AND worker_id=? AND generation=? AND stato='running'",
                              (now,tenant,fascicolo,row['worker_id'],int(row['claimed_generation'])))
-            if int(row['attempts']) >= MAX_ATTEMPTS:
-                conn.execute("UPDATE letture_eventi SET stato='idle',worker_id='',lease_until='',available_at='',"
+                interruzioni = conn.execute("SELECT COUNT(*) AS n FROM letture_eventi_esiti WHERE tenant_id=? AND fascicolo_id=? "
+                                            "AND generation=? AND stato='expired'",
+                                            (tenant,fascicolo,int(row['claimed_generation']))).fetchone()
+                if int(interruzioni['n'] or 0) <= MAX_INTERRUZIONI:
+                    # Riavvio o deploy: il tentativo prenotato non si è concluso, non è fallito.
+                    attempts = max(0, attempts - 1)
+            if attempts >= MAX_ATTEMPTS:
+                conn.execute("UPDATE letture_eventi SET stato='idle',worker_id='',lease_until='',available_at='',attempts=?,"
                              "pending_force=CASE WHEN claimed_force=1 THEN 1 ELSE pending_force END,"
                              "pending_presidi=CASE WHEN claimed_presidi=1 THEN 1 ELSE pending_presidi END,"
-                             "claimed_force=0,claimed_presidi=0,last_error='Tempo disponibile per la lettura esaurito dopo tre tentativi.',"
-                             "last_error_code='LeaseExpired',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=?", (now,tenant,fascicolo))
+                             "claimed_force=0,claimed_presidi=0,last_error=?,"
+                             "last_error_code='LeaseExpired',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=?",
+                             (attempts,ERRORE_SOSPESA,now,tenant,fascicolo))
                 return None
-            attempt = int(row['attempts']) + 1
+            attempt = attempts + 1
             claimed = conn.execute("UPDATE letture_eventi SET stato='running',claimed_generation=generation,attempts=?,"
                 "claimed_force=CASE WHEN pending_force=1 OR (stato='running' AND claimed_force=1) THEN 1 ELSE 0 END,pending_force=0,"
                 "claimed_presidi=CASE WHEN pending_presidi=1 OR (stato='running' AND claimed_presidi=1) THEN 1 ELSE 0 END,pending_presidi=0,"
                 "worker_id=?,lease_until=?,available_at='',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=? "
                 'RETURNING claimed_generation,claimed_force,claimed_presidi',
                 (attempt,worker,deadline(now,max(60,int(lease_seconds))),now,tenant,fascicolo)).fetchone()
+            # Lo storico numera le prenotazioni della generazione: dopo un riavvio
+            # o un giro che avanza il budget torna indietro, il numero no.
+            progressivo = conn.execute('SELECT COALESCE(MAX(attempt),0) AS n FROM letture_eventi_esiti '
+                                       'WHERE tenant_id=? AND fascicolo_id=? AND generation=?',
+                                       (tenant,fascicolo,int(claimed['claimed_generation']))).fetchone()
             conn.execute('INSERT INTO letture_eventi_esiti '
                 '(id,tenant_id,fascicolo_id,generation,attempt,worker_id,stato,iniziato_il) VALUES (?,?,?,?,?,?,?,?)',
-                (_nuovo_id('lea'),tenant,fascicolo,int(claimed['claimed_generation']),attempt,worker,'running',now))
+                (_nuovo_id('lea'),tenant,fascicolo,int(claimed['claimed_generation']),int(progressivo['n'] or 0) + 1,worker,'running',now))
         result = dict(generation=int(claimed['claimed_generation']),forza=bool(claimed['claimed_force']))
         if claimed['claimed_presidi']:
             result['presidi'] = True
         return result
+
+    def rinnova_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int, *,
+                       lease_seconds: int = LEASE_SECONDS, progresso: bool = False) -> bool:
+        """Il lavoratore è vivo: proroga la prenotazione; con ``progresso`` il budget dei tentativi riparte.
+
+        Un giro che ha salvato letture non è un tentativo fallito: i documenti letti
+        restano letti e il fascicolo avanza a pezzi. Restituisce False se la
+        prenotazione non è più di questo lavoratore.
+        """
+        tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
+        now = _adesso()
+        with self.connection() as conn:
+            self._require_event_retry(conn)
+            self._prepare_live_write(conn)
+            row = conn.execute("UPDATE letture_eventi SET lease_until=?,attempts=CASE WHEN ?=1 THEN 0 ELSE attempts END,"
+                               "aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=? AND worker_id=? AND claimed_generation=? "
+                               "AND stato='running' RETURNING fascicolo_id",
+                               (deadline(now,max(60,int(lease_seconds))),int(bool(progresso)),now,tenant,fascicolo,worker,int(generation))).fetchone()
+        return row is not None
+
+    def sospendi_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int) -> bool:
+        """Chiude la prenotazione a metà lavoro, senza errore: il fascicolo torna in coda e riprende da dove è arrivato.
+
+        Serve al fascicolo grande che ha esaurito il tempo di un turno: libera il posto
+        (LETTURE_CONCORRENTI) agli altri fascicoli e al turno successivo legge solo ciò che manca.
+        """
+        tenant, fascicolo, worker = _testo(tenant_id), _testo(fascicolo_id), _testo(worker_id)
+        now = _adesso()
+        with self.connection() as conn:
+            self._require_event_retry(conn)
+            self._prepare_live_write(conn)
+            row = conn.execute("UPDATE letture_eventi SET stato='pending',available_at='',attempts=0,last_error='',last_error_code='',"
+                               "pending_presidi=CASE WHEN claimed_presidi=1 OR pending_presidi=1 THEN 1 ELSE 0 END,"
+                               "worker_id='',lease_until='',claimed_force=0,claimed_presidi=0,aggiornato_il=? "
+                               "WHERE tenant_id=? AND fascicolo_id=? AND worker_id=? AND claimed_generation=? AND stato='running' "
+                               'RETURNING fascicolo_id', (now,tenant,fascicolo,worker,int(generation))).fetchone()
+            if row is None:
+                return False
+            conn.execute("UPDATE letture_eventi_esiti SET stato='partial',concluso_il=? "
+                         "WHERE tenant_id=? AND fascicolo_id=? AND worker_id=? AND generation=? AND stato='running'",
+                         (now,tenant,fascicolo,worker,int(generation)))
+        return True
+
+    def riprendi_letture_ferme(self, tenant_id: str, *, limite: int = 20, solo_tempo_esaurito: bool = False,
+                               ferme_da_secondi: int = 0) -> list[str]:
+        """Rimette in coda i fascicoli fermi in errore, a lotti e senza rileggere ciò che è già letto.
+
+        ``solo_tempo_esaurito``: i soli fascicoli fermati dal vecchio conteggio dei riavvii
+        (``ERRORE_TEMPO_STORICO``), da riprendere subito. Altrimenti tutti gli eventi in
+        errore fermi da almeno ``ferme_da_secondi``: il nuovo turno notturno con un budget
+        nuovo. Idempotente: la ripresa azzera l'errore, una seconda chiamata non trova nulla.
+        """
+        tenant = _testo(tenant_id)
+        now = _adesso()
+        # Senza studio (installazione singola) la coda del registro è una sola, come in eventi_da_riprendere.
+        condizioni = ("tenant_id=? AND " if tenant else "") + "stato='idle' AND last_error<>''"
+        parametri: list[Any] = [tenant] if tenant else []
+        if solo_tempo_esaurito:
+            condizioni += " AND last_error=?"
+            parametri.append(ERRORE_TEMPO_STORICO)
+        if ferme_da_secondi > 0:
+            condizioni += " AND aggiornato_il<=?"
+            parametri.append(deadline(now, -int(ferme_da_secondi)))
+        ripresi: list[str] = []
+        with self.connection() as conn:
+            self._require_event_retry(conn)
+            righe = conn.execute('SELECT tenant_id,fascicolo_id,generation FROM letture_eventi WHERE ' + condizioni
+                                 + ' ORDER BY aggiornato_il ASC LIMIT ?', (*parametri, max(1, int(limite)))).fetchall()
+            if not righe:
+                return ripresi
+            self._prepare_live_write(conn)
+            for riga in righe:
+                aggiornata = conn.execute(
+                    "UPDATE letture_eventi SET generation=generation+1,stato='pending',attempts=0,available_at='',"
+                    "last_error='',last_error_code='',worker_id='',lease_until='',aggiornato_il=? "
+                    "WHERE tenant_id=? AND fascicolo_id=? AND generation=? AND stato='idle' AND last_error<>'' "
+                    'RETURNING fascicolo_id', (now,riga['tenant_id'],riga['fascicolo_id'],int(riga['generation']))).fetchone()
+                if aggiornata is not None:
+                    ripresi.append(_testo(aggiornata['fascicolo_id']))
+        return ripresi
 
     def concludi_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, generation: int, *,
                        riuscito: bool = True, errore: str = '', codice_errore: str = '') -> bool:

@@ -796,6 +796,8 @@ export type LexIndexingSummary = {
   status: 'ready' | 'partial' | 'working' | 'error' | 'stale'
   warnings: string[]
   source_errors?: Array<{ source_id: string; document_id: string; sha256: string; filename: string; error_code: string; message: string }>
+  not_applicable?: number
+  source_notes?: Array<{ source_id: string; document_id: string; sha256: string; filename: string; error_code: string; message: string }>
 }
 
 export type FascicoloDocumentPresidioAction = {
@@ -1184,6 +1186,23 @@ export type JudicialOfficeOption = {
   services: string[]
 }
 
+/** Uffici giudiziari del form: il payload porta solo l'ufficio scelto, gli altri arrivano su ricerca (FAS-13). */
+export function normalizeJudicialOffices(value: unknown): JudicialOfficeOption[] {
+  return asArray(value).map((entry) => {
+    const row = isRecord(entry) ? entry : {}
+    return {
+      value: text(row.value ?? row.nome),
+      label: text(row.label ?? row.nome),
+      code: text(row.code ?? row.codice),
+      ministerialCode: text(row.ministerialCode ?? row.codice_ministero),
+      district: text(row.district ?? row.distretto),
+      pec: text(row.pec),
+      kind: text(row.kind ?? row.tipo),
+      services: asArray(row.services ?? row.servizi_ministero).map((item) => text(item)).filter(Boolean),
+    }
+  }).filter((row) => row.value)
+}
+
 export type FascicoloFormData = {
   source: string
   generatedAt: string
@@ -1198,6 +1217,7 @@ export type FascicoloFormData = {
   subjects: FascicoloFormSubject[]
   linkedSubjects: FascicoloParty[]
   judicialOffices: JudicialOfficeOption[]
+  judicialOfficesSearch?: string
   types: SelectOption[]
   states: SelectOption[]
   fascicolo?: Partial<FascicoloFull> & Record<string, string | number | boolean | undefined>
@@ -2517,6 +2537,11 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
         source_id: text(item.source_id), document_id: text(item.document_id), sha256: text(item.sha256),
         filename: text(item.filename), error_code: text(item.error_code), message: text(item.message),
       })),
+      not_applicable: number(lexIndexingSource.not_applicable ?? lexIndexingSource.notApplicable),
+      source_notes: asArray(lexIndexingSource.source_notes ?? lexIndexingSource.sourceNotes).filter(isRecord).map((item) => ({
+        source_id: text(item.source_id), document_id: text(item.document_id), sha256: text(item.sha256),
+        filename: text(item.filename), error_code: text(item.error_code), message: text(item.message),
+      })),
     },
     profile: normalizeKeyValues(payload.profile),
     documents: asArray(payload.documents).map((entry, index) => {
@@ -3014,19 +3039,8 @@ function normalizeFormPayload(payload: unknown): FascicoloFormData {
         href: text(row.href, '/soggetti'),
       }
     }),
-    judicialOffices: asArray(payload.judicialOffices ?? payload.judicial_offices ?? payload.offices).map((entry) => {
-      const row = isRecord(entry) ? entry : {}
-      return {
-        value: text(row.value ?? row.nome),
-        label: text(row.label ?? row.nome),
-        code: text(row.code ?? row.codice),
-        ministerialCode: text(row.ministerialCode ?? row.codice_ministero),
-        district: text(row.district ?? row.distretto),
-        pec: text(row.pec),
-        kind: text(row.kind ?? row.tipo),
-        services: asArray(row.services ?? row.servizi_ministero).map((item) => text(item)).filter(Boolean),
-      }
-    }).filter((row) => row.value),
+    judicialOffices: normalizeJudicialOffices(payload.judicialOffices ?? payload.judicial_offices ?? payload.offices),
+    judicialOfficesSearch: text(payload.judicialOfficesSearch, '/api/v1/ui/uffici-giudiziari/opzioni'),
     types: normalizeOptions(payload.types), states: normalizeOptions(payload.states),
     fascicolo: isRecord(payload.fascicolo) ? payload.fascicolo as FascicoloFormData['fascicolo'] : undefined,
     workflow: isRecord(payload.workflow) ? { title: text(payload.workflow.title), badges: asArray(payload.workflow.badges).map((badge) => text(badge)).filter(Boolean), summary: text(payload.workflow.summary), checklist: asArray(payload.workflow.checklist).map((item) => text(item)).filter(Boolean), values: normalizeKeyValues(payload.workflow.values) } : undefined,

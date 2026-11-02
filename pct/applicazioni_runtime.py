@@ -338,7 +338,7 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
     },
     "danno_biologico": {
         "title": "Danno biologico",
-        "subtitle": "Art. 139 cod. ass., tabella unica nazionale D.P.R. 12/2025, tabelle milanesi 2024.",
+        "subtitle": "Artt. 138 e 139 cod. ass. (tabella unica nazionale D.P.R. 12/2025 per le macrolesioni), tabelle milanesi 2024.",
         "submit_label": "Calcola danno",
         "method": "calcola_danno_biologico",
         "fields": [

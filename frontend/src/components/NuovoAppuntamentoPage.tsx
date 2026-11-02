@@ -882,7 +882,7 @@ export function NuovoAppuntamentoPage() {
                   required
                 >
                   {appointmentTypes.map((item) => (
-                    <option key={item.value} value={item.value}>{item.value}</option>
+                    <option key={item.value} value={item.value}>{item.label}</option>
                   ))}
                 </select>
               </Field>

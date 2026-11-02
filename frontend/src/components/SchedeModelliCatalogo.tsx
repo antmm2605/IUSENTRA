@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button } from '../ui/Button'
-import { filtraModelli, filtriModelliVuoti, indicizzaModelli, type ModelloNorme } from '../schedeModelliCatalogo'
+import { Button, ButtonLink } from '../ui/Button'
+import { filtraModelli, filtriModelliVuoti, indicizzaModelli, materiaCanonica, type ModelloNorme } from '../schedeModelliCatalogo'
 
 export function SchedeModelliCatalogo({ modelli, onSelect, busy }: { modelli: ModelloNorme[]; onSelect: (id: string) => void; busy: boolean }) {
   const [filtri, setFiltri] = useState(filtriModelliVuoti)
@@ -8,7 +8,7 @@ export function SchedeModelliCatalogo({ modelli, onSelect, busy }: { modelli: Mo
   const index = useMemo(() => indicizzaModelli(modelli), [modelli])
   const risultati = useMemo(() => filtraModelli(index, filtri), [index, filtri])
   const opzioni = useMemo(() => ({
-    materia: [...new Set(modelli.map(row => row.materia))].sort((a,b) => a.localeCompare(b,'it')),
+    materia: [...new Set(modelli.map(row => materiaCanonica(row.materia)))].sort((a,b) => a.localeCompare(b,'it')),
     tipo: [...new Set(modelli.map(row => row.tipo))].sort((a,b) => a.localeCompare(b,'it')),
     provenienza: [...new Set(modelli.map(row => row.provenienza))].sort((a,b) => a.localeCompare(b,'it')),
   }), [modelli])
@@ -35,9 +35,11 @@ export function SchedeModelliCatalogo({ modelli, onSelect, busy }: { modelli: Mo
     <p role="status">{busy ? 'Caricamento del catalogo…' : `${risultati.length.toLocaleString('it-IT')} modelli trovati · ${visibili.length ? (corrente-1)*perPagina+1 : 0}–${Math.min(corrente*perPagina,risultati.length)} visualizzati`}</p>
     {!busy && !risultati.length ? <p>Nessun modello corrisponde ai filtri. Prova meno parole o azzera i filtri.</p> : null}
     <ul className="iu-sf-catalogo-risultati">{visibili.map(row => <li key={row.id}>
-      <div><small>{row.codice} · {row.provenienza}</small><h3><button type="button" className="iu-sf-modello-apri" onClick={() => onSelect(row.id)} aria-label={`Apri norme: ${row.titolo} · ${row.codice} · ${row.provenienza}`}>{row.titolo}</button></h3><p>{row.materia} · {row.tipo}</p><span>{row.stato_norme === 'associate' ? `${row.numero_riferimenti} riferimenti normativi collegati` : 'Normativa specifica da associare'}</span></div>
-      {row.compilazione_url ? <a className="iu-sf-compila-modello" href={row.compilazione_url} aria-label={`Compila modello: ${row.titolo} · ${row.codice} · ${row.provenienza}`}>Compila modello</a> : null}
-      <Button tone="neutral" onClick={() => onSelect(row.id)} aria-label={`Consulta norme: ${row.titolo} · ${row.codice} · ${row.provenienza}`}>Consulta norme</Button>
+      <div><small>{row.codice} · {row.provenienza}</small><h3><button type="button" className="iu-sf-modello-apri" onClick={() => onSelect(row.id)} aria-label={`Apri norme: ${row.titolo} · ${row.codice} · ${row.provenienza}`}>{row.titolo}</button></h3><p>{materiaCanonica(row.materia)} · {row.tipo}</p><span>{row.stato_norme === 'associate' ? `${row.numero_riferimenti} riferimenti normativi collegati` : 'Normativa specifica da associare'}</span></div>
+      <div className="iu-sf-catalogo-azioni">
+        {row.compilazione_url ? <ButtonLink className="iu-sf-compila-modello" href={row.compilazione_url} aria-label={`Compila modello: ${row.titolo} · ${row.codice} · ${row.provenienza}`}>Compila modello</ButtonLink> : null}
+        <Button tone="neutral" onClick={() => onSelect(row.id)} aria-label={`Consulta norme: ${row.titolo} · ${row.codice} · ${row.provenienza}`}>Consulta norme</Button>
+      </div>
     </li>)}</ul>
     <nav aria-label="Pagine del catalogo modelli"><Button tone="neutral" disabled={corrente <= 1} onClick={() => setPagina(value => value-1)}>Modelli precedenti</Button><span>Pagina {corrente} di {pagine}</span><Button tone="neutral" disabled={corrente >= pagine} onClick={() => setPagina(value => value+1)}>Modelli successivi</Button></nav>
   </section>

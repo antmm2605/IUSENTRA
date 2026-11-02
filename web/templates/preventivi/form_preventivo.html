@@ -718,7 +718,7 @@ function aggiornaSezioneProcedimento() {
 // ──────────────────────────────────────────────────────────────────────────────
 const FASI_MEDIAZIONE = [
   { chiave: 'attivazione',      label: 'Fase di attivazione',      pct: 100, note: '40% del tabellare (D.Lgs. 28/2010)' },
-  { chiave: 'rivitalizzazione', label: 'Fase di rivitalizzazione',  pct: 100, note: '35% del tabellare' },
+  { chiave: 'rivitalizzazione', label: 'Fase di negoziazione',      pct: 100, note: '35% del tabellare (art. 20, c. 1-bis, D.M. 55/2014)' },
   { chiave: 'conciliazione',    label: 'Fase di conciliazione',     pct: 100, note: '25% se accordo raggiunto' },
 ];
 const FASI_NEGOZIAZIONE = [
@@ -861,7 +861,7 @@ function _calcolaDM55() {
           ? `<span class="badge ${varPct>1?'bg-success':'bg-warning text-dark'}">${Math.round(varPct*100)}%</span>`
           : '<span class="text-muted small">100%</span>';
         html += `<tr>
-          <td>${fase}</td>
+          <td>${String(fase).replace('Fase di rivitalizzazione', 'Fase di negoziazione')}</td>
           <td class="text-end text-muted">${fmt(vals.min)}</td>
           <td class="text-end fw-bold text-primary">${fmt(vals.base)}</td>
           <td class="text-end text-muted">${fmt(vals.max)}</td>

@@ -188,7 +188,7 @@ export function ImpostazioniPage() {
         <Alert className="iu-settings-alert is-warning">
           <AlertTriangle />
           <AlertTitle>Permesso richiesto</AlertTitle>
-          <AlertDescription>Per modificare queste impostazioni serve il permesso admin.configura.</AlertDescription>
+          <AlertDescription>Per modificare queste impostazioni serve il permesso «Configura studio» del profilo Amministrazione.</AlertDescription>
         </Alert>
       ) : null}
     </IusPageShell>

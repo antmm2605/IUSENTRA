@@ -33,8 +33,9 @@ BASE_NORMATIVA_DIGITALE = (
     "D.M. 44/2011 art. 3 e CAD art. 20: impronta, integrità e tracciabilità "
     "della fonte digitale"
 )
+# Si mostra all'avvocato: il nome della procedura, mai il percorso del documento interno.
 PROCEDURA_ARCHIVIO_LETTURE = (
-    "docs/REGISTRO_LETTURE.md: lettura incrementale, collaudo automatico e "
+    "Registro delle letture: lettura incrementale, collaudo automatico e "
     "consegna ai presìdi dall'archivio"
 )
 

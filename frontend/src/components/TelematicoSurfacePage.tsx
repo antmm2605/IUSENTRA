@@ -1651,7 +1651,7 @@ function CasesPanel({ data }:{ data:TelematicoSurfaceData }) {
                 <span>{item.subtitle}</span>
                 <small>{item.subject || 'Oggetto non indicato'}</small>
               </div>
-              <em>{item.documentsCount} documenti</em>
+              <em>{item.documentsCount === 1 ? '1 documento' : `${item.documentsCount} documenti`}</em>
             </a>
           ))}
         </div>
@@ -1737,6 +1737,27 @@ function certificateLabel(office: OfficeRow): string {
   return 'Certificato da acquisire'
 }
 
+// Denominazioni per esteso dei tipi di ufficio (codici di pct/uffici_giudiziari.TIPI_UFFICIO).
+// Corti di giustizia tributaria di primo e secondo grado: denominazione introdotta dalla L. 130/2022, art. 1.
+const TIPO_UFFICIO_ETICHETTE: Record<string, string> = {
+  TRIBUNALE: 'Tribunale',
+  CORTE_APPELLO: "Corte d'Appello",
+  CORTE_APPELLO_SEZIONE: "Sezione distaccata di Corte d'Appello",
+  PROCURA: 'Procura della Repubblica',
+  PROCURA_GENERALE: 'Procura Generale',
+  CORTE_CASSAZIONE: 'Corte di Cassazione',
+  TM: 'Tribunale per i Minorenni',
+  SORVEGLIANZA: 'Tribunale di Sorveglianza',
+  CORTE_ASSISE: "Corte d'Assise",
+  GDP: 'Giudice di Pace',
+  UNEP: 'UNEP',
+  TAR: 'TAR',
+  CDS: 'Consiglio di Stato',
+  CGARS: 'Consiglio di Giustizia Amministrativa per la Regione Siciliana',
+  CGT: 'Corte di giustizia tributaria di secondo grado',
+  CPT: 'Corte di giustizia tributaria di primo grado',
+}
+
 function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('tutti')
@@ -1788,7 +1809,7 @@ function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
         <div className="iu-tel-offices__tools" aria-label="Filtri elenco uffici">
           <label><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca ufficio, PEC o distretto..."/></label>
           <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} aria-label="Filtra tipo ufficio">
-            {types.map((type) => <option value={type} key={type}>{type === 'tutti' ? 'Tutti i tipi' : type}</option>)}
+            {types.map((type) => <option value={type} key={type}>{type === 'tutti' ? 'Tutti i tipi' : TIPO_UFFICIO_ETICHETTE[type] || type}</option>)}
           </select>
         </div>
       </header>
@@ -1796,7 +1817,7 @@ function OfficeDirectory({ data }:{ data:TelematicoSurfaceData }) {
         {offices.map((office) => (
           <article key={office.id}>
             <div>
-              <Badge tone="primary">{office.tipo || 'Ufficio'}</Badge>
+              <Badge tone="primary">{TIPO_UFFICIO_ETICHETTE[office.tipo] || office.tipo || 'Ufficio'}</Badge>
               <Badge tone={certificateTone(office)}>{certificateLabel(office)}</Badge>
               <strong>{office.nome}</strong>
               <span>{[office.distretto, office.comune || office.provincia].filter(Boolean).join(' - ')}</span>
@@ -7444,8 +7465,7 @@ export function TelematicoSurfacePage() {
           <h1>{title}</h1>
           <p>{data.surface.subtitle}</p>
           <div className="iu-tel-surface-hero__badges">
-            <Badge tone="primary">Superficie operativa</Badge>
-            <Badge tone="success">Dati aggiornati</Badge>
+            <Badge tone="primary">Pagina operativa</Badge>
             <Badge tone="warning">Import autorizzato</Badge>
             <Badge tone="purple">Lex AI</Badge>
           </div>
@@ -7470,8 +7490,8 @@ export function TelematicoSurfacePage() {
       ) : null}
 
       <section className="iu-tel-surface-stats">
-        <Stat label="Pratiche" value={data.summary.total} tone="primary" icon={<FolderOpen size={19}/>}/>
-        <Stat label={data.surface.id === 'tribunali' ? 'PEC censite' : 'Import'} value={data.summary.imports} tone="success" icon={<UploadCloud size={19}/>}/>
+        <Stat label={data.surface.id === 'tribunali' ? 'Uffici' : 'Pratiche'} value={data.summary.total} tone="primary" icon={<FolderOpen size={19}/>}/>
+        <Stat label={data.surface.id === 'tribunali' ? 'PEC censite' : data.surface.portal ? 'Import completi' : 'Import incompleti'} value={data.summary.imports} tone="success" icon={<UploadCloud size={19}/>}/>
         <Stat label="Da presidiare" value={data.summary.attention} tone={data.summary.attention ? 'warning' : 'success'} icon={<BadgeCheck size={19}/>}/>
         <Stat label="Blocchi" value={data.summary.blocked} tone={data.summary.blocked ? 'danger' : 'neutral'} icon={<AlertTriangle size={19}/>}/>
         <Stat label="Avvisi" value={data.summary.warnings} tone={data.summary.warnings ? 'warning' : 'neutral'} icon={<FileCheck2 size={19}/>}/>

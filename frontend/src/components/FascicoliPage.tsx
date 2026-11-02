@@ -73,6 +73,7 @@ import {
   Send,
   ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Save,
   Tags,
@@ -91,8 +92,6 @@ import { ContropartiRegistriField, type ControparteCandidata } from '../features
 import { DocumentoOriginePec } from '../features/fascicoli/DocumentoOriginePec'
 import { FloatingLex } from './FloatingLex'
 import { SyncedTopScrollbar } from './SyncedTopScrollbar'
-import DocumentCapture from './documentCapture/DocumentCapture'
-import FascicoloOcr from './documentCapture/FascicoloOcr'
 import { PagoPaAvvisiPanel } from './PagoPaAvvisiPanel'
 import {
   IusentraContextFilters,
@@ -115,6 +114,7 @@ import {
   getFascicoliExport,
   getFascicoliPage,
   getFascicoliFilterPreferences,
+  normalizeJudicialOffices,
   getFascicoloDetail,
   getFascicoloDetailSection,
   getFascicoloForm,
@@ -159,6 +159,7 @@ import {
   type FascicoloFull,
   type LexIndexingSummary,
   type FascicoloFormData,
+  type JudicialOfficeOption,
   type FascicoloRow,
   type FascicoloSentenzeEconomiche,
   type FascicoloPaymentKind,
@@ -183,7 +184,6 @@ import { FormSubmitError, csrfToken, redirectAfterSuccess, submitFormJson } from
 import { formatDateInputIt, formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
-import { GuidaPraticaSidebar } from './GuidaPraticaSidebar'
 import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
 import { FascicoloNormativaButton } from '../features/fascicoli/normativa/FascicoloNormativaButton'
 import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
@@ -214,6 +214,9 @@ const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'
 const PenalePdpSezione = lazy(() => import('./penalePdp/PenalePdpSezione'))
 const PatFormwebSezione = lazy(() => import('./patFormweb/PatFormwebSezione'))
 const CtuSection = lazy(() => import('./fascicoli/CtuSection'))
+const DocumentCapture = lazy(() => import('./documentCapture/DocumentCapture'))
+const FascicoloOcr = lazy(() => import('./documentCapture/FascicoloOcr'))
+const GuidaPraticaSidebar = lazy(() => import('./GuidaPraticaSidebar'))
 const ConservazionePanel = lazy(() => import('./fascicoli/ConservazionePanel'))
 const PttSezione = lazy(() => import('./pttSigit/PttSezione'))
 const FirmaRemotaPannello = lazy(() => import('./fascicoli/FirmaRemotaPannello'))
@@ -263,6 +266,9 @@ function titoloScadenzaSenzaRipetizioni(ruolo: string, titolo: string, data: str
     testo = testo.split(` - ${ripetuto} `).join(' ').split(` ${ripetuto} - `).join(' ')
   }
   testo = testo.trim().replace(/\s+-\s*$/, '')
+  // «Rinvio udienza - Rinvio di udienza»: il tipo ripetuto dopo il titolo non aggiunge nulla.
+  const nucleo = (parte: string) => parte.toLowerCase().replace(/\b(di|del|della|dello|dei|delle|d)\b/g, ' ').replace(/[^a-zà-ù0-9]+/g, '')
+  testo = testo.split(' - ').filter((parte, indice, parti) => indice === 0 || nucleo(parte) !== nucleo(parti[indice - 1])).join(' - ')
   return ruolo ? `${ruolo} - ${testo}` : testo
 }
 
@@ -601,7 +607,9 @@ function openDetailSectionById(id: string) {
   const element = document.getElementById(id)
   const section = element instanceof HTMLDetailsElement ? element : element?.closest('details')
   if (section instanceof HTMLDetailsElement && !section.open) section.open = true
-  if (element) window.requestAnimationFrame(() => (section || element).scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  // Un'ancora-alias dentro un pannello (es. #conformita) porta al suo riquadro, non all'inizio della sezione.
+  const aliasTarget = element?.classList.contains('iu-fas-anchor-alias') && element.parentElement?.tagName === 'SECTION' ? element.parentElement : null
+  if (element) window.requestAnimationFrame(() => (aliasTarget || section || element).scrollIntoView({ behavior: 'smooth', block: 'start' }))
   if (window.location.hash !== `#${id}`) window.history.replaceState(null, '', `#${id}`)
 }
 
@@ -620,6 +628,15 @@ const statCardContextHref: Record<string, string> = {
   'RG da acquisire': '?missing_rg_only=1',
   Documenti: '?sort=documenti',
   Comunicazioni: '?alerts_only=1',
+}
+
+/** Colonna «Prossima scadenza»: un termine aperto ma già decorso si dichiara «scaduta», mai come prossimo. */
+function nextDeadlineCellLabel(item: FascicoloRow): string {
+  const label = item.nextDeadline || 'n.d.'
+  const iso = String(item.nextDeadlineIso || '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || ['definito', 'da_archiviare', 'archiviato'].includes(item.status)) return label
+  const today = formatDateInputIt(new Date())
+  return iso < today ? `scaduta il ${label}` : label
 }
 
 function countIt(value: number, singular: string, plural: string): string {
@@ -1662,6 +1679,8 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
   const working = summary.queued + summary.indexing
   const warnings = summary.warnings
   const sourceErrors = summary.source_errors || []
+  const sourceNotes = summary.source_notes || []
+  const notApplicable = summary.not_applicable || 0
   const rawStatus = String(summary.status || '').toLowerCase()
   const effectiveStatus: LexIndexingSummary['status'] = rawStatus === 'ready'
     ? 'ready'
@@ -1697,6 +1716,7 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
         <div><dt>In corso</dt><dd>{summary.indexing}</dd></div>
         <div><dt>Errori</dt><dd>{summary.errors}</dd></div>
         <div><dt>Da aggiornare</dt><dd>{summary.stale}</dd></div>
+        {notApplicable > 0 ? <div><dt>Non applicabili</dt><dd>{notApplicable}</dd></div> : null}
       </dl>
       {sourceErrors.length || warnings.length ? (
         <details className="iu-fas-lex-indexing__warnings">
@@ -1705,6 +1725,16 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
             {sourceErrors.length ? sourceErrors.map((item) => (
               <li key={`${item.document_id}:${item.sha256}`}><strong>{item.filename}</strong><span>{item.message}</span></li>
             )) : warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </details>
+      ) : null}
+      {sourceNotes.length ? (
+        <details className="iu-fas-lex-indexing__warnings">
+          <summary>Buste cifrate per l’ufficio ({sourceNotes.length})</summary>
+          <ul>
+            {sourceNotes.map((item) => (
+              <li key={`${item.document_id}:${item.sha256}`}><strong>{item.filename}</strong><span>{item.message}</span></li>
+            ))}
           </ul>
         </details>
       ) : null}
@@ -2750,7 +2780,7 @@ function DossierMobileCard({ item, checked, onToggle, archive = false, economic 
         <div><dt>Cliente</dt><dd>{item.client}</dd></div>
         <div><dt>Tipo</dt><dd>{formatFascicoloType(item.type)}</dd></div>
         <div><dt>N. causa</dt><dd>{item.rgMissing ? 'Da acquisire' : item.rg}</dd></div>
-        <div><dt>{archive ? 'Archiviazione' : 'Prossima scad.'}</dt><dd>{archive ? item.archive?.archivedAt || 'n.d.' : item.nextDeadline || 'n.d.'}</dd></div>
+        <div><dt>{archive ? 'Archiviazione' : 'Prossima scad.'}</dt><dd>{archive ? item.archive?.archivedAt || 'n.d.' : nextDeadlineCellLabel(item)}</dd></div>
       </dl>
       {economic ? (
         <div className="iu-fas-mobile-card__economic">
@@ -3160,7 +3190,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
       case 'rg': content = item.rgMissing ? <MissingRgBadge item={item} compact/> : textCell(item.rg); break
       case 'rg_number': content = textCell(item.rgNumber || 'n.d.'); break
       case 'rg_year': content = textCell(item.rgYear || 'n.d.'); break
-      case 'next_deadline': content = archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : textCell(item.nextDeadline); break
+      case 'next_deadline': content = archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : textCell(nextDeadlineCellLabel(item)); break
       case 'status': content = statusCell(item); break
       case 'documents': content = <span className="iu-fas-doc-count">{item.documents}</span>; break
       case 'unread_communications': content = textCell(item.unreadCommunications); break
@@ -3303,7 +3333,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                             </button>
                           </div>
                         </td>
-                        <td>{item.nextDeadline || 'n.d.'}</td>
+                        <td>{nextDeadlineCellLabel(item)}</td>
                         <td>{statusCell(item)}</td>
                         <td className="iu-fas-economic-matrix">
                           <div className="iu-fas-economic-summary-grid" aria-label={`Sintesi economica ${item.ref}`}>
@@ -3364,7 +3394,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                   <div className="iu-fas-collection-meta">
                     <Badge tone="neutral">{formatFascicoloType(item.type)}</Badge>
                     {statusCell(item)}
-                    {economic ? <strong>{item.paymentSummary.statoLabel}</strong> : <span><CalendarDays size={14}/>{item.nextDeadline || 'n.d.'}</span>}
+                    {economic ? <strong>{item.paymentSummary.statoLabel}</strong> : <span><CalendarDays size={14}/>{nextDeadlineCellLabel(item)}</span>}
                     <span><FileText size={14}/>{item.documents}</span>
                   </div>
                   <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError} className="iu-fas-row-actions"/>
@@ -3397,6 +3427,14 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
             )
           })}
         </div>
+      ) : null}
+      {viewToggle ? (
+        // Su telefono l'intestazione della tabella è nascosta: vista economica/operativa,
+        // raggruppamento e righe per pagina restano raggiungibili da questo menu (FAS-30).
+        <details className="iu-fas-mobile-view-menu">
+          <summary><SlidersHorizontal size={15} aria-hidden="true"/> Vista<ChevronDown size={15} className="iu-fas-mobile-view-menu__chevron" aria-hidden="true"/></summary>
+          <div className="iu-fas-mobile-view-menu__body">{viewToggle}{pageSizeControl}</div>
+        </details>
       ) : null}
       <div className="iu-fas-mobile-list">
         {displayItems.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} economic={economic} onDeleted={onDeleted} onError={onError} onPaymentSaved={onPaymentSaved} key={item.id}/>) }
@@ -4043,7 +4081,7 @@ function FascicoliListPage() {
           <StatCard icon={<Archive size={19}/>} label="Da archiviare" selected={status === 'definito'} value={data.cardSummary.toArchive} note={`${data.cardSummary.toArchive} ${data.cardSummary.toArchive === 1 ? 'definito' : 'definiti'}, ${data.cardSummary.archived} nell’archivio studio`} tone="warning" href={statContextHref({ status: 'definito' })} onClick={applyStatContext({ status: 'definito' })}/>
           <StatCard icon={<Euro size={19}/>} label="Economico" selected={view === 'economica' && paymentsOnly} value={data.cardSummary.economicToReview} note="controlli da completare" tone="warning" href={statContextHref({ view: 'economica', paymentsOnly: true })} onClick={applyStatContext({ view: 'economica', paymentsOnly: true })}/>
           <StatCard icon={<WalletCards size={19}/>} label="Registrato" selected={view === 'economica' && !paymentsOnly && parcellaFilter === 'tutti'} value={formatCurrency(data.cardSummary.registeredAmount)} note="nel perimetro della ricerca" tone="success" href={statContextHref({ view: 'economica' })} onClick={applyStatContext({ view: 'economica' })}/>
-          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" selected={view === 'economica' && parcellaFilter === 'da_emettere'} value={`${data.cardSummary.invoiceMattersToReview} ${data.cardSummary.invoiceMattersToReview === 1 ? 'fascicolo' : 'fascicoli'}`} note={`${data.cardSummary.invoicesToIssue} da emettere, ${data.cardSummary.invoiceDraftsToReview} ${data.cardSummary.invoiceDraftsToReview === 1 ? 'bozza' : 'bozze'} da visionare`} tone="purple" href={statContextHref({ view: 'economica', parcella: 'da_emettere' })} onClick={applyStatContext({ view: 'economica', parcella: 'da_emettere' })}/>
+          <StatCard icon={<FileCheck2 size={19}/>} label="Parcelle" selected={view === 'economica' && parcellaFilter === 'da_emettere'} value={`${data.cardSummary.invoiceMattersToReview} ${data.cardSummary.invoiceMattersToReview === 1 ? 'fascicolo' : 'fascicoli'}`} note={`con parcella da emettere · ${data.cardSummary.invoiceDraftsToReview} ${data.cardSummary.invoiceDraftsToReview === 1 ? 'bozza' : 'bozze'} da visionare`} tone="purple" href={statContextHref({ view: 'economica', parcella: 'da_emettere' })} onClick={applyStatContext({ view: 'economica', parcella: 'da_emettere' })}/>
           <StatCard icon={<CalendarDays size={19}/>} label="Scadenze urgenti" value={deadlineCopy.urgent} note={`Aperte studio: ${deadlineCopy.note}`} tone={deadlineCopy.tone} href={urgentDeadlinesHref}/>
           <StatCard icon={<Copy size={19}/>} label="Doppioni" selected={duplicatesOnly} value={data.cardSummary.duplicatePracticeRows} note={data.cardSummary.duplicatePractices ? `${data.cardSummary.duplicatePractices} ${data.cardSummary.duplicatePractices === 1 ? 'gruppo' : 'gruppi'} con stesso cliente e RG` : 'nessun gruppo rilevato'} tone={data.cardSummary.duplicatePractices ? 'warning' : 'success'} href={statContextHref({ duplicatesOnly: true })} onClick={applyStatContext({ duplicatesOnly: true })}/>
           <StatCard icon={<Landmark size={19}/>} label="RG da acquisire" selected={missingRgOnly} value={data.cardSummary.missingRg} note={data.cardSummary.missingRg ? 'completare da portale o provvedimento' : 'ruoli completi'} tone={data.cardSummary.missingRg ? 'warning' : 'success'} href={statContextHref({ missingRgOnly: true })} onClick={applyStatContext({ missingRgOnly: true })}/>
@@ -4541,8 +4579,43 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
   const [lookupResult, setLookupResult] = useState<StudioRuntimeResult | null>(null)
   const [selectedOfficialOffice, setSelectedOfficialOffice] = useState<StudioRuntimeOffice | null>(null)
   const [refreshTick, setRefreshTick] = useState(0)
+  // FAS-13: il form riceve solo l'ufficio gia' scelto; gli altri si cercano mentre si scrive.
+  const [officeOptions, setOfficeOptions] = useState<JudicialOfficeOption[]>(data.judicialOffices)
+  const officeOptionsRef = useRef(officeOptions)
+  officeOptionsRef.current = officeOptions
+  const officeSearchedRef = useRef('')
   useEffect(() => setOfficeName(initial), [initial])
   useEffect(() => setCompetenceComune(initialComune), [initialComune])
+  useEffect(() => setOfficeOptions(data.judicialOffices), [data.judicialOffices])
+  useEffect(() => {
+    const query = officeName.trim()
+    const known = officeOptionsRef.current.some((office) => office.value.toLocaleLowerCase() === query.toLocaleLowerCase())
+    if (query.length < 2 || known || officeSearchedRef.current === query) return
+    let active = true
+    const timer = window.setTimeout(() => {
+      officeSearchedRef.current = query
+      const endpoint = data.judicialOfficesSearch || '/api/v1/ui/uffici-giudiziari/opzioni'
+      fetch(`${endpoint}?q=${encodeURIComponent(query)}&limit=30`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((response) => response.ok ? response.json() : { items: [] })
+        .then((payload) => {
+          if (!active) return
+          const found = normalizeJudicialOffices(payload.items)
+          setOfficeOptions((current) => {
+            const byValue = new Map(current.map((office) => [office.value.toLocaleLowerCase(), office]))
+            found.forEach((office) => byValue.set(office.value.toLocaleLowerCase(), office))
+            return Array.from(byValue.values())
+          })
+        })
+        .catch(() => undefined)
+    }, 250)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [officeName, data.judicialOfficesSearch])
   useEffect(() => {
     const query = competenceComune.trim()
     if (query.length < 2 || comuneOptionMatches(selectedComune, query)) {
@@ -4630,7 +4703,7 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
       window.clearTimeout(timer)
     }
   }, [competenceComune, selectedComune, officeKind, includeSpeciali, refreshTick])
-  const selected = data.judicialOffices.find((office) => office.value.toLocaleLowerCase() === officeName.toLocaleLowerCase())
+  const selected = officeOptions.find((office) => office.value.toLocaleLowerCase() === officeName.toLocaleLowerCase())
   const selectedOfficeCode = selectedOfficialOffice ? officeDepositoCode(selectedOfficialOffice) : selected?.code || ''
   const selectedPstCode = selectedOfficialOffice ? selectedOfficialOffice.codiceMinistero : selected?.ministerialCode || ''
   const selectedRequiresTelematicCheck = Boolean(
@@ -4674,7 +4747,7 @@ function JudicialOfficeField({ data, required }:{data:FascicoloFormData; require
       <input type="hidden" name="tipo_ufficio_autorita" value={selectedOfficialOffice?.kind || ''}/>
       <input type="hidden" name="pec_ufficio_autorita" value={selectedOfficialOffice?.pec || selected?.pec || ''}/>
       <datalist id="fascicolo-uffici-giudiziari">
-        {data.judicialOffices.map((office) => <option value={office.value} label={office.label} key={`${office.code}-${office.value}`}/>)}
+        {officeOptions.map((office) => <option value={office.value} label={office.label} key={`${office.code}-${office.value}`}/>)}
       </datalist>
       {selectedOfficialOffice ? (
         <div className="iu-fas-choice-card">
@@ -5040,6 +5113,25 @@ function KvGrid({ items }:{items:KeyValue[]}) {
   })}</div>
 }
 
+/** Date del portale: solo i valori ISO si convertono (gg/mm/aaaa resta com'è, mai riletto all'americana). */
+function snapshotDateLabel(value: string | undefined, withTime = false): string {
+  const raw = String(value || '').trim()
+  if (!raw) return withTime ? '' : 'n.d.'
+  if (!/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw
+  return withTime && /T\d{2}:\d{2}/.test(raw) ? formatDateTimeIt(raw, raw) : formatDateIt(raw, raw)
+}
+
+/** Stato del portale all'acquisizione: le chiavi tecniche («IMPORTATO») diventano testo italiano. */
+function portalStateLabel(value: string | undefined): string {
+  const raw = String(value || '').trim()
+  if (!raw) return 'n.d.'
+  const labels: Record<string, string> = { IMPORTATO: 'Importato dal portale', SINCRONIZZATO: 'Allineato al portale', LOCALE: 'Solo dati dello studio' }
+  if (labels[raw.toUpperCase()]) return labels[raw.toUpperCase()]
+  if (!/^[A-Z0-9_]+$/.test(raw)) return raw
+  const words = raw.replace(/_/g, ' ').toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 function SourceSnapshotPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
   const snapshot = fascicolo.sourceSnapshot
   const counts = snapshot.counts || {}
@@ -5050,15 +5142,15 @@ function SourceSnapshotPanel({ fascicolo }:{fascicolo:FascicoloFull}) {
     { label: 'Riferimento', value: snapshot.externalId || fascicolo.sourceExternalId || 'n.d.', mono: true },
     { label: 'Ufficio', value: [snapshot.ufficioNome, snapshot.ufficioCodice].filter(Boolean).join(' - ') || fascicolo.court || 'n.d.' },
     { label: 'Procedimento', value: snapshot.procedimento || fascicolo.procedureType || 'n.d.' },
-    { label: 'Stato portale all’acquisizione', value: snapshot.stato || fascicolo.syncStatus || 'n.d.' },
-    { label: 'Data iscrizione', value: snapshot.dataIscrizione || 'n.d.' },
-    { label: 'Data udienza', value: snapshot.dataUdienza || 'n.d.' },
-    { label: 'Dati letti', value: `${Number(counts.parti || 0)} parti, ${Number(counts.documenti || 0)} documenti, ${Number(counts.depositi || 0)} depositi, ${Number(counts.eventi || 0)} eventi` },
+    { label: 'Stato portale all’acquisizione', value: portalStateLabel(snapshot.stato || fascicolo.syncStatus) },
+    { label: 'Data iscrizione', value: snapshotDateLabel(snapshot.dataIscrizione) },
+    { label: 'Data udienza', value: snapshotDateLabel(snapshot.dataUdienza) },
+    { label: 'Dati letti', value: [countIt(Number(counts.parti || 0), 'parte', 'parti'), countIt(Number(counts.documenti || 0), 'documento', 'documenti'), countIt(Number(counts.depositi || 0), 'deposito', 'depositi'), countIt(Number(counts.eventi || 0), 'evento', 'eventi')].join(', ') },
   ]
   const names = [...snapshot.parti, ...snapshot.controparti]
   return (
     <div className="iu-fas-source-panel">
-      <header><Landmark size={16}/><strong>Fonte telematica acquisita</strong><span>{snapshot.acquisitoIl || fascicolo.lastSyncAt || 'ultimo allineamento registrato'}</span></header>
+      <header><Landmark size={16}/><strong>Fonte telematica acquisita</strong><span>{snapshotDateLabel(snapshot.acquisitoIl || fascicolo.lastSyncAt, true) || 'ultimo allineamento registrato'}</span></header>
       <KvGrid items={items}/>
       {snapshot.oggetto ? <p>{snapshot.oggetto}</p> : null}
       {names.length ? <div className="iu-fas-source-parties">{names.map((name) => <span key={name}>{name}</span>)}</div> : null}
@@ -5541,6 +5633,8 @@ function lazySectionForDetailHash(sectionId: string): FascicoloDetailSection | u
     case 'presidio-fascicolo':
     case 'cabina-regia':
     case 'regia-operativa':
+    case 'conformita':
+    case 'presidio-conformita':
       return 'regia'
     case 'relata-notifica':
       return 'relata'
@@ -6645,7 +6739,10 @@ function regiaWorkflowLabel(value: string): string {
   const labels: Record<string, string> = {
     WF_SIGP_GDP: 'SIGP — Giudice di Pace',
   }
-  return labels[technical] || String(value || '').replace(/_/g, ' ')
+  if (labels[technical]) return labels[technical]
+  // Codice del percorso (es. WF_LAVORO_RETRIBUZIONE): all'avvocato si mostra «Lavoro retribuzione», mai il codice.
+  const words = String(value || '').trim().replace(/^WF_/i, '').replace(/_/g, ' ').toLowerCase()
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : ''
 }
 
 function regiaValidationStatusLabel(value: string): string {
@@ -6712,10 +6809,40 @@ function formatProceduralConfidence(value: string): string {
 
 function proceduralProfileCandidates(regia: FascicoloDetailData['regia']): ProceduralProfileCandidate[] {
   const profile = regia.profile
-  const rows = [
+  return proceduralProfileOptions(profile, [
     profile.candidate,
     ...(Array.isArray(profile.alternatives) ? profile.alternatives : []),
-  ].filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
+  ])
+}
+
+// «Cambia profilo» nella vista operativa: le sole alternative della materia e dell'ufficio del fascicolo.
+function proceduralProfileChangeOptions(regia: FascicoloDetailData['regia']): ProceduralProfileCandidate[] {
+  const options = regia.profile.changeOptions
+  return proceduralProfileOptions(regia.profile, Array.isArray(options) ? options : [])
+}
+
+// Canale di deposito con il nome del portale ufficiale: all'avvocato mai il codice interno (PCT_LAVORO…).
+const PROCEDURAL_CHANNEL_LABELS: Record<string, string> = {
+  PCT_TELEMATICO: 'Processo civile telematico',
+  PCT_CIVILE: 'Processo civile telematico',
+  PCT_LAVORO: 'Processo civile telematico (lavoro)',
+  SIGP_GDP: 'Processo civile telematico (giudice di pace)',
+  PDP_PENALE: 'Portale deposito atti penali',
+  PAT_AMMINISTRATIVO: 'Processo amministrativo telematico',
+  PTT_TRIBUTARIO: 'Processo tributario telematico',
+  PEC: 'Posta elettronica certificata',
+  CARTACEO: 'Deposito cartaceo',
+  ONLINE: 'Procedura online',
+}
+
+function proceduralChannelLabel(code: string): string {
+  const key = code.trim().toUpperCase()
+  if (!key) return ''
+  return PROCEDURAL_CHANNEL_LABELS[key] || (/^[A-Z0-9_]+$/.test(key) ? '' : code)
+}
+
+function proceduralProfileOptions(profile: Record<string, unknown>, source: unknown[]): ProceduralProfileCandidate[] {
+  const rows = source.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row))
   const seen = new Set<string>()
   return rows.flatMap((row) => {
     const code = recordText(row, 'code') || recordText(row, 'procedureCode') || recordText(row, 'procedure_code')
@@ -6726,7 +6853,7 @@ function proceduralProfileCandidates(regia: FascicoloDetailData['regia']): Proce
       code,
       name: recordText(row, 'name') || recordText(row, 'practiceType') || code,
       area: recordText(row, 'area'),
-      channel: recordText(row, 'channel'),
+      channel: proceduralChannelLabel(recordText(row, 'channel')),
       registry: recordText(row, 'registry'),
       confidence,
       reason: recordText(row, 'reason') || recordText(profile, 'reason') || 'Proposta del resolver procedurale.',
@@ -6754,29 +6881,71 @@ function ProceduralProfileConfirmation({ data, onDone, onError }:{data:Fascicolo
         <p>{resolverReason}</p>
         <small>La conferma salva il profilo scelto e registra l’azione nel fascicolo. Nessun termine, deposito o notifica viene creato da questa scelta.</small>
       </section>
-      <div className="iu-fas-regia__profile-candidates">
-        {candidates.map((candidate) => (
-          <article key={candidate.code}>
-            <Badge tone="info">Confidenza {candidate.confidence}</Badge>
-            <strong>{candidate.name}</strong>
-            <span>{[candidate.area, candidate.channel, candidate.registry].filter(Boolean).join(' · ') || 'Canale e registro da verificare'}</span>
-            <small>{candidate.reason}</small>
-            <small className="iu-fas-regia__profile-source-label">Fonte del profilo: {candidate.source}</small>
-            <JsonPostForm
-              action={action}
-              className="iu-fas-regia__profile-confirm"
-              onDone={onDone}
-              onError={onError}
-            >
-              <input type="hidden" name="profile_code" value={candidate.code}/>
-              <input type="hidden" name="reason" value={`Conferma esplicita dell’avvocato del profilo ${candidate.code}.`}/>
-              <button type="submit"><CheckCircle2 size={15}/> Conferma profilo</button>
-            </JsonPostForm>
-          </article>
-        ))}
-        {!candidates.length ? <p className="iu-empty">Nessun profilo candidato è disponibile. Completa i dati di procedimento o seleziona una procedura dal catalogo prima di creare controlli.</p> : null}
-      </div>
+      <ProceduralProfileChoices
+        candidates={candidates}
+        action={action}
+        onDone={onDone}
+        onError={onError}
+        confirmLabel="Conferma profilo"
+        reasonPrefix="Conferma esplicita dell’avvocato del profilo"
+        emptyMessage="Nessun profilo candidato è disponibile. Completa i dati di procedimento o seleziona una procedura dal catalogo prima di creare controlli."
+      />
     </div>
+  )
+}
+
+function ProceduralProfileChoices({ candidates, action, onDone, onError, confirmLabel, reasonPrefix, emptyMessage }:{candidates:ProceduralProfileCandidate[]; action:string; onDone:(message?:string)=>void; onError:(message:string)=>void; confirmLabel:string; reasonPrefix:string; emptyMessage:string}) {
+  return (
+    <div className="iu-fas-regia__profile-candidates">
+      {candidates.map((candidate) => (
+        <article key={candidate.code}>
+          <Badge tone="info">Confidenza {candidate.confidence}</Badge>
+          <strong>{candidate.name}</strong>
+          <span>{[candidate.area, candidate.channel, candidate.registry].filter(Boolean).join(' · ') || 'Canale e registro da verificare'}</span>
+          <small>{candidate.reason}</small>
+          <small className="iu-fas-regia__profile-source-label">Fonte del profilo: {candidate.source}</small>
+          <JsonPostForm
+            action={action}
+            className="iu-fas-regia__profile-confirm"
+            onDone={onDone}
+            onError={onError}
+          >
+            <input type="hidden" name="profile_code" value={candidate.code}/>
+            <input type="hidden" name="reason" value={`${reasonPrefix} ${candidate.code}.`}/>
+            <button type="submit"><CheckCircle2 size={15}/> {confirmLabel}</button>
+          </JsonPostForm>
+        </article>
+      ))}
+      {!candidates.length ? <p className="iu-empty">{emptyMessage}</p> : null}
+    </div>
+  )
+}
+
+// Vista operativa: il profilo applicato si può cambiare con la stessa scelta della conferma (endpoint applica-profilo).
+function ProceduralProfileChange({ data, onDone, onError }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const [open, setOpen] = useState(false)
+  const action = recordText(data.regia.actions, 'applyProfile')
+  if (!action) return null
+  return (
+    <section className="iu-fas-regia__profile-source" aria-label="Cambio del profilo procedurale">
+      <div className="iu-fas-regia__actions">
+        <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? 'Chiudi la scelta del profilo' : 'Cambia profilo'}</button>
+      </div>
+      {open ? (
+        <>
+          <small>La scelta sostituisce il profilo applicato, rigenera checklist e documenti richiesti e registra l’azione nel fascicolo. Nessun termine, deposito o notifica viene creato.</small>
+          <ProceduralProfileChoices
+            candidates={proceduralProfileChangeOptions(data.regia)}
+            action={action}
+            onDone={onDone}
+            onError={onError}
+            confirmLabel="Applica questo profilo"
+            reasonPrefix="Cambio esplicito dell’avvocato al profilo"
+            emptyMessage="Nessun altro profilo della stessa materia e dello stesso ufficio è disponibile per questo fascicolo."
+          />
+        </>
+      ) : null}
+    </section>
   )
 }
 
@@ -6789,7 +6958,7 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
     if (normalized === 'parti') return '#soggetti'
     if (normalized === 'documenti') return '#documenti'
     if (normalized === 'scadenze') return '#udienze'
-    if (normalized === 'sync portale') return '#documenti'
+    if (normalized === 'sync portale' || normalized === 'allineamento portale') return '#documenti'
     return '#presidio-conformita'
   }
   const qualityActionLabel = (label:string) => {
@@ -6799,7 +6968,7 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
     if (normalized === 'parti') return 'Apri soggetti e parti per la verifica'
     if (normalized === 'documenti') return 'Apri documenti e atti del fascicolo'
     if (normalized === 'scadenze') return 'Apri udienze e scadenze'
-    if (normalized === 'sync portale') return 'Apri documenti acquisiti dal portale'
+    if (normalized === 'sync portale' || normalized === 'allineamento portale') return 'Apri documenti acquisiti dal portale'
     return 'Apri il controllo di conformità'
   }
   const openQualityDestination = (event:MouseEvent<HTMLAnchorElement>, destination:string) => {
@@ -6853,6 +7022,8 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
         <div className="iu-fas-regia__actions">
           <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
         </div>
+        {/* I controlli di qualità non dipendono dal profilo: la voce «Controlli» della barra sezioni deve trovarli anche qui. */}
+        <FascicoloCompliancePanel data={data} returnHref={returnHref}/>
       </DetailSection>
     )
   }
@@ -6874,9 +7045,10 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
   const metaItems = [
     ['Area', h.area],
-    ['Canale', h.channel],
+    ['Canale', proceduralChannelLabel(String(h.channel || ''))],
     ['Registro', h.registry],
     ['Percorso', regiaWorkflowLabel(h.workflow)],
+    ['Fonte del profilo', recordText(regia.profile, 'sourceLabel')],
   ].filter(([, value]) => String(value || '').trim())
   const validationHasRun = Boolean(regia.validation.lastCheck || regia.validation.results.length || regia.validation.blockers.length || regia.validation.warnings.length)
   const validationMessage = regia.validation.blockers[0]
@@ -6974,6 +7146,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
             {metaItems.map(([label, value]) => <span key={label}><strong>{label}</strong>{value}</span>)}
           </div>
         ) : null}
+        <ProceduralProfileChange data={data} onDone={onDone} onError={onError}/>
         <section className="iu-fas-regia__priorities" aria-label="Controlli prioritari del fascicolo">
           <h4>Controlli prioritari</h4>
           <div className="iu-fas-regia-action-list">
@@ -7813,17 +7986,36 @@ function depositCommunicationText(dep: FascicoloDeposit): string {
   ].join(' '))
 }
 
+// Atto del fascicolo d'ufficio acquisito dal portale: è già depositato presso l'ufficio (spesso da altri),
+// non ha ricevute PEC dello studio da controllare.
+function depositImportedFromPortal(dep: FascicoloDeposit): boolean {
+  return /importato da portale/.test(normaliseText(dep.status).replace(/_/g, ' '))
+}
+
+// Le chiavi di raggruppamento interne («__2026-05-27__mittente», «COM:…») non sono l'IdBusta ministeriale.
+function depositPublicExternalId(dep: FascicoloDeposit): string {
+  const value = String(dep.externalId || '').trim()
+  return /^__|^COM:/i.test(value) ? '' : value
+}
+
+// «27/05/2026 00:00»: l'ora a mezzanotte è il ripiego di una data senza ora, non un orario reale.
+function depositDateLabel(value: string): string {
+  return String(value || '').replace(/\s+00:00(?::00)?$/, '')
+}
+
 function depositMetaLine(dep: FascicoloDeposit): string {
   const docs = dep.documentsCount === 1 ? '1 documento' : dep.documentsCount > 1 ? `${dep.documentsCount} documenti` : ''
   const date = dep.acceptedAt
-    ? `Accettato il ${dep.acceptedAt}`
+    ? `Accettato il ${depositDateLabel(dep.acceptedAt)}`
     : dep.sentAt
-      ? `Depositato il ${dep.sentAt}`
+      ? `Depositato il ${depositDateLabel(dep.sentAt)}`
       : dep.timestamp || 'Data non indicata'
   const role = dep.roleNumber ? `RG ${dep.roleNumber}` : ''
-  const external = dep.externalId ? `IDBUSTA ${dep.externalId}` : ''
-  const registered = dep.registeredBy ? `registrato da ${dep.registeredBy}` : ''
-  return [date, role, external, registered, docs, dep.source].filter(Boolean).join(' - ')
+  const publicExternalId = depositPublicExternalId(dep)
+  const external = publicExternalId ? `IDBUSTA ${publicExternalId}` : ''
+  const registered = /^(scheduler|system|sistema)$/i.test(dep.registeredBy || '') ? 'registrato automaticamente' : dep.registeredBy ? `registrato da ${dep.registeredBy}` : ''
+  const source = /^PEC_PCT$/i.test(dep.source || '') ? 'PEC del deposito' : String(dep.source || '').replace(/_/g, ' ')
+  return [date, role, external, registered, docs, source].filter(Boolean).join(' - ')
 }
 
 function depositStatusLabel(status: string): string {
@@ -7921,6 +8113,9 @@ function depositPhaseSummary(dep: FascicoloDeposit): { label: string; body: stri
   if (/inviato/.test(status)) {
     return { label: 'Deposito inviato', body: 'Il deposito è registrato: verifica l’arrivo delle ricevute PEC.', tone: 'primary' }
   }
+  if (depositImportedFromPortal(dep)) {
+    return { label: 'Atto del fascicolo d’ufficio', body: 'Acquisito dal Portale Servizi Telematici: risulta già depositato presso l’ufficio, non ci sono ricevute PEC dello studio da controllare.', tone: 'info' }
+  }
   return { label: 'Deposito da verificare', body: 'Apri il flusso PEC per controllare accettazione, consegna, controlli e conferma.', tone: 'neutral' }
 }
 
@@ -7942,6 +8137,7 @@ function DepositReceiptSteps({ dep }:{dep:FascicoloDeposit}) {
 function DepositReceiptActions({ dep, onDone, onError }:{dep:FascicoloDeposit; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const done = dep.receiptSteps.length > 0 && dep.receiptSteps.every((step) => step.done)
   if (!dep.checkReceiptsAction && !dep.nextSimulationAction && !dep.simulated) return null
+  if (!dep.simulated && depositImportedFromPortal(dep)) return null
   return (
     <div className="iu-fas-comm-actions">
       {!dep.simulated && dep.checkReceiptsAction ? <PostAction action={dep.checkReceiptsAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={14}/> Controlla PEC</PostAction> : null}
@@ -7956,8 +8152,8 @@ function DepositStateSummary({ dep }:{dep:FascicoloDeposit}) {
   const summary = depositPhaseSummary(dep)
   const facts = [
     dep.roleNumber ? `RG ${dep.roleNumber}` : '',
-    dep.externalId ? `IDBUSTA ${dep.externalId}` : '',
-    dep.acceptedAt ? `Accettato il ${dep.acceptedAt}` : '',
+    depositPublicExternalId(dep) ? `IDBUSTA ${depositPublicExternalId(dep)}` : '',
+    dep.acceptedAt ? `Accettato il ${depositDateLabel(dep.acceptedAt)}` : '',
     dep.acceptedBy ? `Da ${dep.acceptedBy}` : '',
     dep.registeredBy ? `Registrato da ${dep.registeredBy}` : '',
     dep.sourceMessageId ? `Messaggio deposito ${dep.sourceMessageId}` : '',
@@ -8015,8 +8211,10 @@ function DocumentUploadWorkspace({
   const typeOptions = data.options.documentTypes.length ? data.options.documentTypes : [{ value: 'ALTRO', label: 'Altro' }]
   return (
     <section className="iu-fas-doc-workspace" aria-label="Documenti e atti del fascicolo">
-      <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
-      <FascicoloOcr key={`ocr-${data.fascicolo.id}`} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone} onError={onError}/>
+      <Suspense fallback={null}>
+        <DocumentCapture key={data.fascicolo.id} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone}/>
+        <FascicoloOcr key={`ocr-${data.fascicolo.id}`} fascicoloId={data.fascicolo.id} reference={data.fascicolo.ref} onSaved={onDone} onError={onError}/>
+      </Suspense>
       <form className={`iu-fas-doc-upload${dragging ? ' is-dragging' : ''}`} onSubmit={submit} encType="multipart/form-data" {...dropHandlers}>
         <input type="hidden" name="classificazione_modalita" value={mode}/>
         <label className="iu-fas-field iu-fas-field--wide">
@@ -9863,6 +10061,21 @@ function DetailPage({ id }:{id:string}) {
       setActiveHashSection(sectionId)
       const lazySection = lazySectionForDetailHash(sectionId)
       if (lazySection) loadLazySection(lazySection)
+      // «Controlli» punta a un'ancora dentro il Presidio, che disegna il contenuto solo da aperto:
+      // si apre il Presidio e si attende l'ancora prima di scorrere (verifica visiva 02/11/2026).
+      const parentSection = sectionId === 'conformita' || sectionId === 'presidio-conformita' ? 'presidio-fascicolo' : ''
+      if (parentSection && !document.getElementById(sectionId)) {
+        const parent = document.getElementById(parentSection)
+        if (parent instanceof HTMLDetailsElement && !parent.open) parent.open = true
+        let attempts = 0
+        const waitAnchor = () => {
+          if (document.getElementById(sectionId) || attempts >= 40) { openDetailSectionById(sectionId); return }
+          attempts += 1
+          window.setTimeout(waitAnchor, 250)
+        }
+        window.setTimeout(waitAnchor, 80)
+        return
+      }
       window.setTimeout(() => openDetailSectionById(sectionId), 80)
     }
     openHashSection()
@@ -9979,7 +10192,9 @@ function DetailPage({ id }:{id:string}) {
       <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a>{f.type === 'penale' ? <a href="#penale-pdp">Deposito penale</a> : null}{f.type === 'amministrativo' ? <a href="#pat-formweb">Deposito amministrativo</a> : null}{f.type === 'tributario' ? <a href="#ptt-sigit">Deposito tributario</a> : null}<a href="#editor-fascicolo" onClick={() => setEditorVisited(true)}>Editor e redazione</a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
-          <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
+          <Suspense fallback={null}>
+            <GuidaPraticaSidebar fascicoloId={f.id || id} codice={f.codiceOggettoPst} fascicoloTitle={f.title}/>
+          </Suspense>
         </aside>
         <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
@@ -10371,8 +10586,8 @@ function ExportPage() {
   return (
     <main className="iu-content iu-fascicoli-page iu-fas-export-page">
       <section className="iu-fas-hero"><div><span className="iu-fas-eyebrow"><Download size={16}/> Esporta</span><h1>Esporta fascicoli</h1><p>PDF lista, CSV operativo, PDF fascicolo singolo e ZIP archivio, con operazioni tracciate.</p></div><div className="iu-fas-hero__actions"><Button href="/fascicoli"><FolderOpen size={15}/> Fascicoli</Button><Button href="/fascicoli/archivio"><Archive size={15}/> Archivio</Button></div></section>
-      <section className="iu-fas-stats"><StatCard icon={<FolderOpen size={19}/>} label="Totali" value={data.summary.total} note="in archivio" tone="primary"/><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived} note="da conservare" tone="neutral"/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="conteggio fascicoli" tone="purple"/></section>
-      <section className="iu-fas-export-layout"><Panel title="Esportazione fascicoli" subtitle={loading ? 'Caricamento...' : `Archivio ${data.source}`} icon={<FileDown size={17}/>}><div className="iu-fas-export-builder"><label><span>Formato</span><select value={format} onChange={(event) => setFormat(event.target.value)}><option value="pdf">PDF lista</option><option value="csv">CSV</option></select></label><label><span>Ricerca</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="numero, titolo, cliente..."/></label><label><span>Tipo</span><select value={type} onChange={(event) => setType(event.target.value as FascicoloTipo)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><label><span>Stato</span><select value={status} onChange={(event) => setStatus(event.target.value as FascicoloStato)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><a className="iu-fas-download-main" href={href}><Download size={16}/> Scarica export</a></div></Panel><Panel title="Campi inclusi" icon={<ListChecks size={17}/>}><div className="iu-fas-export-fields">{data.fields.map((field) => <label key={field.key}><input type="checkbox" defaultChecked={field.checked} readOnly/> {field.label}</label>)}</div></Panel><Panel title="Preset rapidi" icon={<Sparkles size={17}/>}><div className="iu-fas-side-cards">{data.presets.map((preset) => <a href={preset.href} key={preset.label}><Badge tone={preset.tone}>{preset.label}</Badge><span>{preset.description}</span></a>)}</div></Panel></section>
+      <section className="iu-fas-stats"><StatCard icon={<FolderOpen size={19}/>} label="Totali" value={data.summary.total} note="fascicoli dello studio, archiviati compresi" tone="primary"/><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived} note="nell’archivio studio" tone="neutral"/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="nei fascicoli attivi" tone="purple"/></section>
+      <section className="iu-fas-export-layout"><Panel title="Esportazione fascicoli" subtitle={loading ? 'Caricamento…' : 'Elenco filtrato in PDF o CSV'} icon={<FileDown size={17}/>}><div className="iu-fas-export-builder"><label><span>Formato</span><select value={format} onChange={(event) => setFormat(event.target.value)}><option value="pdf">PDF lista</option><option value="csv">CSV</option></select></label><label><span>Ricerca</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="numero, titolo, cliente..."/></label><label><span>Tipo</span><select value={type} onChange={(event) => setType(event.target.value as FascicoloTipo)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><label><span>Stato</span><select value={status} onChange={(event) => setStatus(event.target.value as FascicoloStato)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><a className="iu-fas-download-main" href={href}><Download size={16}/> Scarica export</a></div></Panel><Panel title="Campi inclusi" subtitle="Colonne presenti nell’export" icon={<ListChecks size={17}/>}><div className="iu-fas-export-fields">{data.fields.map((field) => <label key={field.key}><input type="checkbox" checked={field.checked} disabled readOnly/> {field.label}</label>)}</div></Panel><Panel title="Preset rapidi" icon={<Sparkles size={17}/>}><div className="iu-fas-side-cards">{data.presets.map((preset) => <a href={preset.href} key={preset.label}><Badge tone={preset.tone}>{preset.label}</Badge><span>{preset.description}</span></a>)}</div></Panel></section>
       <Panel title="Fascicoli recenti esportabili singolarmente" icon={<FolderOpen size={17}/>} count={data.recent.length}><div className="iu-fas-export-recent">{data.recent.map((item) => <a href={item.exportPdfHref} key={item.id}><FileDown size={15}/><strong>{item.ref}</strong><span>{item.title}</span></a>)}</div></Panel>
       <FloatingLex context="export-fascicoli" title="Lex AI export" body="Posso suggerire quali campi esportare, preparare una sintesi per il cliente o controllare se mancano dati prima dell'archiviazione." primaryHref="#lex" primaryLabel="Apri Lex export" secondaryHref="/fascicoli/esporta" secondaryLabel="Esporta fascicoli" />
     </main>

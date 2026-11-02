@@ -198,7 +198,7 @@ function SoggettiTable({
                   <span>{item.city ? `${item.city} ${item.province ? `(${item.province})` : ''}` : 'Anagrafica soggetto'}</span>
                 </td>
                 <td><Badge tone={item.tone}>{item.typeLabel}</Badge></td>
-                <td>{item.role.replaceAll('_', ' ')}</td>
+                <td>{roleLabel(item.role)}</td>
                 <td>{item.identifier || '-'}</td>
                 <td><ContactBlock item={item}/></td>
                 <td>{item.matters}</td>
@@ -210,6 +210,12 @@ function SoggettiTable({
       </SyncedTopScrollbar>
     </section>
   )
+}
+
+/** Il ruolo arriva come codice (es. «ALTRO», «CONTROPARTE»): in pagina si mostra in italiano leggibile. */
+function roleLabel(role: string): string {
+  const text = String(role || 'ALTRO').replaceAll('_', ' ').toLowerCase()
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 function SoggettoMobileCard({
@@ -234,7 +240,7 @@ function SoggettoMobileCard({
         </label>
         <Badge tone={item.tone}>{item.typeLabel}</Badge>
       </header>
-      <p>{item.role.replaceAll('_', ' ')} - {item.identifier || 'Identificativo assente'}</p>
+      <p>{roleLabel(item.role)} · {item.identifier && item.identifier !== '-' ? item.identifier : 'Identificativo assente'}</p>
       <dl>
         <div><dt>Fascicoli</dt><dd>{item.matters}</dd></div>
         <div><dt>Sede</dt><dd>{item.city || '-'}</dd></div>
@@ -266,7 +272,7 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
         <a className="iu-sogg-back" href="/soggetti"><ArrowLeft size={15}/>Torna a Soggetti e Parti</a>
         <span className="iu-sogg-focus__eyebrow">Scheda soggetto selezionato</span>
         <h2>{item.name}</h2>
-        <p>{item.role.charAt(0).toUpperCase() + item.role.slice(1).toLowerCase().replaceAll('_', ' ')} · {item.identifier && item.identifier !== '-' ? item.identifier : 'Identificativo non presente'}</p>
+        <p>{roleLabel(item.role)} · {item.identifier && item.identifier !== '-' ? item.identifier : 'Identificativo non presente'}</p>
       </div>
       <dl>
         <div><dt>Tipo</dt><dd>{item.typeLabel}</dd></div>

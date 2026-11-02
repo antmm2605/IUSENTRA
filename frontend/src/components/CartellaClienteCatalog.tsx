@@ -8,7 +8,7 @@ import { getCartellaClientePage, type CartellaClienteData, type CartellaClienteI
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 
 export type ClientCatalogArea = 'matters' | 'deadlines' | 'documents' | 'messages' | 'invoices'
-const titles: Record<ClientCatalogArea, string> = { matters: 'Fascicoli attivi', deadlines: 'Scadenze aperte', documents: 'Documenti', messages: 'Comunicazioni', invoices: 'Parcelle' }
+const titles: Record<ClientCatalogArea, string> = { matters: 'Fascicoli in gestione', deadlines: 'Scadenze aperte', documents: 'Documenti', messages: 'Comunicazioni', invoices: 'Parcelle' }
 
 export default function CartellaClienteCatalog({ clientId, clientName, area, onClose, onOpenDocuments, focusToken }: {
   clientId: string; clientName: string; area: ClientCatalogArea; focusToken?: number; onClose: () => void;

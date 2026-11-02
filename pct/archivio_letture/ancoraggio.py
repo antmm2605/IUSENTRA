@@ -16,6 +16,8 @@ from dataclasses import dataclass
 
 VERSIONE_DATE_PROCESSUALI_PRE_FRASI = "2026.10.01.date-v3+identita-strutturale+sottoscrizione+ufficio-pertinente"
 VERSIONE_DATE_PROCESSUALI = VERSIONE_DATE_PROCESSUALI_PRE_FRASI + "+frasi-v4"
+# I pagamenti esclusi (2.477): nessuna rilettura storica, i fatti già registrati si respingono con la
+# riconvalida sul brano salvato (`esclusione_data_salvata`).
 
 FINESTRA_PRIMA = 110
 FINESTRA_DOPO = 45
@@ -41,6 +43,16 @@ _NEGATIVE = re.compile(
     r"vers(?:\.|ione)|iban|c\.?c\.?\s*n|dal\s+\d{1,2}[./]\d{1,2}[./]\d{2,4}\s+al\s*$|"
     # la data di una legge o di un decreto normativo non è una data del fascicolo
     r"(?:legge|l\.|d\.?\s?lgs\.?|d\.?\s?p\.?\s?r\.?|d\.?\s?m\.?|d\.?\s?l\.|d\.?\s?p\.?\s?c\.?\s?m\.?|decreto\s+(?:legislativo|ministeriale|legge))\s*(?:n\.?\s*\d+(?:/\d+)?\s*(?:del)?\s*)?$",
+    re.IGNORECASE,
+)
+_PAGAMENTO = re.compile(
+    r"pago\s?pa|cbill|codice\s+avviso|avviso\s+di\s+pagamento|dati\s+bolletta|bolletta|quietanz\w*|bonific\w*|"
+    r"versament\w*|pagament\w*|\bsaldo\b|fattur\w*|\bimporto\b|commission\w*|\beuro\b|€|\brata\b|ordinante|addebito",
+    re.IGNORECASE,
+)
+# Le parole del processo vicino alla data prevalgono: «fissa l'udienza», «ingiunge di pagare entro…».
+_PROCESSUALE_VICINO = re.compile(
+    r"udienz|notific|perentori|costitu|impugn|opposizion|fiss[ao]|rinvi|assegn|deposit|comparir|ingiun|precetto|intima|decreto|sentenza|ordinanza",
     re.IGNORECASE,
 )
 _ORA = re.compile(r"(?:ore|alle ore|alle|h\.?)\s*(?P<ora>[01]?\d|2[0-3])\s*[:.,]\s*(?P<minuti>[0-5]\d)", re.IGNORECASE)
@@ -171,6 +183,12 @@ def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
         return "data del documento di identità, non termine processuale"
     if re.search(r"Corte di Giustizia\s*$", prima, re.I):
         return "data di un precedente giurisprudenziale citato"
+    # Avvisi pagoPA/CBILL, quietanze, bonifici e fatture: la «data scadenza» o il «saldo entro il»
+    # è il termine di un pagamento, non un termine processuale (artt. 152 ss. c.p.c. riguardano gli
+    # atti del processo; il contributo unificato si versa con il deposito, art. 14 D.P.R. 115/2002).
+    pagamento = _PAGAMENTO.search(prima[-120:]) or _PAGAMENTO.search(dopo[:80])
+    if pagamento and not _PROCESSUALE_VICINO.search(prima[-120:] + " " + dopo[:60]):
+        return "data di un pagamento (avviso, quietanza, bonifico o fattura), non termine processuale"
     return ""
 
 

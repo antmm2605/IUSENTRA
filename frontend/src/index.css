@@ -202,7 +202,9 @@
   flex:1;
   min-width:0;
 }
-.iu-sidebar__user strong{
+.iu-sidebar__user strong,
+.iu-sidebar__user small{
+  display:block;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
@@ -3139,4 +3141,34 @@ body.iu-agenda-planner-expanded .iu-ag-planner.is-expanded .iu-ag-calendar-card{
 @media (pointer:coarse){
   input[type=checkbox],input[type=radio]{width:24px;height:24px;min-width:24px;min-height:24px}
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]):not([type=color]),select{min-height:44px}
+}
+
+/* Avviso del monitor Local Signer (web/static/js/local-signer-monitor.js): usa classi
+   Bootstrap che la shell React non carica, e compariva come testo nudo in fondo alla pagina. */
+#iusentra-local-signer-status{position:fixed;display:block;padding:12px 14px;border:1px solid rgba(217,119,6,.32);border-radius:12px;background:#fffbeb;color:#78350f;font-size:13px;line-height:1.4;box-shadow:0 18px 40px rgba(15,23,42,.16)}
+#iusentra-local-signer-status.d-none{display:none}
+#iusentra-local-signer-status.alert-danger{border-color:rgba(220,38,38,.3);background:#fef2f2;color:#7f1d1d}
+#iusentra-local-signer-status.alert-success{border-color:rgba(5,150,105,.3);background:#ecfdf5;color:#064e3b}
+#iusentra-local-signer-status .fw-semibold{margin-bottom:4px;font-weight:800}
+#iusentra-local-signer-status .small{margin-bottom:10px;font-size:12.5px}
+#iusentra-local-signer-status .d-flex{display:flex;flex-wrap:wrap;gap:8px}
+#iusentra-local-signer-status .btn{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:var(--iu-navy-900);font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+#iusentra-local-signer-status .btn-primary{border-color:transparent;background:var(--iu-navy-900);color:#fff}
+
+/* Pulsante flottante di Lex (components/pct_ai_widget.html) sopra i 920px: sotto questa
+   soglia è nascosto e Lex si apre dalla barra di navigazione. Il pulsante chiuso resta
+   nell'angolo (48px a 12px dal bordo) e il contenuto della pagina lascia libera quella
+   colonna: prima copriva pulsanti, date e testo sul bordo destro. Aperto, trascinato o a
+   tutto schermo il widget mantiene la posizione scelta. */
+@media(min-width:921px){
+  body.react-shell-page #pct-ai-widget:not(.pct-ai-widget--open):not(.pct-ai-widget--custom):not(.pct-ai-widget--fullscreen){right:12px;bottom:12px}
+  body.react-shell-page #pct-ai-widget:not(.pct-ai-widget--open) .pct-ai-fab{width:48px;min-width:48px;height:48px}
+  body.react-shell-page:has(#pct-ai-fab) .iu-main>.iusentra-route-preset,
+  body.react-shell-page:has(#pct-ai-fab) .iu-main>main{padding-right:44px}
+}
+
+/* ADM-30: colore del pulsante principale del design system. Non si chiama «bg-primary» perché
+   la classe omonima di Bootstrap 5 (background-color con !important) lo colorerebbe di blu. */
+@layer utilities {
+  .iu-ui-button--primary { background-color: var(--primary); }
 }

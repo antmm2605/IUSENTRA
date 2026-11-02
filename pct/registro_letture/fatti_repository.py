@@ -51,6 +51,16 @@ def chiave_fatto(campo: str, valore: str, contesto: str) -> str:
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:32]
 
 
+_PERCORSO_PROCEDURA_STORICO = "docs/REGISTRO_LETTURE.md:"
+
+
+def _prova_leggibile(prova: Any) -> Any:
+    """Le prove registrate prima della 2.477 citavano il percorso del documento interno: si mostra il nome della procedura."""
+    if isinstance(prova, dict) and str(prova.get("dettaglio") or "").startswith(_PERCORSO_PROCEDURA_STORICO):
+        return {**prova, "dettaglio": "Registro delle letture:" + str(prova["dettaglio"])[len(_PERCORSO_PROCEDURA_STORICO):]}
+    return prova
+
+
 @dataclass(slots=True)
 class Fatto:
     """Un fatto letto: che cosa, dove, come, con quale prova."""
@@ -112,6 +122,7 @@ class FattiMixin:
             prove = json.loads(str(riga.get("prove_json") or "[]"))
         except (TypeError, ValueError):
             prove = []
+        prove = [_prova_leggibile(p) for p in prove] if isinstance(prove, list) else []
         return Fatto(
             categoria=str(riga.get("categoria") or ""), campo=str(riga.get("campo") or ""), valore=str(riga.get("valore") or ""),
             valore_letto=str(riga.get("valore_letto") or ""), etichetta=str(riga.get("etichetta") or ""), contesto=str(riga.get("contesto") or ""),

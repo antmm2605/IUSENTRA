@@ -201,8 +201,65 @@ _NEIGHBOR_STOPWORDS = frozenset(
         "anche",
         "solo",
         "circa",
+        # Verifica visiva del 02/11/2026 (LEX-18): verbi, modali e aggettivi
+        # generici accanto alla parola-testa producevano proposte senza senso
+        # giuridico ("consenso dovrebbe", "termine può", "trattamento articolo").
+        "può",
+        "puo",
+        "possono",
+        "deve",
+        "devono",
+        "dovrebbe",
+        "dovrebbero",
+        "potrebbe",
+        "potrebbero",
+        "è",
+        "ha",
+        "hanno",
+        "era",
+        "sia",
+        "siano",
+        "stato",
+        "stata",
+        "vengono",
+        "venga",
+        "articolo",
+        "articoli",
+        "comma",
+        "commi",
+        "lettera",
+        "generale",
+        "generali",
+        "specifico",
+        "specifica",
+        "specifici",
+        "specifiche",
+        "ulteriore",
+        "ulteriori",
+        "rispettivo",
+        "rispettiva",
+        "rispettivi",
+        "rispettive",
+        "proprio",
+        "propria",
+        "propri",
+        "proprie",
+        "primo",
+        "prima",
+        "nuovo",
+        "nuova",
     }
 )
+
+
+def termine_candidato_ammissibile(termine: str) -> bool:
+    """Un bigramma candidato è ammissibile se nessuna sua parola è una parola vuota.
+
+    Serve anche a scartare i candidati già registrati in memoria prima che il
+    filtro venisse esteso (riconvalida delle proposte, LEX-18).
+    """
+    parole = [parola for parola in str(termine or "").casefold().split() if parola]
+    return bool(parole) and not any(parola in _NEIGHBOR_STOPWORDS for parola in parole)
 # Niente apostrofo nel token: l'elisione italiana ("l'accesso", "dell'atto")
 # deve produrre il sostantivo pulito, altrimenti i marker non matchano.
 _TOKEN_RE = re.compile(r"[a-zA-Zàèéìòù0-9]+")

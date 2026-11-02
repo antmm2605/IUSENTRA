@@ -588,7 +588,7 @@ def build_react_cliente_cartella_payload(
             "newMessage": f"/messaggi/nuovo?id_cliente={id_cliente}",
             "newQuote": f"/preventivi/nuovo?id_cliente={id_cliente}",
             "folder": f"/clienti/{id_cliente}/cartella",
-            "dossier": f"/clienti/{id_cliente}/faldone",
+            "dossier": f"/clienti/{id_cliente}/faldone/pdf",
             "exportFolder": f"/clienti/{id_cliente}/esporta",
         },
     }

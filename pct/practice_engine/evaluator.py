@@ -16,7 +16,7 @@ from .models import DepositStatus, SlotStatus, ValidatorStatus
 from .profiles import get_profile
 from pct.pst_catalog import PST_BUSTA_ENCRYPTION_ALGORITHM
 from .repository import PracticeEngineRepository
-from .resolver import resolve_practice_profile
+from .resolver import alternative_del_fascicolo, resolve_practice_profile
 from .models import PracticeState
 from .state_machine import derive_state
 def _enum_value(value: Any) -> str:
@@ -273,6 +273,42 @@ def _channel_display_label(profile: Any, delivery_policy: dict[str, Any]) -> str
     official = _text(delivery_policy.get("officialChannel"))
     return official or channel.replace("_", " ")
 
+AUTORE_DATI_CERTI = "IUSENTRA - dati certi del fascicolo"
+
+
+def _data_italiana(valore: Any) -> str:
+    testo = _text(valore)[:10]
+    parti = testo.split("-")
+    return f"{parti[2]}/{parti[1]}/{parti[0]}" if len(parti) == 3 and all(parti) else ""
+
+
+def _fonte_del_profilo(snapshot: dict[str, Any], automatico: bool) -> str:
+    """Da dove viene il profilo applicato, in parole per l'avvocato."""
+    motivo = _text(snapshot.get("manual_reason"))
+    if automatico:
+        return "Impostato" + motivo[len("Profilo impostato"):] if motivo.startswith("Profilo impostato") else motivo
+    autore = _text(snapshot.get("applied_by")) or "avvocato"
+    data = _data_italiana(snapshot.get("applied_at"))
+    return f"Confermato da {autore}" + (f" il {data}" if data else "")
+
+
+def _snapshot_payload(
+    profile: Any, snapshot: dict[str, Any], *, fascicolo: Any = None, etichette_documenti: list[str] | None = None,
+) -> dict[str, Any]:
+    automatico = _text(snapshot.get("applied_by")) == AUTORE_DATI_CERTI
+    return {
+        "profile": profile.to_dict(),
+        "confidence": 1.0,
+        "reason": _text(snapshot.get("manual_reason")) if automatico else "profilo gia' applicato",
+        "alternatives": [],
+        "needs_manual_confirmation": False,
+        "automatic": automatico,
+        "source_label": _fonte_del_profilo(snapshot, automatico),
+        # «Cambia profilo»: le sole alternative della materia e dell'ufficio del fascicolo.
+        "change_options": alternative_del_fascicolo(fascicolo, etichette_documenti, exclude=profile.code) if fascicolo is not None else [],
+    }
+
+
 def ensure_profile_for_fascicolo(
     repository: PracticeEngineRepository,
     *,
@@ -281,14 +317,34 @@ def ensure_profile_for_fascicolo(
     conferimento: Any | None = None,
     actor: str = "",
     manual_code: str = "",
+    etichette_documenti: list[str] | None = None,
 ) -> tuple[Any, dict[str, Any]]:
-    snapshot = repository.get_profile_snapshot(_text(getattr(fascicolo, "id", "")))
+    fascicolo_id = _text(getattr(fascicolo, "id", ""))
+    snapshot = repository.get_profile_snapshot(fascicolo_id)
     if snapshot:
         profile = get_profile(snapshot.get("code") or snapshot.get("procedure_code") or snapshot.get("practice_id"))
         if profile:
-            repository.ensure_slots(_text(getattr(fascicolo, "id", "")), profile)
-            repository.ensure_checklist(_text(getattr(fascicolo, "id", "")), profile)
-            return profile, {"profile": profile.to_dict(), "confidence": 1.0, "reason": "profilo gia' applicato", "alternatives": [], "needs_manual_confirmation": False}
+            repository.ensure_slots(fascicolo_id, profile)
+            repository.ensure_checklist(fascicolo_id, profile)
+            return profile, _snapshot_payload(profile, snapshot, fascicolo=fascicolo, etichette_documenti=etichette_documenti)
+    resolver = resolve_practice_profile(
+        preventivo=preventivo,
+        conferimento=conferimento,
+        fascicolo=fascicolo,
+        manual_code=manual_code,
+        payload={"etichette_documenti": list(etichette_documenti or [])},
+    )
+    # Dati certi (codice oggetto PST ufficiale, rito fissato da dati concordi): il profilo si
+    # imposta da solo, con la fonte dichiarata nel motivo e nell'audit. Resta modificabile
+    # dall'avvocato con «applica-profilo»; un profilo già confermato non viene mai sostituito.
+    if resolver.profile and resolver.automatic and fascicolo_id:
+        try:
+            snapshot = repository.apply_profile(fascicolo_id, resolver.profile, actor=AUTORE_DATI_CERTI, reason=resolver.reason, reset=True)
+            return resolver.profile, _snapshot_payload(
+                resolver.profile, snapshot, fascicolo=fascicolo, etichette_documenti=etichette_documenti,
+            )
+        except Exception:
+            pass  # senza salvataggio resta la proposta da confermare
     profile_from_deposit = _profile_from_deposit_profile(fascicolo)
     if profile_from_deposit:
         return profile_from_deposit, {
@@ -298,18 +354,11 @@ def ensure_profile_for_fascicolo(
             "alternatives": [],
             "needs_manual_confirmation": True,
         }
-    resolver = resolve_practice_profile(
-        preventivo=preventivo,
-        conferimento=conferimento,
-        fascicolo=fascicolo,
-        manual_code=manual_code,
-    )
-    # La consultazione del fascicolo non deve cambiare il profilo procedurale.
-    # Il resolver propone una classificazione spiegabile; l'applicazione,
-    # l'eventuale rigenerazione della checklist e l'audit avvengono soltanto
-    # dopo il comando esplicito dell'avvocato su ``applica-profilo``.
+    # Una deduzione non certa resta una proposta: l'applicazione, la checklist e l'audit
+    # avvengono soltanto dopo il comando esplicito dell'avvocato su ``applica-profilo``.
     if resolver.profile:
         resolver.needs_manual_confirmation = True
+        resolver.automatic = False
     return resolver.profile, resolver.to_dict()
 
 def _economic_summary(
@@ -410,6 +459,7 @@ def build_regia_payload(
     fascicoli_manager: Any | None = None,
     actor: str = "",
     manual_code: str = "",
+    etichette_documenti: list[str] | None = None,
 ) -> dict[str, Any]:
     fascicolo_id = _text(getattr(fascicolo, "id", ""))
     preventivi = _linked_preventivi(list(preventivi or []), fascicolo)
@@ -424,6 +474,7 @@ def build_regia_payload(
         conferimento=conferimento,
         actor=actor,
         manual_code=manual_code,
+        etichette_documenti=etichette_documenti,
     )
     if not profile:
         return {
@@ -549,6 +600,10 @@ def build_regia_payload(
             "confidence": resolver_payload.get("confidence", 1.0),
             "reason": resolver_payload.get("reason", ""),
             "needsManualConfirmation": resolver_payload.get("needs_manual_confirmation", False),
+            "automatic": bool(resolver_payload.get("automatic", False)),
+            "source": profile.source,
+            "sourceLabel": resolver_payload.get("source_label", ""),
+            "changeOptions": resolver_payload.get("change_options", []),
             "alternatives": resolver_payload.get("alternatives", []),
             "templateLabels": list(profile.template_labels),
             "deadlines": list(profile.deadlines),

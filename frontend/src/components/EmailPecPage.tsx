@@ -52,6 +52,7 @@ import {
   emptyEmailOrdinariaPage,
   emptyEmailPecPage,
   folderLabel,
+  pctStatusLabel,
   getEmailOrdinariaPage,
   getEmailOrdinariaDetail,
   getEmailPecPage,
@@ -283,8 +284,17 @@ function rowPerson(item: EmailPecRow): string {
   return item.senderName || item.sender || 'Mittente non indicato'
 }
 
+/** Il browser segnala i problemi di rete con un messaggio tecnico in inglese («Failed to fetch»): si mostra in italiano. */
+function erroreLeggibile(error: unknown, fallback: string): string {
+  if (!(error instanceof Error) || !error.message) return fallback
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(error.message)) {
+    return 'Collegamento con il server non riuscito: controlla la connessione e riprova.'
+  }
+  return error.message
+}
+
 function initials(value: string, fallback: string): string {
-  const parts = value.replace(/[<>@.]/g, ' ').split(/\s+/).filter(Boolean)
+  const parts = value.replace(/[<>@."'«»“”()]/g, ' ').split(/\s+/).filter(Boolean)
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || fallback
 }
 
@@ -920,7 +930,7 @@ function PecSaveMatterDialog({
         setSelectedId((nextCandidates.find((item) => item.pecMatch) || nextCandidates[0])?.id || '')
         setMessage(text(payload.message ?? payload.messaggio ?? payload.errore) || (nextCandidates.length ? 'Conferma il fascicolo aperto.' : 'Nessun fascicolo aperto trovato.'))
       })
-      .catch((error) => setMessage(error instanceof Error ? error.message : 'Ricerca fascicolo non completata.'))
+      .catch((error) => setMessage(erroreLeggibile(error, 'Ricerca fascicolo non completata.')))
       .finally(() => setWorking(false))
   }
 
@@ -969,7 +979,7 @@ function PecSaveMatterDialog({
         invalidatePecFascicoloCliente(clientUrl)
         onSaved(nextMessage)
       })
-      .catch((error) => setMessage(error instanceof Error ? error.message : 'Salvataggio non completato.'))
+      .catch((error) => setMessage(erroreLeggibile(error, 'Salvataggio non completato.')))
       .finally(() => setWorking(false))
   }
 
@@ -1135,7 +1145,7 @@ function EmailListRow({
         <span className="iu-mail-tags">
           {item.auditOnly ? <Badge tone="info"><ShieldCheck size={12} /> Audit PEC</Badge> : includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
           {includeTelematic && item.pecPresidiata ? <Badge tone="success"><CheckCircle2 size={12} /> Presidiata</Badge> : null}
-          {includeTelematic && item.pctStatus ? <Badge tone={item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') ? 'danger' : 'warning'}>{item.pctStatus}</Badge> : null}
+          {includeTelematic && item.pctStatus ? <Badge tone={item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') ? 'danger' : 'warning'}>{pctStatusLabel(item.pctStatus)}</Badge> : null}
           {includeTelematic ? <PecAuditBadges audit={item.pecAudit} /> : null}
           {item.attachmentCount ? <em><Paperclip size={12} /> {item.attachmentCount}</em> : null}
         </span>
@@ -1255,7 +1265,7 @@ function EmailPreview({
     <section className="iu-mail-preview-card">
       <header>
         <div>
-          <span className="iu-mail-preview-eyebrow">{folderIcon(item.folder)} {folderLabel(item.folder)} · {item.origin || copy.sourceFallback}</span>
+          <span className="iu-mail-preview-eyebrow">{folderIcon(item.folder)} {folderLabel(item.folder)}{(item.origin || copy.sourceFallback).trim().toLowerCase() === folderLabel(item.folder).toLowerCase() ? '' : ` · ${item.origin || copy.sourceFallback}`}</span>
           <h2>{item.subject || '(nessun oggetto)'}</h2>
         </div>
         <div className="iu-mail-preview-status">
@@ -1276,7 +1286,7 @@ function EmailPreview({
         <div className="iu-mail-pct-banner">
           <ShieldCheck size={18} />
           <div>
-            <strong>{item.pctStatus ? `Esito telematico rilevato: ${item.pctStatus}` : 'Comunicazione PST rilevata'}</strong>
+            <strong>{item.pctStatus ? `Esito telematico rilevato: ${pctStatusLabel(item.pctStatus)}` : 'Comunicazione PST rilevata'}</strong>
             <span>Lex può aiutarti a collegare questa PEC a fascicolo, deposito, comunicazione cancelleria o prossima azione.</span>
           </div>
         </div>
@@ -1342,7 +1352,7 @@ function PecInspector({
           <div className="iu-mail-alerts">
             {pctAlerts.map((item) => (
               <a href={item.operationalHref || item.detailHref} key={item.id}>
-                <Badge tone="danger">{item.pctStatus}</Badge>
+                <Badge tone="danger">{pctStatusLabel(item.pctStatus)}</Badge>
                 <strong>{item.subject}</strong>
                 <span>{rowPerson(item)}</span>
               </a>
@@ -1521,7 +1531,7 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
       .catch((error) => {
         if (active) {
           setDetail(null)
-          setSourceError(error instanceof Error ? error.message : 'Caricamento del messaggio non riuscito.')
+          setSourceError(erroreLeggibile(error, 'Caricamento del messaggio non riuscito.'))
         }
       })
       .finally(() => {
@@ -1550,7 +1560,7 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
     setSourceStatus('Registrazione della lettura in corso…')
     postMailAction(item.markReadHref, 'Segna letta')
       .then(message => { setSourceStatus(message); setSourceReloadKey(value => value + 1) })
-      .catch(error => setSourceStatus(error instanceof Error ? error.message : 'Lettura non registrata. Riprova.'))
+      .catch(error => setSourceStatus(erroreLeggibile(error, 'Lettura non registrata. Riprova.')))
       .finally(() => setSourceWorking(false))
   }
   const visibleTime = formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || item.timeLabel || '-'
@@ -1670,7 +1680,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         setPageError('')
       })
       .catch((error) => {
-        if (request === pageRequestRef.current) setPageError(error instanceof Error ? error.message : 'Caricamento della posta non riuscito.')
+        if (request === pageRequestRef.current) setPageError(erroreLeggibile(error, 'Caricamento della posta non riuscito.'))
       })
       .finally(() => { if (request === pageRequestRef.current) setLoading(false) })
   }
@@ -1693,7 +1703,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         setDetailReloadKey((value) => value + 1)
       })
       .catch((error) => {
-        setStatusLine(error instanceof Error ? error.message : 'Lettura non registrata.')
+        setStatusLine(erroreLeggibile(error, 'Lettura non registrata.'))
         load()
         setDetailReloadKey((value) => value + 1)
       })
@@ -1711,7 +1721,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         setPageError('')
       })
       .catch((error) => {
-        if (request === pageRequestRef.current) setPageError(error instanceof Error ? error.message : 'Caricamento della posta non riuscito.')
+        if (request === pageRequestRef.current) setPageError(erroreLeggibile(error, 'Caricamento della posta non riuscito.'))
       })
       .finally(() => { if (request === pageRequestRef.current) setLoading(false); finish() })
     return () => { pageRequestRef.current += 1; finish() }
@@ -1863,7 +1873,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       .catch((error) => {
         if (active) {
           setDetail(null)
-          setDetailError(error instanceof Error ? error.message : 'Caricamento del messaggio non riuscito.')
+          setDetailError(erroreLeggibile(error, 'Caricamento del messaggio non riuscito.'))
         }
       })
       .finally(() => {
@@ -1890,7 +1900,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         setDetailReloadKey((value) => value + 1)
       })
       .catch((error) => {
-        setStatusLine(error instanceof Error ? error.message : `${label}: operazione non confermata`)
+        setStatusLine(erroreLeggibile(error, `${label}: operazione non confermata`))
         load()
       })
       .finally(() => setCommandWorking(false))
@@ -1952,7 +1962,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         load()
         setDetailReloadKey((value) => value + 1)
       })
-      .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Presidio PEC: errore operativo'))
+      .catch((error) => setStatusLine(erroreLeggibile(error, 'Presidio PEC: errore operativo')))
       .finally(() => setPresidioWorking(false))
   }
 
@@ -1991,7 +2001,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       setAllResultsSelected(true)
       setStatusLine(ids.length ? `${ids.length} messaggi selezionati in tutti i risultati filtrati.` : 'Nessun messaggio selezionabile con questi filtri.')
     } catch (error) {
-      setStatusLine(error instanceof Error ? error.message : 'Selezione non caricata. Riprova.')
+      setStatusLine(erroreLeggibile(error, 'Selezione non caricata. Riprova.'))
     } finally {
       setSelectionWorking(false)
     }
@@ -2010,7 +2020,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       setDetailReloadKey((value) => value + 1)
       load()
     } catch (error) {
-      setStatusLine(error instanceof Error ? error.message : 'Lettura non registrata. Riprova.')
+      setStatusLine(erroreLeggibile(error, 'Lettura non registrata. Riprova.'))
       load()
     } finally {
       setBulkWorking(false)
@@ -2039,7 +2049,7 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
         load()
       })
       .catch((error) => {
-        setStatusLine(error instanceof Error ? error.message : `${bulkActionLabel}: operazione non riuscita`)
+        setStatusLine(erroreLeggibile(error, `${bulkActionLabel}: operazione non riuscita`))
         load()
       })
       .finally(() => { setBulkWorking(false); setBulkActionActive(null) })
@@ -2342,7 +2352,7 @@ function OfficePecLookupPanel({ onInsert }: { onInsert: (pec: string) => void })
       }
     } catch (requestError) {
       setResult(null)
-      setError(requestError instanceof Error ? requestError.message : 'Ricerca non riuscita.')
+      setError(erroreLeggibile(requestError, 'Ricerca non riuscita.'))
     } finally {
       setLoading(false)
     }

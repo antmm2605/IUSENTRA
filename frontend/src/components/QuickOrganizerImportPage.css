@@ -75,6 +75,8 @@
 
 .iu-st-import-panel__body {
   display: grid;
+  /* minmax(0, 1fr): su telefono una select o un testo lungo non allarga la colonna oltre la scheda. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   padding: 16px 18px 18px;
 }
@@ -385,7 +387,11 @@
   .iu-st-import-upload,
   .iu-st-import-confirm,
   .iu-st-import-matters article {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .iu-st-import-panel__body select {
+    max-width: 100%;
   }
 
   .iu-st-import-banner {

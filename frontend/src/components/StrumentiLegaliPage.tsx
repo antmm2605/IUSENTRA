@@ -33,8 +33,18 @@ function parametroUrl(nome: string): string {
   return (new URLSearchParams(window.location.search).get(nome) ?? '').trim()
 }
 
+/** Argomenti equivalenti del catalogo strumenti e del catalogo applicazioni: un solo nome nel filtro (LEX-12). */
+const SINONIMI_CATEGORIA: Record<string, string> = {
+  'diritto penale': 'Penale',
+  'risarcimento danni': 'Danni',
+  applicazioni: 'Applicazioni varie',
+  'applicazioni varie': 'Applicazioni varie',
+}
+
 function categoriaVisibile(valore: string): string {
-  return /^(utility|utilita|utilità)$/i.test(valore.trim()) ? 'Utilità' : valore.trim()
+  const nome = valore.trim()
+  if (/^(utility|utilita|utilità)$/i.test(nome)) return 'Utilità'
+  return SINONIMI_CATEGORIA[nome.toLocaleLowerCase('it-IT')] ?? nome
 }
 
 function toolDallUrl(): string {

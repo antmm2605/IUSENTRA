@@ -25,6 +25,7 @@ export type AgentProposal = {
   risk_level: string
   workflow_code?: string
   fascicolo_id?: string
+  created_at?: string
 }
 
 export type AgentMetric = {

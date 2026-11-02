@@ -94,6 +94,14 @@ function dataItaliana(value: string): string {
   return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(parsed)
 }
 
+/** Stato del job senza ripetere il badge «Attivo/In pausa» (verifica visiva LEX-19). */
+function statoJobLeggibile(stato: string | undefined, pianificazione: string | undefined): string {
+  const testo = (stato || '').trim()
+  const ridondante = /^(attivo|in pausa|disattivo)$/i.test(testo)
+  if (pianificazione) return ridondante || !testo ? `Pianificata ${pianificazione}` : `${testo} — ${pianificazione}`
+  return testo || 'Stato non disponibile.'
+}
+
 export function LexLearningPage() {
   const [data, setData] = useState<LexLearningPayload>(emptyPayload)
   const [loading, setLoading] = useState(true)
@@ -112,7 +120,7 @@ export function LexLearningPage() {
 
   const job = data.job_notturno
   return (
-    <div className="lex-learning-page">
+    <main className="lex-learning-page">
       <header className="lex-learning-page__header">
         <div>
           <h1><BrainCircuit size={22} aria-hidden /> Apprendimento Lex</h1>
@@ -132,7 +140,7 @@ export function LexLearningPage() {
       </header>
 
       <Panel
-        title="Job notturno delegato"
+        title="Lettura notturna pianificata"
         subtitle="Apprendimento autonomo Lex (web) — attivazione solo dalla console Pianificazioni"
         icon={<CalendarClock size={18} aria-hidden />}
         action={
@@ -144,13 +152,12 @@ export function LexLearningPage() {
         <div className="lex-learning-page__job">
           <Badge tone={job.abilitato ? 'success' : 'neutral'}>{job.abilitato ? 'Attivo' : 'In pausa'}</Badge>
           <span className="lex-learning-page__job-note">
-            {loading ? 'Caricamento…' : job.stato || 'Stato non disponibile.'}
-            {job.pianificazione ? ` — ${job.pianificazione}` : ''}
+            {loading ? 'Caricamento…' : statoJobLeggibile(job.stato, job.pianificazione)}
           </span>
         </div>
       </Panel>
 
-      <Panel title="Memoria di apprendimento" subtitle={data.memoria_presente ? data.directory : 'La memoria durevole si popola con il job notturno o con i cicli governati.'} icon={<Landmark size={18} aria-hidden />}>
+      <Panel title="Memoria di apprendimento" subtitle={data.memoria_presente ? 'Memoria durevole conservata sul server dello studio, consultabile in sola lettura.' : 'La memoria durevole si popola con il job notturno o con i cicli governati.'} icon={<Landmark size={18} aria-hidden />}>
         {data.memoria_presente ? (
           <div className="lex-learning-page__stats">
             {STAT_LABELS.map(([key, label]) => (
@@ -186,7 +193,7 @@ export function LexLearningPage() {
                 </div>
                 <p>{proposta.descrizione}</p>
                 <small>
-                  Modulo: {proposta.modulo || 'n.d.'} · Confidenza {Math.round(proposta.confidenza * 100)}% · {dataItaliana(proposta.creato_il)}
+                  Confidenza {Math.round(proposta.confidenza * 100)}% · {dataItaliana(proposta.creato_il)}
                 </small>
               </li>
             ))}
@@ -230,6 +237,6 @@ export function LexLearningPage() {
           <p className="lex-learning-page__empty">{loading ? 'Caricamento…' : 'Nessuna lettura registrata nella memoria durevole.'}</p>
         )}
       </Panel>
-    </div>
+    </main>
   )
 }

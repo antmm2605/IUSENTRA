@@ -5,16 +5,34 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
 import { isFeatureFlagEnabledSync } from '@/lib/featureFlags'
-import { fetchLegalSkillPacks, fetchLegalSkillsProfile, fetchScheduledLegalSkillAgents } from '../api'
-import type { LegalSkillPack, LegalSkillProfile, ScheduledLegalSkillAgent } from '../types'
+import { fetchLegalSkillPacks, fetchLegalSkills, fetchLegalSkillsProfile, fetchScheduledLegalSkillAgents } from '../api'
+import type { LegalSkill, LegalSkillPack, LegalSkillProfile, ScheduledLegalSkillAgent } from '../types'
 import { EscalationBox } from '../components/EscalationBox'
 
+/** «/legal-skills/packs/<id>/skills»: il pack scelto con le sue skill (verifica visiva LEX-24). */
+function packDallUrl(): string {
+  if (typeof window === 'undefined') return ''
+  const match = /^\/legal-skills\/packs\/([^/]+)\/skills\/?$/.exec(window.location.pathname)
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
 export function LegalSkillsCatalogPage() {
+  const packScelto = useMemo(packDallUrl, [])
+  const [skillPack, setSkillPack] = useState<LegalSkill[] | null>(null)
   const [packs, setPacks] = useState<LegalSkillPack[]>([])
   const [profile, setProfile] = useState<LegalSkillProfile | null>(null)
   const [agents, setAgents] = useState<ScheduledLegalSkillAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!packScelto) return
+    const controller = new AbortController()
+    fetchLegalSkills(packScelto, controller.signal)
+      .then((payload) => setSkillPack(payload.ok ? payload.skills || [] : []))
+      .catch(() => setSkillPack([]))
+    return () => controller.abort()
+  }, [packScelto])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -57,7 +75,7 @@ export function LegalSkillsCatalogPage() {
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {packs.map((pack) => (
+          {packs.filter((pack) => !packScelto || pack.pack_id === packScelto).map((pack) => (
             <Card key={pack.pack_id} size="sm">
               <CardHeader>
                 <CardTitle>{pack.name}</CardTitle>
@@ -69,9 +87,16 @@ export function LegalSkillsCatalogPage() {
                   <Badge variant="secondary">{pack.source_mode === 'strict' ? 'Fonti rigorose' : 'Fonti bilanciate'}</Badge>
                 </div>
                 <p className="text-muted-foreground">{pack.skills_count || pack.skills?.length || 0} skill disponibili.</p>
+                {packScelto === pack.pack_id ? (
+                  skillPack === null ? <p className="text-muted-foreground">Caricamento delle skill del pack…</p>
+                    : skillPack.length ? <ul className="grid gap-2">{skillPack.map((skill) => <li key={skill.skill_id}><strong>{skill.name}</strong><br /><span className="text-muted-foreground">{skill.description}</span></li>)}</ul>
+                      : <p className="text-muted-foreground">Nessuna skill consultabile in questo pack.</p>
+                ) : null}
               </CardContent>
               <CardFooter className="justify-between">
-                <Button asChild size="sm" variant="outline"><a href={`/legal-skills/packs/${pack.pack_id}/skills`}>Apri pack</a></Button>
+                {packScelto === pack.pack_id
+                  ? <Button asChild size="sm" variant="outline"><a href="/legal-skills">Tutti i pack</a></Button>
+                  : <Button asChild size="sm" variant="outline"><a href={`/legal-skills/packs/${pack.pack_id}/skills`}>Apri pack</a></Button>}
                 <Button asChild size="sm"><a href={`/legal-skills/run?pack=${pack.pack_id}`}><PlayCircle aria-hidden="true" /> Esegui</a></Button>
               </CardFooter>
             </Card>

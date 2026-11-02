@@ -90,7 +90,7 @@ function WarningList({ warnings }: { warnings: SitoStudioPageData['warnings'] })
       <div className="iu-sito-warnings">
         {warnings.map((warning) => (
           <div className="iu-sito-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
+            <Badge tone="warning">Avviso</Badge>
             <span>{warning.message}</span>
           </div>
         ))}

@@ -475,9 +475,9 @@ export function TelematicoPage() {
 
       <section className="iu-tel-stats" aria-label="Indicatori telematici">
         <StatCard icon={<FolderOpen size={19}/>} label="Pratiche telematiche" value={loaded ? data.summary.total : '…'} note="fascicoli sincronizzati o importati" tone="primary" onClick={() => setCardScope('')} active={cardScope === ''} disabled={!loaded || loading}/>
-        <StatCard icon={<Building2 size={19}/>} label="PST / PDP" value={loaded ? data.summary.pst + data.summary.pdp : '…'} note="ministero giustizia" tone="info" onClick={() => setCardScope('pst-pdp')} active={cardScope === 'pst-pdp'} disabled={!loaded || loading}/>
-        <StatCard icon={<FileCheck2 size={19}/>} label="PAT / SIGA" value={loaded ? data.summary.pat : '…'} note="amministrativo" tone="success" onClick={() => setCardScope('pat')} active={cardScope === 'pat'} disabled={!loaded || loading}/>
-        <StatCard icon={<FileText size={19}/>} label="PTT / SIGIT" value={loaded ? data.summary.ptt : '…'} note="tributario" tone="warning" onClick={() => setCardScope('ptt')} active={cardScope === 'ptt'} disabled={!loaded || loading}/>
+        <StatCard icon={<Building2 size={19}/>} label="PST / PDP" value={loaded ? data.summary.pst + data.summary.pdp : '…'} note="importati dai portali del Ministero" tone="info" onClick={() => setCardScope('pst-pdp')} active={cardScope === 'pst-pdp'} disabled={!loaded || loading}/>
+        <StatCard icon={<FileCheck2 size={19}/>} label="PAT / SIGA" value={loaded ? data.summary.pat : '…'} note="importati dal portale amministrativo" tone="success" onClick={() => setCardScope('pat')} active={cardScope === 'pat'} disabled={!loaded || loading}/>
+        <StatCard icon={<FileText size={19}/>} label="PTT / SIGIT" value={loaded ? data.summary.ptt : '…'} note="importati dal portale tributario" tone="warning" onClick={() => setCardScope('ptt')} active={cardScope === 'ptt'} disabled={!loaded || loading}/>
         <StatCard icon={<AlertTriangle size={19}/>} label="Da presidiare" value={presidiCount} note="avvisi, blocchi e import" tone={data.summary.attentionNeeded || data.summary.blocked ? 'danger' : 'success'} onClick={() => setCardScope('presidi')} active={cardScope === 'presidi'} disabled={loading}/>
       </section>
       <section className="iu-tel-trust-grid" aria-label="Operatività verificata e fonti ufficiali">

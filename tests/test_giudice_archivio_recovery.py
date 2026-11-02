@@ -317,3 +317,27 @@ def test_autocertificazione_ocr_non_si_perde_se_la_fonte_non_ha_testo_nativo(tmp
         assert result['status'] == 'non_previsto' and not result['richiedeConferma']
         assert not any(f.campo == 'giudice' for f in facts)
         assert next(f for f in facts if f.campo == 'esenzione_cu_dichiarata').origine == 'ocr'
+
+
+def test_impronta_cambiata_non_ferma_la_lettura_del_fascicolo(tmp_path, monkeypatch):
+    """Verifica del 02/11/2026: «Fonte cambiata» fermava la lettura di tutto il fascicolo (241 in errore)."""
+    from tests.test_fascicolo_sentenza_economica import FakeFascicoliRepository, SENTENZA_TEXT
+    from web.services import archivio_letture_runtime as runtime
+    from web.services import document_intelligence_runtime as documents
+    from web.services.giudice_archivio_recovery import recupera_giudice
+
+    cases = FakeFascicoliRepository()
+    case_record = cases.fascicolo
+    case_record.documenti = [SimpleNamespace(id="source", tipo="SENTENZA", nome="sentenza.pdf", hash_sha256="a" * 64)]
+    registry = RegistroLetture(tmp_path / "registry.db")
+    source = Oggetto(tipo="documento", oggetto_id="source", sha256="a" * 64, nome="sentenza.pdf")
+    registry.registra_inventario("tenant", case_record.id, [source])
+    registry.segna_letto("tenant", case_record.id, source, "motore_documenti", esito={"origine": "nativo"})
+    record = SimpleNamespace(id="sql-source", sha256="a" * 64, current_version_id="v1", updated_at="fixed", status="ready")
+    sql = SimpleNamespace(list_documents=lambda *_: [record],
+                          get_extracted_text=lambda *_: SimpleNamespace(text=SENTENZA_TEXT, extraction_engine="pdf-inspector:misto"))
+    monkeypatch.setattr("web.helpers.get_clienti", lambda: SimpleNamespace(get=lambda _: SimpleNamespace(codice_fiscale="")))
+    monkeypatch.setattr(documents, "build_document_ai_service", lambda: SimpleNamespace(repository=sql))
+    monkeypatch.setattr(runtime, "_bytes_documento", lambda *_: b"contenuto diverso da quello letto")
+    esito = recupera_giudice(case_record, registry, "tenant")  # prima: ValueError «Fonte cambiata»
+    assert esito["file_letti"] == 1 and esito["fatti"] == 0

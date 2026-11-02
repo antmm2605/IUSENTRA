@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 VERSIONE = "2026.10.10.giudice-date.v3"
 
@@ -201,8 +204,13 @@ def recupera_giudice(fascicolo, registro, tenant, *, limite=200):
         if doc is None:
             return ""
         content = _bytes_documento(str(fascicolo.id), doc)
-        if not content or hashlib.sha256(content).hexdigest() not in {obj.sha256, record.sha256}:
-            raise ValueError("Fonte cambiata: il riscontro del giudice richiede la nuova impronta.")
+        impronte = {str(v) for v in (obj.sha256, getattr(obj, "sha256_archivio", ""), getattr(record, "sha256", "")) if v}
+        if not content or hashlib.sha256(content).hexdigest() not in impronte:
+            # Fonte cambiata o non leggibile: nessun riscontro nativo, quindi nessun dato promosso; il documento
+            # si rilegge con la nuova impronta. Prima l'eccezione fermava la lettura dell'intero fascicolo
+            # (verifica del 02/11/2026: la maggior parte dei 241 fascicoli «in errore»).
+            logger.info("Riscontro nativo saltato per impronta diversa: fascicolo=%s documento=%s", fascicolo.id, obj.oggetto_id)
+            return ""
         return _testo_nativo(str(fascicolo.id), doc, contenuto=content)
 
     return recupera_da_testi_sql(fascicolo, registro, tenant, build_document_ai_service().repository,

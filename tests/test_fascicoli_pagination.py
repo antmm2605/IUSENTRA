@@ -174,6 +174,11 @@ def test_fascicoli_scadenze_urgenti_distingue_scadute_da_entro_7_giorni(tmp_path
             (date.today() + timedelta(days=3)).isoformat(),
         )
         get_scadenziario().nuova(
+            "Udienza già tenuta: esito da registrare",
+            TipoTermine.UDIENZA,
+            (date.today() - timedelta(days=5)).isoformat(),
+        )
+        get_scadenziario().nuova(
             "Fuori orizzonte operativo",
             TipoTermine.NOTIFICA,
             (date.today() + timedelta(days=8)).isoformat(),

@@ -301,3 +301,19 @@ def test_repository_nativo_legge_solo_ids_del_lotto_senza_allegati(catalog, tmp_
     assert native.elenco_per_ids([]) == []
     with pytest.raises(ValueError):
         native.elenco_per_ids([str(n) for n in range(101)])
+
+
+def test_udienza_passata_non_conta_tra_le_scadute(catalog):
+    """V28 nella pagina Fascicoli: l'udienza passata è un esito da registrare (verifica a vista del 02/11/2026)."""
+    from datetime import timedelta
+    from pct.ora_italiana import oggi_roma
+    db, repo = catalog
+    db.conn.execute('CREATE TABLE IF NOT EXISTS scadenze (id TEXT PRIMARY KEY, tipo TEXT)')
+    passato = (oggi_roma() - timedelta(days=4)).isoformat()
+    for key, tipo in (('U1', 'UDIENZA'), ('T1', 'DEPOSITO_MEMORIA')):
+        db.conn.execute('INSERT INTO scadenze VALUES (?,?)', (key, tipo))
+        db.conn.execute('INSERT INTO fascicoli_list_deadlines VALUES (?,?,?,?,?,?)',
+                        ('studio', key, 'F000', passato, 'sintetico', '{"id": "%s"}' % key))
+    panoramica = repo.deadline_overview()
+    assert panoramica['overdueDeadlines'] == 1
+    assert [voce['id'] for voce in panoramica['deadlines']] == ['T1']

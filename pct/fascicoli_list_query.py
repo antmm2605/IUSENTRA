@@ -327,20 +327,43 @@ class FascicoliListQuery:
 
     def deadline_overview(self):
         self._ready()
-        today = date.today()
+        from pct.ora_italiana import oggi_roma
+
+        today = oggi_roma()
         week, month = today + timedelta(days=7), today + timedelta(days=30)
         conn = self.database.conn
-        counts = conn.execute('SELECT '
-            'SUM(CASE WHEN event_day>=? AND event_day<=? THEN 1 ELSE 0 END) AS next_seven,'
-            'SUM(CASE WHEN event_day>=? AND event_day<=? THEN 1 ELSE 0 END) AS next_thirty,'
-            'SUM(CASE WHEN event_day<? THEN 1 ELSE 0 END) AS overdue '
-            "FROM fascicoli_list_deadlines WHERE tenant_key=? AND event_day<>''",
-            (today.isoformat(), week.isoformat(), today.isoformat(), month.isoformat(), today.isoformat(), self.tenant)).fetchone()
-        rows = conn.execute("SELECT payload_json FROM fascicoli_list_deadlines WHERE tenant_key=? AND event_day<>'' "
-            'AND event_day<=? ORDER BY event_day,record_key', (self.tenant, week.isoformat())).fetchall()
-        return dict(deadlines=[json.loads(row[0]) for row in rows], deadlines7=int(counts[0] or 0),
-                    deadlines30=int(counts[1] or 0), overdueDeadlines=int(counts[2] or 0),
-                    urgentDeadlines=int(counts[0] or 0) + int(counts[2] or 0))
+        # Un'udienza passata non è una scadenza scaduta ma un esito da registrare (V28; artt. 126 e 127-ter
+        # c.p.c.; `pct.scadenze_stato`): la pagina Fascicoli contava «9 scadute» dove Scadenziario e Controllo
+        # Studio ne contano 3 (verifica a vista del 02/11/2026).
+        righe = conn.execute("SELECT record_key,event_day,payload_json FROM fascicoli_list_deadlines "
+            "WHERE tenant_key=? AND event_day<>'' AND event_day<=? ORDER BY event_day,record_key",
+            (self.tenant, month.isoformat())).fetchall()
+        oggi, settimana, mese = today.isoformat(), week.isoformat(), month.isoformat()
+        udienze = self._udienze(conn, [str(r[0]) for r in righe if str(r[1]) < oggi])
+        righe = [r for r in righe if not (str(r[1]) < oggi and str(r[0]) in udienze)]
+        sette = sum(1 for r in righe if oggi <= str(r[1]) <= settimana)
+        trenta = sum(1 for r in righe if oggi <= str(r[1]) <= mese)
+        scadute = sum(1 for r in righe if str(r[1]) < oggi)
+        return dict(deadlines=[json.loads(r[2]) for r in righe if str(r[1]) <= settimana], deadlines7=sette,
+                    deadlines30=trenta, overdueDeadlines=scadute, urgentDeadlines=sette + scadute)
+
+    def _udienze(self, conn, chiavi):
+        """Le chiavi che nello scadenziario sono udienze; nessuna se la tabella non ha il tipo."""
+        if not chiavi:
+            return set()
+        postgres = getattr(self.database, 'backend_kind', '') in {'postgres', 'postgresql'}
+        sql = ("SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() "
+               "AND table_name='scadenze' AND column_name='tipo'" if postgres else
+               "SELECT 1 FROM pragma_table_info('scadenze') WHERE name='tipo'")
+        if conn.execute(sql).fetchone() is None:
+            return set()
+        trovate = set()
+        for inizio in range(0, len(chiavi), 500):
+            blocco = chiavi[inizio:inizio + 500]
+            trovate.update(str(r[0]) for r in conn.execute(
+                "SELECT id FROM scadenze WHERE tipo='UDIENZA' AND id IN (" + ','.join('?' for _ in blocco) + ')',
+                tuple(blocco)).fetchall())
+        return trovate
 
     def facets(self):
         self._ready()

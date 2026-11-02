@@ -109,7 +109,8 @@ class FascicoliListWriter:
                 # Un solo termine, con la sua data effettiva; l'intervallo
                 # della pagina sarà applicato dalla consultazione SQL.
                 displayed = _deadline_rows_from_scadenze([source], {matter_key: json.loads(matter[0])} if matter else {},
-                    days=max(0, (day - date.today()).days) if day else 0, resolved_matter_ids={key: matter_key})
+                    days=max(0, (day - date.today()).days) if day else 0, resolved_matter_ids={key: matter_key},
+                    escludi_udienze_passate=False)
                 payload = displayed[0] if displayed else {'id': key, 'matterId': matter_key}
                 revision = hashlib.sha256(json.dumps(dict(row), sort_keys=True, default=str).encode()).hexdigest()
                 conn.execute('INSERT INTO fascicoli_list_deadlines(tenant_key,record_key,matter_key,event_day,source_revision,payload_json) '

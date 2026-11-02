@@ -41,6 +41,11 @@ API_BLUEPRINTS = (
         "/api/v1/ui/ricerca-legale",
     ),
     (
+        REPO_ROOT / "web" / "blueprints" / "api_v1_fascicolo_normativa.py",
+        "api_v1_fascicolo_normativa",
+        "/api/v1/ui",
+    ),
+    (
         REPO_ROOT / "web" / "blueprints" / "api_v1_checklist.py",
         "api_v1_checklist",
         "/api/v1/ui/checklist",

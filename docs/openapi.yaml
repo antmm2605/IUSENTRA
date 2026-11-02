@@ -6791,6 +6791,112 @@ paths:
       x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
       x-provider-verification: success+auth-error
       x-contract-status: verified
+  /api/v1/ui/fascicoli/{fascicolo_id}/normativa:
+    get:
+      tags:
+      - Fascicoli
+      summary: 'Fascicoli e documenti: GET /api/v1/ui/fascicoli/{fascicolo_id}/normativa'
+      description: 'Contratto fase 6 derivato da `normativa_fascicolo` in `web/blueprints/api_v1_fascicolo_normativa.py:58`.
+        Pagina/area collegata: Fascicoli e documenti. I dati sono sempre nel tenant corrente; il client non puo'' forzare
+        tenant/studio/user.'
+      operationId: reactUi_normativa_fascicolo_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: fascicolo_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Fascicoli e documenti nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseFilesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P0
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
+  /api/v1/ui/fascicoli/{fascicolo_id}/normativa/testo:
+    get:
+      tags:
+      - Fascicoli
+      summary: 'Fascicoli e documenti: GET /api/v1/ui/fascicoli/{fascicolo_id}/normativa/testo'
+      description: 'Contratto fase 6 derivato da `normativa_fascicolo_testo` in `web/blueprints/api_v1_fascicolo_normativa.py:84`.
+        Pagina/area collegata: Fascicoli e documenti. I dati sono sempre nel tenant corrente; il client non puo'' forzare
+        tenant/studio/user.'
+      operationId: reactUi_normativa_fascicolo_testo_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - name: fascicolo_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Parametro interno della risorsa, risolto nel tenant corrente.
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/PageSizeParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/StatusParam'
+      responses:
+        '200':
+          description: Payload operativo Fascicoli e documenti nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseFilesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-priority: P0
+      x-rbac-permission: sessione/API tenant-aware
+      x-feature-flag: non applicabile o governato dalla route collegata
+      x-tenant-scope: current_tenant
+      x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
+      x-provider-verification: auth-error
+      x-contract-status: complete
   /api/v1/ui/fascicoli/{id_fasc}:
     get:
       tags:
@@ -18301,7 +18407,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/articoli/{article_id}'
-      description: 'Contratto fase 6 derivato da `normativa_articolo` in `web/blueprints/api_v1_ricerca_legale.py:300`. Pagina/area
+      description: 'Contratto fase 6 derivato da `normativa_articolo` in `web/blueprints/api_v1_ricerca_legale.py:303`. Pagina/area
         collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_articolo_get
       security:
@@ -18399,7 +18505,7 @@ paths:
       tags:
       - Lex
       summary: 'Ricerca legale: GET /api/v1/ui/ricerca-legale/normativa/visualizza'
-      description: 'Contratto fase 6 derivato da `normativa_visualizza` in `web/blueprints/api_v1_ricerca_legale.py:316`.
+      description: 'Contratto fase 6 derivato da `normativa_visualizza` in `web/blueprints/api_v1_ricerca_legale.py:319`.
         Pagina/area collegata: Ricerca legale. I dati sono sempre nel tenant corrente; il client non puo'' forzare tenant/studio/user.'
       operationId: reactUi_normativa_visualizza_get
       security:

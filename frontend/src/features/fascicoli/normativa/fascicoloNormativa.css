@@ -1,0 +1,55 @@
+/* Normativa del fascicolo: pannello laterale (computer) e foglio a tutto schermo (telefono). Token condivisi, nessuno stile inline. */
+.iu-drawer:has(.iu-fas-normativa){z-index:1200}
+.iu-drawer:has(.iu-fas-normativa) .iu-drawer__panel{display:grid;grid-template-rows:auto minmax(0,1fr);width:min(560px,100vw);padding:0;overflow:hidden}
+.iu-drawer:has(.iu-fas-normativa) .iu-drawer__panel>header{min-height:58px;padding:12px 16px;border-bottom:1px solid var(--iu-border)}
+.iu-drawer:has(.iu-fas-normativa) .iu-drawer__panel>header button{flex:0 0 44px;min-width:44px;min-height:44px}
+.iu-drawer:has(.iu-fas-normativa) .iu-drawer__panel>div{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px 16px 24px}
+.iu-fas-normativa{display:grid;gap:12px;min-width:0}
+.iu-fas-normativa__intro{margin:0;color:#41617a;font-size:12.5px;font-weight:700;line-height:1.5}
+.iu-fas-normativa__intro b{display:block;margin-top:4px;color:#10243d;font-weight:900}
+.iu-fas-normativa__indice{display:flex;flex-wrap:wrap;gap:6px}
+.iu-fas-normativa__indice button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--iu-border);border-radius:999px;background:#fff;color:#10243d;font-size:12px;font-weight:850;cursor:pointer}
+.iu-fas-normativa__indice b{min-width:20px;padding:1px 6px;border-radius:999px;background:#eef2f7;color:#123e82;font-size:11px;text-align:center}
+.iu-fas-normativa__gruppo{display:grid;gap:8px;min-width:0;scroll-margin-top:8px}
+.iu-fas-normativa__gruppo>header{display:grid;gap:2px}
+.iu-fas-normativa__gruppo h3{margin:0;color:#10243d;font-size:13px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+.iu-fas-normativa__gruppo>header span{color:var(--iu-slate-500);font-size:12px;font-weight:700}
+.iu-fas-normativa__voci{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.iu-fas-normativa__voce{display:grid;gap:6px;min-width:0;padding:10px 12px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;overflow-wrap:anywhere}
+.iu-fas-normativa__voce-head{display:grid;gap:2px}
+.iu-fas-normativa__voce-head strong{color:#123e82;font-size:13.5px;font-weight:950}
+.iu-fas-normativa__voce-head span{color:#13233a;font-size:12.5px;font-weight:800}
+.iu-fas-normativa__estratto{display:grid;gap:4px;margin:0;padding:8px 10px;border:1px solid #dce9fb;border-radius:9px;background:#f8fbff;color:#13233a;font-size:12.5px;font-weight:650;line-height:1.5}
+.iu-fas-normativa__estratto small,.iu-fas-normativa .iu-fas-normativa__verifica,.iu-fas-normativa__testo small,.iu-fas-normativa__risultati>small,.iu-fas-normativa__articolo small{color:#64748b;font-size:11px;font-weight:750;line-height:1.4}
+.iu-fas-normativa .iu-fas-normativa__verifica{display:block;margin:0}
+.iu-fas-normativa__perche{display:grid;gap:3px;margin:0;padding:0;list-style:none}
+.iu-fas-normativa__perche li{padding:4px 8px;border-radius:8px;background:#f1f5f9;color:#334155;font-size:11.5px;font-weight:800;line-height:1.4}
+.iu-fas-normativa__meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:12px}
+.iu-fas-normativa__meta a{display:inline-flex;align-items:center;gap:4px;min-height:32px;color:#1d4ed8;font-weight:900}
+.iu-fas-normativa__meta span{color:#64748b;font-weight:750}
+.iu-fas-normativa__nota{margin:0;padding:8px 10px;border-radius:9px;background:#f1f5f9;color:#334155;font-size:12.5px;font-weight:750;line-height:1.45}
+.iu-fas-normativa__espandi{display:inline-flex;align-items:center;gap:5px;justify-self:start;min-height:36px;padding:0 10px;border:1px solid #c7d7ea;border-radius:9px;background:#f5f9ff;color:#123e82;font-size:12px;font-weight:900;cursor:pointer}
+.iu-fas-normativa__espandi[aria-expanded="true"]{background:#123e82;color:#fff}
+.iu-fas-normativa__testo,.iu-fas-normativa__articolo{display:grid;gap:6px;min-width:0}
+.iu-fas-normativa__corpo{max-height:360px;overflow:auto;padding:10px;border:1px solid var(--iu-border);border-radius:9px;background:#fcfdff;color:#13233a;font-size:12.5px;line-height:1.55;white-space:pre-wrap}
+.iu-fas-normativa__ricerca{display:grid;gap:8px;padding:12px;border:1px solid var(--iu-border);border-radius:12px;background:#f8fafc}
+.iu-fas-normativa__ricerca form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px}
+.iu-fas-normativa__campo{display:grid;gap:4px;min-width:0}
+.iu-fas-normativa__campo span{color:#10243d;font-size:12px;font-weight:900}
+.iu-fas-normativa__campo input{min-width:0;min-height:44px;padding:0 10px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:inherit;font:inherit}
+.iu-fas-normativa__ricerca form>button{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:0 14px;border:0;border-radius:9px;background:#123e82;color:#fff;font-size:12.5px;font-weight:900;cursor:pointer}
+.iu-fas-normativa__ricerca form>button:disabled{opacity:.6;cursor:not-allowed}
+.iu-fas-normativa__filtro{display:flex;align-items:flex-start;gap:8px;min-height:32px;color:#334155;font-size:12px;font-weight:750;line-height:1.4}
+.iu-fas-normativa__filtro input{width:18px;height:18px;margin:0;flex:0 0 18px}
+.iu-fas-normativa__risultati{display:grid;gap:6px}
+.iu-fas-normativa__risultati button{display:grid;gap:2px;min-height:44px;padding:8px 10px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:#13233a;font-size:12.5px;text-align:left;cursor:pointer}
+.iu-fas-normativa__risultati button strong{color:#123e82}
+.iu-fas-normativa__articolo>strong{color:#123e82;font-size:13.5px}
+.iu-fas-normativa__articolo>span{color:#13233a;font-size:12.5px;font-weight:800}
+.iu-fas-normativa__articolo a{color:#1d4ed8;font-weight:900}
+.iu-fas-normativa button:focus-visible,.iu-fas-normativa a:focus-visible,.iu-fas-normativa input:focus-visible{outline:2px solid var(--iu-action-blue,#2563eb);outline-offset:2px}
+@media (max-width:640px){
+  /* Telefono: il pannello ingrandito occupa lo schermo con lo stesso margine delle altre finestre. */
+  .iu-drawer:has(.iu-fas-normativa){justify-items:center}
+  .iu-fas-normativa__ricerca form{grid-template-columns:minmax(0,1fr)}
+}

@@ -286,8 +286,11 @@ def normativa_articoli():
     try:
         act = int(request.args.get("act") or 0)
         offset = max(0, int(request.args.get("offset") or 0))
+        # «materia» (ripetibile) limita la ricerca alle materie della pratica: pannello Normativa del fascicolo.
+        materie = tuple(m.strip()[:80] for m in request.args.getlist("materia")[:6] if m.strip())
         result = articoli(_normativa_db(), act=act, query=request.args.get("q", ""),
-            article=request.args.get("article", ""), category=request.args.get("category", ""), offset=offset, includi_archivio_generale=True)
+            article=request.args.get("article", ""), category=request.args.get("category", ""), offset=offset,
+            includi_archivio_generale=True, materie=materie)
         return jsonify(ok=True, **result)
     except ValueError as exc:
         return jsonify(ok=False, message=str(exc)), 400

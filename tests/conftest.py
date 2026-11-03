@@ -29,6 +29,21 @@ def _iusentra_test_pst_cert(tmp_path_factory):
 
 
 @pytest.fixture(autouse=True)
+def _iusentra_lavori_indipendenti_dall_ora(monkeypatch):
+    """I test non dipendono dall'ora in cui girano.
+
+    Dalle 21:30 alle 07:30 la sequenza notturna rimanda i lavori pesanti alla catena: nei test la catena è
+    spenta, salvo dove un test la riaccende esplicitamente (tests/test_scheduler_notturno.py).
+    """
+    monkeypatch.setenv("PCT_SEQUENZA_NOTTURNA", "0")
+    try:
+        from pct.scheduler_notturno import guardia
+    except Exception:
+        return
+    monkeypatch.setattr(guardia, "catena_in_servizio", lambda: False)
+
+
+@pytest.fixture(autouse=True)
 def _iusentra_no_network_pst_cert(monkeypatch, _iusentra_test_pst_cert):
     """I test unitari generano Atto.enc senza dipendere dal PST esterno."""
 

@@ -24,6 +24,10 @@ on:
         description: "Memoria del processo delle pianificazioni: riavvii, OOM e lavori avviati (solo nomi dei lavori)"
         type: boolean
         default: false
+      diagnosi_risorse:
+        description: "CPU e memoria: limiti dei container, worker e thread, valori Ollama effettivi (sola lettura, nessun segreto)"
+        type: boolean
+        default: false
       riavvia_scheduler:
         description: "Riavvia il solo container delle pianificazioni (i lavori ripartono al giro successivo)"
         type: boolean
@@ -108,6 +112,19 @@ jobs:
           if [ "${{ inputs.diagnosi_memoria }}" = "true" ]; then
             ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
               'echo "== container delle pianificazioni"; docker inspect -f "avvio={{.State.StartedAt}} riavvii={{.RestartCount}} oom={{.State.OOMKilled}}" iusentra-scheduler-worker-1; echo "== OOM del kernel (ultime 3 ore)"; journalctl -k --since "-3h" 2>/dev/null | grep -iE "out of memory|oom-kill|Killed process" | sed -E "s/(Killed process [0-9]+ \([a-z0-9_.-]+\)).*/\1/" | tail -20; echo "== lavori avviati o conclusi (ultimi 40 minuti, solo nomi)"; docker logs --since 40m iusentra-scheduler-worker-1 2>&1 | grep -oE "(Running job|Job|job|Avvio|Esecuzione|lavoro)[^\"]{0,40}\"?[a-z_]{6,60}\"?" | sort | uniq -c | sort -rn | head -40; echo "== moduli attivi (ultimi 30 minuti, solo nomi dei logger)"; docker logs --since 30m iusentra-scheduler-worker-1 2>&1 | grep -oE "^(INFO|WARNING|ERROR):[A-Za-z0-9_.]+" | sort | uniq -c | sort -rn | head -40; echo "== messaggi dello scheduler (testo tagliato)"; docker logs --since 30m iusentra-scheduler-worker-1 2>&1 | grep -E "\[scheduler\]|piano del giorno|Recupero|recupero" | cut -c1-110 | tail -30; echo "== thread e memoria"; docker exec iusentra-scheduler-worker-1 sh -c "grep -E \"VmRSS|VmSwap|Threads\" /proc/1/status; ps -eo pid,rss,etime,args 2>/dev/null | cut -c1-80 | head"'
+          fi
+          if [ "${{ inputs.diagnosi_risorse }}" = "true" ]; then
+            # Solo nomi di variabili in elenco chiuso: nessuna chiave, password o dato del cliente esce dal server.
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
+              'echo "== host"; nproc; uptime; free -m; cat /proc/sys/vm/swappiness; cat /proc/pressure/memory 2>/dev/null; cat /proc/pressure/cpu 2>/dev/null
+               echo "== limiti dei container (NanoCpus, CpusetCpus, Memory, MemoryReservation, OomScoreAdj)"
+               for c in $(docker ps --format "{{.Names}}"); do docker inspect -f "$c cpus={{.HostConfig.NanoCpus}} cpuset={{.HostConfig.CpusetCpus}} mem={{.HostConfig.Memory}} riserva={{.HostConfig.MemoryReservation}} oom_adj={{.HostConfig.OomScoreAdj}} riavvii={{.RestartCount}}" "$c"; done
+               echo "== variabili effettive (elenco chiuso)"
+               for c in $(docker ps --format "{{.Names}}" | grep -E "app|scheduler|ocr|ollama"); do echo "-- $c"; docker exec "$c" sh -c "env | grep -E \"^(WEB_CONCURRENCY|GUNICORN_THREADS|GUNICORN_WORKER_CLASS|GUNICORN_TIMEOUT|PCT_OCR_WORKERS|OMP_THREAD_LIMIT|OLLAMA_MAX_LOADED_MODELS|OLLAMA_KEEP_ALIVE|OLLAMA_NUM_PARALLEL|OLLAMA_NUM_THREAD|OLLAMA_CONTEXT_LENGTH|OLLAMA_MAX_QUEUE|LEX_EMBED_KEEP_ALIVE|LEX_NUM_CTX|LEX_MODEL|PCT_LEX_CATALOGO_KEEP_ALIVE|PCT_SEMAFORO_MOTORI|PCT_SEQUENZA_NOTTURNA|PCT_NOTTE_INIZIO|PCT_NOTTE_FINE|IUSENTRA_OLLAMA_MEM_LIMIT)=\" | sort" 2>/dev/null; done
+               echo "== processi e thread per container"; for c in $(docker ps --format "{{.Names}}" | grep -E "app|scheduler|ocr|ollama"); do echo "-- $c"; docker top "$c" -eo pid,nlwp,rss,pcpu,comm 2>/dev/null | head -12; done
+               echo "== uso per container"; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+               echo "== OOM del kernel (24 ore)"; journalctl -k --since "-24h" 2>/dev/null | grep -oE "Killed process [0-9]+ \([a-z0-9_.-]+\)" | sort | uniq -c
+               echo "== carico medio delle ultime ore (sar se presente)"; (sar -q 2>/dev/null | tail -15) || echo "sar assente"'
           fi
           if [ "${{ inputs.riavvia_scheduler }}" = "true" ]; then
             ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \

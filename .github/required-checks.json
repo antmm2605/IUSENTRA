@@ -272,7 +272,6 @@
       "template": "Local Signer e PKCS#11 ({os}) parte {shard}/4",
       "axes": {
         "os": [
-          "macos-latest",
           "ubuntu-latest",
           "windows-latest"
         ],

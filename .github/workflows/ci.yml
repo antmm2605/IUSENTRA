@@ -1174,7 +1174,8 @@ jobs:
     needs:
       - quality
       - governance
-    timeout-minutes: 15
+    # 30 minuti: i runner Mac di GitHub restano spesso in coda (decisione dell'avvocato 03/11/2026).
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

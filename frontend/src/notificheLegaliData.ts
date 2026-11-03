@@ -1,3 +1,4 @@
+import { copiePstDaPayload, type CopiaPst } from './components/CopiePstPanel'
 export type LegalOption = {
   value: string
   label: string
@@ -311,6 +312,7 @@ export type NotificheLegaliData = {
     fontePecMittente: string
   }
   registriPec: LegalPublicRegisterOption[]
+  copiePst: CopiaPst[]
   matriceNotifica: {
     roles: LegalNotificationDirective[]
     cases: LegalNotificationDirective[]
@@ -419,6 +421,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     fontePecMittente: 'ReGIndE',
   },
   registriPec: [],
+  copiePst: [],
   matriceNotifica: {
     roles: [],
     cases: [],
@@ -895,6 +898,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       fontePecMittente: text(defaults.fontePecMittente, 'ReGIndE'),
     },
     registriPec: publicRegisterOptions(payload.registriPec),
+    copiePst: copiePstDaPayload(payload.copiePst),
     matriceNotifica: {
       roles: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.roles : []),
       cases: notificationDirectives(isRecord(payload.matriceNotifica) ? payload.matriceNotifica.cases : []),

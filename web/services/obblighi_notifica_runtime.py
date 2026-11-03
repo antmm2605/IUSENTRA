@@ -201,7 +201,8 @@ def obblighi_fascicolo(fascicolo: Any) -> list[dict[str, Any]]:
             esito.append(item)
     from pct.archivio_letture.copie_atti import riunisci_obblighi
     from pct.obblighi_notifica_atto import una_voce_per_atto
-    return una_voce_per_atto(riunisci_obblighi(esito, identita), contesto)
+    from web.services.precedenti_notifica_runtime import annota_fascicolo
+    return annota_fascicolo(fascicolo, una_voce_per_atto(riunisci_obblighi(esito, identita), contesto))
 
 
 def allinea_scadenze(fascicolo: Any, obblighi: list[dict[str, Any]] | None = None) -> dict[str, int]:

@@ -12,6 +12,34 @@ on:
         description: "Svuota la cache di costruzione Docker inutilizzata (nessun dato, backup o immagine in uso)"
         type: boolean
         default: false
+      disaccordi:
+        description: "Elenco dei disaccordi del classificatore (solo identificativi e voci del catalogo)"
+        type: boolean
+        default: false
+      sincronizza_fts_lex:
+        description: "Completa l'indice di ricerca delle norme di Lex (incrementale)"
+        type: boolean
+        default: false
+      diagnosi_memoria:
+        description: "Memoria del processo delle pianificazioni: riavvii, OOM e lavori avviati (solo nomi dei lavori)"
+        type: boolean
+        default: false
+      riavvia_scheduler:
+        description: "Riavvia il solo container delle pianificazioni (i lavori ripartono al giro successivo)"
+        type: boolean
+        default: false
+      verifica_pec_fascicolo:
+        description: "PEC nei documenti del fascicolo: conteggi (vuoto = no, «solo» = conta, numero = esegue anche un lotto di recupero)"
+        required: false
+        default: ""
+      profila_ricerca:
+        description: "Profila la ricerca legale (domande separate da «|», «tutte» = le quattro di LEX-01)"
+        required: false
+        default: ""
+      precedenti_notifiche:
+        description: "Precedenti di notifica dello studio: statistica aggregata (solo categorie e conteggi)"
+        type: boolean
+        default: false
       esegui:
         description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura)"
         required: false
@@ -25,7 +53,7 @@ env:
 jobs:
   stato:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - name: Stato e avvio delle pianificazioni
@@ -43,20 +71,64 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           trap 'shred -u ~/.ssh/id_deploy' EXIT
+          if [ "${{ inputs.precedenti_notifiche }}" = "true" ]; then
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec -i iusentra-app python -" < <(cat pct/notifiche_l53_collegamento/daticert.py pct/notifiche_l53_collegamento/relata.py pct/notifiche_l53_collegamento/regola.py deploy/hetzner/precedenti_notifiche.py) 2>/dev/null \
+              | grep -m1 '^PRECEDENTI_NOTIFICHE_JSON:' | sed 's/^PRECEDENTI_NOTIFICHE_JSON://' | jq . || echo "nessun esito"
+            exit 0
+          fi
+          PR="${{ inputs.profila_ricerca }}"
+          if [ -n "$PR" ]; then
+            case "$PR" in *[!A-Za-z0-9\ \|.,-]*) echo "domande non valide"; exit 1;; esac
+            [ "$PR" = "tutte" ] && PR="|Cassazione prescrizione|mediazione obbligatoria|usura bancaria tasso soglia|credito imposta investimenti"
+            mkdir -p profilo
+            IFS='|' read -ra ELENCO <<< "$PR"; n=0
+            for q in "${ELENCO[@]}"; do
+              n=$((n+1)); echo "== profilo domanda $n: ${q:-pagina senza ricerca}"
+              ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
+                "docker exec -i -e PROFILA_QUERY='${q}' -e PROFILA_LIMITE_S=240 iusentra-app python -" < deploy/hetzner/profila_ricerca.py 2>/dev/null \
+                | grep -m1 '^PROFILA_RICERCA_JSON:' | sed 's/^PROFILA_RICERCA_JSON://' > "profilo/d$n.json" || true
+              jq -c 'del(.dimensioni_db)' "profilo/d$n.json" || echo "nessun esito"
+            done
+            jq -c '.dimensioni_db' profilo/d1.json || true
+            exit 0
+          fi
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
             "${HETZNER_USER}@${HETZNER_HOST}" \
-            "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e ESEGUI='${ESEGUI}' -e ATTIVA='${ATTIVA}' scheduler-worker python -" \
+            "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e ESEGUI='${ESEGUI}' -e ATTIVA='${ATTIVA}' -e DISACCORDI='${{ inputs.disaccordi && '1' || '' }}' scheduler-worker python -" \
             < deploy/hetzner/stato_pianificazioni.py > uscita.txt
           grep -m1 '^STATO_PIANIFICAZIONI_JSON:' uscita.txt | sed 's/^STATO_PIANIFICAZIONI_JSON://' | jq . > stato.json
           rm -f uscita.txt
           jq -c '.accese, .avviati, .registri_letture' stato.json
+          jq -c '.disaccordi[]' stato.json
           jq -r '.pianificazioni[] | [.job, (if .attiva then "attiva" else "SPENTA" end), (.ultima.esito // "mai"), (.ultima.fine // .ultima.inizio // ""), ((.ultima.durata_s // 0)|tostring) + " s", (.ultime_48h|tostring), (.ultima.errore // ""), (.ultimo_fallimento.errore // "")] | @tsv' stato.json
           # Consumo del server: carico, memoria, disco e risorse di ogni container (nessun dato del cliente).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
             'echo "== carico"; uptime; nproc; echo "== memoria"; free -m; echo "== disco"; df -h /opt/iusentra | tail -1; echo "== container"; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"; echo "== processi più pesanti"; ps -eo pcpu,pmem,etime,comm --sort=-pcpu | head -12'
+          if [ "${{ inputs.diagnosi_memoria }}" = "true" ]; then
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
+              'echo "== container delle pianificazioni"; docker inspect -f "avvio={{.State.StartedAt}} riavvii={{.RestartCount}} oom={{.State.OOMKilled}}" iusentra-scheduler-worker-1; echo "== OOM del kernel (ultime 3 ore)"; journalctl -k --since "-3h" 2>/dev/null | grep -iE "out of memory|oom-kill|Killed process" | sed -E "s/(Killed process [0-9]+ \([a-z0-9_.-]+\)).*/\1/" | tail -20; echo "== lavori avviati o conclusi (ultimi 40 minuti, solo nomi)"; docker logs --since 40m iusentra-scheduler-worker-1 2>&1 | grep -oE "(Running job|Job|job|Avvio|Esecuzione|lavoro)[^\"]{0,40}\"?[a-z_]{6,60}\"?" | sort | uniq -c | sort -rn | head -40; echo "== moduli attivi (ultimi 30 minuti, solo nomi dei logger)"; docker logs --since 30m iusentra-scheduler-worker-1 2>&1 | grep -oE "^(INFO|WARNING|ERROR):[A-Za-z0-9_.]+" | sort | uniq -c | sort -rn | head -40; echo "== messaggi dello scheduler (testo tagliato)"; docker logs --since 30m iusentra-scheduler-worker-1 2>&1 | grep -E "\[scheduler\]|piano del giorno|Recupero|recupero" | cut -c1-110 | tail -30; echo "== thread e memoria"; docker exec iusentra-scheduler-worker-1 sh -c "grep -E \"VmRSS|VmSwap|Threads\" /proc/1/status; ps -eo pid,rss,etime,args 2>/dev/null | cut -c1-80 | head"'
+          fi
+          if [ "${{ inputs.riavvia_scheduler }}" = "true" ]; then
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
+              'echo "== riavvio del container delle pianificazioni"; docker restart -t 60 iusentra-scheduler-worker-1; sleep 20; free -m; docker stats --no-stream --format "{{.Name}}\t{{.MemUsage}}" iusentra-scheduler-worker-1'
+          fi
+          VPF="${{ inputs.verifica_pec_fascicolo }}"
+          if [ -n "$VPF" ]; then
+            case "$VPF" in solo) REC=""; LIM="0";; *[!0-9]*) echo "valore non valido"; exit 1;; *) REC="1"; LIM="$VPF";; esac
+            echo "== PEC nei documenti del fascicolo"
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
+              "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e RECUPERO='${REC}' -e LIMITE='${LIM}' -e DIAGNOSI=1 scheduler-worker python -" \
+              < deploy/hetzner/verifica_pec_fascicolo.py | grep -m1 '^VERIFICA_PEC_FASCICOLO_JSON:' | sed 's/^VERIFICA_PEC_FASCICOLO_JSON://' | jq .
+          fi
           if [ "${{ inputs.pulisci_cache_docker }}" = "true" ]; then
             ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \
               'echo "== pulizia cache di costruzione Docker"; df -h /opt/iusentra | tail -1; docker builder prune -af | tail -1; df -h /opt/iusentra | tail -1'
+          fi
+          if [ "${{ inputs.sincronizza_fts_lex }}" = "true" ]; then
+            echo "== indice FTS di Lex"
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker exec -i iusentra-app python -' < deploy/hetzner/sincronizza_fts_lex.py
           fi
           # Occupazione del disco: cartelle dei backup e di Docker (solo dimensioni e nomi delle cartelle tecniche).
           ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "${HETZNER_USER}@${HETZNER_HOST}" \

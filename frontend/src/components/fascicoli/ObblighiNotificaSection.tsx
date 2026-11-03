@@ -2,10 +2,25 @@ import { beginActivity } from '../../ui/activity'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AlertTriangle, FileText, Send } from 'lucide-react'
 import { Badge } from '../dashboard'
+import { CopiePstPanel, copiePstDaPayload, type CopiaPst } from '../CopiePstPanel'
 import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
 const VerificaNotifichePanel = lazy(() => import('../VerificaNotifichePanel'))
 
-type Destinatario = { nome: string; ruolo: string; presso: string; fonte: string }
+type PrecedenteNotifica = { fascicolo_id: string; prova_id: string; data: string; domicilio: string; consegnata: boolean }
+type PropostaPrecedenti = {
+  stato: 'proposta_dai_precedenti' | 'da_verificare_con_i_precedenti' | 'prevale_la_norma' | 'nessun_precedente'
+  fonte: string
+  etichetta?: string
+  motivo?: string
+  avvertenza: string
+  precedenti: PrecedenteNotifica[]
+}
+type Destinatario = { nome: string; ruolo: string; presso: string; fonte: string; precedenti?: PropostaPrecedenti }
+const STATI_PRECEDENTI: Record<string, string> = {
+  proposta_dai_precedenti: 'Proposta dai precedenti dello studio',
+  da_verificare_con_i_precedenti: 'Da verificare con i precedenti',
+  prevale_la_norma: 'Precedenti diversi dalla norma: prevale la norma',
+}
 
 export type ObbligoNotifica = {
   chiave: string
@@ -44,6 +59,7 @@ function dataItaliana(iso: string): string {
 export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey = 0 }: { fascicoloId: string; active?: boolean; refreshKey?: number }) {
   const [obblighi, setObblighi] = useState<ObbligoNotifica[]>([])
   const [errore, setErrore] = useState('')
+  const [copiePst, setCopiePst] = useState<CopiaPst[]>([])
   const [source, setSource] = useState<SourceDocument | null>(null)
   const [verificaAtto, setVerificaAtto] = useState<string | null>(null)
 
@@ -54,6 +70,7 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
       const payload = await response.json()
       if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Obblighi di notifica non disponibili.')
       setObblighi(Array.isArray(payload.obblighi) ? payload.obblighi : [])
+      setCopiePst(copiePstDaPayload(payload.copiePst))
       setErrore('')
     } catch (requestError) {
       setErrore(requestError instanceof Error ? requestError.message : 'Obblighi di notifica non disponibili.')
@@ -70,11 +87,12 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
     return finish
   }, [load, refreshKey, active, fascicoloId])
 
-  if (!obblighi.length && !errore) return null
+  if (!obblighi.length && !errore) return <CopiePstPanel copie={copiePst}/>
   return (
     <div className="iu-fas-letture__parti iu-fas-letture__obblighi" aria-label="Notifiche richieste dagli atti">
       <h5><Send size={14}/> Notifiche richieste dagli atti ({obblighi.length})</h5>
       {errore ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {errore}</p> : null}
+      <CopiePstPanel copie={copiePst}/>
       <ul>
         {obblighi.map((obbligo) => {
           const stato = STATI[obbligo.stato] ?? STATI.da_verificare
@@ -88,6 +106,16 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
                 {obbligo.destinatari.length ? (
                   <small>A: {obbligo.destinatari.map((d) => `${d.nome} ${d.presso} (${d.fonte})`).join('; ')}</small>
                 ) : null}
+                {obbligo.destinatari.filter((d) => d.precedenti && d.precedenti.stato !== 'nessun_precedente').map((d) => (
+                  <details key={`prec-${d.nome}`}>
+                    <summary>{STATI_PRECEDENTI[d.precedenti!.stato]}: {d.nome} {d.precedenti!.etichetta} — {d.precedenti!.fonte}</summary>
+                    {d.precedenti!.motivo ? <small>{d.precedenti!.motivo}</small> : null}
+                    <ul>{d.precedenti!.precedenti.map((p) => (
+                      <li key={p.prova_id}><a href={`/fascicoli/${encodeURIComponent(p.fascicolo_id)}`}>Fascicolo precedente</a> · {dataItaliana(p.data)} · ricevuta di consegna nel presidio PEC</li>
+                    ))}</ul>
+                    <small>{d.precedenti!.avvertenza}</small>
+                  </details>
+                ))}
                 {obbligo.motivo ? <small>{obbligo.motivo}</small> : null}
                 {obbligo.dopo ? <small>Dopo: {obbligo.dopo}</small> : null}
                 {obbligo.avvertenze ? <small className="iu-fas-letture__parte-citazione">{obbligo.avvertenze}</small> : null}

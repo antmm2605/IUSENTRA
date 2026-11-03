@@ -208,6 +208,9 @@ CREATE TABLE IF NOT EXISTS letture_eventi (
     claimed_force INTEGER NOT NULL DEFAULT 0,
     pending_presidi INTEGER NOT NULL DEFAULT 0,
     claimed_presidi INTEGER NOT NULL DEFAULT 0,
+    -- 1 = documento caricato o modificato dall'avvocato, PEC appena collegata: si serve prima del resto
+    -- (collaudo dei motori del 03/11/2026), torna 0 quando il lavoratore prenota l'evento.
+    priorita INTEGER NOT NULL DEFAULT 0,
     attempts INTEGER NOT NULL DEFAULT 0,
     available_at TEXT NOT NULL DEFAULT '',
     last_error TEXT NOT NULL DEFAULT '',

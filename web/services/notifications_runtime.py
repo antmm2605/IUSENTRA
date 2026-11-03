@@ -1357,8 +1357,14 @@ def _impronta_pec_senza_fascicolo(paths: Mapping[str, Any]) -> str:
         # Il DB PEC appartiene allo studio. Può contenere righe storiche con
         # tenant "default": leggere tutte le poche revisioni evita di ignorarle
         # o di confondere slug PEC e UUID delle notifiche. Nessuna scansione messaggi.
+        # Una riga di revisione non inizializzata per un'etichetta che non ha alcun messaggio (il presidio PEC
+        # aperto con un'etichetta di studio diversa) non descrive nessuna PEC: non deve rendere incompleta
+        # l'impronta. Prima bastava per far rifare al presidio l'intero giro ogni 15 minuti
+        # (collaudo dei motori del 03/11/2026: 308 fascicoli riesaminati a sorgenti invariate).
         revisioni = conn.execute(
-            "SELECT tenant_id, messages_revision, initialized FROM pec_source_revisions ORDER BY tenant_id"
+            "SELECT r.tenant_id, r.messages_revision, r.initialized FROM pec_source_revisions r "
+            "WHERE r.initialized = 1 OR EXISTS (SELECT 1 FROM pec_messages m WHERE m.tenant_id = r.tenant_id) "
+            "ORDER BY r.tenant_id"
         ).fetchall()
         if not revisioni or any(int(row[2] or 0) != 1 for row in revisioni):
             return ""

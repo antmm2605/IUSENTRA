@@ -9854,7 +9854,9 @@ def fascicolo_react_obblighi_notifica(id_fasc: str):
         fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
         if fascicolo is None:
             return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
-        return _jsonify_public_payload({"ok": True, "obblighi": obblighi_fascicolo(fascicolo)})
+        from web.services.notifiche_l53_applicazione_runtime import copie_pst_richiesta
+
+        return _jsonify_public_payload({"ok": True, "obblighi": obblighi_fascicolo(fascicolo), "copiePst": copie_pst_richiesta(fascicolo=fascicolo)})
     except Exception as exc:
         current_app.logger.exception("Obblighi di notifica del fascicolo %s non disponibili: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Obblighi di notifica non disponibili.", "obblighi": []}, 200)

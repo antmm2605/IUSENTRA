@@ -734,6 +734,18 @@ def _sql_mailbox_fingerprint(path: Path) -> str:
         return ""
 
 
+def _pec_mai_esaminate(repo: Any, emails: list[Any], *, limite: int) -> list[Any]:
+    """Le PEC pertinenti della casella che il presidio non ha mai registrato con alcun esito (solo SQL)."""
+    try:
+        with repo.connect() as conn:
+            esaminate = {str(r[0]) for r in conn.execute(
+                "SELECT DISTINCT email_id FROM pec_local_acquire_items WHERE tenant_id=?", (repo.tenant_id,)).fetchall()}
+    except Exception:
+        return []
+    mancanti = [e for e in emails if str(getattr(e, "id", "") or "") not in esaminate and email_rilevante_per_presidio_pec(e)]
+    return mancanti[:max(1, int(limite))]
+
+
 def email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
     allegati = " ".join(
         str(item.get("nome") or item.get("nome_file") or "")
@@ -861,6 +873,7 @@ def acquire_local_pec_for_paths(
         and impronta
         and cursor.get("archive_fingerprint") == impronta
         and cursor.get("backlog_complete")
+        and cursor.get("riconciliazione_impronta") == impronta
     ):
         return {
             **report,
@@ -936,6 +949,17 @@ def acquire_local_pec_for_paths(
                     f"cursore fermo: archivio passato da {archivio_precedente} a "
                     f"{report['archive_seen']} messaggi senza selezioni"
                 )
+    if not selected_emails and not full_scan:
+        # Riconciliazione: nessun messaggio nuovo dal cursore, ma la casella può contenere PEC pertinenti che il
+        # presidio non ha mai esaminato (collaudo del 03/11/2026: 258 in uno studio, da mesi). Si prendono quelle
+        # senza alcun esito di acquisizione; si ripete solo quando l'archivio cambia.
+        mai_esaminate = _pec_mai_esaminate(repo, all_emails, limite=effective_scan_limit)
+        report["riconciliazione"] = len(mai_esaminate)
+        if mai_esaminate:
+            selected_emails = mai_esaminate
+            report["scan_mode"] = "riconciliazione"
+        elif impronta:
+            report["riconciliazione_impronta"] = impronta
     report["scanned"] = len(selected_emails)
     if cursor:
         report["cursor_sort_key"] = str(cursor.get("sort_key") or "")
@@ -976,6 +1000,10 @@ def acquire_local_pec_for_paths(
             next_cursor["archive_fingerprint"] = impronta
         else:
             next_cursor.pop("archive_fingerprint", None)
+        if report.get("riconciliazione_impronta"):
+            next_cursor["riconciliazione_impronta"] = report["riconciliazione_impronta"]
+        else:
+            next_cursor.pop("riconciliazione_impronta", None)
         next_cursor["generation"] = "pec_local_acquire_v2"
         try:
             repo.record_local_acquire_cursor(

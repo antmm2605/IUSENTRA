@@ -250,3 +250,23 @@ def test_raccolta_legge_la_notifica_della_sentenza_dalla_copia_notificata():
     ]
     _, _, contesto = raccogli(fascicolo, fatti, {"sent": "Sentenza"})
     assert contesto["notifica_sentenza"] == "2026-09-01"
+
+
+def test_istituto_scolastico_statale_presso_avvocatura_distrettuale():
+    """NOT-09: art. 1 c. 2 D.Lgs. 165/2001, art. 11 R.D. 1611/1933, art. 415 c.p.c. (Normattiva, 03/11/2026)."""
+    ricorso = DocumentoCatalogato("r1", "ricorso.pdf", "Ricorso in materia di lavoro (art. 414 c.p.c.)", nostro=True, udienze=("2026-12-15",))
+    parti = [Parte("Istituto Comprensivo Statale G. Pascoli", "controparte"),
+             Parte("Ufficio Scolastico Regionale per la Calabria", "controparte"),
+             Parte("Liceo Scientifico L. Siciliani", "controparte")]
+    obbligo = obblighi_del_fascicolo([ricorso], parti, contesto={"notifica_estero": False, "decreti_collegati": {"r1": "2026-11-10"}}, oggi=OGGI, ufficio="Tribunale di Palmi")[0]
+    for destinatario in obbligo.destinatari:
+        assert destinatario["presso"].startswith("presso Avvocatura distrettuale dello Stato di Reggio")
+        assert "art. 11 R.D. 1611/1933" in destinatario["fonte"] and "D.Lgs. 165/2001" in destinatario["fonte"]
+        assert "417-bis" in destinatario["fonte"] and "prassi dello studio" in destinatario["nota"]
+        assert "sede" not in destinatario["presso"]
+
+
+def test_istituto_non_scolastico_resta_pa_presso_la_sede():
+    ricorso = DocumentoCatalogato("r1", "ricorso.pdf", "Ricorso in materia di lavoro (art. 414 c.p.c.)", nostro=True, udienze=("2026-12-15",))
+    obbligo = obblighi_del_fascicolo([ricorso], [Parte("Istituto Nazionale Previdenza Sociale INPS", "controparte")], contesto={"notifica_estero": False}, oggi=OGGI)[0]
+    assert obbligo.destinatari[0]["presso"].startswith("presso la sede")

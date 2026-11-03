@@ -1,5 +1,5 @@
 # IUSENTRA Local Signer Setup v1.6.140
-# Pacchetto generato il 2026-10-28 15:26:10
+# Pacchetto generato il 2026-11-03 12:56:14
 # Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma
 
 # IUSENTRA Local Signer - Installazione locale Windows

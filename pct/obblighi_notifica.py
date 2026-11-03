@@ -43,6 +43,11 @@ STATO_FACOLTATIVO = "facoltativo"
 
 # Amministrazioni dello Stato (difese dall'Avvocatura dello Stato, R.D. 1611/1933).
 _STATALE = re.compile(r"\b(?:ministero|ministro|presidenza\s+del\s+consiglio|prefettura|questura|ufficio\s+scolastico|agenzia\s+del\s+demanio|avvocatura)\b", re.IGNORECASE)
+# Istituzioni scolastiche statali: amministrazioni dello Stato (art. 1, comma 2, D.Lgs. 165/2001,
+# «ivi compresi gli istituti e scuole di ogni ordine e grado»), quindi notifica presso l'Avvocatura
+# dello Stato del distretto (art. 11 R.D. 1611/1933; art. 415 c.p.c.). Testi in
+# docs/specs/ministero/fonti_ufficiali/2026-11-03/notifiche_amministrazioni_statali/.
+_SCOLASTICO = re.compile(r"\b(?:istitut[oi]\s+(?:scolastic[oi]|comprensiv[oi]|d['’]\s*istruzione|di\s+istruzione|tecnic[oi]|professional[ei]|magistrale)|istituzion[ei]\s+scolastic[ah]e?|scuol[ae]|lice[oi]|circolo\s+didattico|convitto\s+nazionale|educandat[oi]|ministero\s+dell['’]\s*istruzione|ufficio\s+scolastico)", re.IGNORECASE)
 _PA = re.compile(r"\b(?:comune|regione|provincia|citt[aà]\s+metropolitana|inps|inail|azienda\s+sanitaria|asl|asp|universit[aà]|agenzia|istituto|autorit[aà])\b", re.IGNORECASE)
 
 
@@ -274,10 +279,23 @@ def avvocatura_distrettuale(ufficio: str) -> str:
 
 def _destinatario(parte: Parte, *, presso_difensore: bool, ufficio: str, difensori: dict[str, str], lavoro: bool) -> dict[str, str]:
     difensore = parte.difensore or difensori.get(parte.nome, "")
-    if _STATALE.search(parte.nome):
+    scolastico = bool(_SCOLASTICO.search(parte.nome))
+    if scolastico or _STATALE.search(parte.nome):
         avvocatura = difensore if "avvocatura" in difensore.casefold() else avvocatura_distrettuale(ufficio)
         presso = f"presso {avvocatura}"
         fonte = "art. 11 R.D. 1611/1933; art. 144 c.p.c." + ("; art. 415, settimo comma, c.p.c." if lavoro else "")
+        if scolastico:
+            fonte += "; art. 1, comma 2, D.Lgs. 165/2001"
+        if lavoro:
+            # Art. 417-bis c.p.c.: in primo grado l'amministrazione può stare in giudizio con propri dipendenti,
+            # ma la notifica resta presso l'Avvocatura, che trasmette gli atti all'amministrazione entro 7 giorni.
+            fonte += "; art. 417-bis c.p.c."
+        voce = {"nome": parte.nome, "ruolo": parte.ruolo, "presso": presso, "fonte": fonte}
+        if scolastico:
+            voce["nota"] = ("La norma richiede la notifica presso l'Avvocatura dello Stato a pena di nullità. "
+                         "La copia al Ministero o all'Ufficio scolastico regionale presso la sede è prassi dello studio, "
+                         "non richiesta dall'art. 11 R.D. 1611/1933.")
+        return voce
     elif _PA.search(parte.nome):
         presso = "presso la sede, in persona del legale rappresentante" + (f" (difensore letto: {difensore})" if difensore else "")
         fonte = "art. 144, secondo comma, e art. 145 c.p.c."

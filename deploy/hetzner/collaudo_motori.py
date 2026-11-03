@@ -357,6 +357,7 @@ def _inventario_registro(app: Any, fascicoli: list[Any], adesso: datetime) -> di
             "errori_24h_per_codice": dict(Counter(f"{r[1]}:{r[2]}" for r in esiti if str(r[1]) in {"failed", "expired"} and str(r[3] or "") >= soglia)),
             "errori_24h_motivi": dict(Counter(_breve(r[4]) for r in esiti if str(r[1]) in {"failed", "expired"} and str(r[3] or "") >= soglia).most_common(6)),
             "durata_s_riusciti_24h_max": max([_durata(r[3], r[5]) for r in esiti if str(r[1]) == "succeeded" and str(r[3] or "") >= soglia] or [0]),
+            "errori_ultime_2h": dict(Counter(_breve(r[4]) for r in esiti if str(r[1]) in {"failed", "expired"} and str(r[3] or "") >= _iso(adesso - timedelta(hours=2)))),
             "fascicoli_distinti_in_errore_24h": len({r[0] for r in esiti if str(r[1]) in {"failed", "expired"} and str(r[3] or "") >= soglia}),
             "pending_con_tentativi": sum(1 for r in eventi if str(r[1]) == "pending" and int(r[2] or 0) > 0),
             "pending_in_attesa_di_riprova": sum(1 for r in eventi if str(r[1]) == "pending" and str(r[3] or "") > adesso_iso),
@@ -441,6 +442,7 @@ def _inventario_pec(app: Any, adesso: datetime, slug: str) -> dict[str, Any]:
             out["acquisizione_cursore"] = {"errore": _breve(type(exc).__name__)}
         if chiavi_casella:
             out["casella_inbox_mai_esaminate_dal_presidio"] = len(chiavi_casella - esaminate)
+            out["mai_esaminate_per_pertinenza"] = _pertinenza_non_esaminate(app, chiavi_casella - esaminate)
             out["esaminate_non_piu_in_casella"] = len(esaminate - chiavi_casella)
     except Exception as exc:
         out["presidio"] = {"errore": _breve(type(exc).__name__)}
@@ -453,6 +455,64 @@ def _inventario_pec(app: Any, adesso: datetime, slug: str) -> dict[str, Any]:
     except Exception as exc:
         out["pec_fascicolo_documenti"] = {"errore": _breve(type(exc).__name__)}
     return out
+
+
+def _pertinenza_non_esaminate(app: Any, chiavi: set[str]) -> dict[str, int]:
+    """Solo conteggi: i messaggi della casella mai esaminati sono PEC pertinenti (difetto) o posta che il presidio
+    scarta per regola (nessun Message-ID, nessun segno di PEC)?"""
+    from types import SimpleNamespace
+
+    from web.services.email_storage_runtime import create_email_mailbox
+    from web.services.pec_pipeline_runtime import email_rilevante_per_presidio_pec
+
+    conto: Counter = Counter()
+    try:
+        casella = create_email_mailbox(_percorsi(app).get("EMAIL_CASELLA_DB"), load_catalog=False, allow_initialize=False)
+        repo = casella.repository
+        for chiave, payload in repo.db.conn.execute(
+                "SELECT message_key, payload_json FROM email_mailbox_records WHERE tenant_key=? AND mailbox_kind=? AND folder='INBOX'",
+                (repo.tenant, repo.kind)).fetchall():
+            if str(chiave) not in chiavi:
+                continue
+            dati = json.loads(payload or "{}")
+            oggetto = SimpleNamespace(**{k: dati.get(k) for k in ("allegati", "oggetto", "mittente", "mittente_nome", "corpo_testo",
+                                                                  "stato_pct", "message_id", "origine", "e_pst")})
+            conto["pertinenti" if email_rilevante_per_presidio_pec(oggetto) else "non_pertinenti"] += 1
+            conto["con_message_id" if str(dati.get("message_id") or "").strip() else "senza_message_id"] += 1
+            conto[f"data_{str(dati.get('data') or '')[:7] or 'assente'}"] += 1
+    except Exception as exc:
+        conto[f"errore_{type(exc).__name__}"] += 1
+    return dict(conto)
+
+
+def _impronta_notifiche(app: Any, slug: str) -> dict[str, Any]:
+    """Solo sì/no: perché il presidio notifiche non si ferma a sorgenti invariate (quale parte manca o cambia)."""
+    from pct import impronta_notifiche_legali as imp
+    from web.services import notifications_runtime as nr
+
+    try:
+        from web.services.archivio_letture_runtime import _studi_della_coda
+
+        paths = next((dict(p) for s_, p in _studi_della_coda(app) if s_ == slug), dict(_percorsi(app)))
+        cartella = nr._cartella_impronta_presidio(paths)
+        if cartella is None:
+            return {"cartella": False}
+        salvata, dati = imp.leggi_impronta(cartella)
+        database = paths.get("_TENANT_DATABASE_CONFIG")
+        destinatari = len(nr.notification_recipients_for_paths(paths, database=database))
+        tenant = str(paths.get("_TENANT_PRESIDIO_ID") or slug or "default")
+        prima = nr._impronta_presidio_notifiche(paths, tenant_id=tenant, database=database, destinatari=destinatari)
+        dopo = nr._impronta_presidio_notifiche(paths, tenant_id=tenant, database=database, destinatari=destinatari)
+        parti = ("pec_notifiche", "pec_senza_fascicolo", "fascicoli", "destinatari")
+        return {
+            "salvata_completa": salvata.completa(), "attuale_completa": prima.completa(),
+            "si_fermerebbe": imp.si_puo_fermare(prima, salvata), "salvata_il": str(dati.get("aggiornato") or "")[:19],
+            "parti_vuote": [p for p in parti if not getattr(prima, p)],
+            "parti_diverse_dalla_salvata": [p for p in parti if getattr(prima, p) != getattr(salvata, p)],
+            "parti_instabili_tra_due_letture": [p for p in parti if getattr(prima, p) != getattr(dopo, p)],
+        }
+    except Exception as exc:
+        return {"errore": _breve(f"{type(exc).__name__}: {exc}")}
 
 
 def _coda_ocr(app: Any, adesso: datetime) -> dict[str, Any]:
@@ -521,6 +581,7 @@ def fase_inventario(app: Any) -> dict[str, Any]:
             except Exception as exc:
                 voce["errore"] = _breve(f"{type(exc).__name__}: {exc}")
             voce["pec"] = _inventario_pec(app, adesso, getattr(prepara, "slug", "default"))
+            voce["notifiche_impronta"] = _impronta_notifiche(app, getattr(prepara, "slug", "default"))
             studi.append(voce)
     try:
         diagnosi = _diagnosi_eventi(app)
@@ -878,7 +939,8 @@ def _errori(prova: FascicoloDiProva) -> dict[str, Any]:
         "attesa": attesa_1,
         "guasto": {"letture": prova.letture_oggetto(guasto.id, impronta_guasto), "motivi": prova.motivo(guasto.id, impronta_guasto),
                    "pannello": prova.pannello(guasto.id)},
-        "buono": {"letture": prova.letture_oggetto(buono.id, prova.impronta_registro(buono.id))},
+        "buono": {"letture": prova.letture_oggetto(buono.id, prova.impronta_registro(buono.id)),
+                  "motivi": prova.motivo(buono.id, prova.impronta_registro(buono.id))},
         **prova.confronta(prima, dopo, {guasto.id, buono.id}),
     }
     prova.sostituisci(guasto.id, f"{PREFISSO_FILE}guasto.pdf", _pdf_prova("riparato"))

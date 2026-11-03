@@ -1246,7 +1246,8 @@ def chiudi_oggetti_fascicolo_inesistente(registro: RegistroLetture, tenant_id: s
     return chiusi
 
 
-def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | None = None, tenant_slug: str = "", forza: bool = False, _accoda_evento: bool = True) -> bool:
+def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | None = None, tenant_slug: str = "", forza: bool = False, _accoda_evento: bool = True,
+                                prioritario: bool = False) -> bool:
     """Accoda dal web; il drain scheduler legge un solo fascicolo e coordina i processi."""
     fascicolo_id = _testo(fascicolo_id)
     if not fascicolo_id:
@@ -1255,7 +1256,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
     try:
         registro = registro_per_percorsi(paths)
         if _accoda_evento:
-            registro.accoda_evento(tenant_id, fascicolo_id, forza=forza)
+            registro.accoda_evento(tenant_id, fascicolo_id, forza=forza, prioritario=prioritario)
             return True
     except Exception:
         logger.exception("Evento di lettura non accodato per il fascicolo %s", fascicolo_id)
@@ -1651,7 +1652,9 @@ def lettura_dopo_evento(fascicolo_id: str) -> bool:
         return False
     paths, slug = _contesto_corrente()
     try:
-        return avvia_lettura_in_background(current_app._get_current_object(), fascicolo_id, paths=paths, tenant_slug=slug)
+        # L'evento nasce da un'azione dell'avvocato (documento caricato o modificato, PEC collegata, «Leggi i nuovi»):
+        # passa davanti a recuperi e riletture di massa (collaudo dei motori del 03/11/2026).
+        return avvia_lettura_in_background(current_app._get_current_object(), fascicolo_id, paths=paths, tenant_slug=slug, prioritario=True)
     except Exception as exc:
         logger.debug("Lettura in sfondo non avviata per %s: %s", fascicolo_id, exc)
         return False
@@ -1928,7 +1931,11 @@ def registra_lettura_ocr_nell_archivio(job: Any, testo: str) -> int:
     oggetto = registro.oggetto(tenant, job.id_fasc, "documento", job.id_doc)
     if oggetto is None:
         raise ValueError("Fonte OCR assente dal registro dello studio.")
-    if oggetto.impronta != _testo(getattr(job, "hash_sha256", "")).lower():
+    # Il job porta l'impronta del file conservato (cifrato quando la cifratura è attiva), il registro conosce anche
+    # quella del contenuto in chiaro: va bene l'una o l'altra. Confrontare solo l'impronta del registro faceva
+    # finire in errore ogni OCR di un documento cifrato (collaudo dei motori del 03/11/2026).
+    impronta_job = _testo(getattr(job, "hash_sha256", "")).lower()
+    if impronta_job not in {oggetto.impronta, _testo(oggetto.sha256).lower(), _testo(oggetto.sha256_archivio).lower()} - {""}:
         raise ValueError("Impronta OCR diversa dalla fonte corrente del fascicolo.")
     registro.accoda_testo_ocr(tenant, job.id_fasc, oggetto)
     return 0

@@ -151,6 +151,15 @@ export function lettoriSintesi(sintesi: SintesiRegistro): Array<SintesiRegistroL
     .sort((a, b) => (Number(b.da_leggere > 0 || b.errori > 0) - Number(a.da_leggere > 0 || a.errori > 0)) || a.etichetta.localeCompare(b.etichetta, 'it'))
 }
 
+// Il sommario della riga di sintesi: le letture in attesa sono somme per motore, non documenti. Scritto
+// «132 da leggere» accanto a «Tutto letto e collaudato» (archivio) sembrava una contraddizione (collaudo 03/11/2026).
+export function riepilogoAttesaSintesi(sintesi: SintesiRegistro): string {
+  if (!sintesi.da_leggere) return 'tutto letto'
+  const motori = Object.values(sintesi.lettori || {}).filter((voce) => voce.da_leggere > 0).length
+  if (!motori) return `${sintesi.da_leggere} letture in attesa`
+  return `${sintesi.da_leggere} letture in attesa in ${motori} ${motori === 1 ? 'motore' : 'motori'}`
+}
+
 export interface EsitoAggiornamentoLetture {
   messaggio: string
   restano: number

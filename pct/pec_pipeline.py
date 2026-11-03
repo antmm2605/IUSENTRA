@@ -6429,6 +6429,7 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
 # solo fascicolo (pct/pec_collegamento_certo.py, regola dell'avvocato del 02/11/2026).
 LINK_STATI_CERTIFICATI = frozenset({
     "ruolo_certificato_ufficio", "ricevuta_identificativi_verificati", "manuale", LINK_STATO_RUOLO_CLIENTE_UFFICIO,
+    "notifica_l53_verificata",  # pct/notifiche_l53_collegamento: .eml/Notifica_ID/stesso invio/relata (decisione 03/11/2026)
 })
 
 

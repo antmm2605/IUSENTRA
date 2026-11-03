@@ -24,7 +24,7 @@ def test_runtime_docker_bloccato_su_profilo_accettato_e_verificato_in_build():
     assert len(pins) == 119 and APPLICATION not in pins
     assert pins['pillow'] == '13.0.0'
     assert pins['sqlalchemy'] == '2.1.4'
-    assert pins['pypdf'] == '6.21.1' and pins['xsdata'] == '26.2'
+    assert pins['pypdf'] == '6.21.2' and pins['xsdata'] == '26.2'
     docker = (REPO_ROOT / 'Dockerfile').read_text(encoding='utf-8')
     assert '-c requirements/lock/runtime-linux-py312.txt' in docker
     assert 'RUN python tools/check_runtime_lock.py --installed' in docker
@@ -113,7 +113,7 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         # PyMuPDF e' AGPL-3.0 e il prodotto e' servito attraverso la rete.
         # PyMuPDF resta finche' gli altri moduli lo usano.
         "pypdfium2>=4.30.0",
-        "pypdf>=6.21.1",
+        "pypdf>=6.21.2",
         "asn1crypto>=1.5.0",
         "pytesseract>=0.3.10",
         "python-docx>=1.1.0",

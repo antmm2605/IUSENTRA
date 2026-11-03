@@ -1,6 +1,6 @@
 import { Database } from 'lucide-react'
 import { formatDateIt, formatDateTimeIt } from '../../formatting'
-import { etichettaStatoFascicolo, lettoriSintesi, type SintesiRegistro } from './lettureFascicolo'
+import { etichettaStatoFascicolo, lettoriSintesi, riepilogoAttesaSintesi, type SintesiRegistro } from './lettureFascicolo'
 
 // La scheda del registro delle letture: chi è il fascicolo per tutti i motori (cliente, pratica, ufficio,
 // stato e date), che cosa contiene e, per ogni lettore, che cosa ha letto e quando. Tutto da una riga SQL.
@@ -18,7 +18,7 @@ export function SintesiRegistroCard({ sintesi }: { sintesi: SintesiRegistro | nu
     <details className="iu-fas-registro">
       <summary>
         <Database size={14}/> Registro del fascicolo
-        <span>{sintesi.documenti_presenti} documenti · {sintesi.pec_collegate} PEC · {sintesi.allegati_pec} allegati{sintesi.da_leggere ? ` · ${sintesi.da_leggere} da leggere` : ' · tutto letto'}</span>
+        <span>{sintesi.documenti_presenti} documenti · {sintesi.pec_collegate} PEC · {sintesi.allegati_pec} allegati{` · ${riepilogoAttesaSintesi(sintesi)}`}</span>
       </summary>
       <dl className="iu-fas-registro__identita">
         <div><dt>Cliente</dt><dd>{sintesi.cliente || 'n.d.'}</dd></div>

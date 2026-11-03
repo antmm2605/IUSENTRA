@@ -1,4 +1,5 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
+import { CopiePstPanel } from './CopiePstPanel'
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -4340,6 +4341,8 @@ export function NotificheLegaliPage() {
           </div>
         ) : null}
       </section>
+
+      {tab !== 'notifica' ? <CopiePstPanel copie={data.copiePst} conFascicolo/> : null}
 
       {tab !== 'notifica' ? (
       <section className="iu-legal-flows" aria-label="Percorsi distinti">

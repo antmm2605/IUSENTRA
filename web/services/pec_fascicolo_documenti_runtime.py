@@ -25,18 +25,30 @@ def limite_recupero(config: Mapping[str, Any] | None = None) -> int:
         return LIMITE_PREDEFINITO
 
 
+def _notifiche_l53(repo: Any) -> dict[str, Any]:
+    """Un lotto del collegamento certo delle notifiche L. 53/1994 già inviate: non ferma il recupero."""
+    try:
+        from web.services.notifiche_l53_collegamento_runtime import riconvalida_notifiche_l53
+
+        return riconvalida_notifiche_l53(repo)
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "errore": type(exc).__name__}
+
+
 def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limite: int) -> dict[str, Any]:
     """Un lotto del recupero per ogni studio; l'esito è «ok» solo se nessuno studio ha avuto errori."""
     totali = dict.fromkeys(_SOMME, 0)
     studi: list[dict[str, Any]] = []
     for etichetta, paths in targets:
         try:
-            esito = recupera_storico(repository_from_paths(paths, tenant_label=etichetta), limite=limite)
+            repo = repository_from_paths(paths, tenant_label=etichetta)
+            esito = recupera_storico(repo, limite=limite)
+            esito["notifiche_l53"] = _notifiche_l53(repo)
         except Exception as exc:  # uno studio guasto non ferma gli altri, ma rende rosso l'esito
             esito = {"ok": False, "errori": 1, "errore": type(exc).__name__}
         for chiave in _SOMME:
             totali[chiave] += int(esito.get(chiave) or 0)
-        studi.append({"studio": etichetta, **{k: v for k, v in esito.items() if k in (*_SOMME, "ok", "errore", "riconvalida")}})
+        studi.append({"studio": etichetta, **{k: v for k, v in esito.items() if k in (*_SOMME, "ok", "errore", "riconvalida", "notifiche_l53")}})
     return {"ok": totali["errori"] == 0, "job": "pec_fascicolo_documenti_recupero", "limite": limite,
             "studi": len(studi), "totals": totali, "tenants": studi}
 

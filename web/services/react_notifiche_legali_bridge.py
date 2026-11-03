@@ -1489,8 +1489,11 @@ def build_react_notifiche_legali_payload(
         city=getattr(studio, "city", ""),
         province=getattr(studio, "province", ""),
     )
+    from web.services.notifiche_l53_applicazione_runtime import copie_pst_richiesta
+
     return _sanitize_ui_payload({
         "source": "configurazione_studio",
+        "copiePst": copie_pst_richiesta(solo_da_scaricare=True),
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "contracts": {
             "separateLegalNotification": True,

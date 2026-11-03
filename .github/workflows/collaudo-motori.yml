@@ -78,6 +78,7 @@ jobs:
           jq -r '.INVENTARIO.studi[]? | .studio as $s | (.lettori // {}) | to_entries[] | [$s, .key, (.value | del(.livello) | tostring)] | @tsv' collaudo.json
           jq -c '.INVENTARIO.studi[]? | {studio, fascicoli, inventario, eventi, sintesi, anomalie, fatti}' collaudo.json
           jq -c '.INVENTARIO.studi[]? | {studio, pec}' collaudo.json
+          jq -c '.INVENTARIO.studi[]? | {studio, notifiche_impronta}' collaudo.json
           jq -c '.INVENTARIO.coda_ocr // empty, .INVENTARIO.pianificazioni // empty' collaudo.json
           jq -c '.INVENTARIO.diagnosi_eventi_non_disponibile // empty' collaudo.json
           jq -c 'del(.INVENTARIO)' collaudo.json

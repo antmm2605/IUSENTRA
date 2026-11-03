@@ -31,6 +31,7 @@ Regole:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from pct.obblighi_notifica import STATO_DA_NOTIFICARE, STATO_DA_VERIFICARE, STATO_FACOLTATIVO, STATO_NOTIFICATO
@@ -81,17 +82,35 @@ def _fonti(voci: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return fonti
 
 
+# Una ricevuta di avvenuta consegna dice che un messaggio PEC è stato consegnato, non che era una notificazione:
+# la notifica in proprio si riconosce dalla relata o dall'oggetto «notificazione ai sensi della legge n. 53 del
+# 1994» (art. 3-bis, commi 4 e 5, L. 53/1994). Senza, la ricevuta di una PEC qualsiasi (una richiesta, una diffida)
+# non è prova della notifica dell'atto (collaudo dei motori del 03/11/2026).
+_NOTIFICAZIONE_L53 = re.compile(
+    r"notificazion\w*\s+ai\s+sensi\s+della\s+l(?:egge|\.)\s*(?:n\.?\s*)?53|\bl(?:egge|\.)\s*(?:n\.?\s*)?53\s*(?:/|del|-)\s*(?:19)?94",
+    re.IGNORECASE,
+)
+
+
+def _e_notificazione(prova: dict[str, Any], nomi: dict[str, str]) -> bool:
+    if prova.get("relata"):
+        return True
+    testo = " ".join((str(prova.get("atto") or ""), str(nomi.get(str(prova.get("documento_id")), ""))))
+    return bool(_NOTIFICAZIONE_L53.search(testo))
+
+
 def _prove(contesto: dict[str, Any], copie: set[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """(prove lette nelle copie dell'atto, altre prove di notifica del fascicolo)."""
     # La prova letta nella copia di un altro atto (ad esempio la sentenza notificata) è di quell'atto.
     altri_atti = set(contesto.get("documenti_atti") or ()) - copie
+    nomi = dict(contesto.get("nomi_documenti") or {})
     dell_atto, altre = [], []
     for prova in contesto.get("prove_notifica") or ():
         if not (prova.get("relata") or prova.get("consegna") or prova.get("verificata")):
             continue
         if prova.get("atto_documento_id") in copie or prova.get("documento_id") in copie:
             dell_atto.append(prova)
-        elif not prova.get("atto_documento_id") and prova.get("documento_id") not in altri_atti:
+        elif not prova.get("atto_documento_id") and prova.get("documento_id") not in altri_atti and _e_notificazione(prova, nomi):
             altre.append(prova)
     return dell_atto, altre
 

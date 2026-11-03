@@ -78,7 +78,7 @@ COLONNE: dict[str, tuple[str, ...]] = {
     "letture_fatti": COLONNE_FATTI,
     "letture_consegne": COLONNE_CONSEGNE,
     "letture_payload_cache": ("id", "tenant_id", "fascicolo_id", "cache_key", "payload_json", "expires_at", "creato_il", "aggiornato_il"),
-    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "pending_presidi", "claimed_presidi", "attempts", "available_at", "last_error", "last_error_code", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
+    "letture_eventi": ("id", "tenant_id", "fascicolo_id", "generation", "claimed_generation", "stato", "pending_force", "claimed_force", "pending_presidi", "claimed_presidi", "priorita", "attempts", "available_at", "last_error", "last_error_code", "worker_id", "lease_until", "creato_il", "aggiornato_il"),
     "letture_eventi_esiti": ("id", "tenant_id", "fascicolo_id", "generation", "attempt", "worker_id", "stato", "error_code", "errore", "iniziato_il", "concluso_il"),
     "letture_sintesi_fascicolo": COLONNE_SINTESI,
 }
@@ -312,7 +312,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             with conn:
                 conn.executescript(schema)
                 colonne_eventi = {row[1] for row in conn.execute('PRAGMA table_info(letture_eventi)')}
-                for campo in ("pending_presidi", "claimed_presidi"):
+                for campo in ("pending_presidi", "claimed_presidi", "priorita"):
                     if campo not in colonne_eventi:
                         try:
                             conn.execute(f'ALTER TABLE letture_eventi ADD COLUMN {campo} INTEGER NOT NULL DEFAULT 0')
@@ -931,14 +931,19 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
     def stato_evento(self, tenant_id: str, fascicolo_id: str) -> str:
         return self.esito_evento(tenant_id, fascicolo_id)['stato']
 
-    def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False, presidi: bool = False) -> int:
-        """Registra una generazione per un solo fascicolo, anche se è già in lavoro."""
+    def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False, presidi: bool = False,
+                      prioritario: bool = False) -> int:
+        """Registra una generazione per un solo fascicolo, anche se è già in lavoro.
+
+        ``prioritario``: l'evento nasce da un'azione dell'avvocato (documento caricato o modificato, PEC
+        collegata) e passa davanti agli eventi di recupero e riletture di massa.
+        """
         tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
         if not tenant or not fascicolo:
             return 0
         adesso = _adesso()
         with self.connection() as conn:
-            return self._accoda_evento_conn(conn, tenant, fascicolo, forza, adesso, presidi=presidi)
+            return self._accoda_evento_conn(conn, tenant, fascicolo, forza, adesso, presidi=presidi, prioritario=prioritario)
 
     def richiedi_recupero(self, tenant_id: str, fascicolo_id: str, *, generation: int) -> dict[str, Any]:
         """Ripresa esplicita con generazione osservata: nessun reset da doppioni."""
@@ -969,25 +974,27 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             ).fetchone()
         return bool(row and row["stato"] in {"pending", "running"} and (row["pending_presidi"] or row["claimed_presidi"]))
 
-    def _accoda_evento_conn(self, conn: Any, tenant: str, fascicolo: str, forza: bool, adesso: str, *, presidi: bool = False) -> int:
+    def _accoda_evento_conn(self, conn: Any, tenant: str, fascicolo: str, forza: bool, adesso: str, *, presidi: bool = False,
+                            prioritario: bool = False) -> int:
         self._require_event_retry(conn)
         self._prepare_live_write(conn)
         conn.execute(
                 'INSERT INTO "letture_eventi" '
-                '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, pending_presidi, claimed_presidi, worker_id, lease_until, creato_il, aggiornato_il) '
-                'VALUES (?, ?, ?, 1, 0, \'pending\', ?, 0, ?, 0, \'\', \'\', ?, ?) '
+                '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, pending_presidi, claimed_presidi, priorita, worker_id, lease_until, creato_il, aggiornato_il) '
+                'VALUES (?, ?, ?, 1, 0, \'pending\', ?, 0, ?, 0, ?, \'\', \'\', ?, ?) '
                 'ON CONFLICT (tenant_id, fascicolo_id) DO UPDATE SET '
                 'generation = letture_eventi.generation + 1, '
                 'stato = CASE WHEN letture_eventi.stato = \'running\' THEN \'running\' ELSE \'pending\' END, '
                 'pending_force = CASE WHEN letture_eventi.pending_force = 1 OR excluded.pending_force = 1 THEN 1 ELSE 0 END, '
                 'pending_presidi = CASE WHEN letture_eventi.pending_presidi = 1 OR excluded.pending_presidi = 1 THEN 1 ELSE 0 END, '
+                'priorita = CASE WHEN letture_eventi.priorita = 1 OR excluded.priorita = 1 THEN 1 ELSE 0 END, '
                 "attempts=0, available_at='', last_error='', last_error_code='', "
                 # Un evento già in coda conserva il suo posto: la coda si serve per aggiornato_il e
                 # riaccodarlo a ogni apertura del fascicolo lo rimandava in fondo per sempre
                 # (verifica del 03/11/2026: fascicoli «in coda» dal 21/09 e dal 13/10).
                 'aggiornato_il = CASE WHEN letture_eventi.stato = \'pending\' THEN letture_eventi.aggiornato_il '
                 'ELSE excluded.aggiornato_il END',
-                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, adesso, adesso),
+                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, 1 if prioritario else 0, adesso, adesso),
             )
         riga = conn.execute(
                 'SELECT generation FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
@@ -1070,7 +1077,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                              (attempts,ERRORE_SOSPESA,now,tenant,fascicolo))
                 return None
             attempt = attempts + 1
-            claimed = conn.execute("UPDATE letture_eventi SET stato='running',claimed_generation=generation,attempts=?,"
+            claimed = conn.execute("UPDATE letture_eventi SET stato='running',claimed_generation=generation,attempts=?,priorita=0,"
                 "claimed_force=CASE WHEN pending_force=1 OR (stato='running' AND claimed_force=1) THEN 1 ELSE 0 END,pending_force=0,"
                 "claimed_presidi=CASE WHEN pending_presidi=1 OR (stato='running' AND claimed_presidi=1) THEN 1 ELSE 0 END,pending_presidi=0,"
                 "worker_id=?,lease_until=?,available_at='',aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=? "
@@ -1206,12 +1213,28 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
         tenant,now = _testo(tenant_id),_adesso()
         scope = 'tenant_id=? AND ' if tenant else ''
         parameters = ([tenant] if tenant else []) + [MAX_ATTEMPTS,now,now,max(1,int(limite))]
+        condizione = ('SELECT * FROM letture_eventi WHERE ' + scope +
+                      "((stato='pending' AND attempts<? AND (available_at='' OR available_at<=?)) "
+                      "OR (stato='running' AND lease_until<?))")
         with self.connection() as conn:
             self._require_event_retry(conn)
-            rows = conn.execute('SELECT * FROM letture_eventi WHERE ' + scope +
-                "((stato='pending' AND attempts<? AND (available_at='' OR available_at<=?)) "
-                "OR (stato='running' AND lease_until<?)) ORDER BY aggiornato_il ASC LIMIT ?", tuple(parameters)).fetchall()
-        return [_riga(row) for row in rows]
+            # Prima i documenti e le PEC dell'avvocato (priorita=1), poi il resto per anzianità. Senza fame:
+            # con almeno due posti uno va sempre all'evento più vecchio, e la priorità vale una sola prenotazione.
+            limite_n = max(1, int(limite))
+            prioritari = conn.execute(condizione + " AND priorita=1 ORDER BY aggiornato_il ASC LIMIT ?",
+                                      tuple(parameters[:-1]) + (max(1, limite_n - 1) if limite_n > 1 else 1,)).fetchall()
+            ordinari = conn.execute(condizione + " ORDER BY aggiornato_il ASC LIMIT ?",
+                                    tuple(parameters[:-1]) + (limite_n,)).fetchall()
+        scelti: list[Any] = []
+        visti: set[tuple[str, str]] = set()
+        for row in [*prioritari, *ordinari]:
+            chiave = (row["tenant_id"], row["fascicolo_id"])
+            if chiave not in visti and len(scelti) < limite_n:
+                visti.add(chiave)
+                scelti.append(row)
+        if limite_n > 1 and ordinari and (ordinari[0]["tenant_id"], ordinari[0]["fascicolo_id"]) not in {(r["tenant_id"], r["fascicolo_id"]) for r in scelti}:
+            scelti[-1] = ordinari[0]
+        return [_riga(row) for row in scelti]
 
     # ---- viste dell'avvocato ---------------------------------------------------
 

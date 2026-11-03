@@ -208,7 +208,7 @@ _ANCORA_PERSONA = re.compile(
 
 # La domanda dell'atto («condannarsi il Ministero…», «accertare che l'Agenzia…»)
 # nomina l'ente come destinatario della pronuncia, non come parte dell'epigrafe.
-_PETITUM = re.compile(r"\b(?:condann\w*|accert\w*|dichiar\w*|ordin\w*|ingiung\w*|intim\w*|annull\w*|disappl\w*)\s+(?:che\s+)?(?:il|lo|la|l['’]|i|gli|le)?\s*$", re.IGNORECASE)
+_PETITUM = re.compile(r"\b(?:condann\w*|accert\w*|dichiar\w*|ordin\w*|ingiung\w*|intim\w*|annull\w*|disappl\w*)\s+(?:che\s+)?(?:(?:il|lo|la|i|gli|le)\s*|l['’]\s*)?$", re.IGNORECASE)
 # Una sola parola generica non identifica un ente: «Ministero», «Comune», «Agenzia»
 # senza la denominazione non sono il nome di una parte.
 _ENTE_GENERICO = {"ministero", "agenzia", "comune", "regione", "provincia", "istituto", "ufficio scolastico", "azienda", "universita"}

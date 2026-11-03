@@ -85,14 +85,36 @@ def _modello_pronto(client: Any, modello: str) -> bool:
     return True
 
 
-def generatore(client: Any, modello: str) -> Callable[[str, dict[str, Any]], str]:
-    opzioni = {"temperature": 0, "num_ctx": 8192, "num_thread": _intero("PCT_LEX_CATALOGO_THREAD", 4)}
+def _registra_riserva(esito: dict[str, Any]) -> None:
+    from flask import current_app
 
-    def genera(domanda: str, schema: dict[str, Any]) -> str:
+    from pct.scheduler_notturno.finestra import adesso
+    from pct.scheduler_notturno.registro import RegistroNotte
+    from pct.scheduler_registry import scheduler_registry_repository
+
+    RegistroNotte(scheduler_registry_repository(current_app.config).db_path).scrivi_esito_ai(
+        adesso().isoformat(timespec="seconds"), esito)
+
+
+def generatore(client: Any, modello: str) -> Callable[[str, dict[str, Any]], str]:
+    """Un modello alla volta, scaricato poco dopo l'uso; se il principale non riesce si usa la riserva."""
+    from pct.ai_riserva import genera_con_riserva
+
+    opzioni = {"temperature": 0, "num_ctx": 8192, "num_thread": _intero("PCT_LEX_CATALOGO_THREAD", 4)}
+    keep_alive = os.getenv("PCT_LEX_CATALOGO_KEEP_ALIVE", "").strip() or "2m"
+
+    def con_modello(nome: str, domanda: str, schema: dict[str, Any]) -> str:
+        if nome != modello:
+            _modello_pronto(client, nome)
         risposta = client.generate_completion(
-            modello, domanda, response_format=schema, options=opzioni, think=False, keep_alive="15m", timeout=300,
+            nome, domanda, response_format=schema, options=opzioni, think=False, keep_alive=keep_alive, timeout=300,
         )
         return str(risposta.get("response") or "")
+
+    def genera(domanda: str, schema: dict[str, Any]) -> str:
+        riserva = "" if modello == MODELLO_DI_RISERVA else MODELLO_DI_RISERVA
+        return genera_con_riserva(client, modello, riserva, lambda nome: con_modello(nome, domanda, schema),
+                                  registra=_registra_riserva)
 
     return genera
 

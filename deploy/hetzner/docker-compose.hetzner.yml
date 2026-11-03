@@ -57,7 +57,8 @@ x-iusentra-env: &iusentra-env
   LEX_EMBED_URL: ${LEX_EMBED_URL:-}
   IUSENTRA_OPENGA_SEARCH_URL: ${IUSENTRA_OPENGA_SEARCH_URL:-http://openga-search:8092}
   LEX_VETTORI_NOTTURNO_MASSIMO: ${LEX_VETTORI_NOTTURNO_MASSIMO:-20000}
-  LEX_EMBED_KEEP_ALIVE: ${LEX_EMBED_KEEP_ALIVE:-24h}
+  # Un modello alla volta in Ollama (03/11/2026): l'embedding si scarica poco dopo l'uso.
+  LEX_EMBED_KEEP_ALIVE: ${LEX_EMBED_KEEP_ALIVE:-2m}
   IUSENTRA_NORMATTIVA_VIGENZA: ${IUSENTRA_NORMATTIVA_VIGENZA:-VIGENTE}
   IUSENTRA_SENTENZEWEB_DIRECTORY: ${IUSENTRA_SENTENZEWEB_DIRECTORY:-}
   IUSENTRA_SENTENZEWEB_BRIDGE_URL: ${IUSENTRA_SENTENZEWEB_BRIDGE_URL:-}
@@ -391,13 +392,20 @@ services:
     logging: *iusentra-logging
     environment:
       OLLAMA_NO_CLOUD: "1"
-      # Assistente (gemma) e catalogazione (Spark-X2.5, riserva qwen) possono restare residenti:
-      # evita il costo di reload senza consentire al runtime di caricare tutti
-      # i modelli presenti sul disco.
-      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-2}
+      # Un solo modello in memoria e scaricato poco dopo l'uso (decisione del 03/11/2026: due modelli
+      # residenti occupavano 8,5 GB e il kernel chiudeva per memoria esaurita anche lo scheduler).
+      # Se il modello principale non riesce si scarica e si usa la riserva (pct/ai_riserva.py).
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}
       OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}
       OLLAMA_MAX_QUEUE: ${OLLAMA_MAX_QUEUE:-32}
       OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
+    # Limite solo per Ollama: con un modello alla volta (gemma3:1b ~2 GB, catalogazione 4B ~4-5 GB a 8192
+    # di contesto) 7 GB bastano; se si supera, il kernel chiude Ollama dentro il suo limite e non lo scheduler.
+    # oom_score_adj alto: anche con la memoria del server esaurita, il primo a essere chiuso è Ollama.
+    # Con un modello più grande (es. qwen3.5:9b) alzare IUSENTRA_OLLAMA_MEM_LIMIT nel .env.
+    mem_limit: ${IUSENTRA_OLLAMA_MEM_LIMIT:-7g}
+    oom_score_adj: 500
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/ollama:/root/.ollama
     healthcheck:

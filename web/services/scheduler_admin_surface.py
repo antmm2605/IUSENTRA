@@ -344,7 +344,36 @@ def build_scheduler_admin_surface() -> dict[str, Any]:
             for tpl in template_catalog(current_app.config)
         ],
         "registry_db": str(repo.db_path),
+        "sequenza_notturna": _sequenza_notturna(repo.db_path),
+        "semaforo_motori": _semaforo_motori({str(j.get("job_id")): str(j.get("name") or "") for j in jobs}),
     }
+
+
+def _semaforo_motori(nomi: dict[str, str]) -> dict[str, Any]:
+    """«In corso: X; in coda: Y, Z» con i nomi italiani delle pianificazioni."""
+    try:
+        from pct.semaforo_motori import semaforo_predefinito
+
+        semaforo = semaforo_predefinito()
+        if semaforo is None:
+            return {"testo": "Semaforo dei motori non attivo in questo ambiente."}
+        stato = semaforo.stato()
+        in_corso = nomi.get(stato["in_corso"], stato["in_corso"])
+        in_coda = [nomi.get(m, m) for m in stato["in_coda"]]
+        testo = f"In corso: {in_corso or 'nessun motore'}; in coda: {', '.join(in_coda) if in_coda else 'nessuno'}."
+        return {**stato, "in_corso": in_corso, "in_coda": in_coda, "testo": testo}
+    except Exception as exc:
+        return {"testo": f"Semaforo dei motori non leggibile: {type(exc).__name__}"}
+
+
+def _sequenza_notturna(db_path: Any) -> dict[str, Any]:
+    """Avanzamento della notte (fasi, passi, esiti in italiano); mai un errore per la console."""
+    try:
+        from pct.scheduler_notturno.console import stato_sequenza_notturna
+
+        return stato_sequenza_notturna(db_path)
+    except Exception as exc:
+        return {"errore": f"Sequenza notturna non leggibile: {type(exc).__name__}"}
 
 
 def save_scheduler_job_from_payload(job_id: str, payload: dict[str, Any], *, username: str = "") -> dict[str, Any]:

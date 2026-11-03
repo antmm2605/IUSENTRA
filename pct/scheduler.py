@@ -2870,7 +2870,7 @@ def start_scheduler(app):
 
         def _record_scheduler_event(event):
             job_id = str(getattr(event, "job_id", "") or "")
-            if not job_id or job_id in {"scheduler_registry_reload", "catalogo_seconda_lettura_lex"} or job_id.startswith("manual_"):
+            if not job_id or job_id in {"scheduler_registry_reload", "catalogo_seconda_lettura_lex", "sequenza_notturna"} or job_id.startswith("manual_"):
                 return
             try:
                 job_row = registry_repo.get_job(job_id)
@@ -2942,6 +2942,14 @@ def start_scheduler(app):
         dispatch_requested_manual_runs(scheduler, app, registry_repo)
     except Exception as exc:
         logger.warning("[scheduler] Registro pianificazioni non disponibile: %s", exc)
+
+    try:
+        # Lavori pesanti uno alla volta, dalle 21:30, in ordine di dipendenza (pct/scheduler_notturno/).
+        from pct.scheduler_notturno import installa_sequenza_notturna
+
+        installa_sequenza_notturna(scheduler, app, registry_repo)
+    except Exception as exc:
+        logger.error("[scheduler] Sequenza notturna non installata: %s", exc)
 
     try:
         from pct.scheduler_corsie import assegna_corsie

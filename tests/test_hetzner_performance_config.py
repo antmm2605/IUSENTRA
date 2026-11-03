@@ -67,7 +67,14 @@ def test_hetzner_limita_ollama_senza_forzare_reload_continui() -> None:
     block = _service_block(compose, "ollama")
 
     assert 'OLLAMA_NO_CLOUD: "1"' in block
-    assert "OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-2}" in block
+    assert "OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}" in block
+    assert "OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-2m}" in block
+    # Limite solo per Ollama: se la memoria finisce il kernel chiude Ollama, non lo scheduler.
+    assert "mem_limit: ${IUSENTRA_OLLAMA_MEM_LIMIT:-7g}" in block
+    assert "oom_score_adj: 500" in block
+    for service in ("app", "scheduler-worker", "ocr-worker"):
+        assert "mem_limit" not in _service_block(compose, service)
+    assert "LEX_EMBED_KEEP_ALIVE: ${LEX_EMBED_KEEP_ALIVE:-2m}" in compose
     assert "OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}" in block
     assert "OLLAMA_MAX_QUEUE: ${OLLAMA_MAX_QUEUE:-32}" in block
     assert "OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}" in block

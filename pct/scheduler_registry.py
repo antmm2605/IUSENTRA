@@ -494,6 +494,18 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             cortecost_day,
             built_in=True,
         ),
+        SchedulerTemplate(
+            "sequenza_notturna",
+            "Sequenza notturna dei lavori pesanti",
+            "Manutenzione",
+            "Dalle 21:30 alle 07:30 esegue i lavori pesanti uno alla volta, in ordine: PEC, PEC nel fascicolo, OCR, "
+            "letture e sentenze, scadenze ed economia, Lex con l'AI locale, fonti ufficiali, manutenzione. "
+            "Se non finisce riprende la notte dopo; spegnendola i lavori tornano ai loro orari.",
+            "cron",
+            "21-23,0-7",
+            "*",
+            built_in=True,
+        ),
         SchedulerTemplate("legal_official_archives_daily", "Archivi Normattiva e Gazzetta", "Aggiornamenti legali", "Aggiorna archivi ufficiali locali senza duplicare pacchetti invariati.", "cron", "23", "0", built_in=True),
         SchedulerTemplate(
             "embeddinggemma2_initial_normattiva", "Preparazione EmbeddingGemma 2", "Manutenzione",

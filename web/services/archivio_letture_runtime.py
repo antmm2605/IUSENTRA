@@ -1396,7 +1396,11 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
             return False
         _ATTIVE.add(fascicolo_id)
     try:
-        threading.Thread(target=corsa, name=f"archivio-letture-{fascicolo_id}", daemon=True).start()
+        from pct.semaforo_motori import in_turno
+
+        # Un solo motore pesante alla volta sul server: la lettura del fascicolo aspetta il suo turno (priorità alta).
+        threading.Thread(target=in_turno("letture del fascicolo", corsa), name=f"archivio-letture-{fascicolo_id}",
+                         daemon=True).start()
     except Exception:
         with _LOCK:
             _ATTIVE.discard(fascicolo_id)

@@ -134,7 +134,10 @@ def _avvia_in_sfondo(fascicoli_ids: list[str]) -> bool:
             with _LOCK:
                 _IN_CORSO.pop(tenant, None)
 
-    threading.Thread(target=corsa, name=f"scadenze-pdf-{tenant}", daemon=True).start()
+    from pct.semaforo_motori import in_turno
+
+    # Un solo motore pesante alla volta sul server (pct/semaforo_motori/).
+    threading.Thread(target=in_turno("lettura scadenze PDF", corsa), name=f"scadenze-pdf-{tenant}", daemon=True).start()
     return True
 
 

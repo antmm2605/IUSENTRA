@@ -95,29 +95,39 @@ def _alimenta_archivio(job, testo: str) -> None:
 
 
 def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event) -> None:
+    from pct.semaforo_motori import PRIORITA_URGENTE, motore_pesante
+
     while not stop_event.is_set():
-        job = store.claim_next(worker_id=worker_id)
-        if job is None:
+        if store.pending_count() == 0:
             sleep(1.0)
             continue
-        try:
-            idx = IndiceRicerca(index_path=job.index_path)
-            testo = idx.get_ocr_cache(job.hash_sha256)
-            if testo is None:
-                raw = Path(job.percorso).read_bytes()
-                decifrato = decrypt_doc(raw)
-                testo = ocr_estrai_testo(decifrato, job.nome_doc)
-                idx.set_ocr_cache(job.hash_sha256, testo)
-            if testo:
-                idx.indicizza_documento(job.id_fasc, job.id_doc, job.nome_doc, testo, job.tipo_doc)
-                _mark_document_ocr_extracted(job)
-            _registra_lettura_ocr(job, testo or "", stato="letto" if testo else "non_leggibile")
-            _alimenta_archivio(job, testo or "")
-            store.complete(job.id)
-        except Exception as exc:
-            logger.warning("Errore OCR su job %s (%s/%s): %s", job.id, job.id_fasc, job.id_doc, exc)
-            _registra_lettura_ocr(job, "", stato="errore", errore=str(exc))
-            store.fail(job.id, str(exc))
+        # Un solo motore pesante alla volta sul server: l'OCR di un documento appena caricato ha priorità alta.
+        with motore_pesante("OCR dei documenti", priorita=PRIORITA_URGENTE):
+            _lavora_un_job(store, worker_id)
+
+
+def _lavora_un_job(store: OCRJobStore, worker_id: str) -> None:
+    job = store.claim_next(worker_id=worker_id)
+    if job is None:
+        return
+    try:
+        idx = IndiceRicerca(index_path=job.index_path)
+        testo = idx.get_ocr_cache(job.hash_sha256)
+        if testo is None:
+            raw = Path(job.percorso).read_bytes()
+            decifrato = decrypt_doc(raw)
+            testo = ocr_estrai_testo(decifrato, job.nome_doc)
+            idx.set_ocr_cache(job.hash_sha256, testo)
+        if testo:
+            idx.indicizza_documento(job.id_fasc, job.id_doc, job.nome_doc, testo, job.tipo_doc)
+            _mark_document_ocr_extracted(job)
+        _registra_lettura_ocr(job, testo or "", stato="letto" if testo else "non_leggibile")
+        _alimenta_archivio(job, testo or "")
+        store.complete(job.id)
+    except Exception as exc:
+        logger.warning("Errore OCR su job %s (%s/%s): %s", job.id, job.id_fasc, job.id_doc, exc)
+        _registra_lettura_ocr(job, "", stato="errore", errore=str(exc))
+        store.fail(job.id, str(exc))
 
 
 def serve_ocr_worker(*, stop_event: threading.Event | None = None, queue_db_path: str | None = None) -> int:

@@ -503,6 +503,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             built_in=True,
         ),
         SchedulerTemplate("legal_monitor_daily", "Monitor legale giornaliero", "Aggiornamenti legali", "Presidia le fonti legali principali.", "cron", "5", "45", built_in=True),
+        SchedulerTemplate("legal_sources_daily_check", "Controllo giornaliero delle fonti ufficiali", "Aggiornamenti legali", "Confronta impronta e testo delle fonti ufficiali della Ricerca legale e propone le variazioni da approvare.", "cron", "6", "5", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),
         SchedulerTemplate(
             "legal_updates_batch",

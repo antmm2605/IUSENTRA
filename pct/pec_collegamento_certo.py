@@ -62,10 +62,16 @@ def ruolo_fascicolo(fascicolo: Any) -> tuple[str, str] | None:
 # comunicazioni di cancelleria SICID/SIECIC «COMUNICAZIONE 2539/2025/LAV», oggetto dei depositi «RG: 2539 - 2025»,
 # «procedimento n. 1165/2023». Il registro finale (LAV, CC, VG…) resta fuori dalla chiave: l'ufficio lo verifica
 # il terzo controllo. Fonte: art. 16 D.L. 179/2012; Specifiche tecniche DGSIA (Comunicazione.xml, oggetto PEC).
+# Versione 3 della regola: le etichette scritte per esteso del corpo delle comunicazioni SICID/SIECIC
+# («Numero di Ruolo generale: 2539/2025», «Ruolo Generale n. …»), i registri con suffisso («R.G.L.», «R.G.A.C.»,
+# «R.G.N.R.»), il numero prima dell'etichetta («n. 1234/2025 R.G.») e «proc. n.»; sempre numero e anno a 4 cifre.
+_ETICHETTA_RG = r"R\.?\s*G\.?(?:\s*[A-Z]{1,2}\.?){0,3}"
 _RUOLO_MINISTERIALE = (
     re.compile(r"\bCOMUNICAZIONE\s+(\d{1,7})\s*/\s*(\d{4})\s*/\s*[A-Z]{2,6}\b", re.I),
-    re.compile(r"\bR\.?\s*G\.?\s*(?:n\.?|nr\.?|numero)?\s*[:.]?\s*(\d{1,7})\s*[-/]\s*(\d{4})\b", re.I),
-    re.compile(r"\bprocedimento\s+(?:n\.?|nr\.?|numero)\s*(\d{1,7})\s*/\s*(\d{4})\b", re.I),
+    re.compile(r"\b" + _ETICHETTA_RG + r"\s*(?:n\.?|nr\.?|numero)?\s*[:.]?\s*(\d{1,7})\s*[-/]\s*(\d{4})\b", re.I),
+    re.compile(r"\b(?:proc\.|procedimento)\s+(?:n\.?|nr\.?|numero)\s*(\d{1,7})\s*/\s*(\d{4})\b", re.I),
+    re.compile(r"\b(?:numero\s+(?:di\s+)?)?ruolo(?:\s+generale)?\s*(?:n\.?|nr\.?|numero)?\s*[:.]?\s*(\d{1,7})\s*[-/]\s*(\d{4})\b", re.I),
+    re.compile(r"\b(?:n\.|nr\.|numero)\s*(\d{1,7})\s*/\s*(\d{4})\s*(?:del\s+)?" + _ETICHETTA_RG + r"(?![A-Za-z])", re.I),
 )
 
 

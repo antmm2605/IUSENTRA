@@ -694,6 +694,8 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
 
 .iu-li-context-list li {
   color: var(--iu-od-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .iu-li-meta {

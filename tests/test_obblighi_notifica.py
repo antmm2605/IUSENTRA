@@ -200,6 +200,17 @@ def test_relata_in_file_separato_non_si_collega_per_somiglianza():
     assert prova["atto_documento_id"] == ""
 
 
+def test_relata_catalogata_senza_letture_resta_una_relata_non_verificata():
+    # NOT-01: il catalogo dice «Relata di notifica» ma il motore non ha (ancora) letto la relata nel testo:
+    # la prova non va scartata, ma non è verificata e non si collega a nessun atto.
+    from web.services.obblighi_notifica_runtime import prova_notifica
+
+    prova = prova_notifica("rel", [], {"rel": "Relata di notifica"})
+    assert prova["relata"] is True
+    assert prova["verificata"] is False and prova["consegna"] is False
+    assert prova["atto_documento_id"] == ""
+
+
 def test_destinatario_non_nominato_nella_prova_lascia_aperto_l_obbligo():
     di = DocumentoCatalogato("d1", "decreto.pdf", "Decreto ingiuntivo", data="2026-09-10", nostro=True)
     prova = {"documento_id": "d1", "atto_documento_id": "d1", "verificata": True, "consegna": True, "destinatari": ["Alfa S.r.l."]}

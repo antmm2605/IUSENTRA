@@ -128,7 +128,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     documenti_letti["errori_lettura"] = int(stato_documenti.get("errori") or 0)
     documenti_letti["da_leggere_lettura"] = int(stato_documenti["da_leggere"]) if "da_leggere" in stato_documenti else None
     eventi = cronologia(dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"], dati.appuntamenti, oggi, archivio_letto)
-    fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi)
+    fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi, pec_letto=pec_letto)
     passi, stato = prossimi_passi(
         intestazione=testata, fase_letta=fase_letta, depositi_letti=depositi_letti, notifiche_lette=notifiche_lette,
         documenti_letti=documenti_letti, scadenze=dati.scadenze, conformita=dati.conformita, regia=dati.regia,

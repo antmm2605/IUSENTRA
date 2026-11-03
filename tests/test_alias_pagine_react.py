@@ -16,7 +16,7 @@ ALIAS = {
     "/portali/ptt": "/sigit",
     "/portali/sigit": "/sigit",
     "/telematici": "/telematico",
-    "/preventivi/conferimento": "/preventivi",
+    "/preventivi/conferimento": "/preventivi?metric=conferimenti",
 }
 
 
@@ -41,6 +41,11 @@ def test_alias_reindirizza_alla_pagina_canonica(client, alias, canonica):
 def test_alias_conserva_i_parametri(client):
     risposta = client.get("/portali/pst?numero=12", headers={"Accept": "text/html"})
     assert risposta.headers["Location"] == "/polisweb?numero=12"
+
+
+def test_alias_conferimenti_conserva_il_filtro_e_i_parametri(client):
+    risposta = client.get("/preventivi/conferimento?q=x", headers={"Accept": "text/html"})
+    assert risposta.headers["Location"] == "/preventivi?metric=conferimenti&q=x"
 
 
 def test_acquisizione_resta_servita_direttamente(client):

@@ -104,7 +104,7 @@ database del tenant. Schema gemello in `pct/sql/20260915_registro_letture.sql` e
 | Indice documentale | `pct/document_intelligence/sources.py` non decifra i documenti di cui il registro conosce l'impronta in chiaro; `web/services/document_intelligence_runtime.py` salta l'elaborazione se l'impronta del fascicolo è invariata e segna documenti e fascicolo |
 | Catalogo dal contenuto | stato derivato dall'indice (stessa impronta) |
 | Assistente locale (RAG) | `pct/local_ai.py` segna gli esiti (`indexed`, `skipped`, `unsupported`) tramite `service.registro_letture` |
-| Presidio PEC | `pct/pec_pipeline.py` riusa l'OCR di un allegato con la stessa impronta già letto nello studio; il runtime allinea gli allegati letti e verifica udienze e termini rispetto alla PEC |
+| Presidio PEC | `pct/pec_pipeline.py` riusa l'OCR di un allegato con la stessa impronta già letto nello studio; dal 03/11/2026 non è più un lettore censito: gli allegati delle PEC collegate li legge il motore PEC dell'archivio |
 | Presidio economico | il marcatore `_presidio_documentale` è specchiato nel registro |
 | Proforma automatica | `_ensure_auto_proforma_for_fascicolo` non rilegge i PDF se l'inventario è invariato |
 | Lettura del fascicolo | cache breve invalidata da documenti e PEC (`web/services/lettura_cache.py`); pannello «Letture e verifiche» |
@@ -322,3 +322,21 @@ leggere solo i documenti aggiunti o modificati.
 - **Motore PEC**: scrive la propria riga in `letture_fascicoli` (PEC e allegati presenti e letti); l'impronta
   del fascicolo si calcola con una sola query sugli allegati, senza leggerne il testo OCR.
 
+
+## Collaudo dei motori (03/11/2026)
+
+Il collaudo in produzione (`deploy/hetzner/collaudo_motori.py`, workflow «Collaudo dei motori di lettura»)
+ha portato a queste regole:
+
+- **Un lettore censito legge davvero o non pesa sui «da leggere».** Non sono più censiti «Presidio PEC» e
+  «Sentenza e preparazione archivio»: lo stesso lavoro lo fanno il motore PEC e «Sentenza e definizione».
+  «Scadenze dai PDF» e «Proforma automatica» sono lettori *su richiesta* (`su_richiesta` in `lettori.py`):
+  un oggetto o un fascicolo che non hanno mai toccato non è un arretrato; lo è solo ciò che hanno letto
+  con un'impronta ora cambiata.
+- **Testo e ricerca (OCR) dal registro** (`web/services/ocr_da_archivio.py`): a ogni giro di lettura del
+  fascicolo, senza aprire file, la lettura OCR si chiude dove il motore documenti ha già un testo e i
+  documenti senza testo (anche arrivati da portale o PEC) entrano nella coda OCR una sola volta.
+- **Eventi di fascicoli che non esistono più**: l'evento si chiude e gli oggetti si segnano non presenti,
+  invece di ritentare all'infinito; nei passi finali del giro la prenotazione si proroga prima di ognuno.
+- **Casella nel database dello studio**: l'acquisizione automatica del presidio PEC prende l'impronta
+  dell'archivio dal catalogo SQL della casella, non dalla data di `casella.json`.

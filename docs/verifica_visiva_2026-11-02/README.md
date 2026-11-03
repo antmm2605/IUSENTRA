@@ -17,3 +17,5 @@ Fuori perimetro per scelta dell'avvocato: deposito telematico, notifiche legali,
 | Ricerca giuridica, codici, giurisprudenza, strumenti, Lex | [LEX.md](LEX.md) |
 | Amministrazione, impostazioni, telematico, automazioni | [ADM.md](ADM.md) |
 | Difetti trasversali del fascicolo reale e delle catene automatiche | [difetti_trasversali.md](difetti_trasversali.md) |
+| Catena delle notifiche legali (riverifica 03/11) | [NOT.md](NOT.md) |
+| Collaudo dei motori, una riga per motore | [COLLAUDO_MOTORI.md](COLLAUDO_MOTORI.md) |

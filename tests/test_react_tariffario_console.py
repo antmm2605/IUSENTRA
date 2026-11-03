@@ -205,3 +205,15 @@ def test_tariffario_react_variazioni_adr_e_art15_incidono_sul_totale(tmp_path: P
     economic_rows = {row["id"]: row["value"] for row in changed_payload["result"]["economic"]["rows"]}
     assert economic_rows["anticipazioni_art15"] != "€ 0,00"
     assert any("Costi organismo mediazione" in item["descrizione"] for item in changed_payload["result"]["included"])
+
+
+def test_registro_tariffario_mostra_etichette_e_non_chiavi_tecniche():
+    from web.services.react_tariffario_bridge import _enrich_audit
+
+    righe = _enrich_audit(
+        [{"rule_code": "crisi_insinuazione_passivo", "suggested_practice_id": "insinuazione_passivo"}, {"suggested_practice_id": "fase_distributiva"}],
+        {},
+        {"crisi_insinuazione_passivo": "Insinuazione al passivo"},
+    )
+    assert righe[0]["practice_label"] == "Insinuazione al passivo"
+    assert righe[1]["practice_label"] == "Fase distributiva"

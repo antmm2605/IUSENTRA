@@ -187,6 +187,10 @@ def opposizione_127_ter_incoerente(scadenza: Any) -> bool:
     titolo = _valore(scadenza, "titolo").lower()
     if codice != "CIV_OPPOSIZIONE_127_TER" and not ("opposizion" in titolo and _RE_127_TER.search(titolo)):
         return False
+    if titolo and "opposizion" not in titolo:
+        # Il profilo dice opposizione ma il titolo indica un altro adempimento (es. deposito
+        # delle note scritte, che scade all'udienza sostituita): l'avviso sui 5 giorni sarebbe fuorviante.
+        return False
     giorno = giorno_termine(scadenza)
     if giorno is None:
         return False

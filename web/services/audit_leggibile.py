@@ -115,6 +115,29 @@ _RISORSE = {
     "utente": "Utente",
 }
 
+# Chiavi inglesi scritte dagli strumenti di migrazione e adozione SQL (03/11/2026, ADM-05 riverifica).
+_CHIAVI = {
+    "source": "Origine",
+    "source_sha256": "Impronta dell'origine",
+    "source_records": "Record di origine",
+    "sha256": "Impronta SHA-256",
+    "inserted": "Inseriti",
+    "added": "Aggiunti",
+    "backup_reference": "Copia di sicurezza",
+    "backup_sha256": "Impronta della copia",
+    "version": "Versione",
+    "tenant": "Studio",
+    "sql_records": "Record SQL",
+    "revision": "Revisione",
+    "prepared_at": "Preparato il",
+    "historical_differences": "Differenze storiche",
+    "before": "Prima",
+    "after": "Dopo",
+    "effects": "Effetti",
+    "financial_rilevazione": "Rilevazione economica",
+    "prima_nota_records": "Record di prima nota",
+}
+
 _DATA_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?")
 _LIMITE = 600
 
@@ -122,6 +145,11 @@ _LIMITE = 600
 def _parole(codice: str) -> str:
     testo = re.sub(r"[_\-]+", " ", codice).strip()
     return testo[:1].upper() + testo[1:] if testo else ""
+
+
+def _chiave(codice: Any) -> str:
+    grezzo = str(codice)
+    return _CHIAVI.get(grezzo.strip().lower(), _parole(grezzo))
 
 
 def esito_registro(valore: Any) -> str:
@@ -170,7 +198,9 @@ def _valore(valore: Any, profondita: int = 0) -> str:
     if isinstance(valore, dict):
         if profondita >= 2:
             return "…"
-        return " · ".join(f"{_parole(str(k))}: {_valore(v, profondita + 1)}" for k, v in list(valore.items())[:6])
+        coppie = ((_chiave(k), _valore(v, profondita + 1)) for k, v in list(valore.items())[:6])
+        # Un valore annidato oltre la profondità leggibile diventa «…»: la voce non dice nulla e si omette.
+        return " · ".join(f"{k}: {v}" for k, v in coppie if not re.fullmatch(r"[…,\s]+", v))
     return str(valore)
 
 

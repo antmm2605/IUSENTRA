@@ -74,9 +74,23 @@ function selectedLevelLabel(value: string) {
 function complianceLabel(status?: string, exact?: boolean) {
   const value = String(status || '').toLowerCase()
   if (value === 'snapshot_esatto' || exact) return 'Rilevazione esatta'
-  if (value === 'ricostruzione') return 'Ricostruzione dichiarata'
-  if (value === 'fallback_tecnico') return 'Fallback tecnico'
-  return status || 'Copertura da verificare'
+  if (value === 'ricostruzione' || value === 'ricostruttiva') return 'Ricostruzione dichiarata'
+  if (value === 'fallback_tecnico' || value === 'da_verificare') return 'Valore di riserva da verificare'
+  return status ? status.replace(/_/g, ' ') : 'Copertura da verificare'
+}
+
+// Riverifica 03/11/2026: nel registro del calcolo niente chiavi tecniche o nomi di file.
+const CALC_MODE_LABELS: Record<string, string> = { per_fasi: 'Per fasi', compenso_unico: 'Compenso unico', per_fasi_adr: 'ADR per fasi' }
+
+function calcModeLabel(value: unknown) {
+  const key = String(value || '')
+  return CALC_MODE_LABELS[key] || key.replace(/_/g, ' ')
+}
+
+function snapshotLabel(value?: string) {
+  const name = String(value || '')
+  if (/dm147_2022/i.test(name)) return 'Tabelle D.M. 147/2022'
+  return name.replace(/\.json$/i, '').replace(/_/g, ' ')
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -713,8 +727,8 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
     ['Tabella', result.tableLabel || result.tableCode],
     ['Scaglione', String(audit.scaglione || '')],
     ['Copertura', complianceLabel(result.complianceStatus, result.exactSnapshot)],
-    ['Archivio', result.sourceSnapshot],
-    ['Tipo calcolo', String(audit.calc_mode || '')],
+    ['Archivio', snapshotLabel(result.sourceSnapshot)],
+    ['Tipo calcolo', calcModeLabel(audit.calc_mode)],
   ].filter(([, value]) => String(value || '').trim())
   return (
     <section className="iu-tar-result iu-tar-panel" aria-labelledby="tariffario-risultato">
@@ -1132,7 +1146,7 @@ function NormativeSupportPanel({ support, open, onToggle }: { support: Tariffari
             <article key={`${String(row.rule_code || row.label || index)}`}>
               <div>
                 <strong>{String(row.label || row.practice_label || row.rule_code || 'Regola tariffaria')}</strong>
-                <span>{String(row.compliance_status || 'verifica')}</span>
+                <span>{complianceLabel(String(row.compliance_status || ''))}</span>
               </div>
               <p>{String(row.matter || row.category || row.practice_label || '')}</p>
               <small>{String(row.table_label || row.table_code || '')}</small>

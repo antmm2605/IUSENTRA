@@ -70,7 +70,7 @@ def leggi_registro(fascicolo_id: str, *, paths: dict[str, Any] | None = None, co
     record, _ = RegistroDiscordanze(registro).esito(tenant,_clean(fascicolo_id))
     if record:
         record["eseguita_il_it"] = _data_it(record.get("eseguita_il", ""))
-    record["in_corso"] = bool(record.get("in_corso")) or registro.presidi_in_corso(tenant, _clean(fascicolo_id))
+    record["in_corso"] = in_corso_vivo(record) or registro.presidi_in_corso(tenant, _clean(fascicolo_id))
     return record
 
 
@@ -90,10 +90,27 @@ def scrivi_registro(fascicolo_id: str, record: dict[str, Any], *, paths: dict[st
             logger.warning("Mirror JSON degli esiti non aggiornato; esito conservato in SQL per %s", fascicolo_id)
 
 
+# Un giro di verifiche interrotto (riavvio del servizio) lasciava «in corso» per sempre: oltre due ore non lo è più.
+ORE_MASSIME_IN_CORSO = 2
+
+
+def in_corso_vivo(record: dict[str, Any]) -> bool:
+    """Il giro registrato «in corso» è ancora vivo, o è stato interrotto da un riavvio?"""
+    if not record.get("in_corso"):
+        return False
+    try:
+        inizio = datetime.fromisoformat(str(record.get("eseguita_il") or ""))
+    except (TypeError, ValueError):
+        return False
+    if inizio.tzinfo is None:
+        inizio = inizio.replace(tzinfo=ROME_TZ)
+    return datetime.now(ROME_TZ) - inizio < timedelta(hours=ORE_MASSIME_IN_CORSO)
+
+
 def verifiche_necessarie(record: dict[str, Any], *, forza: bool = False) -> bool:
     if forza:
         return True
-    if record.get("in_corso"):
+    if in_corso_vivo(record):
         return False
     try:
         ultima = datetime.fromisoformat(str(record.get("eseguita_il") or ""))
@@ -454,5 +471,5 @@ def avvia_verifiche_in_background(app: Any, fascicolo_id: str, *, paths: dict[st
 
 __all__ = [
     "INTERVALLO_MINUTI", "avvia_verifiche_in_background", "esegui_verifiche", "lacune_conoscenza_del_fascicolo", "leggi_registro",
-    "registro_path", "scrivi_registro", "verifica_archivio", "verifica_depositi", "verifica_documenti", "verifica_notifiche", "verifica_pec", "verifiche_necessarie",
+    "in_corso_vivo", "registro_path", "scrivi_registro", "verifica_archivio", "verifica_depositi", "verifica_documenti", "verifica_notifiche", "verifica_pec", "verifiche_necessarie",
 ]

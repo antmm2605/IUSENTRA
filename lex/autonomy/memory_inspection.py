@@ -54,7 +54,11 @@ def _proposal_row(record: dict[str, Any]) -> dict[str, Any]:
     return {
         "titolo": _text(payload.get("title")),
         "tipo": _text(payload.get("kind")),
-        "descrizione": _text(payload.get("description")),
+        # Le proposte registrate prima del 2.477 indicano la costante interna («aggiungerlo a LEGAL_ONTOLOGY»).
+        "descrizione": _text(payload.get("description")).replace(
+            "ma non è nell'ontologia: aggiungerlo a LEGAL_ONTOLOGY con",
+            "ma non è nell'ontologia giuridica di Lex: valutarne l'aggiunta con",
+        ),
         "modulo": _text(payload.get("target_module")),
         "confidenza": float(payload.get("confidence") or 0.0),
         "revisione_umana": bool(payload.get("requires_human_review", True)),

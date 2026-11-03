@@ -25,7 +25,7 @@ def mark_projection_read_failure(label="", error_code=""):
             current_app.logger.warning("Lettura della proiezione non riuscita: ambito=%r codice=%s", label, error_code)
 
 
-def read_authorized_revisions(user, *, requested_domains=None):
+def read_authorized_revisions(user, *, requested_domains=None, include_vertical=True):
     from pct.operational_live import read_live_revisions
     from web.services.storage_runtime import get_request_studio_db
     from web.services.tenant_paths import tenant_data_path
@@ -40,7 +40,9 @@ def read_authorized_revisions(user, *, requested_domains=None):
     if backend is None:
         raise RuntimeError("Sincronizzazione SQL non disponibile.")
     revisions = read_live_revisions(backend, domains)
-    for domain, revision in read_vertical_revisions(domains).items():
+    # Le revisioni verticali (registro delle letture, archivio economico) cambiano a ogni lettura
+    # automatica: chi non le mostra può escluderle dalla propria chiave di cache (ADM-29).
+    for domain, revision in (read_vertical_revisions(domains) if include_vertical else {}).items():
         if domain in domains:
             revisions[domain] = revisions.get(domain, 0) + revision
     if "normativa" in domains:
@@ -55,8 +57,8 @@ def read_authorized_revisions(user, *, requested_domains=None):
     return revisions
 
 
-def read_authorized_revision_snapshot(user, *, requested_domains=None):
-    revisions = read_authorized_revisions(user, requested_domains=requested_domains)
+def read_authorized_revision_snapshot(user, *, requested_domains=None, include_vertical=True):
+    revisions = read_authorized_revisions(user, requested_domains=requested_domains, include_vertical=include_vertical)
     owner = (
         str(getattr(getattr(g, "tenant", None), "slug", "") or getattr(g, "tenant_context_slug", "") or ""),
         str(getattr(user, "id", "") or ""),

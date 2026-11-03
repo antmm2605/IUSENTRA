@@ -885,3 +885,17 @@ def test_stessa_notifica_due_destinatari_con_una_sola_rdac_resta_aperta(tmp_path
 
     assert proof == {}
     assert decision.status == PresidioStatus.DETECTED
+
+
+def test_filtro_canale_non_pec_comprende_i_due_alias(tmp_path: Path) -> None:
+    # NOT-10 (03/11/2026): il canale «Non PEC» compariva due volte nel filtro (non_pec e nonpec).
+    repo = _repo(tmp_path)
+    service = NotificationPresidioService(repo)
+    destinatario = {"name": "Destinatario Prova", "pec_address": "prova@pec.example", "role": "controparte"}
+    presidio_id = _candidate(service, recipients=[destinatario])
+    with repo.connection() as conn:
+        conn.execute("UPDATE pec_legal_notification_presidia SET channel='nonpec' WHERE id=?", (presidio_id,))
+        conn.commit()
+    ids = [str(item["id"]) for item in repo.list_presidia(channel="non_pec").to_public_dict()["items"]]
+    assert ids == [presidio_id]
+    assert repo.list_presidia(channel="pec").to_public_dict()["items"] == []

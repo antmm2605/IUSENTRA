@@ -921,6 +921,17 @@ def _aggiorna_catalogo_sql(fascicolo: Any, registro: RegistroLetture) -> dict[st
         }
 
 
+def _allinea_ocr(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
+    """«Testo e ricerca» dal registro: OCR chiuso dove c'è già testo, accodato una volta dove manca (D4 del collaudo)."""
+    try:
+        from web.services.ocr_da_archivio import allinea_ocr_fascicolo
+
+        return allinea_ocr_fascicolo(registro, tenant, fascicolo)
+    except Exception as exc:
+        logger.warning("Lettore OCR non allineato per il fascicolo %s: %s", getattr(fascicolo, "id", ""), exc)
+        return {}
+
+
 def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False, rileggi_superati: bool = False, rinvia_derivati: bool = False) -> dict[str, Any]:
     """Un giro del ciclo: i motori leggono solo ciò che manca, l'archivio conferma, poi ci si ferma.
 
@@ -960,6 +971,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
                 consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
             # Fascicolo fermo: la riga di sintesi si riscrive solo se è cambiata l'identità (stato, date, cliente…).
+            _allinea_ocr(fascicolo, registro, tenant)
             _aggiorna_sintesi(fascicolo, registro, solo_se_cambiata=True)
             if not int(metadati.get("restano") or 0):
                 _azzera_errore_coda(registro, tenant, fascicolo_id)
@@ -1036,6 +1048,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         motivo="" if restano == 0 else f"{restano} oggetti oltre il tetto di questo giro",
     )
     _segna_riga_pec(registro, tenant, fascicolo_id, impronta=impronta)
+    _allinea_ocr(fascicolo, registro, tenant)
     _aggiorna_sintesi(fascicolo, registro)
     if restano == 0:
         _azzera_errore_coda(registro, tenant, fascicolo_id)
@@ -1216,6 +1229,23 @@ def _indicizza_fonti_pendenti(fascicolo_id: str, tenant_slug: str) -> dict[str, 
         user_context=context, apply_automations=False,
     )
 
+class _FascicoloInesistente(LookupError):
+    """Il fascicolo dell'evento non esiste più nell'archivio dello studio."""
+
+
+def chiudi_oggetti_fascicolo_inesistente(registro: RegistroLetture, tenant_id: str, fascicolo_id: str) -> int:
+    """Gli oggetti di un fascicolo che non esiste più non sono «da leggere»: si segnano non presenti."""
+    chiusi = 0
+    try:
+        for oggetto in registro.oggetti(tenant_id, fascicolo_id):
+            registro.rimuovi_oggetto(tenant_id, fascicolo_id, oggetto.tipo, oggetto.oggetto_id)
+            chiusi += 1
+    except Exception:
+        logger.exception("Oggetti del fascicolo inesistente %s non chiusi", fascicolo_id)
+    logger.info("Fascicolo %s non più presente: evento chiuso, %d oggetti segnati non presenti", fascicolo_id, chiusi)
+    return chiusi
+
+
 def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | None = None, tenant_slug: str = "", forza: bool = False, _accoda_evento: bool = True) -> bool:
     """Accoda dal web; il drain scheduler legge un solo fascicolo e coordina i processi."""
     fascicolo_id = _testo(fascicolo_id)
@@ -1269,7 +1299,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
 
                     fascicolo = get_fascicoli().get(fascicolo_id)
                     if fascicolo is None:
-                        raise RuntimeError("Fascicolo accodato non disponibile.")
+                        raise _FascicoloInesistente(fascicolo_id)
                     _indicizza_fonti_pendenti(fascicolo_id, tenant_slug)
                     # L'indicizzazione può durare: la prenotazione si proroga prima di leggere.
                     registro.rinnova_evento(tenant_id, fascicolo_id, worker_id, generazione)
@@ -1297,15 +1327,24 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                         if restano <= 0:
                             from web.services.discordanze_letture_runtime import verifica_discordanze_fascicolo
 
+                            # I passi finali (discordanze, notifiche, esiti, Lettura, verifiche) possono
+                            # durare: la prenotazione si proroga prima di ognuno, il giro non scade a metà.
+                            def proroga() -> None:
+                                registro.rinnova_evento(tenant_id, fascicolo_id, worker_id, generazione)
+
+                            proroga()
                             verifica_discordanze_fascicolo(fascicolo)
+                            proroga()
                             # Una relata o una ricevuta appena entrata può chiudere una notifica
                             # aperta: si riallineano solo i presìdi di questo fascicolo, ora.
                             _riallinea_notifiche_del_fascicolo(fascicolo_id)
                             # Le udienze passate ricevono l'esito dalle comunicazioni di cancelleria lette (V28).
                             _registra_esiti_udienze(fascicolo)
+                            proroga()
                             # La scheda «Lettura» si prepara ora: all'apertura è già pronta (V21).
                             _prepara_lettura(fascicolo_id)
                             if evento.get("presidi"):
+                                proroga()
                                 from web.services.fascicolo_lettura_verifiche import esegui_verifiche
 
                                 esegui_verifiche(app, fascicolo_id, paths=dict(paths or {}), tenant_slug=tenant_slug)
@@ -1321,6 +1360,12 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             # Turno esaurito senza errori: il fascicolo torna in coda e riprende da qui.
                             sospeso = True
                             break
+            except _FascicoloInesistente:
+                # Il fascicolo non c'è più (eliminato o di un altro studio): non c'è nulla da leggere. L'evento si chiude
+                # e gli oggetti restano nel registro come non presenti; ritentarlo produceva centinaia di errori al
+                # giorno (collaudo del 03/11/2026: 612 in 24 ore su 5 fascicoli inesistenti).
+                chiudi_oggetti_fascicolo_inesistente(registro, tenant_id, fascicolo_id)
+                riuscito = True
             except Exception as exc:
                 errore_evento, codice_errore = str(exc), type(exc).__name__
                 logger.exception("Lettura in sfondo del fascicolo %s interrotta", fascicolo_id)
@@ -1400,6 +1445,39 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
         return len(da_aggiornare)
     except Exception:
         logger.exception("Riletture notturne non accodate per %s", tenant_id or "studio")
+        return 0
+
+
+# Verifiche dei presìdi più vecchie di un giorno: di notte il fascicolo torna in coda con i presìdi.
+ORE_VERIFICHE_PERIODICHE = 24
+
+
+def accoda_verifiche_periodiche(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
+                                limite: int = RILETTURE_PER_GIRO) -> int:
+    """Nessun fascicolo resta fermo: di notte rientrano in coda, con verifiche dei presìdi e riconvalida,
+    i fascicoli mai verificati o verificati da più di un giorno, i più vecchi per primi.
+
+    Fino alla 2.477 le verifiche partivano solo dal pulsante «Aggiorna» della Lettura e la coda si
+    alimentava solo con documenti e PEC nuovi: un fascicolo senza novità restava fermo per settimane
+    (verifica del 03/11/2026: «Verifiche automatiche dei presìdi eseguite il 13/10/2026»).
+    Base: regola del registro delle letture (art. 3 D.M. 44/2011; art. 20 CAD).
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from pct.ora_italiana import ROME_TZ
+
+    if not tenant_id or (datetime.now(ROME_TZ).hour if ora is None else ora) not in ORE_RILETTURA:
+        return 0
+    try:
+        from pct.discordanze_letture_repository import RegistroDiscordanze
+
+        soglia = (datetime.now(timezone.utc) - timedelta(hours=ORE_VERIFICHE_PERIODICHE)).isoformat()
+        da_verificare = RegistroDiscordanze(registro).fascicoli_da_verificare(tenant_id, prima_di=soglia, limite=limite)
+        for fascicolo_id in da_verificare:
+            registro.accoda_evento(tenant_id, fascicolo_id, presidi=True)
+        return len(da_verificare)
+    except Exception:
+        logger.exception("Verifiche periodiche dei presìdi non accodate per %s", tenant_id or "studio")
         return 0
 
 
@@ -1535,6 +1613,7 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)
         accodati += accoda_riletture_notturne(registro, tenant_id)
+        accodati += accoda_verifiche_periodiche(registro, tenant_id)
         ripresi_fermi += riprendi_letture_ferme(registro, tenant_id)
         from web.services.proposte_storico_runtime import esamina_proposte_storico_studio
 

@@ -65,7 +65,8 @@ def prova_notifica(oid: str, elenco: list[Any], etichette: dict[str, str], *, da
         "data": data,
         "atto": " ".join(_testo(f.contesto)[:200] for f in prove),
         "atto_documento_id": oid if nella_copia and relate else "",
-        "relata": bool(relate),
+        # Il catalogo che riconosce il documento come relata basta a dire che c'è una relata, non che è verificata.
+        "relata": bool(relate) or etichetta == "relata di notifica",
         "consegna": bool(consegne),
         "verificata": any(f.verifica in _VALIDE for f in relate) and bool(consegne),
         "destinatari": sorted({_testo(f.valore) for f in elenco if f.categoria == "parte"
@@ -129,6 +130,10 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
                           if prova.get("verificata") and prova.get("atto_documento_id")
                           and etichette.get(prova["documento_id"], "").casefold() == "sentenza"
                           and prova["documento_id"] not in precedenti}
+    try:
+        anno_ruolo = int(getattr(fascicolo, "anno_rg", 0) or 0)
+    except (TypeError, ValueError):
+        anno_ruolo = 0
     contesto = {
         "notifica_sentenza": next(iter(notifiche_sentenza)) if len(notifiche_sentenza) == 1 else "",
         "udienze_future": sorted({_testo(f.valore)[:10] for f in fatti if f.categoria == "data" and f.campo == "udienza" and f.verifica in {"verificata", "corretta"} and f.oggetto_id in nomi and f.oggetto_id not in precedenti and _testo(f.valore)[:10] >= oggi}),
@@ -137,7 +142,9 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
         "prove_notifica": prove,
         # La fase del procedimento (pct.obblighi_notifica_atto): sentenza nel fascicolo, udienze già
         # tenute, fascicolo definito. Solo dati già letti e verificati, mai dai precedenti prodotti.
-        "sentenze": [d.id for d in documenti if d.etichetta.casefold().startswith("sentenza") and "precedente" not in d.etichetta.casefold()],
+        # Una sentenza datata prima dell'anno di iscrizione a ruolo non è la decisione di questo procedimento.
+        "sentenze": [d.id for d in documenti if d.etichetta.casefold().startswith("sentenza") and "precedente" not in d.etichetta.casefold()
+                     and not (anno_ruolo and d.data and d.data[:4].isdigit() and int(d.data[:4]) < anno_ruolo)],
         "udienze_tenute": sorted({_testo(f.valore)[:10] for f in fatti if f.categoria == "data" and f.campo == "udienza" and f.verifica in {"verificata", "corretta"} and f.oggetto_id in nomi and f.oggetto_id not in precedenti and _testo(f.valore)[:10] < oggi}),
         "fascicolo_definito": _testo(getattr(getattr(fascicolo, "stato", ""), "value", getattr(fascicolo, "stato", ""))).upper() in {"DEFINITO", "ARCHIVIATO"},
         "nomi_documenti": nomi,

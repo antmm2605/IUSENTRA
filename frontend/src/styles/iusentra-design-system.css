@@ -1262,8 +1262,10 @@
   color: var(--iusentra-text-muted);
 }
 
-.iusentra-route-preset--active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] a,
-.iusentra-route-preset--active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button {
+/* Il pulsante principale shadcn (fondo scuro) conserva il proprio testo chiaro: con «inherit» il link
+   «Profilo» delle Legal Skills risultava blu notte su blu notte (riverifica 03/11/2026). */
+.iusentra-route-preset--active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] a:not([data-slot="button"][data-variant="default"]),
+.iusentra-route-preset--active .iusentra-route-sequence > [data-iusentra-sequence-slot="page-header"] button:not([data-slot="button"][data-variant="default"]) {
   color: inherit;
 }
 

@@ -6,7 +6,7 @@ import os
 import re
 from html import escape, unescape
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import unquote, urljoin, urlparse
 
 import requests
@@ -681,35 +681,39 @@ def _safe_cache_filename(url: str) -> str:
     return safe[:180]
 
 
-def _cached_download_candidates(url: str) -> list[Path]:
+def _cached_download_candidates(url: str) -> Iterator[Path]:
+    """Percorsi in cache, prima quelli diretti; la scansione ricorsiva solo se mancano.
+
+    La scansione non entra mai nelle cartelle degli studi (``tenants``): una fonte pubblica
+    non si cerca fra i documenti dei clienti, e su un server con migliaia di documenti la
+    scansione bloccava la ricerca legale per minuti (profilazione LEX-01 del 03/11/2026).
+    """
     filename = _safe_cache_filename(url)
     if not filename:
-        return []
+        return
     domain = _domain(url) or "fonte"
-    candidates: list[Path] = []
     seen: set[str] = set()
-    for root in _download_cache_roots():
-        direct = (
+    roots = _download_cache_roots()
+    for root in roots:
+        for candidate in (
             root / filename,
             root / domain / filename,
             root / "legal_updates" / domain / filename,
             root / "cassazione" / filename,
-        )
-        for candidate in direct:
-            key = str(candidate)
-            if key not in seen:
-                seen.add(key)
-                candidates.append(candidate)
-        if root.exists() and root.is_dir():
-            try:
-                for candidate in root.rglob(filename):
-                    key = str(candidate)
-                    if key not in seen:
-                        seen.add(key)
-                        candidates.append(candidate)
-            except OSError:
-                continue
-    return candidates
+        ):
+            if str(candidate) not in seen:
+                seen.add(str(candidate))
+                yield candidate
+    for root in roots:
+        if root.name == "tenants" or not root.is_dir():
+            continue
+        try:
+            for candidate in root.rglob(filename):
+                if str(candidate) not in seen:
+                    seen.add(str(candidate))
+                    yield candidate
+        except OSError:
+            continue
 
 
 def _load_cached_download(url: str, *, max_bytes: int) -> tuple[bytes, str]:

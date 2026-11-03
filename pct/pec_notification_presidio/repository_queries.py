@@ -58,8 +58,11 @@ class NotificationPresidioQueryMixin:
             where.append("p.assigned_user_id=?")
             params.append(assigned_user_id)
         if channel:
-            where.append("p.channel=?")
-            params.append(channel.strip().lower())
+            # «non_pec» e «nonpec» sono lo stesso canale (registro NOT-10): un solo filtro li comprende entrambi.
+            canale = channel.strip().lower()
+            alias = ("non_pec", "nonpec") if canale in {"non_pec", "nonpec"} else (canale,)
+            where.append("p.channel IN (" + ",".join("?" for _ in alias) + ")")
+            params.extend(alias)
         if recipient_identity_key:
             recipient_filter = str(recipient_identity_key).strip()
             if len(recipient_filter) == 64 and all(ch in "0123456789abcdef" for ch in recipient_filter.lower()):

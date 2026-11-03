@@ -108,6 +108,10 @@ def _wizard_sections(warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
 def _safe_record(row: dict[str, Any], index: int, kind: str = "profili") -> dict[str, Any]:
     title = (_text(row.get("label")) if kind == "regole" else _text(row.get("table_label"))) or _text(row.get("label")) or _text(row.get("materia_label"))
     subtitle = (_text(row.get("summary")) if kind == "regole" else _text(row.get("grado_input_value"))) or _text(row.get("article")) or _text(row.get("description"))
+    if kind == "profili" and _text(row.get("summary")):
+        # Riverifica 03/11/2026: profili con la stessa tabella (es. Tabella 2 primo grado e appello dal Giudice di Pace)
+        # si distinguono solo per il procedimento descritto.
+        subtitle = " · ".join(part for part in (subtitle, _text(row.get("summary"))) if part)
     return {
         "id": (_text(row.get("rule_code")) if kind == "regole" else _text(row.get("profile_code"))) or _text(row.get("reference_code")) or f"record_{index}",
         "kind": kind,

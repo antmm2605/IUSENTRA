@@ -164,7 +164,12 @@ del fascicolo:
   uno ZIP); per gli uffici giudiziari la fonte è `PEC_CANCELLERIA` (copia informativa);
 - l'`.eml` della notificazione L. 53/1994 e delle sue ricevute (accettazione, avvenuta consegna completa,
   mancata consegna), con lo stesso marcatore della riconciliazione del presidio notifiche
-  (`IUSENTRA_LEGAL_NOTIFICATION_RECEIPT:`), così la prova si riusa senza doppioni.
+  (`IUSENTRA_LEGAL_NOTIFICATION_RECEIPT:`), così la prova si riusa senza doppioni;
+- l'`.eml` della comunicazione dell'ufficio giudiziario (tipo `COMUNICAZIONE`, fonte `PEC_CANCELLERIA`): la
+  comunicazione è il messaggio stesso, corpo e `Comunicazione.xml` (art. 21 Specifiche tecniche DGSIA; art. 16,
+  comma 4, D.L. 179/2012). `IndiceBusta.xml` accanto a `Comunicazione.xml` non fa della comunicazione una
+  ricevuta di deposito: fino alla 2.477.0 le sentenze arrivate così restavano fuori. Quando cambiano le regole
+  (`classificazione.VERSIONE`) i messaggi già «completati» tornano una volta nel recupero, senza doppioni.
 
 Restano fuori, con il motivo: `daticert.xml`, involucro `postacert.eml`, firma `smime.p7s`, XML tecnici,
 immagini del corpo, ricevute del deposito telematico (flusso del deposito intoccato) e ricevute di PEC che

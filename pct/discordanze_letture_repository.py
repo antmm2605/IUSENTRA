@@ -36,6 +36,26 @@ class RegistroDiscordanze:
         with self.registro.connection() as c:
             c.execute('INSERT INTO letture_verifiche_esiti (tenant_id,fascicolo_id,payload_json,revisione,aggiornato_il) VALUES (?,?,?,?,?) ON CONFLICT(tenant_id,fascicolo_id) DO UPDATE SET payload_json=excluded.payload_json,revisione=excluded.revisione,aggiornato_il=excluded.aggiornato_il',(tenant,fid,_json(payload),_revision(payload),now))
 
+    def fascicoli_da_verificare(self, tenant, *, prima_di, limite=4):
+        """Fascicoli letti dal motore documenti con verifiche dei presìdi mai eseguite o più vecchie di `prima_di`.
+
+        Esclusi quelli già in coda o in lettura: il turno li prende da sé. I mai verificati per primi,
+        poi i più vecchi: ogni giro aggiorna l'esito, quindi l'elenco ruota e nessun fascicolo resta fermo.
+        """
+        if not tenant:
+            return []
+        with self.registro.connection() as c:
+            rows = c.execute(
+                "SELECT f.fascicolo_id FROM letture_fascicoli f "
+                "LEFT JOIN letture_verifiche_esiti v ON v.tenant_id=f.tenant_id AND v.fascicolo_id=f.fascicolo_id "
+                "WHERE f.tenant_id=? AND f.lettore='motore_documenti' "
+                "AND (v.aggiornato_il IS NULL OR v.aggiornato_il<?) "
+                "AND NOT EXISTS (SELECT 1 FROM letture_eventi e WHERE e.tenant_id=f.tenant_id AND e.fascicolo_id=f.fascicolo_id "
+                "AND e.stato IN ('pending','running')) "
+                "ORDER BY COALESCE(v.aggiornato_il,''), f.aggiornato_il, f.fascicolo_id LIMIT ?",
+                (tenant, str(prima_di), max(1, int(limite)))).fetchall()
+        return [str(r['fascicolo_id']) for r in rows]
+
     def riconcilia(self, tenant, fid, codice, voci):
         """Solo il verificatore completo può superare una discordanza non più presente."""
         if not tenant or not fid or not codice:

@@ -438,7 +438,7 @@ CATALOGO: List[TipoPratica] = [
     ),
     TipoPratica(
         id="responsabilita_genitoriale",
-        label="Responsabilita genitoriale e affidamento",
+        label="Responsabilità genitoriale e affidamento",
         area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,

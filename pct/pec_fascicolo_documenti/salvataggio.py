@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from pct.pec_fascicolo_documenti.classificazione import NOTIFICA, RICEVUTA_NOTIFICA, Allegato
+from pct.pec_fascicolo_documenti.classificazione import COMUNICAZIONE, NOTIFICA, RICEVUTA_NOTIFICA, Allegato
 
 ETICHETTA_PEC = "iusentra:pec:"
 ETICHETTA_DATA = "iusentra:pec-data:"
@@ -106,10 +106,16 @@ def salva_eml(manager: Any, fascicolo_id: str, raw: bytes, impronta: str, proven
         # un presidio, il documento si riusa e diventa la prova del destinatario (nessun doppione).
         nota = [f"{MARCATORE_RICEVUTA}{provenienza.message_id}", *righe_ricevuta, *nota]
         etichette = ["notifica-legale", *([etichetta_ricevuta.casefold()] if etichetta_ricevuta else []), *etichette]
+    if genere == COMUNICAZIONE:
+        # La comunicazione dell'ufficio (corpo e Comunicazione.xml): art. 16, comma 4, D.L. 179/2012.
+        tipo, fonte = TipoDocumento.COMUNICAZIONE, "PEC_CANCELLERIA"
+    else:
+        tipo = TipoDocumento.NOTIFICA
+        fonte = "PEC_AUDIT_NOTIFICATION_RECEIPT" if genere == RICEVUTA_NOTIFICA else "PEC_NOTIFICA"
     return manager.aggiungi_documento(
-        fascicolo_id, nome, TipoDocumento.NOTIFICA, raw, note="\n".join(nota), tags=etichette,
+        fascicolo_id, nome, tipo, raw, note="\n".join(nota), tags=etichette,
         data_documento=provenienza.giorno, caricato_da=actor,
-        fonte_documento="PEC_AUDIT_NOTIFICATION_RECEIPT" if genere == RICEVUTA_NOTIFICA else "PEC_NOTIFICA",
+        fonte_documento=fonte,
         nome_originale=nome, nome_archivio=nome, hash_contenuto_sha256=impronta, msg_id_portale=provenienza.message_id,
     )
 

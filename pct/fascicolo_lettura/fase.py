@@ -25,6 +25,8 @@ CODICE_FASE_ESECUTIVA = "esecutiva"
 CODICE_FASE_CHIUSA = "chiusa"
 
 _ISTRUTTORIA = {"relazione_peritale_ctu", "perizia_di_parte"}
+# Eventi del presidio PEC (pct/pec_legal_workflow.py) che comunicano una sentenza, come li legge pec.py.
+_EVENTI_SENTENZA = {"deposito sentenza", "sentenza a verbale", "sentenza a verbale 429"}
 
 
 def fase(
@@ -35,6 +37,7 @@ def fase(
     cronologia_letta: list[dict[str, Any]],
     scadenze: list[dict[str, Any]],
     oggi: Any,
+    pec_letto: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     giorno_oggi = data_da(oggi)
     prove: list[str] = []
@@ -93,11 +96,19 @@ def fase(
         descrizione = "fase decisoria: conclusioni precisate, in attesa della decisione"
         prove.append("precisazione delle conclusioni o comparsa conclusionale depositata")
 
-    if documenti_letti.get("sentenze"):
-        sentenza = documenti_letti["sentenze"][-1]
+    # La sentenza comunicata dalla cancelleria con PEC collegata al fascicolo (art. 133 c.p.c.; art. 16, c. 4,
+    # D.L. 179/2012) spesso non è fra i documenti: l'evento del presidio PEC, già confermato, la prova lo stesso.
+    sentenza_pec = next((voce for voce in reversed((pec_letto or {}).get("tutte") or []) if voce.get("collegata") and any(
+        evento.get("evento") in _EVENTI_SENTENZA and not evento.get("da_rivedere") for evento in voce.get("eventi") or [])), None)
+    if documenti_letti.get("sentenze") or sentenza_pec:
         codice = CODICE_FASE_DECISA
-        descrizione = f"causa decisa: {sentenza['etichetta']}" + (f" del {sentenza['data_it']}" if sentenza["data_it"] else "")
-        prove.append(f"{sentenza['etichetta']} ({sentenza['nome']})")
+        if documenti_letti.get("sentenze"):
+            sentenza = documenti_letti["sentenze"][-1]
+            descrizione = f"causa decisa: {sentenza['etichetta']}" + (f" del {sentenza['data_it']}" if sentenza["data_it"] else "")
+            prove.append(f"{sentenza['etichetta']} ({sentenza['nome']})")
+        else:
+            descrizione = f"causa decisa: sentenza comunicata con PEC del {sentenza_pec['data']}"
+            prove.append(f"PEC di cancelleria del {sentenza_pec['data']} «{sentenza_pec['oggetto']}»")
         if stato_codice in {"APERTO", "IN_CORSO"}:
             incoerenze.append("è presente una sentenza ma lo stato del fascicolo è ancora «in corso»: valutare impugnazione, esecuzione o definizione")
 

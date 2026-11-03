@@ -1,15 +1,18 @@
 """Registrazione automatica dalla sentenza nei casi certi, e il suo annullamento.
 
 Il lettore «proposta_definizione» (sentenza_proposte_runtime) chiama
-`registra_se_certa` in sfondo, sui testi già salvati, quando la sentenza del
-procedimento decide la causa nel grado. Se il credito delle spese è certo
-(`pct.sentenza_automatica.valuta_certezza`) il software:
+`registra_se_certa` in sfondo, sui testi già salvati (documenti del fascicolo e
+allegati delle PEC collegate), quando la sentenza del procedimento decide la
+causa nel grado e l'identità del procedimento coincide. Il software:
 
-- conferma il credito con autore «automatico dalla sentenza», impronta SHA-256
-  della fonte e norma (art. 91 o art. 93 c.p.c.): da quel momento vale per il
-  presidio economico e per la parcella (D.M. 55/2014);
 - porta il fascicolo a «definito» con la data della sentenza (art. 132 c.p.c.;
-  art. 88 c.p.a.), con la voce in cronologia che cita sentenza e fonte.
+  art. 88 c.p.a.), con la voce in cronologia che cita sentenza e fonte; spese
+  compensate o soccombenza del cliente non lo impediscono (art. 92 c.p.c.);
+- se il credito delle spese è certo (`pct.sentenza_automatica.valuta_certezza`)
+  lo conferma con autore «automatico dalla sentenza», impronta SHA-256 della
+  fonte e norma (art. 91 o art. 93 c.p.c.): da quel momento vale per il
+  presidio economico e per la parcella (D.M. 55/2014). Un credito incerto resta
+  da confermare, con il motivo.
 
 L'avvocato vede la registrazione e può annullarla: lo stato precedente torna,
 il credito torna da confermare e l'automatismo non si ripete su quella fonte.
@@ -84,14 +87,14 @@ def _definisci(fascicolo_id: str, *, estremi: dict[str, Any], nome: str, sha: st
             "data_definizione": _testo(getattr(corrente, "data_chiusura", "")) or data, "norma_definizione": norma}
 
 
-def registra_se_certa(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[str, Any]) -> dict[str, Any]:
-    """`registrata` vero se credito e definizione sono stati registrati; altrimenti `motivi` dice perché no."""
+def _credito_certo(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[str, Any]) -> dict[str, Any]:
+    """Il credito delle spese, registrato solo se certo; `motivi` dice perché no. Non tocca lo stato del fascicolo."""
     try:
         economia = _economia()
     except Exception:
         economia = None
     if economia is None:
-        return {"registrata": False, "motivi": ["Controllo economico delle sentenze non attivo."]}
+        return {"confermati": [], "motivi": ["Controllo economico delle sentenze non attivo."]}
     repo, tenant = economia
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     sha = _testo(getattr(oggetto, "impronta", "")).lower()
@@ -100,13 +103,15 @@ def registra_se_certa(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[s
     sorgenti = {_testo(a.get("id")) for a in audits}
     eventi = [e for e in repo.list_economic_events(tenant, fascicolo_id=fascicolo_id)
               if e.get("source_type") == "sentenza_economic_audit" and _testo(e.get("source_id")) in sorgenti]
+    if not audits and esito.get("importo") is None:
+        # Spese compensate o non liquidate (art. 92 c.p.c.): nessun credito da registrare.
+        return {"confermati": [], "motivi": []}
     certezza = valuta_certezza(dispositivo=valuta_sentenza(testo)["dispositivo"], importo_dispositivo=esito.get("importo"),
                                fascicolo=fascicolo, audits=audits, eventi=eventi)
     if not certezza["certo"]:
-        return {"registrata": False, "motivi": certezza["motivi"]}
-    estremi = esito.get("estremi") or {}
-    nome = _testo(getattr(oggetto, "nome", "")) or "sentenza"
+        return {"confermati": [], "motivi": certezza["motivi"]}
     evento = certezza["evento"]
+    estremi = esito.get("estremi") or {}
     traccia = {"kind": "registrazione_automatica", "autore": AUTORE, "regola": VERSIONE, "sha256": sha,
                "documento_id": _testo(getattr(oggetto, "oggetto_id", "")), "norma": certezza["norma"],
                "sentenza": estremi_sentenza(estremi).strip(), "citazione": _testo(esito.get("capo_spese"))[:400]}
@@ -114,7 +119,7 @@ def registra_se_certa(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[s
     if _testo(evento.get("status")) == "to_review":
         if not repo.aggiorna_evento_se(tenant, _testo(evento.get("id")), da_stato="to_review", da_revisore="",
                                        a_stato="confirmed", revisore=AUTORE, nota=traccia):
-            return {"registrata": False, "motivi": ["Credito deciso nel frattempo dall'avvocato."]}
+            return {"confermati": [], "motivi": ["Credito deciso nel frattempo dall'avvocato."]}
         confermati.append(_testo(evento.get("id")))
     for doppione in certezza["gruppo"][1:]:
         if _testo(doppione.get("status")) == "to_review":
@@ -125,16 +130,45 @@ def registra_se_certa(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[s
                              subject_ref=confermati[0], decision="confirmed",
                              rationale=f"{certezza['etichetta']} ({certezza['norma']}) letto con certezza nella sentenza{traccia['sentenza'] and ' ' + traccia['sentenza']}",
                              evidence={**traccia, "importo": certezza["importo"], "fascicolo_id": fascicolo_id})
+    credito = {"evento": _testo(evento.get("id")), "tipo": certezza["tipo"], "etichetta": certezza["etichetta"],
+               "norma": certezza["norma"], "importo": certezza["importo"]} if confermati else {}
+    return {"confermati": confermati, "motivi": [], **credito}
+
+
+def registra_se_certa(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[str, Any]) -> dict[str, Any]:
+    """`registrata` vero se definizione o credito sono stati registrati; altrimenti `motivi` dice perché no.
+
+    Le due registrazioni hanno ciascuna la propria certezza (decisione dell'avvocato del 03/11/2026:
+    «questo processo doveva essere automatico»):
+
+    - la definizione, quando la sentenza decide la causa nel grado e l'identità del procedimento
+      coincide (R.G., ufficio, parte, codice fiscale): è la verifica già superata dal chiamante
+      (`esito["proposta"]`, art. 132 c.p.c.; art. 88 c.p.a.). Spese compensate o condanna del
+      cliente non la impediscono: la causa è decisa lo stesso (art. 92 c.p.c.);
+    - il credito delle spese, solo con importo e beneficiario certi (`pct.sentenza_automatica`,
+      artt. 91 e 93 c.p.c.); altrimenti resta da confermare, con il motivo.
+    """
+    fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+    sha = _testo(getattr(oggetto, "impronta", "")).lower()
+    estremi = esito.get("estremi") or {}
+    nome = _testo(getattr(oggetto, "nome", "")) or "sentenza"
+    credito = _credito_certo(fascicolo=fascicolo, oggetto=oggetto, testo=testo, esito=esito)
     try:
         definizione = _definisci(fascicolo_id, estremi=estremi, nome=nome, sha=sha, grado=_testo(esito.get("grado")))
     except Exception:
         logger.exception("Definizione automatica non registrata per %s", fascicolo_id)
         definizione = {"definito": False}
-    if not confermati and not definizione.get("definito"):
-        return {"registrata": False, "motivi": ["Credito e stato del fascicolo già decisi: nulla da registrare."]}
-    return {"registrata": True, "il": _adesso(), "da": AUTORE, "regola": VERSIONE, "evento": _testo(evento.get("id")),
-            "eventi": confermati, "tipo": certezza["tipo"], "etichetta": certezza["etichetta"], "norma": certezza["norma"],
-            "importo": certezza["importo"], **definizione}
+    motivi = list(credito.get("motivi") or [])
+    if not credito["confermati"] and not definizione.get("definito"):
+        stato = _testo(definizione.get("stato_precedente"))
+        if stato == "SOSPESO":
+            motivi.insert(0, "Fascicolo sospeso: la definizione resta una decisione dell'avvocato.")
+        return {"registrata": False, "motivi": motivi or ["Credito e stato del fascicolo già decisi: nulla da registrare."]}
+    return {"registrata": True, "il": _adesso(), "da": AUTORE, "regola": VERSIONE, "evento": credito.get("evento", ""),
+            "eventi": credito["confermati"], "tipo": credito.get("tipo", ""), "etichetta": credito.get("etichetta", ""),
+            "norma": credito.get("norma", ""), "importo": credito.get("importo"),
+            # Il credito non certo resta da confermare: il motivo accompagna la registrazione della definizione.
+            "credito_non_automatico": motivi, **definizione}
 
 
 def annulla_automatica(fascicolo: Any, proposta_id: str, *, utente: str = "") -> dict[str, Any]:
@@ -152,7 +186,7 @@ def annulla_automatica(fascicolo: Any, proposta_id: str, *, utente: str = "") ->
     automatica = dict((lettura.esito or {}).get("automatica") or {}) if lettura else {}
     if not automatica.get("registrata") or automatica.get("annullata"):
         raise ValueError("Registrazione automatica non trovata o già annullata.")
-    oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oggetto_id)
+    oggetto = registro.oggetto(tenant, fascicolo_id, getattr(lettura, "tipo", "") or "documento", oggetto_id)
     if oggetto is None or oggetto.impronta != impronta:
         raise ValueError("Il documento della sentenza è cambiato: annullamento da fare dalla sezione economica.")
     parcelle = _parcelle_per_evento(fascicolo_id)
@@ -188,12 +222,11 @@ def annulla_automatica(fascicolo: Any, proposta_id: str, *, utente: str = "") ->
 
 def registrazioni_automatiche(fascicolo: Any, registro: Any, tenant: str, parcelle: dict[str, str]) -> list[dict[str, Any]]:
     """Le registrazioni automatiche in vigore, con la fonte da visualizzare e il passaggio letto."""
-    from urllib.parse import quote
-
-    from web.services.sentenza_proposte_runtime import _euro
+    from web.services.sentenza_proposte_runtime import _euro, con_passo, href_fonte
 
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
-    presenti = {(o.oggetto_id, o.impronta): o for o in registro.oggetti(tenant, fascicolo_id) if o.presente and o.tipo == "documento"}
+    presenti = {(o.oggetto_id, o.impronta): o for o in registro.oggetti(tenant, fascicolo_id)
+                if o.presente and o.tipo in {"documento", "allegato_pec"}}
     voci = []
     for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE):
         esito = lettura.esito or {}
@@ -203,13 +236,15 @@ def registrazioni_automatiche(fascicolo: Any, registro: Any, tenant: str, parcel
         oggetto = presenti.get((lettura.oggetto_id, lettura.sha256))
         estremi = esito.get("estremi") or {}
         evento = _testo(automatica.get("evento"))
+        citazione = _testo(esito.get("capo_spese")) or _testo(esito.get("dispositivo"))
         voci.append({
             "id": f"{lettura.oggetto_id}:{lettura.sha256}", "documentoId": lettura.oggetto_id,
             "documento": _testo(getattr(oggetto, "nome", "")) or "Sentenza",
-            "href": f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(lettura.oggetto_id, safe='')}/visualizza" if oggetto else "",
+            "href": con_passo(href_fonte(fascicolo_id, oggetto), citazione),
             "numero": _testo(estremi.get("numero")), "anno": _testo(estremi.get("anno")), "data": _testo(estremi.get("data")),
-            "citazione": _testo(esito.get("capo_spese")) or _testo(esito.get("dispositivo")),
-            "etichetta": f"{_testo(automatica.get('etichetta'))} ({_testo(automatica.get('norma'))})",
+            "citazione": citazione,
+            "etichetta": (f"{_testo(automatica.get('etichetta'))} ({_testo(automatica.get('norma'))})"
+                          if _testo(automatica.get("etichetta")) else ""),
             "importoLabel": _euro(automatica.get("importo")) if automatica.get("importo") is not None else "",
             "eventId": evento, "parcella": parcelle.get(evento, ""),
             "definito": bool(automatica.get("definito")), "dataDefinizione": _testo(automatica.get("data_definizione")),

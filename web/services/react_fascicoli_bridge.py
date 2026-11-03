@@ -9035,10 +9035,20 @@ def _activities(
 
 
 def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
+    """Scadenze del fascicolo: prima le prossime (dalla più vicina), poi le trascorse (dalla più recente).
+
+    Verifica del 03/11/2026: il riquadro «Udienze e scadenze» del presidio prende la prima voce e mostrava
+    come prossima udienza un rinvio già trascorso. Il giorno di riferimento è quello di Roma.
+    """
+    oggi = oggi_rome()
     out = []
+    trascorse: set[int] = set()
     for item in scadenze:
         sid = _text(getattr(item, "id", ""), f"deadline-{len(out)}")
         raw_date = _text(getattr(item, "data_scadenza", "") or getattr(item, "data", ""))
+        giorno = _parse_date(raw_date) if raw_date else None
+        if giorno is not None and giorno < oggi:
+            trascorse.add(len(out))
         out.append(
             {
                 "id": sid,
@@ -9054,7 +9064,9 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
                 "tone": _deadline_tone(item),
             }
         )
-    return sorted(out, key=lambda item: item["dateIso"] or "9999")
+    prossime = sorted((voce for i, voce in enumerate(out) if i not in trascorse), key=lambda item: item["dateIso"] or "9999")
+    passate = sorted((voce for i, voce in enumerate(out) if i in trascorse), key=lambda item: item["dateIso"], reverse=True)
+    return prossime + passate
 
 
 def _appointments(apps: Iterable[Any]) -> list[dict[str, Any]]:

@@ -27,7 +27,7 @@ from .fase import (
     CODICE_FASE_PREPARATORIA,
 )
 from .modello import Passo
-from .passi_note_127_ter import passi_note_127_ter
+from .passi_note_127_ter import _e_termine_note, passi_note_127_ter
 
 GIORNI_PROSSIMI = 30
 MASSIMO_PASSI = 10
@@ -99,6 +99,8 @@ def _passi_scadenze(scadenze: list[dict[str, Any]], giorno_oggi: Any) -> list[Pa
         fonti, template = _norme_della_scadenza(titolo)
         perentoria = " (termine perentorio)" if scadenza.get("perentorio") else ""
         distanza = (giorno - giorno_oggi).days
+        if distanza >= 0 and pulisci(scadenza.get("stato")).upper() == "APERTO" and _e_termine_note(scadenza):
+            continue  # Il deposito delle note ha i suoi passi, con le indicazioni del decreto (passi_note_127_ter).
         if distanza < 0:
             passi.append(Passo(0, f"Verificare l’esito della scadenza «{titolo}»", f"scaduta il {data_it(giorno)}{perentoria}", data_it(giorno), "scadenziario", fonti, HREF_SCADENZE, template))
         elif distanza <= 7:
@@ -243,14 +245,41 @@ def _passi_conformita(conformita: dict[str, Any]) -> list[Passo]:
     return passi
 
 
-def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], notifiche_lette: dict[str, Any], documenti_letti: dict[str, Any], *, intestazione: dict[str, Any] | None = None) -> list[Passo]:
+# Udienza sostituita dal deposito di note scritte (art. 127-ter c.p.c.): non c'è discussione da preparare.
+_RE_TRATTAZIONE_SCRITTA = re.compile(
+    r"127[\s.-]*ter|note\s+scritte|trattazione\s+scritta|udienza\s+cartolare|termine\s+per\s+(?:il\s+deposito\s+(?:di|delle)\s+)?note"
+    r"|sostituit\w*\s+(?:dal|con\s+il|dallo?)\s+(?:deposito|scambio)",
+    re.IGNORECASE,
+)
+
+
+def _udienza_in_trattazione_scritta(giorno: str, scadenze: list[dict[str, Any]] | None) -> bool:
+    """Nello stesso giorno dell'udienza c'è un termine per note scritte, o l'udienza stessa è cartolare."""
+    data = data_da(giorno)
+    if not data:
+        return False
+    for scadenza in scadenze or []:
+        if pulisci(scadenza.get("stato")).upper() in {"ANNULLATO", "ANNULLATA"}:
+            continue
+        if data_da(scadenza.get("data") or scadenza.get("data_scadenza")) != data:
+            continue
+        testo = " ".join(pulisci(scadenza.get(campo)) for campo in ("titolo", "descrizione", "note"))
+        if _RE_TRATTAZIONE_SCRITTA.search(testo):
+            return True
+    return False
+
+
+def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], notifiche_lette: dict[str, Any], documenti_letti: dict[str, Any], *, intestazione: dict[str, Any] | None = None,
+                scadenze: list[dict[str, Any]] | None = None) -> list[Passo]:
     passi: list[Passo] = []
     codice = fase_letta.get("codice")
     if codice == CODICE_FASE_PREPARATORIA and not notifiche_lette["tutte"]:
         passi.append(Passo(2, "Notificare l'atto introduttivo alla controparte", "l'atto risulta redatto ma nessuna notifica è registrata; via PEC si perfeziona con le ricevute di accettazione e di consegna", "", "lettura del fascicolo", ("l53_art3bis", "cpc_147"), HREF_COMUNICAZIONI))
     if codice == CODICE_FASE_NOTIFICATA and not depositi_letti["tutti"]:
         passi.append(Passo(1, "Iscrivere la causa a ruolo depositando l'atto notificato", "costituzione dell'attore entro dieci giorni dalla notificazione della citazione", "", "lettura del fascicolo", ("cpc_165", "dispatt_196sexies"), HREF_COMUNICAZIONI, "CIV_COSTITUZIONE_ATTORE_165"))
-    if codice in {CODICE_FASE_ISCRITTA, CODICE_FASE_TRATTAZIONE, CODICE_FASE_ISTRUTTORIA, CODICE_FASE_DECISORIA} and fase_letta.get("prossima_udienza"):
+    if (codice in {CODICE_FASE_ISCRITTA, CODICE_FASE_TRATTAZIONE, CODICE_FASE_ISTRUTTORIA, CODICE_FASE_DECISORIA} and fase_letta.get("prossima_udienza")
+            # Con la trattazione scritta il passo è il deposito delle note (passi_note_127_ter), non la discussione.
+            and not _udienza_in_trattazione_scritta(fase_letta["prossima_udienza"], scadenze)):
         from pct.procedura_fasi.riti import rito_per_fascicolo
         intestazione = intestazione or {}
         rito = rito_per_fascicolo(intestazione.get("tipo", ""), intestazione.get("rito", ""))
@@ -363,7 +392,7 @@ def prossimi_passi(
     passi.extend(_passi_notifiche(notifiche_lette))
     passi.extend(_passi_pec(pec_letto, giorno_oggi))
     passi.extend(_passi_conformita(conformita))
-    passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti, intestazione=intestazione))
+    passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti, intestazione=intestazione, scadenze=scadenze))
     passi.extend(_passi_documenti(documenti_letti, verifiche))
     passi.extend(_passi_economico(economico_letto))
 

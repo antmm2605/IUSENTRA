@@ -1,5 +1,6 @@
 import { beginActivity } from '../../../frontend/src/ui/activity'
 import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActivity'
+import { passoDaIndirizzo, trovaPasso } from './reader-passo.js'
 
 (() => {
   'use strict'
@@ -263,6 +264,30 @@ import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActi
   fitWords()
   layoutRotation()
 
+  // «Visualizza sentenza» e le altre fonti citate: il lettore si apre sul passo da cui nasce la proposta
+  // e lo evidenzia (frammento #passo=…). Senza strato di testo (scansione non ancora letta) resta a pagina 1.
+  let passoEvidenziato = false
+  const evidenziaPasso = ({ silenzioso = false } = {}) => {
+    const passo = passoDaIndirizzo(window.location.hash)
+    if (!passo || passoEvidenziato) return
+    const parole = [...pages.querySelectorAll('.reader-word')]
+    const indici = trovaPasso(parole.map((parola) => parola.textContent || ''), passo)
+    if (!indici.length) {
+      // Le pagine scansionate ricevono il testo OCR quando entrano in vista: si riprova allora.
+      if (!silenzioso && parole.length) status('Passo citato non individuato nel testo del documento: il documento è aperto dalla prima pagina.')
+      return
+    }
+    passoEvidenziato = true
+    indici.forEach((indice) => parole[indice].classList.add('is-highlighted'))
+    if (clearButton) clearButton.disabled = false
+    const primo = parole[indici[0]]
+    const pagina = primo.closest('.page')
+    const numero = pagina ? [...pages.querySelectorAll('.page')].indexOf(pagina) + 1 : 0
+    window.requestAnimationFrame(() => primo.scrollIntoView({ block: 'center', inline: 'nearest' }))
+    status(numero ? `Passo citato evidenziato a pagina ${numero}.` : 'Passo citato evidenziato.')
+  }
+  evidenziaPasso()
+
   // Native text appears immediately. Scanned pages obtain OCR only when visible.
   const ocrQueue = []
   let ocrActive = 0
@@ -296,6 +321,7 @@ import { installNativeActivityStatus } from '../../../frontend/src/ui/nativeActi
       surface.appendChild(layer)
       note.textContent = payload.message || 'Testo OCR disponibile.'
       fitWords()
+      evidenziaPasso({ silenzioso: true })
     }).catch(() => { note.textContent = 'Lettura OCR della pagina non riuscita. Riapri il documento per riprovare.' })
       .finally(() => { finishOcrActivity(); ocrActive -= 1; runOcr() })
     runOcr()

@@ -136,5 +136,12 @@
 		# riprova per 30 secondi prima di arrendersi.
 		lb_try_duration 30s
 		lb_try_interval 250ms
+		# Gunicorn chiude le connessioni inattive dopo GUNICORN_KEEPALIVE (5 s); Caddy le teneva
+		# aperte 2 minuti. Alla prima apertura dopo una pausa le richieste parallele del dettaglio
+		# fascicolo riusavano connessioni già chiuse dall'app e ricevevano 502 tutte insieme,
+		# anche quelle leggere (verifica del 03/11/2026, FAS-38). Caddy chiude per primo.
+		transport http {
+			keepalive 4s
+		}
 	}
 }

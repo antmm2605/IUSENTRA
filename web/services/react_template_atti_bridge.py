@@ -256,8 +256,8 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
         "title": _text(getattr(template, "titolo", "")) or "Template studio",
         "subtitle": _text(getattr(template, "fase", "") or getattr(template, "rito", "")),
         "description": _short(getattr(template, "descrizione", ""), 220),
-        "category": _text(getattr(template, "categoria", "")),
-        "matter": _text(getattr(template, "branca", "") or getattr(template, "sottobranca", "")),
+        "category": _tassonomia(_text(getattr(template, "categoria", ""))),
+        "matter": _tassonomia(_text(getattr(template, "branca", "") or getattr(template, "sottobranca", ""))),
         "area": _text(getattr(template, "area", "")),
         "branch": _text(getattr(template, "sottobranca", "")),
         "channel": _channel_label(channel) or "Canale non indicato",
@@ -284,6 +284,15 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
     }
 
 
+def _forme_canoniche(values: list[str]) -> dict[str, str]:
+    """Per ogni voce, la grafia con meno maiuscole («Lavoro e previdenza» prevale su «Lavoro e Previdenza»)."""
+    forme: dict[str, str] = {}
+    for value in values:
+        if value and (value.casefold() not in forme or sum(c.isupper() for c in value) < sum(c.isupper() for c in forme[value.casefold()])):
+            forme[value.casefold()] = value
+    return forme
+
+
 def _counter_section(
     sid: str,
     title: str,
@@ -292,16 +301,19 @@ def _counter_section(
     empty: str,
 ) -> dict[str, Any]:
     # Stessa voce scritta con maiuscole diverse («Lavoro e previdenza» / «Lavoro e Previdenza») conta una volta.
+    # Si mostra la forma con meno maiuscole («Lavoro e previdenza»), uguale in tutte le sezioni.
     counter: Counter[str] = Counter()
     forme: dict[str, str] = {}
     for value in values:
         if not value:
             continue
         chiave = value.casefold()
-        forme.setdefault(chiave, value)
-        counter[forme[chiave]] += 1
+        attuale = forme.get(chiave)
+        if attuale is None or sum(c.isupper() for c in value) < sum(c.isupper() for c in attuale):
+            forme[chiave] = value
+        counter[chiave] += 1
     items = [
-        _item(key.lower().replace(" ", "_") or f"{sid}_{index}", key, count, "", "neutral")
+        _item(forme[key].lower().replace(" ", "_") or f"{sid}_{index}", forme[key], count, "", "neutral")
         for index, (key, count) in enumerate(counter.most_common(), start=1)
     ]
     return _section(sid, title, kind, items, empty)
@@ -347,6 +359,10 @@ def build_react_template_atti_payload(
 
     categories = [record["category"] for record in records]
     matters = [record["matter"] or record["area"] for record in records]
+    # Riverifica 03/11/2026: la stessa voce ha la stessa grafia in Categorie e in Materie.
+    forme_comuni = _forme_canoniche(categories + matters)
+    categories = [forme_comuni.get(value.casefold(), value) for value in categories]
+    matters = [forme_comuni.get(value.casefold(), value) for value in matters]
     channels = [record["channel"] for record in records]
     with_variables = sum(1 for record in records if record.get("requiredVariables"))
     with_cartabia = sum(1 for record in records if record.get("cartabiaState"))

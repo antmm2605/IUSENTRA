@@ -108,12 +108,43 @@ def parse_importo(value: Any) -> float | None:
         return None
 
 
+def a_parole_intere(testo: str, limite: int) -> str:
+    """Il testo entro `limite` caratteri senza spezzare l'ultima parola: la citazione finisce su una parola intera."""
+
+    testo = str(testo or "").strip()
+    if len(testo) <= limite:
+        return testo
+    taglio = testo[: limite + 1]
+    spazio = taglio.rfind(" ")
+    return (taglio[:spazio] if spazio > 0 else testo[:limite]).rstrip(" ,;:")
+
+
+def rifila_brano(testo: str) -> str:
+    """Brano salvato con i bordi tagliati a caso (fino alla 2.477): toglie la parola spezzata in testa e in coda.
+
+    Una parola intera tolta per prudenza non cambia la citazione; mezza parola la rende illeggibile.
+    """
+
+    parole = str(testo or "").split()
+    if len(parole) > 2 and parole[0][:1].islower():
+        parole = parole[1:]
+    if len(parole) > 2 and parole[-1][-1:].isalnum():
+        parole = parole[:-1]
+    return " ".join(parole)
+
+
 def estratto_testo(text: str, start: int, end: int, *, window: int = 90) -> str:
-    """Brano attorno alla corrispondenza: e' la fonte mostrata all'avvocato."""
+    """Brano attorno alla corrispondenza: e' la fonte mostrata all'avvocato, sempre a parole intere."""
 
     left = max(0, start - window)
     right = min(len(text), end + window)
-    return compatta_testo(text[left:right])[:360]
+    if 0 < left < start and text[left - 1].isalnum() and text[left].isalnum():
+        spazio = text.find(" ", left, start)
+        left = spazio + 1 if spazio >= 0 else left
+    if end < right < len(text) and text[right - 1].isalnum() and text[right].isalnum():
+        spazio = text.rfind(" ", end, right)
+        right = spazio if spazio >= 0 else right
+    return a_parole_intere(compatta_testo(text[left:right]), 360)
 
 
 def estrai_spese_liquidate(testo: str) -> tuple[float | None, str]:
@@ -168,8 +199,10 @@ __all__ = [
     "MONEY_AMOUNT_PATTERN",
     "MONEY_PREFIX_PATTERN",
     "MONEY_RE",
+    "a_parole_intere",
     "compatta_testo",
     "estrai_spese_liquidate",
     "estratto_testo",
     "parse_importo",
+    "rifila_brano",
 ]

@@ -143,6 +143,7 @@ _SIGLE_TITOLO = (
     (re.compile(r'^r\.\s*d\.\s*l\.\s*', re.I), 'R.D.L. '),
     (re.compile(r'^r\.\s*d\.\s*', re.I), 'R.D. '),
     (re.compile(r'^regio\s+decreto-legge\s+', re.I), 'R.D.L. '),
+    (re.compile(r'^regio\s+decreto\s+', re.I), 'R.D. '),
     (re.compile(r'^decreto\.luogotenenziale\s+', re.I), 'D.Lgt. '),
     (re.compile(r'^l\.\s*', re.I), 'L. '),
 )
@@ -178,7 +179,9 @@ def _label(key: str, title: str, urn: str = '') -> str:
         label = parts[0]
     label = _sigla_uniforme(label.strip(), urn)
     # Punto finale del titolo ufficiale tolto, ma non quello di una sigla ("c.p.c.").
-    if re.search(r'[^\W\d_]{4,}\.$', label):
+    # Vale anche per i titoli che finiscono con un anno o un apostrofo ("… esercizio 1973.", "societa'.").
+    ultimo = label.rsplit(' ', 1)[-1]
+    if label.endswith('.') and ultimo.count('.') == 1 and len(ultimo) > 2:
         label = label[:-1]
     return label if len(label) <= 150 else label[:147].rstrip() + '…'
 

@@ -513,7 +513,7 @@ function CompactOperations({
           <span>Numerazione</span>
           <strong>{data.nextNumber || 'n.d.'}</strong>
         </a>
-        <a className="iu-fatt-chip" href="/impostazioni/sdi" data-tone={data.sdiChannel.configured ? 'success' : 'warning'}>
+        <a className="iu-fatt-chip" href="/impostazioni/sdi" title="Canale SdI" data-tone={data.sdiChannel.configured ? 'success' : 'warning'}>
           <Mail size={15} />
           <span>Canale SdI</span>
           <strong>{data.sdiChannel.configured ? 'Attivo' : 'Da fare'}</strong>

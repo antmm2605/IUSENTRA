@@ -12,7 +12,7 @@ from datetime import date
 
 from flask import Blueprint, Response, g, redirect, url_for, current_app
 
-from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo
+from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo_fast
 from web.helpers import get_agenda, get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_scadenziario
 
 export_csv = Blueprint("export_csv", __name__, url_prefix="/export")
@@ -80,7 +80,9 @@ def fascicoli_csv():
     rows = []
     for f in get_fascicoli().tutti(archiviati=True):
         cliente = gc.get(f.id_cliente) if f.id_cliente else None
-        payment_summary = payment_summary_for_fascicolo(f)
+        # Riepilogo consolidato dal presidio economico pianificato, come la vista «Economica»: nessuna rilettura
+        # dei documenti per ogni fascicolo (riverifica 03/11/2026: oltre 3 minuti per 336 fascicoli, risposta mai arrivata).
+        payment_summary = payment_summary_for_fascicolo_fast(f)
         payments = payment_summary["items"]
         rows.append({
             "ID":               f.id,

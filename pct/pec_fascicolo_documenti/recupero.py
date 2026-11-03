@@ -13,12 +13,16 @@ from typing import Any
 
 from pct.pec_collegamento_certo_riconvalida import riconvalida_collegamenti
 from pct.pec_fascicolo_documenti import registro as reg
+from pct.pec_fascicolo_documenti.classificazione import VERSIONE
 from pct.pec_fascicolo_documenti.flusso import Eventi, _schema, processa_messaggio
 
+# «completato» con regole di classificazione precedenti: si rivede una volta (per esempio le comunicazioni di
+# cancelleria scartate come ricevute di deposito perché portavano IndiceBusta.xml).
 _CODA = (
     "FROM pec_messages m LEFT JOIN pec_fascicolo_documenti_messaggi s ON s.tenant_id=m.tenant_id AND s.message_id=m.id "
     "WHERE m.tenant_id=? AND m.linked_fascicolo_id<>'' AND (s.message_id IS NULL OR s.fascicolo_id<>m.linked_fascicolo_id "
     f"OR (s.stato='errore' AND s.tentativi<{reg.MASSIMO_TENTATIVI}) "
+    f"OR (s.stato='completato' AND s.versione_regole<>'{VERSIONE}') "
     "OR (s.stato='in_attesa_conferma' AND (SELECT MAX(l.created_at) FROM pec_fascicolo_links l WHERE l.message_id=m.id) > s.updated_at))"
 )
 

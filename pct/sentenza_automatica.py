@@ -10,16 +10,20 @@ titolare il 02/11/2026:
    (impronta SHA-256 del documento, art. 20 CAD) oppure lo stesso capo spese letto.
    Il gruppo si mostra una volta; la decisione dell'avvocato prevale sempre.
 
-2. **Automatico solo quando certo.** Il credito si registra e il fascicolo si
-   definisce senza conferma solo se la sentenza decide la causa nel grado
-   (art. 132 c.p.c.; art. 88 c.p.a.; regole di `pct.sentenza_conclusiva`),
-   l'identità del procedimento coincide (R.G., cliente, ufficio, codice fiscale:
-   `pct.sentenza_economic_audit`) e importo e beneficiario si leggono senza
-   ambiguità nel dispositivo: un solo credito, un solo importo liquidato, uguale
-   in due letture indipendenti, parte condannata nominata ed estranea al cliente.
-   Mai automatico con sentenza non definitiva o parziale, identità non
-   coincidente, importo ambiguo, più dispositivi, compensazione parziale,
-   gratuito patrocinio o una decisione contraria dell'avvocato.
+2. **Automatico solo quando certo.** Definizione e credito hanno ciascuno la
+   propria certezza (decisione dell'avvocato del 03/11/2026: il processo deve
+   essere automatico). Il fascicolo si definisce senza conferma quando la
+   sentenza decide la causa nel grado (art. 132 c.p.c.; art. 88 c.p.a.; regole
+   di `pct.sentenza_conclusiva`) e l'identità del procedimento coincide (R.G.,
+   cliente, ufficio, codice fiscale: `pct.fascicolo_sentenza_archiviazione`),
+   anche con spese compensate (art. 92 c.p.c.). Il credito si registra senza
+   conferma solo se importo e beneficiario si leggono senza ambiguità nel
+   dispositivo (`valuta_certezza`): un solo credito, un solo importo liquidato,
+   uguale in due letture indipendenti, parte condannata nominata ed estranea al
+   cliente. Mai automatico con sentenza non definitiva o parziale, identità non
+   coincidente, fascicolo sospeso o una decisione contraria dell'avvocato; il
+   credito mai con importo ambiguo, più dispositivi, compensazione parziale o
+   gratuito patrocinio. Tutto si annulla con «Annulla».
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ from typing import Any
 
 from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, compatta_testo, parse_importo
 
-VERSIONE = "sentenza-automatica.v1"
+VERSIONE = "sentenza-automatica.v2"
 AUTORE = "automatico dalla sentenza"
 STATO_DOPPIONE = "duplicato"
 CREDITI: dict[str, tuple[str, str]] = {

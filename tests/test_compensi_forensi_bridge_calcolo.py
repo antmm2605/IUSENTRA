@@ -121,3 +121,13 @@ def test_primo_scaglione_non_si_chiama_indeterminabile():
     )
     assert "indeterminabile" not in risultato.scaglione
     assert "art. 5, comma 6" in risultato.note
+
+
+def test_profili_con_la_stessa_tabella_si_distinguono_nel_catalogo():
+    from web.services.react_compensi_forensi_bridge import _safe_record
+
+    primo = _safe_record({"profile_code": "civile_tribunale", "table_label": "Tabella 2 - Giudizi civili ordinari", "grado_input_value": "Tribunale", "summary": "Giudizi civili ordinari di primo grado."}, 1)
+    appello = _safe_record({"profile_code": "civile_appello_tribunale", "table_label": "Tabella 2 - Giudizi civili ordinari", "grado_input_value": "Tribunale", "summary": "Appello civile contro sentenza del Giudice di Pace."}, 2)
+    assert primo["title"] == appello["title"]
+    assert primo["subtitle"] != appello["subtitle"]
+    assert appello["subtitle"].startswith("Tribunale · ")

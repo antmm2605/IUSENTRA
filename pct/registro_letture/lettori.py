@@ -15,18 +15,18 @@ from typing import Any
 # `livello`: «oggetto» se il lettore legge documento per documento e registra ogni
 # lettura; «fascicolo» se legge il fascicolo nel suo insieme e registra solo
 # l'impronta dell'inventario che ha esaminato. `tipi`: gli oggetti che legge.
+# `su_richiesta`: il lettore non deve leggere ogni oggetto, ma solo quelli che gli servono quando serve
+# (scadenze dai PDF: all'anteprima dello Scadenziario; proforma: fascicoli definiti senza parcella). Un oggetto
+# che non ha mai toccato non è «da leggere»; lo è solo ciò che ha letto con un'impronta ora cambiata.
+# Collaudo del 03/11/2026: non sono più censiti «Presidio PEC» (gli stessi allegati li legge il motore PEC
+# dell'archivio; nessuno scriveva più il lettore dal 16/09) e «Sentenza e preparazione archivio» (lo stesso
+# lavoro lo fa «Sentenza e definizione», sentenza_proposte_runtime; nessuno lo scriveva dall'08/10).
 LETTORI: dict[str, dict[str, Any]] = {
-    "sentenza_da_archiviare": {
-        "etichetta": "Sentenza e preparazione archivio",
-        "descrizione": "Stato della pratica dalla sentenza conclusiva con fonte e valore verificati",
-        "livello": "oggetto",
-        "tipi": ("documento", "allegato_pec"),
-    },
     "proposta_definizione": {
         "etichetta": "Sentenza e definizione",
-        "descrizione": "Definizione del fascicolo e credito delle spese dalla sentenza che decide la causa: automatici solo se certi, altrimenti da confermare dall'avvocato",
+        "descrizione": "Definizione del fascicolo e credito delle spese dalla sentenza che decide la causa, nei documenti e negli allegati PEC: automatici solo se certi, altrimenti da confermare dall'avvocato",
         "livello": "oggetto",
-        "tipi": ("documento",),
+        "tipi": ("documento", "allegato_pec"),
     },
     "ocr": {
         "etichetta": "Testo e ricerca",
@@ -52,12 +52,6 @@ LETTORI: dict[str, dict[str, Any]] = {
         "livello": "oggetto",
         "tipi": ("documento",),
     },
-    "presidio_pec": {
-        "etichetta": "Presidio PEC",
-        "descrizione": "Allegati PEC letti dal presidio audit-grade",
-        "livello": "oggetto",
-        "tipi": ("allegato_pec",),
-    },
     "presidio_economico": {
         "etichetta": "Presidio economico",
         "descrizione": "Contributo unificato, liquidazioni e prove economiche nei documenti",
@@ -69,6 +63,7 @@ LETTORI: dict[str, dict[str, Any]] = {
         "descrizione": "Sentenze e importi letti per proporre la parcella proforma",
         "livello": "fascicolo",
         "tipi": ("documento",),
+        "su_richiesta": True,
     },
     "motore_documenti": {
         "etichetta": "Motore documenti (archivio)",
@@ -81,6 +76,7 @@ LETTORI: dict[str, dict[str, Any]] = {
         "descrizione": "Udienze e termini letti nei PDF per la proposta allo scadenziario",
         "livello": "oggetto",
         "tipi": ("documento",),
+        "su_richiesta": True,
     },
     "motore_pec": {
         "etichetta": "Motore PEC (archivio)",
@@ -108,12 +104,6 @@ def _versione_catalogo() -> str:
     from pct.document_intelligence.catalog_resolver import RESOLVER_VERSION
 
     return str(RESOLVER_VERSION)
-
-
-def _versione_presidio_pec() -> str:
-    from pct.pec_pipeline import PEC_ATTACHMENT_EXTRACTION_VERSION
-
-    return str(PEC_ATTACHMENT_EXTRACTION_VERSION)
 
 
 def _versione_motore_documenti() -> str:
@@ -148,13 +138,11 @@ def _versione_presidio_economico() -> str:
 
 
 _VERSIONI: dict[str, Callable[[], str]] = {
-    "sentenza_da_archiviare": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["RULE"]).RULE,
     "proposta_definizione": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["VERSIONE_PROPOSTA"]).VERSIONE_PROPOSTA,
     "ocr": _versione_ocr,
     "indice_documentale": _versione_indice_documentale,
     "catalogo": _versione_catalogo,
     "rag_locale": lambda: "rag-locale.v3.sql-riscontri",
-    "presidio_pec": _versione_presidio_pec,
     "presidio_economico": _versione_presidio_economico,
     "proforma_automatica": _versione_presidio_economico,
     "motore_documenti": _versione_motore_documenti,
@@ -198,6 +186,12 @@ def versione_compatibile_lettore(lettore: str, versione_registrata: str, version
     return bool(versione and versione in set(versioni_compatibili_lettore(lettore, versione_corrente)))
 
 
+def su_richiesta_lettore(lettore: str) -> bool:
+    """Vero se il lettore lavora solo quando serve (non ogni oggetto è suo da leggere)."""
+    voce = LETTORI.get(str(lettore or ""))
+    return bool(voce and voce.get("su_richiesta"))
+
+
 def livello_lettore(lettore: str) -> str:
     voce = LETTORI.get(str(lettore or ""))
     return str(voce.get("livello") or "oggetto") if voce else "oggetto"
@@ -214,6 +208,6 @@ def etichetta_lettore(lettore: str) -> str:
 
 
 __all__ = [
-    "LETTORI", "etichetta_lettore", "livello_lettore", "tipi_lettore",
+    "LETTORI", "etichetta_lettore", "livello_lettore", "su_richiesta_lettore", "tipi_lettore",
     "versione_compatibile_lettore", "versione_lettore", "versioni_compatibili_lettore",
 ]

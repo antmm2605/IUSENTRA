@@ -69,6 +69,9 @@ export function sanitizeDisplayText(value: string): string {
     .replace(/\bAPI\b/g, 'servizio')
     .replace(/\bbackend\b/gi, 'controlli operativi')
     .replace(/\bfrontend\b/gi, 'pagina')
+    // Riverifica 03/11/2026: «con il server» diventava «con il ambiente».
+    .replace(/\b(il|lo)\s+server\b/gi, (_m, art: string) => (art[0] === art[0].toUpperCase() ? "L'ambiente" : "l'ambiente"))
+    .replace(/\b(da|a|de|ne|su)l\s+server\b/gi, (_m, prep: string) => `${prep}ll'ambiente`)
     .replace(/\bserver\b/gi, 'ambiente')
     .replace(/\blegacy\b/gi, 'percorso di recupero')
     .replace(/\bfallback\s+tecnico\b/gi, 'verifica prudenziale')

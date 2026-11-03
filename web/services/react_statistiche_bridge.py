@@ -10,6 +10,7 @@ from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 from pct.pec_operational_cleanup import is_legacy_pec_deadline
+from pct.scadenze_stato import aperta
 
 
 MONTH_LABELS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
@@ -274,7 +275,8 @@ def build_react_statistiche_payload(
     # non compaiono nello scadenziario e non si contano qui.
     scadenze_aperte = [
         item for item in scadenze
-        if _enum_value(getattr(item, "stato", "")).upper() == "APERTO" and not is_legacy_pec_deadline(item)
+        # Regola V28: adempimenti scaduti e udienze passate non sono «aperte».
+        if aperta(item, today) and not is_legacy_pec_deadline(item)
     ]
     scadenze_oggi = sum(1 for item in scadenze_aperte if _parse_date(getattr(item, "data_scadenza", "")) == today)
     scadute_oggi = sum(1 for item in scadenze if _enum_value(getattr(item, "stato", "")).upper() == "SCADUTO" and _parse_date(getattr(item, "data_scadenza", "")) == today)

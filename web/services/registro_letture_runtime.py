@@ -376,23 +376,6 @@ def registra_lettura(fascicolo: Any, oggetto: Oggetto, lettore: str, *, esito: d
     return {"lettura": lettura.to_dict(), "anomalie": [a.to_dict() for a in anomalie]}
 
 
-def _sincronizza_presidio_pec(fascicolo: Any, registro: RegistroLetture, tenant: str, righe: list[dict[str, Any]]) -> None:
-    """Gli allegati PEC con testo letto dal presidio audit-grade risultano letti anche nel registro."""
-    fascicolo_id = str(getattr(fascicolo, "id", "") or "")
-    letti: list[Oggetto] = []
-    for riga in righe:
-        for allegato in list(riga.get("allegati") or []):
-            if not str(allegato.get("ocr_text") or "").strip():
-                continue
-            oggetto = registro.oggetto(tenant, fascicolo_id, "allegato_pec", str(allegato.get("id") or ""))
-            if oggetto is not None:
-                letti.append(oggetto)
-    if letti:
-        da_segnare = registro.da_confermare(tenant, fascicolo_id, "presidio_pec", oggetti=letti)
-        if da_segnare:
-            registro.segna_letti(tenant, fascicolo_id, da_segnare, "presidio_pec", esito={"fonte": "presidio PEC audit-grade"})
-
-
 def _verifica_date_pec(fascicolo: Any, registro: RegistroLetture, tenant: str) -> None:
     """Le udienze e i termini letti dalle PEC del fascicolo: una data prima della PEC o fuori orizzonte è un'anomalia."""
     try:

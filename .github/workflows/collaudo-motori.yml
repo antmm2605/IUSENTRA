@@ -1,0 +1,90 @@
+name: Collaudo dei motori di lettura
+# Collaudo motore per motore in produzione (deploy/hetzner/collaudo_motori.py): solo conteggi ed esiti, nessun
+# dato del cliente. INVENTARIO è sola lettura; GIRI chiede due esecuzioni manuali delle pianificazioni dei motori;
+# INCREMENTALE, ERRORI e PULIZIA scrivono solo sul fascicolo di collaudo senza cliente.
+on:
+  workflow_dispatch:
+    inputs:
+      fase:
+        description: "Fasi separate da virgola: INVENTARIO, GIRI, INCREMENTALE, ERRORI, PULIZIA"
+        required: true
+        default: "INVENTARIO"
+      fascicolo:
+        description: "Fascicolo di collaudo (identificativo o prefisso; deve avere «COLLAUDO» nel titolo e nessun cliente)"
+        required: false
+        default: "474D4C13"
+      studio:
+        description: "Studio in cui creare il fascicolo di collaudo se manca (con «crea»)"
+        required: false
+        default: "studio_1"
+      crea:
+        description: "Crea il fascicolo «COLLAUDO MOTORI – non cliente» se non ce n'è uno di prova accettabile"
+        type: boolean
+        default: false
+      giri_jobs:
+        description: "Pianificazioni per la fase GIRI (vuoto = motori principali)"
+        required: false
+        default: ""
+      attesa_s:
+        description: "Secondi di attesa dei motori dopo ogni modifica del fascicolo di collaudo"
+        required: false
+        default: "360"
+  push:
+    branches: [claude/stoic-goldberg-q1m88y]
+    paths: [deploy/hetzner/collaudo_motori.py, .github/workflows/collaudo-motori.yml]
+permissions:
+  contents: read
+concurrency:
+  group: collaudo-motori
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  collaudo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v5
+      - name: Collaudo dei motori
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+          FASE: ${{ inputs.fase || 'INVENTARIO' }}
+          FASCICOLO: ${{ inputs.fascicolo || '474D4C13' }}
+          STUDIO: ${{ inputs.studio || 'studio_1' }}
+          CREA: ${{ inputs.crea && '1' || '' }}
+          GIRI_JOBS: ${{ inputs.giri_jobs }}
+          ATTESA_S: ${{ inputs.attesa_s || '360' }}
+        run: |
+          set -euo pipefail
+          case "$FASE$FASCICOLO$STUDIO$GIRI_JOBS$ATTESA_S$CREA" in *[!A-Za-z0-9_,-]*) echo "Valori non validi"; exit 1;; esac
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            "${HETZNER_USER}@${HETZNER_HOST}" \
+            "cd /opt/iusentra/repo && git rev-parse --short HEAD && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e FASE='${FASE}' -e FASCICOLO='${FASCICOLO}' -e STUDIO='${STUDIO}' -e CREA='${CREA}' -e GIRI_JOBS='${GIRI_JOBS}' -e ATTESA_S='${ATTESA_S}' scheduler-worker python -" \
+            < deploy/hetzner/collaudo_motori.py > uscita.txt
+          head -1 uscita.txt
+          grep -m1 '^COLLAUDO_MOTORI_JSON:' uscita.txt | sed 's/^COLLAUDO_MOTORI_JSON://' | jq . > collaudo.json
+          rm -f uscita.txt
+          jq -c '.fasi' collaudo.json
+          jq -c '.INVENTARIO.fascicolo_di_collaudo // empty' collaudo.json
+          jq -r '.INVENTARIO.studi[]? | .studio as $s | (.lettori // {}) | to_entries[] | [$s, .key, (.value | del(.livello) | tostring)] | @tsv' collaudo.json
+          jq -c '.INVENTARIO.studi[]? | {studio, fascicoli, inventario, eventi, sintesi, anomalie, fatti}' collaudo.json
+          jq -c '.INVENTARIO.studi[]? | {studio, pec}' collaudo.json
+          jq -c '.INVENTARIO.coda_ocr // empty, .INVENTARIO.pianificazioni // empty' collaudo.json
+          jq -c '.INVENTARIO.diagnosi_eventi_non_disponibile // empty' collaudo.json
+          jq -c 'del(.INVENTARIO)' collaudo.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: collaudo-motori
+          path: collaudo.json
+          if-no-files-found: ignore
+          retention-days: 30

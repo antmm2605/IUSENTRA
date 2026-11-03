@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { vociAgendaFascicolo } from '../../frontend/src/components/fascicoli/agendaFascicoloVoci.ts'
+import { prossimaScadenza, vociAgendaFascicolo } from '../../frontend/src/components/fascicoli/agendaFascicoloVoci.ts'
 
 const scadenza = (id, dateIso, extra = {}) => ({ id, title: id, date: '', dateIso, type: 'TERMINE', priority: '', status: 'APERTO', peremptory: false, notes: '', href: `/s/${id}`, tone: 'warning', ...extra })
 const appuntamento = (id, date, extra = {}) => ({ id, title: id, date, time: '09:00', place: '', court: '', type: 'UDIENZA', href: `/a/${id}`, tone: 'primary', past: false, ...extra })
@@ -53,4 +53,10 @@ test('agenda del fascicolo: termine perentorio anche in agenda resta una sola vo
     '2026-11-02',
   )
   assert.deepEqual(voci.map((v) => `${v.genere}:${v.perentorio}`), ['scadenza:true'])
+})
+
+test('presidio del fascicolo: la prossima udienza non è mai un rinvio già trascorso', () => {
+  const scadenze = [scadenza('Rinvio udienza', '2026-10-07'), scadenza('Termine note', '2026-11-04'), scadenza('Udienza', '2026-12-01')]
+  assert.equal(prossimaScadenza(scadenze, '2026-11-03')?.id, 'Termine note')
+  assert.equal(prossimaScadenza([scadenza('Rinvio udienza', '2026-10-07')], '2026-11-03'), undefined)
 })

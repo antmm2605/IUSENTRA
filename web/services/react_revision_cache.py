@@ -37,7 +37,9 @@ def file_signature(paths: Iterable[str | Path]) -> tuple | None:
     return tuple(signature)
 
 
-def revision_cache_key(name: str, *, domains: Iterable[str], files: Iterable[str | Path] = ()) -> tuple[Any, ...] | None:
+def revision_cache_key(
+    name: str, *, domains: Iterable[str], files: Iterable[str | Path] = (), include_vertical: bool = True,
+) -> tuple[Any, ...] | None:
     """Chiave di riuso o ``None`` se le revisioni non sono confermabili."""
     from web.services.operational_read_revision import read_authorized_revision_snapshot
 
@@ -45,7 +47,7 @@ def revision_cache_key(name: str, *, domains: Iterable[str], files: Iterable[str
     if user is None:
         return None
     try:
-        snapshot = read_authorized_revision_snapshot(user, requested_domains=set(domains))
+        snapshot = read_authorized_revision_snapshot(user, requested_domains=set(domains), include_vertical=include_vertical)
         context = snapshot.get("context")
         revisions = snapshot.get("revisions")
         signature = file_signature(files)

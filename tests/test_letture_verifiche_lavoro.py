@@ -122,6 +122,75 @@ def test_fase_non_superata_il_ricorso_resta_da_notificare():
     assert voce["stato"] == STATO_DA_NOTIFICARE
 
 
+def test_relata_separata_nel_fascicolo_non_lascia_il_ricorso_da_notificare():
+    # NOT-01 (03/11/2026): relata in file separato (art. 3-bis, comma 5, L. 53/1994) e ricevuta di consegna nel
+    # fascicolo, udienza ancora futura: la voce non può dire «Da notificare» mentre il pannello
+    # «Comunicazioni e notifica» dice «Prova notifica depositata». Resta «Da verificare», mai «Notificato».
+    contesto = {
+        "notifica_estero": False, "udienze_future": ["2027-01-10"], "documenti_atti": ["ric", "ric_not"],
+        "nomi_documenti": {"rel": "Relata di notifica.pdf"},
+        "prove_notifica": [{"documento_id": "rel", "atto_documento_id": "", "relata": True, "consegna": False, "verificata": False}],
+    }
+    (voce,) = _voci(_due_copie(), contesto)
+    assert voce["stato"] == STATO_DA_VERIFICARE
+    assert "Relata di notifica.pdf" in voce["motivo"]
+    assert voce["prove_documenti"] == ["rel"]
+
+
+def test_prova_di_un_altro_atto_non_tocca_il_ricorso_da_notificare():
+    documenti = [*_due_copie(), DocumentoCatalogato("dec", "decreto.pdf", "Decreto di fissazione udienza")]
+    contesto = {
+        "notifica_estero": False, "documenti_atti": ["ric", "ric_not", "dec"],
+        "prove_notifica": [{"documento_id": "dec", "atto_documento_id": "", "relata": True, "consegna": True, "verificata": False}],
+    }
+    (voce,) = _voci(documenti, contesto)
+    assert voce["stato"] == STATO_DA_NOTIFICARE
+
+
+def test_sole_ricevute_di_una_pec_stragiudiziale_non_toccano_il_ricorso_da_notificare():
+    # Ricevute di accettazione e consegna di una diffida via PEC: senza relata non sono una notifica L. 53/1994.
+    contesto = {
+        "notifica_estero": False, "documenti_atti": ["ric", "ric_not"],
+        "prove_notifica": [{"documento_id": "diffida_rdac", "atto_documento_id": "", "relata": False, "consegna": True, "verificata": False}],
+    }
+    (voce,) = _voci(_due_copie(), contesto)
+    assert voce["stato"] == STATO_DA_NOTIFICARE
+
+
+def test_sentenza_anteriore_all_anno_del_ruolo_non_supera_la_fase():
+    # NOT-03 (03/11/2026): una «Sentenza» del 2020 in un fascicolo iscritto nel 2026 è giurisprudenza prodotta,
+    # non la decisione del procedimento: non può chiudere come «Notificato» il ricorso ancora da notificare.
+    from web.services.obblighi_notifica_runtime import raccogli
+
+    fascicolo = SimpleNamespace(id="F1", controparte="", avvocato_controparte="", anno_rg=2026, stato=SimpleNamespace(value="IN_CORSO"),
+                                documenti=[SimpleNamespace(id="ric", nome="ricorso.pdf"), SimpleNamespace(id="vecchia", nome="sentenza.pdf"),
+                                           SimpleNamespace(id="nuova", nome="sentenza_2026.pdf")])
+    fatti = [Fatto(categoria="data", campo="provvedimento", valore="2020-04-08", valore_letto="2020-04-08", oggetto_id="vecchia", verifica="verificata"),
+             Fatto(categoria="data", campo="provvedimento", valore="2026-10-30", valore_letto="2026-10-30", oggetto_id="nuova", verifica="verificata")]
+    _, _, contesto = raccogli(fascicolo, fatti, {"ric": RICORSO, "vecchia": "Sentenza", "nuova": "Sentenza"})
+    assert contesto["sentenze"] == ["nuova"]
+    _, _, contesto = raccogli(fascicolo, fatti[:1], {"ric": RICORSO, "vecchia": "Sentenza"})
+    assert contesto["sentenze"] == [] and fase_superata(contesto) == ""
+
+
+def test_sentenza_con_relata_nella_copia_notificata_non_resta_facoltativa():
+    # NOT-04 (03/11/2026): la sentenza già notificata (relata nella copia «originale notificato») non può restare
+    # «Facoltativa: decisione del difensore»; da quella notifica decorre il termine breve (artt. 325 e 326 c.p.c.).
+    documenti = [DocumentoCatalogato("sent", "sentenza.pdf", "Sentenza", data="2026-09-30"),
+                 DocumentoCatalogato("sent_not", "sentenza_originale_notificato.pdf", "Sentenza", data="2026-09-30")]
+    prova = {"documento_id": "sent_not", "atto_documento_id": "sent_not", "relata": True, "consegna": False, "verificata": False}
+    (voce,) = _voci(documenti, {"notifica_estero": False, "prove_notifica": [prova], "sentenze": ["sent", "sent_not"],
+                                "nomi_documenti": {"sent_not": "sentenza_originale_notificato.pdf"}})
+    assert voce["regola"] == "sentenza_notifica_breve"
+    assert voce["stato"] == STATO_DA_VERIFICARE
+    assert "sentenza_originale_notificato.pdf" in voce["motivo"] and "termine breve" in voce["motivo"]
+
+
+def test_sentenza_senza_prove_resta_facoltativa():
+    (voce,) = _voci([DocumentoCatalogato("sent", "sentenza.pdf", "Sentenza", data="2026-09-30")], {"notifica_estero": False})
+    assert voce["stato"] == STATO_FACOLTATIVO
+
+
 def test_raccolta_legge_sentenza_udienze_tenute_e_fascicolo_definito():
     from web.services.obblighi_notifica_runtime import raccogli
 

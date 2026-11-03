@@ -1,0 +1,83 @@
+name: Profilazione della ricerca legale
+# Tempi per fase e per sorgente della ricerca /ricerca-legale sul server (sola lettura): conteggi, dimensioni dei
+# database, piani EXPLAIN e punti caldi del codice. Nessun testo di documenti né dato dello studio.
+on:
+  workflow_dispatch:
+    inputs:
+      domande:
+        description: "Domande separate da «|» (vuoto = le quattro del registro LEX-01)"
+        required: false
+        default: ""
+      limite_s:
+        description: "Attesa massima per domanda, in secondi"
+        required: false
+        default: "240"
+permissions:
+  contents: read
+concurrency:
+  group: profila-ricerca
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+jobs:
+  profila:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Profilazione delle domande
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+          DOMANDE: ${{ inputs.domande }}
+          LIMITE: ${{ inputs.limite_s }}
+        run: |
+          set -euo pipefail
+          case "$LIMITE" in ''|*[!0-9]*) echo "Limite non valido"; exit 1;; esac
+          case "$DOMANDE" in *[!A-Za-z0-9\ \|àèéìòùÀÈÉÌÒÙ.,/-]*) echo "Domande non valide"; exit 1;; esac
+          [ -n "$DOMANDE" ] || DOMANDE="|Cassazione prescrizione|mediazione obbligatoria|usura bancaria tasso soglia|credito imposta investimenti"
+          mkdir -p ~/.ssh profilo
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          trap 'shred -u ~/.ssh/id_deploy' EXIT
+          SSH="ssh -i $HOME/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30"
+          $SSH "${HETZNER_USER}@${HETZNER_HOST}" 'echo "== carico"; uptime; nproc; free -m; docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"'
+          n=0
+          IFS='|' read -ra ELENCO <<< "$DOMANDE"
+          for q in "${ELENCO[@]}"; do
+            n=$((n+1))
+            echo "== domanda $n: «${q:-pagina senza ricerca}»"
+            $SSH "${HETZNER_USER}@${HETZNER_HOST}" \
+              "docker exec -i -e PROFILA_QUERY='${q}' -e PROFILA_LIMITE_S='${LIMITE}' iusentra-app python -" \
+              < deploy/hetzner/profila_ricerca.py > uscita.txt 2>/dev/null || true
+            if grep -q '^PROFILA_RICERCA_JSON:' uscita.txt; then
+              grep -m1 '^PROFILA_RICERCA_JSON:' uscita.txt | sed 's/^PROFILA_RICERCA_JSON://' | jq . > "profilo/domanda_$n.json"
+              jq -c '{query, completata, interrotta_dopo_s, avvio_app_s, totale_s: .risultato.totale_s, record: .risultato.record, errore: .risultato.errore, avvisi: .risultato.avvisi, fonti: .risultato.fonti_per_tipo, kb: .risultato.dimensione_json_kb}' "profilo/domanda_$n.json"
+              echo "-- tempi per fase (s, chiamate, risultati)"
+              jq -r '.tempi_per_fase | to_entries[] | select(.value.secondi >= 0.05) | [.key, .value.secondi, .value.chiamate, .value.risultati, .value.massimo_s] | @tsv' "profilo/domanda_$n.json" | head -45
+              echo "-- SQL più lente"
+              jq -r '.sql_piu_lente[] | "\(.secondi)s x\(.chiamate) [\(.db)] \(.sql[0:220])\n     piano: \((.piano // [.piano_errore]) | join(" ; "))"' "profilo/domanda_$n.json"
+              echo "-- punti caldi (quota dei campioni)"
+              jq -r '.punti_caldi[] | "\(.quota)\t\(.punto)"' "profilo/domanda_$n.json" | head -30
+              echo "-- foglie"
+              jq -r '.foglie[] | "\(.quota)\t\(.punto)"' "profilo/domanda_$n.json" | head -12
+              echo "-- cProfile cumulato"
+              jq -r '.risultato.cprofile_cumulato[]? | "\(.cumulato_s)\t\(.proprio_s)\t\(.chiamate)\t\(.funzione)"' "profilo/domanda_$n.json" | head -40
+            else
+              echo "Nessun esito per questa domanda"; tail -c 600 uscita.txt | grep -E "Error|Exception" | cut -c1-160 || true
+            fi
+          done
+          jq '.dimensioni_db' profilo/domanda_1.json > profilo/dimensioni_db.json 2>/dev/null || true
+          echo "== dimensioni dei database"
+          cat profilo/dimensioni_db.json || true
+          rm -f uscita.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: profilo-ricerca
+          path: profilo/
+          retention-days: 14

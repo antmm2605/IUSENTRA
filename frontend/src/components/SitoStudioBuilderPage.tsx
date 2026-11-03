@@ -660,12 +660,12 @@ function BuilderLivePreview({
           <section className={`iu-builder-public-hero is-align-${hero?.alignment || 'start'}`}>
             <div>
               <h1>{richNodes(pageTitle)}</h1>
-              {pageSubtitle ? <p>{richNodes(pageSubtitle)}</p> : <p>Completa claim e descrizione nella scheda Setup.</p>}
+              {pageSubtitle ? <p>{richNodes(pageSubtitle)}</p> : <p>Completa claim e descrizione nella scheda Avvio.</p>}
               {buttonText ? <button type="button">{buttonText}</button> : null}
             </div>
             <aside>
               <strong>Consulenza riservata</strong>
-              <span>{site.contactEmail || site.contactPhone ? 'Recapiti dello studio disponibili.' : 'Completa i recapiti in Setup.'}</span>
+              <span>{site.contactEmail || site.contactPhone ? 'Recapiti dello studio disponibili.' : 'Completa i recapiti nella scheda Avvio.'}</span>
               {site.contactPhone ? <small>{site.contactPhone}</small> : null}
               {site.contactEmail ? <small>{site.contactEmail}</small> : null}
             </aside>

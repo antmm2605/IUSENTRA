@@ -17,13 +17,16 @@ Regole:
    ancora complete o confermate non lasciano la voce «Da notificare»: diventa
    «Da verificare» con la prova da controllare (art. 3-bis, comma 3, e art. 9
    L. 53/1994: la notifica si perfeziona con la ricevuta di avvenuta consegna).
+   Lo stesso vale per una relata in file separato non riferita a un altro
+   atto: la voce è «Da verificare», mai «Notificato» per somiglianza.
 3. **Fase superata.** La notifica dell'atto introduttivo non si propone come
    da fare quando il procedimento è andato oltre: sentenza nel fascicolo
    (art. 132 c.p.c.; art. 429 c.p.c. nel rito del lavoro), udienza già tenuta
    (art. 420 c.p.c.; art. 183 c.p.c.) o fascicolo definito. Con prove di
    notifica nel fascicolo la voce è «Notificato» con le prove; senza prove la
-   voce non si propone. Nessuna regola facoltativa (notifica della sentenza,
-   artt. 285, 325, 326 c.p.c.) viene toccata.
+   voce non si propone. La fase non tocca le regole facoltative (notifica
+   della sentenza, artt. 285, 325, 326 c.p.c.); una loro copia notificata
+   però le porta a «Da verificare»: decorre il termine breve.
 """
 
 from __future__ import annotations
@@ -114,10 +117,20 @@ def una_voce_per_atto(obblighi: list[dict[str, Any]], contesto: dict[str, Any]) 
         voce["fonti_documentali"] = _fonti(gruppo)
         copie = {str(f.get("documentoId")) for f in voce["fonti_documentali"]}
         nomi.update({str(f.get("documentoId")): str(f.get("documento") or "") for f in voce["fonti_documentali"]})
-        if voce.get("stato") in {STATO_NOTIFICATO, STATO_FACOLTATIVO} or voce.get("facoltativa"):
+        if voce.get("stato") == STATO_NOTIFICATO:
             esito.append(voce)
             continue
         dell_atto, altre = _prove(contesto, copie)
+        if voce.get("stato") == STATO_FACOLTATIVO or voce.get("facoltativa"):
+            if dell_atto and voce.get("stato") == STATO_FACOLTATIVO:
+                # La copia notificata della sentenza: non è più una scelta da fare, va controllato chi ha notificato
+                # e quando, perché da quella notifica decorre il termine breve (artt. 325 e 326 c.p.c.).
+                voce.update(stato=STATO_DA_VERIFICARE,
+                            motivo=(f"Nel fascicolo c'è una copia notificata ({_nomi(dell_atto, nomi)}): verifica chi l'ha notificata "
+                                    "e la data, da cui decorre il termine breve di impugnazione."),
+                            prove_documenti=[str(p.get("documento_id")) for p in dell_atto])
+            esito.append(voce)
+            continue
         if superata and (voce.get("regola") in REGOLE_ATTO_INTRODUTTIVO or contesto.get("fascicolo_definito")):
             if not (dell_atto or altre):
                 continue  # fase superata e nessuna prova: la notifica non si propone come da fare
@@ -130,6 +143,14 @@ def una_voce_per_atto(obblighi: list[dict[str, Any]], contesto: dict[str, Any]) 
                         motivo=(f"Prova di notifica dell'atto nel fascicolo ({_nomi(dell_atto, nomi)}): conferma relata e ricevuta "
                                 "di avvenuta consegna invece di notificare di nuovo. " + str(voce.get("motivo") or "")).strip(),
                         prove_documenti=[str(p.get("documento_id")) for p in dell_atto])
+        elif (relate := [p for p in altre if p.get("relata")]) and voce.get("stato") == STATO_DA_NOTIFICARE:
+            # Relata in file separato (art. 3-bis, comma 5, L. 53/1994) non riferita a un altro atto: non prova
+            # questo atto, ma non lascia proporre una nuova notifica senza un controllo. Le sole ricevute PEC
+            # (una diffida, una comunicazione) senza relata non sono una notifica e non contano.
+            voce.update(stato=STATO_DA_VERIFICARE,
+                        motivo=(f"Nel fascicolo c'è una relata di notifica non collegata a un atto preciso ({_nomi(relate, nomi)}): "
+                                "verifica se riguarda questo atto prima di notificare di nuovo. " + str(voce.get("motivo") or "")).strip(),
+                        prove_documenti=[str(p.get("documento_id")) for p in relate])
         esito.append(voce)
     ordine = {STATO_DA_NOTIFICARE: 0, STATO_DA_VERIFICARE: 1, STATO_FACOLTATIVO: 2, STATO_NOTIFICATO: 3}
     return sorted(esito, key=lambda o: (ordine.get(o.get("stato"), 9), o.get("scadenza") or "9999"))

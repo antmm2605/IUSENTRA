@@ -1282,15 +1282,15 @@ def calcola_compenso(
             valore_indeterminabile_parametrizzato = True
             complessita_norm = virtual_complexity
             note_parts.append(
-                "Valore indeterminabile parametrizzato: il valore virtuale e' usato solo per individuare lo scaglione, "
+                "Valore indeterminabile parametrizzato: il valore virtuale è usato solo per individuare lo scaglione, "
                 "non come valore dichiarato dal cliente."
             )
         else:
             valore_calcolo = tabella[0].valore_da
             note_parts.append(
-                "Valore non indicato: applicato il primo scaglione tabellare. Se la causa e' di valore indeterminabile, "
+                "Valore non indicato: applicato il primo scaglione tabellare. Se la causa è di valore indeterminabile, "
                 "l'art. 5, comma 6, D.M. 55/2014 la considera di valore tra € 26.000 e € 260.000 (fino a € 520.000 se di "
-                "particolare importanza): indicare il valore o scegliere la complessita' molto alta."
+                "particolare importanza): indicare il valore o scegliere la complessità molto alta."
             )
 
     sc = tabella[-1]
@@ -1359,14 +1359,14 @@ def calcola_compenso(
         )
     if valore_indeterminabile_parametrizzato and complessita_norm == ComplessitaStimata.MOLTO_ALTA:
         note_parts.append(
-            "Complessita' molto alta: causa di valore indeterminabile di particolare importanza, collocata nello scaglione "
-            "fino a € 520.000 (art. 5, comma 6, D.M. 55/2014); verificare la congruita' prima dell'invio al cliente."
+            "Complessità molto alta: causa di valore indeterminabile di particolare importanza, collocata nello scaglione "
+            "fino a € 520.000 (art. 5, comma 6, D.M. 55/2014); verificare la congruità prima dell'invio al cliente."
         )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
-        note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
+        note_parts.append("Compenso unico tabellare: le fasi selezionate sono accorpate automaticamente.")
     if riparto_compenso_unico:
         note_parts.append(
-            f"{tabella_codice}: tabella a compenso unico; per il preventivo scritto l'importo unico e' "
+            f"{tabella_codice}: tabella a compenso unico; per il preventivo scritto l'importo unico è "
             "ripartito in quote operative sulle fasi selezionate, senza creare valori ministeriali autonomi."
         )
     if _variazioni:

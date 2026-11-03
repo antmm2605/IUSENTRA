@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from lex.normativa.biblioteca.fabbisogno import CARTELLA_SCHEDE, norm_articolo
+from lex.procedura_atti.fonti_scheda import _sigla
 from pct.schede_fonti.decisioni import DecisioniStudio, chiave, impronta
 from pct.schede_fonti.verifica import verifica_schede
 
@@ -126,7 +127,7 @@ def _elenco(biblioteca, studio_db):
         # Non esporre nomi, note o approvazioni dello stato CLI condiviso.
         x = {"id": str(p["id"]), "tipo": p["tipo"], "scheda": p["scheda"], "atto": p["atto"],
              "articolo": p["articolo"], "differenze": p["differenze"], "creata_il": p["creata_il"],
-             "motivo": f"{TIPI.get(p['tipo'], p['tipo'])}: art. {p['articolo']} ({p['atto']}). Verificare il riferimento del modello."}
+             "motivo": f"{TIPI.get(p['tipo'], p['tipo'])}: art. {p['articolo']} {_sigla(p['atto'])}. Verificare il riferimento del modello."}
         x["impronta"] = impronta([x, current.get("sha256", ""), current.get("url", ""), current.get("aggiornato_al", "")])
         out.append(x)
     # Il controllo notturno alimenta le impronte pubbliche; qui si confrontano

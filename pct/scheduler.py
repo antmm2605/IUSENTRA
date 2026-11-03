@@ -789,6 +789,26 @@ def start_scheduler(app):
         from pct.legal_intelligence import official_telematic_source_ids
         _run_legal_monitor(list(official_telematic_source_ids()), "telematico")
 
+    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=6, minute=5), id="legal_sources_daily_check", max_instances=1, coalesce=True)
+    def _legal_sources_daily_check():
+        # «Controllo giornaliero delle fonti ufficiali» della Ricerca legale: stesso motore del pulsante della
+        # pagina (impronta e diff delle fonti registrate in legal_intelligence/sources.py). Senza questo job il
+        # cruscotto restava «ultimo controllo mai eseguito» (LEX-28, 03/11/2026).
+        with app.app_context():
+            try:
+                from legal_intelligence.engine import LegalIntelligenceDailyEngine
+                from web.blueprints.legal_intelligence import _daily_db_path
+
+                summary = LegalIntelligenceDailyEngine(_daily_db_path()).run_daily_sync()
+                logger.info(
+                    "[scheduler] Controllo giornaliero fonti ufficiali: %d fonti, %d variazioni, %d errori",
+                    int(summary.get("sources_checked") or 0),
+                    int(summary.get("updates_detected") or 0),
+                    int(summary.get("errors_count") or 0),
+                )
+            except Exception as e:
+                logger.error("[scheduler] Controllo giornaliero fonti ufficiali fallito: %s", e)
+
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():
         _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")

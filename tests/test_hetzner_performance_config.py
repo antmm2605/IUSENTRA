@@ -109,3 +109,14 @@ def test_deploy_verifica_servizio_e_rotta_degli_asset_statici() -> None:
     assert "static_id=$(docker compose" in workflow
     assert "Immagine asset diversa dalla applicazione" in workflow
     assert '"/static/manifest.json"' in workflow
+
+
+def test_caddy_chiude_le_connessioni_inattive_prima_di_gunicorn():
+    """FAS-38: connessioni riusate dopo la chiusura dell'app producevano 502 alla prima apertura."""
+    import re
+
+    caddyfile = CADDYFILE.read_text(encoding="utf-8")
+    blocco = caddyfile[caddyfile.index("reverse_proxy app:8080 {"):]
+    caddy = int(re.search(r"keepalive (\d+)s", blocco).group(1))
+    gunicorn = int(re.search(r'GUNICORN_KEEPALIVE", "(\d+)"', (ROOT / "gunicorn.conf.py").read_text(encoding="utf-8")).group(1))
+    assert caddy < gunicorn

@@ -147,3 +147,11 @@ def test_collection_filter_scopes_full_text_results(tmp_path):
     assert articoli(db, query='responsabilita')['total'] == 2
     assert articoli(db, query='responsabilita', category='Regolamenti UE')['total'] == 1
     assert articoli(db, category='Deontologia')['total'] == 0
+
+
+def test_etichetta_senza_punto_finale_anche_dopo_anno_o_apostrofo():
+    from lex.normativa.consultazione import _label
+
+    assert _label("x", "Rendiconto generale per l'esercizio finanziario 1973.").endswith("1973")
+    assert _label("x", "Facilitazioni per la fusione di societa'.").endswith("societa'")
+    assert _label("x", "Norme di attuazione del c.p.c.").endswith("c.p.c.")

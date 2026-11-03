@@ -60,6 +60,15 @@ def test_catalogo_modelli_senza_codici_tecnici():
     assert _variable_names(["timbro_studio", "valore_causa"])[0]["label"] == "Timbro studio"
 
 
+def test_categorie_e_materie_con_la_stessa_grafia():
+    from web.services.react_template_atti_bridge import _counter_section, _forme_canoniche
+
+    forme = _forme_canoniche(["Lavoro e Previdenza", "Lavoro e previdenza", "Famiglia e Persone"])
+    assert forme["lavoro e previdenza"] == "Lavoro e previdenza"
+    sezione = _counter_section("materie", "Materie", "Modelli per materia", ["Lavoro e Previdenza", "Lavoro e previdenza"], "")
+    assert [(voce["label"], voce["value"]) for voce in sezione["items"]] == [("Lavoro e previdenza", 2)]
+
+
 def _articoli(contratto_id):
     return {a["chiave"]: a for a in componi(contratto_id, {}, {})["articoli"]}
 
@@ -98,3 +107,9 @@ def test_etichette_campi_compilatore_in_italiano_e_uffici_pertinenti():
     assert _react_template_field_label("court_name", "Ufficio giudiziario") == "Ufficio giudiziario"
     assert _react_template_office_options({"name": "competent_tax_court", "label": "Corte di Giustizia Tributaria Competente"}) == []
     assert _react_template_office_options({"name": "tax_authority_or_resistant_party", "label": "Ente Impositore / Resistente"}) == []
+    autorita = [voce["label"] for voce in _react_template_office_options({"name": "proceeding_authority", "label": "Autorità procedente"})]
+    assert any(etichetta.startswith("Procura") for etichetta in autorita)
+    assert any(etichetta.startswith("Tribunale") for etichetta in autorita)
+    uffici = [voce["label"] for voce in _react_template_office_options({"name": "court_name", "label": "Ufficio giudiziario"})]
+    assert any(etichetta.startswith("Tribunale") for etichetta in uffici)
+    assert not any(etichetta.startswith("Procura") for etichetta in uffici)

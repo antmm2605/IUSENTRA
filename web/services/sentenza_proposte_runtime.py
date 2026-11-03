@@ -31,6 +31,9 @@ from pct.ora_italiana import ROME_TZ
 logger = logging.getLogger(__name__)
 
 LETTORE = "proposta_definizione"
+TIPI_FONTE = ("documento", "allegato_pec")
+# Allegati tecnici della PEC: ricevute, dati di certificazione, firme separate. Non sono provvedimenti.
+_ALLEGATI_TECNICI = (".xml", ".eml", ".p7s", ".txt", ".htm", ".html", ".ics", ".vcf")
 STATI_CHIUSI = frozenset({"DEFINITO", "ARCHIVIATO"})
 EVENTI_CREDITO = {"apri_credito_cliente": "Spese liquidate a favore del cliente (art. 91 c.p.c.)",
                   "apri_credito_avvocato_antistatario": "Spese distratte al difensore antistatario (art. 93 c.p.c.)"}
@@ -89,23 +92,66 @@ def _estremi(testo: str) -> dict[str, str]:
 
 
 def _da_esaminare(registro: Any, tenant: str, fascicolo_id: str) -> list[Any]:
-    nuovi = registro.da_leggere(tenant, fascicolo_id, LETTORE, tipi=("documento",))
-    superati = registro.superati(tenant, fascicolo_id, LETTORE, versione=VERSIONE_PROPOSTA, tipi=("documento",))
+    # La sentenza arriva spesso solo come allegato della PEC di cancelleria (art. 133 c.p.c.;
+    # art. 16, c. 4, D.L. 179/2012): fermarsi ai documenti del fascicolo la lasciava fuori.
+    nuovi = registro.da_leggere(tenant, fascicolo_id, LETTORE, tipi=TIPI_FONTE)
+    superati = registro.superati(tenant, fascicolo_id, LETTORE, versione=VERSIONE_PROPOSTA, tipi=TIPI_FONTE)
     unici = {(o.tipo, o.oggetto_id, o.impronta): o for o in [*nuovi, *superati]}
     return list(unici.values())
 
 
 def _passaggio_dispositivo(testo: str) -> str:
-    """Le prime righe del dispositivo letto: la citazione che l'avvocato riscontra nella sentenza."""
+    """Le prime righe del dispositivo letto: la citazione che l'avvocato riscontra nella sentenza, a parole intere."""
     from pct.sentenza_conclusiva import valuta_sentenza
+    from pct.spese_liquidate_lettura import a_parole_intere
 
-    return " ".join(valuta_sentenza(testo)["dispositivo"].split())[:300]
+    return a_parole_intere(" ".join(valuta_sentenza(testo)["dispositivo"].split()), 300)
+
+
+def href_fonte(fascicolo_id: str, oggetto: Any) -> str:
+    """Dove si apre la fonte: il visualizzatore del documento o l'allegato della PEC collegata."""
+    from urllib.parse import urlencode
+
+    if oggetto is None:
+        return ""
+    if _testo(getattr(oggetto, "tipo", "")) == "allegato_pec":
+        origine = _testo(getattr(oggetto, "origine", ""))
+        if not origine:
+            return ""
+        return ("/api/v1/ui/email/source/" + quote(origine, safe="") + "?"
+                + urlencode({"name": _testo(getattr(oggetto, "nome", "")), "sha256": _testo(getattr(oggetto, "impronta", "")).lower()}))
+    oggetto_id = _testo(getattr(oggetto, "oggetto_id", ""))
+    return f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(oggetto_id, safe='')}/visualizza"
+
+
+def con_passo(href: str, citazione: str) -> str:
+    """Il visualizzatore apre la fonte sul passo citato e lo evidenzia (frammento `#passo=`, mai inviato al server)."""
+    passo = " ".join(_testo(citazione).split())[:240]
+    if not href or not passo:
+        return href
+    return f"{href.split('#', 1)[0]}#passo={quote(passo, safe='')}"
+
+
+def _allegati_pec_con_testo(fascicolo_id: str) -> dict[str, dict[str, Any]]:
+    """Gli allegati delle PEC collegate con il testo già estratto (una query, nessuna lettura di file)."""
+    from web.services.registro_letture_runtime import _righe_pec_collegate
+
+    allegati: dict[str, dict[str, Any]] = {}
+    for riga in _righe_pec_collegate(fascicolo_id, con_testo=True):
+        for allegato in list(riga.get("allegati") or []):
+            allegati[_testo(allegato.get("id"))] = allegato
+    return allegati
+
+
+def _allegato_tecnico(nome: str) -> bool:
+    nome = _testo(nome).casefold()
+    return nome.endswith(_ALLEGATI_TECNICI) or nome in {"daticert.xml", "postacert.eml", "smime.p7s"}
 
 
 def esamina_oggetto(*, fascicolo: Any, oggetto: Any, documento: Any, testo: str, catalogo: tuple[str, str] = ("", ""),
                     cliente: dict[str, Any] | None = None) -> dict[str, Any] | None:
-    """L'esito del lettore per un documento; None se il testo non c'è ancora e serve per decidere."""
-    tipo = tipo_normalizzato(getattr(documento, "tipo", ""))
+    """L'esito del lettore per un documento o un allegato PEC; None se il testo non c'è ancora e serve per decidere."""
+    tipo = tipo_normalizzato(getattr(documento, "tipo", "") if documento is not None else "")
     etichetta, natura = catalogo
     if not testo.strip():
         return None
@@ -115,17 +161,19 @@ def esamina_oggetto(*, fascicolo: Any, oggetto: Any, documento: Any, testo: str,
     verifica = verifica_sentenza_da_archiviare(
         fascicolo=fascicolo, testo=testo, cliente=cliente or {},
         fonte={"verified_original": True, "sha256": impronta, "name": _testo(getattr(oggetto, "nome", "")),
-               "document_id": _testo(getattr(oggetto, "oggetto_id", ""))},
+               **({"message_id": _testo(getattr(oggetto, "origine", "")), "attachment_id": _testo(getattr(oggetto, "oggetto_id", ""))}
+                  if _testo(getattr(oggetto, "tipo", "")) == "allegato_pec"
+                  else {"document_id": _testo(getattr(oggetto, "oggetto_id", ""))})},
     )
     return {
         "pertinente": True, "proposta": bool(verifica.get("eligible")), "motivo": _testo(verifica.get("reason")),
-        "grado": _testo(verifica.get("grado")), "importo": verifica.get("amount"), "capo_spese": _testo(verifica.get("quote"))[:400],
+        "grado": _testo(verifica.get("grado")), "importo": verifica.get("amount"), "capo_spese": _testo(verifica.get("quote")),
         "compensate": bool(verifica.get("compensate")), "estremi": _estremi(testo),
         "dispositivo": _passaggio_dispositivo(testo) if verifica.get("eligible") else "",
     }
 
 
-def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *, limite: int = 50) -> dict[str, int]:
+def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *, limite: int = 200) -> dict[str, int]:
     """Lavoro di sfondo: esamina solo i documenti nuovi o letti con una regola superata."""
     from web.services.archivio_letture_runtime import testi_indice_archivio
 
@@ -139,26 +187,35 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
         documenti = {_testo(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
         # Un fascicolo già definito si esamina ancora: il credito certo della sentenza va registrato lo stesso.
         chiuso = _stato(fascicolo) == "ARCHIVIATO"
-        testi = {} if chiuso else testi_indice_archivio(fascicolo)
-        catalogo = {} if chiuso else _catalogo(fascicolo_id)
+        con_documenti = any(o.tipo == "documento" for o in pendenti)
+        testi = {} if chiuso or not con_documenti else testi_indice_archivio(fascicolo)
+        catalogo = {} if chiuso or not con_documenti else _catalogo(fascicolo_id)
         cliente = {} if chiuso else _cliente(fascicolo)
-        chiusi_dal_motore = {(r.oggetto_id, r.sha256) for r in registro.letture(tenant, fascicolo_id, lettore="motore_documenti")
+        allegati = {} if chiuso or not any(o.tipo == "allegato_pec" for o in pendenti) else _allegati_pec_con_testo(fascicolo_id)
+        chiusi_dal_motore = {(r.tipo, r.oggetto_id, r.sha256)
+                             for lettore in ("motore_documenti", "motore_pec")
+                             for r in registro.letture(tenant, fascicolo_id, lettore=lettore)
                              if r.stato in {"letto", "non_leggibile"}}
         for oggetto in pendenti[:max(1, int(limite))]:
-            documento = documenti.get(oggetto.oggetto_id)
+            pec = oggetto.tipo == "allegato_pec"
+            documento = allegati.get(oggetto.oggetto_id) if pec else documenti.get(oggetto.oggetto_id)
             try:
-                if documento is None:
+                if documento is None and not chiuso:
+                    motivo = "Allegato non più presente nelle PEC collegate." if pec else "Documento non più presente nel fascicolo."
                     registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE, versione=VERSIONE_PROPOSTA, stato="non_leggibile",
-                                         esito={"pertinente": False, "motivo": "Documento non più presente nel fascicolo."})
+                                         esito={"pertinente": False, "motivo": motivo})
                     continue
                 if chiuso:
                     esito = {"pertinente": False, "proposta": False, "motivo": "Fascicolo archiviato."}
+                elif pec and _allegato_tecnico(oggetto.nome):
+                    esito = {"pertinente": False, "proposta": False, "motivo": "Allegato tecnico della PEC: non è un provvedimento."}
                 else:
-                    esito = esamina_oggetto(fascicolo=fascicolo, oggetto=oggetto, documento=documento,
-                                            testo=testi.get(oggetto.oggetto_id, ""), catalogo=catalogo.get(oggetto.oggetto_id, ("", "")),
+                    testo = _testo((documento or {}).get("ocr_text")) if pec else testi.get(oggetto.oggetto_id, "")
+                    esito = esamina_oggetto(fascicolo=fascicolo, oggetto=oggetto, documento=None if pec else documento,
+                                            testo=testo, catalogo=("", "") if pec else catalogo.get(oggetto.oggetto_id, ("", "")),
                                             cliente=cliente)
                 if esito is None:
-                    if (oggetto.oggetto_id, oggetto.impronta) in chiusi_dal_motore:
+                    if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in chiusi_dal_motore:
                         # Il motore documenti ha già chiuso la fonte senza un testo salvato: non resta «da leggere» per sempre.
                         registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE, versione=VERSIONE_PROPOSTA, stato="non_leggibile",
                                              esito={"pertinente": False, "motivo": "Testo del documento non disponibile."})
@@ -170,11 +227,12 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
                     if vecchia is not None and vecchia.esito.get(chiave):
                         # Decisione dell'avvocato e registrazione automatica (anche annullata) restano con la regola nuova.
                         esito[chiave] = vecchia.esito[chiave]
-                automatica = _registra_se_certa(fascicolo, oggetto, testi.get(oggetto.oggetto_id, ""), esito)
+                testo_fonte = _testo((documento or {}).get("ocr_text")) if pec else testi.get(oggetto.oggetto_id, "")
+                automatica = _registra_se_certa(fascicolo, oggetto, testo_fonte, esito)
                 registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE, versione=VERSIONE_PROPOSTA, esito=esito)
                 if automatica:
                     _dopo_decisione(fascicolo_id, registro, esito["decisione"], oggetto.impronta,
-                                    rationale="Registrazione automatica dalla sentenza: identità, dispositivo e credito certi")
+                                    rationale="Registrazione automatica dalla sentenza: identità e dispositivo certi; credito solo se certo")
                 report["esaminati"] += 1
                 report["automatiche"] += int(automatica)
                 report["proposte"] += int(bool(esito.get("proposta")) and not esito.get("decisione"))
@@ -211,7 +269,7 @@ def proposte_definizione(fascicolo: Any, registro: Any, tenant: str) -> list[dic
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     if _stato(fascicolo) in STATI_CHIUSI:
         return []
-    presenti = {(o.oggetto_id, o.impronta): o for o in registro.oggetti(tenant, fascicolo_id) if o.presente and o.tipo == "documento"}
+    presenti = {(o.oggetto_id, o.impronta): o for o in registro.oggetti(tenant, fascicolo_id) if o.presente and o.tipo in TIPI_FONTE}
     proposte = []
     for lettura in registro.letture(tenant, fascicolo_id, lettore=LETTORE):
         esito = lettura.esito or {}
@@ -219,12 +277,13 @@ def proposte_definizione(fascicolo: Any, registro: Any, tenant: str) -> list[dic
         if lettura.stato != "letto" or not esito.get("proposta") or esito.get("decisione") or oggetto is None:
             continue
         estremi = esito.get("estremi") or {}
+        citazione = _testo(esito.get("dispositivo")) or _testo(esito.get("capo_spese"))
         proposte.append({
             "id": f"{lettura.oggetto_id}:{lettura.sha256}",
             "documentoId": lettura.oggetto_id,
             "documento": _testo(oggetto.nome) or "Sentenza",
-            "anteprima": f"/fascicoli/{quote(fascicolo_id, safe='')}/documenti/{quote(lettura.oggetto_id, safe='')}/visualizza",
-            "citazione": _testo(esito.get("dispositivo")) or _testo(esito.get("capo_spese")),
+            "anteprima": con_passo(href_fonte(fascicolo_id, oggetto), citazione),
+            "citazione": citazione,
             "motivo": _testo(esito.get("motivo")),
             "nonAutomatica": [_testo(m) for m in esito.get("non_automatica") or [] if _testo(m)],
             "numero": _testo(estremi.get("numero")), "anno": _testo(estremi.get("anno")), "data": _testo(estremi.get("data")),
@@ -253,19 +312,24 @@ def _fonti_crediti(fascicolo_id: str, audits: list[dict[str, Any]], registro: An
     """Per ogni controllo economico: documento da visualizzare, passaggio del capo spese, numero e data della sentenza."""
     from web.services.sentenza_economic_runtime import fonte_audit
 
+    from pct.spese_liquidate_lettura import a_parole_intere, rifila_brano
+
     try:
         inventario = registro.oggetti(tenant, fascicolo_id)
-        estremi = {r.sha256.lower(): (r.esito or {}).get("estremi") or {}
-                   for r in registro.letture(tenant, fascicolo_id, lettore=LETTORE) if r.stato == "letto"}
+        letture = {r.sha256.lower(): r.esito or {} for r in registro.letture(tenant, fascicolo_id, lettore=LETTORE) if r.stato == "letto"}
     except Exception:
-        inventario, estremi = [], {}
+        inventario, letture = [], {}
     fonti = {}
     for audit in audits:
         fonte = fonte_audit(audit, inventario, fascicolo_id) or {}
         capo = (((audit.get("audit") or {}).get("sentenza") or {}).get("spese_liquidate") or {}).get("testo_capo_spese")
-        dati = estremi.get(_testo(audit.get("document_hash_sha256")).lower()) or {}
-        fonti[_testo(audit.get("id"))] = {"href": fonte.get("href", ""), "documento": fonte.get("label", ""),
-                                         "citazione": _testo(capo)[:400], "numero": _testo(dati.get("numero")),
+        lettura = letture.get(_testo(audit.get("document_hash_sha256")).lower()) or {}
+        dati = lettura.get("estremi") or {}
+        # Il capo spese riletto dal lettore delle proposte è a parole intere; il brano salvato
+        # dal controllo economico prima della 2.478 poteva iniziare a metà parola.
+        citazione = a_parole_intere(_testo(lettura.get("capo_spese")) or rifila_brano(_testo(capo)), 400)
+        fonti[_testo(audit.get("id"))] = {"href": con_passo(fonte.get("href", ""), citazione), "documento": fonte.get("label", ""),
+                                         "citazione": citazione, "numero": _testo(dati.get("numero")),
                                          "anno": _testo(dati.get("anno")), "data": _testo(dati.get("data"))}
     return fonti
 
@@ -294,6 +358,11 @@ def crediti_da_sentenza(fascicolo_id: str, registro: Any = None, tenant: str = "
         stato = _testo(evento.get("status"))
         if tipo not in EVENTI_CREDITO or stato not in _ETICHETTE_STATO or _testo(evento.get("reviewed_by")) == AUTORE:
             continue
+        fonte = fonti.get(_testo(evento.get("source_id")), {"href": "", "documento": "", "citazione": "", "numero": "", "anno": "", "data": ""})
+        # Senza importo né passaggio del capo spese il credito non è stato letto in una sentenza
+        # (es. note scritte con importi di altri atti): resta nel presidio economico, non qui.
+        if registro is not None and evento.get("amount") is None and not fonte.get("citazione"):
+            continue
         evento_id = _testo(evento.get("id"))
         gemelli = [evento_id, *[_testo(e) for e in evento.get("duplicati") or []]]
         crediti.append({
@@ -301,7 +370,7 @@ def crediti_da_sentenza(fascicolo_id: str, registro: Any = None, tenant: str = "
             "importo": evento.get("amount"), "importoLabel": _euro(evento.get("amount")) if evento.get("amount") is not None else "",
             "stato": stato, "statoLabel": _ETICHETTE_STATO[stato],
             "parcella": next((parcelle[e] for e in gemelli if e in parcelle), ""),
-            **fonti.get(_testo(evento.get("source_id")), {"href": "", "documento": "", "citazione": "", "numero": "", "anno": "", "data": ""}),
+            **fonte,
         })
     return True, crediti
 
@@ -337,7 +406,7 @@ def decidi_definizione(fascicolo: Any, proposta_id: str, *, esito: str, utente: 
     registro, tenant = registro_corrente(), tenant_corrente()
     lettura = next((r for r in registro.letture(tenant, fascicolo_id, lettore=LETTORE)
                     if r.oggetto_id == oggetto_id and r.sha256 == impronta and r.stato == "letto"), None)
-    oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oggetto_id)
+    oggetto = registro.oggetto(tenant, fascicolo_id, getattr(lettura, "tipo", "") or "documento", oggetto_id)
     if lettura is None or not lettura.esito.get("proposta") or oggetto is None or not oggetto.presente or oggetto.impronta != impronta:
         raise ValueError("Proposta non più valida: il documento è cambiato o è stato rimosso.")
     if lettura.esito.get("decisione"):

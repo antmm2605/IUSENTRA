@@ -160,22 +160,24 @@ def test_sentenza_certa_registra_credito_e_definisce(studio, testo, tipo, norma,
     proposte = studio.runtime.proposte_sentenza_payload(studio.fascicolo)
     assert proposte["definizione"] == [] and proposte["crediti"] == []
     (voce,) = proposte["automatiche"]
-    assert voce["href"] == "/fascicoli/F1/documenti/D1/visualizza" and voce["numero"] == "123" and voce["data"] == "2026-10-15"
+    assert voce["href"].startswith("/fascicoli/F1/documenti/D1/visualizza#passo=") and voce["numero"] == "123" and voce["data"] == "2026-10-15"
     assert voce["importoLabel"] == importo and norma in voce["etichetta"] and "liquida" in voce["citazione"]
     assert voce["definito"] and voce["dataDefinizione"] == "2026-10-15"
 
 
-def test_caso_incerto_resta_da_confermare_con_la_fonte(studio):
+def test_credito_incerto_resta_da_confermare_ma_la_definizione_e_automatica(studio):
     report = studio.carica(CIVILE_INCERTA)
-    assert report["automatiche"] == 0 and report["proposte"] == 1
-    assert studio.fascicolo.stato == StatoFascicolo.IN_CORSO and not studio.gestore.chiamate
+    assert report["automatiche"] == 1 and report["proposte"] == 0
+    # La causa è decisa e l'identità coincide: il fascicolo si definisce (art. 132 c.p.c.).
+    assert studio.fascicolo.stato == StatoFascicolo.DEFINITO
     proposte = studio.runtime.proposte_sentenza_payload(studio.fascicolo)
-    (proposta,) = proposte["definizione"]
-    assert any("Parte condannata" in motivo for motivo in proposta["nonAutomatica"])
-    assert proposta["anteprima"] == "/fascicoli/F1/documenti/D1/visualizza" and proposta["citazione"].startswith("Il Tribunale")
+    assert proposte["definizione"] == []
+    (voce,) = proposte["automatiche"]
+    assert voce["definito"] and voce["importoLabel"] == "" and voce["etichetta"] == ""
     (credito,) = proposte["crediti"]
-    assert credito["stato"] == "to_review" and credito["href"] == "/fascicoli/F1/documenti/D1/visualizza"
+    assert credito["stato"] == "to_review" and credito["href"].startswith("/fascicoli/F1/documenti/D1/visualizza#passo=")
     assert "liquida in euro 2.500,00" in credito["citazione"] and credito["numero"] == "123" and credito["data"] == "2026-10-15"
+    assert all(e["reviewed_by"] != AUTORE for e in _crediti(studio.repo))
 
 
 @pytest.mark.parametrize("testo", [
@@ -183,10 +185,53 @@ def test_caso_incerto_resta_da_confermare_con_la_fonte(studio):
     CIVILE_CONDANNA.replace("oltre accessori.", "oltre accessori; liquida altresì euro 300,00 per la fase cautelare."),
     CIVILE_CONDANNA.replace("accoglie la domanda", "accoglie in parte la domanda, compensa per la metà le spese,"),
 ])
-def test_mai_automatico_con_beneficiario_o_importo_ambiguo(studio, testo):
-    assert studio.carica(testo)["automatiche"] == 0
-    assert studio.fascicolo.stato == StatoFascicolo.IN_CORSO
+def test_mai_credito_automatico_con_beneficiario_o_importo_ambiguo(studio, testo):
+    studio.carica(testo)
     assert all(e["reviewed_by"] != AUTORE for e in _crediti(studio.repo))
+    # La definizione segue la sola certezza della decisione e dell'identità del procedimento.
+    assert studio.fascicolo.stato == StatoFascicolo.DEFINITO
+
+
+def test_spese_compensate_definiscono_senza_credito(studio):
+    testo = TESTA_TRIBUNALE + "P.Q.M. Il Tribunale, definitivamente pronunciando, rigetta la domanda. Spese compensate."
+    assert studio.carica(testo)["automatiche"] == 1
+    assert studio.fascicolo.stato == StatoFascicolo.DEFINITO and _crediti(studio.repo) == []
+
+
+def test_fascicolo_sospeso_resta_una_proposta(studio):
+    studio.fascicolo.stato = StatoFascicolo.SOSPESO
+    report = studio.carica(CIVILE_INCERTA)
+    assert report["automatiche"] == 0 and report["proposte"] == 1
+    assert studio.fascicolo.stato == StatoFascicolo.SOSPESO and not studio.gestore.chiamate
+
+
+def test_sentenza_arrivata_come_allegato_pec_definisce_il_fascicolo(studio, monkeypatch):
+    """La sentenza comunicata dalla cancelleria solo via PEC (art. 133 c.p.c.) non è un documento del fascicolo."""
+    import web.services.sentenza_economic_runtime as economia
+
+    testo = LAVORO_DISTRAZIONE
+    sha = _sha(testo)
+    studio.fascicolo.documenti = []
+    monkeypatch.setattr(studio.runtime, "_allegati_pec_con_testo", lambda _fid: {
+        "A1": {"id": "A1", "filename": "123s.pdf.zip", "ocr_text": testo},
+        "A2": {"id": "A2", "filename": "daticert.xml", "ocr_text": "<postacert/>"},
+    })
+    studio.registro.registra_inventario("studio", "F1", [
+        Oggetto(tipo="allegato_pec", oggetto_id="A1", nome="123s.pdf.zip", sha256=sha, origine="pec_M1"),
+        Oggetto(tipo="allegato_pec", oggetto_id="A2", nome="daticert.xml", sha256="c" * 64, origine="pec_M1"),
+    ])
+    economia.run_analysis(fascicolo=studio.fascicolo, testo=testo, repo=studio.repo, fonte="PEC", message_id="pec_M1",
+                          document_hash_sha256=sha, tenant_id="studio")
+    report = studio.runtime.aggiorna_proposte_definizione(studio.fascicolo, studio.registro, "studio")
+    assert report["automatiche"] == 1 and report["esaminati"] == 2
+    assert studio.fascicolo.stato == StatoFascicolo.DEFINITO
+    (credito,) = _crediti(studio.repo)
+    assert credito["status"] == "confirmed" and credito["reviewed_by"] == AUTORE
+    (voce,) = studio.runtime.proposte_sentenza_payload(studio.fascicolo)["automatiche"]
+    assert voce["href"].startswith("/api/v1/ui/email/source/pec_M1?name=123s.pdf.zip&sha256=" + sha + "#passo=")
+    # Annullabile anche quando la fonte è un allegato PEC.
+    studio.runtime.decidi_definizione(studio.fascicolo, voce["id"], esito="annulla", utente="avv1")
+    assert studio.fascicolo.stato == StatoFascicolo.IN_CORSO
 
 
 def test_annulla_ripristina_e_la_registrazione_non_rinasce(studio, monkeypatch):
@@ -299,3 +344,16 @@ def test_storico_parziale_non_si_ripete_a_ogni_giro(tmp_path):
     assert fascicoli_da_esaminare(registro, "studio", limite=10) == ["NUOVO"]
     dopo = datetime.now(timezone.utc) + timedelta(hours=7)
     assert fascicoli_da_esaminare(registro, "studio", limite=10, adesso=dopo) == ["NUOVO", "PARZIALE"]
+
+
+# --- 4. la citazione inizia e finisce su parole intere (FAS-39) ----------------------------------------
+
+def test_brano_del_capo_spese_a_parole_intere():
+    from pct.spese_liquidate_lettura import estrai_spese_liquidate, rifila_brano
+
+    _importo, brano = estrai_spese_liquidate(LAVORO_DISTRAZIONE.replace("P.Q.M.", "P.Q.M. " + "premessa lunga " * 20))
+    parole = set(LAVORO_DISTRAZIONE.replace("P.Q.M.", "").split()) | {"premessa", "lunga"}
+    assert brano.split()[0] in parole and brano.split()[-1].rstrip(".,;") in {p.rstrip(".,;") for p in parole}
+    # Brani salvati fino alla 2.477 con i bordi tagliati a metà parola.
+    assert rifila_brano("nna il Ministero alla rifusione delle spese, con distrazi") == "il Ministero alla rifusione delle spese, con"
+    assert rifila_brano("Condanna il Ministero alle spese.") == "Condanna il Ministero alle spese."

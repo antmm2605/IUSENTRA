@@ -7,8 +7,16 @@ const CAMPI_SCHEDA: [string, string][] = [
   ['esecuzione', 'Esecuzione e cessazione'], ['controllo_professionale', 'Controllo professionale'], ['versione', 'Versione'],
 ]
 
+// Il punto finale di un'abbreviazione giuridica (c.c., c.p.c., ss., D.Lgs.) resta: si toglie solo quello di fine frase.
+const ABBREVIAZIONE_FINALE = /(?:^|[\s.(])(?:c|p|ss|att|cost|Lgs|R|L|n|ecc)\.$/
+
+function vocePulita(voce: unknown): string {
+  const testo = String(voce).trim().replace(/;+$/, '')
+  return ABBREVIAZIONE_FINALE.test(testo) ? testo : testo.replace(/\.+$/, '')
+}
+
 function valoreScheda(valore: unknown): string {
-  if (Array.isArray(valore)) return valore.length ? valore.map((voce) => String(voce).trim().replace(/[.;]+$/, '')).join('; ') : '—'
+  if (Array.isArray(valore)) return valore.length ? valore.map(vocePulita).join('; ') : '—'
   if (valore && typeof valore === 'object') {
     const v = valore as Record<string, unknown>
     if (v.verifica_normativa) return `Verifica normativa del ${String(v.verifica_normativa).split('-').reverse().join('/')} — da verificare sulla fonte ufficiale`

@@ -157,7 +157,7 @@ export function LexLearningPage() {
         </div>
       </Panel>
 
-      <Panel title="Memoria di apprendimento" subtitle={data.memoria_presente ? 'Memoria durevole conservata sul server dello studio, consultabile in sola lettura.' : 'La memoria durevole si popola con il job notturno o con i cicli governati.'} icon={<Landmark size={18} aria-hidden />}>
+      <Panel title="Memoria di apprendimento" subtitle={data.memoria_presente ? 'Memoria durevole conservata nell’archivio dello studio, consultabile in sola lettura.' : 'La memoria durevole si popola con la lettura notturna o con i cicli governati.'} icon={<Landmark size={18} aria-hidden />}>
         {data.memoria_presente ? (
           <div className="lex-learning-page__stats">
             {STAT_LABELS.map(([key, label]) => (

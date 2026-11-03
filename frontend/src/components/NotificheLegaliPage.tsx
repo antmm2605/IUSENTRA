@@ -4801,7 +4801,7 @@ export function NotificheLegaliPage() {
                 {(selectedCaseDirective || selectedRoleDirective) ? (
                   <div className="iu-legal-directive-box iu-legal-field--wide">
                     {selectedCaseDirective ? <span><ClipboardCheck size={15}/> {selectedCaseDirective.label}{selectedCaseDirective.requiredFields.length ? `: ${selectedCaseDirective.requiredFields.length} dati obbligatori` : ''}</span> : null}
-                    {selectedRoleDirective ? <span><ShieldCheck size={15}/> {selectedRoleDirective.label}: {selectedRoleDirective.allowedRegisters.length ? selectedRoleDirective.allowedRegisters.join(', ') : 'pubblico elenco da verificare'}</span> : null}
+                    {selectedRoleDirective ? <span><ShieldCheck size={15}/> {selectedRoleDirective.label}: {selectedRoleDirective.allowedRegisters.length ? selectedRoleDirective.allowedRegisters.map((value) => data.registriPec.find((item) => item.value === value)?.label || value).join(', ') : 'pubblico elenco da verificare'}</span> : null}
                     {selectedCaseDirective?.recipientRule ? <span><Info size={15}/> {selectedCaseDirective.recipientRule}</span> : null}
                     {selectedCaseDirective?.legalBasis.length ? <span><Scale size={15}/> Fonti: {selectedCaseDirective.legalBasis.map((item) => item.label).join('; ')}</span> : null}
                   </div>

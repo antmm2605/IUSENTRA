@@ -23,6 +23,26 @@ def _url_esterno(value: Any) -> str:
     return testo if testo.startswith(("https://", "http://")) else ""
 
 
+def _contesto_senza_frammenti_estranei(testo: str, titolo: str) -> str:
+    """Toglie dalle news già pubblicate le conferme troncate a metà parola e non pertinenti (LEX-21).
+
+    È la stessa regola che la pipeline applica alle nuove pubblicazioni; il testo salvato non cambia.
+    """
+    if "Contesto ufficiale verificato:" not in testo:
+        return testo
+    from pct.legal_update_pipeline import _conferma_pertinente
+
+    righe = []
+    for riga in testo.split("\n"):
+        if riga.startswith("- ") and ": " in riga:
+            estratto = riga.split(": ", 1)[1].strip()
+            if estratto[:1].islower() and not _conferma_pertinente(estratto, titolo):
+                continue
+        righe.append(riga)
+    pulito = "\n".join(righe)
+    return pulito.replace("Contesto ufficiale verificato:", "").rstrip() if pulito.rstrip().endswith("Contesto ufficiale verificato:") else pulito
+
+
 def scheda_news(news: dict[str, Any] | None) -> tuple[dict[str, Any], int]:
     if not news:
         return {"ok": False, "message": "News non trovata o non ancora pubblicata."}, 404
@@ -34,8 +54,8 @@ def scheda_news(news: dict[str, Any] | None) -> tuple[dict[str, Any], int]:
             "type": _t(news.get("news_type")).replace("_", " "),
             "matter": _t(news.get("matter_name")),
             "submatter": _t(news.get("submatter_name")),
-            "summary": _t(news.get("short_summary")),
-            "content": _t(news.get("content")),
+            "summary": _contesto_senza_frammenti_estranei(_t(news.get("short_summary")), _t(news.get("title"))),
+            "content": _contesto_senza_frammenti_estranei(_t(news.get("content")), _t(news.get("title"))),
             "publishedAt": _t(news.get("published_at") or news.get("created_at")),
             "origin": "Generata dal motore AI" if news.get("is_auto_generated") else "Inserimento manuale",
             "sourceName": _t(news.get("source_name")),

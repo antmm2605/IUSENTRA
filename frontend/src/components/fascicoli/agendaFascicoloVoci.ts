@@ -33,6 +33,13 @@ export function oggiRoma(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 }
 
+/** La prossima scadenza del fascicolo: mai una già trascorsa (un rinvio passato non è la prossima udienza). */
+export function prossimaScadenza(scadenze: FascicoloDeadline[], oggi = oggiRoma()): FascicoloDeadline | undefined {
+  return scadenze
+    .filter((s) => { const giorno = giornoIso(s.date, s.dateIso); return Boolean(giorno) && giorno >= oggi })
+    .sort((a, b) => giornoIso(a.date, a.dateIso).localeCompare(giornoIso(b.date, b.dateIso)))[0]
+}
+
 export function vociAgendaFascicolo(scadenze: FascicoloDeadline[], appuntamenti: FascicoloAppointment[], oggi = oggiRoma()): Voce[] {
   let voci: Voce[] = [
     ...scadenze.map((s): Voce => {

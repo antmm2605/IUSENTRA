@@ -276,14 +276,14 @@ function OverrideEditor({
   }
   if (!users.length) {
     return (
-      <Panel title="Editor override utente">
+      <Panel title="Permessi personalizzati per utente">
         <EmptyState title="Nessun utente modificabile" message="L'archivio non ha restituito utenti su cui applicare modifiche." />
       </Panel>
     )
   }
   return (
     <Panel
-      title="Editor override utente"
+      title="Permessi personalizzati per utente"
       subtitle="Le modifiche valgono solo per l'utente selezionato e vengono salvate con audit."
       actions={
         <>
@@ -486,7 +486,7 @@ export function ProfiliPage() {
   return (
     <Page
       title="Profili e permessi"
-      subtitle="Matrice RBAC reale dello studio e override utente salvati con servizi protetti."
+      subtitle="Matrice dei permessi reale dello studio e permessi personalizzati per utente, salvati con servizi protetti."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={() => { void refresh() }} disabled={refreshing}>

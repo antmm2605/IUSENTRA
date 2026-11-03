@@ -52,3 +52,13 @@ def test_conteggi_della_pagina_comprendono_esiti_sinonimi():
     assert metriche["negati"] == 1
     azioni = [r["action"] for r in payload["records"]]
     assert "Accesso negato: dati di un altro studio" in azioni
+
+
+def test_chiavi_inglesi_degli_strumenti_di_migrazione_in_italiano():
+    testo = leggibile.testo_dettagli('{"source": "/data/a.json", "sha256": "absent", "inserted": 0, "backup_reference": "/data/b.db"}')
+    assert testo == "Origine: /data/a.json · Impronta SHA-256: absent · Inseriti: 0 · Copia di sicurezza: /data/b.db"
+
+
+def test_valori_annidati_illeggibili_omessi():
+    testo = leggibile.testo_dettagli('{"after": {"effects": {"a": {"b": 1}}, "revision": 3}, "tenant": "studio"}')
+    assert "…" not in testo and "Revisione: 3" in testo and "Studio: studio" in testo

@@ -252,12 +252,20 @@ def _wizard_catalog() -> tuple[dict[str, list[dict[str, Any]]], dict[str, dict[s
     return compact_catalog, by_id
 
 
-def _enrich_audit(rows: list[dict[str, Any]], practices: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def _enrich_audit(
+    rows: list[dict[str, Any]],
+    practices: dict[str, dict[str, Any]],
+    rule_labels: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    # Riverifica 03/11/2026: una pratica fuori dal catalogo del wizard mostra l'etichetta della regola, mai la chiave tecnica.
+    labels = rule_labels or {}
     return [
         {
             **row,
             "practice_label": practices.get(_text(row.get("suggested_practice_id")), {}).get("label")
-            or _text(row.get("suggested_practice_id")),
+            or _text(row.get("rule_label"))
+            or labels.get(_text(row.get("rule_code")), "")
+            or _text(row.get("suggested_practice_id")).replace("_", " ").capitalize(),
         }
         for row in rows
     ]
@@ -390,7 +398,7 @@ def build_react_tariffario_payload(
     grade_catalog = grade_catalog_by_materia()
     rule_catalog = rule_catalog_by_materia()
     _, practices = _wizard_catalog()
-    audit_enriched = _enrich_audit(audit, practices)
+    audit_enriched = _enrich_audit(audit, practices, {_text(row.get("rule_code")): _text(row.get("label")) for row in regole if _text(row.get("label"))})
     summary = _audit_summary(audit_enriched)
     stats = _stats_payload(profiles=profili, rules=regole, tables=tables, options=opzioni, audit_summary=summary)
     initial = build_react_tariffario_run_payload(dict(query or {}), get_normative_tables=get_normative_tables)

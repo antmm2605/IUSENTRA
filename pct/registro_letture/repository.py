@@ -31,7 +31,7 @@ from .event_retry import (
 )
 from .fatti_repository import CATEGORIE, COLONNE_FATTI, FattiMixin
 from .sintesi import COLONNE_SINTESI, SintesiMixin
-from .lettori import LETTORI, etichetta_lettore, livello_lettore, tipi_lettore, versione_lettore
+from .lettori import LETTORI, etichetta_lettore, livello_lettore, su_richiesta_lettore, tipi_lettore, versione_lettore
 from .modello import (
     GRAVITA,
     STATI_ANOMALIA,
@@ -789,11 +789,16 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             ultima = ""
             tipi = set(tipi_lettore(lettore))
             propri = [o for o in oggetti if o.tipo in tipi]
+            su_richiesta = su_richiesta_lettore(lettore)
             if livello_lettore(lettore) == "fascicolo":
                 # Il lettore esamina il fascicolo intero: conta l'impronta dell'ultimo giro completo.
                 riga = self.impronta_fascicolo(tenant, fascicolo, lettore)
                 impronta_propria = impronta_inventario(propri)
                 completa = bool(riga) and str(riga.get("stato") or "") == "completa" and _testo(riga.get("impronta")) in {impronta_propria, impronta_corrente}
+                if su_richiesta and not riga:
+                    # Il lettore non ha mai avuto lavoro su questo fascicolo: nulla è suo da leggere.
+                    stati.append(StatoLettore(lettore=lettore, etichetta=etichetta_lettore(lettore), versione=versione, letti=0, da_leggere=0, errori=0, ultima_lettura="", completa=True))
+                    continue
                 if propri and not completa:
                     tutto_letto = False
                 ultima = str(riga.get("aggiornato_il") or "") if riga else ""
@@ -803,6 +808,8 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                 continue
             for oggetto in propri:
                 lettura = per_chiave.get((oggetto.tipo, oggetto.oggetto_id, oggetto.impronta, lettore))
+                if lettura is None and su_richiesta:
+                    continue  # mai richiesto a questo lettore: non è un arretrato
                 if lettura is None:
                     stato = "da_leggere"
                     mancanti += 1
@@ -975,7 +982,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                 'pending_force = CASE WHEN letture_eventi.pending_force = 1 OR excluded.pending_force = 1 THEN 1 ELSE 0 END, '
                 'pending_presidi = CASE WHEN letture_eventi.pending_presidi = 1 OR excluded.pending_presidi = 1 THEN 1 ELSE 0 END, '
                 "attempts=0, available_at='', last_error='', last_error_code='', "
-                'aggiornato_il = excluded.aggiornato_il',
+                # Un evento già in coda conserva il suo posto: la coda si serve per aggiornato_il e
+                # riaccodarlo a ogni apertura del fascicolo lo rimandava in fondo per sempre
+                # (verifica del 03/11/2026: fascicoli «in coda» dal 21/09 e dal 13/10).
+                'aggiornato_il = CASE WHEN letture_eventi.stato = \'pending\' THEN letture_eventi.aggiornato_il '
+                'ELSE excluded.aggiornato_il END',
                 (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, adesso, adesso),
             )
         riga = conn.execute(

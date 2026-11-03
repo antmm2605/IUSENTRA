@@ -185,8 +185,9 @@ def _ultimo_esito(repo: PecAuditRepository, message_id: str) -> tuple[str, str]:
 
 
 def _documenti_da_pec(gestione: GestioneFascicoli, fascicolo_id: str, message_id: str):
+    """Gli allegati salvati dalla PEC (l'.eml della comunicazione dell'ufficio entra a parte)."""
     return [doc for doc in GestioneFascicoli(db_path=str(gestione.db_path), documents_dir=str(gestione.documents_dir)).get(fascicolo_id).documenti
-            if f"iusentra:pec:{message_id}" in doc.tags]
+            if f"iusentra:pec:{message_id}" in doc.tags and not doc.nome.endswith(".eml")]
 
 
 def test_linker_collega_con_certezza_e_salva_l_allegato_non_gia_presente(tmp_path):
@@ -209,7 +210,8 @@ def test_notifica_in_proprio_collegata_con_certezza_conserva_l_eml(tmp_path):
     message_id = _ingesta(repo, mime, "INBOX:UID:2")
 
     assert _ultimo_esito(repo, message_id) == (STATO_CERTO, fascicolo.id)
-    nomi = sorted(doc.nome for doc in _documenti_da_pec(gestione, fascicolo.id, message_id))
+    nomi = sorted(doc.nome for doc in GestioneFascicoli(db_path=str(gestione.db_path), documents_dir=str(gestione.documents_dir))
+                  .get(fascicolo.id).documenti if f"iusentra:pec:{message_id}" in doc.tags)
     assert len(nomi) == 2 and sum(nome.endswith(".eml") for nome in nomi) == 1  # atto e .eml della notifica
 
 
@@ -251,3 +253,35 @@ def test_numero_di_ruolo_nelle_forme_ministeriali():
     assert ruoli("DEPOSITO TELEMATICO: Ricorso RG: 2539 - 2025 [JQ205-L01]") == {("2539", "2025")}
     assert ruoli("Comunicazione - procedimento n. 1165/2023") == {("1165", "2023")}
     assert ruoli("Fattura n. 12/2025 del 3/2025") == set()
+
+
+@pytest.mark.parametrize("testo", [
+    "Numero di Ruolo generale: 2539/2025",  # corpo delle comunicazioni SICID
+    "Ruolo Generale n. 2539/2025", "Numero Ruolo: 2539/2025", "R.G.L. 2539/2025", "R.G.A.C. n. 2539/2025",
+    "nel procedimento iscritto al n. 2539/2025 R.G.", "N. 2539/2025 R.G.L.", "proc. n. 2539/2025",
+])
+def test_numero_di_ruolo_nelle_formule_per_esteso(testo):
+    """Versione 3 della regola: le etichette per esteso e i registri con suffisso, sempre con l'anno a 4 cifre."""
+    from pct.pec_collegamento_certo import ruoli_della_pec
+
+    assert ruoli_della_pec({"headers": {"subject": ""}, "body": {"text": f"Tribunale. {testo}. Altro."}}, {}) == {("2539", "2025")}
+
+
+@pytest.mark.parametrize("testo", ["sentenza n. 1674/2026", "ruolo di cancelliere 12/2025", "n. 12/2025 Rossi Gianni", "RG 2539/25"])
+def test_numeri_senza_etichetta_di_ruolo_non_sono_ruoli(testo):
+    from pct.pec_collegamento_certo import ruoli_della_pec
+
+    assert ruoli_della_pec({"headers": {"subject": testo}, "body": {}}, {}) == set()
+
+
+def test_verifiche_con_la_regola_precedente_tornano_in_coda(tmp_path):
+    """Cambiata la regola (VERSIONE_REGOLA), le PEC già valutate si rivalutano: l'impronta salvata non vale più."""
+    repo, _gestione, _fascicolo = _ambiente(tmp_path, cliente="")
+    message_id = _ingesta(repo, _mime("vecchia-regola"), "INBOX:UID:70")
+    assert riconvalida_collegamenti(repo, limite=10)["esaminati"] == 1
+    with repo.connect() as conn:  # come se l'avesse valutata la versione 2 della regola
+        conn.execute("UPDATE pec_collegamento_certo_verifiche SET impronta_fascicoli='impronta-versione-2', esito='ruolo_con_anno_assente'")
+    # Stessi fascicoli, stessa lettura della PEC: torna in coda solo perché la regola è cambiata, e una volta sola.
+    assert riconvalida_collegamenti(repo, limite=10)["esaminati"] == 1
+    assert riconvalida_collegamenti(repo, limite=10)["esaminati"] == 0
+    assert _ultimo_esito(repo, message_id)[0] != STATO_CERTO  # senza cliente nel fascicolo resta non certa

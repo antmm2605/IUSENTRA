@@ -174,6 +174,23 @@ function RigaDato({ etichetta, valore, mancante }: { etichetta: string; valore: 
   )
 }
 
+// Valori del fascicolo mostrati all'avvocato: date italiane, importi in euro, materia per esteso
+// (riverifica visiva 03/11/2026: «2026-10-07», «500.0», «LAVORO»). I valori usati dal modello restano invariati.
+function valoreLeggibile(chiave: string, valore: string): string {
+  const testo = String(valore ?? '').trim()
+  if (!testo) return testo
+  if (chiave === 'prossimaUdienza') {
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(testo)
+    if (!iso) return testo
+    const data = `${iso[3]}/${iso[2]}/${iso[1]}`
+    const oggi = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date())
+    return testo.slice(0, 10) < oggi ? `${data} (già tenuta)` : data
+  }
+  if (chiave === 'valoreCausa' && /^\d+(\.\d+)?$/.test(testo)) return formatEuroIt(Number(testo))
+  if (chiave === 'materia' && testo === testo.toUpperCase()) return testo.charAt(0) + testo.slice(1).toLowerCase()
+  return testo
+}
+
 function QuadroContesto({ contesto }: { contesto: RedazioneContesto }) {
   const fascicolo = contesto.fascicolo
   const chiavi: Array<[string, string]> = [
@@ -192,7 +209,7 @@ function QuadroContesto({ contesto }: { contesto: RedazioneContesto }) {
         {chiavi.map(([chiave, fallback]) => {
           const campo = fascicolo[chiave]
           if (!campo) return null
-          return <RigaDato key={chiave} etichetta={campo.etichetta || fallback} valore={campo.valore} mancante={campo.mancante} />
+          return <RigaDato key={chiave} etichetta={campo.etichetta || fallback} valore={valoreLeggibile(chiave, campo.valore)} mancante={campo.mancante} />
         })}
         <RigaDato
           etichetta="Contributo unificato (D.P.R. 115/2002)"

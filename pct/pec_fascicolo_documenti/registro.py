@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS pec_fascicolo_documenti_messaggi (
     eml_salvati INTEGER NOT NULL DEFAULT 0,
     scartati INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL,
+    versione_regole TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (tenant_id, message_id)
 );
 CREATE INDEX IF NOT EXISTS idx_pec_fascicolo_documenti_messaggi_stato
@@ -70,6 +71,10 @@ def adesso() -> str:
 
 def prepara(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    # Basi create prima della versione delle regole: la colonna si aggiunge vuota (= messaggi da rivedere).
+    colonne = {riga[1] for riga in conn.execute("PRAGMA table_info(pec_fascicolo_documenti_messaggi)")}
+    if "versione_regole" not in colonne:
+        conn.execute("ALTER TABLE pec_fascicolo_documenti_messaggi ADD COLUMN versione_regole TEXT NOT NULL DEFAULT ''")
 
 
 def esito_oggetto(conn: sqlite3.Connection, tenant_id: str, message_id: str, fascicolo_id: str, sha256: str) -> dict[str, Any]:
@@ -106,15 +111,17 @@ def stato_messaggio(conn: sqlite3.Connection, tenant_id: str, message_id: str) -
 
 
 def registra_messaggio(conn: sqlite3.Connection, tenant_id: str, message_id: str, *, fascicolo_id: str, stato: str,
-                       motivo: str = "", salvati: int = 0, eml_salvati: int = 0, scartati: int = 0) -> None:
+                       motivo: str = "", salvati: int = 0, eml_salvati: int = 0, scartati: int = 0,
+                       versione_regole: str = "") -> None:
     precedente = stato_messaggio(conn, tenant_id, message_id)
     tentativi = int(precedente.get("tentativi") or 0) + 1 if stato == "errore" else 0
     conn.execute(
         "INSERT INTO pec_fascicolo_documenti_messaggi (tenant_id, message_id, fascicolo_id, stato, motivo, tentativi, salvati, "
-        "eml_salvati, scartati, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id, message_id) DO UPDATE SET "
-        "fascicolo_id=excluded.fascicolo_id, stato=excluded.stato, motivo=excluded.motivo, tentativi=excluded.tentativi, "
-        "salvati=excluded.salvati, eml_salvati=excluded.eml_salvati, scartati=excluded.scartati, updated_at=excluded.updated_at",
-        (tenant_id, message_id, fascicolo_id, stato, motivo[:300], tentativi, salvati, eml_salvati, scartati, adesso()),
+        "eml_salvati, scartati, updated_at, versione_regole) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(tenant_id, message_id) "
+        "DO UPDATE SET fascicolo_id=excluded.fascicolo_id, stato=excluded.stato, motivo=excluded.motivo, tentativi=excluded.tentativi, "
+        "salvati=excluded.salvati, eml_salvati=excluded.eml_salvati, scartati=excluded.scartati, updated_at=excluded.updated_at, "
+        "versione_regole=excluded.versione_regole",
+        (tenant_id, message_id, fascicolo_id, stato, motivo[:300], tentativi, salvati, eml_salvati, scartati, adesso(), versione_regole),
     )
 
 

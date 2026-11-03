@@ -29,7 +29,7 @@ export function CodiciLeggiMaterie({ acts, selected, onChoose }: Props) {
     {visible.map(g => <div key={g.materia} className="iu-li-normativa-materia">
       <h4>{g.materia} <span>({g.acts.length})</span></h4>
       <div className="iu-li-normativa-code-grid">{g.acts.map(a => <button type="button" key={a.id} aria-pressed={selected === String(a.id)} onClick={() => onChoose(String(a.id))}>
-        <strong>{a.label}</strong><span>{a.tipo || 'Atto'} · {a.articles.toLocaleString('it-IT')} articoli</span>
+        <strong>{a.label}</strong><span>{a.tipo || 'Atto'} · {a.articles.toLocaleString('it-IT')} {a.articles === 1 ? 'articolo' : 'articoli'}</span>
       </button>)}</div>
     </div>)}
     {acts.length > 0 && visible.length === 0 ? <p role="status">Nessun atto corrisponde alla ricerca. Modifica le parole cercate, la materia o il tipo.</p> : null}

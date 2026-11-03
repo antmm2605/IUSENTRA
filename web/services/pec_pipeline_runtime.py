@@ -700,13 +700,38 @@ def _as_int_safe(value: Any) -> int:
 
 
 def _archive_fingerprint(path: Path) -> str:
-    """Impronta economica dell'archivio: dice se c'e' qualcosa di nuovo da leggere."""
+    """Impronta economica dell'archivio: dice se c'e' qualcosa di nuovo da leggere.
 
+    Con la casella nel database dello studio il file ``casella.json`` non cambia più (o non c'è): la sua data
+    restava ferma e, a lavoro chiuso, il presidio saltava per sempre i messaggi nuovi «archivio invariato»
+    (collaudo del 03/11/2026: 258 messaggi della casella di uno studio mai esaminati). L'impronta si prende
+    allora dal catalogo SQL della casella: numero dei messaggi e ultimo aggiornamento.
+    """
+
+    sql = _sql_mailbox_fingerprint(path)
+    if sql:
+        return sql
     try:
         stat = path.stat()
     except OSError:
         return ""
     return f"{int(stat.st_mtime_ns)}:{int(stat.st_size)}"
+
+
+def _sql_mailbox_fingerprint(path: Path) -> str:
+    """Impronta del catalogo SQL della casella, senza caricare i messaggi; vuota se la casella è JSON."""
+    try:
+        mailbox = create_email_mailbox(db_path=str(path), load_catalog=False, allow_initialize=False)
+        repository = getattr(mailbox, "repository", None)
+        if repository is None:
+            return ""
+        riga = repository.db.conn.execute(
+            "SELECT COUNT(*), COALESCE(MAX(updated_at), '') FROM email_mailbox_records WHERE tenant_key=? AND mailbox_kind=?",
+            (repository.tenant, repository.kind),
+        ).fetchone()
+        return f"sql:{int(riga[0] or 0)}:{riga[1] or ''}"
+    except Exception:
+        return ""
 
 
 def email_rilevante_per_presidio_pec(email_obj: Any) -> bool:
@@ -817,7 +842,7 @@ def acquire_local_pec_for_paths(
     }
     email_db = _path_from_mapping(paths, "EMAIL_CASELLA_DB", "./email/casella.json")
     archivio = Path(email_db)
-    if not archivio.exists():
+    if not archivio.exists() and not _sql_mailbox_fingerprint(archivio):
         return {**report, "skipped": True, "reason": "archivio email assente"}
     repo = repository_from_paths(paths, tenant_label=tenant_label)
     cursor = repo.latest_local_acquire_cursor(origin="auto")

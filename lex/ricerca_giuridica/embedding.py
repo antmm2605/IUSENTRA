@@ -334,6 +334,12 @@ class EmbedderFinto:
         return normalizza_righe(matrice)
 
 
+_VETTORI_DOMANDA: dict[tuple[str, int, str], tuple[float, Any]] = {}
+_VETTORI_LOCK = threading.Lock()
+_VETTORI_DURATA_S = 900.0
+_VETTORI_MASSIMI = 256
+
+
 class EmbedderNonDisponibile(RuntimeError):
     pass
 
@@ -358,8 +364,21 @@ class EmbedderDomande:
     def vettore(self, domanda: str) -> np.ndarray:
         if time.monotonic() < self._fermo_fino_a:
             raise EmbedderNonDisponibile(self.ultimo_errore or "embedding temporaneamente non disponibile")
+        # La stessa domanda cerca in due archivi (generale e biblioteca), ciascuno con il proprio motore:
+        # il vettore, che dipende solo da modello, dimensioni e testo, si calcola una volta sola.
+        modello = str(getattr(self.embedder, "modello", "") or "") or f"embedder-{id(self.embedder)}"
+        chiave = (modello, int(getattr(self.embedder, "dimensioni", 0) or 0), str(domanda or ""))
+        with _VETTORI_LOCK:
+            voce = _VETTORI_DOMANDA.get(chiave)
+            if voce is not None and time.monotonic() - voce[0] < _VETTORI_DURATA_S:
+                return voce[1]
         try:
-            return self.embedder.embed([PREFISSO_DOMANDA + str(domanda or "")])[0]
+            vettore = self.embedder.embed([PREFISSO_DOMANDA + str(domanda or "")])[0]
+            with _VETTORI_LOCK:
+                _VETTORI_DOMANDA[chiave] = (time.monotonic(), vettore)
+                while len(_VETTORI_DOMANDA) > _VETTORI_MASSIMI:
+                    _VETTORI_DOMANDA.pop(next(iter(_VETTORI_DOMANDA)))
+            return vettore
         except Exception as exc:
             self.ultimo_errore = f"{type(exc).__name__}: {exc}"
             self._fermo_fino_a = time.monotonic() + self.pausa

@@ -1269,8 +1269,12 @@ def _remote_hearing_notification_payload(item: Any) -> dict[str, Any]:
     )
     source = _clean_text(getattr(item, "remote_hearing_source", ""), limit=500)
     verified = bool(getattr(item, "remote_hearing_verified", False))
+    # Riverifica 03/11/2026: in archivio ci sono udienze in trattazione scritta (art. 127-ter
+    # c.p.c.) con il vecchio indicatore «rilevata da remoto» acceso; la modalità dichiarata
+    # prevale sull'indicatore, salvo collegamento o istruzioni nel PDF (controllati sotto).
+    modalita_non_remota = any(chiave in mode.lower() for chiave in ("trattazione scritta", "presenza"))
     detected = bool(
-        getattr(item, "remote_hearing_detected", False)
+        (getattr(item, "remote_hearing_detected", False) and not modalita_non_remota)
         or mode.lower() in {"remoto", "mista", "audiovisiva", "teams"}
     )
     raw_url = _clean_text(getattr(item, "remote_hearing_url", ""), limit=1000)

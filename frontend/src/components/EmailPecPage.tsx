@@ -294,7 +294,8 @@ function erroreLeggibile(error: unknown, fallback: string): string {
 }
 
 function initials(value: string, fallback: string): string {
-  const parts = value.replace(/[<>@."'«»“”()]/g, ' ').split(/\s+/).filter(Boolean)
+  // Solo lettere e cifre: «Prevalutazioni | AG» non deve dare «P|» (riverifica 03/11/2026).
+  const parts = value.replace(/[^\p{L}\p{N}]+/gu, ' ').split(/\s+/).filter(Boolean)
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || fallback
 }
 

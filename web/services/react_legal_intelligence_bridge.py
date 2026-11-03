@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import copy
 import os
 import re
+import threading
+import time
+from functools import lru_cache
 import sqlite3
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
@@ -138,6 +142,7 @@ _LEGAL_REFERENCE_RE = re.compile(
 _OFFICIAL_CONTEXT_TIMEOUT = (1.0, 2.0)
 _OFFICIAL_CONTEXT_MAX_BYTES = 350_000
 _OFFICIAL_CONTEXT_FETCH_LIMIT = 2
+_OFFICIAL_CONTEXT_TOTAL_BUDGET_SECONDS = 6.0
 
 
 def _iso_now() -> str:
@@ -1143,6 +1148,11 @@ def _mediazione_snapshot(manager: Any, warnings: list[dict[str, str]], query: Ma
         return {}
 
 
+# Stati delle pubblicazioni registrati in inglese dalla pipeline degli aggiornamenti (riverifica 03/11/2026).
+_STATI_NEWS = {"published": "pubblicata", "draft": "bozza", "pending_review": "da approvare", "approved": "approvata",
+               "rejected": "respinta", "archived": "archiviata"}
+
+
 def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
     news_id = _text(row.get("id") or row.get("slug")) or f"news_{index}"
     slug = _text(row.get("slug"))
@@ -1164,7 +1174,7 @@ def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
         "date": _text(row.get("published_at") or row.get("created_at") or row.get("updated_at")),
         "area": area,
         "branch": branch,
-        "approvalLabel": status or "pubblicata",
+        "approvalLabel": _STATI_NEWS.get(status.lower(), status) or "pubblicata",
         "approvalTone": _tone(status or "published"),
         "legacyHref": f"/ricerca-legale/news?scheda={slug}" if slug else "/ricerca-legale/news",
         "detailHref": f"/ricerca-legale/news/{slug}" if slug else "",
@@ -1601,7 +1611,11 @@ def _complete_records_context_from_official_sources(
     completed: list[dict[str, Any]] = []
     context_budget = {"remaining": max_reads}
     attempted = False
+    started = time.monotonic()
     for record in records:
+        if time.monotonic() - started > _OFFICIAL_CONTEXT_TOTAL_BUDGET_SECONDS:
+            # Oltre il tempo concesso le schede restano con l'estratto già verificato: nessuna attesa in più.
+            context_budget["remaining"] = 0
         before = context_budget["remaining"]
         completed_record = _complete_record_context_from_official_source(
             record,
@@ -1632,9 +1646,14 @@ def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
     if scope:
         items.append(f"Ambito: {scope}")
     if _text(record.get("date")):
-        items.append(f"Aggiornamento: {_text(record.get('date'))}")
-    if _text(record.get("registryNumber")):
-        items.append(f"Registro: {_text(record.get('registryNumber'))}")
+        data = _text(record.get("date"))
+        iso = re.match(r"(\d{4})-(\d{2})-(\d{2})(?:$|[T ])", data)
+        items.append(f"Aggiornamento: {iso.group(3)}/{iso.group(2)}/{iso.group(1)}" if iso else f"Aggiornamento: {data}")
+    registro = _text(record.get("registryNumber"))
+    # Gli identificativi interni dell'indice (impronta e porzione: «normattiva:<sha256>:annesso1:chunk2») non sono
+    # un numero di registro e, senza spazi, allargavano il riquadro di dettaglio oltre il bordo (03/11/2026).
+    if registro and not re.search(r"[0-9a-f]{24,}|chunk\d", registro, re.IGNORECASE):
+        items.append(f"Registro: {registro}")
     if bool(record.get("contextCompleted")):
         items.append("Lettura in pagina: contesto ricostruito dentro IUSENTRA.")
     source_label = _text(record.get("sourceLabel"))
@@ -2178,6 +2197,32 @@ def _normative_table_checks(row: Mapping[str, Any], sample_rows: list[dict[str, 
     return checks[:6]
 
 
+@lru_cache(maxsize=1)
+def _descrizioni_tabelle_seed() -> dict[str, str]:
+    try:
+        from pct.normative_tables import canonical_table_definitions
+
+        return {key: _text(value.get("description")) for key, value in canonical_table_definitions().items()}
+    except Exception:
+        return {}
+
+
+_CODICI_FONTE_LEGGIBILI = {
+    "normattiva": "Normattiva",
+    "gazzetta_ufficiale": "Gazzetta Ufficiale",
+    "cassa_forense": "Cassa Forense",
+    "istat": "ISTAT",
+    "registro_mediazione": "Registro degli organismi di mediazione",
+    "bancaditalia": "Banca d'Italia",
+}
+
+
+def _codice_leggibile(value: Any) -> str:
+    """Codici di fonte o categoria delle tabelle normative in forma leggibile (niente chiavi a video)."""
+    code = _text(value)
+    return _CODICI_FONTE_LEGGIBILI.get(code, code.replace("_", " "))
+
+
 def _normative_table_record(
     manager: Any,
     row: Mapping[str, Any],
@@ -2185,7 +2230,9 @@ def _normative_table_record(
 ) -> dict[str, Any]:
     table_id = _text(row.get("id")) or f"tabella_normativa_{index}"
     title = _text(row.get("title")) or table_id
-    description = _short(row.get("description"), 520)
+    # Le descrizioni sono testi del software, non dati normativi: vale quella del seed corrente anche se
+    # l'archivio salvato non è stato ancora riallineato (LEX-26, «pignorabilita», «Importi annuali»).
+    description = _short(_descrizioni_tabelle_seed().get(table_id) or row.get("description"), 520)
     category = _text(row.get("category")) or "normativa"
     status = _text(row.get("sync_status")) or "da verificare"
     status_label = {
@@ -2251,8 +2298,8 @@ def _normative_table_record(
         "sourceKind": "tabella normativa operativa",
         "sourceHref": source_href,
         "date": _text(row.get("last_synced_at")),
-        "area": category,
-        "branch": ", ".join(_text(item) for item in _list(row.get("watch_source_ids")) if _text(item)) or "fonti operative",
+        "area": _codice_leggibile(category),
+        "branch": ", ".join(_codice_leggibile(item) for item in _list(row.get("watch_source_ids")) if _text(item)) or "fonti operative",
         "approvalLabel": status_label,
         "approvalTone": _tone(status),
         "stateLabel": status_label,
@@ -2548,7 +2595,6 @@ def _practice_research_record(entry: Mapping[str, Any], index: int) -> dict[str,
             for part in (
                 _text(source.get("label")),
                 _text(source.get("authority")),
-                _text(source.get("source_code")),
             )
             if part
         )
@@ -3671,6 +3717,37 @@ def _mediazione_section(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     )
 
 
+# Parte della pagina che non dipende dalla domanda (riepilogo dello studio, archivio aggiornamenti, tabelle
+# normative, catalogo delle fonti, monitor e conteggi degli archivi): costava 8-10 s a ogni ricerca
+# (profilazione LEX-01 del 03/11/2026). Il chiamante la riusa per breve tempo solo con una chiave che porta
+# studio, utente autorizzato e revisioni delle fonti; senza chiave si ricalcola sempre.
+_BASE_CACHE_TTL_SECONDS = float(os.getenv("IUSENTRA_LEGAL_SEARCH_BASE_TTL_SECONDS") or 120)
+_BASE_CACHE_MAX_ENTRIES = 16
+_BASE_CACHE: dict[tuple, tuple[float, dict[str, Any]]] = {}
+_BASE_CACHE_LOCK = threading.Lock()
+
+
+def _base_cache_get(scope: tuple | None) -> dict[str, Any] | None:
+    if scope is None or _BASE_CACHE_TTL_SECONDS <= 0:
+        return None
+    with _BASE_CACHE_LOCK:
+        entry = _BASE_CACHE.get(scope)
+        if entry is None or time.monotonic() - entry[0] > _BASE_CACHE_TTL_SECONDS:
+            _BASE_CACHE.pop(scope, None)
+            return None
+        # Copia: i record vengono arricchiti e fusi più avanti, la cache resta intatta.
+        return copy.deepcopy(entry[1])
+
+
+def _base_cache_set(scope: tuple | None, base: dict[str, Any]) -> None:
+    if scope is None or _BASE_CACHE_TTL_SECONDS <= 0:
+        return
+    with _BASE_CACHE_LOCK:
+        _BASE_CACHE[scope] = (time.monotonic(), copy.deepcopy(base))
+        while len(_BASE_CACHE) > _BASE_CACHE_MAX_ENTRIES:
+            _BASE_CACHE.pop(next(iter(_BASE_CACHE)))
+
+
 def _empty_payload(source: str, message: str, legacy_contract: str) -> dict[str, Any]:
     return {
         "source": source,
@@ -3708,6 +3785,7 @@ def build_react_legal_intelligence_payload(
     page: str = "dashboard",
     query: Mapping[str, Any] | None = None,
     config: Mapping[str, Any] | None = None,
+    base_cache_scope: tuple | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     manager = get_legal_intelligence()
@@ -3736,15 +3814,33 @@ def build_react_legal_intelligence_payload(
             "actions": [], "forms": [], "warnings": warnings, "filters": dict(query or {}),
         }
     pipeline = get_legal_update_pipeline()
-    snapshot = _dashboard_snapshot(
-        manager,
-        warnings,
-        get_fascicoli=get_fascicoli,
-        get_clienti=get_clienti,
-        get_agenda=get_agenda,
-        get_scadenziario=get_scadenziario,
-    )
-    update_snapshot = _pipeline_snapshot(pipeline, warnings)
+    base = _base_cache_get(base_cache_scope)
+    if base is None:
+        base_warnings: list[dict[str, str]] = []
+        base_snapshot = _dashboard_snapshot(
+            manager,
+            base_warnings,
+            get_fascicoli=get_fascicoli,
+            get_clienti=get_clienti,
+            get_agenda=get_agenda,
+            get_scadenziario=get_scadenziario,
+        )
+        base_delivery_audit = _source_delivery_audit(base_warnings)
+        base = {
+            "snapshot": base_snapshot,
+            "update_snapshot": _pipeline_snapshot(pipeline, base_warnings),
+            "normative_db_records": _normative_db_records(manager, base_snapshot, base_warnings),
+            "source_delivery_audit": base_delivery_audit,
+            "autofetch_monitor": _enrich_autofetch_monitor_for_lawyer(
+                _autofetch_monitor(pipeline, config, base_warnings), base_delivery_audit
+            ),
+            "official_counts": _official_archive_counts(base_warnings),
+            "warnings": base_warnings,
+        }
+        _base_cache_set(base_cache_scope, base)
+    warnings.extend(base["warnings"])
+    snapshot = base["snapshot"]
+    update_snapshot = base["update_snapshot"]
     headline = _dict(snapshot.get("headline"))
     update_headline = _dict(update_snapshot.get("headline"))
     mediazione = _mediazione_snapshot(manager, warnings, query)
@@ -3764,14 +3860,13 @@ def build_react_legal_intelligence_payload(
     guida_pratica_source_records = _guida_pratica_source_records(warnings)
     practice_research_records = _practice_research_records()
     practice_nominal_reference_records = _practice_nominal_reference_records()
-    normative_db_records = _normative_db_records(manager, snapshot, warnings)
-    source_delivery_audit = _source_delivery_audit(warnings)
+    normative_db_records = base["normative_db_records"]
+    source_delivery_audit = base["source_delivery_audit"]
     source_delivery_records = _source_delivery_records(source_delivery_audit)
     template_source_registry = template_atti_source_registry_summary()
-    autofetch_monitor = _autofetch_monitor(pipeline, config, warnings)
-    autofetch_monitor = _enrich_autofetch_monitor_for_lawyer(autofetch_monitor, source_delivery_audit)
+    autofetch_monitor = base["autofetch_monitor"]
     autofetch_source_items = _autofetch_source_items(autofetch_monitor)
-    official_counts = _official_archive_counts(warnings)
+    official_counts = base["official_counts"]
     normattiva_counts = _dict(official_counts.get("normattiva"))
     gazzetta_counts = _dict(official_counts.get("gazzetta"))
     normattiva_available = bool(normattiva_counts.get("available"))

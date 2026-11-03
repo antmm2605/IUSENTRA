@@ -25,7 +25,9 @@ from pct.pec_collegamento_certo import STATO_CERTO, cerca_collegamento_certo
 #: Ultimi esiti del linker che la riconvalida riprende (le PEC senza collegamento certo).
 ESITI_DA_RICONVALIDARE = ("proposte", "rg_non_sufficiente", "identita_incompleta", "nessun_candidato")
 #: Cambia quando cambia la regola: tutte le verifiche precedenti tornano in coda.
-VERSIONE_REGOLA = "2"  # 2: forme ministeriali del numero di ruolo («COMUNICAZIONE n/aaaa/LAV», «RG: n - aaaa»)
+# 2: forme ministeriali del numero di ruolo («COMUNICAZIONE n/aaaa/LAV», «RG: n - aaaa»);
+# 3: etichette per esteso («Numero di Ruolo generale: n/aaaa»), registri con suffisso, «n. n/aaaa R.G.», «proc. n.».
+VERSIONE_REGOLA = "3"
 LIMITE_PREDEFINITO = 500
 
 SCHEMA = """

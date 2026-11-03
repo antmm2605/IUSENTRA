@@ -1672,7 +1672,7 @@ _upsert_rows(
         {
             "rule_code": "famiglia_responsabilita_genitoriale",
             "materia_label": "Civile di cognizione",
-            "label": "Responsabilita genitoriale e affidamento",
+            "label": "Responsabilità genitoriale e affidamento",
             "summary": "Controversie su affidamento, collocamento, mantenimento e responsabilita genitoriale davanti al tribunale competente.",
             "profile_code": "civile_tribunale",
             "suggested_practice_id": "responsabilita_genitoriale",
@@ -2802,7 +2802,7 @@ _upsert_rows(
         {
             "rule_code": "speciali_attivita_tempo",
             "materia_label": "Stragiudiziale / Consulenza",
-            "label": "Attivita a tempo / compenso orario",
+            "label": "Attività a tempo / compenso orario",
             "summary": "Prestazioni pattuite a tempo con valorizzazione oraria ex art. 13 L. 247/2012.",
             "profile_code": "stragiudiziale",
             "suggested_practice_id": "attivita_tempo",
@@ -3033,7 +3033,7 @@ _upsert_rows(
         {
             "rule_code": "previdenza_invalidita_civile",
             "materia_label": "Previdenza e assistenza",
-            "label": "Invalidita civile",
+            "label": "Invalidità civile",
             "summary": "Accertamento sanitario e prestazioni assistenziali in materia di invalidita civile.",
             "profile_code": "previdenza_tribunale",
             "suggested_practice_id": "invalidita_civile",
@@ -3043,7 +3043,7 @@ _upsert_rows(
         {
             "rule_code": "previdenza_accompagnamento",
             "materia_label": "Previdenza e assistenza",
-            "label": "Indennita di accompagnamento",
+            "label": "Indennità di accompagnamento",
             "summary": "Domande giudiziali per indennita di accompagnamento e prestazioni collegate.",
             "profile_code": "previdenza_tribunale",
             "suggested_practice_id": "indennita_accompagnamento",
@@ -3343,7 +3343,7 @@ _upsert_rows(
         {
             "rule_code": "contabile_responsabilita",
             "materia_label": "Contabile / Corte dei Conti",
-            "label": "Giudizio di responsabilita",
+            "label": "Giudizio di responsabilità",
             "summary": "Giudizio davanti alla Corte dei Conti con riferimento al codice di giustizia contabile.",
             "profile_code": "contabile_corte_conti",
             "suggested_practice_id": "giudizio_responsabilita_contabile",

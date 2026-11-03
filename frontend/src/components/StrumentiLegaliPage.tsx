@@ -44,7 +44,10 @@ const SINONIMI_CATEGORIA: Record<string, string> = {
 function categoriaVisibile(valore: string): string {
   const nome = valore.trim()
   if (/^(utility|utilita|utilità)$/i.test(nome)) return 'Utilità'
-  return SINONIMI_CATEGORIA[nome.toLocaleLowerCase('it-IT')] ?? nome
+  const sinonimo = SINONIMI_CATEGORIA[nome.toLocaleLowerCase('it-IT')]
+  if (sinonimo) return sinonimo
+  // Maiuscola solo all'inizio («Atti Giudiziari» → «Atti giudiziari»); le sigle (ADR, IVA, CTU) restano.
+  return nome.split(' ').map((parola, i) => (i === 0 || /^[A-Z]{2,}$/.test(parola) ? parola : parola.toLocaleLowerCase('it-IT'))).join(' ')
 }
 
 function toolDallUrl(): string {

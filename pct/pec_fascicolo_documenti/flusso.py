@@ -137,7 +137,9 @@ def processa_messaggio(repo: Any, message_id: str, *, fascicolo_id: str = "", co
             reg.registra_messaggio(conn, tenant, message_id, fascicolo_id=destinazione, stato="in_attesa_conferma",
                                    motivo=f"Collegamento «{stato_link or 'assente'}»: serve la conferma dell'avvocato")
             return {"ok": True, "stato": "in_attesa_conferma", "collegamento": stato_link, "salvati": 0, "eml_salvati": 0}
-        if precedente.get("stato") == "completato" and precedente.get("fascicolo_id") == destinazione and not conferma_avvocato:
+        # Un messaggio completato con regole precedenti si rivede: il salvataggio è idempotente per impronta.
+        if (precedente.get("stato") == "completato" and precedente.get("fascicolo_id") == destinazione and not conferma_avvocato
+                and precedente.get("versione_regole") == cl.VERSIONE):
             return {"ok": True, "stato": "gia_elaborato", "salvati": 0, "eml_salvati": 0}
     try:
         esito = _salva(repo, message_id, destinazione, riga, parsed, report, actor=actor)
@@ -167,6 +169,10 @@ def _salva(repo: Any, message_id: str, destinazione: str, riga: dict[str, Any], 
     tipo_ricevuta, profilo = _tipo_ricevuta(repo, parsed, report)
     genere = cl.genere_messaggio(oggetto, [parte.filename for parte in parti], tipo_ricevuta)
     provenienza = _provenienza(riga, parsed, message_id)
+    profilo_processuale = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    # Il tipo del provvedimento allegato (sentenza, ordinanza…) si legge anche dall'evento della comunicazione.
+    contesto = " ".join(str(v or "") for v in (oggetto, profilo_processuale.get("oggetto_evento"),
+                                                 profilo_processuale.get("descrizione_evento")))
     base = {"tenant_id": tenant, "message_id": message_id, "fascicolo_id": destinazione,
             "message_id_header": provenienza.message_id_header, "mittente": provenienza.mittente,
             "consegnata_il": provenienza.consegnata_il}
@@ -188,7 +194,7 @@ def _salva(repo: Any, message_id: str, destinazione: str, riga: dict[str, Any], 
         raise LookupError("fascicolo_non_trovato")
     presenti = impronte_presenti(fascicolo)
     with repo.connect() as conn:
-        if cl.conserva_eml(genere):
+        if cl.conserva_eml(genere, da_ufficio=provenienza.da_ufficio):
             nome = nome_eml(repo._notification_receipt_display_subject(profilo) if profilo else oggetto, genere)
             esistente = reg.esito_oggetto(conn, tenant, message_id, destinazione, impronta_eml).get("documento_id") or eml_presente(fascicolo, message_id, impronta_eml)
             documento_id, esito = esistente, "gia_presente"
@@ -219,7 +225,7 @@ def _salva(repo: Any, message_id: str, destinazione: str, riga: dict[str, Any], 
                               "esito": "gia_presente", "motivo": "gia_nel_fascicolo", "documento_id": esistente})
                 conteggi["gia_presenti"] += 1
                 continue
-            documento = salva_allegato(manager, destinazione, allegato, provenienza, oggetto=oggetto, actor=actor)
+            documento = salva_allegato(manager, destinazione, allegato, provenienza, oggetto=contesto, actor=actor)
             documento_id = str(getattr(documento, "id", "") or "")
             presenti[allegato.sha256] = documento_id
             righe.append({**base, "ruolo": "allegato", "nome_originale": allegato.nome, "sha256": allegato.sha256,
@@ -233,7 +239,8 @@ def _chiudi(repo: Any, message_id: str, destinazione: str, righe: list[dict[str,
     with repo.connect() as conn:
         reg.registra_oggetti(conn, righe)
         reg.registra_messaggio(conn, tenant, message_id, fascicolo_id=destinazione, stato="completato",
-                               salvati=conteggi["salvati"], eml_salvati=conteggi["eml_salvati"], scartati=conteggi["scartati"])
+                               salvati=conteggi["salvati"], eml_salvati=conteggi["eml_salvati"], scartati=conteggi["scartati"],
+                               versione_regole=cl.VERSIONE)
         if conteggi["salvati"] or conteggi["eml_salvati"]:
             # Evidenza nella catena di audit del presidio (hash concatenati): provenienza di ogni file salvato.
             repo.append_audit(conn, action="pec.fascicolo_documenti.salvati", resource_type="pec_message", resource_id=message_id,

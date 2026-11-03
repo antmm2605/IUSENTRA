@@ -9,7 +9,11 @@ Generi:
   DGSIA 16/04/2014): si conserva intero; la copia dell'atto che contiene non è un documento nuovo.
 * ``ricevuta_altra``: ricevute di PEC qualsiasi; non provano una notifica e restano nel presidio.
 * ``notifica``: la PEC di notificazione (inviata o ricevuta): .eml intero più atti allegati.
-* ``comunicazione``: ogni altra PEC collegata (cancelleria, colleghi, enti): solo gli atti allegati.
+* ``comunicazione``: ogni altra PEC collegata (cancelleria, colleghi, enti): gli atti allegati (anche dentro
+  lo .zip) e, se viene da un ufficio giudiziario, l'.eml della comunicazione. ``IndiceBusta.xml`` accanto a
+  ``Comunicazione.xml`` non la rende una ricevuta di deposito.
+
+``VERSIONE`` cambia quando cambiano queste regole: i messaggi già completati tornano nel recupero.
 """
 
 from __future__ import annotations
@@ -22,6 +26,8 @@ from dataclasses import dataclass
 from email import message_from_bytes, policy
 from pathlib import PurePosixPath
 
+#: 2: comunicazione dell'ufficio con IndiceBusta.xml non più scambiata per ricevuta di deposito; .eml della comunicazione.
+VERSIONE = "2"
 LIMITE_BYTE = 30 * 1024 * 1024
 MASSIMO_MEMBRI_ZIP = 20
 
@@ -53,6 +59,10 @@ _DEPOSITO = re.compile(
     re.I,
 )
 _FILE_DEPOSITO = {"indicebusta.xml", "datiatto.xml", "atto.enc"}
+# La comunicazione dell'ufficio porta Comunicazione.xml e, con gli allegati, anche IndiceBusta.xml (art. 21
+# Specifiche tecniche, provv. DGSIA 07/08/2024, Allegati 4 e 8): l'indice da solo non fa di lei un deposito.
+# Solo DatiAtto.xml o Atto.enc sono propri della busta di deposito (art. 14 delle stesse Specifiche).
+_FILE_SOLO_DEPOSITO = {"datiatto.xml", "atto.enc"}
 _XML_TECNICI = {"comunicazione.xml", "indicebusta.xml", "datiatto.xml", "segnatura.xml", "esitoatto.xml"}
 _DOCUMENTALI = (".pdf", ".p7m", ".doc", ".docx", ".rtf", ".odt")
 
@@ -80,7 +90,8 @@ def genere_messaggio(oggetto: str, nomi_allegati: list[str], tipo_ricevuta: str)
     """Il genere della PEC dall'oggetto, dagli allegati e dal tipo di ricevuta già riconosciuto dal presidio."""
     testo = " ".join(str(oggetto or "").split())
     nomi = {_nome(nome).casefold() for nome in nomi_allegati}
-    if _DEPOSITO.search(testo) or nomi & _FILE_DEPOSITO:
+    file_deposito = _FILE_SOLO_DEPOSITO if "comunicazione.xml" in nomi else _FILE_DEPOSITO
+    if _DEPOSITO.search(testo) or nomi & file_deposito:
         return RICEVUTA_DEPOSITO
     if tipo_ricevuta:
         return RICEVUTA_NOTIFICA if _NOTIFICA_L53.search(testo) else RICEVUTA_ALTRA
@@ -166,12 +177,16 @@ def scegli_allegati(allegati: list[tuple[str, bytes]], *, genere: str) -> tuple[
     return salvare, scarti
 
 
-def conserva_eml(genere: str) -> bool:
-    """L'.eml intero è prova solo per la notificazione e per le sue ricevute."""
-    return genere in {NOTIFICA, RICEVUTA_NOTIFICA}
+def conserva_eml(genere: str, *, da_ufficio: bool = False) -> bool:
+    """L'.eml intero si conserva per la notificazione e le sue ricevute e per la comunicazione dell'ufficio.
+
+    La comunicazione di cancelleria è il messaggio stesso (corpo e Comunicazione.xml, art. 21 Specifiche
+    tecniche; art. 16, comma 4, D.L. 179/2012): senza l'.eml nel fascicolo resterebbe solo la copia degli allegati.
+    """
+    return genere in {NOTIFICA, RICEVUTA_NOTIFICA} or (genere == COMUNICAZIONE and da_ufficio)
 
 
 __all__ = [
-    "COMUNICAZIONE", "LIMITE_BYTE", "MOTIVI", "NOTIFICA", "RICEVUTA_ALTRA", "RICEVUTA_DEPOSITO", "RICEVUTA_NOTIFICA",
+    "COMUNICAZIONE", "LIMITE_BYTE", "VERSIONE", "MOTIVI", "NOTIFICA", "RICEVUTA_ALTRA", "RICEVUTA_DEPOSITO", "RICEVUTA_NOTIFICA",
     "Allegato", "Scarto", "conserva_eml", "genere_messaggio", "involucri", "scegli_allegati",
 ]

@@ -90,3 +90,17 @@ def test_limiti_rispettati(tmp_path):
         kb.append("improvement_proposals", f"prop-{indice}", {"title": f"P{indice}", "kind": "ontologia"})
     snapshot = inspect_memory(kb.memory_dir, proposals_limit=2)
     assert [row["titolo"] for row in snapshot["proposte"]] == ["P4", "P3"]
+
+
+def test_proposta_registrata_con_costante_interna_resa_leggibile(tmp_path):
+    import json
+
+    from lex.autonomy.memory_inspection import inspect_memory
+
+    record = {"created_at": "2026-08-28T02:42:00", "payload": {
+        "kind": "ontologia", "title": "Aggiungere il concetto 'sanzione pecuniaria' all'ontologia giuridica",
+        "description": "Il termine 'sanzione pecuniaria' ricorre 6 volte nei testi analizzati (area privacy) ma non è "
+                       "nell'ontologia: aggiungerlo a LEGAL_ONTOLOGY con sinonimi e fonti primarie verificate."}}
+    (tmp_path / "improvement_proposals.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+    descrizione = inspect_memory(tmp_path)["proposte"][0]["descrizione"]
+    assert "LEGAL_ONTOLOGY" not in descrizione and "valutarne l'aggiunta" in descrizione

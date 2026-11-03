@@ -82,6 +82,7 @@ from pct.notifiche_legali import (
 from pct.preventivi import StatoPreventivo
 from pct.pec_pipeline import extract_message_parts, message_from_bytes
 from pct.pec_operational_cleanup import is_legacy_pec_deadline
+from pct.scadenze_stato import aperta, esito_udienza_da_registrare
 from pct.practice_engine.deposit_orchestrator import prepare_deposit, send_deposit
 from pct.practice_engine.deposit_readiness import run_predeposit_check
 from pct.practice_engine.evaluator import build_regia_payload, ensure_evidence_pack, ensure_profile_for_fascicolo
@@ -2312,6 +2313,9 @@ def _high_priority_matters(limit: int = 4) -> list[dict[str, Any]]:
         priority = _enum_value(getattr(scadenza, "priorita", ""))
         if priority not in {PrioritaTermine.CRITICA.value, PrioritaTermine.ALTA.value}:
             continue
+        # Regola V28: un'udienza passata e' un esito da registrare, non rende urgente il fascicolo.
+        if esito_udienza_da_registrare(scadenza):
+            continue
         id_fascicolo = str(getattr(scadenza, "id_fascicolo", "") or "")
         if not id_fascicolo or id_fascicolo in seen:
             continue
@@ -2357,7 +2361,8 @@ def _deadline_distribution() -> list[dict[str, Any]]:
     scadenze = [
         item
         for item in _safe("scadenziario", lambda: gestore_panoramica(get_scadenziario).tutte(solo_aperte=True), [])
-        if not is_legacy_pec_deadline(item)
+        # Regola V28 (pct/scadenze_stato.py): adempimenti scaduti e udienze passate non sono «aperte».
+        if not is_legacy_pec_deadline(item) and aperta(item)
     ]
     buckets = {
         PrioritaTermine.CRITICA.value: {"label": "scadenze critiche", "tone": "danger", "count": 0},
@@ -6409,7 +6414,9 @@ def _telematico_dashboard_cache_key() -> tuple | None:
         config_studio = tenant_data_path("CONFIG_STUDIO_DB", config_studio, require_tenant=True) if config_studio else ""
     except Exception:
         return None
-    return revision_cache_key("telematico", domains={"fascicoli"}, files=[telematico_db, config_studio])
+    # La cabina telematica non mostra le letture dei documenti né l'archivio economico: le loro revisioni
+    # (che avanzano a ogni lettura automatica) non devono impedire il riuso (riverifica 03/11/2026: sempre MISS).
+    return revision_cache_key("telematico", domains={"fascicoli"}, files=[telematico_db, config_studio], include_vertical=False)
 
 
 @api_v1_react.get("/telematico")
@@ -13654,7 +13661,9 @@ def _react_template_office_options(
             continue
         seen.add(key)
         options.append(_react_template_choice(label_value, label_value, codiceUfficio=value))
-        if len(options) >= 80:
+        # Riverifica 03/11/2026 (DOC-10): con il vecchio limite di 80 voci in ordine alfabetico restavano solo Corti
+        # d'Appello e Giudici di pace; Tribunali e Procure non comparivano mai. Il limite copre l'intero catalogo.
+        if len(options) >= 600:
             break
     return options
 
@@ -15561,6 +15570,27 @@ def _legal_intelligence_cache_key(page: str) -> tuple | None:
         return None
 
 
+def _legal_intelligence_scope(page: str) -> tuple | None:
+    """Studio, utente autorizzato e revisioni delle fonti; None se la revisione non è leggibile."""
+    tenant = getattr(g, "tenant", None)
+    tenant_slug = str(
+        getattr(tenant, "slug", "") or getattr(g, "tenant_context_slug", "") or ""
+    ).strip().lower()
+    # A refresh must not serve a previous revision during the TTL. Include
+    # the authorized owner context and revisions; failure disables reuse.
+    from web.services.operational_read_revision import read_authorized_revision_snapshot
+    try:
+        snapshot = read_authorized_revision_snapshot(g.get("utente_corrente"))
+        context = snapshot.get("context")
+        revisions = snapshot.get("revisions")
+        if not context or not revisions:
+            return None
+        return (page, tenant_slug, context, tuple(sorted(revisions.items())))
+    except Exception:
+        current_app.logger.warning("Cache ricerca non riutilizzata: revisione non disponibile")
+        return None
+
+
 def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
     utente = g.get("utente_corrente")
     if not utente:
@@ -15587,6 +15617,8 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 page=page,
                 query=dict(request.args),
                 config=dict(current_app.config),
+                # La parte che non dipende dalla domanda si riusa fra ricerche dello stesso studio (LEX-01).
+                base_cache_scope=_legal_intelligence_scope(page) if request.args.get("q") else None,
             )
         )
         if cache_key is not None and response.status_code == 200:

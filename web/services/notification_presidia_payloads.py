@@ -373,7 +373,7 @@ def build_presidia_list_payload(repo: Any, filters: Mapping[str, Any]) -> dict[s
         "items": items,
         "pagination": {"cursor": str(filters.get("cursor") or ""), "next_cursor": _cursor_encode(public.get("nextCursor")), "has_more": bool(public.get("nextCursor")), "total": None, "limit": int(filters.get("limit") or 50)},
         "facets": {"status": _status_facets(repo)},
-        "filter_options": {"assignees": assignees, "channels": [_option(key, label) for key, label in CHANNEL_LABELS.items()]},
+        "filter_options": {"assignees": assignees, "channels": [_option(key, label) for key, label in CHANNEL_LABELS.items() if key != "nonpec"]},
         "permissions": public_permissions(permissions),
         "partial": False,
         "warnings": [],

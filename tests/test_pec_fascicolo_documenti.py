@@ -81,20 +81,25 @@ def test_pec_collegata_con_decreto_entra_nel_fascicolo_con_provenienza_ed_evento
 
     esito = processa_messaggio(repo, message_id, eventi=eventi)
 
-    assert esito["ok"] and esito["stato"] == "completato" and esito["salvati"] == 1 and esito["eml_salvati"] == 0
-    [documento] = [doc for doc in _documenti(tmp_path, fascicolo.id) if doc.fonte_documento == "PEC_CANCELLERIA"]
+    # Comunicazione dell'ufficio: l'atto allegato e l'.eml della comunicazione (art. 16, comma 4, D.L. 179/2012).
+    assert esito["ok"] and esito["stato"] == "completato" and esito["salvati"] == 1 and esito["eml_salvati"] == 1
+    [eml] = [doc for doc in _documenti(tmp_path, fascicolo.id) if doc.tipo == TipoDocumento.COMUNICAZIONE]
+    assert eml.nome.endswith(".eml") and eml.fonte_documento == "PEC_CANCELLERIA"
+    [documento] = [doc for doc in _documenti(tmp_path, fascicolo.id)
+                   if doc.fonte_documento == "PEC_CANCELLERIA" and doc.tipo != TipoDocumento.COMUNICAZIONE]
     assert documento.nome_originale == "Decreto_153768904.pdf"
     assert documento.tipo == TipoDocumento.DECRETO  # catalogato dal nome e dalla comunicazione
     assert f"iusentra:pec:{message_id}" in documento.tags and "iusentra:pec-data:2026-11-02" in documento.tags
     assert "copia-informativa" in documento.tags and "Da PEC del 02/11/2026 (00:30, ora italiana)" in documento.note
     assert documento.data_documento == "2026-11-02"  # consegna alle 00:30 ora italiana: non il giorno UTC prima
-    assert ricevuti == [(fascicolo.id, 1, True)]  # registro delle letture: inventario e lettura dei soli nuovi
+    assert ricevuti == [(fascicolo.id, 2, True)]  # registro delle letture: inventario e lettura dei soli nuovi
     with repo.connect() as conn:
         motivi = {r["nome_originale"]: r["motivo"] for r in conn.execute("SELECT * FROM pec_fascicolo_documenti WHERE esito='scartato'")}
         audit = conn.execute("SELECT payload_json FROM pec_audit_log WHERE action='pec.fascicolo_documenti.salvati'").fetchall()
     assert motivi == {"daticert.xml": "daticert", "smime.p7s": "firma_gestore"}
     [prova] = [json.loads(row[0]) for row in audit]
-    assert prova["documenti"][0]["sha256"] == documento.hash_contenuto_sha256 and prova["documenti"][0]["consegnata_il"] == "2026-11-02T00:30"
+    [voce] = [d for d in prova["documenti"] if d["ruolo"] == "allegato"]
+    assert voce["sha256"] == documento.hash_contenuto_sha256 and voce["consegnata_il"] == "2026-11-02T00:30"
 
 
 def test_stessa_pec_due_volte_e_documento_gia_scaricato_non_creano_doppioni(tmp_path):
@@ -110,9 +115,9 @@ def test_stessa_pec_due_volte_e_documento_gia_scaricato_non_creano_doppioni(tmp_
     # Seconda elaborazione: già elaborata; anche forzando con la conferma nulla si duplica.
     assert processa_messaggio(repo, message_id, eventi=lambda *a: None)["stato"] == "gia_elaborato"
     terzo = processa_messaggio(repo, message_id, conferma_avvocato=True, eventi=lambda *a: None)
-    assert (terzo["salvati"], terzo["gia_presenti"]) == (0, 2)
+    assert (terzo["salvati"], terzo["gia_presenti"]) == (0, 3)  # decreto, ordinanza e .eml della comunicazione
     impronte = [doc.hash_contenuto_sha256 or doc.hash_sha256 for doc in _documenti(tmp_path, fascicolo.id)]
-    assert len(impronte) == len(set(impronte)) == 2
+    assert len(impronte) == len(set(impronte)) == 3
 
 
 def test_collegamento_proposto_non_salva_nulla_fino_alla_conferma(tmp_path):
@@ -146,7 +151,7 @@ def test_link_fascicolo_porta_i_documenti_quando_il_collegamento_e_certificato(t
     _certifica(repo, message_id, fascicolo.id)
     risultato = repo.link_fascicolo(message_id, actor="pytest")  # il linker conserva il certificato e chiude il flusso
     assert risultato["fascicolo_documents"]["stato"] == "completato"
-    assert [doc.nome_originale for doc in _documenti(tmp_path, fascicolo.id) if f"iusentra:pec:{message_id}" in doc.tags] == ["Decreto_153768904.pdf"]
+    assert [doc.nome_originale for doc in _documenti(tmp_path, fascicolo.id) if f"iusentra:pec:{message_id}" in doc.tags and not doc.nome.endswith(".eml")] == ["Decreto_153768904.pdf"]
 
 
 def test_recupero_storico_limitato_e_riprendibile(tmp_path):
@@ -271,7 +276,7 @@ def test_origine_da_pec_nella_scheda_documenti(tmp_path):
     message_id = _ingesta(repo, _comunicazione("origine"), "INBOX:UID:40")
     _certifica(repo, message_id, fascicolo.id)
     processa_messaggio(repo, message_id, eventi=lambda *a: None)
-    [documento] = _documenti(tmp_path, fascicolo.id)
+    [documento] = [doc for doc in _documenti(tmp_path, fascicolo.id) if not doc.nome.endswith(".eml")]
     assert origine_pec(documento) == {"label": "da PEC del 02/11/2026", "href": f"/email/?audit_id={message_id}"}
     # Documenti salvati prima del flusso: fonte PEC e riferimento interno del messaggio.
     vecchio = SimpleNamespace(tags=[], fonte_documento="PEC_CANCELLERIA", msg_id_portale="abc123#ffff", data_documento="2026-10-29")
@@ -303,5 +308,112 @@ def test_collegamento_automatico_del_linker_entra_nel_fascicolo(tmp_path):
     message_id = _ingesta(repo, _comunicazione("automatica"), "INBOX:UID:31")
     _certifica(repo, message_id, fascicolo.id, stato="automatico")
     esito = processa_messaggio(repo, message_id, eventi=lambda *a: None)
-    assert esito["stato"] == "completato" and esito["salvati"] == 1
-    assert len(_documenti(tmp_path, fascicolo.id)) == 1
+    assert esito["stato"] == "completato" and esito["salvati"] == 1 and esito["eml_salvati"] == 1
+    assert len(_documenti(tmp_path, fascicolo.id)) == 2
+
+
+# ------------------------------------------------- comunicazione di cancelleria SICID con sentenza nello .zip
+
+PDF_SENTENZA = b"%PDF-1.4\n% sentenza ex art. 429 c.p.c.\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
+
+
+def comunicazione_sicid(tag: str = "sicid", *, ruolo: str = "523/2026/LAV", cliente: str = "ROSSI MARIO") -> bytes:
+    """Forma reale delle comunicazioni SICID (art. 21 Specifiche tecniche DGSIA, Allegati 4 e 8): busta del gestore
+    con postacert.eml, che contiene corpo, IndiceBusta.xml, Comunicazione.xml e il provvedimento in uno .zip.
+    Dati sintetici."""
+    import io
+    import zipfile
+
+    archivio = io.BytesIO()
+    with zipfile.ZipFile(archivio, "w") as zf:
+        zf.writestr(f"{tag}s.pdf", PDF_SENTENZA.replace(b"sentenza", tag.encode()))
+    interno = EmailMessage()
+    interno["From"] = "tribunale.vicenza@civile.ptel.giustiziacert.it"
+    interno["To"] = "studio@pec.example.test"
+    interno["Subject"] = f"COMUNICAZIONE {ruolo}"
+    interno.set_content(
+        "TRIBUNALE ORDINARIO DI VICENZA\nSez/Coll.: L1\nTipo procedimento: Diritto del Lavoro\n"
+        f"Numero di Ruolo generale: {ruolo.rsplit('/', 1)[0]}\nGiudice: BIANCHI LUCA\nRicorr. principale: {cliente}\n"
+        "Resist. principale: AMMINISTRAZIONE ALFA\nOggetto: SENTENZA EX ART. 429, I comma CPC\n"
+        "Descrizione: SENTENZA EX ART. 429, I comma CPC NUMERO 1674/2026\n-- Si vedano gli eventuali allegati.")
+    interno.add_attachment(b'<IndiceBusta><Atto Nome="x" ID="A1"/></IndiceBusta>', maintype="text", subtype="xml",
+                           filename="IndiceBusta.xml")
+    interno.add_attachment(
+        f"<Comunicazione><NumeroRuolo>{ruolo}</NumeroRuolo><Oggetto>SENTENZA</Oggetto><Contenuto>Sentenza</Contenuto>"
+        "<CodiceUG>0240990094</CodiceUG><CodiceFiscaleDestinatario>XXXXXX00X00X000X</CodiceFiscaleDestinatario></Comunicazione>".encode(),
+        maintype="text", subtype="xml", filename="Comunicazione.xml")
+    interno.add_attachment(archivio.getvalue(), maintype="application", subtype="zip", filename=f"{tag}s.pdf.zip")
+    busta = EmailMessage()
+    busta["From"] = "Per conto di: tribunale.vicenza@civile.ptel.giustiziacert.it <posta-certificata@legalmail.it>"
+    busta["To"] = "studio@pec.example.test"
+    busta["Subject"] = f"POSTA CERTIFICATA: COMUNICAZIONE {ruolo}"
+    busta["Date"] = "Thu, 08 Oct 2026 15:19:56 +0200"
+    busta["Message-ID"] = f"<{tag}@example.test>"
+    busta.set_content(f"Messaggio di posta certificata: il messaggio \"COMUNICAZIONE {ruolo}\" è stato inviato da "
+                      "\"tribunale.vicenza@civile.ptel.giustiziacert.it\".")
+    busta.add_attachment(interno, filename="postacert.eml")
+    busta.add_attachment(b"<postacert tipo=\"posta-certificata\"/>", maintype="application", subtype="xml", filename="daticert.xml")
+    busta.add_attachment(b"firma", maintype="application", subtype="pkcs7-signature", filename="smime.p7s")
+    return busta.as_bytes(policy=policy.SMTP)
+
+
+def test_indice_busta_con_comunicazione_xml_non_e_una_ricevuta_di_deposito():
+    from pct.pec_fascicolo_documenti.classificazione import COMUNICAZIONE
+
+    assert genere_messaggio("POSTA CERTIFICATA: COMUNICAZIONE 523/2026/LAV",
+                            ["postacert.eml", "IndiceBusta.xml", "Comunicazione.xml", "1s.pdf.zip"], "") == COMUNICAZIONE
+    assert genere_messaggio("POSTA CERTIFICATA: COMUNICAZIONE 523/2026", ["IndiceBusta.xml"], "") == RICEVUTA_DEPOSITO
+    assert genere_messaggio("Busta", ["IndiceBusta.xml", "Comunicazione.xml", "DatiAtto.xml"], "") == RICEVUTA_DEPOSITO
+    assert genere_messaggio("ESITO CONTROLLI AUTOMATICI DEPOSITO", ["Comunicazione.xml"], "") == RICEVUTA_DEPOSITO
+
+
+def test_sentenza_nello_zip_della_comunicazione_di_cancelleria_entra_con_l_eml(tmp_path):
+    """Caso del fascicolo reale (verifica del 03/11/2026): la sentenza arrivata in .zip non era nel fascicolo perché
+    IndiceBusta.xml faceva leggere la comunicazione come ricevuta di deposito."""
+    repo, fascicolo = _ambiente(tmp_path)
+    message_id = _ingesta(repo, comunicazione_sicid(), "INBOX:UID:60")  # presidio completo: lettura, linker, flusso
+
+    with repo.connect() as conn:
+        link = conn.execute("SELECT status, fascicolo_id FROM pec_fascicolo_links WHERE message_id=? ORDER BY rowid DESC LIMIT 1",
+                            (message_id,)).fetchone()
+        stato = conn.execute("SELECT stato, salvati, eml_salvati FROM pec_fascicolo_documenti_messaggi WHERE message_id=?",
+                             (message_id,)).fetchone()
+    # Ruolo dal corpo e da Comunicazione.xml, cliente come ricorrente principale, ufficio mittente: collegamento certo.
+    assert tuple(link) == ("ruolo_cliente_ufficio_verificati", fascicolo.id)
+    assert tuple(stato) == ("completato", 1, 1)
+    documenti = _documenti(tmp_path, fascicolo.id)
+    [sentenza] = [doc for doc in documenti if doc.nome_originale == "sicids.pdf"]
+    assert sentenza.tipo == TipoDocumento.SENTENZA and "copia-informativa" in sentenza.tags
+    [eml] = [doc for doc in documenti if doc.nome.endswith(".eml")]
+    assert eml.tipo == TipoDocumento.COMUNICAZIONE and eml.data_documento == "2026-10-08"
+    with repo.connect() as conn:
+        motivi = {r["nome_originale"]: r["motivo"] for r in conn.execute("SELECT * FROM pec_fascicolo_documenti WHERE esito='scartato'")}
+    assert motivi["IndiceBusta.xml"] == motivi["Comunicazione.xml"] == "xml_tecnico"
+    assert "ricevuta_deposito_telematico" not in motivi.values()
+
+
+def test_messaggio_completato_con_regole_precedenti_torna_nel_recupero(tmp_path):
+    """Lo storico già «completato» con la classificazione precedente si rivede una volta, senza doppioni."""
+    from pct.pec_fascicolo_documenti import flusso
+
+    repo, fascicolo = _ambiente(tmp_path)
+    # Cliente diverso: all'arrivo nessun collegamento certo; poi lo certifica la lettura del fascicolo.
+    message_id = _ingesta(repo, comunicazione_sicid("storico", cliente="VERDI ANNA"), "INBOX:UID:61")
+    assert not _documenti(tmp_path, fascicolo.id)
+    _certifica(repo, message_id, fascicolo.id)
+    with repo.connect() as conn:  # come lo ha lasciato la versione 2.477.0: scartato come ricevuta di deposito
+        conn.executescript(
+            "DROP TABLE IF EXISTS pec_fascicolo_documenti_messaggi; DELETE FROM pec_fascicolo_documenti; "
+            "CREATE TABLE pec_fascicolo_documenti_messaggi (tenant_id TEXT NOT NULL, message_id TEXT NOT NULL, "
+            "fascicolo_id TEXT NOT NULL DEFAULT '', stato TEXT NOT NULL, motivo TEXT NOT NULL DEFAULT '', tentativi INTEGER NOT NULL "
+            "DEFAULT 0, salvati INTEGER NOT NULL DEFAULT 0, eml_salvati INTEGER NOT NULL DEFAULT 0, scartati INTEGER NOT NULL DEFAULT 0, "
+            "updated_at TEXT NOT NULL, PRIMARY KEY (tenant_id, message_id));")
+        conn.execute("INSERT INTO pec_fascicolo_documenti_messaggi (tenant_id, message_id, fascicolo_id, stato, scartati, updated_at) "
+                     "VALUES (?, ?, ?, 'completato', 1, '2026-10-08T13:20:00Z')", (repo.tenant_id, message_id, fascicolo.id))
+    flusso._SCHEMI_PRONTI.clear()  # nuovo processo dopo il rilascio
+
+    primo = recupera_storico(repo, limite=10, eventi=lambda *a: None)  # la colonna della versione si aggiunge da sola
+
+    assert (primo["esaminati"], primo["salvati"], primo["eml_salvati"], primo["restano"]) == (1, 1, 1, 0)
+    assert recupera_storico(repo, limite=10, eventi=lambda *a: None)["esaminati"] == 0
+    assert len(_documenti(tmp_path, fascicolo.id)) == 2

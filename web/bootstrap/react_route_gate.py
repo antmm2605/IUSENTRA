@@ -288,7 +288,8 @@ _REDIRECT_ALIAS = {
     "/portali/ptt": "/sigit",
     "/portali/sigit": "/sigit",
     "/telematici": "/telematico",
-    "/preventivi/conferimento": "/preventivi",
+    # Riverifica 03/11/2026 (ECO-12): l'archivio si apre già filtrato sui conferimenti.
+    "/preventivi/conferimento": "/preventivi?metric=conferimenti",
 }
 _PARAMETRI_PORTALI = (("codice_ufficio", "ufficio_codice"), ("numero_rg", "numero"), ("anno_rg", "anno"), ("id_fasc", "id_fasc"))
 
@@ -620,7 +621,8 @@ def register_react_route_gate(app: Flask) -> None:
             return portale
         alias = _REDIRECT_ALIAS.get(path.lower())
         if alias is not None:
-            return redirect(alias + ("?" + request.query_string.decode("utf-8", "replace") if request.query_string else ""))
+            separatore = "&" if "?" in alias else "?"
+            return redirect(alias + (separatore + request.query_string.decode("utf-8", "replace") if request.query_string else ""))
         sito = _REDIRECT_SITO.get(path.lower())
         if sito is not None:
             return redirect(sito)

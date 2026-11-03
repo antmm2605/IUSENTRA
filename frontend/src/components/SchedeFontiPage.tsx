@@ -16,7 +16,7 @@ type Proposta = { id: string; impronta: string; tipo: string; etichetta: string;
 type Riepilogo = { eseguito_il: string; norme: number; stati: Record<string, number>; commi_abrogati: number; acquisiti: { chiave: string; articoli: number; url: string }[]; proposte_aperte: number; per_tipo: { tipo: string; etichetta: string; numero: number }[] }
 type Risposta = { riepilogo: Riepilogo; proposte: Proposta[]; puo_decidere: boolean; modelli: ModelloNorme[]; paginazione: { pagina: number; pagine: number; totale: number } }
 const base = '/api/v1/ui/schede-fonti'
-function dataIt(v: string) { return v ? new Date(v).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' }) : 'non ancora eseguito' }
+function dataIt(v: string) { return v ? new Date(v).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'non ancora eseguito' }
 
 export function SchedeFontiPage() {
   const [dati, setDati] = useState<Risposta | null>(null)

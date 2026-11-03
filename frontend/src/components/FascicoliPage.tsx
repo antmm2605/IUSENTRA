@@ -205,6 +205,7 @@ import {
   type ContributoUnificatoMemory,
 } from './fascicoli/contributoUnificato'
 import { AgendaFascicolo } from './fascicoli/AgendaFascicolo'
+import { prossimaScadenza } from './fascicoli/agendaFascicoloVoci'
 import { AgendaFascicoloCompatta } from './fascicoli/AgendaFascicoloCompatta'
 import './FascicoliPage.css'
 
@@ -6835,6 +6836,36 @@ const PROCEDURAL_CHANNEL_LABELS: Record<string, string> = {
   ONLINE: 'Procedura online',
 }
 
+// Registro del profilo con il nome per esteso: all'avvocato mai il codice interno (RG_LAVORO…).
+const PROCEDURAL_REGISTRY_LABELS: Record<string, string> = {
+  RG_CIVILE: 'Ruolo generale civile',
+  RG_LAVORO: 'Ruolo generale lavoro',
+  RG_FAMIGLIA: 'Ruolo generale famiglia',
+  PENALE: 'Registro penale',
+  PAT_AMMINISTRATIVO: 'Processo amministrativo telematico',
+  PTT_TRIBUTARIO: 'Processo tributario telematico',
+  INTERNO_STUDIO: 'Registro interno dello studio',
+  PROTOCOLLO_PA: 'Protocollo della pubblica amministrazione',
+  ACCESSO_ATTI: 'Accesso agli atti',
+  CCII: 'Codice della crisi d’impresa',
+  LAVORO_DISCIPLINARE: 'Procedimento disciplinare (lavoro)',
+  AUTORITA_AMBIENTALE: 'Autorità ambientale',
+  ASSICURAZIONI: 'Assicurazioni',
+  BANCARIO: 'Bancario e finanziario',
+  CONSUMATORI: 'Consumatori',
+  IMMIGRAZIONE: 'Immigrazione',
+  MARCHI: 'Marchi',
+  RISCOSSIONE: 'Riscossione',
+  SUCCESSIONI: 'Successioni',
+}
+
+function proceduralRegistryLabel(code: string): string {
+  const key = code.trim().toUpperCase()
+  if (!key) return ''
+  if (PROCEDURAL_REGISTRY_LABELS[key]) return PROCEDURAL_REGISTRY_LABELS[key]
+  return key.includes('_') ? '' : code
+}
+
 function proceduralChannelLabel(code: string): string {
   const key = code.trim().toUpperCase()
   if (!key) return ''
@@ -6854,7 +6885,7 @@ function proceduralProfileOptions(profile: Record<string, unknown>, source: unkn
       name: recordText(row, 'name') || recordText(row, 'practiceType') || code,
       area: recordText(row, 'area'),
       channel: proceduralChannelLabel(recordText(row, 'channel')),
-      registry: recordText(row, 'registry'),
+      registry: proceduralRegistryLabel(recordText(row, 'registry')),
       confidence,
       reason: recordText(row, 'reason') || recordText(profile, 'reason') || 'Proposta del resolver procedurale.',
       source: recordText(row, 'source') || recordText(profile, 'source') || 'Catalogo procedurale IUSENTRA',
@@ -7096,7 +7127,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           : 'Apri il controllo prioritario',
       ].join(' · ')
     : operational.summary || 'Apri i controlli del fascicolo'
-  const nextDeadline = data.deadlines[0] || data.appointments.find((app) => !app.past)
+  const nextDeadline = prossimaScadenza(data.deadlines) || data.appointments.find((app) => !app.past)
   const notification = data.notificationRelata
   const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
   const contributoUnificato = data.fascicolo.paymentSummary.items.contributo_unificato
@@ -8148,15 +8179,24 @@ function DepositReceiptActions({ dep, onDone, onError }:{dep:FascicoloDeposit; o
   )
 }
 
+// Mittente e autore della registrazione in chiaro: niente «Per conto di:», indirizzi tra <>, «scheduler»
+// né Message-ID della PEC (riverifica visiva 03/11/2026).
+function depositAcceptedByLabel(value: string | undefined): string {
+  return String(value || '').replace(/^\s*per conto di:\s*/i, '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function depositRegisteredByLabel(value: string): string {
+  return /^(scheduler|system|sistema|automatic|auto)\b/i.test(value.trim()) ? 'dalla lettura automatica delle PEC' : `da ${value}`
+}
+
 function DepositStateSummary({ dep }:{dep:FascicoloDeposit}) {
   const summary = depositPhaseSummary(dep)
   const facts = [
     dep.roleNumber ? `RG ${dep.roleNumber}` : '',
     depositPublicExternalId(dep) ? `IDBUSTA ${depositPublicExternalId(dep)}` : '',
     dep.acceptedAt ? `Accettato il ${depositDateLabel(dep.acceptedAt)}` : '',
-    dep.acceptedBy ? `Da ${dep.acceptedBy}` : '',
-    dep.registeredBy ? `Registrato da ${dep.registeredBy}` : '',
-    dep.sourceMessageId ? `Messaggio deposito ${dep.sourceMessageId}` : '',
+    depositAcceptedByLabel(dep.acceptedBy) ? `Da ${depositAcceptedByLabel(dep.acceptedBy)}` : '',
+    dep.registeredBy ? `Registrato ${depositRegisteredByLabel(dep.registeredBy)}` : '',
   ].filter(Boolean)
   return (
     <div className={`iu-fas-deposit-state iu-fas-deposit-state--${summary.tone}`}>
@@ -9903,7 +9943,7 @@ function DetailPage({ id }:{id:string}) {
   const notificationRelata = data.notificationRelata
   const notificationRelataCount = data.quickCounts.relata_notifica || notificationRelata.pendingPortalDocuments || notificationRelata.relataDocuments || notificationRelata.signedRelataDocuments || notificationRelata.proofDocuments || 0
   const qualityIssues = data.quality.filter((item) => !item.ok).length + (Number(f.alerts) || 0)
-  const nextDeadline = data.deadlines[0]
+  const nextDeadline = prossimaScadenza(data.deadlines)
   const nextAppointment = data.appointments.find((app) => !app.past)
   const preventivo = data.workflow.find((item) => /preventiv/i.test(item.label))
   const conferimento = data.workflow.find((item) => /conferiment|incaric/i.test(item.label))
@@ -10514,7 +10554,7 @@ function QuadroPage({ id }:{id:string}) {
   const qualityOk = data.quality.filter((item) => item.ok).length
   const qualityIssues = Math.max(0, data.quality.length - qualityOk + (Number(f.alerts) || 0))
   const qualityStatus = qualityIssues ? `${qualityIssues} ${qualityIssues === 1 ? 'verifica' : 'verifiche'}` : 'OK'
-  const nextDeadline = data.deadlines[0]
+  const nextDeadline = prossimaScadenza(data.deadlines)
   const nextAppointment = data.appointments.find((app) => !app.past)
   const valore = moneyFrom(data, 'valore', f.value || '€ 0,00')
   const compenso = moneyFrom(data, 'compenso', f.agreedFee || f.quotedValue || '€ 0,00')

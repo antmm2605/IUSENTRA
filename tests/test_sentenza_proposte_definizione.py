@@ -144,6 +144,9 @@ def ambiente(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime, "_cliente", lambda _f: {})
     monkeypatch.setattr(runtime, "crediti_da_sentenza", lambda *_a, **_k: (True, []))
     monkeypatch.setattr(runtime, "_dopo_decisione", lambda *a, **k: None)
+    # Qui si collaudano proposta, conferma e respingimento: i casi in cui la registrazione
+    # automatica non è possibile (fascicolo sospeso, decisione già presa). L'automatismo è in test_sentenza_automatica.
+    monkeypatch.setattr(runtime, "_registra_se_certa", lambda *_a, **_k: False)
     monkeypatch.setattr(registro_runtime, "registro_corrente", lambda **_: registro)
     monkeypatch.setattr(registro_runtime, "tenant_corrente", lambda: "studio")
     monkeypatch.setattr(web.helpers, "get_fascicoli", lambda: gestore)

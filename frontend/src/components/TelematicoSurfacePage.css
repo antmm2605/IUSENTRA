@@ -110,6 +110,20 @@
   background:rgba(255,255,255,.24);
   color:#fff;
 }
+/* Con il preset delle pagine l'intestazione è chiara: il riquadro dello stato («Dati aggiornati»,
+   «Sincronizzazione…») passa a testo scuro, prima bianco su grigio chiaro (riverifica 03/11/2026). */
+.iusentra-route-preset--active .iu-tel-surface-hero__meta{
+  border-color:rgba(15,23,42,.12);
+  background:rgba(15,23,42,.04);
+  box-shadow:none;
+}
+.iusentra-route-preset--active .iu-tel-surface-hero__meta strong{color:#0f172a}
+.iusentra-route-preset--active .iu-tel-surface-hero__meta small{color:#475569}
+.iusentra-route-preset--active .iu-tel-surface-hero__meta a{
+  border-color:rgba(15,23,42,.18);
+  background:#fff;
+  color:#0f172a;
+}
 .iu-tel-surface-notices{
   display:grid;
   gap:10px;

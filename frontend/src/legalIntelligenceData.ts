@@ -480,6 +480,10 @@ export async function getRicercaLegalePage(params: { q?: string } = {}): Promise
   const search = new URLSearchParams()
   if (params.q?.trim()) search.set('q', params.q.trim())
   const suffix = search.toString() ? `?${search.toString()}` : ''
-  const payload = await apiJson<unknown>(`/api/v1/ui/ricerca-legale${suffix}`, emptyLegalIntelligencePage)
+  // Una risposta non riuscita (es. 502 del proxy su una ricerca lunga) non è «nessun risultato»: lo si dice.
+  const fallback: LegalIntelligencePageData = search.toString()
+    ? { ...emptyLegalIntelligencePage, warnings: [{ code: 'ricerca_non_completata', message: 'La ricerca non è stata completata dal server: i risultati non sono disponibili. Riprova tra poco o restringi la ricerca.' }] }
+    : emptyLegalIntelligencePage
+  const payload = await apiJson<unknown>(`/api/v1/ui/ricerca-legale${suffix}`, fallback)
   return normalisePage(payload)
 }

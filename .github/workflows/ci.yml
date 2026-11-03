@@ -1182,7 +1182,8 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
-          - macos-latest
+          # macOS non blocca il deploy (runner Mac di GitHub spesso non assegnati): gira ogni notte in
+          # .github/workflows/local-signer-macos.yml (autorizzazione dell'avvocato del 03/11/2026).
         shard: [1, 2, 3, 4]
 
     steps:

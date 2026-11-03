@@ -97,7 +97,14 @@ def main() -> int:
         except Exception as exc:
             voce["journal_mode"] = _breve(f"{type(exc).__name__}: {exc}")
         registri.append(voce)
-    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "registri_letture": registri, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
+    disaccordi = []
+    if os.getenv("DISACCORDI"):
+        # Solo identificativi opachi e voci del catalogo: nessun nome, testo o dato del cliente.
+        for percorso in sorted(set(glob.glob("/data/**/intelligence/classificatore_disaccordi.json", recursive=True))):
+            for voce in json.loads(open(percorso, encoding="utf-8").read()):
+                disaccordi.append({k: voce.get(k) for k in ("document_id", "fascicolo_id", "voce_regole",
+                                                              "confidenza_regole", "voce_modello", "probabilita")})
+    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "registri_letture": registri, "disaccordi": disaccordi, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
     return 0
 
 

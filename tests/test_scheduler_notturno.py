@@ -129,3 +129,38 @@ def test_registrato_nel_registro_pianificazioni():
 
     tpl = {t.key: t for t in default_scheduler_templates({})}["sequenza_notturna"]
     assert tpl.built_in and tpl.hour == "21-23,0-7"
+
+
+def test_semaforo_occupato_non_avanza_e_non_blocca(tmp_path):
+    registro = RegistroNotte(tmp_path / "r.sqlite")
+    occupato = {"ok": True, "skipped": True, "reason": guardia.SEMAFORO_OCCUPATO, "message": "occupato"}
+    risposte = [occupato, {"ok": True, "lavorati": 1}]
+    amb = catena.Ambiente(lambda nome: SimpleNamespace(func=lambda: risposte.pop(0), args=(), kwargs={},
+                                                       next_run_time=datetime.now(ROMA)),
+                          lambda: 8000, lambda: 0, lambda: [])
+    momento = datetime(2026, 11, 3, 21, 31, tzinfo=ROMA)
+    primo = _giro(registro, amb, momento)
+    assert primo["skipped"] and registro.avanzamento("2026-11-03")["indice"] == 0
+    secondo = _giro(registro, amb, momento)
+    assert secondo["esito"] == "completato" and registro.avanzamento("2026-11-03")["indice"] == 1
+
+
+def test_attesa_del_semaforo_limitata(monkeypatch):
+    attese = []
+
+    class _Finto:
+        def __init__(self, *a, attesa_massima=None, **k):
+            attese.append(attesa_massima)
+
+        def __enter__(self):
+            return True
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(guardia, "motore_pesante", _Finto)
+    monkeypatch.setattr(guardia, "catena_in_servizio", lambda: False)
+    guardia.esegui_in_catena(guardia.custodisci("legal_updates_batch", lambda: {"ok": True}))
+    assert attese == [guardia.ATTESA_CATENA_SECONDI]
+    # I lavori leggeri a orario fisso (PEC, avvisi) non aspettano il semaforo.
+    assert guardia.custodisci("mailbox_sync_runtime", lambda: {"ok": True})()["ok"] and len(attese) == 1

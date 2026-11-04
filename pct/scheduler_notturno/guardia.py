@@ -10,6 +10,7 @@ from typing import Any, Callable
 from pct.scheduler_notturno import finestra
 from pct.scheduler_notturno.sequenza import (
     FASI,
+    LAVORI_ANCHE_DI_GIORNO,
     LAVORI_FREQUENTI_PESANTI,
     LAVORI_SOLO_NOTTURNI_AI,
     lavori_solo_notturni,
@@ -19,6 +20,10 @@ from pct.semaforo_motori import PRIORITA_SEQUENZA, PRIORITA_URGENTE, SemaforoOcc
 # Di giorno un lavoro pianificato aspetta il semaforo al massimo 15 minuti, poi salta al giro successivo
 # (la corsia non resta bloccata). Nella catena notturna aspetta il proprio turno senza limite.
 ATTESA_DIURNA_SECONDI = 15 * 60
+# Nella catena l'attesa è breve: il passo non avanza e si riprova al giro successivo (un minuto dopo), così
+# l'unico thread della corsia lunga non resta mai fermo per ore dentro il semaforo (notte del 03-04/11/2026).
+ATTESA_CATENA_SECONDI = 5 * 60
+SEMAFORO_OCCUPATO = "semaforo_occupato"
 _FASE_DEL_LAVORO = {p.lavoro: f.numero for f in FASI for p in f.passi}
 
 
@@ -65,11 +70,14 @@ def custodisci(lavoro: str, funzione: Callable[..., Any]) -> Callable[..., Any]:
         if not lock.acquire(blocking=False):
             return {"ok": True, "skipped": True, "reason": "gia_in_corso", "message": "Lo stesso lavoro è già in corso."}
         try:
-            attesa = None if _IN_CATENA.get() else ATTESA_DIURNA_SECONDI
+            if lavoro in LAVORI_ANCHE_DI_GIORNO and not _IN_CATENA.get():
+                # PEC, relate e avvisi a orario fisso sono brevi: non aspettano dietro l'OCR nella corsia rapida.
+                return funzione(*args, **kwargs)
+            attesa = ATTESA_CATENA_SECONDI if _IN_CATENA.get() else ATTESA_DIURNA_SECONDI
             with motore_pesante(lavoro, priorita=priorita_del_lavoro(lavoro), attesa_massima=attesa):
                 return funzione(*args, **kwargs)
         except SemaforoOccupato:
-            return {"ok": True, "skipped": True, "reason": "semaforo_occupato",
+            return {"ok": True, "skipped": True, "reason": SEMAFORO_OCCUPATO,
                     "message": "Un altro motore pesante era in corso: si riprova al giro successivo."}
         finally:
             lock.release()

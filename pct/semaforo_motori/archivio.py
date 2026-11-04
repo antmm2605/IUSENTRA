@@ -27,6 +27,13 @@ def processo_corrente() -> str:
     return f"{socket.gethostname()}:{os.getpid()}"
 
 
+# Invecchiamento della coda: ogni INVECCHIAMENTO_SECONDI di attesa vale un punto di priorità. Senza, un motore
+# che rientra subito in coda con priorità più alta (l'OCR, un documento dopo l'altro) passava sempre davanti e
+# chi aspettava con priorità più bassa (la catena notturna, i lavori pianificati) non otteneva mai il turno:
+# notte del 03-04/11/2026, catena mai partita e corsia lunga dello scheduler ferma fino al mattino.
+INVECCHIAMENTO_SECONDI = 10.0
+
+
 class Semaforo:
     def __init__(self, db_path: str | Path, *, affitto_secondi: float = 120.0, orologio=time.time) -> None:
         self.db_path = Path(db_path)
@@ -63,7 +70,10 @@ class Semaforo:
                     "INSERT INTO coda VALUES (?,?,?,?,?,?) ON CONFLICT(titolare) DO UPDATE SET scade_alle=excluded.scade_alle",
                     (titolare, motore, processo_corrente(), int(priorita), ora, ora + self.affitto),
                 )
-                primo = conn.execute("SELECT titolare FROM coda ORDER BY priorita, entrato_alle LIMIT 1").fetchone()
+                primo = conn.execute(
+                    "SELECT titolare FROM coda ORDER BY priorita - (? - entrato_alle) / ?, entrato_alle LIMIT 1",
+                    (ora, INVECCHIAMENTO_SECONDI),
+                ).fetchone()
                 preso = attuale is None and primo is not None and primo["titolare"] == titolare
                 if preso:
                     conn.execute("DELETE FROM coda WHERE titolare=?", (titolare,))

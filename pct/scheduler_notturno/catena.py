@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from typing import Any, Callable
 
 from pct.scheduler_notturno import finestra
-from pct.scheduler_notturno.guardia import esegui_in_catena
+from pct.scheduler_notturno.guardia import SEMAFORO_OCCUPATO, esegui_in_catena
 from pct.scheduler_notturno.registro import RegistroNotte
 from pct.scheduler_notturno.sequenza import Fase, Passo, passi_in_ordine
 
@@ -53,6 +53,10 @@ def _esegui_lavoro(job: Any, passo: Passo, limite: datetime, adesso: Callable[[]
     while True:
         esito = esegui_in_catena(job.func, list(job.args or []), dict(job.kwargs or {}))
         giri += 1
+        if isinstance(esito, dict) and esito.get("reason") == SEMAFORO_OCCUPATO:
+            if giri == 1:
+                return "attesa", str(esito.get("message") or "Semaforo dei motori occupato.")
+            break
         if isinstance(esito, dict) and esito.get("ok") is False:
             return "fallito", str(esito.get("error") or esito.get("message") or "Esito negativo.")[:300]
         if not passo.ripeti_minuti or _niente_da_fare(esito) or adesso() >= min(fine_ripetizioni, limite):
@@ -114,6 +118,9 @@ def esegui_passo(registro: RegistroNotte, ambiente: Ambiente, momento: datetime 
     except Exception as exc:  # una fase che fallisce non blocca le successive
         logger.exception("[notte] Passo %s non riuscito", passo.lavoro)
         esito, messaggio = "fallito", f"{type(exc).__name__}: {str(exc)[:240]}"
+    if esito == "attesa":
+        # Il passo non è stato eseguito: resta lo stesso e si riprova al giro successivo, entro le 07:30.
+        return {"ok": True, "skipped": True, "message": f"In attesa del turno: {messaggio}"}
     return avanza(esito, messaggio, time.monotonic() - inizio)
 
 

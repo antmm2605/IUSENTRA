@@ -88,3 +88,21 @@ def test_senza_cartella_dati_non_blocca(monkeypatch):
     monkeypatch.delenv("PCT_DATA_ROOT", raising=False)
     with motore_pesante("ocr") as preso:
         assert preso is False
+
+
+def test_invecchiamento_chi_aspetta_supera_chi_rientra_subito(tmp_path):
+    """Notte 03-04/11/2026: l'OCR (priorità 10) rientrava in coda dopo ogni documento e la catena non partiva mai."""
+    orologio = Orologio()
+    sem = Semaforo(tmp_path / "s.sqlite", orologio=orologio)
+    assert sem.prova("ocr-1", "OCR", PRIORITA_URGENTE)
+    assert not sem.prova("catena", "catena", 58)  # fase 8: priorità bassa
+    turno_catena = False
+    for giro in range(200):
+        orologio.t += 5
+        sem.rilascia(f"ocr-{giro + 1}")
+        sem.prova("catena", "catena", 58)
+        if sem.stato()["in_corso"] == "catena":
+            turno_catena = True
+            break
+        assert sem.prova(f"ocr-{giro + 2}", "OCR", PRIORITA_URGENTE)
+    assert turno_catena and orologio.t - 1000 <= 10 * 60

@@ -5,6 +5,27 @@ import unicodedata
 from typing import Any
 
 
+
+_FORMULE_INTESTAZIONE = re.compile(r"\b(?:repubblica\s+italiana|in\s+nome\s+del\s+popolo\s+italiano)\b", re.I)
+
+
+def _a_capo_prima_delle_formule(testo: str) -> str:
+    """Manda a capo le formule d'intestazione della sentenza senza espressioni regolari sugli spazi.
+
+    Lo spazio che precede la formula si toglie con rstrip: tempo lineare anche su testi pieni di tabulazioni.
+    """
+    parti: list[str] = []
+    inizio = 0
+    for trovata in _FORMULE_INTESTAZIONE.finditer(testo):
+        prima = testo[inizio:trovata.start()]
+        pulita = prima.rstrip(" \t")
+        if pulita != prima and pulita and not pulita.endswith("\n"):
+            prima = pulita + "\n"
+        parti.append(prima)
+        inizio = trovata.start()
+    parti.append(testo[inizio:])
+    return "".join(parti)
+
 def _tokens(value: Any) -> tuple[str, ...]:
     text = unicodedata.normalize('NFKD', str(value or '').casefold())
     return tuple(sorted(re.findall(r'[a-z0-9]+', ''.join(c for c in text if not unicodedata.combining(c)))))
@@ -137,7 +158,7 @@ def document_case_identity_evidence(text: str, fascicolo: Any) -> dict[str, Any]
     # dell'ufficio anche quando l'estrazione del testo ha unito le righe: «TRIBUNALE DI TORINO REPUBBLICA ITALIANA»
     # diventava la sede e la definizione automatica si fermava su un ufficio «discordante» (collaudo della
     # catena notturna del 04/11/2026).
-    header = re.sub(r"(?<=\S)[ \t]+(?=(?:repubblica\s+italiana|in\s+nome\s+del\s+popolo\s+italiano)\b)", "\n", header, flags=re.I)
+    header = _a_capo_prima_delle_formule(header)
     roles = {fact.valore for fact in estrai_ruoli(header, origine='nativo') if fact.campo == 'numero_ruolo'}
     source_role = next(iter(roles)) if len(roles) == 1 else ''
     office = ufficio_esplicito_del_ruolo(Fatto(categoria='ruolo', campo='rg', valore='', contesto=header))

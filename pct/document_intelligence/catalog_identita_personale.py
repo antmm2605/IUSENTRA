@@ -90,6 +90,9 @@ CAMPI: tuple[tuple[str, str], ...] = (
 _AUTORITA = re.compile(r"\brepubblica\s+italiana\b|\bministero\s+dell\s*interno\b|\bcomune\s+di\b|\bquestura\b|\bprefettura\b|\bmotorizzazione\b")
 # Un atto che allega o cita il documento d'identità non è il documento d'identità.
 _ATTO = re.compile(r"\bprocura\b|\bdeleg[oa]\b|\bricorso\b|\btribunale\b|\bgiudice\b|\bcitazione\b|\bcomparsa\b|\bmemoria\b|\bsi\s+allega\b|\ballego\b|\bcopia\s+(?:del|della)\b|\bdichiara\b")
+# Una lettera o un atto che chiude con «si allega (fotocopia della) carta d'identità» cita il documento, non lo è
+# (revisione del 04/11/2026: diffida letta come carta d'identità). Cercato in tutto il testo esaminato.
+_ALLEGA = re.compile(r"\bsi\s+allega\w*\b|\ballego\b|\ballegat[aoie]\s+(?:copia|fotocopia)\b")
 _NOME_FILE = re.compile(r"^(?:copia\s+|scansione\s+|scan\s+)?(?:carta\s+d\s*i?\s*identita|documento\s+d\s*i?\s*identita|carta\s+identita|c\.?i\.?e|passaporto|patente(?:\s+di\s+guida)?|permesso\s+di\s+soggiorno|tessera\s+sanitaria)(?:\s+(?:fronte|retro|fronte\s+retro|cliente|[a-z]+(?:\s+[a-z]+)?))?(?:\s+\d{1,2})?$")
 
 # Profili condivisi: il formato guida l'interpretazione delle etichette;
@@ -212,13 +215,20 @@ def documento_identita_personale(testo: str, *, cliente: str = "") -> dict[str, 
     if not grezzo.strip():
         return None
     piatto = normalizza(grezzo[:CARATTERI_ESAMINATI])
-    if _ATTO.search(piatto[:1500]):
+    if _ATTO.search(piatto[:1500]) or _ALLEGA.search(piatto):
         return None
     tipo = next(((chiave, etichetta) for chiave, etichetta, espressione in TIPI if re.search(espressione, piatto)), None)
+    if tipo is None and modello_identita_italiana(grezzo[:CARATTERI_ESAMINATI]) in {"carta_cartacea", "cie"}:
+        # Titolo illeggibile nell'OCR («CARTA D'IDENTI», «REPVBLICA»): le diciture del modello ministeriale
+        # (cognome, nato il, residenza, statura, capelli, occhi; o le etichette bilingui della CIE) lo riconoscono.
+        tipo = ("carta_identita", "Carta d'identità")
     if tipo is None:
         return None
     campi = [chiave for chiave, espressione in CAMPI if re.search(espressione, piatto)]
-    if len(campi) < 2:
+    # La patente di guida è documento di riconoscimento equipollente (art. 35, comma 2, D.P.R. 445/2000): il titolo
+    # «patente di guida» in testa al documento (non un provvedimento sulla patente) con l'autorità emittente basta anche quando l'OCR non rende le etichette dei campi.
+    patente_intestata = tipo[0] == "patente" and re.match(r"\s*(?:repubblica\s+italiana\s+)?patente\s+di\s+guida\b", piatto) and _AUTORITA.search(piatto)
+    if len(campi) < 2 and not patente_intestata:
         return None
     chiave, etichetta = tipo
     autorita = bool(_AUTORITA.search(piatto))

@@ -14,7 +14,8 @@ from .catalog_fields import catalog_xml, invoice_bodies, invoice_data, xml_value
 
 def structural_identity(text: str) -> dict[str, Any] | None:
     raw = str(text or '').strip()
-    head = re.sub(r'\s+', ' ', raw[:2000]).casefold()
+    # L'OCR in forma di tabella («|ATTESTAZIONE DI CONFORMITÀ||», «|---|---|») non cambia l'intestazione (04/11/2026).
+    head = re.sub(r'\s+', ' ', re.sub(r'(?<![^\s|])-{3,}(?![^\s|])', ' ', raw[:2000].replace('|', ' '))).strip().casefold()
 
     def result(label: str, role: str, section: str, tipo: TipoDocumento, pattern: str,
                evidence: str, confidence: int = 98, deposit: str = 'allegato') -> dict[str, Any]:

@@ -87,6 +87,9 @@ def _correggi_token_ocr(token: str, riga_maiuscola: bool) -> str:
     return token
 
 
+_OCR_TABELLA_SEPARATORE = re.compile(r"\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*", re.M)
+
+
 def normalizza_ocr_titoli(testo: Any) -> str:
     """Corregge le confusioni OCR tipiche delle intestazioni prima del confronto.
 
@@ -100,6 +103,13 @@ def normalizza_ocr_titoli(testo: Any) -> str:
     grezzo = str(testo or "")
     if not grezzo:
         return grezzo
+    # Tabella dell'OCR (riga «|---|---|»): i «|» sono bordi di cella, non una I letta male. Senza toglierli
+    # «|ATTESTAZIONE DI CONFORMITÀ||» diventava «IATTESTAZIONE …II» (revisione del 04/11/2026: 119 attestazioni).
+    if _OCR_TABELLA_SEPARATORE.search(grezzo):
+        grezzo = "\n".join(
+            "" if _OCR_TABELLA_SEPARATORE.fullmatch(riga) else riga.replace("|", " ") if riga.lstrip().startswith("|") else riga
+            for riga in grezzo.split("\n")
+        )
     grezzo = _OCR_SILLABAZIONE.sub(lambda m: m.group(1) + (m.group(2) or m.group(3) or ""), grezzo)
     righe: list[str] = []
     for riga in grezzo.split("\n"):

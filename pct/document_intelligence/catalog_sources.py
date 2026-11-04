@@ -46,6 +46,12 @@ CATALOG_SOURCES: dict[str, dict[str, Any]] = {
         "verification_status": "guida ufficiale consultata; la classificazione non verifica emissione, consegna SdI o pagamento",
         "source_type": "documentale",
     },
+    "normattiva_dpr_115_2002_art9_contributo_unificato": {
+        "label": "D.P.R. 115/2002, art. 9: contributo unificato di iscrizione a ruolo (comma 1) ed esenzione nelle controversie di lavoro, pubblico impiego e previdenza sotto la soglia di reddito dell'art. 76 (comma 1-bis)",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115~art9",
+        "verification_status": "testo vigente (in vigore dal 17/07/2011) consultato su Normattiva il 04/11/2026",
+        "source_type": "normativa",
+    },
     "normattiva_dpr_445_2000_documentazione_amministrativa": {
         "label": "D.P.R. 445/2000: documenti di identità (art. 35), certificati (art. 40), dichiarazioni sostitutive (artt. 46 e 47)",
         "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2000-12-28;445~art46",
@@ -101,6 +107,9 @@ def document_source_ids(nature: str, section: str, profile_id: str | None) -> tu
     # norma che definisce quel documento.
     if nature in {"dichiarazione_sostitutiva", "documento_identita", "certificato_anagrafico"}:
         return common + ("normattiva_dpr_445_2000_documentazione_amministrativa",)
+    # Ricevute, attestazioni ed esenzioni del contributo unificato: art. 9 D.P.R. 115/2002 (verificato il 04/11/2026).
+    if nature == "contributo_unificato":
+        return common + ("normattiva_dpr_115_2002_art9_contributo_unificato",)
     if nature == "atto_esecutivo":
         return common + ("normattiva_cpc_esecuzione_forzata",)
     if nature in {"relazione_peritale_ctu", "perizia_di_parte"}:

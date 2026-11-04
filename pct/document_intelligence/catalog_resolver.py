@@ -423,7 +423,16 @@ def _content_identity(
         if _verbale_con_sentenza_contestuale(raw[:12000]):
             return _sentenza_contestuale(result)
         return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=99, evidence="Ufficio, data della comparizione davanti al giudice e sua disposizione nel verbale.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Successivamente oggi")
-    if re.search(r"studio legale", head[:250]) and re.search(r"oggetto richiesta pagamento", head[:1300]) and not re.search(r"^tribunale", head):
+    # Autocertificazione reddituale per l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R. 115/2002):
+    # è il documento dell'esenzione, non una dichiarazione sostitutiva qualsiasi (revisione del 04/11/2026: 80 casi).
+    if re.search(r"\b(?:autocertificazione|dichiarazione sostitutiva)\b", head[:400]) and re.search(
+            r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato", head[:900]):
+        return replace(result(role="contributo_unificato", label="Contributo unificato / esenzione", section="pagamenti", confidence=97,
+                              evidence="autocertificazione della situazione reddituale (art. 46 D.P.R. 445/2000) per l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R. 115/2002)",
+                              tipo_documento=TipoDocumento.DEPOSITO_PCT, deposit_role="contributo_unificato", deposit_candidate=True,
+                              excerpt_pattern=r"esenzione\s+dal\s+contributo\s+unificato"),
+                       fonte="normattiva_dpr_115_2002_art9_contributo_unificato")
+    if re.search(r"studio legale", head[:250]) and re.search(r"oggetto\W*richiesta\s*(?:di\s*)?pagamento", head[:1300]) and not re.search(r"^tribunale", head):
         return result(role="comunicazione", label="Richiesta stragiudiziale di pagamento", section="comunicazioni", confidence=97, evidence="Carta intestata dello studio, destinatari e oggetto Richiesta pagamento espressi nella lettera.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"Oggetto: Richiesta pagamento")
     # Solo il verbale che si intitola tale: «come da verbale d'udienza» nel
     # corpo di una comparsa è un richiamo.

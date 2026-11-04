@@ -83,3 +83,33 @@ def test_modello_condiviso_non_classifica_un_contenuto_misto_come_una_carta():
     assert modello_identita_italiana('TESSERA SANITARIA\nCOGNOME ROSSI') == 'tessera_sanitaria'
     assert modello_identita_italiana(CIE + '\nTESSERA SANITARIA') == ''
     assert modello_identita_italiana('Documento allegato senza diciture') == ''
+
+
+# Revisione del 04/11/2026 sui documenti reali pseudonimizzati (esempi fittizi nello stesso formato OCR).
+PATENTE = (
+    "PATENTE DI GUIDA REPUBBLICA ITALIANA\n1. VERDI\n2. LUCA\n3. 05/06/1975 REGGIO DI CALABRIA (RC)\n"
+    "4a. 10/01/2015 4c. MIT-UCO 4b. 05/06/2026\n5. U1AB12345X\n9. A1 B\n"
+)
+CARTACEA_OCR_ROVINATO = (
+    "Segni particolari. Capelli.NERI.Statura.1,70 Occhi...CASTANI\nCognome..VERDI.. Nome..LUCA..\n"
+    "nato il.05.06.1975 (atto n. 123 P. I S. A) a ROMA\nCittadinanza ITALIANA Residenza ROMA\n"
+)
+LETTERA_CON_ALLEGATO = (
+    "Spett.le Ministero\nOggetto: Diffida e messa in mora\nIl sottoscritto Luca Verdi, nato a Roma il 05/06/1975, "
+    "residente in Roma,\nINVITA E DIFFIDA al pagamento entro 15 giorni.\nFirma\nSi allega fotocopia della carta di identità"
+)
+
+
+def test_la_patente_intestata_e_documento_equipollente_anche_con_i_campi_numerati():
+    # Art. 35, comma 2, D.P.R. 445/2000: la patente di guida è equipollente alla carta d'identità.
+    esito = documento_identita_personale(PATENTE)
+    assert esito is not None and esito["label"] == "Patente di guida" and esito["role"] == "documento_identita"
+
+
+def test_la_carta_cartacea_senza_titolo_leggibile_si_riconosce_dalle_diciture_del_modello():
+    esito = documento_identita_personale(CARTACEA_OCR_ROVINATO)
+    assert esito is not None and esito["label"] == "Carta d'identità"
+
+
+def test_la_lettera_che_allega_la_carta_d_identita_non_e_il_documento():
+    assert documento_identita_personale(LETTERA_CON_ALLEGATO) is None

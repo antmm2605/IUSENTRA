@@ -1487,99 +1487,99 @@ def start_scheduler(app):
                 }
                 scan_modes: set[str] = set()
                 for label, paths in targets:
-                    # Prima l'acquisizione automatica delle PEC archiviate non ancora
-                    # presidiate (a budget, 0 = disattivata), poi i worker che lavorano
-                    # classificazione, scadenze automatiche e collegamento fascicoli.
-                    # Budget prudenti: l'OCR degli allegati gira in questo processo e
-                    # un arretrato grande deve scalare in più giri senza saturare RAM.
-                    acquired: dict[str, object] = {
-                        "scan_mode": "disabled",
-                        "skipped": True,
-                        "reason": "acquisizione automatica disattivata",
-                    }
-                    if auto_batch > 0:
-                        logger.info("[scheduler] Presidio PEC %s: acquisizione batch=%d", label, auto_batch)
-                        acquired = acquire_local_pec_for_paths(paths, tenant_label=label, batch_size=auto_batch)
-                        scan_modes.add(str(acquired.get("scan_mode") or "unknown"))
-                        totals["archive_seen"] += _as_int(acquired.get("archive_seen"))
-                        totals["scanned"] += _as_int(acquired.get("scanned"))
-                        totals["relevant"] += _as_int(acquired.get("relevant"))
-                        totals["ingested"] += _as_int(acquired.get("ingested"))
-                        totals["duplicates"] += _as_int(acquired.get("duplicates"))
-                        totals["skipped_presided"] += _as_int(acquired.get("skipped_presided"))
-                        totals["missing_mime"] += _as_int(acquired.get("missing_mime"))
-                        totals["acquire_errors"] += _as_int(acquired.get("errors"))
-                        if acquired.get("ingested") or acquired.get("missing_mime") or acquired.get("errors"):
-                            logger.info(
-                                "[scheduler] Presidio PEC %s: %d acquisite, %d duplicate, %d senza MIME, %d errori",
-                                label,
-                                acquired.get("ingested", 0),
-                                acquired.get("duplicates", 0),
-                                acquired.get("missing_mime", 0),
-                                acquired.get("errors", 0),
-                            )
-                    logger.info(
-                        "[scheduler] Presidio PEC %s: worker limit=%d, documenti Lex limit=%d",
-                        label,
-                        max(1, worker_jobs),
-                        max(0, document_presidio_limit),
-                    )
-                    from web.services.pec_fascicolo_documenti_runtime import contesto_studio
-
-                    # Nel contesto dello studio: il linker che porta la PEC nel fascicolo accoda la lettura
-                    # nel registro dello studio, non in quello globale (collaudo della catena del 04/11/2026).
-                    with contesto_studio(label):
+                    try:
+                        # Prima l'acquisizione automatica delle PEC archiviate non ancora
+                        # presidiate (a budget, 0 = disattivata), poi i worker che lavorano
+                        # classificazione, scadenze automatiche e collegamento fascicoli.
+                        # Budget prudenti: l'OCR degli allegati gira in questo processo e
+                        # un arretrato grande deve scalare in più giri senza saturare RAM.
+                        acquired: dict[str, object] = {
+                            "scan_mode": "disabled",
+                            "skipped": True,
+                            "reason": "acquisizione automatica disattivata",
+                        }
+                        if auto_batch > 0:
+                            logger.info("[scheduler] Presidio PEC %s: acquisizione batch=%d", label, auto_batch)
+                            acquired = acquire_local_pec_for_paths(paths, tenant_label=label, batch_size=auto_batch)
+                            scan_modes.add(str(acquired.get("scan_mode") or "unknown"))
+                            totals["archive_seen"] += _as_int(acquired.get("archive_seen"))
+                            totals["scanned"] += _as_int(acquired.get("scanned"))
+                            totals["relevant"] += _as_int(acquired.get("relevant"))
+                            totals["ingested"] += _as_int(acquired.get("ingested"))
+                            totals["duplicates"] += _as_int(acquired.get("duplicates"))
+                            totals["skipped_presided"] += _as_int(acquired.get("skipped_presided"))
+                            totals["missing_mime"] += _as_int(acquired.get("missing_mime"))
+                            totals["acquire_errors"] += _as_int(acquired.get("errors"))
+                            if acquired.get("ingested") or acquired.get("missing_mime") or acquired.get("errors"):
+                                logger.info(
+                                    "[scheduler] Presidio PEC %s: %d acquisite, %d duplicate, %d senza MIME, %d errori",
+                                    label,
+                                    acquired.get("ingested", 0),
+                                    acquired.get("duplicates", 0),
+                                    acquired.get("missing_mime", 0),
+                                    acquired.get("errors", 0),
+                                )
+                        logger.info(
+                            "[scheduler] Presidio PEC %s: worker limit=%d, documenti Lex limit=%d",
+                            label,
+                            max(1, worker_jobs),
+                            max(0, document_presidio_limit),
+                        )
                         report = run_workers_for_paths(
                             paths,
                             tenant_label=label,
                             limit=max(1, worker_jobs),
                             document_presidio_limit=max(0, document_presidio_limit),
                         )
-                    processed_targets += 1
-                    processed_jobs += int(report.get("processed") or 0)
-                    totals["targets"] += 1
-                    totals["processed_jobs"] += _as_int(report.get("processed"))
-                    totals["failed_jobs"] += _as_int(report.get("failed"))
-                    document_presidio = report.get("document_presidio") if isinstance(report.get("document_presidio"), dict) else {}
-                    document_errors = _as_int(document_presidio.get("errors"))
-                    if isinstance(document_presidio.get("errors"), list):
-                        document_errors = len(document_presidio.get("errors") or [])
-                    document_retries = _as_int(document_presidio.get("retry_locked_documents"))
-                    if isinstance(document_presidio.get("transient_errors"), list):
-                        document_retries = max(document_retries, len(document_presidio.get("transient_errors") or []))
-                    totals["document_errors"] += document_errors
-                    notifications = report.get("auto_deadline_notifications") if isinstance(report.get("auto_deadline_notifications"), dict) else {}
-                    processed_count = _as_int(report.get("processed"))
-                    failed_count = _as_int(report.get("failed"))
-                    checked_documents = _as_int(document_presidio.get("checked_documents"))
-                    checked_fascicoli = _as_int(document_presidio.get("checked_fascicoli"))
-                    notification_created = _as_int(notifications.get("created"))
-                    notification_failed = _as_int(notifications.get("errors"))
-                    totals["notification_errors"] += _as_int(notifications.get("errors"))
-                    tenant_reports.append(
-                        {
-                            "tenant": label,
-                            "acquired": acquired,
-                            "workers": {
-                                "processed": processed_count,
-                                "failed": failed_count,
-                                "document_presidio": document_presidio,
-                                "auto_deadline_notifications": notifications,
-                            },
-                        }
-                    )
-                    logger.info(
-                        "[scheduler] Pipeline PEC %s: %d job completati, %d errori, documenti=%s/%s, rinviati=%d, errori documenti=%d, notifiche=%s/%s",
-                        label,
-                        processed_count,
-                        failed_count,
-                        checked_documents,
-                        checked_fascicoli,
-                        document_retries,
-                        document_errors,
-                        notification_created,
-                        notification_failed,
-                    )
+                        processed_targets += 1
+                        processed_jobs += int(report.get("processed") or 0)
+                        totals["targets"] += 1
+                        totals["processed_jobs"] += _as_int(report.get("processed"))
+                        totals["failed_jobs"] += _as_int(report.get("failed"))
+                        document_presidio = report.get("document_presidio") if isinstance(report.get("document_presidio"), dict) else {}
+                        document_errors = _as_int(document_presidio.get("errors"))
+                        if isinstance(document_presidio.get("errors"), list):
+                            document_errors = len(document_presidio.get("errors") or [])
+                        document_retries = _as_int(document_presidio.get("retry_locked_documents"))
+                        if isinstance(document_presidio.get("transient_errors"), list):
+                            document_retries = max(document_retries, len(document_presidio.get("transient_errors") or []))
+                        totals["document_errors"] += document_errors
+                        notifications = report.get("auto_deadline_notifications") if isinstance(report.get("auto_deadline_notifications"), dict) else {}
+                        processed_count = _as_int(report.get("processed"))
+                        failed_count = _as_int(report.get("failed"))
+                        checked_documents = _as_int(document_presidio.get("checked_documents"))
+                        checked_fascicoli = _as_int(document_presidio.get("checked_fascicoli"))
+                        notification_created = _as_int(notifications.get("created"))
+                        notification_failed = _as_int(notifications.get("errors"))
+                        totals["notification_errors"] += _as_int(notifications.get("errors"))
+                        tenant_reports.append(
+                            {
+                                "tenant": label,
+                                "acquired": acquired,
+                                "workers": {
+                                    "processed": processed_count,
+                                    "failed": failed_count,
+                                    "document_presidio": document_presidio,
+                                    "auto_deadline_notifications": notifications,
+                                },
+                            }
+                        )
+                        logger.info(
+                            "[scheduler] Pipeline PEC %s: %d job completati, %d errori, documenti=%s/%s, rinviati=%d, errori documenti=%d, notifiche=%s/%s",
+                            label,
+                            processed_count,
+                            failed_count,
+                            checked_documents,
+                            checked_fascicoli,
+                            document_retries,
+                            document_errors,
+                            notification_created,
+                            notification_failed,
+                        )
+                    except Exception as exc:  # una casella o uno studio guasto non ferma gli altri
+                        logger.exception("[scheduler] Presidio PEC %s non riuscito: %s", label, exc)
+                        totals["studio_errors"] = int(totals.get("studio_errors") or 0) + 1
+                        tenant_reports.append({"tenant": label, "error": f"{type(exc).__name__}: {exc}"[:300]})
                 if processed_targets:
                     logger.info("[scheduler] Pipeline PEC controllata per %d target; job=%d", processed_targets, processed_jobs)
                 totals["errors"] = (
@@ -1588,6 +1588,8 @@ def start_scheduler(app):
                     + int(totals["document_errors"])
                     + int(totals["notification_errors"])
                 )
+                # Studi o caselle non lavorati: restano in totals.studio_errors e nell'esito per studio (registro
+                # della console); il passo della catena non fallisce per uno studio e gli altri sono lavorati.
                 ordered_modes = sorted(mode for mode in scan_modes if mode)
                 return {
                     "ok": totals["errors"] == 0,

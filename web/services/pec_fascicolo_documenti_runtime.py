@@ -8,8 +8,7 @@ quanti restano). Nessun dato del cliente esce da qui.
 from __future__ import annotations
 
 import os
-from contextlib import contextmanager
-from typing import Any, Iterable, Iterator, Mapping
+from typing import Any, Iterable, Mapping
 
 from pct.pec_fascicolo_documenti import recupera_storico, stato_flusso
 from web.services.pec_pipeline_runtime import repository_from_paths
@@ -36,32 +35,27 @@ def _notifiche_l53(repo: Any) -> dict[str, Any]:
         return {"ok": False, "errore": type(exc).__name__}
 
 
-@contextmanager
-def contesto_studio(etichetta: str) -> Iterator[None]:
-    """Con più studi, il lotto di uno studio gira nel suo contesto (come la lettura automatica).
+def eventi_dello_studio(etichetta: str, paths: Mapping[str, Any]):
+    """Eventi del registro delle letture scritti direttamente nel registro dello studio, senza contesto web.
 
-    Senza, gli eventi del registro delle letture nati dal salvataggio (documento aggiunto, PEC collegata)
-    finivano nel registro globale con lo studio «single-studio» e la coda dello studio non li vedeva mai: i
-    documenti portati dalla PEC di notte restavano «da leggere» fino all'apertura del fascicolo
-    (collaudo della catena notturna del 04/11/2026). Base: art. 3 D.M. 44/2011, art. 20 CAD.
+    Fuori da una richiesta gli eventi predefiniti usano il registro globale («single-studio») e con più studi la
+    coda dello studio non li vedeva. Un contesto di richiesta per studio non va bene: i controlli di appartenenza
+    della casella (web/services/email_storage_runtime._context_for_path) bloccavano il presidio PEC
+    (prova sul server del 04/11/2026, 2.480.2). Qui nessun contesto: solo il registro dei percorsi dello studio.
     """
     from flask import current_app, has_app_context
 
     slug = str(etichetta or "").strip().lower()
     if not has_app_context() or not current_app.config.get("MULTI_TENANT") or slug in {"", "default"}:
-        yield
-        return
-    from pct.tenant import GestioneTenant
-    from web.services.fascicoli_presidi_runtime import _attach_tenant_context
+        return None  # studio unico: gli eventi predefiniti usano già il registro giusto
 
-    app = current_app._get_current_object()
-    manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
-    studio = manager.get(slug)
-    if studio is None:
-        raise LookupError(f"Studio {slug} non presente nel registro degli studi.")
-    with app.test_request_context(f"/__scheduler/pec-fascicolo-documenti/{slug}"):
-        _attach_tenant_context(manager, studio)
-        yield
+    def eventi(fascicolo_id: str, documenti_nuovi: int, pec_nuova: bool) -> None:
+        from web.services.registro_letture_runtime import registro_per_percorsi
+
+        if fascicolo_id and (documenti_nuovi or pec_nuova):
+            registro_per_percorsi(dict(paths)).accoda_evento(slug, fascicolo_id, prioritario=True)
+
+    return eventi
 
 
 def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limite: int) -> dict[str, Any]:
@@ -70,10 +64,9 @@ def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limi
     studi: list[dict[str, Any]] = []
     for etichetta, paths in targets:
         try:
-            with contesto_studio(etichetta):
-                repo = repository_from_paths(paths, tenant_label=etichetta)
-                esito = recupera_storico(repo, limite=limite)
-                esito["notifiche_l53"] = _notifiche_l53(repo)
+            repo = repository_from_paths(paths, tenant_label=etichetta)
+            esito = recupera_storico(repo, limite=limite, eventi=eventi_dello_studio(etichetta, paths))
+            esito["notifiche_l53"] = _notifiche_l53(repo)
         except Exception as exc:  # uno studio guasto non ferma gli altri, ma rende rosso l'esito
             esito = {"ok": False, "errori": 1, "errore": type(exc).__name__}
         for chiave in _SOMME:
@@ -106,4 +99,4 @@ def stato_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]]) -> list[di
     return out
 
 
-__all__ = ["LIMITE_PREDEFINITO", "contesto_studio", "limite_recupero", "recupero_per_studi", "stato_per_studi", "studi_attivi"]
+__all__ = ["LIMITE_PREDEFINITO", "eventi_dello_studio", "limite_recupero", "recupero_per_studi", "stato_per_studi", "studi_attivi"]

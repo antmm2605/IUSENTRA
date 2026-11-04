@@ -319,46 +319,81 @@ def test_lettura_in_sfondo_nello_studio_unico_non_si_ferma_sulle_discordanze():
     assert "except StudioNonIdentificato" in inspect.getsource(archivio.avvia_lettura_in_background)
 
 
-def test_recupero_pec_con_piu_studi_gira_nel_contesto_dello_studio(tmp_path, monkeypatch):
-    """Gli eventi del registro nati dal salvataggio notturno vanno nel registro dello studio, non in quello globale."""
+def _due_studi(tmp_path, app):
+    """Registro con due studi e una casella PEC ciascuno, come sul server."""
+    import json as _json
+
+    registro = tmp_path / "tenants.json"
+    studi = {slug: {"id": f"id-{slug}", "slug": slug, "storage_key": f"key-{slug}", "nome": slug, "stato": "attivo"}
+             for slug in ("alfa", "beta")}
+    registro.write_text(_json.dumps(studi), encoding="utf-8")
+    app.config.update(MULTI_TENANT=True, TENANTS_REGISTRY=str(registro))
+    caselle = {}
+    for slug in studi:
+        email = tmp_path / "tenants" / f"key-{slug}" / "email"
+        email.mkdir(parents=True)
+        caselle[slug] = email / "casella.json"
+    return caselle
+
+
+def test_due_studi_e_due_caselle_il_presidio_pec_non_usa_il_contesto_di_un_altro_studio(tmp_path):
+    """Prova sul server del 04/11/2026 (2.480.2): «La casella richiesta non appartiene allo studio corrente».
+
+    Nasce in web/services/email_storage_runtime._context_for_path quando ``g.tenant`` è uno studio e la casella
+    è di un altro. Senza contesto (come lo scheduler) ogni casella si attribuisce al suo studio dal registro.
+    """
+    import inspect
+
     from flask import g
 
-    import pct.tenant as tenant_mod
-    import web.services.pec_fascicolo_documenti_runtime as runtime
-    from web.services.registro_letture_runtime import percorso_registro, tenant_corrente
+    import pct.scheduler as scheduler_mod
+    from pct.tenant import StudioLegale
+    from web.services.email_storage_runtime import _context_for_path
 
     app = _app(tmp_path)
-    app.config.update(MULTI_TENANT=True, TENANTS_REGISTRY=str(tmp_path / "tenants.json"))
-    percorsi = {"FASCICOLI_DB": str(tmp_path / "studi" / "alfa" / "fascicoli" / "fascicoli.json"),
-                "CLIENTI_DB": str(tmp_path / "studi" / "alfa" / "clienti" / "clienti.json")}
-    studio = SimpleNamespace(slug="alfa", id="alfa")
+    caselle = _due_studi(tmp_path, app)
+    with app.app_context():
+        for slug, casella in caselle.items():
+            owner, _root = _context_for_path(casella.resolve())
+            assert owner.slug == slug
+    with app.test_request_context("/"):
+        g.tenant = StudioLegale(id="id-alfa", slug="alfa", storage_key="key-alfa")
+        with pytest.raises(RuntimeError, match="non appartiene allo studio corrente"):
+            _context_for_path(caselle["beta"].resolve())
+    # Il presidio PEC dello scheduler non entra più in un contesto di richiesta per studio.
+    assert "contesto_studio" not in inspect.getsource(scheduler_mod)
 
-    class _Gestione:
-        def __init__(self, registry_path=""):
-            pass
 
-        def get(self, slug):
-            return studio if slug == "alfa" else None
+def test_recupero_pec_con_due_studi_scrive_gli_eventi_nel_registro_di_ciascuno(tmp_path, monkeypatch):
+    """Nessun contesto web: ogni studio scrive nel proprio registro con il proprio identificativo; uno studio
+    guasto non ferma l'altro."""
+    from flask import has_request_context
 
-        def percorsi_dati(self, slug, **_):
-            return dict(percorsi)
+    import web.services.pec_fascicolo_documenti_runtime as runtime
+    from pct.registro_letture import RegistroLetture
 
-    visti: list[tuple[str, str, str]] = []
+    app = _app(tmp_path)
+    app.config.update(MULTI_TENANT=True)
+    percorsi = {slug: {"FASCICOLI_DB": str(tmp_path / slug / "fascicoli" / "fascicoli.json")} for slug in ("alfa", "beta", "guasto")}
+    contesti: list[bool] = []
 
-    def recupera(repo, *, limite):
-        visti.append((str(g.get("tenant_context_slug") or ""), percorso_registro(), tenant_corrente()))
-        return {"ok": True, "esaminati": 0, "restano": 0}
+    def recupera(repo, *, limite, eventi=None):
+        if repo.slug == "guasto":
+            raise OSError("casella non leggibile")
+        contesti.append(has_request_context())
+        eventi(f"F-{repo.slug}", 1, True)
+        return {"ok": True, "esaminati": 1, "restano": 0}
 
-    monkeypatch.setattr(tenant_mod, "GestioneTenant", _Gestione)
     monkeypatch.setattr(runtime, "recupera_storico", recupera)
-    monkeypatch.setattr(runtime, "repository_from_paths", lambda paths, tenant_label="": SimpleNamespace())
+    monkeypatch.setattr(runtime, "repository_from_paths", lambda paths, tenant_label="": SimpleNamespace(slug=tenant_label))
     monkeypatch.setattr(runtime, "_notifiche_l53", lambda repo: {})
     with app.app_context():
-        esito = runtime.recupero_per_studi([("alfa", percorsi)], limite=10)
-    assert esito["ok"], esito
-    [(slug, registro, tenant)] = visti
-    assert slug == "alfa" and tenant == "alfa"
-    assert Path(registro) == Path(percorsi["FASCICOLI_DB"]).resolve().parent.parent / "intelligence" / "registro_letture.db"
+        esito = runtime.recupero_per_studi([(s, p) for s, p in percorsi.items()], limite=10)
+    assert contesti == [False, False]
+    assert esito["totals"]["errori"] == 1 and esito["totals"]["esaminati"] == 2
+    for slug in ("alfa", "beta"):
+        registro = RegistroLetture(Path(percorsi[slug]["FASCICOLI_DB"]).resolve().parent.parent / "intelligence" / "registro_letture.db")
+        assert [e["fascicolo_id"] for e in registro.eventi_da_riprendere(slug)] == [f"F-{slug}"]
 
 
 def test_riletture_e_verifiche_periodiche_valgono_anche_nella_sera_della_catena():

@@ -8,7 +8,8 @@ quanti restano). Nessun dato del cliente esce da qui.
 from __future__ import annotations
 
 import os
-from typing import Any, Iterable, Mapping
+from contextlib import contextmanager
+from typing import Any, Iterable, Iterator, Mapping
 
 from pct.pec_fascicolo_documenti import recupera_storico, stato_flusso
 from web.services.pec_pipeline_runtime import repository_from_paths
@@ -35,15 +36,44 @@ def _notifiche_l53(repo: Any) -> dict[str, Any]:
         return {"ok": False, "errore": type(exc).__name__}
 
 
+@contextmanager
+def contesto_studio(etichetta: str) -> Iterator[None]:
+    """Con più studi, il lotto di uno studio gira nel suo contesto (come la lettura automatica).
+
+    Senza, gli eventi del registro delle letture nati dal salvataggio (documento aggiunto, PEC collegata)
+    finivano nel registro globale con lo studio «single-studio» e la coda dello studio non li vedeva mai: i
+    documenti portati dalla PEC di notte restavano «da leggere» fino all'apertura del fascicolo
+    (collaudo della catena notturna del 04/11/2026). Base: art. 3 D.M. 44/2011, art. 20 CAD.
+    """
+    from flask import current_app, has_app_context
+
+    slug = str(etichetta or "").strip().lower()
+    if not has_app_context() or not current_app.config.get("MULTI_TENANT") or slug in {"", "default"}:
+        yield
+        return
+    from pct.tenant import GestioneTenant
+    from web.services.fascicoli_presidi_runtime import _attach_tenant_context
+
+    app = current_app._get_current_object()
+    manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+    studio = manager.get(slug)
+    if studio is None:
+        raise LookupError(f"Studio {slug} non presente nel registro degli studi.")
+    with app.test_request_context(f"/__scheduler/pec-fascicolo-documenti/{slug}"):
+        _attach_tenant_context(manager, studio)
+        yield
+
+
 def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limite: int) -> dict[str, Any]:
     """Un lotto del recupero per ogni studio; l'esito è «ok» solo se nessuno studio ha avuto errori."""
     totali = dict.fromkeys(_SOMME, 0)
     studi: list[dict[str, Any]] = []
     for etichetta, paths in targets:
         try:
-            repo = repository_from_paths(paths, tenant_label=etichetta)
-            esito = recupera_storico(repo, limite=limite)
-            esito["notifiche_l53"] = _notifiche_l53(repo)
+            with contesto_studio(etichetta):
+                repo = repository_from_paths(paths, tenant_label=etichetta)
+                esito = recupera_storico(repo, limite=limite)
+                esito["notifiche_l53"] = _notifiche_l53(repo)
         except Exception as exc:  # uno studio guasto non ferma gli altri, ma rende rosso l'esito
             esito = {"ok": False, "errori": 1, "errore": type(exc).__name__}
         for chiave in _SOMME:
@@ -76,4 +106,4 @@ def stato_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]]) -> list[di
     return out
 
 
-__all__ = ["LIMITE_PREDEFINITO", "limite_recupero", "recupero_per_studi", "stato_per_studi", "studi_attivi"]
+__all__ = ["LIMITE_PREDEFINITO", "contesto_studio", "limite_recupero", "recupero_per_studi", "stato_per_studi", "studi_attivi"]

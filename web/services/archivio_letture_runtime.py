@@ -311,6 +311,10 @@ def testi_indice_archivio(fascicolo: Any) -> dict[str, str]:
             # stesso file in questo fascicolo, se ha un testo vero.
             nomi = {Path(str(getattr(doc, campo, "") or "")).name.casefold() for campo in ("nome", "nome_originale")} - {""}
             testo = next((t for nome in nomi for r in by_name.get(nome, []) if (t := _testo(r)).strip()), "")
+        if not testo.strip():
+            # Scansione: il testo esiste solo nella cache OCR (scritta dal worker). Senza, proposta di definizione e
+            # controllo economico non vedevano mai la sentenza scansionata (collaudo della catena del 04/11/2026).
+            testo = _testo_ocr(doc)
         if testo.strip():
             result[str(doc.id)] = testo
     if has_app_context():
@@ -865,6 +869,25 @@ def _consegna_ai_presidi(fascicolo: Any, registro: RegistroLetture) -> dict[str,
         return {"errore": f"{type(exc).__name__}: {exc}"[:200], "consegnati": 0, "non_pertinenti": 0, "rifiutati": 0}
 
 
+def _analisi_economica_sentenze(fascicolo: Any, registro: RegistroLetture, tenant: str, fascicolo_id: str) -> dict[str, Any]:
+    """Il controllo economico delle sentenze non ferma la lettura: un errore resta nell'esito, nel log e nel registro
+    (riga «presidio_economico» in errore) e la consegna prosegue con proposte di definizione, Lettura e sintesi."""
+    try:
+        from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
+
+        return ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
+    except Exception as exc:
+        motivo = f"{type(exc).__name__}: {exc}"[:200]
+        logger.exception("Controllo economico delle sentenze non riuscito per il fascicolo %s", fascicolo_id)
+        try:
+            # Riga del lettore «presidio_economico» in errore: la vede l'inventario e il giro successivo riprova.
+            registro.segna_fascicolo(tenant, fascicolo_id, "presidio_economico", impronta="", oggetti_totali=0,
+                                     oggetti_letti=0, stato="errore", esito={"errore": motivo})
+        except Exception:
+            logger.warning("Errore del controllo economico non scritto nel registro per %s", fascicolo_id)
+        return {"ok": False, "errore": motivo, "analyzed": 0}
+
+
 def _proposte_definizione(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, Any]:
     """La sentenza che decide la causa diventa una proposta di definizione, da confermare dall'avvocato."""
     try:
@@ -1033,8 +1056,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         consegne = _consegna_ai_presidi(fascicolo, registro)
         catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
         consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
-        from web.services.sentenza_economic_runtime import ensure_fascicolo_sentenza_economic_analysis
-        economia = ensure_fascicolo_sentenza_economic_analysis(fascicolo_id)
+        economia = _analisi_economica_sentenze(fascicolo, registro, tenant, fascicolo_id)
         consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
         invalida_lettura(fascicolo_id)
@@ -1326,7 +1348,7 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             raise RuntimeError("Derivati SQL del fascicolo non aggiornati.")
                         restano = int(report.get("restano") or 0)
                         if restano <= 0:
-                            from web.services.discordanze_letture_runtime import verifica_discordanze_fascicolo
+                            from web.services.discordanze_letture_runtime import StudioNonIdentificato, verifica_discordanze_fascicolo
 
                             # I passi finali (discordanze, notifiche, esiti, Lettura, verifiche) possono
                             # durare: la prenotazione si proroga prima di ognuno, il giro non scade a metà.
@@ -1334,7 +1356,13 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                                 registro.rinnova_evento(tenant_id, fascicolo_id, worker_id, generazione)
 
                             proroga()
-                            verifica_discordanze_fascicolo(fascicolo)
+                            try:
+                                verifica_discordanze_fascicolo(fascicolo)
+                            except StudioNonIdentificato:
+                                # Studio unico: le discordanze non sono disponibili (V48), ma notifiche, esiti
+                                # delle udienze e scheda «Lettura» vanno preparati lo stesso. Prima l'errore
+                                # chiudeva in errore ogni lettura in sfondo (collaudo della catena del 04/11/2026).
+                                pass
                             proroga()
                             # Una relata o una ricevuta appena entrata può chiudere una notifica
                             # aperta: si riallineano solo i presìdi di questo fascicolo, ora.
@@ -1417,7 +1445,11 @@ def letture_attive() -> int:
 # Quattro fascicoli ogni 10 minuti tra mezzanotte e le 6: circa 144 per notte. Con 2 per giro i 190 fascicoli
 # letti da un motore vecchio richiedevano tre notti senza intoppi (verifica del 01/11/2026).
 RILETTURE_PER_GIRO = 4
-ORE_RILETTURA = range(0, 6)  # di notte, ora italiana: nessun carico durante il lavoro dello studio
+# Di notte, ora italiana: nessun carico durante il lavoro dello studio. Dalla 2.479 la lettura notturna gira solo
+# nella fase 4 della catena (pct/scheduler_notturno), che parte dalle 22 circa: con le sole ore 0-5 riletture,
+# verifiche periodiche e riprese delle letture ferme non partivano mai se la fase 4 finiva prima di mezzanotte
+# (collaudo della catena notturna del 04/11/2026). Anche le ore serali della finestra notturna valgono.
+ORE_RILETTURA = frozenset({21, 22, 23, 0, 1, 2, 3, 4, 5})
 
 
 def fascicoli_da_aggiornare(registro: RegistroLetture, tenant_id: str, *, limite: int) -> list[str]:
@@ -1866,7 +1898,11 @@ def lettura_automatica_per_tutti(app: Any, *, limite_oggetti: int = 150, usa_mar
         return {
             "ok": True, "job": "archivio_letture_automatico", "mode": "event_queue",
             "tenants": [], "queue": recupero,
-            "totals": {"esaminati": 0, "restano": int(recupero.get("trovati") or 0)},
+            # Per la catena notturna: avviati in questo giro e lavoro ancora aperto (eventi pronti più letture
+            # in sfondo vive). Con «restano» dai soli eventi trovati il passo si chiudeva appena le due letture
+            # contemporanee erano occupate, lasciando la coda alla mattina.
+            "totals": {"esaminati": int(recupero.get("avviati") or 0),
+                       "restano": int(recupero.get("trovati") or 0) + letture_attive()},
         }
 
     from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context

@@ -16,7 +16,7 @@ from typing import Any, Callable
 from pct.scheduler_notturno import finestra
 from pct.scheduler_notturno.guardia import SEMAFORO_OCCUPATO, esegui_in_catena
 from pct.scheduler_notturno.registro import RegistroNotte
-from pct.scheduler_notturno.sequenza import Fase, Passo, passi_in_ordine
+from pct.scheduler_notturno.sequenza import ATTESA_OCR_LETTURE, Fase, Passo, passi_in_ordine
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +38,26 @@ def _iso(m: datetime) -> str:
     return m.isoformat(timespec="seconds")
 
 
+# Numeri dell'esito che descrivono la configurazione del giro, non il lavoro svolto o rimasto.
+_NON_LAVORO = frozenset({"limite", "limite_oggetti", "studi", "tenant", "fascicoli", "errori"})
+# Pausa fra due giri di un passo ripetuto: senza, un passo con lavoro in corso altrove (letture in sfondo)
+# girava a vuoto senza respiro per tutto il tempo concesso.
+PAUSA_TRA_GIRI_SECONDI = 15.0
+dormi: Callable[[float], None] = time.sleep
+
+
 def _niente_da_fare(esito: Any) -> bool:
-    """Per i passi ripetuti: il giro non ha trovato lavoro (nessun numero positivo nell'esito)."""
+    """Per i passi ripetuti: il giro non ha trovato lavoro (nessun conteggio di lavoro positivo nell'esito).
+
+    I conteggi si leggono dai ``totals`` quando l'esito li ha: «limite» (100) e «studi» (1) erano numeri
+    sempre positivi in cima all'esito e il recupero delle PEC si ripeteva a vuoto per 40 minuti ogni notte.
+    """
     if not esito or not isinstance(esito, dict) or esito.get("skipped") or esito.get("ok") is False:
         return True
-    numeri = [v for v in esito.values() if isinstance(v, (int, float)) and not isinstance(v, bool)]
-    return bool(numeri) and not any(v > 0 for v in numeri)
+    conteggi = esito["totals"] if isinstance(esito.get("totals"), dict) else esito
+    numeri = [v for k, v in conteggi.items()
+              if k not in _NON_LAVORO and isinstance(v, (int, float)) and not isinstance(v, bool)]
+    return not any(v > 0 for v in numeri)
 
 
 def _esegui_lavoro(job: Any, passo: Passo, limite: datetime, adesso: Callable[[], datetime]) -> tuple[str, str]:
@@ -61,6 +75,7 @@ def _esegui_lavoro(job: Any, passo: Passo, limite: datetime, adesso: Callable[[]
             return "fallito", str(esito.get("error") or esito.get("message") or "Esito negativo.")[:300]
         if not passo.ripeti_minuti or _niente_da_fare(esito) or adesso() >= min(fine_ripetizioni, limite):
             break
+        dormi(PAUSA_TRA_GIRI_SECONDI)
     return "completato", f"Eseguito {giri} {'volta' if giri == 1 else 'volte'}."
 
 
@@ -104,10 +119,10 @@ def esegui_passo(registro: RegistroNotte, ambiente: Ambiente, momento: datetime 
                 "message": messaggio, "passo": nuovo, "totale": totale}
 
     if passo.lavoro.startswith("__"):
-        return _passo_di_attesa(fase, ambiente, ora, avviato, avanza)
+        return _passo_di_attesa(fase, ambiente, ora, avviato, avanza, attendi_ocr=fase.attendi_ocr or passo.lavoro == ATTESA_OCR_LETTURE)
     if passo.giorni and finestra.sera_della_notte(ora).weekday() not in passo.giorni:
         return avanza("saltato", "Lavoro settimanale: non previsto stanotte.")
-    job = ambiente.trova_lavoro(passo.lavoro)
+    job = ambiente.trova_lavoro(passo.esegue or passo.lavoro)
     if job is None or getattr(job, "next_run_time", True) is None:
         return avanza("spento", "Pianificazione spenta o non disponibile in questo processo.")
     if memoria and memoria < fase.memoria_minima_mb and ora - avviato < ATTESA_MEMORIA_MAX:
@@ -130,8 +145,8 @@ def _ultimo_della_fase(passi: list[tuple[Fase, Passo]], fase: Fase, passo: Passo
 
 
 def _passo_di_attesa(fase: Fase, ambiente: Ambiente, ora: datetime, avviato: datetime,
-                     avanza: Callable[..., dict[str, Any]]) -> dict[str, Any]:
-    if not fase.attendi_ocr:
+                     avanza: Callable[..., dict[str, Any]], *, attendi_ocr: bool = False) -> dict[str, Any]:
+    if not attendi_ocr:
         return avanza("completato", "Nessun lavoro.")
     scaricati = ambiente.scarica_ai_locale() if ora == avviato else []
     in_coda = ambiente.ocr_in_coda()

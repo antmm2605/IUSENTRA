@@ -97,6 +97,18 @@ def _da_esaminare(registro: Any, tenant: str, fascicolo_id: str) -> list[Any]:
     nuovi = registro.da_leggere(tenant, fascicolo_id, LETTORE, tipi=TIPI_FONTE)
     superati = registro.superati(tenant, fascicolo_id, LETTORE, versione=VERSIONE_PROPOSTA, tipi=TIPI_FONTE)
     unici = {(o.tipo, o.oggetto_id, o.impronta): o for o in [*nuovi, *superati]}
+    # Una scansione chiusa «senza testo» si riesamina quando il motore documenti la rilegge dopo l'OCR: prima la
+    # sentenza scansionata restava per sempre fuori dalla definizione (collaudo della catena del 04/11/2026).
+    senza_testo = {(r.tipo, r.oggetto_id, r.sha256): r.letto_il for r in registro.letture(tenant, fascicolo_id, lettore=LETTORE)
+                   if r.stato == "non_leggibile" and "Testo del documento non disponibile" in _testo((r.esito or {}).get("motivo"))}
+    if senza_testo:
+        riletti = {(r.tipo, r.oggetto_id, r.sha256) for r in registro.letture(tenant, fascicolo_id, lettore="motore_documenti")
+                   if r.stato == "letto" and _testo(r.letto_il) > _testo(senza_testo.get((r.tipo, r.oggetto_id, r.sha256)) or "~")}
+        if riletti:
+            for oggetto in registro.oggetti(tenant, fascicolo_id):
+                chiave = (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta)
+                if oggetto.presente and chiave in riletti:
+                    unici.setdefault(chiave, oggetto)
     return list(unici.values())
 
 
@@ -196,6 +208,8 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
                              for lettore in ("motore_documenti", "motore_pec")
                              for r in registro.letture(tenant, fascicolo_id, lettore=lettore)
                              if r.stato in {"letto", "non_leggibile"}}
+        # Senza testo ma con l'OCR ancora da fare: si aspetta il testo, non si chiude la fonte.
+        ocr_in_attesa = {(o.tipo, o.oggetto_id, o.impronta) for o in registro.da_leggere(tenant, fascicolo_id, "ocr", tipi=("documento",))}
         for oggetto in pendenti[:max(1, int(limite))]:
             pec = oggetto.tipo == "allegato_pec"
             documento = allegati.get(oggetto.oggetto_id) if pec else documenti.get(oggetto.oggetto_id)
@@ -215,7 +229,8 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
                                             testo=testo, catalogo=("", "") if pec else catalogo.get(oggetto.oggetto_id, ("", "")),
                                             cliente=cliente)
                 if esito is None:
-                    if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in chiusi_dal_motore:
+                    if (oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) in chiusi_dal_motore and (
+                            oggetto.tipo, oggetto.oggetto_id, oggetto.impronta) not in ocr_in_attesa:
                         # Il motore documenti ha già chiuso la fonte senza un testo salvato: non resta «da leggere» per sempre.
                         registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE, versione=VERSIONE_PROPOSTA, stato="non_leggibile",
                                              esito={"pertinente": False, "motivo": "Testo del documento non disponibile."})

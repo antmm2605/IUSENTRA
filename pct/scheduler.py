@@ -1524,12 +1524,17 @@ def start_scheduler(app):
                         max(1, worker_jobs),
                         max(0, document_presidio_limit),
                     )
-                    report = run_workers_for_paths(
-                        paths,
-                        tenant_label=label,
-                        limit=max(1, worker_jobs),
-                        document_presidio_limit=max(0, document_presidio_limit),
-                    )
+                    from web.services.pec_fascicolo_documenti_runtime import contesto_studio
+
+                    # Nel contesto dello studio: il linker che porta la PEC nel fascicolo accoda la lettura
+                    # nel registro dello studio, non in quello globale (collaudo della catena del 04/11/2026).
+                    with contesto_studio(label):
+                        report = run_workers_for_paths(
+                            paths,
+                            tenant_label=label,
+                            limit=max(1, worker_jobs),
+                            document_presidio_limit=max(0, document_presidio_limit),
+                        )
                     processed_targets += 1
                     processed_jobs += int(report.get("processed") or 0)
                     totals["targets"] += 1
@@ -2856,8 +2861,12 @@ def start_scheduler(app):
                             int(esito.get("scelte") or 0),
                             int(esito.get("cambiate") or 0),
                         )
+                    # La catena notturna ripete il passo finché ci sono documenti letti (fino a 45 minuti):
+                    # senza l'esito si fermava dopo un solo giro (due documenti a notte).
+                    return esito
                 except Exception as exc:
                     logger.error("[scheduler] Seconda lettura del catalogo non riuscita: %s", exc)
+                    return {"ok": False, "job": "catalogo_seconda_lettura_lex", "error": str(exc)}
 
         scheduler.add_job(
             _catalogo_seconda_lettura,

@@ -12,6 +12,8 @@ class Passo:
     giorni: tuple[int, ...] = ()
     # Passo che si ripete finché c'è lavoro, entro questo tempo (minuti); 0 = una sola esecuzione.
     ripeti_minuti: int = 0
+    # Lavoro dello scheduler da eseguire quando il nome del passo è diverso (stesso lavoro due volte nella notte).
+    esegue: str = ""
 
 
 @dataclass(frozen=True)
@@ -26,6 +28,8 @@ class Fase:
     memoria_minima_mb: int = 1200
     note: tuple[str, ...] = field(default_factory=tuple)
 
+
+ATTESA_OCR_LETTURE = "__attesa_ocr_letture"
 
 # Giorno della sera di partenza: il lavoro della notte fra venerdì e sabato ha la sera di venerdì.
 VENERDI, SABATO = 4, 5
@@ -43,7 +47,11 @@ FASI: tuple[Fase, ...] = (
          (), attendi_ocr=True),
     Fase(4, "Letture dell'archivio e sentenze",
          "I motori documenti e PEC leggono i testi OCR; la sentenza si legge dopo l'OCR.",
-         (Passo("archivio_letture_automatico", ripeti_minuti=60), Passo("letture_recupero_completo", giorni=(SABATO,)),
+         (Passo("archivio_letture_automatico", ripeti_minuti=60),
+          # I documenti senza testo arrivati stanotte vanno all'OCR solo dopo che il motore documenti li ha letti
+          # (qui sopra): si aspetta la coda OCR e si rilegge, così la sentenza scansionata è letta nella stessa notte.
+          Passo(ATTESA_OCR_LETTURE), Passo("archivio_letture_dopo_ocr", ripeti_minuti=30, esegue="archivio_letture_automatico"),
+          Passo("letture_recupero_completo", giorni=(SABATO,)),
           Passo("lex_sentenza_economia_auto"), Passo("collaudo_lettore"))),
     Fase(5, "Scadenze, notifiche ed economia",
          "Scadenze, avvisi e presidio economico usano i fatti appena letti; il piano del giorno chiude la fase.",
@@ -89,7 +97,8 @@ def passi_in_ordine() -> list[tuple[Fase, Passo]]:
 
 
 def lavori_della_sequenza() -> frozenset[str]:
-    return frozenset(p.lavoro for _f, p in passi_in_ordine() if not p.lavoro.startswith("__"))
+    """I lavori dello scheduler eseguiti dalla catena (un passo con ``esegue`` usa il lavoro indicato)."""
+    return frozenset(p.esegue or p.lavoro for _f, p in passi_in_ordine() if not p.lavoro.startswith("__"))
 
 
 def lavori_solo_notturni() -> frozenset[str]:

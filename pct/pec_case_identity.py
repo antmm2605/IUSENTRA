@@ -133,6 +133,11 @@ def document_case_identity_evidence(text: str, fascicolo: Any) -> dict[str, Any]
     # I confini di riga delimitano l'ufficio: appiattirli fa inglobare
     # al resolver il titolo o il numero della sentenza nella sede.
     header = header.strip()
+    # Le formule d'intestazione della sentenza (art. 132 c.p.c.: «in nome del popolo italiano») chiudono la riga
+    # dell'ufficio anche quando l'estrazione del testo ha unito le righe: «TRIBUNALE DI TORINO REPUBBLICA ITALIANA»
+    # diventava la sede e la definizione automatica si fermava su un ufficio «discordante» (collaudo della
+    # catena notturna del 04/11/2026).
+    header = re.sub(r"[ \t]+(?=(?:repubblica\s+italiana|in\s+nome\s+del\s+popolo\s+italiano)\b)", "\n", header, flags=re.I)
     roles = {fact.valore for fact in estrai_ruoli(header, origine='nativo') if fact.campo == 'numero_ruolo'}
     source_role = next(iter(roles)) if len(roles) == 1 else ''
     office = ufficio_esplicito_del_ruolo(Fatto(categoria='ruolo', campo='rg', valore='', contesto=header))

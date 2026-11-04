@@ -6,10 +6,14 @@ from pct.discordanze_letture_repository import RegistroDiscordanze
 from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
 
+class StudioNonIdentificato(RuntimeError):
+    """Nessuno studio identificato (studio unico o contesto mancante): le discordanze non si calcolano (V48)."""
+
+
 def repository():
     tenant = tenant_corrente()
     if not tenant or tenant in {'single-studio','default'}:
-        raise RuntimeError('Studio non identificato per la verifica delle discordanze')
+        raise StudioNonIdentificato('Studio non identificato per la verifica delle discordanze')
     return RegistroDiscordanze(registro_corrente()), tenant
 
 

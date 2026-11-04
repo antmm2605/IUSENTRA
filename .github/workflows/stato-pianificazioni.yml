@@ -45,7 +45,7 @@ on:
         type: boolean
         default: false
       esegui:
-        description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura)"
+        description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura; PROVA_CATENA o PROVA_CATENA_1-5 = prova della catena notturna adesso)"
         required: false
         default: ""
 permissions:
@@ -57,7 +57,8 @@ env:
 jobs:
   stato:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # La prova della catena notturna (esegui = PROVA_CATENA) dura fino a 50 minuti più gli inventari.
+    timeout-minutes: ${{ startsWith(inputs.esegui, 'PROVA_CATENA') && 75 || 40 }}
     steps:
       - uses: actions/checkout@v5
       - name: Stato e avvio delle pianificazioni
@@ -75,6 +76,19 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           trap 'shred -u ~/.ssh/id_deploy' EXIT
+          case "$ESEGUI" in PROVA_CATENA*)
+            # Catena notturna vera, adesso, sotto una chiave «prova-…» del registro della notte (al più 50 minuti).
+            FASI="${ESEGUI#PROVA_CATENA}"; FASI="${FASI#_}"
+            ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
+              "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e PROVA_MINUTI=50 -e PROVA_FASI='${FASI}' scheduler-worker python -" \
+              < deploy/hetzner/prova_catena.py > uscita.txt || true
+            grep -m1 '^PROVA_CATENA_JSON:' uscita.txt | sed 's/^PROVA_CATENA_JSON://' | jq . > stato.json || { rm -f uscita.txt; echo "nessun esito"; exit 1; }
+            rm -f uscita.txt
+            jq -c '{chiave, motivo_fine, minuti, attese, errore}' stato.json
+            jq -r '.passi[]? | [.fase, .lavoro, .esito, ((.secondi|tostring) + " s"), .messaggio] | @tsv' stato.json
+            echo "== confronto inventario (prima, dopo)"; jq -c '.confronto' stato.json
+            exit 0;;
+          esac
           if [ "${{ inputs.precedenti_notifiche }}" = "true" ]; then
             ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
               "docker exec -i iusentra-app python -" < <(cat pct/notifiche_l53_collegamento/daticert.py pct/notifiche_l53_collegamento/relata.py pct/notifiche_l53_collegamento/regola.py deploy/hetzner/precedenti_notifiche.py) 2>/dev/null \

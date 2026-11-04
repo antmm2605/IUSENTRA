@@ -417,3 +417,35 @@ def test_messaggio_completato_con_regole_precedenti_torna_nel_recupero(tmp_path)
     assert (primo["esaminati"], primo["salvati"], primo["eml_salvati"], primo["restano"]) == (1, 1, 1, 0)
     assert recupera_storico(repo, limite=10, eventi=lambda *a: None)["esaminati"] == 0
     assert len(_documenti(tmp_path, fascicolo.id)) == 2
+
+
+def test_recupero_con_errori_parziali_non_e_fallito_ma_tutti_in_errore_si(monkeypatch):
+    """Prova reale 2.480.3: lavoro avanzato con qualche errore su singoli messaggi → il passo non è «fallito»."""
+    from datetime import datetime
+    from types import SimpleNamespace
+
+    from pct.scheduler_notturno import catena
+    from web.services import pec_fascicolo_documenti_runtime as runtime
+
+    esiti = {"parziale": {"ok": False, "esaminati": 73, "completati": 18, "salvati": 38, "eml_salvati": 52, "errori": 3, "restano": 0}}
+    monkeypatch.setattr(runtime, "repository_from_paths", lambda paths, tenant_label="": SimpleNamespace(slug=tenant_label))
+    monkeypatch.setattr(runtime, "_notifiche_l53", lambda repo: {})
+    monkeypatch.setattr(runtime, "eventi_dello_studio", lambda e, p: None)
+
+    def recupera(repo, *, limite, eventi=None):
+        if repo.slug == "guasto":
+            raise OSError("casella non leggibile")
+        return dict(esiti[repo.slug])
+
+    monkeypatch.setattr(runtime, "recupera_storico", recupera)
+    report = runtime.recupero_per_studi([("parziale", {}), ("guasto", {})], limite=100)
+    assert report["ok"] is True and report["totals"]["errori"] == 4
+    assert "73 PEC elaborate, 38 documenti e 52 .eml salvati, 4 errori" in report["message"]
+    ora = datetime(2026, 11, 4, 3, 0)
+    monkeypatch.setattr(catena, "esegui_in_catena", lambda f, a, k: report)
+    stato, messaggio = catena._esegui_lavoro(SimpleNamespace(func=None, args=[], kwargs={}), catena.Passo("x"), ora, lambda: ora)
+    assert stato == "completato" and "4 errori" in messaggio
+
+    assert runtime.recupero_per_studi([("guasto", {})], limite=100)["ok"] is False
+    esiti["parziale"] = {"esaminati": 5, "errori": 5}
+    assert runtime.recupero_per_studi([("parziale", {})], limite=100)["ok"] is False

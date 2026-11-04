@@ -59,7 +59,12 @@ def eventi_dello_studio(etichetta: str, paths: Mapping[str, Any]):
 
 
 def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limite: int) -> dict[str, Any]:
-    """Un lotto del recupero per ogni studio; l'esito è «ok» solo se nessuno studio ha avuto errori."""
+    """Un lotto del recupero per ogni studio.
+
+    Gli errori su singoli messaggi o studi restano contati in ``totals.errori`` e nel dettaglio per studio, ma
+    l'esito è negativo solo se il lotto non ha potuto lavorare: tutti gli studi guasti, oppure ogni elemento
+    esaminato finito in errore senza nulla di completato o salvato.
+    """
     totali = dict.fromkeys(_SOMME, 0)
     studi: list[dict[str, Any]] = []
     for etichetta, paths in targets:
@@ -72,8 +77,28 @@ def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limi
         for chiave in _SOMME:
             totali[chiave] += int(esito.get(chiave) or 0)
         studi.append({"studio": etichetta, **{k: v for k, v in esito.items() if k in (*_SOMME, "ok", "errore", "riconvalida", "notifiche_l53")}})
-    return {"ok": totali["errori"] == 0, "job": "pec_fascicolo_documenti_recupero", "limite": limite,
-            "studi": len(studi), "totals": totali, "tenants": studi}
+    return {"ok": esito_positivo(totali, studi), "job": "pec_fascicolo_documenti_recupero", "limite": limite,
+            "studi": len(studi), "totals": totali, "tenants": studi, "message": messaggio_recupero(totali)}
+
+
+def esito_positivo(totali: Mapping[str, Any], studi: list[dict[str, Any]]) -> bool:
+    """Negativo solo se nessuno studio ha lavorato o se tutti gli elementi esaminati sono andati in errore."""
+    errori = int(totali.get("errori") or 0)
+    if not errori:
+        return True
+    if studi and all(s.get("errore") for s in studi):
+        return False
+    avanzato = sum(int(totali.get(k) or 0) for k in ("completati", "salvati", "eml_salvati", "gia_presenti", "in_attesa_conferma", "scartati"))
+    esaminati = int(totali.get("esaminati") or 0)
+    return avanzato > 0 or errori < esaminati
+
+
+def messaggio_recupero(totali: Mapping[str, Any]) -> str:
+    def n(chiave: str) -> int:
+        return int(totali.get(chiave) or 0)
+
+    return (f"{n('esaminati')} PEC elaborate, {n('salvati')} documenti e {n('eml_salvati')} .eml salvati, "
+            f"{n('errori')} errori, {n('restano')} restano.")
 
 
 def studi_attivi(config: Mapping[str, Any]) -> list[tuple[str, dict[str, Any]]]:

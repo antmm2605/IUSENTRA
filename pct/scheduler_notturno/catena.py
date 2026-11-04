@@ -76,7 +76,10 @@ def _esegui_lavoro(job: Any, passo: Passo, limite: datetime, adesso: Callable[[]
         if not passo.ripeti_minuti or _niente_da_fare(esito) or adesso() >= min(fine_ripetizioni, limite):
             break
         dormi(PAUSA_TRA_GIRI_SECONDI)
-    return "completato", f"Eseguito {giri} {'volta' if giri == 1 else 'volte'}."
+    eseguito = f"Eseguito {giri} {'volta' if giri == 1 else 'volte'}."
+    if isinstance(esito, dict) and esito.get("message") and isinstance(esito.get("totals"), dict):
+        eseguito = f"{eseguito} Ultimo giro: {esito['message']}"[:300]
+    return "completato", eseguito
 
 
 def esegui_passo(registro: RegistroNotte, ambiente: Ambiente, momento: datetime | None = None,

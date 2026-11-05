@@ -17,13 +17,14 @@ from __future__ import annotations
 import logging
 import json
 import os
+import sqlite3
 import threading
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from flask import current_app, g, has_app_context
 
@@ -1643,22 +1644,35 @@ def riprendi_letture_ferme(registro: RegistroLetture, tenant_id: str, *, ora: in
     return ripresi
 
 
+def _se_libero(attivita: Callable[[], Any], ripiego: Any) -> Any:
+    """Esegue un'attività sull'archivio; se è occupato da un altro motore la rinvia al giro successivo."""
+    try:
+        return attivita()
+    except sqlite3.OperationalError as exc:
+        if "locked" not in str(exc).lower() and "busy" not in str(exc).lower():
+            raise
+        logger.warning("Archivio delle letture occupato: attività rinviata al giro successivo (%s)", exc)
+        return ripiego
+
+
 def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:
     """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
     targets = _studi_della_coda(app)
     trovati = avviati = accodati = ripresi_fermi = proposte_storico = 0
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)
-        accodati += accoda_riletture_notturne(registro, tenant_id)
-        accodati += accoda_verifiche_periodiche(registro, tenant_id)
-        ripresi_fermi += riprendi_letture_ferme(registro, tenant_id)
         from web.services.proposte_storico_runtime import esamina_proposte_storico_studio
 
-        proposte_storico += int(esamina_proposte_storico_studio(app, registro, tenant_id, paths).get("fascicoli") or 0)
+        # Ogni attività di servizio è indipendente: un archivio occupato da un altro motore («database is locked»)
+        # rinvia quella sola attività al giro successivo, senza far fallire la ripresa delle letture (05/11/2026).
+        accodati += _se_libero(lambda: accoda_riletture_notturne(registro, tenant_id), 0)
+        accodati += _se_libero(lambda: accoda_verifiche_periodiche(registro, tenant_id), 0)
+        ripresi_fermi += _se_libero(lambda: riprendi_letture_ferme(registro, tenant_id), 0)
+        proposte_storico += int(_se_libero(lambda: esamina_proposte_storico_studio(app, registro, tenant_id, paths), {}).get("fascicoli") or 0)
         liberi = LETTURE_CONCORRENTI - letture_attive()
         if liberi <= 0:
             continue
-        eventi = registro.eventi_da_riprendere(tenant_id, limite=min(limite_per_tenant, liberi))
+        eventi = _se_libero(lambda: registro.eventi_da_riprendere(tenant_id, limite=min(limite_per_tenant, liberi)), [])
         trovati += len(eventi)
         for evento in eventi:
             if letture_attive() >= LETTURE_CONCORRENTI:

@@ -2,7 +2,7 @@
 
 Il lavoro ``sequenza_notturna`` gira ogni minuto nella corsia lunga (un thread): ogni giro esegue al più un passo,
 scrive l'esito nel registro e avanza. Così la catena si riprende da sola dopo un riavvio, aspetta la memoria e la
-coda OCR, non avvia nulla dopo le 07:30 e la notte seguente riparte dal passo non eseguito.
+coda OCR, non avvia nulla dopo le 07:30, rinvia un passo che non ottiene il semaforo e ogni notte riparte dalla fase 1.
 """
 
 from __future__ import annotations
@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 ATTESA_MEMORIA_MAX = timedelta(minutes=20)
 ATTESA_OCR_MAX = timedelta(minutes=90)
+# Un passo che non ottiene il semaforo dei motori entro questo tempo si rinvia e la catena prosegue: nella notte
+# del 04/11/2026 un passo in attesa del semaforo ha fermato la catena dalle 05:08 alle 07:30.
+ATTESA_SEMAFORO_PASSO_MAX = timedelta(minutes=20)
 
 
 @dataclass
@@ -92,11 +95,12 @@ def esegui_passo(registro: RegistroNotte, ambiente: Ambiente, momento: datetime 
     sera = finestra.sera_della_notte(ora).isoformat()
     stato = registro.avanzamento(sera)
     if stato is None:
+        # Ogni notte riparte dalla fase 1 (posta e PEC prima di tutto): ripartire dal passo rimasto la notte
+        # prima saltava le fasi iniziali (notte del 04/11/2026). Si annota solo dove si era fermata.
         partenza, ripresa = 0, ""
         precedente = registro.ultima_notte_prima(sera)
         if precedente and not precedente["conclusa"]:
-            partenza = (int(precedente["partenza"]) + int(precedente["indice"])) % totale
-            ripresa = f"Ripresa dal passo {partenza + 1} della notte del {precedente['sera']}."
+            ripresa = f"La notte del {precedente['sera']} si era fermata al passo {int(precedente['indice']) + 1}: si riparte dalla fase 1."
         stato = registro.apri_notte(sera, partenza, ripresa, _iso(ora))
     if stato["conclusa"]:
         return {"ok": True, "skipped": True, "message": "Sequenza notturna già conclusa."}
@@ -137,7 +141,11 @@ def esegui_passo(registro: RegistroNotte, ambiente: Ambiente, momento: datetime 
         logger.exception("[notte] Passo %s non riuscito", passo.lavoro)
         esito, messaggio = "fallito", f"{type(exc).__name__}: {str(exc)[:240]}"
     if esito == "attesa":
-        # Il passo non è stato eseguito: resta lo stesso e si riprova al giro successivo, entro le 07:30.
+        if ora - avviato >= ATTESA_SEMAFORO_PASSO_MAX:
+            # Mai una catena ferma per un semaforo occupato: il passo si rinvia (resta il suo orario diurno).
+            return avanza("rinviato", f"Semaforo dei motori occupato per oltre {int(ATTESA_SEMAFORO_PASSO_MAX.total_seconds() // 60)} "
+                          f"minuti: passo rinviato, la catena prosegue. {messaggio}"[:300], (ora - avviato).total_seconds())
+        # Il passo non è stato eseguito: resta lo stesso e si riprova al giro successivo.
         return {"ok": True, "skipped": True, "message": f"In attesa del turno: {messaggio}"}
     return avanza(esito, messaggio, time.monotonic() - inizio)
 

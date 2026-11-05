@@ -96,7 +96,11 @@ def text_layers(data: bytes, original_links: list | None = None) -> list[str]:
                 layers.append(senza_testo)
                 continue
             spans = []
-            links = page_links(pagina, documento)
+            try:
+                links = page_links(pagina, documento)
+            except (Exception, RecursionError):
+                # PDF malformato (annotazioni cicliche o illeggibili): la pagina resta leggibile, senza i suoi link.
+                links = []
             if not links and original_links and page_index < len(original_links):
                 links = [dict(link) for link in original_links[page_index]]
             for parola in parole:

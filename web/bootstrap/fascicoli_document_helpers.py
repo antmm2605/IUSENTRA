@@ -275,7 +275,12 @@ def pdf_mobile_preview_html(
 ) -> tuple[str, int, dict[str, str]]:
     from web.services.pdf_reader_text import text_layers
 
-    layers = text_layers(pdf_payload, original_links=original_links) if pdf_payload else []
+    try:
+        layers = text_layers(pdf_payload, original_links=original_links) if pdf_payload else []
+    except (Exception, RecursionError):
+        # Un PDF malformato (allegato PEC del 05/11/2026) non deve dare errore 500: si mostrano le pagine
+        # senza il livello di testo selezionabile.
+        layers = []
     # Reserve the original geometry before lazy images arrive. CSS dimensions
     # are not source dimensions and must never determine the pending ratio.
     dimensions = page_dimensions or []

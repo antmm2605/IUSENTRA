@@ -44,7 +44,7 @@ ESITI_ITALIANI = {
     "fallito": "Non riuscito",
     "saltato": "Non previsto stanotte",
     "spento": "Pianificazione spenta",
-    "rinviato": "Rinviato alla notte successiva",
+    "rinviato": "Rinviato: semaforo occupato",
 }
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -89,8 +89,9 @@ def test_ripresa_la_notte_dopo(tmp_path):
     _giro(registro, amb, datetime(2026, 11, 3, 23, 1, tzinfo=ROMA))
     assert _giro(registro, amb, datetime(2026, 11, 4, 7, 45, tzinfo=ROMA))["skipped"]
     _giro(registro, amb, datetime(2026, 11, 4, 21, 30, tzinfo=ROMA))
-    assert chiamati[-1] == "poll_pec_cancelleria"
-    assert "Ripresa dal passo 3" in registro.avanzamento("2026-11-04")["ripresa_da"]
+    # Ogni notte riparte dalla fase 1; resta annotato dove si era fermata la notte prima.
+    assert chiamati[-1] == "mailbox_sync_runtime"
+    assert "fermata al passo 3" in registro.avanzamento("2026-11-04")["ripresa_da"]
 
 
 def test_lavori_spenti_e_settimanali(tmp_path):
@@ -164,3 +165,17 @@ def test_attesa_del_semaforo_limitata(monkeypatch):
     assert attese == [guardia.ATTESA_CATENA_SECONDI]
     # I lavori leggeri a orario fisso (PEC, avvisi) non aspettano il semaforo.
     assert guardia.custodisci("mailbox_sync_runtime", lambda: {"ok": True})()["ok"] and len(attese) == 1
+
+
+def test_semaforo_occupato_troppo_a_lungo_rinvia_il_passo(tmp_path):
+    """Notte del 04/11/2026: un passo in attesa del semaforo ha fermato la catena dalle 05:08 alle 07:30."""
+    registro = RegistroNotte(tmp_path / "r.sqlite")
+    occupato = {"ok": True, "skipped": True, "reason": guardia.SEMAFORO_OCCUPATO, "message": "occupato"}
+    amb = catena.Ambiente(lambda nome: SimpleNamespace(func=lambda: dict(occupato), args=(), kwargs={},
+                                                       next_run_time=datetime.now(ROMA)),
+                          lambda: 8000, lambda: 0, lambda: [])
+    inizio = datetime(2026, 11, 3, 21, 31, tzinfo=ROMA)
+    assert _giro(registro, amb, inizio)["skipped"]
+    assert _giro(registro, amb, inizio + timedelta(minutes=10))["skipped"]
+    rinviato = _giro(registro, amb, inizio + timedelta(minutes=21))
+    assert rinviato["esito"] == "rinviato" and registro.avanzamento("2026-11-03")["indice"] == 1

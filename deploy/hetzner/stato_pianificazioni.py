@@ -31,6 +31,58 @@ def _breve(testo: Any) -> str:
     return _ID.sub("<ID>", riga)[:160]
 
 
+def _riepilogo_letture(percorso: str) -> dict[str, Any]:
+    """Sola lettura: per lettore letti, da leggere, errori e riletture senza variazioni (solo conteggi)."""
+
+    import sqlite3
+
+    da24 = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    da48 = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+    try:
+        conn = sqlite3.connect(f"file:{percorso}?mode=ro", uri=True, timeout=10)
+    except Exception as exc:
+        return {"errore": _breve(f"{type(exc).__name__}: {exc}")}
+    try:
+        esito: dict[str, Any] = {
+            "fascicoli": conn.execute("SELECT COUNT(DISTINCT fascicolo_id) FROM letture_oggetti WHERE presente = 1").fetchone()[0],
+            "oggetti_presenti": dict(conn.execute(
+                "SELECT tipo, COUNT(*) FROM letture_oggetti WHERE presente = 1 GROUP BY tipo").fetchall()),
+            "lettori": {},
+        }
+        lettori = [r[0] for r in conn.execute("SELECT DISTINCT lettore FROM letture").fetchall()]
+        for lettore in lettori:
+            # Tipi che il lettore legge davvero: un lettore PEC non deve risultare «indietro» sui documenti.
+            tipi = [r[0] for r in conn.execute("SELECT DISTINCT tipo FROM letture WHERE lettore = ?", (lettore,)).fetchall()]
+            segnaposto = ",".join("?" * len(tipi))
+            stati = dict(conn.execute(
+                f"SELECT l.stato, COUNT(*) FROM letture_oggetti o JOIN letture l ON l.tenant_id = o.tenant_id "
+                f"AND l.fascicolo_id = o.fascicolo_id AND l.tipo = o.tipo AND l.oggetto_id = o.oggetto_id AND l.sha256 = o.sha256 "
+                f"AND l.lettore = ? WHERE o.presente = 1 AND o.tipo IN ({segnaposto}) GROUP BY l.stato", (lettore, *tipi)).fetchall())
+            da_leggere = conn.execute(
+                f"SELECT COUNT(*) FROM letture_oggetti o WHERE o.presente = 1 AND o.tipo IN ({segnaposto}) AND NOT EXISTS ("
+                f"SELECT 1 FROM letture l WHERE l.tenant_id = o.tenant_id AND l.fascicolo_id = o.fascicolo_id AND l.tipo = o.tipo "
+                f"AND l.oggetto_id = o.oggetto_id AND l.sha256 = o.sha256 AND l.lettore = ?)", (*tipi, lettore)).fetchone()[0]
+            # Riletture senza variazioni: lettura aggiornata nelle ultime 24 ore su un oggetto invariato da oltre 48 ore,
+            # già letto con la stessa impronta prima di 48 ore fa.
+            riletti = conn.execute(
+                "SELECT COUNT(*) FROM letture l JOIN letture_oggetti o ON l.tenant_id = o.tenant_id AND l.fascicolo_id = o.fascicolo_id "
+                "AND l.tipo = o.tipo AND l.oggetto_id = o.oggetto_id AND l.sha256 = o.sha256 "
+                "WHERE l.lettore = ? AND l.aggiornato_il >= ? AND l.letto_il < ? AND o.aggiornato_il < ?",
+                (lettore, da24, da48, da48)).fetchone()[0]
+            fascicoli = dict(conn.execute(
+                "SELECT stato, COUNT(*) FROM letture_fascicoli WHERE lettore = ? GROUP BY stato", (lettore,)).fetchall())
+            esito["lettori"][lettore] = {
+                "tipi": tipi, "esiti": stati, "da_leggere": da_leggere, "riletti_24h_senza_variazioni": riletti,
+                "fascicoli": fascicoli, "letti_24h": conn.execute(
+                    "SELECT COUNT(*) FROM letture WHERE lettore = ? AND aggiornato_il >= ?", (lettore, da24)).fetchone()[0],
+            }
+        return esito
+    except Exception as exc:
+        return {"errore": _breve(f"{type(exc).__name__}: {exc}")}
+    finally:
+        conn.close()
+
+
 def main() -> int:
     sys.path.insert(0, "/app")
     from pct.scheduler_registry import scheduler_registry_repository
@@ -83,6 +135,20 @@ def main() -> int:
             if fallita:
                 voce["ultimo_fallimento"] = {"inizio": fallita[0], "errore": _breve(fallita[1])}
             pianificazioni.append(voce)
+        notti = []
+        try:  # la catena notturna delle ultime due sere (le prove «prova-…» escluse)
+            for sera, conclusa, aggiornata in conn.execute(
+                "SELECT sera, conclusa, aggiornata FROM notte_avanzamento WHERE sera NOT LIKE 'prova-%' ORDER BY sera DESC LIMIT 2"
+            ).fetchall():
+                passi = [
+                    {"fase": r[0], "lavoro": r[1], "esito": r[2], "secondi": round(float(r[3] or 0), 1), "messaggio": _breve(r[4])}
+                    for r in conn.execute(
+                        "SELECT fase, lavoro, esito, secondi, messaggio FROM notte_passi WHERE sera = ? ORDER BY indice", (sera,)
+                    ).fetchall()
+                ]
+                notti.append({"sera": sera, "conclusa": bool(conclusa), "aggiornata": aggiornata, "passi": passi})
+        except Exception as exc:
+            notti.append({"errore": _breve(f"{type(exc).__name__}: {exc}")})
     registri = []
     import glob
     import sqlite3
@@ -96,6 +162,7 @@ def main() -> int:
             conn.close()
         except Exception as exc:
             voce["journal_mode"] = _breve(f"{type(exc).__name__}: {exc}")
+        voce["letture"] = _riepilogo_letture(percorso)
         registri.append(voce)
     disaccordi = []
     if os.getenv("DISACCORDI"):
@@ -104,7 +171,7 @@ def main() -> int:
             for voce in json.loads(open(percorso, encoding="utf-8").read()):
                 disaccordi.append({k: voce.get(k) for k in ("document_id", "fascicolo_id", "voce_regole",
                                                               "confidenza_regole", "voce_modello", "probabilita")})
-    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "registri_letture": registri, "disaccordi": disaccordi, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
+    print(MARCATORE + json.dumps({"accese": accese, "avviati": avviati, "registri_letture": registri, "notti": notti, "disaccordi": disaccordi, "pianificazioni": pianificazioni}, ensure_ascii=False), flush=True)
     return 0
 
 

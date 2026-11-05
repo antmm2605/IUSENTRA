@@ -49,7 +49,13 @@ def _riepilogo_letture(percorso: str) -> dict[str, Any]:
                 "SELECT tipo, COUNT(*) FROM letture_oggetti WHERE presente = 1 GROUP BY tipo").fetchall()),
             "lettori": {},
         }
-        lettori = [r[0] for r in conn.execute("SELECT DISTINCT lettore FROM letture").fetchall()]
+        # Solo i lettori censiti: le righe storiche di lettori tolti dal censimento (sentenza_da_archiviare,
+        # presidio_pec, sostituiti da proposta_definizione e motore_pec) non sono code reali.
+        try:
+            from pct.registro_letture.lettori import LETTORI as censiti
+        except Exception:
+            censiti = None
+        lettori = [r[0] for r in conn.execute("SELECT DISTINCT lettore FROM letture").fetchall() if censiti is None or r[0] in censiti]
         for lettore in lettori:
             # Tipi che il lettore legge davvero: un lettore PEC non deve risultare «indietro» sui documenti.
             tipi = [r[0] for r in conn.execute("SELECT DISTINCT tipo FROM letture WHERE lettore = ?", (lettore,)).fetchall()]

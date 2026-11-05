@@ -7,6 +7,8 @@ coda persistente per parser, allegati, OCR, firme, validazione e fascicolo.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import email
 import hashlib
 import logging
@@ -3389,6 +3391,11 @@ def _remote_hearing_note_lines(
     return lines
 
 
+def _solo_profilo_processuale(report: dict[str, Any]) -> dict[str, Any]:
+    profilo = report.get("procedural_profile") if isinstance(report, dict) else None
+    return {"procedural_profile": profilo} if isinstance(profilo, dict) and profilo else {}
+
+
 def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str, Any]:
     """Deriva i campi scadenza dal termine LEGALE proposto (Incremento B).
 
@@ -4405,9 +4412,34 @@ def _looks_like_pdf_bytes(data: bytes) -> bool:
     return bytes(data or b"").lstrip()[:5] == b"%PDF-"
 
 
-def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
+# Profondità massima degli zip dentro gli zip: le comunicazioni di cancelleria ne usano al più due livelli.
+_PROFONDITA_ZIP = 2
+
+
+def _contenuto_p7m(data: bytes) -> bytes | None:
+    """Il documento dentro la busta CAdES (art. 24 CAD; D.M. 44/2011 art. 12), anche in base64."""
+    from pct.firma import estrai_contenuto_cades
+
+    contenuto = estrai_contenuto_cades(data)
+    if contenuto is None and data[:2] in (b"MI", b"--"):
+        try:
+            grezzo = re.sub(rb"-----[^-]+-----|\s", b"", data)
+            contenuto = estrai_contenuto_cades(base64.b64decode(grezzo, validate=True))
+        except (binascii.Error, ValueError):
+            contenuto = None
+    return contenuto
+
+
+def extract_text_with_coverage(item: AttachmentPayload, _profondita: int = 0) -> tuple[str, float]:
     name = item.filename
     lower = name.lower()
+    if lower.endswith(".p7m"):
+        # Provvedimento firmato: si legge il documento firmato, mai i byte della busta.
+        contenuto = _contenuto_p7m(item.data)
+        if not contenuto:
+            return "", 0.0
+        interno = AttachmentPayload(index=item.index, filename=name[:-4], content_type="", data=contenuto)
+        return extract_text_with_coverage(interno, _profondita)
     text = ""
     allow_binary_fallback = True
     is_zip = _is_zip_attachment(name, item.content_type)
@@ -4420,7 +4452,7 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
             text = plain or clean_text(re.sub(r"<[^>]+>", " ", html))
         except Exception:
             text = item.data.decode("utf-8", errors="replace")
-    elif lower.endswith((".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp")):
+    elif lower.endswith((".pdf", ".png", ".jpg", ".jpeg", ".jfif", ".webp", ".tif", ".tiff", ".bmp")):
         if lower.endswith(".pdf") and not _looks_like_pdf_bytes(item.data):
             allow_binary_fallback = False
             text = ""
@@ -4436,40 +4468,20 @@ def extract_text_with_coverage(item: AttachmentPayload) -> tuple[str, float]:
     elif is_zip:
         allow_binary_fallback = False
         parts: list[str] = []
-        try:
-            with zipfile.ZipFile(io.BytesIO(item.data)) as archive:
-                for entry in archive.infolist()[:30]:
-                    entry_name = entry.filename
-                    entry_lower = entry_name.lower()
-                    if entry.is_dir() or entry.file_size > 12_000_000:
-                        continue
-                    if not entry_lower.endswith((".pdf", ".txt", ".xml", ".csv", ".eml")):
-                        continue
-                    payload = archive.read(entry)
-                    entry_text = ""
-                    if entry_lower.endswith((".txt", ".xml", ".csv")):
-                        entry_text = payload.decode("utf-8", errors="replace")
-                    elif entry_lower.endswith(".eml"):
-                        try:
-                            nested = message_from_bytes(payload)
-                            plain, html, _attachments = extract_message_parts(nested)
-                            entry_text = plain or clean_text(re.sub(r"<[^>]+>", " ", html))
-                        except Exception:
-                            entry_text = payload.decode("utf-8", errors="replace")
-                    elif entry_lower.endswith(".pdf"):
-                        if not _looks_like_pdf_bytes(payload):
+        if _profondita < _PROFONDITA_ZIP:
+            try:
+                with zipfile.ZipFile(io.BytesIO(item.data)) as archive:
+                    for entry in archive.infolist()[:30]:
+                        if entry.is_dir() or entry.file_size > 12_000_000:
                             continue
-                        try:
-                            from pct.ocr import estrai_testo
-
-                            entry_text = estrai_testo(payload, entry_name)
-                        except Exception:
-                            entry_text = ""
-                        entry_text = _append_pdf_uri_links(entry_text, payload)
-                    if entry_text:
-                        parts.append(f"[{entry_name}]\n{entry_text}")
-        except Exception:
-            parts = []
+                        if not entry.filename.lower().endswith((".pdf", ".txt", ".xml", ".csv", ".eml", ".p7m", ".zip")):
+                            continue
+                        interno = AttachmentPayload(index=item.index, filename=entry.filename, content_type="", data=archive.read(entry))
+                        entry_text, _copertura = extract_text_with_coverage(interno, _profondita + 1)
+                        if entry_text:
+                            parts.append(f"[{entry.filename}]\n{entry_text}")
+            except Exception:
+                parts = []
         text = "\n\n".join(parts)
     if not text and allow_binary_fallback:
         decoded = item.data.decode("utf-8", errors="ignore")
@@ -5306,6 +5318,10 @@ def _hearing_event_summary(parsed: dict[str, Any], candidate: dict[str, Any]) ->
         return "Rinvio udienza - mancata comparizione parti ex art. 309 c.p.c."
     if "differimento udienza" in haystack:
         return "Differimento udienza"
+    oggetto_evento = f"{event_type} {object_value} {description_value}".lower()
+    if re.search(r"\bfissa(?:zione|ta)\s+(?:dell['’]\s*)?udienza\b", oggetto_evento) and not re.search(r"\brinvi\w*\b", oggetto_evento):
+        # L'oggetto del registro dice «fissazione»: una parola «rinvio» altrove nel testo non la trasforma in un rinvio.
+        return "Fissazione udienza di discussione" if "discussione" in oggetto_evento else "Fissazione udienza"
     if "rinvio" in haystack or "rinviata" in haystack or "rinviato" in haystack:
         # L'oggetto del registro ripete spesso l'evento («Rinvio di udienza»): si aggiunge
         # solo se porta un'informazione in più, per non generare «Rinvio udienza - Rinvio di udienza».
@@ -5532,14 +5548,21 @@ def _remote_hearing_for_procedural_candidate(
             flags=re.I,
         )
         passcode_match = re.search(
-            r"\b(?:passcode|password|codice\s+(?:di\s+)?accesso)\s*[:\-]?\s*([A-Z0-9][A-Z0-9._-]{2,80})",
+            r"\b(?:passcode|password|codice\s+(?:di\s+)?accesso)\s*([:\-]?)\s*([A-Z0-9][A-Z0-9._-]{2,80})",
             segment,
             flags=re.I,
         )
+        # Un codice vero ha una cifra o segue i due punti; «CodiceFiscaleDestinatario» di Comunicazione.xml non lo è.
+        if passcode_match and (
+            not (passcode_match.group(1) or re.search(r"\d", passcode_match.group(2)))
+            or re.search(r"fiscale|destinatario|mittente", passcode_match.group(2), re.I)
+        ):
+            passcode_match = None
         if meeting_match:
-            result["meeting_id"] = clean_text(meeting_match.group(1), 160)
+            # «ID riunione: 123 456 789 Passcode: …»: l'ID finisce dove riprendono le parole.
+            result["meeting_id"] = clean_text(re.sub(r"\s+[^\d\s].*$", "", meeting_match.group(1)), 160)
         if passcode_match:
-            result["passcode"] = clean_text(passcode_match.group(1), 160)
+            result["passcode"] = clean_text(passcode_match.group(2), 160)
     return {key: value for key, value in result.items() if value not in ("", [], {})}
 
 
@@ -13195,7 +13218,9 @@ class PecAuditRepository:
                 "parsed": parsed,
                 "parsed_version": parsed_meta,
                 "attachments": attachments,
-                "validation_report": {},
+                # Versione leggera: del rapporto basta il profilo processuale (ufficio, RG, parti, giudice, evento),
+                # che la finestra della PEC di cancelleria mostra come «Dati della comunicazione».
+                "validation_report": _solo_profilo_processuale(self.latest_report(conn, clean_id)),
                 "fascicolo_link": self.latest_link(conn, clean_id),
                 "legal_event_understanding": {},
                 "source_mode": "lightweight",
@@ -14934,7 +14959,7 @@ class PecAuditRepository:
         if existing is None or existing_status == "PROGRAMMATO":
             event = EventoImportato(
                 uid=uid,
-                titolo=communication_receipt_title(comm, rg=rg)[:120],
+                titolo=communication_receipt_title(comm, rg=rg, ufficio=ufficio)[:120],
                 data_ora=received.isoformat(timespec="seconds"),
                 durata_minuti=15,
                 tutto_giorno=False,

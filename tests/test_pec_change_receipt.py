@@ -50,14 +50,14 @@ def test_riconosce_i_cambi_di_udienza_e_di_termine_dagli_eventi_di_cancelleria()
     )
     assert rinvio is not None
     assert (rinvio.kind, rinvio.new_date, rinvio.new_time, rinvio.event_date) == ("rinvio_udienza", "2027-04-14", "09:00", "2026-09-10")
-    assert receipt_title(rinvio, rg="1854/2026") == "PEC ricevuta: rinvio udienza al 14/04/2027 ore 09:00 - RG 1854/2026"
+    assert receipt_title(rinvio, rg="1854/2026") == "Comunicazione di cancelleria: rinvio dell'udienza al 14/04/2027 ore 09:00 – RG 1854/2026"
 
     termine = detect_schedule_change(
         _profile("MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA", "MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il 10/12/2026 00:00, ADEMPIMENTI")
     )
     assert termine is not None and termine.kind == "termine_modificato"
     assert (termine.new_date, termine.new_time) == ("2026-12-10", "")
-    assert receipt_title(termine, rg="1733/2026") == "PEC ricevuta: termine modificato al 10/12/2026 - RG 1733/2026"
+    assert receipt_title(termine, rg="1733/2026") == "Comunicazione di cancelleria: modifica del termine al 10/12/2026 – RG 1733/2026"
 
     # «IN DATA» è la data della registrazione, non la nuova udienza.
     rinviata = detect_schedule_change(_profile("RINVIO DI UDIENZA", "RINVIATA UDIENZA AL 02/11/2026, ORE 09:30 IN DATA 03/07/2026 Annotazioni"))
@@ -70,7 +70,7 @@ def test_riconosce_i_cambi_di_udienza_e_di_termine_dagli_eventi_di_cancelleria()
         )
     )
     assert revoca is not None and revoca.kind == "udienza_revocata"
-    assert receipt_title(revoca) == "PEC ricevuta: udienza revocata: note scritte entro il 08/09/2026 ore 09:30"
+    assert receipt_title(revoca) == "Comunicazione di cancelleria: udienza sostituita da note scritte (art. 127-ter c.p.c.), termine al 08/09/2026 ore 09:30"
 
     mancata = detect_schedule_change(
         _profile("RINVIO MANCATA COMPARIZIONE PARTI (art.309 cpc)", "UDIENZA RINVIATA AL 08/09/2026 09:00 PER MANCATA COMPARIZIONE PARTI")
@@ -206,7 +206,7 @@ def test_rinvio_udienza_ricezione_in_agenda_udienza_precedente_rinviata_e_titolo
     receipt = appointments[receipt_result["agenda_id"]]
     assert receipt.data_ora == "2026-09-10T14:58:00"
     assert receipt.tipo == TipoAppuntamento.ALTRO and receipt.stato == StatoAppuntamento.PROGRAMMATO
-    assert receipt.titolo == f"PEC ricevuta: rinvio udienza al {_it(new_day)} ore 09:00 - RG 523/2026"
+    assert receipt.titolo == f"Comunicazione di cancelleria: rinvio dell'udienza al {_it(new_day)} ore 09:00 – RG 523/2026 – Tribunale Ordinario di Vicenza"
     assert "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)" in receipt.note
     assert f"Data precedente: {_it(old_day)}" in receipt.note
     assert receipt.external_source_url == f"/api/pec/messages/{message_id}"
@@ -265,7 +265,7 @@ def test_modifica_termine_riporta_la_ricezione_alla_data_e_ora_di_consegna(tmp_p
     assert len(receipts) == 1
     receipt = receipts[0]
     assert receipt.data_ora == "2026-09-10T16:08:00"
-    assert receipt.titolo == f"PEC ricevuta: termine modificato al {_it(new_day)} - RG 523/2026"
+    assert receipt.titolo == f"Comunicazione di cancelleria: modifica del termine al {_it(new_day)} – RG 523/2026 – Tribunale Ordinario di Vicenza"
     assert "Comunicazione ricevuta: Termine modificato" in receipt.note
     # Il termine spostato e il promemoria alla data superata restano quelli della modifica.
     assert GestioneScadenziario(str(tmp_path / "scadenze.json")).get(previous.id).data_scadenza == new_day.isoformat()
@@ -338,7 +338,7 @@ def test_agenda_react_mostra_la_ricezione_con_etichetta_e_date():
     assert event is not None
     # Dalla 2.3xx l'Agenda espone l'orario con l'offset Europe/Rome (CEST a settembre).
     assert event["start"] == "2026-09-10T14:58+02:00"
-    assert event["legalLabel"] == "PEC ricevuta · Rinvio udienza"
+    assert event["legalLabel"] == "Comunicazione di cancelleria · Rinvio udienza"
     assert event["sourceKind"] == "pec" and "pec_abc" in event["sourceHref"]
     assert "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)" in event["detailLines"]
     assert "Nuova data: 14/04/2027 ore 09:00" in event["detailLines"]
@@ -383,12 +383,12 @@ def _cancelleria_mime(oggetto: str, descrizione: str, *, rg: str = "523/2026", u
 
 def test_classifica_ogni_comunicazione_di_cancelleria_e_titoli():
     cases = {
-        ("SENTENZA A VERBALE (art. 127 ter cpc)", "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 659/2026"): ("sentenza", "PEC ricevuta: sentenza n. 659/2026 - RG 215/2026"),
-        ("ESTINZIONE", "FASCICOLO ESTINTO"): ("estinzione", "PEC ricevuta: estinzione del processo - RG 215/2026"),
-        ("DESIGNAZIONE GIUDICE", "FASCICOLO ASSEGNATO AL GIUDICE GROSSI SABINA"): ("designazione_giudice", "PEC ricevuta: designazione del giudice GROSSI SABINA - RG 215/2026"),
-        ("COSTITUZIONE PARTI", "MINISTERO DELL'ISTRUZIONE E DEL MERITO COSTITUITO, DIFESO DALL'AVVOCATURA"): ("costituzione_parti", "PEC ricevuta: costituzione di MINISTERO DELL'ISTRUZIONE E DEL MERITO - RG 215/2026"),
-        ("FISSAZIONE UDIENZA DI DISCUSSIONE", "FISSATA UDIENZA DI DISCUSSIONE IL 22/12/2026 09:30 in presenza"): ("fissazione_udienza", "PEC ricevuta: fissazione udienza al 22/12/2026 ore 09:30 - RG 215/2026"),
-        ("ATTO NON CODIFICATO", "ATTO decreto corretto"): ("provvedimento", "PEC ricevuta: atto non codificato: decreto corretto - RG 215/2026"),
+        ("SENTENZA A VERBALE (art. 127 ter cpc)", "SENTENZA A VERBALE (art. 127 ter cpc) CON NUMERO 659/2026"): ("sentenza", "Comunicazione di cancelleria: deposito della sentenza n. 659/2026 – RG 215/2026"),
+        ("ESTINZIONE", "FASCICOLO ESTINTO"): ("estinzione", "Comunicazione di cancelleria: dichiarazione di estinzione del giudizio – RG 215/2026"),
+        ("DESIGNAZIONE GIUDICE", "FASCICOLO ASSEGNATO AL GIUDICE GROSSI SABINA"): ("designazione_giudice", "Comunicazione di cancelleria: designazione del giudice dott. Grossi Sabina – RG 215/2026"),
+        ("COSTITUZIONE PARTI", "MINISTERO DELL'ISTRUZIONE E DEL MERITO COSTITUITO, DIFESO DALL'AVVOCATURA"): ("costituzione_parti", "Comunicazione di cancelleria: costituzione in giudizio di Ministero dell'Istruzione e del Merito – RG 215/2026"),
+        ("FISSAZIONE UDIENZA DI DISCUSSIONE", "FISSATA UDIENZA DI DISCUSSIONE IL 22/12/2026 09:30 in presenza"): ("fissazione_udienza", "Comunicazione di cancelleria: fissazione dell'udienza del 22/12/2026 ore 09:30 – RG 215/2026"),
+        ("ATTO NON CODIFICATO", "ATTO decreto corretto"): ("provvedimento", "Comunicazione di cancelleria: atto non codificato nel registro: decreto corretto – RG 215/2026"),
     }
     for (oggetto, descrizione), (kind, title) in cases.items():
         comm = classify_court_communication({"oggetto_evento": oggetto, "descrizione_evento": descrizione})
@@ -459,12 +459,12 @@ def test_sentenza_estinzione_designazione_in_agenda_alla_ricezione_con_termini_i
     }
     assert set(receipts) == {sentenza_id, estinzione_id, designazione_id}
     assert receipts[sentenza_id].data_ora == f"{sentence_day.isoformat()}T08:39:00"
-    assert receipts[sentenza_id].titolo.startswith("PEC ricevuta: sentenza n. 659/2026")
+    assert receipts[sentenza_id].titolo.startswith("Comunicazione di cancelleria: deposito della sentenza n. 659/2026")
     assert "Termine proposto (bozza da confermare nello scadenziario): Impugnazione sentenza - termine lungo" in receipts[sentenza_id].note
     assert receipts[estinzione_id].data_ora == "2026-09-11T08:23:00"
-    assert receipts[estinzione_id].titolo.startswith("PEC ricevuta: estinzione del processo")
+    assert receipts[estinzione_id].titolo.startswith("Comunicazione di cancelleria: dichiarazione di estinzione del giudizio")
     assert receipts[designazione_id].data_ora == "2026-06-23T14:34:00"
-    assert receipts[designazione_id].titolo == "PEC ricevuta: designazione del giudice GROSSI SABINA - RG 523/2026"
+    assert receipts[designazione_id].titolo.startswith("Comunicazione di cancelleria: designazione del giudice dott. Grossi Sabina – RG 523/2026")
     assert all(item.tipo == TipoAppuntamento.ALTRO for item in receipts.values())
 
     drafts = [

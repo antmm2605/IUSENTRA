@@ -26,10 +26,12 @@ from .caso_127_ter import adatta_note_con_data, esamina_127_ter_senza_data
 from .dispositivo import capi
 from .materia import RITI_CPC, materia_del_provvedimento
 from .modello import EsitoProvvedimento, Voce
+from .motivazione_riservata import voci_motivazione_riservata
+from .rigetto_trattazione import voce_rigetto
 from .regole import voci_di_legge
 from .riferimenti import Riferimenti
 from .statuizioni import rinvii_senza_regola, voci_dei_capi
-from .testo import estratto, normalizza
+from .testo import estratto, normalizza, testo_incollato
 from .tipi import TIPI, riconosci_tipi
 from .udienze import MODALITA, udienza_del_fascicolo, udienze_lette
 from .verifiche import fuori_ambito, verifiche_preavviso
@@ -145,6 +147,14 @@ def esamina_provvedimento(
     esito.voci.extend(dai_capi)
     esito.voci.extend(rinvii_senza_regola(capi_letti, esito.voci, rito, salta_oggetti=salta))
     esito.voci.extend(verifiche_preavviso(tipi, rito, rif))
+    if "rigetto_trattazione_scritta" in tipi:
+        esito.voci.append(voce_rigetto(pulito, rif, appuntamenti))
+    if testo_incollato(pulito):
+        esito.voci.append(Voce("lettura.testo_incollato", "verifica",
+                               "Testo letto male (parole attaccate dall'OCR): leggere l'originale, date e termini potrebbero mancare",
+                               prova=pulito[:300], confidenza=0.9))
+    if sentenza:
+        esito.voci = voci_motivazione_riservata(pulito, esito.voci, dispositivo_il=pubblicazione or esito.data_pronuncia, materia=rito)
     esito.voci = _senza_doppioni(esito.voci)
     return esito
 

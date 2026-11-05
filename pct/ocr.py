@@ -22,7 +22,7 @@ from pct.path_security import UnsafeRuntimePath, resolve_runtime_path
 logger = logging.getLogger(__name__)
 
 ESTENSIONI_PDF = {".pdf"}
-ESTENSIONI_IMG = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif"}
+ESTENSIONI_IMG = {".png", ".jpg", ".jpeg", ".jfif", ".webp", ".tiff", ".tif", ".bmp", ".gif"}
 ESTENSIONI_SUPPORTATE = ESTENSIONI_PDF | ESTENSIONI_IMG
 
 

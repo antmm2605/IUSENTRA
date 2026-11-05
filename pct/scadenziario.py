@@ -1241,8 +1241,30 @@ class GestioneScadenziario:
         riga = f"Proposta confermata il {_adesso_roma().strftime('%d/%m/%Y %H:%M')}" + (f" da {attore}" if attore else "")
         scadenza.note = (scadenza.note + "\n" + riga).strip()
         scadenza.aggiorna_priorita()
+        self._assorbi_presidio_operativo(scadenza, attore=attore)
         self._salva()
         return scadenza
+
+    def _assorbi_presidio_operativo(self, confermata: "Scadenza", *, attore: str = "") -> None:
+        """Il presidio automatico della stessa PEC e dello stesso giorno cede al termine legale confermato.
+
+        Il presidio (profilo ``PEC_AUTO_PRESIDIO``) è solo operativo: confermato il termine con la sua
+        norma, perentorietà e orario, resterebbe un doppione. Si chiude con il motivo, mai si cancella.
+        """
+        sorgente = re.search(r"PEC_TERMINE_PROPOSTO:([\w-]+):", confermata.note or "")
+        if not sorgente or not confermata.id_fascicolo:
+            return
+        for altra in self._scadenze.values():
+            if (altra.id != confermata.id and altra.stato == StatoTermine.APERTO
+                    and str(getattr(altra, "deadline_profile_code", "") or "").upper() == "PEC_AUTO_PRESIDIO"
+                    and altra.id_fascicolo == confermata.id_fascicolo
+                    and (altra.data_scadenza or "")[:10] == (confermata.data_scadenza or "")[:10]
+                    and f"PEC_AUDIT:{sorgente.group(1)}" in (altra.note or "")):
+                altra.stato = StatoTermine.ANNULLATO
+                altra.completata_il = _adesso_roma().isoformat(timespec="seconds")
+                riga = (f"Assorbita il {_adesso_roma().strftime('%d/%m/%Y %H:%M')} dal termine confermato «{confermata.titolo}»"
+                        + (f" da {attore}" if attore else ""))
+                altra.note = ((altra.note or "") + "\n" + riga).strip()
 
     def scarta_bozza(self, id_sc: str, *, motivo: str = "", attore: str = "") -> Scadenza:
         """Chiude una proposta non pertinente (BOZZA -> ANNULLATO), con motivo tracciato."""

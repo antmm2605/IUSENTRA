@@ -7,6 +7,8 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
+from pct.agenda_lavorazione import indice_proposte, proposte_aperte
+from pct.agenda_linguaggio import riga_contesto, titolo_storico
 from pct.formatting import parse_datetime_rome
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
 from web.services.pec_source_links import (
@@ -635,7 +637,7 @@ def _legal_label(title: str, kind: str, notes: str = "") -> str:
     text = _normalise_for_matching(f"{title}\n{kind}\n{notes}")
     if _is_pec_change_receipt(notes):
         change_label = _extract_labeled_line(notes, "Comunicazione ricevuta", limit=80)
-        return f"PEC ricevuta · {change_label}" if change_label else "PEC ricevuta"
+        return f"Comunicazione di cancelleria · {change_label}" if change_label else "Comunicazione di cancelleria"
     if _is_document_presidio_lex_text(title, notes):
         if _is_document_presidio_cancelled_text(title, notes):
             return "Presidio documentale annullato"
@@ -862,7 +864,7 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
         if structured_notes:
             notes = structured_notes
     row["technicalNotes"] = raw_notes
-    row["originTitle"] = origin_title
+    row["originTitle"] = titolo_storico(origin_title, _extract_labeled_line(raw_notes, "Descrizione evento", limit=240))
     row["legalLabel"] = label
     row["client"] = client
     row["matter"] = matter
@@ -872,6 +874,8 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
     if not subtitle:
         subtitle = " · ".join(dict.fromkeys(part for part in (matter, _clean_text(row.get("court"), limit=80), _clean_text(row.get("location"), limit=80)) if part))
     row["subtitle"] = subtitle
+    row["contextLine"] = riga_contesto(client=client, numero_fascicolo=_clean_text(row.get("matterNumber"), limit=40),
+                                       rg=matter, ufficio=_clean_text(row.get("court"), limit=120))
     row["detailTitle"] = label
     row["detailLines"] = _detail_lines(row, original_title=origin_title, legal_label=label)
     remote_candidate = _remote_hearing_url(
@@ -1166,12 +1170,14 @@ def _deadline_event(
     source_event_type = str(getattr(item, "source_event_type", "") or "").strip()
     source_event_at = str(getattr(item, "source_event_at", "") or "").strip()
     matter = ""
+    matter_number = ""
     client = ""
     client_id = str(getattr(item, "id_cliente", "") or "")
     court = ""
     if fascicolo is not None:
         matter = _clean_text(getattr(fascicolo, "rg_completo", ""), limit=120) or _clean_text(getattr(fascicolo, "numero", ""), limit=120)
         client = _clean_text(getattr(fascicolo, "nome_cliente", ""), limit=120)
+        matter_number = _clean_text(getattr(fascicolo, "numero", ""), limit=40)
         client_id = client_id or str(getattr(fascicolo, "id_cliente", "") or "")
         court = _clean_text(getattr(fascicolo, "tribunale", ""), limit=120)
     source_context = "\n".join(dict.fromkeys(part for part in (source_notes, notes) if part))
@@ -1215,6 +1221,7 @@ def _deadline_event(
         "location": "",
         "court": court,
         "matter": matter,
+        "matterNumber": matter_number,
         "matterId": fascicolo_id,
         "client": client,
         "clientId": client_id,
@@ -1399,6 +1406,7 @@ def _enrich_agenda_event_from_fascicolo(event: dict[str, Any], fascicolo: Any) -
         "matter": _clean_text(getattr(fascicolo, "rg_completo", ""), limit=120)
         or _clean_text(getattr(fascicolo, "numero", ""), limit=120),
         "matterId": str(getattr(fascicolo, "id", "") or ""),
+        "matterNumber": _clean_text(getattr(fascicolo, "numero", ""), limit=40),
         "client": _clean_text(getattr(fascicolo, "nome_cliente", ""), limit=120),
         "clientId": str(getattr(fascicolo, "id_cliente", "") or ""),
         "court": _clean_text(getattr(fascicolo, "tribunale", ""), limit=120),
@@ -1418,6 +1426,19 @@ def _enrich_agenda_event_from_fascicolo(event: dict[str, Any], fascicolo: Any) -
     enriched["notes"] = str(event.get("technicalNotes") or event.get("notes") or "")
     enriched["subtitle"] = ""
     return _decorate_event(enriched)
+
+
+def _segna_proposte_aperte(events: list[dict[str, Any]], deadlines: Iterable[Any]) -> None:
+    """Il sigillo «N proposte»: bozze nate dalla stessa PEC o collegate all'appuntamento, da confermare in agenda."""
+    try:
+        indice = indice_proposte(deadlines)
+        for event in events:
+            event_id = str(event.get("id") or "")
+            impegno = {"id": event_id.removeprefix("scadenza-"), "stato": event.get("status"),
+                       "note": str(event.get("technicalNotes") or event.get("notes") or "")}
+            event["pendingCount"] = proposte_aperte(impegno, indice, id_impegno="" if event_id.startswith("scadenza-") else event_id)
+    except Exception:  # noqa: BLE001 - il sigillo non deve impedire di vedere l'agenda
+        return
 
 
 def build_react_agenda_payload(
@@ -1588,6 +1609,7 @@ def build_react_agenda_payload(
                 events.append(event)
 
     events = _dedupe_events(events)
+    _segna_proposte_aperte(events, all_deadlines)
     events.sort(key=lambda row: str(row.get("start") or ""))
     return {
         "source": "repository_reali",

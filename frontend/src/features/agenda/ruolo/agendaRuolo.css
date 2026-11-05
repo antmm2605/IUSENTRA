@@ -1,0 +1,240 @@
+/* Agenda come ruolo dello studio: una voce per impegno, banda del tipo, titolo legale e riga del fascicolo.
+   Il sigillo oro segna il lavoro preparato dal software; la scheda a destra raccoglie la lavorazione. */
+
+.iu-ruolo-pagina {
+  --ru-notte: #0b1b35;
+  --ru-istituzionale: #123d72;
+  --ru-azione: #2563eb;
+  --ru-oro: #b8860b;
+  --ru-oro-chiaro: #f6ecd2;
+  --ru-oro-testo: #6b4e00;
+  --ru-carta: #ffffff;
+  --ru-linea: #e3e8f0;
+  --ru-linea-tenue: #eef1f6;
+  --ru-testo: #111827;
+  --ru-tenue: #556274;
+  --ru-udienza: #b45309;
+  --ru-termine: #b91c1c;
+  --ru-cancelleria: #123d72;
+  --ru-notifica: #6d28d9;
+  --ru-studio: #0f766e;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.iu-ruolo-comandi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  background: var(--ru-carta);
+  border: 1px solid var(--ru-linea);
+  border-radius: 14px;
+  padding: 12px 16px;
+}
+.iu-ruolo-comandi h1 { font-size: 22px; font-weight: 700; margin: 0 4px 0 0; letter-spacing: -0.01em; color: var(--ru-testo); }
+.iu-ruolo-periodo { display: flex; align-items: center; gap: 6px; }
+.iu-ruolo-periodo button,
+.iu-ruolo-icona {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ru-linea);
+  background: #fff;
+  border-radius: 8px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 10px;
+  color: var(--ru-testo);
+  font: inherit;
+  cursor: pointer;
+}
+.iu-ruolo-periodo strong { font-size: 15px; margin-left: 6px; font-weight: 700; white-space: nowrap; color: var(--ru-testo); }
+.iu-ruolo-viste { display: flex; background: #f5f7fb; border-radius: 9px; padding: 3px; margin-left: auto; }
+.iu-ruolo-viste button { border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; color: var(--ru-tenue); font: inherit; font-weight: 500; cursor: pointer; }
+.iu-ruolo-viste button[aria-pressed="true"] { background: #fff; color: var(--ru-istituzionale); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12); }
+.iu-ruolo-cerca { display: flex; align-items: center; gap: 8px; border: 1px solid var(--ru-linea); border-radius: 9px; height: 36px; padding: 0 10px; flex: 1 1 180px; min-width: 160px; max-width: 280px; color: var(--ru-tenue); }
+.iu-ruolo-cerca input { border: 0; outline: 0; font: inherit; width: 100%; background: transparent; color: var(--ru-testo); }
+.iu-ruolo-altro { display: flex; gap: 6px; align-items: center; }
+.iu-ruolo-menu { position: relative; }
+.iu-ruolo-menu > summary { list-style: none; font-weight: 500; }
+.iu-ruolo-menu > summary::-webkit-details-marker { display: none; }
+.iu-ruolo-menu__voci {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 260px; display: grid; padding: 6px;
+  background: #fff; border: 1px solid var(--ru-linea); border-radius: 10px; box-shadow: 0 12px 34px rgba(15, 23, 42, 0.12);
+}
+.iu-ruolo-menu__voci a,
+.iu-ruolo-menu__voci button {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 7px; border: 0; background: none;
+  font: inherit; color: var(--ru-testo); text-decoration: none; text-align: left; cursor: pointer;
+}
+.iu-ruolo-menu__voci a:hover,
+.iu-ruolo-menu__voci button:hover { background: #f4f6fa; }
+
+.iu-ruolo-filtri { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.iu-ruolo-filtro {
+  display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--ru-linea); background: #fff; border-radius: 999px;
+  padding: 6px 12px; font: inherit; font-weight: 500; color: var(--ru-tenue); cursor: pointer;
+}
+.iu-ruolo-filtro i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.iu-ruolo-filtro em { font-style: normal; font-variant-numeric: tabular-nums; color: var(--ru-testo); font-weight: 600; }
+.iu-ruolo-filtro[aria-pressed="true"] { border-color: var(--ru-istituzionale); box-shadow: inset 0 0 0 1px var(--ru-istituzionale); color: var(--ru-testo); }
+.iu-ruolo-filtro--lavoro { border-color: var(--ru-oro); background: var(--ru-oro-chiaro); color: var(--ru-oro-testo); }
+.iu-ruolo-filtro--lavoro em { color: var(--ru-oro-testo); }
+.iu-ruolo-filtro--lavoro[aria-pressed="true"] { border-color: var(--ru-oro); box-shadow: inset 0 0 0 1px var(--ru-oro); }
+.iu-ruolo-stato { margin-left: auto; color: var(--ru-tenue); font-size: 13px; }
+.iu-ruolo-stato.is-errore { color: var(--ru-termine); }
+
+.iu-ruolo-c-udienza { background: var(--ru-udienza); }
+.iu-ruolo-c-termine { background: var(--ru-termine); }
+.iu-ruolo-c-cancelleria { background: var(--ru-cancelleria); }
+.iu-ruolo-c-notifica { background: var(--ru-notifica); }
+.iu-ruolo-c-studio { background: var(--ru-studio); }
+.iu-ruolo-c-oro { background: var(--ru-oro); }
+
+.iu-ruolo-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 14px; align-items: start; }
+.iu-ruolo-vista {
+  background: var(--ru-carta); border: 1px solid var(--ru-linea); border-radius: 14px; overflow: auto;
+  max-height: calc(100vh - 270px); min-height: 420px;
+}
+
+.iu-ruolo-giorno { border-bottom: 1px solid var(--ru-linea); }
+.iu-ruolo-giorno > header {
+  display: flex; align-items: baseline; gap: 10px; padding: 12px 18px 6px; position: sticky; top: 0;
+  background: rgba(255, 255, 255, 0.96); z-index: 1;
+}
+.iu-ruolo-giorno > header h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--ru-testo); }
+.iu-ruolo-giorno > header small { color: var(--ru-tenue); }
+.iu-ruolo-giorno.is-oggi > header h2 { color: var(--ru-istituzionale); }
+.iu-ruolo-giorno.is-oggi > header { box-shadow: inset 3px 0 0 var(--ru-azione); }
+.iu-ruolo-vuoto { padding: 6px 18px 12px; color: var(--ru-tenue); font-size: 13px; margin: 0; }
+
+.iu-ruolo-voce {
+  display: grid; grid-template-columns: 70px 4px minmax(0, 1fr) auto; gap: 0 14px; align-items: start; width: 100%;
+  padding: 10px 18px; border: 0; border-top: 1px solid #f0f3f8; background: none; text-align: left; color: inherit;
+  font: inherit; cursor: pointer;
+}
+.iu-ruolo-voce:hover { background: #f8fafd; }
+.iu-ruolo-voce.is-aperta { background: #eef4ff; }
+.iu-ruolo-voce.is-svolta .iu-ruolo-titolo { color: var(--ru-tenue); }
+.iu-ruolo-voce:focus-visible,
+.iu-ruolo-cella:focus-visible,
+.iu-ruolo-filtro:focus-visible { outline: 2px solid var(--ru-azione); outline-offset: 2px; }
+.iu-ruolo-voce time { font-variant-numeric: tabular-nums; font-weight: 600; padding-top: 1px; color: var(--ru-testo); }
+.iu-ruolo-voce time small { display: block; font-weight: 500; color: var(--ru-tenue); font-size: 12px; line-height: 1.25; }
+.iu-ruolo-banda { align-self: stretch; border-radius: 4px; min-height: 36px; }
+.iu-ruolo-titolo { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--ru-testo); }
+.iu-ruolo-contesto { display: block; color: var(--ru-tenue); font-size: 13px; margin-top: 2px; }
+.iu-ruolo-contesto b { color: var(--ru-testo); font-weight: 600; }
+.iu-ruolo-segni { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 240px; }
+.iu-ruolo-segno { font-size: 12px; border-radius: 6px; padding: 2px 8px; border: 1px solid var(--ru-linea); color: var(--ru-tenue); white-space: nowrap; }
+.iu-ruolo-segno--perentorio { border-color: #f3c4c4; color: var(--ru-termine); background: #fdf2f2; font-weight: 600; }
+.iu-ruolo-segno--remoto { border-color: #cfdcf5; color: var(--ru-istituzionale); background: #f1f6ff; }
+.iu-ruolo-segno--ok { border-color: #bfe3cc; color: #15803d; background: #f0faf3; font-weight: 600; }
+.iu-ruolo-sigillo { font-size: 12px; border-radius: 6px; padding: 2px 8px; background: var(--ru-oro); color: #fff; font-weight: 600; white-space: nowrap; }
+
+/* vista giorno: le ore come righe del ruolo, la riga dell'ora attuale segnata */
+.iu-ruolo-entro { padding: 4px 0 6px; border-bottom: 1px solid var(--ru-linea); background: #fbfcfe; }
+.iu-ruolo-entro h4 { margin: 6px 18px 2px; font-size: 13px; color: var(--ru-tenue); font-weight: 600; }
+.iu-ruolo-ora { display: grid; grid-template-columns: 70px minmax(0, 1fr); border-top: 1px solid var(--ru-linea-tenue); min-height: 56px; }
+.iu-ruolo-ora > span { color: var(--ru-tenue); font-size: 12px; padding: 6px 10px; font-variant-numeric: tabular-nums; }
+.iu-ruolo-ora.is-adesso { box-shadow: inset 0 2px 0 var(--ru-azione); }
+.iu-ruolo-ora.is-adesso > span { color: var(--ru-azione); font-weight: 600; }
+.iu-ruolo-slot {
+  display: block; width: calc(100% - 18px); min-height: 22px; margin: 2px 0 4px; border: 1px dashed transparent; border-radius: 8px;
+  background: none; color: transparent; font: inherit; font-size: 12.5px; text-align: left; padding: 2px 10px; cursor: pointer;
+}
+.iu-ruolo-ora:hover .iu-ruolo-slot,
+.iu-ruolo-slot:focus-visible { border-color: var(--ru-linea); color: var(--ru-tenue); }
+.iu-ruolo-ora .iu-ruolo-voce { grid-template-columns: 56px 4px minmax(0, 1fr) auto; padding: 8px 18px 8px 0; border-top: 0; }
+
+/* vista mese */
+.iu-ruolo-mese { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: auto; grid-auto-rows: minmax(112px, 1fr); }
+.iu-ruolo-mese > .iu-ruolo-nome { padding: 8px 10px; font-size: 12.5px; color: var(--ru-tenue); font-weight: 600; border-bottom: 1px solid var(--ru-linea); background: #fbfcfe; position: sticky; top: 0; z-index: 1; }
+.iu-ruolo-cella {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px; border: 0;
+  border-right: 1px solid var(--ru-linea-tenue); border-bottom: 1px solid var(--ru-linea-tenue);
+  background: none; text-align: left; color: inherit; font: inherit; cursor: pointer;
+}
+.iu-ruolo-cella:hover { background: #f8fafd; }
+.iu-ruolo-cella.is-fuori { color: #a6b0bf; }
+.iu-ruolo-num { font-size: 12.5px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.iu-ruolo-cella.is-oggi .iu-ruolo-num { background: var(--ru-azione); color: #fff; }
+.iu-ruolo-pillola { display: flex; gap: 6px; align-items: center; font-size: 12px; border-radius: 5px; padding: 2px 6px; background: #f4f6fa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iu-ruolo-pillola i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.iu-ruolo-pillola.is-lavoro { background: var(--ru-oro-chiaro); }
+.iu-ruolo-altre { font-size: 12px; color: var(--ru-istituzionale); font-weight: 600; padding-left: 6px; }
+.iu-ruolo-nessuna { padding: 40px 24px; color: var(--ru-tenue); text-align: center; margin: 0; }
+
+/* scheda di lavorazione */
+.iu-ruolo-scheda {
+  background: var(--ru-carta); border: 1px solid var(--ru-linea); border-radius: 14px; display: flex; flex-direction: column;
+  overflow: hidden; position: sticky; top: 14px; max-height: calc(100vh - 270px); min-height: 420px;
+}
+.iu-ruolo-scheda__scorre { overflow: auto; flex: 1; }
+.iu-ruolo-scheda__testa { padding: 16px 18px 12px; border-bottom: 1px solid var(--ru-linea); border-top: 3px solid var(--ru-istituzionale); }
+.iu-ruolo-scheda--udienza .iu-ruolo-scheda__testa { border-top-color: var(--ru-udienza); }
+.iu-ruolo-scheda--termine .iu-ruolo-scheda__testa { border-top-color: var(--ru-termine); }
+.iu-ruolo-scheda--notifica .iu-ruolo-scheda__testa { border-top-color: var(--ru-notifica); }
+.iu-ruolo-scheda--studio .iu-ruolo-scheda__testa { border-top-color: var(--ru-studio); }
+.iu-ruolo-scheda__tipo { font-weight: 600; font-size: 13px; color: var(--ru-tenue); }
+.iu-ruolo-scheda h2 { margin: 4px 0; font-size: 17px; font-weight: 700; line-height: 1.3; color: var(--ru-testo); }
+.iu-ruolo-sezione { padding: 12px 18px; border-bottom: 1px solid var(--ru-linea-tenue); }
+.iu-ruolo-sezione h3 { margin: 0 0 8px; font-size: 13px; color: var(--ru-tenue); font-weight: 600; }
+.iu-ruolo-sezione p { margin: 0 0 4px; font-size: 13.5px; }
+.iu-ruolo-prova { font-size: 12px; color: var(--ru-tenue); }
+.iu-ruolo-prova a { color: var(--ru-azione); }
+.iu-ruolo-dati { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 13.5px; margin: 0; }
+.iu-ruolo-dati dt { color: var(--ru-tenue); }
+.iu-ruolo-dati dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.iu-ruolo-dati a { color: var(--ru-azione); }
+.iu-ruolo-proposta { border: 1px solid var(--ru-linea); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.iu-ruolo-proposta.is-confermata { border-color: #bfe3cc; background: #f7fcf8; }
+.iu-ruolo-proposta.is-scartata { opacity: 0.55; }
+.iu-ruolo-proposta__riga { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.iu-ruolo-proposta strong { font-size: 14px; }
+.iu-ruolo-proposta__data { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ru-termine); white-space: nowrap; }
+.iu-ruolo-proposta__perche { font-size: 12.5px; color: var(--ru-tenue); margin: 4px 0 8px; }
+.iu-ruolo-azioni { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.iu-ruolo-azioni button,
+.iu-ruolo-azioni a {
+  display: inline-flex; align-items: center; font: inherit; font-size: 13px; border-radius: 8px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--ru-linea); background: #fff; color: var(--ru-testo); text-decoration: none; cursor: pointer;
+}
+.iu-ruolo-azioni .is-principale { background: var(--ru-istituzionale); border-color: var(--ru-istituzionale); color: #fff; font-weight: 600; }
+.iu-ruolo-azioni button:disabled { opacity: 0.6; cursor: default; }
+.iu-ruolo-azioni--fonte { margin-top: 10px; }
+.iu-ruolo-azioni form { display: inline-flex; margin: 0; }
+.iu-ruolo-esito { font-size: 13px; font-weight: 600; }
+.iu-ruolo-esito.is-ok { color: #15803d; }
+.iu-ruolo-esito.is-no { color: var(--ru-tenue); }
+.iu-ruolo-esito.is-errore { color: var(--ru-termine); }
+.iu-ruolo-bozza { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--ru-linea); font-size: 13.5px; }
+.iu-ruolo-bozza:first-of-type { border-top: 0; }
+.iu-ruolo-prossimo { padding: 12px 18px; background: #f8fafd; font-size: 13.5px; border-bottom: 1px solid var(--ru-linea-tenue); margin: 0; }
+.iu-ruolo-prossimo b { color: var(--ru-istituzionale); }
+.iu-ruolo-dettagli { padding: 10px 18px 14px; }
+.iu-ruolo-dettagli summary { cursor: pointer; color: var(--ru-istituzionale); font-weight: 600; font-size: 13.5px; }
+.iu-ruolo-scheda__piede { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--ru-linea); }
+.iu-ruolo-scheda__piede a,
+.iu-ruolo-scheda__piede button {
+  flex: 1; display: inline-grid; place-items: center; font: inherit; font-weight: 600; height: 38px; border-radius: 9px;
+  border: 1px solid var(--ru-linea); background: #fff; color: var(--ru-testo); text-decoration: none; cursor: pointer;
+}
+.iu-ruolo-scheda__piede .is-oro { background: var(--ru-oro); border-color: var(--ru-oro); color: #fff; }
+.iu-ruolo-scheda__piede button:disabled { background: #d8dde6; border-color: #d8dde6; color: #fff; cursor: default; }
+.iu-ruolo-scheda__vuota { padding: 40px 24px; color: var(--ru-tenue); text-align: center; margin: auto 0; }
+
+@media (max-width: 1180px) {
+  .iu-ruolo-corpo { grid-template-columns: minmax(0, 1fr); }
+  .iu-ruolo-scheda { position: static; max-height: none; }
+  .iu-ruolo-vista { max-height: none; }
+}
+@media (max-width: 720px) {
+  .iu-ruolo-viste { margin-left: 0; }
+  .iu-ruolo-cerca { min-width: 0; flex: 1; }
+  .iu-ruolo-voce { grid-template-columns: 54px 4px minmax(0, 1fr); }
+  .iu-ruolo-voce .iu-ruolo-segni { grid-column: 3; justify-content: flex-start; margin-top: 6px; }
+  .iu-ruolo-mese { grid-auto-rows: minmax(72px, auto); }
+}
+@media (prefers-reduced-motion: reduce) { .iu-ruolo-pagina * { transition: none !important; } }

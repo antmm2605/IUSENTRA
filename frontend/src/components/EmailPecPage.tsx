@@ -68,12 +68,14 @@ import {
   type EmailStatus,
   type PecAuditField,
   type PecAuditSummary,
+  type EmailAttachment,
 } from '../emailData'
 import { csrfToken, submitFormJson } from '../formSubmit'
 import { formatDateTimeIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import './EmailPecPage.css'
 import { MailboxPagination } from '../features/comunicazioni/MailboxPagination'
+import { PecCancelleriaDettaglio, haDatiDiCancelleria } from '../features/comunicazioni/PecCancelleriaDettaglio'
 
 type MailboxMode = 'pec' | 'ordinaria'
 type MailboxMetric = 'totali' | 'arrivo' | 'nonlette' | 'inviate' | 'cestino' | 'pst' | 'allegati' | 'collegate'
@@ -281,7 +283,13 @@ function folderIcon(folder: EmailFolder) {
 
 function rowPerson(item: EmailPecRow): string {
   if (item.folder === 'INVIATI') return item.recipients || 'Destinatario non indicato'
-  return item.senderName || item.sender || 'Mittente non indicato'
+  return mittenteLeggibile(item.senderName || item.sender || '') || 'Mittente non indicato'
+}
+
+/** «"Per conto di: tribunale.vicenza@…" <posta-certificata@legalmail.it>»: il mittente vero è quello «per conto di». */
+function mittenteLeggibile(valore: string): string {
+  const perConto = valore.match(/per conto di:\s*([^"<>\s]+@[^"<>\s]+)/i)
+  return perConto ? perConto[1] : valore
 }
 
 /** Il browser segnala i problemi di rete con un messaggio tecnico in inglese («Failed to fetch»): si mostra in italiano. */
@@ -1181,6 +1189,20 @@ function EmailFullDetail({
       ? 'EML originale acquisito.'
       : 'Il messaggio originale MIME non è ancora acquisito.'
   )
+  const profilo = (item.pecAudit?.proceduralProfile || detail.pecAudit?.proceduralProfile || {}) as Record<string, unknown>
+  const leggiAllegato = (attachment: EmailAttachment) => {
+    const href = attachment.viewHref || attachment.previewHref
+    if (!attachment.available || !href) return
+    setAttachmentSource({ href, label: attachment.name || 'Allegato PEC', context: `Allegato collegato a: ${detail.item?.subject || item.subject || 'messaggio'}`, kind: 'email-attachment' })
+  }
+  if (haDatiDiCancelleria(profilo)) {
+    return (
+      <div className="iu-mail-full-detail" aria-label="Comunicazione di cancelleria">
+        <PecCancelleriaDettaglio profilo={profilo} allegati={detail.attachments} testo={bodyText} onLeggi={leggiAllegato}/>
+        <SourceDocumentModal source={attachmentSource} onClose={() => setAttachmentSource(null)} />
+      </div>
+    )
+  }
   return (
     <div className="iu-mail-full-detail" aria-label={title}>
       <header>

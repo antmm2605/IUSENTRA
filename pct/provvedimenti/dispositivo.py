@@ -110,9 +110,11 @@ def capi(testo: str) -> list[Capo]:
 
 
 def _a_inizio_frase(testo: str, posizione: int) -> bool:
-    """Un verbo minuscolo apre un capo solo a inizio frase o dopo «;», «:», «•», «e»: «di nomina» non è «NOMINA»."""
+    """Un verbo minuscolo apre un capo solo a inizio frase o dopo «;», «:», «•», «e»: «di nomina» non è «NOMINA».
+
+    Il primo verbo dopo il «P.Q.M.» apre sempre il primo capo («P.Q.M. Assegna a parte ricorrente termine…»)."""
     prima = testo[max(0, posizione - 6):posizione]
-    return posizione == 0 or bool(re.search(r"(?:[.;:•]|\be|\bed|,)\s*$", prima))
+    return not testo[:posizione].strip() or bool(re.search(r"(?:[.;:•]|\be|\bed|,)\s*$", prima))
 
 
 __all__ = ["Capo", "VERBI", "capi", "chi_e_oggetto", "inizio_dispositivo"]

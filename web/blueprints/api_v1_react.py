@@ -16439,6 +16439,29 @@ def agenda():
     return jsonify(payload)
 
 
+@api_v1_react.get("/agenda/lavorazione")
+@_richiedi_auth
+def agenda_lavorazione():
+    """Ciò che il software ha preparato per un impegno: proposte da confermare, prove, collegamento, prossimo passo."""
+    from web.services.react_agenda_lavorazione_bridge import build_agenda_lavorazione_payload
+
+    try:
+        email_db_path = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+        payload = build_agenda_lavorazione_payload(
+            request.args.get("id", ""),
+            agenda_loader=get_agenda,
+            scadenziario_loader=get_scadenziario,
+            pec_audit_db=str(email_db_path.parent / "pec_audit.sqlite"),
+            tenant_id=_tenant_runtime_label(),
+            fascicoli_loader=get_fascicoli,
+            fascicolo_suggerito=request.args.get("fascicolo", ""),
+        )
+        return jsonify(payload), 200 if payload.get("ok") else 404
+    except Exception as exc:
+        current_app.logger.exception("Errore lavorazione impegno agenda: %s", exc)
+        return jsonify({"ok": False, "message": "Lavorazione dell'impegno non disponibile in questo momento."}), 200
+
+
 def _email_source_preview_cache_dir() -> Path:
     anchor = Path(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json")).resolve()
     root = anchor.parent / ".preview-cache" / "pec-source"

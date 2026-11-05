@@ -7500,6 +7500,15 @@ def _codice_oggetto_from_source(source: Any) -> dict[str, str]:
     }
 
 
+def _query_prefill(query: dict[str, str]) -> dict[str, Any]:
+    """Nuovo fascicolo aperto da una comunicazione di cancelleria (agenda): titolo, RG, anno e giudice già letti dalla PEC."""
+    valori = {"title": _text(query.get("titolo")), "numeroRg": _text(query.get("numero_rg")),
+              "annoRg": _text(query.get("anno_rg")), "judge": _text(query.get("giudice"))}
+    if valori["title"]:
+        valori["object"] = valori["title"]
+    return {chiave: valore for chiave, valore in valori.items() if valore}
+
+
 def _source_practice_prefill(query: dict[str, str], get_preventivi: Callable[[], Any] | None) -> dict[str, Any]:
     if not callable(get_preventivi):
         return {}
@@ -7690,7 +7699,7 @@ def build_react_fascicolo_form_payload(
 ) -> dict[str, Any]:
     query = {str(k): _text(v) for k, v in (query or {}).items()}
     fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(id_fasc), None) if id_fasc else None
-    source_prefill = {} if fascicolo else _source_practice_prefill(query, get_preventivi)
+    source_prefill = {} if fascicolo else {**_query_prefill(query), **_source_practice_prefill(query, get_preventivi)}
     if source_prefill.get("clientId") and not query.get("id_cliente"):
         query["id_cliente"] = _text(source_prefill.get("clientId"))
     mode = "edit" if id_fasc else "new"

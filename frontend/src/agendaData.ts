@@ -52,6 +52,10 @@ export type AgendaEvent = {
   remoteHearingAccessInfo: string
   remoteHearingPdfRequired: boolean
   completed: boolean
+  /** Proposte del software ancora da confermare (bozze dalla stessa PEC o collegate all'appuntamento). */
+  pendingCount: number
+  /** «Cliente · Fascicolo · RG · Ufficio» dal fascicolo collegato. */
+  contextLine: string
 }
 
 export type AgendaDay = {
@@ -331,6 +335,8 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     remoteHearingAccessInfo: asString(pickFirst(item, ['remoteHearingAccessInfo', 'remote_hearing_access_info'])),
     remoteHearingPdfRequired: item.remoteHearingPdfRequired === true || item.remote_hearing_pdf_required === true,
     completed,
+    pendingCount: Math.max(0, Number(pickFirst(item, ['pendingCount', 'pending_count']) || 0) || 0),
+    contextLine: asString(pickFirst(item, ['contextLine', 'context_line'])) || [client, matter, court].filter(Boolean).join(' · '),
   }
 }
 

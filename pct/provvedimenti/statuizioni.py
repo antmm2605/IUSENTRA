@@ -7,8 +7,10 @@ Ogni capo con una data diventa una voce (``giudice.<oggetto>``) con la prova del
 * «N giorni prima dell'udienza» o «sino alla data dell'udienza» → contato dall'udienza
   (del provvedimento o, se una sola, del fascicolo) con il motore dei termini;
 * «N giorni dalla comunicazione / pronuncia» → contato da quella data, se nota;
-* dalla notificazione, da un deposito futuro, senza decorrenza o con più udienze
-  possibili → domanda all'avvocato (``da_verificare``): nessuna data indovinata;
+* senza decorrenza → bozza alla data più anticipata (dalla pronuncia o dalla comunicazione), con la
+  decorrenza da confermare;
+* dalla notificazione, da un deposito futuro o con più udienze possibili → domanda all'avvocato
+  (``da_verificare``): nessuna data indovinata;
 * «AVVISA che … sarà adottato entro N giorni dalla scadenza» → che cosa aspettarsi.
 
 Se il capo fissa un termine che la legge già prevede (es. costituzione del convenuto),
@@ -37,6 +39,10 @@ _ETICHETTE = {"note": "deposito delle note", "memoria": "deposito della memoria"
               "pagamento": "pagamento", "deposito": "deposito", "costituzione": "costituzione in giudizio",
               "relazione": "relazione e osservazioni sulla consulenza", "giuramento": "giuramento del consulente",
               "comparizione": "comparizione"}
+_VERBI_INCARICO = frozenset({"invita", "onera", "ordina"})
+_OGGETTI_INCARICO = frozenset({"notifica", "deposito", "pagamento", "note", "memoria"})
+_PARTI = frozenset({"ricorrente", "resistente", "attore", "opponente", "parti"})
+_RE_MOTIVAZIONE = re.compile(r"\bdeposito\s+della\s+motivazione\b|\bmotivazione\s+(?:della\s+sentenza\s+)?(?:sarà|verrà)\s+depositata\b", re.I)
 _RE_ATTESA = re.compile(r"\b(?:provvedimento|decisione|decider\w*|sentenza|provveder\w*|adottat\w*)\b", re.I)
 
 
@@ -69,6 +75,10 @@ def _domanda(capo: Capo, materia: str, testo: str, regola: dict[str, Any] | None
 
 def voce_del_capo(capo: Capo, rif: Riferimenti, materia: str, regola: dict[str, Any] | None = None) -> Voce | None:
     ancora = capo.ancora
+    if ancora is None and capo.verbo in _VERBI_INCARICO and capo.oggetto in _OGGETTI_INCARICO and capo.chi in _PARTI:
+        # «Invita parte ricorrente a depositare la prova della notificazione»: un incarico senza data resta un adempimento.
+        return _voce(capo, materia, regola, genere="adempimento", scadenziario=False, confidenza=0.7,
+                     titolo=f"Adempimento chiesto dal giudice: {_ETICHETTE.get(capo.oggetto, 'adempimento')} ({capo.chi})")
     if ancora is None or ancora.tipo in {"udienza_esplicita", "per_rinvio"}:
         return None
     if ancora.tipo == "esplicita":
@@ -93,7 +103,29 @@ def voce_del_capo(capo: Capo, rif: Riferimenti, materia: str, regola: dict[str, 
                      dies_a_quo=rif.udienza, id_appuntamento=rif.id_appuntamento)
     if ancora.tipo == "da_evento":
         return _da_evento(capo, rif, materia, regola)
-    return _domanda(capo, materia, f"Il giudice assegna «{ancora.letto}» senza dire da quando decorrono: indicare la decorrenza.", regola)
+    return _senza_decorrenza(capo, rif, materia, regola)
+
+
+def _senza_decorrenza(capo: Capo, rif: Riferimenti, materia: str, regola: dict[str, Any] | None) -> Voce:
+    """«Termine di 10 giorni» senza decorrenza: bozza alla data più anticipata possibile, da confermare.
+
+    Si conta dal primo giorno certo tra la data in calce al provvedimento e la sua comunicazione (art. 176, co. 2,
+    c.p.c.: le ordinanze fuori udienza si comunicano): la scadenza proposta non è mai successiva a quella vera.
+    Senza alcuna data certa resta la domanda all'avvocato.
+    """
+    ancora = capo.ancora
+    letto = ancora.letto if ancora is not None else ""
+    certi = [(dies, dato) for dies, dato in (rif.dato_evento("pronuncia"), rif.dato_evento("comunicazione")) if dies is not None]
+    calcolo = None
+    if certi and ancora is not None and ancora.giorni:
+        dies, dato = min(certi, key=lambda coppia: coppia[0])
+        calcolo = calcola({"giorni": ancora.giorni, "direzione": "forward"}, dies, materia=materia)
+    if calcolo is None:
+        return _domanda(capo, materia, f"Il giudice assegna «{letto}» senza dire da quando decorrono: indicare la decorrenza.", regola)
+    domanda = (f"Il giudice assegna «{letto}» senza dire da quando decorrono: la data è contata dal {dies:%d/%m/%Y}, "
+               "il giorno certo più anticipato. Confermare la decorrenza.")
+    return _voce(capo, materia, regola, giorno=calcolo.giorno, calcolo=calcolo.spiegazione, dati=(dato,), dies_a_quo=dies,
+                 domanda=domanda, nota=f"Decorrenza da confermare: {domanda}", confidenza=0.6)
 
 
 def _da_evento(capo: Capo, rif: Riferimenti, materia: str, regola: dict[str, Any] | None) -> Voce:
@@ -107,6 +139,13 @@ def _da_evento(capo: Capo, rif: Riferimenti, materia: str, regola: dict[str, Any
     if dies is None:
         return _domanda(capo, materia, Riferimenti.domanda_evento(ancora.evento, _titolo(capo)), regola)
     calcolo = calcola({"giorni": ancora.giorni, "direzione": "forward"}, dies, materia=materia)
+    if _RE_MOTIVAZIONE.search(capo.testo) and calcolo is not None:
+        # «Fissa per il deposito della motivazione il termine di 60 giorni»: è il giudice che deposita
+        # (art. 429 c.p.c. nel lavoro); dal deposito decorrono i termini di impugnazione, non da qui.
+        return _voce(capo, materia, None, genere="attesa", scadenziario=False, codice="", chi="giudice", giorno=calcolo.giorno,
+                     norme=("cpc_429",) if materia == "lavoro" else NORME_RITO.get(materia, ()), calcolo=calcolo.spiegazione,
+                     dati=(dato,), dies_a_quo=dies,
+                     titolo=f"Motivazione del giudice attesa entro il {calcolo.giorno:%d/%m/%Y}: dal deposito decorrono i termini di impugnazione")
     if calcolo is None:
         return _domanda(capo, materia, f"{_titolo(capo)}: «{ancora.letto}» non è calcolabile con certezza, indicarne la data.", regola)
     return _voce(capo, materia, regola, giorno=calcolo.giorno, calcolo=calcolo.spiegazione, dati=(dato,), dies_a_quo=dies)

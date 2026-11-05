@@ -26,6 +26,8 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pct.agenda_linguaggio import evento_registro, nome_proprio, titolo_cancelleria
+
 ROME_TZ = ZoneInfo("Europe/Rome")
 
 RECEIPT_UID_PREFIX = "PEC_RICEZIONE"
@@ -201,17 +203,25 @@ def new_date_label(change: ScheduleChange) -> str:
     return f"{date_it(change.new_date)} ore {change.new_time}" if change.new_time else date_it(change.new_date)
 
 
+_SINTESI_CAMBIO = {
+    "termine_modificato": "modifica del termine al {data}",
+    "udienza_revocata": "revoca dell'udienza, nuova data {data}",
+    "udienza_anticipata": "anticipazione dell'udienza al {data}",
+    "udienza_differita": "differimento dell'udienza al {data}",
+    "rinvio_udienza": "rinvio dell'udienza al {data}",
+}
+
+
 def change_summary(change: ScheduleChange) -> str:
-    """«rinvio udienza al 14/04/2027 ore 09:00», «udienza revocata: note scritte entro il 09/09/2026»."""
+    """«rinvio dell'udienza al 14/04/2027 ore 09:00», «udienza sostituita da note scritte (art. 127-ter c.p.c.), termine al …»."""
 
     if change.kind == "udienza_revocata" and re.search(r"\bNOTE\b", change.description, flags=re.I):
-        return f"udienza revocata: note scritte entro il {new_date_label(change)}"
-    return f"{change.label.lower()} al {new_date_label(change)}"
+        return f"udienza sostituita da note scritte (art. 127-ter c.p.c.), termine al {new_date_label(change)}"
+    return _SINTESI_CAMBIO.get(change.kind, "cambio dell'udienza al {data}").format(data=new_date_label(change))
 
 
-def receipt_title(change: ScheduleChange, *, rg: str = "") -> str:
-    base = f"PEC ricevuta: {change_summary(change)}"
-    return f"{base} - RG {rg}" if rg else base
+def receipt_title(change: ScheduleChange, *, rg: str = "", ufficio: str = "") -> str:
+    return titolo_cancelleria(change_summary(change), rg=rg, ufficio=ufficio)
 
 
 def lawyer_activity(change: ScheduleChange) -> str:
@@ -414,34 +424,31 @@ def communication_summary(comm: CourtCommunication) -> str:
     text = f"{comm.event} {comm.description}"
     if comm.kind == "sentenza":
         number = re.search(r"\bNUMERO\s+(\d{1,6}\s*/\s*\d{4})", text, flags=re.I)
-        return f"sentenza n. {number.group(1).replace(' ', '')}" if number else "sentenza"
+        return f"deposito della sentenza n. {number.group(1).replace(' ', '')}" if number else "deposito della sentenza"
     if comm.kind == "estinzione":
-        return "estinzione del processo"
+        return "dichiarazione di estinzione del giudizio"
     if comm.kind == "designazione_giudice":
         judge = re.search(
             r"\bGIUDICE\s+((?:(?!(?:DESIGNAZIONE|UFFICIO|OGGETTO|DESCRIZIONE)\b)[A-ZÀ-Ý']{2,}\s*){1,4})",
             comm.description.upper(),
         )
-        return f"designazione del giudice {judge.group(1).strip()}" if judge else "designazione del giudice"
+        return f"designazione del giudice dott. {nome_proprio(judge.group(1).strip())}" if judge else "designazione del giudice"
     if comm.kind == "costituzione_parti":
         party = re.match(r"\s*(.{3,80}?)\s+COSTITUIT", comm.description, flags=re.I)
-        return f"costituzione di {party.group(1).strip()}" if party else "costituzione di parte"
+        return f"costituzione in giudizio di {nome_proprio(party.group(1).strip())}" if party else "costituzione in giudizio di controparte"
     if comm.kind in {"fissazione_udienza", "fissazione_termine"} and comm.date:
-        base = "fissazione udienza" if comm.kind == "fissazione_udienza" else "termine fissato"
-        return f"{base} al {_date_time_label(comm.date, comm.time)}"
+        if comm.kind == "fissazione_udienza":
+            return f"fissazione dell'udienza del {_date_time_label(comm.date, comm.time)}"
+        return f"assegnazione del termine al {_date_time_label(comm.date, comm.time)}"
     if comm.kind in COMMUNICATION_KIND_LABELS and comm.kind != "provvedimento":
         return COMMUNICATION_KIND_LABELS[comm.kind].lower()
     if comm.event.lower().startswith("comunicazione"):
         return "comunicazione di cancelleria"
-    detail = comm.description.lower()
-    detail = re.sub(r"^atto\s+", "", detail)
-    base = comm.event.lower()[:70] or "comunicazione di cancelleria"
-    return f"{base}: {detail[:60]}" if detail and detail not in base else base
+    return evento_registro(comm.event[:70], comm.description)
 
 
-def communication_receipt_title(comm: CourtCommunication, *, rg: str = "") -> str:
-    base = f"PEC ricevuta: {communication_summary(comm)}"
-    return f"{base} - RG {rg}" if rg else base
+def communication_receipt_title(comm: CourtCommunication, *, rg: str = "", ufficio: str = "") -> str:
+    return titolo_cancelleria(communication_summary(comm), rg=rg, ufficio=ufficio)
 
 
 def communication_activity(comm: CourtCommunication) -> str:

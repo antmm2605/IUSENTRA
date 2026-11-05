@@ -3,7 +3,7 @@ import { useBusyActivity } from '../ui/useBusyActivity'
 import { SourceAlternatives } from './SourceAlternatives'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { publishMutationRefresh } from '../operationalRefresh'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -17,17 +17,12 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   Download,
   FilePenLine,
   FileSearch,
   Filter,
   Landmark,
   ListChecks,
-  MapPin,
-  Maximize2,
-  Minimize2,
-  Move,
   Plus,
   Printer,
   RefreshCw,
@@ -42,23 +37,23 @@ import {
 } from 'lucide-react'
 import { AgendaResearchFilters, emptyAgendaFilters, matchesAgendaFilters, type AgendaFilters } from './AgendaResearchFilters'
 import './AgendaResearch.css'
+import { AgendaRuolo } from '../features/agenda/ruolo/AgendaRuolo'
+import { AgendaScheda } from '../features/agenda/ruolo/AgendaScheda'
+import { corrispondeFiltro, daLavorare, type FiltroRapido } from '../features/agenda/ruolo/agendaRuoloModel'
+import '../features/agenda/ruolo/agendaRuolo.css'
 const AgendaProceduralTools = lazy(() => import('./AgendaProceduralTools'))
-import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import { JsonPostForm } from './JsonPostForm'
 import { SourceDocumentModal } from './SourceDocumentModal'
 import { OperationalModal } from './OperationalModal'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import { formatDateIt } from '../formatting'
-import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaDeadlineCalculatorHref, agendaHighlightStartIndex, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
+import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaDeadlineCalculatorHref, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
 import { cleanAccessInfo, plausiblePasscode, readablePlatform } from '../features/scadenziario/deadlineDetailFacts'
 import {
   addDays,
   addMonths,
-  agendaRange,
   buildAgendaPageData,
-  eventHeightPixels,
-  eventTopPercent,
   getAgendaPage,
   moveEventToDay,
   moveEventToDateTime,
@@ -81,39 +76,15 @@ const kindLabels: Record<AgendaKind, string> = {
 
 const viewLabels: Record<AgendaView, string> = {
   day: 'Giorno',
-  week: 'Sett.',
+  week: 'Settimana',
   month: 'Mese',
-  timeline: 'Cronologia',
+  timeline: 'Elenco',
 }
-
-const timelineSlots = Array.from({ length: 24 }, (_, index) => {
-  const minutes = 8 * 60 + index * 30
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
-})
 
 function isSameText(event: AgendaEvent, query: string): boolean {
   if (!query.trim()) return true
   const haystack = [event.title, event.displayTitle, event.legalLabel, event.subtitle, event.client, event.court, event.matter, event.location, event.owner, ...event.detailLines].join(' ').toLowerCase()
   return haystack.includes(query.trim().toLowerCase())
-}
-
-function eventIcon(kind: AgendaEvent['kind']) {
-  if (kind === 'udienza') return <Landmark size={14}/>
-  if (kind === 'deposito' || kind === 'scadenza') return <AlertTriangle size={14}/>
-  if (kind === 'call') return <Video size={14}/>
-  if (kind === 'studio') return <UsersRound size={14}/>
-  return <CalendarDays size={14}/>
-}
-
-function Kpi({ icon, label, value, note, active, onClick }:{icon:ReactNode; label:string; value:string|number; note:string; active:boolean; onClick:()=>void}) {
-  return (
-    <button type="button" className="iu-ag-kpi" aria-pressed={active} onClick={onClick}>
-      <div>{icon}</div>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note} · Filtra</small>
-    </button>
-  )
 }
 
 function newAgendaHref(tipo: string, titolo = ''): string {
@@ -241,414 +212,6 @@ function agendaSubjectLine(event: AgendaEvent): string {
   return parts.join(' · ') || event.subtitle || event.originTitle || 'Dettaglio da verificare'
 }
 
-function agendaDetailLines(event: AgendaEvent): string[] {
-  const details = event.detailLines?.length
-    ? event.detailLines
-    : [
-        event.client ? `Cliente/parte: ${event.client}` : '',
-        event.matter ? `Fascicolo/RG: ${event.matter}` : '',
-        event.court ? `Ufficio: ${event.court}` : '',
-        event.location ? `Luogo: ${event.location}` : '',
-        event.notes ? `Dettaglio: ${event.notes}` : '',
-      ].filter(Boolean)
-  return details.slice(0, 7)
-}
-
-function remoteHearingHost(url: string): string {
-  if (!url) return ''
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return ''
-  }
-}
-
-function layoutEvents(events: AgendaEvent[]): { event: AgendaEvent; clusteredEvents: AgendaEvent[] }[] {
-  const sorted = [...events].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime())
-  const groups: AgendaEvent[][] = []
-  let visualEnd = Number.NEGATIVE_INFINITY
-
-  for (const event of sorted) {
-    const start = new Date(event.start).getTime()
-    const actualEnd = new Date(event.end).getTime()
-    const eventVisualEnd = Math.max(actualEnd, start + (125 * 60 * 1000))
-    if (!groups.length || start >= visualEnd) {
-      groups.push([event])
-      visualEnd = eventVisualEnd
-      continue
-    }
-    groups[groups.length - 1].push(event)
-    visualEnd = Math.max(visualEnd, eventVisualEnd)
-  }
-
-  return groups.map((group) => ({ event: group[0], clusteredEvents: group }))
-}
-
-function clusterWhenLabel(events: AgendaEvent[]): string {
-  const times = [...new Set(events.map((event) => event.timeLabel))]
-  return times.length === 1 ? `alle ${times[0]}` : `tra ${times[0]} e ${times[times.length - 1]}`
-}
-
-function EventCard({
-  event,
-  clusteredEvents = [event],
-  onOpenSource,
-  onOpenDetail,
-  onOpenGroup,
-}:{
-  event:AgendaEvent
-  clusteredEvents?:AgendaEvent[]
-  onOpenSource:(event:AgendaEvent)=>void
-  onOpenDetail:(event:AgendaEvent)=>void
-  onOpenGroup:(events:AgendaEvent[])=>void
-}) {
-  const isCluster = clusteredEvents.length > 1
-  const label = agendaLegalLabel(event)
-  const title = agendaTitle(event)
-  const subjectLine = agendaSubjectLine(event)
-  const detailLines = agendaDetailLines(event)
-  const whenLabel = `${formatDateIt(event.start)} ${event.timeLabel}${event.durationLabel ? ` · ${event.durationLabel}` : ''}`
-  const remoteUrl = event.remoteHearingVerified ? event.remoteHearingUrl : ''
-  const remotePlatform = readablePlatform(event.remoteHearingPlatform, Boolean(remoteUrl))
-  const remotePasscode = plausiblePasscode(event.remoteHearingPasscode)
-  const remoteAccessInfo = cleanAccessInfo(event.remoteHearingAccessInfo)
-  const remoteInstruction = !remoteUrl && remoteAccessInfo ? remoteAccessInfo : ''
-  const clusterWhen = clusterWhenLabel(clusteredEvents)
-  const tooltipLines = [
-    event.client ? `Cliente/parte: ${event.client}` : '',
-    event.matter ? `Fascicolo/RG: ${event.matter}` : '',
-    `Quando: ${whenLabel}`,
-    event.location ? `Luogo: ${event.location}` : '',
-    remotePlatform ? `Piattaforma: ${remotePlatform}` : '',
-    event.remoteHearingMeetingId ? `ID riunione: ${event.remoteHearingMeetingId}` : '',
-    remotePasscode ? `Codice di accesso: ${remotePasscode}` : '',
-    remoteAccessInfo ? `Istruzioni: ${remoteAccessInfo}` : '',
-    event.completed ? 'Stato: completata' : '',
-    ...detailLines.filter((line) => !/^Cliente\/parte:|^Fascicolo\/RG:|^Luogo:|^Link udienza audiovisiva:/i.test(line)),
-  ].filter(Boolean).slice(0, remoteUrl ? 9 : remoteInstruction ? 7 : 6)
-  const accessibleLabel = isCluster
-    ? `${clusteredEvents.length} eventi ${clusterWhen}: ${clusteredEvents.map((item) => `${item.timeLabel}, ${agendaLegalLabel(item)} ${agendaSubjectLine(item)}`).join('. ')}`
-    : `${label}: ${title}. ${tooltipLines.join('. ')}${remoteUrl ? '. Collegamento audiovisivo disponibile' : ''}`
-  const normalizedTitle = subjectLine.toLocaleLowerCase('it-IT')
-  const contextLine = [event.matter, event.client]
-    .filter((value, index, values) => value && values.indexOf(value) === index && !normalizedTitle.includes(value.toLocaleLowerCase('it-IT')))
-    .join(' · ')
-  const placeLine = [event.court, event.location].filter((value, index, values) => value && values.indexOf(value) === index).join(' · ')
-  const naturalHeight = eventHeightPixels(event)
-  const isCompact = !isCluster && naturalHeight < 78
-  const isLate = new Date(event.start).getHours() >= 16
-  const href = event.href || '/agenda'
-  const clusterSummary = `${clusteredEvents.length} attività raggruppate`
-  const renderClusterEventList = (mode: 'inline' | 'tooltip') => (
-    <div className={`iu-ag-event__cluster-list ${mode === 'inline' ? 'iu-ag-event__cluster-list--inline' : ''}`} aria-label="Eventi raggruppati nell'agenda">
-      {clusteredEvents.map((clusterEvent) => (
-        <section key={`${mode}-${clusterEvent.id}`}>
-          <a href={clusterEvent.href || '/agenda'} onClick={(clickEvent) => {
-            if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-            clickEvent.preventDefault()
-            onOpenDetail(clusterEvent)
-          }}>
-            <strong>{clusterEvent.timeLabel} · {agendaLegalLabel(clusterEvent)}</strong>
-            <span>{agendaSubjectLine(clusterEvent)}</span>
-          </a>
-          <div>
-            {clusterEvent.remoteHearingVerified && clusterEvent.remoteHearingUrl ? <a href={clusterEvent.remoteHearingUrl} target="_blank" rel="noreferrer"><Video size={13}/>Collegati</a> : null}
-            {clusterEvent.sourceHref ? <button type="button" onClick={() => onOpenSource(clusterEvent)}><FileSearch size={13}/>Apri fonte</button> : null}
-          </div>
-        </section>
-      ))}
-    </div>
-  )
-  return (
-    <article
-      className={`iu-ag-event iu-ag-event--${event.tone} ${event.completed ? 'is-completed' : ''} ${isCompact ? 'is-compact' : ''} ${isCluster ? 'is-cluster' : ''} ${isLate ? 'is-late' : ''}`}
-      draggable={!isCluster}
-      onDragStart={(dragEvent) => {
-        if (isCluster) {
-          dragEvent.preventDefault()
-          return
-        }
-        dragEvent.dataTransfer.effectAllowed = 'move'
-        dragEvent.dataTransfer.setData('text/plain', event.id)
-        dragEvent.dataTransfer.setData('application/x-iusentra-agenda-event', event.id)
-      }}
-      style={{ top: `${eventTopPercent(event)}%`, minHeight: isCluster ? 82 : isCompact ? Math.max(68, naturalHeight) : naturalHeight, left: '10px', width: 'calc(100% - 20px)' }}
-    >
-      <a className="iu-ag-event__target" href={href} aria-label={accessibleLabel} onClick={(clickEvent) => {
-        if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-        clickEvent.preventDefault()
-        if (isCluster) onOpenGroup(clusteredEvents)
-        else onOpenDetail(event)
-      }}>
-        <span className="iu-ag-event__content">
-          <strong>{event.completed ? <CheckCircle2 size={14}/> : eventIcon(event.kind)} <span>{isCluster ? `${clusteredEvents.length} eventi ${clusterWhen}` : label}</span></strong>
-          <span className="iu-ag-event__meta">
-            <span className="iu-ag-event__reference">{isCluster ? clusterSummary : subjectLine}</span>
-            <span className="iu-ag-event__time">{isCluster ? `${clusteredEvents.length} attività` : event.timeLabel}{!isCluster && !isCompact && event.durationLabel ? ` · ${event.durationLabel}` : ''}</span>
-          </span>
-          {!isCluster && !isCompact && contextLine ? <small className="iu-ag-event__context">{contextLine}</small> : null}
-          {!isCluster && !isCompact && placeLine ? <small className="iu-ag-event__place"><MapPin size={10}/>{placeLine}</small> : null}
-          {!isCluster && !isCompact && remoteInstruction ? <small className="iu-ag-event__remote-note"><FileSearch size={10}/>{remoteInstruction}</small> : null}
-        </span>
-      </a>
-      <div className="iu-ag-event__tooltip" role="tooltip">
-        {isCluster ? (
-          <>
-            <b>{clusteredEvents.length} eventi {clusterWhen}</b>
-            {renderClusterEventList('tooltip')}
-          </>
-        ) : (
-          <>
-            <b>{agendaHeadline(event)}</b>
-            {tooltipLines.map((line) => <span key={line}>{line}</span>)}
-            {remoteUrl ? (
-              <a className="iu-ag-event__remote-link" href={remoteUrl} target="_blank" rel="noreferrer" title={remoteUrl}>
-                <Video size={14}/>
-                <span>Collegati all'udienza{remoteHearingHost(remoteUrl) ? ` · ${remoteHearingHost(remoteUrl)}` : ''}</span>
-              </a>
-            ) : null}
-            {event.sourceHref ? (
-              <button className="iu-ag-event__remote-link iu-ag-event__source-link" type="button" onClick={() => onOpenSource(event)} title={`Apri fonte: ${event.sourceLabel || 'fonte originaria'}`}>
-                <FileSearch size={14}/>
-                <span>Apri fonte{event.sourceLabel ? ` · ${event.sourceLabel}` : ''}</span>
-                {event.sourceVerified ? <CheckCircle2 size={13}/> : null}
-              </button>
-            ) : null}
-          </>
-        )}
-      </div>
-    </article>
-  )
-}
-
-function AgendaLegend() {
-  return (
-    <div className="iu-ag-legend" aria-label="Legenda colori agenda">
-      <span><i className="is-hearing"/>Udienza</span>
-      <span><i className="is-deadline"/>Scadenza o deposito</span>
-      <span><i className="is-appointment"/>Appuntamento</span>
-      <span><i className="is-studio"/>Attività di studio</span>
-      <span><i className="is-completed"/>Completata</span>
-    </div>
-  )
-}
-
-function MonthEventChip({ event, onOpenDetail }:{event:AgendaEvent; onOpenDetail:(event:AgendaEvent)=>void}) {
-  const label = agendaLegalLabel(event)
-  const subjectLine = agendaSubjectLine(event)
-  const href = event.href || '/agenda'
-  return (
-    <a
-      className={`iu-ag-month-event iu-ag-event--${event.tone}`}
-      draggable
-      href={href}
-      onClick={(clickEvent) => {
-        if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-        clickEvent.preventDefault()
-        onOpenDetail(event)
-      }}
-      onDragStart={(dragEvent) => {
-        dragEvent.dataTransfer.effectAllowed = 'move'
-        dragEvent.dataTransfer.setData('text/plain', event.id)
-        dragEvent.dataTransfer.setData('application/x-iusentra-agenda-event', event.id)
-      }}
-    >
-      <strong>{label}</strong>
-      <span>{event.timeLabel}</span>
-      <small>{subjectLine}</small>
-    </a>
-  )
-}
-
-function DayColumn({
-  day,
-  view,
-  onCreateSlot,
-  onDropEvent,
-  onOpenSource,
-  onOpenDetail,
-  onOpenGroup,
-}:{
-  day:ReturnType<typeof buildAgendaPageData>['days'][number]
-  view:AgendaView
-  onCreateSlot:(dayIso:string, time:string)=>void
-  onDropEvent:(eventId:string, dayIso:string, time?:string)=>void
-  onOpenSource:(event:AgendaEvent)=>void
-  onOpenDetail:(event:AgendaEvent)=>void
-  onOpenGroup:(events:AgendaEvent[])=>void
-}) {
-  if (view === 'month') {
-    return (
-      <section
-        className={`iu-ag-day iu-ag-day--month ${day.isToday ? 'is-today' : ''} ${day.isWeekend ? 'is-weekend' : ''} ${day.isOutsideMonth ? 'is-outside-month' : ''}`}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault()
-          const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
-          if (eventId) onDropEvent(eventId, day.iso)
-        }}
-      >
-        <button className="iu-ag-month-head" type="button" onClick={() => onCreateSlot(day.iso, '09:00')} aria-label={`Nuovo appuntamento il ${formatDateIt(day.iso)}`}>
-          <span>{day.weekday}</span>
-          <strong>{day.label}</strong>
-          <small>{day.month}</small>
-        </button>
-        <div className="iu-ag-month-events">
-          {day.events.slice(0, 4).map((event) => <MonthEventChip event={event} onOpenDetail={onOpenDetail} key={event.id}/>)}
-          {day.events.length > 4 ? <a className="iu-ag-more" href={`/agenda?data=${day.iso}`}>+{day.events.length - 4} altri</a> : null}
-          {!day.events.length ? <button className="iu-ag-month-empty" type="button" onClick={() => onCreateSlot(day.iso, '09:00')}><Move size={14}/> Nuovo alle 09:00</button> : null}
-        </div>
-      </section>
-    )
-  }
-
-  return (
-    <section
-      className={`iu-ag-day ${day.isToday ? 'is-today' : ''} ${day.isWeekend ? 'is-weekend' : ''}`}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={(event) => {
-        event.preventDefault()
-        const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
-        if (eventId) onDropEvent(eventId, day.iso)
-      }}
-    >
-      <div className="iu-ag-day__body">
-        {timelineSlots.map((slot) => (
-          <button
-            className="iu-ag-slot"
-            type="button"
-            key={slot}
-            onClick={() => onCreateSlot(day.iso, slot)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
-              if (eventId) onDropEvent(eventId, day.iso, slot)
-            }}
-            aria-label={`Nuovo appuntamento il ${formatDateIt(day.iso)} alle ${slot}`}
-          >
-            <span>{slot.endsWith(':00') ? slot : ''}</span>
-          </button>
-        ))}
-        {layoutEvents(day.events).map(({ event, clusteredEvents }) => <EventCard event={event} clusteredEvents={clusteredEvents} onOpenSource={onOpenSource} onOpenDetail={onOpenDetail} onOpenGroup={onOpenGroup} key={event.id}/>)}
-        {!day.events.length ? <button className="iu-ag-drop" type="button" onClick={() => onCreateSlot(day.iso, '09:00')}><Move size={15}/> Spazio disponibile</button> : null}
-      </div>
-    </section>
-  )
-}
-
-function AgendaTimeline({
-  days,
-  onCreateSlot,
-  onOpenDetail,
-}: {
-  days: ReturnType<typeof buildAgendaPageData>['days']
-  onCreateSlot: (dayIso: string, time: string) => void
-  onOpenDetail: (event: AgendaEvent) => void
-}) {
-  const activeDays = days.filter((day) => day.events.length)
-  if (!activeDays.length) {
-    return (
-      <div className="iu-ag-timeline-empty">
-        <CalendarDays size={22}/>
-        <strong>Nessun impegno nel mese selezionato</strong>
-        <button type="button" onClick={() => onCreateSlot(toDateKey(new Date()), '09:00')}>Aggiungi una voce</button>
-      </div>
-    )
-  }
-  return (
-    <div className="iu-ag-timeline" aria-label="Cronologia agenda">
-      {activeDays.map((day) => (
-        <section className={day.isToday ? 'is-today' : ''} key={day.id}>
-          <button type="button" className="iu-ag-timeline__date" onClick={() => onCreateSlot(day.iso, '09:00')}>
-            <span>{day.weekday}</span>
-            <strong>{day.label}</strong>
-            <small>{day.month}</small>
-          </button>
-          <div className="iu-ag-timeline__events">
-            {day.events.map((event) => (
-              <a
-                className={`iu-ag-timeline__event iu-ag-event--${event.tone}`}
-                href={event.href || '/agenda'}
-                key={event.id}
-                onClick={(clickEvent) => {
-                  if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-                  clickEvent.preventDefault()
-                  onOpenDetail(event)
-                }}
-              >
-                <time>{event.timeLabel}</time>
-                <span>{eventIcon(event.kind)}</span>
-                <div>
-                  <strong>{agendaHeadline(event)}</strong>
-                  <small>{agendaSubjectLine(event)}</small>
-                </div>
-                <Badge tone={event.tone}>{event.priority}</Badge>
-              </a>
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
-  )
-}
-
-function AgendaInspector({ events, nextEvent, unsynced, onOpenDetail }:{events:AgendaEvent[]; nextEvent?:AgendaEvent; unsynced:number; onOpenDetail:(event:AgendaEvent)=>void}) {
-  const critical = events.filter((event) => event.priority === 'critica' || event.priority === 'alta').slice(0, 4)
-  const focusEvent = nextEvent || [...events].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime())[0]
-  return (
-    <aside className="iu-ag-inspector">
-      <Panel title="Briefing agenda" subtitle="Priorità operative e prossime mosse" icon={<Sparkles size={17}/>}>
-        <div className="iu-ag-brief">
-          {focusEvent ? (
-            <a className="iu-ag-brief__event" href={focusEvent.href || '/agenda'} onClick={(clickEvent) => {
-              if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-              clickEvent.preventDefault()
-              onOpenDetail(focusEvent)
-            }}>
-              <span>{nextEvent ? 'Prossimo impegno' : 'Da presidiare nel periodo'}</span>
-              <strong>{formatDateIt(focusEvent.date)} · {focusEvent.timeLabel} · {agendaLegalLabel(focusEvent)} · {agendaSubjectLine(focusEvent)}</strong>
-              <small>{focusEvent.subtitle || focusEvent.location || 'Apri il dettaglio per le attività collegate.'}</small>
-              <span className="iu-ag-brief__action">Apri dettaglio e attività <ChevronRight size={15}/></span>
-            </a>
-          ) : <p className="iu-empty">Nessun impegno imminente.</p>}
-          <div className="iu-ag-quick-actions">
-            <Button variant="primary" href="/agenda/nuovo"><CalendarPlus size={15}/> Nuovo</Button>
-            <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
-          </div>
-        </div>
-      </Panel>
-
-      <Panel title="Priorità da non perdere" icon={<AlertTriangle size={17}/>} count={critical.length}>
-        {critical.length ? (
-          <div className="iu-ag-priority-list">
-            {critical.map((event) => (
-              <a href={event.href || '/agenda'} key={event.id} onClick={(clickEvent) => {
-                if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-                clickEvent.preventDefault()
-                onOpenDetail(event)
-              }}>
-                <Badge tone={event.tone}>{event.kind}</Badge>
-                <strong>{agendaHeadline(event)}</strong>
-                <span>{formatDateIt(event.date, event.date)} - {event.timeLabel}</span>
-              </a>
-            ))}
-          </div>
-        ) : <p className="iu-empty">Nessuna urgenza nel periodo visibile.</p>}
-      </Panel>
-
-      <Panel title="Salute sincronizzazione" icon={<CalendarSync size={17}/>} count={unsynced}>
-        <div className="iu-ag-sync-health">
-          <strong>{unsynced ? `${unsynced} elementi da riallineare` : 'Calendari allineati'}</strong>
-          <span>Ultimo controllo completato sui calendari collegati.</span>
-          <a href="/impostazioni/calendario">Configura calendari -&gt;</a>
-        </div>
-      </Panel>
-    </aside>
-  )
-}
-
 function agendaSourceLabel(source: string, event?: AgendaEvent): string {
   if (event?.sourceKind === 'pec' || event?.sourceHref?.includes('/email/')) return 'PEC'
   if (event?.sourceKind === 'documento' || event?.sourceHref?.includes('/documenti/')) return 'Documento'
@@ -726,6 +289,33 @@ function AgendaProposedActions({ event, steps, onOpenSource }:{event:AgendaEvent
         ))}
       </ol>
     </section>
+  )
+}
+
+function AzioniImpegno({ event, onPrepare }: { event: AgendaEvent; onPrepare: (event: AgendaEvent) => void }) {
+  return (
+    <div className="iu-ruolo-azioni" aria-label="Azioni sull'impegno">
+      {event.kind === 'udienza' && event.matterId ? <button type="button" onClick={() => onPrepare(event)}>Prepara l’udienza</button> : null}
+      <a href={messageReminderHref(event)}>Promemoria al cliente</a>
+      {event.matterId ? (
+        <JsonPostForm action="/timesheet/nuovo">
+          <input type="hidden" name="from_page" value="fascicolo"/>
+          <input type="hidden" name="focus" value="workflow"/>
+          <input type="hidden" name="id_fascicolo" value={event.matterId}/>
+          <input type="hidden" name="descrizione" value={`Attività agenda - ${agendaTitle(event)}`}/>
+          <input type="hidden" name="data_attivita" value={event.date}/>
+          <input type="hidden" name="minuti" value="30"/>
+          <input type="hidden" name="valore_unitario" value="80"/>
+          <input type="hidden" name="fatturabile" value="1"/>
+          <input type="hidden" name="contesto" value="agenda-react"/>
+          <button type="submit">Crea voce timesheet</button>
+        </JsonPostForm>
+      ) : (
+        null
+      )}
+      <a href={linkedDeadlineHref(event)}>Genera scadenza collegata</a>
+      <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))}>Brief Lex sul fascicolo</button>
+    </div>
   )
 }
 
@@ -821,58 +411,6 @@ export function AgendaFocus({
   )
 }
 
-function AgendaHighlightCarousel({
-  events,
-  index,
-  nextEventId,
-  onChange,
-  onOpenDetail,
-}:{
-  events:AgendaEvent[]
-  index:number
-  nextEventId?:string
-  onChange:(index:number)=>void
-  onOpenDetail:(event:AgendaEvent)=>void
-}) {
-  if (!events.length) return null
-  const total = events.length
-  const safeIndex = Math.min(Math.max(index, 0), total - 1)
-  const current = events[safeIndex]
-  const move = (delta: -1 | 1) => onChange((safeIndex + delta + total) % total)
-  const handleKey = (keyboardEvent: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (keyboardEvent.key === 'ArrowLeft') {
-      keyboardEvent.preventDefault()
-      move(-1)
-    } else if (keyboardEvent.key === 'ArrowRight') {
-      keyboardEvent.preventDefault()
-      move(1)
-    }
-  }
-  const shortDate = new Date(`${current.date || current.start.slice(0, 10)}T12:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
-  return (
-    <div className="iu-ag-highlight-carousel" role="group" aria-roledescription="carosello" aria-label="Impegni in evidenza nel periodo" onKeyDown={handleKey}>
-      <button type="button" className="iu-ag-highlight-carousel__nav" onClick={() => move(-1)} disabled={total < 2} aria-label="Impegno precedente"><ChevronLeft size={15}/></button>
-      <a
-        className="iu-ag-highlight"
-        href={current.href || '/agenda'}
-        aria-live="polite"
-        title={`${agendaHeadline(current)} · ${agendaSubjectLine(current)} · ${shortDate} ${current.timeLabel}`}
-        onClick={(clickEvent) => {
-          if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
-          clickEvent.preventDefault()
-          onOpenDetail(current)
-        }}
-      >
-        <Clock3 size={14}/><b>{current.id === nextEventId ? 'Prossimo:' : 'In evidenza:'}</b>
-        <i className={`iu-ag-highlight__dot is-${current.tone}`} aria-hidden="true"/>
-        <span className="iu-ag-highlight__text">{agendaLegalLabel(current)} · {agendaSubjectLine(current)} · {shortDate} {current.timeLabel}</span>
-      </a>
-      <small className="iu-ag-highlight-carousel__count">{safeIndex + 1}/{total}</small>
-      <button type="button" className="iu-ag-highlight-carousel__nav" onClick={() => move(1)} disabled={total < 2} aria-label="Impegno successivo"><ChevronRight size={15}/></button>
-    </div>
-  )
-}
-
 function ArrowLeftIcon() {
   return <ChevronLeft size={15}/>
 }
@@ -892,6 +430,8 @@ export function AgendaPage() {
   const [query, setQuery] = useState(initialAgendaQuery)
   const [filters, setFilters] = useState<AgendaFilters>(emptyAgendaFilters)
   const [quickFilter, setQuickFilter] = useState('periodo')
+  const [filtro, setFiltro] = useState<FiltroRapido>('tutti')
+  const [filtriAvanzati, setFiltriAvanzati] = useState(false)
   const [groupPreview, setGroupPreview] = useState<AgendaEvent[]>([])
   const [prepareEvent, setPrepareEvent] = useState<AgendaEvent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -953,32 +493,19 @@ export function AgendaPage() {
   useOperationalRefresh(['agenda', 'scadenze', 'fascicoli'], () => refresh(true))
   const researchedEvents = useMemo(() => events.filter((event) =>
     isSameText(event, query) && matchesAgendaFilters(event, filters)), [events, query, filters])
-  const counts = buildAgendaPageData(researchedEvents, anchorDate, 'client', view).summary
   const filteredEvents = useMemo(() => researchedEvents.filter((event) => {
     if (kind !== 'tutti' && event.kind !== kind) return false
     if (quickFilter === 'oggi') return event.date === toDateKey(new Date())
     if (quickFilter === 'udienze') return event.kind === 'udienza'
     if (quickFilter === 'scadenze') return event.kind === 'scadenza' || event.kind === 'deposito'
     if (quickFilter === 'alert') return event.priority === 'alta' || event.priority === 'critica'
-    return true
-  }), [researchedEvents, kind, quickFilter])
+    return corrispondeFiltro(event, filtro)
+  }), [researchedEvents, kind, quickFilter, filtro])
   const agenda = useMemo(() => buildAgendaPageData(filteredEvents, anchorDate, 'client', view), [filteredEvents, anchorDate, view])
-  const applyQuickFilter = (value: string) => {
-    setQuickFilter(value)
-    setKind('tutti')
-    if (value === 'oggi') { setAnchorDate(new Date()); setView('day') }
-  }
   const highlightEvents = useMemo(
     () => [...filteredEvents].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime()),
     [filteredEvents],
   )
-  const highlightKey = highlightEvents.map((event) => event.id).join('|')
-  const highlightStart = agendaHighlightStartIndex(highlightEvents, agenda.summary.nextEvent)
-  const [highlightIndex, setHighlightIndex] = useState(0)
-  useEffect(() => {
-    setHighlightIndex(highlightStart)
-  }, [highlightKey, highlightStart])
-  const detailPosition = detailPreview ? highlightEvents.findIndex((event) => event.id === detailPreview.id) : -1
   const selectedEvent = selectedId ? events.find((event) => event.id === selectedId || event.id === `scadenza-${selectedId}`) : undefined
 
   useEffect(() => {
@@ -1003,24 +530,9 @@ export function AgendaPage() {
     setDetailPreview(event)
   }
 
-  const navigateAgendaDetail = (delta: -1 | 1) => {
-    if (!highlightEvents.length) return
-    const from = detailPosition >= 0 ? detailPosition : highlightIndex
-    const nextIndex = (from + delta + highlightEvents.length) % highlightEvents.length
-    const nextEvent = highlightEvents[nextIndex]
-    window.history.replaceState(window.history.state, '', `/agenda/${encodeURIComponent(nextEvent.id)}${window.location.search}`)
-    setHighlightIndex(nextIndex)
-    setSourcePreview(null)
-    setDetailPreview(nextEvent)
-  }
 
-  const closeAgendaDetail = () => {
-    window.history.replaceState(window.history.state, '', `/agenda${window.location.search}`)
-    setDetailPreview(null)
-  }
   const weekStart = startOfWeek(anchorDate)
   const weekEnd = addDays(weekStart, 6)
-  const visibleRange = agendaRange(anchorDate, view)
   const today = new Date()
   const displayDays = agenda.days
   useEffect(() => {
@@ -1042,9 +554,6 @@ export function AgendaPage() {
     : view === 'month' || view === 'timeline'
       ? anchorDate.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome', month: 'long', year: 'numeric' })
       : rangeLabel(weekStart, weekEnd)
-  const automationTarget = selectedEvent || agenda.summary.nextEvent || filteredEvents[0]
-  const automationDate = automationTarget?.date || toDateKey(anchorDate)
-  const canCreateTimesheet = Boolean(automationTarget?.matterId)
 
   const shiftPeriod = (direction: -1 | 1) => {
     setAnchorDate((current) => view === 'month' || view === 'timeline'
@@ -1052,10 +561,6 @@ export function AgendaPage() {
       : addDays(current, view === 'day' ? direction : direction * 7))
   }
 
-  const togglePlannerExpanded = async () => {
-    if (document.fullscreenElement === plannerRef.current) await document.exitFullscreen()
-    setPlannerExpanded((current) => !current)
-  }
 
   const openNewAppointment = (dayIso: string, time: string) => {
     window.location.href = createAppointmentHref(dayIso, time)
@@ -1132,179 +637,72 @@ export function AgendaPage() {
     </main>
   }
 
-  return (
-    <main className="iu-content iu-agenda-page">
-      <section className="iu-ag-hero">
-        <div>
-          <span className="iu-ag-eyebrow"><CalendarDays size={16}/> Agenda</span>
-          <h1>Agenda</h1>
-          <p>Appuntamenti, udienze, scadenze, sincronizzazioni e priorità dello studio in una vista unica.</p>
-        </div>
-        <div className="iu-ag-hero__actions">
-          <Button href="/workspace-intelligente"><Sparkles size={15}/> Controllo studio</Button>
-          <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
-          <Button href="/polisWeb"><Landmark size={15}/> Aggiorna dagli uffici</Button>
-          <NewAgendaMenu/>
-        </div>
-      </section>
+  const filtriRapidi: Array<[FiltroRapido, string]> = [['lavoro', 'Da lavorare'], ['udienza', 'Udienze'], ['termine', 'Termini'], ['notifica', 'Notifiche'], ['cancelleria', 'Comunicazioni']]
+  const contaFiltro = (valore: FiltroRapido) => researchedEvents.filter((event) => corrispondeFiltro(event, valore)).length
+  const schedaEvent = detailPreview || highlightEvents.find(daLavorare) || agenda.summary.nextEvent || highlightEvents[0] || null
+  const apriGiorno = (iso: string) => { setAnchorDate(new Date(`${iso.slice(0, 10)}T12:00:00`)); setView('day') }
 
-      <section
-        ref={plannerRef}
-        className={`iu-ag-planner ${plannerExpanded ? 'is-expanded' : ''}`}
-        data-agenda-diagnostic={dataDiagnostic}
-        data-agenda-filtered-count={filteredEvents.length}
-        data-agenda-loaded-count={events.length}
-        data-agenda-source={dataSource}
-      >
-      <section className="iu-ag-toolbar" aria-label="Comandi agenda">
-        <div className="iu-ag-view-switch" role="group" aria-label="Vista calendario">
-          {(Object.keys(viewLabels) as AgendaView[]).map((item) => (
-            <button className={view === item ? 'is-active' : ''} type="button" onClick={() => setView(item)} key={item}>{viewLabels[item]}</button>
-          ))}
-        </div>
-        <div className="iu-ag-date-nav">
+  return (
+    <main className="iu-content iu-agenda-page iu-ruolo-pagina">
+      <section className="iu-ruolo-comandi" aria-label="Periodo e vista"
+        data-agenda-diagnostic={dataDiagnostic} data-agenda-filtered-count={filteredEvents.length}
+        data-agenda-loaded-count={events.length} data-agenda-source={dataSource}>
+        <h1>Agenda</h1>
+        <div className="iu-ruolo-periodo">
           <button type="button" onClick={() => shiftPeriod(-1)} aria-label="Periodo precedente"><ChevronLeft size={16}/></button>
           <button type="button" onClick={() => setAnchorDate(today)}>Oggi</button>
           <button type="button" onClick={() => shiftPeriod(1)} aria-label="Periodo successivo"><ChevronRight size={16}/></button>
           <strong>{dateLabel}</strong>
         </div>
-        <div className="iu-ag-toolbar__actions">
-          <label className="iu-ag-search">
-            <Search size={17}/>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca in agenda..."/>
-          </label>
-          <label className="iu-ag-filter">
-            <Filter size={16}/>
-            <select aria-label="Tipo di evento" value={kind} onChange={(event) => { setKind(event.target.value as AgendaKind); setQuickFilter('periodo') }}>
-              {(Object.keys(kindLabels) as AgendaKind[]).map((item) => <option value={item} key={item}>{kindLabels[item]}</option>)}
-            </select>
-          </label>
-          <button className="iu-ag-icon-btn" type="button" onClick={() => { void refresh() }} aria-label="Aggiorna agenda"><RefreshCw size={17}/></button>
-          <button
-            className="iu-ag-icon-btn"
-            type="button"
-            onClick={() => void togglePlannerExpanded()}
-            aria-label={plannerExpanded ? 'Esci dalla visualizzazione a tutto schermo' : 'Espandi il planner a tutto schermo'}
-            title={plannerExpanded ? 'Esci da tutto schermo' : 'Planner a tutto schermo'}
-          >
-            {plannerExpanded ? <Minimize2 size={17}/> : <Maximize2 size={17}/>}
+        <div className="iu-ruolo-viste" role="group" aria-label="Vista">
+          {(Object.keys(viewLabels) as AgendaView[]).map((item) => (
+            <button type="button" key={item} aria-pressed={view === item} onClick={() => setView(item)}>{viewLabels[item]}</button>
+          ))}
+        </div>
+        <label className="iu-ruolo-cerca">
+          <Search size={16}/>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca cliente, fascicolo, RG" aria-label="Cerca in agenda"/>
+        </label>
+        <div className="iu-ruolo-altro">
+          <button className="iu-ruolo-icona" type="button" onClick={() => setFiltriAvanzati((v) => !v)} aria-pressed={filtriAvanzati} aria-label="Filtri avanzati" title="Filtri avanzati"><Filter size={16}/></button>
+          <button className="iu-ruolo-icona" type="button" onClick={() => { void refresh() }} aria-label="Aggiorna agenda" title="Aggiorna agenda"><RefreshCw size={16}/></button>
+          <details className="iu-ruolo-menu">
+            <summary className="iu-ruolo-icona" aria-label="Altre funzioni dell'agenda">Altro</summary>
+            <div className="iu-ruolo-menu__voci">
+              <a href="/polisWeb"><Landmark size={15}/> Aggiorna dagli uffici giudiziari</a>
+              <a href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari collegati</a>
+              <button type="button" onClick={() => window.print()}><Printer size={15}/> Stampa l’agenda</button>
+              <a href="/agenda/export.ics"><Download size={15}/> Scarica il calendario</a>
+              <a href="/agenda/importa"><UploadCloud size={15}/> Importa un calendario</a>
+            </div>
+          </details>
+          <NewAgendaMenu/>
+        </div>
+      </section>
+
+      <section className="iu-ruolo-filtri" aria-label="Filtri rapidi">
+        {filtriRapidi.map(([valore, nome]) => (
+          <button type="button" key={valore} className={`iu-ruolo-filtro ${valore === 'lavoro' ? 'iu-ruolo-filtro--lavoro' : ''}`}
+            aria-pressed={filtro === valore} onClick={() => { setFiltro((attuale) => attuale === valore ? 'tutti' : valore); setQuickFilter('periodo'); setKind('tutti') }}>
+            <i className={`iu-ruolo-c-${valore === 'lavoro' ? 'oro' : valore}`}/>{nome} <em>{contaFiltro(valore)}</em>
           </button>
-          <button className="iu-ag-icon-btn" type="button" onClick={() => window.print()} aria-label="Stampa agenda"><Printer size={17}/></button>
-          <a className="iu-ag-icon-btn" href="/agenda/export.ics" aria-label="Scarica calendario"><Download size={17}/></a>
-          <a className="iu-ag-icon-btn" href="/agenda/importa" aria-label="Importa calendario"><UploadCloud size={17}/></a>
+        ))}
+        <span className={`iu-ruolo-stato ${agendaUnavailable ? 'is-errore' : ''}`} role={agendaUnavailable ? 'alert' : 'status'}>
+          {sourceLabel}{agenda.summary.unsynced ? ` · ${agenda.summary.unsynced} da sincronizzare` : ''}{moveStatus ? ` · ${moveStatus}` : ''}
+        </span>
+        {agendaUnavailable ? <button type="button" className="iu-ruolo-icona" onClick={() => void refresh()} disabled={loading}>Riprova</button> : null}
+      </section>
+
+      {filtriAvanzati ? <AgendaResearchFilters events={events} value={filters} onChange={setFilters} count={filteredEvents.length}
+        onReset={() => { setFilters(emptyAgendaFilters); setQuery(''); setKind('tutti'); setQuickFilter('periodo'); setFiltro('tutti') }}/> : null}
+
+      <section className="iu-ruolo-corpo">
+        <div className="iu-ruolo-vista" aria-label={`Vista ${viewLabels[view].toLowerCase()}`}>
+          <AgendaRuolo view={view} days={displayDays} selectedId={schedaEvent?.id || ''} onOpen={openAgendaDetail} onOpenDay={apriGiorno}
+            onCreateSlot={openNewAppointment} onDropEvent={moveEvent}/>
         </div>
-      </section>
-
-      <AgendaResearchFilters events={events} value={filters} onChange={setFilters} count={filteredEvents.length}
-        onReset={() => { setFilters(emptyAgendaFilters); setQuery(''); setKind('tutti'); setQuickFilter('periodo') }}/>
-      <section className="iu-ag-status-line">
-        <span className={loading || agendaUnavailable ? '' : 'is-ok'} role={agendaUnavailable ? 'alert' : 'status'}>{sourceLabel}</span>
-        {agendaUnavailable ? <button type="button" onClick={() => void refresh()} disabled={loading}>Riprova</button> : null}
-        <AgendaHighlightCarousel
-          events={highlightEvents}
-          index={highlightIndex}
-          nextEventId={agenda.summary.nextEvent?.id}
-          onChange={setHighlightIndex}
-          onOpenDetail={(event) => {
-            const position = highlightEvents.findIndex((item) => item.id === event.id)
-            if (position >= 0) setHighlightIndex(position)
-            openAgendaDetail(event)
-          }}
-        />
-        <small><ListChecks size={14}/>{filteredEvents.length} {filteredEvents.length === 1 ? 'elemento' : 'elementi'} nel periodo selezionato.</small>
-        {moveStatus ? <small className="iu-ag-move-status" role="status">{moveStatus}</small> : null}
-      </section>
-      <section className="iu-ag-layout">
-        <div className="iu-ag-calendar-card">
-          <header>
-            <div>
-              <strong>{view === 'day' ? 'Vista giorno' : view === 'month' ? 'Vista mese compatta' : view === 'timeline' ? 'Cronologia mensile' : 'Vista settimana'}</strong>
-              <span>{rangeLabel(visibleRange.from, visibleRange.to)} - {displayDays.length} giorni visibili - {filteredEvents.length} {filteredEvents.length === 1 ? 'elemento' : 'elementi'}</span>
-              <AgendaLegend />
-            </div>
-            <div>
-              <Badge tone={agenda.summary.unsynced ? 'warning' : 'success'}>{agenda.summary.unsynced ? `${agenda.summary.unsynced} da sincronizzare` : 'allineata'}</Badge>
-              <button
-                type="button"
-                onClick={() => void togglePlannerExpanded()}
-                aria-label={plannerExpanded ? 'Esci dalla visualizzazione a tutto schermo' : 'Apri il calendario a tutto schermo'}
-              >
-                {plannerExpanded ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
-                {plannerExpanded ? 'Riduci' : 'Tutto schermo'}
-              </button>
-              <a href="/impostazioni/calendario"><Settings2 size={16}/> Preferenze</a>
-            </div>
-          </header>
-          {view === 'timeline' ? (
-            <AgendaTimeline days={displayDays} onCreateSlot={openNewAppointment} onOpenDetail={openAgendaDetail}/>
-          ) : (
-          <>
-          {view !== 'month' ? <div className="iu-ag-day-heads" aria-label="Giorni del calendario">
-            <div ref={calendarHeadsRef} className="iu-ag-day-heads__viewport">
-              <div ref={calendarHeadTrackRef} className="iu-ag-day-heads__track" style={{ gridTemplateColumns: `repeat(${displayDays.length}, minmax(var(--iu-ag-day-min-width, 118px), 1fr))` }}>
-                {displayDays.map(day => <div key={day.id} className={`iu-ag-day-label ${day.isToday ? 'is-today' : ''} ${day.isWeekend ? 'is-weekend' : ''}`} title={formatDateIt(day.iso)}>
-                  <span>{day.weekday}</span><strong>{day.label}</strong><small>{day.month}</small>
-                </div>)}
-              </div>
-            </div>
-          </div> : null}
-          <div
-            ref={calendarGridRef}
-            onScroll={event => { if (calendarHeadsRef.current) calendarHeadsRef.current.scrollLeft = event.currentTarget.scrollLeft }}
-            className={`iu-ag-week ${view === 'month' ? 'iu-ag-week--month' : view === 'week' ? 'iu-ag-week--week' : 'iu-ag-week--day'}`}
-            style={{ gridTemplateColumns: view === 'month' ? undefined : `repeat(${displayDays.length}, minmax(var(--iu-ag-day-min-width, 118px), 1fr))` }}
-          >
-            {displayDays.map((day) => <DayColumn day={day} key={day.id} view={view} onCreateSlot={openNewAppointment} onDropEvent={moveEvent} onOpenSource={setSourcePreview} onOpenDetail={openAgendaDetail} onOpenGroup={setGroupPreview}/>)}
-          </div>
-          </>
-          )}
-        </div>
-        <AgendaInspector events={filteredEvents} nextEvent={agenda.summary.nextEvent} unsynced={agenda.summary.unsynced} onOpenDetail={openAgendaDetail}/>
-      </section>
-
-      </section>
-
-      <section className="iu-ag-lower-grid">
-        <Panel title="Preparazione udienza guidata" subtitle="Controlli prima dell'impegno" icon={<BriefcaseBusiness size={17}/>}>
-          {automationTarget ? <p className="iu-ag-checks-context">{agendaSubjectLine(automationTarget)} · {formatDateIt(automationTarget.date)} · {automationTarget.timeLabel}</p> : null}
-          <div className="iu-ag-checks">
-            <button type="button" disabled={!automationTarget} onClick={() => { if (automationTarget) openAgendaDetail(automationTarget) }}><CalendarCheck size={16}/> Verifica orario, aula e fascicolo</button>
-            <button type="button" disabled={!automationTarget} onClick={() => { if (automationTarget) openAgendaDetail(automationTarget) }}><MapPin size={16}/> Consulta luogo e collegamento da remoto</button>
-            <button type="button" disabled={!automationTarget?.matterId || automationTarget.kind !== 'udienza'} title={!automationTarget?.matterId || automationTarget.kind !== 'udienza' ? 'Seleziona un’udienza collegata a un fascicolo.' : undefined} onClick={() => { if (automationTarget?.matterId && automationTarget.kind === 'udienza') openPreparation(automationTarget) }}><ListChecks size={16}/> Prepara scadenze, note e documenti</button>
-          </div>
-          {!automationTarget ? <p className="iu-empty">Seleziona un impegno in agenda per consultarne i dati.</p> : null}
-        </Panel>
-        <Panel title="Automazioni consigliate" subtitle="Azioni utili per l'agenda professionale" icon={<Sparkles size={17}/>}>
-          <div className="iu-ag-automations">
-            <a href={messageReminderHref(automationTarget)}>Promemoria cliente</a>
-            {canCreateTimesheet ? (
-              <JsonPostForm action="/timesheet/nuovo">
-                <input type="hidden" name="from_page" value="fascicolo"/>
-                <input type="hidden" name="focus" value="workflow"/>
-                <input type="hidden" name="id_fascicolo" value={automationTarget?.matterId || ''}/>
-                <input type="hidden" name="descrizione" value={`Attività agenda - ${automationTarget ? agendaTitle(automationTarget) : 'impegno'}`}/>
-                <input type="hidden" name="data_attivita" value={automationDate}/>
-                <input type="hidden" name="minuti" value="30"/>
-                <input type="hidden" name="valore_unitario" value="80"/>
-                <input type="hidden" name="fatturabile" value="1"/>
-                <input type="hidden" name="contesto" value="agenda-react"/>
-                <button type="submit">Crea voce timesheet</button>
-              </JsonPostForm>
-            ) : (
-              <button type="button" className="is-disabled" aria-disabled="true" title="Seleziona un evento collegato a un fascicolo per creare il timesheet.">Crea voce timesheet</button>
-            )}
-            <a href={linkedDeadlineHref(automationTarget)}>Genera scadenza collegata</a>
-            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))}>Brief Lex sul fascicolo</button>
-          </div>
-        </Panel>
-      </section>
-
-      <section className="iu-ag-kpis">
-        <Kpi icon={<Clock3 size={19}/>} label="Oggi" active={quickFilter === 'oggi'} onClick={() => applyQuickFilter('oggi')} value={counts.today} note="impegni in giornata"/>
-        <Kpi icon={<CalendarCheck size={19}/>} label="Periodo" active={quickFilter === 'periodo'} onClick={() => applyQuickFilter('periodo')} value={counts.week} note="eventi nel periodo"/>
-        <Kpi icon={<Landmark size={19}/>} label="Udienze" active={quickFilter === 'udienze'} onClick={() => applyQuickFilter('udienze')} value={counts.hearings} note="da presidiare"/>
-        <Kpi icon={<ListChecks size={19}/>} label="Scadenze" active={quickFilter === 'scadenze'} onClick={() => applyQuickFilter('scadenze')} value={counts.deadlines} note="termini e depositi"/>
-        <Kpi icon={<Bell size={19}/>} label="Avvisi" active={quickFilter === 'alert'} onClick={() => applyQuickFilter('alert')} value={counts.critical} note="priorità alta o critica"/>
+        <AgendaScheda event={schedaEvent} onChanged={() => { void refresh(true) }} onOpenSource={setSourcePreview}
+          azioni={schedaEvent ? <AzioniImpegno event={schedaEvent} onPrepare={openPreparation}/> : null}/>
       </section>
 
       <FloatingLex />
@@ -1313,27 +711,6 @@ export function AgendaPage() {
         <div className="iu-ag-case-list">{groupPreview.map((event) => <button type="button" key={event.id} onClick={() => openAgendaDetail(event)}>
           <time>{event.timeLabel}</time><span><strong>{agendaLegalLabel(event)}</strong><small>{agendaSubjectLine(event)}</small><small>{event.court || event.location}</small></span><ChevronRight size={18}/>
         </button>)}</div>
-      </OperationalModal>
-      <OperationalModal
-        open={Boolean(detailPreview)}
-        ariaLabel="Dettaglio operativo agenda"
-        eyebrow={<><CalendarCheck size={14}/> Dettaglio operativo</>}
-        title={detailPreview ? `${agendaLegalLabel(detailPreview)} · ${agendaTitle(detailPreview)}` : ''}
-        subtitle={detailPreview ? `${new Date(detailPreview.start).toLocaleDateString('it-IT')} · ${detailPreview.timeLabel}` : ''}
-        onClose={closeAgendaDetail}
-        boxClassName="iu-ag-source-modal__box--detail"
-        bodyClassName="iu-ag-source-modal__body--detail"
-      >
-        {detailPreview ? (
-          <AgendaFocus
-            event={detailPreview}
-            onOpenSource={setSourcePreview}
-            position={detailPosition}
-            total={detailPosition >= 0 ? highlightEvents.length : 0}
-            onNavigate={navigateAgendaDetail}
-            onPrepare={openPreparation}
-          />
-        ) : null}
       </OperationalModal>
       {contextualPanels}
     </main>

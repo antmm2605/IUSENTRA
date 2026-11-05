@@ -25,7 +25,19 @@ def normalizza(testo: str) -> str:
     """Spazi singoli e apostrofi semplici: le espressioni regolari leggono un solo alfabeto."""
     pulito = str(testo or "").replace("’", "'").replace("‘", "'").replace("`", "'")
     pulito = pulito.replace("“", '"').replace("”", '"').replace(" ", " ")
+    # «26.11.'26»: l'anno abbreviato con l'apostrofo è del secolo corrente (forma usata nei verbali e nei decreti).
+    pulito = re.sub(r"\b(\d{1,2}[./-]\d{1,2}[./-])\s?'(\d{2})\b", r"\g<1>20\2", pulito)
+    # OCR che incolla le parole alla data («all'udienzadel26.11.2026»): si stacca la data dalla parola.
+    pulito = re.sub(r"(?<=[a-zà-ú])(?=\d{1,2}[./]\d{1,2}[./]\d{2,4}\b)", " ", pulito)
     return " ".join(pulito.split())
+
+
+def testo_incollato(pulito: str) -> bool:
+    """Vero se l'OCR ha perso gli spazi («Sostituiscel'udienzaconildeposito…»): più di un quinto del testo
+    è in «parole» di oltre trenta caratteri, che nessun provvedimento scrive."""
+    parole = pulito.split()
+    lunghe = sum(len(p) for p in parole if len(p) > 30 and not p.lower().startswith(("http", "www")))
+    return len(pulito) > 200 and lunghe > 0.2 * sum(len(p) for p in parole)
 
 
 def numero(valore: str) -> int | None:

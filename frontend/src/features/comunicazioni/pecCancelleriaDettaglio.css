@@ -1,0 +1,41 @@
+/* PEC di cancelleria: dati della comunicazione, provvedimento in evidenza, prove di consegna conservate a parte. */
+
+.iu-pec-canc { display: grid; gap: 14px; }
+.iu-pec-canc h3 { margin: 0 0 8px; font-size: 13.5px; font-weight: 600; color: #556274; }
+.iu-pec-canc__dati,
+.iu-pec-canc__documenti,
+.iu-pec-canc__prove,
+.iu-pec-canc__testo { border: 1px solid #e3e8f0; border-radius: 12px; padding: 14px 16px; background: #fff; }
+.iu-pec-canc__dati dl { display: grid; grid-template-columns: minmax(140px, max-content) minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 14px; }
+.iu-pec-canc__dati dt { color: #556274; }
+.iu-pec-canc__dati dd { margin: 0; font-weight: 500; color: #111827; overflow-wrap: anywhere; }
+.iu-pec-canc article { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #eef1f6; }
+.iu-pec-canc article:first-of-type { border-top: 0; }
+.iu-pec-canc article > span { flex: 1; min-width: 0; display: grid; }
+.iu-pec-canc article strong { font-size: 14px; color: #111827; overflow-wrap: anywhere; }
+.iu-pec-canc article small { font-size: 12px; color: #556274; }
+.iu-pec-canc article button,
+.iu-pec-canc article a {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid #e3e8f0; background: #fff; color: #111827; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer;
+}
+.iu-pec-canc article .is-principale { background: #123d72; border-color: #123d72; color: #fff; font-weight: 600; }
+.iu-pec-canc details > summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: #123d72; display: flex; align-items: center; gap: 6px; }
+.iu-pec-canc details > p { margin: 8px 0 4px; font-size: 13px; color: #556274; }
+.iu-pec-canc__consegna { margin: 12px 0 10px; font-size: 13.5px; color: #334155; }
+.iu-pec-canc__registro { display: grid; grid-template-columns: minmax(140px, max-content) minmax(0, 1fr); gap: 6px 16px; margin: 0;
+  padding: 12px 14px; border-radius: 10px; background: #f8fafd; font-size: 13.5px; }
+.iu-pec-canc__registro dt { color: #556274; }
+.iu-pec-canc__registro dd { margin: 0; color: #111827; overflow-wrap: anywhere; }
+.iu-pec-canc__avvertenze { margin: 10px 0 0; padding-left: 18px; font-size: 12.5px; color: #556274; }
+.iu-pec-canc__integrale { margin-top: 12px; }
+.iu-pec-canc__integrale > summary { font-size: 12.5px; color: #556274; }
+.iu-pec-canc__testo pre { white-space: pre-wrap; font: inherit; font-size: 13px; color: #334155; margin: 10px 0 0; max-height: 320px; overflow: auto; }
+.iu-pec-canc button:focus-visible,
+.iu-pec-canc a:focus-visible,
+.iu-pec-canc summary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+@media (max-width: 720px) {
+  .iu-pec-canc__dati dl,
+  .iu-pec-canc__registro { grid-template-columns: minmax(0, 1fr); }
+  .iu-pec-canc__dati dd { margin-bottom: 6px; }
+}

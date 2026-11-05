@@ -1764,9 +1764,14 @@ def test_pec_remote_hearing_link_arrives_in_scadenziario_and_agenda(tmp_path, da
         return
 
     assert scheduled["ok"] is True
-    scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    tutte = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
+    # Rito del lavoro (RG …/LAV): accanto all'udienza nasce la bozza della costituzione del convenuto (art. 416 c.p.c.).
+    bozze = [s for s in tutte if s.stato.value == "BOZZA"]
+    assert all("art. 416" in s.note or "416" in s.note for s in bozze)
+    scadenze = [s for s in tutte if s.stato.value != "BOZZA"]
     assert len(scadenze) == 1
     assert scadenze[0].tipo == TipoTermine.UDIENZA
+    assert scadenze[0].titolo.startswith("Fissazione udienza di discussione")
     assert scadenze[0].data_scadenza[:10] == hearing_day.isoformat()
     assert scadenze[0].remote_hearing_url == exact_link
     assert scadenze[0].remote_hearing_source == "13744017s.pdf.zip"

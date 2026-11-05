@@ -25,24 +25,33 @@ EVENTI = {"comunicazione": "comunicazione", "comunicato": "comunicazione", "noti
           "notificazione": "notificazione", "pronuncia": "pronuncia", "deposito": "deposito",
           "pubblicazione": "pubblicazione", "scadenza": "scadenza"}
 
+# «termine di ulteriori 10 giorni», «entro altri 15 giorni»: la proroga o il nuovo termine si leggono come il primo.
+_ULTERIORI = r"(?:ulterior[ei]\s+|altri\s+)?"
+
+# «prima della predetta data», «prima della nuova udienza sopra indicata».
+_AGGETTIVI = r"(?:predett[ao]|suddett[ao]|nuov[ao]|prossim[ao]|medesim[ao]|fissat[ao])\s+"
+
 _RE_PRIMA = re.compile(
     rf"(?:almeno|sino\s+a|fino\s+a|entro|non\s+oltre)\s+(?:il\s+)?(?:termine\s+di\s+)?{NUMERO}\s+{GIORNI}\s+(liberi\s+)?prima\s+"
-    r"(?:dell[a']\s*|della\s+data\s+(?:dell[a']\s*)?)?(udienza|data|scadenza|trattazione|camera\s+di\s+consiglio|dibattimento)",
+    rf"(?:dell[a']\s*|della\s+|del\s+)?(?:{_AGGETTIVI})?(?:data\s+(?:dell[a']\s*)?(?:{_AGGETTIVI})?)?"
+    r"(udienza|data|scadenza|trattazione|camera\s+di\s+consiglio|dibattimento|(?<=del\s)termine)",
     re.I,
 )
 _RE_FINO_UDIENZA = re.compile(
     r"(?:sino|fino)\s+(?:al(?:la)?\s+)?(?:data\s+dell[a']\s*|giorno\s+dell[a']\s*)?(?:predetta\s+|suddetta\s+|medesima\s+)?udienza"
-    r"|entro\s+(?:la\s+data\s+dell[a']\s*|il\s+giorno\s+dell[a']\s*)(?:predetta\s+)?udienza",
+    r"|entro\s+(?:la\s+data\s+dell[a']\s*|il\s+giorno\s+dell[a']\s*)(?:predetta\s+)?udienza"
+    # «nel termine perentorio del giorno dell'udienza fissata» (art. 127-ter, comma 1, c.p.c.)
+    r"|termine\s+(?:perentorio\s+)?(?:del|al)\s+(?:giorno|la\s+data)\s+dell[a']\s*(?:predetta\s+|suddetta\s+)?udienza",
     re.I,
 )
 _RE_DA_EVENTO = re.compile(
-    rf"(?:entro|nel\s+termine\s+(?:perentorio\s+|ordinatorio\s+)?di|termine\s+(?:perentorio\s+)?di)\s+(?:giorni\s+)?{NUMERO}\s*(?:{GIORNI})?\s+"
-    r"(?:decorrent\w+\s+)?dal(?:la|l')?\s*(?:data\s+(?:di|della|del)\s+)?"
+    rf"(?:entro|nel\s+termine\s+(?:perentorio\s+|ordinatorio\s+)?di|termine\s+(?:perentorio\s+)?di)\s+{_ULTERIORI}(?:giorni\s+)?{NUMERO}\s*(?:{GIORNI})?,?\s+"
+    r"(?:decorrent\w+\s+)?dal(?:la|l')?\s*(?:odiern[ao]\s+)?(?:data\s+(?:di|della|del)\s+)?"
     r"(comunicazione|comunicato|notifica(?:zione)?|pronuncia|deposito|pubblicazione|scadenza)",
     re.I,
 )
 _RE_SENZA = re.compile(
-    rf"(?:termine\s+(?:perentorio\s+|ordinatorio\s+)?di|entro)\s+(?:(?:giorni|gg\.?)\s+{NUMERO}|{NUMERO}\s*{GIORNI})", re.I,
+    rf"(?:termine\s+(?:perentorio\s+|ordinatorio\s+)?di|entro)\s+{_ULTERIORI}(?:(?:giorni|gg\.?)\s+{NUMERO}|{NUMERO}\s*{GIORNI})", re.I,
 )
 _RE_RINVIO = re.compile(r"\b(?:ai\s+sensi|a\s+norma|di\s+cui)\s+(?:all'\s*|dell'\s*)?art(?:icolo|\.)?\s*(\d{2,4}(?:\s*[-\s]?\s*(?:bis|ter|quater|quinquies|sexies)(?:\.\d+)?)?)(?=.{0,20}?\bc\.?\s?p\.?\s?[cpa]\b)", re.I)
 _RE_ENTRO_DATA = re.compile(r"\b(?:entro\s+(?:e\s+non\s+oltre\s+)?(?:il|la\s+data\s+del)|sino\s+al|fino\s+al|termine\s+(?:perentorio\s+)?(?:del|al))\s*$", re.I)

@@ -21,6 +21,7 @@ from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
+from pct.agenda_linguaggio import modalita_legale
 
 VERSIONE_MOTORE_PEC = "2026.10.07.motore-pec.v12+identita-fascicolo-allegati+contesto-economico+importi:" + VERSIONE_ESTRAZIONE_IMPORTI + "+date:" + VERSIONE_DATE_PROCESSUALI
 VERSIONE_MOTORE_PEC += "+prove:" + VERSIONE_PROVE_NOTIFICA + "+ricezione-ora-italiana"
@@ -105,7 +106,7 @@ def fatti_da_messaggio(messaggio: dict[str, Any], contesto: Contesto) -> list[Fa
         ora = _testo(udienza.get("hearing_time"))[:5]
         rivedere = bool(udienza.get("human_review_required"))
         fatti.append(Fatto(
-            categoria="data", campo="termine" if scritta else "udienza", valore=giorno + (f"T{ora}" if ora else ""), valore_letto=giorno, etichetta=("Deposito note in sostituzione udienza del " if scritta else "Udienza del ") + f"{giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}" + (f" ore {ora}" if ora else "") + (f" ({_testo(udienza.get('mode'))})" if _testo(udienza.get("mode")) else ""),
+            categoria="data", campo="termine" if scritta else "udienza", valore=giorno + (f"T{ora}" if ora else ""), valore_letto=giorno, etichetta=("Deposito note in sostituzione udienza del " if scritta else "Udienza del ") + f"{giorno[8:10]}/{giorno[5:7]}/{giorno[:4]}" + (f" ore {ora}" if ora else "") + (f", {modalita_legale(_testo(udienza.get('mode')))}" if _testo(udienza.get("mode")) else ""),
             contesto=(descrizione_evento if note_xml else f"{'Termine per note scritte' if scritta else 'Udienza'} comunicato con la PEC «{oggetto}» del {ricevuta_il}")[:300], origine="presidio_pec", confidenza=0.7 if rivedere else 0.95,
             prove=[
                 {"codice": "ancoraggio", "esito": "ok", "dettaglio": "data estratta dal presidio PEC"},

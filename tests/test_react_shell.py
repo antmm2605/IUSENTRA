@@ -1011,6 +1011,10 @@ def test_react_ricerca_studio_e_pagina_separata_senza_mock():
 def test_react_agenda_pagina_separata_collegata_nav_e_api():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     agenda_page = Path("frontend/src/components/AgendaPage.tsx").read_text(encoding="utf-8")
+    # Agenda come ruolo dello studio (05/11/2026, approvata dall'avvocato): viste e scheda di lavorazione in features/agenda/ruolo.
+    agenda_ruolo = Path("frontend/src/features/agenda/ruolo/AgendaRuolo.tsx").read_text(encoding="utf-8")
+    agenda_ruolo_model = Path("frontend/src/features/agenda/ruolo/agendaRuoloModel.ts").read_text(encoding="utf-8")
+    agenda_scheda = Path("frontend/src/features/agenda/ruolo/AgendaScheda.tsx").read_text(encoding="utf-8")
     agenda_data = Path("frontend/src/agendaData.ts").read_text(encoding="utf-8")
     email_data = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
@@ -1034,27 +1038,17 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "agendaRange" in agenda_data
     assert "createAppointmentHref" in agenda_page
     assert "onCreateSlot" in agenda_page
-    assert "iu-ag-slot" in agenda_page
-    assert "iu-ag-week--month" in agenda_page
-    assert "const togglePlannerExpanded = async () =>" in agenda_page
-    assert "setPlannerExpanded((current) => !current)" in agenda_page
-    assert "document.exitFullscreen()" in agenda_page
+    assert "iu-ag-slot" in agenda_ruolo
+    assert "iu-ruolo-mese" in agenda_ruolo
     assert "document.body.classList.toggle('iu-agenda-planner-expanded', plannerExpanded)" in agenda_page
-    assert "plannerExpanded ? 'is-expanded' : ''" in agenda_page
-    assert "Planner a tutto schermo" in agenda_page
-    assert "Apri il calendario a tutto schermo" in agenda_page
-    assert "plannerExpanded ? 'Riduci' : 'Tutto schermo'" in agenda_page
-    assert "timeline: 'Cronologia'" in agenda_page
-    assert "function AgendaTimeline" in agenda_page
+    assert "timeline: 'Elenco'" in agenda_page
+    assert "giorniConImpegni(days)" in agenda_ruolo
     assert "function NewAgendaMenu" in agenda_page
     assert "function AgendaDeleteAction" in agenda_page
     assert "Confermi l'eliminazione?" in agenda_page
     assert "<CalendarClock size={15}/>Rinvia" in agenda_page
-    assert "formatDateIt(event.date, event.date)" in agenda_page
+    assert "giornoEsteso(day.iso)" in agenda_ruolo
     assert "<span>{event.date} - {event.timeLabel}</span>" not in agenda_page
-    assert "iu-ag-event__context" in agenda_page
-    assert "iu-ag-event__place" in agenda_page
-    assert "const isLate = new Date(event.start).getHours() >= 16" in agenda_page
     assert ".iu-ag-event.is-late .iu-ag-event__tooltip" in css
     assert "function agendaSubjectLine(event: AgendaEvent)" in agenda_page
     assert "const contextParts = [event.client, event.matter]" in agenda_page
@@ -1063,14 +1057,8 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "window.history.replaceState(window.history.state, '', nextHref)" in agenda_page
     assert "params.set('vista', view)" in agenda_page
     assert "params.set('data', toDateKey(anchorDate))" in agenda_page
-    assert 'className="iu-ag-event__content"' in agenda_page
-    assert "clusteredEvents.length" in agenda_page
-    assert "125 * 60 * 1000" in agenda_page
-    assert "clusterWhenLabel" in agenda_page
     assert "renderClusterEventList('inline')" not in agenda_page
-    assert "attività raggruppate" in agenda_page
-    assert "iu-ag-event__cluster-list--inline" in agenda_page
-    assert "Apri fonte" in agenda_page
+    assert "Visualizza fonte" in agenda_page
     assert "agendaSourceLabel(event.source, event)" in agenda_page
     assert "event?.sourceKind === 'pec' || event?.sourceHref?.includes('/email/')" in agenda_page
     assert "title={`Apri origine: ${event.sourceLabel || 'fonte originaria'}`}" in agenda_page
@@ -1118,9 +1106,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "closeOnEscape" in operational_modal
     assert "modalStack.at(-1)" in operational_modal
     assert "openAgendaDetail" in agenda_page
-    assert "closeAgendaDetail" in agenda_page
-    assert 'ariaLabel="Dettaglio operativo agenda"' in agenda_page
-    assert "onOpenDetail={openAgendaDetail}" in agenda_page
+    assert "onOpen={openAgendaDetail}" in agenda_page and "<AgendaScheda" in agenda_page
     assert "sourceHref" in agenda_data
     assert ".iu-ag-event__cluster-list" in css
     assert ".iu-ag-event__cluster-list--inline" in css
@@ -1143,13 +1129,13 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "[parsed.body_text, parsedBody.text, parsedBody.html_text]" in email_data
     assert "pec-audit:${auditId}" in email_page
     assert "get('embed') === 'source'" in email_page
-    assert 'className="iu-ag-highlight"' in agenda_page
-    assert "filteredEvents.length === 1 ? 'elemento' : 'elementi'" in agenda_page
+    assert "n === 1 ? '1 impegno'" in agenda_ruolo_model
     assert ".iu-ag-event__content{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-flow:row" in css
     assert ".iu-ag-highlight{" in css
     assert ".iu-source-document-reader__state" in css
     assert ".iu-ag-source-modal__box--fullscreen" in css
-    assert agenda_page.index('className={`iu-ag-planner') < agenda_page.index('className="iu-ag-lower-grid"')
+    # Il ruolo della settimana viene prima della scheda di lavorazione (la scheda sostituisce il pannello inferiore).
+    assert agenda_page.index('className="iu-ruolo-vista"') < agenda_page.index('<AgendaScheda')
     assert ".iu-agenda-page>.iu-ag-kpis{order:2}" in css
     assert ".iu-agenda-page>.iu-ag-planner{order:3}" in css
     assert ".iu-agenda-page>.iu-ag-lower-grid{order:4}" in css
@@ -1158,7 +1144,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-kpis[data-iusentra-sequence-slot]{\n  order:60!important" in css
     assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-planner[data-iusentra-sequence-slot]{\n  order:70!important" in css
     assert ".iu-agenda-page.iusentra-route-sequence>.iu-ag-lower-grid[data-iusentra-sequence-slot]{\n  order:80!important" in css
-    assert "iu-ag-event__remote-note" in agenda_page
+    assert "iu-ruolo-segno--remoto" in agenda_ruolo and "Collegamento all’udienza" in agenda_scheda
     assert ".iu-ag-event__remote-note" in css
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
     assert "messageReminderHref" in agenda_page
@@ -1197,7 +1183,6 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "grid-template-columns: repeat(3, minmax(0, 1fr));" in design_css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
-
 
 def test_react_telematico_due_colonne_e_testi_visibili_in_italiano():
     page_source = Path("frontend/src/components/TelematicoPage.tsx").read_text(encoding="utf-8")
@@ -10683,16 +10668,9 @@ def test_react_agenda_in_evidenza_scorre_tutti_gli_impegni_e_dettaglio_mostra_fo
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
 
     # "In evidenza" non mostra piu un solo impegno: stesso spazio, frecce e contatore su tutti gli eventi filtrati.
-    assert "function AgendaHighlightCarousel" in agenda_page
     assert "[...filteredEvents].sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime())" in agenda_page
-    assert 'aria-label="Impegno precedente"' in agenda_page and 'aria-label="Impegno successivo"' in agenda_page
-    assert "{safeIndex + 1}/{total}" in agenda_page
-    assert "keyboardEvent.key === 'ArrowLeft'" in agenda_page
-    assert "agendaHighlightStartIndex(highlightEvents, agenda.summary.nextEvent)" in agenda_page
     assert "highlightedEvent" not in agenda_page
     # Dal dettaglio si scorrono gli impegni senza chiudere la maschera.
-    assert "const navigateAgendaDetail = (delta: -1 | 1) =>" in agenda_page
-    assert "onNavigate={navigateAgendaDetail}" in agenda_page
     # Fonte visibile nel dettaglio: il click apre la fonte completa sopra la maschera.
     assert "function AgendaSourceCard" in agenda_page
     assert "<AgendaSourceCard event={event} onOpenSource={onOpenSource}/>" in agenda_page
@@ -10702,7 +10680,7 @@ def test_react_agenda_in_evidenza_scorre_tutti_gli_impegni_e_dettaglio_mostra_fo
     # incorporata. Conta il punto di rendering, non l'ordine delle definizioni.
     panels = agenda_page[agenda_page.index("const contextualPanels ="):agenda_page.index("if (new URLSearchParams", agenda_page.index("const contextualPanels ="))]
     assert "<SourceDocumentModal" in panels
-    main_view = agenda_page[agenda_page.index('<main className="iu-content iu-agenda-page">'):]
+    main_view = agenda_page[agenda_page.index('<main className="iu-content iu-agenda-page'):]
     assert main_view.rindex("</OperationalModal>") < main_view.rindex("{contextualPanels}")
     # Attivita proposte eseguibili.
     assert "function AgendaProposedActions" in agenda_page

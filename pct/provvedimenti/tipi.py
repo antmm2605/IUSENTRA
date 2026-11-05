@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 
+from .rigetto_trattazione import ESPRESSIONE as _RIGETTO_TRATTAZIONE
 from .testo import normalizza
 
 #: tipo → (etichetta, espressione nel testo)
@@ -48,7 +49,13 @@ TIPI: dict[str, tuple[str, str]] = {
     "citazione_penale": ("Decreto di citazione a giudizio o che dispone il giudizio",
                          r"\bdecreto\s+(?:di\s+citazione\s+(?:diretta\s+)?a\s+giudizio|che\s+dispone\s+il\s+giudizio)\b|\bart\.?\s*(?:552|429)\s+c\.?p\.?p\b"),
     "rinvio": ("Rinvio dell'udienza", r"\brinvia\b.{0,120}\budienza\b|\bdifferisce\b.{0,80}\budienza\b"),
-    "fissazione_udienza": ("Fissazione di udienza", r"\bfissa\b.{0,120}\budienza\b|\budienza\b.{0,40}\bfissata\s+per\s+il\b"),
+    "fissazione_udienza": ("Fissazione di udienza", r"\bfissa\b.{0,120}\b(?:udienza|camera\s+di\s+consiglio)\b"
+                                                    r"|\budienza\b.{0,40}\bfissata\s+per\s+il\b"),
+    "rigetto_trattazione_scritta": ("Rigetto dell'istanza di trattazione scritta (art. 127-ter c.p.c.)", _RIGETTO_TRATTAZIONE),
+    # Ordinanza o decreto che assegna un termine a una parte (art. 175 c.p.c.; art. 39 c.p.a. che vi rinvia):
+    # non è un tipo con regole di legge proprie, ma i suoi capi si leggono.
+    "assegnazione_termine": ("Provvedimento che assegna un termine",
+                             r"(?:assegna|concede|onera)\w*\b.{0,120}\btermine\b.{0,80}\b(?:giorni|gg\.?|entro|sino|fino)\b"),
 }
 
 #: voci del catalogo dei documenti (pct/document_intelligence) che sono già un tipo noto
@@ -88,6 +95,9 @@ def riconosci_tipi(testo: str) -> tuple[str, ...]:
     if "sentenza" in trovati:
         # La sentenza richiama la storia del processo (udienze, 127-ter già svolte): non apre quei passaggi.
         return ("sentenza",)
+    if "rigetto_trattazione_scritta" in trovati:
+        # Il rigetto cita il 127-ter ma non sostituisce l'udienza: nessun termine per le note.
+        trovati = [t for t in trovati if t != "note_127_ter"]
     if "scioglimento_riserva" in trovati and "riserva" in trovati:
         trovati.remove("riserva")
     if "decreto_415" in trovati:

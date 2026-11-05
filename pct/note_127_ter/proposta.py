@@ -29,6 +29,8 @@ NORMA_NOTE_127_TER = "art. 127-ter c.p.c."
 MODALITA_NOTE_SCRITTE = "note_scritte"
 FINE_GIORNO = "23:59"
 _TERM_MARKER_PREFIX = "PEC_TERMINE_PROPOSTO"
+#: profilo della scadenza operativa creata in automatico dal presidio PEC (pct.pec_pipeline)
+PRESIDIO_OPERATIVO = "PEC_AUTO_PRESIDIO"
 _RE_NOTE_SCRITTE = re.compile(r"\bnote\b.*(?:127\s*[-\s]?\s*ter|scritt|sostituzion|trattazione)", re.I)
 
 
@@ -109,6 +111,10 @@ def termine_equivalente(scadenze: Iterable[Any], *, fascicolo_id: str, giorno: d
         codice = _testo(voce, "deadline_profile_code").upper()
         if codice == CODICE_NOTE_127_TER:
             return voce
+        if codice == PRESIDIO_OPERATIVO:
+            # Il presidio automatico della PEC non è il termine legale (niente perentorietà né orario):
+            # non impedisce la bozza, che alla conferma lo assorbe (GestioneScadenziario.conferma_bozza).
+            continue
         if _testo(voce, "stato").upper() != "ANNULLATO" and _RE_NOTE_SCRITTE.search(_testo(voce, "titolo")):
             return voce
     return None

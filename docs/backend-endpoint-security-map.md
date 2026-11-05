@@ -8,8 +8,8 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 
 ## Sommario
 
-- Endpoint React API censiti: 346.
-- Endpoint con `_richiedi_auth`: 346/346.
+- Endpoint React API censiti: 347.
+- Endpoint con `_richiedi_auth`: 347/347.
 - Endpoint con metodo di scrittura o cancellazione: 178.
 - Endpoint con superficie file/upload/download/export/evidence: 16.
 - Route manifest censite: 119; critical: 18; high/P1: 77.
@@ -47,6 +47,7 @@ La mappa censisce gli endpoint JSON React sotto `/api/v1/ui` e il relativo presi
 | `GET` | `/api/v1/ui/admin/database` | Amministrazione database | P0 | `utenti.leggi` | dati tecnici e path redatti | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/agenda` | Agenda | P1 | `sessione/API tenant-aware` | appuntamenti e calendario | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/agenda/importa` | Agenda | P1 | `sessione/API tenant-aware` | appuntamenti e calendario | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
+| `GET` | `/api/v1/ui/agenda/lavorazione` | Agenda | P1 | `sessione/API tenant-aware` | appuntamenti e calendario | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/agenda/nuovo/defaults` | Agenda | P1 | `sessione/API tenant-aware` | appuntamenti e calendario | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/amministrazione` | Amministrazione | P0 | `utenti.leggi` | riepilogo governance studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |
 | `GET` | `/api/v1/ui/amministrazione/consistenza-dati` | Amministrazione | P0 | `utenti.leggi` | riepilogo governance studio | auth, tenant-aware, RBAC dominio, guardrail fase 5 |

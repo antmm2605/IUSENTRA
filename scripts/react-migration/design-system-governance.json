@@ -44,6 +44,8 @@
     "frontend/src/components/layout/DiscordanzeAccesso.css": "Avviso delle discordanze all’accesso con confronto delle fonti, focus visibile e layout mobile richiesto dall’utente.",
     "frontend/src/components/TelematicoCardsPanel.css": "Riepilogo operativo delle card telematiche richiesto: filtri, selezione, consultazione SQL ed esportazione nella finestra condivisa spostabile e ridimensionabile. Token IUSENTRA e controlli compatti, nessun tema alternativo o stile inline.",
     "frontend/src/components/AgendaResearch.css": "Ricerca e filtri compatti dell’agenda richiesti dall’utente, con token condivisi.",
+    "frontend/src/features/comunicazioni/pecCancelleriaDettaglio.css": "PEC di cancelleria leggibile per l’avvocato (05/11/2026): dati della comunicazione, provvedimento in evidenza, prove di consegna e testo del messaggio richiudibili; token condivisi, nessuno stile inline, responsive.",
+    "frontend/src/features/agenda/ruolo/agendaRuolo.css": "Agenda come ruolo dello studio approvata dall’avvocato il 05/11/2026: banda del tipo, titolo legale, riga del fascicolo, sigillo delle proposte e scheda di lavorazione; palette istituzionale, nessuno stile inline, responsive e movimento ridotto.",
     "frontend/src/components/CompensiCatalogWindow.css": "Cataloghi operativi dei compensi nel contesto della pagina, con token condivisi.",
     "frontend/src/components/ControlloStudioContext.css": "Pannelli contestuali del Controllo Studio senza abbandonare la pagina.",
     "frontend/src/components/ManagedWindows.css": "Finestre spostabili, ridimensionabili, minimizzabili e affiancabili richieste dall’utente.",
@@ -192,6 +194,8 @@
     "frontend/src/components/layout/DiscordanzeAccesso.css",
     "frontend/src/components/TelematicoCardsPanel.css",
     "frontend/src/components/AgendaResearch.css",
+    "frontend/src/features/agenda/ruolo/agendaRuolo.css",
+    "frontend/src/features/comunicazioni/pecCancelleriaDettaglio.css",
     "frontend/src/components/CompensiCatalogWindow.css",
     "frontend/src/components/ControlloStudioContext.css",
     "frontend/src/components/ManagedWindows.css",
@@ -274,14 +278,6 @@
         "style={{background:toneColor[d.tone]}}"
       ],
       "reason": "Grafici operativi calcolati da dati reali nella panoramica."
-    },
-    {
-      "file": "frontend/src/components/AgendaPage.tsx",
-      "snippets": [
-        "top: `${eventTopPercent(event)}%`",
-        "gridTemplateColumns: view === 'month'"
-      ],
-      "reason": "Agenda: posizionamento calendario e colonne giorno dipendono dai dati."
     },
     {
       "file": "frontend/src/components/StatistichePage.tsx",

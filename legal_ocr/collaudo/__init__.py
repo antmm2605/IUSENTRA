@@ -12,6 +12,7 @@ Il collaudo gira ogni notte nello scheduler e a ogni esecuzione dei test.
 from __future__ import annotations
 
 import json
+import os
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -111,7 +112,11 @@ def esegui_collaudo(*, pytesseract: object | None = None, casi: tuple[Caso, ...]
 def salva_esito(percorso: Path, esito: dict[str, Any]) -> None:
     percorso = Path(percorso)
     percorso.parent.mkdir(parents=True, exist_ok=True)
-    percorso.write_text(json.dumps(esito, ensure_ascii=False, indent=1), encoding="utf-8")
+    # Scrittura atomica: un file lasciato da un altro utente del container (es. root) non blocca il collaudo,
+    # basta poter scrivere nella cartella.
+    provvisorio = percorso.with_name(f".{percorso.name}.{os.getpid()}.tmp")
+    provvisorio.write_text(json.dumps(esito, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(provvisorio, percorso)
 
 
 def ultimo_esito(percorso: Path) -> dict[str, Any]:

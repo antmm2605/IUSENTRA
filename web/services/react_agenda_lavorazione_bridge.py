@@ -27,6 +27,7 @@ from pct.agenda_lavorazione import (
     voce_proposta,
 )
 from pct.agenda_linguaggio import nome_proprio, parole_del_registro, riga_contesto
+from pct.notifiche_obblighi import scheda_notifica
 from web.services.pec_source_links import pec_source_href
 
 _RIGHE_ARRIVO = ("Evento:", "Descrizione evento:", "Termine proposto:", "Decorrenza letta:")
@@ -198,6 +199,25 @@ def _impegno(event_id: str, agenda: Any, scadenziario: Any) -> tuple[Any, str]:
     return agenda.get(event_id), "appuntamento"
 
 
+_MATERIA_DEL_CODICE = {"LAV": "lavoro", "FAM": "famiglia", "PEN": "penale", "AMM": "amministrativo", "TRIB": "tributario", "CIV": "civile"}
+
+
+def _e_notifica(scadenza: Any) -> bool:
+    tipo = getattr(scadenza, "tipo", "")
+    return str(getattr(tipo, "value", tipo) or "").upper() == "NOTIFICA"
+
+
+def _con_notifica(scadenza: Any, voce: dict[str, Any], *, controparte: str, fascicolo: str) -> dict[str, Any]:
+    """Per un termine di notifica, che cosa notificare, a chi, come e che cosa depositare dopo (pct/notifiche_obblighi)."""
+    if not _e_notifica(scadenza):
+        return voce
+    codice = str(getattr(scadenza, "deadline_profile_code", "") or "")
+    materia = _MATERIA_DEL_CODICE.get(codice.split("_", 1)[0].upper(), "")
+    voce["notifica"] = scheda_notifica(codice, controparte=controparte, materia=materia,
+                                       fascicolo_id=str(getattr(scadenza, "id_fascicolo", "") or fascicolo))
+    return voce
+
+
 def build_agenda_lavorazione_payload(
     event_id: str,
     *,
@@ -261,14 +281,17 @@ def build_agenda_lavorazione_payload(
             "scegliHref": str(prova.get("pecHref") or ""),
         }
     prova.pop("candidati", None)
-    prova.pop("profilo", None)
+    controparte = nome_proprio(str((prova.pop("profilo", None) or {}).get("controparte") or ""))
+    voci = [_con_notifica(s, voce_proposta(s), controparte=controparte, fascicolo=fascicolo) for s in proposte]
+    propria = _con_notifica(impegno, {}, controparte=controparte, fascicolo=fascicolo) if genere == "scadenza" else {}
     return {
         "ok": True,
         "id": event_id,
         "genere": genere,
         "arrivo": _arrivo(note) or _arrivo(descrizione) or (date_italiane(descrizione[:400]) if genere == "appuntamento" else ""),
         "prova": prova,
-        "proposte": [voce_proposta(s) for s in proposte],
+        "proposte": voci,
+        "notifica": propria.get("notifica") or {},
         "propostaPropria": genere == "scadenza" and e_bozza(impegno),
         "collegamento": collegamento_remoto(impegno),
         "collegaPec": collega_pec,

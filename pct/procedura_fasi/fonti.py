@@ -265,6 +265,11 @@ from pct.procedura_fasi.fonti_lavoro import FONTI_LAVORO  # noqa: E402
 
 FONTI.update({chiave: voce for chiave, voce in FONTI_LAVORO.items() if chiave not in FONTI})
 
+# Obblighi di notifica che nascono dalle comunicazioni ricevute, in tutte le materie, verificati il 05/11/2026.
+from pct.procedura_fasi.fonti_notifiche import FONTI_NOTIFICHE  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_NOTIFICHE.items() if chiave not in FONTI})
+
 
 def fonte(identificativo: str) -> dict[str, Any]:
     """La voce del registro, o un dizionario vuoto se l'identificativo non esiste."""

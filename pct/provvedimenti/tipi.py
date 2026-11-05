@@ -28,6 +28,18 @@ TIPI: dict[str, tuple[str, str]] = {
                                r"\b127\s*[-\s]?\s*bis\b|\bcollegament\w+\s+audiovisiv\w+\b|\budienza\s+(?:da\s+remoto|in\s+videoconferenza)\b"),
     "decreto_415": ("Decreto di fissazione dell'udienza di discussione (art. 415 c.p.c.)",
                     r"\bfiss\w*\b.{0,80}\budienza\s+di\s+discussione\b|\bart\.?\s*415\b(?![\s-]*bis)(?!.{0,12}c\.?\s?p\.?\s?p)"),
+    # Appello del lavoro (art. 435 c.p.c.): il decreto della Corte d'appello fissa l'udienza di discussione.
+    "decreto_435": ("Decreto di fissazione dell'udienza nell'appello del lavoro (art. 435 c.p.c.)",
+                    r"\bart\.?\s*435\b(?!.{0,12}c\.?\s?p\.?\s?p)(?=.{0,800}\bfiss\w*\b.{0,80}\b(?:udienza|discussione)\b)"
+                    r"|\bcorte\s+d'\s*appello\b.{0,800}\bfiss\w*\b.{0,80}\budienza\s+di\s+discussione\b"),
+    # Procedimento semplificato di cognizione (art. 281-undecies c.p.c.): decreto che fissa l'udienza di comparizione.
+    "decreto_281undecies": ("Decreto di fissazione nel procedimento semplificato (art. 281-undecies c.p.c.)",
+                            r"\b281\s*[-\s]?\s*undecies\b(?=.{0,800}\bfiss\w*\b.{0,80}\budienza\b)"
+                            r"|\bfiss\w*\b.{0,80}\budienza\b.{0,800}\b281\s*[-\s]?\s*undecies\b"),
+    # Giudice di pace penale (art. 27 D.Lgs. 274/2000): decreto di convocazione sul ricorso immediato della persona offesa.
+    "decreto_gdp_ricorso_immediato": ("Decreto di convocazione sul ricorso immediato (art. 27 D.Lgs. 274/2000)",
+                                      r"\bricorso\s+immediato\b(?=.{0,1500}\b(?:convoca|fissa)\w*\b)"
+                                      r"|\bart\.?\s*27\b.{0,60}\b(?:d\.?\s?lgs\.?\s*(?:n\.?\s*)?)?274\s*/\s*2000\b"),
     "decreto_473bis": ("Decreto di fissazione nel rito della famiglia (art. 473-bis.14 c.p.c.)",
                        r"\b473\s*[-\s]?\s*bis\.?\s*14\b|\b473\s*[-\s]?\s*bis\b.{0,200}\bfiss\w*\b.{0,60}\budienza\b"),
     "verifiche_171bis": ("Decreto sulle verifiche preliminari (art. 171-bis c.p.c.)",
@@ -100,7 +112,10 @@ def riconosci_tipi(testo: str) -> tuple[str, ...]:
         trovati = [t for t in trovati if t != "note_127_ter"]
     if "scioglimento_riserva" in trovati and "riserva" in trovati:
         trovati.remove("riserva")
-    if "decreto_415" in trovati:
+    if "decreto_435" in trovati:
+        # Il decreto d'appello del lavoro fissa anch'esso l'«udienza di discussione»: valgono i termini dell'art. 435.
+        trovati = [t for t in trovati if t != "decreto_415"]
+    if {"decreto_415", "decreto_435", "decreto_281undecies", "decreto_gdp_ricorso_immediato"} & set(trovati):
         trovati = [t for t in trovati if t != "fissazione_udienza"]
     return tuple(trovati)
 

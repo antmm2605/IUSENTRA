@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { apiJson, apiPostJson } from '../../../lib/apiClient'
 import type { AgendaEvent } from '../../../agendaData'
+import { NotificaDaEseguire, type SchedaNotifica } from './NotificaDaEseguire'
 import { ETICHETTE_GENERE, contestoImpegno, genereImpegno, giornoEsteso, senzaOra, titoloImpegno } from './agendaRuoloModel'
 
 type Proposta = {
@@ -11,6 +12,7 @@ type Proposta = {
   spiegazione: string
   confermaHref: string
   scartaHref: string
+  notifica?: SchedaNotifica
 }
 
 type Lavorazione = {
@@ -21,6 +23,8 @@ type Lavorazione = {
   proposte: Proposta[]
   collegamento: { link?: string; piattaforma?: string; idRiunione?: string; codice?: string }
   notificaHref: string
+  /** Il termine aperto è esso stesso una notifica da eseguire. */
+  notifica?: SchedaNotifica
   fascicoloHref: string
   collegaPec?: {
     fascicoloId?: string; fascicolo?: string; motivo?: string; azione?: string; scegliHref?: string
@@ -183,6 +187,7 @@ export function AgendaScheda({ event, azioni, onOpenSource, onChanged }: Props) 
                 <div key={proposta.id} className={`iu-ruolo-proposta ${esito === 'confermata' ? 'is-confermata' : esito === 'scartata' ? 'is-scartata' : ''}`}>
                   <div className="iu-ruolo-proposta__riga"><strong>{proposta.titolo}</strong><span className="iu-ruolo-proposta__data">{proposta.dataEtichetta}</span></div>
                   {proposta.spiegazione ? <div className="iu-ruolo-proposta__perche">{proposta.perentorio ? 'Termine perentorio. ' : ''}{proposta.spiegazione}</div> : null}
+                  <NotificaDaEseguire scheda={proposta.notifica} />
                   {esito === 'confermata' ? <div className="iu-ruolo-azioni"><span className="iu-ruolo-esito is-ok">Confermato: la scadenza è operativa in agenda</span></div>
                     : esito === 'scartata' ? <div className="iu-ruolo-azioni"><span className="iu-ruolo-esito is-no">Scartato, con il motivo registrato</span></div>
                       : <div className="iu-ruolo-azioni">
@@ -194,6 +199,13 @@ export function AgendaScheda({ event, azioni, onOpenSource, onChanged }: Props) 
                 </div>
               )
             })}
+          </section>
+        ) : null}
+
+        {lavorazione?.notifica?.atti ? (
+          <section className="iu-ruolo-sezione" aria-label="Notifica da eseguire">
+            <h3>Notifica da eseguire</h3>
+            <NotificaDaEseguire scheda={lavorazione.notifica} aperta />
           </section>
         ) : null}
 

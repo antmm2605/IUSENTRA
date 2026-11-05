@@ -70,3 +70,23 @@ def test_create_app_configura_logging_json_in_produzione(monkeypatch, tmp_path: 
     create_app(cfg)
 
     assert any(isinstance(handler.formatter, JsonLogFormatter) for handler in logging.getLogger().handlers)
+
+
+def test_le_librerie_pdf_non_scrivono_sotto_warning_anche_in_debug():
+    # 05/11/2026: l'app isolata della prova di resilienza (TESTING) portava a DEBUG il processo dello scheduler.
+    from flask import Flask
+
+    from web.services.structured_logging import configure_structured_logging
+
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    configure_structured_logging(app, {})
+    for nome in ("pdfminer", "pdfplumber", "PIL", "fontTools"):
+        assert logging.getLogger(nome).getEffectiveLevel() >= logging.WARNING
+
+
+def test_l_app_isolata_della_prova_di_resilienza_non_porta_i_log_a_debug():
+    from pct.operational_resilience import _build_isolated_app_config
+
+    cfg = _build_isolated_app_config({}, Path("/tmp/prova-resilienza"))
+    assert cfg["TESTING"] is True and cfg["PCT_LOG_LEVEL"] in {"INFO", "WARNING", "ERROR"}

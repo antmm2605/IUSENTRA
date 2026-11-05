@@ -197,6 +197,9 @@ def _build_isolated_app_config(base_config: dict[str, Any] | None, temp_root: Pa
     base = dict(base_config or {})
     cfg = {
         "TESTING": True,
+        # L'app isolata gira nello stesso processo del worker: con TESTING i log andrebbero a DEBUG per tutto il
+        # processo (05/11/2026: scheduler a 147.000 righe pdfminer in 2 minuti). Resta il livello del servizio.
+        "PCT_LOG_LEVEL": str(base.get("PCT_LOG_LEVEL") or os.getenv("PCT_LOG_LEVEL") or "INFO"),
         "SECRET_KEY": str(base.get("SECRET_KEY") or "operational-crash-secret"),
         "BOOTSTRAP_ADMIN_PASSWORD": "admin",
         "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(temp_root / "auth" / "bootstrap_admin.json"),

@@ -213,3 +213,22 @@ def test_consegne_fallite_per_blocco_temporaneo_si_riarmano_nella_preparazione(r
         assert conn.execute("SELECT COUNT(*) FROM transactional_outbox WHERE tenant_id='study-a' "
                             "AND aggregate_type=? AND status IN ('PENDING','FAILED')", (AGGREGATE,)).fetchone()[0] == 0
         assert ReceiptArchiveQuery(conn, 'study-a').list_page()['rows'][0]['title'] == 'Ricevuta aggiornata'
+
+
+def test_backup_interrotto_senza_manifest_si_mette_da_parte_e_si_rifa(tmp_path):
+    import sqlite3
+    from types import SimpleNamespace
+
+    from scripts.query_index_backup import verified_backup
+
+    db = tmp_path / 'registro.db'
+    conn = sqlite3.connect(db)
+    conn.execute('CREATE TABLE t (x)')
+    conn.commit()
+    destinazione = tmp_path / 'backup' / 'letture'
+    destinazione.mkdir(parents=True)
+    (destinazione / 'studio.db').write_bytes(b'parziale')
+    snapshot, _ = verified_backup(SimpleNamespace(conn=conn, db_path=str(db), backend_kind='sqlite', dsn=''), destinazione)
+    assert (destinazione / 'manifest.json').is_file() and snapshot.stat().st_size > len(b'parziale')
+    assert [p.name.startswith('letture-incompleto-') for p in (tmp_path / 'backup').iterdir()].count(True) == 1
+    conn.close()

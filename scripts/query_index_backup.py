@@ -30,6 +30,11 @@ def verified_backup(database, destination):
         if snapshot.stat().st_size != manifest['backup']['backup_bytes'] or _sha256(snapshot) != manifest['backup']['sha256']:
             raise RuntimeError('Backup non riscontrato: nessuna migrazione eseguita.')
         return snapshot, manifest['backup']['sha256']
+    if destination.exists():
+        # Backup interrotto prima del manifest (deploy fermato a metà): non è verificabile né utilizzabile.
+        # Si conserva da parte con un nome datato, senza cancellare nulla, e il backup si rifà da capo.
+        from datetime import datetime, timezone
+        destination.rename(destination.with_name(destination.name + '-incompleto-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')))
     destination.mkdir(parents=True, exist_ok=False)
     snapshot = destination / filename
     if postgres:

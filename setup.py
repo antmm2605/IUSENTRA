@@ -1,4 +1,4 @@
-# version: 2.480.5
+# version: 2.480.6
 from pathlib import Path
 import sys
 

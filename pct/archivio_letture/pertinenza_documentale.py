@@ -138,7 +138,7 @@ def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", uffic
         re.search(r"(?:io sottoscritt|procura alle liti)", head[:600], re.I)
         # Formule di conferimento della procura (art. 83 c.p.c.): anche «delego … a rappresentarmi e difendermi»
         # e «conferisco … procura/facoltà/poteri» (revisione del 04/11/2026: 30 procure lette come mediazione).
-        and re.search(r"(?:difensore e procuratore|conferisc\w*.{0,60}(?:potere|poteri|mandato|procura|facolt)|nomino.{0,100}difensore|"
+        and re.search(r"(?:difensore e procuratore|conferisc\w{0,8}.{0,60}(?:potere|poteri|mandato|procura|facolt)|nomino.{0,100}difensore|"
                       r"deleg[oa].{0,120}(?:rappresentar\w*|difender\w*|assister\w*))", head, re.I | re.S)
         and not _nomina_difensore_penale(head)
     ):

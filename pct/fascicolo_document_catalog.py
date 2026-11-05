@@ -87,7 +87,14 @@ def _correggi_token_ocr(token: str, riga_maiuscola: bool) -> str:
     return token
 
 
-_OCR_TABELLA_SEPARATORE = re.compile(r"\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*", re.M)
+def _e_separatore_tabella_ocr(riga: str) -> bool:
+    """Riga «|---|:---:|» dell'OCR: solo bordi, due punti e trattini (almeno tre di fila per cella)."""
+
+    pulita = riga.strip()
+    if not pulita or set(pulita) - {"|", ":", "-", " ", "\t"}:
+        return False
+    celle = [c.strip() for c in pulita.strip("|").split("|")]
+    return all(c.strip(":") and set(c.strip(":")) == {"-"} and len(c.strip(":")) >= 3 for c in celle)
 
 
 def normalizza_ocr_titoli(testo: Any) -> str:
@@ -105,9 +112,9 @@ def normalizza_ocr_titoli(testo: Any) -> str:
         return grezzo
     # Tabella dell'OCR (riga «|---|---|»): i «|» sono bordi di cella, non una I letta male. Senza toglierli
     # «|ATTESTAZIONE DI CONFORMITÀ||» diventava «IATTESTAZIONE …II» (revisione del 04/11/2026: 119 attestazioni).
-    if _OCR_TABELLA_SEPARATORE.search(grezzo):
+    if any(_e_separatore_tabella_ocr(r) for r in grezzo.split("\n")):
         grezzo = "\n".join(
-            "" if _OCR_TABELLA_SEPARATORE.fullmatch(riga) else riga.replace("|", " ") if riga.lstrip().startswith("|") else riga
+            "" if _e_separatore_tabella_ocr(riga) else riga.replace("|", " ") if riga.lstrip().startswith("|") else riga
             for riga in grezzo.split("\n")
         )
     grezzo = _OCR_SILLABAZIONE.sub(lambda m: m.group(1) + (m.group(2) or m.group(3) or ""), grezzo)

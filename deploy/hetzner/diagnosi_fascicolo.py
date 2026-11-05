@@ -33,6 +33,45 @@ def _righe(conn, sql, parametri=()):
         return [{"errore": _breve(f"{type(exc).__name__}: {exc}")}]
 
 
+def _maschera(testo: str) -> str:
+    """Pseudonimizza: lascia cifre, punteggiatura e le sigle del ruolo; ogni altra parola diventa «x…»."""
+    sigle = {"r", "g", "n", "l", "rg", "rgl", "rgac", "nrg", "ruolo", "generale", "n.", "numero", "del", "al", "anno", "causa",
+             "iscritta", "lavoro", "lav", "sentenza", "reg", "ric", "sez", "tribunale", "di", "nella", "promossa", "r.g."}
+    return re.sub(r"[A-Za-zÀ-ÿ]+", lambda m: m.group(0) if m.group(0).lower() in sigle else "x" * min(len(m.group(0)), 3), testo)
+
+
+def _ruolo_nel_documento(fascicolo_id: str, tenant: str, documento_id: str) -> dict:
+    """Dove e come compare il numero di ruolo nel testo indicizzato di un documento (testo pseudonimizzato)."""
+    sys.path.insert(0, "/app")
+    try:
+        from flask import g
+        from pct.scheduler_worker import create_scheduler_app
+        from web.helpers import get_fascicoli
+        from web.services.archivio_letture_runtime import testi_indice_archivio
+        from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
+
+        app = create_scheduler_app()
+        with app.test_request_context("/__diagnosi/" + fascicolo_id):
+            g.tenant_context_slug = tenant
+            g.tenant_context_required = False
+            g.tenant_context_missing = False
+            if app.config.get("MULTI_TENANT"):
+                from pct.tenant import GestioneTenant
+
+                g.tenant = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"]).get(tenant)
+            fascicolo = get_fascicoli().get(fascicolo_id)
+            testi = testi_indice_archivio(fascicolo)
+            testo = testi.get(documento_id) or ""
+            rg = f"{getattr(fascicolo, 'numero_rg', '')}"
+            finestre = [_maschera(testo[max(0, m.start() - 70):m.end() + 50].replace("\n", " | "))
+                        for m in re.finditer(re.escape(rg), testo)][:6] if rg else []
+            return {"caratteri_testo": len(testo), "numero_rg_fascicolo_presente": bool(rg), "occorrenze": len(finestre),
+                    "finestre_mascherate": finestre, "inizio_mascherato": _maschera(testo[:400].replace("\n", " | ")),
+                    "ruoli_estratti": [f.valore for f in estrai_ruoli(testo, origine="diagnosi")]}
+    except Exception as exc:
+        return {"errore": _breve(f"{type(exc).__name__}: {exc}")}
+
+
 def main() -> int:
     fascicolo = re.sub(r"[^0-9A-Za-z_-]", "", os.getenv("FASCICOLO", ""))
     if not fascicolo:
@@ -71,6 +110,8 @@ def main() -> int:
 
             generazione = RegistroLetture(percorso).accoda_evento(tenant, fascicolo, forza=True, prioritario=True)
             voce["riaccodato"] = {"generazione": generazione}
+        if os.getenv("RUOLO_DOC"):
+            voce["ruolo_nel_documento"] = _ruolo_nel_documento(fascicolo, tenant, os.getenv("RUOLO_DOC", ""))
         esito["registri"].append(voce)
     print(MARCATORE + json.dumps(esito, ensure_ascii=False, default=str), flush=True)
     return 0

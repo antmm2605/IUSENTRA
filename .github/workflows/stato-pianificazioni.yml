@@ -45,7 +45,7 @@ on:
         type: boolean
         default: false
       esegui:
-        description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura; PROVA_CATENA o PROVA_CATENA_1-5 = prova della catena notturna adesso; DIAGNOSI_FASCICOLO_<id> o RIACCODA_FASCICOLO_<id> = lettura di un fascicolo)"
+        description: "Pianificazioni da avviare subito (identificativi separati da virgola, vuoto = solo lettura; PROVA_CATENA o PROVA_CATENA_1-5 = prova della catena notturna adesso; DIAGNOSI_FASCICOLO_<id>[-<documento>] o RIACCODA_FASCICOLO_<id> = lettura di un fascicolo)"
         required: false
         default: ""
 permissions:
@@ -91,9 +91,9 @@ jobs:
           esac
           case "$ESEGUI" in DIAGNOSI_FASCICOLO_*|RIACCODA_FASCICOLO_*)
             # Lettura di UN fascicolo: stato dell'evento, esiti e letture in attesa; RIACCODA_ rimette in coda il fascicolo.
-            F="${ESEGUI#*_FASCICOLO_}"; RIA=""; case "$ESEGUI" in RIACCODA_*) RIA="1";; esac
+            F="${ESEGUI#*_FASCICOLO_}"; DOC="${F#*-}"; [ "$DOC" = "$F" ] && DOC=""; F="${F%%-*}"; RIA=""; case "$ESEGUI" in RIACCODA_*) RIA="1";; esac
             ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "${HETZNER_USER}@${HETZNER_HOST}" \
-              "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e FASCICOLO='${F}' -e RIACCODA='${RIA}' scheduler-worker python -" \
+              "cd /opt/iusentra/repo && docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml exec -T -e FASCICOLO='${F}' -e RIACCODA='${RIA}' -e RUOLO_DOC='${DOC}' scheduler-worker python -" \
               < deploy/hetzner/diagnosi_fascicolo.py | grep -m1 '^DIAGNOSI_FASCICOLO_JSON:' | sed 's/^DIAGNOSI_FASCICOLO_JSON://' | jq . || echo "nessun esito"
             exit 0;;
           esac

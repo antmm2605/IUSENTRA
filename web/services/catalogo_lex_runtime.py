@@ -7,7 +7,8 @@ dalle piu' dubbie. Il modello e' locale (Ollama) e i testi non escono dal
 server.
 
 Variabili:
-- PCT_LEX_CATALOGO=0 spegne la seconda lettura;
+- PCT_LEX_CATALOGO=1 accende la seconda lettura (spenta per predefinito dal 05/11/2026: sui 10.735 documenti
+  reali del pacchetto del 02/11 non ha prodotto alcuna voce accettata; la catalogazione resta alle regole);
 - PCT_LEX_CATALOGO_MODELLO sceglie il modello (predefinito Spark-X2.5 4B, riserva qwen3:4b);
 - PCT_LEX_CATALOGO_PER_GIRO documenti per giro (predefinito 2: Spark legge un documento in meno di un minuto sul server);
 - PCT_LEX_CATALOGO_THREAD processori usati da Ollama (predefinito 4).
@@ -41,7 +42,7 @@ _MODELLI_PRONTI: set[str] = set()
 
 
 def _attiva() -> bool:
-    return os.getenv("PCT_LEX_CATALOGO", "1").strip().lower() not in {"0", "false", "no", "off"} and os.getenv(
+    return os.getenv("PCT_LEX_CATALOGO", "0").strip().lower() not in {"0", "false", "no", "off"} and os.getenv(
         "PCT_LOCAL_AI_ENABLED", "1"
     ).strip().lower() not in {"0", "false", "no", "off"}
 

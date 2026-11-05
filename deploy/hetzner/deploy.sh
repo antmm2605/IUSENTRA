@@ -518,7 +518,10 @@ if [ "$AI_ENABLED" != "0" ] && [ "$AI_ENABLED" != "false" ]; then
     else
       echo "Attenzione: aggiornamento dell'immagine Ollama non riuscito: resta la versione in uso." >&2
     fi
-    for OLLAMA_MODEL in "$OLLAMA_CHAT_MODEL" "${PCT_LEX_CATALOGO_MODELLO:-maternion/spark-x2.5:4b}"; do
+    # Il modello della seconda lettura del catalogo si scarica solo se è accesa (PCT_LEX_CATALOGO=1).
+    MODELLI_OLLAMA=("$OLLAMA_CHAT_MODEL")
+    case "${PCT_LEX_CATALOGO:-0}" in 1|true|yes|on) MODELLI_OLLAMA+=("${PCT_LEX_CATALOGO_MODELLO:-maternion/spark-x2.5:4b}") ;; esac
+    for OLLAMA_MODEL in "${MODELLI_OLLAMA[@]}"; do
       echo "Verifico modello Ollama locale: $OLLAMA_MODEL"
       # Un modello gia' installato (anche un tag creato in locale con
       # `ollama create`, che nel registry non esiste) non blocca il deploy:

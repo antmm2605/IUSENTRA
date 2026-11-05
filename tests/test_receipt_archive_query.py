@@ -215,7 +215,7 @@ def test_consegne_fallite_per_blocco_temporaneo_si_riarmano_nella_preparazione(r
         assert ReceiptArchiveQuery(conn, 'study-a').list_page()['rows'][0]['title'] == 'Ricevuta aggiornata'
 
 
-def test_backup_interrotto_senza_manifest_si_mette_da_parte_e_si_rifa(tmp_path):
+def test_backup_interrotto_senza_manifest_si_elimina_e_si_rifa(tmp_path):
     import sqlite3
     from types import SimpleNamespace
 
@@ -230,5 +230,5 @@ def test_backup_interrotto_senza_manifest_si_mette_da_parte_e_si_rifa(tmp_path):
     (destinazione / 'studio.db').write_bytes(b'parziale')
     snapshot, _ = verified_backup(SimpleNamespace(conn=conn, db_path=str(db), backend_kind='sqlite', dsn=''), destinazione)
     assert (destinazione / 'manifest.json').is_file() and snapshot.stat().st_size > len(b'parziale')
-    assert [p.name.startswith('letture-incompleto-') for p in (tmp_path / 'backup').iterdir()].count(True) == 1
+    assert [p.name for p in (tmp_path / 'backup').iterdir()] == ['letture']
     conn.close()

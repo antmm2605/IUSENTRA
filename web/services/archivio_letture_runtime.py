@@ -1644,6 +1644,44 @@ def riprendi_letture_ferme(registro: RegistroLetture, tenant_id: str, *, ora: in
     return ripresi
 
 
+# Lettori di base che il giro deve portare a zero: senza testo indicizzato, catalogo e OCR la Lettura non riconosce
+# sentenze e atti (verifica del 05/11/2026: sentenza del 08/10 mai indicizzata, definizione mai proposta).
+LETTORI_DI_BASE = ("ocr", "indice_documentale", "catalogo", "motore_documenti")
+# Fascicoli con letture mancanti accodati a ogni giro (ogni 10 minuti): 4 per giro, 24 l'ora.
+PENDENTI_PER_GIRO = 4
+# Un fascicolo già accodato per letture mancanti non torna in coda prima di 6 ore: la riga di sintesi può
+# aggiornarsi solo a lettura conclusa e non deve far girare a vuoto sempre gli stessi fascicoli.
+ORE_TRA_DUE_RIPRESE = 6
+_ACCODATI_PENDENTI: dict[tuple[str, str], float] = {}
+
+
+def accoda_letture_pendenti(registro: RegistroLetture, tenant_id: str, *, limite: int = PENDENTI_PER_GIRO,
+                            adesso: float | None = None) -> int:
+    """Nessun documento resta mai letto: accoda i fascicoli con letture di base mancanti, i meno recenti per primi.
+
+    Fino alla 2.480.7 entravano in coda solo i fascicoli con un evento (documento nuovo, PEC collegata, errore o
+    lettore superato): migliaia di documenti mai indicizzati restavano fermi per sempre. Un fascicolo senza letture
+    mancanti non entra in coda: nessuna rilettura di ciò che è invariato (art. 3 D.M. 44/2011; art. 20 CAD).
+    """
+    ora = time.time() if adesso is None else adesso
+    soglia = ora - ORE_TRA_DUE_RIPRESE * 3600
+    candidati = []
+    for riga in registro.sintesi_studio(tenant_id):
+        fascicolo_id = _testo(riga.get("fascicolo_id"))
+        lettori = riga.get("lettori") or {}
+        mancanti = sum(int((lettori.get(nome) or {}).get("da_leggere") or 0) for nome in LETTORI_DI_BASE)
+        ultima = _ACCODATI_PENDENTI.get((tenant_id, fascicolo_id))
+        if not fascicolo_id or mancanti <= 0 or (ultima is not None and ultima > soglia):
+            continue
+        candidati.append((_testo(riga.get("aggiornato_il")), fascicolo_id))
+    accodati = 0
+    for _quando, fascicolo_id in sorted(candidati)[:max(0, limite)]:
+        registro.accoda_evento(tenant_id, fascicolo_id)
+        _ACCODATI_PENDENTI[(tenant_id, fascicolo_id)] = ora
+        accodati += 1
+    return accodati
+
+
 def _se_libero(attivita: Callable[[], Any], ripiego: Any) -> Any:
     """Esegue un'attività sull'archivio; se è occupato da un altro motore la rinvia al giro successivo."""
     try:
@@ -1668,6 +1706,7 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
         accodati += _se_libero(lambda: accoda_riletture_notturne(registro, tenant_id), 0)
         accodati += _se_libero(lambda: accoda_verifiche_periodiche(registro, tenant_id), 0)
         ripresi_fermi += _se_libero(lambda: riprendi_letture_ferme(registro, tenant_id), 0)
+        accodati += _se_libero(lambda: accoda_letture_pendenti(registro, tenant_id), 0)
         proposte_storico += int(_se_libero(lambda: esamina_proposte_storico_studio(app, registro, tenant_id, paths), {}).get("fascicoli") or 0)
         liberi = LETTURE_CONCORRENTI - letture_attive()
         if liberi <= 0:

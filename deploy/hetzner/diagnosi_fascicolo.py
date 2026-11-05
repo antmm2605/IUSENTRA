@@ -44,30 +44,29 @@ def _ruolo_nel_documento(fascicolo_id: str, tenant: str, documento_id: str) -> d
     """Dove e come compare il numero di ruolo nel testo indicizzato di un documento (testo pseudonimizzato)."""
     sys.path.insert(0, "/app")
     try:
-        from flask import g
         from pct.scheduler_worker import create_scheduler_app
         from web.helpers import get_fascicoli
         from web.services.archivio_letture_runtime import testi_indice_archivio
         from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
 
-        app = create_scheduler_app()
-        with app.test_request_context("/__diagnosi/" + fascicolo_id):
-            g.tenant_context_slug = tenant
-            g.tenant_context_required = False
-            g.tenant_context_missing = False
-            if app.config.get("MULTI_TENANT"):
-                from pct.tenant import GestioneTenant
+        from scripts.backfill_archivio_batches import _targets, _tenant_context
 
-                g.tenant = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"]).get(tenant)
-            fascicolo = get_fascicoli().get(fascicolo_id)
-            testi = testi_indice_archivio(fascicolo)
-            testo = testi.get(documento_id) or ""
-            rg = f"{getattr(fascicolo, 'numero_rg', '')}"
-            finestre = [_maschera(testo[max(0, m.start() - 70):m.end() + 50].replace("\n", " | "))
-                        for m in re.finditer(re.escape(rg), testo)][:6] if rg else []
-            return {"caratteri_testo": len(testo), "numero_rg_fascicolo_presente": bool(rg), "occorrenze": len(finestre),
-                    "finestre_mascherate": finestre, "inizio_mascherato": _maschera(testo[:400].replace("\n", " | ")),
-                    "ruoli_estratti": [f.valore for f in estrai_ruoli(testo, origine="diagnosi")]}
+        app = create_scheduler_app()
+        manager, owners = _targets(app, "")
+        for slug, owner in owners.items():
+            with _tenant_context(app, manager, owner, slug):
+                fascicolo = get_fascicoli().get(fascicolo_id)
+                if fascicolo is None:
+                    continue
+                testi = testi_indice_archivio(fascicolo)
+                testo = testi.get(documento_id) or ""
+                rg = f"{getattr(fascicolo, 'numero_rg', '')}"
+                finestre = [_maschera(testo[max(0, m.start() - 70):m.end() + 50].replace("\n", " | "))
+                            for m in re.finditer(re.escape(rg), testo)][:6] if rg else []
+                return {"caratteri_testo": len(testo), "numero_rg_fascicolo_presente": bool(rg), "occorrenze": len(finestre),
+                        "finestre_mascherate": finestre, "inizio_mascherato": _maschera(testo[:400].replace("\n", " | ")),
+                        "ruoli_estratti": [f.valore for f in estrai_ruoli(testo, origine="diagnosi")]}
+        return {"errore": "fascicolo non trovato in nessuno studio"}
     except Exception as exc:
         return {"errore": _breve(f"{type(exc).__name__}: {exc}")}
 

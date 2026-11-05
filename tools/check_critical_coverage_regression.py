@@ -328,8 +328,11 @@ def select_baseline(repo: str, candidate_sha: str) -> tuple[dict[str, Any], dict
             deploy, verified_at = run, completed
     if deploy is None:
         raise ValueError('Nessuna versione precedente con deploy e verifiche reali eseguiti')
-    checks = github_json(repo, f"actions/workflows/ci.yml/runs?head_sha={deploy['head_sha']}&status=success&per_page=100")
-    matched = [run for run in checks["workflow_runs"] if run["head_sha"] == deploy["head_sha"]]
+    # GitHub non combina più head_sha e status nello stesso filtro (05/11/2026: zero risultati con la CI verde
+    # presente): si chiedono le run del commit e si tengono qui solo quelle concluse con successo.
+    checks = github_json(repo, f"actions/workflows/ci.yml/runs?head_sha={deploy['head_sha']}&per_page=100")
+    matched = [run for run in checks["workflow_runs"]
+               if run["head_sha"] == deploy["head_sha"] and run.get("status") == "completed" and run.get("conclusion") == "success"]
     if not matched:
         raise ValueError("Baseline distribuita priva della CI positiva sul medesimo commit")
     return deploy, max(matched, key=lambda run: run["updated_at"])

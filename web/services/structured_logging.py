@@ -138,6 +138,9 @@ def _is_production_runtime(app: Flask, cfg: dict[str, Any]) -> bool:
     return bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_SERVICE_ID"))
 
 
+_LOGGER_RUMOROSI = ("pdfminer", "pdfplumber", "PIL", "fontTools")
+
+
 def _logging_level(app: Flask, cfg: dict[str, Any]) -> int:
     raw = str(cfg.get("PCT_LOG_LEVEL") or os.getenv("PCT_LOG_LEVEL", "")).strip().upper()
     if raw:
@@ -158,6 +161,10 @@ def configure_structured_logging(app: Flask, cfg: dict[str, Any]) -> None:
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
+    # Le librerie di lettura dei PDF e delle immagini scrivono una riga per ogni istruzione del documento:
+    # mai sotto WARNING, qualunque sia il livello del servizio.
+    for rumoroso in _LOGGER_RUMOROSI:
+        logging.getLogger(rumoroso).setLevel(max(level, logging.WARNING))
     handlers = list(root_logger.handlers)
     if not handlers:
         handler = logging.StreamHandler(sys.stdout)

@@ -1484,7 +1484,7 @@ function ClientPortalClient() {
                   <strong>{text(signature.title)}</strong>
                   <span>{statusLabel(signature.status)}</span>
                   {documentId ? (
-                    <a className="iu-client-portal-doc-download" href={`${clientPortalDocumentUrl(documentId)}&inline=1`} target="_blank" rel="noopener noreferrer">
+                    <a className="iu-client-portal-doc-download" href={`${clientPortalDocumentUrl(documentId)}?inline=1`} target="_blank" rel="noopener noreferrer">
                       <Download size={14} aria-hidden="true"/>Scarica e leggi il documento
                     </a>
                   ) : null}

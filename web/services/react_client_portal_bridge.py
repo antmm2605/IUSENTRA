@@ -998,6 +998,8 @@ def client_dashboard_payload(*, token: str = "") -> dict[str, Any]:
         return {"ok": False, "code": "unauthorized", "message": "Accesso cliente richiesto."}
     try:
         invite, repo = _invite_and_repo(resolved)
+        # la sessione permette di scaricare i documenti senza il codice del cliente nel link
+        session[CLIENT_PORTAL_SESSION_TOKEN] = resolved
         snapshot = repo.client_snapshot_by_invite(invite)
         matter_id = _text(invite.get("matter_id"))
         documents = list(snapshot.get("documents") or [])

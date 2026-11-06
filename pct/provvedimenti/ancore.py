@@ -71,13 +71,18 @@ class Ancora:
 
 
 def _data_nel_capo(capo: str) -> Ancora | None:
+    """La data del termine («entro / sino al …»), anche se il capo nomina prima l'udienza; altrimenti quella dell'udienza.
+
+    «FISSA l'udienza del 10.12.2026 e il termine perentorio fino al 25.11.2026 per la notificazione» (art. 618 c.p.c.):
+    il capo assegna un termine, l'udienza la legge già ``udienze.py``."""
+    udienza = None
     for giorno, inizio, fine, scritto in date_vere(capo):
         prima = capo[max(0, inizio - 60):inizio]
         if _RE_ENTRO_DATA.search(prima):
             return Ancora("esplicita", giorno=giorno, ora=ora_dopo(capo, fine), letto=scritto)
-        if _RE_UDIENZA_PRIMA.search(prima):
-            return Ancora("udienza_esplicita", giorno=giorno, ora=ora_dopo(capo, fine), letto=scritto)
-    return None
+        if udienza is None and _RE_UDIENZA_PRIMA.search(prima):
+            udienza = Ancora("udienza_esplicita", giorno=giorno, ora=ora_dopo(capo, fine), letto=scritto)
+    return udienza
 
 
 def ancore_esplicite(capo: str) -> list[tuple[Ancora, int, int]]:

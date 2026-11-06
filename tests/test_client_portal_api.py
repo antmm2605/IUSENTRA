@@ -523,3 +523,40 @@ def test_client_portal_link_invito_senza_chiave_dice_di_rigenerare(tmp_path: Pat
     assert risposta["available"] is False
     assert risposta["url"] == ""
     assert "Rigenera" in risposta["message"] or "rigenera" in risposta["message"]
+
+
+def test_client_portal_scarica_documento_con_la_sessione_senza_codice_nel_link(tmp_path: Path):
+    """Il codice del cliente non deve stare nel link di scarico (registri, cronologia, Referer)."""
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente, fascicolo = _seed_cliente_fascicolo(app)
+
+    with app.test_client() as studio:
+        _login(studio)
+        token, _ = _create_invite(studio, cliente.id, fascicolo.id)
+
+    with app.test_client() as primo_accesso:
+        assert primo_accesso.post(f"/api/v1/ui/client-portal/public/invites/{token}/accept", json={}).get_json()["ok"]
+        dashboard = primo_accesso.get("/api/v1/ui/client-portal/public/dashboard", headers={"X-Client-Portal-Token": token})
+        upload = primo_accesso.post(
+            "/api/v1/ui/client-portal/public/documents",
+            data={
+                "requestId": dashboard.get_json()["documentRequests"][0]["id"],
+                "file": (io.BytesIO(b"%PDF-1.4\ncontenuto"), "carta-identita.pdf"),
+            },
+            content_type="multipart/form-data",
+            headers={"X-Client-Portal-Token": token},
+        )
+        documento = upload.get_json()["item"]["id"]
+
+    # il cliente torna il giorno dopo: il portale si apre con il codice salvato nel browser
+    with app.test_client() as ritorno:
+        assert ritorno.get("/api/v1/ui/client-portal/public/dashboard", headers={"X-Client-Portal-Token": token}).get_json()["ok"]
+        scarico = ritorno.get(f"/api/v1/ui/client-portal/public/documents/{documento}/download")
+        assert scarico.status_code == 200
+        assert scarico.data.startswith(b"%PDF")
+
+    with app.test_client() as estraneo:
+        negato = estraneo.get(f"/api/v1/ui/client-portal/public/documents/{documento}/download")
+        assert not negato.data.startswith(b"%PDF")
+        assert negato.get_json()["ok"] is False

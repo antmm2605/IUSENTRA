@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 VERIFICA_NOTIFICHE = "testo vigente letto dall'archivio Normattiva del software il 05/11/2026"
+_VERIFICA_06_11 = "testo vigente letto dall'archivio Normattiva del software il 06/11/2026"
 
 _NORMATTIVA = "https://www.normattiva.it/uri-res/N2Ls?"
 _CPC = "urn:nir:stato:regio.decreto:1940-10-28;1443"
@@ -24,8 +25,8 @@ _CCII = "urn:nir:stato:decreto.legislativo:2019-01-12;14"
 _L53 = "urn:nir:stato:legge:1994-01-21;53"
 
 
-def _voce(norma: str, titolo: str, atto: str, art: str, estratto: str) -> dict[str, Any]:
-    return {"norma": norma, "titolo": titolo, "url": f"{_NORMATTIVA}{atto}~art{art}", "verifica": VERIFICA_NOTIFICHE, "estratto": estratto}
+def _voce(norma: str, titolo: str, atto: str, art: str, estratto: str, verifica: str = VERIFICA_NOTIFICHE) -> dict[str, Any]:
+    return {"norma": norma, "titolo": titolo, "url": f"{_NORMATTIVA}{atto}~art{art}", "verifica": verifica, "estratto": estratto}
 
 
 FONTI_NOTIFICHE: dict[str, dict[str, Any]] = {
@@ -103,6 +104,17 @@ FONTI_NOTIFICHE: dict[str, dict[str, Any]] = {
         "La richiesta di incidente probatorio è depositata nella cancelleria del giudice per le indagini preliminari ed è notificata a "
         "cura di chi l'ha proposta al pubblico ministero e alle persone indicate nell'articolo 393; la prova della notificazione è "
         "depositata in cancelleria."),
+    "cpp_79": _voce("art. 79 c.p.p.", "Termine per la costituzione di parte civile", _CPP, "79",
+        "La costituzione di parte civile può avvenire per l'udienza preliminare, prima che siano ultimati gli accertamenti relativi "
+        "alla costituzione delle parti, o, quando manca l'udienza preliminare, fino a che non siano compiuti gli adempimenti "
+        "previsti dall'articolo 484 o dall'articolo 554-bis, comma 2; i termini sono stabiliti a pena di decadenza.", _VERIFICA_06_11),
+    "cpp_396": _voce("art. 396 c.p.p.", "Deduzioni sulla richiesta di incidente probatorio", _CPP, "396",
+        "Entro due giorni dalla notificazione della richiesta, il pubblico ministero ovvero la persona sottoposta alle indagini può "
+        "presentare deduzioni sull'ammissibilità e sulla fondatezza della richiesta.", _VERIFICA_06_11),
+    "cpp_398": _voce("art. 398 c.p.p.", "Provvedimenti sulla richiesta di incidente probatorio", _CPP, "398",
+        "Entro due giorni dal deposito della prova della notifica, e comunque dopo la scadenza del termine dell'articolo 396, il "
+        "giudice decide sulla richiesta; con l'ordinanza che l'accoglie stabilisce la data dell'udienza e fa notificare alla persona "
+        "sottoposta alle indagini, alla persona offesa e ai difensori avviso del giorno, dell'ora e del luogo almeno due giorni prima.", _VERIFICA_06_11),
     "dispattcpp_142": _voce("art. 142 disp. att. c.p.p.", "Citazione di testimoni, periti e consulenti tecnici", _CPP_ATT, "142",
         "Quando per le notificazioni dei testimoni, dei periti, degli interpreti e dei consulenti tecnici è richiesto l'ufficiale "
         "giudiziario, le parti devono consegnargli gli atti di citazione in tempo utile e nel numero di copie necessario."),

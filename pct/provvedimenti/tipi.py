@@ -17,6 +17,13 @@ import re
 from .rigetto_trattazione import ESPRESSIONE as _RIGETTO_TRATTAZIONE
 from .testo import normalizza
 
+_RICEVUTA_DEPOSITO = r"(?:\bricevuta\s+di\s+(?:avvenuto\s+)?deposito\b|\bdeposito\s+(?:degli\s+)?atti\s+penali\b)"
+_DEPOSITO_PENALE = r"(?:\bfuori\s+udienza\b|\bart\.?\s*78\b.{0,12}\bc\.?\s?p\.?\s?p\b|" + _RICEVUTA_DEPOSITO[3:-1] + ")"
+# «chiamata in causa del terzo», non la «dichiarazione di terzo» del pignoramento presso terzi (art. 547 c.p.c.)
+_CHIAMATA_IN_CAUSA = (r"\b(?:chiamat\w+|chiamare)\s+(?:in\s+causa\s+(?:(?:del|dei|di\s+un|il|i|la|le)\s+)?|(?:del|dei|di\s+un)\s+)"
+                      r"terz[oaie]\b")
+_CHIAMATA_NEGATA = re.compile(r"\b(?:rigett\w*|respin\w*|non\s+autorizz\w*|inammissibil\w*|tardiv\w*)\b.{0,120}\bchiamat\w+\b.{0,40}\bterz", re.I)
+
 #: tipo → (etichetta, espressione nel testo)
 TIPI: dict[str, tuple[str, str]] = {
     "sentenza": ("Sentenza", r"\bin\s+nome\s+del\s+popolo\s+italiano\b|\bdefinitivamente\s+(?:pronunciando|decidendo)\b"),
@@ -40,6 +47,46 @@ TIPI: dict[str, tuple[str, str]] = {
     "decreto_gdp_ricorso_immediato": ("Decreto di convocazione sul ricorso immediato (art. 27 D.Lgs. 274/2000)",
                                       r"\bricorso\s+immediato\b(?=.{0,1500}\b(?:convoca|fissa)\w*\b)"
                                       r"|\bart\.?\s*27\b.{0,60}\b(?:d\.?\s?lgs\.?\s*(?:n\.?\s*)?)?274\s*/\s*2000\b"),
+    # Litisconsorzio necessario: il giudice ordina di chiamare in causa le parti mancanti in un termine (art. 102 c.p.c.,
+    # art. 49 c.p.a., art. 58 D.Lgs. 175/2024).
+    "integrazione_contraddittorio": ("Ordine di integrazione del contraddittorio",
+                                     r"\bintegrazione\s+del\s+contraddittorio\b|\bintegr\w+\s+il\s+contraddittorio\b"),
+    # Nullità della citazione rilevata in contumacia del convenuto: rinnovazione della citazione (art. 164 c.p.c.).
+    "rinnovazione_citazione": ("Ordine di rinnovazione della citazione (art. 164 c.p.c.)",
+                               r"\bnullit\w+\s+della\s+citazione\b.{0,400}\brinnov\w+\b"
+                               r"|\bart\.?\s*164\b.{0,12}\bc\.?\s?p\.?\s?c\b.{0,400}\brinnov\w+\b"),
+    # Notificazione nulla e destinatario non costituito: rinnovazione (art. 291 c.p.c., art. 44 c.p.a.).
+    "rinnovazione_notifica": ("Ordine di rinnovazione della notificazione",
+                              r"\brinnov\w*\b.{0,60}\bnotific\w*\b|\bnotific\w*\b.{0,80}\brinnovarla\b"),
+    # Chiamata del terzo autorizzata o udienza differita per consentirla (art. 269 c.p.c.).
+    "chiamata_terzo": ("Chiamata in causa del terzo (art. 269 c.p.c.)",
+                       r"\b(?:autorizz\w*|differisc\w*|differit\w*|spost\w*)\b.{0,250}" + _CHIAMATA_IN_CAUSA +
+                       r"|" + _CHIAMATA_IN_CAUSA + r".{0,300}\b(?:autorizz\w*|differisc\w*|differit\w*)\b"),
+    # Decreto cautelare senza sentire la controparte (art. 669-sexies, secondo comma, c.p.c.).
+    "cautelare_inaudita": ("Decreto cautelare inaudita altera parte (art. 669-sexies c.p.c.)",
+                           r"\binaudita\s+altera\s+parte\b(?=.{0,1500}\bnotific\w*\b)"
+                           r"|\b669\s*[-\s]?\s*sexies\b.{0,300}\b(?:decreto|inaudita)\b(?=.{0,1500}\bnotific\w*\b)"),
+    # Opposizioni nell'esecuzione: il giudice dell'esecuzione fissa udienza e termine per notificare (artt. 615, 617, 618, 619 c.p.c.).
+    "opposizione_esecutiva": ("Decreto sull'opposizione nell'esecuzione (artt. 615-619 c.p.c.)",
+                              r"(?:\bopposizione\s+(?:all'\s*esecuzione|agli\s+atti\s+esecutivi)\b"
+                              r"|\bopposizione\s+di\s+terzo\b(?=.{0,600}\besecu\w*\b)"
+                              r"|\bartt?\.?\s*(?:615|617|618|619)\b.{0,12}\bc\.?\s?p\.?\s?c\b)"
+                              r"(?=.{0,1500}\bfiss\w*\b.{0,80}\budienza\b)"),
+    # Penale: atti dello studio di cui la ricevuta di deposito conferma la presentazione fuori udienza.
+    "deposito_costituzione_parte_civile": ("Costituzione di parte civile depositata fuori udienza (art. 78 c.p.p.)",
+                                           r"\bcostituzione\s+(?:di\s+)?parte\s+civile\b(?=.{0,1500}" + _DEPOSITO_PENALE + ")"
+                                           r"|" + _DEPOSITO_PENALE + r".{0,1500}\bcostituzione\s+(?:di\s+)?parte\s+civile\b"),
+    "richiesta_incidente_probatorio": ("Richiesta di incidente probatorio depositata (art. 395 c.p.p.)",
+                                       r"\brichiesta\s+di\s+incidente\s+probatorio\b(?=.{0,1500}" + _RICEVUTA_DEPOSITO + ")"
+                                       r"|" + _RICEVUTA_DEPOSITO + r".{0,1500}\brichiesta\s+di\s+incidente\s+probatorio\b"),
+    # Ordinanza che accoglie l'incidente probatorio: l'avviso lo fa notificare il giudice (art. 398 c.p.p.).
+    "ordinanza_incidente_probatorio": ("Ordinanza che dispone l'incidente probatorio (art. 398 c.p.p.)",
+                                       r"\bincidente\s+probatorio\b(?=.{0,1500}\b(?:accoglie|ammette)\b)"
+                                       r"|\b(?:accoglie|ammette)\b.{0,300}\bincidente\s+probatorio\b"),
+    # Codice della crisi: ricorso e decreto di convocazione notificati a cura dell'ufficio (art. 40 D.Lgs. 14/2019).
+    "convocazione_liquidazione_giudiziale": ("Decreto di convocazione per la liquidazione giudiziale (art. 40 CCII)",
+                                             r"\bliquidazione\s+giudiziale\b(?=.{0,1500}\bconvoc\w*\b)"
+                                             r"|\bconvoc\w*\b.{0,1500}\bliquidazione\s+giudiziale\b"),
     "decreto_473bis": ("Decreto di fissazione nel rito della famiglia (art. 473-bis.14 c.p.c.)",
                        r"\b473\s*[-\s]?\s*bis\.?\s*14\b|\b473\s*[-\s]?\s*bis\b.{0,200}\bfiss\w*\b.{0,60}\budienza\b"),
     "verifiche_171bis": ("Decreto sulle verifiche preliminari (art. 171-bis c.p.c.)",
@@ -115,6 +162,13 @@ def riconosci_tipi(testo: str) -> tuple[str, ...]:
     if "decreto_435" in trovati:
         # Il decreto d'appello del lavoro fissa anch'esso l'«udienza di discussione»: valgono i termini dell'art. 435.
         trovati = [t for t in trovati if t != "decreto_415"]
+    if "chiamata_terzo" in trovati and _CHIAMATA_NEGATA.search(pulito):
+        trovati.remove("chiamata_terzo")
+    if "rinnovazione_citazione" in trovati and "rinnovazione_notifica" in trovati:
+        # «rinnovazione della citazione nulla» (art. 164) non è la rinnovazione della sola notifica (art. 291).
+        trovati.remove("rinnovazione_notifica")
+    if "richiesta_incidente_probatorio" in trovati and "ordinanza_incidente_probatorio" in trovati:
+        trovati.remove("ordinanza_incidente_probatorio")
     if {"decreto_415", "decreto_435", "decreto_281undecies", "decreto_gdp_ricorso_immediato"} & set(trovati):
         trovati = [t for t in trovati if t != "fissazione_udienza"]
     return tuple(trovati)

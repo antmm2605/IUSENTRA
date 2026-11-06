@@ -357,8 +357,9 @@ export async function uploadStudioSignatureDocument(
   }
 }
 
-export function clientPortalDocumentUrl(documentId: string, token = readClientPortalToken()): string {
-  return `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/download?token=${encodeURIComponent(token)}`
+// Il cliente è riconosciuto dalla sessione del portale: il suo codice non va mai nel link.
+export function clientPortalDocumentUrl(documentId: string): string {
+  return `/api/v1/ui/client-portal/public/documents/${encodeURIComponent(documentId)}/download`
 }
 
 export function studioPortalDocumentUrl(documentId: string): string {

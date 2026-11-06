@@ -501,7 +501,9 @@ def poll_cancelleria_pec(
             return client
 
         mail = run_imap_runtime_operation(_connect_mail)
-        mail.select("INBOX")
+        # Sola lettura: il FETCH (RFC822) su una casella aperta in scrittura segna i messaggi come letti sul
+        # server PEC dello studio, che l'avvocato non vedrebbe più come nuovi nel suo programma di posta.
+        mail.select("INBOX", readonly=True)
 
         since_dt = datetime.now() - timedelta(days=giorni_indietro)
         since_str = _formato_data_imap(since_dt)

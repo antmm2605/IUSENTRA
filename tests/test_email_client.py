@@ -3721,3 +3721,44 @@ def test_poll_cancelleria_pec_usa_timeout_imap(tmp_path, monkeypatch):
 
     assert osservato["timeout"] == 15
     assert report == {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+
+
+def test_poll_cancelleria_pec_apre_la_casella_in_sola_lettura(tmp_path, monkeypatch):
+    """Il FETCH (RFC822) su casella aperta in scrittura segnerebbe come lette le PEC dello studio sul server."""
+    import pct.polling_depositi as polling_runtime
+
+    clear_runtime_circuit_breakers("pec_imap")
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    gf.nuovo(titolo="RG 1025/2024", tipo=TipoFascicolo.CIVILE, tribunale="Tribunale di Palmi", numero_rg="1025",
+             anno_rg=2024, oggetto="Vendita immobili")
+    aperture = []
+
+    class _Casella:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def login(self, *_args):
+            return "OK", []
+
+        def select(self, mailbox, readonly=False):
+            aperture.append((mailbox, readonly))
+            return "OK", [b"0"]
+
+        def uid(self, *_args):
+            return "OK", [b""]
+
+        def logout(self):
+            return "BYE", []
+
+    monkeypatch.setattr(polling_runtime.imaplib, "IMAP4_SSL", _Casella)
+    polling_runtime.poll_cancelleria_pec(
+        gf=gf,
+        config_pec=SimpleNamespace(imap_host="imaps.pec.aruba.it", imap_port=993, indirizzo="studio@example.pec.it",
+                                   password="segreta"),
+        state_path=str(tmp_path / "pec_cancelleria_state.json"),
+    )
+    assert aperture == [("INBOX", True)]

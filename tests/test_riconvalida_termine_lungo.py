@@ -33,7 +33,7 @@ def test_data_di_deposito_trovata_nei_documenti_del_fascicolo_sostituisce_la_com
         _fatto("con sentenza n. 1842/2022 pubblicata il 16.03.2022", "2022-03-16"),  # precedente citato: ignorato
         _fatto("Sentenza n. 809/2026 pubbl. il 14/10/2026 RG n. 538/2026", "2026-10-14"),
     ]}
-    assert riconvalida_bozze(scadenziario, lambda fid: fatti.get(fid, [])) == {"dal_portale": 0, "dai_documenti": 1, "da_giudicare": 0}
+    assert riconvalida_bozze(scadenziario, lambda fid: fatti.get(fid, [])) == {"dal_portale": 0, "dai_documenti": 1, "da_giudicare": 0, "dalla_decisione": 0}
     voce = scadenziario.get(bozza.id)
     assert voce.data_decorrenza == "2026-10-14" and voce.data_scadenza == "2027-04-14"
     assert voce.stato == StatoTermine.BOZZA and DAI_DOCUMENTI in voce.note
@@ -42,18 +42,18 @@ def test_data_di_deposito_trovata_nei_documenti_del_fascicolo_sostituisce_la_com
 def test_senza_fonte_certa_decide_l_avvocato_e_la_riconvalida_non_si_ripete(tmp_path):
     scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
     bozza = _bozza(scadenziario, numero="938/2026", fascicolo="", comunicazione="09/06/2026")
-    assert riconvalida_bozze(scadenziario, lambda fid: []) == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 1}
+    assert riconvalida_bozze(scadenziario, lambda fid: []) == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 1, "dalla_decisione": 0}
     voce = scadenziario.get(bozza.id)
     assert voce.stato == StatoTermine.BOZZA and voce.data_scadenza == "2027-04-16"  # nulla cancellato o confermato
     assert voce.descrizione.startswith(AVVISO) and NON_CERTA in voce.note
-    assert riconvalida_bozze(scadenziario, lambda fid: []) == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0}
+    assert riconvalida_bozze(scadenziario, lambda fid: []) == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0, "dalla_decisione": 0}
 
 
 def test_decorrenza_dal_registro_diversa_dalla_comunicazione_non_si_tocca(tmp_path):
     scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
     bozza = _bozza(scadenziario, numero="250/2026", fascicolo="F1", comunicazione="29/04/2026")
     scadenziario.aggiorna(bozza.id, data_decorrenza="2026-10-15")  # data dell'evento del registro, non la comunicazione
-    assert riconvalida_bozze(scadenziario, lambda fid: []) == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0}
+    assert riconvalida_bozze(scadenziario, lambda fid: []) == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0, "dalla_decisione": 0}
 
 
 def _documento_portale(classe: str, deposito: str, fonte: str = "PORTALE_TELEMATICO"):
@@ -71,7 +71,7 @@ def test_la_sentenza_del_portale_corregge_la_scadenza_tardiva_di_un_giorno(tmp_p
         _documento_portale("Verbale", "06/10/2026"),
     ]}
     esito = riconvalida_bozze(scadenziario, lambda fid: [], lambda fid: documenti.get(fid, []))
-    assert esito == {"dal_portale": 1, "dai_documenti": 0, "da_giudicare": 0}
+    assert esito == {"dal_portale": 1, "dai_documenti": 0, "da_giudicare": 0, "dalla_decisione": 0}
     voce = scadenziario.get(bozza.id)
     assert voce.data_decorrenza == "2026-10-06" and voce.data_scadenza == "2027-04-06"
     assert "fascicolo telematico" in voce.descrizione and voce.stato == StatoTermine.BOZZA
@@ -97,3 +97,40 @@ def test_sentenze_del_portale_con_date_diverse_non_si_sceglie():
     assert data_deposito_dal_portale(documenti, comunicazione=date(2026, 10, 7)) is None
     assert data_deposito_dal_portale(documenti[:1], comunicazione=date(2026, 10, 7)) == date(2026, 10, 6)
     assert data_deposito_dal_portale(documenti[:1], comunicazione=date(2026, 10, 5)) is None  # dopo la comunicazione: no
+
+
+# Fascicolo reale Alessi (RG 2539/2025 Tribunale di Velletri, lavoro): sentenza ex art. 429 decisa e firmata il
+# 07/10/2026, comunicata l'08/10/2026. Sei mesi dalla decisione: 07/04/2027 (mercoledì); dalla comunicazione sarebbe
+# l'08/04/2027, un giorno più tardi del possibile.
+SENTENZA_429 = ("REPUBBLICA ITALIANA IN NOME DEL POPOLO ITALIANO IL TRIBUNALE DI VELLETRI SEZIONE LAVORO in persona del "
+                "giudice, dott. Claudio Silvestrini, all'esito della camera di consiglio relativa all'udienza del 7 ottobre "
+                "2026, ha pronunciato in pari data la seguente S E N T E N Z A ex art. 429 c.p.c. ... P.Q.M. condanna la "
+                "parte convenuta ... Velletri, 7 ottobre 2026 Il giudice dott. Claudio Silvestrini")
+
+
+def test_senza_deposito_certo_si_conta_dalla_decisione_mai_dalla_comunicazione(tmp_path):
+    from pct.riconvalida_termine_lungo import DALLA_DECISIONE
+
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="1674/2026", fascicolo="F1", comunicazione="08/10/2026")
+    scadenziario.aggiorna(bozza.id, data_scadenza="2027-04-08", data_decorrenza="2026-10-08",
+                          source_event_at="2026-10-08T13:19:56Z")
+    testi = {"F1": [SENTENZA_429, "Sentenza della Cassazione citata. Roma, 3 marzo 2023 Il Presidente"]}
+    esito = riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: testi.get(fid, []))
+    assert esito == {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 1, "dalla_decisione": 1}
+    voce = scadenziario.get(bozza.id)
+    assert voce.data_scadenza == "2027-04-07" and voce.data_decorrenza == "2026-10-07"
+    assert voce.stato == StatoTermine.BOZZA and NON_CERTA in voce.note and DALLA_DECISIONE in voce.note
+    # il giro successivo non ritocca nulla; la data certa del deposito, quando arriva, prevale ancora
+    assert riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: testi.get(fid, []))["dalla_decisione"] == 0
+
+
+def test_decisioni_diverse_o_lontane_non_si_sceglie(tmp_path):
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="1674/2026", fascicolo="F1", comunicazione="08/10/2026")
+    scadenziario.aggiorna(bozza.id, data_scadenza="2027-04-08", source_event_at="2026-10-08T13:19:56Z")
+    altra = SENTENZA_429.replace("7 ottobre 2026", "1 ottobre 2026")
+    vecchia = SENTENZA_429.replace("7 ottobre 2026", "7 ottobre 2025")
+    for testi in ([SENTENZA_429, altra], [vecchia]):
+        assert riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: testi)["dalla_decisione"] == 0
+    assert scadenziario.get(bozza.id).data_scadenza == "2027-04-08"

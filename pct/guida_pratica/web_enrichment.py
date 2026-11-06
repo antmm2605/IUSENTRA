@@ -1125,6 +1125,11 @@ def _add_source(out: list[dict[str, str]], seen: set[str], key: str, *, matched_
     out.append(_source_entry(key, matched_by=matched_by))
 
 
+def _parola_intera(token: str, testo: str) -> bool:
+    """La parola o l'espressione compare intera: «tar» non è in «notare», «pensione» non è in «sospensione»."""
+    return bool(token) and re.search(r"(?<!\w)" + re.escape(token) + r"(?!\w)", testo) is not None
+
+
 def web_sources_for_guidance(guidance: dict[str, Any]) -> list[dict[str, str]]:
     """Restituisce fonti ufficiali pertinenti per una scheda guida."""
 
@@ -1134,7 +1139,7 @@ def web_sources_for_guidance(guidance: dict[str, Any]) -> list[dict[str, str]]:
     for key in ("pst_download", "pst_xsd_sici_2024", "pst_specifiche_2014"):
         _add_source(out, seen, key, matched_by="presidio catalogo PST/XSD e deposito")
     for label, tokens, source_keys in SOURCE_RULES:
-        if any(_fold(token) in haystack for token in tokens):
+        if any(_parola_intera(_fold(token), haystack) for token in tokens):
             for key in source_keys:
                 _add_source(out, seen, key, matched_by=label)
     if len(out) == 3:

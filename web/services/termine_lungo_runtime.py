@@ -76,6 +76,16 @@ def _fatti_del_fascicolo(fascicolo_id: str) -> list[Any]:
         return []
 
 
+def _testi_del_fascicolo(fascicolo_id: str) -> list[str]:
+    from web.services.archivio_letture_runtime import testi_indice_archivio
+
+    try:
+        return list(testi_indice_archivio(SimpleNamespace(id=fascicolo_id)).values())
+    except Exception as exc:  # testi non disponibili: resta la data della comunicazione con l'avviso
+        logger.warning("Testi del fascicolo %s non disponibili per il termine lungo: %s", fascicolo_id, exc)
+        return []
+
+
 def completa_termini_lunghi_runtime(db_path: Path | None, scadenziario: Any, *, oggi: date) -> dict[str, Any]:
     """Un errore qui non ferma le notifiche dello studio: si registra e si prosegue."""
     if db_path is None or not Path(db_path).exists():
@@ -104,7 +114,7 @@ def riconvalida_termini_lunghi_runtime(scadenziario: Any) -> dict[str, Any]:
     from pct.riconvalida_termine_lungo import riconvalida_bozze
 
     try:
-        return riconvalida_bozze(scadenziario, _fatti_del_fascicolo, _documenti_del_fascicolo)
+        return riconvalida_bozze(scadenziario, _fatti_del_fascicolo, _documenti_del_fascicolo, _testi_del_fascicolo)
     except Exception as exc:
         logger.warning("Bozze del termine lungo non riconvalidate: %s", exc)
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}

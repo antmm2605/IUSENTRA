@@ -114,9 +114,16 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str]) -> tup
         documenti.append(DocumentoCatalogato(id=oid, nome=nomi[oid], etichetta=etichetta, data=_data(oid, "provvedimento", "data_atto"), nostro=nostro, udienze=udienze))
 
     parti: list[Parte] = []
+    # Contumace se una qualsiasi lettura della parte lo dice (di solito l'epigrafe della sentenza: «convenuto (contumace)»).
+    contumaci = {" ".join(sorted(_testo(f.valore).casefold().split())) for f in fatti
+                 if f.categoria == "parte" and "contumac" in _testo(getattr(f, "contesto", "")).casefold()
+                 and f.verifica not in {"respinta", "ignorata"}}
     for voce in parti_lette(fatti):
         ruolo = "controinteressato" if "controinteressat" in voce.posizione.casefold() else voce.ruolo
-        parti.append(Parte(nome=voce.nome, ruolo=ruolo, difensore=voce.difensore, posizione=voce.posizione))
+        contumace = (" ".join(sorted(voce.nome.casefold().split())) in contumaci
+                     or "contumac" in f"{voce.posizione} {getattr(voce, 'citazione', '')}".casefold())
+        parti.append(Parte(nome=voce.nome, ruolo=ruolo, difensore=voce.difensore, posizione=voce.posizione,
+                           documenti=tuple(getattr(voce, "oggetti", ()) or ()), contumace=contumace))
     if not any(p.ruolo in {"controparte", "controinteressato"} for p in parti) and _testo(getattr(fascicolo, "controparte", "")):
         parti.append(Parte(nome=_testo(fascicolo.controparte), ruolo="controparte", difensore=_testo(getattr(fascicolo, "avvocato_controparte", ""))))
 

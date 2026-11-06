@@ -2383,8 +2383,20 @@ def _is_pdf_attachment(item: dict[str, Any]) -> bool:
     )
 
 
+# Testo di un allegato: una sentenza o un'ordinanza lunga supera spesso i 20.000 caratteri e il dispositivo («P.Q.M.»),
+# le spese liquidate e la data in calce stanno alla fine; tagliare a 20.000 li perdeva (sentenza Alessi, Trib. Velletri,
+# 06/11/2026: 35.000 caratteri). Il limite resta come difesa da allegati anomali.
+TESTO_ALLEGATO_MAX = 400_000
+_VECCHIO_LIMITE_TESTO = 20_000
+
+
+def tagliato_dal_vecchio_limite(testo: str) -> bool:
+    """Testo salvato con il vecchio limite: 20.000 caratteri terminati da «…»."""
+    return len(testo) == _VECCHIO_LIMITE_TESTO and testo.endswith("…")
+
+
 def _attachment_ocr_text(item: dict[str, Any]) -> str:
-    return clean_text(item.get("ocr_text") or item.get("text") or "", 20000)
+    return clean_text(item.get("ocr_text") or item.get("text") or "", TESTO_ALLEGATO_MAX)
 
 
 def _is_remote_hearing_technical_attachment(item: dict[str, Any]) -> bool:
@@ -4488,7 +4500,7 @@ def extract_text_with_coverage(item: AttachmentPayload, _profondita: int = 0) ->
         printable = sum(1 for char in decoded if char.isprintable() or char.isspace())
         if decoded and printable / max(len(decoded), 1) > 0.65:
             text = decoded
-    cleaned = clean_text(text, 20000)
+    cleaned = clean_text(text, TESTO_ALLEGATO_MAX)
     if not item.data:
         return cleaned, 0.0
     if not cleaned:
@@ -9280,9 +9292,38 @@ class PecAuditRepository:
         if row is None:
             return None
         text = str(row["ocr_text"] or "")
-        if _is_stale_zip_ocr_text(item.filename, item.content_type, text):
+        if _is_stale_zip_ocr_text(item.filename, item.content_type, text) or tagliato_dal_vecchio_limite(text):
             return None
         return text, float(row["ocr_coverage"] or 0.0)
+
+    def rileggi_allegati_tagliati(self, *, actor: str = "pec-maintenance", limit: int = 0, prova: bool = False) -> dict[str, Any]:
+        """Rilegge gli allegati il cui testo fu tagliato al vecchio limite di 20.000 caratteri (dispositivo perso).
+
+        Solo quelli: un testo integro non si rilegge. Le buste cifrate (Atto.enc) non hanno testo da leggere. Dopo la
+        rilettura il ripasso delle PEC (``record_pec_schedule_change_receipts``) esamina di nuovo i provvedimenti.
+        """
+        with self.connect() as conn:
+            righe = conn.execute(
+                "SELECT DISTINCT a.message_id FROM pec_attachments a JOIN pec_messages m ON m.id = a.message_id "
+                "WHERE m.tenant_id = ? AND length(a.ocr_text) = ? AND substr(a.ocr_text, -1) = '…' "
+                "AND lower(a.filename) NOT LIKE '%.enc' ORDER BY m.received_at",
+                (self.tenant_id, _VECCHIO_LIMITE_TESTO),
+            ).fetchall()
+            ids = [str(riga["message_id"]) for riga in righe][: limit or None]
+            esito: dict[str, Any] = {"messaggi": len(ids), "riletti": 0, "ancora_tagliati": 0, "errori": []}
+            if prova:
+                return esito
+            for message_id in ids:
+                try:
+                    letti = self._refresh_ocr_for_message_on_connection(conn, message_id, actor=actor,
+                                                                        action="pec.attachments.ocr.rilettura_testo_tagliato")
+                    conn.commit()
+                    esito["riletti"] += 1
+                    esito["ancora_tagliati"] += sum(1 for voce in letti if int(voce.get("chars") or 0) >= TESTO_ALLEGATO_MAX)
+                except Exception as exc:  # una PEC non leggibile non ferma le altre
+                    conn.rollback()
+                    esito["errori"].append(f"{message_id}: {type(exc).__name__}: {exc}"[:200])
+            return esito
 
     def ocr_attachments(self, message_id: str, *, actor: str = "pec-ocr") -> dict[str, Any]:
         with self.connect() as conn:

@@ -28,6 +28,18 @@ class ReadingArchiveConsistencyTests(unittest.TestCase):
         deadline.data_scadenza = '2025-09-02'; deadline.titolo = 'Termine del 02/09/2025'
         self.assertEqual(pianifica_rettifiche(case, **args), [])
 
+    def test_udienza_anteriore_all_iscrizione_a_ruolo_si_rettifica(self):
+        # Fascicolo reale Alessi (RG 2539/2025): la data di nascita della cliente era stata letta come udienza.
+        def udienza(data):
+            return NS(id='att-' + data, tipo='UDIENZA', esito='IN_ATTESA', avvocato='', data=data, id_documento='doc-1',
+                      descrizione="Attività per l'avvocato: Udienza. Data letta dal documento",
+                      note='PEC_DOCUMENT_PRESIDIO:docpresidio:x\nFonte: documento fascicolo indicizzato da Lex AI.')
+        case = NS(anno_rg='2025', numero_rg='2539', attivita=[udienza('1990-05-30'), udienza('2025-12-16')])
+        piano = pianifica_rettifiche(case, fatti=[], oggetti=[], scadenze=[], testi={})
+        self.assertEqual([p['id'] for p in piano], ['att-1990-05-30'])
+        self.assertIn('RG 2539/2025', piano[0]['motivo'])
+        self.assertEqual(pianifica_rettifiche(NS(anno_rg='', numero_rg='', attivita=case.attivita), fatti=[], oggetti=[], scadenze=[], testi={}), [])
+
     def test_catalog_uses_current_original_id_and_ignores_historical_sha(self):
         def record(id, sha, date):
             return NS(id=id, sha256=sha, status='ready', current_version_id='version-'+id, updated_at=date, original_filename='Ricorso.pdf', safe_filename='Ricorso.pdf', file_type='pdf', mime_type='application/pdf', size_bytes=100)

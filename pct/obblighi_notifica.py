@@ -175,9 +175,12 @@ REGOLE: tuple[RegolaNotifica, ...] = (
     RegolaNotifica(
         "sentenza_notifica_breve", ("Sentenza",),
         "sentenza (per far decorrere il termine breve di impugnazione)", "controparti_presso_difensore",
-        ("art. 285 c.p.c.", "art. 325 c.p.c.", "art. 326 c.p.c."),
+        ("art. 285 c.p.c.", "art. 292 c.p.c.", "art. 325 c.p.c.", "art. 326 c.p.c.", "art. 434 c.p.c.", "art. 14 D.L. 669/1996"),
         solo_se_nostro=False, facoltativa=True,
-        avvertenze="Scelta difensiva: notificare la sentenza al difensore costituito fa decorrere il termine breve di impugnazione anche per chi notifica.",
+        avvertenze=("Scelta difensiva: la notifica fa decorrere il termine breve di impugnazione anche per chi notifica (30 "
+                    "giorni per l'appello, art. 325 c.p.c.; nel rito del lavoro art. 434, secondo comma). Contro una "
+                    "pubblica amministrazione condannata a pagare somme, dalla notifica del titolo esecutivo decorrono i "
+                    "120 giorni prima dei quali non si notifica il precetto né si agisce in esecuzione (art. 14 D.L. 669/1996)."),
     ),
 )
 REGOLE_PER_ETICHETTA: dict[str, tuple[RegolaNotifica, ...]] = {}
@@ -202,6 +205,8 @@ class Parte:
     ruolo: str  # controparte | difensore_controparte | assistito | controinteressato
     difensore: str = ""
     posizione: str = ""
+    documenti: tuple[str, ...] = ()  # documenti in cui la parte è nominata
+    contumace: bool = False  # la parte non si è costituita (letto negli atti, es. «convenuto (contumace)»)
 
 
 @dataclass
@@ -277,9 +282,23 @@ def avvocatura_distrettuale(ufficio: str) -> str:
     return f"Avvocatura distrettuale dello Stato competente per la sede di {nome}"
 
 
-def _destinatario(parte: Parte, *, presso_difensore: bool, ufficio: str, difensori: dict[str, str], lavoro: bool) -> dict[str, str]:
-    difensore = parte.difensore or difensori.get(parte.nome, "")
+_CONTUMACE = ("Parte contumace: la sentenza si notifica alla parte personalmente (art. 292, ultimo comma, c.p.c.), non "
+              "presso un difensore che non c'è.")
+
+
+def _destinatario(parte: Parte, *, presso_difensore: bool, ufficio: str, difensori: dict[str, str], lavoro: bool,
+                  sentenza: bool = False) -> dict[str, str]:
+    difensore = "" if (sentenza and parte.contumace) else (parte.difensore or difensori.get(parte.nome, ""))
     scolastico = bool(_SCOLASTICO.search(parte.nome))
+    if sentenza and parte.contumace and (scolastico or _STATALE.search(parte.nome)):
+        # Le sentenze si notificano allo Stato presso l'Avvocatura del distretto in cui ha sede il giudice che le ha
+        # pronunciate (art. 11 R.D. 1611/1933), anche quando l'amministrazione è rimasta contumace (art. 292 c.p.c.).
+        return {"nome": parte.nome, "ruolo": parte.ruolo, "presso": f"presso {avvocatura_distrettuale(ufficio)}",
+                "fonte": "art. 11 R.D. 1611/1933; art. 292 c.p.c.", "nota": _CONTUMACE}
+    if sentenza and parte.contumace and not _PA.search(parte.nome):
+        return {"nome": parte.nome, "ruolo": parte.ruolo,
+                "presso": "alla parte personalmente: indirizzo PEC dei pubblici elenchi o nelle forme degli artt. 137 ss. c.p.c.",
+                "fonte": "art. 292 c.p.c.; art. 3-bis L. 53/1994", "nota": _CONTUMACE}
     if scolastico or _STATALE.search(parte.nome):
         avvocatura = difensore if "avvocatura" in difensore.casefold() else avvocatura_distrettuale(ufficio)
         presso = f"presso {avvocatura}"
@@ -308,13 +327,19 @@ def _destinatario(parte: Parte, *, presso_difensore: bool, ufficio: str, difenso
     return {"nome": parte.nome, "ruolo": parte.ruolo, "presso": presso, "fonte": fonte}
 
 
-def _destinatari(regola: RegolaNotifica, parti: list[Parte], ufficio: str) -> list[dict[str, str]]:
+def _destinatari(regola: RegolaNotifica, parti: list[Parte], ufficio: str, documento_id: str = "") -> list[dict[str, str]]:
     difensori = {p.posizione.replace("difensore di ", "", 1): p.nome for p in parti if p.ruolo == "difensore_controparte"}
     presso_difensore = regola.destinatari == "controparti_presso_difensore"
     ruoli = {"controparte", "controinteressato"}
     lavoro = regola.id == "lavoro_415"
-    return [_destinatario(p, presso_difensore=presso_difensore, ufficio=ufficio, difensori=difensori, lavoro=lavoro)
-            for p in parti if p.ruolo in ruoli]
+    sentenza = regola.id == "sentenza_notifica_breve"
+    scelte = [p for p in parti if p.ruolo in ruoli]
+    if sentenza and documento_id:
+        # La sentenza si notifica alle parti del giudizio deciso: quelle nominate nella sentenza, se è già stata letta.
+        nella_sentenza = [p for p in scelte if documento_id in p.documenti]
+        scelte = nella_sentenza or scelte
+    return [_destinatario(p, presso_difensore=presso_difensore, ufficio=ufficio, difensori=difensori, lavoro=lavoro,
+                          sentenza=sentenza) for p in scelte]
 
 
 def _base(termine: Termine, documento: DocumentoCatalogato, contesto: dict[str, Any]) -> date | None:
@@ -379,7 +404,7 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
     for documento in documenti:
         for regola in REGOLE_PER_ETICHETTA.get(documento.etichetta.casefold(), ()):
             obbligo = ObbligoNotifica(regola=regola, documento=documento, stato=STATO_DA_NOTIFICARE)
-            obbligo.destinatari = _destinatari(regola, parti, ufficio)
+            obbligo.destinatari = _destinatari(regola, parti, ufficio, documento.id)
             if regola.facoltativa:
                 obbligo.stato, obbligo.motivo = STATO_FACOLTATIVO, "Notifica facoltativa: decisione del difensore."
             elif regola.solo_se_nostro and documento.nostro is False:

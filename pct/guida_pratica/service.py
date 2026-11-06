@@ -199,6 +199,7 @@ class GuidaPraticaCoverage:
     source: str
     needs_reviewer: bool
     message: str
+    contenuto_di_base: bool = False
 
     def to_payload(self) -> dict[str, Any]:
         return {
@@ -206,6 +207,7 @@ class GuidaPraticaCoverage:
             "source": self.source,
             "needs_reviewer": self.needs_reviewer,
             "message": self.message,
+            "contenuto_di_base": self.contenuto_di_base,
         }
 
 
@@ -716,6 +718,16 @@ class GuidaPraticaService:
                     needs_reviewer=True,
                     message="Scheda normativa presente nel KB; campi, allegati e adempimenti sono integrati con profilo pratico base da revisionare.",
                 )
+            if _text(item.get("_quality_hint")) == "classificazione_base_da_arricchire":
+                # La scheda stessa dichiara di essere una classificazione di base: dirlo, non presentarla come curata.
+                return GuidaPraticaCoverage(
+                    level="curata",
+                    source="legal_knowledge_base.full.json / moduli KB (classificazione di base)",
+                    needs_reviewer=False,
+                    message=("Scheda di base: materia e rito sono classificati, ma campi, allegati, termini e norme sono "
+                             "generici per la voce e vanno verificati sulla pratica concreta."),
+                    contenuto_di_base=True,
+                )
             return GuidaPraticaCoverage(
                 level="curata",
                 source="legal_knowledge_base.full.json / moduli KB",
@@ -1152,7 +1164,7 @@ class GuidaPraticaService:
                 out["allegati_obbligatori"] = deepcopy(profile.get("allegati") or [])
             if not _as_list(out.get("adempimenti_propedeutici")):
                 out["adempimenti_propedeutici"] = deepcopy(profile.get("adempimenti") or [])
-            if not _as_list(out.get("adempimenti_fiscali_telematici")):
+            if not out.get("adempimenti_fiscali_telematici"):  # di solito un dizionario: vuoto solo se manca
                 out["adempimenti_fiscali_telematici"] = deepcopy(profile.get("fiscali") or [])
             if not _as_list(out.get("termini_processuali")):
                 out["termini_processuali"] = deepcopy(profile.get("termini") or [])
@@ -1211,6 +1223,7 @@ class GuidaPraticaService:
         missing_total = len(missing_fields) + len(missing_attachments) + len(missing_warnings) + len([a for a in adempimenti_status if a.get("obbligatorio") is not False and not a.get("completato")])
         completed = max(0, total - missing_total)
         depositabile = bool(_as_dict(guidance.get("codice_deposito")).get("depositabile"))
+        fase_atto_depositato = _nota_atto_depositato(_as_dict(dati.get("fascicolo")))
         return {
             "ok": True,
             "codice": guidance["codice"],
@@ -1227,7 +1240,9 @@ class GuidaPraticaService:
             "percentuale_completamento": int(round((completed / total) * 100)) if total else 100,
             "pronto_per_generazione": missing_total == 0 and not guidance["coverage"].get("needs_reviewer", False) and depositabile,
             "requires_review": bool(guidance["coverage"].get("needs_reviewer")),
-            "blockers": self._build_blockers(missing_fields, missing_attachments, missing_warnings, guidance),
+            "blockers": [] if fase_atto_depositato else self._build_blockers(missing_fields, missing_attachments, missing_warnings, guidance),
+            "fase_redazione": "atto_introduttivo_depositato" if fase_atto_depositato else "redazione",
+            "nota_fase": fase_atto_depositato,
         }
 
     def _field_present(self, dati: dict[str, Any], field_id: str) -> bool:
@@ -1242,6 +1257,9 @@ class GuidaPraticaService:
     def _attachment_present(self, dati: dict[str, Any], attachment_id: str) -> bool:
         if not attachment_id:
             return False
+        # I documenti del fascicolo: la procura è una procura, il contratto un documento del rapporto di lavoro.
+        if _allegato_nel_fascicolo(_as_dict(dati.get("fascicolo")), attachment_id):
+            return True
         for container_name in ("attachments", "allegati", "documenti"):
             container = dati.get(container_name)
             if isinstance(container, dict) and self._truthy(container.get(attachment_id)):
@@ -1320,3 +1338,39 @@ def get_guida_pratica_service() -> GuidaPraticaService:
     """
 
     return GuidaPraticaService()
+
+
+# Allegati della scheda riconosciuti tra i documenti del fascicolo, per tipo o per nome (non dal solo codice della scheda).
+_ALLEGATI_DEL_FASCICOLO: dict[str, tuple[frozenset[str], str]] = {
+    "procura": (frozenset({"PROCURA"}), r"\bprocura\b|\bmandato\s+alle\s+liti\b"),
+    "documento_identita_cliente": (frozenset({"CARTA_IDENTITA", "DOCUMENTO_IDENTITA"}), r"carta\s+d['’]?\s*identit|passaporto|patente|visura"),
+    "documenti_lavoro": (frozenset({"CONTRATTO", "BUSTA_PAGA", "CEDOLINO"}), r"\bcontratt|busta\s+paga|cedolin|conteggi|prospett"),
+    "documenti_fondativi": (frozenset({"CONTRATTO", "ALLEGATO", "DOCUMENTO", "LETTERA", "FATTURA", "VERBALE"}),
+                            r"\bcontratt|\bdiffida|\brichiesta|\bfattur|\bcorrispondenz|\bverbale"),
+}
+
+
+def _allegato_nel_fascicolo(fascicolo: dict[str, Any], attachment_id: str) -> bool:
+    regola = _ALLEGATI_DEL_FASCICOLO.get(attachment_id)
+    if regola is None:
+        return False
+    tipi, nome = regola
+    for documento in _as_list(fascicolo.get("documenti")):
+        documento = _as_dict(documento)
+        if _text(documento.get("tipo")).upper() in tipi or re.search(nome, _text(documento.get("nome")), re.IGNORECASE):
+            return True
+    return False
+
+
+def _nota_atto_depositato(fascicolo: dict[str, Any]) -> str:
+    """La causa è già iscritta a ruolo: la checklist di redazione dell'atto introduttivo non si applica più.
+
+    L'iscrizione a ruolo (numero di ruolo generale) presuppone il deposito dell'atto introduttivo (art. 165 e 168
+    c.p.c.; nel lavoro art. 415): campi, allegati e avvertimenti della scheda valgono per un nuovo atto, non bloccano.
+    """
+    numero, anno = _text(fascicolo.get("numero_rg")), _text(fascicolo.get("anno_rg"))
+    if not numero or not anno or anno in {"0", "None"}:
+        return ""
+    return (f"Atto introduttivo già depositato: la causa è iscritta a ruolo (RG {numero}/{anno}). Campi, allegati e "
+            "avvertimenti della scheda servono per redigere un nuovo atto della stessa materia e non bloccano il lavoro: "
+            "i prossimi passaggi della pratica sono nella Lettura del fascicolo.")

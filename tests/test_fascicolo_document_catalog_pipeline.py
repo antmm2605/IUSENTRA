@@ -1004,3 +1004,63 @@ def test_lettura_catalogo_non_crea_job_senza_elaborazione(tmp_path):
         (tenant_id, fascicolo_id),
     ).fetchone()[0]
     assert jobs == 0
+
+
+CONTRATTO_LAVORO = ("CONTRATTO INDIVIDUALE DI LAVORO A TEMPO DETERMINATO. Visto il decreto di individuazione, il Dirigente "
+                    "scolastico dell'Istituto Comprensivo stipula con la docente Rossi Maria il contratto individuale di lavoro "
+                    "a tempo determinato fino al termine delle attivita didattiche, con decorrenza dal 01/09/2025 e cessazione "
+                    "al 30/06/2026, per n. 18 ore settimanali di lezione.")
+
+
+def _conferma_vecchia(repo, tenant_id, fascicolo_id, document_id, *, label, nature):
+    conn = repo._conn()
+    if True:
+        conn.execute(
+            "UPDATE document_catalog_assignments SET status='confirmed', source_state='verified_snapshot', "
+            "document_label=?, document_nature=?, resolver_version='2026.09.01.vecchia', confirmed_at='2026-09-14T19:24:57+00:00', "
+            "updated_by='avvocato' WHERE tenant_id=? AND fascicolo_id=? AND document_id=?",
+            (label, nature, tenant_id, fascicolo_id, document_id),
+        )
+        conn.commit()
+
+
+def _lavoro(fascicolo_id):
+    return SimpleNamespace(
+        id=fascicolo_id, area_pratica="Lavoro e previdenza", tribunale="Tribunale di Velletri", tipo="LAVORO",
+        numero_rg="2539", anno_rg="2025", codice_oggetto_pst="222050", canale_operativo="PCT", source="PST",
+        profilo_deposito={"area": "Lavoro e previdenza", "branca": "Pubblico impiego", "sottobranca": "Retribuzione"},
+    )
+
+
+def test_una_conferma_su_regole_superate_torna_proposta_se_il_contenuto_dice_altro(tmp_path):
+    # Fascicolo Alessi (RG 2539/2025): contratti di lavoro confermati come «Decreto» il 14/09/2026, prima della revisione.
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id, fascicolo_id = "studio-test", "FASC-ALESSI"
+    source = _ready_source(repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id="DOC-CONTRATTO",
+                           filename="Contratto 24-25.PDF", sha256="c" * 64, text=CONTRATTO_LAVORO, tipo_documento="CONTRATTO")
+    pipeline = FascicoloDocumentCatalogPipeline(repo)
+    pipeline.run(tenant_id=tenant_id, fascicolo=_lavoro(fascicolo_id), sources=[source], actor="operatore", process=True)
+    _conferma_vecchia(repo, tenant_id, fascicolo_id, "DOC-CONTRATTO", label="Decreto", nature="provvedimento")
+
+    pipeline.run(tenant_id=tenant_id, fascicolo=_lavoro(fascicolo_id), sources=[source], actor="operatore", process=True)
+
+    voce = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-CONTRATTO")
+    assert voce.status == "proposed" and voce.document_label == "Contratto di lavoro"
+    assert voce.metadata["conferma_precedente"]["document_label"] == "Decreto"
+    assert "confermato il 14/09/2026 come «Decreto»" in voce.reason
+
+
+def test_una_conferma_ancora_valida_resta_e_non_si_ricontrolla(tmp_path):
+    repo = DocumentAIRepository.from_sqlite_db(tmp_path / "studio.db")
+    tenant_id, fascicolo_id = "studio-test", "FASC-ALESSI"
+    source = _ready_source(repo, tenant_id=tenant_id, fascicolo_id=fascicolo_id, document_id="DOC-CONTRATTO",
+                           filename="Contratto 24-25.PDF", sha256="d" * 64, text=CONTRATTO_LAVORO, tipo_documento="CONTRATTO")
+    pipeline = FascicoloDocumentCatalogPipeline(repo)
+    pipeline.run(tenant_id=tenant_id, fascicolo=_lavoro(fascicolo_id), sources=[source], actor="operatore", process=True)
+    _conferma_vecchia(repo, tenant_id, fascicolo_id, "DOC-CONTRATTO", label="Contratto di lavoro", nature="contratto_lavoro")
+
+    pipeline.run(tenant_id=tenant_id, fascicolo=_lavoro(fascicolo_id), sources=[source], actor="operatore", process=True)
+    voce = repo.get_catalog_assignment(tenant_id, fascicolo_id, "DOC-CONTRATTO")
+    assert voce.status == "confirmed" and voce.confirmed_at.startswith("2026-09-14")
+    seconda = pipeline.run(tenant_id=tenant_id, fascicolo=_lavoro(fascicolo_id), sources=[source], actor="operatore", process=True)
+    assert seconda.skipped_current == 1

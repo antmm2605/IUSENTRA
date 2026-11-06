@@ -23,6 +23,7 @@ _CPA = "urn:nir:stato:decreto.legislativo:2010-07-02;104"
 _TU_TRIB = "urn:nir:stato:decreto.legislativo:2024-11-14;175"
 _CCII = "urn:nir:stato:decreto.legislativo:2019-01-12;14"
 _L53 = "urn:nir:stato:legge:1994-01-21;53"
+_DPR115 = "urn:nir:stato:decreto.del.presidente.della.repubblica:2002-05-30;115"
 
 
 def _voce(norma: str, titolo: str, atto: str, art: str, estratto: str, verifica: str = VERIFICA_NOTIFICHE) -> dict[str, Any]:
@@ -155,6 +156,31 @@ FONTI_NOTIFICHE: dict[str, dict[str, Any]] = {
         "Sulla domanda del creditore, degli organi di controllo o del pubblico ministero, il ricorso e il decreto di convocazione sono "
         "notificati a cura dell'ufficio all'indirizzo PEC del debitore; se la notificazione non riesce per causa non imputabile al "
         "destinatario, la notifica è eseguita a cura del ricorrente di persona a norma dell'art. 107 D.P.R. 1229/1959."),
+    # ── 06/11/2026: sentenza e sua esecuzione, spese di giustizia nel lavoro ──
+    "cpc_292": _voce("art. 292 c.p.c.", "Notificazione e comunicazione di atti al contumace", _CPC, "292",
+        "Le sentenze sono notificate alla parte contumace personalmente.", _VERIFICA_06_11),
+    "cpc_431": _voce("art. 431 c.p.c.", "Esecutorietà della sentenza", _CPC, "431",
+        "Le sentenze che pronunciano condanna a favore del lavoratore per crediti derivanti dai rapporti di cui all'articolo "
+        "409 sono provvisoriamente esecutive.", _VERIFICA_06_11),
+    "dl669_art14": _voce("D.L. 669/1996, art. 14", "Esecuzione forzata nei confronti delle pubbliche amministrazioni",
+        "urn:nir:stato:decreto.legge:1996-12-31;669", "14",
+        "Le amministrazioni dello Stato e gli enti pubblici non economici completano le procedure per l'esecuzione dei "
+        "provvedimenti giurisdizionali aventi efficacia esecutiva e comportanti l'obbligo di pagamento di somme di denaro entro "
+        "centoventi giorni dalla notificazione del titolo esecutivo; prima di tale termine il creditore non può procedere ad "
+        "esecuzione forzata né alla notifica di atto di precetto.",
+        "testo vigente (in vigore dal 12/08/2018) letto su Normattiva il 06/11/2026"),
+    "cpa_112": _voce("art. 112 c.p.a.", "Disposizioni generali sul giudizio di ottemperanza", _CPA, "112",
+        "L'azione di ottemperanza può essere proposta per conseguire l'attuazione delle sentenze passate in giudicato e degli "
+        "altri provvedimenti ad esse equiparati del giudice ordinario, al fine di ottenere l'adempimento dell'obbligo della "
+        "pubblica amministrazione di conformarsi, per quanto riguarda il caso deciso, al giudicato.", _VERIFICA_06_11),
+    "dpr115_art9": _voce("D.P.R. 115/2002, art. 9", "Contributo unificato", _DPR115, "9",
+        "Nelle controversie individuali di lavoro o concernenti rapporti di pubblico impiego le parti sono soggette al "
+        "contributo unificato solo se titolari di un reddito imponibile, risultante dall'ultima dichiarazione, superiore a tre "
+        "volte l'importo previsto dall'articolo 76 (comma 1-bis).", _VERIFICA_06_11),
+    "dpr115_art30": _voce("D.P.R. 115/2002, art. 30", "Anticipazioni forfettarie all'erario nel processo civile", _DPR115, "30",
+        "La parte che per prima si costituisce o deposita il ricorso introduttivo anticipa in modo forfettizzato euro 27, "
+        "eccetto che nei processi previsti dall'articolo unico della legge 2 aprile 1958, n. 319, e in quelli in cui si applica "
+        "lo stesso articolo.", _VERIFICA_06_11),
     # ── Notificazioni in proprio ─────────────────────────────────────────
     "l53_art11": _voce("L. 53/1994, art. 11", "Nullità delle notificazioni in proprio", _L53, "11",
         "Le notificazioni sono nulle, e la nullità è rilevabile d'ufficio, se mancano i requisiti soggettivi e oggettivi previsti, se "

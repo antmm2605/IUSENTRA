@@ -2,6 +2,8 @@ export type GuidaCoverage = {
   level: string
   source: string
   needs_reviewer: boolean
+  /** La scheda stessa dichiara di essere una classificazione di base: contenuti generici da verificare. */
+  contenuto_di_base?: boolean
   message: string
 }
 
@@ -128,6 +130,9 @@ export type GuidaChecklist = {
   totale: number
   completati: number
   percentuale_completamento: number
+  /** «atto_introduttivo_depositato» quando la causa è iscritta a ruolo: la checklist di redazione non blocca. */
+  fase_redazione?: string
+  nota_fase?: string
   pronto_per_generazione: boolean
   requires_review: boolean
   blockers: Array<Record<string, unknown>>

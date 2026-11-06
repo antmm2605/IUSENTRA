@@ -521,3 +521,33 @@ def test_fascicolo_without_code_gets_practical_suggestion_from_object():
     guida = service.get_guidance(match["codice"])
     assert guida["coverage"]["level"] == "curata"
     assert guida["codice_deposito"]["depositabile"] is True
+
+
+# Collaudo da avvocato del fascicolo Alessi (RG 2539/2025, Tribunale di Velletri, lavoro, 06/11/2026).
+ALESSI = {"numero_rg": "2539", "anno_rg": "2025", "documenti": [
+    {"tipo": "PROCURA", "nome": "Procura Alessi.PDF"}, {"tipo": "CONTRATTO", "nome": "Contratto 24-25 Alessi.PDF"},
+    {"tipo": "ATTO_GIUDIZIARIO", "nome": "Carta d'identità.PDF"}]}
+
+
+def test_checklist_non_blocca_una_causa_gia_iscritta_e_vede_gli_allegati_del_fascicolo():
+    checklist = GuidaPraticaService(kb_path=FULL_KB).get_checklist("222050", {"fascicolo": ALESSI})
+    assert checklist["allegati_mancanti"] == [] and checklist["blockers"] == []
+    assert checklist["fase_redazione"] == "atto_introduttivo_depositato" and "RG 2539/2025" in checklist["nota_fase"]
+    nuova = GuidaPraticaService(kb_path=FULL_KB).get_checklist("222050", {"fascicolo": {"documenti": []}})
+    assert nuova["fase_redazione"] == "redazione" and nuova["blockers"]
+
+
+def test_scheda_pubblico_impiego_retribuzione_con_norme_e_termini_veri():
+    guida = GuidaPraticaService(kb_path=FULL_KB).get_guidance("222050")
+    campi = [campo["id"] for campo in guida["atto_principale"]["campi_obbligatori"]]
+    assert "qualifica_rivendicata" not in campi and "voci_e_periodo" in campi  # non è la scheda delle mansioni
+    termini = {t["norma"]: t.get("giorni") or t.get("mesi") for t in guida["termini_processuali"]}
+    assert termini["art. 434, secondo comma, c.p.c."] == 30 and termini["art. 14 D.L. 669/1996"] == 120
+    assert "anticipazione_forfettaria" in guida["adempimenti_fiscali_telematici"]  # la sezione curata non è sostituita
+
+
+def test_le_fonti_della_guida_si_scelgono_per_parole_intere():
+    from pct.guida_pratica.web_enrichment import _parola_intera
+
+    assert not _parola_intera("tar", "notare la sospensione") and not _parola_intera("pensione", "sospensione feriale")
+    assert _parola_intera("tar", "ricorso al tar del lazio")

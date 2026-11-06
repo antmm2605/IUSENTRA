@@ -267,7 +267,7 @@ function NormativaItem({ item }:{item:GuidaNormativa | unknown}) {
 }
 
 function ReviewBanner({ guida }:{guida?:GuidaPratica}) {
-  if (!guida?.coverage?.needs_reviewer) return null
+  if (!guida?.coverage?.needs_reviewer && !guida?.coverage?.contenuto_di_base) return null
   return (
     <div className="iu-guida-review" role="note">
       <AlertTriangle size={16}/>
@@ -416,17 +416,23 @@ function ChecklistTab({ response, fascicoloId = '' }:{response:GuidaPraticaRespo
           <TermsActionList items={guida.termini_processuali} guida={guida} fascicoloId={fascicoloId}/>
         </Section>
       ) : null}
-      <div className="iu-guida-progress" aria-label="Completamento guida pratica">
-        <div><strong>{completion}%</strong><span>{checklist?.completati ?? 0}/{checklist?.totale ?? 0} requisiti</span></div>
-        <progress value={completion} max={100}/>
-      </div>
+      {checklist?.nota_fase ? (
+        <Section title="Fase della pratica" icon={<ClipboardCheck size={16}/> }>
+          <p className="iu-guida-lead">{checklist.nota_fase}</p>
+        </Section>
+      ) : (
+        <div className="iu-guida-progress" aria-label="Completamento guida pratica">
+          <div><strong>{completion}%</strong><span>{checklist?.completati ?? 0}/{checklist?.totale ?? 0} requisiti</span></div>
+          <progress value={completion} max={100}/>
+        </div>
+      )}
       <Section title="Prima cosa da fare" icon={<ClipboardCheck size={16}/> }>
         <p className="iu-guida-lead">{guida?.quick_help?.prima_cosa_da_fare || 'Verifica codice materia, rito, parti, competenza e documenti fondativi.'}</p>
       </Section>
-      <Section title="Campi mancanti" icon={<ListChecks size={16}/> }>
+      <Section title={checklist?.nota_fase ? 'Per un nuovo atto: campi' : 'Campi mancanti'} icon={<ListChecks size={16}/> }>
         {missingFields.length ? <ul className="iu-guida-checklist">{missingFields.map((field, index) => <li key={itemKey('field', index, field.id)} className="is-missing"><AlertTriangle size={14}/><span>{field.label || field.id}</span></li>)}</ul> : <p className="iu-guida-ok"><CheckCircle2 size={15}/> Campi obbligatori completati.</p>}
       </Section>
-      <Section title="Allegati mancanti" icon={<FileText size={16}/> }>
+      <Section title={checklist?.nota_fase ? 'Per un nuovo atto: allegati' : 'Allegati mancanti'} icon={<FileText size={16}/> }>
         {missingAttachments.length ? <ul className="iu-guida-checklist">{missingAttachments.map((item, index) => <li key={itemKey('attachment', index, item.id)} className="is-missing"><AlertTriangle size={14}/><span>{item.label || item.id}</span></li>)}</ul> : <p className="iu-guida-ok"><CheckCircle2 size={15}/> Allegati obbligatori caricati o da verificare nel fascicolo.</p>}
       </Section>
       <Section title="Avvertimenti di rito" icon={<ShieldCheck size={16}/> }>

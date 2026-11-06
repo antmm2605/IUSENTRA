@@ -14,7 +14,12 @@ l'originale del giudice, senza timbro di pubblicazione. Il principio è quello d
   partivano dal giorno dopo il deposito: la scadenza indicata sarebbe stata tardiva;
 - se non la trova, decide l'avvocato: la bozza resta da confermare con l'avviso che la data non
   è certa, e si ricontrolla quando il fascicolo riceve la sentenza dal portale. Nulla si cancella
-  e nulla si conferma al posto dell'avvocato.
+  e nulla si conferma al posto dell'avvocato;
+- intanto la data proposta è la più prudente (06/11/2026): se il testo della sentenza nel fascicolo
+  dice quando è stata decisa («pronunciato in pari data» con l'udienza, o la data in calce prima
+  della firma), il termine si conta da lì. La pubblicazione non può precedere la decisione, quindi
+  la scadenza non è mai successiva a quella vera; la comunicazione arriva dopo e darebbe una
+  scadenza tardiva (fascicolo Alessi, RG 2539/2025 Velletri: decisa il 07/10/2026, comunicata l'08/10).
 """
 
 from __future__ import annotations
@@ -25,6 +30,7 @@ from typing import Any, Callable, Iterable
 from datetime import date
 
 from pct.termine_lungo_sentenza import (
+    data_decisione,
     data_deposito_dal_portale,
     data_pubblicazione_da_fatti,
     numero_sentenza,
@@ -35,6 +41,9 @@ MARCATORE_PEC = "PEC_TERMINE_PROPOSTO:"
 CODICE_TERMINE_LUNGO = "CIV_APPELLO_LUNGO"
 NON_CERTA = "DATA_DEPOSITO_NON_CERTA"
 DAI_DOCUMENTI = "DATA_DEPOSITO_DAI_DOCUMENTI"
+DALLA_DECISIONE = "DATA_DECISIONE_PRUDENZIALE"
+_SENTENZA = re.compile(r"\bS\s?E\s?N\s?T\s?E\s?N\s?Z\s?A\b", re.IGNORECASE)
+_FINESTRA_GIORNI = 60
 AVVISO = (
     "Data di deposito non certa: la data indicata è quella della comunicazione di cancelleria, che non fa "
     "decorrere il termine (artt. 133 e 327 c.p.c.). Verificare la data di pubblicazione della sentenza sul "
@@ -65,12 +74,43 @@ def _fatti_della_sentenza(fatti: Iterable[Any], numero: str) -> list[Any]:
     return [fatto for fatto in fatti if compatto in re.sub(r"\s+", "", _valore(fatto, "contesto"))]
 
 
+def decisione_dai_testi(testi: Iterable[str], *, comunicazione: date) -> date | None:
+    """La data della decisione letta nelle sentenze del fascicolo decise nei 60 giorni prima della comunicazione;
+    solo se una."""
+    trovate: set[date] = set()
+    for testo in testi:
+        if not _SENTENZA.search(str(testo or "")[:4000]):
+            continue
+        giorno = data_decisione(testo)
+        if giorno is not None and 0 <= (comunicazione - giorno).days <= _FINESTRA_GIORNI:
+            trovate.add(giorno)
+    return next(iter(trovate)) if len(trovate) == 1 else None
+
+
+def _prudenziale(scadenziario: Any, scadenza: Any, decisione: date, *, testo: str, note: str) -> bool:
+    if f"{DALLA_DECISIONE} decisione={decisione.isoformat()}" in note:
+        return False
+    calcolo = scadenza_termine_lungo(decisione, lavoro="Sospensione feriale non applicata" in testo)
+    if calcolo["deadline"] >= _valore(scadenza, "data_scadenza")[:10]:
+        return False  # solo se anticipa la scadenza: mai una data più tardiva
+    note_senza = "\n".join(r for r in note.splitlines() if not r.startswith(DALLA_DECISIONE))
+    scadenziario.aggiorna(
+        _valore(scadenza, "id"), data_scadenza=calcolo["deadline"], data_decorrenza=decisione.isoformat(),
+        legal_due_at=calcolo["deadline"], raw_due_at=calcolo["rawDeadline"],
+        note=(f"{note_senza}\n{DALLA_DECISIONE} decisione={decisione.isoformat()}: in attesa della data di deposito, il "
+              "termine è contato dal giorno della decisione scritto nella sentenza, che la pubblicazione non può "
+              "precedere (artt. 133 e 327 c.p.c.).").strip(),
+    )
+    return True
+
+
 def riconvalida_bozze(
     scadenziario: Any,
     fatti_del_fascicolo: Callable[[str], Iterable[Any]],
     documenti_del_fascicolo: Callable[[str], Iterable[Any]] | None = None,
+    testi_del_fascicolo: Callable[[str], Iterable[str]] | None = None,
 ) -> dict[str, int]:
-    esito = {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0}
+    esito = {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0, "dalla_decisione": 0}
     for scadenza in list(scadenziario.tutte(solo_aperte=False)):
         if not da_riconvalidare(scadenza):
             continue
@@ -103,14 +143,19 @@ def riconvalida_bozze(
                       "la data della comunicazione è stata sostituita.").strip(),
             )
             esito[fonte] += 1
-        elif NON_CERTA not in note:
-            scadenziario.aggiorna(
-                _valore(scadenza, "id"),
-                descrizione=f"{AVVISO}\n{_valore(scadenza, 'descrizione')}".strip(),
-                note=f"{note}\n{NON_CERTA}".strip(),
-            )
-            esito["da_giudicare"] += 1
+        else:
+            if NON_CERTA not in note:
+                note = f"{note}\n{NON_CERTA}".strip()
+                scadenziario.aggiorna(
+                    _valore(scadenza, "id"), descrizione=f"{AVVISO}\n{_valore(scadenza, 'descrizione')}".strip(), note=note,
+                )
+                esito["da_giudicare"] += 1
+            decisione = (decisione_dai_testi(testi_del_fascicolo(fascicolo_id), comunicazione=comunicazione)
+                         if testi_del_fascicolo is not None and fascicolo_id and comunicazione else None)
+            if decisione is not None and _prudenziale(scadenziario, scadenza, decisione, testo=testo, note=note):
+                esito["dalla_decisione"] += 1
     return esito
 
 
-__all__ = ["AVVISO", "DAI_DOCUMENTI", "NON_CERTA", "da_riconvalidare", "riconvalida_bozze"]
+__all__ = ["AVVISO", "DAI_DOCUMENTI", "DALLA_DECISIONE", "NON_CERTA", "da_riconvalidare", "decisione_dai_testi",
+           "riconvalida_bozze"]

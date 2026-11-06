@@ -11,7 +11,7 @@ from typing import Any
 from pct.formatting import format_date_it
 from pct.document_intelligence.models import utc_now
 
-VERSIONE = "2026.09.21.rettifiche-storiche.v1"
+VERSIONE = "2026.11.06.rettifiche-storiche.v2+anteriore-al-ruolo"
 NOTA_TERMINE_STORICO = "Creata dalla lettura automatica dei documenti: da confermare."
 
 
@@ -37,6 +37,15 @@ def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any]
             continue
         giorno = str(getattr(att, "data", ""))[:10]
         doc_id = str(getattr(att, "id_documento", ""))
+        anno_rg = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+        if anno_rg.isdigit() and len(anno_rg) == 4 and giorno and giorno < f"{anno_rg}-01-01":
+            # Una causa non ha udienze prima di essere iscritta a ruolo: la data è altro (nascita, precedente citato).
+            numero = str(getattr(fascicolo, "numero_rg", "") or "").strip()
+            piano.append({"tipo": "attivita", "id": att.id,
+                          "motivo": f"La data precede l'anno di iscrizione a ruolo (RG {numero}/{anno_rg}): non è un'udienza di questa causa.",
+                          "prove": [{"fatto_id": "", "documento_id": doc_id, "sha256": "", "campo": "anno_rg",
+                                     "verifica": "regola", "estratto": f"RG {numero}/{anno_rg}"}]})
+            continue
         fonte = [f for f in correnti if f.tipo == "documento" and f.oggetto_id == doc_id and f.categoria == "data" and str(f.valore)[:10] == giorno]
         udienze = [f for f in fonte if f.campo == "udienza"]
         if any(f.verifica in {"verificata", "corretta", "plausibile"} for f in udienze):
@@ -92,7 +101,8 @@ def riconcilia_storico(fascicolo: Any, registro: Any, tenant: str, *, applica: b
             timestamp = utc_now()
             audit_id = "rettifica-" + uuid.uuid4().hex
             repository.append_audit_event({"id": audit_id, "tenant_id": tenant, "fascicolo_id": fascicolo.id, "document_id": item["prove"][0]["documento_id"], "user_id": "archivio_letture", "event_type": "archive.legacy_reconciliation", "timestamp": timestamp, "status": "planned", "payload": {**item, "versione": VERSIONE}})
-            nota = "Rettifica dall’archivio delle letture: " + item["motivo"] + " Prove: " + ", ".join(p["fatto_id"] for p in item["prove"])
+            prove = ", ".join(p["fatto_id"] for p in item["prove"] if p["fatto_id"])
+            nota = "Rettifica dall’archivio delle letture: " + item["motivo"] + (" Prove: " + prove if prove else "")
             if item["tipo"] == "attivita":
                 att = next(a for a in fascicolo.attivita if a.id == item["id"])
                 manager.aggiorna_attivita(fascicolo.id, att.id, esito=EsitoAttivita.ANNULLATO, note=att.note + "\n" + nota)

@@ -12,7 +12,14 @@ def _text(value: Any) -> str:
 
 
 def _human(assignment: Any) -> bool:
-    return assignment is not None and (assignment.source_state == 'manual_override' or assignment.status == 'confirmed')
+    """Decisione dell'avvocato da non rileggere: la correzione scritta a mano sempre; la conferma di una proposta
+    automatica solo finché le regole sono quelle con cui è stata fatta (poi si ricontrolla e, se il contenuto dice
+    altro, torna proposta con la spiegazione: ``catalog_pipeline._rivedi_conferma``)."""
+    if assignment is None:
+        return False
+    if assignment.source_state == 'manual_override':
+        return True
+    return assignment.status == 'confirmed' and assignment.resolver_version == RESOLVER_VERSION
 
 
 def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str, *, document_ids: set[str] | None = None, retry: bool = False) -> tuple[list, dict, dict]:

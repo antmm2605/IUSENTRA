@@ -212,12 +212,17 @@ class FascicoloDocumentCatalogPipeline:
                 result.waiting_for_index += 1
                 continue
             existing = existing_assignments.get((document_id, str(source.sha256 or "")))
+            conferma_da_rivedere = None
             if existing and (str(existing.source_state or "") == "manual_override" or existing.status == "confirmed"):
                 # La correzione dell'avvocato è prevalente anche dopo un
                 # aggiornamento del resolver: il nuovo motore non può
                 # sovrascrivere un esito umano già tracciato nel fascicolo.
-                result.skipped_current += 1
-                continue
+                # Una proposta automatica confermata con regole superate si
+                # rivede solo per proporre la correzione: decide l'avvocato.
+                if not (process and _conferma_di_proposta_superata(existing)):
+                    result.skipped_current += 1
+                    continue
+                conferma_da_rivedere = existing
             current_profile, _ = resolve_profile(context)
             context_matches = bool(existing) and (
                 existing.profile_id == current_profile
@@ -265,6 +270,7 @@ class FascicoloDocumentCatalogPipeline:
                 job_id=str(job["id"]),
                 result=result,
                 extracted_text=extracted_by_record_id.get(str(getattr(record, "id", "") or "")),
+                conferma_da_rivedere=conferma_da_rivedere,
             )
         return result
     def _process_source(
@@ -280,6 +286,7 @@ class FascicoloDocumentCatalogPipeline:
         job_id: str,
         result: CatalogPipelineResult,
         extracted_text: str | None = None,
+        conferma_da_rivedere: Any = None,
     ) -> None:
         self.repository.mark_catalog_job(tenant_id=tenant_id, job_id=job_id, status="processing")
         document_id = str(source.source_id or source.metadata.get("documento_id") or "").strip()
@@ -346,6 +353,8 @@ class FascicoloDocumentCatalogPipeline:
                 },
                 created_by=actor, created_at=now, updated_by=actor, updated_at=now,
             )
+            if conferma_da_rivedere is not None:
+                assignment = _rivedi_conferma(conferma_da_rivedere, assignment, actor=actor, now=now)
             self.repository.save_catalog_assignment(
                 assignment, candidates=resolution.candidates, evidence=resolution.evidence, review=resolution.review
             )
@@ -370,6 +379,41 @@ class FascicoloDocumentCatalogPipeline:
                 tenant_id=tenant_id, job_id=job_id, status="error", error_code="catalog_pipeline_error", error_message=str(exc)[:500]
             )
             result.errors.append(f"{source.filename}: catalogazione non completata ({exc}).")
+
+
+# Una conferma vale per la classificazione che l'avvocato ha visto. Se quella classificazione era una proposta
+# automatica (non una correzione scritta a mano) e le regole sono cambiate, si ricontrolla il documento: quando il
+# contenuto indica con sicurezza un'altra natura, la conferma torna proposta con la spiegazione; altrimenti resta.
+# Revisione del 04/11/2026 non applicata ai documenti già confermati: contratti di lavoro confermati come «Decreto»,
+# precedenti allegati come sentenze della causa (fascicolo Alessi, RG 2539/2025 Velletri, 06/11/2026).
+_SOGLIA_CORREZIONE = 95
+
+
+def _conferma_di_proposta_superata(existing: Any) -> bool:
+    return (existing.status == "confirmed" and str(existing.source_state or "") != "manual_override"
+            and str(existing.resolver_version or "") != RESOLVER_VERSION)
+
+
+def _rivedi_conferma(existing: Any, nuova: DocumentCatalogAssignment, *, actor: str, now: str) -> DocumentCatalogAssignment:
+    from dataclasses import replace as _sostituisci
+
+    # Conta ciò che l'avvocato ha visto e confermato: l'etichetta del documento.
+    stessa = str(nuova.document_label or "").strip().casefold() == str(existing.document_label or "").strip().casefold()
+    if stessa or nuova.status != "proposed" or int(nuova.confidence or 0) < _SOGLIA_CORREZIONE:
+        # Nulla da correggere: resta la conferma dell'avvocato, con la versione corrente per non ricontrollarla ancora.
+        return _sostituisci(existing, resolver_version=RESOLVER_VERSION, updated_at=now)
+    quando = str(existing.confirmed_at or existing.updated_at or "")[:10]
+    data = f"{quando[8:10]}/{quando[5:7]}/{quando[:4]}" if len(quando) == 10 else "in precedenza"
+    spiegazione = (f"Regole aggiornate: confermato il {data} come «{existing.document_label}»; ora il contenuto indica "
+                   f"«{nuova.document_label}». Conferma la correzione o ripristina la classificazione precedente.")
+    return _sostituisci(
+        nuova, reason=f"{spiegazione} {nuova.reason}".strip(), updated_by=actor,
+        metadata={**dict(nuova.metadata or {}), "conferma_precedente": {
+            "document_label": existing.document_label, "document_nature": existing.document_nature,
+            "document_section": existing.document_section, "confirmed_at": existing.confirmed_at,
+            "confirmed_by": existing.updated_by, "resolver_version": existing.resolver_version,
+        }},
+    )
 
 
 def _source_snapshot_matches(

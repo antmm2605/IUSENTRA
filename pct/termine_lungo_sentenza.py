@@ -214,6 +214,38 @@ def data_pubblicazione_da_fatti(fatti: Iterable[Any], *, numero: str = "") -> da
     return next(iter(scelte)) if len(scelte) == 1 else None
 
 
+_PARI_DATA = re.compile(r"\b(?:ha\s+)?pronunciat[ao]\s+in\s+pari\s+data\b|\bdecisa\s+in\s+data\s+odierna\b", re.IGNORECASE)
+_UDIENZA = re.compile(r"\budienza\s+(?:del|dell'|in\s+data)\s*$", re.IGNORECASE)
+_CALCE = re.compile(r"\b[A-ZÀ-Ü][\wÀ-ÿ'’]+(?:\s+[A-ZÀ-Ü][\wÀ-ÿ'’]+)?\s*,\s*(?:l[iì]\s+)?$")
+_FIRMA = re.compile(r"^\W{0,6}(?:il\s+giudice|il\s+presidente|il\s+consigliere|il\s+giudice\s+estensore|il\s+cancelliere)\b",
+                    re.IGNORECASE)
+
+
+def data_decisione(testo: str) -> date | None:
+    """La data in cui la sentenza è stata decisa, solo se univoca: «pronunciato in pari data» con l'udienza, o la data
+    in calce prima della firma («Velletri, 7 ottobre 2026 Il giudice»).
+
+    La pubblicazione (art. 133 c.p.c.) non può precedere la decisione: contare il termine lungo da questa data dà una
+    scadenza mai successiva a quella vera. Si usa solo quando la data di deposito non è certa, come lettura prudente.
+    """
+    from pct.provvedimenti.testo import date_vere, normalizza
+
+    pulito = normalizza(testo)
+    trovate: set[date] = set()
+    date_lette = date_vere(pulito)
+    if _PARI_DATA.search(pulito[:3000]):
+        for giorno, inizio, _fine, _scritto in date_lette:
+            if inizio < 3000 and _UDIENZA.search(pulito[max(0, inizio - 40):inizio]):
+                trovate.add(giorno)
+                break
+    for giorno, inizio, fine, _scritto in date_lette:
+        if inizio < len(pulito) - 3000:
+            continue
+        if _CALCE.search(pulito[max(0, inizio - 60):inizio]) and _FIRMA.search(pulito[fine:fine + 60]):
+            trovate.add(giorno)
+    return next(iter(trovate)) if len(trovate) == 1 else None
+
+
 def scadenza_termine_lungo(pubblicazione: date, *, lavoro: bool) -> dict[str, Any]:
     """Sei mesi dal deposito col motore unico dei termini (art. 155 c.p.c. e sospensione feriale)."""
     return ItalianDeadlineCalculator().calculate(
@@ -286,7 +318,7 @@ def completa_termini_lunghi(
     return esito
 
 
-__all__ = [
+__all__ = ["data_decisione", 
     "MARCATORE", "completa_termini_lunghi", "data_deposito_dal_portale", "data_pubblicazione", "data_pubblicazione_da_fatti",
     "data_pubblicazione_della_sentenza", "numero_della_comunicazione", "numero_sentenza",
     "proponi_termine_lungo", "scadenza_termine_lungo",

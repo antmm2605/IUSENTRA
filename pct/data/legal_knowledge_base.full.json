@@ -222856,13 +222856,276 @@
     {
       "codice": "222050",
       "denominazione": "Pubblico impiego - retribuzione",
-      "eredita_da": "222001",
+      "rito": "Rito del lavoro (artt. 409 ss. c.p.c.); giurisdizione del giudice ordinario per il pubblico impiego contrattualizzato (art. 63 D.Lgs. 165/2001)",
+      "competenza": "Tribunale in funzione di giudice del lavoro del luogo in cui ha sede l'ufficio al quale il dipendente è o era addetto (art. 413, quinto comma, c.p.c.); con un'amministrazione dello Stato non si applica il foro erariale (art. 413, ultimo comma)",
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 165/2001 (TUPI)",
+          "articolo": "63",
+          "descrizione": "Giurisdizione del giudice ordinario sulle controversie di lavoro alle dipendenze delle PA"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "409, n. 5",
+          "descrizione": "Rapporti di lavoro pubblico soggetti al rito del lavoro"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "413, quinto comma",
+          "descrizione": "Competenza per territorio: sede dell'ufficio di addetto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "414",
+          "descrizione": "Contenuto del ricorso: mezzi di prova e documenti già nel ricorso"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "415",
+          "descrizione": "Decreto di fissazione, notifica entro 10 giorni, almeno 30 giorni prima dell'udienza; per le amministrazioni statali notifica presso l'Avvocatura dello Stato (settimo comma)"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "416",
+          "descrizione": "Costituzione del convenuto almeno 10 giorni prima dell'udienza, con decadenze"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "417-bis",
+          "descrizione": "In primo grado l'amministrazione può difendersi con propri dipendenti"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "429",
+          "descrizione": "Sentenza con lettura del dispositivo e della motivazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "431",
+          "descrizione": "Sentenza di condanna a favore del lavoratore provvisoriamente esecutiva"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "434",
+          "descrizione": "Appello entro 30 giorni dalla notificazione della sentenza"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "327",
+          "descrizione": "Termine lungo di sei mesi dalla pubblicazione"
+        },
+        {
+          "fonte": "R.D. 1611/1933",
+          "articolo": "11",
+          "descrizione": "Notifiche alle amministrazioni dello Stato presso l'Avvocatura dello Stato"
+        },
+        {
+          "fonte": "D.L. 669/1996",
+          "articolo": "14",
+          "descrizione": "120 giorni dalla notifica del titolo esecutivo prima del precetto e dell'esecuzione contro lo Stato"
+        },
+        {
+          "fonte": "c.p.a.",
+          "articolo": "112",
+          "descrizione": "Ottemperanza delle sentenze del giudice ordinario passate in giudicato"
+        },
+        {
+          "fonte": "D.P.R. 115/2002",
+          "articolo": "9, comma 1-bis",
+          "descrizione": "Contributo unificato dovuto solo sopra la soglia di reddito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "410",
+          "descrizione": "Tentativo di conciliazione facoltativo"
+        }
+      ],
+      "atto_principale": {
+        "tipo_atto": "ricorso_pubblico_impiego",
+        "denominazione": "Ricorso al giudice del lavoro (art. 414 c.p.c.) - differenze o voci retributive nel pubblico impiego",
+        "campi_chiave": [
+          {
+            "id": "dipendente",
+            "label": "Dipendente pubblico",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "amministrazione",
+            "label": "Amministrazione convenuta (per lo Stato: in persona del Ministro, presso l'Avvocatura dello Stato)",
+            "required": true,
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "ufficio_di_servizio",
+            "label": "Ufficio o istituto presso cui il dipendente presta o prestava servizio (competenza, art. 413)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "voci_e_periodo",
+            "label": "Voci retributive richieste e periodo (anni o mensilità)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fonte_del_diritto",
+            "label": "Fonte del diritto (legge o contratto collettivo di comparto) e conteggi",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Nel rito del lavoro indicare nel ricorso mezzi di prova e documenti (art. 414 c.p.c.).",
+          "Notificare ricorso e decreto entro 10 giorni dal decreto e almeno 30 giorni prima dell'udienza; per le amministrazioni statali presso l'Avvocatura dello Stato (art. 415 c.p.c.).",
+          "Valutare il patrocinio a spese dello Stato e l'esenzione dal contributo unificato per reddito (art. 9, comma 1-bis, D.P.R. 115/2002)."
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "dipendente",
+            "label": "Dipendente pubblico",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "amministrazione",
+            "label": "Amministrazione convenuta (per lo Stato: in persona del Ministro, presso l'Avvocatura dello Stato)",
+            "required": true,
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "ufficio_di_servizio",
+            "label": "Ufficio o istituto presso cui il dipendente presta o prestava servizio (competenza, art. 413)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "voci_e_periodo",
+            "label": "Voci retributive richieste e periodo (anni o mensilità)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fonte_del_diritto",
+            "label": "Fonte del diritto (legge o contratto collettivo di comparto) e conteggi",
+            "required": true,
+            "type": "string"
+          }
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "documenti_lavoro",
+          "label": "Contratti o provvedimenti di nomina, cedolini e conteggi",
+          "required": true
+        },
+        {
+          "id": "documenti_fondativi",
+          "label": "Richiesta o diffida all'amministrazione e risposta, se presenti",
+          "required": false
+        },
+        {
+          "id": "documento_identita_cliente",
+          "label": "Documento d'identità della parte assistita",
+          "required": false
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Notifica di ricorso e decreto",
+          "giorni": 10,
+          "decorrenza": "pronuncia del decreto di fissazione",
+          "natura": "ordinatorio",
+          "norma": "art. 415, quarto comma, c.p.c."
+        },
+        {
+          "termine": "Termine a comparire del convenuto",
+          "giorni": 30,
+          "decorrenza": "prima dell'udienza (40 se all'estero)",
+          "natura": "perentorio",
+          "norma": "art. 415, quinto e sesto comma, c.p.c."
+        },
+        {
+          "termine": "Costituzione del convenuto",
+          "giorni": 10,
+          "decorrenza": "prima dell'udienza",
+          "natura": "perentorio",
+          "norma": "art. 416 c.p.c."
+        },
+        {
+          "termine": "Appello (termine breve)",
+          "giorni": 30,
+          "decorrenza": "notificazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 434, secondo comma, c.p.c."
+        },
+        {
+          "termine": "Appello (termine lungo, senza sospensione feriale)",
+          "mesi": 6,
+          "decorrenza": "pubblicazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 327 c.p.c.; art. 3 L. 742/1969"
+        },
+        {
+          "termine": "Esecuzione contro lo Stato per le somme",
+          "giorni": 120,
+          "decorrenza": "notificazione del titolo esecutivo",
+          "natura": "dilatorio",
+          "norma": "art. 14 D.L. 669/1996"
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": {
+          "regola": "Dovuto solo se il reddito imponibile supera tre volte la soglia dell'art. 76 D.P.R. 115/2002; in tal caso nella misura dell'art. 13, comma 3 (metà). Con la dichiarazione di reddito inferiore: esente (art. 9, comma 1-bis)."
+        },
+        "anticipazione_forfettaria": {
+          "importo_euro": 27.0,
+          "note": "Art. 30 D.P.R. 115/2002: esclusa nei giudizi dell'articolo unico della L. 319/1958 (lavoro). La L. 319/1958 è abrogata dal D.Lgs. 1 agosto 2025, n. 123 dal 01/01/2027: per i ricorsi depositati da tale data verificare la nuova disciplina."
+        },
+        "deposito_telematico": {
+          "modalita": "Busta telematica con atto principale e DatiAtto.xml coerente con XSD",
+          "obbligatorio": true
+        }
+      },
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare la competenza: tribunale del lavoro della sede dell'ufficio di servizio (art. 413, quinto comma, c.p.c.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Nessuna mediazione obbligatoria: il lavoro non è tra le materie dell'art. 5 D.Lgs. 28/2010; il tentativo di conciliazione è facoltativo (art. 410 c.p.c.)",
+          "obbligatorio": false
+        },
+        {
+          "step": 3,
+          "azione": "Richiesta o diffida all'amministrazione con prova della consegna, se utile a provare la pretesa e a interrompere la prescrizione",
+          "obbligatorio": false
+        },
+        {
+          "step": 4,
+          "azione": "Procura alle liti e documenti del rapporto (contratti, cedolini, conteggi)",
+          "obbligatorio": true
+        },
+        {
+          "step": 5,
+          "azione": "Dichiarazione del reddito per l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R. 115/2002)",
+          "obbligatorio": false
+        }
+      ],
       "categoria": "Controversie in materia di lavoro, previdenza e assistenza obbligatorie",
       "_source_file": "kb_13_lavoro_previdenza.json",
       "_macro_area_id": "13_LAVORO_PREVIDENZA_ASSISTENZA",
       "_macro_area_denominazione": "Controversie in materia di lavoro, previdenza e assistenza obbligatorie",
       "_registro": "SILP (Sezione Lavoro) / SICID-Lavoro - Ruolo 2",
-      "_quality_hint": "classificazione_base_da_arricchire",
+      "_quality_hint": "operativa_curata",
       "_source_files": [
         "kb_13_lavoro_previdenza.json"
       ]

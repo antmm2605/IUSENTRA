@@ -270,3 +270,26 @@ def test_istituto_non_scolastico_resta_pa_presso_la_sede():
     ricorso = DocumentoCatalogato("r1", "ricorso.pdf", "Ricorso in materia di lavoro (art. 414 c.p.c.)", nostro=True, udienze=("2026-12-15",))
     obbligo = obblighi_del_fascicolo([ricorso], [Parte("Istituto Nazionale Previdenza Sociale INPS", "controparte")], contesto={"notifica_estero": False}, oggi=OGGI)[0]
     assert obbligo.destinatari[0]["presso"].startswith("presso la sede")
+
+
+def test_sentenza_contro_lo_stato_contumace_solo_parti_della_sentenza_presso_avvocatura():
+    # Fascicolo reale Alessi (RG 2539/2025, Tribunale di Velletri): MIM contumace; l'Istituto comprensivo è nominato nel
+    # ricorso ma non è parte della sentenza.
+    sentenza = DocumentoCatalogato("s1", "20708622s.pdf", "Sentenza", data="2026-10-07")
+    parti = [Parte("MINISTERO DELL'ISTRUZIONE E DEL MERITO", "controparte", difensore="Avvocatura Distrettuale di Stato di Roma",
+                   documenti=("ricorso", "s1"), contumace=True),
+             Parte("Istituto Comprensivo «Anzio III» di Anzio", "controparte", documenti=("ricorso",))]
+    obbligo = obblighi_del_fascicolo([sentenza], parti, ufficio="Tribunale di Velletri", oggi=OGGI)[0]
+    assert [d["nome"] for d in obbligo.destinatari] == ["MINISTERO DELL'ISTRUZIONE E DEL MERITO"]
+    destinatario = obbligo.destinatari[0]
+    assert destinatario["presso"].startswith("presso Avvocatura distrettuale dello Stato")
+    assert "art. 292 c.p.c." in destinatario["fonte"] and "contumace" in destinatario["nota"]
+    assert "art. 14 D.L. 669/1996" in obbligo.regola.fonti and "120 giorni" in obbligo.regola.avvertenze
+
+
+def test_sentenza_privato_contumace_alla_parte_personalmente():
+    sentenza = DocumentoCatalogato("s1", "sentenza.pdf", "Sentenza", data="2026-09-01")
+    obbligo = obblighi_del_fascicolo([sentenza], [Parte("Blu Franco", "controparte", difensore="Rosa Neri", documenti=("s1",),
+                                                        contumace=True)], oggi=OGGI)[0]
+    assert obbligo.destinatari[0]["presso"].startswith("alla parte personalmente")
+    assert obbligo.destinatari[0]["fonte"].startswith("art. 292 c.p.c.")

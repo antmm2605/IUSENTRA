@@ -33,6 +33,21 @@ def _righe(conn, sql, parametri=()):
         return [{"errore": _breve(f"{type(exc).__name__}: {exc}")}]
 
 
+def _esito_sintetico(grezzo) -> dict:
+    """Solo chiavi decisionali dell'esito (pertinenza, proposta, motivi): niente testo del documento."""
+    try:
+        esito = json.loads(grezzo or "{}")
+    except Exception:
+        return {"illeggibile": True}
+    sintesi = {}
+    for chiave in ("pertinente", "proposta", "motivo", "non_automatica", "decisione", "conclusiva", "identita", "motivi"):
+        if chiave in esito:
+            valore = esito[chiave]
+            sintesi[chiave] = valore if isinstance(valore, (bool, int, float)) or valore is None else _breve(json.dumps(valore, ensure_ascii=False))[:400]
+    sintesi["chiavi"] = sorted(esito)[:30]
+    return sintesi
+
+
 def _maschera(testo: str) -> str:
     """Pseudonimizza: lascia cifre, punteggiatura e le sigle del ruolo; ogni altra parola diventa «x…»."""
     sigle = {"r", "g", "n", "l", "rg", "rgl", "rgac", "nrg", "ruolo", "generale", "n.", "numero", "del", "al", "anno", "causa",
@@ -110,6 +125,12 @@ def main() -> int:
             generazione = RegistroLetture(percorso).accoda_evento(tenant, fascicolo, forza=True, prioritario=True)
             voce["riaccodato"] = {"generazione": generazione}
         if os.getenv("RUOLO_DOC"):
+            voce["letture_del_documento"] = [
+                {**{k: r[k] for k in ("lettore", "stato", "versione_lettore", "aggiornato_il")},
+                 "esito": _esito_sintetico(r.get("esito_json"))}
+                for r in _righe(sqlite3.connect(f"file:{percorso}?mode=ro", uri=True, timeout=10),
+                                "SELECT lettore, stato, versione_lettore, aggiornato_il, esito_json FROM letture "
+                                "WHERE fascicolo_id=? AND oggetto_id=? ORDER BY aggiornato_il DESC", (fascicolo, os.getenv("RUOLO_DOC")))]
             voce["ruolo_nel_documento"] = _ruolo_nel_documento(fascicolo, tenant, os.getenv("RUOLO_DOC", ""))
         esito["registri"].append(voce)
     print(MARCATORE + json.dumps(esito, ensure_ascii=False, default=str), flush=True)

@@ -38,14 +38,6 @@
           "fonte": "Cod. PI",
           "articolo": "120-121",
           "descrizione": "Azioni – inibitoria, risarcimento, sequestro, distruzione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Brevetto – validità e contraffazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Nullità del brevetto – prior art e applicazione industriale"
         }
       ],
       "azioni_disponibili_120_121": {
@@ -365,14 +357,6 @@
         {
           "fonte": "Dir. UE 943/2016 (Trade Secrets)",
           "descrizione": "Protezione armonizzata dei segreti commerciali in tutta l'UE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Know-how – protezione e prova del carattere segreto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Ex dipendente che porta via segreti – violazione art. 98"
         }
       ],
       "segreto_commerciale_98": {
@@ -697,14 +681,6 @@
         {
           "fonte": "D.Lgs. 297/2004",
           "descrizione": "Sanzioni per uso illecito di DOP/IGP"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "DOP – imitazione e evocazione illecita"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "IGP – tutela contro prodotti simili non certificati"
         }
       ],
       "tipi_di_violazione_Reg1151": {
@@ -1158,14 +1134,6 @@
           "fonte": "D.Lgs. 471/1997",
           "articolo": "1",
           "descrizione": "Sanzione per omessa documentazione TP – riduzione sanzioni se documentazione adeguata"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Transfer pricing – onere prova e documentazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Arm's length – metodi di calcolo ammessi"
         }
       ],
       "arm_length_110c7": {
@@ -1624,14 +1592,6 @@
         {
           "fonte": "D.Lgs. 209/2023",
           "descrizione": "Riforma della residenza fiscale delle persone fisiche"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Residenza fiscale – domicilio e centro degli affari"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Trasferimento in Svizzera/UAE – prova della residenza effettiva"
         }
       ],
       "residenza_fiscale_italiana": {

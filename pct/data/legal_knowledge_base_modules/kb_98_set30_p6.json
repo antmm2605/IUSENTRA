@@ -42,14 +42,6 @@
         {
           "fonte": "Dir. UE 2000/78/CE",
           "descrizione": "Parità di trattamento in materia di occupazione – disabilità"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Licenziamento del disabile – nullità se non giustificato"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accomodamenti ragionevoli – obbligo del datore"
         }
       ],
       "quote_di_riserva_art3": {
@@ -530,18 +522,6 @@
           "fonte": "c.c.",
           "articolo": "2101",
           "descrizione": "Retribuzione a cottimo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2020",
-          "descrizione": "MBO – natura retributiva o incentivante; diritto al pagamento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2022",
-          "descrizione": "Target irraggiungibile – nullità del sistema MBO"
-        },
-        {
-          "fonte": "Cass. SU 11234/2023",
-          "descrizione": "Premio aziendale: diritto soggettivo vs aspettativa"
         }
       ],
       "natura_giuridica_MBO": {
@@ -1047,14 +1027,6 @@
         {
           "fonte": "D.Lgs. 105/2022 (attuazione Dir. UE 2019/1158)",
           "descrizione": "Congedo di paternità obbligatorio – 10 giorni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Licenziamento durante gravidanza – nullità assoluta"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Congedo parentale e demansionamento al rientro – discriminazione"
         }
       ],
       "divieto_licenziamento_54_Cass_SU_14897_2021": {
@@ -1450,14 +1422,6 @@
           "fonte": "c.p.c.",
           "articolo": "445-bis",
           "descrizione": "ACCERTAMENTO TECNICO PREVENTIVO – obbligatorio prima del ricorso (ATP previdenziale)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "ATP previdenziale 445-bis – obbligatorietà e effetti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Invalidità civile – percentuale e calcolo"
         }
       ],
       "ATP_previdenziale_445bis_obbligatorio": {
@@ -1984,11 +1948,10 @@
         },
         {
           "fonte": "Cons. Stato Ad. Pl. 8/2021",
-          "descrizione": "SCIA: terzi controinteressati – decorrenza del termine di impugnazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2022",
-          "descrizione": "Permesso di costruire – legittimazione del vicino confinante"
+          "descrizione": "SCIA: terzi controinteressati – decorrenza del termine di impugnazione",
+          "url": "https://www.giustizia-amministrativa.it/web/guest/ricerca?q=adunanza+plenaria+8+2021",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 23194/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "chi_puo_impugnare": {

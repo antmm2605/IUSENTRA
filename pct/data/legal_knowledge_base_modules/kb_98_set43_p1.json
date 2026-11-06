@@ -363,10 +363,6 @@
         {
           "fonte": "Cod. Consumo art. 57",
           "descrizione": "EFFETTI DEL RECESSO – rimborso entro 14 GG dalla comunicazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Recesso consumatore – estensione a 12 mesi se non informato"
         }
       ],
       "recesso_14_gg": {
@@ -782,10 +778,6 @@
           "fonte": "L.D.A.",
           "articolo": "129",
           "descrizione": "RISOLUZIONE – se l'editore non pubblica entro il termine: l'autore può risolvere"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contratto edizione – mancata pubblicazione e risoluzione"
         }
       ],
       "obblighi_editore_122": {
@@ -1058,10 +1050,6 @@
           "fonte": "c.c.",
           "articolo": "2506-bis",
           "descrizione": "Scissione – disciplina analoga"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fusione – opposizione creditori e tutele"
         }
       ],
       "opposizione_creditori_2503": {
@@ -1530,10 +1518,6 @@
         {
           "fonte": "T.U.B. art. 119",
           "descrizione": "Estratto conto bancario – inviato almeno annualmente; contestazione entro 60 GG"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Estratto conto – approvazione tacita e contestazione tardiva"
         }
       ],
       "contestazione_1832": {

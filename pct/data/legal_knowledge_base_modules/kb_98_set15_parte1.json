@@ -43,14 +43,6 @@
           "fonte": "Cod. Ass.",
           "articolo": "149",
           "descrizione": "CARD – risarcimento diretto per scontro tra veicoli assicurati"
-        },
-        {
-          "fonte": "Cass. SU 6651/2024",
-          "descrizione": "Tabelle uniformi danno biologico"
-        },
-        {
-          "fonte": "Cass. SU 26513/2023",
-          "descrizione": "Concorso di colpa – criteri di valutazione"
         }
       ],
       "presunzione_colpa_concorrente_2054_c2": {
@@ -326,12 +318,11 @@
           "descrizione": "Riforma"
         },
         {
-          "fonte": "Cass. SU 9372/2021",
-          "descrizione": "Modifica assegno – sopravvenienza rilevante"
-        },
-        {
           "fonte": "Cass. SU 18287/2018",
-          "descrizione": "Assegno divorzile – criteri revisione"
+          "descrizione": "Assegno divorzile – criteri revisione",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022629920O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 29920/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sopravvenienza": {
@@ -582,14 +573,6 @@
           "fonte": "c.c.",
           "articolo": "1271",
           "descrizione": "Alea normale del contratto"
-        },
-        {
-          "fonte": "Cass. SU 25767/2020",
-          "descrizione": "Eccessiva onerosità – straordinarietà e imprevedibilità dell'evento"
-        },
-        {
-          "fonte": "Cass. SU 12235/2021",
-          "descrizione": "Covid-19 come evento straordinario imprevedibile – applicabilità 1467"
         }
       ],
       "presupposti_1467": {
@@ -841,15 +824,10 @@
         },
         {
           "fonte": "Cass. SU 20943/2022",
-          "descrizione": "Art. 2051 – inversione onere prova + caso fortuito come unica esimente"
-        },
-        {
-          "fonte": "Cass. SU 17403/2023",
-          "descrizione": "Caduta su suolo pubblico – prova insidia/trabocchetto non più necessaria"
-        },
-        {
-          "fonte": "Cass. SU 21045/2024",
-          "descrizione": "Onere contributivo del danneggiato – condotta incauta"
+          "descrizione": "Art. 2051 – inversione onere prova + caso fortuito come unica esimente",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022U20943O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "rivoluzione_cass_su_20943_2022": {
@@ -1162,16 +1140,11 @@
           "descrizione": "Disciplina di dettaglio su straordinari, maggiorazioni, ferie aggiuntive"
         },
         {
-          "fonte": "Cass. SU 13290/2021",
-          "descrizione": "Ferie non godute – irrinunciabilità e indennità sostitutiva"
-        },
-        {
           "fonte": "CGUE C-619/16 (Kreuziger 2018)",
-          "descrizione": "Ferie non godute – divieto di estinzione senza verifica possibilità di godimento"
-        },
-        {
-          "fonte": "Cass. SU 17657/2023",
-          "descrizione": "Straordinari – prova e quantificazione"
+          "descrizione": "Ferie non godute – divieto di estinzione senza verifica possibilità di godimento",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-619/16",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 26413/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "diritti_fondamentali_irrinunciabili": {

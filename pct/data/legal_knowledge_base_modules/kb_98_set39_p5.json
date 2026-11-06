@@ -28,14 +28,6 @@
           "fonte": "D.Lgs. 152/2006",
           "articolo": "27-bis",
           "descrizione": "VIA e AIA in un unico procedimento – per grandi impianti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "VIA – legittimazione delle associazioni ambientaliste"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Provvedimento VIA favorevole – impugnazione dei terzi"
         }
       ],
       "VIA_procedimento": {
@@ -473,12 +465,11 @@
           "descrizione": "Comunicazione dei motivi ostativi – non sempre obbligatoria per i piani"
         },
         {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "PRG – natura normativa e impugnazione"
-        },
-        {
           "fonte": "Cons. Stato Ad. Pl. 4/2011",
-          "descrizione": "Legittimazione ad impugnare il PRG"
+          "descrizione": "Legittimazione ad impugnare il PRG",
+          "url": "https://www.giustizia-amministrativa.it/web/guest/ricerca?q=adunanza+plenaria+4+2011",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 25503/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "PRG_e_variante": {
@@ -962,14 +953,6 @@
           "fonte": "L. 241/1990",
           "articolo": "10-bis",
           "descrizione": "Preavviso del diniego – la PA deve comunicarlo prima di decidere"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Licenza PS – diniego e tutela del privato"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Diniego licenza – proporzionalità e motivazione adeguata"
         }
       ],
       "licenze_TULPS": {
@@ -1393,14 +1376,6 @@
           "fonte": "Dir. UE 2006/123 (Direttiva Bolkestein)",
           "articolo": "12",
           "descrizione": "Scarsità delle risorse naturali – obbligo di gara pubblica per le concessioni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Concessioni balneari – Bolkestein e disapplicazione della proroga"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 17-18/2021",
-          "descrizione": "Concessioni balneari – proroga illegittima per contrasto con Bolkestein"
         },
         {
           "fonte": "D.Lgs. 59/2010",
@@ -1864,10 +1839,6 @@
           "fonte": "D.Lgs. 36/2023",
           "articolo": "210",
           "descrizione": "Controversie – clausola compromissoria; arbitrato amministrato ANAC"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Riserve appalto pubblico – decadenza e iscrizione"
         }
       ],
       "varianti_art114": {

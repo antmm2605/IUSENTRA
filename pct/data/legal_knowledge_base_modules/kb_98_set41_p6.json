@@ -27,10 +27,6 @@
         {
           "fonte": "Dir. UE 2014/23",
           "descrizione": "Concessioni – disciplina europea dell'in house"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "In house providing – controllo analogo e affidamento diretto"
         }
       ],
       "in_house_providing": {
@@ -479,10 +475,6 @@
           "fonte": "D.L. 70/2011",
           "articolo": "19 c. 14",
           "descrizione": "Riclassificazione immobili di lusso – DAP (divisione accatastamento proposto)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Rendita catastale – impugnazione e valore probatorio"
         }
       ],
       "contestazione_rendita": {
@@ -945,10 +937,6 @@
           "fonte": "D.Lgs. 165/2001",
           "articolo": "55-septies",
           "descrizione": "Falsa attestazione presenze – licenziamento automatico"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Procedimento disciplinare PA – termini perentori"
         }
       ],
       "procedimento_55bis": {
@@ -1134,10 +1122,6 @@
           "fonte": "D.Lgs. 42/2004",
           "articolo": "146 c. 4",
           "descrizione": "Procedimento – Comune propone; Soprintendenza approva o nega"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Autorizzazione paesaggistica – vincolo e contestazione"
         }
       ],
       "autorizzazione_paesaggistica_146": {
@@ -1577,10 +1561,6 @@
           "fonte": "D.Lgs. 286/1998",
           "articolo": "13",
           "descrizione": "Espulsione – misura amministrativa del Prefetto; ricorso al Giudice di Pace"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Permesso di soggiorno – diniego e giurisdizione"
         }
       ],
       "permesso_di_soggiorno": {

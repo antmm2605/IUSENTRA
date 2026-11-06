@@ -33,14 +33,6 @@
           "fonte": "D.Lgs. 62/2018",
           "articolo": "43",
           "descrizione": "Responsabilità dell'organizzatore – per inadempimento dei singoli servizi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pacchetto turistico – danno da vacanza rovinata"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Cancellazione da parte dell'organizzatore – rimborso e risarcimento"
         }
       ],
       "danno_da_vacanza_rovinata": {
@@ -464,14 +456,6 @@
           "fonte": "c.c.",
           "articolo": "1917",
           "descrizione": "Assicurazione della responsabilità civile – azione diretta del terzo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Liquidazione sinistro – procedura e inadempimento dell'assicuratore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Reticenza dell'assicurato – proporzione della reazione"
         }
       ],
       "procedura_liquidazione_148": {
@@ -906,14 +890,6 @@
         {
           "fonte": "D.P.R. 254/2006",
           "descrizione": "Regolamento CARD – liquidazione dei sinistri tra assicuratori"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Risarcimento diretto – competenza e azione verso l'assicuratore del terzo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Sinistro con lesioni micropermanenti – criteri di accertamento"
         }
       ],
       "risarcimento_diretto_149": {
@@ -1456,14 +1432,6 @@
           "fonte": "c.c.",
           "articolo": "2473-bis",
           "descrizione": "Esclusione del socio per giusta causa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Recesso del socio di S.r.l. – valore di liquidazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Calcolo della quota di liquidazione – inclusione dell'avviamento"
         }
       ],
       "cause_di_recesso_2473": {
@@ -1946,14 +1914,6 @@
           "fonte": "c.c.",
           "articolo": "2379",
           "descrizione": "Nullità delle delibere – cause e regime"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Invalidità delibere S.r.l. – 2479-ter e regime impugnatorio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Delibera senza convocazione – nullità o mera irregolarità"
         }
       ],
       "nullita_vs_annullabilita_2479ter": {

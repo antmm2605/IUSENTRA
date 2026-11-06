@@ -28,10 +28,6 @@
           "fonte": "c.c.",
           "articolo": "38",
           "descrizione": "RESPONSABILITÀ – risponde il fondo; se insufficiente: chi ha agito in nome e per conto dell'associazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Presidente dell'associazione – responsabilità personale"
         }
       ],
       "responsabilita_art38": {
@@ -937,10 +933,6 @@
           "fonte": "c.c.",
           "articolo": "2486",
           "descrizione": "Poteri in attesa della liquidazione – solo atti conservativi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Scioglimento – deadlock tra soci e alternativa offerta di acquisto"
         }
       ],
       "deadlock_2484n3": {
@@ -1370,12 +1362,9 @@
         },
         {
           "fonte": "c.c.",
-          "articolo": "2409",
-          "descrizione": "Denunzia al Tribunale – PM o soci con 1/10 del capitale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sindaci – nesso causale con l'omissione di vigilanza"
+          "articolo": "2396-quater",
+          "descrizione": "Denunzia al tribunale per gravi irregolarità degli amministratori: soci del decimo del capitale (ventesimo se la società fa ricorso al mercato del capitale di rischio), ricorso notificato anche alla società (già art. 2409 c.c., abrogato dal D.Lgs. 27 marzo 2026, n. 47)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "responsabilita_2407c2": {

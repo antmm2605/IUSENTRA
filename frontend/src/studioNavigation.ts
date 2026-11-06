@@ -2,7 +2,7 @@ export const STUDIO_NAV_GROUPS = [
   { key: 'gestione', label: 'Gestione e contabilità' },
   { key: 'documenti', label: 'Documenti e atti' },
   { key: 'ricerca', label: 'Ricerca giuridica' },
-  { key: 'lex', label: 'Strumenti Lex' },
+  { key: 'lex', label: 'Lex, l’assistente' },
 ] as const
 
 export type StudioNavGroup = typeof STUDIO_NAV_GROUPS[number]['key']

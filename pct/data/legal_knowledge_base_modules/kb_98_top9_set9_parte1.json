@@ -98,22 +98,6 @@
           "fonte": "c.c.",
           "articolo": "2946",
           "descrizione": "Prescrizione 10 anni contrattuale"
-        },
-        {
-          "fonte": "Cass. SU 28811/2008 (San Martino bis)",
-          "descrizione": "Categoria unitaria danno non patrimoniale - applicazione sanitaria"
-        },
-        {
-          "fonte": "Cass. SU 6651/2024",
-          "descrizione": "Tabelle uniformi liquidazione danno biologico"
-        },
-        {
-          "fonte": "Cass. SU 28987/2019",
-          "descrizione": "Nesso causale - regola del 'più probabile che non' in ambito sanitario"
-        },
-        {
-          "fonte": "Cass. SU 3475/2023",
-          "descrizione": "Consenso informato - danno autonomo da omessa informazione"
         }
       ],
       "presupposti_sostanziali": [
@@ -928,12 +912,11 @@
           "descrizione": "Prescrizione 10 anni"
         },
         {
-          "fonte": "Cass. SU 27435/2019",
-          "descrizione": "Distinzione vizi 1667 vs gravi difetti 1669"
-        },
-        {
           "fonte": "Cass. SU 7756/2017",
-          "descrizione": "Gravi difetti edificio - applicabile anche a ristrutturazioni"
+          "descrizione": "Gravi difetti edificio - applicabile anche a ristrutturazioni",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022224070O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 24070/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -1635,11 +1618,10 @@
         },
         {
           "fonte": "Cass. SU 25021/2019",
-          "descrizione": "Servitù prediali e tutela petitoria"
-        },
-        {
-          "fonte": "Cass. SU 14123/2022",
-          "descrizione": "Servitù di passaggio - presupposti interclusione"
+          "descrizione": "Servitù prediali e tutela petitoria",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTM2NjAxTw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 36767/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "tipologie_di_azioni_relative_a_servitu": [
@@ -2223,7 +2205,8 @@
         {
           "fonte": "c.c.",
           "articolo": "375",
-          "descrizione": "Atti del tutore che richiedono autorizzazione TRIBUNALE"
+          "descrizione": "Atti del tutore che richiedono autorizzazione TRIBUNALE",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
         },
         {
           "fonte": "c.p.c.",
@@ -2233,10 +2216,6 @@
         {
           "fonte": "L. 218/2015",
           "descrizione": "Riforma filiazione - parità figli"
-        },
-        {
-          "fonte": "Cass. SU 21188/2014",
-          "descrizione": "Reclamabilità decreti GT alla Corte d'Appello"
         }
       ],
       "atti_che_richiedono_autorizzazione_GT_art_320_374": [
@@ -2833,14 +2812,6 @@
         {
           "fonte": "Direttiva UE 2019/771",
           "descrizione": "Beni di consumo - conformità"
-        },
-        {
-          "fonte": "Cass. SU 23633/2022",
-          "descrizione": "Foro speciale consumatore - irrinunciabile"
-        },
-        {
-          "fonte": "Cass. SU 12678/2024",
-          "descrizione": "Inversione onere prova primi 12 mesi"
         }
       ],
       "presupposti_sostanziali": [

@@ -1,0 +1,440 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "PRIVACY",
+  "denominazione": "Protezione dei dati personali: guide pratiche",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_PRIVACY_RECLAMO_GARANTE",
+      "denominazione": "Reclamo al Garante per la protezione dei dati personali (art. 77 Reg. UE 2016/679; artt. 140-bis-143 D.Lgs. 196/2003)",
+      "categoria": "Privacy – reclamo",
+      "materia": "Privacy, digitale e comunicazioni",
+      "rito": "Procedimento amministrativo davanti al Garante",
+      "competenza": "Garante per la protezione dei dati personali",
+      "uffici_destinatari": [
+        "Garante privacy"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "77",
+          "descrizione": "Diritto di proporre reclamo"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "140-bis",
+          "descrizione": "Reclamo o ricorso al giudice in alternativa"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "142",
+          "descrizione": "Contenuto e sottoscrizione del reclamo"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "143",
+          "descrizione": "Decisione entro nove mesi; informazione entro tre mesi"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "reclamo_garante",
+        "denominazione": "Reclamo al Garante",
+        "campi_chiave": [
+          {
+            "id": "interessato",
+            "label": "Interessato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "titolare",
+            "label": "Titolare o responsabile del trattamento",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fatti",
+            "label": "Fatti, disposizioni violate e misure richieste",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "interessato",
+            "label": "Interessato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "titolare",
+            "label": "Titolare o responsabile del trattamento",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fatti",
+            "label": "Fatti, disposizioni violate e misure richieste",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il reclamo rende improponibile la domanda al giudice tra le stesse parti e per lo stesso oggetto, salvo l'art. 10, comma 4, D.Lgs. 150/2011 (art. 140-bis, comma 3)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità o di riconoscimento del ricorrente",
+          "required": true
+        },
+        {
+          "id": "richiesta_al_titolare",
+          "label": "Eventuale richiesta di esercizio dei diritti al titolare e risposta (artt. 12-22 Reg. UE)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare che per lo stesso oggetto e tra le stesse parti non sia già stato adito il giudice (art. 140-bis, comma 2)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Decisione del Garante",
+          "decorrenza": "presentazione del reclamo (12 mesi con motivate esigenze istruttorie)",
+          "natura": "termine dell'autorità",
+          "norma": "art. 143, comma 3, D.Lgs. 196/2003",
+          "mesi": 9
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto: il reclamo è un procedimento amministrativo davanti al Garante"
+      },
+      "avvertenze_redazionali": [
+        "Il reclamo rende improponibile la domanda al giudice tra le stesse parti e per lo stesso oggetto, salvo l'art. 10, comma 4, D.Lgs. 150/2011 (art. 140-bis, comma 3)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "garante",
+        "reclamo garante",
+        "privacy",
+        "dati personali"
+      ]
+    },
+    {
+      "codice": "GUIDA_PRIVACY_RICORSO_PROVVEDIMENTO_GARANTE",
+      "denominazione": "Ricorso al tribunale contro il provvedimento del Garante (art. 78 Reg. UE 2016/679; art. 152 D.Lgs. 196/2003; art. 10 D.Lgs. 150/2011)",
+      "categoria": "Privacy – tutela giurisdizionale",
+      "materia": "Privacy, digitale e comunicazioni",
+      "rito": "Rito del lavoro (art. 10 D.Lgs. 150/2011)",
+      "competenza": "Tribunale del luogo del titolare del trattamento o della residenza dell'interessato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "78",
+          "descrizione": "Ricorso contro le decisioni dell'autorità di controllo"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "152",
+          "descrizione": "Giurisdizione del giudice ordinario"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "10",
+          "descrizione": "Ricorso entro 30 giorni dalla comunicazione (60 se all'estero) a pena di inammissibilità"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_provvedimento_garante",
+        "denominazione": "Ricorso ex art. 10 D.Lgs. 150/2011",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento del Garante e data di comunicazione",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento del Garante e data di comunicazione",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Calcolare il termine dalla comunicazione del provvedimento",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso contro il provvedimento del Garante",
+          "decorrenza": "comunicazione del provvedimento (60 giorni se il ricorrente risiede all'estero)",
+          "natura": "inammissibilità",
+          "norma": "art. 10, comma 3, D.Lgs. 150/2011",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "provvedimento garante",
+        "ricorso garante",
+        "sanzione garante privacy"
+      ]
+    },
+    {
+      "codice": "GUIDA_PRIVACY_RISARCIMENTO_DANNO",
+      "denominazione": "Azione contro il titolare del trattamento e risarcimento del danno (artt. 79 e 82 Reg. UE 2016/679)",
+      "categoria": "Privacy – risarcimento",
+      "materia": "Privacy, digitale e comunicazioni",
+      "rito": "Rito del lavoro (art. 10 D.Lgs. 150/2011)",
+      "competenza": "Tribunale del luogo del titolare del trattamento o della residenza dell'interessato",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "79",
+          "descrizione": "Ricorso giurisdizionale contro il titolare o il responsabile"
+        },
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "82",
+          "descrizione": "Risarcimento del danno materiale o immateriale"
+        },
+        {
+          "fonte": "D.Lgs. 196/2003",
+          "articolo": "152",
+          "descrizione": "Giurisdizione del giudice ordinario anche per il risarcimento"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "10",
+          "descrizione": "Rito e competenza"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "risarcimento_danno",
+        "denominazione": "Ricorso per l'accertamento della violazione e il risarcimento",
+        "campi_chiave": [
+          {
+            "id": "titolare",
+            "label": "Titolare o responsabile del trattamento",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "violazione",
+            "label": "Violazione e danno subito",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "titolare",
+            "label": "Titolare o responsabile del trattamento",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "violazione",
+            "label": "Violazione e danno subito",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "prove",
+          "label": "Prove della violazione e del danno",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare di non aver già proposto reclamo al Garante per lo stesso oggetto (art. 140-bis D.Lgs. 196/2003)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "danno privacy",
+        "violazione dati",
+        "data breach",
+        "risarcimento privacy"
+      ]
+    },
+    {
+      "codice": "GUIDA_PRIVACY_DIRITTI_INTERESSATO",
+      "denominazione": "Esercizio dei diritti dell'interessato: accesso e cancellazione (artt. 12, 15 e 17 Reg. UE 2016/679)",
+      "categoria": "Privacy – diritti dell'interessato",
+      "materia": "Privacy, digitale e comunicazioni",
+      "rito": "Richiesta al titolare del trattamento",
+      "competenza": "Titolare del trattamento",
+      "uffici_destinatari": [
+        "Titolare del trattamento"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "12",
+          "descrizione": "Modalità e tempi della risposta"
+        },
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "15",
+          "descrizione": "Diritto di accesso"
+        },
+        {
+          "fonte": "Reg. (UE) 2016/679",
+          "articolo": "17",
+          "descrizione": "Diritto alla cancellazione («oblio»)"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "diritti_interessato",
+        "denominazione": "Richiesta di esercizio dei diritti",
+        "campi_chiave": [
+          {
+            "id": "interessato",
+            "label": "Interessato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "diritto",
+            "label": "Diritto esercitato",
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "interessato",
+            "label": "Interessato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "diritto",
+            "label": "Diritto esercitato",
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Senza risposta adeguata si può proporre reclamo al Garante o ricorso al giudice (art. 140-bis D.Lgs. 196/2003)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità o di riconoscimento del ricorrente",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Conservare la prova della richiesta e della data di ricezione",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto"
+      },
+      "avvertenze_redazionali": [
+        "Senza risposta adeguata si può proporre reclamo al Garante o ricorso al giudice (art. 140-bis D.Lgs. 196/2003)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "accesso ai dati",
+        "cancellazione dati",
+        "diritto all'oblio",
+        "deindicizzazione"
+      ]
+    }
+  ]
+}

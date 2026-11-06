@@ -28,14 +28,6 @@
           "fonte": "L. 160/2019",
           "articolo": "1 c. 759 lett. g",
           "descrizione": "Fabbricati rurali ad uso strumentale – esenti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "IMU – abitazione principale e residenza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "IMU coniugi con residenza diversa – una sola abitazione principale"
         }
       ],
       "esenzioni_principali": {
@@ -561,10 +553,6 @@
           "fonte": "L. 147/2013",
           "articolo": "657",
           "descrizione": "Riduzioni – abitazioni con occupanti all'estero; case vacanza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "TARI – presupposto e immobile vuoto"
         }
       ],
       "presupposto_TARI": {
@@ -999,10 +987,6 @@
           "fonte": "D.Lgs. 23/2011",
           "articolo": "3 c. 7",
           "descrizione": "Effetti – rinuncia agli adeguamenti ISTAT durante la cedolare"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Cedolare secca – opzione tardiva e validità"
         }
       ],
       "cedolare_secca": {
@@ -1526,14 +1510,6 @@
         {
           "fonte": "nota II-bis c. 4",
           "descrizione": "Eccezione – non decade se riacquista entro 1 anno dalla rivendita"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Prima casa – rivendita entro 5 anni e decadenza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Residenza entro 18 mesi – proroga COVID"
         }
       ],
       "agevolazione_prima_casa": {
@@ -2006,10 +1982,6 @@
           "fonte": "D.Lgs. 472/1997",
           "articolo": "13",
           "descrizione": "Ravvedimento operoso – base della sanatoria spontanea"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Definizione agevolata – ammissibilità e decadenza"
         }
       ],
       "definizione_lite_pendente": {

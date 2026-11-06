@@ -79,12 +79,46 @@
       "eredita_da": "010001",
       "differenze_rispetto_a_padre": {
         "normativa_aggiuntiva": [
-          {"fonte": "D.Lgs. 385/1993 (TUB)", "articolo": "vari", "descrizione": "Testo Unico Bancario"},
-          {"fonte": "D.Lgs. 58/1998 (TUF)", "articolo": "vari", "descrizione": "Testo Unico Finanza"}
+          {
+            "fonte": "D.Lgs. 385/1993 (TUB)",
+            "articolo": "vari",
+            "descrizione": "Testo Unico Bancario"
+          },
+          {
+            "fonte": "D.Lgs. 58/1998 (TUF)",
+            "articolo": "vari",
+            "descrizione": "Testo Unico Finanza"
+          }
         ],
         "competenza_specializzata": "Sezione specializzata in materia di impresa per controversie societarie/finanziarie",
-        "avvertenze": ["Verificare clausole di mediazione obbligatoria per contratti bancari ex art. 128-bis TUB", "Per saldo conto corrente: necessario estratto conto autentico ex art. 50 TUB come prova scritta privilegiata"]
-      }
+        "avvertenze": [
+          "Verificare clausole di mediazione obbligatoria per contratti bancari ex art. 128-bis TUB",
+          "Per saldo conto corrente: necessario estratto conto autentico ex art. 50 TUB come prova scritta privilegiata"
+        ]
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 28/2010",
+          "articolo": "5",
+          "descrizione": "Mediazione obbligatoria nelle materie indicate"
+        },
+        {
+          "fonte": "D.Lgs. 28/2010",
+          "articolo": "5-bis",
+          "descrizione": "Opposizione a decreto ingiuntivo: mediazione a carico del ricorrente"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Procedimento di ingiunzione ante causam (intermediazione finanziaria, bancaria e creditizia)",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Materia a mediazione obbligatoria (art. 5 D.Lgs. 28/2010): se il decreto è opposto, la domanda di mediazione spetta a chi ha chiesto il decreto; senza mediazione il giudice dichiara improcedibile la domanda e revoca il decreto (art. 5-bis D.Lgs. 28/2010)."
+      ]
     },
     {
       "codice": "011001",
@@ -131,7 +165,13 @@
       "denominazione": "Sequestro giudiziario ex art. 670 c.p.c.",
       "eredita_da": "011001",
       "differenze_rispetto_a_padre": {
-        "normativa_principale": [{"fonte": "c.p.c.", "articolo": "670", "descrizione": "Sequestro giudiziario di beni e prove"}],
+        "normativa_principale": [
+          {
+            "fonte": "c.p.c.",
+            "articolo": "670",
+            "descrizione": "Sequestro giudiziario di beni e prove"
+          }
+        ],
         "presupposti_specifici": [
           "Controversia sulla proprietà o sul possesso (n. 1)",
           "Necessità di custodia o gestione temporanea (n. 1)",
@@ -141,16 +181,137 @@
           "Sequestro di beni di cui è controversa proprietà/possesso",
           "Sequestro di libri, registri, documenti, modelli, campioni"
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "670",
+          "descrizione": "Sequestro giudiziario di beni controversi o di prove"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis",
+          "descrizione": "Forma della domanda cautelare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-sexies",
+          "descrizione": "Procedimento; decreto inaudita altera parte"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Merito entro 60 giorni se la domanda è ante causam"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-novies",
+          "descrizione": "Inefficacia del provvedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-terdecies",
+          "descrizione": "Reclamo entro 15 giorni"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Provare la controversia sulla proprietà o sul possesso e l'opportunità della custodia (art. 670 c.p.c.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Inizio del giudizio di merito (ante causam)",
+          "decorrenza": "pronuncia in udienza o comunicazione dell'ordinanza",
+          "natura": "perentorio",
+          "norma": "art. 669-octies c.p.c.",
+          "giorni": 60
+        },
+        {
+          "termine": "Reclamo",
+          "decorrenza": "pronuncia in udienza o comunicazione/notificazione se anteriore",
+          "natura": "perentorio",
+          "norma": "art. 669-terdecies c.p.c.",
+          "giorni": 15
+        }
+      ]
     },
     {
       "codice": "011003",
       "denominazione": "Sequestro liberatorio ex art. 687 c.p.c.",
       "eredita_da": "011001",
       "differenze_rispetto_a_padre": {
-        "normativa_principale": [{"fonte": "c.p.c.", "articolo": "687", "descrizione": "Sequestro liberatorio"}],
-        "presupposti_specifici": ["Debitore che ha offerto cose mobili in pagamento e creditore le rifiuta", "Disputa su quantità o qualità delle cose"]
-      }
+        "normativa_principale": [
+          {
+            "fonte": "c.p.c.",
+            "articolo": "687",
+            "descrizione": "Sequestro liberatorio"
+          }
+        ],
+        "presupposti_specifici": [
+          "Debitore che ha offerto cose mobili in pagamento e creditore le rifiuta",
+          "Disputa su quantità o qualità delle cose"
+        ]
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "687",
+          "descrizione": "Sequestro delle cose offerte dal debitore"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis",
+          "descrizione": "Forma della domanda cautelare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-sexies",
+          "descrizione": "Procedimento; decreto inaudita altera parte"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Merito entro 60 giorni se la domanda è ante causam"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-novies",
+          "descrizione": "Inefficacia del provvedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-terdecies",
+          "descrizione": "Reclamo entro 15 giorni"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Documentare l'offerta del debitore e la contestazione sull'obbligo o sul modo del pagamento (art. 687 c.p.c.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Inizio del giudizio di merito (ante causam)",
+          "decorrenza": "pronuncia in udienza o comunicazione dell'ordinanza",
+          "natura": "perentorio",
+          "norma": "art. 669-octies c.p.c.",
+          "giorni": 60
+        },
+        {
+          "termine": "Reclamo",
+          "decorrenza": "pronuncia in udienza o comunicazione/notificazione se anteriore",
+          "natura": "perentorio",
+          "norma": "art. 669-terdecies c.p.c.",
+          "giorni": 15
+        }
+      ]
     },
     {
       "codice": "011011",
@@ -158,11 +319,88 @@
       "eredita_da": "011001",
       "differenze_rispetto_a_padre": {
         "normativa_aggiuntiva": [
-          {"fonte": "L. 633/1941", "articolo": "161", "descrizione": "Sequestro per violazione diritto d'autore"},
-          {"fonte": "D.Lgs. 30/2005 (CPI)", "articolo": "129", "descrizione": "Misure cautelari proprietà industriale"}
+          {
+            "fonte": "L. 633/1941",
+            "articolo": "161",
+            "descrizione": "Sequestro per violazione diritto d'autore"
+          },
+          {
+            "fonte": "D.Lgs. 30/2005 (CPI)",
+            "articolo": "129",
+            "descrizione": "Misure cautelari proprietà industriale"
+          }
         ],
         "competenza": "Sezione specializzata in materia di impresa"
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 633/1941",
+          "articolo": "161",
+          "descrizione": "Descrizione, accertamento e sequestro per violazione del diritto d'autore"
+        },
+        {
+          "fonte": "D.Lgs. 30/2005 (c.p.i.)",
+          "articolo": "120",
+          "descrizione": "Giurisdizione e competenza nelle azioni di proprietà industriale"
+        },
+        {
+          "fonte": "D.Lgs. 168/2003",
+          "articolo": "3",
+          "descrizione": "Competenza delle sezioni specializzate in materia di impresa"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-bis",
+          "descrizione": "Forma della domanda cautelare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-sexies",
+          "descrizione": "Procedimento; decreto inaudita altera parte"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-octies",
+          "descrizione": "Merito entro 60 giorni se la domanda è ante causam"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-novies",
+          "descrizione": "Inefficacia del provvedimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "669-terdecies",
+          "descrizione": "Reclamo entro 15 giorni"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Sequestro da norme speciali (L. 633/1941 diritto d'autore, R.D. 1127/1939 invenzioni, R.D. 929/1942 marchi)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Inizio del giudizio di merito (ante causam)",
+          "decorrenza": "pronuncia in udienza o comunicazione dell'ordinanza",
+          "natura": "perentorio",
+          "norma": "art. 669-octies c.p.c.",
+          "giorni": 60
+        },
+        {
+          "termine": "Reclamo",
+          "decorrenza": "pronuncia in udienza o comunicazione/notificazione se anteriore",
+          "natura": "perentorio",
+          "norma": "art. 669-terdecies c.p.c.",
+          "giorni": 15
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Le norme sui marchi e sulle invenzioni del R.D. 929/1942 e del R.D. 1127/1939 sono oggi nel Codice della proprietà industriale (D.Lgs. 30/2005)."
+      ]
     },
     {
       "codice": "012001",
@@ -203,8 +441,44 @@
       "denominazione": "Ispezione preventiva",
       "eredita_da": "012001",
       "differenze_rispetto_a_padre": {
-        "normativa_principale": [{"fonte": "c.p.c.", "articolo": "696", "descrizione": "Ispezione giudiziale preventiva"}]
-      }
+        "normativa_principale": [
+          {
+            "fonte": "c.p.c.",
+            "articolo": "696",
+            "descrizione": "Ispezione giudiziale preventiva"
+          }
+        ]
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "692",
+          "descrizione": "Assunzione di testimoni a futura memoria"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "693",
+          "descrizione": "Istanza al giudice competente per il merito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "694",
+          "descrizione": "Decreto di comparizione e termine perentorio per la notifica"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "696",
+          "descrizione": "Accertamento tecnico e ispezione giudiziale"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Indicare i motivi dell'urgenza e lo stato dei luoghi o delle cose da verificare (artt. 693 e 696 c.p.c.)",
+          "obbligatorio": true
+        }
+      ]
     },
     {
       "codice": "012021",
@@ -433,7 +707,11 @@
       "eredita_da": "020001",
       "differenze_rispetto_a_padre": {
         "normativa_principale": [
-          {"fonte": "c.c.", "articolo": "1170", "descrizione": "Azione di manutenzione"}
+          {
+            "fonte": "c.c.",
+            "articolo": "1170",
+            "descrizione": "Azione di manutenzione"
+          }
         ],
         "presupposti_specifici": [
           "Possesso continuativo da oltre un anno (per immobili e diritti reali su immobili)",
@@ -441,10 +719,49 @@
           "Molestia o turbativa nel possesso"
         ],
         "campi_aggiuntivi": [
-          {"id": "durata_possesso", "label": "Durata possesso (almeno 1 anno)", "type": "duration", "required": true},
-          {"id": "molestia", "label": "Descrizione molestia/turbativa", "type": "textarea", "required": true}
+          {
+            "id": "durata_possesso",
+            "label": "Durata possesso (almeno 1 anno)",
+            "type": "duration",
+            "required": true
+          },
+          {
+            "id": "molestia",
+            "label": "Descrizione molestia/turbativa",
+            "type": "textarea",
+            "required": true
+          }
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1170",
+          "descrizione": "Azione di manutenzione: entro l'anno dalla turbativa, possesso ultrannuale"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "703",
+          "descrizione": "Ricorso; procedimento cautelare in quanto compatibile; reclamo"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Provare il possesso continuo e non interrotto da oltre un anno e la data della molestia (art. 1170 c.c.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Azione di manutenzione",
+          "decorrenza": "turbativa",
+          "natura": "decadenza",
+          "norma": "art. 1170 c.c.",
+          "mesi": 12
+        }
+      ]
     }
   ]
 }

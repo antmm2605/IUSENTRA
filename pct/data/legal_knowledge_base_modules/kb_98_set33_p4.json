@@ -38,14 +38,6 @@
           "fonte": "c.c.",
           "articolo": "27-32",
           "descrizione": "Fondazioni – nomina e poteri degli amministratori; vigilanza dell'autorità governativa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Associazione non riconosciuta – responsabilità personale degli amministratori"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Fondazione – revoca degli amministratori e vigilanza"
         }
       ],
       "differenza_riconosciuta_vs_non_riconosciuta": {
@@ -345,14 +337,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "RC aquiliana – la culpa in contrahendo è responsabilità extracontrattuale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Culpa in contrahendo – interesse negativo e danno risarcibile"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Rottura ingiustificata delle trattative – prova del danno"
         }
       ],
       "interesse_negativo_risarcibile": {
@@ -893,14 +877,6 @@
           "fonte": "c.c.",
           "articolo": "1337",
           "descrizione": "Informazioni false nelle trattative – culpa in contrahendo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Dolo contrattuale – raggiri e reticenza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Dolo omissivo – silenzio su fatti rilevanti come raggiro"
         }
       ],
       "dolo_determinante_vs_incidente": {
@@ -1395,15 +1371,10 @@
         },
         {
           "fonte": "Cass. SU 6459/2020",
-          "descrizione": "Fiducia immobiliare – validità inter partes e tutela del fiduciante"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ritrasferimento fiduciario – azione ex art. 2932 e presupposti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Fiducia e terzi acquirenti – opponibilità"
+          "descrizione": "Fiducia immobiliare – validità inter partes e tutela del fiduciante",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022217570O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 17570/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "fiducia_immobiliare_Cass_SU_6459_2020": {
@@ -1857,14 +1828,6 @@
         {
           "fonte": "D.P.R. 357/1997",
           "descrizione": "Protezione della fauna e degli habitat Natura 2000"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Danni da fauna selvatica – Regione come custode ex art. 2052"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Cinghiali e ungulati – Regione responsabile ex 2052"
         }
       ],
       "responsabilita_REGIONE_per_fauna_selvatica": {

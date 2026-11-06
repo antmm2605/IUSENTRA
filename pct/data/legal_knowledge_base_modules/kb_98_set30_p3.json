@@ -43,14 +43,6 @@
           "fonte": "D.Lgs. 7/2005 (CdA)",
           "articolo": "193",
           "descrizione": "Obblighi informativi e trasparenza assicurazione vita"
-        },
-        {
-          "fonte": "Cass. SU 11421/2021",
-          "descrizione": "Assicurazione vita: il capitale NON entra nell'asse ereditario – va direttamente al beneficiario"
-        },
-        {
-          "fonte": "Cass. SU 9823/2024",
-          "descrizione": "Revoca del beneficiario dopo matrimonio – condizioni"
         }
       ],
       "capitale_fuori_dall_asse_ereditario_Cass_SU_11421_2021": {
@@ -524,14 +516,6 @@
           "fonte": "c.p.c.",
           "articolo": "668",
           "descrizione": "Sfratto per finita locazione"
-        },
-        {
-          "fonte": "Cass. SU 14876/2020",
-          "descrizione": "Morosità grave – entità e calcolo per la convalida"
-        },
-        {
-          "fonte": "Cass. SU 9812/2023",
-          "descrizione": "Purgazione della mora – limiti (max 3 volte in 4 anni)"
         }
       ],
       "procedura_sfratto_morosita": {
@@ -974,14 +958,6 @@
           "fonte": "D.Lgs. 14/2019 (CCII)",
           "articolo": "378",
           "descrizione": "Azioni di responsabilità nelle procedure concorsuali"
-        },
-        {
-          "fonte": "Cass. SU 14785/2020",
-          "descrizione": "Azione 2394 – presupposti: insufficienza del patrimonio"
-        },
-        {
-          "fonte": "Cass. SU 9834/2022",
-          "descrizione": "Azione individuale 2395 – danno diretto al socio/terzo"
         }
       ],
       "azione_2394_vs_2395": {
@@ -1411,14 +1387,6 @@
           "fonte": "c.c.",
           "articolo": "2497-quater",
           "descrizione": "RECESSO del socio della controllata – quando la direzione e coordinamento cagiona danno"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Direzione e coordinamento – presupposti e responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2024",
-          "descrizione": "Recesso del socio 2497-quater – condizioni"
         }
       ],
       "responsabilita_2497": {
@@ -1864,14 +1832,6 @@
           "fonte": "c.c.",
           "articolo": "2301",
           "descrizione": "Divieto di concorrenza per i soci illimitatamente responsabili"
-        },
-        {
-          "fonte": "Cass. SU 14768/2021",
-          "descrizione": "Liquidazione quota socio receduto – criteri di calcolo"
-        },
-        {
-          "fonte": "Cass. SU 9823/2023",
-          "descrizione": "Esclusione del socio in S.n.c. – procedura e impugnazione"
         }
       ],
       "recesso_2285": {

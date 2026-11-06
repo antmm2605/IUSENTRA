@@ -62,10 +62,6 @@
         {
           "fonte": "L. 219/2012 e D.Lgs. 154/2013",
           "descrizione": "Riforma filiazione – applicabili per rinvio"
-        },
-        {
-          "fonte": "Cass. SU 9140/2022",
-          "descrizione": "Tutore del minore – criteri di scelta e obblighi"
         }
       ],
       "cause_di_apertura_della_tutela": [
@@ -292,15 +288,10 @@
         },
         {
           "fonte": "Cass. SU 20943/2022",
-          "descrizione": "Onere della prova invertito – custode deve provare caso fortuito"
-        },
-        {
-          "fonte": "Cass. SU 21045/2024",
-          "descrizione": "Comportamento incauto della vittima come caso fortuito – riduzione risarcimento"
-        },
-        {
-          "fonte": "Cass. SU 14669/2023",
-          "descrizione": "Custode privato – responsabilità per aree commerciali, negozi, condomini"
+          "descrizione": "Onere della prova invertito – custode deve provare caso fortuito",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022U20943O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "custodi_privati_tipici": [
@@ -561,14 +552,6 @@
         {
           "fonte": "R.D. 1736/1933 (Legge Assegni)",
           "descrizione": "Disciplina dell'assegno bancario e circolare"
-        },
-        {
-          "fonte": "Cass. SU 13783/2019",
-          "descrizione": "Cambiale – requisiti formali essenziali per la validità"
-        },
-        {
-          "fonte": "Cass. SU 8077/2022",
-          "descrizione": "Assegno protestato – azionabilità immediata post-protesto"
         }
       ],
       "vantaggi_del_DI_su_titolo_641_642": {
@@ -812,14 +795,6 @@
           "fonte": "CCII",
           "articolo": "166-176",
           "descrizione": "Azioni revocatorie nel CCII"
-        },
-        {
-          "fonte": "Cass. SU 2561/2020",
-          "descrizione": "Stato di insolvenza – accertamento del giudice"
-        },
-        {
-          "fonte": "Cass. SU 10543/2023",
-          "descrizione": "Soglie dimensionali piccolo imprenditore CCII"
         }
       ],
       "presupposti_per_liquidazione_giudiziale": {

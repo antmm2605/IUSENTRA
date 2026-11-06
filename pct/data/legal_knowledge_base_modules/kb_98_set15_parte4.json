@@ -63,14 +63,6 @@
           "fonte": "c.c.",
           "articolo": "2506-2506-quater",
           "descrizione": "Scissione – disciplina"
-        },
-        {
-          "fonte": "Cass. SU 25021/2020",
-          "descrizione": "Impugnazione fusione – post iscrizione solo risarcimento"
-        },
-        {
-          "fonte": "Cass. SU 11526/2022",
-          "descrizione": "Rapporto di cambio – contestazione e rimedi"
         }
       ],
       "peculiarita_invalidita_fusione_2504_quater": {
@@ -307,14 +299,6 @@
           "fonte": "c.p.c.",
           "articolo": "615-617",
           "descrizione": "Opposizione all'esecuzione e agli atti esecutivi (per crediti non fiscali)"
-        },
-        {
-          "fonte": "Cass. SU 7822/2022",
-          "descrizione": "Cartella di pagamento – vizi di notifica e decadenza"
-        },
-        {
-          "fonte": "Cass. SU 15869/2023",
-          "descrizione": "Pignoramento su cartella prescritta – opposizione ammissibile"
         }
       ],
       "distinzione_crediti_fiscali_vs_non_fiscali": {
@@ -575,7 +559,8 @@
         {
           "fonte": "c.c.",
           "articolo": "271",
-          "descrizione": "Prove ammissibili – qualsiasi mezzo incluso DNA"
+          "descrizione": "Prove ammissibili – qualsiasi mezzo incluso DNA",
+          "abrogata_da": "L. 19 maggio 1975, n. 151"
         },
         {
           "fonte": "c.c.",
@@ -599,14 +584,6 @@
         {
           "fonte": "D.Lgs. 154/2013",
           "descrizione": "Attuazione riforma filiazione"
-        },
-        {
-          "fonte": "Cass. SU 6478/2024",
-          "descrizione": "Prova della paternità – anche presuntiva + DNA"
-        },
-        {
-          "fonte": "Cass. SU 21161/2013",
-          "descrizione": "Rifiuto esame DNA – argomento di prova decisivo"
         }
       ],
       "elementi_fondamentali": {
@@ -866,18 +843,6 @@
           "fonte": "c.p.c.",
           "articolo": "118",
           "descrizione": "Ispezione dei luoghi – disposta frequentemente"
-        },
-        {
-          "fonte": "Cass. SU 14594/2021",
-          "descrizione": "Regolamento confini – natura petitoria + onere probatorio"
-        },
-        {
-          "fonte": "Cass. SU 9392/2019",
-          "descrizione": "Catasto: solo indizio, non prova piena del confine"
-        },
-        {
-          "fonte": "Cass. SU 16612/2023",
-          "descrizione": "Catena dei titoli vs stato dei luoghi – criteri di prevalenza"
         }
       ],
       "differenza_da_130060": {

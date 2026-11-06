@@ -28,14 +28,6 @@
           "fonte": "D.Lgs. 209/2005 (CdA)",
           "articolo": "142",
           "descrizione": "Surrogazione dell'assicuratore RCA – azione diretta"
-        },
-        {
-          "fonte": "Cass. SU 12567/2020",
-          "descrizione": "Surrogazione – limiti: l'assicuratore non può surrogarsi per più di quanto ha pagato"
-        },
-        {
-          "fonte": "Cass. SU 8934/2022",
-          "descrizione": "Surrogazione parziale – concorso tra assicuratore surrogato e assicurato per il danno residuo"
         }
       ],
       "meccanismo_surrogazione_1916": {
@@ -481,10 +473,6 @@
           "fonte": "Reg. UE 261/2004",
           "articolo": "4",
           "descrizione": "NEGATO IMBARCO (overbooking) – compensazione forfettaria"
-        },
-        {
-          "fonte": "Cass. SU 14987/2021",
-          "descrizione": "Compensazione Reg. 261 + Montreal: cumulabilità"
         }
       ],
       "compensazioni_forfettarie_Reg261": {
@@ -1021,10 +1009,6 @@
         {
           "fonte": "Conv. CMR 1956",
           "descrizione": "Trasporto internazionale su strada – responsabilità internazionale"
-        },
-        {
-          "fonte": "Cass. SU 14389/2021",
-          "descrizione": "Vettore terrestre – responsabilità oggettiva e limite risarcitorio"
         }
       ],
       "responsabilita_oggettiva_1693": {
@@ -1493,14 +1477,6 @@
           "fonte": "c.c.",
           "articolo": "1260-1267",
           "descrizione": "Cessione del credito – norme applicabili"
-        },
-        {
-          "fonte": "Cass. SU 14765/2021",
-          "descrizione": "Factoring – distinzione pro solvendo vs pro soluto e rivalsa"
-        },
-        {
-          "fonte": "Cass. SU 9832/2023",
-          "descrizione": "Opponibilità della cessione al debitore ceduto"
         }
       ],
       "pro_solvendo_vs_pro_soluto": {
@@ -1999,14 +1975,6 @@
           "fonte": "c.c.",
           "articolo": "1526",
           "descrizione": "Risoluzione per inadempimento – applicabile per analogia al leasing"
-        },
-        {
-          "fonte": "Cass. SU 14792/2019",
-          "descrizione": "Leasing traslativo vs di godimento – classificazione e tutele"
-        },
-        {
-          "fonte": "Cass. SU 9456/2023",
-          "descrizione": "Leasing abitativo L. 124/2017 – procedure di risoluzione specifiche"
         }
       ],
       "differenza_da_mutuo": {

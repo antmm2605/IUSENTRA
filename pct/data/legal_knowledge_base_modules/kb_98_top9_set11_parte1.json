@@ -75,14 +75,6 @@
           "fonte": "c.c.",
           "articolo": "2947",
           "descrizione": "Prescrizione 2 anni dal sinistro (per azione verso FGVS)"
-        },
-        {
-          "fonte": "Cass. SU 6706/2015",
-          "descrizione": "Veicolo non identificato - danni alle cose non risarcibili dal FGVS"
-        },
-        {
-          "fonte": "Cass. SU 17019/2023",
-          "descrizione": "Rimborso spese mediche da FGVS per veicolo non identificato"
         }
       ],
       "casi_di_operativita_del_FGVS": {
@@ -497,7 +489,8 @@
         {
           "fonte": "c.c.",
           "articolo": "331",
-          "descrizione": "Reintegrazione nella responsabilità genitoriale"
+          "descrizione": "Reintegrazione nella responsabilità genitoriale",
+          "abrogata_da": "L. 19 maggio 1975, n. 151"
         },
         {
           "fonte": "c.c.",
@@ -527,7 +520,8 @@
         {
           "fonte": "c.c.",
           "articolo": "336-bis",
-          "descrizione": "Ascolto del minore"
+          "descrizione": "Ascolto del minore",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
         },
         {
           "fonte": "c.c.",
@@ -550,15 +544,10 @@
         },
         {
           "fonte": "CEDU art. 8",
-          "descrizione": "Diritto alla vita familiare - bilanciamento con tutela del minore"
-        },
-        {
-          "fonte": "Cass. SU 10242/2021",
-          "descrizione": "Decadenza responsabilità genitoriale - presupposti e proporzionalità"
-        },
-        {
-          "fonte": "Cass. SU 6438/2022",
-          "descrizione": "Affidamento familiare - tutela del minore"
+          "descrizione": "Diritto alla vita familiare - bilanciamento con tutela del minore",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "scala_degli_interventi_art_330_333_334": {
@@ -1017,14 +1006,6 @@
           "fonte": "c.c.",
           "articolo": "1453-1458",
           "descrizione": "Risoluzione per inadempimento (diritto comune)"
-        },
-        {
-          "fonte": "Cass. SU 11985/2016",
-          "descrizione": "Somministrazione - risoluzione per singola prestazione di notevole importanza"
-        },
-        {
-          "fonte": "Cass. SU 4564/2023",
-          "descrizione": "Esclusiva e somministrazione - conseguenze della violazione"
         }
       ],
       "differenza_da_altri_contratti": {
@@ -1442,11 +1423,10 @@
         },
         {
           "fonte": "Cass. SU 6070/2013",
-          "descrizione": "Cancellazione S.r.l. - effetti sui debiti residui (trasferimento ai soci)"
-        },
-        {
-          "fonte": "Cass. SU 4628/2020",
-          "descrizione": "Responsabilità liquidatori per omessa liquidazione di crediti"
+          "descrizione": "Cancellazione S.r.l. - effetti sui debiti residui (trasferimento ai soci)",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTM0Mjg4Uw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 34459/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "cause_di_scioglimento_srl_2484": [
@@ -1826,14 +1806,6 @@
         {
           "fonte": "D.Lgs. 136/2016",
           "descrizione": "Distacco transnazionale - attuazione Direttiva 96/71/CE"
-        },
-        {
-          "fonte": "Cass. SU 11411/2020",
-          "descrizione": "Distacco illecito - presupposti interesse distaccante e temporaneità"
-        },
-        {
-          "fonte": "Cass. SU 2383/2024",
-          "descrizione": "Interposizione illecita vs distacco legittimo - confine"
         }
       ],
       "presupposti_distacco_legittimo_art_30": {

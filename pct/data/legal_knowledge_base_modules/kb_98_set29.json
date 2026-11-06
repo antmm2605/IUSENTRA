@@ -50,15 +50,10 @@
         },
         {
           "fonte": "Cass. SU 15781/2005",
-          "descrizione": "Avvocato – responsabilità per perdita di chance processuale"
-        },
-        {
-          "fonte": "Cass. SU 8935/2022",
-          "descrizione": "Notaio – responsabilità per atti affetti da vizi non rilevati"
-        },
-        {
-          "fonte": "Cass. SU 14587/2023",
-          "descrizione": "Commercialista – responsabilità per omessa dichiarazione fiscale"
+          "descrizione": "Avvocato – responsabilità per perdita di chance processuale",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023209063O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 09063/2023 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obbligazione_di_mezzi_vs_risultato": {
@@ -320,14 +315,6 @@
           "fonte": "c.c.",
           "articolo": "540",
           "descrizione": "Diritto di abitazione al coniuge superstite sulla casa familiare"
-        },
-        {
-          "fonte": "Cass. SU 14312/2021",
-          "descrizione": "Diritto di abitazione del coniuge superstite – inalienabilità e tutela"
-        },
-        {
-          "fonte": "Cass. SU 9431/2023",
-          "descrizione": "Conflitto tra diritto di abitazione e diritti degli eredi"
         }
       ],
       "uso_vs_abitazione_vs_usufrutto": {
@@ -540,14 +527,6 @@
           "fonte": "c.p.c.",
           "articolo": "819-ter",
           "descrizione": "Rapporti tra arbitri e autorità giudiziaria – eccezione di compromesso"
-        },
-        {
-          "fonte": "Cass. SU 24153/2019",
-          "descrizione": "Clausola compromissoria – interpretazione e ambito"
-        },
-        {
-          "fonte": "Cass. SU 7987/2022",
-          "descrizione": "Arbitrato irrituale vs rituale – distinzione e conseguenze"
         }
       ],
       "arbitrato_rituale_vs_irrituale": {
@@ -754,14 +733,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "29",
           "descrizione": "INDENNITÀ di importo compreso tra 2,5 e 12 mensilità in alternativa alla conversione"
-        },
-        {
-          "fonte": "Cass. SU 14785/2020",
-          "descrizione": "Contratto a termine – mancanza di causale e conversione"
-        },
-        {
-          "fonte": "Cass. SU 9867/2023",
-          "descrizione": "Indennità risarcitoria ex art. 29 – calcolo e alternativa alla conversione"
         }
       ],
       "violazioni_che_portano_alla_conversione_28": [
@@ -1016,14 +987,6 @@
           "fonte": "CCII",
           "articolo": "64",
           "descrizione": "Risoluzione e annullamento – se il debitore non esegue"
-        },
-        {
-          "fonte": "Cass. SU 9476/2023",
-          "descrizione": "Accordo ristrutturazione – efficacia estesa e creditori dissenzienti"
-        },
-        {
-          "fonte": "Cass. SU 14987/2024",
-          "descrizione": "Attestazione – responsabilità del professionista attestatore"
         }
       ],
       "differenza_da_concordato_preventivo": {

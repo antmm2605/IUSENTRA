@@ -366,7 +366,7 @@ def build_react_giurisprudenza_new_payload(
         "sources": sources,
         "actions": [
             _action("archivio", "Archivio Giurisprudenza", "/giurisprudenza", "neutral"),
-            _action("ricerca_legale", "Ricerca legale", "/ricerca-legale", "primary"),
+            _action("ricerca_legale", "Cerca norme e sentenze", "/ricerca-legale", "primary"),
         ],
         "forms": [{"id": "giurisprudenza_nuova", "method": "POST", "endpoint": "/api/v1/ui/giurisprudenza/nuova"}],
         "warnings": [],
@@ -494,7 +494,7 @@ def _empty_payload(source: str, message: str) -> dict[str, Any]:
         "sections": [],
         "records": [],
         "actions": [
-            _action("legal_intelligence", "Ricerca legale", "/ricerca-legale", "primary"),
+            _action("legal_intelligence", "Cerca norme e sentenze", "/ricerca-legale", "primary"),
         ],
         "forms": [],
         "warnings": [_warning("giurisprudenza_non_disponibile", message)],
@@ -655,8 +655,8 @@ def build_react_giurisprudenza_payload(
         ],
         "records": records,
         "actions": [
-            _action("legal_intelligence", "Ricerca legale", "/ricerca-legale", "primary"),
-            _action("ricerca_legale", "Ricerca legale", "/ricerca-legale", "neutral"),
+            _action("legal_intelligence", "Cerca norme e sentenze", "/ricerca-legale", "primary"),
+            _action("ricerca_legale", "Cerca norme e sentenze", "/ricerca-legale", "neutral"),
         ],
         "forms": [],
         "warnings": warnings,

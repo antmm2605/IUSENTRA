@@ -30,14 +30,6 @@
           "fonte": "c.p.c.",
           "articolo": "839-840",
           "descrizione": "Exequatur per paesi extra-UE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "TEE – certificazione e opponibilità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Ingiunzione europea – opposizione e termini"
         }
       ],
       "TEE_Reg_805_2004": {
@@ -318,14 +310,6 @@
         {
           "fonte": "Conv. New York 10/6/1958 (L. 62/1968)",
           "descrizione": "Convenzione per il riconoscimento e l'esecuzione dei lodi arbitrali stranieri – strumento principale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Exequatur lodo estero – ordine pubblico e controllo formale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Rifiuto exequatur per contrarietà all'ordine pubblico italiano"
         }
       ],
       "conv_new_york_1958": {
@@ -798,14 +782,6 @@
           "fonte": "c.c.",
           "articolo": "2087",
           "descrizione": "Responsabilità civile del datore in caso di colpa grave"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Colpa grave del datore – danno differenziale vs INAIL"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Danno differenziale – calcolo e azione del lavoratore"
         }
       ],
       "sistema_INAIL": {
@@ -1433,14 +1409,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "12",
           "descrizione": "DIRITTO DI PRECEDENZA – il part-timer ha priorità nelle assunzioni a tempo pieno"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Part-time – clausole elastiche e preavviso"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Trasformazione a tempo pieno – diritto di precedenza"
         }
       ],
       "diritto_trasformazione_part_time_art8": {
@@ -2057,14 +2025,6 @@
           "fonte": "D.Lgs. 546/1992",
           "articolo": "445-bis",
           "descrizione": "ATP previdenziale – non applicabile alla pensione (solo invalidità)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pensione anticipata – contributi e decorrenza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Finestre pensionistiche – calcolo e contestazione"
         }
       ],
       "controversie_tipiche_pensione_anticipata": [

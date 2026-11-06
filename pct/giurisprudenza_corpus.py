@@ -1083,7 +1083,11 @@ class GestioneCorpusGiurisprudenza:
                 LIMIT ?
             """
             candidati: dict[int, dict[str, Any]] = {}
-            for ricerca in ricerche:
+            for indice, ricerca in enumerate(ricerche):
+                # La ricerca «almeno un termine» (OR) su centinaia di migliaia di pronunce costa decine di secondi
+                # con termini comuni: serve solo se quella con tutti i termini non riempie la pagina.
+                if indice and len(candidati) >= limite:
+                    break
                 try:
                     for row in conn.execute(sql, (ricerca, *filtri_params, rosa)).fetchall():
                         candidati.setdefault(int(row["id"]), dict(row))

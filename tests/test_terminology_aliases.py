@@ -44,11 +44,11 @@ def test_menu_principale_usa_terminologia_forense(tmp_path: Path):
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Controllo Studio" in html
+    assert "Priorità dello studio" in html
     assert "Servizi Telematici" in html
-    assert "Redazione Atti" in html
+    assert "Atti da modello" in html
     assert "Parcelle e Fatture" in html
-    # La voce del menu verso /compensi-forensi si chiama «Calcolo Tariffario».
-    assert "Calcolo Tariffario" in html
+    # La voce del menu verso /compensi-forensi si chiama «Calcolo compensi forensi».
+    assert "Calcolo compensi forensi" in html
     assert "Template Atti" not in html
     assert "PCT / Telematico" not in html

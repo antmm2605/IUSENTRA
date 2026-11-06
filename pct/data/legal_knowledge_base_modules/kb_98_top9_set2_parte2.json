@@ -52,19 +52,24 @@
         },
         {
           "fonte": "Corte Cost. 194/2018",
-          "descrizione": "Incostituzionalità criterio rigido indennità tutele crescenti - oggi discrezionalità giudice da 6 a 36 mensilità"
+          "descrizione": "Incostituzionalità criterio rigido indennità tutele crescenti - oggi discrezionalità giudice da 6 a 36 mensilità",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2018/194",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Corte Cost. 59/2021",
-          "descrizione": "Incostituzionalità sanzione indennitaria automatica per gmo manifestamente insussistente nel regime tutele crescenti - oggi reintegra anche per tutele crescenti se manifesta insussistenza"
+          "descrizione": "Incostituzionalità sanzione indennitaria automatica per gmo manifestamente insussistente nel regime tutele crescenti - oggi reintegra anche per tutele crescenti se manifesta insussistenza",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2021/59",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Corte Cost. 7/2024",
-          "descrizione": "Conferma necessità verifica giurisdizionale piena del gmo"
-        },
-        {
-          "fonte": "Cass. SU 19774/2017",
-          "descrizione": "Obbligo repechage - onere prova in capo al datore"
+          "descrizione": "Conferma necessità verifica giurisdizionale piena del gmo",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2024/7",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali_gmo": [
@@ -1218,7 +1223,8 @@
         {
           "fonte": "c.c.",
           "articolo": "375",
-          "descrizione": "Autorizzazione del Tribunale (atti più gravi)"
+          "descrizione": "Autorizzazione del Tribunale (atti più gravi)",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
         },
         {
           "fonte": "c.c.",
@@ -1228,7 +1234,14 @@
         {
           "fonte": "c.c.",
           "articolo": "336-bis",
-          "descrizione": "Ascolto del minore"
+          "descrizione": "Ascolto del minore",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.4",
+          "descrizione": "Ascolto del minore (sostituisce l'art. 336-bis c.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 184/1983",

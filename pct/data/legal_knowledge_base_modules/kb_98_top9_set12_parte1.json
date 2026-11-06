@@ -70,22 +70,6 @@
           "fonte": "CdS",
           "articolo": "191",
           "descrizione": "Obbligo di dare precedenza ai pedoni"
-        },
-        {
-          "fonte": "Cass. SU 6651/2024",
-          "descrizione": "Tabelle uniformi liquidazione danno biologico"
-        },
-        {
-          "fonte": "Cass. SU 11353/2024",
-          "descrizione": "Personalizzazione del danno biologico"
-        },
-        {
-          "fonte": "Cass. SU 26513/2023",
-          "descrizione": "Concorso di colpa pedone - criteri di valutazione"
-        },
-        {
-          "fonte": "Cass. SU 9560/2023",
-          "descrizione": "Danno da morte e danno parentale - tabelle aggiornate"
         }
       ],
       "regime_di_responsabilita_art_2054": {
@@ -571,14 +555,6 @@
           "fonte": "c.c.",
           "articolo": "2288",
           "descrizione": "Esclusione socio s.n.c. - per analogia"
-        },
-        {
-          "fonte": "Cass. SU 12906/2021",
-          "descrizione": "Esclusione socio S.r.l. - requisiti statutari e cause tipiche"
-        },
-        {
-          "fonte": "Cass. SU 3736/2022",
-          "descrizione": "Liquidazione della quota del socio escluso - criteri"
         }
       ],
       "presupposti_sostanziali_esclusione": {
@@ -953,20 +929,11 @@
           "descrizione": "Responsabilità diretta dei funzionari pubblici"
         },
         {
-          "fonte": "Cass. SU 500/1999",
-          "descrizione": "Pietra miliare: P.A. responsabile per lesione di interessi legittimi"
-        },
-        {
           "fonte": "Cass. SU 6594/2011",
-          "descrizione": "Giurisdizione: G.O. per comportamenti illeciti P.A."
-        },
-        {
-          "fonte": "Cass. SU 7057/2022",
-          "descrizione": "Criteri di riparto giurisdizione G.O./G.A."
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 3/2011",
-          "descrizione": "Pregiudizialità amministrativa - superamento"
+          "descrizione": "Giurisdizione: G.O. per comportamenti illeciti P.A.",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023U02175O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 02175/2023 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "riparto_di_giurisdizione": {
@@ -1337,18 +1304,6 @@
         {
           "fonte": "Direttiva UE 2001/23/CE",
           "descrizione": "Trasferimento di imprese - tutela dei lavoratori"
-        },
-        {
-          "fonte": "Cass. SU 26299/2024",
-          "descrizione": "Ramo d'azienda - requisiti identità funzionale propria"
-        },
-        {
-          "fonte": "Cass. SU 17423/2021",
-          "descrizione": "Cessione ramo azienda vs esternalizzazione illegittima"
-        },
-        {
-          "fonte": "Cass. SU 5572/2020",
-          "descrizione": "Responsabilità solidale cedente e cessionario per TFR"
         }
       ],
       "requisiti_ramo_azienda_art_2112_c5": {
@@ -1758,15 +1713,10 @@
         },
         {
           "fonte": "CEDU art. 8",
-          "descrizione": "Diritto alla vita familiare - bilanciamento con interesse del minore"
-        },
-        {
-          "fonte": "Cass. SU 21018/2018",
-          "descrizione": "Stato di abbandono - valutazione proporzionale"
-        },
-        {
-          "fonte": "Cass. SU 12962/2022",
-          "descrizione": "Adottabilità - ultimo rimedio dopo esaurimento misure meno invasive"
+          "descrizione": "Diritto alla vita familiare - bilanciamento con interesse del minore",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "definizione_stato_abbandono_art_8": {

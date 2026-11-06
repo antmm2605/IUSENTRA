@@ -28,14 +28,6 @@
           "fonte": "c.c.",
           "articolo": "2497-ter",
           "descrizione": "Motivazione delle decisioni – le decisioni influenzate dalla capogruppo devono essere motivate"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Abuso di direzione unitaria – danno alla controllata"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Responsabilità capogruppo – legittimazione del socio esterno"
         }
       ],
       "responsabilita_2497": {
@@ -457,14 +449,6 @@
           "fonte": "D.L. 91/2014",
           "articolo": "6",
           "descrizione": "Rete soggetto – acquista soggettività giuridica (rete con fondo patrimoniale e organo comune)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contratto di rete – obbligazioni e inadempimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Responsabilità delle imprese retiste verso i terzi"
         }
       ],
       "tipologie_di_rete": {
@@ -773,14 +757,6 @@
           "fonte": "c.c.",
           "articolo": "1267",
           "descrizione": "Garanzia pro solvendo vs pro soluto – il cedente garantisce l'esistenza del credito (pro soluto: anche la solvenza del debitore)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Factoring – cedibilità dei crediti e garanzie"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Factor e debitore ceduto – opponibilità delle eccezioni"
         }
       ],
       "pro_solvendo_vs_pro_soluto": {
@@ -1046,14 +1022,6 @@
           "fonte": "L. 129/2004",
           "articolo": "6",
           "descrizione": "RECESSO – libero nelle reti a tempo indeterminato con preavviso"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Franchising – inadempimento del franchisor e indennità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Recesso dal franchising – giusta causa e risarcimento"
         }
       ],
       "obblighi_informativi_30gg_art3": {
@@ -1594,14 +1562,6 @@
           "fonte": "L. 287/1990",
           "articolo": "2-3",
           "descrizione": "Antitrust italiano – pratiche anticoncorrenziali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Concessione di vendita – recesso e indennità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Esclusiva territoriale e violazione – risarcimento"
         }
       ],
       "clausole_anticoncorrenziali": {

@@ -66,9 +66,10 @@ def run_nightly(config):
         )
     recovery_command = [sys.executable,
         str(Path(__file__).resolve().parents[1] / "tools/sentenzeweb_recupera.py"),
-        "--directory", str(directory), "--max-records", "25"]
+        "--directory", str(directory), "--max-records",
+        str(max(1, int(config.get("IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO") or os.getenv("IUSENTRA_SENTENZEWEB_RECUPERO_PER_GIRO") or 25)))]
     recovery = subprocess.run(recovery_command, capture_output=True, text=True,
-                              timeout=1200, check=False, env=environment)
+                              timeout=max(1200, 3 * int(recovery_command[-1])), check=False, env=environment)
     if recovery.returncode not in (0, 75):
         raise RuntimeError("Public recovery failed; native queue and preserved originals retained")
     return {

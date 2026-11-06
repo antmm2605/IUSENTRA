@@ -28,14 +28,6 @@
           "fonte": "c.c.",
           "articolo": "2236",
           "descrizione": "Responsabilità professionale – colpa grave o dolo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Revisore – responsabilità verso la società e i terzi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Nesso causale tra revisione errata e danno dell'investitore"
         }
       ],
       "responsabilita_15": {
@@ -191,10 +183,6 @@
           "fonte": "TUB",
           "articolo": "128-bis c. 6",
           "descrizione": "Non vincolatività – il cliente può andare in giudizio dopo l'ABF"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "ABF – decisioni e rapporto con il giudizio ordinario"
         }
       ],
       "ABF_procedimento": {
@@ -513,14 +501,6 @@
           "fonte": "c.c.",
           "articolo": "2236",
           "descrizione": "Responsabilità del prestatore d'opera intellettuale – colpa grave"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Mediatore – violazione della riservatezza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accordo di mediazione nullo per vizi del procedimento"
         }
       ],
       "obblighi_mediatore": {
@@ -762,14 +742,6 @@
           "fonte": "c.c.",
           "articolo": "1615-1635",
           "descrizione": "Affitto di cose produttive – disciplina generale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Affitto d'azienda – differenza inventariale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Canone affitto d'azienda – revisione"
         }
       ],
       "obblighi_conduttore_2561": {
@@ -1253,14 +1225,6 @@
           "fonte": "c.c.",
           "articolo": "1811",
           "descrizione": "Spese ordinarie a carico del comodatario"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Comodato precario – restituzione e danni"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Comodato familiare – opponibilità ai terzi"
         }
       ],
       "comodato_precario_1810": {

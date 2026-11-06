@@ -22,10 +22,6 @@
         {
           "fonte": "D.M. 9/6/2015",
           "descrizione": "Discipline del Contratto di Sviluppo – strumento aggiornato per i grandi progetti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contratto di programma – inadempimento e revoca delle agevolazioni"
         }
       ],
       "obbligo_mediazione": {
@@ -450,10 +446,6 @@
           "fonte": "D.L. 77/2021",
           "articolo": "4 c. 3",
           "descrizione": "Poteri del commissario – puo' adottare i provvedimenti al posto della PA; in deroga alle norme ordinarie"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Commissario straordinario – tutele dei privati lesi dalle deroghe"
         }
       ],
       "obbligo_mediazione": {
@@ -883,10 +875,6 @@
           "fonte": "c.c.",
           "articolo": "2049",
           "descrizione": "Responsabilita' del committente – ma la PA non e' committente del privato vigilato"
-        },
-        {
-          "fonte": "Cass. SU 500/1999",
-          "descrizione": "Responsabilita' PA – include l'omessa vigilanza; il danneggiato deve provare la colpa"
         }
       ],
       "obbligo_mediazione": {
@@ -1160,7 +1148,10 @@
         },
         {
           "fonte": "CGUE C-458/14 (Promoimpresa)",
-          "descrizione": "Il rinnovo automatico delle concessioni balneari viola la Bolkestein"
+          "descrizione": "Il rinnovo automatico delle concessioni balneari viola la Bolkestein",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-458/14",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 17142/2025 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 145/2018",

@@ -87,11 +87,17 @@
         },
         {
           "fonte": "Cass. SU 4628/2015",
-          "descrizione": "Preliminare di preliminare - validità e tutela"
+          "descrizione": "Preliminare di preliminare - validità e tutela",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjM4NTQwTw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 39377/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 18672/2019",
-          "descrizione": "Trascrizione preliminare - efficacia prenotativa"
+          "descrizione": "Trascrizione preliminare - efficacia prenotativa",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021637476O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 37476/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -703,10 +709,6 @@
         {
           "fonte": "D.L. 1/2012",
           "descrizione": "Tribunale delle Imprese"
-        },
-        {
-          "fonte": "Cass. SU 17893/2013",
-          "descrizione": "Annullabilità vs nullità - criterio di distinzione"
         }
       ],
       "tipologie_di_invalidita": {
@@ -1233,15 +1235,24 @@
         },
         {
           "fonte": "Corte Cost. 194/2018",
-          "descrizione": "Tutele crescenti - dichiarata illegittimità criterio anzianità per quantum indennità"
+          "descrizione": "Tutele crescenti - dichiarata illegittimità criterio anzianità per quantum indennità",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2018/194",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Corte Cost. 59/2021",
-          "descrizione": "Tutele crescenti - dichiarata illegittimità mancato riconoscimento reintegra per insussistenza fatto"
+          "descrizione": "Tutele crescenti - dichiarata illegittimità mancato riconoscimento reintegra per insussistenza fatto",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2021/59",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 30985/2017",
-          "descrizione": "Tempestività contestazione disciplinare"
+          "descrizione": "Tempestività contestazione disciplinare",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023L01584O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 01584/2023 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali_per_validita_licenziamento_disciplinare": [
@@ -1871,11 +1882,10 @@
         },
         {
           "fonte": "Cass. SU 22080/2017",
-          "descrizione": "Riparto giurisdizione - opposizione cartella per crediti tributari/non tributari"
-        },
-        {
-          "fonte": "Cass. SU 16128/2014",
-          "descrizione": "Opposizione vizio formale cartella vs vizio sostanziale credito"
+          "descrizione": "Riparto giurisdizione - opposizione cartella per crediti tributari/non tributari",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjM5OTEyUw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 40099/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "casistica_e_riparto_giurisdizione": {
@@ -2433,15 +2443,17 @@
         },
         {
           "fonte": "Cass. SU 2611/2017",
-          "descrizione": "Immissioni acustiche - criteri di tollerabilità - giurisdizione GA/GO"
-        },
-        {
-          "fonte": "Cass. SU 7128/2017",
-          "descrizione": "Immissioni - prova della normale tollerabilità"
+          "descrizione": "Immissioni acustiche - criteri di tollerabilità - giurisdizione GA/GO",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024217561O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 17561/2024 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. 14180/2020",
-          "descrizione": "Immissioni - tutela inibitoria e risarcitoria"
+          "descrizione": "Immissioni - tutela inibitoria e risarcitoria",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022606698O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 06698/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "tipologie_di_immissioni_tutelabili": [

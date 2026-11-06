@@ -33,14 +33,6 @@
           "fonte": "Cod. PI",
           "articolo": "122",
           "descrizione": "Nullità del marchio – anche per anteriorità di fatto"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Marchio di fatto – preuso locale e inibitoria del registrato"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Anteriorità di fatto – nullità del marchio successivamente registrato"
         }
       ],
       "marchio_di_fatto_vs_registrato": {
@@ -504,14 +496,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "27-bis",
           "descrizione": "Pratiche scorrette in ambito finanziario – competenza delle autorità di settore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pratica commerciale scorretta – azione individuale del consumatore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Annullamento del contratto per pratica ingannevole"
         }
       ],
       "azione_individuale_vs_AGCM": {
@@ -835,14 +819,6 @@
           "fonte": "c.p.c.",
           "articolo": "656",
           "descrizione": "Decreto ingiuntivo europeo – opposizione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Opposizione tardiva – presupposti: caso fortuito + notifica irrituale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Caso fortuito nell'opposizione tardiva – onere della prova"
         }
       ],
       "opposizione_tardiva_art650": {
@@ -1309,14 +1285,6 @@
           "fonte": "c.c.",
           "articolo": "2596",
           "descrizione": "Patti limitativi della concorrenza in generale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Corrispettivo del patto non concorrenza – adeguatezza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Violazione del patto – risarcimento e penale contrattuale"
         }
       ],
       "requisiti_validita_2125": {
@@ -1681,14 +1649,6 @@
           "fonte": "c.c.",
           "articolo": "47 L. 428/1990",
           "descrizione": "Procedura di informazione e consultazione sindacale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Trasferimento d'azienda – nozione e conseguenze sul rapporto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Solidarietà cedente-cessionario per TFR e retribuzioni anteriori"
         }
       ],
       "principio_continuita_2112": {

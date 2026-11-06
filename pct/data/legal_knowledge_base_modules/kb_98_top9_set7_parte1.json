@@ -84,10 +84,6 @@
           "fonte": "c.c.",
           "articolo": "2693",
           "descrizione": "Trascrizione del sequestro (per immobili)"
-        },
-        {
-          "fonte": "Cass. SU 4427/2010",
-          "descrizione": "Sequestro conservativo - criteri di valutazione periculum"
         }
       ],
       "presupposti_sostanziali": [
@@ -616,10 +612,6 @@
         {
           "fonte": "Reg. UE 2017/1001 (EUIPO)",
           "descrizione": "Marchio dell'Unione Europea"
-        },
-        {
-          "fonte": "Cass. SU 5712/2023",
-          "descrizione": "Onere prova nullità per assenza capacità distintiva"
         }
       ],
       "cause_di_nullita_assoluta_art_25": [
@@ -1115,11 +1107,17 @@
         },
         {
           "fonte": "Cass. SU 11748/2019",
-          "descrizione": "Onere prova vizi - compratore deve provare esistenza vizio, venditore può eccepire decadenza"
+          "descrizione": "Onere prova vizi - compratore deve provare esistenza vizio, venditore può eccepire decadenza",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021634636O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 34636/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 19702/2012",
-          "descrizione": "Termini di decadenza e denuncia - tempestività"
+          "descrizione": "Termini di decadenza e denuncia - tempestività",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024301542S&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 01542/2024 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -1655,20 +1653,11 @@
           "descrizione": "Prescrizione 5 anni"
         },
         {
-          "fonte": "Cass. SU 7037/2024",
-          "descrizione": "Responsabilità custode P.A. per beni demaniali - inclusi i sinistri stradali"
-        },
-        {
-          "fonte": "Cass. SU 12717/2023",
-          "descrizione": "Caso fortuito - distinzione da concorso colpa danneggiato"
-        },
-        {
           "fonte": "Cass. SU 20943/2022",
-          "descrizione": "Onere prova - basta prova del nesso causale tra cosa e danno"
-        },
-        {
-          "fonte": "Cass. 14228/2024",
-          "descrizione": "Marciapiedi pubblici e responsabilità del Comune"
+          "descrizione": "Onere prova - basta prova del nesso causale tra cosa e danno",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022U20943O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -2287,11 +2276,10 @@
         },
         {
           "fonte": "Cass. SU 21578/2011",
-          "descrizione": "Prevalenza regolamenti locali su norme codicistiche"
-        },
-        {
-          "fonte": "Cass. SU 5839/2024",
-          "descrizione": "Sopraelevazioni e distanze - rispetto normativa vigente al momento"
+          "descrizione": "Prevalenza regolamenti locali su norme codicistiche",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021640967O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 40967/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "principali_distanze_legali": {

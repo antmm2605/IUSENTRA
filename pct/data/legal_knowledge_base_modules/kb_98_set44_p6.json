@@ -878,12 +878,11 @@
           "descrizione": "Ordinanze contingibili e urgenti – il Sindaco può adottarle per la tutela dell'incolumità pubblica"
         },
         {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ordinanze contingibili – imprevedibilità e urgenza"
-        },
-        {
           "fonte": "Corte Cost. 115/2011",
-          "descrizione": "Limite al potere di ordinanza – non può essere normativo; deve essere temporaneo"
+          "descrizione": "Limite al potere di ordinanza – non può essere normativo; deve essere temporaneo",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2011/115",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_ordinanza_54": {

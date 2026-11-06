@@ -81,7 +81,10 @@
         },
         {
           "fonte": "Cass. SU 6070/2013",
-          "descrizione": "Effetti cancellazione società - estinzione e debiti residui"
+          "descrizione": "Effetti cancellazione società - estinzione e debiti residui",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTM0Mjg4Uw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 34459/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "cause_di_scioglimento_societa_persone": [
@@ -550,14 +553,6 @@
         {
           "fonte": "L. 6/2004",
           "descrizione": "Introduzione AdS - principio di favor verso misure meno invasive"
-        },
-        {
-          "fonte": "Cass. SU 25366/2006",
-          "descrizione": "Rapporto AdS-interdizione - preferenza AdS"
-        },
-        {
-          "fonte": "Cass. 6079/2018",
-          "descrizione": "Revoca interdizione - presupposti"
         }
       ],
       "tipologie_di_controversie_in_questo_codice": [
@@ -1032,15 +1027,17 @@
         },
         {
           "fonte": "Cass. SU 24675/2017",
-          "descrizione": "Usura sopravvenuta - non rilevante per nullità"
+          "descrizione": "Usura sopravvenuta - non rilevante per nullità",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022135118O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 35118/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 19597/2020",
-          "descrizione": "Anatocismo bancario - inammissibilità capitalizzazione"
-        },
-        {
-          "fonte": "Cass. SU 15130/2024",
-          "descrizione": "Decadenza beneficio termine in mutuo fondiario"
+          "descrizione": "Anatocismo bancario - inammissibilità capitalizzazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021637058O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 37058/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -1631,14 +1628,6 @@
           "fonte": "c.p.c.",
           "articolo": "615 c. 1 ultimo periodo",
           "descrizione": "Possibilità inibitoria del precetto"
-        },
-        {
-          "fonte": "Cass. SU 14228/2024",
-          "descrizione": "Differenza tra 615 c. 1 e c. 2 - rito applicabile"
-        },
-        {
-          "fonte": "Cass. SU 11774/2019",
-          "descrizione": "Estensione opposizione anche a vizi del titolo esecutivo"
         }
       ],
       "presupposti_sostanziali": [

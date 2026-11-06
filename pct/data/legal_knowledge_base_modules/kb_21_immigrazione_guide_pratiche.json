@@ -1,0 +1,747 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "IMMIGRAZIONE",
+  "denominazione": "Immigrazione: guide pratiche",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_IMMIGRAZIONE_PROTEZIONE_INTERNAZIONALE",
+      "denominazione": "Ricorso contro il diniego della protezione internazionale (artt. 35 e 35-bis D.Lgs. 25/2008)",
+      "categoria": "Immigrazione – protezione internazionale",
+      "materia": "Immigrazione",
+      "rito": "Rito camerale (artt. 737 ss. c.p.c.) con le regole dell'art. 35-bis",
+      "competenza": "Tribunale – Sezione specializzata in materia di immigrazione, protezione internazionale e libera circolazione dei cittadini UE",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 25/2008",
+          "articolo": "35",
+          "descrizione": "Impugnazione dei provvedimenti delle Commissioni territoriali e nazionale"
+        },
+        {
+          "fonte": "D.Lgs. 25/2008",
+          "articolo": "35-bis",
+          "descrizione": "Ricorso entro 30 giorni (60 se il ricorrente è in un Paese terzo); decisione entro otto mesi con decreto non reclamabile"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "protezione_internazionale",
+        "denominazione": "Ricorso ex art. 35-bis D.Lgs. 25/2008",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Richiedente e dati del permesso",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Decisione della Commissione e data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "protezione_richiesta",
+            "label": "Status di rifugiato, protezione sussidiaria o speciale",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "paese_origine",
+            "label": "Paese di origine e fonti COI",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Richiedente e dati del permesso",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Decisione della Commissione e data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "protezione_richiesta",
+            "label": "Status di rifugiato, protezione sussidiaria o speciale",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "paese_origine",
+            "label": "Paese di origine e fonti COI",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il decreto del tribunale non è reclamabile: contro di esso solo ricorso per cassazione (art. 35-bis, comma 13, D.Lgs. 25/2008).",
+          "Per le procedure di frontiera si applica l'art. 35-ter D.Lgs. 25/2008."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità o di riconoscimento del ricorrente",
+          "required": true
+        },
+        {
+          "id": "verbale_audizione",
+          "label": "Verbale e videoregistrazione dell'audizione, se disponibili",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Calcolare il termine dalla notificazione e verificare le ipotesi del comma 2-bis (termini ridotti e procedure di frontiera)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Valutare la richiesta di sospensione dell'efficacia esecutiva del provvedimento",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso",
+          "decorrenza": "notificazione del provvedimento (60 giorni se il ricorrente si trova in un Paese terzo)",
+          "natura": "inammissibilità",
+          "norma": "art. 35-bis, comma 2, D.Lgs. 25/2008",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [
+        "Il decreto del tribunale non è reclamabile: contro di esso solo ricorso per cassazione (art. 35-bis, comma 13, D.Lgs. 25/2008).",
+        "Per le procedure di frontiera si applica l'art. 35-ter D.Lgs. 25/2008."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "asilo",
+        "protezione internazionale",
+        "protezione sussidiaria",
+        "protezione speciale",
+        "commissione territoriale",
+        "rifugiato"
+      ]
+    },
+    {
+      "codice": "GUIDA_IMMIGRAZIONE_ESPULSIONE",
+      "denominazione": "Opposizione al decreto di espulsione del prefetto (art. 13 D.Lgs. 286/1998; art. 18 D.Lgs. 150/2011)",
+      "categoria": "Immigrazione – espulsione",
+      "materia": "Immigrazione",
+      "rito": "Rito semplificato di cognizione (art. 18 D.Lgs. 150/2011)",
+      "competenza": "Giudice di pace del luogo in cui ha sede l'autorità che ha disposto l'espulsione",
+      "uffici_destinatari": [
+        "SIGP"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 286/1998",
+          "articolo": "13",
+          "descrizione": "Espulsione amministrativa"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "18",
+          "descrizione": "Ricorso al giudice di pace entro 20 giorni (40 se all'estero) a pena di inammissibilità"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "espulsione",
+        "denominazione": "Ricorso in opposizione al decreto di espulsione",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Straniero destinatario",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "decreto",
+            "label": "Decreto prefettizio e data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi (legami familiari, divieti di espulsione, vizi del provvedimento)",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Straniero destinatario",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "decreto",
+            "label": "Decreto prefettizio e data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi (legami familiari, divieti di espulsione, vizi del provvedimento)",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'art. 13-bis D.Lgs. 286/1998 è abrogato dal D.Lgs. 150/2011: il rito è quello dell'art. 18 del decreto."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità o di riconoscimento del ricorrente",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i divieti di espulsione e i legami familiari da documentare",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Valutare l'istanza di sospensione dell'efficacia",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso in opposizione",
+          "decorrenza": "notificazione del decreto (40 giorni se il ricorrente risiede all'estero)",
+          "natura": "inammissibilità",
+          "norma": "art. 18, comma 3, D.Lgs. 150/2011",
+          "giorni": 20
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [
+        "L'art. 13-bis D.Lgs. 286/1998 è abrogato dal D.Lgs. 150/2011: il rito è quello dell'art. 18 del decreto."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "espulsione",
+        "decreto di espulsione",
+        "prefetto",
+        "opposizione espulsione"
+      ]
+    },
+    {
+      "codice": "GUIDA_IMMIGRAZIONE_CONVALIDA_TRATTENIMENTO",
+      "denominazione": "Difesa nella convalida del trattenimento nel centro per i rimpatri (art. 14 D.Lgs. 286/1998)",
+      "categoria": "Immigrazione – trattenimento",
+      "materia": "Immigrazione",
+      "rito": "Udienza di convalida in camera di consiglio",
+      "competenza": "Giudice di pace territorialmente competente (art. 14, comma 3, D.Lgs. 286/1998)",
+      "uffici_destinatari": [
+        "SIGP"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 286/1998",
+          "articolo": "14",
+          "descrizione": "Trattenimento: atti al giudice di pace entro 48 ore; udienza con difensore; convalida nelle 48 ore successive"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "convalida_trattenimento",
+        "denominazione": "Memoria difensiva per l'udienza di convalida",
+        "campi_chiave": [
+          {
+            "id": "trattenuto",
+            "label": "Persona trattenuta",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento_questore",
+            "label": "Provvedimento del questore e ora di adozione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "trattenuto",
+            "label": "Persona trattenuta",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento_questore",
+            "label": "Provvedimento del questore e ora di adozione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'udienza si svolge con la partecipazione necessaria del difensore, tempestivamente avvertito (art. 14, comma 4)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_questore",
+          "label": "Provvedimento di trattenimento",
+          "required": true
+        },
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale del difensore di fiducia",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Controllare il rispetto delle 48 ore per la trasmissione e delle successive 48 per la convalida",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Chiedere l'ammissione al patrocinio a spese dello Stato se ne ricorrono i presupposti (art. 14, comma 4, D.Lgs. 286/1998)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Trasmissione degli atti al giudice per la convalida",
+          "decorrenza": "adozione del provvedimento",
+          "natura": "perentorio",
+          "norma": "art. 14, comma 3, D.Lgs. 286/1998",
+          "ore": 48
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per la difesa nell'udienza di convalida"
+      },
+      "avvertenze_redazionali": [
+        "L'udienza si svolge con la partecipazione necessaria del difensore, tempestivamente avvertito (art. 14, comma 4)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "trattenimento",
+        "cpr",
+        "convalida",
+        "centro per i rimpatri"
+      ]
+    },
+    {
+      "codice": "GUIDA_IMMIGRAZIONE_RICONGIUNGIMENTO",
+      "denominazione": "Opposizione al diniego del nulla osta al ricongiungimento o del permesso per motivi familiari (art. 30, comma 6, D.Lgs. 286/1998; art. 20 D.Lgs. 150/2011)",
+      "categoria": "Immigrazione – unità familiare",
+      "materia": "Immigrazione",
+      "rito": "Rito semplificato di cognizione",
+      "competenza": "Tribunale – Sezione specializzata in materia di immigrazione, protezione internazionale e libera circolazione dei cittadini UE del luogo dell'autorità che ha adottato il provvedimento",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 286/1998",
+          "articolo": "29",
+          "descrizione": "Familiari ricongiungibili e requisiti"
+        },
+        {
+          "fonte": "D.Lgs. 286/1998",
+          "articolo": "30",
+          "descrizione": "Permesso per motivi familiari; tutela giurisdizionale (comma 6)"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "20",
+          "descrizione": "Rito, competenza; la sentenza può disporre il rilascio del visto; atti esenti da bollo e registro"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricongiungimento",
+        "denominazione": "Ricorso contro il diniego",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente e familiare",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento di diniego e data",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente e familiare",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento di diniego e data",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La sentenza che accoglie il ricorso può disporre il rilascio del visto anche senza nulla osta (art. 20, comma 3, D.Lgs. 150/2011)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "documenti_familiari",
+          "label": "Atti dello stato civile, reddito e alloggio",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Documentare parentela, reddito e alloggio (art. 29 D.Lgs. 286/1998)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Atti esenti da imposta di bollo, di registro e da ogni altra tassa (art. 20, comma 4, D.Lgs. 150/2011)"
+      },
+      "avvertenze_redazionali": [
+        "La sentenza che accoglie il ricorso può disporre il rilascio del visto anche senza nulla osta (art. 20, comma 3, D.Lgs. 150/2011)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ricongiungimento",
+        "nulla osta",
+        "permesso per motivi familiari",
+        "visto"
+      ]
+    },
+    {
+      "codice": "GUIDA_IMMIGRAZIONE_CITTADINANZA",
+      "denominazione": "Cittadinanza per matrimonio o residenza: domanda, diniego e tutela (artt. 5, 6, 8, 9 e 9-ter L. 91/1992)",
+      "categoria": "Immigrazione – cittadinanza",
+      "materia": "Immigrazione",
+      "rito": "Procedimento amministrativo; tutela davanti al giudice amministrativo",
+      "competenza": "Ministero dell'interno; TAR competente contro il diniego",
+      "uffici_destinatari": [
+        "Giustizia amministrativa"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 91/1992",
+          "articolo": "5",
+          "descrizione": "Cittadinanza del coniuge: due anni di residenza legale dopo il matrimonio (tre se all'estero), dimezzati con figli"
+        },
+        {
+          "fonte": "L. 91/1992",
+          "articolo": "6",
+          "descrizione": "Cause ostative"
+        },
+        {
+          "fonte": "L. 91/1992",
+          "articolo": "8",
+          "descrizione": "Diniego motivato; riproposizione dopo cinque anni"
+        },
+        {
+          "fonte": "L. 91/1992",
+          "articolo": "9",
+          "descrizione": "Concessione per residenza"
+        },
+        {
+          "fonte": "L. 91/1992",
+          "articolo": "9-ter",
+          "descrizione": "Definizione entro 24 mesi, prorogabili fino a 36"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "29",
+          "descrizione": "Annullamento entro 60 giorni"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "cittadinanza",
+        "denominazione": "Domanda di cittadinanza o ricorso contro il diniego",
+        "campi_chiave": [
+          {
+            "id": "richiedente",
+            "label": "Richiedente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "titolo",
+            "label": "Matrimonio o residenza",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "data_domanda",
+            "label": "Data di presentazione della domanda",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "richiedente",
+            "label": "Richiedente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "titolo",
+            "label": "Matrimonio o residenza",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "data_domanda",
+            "label": "Data di presentazione della domanda",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'istanza respinta per cause ostative può essere riproposta dopo cinque anni (art. 8 L. 91/1992)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità o di riconoscimento del ricorrente",
+          "required": true
+        },
+        {
+          "id": "atti_stato_civile",
+          "label": "Atti di nascita, matrimonio, residenza e certificati penali",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare le cause ostative dell'art. 6 L. 91/1992 prima della domanda",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Conclusione del procedimento",
+          "decorrenza": "presentazione della domanda (prorogabile fino a 36 mesi)",
+          "natura": "termine dell'amministrazione",
+          "norma": "art. 9-ter L. 91/1992",
+          "mesi": 24
+        },
+        {
+          "termine": "Ricorso al TAR contro il diniego",
+          "decorrenza": "notificazione o piena conoscenza",
+          "natura": "decadenza",
+          "norma": "art. 29 c.p.a.",
+          "giorni": 60
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto per il ricorso al TAR secondo l'art. 13, comma 6-bis, D.P.R. 115/2002; nessun contributo per il ricorso gerarchico"
+      },
+      "avvertenze_redazionali": [
+        "L'istanza respinta per cause ostative può essere riproposta dopo cinque anni (art. 8 L. 91/1992)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "cittadinanza",
+        "cittadinanza per matrimonio",
+        "cittadinanza per residenza",
+        "diniego cittadinanza"
+      ]
+    },
+    {
+      "codice": "GUIDA_IMMIGRAZIONE_DISCRIMINAZIONE",
+      "denominazione": "Azione civile contro la discriminazione (art. 44 D.Lgs. 286/1998; art. 28 D.Lgs. 150/2011)",
+      "categoria": "Immigrazione – discriminazione",
+      "materia": "Immigrazione",
+      "rito": "Rito semplificato di cognizione",
+      "competenza": "Tribunale del luogo in cui il ricorrente ha il domicilio",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 286/1998",
+          "articolo": "44",
+          "descrizione": "Cessazione del comportamento discriminatorio e rimozione degli effetti"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "28",
+          "descrizione": "Rito, competenza, difesa personale in primo grado, prova anche statistica"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "discriminazione",
+        "denominazione": "Ricorso antidiscriminatorio",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "condotta",
+            "label": "Comportamento discriminatorio e motivo",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "elementi",
+            "label": "Elementi di fatto anche statistici",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "condotta",
+            "label": "Comportamento discriminatorio e motivo",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "elementi",
+            "label": "Elementi di fatto anche statistici",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "In primo grado le parti possono stare in giudizio personalmente (art. 28, comma 3, D.Lgs. 150/2011)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "prove",
+          "label": "Documenti e dati da cui presumere la discriminazione",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Raccogliere elementi di fatto, anche statistici, che fanno presumere la discriminazione (art. 28, comma 4)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [
+        "In primo grado le parti possono stare in giudizio personalmente (art. 28, comma 3, D.Lgs. 150/2011)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "discriminazione",
+        "azione antidiscriminatoria",
+        "razziale"
+      ]
+    }
+  ]
+}

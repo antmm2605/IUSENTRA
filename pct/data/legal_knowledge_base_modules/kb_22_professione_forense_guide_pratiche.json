@@ -1,0 +1,648 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "FORENSE",
+  "denominazione": "Professione forense: guide pratiche",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_FORENSE_LIQUIDAZIONE_COMPENSI",
+      "denominazione": "Liquidazione dei compensi dell'avvocato per prestazioni giudiziali (art. 14 D.Lgs. 150/2011)",
+      "categoria": "Professione forense – compensi",
+      "materia": "Professione forense",
+      "rito": "Rito semplificato di cognizione",
+      "competenza": "Ufficio giudiziario di merito adito per il processo in cui l'avvocato ha prestato l'opera; tribunale in composizione monocratica",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "14",
+          "descrizione": "Liquidazione degli onorari e opposizione a decreto ingiuntivo per compensi giudiziali; sentenza non appellabile"
+        },
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "13",
+          "descrizione": "Conferimento dell'incarico e compenso pattuito di regola per iscritto"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "636",
+          "descrizione": "Decreto ingiuntivo con parcella e parere dell'ordine"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "liquidazione_compensi",
+        "denominazione": "Ricorso per la liquidazione dei compensi",
+        "campi_chiave": [
+          {
+            "id": "avvocato",
+            "label": "Avvocato ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "cliente",
+            "label": "Cliente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "processo",
+            "label": "Processo in cui è stata prestata l'opera",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "importo",
+            "label": "Compenso richiesto e parametri applicati",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "avvocato",
+            "label": "Avvocato ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "cliente",
+            "label": "Cliente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "processo",
+            "label": "Processo in cui è stata prestata l'opera",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "importo",
+            "label": "Compenso richiesto e parametri applicati",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Le parti possono stare in giudizio personalmente; la sentenza non è appellabile (art. 14, commi 3 e 4, D.Lgs. 150/2011)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "parcella",
+          "label": "Parcella dettagliata",
+          "required": true
+        },
+        {
+          "id": "incarico",
+          "label": "Conferimento dell'incarico o accordo sul compenso",
+          "required": true
+        },
+        {
+          "id": "atti",
+          "label": "Atti del processo che provano l'attività",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare l'accordo sul compenso scritto (art. 13 L. 247/2012) e i parametri ministeriali",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [
+        "Le parti possono stare in giudizio personalmente; la sentenza non è appellabile (art. 14, commi 3 e 4, D.Lgs. 150/2011)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "compensi",
+        "onorari",
+        "parcella",
+        "liquidazione compensi",
+        "recupero compensi avvocato"
+      ]
+    },
+    {
+      "codice": "GUIDA_FORENSE_PARERE_CONGRUITA",
+      "denominazione": "Parere di congruità del compenso con efficacia di titolo esecutivo (art. 7 L. 49/2023)",
+      "categoria": "Professione forense – compensi",
+      "materia": "Professione forense",
+      "rito": "Procedimento davanti al consiglio dell'ordine (L. 241/1990); opposizione davanti al giudice",
+      "competenza": "Consiglio dell'ordine; per l'opposizione il giudice del luogo dell'ordine",
+      "uffici_destinatari": [
+        "Consiglio dell'ordine"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 49/2023",
+          "articolo": "7",
+          "descrizione": "Il parere diventa titolo esecutivo se il debitore non si oppone entro 40 giorni dalla notifica"
+        },
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "29",
+          "descrizione": "Compiti del consiglio dell'ordine"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "parere_congruita",
+        "denominazione": "Istanza di parere di congruità",
+        "campi_chiave": [
+          {
+            "id": "cliente",
+            "label": "Cliente debitore",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "attivita",
+            "label": "Attività svolta e compenso richiesto",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "cliente",
+            "label": "Cliente debitore",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "attivita",
+            "label": "Attività svolta e compenso richiesto",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il parere è alternativo al decreto ingiuntivo e al rito dell'art. 14 D.Lgs. 150/2011 (art. 7 L. 49/2023)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "parcella",
+          "label": "Parcella",
+          "required": true
+        },
+        {
+          "id": "documenti",
+          "label": "Documenti dell'attività e spese sostenute",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Notificare il parere al debitore: dalla notifica decorrono i 40 giorni per l'opposizione",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Opposizione del debitore al parere",
+          "decorrenza": "notificazione del parere a cura del professionista",
+          "natura": "decadenza",
+          "norma": "art. 7, comma 1, L. 49/2023",
+          "giorni": 40
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto: procedimento davanti al consiglio dell'ordine"
+      },
+      "avvertenze_redazionali": [
+        "Il parere è alternativo al decreto ingiuntivo e al rito dell'art. 14 D.Lgs. 150/2011 (art. 7 L. 49/2023)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "parere di congruità",
+        "opinamento",
+        "parcella",
+        "consiglio dell'ordine"
+      ]
+    },
+    {
+      "codice": "GUIDA_FORENSE_EQUO_COMPENSO",
+      "denominazione": "Equo compenso nei rapporti con banche, assicurazioni e grandi imprese (L. 49/2023)",
+      "categoria": "Professione forense – equo compenso",
+      "materia": "Professione forense",
+      "rito": "Giudizio ordinario o semplificato sulla nullità della clausola",
+      "competenza": "Tribunale competente secondo le regole ordinarie",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 49/2023",
+          "articolo": "1",
+          "descrizione": "Definizione: compenso conforme ai parametri del D.M. ex art. 13, comma 6, L. 247/2012"
+        },
+        {
+          "fonte": "L. 49/2023",
+          "articolo": "2",
+          "descrizione": "Ambito: banche, assicurazioni, imprese con più di 50 dipendenti o ricavi oltre 10 milioni, PA"
+        },
+        {
+          "fonte": "L. 49/2023",
+          "articolo": "3",
+          "descrizione": "Nullità delle clausole con compenso inferiore ai parametri"
+        },
+        {
+          "fonte": "L. 49/2023",
+          "articolo": "5",
+          "descrizione": "Prescrizione dalla cessazione del rapporto con l'impresa"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "equo_compenso",
+        "denominazione": "Domanda di accertamento della nullità e di rideterminazione del compenso",
+        "campi_chiave": [
+          {
+            "id": "committente",
+            "label": "Impresa committente e requisiti dell'art. 2",
+            "required": true,
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "convenzione",
+            "label": "Convenzione o accordo con le clausole contestate",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "committente",
+            "label": "Impresa committente e requisiti dell'art. 2",
+            "required": true,
+            "type": "object_persona_giuridica"
+          },
+          {
+            "id": "convenzione",
+            "label": "Convenzione o accordo con le clausole contestate",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'art. 13-bis L. 247/2012 è abrogato dalla L. 49/2023: la disciplina dell'equo compenso è nella legge del 2023."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "convenzione",
+          "label": "Convenzione o accordo",
+          "required": true
+        },
+        {
+          "id": "parcella",
+          "label": "Calcolo secondo i parametri",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i requisiti dimensionali del committente (art. 2 L. 49/2023)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [
+        "L'art. 13-bis L. 247/2012 è abrogato dalla L. 49/2023: la disciplina dell'equo compenso è nella legge del 2023."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "equo compenso",
+        "convenzione",
+        "banca",
+        "assicurazione"
+      ]
+    },
+    {
+      "codice": "GUIDA_FORENSE_OPPOSIZIONE_LIQUIDAZIONE_PATROCINIO",
+      "denominazione": "Opposizione al decreto di pagamento del difensore della parte ammessa al patrocinio a spese dello Stato (artt. 82, 84 e 170 D.P.R. 115/2002)",
+      "categoria": "Professione forense – patrocinio a spese dello Stato",
+      "materia": "Professione forense",
+      "rito": "Rito semplificato di cognizione (art. 15 D.Lgs. 150/2011)",
+      "competenza": "Capo dell'ufficio giudiziario cui appartiene il magistrato che ha emesso il decreto",
+      "uffici_destinatari": [
+        "SICID"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.P.R. 115/2002",
+          "articolo": "82",
+          "descrizione": "Liquidazione dell'onorario e delle spese del difensore con decreto di pagamento"
+        },
+        {
+          "fonte": "D.P.R. 115/2002",
+          "articolo": "84",
+          "descrizione": "Opposizione al decreto di pagamento"
+        },
+        {
+          "fonte": "D.P.R. 115/2002",
+          "articolo": "170",
+          "descrizione": "Opposizione disciplinata dall'art. 15 D.Lgs. 150/2011"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "15",
+          "descrizione": "Rito e competenza"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "opposizione_liquidazione_patrocinio",
+        "denominazione": "Ricorso in opposizione al decreto di pagamento",
+        "campi_chiave": [
+          {
+            "id": "decreto",
+            "label": "Decreto di pagamento e data di comunicazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Voci e importi contestati",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "decreto",
+            "label": "Decreto di pagamento e data di comunicazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Voci e importi contestati",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "nota_spese",
+          "label": "Nota spese depositata",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Confrontare la liquidazione con i valori medi dei parametri (art. 82 D.P.R. 115/2002)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002, salvo esenzioni o ammissione al patrocinio a spese dello Stato"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "patrocinio a spese dello stato",
+        "gratuito patrocinio",
+        "decreto di pagamento",
+        "liquidazione difensore"
+      ]
+    },
+    {
+      "codice": "GUIDA_FORENSE_RICORSO_CNF_DISCIPLINARE",
+      "denominazione": "Ricorso al CNF contro la decisione del consiglio distrettuale di disciplina (art. 61 L. 247/2012)",
+      "categoria": "Professione forense – disciplinare",
+      "materia": "Professione forense",
+      "rito": "Giurisdizione disciplinare del CNF",
+      "competenza": "Consiglio nazionale forense – sezione disciplinare",
+      "uffici_destinatari": [
+        "CNF"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "50",
+          "descrizione": "Consigli distrettuali di disciplina"
+        },
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "61",
+          "descrizione": "Ricorso al CNF entro 30 giorni dal deposito della decisione"
+        },
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "36",
+          "descrizione": "Competenza giurisdizionale del CNF"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_cnf_disciplinare",
+        "denominazione": "Ricorso al CNF",
+        "campi_chiave": [
+          {
+            "id": "decisione",
+            "label": "Decisione del consiglio distrettuale e data di deposito",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi di ricorso",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "decisione",
+            "label": "Decisione del consiglio distrettuale e data di deposito",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi di ricorso",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Notificare il ricorso al pubblico ministero e al procuratore generale (art. 61, comma 2, L. 247/2012)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso al CNF",
+          "decorrenza": "deposito della decisione",
+          "natura": "perentorio",
+          "norma": "art. 61, comma 1, L. 247/2012",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "procedimento disciplinare",
+        "consiglio distrettuale di disciplina",
+        "cnf",
+        "sanzione disciplinare avvocato"
+      ]
+    },
+    {
+      "codice": "GUIDA_FORENSE_ALBO_ISCRIZIONE",
+      "denominazione": "Iscrizione, cancellazione e reclamo in materia di albi (artt. 17 e 36 L. 247/2012)",
+      "categoria": "Professione forense – albo",
+      "materia": "Professione forense",
+      "rito": "Procedimento davanti al consiglio dell'ordine; reclamo al CNF",
+      "competenza": "Consiglio dell'ordine del circondario; CNF per i reclami",
+      "uffici_destinatari": [
+        "Consiglio dell'ordine"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "17",
+          "descrizione": "Requisiti per l'iscrizione e cause di cancellazione"
+        },
+        {
+          "fonte": "L. 247/2012",
+          "articolo": "36",
+          "descrizione": "Il CNF pronuncia sui reclami in materia di albi, elenchi e registri"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "albo_iscrizione",
+        "denominazione": "Domanda di iscrizione o reclamo",
+        "campi_chiave": [
+          {
+            "id": "richiedente",
+            "label": "Richiedente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Delibera del consiglio dell'ordine, se si reclama",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "richiedente",
+            "label": "Richiedente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Delibera del consiglio dell'ordine, se si reclama",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità o di riconoscimento del ricorrente",
+          "required": true
+        },
+        {
+          "id": "requisiti",
+          "label": "Prova dei requisiti dell'art. 17 L. 247/2012",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i requisiti e le incompatibilità (artt. 17 e 18 L. 247/2012)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto: procedimento davanti al consiglio dell'ordine"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "iscrizione albo",
+        "cancellazione albo",
+        "consiglio dell'ordine"
+      ]
+    }
+  ]
+}

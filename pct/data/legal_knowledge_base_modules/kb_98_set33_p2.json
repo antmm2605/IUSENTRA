@@ -33,14 +33,6 @@
           "fonte": "c.c.",
           "articolo": "2946",
           "descrizione": "Prescrizione – 10 anni dall'apertura della successione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Petizione eredità – differenza da revindicatoria"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Buona fede del possessore dei beni ereditari"
         }
       ],
       "petizione_vs_revindicatoria": {
@@ -481,14 +473,6 @@
           "fonte": "c.c.",
           "articolo": "747",
           "descrizione": "Valore per la collazione – il valore al tempo dell'apertura della successione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Collazione – donazione indiretta e conferimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Dispensa dalla collazione – interpretazione restrittiva"
         }
       ],
       "collazione_737": {
@@ -948,14 +932,6 @@
           "fonte": "c.c.",
           "articolo": "907",
           "descrizione": "Costruzione in corrispondenza di vedute – distanza di 3 m dalle vedute"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Vedute e luci – distinzione e distanze"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Costruzione che chiude la veduta – risarcimento danni"
         }
       ],
       "differenza_luce_veduta": {
@@ -1338,15 +1314,8 @@
         {
           "fonte": "c.c.",
           "articolo": "1519-ter",
-          "descrizione": "Ritenzione nel contratto di appalto – l'appaltatore può trattenere il bene"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Diritto di ritenzione – presupposti e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Ritenzione dell'artigiano – spese di riparazione"
+          "descrizione": "Ritenzione nel contratto di appalto – l'appaltatore può trattenere il bene",
+          "abrogata_da": "D.Lgs. 6 settembre 2005, n. 206"
         }
       ],
       "presupposti_diritto_ritenzione": {
@@ -1740,14 +1709,6 @@
           "fonte": "c.c.",
           "articolo": "1568",
           "descrizione": "EFFETTI VERSO I TERZI – il terzo acquirente di buona fede è tutelato (non c'è riscatto verso terzi in buona fede)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Patto di preferenza violato – risarcimento vs riscatto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prelazione volontaria – comunicazione e termini per l'esercizio"
         }
       ],
       "differenza_da_prelazione_legale": {

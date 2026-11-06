@@ -27,14 +27,6 @@
         {
           "fonte": "D.M. 24/12/2012 (Redditometro)",
           "descrizione": "Elementi certi per la determinazione sintetica del reddito"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Accertamento sintetico – onere prova e contraddittorio preventivo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Redditometro – prova contraria del contribuente"
         }
       ],
       "meccanismo_accertamento_sintetico": {
@@ -431,14 +423,6 @@
           "fonte": "D.Lgs. 50/2017",
           "articolo": "9-bis",
           "descrizione": "ISA – Indici Sintetici di Affidabilità fiscale (sostitutivi degli studi di settore)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "ISA/studi di settore – non costituiscono prova ma presunzione semplice"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accertamento da ISA – onere della prova contraria del contribuente"
         }
       ],
       "ISA_come_presunzione_semplice_Cass_SU_14897_2021": {
@@ -839,14 +823,6 @@
           "fonte": "TUR",
           "articolo": "20 (come modificato L. 205/2017)",
           "descrizione": "Art. 20 riformato – l'AE può riqualificare il singolo atto (non le operazioni collegate)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Art. 20 TUR dopo riforma 2017 – limiti della riqualificazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Valore venale degli immobili – perizia contraria"
         }
       ],
       "art20_TUR_dopo_riforma_2017": {
@@ -1275,14 +1251,6 @@
         {
           "fonte": "D.Lgs. 546/1992",
           "descrizione": "Ricorso alla CGT"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "TARI – aree escluse e prova"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riduzioni TARI – come richiederle e contestarle"
         }
       ],
       "exclusioni_TARI_649": {
@@ -1685,14 +1653,6 @@
           "fonte": "L. 197/2022",
           "articolo": "1 c. 107",
           "descrizione": "Tassazione sostitutiva volontaria 26% sulle plusvalenze immobiliari"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Plusvalenza immobiliare – calcolo e oneri deducibili"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prima casa – esenzione e presupposti"
         }
       ],
       "plusvalenza_tassabile_67_TUIR": {

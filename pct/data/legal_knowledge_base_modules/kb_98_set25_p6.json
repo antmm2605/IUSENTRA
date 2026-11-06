@@ -43,14 +43,6 @@
           "fonte": "CCII",
           "articolo": "176",
           "descrizione": "Revocatoria ordinaria nel contesto concorsuale – art. 2901 c.c."
-        },
-        {
-          "fonte": "Cass. SU 12476/2021",
-          "descrizione": "Revocatoria concorsuale – periodo sospetto e prova della scientia decoctionis"
-        },
-        {
-          "fonte": "Cass. SU 9341/2023",
-          "descrizione": "Esenzioni CCII art. 167 – pagamenti in continuità aziendale"
         }
       ],
       "atti_revocabili_e_periodi_sospetto": {
@@ -267,14 +259,6 @@
           "fonte": "c.p.c.",
           "articolo": "830",
           "descrizione": "Effetti dell'impugnazione – sospensiva su istanza"
-        },
-        {
-          "fonte": "Cass. SU 17781/2021",
-          "descrizione": "Lodo arbitrale – natura e effetti post deposito"
-        },
-        {
-          "fonte": "Cass. SU 9456/2023",
-          "descrizione": "Impugnazione per nullità – motivi ammissibili"
         }
       ],
       "exequatur_825": {
@@ -494,14 +478,6 @@
           "fonte": "c.c.",
           "articolo": "412",
           "descrizione": "ANNULLAMENTO atti compiuti dal beneficiario in violazione dell'AdS"
-        },
-        {
-          "fonte": "Cass. SU 11200/2022",
-          "descrizione": "Misure urgenti AdS – requisiti e tipologia provvedimenti"
-        },
-        {
-          "fonte": "Cass. SU 9871/2024",
-          "descrizione": "Annullamento atti compiuti dal beneficiario senza AdS"
         }
       ],
       "misure_urgenti_405_c4": {
@@ -696,14 +672,6 @@
           "fonte": "D.Lgs. 150/2011",
           "articolo": "7",
           "descrizione": "Rito sommario per le opposizioni alle sanzioni amministrative"
-        },
-        {
-          "fonte": "Cass. SU 14267/2020",
-          "descrizione": "Sospensione patente – natura e impugnabilità"
-        },
-        {
-          "fonte": "Cass. SU 8932/2023",
-          "descrizione": "Confisca veicolo – proporzione e diritti del terzo proprietario"
         }
       ],
       "sanzioni_accessorie_contestabili": {
@@ -921,12 +889,11 @@
           "descrizione": "Obbligo per gli Stati di prevedere rimedi adeguati e efficaci contro le clausole abusive"
         },
         {
-          "fonte": "Cass. SU 14776/2021",
-          "descrizione": "Azione inibitoria 37 – differenza da azione individuale di nullità"
-        },
-        {
           "fonte": "Cass. SU 11346/2023",
-          "descrizione": "AGCM e inibitoria 37-bis – efficacia erga omnes del provvedimento"
+          "descrizione": "AGCM e inibitoria 37-bis – efficacia erga omnes del provvedimento",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023U11346O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "differenza_da_azione_individuale_140040": {

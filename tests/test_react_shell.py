@@ -436,22 +436,22 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Recenti",
         "Calendario",
         "Nuovo Appuntamento",
-        "Timesheet",
+        "Ore lavorate",
         "Tutti i Fascicoli",
         "Nuovo Fascicolo",
         "Cartelle Condivise",
-        "Nuovo SMS/WA",
-        "Preparazione Udienza Guidata",
-        "Centro Servizi Telematici",
+        "Nuovo SMS o WhatsApp",
+        "Prepara l’udienza",
+        "Tutti i depositi telematici",
         "Guida firma digitale",
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
-        "Archivio Giurisprudenza",
-        "Sincronizzazione Calendari",
+        "Archivio sentenze per corte",
+        "Collega Google o Outlook",
         "Profili e Permessi",
         "Importa pratiche",
-        "Registro Attività",
-        "Registro GDPR",
+        "Registro attività degli utenti",
+        "Privacy: registro dei trattamenti",
     ):
         assert label in source
 
@@ -470,9 +470,9 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "onCloseMobile" in source
     assert "onNavigate={onCloseMobile}" in source
     assert "mobileOpen ? 'Chiudi menu'" in source
-    assert "{ label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' }" in source
+    assert "{ label: 'Priorità dello studio', icon: Sparkles, href: '/workspace-intelligente' }" in source
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in source
-    assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in source
+    assert "{ label: 'Prepara l’udienza', icon: Building2, href: '/wizard-pro/' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
     assert "@media(min-width:821px) and (max-width:1180px)" in css
     assert ".iu-sidebar:not(.iu-sidebar--mobile-open){display:flex}" in css
@@ -489,24 +489,24 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
     assert 'data-nav-surface="react-aligned-legacy"' in base
     for label in (
         "Servizi Telematici",
-        "Centro Servizi Telematici",
-        "PolisWeb / PST",
-        "PDP Penale",
-        "PAT Amministrativo",
-        "PTT Tributario",
-        "Tribunali / PEC",
-        "Checklist deposito",
+        "Tutti i depositi telematici",
+        "Civile: PolisWeb e PST",
+        "Penale: portale PDP",
+        "Amministrativo: PAT (TAR)",
+        "Tributario: PTT",
+        "Uffici giudiziari e loro PEC",
+        "Controlli prima del deposito",
         "Guida firma digitale",
         "Studio",
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
-        "Calcolo Tariffario",
-        "Editor professionale",
-        "Editor libero",
-        "Redazione Atti",
+        "Calcolo compensi forensi",
+        "Editor di atti e documenti",
+        "Scrivi su foglio bianco",
+        "Atti da modello",
         "Statistiche",
-        "Ricerca Legale",
-        "Archivio Giurisprudenza",
+        "Cerca norme e sentenze",
+        "Archivio sentenze per corte",
         "Strumenti Forensi",
         "Strumenti Operativi",
         "Sito Web Studio",
@@ -514,13 +514,13 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "Pagamenti",
         "Backup",
         "Impostazioni Studio",
-        "Sincronizzazione Calendari",
+        "Collega Google o Outlook",
         "Amministrazione",
         "Utenti",
         "Profili e Permessi",
-        "Registro Attività",
+        "Registro attività degli utenti",
         "Database",
-        "Registro GDPR",
+        "Privacy: registro dei trattamenti",
     ):
         assert label in base
 
@@ -585,12 +585,12 @@ def test_editor_professionale_resta_route_autonoma_distinta_da_redazione_atti():
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8")
     manifest = json.loads(Path("tools/react-migration/route-manifest.json").read_text(encoding="utf-8"))
 
-    assert re.search(r"\{[^{}]*group: 'documenti'[^{}]*label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale\?modalita=editor'[^{}]*\}", app_source)
-    assert re.search(r"\{[^{}]*group: 'documenti'[^{}]*label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti'[^{}]*\}", app_source)
+    assert re.search(r"\{[^{}]*group: 'documenti'[^{}]*label: 'Editor di atti e documenti', icon: FilePenLine, href: '/editor-professionale\?modalita=editor'[^{}]*\}", app_source)
+    assert re.search(r"\{[^{}]*group: 'documenti'[^{}]*label: 'Atti da modello', icon: FilePenLine, href: '/redazione-atti'[^{}]*\}", app_source)
     assert "const isEditorProfessionalePage = (routeKey === '/documenti' || routeKey === '/editor-professionale') && !isNewDocumentEditorPage" in app_source
     assert "const isDocumentEditorPage = isNewDocumentEditorPage ||" in app_source
     assert "isEditorProfessionalePage?<EditorProfessionalePage/>" in app_source
-    assert re.search(r"\{[^{}]*group: 'documenti'[^{}]*label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor'[^{}]*\}", app_source)
+    assert re.search(r"\{[^{}]*group: 'documenti'[^{}]*label: 'Scrivi su foglio bianco', icon: FilePenLine, href: '/template-atti/editor'[^{}]*\}", app_source)
     assert 'href="/editor-professionale?modalita=editor" tone="primary"' in page_source
     assert 'href="/redazione-atti" tone="neutral"' in page_source
     assert 'title="Documenti"' in page_source
@@ -663,31 +663,31 @@ def test_react_blocco_finale_studio_admin_completo():
         "Studio",
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
-        "Calcolo Tariffario",
+        "Calcolo compensi forensi",
         "Documenti",
-        "Editor professionale",
-        "Redazione Atti",
+        "Editor di atti e documenti",
+        "Atti da modello",
         "Importa pratica da PST",
         "Statistiche",
-        "Ricerca Legale",
-        "Archivio Giurisprudenza",
+        "Cerca norme e sentenze",
+        "Archivio sentenze per corte",
         "Strumenti Forensi",
         "Strumenti Operativi",
-        "Timesheet",
+        "Ore lavorate",
         "Cartelle Condivise",
         "Sito Studio",
         "Notifiche",
         "Incassi e Pagamenti",
         "Backup",
         "Impostazioni Studio",
-        "Sincronizzazione Calendari",
+        "Collega Google o Outlook",
         "Amministrazione",
         "Importa pratiche",
         "Utenti",
         "Profili e Permessi",
-        "Registro Attività",
+        "Registro attività degli utenti",
         "Database",
-        "Registro GDPR",
+        "Privacy: registro dei trattamenti",
     ):
         assert label in module_source
 
@@ -1278,7 +1278,7 @@ def test_react_clienti_page_collegata_nav_api_e_lex():
 
     assert "/clienti" in app_source
     assert "isClientiPage?<AnagraficaClientiPage" in app_source
-    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/clienti' }" in app_source
+    assert "{ label: 'Elenco clienti', icon: UsersRound, href: '/clienti' }" in app_source
     assert "getClientiPage" in data_source
     assert "/api/v1/ui/clienti" in data_source
     assert '@api_v1_react.get("/clienti")' in api_source
@@ -1480,7 +1480,7 @@ def test_react_regia_operativa_e_pagina_separata_non_in_panorama():
     assert "/workspace-intelligente" in app_source
     assert "isRegiaPage?<ControlloStudioPage/>" in app_source
     assert "import('./components/ControlloStudioPage')" in app_source
-    assert "{ label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
+    assert "{ label: 'Priorità dello studio', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
     assert "Centro operativo di oggi" not in app_source
 
 
@@ -1607,8 +1607,8 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "{ label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' }" in app_source
     assert "{ label: 'Email ordinaria', icon: Mail, href: '/email-ordinaria/', badge: 'SMTP' }" in app_source
     assert "{ label: 'Notifiche legali', icon: ShieldCheck, href: '/notifiche-legali', badge: 'L.53' }" in app_source
-    assert "{ label: 'Messaggi', icon: MessageCircle, href: '/messaggi' }" in app_source
-    assert "{ label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }" in app_source
+    assert "{ label: 'SMS e WhatsApp', icon: MessageCircle, href: '/messaggi' }" in app_source
+    assert "{ label: 'Nuovo SMS o WhatsApp', icon: Send, href: '/messaggi/nuovo' }" in app_source
     assert "isEmailOrdinariaPage?<EmailOrdinariaPage/>" in app_source
     assert "isNotificheLegaliPage?<NotificheLegaliPage/>" in app_source
     assert "isEmailPage?<EmailPecPage/>" in app_source
@@ -1709,7 +1709,7 @@ def test_react_telematico_collegato_nav_api_e_lex():
     assert "isTelematicoPage" in app_source
     assert "legacyOperationalRedirectHref(activePath)" in app_source
     assert "window.location.replace(forcedLegacyHref)" in app_source
-    assert "Centro Servizi Telematici" in app_source
+    assert "Tutti i depositi telematici" in app_source
     assert "getTelematicoPage" in data_source
     assert "/api/v1/ui/telematico" in data_source
     assert '@api_v1_react.get("/telematico")' in api_source
@@ -1782,14 +1782,14 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "function isTelematicoSurfaceRoute" in app_source
     assert "route.startsWith('/portali/pst')" in app_source
     assert "route.startsWith('/portali/pdp')" in app_source
-    assert "{ label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' }" in app_source
-    assert "{ label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' }" in app_source
+    assert "{ label: 'Tutti i depositi telematici', icon: BriefcaseBusiness, href: '/telematico' }" in app_source
+    assert "{ label: 'Civile: PolisWeb e PST', icon: CloudUpload, href: '/polisWeb' }" in app_source
     assert "Panoramica PST" not in app_source
     assert "SIGP - Giudice di Pace" not in app_source
     assert "href: '/sigp/'" not in app_source
-    assert "{ label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' }" in app_source
-    assert "{ label: 'PAT Amministrativo', icon: FileText, href: '/pat' }" in app_source
-    assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
+    assert "{ label: 'Penale: portale PDP', icon: ShieldCheck, href: '/pdp' }" in app_source
+    assert "{ label: 'Amministrativo: PAT (TAR)', icon: FileText, href: '/pat' }" in app_source
+    assert "{ label: 'Tributario: PTT', icon: FileText, href: '/sigit' }" in app_source
     assert "getTelematicoSurfacePage" in data_source
     assert "/api/v1/ui/telematico/surface/" in data_source
     assert "function initialSurfaceData" in page_source
@@ -4686,12 +4686,12 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
 
     expected_visible_labels = (
         "Panoramica",
-        "Controllo Studio",
-        "Ricerca Studio",
+        "Priorità dello studio",
+        "Cerca nello studio",
         "Recenti",
         "Calendario",
         "Nuovo Appuntamento",
-        "Timesheet",
+        "Ore lavorate",
         "Tutti i Fascicoli",
         "Nuovo Fascicolo",
         "Archivio",
@@ -4704,27 +4704,27 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Email ordinaria",
         "PEC",
         "Messaggi",
-        "Nuovo SMS/WA",
+        "Nuovo SMS o WhatsApp",
         "Scadenziario",
         "Nuova Scadenza",
-        "Preparazione Udienza Guidata",
-        "Controlli Atti",
-        "Centro Servizi Telematici",
-        "PolisWeb / PST",
-        "PDP Penale",
-        "PAT Amministrativo",
-        "PTT Tributario",
-        "Tribunali / PEC",
-        "Checklist deposito",
+        "Prepara l’udienza",
+        "Controlli prima del deposito",
+        "Tutti i depositi telematici",
+        "Civile: PolisWeb e PST",
+        "Penale: portale PDP",
+        "Amministrativo: PAT (TAR)",
+        "Tributario: PTT",
+        "Uffici giudiziari e loro PEC",
+        "Controlli prima del deposito",
         "Guida firma digitale",
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
-        "Calcolo Tariffario",
-        "Editor professionale",
-        "Redazione Atti",
+        "Calcolo compensi forensi",
+        "Editor di atti e documenti",
+        "Atti da modello",
         "Statistiche",
-        "Ricerca Legale",
-        "Archivio Giurisprudenza",
+        "Cerca norme e sentenze",
+        "Archivio sentenze per corte",
         "Strumenti Forensi",
         "Strumenti Operativi",
         "Sito Studio",
@@ -4732,14 +4732,14 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Pagamenti",
         "Backup",
         "Impostazioni Studio",
-        "Sincronizzazione Calendari",
+        "Collega Google o Outlook",
         "Amministrazione",
         "Importa pratiche",
         "Utenti",
         "Profili e Permessi",
-        "Registro Attività",
+        "Registro attività degli utenti",
         "Database",
-        "Registro GDPR",
+        "Privacy: registro dei trattamenti",
     )
     for label in expected_visible_labels:
         assert label in app_source or label in studio_source, label
@@ -4785,12 +4785,12 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
 
     first_block_routes = {
         "Panoramica": "/",
-        "Controllo Studio": "/workspace-intelligente",
-        "Ricerca Studio": "/global-search",
+        "Priorità dello studio": "/workspace-intelligente",
+        "Cerca nello studio": "/global-search",
         "Recenti": f"/fascicoli/{fascicolo.id}",
         "Calendario": "/agenda",
         "Nuovo Appuntamento": "/agenda/nuovo",
-        "Timesheet": "/timesheet",
+        "Ore lavorate": "/timesheet",
         "Tutti i Fascicoli": "/fascicoli",
         "Nuovo Fascicolo": "/fascicoli/nuovo",
         "Archivio": "/fascicoli/archivio",
@@ -4802,10 +4802,10 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Email PEC": "/email/",
         "Email ordinaria": "/email-ordinaria/",
         "Messaggi": "/messaggi",
-        "Nuovo SMS/WA": "/messaggi/nuovo",
+        "Nuovo SMS o WhatsApp": "/messaggi/nuovo",
         "Scadenziario": "/scadenziario",
         "Nuova Scadenza": "/scadenziario/nuova",
-        "Preparazione Udienza Guidata": "/wizard-pro/",
+        "Prepara l’udienza": "/wizard-pro/",
         "Dettaglio Cliente": f"/clienti/{cliente.id}/cartella",
         "Dettaglio Soggetto": f"/soggetti/{soggetto.id}",
         "Dettaglio Scadenza": f"/scadenziario/{scadenza.id}",
@@ -4813,47 +4813,47 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
     }
     telematico_routes = {
         "Servizi Telematici": "/telematico",
-        "Centro Servizi Telematici": "/telematico",
-        "PolisWeb / PST": "/polisWeb",
-        "PDP Penale": "/pdp",
-        "PAT Amministrativo": "/pat",
-        "PTT Tributario": "/sigit",
-        "Tribunali / PEC": "/tribunali",
+        "Tutti i depositi telematici": "/telematico",
+        "Civile: PolisWeb e PST": "/polisWeb",
+        "Penale: portale PDP": "/pdp",
+        "Amministrativo: PAT (TAR)": "/pat",
+        "Tributario: PTT": "/sigit",
+        "Uffici giudiziari e loro PEC": "/tribunali",
         "Guida firma digitale": "/guida/firma-digitale",
     }
     react_studio_routes = {
         "Studio": "/studio",
         "Parcelle e Fatture": "/fatturazione",
         "Preventivi e Incarichi": "/preventivi",
-        "Calcolo Tariffario": "/compensi-forensi",
+        "Calcolo compensi forensi": "/compensi-forensi",
         "Documenti": "/documenti",
-        "Editor professionale": "/editor-professionale",
-        "Editor libero": "/template-atti/editor",
-        "Redazione Atti": "/redazione-atti",
+        "Editor di atti e documenti": "/editor-professionale",
+        "Scrivi su foglio bianco": "/template-atti/editor",
+        "Atti da modello": "/redazione-atti",
         "Template Atti": "/template-atti",
         "Catalogo Template": "/template-atti/catalogo",
         "Statistiche": "/statistiche",
-        "Ricerca Legale": "/ricerca-legale",
-        "Archivio Giurisprudenza": "/giurisprudenza",
+        "Cerca norme e sentenze": "/ricerca-legale",
+        "Archivio sentenze per corte": "/giurisprudenza",
         "Legal Intelligence": "/ricerca-legale",
-        "Controlli Atti": "/deposito/checklist",
+        "Controlli prima del deposito": "/deposito/checklist",
         "Strumenti Forensi": "/strumenti-legali/",
         "Strumenti Operativi": "/strumenti-operativi",
         "Amministrazione": "/amministrazione",
         "Importa pratiche": "/importa-pratiche",
         "Incassi e Pagamenti": "/incassi-pagamenti",
         "Pagamenti": "/impostazioni?tab=pagamenti",
-        "Canali SdI": "/impostazioni/sdi",
+        "Fatture elettroniche (SdI)": "/impostazioni/sdi",
         "Notifiche": "/impostazioni?tab=notifiche",
         "Backup": "/backup",
-        "Sincronizzazione Calendari": "/impostazioni/calendario",
+        "Collega Google o Outlook": "/impostazioni/calendario",
         "Sito Studio": "/sito-studio/",
         "Builder Sito Studio": "/sito-studio/builder",
         "Redazione AI Sito Studio": "/sito-studio/redazione-ai",
         "Impostazioni Studio": "/impostazioni-studio",
         "Utenti": "/utenti",
         "Profili e Permessi": "/profili",
-        "Registro Attività": "/registro-attivita",
+        "Registro attività degli utenti": "/registro-attivita",
     }
     with app.test_client() as client:
         _login(client)
@@ -4877,7 +4877,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
 
         for label, path in {
             "Panoramica": "/api/v1/ui/dashboard",
-            "Controllo Studio": "/api/v1/ui/dashboard?refresh=1",
+            "Priorità dello studio": "/api/v1/ui/dashboard?refresh=1",
             "Agenda": "/api/v1/ui/agenda",
             "Fascicoli": "/api/v1/ui/fascicoli",
             "Nuovo Fascicolo": "/api/v1/ui/fascicoli/nuovo",
@@ -4889,26 +4889,26 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "Email PEC": "/api/v1/ui/email",
             "Email ordinaria": "/api/v1/ui/email-ordinaria",
             "Messaggi": "/api/v1/ui/messaggi",
-            "Nuovo SMS/WA": "/api/v1/ui/messaggi/nuovo",
+            "Nuovo SMS o WhatsApp": "/api/v1/ui/messaggi/nuovo",
             "Scadenziario": "/api/v1/ui/scadenziario",
             "Nuova Scadenza": "/api/v1/ui/scadenziario/nuova",
             "Builder Sito Studio": "/api/v1/ui/sito-studio/builder",
             "Redazione AI Sito Studio": "/api/v1/ui/sito-studio/redazione-ai",
-            "Preparazione Udienza Guidata": "/api/v1/ui/wizard-pro",
-            "Controlli Atti": "/api/v1/ui/telematico/surface/checklist",
-            "Centro Servizi Telematici": "/api/v1/ui/telematico",
-            "PolisWeb / PST": "/api/v1/ui/telematico/surface/polisweb",
-            "PDP Penale": "/api/v1/ui/telematico/surface/pdp",
-            "PAT Amministrativo": "/api/v1/ui/telematico/surface/pat",
-            "PTT Tributario": "/api/v1/ui/telematico/surface/ptt",
-            "Tribunali / PEC": "/api/v1/ui/telematico/surface/tribunali",
+            "Prepara l’udienza": "/api/v1/ui/wizard-pro",
+            "Controlli prima del deposito": "/api/v1/ui/telematico/surface/checklist",
+            "Tutti i depositi telematici": "/api/v1/ui/telematico",
+            "Civile: PolisWeb e PST": "/api/v1/ui/telematico/surface/polisweb",
+            "Penale: portale PDP": "/api/v1/ui/telematico/surface/pdp",
+            "Amministrativo: PAT (TAR)": "/api/v1/ui/telematico/surface/pat",
+            "Tributario: PTT": "/api/v1/ui/telematico/surface/ptt",
+            "Uffici giudiziari e loro PEC": "/api/v1/ui/telematico/surface/tribunali",
             "Guida firma digitale": "/api/v1/ui/telematico/surface/firma",
-            "Registro GDPR": "/api/v1/ui/privacy/registro",
+            "Privacy: registro dei trattamenti": "/api/v1/ui/privacy/registro",
             "Database": "/api/v1/ui/admin/database",
             "Importa pratiche": "/api/v1/ui/import/quickorganizer",
-            "Ricerca Studio": "/api/global-search?q=matrice&limit=5",
+            "Cerca nello studio": "/api/global-search?q=matrice&limit=5",
         }.items():
-            _assert_payload_operativo(client, label, path, require_links=label != "Ricerca Studio")
+            _assert_payload_operativo(client, label, path, require_links=label != "Cerca nello studio")
 
         for module_id in (
             "studio",
@@ -9694,7 +9694,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "isSubjectEditPage" in app_source
     assert "isSoggettiPage?<SoggettiPage/>" in app_source
     assert "{ label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' }" in app_source
-    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/soggetti' }" in app_source
+    assert "{ label: 'Elenco soggetti e parti', icon: UsersRound, href: '/soggetti' }" in app_source
     assert "{ label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }" in app_source
     assert "/api/v1/ui/clienti/nuovo" in new_data
     assert "/api/v1/ui/clienti/${encodeURIComponent(decodeURIComponent(editMatch[1]))}/modifica" in new_data
@@ -10732,7 +10732,7 @@ def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
     route_source = Path("web/blueprints/wizard_pro.py").read_text(encoding="utf-8")
 
-    assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in app_source
+    assert "{ label: 'Prepara l’udienza', icon: Building2, href: '/wizard-pro/' }" in app_source
     assert "isWizardProDashboard?<WizardProPage/>" in app_source
     assert "isWizardProStep?<WizardProStepPage/>" in app_source
     assert "isWizardProComplete?<WizardProCompletePage/>" in app_source

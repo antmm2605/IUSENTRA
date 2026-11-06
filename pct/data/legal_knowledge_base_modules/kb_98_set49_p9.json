@@ -1708,7 +1708,10 @@
         },
         {
           "fonte": "Cass. SU 41994/2021",
-          "descrizione": "Fideiussioni ABI – le fideiussioni omnibus sullo schema ABI 2003 sono parzialmente nulle per violazione del diritto della concorrenza"
+          "descrizione": "Fideiussioni ABI – le fideiussioni omnibus sullo schema ABI 2003 sono parzialmente nulle per violazione del diritto della concorrenza",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021U41994S&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obbligo_mediazione": {

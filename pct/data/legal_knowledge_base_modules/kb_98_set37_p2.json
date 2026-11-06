@@ -33,14 +33,6 @@
           "fonte": "Cod. Ass.",
           "articolo": "286",
           "descrizione": "Designazione dell'impresa assicurativa delegata – CONSAP la designa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fondo Garanzia – azione diretta e legittimazione passiva"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Veicolo non identificato – solo danno alla persona"
         }
       ],
       "fondo_garanzia_283": {
@@ -385,14 +377,6 @@
           "fonte": "c.c.",
           "articolo": "2466",
           "descrizione": "Mora del socio nel conferimento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Esclusione del socio S.r.l. – procedura e valore quota"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Giusta causa di esclusione – interpretazione restrittiva"
         }
       ],
       "esclusione_2473bis": {
@@ -902,14 +886,6 @@
           "fonte": "c.c.",
           "articolo": "2469 c. 2",
           "descrizione": "Intrasferibilità e clausola di gradimento – al socio bloccato spetta il recesso"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Diritti particolari socio S.r.l. – modifica e tutele"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prelazione sulle quote – violazione e riscatto"
         }
       ],
       "diritti_particolari_2468c3": {
@@ -1358,14 +1334,6 @@
           "fonte": "c.c.",
           "articolo": "2479-ter c. 2",
           "descrizione": "Termini – 90 GG per l'annullabilità"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Delibere S.r.l. – legittimazione e termini"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Nullità delibera S.r.l. – imprescrittibilità"
         }
       ],
       "annullabilita_vs_nullita": {
@@ -1933,14 +1901,6 @@
           "fonte": "c.c.",
           "articolo": "2476 c. 7",
           "descrizione": "AZIONE DEL SINGOLO SOCIO – il socio può agire individualmente anche senza delibera assembleare"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "S.r.l. – responsabilità amministratori e azione del singolo socio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Azione del singolo socio S.r.l. – autonoma dall'azione sociale"
         }
       ],
       "particolarita_srl_vs_spa": {

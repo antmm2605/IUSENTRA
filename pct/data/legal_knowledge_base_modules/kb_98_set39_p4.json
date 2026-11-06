@@ -33,10 +33,6 @@
           "fonte": "D.Lgs. 3/2017",
           "articolo": "2",
           "descrizione": "ACCESSO ALLE PROVE – il giudice può ordinare alla parte di esibire le prove"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Private enforcement – competenza e accesso alle prove"
         }
       ],
       "presunzione_danno_art14": {
@@ -431,10 +427,6 @@
         {
           "fonte": "D.Lgs. 10/2021",
           "descrizione": "Riforma – opposizione alla CA (non più al TAR)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sanzioni Garante – proporzionalità e difesa"
         }
       ],
       "procedimento_sanzionatorio": {
@@ -920,10 +912,6 @@
           "fonte": "D.Lgs. 28/2010",
           "articolo": "8",
           "descrizione": "Mancata partecipazione – valutata come comportamento processuale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Mediazione – condizione di procedibilità e improcedibilità"
         }
       ],
       "materie_obbligatorie": [
@@ -1527,10 +1515,6 @@
           "fonte": "D.L. 132/2014",
           "articolo": "5",
           "descrizione": "ACCORDO – ha valore di titolo esecutivo; omologo dalla Procura (non matrimoniale) o dal PT (separazione/divorzio)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Negoziazione assistita – condizione di procedibilità e accordo"
         }
       ],
       "negoziazione_obbligatoria": {
@@ -1908,10 +1892,6 @@
           "fonte": "c.p.c.",
           "articolo": "546",
           "descrizione": "Notifica al datore o all'ente pensionistico – terzo debitore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Minimo vitale – calcolo e impignorabilità"
         }
       ],
       "impignorabilita_545": {

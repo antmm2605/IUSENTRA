@@ -35,12 +35,11 @@
           "descrizione": "Reclamo all'Autorità Garante (alternativo o cumulativo)"
         },
         {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Danno da violazione GDPR – danno non patrimoniale risarcibile"
-        },
-        {
           "fonte": "CGUE C-300/21 (UI/Österreichische Post 2023)",
-          "descrizione": "Danno immateriale GDPR – non basta la violazione senza prova del danno"
+          "descrizione": "Danno immateriale GDPR – non basta la violazione senza prova del danno",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-300/21",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 26243/2024 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "responsabilita_art82_GDPR": {
@@ -553,14 +552,6 @@
           "fonte": "c.c.",
           "articolo": "2059",
           "descrizione": "Danno non patrimoniale – violazione del diritto all'autodeterminazione"
-        },
-        {
-          "fonte": "Cass. SU 16892/2021",
-          "descrizione": "Consenso informato – danno da autodeterminazione lesa"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Mancato consenso – risarcimento anche se l'operazione è andata bene"
         }
       ],
       "danno_da_autodeterminazione_Cass_SU_16892_2021": {
@@ -1095,14 +1086,6 @@
         {
           "fonte": "Accordo Quadro Europeo 8/10/2004",
           "descrizione": "Stress lavoro-correlato – indicatori e misure preventive"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Stress lavoro-correlato – onere prova e nesso causale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Burn-out – danno biologico e risarcimento"
         }
       ],
       "burn_out": {
@@ -1740,14 +1723,6 @@
         {
           "fonte": "D.M. 19/08/1996",
           "descrizione": "Sicurezza nelle manifestazioni sportive e musicali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Evento musicale – responsabilità dell'organizzatore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Concerto: danno al partecipante – onere prova organizzatore"
         }
       ],
       "tipologie_eventi_e_rischi": [
@@ -2235,14 +2210,6 @@
           "fonte": "c.c.",
           "articolo": "2903",
           "descrizione": "PRESCRIZIONE – 5 anni dall'atto di disposizione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Revocatoria ordinaria – scientia e consilium fraudis"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Vendita a prezzo vile – prova del consilium fraudis"
         }
       ],
       "differenza_da_revocatoria_fallimentare": {

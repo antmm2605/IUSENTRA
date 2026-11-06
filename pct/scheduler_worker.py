@@ -67,6 +67,9 @@ def serve_scheduler_worker(
     from pct.scheduler_health import mark_worker_started
 
     mark_worker_started()
+    from pct.preriscaldamento_archivi import avvia_in_sfondo
+
+    avvia_in_sfondo(shutdown_event)  # la prima ricerca normativa non attende il disco (solo con IUSENTRA_PRERISCALDA_ARCHIVI=1)
     handler_factory = signal_handler_factory or _default_signal_handler
     handler = handler_factory(shutdown_event)
     for signal_name in ("SIGTERM", "SIGINT"):

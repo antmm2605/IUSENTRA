@@ -43,14 +43,6 @@
           "fonte": "D.Lgs. 36/2023",
           "articolo": "209",
           "descrizione": "Standstill period – 35 giorni dalla comunicazione aggiudicazione prima della stipula"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 4/2022",
-          "descrizione": "Legittimazione a ricorrere – anche senza partecipazione alla gara per vizi della stessa"
-        },
-        {
-          "fonte": "Cass. SU 9812/2024",
-          "descrizione": "Inefficacia contratto post-annullamento aggiudicazione"
         }
       ],
       "termini_dimezzati_appalti_120": {
@@ -480,12 +472,11 @@
           "descrizione": "Disciplina del commercio al dettaglio"
         },
         {
-          "fonte": "Cons. Stato Ad. Pl. 15/2011",
-          "descrizione": "SCIA – natura giuridica e tutela del terzo"
-        },
-        {
           "fonte": "Cons. Stato Ad. Pl. 8/2021",
-          "descrizione": "Impugnazione SCIA da parte di terzi – diffida preventiva al Comune"
+          "descrizione": "Impugnazione SCIA da parte di terzi – diffida preventiva al Comune",
+          "url": "https://www.giustizia-amministrativa.it/web/guest/ricerca?q=adunanza+plenaria+8+2021",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 23194/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "SCIA_attivita_commerciale": {
@@ -897,14 +888,6 @@
           "fonte": "L. 76/2016",
           "articolo": "1 c. 50-67",
           "descrizione": "Contratto di convivenza – contenuto e forma (atto notarile)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Unione civile sciolta – assegno di mantenimento analogia con divorzio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Convivente more uxorio – diritti successori e indennizzo"
         }
       ],
       "unione_civile_vs_convivenza": {
@@ -1351,14 +1334,6 @@
           "fonte": "D.Lgs. 14/2019 (CCII)",
           "articolo": "6 c. 1",
           "descrizione": "Sospensione esecuzioni nell'ambito delle procedure di composizione della crisi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sospensione 624-bis – accordo delle parti e condizioni"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Procedura concordataria – sospensione automatica esecuzioni"
         }
       ],
       "sospensione_consensuale_624bis": {
@@ -1824,14 +1799,6 @@
           "fonte": "D.P.R. 131/1986 (Registro)",
           "articolo": "1",
           "descrizione": "Imposta di registro sul decreto di trasferimento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Aggiudicatario – diritti e obblighi alla cancellazione ipoteche"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Terzo possessore del bene ipotecato – cancellazione post-vendita forzata"
         }
       ],
       "effetti_vendita_forzata_586": {

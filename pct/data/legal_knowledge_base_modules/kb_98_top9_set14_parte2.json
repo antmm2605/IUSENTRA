@@ -57,19 +57,17 @@
         },
         {
           "fonte": "CEDU Protocollo 1 art. 1",
-          "descrizione": "Protezione della proprietà - standard CEDU sull'indennità"
+          "descrizione": "Protezione della proprietà - standard CEDU sull'indennità",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Corte Cost. 348-349/2007",
-          "descrizione": "Incostituzionalità criterio indennità ridotta - obbligo valore di mercato"
-        },
-        {
-          "fonte": "Cass. SU 22472/2022",
-          "descrizione": "Criteri di determinazione dell'indennità - valore venale pieno"
-        },
-        {
-          "fonte": "Cass. SU 15614/2023",
-          "descrizione": "Occupazione illegittima - art. 42-bis e risarcimento"
+          "descrizione": "Incostituzionalità criterio indennità ridotta - obbligo valore di mercato",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2007/348",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026; Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "indennita_di_esproprio": {
@@ -462,14 +460,6 @@
           "fonte": "c.c.",
           "articolo": "1267",
           "descrizione": "Garanzia per la solvenza del debitore ceduto (pro solvendo)"
-        },
-        {
-          "fonte": "Cass. SU 6188/2020",
-          "descrizione": "Factoring pro soluto - garanzie del cedente"
-        },
-        {
-          "fonte": "Cass. SU 24906/2022",
-          "descrizione": "Cessione pro solvendo - obblighi del cedente"
         }
       ],
       "distinguo_pro_soluto_vs_pro_solvendo": {
@@ -845,15 +835,10 @@
         },
         {
           "fonte": "Cass. SU 2207/2005",
-          "descrizione": "Legittimazione attiva del consumatore finale"
-        },
-        {
-          "fonte": "Cass. SU 3640/2019",
-          "descrizione": "Effetto vincolante decisione AGCM per il giudice civile"
-        },
-        {
-          "fonte": "Cass. SU 7039/2024",
-          "descrizione": "Quantificazione del danno antitrust - passing on"
+          "descrizione": "Legittimazione attiva del consumatore finale",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021U41994S&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 41994/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "tipologie_di_infrazioni_antitrust": {
@@ -1241,23 +1226,10 @@
         },
         {
           "fonte": "Cass. SU 6572/2006",
-          "descrizione": "Danno da demansionamento - non in re ipsa"
-        },
-        {
-          "fonte": "Cass. SU 18927/2012",
-          "descrizione": "Mobbing - elementi costitutivi"
-        },
-        {
-          "fonte": "Cass. SU 24641/2018",
-          "descrizione": "Straining - autonomia rispetto al mobbing"
-        },
-        {
-          "fonte": "Cass. SU 32183/2022",
-          "descrizione": "Cumulo di azioni: mobbing + straining + dequalificazione ammissibile"
-        },
-        {
-          "fonte": "Cass. SU 18164/2024",
-          "descrizione": "Mobbing e straining cumulati - prova e quantificazione"
+          "descrizione": "Danno da demansionamento - non in re ipsa",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022601807O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 01807/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "vantaggio_dell_azione_cumulata": {

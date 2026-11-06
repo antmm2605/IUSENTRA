@@ -8,8 +8,12 @@ import {
   emptyGuidaPraticaResponse,
   getCodiceGuidaPratica,
   getFascicoloGuidaPratica,
+  getFascicoloGuidaFase,
+  conFaseReale,
+  type GuidaFaseReale,
   type GuidaDocumentPlan,
   type GuidaNormativa,
+  type GuidaPercorso,
   type GuidaPratica,
   type GuidaPraticaResponse,
 } from '../guidaPraticaData'
@@ -263,7 +267,88 @@ function NormativaItem({ item }:{item:GuidaNormativa | unknown}) {
   const articolo = text(item.articolo || item.article)
   const label = [fonte, articolo].filter(Boolean).join(' art. ')
   const detail = firstReadable(item, ['descrizione', 'description', 'testo', 'contenuto', 'nota', 'note']) || compactRecord(item)
-  return <li><strong>{label || 'Norma'}</strong><span>{detail || 'Descrizione da completare'}</span></li>
+  const url = text(item.url)
+  return (
+    <li>
+      <strong>{label || 'Norma'}</strong><span>{detail || 'Descrizione da completare'}</span>
+      {url ? <NormativeArticleLink url={url} article={label}>Apri il testo</NormativeArticleLink> : null}
+    </li>
+  )
+}
+
+const ESITO_PER_IL_CLIENTE: Record<string, string> = {
+  favorevole: 'Esito favorevole al cliente',
+  sfavorevole: 'Esito sfavorevole al cliente',
+  parziale: 'Esito parzialmente favorevole',
+  da_valutare: "Esito da valutare: ruolo del cliente non certo",
+}
+
+function PercorsoSection({ percorso }:{percorso?: GuidaPercorso}) {
+  if (!percorso?.strada) return null
+  const spese = percorso.spese
+  const speseTesto = spese?.regolazione && spese.regolazione !== 'non_indicata'
+    ? `Spese: ${spese.regolazione.replace('_', ' ')}${spese.importo ? ` € ${spese.importo}` : ''}${spese.distrazione ? ', con distrazione' : ''}`
+    : ''
+  const voci = percorso.strada === 'realizzazione' ? (percorso.passi || []) : (percorso.rimedi || [])
+  return (
+    <Section title="Dopo la sentenza" icon={<Gavel size={16}/> }>
+      <p className="iu-guida-lead">{[`${text(percorso.sentenza, 'Sentenza')}${percorso.data ? ` del ${percorso.data}` : ''}`, ESITO_PER_IL_CLIENTE[text(percorso.per_il_cliente)] || '', speseTesto].filter(Boolean).join(' · ')}</p>
+      <ol className="iu-guida-ordered">
+        {voci.map((voce, index) => (
+          <li key={itemKey('percorso', index, voce.passo || voce.rimedio)}>
+            <strong>{text(voce.passo || voce.rimedio, 'Passo')}</strong>
+            <span>{[voce.termine, voce.quando, (voce.norme || []).join(', ')].filter(Boolean).join(' · ')}</span>
+          </li>
+        ))}
+      </ol>
+      {percorso.ipotesi?.length ? (
+        <>
+          <p className="iu-guida-lead">Ipotesi da verificare:</p>
+          <ul className="iu-guida-source-list">
+            {percorso.ipotesi.map((voce, index) => <li key={itemKey('ipotesi', index, voce.ipotesi)}><strong>{text(voce.ipotesi)}</strong><span>{(voce.norme || []).join(', ')}</span></li>)}
+          </ul>
+        </>
+      ) : null}
+    </Section>
+  )
+}
+
+function GiurisprudenzaSection({ guida }:{guida?:GuidaPratica}) {
+  const dati = guida?.giurisprudenza
+  if (!dati) return null
+  const verificate = dati.verificate || []
+  const decisioni = dati.decisioni_per_norma || []
+  return (
+    <Section title="Giurisprudenza verificata" icon={<Gavel size={16}/> }>
+      {verificate.length ? (
+        <ul className="iu-guida-source-list">
+          {verificate.map((voce, index) => (
+            <li key={itemKey('giur-citata', index, voce.citazione)}>
+              <strong>{text(voce.citazione, 'Decisione')}</strong>
+              <span>{[voce.descrizione, voce.come].filter(Boolean).join(' · ')}</span>
+              {voce.url ? <NormativeArticleLink url={voce.url} article={text(voce.citazione)}>Apri la decisione</NormativeArticleLink> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {decisioni.length ? (
+        <>
+          <p className="iu-guida-lead">Decisioni dell'archivio che applicano le norme di questa scheda:</p>
+          <ul className="iu-guida-source-list">
+            {decisioni.map((voce, index) => (
+              <li key={itemKey('giur-norma', index, voce.decisione)}>
+                <strong>{text(voce.decisione, 'Decisione')}</strong>
+                <span>{[voce.perche, (voce.norme_applicate || []).join(', '), voce.data_deposito ? `depositata il ${formatItalianDate(voce.data_deposito)}` : ''].filter(Boolean).join(' · ')}</span>
+                {voce.url ? <NormativeArticleLink url={voce.url} article={text(voce.decisione)}>Apri la decisione</NormativeArticleLink> : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {!verificate.length && !decisioni.length ? <p className="iu-empty">{dati.archivio_disponibile ? "Nessuna decisione dell'archivio applica ancora le norme di questa scheda." : "Archivio di giurisprudenza non disponibile su questa installazione."}</p> : null}
+      {dati.non_verificate ? <p className="iu-empty">{`${dati.non_verificate} citazioni della scheda non risultano nell'archivio ufficiale e non sono mostrate come fonte.`}</p> : null}
+    </Section>
+  )
 }
 
 function ReviewBanner({ guida }:{guida?:GuidaPratica}) {
@@ -400,7 +485,7 @@ function FascicoloContextCard({ fascicolo }: { fascicolo?: Record<string, unknow
   )
 }
 
-function ChecklistTab({ response, fascicoloId = '' }:{response:GuidaPraticaResponse; fascicoloId?: string}) {
+function ChecklistTab({ response, fascicoloId = '', faseInLettura = false }:{response:GuidaPraticaResponse; fascicoloId?: string; faseInLettura?: boolean}) {
   const checklist = response.checklist
   const guida = response.guida
   const completion = percent(checklist?.percentuale_completamento)
@@ -420,7 +505,10 @@ function ChecklistTab({ response, fascicoloId = '' }:{response:GuidaPraticaRespo
         <Section title="Fase della pratica" icon={<ClipboardCheck size={16}/> }>
           <p className="iu-guida-lead">{checklist.nota_fase}</p>
         </Section>
-      ) : (
+      ) : null}
+      {faseInLettura ? <p className="iu-empty">Fase della pratica in lettura dal fascicolo…</p> : null}
+      <PercorsoSection percorso={response.percorso}/>
+      {checklist?.nota_fase ? null : (
         <div className="iu-guida-progress" aria-label="Completamento guida pratica">
           <div><strong>{completion}%</strong><span>{checklist?.completati ?? 0}/{checklist?.totale ?? 0} requisiti</span></div>
           <progress value={completion} max={100}/>
@@ -454,6 +542,7 @@ function NormativaTab({ guida }:{guida?:GuidaPratica}) {
       <Section title="Riferimenti secondari" icon={<BookOpen size={16}/> }>
         {secondari.length ? <ul className="iu-guida-law-list">{secondari.map((item, index) => <NormativaItem key={itemKey('law-secondary', index, `${item.fonte}-${item.articolo}`)} item={item}/>)}</ul> : <p className="iu-empty">Nessun riferimento secondario configurato.</p>}
       </Section>
+      <GiurisprudenzaSection guida={guida}/>
       {guida?.presupposti_sostanziali?.length ? (
         <Section title="Presupposti sostanziali" icon={<Gavel size={16}/> }>
           <ol className="iu-guida-ordered">{guida.presupposti_sostanziali.map((item, index) => {
@@ -614,6 +703,8 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
   const panelId = explicitProcedure ? `guida-procedura-${instanceId}` : 'guida-pratica'
   const requestGeneration = useRef(0)
   const [loadedKey, setLoadedKey] = useState('')
+  const [faseReale, setFaseReale] = useState<GuidaFaseReale | null>(null)
+  const [faseInLettura, setFaseInLettura] = useState(false)
   const effectiveCode = useMemo(() => codiceFromResponse(response) || codice, [response, codice])
   const load = (force = false) => {
     const nextKey = explicitProcedure && codice ? `procedura:${codice}:${fascicoloId}` : fascicoloId ? `fascicolo:${fascicoloId}` : codice ? `codice:${codice}` : ''
@@ -626,9 +717,26 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
       setResponse(payload)
       setLoadedKey(nextKey)
     }).finally(() => { if (generation === requestGeneration.current) setLoading(false) })
+    if (fascicoloId && !explicitProcedure) {
+      setFaseInLettura(true)
+      // La fase si prepara in sfondo sul server: si richiede di nuovo finché è pronta (al massimo 3 minuti).
+      const chiedi = (tentativo: number) => {
+        getFascicoloGuidaFase(fascicoloId).then((fase) => {
+          if (generation !== requestGeneration.current) return
+          if (fase.in_preparazione && tentativo < 36) {
+            window.setTimeout(() => chiedi(tentativo + 1), 5000)
+            return
+          }
+          setFaseReale(fase)
+          setFaseInLettura(false)
+        }).catch(() => { if (generation === requestGeneration.current) setFaseInLettura(false) })
+      }
+      chiedi(0)
+    }
   }
   useEffect(() => {
     setResponse(emptyGuidaPraticaResponse())
+    setFaseReale(null)
     setLoadedKey('')
     setLoading(false)
     ++requestGeneration.current
@@ -741,7 +849,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
           <nav className="iu-guida-tabs" aria-label="Sezioni guida pratica">
             {(['checklist', 'contesto', 'normativa', 'atto', 'adempimenti'] as TabKey[]).map((key) => <button key={key} type="button" className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>{key === 'checklist' ? 'Ora' : key === 'contesto' ? 'Contesto' : key === 'normativa' ? 'Normativa' : key === 'atto' ? 'Atto' : 'Adempimenti'}</button>)}
           </nav>
-          {tab === 'checklist' ? <ChecklistTab response={response} fascicoloId={fascicoloId}/> : null}
+          {tab === 'checklist' ? <ChecklistTab response={conFaseReale(response, faseReale)} fascicoloId={fascicoloId} faseInLettura={faseInLettura}/> : null}
           {tab === 'contesto' ? <ContestoTab response={response}/> : null}
           {tab === 'normativa' ? <NormativaTab guida={guida}/> : null}
           {tab === 'atto' ? <AttoTab guida={guida}/> : null}

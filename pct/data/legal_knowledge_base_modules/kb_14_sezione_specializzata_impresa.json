@@ -132,7 +132,7 @@
         ]
       }
     },
-    {"codice": "181021", "denominazione": "Intese e abuso di posizione dominante per violazione antitrust UE", "eredita_da": "181020"},
+    {"codice": "181021", "denominazione": "Intese e abuso di posizione dominante per violazione antitrust UE", "eredita_da": "181020", "verificato_il": "2026-11-06", "normativa": [{"fonte": "D.Lgs. 168/2003", "articolo": "3", "descrizione": "Competenza delle sezioni specializzate in materia di impresa"}], "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare i presupposti specifici della materia: Intese e abuso di posizione dominante per violazione antitrust UE", "obbligatorio": true}], "avvertenze_redazionali": ["Azione di risarcimento per violazione del diritto della concorrenza: competenza delle sezioni specializzate in materia di impresa indicate dalla legge."]},
     {
       "codice": "181022",
       "denominazione": "Marchio Europeo",
@@ -235,7 +235,7 @@
         ]
       }
     },
-    {"codice": "181041", "denominazione": "Reclamo avverso ordinanza su ammissibilità azione collettiva", "eredita_da": "181040"},
+    {"codice": "181041", "denominazione": "Reclamo avverso ordinanza su ammissibilità azione collettiva", "eredita_da": "181040", "verificato_il": "2026-11-06", "normativa": [{"fonte": "c.p.c.", "articolo": "840-bis", "descrizione": "Azione di classe: ambito"}, {"fonte": "c.p.c.", "articolo": "840-ter", "descrizione": "Ricorso alla sezione impresa; ordinanza di ammissibilità reclamabile in 30 giorni"}], "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare i presupposti specifici della materia: Reclamo avverso ordinanza su ammissibilità azione collettiva", "obbligatorio": true}], "termini_processuali": [{"termine": "Reclamo contro l'ordinanza sull'ammissibilità", "decorrenza": "comunicazione o notificazione se anteriore", "natura": "perentorio", "norma": "art. 840-ter c.p.c.", "giorni": 30}]},
     {
       "codice": "181042",
       "denominazione": "Azione inibitoria collettiva",
@@ -245,7 +245,7 @@
         {"fonte": "D.Lgs. 206/2005 (Codice Consumo)", "articolo": "139-140", "descrizione": "Tutela collettiva consumatori"}
       ]
     },
-    {"codice": "181044", "denominazione": "Impugnazione ex art. 840-undecies c.p.c.", "categoria": "Impugnazione sentenza azione di classe", "eredita_da": "181040"},
+    {"codice": "181044", "denominazione": "Impugnazione ex art. 840-undecies c.p.c.", "categoria": "Impugnazione sentenza azione di classe", "eredita_da": "181040", "verificato_il": "2026-11-06", "normativa": [{"fonte": "c.p.c.", "articolo": "840-bis", "descrizione": "Azione di classe: ambito"}, {"fonte": "c.p.c.", "articolo": "840-ter", "descrizione": "Ricorso alla sezione impresa; ordinanza di ammissibilità reclamabile in 30 giorni"}, {"fonte": "c.p.c.", "articolo": "840-undecies", "descrizione": "Opposizione al decreto entro 30 giorni dalla comunicazione"}], "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare i presupposti specifici della materia: Impugnazione ex art. 840-undecies c.p.c.", "obbligatorio": true}], "termini_processuali": [{"termine": "Opposizione al decreto", "decorrenza": "comunicazione del provvedimento", "natura": "perentorio", "norma": "art. 840-undecies c.p.c.", "giorni": 30}]},
     {"codice": "181099", "denominazione": "Altre controversie sez. impresa in materia di proprietà industriale e diritto d'autore", "note": "Residuale IP"},
     {"codice": "181999", "denominazione": "Altre controversie sez. impresa in materia societaria", "note": "Residuale societario"}
   ]

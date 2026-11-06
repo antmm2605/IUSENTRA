@@ -33,10 +33,6 @@
           "fonte": "c.c.",
           "articolo": "1569",
           "descrizione": "RECESSO – per contratti a tempo indeterminato con preavviso congruo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Somministrazione – inadempimento di una rata e risoluzione totale"
         }
       ],
       "inadempimento_1564": {
@@ -576,10 +572,6 @@
           "fonte": "c.c.",
           "articolo": "1904",
           "descrizione": "Principio indennitario – il risarcimento non può superare il danno"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Assicurazione – dichiarazioni inesatte e annullamento selettivo"
         }
       ],
       "dichiarazioni_inesatte_1892_1893": {
@@ -1144,16 +1136,15 @@
         },
         {
           "fonte": "Cass. SU 8271/2008",
-          "descrizione": "Unit Linked – mancanza di componente assicurativa: contratto di investimento mascherato da assicurazione"
+          "descrizione": "Unit Linked – mancanza di componente assicurativa: contratto di investimento mascherato da assicurazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2024103785S&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 03785/2024 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "D.Lgs. 58/1998 (TUF)",
           "articolo": "21",
           "descrizione": "Se è un prodotto di investimento: si applicano le tutele MiFID (adeguatezza)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Unit Linked – causa mista e tutele applicabili"
         }
       ],
       "nullita_unit_linked": {
@@ -1686,10 +1677,6 @@
           "fonte": "TUB",
           "articolo": "125-bis",
           "descrizione": "NULLITÀ – il contratto di credito senza TAEG o con TAEG errato: nullità parziale; tasso legale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "TAEG errato – nullità parziale e sostituzione con tasso legale"
         }
       ],
       "TAEG_errato_125bis": {
@@ -2050,10 +2037,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "Risarcimento del danno non patrimoniale da diffamazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Diffamazione – criterio della verità e interesse pubblico"
         }
       ],
       "diritto_di_critica_vs_diffamazione": {

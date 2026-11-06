@@ -77,7 +77,25 @@
       "differenze_rispetto_a_padre": {
         "ambito_applicazione": "Procedure introdotte prima del 1/3/2006 (entrata in vigore L. 80/2005)",
         "normativa_residuale": "Disciplina previgente del c.p.c. - ormai marginale"
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "513",
+          "descrizione": "Ricerca delle cose da pignorare"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Espropriazione mobiliare presso il debitore (pre L. 80/2005)",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Procedura iniziata prima della riforma della L. 80/2005: verificare nel fascicolo la data di inizio e la disciplina transitoria applicabile, perché le norme vigenti del c.p.c. riportate valgono per le procedure successive."
+      ]
     },
     {
       "codice": "510002",
@@ -119,7 +137,27 @@
       "codice": "510002_O",
       "denominazione": "Espropriazione mobiliare presso terzi (pre L. 80/2005)",
       "eredita_da": "510002",
-      "differenze_rispetto_a_padre": {"ambito_applicazione": "Procedure ante 1/3/2006"}
+      "differenze_rispetto_a_padre": {
+        "ambito_applicazione": "Procedure ante 1/3/2006"
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "543",
+          "descrizione": "Pignoramento presso terzi"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Espropriazione mobiliare presso terzi (pre L. 80/2005)",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Procedura iniziata prima della riforma della L. 80/2005: verificare nel fascicolo la data di inizio e la disciplina transitoria applicabile, perché le norme vigenti del c.p.c. riportate valgono per le procedure successive."
+      ]
     },
     {
       "codice": "510011",
@@ -288,7 +326,32 @@
       "codice": "610001_O",
       "denominazione": "Espropriazione immobiliare (pre L. 80/2005)",
       "eredita_da": "610001",
-      "differenze_rispetto_a_padre": {"ambito_applicazione": "Procedure ante 1/3/2006 (ormai residuali)"}
+      "differenze_rispetto_a_padre": {
+        "ambito_applicazione": "Procedure ante 1/3/2006 (ormai residuali)"
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555",
+          "descrizione": "Pignoramento immobiliare"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "567",
+          "descrizione": "Istanza di vendita"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Espropriazione immobiliare (pre L. 80/2005)",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Procedura iniziata prima della riforma della L. 80/2005: verificare nel fascicolo la data di inizio e la disciplina transitoria applicabile, perché le norme vigenti del c.p.c. riportate valgono per le procedure successive."
+      ]
     },
     {
       "codice": "610011",
@@ -297,10 +360,35 @@
       "eredita_da": "510011",
       "differenze_rispetto_a_padre": {
         "campi_aggiuntivi": [
-          {"id": "immobile_sequestrato", "label": "Immobile oggetto sequestro", "type": "object_immobile", "required": true},
-          {"id": "trascrizione_sequestro", "label": "Estremi trascrizione sequestro", "type": "object", "required": true}
+          {
+            "id": "immobile_sequestrato",
+            "label": "Immobile oggetto sequestro",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "trascrizione_sequestro",
+            "label": "Estremi trascrizione sequestro",
+            "type": "object",
+            "required": true
+          }
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "686",
+          "descrizione": "Conversione del sequestro conservativo in pignoramento con la sentenza di condanna esecutiva"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Conversione del sequestro in pignoramento (immobiliare)",
+          "obbligatorio": true
+        }
+      ]
     },
     {
       "codice": "620001",

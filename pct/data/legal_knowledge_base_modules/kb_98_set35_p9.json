@@ -38,14 +38,6 @@
           "fonte": "L. 203/1982",
           "articolo": "29",
           "descrizione": "Tacita riconduzione – se il rapporto prosegue senza disdetta"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Affitto fondi rustici – prelazione e riscatto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Canone agrario – revisione biennale"
         }
       ],
       "prelazione_art8": {
@@ -507,14 +499,6 @@
           "fonte": "c.c.",
           "articolo": "2125 c. 2",
           "descrizione": "Durata – max 3 anni (5 per dirigenti)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Patto non concorrenza – corrispettivo e proporzionalità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Nullità del patto per corrispettivo irrisorio"
         }
       ],
       "requisiti_2125": {
@@ -844,14 +828,6 @@
           "fonte": "c.p.c.",
           "articolo": "495 c. 4",
           "descrizione": "Versamento rateale – possibile su autorizzazione del GE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Conversione del pignoramento – condizioni e importo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Versamento rateale della conversione"
         }
       ],
       "conversione_495": {
@@ -1077,14 +1053,6 @@
           "fonte": "c.p.c.",
           "articolo": "623",
           "descrizione": "Sospensione disposta dal giudice dell'opposizione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sospensione esecuzione – fumus e periculum"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Sospensione cautelare in pendenza di opposizione"
         }
       ],
       "sospensione_624": {
@@ -1529,14 +1497,6 @@
           "fonte": "c.p.c.",
           "articolo": "530",
           "descrizione": "Vendita – modalità e termini"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pignoramento autoveicolo – PRA e perfezionamento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Autoveicolo già venduto prima del pignoramento – opponibilità"
         }
       ],
       "procedura_521bis": {

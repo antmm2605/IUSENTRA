@@ -37,14 +37,6 @@
         {
           "fonte": "Reg. UE 2017/1001 (EUTMR)",
           "descrizione": "Marchio dell'Unione Europea – tutela su tutto il territorio UE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contraffazione di marchio – confusione e rischio di associazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Marchio di fatto vs marchio registrato – priorità"
         }
       ],
       "contraffazione_art20": {
@@ -389,14 +381,6 @@
         {
           "fonte": "Reg. CE 6/2002",
           "descrizione": "Design comunitario – registrato (5-25 anni) e non registrato (3 anni)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Design industriale – carattere individuale e contraffazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Design non registrato – tutela minima"
         }
       ],
       "design_registrato_vs_non_registrato": {
@@ -840,14 +824,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "27-ter",
           "descrizione": "Tutela inibitoria collettiva – associazioni di consumatori"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pratica scorretta – risarcimento individuale del consumatore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Pubblicità ingannevole come pratica commerciale scorretta"
         }
       ],
       "pratiche_ingannevoli_21": {
@@ -1183,14 +1159,6 @@
           "fonte": "D.Lgs. 170/2021",
           "articolo": "10",
           "descrizione": "Beni con contenuto digitale – aggiornamenti obbligatori"
-        },
-        {
-          "fonte": "Cass. SU 14897/2022",
-          "descrizione": "Garanzia legale – rimedi gerarchici (riparazione prima della sostituzione)"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Beni ricondizionati – garanzia ridotta a 1 anno per accordo"
         }
       ],
       "gerarchia_rimedi_art7": {
@@ -1435,10 +1403,6 @@
           "fonte": "Reg. UE 261/2004",
           "articolo": "12",
           "descrizione": "Risarcimento ulteriore – in base al diritto nazionale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Compensazione Reg. 261 – circostanze eccezionali e esenzione del vettore"
         },
         {
           "fonte": "CGE C-402/07 Sturgeon/Böck",

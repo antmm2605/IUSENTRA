@@ -436,7 +436,7 @@ export function TelematicoPage() {
   }
 
   if (!loaded) return <main className="iu-content iu-telematico-page" aria-busy={loading}>
-    <h1>Centro Servizi Telematici</h1>
+    <h1>Tutti i depositi telematici</h1>
     <p role={error ? 'alert' : 'status'}>{error || 'Caricamento dei servizi telematici…'}</p>
     {error ? <div className="iu-tel-load-error"><button type="button" disabled={loading} onClick={() => void load()}>Riprova</button></div> : null}
   </main>
@@ -446,7 +446,7 @@ export function TelematicoPage() {
       <section className="iu-tel-hero">
         <div>
           <span className="iu-tel-eyebrow"><ShieldCheck size={16}/> Un presidio unico per i portali telematici</span>
-          <h1>Centro Servizi Telematici</h1>
+          <h1>Tutti i depositi telematici</h1>
           <p>PST/PolisWeb, PDP Penale, PAT/SIGA e PTT/SIGIT in una regia operativa: accessi, acquisizioni, fascicoli importati, controlli e prossime attività.</p>
           <div className="iu-tel-hero__chips">
             <Badge tone="success">Local Signer</Badge>

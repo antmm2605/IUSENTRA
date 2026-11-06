@@ -80,8 +80,16 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
         if documento["etichetta"].lower().startswith("sentenza") and not documento["sentenza_pertinente"]:
             documento["data_evento"] = ""
         if documento["sentenza_pertinente"]:
-            date = sorted((f for f in prove if f.get("campo") == "provvedimento" and f.get("verifica") in {"verificata", "corretta"}), key=lambda f: f.get("posizione", 0))
-            # Una data di caricamento non è la data della sentenza.
+            # Esito e spese letti dal dispositivo dal motore documenti (pct/archivio_letture/estrazione_esito.py).
+            documento["esito"] = {f.get("campo"): f.get("valore") for f in prove
+                                  if f.get("campo") in {"esito_sentenza", "spese_sentenza"} and f.get("verifica") in {"verificata", "corretta"}}
+            certe = [f for f in prove if f.get("verifica") in {"verificata", "corretta"}]
+            # La data della sentenza: quella in calce («Velletri, 7 ottobre 2026»), altrimenti una data di provvedimento
+            # dell'intestazione; mai la data di un precedente citato nella motivazione. Una data di caricamento non lo è.
+            in_calce = sorted((f for f in certe if f.get("campo") == "data_atto"), key=lambda f: f.get("posizione", 0))
+            intestazione_date = sorted((f for f in certe if f.get("campo") == "provvedimento" and int(f.get("posizione") or 0) < 3000),
+                                       key=lambda f: f.get("posizione", 0))
+            date = in_calce[-1:] or intestazione_date[:1]
             documento["data"] = str(date[0]["valore"])[:10] if date else ""
             documento["data_it"] = data_it(documento["data"])
     letti.sort(key=lambda voce: voce["data"])

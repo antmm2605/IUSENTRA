@@ -28,14 +28,6 @@
           "fonte": "D.Lgs. 36/2023",
           "articolo": "186",
           "descrizione": "Contratto di concessione autostradale – obblighi di manutenzione del concessionario"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Gestore autostradale – responsabilità ex 2051 e caso fortuito"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Buche, detriti e ostacoli – gestore e caso fortuito"
         }
       ],
       "responsabilita_custode_2051": {
@@ -363,14 +355,6 @@
         {
           "fonte": "D.Lgs. 63/2018 (attuazione Dir. UE 2016/943)",
           "descrizione": "Protezione del know-how e delle informazioni commerciali riservate"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Segreti commerciali – dipendente e riutilizzo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Know-how – protezione e misure di sicurezza mancanti"
         }
       ],
       "requisiti_segreto_commerciale_98": {
@@ -827,14 +811,6 @@
           "fonte": "Reg. UE 6/2002",
           "articolo": "1-110",
           "descrizione": "Disegni e modelli comunitari – registrati (EUIPO) e non registrati"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Design – carattere individuale e tutela"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Design non registrato – prova della divulgazione"
         }
       ],
       "design_registrato_vs_non": {
@@ -1275,14 +1251,6 @@
           "fonte": "c.c.",
           "articolo": "2236",
           "descrizione": "Responsabilità professionale – colpa grave"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Mediatore creditizio – obbligo informativo e responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Agente assicurativo – polizza inadeguata e risarcimento"
         }
       ],
       "mediatore_creditizio": {
@@ -1800,14 +1768,6 @@
           "fonte": "Cod. Ass.",
           "articolo": "145",
           "descrizione": "Limite massimo invalidità permanente – lesioni gravi oltre il 9%: si va a giudizio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Risarcimento diretto – lesioni gravi e azione diretta"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Offerta inadeguata – azione giudiziale e spese"
         }
       ],
       "risarcimento_diretto_149": {

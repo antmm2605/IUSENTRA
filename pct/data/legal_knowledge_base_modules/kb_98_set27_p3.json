@@ -33,14 +33,6 @@
           "fonte": "c.c.",
           "articolo": "1936 e ss.",
           "descrizione": "Fideiussione – la carta di credito non è fideiussione ma garanzia di pagamento"
-        },
-        {
-          "fonte": "Cass. SU 8932/2022",
-          "descrizione": "Carta di credito – natura giuridica e contestazione addebiti"
-        },
-        {
-          "fonte": "Cass. SU 11238/2024",
-          "descrizione": "Addebiti non autorizzati su carta – responsabilità emittente"
         }
       ],
       "tipologie_contestazioni_tipiche": [
@@ -257,14 +249,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "53",
           "descrizione": "Riforma associazione in partecipazione con apporto di lavoro – presunzione di rapporto di lavoro"
-        },
-        {
-          "fonte": "Cass. SU 14589/2020",
-          "descrizione": "Associazione in partecipazione vs rapporto di lavoro – distinzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2022",
-          "descrizione": "Rendiconto dell'associante – obblighi e termini"
         }
       ],
       "post_D_Lgs_81_2015": {
@@ -462,10 +446,6 @@
           "fonte": "CCII",
           "articolo": "120-bis",
           "descrizione": "Concordato in continuità – tutele aggiuntive per i lavoratori"
-        },
-        {
-          "fonte": "Cass. SU 9476/2023",
-          "descrizione": "Concordato in continuità – miglior soddisfacimento rispetto alla liquidazione"
         }
       ],
       "concordato_in_continuita_vs_liquidatorio": {
@@ -663,14 +643,6 @@
           "fonte": "c.c.",
           "articolo": "2539",
           "descrizione": "Comunicazione dell'esclusione al socio"
-        },
-        {
-          "fonte": "Cass. SU 14597/2020",
-          "descrizione": "Socio lavoratore di cooperativa – doppio rapporto e tutele"
-        },
-        {
-          "fonte": "Cass. SU 9832/2023",
-          "descrizione": "Esclusione del socio lavoratore – procedura e impugnazione"
         }
       ],
       "doppio_rapporto_socio_lavoratore": {
@@ -885,14 +857,6 @@
           "fonte": "D.Lgs. 276/2003",
           "articolo": "29",
           "descrizione": "Responsabilità solidale committente-appaltatore per crediti lavoratori"
-        },
-        {
-          "fonte": "Cass. SU 16512/2020",
-          "descrizione": "Committente e infortuni nell'appalto – obblighi e responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 9813/2023",
-          "descrizione": "DUVRI e responsabilità del committente"
         }
       ],
       "obblighi_committente_art26": {

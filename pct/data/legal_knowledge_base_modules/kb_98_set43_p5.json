@@ -23,10 +23,6 @@
           "fonte": "DPR 327/2001",
           "articolo": "53",
           "descrizione": "OPPOSIZIONE – alla stima: davanti alla Corte d'Appello entro 30 GG dalla notifica"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Indennità esproprio – valore venale e risarcimento per occupazione illegittima"
         }
       ],
       "indennita_valore_venale": {
@@ -1858,10 +1854,6 @@
           "fonte": "TFUE",
           "articolo": "260",
           "descrizione": "Sanzioni pecuniarie – se l'Italia non si adegua: la CGUE può infliggere sanzioni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Infrazione UE – effetti per le imprese e tutele"
         }
       ],
       "effetti_infrazione": {

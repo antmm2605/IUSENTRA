@@ -21,15 +21,10 @@
         },
         {
           "fonte": "Cass. SU 26972/2008",
-          "descrizione": "Danno non patrimoniale – la perdita di chance è danno patrimoniale autonomo"
-        },
-        {
-          "fonte": "Cass. 11564/2018",
-          "descrizione": "Perdita di chance – deve essere concreta e attuale; non mera speranza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Perdita di chance – criteri di liquidazione equitativa"
+          "descrizione": "Danno non patrimoniale – la perdita di chance è danno patrimoniale autonomo",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjQyMDIyRA%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31321/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "perdita_di_chance": {
@@ -340,10 +335,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "123",
           "descrizione": "Prescrizione – 3 anni dalla conoscenza del danno, del difetto e dell'identità del produttore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Distributore – responsabilità sussidiaria"
         }
       ],
       "responsabilita_distributore_116": {
@@ -518,10 +509,6 @@
           "fonte": "L. 24/2017",
           "articolo": "6",
           "descrizione": "URGENZA – la valutazione della condotta tiene conto delle particolari difficoltà dell'urgenza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Medico urgenza – colpa grave e difficoltà dell'urgenza"
         }
       ],
       "standard_urgenza": {
@@ -983,10 +970,6 @@
           "fonte": "D.Lgs. 42/2017 (Codice Ambiente)",
           "articolo": "155",
           "descrizione": "Rumore – limiti assoluti e differenziali; orari cantieri"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Immissioni cantiere – normale tollerabilità e risarcimento"
         }
       ],
       "normale_tollerabilita_844": {
@@ -1506,10 +1489,6 @@
           "fonte": "L. 24/2017",
           "articolo": "7",
           "descrizione": "Strutture sanitarie e socio-sanitarie – comprese le RSA"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "RSA – responsabilità contrattuale per caduta dell'anziano"
         }
       ],
       "responsabilita_contrattuale": {

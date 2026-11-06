@@ -38,14 +38,6 @@
           "fonte": "D.Lgs. 148/2015",
           "articolo": "26",
           "descrizione": "FONDI DI SOLIDARIETÀ – per i settori non coperti dalla CIG"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "CIG – diritto del lavoratore e contestazione del diniego"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "CIGS – accordo sindacale e rotazione"
         }
       ],
       "CIGO_vs_CIGS": {
@@ -284,14 +276,6 @@
           "fonte": "D.Lgs. 23/2015",
           "articolo": "10",
           "descrizione": "Contratti a tutele crescenti – tutela indennitaria per il licenziamento collettivo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Criteri di scelta nel licenziamento collettivo – violazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Comunicazione finale: vizi e sanzioni"
         }
       ],
       "procedura_L223_art4": {
@@ -802,14 +786,6 @@
           "fonte": "D.Lgs. 198/2006",
           "articolo": "40",
           "descrizione": "ONERE DELLA PROVA – il lavoratore deve provare fatti che fanno presumere la discriminazione; poi il datore deve provare che non c'è stata"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Discriminazione di genere – prova e risarcimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Molestie sessuali sul lavoro – responsabilità del datore"
         }
       ],
       "discriminazione_diretta_vs_indiretta": {
@@ -1266,15 +1242,10 @@
         },
         {
           "fonte": "Cass. SU 26724/2007",
-          "descrizione": "Violazione degli obblighi di informazione dell'intermediario – responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Investimento inadeguato – nesso causale e risarcimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Bond in default – responsabilità dell'intermediario"
+          "descrizione": "Violazione degli obblighi di informazione dell'intermediario – responsabilità",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022104117I&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 04117/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obblighi_intermediario_MiFID": {
@@ -1715,15 +1686,10 @@
         },
         {
           "fonte": "Cass. SU 24418/2010",
-          "descrizione": "Clausola di capitalizzazione trimestrale: NULLA – prescrizione 10 anni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Anatocismo – calcolo e rimborso"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prescrizione dell'azione di ripetizione anatocismo – decorso"
+          "descrizione": "Clausola di capitalizzazione trimestrale: NULLA – prescrizione 10 anni",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022134694O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 34694/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "anatocismo_illegittimo": {

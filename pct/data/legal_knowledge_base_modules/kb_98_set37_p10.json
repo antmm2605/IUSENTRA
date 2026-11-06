@@ -38,14 +38,6 @@
           "fonte": "c.c.",
           "articolo": "607",
           "descrizione": "Querela di falso – se si contesta l'autenticità della grafia"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Testamento olografo – data incerta e nullità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Querela di falso sul testamento olografo – perizia calligrafica"
         }
       ],
       "nullita_602_606": {
@@ -552,14 +544,6 @@
           "fonte": "c.c.",
           "articolo": "554",
           "descrizione": "RIDUZIONE – il legato si riduce se intacca la quota di legittima"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Legato – adempimento e prescrizione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riduzione del legato per lesione della legittima"
         }
       ],
       "legato_649": {
@@ -1008,14 +992,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "132-bis",
           "descrizione": "PRESUNZIONE di difetto – se si manifesta entro 1 anno dalla consegna: si presume preesistente"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Garanzia conformità – presunzione e onere prova"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Bene difettoso – risoluzione senza passare dalla riparazione"
         }
       ],
       "novita_D_Lgs_170_2021": {
@@ -1191,10 +1167,6 @@
         {
           "fonte": "Cod. Consumo art. 135-undecies",
           "descrizione": "RIMEDI – stessi del D.Lgs. 170 per i beni fisici: ripristino, sostituzione, riduzione, risoluzione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contenuto digitale – conformità e aggiornamenti"
         }
       ],
       "contenuto_digitale_2021": {
@@ -1436,14 +1408,6 @@
           "fonte": "LDA",
           "articolo": "12-bis",
           "descrizione": "Opere create nel rapporto di lavoro – i diritti patrimoniali appartengono al datore se il software è creato nell'esecuzione del contratto"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Software – originalità e tutela"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Software creato da dipendente – titolarità dei diritti"
         }
       ],
       "tutela_software_2n8": {

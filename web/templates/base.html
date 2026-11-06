@@ -69,15 +69,15 @@
     </a>
     <a href="{{ url_for('workspace_intelligente') }}"
        class="nav-link sb-link sb-top {% if request.endpoint == 'workspace_intelligente' %}active{% endif %}">
-      <i class="bi bi-stars"></i><span class="sb-txt">Controllo Studio</span>
+      <i class="bi bi-stars"></i><span class="sb-txt">Priorità dello studio</span>
     </a>
     <a href="{{ url_for('global_search.index') }}"
        class="nav-link sb-link sb-top {% if request.blueprint == 'global_search' or request.endpoint == 'cerca' %}active{% endif %}">
-      <i class="bi bi-search"></i><span class="sb-txt">Ricerca Studio</span>
+      <i class="bi bi-search"></i><span class="sb-txt">Cerca nello studio</span>
     </a>
     <a href="{{ url_for('timesheet_lista') }}"
        class="nav-link sb-link sb-top {% if request.endpoint and request.endpoint.startswith('timesheet_') %}active{% endif %}">
-      <i class="bi bi-stopwatch"></i><span class="sb-txt">Timesheet</span>
+      <i class="bi bi-stopwatch"></i><span class="sb-txt">Ore lavorate</span>
     </a>
 
     {# Recenti (solo se presenti) #}
@@ -133,7 +133,7 @@
       {% endif %}
       <a href="{{ url_for('lista_archivio') }}"
          class="nav-link sb-link {% if request.endpoint == 'lista_archivio' %}active{% endif %}">
-        <i class="bi bi-archive"></i><span class="sb-txt">Archivio</span>
+        <i class="bi bi-archive"></i><span class="sb-txt">Fascicoli archiviati</span>
       </a>
     </div>
 
@@ -147,7 +147,7 @@
     <div class="collapse {% if _cl %}show{% endif %}" id="sb-clienti">
       <a href="{{ url_for('lista_clienti') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_clienti','dettaglio_cliente','modifica_cliente') %}active{% endif %}">
-        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+        <i class="bi bi-people"></i><span class="sb-txt">Elenco clienti</span>
       </a>
       <a href="{{ url_for('nuovo_cliente') }}"
          class="nav-link sb-link {% if request.endpoint == 'nuovo_cliente' %}active{% endif %}">
@@ -169,7 +169,7 @@
     <div class="collapse {% if _so %}show{% endif %}" id="sb-soggetti">
       <a href="{{ url_for('lista_soggetti') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_soggetti','dettaglio_soggetto','modifica_soggetto') %}active{% endif %}">
-        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+        <i class="bi bi-people"></i><span class="sb-txt">Elenco soggetti e parti</span>
       </a>
       <a href="{{ url_for('nuovo_soggetto') }}"
          class="nav-link sb-link {% if request.endpoint == 'nuovo_soggetto' %}active{% endif %}">
@@ -200,11 +200,11 @@
       </a>
       <a href="{{ url_for('lista_messaggi') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_messaggi','dettaglio_messaggio') %}active{% endif %}">
-        <i class="bi bi-chat-dots"></i><span class="sb-txt">Messaggi</span>
+        <i class="bi bi-chat-dots"></i><span class="sb-txt">SMS e WhatsApp</span>
       </a>
       <a href="{{ url_for('nuovo_messaggio') }}"
          class="nav-link sb-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
-        <i class="bi bi-send"></i><span class="sb-txt">Nuovo SMS/WA</span>
+        <i class="bi bi-send"></i><span class="sb-txt">Nuovo SMS o WhatsApp</span>
       </a>
     </div>
 
@@ -226,14 +226,14 @@
       </a>
       <a href="{{ url_for('wizard_pro.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'wizard_pro' %}active{% endif %}">
-        <i class="bi bi-diagram-3"></i><span class="sb-txt">Preparazione Udienza Guidata</span>
+        <i class="bi bi-diagram-3"></i><span class="sb-txt">Prepara l’udienza</span>
       </a>
     </div>
 
     {# ---- Checklist Atti ---- #}
     <a href="{{ url_for('checklist_atti') }}"
        class="nav-link sb-link {% if request.endpoint in ('checklist_atti','checklist_dettaglio') %}active{% endif %}">
-      <i class="bi bi-card-checklist"></i><span class="sb-txt">Controlli Atti</span>
+      <i class="bi bi-card-checklist"></i><span class="sb-txt">Controlli prima del deposito</span>
     </a>
 
     {# ---- Sezione: PCT / Telematico ---- #}
@@ -246,31 +246,31 @@
     <div class="collapse {% if _pct %}show{% endif %}" id="sb-pct">
       <a href="{{ url_for('telematico_dashboard') }}"
          class="nav-link sb-link {% if request.endpoint == 'telematico_dashboard' %}active{% endif %}">
-        <i class="bi bi-grid-1x2-fill"></i><span class="sb-txt">Centro Servizi Telematici</span>
+        <i class="bi bi-grid-1x2-fill"></i><span class="sb-txt">Tutti i depositi telematici</span>
       </a>
       <a href="{{ url_for('polisWeb_home') }}"
          class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
-        <i class="bi bi-building-fill-check"></i><span class="sb-txt">PolisWeb / PST</span>
+        <i class="bi bi-building-fill-check"></i><span class="sb-txt">Civile: PolisWeb e PST</span>
       </a>
       <a href="{{ url_for('pdp_home') }}"
          class="nav-link sb-link {% if request.endpoint in ('pdp_home','pdp_ricerca','pdp_documenti','pdp_importa') %}active{% endif %}">
-        <i class="bi bi-shield-exclamation"></i><span class="sb-txt">PDP Penale</span>
+        <i class="bi bi-shield-exclamation"></i><span class="sb-txt">Penale: portale PDP</span>
       </a>
       <a href="{{ url_for('pat_home') }}"
          class="nav-link sb-link {% if request.endpoint in ('pat_home','pat_ricerca','pat_documenti','pat_importa') %}active{% endif %}">
-        <i class="bi bi-building-check"></i><span class="sb-txt">PAT Amministrativo</span>
+        <i class="bi bi-building-check"></i><span class="sb-txt">Amministrativo: PAT (TAR)</span>
       </a>
       <a href="{{ url_for('sigit_home') }}"
          class="nav-link sb-link {% if request.endpoint in ('sigit_home','sigit_ricerca','sigit_documenti','sigit_importa') %}active{% endif %}">
-        <i class="bi bi-receipt-cutoff"></i><span class="sb-txt">PTT Tributario</span>
+        <i class="bi bi-receipt-cutoff"></i><span class="sb-txt">Tributario: PTT</span>
       </a>
       <a href="{{ url_for('tribunali') }}"
          class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
-        <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
+        <i class="bi bi-bank"></i><span class="sb-txt">Uffici giudiziari e loro PEC</span>
       </a>
       <a href="{{ url_for('deposito_checklist') }}"
          class="nav-link sb-link {% if request.endpoint == 'deposito_checklist' %}active{% endif %}">
-        <i class="bi bi-list-check"></i><span class="sb-txt">Checklist deposito</span>
+        <i class="bi bi-list-check"></i><span class="sb-txt">Controlli prima del deposito</span>
       </a>
       <a href="{{ url_for('guida_firma_digitale') }}"
          class="nav-link sb-link {% if request.endpoint == 'guida_firma_digitale' %}active{% endif %}">
@@ -296,7 +296,7 @@
       </a>
       <a href="{{ url_for('tariffario') }}"
          class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
-        <i class="bi bi-calculator"></i><span class="sb-txt">Calcolo Tariffario</span>
+        <i class="bi bi-calculator"></i><span class="sb-txt">Calcolo compensi forensi</span>
       </a>
       <a href="/documenti"
          class="nav-link sb-link {% if request.path in ('/documenti', '/editor-professionale') and request.args.get('modalita') != 'editor' %}active{% endif %}">
@@ -304,15 +304,15 @@
       </a>
       <a href="/editor-professionale?modalita=editor"
          class="nav-link sb-link {% if request.path == '/editor-professionale' and request.args.get('modalita') == 'editor' %}active{% endif %}">
-        <i class="bi bi-pencil-square"></i><span class="sb-txt">Editor professionale</span>
+        <i class="bi bi-pencil-square"></i><span class="sb-txt">Editor di atti e documenti</span>
       </a>
       <a href="/template-atti/editor"
          class="nav-link sb-link {% if request.path == '/template-atti/editor' %}active{% endif %}">
-        <i class="bi bi-file-earmark-plus"></i><span class="sb-txt">Editor libero</span>
+        <i class="bi bi-file-earmark-plus"></i><span class="sb-txt">Scrivi su foglio bianco</span>
       </a>
       <a href="{{ url_for('template_atti.lista') }}"
          class="nav-link sb-link {% if request.blueprint == 'template_atti' %}active{% endif %}">
-        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Redazione Atti</span>
+        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Atti da modello</span>
       </a>
       <a href="{{ url_for('statistiche.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'statistiche' %}active{% endif %}">
@@ -320,11 +320,11 @@
       </a>
       <a href="{{ url_for('legal_intelligence.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'legal_intelligence' %}active{% endif %}">
-        <i class="bi bi-diagram-3"></i><span class="sb-txt">Ricerca Legale</span>
+        <i class="bi bi-diagram-3"></i><span class="sb-txt">Cerca norme e sentenze</span>
       </a>
       <a href="{{ url_for('giurisprudenza.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'giurisprudenza' %}active{% endif %}">
-        <i class="bi bi-bank2"></i><span class="sb-txt">Archivio Giurisprudenza</span>
+        <i class="bi bi-bank2"></i><span class="sb-txt">Archivio sentenze per corte</span>
       </a>
       <a href="{{ url_for('strumenti_legali.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'strumenti_legali' %}active{% endif %}">
@@ -356,7 +356,7 @@
       </a>
       <a href="{{ url_for('impostazioni_calendario') }}"
          class="nav-link sb-link {% if request.endpoint == 'impostazioni_calendario' %}active{% endif %}">
-        <i class="bi bi-calendar-check"></i><span class="sb-txt">Sincronizzazione Calendari</span>
+        <i class="bi bi-calendar-check"></i><span class="sb-txt">Collega Google o Outlook</span>
       </a>
     </div>
     {% endif %}
@@ -416,15 +416,15 @@
       </a>
       <a href="{{ url_for('audit_log') }}"
          class="nav-link sb-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
-        <i class="bi bi-journal-text"></i><span class="sb-txt">Registro Attività</span>
+        <i class="bi bi-journal-text"></i><span class="sb-txt">Registro attività degli utenti</span>
       </a>
       <a href="{{ url_for('admin_database') }}"
          class="nav-link sb-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
-        <i class="bi bi-database-gear"></i><span class="sb-txt">Database</span>
+        <i class="bi bi-database-gear"></i><span class="sb-txt">Database (tecnico)</span>
       </a>
       <a href="{{ url_for('registro_trattamenti') }}"
          class="nav-link sb-link {% if request.endpoint in ('registro_trattamenti','nuovo_trattamento') %}active{% endif %}">
-        <i class="bi bi-file-earmark-medical"></i><span class="sb-txt">Registro GDPR</span>
+        <i class="bi bi-file-earmark-medical"></i><span class="sb-txt">Privacy: registro dei trattamenti</span>
       </a>
     </div>
     {% endif %}

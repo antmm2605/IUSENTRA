@@ -28,14 +28,6 @@
           "fonte": "L. 428/1990",
           "articolo": "47",
           "descrizione": "Procedura sindacale – informazione preventiva ai sindacati almeno 25 GG prima del trasferimento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Trasferimento d'azienda – nozione e tutele"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Trasferimento di ramo – criteri e limiti"
         }
       ],
       "tutele_2112": {
@@ -509,14 +501,6 @@
           "fonte": "D.Lgs. 276/2003",
           "articolo": "18",
           "descrizione": "Intermediazione illecita – sanzioni penali e amministrative"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Responsabilità solidale committente – termini e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Appalto fittizio – lavoratore dipendente del committente"
         }
       ],
       "responsabilita_solidale_art29": {
@@ -929,14 +913,6 @@
           "fonte": "D.Lgs. 22/2015",
           "articolo": "2",
           "descrizione": "NASPI – le dimissioni per giusta causa danno diritto alla NASPI"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Dimissioni giusta causa – inadempimento grave del datore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Mobbing – dimissioni giusta causa e risarcimento"
         }
       ],
       "giusta_causa_2119": {
@@ -1447,14 +1423,6 @@
           "fonte": "L. 92/2012",
           "articolo": "18 c. 1",
           "descrizione": "Reintegrazione: solo per licenziamento nullo o discriminatorio – anche dopo Jobs Act"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Licenziamento discriminatorio – prova e inversione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Discriminazione indiretta – criteri neutri con effetti sproporzionati"
         }
       ],
       "nullita_assoluta": {
@@ -1973,10 +1941,6 @@
           "fonte": "D.Lgs. 24/2023",
           "articolo": "21",
           "descrizione": "Sanzioni – fino a €50.000 per chi discrimina il segnalante"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Segnalante – protezione e proporzionalità"
         }
       ],
       "tutele_segnalante": {

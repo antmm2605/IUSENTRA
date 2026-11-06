@@ -26,14 +26,6 @@
           "fonte": "c.c.",
           "articolo": "317-bis ss.",
           "descrizione": "Potestà genitoriale e responsabilità – disciplina nazionale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sottrazione internazionale – eccezioni al rimpatrio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Conv. L'Aia – grave rischio per il minore come eccezione al rimpatrio"
         }
       ],
       "rimpatrio_automatico": {
@@ -419,14 +411,6 @@
         {
           "fonte": "L. 206/2021 (Riforma Cartabia – processo civile)",
           "descrizione": "Nuovo rito unificato della famiglia – Tribunale ordinario anche per i figli nati fuori dal matrimonio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Affidamento condiviso – best interest of the child"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Inadempimento 709-ter – risarcimento al genitore e al minore"
         }
       ],
       "art709ter_inadempimento": {
@@ -975,14 +959,6 @@
         {
           "fonte": "D.Lgs. 154/2013",
           "descrizione": "Filiazione – parificazione dei figli; legittimazione del PM"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Decadenza – proporzionalità e recuperabilità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Limitazione – misure meno invasive"
         }
       ],
       "decadenza_330": {
@@ -1438,14 +1414,6 @@
           "fonte": "L. 184/1983",
           "articolo": "25",
           "descrizione": "Decreto di adozione – effetti definitivi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Adozione – stato di abbandono e interesse superiore del minore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Adozione del minore non in stato di abbandono – adozione in casi particolari"
         }
       ],
       "tipi_di_adozione": {
@@ -1749,14 +1717,6 @@
           "fonte": "L. 47/2017",
           "articolo": "4",
           "descrizione": "Nomina del tutore – dal GT con lista di tutori volontari"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "MSNA – non espellibilità e tutele"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accertamento età MSNA – presunzione di minore età"
         }
       ],
       "tutele_MSNA": {

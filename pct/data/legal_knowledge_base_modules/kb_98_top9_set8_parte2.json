@@ -130,16 +130,18 @@
           "descrizione": "Negoziazione assistita obbligatoria per RC veicoli e crediti < 50.000 €"
         },
         {
-          "fonte": "Cass. SU 23725/2008",
-          "descrizione": "Contratti di assicurazione - vessatorietà clausole limitative"
-        },
-        {
           "fonte": "Cass. SU 9140/2016",
-          "descrizione": "Clausole claims made - validità e limiti"
+          "descrizione": "Clausole claims made - validità e limiti",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2025L09263O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 09263/2025 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 22437/2018",
-          "descrizione": "Claims made - condizioni di operatività"
+          "descrizione": "Claims made - condizioni di operatività",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022312878S&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 12878/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -761,14 +763,6 @@
           "fonte": "c.c.",
           "articolo": "752-755",
           "descrizione": "Modalità di collazione - imputazione, calcoli, frutti"
-        },
-        {
-          "fonte": "Cass. SU 9282/2011",
-          "descrizione": "Differenza tra collazione e riduzione - presupposti distinti"
-        },
-        {
-          "fonte": "Cass. SU 12506/2018",
-          "descrizione": "Collazione automatica nella divisione ereditaria"
         }
       ],
       "presupposti_sostanziali": [
@@ -1359,10 +1353,6 @@
         {
           "fonte": "Convenzione Brevetto Europeo (CBE)",
           "descrizione": "Brevetti europei e nullità"
-        },
-        {
-          "fonte": "Cass. SU 14122/2022",
-          "descrizione": "Nullità brevetto - presupposti rigorosi"
         }
       ],
       "cause_di_nullita_brevetto_art_70_71": [
@@ -1907,10 +1897,6 @@
           "fonte": "L. 431/1998",
           "articolo": "6",
           "descrizione": "Esecuzione sfratti per locazione abitativa - graduazione"
-        },
-        {
-          "fonte": "Cass. SU 14228/2020",
-          "descrizione": "Esecuzione rilascio - regole post-Cartabia"
         }
       ],
       "presupposti_sostanziali": [

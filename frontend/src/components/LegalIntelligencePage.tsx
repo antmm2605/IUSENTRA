@@ -46,6 +46,7 @@ import {
 import { ControlloGiornalieroPanel } from './ControlloGiornalieroPanel'
 import './LegalIntelligencePage.css'
 import './MediazioneRegistryResponsive.css'
+import { RicercaPerEstremi } from './RicercaPerEstremi'
 type LegalIntelligenceView = 'dashboard' | 'news' | 'mediazione' | 'ricerca-legale'
 const INTERNAL_FULLSCREEN_BODY_CLASS = 'iusentra-ui-fullscreen-open'
 const LEGAL_INTELLIGENCE_FULLSCREEN_CLASS = 'iu-li-fullscreen-mode'
@@ -81,13 +82,13 @@ function currentView(): LegalIntelligenceView {
 function pageTitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'Aggiornamenti legali'
   if (view === 'mediazione') return 'Registro Mediazione'
-  if (view === 'ricerca-legale') return 'Ricerca Legale'
+  if (view === 'ricerca-legale') return 'Cerca norme e sentenze'
   return 'Osservatorio Legale'
 }
 function pageSubtitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'Aggiornamenti giuridici con fonte, contesto e uso operativo in studio.'
   if (view === 'mediazione') return 'Registri ministeriali e dati di mediazione letti dentro una scheda professionale.'
-  if (view === 'ricerca-legale') return 'Ricerca su archivio giuridico, fonti ufficiali e schede contestualizzate.'
+  if (view === 'ricerca-legale') return 'Scrivi gli estremi (es. art. 1 comma 121 L. 107/2015) o le parole chiave: trovi il testo vigente della norma, le sentenze e le fonti ufficiali collegate.'
   return 'Archivio fonti, aggiornamenti e registri con contesto leggibile prima di aprire la fonte originale.'
 }
 function initialQuery() {
@@ -804,7 +805,7 @@ function RecordFilters({
             placeholder={view === 'mediazione'
               ? 'Cerca organismo, numero registro, codice fiscale, partita IVA, email o sito'
               : isSearch
-                ? 'Es. mediazione, Cassazione, prescrizione, decreto'
+                ? 'Es. art. 1 comma 121 L. 107/2015 · mansioni superiori pubblico impiego · Cassazione prescrizione'
                 : 'Filtra per materia, fonte o data'}
           />
         </label>
@@ -818,6 +819,7 @@ function RecordFilters({
           </Button>
         ) : null}
       </form>
+      {isSearch ? <RicercaPerEstremi loading={loading} onCerca={onQuickSearch} /> : null}
       {showSelectFilters ? (
         <details className="iu-li-advanced-filters" open={hasSelectFilters || undefined}>
           <summary>
@@ -1437,7 +1439,7 @@ export function LegalIntelligencePage() {
         <>
           {view !== 'ricerca-legale' ? <ButtonLink href="/ricerca-legale" tone="primary">Nuova ricerca</ButtonLink> : null}
           <ButtonLink href="/lex-operativo" tone="neutral"><MessageCircle size={16} aria-hidden="true" />Assistente Lex</ButtonLink>
-          <ButtonLink href="/giurisprudenza" tone="neutral"><Archive size={16} aria-hidden="true" />Archivio giurisprudenza</ButtonLink>
+          <ButtonLink href="/giurisprudenza" tone="neutral"><Archive size={16} aria-hidden="true" />Archivio sentenze per corte</ButtonLink>
           <Button
             type="button"
             tone="neutral"

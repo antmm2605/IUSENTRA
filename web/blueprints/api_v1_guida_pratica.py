@@ -167,6 +167,21 @@ def guida_pratica_rest_checklist(codice: str):
         return jsonify(guida_pratica_error_payload(exc)), 400
 
 
+@api_v1_guida_pratica.get("/fascicoli/<id_fasc>/guida-pratica/fase")
+def guida_pratica_fase(id_fasc: str):
+    """Fase reale, percorso dopo la sentenza e prima cosa da fare, dalla Lettura del fascicolo (solo archivio)."""
+    denied = _ensure_read_access()
+    if denied:
+        return denied
+    try:
+        from web.services.guida_fase_runtime import fase_per_la_guida
+
+        return jsonify(fase_per_la_guida(id_fasc))
+    except Exception as exc:
+        current_app.logger.exception("Errore fase Guida Pratica fascicolo %s: %s", id_fasc, exc)
+        return jsonify({"ok": False, "errore": "Fase della pratica non disponibile."}), 200
+
+
 @api_v1_guida_pratica.get("/fascicoli/<id_fasc>/guida-pratica")
 def guida_pratica_fascicolo(id_fasc: str):
     denied = _ensure_read_access()

@@ -452,34 +452,34 @@ function readShellBootstrap(): ShellBootstrap {
 }
 
 const studioNav: Array<NavItem & { group: StudioNavGroup }> = [
-      { group: 'gestione', keywords: 'profilo dati studio', label: 'Studio', icon: Building2, href: '/studio' },
+      { group: 'gestione', keywords: 'profilo dati studio', label: 'Dati e organizzazione dello studio', icon: Building2, href: '/studio' },
       { group: 'gestione', keywords: 'fatturazione fattura parcella incassi', label: 'Parcelle e Fatture', icon: FileText, href: '/fatturazione/' },
       { group: 'gestione', keywords: 'recupero crediti insoluti debitori solleciti ingiunzioni', label: 'Recupero crediti in serie', icon: Gavel, href: '/recupero-crediti', requiresAnyPermission: ['fascicoli.leggi'] },
       { group: 'gestione', keywords: 'entrate uscite movimenti incasso pagamento prima nota', label: 'Prima nota e contabilità', icon: Banknote, href: '/prima-nota', requiresAnyPermission: ['fatturazione.leggi'] },
       { group: 'gestione', keywords: 'preventivo incarico mandato conferimento', label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
-      { group: 'gestione', keywords: 'compenso onorario tariffe parametri', label: 'Calcolo Tariffario', icon: Banknote, href: '/compensi-forensi' },
+      { group: 'gestione', keywords: 'compenso onorario tariffe parametri', label: 'Calcolo compensi forensi', icon: Banknote, href: '/compensi-forensi' },
       { group: 'documenti', keywords: 'documento file archivio pdf', label: 'Documenti', icon: FileText, href: '/documenti' },
-      { group: 'documenti', keywords: 'scrivi scrivere modifica testo word documento', label: 'Editor professionale', icon: FilePenLine, href: '/editor-professionale?modalita=editor' },
-      { group: 'documenti', keywords: 'scrivi scrivere testo libero modello', label: 'Editor libero', icon: FilePenLine, href: '/template-atti/editor' },
-      { group: 'documenti', keywords: 'atto atti modello template compilare ricorso memoria', label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
+      { group: 'documenti', keywords: 'scrivi scrivere modifica testo word documento', label: 'Editor di atti e documenti', icon: FilePenLine, href: '/editor-professionale?modalita=editor' },
+      { group: 'documenti', keywords: 'scrivi scrivere testo libero modello', label: 'Scrivi su foglio bianco', icon: FilePenLine, href: '/template-atti/editor' },
+      { group: 'documenti', keywords: 'atto atti modello template compilare ricorso memoria', label: 'Atti da modello', icon: FilePenLine, href: '/redazione-atti' },
       { group: 'documenti', keywords: 'contratto contratti contrattualistica locazione incarico accordo clausole', label: 'Contratti', icon: FileSignature, href: '/contratti', requiresAnyPermission: ['fascicoli.leggi'] },
       { group: 'gestione', keywords: 'produttività produttivita report risultati', label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
-      { group: 'ricerca', keywords: 'norme normativa legge leggi sentenza sentenze ricerca', label: 'Ricerca Legale', icon: Building2, href: '/ricerca-legale' },
+      { group: 'ricerca', keywords: 'norme normativa legge leggi sentenza sentenze ricerca', label: 'Cerca norme e sentenze', icon: Building2, href: '/ricerca-legale' },
       { group: 'ricerca', keywords: 'norma normativa articolo codice penale civile', label: 'Codici e leggi', icon: BookOpen, href: '/ricerca-legale/codici' },
       { group: 'ricerca', keywords: 'modelli atto norme schede vigenza abrogate presidio', label: 'Norme dei modelli d’atto', icon: BookOpen, href: '/ricerca-legale/schede-atti' },
-      { group: 'lex', keywords: 'procedure competenze guidate assistenza', label: 'Legal Skills', icon: BookOpenCheck, href: '/legal-skills', featureFlag: 'routes.appV2.legalSkills.catalog', requiresAnyPermission: ['legal_skills.leggi'] },
-      { group: 'lex', keywords: 'apprendere ai intelligenza artificiale', label: 'Apprendimento Lex', icon: BrainCircuit, href: '/lex-apprendimento', featureFlag: 'lex.autonomousLearning', requiresAnyPermission: ['ai.usa'] },
-      { group: 'lex', keywords: 'agenti automazione attività attivita flussi workflow', label: 'Regia Agentica', icon: Bot, href: '/workflow-agents', featureFlag: 'routes.appV2.workflowAgents.home', requiresAnyPermission: ['ai.usa', 'legal_skills.leggi'] },
-      { group: 'ricerca', keywords: 'sentenza sentenze decisioni pronunce cassazione', label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
-      { group: 'ricerca', keywords: 'strumenti calcolo calcoli calcolatori utilità utilita', label: 'Utility', icon: Wrench, href: '/strumenti-legali/' },
+      { group: 'lex', keywords: 'procedure competenze guidate assistenza', label: 'Procedure guidate', icon: BookOpenCheck, href: '/legal-skills', featureFlag: 'routes.appV2.legalSkills.catalog', requiresAnyPermission: ['legal_skills.leggi'] },
+      { group: 'lex', keywords: 'apprendere ai intelligenza artificiale', label: 'Cosa sta imparando Lex', icon: BrainCircuit, href: '/lex-apprendimento', featureFlag: 'lex.autonomousLearning', requiresAnyPermission: ['ai.usa'] },
+      { group: 'lex', keywords: 'agenti automazione attività attivita flussi workflow', label: 'Lavori automatici di Lex', icon: Bot, href: '/workflow-agents', featureFlag: 'routes.appV2.workflowAgents.home', requiresAnyPermission: ['ai.usa', 'legal_skills.leggi'] },
+      { group: 'ricerca', keywords: 'sentenza sentenze decisioni pronunce cassazione', label: 'Archivio sentenze per corte', icon: Landmark, href: '/giurisprudenza/' },
+      { group: 'ricerca', keywords: 'strumenti calcolo calcoli calcolatori utilità utilita', label: 'Calcolatori (interessi, CU, onorari)', icon: Wrench, href: '/strumenti-legali/' },
     ]
 
 const primaryNav: NavItem[] = [
   { label: 'Panoramica', icon: LayoutDashboard, href: '/' },
   { label: 'Oggi', icon: Sunrise, href: '/oggi', featureFlag: 'routes.appV2.dailyPlan.home', requiresAnyPermission: ['agenda.leggi', 'scadenziario.leggi'] },
-  { label: 'Controllo Studio', icon: Sparkles, href: '/workspace-intelligente' },
-  { label: 'Ricerca Studio', icon: Search, href: '/global-search' },
-  { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
+  { label: 'Priorità dello studio', icon: Sparkles, href: '/workspace-intelligente' },
+  { label: 'Cerca nello studio', icon: Search, href: '/global-search' },
+  { label: 'Ore lavorate', icon: Clock3, href: '/timesheet' }
 ]
 
 const navSections: NavSection[] = [
@@ -506,8 +506,8 @@ const navSections: NavSection[] = [
       { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
       { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
       { label: 'Notifiche legali', icon: ShieldCheck, href: '/notifiche-legali', badge: 'L.53' },
-      { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
-      { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
+      { label: 'Prepara l’udienza', icon: Building2, href: '/wizard-pro/' },
+      { label: 'Fascicoli archiviati', icon: Archive, href: '/fascicoli/archivio' }
     ]
   },
   {
@@ -515,8 +515,8 @@ const navSections: NavSection[] = [
     label: 'Clienti e Anagrafiche',
     icon: UsersRound,
     items: [
-      { label: 'Acquisizione incarichi', icon: UserPlus, href: '/crm' },
-      { label: 'Anagrafica', icon: UsersRound, href: '/clienti' },
+      { label: 'Nuovi incarichi in arrivo', icon: UserPlus, href: '/crm' },
+      { label: 'Elenco clienti', icon: UsersRound, href: '/clienti' },
       { label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' },
       { label: 'Cartelle Condivise', icon: FolderPlus, href: '/cartelle-condivise' },
       { label: 'Portale Clienti', icon: MessageCircle, href: '/app/portale-clienti', featureFlag: 'routes.appV2.clientPortal.enabled' }
@@ -527,7 +527,7 @@ const navSections: NavSection[] = [
     label: 'Soggetti e Parti',
     icon: FileText,
     items: [
-      { label: 'Anagrafica', icon: UsersRound, href: '/soggetti' },
+      { label: 'Elenco soggetti e parti', icon: UsersRound, href: '/soggetti' },
       { label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }
     ]
   },
@@ -538,8 +538,8 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' },
       { label: 'Email ordinaria', icon: Mail, href: '/email-ordinaria/', badge: 'SMTP' },
-      { label: 'Messaggi', icon: MessageCircle, href: '/messaggi' },
-      { label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }
+      { label: 'SMS e WhatsApp', icon: MessageCircle, href: '/messaggi' },
+      { label: 'Nuovo SMS o WhatsApp', icon: Send, href: '/messaggi/nuovo' }
     ]
   },
   {
@@ -549,8 +549,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Scadenziario', icon: CalendarDays, href: '/scadenziario' },
       { label: 'Calcola termini processuali', icon: Calculator, href: '/scadenziario/calcola-termini' },
-      { label: 'Nuova Scadenza', icon: CalendarPlus, href: '/scadenziario/nuova' },
-      { label: 'Controlli Atti', icon: ClipboardCheck, href: '/deposito/checklist' }
+      { label: 'Nuova Scadenza', icon: CalendarPlus, href: '/scadenziario/nuova' }
     ]
   },
   {
@@ -558,13 +557,13 @@ const navSections: NavSection[] = [
     label: 'Servizi Telematici',
     icon: Send,
     items: [
-      { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
-      { label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' },
-      { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
-      { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },
-      { label: 'PTT Tributario', icon: FileText, href: '/sigit' },
-      { label: 'Tribunali / PEC', icon: Landmark, href: '/tribunali' },
-      { label: 'Checklist deposito', icon: ListChecks, href: '/deposito/checklist' },
+      { label: 'Tutti i depositi telematici', icon: BriefcaseBusiness, href: '/telematico' },
+      { label: 'Civile: PolisWeb e PST', icon: CloudUpload, href: '/polisWeb' },
+      { label: 'Penale: portale PDP', icon: ShieldCheck, href: '/pdp' },
+      { label: 'Amministrativo: PAT (TAR)', icon: FileText, href: '/pat' },
+      { label: 'Tributario: PTT', icon: FileText, href: '/sigit' },
+      { label: 'Uffici giudiziari e loro PEC', icon: Landmark, href: '/tribunali' },
+      { label: 'Controlli prima del deposito', icon: ListChecks, href: '/deposito/checklist' },
       { label: 'Guida firma digitale', icon: BookOpen, href: '/guida/firma-digitale' }
     ]
   },
@@ -580,9 +579,9 @@ const navSections: NavSection[] = [
     icon: Earth,
     items: [
       { label: 'Sito Web Studio', icon: Earth, href: '/sito-studio/' },
-      { label: 'Builder Sito', icon: FilePenLine, href: '/sito-studio/builder' },
-      { label: 'Redazione AI Sito', icon: Bot, href: '/sito-studio/redazione-ai' },
-      { label: 'Contatti Sito', icon: Mail, href: '/sito-studio/contatti' },
+      { label: 'Costruisci le pagine del sito', icon: FilePenLine, href: '/sito-studio/builder' },
+      { label: 'Testi del sito con Lex', icon: Bot, href: '/sito-studio/redazione-ai' },
+      { label: 'Richieste arrivate dal sito', icon: Mail, href: '/sito-studio/contatti' },
     ]
   },
   {
@@ -593,9 +592,9 @@ const navSections: NavSection[] = [
       { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni' },
       { label: 'Notifiche', icon: MessageCircle, href: '/impostazioni?tab=notifiche' },
       { label: 'Pagamenti', icon: CreditCard, href: '/impostazioni?tab=pagamenti' },
-      { label: 'Canali SdI', icon: Send, href: '/impostazioni/sdi' },
+      { label: 'Fatture elettroniche (SdI)', icon: Send, href: '/impostazioni/sdi' },
       { label: 'Backup', icon: CloudUpload, href: '/impostazioni?tab=backup' },
-      { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/impostazioni/calendario' }
+      { label: 'Collega Google o Outlook', icon: CalendarSync, href: '/impostazioni/calendario' }
     ]
   },
   {
@@ -607,10 +606,10 @@ const navSections: NavSection[] = [
       { label: 'Amministrazione', icon: ShieldCheck, href: '/amministrazione' },
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
-      { label: 'Registro Attività', icon: ClipboardList, href: '/audit' },
+      { label: 'Registro attività degli utenti', icon: ClipboardList, href: '/audit' },
       { label: 'Importa pratiche', icon: CloudUpload, href: '/importa-pratiche' },
-      { label: 'Database', icon: Database, href: '/admin/database' },
-      { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
+      { label: 'Database (tecnico)', icon: Database, href: '/admin/database' },
+      { label: 'Privacy: registro dei trattamenti', icon: FileText, href: '/privacy/registro' }
     ]
   }
 ]

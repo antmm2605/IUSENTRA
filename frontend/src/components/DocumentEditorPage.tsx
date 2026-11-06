@@ -2342,7 +2342,7 @@ export function DocumentEditorPage() {
       <section className={`iu-de-hero${headerCollapsed ? ' iu-de-hero--collapsed' : ''}`}>
         {headerCollapsed && <strong className="iu-de-short-title" title={doc.name}>{doc.name}</strong>}
         <div>
-          <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
+          <span className="iu-de-eyebrow"><FileText size={16}/> Editor di atti e documenti</span>
           <h1>{doc.name}</h1>
           <p>
             <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : pdfPreviewMode ? 'Anteprima nativa' : emlPreviewMode ? 'EML originale' : 'Bloccato'}</Badge>

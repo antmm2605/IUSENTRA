@@ -37,14 +37,6 @@
         {
           "fonte": "L. 39/1989",
           "descrizione": "Agenti immobiliari – iscrizione obbligatoria al registro + norme speciali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Provvigione mediatore – condizioni e rinuncia"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Agente non iscritto – nessuna provvigione"
         }
       ],
       "diritto_provvigione_1755": {
@@ -362,14 +354,6 @@
           "fonte": "c.c.",
           "articolo": "1570",
           "descrizione": "Norme applicabili – vendita e locazione per analogia"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Somministrazione – inadempimento grave e risoluzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Clausola di esclusiva – validità e violazione"
         }
       ],
       "clausola_di_esclusiva_1567": {
@@ -925,14 +909,6 @@
           "fonte": "CdA",
           "articolo": "145",
           "descrizione": "PROCEDURA STRAGIUDIZIALE OBBLIGATORIA – prima di agire in giudizio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "RC auto – procedura stragiudiziale e decorrenza del termine"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Risarcimento diretto – compagnia del danneggiato vs compagnia del responsabile"
         }
       ],
       "risarcimento_diretto_149": {
@@ -1478,15 +1454,17 @@
         },
         {
           "fonte": "Cass. SU 26724/2007",
-          "descrizione": "Nullità per violazione dei doveri di comportamento – solo in casi specifici"
+          "descrizione": "Nullità per violazione dei doveri di comportamento – solo in casi specifici",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022104117I&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 04117/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 8770/2020",
-          "descrizione": "Swap – causa e mark to market; nullità per mancanza di causa"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "IRS e swap con enti pubblici – nullità e restituzione"
+          "descrizione": "Swap – causa e mark to market; nullità per mancanza di causa",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022308603I&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 08603/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "nullita_swap_mancanza_causa_Cass_SU_8770_2020": {
@@ -1937,14 +1915,6 @@
           "fonte": "c.c.",
           "articolo": "1881",
           "descrizione": "Pignorabilità della rendita – solo per 1/5 (come gli stipendi)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Vitalizio alimentare – differenza dalla rendita vitalizia e risoluzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Risoluzione rendita vitalizia – restituzione del capitale trasferito"
         }
       ],
       "vitalizio_alimentare_Cass_SU_14897_2021": {

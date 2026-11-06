@@ -422,11 +422,8 @@
         {
           "fonte": "c.c.",
           "articolo": "272",
-          "descrizione": "Prove ammissibili – test DNA; prove testimoniali; corrispondenza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Dichiarazione paternità – DNA e resistenza del presunto padre"
+          "descrizione": "Prove ammissibili – test DNA; prove testimoniali; corrispondenza",
+          "abrogata_da": "L. 19 maggio 1975, n. 151"
         }
       ],
       "dichiarazione_giudiziale_269": {
@@ -879,10 +876,6 @@
           "fonte": "L. 184/1983",
           "articolo": "29-bis",
           "descrizione": "Requisiti degli adottanti – stessi dell'adozione nazionale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Adozione internazionale – riconoscimento provvedimento estero"
         }
       ],
       "procedimento_adozione_internazionale": {
@@ -1255,10 +1248,6 @@
           "fonte": "c.c.",
           "articolo": "637",
           "descrizione": "Condizioni captatorie – le condizioni che fanno dipendere le disposizioni dalla volontà di un terzo: ammesse"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Condizione nel testamento – illecita e suoi effetti"
         }
       ],
       "condizione_nulla_634": {

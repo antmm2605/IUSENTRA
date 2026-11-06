@@ -21,11 +21,10 @@
         },
         {
           "fonte": "Corte Cost. n. 20/2019",
-          "descrizione": "Il giudice nazionale deve rimettere alla CGUE prima di disapplicare una norma interna"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Rinvio pregiudiziale – discrezionale e obbligatorio"
+          "descrizione": "Il giudice nazionale deve rimettere alla CGUE prima di disapplicare una norma interna",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2019/20",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "quando_obbligatorio": {
@@ -2007,10 +2006,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "8",
           "descrizione": "DIRITTO DI PRECEDENZA – il part-time ha diritto di preferenza per le posizioni full-time che si aprono"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Part-time – rifiuto conversione e responsabilità"
         }
       ],
       "conversione_full_time": {

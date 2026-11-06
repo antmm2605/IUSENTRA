@@ -45,8 +45,8 @@ export type StudioModuleConfig = {
 
 const commonStudioLinks: StudioModuleLink[] = [
   { label: 'Panoramica', href: '/' },
-  { label: 'Controllo Studio', href: '/workspace-intelligente' },
-  { label: 'Ricerca Studio', href: '/global-search' },
+  { label: 'Priorità dello studio', href: '/workspace-intelligente' },
+  { label: 'Cerca nello studio', href: '/global-search' },
 ]
 
 export const studioModules: StudioModuleConfig[] = [
@@ -70,7 +70,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Backup e continuità', body: 'Verifica copie, integrità e conservazione dei dati dello studio.', href: '/impostazioni?tab=backup', action: 'Apri backup', icon: 'backup', tone: 'warning', meta: 'Impostazioni' },
     ],
     workflow: ['Completa dati studio', 'Verifica canali PEC e SMTP', 'Aggiorna sito pubblico', 'Controlla backup e registro'],
-    links: [...commonStudioLinks, { label: 'Impostazioni Studio', href: '/impostazioni' }, { label: 'Registro GDPR', href: '/privacy/registro' }],
+    links: [...commonStudioLinks, { label: 'Impostazioni Studio', href: '/impostazioni' }, { label: 'Privacy: registro dei trattamenti', href: '/privacy/registro' }],
   },
   {
     id: 'fatturazione',
@@ -114,12 +114,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Percorso compensi', body: 'Calcola e genera preventivo con parametri forensi e dati pratica.', href: '/preventivi/wizard', action: 'Apri percorso', icon: 'spark', tone: 'purple', meta: 'Guidato' },
     ],
     workflow: ['Qualifica cliente', 'Calcola compenso', 'Invia preventivo', 'Raccogli incarico e crea fascicolo'],
-    links: [{ label: 'Calcolo Tariffario', href: '/compensi-forensi' }, { label: 'Clienti', href: '/clienti' }, { label: 'Fatturazione', href: '/fatturazione' }],
+    links: [{ label: 'Calcolo compensi forensi', href: '/compensi-forensi' }, { label: 'Clienti', href: '/clienti' }, { label: 'Fatturazione', href: '/fatturazione' }],
   },
   {
     id: 'compensi-forensi',
     routes: ['/compensi-forensi', '/tariffario'],
-    title: 'Calcolo Tariffario',
+    title: 'Calcolo compensi forensi',
     section: 'Calcolo compensi',
     subtitle: 'Accesso professionale ai parametri forensi, fasi, complessità e generazione del preventivo collegato.',
     lexContext: 'compensi-forensi',
@@ -157,12 +157,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Ricerca documenti', body: 'Cerca rapidamente documenti, comunicazioni e riferimenti collegati ai fascicoli.', href: '/global-search?tipo=documenti', action: 'Cerca documenti', icon: 'book', tone: 'neutral', meta: 'Ricerca' },
     ],
     workflow: ['Scegli fascicolo o modello', 'Verifica documenti e allegati', 'Prepara o aggiorna atto', 'Cerca e collega al lavoro di studio'],
-    links: [{ label: 'Fascicoli', href: '/fascicoli' }, { label: 'Catalogo Atti', href: '/template-atti/catalogo' }, { label: 'Redazione Atti', href: '/redazione-atti' }, { label: 'Ricerca Studio', href: '/global-search?tipo=documenti' }],
+    links: [{ label: 'Fascicoli', href: '/fascicoli' }, { label: 'Catalogo Atti', href: '/template-atti/catalogo' }, { label: 'Atti da modello', href: '/redazione-atti' }, { label: 'Cerca nello studio', href: '/global-search?tipo=documenti' }],
   },
   {
     id: 'editor-professionale',
     routes: ['/editor-professionale'],
-    title: 'Editor professionale',
+    title: 'Editor di atti e documenti',
     section: 'Documenti e atti',
     subtitle: 'Centro operativo per scrivere, controllare, leggere documenti firmati e richiamare Lex senza sostituire Redazione Atti.',
     lexContext: 'editor-professionale',
@@ -179,12 +179,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Modelli atti', body: 'Usa catalogo e percorsi di compilazione senza confonderli con il centro editor.', href: '/template-atti/catalogo', action: 'Apri modelli', icon: 'book', tone: 'neutral', meta: 'Template' },
     ],
     workflow: ['Apri documento o fascicolo', 'Controlla contenuto e formato', 'Redigi o richiama Lex', 'Salva, firma o collega alla pratica'],
-    links: [{ label: 'Redazione Atti', href: '/redazione-atti' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'PEC', href: '/email/' }, { label: 'Email ordinaria', href: '/email-ordinaria/' }],
+    links: [{ label: 'Atti da modello', href: '/redazione-atti' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'PEC', href: '/email/' }, { label: 'Email ordinaria', href: '/email-ordinaria/' }],
   },
   {
     id: 'redazione-atti',
     routes: ['/redazione-atti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/checklist'],
-    title: 'Redazione Atti',
+    title: 'Atti da modello',
     section: 'Redazione documenti',
     subtitle: 'Punto di ingresso operativo per modelli, catalogo atti, redazione guidata e assistente redazionale.',
     lexContext: 'redazione-atti',
@@ -197,11 +197,11 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Catalogo atti', body: 'Consulta modelli per materia, canale e compliance di deposito.', href: '/template-atti/catalogo', action: 'Apri catalogo', icon: 'book', tone: 'primary', meta: 'Template' },
       { title: 'Nuovo modello', body: 'Crea o modifica template con variabili di studio, cliente e fascicolo.', href: '/template-atti/nuovo', action: 'Nuovo template', icon: 'plus', tone: 'success', meta: 'Editor' },
-      { title: 'Checklist deposito', body: 'Controlla atti e allegati prima del deposito telematico.', href: '/deposito/checklist', action: 'Apri checklist', icon: 'check', tone: 'warning', meta: 'Deposito' },
+      { title: 'Controlli prima del deposito', body: 'Controlla atti e allegati prima del deposito telematico.', href: '/deposito/checklist', action: 'Apri checklist', icon: 'check', tone: 'warning', meta: 'Deposito' },
       { title: 'Fascicoli', body: 'Seleziona pratica, parti e documenti da usare nella redazione.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'neutral', meta: 'Contesto' },
     ],
     workflow: ['Scegli modello', 'Aggancia fascicolo e parti', 'Compila e verifica', 'Produci PDF o deposito'],
-    links: [{ label: 'Checklist atti', href: '/deposito/checklist' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Ricerca Studio', href: '/global-search' }],
+    links: [{ label: 'Checklist atti', href: '/deposito/checklist' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Cerca nello studio', href: '/global-search' }],
   },
   {
     id: 'pst-acquisizione',
@@ -230,7 +230,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Centro telematico', body: 'Rientra nel quadro generale di PST, PDP, PAT e PTT.', href: '/telematico', action: 'Apri centro', icon: 'send', tone: 'purple', meta: 'Portali' },
     ],
     workflow: ['Verifica accesso locale', 'Seleziona fascicolo PST', 'Riconcilia documenti', 'Importa e controlla registro'],
-    links: [{ label: 'PolisWeb / PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }, { label: 'Importa pratiche', href: '/importa-pratiche' }],
+    links: [{ label: 'Civile: PolisWeb e PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }, { label: 'Importa pratiche', href: '/importa-pratiche' }],
   },
   {
     id: 'statistiche',
@@ -263,9 +263,9 @@ export const studioModules: StudioModuleConfig[] = [
       '/legal-intelligence/news',
       '/legal-intelligence/mediazione',
     ],
-    title: 'Ricerca Legale',
-    section: 'Ricerca legale',
-    subtitle: 'Monitoraggio normativo, aggiornamenti, news, mediazione e fonti da collegare al lavoro di studio.',
+    title: 'Cerca norme e sentenze',
+    section: 'Cerca norme e sentenze',
+    subtitle: 'Leggi e codici vigenti fino al comma, sentenze, aggiornamenti normativi e registro della mediazione.',
     lexContext: 'ricerca-legale',
     lexLabel: 'Lex distingue fonti, aggiornamenti, impatto pratico e fascicoli collegabili.',
     kpis: [
@@ -279,12 +279,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Registro mediazione', body: 'Verifica organismi, dati e aggiornamenti collegati alla mediazione.', href: '/ricerca-legale/mediazione', action: 'Apri registro', icon: 'landmark', tone: 'purple', meta: 'Mediazione' },
     ],
     workflow: ['Sincronizza fonti', 'Valuta impatto', 'Approva contenuti', 'Collega a fascicoli e note'],
-    links: [{ label: 'Archivio Giurisprudenza', href: '/giurisprudenza' }, { label: 'Ricerca Studio', href: '/global-search' }],
+    links: [{ label: 'Archivio sentenze per corte', href: '/giurisprudenza' }, { label: 'Cerca nello studio', href: '/global-search' }],
   },
   {
     id: 'giurisprudenza',
     routes: ['/giurisprudenza', '/giurisprudenza/nuova'],
-    title: 'Archivio Giurisprudenza',
+    title: 'Archivio sentenze per corte',
     section: 'Banca dati interna',
     subtitle: 'Archivio sentenze con fonti, tassonomia, import, classificazione e collegamento alle pratiche.',
     lexContext: 'giurisprudenza',
@@ -300,7 +300,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Importa materiale', body: 'Collega materiale giurisprudenziale e fonti all archivio interno.', href: '/giurisprudenza/', action: 'Importa', icon: 'upload', tone: 'warning', meta: 'Import' },
     ],
     workflow: ['Importa fonte', 'Classifica area e orientamento', 'Collega pratica', 'Usa in ricerca e redazione'],
-    links: [{ label: 'Ricerca Legale', href: '/ricerca-legale' }, { label: 'Redazione Atti', href: '/redazione-atti' }],
+    links: [{ label: 'Cerca norme e sentenze', href: '/ricerca-legale' }, { label: 'Atti da modello', href: '/redazione-atti' }],
   },
   {
     id: 'strumenti-forensi',
@@ -343,12 +343,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Preventivo da calcolo', body: 'Porta il risultato nel flusso guidato per preventivi e incarichi.', href: '/preventivi/wizard', action: 'Crea preventivo', icon: 'send', tone: 'primary', meta: 'Incarichi' },
     ],
     workflow: ['Cerca Comune o strumento', 'Collega fascicolo se utile', 'Calcola e verifica', 'Riporta risultato in pratica'],
-    links: [{ label: 'Calcolo Tariffario', href: '/compensi-forensi' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Notifiche legali', href: '/notifiche-legali' }],
+    links: [{ label: 'Calcolo compensi forensi', href: '/compensi-forensi' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Notifiche legali', href: '/notifiche-legali' }],
   },
   {
     id: 'timesheet',
     routes: ['/timesheet'],
-    title: 'Timesheet',
+    title: 'Ore lavorate',
     section: 'Tempo e produttività',
     subtitle: 'Pagina operativa per registrare attività, validare ore, collegare clienti e generare parcelle.',
     lexContext: 'timesheet',
@@ -386,7 +386,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Registro attività', body: 'Controlla aperture, modifiche e condivisioni sensibili.', href: '/audit', action: 'Apri registro', icon: 'clipboard', tone: 'warning', meta: 'Tracciamento' },
     ],
     workflow: ['Scegli cliente', 'Assegna collaboratore e ruolo', 'Imposta scadenza', 'Verifica registro e privacy'],
-    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro GDPR', href: '/privacy/registro' }, { label: 'Registro attività', href: '/audit' }],
+    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Privacy: registro dei trattamenti', href: '/privacy/registro' }, { label: 'Registro attività', href: '/audit' }],
   },
   {
     id: 'strumenti-operativi',
@@ -404,10 +404,10 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Catalogo funzioni', body: 'Cerca nel catalogo completo per nome, argomento o area di lavoro.', href: '/strumenti-operativi#catalogo-funzioni', action: 'Apri catalogo', icon: 'search', tone: 'primary', meta: 'Tutte le funzioni' },
       { title: 'Prepara documenti', body: "Unisci PDF, crea archivi ZIP e prepara documenti multipagina mantenendo l'ordine scelto.", href: '/strumenti-documentali', action: 'Apri strumenti', icon: 'file', tone: 'success', meta: 'Documenti' },
-      { title: 'Timesheet', body: 'Registra attività e genera parcelle dalle ore lavorate.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Tempo' },
+      { title: 'Ore lavorate', body: 'Registra attività e genera parcelle dalle ore lavorate.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Tempo' },
       { title: 'Esporta dati', body: 'Scarica i dati economici dello studio per controlli e analisi.', href: '/export/fatturazione.csv', action: 'Esporta', icon: 'download', tone: 'success', meta: 'Dati economici' },
       { title: 'Condivisioni', body: 'Gestisci cartelle condivise e accesso documentale dei clienti.', href: '/cartelle-condivise', action: 'Apri condivisioni', icon: 'folder', tone: 'warning', meta: 'Clienti' },
-      { title: 'Controllo Studio', body: 'Torna al quadro con priorità e prossime azioni.', href: '/workspace-intelligente', action: 'Apri controllo', icon: 'spark', tone: 'purple', meta: 'Priorità' },
+      { title: 'Priorità dello studio', body: 'Torna al quadro con priorità e prossime azioni.', href: '/workspace-intelligente', action: 'Apri controllo', icon: 'spark', tone: 'purple', meta: 'Priorità' },
       { title: 'Agenda', body: 'Apri appuntamenti, udienze e calendario dello studio.', href: '/agenda', action: 'Apri agenda', icon: 'calendar', tone: 'primary', meta: 'Calendario' },
       { title: 'Nuovo appuntamento', body: 'Inserisci un impegno collegato a cliente o fascicolo.', href: '/agenda/nuovo', action: 'Crea appuntamento', icon: 'plus', tone: 'success', meta: 'Agenda' },
       { title: 'Ricerca studio', body: 'Trova rapidamente fascicoli, clienti, scadenze, comunicazioni e documenti.', href: '/global-search', action: 'Cerca', icon: 'book', tone: 'purple', meta: 'Ricerca' },
@@ -507,7 +507,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Database', body: 'Verifica archivi, copie e controlli sui dati.', href: '/admin/database', action: 'Apri database', icon: 'database', tone: 'purple', meta: 'Archivi' },
     ],
     workflow: ['Verifica ultimo backup', 'Controlla integrità', 'Scarica se necessario', 'Registra esito'],
-    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro Attività', href: '/audit' }],
+    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro attività degli utenti', href: '/audit' }],
   },
   {
     id: 'impostazioni-studio',
@@ -531,12 +531,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Scheduler', body: 'Controlla automazioni, backup e sincronizzazioni pianificate dello studio.', href: '/impostazioni?tab=scheduler', action: 'Apri scheduler', icon: 'clock', tone: 'neutral', meta: 'Automazioni' },
     ],
     workflow: ['Apri scheda corretta', 'Verifica canale locale', 'Salva configurazione', 'Esegui test operativo'],
-    links: [{ label: 'Sincronizzazione Calendari', href: '/impostazioni/calendario' }, { label: 'Backup', href: '/impostazioni?tab=backup' }],
+    links: [{ label: 'Collega Google o Outlook', href: '/impostazioni/calendario' }, { label: 'Backup', href: '/impostazioni?tab=backup' }],
   },
   {
     id: 'sincronizzazione-calendari',
     routes: ['/sincronizzazione-calendari', '/impostazioni/calendario'],
-    title: 'Sincronizzazione Calendari',
+    title: 'Collega Google o Outlook',
     section: 'Agenda esterna',
     subtitle: 'Agenda, scadenze e calendari esterni collegati nello stesso pannello Impostazioni.',
     lexContext: 'sincronizzazione-calendari',
@@ -574,7 +574,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Database e GDPR', body: 'Verifica storage e registro trattamenti.', href: '/admin/database', action: 'Apri database', icon: 'database', tone: 'purple', meta: 'Governance' },
     ],
     workflow: ['Controlla utenti', 'Verifica permessi', 'Leggi registro', 'Aggiorna conformità'],
-    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro GDPR', href: '/privacy/registro' }],
+    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Privacy: registro dei trattamenti', href: '/privacy/registro' }],
   },
   {
     id: 'utenti',
@@ -595,7 +595,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Profili e permessi', body: 'Verifica matrice ruoli e regole operative.', href: '/profili', action: 'Apri profili', icon: 'shield', tone: 'warning', meta: 'Permessi' },
     ],
     workflow: ['Crea utente', 'Assegna ruolo', 'Verifica permessi', 'Controlla registro accessi'],
-    links: [{ label: 'Amministrazione', href: '/utenti' }, { label: 'Registro Attività', href: '/audit' }],
+    links: [{ label: 'Amministrazione', href: '/utenti' }, { label: 'Registro attività degli utenti', href: '/audit' }],
   },
   {
     id: 'profili',
@@ -621,7 +621,7 @@ export const studioModules: StudioModuleConfig[] = [
   {
     id: 'registro-attivita',
     routes: ['/registro-attivita', '/audit', '/admin/osservabilita'],
-    title: 'Registro Attività',
+    title: 'Registro attività degli utenti',
     section: 'Registro e osservabilità',
     subtitle: 'Registro operativo per eventi applicativi, utenti, esportazione e osservabilità amministrativa.',
     lexContext: 'registro-attivita',
@@ -663,7 +663,7 @@ export const studioModules: StudioModuleConfig[] = [
   {
     id: 'gdpr',
     routes: ['/registro-gdpr', '/privacy/registro', '/privacy/registro/nuovo'],
-    title: 'Registro GDPR',
+    title: 'Privacy: registro dei trattamenti',
     section: 'Privacy e conformità',
     subtitle: 'Registro operativo per trattamenti, basi giuridiche, misure, portabilità e controlli privacy.',
     lexContext: 'gdpr',
@@ -679,7 +679,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Registro privacy', body: 'Esporta e verifica attività collegate a dati personali.', href: '/audit/esporta.csv', action: 'Esporta registro', icon: 'download', tone: 'warning', meta: 'CSV' },
     ],
     workflow: ['Censisci trattamento', 'Verifica base giuridica', 'Collega misure', 'Mantieni prova registrata'],
-    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro Attività', href: '/audit' }],
+    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro attività degli utenti', href: '/audit' }],
   },
 ]
 

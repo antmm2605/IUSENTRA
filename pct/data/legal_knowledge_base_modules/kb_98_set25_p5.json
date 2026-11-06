@@ -33,14 +33,6 @@
           "fonte": "L. 898/1970",
           "articolo": "5",
           "descrizione": "Effetti sulla domanda di divorzio pendente – la riconciliazione estingue il processo"
-        },
-        {
-          "fonte": "Cass. SU 16165/2020",
-          "descrizione": "Riconciliazione tacita – requisiti e prova"
-        },
-        {
-          "fonte": "Cass. SU 8734/2023",
-          "descrizione": "Revoca della separazione – effetti sugli accordi economici"
         }
       ],
       "riconciliazione_tacita_Cass_SU_16165_2020": {
@@ -208,18 +200,6 @@
           "fonte": "TUB D.Lgs. 385/1993",
           "articolo": "144-bis",
           "descrizione": "Sanzioni per violazione PSD2"
-        },
-        {
-          "fonte": "Cass. SU 12262/2021",
-          "descrizione": "Phishing – responsabilità della banca per mancata SCA"
-        },
-        {
-          "fonte": "Cass. SU 9770/2022",
-          "descrizione": "Frode SIM swap – responsabilità banca e operatore telefonico"
-        },
-        {
-          "fonte": "Cass. SU 6914/2024",
-          "descrizione": "Vishing e social engineering – colpa grave del cliente: onere prova banca"
         }
       ],
       "sistema_di_responsabilita_D_Lgs_11_2010": {
@@ -459,14 +439,6 @@
           "fonte": "L. 24/2017",
           "articolo": "8",
           "descrizione": "CTP ex 696-bis come condizione di procedibilità in materia sanitaria"
-        },
-        {
-          "fonte": "Cass. SU 14363/2019",
-          "descrizione": "ATP 696 – natura cautelare e usabilità in qualsiasi controversia"
-        },
-        {
-          "fonte": "Cass. SU 11468/2022",
-          "descrizione": "CTP 696-bis – tentativo di conciliazione e relazione del CTU"
         }
       ],
       "differenza_696_vs_696bis": {
@@ -661,14 +633,6 @@
           "fonte": "c.p.c.",
           "articolo": "551",
           "descrizione": "Assegnazione – se credito liquido: il GE assegna al creditore"
-        },
-        {
-          "fonte": "Cass. SU 13213/2020",
-          "descrizione": "Dichiarazione positiva del terzo – effetti e contestazione"
-        },
-        {
-          "fonte": "Cass. SU 7783/2022",
-          "descrizione": "Contestazione 549 – natura e limiti del giudizio incidentale"
         }
       ],
       "iter_espropriazione_presso_terzi": [
@@ -857,14 +821,6 @@
           "fonte": "c.p.c.",
           "articolo": "502 e ss.",
           "descrizione": "Vendita forzata di beni mobili"
-        },
-        {
-          "fonte": "Cass. SU 14812/2021",
-          "descrizione": "Pignoramento quota SRL – effetti sull'esercizio dei diritti sociali"
-        },
-        {
-          "fonte": "Cass. SU 9653/2023",
-          "descrizione": "Diritto di prelazione soci e vendita forzata ex 2471-bis"
         }
       ],
       "pignoramento_quota_2471": {

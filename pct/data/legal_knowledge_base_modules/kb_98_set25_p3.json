@@ -38,14 +38,6 @@
           "fonte": "Cod. PI",
           "articolo": "65",
           "descrizione": "Invenzioni nell'università e negli enti pubblici di ricerca"
-        },
-        {
-          "fonte": "Cass. SU 12236/2019",
-          "descrizione": "Qualificazione dell'invenzione – di servizio vs aziendale vs libera"
-        },
-        {
-          "fonte": "Cass. SU 8341/2022",
-          "descrizione": "Compenso equo per invenzione aziendale – criteri di calcolo"
         }
       ],
       "tre_tipologie": {
@@ -245,14 +237,6 @@
           "fonte": "D.Lgs. 252/2005",
           "articolo": "8",
           "descrizione": "Destinazione del TFR ai fondi pensione complementare"
-        },
-        {
-          "fonte": "Cass. SU 12598/2020",
-          "descrizione": "TFR – elementi retributivi da includere nel calcolo"
-        },
-        {
-          "fonte": "Cass. SU 9567/2023",
-          "descrizione": "TFR e fondo INPS – rivalutazione e calcolo aggiornato"
         }
       ],
       "calcolo_TFR_2120": {
@@ -441,18 +425,6 @@
           "fonte": "D.Lgs. 276/2003",
           "articolo": "61-69",
           "descrizione": "Contratti a progetto (abrogati D.Lgs. 81/2015)"
-        },
-        {
-          "fonte": "Cass. SU 1663/2020",
-          "descrizione": "Indici di subordinazione – potere direttivo, organizzativo e disciplinare"
-        },
-        {
-          "fonte": "Cass. SU 9146/2022",
-          "descrizione": "Gig economy – Uber, Deliveroo: collaborazioni etero-organizzate"
-        },
-        {
-          "fonte": "Cass. SU 6836/2024",
-          "descrizione": "Finto autonomo – accertamento retroattivo della subordinazione"
         }
       ],
       "indici_di_subordinazione_Cass_SU_1663_2020": [
@@ -648,14 +620,6 @@
           "fonte": "c.c.",
           "articolo": "2094",
           "descrizione": "Subordinazione – applicabile al tirocinio mascherato da lavoro"
-        },
-        {
-          "fonte": "Cass. SU 15587/2020",
-          "descrizione": "Tirocinio irregolare – accertamento della subordinazione"
-        },
-        {
-          "fonte": "Cass. SU 9822/2023",
-          "descrizione": "Indennità di tirocinio – diritto e quantificazione"
         }
       ],
       "irregolarita_tipiche_del_tirocinio": [
@@ -837,14 +801,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "40",
           "descrizione": "SOMMINISTRAZIONE FRAUDOLENTA – penale + diritto alla costituzione rapporto con utilizzatore"
-        },
-        {
-          "fonte": "Cass. SU 14046/2021",
-          "descrizione": "Somministrazione irregolare – distinzione da fraudolenta; tutele applicabili"
-        },
-        {
-          "fonte": "Cass. SU 11832/2023",
-          "descrizione": "Costituzione del rapporto con l'utilizzatore – effetti retroattivi"
         }
       ],
       "somministrazione_irregolare_vs_fraudolenta": {

@@ -33,10 +33,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "123",
           "descrizione": "TERMINI – prescrizione 3 anni dalla conoscenza; decadenza 10 anni dalla messa in commercio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Prodotto difettoso – difettosità e aspettative di sicurezza"
         }
       ],
       "difettosita_art117": {
@@ -212,14 +208,6 @@
           "fonte": "D.Lgs. 81/2008",
           "articolo": "29",
           "descrizione": "Elaborazione del DVR – deve includere lo stress lavoro-correlato"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Stress lavoro-correlato – responsabilità del datore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Burn-out – nesso causale e onere della prova"
         }
       ],
       "valutazione_stress_art28": {
@@ -837,10 +825,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "24-26",
           "descrizione": "Pratiche AGGRESSIVE – coercizione o indebito condizionamento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pratiche scorrette – risarcimento del danno al consumatore"
         }
       ],
       "pratiche_ingannevoli_21": {
@@ -1171,14 +1155,6 @@
           "fonte": "D.Lgs. 30/2005 (Cod. PI)",
           "articolo": "29",
           "descrizione": "Tutela nazionale delle indicazioni geografiche"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "DOP – evocazione e tutela"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Parmigiano Reggiano – caso e tutela rafforzata"
         }
       ],
       "evocazione_art13": {
@@ -1505,14 +1481,6 @@
           "fonte": "c.c.",
           "articolo": "1260-1267",
           "descrizione": "Cessione del credito – disciplina generale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Factoring – garanzia e rivalsa"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Opponibilità della cessione al debitore ceduto"
         }
       ],
       "pro_soluto_vs_pro_solvendo": {

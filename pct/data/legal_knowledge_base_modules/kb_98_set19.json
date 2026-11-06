@@ -50,16 +50,11 @@
           "descrizione": "Responsabilità e risarcimento del danno"
         },
         {
-          "fonte": "Cass. SU 9385/2021",
-          "descrizione": "Danno da trattamento illecito – danno non patrimoniale anche senza prova di perdite economiche"
-        },
-        {
           "fonte": "CGUE C-300/21 (UI/Österreichische Post 2023)",
-          "descrizione": "Art. 82 GDPR – danno risarcibile anche solo non patrimoniale, ma non meramente ipotetico"
-        },
-        {
-          "fonte": "Cass. SU 11677/2024",
-          "descrizione": "Data breach – responsabilità del titolare e prova del danno"
+          "descrizione": "Art. 82 GDPR – danno risarcibile anche solo non patrimoniale, ma non meramente ipotetico",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-300/21",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 26243/2024 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "sistema_tutele_gdpr": {
@@ -322,14 +317,6 @@
           "fonte": "c.c.",
           "articolo": "1812",
           "descrizione": "Spese straordinarie – diritto del comodatario"
-        },
-        {
-          "fonte": "Cass. SU 20448/2020",
-          "descrizione": "Comodato precario – restituzione a richiesta senza termine"
-        },
-        {
-          "fonte": "Cass. SU 9631/2022",
-          "descrizione": "Urgente bisogno 1809 – prova e valutazione"
         }
       ],
       "tipologie_di_comodato": {
@@ -591,14 +578,6 @@
           "fonte": "c.c.",
           "articolo": "664-673",
           "descrizione": "Legato di alimenti, rendite, usufrutto, abitazione, uso, liberazione da debito"
-        },
-        {
-          "fonte": "Cass. SU 19613/2019",
-          "descrizione": "Legato di immobile – acquisto automatico e trascrizione"
-        },
-        {
-          "fonte": "Cass. SU 7498/2022",
-          "descrizione": "Legato di cosa altrui – legato nullo o inefficace"
         }
       ],
       "acquisto_automatico_del_legato_649": {
@@ -846,18 +825,6 @@
           "fonte": "c.c.",
           "articolo": "2118",
           "descrizione": "Recesso con preavviso – applicabile al termine del periodo"
-        },
-        {
-          "fonte": "Cass. SU 23408/2019",
-          "descrizione": "Apprendistato – obbligo formativo; mancata formazione → conversione a TI"
-        },
-        {
-          "fonte": "Cass. SU 17786/2021",
-          "descrizione": "Recesso durante l'apprendistato – tutele applicabili"
-        },
-        {
-          "fonte": "Cass. SU 12354/2023",
-          "descrizione": "Mancata formazione nell'apprendistato – conseguenze sul contratto"
         }
       ],
       "struttura_del_contratto_apprendistato": {
@@ -1138,14 +1105,6 @@
         {
           "fonte": "D.Lgs. 219/2006 (Codice Farmaci)",
           "descrizione": "Disciplina dei medicinali – AIC, prescrizione, foglietto illustrativo"
-        },
-        {
-          "fonte": "Cass. SU 28994/2019",
-          "descrizione": "Doppio binario L. 24/2017 – struttura contrattuale / medico extracontrattuale"
-        },
-        {
-          "fonte": "Cass. SU 11469/2023",
-          "descrizione": "Errore farmacologico – nesso causale probabilistico"
         }
       ],
       "doppio_binario_L24_2017": {

@@ -1,0 +1,831 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "TRIBUTARIO_PROCEDURA",
+  "denominazione": "Processo tributario: guide pratiche",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_TRIBUTARIO_RICORSO_PRIMO_GRADO",
+      "denominazione": "Ricorso alla corte di giustizia tributaria di primo grado",
+      "categoria": "Processo tributario – primo grado",
+      "materia": "Diritto tributario",
+      "rito": "Processo tributario telematico",
+      "competenza": "Corte di giustizia tributaria di primo grado",
+      "uffici_destinatari": [
+        "Processo tributario telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "18",
+          "descrizione": "Contenuto del ricorso",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "64",
+          "descrizione": "Contenuto del ricorso",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "19",
+          "descrizione": "Atti impugnabili: accertamento, liquidazione, sanzioni, ruolo e cartella, avviso di mora, ipoteca, fermo, rifiuti di rimborso",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "65",
+          "descrizione": "Atti impugnabili: accertamento, liquidazione, sanzioni, ruolo e cartella, avviso di mora, ipoteca, fermo, rifiuti di rimborso",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "21",
+          "descrizione": "Ricorso entro 60 giorni dalla notifica dell'atto, a pena di inammissibilità",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "67",
+          "descrizione": "Ricorso entro 60 giorni dalla notifica dell'atto, a pena di inammissibilità",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "22",
+          "descrizione": "Costituzione del ricorrente entro 30 giorni dalla proposizione, a pena di inammissibilità",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "68",
+          "descrizione": "Costituzione del ricorrente entro 30 giorni dalla proposizione, a pena di inammissibilità",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "12",
+          "descrizione": "Assistenza tecnica obbligatoria; senza difensore fino a 3.000 euro di valore",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "131",
+          "descrizione": "Il testo unico si applica dal 1° gennaio 2027; l'art. 130 abroga da quella data il D.Lgs. 546/1992"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_primo_grado",
+        "denominazione": "Ricorso tributario",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Contribuente, codice fiscale e PEC",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "ente",
+            "label": "Ufficio o ente impositore e agente della riscossione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "atto",
+            "label": "Atto impugnato e data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "valore_lite",
+            "label": "Valore della lite (tributo senza interessi e sanzioni)",
+            "required": true,
+            "type": "number"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Contribuente, codice fiscale e PEC",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "ente",
+            "label": "Ufficio o ente impositore e agente della riscossione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "atto",
+            "label": "Atto impugnato e data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "valore_lite",
+            "label": "Valore della lite (tributo senza interessi e sanzioni)",
+            "required": true,
+            "type": "number"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Sospensione feriale dal 1° al 31 agosto (art. 1 L. 742/1969): la norma parla di giurisdizioni ordinarie e amministrative; per il processo tributario e il termine di ricorso è applicata dalla giurisprudenza di legittimità: verificare il calcolo nel caso concreto."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        },
+        {
+          "id": "relata",
+          "label": "Relata o prova della notifica dell'atto impugnato",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare che l'atto sia tra quelli impugnabili",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Notificare il ricorso all'ente entro 60 giorni, poi costituirsi entro 30 giorni dalla notifica del ricorso",
+          "obbligatorio": true
+        },
+        {
+          "step": 3,
+          "azione": "Il reclamo-mediazione dell'art. 17-bis D.Lgs. 546/1992 è abrogato dal D.Lgs. 220/2023: il ricorso si propone direttamente",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso",
+          "decorrenza": "notificazione dell'atto impugnato",
+          "natura": "inammissibilità",
+          "norma": "art. 21 D.Lgs. 546/1992",
+          "giorni": 60,
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "termine": "Ricorso",
+          "decorrenza": "notificazione dell'atto impugnato",
+          "natura": "inammissibilità",
+          "norma": "art. 67 D.Lgs. 175/2024",
+          "giorni": 60,
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "termine": "Costituzione in giudizio del ricorrente",
+          "decorrenza": "proposizione (notifica) del ricorso",
+          "natura": "inammissibilità",
+          "norma": "art. 22 D.Lgs. 546/1992",
+          "giorni": 30,
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "termine": "Costituzione in giudizio del ricorrente",
+          "decorrenza": "proposizione (notifica) del ricorso",
+          "natura": "inammissibilità",
+          "norma": "art. 68 D.Lgs. 175/2024",
+          "giorni": 30,
+          "vigente_dal": "2027-01-01"
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto per scaglioni di valore della lite secondo l'art. 13, comma 6-quater, D.P.R. 115/2002"
+      },
+      "avvertenze_redazionali": [
+        "Sospensione feriale dal 1° al 31 agosto (art. 1 L. 742/1969): la norma parla di giurisdizioni ordinarie e amministrative; per il processo tributario e il termine di ricorso è applicata dalla giurisprudenza di legittimità: verificare il calcolo nel caso concreto."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "avviso di accertamento",
+        "cartella",
+        "ricorso tributario",
+        "irpef",
+        "iva",
+        "irap",
+        "imu",
+        "tari",
+        "commissione tributaria",
+        "corte di giustizia tributaria"
+      ]
+    },
+    {
+      "codice": "GUIDA_TRIBUTARIO_SOSPENSIONE_ATTO",
+      "denominazione": "Istanza di sospensione dell'atto impugnato nel processo tributario",
+      "categoria": "Processo tributario – cautelare",
+      "materia": "Diritto tributario",
+      "rito": "Processo tributario telematico",
+      "competenza": "Corte di giustizia tributaria presso cui pende il giudizio",
+      "uffici_destinatari": [
+        "Processo tributario telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "47",
+          "descrizione": "Sospensione per danno grave e irreparabile; trattazione entro 30 giorni dall'istanza",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "96",
+          "descrizione": "Sospensione per danno grave e irreparabile; trattazione entro 30 giorni dall'istanza",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "131",
+          "descrizione": "Il testo unico si applica dal 1° gennaio 2027; l'art. 130 abroga da quella data il D.Lgs. 546/1992"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "sospensione_atto",
+        "denominazione": "Istanza di sospensione",
+        "campi_chiave": [
+          {
+            "id": "danno",
+            "label": "Danno grave e irreparabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fumus",
+            "label": "Fondatezza dei motivi del ricorso",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "danno",
+            "label": "Danno grave e irreparabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fumus",
+            "label": "Fondatezza dei motivi del ricorso",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "prova_danno",
+          "label": "Prova del danno: situazione patrimoniale, bilanci, effetti della riscossione",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Proporre l'istanza nel ricorso o con atto separato notificato alle parti e depositato",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Trattazione dell'istanza",
+          "decorrenza": "presentazione dell'istanza",
+          "natura": "termine del giudice",
+          "norma": "art. 47, comma 2, D.Lgs. 546/1992",
+          "giorni": 30,
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "termine": "Trattazione dell'istanza",
+          "decorrenza": "presentazione dell'istanza",
+          "natura": "termine del giudice",
+          "norma": "art. 96, comma 2, D.Lgs. 175/2024",
+          "giorni": 30,
+          "vigente_dal": "2027-01-01"
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto in aggiunta al ricorso"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "sospensione cartella",
+        "sospensione atto",
+        "sospensiva tributaria"
+      ]
+    },
+    {
+      "codice": "GUIDA_TRIBUTARIO_CONCILIAZIONE",
+      "denominazione": "Conciliazione giudiziale tributaria",
+      "categoria": "Processo tributario – conciliazione",
+      "materia": "Diritto tributario",
+      "rito": "Processo tributario",
+      "competenza": "Corte di giustizia tributaria presso cui pende il giudizio",
+      "uffici_destinatari": [
+        "Processo tributario telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "48",
+          "descrizione": "Conciliazione fuori udienza: istanza congiunta",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "99",
+          "descrizione": "Conciliazione fuori udienza: istanza congiunta",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "48-bis",
+          "descrizione": "Conciliazione in udienza; il verbale è titolo per la riscossione",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "100",
+          "descrizione": "Conciliazione in udienza; il verbale è titolo per la riscossione",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "131",
+          "descrizione": "Il testo unico si applica dal 1° gennaio 2027; l'art. 130 abroga da quella data il D.Lgs. 546/1992"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "conciliazione",
+        "denominazione": "Istanza di conciliazione",
+        "campi_chiave": [
+          {
+            "id": "proposta",
+            "label": "Somme e modalità di pagamento proposte",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "proposta",
+            "label": "Somme e modalità di pagamento proposte",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "accordo",
+          "label": "Accordo o proposta conciliativa",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Valutare la riduzione delle sanzioni prevista per la conciliazione e il piano di pagamento",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "conciliazione tributaria",
+        "accordo con l'agenzia"
+      ]
+    },
+    {
+      "codice": "GUIDA_TRIBUTARIO_APPELLO",
+      "denominazione": "Appello alla corte di giustizia tributaria di secondo grado",
+      "categoria": "Processo tributario – appello",
+      "materia": "Diritto tributario",
+      "rito": "Processo tributario telematico",
+      "competenza": "Corte di giustizia tributaria di secondo grado",
+      "uffici_destinatari": [
+        "Processo tributario telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "51",
+          "descrizione": "Impugnazione entro 60 giorni dalla notifica della sentenza",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "105",
+          "descrizione": "Impugnazione entro 60 giorni dalla notifica della sentenza",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "38",
+          "descrizione": "Senza notifica si applica il termine lungo dell'art. 327 c.p.c.",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "87",
+          "descrizione": "Senza notifica si applica il termine lungo dell'art. 327 c.p.c.",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "52",
+          "descrizione": "Appello e sospensione dell'esecutività per gravi e fondati motivi",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "106",
+          "descrizione": "Appello e sospensione dell'esecutività per gravi e fondati motivi",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "53",
+          "descrizione": "Forma: motivi specifici a pena di inammissibilità",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "107",
+          "descrizione": "Forma: motivi specifici a pena di inammissibilità",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "131",
+          "descrizione": "Il testo unico si applica dal 1° gennaio 2027; l'art. 130 abroga da quella data il D.Lgs. 546/1992"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "appello",
+        "denominazione": "Ricorso in appello",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza di primo grado e data di notifica o pubblicazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi specifici",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza di primo grado e data di notifica o pubblicazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi specifici",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Notificare a tutte le parti del primo grado e depositare nei termini della costituzione",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Appello (termine breve)",
+          "decorrenza": "notificazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 51 D.Lgs. 546/1992",
+          "giorni": 60,
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "termine": "Appello (termine breve)",
+          "decorrenza": "notificazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 105 D.Lgs. 175/2024",
+          "giorni": 60,
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "termine": "Appello (termine lungo, art. 327 c.p.c.)",
+          "decorrenza": "pubblicazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 38, comma 3, D.Lgs. 546/1992",
+          "mesi": 6,
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "termine": "Appello (termine lungo, art. 327 c.p.c.)",
+          "decorrenza": "pubblicazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 87, comma 3, D.Lgs. 175/2024",
+          "mesi": 6,
+          "vigente_dal": "2027-01-01"
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto per scaglioni di valore della lite secondo l'art. 13, comma 6-quater, D.P.R. 115/2002"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "appello tributario",
+        "secondo grado tributario",
+        "commissione tributaria regionale"
+      ]
+    },
+    {
+      "codice": "GUIDA_TRIBUTARIO_RICORSO_CASSAZIONE",
+      "denominazione": "Ricorso per cassazione contro la sentenza tributaria",
+      "categoria": "Processo tributario – cassazione",
+      "materia": "Diritto tributario",
+      "rito": "Giudizio di cassazione civile",
+      "competenza": "Corte di cassazione – sezione tributaria",
+      "uffici_destinatari": [
+        "CASSAZIONE"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "62",
+          "descrizione": "Motivi nn. 1-5 dell'art. 360 c.p.c.; ricorso per saltum su accordo delle parti",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "116",
+          "descrizione": "Motivi nn. 1-5 dell'art. 360 c.p.c.; ricorso per saltum su accordo delle parti",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "360",
+          "descrizione": "Motivi di ricorso"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "325",
+          "descrizione": "Termine di 60 giorni dalla notifica"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "131",
+          "descrizione": "Il testo unico si applica dal 1° gennaio 2027; l'art. 130 abroga da quella data il D.Lgs. 546/1992"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_cassazione",
+        "denominazione": "Ricorso per cassazione",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza di secondo grado",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi dell'art. 360 c.p.c.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza di secondo grado",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi dell'art. 360 c.p.c.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura",
+          "label": "Procura alle liti",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Difensore abilitato al patrocinio davanti alla Corte di cassazione",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso per cassazione",
+          "decorrenza": "notificazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 325 c.p.c.",
+          "giorni": 60
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13 D.P.R. 115/2002 per il giudizio di cassazione"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "cassazione tributaria",
+        "ricorso cassazione tributario"
+      ]
+    },
+    {
+      "codice": "GUIDA_TRIBUTARIO_OTTEMPERANZA",
+      "denominazione": "Giudizio di ottemperanza tributario",
+      "categoria": "Processo tributario – esecuzione",
+      "materia": "Diritto tributario",
+      "rito": "Processo tributario",
+      "competenza": "Corte di giustizia tributaria che ha pronunciato la sentenza",
+      "uffici_destinatari": [
+        "Processo tributario telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 546/1992",
+          "articolo": "70",
+          "descrizione": "Ottemperanza agli obblighi della sentenza, dopo la scadenza del termine per l'adempimento",
+          "vigente_fino_al": "2026-12-31"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "128",
+          "descrizione": "Ottemperanza agli obblighi della sentenza, dopo la scadenza del termine per l'adempimento",
+          "vigente_dal": "2027-01-01"
+        },
+        {
+          "fonte": "D.Lgs. 175/2024",
+          "articolo": "131",
+          "descrizione": "Il testo unico si applica dal 1° gennaio 2027; l'art. 130 abroga da quella data il D.Lgs. 546/1992"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ottemperanza",
+        "denominazione": "Ricorso per ottemperanza",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza e attestazione del giudicato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "inadempimento",
+            "label": "Obbligo non adempiuto dall'ente",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza e attestazione del giudicato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "inadempimento",
+            "label": "Obbligo non adempiuto dall'ente",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "messa_in_mora",
+          "label": "Atto di messa in mora all'ente",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Proporre il ricorso solo dopo la scadenza del termine per l'adempimento",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto per scaglioni di valore della lite secondo l'art. 13, comma 6-quater, D.P.R. 115/2002"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ottemperanza tributaria",
+        "rimborso non pagato",
+        "giudicato tributario"
+      ]
+    }
+  ]
+}

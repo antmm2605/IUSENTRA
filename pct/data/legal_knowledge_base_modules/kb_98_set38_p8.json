@@ -33,14 +33,6 @@
           "fonte": "D.Lgs. 159/2011",
           "articolo": "27",
           "descrizione": "Tutela dei terzi – chi vanta diritti sui beni può intervenire"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Confisca di prevenzione – onere della prova invertito"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Terzi di buona fede – tutela e proporzione"
         }
       ],
       "confisca_prevenzione_24": {
@@ -189,14 +181,6 @@
           "fonte": "CCII",
           "articolo": "56 c. 4",
           "descrizione": "Attestazione – da parte di un professionista indipendente (OdV attestatore)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Piano attestato – esenzione revocatoria e pubblicità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Attestatore – responsabilità"
         }
       ],
       "piano_attestato_56": {
@@ -828,10 +812,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "18",
           "descrizione": "Comunicazione preventiva – prima di ogni chiamata; sanzione se omessa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Lavoro intermittente – mancata chiamata e diritto alla disponibilità"
         }
       ],
       "indennita_disponibilita_art15": {
@@ -1337,14 +1317,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "44",
           "descrizione": "Piano formativo individuale – obbligatorio; mancanza: il contratto diventa ordinario"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Apprendistato – formazione e trasformazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Mancata formazione – tutore mancante: trasformazione a TI"
         }
       ],
       "tipi_apprendistato": {
@@ -1704,14 +1676,6 @@
         {
           "fonte": "L. 225/1992",
           "descrizione": "Precedente disciplina; ora superata dal D.Lgs. 1/2018"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ordinanze emergenziali – giurisdizione TAR"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Limite delle ordinanze emergenziali – proporzionalità"
         }
       ],
       "ordinanze_emergenza": {

@@ -48,14 +48,14 @@
         ]
       }
     },
-    {"codice": "400230", "denominazione": "Autorizzazione del Tribunale ex art. 375 e 397 c.c. (COLLEGIO)", "normativa": [{"fonte": "c.c.", "articolo": "375", "descrizione": "Autorizzazione del tribunale per atti del tutore"}]},
+    {"codice": "400230", "denominazione": "Autorizzazione del Tribunale ex art. 375 e 397 c.c. (COLLEGIO)", "normativa": [{"fonte": "c.c.", "articolo": "375", "descrizione": "Autorizzazione del tribunale per atti del tutore", "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"}, {"fonte": "c.c.", "articolo": "374", "descrizione": "Autorizzazione del giudice tutelare per gli atti del tutore (sostituisce l'art. 375 c.c.)", "verificato_il": "2026-11-06"}]},
     {
       "codice": "400240",
       "denominazione": "Stato civile (rettifica del nome e altri atti dello Stato civile)",
       "categoria": "Stato civile",
       "normativa": [
         {"fonte": "D.P.R. 396/2000", "articolo": "95-100", "descrizione": "Rettificazione atti dello stato civile"},
-        {"fonte": "c.c.", "articolo": "454", "descrizione": "Rettificazione"}
+        {"fonte": "c.c.", "articolo": "454", "descrizione": "Rettificazione", "abrogata_da": "D.P.R. 3 novembre 2000, n. 396"}
       ],
       "atto_principale": {
         "tipo_atto": "ricorso_rettifica_stato_civile",
@@ -151,7 +151,7 @@
     {"codice": "400802", "denominazione": "Richiesta doc. per successione aperta in Italia in titoli del debito pubblico"},
     {"codice": "400999", "denominazione": "Altri istituti camerali e di volontaria giurisdizione", "note": "Codice residuale"},
     {"codice": "401001", "denominazione": "Notificazione per i pubblici proclami (art. 150 c.p.c.)", "normativa": [{"fonte": "c.p.c.", "articolo": "150", "descrizione": "Notificazione per pubblici proclami"}]},
-    {"codice": "401002", "denominazione": "Rilascio seconda copia esecutiva (art. 476 c.p.c.)", "normativa": [{"fonte": "c.p.c.", "articolo": "476", "descrizione": "Seconda copia esecutiva"}]},
+    {"codice": "401002", "denominazione": "Rilascio seconda copia esecutiva (art. 476 c.p.c.)", "normativa": [{"fonte": "c.p.c.", "articolo": "476", "descrizione": "Seconda copia esecutiva", "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"}]},
     {"codice": "406001", "denominazione": "Attuazione sentenze/provv. stranieri, autorizz. assunzioni rogatorie (artt. 67-69 L. 218/95)", "categoria": "Cooperazione giudiziaria internazionale"},
     {"codice": "406100", "denominazione": "Iscrizione albo liquidatori di avaria"},
     {"codice": "406200", "denominazione": "Sanzioni amministrative comminate dalla Banca d'Italia (art. 145 D.Lgs. 385/93)", "normativa": [{"fonte": "D.Lgs. 385/1993 (TUB)", "articolo": "145", "descrizione": "Procedura sanzionatoria"}]},
@@ -200,7 +200,7 @@
       "rito": "Procedimento ex artt. 736-bis c.p.c. (rito camera consiglio speciale) - post-Cartabia rito unificato",
       "normativa": [
         {"fonte": "c.c.", "articolo": "342-bis - 342-ter", "descrizione": "Ordini di protezione contro abusi familiari"},
-        {"fonte": "c.p.c.", "articolo": "736-bis", "descrizione": "Procedimento (pre-Cartabia)"},
+        {"fonte": "c.p.c.", "articolo": "736-bis", "descrizione": "Procedimento (pre-Cartabia)", "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"}, {"fonte": "c.p.c.", "articolo": "473-bis.71", "descrizione": "Istanza per gli ordini di protezione contro gli abusi familiari (sostituisce l'art. 736-bis c.p.c.)", "verificato_il": "2026-11-06"},
         {"fonte": "c.p.c.", "articolo": "473-bis.69 - 473-bis.71", "descrizione": "Procedimento post-Cartabia"},
         {"fonte": "L. 154/2001", "descrizione": "Misure contro la violenza nelle relazioni familiari"}
       ],
@@ -229,7 +229,7 @@
       "categoria": "Modifica provvedimenti separazione/divorzio",
       "rito": "Rito camerale ex art. 710 c.p.c. (pre-Cartabia) - oggi rito unificato art. 473-bis.29 c.p.c.",
       "normativa": [
-        {"fonte": "c.p.c.", "articolo": "710", "descrizione": "Modifica condizioni separazione (testo previgente Cartabia)"},
+        {"fonte": "c.p.c.", "articolo": "710", "descrizione": "Modifica condizioni separazione (testo previgente Cartabia)", "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"},
         {"fonte": "c.p.c.", "articolo": "473-bis.29", "descrizione": "Procedimento di modifica (post-Cartabia)"}
       ],
       "presupposti_sostanziali": [

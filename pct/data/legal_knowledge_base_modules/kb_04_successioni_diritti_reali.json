@@ -257,13 +257,34 @@
       "denominazione": "Usucapione (art. 1159-bis c.c. - usucapione speciale)",
       "eredita_da": "131002",
       "differenze_rispetto_a_padre": {
-        "normativa_principale": [{"fonte": "c.c.", "articolo": "1159-bis", "descrizione": "Usucapione speciale piccola proprietà rurale - 15 anni"}],
+        "normativa_principale": [
+          {
+            "fonte": "c.c.",
+            "articolo": "1159-bis",
+            "descrizione": "Usucapione speciale piccola proprietà rurale - 15 anni"
+          }
+        ],
         "presupposti_specifici": [
           "Fondo rustico in comuni montani",
           "Possesso continuato 15 anni",
           "Valore non superiore a limiti L. 346/1976"
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1159-bis",
+          "descrizione": "Usucapione speciale della piccola proprietà rurale: 15 anni (5 con titolo trascritto e buona fede)"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare che il fondo sia rustico in comune classificato montano o rientri nei limiti di reddito previsti (art. 1159-bis c.c.)",
+          "obbligatorio": true
+        }
+      ]
     },
     {
       "codice": "131011",

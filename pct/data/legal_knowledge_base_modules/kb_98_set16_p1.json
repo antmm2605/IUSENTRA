@@ -57,10 +57,6 @@
         {
           "fonte": "Direttiva UE 2020/1828 (Azioni rappresentative)",
           "descrizione": "Recepita parzialmente nella riforma 2021"
-        },
-        {
-          "fonte": "Cass. SU 8236/2024",
-          "descrizione": "Azione di classe – presupposti di ammissibilità post-riforma 2021"
         }
       ],
       "riforma_2021": {
@@ -304,10 +300,6 @@
         {
           "fonte": "D.Lgs. 149/2022 (Cartabia)",
           "descrizione": "Rito unificato famiglia"
-        },
-        {
-          "fonte": "Cass. SU 9732/2021",
-          "descrizione": "Separazione consensuale – contenuto e limiti dell'accordo"
         }
       ],
       "percorsi_alternativi": {
@@ -557,14 +549,6 @@
           "fonte": "c.c.",
           "articolo": "1451",
           "descrizione": "Contratti non rescindibili – aleatori e transazioni"
-        },
-        {
-          "fonte": "Cass. SU 12750/2019",
-          "descrizione": "Stato di bisogno – nozione + approfittamento intenzionale"
-        },
-        {
-          "fonte": "Cass. SU 7547/2022",
-          "descrizione": "Rescissione vs risoluzione per eccessiva onerosità – distinzione"
         }
       ],
       "tre_presupposti_cumulativi_1448": {
@@ -835,14 +819,6 @@
           "fonte": "c.p.c.",
           "articolo": "677",
           "descrizione": "Assegnazione della custodia"
-        },
-        {
-          "fonte": "Cass. SU 21677/2020",
-          "descrizione": "Fumus boni iuris e periculum in mora – criteri di valutazione"
-        },
-        {
-          "fonte": "Cass. SU 8932/2023",
-          "descrizione": "Sequestro conservativo – sui beni del debitore + sui crediti verso terzi"
         }
       ],
       "presupposti_671": {
@@ -1072,18 +1048,6 @@
           "fonte": "D.P.R. 1124/1965",
           "articolo": "10",
           "descrizione": "Danno differenziale – la parte non coperta dall'INAIL"
-        },
-        {
-          "fonte": "Cass. SU 6341/2021",
-          "descrizione": "Danno differenziale da infortunio – calcolo e prova"
-        },
-        {
-          "fonte": "Cass. SU 25919/2023",
-          "descrizione": "Malattia professionale – nesso causale e onere prova"
-        },
-        {
-          "fonte": "Cass. SU 1788/2024",
-          "descrizione": "Esonero INAIL – eccezione per colpa grave del datore"
         }
       ],
       "distinzione_INAIL_e_danno_differenziale": {

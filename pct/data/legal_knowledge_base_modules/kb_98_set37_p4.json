@@ -28,14 +28,6 @@
           "fonte": "c.p.c.",
           "articolo": "45",
           "descrizione": "Regolamento di competenza – rimessione alla Cassazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Translatio iudicii – effetti conservativi della domanda"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riassunzione tardiva – effetti sulla prescrizione"
         }
       ],
       "translatio_iudicii": {
@@ -497,14 +489,6 @@
           "fonte": "c.p.c.",
           "articolo": "294",
           "descrizione": "Rimessione in termini – per causa non imputabile alla parte"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Opposizione tardiva – nullità della notifica e dies a quo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Rimessione in termini – ignoranza incolpevole"
         }
       ],
       "opposizione_tardiva_650": {
@@ -930,14 +914,6 @@
           "fonte": "c.p.c.",
           "articolo": "688",
           "descrizione": "Procedimento speciale per nuova opera e danno temuto"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Denunzia nuova opera – presupposti e urgenza"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Danno temuto da edificio – onere prova e CTU"
         }
       ],
       "denunzia_nuova_opera_1171": {
@@ -1474,14 +1450,6 @@
           "fonte": "c.p.c.",
           "articolo": "703",
           "descrizione": "Procedimento possessorio – interdetto e manutenzione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Manutenzione possessoria – molestia e differenza da spoglio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Azione possessoria – prescindere dal merito petitorio"
         }
       ],
       "manutenzione_vs_reintegrazione": {
@@ -1839,14 +1807,6 @@
           "fonte": "c.p.c.",
           "articolo": "703",
           "descrizione": "Procedimento possessorio – reintegrazione urgente"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Spoglio clandestino – dies a quo del termine"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Reintegrazione nel possesso – indipendenza dal merito petitorio"
         }
       ],
       "spoglio_1168": {

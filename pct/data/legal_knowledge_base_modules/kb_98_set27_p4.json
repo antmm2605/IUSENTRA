@@ -42,14 +42,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "Responsabilità aquiliana per i danni causati dal contenuto illecito"
-        },
-        {
-          "fonte": "Cass. SU 7716/2021",
-          "descrizione": "Responsabilità del provider – conoscenza dell'illecito e obbligo di rimozione"
-        },
-        {
-          "fonte": "Cass. SU 14915/2023",
-          "descrizione": "DSA – prime applicazioni giurisprudenziali"
         }
       ],
       "safe_harbour_DSA_art6": {
@@ -291,14 +283,6 @@
           "fonte": "c.c.",
           "articolo": "2059",
           "descrizione": "Danno non patrimoniale – nel reato: sempre risarcibile"
-        },
-        {
-          "fonte": "Cass. SU 14581/2020",
-          "descrizione": "Parte civile – quantum del danno nella sentenza penale"
-        },
-        {
-          "fonte": "Cass. SU 8978/2023",
-          "descrizione": "Provvisionale nel penale – esecutività e impugnazione"
         }
       ],
       "quando_costituirsi_parte_civile": {
@@ -505,14 +489,6 @@
           "fonte": "c.p.c.",
           "articolo": "699",
           "descrizione": "Interrogatorio formale ante causam"
-        },
-        {
-          "fonte": "Cass. SU 14892/2021",
-          "descrizione": "Istruzione preventiva – natura cautelare e requisiti"
-        },
-        {
-          "fonte": "Cass. SU 9512/2023",
-          "descrizione": "Prova testimoniale preventiva – utilizzo nel giudizio successivo"
         }
       ],
       "differenza_da_ATP_696": {
@@ -702,10 +678,6 @@
         {
           "fonte": "Dir. UE 2018/957/CE (revisione)",
           "descrizione": "Parità di trattamento rafforzata per i lavoratori distaccati"
-        },
-        {
-          "fonte": "Cass. SU 14390/2022",
-          "descrizione": "Distacco transnazionale – responsabilità solidale committente italiano"
         }
       ],
       "nucleo_duro_art4": {
@@ -889,19 +861,17 @@
         },
         {
           "fonte": "CGUE C-619/16 (Kreuziger 2018)",
-          "descrizione": "Ferie – obbligo del datore di invitare effettivamente a godere le ferie"
+          "descrizione": "Ferie – obbligo del datore di invitare effettivamente a godere le ferie",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-619/16",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 26413/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "CGUE C-684/16 (Max-Planck 2018)",
-          "descrizione": "Ferie non godute per impossibilità: il datore non può far decadere il diritto senza averle offerte"
-        },
-        {
-          "fonte": "Cass. SU 13877/2021",
-          "descrizione": "Monetizzazione ferie alla cessazione – calcolo e prescrizione"
-        },
-        {
-          "fonte": "Cass. SU 9687/2024",
-          "descrizione": "Ferie non godute in costanza di rapporto – prescrizione decorrenza post CGUE"
+          "descrizione": "Ferie non godute per impossibilità: il datore non può far decadere il diritto senza averle offerte",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-684/16",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 40876/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "monetizzazione_ferie": {

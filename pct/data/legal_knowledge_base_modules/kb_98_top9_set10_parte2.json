@@ -54,18 +54,6 @@
           "fonte": "c.c.",
           "articolo": "2727-2729",
           "descrizione": "Presunzioni - rilevanti per prova simulazione"
-        },
-        {
-          "fonte": "Cass. SU 21575/2019",
-          "descrizione": "Simulazione - prova presuntiva ammissibile per i terzi"
-        },
-        {
-          "fonte": "Cass. SU 14344/2021",
-          "descrizione": "Simulazione relativa - conversione del negozio dissimulato"
-        },
-        {
-          "fonte": "Cass. SU 4135/2023",
-          "descrizione": "Simulazione e azione revocatoria - cumulabilità"
         }
       ],
       "tipologie_di_simulazione": {
@@ -583,14 +571,6 @@
           "fonte": "c.p.c.",
           "articolo": "512",
           "descrizione": "CONTROVERSIE SULLA DISTRIBUZIONE - opposizione"
-        },
-        {
-          "fonte": "Cass. SU 11178/2020",
-          "descrizione": "Controversia sulla dichiarazione del terzo - natura giuridica"
-        },
-        {
-          "fonte": "Cass. SU 9407/2022",
-          "descrizione": "Piani di riparto e opposizioni"
         }
       ],
       "tipologie_di_controversie_in_questo_codice": [
@@ -1022,14 +1002,6 @@
         {
           "fonte": "Direttiva UE 2024/2853",
           "descrizione": "Nuova direttiva responsabilità prodotti (recepimento in corso)"
-        },
-        {
-          "fonte": "Cass. SU 8419/2018",
-          "descrizione": "Onere prova difetto del prodotto - prova presuntiva ammissibile"
-        },
-        {
-          "fonte": "Cass. SU 7545/2021",
-          "descrizione": "Nesso causale in responsabilità da prodotto"
         }
       ],
       "definizione_prodotto_difettoso_art_117": {
@@ -1586,18 +1558,6 @@
         {
           "fonte": "L. 220/2012",
           "descrizione": "Riforma del condominio - aggiornamento disciplina"
-        },
-        {
-          "fonte": "Cass. SU 9839/2021",
-          "descrizione": "Impugnazione delibere condominiali - nullità vs annullabilità"
-        },
-        {
-          "fonte": "Cass. SU 2255/2023",
-          "descrizione": "Rendiconto condominiale - obblighi dell'amministratore"
-        },
-        {
-          "fonte": "Cass. SU 18138/2023",
-          "descrizione": "Amministratore - responsabilità per omessa manutenzione"
         }
       ],
       "presupposti_sostanziali": [

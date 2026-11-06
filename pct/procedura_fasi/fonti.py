@@ -270,6 +270,12 @@ from pct.procedura_fasi.fonti_notifiche import FONTI_NOTIFICHE  # noqa: E402
 
 FONTI.update({chiave: voce for chiave, voce in FONTI_NOTIFICHE.items() if chiave not in FONTI})
 
+# Norme citate dalle schede della Guida pratica completate il 06/11/2026 (tutte le materie), testo vigente letto
+# dall'archivio Normattiva del software.
+from pct.procedura_fasi.fonti_guide_20261106 import FONTI_GUIDE_20261106  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_GUIDE_20261106.items() if chiave not in FONTI})
+
 
 def fonte(identificativo: str) -> dict[str, Any]:
     """La voce del registro, o un dizionario vuoto se l'identificativo non esiste."""

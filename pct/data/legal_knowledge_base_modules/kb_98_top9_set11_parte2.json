@@ -39,18 +39,6 @@
           "fonte": "c.c.",
           "articolo": "2946",
           "descrizione": "Prescrizione ordinaria 10 anni"
-        },
-        {
-          "fonte": "Cass. SU 14712/2017",
-          "descrizione": "Arricchimento senza causa - sussidiarietà e presupposti"
-        },
-        {
-          "fonte": "Cass. SU 27198/2020",
-          "descrizione": "Azione di arricchimento verso P.A. - ammissibilità residuale"
-        },
-        {
-          "fonte": "Cass. SU 3665/2021",
-          "descrizione": "Arricchimento senza causa - quantificazione dell'indennizzo"
         }
       ],
       "presupposti_sostanziali": [
@@ -441,14 +429,6 @@
         {
           "fonte": "D.L. 35/2005",
           "descrizione": "Accelerazione procedura esecutiva immobiliare"
-        },
-        {
-          "fonte": "Cass. SU 12566/2022",
-          "descrizione": "Opposizione 615 in esecuzione immobiliare - termini"
-        },
-        {
-          "fonte": "Cass. SU 6483/2024",
-          "descrizione": "Sospensione esecuzione immobiliare - presupposti"
         }
       ],
       "tipologie_di_opposizione_in_esecuzione_immobiliare": {
@@ -884,14 +864,6 @@
         {
           "fonte": "Direttiva UE 2019/2161 (Omnibus)",
           "descrizione": "Modifiche - recepita D.Lgs. 26/2023"
-        },
-        {
-          "fonte": "Cass. SU 24906/2021",
-          "descrizione": "Pratiche commerciali scorrette - tutela individuale del consumatore"
-        },
-        {
-          "fonte": "Cass. SU 16742/2023",
-          "descrizione": "Inibitoria pratiche scorrette - legittimazione associazioni consumatori"
         }
       ],
       "tipologie_di_pratiche_scorrette": {
@@ -1281,14 +1253,6 @@
           "fonte": "c.c.",
           "articolo": "2643",
           "descrizione": "Trascrizione della sentenza di regolamento confini"
-        },
-        {
-          "fonte": "Cass. SU 14594/2021",
-          "descrizione": "Regolamento di confini - natura dell'azione e prova"
-        },
-        {
-          "fonte": "Cass. SU 9392/2019",
-          "descrizione": "Confini - prova documentale e catastale vs stato dei luoghi"
         }
       ],
       "natura_dell_azione_di_regolamento_confini": {

@@ -20,17 +20,9 @@
           "descrizione": "Risoluzione della vendita a rate – applicato per analogia al leasing traslativo (Cass. SU 65/1993)"
         },
         {
-          "fonte": "Cass. SU 65/1993",
-          "descrizione": "Leasing traslativo vs di godimento – distinta disciplina"
-        },
-        {
           "fonte": "D.Lgs. 385/1993 (TUB)",
           "articolo": "125-bis",
           "descrizione": "Credito ai consumatori – applicabile al leasing con consumatori"
-        },
-        {
-          "fonte": "Cass. SU 19785/2022",
-          "descrizione": "LEASING – nuova disciplina unitaria post L. 124/2017; distinzione traslativo vs godimento superate"
         },
         {
           "fonte": "L. 124/2017",
@@ -548,14 +540,6 @@
           "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
           "articolo": "33",
           "descrizione": "Clausole abusive nel NLT con consumatori"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "NLT – natura e penali di recesso anticipato"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Clausola penale NLT – riduzione giudiziale se eccessiva"
         }
       ],
       "penale_di_recesso_anticipato": {
@@ -1066,14 +1050,6 @@
           "fonte": "TUB D.Lgs. 385/1993",
           "articolo": "125-bis",
           "descrizione": "Credito al consumo – nullità delle clausole difformi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "TAEG errato – nullità del contratto o riduzione al tasso legale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "CPI (polizza assicurativa collegata) – inclusione nel TAEG"
         }
       ],
       "TAEG_errato_Cass_SU_14897_2021": {
@@ -1611,14 +1587,6 @@
           "fonte": "c.c.",
           "articolo": "1590",
           "descrizione": "Obbligo di restituzione dell'immobile – il conduttore lo restituisce nello stesso stato"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Deposito cauzionale – restituzione e prescrizione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Trattenuta del deposito per danni – onere prova del locatore"
         }
       ],
       "deposito_cauzionale_L431_art11": {
@@ -1989,14 +1957,6 @@
           "fonte": "c.c.",
           "articolo": "2621",
           "descrizione": "SCIOGLIMENTO – cause di scioglimento del consorzio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Consorzio – responsabilità dei consorziati verso i terzi creditori"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Scioglimento del consorzio – liquidazione e controversie"
         }
       ],
       "responsabilita_verso_terzi_2615": {

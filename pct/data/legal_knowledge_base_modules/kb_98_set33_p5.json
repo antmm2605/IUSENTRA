@@ -38,14 +38,6 @@
           "fonte": "c.c.",
           "articolo": "1224",
           "descrizione": "Interessi moratori dal giorno della messa in mora"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ritardi PA – interessi automatici D.Lgs. 231 + danno ulteriore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Interessi moratori PA – calcolo e decorrenza automatica"
         }
       ],
       "interessi_automatici_D_Lgs_231": {
@@ -535,14 +527,6 @@
           "fonte": "c.p.c.",
           "articolo": "617",
           "descrizione": "Opposizione agli atti esecutivi per pignoramento di beni esenti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Strumenti di lavoro impignorabili – nozione e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Pensioni e minimo vitale – calcolo per il pignoramento"
         }
       ],
       "beni_impignorabili_514": {
@@ -864,17 +848,9 @@
           "descrizione": "Onere della prova – il terzo opponente deve provare la sua proprietà"
         },
         {
-          "fonte": "c.p.c.",
+          "fonte": "c.c.",
           "articolo": "2914",
           "descrizione": "Inefficacia degli atti verso i creditori – l'alienazione post-pignoramento è inefficace"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Opposizione di terzo – proprietà e onere probatorio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Terzo proprietario – prova con atti trascritti anteriori al pignoramento"
         }
       ],
       "opposizione_619": {
@@ -1456,14 +1432,6 @@
         {
           "fonte": "Accordo Interconfederale 28/6/2011",
           "descrizione": "Contrattazione aziendale – rappresentatività e aree di deroga"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Accordo aziendale derogatorio – applicabilità e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Art. 8 D.L. 138 – deroghe al CCNL nazionali"
         }
       ],
       "contratti_prossimita_art8_DL138": {
@@ -1913,14 +1881,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "47",
           "descrizione": "RECESSO – al termine del periodo: il datore può recedere senza causale (finestra di libero recesso)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Apprendistato irregolare – conversione in rapporto ordinario"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Formazione obbligatoria non erogata – conversione dell'apprendistato"
         }
       ],
       "formazione_obbligatoria": {

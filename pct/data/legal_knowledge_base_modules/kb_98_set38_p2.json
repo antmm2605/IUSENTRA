@@ -33,10 +33,6 @@
           "fonte": "D.Lgs. 74/2000",
           "articolo": "12",
           "descrizione": "Pene accessorie – interdizione da uffici direttivi"
-        },
-        {
-          "fonte": "Cass. pen. SU 14897/2021",
-          "descrizione": "Omesso versamento IVA – causa di forza maggiore e crisi di liquidità"
         }
       ],
       "soglie_penali": {
@@ -497,12 +493,11 @@
           "descrizione": "Sottrazione fraudolenta al pagamento – reato se si aliena beni per evitare la transazione"
         },
         {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Transazione fiscale – IVA falcidiabile post Corte Costituzionale"
-        },
-        {
           "fonte": "Corte Cost. 225/2014",
-          "descrizione": "IVA: non intangibile – falcidiabile nel concordato"
+          "descrizione": "IVA: non intangibile – falcidiabile nel concordato",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2014/225",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "transazione_fiscale_88": {
@@ -1524,14 +1519,6 @@
         {
           "fonte": "D.Lgs. 156/2015",
           "descrizione": "Riforma dell'interpello – tipi: ordinario, probatorio, antiabuso, disapplicativo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Interpello – risposta e legittimo affidamento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Mancata risposta AE – silenzio assenso e tutela del contribuente"
         }
       ],
       "tipi_interpello": {
@@ -1965,10 +1952,6 @@
         {
           "fonte": "D.L. 69/2013",
           "descrizione": "Semplificazione – rateizzazione automatica per importi fino a €60.000"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Decadenza rateizzazione – effetti"
         }
       ],
       "rateizzazione_art19": {

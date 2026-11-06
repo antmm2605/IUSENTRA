@@ -72,14 +72,6 @@
           "fonte": "c.n.",
           "articolo": "422-463",
           "descrizione": "Trasporto marittimo di merci"
-        },
-        {
-          "fonte": "Cass. SU 11248/2021",
-          "descrizione": "Responsabilità vettore - onere prova e dolo o colpa grave"
-        },
-        {
-          "fonte": "Cass. SU 7738/2019",
-          "descrizione": "Perdita merce - quantificazione del danno"
         }
       ],
       "regime_di_responsabilita_vettore_1693": {
@@ -479,14 +471,6 @@
           "fonte": "c.c.",
           "articolo": "908-912",
           "descrizione": "Derivazione di acqua da fondo altrui"
-        },
-        {
-          "fonte": "Cass. SU 20977/2019",
-          "descrizione": "Aggravamento del deflusso naturale - presupposti responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 7644/2021",
-          "descrizione": "Gronda e stillicidio - danni risarcibili"
         }
       ],
       "tipologie_di_controversie": {
@@ -832,8 +816,9 @@
         },
         {
           "fonte": "c.c.",
-          "articolo": "2476-bis",
-          "descrizione": "Azione dei creditori sociali in caso di insufficienza del patrimonio"
+          "articolo": "2476",
+          "descrizione": "Azione dei creditori sociali in caso di insufficienza del patrimonio (citato prima come art. 2476-bis c.c., articolo inesistente)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.c.",
@@ -849,18 +834,6 @@
           "fonte": "D.Lgs. 14/2019 (CCII)",
           "articolo": "2086",
           "descrizione": "Adeguatezza degli assetti organizzativi - responsabilità per omissione"
-        },
-        {
-          "fonte": "Cass. SU 1839/2023",
-          "descrizione": "Business judgment rule - insindacabilità scelte gestionali non irrazionali"
-        },
-        {
-          "fonte": "Cass. SU 29227/2022",
-          "descrizione": "Azione dei creditori 2476-bis - presupposti e onere prova"
-        },
-        {
-          "fonte": "Cass. SU 9378/2024",
-          "descrizione": "Adeguatezza assetti ex art. 2086 e responsabilità degli amministratori"
         }
       ],
       "tipologie_di_azioni_di_responsabilita": {
@@ -1258,14 +1231,6 @@
           "fonte": "D.Lgs. 385/1993 (TUB)",
           "articolo": "40-bis",
           "descrizione": "Privilegio speciale crediti fondiario ipotecario"
-        },
-        {
-          "fonte": "Cass. SU 9407/2022",
-          "descrizione": "Piano di riparto - contestazioni e rimedi"
-        },
-        {
-          "fonte": "Cass. SU 15964/2023",
-          "descrizione": "Ordine di distribuzione tra creditori privilegiati e chirografari"
         }
       ],
       "ordine_di_distribuzione": {

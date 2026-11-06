@@ -40,6 +40,10 @@ VERSIONE_MOTORE_DOCUMENTI += f"+prove:{VERSIONE_PROVE_NOTIFICA}"
 VERSIONE_MOTORE_DOCUMENTI += f"+date-modello:{VERSIONE_DATE_CAMPI_MODELLI}"
 VERSIONE_MOTORE_DOCUMENTI_PRE_CONTRATTO_NUMERATO = VERSIONE_MOTORE_DOCUMENTI
 VERSIONE_MOTORE_DOCUMENTI += "+contratto-titolo-numerato"
+VERSIONE_MOTORE_DOCUMENTI_PRE_RUOLO_ESTESO = VERSIONE_MOTORE_DOCUMENTI
+# 2.485.0: il ruolo scritto per esteso nell'epigrafe delle sentenze («iscritta al n. 2539, del Ruolo Generale … dell'anno
+# 2025») non si leggeva, e la sentenza non era riconosciuta come pronunciata nella causa: le letture precedenti si rifanno.
+VERSIONE_MOTORE_DOCUMENTI += "+ruolo-esteso+esito-dispositivo-v2"
 # La correzione delle epigrafi non avvia una rilettura storica generalizzata.
 # Le fonti nuove usano la regola corrente; le discordanze già archiviate
 # vengono riconvalidate con un evento esplicito del fascicolo interessato.
@@ -129,6 +133,9 @@ def leggi_testo(
             testo, fascicolo=dati.get("fascicolo"), origine=origine,
             codice_fiscale_cliente=str(dati.get("codice_fiscale_cliente") or ""),
         ))
+        # Esito e spese della sentenza della causa, dal dispositivo (non dei precedenti allegati né delle PEC).
+        from .estrazione_esito import estrai_esito
+        collaudati.extend(estrai_esito(testo, origine=origine))
         from .estrazione_economica import estrai_controllo_economico
         from .estrazione_parti import fatti_parti
         collaudati.extend(estrai_controllo_economico(testo, origine=origine, metadata=metadata or {}))

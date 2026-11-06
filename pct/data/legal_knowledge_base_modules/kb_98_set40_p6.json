@@ -28,10 +28,6 @@
           "fonte": "D.Lgs. 33/2013",
           "articolo": "5 c. 6",
           "descrizione": "Riesame ANAC – prima del TAR il richiedente può chiedere il riesame all'ANAC"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "FOIA – limiti e bilanciamento"
         }
       ],
       "FOIA_5c2": {
@@ -488,18 +484,15 @@
           "descrizione": "Opposizione – il trasgressore può opporsi al verbale o all'ordinanza-ingiunzione entro 30 GG"
         },
         {
-          "fonte": "L. 689/1981",
-          "articolo": "23",
-          "descrizione": "Procedimento – giudice fissa l'udienza; sentenza immediatamente esecutiva"
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "6",
+          "descrizione": "Opposizione a ordinanza-ingiunzione: rito del lavoro, giudice del luogo della violazione, ricorso entro 30 giorni (60 se all'estero) (già art. 23 L. 689/1981, abrogato dal D.Lgs. 150/2011)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 689/1981",
           "articolo": "16",
           "descrizione": "PAGAMENTO IN MISURA RIDOTTA – il trasgressore può pagare 1/3 entro 60 GG dalla contestazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sanzione amministrativa – opposizione e onere della prova"
         }
       ],
       "opposizione_art22": {
@@ -968,10 +961,6 @@
         {
           "fonte": "L. 47/1985 + L. 724/1994 + L. 326/2003",
           "descrizione": "Condono edilizio – condonato solo per le ultime amnistie (ultime norme 2003)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ordine di demolizione – imprescrittibilità e sanatoria"
         }
       ],
       "ordine_demolizione_31": {
@@ -1409,14 +1398,6 @@
           "fonte": "CPA",
           "articolo": "30 c. 3",
           "descrizione": "Termine – domanda di risarcimento: entro 120 GG dal giorno del fatto o dalla conoscenza del provvedimento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Responsabilità PA – colpa e danno ingiusto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Responsabilità PA – prescrizione e decadenza"
         }
       ],
       "responsabilita_PA_30": {
@@ -1854,10 +1835,6 @@
           "fonte": "L. 241/1990",
           "articolo": "2",
           "descrizione": "Termine per provvedere – 30 GG (salvo casi speciali)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Silenzio inadempimento – condizioni e rimedi"
         }
       ],
       "silenzio_inadempimento_31": {

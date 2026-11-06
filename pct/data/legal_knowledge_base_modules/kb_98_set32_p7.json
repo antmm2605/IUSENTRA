@@ -33,14 +33,6 @@
           "fonte": "c.c.",
           "articolo": "2103",
           "descrizione": "Mansioni – il distacco non può comportare demansionamento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Distacco – interesse del distaccante + temporaneità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Distacco illegittimo – conseguenze"
         }
       ],
       "requisiti_distacco_30": {
@@ -629,14 +621,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "3",
           "descrizione": "Riforma art. 2103 – nuovo concetto di equivalenza delle mansioni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Demansionamento – danno esistenziale e biologico"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Jus variandi – nuovi limiti post riforma"
         }
       ],
       "riforma_2103_post_D_Lgs_81_2015": {
@@ -1233,18 +1217,6 @@
         {
           "fonte": "Dir. UE 2006/123/CE (Bolkestein)",
           "descrizione": "Libertà di stabilimento – obbligo di gara per le concessioni"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 17-18/2021",
-          "descrizione": "Concessioni balneari – proroga illegittima per contrasto con Dir. Bolkestein"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Decadenza concessione demaniale – presupposti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Indennizzo per revoca anticipata della concessione"
         }
       ],
       "bolkestein_vs_proroga_Cons_Stato_17_18_2021": {
@@ -1706,15 +1678,10 @@
         },
         {
           "fonte": "CEDU art. 6",
-          "descrizione": "Diritto a un equo processo in un tempo ragionevole"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Legge Pinto – calcolo del ritardo e indennizzo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Termine di 6 mesi dalla definitività – decorrenza"
+          "descrizione": "Diritto a un equo processo in un tempo ragionevole",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "durata_ragionevole_L89_art2c2bis": {
@@ -2245,14 +2212,6 @@
         {
           "fonte": "D.Lgs. 154/2013",
           "descrizione": "Riforma filiazione – unicità dello stato di figlio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Riconoscimento falso – impugnazione e DNA"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Terzo interessato – legittimazione e interesse ad agire"
         }
       ],
       "differenza_da_412001_e_412005": {

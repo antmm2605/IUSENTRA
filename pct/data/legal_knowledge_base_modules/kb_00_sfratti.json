@@ -168,20 +168,102 @@
           "Eventuale indennità per perdita avviamento ex art. 34 L. 392/1978 per immobili ad uso commerciale con contatto diretto con il pubblico"
         ],
         "campi_obbligatori_aggiuntivi": [
-          {"id": "destinazione_uso_specifica", "label": "Destinazione d'uso specifica (commerciale, industriale, artigianale, professionale, alberghiero)", "type": "select", "required": true},
-          {"id": "indennita_avviamento_dovuta", "label": "Indennità di avviamento dovuta?", "type": "boolean", "required": true},
-          {"id": "indennita_avviamento_importo", "label": "Importo indennità (= 18 mensilità canone, 21 per alberghiere)", "type": "currency", "required": false, "depends_on": "indennita_avviamento_dovuta=true"}
+          {
+            "id": "destinazione_uso_specifica",
+            "label": "Destinazione d'uso specifica (commerciale, industriale, artigianale, professionale, alberghiero)",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "indennita_avviamento_dovuta",
+            "label": "Indennità di avviamento dovuta?",
+            "type": "boolean",
+            "required": true
+          },
+          {
+            "id": "indennita_avviamento_importo",
+            "label": "Importo indennità (= 18 mensilità canone, 21 per alberghiere)",
+            "type": "currency",
+            "required": false,
+            "depends_on": "indennita_avviamento_dovuta=true"
+          }
         ],
         "normativa_aggiuntiva": [
-          {"fonte": "L. 392/1978", "articolo": "27-29", "descrizione": "Durata locazioni uso diverso"},
-          {"fonte": "L. 392/1978", "articolo": "34", "descrizione": "Indennità per perdita avviamento"},
-          {"fonte": "L. 392/1978", "articolo": "35", "descrizione": "Esclusioni indennità avviamento"}
+          {
+            "fonte": "L. 392/1978",
+            "articolo": "27-29",
+            "descrizione": "Durata locazioni uso diverso"
+          },
+          {
+            "fonte": "L. 392/1978",
+            "articolo": "34",
+            "descrizione": "Indennità per perdita avviamento"
+          },
+          {
+            "fonte": "L. 392/1978",
+            "articolo": "35",
+            "descrizione": "Esclusioni indennità avviamento"
+          }
         ],
         "avvertenze_redazionali": [
           "Verificare se sussiste il diritto all'indennità di avviamento: l'esecuzione del rilascio è subordinata all'effettivo pagamento dell'indennità (art. 34, c. 2, L. 392/78)",
           "Per cessazione anticipata da parte del locatore (diniego rinnovo prima scadenza) servono motivi tassativi ex art. 29 L. 392/78"
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "657",
+          "descrizione": "Intimazione di licenza o di sfratto per finita locazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "663",
+          "descrizione": "Convalida se l'intimato non compare o non si oppone"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "665",
+          "descrizione": "Ordinanza di rilascio con riserva delle eccezioni"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "667",
+          "descrizione": "Mutamento del rito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "668",
+          "descrizione": "Opposizione dopo la convalida"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "447-bis",
+          "descrizione": "Rito delle locazioni"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "27, 28, 29",
+          "descrizione": "Uso diverso: durata, rinnovazione e diniego alla prima scadenza"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Intimazione di licenza o di sfratto per finita locazione (art. 657 c.p.c.) - uso diverso",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Opposizione tardiva dopo la convalida",
+          "decorrenza": "esecuzione",
+          "natura": "decadenza",
+          "norma": "art. 668 c.p.c.",
+          "giorni": 10
+        }
+      ]
     },
     {
       "codice": "030011",
@@ -297,14 +379,81 @@
           "note": "Il termine di grazia ex art. 55 L. 392/78 NON si applica alle locazioni uso diverso (Cass. SS.UU. 272/2014)"
         },
         "campi_aggiuntivi": [
-          {"id": "destinazione_uso_specifica", "label": "Destinazione d'uso", "type": "select", "required": true},
-          {"id": "clausola_risolutiva_espressa", "label": "Clausola risolutiva espressa?", "type": "boolean", "required": true}
+          {
+            "id": "destinazione_uso_specifica",
+            "label": "Destinazione d'uso",
+            "type": "select",
+            "required": true
+          },
+          {
+            "id": "clausola_risolutiva_espressa",
+            "label": "Clausola risolutiva espressa?",
+            "type": "boolean",
+            "required": true
+          }
         ],
         "avvertenze_redazionali": [
           "NON inserire avvertimento ex art. 55 L. 392/78 (non applicabile)",
           "Valutare richiesta di risoluzione contrattuale ex art. 1456 c.c. in presenza di CRE"
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "658",
+          "descrizione": "Intimazione di sfratto per morosità e ingiunzione per i canoni"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "663",
+          "descrizione": "Convalida se l'intimato non compare o non si oppone"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "665",
+          "descrizione": "Ordinanza di rilascio con riserva delle eccezioni"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "667",
+          "descrizione": "Mutamento del rito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "668",
+          "descrizione": "Opposizione dopo la convalida"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "447-bis",
+          "descrizione": "Rito delle locazioni"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "27, 28, 29",
+          "descrizione": "Uso diverso: durata, rinnovazione e diniego alla prima scadenza"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Intimazione di licenza o di sfratto per morosità (art. 658 c.p.c.) - uso diverso",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Opposizione tardiva dopo la convalida",
+          "decorrenza": "esecuzione",
+          "natura": "decadenza",
+          "norma": "art. 668 c.p.c.",
+          "giorni": 10
+        }
+      ],
+      "avvertenze_redazionali": [
+        "La sanatoria della morosità in udienza dell'art. 55 L. 392/1978 è riferita ai canoni e agli oneri dell'art. 5 (locazioni abitative): per l'uso diverso verificarne l'applicabilità prima dell'udienza."
+      ]
     },
     {
       "codice": "030021",

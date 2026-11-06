@@ -1357,3 +1357,25 @@ main.iu-content.iu-li-fullscreen-mode .iu-li-page {
 .iu-li-normativa-materia h4 { margin: 0; font-size: .95rem; }
 .iu-li-normativa-materia h4 span { color: var(--iu-od-muted); font-weight: 400; }
 @media (max-width: 700px) { .iu-li-normativa-materie-filtri { flex-direction: column; align-items: stretch; } .iu-li-normativa-materie-filtri > label { width: 100%; } }
+
+/* Ricerca per estremi dell'atto: tipo, numero, anno, articolo e comma su una riga, più stretti dei filtri. */
+.iu-li-estremi .iu-li-filter-grid {
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  margin-top: var(--iu-od-space-3);
+}
+
+.iu-li-estremi .iu-li-filter-grid input {
+  background: var(--iu-od-surface);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-source-card-radius);
+  color: var(--iu-od-text);
+  min-height: var(--iu-touch-target, 2.75rem);
+  min-width: 0;
+  padding: var(--iu-od-space-2) var(--iu-od-space-3);
+  width: 100%;
+}
+
+.iu-li-estremi .iu-li-filter-grid input:focus {
+  box-shadow: var(--iu-od-source-focus-ring);
+  outline: 2px solid transparent;
+}

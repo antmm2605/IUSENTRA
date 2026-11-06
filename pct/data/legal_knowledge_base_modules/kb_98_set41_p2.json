@@ -23,14 +23,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "RC aquiliana – residuale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Art. 2053 – responsabilità semi-oggettiva e vizio di costruzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Crollo parziale – balcone o pensilina"
         }
       ],
       "responsabilita_2053": {
@@ -482,14 +474,6 @@
           "fonte": "c.p.",
           "articolo": "449",
           "descrizione": "Incendio colposo – reato"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Incendio propagatosi – chi risponde e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Incendio da impianto elettrico difettoso – responsabilità del proprietario"
         }
       ],
       "responsabilita_incendio": {
@@ -948,14 +932,6 @@
           "fonte": "D.Lgs. 285/1992 (CdS)",
           "articolo": "14",
           "descrizione": "Obblighi di manutenzione dell'ente proprietario della strada"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ente proprietario strada – 2051 o 2043 in base all'estensione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Strade comunali – custodia e buca nel manto stradale"
         }
       ],
       "art_2051_vs_2043_strade": {
@@ -1455,7 +1431,10 @@
         },
         {
           "fonte": "Cass. SU 26972/2008",
-          "descrizione": "Danno non patrimoniale unitario – biologico, morale, esistenziale: liquidazione unitaria"
+          "descrizione": "Danno non patrimoniale unitario – biologico, morale, esistenziale: liquidazione unitaria",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjQyMDIyRA%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31321/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "artt. 138-139 D.Lgs. 209/2005 (Cod. Ass.)",
@@ -1464,10 +1443,6 @@
         {
           "fonte": "Tabelle Milanesi",
           "descrizione": "Standard de facto per la liquidazione del danno biologico – usate da molti Tribunali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Danno biologico – personalizzazione e tabelle"
         }
       ],
       "danno_non_patrimoniale_2059": {
@@ -2012,14 +1987,6 @@
           "fonte": "c.c.",
           "articolo": "2236",
           "descrizione": "Responsabilità professionale – colpa grave per problemi tecnici di speciale difficoltà"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Chirurgia estetica – obbligazione di risultato vs mezzi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Informazione preoperatoria – necessità e contenuto specifico per interventi estetici"
         }
       ],
       "obbligazione_di_risultato_estetica": {

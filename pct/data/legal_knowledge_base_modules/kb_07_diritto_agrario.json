@@ -85,11 +85,45 @@
           "Cessazione per altre cause (morte, perdita qualifica)"
         ],
         "campi_aggiuntivi": [
-          {"id": "motivo_rilascio", "label": "Motivo rilascio", "type": "select", "required": true, "options": ["inadempimento_canone", "cattiva_coltivazione", "mutamento_ordinamento", "recesso_gravi_motivi", "perdita_qualifica_coltivatore", "morte_affittuario", "altro"]},
-          {"id": "descrizione_inadempimento", "label": "Descrizione inadempimento", "type": "textarea"},
-          {"id": "diffida_ad_adempiere", "label": "Diffida ad adempiere notificata (data)", "type": "date"}
+          {
+            "id": "motivo_rilascio",
+            "label": "Motivo rilascio",
+            "type": "select",
+            "required": true,
+            "options": [
+              "inadempimento_canone",
+              "cattiva_coltivazione",
+              "mutamento_ordinamento",
+              "recesso_gravi_motivi",
+              "perdita_qualifica_coltivatore",
+              "morte_affittuario",
+              "altro"
+            ]
+          },
+          {
+            "id": "descrizione_inadempimento",
+            "label": "Descrizione inadempimento",
+            "type": "textarea"
+          },
+          {
+            "id": "diffida_ad_adempiere",
+            "label": "Diffida ad adempiere notificata (data)",
+            "type": "date"
+          }
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Azione di condanna al rilascio del fondo per altri motivi",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Contratto agrario: verificare il tentativo di conciliazione previsto dalla legislazione agraria prima della domanda."
+      ]
     },
     {
       "codice": "320003",
@@ -100,13 +134,52 @@
         "atto_principale_specifico": {
           "tipo_atto": "ricorso_pagamento_canone_agrario",
           "campi_chiave": [
-            {"id": "tipo_somma", "label": "Tipo somma richiesta", "type": "select", "required": true, "options": ["canone_arretrato", "indennita_miglioramenti", "risarcimento_danni_fondo", "restituzione_anticipi", "rivalutazione_canone", "altre_somme_contrattuali"]},
-            {"id": "importo_dovuto", "label": "Importo dovuto", "type": "currency", "required": true},
-            {"id": "periodo_riferimento", "label": "Periodo di riferimento", "type": "string", "required": true},
-            {"id": "interessi_decorrenza", "label": "Interessi (decorrenza)", "type": "date"}
+            {
+              "id": "tipo_somma",
+              "label": "Tipo somma richiesta",
+              "type": "select",
+              "required": true,
+              "options": [
+                "canone_arretrato",
+                "indennita_miglioramenti",
+                "risarcimento_danni_fondo",
+                "restituzione_anticipi",
+                "rivalutazione_canone",
+                "altre_somme_contrattuali"
+              ]
+            },
+            {
+              "id": "importo_dovuto",
+              "label": "Importo dovuto",
+              "type": "currency",
+              "required": true
+            },
+            {
+              "id": "periodo_riferimento",
+              "label": "Periodo di riferimento",
+              "type": "string",
+              "required": true
+            },
+            {
+              "id": "interessi_decorrenza",
+              "label": "Interessi (decorrenza)",
+              "type": "date"
+            }
           ]
         }
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Azione di condanna al pagamento di somme dovute per legge o per contratto",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Contratto agrario: verificare il tentativo di conciliazione previsto dalla legislazione agraria prima della domanda."
+      ]
     },
     {
       "codice": "320999",

@@ -33,14 +33,6 @@
           "fonte": "c.p.c.",
           "articolo": "614-bis",
           "descrizione": "MISURE COERCITIVE – penale per ogni violazione dell'obbligo di rilascio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Rilascio immobile – resistenza e misure coercitive"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Terzo detentore dell'immobile – titolo e opposizione"
         }
       ],
       "procedura_rilascio_608": {
@@ -524,14 +516,6 @@
           "fonte": "c.p.c.",
           "articolo": "591-ter",
           "descrizione": "Reclamo – avverso gli atti del delegato al GE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Vendita senza incanto – offerta minima e reclamo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Reclamo 591-ter – motivi ammissibili"
         }
       ],
       "vendita_senza_incanto_573": {
@@ -983,14 +967,6 @@
           "fonte": "c.c.",
           "articolo": "2652 c. 2",
           "descrizione": "Effetti nei confronti dei terzi – la sentenza favorevole è opponibile ai terzi che hanno trascritto DOPO la domanda"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Trascrizione domanda giudiziale – acquirente in buona fede"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Domanda di nullità trascritta – efficacia erga omnes"
         }
       ],
       "effetto_della_trascrizione_2652": {
@@ -1368,20 +1344,13 @@
         {
           "fonte": "c.p.c.",
           "articolo": "683",
-          "descrizione": "Revoca del sequestro – per insufficienza del fumus"
+          "descrizione": "Revoca del sequestro – per insufficienza del fumus",
+          "abrogata_da": "L. 26 novembre 1990, n. 353"
         },
         {
           "fonte": "c.p.c.",
           "articolo": "669-octies",
           "descrizione": "Inefficacia – se non si avvia il giudizio di merito entro 20 GG"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sequestro conservativo – fumus crediti e periculum"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Terzo oppositor al sequestro – titolo e onere prova"
         }
       ],
       "fumus_e_periculum_671": {
@@ -1862,14 +1831,6 @@
           "fonte": "CPA",
           "articolo": "31 c. 4",
           "descrizione": "Impugnazione del silenzio assenso – da parte del controinteressato"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 15/2011",
-          "descrizione": "Silenzio assenso – presupposti e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Silenzio assenso e revoca – condizioni"
         }
       ],
       "silenzio_assenso_art20": {

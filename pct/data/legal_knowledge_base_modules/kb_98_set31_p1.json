@@ -23,14 +23,6 @@
           "fonte": "c.p.c.",
           "articolo": "473-bis.30 e ss.",
           "descrizione": "Rito Cartabia per revisione"
-        },
-        {
-          "fonte": "Cass. SU 18285/2020",
-          "descrizione": "Sopravvenienza rilevante – variazione significativa e stabile"
-        },
-        {
-          "fonte": "Cass. SU 11476/2022",
-          "descrizione": "Revoca assegno per autosufficienza economica raggiunta"
         }
       ],
       "differenza_da_111080_divorzio": {
@@ -430,14 +422,6 @@
           "fonte": "c.c.",
           "articolo": "1116",
           "descrizione": "Vendita della cosa indivisibile – se non può essere divisa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Comunione – divisione in natura vs vendita; criteri"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Divisione giudiziale immobile – rimborso spese e indennità"
         }
       ],
       "azione_di_divisione_1111": {
@@ -884,14 +868,6 @@
           "fonte": "c.c.",
           "articolo": "907",
           "descrizione": "Distanza per nuove costruzioni dalle finestre"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Comunione forzosa – calcolo del corrispettivo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Sopraelevazione – indennità"
         }
       ],
       "comunione_forzosa_874": {
@@ -1300,14 +1276,6 @@
         {
           "fonte": "Reg. UE 2016/679 (GDPR)",
           "descrizione": "Obblighi del fornitore IT come data processor"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "SLA nel contratto IT – natura e risarcimento per inadempimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Appalto software – vizi e collaudo"
         }
       ],
       "SLA_service_level_agreement": {
@@ -1664,14 +1632,6 @@
         {
           "fonte": "Conv. Atene 2002",
           "descrizione": "Danni ai passeggeri – limiti di responsabilità in DSP"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Vettore marittimo – responsabilità per perdita merce"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Passeggero marittimo – danno e risarcimento"
         }
       ],
       "responsabilita_per_merci": {

@@ -39,15 +39,10 @@
         },
         {
           "fonte": "Cass. SU 20943/2022",
-          "descrizione": "Responsabilità oggettiva da cose – principi applicabili per analogia"
-        },
-        {
-          "fonte": "Cass. SU 8348/2020",
-          "descrizione": "Art. 2052 – responsabilità oggettiva + caso fortuito come unica esimente"
-        },
-        {
-          "fonte": "Cass. SU 11691/2023",
-          "descrizione": "Animale selvatico di proprietà pubblica – Regione o Comune custodi"
+          "descrizione": "Responsabilità oggettiva da cose – principi applicabili per analogia",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022U20943O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "responsabilita_oggettiva_2052": {
@@ -348,15 +343,10 @@
         },
         {
           "fonte": "Cass. SU 19161/2017",
-          "descrizione": "Mediazione atipica – accordo scritto sulla provvigione"
-        },
-        {
-          "fonte": "Cass. SU 8222/2021",
-          "descrizione": "Efficienza causale dell'intervento del mediatore sulla conclusione dell'affare"
-        },
-        {
-          "fonte": "Cass. SU 9065/2024",
-          "descrizione": "Mancata iscrizione MURO/albo agenti – nullità del contratto di mediazione"
+          "descrizione": "Mediazione atipica – accordo scritto sulla provvigione",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022215321O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 15321/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_per_la_provvigione_1755": {
@@ -641,14 +631,6 @@
           "fonte": "c.c.",
           "articolo": "2643 n. 4",
           "descrizione": "Trascrizione delle sentenze che accertano servitù"
-        },
-        {
-          "fonte": "Cass. SU 14594/2021",
-          "descrizione": "Distinzione confessoria (1079) vs negatoria (949) – oneri probatori"
-        },
-        {
-          "fonte": "Cass. SU 10523/2023",
-          "descrizione": "Azione confessoria – imprescrittibile mentre persiste l'ostacolo"
         }
       ],
       "distinzione_confessoria_vs_negatoria": {

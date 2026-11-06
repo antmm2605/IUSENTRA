@@ -39,7 +39,7 @@ from .pec import pec
 from .prossimi_passi import prossimi_passi
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.10.12.lettura-fascicolo.v13-esiti-fonti"
+VERSIONE_LETTURA = "2026.11.06.lettura-fascicolo.v14-percorso-dopo-sentenza"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -178,6 +178,10 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         "verifiche": dict(dati.verifiche or {}),
         "archivio": archivio_letto,
     }
+    if fase_letta.get("codice") == "decisa":
+        from .percorso import percorso_dopo_sentenza
+
+        lettura["percorso"] = percorso_dopo_sentenza(testata, documenti_letti)
     lettura["lacune"] = _lacune(lettura)
     lettura["narrativa"] = narrativa(lettura)
     return lettura

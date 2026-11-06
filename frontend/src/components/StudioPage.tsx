@@ -58,7 +58,7 @@ function ModuleList({ modules, legacy = false }: { modules: Array<OperationalMod
 
 function ProfessionalEditorPanel() {
   return (
-    <Panel title="Editor professionale" subtitle="Redazione, lettura firmati e ricerca documentale sempre raggiungibili dallo Studio.">
+    <Panel title="Editor di atti e documenti" subtitle="Redazione, lettura firmati e ricerca documentale sempre raggiungibili dallo Studio.">
       <div className="iu-studio-editor">
         <article className="iu-studio-editor__lead">
           <div className="iu-studio-editor__icon"><PenLine size={20} /></div>

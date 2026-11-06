@@ -78,15 +78,10 @@
         },
         {
           "fonte": "Cass. SU 15781/2005",
-          "descrizione": "Responsabilità avvocato - perdita di chance processuale"
-        },
-        {
-          "fonte": "Cass. SU 10636/2021",
-          "descrizione": "Obbligazione di mezzi vs risultato - responsabilità professionale"
-        },
-        {
-          "fonte": "Cass. SU 28056/2023",
-          "descrizione": "Malpractice professionale - art. 2236 e colpa grave"
+          "descrizione": "Responsabilità avvocato - perdita di chance processuale",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023209063O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 09063/2023 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "distinzione_obbligazione_mezzi_vs_risultato": {
@@ -523,14 +518,6 @@
         {
           "fonte": "Direttiva UE 1999/70/CE",
           "descrizione": "Lavoro a termine - accordo-quadro CES/UNICE/CEEP"
-        },
-        {
-          "fonte": "Cass. SU 26246/2023",
-          "descrizione": "Causali di proroga/rinnovo - valutazione giudiziale"
-        },
-        {
-          "fonte": "Cass. SU 11969/2024",
-          "descrizione": "Conversione a TI - indennizzo e retroattività"
         }
       ],
       "evoluzione_normativa_critica": {
@@ -923,18 +910,6 @@
           "fonte": "c.c.",
           "articolo": "2727-2729",
           "descrizione": "Presunzioni - rilevanti per prova della proprietà"
-        },
-        {
-          "fonte": "Cass. SU 28220/2013",
-          "descrizione": "Azione di rivendicazione - onere della prova e diabolica probatio"
-        },
-        {
-          "fonte": "Cass. SU 4861/2022",
-          "descrizione": "Rivendicazione vs azione di accertamento della proprietà"
-        },
-        {
-          "fonte": "Cass. SU 16612/2023",
-          "descrizione": "Prova della proprietà - catena titoli o usucapione"
         }
       ],
       "presupposti_sostanziali": [
@@ -1312,14 +1287,6 @@
           "fonte": "c.c.",
           "articolo": "2355-bis",
           "descrizione": "Limitazioni al trasferimento di azioni S.p.A. - applicabile per analogia a S.r.l."
-        },
-        {
-          "fonte": "Cass. SU 7198/2021",
-          "descrizione": "Clausola di prelazione - esercizio e conseguenze della violazione"
-        },
-        {
-          "fonte": "Cass. SU 15962/2022",
-          "descrizione": "Gradimento mero vs motivato - legittimità e recesso"
         }
       ],
       "tipologie_di_clausole_limitative": {
@@ -1653,7 +1620,8 @@
         {
           "fonte": "c.c.",
           "articolo": "420",
-          "descrizione": "Provvedimenti provvisori urgenti"
+          "descrizione": "Provvedimenti provvisori urgenti",
+          "abrogata_da": "L. 13 maggio 1978, n. 180"
         },
         {
           "fonte": "c.c.",
@@ -1688,10 +1656,6 @@
         {
           "fonte": "L. 6/2004",
           "descrizione": "Istituzione AdS - principio di favor per misure meno invasive"
-        },
-        {
-          "fonte": "Cass. SU 25366/2006",
-          "descrizione": "Priorità AdS rispetto a interdizione/inabilitazione"
         }
       ],
       "distinzione_interdizione_inabilitazione_AdS": {

@@ -28,14 +28,6 @@
           "fonte": "c.p.c.",
           "articolo": "819",
           "descrizione": "Rapporto con il giudice ordinario – la pendenza dell'arbitrato non impedisce il processo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Eccezione di compromesso – carattere processuale e tempestività"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Clausola compromissoria – valida nonostante l'invalidità del contratto principale"
         }
       ],
       "eccezione_di_compromesso_819ter": {
@@ -551,14 +543,6 @@
           "fonte": "Reg. UE 2019/1111 (Bruxelles II-ter)",
           "articolo": "20",
           "descrizione": "Litispendenza internazionale UE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Litispendenza – identità di cause e giudice competente"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Connessione – riunione e sospensione"
         }
       ],
       "litispendenza_art39": {
@@ -990,14 +974,6 @@
           "fonte": "CPA",
           "articolo": "117",
           "descrizione": "Procedimento speciale sul silenzio – accelerato (2 mesi)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Silenzio PA – obbligo di provvedere e limiti"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Silenzio inadempimento – nomina commissario ad acta"
         }
       ],
       "silenzio_inadempimento": {
@@ -1478,14 +1454,6 @@
           "fonte": "CPA",
           "articolo": "119",
           "descrizione": "Rito speciale appalti – termine 30 GG, deposito immediato dell'offerta"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 4/2021",
-          "descrizione": "Ricorso incidentale escludente – ordine di esame"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Esclusione per anomalia – motivazione e proporzionalità"
         }
       ],
       "cause_esclusione_94_99": {
@@ -1951,10 +1919,6 @@
         {
           "fonte": "D.L. 347/2003 (Marzano)",
           "descrizione": "Procedura accelerata per grandi crisi aziendali strategiche"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Amministrazione straordinaria – presupposti e tutele dei creditori"
         }
       ],
       "differenza_da_LG": {

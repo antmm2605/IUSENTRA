@@ -545,6 +545,9 @@ def build_document_plan_for_guida(guida: dict[str, Any] | None, fascicolo: dict[
 def build_react_guida_pratica_payload(*, codice: str, fascicolo: dict[str, Any] | None = None, service: GuidaPraticaService | None = None) -> dict[str, Any]:
     service = service or get_guida_pratica_service()
     guida = service.get_guidance(codice, fascicolo=fascicolo or {})
+    # Giurisprudenza solo dall'archivio del software: citazioni verificate e decisioni che applicano le norme della scheda.
+    from web.services.guida_giurisprudenza_runtime import arricchisci_giurisprudenza
+    guida = arricchisci_giurisprudenza(guida)
     checklist = service.get_checklist(codice, {"fascicolo": fascicolo or {}})
     document_plan = build_document_plan_for_guida(guida, fascicolo or {})
     return {
@@ -637,6 +640,7 @@ def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], A
         }
     payload = build_react_guida_pratica_payload(codice=codice, fascicolo=context, service=service)
     payload["fascicolo"] = context
+    # Fase reale e percorso dopo la sentenza arrivano da /guida-pratica/fase (Lettura del fascicolo): la guida si apre subito.
     return payload
 
 

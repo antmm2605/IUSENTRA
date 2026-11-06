@@ -25,9 +25,10 @@
           "descrizione": "OPPOSIZIONE all'ordinanza-ingiunzione – termini e forme"
         },
         {
-          "fonte": "L. 689/1981",
-          "articolo": "23",
-          "descrizione": "Giudizio di opposizione – rito"
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "6",
+          "descrizione": "Opposizione a ordinanza-ingiunzione: rito del lavoro, giudice del luogo della violazione, ricorso entro 30 giorni (60 se all'estero) (già art. 23 L. 689/1981, abrogato dal D.Lgs. 150/2011)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 689/1981",
@@ -43,14 +44,6 @@
           "fonte": "D.Lgs. 150/2011 (semplificazione riti)",
           "articolo": "6",
           "descrizione": "Controversie in materia di opposizione a sanzioni amministrative"
-        },
-        {
-          "fonte": "Cass. SU 8767/2019",
-          "descrizione": "Opposizione sanzione – onere della prova PA vs opponente"
-        },
-        {
-          "fonte": "Cass. SU 15314/2022",
-          "descrizione": "Tardività dell'opposizione – inammissibilità"
         }
       ],
       "termini_di_opposizione": {
@@ -335,14 +328,6 @@
         {
           "fonte": "L. 6/2004",
           "descrizione": "Istituzione dell'AdS – misura preferita alla tutela piena"
-        },
-        {
-          "fonte": "Cass. SU 11019/2019",
-          "descrizione": "AdS misura ordinaria e preferita rispetto a interdizione"
-        },
-        {
-          "fonte": "Cass. SU 6758/2022",
-          "descrizione": "AdS – ampiezza dei poteri del GT e adattamento alle esigenze specifiche"
         }
       ],
       "vantaggi_AdS_su_interdizione": {
@@ -657,10 +642,6 @@
           "fonte": "c.p.c.",
           "articolo": "541-542",
           "descrizione": "Distribuzione del ricavato"
-        },
-        {
-          "fonte": "Cass. SU 16540/2020",
-          "descrizione": "Impignorabili – interpretazione restrittiva delle eccezioni"
         }
       ],
       "beni_impignorabili_514": [
@@ -907,14 +888,6 @@
           "fonte": "D.M. 1444/1968",
           "articolo": "9",
           "descrizione": "Distanze minime di 10 metri tra pareti finestrate"
-        },
-        {
-          "fonte": "Cass. SU 11486/2023",
-          "descrizione": "Violazione distanze – tutela reale (arretramento) o solo risarcitoria"
-        },
-        {
-          "fonte": "Cass. SU 7949/2024",
-          "descrizione": "Regolamento edilizio come integrazione dell'art. 873"
         }
       ],
       "tutele_disponibili_per_violazione_distanze": {
@@ -1163,15 +1136,10 @@
         },
         {
           "fonte": "Cass. SU 20943/2022",
-          "descrizione": "Art. 2051 – inversione onere prova: custode deve provare caso fortuito"
-        },
-        {
-          "fonte": "Cass. SU 14996/2023",
-          "descrizione": "Infiltrazioni condominiali – responsabilità del condominio per parti comuni"
-        },
-        {
-          "fonte": "Cass. SU 7697/2024",
-          "descrizione": "Infiltrazioni tra unità private – responsabilità del proprietario del piano superiore"
+          "descrizione": "Art. 2051 – inversione onere prova: custode deve provare caso fortuito",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022U20943O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "soggetti_responsabili_nelle_infiltrazioni": {

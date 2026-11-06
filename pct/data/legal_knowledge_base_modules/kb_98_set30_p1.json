@@ -18,14 +18,6 @@
           "fonte": "c.c.",
           "articolo": "337-septies",
           "descrizione": "Il giudice dispone a favore del figlio maggiorenne non economicamente indipendente il mantenimento a carico dei genitori"
-        },
-        {
-          "fonte": "Cass. SU 18197/2021",
-          "descrizione": "Non autosufficienza – condizioni e limite temporale del mantenimento"
-        },
-        {
-          "fonte": "Cass. SU 9673/2023",
-          "descrizione": "Figlio maggiorenne che non cerca lavoro – possibile cessazione mantenimento"
         }
       ],
       "presupposti_337septies": {
@@ -435,14 +427,6 @@
         {
           "fonte": "D.Lgs. 154/2013 (riforma filiazione)",
           "descrizione": "Unicità dello stato di figlio – stesso trattamento per tutti i figli"
-        },
-        {
-          "fonte": "Cass. SU 7482/2020",
-          "descrizione": "Accertamento giudiziale paternità – DNA come prova dirimente"
-        },
-        {
-          "fonte": "Cass. SU 9006/2024",
-          "descrizione": "Rifiuto del DNA da parte del presunto padre – argomento di prova"
         }
       ],
       "differenza_da_riconoscimento_volontario": {
@@ -942,14 +926,6 @@
           "fonte": "c.c.",
           "articolo": "1499",
           "descrizione": "Prelazione legale – meccanismo analogo"
-        },
-        {
-          "fonte": "Cass. SU 14647/2020",
-          "descrizione": "Prelazione del conduttore – comunicazione e termini"
-        },
-        {
-          "fonte": "Cass. SU 9134/2023",
-          "descrizione": "Riscatto entro 6 mesi – decorrenza e condizioni"
         }
       ],
       "meccanismo_38_L392": {
@@ -1406,14 +1382,6 @@
         {
           "fonte": "DM 1444/1968",
           "descrizione": "Distanze minime tra costruzioni – 10 metri per edifici con finestre"
-        },
-        {
-          "fonte": "Cass. SU 14489/2019",
-          "descrizione": "Distanze – regolamenti edilizi comunali più restrittivi prevalgono"
-        },
-        {
-          "fonte": "Cass. SU 16598/2023",
-          "descrizione": "Distanza minima 10 metri (DM 1444) – inderogabilità"
         }
       ],
       "distanze_minime": {
@@ -1796,14 +1764,6 @@
           "fonte": "c.c.",
           "articolo": "1055",
           "descrizione": "Cessazione dell'interclusione – estinzione della servitù"
-        },
-        {
-          "fonte": "Cass. SU 14736/2021",
-          "descrizione": "Fondo intercluso – accesso insufficiente + percorso meno dannoso"
-        },
-        {
-          "fonte": "Cass. SU 9812/2023",
-          "descrizione": "Indennità per servitù coattiva – calcolo equitativo"
         }
       ],
       "presupposto_interclusione": {

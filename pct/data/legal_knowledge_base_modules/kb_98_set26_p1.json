@@ -32,7 +32,8 @@
         {
           "fonte": "c.c.",
           "articolo": "966",
-          "descrizione": "AFFRANCAZIONE – l'enfiteuta può acquistare la proprietà del fondo pagando 15 volte il canone annuo"
+          "descrizione": "AFFRANCAZIONE – l'enfiteuta può acquistare la proprietà del fondo pagando 15 volte il canone annuo",
+          "abrogata_da": "L. 18 dicembre 1970, n. 1138"
         },
         {
           "fonte": "c.c.",
@@ -42,14 +43,6 @@
         {
           "fonte": "L. 1138/1970",
           "descrizione": "Revisione del canone enfiteutico – aggiornamento al valore attuale"
-        },
-        {
-          "fonte": "Cass. SU 14734/2021",
-          "descrizione": "Enfiteusi – natura e affrancazione; calcolo del prezzo"
-        },
-        {
-          "fonte": "Cass. SU 9812/2023",
-          "descrizione": "Devoluzione per non miglioramento – presupposti e prova"
         }
       ],
       "istituto_in_declino_ma_presente": {
@@ -285,14 +278,6 @@
         {
           "fonte": "Direttiva UE 2004/35/CE (ELD)",
           "descrizione": "Responsabilità ambientale – principio chi inquina paga"
-        },
-        {
-          "fonte": "Cass. SU 21504/2019",
-          "descrizione": "Danno ambientale privato – risarcimento al proprietario del fondo inquinato"
-        },
-        {
-          "fonte": "Cass. SU 9413/2022",
-          "descrizione": "Bonifica e ripristino ambientale – obbligo e responsabilità"
         }
       ],
       "doppio_binario_danno_ambientale": {
@@ -517,14 +502,6 @@
         {
           "fonte": "AEC (Accordi Economici Collettivi)",
           "descrizione": "Integrano la disciplina civilistica dell'agenzia"
-        },
-        {
-          "fonte": "Cass. SU 12945/2021",
-          "descrizione": "Indennità fine rapporto agente – calcolo e presupposti"
-        },
-        {
-          "fonte": "Cass. SU 8234/2023",
-          "descrizione": "Patto non concorrenza agente – durata e validità"
         }
       ],
       "diritto_alla_provvigione_1748": {
@@ -746,14 +723,6 @@
           "fonte": "c.c.",
           "articolo": "2437-sexies",
           "descrizione": "Azioni riscattabili"
-        },
-        {
-          "fonte": "Cass. SU 7614/2021",
-          "descrizione": "Recesso S.p.A. – cause statutarie aggiuntive e loro validità"
-        },
-        {
-          "fonte": "Cass. SU 11673/2024",
-          "descrizione": "Valore di liquidazione dell'azione – criteri aggiornati"
         }
       ],
       "differenza_da_recesso_SRL_2473": {
@@ -1004,14 +973,6 @@
           "fonte": "c.c.",
           "articolo": "313",
           "descrizione": "Effetti dell'adozione sulla successione"
-        },
-        {
-          "fonte": "Cass. SU 18783/2020",
-          "descrizione": "Adozione del maggiorenne – interesse serio e legittimo"
-        },
-        {
-          "fonte": "Cass. SU 14197/2023",
-          "descrizione": "Revoca per indegnità – presupposti"
         }
       ],
       "differenza_da_adozione_minore": {

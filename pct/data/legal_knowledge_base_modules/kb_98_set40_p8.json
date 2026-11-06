@@ -22,7 +22,14 @@
         {
           "fonte": "c.p.c.",
           "articolo": "711",
-          "descrizione": "Omologazione – il Tribunale omologa gli accordi se non contrari all'interesse dei figli o dell'ordine pubblico"
+          "descrizione": "Omologazione – il Tribunale omologa gli accordi se non contrari all'interesse dei figli o dell'ordine pubblico",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.51",
+          "descrizione": "Procedimento su domanda congiunta (sostituisce l'art. 711 c.p.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "D.L. 132/2014",
@@ -33,10 +40,6 @@
           "fonte": "L. 162/2014",
           "articolo": "12",
           "descrizione": "SEPARAZIONE IN COMUNE – senza figli minori o maggiorenni disabili: accordo davanti all'Ufficiale di Stato Civile"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Separazione – accordi patrimoniali e modificabilità"
         }
       ],
       "vie_alternative": {
@@ -564,7 +567,10 @@
         },
         {
           "fonte": "Cass. SU 18287/2018",
-          "descrizione": "Criteri NUOVI per l'assegno divorzile – principio compensativo e perequativo oltre al sostentamento"
+          "descrizione": "Criteri NUOVI per l'assegno divorzile – principio compensativo e perequativo oltre al sostentamento",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022629920O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 29920/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 898/1970",
@@ -867,10 +873,6 @@
           "fonte": "L. 76/2016",
           "articolo": "1 c. 24-26",
           "descrizione": "SCIOGLIMENTO – analogo alla separazione e al divorzio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Unione civile – diritti patrimoniali e successori"
         }
       ],
       "diritti_unione_civile": {
@@ -1267,10 +1269,6 @@
           "fonte": "L. 76/2016",
           "articolo": "42",
           "descrizione": "Casa familiare – il convivente superstite può rimanere nella casa per 2-5 anni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Convivenza di fatto – diritti e limiti"
         }
       ],
       "differenza_da_matrimonio": {
@@ -1730,14 +1728,6 @@
           "fonte": "c.c.",
           "articolo": "561",
           "descrizione": "Riduzione di donazioni immobiliari – il donatario può liberarsi con il pagamento del conguaglio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Azione di riduzione – presupposti e ordine di riduzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riduzione della donazione indiretta"
         }
       ],
       "ordine_riduzione_555": {

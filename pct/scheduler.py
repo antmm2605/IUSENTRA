@@ -813,6 +813,26 @@ def start_scheduler(app):
     def _legal_updates_batch():
         _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
 
+    @scheduler.scheduled_job("interval", minutes=60, id="giurisprudenza_alimentazione_continua", max_instances=1, coalesce=True)
+    def _giurisprudenza_alimentazione_continua():
+        from pct.giurisprudenza_alimentazione import attiva, esegui_giro
+        from pct.giurisprudenza_corpus import derive_corpus_db_path
+        with app.app_context():
+            if not attiva(app.config):
+                return {"ok": True, "status": "spenta"}
+            archivi = [derive_corpus_db_path(str(app.config.get("GIURISPRUDENZA_DB") or "./intelligence/giurisprudenza.json"))]
+            try:
+                from pct.tenant import GestioneTenant, StatoTenant
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                for studio in tm.lista():
+                    if studio.stato != StatoTenant.SOSPESO:
+                        archivi.append(derive_corpus_db_path(tm.percorsi_dati(studio.slug, reconcile_aliases=False)["GIURISPRUDENZA_DB"]))
+            except Exception as e:  # senza registro degli studi resta l'archivio globale
+                logger.warning("[scheduler] Alimentazione giurisprudenza: studi non letti: %s", e)
+            result = esegui_giro(app.config, archivi_studi=list(dict.fromkeys(archivi)))
+            logger.info("[scheduler] Alimentazione giurisprudenza: %s", result.get("status"))
+            return result
+
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=35), id="cassazione_sentenzeweb_nightly", max_instances=1, coalesce=True)
     def _cassazione_sentenzeweb_nightly():
         from pct.sentenzeweb_nightly import run_nightly

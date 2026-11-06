@@ -33,14 +33,6 @@
           "fonte": "Cost.",
           "articolo": "42 c. 3",
           "descrizione": "Espropriazione: solo per motivi di interesse generale e dietro indennizzo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Espropriazione – giurisdizione e indennizzo congruo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Occupazione senza decreto – risarcimento pieno (non indennizzo)"
         }
       ],
       "indennizzo_art37": {
@@ -506,14 +498,6 @@
           "fonte": "D.Lgs. 42/2004",
           "articolo": "136 ss.",
           "descrizione": "Beni culturali e paesaggistici – autorizzazione paesaggistica aggiuntiva"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Permesso di costruire – diniego e proporzionalità"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Silenzio assenso – comunicazione al richiedente"
         }
       ],
       "silenzio_assenso_PdC": {
@@ -1001,14 +985,6 @@
           "fonte": "D.Lgs. 59/2010",
           "articolo": "12",
           "descrizione": "Libertà di stabilimento – nessun regime autorizzatorio se non giustificato"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "SUAP – silenzio e impugnazione"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "SUAP – conferenza di servizi e dissenso qualificato"
         }
       ],
       "SUAP_funzionamento": {
@@ -1484,14 +1460,6 @@
           "fonte": "D.Lgs. 33/2013",
           "articolo": "5",
           "descrizione": "ACCESSO CIVICO GENERALIZZATO (FOIA) – nessun interesse da dimostrare"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Accesso documentale – interesse qualificato"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 10/2020",
-          "descrizione": "FOIA vs accesso documentale – disciplina differenziata"
         }
       ],
       "tipi_di_accesso": {
@@ -1920,14 +1888,6 @@
         {
           "fonte": "D.Lgs. 174/2016 (Cod. Corte dei Conti)",
           "descrizione": "Procedimento – invito a dedurre, udienza, sentenza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Corte dei Conti – giurisdizione e riparto"
-        },
-        {
-          "fonte": "Corte dei Conti Plenaria 9876/2023",
-          "descrizione": "Colpa grave – interpretazione post D.L. 76/2020"
         }
       ],
       "danno_erariale": {

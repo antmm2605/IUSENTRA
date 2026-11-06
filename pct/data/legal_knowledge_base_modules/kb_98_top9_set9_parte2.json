@@ -59,24 +59,18 @@
           "descrizione": "Licenziamenti collettivi - distinto da individuale GMO"
         },
         {
-          "fonte": "Cass. SU 14490/2019",
-          "descrizione": "GMO - nesso causale tra ragione organizzativa e soppressione posto"
-        },
-        {
-          "fonte": "Cass. SU 11530/2018",
-          "descrizione": "Obbligo di repechage - ricerca alternative occupazionali"
-        },
-        {
-          "fonte": "Cass. SU 15206/2024",
-          "descrizione": "GMO - prova rigorosa delle ragioni e dell'impossibilità di reimpiego"
-        },
-        {
           "fonte": "Corte Cost. 194/2018",
-          "descrizione": "Tutele crescenti - dichiarata incostituzionalità criterio rigido anzianità"
+          "descrizione": "Tutele crescenti - dichiarata incostituzionalità criterio rigido anzianità",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2018/194",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Corte Cost. 22/2024",
-          "descrizione": "Tutele crescenti - intervento su determinazione indennità"
+          "descrizione": "Tutele crescenti - intervento su determinazione indennità",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2024/22",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali_GMO_art_3_L_604_1966": [
@@ -699,14 +693,6 @@
           "fonte": "c.c.",
           "articolo": "2933",
           "descrizione": "Esecuzione in forma specifica obbligo di fare"
-        },
-        {
-          "fonte": "Cass. SU 13029/2023",
-          "descrizione": "Astreintes - presupposti applicazione e quantificazione"
-        },
-        {
-          "fonte": "Cass. SU 21487/2021",
-          "descrizione": "Esecuzione obblighi di fare - limiti fungibilità"
         }
       ],
       "distinzioni_critiche_obblighi": {
@@ -1283,12 +1269,14 @@
         {
           "fonte": "c.c.",
           "articolo": "301",
-          "descrizione": "Diritti successori dell'adottato e dei suoi discendenti"
+          "descrizione": "Diritti successori dell'adottato e dei suoi discendenti",
+          "abrogata_da": "L. 4 maggio 1983, n. 184"
         },
         {
           "fonte": "c.c.",
           "articolo": "302",
-          "descrizione": "Diritti successori dell'adottante - solo nella linea adottiva"
+          "descrizione": "Diritti successori dell'adottante - solo nella linea adottiva",
+          "abrogata_da": "L. 4 maggio 1983, n. 184"
         },
         {
           "fonte": "c.c.",
@@ -1315,12 +1303,11 @@
           "descrizione": "Norme distinte per minori - non applicabili qui"
         },
         {
-          "fonte": "Cass. SU 21163/2018",
-          "descrizione": "Adozione persona maggiore età - estesa anche al figlio del coniuge"
-        },
-        {
           "fonte": "Corte Cost. 79/2022",
-          "descrizione": "Adozione maggiorenne - effetti più ampi sui legami familiari"
+          "descrizione": "Adozione maggiorenne - effetti più ampi sui legami familiari",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2022/79",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -1864,7 +1851,8 @@
         {
           "fonte": "c.c.",
           "articolo": "233",
-          "descrizione": "Indicazioni nell'atto di nascita"
+          "descrizione": "Indicazioni nell'atto di nascita",
+          "abrogata_da": "D.Lgs. 28 dicembre 2013, n. 154"
         },
         {
           "fonte": "c.c.",
@@ -1932,18 +1920,6 @@
         {
           "fonte": "D.Lgs. 149/2022 (Cartabia)",
           "descrizione": "Riforma processo persone e famiglia"
-        },
-        {
-          "fonte": "Cass. SU 21161/2013",
-          "descrizione": "Disconoscimento paternità - prova DNA"
-        },
-        {
-          "fonte": "Cass. SU 16574/2019",
-          "descrizione": "Imprescrittibilità azioni di stato per chi ne ha titolo"
-        },
-        {
-          "fonte": "Cass. SU 6478/2024",
-          "descrizione": "Dichiarazione giudiziale paternità - presupposti probatori"
         }
       ],
       "tipologie_di_azioni_di_stato": {

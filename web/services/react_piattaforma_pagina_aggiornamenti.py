@@ -243,7 +243,7 @@ def adatta(payload: dict[str, Any]) -> dict[str, Any]:
             link("Coda revisioni", INDIRIZZI["revisione"], tone="primary"),
             *collegamenti("cruscotto"),
             link("Notizie in Ricerca legale", "/legal-intelligence/news", external=True),
-            link("Ricerca legale", "/ricerca-legale", external=True),
+            link("Cerca norme e sentenze", "/ricerca-legale", external=True),
         ],
         "sections": [
             actions("Comandi del motore", [azione_motore("scan"), azione_motore("autopublish"), azione_motore("cleanup")], subtitle="Le stesse operazioni della console storica: ricerca nelle fonti verdi, pubblicazione presidiata e pulizia dei duplicati."),

@@ -25,14 +25,6 @@
         {
           "fonte": "DM 6/10/2021",
           "descrizione": "Requisiti tecnici beni 4.0 – interconnessione e caratteristiche"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Crediti 4.0 – revoca per mancanza dei requisiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Beni 4.0 – perizia tecnica e prova"
         }
       ],
       "credito_imposta_40": {
@@ -508,10 +500,6 @@
           "fonte": "D.L. 73/2021",
           "articolo": "26",
           "descrizione": "Bollo fatture e-fattura: integrazione automatica SdI"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Imposta di bollo – soggetti obbligati"
         }
       ],
       "bollo_fatture_elettroniche": {
@@ -1024,14 +1012,6 @@
         {
           "fonte": "Linee guida OCSE 2022",
           "descrizione": "Standard internazionale per il transfer pricing"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Transfer pricing – metodi e inversione onere prova"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Documentazione adeguata – sanzioni ridotte"
         }
       ],
       "arm_s_length": {
@@ -1515,10 +1495,6 @@
         {
           "fonte": "Circ. AE 22/E/2017",
           "descrizione": "IVA di gruppo – responsabilità solidale della controllante"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "IVA di gruppo – rettifica dell'AE"
         }
       ],
       "IVA_di_gruppo": {
@@ -2030,10 +2006,6 @@
           "fonte": "D.L. 124/2023",
           "articolo": "1",
           "descrizione": "Credito ZES 2024 – aliquote dal 15% al 45% in base alla zona e alla dimensione dell'impresa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Credito Mezzogiorno – revoca e mantenimento dell'investimento"
         }
       ],
       "credito_ZES_2024": {

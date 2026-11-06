@@ -43,10 +43,6 @@
           "fonte": "c.c.",
           "articolo": "388",
           "descrizione": "FINE DELLA TUTELA – al compimento dei 18 anni o per cause legali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Nomina del tutore – interesse superiore del minore"
         }
       ],
       "nomina_tutore_346": {
@@ -620,10 +616,6 @@
           "fonte": "Reg. UE 861/2007",
           "articolo": "7",
           "descrizione": "Sentenza – riconosciuta automaticamente in tutta l'UE senza exequatur"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Procedimento europeo – applicabilità in Italia"
         }
       ],
       "quando_si_usa": {
@@ -901,14 +893,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "Responsabilità aquiliana verso il terzo che ha causato l'infortunio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Infortuni domestici – INAIL e azione civile verso il terzo responsabile"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Casalinga infortunata – rendita INAIL e danno differenziale"
         }
       ],
       "assicurazione_INAIL_casalinga": {
@@ -1443,14 +1427,6 @@
         {
           "fonte": "L. 724/1994 (Condono) + L. 326/2003 (Terzo Condono)",
           "descrizione": "Condoni edilizi passati – istanze ancora pendenti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sanzione pecuniaria sostitutiva alla demolizione – presupposti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accertamento di conformità art. 36 – doppia conformità"
         }
       ],
       "sanzione_pecuniaria_vs_demolizione": {
@@ -1892,14 +1868,6 @@
           "fonte": "D.Lgs. 175/2014",
           "articolo": "5 c. 4",
           "descrizione": "Accettazione senza modifiche – tutela del contribuente: nessun controllo formale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "730 precompilato – errori dell'AE e responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Rimborso 730 – redditi non dichiarati o spese non ammesse"
         }
       ],
       "tutele_precompilato_D_Lgs_175": {

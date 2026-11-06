@@ -61,7 +61,7 @@
       "categoria": "Denuncia gravi irregolarità",
       "rito": "Camera di consiglio collegiale",
       "normativa": [
-        {"fonte": "c.c.", "articolo": "2409", "descrizione": "Denunzia al tribunale per gravi irregolarità"}
+        {"fonte": "c.c.", "articolo": "2396-quater", "descrizione": "Denunzia al tribunale per gravi irregolarità degli amministratori: soci del decimo del capitale (ventesimo se la società fa ricorso al mercato del capitale di rischio), ricorso notificato anche alla società (già art. 2409 c.c., abrogato dal D.Lgs. 27 marzo 2026, n. 47)", "verificato_il": "2026-11-06"}
       ],
       "presupposti_sostanziali": [
         "Sospetto fondato di gravi irregolarità nella gestione",
@@ -98,9 +98,9 @@
     {"codice": "453314", "denominazione": "Nomina rappresentante comune obbligazionisti (art. 2417 c.c.) unilaterale", "eredita_da": "451314"},
     {"codice": "453315", "denominazione": "Nomina rappresentante comune comproprietari (artt. 2347, 2468, 2417 c.c.)"},
     {"codice": "453330", "denominazione": "Ricorso al giudice del Registro in materia soggetta al d.l.vo n. 5/2003", "eredita_da": "451330"},
-    {"codice": "453410", "denominazione": "Nomina e revoca di liquidatore (artt. 2275, 2487 c.c.) plurilaterali", "eredita_da": "451310"},
-    {"codice": "453411", "denominazione": "Convocazione di assemblea (art. 2367 c.c.) plurilaterali", "eredita_da": "451311"},
-    {"codice": "453413", "denominazione": "Denunzia al tribunale (art. 2409, 2545-quinquiesdecies c.c.) plurilaterali", "eredita_da": "451313"},
+    {"codice": "453410", "denominazione": "Nomina e revoca di liquidatore (artt. 2275, 2487 c.c.) plurilaterali", "eredita_da": "451310", "verificato_il": "2026-11-06", "normativa": [{"fonte": "c.c.", "articolo": "2275", "descrizione": "Liquidatori nelle società di persone"}, {"fonte": "c.c.", "articolo": "2487", "descrizione": "Nomina e revoca dei liquidatori nelle società di capitali"}, {"fonte": "D.Lgs. 168/2003", "articolo": "3", "descrizione": "Competenza delle sezioni specializzate in materia di impresa"}], "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare i presupposti specifici della materia: Nomina e revoca di liquidatore (artt. 2275, 2487 c.c.) plurilaterali", "obbligatorio": true}]},
+    {"codice": "453411", "denominazione": "Convocazione di assemblea (art. 2367 c.c.) plurilaterali", "eredita_da": "451311", "verificato_il": "2026-11-06", "normativa": [{"fonte": "c.c.", "articolo": "2367", "descrizione": "Convocazione su richiesta dei soci"}, {"fonte": "D.Lgs. 168/2003", "articolo": "3", "descrizione": "Competenza delle sezioni specializzate in materia di impresa"}], "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare i presupposti specifici della materia: Convocazione di assemblea (art. 2367 c.c.) plurilaterali", "obbligatorio": true}]},
+    {"codice": "453413", "denominazione": "Denunzia al tribunale (art. 2409, 2545-quinquiesdecies c.c.) plurilaterali", "eredita_da": "451313", "verificato_il": "2026-11-06", "normativa": [{"fonte": "c.c.", "articolo": "2396-quater", "descrizione": "Denunzia al tribunale per gravi irregolarità degli amministratori"}, {"fonte": "D.Lgs. 168/2003", "articolo": "3", "descrizione": "Competenza delle sezioni specializzate in materia di impresa"}], "adempimenti_propedeutici": [{"step": 1, "azione": "Verificare i presupposti specifici della materia: Denunzia al tribunale (art. 2409, 2545-quinquiesdecies c.c.) plurilaterali", "obbligatorio": true}], "avvertenze_redazionali": ["L'art. 2409 c.c. è abrogato dal D.Lgs. 27 marzo 2026, n. 47: la denunzia al tribunale è ora disciplinata dall'art. 2396-quater c.c. (ricorso notificato anche alla società, soci del decimo o del ventesimo del capitale)."]},
     {"codice": "453420", "denominazione": "Riduzione del capitale per perdite (artt. 2446, 2482-bis c.c.) plurilaterali", "eredita_da": "451320"},
     {"codice": "453421", "denominazione": "Approvazione della revoca dei sindaci (art. 2400 c.c.) plurilaterali", "normativa": [{"fonte": "c.c.", "articolo": "2400", "descrizione": "Nomina e revoca dei sindaci"}]},
     {"codice": "453422", "denominazione": "Opposizione dei creditori (artt. 2437-quater, 2445, 2482, 2447-quater, 2487-ter, 2500-novies, 2503 c.c.)", "categoria": "Opposizione creditori"},

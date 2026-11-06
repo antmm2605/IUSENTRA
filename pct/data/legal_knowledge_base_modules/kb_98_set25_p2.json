@@ -37,14 +37,6 @@
           "fonte": "c.c.",
           "articolo": "1591",
           "descrizione": "Indennità per occupazione senza titolo dopo scadenza"
-        },
-        {
-          "fonte": "Cass. SU 14688/2019",
-          "descrizione": "Contratto transitorio – invalidità del contratto senza motivazione"
-        },
-        {
-          "fonte": "Cass. SU 8327/2022",
-          "descrizione": "Conversione del contratto transitorio nullo in 4+4"
         }
       ],
       "requisiti_contratto_transitorio_art5": {
@@ -238,14 +230,6 @@
           "fonte": "D.Lgs. 23/2011",
           "articolo": "3",
           "descrizione": "Cedolare secca sulle locazioni"
-        },
-        {
-          "fonte": "Cass. SU 14636/2020",
-          "descrizione": "Locazione turistica vs commerciale – criteri di distinzione"
-        },
-        {
-          "fonte": "Cass. SU 9418/2022",
-          "descrizione": "Affitti brevi piattaforme – obblighi e responsabilità"
         }
       ],
       "distinzione_locazione_turistica_vs_commerciale": {
@@ -447,14 +431,6 @@
           "fonte": "c.c.",
           "articolo": "1727",
           "descrizione": "RINUNCIA del mandatario – con o senza giusta causa"
-        },
-        {
-          "fonte": "Cass. SU 14297/2021",
-          "descrizione": "Mandato irrevocabile – limiti e nullità clausola"
-        },
-        {
-          "fonte": "Cass. SU 9378/2023",
-          "descrizione": "Rendiconto del mandatario – obbligo e contenuto"
         }
       ],
       "revoca_del_mandato_1723": {
@@ -634,14 +610,6 @@
           "fonte": "c.c.",
           "articolo": "2775-bis",
           "descrizione": "Privilegio speciale del promissario acquirente sugli immobili"
-        },
-        {
-          "fonte": "Cass. SU 18135/2019",
-          "descrizione": "Caparra confirmatoria – scelta tra le due alternative"
-        },
-        {
-          "fonte": "Cass. SU 7631/2022",
-          "descrizione": "Esecuzione specifica 2932 – requisiti e limiti"
         }
       ],
       "caparra_confirmatoria_1385": {
@@ -860,14 +828,6 @@
           "fonte": "D.Lgs. 206/2005 (Cod. Consumo)",
           "articolo": "33",
           "descrizione": "Clausole abusive – applicabile al contratto di noleggio con consumatori"
-        },
-        {
-          "fonte": "Cass. SU 14397/2020",
-          "descrizione": "Noleggio veicoli – responsabilità del noleggiatore per danni al terzo"
-        },
-        {
-          "fonte": "Cass. SU 9182/2023",
-          "descrizione": "Franchigia sul noleggio – clausola vessatoria se sproporzionata"
         }
       ],
       "controversie_tipiche_noleggio": [

@@ -786,10 +786,6 @@
           "fonte": "CPA",
           "articolo": "114 c. 4 lett. e",
           "descrizione": "Astreinte – penalità di mora per ogni GG di ritardo nell'esecuzione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ottemperanza – elusione del giudicato"
         }
       ],
       "ottemperanza_112": {
@@ -1255,10 +1251,6 @@
           "fonte": "c.c.",
           "articolo": "1969",
           "descrizione": "Rescissione – ammessa solo per dolo o violenza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Transazione – nullità per oggetto illecito"
         }
       ],
       "nullita_transazione": {
@@ -1501,10 +1493,6 @@
           "fonte": "DPR 396/2000",
           "articolo": "12-18",
           "descrizione": "Trascrizione nei registri di stato civile italiani di atti formati all'estero"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ordine pubblico – limite al riconoscimento di atti stranieri"
         }
       ],
       "trascrizione_atti_stranieri": {

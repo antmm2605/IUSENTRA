@@ -1,0 +1,366 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "MILITARE",
+  "denominazione": "Ordinamento militare: guide pratiche",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_MILITARE_SANZIONE_DI_CORPO",
+      "denominazione": "Ricorso gerarchico contro la sanzione disciplinare di corpo (artt. 1363 e 1366 D.Lgs. 66/2010; D.P.R. 1199/1971)",
+      "categoria": "Ordinamento militare – disciplina",
+      "materia": "Ordinamento militare",
+      "rito": "Ricorso gerarchico; poi ricorso al TAR o straordinario",
+      "competenza": "Autorità gerarchica immediatamente superiore a quella che ha inflitto la sanzione",
+      "uffici_destinatari": [
+        "Amministrazione militare"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1352",
+          "descrizione": "Illecito disciplinare: sanzioni di stato e di corpo"
+        },
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1363",
+          "descrizione": "Ricorso gerarchico necessario prima del giudice o 90 giorni dalla presentazione"
+        },
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1366",
+          "descrizione": "Ricorso gerarchico tramite il superiore"
+        },
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1365",
+          "descrizione": "Istanza di riesame per nuove prove: non sospende i termini"
+        },
+        {
+          "fonte": "D.P.R. 1199/1971",
+          "articolo": "2",
+          "descrizione": "Ricorso gerarchico entro 30 giorni"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "29",
+          "descrizione": "Ricorso al TAR entro 60 giorni"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "sanzione_di_corpo",
+        "denominazione": "Ricorso gerarchico",
+        "campi_chiave": [
+          {
+            "id": "militare",
+            "label": "Militare ricorrente, grado e reparto",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "sanzione",
+            "label": "Sanzione di corpo e data di comunicazione",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi di legittimità e di merito",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "militare",
+            "label": "Militare ricorrente, grado e reparto",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "sanzione",
+            "label": "Sanzione di corpo e data di comunicazione",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi di legittimità e di merito",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Contro le sanzioni di corpo il ricorso al giudice o straordinario non è ammesso senza il previo ricorso gerarchico (art. 1363, comma 2, D.Lgs. 66/2010)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "giustificazioni",
+          "label": "Contestazione degli addebiti e giustificazioni presentate (art. 1370 D.Lgs. 66/2010)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare la contestazione degli addebiti e l'assistenza del difensore militare (art. 1370 D.Lgs. 66/2010)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso gerarchico",
+          "decorrenza": "notificazione, comunicazione o piena conoscenza",
+          "natura": "decadenza",
+          "norma": "art. 2 D.P.R. 1199/1971",
+          "giorni": 30
+        },
+        {
+          "termine": "Ricorso al TAR dopo il ricorso gerarchico",
+          "decorrenza": "decisione o decorso di 90 giorni dalla presentazione del ricorso gerarchico",
+          "natura": "decadenza",
+          "norma": "art. 1363 D.Lgs. 66/2010; art. 29 c.p.a.",
+          "giorni": 60
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto per il ricorso al TAR secondo l'art. 13, comma 6-bis, D.P.R. 115/2002; nessun contributo per il ricorso gerarchico"
+      },
+      "avvertenze_redazionali": [
+        "Contro le sanzioni di corpo il ricorso al giudice o straordinario non è ammesso senza il previo ricorso gerarchico (art. 1363, comma 2, D.Lgs. 66/2010)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "sanzione di corpo",
+        "consegna",
+        "rimprovero",
+        "ricorso gerarchico",
+        "militare"
+      ]
+    },
+    {
+      "codice": "GUIDA_MILITARE_PROCEDIMENTO_DISCIPLINARE_STATO",
+      "denominazione": "Difesa nel procedimento disciplinare di stato (artt. 1357, 1370 e 1392 D.Lgs. 66/2010)",
+      "categoria": "Ordinamento militare – disciplina",
+      "materia": "Ordinamento militare",
+      "rito": "Procedimento disciplinare di stato; tutela davanti al TAR",
+      "competenza": "Amministrazione militare; TAR competente",
+      "uffici_destinatari": [
+        "Amministrazione militare"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1357",
+          "descrizione": "Sanzioni disciplinari di stato"
+        },
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1370",
+          "descrizione": "Contestazione degli addebiti e difensore militare"
+        },
+        {
+          "fonte": "D.Lgs. 66/2010",
+          "articolo": "1392",
+          "descrizione": "Contestazione entro 90 giorni dalla conoscenza integrale della sentenza penale irrevocabile, entro 60 negli altri casi"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "29",
+          "descrizione": "Ricorso al TAR entro 60 giorni"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "procedimento_disciplinare_stato",
+        "denominazione": "Memoria difensiva e ricorso contro la sanzione",
+        "campi_chiave": [
+          {
+            "id": "militare",
+            "label": "Militare incolpato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "contestazione",
+            "label": "Contestazione degli addebiti e data",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "militare",
+            "label": "Militare incolpato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "contestazione",
+            "label": "Contestazione degli addebiti e data",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "contestazione",
+          "label": "Atto di contestazione",
+          "required": true
+        },
+        {
+          "id": "atti_penali",
+          "label": "Sentenza o provvedimento penale, se il procedimento segue il giudizio penale",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Controllare il rispetto dei termini di instaurazione dell'art. 1392 D.Lgs. 66/2010",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso al TAR contro la sanzione di stato",
+          "decorrenza": "notificazione o piena conoscenza",
+          "natura": "decadenza",
+          "norma": "art. 29 c.p.a.",
+          "giorni": 60
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto per il ricorso al TAR secondo l'art. 13, comma 6-bis, D.P.R. 115/2002; nessun contributo per il ricorso gerarchico"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "sanzione di stato",
+        "sospensione dall'impiego",
+        "perdita del grado",
+        "militare"
+      ]
+    },
+    {
+      "codice": "GUIDA_MILITARE_REATO_MILITARE",
+      "denominazione": "Difesa nel procedimento per reato militare (artt. 1, 37 e 263 c.p.m.p.)",
+      "categoria": "Ordinamento militare – penale militare",
+      "materia": "Ordinamento militare",
+      "rito": "Processo penale davanti ai tribunali militari",
+      "competenza": "Tribunale militare",
+      "uffici_destinatari": [
+        "Tribunale militare"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.m.p.",
+          "articolo": "1",
+          "descrizione": "Persone soggette alla legge penale militare"
+        },
+        {
+          "fonte": "c.p.m.p.",
+          "articolo": "37",
+          "descrizione": "Reato militare ed esclusivamente militare"
+        },
+        {
+          "fonte": "c.p.m.p.",
+          "articolo": "263",
+          "descrizione": "Giurisdizione dei tribunali militari"
+        },
+        {
+          "fonte": "c.p.m.p.",
+          "articolo": "264",
+          "descrizione": "Connessione con i procedimenti ordinari"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "reato_militare",
+        "denominazione": "Atti difensivi nel procedimento militare",
+        "campi_chiave": [
+          {
+            "id": "imputato",
+            "label": "Militare imputato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "reato",
+            "label": "Reato contestato",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "imputato",
+            "label": "Militare imputato",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "reato",
+            "label": "Reato contestato",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Si applicano le norme del codice di procedura penale salvo le disposizioni speciali: usare anche le guide del processo penale."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "nomina",
+          "label": "Nomina del difensore",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare se il fatto è reato militare e se la connessione sposta la competenza al giudice ordinario (art. 264 c.p.m.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto"
+      },
+      "avvertenze_redazionali": [
+        "Si applicano le norme del codice di procedura penale salvo le disposizioni speciali: usare anche le guide del processo penale."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "reato militare",
+        "tribunale militare",
+        "disobbedienza",
+        "diserzione"
+      ]
+    }
+  ]
+}

@@ -33,14 +33,6 @@
           "fonte": "c.p.c.",
           "articolo": "549",
           "descrizione": "Contestazione – il GE risolve la controversia sull'esistenza del credito"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Terzo pignorato – dichiarazione e non contestazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Mancata dichiarazione del terzo – conseguenze"
         }
       ],
       "dichiarazione_terzo_547": {
@@ -291,14 +283,6 @@
           "fonte": "c.p.c.",
           "articolo": "512 c. 2",
           "descrizione": "Il GE risolve le controversie in camera di consiglio; in caso di difficoltà: rimette alle parti al giudice ordinario"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Distribuzione del ricavato – progetto e opposizione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Crediti privilegiati – ordine di distribuzione"
         }
       ],
       "ordine_distribuzione": {
@@ -502,10 +486,6 @@
           "fonte": "CCII",
           "articolo": "213",
           "descrizione": "Opposizione allo stato passivo – davanti al Tribunale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Insinuazione – privilegio e contestazione"
         }
       ],
       "domanda_insinuazione": {
@@ -1034,14 +1014,6 @@
           "fonte": "CCII",
           "articolo": "171",
           "descrizione": "Azione revocatoria ordinaria – artt. 2901-2904 c.c. – anche per liquidazione giudiziale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Revocatoria fallimentare – esenzioni e prove"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Pagamento normale – esenzione revocatoria"
         }
       ],
       "esenzioni_revocatoria": {
@@ -1517,14 +1489,6 @@
           "fonte": "CCII",
           "articolo": "112 c. 2",
           "descrizione": "CRAM-DOWN – omologazione anche contro il voto contrario di una classe se il piano è equo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Concordato preventivo – best interest test"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Cram-down – condizioni e limiti"
         }
       ],
       "omologazione_concordato": {

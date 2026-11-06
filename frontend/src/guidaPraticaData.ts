@@ -19,6 +19,31 @@ export type GuidaNormativa = {
   fonte?: string
   articolo?: string
   descrizione?: string
+  url?: string
+}
+
+export type GuidaCitazioneVerificata = {
+  citazione?: string
+  descrizione?: string
+  verificata?: boolean
+  url?: string
+  come?: string
+}
+
+export type GuidaDecisionePerNorma = {
+  decisione?: string
+  url?: string
+  perche?: string
+  data_deposito?: string
+  norme_applicate?: string[]
+}
+
+export type GuidaGiurisprudenza = {
+  verificate?: GuidaCitazioneVerificata[]
+  non_verificate?: number
+  decisioni_per_norma?: GuidaDecisionePerNorma[]
+  fonte?: string
+  archivio_disponibile?: boolean
 }
 
 export type GuidaFonteWeb = {
@@ -89,6 +114,7 @@ export type GuidaPratica = {
     riferimenti_secondari?: GuidaNormativa[]
     novita_rilevanti?: Array<Record<string, unknown>>
   }
+  giurisprudenza?: GuidaGiurisprudenza
   tipologie_di_intervento?: Array<string | Record<string, unknown>>
   presupposti_sostanziali?: string[]
   legittimati_attivi?: Array<string | Record<string, unknown>>
@@ -169,8 +195,30 @@ export type GuidaDocumentPlan = {
   }
 }
 
+export type GuidaPercorsoVoce = {
+  passo?: string
+  rimedio?: string
+  termine?: string
+  quando?: string
+  ipotesi?: string
+  norme?: string[]
+}
+
+export type GuidaPercorso = {
+  sentenza?: string
+  data?: string
+  esito?: string
+  per_il_cliente?: string
+  strada?: string
+  spese?: { regolazione?: string; importo?: string; distrazione?: boolean }
+  passi?: GuidaPercorsoVoce[]
+  rimedi?: GuidaPercorsoVoce[]
+  ipotesi?: GuidaPercorsoVoce[]
+}
+
 export type GuidaPraticaResponse = {
   ok: boolean
+  percorso?: GuidaPercorso
   source?: string
   generatedAt?: string
   message?: string
@@ -225,6 +273,30 @@ export function codiceFromResponse(response: GuidaPraticaResponse): string {
 export function getFascicoloGuidaPratica(fascicoloId: string): Promise<GuidaPraticaResponse> {
   if (!fascicoloId) return Promise.resolve(emptyGuidaPraticaResponse('Fascicolo non indicato.'))
   return getJson<GuidaPraticaResponse>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/guida-pratica`, emptyGuidaPraticaResponse())
+}
+
+export type GuidaFaseReale = {
+  ok?: boolean
+  in_preparazione?: boolean
+  nota_fase?: string
+  fase?: string
+  percorso?: GuidaPercorso | null
+  prima_cosa_da_fare?: string
+}
+
+// Fase reale e percorso dopo la sentenza dalla Lettura del fascicolo: arrivano dopo la guida, che si apre subito.
+export function getFascicoloGuidaFase(fascicoloId: string): Promise<GuidaFaseReale> {
+  if (!fascicoloId) return Promise.resolve({ ok: false })
+  return getJson<GuidaFaseReale>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/guida-pratica/fase`, { ok: false })
+}
+
+export function conFaseReale(response: GuidaPraticaResponse, fase: GuidaFaseReale | null): GuidaPraticaResponse {
+  if (!fase?.ok || fase.in_preparazione) return response
+  const checklist = response.checklist ? { ...response.checklist, ...(fase.nota_fase ? { nota_fase: fase.nota_fase } : {}) } : response.checklist
+  const guida = response.guida && fase.prima_cosa_da_fare
+    ? { ...response.guida, quick_help: { ...(response.guida.quick_help || {}), prima_cosa_da_fare: fase.prima_cosa_da_fare } }
+    : response.guida
+  return { ...response, checklist, guida, percorso: fase.percorso || undefined }
 }
 
 export function getCodiceGuidaPratica(codice: string, fascicoloId = ''): Promise<GuidaPraticaResponse> {

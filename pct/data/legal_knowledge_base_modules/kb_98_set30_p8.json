@@ -43,14 +43,6 @@
           "fonte": "D.Lgs. 546/1992",
           "articolo": "19 c. 1 lett. b",
           "descrizione": "Avviso di liquidazione impugnabile davanti alla CGT"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Valutazione dei beni immobili nella successione – criteri AE"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accertamento integrativo successione – termini decadenziali"
         }
       ],
       "aliquote_franchigie": {
@@ -498,14 +490,6 @@
           "fonte": "L. 212/2000 (Statuto Contribuente)",
           "articolo": "12",
           "descrizione": "Contraddittorio preventivo obbligatorio per accertamenti IMU"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "IMU – rendita catastale come base imponibile"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prima casa e IMU – esenzione e presupposti"
         }
       ],
       "base_imponibile_IMU": {
@@ -932,14 +916,6 @@
         {
           "fonte": "D.Lgs. 7/2021",
           "descrizione": "Sanzioni per violazioni contributive – depenalizzazione parziale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2020",
-          "descrizione": "Prescrizione contributi – dies a quo e interruzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2022",
-          "descrizione": "Verbale INPS – natura e opposizione"
         }
       ],
       "prescrizione_contributi_L335_c9": {
@@ -1363,14 +1339,6 @@
           "fonte": "L. 212/2000 (Statuto Contribuente)",
           "articolo": "7",
           "descrizione": "Obbligo di motivazione del diniego di rimborso"
-        },
-        {
-          "fonte": "Cass. SU 14897/2020",
-          "descrizione": "IMU pagata in eccesso per esenzione non riconosciuta – rimborso"
-        },
-        {
-          "fonte": "Cass. SU 9876/2022",
-          "descrizione": "Rimborso IMU prima casa pagata per errore – termine e interessi"
         }
       ],
       "cause_tipiche_rimborso_IMU": [
@@ -1863,14 +1831,6 @@
           "fonte": "D.Lgs. 196/2003 (Privacy)",
           "articolo": "160-bis",
           "descrizione": "Limiti all'esibizione per ragioni di riservatezza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ordine di esibizione – condizioni e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Rifiuto di esibire – argomento di prova sfavorevole alla parte rifiutante"
         }
       ],
       "ordine_di_esibizione_210": {

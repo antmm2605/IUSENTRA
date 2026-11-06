@@ -23,10 +23,6 @@
           "fonte": "D.Lgs. 175/2016",
           "articolo": "17 c. 2",
           "descrizione": "Gara doppia unica – la gara seleziona il socio e assegna il servizio contestualmente"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Societa' mista – gara per la selezione del socio privato"
         }
       ],
       "obbligo_mediazione": {
@@ -505,10 +501,6 @@
           "fonte": "DPR 380/2001",
           "articolo": "30",
           "descrizione": "Piani attuativi – il piano di recupero e' un piano attuativo del PRG"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Piano di recupero – impugnazione e tutele dei proprietari"
         }
       ],
       "obbligo_mediazione": {
@@ -1408,10 +1400,6 @@
           "fonte": "D.Lgs. 36/2023",
           "articolo": "110 c. 3",
           "descrizione": "Esclusione automatica – per le gare sotto soglia senza offerta economicamente vantaggiosa: esclusione automatica se sotto soglia di anomalia"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Offerta anomala – valutazione discrezionale della SA e sindacato del TAR"
         }
       ],
       "obbligo_mediazione": {
@@ -1825,11 +1813,10 @@
         },
         {
           "fonte": "CGUE C-689/13 (Puligienica)",
-          "descrizione": "Il TAR deve esaminare sia il ricorso principale che il ricorso incidentale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ricorso incidentale in appalti – ordine di esame e interesse a ricorrere"
+          "descrizione": "Il TAR deve esaminare sia il ricorso principale che il ricorso incidentale",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-689/13",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 06332/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obbligo_mediazione": {

@@ -17,12 +17,14 @@
         {
           "fonte": "c.c.",
           "articolo": "2408",
-          "descrizione": "Denuncia al collegio sindacale – soci che rappresentano 1/20 del capitale"
+          "descrizione": "Denuncia al collegio sindacale – soci che rappresentano 1/20 del capitale",
+          "abrogata_da": "D.Lgs. 27 marzo 2026, n. 47"
         },
         {
           "fonte": "c.c.",
-          "articolo": "2409",
-          "descrizione": "DENUNCIA AL TRIBUNALE per gravi irregolarità – soci che rappresentano 1/10 (quotate: 1/20)"
+          "articolo": "2396-quater",
+          "descrizione": "Denunzia al tribunale per gravi irregolarità degli amministratori: soci del decimo del capitale (ventesimo se la società fa ricorso al mercato del capitale di rischio), ricorso notificato anche alla società (già art. 2409 c.c., abrogato dal D.Lgs. 27 marzo 2026, n. 47)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.c.",
@@ -43,14 +45,6 @@
           "fonte": "TUF D.Lgs. 58/1998",
           "articolo": "128-bis",
           "descrizione": "Tutela degli azionisti di minoranza nelle società quotate"
-        },
-        {
-          "fonte": "Cass. SU 16908/2021",
-          "descrizione": "Denuncia 2409 – gravi irregolarità nella gestione"
-        },
-        {
-          "fonte": "Cass. SU 5694/2023",
-          "descrizione": "Recesso azionista per giusta causa – criteri aggiornati"
         }
       ],
       "denuncia_al_tribunale_2409": {
@@ -251,14 +245,6 @@
           "fonte": "c.c.",
           "articolo": "2492-2495",
           "descrizione": "Cancellazione dal RI e responsabilità residua"
-        },
-        {
-          "fonte": "Cass. SU 6070/2020",
-          "descrizione": "Responsabilità dei liquidatori verso i creditori"
-        },
-        {
-          "fonte": "Cass. SU 12254/2022",
-          "descrizione": "Liquidatore che esegue pagamenti preferenziali ai soci – responsabilità"
         }
       ],
       "responsabilita_liquidatori_2491": {
@@ -466,14 +452,6 @@
           "fonte": "c.c.",
           "articolo": "2598 n. 1",
           "descrizione": "Concorrenza sleale confusoria – uso di segni distintivi altrui"
-        },
-        {
-          "fonte": "Cass. SU 11467/2021",
-          "descrizione": "Ditta confondibile – obbligo di differenziazione e tutela"
-        },
-        {
-          "fonte": "Cass. SU 8934/2023",
-          "descrizione": "Domain name – tutela come segno distintivo"
         }
       ],
       "differenza_ditta_marchio_insegna": {
@@ -665,15 +643,10 @@
         },
         {
           "fonte": "Cass. SU 24418/2010",
-          "descrizione": "Anatocismo bancario – indebitezza degli interessi anatocistici"
-        },
-        {
-          "fonte": "Cass. SU 15895/2022",
-          "descrizione": "Commissione di massimo scoperto – nullità se non pattuita"
-        },
-        {
-          "fonte": "Cass. SU 9139/2024",
-          "descrizione": "Saldo contestato – onere della prova e prescrizione"
+          "descrizione": "Anatocismo bancario – indebitezza degli interessi anatocistici",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022134694O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 34694/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "anatocismo_120_TUB": {
@@ -883,15 +856,10 @@
         },
         {
           "fonte": "Cass. SU 19597/2020",
-          "descrizione": "Usura sopravvenuta – non rileva per l'art. 1815 c. 2"
-        },
-        {
-          "fonte": "Cass. SU 14354/2021",
-          "descrizione": "CMS inclusa nel calcolo del TEG per usura"
-        },
-        {
-          "fonte": "Cass. SU 8432/2024",
-          "descrizione": "Rimborso anticipato mutuo – calcolo degli interessi residui"
+          "descrizione": "Usura sopravvenuta – non rileva per l'art. 1815 c. 2",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021637058O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 37058/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "usura_nel_mutuo_L108_1996": {

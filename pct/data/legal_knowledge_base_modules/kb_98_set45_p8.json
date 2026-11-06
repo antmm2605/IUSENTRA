@@ -260,16 +260,19 @@
         {
           "fonte": "c.p.c.",
           "articolo": "710",
-          "descrizione": "Modifiche delle condizioni di separazione – il Tribunale puo' modificare in qualunque momento le condizioni di separazione per sopravvenuti mutamenti"
+          "descrizione": "Modifiche delle condizioni di separazione – il Tribunale puo' modificare in qualunque momento le condizioni di separazione per sopravvenuti mutamenti",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.29",
+          "descrizione": "Modificabilità dei provvedimenti su separazione, divorzio e figli (sostituisce l'art. 710 c.p.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.c.",
           "articolo": "158",
           "descrizione": "Omologazione – l'accordo di separazione consensuale acquista efficacia con l'omologazione del Tribunale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Modifica accordo separazione – sopravvenienza rilevante e interesse del figlio minore"
         }
       ],
       "obbligo_mediazione": {
@@ -1165,10 +1168,6 @@
           "fonte": "c.c.",
           "articolo": "1110",
           "descrizione": "Rimborso delle spese – il coerede che ha sostenuto spese di conservazione ha diritto al rimborso"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Comunione ereditaria – gestione e controversie tra coeredi"
         }
       ],
       "obbligo_mediazione": {
@@ -1688,10 +1687,6 @@
           "fonte": "c.c.",
           "articolo": "606",
           "descrizione": "Nullita' per vizi di forma – il testamento olografo e' nullo se manca l'olografia totale, la data o la firma"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Testamento olografo – olografia parziale e nullita'"
         }
       ],
       "obbligo_mediazione": {

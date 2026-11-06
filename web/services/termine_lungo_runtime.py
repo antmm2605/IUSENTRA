@@ -77,10 +77,15 @@ def _fatti_del_fascicolo(fascicolo_id: str) -> list[Any]:
 
 
 def _testi_del_fascicolo(fascicolo_id: str) -> list[str]:
+    from web.helpers import get_fascicoli
     from web.services.archivio_letture_runtime import testi_indice_archivio
 
     try:
-        return list(testi_indice_archivio(SimpleNamespace(id=fascicolo_id)).values())
+        # Serve il fascicolo vero: le impronte dei testi si leggono dai suoi documenti (non basta l'identificativo).
+        fascicolo = get_fascicoli().get(fascicolo_id)
+        if fascicolo is None:
+            return []
+        return list(testi_indice_archivio(fascicolo).values())
     except Exception as exc:  # testi non disponibili: resta la data della comunicazione con l'avviso
         logger.warning("Testi del fascicolo %s non disponibili per il termine lungo: %s", fascicolo_id, exc)
         return []

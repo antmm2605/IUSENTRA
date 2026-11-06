@@ -23,14 +23,6 @@
           "fonte": "L. 223/1991",
           "articolo": "8",
           "descrizione": "Criteri di scelta per il licenziamento collettivo – carichi di famiglia, anzianità, esigenze produttive"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Diritto di precedenza – comunicazione e rispetto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Diritto di precedenza – violazione e risarcimento"
         }
       ],
       "diritto_precedenza_art15": {
@@ -618,10 +610,6 @@
         {
           "fonte": "L. 92/2012 art. 18",
           "descrizione": "Tutele post-impugnazione – reintegrazione o indennizzo a seconda del vizio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Licenziamento collettivo – vizi formali e sanzione"
         }
       ],
       "procedura_obbligatoria_art4": {
@@ -1427,14 +1415,6 @@
         {
           "fonte": "D.Lgs. 65/1999",
           "descrizione": "Attuazione Dir. UE 86/653 – protezione dell'agente"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Indennità fine rapporto agente – criteri di calcolo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Indennità agente – accordi AEC e derogabilità"
         }
       ],
       "indennita_fine_rapporto_1751": {
@@ -1631,14 +1611,6 @@
           "fonte": "L. 192/1998",
           "articolo": "9",
           "descrizione": "ABUSO DI DIPENDENZA ECONOMICA – il distributore che dipende economicamente dal fornitore è protetto"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Distribuzione esclusiva – preavviso e indennizzo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Recesso unilaterale – preavviso adeguato"
         }
       ],
       "patto_esclusiva": {

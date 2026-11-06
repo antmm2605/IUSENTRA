@@ -1866,7 +1866,7 @@ assertContains(fascicoliBridge, '_deposit_channel_for_type', 'mappatura canali d
 assertContains(fascicoliBridge, '_source_practice_prefill', 'preventivi e conferimenti precompilano apertura fascicolo')
 assertContains(fascicoliBridge, 'codiceOggettoPst', 'codice oggetto PST propagato al form fascicolo')
 assertNotContains(fascicoliBridge, '/app-v2/fascicoli', 'bridge fascicoli senza URL tecnici app-v2')
-assertContains(documentEditor, 'Editor professionale', 'pagina editor documento react')
+assertContains(documentEditor, 'Editor di atti e documenti', 'pagina editor documento react')
 assertContains(app, "EditorProfessionalePage", 'route Editor professionale React')
 assertContains(app, "href: '/editor-professionale?modalita=editor'", 'nav Editor professionale apre la creazione del documento')
 assertContains(app, "href: '/documenti'", 'archivio documenti unificato distinto dalla creazione')
@@ -1900,7 +1900,7 @@ assertContains(cartellaCliente, 'Faldone cliente', 'azione faldone cliente senza
 assertNotContains(cartellaCliente, '?_legacy=1', 'cartella cliente non deve esporre fallback classico')
 assertContains(cartellaClienteData, '/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella', 'api cartella cliente')
 assertContains(cartellaClienteData, 'operational_routes', 'scritture operative cartella cliente')
-assertContains(telematico, 'Centro Servizi Telematici', 'pagina telematico react')
+assertContains(telematico, 'Tutti i depositi telematici', 'pagina telematico react')
 assertContains(telematico, 'FloatingLex', 'lex telematico')
 assertContains(telematico, 'context="telematico"', 'contesto lex telematico')
 assertContains(telematicoData, '/api/v1/ui/telematico', 'api telematico react')
@@ -1917,30 +1917,30 @@ for (const label of [
   'Studio',
   'Parcelle e Fatture',
   'Preventivi e Incarichi',
-  'Calcolo Tariffario',
+  'Calcolo compensi forensi',
   'Documenti',
-  'Editor professionale',
-  'Redazione Atti',
+  'Editor di atti e documenti',
+  'Atti da modello',
   'Importa pratica da PST',
   'Statistiche',
-  'Ricerca Legale',
-  'Archivio Giurisprudenza',
+  'Cerca norme e sentenze',
+  'Archivio sentenze per corte',
   'Strumenti Forensi',
   'Strumenti Operativi',
-  'Timesheet',
+  'Ore lavorate',
   'Cartelle Condivise',
   'Sito Studio',
   'Notifiche',
   'Incassi e Pagamenti',
   'Backup',
   'Impostazioni Studio',
-  'Sincronizzazione Calendari',
+  'Collega Google o Outlook',
   'Amministrazione',
   'Utenti',
   'Profili e Permessi',
-  'Registro Attività',
+  'Registro attività degli utenti',
   'Database',
-  'Registro GDPR',
+  'Privacy: registro dei trattamenti',
 ]) {
   assertContains(studioModules, label, `blocco finale ${label}`)
 }

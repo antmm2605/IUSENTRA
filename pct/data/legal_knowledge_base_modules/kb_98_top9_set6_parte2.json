@@ -65,10 +65,6 @@
           "fonte": "c.p.c.",
           "articolo": "781-783",
           "descrizione": "Procedimento per la nomina del curatore"
-        },
-        {
-          "fonte": "Cass. 19/2015",
-          "descrizione": "Requisiti per dichiarazione di giacenza"
         }
       ],
       "presupposti_sostanziali": [
@@ -588,9 +584,10 @@
           "descrizione": "Competenza Tribunale per sanzioni particolari"
         },
         {
-          "fonte": "L. 689/1981",
-          "articolo": "23",
-          "descrizione": "Procedimento davanti al giudice"
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "6",
+          "descrizione": "Opposizione a ordinanza-ingiunzione: rito del lavoro, giudice del luogo della violazione, ricorso entro 30 giorni (60 se all'estero) (già art. 23 L. 689/1981, abrogato dal D.Lgs. 150/2011)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "D.Lgs. 150/2011",
@@ -610,10 +607,6 @@
         {
           "fonte": "L. 120/2010",
           "descrizione": "Modifiche al CdS - ricorso al Prefetto/GdP"
-        },
-        {
-          "fonte": "Cass. SU 23901/2019",
-          "descrizione": "Notificazioni e termini opposizione"
         }
       ],
       "presupposti_sostanziali": [
@@ -1095,10 +1088,6 @@
           "fonte": "D.L. 132/2014",
           "articolo": "12",
           "descrizione": "Separazione/divorzio davanti all'Ufficiale Stato Civile (senza figli minori/incapaci/handicap)"
-        },
-        {
-          "fonte": "Cass. SU 32198/2021",
-          "descrizione": "Effetti assegno post-separazione su convivenze successive"
         }
       ],
       "presupposti_sostanziali": [
@@ -1651,19 +1640,24 @@
         },
         {
           "fonte": "Cass. SU 6572/2006",
-          "descrizione": "Onere prova danno da demansionamento - non in re ipsa"
+          "descrizione": "Onere prova danno da demansionamento - non in re ipsa",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022601807O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 01807/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 26972/2008 (San Martino)",
-          "descrizione": "Categoria unitaria danno non patrimoniale"
+          "descrizione": "Categoria unitaria danno non patrimoniale",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjQyMDIyRA%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31321/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. 21088/2010",
-          "descrizione": "Danno biologico da demansionamento - quantificazione"
-        },
-        {
-          "fonte": "Cass. 16461/2024",
-          "descrizione": "Demansionamento e diritto al mantenimento mansioni equivalenti"
+          "descrizione": "Danno biologico da demansionamento - quantificazione",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022L29206O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 29206/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [

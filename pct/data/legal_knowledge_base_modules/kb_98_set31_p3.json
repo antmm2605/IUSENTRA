@@ -38,10 +38,6 @@
           "fonte": "CCII",
           "articolo": "25-bis",
           "descrizione": "Incentivi fiscali per la composizione negoziata"
-        },
-        {
-          "fonte": "Cass. SU 14897/2023",
-          "descrizione": "Composizione negoziata – natura e misure protettive"
         }
       ],
       "composizione_negoziata": {
@@ -470,14 +466,6 @@
           "fonte": "c.c.",
           "articolo": "1467",
           "descrizione": "Eccessiva onerosità sopravvenuta (diversa da impossibilità)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "COVID-19 e impossibilità sopravvenuta – applicazione ai contratti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Forza maggiore – presupposti e differenza da eccessiva onerosità"
         }
       ],
       "impossibilita_vs_eccessiva_onerosita": {
@@ -864,14 +852,6 @@
           "fonte": "D.Lgs. 286/2005 (CdA)",
           "articolo": "293",
           "descrizione": "Rivalsa di CONSAP verso il responsabile"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fondo Vittime – procedura e termini"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Veicolo non identificato – prova e liquidazione"
         }
       ],
       "casi_coperti_dal_fondo": [
@@ -1335,14 +1315,6 @@
           "fonte": "Reg. UE 2022/2065 (DSA)",
           "articolo": "6,16",
           "descrizione": "Responsabilità della piattaforma online – safe harbour + notice and action"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Diffamazione online – criteri di risarcimento e rettifica"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Social media – diffamazione e responsabilità della piattaforma"
         }
       ],
       "differenza_da_ingiuria": {
@@ -1765,14 +1737,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "Responsabilità aquiliana ordinaria per incidenti sportivi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Responsabilità gestore piste sci – manutenzione e segnalazione pericoli"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Sciatore a valle – precedenza e responsabilità"
         }
       ],
       "L363_2003_sci": {

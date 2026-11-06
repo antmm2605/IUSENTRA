@@ -28,14 +28,6 @@
           "fonte": "L. 212/2000",
           "articolo": "10-bis c. 6",
           "descrizione": "Procedimento speciale – contestazione prima dell'accertamento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Abuso del diritto – valide ragioni economiche"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Operazione divisoria abusiva – elusione dell'imposta di registro"
         }
       ],
       "abuso_del_diritto_10bis": {
@@ -495,14 +487,6 @@
           "fonte": "L. 359/1992",
           "articolo": "3",
           "descrizione": "Indennità di esproprio – per zone vincolate"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 5/2022",
-          "descrizione": "Variante urbanistica – interesse specifico del proprietario"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Variante in riduzione – lesione del diritto del proprietario all'edificabilità"
         }
       ],
       "variante_urbanistica_lesiva": {
@@ -981,14 +965,6 @@
           "fonte": "Cost.",
           "articolo": "42 c. 3",
           "descrizione": "L'esproprio è possibile solo per pubblica utilità con indennizzo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Esproprio – indennità al valore venale + riduzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Occupazione senza titolo – risarcimento superiore all'indennizzo"
         }
       ],
       "indennita_esproprio_22": {
@@ -1507,14 +1483,6 @@
           "fonte": "CPA",
           "articolo": "7 c. 8",
           "descrizione": "Trasposizione in ricorso TAR – il controinteressato può chiedere la trasposizione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ricorso straordinario – alternatività con il TAR"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Trasposizione in TAR – termini e procedura"
         }
       ],
       "vantaggi_ricorso_straordinario": {
@@ -2006,14 +1974,6 @@
           "fonte": "c.c.",
           "articolo": "1418-1440",
           "descrizione": "Nullità e annullabilità del contratto – applicabili alla determinazione irrituale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Arbitrato irrituale – natura e impugnazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Distinzione rituale/irrituale – effetti pratici"
         }
       ],
       "rituale_vs_irrituale": {

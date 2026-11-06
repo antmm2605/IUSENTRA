@@ -33,10 +33,6 @@
           "fonte": "c.c.",
           "articolo": "1073",
           "descrizione": "Estinzione per non uso – 20 anni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fondo intercluso – passaggio coattivo e indennizzo"
         }
       ],
       "servitu_passaggio_coattivo_1051": {
@@ -512,10 +508,6 @@
           "fonte": "c.c.",
           "articolo": "955",
           "descrizione": "Oneri fiscali e spese – a carico del superficiario"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Superficie – scadenza e acquisto costruzione dal proprietario del suolo"
         }
       ],
       "diritto_superficie_952": {
@@ -973,10 +965,6 @@
           "fonte": "L. 392/1978",
           "articolo": "36",
           "descrizione": "Sublocazione – consentita se il locatore non si oppone entro 30 GG"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Indennità di avviamento – attività con contatto con il pubblico"
         }
       ],
       "indennita_avviamento_34": {
@@ -1302,14 +1290,6 @@
           "fonte": "c.c.",
           "articolo": "1578",
           "descrizione": "Vizi della cosa locata – il locatore risponde"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Locazione commerciale – canone e adeguamento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Sublocazione – consenso del locatore e nullità"
         }
       ],
       "canone_commerciale": {
@@ -1507,14 +1487,6 @@
           "fonte": "L. 431/1998",
           "articolo": "3 c. 1 lett. a",
           "descrizione": "Uso diretto – il locatore disdetta per abitare nell'immobile"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Locazione abitativa – disdetta anticipata e rimedi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Contratto 4+4 – mancata disdetta e rinnovo automatico"
         }
       ],
       "tipi_contratto_abitativo": {

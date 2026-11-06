@@ -32,14 +32,6 @@
         {
           "fonte": "L. 220/2012 (riforma condominio)",
           "descrizione": "Disciplina aggiornata del condominio"
-        },
-        {
-          "fonte": "Cass. SU 9839/2021",
-          "descrizione": "Delibera condominiale nulla vs annullabile"
-        },
-        {
-          "fonte": "Cass. SU 14280/2023",
-          "descrizione": "Termine 30 giorni – decorrenza e modalità"
         }
       ],
       "distinzione_nullita_annullabilita": {
@@ -255,14 +247,6 @@
         {
           "fonte": "L. 220/2012",
           "descrizione": "Obbligo apertura conto corrente condominiale"
-        },
-        {
-          "fonte": "Cass. SU 9839/2021",
-          "descrizione": "Ripartizione spese – tabelle millesimali e deroghe"
-        },
-        {
-          "fonte": "Cass. SU 7449/2023",
-          "descrizione": "Spese straordinarie – approvazione e pagamento"
         }
       ],
       "criteri_ripartizione_1123": {
@@ -443,10 +427,6 @@
           "fonte": "c.c.",
           "articolo": "2643 n. 2",
           "descrizione": "Trascrizione della costituzione del diritto di superficie"
-        },
-        {
-          "fonte": "Cass. SU 17140/2021",
-          "descrizione": "Superficie – distinzione da concessione in uso; effetti"
         }
       ],
       "differenza_da_usufrutto": {
@@ -622,14 +602,6 @@
         {
           "fonte": "D.P.C.M. 14/11/1997",
           "descrizione": "Valori limite delle sorgenti sonore"
-        },
-        {
-          "fonte": "Cass. SU 20763/2020",
-          "descrizione": "Immissioni – doppio binario inibitorio + risarcitorio"
-        },
-        {
-          "fonte": "Cass. SU 6598/2023",
-          "descrizione": "Normale tollerabilità – criteri aggiornati"
         }
       ],
       "criterio_normale_tollerabilita_844": {
@@ -834,18 +806,6 @@
           "fonte": "D.Lgs. 81/2008",
           "articolo": "271",
           "descrizione": "Agenti biologici – obblighi di prevenzione nelle strutture sanitarie"
-        },
-        {
-          "fonte": "Cass. SU 28994/2019",
-          "descrizione": "Doppio binario responsabilità sanitaria"
-        },
-        {
-          "fonte": "Cass. SU 7938/2022",
-          "descrizione": "Infezione nosocomiale – nesso causale probabilistico"
-        },
-        {
-          "fonte": "Cass. SU 11469/2023",
-          "descrizione": "Nesso causale in ambito sanitario – più del 50% di probabilità"
         }
       ],
       "responsabilita_struttura_per_infezioni_nosocomiali": {

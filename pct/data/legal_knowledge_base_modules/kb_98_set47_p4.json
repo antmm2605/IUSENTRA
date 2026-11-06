@@ -460,10 +460,6 @@
           "fonte": "c.p.c.",
           "articolo": "297",
           "descrizione": "Ripresa – il processo ripende su istanza di parte entro 6 mesi dalla notifica della sentenza passata in giudicato"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sospensione per pregiudizialita' penale – quando e' obbligatoria e quando no"
         }
       ],
       "obbligo_mediazione": {
@@ -1096,7 +1092,7 @@
           "descrizione": "Spese processuali – in Italia: il giudice decide sulle spese indipendentemente dal contratto"
         },
         {
-          "fonte": "c.p.c.",
+          "fonte": "c.c.",
           "articolo": "1322",
           "descrizione": "Autonomia contrattuale – le parti possono pattuire clausole atipiche nei limiti della legge"
         },
@@ -1358,7 +1354,14 @@
         {
           "fonte": "c.c.",
           "articolo": "337-octies",
-          "descrizione": "Mediazione familiare – il giudice puo' invitare le parti a rivolgersi a un mediatore familiare prima di decidere sull'affidamento"
+          "descrizione": "Mediazione familiare – il giudice puo' invitare le parti a rivolgersi a un mediatore familiare prima di decidere sull'affidamento",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.10",
+          "descrizione": "Mediazione familiare (sostituisce l'art. 337-octies c.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "D.Lgs. 149/2022 (Riforma Cartabia)",

@@ -21,10 +21,6 @@
         {
           "fonte": "D.L. 73/2021 art. 64",
           "descrizione": "Esenzione ISEE – ISEE inferiore a €40.000 per l'agevolazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Under 36 – requisiti anagrafici e decadenza"
         }
       ],
       "agevolazioni_under36": {
@@ -1501,10 +1497,6 @@
         {
           "fonte": "D.Lgs. 504/1992 + L. 160/2019",
           "descrizione": "IMU sui terreni agricoli – esenzione per i coltivatori diretti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Redditi agrari – sfruttamento diretto e regime di imposta"
         }
       ],
       "redditi_agrari_dominicali": {

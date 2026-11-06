@@ -765,7 +765,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/base.html": [
             "Panoramica",
             "Operazione completata",
-            "Preparazione Udienza Guidata",
+            "Prepara l’udienza",
             "Aggiornamenti legali",
             "Server e manutenzione",
         ],
@@ -1772,7 +1772,7 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
     script = (REPO_ROOT / "web/static/js/hearing-preparation-dashboard.js").read_text(encoding="utf-8")
     scss = (REPO_ROOT / "web/static/scss/pages/_hearing-preparation.scss").read_text(encoding="utf-8")
 
-    assert "Preparazione Udienza Guidata" in base_template
+    assert "Prepara l’udienza" in base_template
     assert "Wizard Pro</span>" not in base_template
     assert "Sito Web Studio" in base_template
     assert "Siti studio" in admin_base_template

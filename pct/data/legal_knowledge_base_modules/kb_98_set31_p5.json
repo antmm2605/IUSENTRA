@@ -32,14 +32,6 @@
           "fonte": "c.c.",
           "articolo": "2112",
           "descrizione": "Trasferimento d'azienda – non applicabile al semplice cambio appalto (Cass.)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Cambio appalto – distinzione da trasferimento d'azienda"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Clausola sociale – obbligatorietà e limiti"
         }
       ],
       "differenza_da_trasferimento_azienda": {
@@ -427,14 +419,6 @@
           "fonte": "L. 241/1990",
           "articolo": "10-bis",
           "descrizione": "Preavviso di rigetto – anche nelle procedure di autotutela"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 8/2017",
-          "descrizione": "Annullamento d'ufficio – ragionevole affidamento del privato"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 9/2021",
-          "descrizione": "Revoca e indennizzo – quando spetta"
         }
       ],
       "annullamento_ufficio_21nonies": {
@@ -846,14 +830,6 @@
           "fonte": "L. 241/1990",
           "articolo": "2-bis",
           "descrizione": "DANNO DA RITARDO – risarcibile autonomamente"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 3/2011",
-          "descrizione": "Responsabilità PA – dolo o colpa; il privato deve provare la colpa dell'amministrazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Responsabilità PA da provvedimento illegittimo – nesso causale e prova"
         }
       ],
       "responsabilita_PA_Cons_Stato_3_2011": {
@@ -1256,14 +1232,6 @@
         {
           "fonte": "Reg. UE 2019/1111 (Bruxelles IIA bis)",
           "descrizione": "Riconoscimento automatico in materia matrimoniale e potestà genitoriale tra Stati UE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Riconoscimento sentenza straniera divorzio – requisiti e limiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Contrasto con l'ordine pubblico – limite al riconoscimento"
         }
       ],
       "riconoscimento_automatico_64_L218": {
@@ -1675,15 +1643,8 @@
         {
           "fonte": "c.c.",
           "articolo": "375",
-          "descrizione": "Autorizzazione del Tribunale per atti di maggiore rilevanza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Autorizzazione GT – discrezionalità e interesse del minore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Vendita bene del minore – autorizzazione GT e condizioni"
+          "descrizione": "Autorizzazione del Tribunale per atti di maggiore rilevanza",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
         }
       ],
       "atti_straordinaria_amministrazione_320": {

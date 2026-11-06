@@ -65,10 +65,44 @@
       "differenze_rispetto_a_padre": {
         "competenza": "Giudice dell'esecuzione immobiliare",
         "campi_aggiuntivi": [
-          {"id": "immobile_pignorato", "label": "Immobile pignorato (dati catastali)", "type": "object_immobile", "required": true},
-          {"id": "nota_trascrizione", "label": "Nota trascrizione pignoramento", "type": "string"}
+          {
+            "id": "immobile_pignorato",
+            "label": "Immobile pignorato (dati catastali)",
+            "type": "object_immobile",
+            "required": true
+          },
+          {
+            "id": "nota_trascrizione",
+            "label": "Nota trascrizione pignoramento",
+            "type": "string"
+          }
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "615",
+          "descrizione": "Opposizione all'esecuzione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "624",
+          "descrizione": "Sospensione e reclamo"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555",
+          "descrizione": "Pignoramento immobiliare"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Opposizione all'esecuzione (art. 615, c. 2, c.p.c.) - immobiliare",
+          "obbligatorio": true
+        }
+      ]
     },
     {
       "codice": "100019",
@@ -114,7 +148,41 @@
       "eredita_da": "100021",
       "differenze_rispetto_a_padre": {
         "competenza": "G.E. immobiliare"
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "617",
+          "descrizione": "Opposizione agli atti esecutivi: 20 giorni"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "618",
+          "descrizione": "Provvedimenti del giudice dell'esecuzione e termine per il merito"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555",
+          "descrizione": "Pignoramento immobiliare"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Opposizione agli atti esecutivi (art. 617 c.p.c.) - immobiliare",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Opposizione agli atti esecutivi",
+          "decorrenza": "conoscenza dell'atto (o notifica di titolo/precetto se prima dell'esecuzione)",
+          "natura": "perentorio",
+          "norma": "art. 617 c.p.c.",
+          "giorni": 20
+        }
+      ]
     },
     {
       "codice": "100031",
@@ -140,13 +208,66 @@
     {
       "codice": "100032",
       "denominazione": "Opposizione del terzo (art. 619 c.p.c.) - immobiliare",
-      "eredita_da": "100031"
+      "eredita_da": "100031",
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "619",
+          "descrizione": "Opposizione di terzo prima della vendita o assegnazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "624",
+          "descrizione": "Sospensione e reclamo"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "555",
+          "descrizione": "Pignoramento immobiliare"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Opposizione del terzo (art. 619 c.p.c.) - immobiliare",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "L'opposizione del terzo va proposta prima che sia disposta la vendita o l'assegnazione (art. 619 c.p.c.)."
+      ]
     },
     {
       "codice": "100039",
       "denominazione": "Opposizione del terzo all'esecuzione mob. e immob. davanti al Giudice di Pace",
       "eredita_da": "100031",
-      "differenze_rispetto_a_padre": {"competenza": "Giudice di Pace"}
+      "differenze_rispetto_a_padre": {
+        "competenza": "Giudice di Pace"
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.c.",
+          "articolo": "619",
+          "descrizione": "Opposizione di terzo prima della vendita o assegnazione"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "624",
+          "descrizione": "Sospensione e reclamo"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Opposizione del terzo all'esecuzione mob. e immob. davanti al Giudice di Pace",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "L'opposizione del terzo va proposta prima che sia disposta la vendita o l'assegnazione (art. 619 c.p.c.)."
+      ]
     },
     {
       "codice": "100041",

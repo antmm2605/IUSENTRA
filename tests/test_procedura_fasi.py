@@ -41,7 +41,8 @@ def test_ogni_fonte_ha_norma_url_ufficiale_data_di_verifica_ed_estratto():
         assert "2026" in voce["verifica"], identificativo
         assert len(voce["estratto"]) > 60, identificativo
         if identificativo != "cpa_dpcm_40_2016":
-            assert "normattiva.it" in voce["url"] or "pst.giustizia.it" in voce["url"], identificativo
+            # Fonti ufficiali: Normattiva, PST e, per gli atti dell'Unione europea, EUR-Lex.
+            assert any(dominio in voce["url"] for dominio in ("normattiva.it", "pst.giustizia.it", "eur-lex.europa.eu")), identificativo
 
 
 def test_le_regole_pat_sono_citate_dal_documento_ufficiale_archiviato():

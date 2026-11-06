@@ -41,15 +41,10 @@
         },
         {
           "fonte": "CEDU Prot. 1 art. 1",
-          "descrizione": "Protezione della proprietà – indennizzo proporzionato"
-        },
-        {
-          "fonte": "Cass. SU 14329/2019",
-          "descrizione": "Indennità espropriativa – calcolo del valore di mercato"
-        },
-        {
-          "fonte": "Cass. SU 9814/2022",
-          "descrizione": "Occupazione acquisitiva – risarcimento del danno"
+          "descrizione": "Protezione della proprietà – indennizzo proporzionato",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "doppia_tutela": {
@@ -250,14 +245,6 @@
           "fonte": "c.c.",
           "articolo": "1170",
           "descrizione": "Azione di manutenzione del possesso"
-        },
-        {
-          "fonte": "Cass. SU 14389/2020",
-          "descrizione": "Denuncia nuova opera – presupposti e provvedimenti del giudice"
-        },
-        {
-          "fonte": "Cass. SU 8712/2022",
-          "descrizione": "Danno temuto – imminenza e gravità del danno"
         }
       ],
       "denuncia_nuova_opera_1171": {
@@ -458,11 +445,10 @@
         },
         {
           "fonte": "Cass. SU 41994/2021",
-          "descrizione": "Fideiussione omnibus su schema ABI – nullità parziale per intesa anticoncorrenziale"
-        },
-        {
-          "fonte": "Cass. SU 7945/2023",
-          "descrizione": "Decadenza 1957 – decorrenza e prova"
+          "descrizione": "Fideiussione omnibus su schema ABI – nullità parziale per intesa anticoncorrenziale",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021U41994S&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "fideiussione_omnibus_Cass_SU_41994_2021": {
@@ -687,14 +673,6 @@
         {
           "fonte": "D.Lgs. 286/2005 (Autotrasporto)",
           "descrizione": "Responsabilità del vettore per il trasporto su strada"
-        },
-        {
-          "fonte": "Cass. SU 14287/2020",
-          "descrizione": "Spedizioniere – distinzione da vettore e responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 9564/2023",
-          "descrizione": "Perdita merce durante la spedizione – prova e responsabilità"
         }
       ],
       "spedizioniere_vs_vettore": {
@@ -879,14 +857,6 @@
         {
           "fonte": "L. 108/1996",
           "descrizione": "Usura – tasso soglia anche per mutui tra privati"
-        },
-        {
-          "fonte": "Cass. SU 24413/2020",
-          "descrizione": "Mutuo tra privati – prova della consegna (contratto reale)"
-        },
-        {
-          "fonte": "Cass. SU 8932/2022",
-          "descrizione": "Interessi nel mutuo tra privati – presunzione di onerosità"
         }
       ],
       "mutuo_contratto_reale": {

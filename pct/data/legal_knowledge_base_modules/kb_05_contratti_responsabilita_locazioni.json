@@ -395,7 +395,42 @@
     {
       "codice": "144022",
       "denominazione": "Risoluzione del contratto di locazione per inadempimento uso diverso",
-      "eredita_da": "144021"
+      "eredita_da": "144021",
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "1453",
+          "descrizione": "Risoluzione per inadempimento"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "1455",
+          "descrizione": "Importanza dell'inadempimento"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "447-bis",
+          "descrizione": "Rito delle locazioni"
+        },
+        {
+          "fonte": "L. 392/1978",
+          "articolo": "79",
+          "descrizione": "Patti contrari alla legge"
+        },
+        {
+          "fonte": "D.Lgs. 28/2010",
+          "articolo": "5",
+          "descrizione": "Mediazione obbligatoria in materia di locazione"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Esperire la mediazione obbligatoria prima del giudizio (art. 5 D.Lgs. 28/2010)",
+          "obbligatorio": true
+        }
+      ]
     },
     {
       "codice": "144031",
@@ -498,12 +533,55 @@
       "eredita_da": "145001",
       "differenze_rispetto_a_padre": {
         "campi_aggiuntivi": [
-          {"id": "vittima_deceduta", "label": "Vittima deceduta", "type": "object_persona", "required": true},
-          {"id": "eredi_attori", "label": "Eredi iure proprio e iure hereditatis", "type": "array_persone", "required": true},
-          {"id": "danno_iure_proprio", "label": "Danno iure proprio (parenti)", "type": "currency"},
-          {"id": "danno_iure_hereditatis", "label": "Danno iure hereditatis (vittima)", "type": "currency"}
+          {
+            "id": "vittima_deceduta",
+            "label": "Vittima deceduta",
+            "type": "object_persona",
+            "required": true
+          },
+          {
+            "id": "eredi_attori",
+            "label": "Eredi iure proprio e iure hereditatis",
+            "type": "array_persone",
+            "required": true
+          },
+          {
+            "id": "danno_iure_proprio",
+            "label": "Danno iure proprio (parenti)",
+            "type": "currency"
+          },
+          {
+            "id": "danno_iure_hereditatis",
+            "label": "Danno iure hereditatis (vittima)",
+            "type": "currency"
+          }
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "2043",
+          "descrizione": "Risarcimento per fatto illecito"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2059",
+          "descrizione": "Danni non patrimoniali"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "2947",
+          "descrizione": "Prescrizione: 5 anni; 2 anni per la circolazione dei veicoli; termine più lungo se il fatto è reato"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Documentare la legittimazione dei congiunti e verificare la prescrizione (art. 2947 c.c.)",
+          "obbligatorio": true
+        }
+      ]
     },
     {
       "codice": "145009",

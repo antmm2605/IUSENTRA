@@ -23,10 +23,6 @@
           "fonte": "c.c.",
           "articolo": "2094",
           "descrizione": "Lavoro subordinato – il lavoratore e' sottoposto alla direzione del datore e lavora con orario fisso in sede del datore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Art. 2 D.Lgs. 81/2015 – criteri per l'etero-organizzazione"
         }
       ],
       "obbligo_mediazione": {
@@ -391,11 +387,8 @@
         {
           "fonte": "c.c.",
           "articolo": "2097",
-          "descrizione": "Durata – il CCNL fissa la durata massima del patto di prova; non e' rinnovabile"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Patto di prova – forma scritta e comunicazione dell'esito negativo"
+          "descrizione": "Durata – il CCNL fissa la durata massima del patto di prova; non e' rinnovabile",
+          "abrogata_da": "L. 18 aprile 1962, n. 230"
         }
       ],
       "obbligo_mediazione": {
@@ -1728,10 +1721,6 @@
           "fonte": "D.Lgs. 42/2004",
           "articolo": "108",
           "descrizione": "Canoni – il MiC fissa i canoni di concessione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Demanio culturale – canone e controversie"
         }
       ],
       "obbligo_mediazione": {

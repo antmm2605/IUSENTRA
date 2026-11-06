@@ -37,14 +37,6 @@
         {
           "fonte": "D.Lgs. 65/1999 (attuazione Dir. 86/653/CEE)",
           "descrizione": "AEC – accordi economici collettivi degli agenti di commercio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Indennità fine rapporto agente – calcolo e diritto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Indennità suppletiva di clientela – presupposti"
         }
       ],
       "indennita_fine_rapporto_1751": {
@@ -350,14 +342,6 @@
           "fonte": "c.c.",
           "articolo": "1467",
           "descrizione": "Eccessiva onerosità sopravvenuta – risoluzione del contratto"
-        },
-        {
-          "fonte": "Cass. SU 14897/2022",
-          "descrizione": "Revisione prezzi appalto – condizioni e calcolo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Appalto pubblico – mancata revisione e risarcimento"
         }
       ],
       "revisione_prezzi_1664": {
@@ -814,10 +798,6 @@
           "fonte": "R.D. 327/1942 (Cod. Nav.)",
           "articolo": "384-389",
           "descrizione": "Contratto di noleggio di nave – responsabilità e durata"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Charter nautico – responsabilità per danni e inadempimento"
         }
       ],
       "locazione_vs_noleggio": {
@@ -1318,14 +1298,6 @@
           "fonte": "c.c.",
           "articolo": "977",
           "descrizione": "Prescrizione – l'enfiteusi si estingue per non uso prolungato"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Affrancazione del fondo enfiteutico – calcolo e diritto"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Devoluzione per mancato pagamento del canone"
         }
       ],
       "affrancazione_971": {
@@ -1798,14 +1770,6 @@
           "fonte": "c.c.",
           "articolo": "909",
           "descrizione": "Scolo delle acque – proprietario deve ricevere le acque che scendono dal fondo a monte"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Derivazione d'acqua senza concessione – risarcimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Controversia tra fondi per uso delle acque"
         }
       ],
       "acque_pubbliche_RD1775": {

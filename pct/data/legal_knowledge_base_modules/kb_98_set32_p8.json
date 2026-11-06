@@ -28,14 +28,6 @@
           "fonte": "c.p.c.",
           "articolo": "495 c. 3",
           "descrizione": "Termine – prima dell'udienza di vendita"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Conversione pignoramento – calcolo della somma e termini"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Somma da versare per conversione – credito + spese"
         }
       ],
       "meccanismo_conversione_495": {
@@ -363,14 +355,6 @@
           "fonte": "c.c.",
           "articolo": "337-sexies c. 4",
           "descrizione": "Diritto al godimento – il genitore assegnatario ha il godimento della casa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Assegnazione casa familiare – interesse dei figli e cessazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Casa in comproprietà – assegnazione e diritto all'indennizzo"
         }
       ],
       "presupposto_337sexies": {
@@ -865,16 +849,11 @@
           "descrizione": "Dichiarazione fraudolenta mediante uso di fatture false – reato penale"
         },
         {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fatture soggettivamente inesistenti – onere prova in sede tributaria"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Buona fede del cessionario – detraibilità IVA anche da fornitore fittizio"
-        },
-        {
           "fonte": "CGUE C-285/11 (Bonik 2012)",
-          "descrizione": "Frode IVA – tutela del cessionario in buona fede"
+          "descrizione": "Frode IVA – tutela del cessionario in buona fede",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-285/11",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31585/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "soggettivamente_inesistenti": {
@@ -1334,10 +1313,6 @@
           "fonte": "D.Lgs. 546/1992",
           "articolo": "48",
           "descrizione": "Accordo conciliativo in sede giudiziaria"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Definizione agevolata – rinuncia al giudizio e effetti"
         }
       ],
       "definizione_agevolata_L197_2022": {
@@ -1845,14 +1820,6 @@
         {
           "fonte": "D.Lgs. 195/2008",
           "descrizione": "Obbligo di segnalazione trasferimenti valutari"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "IVIE – immobile estero detenuto tramite holding"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "IVAFE – conti correnti esteri"
         }
       ],
       "IVIE": {

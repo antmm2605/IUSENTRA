@@ -21,11 +21,10 @@
         },
         {
           "fonte": "Corte Cost. 221/2015",
-          "descrizione": "Intervento chirurgico non obbligatorio – la rettificazione e' possibile anche senza intervento chirurgico di riassegnazione"
-        },
-        {
-          "fonte": "CGUE C-451/16",
-          "descrizione": "Paesi UE: la rettificazione di sesso deve essere riconosciuta senza interventi medici irragionevoli"
+          "descrizione": "Intervento chirurgico non obbligatorio – la rettificazione e' possibile anche senza intervento chirurgico di riassegnazione",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2015/221",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obbligo_mediazione": {

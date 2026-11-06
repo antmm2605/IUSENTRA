@@ -28,10 +28,6 @@
           "fonte": "D.L. 158/2019 (Decreto Fiscale)",
           "articolo": "4",
           "descrizione": "Stabile organizzazione virtuale – anche in assenza di presenza fisica (economia digitale)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Stabile organizzazione – accertamento e presupposti"
         }
       ],
       "stabile_organizzazione_162": {
@@ -473,10 +469,6 @@
         {
           "fonte": "L. 197/2022",
           "descrizione": "Aumento a €85.000 + secondo livello fino a €100.000"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Regime forfettario – cause di esclusione e retroattività"
         }
       ],
       "regime_forfettario": {
@@ -941,10 +933,6 @@
         {
           "fonte": "Convenzioni contro la doppia imposizione",
           "descrizione": "Accordi bilaterali – riducono o eliminano la doppia tassazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Credito imposta estero – calcolo e contestazione AE"
         }
       ],
       "credito_imposta_165": {
@@ -1853,10 +1841,6 @@
         {
           "fonte": "L. 47/2004",
           "descrizione": "Bollo auto per veicoli con motore a basso impatto – possibile esenzione regionale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Bollo auto – prescrizione e rimborso"
         }
       ],
       "esenzioni": {

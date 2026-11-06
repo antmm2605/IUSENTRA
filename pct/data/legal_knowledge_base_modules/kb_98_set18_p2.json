@@ -53,14 +53,6 @@
           "fonte": "c.c.",
           "articolo": "2643 n. 6",
           "descrizione": "Trascrizione della domanda e della sentenza di usucapione"
-        },
-        {
-          "fonte": "Cass. SU 7294/2020",
-          "descrizione": "Usucapione – accertamento nel giudizio + trascrizione sentenza"
-        },
-        {
-          "fonte": "Cass. SU 13231/2022",
-          "descrizione": "Buona fede e giusto titolo – requisiti per usucapione abbreviata"
         }
       ],
       "distinzione_1158_vs_1159": {
@@ -344,14 +336,6 @@
           "fonte": "CCII",
           "articolo": "166-176",
           "descrizione": "Azioni revocatorie nel contesto concordatario"
-        },
-        {
-          "fonte": "Cass. SU 8504/2021",
-          "descrizione": "Opposizione all'omologazione – legittimazione e motivi ammissibili"
-        },
-        {
-          "fonte": "Cass. SU 9476/2023",
-          "descrizione": "Cram-down – condizioni per l'omologazione contro classi dissenzienti"
         }
       ],
       "fasi_del_concordato_preventivo": [
@@ -573,7 +557,8 @@
         {
           "fonte": "c.c.",
           "articolo": "375",
-          "descrizione": "Atti per cui si richiede l'autorizzazione del Tribunale"
+          "descrizione": "Atti per cui si richiede l'autorizzazione del Tribunale",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
         },
         {
           "fonte": "c.c.",
@@ -599,14 +584,6 @@
           "fonte": "c.p.c.",
           "articolo": "747-748",
           "descrizione": "Procedimento per autorizzazioni patrimoniali"
-        },
-        {
-          "fonte": "Cass. SU 14234/2021",
-          "descrizione": "Vendita immobile del minore – criterio dell'interesse del minore"
-        },
-        {
-          "fonte": "Cass. SU 9988/2023",
-          "descrizione": "Autorizzazione GT – valutazione discrezionale nell'interesse dell'incapace"
         }
       ],
       "atti_che_richiedono_autorizzazione_GT_374": [
@@ -850,14 +827,6 @@
           "fonte": "D.Lgs. 104/2010 (CPA)",
           "articolo": "133 c. 1 lett. e n. 1",
           "descrizione": "Giurisdizione esclusiva del G.A. sull'esecuzione del contratto pubblico"
-        },
-        {
-          "fonte": "Cass. SU 13246/2022",
-          "descrizione": "Riparto giurisdizione appalto pubblico – G.A. per diritti soggettivi nell'esecuzione"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 4/2022",
-          "descrizione": "Riserve e accordo bonario – procedure obbligatorie"
         }
       ],
       "giurisdizione_critica": {

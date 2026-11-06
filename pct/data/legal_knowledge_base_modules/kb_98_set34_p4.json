@@ -38,14 +38,6 @@
           "fonte": "c.c.",
           "articolo": "2059",
           "descrizione": "Danno non patrimoniale – lesione della libertà personale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "TSO senza presupposti – risarcimento alla persona"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "TSO e libertà personale – danno non patrimoniale significativo"
         }
       ],
       "TSO_illegittimo": {
@@ -592,14 +584,6 @@
           "fonte": "D.Lgs. 285/1992 (CdS)",
           "articolo": "14",
           "descrizione": "Ente proprietario della strada: manutenzione e custodia"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Caduta albero su strada – Comune come custode ex 2051"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Caso fortuito – albero con cima secca mai segnalata"
         }
       ],
       "responsabilita_2051_comune_custode": {
@@ -1067,14 +1051,6 @@
           "fonte": "Cost.",
           "articolo": "13",
           "descrizione": "Inviolabilità della libertà personale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contenzione fisica illegittima – risarcimento"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Utilizzo di mezzi di contenzione non giustificati – struttura sanitaria responsabile"
         }
       ],
       "contenzione_illegittima": {
@@ -1594,14 +1570,6 @@
         {
           "fonte": "D.Lgs. 193/2007",
           "descrizione": "Sanzioni amministrative in materia di sicurezza alimentare"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Alimento adulterato – responsabilità del produttore e del distributore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prodotto alimentare difettoso – prova del danno"
         }
       ],
       "responsabilita_produttore_alimentare": {
@@ -2123,14 +2091,6 @@
         {
           "fonte": "Dir. UE 2019/790 (Copyright DSM)",
           "descrizione": "Responsabilità delle piattaforme online per contenuti caricati dagli utenti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Plagio – creatività minima e differenziazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Diritto d'autore su software – protezione"
         }
       ],
       "plagio_vs_lecita_ispirazione": {

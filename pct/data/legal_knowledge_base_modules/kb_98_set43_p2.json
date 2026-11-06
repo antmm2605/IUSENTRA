@@ -919,10 +919,6 @@
           "fonte": "TUF",
           "articolo": "108",
           "descrizione": "OPA da consolidamento – dopo il 90%: obbligo di acquistare le azioni residue"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "OPA – prezzo equo e tutele azionisti"
         }
       ],
       "OPA_obbligatoria_102": {
@@ -1259,11 +1255,10 @@
         },
         {
           "fonte": "Cass. SU 26725/2007",
-          "descrizione": "Derivati – nullità per violazione norme di comportamento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "IRS – mark to market e informativa"
+          "descrizione": "Derivati – nullità per violazione norme di comportamento",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022104117I&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 04117/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "nullita_derivati": {
@@ -1712,10 +1707,6 @@
           "fonte": "c.c.",
           "articolo": "2902",
           "descrizione": "Effetti – l'atto è inefficace solo verso il creditore revocante"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Revocatoria – scientia damni e atti gratuiti"
         }
       ],
       "presupposti_2901": {

@@ -28,10 +28,6 @@
           "fonte": "c.c.",
           "articolo": "2446",
           "descrizione": "Riduzione per perdite oltre il terzo – obbligatoria"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Riduzione volontaria – opposizione creditori e tutele"
         }
       ],
       "riduzione_volontaria_2445": {
@@ -590,10 +586,6 @@
           "fonte": "c.c.",
           "articolo": "2420-bis",
           "descrizione": "Obbligazioni CONVERTIBILI – convertibili in azioni su richiesta dell'obbligazionista"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Obbligazioni – inadempimento e tutela"
         }
       ],
       "obbligazioni_2410": {
@@ -1120,10 +1112,6 @@
           "fonte": "c.c.",
           "articolo": "2615",
           "descrizione": "Responsabilità – verso i terzi risponde il fondo; solo in caso di insufficienza: i consorziati"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Consorzio – responsabilità verso terzi e quote di partecipazione"
         }
       ],
       "fondo_consortile_2608": {
@@ -1568,10 +1556,6 @@
           "fonte": "L. 33/2009",
           "articolo": "3 c. 4-quater",
           "descrizione": "Rete-soggetto – con iscrizione nel RI acquista soggettività giuridica"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Contratto di rete – responsabilità esterna"
         }
       ],
       "tipi_di_rete": {
@@ -1747,10 +1731,6 @@
           "fonte": "c.c.",
           "articolo": "2497-quater",
           "descrizione": "Diritto di recesso – il socio può recedere dalla controllata se subisce danni dalla direzione della capogruppo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Direzione e coordinamento – vantaggi compensativi e abuso"
         }
       ],
       "responsabilita_capogruppo_2497": {

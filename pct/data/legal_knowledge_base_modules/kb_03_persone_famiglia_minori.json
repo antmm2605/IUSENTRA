@@ -45,7 +45,40 @@
           "Prodighi, persone che fanno abuso di alcool/stupefacenti",
           "Sordi, ciechi dalla nascita o dalla prima infanzia (se non ricevuto educazione sufficiente)"
         ]
-      }
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "415",
+          "descrizione": "Persone che possono essere inabilitate"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "417",
+          "descrizione": "Legittimati all'istanza"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.52",
+          "descrizione": "Ricorso al tribunale del luogo di residenza o domicilio"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.56",
+          "descrizione": "Impugnazione della sentenza"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Inabilitazione (COLLEGIO)",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Gli artt. 712-720 c.p.c. sono abrogati dal D.Lgs. 149/2022: il procedimento segue gli artt. 473-bis.52 e seguenti c.p.c."
+      ]
     },
     {
       "codice": "110011",
@@ -190,9 +223,51 @@
       "eredita_da": "111002",
       "differenze_rispetto_a_padre": {
         "rito": "Rito unificato post-Cartabia con possibilità di cumulo con separazione (art. 473-bis.49)",
-        "normativa_principale": [{"fonte": "L. 898/1970", "articolo": "1-5", "descrizione": "Divorzio"}],
-        "presupposti_specifici": ["Matrimonio concordatario", "Cause ex art. 3 L. 898/70"]
-      }
+        "normativa_principale": [
+          {
+            "fonte": "L. 898/1970",
+            "articolo": "1-5",
+            "descrizione": "Divorzio"
+          }
+        ],
+        "presupposti_specifici": [
+          "Matrimonio concordatario",
+          "Cause ex art. 3 L. 898/70"
+        ]
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "L. 898/1970",
+          "articolo": "3",
+          "descrizione": "Casi di scioglimento o cessazione degli effetti civili"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.12",
+          "descrizione": "Forma della domanda nel rito per le persone, i minorenni e le famiglie"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.47",
+          "descrizione": "Competenza per territorio e poteri del pubblico ministero"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.49",
+          "descrizione": "Cumulo con la domanda di separazione"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Divorzio contenzioso - Cessazione effetti civili",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "L'art. 4 L. 898/1970 è abrogato dal D.Lgs. 149/2022: la domanda si propone con il rito degli artt. 473-bis e seguenti c.p.c."
+      ]
     },
     {
       "codice": "111021",
@@ -337,8 +412,44 @@
       "eredita_da": "111103",
       "differenze_rispetto_a_padre": {
         "competenza": "Tribunale per i minorenni o, post-Cartabia, Tribunale ordinario sezione famiglia",
-        "presupposti_specifici": ["Figlio minorenne", "Coinvolgimento curatore speciale del minore ex art. 78 c.p.c."]
-      }
+        "presupposti_specifici": [
+          "Figlio minorenne",
+          "Coinvolgimento curatore speciale del minore ex art. 78 c.p.c."
+        ]
+      },
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.c.",
+          "articolo": "269",
+          "descrizione": "Dichiarazione giudiziale di paternità e maternità: prova con ogni mezzo"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "270",
+          "descrizione": "Imprescrittibile per il figlio"
+        },
+        {
+          "fonte": "c.c.",
+          "articolo": "273",
+          "descrizione": "Azione nell'interesse del minore"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.12",
+          "descrizione": "Forma della domanda nel rito per le persone, i minorenni e le famiglie"
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare i presupposti specifici della materia: Dichiarazione giudiziale di paternità/maternità naturale di minorenne - merito (art. 269 c.p.c.)",
+          "obbligatorio": true
+        }
+      ],
+      "avvertenze_redazionali": [
+        "Per il minore l'azione è promossa dal genitore che esercita la responsabilità genitoriale o dal tutore, che deve chiedere l'autorizzazione del giudice (art. 273 c.c.)."
+      ]
     },
     {
       "codice": "112202",

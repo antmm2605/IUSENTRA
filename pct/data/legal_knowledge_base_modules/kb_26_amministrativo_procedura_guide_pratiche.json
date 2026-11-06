@@ -1,0 +1,588 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "AMMINISTRATIVO_PROCEDURA",
+  "denominazione": "Processo amministrativo: guide pratiche",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_AMMINISTRATIVO_RICORSO_TAR",
+      "denominazione": "Ricorso al TAR per l'annullamento del provvedimento (artt. 29, 40, 41 e 45 c.p.a.)",
+      "categoria": "Processo amministrativo – primo grado",
+      "materia": "Diritto amministrativo e appalti",
+      "rito": "Processo amministrativo telematico",
+      "competenza": "Tribunale amministrativo regionale competente",
+      "uffici_destinatari": [
+        "Processo amministrativo telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "29",
+          "descrizione": "Azione di annullamento: 60 giorni, a pena di decadenza"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "40",
+          "descrizione": "Contenuto del ricorso: motivi specifici, mezzi di prova, provvedimenti chiesti"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "41",
+          "descrizione": "Notifica all'amministrazione e ad almeno un controinteressato"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "45",
+          "descrizione": "Deposito entro 30 giorni dall'ultima notifica"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "46",
+          "descrizione": "Costituzione delle parti intimate entro 60 giorni"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "136",
+          "descrizione": "Comunicazioni e depositi informatici"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_tar",
+        "denominazione": "Ricorso al TAR",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "amministrazione",
+            "label": "Amministrazione resistente",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "controinteressati",
+            "label": "Controinteressati",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento e data di notifica o piena conoscenza",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Violazione di legge, incompetenza, eccesso di potere",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Ricorrente",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "amministrazione",
+            "label": "Amministrazione resistente",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "controinteressati",
+            "label": "Controinteressati",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento e data di notifica o piena conoscenza",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Violazione di legge, incompetenza, eccesso di potere",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Nei riti abbreviati dell'art. 119 c.p.a. i termini processuali sono dimezzati, salvo quelli per il ricorso introduttivo e i motivi aggiunti.",
+          "Per gli appalti si applica l'art. 120 c.p.a."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale (art. 40, comma 1, lett. g, c.p.a.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Individuare e notificare ad almeno un controinteressato indicato nell'atto (art. 41, comma 2)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Verificare se la materia ha un rito abbreviato (artt. 119-120 c.p.a.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Notifica del ricorso",
+          "decorrenza": "notificazione, comunicazione o piena conoscenza dell'atto",
+          "natura": "decadenza",
+          "norma": "art. 29 c.p.a.",
+          "giorni": 60
+        },
+        {
+          "termine": "Deposito del ricorso",
+          "decorrenza": "perfezionamento dell'ultima notifica",
+          "natura": "perentorio",
+          "norma": "art. 45 c.p.a.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13, comma 6-bis, D.P.R. 115/2002 (importi diversi per rito ordinario, appalti, silenzio, accesso e cittadinanza)"
+      },
+      "avvertenze_redazionali": [
+        "Nei riti abbreviati dell'art. 119 c.p.a. i termini processuali sono dimezzati, salvo quelli per il ricorso introduttivo e i motivi aggiunti.",
+        "Per gli appalti si applica l'art. 120 c.p.a."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ricorso tar",
+        "annullamento provvedimento",
+        "tar",
+        "diniego",
+        "revoca",
+        "concorso",
+        "permesso di costruire"
+      ]
+    },
+    {
+      "codice": "GUIDA_AMMINISTRATIVO_CAUTELARE_TAR",
+      "denominazione": "Domanda cautelare al TAR (artt. 55-56 c.p.a.) e appello cautelare (art. 62 c.p.a.)",
+      "categoria": "Processo amministrativo – cautelare",
+      "materia": "Diritto amministrativo e appalti",
+      "rito": "Processo amministrativo telematico",
+      "competenza": "TAR; Consiglio di Stato per l'appello cautelare",
+      "uffici_destinatari": [
+        "Processo amministrativo telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "55",
+          "descrizione": "Misure cautelari collegiali per pregiudizio grave e irreparabile"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "56",
+          "descrizione": "Misure monocratiche per estrema gravità e urgenza"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "62",
+          "descrizione": "Appello cautelare: 30 giorni dalla notifica o 60 dalla pubblicazione"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "cautelare_tar",
+        "denominazione": "Istanza cautelare",
+        "campi_chiave": [
+          {
+            "id": "pregiudizio",
+            "label": "Pregiudizio grave e irreparabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "misura",
+            "label": "Misura richiesta",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "pregiudizio",
+            "label": "Pregiudizio grave e irreparabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "misura",
+            "label": "Misura richiesta",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "La domanda cautelare è improcedibile senza l'istanza di fissazione dell'udienza di merito, salvo fissazione d'ufficio (art. 56)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Appello cautelare",
+          "decorrenza": "notificazione dell'ordinanza (60 giorni dalla pubblicazione)",
+          "natura": "perentorio",
+          "norma": "art. 62, comma 1, c.p.a.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Compreso nel ricorso; dovuto per l'appello cautelare secondo l'art. 13, comma 6-bis, D.P.R. 115/2002"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "sospensiva",
+        "cautelare tar",
+        "decreto presidenziale",
+        "misura cautelare tar"
+      ]
+    },
+    {
+      "codice": "GUIDA_AMMINISTRATIVO_APPELLO_CONSIGLIO_STATO",
+      "denominazione": "Appello al Consiglio di Stato (artt. 92-93 c.p.a.)",
+      "categoria": "Processo amministrativo – appello",
+      "materia": "Diritto amministrativo e appalti",
+      "rito": "Processo amministrativo telematico",
+      "competenza": "Consiglio di Stato",
+      "uffici_destinatari": [
+        "Processo amministrativo telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "92",
+          "descrizione": "Impugnazioni: 60 giorni dalla notifica della sentenza; senza notifica termine lungo"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "93",
+          "descrizione": "Luogo di notificazione dell'impugnazione"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "appello_consiglio_stato",
+        "denominazione": "Ricorso in appello",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza del TAR e data di notifica o pubblicazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi specifici",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza del TAR e data di notifica o pubblicazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi specifici",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Senza notifica della sentenza si applica il termine lungo dell'art. 92, comma 3, c.p.a."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Difensore abilitato al patrocinio davanti alle giurisdizioni superiori",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Appello (termine breve)",
+          "decorrenza": "notificazione della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 92, comma 1, c.p.a.",
+          "giorni": 60
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13, comma 6-bis, D.P.R. 115/2002 (importi diversi per rito ordinario, appalti, silenzio, accesso e cittadinanza)"
+      },
+      "avvertenze_redazionali": [
+        "Senza notifica della sentenza si applica il termine lungo dell'art. 92, comma 3, c.p.a."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "consiglio di stato",
+        "appello sentenza tar"
+      ]
+    },
+    {
+      "codice": "GUIDA_AMMINISTRATIVO_OTTEMPERANZA",
+      "denominazione": "Giudizio di ottemperanza davanti al giudice amministrativo (artt. 112-114 c.p.a.)",
+      "categoria": "Processo amministrativo – ottemperanza",
+      "materia": "Diritto amministrativo e appalti",
+      "rito": "Processo amministrativo telematico",
+      "competenza": "Giudice che ha emesso il provvedimento (TAR anche per le sentenze confermate in appello); per le sentenze del giudice ordinario il TAR competente",
+      "uffici_destinatari": [
+        "Processo amministrativo telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "112",
+          "descrizione": "Ottemperanza a sentenze amministrative, a sentenze passate in giudicato del giudice ordinario e ad altri provvedimenti"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "113",
+          "descrizione": "Giudice dell'ottemperanza"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "114",
+          "descrizione": "Ricorso notificato anche senza diffida; prescrizione decennale; commissario ad acta"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ottemperanza",
+        "denominazione": "Ricorso per ottemperanza",
+        "campi_chiave": [
+          {
+            "id": "titolo",
+            "label": "Sentenza o provvedimento da eseguire e attestazione del giudicato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "inadempimento",
+            "label": "Inadempimento dell'amministrazione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "titolo",
+            "label": "Sentenza o provvedimento da eseguire e attestazione del giudicato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "inadempimento",
+            "label": "Inadempimento dell'amministrazione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Provvedimento impugnato con la relata o la data di comunicazione",
+          "required": true
+        },
+        {
+          "id": "copia_autentica",
+          "label": "Copia autentica del provvedimento (art. 114, comma 2)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Per i crediti contro lo Stato verificare il decorso dei 120 giorni dalla notifica del titolo (art. 14 D.L. 669/1996)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Prescrizione dell'azione",
+          "decorrenza": "passaggio in giudicato della sentenza",
+          "natura": "prescrizione",
+          "norma": "art. 114, comma 1, c.p.a.",
+          "anni": 10
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13, comma 6-bis, D.P.R. 115/2002 (importi diversi per rito ordinario, appalti, silenzio, accesso e cittadinanza)"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ottemperanza",
+        "commissario ad acta",
+        "esecuzione sentenza contro la pa"
+      ]
+    },
+    {
+      "codice": "GUIDA_AMMINISTRATIVO_SILENZIO",
+      "denominazione": "Ricorso contro il silenzio dell'amministrazione (artt. 31 e 117 c.p.a.)",
+      "categoria": "Processo amministrativo – silenzio",
+      "materia": "Diritto amministrativo e appalti",
+      "rito": "Rito camerale con sentenza semplificata",
+      "competenza": "TAR competente",
+      "uffici_destinatari": [
+        "Processo amministrativo telematico"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "31",
+          "descrizione": "Azione finché dura l'inadempimento e non oltre un anno dalla scadenza del termine del procedimento"
+        },
+        {
+          "fonte": "D.Lgs. 104/2010 (c.p.a.)",
+          "articolo": "117",
+          "descrizione": "Ricorso anche senza diffida; ordine di provvedere di norma entro 30 giorni; commissario ad acta"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "silenzio",
+        "denominazione": "Ricorso avverso il silenzio",
+        "campi_chiave": [
+          {
+            "id": "istanza",
+            "label": "Istanza presentata e data",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "termine_procedimento",
+            "label": "Termine di conclusione del procedimento",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "istanza",
+            "label": "Istanza presentata e data",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "termine_procedimento",
+            "label": "Termine di conclusione del procedimento",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "istanza",
+          "label": "Istanza all'amministrazione e prova della ricezione",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Calcolare la scadenza del termine di conclusione del procedimento (art. 2 L. 241/1990)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso contro il silenzio",
+          "decorrenza": "scadenza del termine di conclusione del procedimento",
+          "natura": "decadenza",
+          "norma": "art. 31, comma 2, c.p.a.",
+          "anni": 1
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Dovuto secondo l'art. 13, comma 6-bis, D.P.R. 115/2002 (importi diversi per rito ordinario, appalti, silenzio, accesso e cittadinanza)"
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "silenzio",
+        "istanza senza risposta",
+        "istanza",
+        "silenzio inadempimento",
+        "mancata risposta pa",
+        "obbligo di provvedere"
+      ]
+    }
+  ]
+}

@@ -23,14 +23,6 @@
           "fonte": "c.p.c.",
           "articolo": "34",
           "descrizione": "Accertamento incidentale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Accertamento negativo – interesse ad agire del debitore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Accertamento negativo preventivo – utilità e ammissibilità"
         }
       ],
       "quando_si_usa": {
@@ -468,11 +460,10 @@
         },
         {
           "fonte": "Cass. SU 9/2019 SS.UU.",
-          "descrizione": "Trust interno – ammissibilità e condizioni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2022",
-          "descrizione": "Trust non riconosciuto – sham trust e simulazione"
+          "descrizione": "Trust interno – ammissibilità e condizioni",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMTMwNzUwSQ%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31829/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "segregazione_patrimoniale": {
@@ -947,14 +938,6 @@
           "fonte": "c.c.",
           "articolo": "2560 c. 2",
           "descrizione": "Per i debiti non iscritti: cedente e acquirente sono solidalmente responsabili"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Debiti occulti nell'azienda ceduta – responsabilità dell'acquirente"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Cessione d'azienda con debiti nascosti – rimedi per l'acquirente"
         }
       ],
       "responsabilita_acquirente_2560": {
@@ -1327,14 +1310,6 @@
           "fonte": "L. 218/1995",
           "articolo": "31",
           "descrizione": "Separazione e divorzio – legge applicabile in Italia"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Giurisdizione italiana per coppie miste – residenza abituale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Litispendenza internazionale – Reg. 2019/1111"
         }
       ],
       "giurisdizione_bruxelles_II_ter": {
@@ -1660,14 +1635,6 @@
         {
           "fonte": "D.Lgs. 272/1999",
           "descrizione": "Sicurezza sul lavoro portuale – rischi specifici"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Lavoratori portuali – rapporto e tutele"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Appalto in porto e responsabilità solidale"
         }
       ],
       "peculiarita_lavoro_portuale": {

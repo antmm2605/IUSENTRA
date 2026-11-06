@@ -36,19 +36,10 @@
         },
         {
           "fonte": "Cass. SU 15781/2005 (avvocato)",
-          "descrizione": "Perdita di chance processuale – danno autonomo risarcibile"
-        },
-        {
-          "fonte": "Cass. SU 19565/2018",
-          "descrizione": "Perdita di chance – distinzione da lucro cessante + prova probabilistica"
-        },
-        {
-          "fonte": "Cass. SU 4523/2021",
-          "descrizione": "Perdita di chance lavorativa – criteri di quantificazione"
-        },
-        {
-          "fonte": "Cass. SU 6688/2024",
-          "descrizione": "Perdita di chance – onere della prova aggiornato"
+          "descrizione": "Perdita di chance processuale – danno autonomo risarcibile",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2023209063O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 09063/2023 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "natura_della_perdita_di_chance": {
@@ -298,18 +289,6 @@
           "fonte": "D.Lgs. 81/2015 (Jobs Act)",
           "articolo": "3",
           "descrizione": "Riforma art. 2103 c.c. – mansioni + trasferimento"
-        },
-        {
-          "fonte": "Cass. SU 15489/2020",
-          "descrizione": "Trasferimento – ragioni tecnico-organizzative devono essere REALI e DIMOSTRABILI"
-        },
-        {
-          "fonte": "Cass. SU 9803/2022",
-          "descrizione": "Trasferimento punitivo – illecito + onere prova datore"
-        },
-        {
-          "fonte": "Cass. SU 14596/2024",
-          "descrizione": "Trasferimento – prova della ragione organizzativa + bilanciamento con esigenze familiari"
         }
       ],
       "presupposti_del_trasferimento_legittimo_2103_c8": {
@@ -539,8 +518,9 @@
         },
         {
           "fonte": "c.c.",
-          "articolo": "243-ter",
-          "descrizione": "Legittimazione attiva – marito, madre, figlio, rappresentante legale del figlio minore"
+          "articolo": "243-bis",
+          "descrizione": "Legittimazione attiva – marito, madre, figlio, rappresentante legale del figlio minore (citato prima come art. 243-ter c.c., articolo inesistente)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.c.",
@@ -563,15 +543,10 @@
         },
         {
           "fonte": "CEDU art. 8",
-          "descrizione": "Vita privata e familiare – bilanciamento con identità biologica"
-        },
-        {
-          "fonte": "Cass. SU 21963/2019",
-          "descrizione": "Disconoscimento – termine 1 anno + dies a quo dalla scoperta"
-        },
-        {
-          "fonte": "Cass. SU 9006/2024",
-          "descrizione": "DNA e presunzione di paternità – aggiornamento"
+          "descrizione": "Vita privata e familiare – bilanciamento con identità biologica",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presunzione_di_paternita_231": {

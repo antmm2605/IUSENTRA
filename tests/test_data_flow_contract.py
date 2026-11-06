@@ -93,20 +93,20 @@ def test_data_flow_contract_copre_menu_operativo_storage_e_route_react():
     menu = required_menu_items()
     assert menu["Calendario"] == {"/agenda"}
     assert menu["Nuovo Appuntamento"] == {"/agenda/nuovo"}
-    assert menu["Timesheet"] == {"/timesheet"}
+    assert menu["Ore lavorate"] == {"/timesheet"}
     assert menu["Email PEC"] == {"/email"}
     assert menu["PEC"] == {"/email"}
     assert menu["Notifiche legali"] == {"/notifiche-legali"}
     assert menu["L.53"] == {"/notifiche-legali"}
     assert menu["Email ordinaria"] == {"/email-ordinaria"}
     assert menu["SMTP"] == {"/email-ordinaria"}
-    assert menu["Nuovo SMS/WA"] == {"/messaggi/nuovo"}
-    assert "/clienti" in menu["Anagrafica"]
-    assert "/soggetti" in menu["Anagrafica"]
-    assert menu["Legal Skills"] == {"/legal-skills"}
-    assert menu["Editor professionale"] == {"/editor-professionale"}
-    assert menu["Editor libero"] == {"/template-atti/editor"}
-    assert menu["Regia Agentica"] == {"/workflow-agents"}
+    assert menu["Nuovo SMS o WhatsApp"] == {"/messaggi/nuovo"}
+    assert menu["Elenco clienti"] == {"/clienti"}
+    assert menu["Elenco soggetti e parti"] == {"/soggetti"}
+    assert menu["Procedure guidate"] == {"/legal-skills"}
+    assert menu["Editor di atti e documenti"] == {"/editor-professionale"}
+    assert menu["Scrivi su foglio bianco"] == {"/template-atti/editor"}
+    assert menu["Lavori automatici di Lex"] == {"/workflow-agents"}
     assert menu["Guida firma digitale"] == {"/guida/firma-digitale"}
     assert menu["Importa pratiche"] == {"/importa-pratiche"}
 

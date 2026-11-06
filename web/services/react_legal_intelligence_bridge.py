@@ -135,8 +135,8 @@ _OFFICIAL_SOURCE_CODES = {
     "cassazione",
 }
 _LEGAL_REFERENCE_RE = re.compile(
-    r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?|decreto\s+ministeriale|legge|l\.|sentenza|ordinanza|delibera|messaggio|circolare)"
-    r"\b.{0,120}\b(?:n\.?\s*)?\d{1,6}(?:/\d{2,4})?\b",
+    r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?|decreto\s+ministeriale|legge|l\.(?=\s|\d)|sentenza|ordinanza|delibera|messaggio|circolare)"
+    r"(?:\b|(?<=\.)).{0,120}\b(?:n\.?\s*)?\d{1,6}(?:/\d{2,4})?\b",
     re.IGNORECASE,
 )
 _OFFICIAL_CONTEXT_TIMEOUT = (1.0, 2.0)
@@ -678,11 +678,12 @@ def _legal_reference_number(value: Any) -> str:
     if named_number:
         return named_number.group(1)
     shorthand = re.search(
-        r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?)\s*(\d{1,6})(?:/\d{2,4})?\b",
+        r"\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?|legge|l\.)\s*(\d{1,6})(?:\s*/\s*|\s+)(?:19|20)\d{2}\b"
+        r"|\b(?:d\.?\s*lgs\.?|d\.?\s*l\.?|d\.?\s*m\.?|d\.?\s*p\.?\s*r\.?)\s*(\d{1,6})(?:/\d{2,4})?\b",
         text,
         flags=re.IGNORECASE,
     )
-    return shorthand.group(1) if shorthand else ""
+    return (shorthand.group(1) or shorthand.group(2)) if shorthand else ""
 
 
 def _requested_reference_source(value: Any) -> str:
@@ -1946,7 +1947,9 @@ def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive
         "sourceKind": "fonte ufficiale",
         "sourceHref": source_href,
         "date": _text(row.get("data") or row.get("published_at") or row.get("data_acquisizione")),
-        "area": _text(row.get("materia")) or ("Normativa" if archive == "normattiva" else "Gazzetta Ufficiale"),
+        # I «topics» dell'archivio Normattiva sono parole chiave assegnate all'importazione (la L. 107/2015 risultava
+        # «crisi_impresa_societario»): non sono una materia affidabile da mostrare all'avvocato.
+        "area": "Normativa" if archive == "normattiva" else (_text(row.get("materia")) or "Gazzetta Ufficiale"),
         "branch": "Archivio Normattiva" if archive == "normattiva" else "Archivio Gazzetta Ufficiale",
         "approvalLabel": "indicizzata",
         "approvalTone": "success",
@@ -3765,7 +3768,7 @@ def _empty_payload(source: str, message: str, legacy_contract: str) -> dict[str,
         "sections": [],
         "records": [],
         "actions": [
-            _action("dashboard", "Ricerca legale", "/ricerca-legale", "primary"),
+            _action("dashboard", "Cerca norme e sentenze", "/ricerca-legale", "primary"),
             _action("news", "News legali", "/ricerca-legale/news", "neutral"),
             _action("mediazione", "Registro mediazione", "/ricerca-legale/mediazione", "neutral"),
         ],
@@ -3961,6 +3964,12 @@ def build_react_legal_intelligence_payload(
             )
             combined_search = _filter_records_for_exact_reference(combined_search, search_query)
             combined_search = _sort_records_for_query(combined_search, search_query)
+        if search_query:
+            from web.services.ricerca_legale_norma_citata import in_cima as _norma_citata_in_cima
+
+            # Lettura diretta per estremi (indice numero/anno), anche quando gli archivi estesi non si scansionano.
+            # La norma citata dall'avvocato (estremi nel testo o nei campi della ricerca per estremi) è il primo risultato.
+            combined_search = _norma_citata_in_cima(combined_search, search_query, query)
         records = (
             combined_search
             if search_query
@@ -4276,7 +4285,7 @@ def build_react_legal_intelligence_payload(
         ],
         "records": records,
         "actions": [
-            _action("dashboard", "Ricerca legale", "/ricerca-legale", "primary"),
+            _action("dashboard", "Cerca norme e sentenze", "/ricerca-legale", "primary"),
             _action("news", "News legali", "/ricerca-legale/news", "primary"),
             _action("mediazione", "Registro mediazione", "/ricerca-legale/mediazione", "neutral"),
             _action("giurisprudenza", "Archivio giurisprudenza", "/giurisprudenza", "neutral"),

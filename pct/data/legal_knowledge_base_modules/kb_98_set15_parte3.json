@@ -59,12 +59,11 @@
           "descrizione": "Riforma – Tribunale per le persone"
         },
         {
-          "fonte": "Cass. SU 3569/2019",
-          "descrizione": "Adozione – interesse superiore del minore come criterio guida"
-        },
-        {
           "fonte": "CEDU art. 8",
-          "descrizione": "Diritto alla vita familiare"
+          "descrizione": "Diritto alla vita familiare",
+          "url": "https://www.echr.coe.int/documents/d/echr/convention_ita",
+          "verifica": "Disposizione della Convenzione europea dei diritti dell'uomo (norma, non sentenza)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "requisiti_adottanti_art22": {
@@ -309,11 +308,10 @@
         },
         {
           "fonte": "Cass. SU 24675/2017",
-          "descrizione": "Anatocismo bancario – nullità clausola capitalizzazione trimestrale"
-        },
-        {
-          "fonte": "Cass. SU 15895/2023",
-          "descrizione": "Risoluzione mutuo – calcolo importo dovuto"
+          "descrizione": "Anatocismo bancario – nullità clausola capitalizzazione trimestrale",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022135118O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 35118/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "tipologie_di_mutuo": {
@@ -570,18 +568,6 @@
           "fonte": "c.c.",
           "articolo": "2126",
           "descrizione": "Lavoro di fatto – tutele applicabili"
-        },
-        {
-          "fonte": "Cass. SU 3570/2020",
-          "descrizione": "Eterorganizzazione ex art. 2 D.Lgs. 81/2015 – criteri di qualificazione"
-        },
-        {
-          "fonte": "Cass. SU 1663/2020",
-          "descrizione": "Subordinazione – elemento della eterodirezione come criterio qualificante"
-        },
-        {
-          "fonte": "Cass. SU 14432/2024",
-          "descrizione": "Falso autonomo – accertamento e conseguenze retributive"
         }
       ],
       "criteri_di_subordinazione": {
@@ -844,14 +830,6 @@
           "fonte": "c.c.",
           "articolo": "2308-2312",
           "descrizione": "S.a.s. – rinvio a s.n.c. con adattamenti"
-        },
-        {
-          "fonte": "Cass. SU 9671/2021",
-          "descrizione": "Liquidazione quota socio uscente – criteri di calcolo"
-        },
-        {
-          "fonte": "Cass. SU 20985/2023",
-          "descrizione": "Scioglimento s.n.c. – obblighi procedurali"
         }
       ],
       "cause_di_scioglimento_2272": [

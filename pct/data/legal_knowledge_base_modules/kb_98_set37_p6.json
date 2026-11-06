@@ -33,14 +33,6 @@
           "fonte": "DPR 600/1973",
           "articolo": "42",
           "descrizione": "Accertamento per crediti inesistenti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Credito R&S – qualificazione delle attività"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riversamento agevolato e decadenza"
         }
       ],
       "credito_RS_revoca": {
@@ -487,10 +479,6 @@
           "fonte": "Dir. UE 2006/112",
           "articolo": "168-192",
           "descrizione": "IVA – diritto alla detrazione e limitazioni"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pro rata – calcolo e contestazione"
         },
         {
           "fonte": "CGE C-566/17 Skarpa",
@@ -941,14 +929,6 @@
           "fonte": "D.Lgs. 218/1997",
           "articolo": "6",
           "descrizione": "Acquiescenza – pagamento ridotto se si accetta la pretesa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Cartella da 36-ter – termini e contestazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "36-bis – errori materiali vs accertamento"
         }
       ],
       "differenza_36bis_36ter": {
@@ -1398,14 +1378,6 @@
           "fonte": "L. 212/2000 (Statuto del Contribuente)",
           "articolo": "10-bis",
           "descrizione": "Abuso del diritto – non è violazione se c'è causa economica valida"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Dichiarazione infedele – dolo e colpa"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Ravvedimento post accertamento – ammissibilità parziale"
         }
       ],
       "ravvedimento_operoso_13": {
@@ -1854,14 +1826,6 @@
           "fonte": "L. 212/2000",
           "articolo": "10-bis c. 13",
           "descrizione": "Sanzioni escluse – l'abuso del diritto NON è punito penalmente"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Abuso del diritto – sostanza economica e vantaggi indebiti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Abuso – operazioni genuine con finalità anche fiscale non sono abusive"
         }
       ],
       "abuso_art10bis": {

@@ -473,10 +473,6 @@
           "fonte": "L. 742/1969",
           "articolo": "3",
           "descrizione": "ECCEZIONI – i procedimenti cautelari, di urgenza e i procedimenti elencati dal giudice non sono sospesi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sospensione feriale – decorrenza e calcolo dei termini"
         }
       ],
       "sospensione_feriale": {
@@ -910,10 +906,6 @@
           "fonte": "c.p.c.",
           "articolo": "808-ter c. 2",
           "descrizione": "Impugnazione – solo per vizi che porterebbero all'annullamento di un contratto (dolo, violenza, errore)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Arbitrato irrituale – natura e impugnazione"
         }
       ],
       "differenza_rituale_irrituale": {
@@ -1171,7 +1163,8 @@
         {
           "fonte": "c.c.",
           "articolo": "155-sexies",
-          "descrizione": "Mediazione familiare – il giudice può invitare le parti a rivolgersi a un mediatore familiare"
+          "descrizione": "Mediazione familiare – il giudice può invitare le parti a rivolgersi a un mediatore familiare",
+          "abrogata_da": "D.Lgs. 28 dicembre 2013, n. 154"
         },
         {
           "fonte": "D.Lgs. 149/2022 (Riforma Cartabia)",
@@ -1611,10 +1604,6 @@
           "fonte": "DPR 1199/1971",
           "articolo": "14",
           "descrizione": "Trasposizione – la PA resistente o i controinteressati possono chiedere la trasposizione al TAR"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Ricorso straordinario – natura e effetti"
         }
       ],
       "ricorso_straordinario": {

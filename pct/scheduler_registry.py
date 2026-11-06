@@ -527,6 +527,14 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "15",
             built_in=True,
         ),
+        SchedulerTemplate(
+            "giurisprudenza_alimentazione_continua", "Alimentazione continua della giurisprudenza", "Aggiornamenti legali",
+            "Ogni ora: nuove decisioni e testi in oscuramento da SentenzeWeb, riparazione dei collegamenti, lettura delle norme applicate "
+            "e dei precedenti citati nelle decisioni. Attivo solo dove IUSENTRA_ALIMENTAZIONE_GIURISPRUDENZA=continua (in locale).",
+            "interval", interval_minutes=60,
+            enabled=str(cfg.get("IUSENTRA_ALIMENTAZIONE_GIURISPRUDENZA") or os.getenv("IUSENTRA_ALIMENTAZIONE_GIURISPRUDENZA", "")).strip().lower() == "continua",
+            built_in=True,
+        ),
         SchedulerTemplate("cassazione_sentenzeweb_nightly", "Cassazione SentenzeWeb", "Aggiornamenti legali", "Recupera nuovi provvedimenti e varianti dal corpus pubblico, con checkpoint SQL e deduplicazione. Non esegue letture dei fascicoli.", "cron", "23", "35", enabled=bool(cfg.get("IUSENTRA_SENTENZEWEB_DIRECTORY") or os.getenv("IUSENTRA_SENTENZEWEB_DIRECTORY")), built_in=True),
         SchedulerTemplate("sync_tabelle_normative_daily", "Tabelle normative", "Fonti e tabelle", "Aggiorna tassi, indici e tabelle normative.", "cron", "4", "30", built_in=True),
         SchedulerTemplate(

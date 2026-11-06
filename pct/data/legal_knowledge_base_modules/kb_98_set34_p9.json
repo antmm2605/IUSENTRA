@@ -33,14 +33,6 @@
           "fonte": "c.c.",
           "articolo": "532",
           "descrizione": "FINE DELLA GIACENZA – quando l'erede accetta (con beneficio d'inventario) o si dichiara l'assenza di eredi"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Eredità giacente – curatore e poteri"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Eredità giacente e creditori – tutele"
         }
       ],
       "quando_si_nomina_curatore": {
@@ -488,14 +480,6 @@
           "fonte": "Reg. UE 650/2012",
           "articolo": "62-73",
           "descrizione": "CERTIFICATO SUCCESSORIO EUROPEO (CSE) – documento valido in tutta l'UE"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Successione internazionale – legge applicabile e ordine pubblico"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "CSE – rilascio e effetti"
         }
       ],
       "certificato_successorio_europeo_CSE": {
@@ -934,14 +918,6 @@
           "fonte": "c.c.",
           "articolo": "230-bis c. 5",
           "descrizione": "LIQUIDAZIONE – il familiare ha diritto alla liquidazione della propria quota in caso di cessazione della collaborazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Impresa familiare – lavoro continuativo e partecipazione agli utili"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Liquidazione della quota del familiare uscente – calcolo"
         }
       ],
       "impresa_familiare_230bis": {
@@ -1288,14 +1264,6 @@
         {
           "fonte": "D.Lgs. 28/2023 (attuazione Dir. UE 2020/1828)",
           "descrizione": "Azione rappresentativa degli interessi collettivi dei consumatori"
-        },
-        {
-          "fonte": "Cass. SU 14897/2022",
-          "descrizione": "Azione di classe – ammissibilità e rappresentatività"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Adesione dei singoli consumatori – termini e modalità"
         }
       ],
       "nuova_azione_classe_D_Lgs_28_2023": {
@@ -1803,14 +1771,6 @@
           "fonte": "c.c.",
           "articolo": "2741",
           "descrizione": "Par condicio – anche le obbligazioni propter rem sono garantite con il patrimonio"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Oneri reali – trasmissibilità e opponibilità ai terzi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Obbligazione propter rem e acquirente del fondo"
         }
       ],
       "differenza_onere_reale_vs_obbligazione_propter_rem": {

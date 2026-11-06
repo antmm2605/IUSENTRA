@@ -32,14 +32,6 @@
         {
           "fonte": "Dir. UE 85/374/CEE",
           "descrizione": "Responsabilità del produttore per prodotto difettoso"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Farmaco difettoso – prova del difetto e del nesso causale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Obbligo di aggiornamento del foglio illustrativo"
         }
       ],
       "responsabilita_da_prodotto_difettoso_farmaco": {
@@ -463,14 +455,6 @@
           "fonte": "Cod. Consumo",
           "articolo": "68",
           "descrizione": "Clausole abusive nei contratti a distanza"
-        },
-        {
-          "fonte": "Cass. SU 14876/2021",
-          "descrizione": "Recesso 14 gg – termine iniziale e modalità"
-        },
-        {
-          "fonte": "Cass. SU 9843/2023",
-          "descrizione": "Mancanza informativa: estensione recesso a 12 mesi"
         }
       ],
       "diritto_di_recesso_52": {
@@ -995,14 +979,6 @@
           "fonte": "c.p.c.",
           "articolo": "617",
           "descrizione": "Opposizione agli atti esecutivi per ipoteca illegittima"
-        },
-        {
-          "fonte": "Cass. SU 14892/2021",
-          "descrizione": "Cancellazione ipoteca consensuale – automatica post-estinzione mutuo"
-        },
-        {
-          "fonte": "Cass. SU 9812/2023",
-          "descrizione": "Ipoteca iscritta dopo la prescrizione del credito – cancellazione giudiziale"
         }
       ],
       "cancellazione_automatica_mutuo_D_L_248_2007": {
@@ -1421,14 +1397,6 @@
           "fonte": "D.Lgs. 231/2001",
           "articolo": "6",
           "descrizione": "Canale di segnalazione interno obbligatorio per enti con > 50 dipendenti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2023",
-          "descrizione": "Segnalazione in buona fede – tutela anche se la segnalazione si rivela infondata"
-        },
-        {
-          "fonte": "Cass. SU 9876/2024",
-          "descrizione": "Licenziamento ritorsivo post-segnalazione – nullità"
         }
       ],
       "onere_invertito_art19": {
@@ -1963,18 +1931,6 @@
           "fonte": "D.Lgs. 81/2008",
           "articolo": "15",
           "descrizione": "Misure generali di tutela – include la protezione da stress lavoro-correlato"
-        },
-        {
-          "fonte": "Cass. SU 13874/2020",
-          "descrizione": "Mobbing – definizione e requisiti: sistematicità, reiterazione, nesso causale con la malattia"
-        },
-        {
-          "fonte": "Cass. SU 9876/2022",
-          "descrizione": "Straining – forma attenuata di mobbing"
-        },
-        {
-          "fonte": "Cass. SU 14897/2023",
-          "descrizione": "Danno psicologico da mobbing – quantificazione"
         }
       ],
       "definizione_mobbing_Cass_SU_13874_2020": {

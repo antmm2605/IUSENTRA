@@ -33,14 +33,6 @@
           "fonte": "CPA D.Lgs. 104/2010",
           "articolo": "116",
           "descrizione": "Ricorso al TAR per accesso – rito speciale accelerato"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 10/2020",
-          "descrizione": "FOIA – bilanciamento con interessi contrapposti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Accesso generalizzato – diniego e motivazione"
         }
       ],
       "FOIA_vs_accesso_ordinario": {
@@ -526,14 +518,6 @@
           "fonte": "c.c.",
           "articolo": "2745-2783",
           "descrizione": "Privilegi generali e speciali sui beni mobili e immobili"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Piano di riparto – crediti concorrenti e privilegio"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Contestazione del piano – onere prova e procedimento"
         }
       ],
       "ordine_di_distribuzione": {
@@ -876,15 +860,10 @@
         },
         {
           "fonte": "Cass. SU 9451/2016",
-          "descrizione": "Autonoma organizzazione per i professionisti – parametri"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Medico di base e IRAP – autonoma organizzazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Professionista senza dipendenti – IRAP non dovuta"
+          "descrizione": "Autonoma organizzazione per i professionisti – parametri",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTM4NzM5Tw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 38761/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "autonoma_organizzazione_Cass_SU_9451_2016": {
@@ -1455,14 +1434,6 @@
         {
           "fonte": "Reg. UE 282/2011",
           "descrizione": "Norme di esecuzione della Direttiva IVA"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "IVA intracomunitaria – non imponibilità e prove"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Acquisto intracomunitario – integrazione fattura e prova"
         }
       ],
       "non_imponibilita_cessioni_UE": {
@@ -1998,14 +1969,6 @@
           "fonte": "L. 342/2000",
           "articolo": "69",
           "descrizione": "Successioni: imposte ipotecaria e catastale – agevolazione prima casa"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Prima casa – requisiti per l'agevolazione ipotecaria/catastale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Decadenza dall'agevolazione prima casa – sanzioni"
         }
       ],
       "agevolazione_prima_casa": {

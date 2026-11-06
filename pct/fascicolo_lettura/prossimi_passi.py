@@ -295,7 +295,22 @@ def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], noti
             fonti, template = (), ""
         passi.append(Passo(2, f"Preparare l'udienza del {giorno}", ragione, giorno, "lettura del fascicolo", fonti, HREF_SCADENZE, template))
     if codice == CODICE_FASE_DECISA:
-        passi.append(Passo(1, "Valutare l'impugnazione o l'esecuzione della sentenza", "appello entro trenta giorni dalla notificazione della sentenza, o entro sei mesi dalla pubblicazione se non notificata", "", "lettura del fascicolo", ("cpc_325", "cpc_327"), HREF_DOCUMENTI, "CIV_APPELLO_BREVE"))
+        from .percorso import identificativi, percorso_dopo_sentenza
+
+        percorso = percorso_dopo_sentenza(intestazione or {}, documenti_letti)
+        if percorso and percorso["strada"] == "realizzazione":
+            motivo = f"{percorso['sentenza']} {('del ' + percorso['data']) if percorso['data'] else ''}: esito favorevole al cliente".strip()
+            for voce in percorso["passi"]:
+                passi.append(Passo(int(voce.get("urgenza") or 1), voce["passo"], motivo, "", "percorso della pratica", identificativi(voce["norme"]), HREF_DOCUMENTI))
+        elif percorso and percorso["strada"] == "impugnazione":
+            for voce in percorso["rimedi"][:1]:
+                passi.append(Passo(1, f"Valutare: {voce['rimedio'].lower()}", f"{voce['termine']}; {voce['quando']}", "", "percorso della pratica",
+                                   identificativi(voce["norme"]), HREF_DOCUMENTI, "CIV_APPELLO_BREVE"))
+            for voce in percorso["ipotesi"]:
+                passi.append(Passo(2, voce["ipotesi"], "ipotesi da verificare sulla motivazione della sentenza", "", "percorso della pratica",
+                                   identificativi(voce["norme"]), HREF_DOCUMENTI))
+        else:
+            passi.append(Passo(1, "Valutare l'impugnazione o l'esecuzione della sentenza", "appello entro trenta giorni dalla notificazione della sentenza, o entro sei mesi dalla pubblicazione se non notificata", "", "lettura del fascicolo", ("cpc_325", "cpc_327"), HREF_DOCUMENTI, "CIV_APPELLO_BREVE"))
     if codice == CODICE_FASE_ESECUTIVA:
         precetto = next((voce for voce in documenti_letti["tutti"] if "precetto" in voce["etichetta"].lower()), None)
         if precetto:

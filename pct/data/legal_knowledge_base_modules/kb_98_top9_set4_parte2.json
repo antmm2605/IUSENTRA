@@ -84,11 +84,10 @@
         },
         {
           "fonte": "Cass. SU 26972/2008 (San Martino)",
-          "descrizione": "Categoria unitaria danno non patrimoniale + responsabilità contrattuale 2087"
-        },
-        {
-          "fonte": "Cass. SU 19956/2008",
-          "descrizione": "Danno biologico differenziale rispetto a INAIL"
+          "descrizione": "Categoria unitaria danno non patrimoniale + responsabilità contrattuale 2087",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjQyMDIyRA%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31321/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Tabelle Tribunale Milano 2024",
@@ -684,12 +683,11 @@
           "descrizione": "Rito unificato persone e famiglia"
         },
         {
-          "fonte": "Cass. SU 16100/2014",
-          "descrizione": "Imprescrittibilità azione del figlio"
-        },
-        {
           "fonte": "Corte Cost. 50/2006",
-          "descrizione": "Possibilità di prova ematogenetica/DNA"
+          "descrizione": "Possibilità di prova ematogenetica/DNA",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2006/50",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -1627,10 +1625,6 @@
         {
           "fonte": "Convenzione Brevetto Europeo (CBE)",
           "descrizione": "Brevetti europei"
-        },
-        {
-          "fonte": "Cass. SU 14503/2013",
-          "descrizione": "Risarcimento danno IP - criteri di determinazione"
         }
       ],
       "presupposti_sostanziali": [

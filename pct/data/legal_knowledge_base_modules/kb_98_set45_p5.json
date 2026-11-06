@@ -31,7 +31,10 @@
         },
         {
           "fonte": "Corte Cost. 194/2018",
-          "descrizione": "Incostituzionalita' del criterio automatico – l'indennita' non puo' essere rigidamente calcolata solo sull'anzianita'"
+          "descrizione": "Incostituzionalita' del criterio automatico – l'indennita' non puo' essere rigidamente calcolata solo sull'anzianita'",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2018/194",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obbligo_mediazione": {
@@ -1786,11 +1789,10 @@
         },
         {
           "fonte": "Cass. SU 26972/2008",
-          "descrizione": "Danno non patrimoniale – include il danno biologico, il danno morale e il danno da lesione di interessi costituzionalmente protetti"
-        },
-        {
-          "fonte": "Cass. SU 9556/2002",
-          "descrizione": "Danno ai congiunti – i prossimi congiunti hanno un diritto proprio al risarcimento per la morte del familiare"
+          "descrizione": "Danno non patrimoniale – include il danno biologico, il danno morale e il danno da lesione di interessi costituzionalmente protetti",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxMjQyMDIyRA%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 31321/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "obbligo_mediazione": {

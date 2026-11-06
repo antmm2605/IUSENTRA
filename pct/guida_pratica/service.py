@@ -21,6 +21,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from .vigenza import applica_vigenza
 from .web_enrichment import enrich_guidance_with_web_sources
 
 
@@ -96,6 +97,23 @@ _GUIDA_PRATICA_ALIAS_OVERRIDES: tuple[dict[str, Any], ...] = (
         ),
     },
 )
+
+
+# Fascicoli che non si depositano con i codici oggetto del PCT civile: la guida si cerca tra le schede interne
+# della stessa materia (art. 111-bis c.p.p. per il penale; art. 136 c.p.a. per l'amministrativo; D.Lgs. 175/2024 per
+# il tributario).
+_MATERIE_FUORI_PCT: dict[str, tuple[str, ...]] = {
+    "PENALE": ("penal", "c p p"),
+    "AMMINISTRATIVO": ("amministrativ", "c p a", "tar "),
+    "TRIBUTARIO": ("tributar", "fiscal"),
+}
+_AVVISO_DEPOSITO_PER_MATERIA: dict[str, str] = {
+    "Diritto e procedura penale": "Questa guida orienta il lavoro: gli atti si depositano in via telematica dal portale del processo penale (art. 111-bis c.p.p.), non con una busta PCT civile.",
+    "Immigrazione": "Questa guida orienta il lavoro: il deposito segue il registro dell'ufficio indicato nella scheda (tribunale, giudice di pace o giustizia amministrativa).",
+    "Professione forense": "Questa guida orienta il lavoro: l'atto si presenta all'organo indicato nella scheda (ufficio giudiziario, consiglio dell'ordine o CNF).",
+    "Privacy, digitale e comunicazioni": "Questa guida orienta il lavoro: l'atto si presenta all'organo indicato nella scheda (titolare del trattamento, Garante o tribunale).",
+    "Ordinamento militare": "Questa guida orienta il lavoro: l'atto si presenta all'organo indicato nella scheda (autorità gerarchica, TAR o tribunale militare).",
+}
 
 
 def _fold_for_search(value: Any) -> str:
@@ -579,8 +597,12 @@ class GuidaPraticaService:
             ("area_pratica", fascicolo.get("area_pratica") or fascicolo.get("practiceArea")),
             ("procedura_operativa", fascicolo.get("procedura_operativa_nome") or fascicolo.get("proceduraOperativaNome")),
         ]
+        tipo = _text(fascicolo.get("tipo")).upper()
+        materia_fuori_pct = _MATERIE_FUORI_PCT.get(tipo)
         best: dict[str, Any] | None = None
         for source, raw_query in candidates:
+            if materia_fuori_pct:
+                break
             query = _text(raw_query)
             query_folded = _fold_for_search(query)
             query_tokens = _search_tokens(query)
@@ -623,6 +645,55 @@ class GuidaPraticaService:
                         "matched_by": reason,
                         "confirmation_required": True,
                         "message": "Guida pratica facoltativa suggerita dal contesto del fascicolo. Il codice ufficiale resta nella scheda fascicolo e la guida non blocca il lavoro.",
+                    }
+        if best is None:
+            best = self._suggerisci_guida_interna(candidates, materia=materia_fuori_pct, min_score=min_score)
+        return best
+
+    def _guide_interne(self) -> list[tuple[str, str, set[str], str]]:
+        """Schede interne (non codici ministeriali) con etichetta, parole e testo della materia per il confronto."""
+        if getattr(self, "_indice_guide_interne", None) is None:
+            righe = []
+            for codice, item in self._kb_index.items():
+                if codice in self._official_catalog_index or not _text(item.get("denominazione")):
+                    continue
+                parole_chiave = " ".join(_text(voce) for voce in item.get("parole_chiave") or [] if _text(voce))
+                etichetta = " ".join(_text(item.get(campo)) for campo in ("denominazione", "categoria", "sottocategoria") if _text(item.get(campo))) + " " + parole_chiave
+                materia = _fold_for_search(" ".join(_text(item.get(campo)) for campo in ("materia", "categoria", "denominazione")))
+                righe.append((codice, _fold_for_search(etichetta), _search_tokens(etichetta), materia))
+            self._indice_guide_interne = righe
+        return self._indice_guide_interne
+
+    def _suggerisci_guida_interna(self, candidates, *, materia: tuple[str, ...] | None, min_score: float) -> dict[str, Any] | None:
+        best: dict[str, Any] | None = None
+        for source, raw_query in candidates:
+            query_folded = _fold_for_search(raw_query)
+            query_tokens = _search_tokens(raw_query)
+            if not query_folded or len(query_tokens) < 2:
+                continue
+            for codice, etichetta, parole, testo_materia in self._guide_interne():
+                if materia and not any(chiave in f" {testo_materia} " for chiave in materia):
+                    continue
+                overlap = query_tokens & parole
+                recall = len(overlap) / max(1, len(query_tokens))
+                precision = len(overlap) / max(1, len(parole))
+                score = (recall * 0.72) + (precision * 0.28)
+                # Nella materia del fascicolo basta metà delle parole dell'oggetto; senza materia serve la regola del catalogo.
+                if materia:
+                    if not overlap or recall < 0.5:
+                        continue
+                elif len(overlap) < 2 or recall < 0.58 or score < min_score - 0.07:
+                    continue
+                if best is None or score > float(best["score"]):
+                    best = {
+                        "codice": codice,
+                        "denominazione": _text(self._kb_index.get(codice, {}).get("denominazione")),
+                        "score": round(score, 3),
+                        "source_field": source,
+                        "matched_by": "guida interna della materia" if materia else "guida interna",
+                        "confirmation_required": True,
+                        "guide_only": True,
+                        "message": "Guida pratica facoltativa suggerita dal contesto del fascicolo. È una guida di lavoro: confermala nella scheda fascicolo se vuoi collegarla.",
                     }
         return best
 
@@ -688,6 +759,7 @@ class GuidaPraticaService:
         else:
             payload = self._generate_from_catalog(codice)
             coverage = self._coverage_for(codice, guida_curata=False)
+        payload = applica_vigenza(payload, fascicolo or {})
         payload = self._normalise_guidance_payload(payload, codice=codice, coverage=coverage, fascicolo=fascicolo or {})
         return enrich_guidance_with_web_sources(payload)
 
@@ -1146,7 +1218,10 @@ class GuidaPraticaService:
             out["avvertenze_redazionali"] = _unique_by_json(
                 [
                     *_as_list(out.get("avvertenze_redazionali")),
-                    "Questa scheda è una guida pratica interna: usala per orientare il lavoro. Se devi depositare un atto, seleziona nella scheda fascicolo il codice ministeriale ufficiale corrispondente.",
+                    _AVVISO_DEPOSITO_PER_MATERIA.get(
+                        _text(out.get("materia")),
+                        "Questa scheda è una guida pratica interna: usala per orientare il lavoro. Se devi depositare un atto, seleziona nella scheda fascicolo il codice ministeriale ufficiale corrispondente.",
+                    ),
                 ]
             )
         # Molti codici del KB completo sono schede normative sintetiche.

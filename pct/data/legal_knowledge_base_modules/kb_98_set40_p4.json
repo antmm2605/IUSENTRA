@@ -32,10 +32,6 @@
         {
           "fonte": "D.Lgs. 149/2022 (Riforma Cartabia)",
           "descrizione": "Estensione dell'azione di classe a tutti i diritti individuali omogenei"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Azione di classe – valutazione dell'ammissibilità"
         }
       ],
       "class_action_840bis": {
@@ -940,14 +936,6 @@
           "fonte": "D.L. 179/2012",
           "articolo": "16-septies",
           "descrizione": "NOTIFICA VIA PEC – equivale alla notifica a mano; validità"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Nullità notifica – sanatoria e dies a quo"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Notifica PEC – PEC non funzionante e tentativi"
         }
       ],
       "notifica_PEC": {
@@ -1349,10 +1337,6 @@
         {
           "fonte": "D.Lgs. 149/2022 (Riforma Cartabia)",
           "descrizione": "Nuova disciplina dell'appello – filtro e udienza predibattimentale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Motivi specifici d'appello – genericità e inammissibilità"
         }
       ],
       "motivi_specifici_342": {
@@ -1843,10 +1827,6 @@
           "fonte": "D.Lgs. 28/2010",
           "articolo": "13",
           "descrizione": "Spese processuali – se la parte rifiuta una proposta conciliativa equa: condanna alle spese anche se vince"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Mediazione demandata – mancata partecipazione e conseguenze"
         }
       ],
       "mediazione_demandata_5c2": {

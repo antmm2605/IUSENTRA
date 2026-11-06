@@ -28,14 +28,6 @@
           "fonte": "c.p.c.",
           "articolo": "678",
           "descrizione": "Pignoramento di diritti non trasferibili – quota con clausola di gradimento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pignoramento quota S.r.l. – statuto e clausole limitative"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Vendita quota pignorata – prelazione degli altri soci"
         }
       ],
       "procedura_2471": {
@@ -493,10 +485,6 @@
           "fonte": "c.c.",
           "articolo": "1111",
           "descrizione": "Scioglimento della comunione – ciascun partecipante può chiederlo in qualsiasi momento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Pignoramento quota in comunione – divisione forzata"
         }
       ],
       "pignoramento_quota_indivisa": {
@@ -951,14 +939,6 @@
           "fonte": "c.p.c.",
           "articolo": "696-bis c. 3",
           "descrizione": "Valore probatorio – se non si concilia: la relazione può essere usata nel giudizio ordinario"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "ATP conciliativo – senza fumus e periculum"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "ATP 696-bis – valore della relazione CTU nel giudizio di merito"
         }
       ],
       "ATP_696bis_vs_ordinario": {
@@ -1301,10 +1281,6 @@
           "fonte": "L. 431/1998",
           "articolo": "3",
           "descrizione": "Disdetta – con preavviso di 6 mesi per abitativo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sfratto – opposizione e ordinanza provvisoria"
         }
       ],
       "procedura_convalida": {
@@ -1858,10 +1834,6 @@
           "fonte": "c.p.c.",
           "articolo": "649",
           "descrizione": "Sospensiva per gravi motivi – anche senza provvisoria esecuzione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Opposizione DI – effetto devolutivo e sospensiva"
         }
       ],
       "opposizione_645": {

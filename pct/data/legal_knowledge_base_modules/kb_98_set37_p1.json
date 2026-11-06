@@ -28,14 +28,6 @@
           "fonte": "c.c.",
           "articolo": "1218",
           "descrizione": "Inadempimento – il cliente deve provare il titolo; l'avvocato la causa esterna"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Responsabilità avvocato – nesso causale e perdita di chance"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Avvocato – prescrizione biennale e dies a quo"
         }
       ],
       "responsabilita_avvocato": {
@@ -480,14 +472,6 @@
           "fonte": "c.c.",
           "articolo": "2236",
           "descrizione": "Responsabilità professionale – colpa grave"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Responsabilità notaio – omessa verifica ipoteche e vincoli"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Notaio – controllo della provenienza e responsabilità per evizione"
         }
       ],
       "obblighi_del_notaio": {
@@ -959,10 +943,6 @@
           "fonte": "D.Lgs. 62/2018",
           "articolo": "21",
           "descrizione": "Assistenza al turista in difficoltà"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Vacanza rovinata – danno non patrimoniale"
         }
       ],
       "danno_vacanza_rovinata_art43": {
@@ -1422,10 +1402,6 @@
         {
           "fonte": "D.Lgs. 70/2014",
           "descrizione": "Attuazione nazionale – autorità di controllo: ART (Autorità Regolazione Trasporti)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Trasporto ferroviario – rimborso e danni supplementari"
         }
       ],
       "rimborso_ritardo_Reg_UE_2021": {
@@ -2007,10 +1983,6 @@
           "fonte": "Reg. CE 261/2004",
           "articolo": "6",
           "descrizione": "Ritardo lungo: assistenza a bordo; oltre 5h: rimborso biglietto"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Reg. 261 – straordinarie circostanze e compensazione"
         },
         {
           "fonte": "CGE C-294/10 Eglitis",

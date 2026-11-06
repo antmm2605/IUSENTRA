@@ -17,17 +17,38 @@
         {
           "fonte": "c.c.",
           "articolo": "342-bis",
-          "descrizione": "ORDINE DI PROTEZIONE – il giudice può ordinare alla parte che tiene la condotta pregiudizievole di cessare + allontanarsi"
+          "descrizione": "ORDINE DI PROTEZIONE – il giudice può ordinare alla parte che tiene la condotta pregiudizievole di cessare + allontanarsi",
+          "abrogata_da": "D.Lgs. 31 ottobre 2024, n. 164"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.69",
+          "descrizione": "Ordini di protezione contro gli abusi familiari (sostituisce l'art. 342-bis c.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.c.",
           "articolo": "342-ter",
-          "descrizione": "Contenuto dell'ordine di protezione – allontanamento + divieto di avvicinamento + mantenimento + affidamento figli"
+          "descrizione": "Contenuto dell'ordine di protezione – allontanamento + divieto di avvicinamento + mantenimento + affidamento figli",
+          "abrogata_da": "D.Lgs. 31 ottobre 2024, n. 164"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.70",
+          "descrizione": "Contenuto degli ordini di protezione (sostituisce l'art. 342-ter c.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.p.c.",
           "articolo": "736-bis",
-          "descrizione": "Procedimento – ricorso → decreto inaudita altera parte → udienza di convalida"
+          "descrizione": "Procedimento – ricorso → decreto inaudita altera parte → udienza di convalida",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.71",
+          "descrizione": "Istanza per gli ordini di protezione contro gli abusi familiari (sostituisce l'art. 736-bis c.p.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 154/2001",
@@ -46,14 +67,6 @@
         {
           "fonte": "D.L. 93/2013 (conv. L. 119/2013)",
           "descrizione": "Misure urgenti in materia di sicurezza – violenza di genere"
-        },
-        {
-          "fonte": "Cass. SU 14476/2019",
-          "descrizione": "Ordine di protezione – presupposti e contenuto"
-        },
-        {
-          "fonte": "Cass. SU 10674/2022",
-          "descrizione": "Durata dell'ordine e proroga"
         }
       ],
       "presupposti_342bis": {
@@ -281,14 +294,6 @@
           "fonte": "c.c.",
           "articolo": "2504-quater",
           "descrizione": "Effetti – la fusione non può essere più dichiarata invalida dopo l'iscrizione"
-        },
-        {
-          "fonte": "Cass. SU 14976/2021",
-          "descrizione": "Opposizione creditori alla fusione – legittimazione e motivi"
-        },
-        {
-          "fonte": "Cass. SU 8753/2023",
-          "descrizione": "Fusione LBO – tutela dei creditori della società acquisita"
         }
       ],
       "opposizione_creditori_2503": {
@@ -489,14 +494,6 @@
         {
           "fonte": "Reg. UE 282/2011",
           "descrizione": "IVA transfrontaliera – rimborso soggetti non stabiliti"
-        },
-        {
-          "fonte": "Cass. SU 18798/2020",
-          "descrizione": "Rimborso IVA – decorrenza della prescrizione del diritto"
-        },
-        {
-          "fonte": "Cass. SU 7453/2023",
-          "descrizione": "Diniego rimborso IVA – motivazione e impugnazione"
         }
       ],
       "casi_tipici_rimborso_IVA_art30": [
@@ -726,14 +723,6 @@
           "fonte": "c.c.",
           "articolo": "1835",
           "descrizione": "Interessi e costi nel conto corrente"
-        },
-        {
-          "fonte": "Cass. SU 14286/2019",
-          "descrizione": "Saldo del conto corrente – contestazione tardiva"
-        },
-        {
-          "fonte": "Cass. SU 8832/2022",
-          "descrizione": "Approvazione tacita del rendiconto 1832 – effetti e limiti"
         }
       ],
       "differenza_da_conto_corrente_bancario_143055": {
@@ -945,14 +934,6 @@
           "fonte": "c.c.",
           "articolo": "1736",
           "descrizione": "Compenso del commissionario – anche per gli affari non conclusi se non per sua colpa"
-        },
-        {
-          "fonte": "Cass. SU 11439/2020",
-          "descrizione": "Commissione – star del credere e garanzia del terzo"
-        },
-        {
-          "fonte": "Cass. SU 7834/2022",
-          "descrizione": "Rendiconto del commissionario – contenuto e contestazione"
         }
       ],
       "differenza_da_mandato_e_agenzia": {

@@ -28,10 +28,6 @@
           "fonte": "c.c.",
           "articolo": "171",
           "descrizione": "Scioglimento – per annullamento del matrimonio, divorzio, morte di un coniuge o del figlio unico minore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fondo patrimoniale – scioglimento e impignorabilità"
         }
       ],
       "impignorabilita_170": {
@@ -210,10 +206,6 @@
           "fonte": "D.Lgs. 267/2000",
           "articolo": "159",
           "descrizione": "Beni impignorabili degli enti locali – entrate con destinazione vincolata; fondi per i servizi essenziali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Esecuzione verso PA – beni impignorabili e fondi vincolati"
         }
       ],
       "beni_impignorabili_PA": {
@@ -1235,10 +1227,6 @@
           "fonte": "CCII",
           "articolo": "283",
           "descrizione": "Debiti non cancellabili – obblighi alimentari; risarcimenti da reato; sanzioni penali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Esdebitazione – meritevolezza e fresh start"
         }
       ],
       "esdebitazione_LG": {
@@ -1728,10 +1716,6 @@
           "fonte": "c.p.c.",
           "articolo": "615",
           "descrizione": "Opposizione all'esecuzione – per mancanza del DIRITTO del creditore (diversa dal 617)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Opposizione atti esecutivi – vizi formali e termini"
         }
       ],
       "differenza_615_617": {

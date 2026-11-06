@@ -52,20 +52,25 @@
           "descrizione": "Responsabilità per fatto degli ausiliari (contrattuale)"
         },
         {
-          "fonte": "Cass. SU 6672/2022",
-          "descrizione": "Nesso di occasionalità necessaria - criterio di imputazione"
-        },
-        {
           "fonte": "Cass. SU 20943/2022",
-          "descrizione": "Onere prova in responsabilità indiretta"
+          "descrizione": "Onere prova in responsabilità indiretta",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022U20943O&rows=1&wt=json",
+          "verifica": "Archivio SentenzeWeb del software: Corte di Cassazione — civile, sezione U; pertinenza controllata sul testo il 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 9100/2015",
-          "descrizione": "Banca responsabile per operato di funzionario infedele"
+          "descrizione": "Banca responsabile per operato di funzionario infedele",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTMzNzQ3RA%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 34053/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 13246/2019",
-          "descrizione": "Struttura sanitaria per fatto del medico dipendente"
+          "descrizione": "Struttura sanitaria per fatto del medico dipendente",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022335020O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 35020/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -589,14 +594,6 @@
           "fonte": "c.c.",
           "articolo": "2727-2729",
           "descrizione": "Presunzioni - rilevanti per la prova del possesso"
-        },
-        {
-          "fonte": "Cass. SU 7268/2007",
-          "descrizione": "Possesso e titolo per usucapione mobili"
-        },
-        {
-          "fonte": "Cass. SU 28949/2019",
-          "descrizione": "Prova del possesso continuato - onere"
         }
       ],
       "termini_usucapione_mobili": {
@@ -1119,14 +1116,6 @@
           "fonte": "D.Lgs. 385/1993 (TUB)",
           "articolo": "117",
           "descrizione": "Trasparenza contratti bancari"
-        },
-        {
-          "fonte": "Cass. SU 2061/2021",
-          "descrizione": "Leasing finanziario e traslativo - distinzione e regime applicabile"
-        },
-        {
-          "fonte": "Cass. SU 15130/2024",
-          "descrizione": "Leasing su immobile - applicabilità L. 124/2017"
         }
       ],
       "definizione_e_caratteristiche_leasing": {
@@ -1639,7 +1628,14 @@
         {
           "fonte": "c.c.",
           "articolo": "337-octies",
-          "descrizione": "Ascolto del minore"
+          "descrizione": "Ascolto del minore",
+          "abrogata_da": "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197"
+        },
+        {
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.10",
+          "descrizione": "Mediazione familiare (sostituisce l'art. 337-octies c.c.)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "c.c.",
@@ -1668,14 +1664,6 @@
         {
           "fonte": "L. 54/2006",
           "descrizione": "Affidamento condiviso - ancora rilevante"
-        },
-        {
-          "fonte": "Cass. SU 11012/2017",
-          "descrizione": "Mantenimento diretto vs assegno monetario"
-        },
-        {
-          "fonte": "Cass. SU 9372/2021",
-          "descrizione": "Revisione assegno mantenimento figli"
         }
       ],
       "differenza_da_111002_separazione_giudiziale": {
@@ -2201,22 +2189,6 @@
         {
           "fonte": "D.Lgs. 23/2015 (tutele crescenti)",
           "descrizione": "Regime per assunti post 7/3/2015"
-        },
-        {
-          "fonte": "Cass. SU 28498/2019",
-          "descrizione": "Proporzionalità della sanzione - scala valutativa"
-        },
-        {
-          "fonte": "Cass. SU 12174/2023",
-          "descrizione": "Contestazione disciplinare - specificità e tempestività"
-        },
-        {
-          "fonte": "Cass. SU 32823/2021",
-          "descrizione": "Giusta causa e fatto materiale - distinzione da insussistenza"
-        },
-        {
-          "fonte": "Cass. SU 19618/2020",
-          "descrizione": "Prova a carico del datore per giusta causa"
         }
       ],
       "differenza_giusta_causa_vs_GMO": {

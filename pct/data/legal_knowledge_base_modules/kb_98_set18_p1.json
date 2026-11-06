@@ -67,14 +67,6 @@
         {
           "fonte": "Direttiva UE 85/374/CEE",
           "descrizione": "Direttiva di base sulla responsabilità da prodotti difettosi"
-        },
-        {
-          "fonte": "Cass. SU 21254/2021",
-          "descrizione": "Difetto del prodotto – valutazione in base alle aspettative del consumatore medio"
-        },
-        {
-          "fonte": "Cass. SU 9615/2023",
-          "descrizione": "Rischio da sviluppo – esimente applicazione e prova"
         }
       ],
       "responsabilita_oggettiva_116": {
@@ -374,18 +366,6 @@
           "fonte": "c.c.",
           "articolo": "1670",
           "descrizione": "Rivalsa dell'appaltatore verso il subappaltatore"
-        },
-        {
-          "fonte": "Cass. SU 14636/2019",
-          "descrizione": "Difetti dell'appalto – distinzione vizi 1667 vs rovina 1669"
-        },
-        {
-          "fonte": "Cass. SU 11695/2022",
-          "descrizione": "Accettazione dell'opera – effetti preclusivi sulla garanzia"
-        },
-        {
-          "fonte": "Cass. SU 8143/2024",
-          "descrizione": "Denuncia dei vizi – termine 60 giorni dalla scoperta + prescrizione 2 anni"
         }
       ],
       "distinzione_1667_vs_1669": {
@@ -669,18 +649,6 @@
           "fonte": "c.c.",
           "articolo": "2600",
           "descrizione": "Risarcimento danni – condanna + presunzione di colpa"
-        },
-        {
-          "fonte": "Cass. SU 10325/2020",
-          "descrizione": "Denigrazione – notizie false + atta a screditare l'impresa"
-        },
-        {
-          "fonte": "Cass. SU 4978/2022",
-          "descrizione": "Storno di dipendenti come atto di concorrenza sleale"
-        },
-        {
-          "fonte": "Cass. SU 15697/2023",
-          "descrizione": "Appropriazione dei pregi – distinzione da liceità comparativa"
         }
       ],
       "tipologie_atti_sleali_2598_n2_n3": {
@@ -912,9 +880,10 @@
           "descrizione": "Cause di divorzio – separazione legale ininterrotta + altre cause"
         },
         {
-          "fonte": "L. 898/1970",
-          "articolo": "4",
-          "descrizione": "Procedimento – ricorso congiunto o ricorso di uno solo"
+          "fonte": "c.p.c.",
+          "articolo": "473-bis.12",
+          "descrizione": "Forma della domanda nel rito per le persone, i minorenni e le famiglie (già art. 4 L. 898/1970, abrogato dal D.Lgs. 149/2022)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "L. 898/1970",
@@ -942,11 +911,10 @@
         },
         {
           "fonte": "Cass. SU 18287/2018",
-          "descrizione": "Assegno divorzile – funzione non solo assistenziale ma anche compensativa"
-        },
-        {
-          "fonte": "Cass. SU 32198/2021",
-          "descrizione": "Assegno divorzile – criteri aggiornati post Cass. SU 18287"
+          "descrizione": "Assegno divorzile – funzione non solo assistenziale ma anche compensativa",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022629920O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 29920/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_per_il_divorzio": {

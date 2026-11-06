@@ -42,14 +42,6 @@
         {
           "fonte": "D.Lgs. 39/2010",
           "descrizione": "Revisione legale – obblighi del revisore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Organo di controllo obbligatorio – responsabilità per omessa nomina"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Revoca dell'organo di controllo – giusta causa"
         }
       ],
       "nomina_obbligatoria_2477c3": {
@@ -475,14 +467,6 @@
           "fonte": "c.c.",
           "articolo": "2318",
           "descrizione": "S.n.c. irregolare – stessa disciplina della società semplice"
-        },
-        {
-          "fonte": "Cass. SU 14768/2019",
-          "descrizione": "Società irregolare – responsabilità dei soci e beneficio di escussione"
-        },
-        {
-          "fonte": "Cass. SU 9432/2022",
-          "descrizione": "Atti compiuti prima dell'iscrizione – responsabilità illimitata"
         }
       ],
       "regola_2297": {
@@ -915,14 +899,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "RC aquiliana – in subordine"
-        },
-        {
-          "fonte": "Cass. SU 12682/2020",
-          "descrizione": "Amianto – nesso causale probabilistico tra esposizione e mesotelioma"
-        },
-        {
-          "fonte": "Cass. SU 11198/2023",
-          "descrizione": "Danno biologico da amianto – calcolo e prescrizione"
         }
       ],
       "nesso_causale_amianto_Cass_SU_12682_2020": {
@@ -1455,14 +1431,6 @@
         {
           "fonte": "Conv. Montreal 1999",
           "descrizione": "Volo incluso nel pacchetto – Conv. Montreal applicabile per i danni al volo"
-        },
-        {
-          "fonte": "Cass. SU 14987/2021",
-          "descrizione": "Danno da vacanza rovinata – quantificazione equitativa"
-        },
-        {
-          "fonte": "Cass. SU 9823/2024",
-          "descrizione": "Responsabilità organizzatore per disservizi dell'albergo"
         }
       ],
       "responsabilita_oggettiva_organizzatore_43": {
@@ -1895,14 +1863,6 @@
           "fonte": "c.c.",
           "articolo": "2043",
           "descrizione": "Responsabilità extracontrattuale del MMG"
-        },
-        {
-          "fonte": "Cass. SU 28994/2019",
-          "descrizione": "Doppio binario responsabilità sanitaria L. 24/2017"
-        },
-        {
-          "fonte": "Cass. SU 9812/2023",
-          "descrizione": "MMG – responsabilità per mancato invio a specialista"
         }
       ],
       "MMG_vs_specialista_L24_2017": {

@@ -61,11 +61,10 @@
         },
         {
           "fonte": "Cass. SU 25021/2019",
-          "descrizione": "Azione di riduzione – natura e decorrenza della prescrizione"
-        },
-        {
-          "fonte": "Cass. SU 13940/2023",
-          "descrizione": "Donazione lesiva – calcolo della quota disponibile"
+          "descrizione": "Azione di riduzione – natura e decorrenza della prescrizione",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTM2NjAxTw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 36767/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "quote_di_riserva": {
@@ -377,14 +376,6 @@
           "fonte": "c.c.",
           "articolo": "1591",
           "descrizione": "Occupazione senza titolo – indennità di occupazione"
-        },
-        {
-          "fonte": "Cass. SU 12395/2020",
-          "descrizione": "Indennità di avviamento – presupposti e calcolo"
-        },
-        {
-          "fonte": "Cass. SU 7963/2023",
-          "descrizione": "Diniego di rinnovo – comunicazione e termini"
         }
       ],
       "durata_e_rinnovi_art27": {
@@ -656,10 +647,6 @@
           "fonte": "c.p.c.",
           "articolo": "669-octies",
           "descrizione": "Obbligo giudizio di merito entro 60 gg (ante causam)"
-        },
-        {
-          "fonte": "Cass. SU 23418/2021",
-          "descrizione": "Sequestro giudiziario – fumus + periculum specifico per la custodia"
         }
       ],
       "differenza_da_sequestro_conservativo_671": {
@@ -913,14 +900,6 @@
           "fonte": "c.c.",
           "articolo": "907",
           "descrizione": "Divieto di costruire in modo da impedire le vedute preesistenti"
-        },
-        {
-          "fonte": "Cass. SU 8938/2020",
-          "descrizione": "Veduta vs luce – distinzione e tutela diversificata"
-        },
-        {
-          "fonte": "Cass. SU 16598/2023",
-          "descrizione": "Regolamento edilizio e distanze da vedute – prevalenza"
         }
       ],
       "distinzione_luce_vs_veduta": {
@@ -1153,14 +1132,6 @@
           "fonte": "c.p.c.",
           "articolo": "784-791-bis",
           "descrizione": "Procedimento di divisione giudiziale"
-        },
-        {
-          "fonte": "Cass. SU 6538/2019",
-          "descrizione": "Divisione giudiziale – modalità e nomina del notaio"
-        },
-        {
-          "fonte": "Cass. SU 4847/2024",
-          "descrizione": "Conguaglio – calcolo e interessi"
         }
       ],
       "fasi_procedimento_divisione_giudiziale": [

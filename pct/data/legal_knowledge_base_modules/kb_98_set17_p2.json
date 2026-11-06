@@ -44,20 +44,18 @@
           "descrizione": "Clausole abusive nei contratti con i consumatori"
         },
         {
-          "fonte": "Cass. SU 17351/2022",
-          "descrizione": "Nullità di protezione – rilevabilità d'ufficio"
-        },
-        {
-          "fonte": "Cass. SU 23633/2022",
-          "descrizione": "Foro del consumatore – irrinunciabile e rilevabile d'ufficio"
-        },
-        {
           "fonte": "CGUE C-26/13 (Kásler 2014)",
-          "descrizione": "Clausola principale sul prezzo – esenzione dal controllo di abusività SE chiara e comprensibile"
+          "descrizione": "Clausola principale sul prezzo – esenzione dal controllo di abusività SE chiara e comprensibile",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-26/13",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 03709/2026 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "CGUE C-415/11 (Aziz 2013)",
-          "descrizione": "Clausola abusiva in mutuo – opponibilità al giudice dell'esecuzione"
+          "descrizione": "Clausola abusiva in mutuo – opponibilità al giudice dell'esecuzione",
+          "url": "https://curia.europa.eu/juris/liste.jsf?num=C-415/11",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 09479/2023 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "nullita_di_protezione_art36": {
@@ -281,18 +279,6 @@
           "fonte": "c.p.c.",
           "articolo": "669-terdecies",
           "descrizione": "Reclamo avverso il provvedimento cautelare"
-        },
-        {
-          "fonte": "Cass. SU 14482/2019",
-          "descrizione": "Art. 700 – sussidiarietà rispetto a cautele tipiche"
-        },
-        {
-          "fonte": "Cass. SU 9386/2021",
-          "descrizione": "Fumus + periculum – criteri applicativi nell'art. 700"
-        },
-        {
-          "fonte": "Cass. SU 2699/2024",
-          "descrizione": "Inibitoria urgente online – violazione diritto d'autore e marchi"
         }
       ],
       "sussidiarieta_700": {
@@ -524,11 +510,17 @@
         },
         {
           "fonte": "Corte Cost. 107/2012",
-          "descrizione": "Vaccinazioni raccomandate (non obbligatorie) – indennizzo dovuto"
+          "descrizione": "Vaccinazioni raccomandate (non obbligatorie) – indennizzo dovuto",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2012/107",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Corte Cost. 268/2017",
-          "descrizione": "Indennizzo esteso a vaccini raccomandati anche prima del 1999"
+          "descrizione": "Indennizzo esteso a vaccini raccomandati anche prima del 1999",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2017/268",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "D.Lgs. 52/2019",
@@ -538,14 +530,6 @@
           "fonte": "c.c.",
           "articolo": "2043-2059",
           "descrizione": "Responsabilità aquiliana – azione risarcitoria complementare"
-        },
-        {
-          "fonte": "Cass. SU 9341/2022",
-          "descrizione": "Indennizzo L. 210/1992 vs risarcimento ordinario – cumulabilità"
-        },
-        {
-          "fonte": "Cass. SU 4524/2023",
-          "descrizione": "Danno da vaccino – prova del nesso causale"
         }
       ],
       "sistema_doppio_binario": {
@@ -818,18 +802,6 @@
           "fonte": "L. 92/2012 (Fornero)",
           "articolo": "4 c. 16-23",
           "descrizione": "Procedura convalida dimissioni (superata dal D.Lgs. 151/2015)"
-        },
-        {
-          "fonte": "Cass. SU 27333/2020",
-          "descrizione": "Dimissioni per giusta causa – mobbing come causa delle dimissioni forzate"
-        },
-        {
-          "fonte": "Cass. SU 19023/2023",
-          "descrizione": "TFR dopo dimissioni per giusta causa – diritto integrale"
-        },
-        {
-          "fonte": "Cass. SU 4674/2024",
-          "descrizione": "Dimissioni in bianco – nullità e conseguenze"
         }
       ],
       "dimissioni_per_giusta_causa_2119": {

@@ -103,7 +103,10 @@
         },
         {
           "fonte": "Cass. SU 25021/2019",
-          "descrizione": "Divisione - differenza con divisione ereditaria"
+          "descrizione": "Divisione - differenza con divisione ereditaria",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=kind%3A%28snciv+OR+snpen%29&fq=_version_%3A%7B0+TO+1879913991429423104%5D&rows=100&sort=id+asc&cursorMark=AoEwc25jaXYyMDIxNTM2NjAxTw%3D%3D&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 36767/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "differenza_da_divisione_ereditaria_121003": {
@@ -690,10 +693,6 @@
         {
           "fonte": "L. 3/2012",
           "descrizione": "Sovraindebitamento - protezione patrimonio impignorabile (modifiche art. 514-515)"
-        },
-        {
-          "fonte": "Cass. SU 4628/2022",
-          "descrizione": "Pignoramento beni in studio professionale - limiti"
         }
       ],
       "presupposti_sostanziali": [
@@ -1226,19 +1225,17 @@
         },
         {
           "fonte": "Cass. SU 24675/2017",
-          "descrizione": "Usura SOPRAVVENUTA - non determina nullità (orientamento confermato)"
+          "descrizione": "Usura SOPRAVVENUTA - non determina nullità (orientamento confermato)",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022135118O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 35118/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         },
         {
           "fonte": "Cass. SU 19597/2020",
-          "descrizione": "Anatocismo bancario - inammissibilità capitalizzazione trimestrale (pre 2000)"
-        },
-        {
-          "fonte": "Cass. SU 4498/2024",
-          "descrizione": "Interessi di mora - inclusione nel calcolo TEG e tasso soglia usura"
-        },
-        {
-          "fonte": "Cass. SU 23445/2024",
-          "descrizione": "Prescrizione restituzione - rimesse solutorie e rimesse ripristinatorie"
+          "descrizione": "Anatocismo bancario - inammissibilità capitalizzazione trimestrale (pre 2000)",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2021637058O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 37058/2021 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presupposti_sostanziali": [
@@ -1852,18 +1849,6 @@
           "fonte": "D.Lgs. 81/2008",
           "articolo": "28",
           "descrizione": "Valutazione rischio stress lavoro-correlato"
-        },
-        {
-          "fonte": "Cass. SU 18927/2012",
-          "descrizione": "Mobbing - definizione e prova"
-        },
-        {
-          "fonte": "Cass. SU 24641/2018",
-          "descrizione": "Distinzione mobbing vs straining - rilevanza autonoma straining"
-        },
-        {
-          "fonte": "Cass. 18164/2024",
-          "descrizione": "Mobbing - elementi costitutivi confermati"
         },
         {
           "fonte": "Direttiva UE 89/391/CEE",
@@ -2513,14 +2498,6 @@
           "fonte": "c.p.c.",
           "articolo": "669-terdecies",
           "descrizione": "Reclamo cautelare 15 gg"
-        },
-        {
-          "fonte": "Cass. SU 14228/2024",
-          "descrizione": "Misure cautelari atipiche - presupposti rigorosi"
-        },
-        {
-          "fonte": "Cass. 22708/2023",
-          "descrizione": "Strumentalità del cautelare 700 - residualità"
         }
       ],
       "presupposti_sostanziali": [

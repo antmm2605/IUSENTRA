@@ -38,14 +38,6 @@
           "fonte": "L. 241/1990",
           "articolo": "10-bis",
           "descrizione": "Preavviso di rigetto – obbligo nei procedimenti a istanza di parte"
-        },
-        {
-          "fonte": "Cass. SU 11677/2021",
-          "descrizione": "Silenzio PA – applicazione dell'art. 31 CPA"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 9/2023",
-          "descrizione": "Silenzio inadempimento – obbligo di provvedere e rimedi"
         }
       ],
       "tipologie_di_silenzio": {
@@ -255,14 +247,6 @@
           "fonte": "CPA",
           "articolo": "116",
           "descrizione": "Rito speciale sull'accesso – procedimento camerale urgente"
-        },
-        {
-          "fonte": "Cass. SU 14378/2021",
-          "descrizione": "Accesso documentale – interesse differenziato e concreto"
-        },
-        {
-          "fonte": "Cons. Stato Ad. Pl. 10/2020",
-          "descrizione": "FOIA – accesso civico e limiti"
         }
       ],
       "tipologie_di_accesso": {
@@ -455,14 +439,6 @@
           "fonte": "c.p.c.",
           "articolo": "337",
           "descrizione": "Efficacia esecutiva della sentenza impugnata"
-        },
-        {
-          "fonte": "Cass. SU 14672/2020",
-          "descrizione": "Sospensiva 283 – criteri: fumus boni iuris + periculum in mora"
-        },
-        {
-          "fonte": "Cass. SU 9341/2022",
-          "descrizione": "Sospensiva in appello – presupposti e valutazione del giudice"
         }
       ],
       "presupposti_art283": {
@@ -665,14 +641,6 @@
         {
           "fonte": "Dir. UE 2019/1023 (Direttiva Insolvency)",
           "descrizione": "Seconda chance per i debitori – esdebitazione entro 3 anni"
-        },
-        {
-          "fonte": "Cass. SU 14892/2022",
-          "descrizione": "Esdebitazione – meritevolezza e condizioni"
-        },
-        {
-          "fonte": "Cass. SU 8734/2024",
-          "descrizione": "Esdebitazione incapiente – applicazione e limiti"
         }
       ],
       "esdebitazione_278_effetti": {
@@ -877,14 +845,6 @@
           "fonte": "CCII",
           "articolo": "282-284",
           "descrizione": "Esdebitazione post liquidazione controllata o piano"
-        },
-        {
-          "fonte": "Cass. SU 17834/2022",
-          "descrizione": "Piano del consumatore – meritevolezza e contenuto"
-        },
-        {
-          "fonte": "Cass. SU 9066/2024",
-          "descrizione": "Omologazione del piano – criteri del Tribunale"
         }
       ],
       "differenza_da_piano_consumatore_620010": {

@@ -33,14 +33,6 @@
           "fonte": "D.Lgs. 252/2005",
           "articolo": "14",
           "descrizione": "PORTABILITÀ – il lavoratore può trasferire la posizione a un altro fondo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Fondo pensione – erogazione e contestazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Anticipazione fondo pensione – cause ammesse"
         }
       ],
       "controversie_tipiche": [
@@ -591,14 +583,6 @@
           "fonte": "T.U. Infortuni",
           "articolo": "10-11",
           "descrizione": "Surroga INAIL – il datore può essere citato da INAIL per il residuo non coperto dall'assicurazione"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Danno differenziale – pretesa del lavoratore oltre INAIL"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Malattia professionale – nesso causale e presunzione"
         }
       ],
       "danno_differenziale": {
@@ -1006,14 +990,6 @@
         {
           "fonte": "CCNL",
           "descrizione": "Maggiorazione straordinario – dal 15% al 50% in base al CCNL"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Straordinario – onere prova e documentazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riposo giornaliero violato – danno alla salute"
         }
       ],
       "straordinario_non_pagato": {
@@ -1597,14 +1573,6 @@
         {
           "fonte": "art. 8",
           "descrizione": "Materie derogabili – orario di lavoro, mansioni, tipologie contrattuali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Accordo aziendale di prossimità – limiti e deroghe"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Validità dell'accordo di prossimità – firma delle RSA/RSU"
         }
       ],
       "accordo_di_prossimita_art8": {
@@ -2061,14 +2029,6 @@
           "fonte": "D.Lgs. 81/2015",
           "articolo": "35",
           "descrizione": "Parità di trattamento – il lavoratore somministrato deve avere lo stesso trattamento dei dipendenti dell'utilizzatore"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Somministrazione irregolare – costituzione rapporto con utilizzatore"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Parità di trattamento – differenziale retributivo"
         }
       ],
       "somministrazione_irregolare_art38": {

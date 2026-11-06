@@ -33,14 +33,6 @@
           "fonte": "DSA",
           "articolo": "17",
           "descrizione": "Obblighi per le piattaforme molto grandi (VLOP) – audit, trasparenza"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Hosting attivo vs passivo – responsabilità"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Provider che monetizza i contenuti illeciti – responsabilità diretta"
         }
       ],
       "hosting_attivo_vs_passivo": {
@@ -506,14 +498,6 @@
           "fonte": "D.Lgs. 79/2011",
           "articolo": "69",
           "descrizione": "Obbligo di informazione precontrattuale"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Multiproprietà – informazione precontrattuale e recesso"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Nullità del contratto di multiproprietà per violazioni informative"
         }
       ],
       "diritto_di_recesso_14gg_art72": {
@@ -1080,14 +1064,6 @@
           "fonte": "c.c.",
           "articolo": "374",
           "descrizione": "Atti del tutore soggetti ad autorizzazione del GT – impugnabili con reclamo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Reclamo ex art. 739 – ambito e legittimazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Sospensiva del provvedimento del GT in sede di reclamo"
         }
       ],
       "ambito_del_reclamo_739": {
@@ -1651,14 +1627,6 @@
           "fonte": "Reg. UE 2019/1111 (Bruxelles II-ter)",
           "articolo": "22-29",
           "descrizione": "Rimpatrio nell'UE – procedura accelerata (6 settimane)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Sottrazione internazionale – ordine di rimpatrio e gravi rischi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Art. 13 Conv. Aja – gravi rischi per il minore come causa ostativa al rimpatrio"
         }
       ],
       "rimpatrio_conv_aja": {
@@ -2150,14 +2118,6 @@
           "fonte": "L. 241/1990",
           "articolo": "21-quinquies",
           "descrizione": "Revoca del provvedimento amministrativo – per sopravvenute ragioni di interesse pubblico"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Revoca del contributo – natura e rimedi"
-        },
-        {
-          "fonte": "Cons. Stato 9876/2023",
-          "descrizione": "Revoca parziale dei contributi per parziale inadempimento"
         }
       ],
       "revoca_9_D_Lgs123": {

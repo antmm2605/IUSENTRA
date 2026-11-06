@@ -31,15 +31,10 @@
         },
         {
           "fonte": "Corte Cost. 228/2014",
-          "descrizione": "Prelevamenti – la presunzione vale solo per IMPRENDITORI, non per professionisti"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Versamenti bancari non giustificati – presunzione ricavi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Prova contraria del contribuente – qualsiasi mezzo"
+          "descrizione": "Prelevamenti – la presunzione vale solo per IMPRENDITORI, non per professionisti",
+          "url": "https://www.cortecostituzionale.it/scheda-pronuncia/2014/228",
+          "verifica": "Archivio della Corte costituzionale del software (open data ufficiali), 06/11/2026",
+          "verificato_il": "2026-11-06"
         }
       ],
       "presunzione_versamenti_32": {
@@ -639,14 +634,6 @@
         {
           "fonte": "D.Lgs. 159/2015",
           "descrizione": "Rottamazione delle cartelle – definizione agevolata (vedi 512130)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Prescrizione cartella – dies a quo e interruzione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Cartella non notificata – nullità e contestazione"
         }
       ],
       "prescrizione_cartella_50": {
@@ -1184,14 +1171,6 @@
           "fonte": "DPR 322/1998",
           "articolo": "2",
           "descrizione": "Dichiarazione integrativa – possibile entro i termini di accertamento (5 anni)"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Dichiarazione integrativa a favore – rimborso o compensazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Ravvedimento operoso – condizioni e riduzione sanzioni"
         }
       ],
       "rimborso_per_errore_38": {
@@ -1757,14 +1736,6 @@
           "fonte": "CCII",
           "articolo": "49-51",
           "descrizione": "Effetti dell'apertura – spossessamento, nomina del curatore, cristallizzazione del passivo"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Liquidazione giudiziale – presupposti soglie"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Piccolo imprenditore – esenzione dalla LG"
         }
       ],
       "presupposti_LG_art37": {
@@ -2337,14 +2308,6 @@
           "fonte": "c.c.",
           "articolo": "1113 c. 3",
           "descrizione": "Diritto di riscatto del comunista in caso di vendita forzata della quota"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Esecuzione su quota indivisa – procedura e divisione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Riscatto del comproprietario – termine e condizioni"
         }
       ],
       "esecuzione_su_quota_599": {

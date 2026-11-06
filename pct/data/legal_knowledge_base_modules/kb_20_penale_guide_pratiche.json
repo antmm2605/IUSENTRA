@@ -1,0 +1,2669 @@
+{
+  "$schema": "iusentra/legal-knowledge-base/v1",
+  "macro_area_id": "PENALE",
+  "denominazione": "Processo penale: guide pratiche",
+  "registro": "Portale deposito atti penali",
+  "rito_base": "Codice di procedura penale",
+  "verificato_il": "2026-11-06",
+  "codici_materia": [
+    {
+      "codice": "GUIDA_PENALE_QUERELA",
+      "denominazione": "Querela della persona offesa (artt. 120-124 c.p.; artt. 336-337 c.p.p.)",
+      "categoria": "Procedura penale – querela",
+      "materia": "Diritto e procedura penale",
+      "rito": "Fase delle indagini preliminari",
+      "competenza": "Pubblico ministero, polizia giudiziaria o agente consolare all'estero (art. 337 c.p.p.)",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.",
+          "articolo": "120",
+          "descrizione": "Diritto di querela della persona offesa"
+        },
+        {
+          "fonte": "c.p.",
+          "articolo": "124",
+          "descrizione": "Tre mesi dalla notizia del fatto, salvo diversa previsione; rinuncia"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "336",
+          "descrizione": "Querela: dichiarazione con cui si manifesta la volontà che si proceda"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "337",
+          "descrizione": "Formalità: sottoscrizione autentica, deposito o spedizione"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "querela",
+        "denominazione": "Atto di querela",
+        "campi_chiave": [
+          {
+            "id": "persona_offesa",
+            "label": "Persona offesa e recapiti",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "fatti",
+            "label": "Descrizione dei fatti con data e luogo",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notizia",
+            "label": "Data in cui si è avuta notizia del fatto (decorrenza dei tre mesi)",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "richiesta_informazioni",
+            "label": "Dichiarazione di voler essere informati dell'eventuale archiviazione (art. 408, comma 2, c.p.p.)",
+            "required": true,
+            "type": "boolean"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "persona_offesa",
+            "label": "Persona offesa e recapiti",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "fatti",
+            "label": "Descrizione dei fatti con data e luogo",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notizia",
+            "label": "Data in cui si è avuta notizia del fatto (decorrenza dei tre mesi)",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "richiesta_informazioni",
+            "label": "Dichiarazione di voler essere informati dell'eventuale archiviazione (art. 408, comma 2, c.p.p.)",
+            "required": true,
+            "type": "boolean"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il termine di tre mesi vale «salvo che la legge disponga altrimenti» (art. 124 c.p.): controllare il termine speciale del reato.",
+          "Senza la dichiarazione di voler essere informata, la persona offesa non riceve l'avviso della richiesta di archiviazione, salvo i delitti con violenza alla persona e l'art. 624-bis c.p. (art. 408 c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "documento_identita",
+          "label": "Documento d'identità del querelante",
+          "required": true
+        },
+        {
+          "id": "prove",
+          "label": "Documenti e indicazione delle fonti di prova",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare che il reato sia procedibile a querela e la data della notizia del fatto (art. 124 c.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Se la querela è presentata dal difensore: procura speciale (art. 122 c.p.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 3,
+          "azione": "Chiedere nella querela di essere informati della richiesta di archiviazione (art. 408, comma 2, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Proposizione della querela",
+          "decorrenza": "notizia del fatto che costituisce reato",
+          "natura": "decadenza",
+          "norma": "art. 124 c.p.",
+          "mesi": 3
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Il termine di tre mesi vale «salvo che la legge disponga altrimenti» (art. 124 c.p.): controllare il termine speciale del reato.",
+        "Senza la dichiarazione di voler essere informata, la persona offesa non riceve l'avviso della richiesta di archiviazione, salvo i delitti con violenza alla persona e l'art. 624-bis c.p. (art. 408 c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "querela",
+        "denuncia querela",
+        "persona offesa",
+        "diffamazione",
+        "lesioni",
+        "minaccia",
+        "truffa",
+        "furto",
+        "appropriazione indebita",
+        "danneggiamento"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_OPPOSIZIONE_ARCHIVIAZIONE",
+      "denominazione": "Opposizione alla richiesta di archiviazione (artt. 408-410 c.p.p.)",
+      "categoria": "Procedura penale – archiviazione",
+      "materia": "Diritto e procedura penale",
+      "rito": "Indagini preliminari – giudice per le indagini preliminari",
+      "competenza": "Giudice per le indagini preliminari presso il tribunale",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "408",
+          "descrizione": "Richiesta di archiviazione; avviso alla persona offesa: 20 giorni (30 per i delitti con violenza alla persona e art. 624-bis c.p.)"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "409",
+          "descrizione": "Provvedimenti del giudice sulla richiesta"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "410",
+          "descrizione": "Opposizione: oggetto dell'investigazione suppletiva ed elementi di prova a pena di inammissibilità"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "opposizione_archiviazione",
+        "denominazione": "Atto di opposizione alla richiesta di archiviazione",
+        "campi_chiave": [
+          {
+            "id": "procedimento",
+            "label": "Numero di registro generale delle notizie di reato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_avviso",
+            "label": "Data di notifica dell'avviso della richiesta di archiviazione",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "investigazione_suppletiva",
+            "label": "Oggetto dell'investigazione suppletiva richiesta",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "elementi_prova",
+            "label": "Elementi di prova a sostegno",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "procedimento",
+            "label": "Numero di registro generale delle notizie di reato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_avviso",
+            "label": "Data di notifica dell'avviso della richiesta di archiviazione",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "investigazione_suppletiva",
+            "label": "Oggetto dell'investigazione suppletiva richiesta",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "elementi_prova",
+            "label": "Elementi di prova a sostegno",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Opposizione generica: se è inammissibile e la notizia di reato infondata il giudice archivia con decreto (art. 410, comma 2, c.p.p.).",
+          "L'avviso informa anche della facoltà di accedere ai programmi di giustizia riparativa (art. 408, comma 3, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "avviso_archiviazione",
+          "label": "Avviso della richiesta di archiviazione notificato",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Prendere visione degli atti depositati con la richiesta (art. 408, comma 3, c.p.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Indicare a pena di inammissibilità l'oggetto dell'investigazione suppletiva e i relativi elementi di prova (art. 410 c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Opposizione all'archiviazione",
+          "decorrenza": "notifica dell'avviso",
+          "natura": "perentorio",
+          "norma": "art. 408, comma 3, c.p.p.",
+          "giorni": 20
+        },
+        {
+          "termine": "Opposizione per delitti con violenza alla persona o art. 624-bis c.p.",
+          "decorrenza": "notifica dell'avviso",
+          "natura": "perentorio",
+          "norma": "art. 408, comma 3-bis, c.p.p.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Opposizione generica: se è inammissibile e la notizia di reato infondata il giudice archivia con decreto (art. 410, comma 2, c.p.p.).",
+        "L'avviso informa anche della facoltà di accedere ai programmi di giustizia riparativa (art. 408, comma 3, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "archiviazione",
+        "opposizione archiviazione",
+        "richiesta di archiviazione",
+        "persona offesa"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_MEMORIE_415_BIS",
+      "denominazione": "Difesa dopo l'avviso di conclusione delle indagini (art. 415-bis c.p.p.)",
+      "categoria": "Procedura penale – avviso conclusione indagini",
+      "materia": "Diritto e procedura penale",
+      "rito": "Indagini preliminari – pubblico ministero",
+      "competenza": "Pubblico ministero procedente",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "415-bis",
+          "descrizione": "Avviso di conclusione delle indagini: 20 giorni per memorie, documenti, indagini difensive, interrogatorio"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "memorie_415_bis",
+        "denominazione": "Memoria difensiva e richieste al pubblico ministero",
+        "campi_chiave": [
+          {
+            "id": "procedimento",
+            "label": "Numero di registro generale",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notifica_avviso",
+            "label": "Data di notifica dell'avviso",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "richieste",
+            "label": "Memorie, atti di indagine richiesti o richiesta di interrogatorio",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "procedimento",
+            "label": "Numero di registro generale",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notifica_avviso",
+            "label": "Data di notifica dell'avviso",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "richieste",
+            "label": "Memorie, atti di indagine richiesti o richiesta di interrogatorio",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'avviso informa anche della facoltà di accedere ai programmi di giustizia riparativa.",
+          "Valutare fin da ora i riti alternativi (abbreviato, applicazione della pena, messa alla prova) e la particolare tenuità del fatto (art. 131-bis c.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "avviso_415_bis",
+          "label": "Avviso di conclusione delle indagini",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Estrarre copia degli atti depositati presso la segreteria del pubblico ministero (art. 415-bis, comma 2, c.p.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Valutare la richiesta di interrogatorio: se l'indagato la chiede il pubblico ministero deve procedervi (art. 415-bis, comma 3, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Memorie, documenti, richieste e interrogatorio",
+          "decorrenza": "notifica dell'avviso",
+          "natura": "perentorio",
+          "norma": "art. 415-bis, comma 3, c.p.p.",
+          "giorni": 20
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "L'avviso informa anche della facoltà di accedere ai programmi di giustizia riparativa.",
+        "Valutare fin da ora i riti alternativi (abbreviato, applicazione della pena, messa alla prova) e la particolare tenuità del fatto (art. 131-bis c.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "415 bis",
+        "avviso conclusione indagini",
+        "chiusura indagini",
+        "memoria difensiva",
+        "interrogatorio"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_OPPOSIZIONE_DECRETO_PENALE",
+      "denominazione": "Opposizione al decreto penale di condanna (artt. 459-461 c.p.p.)",
+      "categoria": "Procedura penale – procedimento per decreto",
+      "materia": "Diritto e procedura penale",
+      "rito": "Procedimento per decreto",
+      "competenza": "Cancelleria del giudice per le indagini preliminari che ha emesso il decreto, o del tribunale o giudice di pace del luogo dell'opponente (art. 461 c.p.p.)",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "459",
+          "descrizione": "Casi del procedimento per decreto: sola pena pecuniaria"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "460",
+          "descrizione": "Requisiti del decreto"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "461",
+          "descrizione": "Opposizione entro 15 giorni; richiesta di immediato, abbreviato o applicazione della pena"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "464-bis",
+          "descrizione": "La richiesta di messa alla prova si presenta con l'atto di opposizione"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "175",
+          "descrizione": "Restituzione nel termine per chi non ha avuto effettiva conoscenza del decreto"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "opposizione_decreto_penale",
+        "denominazione": "Dichiarazione di opposizione a decreto penale di condanna",
+        "campi_chiave": [
+          {
+            "id": "estremi_decreto",
+            "label": "Numero, data e giudice del decreto (a pena di inammissibilità)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notifica",
+            "label": "Data di notifica del decreto",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "rito_richiesto",
+            "label": "Rito richiesto",
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "estremi_decreto",
+            "label": "Numero, data e giudice del decreto (a pena di inammissibilità)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notifica",
+            "label": "Data di notifica del decreto",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "rito_richiesto",
+            "label": "Rito richiesto",
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Senza opposizione, o se è inammissibile, il giudice ordina l'esecuzione del decreto (art. 461, comma 5, c.p.p.).",
+          "La richiesta di messa alla prova va presentata con l'atto di opposizione (art. 464-bis, comma 2, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decreto_penale",
+          "label": "Decreto penale di condanna notificato",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Indicare a pena di inammissibilità gli estremi, la data e il giudice del decreto (art. 461, comma 2, c.p.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Scegliere con l'opposizione il rito: giudizio immediato, abbreviato, applicazione della pena o messa alla prova (artt. 461 e 464-bis c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Opposizione al decreto penale",
+          "decorrenza": "notificazione del decreto",
+          "natura": "perentorio",
+          "norma": "art. 461, comma 1, c.p.p.",
+          "giorni": 15
+        },
+        {
+          "termine": "Restituzione nel termine per opporsi",
+          "decorrenza": "effettiva conoscenza del decreto",
+          "natura": "decadenza",
+          "norma": "art. 175, comma 2-bis, c.p.p.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Senza opposizione, o se è inammissibile, il giudice ordina l'esecuzione del decreto (art. 461, comma 5, c.p.p.).",
+        "La richiesta di messa alla prova va presentata con l'atto di opposizione (art. 464-bis, comma 2, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "decreto penale",
+        "decreto penale di condanna",
+        "opposizione decreto penale"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_APPLICAZIONE_PENA",
+      "denominazione": "Applicazione della pena su richiesta – patteggiamento (artt. 444-448 c.p.p.)",
+      "categoria": "Procedura penale – riti alternativi",
+      "materia": "Diritto e procedura penale",
+      "rito": "Rito speciale",
+      "competenza": "Giudice del procedimento",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "444",
+          "descrizione": "Pena sostitutiva o pecuniaria, o detentiva che diminuita fino a un terzo non supera cinque anni"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "446",
+          "descrizione": "Termini della richiesta; volontà personale o procura speciale autenticata"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "448",
+          "descrizione": "Sentenza e dissenso del pubblico ministero"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "applicazione_pena",
+        "denominazione": "Richiesta di applicazione della pena",
+        "campi_chiave": [
+          {
+            "id": "imputazione",
+            "label": "Imputazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "pena_proposta",
+            "label": "Pena proposta e calcolo",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "consenso_pm",
+            "label": "Consenso del pubblico ministero",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "imputazione",
+            "label": "Imputazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "pena_proposta",
+            "label": "Pena proposta e calcolo",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "consenso_pm",
+            "label": "Consenso del pubblico ministero",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La volontà dell'imputato è espressa personalmente o con procura speciale autenticata (art. 446, comma 3, c.p.p.).",
+          "Si può chiedere di non applicare le pene accessorie o la confisca facoltativa, nei limiti dell'art. 444 c.p.p."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale con sottoscrizione autenticata (artt. 122 e 446 c.p.p.)",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare le esclusioni dell'art. 444, comma 1-bis, c.p.p. e il calcolo della pena",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Presentare la richiesta entro le conclusioni dell'udienza preliminare o l'apertura del dibattimento nel direttissimo; dopo il decreto di giudizio immediato nel termine dell'art. 458 (art. 446 c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "La volontà dell'imputato è espressa personalmente o con procura speciale autenticata (art. 446, comma 3, c.p.p.).",
+        "Si può chiedere di non applicare le pene accessorie o la confisca facoltativa, nei limiti dell'art. 444 c.p.p."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "patteggiamento",
+        "applicazione della pena",
+        "444"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_GIUDIZIO_ABBREVIATO",
+      "denominazione": "Giudizio abbreviato (artt. 438-443 c.p.p.)",
+      "categoria": "Procedura penale – riti alternativi",
+      "materia": "Diritto e procedura penale",
+      "rito": "Rito speciale",
+      "competenza": "Giudice dell'udienza preliminare o del dibattimento nei casi previsti",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "438",
+          "descrizione": "Presupposti, termini e forma della richiesta; non ammesso per i delitti puniti con l'ergastolo"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "441",
+          "descrizione": "Svolgimento del giudizio"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "442",
+          "descrizione": "Riduzione della pena: metà per le contravvenzioni, un terzo per i delitti"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "giudizio_abbreviato",
+        "denominazione": "Richiesta di giudizio abbreviato",
+        "campi_chiave": [
+          {
+            "id": "imputazione",
+            "label": "Imputazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "integrazione_probatoria",
+            "label": "Eventuale integrazione probatoria cui si subordina la richiesta",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "imputazione",
+            "label": "Imputazione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "integrazione_probatoria",
+            "label": "Eventuale integrazione probatoria cui si subordina la richiesta",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Non è ammesso per i delitti puniti con l'ergastolo (art. 438, comma 1-bis, c.p.p.).",
+          "La volontà dell'imputato è espressa personalmente o con procura speciale autenticata (art. 438, comma 3, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale con sottoscrizione autenticata (artt. 122 e 446 c.p.p.)",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Presentare la richiesta fino alle conclusioni dell'udienza preliminare (art. 438, comma 2, c.p.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Valutare se subordinarla a un'integrazione probatoria necessaria (art. 438, comma 5, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Non è ammesso per i delitti puniti con l'ergastolo (art. 438, comma 1-bis, c.p.p.).",
+        "La volontà dell'imputato è espressa personalmente o con procura speciale autenticata (art. 438, comma 3, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "abbreviato",
+        "rito abbreviato",
+        "giudizio abbreviato"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_MESSA_ALLA_PROVA",
+      "denominazione": "Sospensione del procedimento con messa alla prova (art. 168-bis c.p.; artt. 464-bis ss. c.p.p.)",
+      "categoria": "Procedura penale – messa alla prova",
+      "materia": "Diritto e procedura penale",
+      "rito": "Rito speciale",
+      "competenza": "Giudice del procedimento",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.",
+          "articolo": "168-bis",
+          "descrizione": "Reati con pena pecuniaria o detentiva non superiore nel massimo a quattro anni e delitti dell'art. 550, comma 2, c.p.p."
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "464-bis",
+          "descrizione": "Richiesta, termini, programma di trattamento elaborato con l'ufficio di esecuzione penale esterna"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "messa_alla_prova",
+        "denominazione": "Richiesta di sospensione del procedimento con messa alla prova",
+        "campi_chiave": [
+          {
+            "id": "imputazione",
+            "label": "Imputazione e pena edittale",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "programma_trattamento",
+            "label": "Programma di trattamento o richiesta di elaborazione all'UEPE",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "imputazione",
+            "label": "Imputazione e pena edittale",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "programma_trattamento",
+            "label": "Programma di trattamento o richiesta di elaborazione all'UEPE",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La messa alla prova richiede condotte riparatorie e, ove possibile, il risarcimento del danno (art. 168-bis c.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale con sottoscrizione autenticata (artt. 122 e 446 c.p.p.)",
+          "required": true
+        },
+        {
+          "id": "programma_uepe",
+          "label": "Programma di trattamento o istanza all'ufficio di esecuzione penale esterna (art. 464-bis, comma 4, c.p.p.)",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare il limite di pena dell'art. 168-bis c.p. e le precedenti concessioni",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Presentare la richiesta entro le conclusioni dell'udienza preliminare, l'udienza predibattimentale nella citazione diretta o con l'opposizione al decreto (art. 464-bis, comma 2, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Richiesta dopo la proposta del pubblico ministero in udienza",
+          "decorrenza": "proposta in udienza",
+          "natura": "termine massimo",
+          "norma": "art. 464-bis, comma 1, c.p.p.",
+          "giorni": 20
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "La messa alla prova richiede condotte riparatorie e, ove possibile, il risarcimento del danno (art. 168-bis c.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "messa alla prova",
+        "map",
+        "sospensione del procedimento",
+        "uepe"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_APPELLO",
+      "denominazione": "Appello penale (artt. 593 ss., 581-585 c.p.p.)",
+      "categoria": "Procedura penale – impugnazioni",
+      "materia": "Diritto e procedura penale",
+      "rito": "Giudizio di appello",
+      "competenza": "Corte d'appello o tribunale secondo il giudice di primo grado; deposito nella cancelleria del giudice che ha emesso la sentenza",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "593",
+          "descrizione": "Casi di appello"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "581",
+          "descrizione": "Forma dell'impugnazione: capi, punti, prove, richieste e motivi specifici a pena di inammissibilità"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "582",
+          "descrizione": "Presentazione nella cancelleria del giudice che ha emesso il provvedimento; parti private anche personalmente"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "585",
+          "descrizione": "Termini: 15, 30 o 45 giorni secondo il deposito della motivazione (art. 544); più 15 per il difensore dell'imputato assente; motivi nuovi fino a 15 giorni prima"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "appello",
+        "denominazione": "Atto di appello",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza impugnata: giudice, data e numero",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "modalita_motivazione",
+            "label": "Motivazione contestuale, entro 15 giorni o nel termine fissato (art. 544)",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "capi_punti",
+            "label": "Capi e punti impugnati",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi specifici con ragioni di fatto e di diritto",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza impugnata: giudice, data e numero",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "modalita_motivazione",
+            "label": "Motivazione contestuale, entro 15 giorni o nel termine fissato (art. 544)",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "capi_punti",
+            "label": "Capi e punti impugnati",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi specifici con ragioni di fatto e di diritto",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Appello inammissibile se i motivi non sono specifici rispetto alle ragioni della sentenza (art. 581, comma 1-bis, c.p.p.).",
+          "Il comma 1-ter dell'art. 581 (elezione di domicilio con l'appello) è abrogato dalla L. 9 agosto 2024, n. 114: resta il mandato specifico per l'imputato assente (comma 1-quater)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Copia del provvedimento impugnato con la data di notifica o deposito",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Calcolare il termine secondo l'art. 585 c.p.p. e la data di deposito della motivazione",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Per l'imputato giudicato in assenza: il difensore d'ufficio deposita a pena di inammissibilità lo specifico mandato a impugnare con la dichiarazione o elezione di domicilio (art. 581, comma 1-quater, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Appello – motivazione contestuale o camera di consiglio",
+          "decorrenza": "lettura o avviso di deposito",
+          "natura": "perentorio",
+          "norma": "art. 585, comma 1, lett. a), c.p.p.",
+          "giorni": 15
+        },
+        {
+          "termine": "Appello – motivazione entro 15 giorni",
+          "decorrenza": "scadenza del termine per il deposito della sentenza",
+          "natura": "perentorio",
+          "norma": "art. 585, comma 1, lett. b), c.p.p.",
+          "giorni": 30
+        },
+        {
+          "termine": "Appello – motivazione in termine più lungo",
+          "decorrenza": "scadenza del termine fissato dal giudice",
+          "natura": "perentorio",
+          "norma": "art. 585, comma 1, lett. c), c.p.p.",
+          "giorni": 45
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Appello inammissibile se i motivi non sono specifici rispetto alle ragioni della sentenza (art. 581, comma 1-bis, c.p.p.).",
+        "Il comma 1-ter dell'art. 581 (elezione di domicilio con l'appello) è abrogato dalla L. 9 agosto 2024, n. 114: resta il mandato specifico per l'imputato assente (comma 1-quater)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "appello penale",
+        "appello sentenza penale",
+        "sentenza di condanna",
+        "corte d'appello penale"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RICORSO_CASSAZIONE",
+      "denominazione": "Ricorso per cassazione penale (artt. 606-613 c.p.p.)",
+      "categoria": "Procedura penale – impugnazioni",
+      "materia": "Diritto e procedura penale",
+      "rito": "Giudizio di cassazione",
+      "competenza": "Corte di cassazione; deposito nella cancelleria del giudice che ha emesso il provvedimento",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "606",
+          "descrizione": "Motivi di ricorso"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "613",
+          "descrizione": "Sottoscrizione a pena di inammissibilità di difensore iscritto all'albo speciale della Corte di cassazione"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "611",
+          "descrizione": "Procedimento in camera di consiglio"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "581",
+          "descrizione": "Forma dell'impugnazione: capi, punti, prove, richieste e motivi specifici a pena di inammissibilità"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "582",
+          "descrizione": "Presentazione nella cancelleria del giudice che ha emesso il provvedimento; parti private anche personalmente"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "585",
+          "descrizione": "Termini per l'impugnazione"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_cassazione",
+        "denominazione": "Ricorso per cassazione",
+        "campi_chiave": [
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento impugnato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi_606",
+            "label": "Motivi tra quelli dell'art. 606 c.p.p.",
+            "required": true,
+            "type": "select_multi"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "provvedimento",
+            "label": "Provvedimento impugnato",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi_606",
+            "label": "Motivi tra quelli dell'art. 606 c.p.p.",
+            "required": true,
+            "type": "select_multi"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Motivi nuovi e memorie sottoscritti anch'essi dal cassazionista (art. 613 c.p.p.).",
+          "Il termine è di 15, 30 o 45 giorni secondo l'art. 585 c.p.p.: verificarlo sulla sentenza."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Copia del provvedimento impugnato con la data di notifica o deposito",
+          "required": true
+        },
+        {
+          "id": "cassazionista",
+          "label": "Difensore iscritto all'albo speciale della Corte di cassazione (art. 613 c.p.p.)",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Ricondurre ogni motivo a una lettera dell'art. 606 c.p.p.",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Verificare l'iscrizione all'albo speciale del difensore che sottoscrive (art. 613 c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Ricorso – termini dell'art. 585 c.p.p.",
+          "decorrenza": "come per l'appello, secondo il deposito della motivazione",
+          "natura": "perentorio",
+          "norma": "art. 585 c.p.p.",
+          "giorni": 15
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Motivi nuovi e memorie sottoscritti anch'essi dal cassazionista (art. 613 c.p.p.).",
+        "Il termine è di 15, 30 o 45 giorni secondo l'art. 585 c.p.p.: verificarlo sulla sentenza."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ricorso cassazione penale",
+        "cassazione penale",
+        "ricorso per cassazione"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RIESAME_MISURA",
+      "denominazione": "Riesame delle ordinanze che dispongono una misura coercitiva (art. 309 c.p.p.)",
+      "categoria": "Procedura penale – misure cautelari personali",
+      "materia": "Diritto e procedura penale",
+      "rito": "Tribunale del riesame",
+      "competenza": "Tribunale del capoluogo del distretto (art. 309, comma 7, c.p.p.)",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "309",
+          "descrizione": "Riesame entro 10 giorni dall'esecuzione o notificazione; per il difensore dalla notifica dell'avviso di deposito"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "311",
+          "descrizione": "Ricorso per cassazione entro 10 giorni; ricorso diretto per violazione di legge"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "riesame_misura",
+        "denominazione": "Richiesta di riesame",
+        "campi_chiave": [
+          {
+            "id": "ordinanza",
+            "label": "Ordinanza cautelare: giudice e data",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_esecuzione",
+            "label": "Data di esecuzione o notificazione",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi (anche successivi)",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ordinanza",
+            "label": "Ordinanza cautelare: giudice e data",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_esecuzione",
+            "label": "Data di esecuzione o notificazione",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi (anche successivi)",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Non si computano i giorni di differimento del colloquio con il difensore (art. 309, comma 3-bis, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "ordinanza_cautelare",
+          "label": "Ordinanza che dispone la misura",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Calcolare i 10 giorni dall'esecuzione o notificazione; per il difensore dalla notifica dell'avviso di deposito (art. 309, commi 1 e 3, c.p.p.)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Valutare il ricorso diretto per cassazione per sola violazione di legge, che rende inammissibile il riesame (art. 311, comma 2, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Richiesta di riesame",
+          "decorrenza": "esecuzione o notificazione dell'ordinanza",
+          "natura": "perentorio",
+          "norma": "art. 309, comma 1, c.p.p.",
+          "giorni": 10
+        },
+        {
+          "termine": "Ricorso per cassazione contro la decisione del riesame",
+          "decorrenza": "comunicazione o notificazione dell'avviso di deposito",
+          "natura": "perentorio",
+          "norma": "art. 311, comma 1, c.p.p.",
+          "giorni": 10
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Non si computano i giorni di differimento del colloquio con il difensore (art. 309, comma 3-bis, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "riesame",
+        "custodia cautelare",
+        "carcere",
+        "arresti domiciliari",
+        "misura cautelare",
+        "ordinanza cautelare",
+        "tribunale della libertà"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_APPELLO_CAUTELARE",
+      "denominazione": "Appello contro le ordinanze in materia di misure cautelari personali (art. 310 c.p.p.)",
+      "categoria": "Procedura penale – misure cautelari personali",
+      "materia": "Diritto e procedura penale",
+      "rito": "Tribunale del riesame",
+      "competenza": "Tribunale del capoluogo del distretto",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "310",
+          "descrizione": "Appello con motivi contestuali; termini dell'art. 309; decisione entro 20 giorni"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "311",
+          "descrizione": "Ricorso per cassazione"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "appello_cautelare",
+        "denominazione": "Atto di appello cautelare",
+        "campi_chiave": [
+          {
+            "id": "ordinanza",
+            "label": "Ordinanza appellata",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi contestuali",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ordinanza",
+            "label": "Ordinanza appellata",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "motivi",
+            "label": "Motivi contestuali",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "L'appello riguarda le ordinanze cautelari diverse da quelle che dispongono la misura coercitiva (riesame, art. 309)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "ordinanza_appellata",
+          "label": "Ordinanza appellata",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Enunciare i motivi contestualmente all'appello (art. 310, comma 1, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Appello cautelare",
+          "decorrenza": "esecuzione, notificazione o avviso di deposito (art. 309 richiamato)",
+          "natura": "perentorio",
+          "norma": "art. 310, comma 2, c.p.p.",
+          "giorni": 10
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "L'appello riguarda le ordinanze cautelari diverse da quelle che dispongono la misura coercitiva (riesame, art. 309)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "appello cautelare",
+        "appello misura cautelare",
+        "rigetto istanza revoca misura"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_REVOCA_SOSTITUZIONE_MISURA",
+      "denominazione": "Richiesta di revoca o sostituzione della misura cautelare (art. 299 c.p.p.)",
+      "categoria": "Procedura penale – misure cautelari personali",
+      "materia": "Diritto e procedura penale",
+      "rito": "Procedimento incidentale cautelare",
+      "competenza": "Giudice che procede",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "299",
+          "descrizione": "Revoca e sostituzione delle misure; decisione con ordinanza entro cinque giorni"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "revoca_sostituzione_misura",
+        "denominazione": "Istanza di revoca o sostituzione",
+        "campi_chiave": [
+          {
+            "id": "misura",
+            "label": "Misura in corso",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fatti_nuovi",
+            "label": "Elementi sopravvenuti o venuti meno",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "misura",
+            "label": "Misura in corso",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fatti_nuovi",
+            "label": "Elementi sopravvenuti o venuti meno",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il giudice provvede con ordinanza entro cinque giorni dal deposito della richiesta (art. 299, comma 3, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "ordinanza_cautelare",
+          "label": "Ordinanza che ha disposto la misura",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Per le misure degli artt. 282-bis, 282-ter, 283, 284, 285 e 286 c.p.p. nei procedimenti per delitti con violenza alla persona: notificare l'istanza alla persona offesa (art. 299, comma 3, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Il giudice provvede con ordinanza entro cinque giorni dal deposito della richiesta (art. 299, comma 3, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "revoca misura",
+        "sostituzione misura",
+        "attenuazione misura",
+        "arresti domiciliari",
+        "obbligo di firma",
+        "braccialetto"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RIESAME_SEQUESTRO",
+      "denominazione": "Riesame del decreto di sequestro (artt. 322, 324 e 325 c.p.p.)",
+      "categoria": "Procedura penale – misure cautelari reali",
+      "materia": "Diritto e procedura penale",
+      "rito": "Tribunale del riesame",
+      "competenza": "Tribunale del capoluogo della provincia (art. 324, comma 5, c.p.p.)",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "322",
+          "descrizione": "Riesame del decreto di sequestro preventivo"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "324",
+          "descrizione": "Procedimento: richiesta entro 10 giorni dall'esecuzione o dalla conoscenza del sequestro"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "325",
+          "descrizione": "Ricorso per cassazione per violazione di legge; ricorso diretto"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "riesame_sequestro",
+        "denominazione": "Richiesta di riesame del sequestro",
+        "campi_chiave": [
+          {
+            "id": "decreto",
+            "label": "Decreto di sequestro",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_esecuzione",
+            "label": "Data di esecuzione o di conoscenza",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "richiedente",
+            "label": "Imputato, persona cui le cose sono state sequestrate o avente diritto alla restituzione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "decreto",
+            "label": "Decreto di sequestro",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_esecuzione",
+            "label": "Data di esecuzione o di conoscenza",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "richiedente",
+            "label": "Imputato, persona cui le cose sono state sequestrate o avente diritto alla restituzione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il ricorso diretto per cassazione nello stesso termine rende inammissibile il riesame (art. 325, comma 2, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "decreto_sequestro",
+          "label": "Decreto di sequestro e verbale",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Indicare il domicilio per l'avviso se l'imputato non detenuto non l'ha già dichiarato (art. 324, comma 2, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Richiesta di riesame del sequestro",
+          "decorrenza": "esecuzione del provvedimento o diversa data di conoscenza",
+          "natura": "perentorio",
+          "norma": "art. 324, comma 1, c.p.p.",
+          "giorni": 10
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Il ricorso diretto per cassazione nello stesso termine rende inammissibile il riesame (art. 325, comma 2, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "sequestro",
+        "sequestro preventivo",
+        "sequestro probatorio",
+        "dissequestro",
+        "riesame sequestro"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RESTITUZIONE_TERMINE",
+      "denominazione": "Restituzione nel termine (art. 175 c.p.p.)",
+      "categoria": "Procedura penale – termini",
+      "materia": "Diritto e procedura penale",
+      "rito": "Procedimento incidentale",
+      "competenza": "Giudice che procede o che sarebbe competente sull'atto",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "175",
+          "descrizione": "Caso fortuito o forza maggiore: 10 giorni; decreto penale e assente: 30 giorni dall'effettiva conoscenza"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "restituzione_termine",
+        "denominazione": "Richiesta di restituzione nel termine",
+        "campi_chiave": [
+          {
+            "id": "termine_scaduto",
+            "label": "Termine scaduto e atto da compiere",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "causa",
+            "label": "Caso fortuito, forza maggiore o mancata conoscenza",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_cessazione",
+            "label": "Data di cessazione dell'impedimento o di effettiva conoscenza",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "termine_scaduto",
+            "label": "Termine scaduto e atto da compiere",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "causa",
+            "label": "Caso fortuito, forza maggiore o mancata conoscenza",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_cessazione",
+            "label": "Data di cessazione dell'impedimento o di effettiva conoscenza",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "prova_impedimento",
+          "label": "Prova dell'impedimento o della mancata conoscenza",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Provare il caso fortuito o la forza maggiore, oppure la mancata effettiva conoscenza (art. 175 c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Richiesta per caso fortuito o forza maggiore",
+          "decorrenza": "cessazione del fatto impeditivo",
+          "natura": "decadenza",
+          "norma": "art. 175, comma 1, c.p.p.",
+          "giorni": 10
+        },
+        {
+          "termine": "Richiesta del condannato con decreto o giudicato in assenza",
+          "decorrenza": "effettiva conoscenza del provvedimento",
+          "natura": "decadenza",
+          "norma": "art. 175, comma 2-bis, c.p.p.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "restituzione nel termine",
+        "rimessione in termini",
+        "termine scaduto"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RESCISSIONE_GIUDICATO",
+      "denominazione": "Rescissione del giudicato (art. 629-bis c.p.p.)",
+      "categoria": "Procedura penale – impugnazioni straordinarie",
+      "materia": "Diritto e procedura penale",
+      "rito": "Corte d'appello",
+      "competenza": "Corte d'appello del distretto del giudice che ha emesso il provvedimento",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "629-bis",
+          "descrizione": "Condannato in assenza senza i presupposti dell'art. 420-bis: richiesta entro 30 giorni dalla conoscenza della sentenza"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "rescissione_giudicato",
+        "denominazione": "Richiesta di rescissione del giudicato",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza irrevocabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_conoscenza",
+            "label": "Data della conoscenza della sentenza",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza irrevocabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_conoscenza",
+            "label": "Data della conoscenza della sentenza",
+            "required": true,
+            "type": "date"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Copia del provvedimento impugnato con la data di notifica o deposito",
+          "required": true
+        },
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale al difensore (art. 629-bis, comma 2, c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Provare che l'assenza è stata dichiarata senza i presupposti dell'art. 420-bis e che non si è potuto impugnare senza colpa",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Richiesta di rescissione",
+          "decorrenza": "avvenuta conoscenza della sentenza",
+          "natura": "inammissibilità",
+          "norma": "art. 629-bis, comma 2, c.p.p.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "rescissione del giudicato",
+        "processo in assenza",
+        "condanna in assenza"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_REVISIONE",
+      "denominazione": "Revisione della sentenza di condanna (artt. 629-647 c.p.p.)",
+      "categoria": "Procedura penale – impugnazioni straordinarie",
+      "materia": "Diritto e procedura penale",
+      "rito": "Corte d'appello",
+      "competenza": "Corte d'appello individuata secondo l'art. 11 c.p.p.",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "629",
+          "descrizione": "Sentenze soggette a revisione"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "630",
+          "descrizione": "Casi: giudicati inconciliabili, pregiudiziale revocata, prove nuove, falsità"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "633",
+          "descrizione": "Forma: personalmente o con procuratore speciale; ragioni e prove specifiche"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "revisione",
+        "denominazione": "Richiesta di revisione",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza o decreto irrevocabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "caso_630",
+            "label": "Caso dell'art. 630 c.p.p.",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "prove",
+            "label": "Prove nuove o atti",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza o decreto irrevocabile",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "caso_630",
+            "label": "Caso dell'art. 630 c.p.p.",
+            "required": true,
+            "type": "select"
+          },
+          {
+            "id": "prove",
+            "label": "Prove nuove o atti",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La richiesta indica in modo specifico le ragioni e le prove e si deposita con gli atti e i documenti (art. 633 c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Copia del provvedimento impugnato con la data di notifica o deposito",
+          "required": true
+        },
+        {
+          "id": "procura_speciale",
+          "label": "Procura speciale (art. 633 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Individuare il caso dell'art. 630 c.p.p. e le prove nuove",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "La richiesta indica in modo specifico le ragioni e le prove e si deposita con gli atti e i documenti (art. 633 c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "revisione",
+        "revisione della condanna",
+        "prova nuova"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RIPARAZIONE_INGIUSTA_DETENZIONE",
+      "denominazione": "Riparazione per ingiusta detenzione (artt. 314-315 c.p.p.)",
+      "categoria": "Procedura penale – riparazione",
+      "materia": "Diritto e procedura penale",
+      "rito": "Corte d'appello in camera di consiglio",
+      "competenza": "Corte d'appello",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "314",
+          "descrizione": "Presupposti: proscioglimento irrevocabile senza dolo o colpa grave dell'interessato"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "315",
+          "descrizione": "Domanda entro due anni dall'irrevocabilità a pena di inammissibilità"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "riparazione_ingiusta_detenzione",
+        "denominazione": "Domanda di riparazione",
+        "campi_chiave": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza di proscioglimento e data di irrevocabilità",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "periodo_custodia",
+            "label": "Periodo di custodia cautelare subita",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "sentenza",
+            "label": "Sentenza di proscioglimento e data di irrevocabilità",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "periodo_custodia",
+            "label": "Periodo di custodia cautelare subita",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "sentenza_irrevocabile",
+          "label": "Sentenza irrevocabile con attestazione",
+          "required": true
+        },
+        {
+          "id": "custodia",
+          "label": "Documentazione della custodia cautelare",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Verificare l'assenza di dolo o colpa grave nel dare causa alla custodia (art. 314 c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Domanda di riparazione",
+          "decorrenza": "irrevocabilità della sentenza, inoppugnabilità o notifica dell'archiviazione",
+          "natura": "inammissibilità",
+          "norma": "art. 315, comma 1, c.p.p.",
+          "anni": 2
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ingiusta detenzione",
+        "riparazione",
+        "custodia ingiusta"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_MISURE_ALTERNATIVE",
+      "denominazione": "Ordine di esecuzione sospeso e istanza di misure alternative (art. 656 c.p.p.; L. 354/1975)",
+      "categoria": "Procedura penale – esecuzione penale",
+      "materia": "Diritto e procedura penale",
+      "rito": "Esecuzione – tribunale di sorveglianza",
+      "competenza": "Pubblico ministero dell'esecuzione e tribunale di sorveglianza",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "656",
+          "descrizione": "Sospensione dell'ordine di esecuzione per pene fino a tre anni (quattro nei casi dell'art. 47-ter L. 354/1975); istanza entro 30 giorni"
+        },
+        {
+          "fonte": "L. 354/1975",
+          "articolo": "47",
+          "descrizione": "Affidamento in prova al servizio sociale per pena non superiore a tre anni"
+        },
+        {
+          "fonte": "L. 354/1975",
+          "articolo": "47-ter",
+          "descrizione": "Detenzione domiciliare"
+        },
+        {
+          "fonte": "L. 354/1975",
+          "articolo": "50",
+          "descrizione": "Semilibertà"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "misure_alternative",
+        "denominazione": "Istanza di misura alternativa alla detenzione",
+        "campi_chiave": [
+          {
+            "id": "ordine_esecuzione",
+            "label": "Ordine di esecuzione e decreto di sospensione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notifica",
+            "label": "Data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "misura_richiesta",
+            "label": "Misura richiesta",
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ordine_esecuzione",
+            "label": "Ordine di esecuzione e decreto di sospensione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "data_notifica",
+            "label": "Data di notifica",
+            "required": true,
+            "type": "date"
+          },
+          {
+            "id": "misura_richiesta",
+            "label": "Misura richiesta",
+            "required": true,
+            "type": "select"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Senza istanza, o se inammissibile, l'esecuzione della pena riprende (art. 656, comma 5, c.p.p.).",
+          "L'ordine di esecuzione avvisa anche della possibilità di chiedere la restituzione nel termine o la rescissione del giudicato per chi è stato giudicato in assenza (art. 656, comma 3, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "ordine_esecuzione",
+          "label": "Ordine di esecuzione e decreto di sospensione",
+          "required": true
+        },
+        {
+          "id": "documentazione",
+          "label": "Indicazioni e documentazione necessarie (lavoro, domicilio, famiglia)",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Presentare entro 30 giorni l'istanza corredata da indicazioni e documentazione (art. 656, comma 5, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Istanza di misura alternativa",
+          "decorrenza": "notifica dell'ordine di esecuzione e del decreto di sospensione",
+          "natura": "decadenza",
+          "norma": "art. 656, comma 5, c.p.p.",
+          "giorni": 30
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "Senza istanza, o se inammissibile, l'esecuzione della pena riprende (art. 656, comma 5, c.p.p.).",
+        "L'ordine di esecuzione avvisa anche della possibilità di chiedere la restituzione nel termine o la rescissione del giudicato per chi è stato giudicato in assenza (art. 656, comma 3, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ordine di esecuzione",
+        "affidamento in prova",
+        "detenzione domiciliare",
+        "semilibertà",
+        "sorveglianza",
+        "misure alternative"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_INCIDENTE_ESECUZIONE",
+      "denominazione": "Incidente di esecuzione (artt. 666-667 c.p.p.)",
+      "categoria": "Procedura penale – esecuzione penale",
+      "materia": "Diritto e procedura penale",
+      "rito": "Giudice dell'esecuzione",
+      "competenza": "Giudice che ha emesso il provvedimento da eseguire",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "666",
+          "descrizione": "Procedimento di esecuzione: richiesta del pubblico ministero, dell'interessato o del difensore"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "667",
+          "descrizione": "Dubbio sull'identità della persona"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "incidente_esecuzione",
+        "denominazione": "Istanza al giudice dell'esecuzione",
+        "campi_chiave": [
+          {
+            "id": "titolo",
+            "label": "Provvedimento in esecuzione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "questione",
+            "label": "Questione sul titolo esecutivo o sull'esecuzione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "titolo",
+            "label": "Provvedimento in esecuzione",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "questione",
+            "label": "Questione sul titolo esecutivo o sull'esecuzione",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "La richiesta manifestamente infondata o ripetitiva è dichiarata inammissibile con decreto (art. 666, comma 2, c.p.p.)."
+        ]
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "provvedimento_impugnato",
+          "label": "Copia del provvedimento impugnato con la data di notifica o deposito",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Evitare la mera riproposizione di una richiesta già rigettata sugli stessi elementi (art. 666, comma 2, c.p.p.)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [
+        "La richiesta manifestamente infondata o ripetitiva è dichiarata inammissibile con decreto (art. 666, comma 2, c.p.p.)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "incidente di esecuzione",
+        "giudice dell'esecuzione",
+        "esecuzione penale"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_GIUSTIZIA_RIPARATIVA",
+      "denominazione": "Accesso ai programmi di giustizia riparativa (art. 129-bis c.p.p.)",
+      "categoria": "Procedura penale – giustizia riparativa",
+      "materia": "Diritto e procedura penale",
+      "rito": "In ogni stato e grado del procedimento",
+      "competenza": "Autorità giudiziaria procedente",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "c.p.p.",
+          "articolo": "129-bis",
+          "descrizione": "Invio al Centro per la giustizia riparativa, anche su richiesta dell'imputato o della vittima"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "giustizia_riparativa",
+        "denominazione": "Richiesta di invio al Centro per la giustizia riparativa",
+        "campi_chiave": [
+          {
+            "id": "procedimento",
+            "label": "Procedimento",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "richiedente",
+            "label": "Imputato o vittima del reato",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "procedimento",
+            "label": "Procedimento",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "richiedente",
+            "label": "Imputato o vittima del reato",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Valutare con l'assistito l'utilità del programma per il procedimento e per la persona offesa",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "giustizia riparativa",
+        "mediazione penale",
+        "centro giustizia riparativa"
+      ]
+    },
+    {
+      "codice": "GUIDA_PENALE_RICORSO_IMMEDIATO_GDP",
+      "denominazione": "Ricorso immediato al giudice di pace della persona offesa (artt. 21-22 D.Lgs. 274/2000)",
+      "categoria": "Procedura penale – giudice di pace penale",
+      "materia": "Diritto e procedura penale",
+      "rito": "Procedimento davanti al giudice di pace",
+      "competenza": "Giudice di pace competente per territorio",
+      "uffici_destinatari": [
+        "Portale deposito atti penali (art. 111-bis c.p.p.)"
+      ],
+      "verificato_il": "2026-11-06",
+      "normativa": [
+        {
+          "fonte": "D.Lgs. 274/2000",
+          "articolo": "21",
+          "descrizione": "Ricorso immediato per i reati procedibili a querela: contenuto"
+        },
+        {
+          "fonte": "D.Lgs. 274/2000",
+          "articolo": "22",
+          "descrizione": "Comunicazione al pubblico ministero e deposito entro tre mesi dalla notizia del fatto"
+        },
+        {
+          "fonte": "c.p.p.",
+          "articolo": "111-bis",
+          "descrizione": "Deposito telematico obbligatorio di atti, documenti, richieste e memorie"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "ricorso_immediato_gdp",
+        "denominazione": "Ricorso immediato al giudice di pace",
+        "campi_chiave": [
+          {
+            "id": "ricorrente",
+            "label": "Persona offesa e difensore",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "citato",
+            "label": "Persona citata a giudizio",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "fatto",
+            "label": "Descrizione chiara e precisa del fatto e articoli violati",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fonti_prova",
+            "label": "Fonti di prova e circostanze dei testimoni",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "ricorrente",
+            "label": "Persona offesa e difensore",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "citato",
+            "label": "Persona citata a giudizio",
+            "required": true,
+            "type": "object_persona"
+          },
+          {
+            "id": "fatto",
+            "label": "Descrizione chiara e precisa del fatto e articoli violati",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "fonti_prova",
+            "label": "Fonti di prova e circostanze dei testimoni",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": []
+      },
+      "allegati_obbligatori": [
+        {
+          "id": "prova_comunicazione_pm",
+          "label": "Prova del previo deposito di copia presso la segreteria del pubblico ministero (art. 22 D.Lgs. 274/2000)",
+          "required": true
+        },
+        {
+          "id": "nomina_difensore",
+          "label": "Nomina del difensore di fiducia (art. 96 c.p.p.)",
+          "required": true
+        }
+      ],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Depositare copia del ricorso presso la segreteria del pubblico ministero prima della presentazione (art. 22, comma 1, D.Lgs. 274/2000)",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Sottoscrizione della persona offesa autenticata dal difensore (art. 21, comma 3, D.Lgs. 274/2000)",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [
+        {
+          "termine": "Presentazione del ricorso immediato",
+          "decorrenza": "notizia del fatto che costituisce reato",
+          "natura": "decadenza",
+          "norma": "art. 22, comma 1, D.Lgs. 274/2000",
+          "mesi": 3
+        }
+      ],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Non dovuto per gli atti del processo penale: il contributo unificato è previsto per i processi civile, amministrativo e tributario (art. 9 D.P.R. 115/2002).",
+        "nota": "Per l'azione civile nel processo penale il contributo è dovuto solo se si chiede la condanna al pagamento di una somma ed essa è accolta (art. 12 D.P.R. 115/2002)."
+      },
+      "avvertenze_redazionali": [],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "ricorso immediato",
+        "giudice di pace penale",
+        "ingiuria",
+        "percosse"
+      ]
+    }
+  ]
+}

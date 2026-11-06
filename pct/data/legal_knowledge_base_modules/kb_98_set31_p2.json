@@ -37,10 +37,6 @@
         {
           "fonte": "Reg. CONSOB 20307/2018",
           "descrizione": "Obblighi informativi e conflitti di interesse"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Deposito titoli – responsabilità della banca per inadempimento obblighi 1838"
         }
       ],
       "responsabilita_banca_1838": {
@@ -486,14 +482,6 @@
           "fonte": "c.c.",
           "articolo": "1341",
           "descrizione": "Clausole vessatorie nei contratti standard"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Franchising – nullità per omessa informazione precontrattuale"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Scioglimento franchising – indennizzo e non concorrenza"
         }
       ],
       "obblighi_precontrattuali_L129_art3": {
@@ -966,14 +954,6 @@
         {
           "fonte": "D.Lgs. 231/2002",
           "descrizione": "Ritardi di pagamento nelle transazioni commerciali"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Dipendenza economica – presupposti e rimedi"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Clausole abusive in subfornitura – nullità ex L. 192"
         }
       ],
       "abuso_dipendenza_economica_art9": {
@@ -1419,14 +1399,6 @@
           "fonte": "L. 392/1978",
           "articolo": "35",
           "descrizione": "Indennità aggiuntiva – se l'attività è aperta al pubblico e il locatore ricostituisce la stessa attività entro 1 anno"
-        },
-        {
-          "fonte": "Cass. SU 14897/2020",
-          "descrizione": "Indennità avviamento – calcolo e presupposti"
-        },
-        {
-          "fonte": "Cass. SU 9876/2022",
-          "descrizione": "Disdetta invalida per cause non tassative – rinnovo forzato"
         }
       ],
       "disdetta_art29_cause_tassative": {
@@ -1847,14 +1819,6 @@
           "fonte": "c.c.",
           "articolo": "2485",
           "descrizione": "Obbligo degli amministratori di accertare e dichiarare la causa di scioglimento"
-        },
-        {
-          "fonte": "Cass. SU 14897/2021",
-          "descrizione": "Riduzione capitale SPA – responsabilità degli amministratori per omessa convocazione"
-        },
-        {
-          "fonte": "Cass. SU 9876/2023",
-          "descrizione": "Capitale sotto minimo: provvedimenti e responsabilità"
         }
       ],
       "art_2446_perdite_oltre_terzo": {

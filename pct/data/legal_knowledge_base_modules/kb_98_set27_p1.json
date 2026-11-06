@@ -23,14 +23,6 @@
           "fonte": "c.p.c.",
           "articolo": "473-bis.30 e ss.",
           "descrizione": "Rito Cartabia per la modifica"
-        },
-        {
-          "fonte": "Cass. SU 18827/2020",
-          "descrizione": "Sopravvenienza rilevante – cambiamento stabile e significativo della situazione economica"
-        },
-        {
-          "fonte": "Cass. SU 11476/2022",
-          "descrizione": "Assegno divorzile: revisione per sopravvenienza della autosufficienza del beneficiario"
         }
       ],
       "sopravvenienze_rilevanti": [
@@ -208,15 +200,10 @@
         },
         {
           "fonte": "Cass. SU 18287/2018",
-          "descrizione": "Assegno divorzile – funzione composita: assistenziale + compensativa + perequativa"
-        },
-        {
-          "fonte": "Cass. SU 32198/2021",
-          "descrizione": "Criteri applicativi: contributo al ménage familiare + sacrifici professionali"
-        },
-        {
-          "fonte": "Cass. SU 11476/2022",
-          "descrizione": "Revisione per autosufficienza raggiunta del beneficiario"
+          "descrizione": "Assegno divorzile – funzione composita: assistenziale + compensativa + perequativa",
+          "url": "https://www.italgiure.giustizia.it/sncass/isapi/hc.dll/sn.solr/sn-collection/select?q=id%3Asnciv2022629920O&rows=1&wt=json",
+          "verifica": "Richiamata da Corte di Cassazione — civile, n. 29920/2022 (archivio SentenzeWeb del software, 06/11/2026)",
+          "verificato_il": "2026-11-06"
         }
       ],
       "cause_cessazione_automatica_5c10": [
@@ -397,14 +384,6 @@
           "fonte": "D.L. 93/2013",
           "articolo": "3",
           "descrizione": "Misure urgenti in materia di sicurezza per violenza di genere"
-        },
-        {
-          "fonte": "Cass. SU 18578/2020",
-          "descrizione": "Ammonimento – natura e effetti sulla procedibilità"
-        },
-        {
-          "fonte": "Cass. SU 9645/2023",
-          "descrizione": "Ammonimento e procedibilità d'ufficio post-ammonimento"
         }
       ],
       "ammonimento_art8_D_L_93_2013": {
@@ -586,14 +565,6 @@
           "fonte": "c.p.c.",
           "articolo": "473-bis.8",
           "descrizione": "Ascolto del minore e nomina del curatore speciale nei procedimenti di famiglia (Cartabia)"
-        },
-        {
-          "fonte": "Cass. SU 11399/2021",
-          "descrizione": "Curatore speciale del minore – quando è obbligatoria la nomina"
-        },
-        {
-          "fonte": "Cass. SU 7476/2023",
-          "descrizione": "Conflitto di interessi genitore-figlio – nomina automatica del curatore"
         }
       ],
       "quando_si_nomina_il_curatore": [
@@ -782,14 +753,6 @@
           "fonte": "D.Lgs. 66/2003",
           "articolo": "36 c. 3",
           "descrizione": "MAGGIORAZIONE per lo straordinario – determinata dal CCNL"
-        },
-        {
-          "fonte": "Cass. SU 14489/2020",
-          "descrizione": "Straordinario – prova del lavoro effettivamente svolto"
-        },
-        {
-          "fonte": "Cass. SU 9231/2023",
-          "descrizione": "Violazione riposo giornaliero – risarcimento del danno"
         }
       ],
       "limiti_orario_D_Lgs_66_2003": {

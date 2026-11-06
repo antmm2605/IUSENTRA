@@ -22,11 +22,13 @@ from typing import Any
 
 from pct.spese_liquidate_lettura import compatta_testo
 
-VERSIONE = "sentenza-conclusiva.v1"
+VERSIONE = "sentenza-conclusiva.v2"
 
 _PQM = re.compile(r"(?<![\w.])p\s*\.?\s*q\s*\.?\s*m\b\.?", re.IGNORECASE)
 _PER_QUESTI_MOTIVI = re.compile(r"\bper\s+questi\s+motivi\b", re.IGNORECASE)
-_SENTENZA = re.compile(r"\bsentenza\b", re.IGNORECASE)
+# Le intestazioni scrivono spesso il titolo con le lettere spaziate («S E N T E N Z A»): una sola spaziatura
+# facoltativa fra le lettere, quantificatori limitati (sentenza del 08/10/2026 non riconosciuta).
+_SENTENZA = re.compile(r"\bs ?e ?n ?t ?e ?n ?z ?a\b", re.IGNORECASE)
 
 # Epigrafe: la pronuncia si dichiara non definitiva o parziale già nel titolo.
 _INTESTAZIONE_NON_CONCLUSIVA = re.compile(r"\bsentenza\s+(?:non\s+definitiva|parziale)\b", re.IGNORECASE)

@@ -224,3 +224,14 @@ def test_route_parcella_registrata():
     from web.blueprints.api_v1_sentenza_economic import sentenza_economic_parcella
 
     assert callable(sentenza_economic_parcella)
+
+
+def test_titolo_sentenza_con_lettere_spaziate():
+    """Sentenza del rito del lavoro (06/11/2026): «la seguente S E N T E N Z A ex art. 429 c.p.c.»."""
+    from pct.sentenza_conclusiva import valuta_sentenza
+
+    testo = ("TRIBUNALE DI ROMA SEZIONE LAVORO ha pronunciato la seguente S E N T E N Z A ex art. 429 c.p.c. "
+             "nella causa iscritta al n. 1, del Ruolo Generale dell'anno 2025. P.Q.M. il Tribunale definitivamente "
+             "pronunciando rigetta il ricorso. Spese compensate.")
+    assert valuta_sentenza(testo)["conclusiva"] is True
+    assert valuta_sentenza("decreto di fissazione dell'udienza di discussione")["conclusiva"] is False

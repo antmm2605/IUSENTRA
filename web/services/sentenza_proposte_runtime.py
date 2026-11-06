@@ -242,6 +242,12 @@ def aggiorna_proposte_definizione(fascicolo: Any, registro: Any, tenant: str, *,
                     if vecchia is not None and vecchia.esito.get(chiave):
                         # Decisione dell'avvocato e registrazione automatica (anche annullata) restano con la regola nuova.
                         esito[chiave] = vecchia.esito[chiave]
+                if isinstance(esito.get("automatica"), dict):
+                    from web.services.sentenza_automatica_runtime import correggi_data_definizione
+
+                    corretta = correggi_data_definizione(fascicolo_id, automatica=esito["automatica"], estremi=esito.get("estremi") or {})
+                    if corretta:
+                        esito["automatica"] = corretta
                 testo_fonte = _testo((documento or {}).get("ocr_text")) if pec else testi.get(oggetto.oggetto_id, "")
                 automatica = _registra_se_certa(fascicolo, oggetto, testo_fonte, esito)
                 registro.segna_letto(tenant, fascicolo_id, oggetto, LETTORE, versione=VERSIONE_PROPOSTA, esito=esito)

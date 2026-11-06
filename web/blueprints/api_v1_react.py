@@ -9200,6 +9200,24 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
     return redacted_json_response(result, status)
 
 
+@api_v1_react.get("/fascicoli/<id_fasc>/conto-economico")
+@_richiedi_auth
+def fascicolo_react_conto_economico(id_fasc: str):
+    """Conto economico del fascicolo: voci con la fonte e percorso proforma → pagamento → fattura (sola lettura)."""
+    if not (_api_key_valida() or _session_user_can("fatturazione.leggi") or _session_user_can("fascicoli.leggi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata."}), 403
+    from web.services.fascicolo_conto_economico_runtime import conto_economico_fascicolo
+
+    try:
+        result = conto_economico_fascicolo(id_fasc)
+    except Exception as exc:  # la pagina mostra il messaggio, non un errore del server
+        current_app.logger.exception("Conto economico del fascicolo %s non disponibile: %s", id_fasc, exc)
+        return jsonify({"ok": False, "message": "Conto economico non disponibile in questo momento."}), 200
+    response = redacted_json_response(result, 200 if result.get("ok") else 404)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/bonifico-ricevuto")
 @_richiedi_auth
 def fascicolo_react_bonifico_documenti(id_fasc: str):

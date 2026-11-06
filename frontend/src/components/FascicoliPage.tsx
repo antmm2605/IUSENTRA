@@ -185,6 +185,8 @@ import { formatDateInputIt, formatDateIt, formatDateTimeIt, formatEuroIt } from 
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
+import { ContoEconomicoPanel } from './fascicoli/ContoEconomicoPanel'
+import { ContoEconomicoPulsante } from './fascicoli/ContoEconomicoPulsante'
 import { FascicoloNormativaButton } from '../features/fascicoli/normativa/FascicoloNormativaButton'
 import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
@@ -2427,16 +2429,20 @@ function economicAnalysisMessage(analysis: FascicoloPaymentSummary['analysis']):
 
 function EconomicPaymentSummary({ payment, kind, context }:{payment:FascicoloPaymentItem; kind:FascicoloPaymentKind; context:string}) {
   const label = paymentColumnLabels[kind] || payment.displayLabel || payment.label
-  const amount = payment.importoLabel || (payment.status === 'non_previsto' ? 'n.d.' : payment.status === 'da_emettere' ? 'Da calcolare' : 'Da verificare')
+  // Contributo unificato con autocertificazione di reddito: esente (art. 9, comma 1-bis, D.P.R. 115/2002), non «n.d.».
+  const esenteCu = kind === 'contributo_unificato' && !payment.importoLabel && /autocertificazione|esenzione/i.test(payment.documentoFonte || '')
+  const amount = payment.importoLabel || (esenteCu ? 'Esente' : payment.status === 'non_previsto' ? 'Non dovuto' : payment.status === 'da_emettere' ? 'Da calcolare' : 'Da verificare')
+  const statusLabel = esenteCu ? 'Autocertificazione' : payment.statusLabel
+  const tone = esenteCu ? 'success' : payment.tone
   const detail = payment.dataPagamento || visibleDocumentSource(payment.documentoFonte) || payment.updatedAtLabel || payment.metodo || payment.note || ''
-  const title = [label, amount, payment.statusLabel, detail].filter(Boolean).join(' - ')
+  const title = [label, amount, statusLabel, detail].filter(Boolean).join(' - ')
   return (
-    <EconomicSourceWindow payment={payment} context={context} className={`iu-fas-economic-summary iu-fas-economic-summary--${payment.tone}`} label={`${title} — Apri fonte`}>
+    <EconomicSourceWindow payment={payment} context={context} className={`iu-fas-economic-summary iu-fas-economic-summary--${tone}`} label={`${title} — Apri fonte`}>
       <span className="iu-fas-economic-summary__value">
         <span>{label}</span>
         <strong>{amount}</strong>
       </span>
-      <Badge tone={payment.tone}>{payment.statusLabel}</Badge>
+      <Badge tone={tone}>{statusLabel}</Badge>
       {detail ? <small>{detail}</small> : null}
     </EconomicSourceWindow>
   )
@@ -3346,10 +3352,10 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                       </>
                     ) : activeColumns.map((column) => renderOperationalCell(item, column))}
                   </tr>
-                  {economic && hasEconomicEvidence(item) ? (
+                  {economic ? (
                     <tr className="iu-fas-economic-evidence-row">
                       <td aria-hidden="true"/>
-                      <td colSpan={4}><EconomicEvidenceStrip row={item}/></td>
+                      <td colSpan={4}><div className="iu-fas-economic-evidence-actions"><ContoEconomicoPulsante fascicoloId={item.id} riferimento={item.ref} cliente={item.client}/>{hasEconomicEvidence(item) ? <EconomicEvidenceStrip row={item}/> : null}</div></td>
                       <td aria-hidden="true"/>
                     </tr>
                   ) : null}
@@ -3406,7 +3412,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                           <EconomicPaymentSummary payment={item.paymentSummary.items[kind]} kind={kind} context={`${item.ref} · ${item.client}`} key={kind}/>
                         ))}
                       </div>
-                      <EconomicEvidenceStrip row={item}/>
+                      <div className="iu-fas-economic-evidence-actions"><ContoEconomicoPulsante fascicoloId={item.id} riferimento={item.ref} cliente={item.client}/><EconomicEvidenceStrip row={item}/></div>
                       <button
                         type="button"
                         className="iu-fas-economic-edit-toggle"
@@ -9884,6 +9890,7 @@ function DetailPage({ id }:{id:string}) {
   const [patVisited, setPatVisited] = useState(() => currentDetailHashSectionId() === 'pat-formweb')
   const [pttVisited, setPttVisited] = useState(() => currentDetailHashSectionId() === 'ptt-sigit')
   const [letturaOpen, setLetturaOpen] = useState(() => currentDetailHashSectionId() === 'lettura-fascicolo')
+  const [contoOpen, setContoOpen] = useState(() => currentDetailHashSectionId() === 'conto-economico')
   const [ctuVisible, setCtuVisible] = useState(() => currentDetailHashSectionId() === 'ctu')
   useEffect(() => {
     let active = true
@@ -10253,6 +10260,9 @@ function DetailPage({ id }:{id:string}) {
           />
           <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'} onToggle={setLetturaOpen}>
             <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
+          </DetailSection>
+          <DetailSection id="conto-economico" title="Conto economico" icon={<Calculator size={17}/>} defaultOpen={activeHashSection === 'conto-economico'} onToggle={setContoOpen}>
+            <ContoEconomicoPanel active={contoOpen} fascicoloId={f.id || id}/>
           </DetailSection>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen={activeHashSection === 'uffici-competenti'}>

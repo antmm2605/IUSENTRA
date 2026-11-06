@@ -143,3 +143,28 @@ test('a loader that handles its own error still reports failure and later recove
   assert.deepEqual(statuses, [true, false])
   queue.dispose()
 })
+
+test('paced live updates wait the minimum interval, commands stay immediate', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+  const intents = []
+  const queue = createOperationalRefreshQueue(intent => { intents.push(intent.live) }, () => {}, { minLiveIntervalMs: 30000 })
+  queue.schedule({ live: true }); t.mock.timers.tick(120); await flush()
+  assert.deepEqual(intents, [true])
+  queue.schedule({ live: true }); t.mock.timers.tick(10000); await flush()
+  assert.deepEqual(intents, [true])
+  t.mock.timers.tick(20000); await flush()
+  assert.deepEqual(intents, [true, true])
+  queue.schedule(); t.mock.timers.tick(120); await flush()
+  assert.deepEqual(intents, [true, true, false])
+  queue.dispose()
+})
+
+test('without pacing live updates keep the previous timing', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+  const intents = []
+  const queue = createOperationalRefreshQueue(intent => { intents.push(intent.live) }, () => {})
+  queue.schedule({ live: true }); t.mock.timers.tick(120); await flush()
+  queue.schedule({ live: true }); t.mock.timers.tick(120); await flush()
+  assert.deepEqual(intents, [true, true])
+  queue.dispose()
+})

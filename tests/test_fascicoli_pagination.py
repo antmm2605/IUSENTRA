@@ -1584,7 +1584,9 @@ def test_viste_compatta_e_schede_mantengono_i_dati_economici():
     assert "<EconomicEvidenceStrip row={item}/>" in component
     assert '<tr className="iu-fas-economic-evidence-row">' in component
     assert '<td aria-hidden="true"/>' in component
-    assert '<td colSpan={4}><EconomicEvidenceStrip row={item}/></td>' in component
+    # La riga sotto il fascicolo apre il conto economico e, se ci sono fonti lette, il controllo documenti.
+    assert '<td colSpan={4}><div className="iu-fas-economic-evidence-actions"><ContoEconomicoPulsante fascicoloId={item.id}' in component
+    assert '{hasEconomicEvidence(item) ? <EconomicEvidenceStrip row={item}/> : null}</div></td>' in component
     assert ".iu-fas-economic-evidence-row .iu-fas-economic-evidence" in styles
     assert ".iu-fas-card-grid .iu-fas-collection-economic>.iu-fas-economic-summary-grid" in styles
 

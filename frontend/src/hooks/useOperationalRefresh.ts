@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useId, useRef } from 'react'
 import { OPERATIONAL_REFRESH_EVENT, type OperationalDomain } from '../operationalRefresh'
-import { createOperationalRefreshQueue } from '../operationalRefreshQueue'
+import { createOperationalRefreshQueue, type OperationalRefreshPacing } from '../operationalRefreshQueue'
 import type { OperationalRevisions } from '../operationalRevisionProof'
 
 export const OPERATIONAL_REFRESH_STATUS = 'iusentra:operational-refresh-status'
 export const OPERATIONAL_REFRESH_RETRY = 'iusentra:operational-refresh-retry'
 
-export function useOperationalRefresh(domains: OperationalDomain[], refresh: (intent: { live: boolean; revisions?: OperationalRevisions; revisionContext?: string }) => void | boolean | Promise<unknown>, options: { relayedOnly?: boolean } = {}) {
+export function useOperationalRefresh(domains: OperationalDomain[], refresh: (intent: { live: boolean; revisions?: OperationalRevisions; revisionContext?: string }) => void | boolean | Promise<unknown>, options: { relayedOnly?: boolean; pacing?: OperationalRefreshPacing } = {}) {
   const latest = useRef(refresh)
   const queueRef = useRef<ReturnType<typeof createOperationalRefreshQueue> | null>(null)
   const requestedBeforeSubscription = useRef(false)
@@ -18,6 +18,8 @@ export function useOperationalRefresh(domains: OperationalDomain[], refresh: (in
   latest.current = refresh
   const signature = domains.join(',')
   const relayedOnly = options.relayedOnly === true
+  const minLiveIntervalMs = options.pacing?.minLiveIntervalMs ?? 0
+  const pauseWhenHidden = options.pacing?.pauseWhenHidden === true
   useEffect(() => {
     const subscribed = signature.split(',')
     let failed = false
@@ -25,7 +27,7 @@ export function useOperationalRefresh(domains: OperationalDomain[], refresh: (in
       failed = value
       window.dispatchEvent(new CustomEvent(OPERATIONAL_REFRESH_STATUS, { detail: { id: subscriptionId, failed: value } }))
     }
-    const queue = createOperationalRefreshQueue(intent => latest.current(intent), report)
+    const queue = createOperationalRefreshQueue(intent => latest.current(intent), report, { minLiveIntervalMs, pauseWhenHidden })
     queueRef.current = queue
     if (requestedBeforeSubscription.current) {
       requestedBeforeSubscription.current = false
@@ -47,6 +49,6 @@ export function useOperationalRefresh(domains: OperationalDomain[], refresh: (in
       window.removeEventListener(OPERATIONAL_REFRESH_EVENT, updated)
       window.removeEventListener(OPERATIONAL_REFRESH_RETRY, retry)
     }
-  }, [signature, relayedOnly, subscriptionId])
+  }, [signature, relayedOnly, subscriptionId, minLiveIntervalMs, pauseWhenHidden])
   return scheduleRefresh
 }

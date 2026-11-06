@@ -3970,6 +3970,11 @@ def build_react_legal_intelligence_payload(
             # Lettura diretta per estremi (indice numero/anno), anche quando gli archivi estesi non si scansionano.
             # La norma citata dall'avvocato (estremi nel testo o nei campi della ricerca per estremi) è il primo risultato.
             combined_search = _norma_citata_in_cima(combined_search, search_query, query)
+            if combined_search and combined_search[0].get("normaCitata") and not combined_search[0].get("normaAssente"):
+                # La norma citata è stata letta: l'avviso tecnico «riferimento non reperito» confonderebbe l'avvocato.
+                from lex.retrieval.normativa_catalog import DIAGNOSTICS as _DIAGNOSTICA_NORMATIVA
+
+                warnings[:] = [w for w in warnings if w.get("message") != _DIAGNOSTICA_NORMATIVA["normativa_library_supplement"]]
         records = (
             combined_search
             if search_query

@@ -146,8 +146,9 @@
 .iu-fas-mobile-economic-source{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;padding:4px 0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .iu-fas-mobile-economic-source:focus-visible{outline:2px solid var(--iu-blue-600);outline-offset:2px}
 .iu-fas-economic-evidence-trigger{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 10px;border:1px solid var(--iu-border);border-radius:8px;background:var(--iu-bg-card);color:var(--iu-blue-700);font:inherit;font-size:12px;cursor:pointer}
+.iu-fas-economic-evidence-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .iu-fas-economic-summary span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.025em}
-.iu-fas-economic-summary strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:13px;font-weight:950;line-height:1.2}
+.iu-fas-economic-summary strong{min-width:0;overflow-wrap:anywhere;white-space:normal;color:#0f172a;font-size:13px;font-weight:950;line-height:1.2}
 .iu-fas-economic-summary .iu-badge{max-width:88px;justify-self:end;white-space:normal;text-align:right;line-height:1.15}
 .iu-fas-economic-summary small{grid-column:1/-1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--iu-slate-500);font-size:10.5px;font-weight:760}
 .iu-fas-duplicate-badge{width:max-content;max-width:100%;min-height:24px;display:inline-flex!important;align-items:center;gap:5px;margin-top:5px;padding:3px 7px;border:1px solid rgba(245,158,11,.28);border-radius:999px;background:rgba(255,251,235,.92);color:#92400e!important;font-size:10.5px!important;font-weight:900!important;line-height:1.15;text-decoration:none;white-space:normal;overflow-wrap:anywhere}
@@ -3733,4 +3734,145 @@ body.iu-fascicoli-table-expanded{
   .iu-fas-mobile-view-menu__body .iu-fas-table-options{display:none}
   .iu-fas-mobile-view-menu__body .iu-fas-group-select,
   .iu-fas-mobile-view-menu__body .iu-fas-page-size{width:100%;min-height:44px;justify-content:space-between}
+}
+
+/* Conto economico del fascicolo (vista economica e sezione del fascicolo) */
+/* Conto economico del fascicolo: percorso in alto, voci con importo, stato e fonte. */
+.iu-conto {
+  display: grid;
+  gap: var(--iu-od-space-3, 0.75rem);
+}
+
+.iu-conto__percorso {
+  display: grid;
+  gap: var(--iu-od-space-2, 0.5rem);
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.iu-conto__passo {
+  align-items: center;
+  border: 1px solid var(--iu-od-border, #d6dce5);
+  border-radius: 0.5rem;
+  color: var(--iu-od-muted, #5b6575);
+  display: grid;
+  gap: 0.15rem 0.4rem;
+  grid-template-columns: auto 1fr;
+  padding: 0.5rem 0.6rem;
+}
+
+.iu-conto__passo small {
+  grid-column: 1 / -1;
+  line-height: 1.3;
+}
+
+.iu-conto__passo--fatto {
+  border-color: var(--iu-od-success-border, #9fd3b4);
+  color: var(--iu-od-text, #1b2433);
+}
+
+.iu-conto__passo--fatto svg {
+  color: var(--iu-od-success, #1f8a4c);
+}
+
+.iu-conto__prossimo {
+  background: var(--iu-od-surface-alt, #f5f7fa);
+  border-radius: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+}
+
+.iu-conto__prossimo strong {
+  margin-right: 0.4rem;
+}
+
+.iu-conto__tabella {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.iu-conto__tabella th,
+.iu-conto__tabella td {
+  border-top: 1px solid var(--iu-od-border, #d6dce5);
+  padding: 0.55rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.iu-conto__tabella thead th {
+  border-top: 0;
+  color: var(--iu-od-muted, #5b6575);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.iu-conto__tabella small {
+  color: var(--iu-od-muted, #5b6575);
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin-top: 0.2rem;
+}
+
+.iu-conto__importo {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.iu-conto__fonti {
+  display: grid;
+  gap: 0.3rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.iu-conto__fonti a {
+  overflow-wrap: anywhere;
+}
+
+.iu-conto__senza-fonte,
+.iu-conto__vuoto {
+  color: var(--iu-od-muted, #5b6575);
+}
+
+@media (max-width: 720px) {
+  .iu-conto__tabella thead {
+    display: none;
+  }
+
+  .iu-conto__tabella tr {
+    border-top: 1px solid var(--iu-od-border, #d6dce5);
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.5rem 0;
+  }
+
+  .iu-conto__tabella th,
+  .iu-conto__tabella td {
+    border-top: 0;
+    padding: 0.1rem 0;
+  }
+}
+
+.iu-conto__azione {
+  background: var(--iu-od-surface, #fff);
+  border: 1px solid var(--iu-od-border, #d6dce5);
+  border-radius: 0.4rem;
+  color: var(--iu-blue-700, #1d4ed8);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 0.25rem 0.5rem;
+  text-decoration: none;
+}
+
+.iu-conto__messaggio {
+  margin: 0;
 }

@@ -1109,7 +1109,7 @@ class GestioneFascicoli:
                 f = self._row_to_fascicolo(row)
                 if f:
                     self._fascicoli[f.id] = f
-                    self._ricorda_snapshot_sql(row, f)
+                    self._ricorda_snapshot_sql(row, f, pigro=True)
                     # Se era dati_json NULL (primo carico post-migrazione) → riscrivi
                     if not dict(row).get("dati_json") and not getattr(f, "documenti_non_caricati", False):
                         da_migrare.append(f)
@@ -1173,14 +1173,45 @@ class GestioneFascicoli:
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
 
-    def _ricorda_snapshot_sql(self, row, model) -> None:
+    @property
+    def _sql_models(self) -> dict[str, str]:
+        """Snapshot SQL dei modelli come letti; quelli del caricamento si calcolano al primo uso.
+
+        Al caricamento lo snapshot di un fascicolo è la codifica del modello appena ricostruito dalla riga: si
+        rimanda finché non serve (salvataggio o confronto) e si ricostruisce dalla stessa riga, con la stessa funzione
+        pura. Chi legge soltanto (agenda, elenco, Lettura) non paga la codifica di tutti i fascicoli a ogni richiesta.
+        """
+        pendenti = self.__dict__.get("_snapshot_pendenti")
+        modelli = self.__dict__.setdefault("_sql_models_store", {})
+        if pendenti:
+            from pct.fascicoli_sql_writer import encode_model
+
+            for chiave, riga in list(pendenti.items()):
+                ricostruito = self._row_to_fascicolo(riga)
+                if ricostruito is not None:
+                    modelli[chiave] = encode_model(ricostruito)
+            pendenti.clear()
+        return modelli
+
+    @_sql_models.setter
+    def _sql_models(self, valore: dict[str, str]) -> None:
+        self.__dict__["_sql_models_store"] = valore
+        self.__dict__["_snapshot_pendenti"] = {}
+
+    def _ricorda_snapshot_sql(self, row, model, *, pigro: bool = False) -> None:
         from pct.fascicoli_sql_writer import encode_model
         from pct.fascicolo_edit_revision import edit_revision
         payload = dict(row)
         if str(payload.get('id') or '') != model.id:
             raise ValueError('Identità dello snapshot SQL del fascicolo discordante.')
         self._sql_rows[model.id] = payload
-        self._sql_models[model.id] = encode_model(model)
+        if pigro:
+            # Solo per il modello appena ricostruito da questa riga: ricostruirlo più tardi dà la stessa codifica.
+            self.__dict__.setdefault("_snapshot_pendenti", {})[model.id] = payload
+            self.__dict__.setdefault("_sql_models_store", {}).pop(model.id, None)
+        else:
+            self.__dict__.setdefault("_snapshot_pendenti", {}).pop(model.id, None)
+            self._sql_models[model.id] = encode_model(model)
         model._edit_revision = edit_revision(json.loads(payload.get('dati_json') or '{}'), row=payload)
 
     def _salva_sql_changes(self, current=None, *, identifiers=None) -> None:

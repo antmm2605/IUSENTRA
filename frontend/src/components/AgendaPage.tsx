@@ -490,7 +490,9 @@ export function AgendaPage() {
     return () => { loadingRequest.current += 1 }
   }, [anchorDate, view])
 
-  useOperationalRefresh(['agenda', 'scadenze', 'fascicoli'], () => refresh(true))
+  // L'agenda intera costa alcuni secondi al server: le modifiche fatte da altri (lavori automatici, letture dei
+  // fascicoli) la aggiornano al più ogni 30 secondi e non mentre la scheda è nascosta; i comandi restano immediati.
+  useOperationalRefresh(['agenda', 'scadenze', 'fascicoli'], () => refresh(true), { pacing: { minLiveIntervalMs: 30000, pauseWhenHidden: true } })
   const researchedEvents = useMemo(() => events.filter((event) =>
     isSameText(event, query) && matchesAgendaFilters(event, filters)), [events, query, filters])
   const filteredEvents = useMemo(() => researchedEvents.filter((event) => {

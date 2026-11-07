@@ -114,9 +114,14 @@ def salva_esito(percorso: Path, esito: dict[str, Any]) -> None:
     percorso.parent.mkdir(parents=True, exist_ok=True)
     # Scrittura atomica: un file lasciato da un altro utente del container (es. root) non blocca il collaudo,
     # basta poter scrivere nella cartella.
+    contenuto = json.dumps(esito, ensure_ascii=False, indent=1)
     provvisorio = percorso.with_name(f".{percorso.name}.{os.getpid()}.tmp")
-    provvisorio.write_text(json.dumps(esito, ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(provvisorio, percorso)
+    try:
+        provvisorio.write_text(contenuto, encoding="utf-8")
+        os.replace(provvisorio, percorso)
+    except PermissionError:
+        # Cartella non scrivibile dall'utente del container: si scrive direttamente il file, se è suo (07/11/2026).
+        percorso.write_text(contenuto, encoding="utf-8")
 
 
 def ultimo_esito(percorso: Path) -> dict[str, Any]:

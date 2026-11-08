@@ -101,10 +101,11 @@ def test_una_riparazione_tentata_da_una_settimana_si_riprova(tmp_path, monkeypat
 
 def test_le_ricevute_di_deposito_si_leggono_con_una_richiesta_sola(monkeypatch):
     import pct.polling_depositi as polling
+    from pct.ricevute_deposito_pct import INTESTAZIONI_IMAP
 
     richieste: list[tuple[str, str]] = []
     selezioni: list[bool] = []
-    risposte = {"deposito": b"1 2", "telematic": b"2", "ACCETTAZIONE": b"3", "CONSEGNA": b""}
+    risposte = {"deposito": b"1 2", "telematic": b"2", "ACCETTAZIONE": b"3", "CONSEGNA": b"", "ESITO": b""}
 
     class _FakeIMAP:
         def __init__(self, *args, **kwargs):
@@ -135,7 +136,7 @@ def test_le_ricevute_di_deposito_si_leggono_con_una_richiesta_sola(monkeypatch):
 
     ricevute = polling._cerca_ricevute_imap("imap.example.it", 993, "studio@example.it", "segreta")
 
-    assert richieste == [("1,2,3", "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])")]
+    assert richieste == [("1,2,3", f"(BODY.PEEK[HEADER.FIELDS ({INTESTAZIONI_IMAP})])")]
     assert selezioni == [True]
     assert [r["subject"] for r in ricevute] == ["ACCETTAZIONE 1", "ACCETTAZIONE 2", "ACCETTAZIONE 3"]
 

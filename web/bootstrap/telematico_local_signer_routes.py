@@ -2,9 +2,25 @@
 
 from __future__ import annotations
 
+import json
+import re
 from collections.abc import Callable
 from pathlib import Path
 from flask import Flask, Response, redirect, send_file
+
+# Percorso di un PC (C:\..., \\server\..., /home/...): non va mostrato in un download pubblico.
+_PERCORSO_LOCALE = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\|/(?:home|Users|mnt|data|opt|tmp)/)")
+_FONTE_PUBBLICA = "Elenco degli uffici giudiziari del Ministero della giustizia (registro interno IUSENTRA)"
+
+
+def pubblica_registro_uffici(testo: str) -> str:
+    """Registro uffici senza percorsi locali nei campi di provenienza («fonte», «fonte_*»)."""
+    dati = json.loads(testo)
+    if isinstance(dati, dict):
+        for chiave, valore in list(dati.items()):
+            if (chiave == "fonte" or chiave.startswith("fonte_")) and isinstance(valore, str) and _PERCORSO_LOCALE.match(valore):
+                dati[chiave] = _FONTE_PUBBLICA
+    return json.dumps(dati, ensure_ascii=False, indent=2)
 
 
 _LOCAL_SIGNER_MOD_FILES = {
@@ -204,11 +220,12 @@ def register_telematico_local_signer_routes(
             uffici_path = local_signer_uffici_path()
             if not uffici_path.exists():
                 return "Registro uffici non trovato", 404
-            return send_file(
-                uffici_path,
-                as_attachment=True,
-                download_name="uffici_ministero.json",
+            # Download pubblico (serve all'installatore del Local Signer prima dell'accesso): i
+            # campi di provenienza con un percorso del PC dello studio non escono.
+            return Response(
+                pubblica_registro_uffici(uffici_path.read_text(encoding="utf-8")),
                 mimetype="application/json",
+                headers={"Content-Disposition": 'attachment; filename="uffici_ministero.json"'},
             )
         except Exception as exc:
             app.logger.exception("Errore download registro uffici Local Signer: %s", exc)

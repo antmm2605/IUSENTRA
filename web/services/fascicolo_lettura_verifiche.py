@@ -381,7 +381,11 @@ def verifica_depositi(app: Any, fascicolo: Any, paths: dict[str, Any]) -> dict[s
     from web.helpers import get_fascicoli
 
     try:
-        esito = esegui_polling(gf=get_fascicoli(), config_pec=config_pec, credenziali_pdp=None, giorni_indietro=30)
+        # Solo i depositi del fascicolo aperto: la verifica di una pratica non tocca le altre.
+        esito = esegui_polling(
+            gf=get_fascicoli(), config_pec=config_pec, credenziali_pdp=None, giorni_indietro=30,
+            fascicolo_id=_clean(getattr(fascicolo, "id", "")),
+        )
     except Exception as exc:
         return {"pendenti": len(pendenti), "esito": "polling_fallito", "errore": str(exc)[:160]}
     return {"pendenti": len(pendenti), "esito": "controllate", "controllati": int(esito.get("controllati") or 0), "aggiornati": int(esito.get("aggiornati") or 0), "errori": int(esito.get("errori") or 0)}

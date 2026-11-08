@@ -31,6 +31,13 @@ from pct.imap_runtime import (
     resolve_imap_timeout_seconds,
     run_imap_runtime_operation,
 )
+from pct.ricevute_deposito_pct import (
+    INTESTAZIONI_IMAP,
+    applica_ricevute,
+    ricevuta_da_intestazioni,
+    serve_testo,
+    testo_messaggio,
+)
 
 if TYPE_CHECKING:
     from pct.fascicoli import GestioneFascicoli, EsitoDepositoPCT, Fascicolo
@@ -46,15 +53,14 @@ STATI_PENDENTI = frozenset({
     "WARN_CONTROLLI",
 })
 
-# Parole chiave nel subject per identificare il tipo di ricevuta
-_KW_ACCETTAZIONE = ("accettazione", "accepted", "presa in carico")
-_KW_CONSEGNA = ("consegna", "delivered", "consegnata")
-_KW_ERRORE = ("anomalia", "rifiuto", "errore", "error", "rejected")
+# Il tipo di ricevuta e il suo collegamento al deposito si decidono in pct/ricevute_deposito_pct.py
+# (prefissi fissi d.P.R. 68/2005, X-Riferimento-Message-ID, IdMsgMitt/IdBusta/RefID): mai per
+# parole generiche dell'oggetto, che compaiono anche in «AVVISO DI MANCATA CONSEGNA».
 
-
-def _subject_contiene(subject: str, parole: tuple) -> bool:
-    s = subject.lower()
-    return any(p in s for p in parole)
+_MESSAGGIO_PDP_NON_DISPONIBILE = (
+    "Esito dei depositi penali non interrogabile dal software: il Portale Deposito Atti Penali "
+    "non espone un servizio per i gestionali; l'esito si legge sul portale (art. 111-bis c.p.p.)."
+)
 
 
 def _formato_data_imap(dt: datetime) -> str:
@@ -65,6 +71,8 @@ def _formato_data_imap(dt: datetime) -> str:
 
 
 _INTESTAZIONI_PER_RICHIESTA = 200
+_ESITI_DA_LEGGERE_MAX = 200
+_ESITO_BYTES_MAX = 2 * 1024 * 1024
 
 
 def _cerca_ricevute_imap(
@@ -96,13 +104,15 @@ def _cerca_ricevute_imap(
         since_str = _formato_data_imap(since_dt)
 
         # Cerca email con subject tipico di ricevute PCT; un messaggio che
-        # risponde a piu' criteri si legge una volta sola.
+        # risponde a piu' criteri si legge una volta sola. «ESITO» copre l'esito
+        # dell'intervento della cancelleria, che non sempre nomina il deposito.
         numeri: list[bytes] = []
         for criterio in [
             f'(SINCE "{since_str}" SUBJECT "deposito")',
             f'(SINCE "{since_str}" SUBJECT "telematic")',
             f'(SINCE "{since_str}" SUBJECT "ACCETTAZIONE")',
             f'(SINCE "{since_str}" SUBJECT "CONSEGNA")',
+            f'(SINCE "{since_str}" SUBJECT "ESITO")',
         ]:
             try:
                 _, data = mail.search(None, criterio)
@@ -114,10 +124,11 @@ def _cerca_ricevute_imap(
 
         # Intestazioni lette a gruppi, non una richiesta per messaggio: con
         # centinaia di ricevute nel mese la differenza e' di decine di secondi.
+        da_leggere: list[tuple[str, dict]] = []
         for inizio in range(0, len(numeri), _INTESTAZIONI_PER_RICHIESTA):
             gruppo = b",".join(numeri[inizio:inizio + _INTESTAZIONI_PER_RICHIESTA]).decode("ascii")
             try:
-                _, msg_data = mail.fetch(gruppo, "(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])")
+                _, msg_data = mail.fetch(gruppo, f"(BODY.PEEK[HEADER.FIELDS ({INTESTAZIONI_IMAP})])")
             except imaplib.IMAP4.error:
                 continue
             for parte in msg_data or []:
@@ -125,13 +136,28 @@ def _cerca_ricevute_imap(
                     continue
                 try:
                     msg = _email_lib.message_from_bytes(parte[1])
-                    risultati.append({
-                        "subject": _decode_header_value(msg.get("Subject", "")),
-                        "from": msg.get("From", ""),
-                        "date": msg.get("Date", ""),
-                    })
+                    ricevuta = ricevuta_da_intestazioni(msg)
+                    risultati.append(ricevuta)
+                    numero = parte[0].split(b" ", 1)[0].decode("ascii", errors="ignore") if isinstance(parte[0], bytes) else ""
+                    if numero.isdigit() and serve_testo(ricevuta):
+                        da_leggere.append((numero, ricevuta))
                 except Exception:
                     pass
+
+        # Esiti del Ministero (controlli automatici, cancelleria): l'identificativo del deposito
+        # sta nel testo o in EsitoAtto.xml (IdMsgMitt), non nell'intestazione. Sono messaggi
+        # piccoli; si leggono solo quelli, mai le RdAC complete che contengono la busta.
+        for numero, ricevuta in da_leggere[:_ESITI_DA_LEGGERE_MAX]:
+            try:
+                _, dati = mail.fetch(numero, "(BODY.PEEK[])")
+                grezzo = next(
+                    (p[1] for p in dati or [] if isinstance(p, tuple) and len(p) > 1 and isinstance(p[1], bytes)),
+                    b"",
+                )
+                if grezzo and len(grezzo) <= _ESITO_BYTES_MAX:
+                    ricevuta["testo"] = testo_messaggio(_email_lib.message_from_bytes(grezzo))
+            except (imaplib.IMAP4.error, ValueError):
+                continue
 
         mail.logout()
     except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
@@ -201,49 +227,16 @@ def _estrai_corpo_email(msg: _email_lib.message.Message) -> tuple[str, str]:
 
 def _stima_nuovo_stato(dep: "EsitoDepositoPCT", ricevute: list[dict]) -> str | None:
     """
-    Analizza le ricevute IMAP e determina il nuovo stato per il deposito.
-    Restituisce None se non ci sono aggiornamenti da applicare.
+    Stato che le ricevute COLLEGATE al deposito portano, oppure None.
+
+    Calcolo su una copia: il deposito reale si aggiorna solo con ``applica_ricevute``.
+    Le PEC senza un identificativo del deposito sono ignorate (nessun ripiego su tutta la casella).
     """
-    # Cerca ricevute che menzionano il numero fascicolo o l'ID deposito
-    chiavi = set()
-    if dep.id:
-        chiavi.add(dep.id.lower())
-    if dep.nome_atto_principale:
-        # Usa l'inizio del nome atto (prime 20 char) come fingerprint
-        chiavi.add(dep.nome_atto_principale[:20].lower())
+    import copy
 
-    candidati = ricevute
-    # Se abbiamo chiavi specifiche, filtriamo le ricevute
-    if chiavi:
-        candidati = [
-            r for r in ricevute
-            if any(k in r.get("subject", "").lower() for k in chiavi)
-        ] or ricevute  # fallback a tutte se nessuna match
-
-    # Determina il miglior upgrade di stato
-    ha_accettazione = any(_subject_contiene(r["subject"], _KW_ACCETTAZIONE) for r in candidati)
-    ha_consegna = any(_subject_contiene(r["subject"], _KW_CONSEGNA) for r in candidati)
-    ha_errore = any(_subject_contiene(r["subject"], _KW_ERRORE) for r in candidati)
-
-    stato_corrente = dep.stato
-
-    if stato_corrente == "INVIATO":
-        if ha_errore:
-            return "ERRORE"
-        if ha_consegna:
-            return "CONSEGNATO"
-        if ha_accettazione:
-            return "ACCETTATO_PEC"
-
-    elif stato_corrente == "ACCETTATO_PEC":
-        if ha_errore:
-            return "ERRORE"
-        if ha_consegna:
-            return "CONSEGNATO"
-
-    # CONSEGNATO e WARN_CONTROLLI vengono aggiornati dalla cancelleria
-    # Non possiamo dedurli dall'IMAP senza leggere il body completo
-    return None
+    prova = copy.copy(dep)
+    esito = applica_ricevute(prova, ricevute)
+    return esito["stato"] if esito["stato"] != dep.stato else None
 
 
 def _poll_pdp_deposito(
@@ -251,31 +244,16 @@ def _poll_pdp_deposito(
     credenziali_pdp: dict,
 ) -> str | None:
     """
-    Interroga PDP REST API per l'esito di un deposito penale.
-    Restituisce il nuovo stato o None se non disponibile.
+    Esito di un deposito penale: non interrogabile dal software.
+
+    Il PDP (art. 111-bis c.p.p.; D.M. 217/2023) e' una maschera web per l'avvocato autenticato con
+    CNS/CIE e non espone servizi ai gestionali (pct/pdp.py, pct/penale_pdp/): l'esito si registra
+    dalle ricevute lette sul portale. Il vecchio richiamo a un client inesistente falliva in
+    silenzio; ora il limite e' dichiarato con un messaggio controllato e nessuno stato cambia.
     """
-    if not dep.id_deposito_esterno:
-        return None
-    try:
-        from pct.pdp import GestorePDP
-        g = GestorePDP(credenziali=credenziali_pdp)
-        esito = g.get_esito_deposito(dep.id_deposito_esterno)
-        if not esito:
-            return None
-        stato_pdp = (esito.get("stato") or "").upper()
-        # Mappa stati PDP → stati interni
-        _mappa = {
-            "ACCETTATO": "ACCETTATO_PEC",
-            "CONSEGNATO": "CONSEGNATO",
-            "APPROVATO": "ACCETTATO_CANCELLERIA",
-            "RIFIUTATO": "RIFIUTATO_CANCELLERIA",
-            "ERRORE": "ERRORE",
-            "WARN": "WARN_CONTROLLI",
-        }
-        return _mappa.get(stato_pdp)
-    except Exception as e:
-        logger.debug("PDP polling deposito %s: %s", dep.id_deposito_esterno, e)
-        return None
+    if dep.id_deposito_esterno:
+        logger.warning("Deposito %s: %s", dep.id, _MESSAGGIO_PDP_NON_DISPONIBILE)
+    return None
 
 
 def esegui_polling(
@@ -284,6 +262,7 @@ def esegui_polling(
     credenziali_pdp: dict | None = None,
     giorni_indietro: int = 30,
     timeout_seconds: int | None = None,
+    fascicolo_id: str | None = None,
 ) -> dict:
     """
     Punto di ingresso principale per il polling scheduler.
@@ -291,15 +270,19 @@ def esegui_polling(
     Args:
         gf:               GestioneFascicoli istanziato
         config_pec:       Oggetto config PEC con imap_host/imap_port/indirizzo/password
-        credenziali_pdp:  Dict credenziali PDP REST (p12_path, p12_password, ecc.)
+        credenziali_pdp:  Dict credenziali PDP (il PDP non ha servizi: solo messaggio controllato)
         giorni_indietro:  Finestra temporale IMAP
+        fascicolo_id:     Se indicato, controlla solo i depositi di quel fascicolo
 
     Returns:
-        dict con "controllati", "aggiornati", "errori"
+        dict con "controllati", "aggiornati", "errori", "pdp_non_interrogabili"
     """
+    from pct.deposito_simulazione import is_simulated_deposit
+
     controllati = 0
     aggiornati = 0
     errori = 0
+    pdp_non_interrogabili = 0
 
     # Carica ricevute IMAP una volta sola (costoso)
     ricevute_imap: list[dict] = []
@@ -321,53 +304,55 @@ def esegui_polling(
             fascicoli = gf.tutte() if hasattr(gf, "tutte") else []
         except Exception:
             fascicoli = []
+    if fascicolo_id is not None:
+        # Un identificativo vuoto non deve allargare il controllo a tutto lo studio.
+        fascicoli = [f for f in fascicoli if fascicolo_id and getattr(f, "id", "") == fascicolo_id]
 
     for fasc in fascicoli:
         depositi_pendenti = [
             dep for dep in (fasc.depositi_pct or [])
-            if dep.stato in STATI_PENDENTI
+            if dep.stato in STATI_PENDENTI and not is_simulated_deposit(dep)
         ]
         if not depositi_pendenti:
             continue
 
         for dep in depositi_pendenti:
             controllati += 1
-            nuovo_stato = None
 
-            # Prova PDP se è un deposito penale con ID esterno
-            if credenziali_pdp and dep.id_deposito_esterno:
-                try:
-                    nuovo_stato = _poll_pdp_deposito(dep, credenziali_pdp)
-                except Exception as e:
-                    logger.debug("Polling PDP deposito %s: %s", dep.id, e)
-                    errori += 1
+            # Penale: il PDP non e' interrogabile dal software (messaggio controllato, nessuno stato).
+            if credenziali_pdp and dep.id_deposito_esterno and str(dep.fonte_portale or "").upper() == "PDP":
+                _poll_pdp_deposito(dep, credenziali_pdp)
+                pdp_non_interrogabili += 1
+                continue
 
-            # Prova PEC IMAP per tutti gli altri
-            if not nuovo_stato and ricevute_imap:
-                try:
-                    nuovo_stato = _stima_nuovo_stato(dep, ricevute_imap)
-                except Exception as e:
-                    logger.debug("Polling PEC deposito %s: %s", dep.id, e)
-                    errori += 1
+            if not ricevute_imap:
+                continue
+            stato_prima = dep.stato
+            try:
+                esito = applica_ricevute(dep, ricevute_imap)
+            except Exception as e:
+                logger.warning("Polling PEC deposito %s: %s", dep.id, e)
+                errori += 1
+                continue
+            if not esito["aggiornato"]:
+                continue
+            try:
+                gf._salva()
+                aggiornati += 1
+                logger.info(
+                    "Deposito %s (fascicolo %s): %s -> %s (%s)",
+                    dep.id, fasc.id, stato_prima, dep.stato, "; ".join(esito["eventi"]),
+                )
+            except Exception as e:
+                logger.error("Salvataggio stato deposito %s: %s", dep.id, e)
+                errori += 1
 
-            if nuovo_stato and nuovo_stato != dep.stato:
-                try:
-                    dep.stato = nuovo_stato
-                    dep.note = (dep.note or "") + (
-                        f"\n[AUTO {datetime.now().strftime('%d/%m/%Y %H:%M')}] "
-                        f"Stato aggiornato automaticamente: {nuovo_stato}"
-                    )
-                    gf._salva()
-                    aggiornati += 1
-                    logger.info(
-                        "Deposito %s (fascicolo %s): %s → %s",
-                        dep.id, fasc.id, dep.stato, nuovo_stato,
-                    )
-                except Exception as e:
-                    logger.error("Salvataggio stato deposito %s: %s", dep.id, e)
-                    errori += 1
-
-    return {"controllati": controllati, "aggiornati": aggiornati, "errori": errori}
+    return {
+        "controllati": controllati,
+        "aggiornati": aggiornati,
+        "errori": errori,
+        "pdp_non_interrogabili": pdp_non_interrogabili,
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────────

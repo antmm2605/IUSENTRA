@@ -95,23 +95,37 @@ class DepositoCivile:
         id_deposito = str(uuid.uuid4())[:8].upper()
         timestamp = datetime.now().isoformat()
 
-        # 0. Validazione PDF/A pre-firma (D.M. 44/2011 art. 12)
-        if Path(dati.atto_principale).exists():
-            esito_pdfa = valida_documento_deposito(dati.atto_principale, atto_principale=True)
-            if not esito_pdfa["ok"]:
-                return EsitoDeposito(
-                    id=id_deposito,
-                    timestamp=timestamp,
-                    stato="ERRORE",
-                    tipo_atto=dati.tipo_atto,
-                    busta_path="",
-                    pec_destinatario="",
-                    messaggio=(
-                        "Deposito bloccato — atto principale non conforme: "
-                        + "; ".join(esito_pdfa["errori"])
-                    ),
-                    nome_atto_principale=Path(dati.atto_principale).name,
-                )
+        # 0. Validazione PDF/A pre-firma (D.M. 44/2011 art. 12). Un atto principale che non si
+        # trova non si puo' validare: il deposito si blocca invece di saltare il controllo.
+        if not str(dati.atto_principale or "").strip() or not Path(dati.atto_principale).is_file():
+            return EsitoDeposito(
+                id=id_deposito,
+                timestamp=timestamp,
+                stato="ERRORE",
+                tipo_atto=dati.tipo_atto,
+                busta_path="",
+                pec_destinatario="",
+                messaggio=(
+                    "Deposito bloccato — atto principale non trovato: impossibile verificare il formato "
+                    "PDF/A richiesto dall'art. 12 D.M. 44/2011."
+                ),
+                nome_atto_principale=Path(str(dati.atto_principale or "")).name,
+            )
+        esito_pdfa = valida_documento_deposito(dati.atto_principale, atto_principale=True)
+        if not esito_pdfa["ok"]:
+            return EsitoDeposito(
+                id=id_deposito,
+                timestamp=timestamp,
+                stato="ERRORE",
+                tipo_atto=dati.tipo_atto,
+                busta_path="",
+                pec_destinatario="",
+                messaggio=(
+                    "Deposito bloccato — atto principale non conforme: "
+                    + "; ".join(esito_pdfa["errori"])
+                ),
+                nome_atto_principale=Path(dati.atto_principale).name,
+            )
 
         # 1. Cerca PEC tribunale
         ufficio = self._risolvi_ufficio_destinazione(
@@ -206,17 +220,29 @@ class DepositoCivile:
                 nome_atto_principale=Path(dati.atto_principale).name,
             )
 
-        # 5. Attendi ricevute
+        # 5. Attendi le ricevute di QUESTO messaggio (collegate per Message-ID, d.m. 2/11/2005)
         ricevute = {}
+        message_id = str(esito_invio.get("message_id") or "")
         if attendi_ricevute:
-            ricevute = self.pec.attendi_ricevute()
+            ricevute = self.pec.attendi_ricevute(message_id=message_id)
 
         stato = "INVIATO"
         if ricevute.get("accettazione"):
             stato = "ACCETTATO_PEC"
         if ricevute.get("consegna"):
             stato = "CONSEGNATO"
+        if ricevute.get("non_accettazione") or (ricevute.get("mancata_consegna") and not ricevute.get("consegna")):
+            # Deposito non perfezionato (art. 196-sexies disp. att. c.p.c.): mai «Consegnato».
+            stato = "ERRORE"
         stato = normalizza_stato_deposito_pct(stato)
+        messaggio = "Deposito inviato via PEC."
+        if message_id:
+            messaggio += f" Message-ID: {message_id}"
+        if stato == "ERRORE":
+            messaggio = (
+                "Il gestore PEC ha restituito un avviso di non accettazione o di mancata consegna: "
+                "il deposito non risulta perfezionato e va ripetuto. " + (f"Message-ID: {message_id}" if message_id else "")
+            ).strip()
 
         return EsitoDeposito(
             id=id_deposito,
@@ -225,7 +251,7 @@ class DepositoCivile:
             tipo_atto=dati.tipo_atto,
             busta_path=busta_path,
             pec_destinatario=ufficio.pec,
-            messaggio="Deposito completato con successo.",
+            messaggio=messaggio,
             ricevuta_accettazione=ricevute.get("accettazione") or "",
             ricevuta_consegna=ricevute.get("consegna") or "",
             nome_atto_principale=Path(dati.atto_principale).name,

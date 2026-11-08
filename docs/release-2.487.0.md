@@ -88,6 +88,10 @@ la norma citata mostrava l'articolo intero.
   dall'indirizzo effettivo, «Per conto di» solo dal gestore, anomalie e intestazioni ripetute respinte, esiti del
   Ministero solo con il messaggio dell'ufficio. Su decisione dell'avvocato la firma del gestore non si legge.
 - **Riesame in sola lettura** dei 30 depositi segnati «consegnati» il 12/10 (`scripts/riesame_stati_depositi_senza_ricevuta.py`).
+- **Ricevute anche dall'archivio PEC del software** (`pct/ricevute_deposito_archivio.py`): se la casella non le ha più
+  (cancellate per spazio), il controllo dei depositi le cerca in `pec_audit.sqlite` dal deposito più vecchio in attesa
+  (al massimo 180 giorni), con gli stessi controlli delle PEC lette via IMAP. Prova sui dati reali in sola lettura:
+  le 8 RdAC conservate dei depositi del 12/10 si ritrovano per Message-ID; 0,4 s con gli indici del presidio.
 
 ## Lex, ricerca e guide
 - Guardia anti-invenzione con «Cass. 22222/2023» e Sezioni Unite; decreti ministeriali aperti per estremi.
@@ -112,3 +116,5 @@ la norma citata mostrava l'articolo intero.
 
 ## Test
 - Suite complementare (944 file mai eseguiti) eseguita per intero; corretti i test superati dalle regole vigenti.
+- Moduli riportati entro i limiti di struttura: presidio (`riepilogo_economico.py`, `inserimento.py`) e rotte di
+  gestione dei fascicoli (`web/services/fascicolo_controparte_modulo.py`); prova intermittente sulle scadenze corretta.

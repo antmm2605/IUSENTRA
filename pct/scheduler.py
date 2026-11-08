@@ -2617,10 +2617,13 @@ def start_scheduler(app):
                 except Exception:
                     pass
 
+                from pct.ricevute_deposito_archivio import percorso_archivio_pec
+
                 report = esegui_polling(
                     gf=gf,
                     config_pec=config_pec,
                     credenziali_pdp=credenziali_pdp,
+                    archivio_pec=percorso_archivio_pec(app.config),
                     giorni_indietro=min(
                         _parse_positive_int(
                             app.config.get("IUSENTRA_DEPOSIT_POLL_DAYS")

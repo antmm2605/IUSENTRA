@@ -375,7 +375,10 @@ def verifica_depositi(app: Any, fascicolo: Any, paths: dict[str, Any]) -> dict[s
             config_pec = None
     except Exception:
         config_pec = None
-    if config_pec is None:
+    from pct.ricevute_deposito_archivio import percorso_archivio_pec
+
+    archivio_pec = percorso_archivio_pec({**app.config, **{k: v for k, v in paths.items() if v}})
+    if config_pec is None and not archivio_pec.is_file():
         return {"pendenti": len(pendenti), "esito": "pec_non_configurata"}
     from pct.polling_depositi import esegui_polling
     from web.helpers import get_fascicoli
@@ -384,7 +387,7 @@ def verifica_depositi(app: Any, fascicolo: Any, paths: dict[str, Any]) -> dict[s
         # Solo i depositi del fascicolo aperto: la verifica di una pratica non tocca le altre.
         esito = esegui_polling(
             gf=get_fascicoli(), config_pec=config_pec, credenziali_pdp=None, giorni_indietro=30,
-            fascicolo_id=_clean(getattr(fascicolo, "id", "")),
+            fascicolo_id=_clean(getattr(fascicolo, "id", "")), archivio_pec=archivio_pec,
         )
     except Exception as exc:
         return {"pendenti": len(pendenti), "esito": "polling_fallito", "errore": str(exc)[:160]}

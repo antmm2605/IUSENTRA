@@ -6,6 +6,12 @@ dei documenti, portale, importazione PDP e calendari esterni possono descriverla
 conto proprio: la seconda fonte si aggiunge come prova alla voce esistente invece di crearne
 un'altra. Un'ora assente o segnaposto («ora da confermare») è compatibile con qualsiasi ora;
 quando arriva l'ora certa, sostituisce il segnaposto.
+
+Trattazione scritta: «Il giorno di scadenza del termine assegnato per il deposito delle note di cui al presente
+articolo è considerato data di udienza a tutti gli effetti» (art. 127-ter c.p.c., testo vigente, Normattiva,
+verificato l'08/11/2026). La voce SCADENZA «Deposito note scritte ex art. 127-ter» e l'UDIENZA dello stesso
+procedimento, giorno e ora sono quindi lo stesso evento (caso reale RG 901/2026: voci 35B49E1F e 35D9908A del
+06/10/2026 ore 14:00). Gli altri termini dell'articolo (opposizione entro cinque giorni) restano distinti.
 """
 
 from __future__ import annotations
@@ -31,16 +37,35 @@ def ora_da_confermare(appuntamento: Any) -> bool:
     return ORA_DA_CONFERMARE in _valore(appuntamento, "note")
 
 
+_NOTE_127_TER = re.compile(r"\bnote\b.*(127\s*-?\s*ter|sostituzione\s+(dell['’]\s*)?udienza|trattazione\s+scritta)", re.I)
+
+
+def titolo_note_127_ter(titolo: str) -> bool:
+    """Titolo del termine per il deposito delle note scritte (non dell'opposizione alla trattazione scritta)."""
+    testo = str(titolo or "")
+    return bool(_NOTE_127_TER.search(testo)) and "opposizion" not in testo.lower()
+
+
+def termine_note_127_ter(appuntamento: Any) -> bool:
+    """Voce SCADENZA del deposito delle note scritte: vale come udienza (art. 127-ter c.p.c.)."""
+    return _valore(appuntamento, "tipo") == "SCADENZA" and titolo_note_127_ter(_valore(appuntamento, "titolo"))
+
+
+def evento_udienza(appuntamento: Any) -> bool:
+    """UDIENZA o termine per le note 127-ter: la stessa identità di udienza per le regole di equivalenza."""
+    return _valore(appuntamento, "tipo") == "UDIENZA" or termine_note_127_ter(appuntamento)
+
+
 def udienza_equivalente(
     appuntamenti: Iterable[Any], *, id_fascicolo: str = "", procedimento: str = "", data_ora: str, ora_certa: bool = True,
 ) -> Any | None:
-    """La voce UDIENZA già in agenda per lo stesso procedimento, giorno e ora compatibile; None se non c'è."""
+    """La voce UDIENZA (o termine note 127-ter) già in agenda per lo stesso procedimento, giorno e ora; None se non c'è."""
     giorno, ora = str(data_ora or "")[:10], str(data_ora or "")[11:16]
     ruolo = _ruolo(procedimento)
     if not giorno or (not id_fascicolo and not ruolo):
         return None
     for appuntamento in appuntamenti:
-        if _valore(appuntamento, "tipo") != "UDIENZA" or _valore(appuntamento, "stato") in _STATI_CHIUSI:
+        if not evento_udienza(appuntamento) or _valore(appuntamento, "stato") in _STATI_CHIUSI:
             continue
         if _valore(appuntamento, "data_ora")[:10] != giorno:
             continue
@@ -67,4 +92,4 @@ def riunisci_fonte(agenda: Any, appuntamento: Any, *, fonte: str, data_ora: str,
     return agenda.modifica(_valore(appuntamento, "id"), **campi) if campi else appuntamento
 
 
-__all__ = ["ORA_DA_CONFERMARE", "ora_da_confermare", "riunisci_fonte", "udienza_equivalente"]
+__all__ = ["ORA_DA_CONFERMARE", "evento_udienza", "ora_da_confermare", "riunisci_fonte", "termine_note_127_ter", "titolo_note_127_ter", "udienza_equivalente"]

@@ -142,3 +142,27 @@ def test_ogni_decisione_ha_motivo_leggibile():
         decisione = decide_priority(gruppo, today=TODAY)
         assert decisione.reason
         assert decisione.rule_id.startswith("R")
+
+
+def test_attivita_economica_senza_termine_sotto_gli_adempimenti():
+    """R10: parcelle e consolidamenti con «entro» passato non superano gli adempimenti processuali (08/11/2026)."""
+    economica = _group(source_type="case", kind="economic_entry", due_at="2026-07-01", priority_hint="P1")
+    decisione = decide_priority(economica, today=TODAY)
+    assert (decisione.priority, decisione.rule_id) == ("P2", "R10")
+    senza_data = decide_priority(_group(source_type="economic", kind="invoice_draft_needed", due_at=""), today=TODAY)
+    assert (senza_data.priority, senza_data.rule_id) == ("P3", "R10")
+    adempimento = decide_priority(_group(due_at="2026-07-11"), today=TODAY)
+    assert adempimento.priority == "P1"
+    assert adempimento.priority < decisione.priority
+
+
+def test_attivita_economica_con_termine_perentorio_resta_p0():
+    gruppo = _group(source_type="case", kind="economic_entry", due_at="2026-07-10", peremptory=True)
+    assert decide_priority(gruppo, today=TODAY).priority == "P0"
+
+
+def test_udienza_passata_chiede_l_esito():
+    gruppo = _group(source_type="agenda", kind="hearing_attend", due_at="2026-07-08")
+    decisione = decide_priority(gruppo, today=TODAY)
+    assert decisione.rule_id == "R3"
+    assert "esito" in decisione.reason

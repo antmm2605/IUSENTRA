@@ -23,6 +23,11 @@ REJECTION_KINDS = frozenset({"deposit_outcome_check"})
 
 HEARING_KINDS = frozenset({"hearing_attend"})
 
+# Attività economiche (parcelle, consolidamenti, preventivi, importi): nessuna norma processuale ne fa un termine.
+# Senza un termine perentorio non possono stare sopra gli adempimenti processuali (regola R10): l'08/11/2026 sull'8080
+# 126 dei 160 P1 erano attività economiche con «entro» pari alla data della sentenza o senza data.
+ECONOMIC_KINDS = frozenset({"economic_entry", "invoice_draft_needed", "payment_review", "quote_followup"})
+
 
 @dataclass(frozen=True)
 class PriorityDecision:
@@ -70,6 +75,12 @@ def _is_hearing(group: MergedSignalGroup) -> bool:
     return any(sig.kind in HEARING_KINDS for sig in group.signals)
 
 
+def _is_economic_only(group: MergedSignalGroup) -> bool:
+    return bool(group.signals) and all(
+        sig.kind in ECONOMIC_KINDS or sig.source_type == "economic" for sig in group.signals
+    )
+
+
 def _hint(group: MergedSignalGroup) -> str:
     hints = [s.priority_hint for s in group.signals if s.priority_hint in ("P0", "P1", "P2", "P3")]
     if not hints:
@@ -78,7 +89,7 @@ def _hint(group: MergedSignalGroup) -> str:
 
 
 def decide_priority(group: MergedSignalGroup, *, today: date) -> PriorityDecision:
-    """Applica la tabella di regole R1–R9 (first-match, spiegabile)."""
+    """Applica la tabella di regole R1–R10 (first-match, spiegabile)."""
     due = _due_date_of(group)
     peremptory = _is_peremptory(group)
     blocking = _is_blocking(group)
@@ -99,7 +110,16 @@ def decide_priority(group: MergedSignalGroup, *, today: date) -> PriorityDecisio
             "Invio telematico rifiutato o non consegnato: verificare subito ricevute ed esito.",
         )
 
+    if _is_economic_only(group) and not peremptory:
+        if (due is not None and (due - today).days <= 14) or _hint(group) in ("P0", "P1", "P2"):
+            return PriorityDecision(
+                "P2", "R10", "Attività economica senza termine di legge: dopo gli adempimenti processuali."
+            )
+        return PriorityDecision("P3", "R10", "Attività economica senza termine di legge né data ravvicinata.")
+
     if _is_hearing(group) and due is not None and due <= today:
+        if due < today:
+            return PriorityDecision("P0", "R3", "Udienza già tenuta e ancora aperta: registrare l'esito.")
         return PriorityDecision("P0", "R3", "Udienza fissata nel giorno del piano.")
 
     if blocking and due is not None and due <= today:

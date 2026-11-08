@@ -180,7 +180,7 @@ def _procedimento(fascicolo: Any) -> str:
 def _consegna_agenda(fascicolo: Any, fatti: list[Any]) -> list[dict[str, str]]:
     """Una vera udienza richiede data e ora lette: nessun orario inventato."""
     from pct.agenda import TipoAppuntamento
-    from pct.agenda_eventi_equivalenti import ora_da_confermare, riunisci_fonte
+    from pct.agenda_eventi_equivalenti import evento_udienza, ora_da_confermare, riunisci_fonte
     from web.helpers import get_agenda
     gestore = get_agenda()
     procedimento = _procedimento(fascicolo)
@@ -203,13 +203,13 @@ def _consegna_agenda(fascicolo: Any, fatti: list[Any]) -> list[dict[str, str]]:
         giorno, ora = _giorno(fatto.valore), _ora(fatto)
         # Ora compatibile anche con la voce di un'altra fonte che ha l'ora «da confermare» (segnaposto):
         # l'ora letta nei documenti la sostituisce, senza creare una seconda voce.
-        stessa = next((a for a in esistenti if str(a.tipo.value) == "UDIENZA" and _giorno(a.data_ora) == giorno and (not ora or str(a.data_ora)[11:16] == ora or ora_da_confermare(a))), None)
+        stessa = next((a for a in esistenti if evento_udienza(a) and _giorno(a.data_ora) == giorno and (not ora or str(a.data_ora)[11:16] == ora or ora_da_confermare(a))), None)
         if stessa:
             if ora and ora_da_confermare(stessa):
                 stessa = riunisci_fonte(gestore, stessa, fonte="ARCHIVIO_FATTO:" + fatto.id, data_ora=f"{giorno}T{ora}:00", ora_certa=True)
             esiti.append({"fatto_id":fatto.id, "stato":"consegnato", "riferimento":stessa.id, "motivo":"Udienza già presente con data e ora concordanti."})
             continue
-        incompleta = next((a for a in identita_incomplete if str(a.tipo.value) == "UDIENZA" and _giorno(a.data_ora) == giorno and (not ora or str(a.data_ora)[11:16] == ora)), None)
+        incompleta = next((a for a in identita_incomplete if evento_udienza(a) and _giorno(a.data_ora) == giorno and (not ora or str(a.data_ora)[11:16] == ora)), None)
         if incompleta:
             esiti.append({"fatto_id": fatto.id, "stato": "rifiutato", "riferimento": incompleta.id,
                           "motivo": "Appuntamento con lo stesso R.G., giorno e ora ma identità incompleta: verifica cliente e ufficio prima di creare una seconda voce."})

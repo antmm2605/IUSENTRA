@@ -477,7 +477,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             enabled=backups_enabled,
             built_in=True,
         ),
-        SchedulerTemplate("aggiorna_scadute", "Scadenze scadute", "Agenda e scadenze", "Aggiorna stati delle scadenze scadute.", "cron", "0", "5", built_in=True),
+        SchedulerTemplate("aggiorna_scadute", "Scadenze scadute", "Agenda e scadenze", "Ricalcola le priorità e conta le scadenze passate ancora aperte (lo stato resta all'avvocato).", "cron", "0", "5", built_in=True),
         SchedulerTemplate("wa_reminder", "Promemoria WhatsApp", "Comunicazioni", "Invia promemoria appuntamenti del giorno successivo.", "cron", wa_h, wa_m, built_in=True),
         SchedulerTemplate("aggiorna_parcelle_scadute", "Parcelle scadute", "Economia", "Aggiorna stati delle parcelle scadute.", "cron", "1", "0", built_in=True),
         SchedulerTemplate("sync_uffici", "Uffici giudiziari", "Fonti e tabelle", "Sincronizza uffici giudiziari da fonti ufficiali.", "cron", uffici_h, uffici_m, built_in=True),

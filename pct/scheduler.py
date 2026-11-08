@@ -270,10 +270,16 @@ def start_scheduler(app):
             try:
                 from pct.scadenziario import GestioneScadenziario
                 gs = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
-                gs.aggiorna_scadute()
-                logger.info("[scheduler] Scadenze aggiornate.")
+                conteggi = gs.aggiorna_scadute()
             except Exception as e:
+                # Esito veritiero per la console Pianificazioni: un errore non risulta «eseguito».
                 logger.error(f"[scheduler] Aggiorna scadute fallito: {e}")
+                return {"ok": False, "error": str(e)[:300]}
+            sintesi = (f"Priorità ricalcolate su {conteggi['aperte']} scadenze aperte: "
+                       f"{conteggi['scadute_da_chiudere']} scadute da chiudere, "
+                       f"{conteggi['esiti_udienza_da_registrare']} udienze con esito da registrare.")
+            logger.info(f"[scheduler] {sintesi}")
+            return {"ok": True, "summary": sintesi, **conteggi}
 
     # ---- Promemoria WhatsApp appuntamenti domani (ogni giorno alle 18:00) ----
     wa_ora = app.config.get("WA_REMINDER_ORA", os.getenv("PCT_WA_REMINDER_ORA", "18:00"))

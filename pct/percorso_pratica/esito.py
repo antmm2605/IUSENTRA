@@ -31,6 +31,10 @@ _ESITI = (
     ("accoglimento", r"\baccoglie\b|\b(?:dichiara|accerta)\s+il\s+diritto\b"
                      r"|\bcondanna\s+(?:il|la|l['’])\s?(?:parte\s+)?(?:convenut|resistent|amministrazione|ministero|opposto|debitore)"),
 )
+_MASSIMO_DISPOSITIVO = 6000
+# Le frasi del dispositivo finiscono con «;» o con un punto seguito da spazio (non i punti delle cifre, «1.234,00»).
+_FINE_FRASE = re.compile(r";|\.(?=\s|$)")
+
 _ETICHETTE = {
     "difetto_giurisdizione": "Difetto di giurisdizione", "incompetenza": "Incompetenza", "inammissibile": "Domanda o impugnazione inammissibile",
     "improcedibile": "Improcedibile", "estinzione": "Processo estinto", "cessata_materia": "Cessata materia del contendere",
@@ -53,7 +57,8 @@ def dispositivo(testo: str) -> str:
     trovati = list(_PQM.finditer(testo or ""))
     if not trovati:
         return ""
-    parte = testo[trovati[-1].end():]
+    # Il dispositivo è breve: se la firma non si trova, non diventa il resto del documento (allegati, note, copie).
+    parte = testo[trovati[-1].end():][:_MASSIMO_DISPOSITIVO]
     fine = _FIRMA.search(parte, 40)
     return re.sub(r"\s+", " ", parte[: fine.start()] if fine else parte).strip(" .:;,")
 
@@ -64,15 +69,17 @@ def _importo(frase: str) -> str:
 
 
 def spese(dispositivo_testo: str) -> dict[str, Any]:
-    testo = dispositivo_testo or ""
+    testo = (dispositivo_testo or "")[:_MASSIMO_DISPOSITIVO]
     voce: dict[str, Any] = {"regolazione": "non_indicata", "importo": "", "distrazione": False, "frase": ""}
-    m = re.search(r"[^.;]*\bcompens[ae][^.;]*", testo, re.IGNORECASE)
-    if m:
-        parziale = bool(re.search(r"\b(?:in\s+parte|per\s+(?:la\s+)?(?:metà|un\s+terzo|\d+/\d+))", m.group(0), re.IGNORECASE))
-        voce.update(regolazione="compensazione_parziale" if parziale else "compensazione", frase=m.group(0).strip())
-    m = re.search(r"[^.;]*\bcondanna\b[^.;]*\bspese\b(?:[^;]|\d\.\d)*?(?=;|\.\s|$)", testo, re.IGNORECASE)
-    if m:
-        voce.update(regolazione="condanna" if voce["regolazione"] == "non_indicata" else voce["regolazione"], frase=m.group(0).strip(), importo=_importo(m.group(0)))
+    # Frase per frase, con espressioni senza alternative sovrapposte: tempo lineare anche su testi anomali.
+    frasi = [f.strip() for f in _FINE_FRASE.split(testo) if f.strip()]
+    compensazione = next((f for f in frasi if re.search(r"\bcompens[ae]", f, re.IGNORECASE)), "")
+    if compensazione:
+        parziale = bool(re.search(r"\b(?:in\s+parte|per\s+(?:la\s+)?(?:metà|un\s+terzo|\d+/\d+))", compensazione, re.IGNORECASE))
+        voce.update(regolazione="compensazione_parziale" if parziale else "compensazione", frase=compensazione)
+    condanna = next((f for f in frasi if re.search(r"\bcondanna\b.*?\bspese\b", f, re.IGNORECASE | re.DOTALL)), "")
+    if condanna:
+        voce.update(regolazione="condanna" if voce["regolazione"] == "non_indicata" else voce["regolazione"], frase=condanna, importo=_importo(condanna))
     voce["distrazione"] = bool(re.search(r"\bdistra(?:e|zione|tt)|\bantistatari", testo, re.IGNORECASE))
     return voce
 

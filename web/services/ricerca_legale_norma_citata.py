@@ -95,7 +95,7 @@ def _comma_per_parole(righe: list[dict], parole: str) -> tuple[dict, str] | None
 def _documento(conn: sqlite3.Connection, e: Mapping[str, str]) -> dict | None:
     conn.row_factory = sqlite3.Row
     righe = [dict(r) for r in conn.execute(
-        "SELECT id, numero, data_atto, titolo, vigenza, xml_entry FROM normative_documents "
+        "SELECT id, numero, data_atto, titolo, vigenza, xml_entry, zip_path FROM normative_documents "
         "WHERE numero=? AND data_atto>=? AND data_atto<? AND xml_entry LIKE ? ESCAPE '\\'",
         (e["numero"], f"{e['anno']}-01-01", f"{int(e['anno']) + 1}-01-01", e["prefisso"].replace("_", "\\_") + "\\_%"))]
     if len({r["data_atto"] for r in righe}) != 1:
@@ -114,7 +114,8 @@ def _numero_articolo(etichetta: str) -> tuple[str, tuple[int, int] | None]:
     return (_normale(trovato[1]) if trovato else "", (int(commi[1]), int(commi[2])) if commi else None)
 
 
-_INIZIO_COMMA = re.compile(rf"(?<![\w,./'’])(\d{{1,4}}(?:-?{_LATINI})?)\.\s+(?=[A-ZÀ-Ý«\"(])")
+# «2. Cessioni di beni» dopo «Art. 2.» è l'intestazione dell'articolo, non il comma 2.
+_INIZIO_COMMA = re.compile(rf"(?<![\w,./'’])(?<!Art\. )(?<!art\. )(\d{{1,4}}(?:-?{_LATINI})?)\.\s+(?=[A-ZÀ-Ý«\"(])")
 
 
 def _leggibile(numero: str) -> str:
@@ -156,10 +157,13 @@ def _articolo(conn: sqlite3.Connection, documento_id: int, e: Mapping[str, str])
 
 def _articolo_indicato(righe: list[dict], e: Mapping[str, str]) -> dict | None:
     candidati = [r for r in righe if _numero_articolo(r["article_number"])[0] == e["articolo"]]
-    if e["comma"].isdigit():
+    # Più articoli con lo stesso numero sono parti dello stesso articolo («Art. 1 (commi 101-150)») oppure articoli
+    # degli allegati: si sceglie per gruppo di commi solo nel primo caso; altrimenti vale l'articolo principale (il primo).
+    partizioni = [r for r in candidati if _numero_articolo(r["article_number"])[1]]
+    if e["comma"].isdigit() and partizioni:
         n = int(e["comma"])
-        partizione = next((r for r in candidati if (_numero_articolo(r["article_number"])[1] or (0, 10**6))[0] <= n
-                           <= (_numero_articolo(r["article_number"])[1] or (0, 10**6))[1] and testo_del_comma(r["article_text"], e["comma"])), None)
+        partizione = next((r for r in partizioni if _numero_articolo(r["article_number"])[1][0] <= n
+                           <= _numero_articolo(r["article_number"])[1][1] and testo_del_comma(r["article_text"], e["comma"])), None)
         if partizione:
             return partizione
     return candidati[0] if candidati else None
@@ -194,6 +198,14 @@ def norma_citata(db: Path, e: Mapping[str, str]) -> dict[str, Any] | None:
         if articolo is None:
             return None
         comma = testo_del_comma(articolo["article_text"], e["comma"]) if e["comma"] else ""
+        if e["comma"] and not comma:
+            # Atti con commi non numerati: il comma si legge dai capoversi dell'XML ufficiale da cui è stato importato.
+            from pct.normattiva_commi_xml import testo_comma_da_xml
+
+            comma = testo_comma_da_xml(str(documento.get("zip_path") or ""), str(documento.get("xml_entry") or ""),
+                                       e["articolo"], e["comma"])
+            if comma:
+                e["comma_da_xml"] = "1"
         testo = comma or " ".join(str(articolo["article_text"] or "").split())[:6000]
         chunk = conn.execute(
             "SELECT chunk_key FROM normative_chunks WHERE article_id=? AND instr(chunk_text, ?) > 0 ORDER BY id LIMIT 1",
@@ -206,6 +218,8 @@ def norma_citata(db: Path, e: Mapping[str, str]) -> dict[str, Any] | None:
     nota = (f"Testo vigente nell'archivio Normattiva del software (aggiornamento del {vigenza[8:]}/{vigenza[5:7]}/{vigenza[:4]})."
             if vigente and vigenza else "Testo dell'archivio Normattiva del software: verificare la vigenza sulla fonte originale.")
     avvisi = [nota]
+    if e.get("comma_da_xml"):
+        avvisi.append(f"Comma {e['comma']} non numerato nel testo: individuato dai capoversi dell'XML ufficiale Normattiva.")
     if e.get("dedotto"):
         avvisi.append(f"Articolo e comma individuati dalle parole della domanda nel testo {_di(e)} {estremi_atto}: verificare che siano quelli cercati.")
     if e["comma"] and not comma:

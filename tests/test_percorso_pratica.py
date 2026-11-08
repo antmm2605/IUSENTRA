@@ -73,3 +73,15 @@ def test_dispositivo_che_inizia_con_il_giudice_del_lavoro_e_spese_seguite_da_acc
 def test_importo_illeggibile_resta_vuoto():
     esito = esito_sentenza("P.Q.M. accoglie; condanna il convenuto alla rifusione delle spese, che liquida in euro 9,0esborsi.", nostra_parte="attore")
     assert esito["spese"]["importo"] == ""
+
+
+def test_dispositivo_anomalo_senza_firma_non_blocca_la_lettura():
+    """Regressione 08/11/2026: un documento lungo senza firma dopo il P.Q.M. bloccava lo scheduler (espressione non lineare)."""
+    import time
+
+    from pct.percorso_pratica.esito import esito_sentenza
+
+    testo = "P.Q.M. il Tribunale condanna " + ("parte 1.234,00 abc " * 200000) + " spese"
+    inizio = time.monotonic()
+    esito_sentenza(testo)
+    assert time.monotonic() - inizio < 2.0

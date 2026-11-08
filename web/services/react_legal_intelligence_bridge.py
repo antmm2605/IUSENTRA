@@ -3096,7 +3096,31 @@ def _official_archive_records(warnings: list[dict[str, str]], search_query: str)
                     records.append(record)
     except (OSError, ValueError, sqlite3.Error):
         warnings.append(_warning("cassazione_condivisa_non_disponibile", "Corpus condiviso Cassazione non disponibile; conservati gli altri risultati."))
+    _altre_corti(records, warnings, search_query)
     return records
+
+
+def _altre_corti(records: list[dict[str, Any]], warnings: list[dict[str, str]], search_query: str) -> None:
+    """Corte costituzionale (archivio dello studio) e giustizia amministrativa (OpenGA, solo estremi ed esito)."""
+    from web.services.ricerca_legale_altre_corti import decisioni_giustizia_amministrativa, pronunce_corte_costituzionale
+
+    fonti = (
+        (pronunce_corte_costituzionale, "consulta_non_disponibile",
+         "Pronunce della Corte costituzionale non disponibili per questa ricerca; conservati gli altri risultati.", "testo archiviato"),
+        (decisioni_giustizia_amministrativa, "openga_non_disponibile",
+         "Decisioni della giustizia amministrativa non disponibili per questa ricerca; conservati gli altri risultati.", "estremi ed esito"),
+    )
+    for cerca, codice, messaggio, etichetta in fonti:
+        try:
+            righe = cerca(search_query)
+        except Exception:
+            warnings.append(_warning(codice, messaggio))
+            continue
+        for riga in righe:
+            record = _safe_search_record(riga, len(records) + 1, search_query=search_query)
+            record.update(id=riga["id"], approvalLabel=etichetta, approvalTone="info", registryNumber=riga.get("registro", ""),
+                          legacyHref="/giurisprudenza")
+            records.append(record)
 
 
 def _official_archive_counts(warnings: list[dict[str, str]]) -> dict[str, Any]:

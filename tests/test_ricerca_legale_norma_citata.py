@@ -16,14 +16,14 @@ def _archivio(tmp_path):
     db = tmp_path / "normattiva.sqlite"
     with sqlite3.connect(db) as conn:
         conn.executescript("""
-        CREATE TABLE normative_documents (id INTEGER PRIMARY KEY, numero TEXT, data_atto TEXT, titolo TEXT, vigenza TEXT, xml_entry TEXT);
+        CREATE TABLE normative_documents (id INTEGER PRIMARY KEY, numero TEXT, data_atto TEXT, titolo TEXT, vigenza TEXT, xml_entry TEXT, zip_path TEXT);
         CREATE TABLE normative_articles (id INTEGER PRIMARY KEY, document_id INTEGER, article_number TEXT, article_text TEXT, article_key TEXT);
         CREATE TABLE normative_chunks (id INTEGER PRIMARY KEY, article_id INTEGER, chunk_key TEXT, chunk_text TEXT);
         """)
         conn.execute("INSERT INTO normative_documents VALUES (1,'107','2015-07-13','Riforma del sistema nazionale di istruzione','VIGENTE',"
-                     "'LEGGE_20150713_107/2015-07-15_15G00122_VIGENZA_2026-02-22_V0.xml')")
+                     "'LEGGE_20150713_107/2015-07-15_15G00122_VIGENZA_2026-02-22_V0.xml','')")
         conn.execute("INSERT INTO normative_documents VALUES (2,'107','2015-03-02','Altro atto','VIGENTE',"
-                     "'DECRETO LEGISLATIVO_20150302_107/x_VIGENZA_2025-01-01_V0.xml')")
+                     "'DECRETO LEGISLATIVO_20150302_107/x_VIGENZA_2025-01-01_V0.xml','')")
         conn.execute("INSERT INTO normative_articles VALUES (10,1,'Art. 1 (commi 1-50).','1 La Camera ha approvato. 1. Primo comma.','k1')")
         conn.execute("INSERT INTO normative_articles VALUES (11,1,'Art. 1 (commi 101-150).',?,'k2')", (_ART1_B,))
         conn.execute("INSERT INTO normative_chunks VALUES (1,11,'normattiva:x:art2:chunk1',?)", (_ART1_B[:60],))
@@ -79,3 +79,9 @@ def test_la_norma_citata_va_in_cima_e_non_si_duplica(tmp_path):
 def test_estremi_dai_campi_della_ricerca(tmp_path):
     e = estremi("", {"atto_tipo": "LEGGE", "atto_numero": "107", "atto_anno": "2015", "articolo": "1", "comma": "121"})
     assert norma_citata(_archivio(tmp_path), e)["officialContext"].startswith("121.")
+
+
+def test_intestazione_dell_articolo_non_e_il_comma_omonimo():
+    from web.services.ricerca_legale_norma_citata import testo_del_comma as comma_testo
+
+    assert comma_testo("Art. 2. 1 Art. 2. Cessioni di beni. Costituiscono cessioni di beni gli atti.", "2") == ""

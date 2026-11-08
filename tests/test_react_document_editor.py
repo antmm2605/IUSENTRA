@@ -482,7 +482,7 @@ def test_editor_documento_react_contract_statico():
 
     assert "DocumentEditorPage" in app_source
     assert "isDocumentEditorPage?<DocumentEditorPage/>" in app_source
-    assert "Editor professionale" in page_source
+    assert "Editor di atti e documenti" in page_source
     assert "Font testo" in page_source
     assert "Dimensione testo" in page_source
     assert "Interlinea" in page_source

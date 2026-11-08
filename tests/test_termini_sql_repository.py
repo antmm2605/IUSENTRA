@@ -243,9 +243,10 @@ def test_live_signal_is_visible_after_commit_and_not_on_replay(tmp_path):
         assert reader.execute(query).fetchone()[0] == before
         writer.rollback()
         assert reader.execute(query).fetchone()[0] == before
-        repo.save_audit(audit())
+        calcolo = audit()  # lo stesso calcolo ripetuto: due audit() a cavallo di un secondo hanno orari diversi
+        repo.save_audit(calcolo)
         assert reader.execute(query).fetchone()[0] == before + 1
-        repo.save_audit(audit())
+        repo.save_audit(calcolo)
         assert reader.execute(query).fetchone()[0] == before + 1
     finally:
         reader.close()

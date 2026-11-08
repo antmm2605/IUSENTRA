@@ -129,7 +129,7 @@ def test_dashboard_telematico_renderizza_canali_e_backfill(tmp_path: Path):
         payload = api_response.get_json()
 
     assert page.status_code == 200
-    assert "Centro Servizi Telematici" in html
+    assert "<title>IUSENTRA</title>" in html  # il titolo della pagina lo scrive l'interfaccia React
     assert 'id="root"' in html
     assert api_response.status_code == 200
     assert {row["label"] for row in payload["channels"]} == {
@@ -238,7 +238,7 @@ def test_dashboard_telematico_resta_disponibile_se_sqlite_segnala_spazio_pieno(t
     _seed_pat_fascicolo(cfg)
     app = create_app(cfg)
 
-    def broken_case_stats(self):
+    def broken_case_stats(self, **filtri):
         raise sqlite3.OperationalError("database or disk is full")
 
     monkeypatch.setattr(TelematicoWorkflowRepository, "case_stats", broken_case_stats)
@@ -257,7 +257,7 @@ def test_dashboard_telematico_resta_disponibile_se_sqlite_segnala_spazio_pieno(t
         payload = api_response.get_json()
 
     assert page.status_code == 200
-    assert "Centro Servizi Telematici" in html
+    assert "<title>IUSENTRA</title>" in html  # il titolo della pagina lo scrive l'interfaccia React
     assert 'id="root"' in html
     assert api_response.status_code == 200
     assert payload["contracts"]["route_owner"] == "react_shell"
@@ -292,7 +292,7 @@ def test_dashboard_telematico_resta_disponibile_se_backfill_fallisce(tmp_path: P
         payload = api_response.get_json()
 
     assert page.status_code == 200
-    assert "Centro Servizi Telematici" in html
+    assert "<title>IUSENTRA</title>" in html  # il titolo della pagina lo scrive l'interfaccia React
     assert 'id="root"' in html
     assert api_response.status_code == 200
     assert payload["contracts"]["route_owner"] == "react_shell"

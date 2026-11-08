@@ -26,7 +26,9 @@ from pct.scadenziario import (
 
 logger = logging.getLogger(__name__)
 
-_PRESET_RITROSO = {key: preset for key, preset in PRESET_TERMINI.items() if preset.get("direzione") == "ritroso"}
+# Solo le memorie 171-ter: i preset a ritroso dell'art. 189 c.p.c. non hanno mai avuto il vecchio calcolo in avanti.
+_PRESET_RITROSO = {key: preset for key, preset in PRESET_TERMINI.items()
+                   if preset.get("direzione") == "ritroso" and key.startswith("memoria_ex_171_ter")}
 _PROFILI_VECCHI = {preset["profile_code"].removesuffix("_BEFORE"): key for key, preset in _PRESET_RITROSO.items()}
 NOTA_CORRETTA = "Data ricalcolata a ritroso dall'udienza (art. 171-ter c.p.c.): prima risultava il {vecchia}."
 NOTA_PRUDENZIALE = ("Data anticipata alla lettura prudenziale a giorni liberi: prima risultava il {vecchia}, "
@@ -81,7 +83,7 @@ def riconvalida_memorie_171ter(scadenziario: GestioneScadenziario) -> dict[str, 
             except Exception:  # una scadenza non aggiornabile non blocca le altre
                 logger.exception("[riconvalida 171-ter] scadenza %s non aggiornata", getattr(scadenza, "id", ""))
             continue
-        vecchio_calcolo = calcola_termine(udienza, giorni=int(preset["giorni"]), tipo=preset.get("tipo", "liberi"),
+        vecchio_calcolo = calcola_termine(udienza, giorni=int(preset["giorni"]), tipo="continui",
                                           sospensione_feriale=bool(preset.get("sospensione_feriale", True)))
         legale_vecchio = _giorno(getattr(scadenza, "legal_due_at", ""))
         prodotta_dal_software = attuale == vecchio_calcolo or attuale == legale_vecchio

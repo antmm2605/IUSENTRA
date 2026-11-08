@@ -18,6 +18,8 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from pct.termini_mesi import scadenza_a_mesi
+
 
 ENGINE_VERSION = "1.0.0"
 RULESET_VERSION = "IT-CPC-155-L742-2026.1"
@@ -735,6 +737,19 @@ class ItalianDeadlineCalculator:
         return self._ferial_active(template) and day.month == 8
 
     def _raw_deadline(self, input_date: date, template: DeadlineTemplate, step: int, steps: list[dict[str, str]]) -> date:
+        if template.period_type == "months" and step > 0 and self._ferial_active(template):
+            # Art. 1 L. 742/1969: decorrenza nel periodo feriale differita al 31 agosto, poi calendario comune
+            # e giorni sospesi successivi (regola unica in pct.termini_mesi).
+            esito = scadenza_a_mesi(input_date, template.base_value, sospensione=True)
+            if esito.differita:
+                steps.append({"code": "ferial_start_deferred", "label": "Decorrenza differita alla fine del periodo feriale (art. 1 L. 742/1969)", "date": esito.decorrenza.isoformat()})
+            steps.append({"code": "calendar_months", "label": "Computo a mesi secondo calendario comune", "date": esito.base.isoformat()})
+            if esito.giorni_sospesi:
+                steps.append({"code": "ferial_month_shift", "label": f"Aggiunti {esito.giorni_sospesi} giorni di sospensione feriale", "date": esito.scadenza.isoformat()})
+            raw = esito.scadenza
+            if template.free_term:
+                raw = self._move_one_clear_day(raw, step, template, steps)
+            return raw
         if template.period_type == "months":
             raw = _add_months(input_date, step * template.base_value)
             steps.append({"code": "calendar_months", "label": "Computo a mesi secondo calendario comune", "date": raw.isoformat()})

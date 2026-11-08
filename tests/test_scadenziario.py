@@ -302,17 +302,21 @@ def test_prossimo_giorno_lavorativo_da_sabato():
 # ------------------------------------------------------------------ Calcolo termini
 
 def test_calcola_termine_liberi():
-    """30 giorni processuali di calendario, con esclusione del dies a quo."""
+    """Termine libero: esclusi il dies a quo e il dies ad quem (30 giorni interi tra evento e atto)."""
     d = date(2024, 1, 15)  # Lunedì
     scad = calcola_termine(d, 30, tipo="liberi", sospensione_feriale=False)
-    assert scad == date(2024, 2, 14)
+    assert scad == date(2024, 2, 15)
+    # Caso della scheda difetti: 12/01/2026 + 120 giorni, «continui» 12/05, «liberi» 13/05/2026.
+    assert calcola_termine(date(2026, 1, 12), giorni=120, tipo="continui") == date(2026, 5, 12)
+    assert calcola_termine(date(2026, 1, 12), giorni=120, tipo="liberi") == date(2026, 5, 13)
 
 
 def test_calcola_termine_continui():
-    """L'alias 'continui' resta disponibile per retrocompatibilità."""
+    """Art. 155 c.p.c.: escluso il giorno iniziale, festivi computati; è il tipo predefinito."""
     d = date(2024, 1, 15)
     scad = calcola_termine(d, 30, tipo="continui", sospensione_feriale=False)
     assert scad == date(2024, 2, 14)
+    assert calcola_termine(d, 30, sospensione_feriale=False) == scad
 
 
 def test_calcola_termine_lavorativi():
@@ -325,7 +329,7 @@ def test_calcola_termine_lavorativi():
 def test_calcola_termine_con_sospensione_feriale():
     """Ad agosto il termine resta sospeso e riprende a settembre."""
     d = date(2024, 7, 25)
-    scad = calcola_termine(d, 10, tipo="liberi", sospensione_feriale=True)
+    scad = calcola_termine(d, 10, tipo="continui", sospensione_feriale=True)
     assert scad == date(2024, 9, 4)
 
 
@@ -350,7 +354,8 @@ def test_termine_proroga_domenica():
 def test_impugnazione_30gg():
     preset = PRESET_TERMINI["impugnazione_sentenza_civile"]
     assert preset["giorni"] == 30
-    assert preset["tipo"] == "liberi"
+    # Art. 325 c.p.c.: termine non libero (escluso solo il dies a quo).
+    assert preset["tipo"] == "continui"
 
 
 def test_appello_lungo_6mesi():
@@ -976,3 +981,16 @@ def test_dettaglio_scadenza_propaga_fascicolo_responsabile_e_placeholder_puliti(
     assert row["operationalDueLabel"] in {"-", "Non impostata"}
     assert "&mdash;" not in json.dumps(row, ensure_ascii=False)
     assert "giornoi lavorativoi" not in json.dumps(row, ensure_ascii=False)
+
+
+def test_aggiorna_scadute_esiste_e_non_chiude_le_voci(gs, monkeypatch):
+    """Il lavoro notturno «aggiorna_scadute» chiamava un metodo inesistente e risultava eseguito (08/11/2026)."""
+    import pct.scadenziario as modulo
+
+    monkeypatch.setattr(modulo, "oggi_roma", lambda: date(2026, 11, 8))
+    gs.nuova(titolo="Memoria", tipo=TipoTermine.DEPOSITO_MEMORIA, data_scadenza="2026-11-02")
+    gs.nuova(titolo="Udienza", tipo=TipoTermine.UDIENZA, data_scadenza="2026-11-03")
+    gs.nuova(titolo="Appello", tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza="2026-12-01")
+    conteggi = gs.aggiorna_scadute()
+    assert (conteggi["aperte"], conteggi["scadute_da_chiudere"], conteggi["esiti_udienza_da_registrare"]) == (3, 1, 1)
+    assert all(s.stato == StatoTermine.APERTO for s in gs.tutte(solo_aperte=False))

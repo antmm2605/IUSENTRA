@@ -82,7 +82,7 @@ def test_prescrizione_breve_cinque_anni() -> None:
 
 def _vecchia_memoria(gs: GestioneScadenziario, udienza: str, *, data: str | None = None):
     preset = PRESET_TERMINI["memoria_ex_171_ter_n1"]
-    vecchia = data or calcola_termine(date.fromisoformat(udienza), giorni=40, tipo="liberi", sospensione_feriale=True).isoformat()
+    vecchia = data or calcola_termine(date.fromisoformat(udienza), giorni=40, tipo="continui", sospensione_feriale=True).isoformat()
     return gs.nuova(
         titolo="Memoria art. 171-ter n. 1", tipo=TipoTermine.TERMINE_PERENTORIO, data_scadenza=vecchia,
         descrizione=preset["descrizione"], data_decorrenza=udienza, deadline_profile_code="TERM_40_DAYS",

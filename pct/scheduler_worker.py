@@ -67,6 +67,13 @@ def serve_scheduler_worker(
     from pct.scheduler_health import mark_worker_started
 
     mark_worker_started()
+    from pct.scheduler_guardiano import INTERVALLO_BATTITO, avvia_guardiano, scrivi_battito
+
+    # Battito ogni 30 s e guardiano in un processo separato: un lavoro che blocca il processo non ferma più per ore
+    # tutti i lavori automatici (08/11/2026); il worker viene chiuso e Docker lo riavvia.
+    scheduler.add_job(scrivi_battito, "interval", seconds=INTERVALLO_BATTITO, id="battito_scheduler",
+                      max_instances=1, coalesce=True, replace_existing=True)
+    guardiano = avvia_guardiano()
     from pct.preriscaldamento_archivi import avvia_in_sfondo
 
     avvia_in_sfondo(shutdown_event)  # la prima ricerca normativa non attende il disco (solo con IUSENTRA_PRERISCALDA_ARCHIVI=1)
@@ -82,6 +89,8 @@ def serve_scheduler_worker(
         while not shutdown_event.wait(60):
             continue
     finally:
+        if guardiano is not None:
+            guardiano.terminate()
         try:
             scheduler.shutdown(wait=False)
         except Exception as exc:  # pragma: no cover - shutdown best effort

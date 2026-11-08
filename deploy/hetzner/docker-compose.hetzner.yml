@@ -265,6 +265,8 @@ services:
 
   # ── Core: Worker scheduler ───────────────────────────────────────────────────
   scheduler-worker:
+    # Il worker non è il processo 1: il guardiano (pct/scheduler_guardiano.py) può chiuderlo se il battito si ferma.
+    init: true
     image: ${IUSENTRA_APP_IMAGE:-iusentra-scheduler-worker}
     build:
       context: ../..

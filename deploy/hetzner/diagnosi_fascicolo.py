@@ -112,7 +112,7 @@ def main() -> int:
             SELECT l.lettore, COUNT(*) AS da_leggere FROM letture_oggetti o
             JOIN (SELECT DISTINCT lettore FROM letture WHERE fascicolo_id=?) l
             WHERE o.fascicolo_id=? AND o.presente=1 AND NOT EXISTS (SELECT 1 FROM letture x WHERE x.fascicolo_id=o.fascicolo_id
-              AND x.tipo=o.tipo AND x.oggetto_id=o.oggetto_id AND x.sha256=o.sha256 AND x.lettore=l.lettore AND x.stato<>'in_corso')
+              AND x.tipo=o.tipo AND x.oggetto_id=o.oggetto_id AND x.sha256=(CASE WHEN o.sha256 <> '' THEN lower(o.sha256) WHEN o.sha256_archivio <> '' THEN 'archivio:' || lower(o.sha256_archivio) ELSE 'dimensione:' || o.dimensione END) AND x.lettore=l.lettore AND x.stato<>'in_corso')
             GROUP BY l.lettore""", (fascicolo, fascicolo))
         voce["letture_non_concluse"] = [{**r, "esito_json": _breve(r.get("esito_json"))} for r in _righe(conn,
             "SELECT tipo, oggetto_id, lettore, stato, versione_lettore, aggiornato_il, esito_json FROM letture "

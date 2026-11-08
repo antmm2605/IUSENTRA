@@ -32,7 +32,11 @@ def _breve(testo: Any) -> str:
 
 
 def _riepilogo_letture(percorso: str) -> dict[str, Any]:
-    """Sola lettura: per lettore letti, da leggere, errori e riletture senza variazioni (solo conteggi)."""
+    """Sola lettura: per lettore letti, da leggere, errori e riletture senza variazioni (solo conteggi).
+
+    L'impronta di un oggetto è quella del registro (`impronta_oggetto`): contenuto in chiaro, altrimenti
+    «archivio:» + file conservato (documenti cifrati), altrimenti la dimensione.
+    """
 
     import sqlite3
 
@@ -62,17 +66,17 @@ def _riepilogo_letture(percorso: str) -> dict[str, Any]:
             segnaposto = ",".join("?" * len(tipi))
             stati = dict(conn.execute(
                 f"SELECT l.stato, COUNT(*) FROM letture_oggetti o JOIN letture l ON l.tenant_id = o.tenant_id "
-                f"AND l.fascicolo_id = o.fascicolo_id AND l.tipo = o.tipo AND l.oggetto_id = o.oggetto_id AND l.sha256 = o.sha256 "
+                f"AND l.fascicolo_id = o.fascicolo_id AND l.tipo = o.tipo AND l.oggetto_id = o.oggetto_id AND l.sha256 = (CASE WHEN o.sha256 <> '' THEN lower(o.sha256) WHEN o.sha256_archivio <> '' THEN 'archivio:' || lower(o.sha256_archivio) ELSE 'dimensione:' || o.dimensione END) "
                 f"AND l.lettore = ? WHERE o.presente = 1 AND o.tipo IN ({segnaposto}) GROUP BY l.stato", (lettore, *tipi)).fetchall())
             da_leggere = conn.execute(
                 f"SELECT COUNT(*) FROM letture_oggetti o WHERE o.presente = 1 AND o.tipo IN ({segnaposto}) AND NOT EXISTS ("
                 f"SELECT 1 FROM letture l WHERE l.tenant_id = o.tenant_id AND l.fascicolo_id = o.fascicolo_id AND l.tipo = o.tipo "
-                f"AND l.oggetto_id = o.oggetto_id AND l.sha256 = o.sha256 AND l.lettore = ?)", (*tipi, lettore)).fetchone()[0]
+                f"AND l.oggetto_id = o.oggetto_id AND l.sha256 = (CASE WHEN o.sha256 <> '' THEN lower(o.sha256) WHEN o.sha256_archivio <> '' THEN 'archivio:' || lower(o.sha256_archivio) ELSE 'dimensione:' || o.dimensione END) AND l.lettore = ?)", (*tipi, lettore)).fetchone()[0]
             # Riletture senza variazioni: lettura aggiornata nelle ultime 24 ore su un oggetto invariato da oltre 48 ore,
             # già letto con la stessa impronta prima di 48 ore fa.
             riletti = conn.execute(
                 "SELECT COUNT(*) FROM letture l JOIN letture_oggetti o ON l.tenant_id = o.tenant_id AND l.fascicolo_id = o.fascicolo_id "
-                "AND l.tipo = o.tipo AND l.oggetto_id = o.oggetto_id AND l.sha256 = o.sha256 "
+                "AND l.tipo = o.tipo AND l.oggetto_id = o.oggetto_id AND l.sha256 = (CASE WHEN o.sha256 <> '' THEN lower(o.sha256) WHEN o.sha256_archivio <> '' THEN 'archivio:' || lower(o.sha256_archivio) ELSE 'dimensione:' || o.dimensione END) "
                 "WHERE l.lettore = ? AND l.aggiornato_il >= ? AND l.letto_il < ? AND o.aggiornato_il < ?",
                 (lettore, da24, da48, da48)).fetchone()[0]
             fascicoli = dict(conn.execute(

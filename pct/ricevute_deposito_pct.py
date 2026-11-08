@@ -232,11 +232,21 @@ def _decodifica_intestazione(valore: Any) -> str:
         return str(valore or "").strip()
 
 
+def _intestazioni_multiple(msg: Any) -> bool:
+    """Vero se From, X-Ricevuta o X-Trasporto compaiono più di una volta: messaggio ambiguo, fail-closed."""
+    try:
+        return any(len(msg.get_all(nome) or []) > 1 for nome in ("From", "X-Ricevuta", "X-Trasporto"))
+    except Exception:
+        return True
+
+
 def ricevuta_da_intestazioni(msg: Any) -> dict:
     """Dizionario ricevuta dalle sole intestazioni (Subject, Date, Message-ID, X-Ricevuta, X-Riferimento)."""
     return {
         "subject": " ".join(_decodifica_intestazione(msg.get("Subject", "")).split()),
-        "from": _decodifica_intestazione(msg.get("From", "")),
+        # Indirizzi letti dall'intestazione grezza (prima della decodifica RFC 2047): niente differenze di parsing.
+        "from": str(msg.get("From", "") or ""),
+        "intestazioni_multiple": _intestazioni_multiple(msg),
         "date": str(msg.get("Date", "") or ""),
         "message_id": str(msg.get("Message-ID", "") or "").strip(),
         "x_ricevuta": str(msg.get("X-Ricevuta", "") or "").strip(),
@@ -279,7 +289,9 @@ def mittenti_interni(msg: Any) -> list[str]:
             continue
         for interno in parte.get_payload() or []:
             if hasattr(interno, "get"):
-                mittenti.append(_decodifica_intestazione(interno.get("From", "")))
+                valori = interno.get_all("From") or []
+                # Intestazione grezza; più From nello stesso messaggio = mittente ambiguo (respinto dal controllo).
+                mittenti.append(str(valori[0]) if len(valori) == 1 else "mittente ambiguo")
     return mittenti
 
 
@@ -307,13 +319,15 @@ def _indirizzi(valore: Any) -> set[str]:
 
     Unica eccezione: il «Per conto di: <mittente>» che il gestore PEC scrive nel nome visualizzato della
     busta di trasporto, letto solo quando l'indirizzo effettivo è quello del gestore (posta-certificata@)."""
-    trovati: set[str] = set()
-    for nome, indirizzo in getaddresses([str(valore or "")]):
-        indirizzo = indirizzo.strip().casefold()
-        if not _EMAIL.fullmatch(indirizzo):
-            continue
-        trovati.add(indirizzo)
-        if indirizzo.startswith("posta-certificata@") and _PER_CONTO_DI.search(nome or ""):
+    coppie = [(nome, indirizzo.strip().casefold()) for nome, indirizzo in getaddresses([str(valore or "")])]
+    coppie = [(nome, indirizzo) for nome, indirizzo in coppie if indirizzo]
+    if len(coppie) != 1 or not _EMAIL.fullmatch(coppie[0][1]):
+        return set()  # nessun mittente o più mittenti: non verificabile
+    nome, indirizzo = coppie[0]
+    trovati = {indirizzo}
+    if indirizzo.startswith("posta-certificata@"):
+        nome = _decodifica_intestazione(nome)
+        if _PER_CONTO_DI.match(nome.strip()):
             conto = _PER_CONTO_DI.split(nome, maxsplit=1)[-1].strip().casefold()
             if _EMAIL.fullmatch(conto):
                 trovati.add(conto)
@@ -333,10 +347,11 @@ def _anomalia(ricevuta: dict) -> bool:
 def da_gestore_pec(ricevuta: dict) -> bool:
     """Ricevuta emessa dal gestore PEC: indirizzo effettivo «posta-certificata@» del gestore e, se presente,
     X-Ricevuta con un valore delle regole tecniche. Una e-mail qualunque con oggetto «CONSEGNA:» non lo è."""
-    if _anomalia(ricevuta):
+    if _anomalia(ricevuta) or ricevuta.get("intestazioni_multiple"):
         return False
+    # Le ricevute portano sempre X-Ricevuta e mai X-Trasporto (che è dei messaggi di trasporto e delle anomalie).
     x_ric = str(ricevuta.get("x_ricevuta") or "").strip().casefold()
-    if x_ric and x_ric not in _X_RICEVUTA_GESTORE:
+    if x_ric not in _X_RICEVUTA_GESTORE or str(ricevuta.get("x_trasporto") or "").strip():
         return False
     return any(a.startswith("posta-certificata@") for a in _indirizzi(ricevuta.get("from")))
 
@@ -359,6 +374,8 @@ def motivo_non_applicabile(rc: "RicevutaCollegata", dep: Any) -> str:
             return f"collegata solo per {rc.criterio}, non per l'identificativo del messaggio di deposito (IdMsgMitt)"
         if _anomalia(r):
             return "messaggio non PEC (anomalia del gestore): mittente non garantito"
+        if r.get("intestazioni_multiple"):
+            return "intestazioni del mittente ripetute: messaggio ambiguo"
         ufficio = str(getattr(dep, "pec_destinatario", "") or "").strip().casefold()
         esterni = _indirizzi(r.get("from"))
         if not any(_ufficio_ammesso(a, ufficio) for a in esterni):

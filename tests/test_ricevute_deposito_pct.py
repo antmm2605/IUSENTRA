@@ -500,3 +500,27 @@ def test_x_ricevuta_con_valore_non_previsto_non_e_del_gestore():
     dep = _deposito()
     applica_ricevute(dep, [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", x="consegna-finta")])
     assert dep.stato == "INVIATO"
+
+
+def test_from_con_due_indirizzi_non_vale():
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    doppio = "tribunale.esempio@civile.ptel.giustiziacert.it, truffatore@mail.example"
+    applica_ricevute(dep, [_ric(ESITO_OGG, testo=XML_WARN, frm=doppio, interni=[UFFICIO_INTERNO])])
+    assert dep.stato == "CONSEGNATO"
+
+
+def test_intestazioni_ripetute_sono_respinte():
+    import email
+    from pct.ricevute_deposito_pct import ricevuta_da_intestazioni
+    grezzo = (f"Subject: CONSEGNA: DEPOSITO\r\nFrom: posta-certificata@gestore.example\r\nX-Ricevuta: avvenuta-consegna\r\n"
+              f"X-Ricevuta: avvenuta-consegna\r\nX-Riferimento-Message-ID: <{MSGID}>\r\n\r\n")
+    r = ricevuta_da_intestazioni(email.message_from_string(grezzo))
+    dep = _deposito()
+    applica_ricevute(dep, [{**r, "riferimento_message_id": f"<{MSGID}>"}])
+    assert r["intestazioni_multiple"] is True and dep.stato == "INVIATO"
+
+
+def test_ricevuta_senza_x_ricevuta_non_e_del_gestore():
+    dep = _deposito()
+    applica_ricevute(dep, [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>")])
+    assert dep.stato == "INVIATO"

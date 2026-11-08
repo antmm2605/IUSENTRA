@@ -35,7 +35,15 @@ from pct.ora_italiana import ROME_TZ
 
 ORA_CHIUSURA = time(21, 0)
 
-_OGGETTO_L53 = re.compile(r"notificazione\s+ai\s+sensi\s+della\s+legge\s+(?:n\.?\s*)?53\s+del\s+1994", re.IGNORECASE)
+#: Oggetto della PEC di notificazione (art. 3-bis, comma 4, L. 53/1994: «notificazione ai sensi della legge
+#: n. 53 del 1994»). Le forme reali ricevute dallo studio (novembre 2026) sono anche «legge n. 53/1994»
+#: (323 messaggi su 327), «dell'articolo 3-bis della legge 53/94» e «L. 53/1994»: tutte la stessa notifica.
+_OGGETTO_L53 = re.compile(
+    r"notificazion\w*\s+(?:telematica\s+)?ai\s+sensi\s+(?:del\w*['’]?\s*)?"
+    r"(?:art(?:icolo|\.)?\s*3[\s-]*bis\s*,?\s+(?:del\w*\s+)?)?"
+    r"(?:legge|l\.)\s*(?:n\.?\s*)?53\s*(?:/\s*|del\s+)(?:19)?94\b",
+    re.IGNORECASE,
+)
 _DATA = re.compile(r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b")
 _UDIENZA = re.compile(r"\budienza\b[^.\n]{0,80}?\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{4})\b", re.IGNORECASE)
 

@@ -615,6 +615,32 @@ def _extract_hearing_date(parsed: dict[str, Any], profile: dict[str, Any]) -> st
     return None
 
 
+#: eventi della pipeline PEC che sono solo ricevute (della PEC o del deposito telematico)
+_RECEIPT_EVENT_TYPES = frozenset({
+    "pct_deposito", "ricevuta_pec", "ricevuta_accettazione", "ricevuta_consegna", "esito_controlli",
+    "accettazione_deposito",
+})
+#: tipi di ricevuta del daticert.xml (art. 6 D.P.R. 68/2005; D.M. 2/11/2005, regole tecniche PEC)
+_RECEIPT_DATICERT_TYPES = frozenset({
+    "accettazione", "avvenuta_consegna", "mancata_consegna", "non_accettazione", "presa_in_carico",
+    "errore_consegna", "preavviso_errore_consegna", "rilevazione_virus",
+})
+_RECEIPT_SUBJECT = re.compile(
+    r"^\s*(?:posta\s+certificata\s*:\s*)?(?:accettazione|avvenuta\s+consegna|consegna|mancata\s+consegna|"
+    r"non\s+accettazione|presa\s+in\s+carico|ricevuta\b|esito\s+controlli|errore\s+di\s+consegna)",
+    re.I,
+)
+
+
+def _is_receipt_message(parsed: dict[str, Any], report: dict[str, Any]) -> bool:
+    """La PEC è una ricevuta: tipo di evento, tipo del daticert.xml o oggetto standard della ricevuta."""
+    if _clean(report.get("event_type"), 80) in _RECEIPT_EVENT_TYPES:
+        return True
+    if _clean(_dict(parsed.get("pec_receipt")).get("type"), 80) in _RECEIPT_DATICERT_TYPES:
+        return True
+    return bool(_RECEIPT_SUBJECT.search(_clean(_dict(parsed.get("headers")).get("subject"), 300)))
+
+
 def _build_hearings(
     parsed: dict[str, Any],
     report: dict[str, Any],
@@ -623,6 +649,11 @@ def _build_hearings(
     judgment_decision: bool | None = None,
 ) -> list[dict[str, Any]]:
     if judgment_decision if judgment_decision is not None else _is_judgment_decision_text(text):
+        return []
+    if _is_receipt_message(parsed, report):
+        # Ricevute di accettazione/consegna PEC e del deposito telematico (art. 6 D.P.R. 68/2005; artt. 13-14
+        # D.M. 44/2011): attestano la trasmissione, non fissano udienze. Le parole dell'oggetto (es. «Note in
+        # sostituzione udienza 23.11.2026.pdf») sono il nome dell'atto depositato, non un provvedimento.
         return []
     remote = _dict(report.get("remote_hearing")) or _dict(_dict(report.get("procedural_profile")).get("remote_hearing"))
     if not remote and isinstance(_dict(report.get("deadline_proposal")).get("remote_hearing"), dict):

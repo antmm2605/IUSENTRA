@@ -47,6 +47,13 @@ from pct.scadenze_proposte_pec import (
     select_draft_candidates,
 )
 from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
+from pct.note_127_ter.comunicazione import (
+    CODICE_OPPOSIZIONE_127_TER,
+    apre_opposizione as apre_opposizione_127_ter,
+    evento_note_127_ter,
+    proposta_opposizione as proposta_opposizione_127_ter,
+)
+from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, TITOLO_NOTE_127_TER
 from pct.agenda_eventi_equivalenti import ORA_DA_CONFERMARE, riunisci_fonte, udienza_equivalente
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
@@ -3012,6 +3019,9 @@ def _remote_hearing_link_records(remote_hearing: dict[str, Any]) -> list[dict[st
 
 
 def _remote_hearing_deadline_extra(report: dict[str, Any], proposal: dict[str, Any] | None = None) -> dict[str, Any]:
+    if (proposal or {}).get("note_127_ter"):
+        # Note scritte in sostituzione dell'udienza (art. 127-ter c.p.c.): nessun collegamento da remoto.
+        return {"hearing_mode": "note_scritte", "hearing_mode_source": "comunicazione di cancelleria (art. 127-ter c.p.c.)"}
     remote = _remote_hearing_from_report(report, proposal)
     links = _remote_hearing_link_records(remote)
     first = links[0] if links else {}
@@ -3365,6 +3375,8 @@ def _remote_hearing_note_lines(
     *,
     extra: dict[str, Any] | None = None,
 ) -> list[str]:
+    if (proposal or {}).get("note_127_ter"):
+        return ["Modalità: note scritte in sostituzione dell'udienza (art. 127-ter c.p.c.)"]
     extra = dict(extra) if isinstance(extra, dict) else _remote_hearing_deadline_extra(report, proposal)
     hearing_mode = clean_text(extra.get("hearing_mode") or "", 40)
     if not extra.get("remote_hearing_detected") and not hearing_mode:
@@ -3425,6 +3437,8 @@ def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str
     proposal = proposal if isinstance(proposal, dict) else {}
     legal_dl = proposal.get("legal_deadline_proposal") if isinstance(proposal.get("legal_deadline_proposal"), dict) else {}
     present = bool(legal_dl.get("ok") and legal_dl.get("deadline"))
+    if proposal.get("note_127_ter"):
+        return _note_127_ter_scadenza_fields(proposal, legal_dl if present else {})
     if not present:
         return {
             "present": False,
@@ -3455,6 +3469,52 @@ def _legal_deadline_scadenza_fields(proposal: dict[str, Any] | None) -> dict[str
             "trace_json": json.dumps(legal_dl.get("steps") or [], ensure_ascii=False),
             "provenienza": _legal_deadline_provenienza(proposal, legal_dl),
         },
+    }
+
+
+def _pec_deadline_tipo(proposal: dict[str, Any], remote_extra: dict[str, Any], title: str) -> str:
+    """Tipo della scadenza automatica: il termine per le note ex art. 127-ter è perentorio, non un'udienza.
+
+    La «trattazione scritta» non è un'udienza da remoto: il suo link o la sua modalità non fanno
+    diventare udienza il termine per il deposito delle note (art. 127-ter, comma 1, c.p.c.).
+    """
+    if proposal.get("note_127_ter"):
+        return "TERMINE_PERENTORIO"
+    if (
+        remote_extra.get("remote_hearing_detected")
+        or str(proposal.get("deadline_kind") or "") == "udienza"
+        or "udienza" in str(title or "").lower()
+    ):
+        return "UDIENZA"
+    return "ADEMPIMENTO"
+
+
+def _note_127_ter_scadenza_fields(proposal: dict[str, Any], legal_dl: dict[str, Any]) -> dict[str, Any]:
+    """Campi della scadenza per il termine delle note ex art. 127-ter c.p.c.
+
+    Il termine per le note è perentorio per legge (art. 127-ter, comma 1, c.p.c.). L'eventuale
+    opposizione delle parti costituite (comma 2, cinque giorni dalla comunicazione) è un termine
+    distinto, proposto in bozza dalla ricezione della comunicazione: qui resta solo nella nota.
+    """
+    righe = [
+        "Termine perentorio per il deposito delle note scritte in sostituzione dell'udienza "
+        "(art. 127-ter, comma 1, c.p.c.): revisione professionale obbligatoria."
+    ]
+    if str(legal_dl.get("template_code") or "") == "CIV_OPPOSIZIONE_127_TER" and legal_dl.get("deadline"):
+        righe.append(
+            f"Eventuale opposizione alla trattazione scritta entro il {_date_label_it(str(legal_dl.get('deadline'))[:10])} "
+            "(cinque giorni dalla comunicazione, art. 127-ter, comma 2, c.p.c.)."
+        )
+    return {
+        "present": True,
+        "perentorio": True,
+        "due_date": str(proposal.get("due_date") or ""),
+        "title": clean_text(proposal.get("title") or "", 120),
+        "note_line": " ".join(righe),
+        "profile_code": CODICE_NOTE_127_TER,
+        "source_event_type": "comunicazione",
+        "source_event_at": str(proposal.get("source_event_at") or ""),
+        "extra": {"legal_due_at": str(proposal.get("due_date") or "")},
     }
 
 
@@ -3833,7 +3893,7 @@ LEGAL_CONTEXT_RULES: tuple[dict[str, Any], ...] = (
         "norms": (
             ("D.L. 179/2012, art. 16", "Comunicazioni e notificazioni telematiche degli uffici giudiziari"),
             ("D.M. Giustizia 44/2011", "Regole tecniche del processo telematico civile e penale"),
-            ("Provvedimento DGSIA 16 aprile 2014", "Specifiche tecniche PCT/PPT ex art. 34 D.M. 44/2011"),
+            ("Provvedimento DGSIA 7 agosto 2024 (in vigore dal 30/09/2024)", "Specifiche tecniche PCT/PPT ex art. 34 D.M. 44/2011"),
         ),
         "questions": (
             "Quale provvedimento o atto di cancelleria e' comunicato?",
@@ -3865,7 +3925,7 @@ LEGAL_CONTEXT_RULES: tuple[dict[str, Any], ...] = (
         "norms": (
             ("D.L. 179/2012, art. 16-bis", "Deposito telematico degli atti processuali"),
             ("D.M. Giustizia 44/2011", "Regole tecniche del processo telematico"),
-            ("Provvedimento DGSIA 16 aprile 2014", "Specifiche tecniche busta telematica e controlli"),
+            ("Provvedimento DGSIA 7 agosto 2024 (in vigore dal 30/09/2024)", "Specifiche tecniche busta telematica e controlli"),
         ),
         "questions": (
             "Sono presenti atto principale, procura se necessaria, ricevute e eventuali esiti successivi?",
@@ -3925,7 +3985,7 @@ LEGAL_CONTEXT_RULES: tuple[dict[str, Any], ...] = (
         "base_confidence": 0.78,
         "norms": (
             ("c.p.c., art. 149-bis", "Notificazione a mezzo posta elettronica"),
-            ("Provvedimento DGSIA 16 aprile 2014", "Flussi telematici verso UNEP anche via PEC"),
+            ("Provvedimento DGSIA 7 agosto 2024 (in vigore dal 30/09/2024)", "Flussi telematici verso UNEP anche via PEC"),
             ("D.P.R. 68/2005", "Ricevute PEC"),
         ),
         "questions": (
@@ -4005,7 +4065,7 @@ LEGAL_CONTEXT_RULES: tuple[dict[str, Any], ...] = (
         "base_confidence": 0.7,
         "norms": (
             ("D.M. Giustizia 44/2011", "Regole tecniche anche per tecnologie nel processo penale"),
-            ("Provvedimento DGSIA 16 aprile 2014", "Specifiche tecniche processo civile e penale"),
+            ("Provvedimento DGSIA 7 agosto 2024 (in vigore dal 30/09/2024)", "Specifiche tecniche processo civile e penale"),
             ("Normativa PPT vigente", "Depositi e portale penale da verificare sul tipo atto"),
         ),
         "questions": (
@@ -5682,9 +5742,13 @@ def _deadline_updates_for_existing(existing: Any, proposal: dict[str, Any], *, t
         desired_desc = clean_text(proposal.get("reason"), 260)
         if current_desc != desired_desc:
             updates["descrizione"] = desired_desc
-    if str(proposal.get("deadline_kind") or "") == "udienza":
-        tipo_value = getattr(getattr(existing, "tipo", ""), "value", getattr(existing, "tipo", ""))
-        if str(tipo_value).upper() != "UDIENZA":
+    tipo_value = str(getattr(getattr(existing, "tipo", ""), "value", getattr(existing, "tipo", "")) or "").upper()
+    if proposal.get("note_127_ter"):
+        # Voce nata «UDIENZA» da una comunicazione di termine per note (art. 127-ter c.p.c.): si corregge.
+        if tipo_value != "TERMINE_PERENTORIO":
+            updates["tipo"] = "TERMINE_PERENTORIO"
+    elif str(proposal.get("deadline_kind") or "") == "udienza":
+        if tipo_value != "UDIENZA":
             updates["tipo"] = "UDIENZA"
     desired_actor = _deadline_responsible_actor(actor)
     current_actor = clean_text(getattr(existing, "id_utente_responsabile", "") or "", 80)
@@ -5857,8 +5921,8 @@ def _notifica_documento_aggiunto(fascicolo_id: str, documento: Any) -> None:
         from web.services.registro_letture_runtime import documento_aggiornato
 
         documento_aggiornato(fascicolo_id, documento)
-    except Exception:  # pragma: no cover - l'evento non blocca l'archiviazione
-        pass
+    except Exception as exc:  # l'evento non blocca l'archiviazione, ma non si perde in silenzio
+        _registra_evento_letture_fallito("documento_aggiornato", fascicolo_id, exc)
 
 
 def _notifica_pec_collegata(fascicolo_id: str) -> None:
@@ -5870,8 +5934,30 @@ def _notifica_pec_collegata(fascicolo_id: str) -> None:
         from web.services.registro_letture_runtime import pec_collegata
 
         pec_collegata(fascicolo_id)
-    except Exception:  # pragma: no cover - l'evento non blocca il collegamento
-        pass
+    except Exception as exc:  # l'evento non blocca il collegamento, ma non si perde in silenzio
+        _registra_evento_letture_fallito("pec_collegata", fascicolo_id, exc)
+
+
+#: ultimi eventi del registro delle letture non riusciti (evento, fascicolo, errore), per diagnosi e controlli
+EVENTI_LETTURE_FALLITI: list[dict[str, str]] = []
+
+
+def _registra_evento_letture_fallito(evento: str, fascicolo_id: str, exc: Exception) -> None:
+    """Registro delle letture non allineato: si scrive nel log e si conserva per la diagnosi.
+
+    Senza l'evento l'inventario del fascicolo non sa del documento o della PEC nuovi (CLAUDE.md, «Registro
+    delle letture»): l'avviso dice quale evento è mancato e per quale fascicolo, così il giro della lettura
+    automatica o un controllo possono rimediare.
+    """
+    logging.getLogger(__name__).warning(
+        "Registro delle letture: evento %s non registrato per il fascicolo %s: %s", evento, fascicolo_id, exc,
+        exc_info=True,
+    )
+    EVENTI_LETTURE_FALLITI.append({
+        "evento": evento, "fascicolo_id": clean_text(fascicolo_id, 80), "errore": clean_text(exc, 240),
+        "quando": datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+    })
+    del EVENTI_LETTURE_FALLITI[:-50]
 
 
 def fonte_incerta(parsed: dict[str, Any]) -> bool:
@@ -5929,6 +6015,54 @@ def build_deadline_proposal(
     return proposal
 
 
+def _note_127_ter_proposal(
+    parsed: dict[str, Any],
+    candidate: dict[str, Any],
+    *,
+    due_date: str,
+    event_type: str,
+    reason: str,
+    source_date_iso: str,
+    hearing_day: str = "",
+) -> dict[str, Any]:
+    """Il termine perentorio per le note in sostituzione dell'udienza (art. 127-ter c.p.c.).
+
+    Voce di scadenziario, non udienza: perentoria, con il codice ``NOTE_127_TER`` e scadenza a fine
+    giornata (art. 196-sexies disp. att. c.p.c.); l'ora del registro è lo slot dell'udienza sostituita.
+    """
+    profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    rg = clean_text(profile.get("numero_rg") or "", 40)
+    title = clean_text(
+        " - ".join(part for part in (TITOLO_NOTE_127_TER, _date_label_it(due_date), f"RG {rg}" if rg else "") if part),
+        150,
+    )
+    norma = (
+        "Termine perentorio per il deposito delle note scritte assegnato dal giudice in sostituzione "
+        "dell'udienza (art. 127-ter, comma 1, c.p.c.): il giorno di scadenza vale come data di udienza; "
+        "deposito telematico entro la fine del giorno (art. 196-sexies disp. att. c.p.c.)."
+    )
+    return {
+        "status": "ready",
+        "auto_create": True,
+        "title": title,
+        "due_date": due_date,
+        "source_event_at": source_date_iso or due_date,
+        "source_event_type": event_type,
+        "priority": "alta",
+        "legal_deadline": False,
+        "deadline_kind": "termine",
+        "note_127_ter": True,
+        "perentorio": True,
+        "deadline_profile_code": CODICE_NOTE_127_TER,
+        # l'udienza sostituita dalle note (data del registro), che si chiude nello scadenziario
+        "udienza_sostituita": hearing_day or due_date,
+        "calendar_scope": "scadenziario",
+        "event_time": "",
+        "reason": clean_text("\n".join(part for part in (reason, norma) if part), 1600),
+        "detected_procedural_date": candidate,
+    }
+
+
 def _build_deadline_proposal_core(
     parsed: dict[str, Any],
     *,
@@ -5955,14 +6089,26 @@ def _build_deadline_proposal_core(
     profile_for_hearing = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
     profile_hearing_text = clean_text(profile_for_hearing.get("udienza_data_ora") or "", 120)
     profile_hearing_day = _date_from_iso_or_it(profile_hearing_text)
+    # «FISSATO TERMINE PER NOTE IN SOST. UDIENZA il …»: la data del registro è il termine perentorio
+    # per le note (art. 127-ter, comma 1, c.p.c.), non un'udienza da presenziare.
+    note_127_ter_day = (
+        profile_hearing_day
+        if event_type != "pct_deposito" and profile_hearing_day and evento_note_127_ter(profile_for_hearing)
+        else None
+    )
+    if note_127_ter_day is not None:
+        for item in future_dates:
+            if str(item.get("date") or "") == note_127_ter_day.isoformat():
+                item["deadline_kind"] = "termine"
+    profile_kind = "termine" if note_127_ter_day is not None else "udienza"
     if event_type != "pct_deposito" and profile_hearing_day and profile_hearing_day >= today:
         hearing_key = profile_hearing_day.isoformat()
-        if not any(str(item.get("date") or "") == hearing_key and str(item.get("deadline_kind") or "") == "udienza" for item in future_dates):
+        if not any(str(item.get("date") or "") == hearing_key and str(item.get("deadline_kind") or "") == profile_kind for item in future_dates):
             future_dates.append(
                 {
                     "date": hearing_key,
                     "raw_date": profile_hearing_text,
-                    "label": "Udienza",
+                    "label": TITOLO_NOTE_127_TER if note_127_ter_day is not None else "Udienza",
                     "source": "Comunicazione.xml: profilo processuale",
                     "context": "\n".join(
                         part
@@ -5974,7 +6120,7 @@ def _build_deadline_proposal_core(
                         if str(part or "").strip()
                     ),
                     "confidence": 0.9,
-                    "deadline_kind": "udienza",
+                    "deadline_kind": profile_kind,
                 }
             )
     if future_dates:
@@ -5996,6 +6142,13 @@ def _build_deadline_proposal_core(
         reason = "\n".join(part for part in (operational_message, description) if str(part or "").strip())
         hearing_time = _hearing_time_for_procedural_date(parsed, candidate) if deadline_kind == "udienza" else ""
         due_date = str(candidate.get("date") or "")
+        if note_127_ter_day is not None and deadline_kind == "termine":
+            # Il termine perentorio scritto nell'annotazione («entro il termine perentorio del 16.12.2026»)
+            # precede la data dell'udienza sostituita: vale il primo termine, non l'udienza cartolare.
+            return _note_127_ter_proposal(
+                parsed, candidate, due_date=due_date, event_type=event_type, reason=reason or description,
+                source_date_iso=source_date_iso, hearing_day=note_127_ter_day.isoformat(),
+            )
         return {
             "status": "ready",
             "auto_create": True,
@@ -14945,6 +15098,17 @@ class PecAuditRepository:
                 term_proposals = list(term_proposals) + list(proposte_provvedimento)
             except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
                 logging.getLogger(__name__).warning("Provvedimento del giudice non esaminato: %s", exc)
+        if (event_type == "comunicazione_cancelleria" or ministerial_xml) and apre_opposizione_127_ter(profile) and not any(
+            str(getattr(item, "code", "") or "") == CODICE_OPPOSIZIONE_127_TER for item in term_proposals
+        ):
+            # «FISSATO TERMINE PER NOTE IN SOST. UDIENZA»: dalla comunicazione decorrono i cinque giorni per
+            # l'eventuale opposizione (art. 127-ter, comma 2, c.p.c.), proposti in bozza come termine a sé.
+            try:
+                opposizione = proposta_opposizione_127_ter(received.date(), lavoro=labour, oggi=datetime.now(ROME_TZ).date())
+                if opposizione is not None:
+                    term_proposals = [*term_proposals, opposizione]
+            except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
+                logging.getLogger(__name__).warning("Opposizione ex art. 127-ter non proposta: %s", exc)
         if change is None and comm.kind == "sentenza" and fascicolo_id and self.scadenziario_db_path:
             # Scadenze procedurali già passate alla sentenza: avviso all'avvocato, mai chiusura automatica.
             try:
@@ -15237,6 +15401,7 @@ class PecAuditRepository:
         codici già proposti dagli altri percorsi della stessa PEC e le scadenze equivalenti già nel fascicolo.
         """
         from pct.provvedimenti import esamina_provvedimento, proposte_scadenziario
+        from pct.provvedimenti.parte_assistita import ruolo_cliente
 
         body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
         allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
@@ -15270,6 +15435,13 @@ class PecAuditRepository:
             appuntamenti=appuntamenti,
             scadenze=scadenze,
             opposizione_proposta=opposizione,
+            # Parti scritte dalla cancelleria (Comunicazione.xml) confrontate col cliente del fascicolo.
+            ruolo_cliente=ruolo_cliente(
+                getattr(fascicolo, "nome_cliente", "") if fascicolo is not None else "",
+                attore=profile.get("attore_principale"),
+                convenuto=profile.get("convenuto_principale"),
+                controparte=getattr(fascicolo, "controparte", "") if fascicolo is not None else "",
+            ),
         )
         # Il proponente dei termini legali della PEC ha già il suo percorso (es. opposizione ex art. 127-ter).
         codici = [*(gia_proposti or []), str(legale.get("template_code") or "")]
@@ -17171,7 +17343,9 @@ class PecAuditRepository:
                         **legal_fields["extra"],
                     }
                     current_status = getattr(getattr(existing, "stato", None), "value", getattr(existing, "stato", ""))
-                    if str(current_status) == "ANNULLATO":
+                    if str(current_status) == "ANNULLATO" and "UDIENZA_SUPERATA:" not in str(getattr(existing, "note", "") or ""):
+                        # Un'udienza chiusa perché superata da un provvedimento successivo
+                        # (pct.udienze_superate) non si riapre rileggendo la fonte precedente.
                         authoritative_updates["stato"] = "APERTO"
                         authoritative_updates["completata_il"] = ""
                     for field, value in authoritative_updates.items():
@@ -17217,6 +17391,16 @@ class PecAuditRepository:
                         "deadline": calendar_sync,
                         "agenda": agenda_calendar_sync,
                     }
+                # Rilettura: la voce corretta (es. udienza diventata termine per note) supera le altre.
+                superseded = self._close_superseded_hearings(
+                    new_deadline=existing,
+                    proposal=proposal,
+                    report=report,
+                    title=str(getattr(existing, "titolo", "") or title),
+                    fascicolo_id=str(message.get("linked_fascicolo_id") or getattr(existing, "id_fascicolo", "") or ""),
+                    origin=_source_message_id or message_id,
+                    actor=actor,
+                )
                 return {
                     "ok": True,
                     "message": "Scadenza automatica già presente nello scadenziario.",
@@ -17225,6 +17409,7 @@ class PecAuditRepository:
                     "agenda": agenda,
                     "calendar_sync": calendar_sync,
                     "already_exists": True,
+                    "superseded_hearings": superseded,
                     "proposal": proposal,
                     "remote_hearing": _remote_hearing_extra_from_persisted_item(existing, remote_extra),
                     "reconciliation": reconciliation,
@@ -17233,11 +17418,7 @@ class PecAuditRepository:
                 }
             scadenza = manager.nuova(
                 titolo=title,
-                tipo=TipoTermine.UDIENZA
-                if remote_extra.get("remote_hearing_detected")
-                or str(proposal.get("deadline_kind") or "") == "udienza"
-                or "udienza" in title.lower()
-                else TipoTermine.ADEMPIMENTO,
+                tipo=TipoTermine(_pec_deadline_tipo(proposal, remote_extra, title)),
                 data_scadenza=target_date,
                 id_fascicolo=str(message.get("linked_fascicolo_id") or ""),
                 descrizione=deadline_description,
@@ -17298,6 +17479,15 @@ class PecAuditRepository:
                 "deadline": calendar_sync,
                 "agenda": agenda_calendar_sync,
             }
+        superseded = self._close_superseded_hearings(
+            new_deadline=scadenza,
+            proposal=proposal,
+            report=report,
+            title=title,
+            fascicolo_id=str(message.get("linked_fascicolo_id") or ""),
+            origin=_source_message_id or message_id,
+            actor=actor,
+        )
         try:
             with self.connect() as conn:
                 self.append_audit(
@@ -17311,6 +17501,7 @@ class PecAuditRepository:
                         "proposal": proposal,
                         "agenda": agenda,
                         "calendar_sync": calendar_sync,
+                        "superseded_hearings": superseded,
                         "deadline_policy_version": DEADLINE_POLICY_VERSION,
                     },
                     actor=actor,
@@ -17327,9 +17518,88 @@ class PecAuditRepository:
             "proposal": proposal,
             "remote_hearing": _remote_hearing_extra_from_persisted_item(scadenza, remote_extra),
             "reconciliation": reconciliation,
+            "superseded_hearings": superseded,
             "scheduled_message_id": message_id,
             "source_message_id": _source_message_id or message_id,
         }
+
+    def _close_superseded_hearings(
+        self,
+        *,
+        new_deadline: Any,
+        proposal: dict[str, Any],
+        report: dict[str, Any],
+        title: str,
+        fascicolo_id: str,
+        origin: str,
+        actor: str,
+    ) -> dict[str, Any]:
+        """Chiude con traccia le udienze automatiche superate dalla nuova voce (``pct.udienze_superate``).
+
+        Anticipazione, rinvio o revoca letti nel provvedimento, oppure note in sostituzione dell'udienza
+        (art. 127-ter c.p.c.). Solo voci automatiche dello stesso fascicolo; l'impegno d'agenda collegato
+        passa a «rinviato» salvo che l'udienza resti come data delle note. Mai bloccante, mai silenzioso.
+        """
+        from pct.udienze_superate import NOTE_127_TER, cambio_da_testo, riga_traccia, udienze_superate
+
+        result: dict[str, Any] = {"closed_deadline_ids": [], "rescheduled_agenda_ids": [], "reason": ""}
+        if not fascicolo_id or not self.scadenziario_db_path:
+            return result
+        new_id = clean_text(getattr(new_deadline, "id", "") or "", 120)
+        tipo = str(getattr(getattr(new_deadline, "tipo", ""), "value", getattr(new_deadline, "tipo", "")) or "").upper()
+        profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
+        candidate = proposal.get("detected_procedural_date") if isinstance(proposal.get("detected_procedural_date"), dict) else {}
+        if proposal.get("note_127_ter"):
+            cambio = NOTE_127_TER
+            new_day = _date_from_iso_or_it(str(proposal.get("udienza_sostituita") or proposal.get("due_date") or ""))
+        elif tipo == "UDIENZA":
+            cambio = cambio_da_testo(title, profile.get("oggetto_evento"), profile.get("descrizione_evento"), candidate.get("context"))
+            new_day = _date_from_iso_or_it(str(getattr(new_deadline, "data_scadenza", "") or ""))
+        else:
+            return result
+        if not cambio or new_day is None:
+            return result
+        try:
+            from pct.scadenziario import StatoTermine
+
+            manager = self._scadenziario_manager()
+            esito = udienze_superate(
+                manager.tutte(solo_aperte=False), fascicolo_id=fascicolo_id, nuova_data=new_day, cambio=cambio,
+                oggi=datetime.now(ROME_TZ).date(), escludi={new_id},
+            )
+            result["reason"] = esito.motivo
+            line = riga_traccia(origine=origin, cambio=cambio, nuova_data=new_day, nuova_voce=new_id)
+            agenda = self._agenda_manager() if self.agenda_db_path and cambio != NOTE_127_TER else None
+            for voce in esito.voci:
+                voce_id = str(getattr(voce, "id", "") or "")
+                manager.aggiorna(
+                    voce_id,
+                    stato=StatoTermine.ANNULLATO,
+                    completata_il=datetime.now(ROME_TZ).isoformat(timespec="seconds"),
+                    note="\n".join(part for part in (str(getattr(voce, "note", "") or "").rstrip(), line) if part),
+                )
+                result["closed_deadline_ids"].append(voce_id)
+                appointment_id = clean_text(getattr(voce, "id_appuntamento", "") or "", 120)
+                linked_to_new = appointment_id and appointment_id == clean_text(getattr(new_deadline, "id_appuntamento", "") or "", 120)
+                if agenda is None or not appointment_id or linked_to_new:
+                    continue
+                from pct.agenda import StatoAppuntamento
+
+                appointment = agenda.get(appointment_id)
+                stato = str(getattr(getattr(appointment, "stato", ""), "value", getattr(appointment, "stato", "")) or "")
+                if appointment is None or stato not in {"PROGRAMMATO", "CONFERMATO"}:
+                    continue
+                agenda.modifica(
+                    appointment_id,
+                    stato=StatoAppuntamento.RINVIATO,
+                    note="\n".join(part for part in (str(getattr(appointment, "note", "") or "").rstrip(), line) if part),
+                )
+                result["rescheduled_agenda_ids"].append(appointment_id)
+                self._push_local_calendar_item("agenda", appointment_id)
+        except Exception as exc:  # la nuova voce resta valida: la chiusura mancata si registra e si mostra
+            logging.getLogger(__name__).warning("Udienze superate non chiuse per il fascicolo %s: %s", fascicolo_id, exc)
+            result["error"] = clean_text(f"Udienze superate non chiuse: {exc}", 240)
+        return result
 
     def _schedule_deadline_legacy(self, message_id: str, *, actor: str = "pec-api", due_date: str = "") -> dict[str, Any]:
         if not self.scadenziario_db_path:
@@ -17433,11 +17703,7 @@ class PecAuditRepository:
                     }
             scadenza = manager.nuova(
                 titolo=title,
-                tipo=TipoTermine.UDIENZA
-                if remote_extra.get("remote_hearing_detected")
-                or str(proposal.get("deadline_kind") or "") == "udienza"
-                or "udienza" in title.lower()
-                else TipoTermine.ADEMPIMENTO,
+                tipo=TipoTermine(_pec_deadline_tipo(proposal, remote_extra, title)),
                 data_scadenza=target_date,
                 id_fascicolo=str(message.get("linked_fascicolo_id") or ""),
                 descrizione=deadline_description,

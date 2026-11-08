@@ -33,6 +33,34 @@ def _testo(valore: Any) -> str:
     return " ".join(str(valore or "").split()).strip()
 
 
+def _data_passata(valore: str, oggi: Any, *, proposto: str = "") -> str:
+    """Motivo di chiusura se la data letta è già passata (oggi in Europe/Rome), altrimenti stringa vuota.
+
+    Regola del registro (CLAUDE.md, «Riferimenti normativi, lessico e riconvalida»): si chiede conferma solo
+    per le date che cambiano agenda o scadenziario, cioè udienze, termini e costituzioni **future**. Una data
+    passata — la data di un precedente citato («Cass. civ., sez. lav., 15/10/2020, n. 22401»), un'udienza di
+    un altro giudizio, un termine già decorso — non cambia nulla da qui in avanti: l'anomalia si chiude con
+    il motivo, e i termini decorsi restano presidiati dallo scadenziario, non dal pannello delle letture.
+    """
+    from .verifica_date import interpreta_data
+
+    if not isinstance(oggi, date):
+        from pct.ora_italiana import ROME_TZ
+        from datetime import datetime
+
+        oggi = datetime.now(ROME_TZ).date()
+    giorno = interpreta_data(valore)
+    if giorno is None or giorno >= oggi:
+        return ""
+    corretta = interpreta_data(proposto) if proposto else None
+    if corretta is not None and corretta >= oggi:
+        return ""  # la correzione proposta (es. giorno e mese invertiti) è futura: decide l'avvocato
+    return (
+        f"La data «{valore}» è passata ({giorno:%d/%m/%Y}): non cambia agenda né scadenziario, quindi non serve "
+        "la conferma dell'avvocato (si chiede conferma solo per udienze, termini e costituzioni future)."
+    )
+
+
 def regola_superata(anomalia: Anomalia, *, contesto: dict[str, Any]) -> str:
     """Perché l'anomalia oggi non nascerebbe, oppure stringa vuota se nascerebbe ancora.
 
@@ -50,6 +78,9 @@ def regola_superata(anomalia: Anomalia, *, contesto: dict[str, Any]) -> str:
     riferimento = e_riferimento_normativo(valore, 0, len(valore))
     if riferimento:
         return f"«{valore}» è un riferimento normativo ({riferimento}), non una data: la regola che l'aveva segnalato è superata."
+    passata = _data_passata(valore, contesto.get("oggi"), proposto=_testo(anomalia.valore_proposto))
+    if passata:
+        return passata
     from pct.archivio_letture.ancoraggio import esclusione_data_salvata
     brani = contesto.get("contesti_date", {}).get((anomalia.oggetto_id, valore), [])
     motivi = [esclusione_data_salvata(brano, valore) for brano in brani]

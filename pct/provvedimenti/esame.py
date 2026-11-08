@@ -27,6 +27,7 @@ from .dispositivo import capi
 from .materia import RITI_CPC, materia_del_provvedimento
 from .modello import EsitoProvvedimento, Voce
 from .motivazione_riservata import voci_motivazione_riservata
+from .parte_assistita import spetta_al_cliente
 from .rigetto_trattazione import voce_rigetto
 from .regole import voci_di_legge
 from .riferimenti import Riferimenti
@@ -101,9 +102,12 @@ def _senza_doppioni(voci: list[Voce]) -> list[Voce]:
 def esamina_provvedimento(
     testo: str, *, oggi: date, comunicata_il: date | None = None, fascicolo_id: str = "", rg: str = "", ufficio: str = "",
     giudice: str = "", materia: Any = "", prossima_udienza: Any = "", appuntamenti: Iterable[Any] = (),
-    scadenze: Iterable[Any] = (), opposizione_proposta: bool = False,
+    scadenze: Iterable[Any] = (), opposizione_proposta: bool = False, ruolo_cliente: str = "",
 ) -> EsitoProvvedimento | None:
-    """Le voci proposte dal provvedimento, o None se il testo non è un provvedimento riconosciuto."""
+    """Le voci proposte dal provvedimento, o None se il testo non è un provvedimento riconosciuto.
+
+    ``ruolo_cliente`` (``parte_assistita.ruolo_cliente``): solo i termini di legge che spettano al cliente.
+    """
     pulito = normalizza(testo)
     tipi = riconosci_tipi(testo)
     if not tipi:
@@ -155,8 +159,16 @@ def esamina_provvedimento(
                                prova=pulito[:300], confidenza=0.9))
     if sentenza:
         esito.voci = voci_motivazione_riservata(pulito, esito.voci, dispositivo_il=pubblicazione or esito.data_pronuncia, materia=rito)
-    esito.voci = _senza_doppioni(esito.voci)
+    esito.voci = _della_parte_assistita(_senza_doppioni(esito.voci), ruolo_cliente)
     return esito
+
+
+def _della_parte_assistita(voci: list[Voce], ruolo_cliente: str) -> list[Voce]:
+    """Solo i termini che spettano al cliente: quelli della controparte (es. art. 416 c.p.c. per lo studio del
+    ricorrente) non si propongono. Adempimenti, attese e verifiche restano (``parte_assistita``)."""
+    if not ruolo_cliente:
+        return voci
+    return [v for v in voci if v.genere not in {"termine", "da_verificare"} or spetta_al_cliente(v.chi, ruolo_cliente)]
 
 
 __all__ = ["esamina_provvedimento"]

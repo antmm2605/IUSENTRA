@@ -161,6 +161,9 @@ def test_atto_citato_in_quasi_tutti_i_fascicoli_conta_solo_con_lo_stesso_articol
     generica = {"titolo": "La competenza territoriale nella mediazione", "sintesi": "D.Lgs. 28/2010",
                 "atti": ["dlgs:28:2010"], "materia": ""}
     assert pertinenza(generica, indice) == ([], 0)
+    altro_comma = {"titolo": "Competenza territoriale", "sintesi": "art. 4, comma 1, del D.Lgs. 28/2010",
+                   "atti": ["dlgs:28:2010"], "materia": ""}
+    assert pertinenza(altro_comma, indice) == ([], 0)
     stesso_articolo = {"titolo": "Informativa sulla mediazione", "sintesi": "art. 4, comma 3, del D.Lgs. 28/2010",
                        "atti": ["dlgs:28:2010"], "materia": ""}
     assert pertinenza(stesso_articolo, indice)[1] == 25

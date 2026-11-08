@@ -166,9 +166,10 @@ def atti_diffusi(indice: IndicePertinenza) -> frozenset[str]:
 
 
 def _numero_articolo(articolo: str) -> str:
-    """«art. 1 c. 121» → «1»: il confronto è sull'articolo."""
-    parti = str(articolo or "").split()
-    return parti[1].lower() if len(parti) > 1 and parti[0] == "art." else ""
+    """«art. 1 c. 121» → «1 c. 121»: articolo e comma, perché lo stesso articolo regola cose diverse
+    (art. 4 D.Lgs. 28/2010: c. 1 competenza, c. 3 informativa nella procura)."""
+    parti = str(articolo or "").lower().split()
+    return " ".join(parti[1:]) if len(parti) > 1 and parti[0] == "art." else ""
 
 
 def _nome_breve(fascicolo: _Fascicolo) -> str:

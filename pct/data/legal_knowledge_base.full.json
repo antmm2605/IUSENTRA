@@ -2445,7 +2445,7 @@
         {
           "fonte": "c.p.c.",
           "articolo": "654",
-          "descrizione": "Apposizione della formula esecutiva"
+          "descrizione": "Dichiarazione di esecutorietà ed esecuzione (nel precetto si menziona il provvedimento che l'ha disposta)"
         },
         {
           "fonte": "DPR 115/2002 (TU spese giustizia)",
@@ -2981,10 +2981,10 @@
           "norma": "art. 641 c.p.c."
         },
         {
-          "termine": "Apposizione formula esecutiva (per mancata opposizione)",
+          "termine": "Dichiarazione di esecutorietà per mancata opposizione o mancata costituzione dell'opponente",
           "giorni": 0,
-          "decorrenza": "su istanza dopo scadenza termine opposizione",
-          "natura": "decadenziale",
+          "decorrenza": "su istanza, anche verbale, dopo la scadenza del termine di opposizione",
+          "natura": "adempimento su istanza (non decadenziale): dichiarato esecutivo il decreto, l'opposizione non può più essere proposta salvo l'art. 650 c.p.c.",
           "norma": "art. 647 c.p.c."
         },
         {
@@ -21157,7 +21157,7 @@
         {
           "fonte": "c.p.c.",
           "articolo": "654",
-          "descrizione": "Apposizione della formula esecutiva"
+          "descrizione": "Dichiarazione di esecutorietà ed esecuzione (nel precetto si menziona il provvedimento che l'ha disposta)"
         },
         {
           "fonte": "c.p.c.",
@@ -94894,7 +94894,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -107378,7 +107378,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -107895,7 +107895,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -122944,7 +122944,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -138257,7 +138257,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -141376,7 +141376,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -263546,7 +263546,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -264075,7 +264075,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -300596,7 +300596,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -316434,7 +316434,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -325377,7 +325377,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -325898,7 +325898,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -326421,7 +326421,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -326944,7 +326944,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -337928,7 +337928,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -367873,7 +367873,7 @@
           "step": 1,
           "descrizione": "Acquisizione titolo esecutivo + verifica esecutività",
           "documenti_da_verificare": [
-            "Sentenza con formula esecutiva (ex art. 475 c.p.c. solo se necessaria)",
+            "Sentenza in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023)",
             "Decreto ingiuntivo esecutivo",
             "Atto pubblico/scrittura privata autenticata"
           ]
@@ -367918,7 +367918,7 @@
       "allegati_obbligatori": [
         {
           "id": "titolo_esecutivo_copia_conforme",
-          "label": "Titolo esecutivo in copia conforme (con formula esecutiva se necessaria)",
+          "label": "Titolo esecutivo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023)",
           "required": true
         },
         {
@@ -368464,7 +368464,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -368976,7 +368976,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -369567,7 +369567,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -370128,7 +370128,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -371233,7 +371233,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -371853,7 +371853,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -372861,7 +372861,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -373379,7 +373379,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -373891,7 +373891,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -374403,7 +374403,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -374915,7 +374915,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -375427,7 +375427,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -375957,7 +375957,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -376484,7 +376484,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -376992,7 +376992,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -379339,7 +379339,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -380086,7 +380086,7 @@
         },
         {
           "id": "titolo_esecutivo_copia_conforme",
-          "label": "Titolo esecutivo in copia conforme con formula esecutiva (se necessaria)",
+          "label": "Titolo esecutivo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023)",
           "required": true
         },
         {
@@ -380287,7 +380287,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -387213,7 +387213,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -387731,7 +387731,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -471526,7 +471526,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -472173,7 +472173,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -472693,7 +472693,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -473384,7 +473384,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -474077,7 +474077,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -474604,7 +474604,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],
@@ -475131,7 +475131,7 @@
         "non_bloccante": true,
         "prima_cosa_da_fare": "Verificare titolo esecutivo, precetto, notifica, parte obbligata, beni/aggressione esecutiva e fase davanti al giudice dell'esecuzione.",
         "focus_operativo": [
-          "controllare titolo, formula esecutiva quando richiesta e precetto",
+          "controllare titolo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023) e precetto",
           "presidiare efficacia del precetto e iscrizione a ruolo secondo il tipo di pignoramento",
           "allineare documenti, ricevute e DatiAtto.xml alla fase esecutiva"
         ],

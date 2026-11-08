@@ -97,3 +97,21 @@ def test_ogni_passo_da_fare_porta_dove_l_avvocato_lo_compie():
     assert "azione" not in con["passi"][1]  # passo già fatto: nessun pulsante
     pagata = percorso([_proforma(incassato=350.0, data_pagamento="2026-11-02")], [])
     assert pagata["passi"][3]["azione"]["label"] == "Emetti la fattura elettronica"
+
+
+def test_liquidazione_registrata_dalla_sentenza_alimenta_la_riga_sentenza():
+    """Caso reale 2F637234: proforma da sentenza ma nessun evento del controllo economico."""
+    from types import SimpleNamespace
+
+    from web.services.fascicolo_conto_economico_runtime import credito_da_liquidazione_registrata
+
+    fascicolo = SimpleNamespace(id="F1", documenti=[SimpleNamespace(id="D1", nome="sentenza.pdf")], pagamenti={
+        "liquidazione_giudice": {"importo": 500.0, "status": "da_registrare", "origine": "lex_ai_sentenza_tribunale",
+                                 "documento_fonte": "document_id:D1", "beneficiario_credito": "avvocato",
+                                 "evidenza_dispositivo": {"distraction_granted": True}}})
+    crediti = credito_da_liquidazione_registrata(fascicolo)
+    riga = riga_sentenza(crediti)
+    assert riga["importo"] == 500 and riga["stato"] == "Distratte in favore dell'avvocato"
+    assert riga["fonti"][0]["href"] == "/fascicoli/F1/documenti/D1/visualizza"
+    manuale = SimpleNamespace(id="F1", documenti=[], pagamenti={"liquidazione_giudice": {"importo": 500.0, "origine": "manuale"}})
+    assert credito_da_liquidazione_registrata(manuale) == []

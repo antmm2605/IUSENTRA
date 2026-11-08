@@ -718,7 +718,7 @@
         {
           "fonte": "c.p.c.",
           "articolo": "654",
-          "descrizione": "Apposizione della formula esecutiva"
+          "descrizione": "Dichiarazione di esecutorietà ed esecuzione (nel precetto si menziona il provvedimento che l'ha disposta)"
         },
         {
           "fonte": "c.p.c.",
@@ -2009,7 +2009,7 @@
       "allegati_obbligatori": [
         {
           "id": "titolo_esecutivo_copia_conforme",
-          "label": "Titolo esecutivo in copia conforme con formula esecutiva (se necessaria)",
+          "label": "Titolo esecutivo in copia attestata conforme o duplicato informatico (art. 475 c.p.c.; formula esecutiva solo per i procedimenti instaurati prima del 28/02/2023)",
           "required": true
         },
         {

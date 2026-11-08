@@ -59,7 +59,11 @@ export type NotiziarioItem = {
   matterName: string
   submatterName: string
   isNew: boolean
+  relevance: number
+  relevanceLabel: string
+  relevanceRule: string
   relatedCases: NotiziarioRelatedCase[]
+  relatedCasesTotal: number
   read: boolean
   readAt: string
   favorite: boolean
@@ -100,6 +104,7 @@ export type NotiziarioPayload = {
   }
   relevantCount: number
   newCount: number
+  serviceCount: number
   quickSources: NotiziarioQuickSource[]
   cases: NotiziarioCase[]
   unreadCount: number
@@ -114,6 +119,7 @@ export type NotiziarioQuery = {
   stato: 'all' | 'unread' | 'favorite'
   pertinenti: boolean
   nuove: boolean
+  servizio: boolean
   q: string
   pagina: number
 }
@@ -125,6 +131,7 @@ export const NOTIZIARIO_QUERY_INIZIALE: NotiziarioQuery = {
   stato: 'all',
   pertinenti: false,
   nuove: false,
+  servizio: false,
   q: '',
   pagina: 1,
 }
@@ -149,6 +156,7 @@ const emptyPayload: NotiziarioPayload = {
   facets: { sources: [], kinds: [], matters: [] },
   relevantCount: 0,
   newCount: 0,
+  serviceCount: 0,
   quickSources: [],
   cases: [],
   unreadCount: 0,
@@ -200,10 +208,14 @@ function normaliseItem(value: unknown): NotiziarioItem {
     matterName: text(item.matterName),
     submatterName: text(item.submatterName),
     isNew: boolean(item.isNew),
+    relevance: Number(item.relevance || 2),
+    relevanceLabel: text(item.relevanceLabel),
+    relevanceRule: text(item.relevanceRule),
     relatedCases: rows(item.relatedCases).map((entry) => {
       const related = record(entry)
       return { id: text(related.id), label: text(related.etichetta), reason: text(related.motivo) }
     }).filter((related) => related.id && related.label),
+    relatedCasesTotal: Number(item.relatedCasesTotal || 0),
     read: boolean(item.read),
     readAt: text(item.readAt),
     favorite: boolean(item.favorite),
@@ -253,6 +265,7 @@ function normalisePayload(value: unknown): NotiziarioPayload {
     },
     relevantCount: Number(payload.relevantCount || 0),
     newCount: Number(payload.newCount || 0),
+    serviceCount: Number(payload.serviceCount || 0),
     quickSources: rows(payload.quickSources).map((value) => {
       const item = record(value)
       return {
@@ -301,6 +314,7 @@ export function notiziarioQueryString(query: NotiziarioQuery): string {
   if (query.stato !== 'all') params.set('stato', query.stato)
   if (query.pertinenti) params.set('pertinenti', '1')
   if (query.nuove) params.set('nuove', '1')
+  if (query.servizio) params.set('servizio', '1')
   if (query.q.trim()) params.set('q', query.q.trim())
   if (query.pagina > 1) params.set('pagina', String(query.pagina))
   const value = params.toString()

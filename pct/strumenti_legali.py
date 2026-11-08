@@ -890,6 +890,7 @@ class GestioneStrumentiLegali:
             {"value": "processo_speciale_libro_iv", "label": "Procedimento speciale civile", "needs_value": True},
             {"value": "volontaria_giurisdizione", "label": "Volontaria giurisdizione", "needs_value": False},
             {"value": "separazione_consensuale", "label": "Separazione / divorzio congiunto", "needs_value": False},
+            {"value": "famiglia_473bis47", "label": "Separazione / divorzio giudiziale (art. 473-bis.47 c.p.c.)", "needs_value": False},
             {"value": "ricerca_beni_492bis", "label": "Ricerca beni ex art. 492-bis c.p.c.", "needs_value": False},
             {"value": "cittadinanza_italiana", "label": "Accertamento cittadinanza italiana", "needs_value": False},
             {"value": "esecuzione_immobiliare", "label": "Esecuzione immobiliare", "needs_value": False},
@@ -922,6 +923,7 @@ class GestioneStrumentiLegali:
         sezione_impresa = _safe_bool(payload.get("cu_sezione_specializzata_impresa"))
         dati_obbligatori_mancanti = _safe_bool(payload.get("cu_dati_obbligatori_mancanti"))
         numero_parti_ricorrenti = max(1, _safe_int(payload.get("cu_numero_parti_ricorrenti"), 1))
+        giudice_pace = _safe_bool(payload.get("cu_giudice_pace")) or _clean_text(payload.get("cu_ufficio")).lower() == "giudice_pace"
 
         base = 0.0
         warnings: List[str] = []
@@ -940,24 +942,26 @@ class GestioneStrumentiLegali:
         )
 
         if categoria == "civile_ordinario":
-            base = self._contributo_civile(valore, valore_tipo=valore_tipo)
+            base = self._contributo_civile(valore, valore_tipo=valore_tipo, giudice_pace=giudice_pace)
             sources.extend(self._sources_for_codes("cu_viterbo"))
-            if valore_tipo == "indeterminabile":
+            if valore_tipo == "indeterminabile" and giudice_pace:
+                notes.append("Applicato il contributo per causa di valore indeterminabile di competenza esclusiva del giudice di pace (art. 13, comma 1, lett. c).")
+            elif valore_tipo == "indeterminabile":
                 notes.append("Applicato il contributo previsto per causa di valore indeterminabile.")
             elif valore_tipo == "non_indicato":
                 notes.append("Applicato il contributo previsto per causa con valore non indicato.")
         elif categoria == "decreto_ingiuntivo":
-            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
+            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo, giudice_pace=giudice_pace) / 2.0, 2)
             sources.extend(self._sources_for_codes("cu_viterbo"))
-            notes.append("Per il decreto ingiuntivo il contributo è ridotto alla metà.")
+            notes.append("Per il decreto ingiuntivo e il giudizio di opposizione il contributo è ridotto alla metà (art. 13, comma 3).")
             regole_applicate.append({"code": "riduzione_meta", "label": "Riduzione alla metà", "factor": 0.5})
         elif categoria == "lavoro":
-            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
+            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo, giudice_pace=giudice_pace) / 2.0, 2)
             sources.extend(self._sources_for_codes("cu_viterbo"))
             notes.append("Per le controversie individuali di lavoro o pubblico impiego il contributo è ridotto alla metà, salve esenzioni reddituali o processuali.")
             regole_applicate.append({"code": "riduzione_meta_lavoro", "label": "Riduzione lavoro alla metà", "factor": 0.5})
         elif categoria == "processo_speciale_libro_iv":
-            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
+            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo, giudice_pace=giudice_pace) / 2.0, 2)
             sources.extend(self._sources_for_codes("cu_viterbo"))
             notes.append("Per i processi speciali del libro IV, titolo I, c.p.c. il contributo è ridotto alla metà.")
             regole_applicate.append({"code": "riduzione_meta_speciale", "label": "Riduzione procedimento speciale alla metà", "factor": 0.5})
@@ -967,6 +971,9 @@ class GestioneStrumentiLegali:
         elif categoria == "separazione_consensuale":
             base = self.norme.contributo_speciale("separazione_consensuale", valore)
             notes.append("Importo fisso per separazione consensuale o scioglimento congiunto, salvo casi esenti.")
+        elif categoria == "famiglia_473bis47":
+            base = self._CU_FAMIGLIA_473BIS47
+            notes.append("Importo fisso per i procedimenti contenziosi dell'art. 473-bis.47 c.p.c. (art. 13, comma 1, lett. b), salvo esenzioni.")
         elif categoria == "ricerca_beni_492bis":
             base = self.norme.contributo_speciale("ricerca_beni_492bis", valore)
             notes.append("Importo fisso per istanza ex art. 492-bis c.p.c.; l'art. 13 esclude l'anticipazione forfettaria.")
@@ -1030,6 +1037,7 @@ class GestioneStrumentiLegali:
 
         if grado == "appello" and categoria in {
             "civile_ordinario",
+            "famiglia_473bis47",
             "decreto_ingiuntivo",
             "lavoro",
             "processo_speciale_libro_iv",
@@ -1046,6 +1054,7 @@ class GestioneStrumentiLegali:
             regole_applicate.append({"code": "impugnazione_50", "label": "Impugnazione +50%", "factor": 1.5})
         elif grado == "cassazione" and categoria in {
             "civile_ordinario",
+            "famiglia_473bis47",
             "decreto_ingiuntivo",
             "lavoro",
             "processo_speciale_libro_iv",
@@ -3264,9 +3273,18 @@ class GestioneStrumentiLegali:
             "sources": [],
         }
 
-    def _contributo_civile(self, valore: float, *, valore_tipo: str = "determinato") -> float:
+    # Art. 13, comma 1, lett. c), D.P.R. 115/2002: euro 237 per i processi contenziosi di valore
+    # indeterminabile di competenza esclusiva del giudice di pace (lett. d: 518 negli altri casi).
+    _CU_INDETERMINABILE_GIUDICE_PACE = 237.0
+    # Art. 13, comma 1, lett. b), D.P.R. 115/2002: euro 98 per i procedimenti contenziosi
+    # di cui all'art. 473-bis.47 c.p.c. (crisi familiare: separazione, divorzio, affidamento).
+    _CU_FAMIGLIA_473BIS47 = 98.0
+
+    def _contributo_civile(self, valore: float, *, valore_tipo: str = "determinato", giudice_pace: bool = False) -> float:
         defaults = self.norme.contributo_defaults("civile")
         if valore_tipo == "indeterminabile":
+            if giudice_pace:
+                return self._CU_INDETERMINABILE_GIUDICE_PACE
             return float(defaults.get("indeterminabile_amount", 518.0))
         if valore_tipo == "non_indicato":
             return float(defaults.get("non_indicato_amount", 1686.0))

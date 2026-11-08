@@ -6,7 +6,7 @@ della causa e dal grado. Qui si dichiara, per ogni tipologia del catalogo preven
 categoria e il grado del calcolatore:
 
 - art. 13, comma 1: scaglioni per valore (civile ordinario); comma 3: metà per decreto
-  ingiuntivo e controversie di lavoro; comma 1-bis: +50% per l'impugnazione, doppio in
+  ingiuntivo, giudizio di opposizione a decreto ingiuntivo e controversie di lavoro; comma 1-bis: +50% per l'impugnazione, doppio in
   Cassazione; comma 1-bis, ultimo periodo: doppio per la sezione specializzata in materia
   di impresa (D.Lgs. 168/2003, art. 3); comma 2: opposizione agli atti esecutivi;
 - art. 13, comma 6-bis: processo amministrativo (lettera a: accesso, silenzio, soggiorno e
@@ -27,7 +27,8 @@ _REGOLE: dict[str, tuple[str, str, bool]] = {
     "atto_citazione": ("civile_ordinario", "", False),
     "comparsa_risposta": ("civile_ordinario", "", False),
     "risarcimento_danni": ("civile_ordinario", "", False),
-    "opposizione_di": ("civile_ordinario", "", False),
+    # Art. 13, comma 3: metà anche per il giudizio di opposizione a decreto ingiuntivo.
+    "opposizione_di": ("decreto_ingiuntivo", "", False),
     "decreto_ingiuntivo": ("decreto_ingiuntivo", "primo_grado", False),
     "appello_civile": ("civile_ordinario", "appello", False),
     "cassazione_civile": ("civile_ordinario", "cassazione", False),

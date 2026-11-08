@@ -169,7 +169,26 @@ def _categoria_contributo(fascicolo: Any) -> str:
         return "decreto_ingiuntivo"
     if "separazione consensuale" in testo or "divorzio congiunto" in testo:
         return "separazione_consensuale"
+    if "separazione giudiziale" in testo or "divorzio giudiziale" in testo or "473-bis.47" in testo:
+        return "famiglia_473bis47"
     return "civile_ordinario"
+
+
+def _ufficio_e_grado_contributo(fascicolo: Any) -> tuple[bool, str]:
+    """Giudice di pace e grado dal fascicolo (art. 13, commi 1 lett. c e 1-bis, D.P.R. 115/2002).
+
+    Il grado si legge dall'ufficio (Corte d'appello, Cassazione, Consiglio di Stato) e dal tipo di
+    procedimento (es. appello davanti al tribunale contro sentenza del giudice di pace).
+    """
+    from pct.contributo_preventivo import grado_dal_testo
+
+    ufficio = _attr(fascicolo, "tribunale").casefold()
+    giudice_pace = "giudice di pace" in ufficio
+    testo = " ".join((ufficio, _attr(fascicolo, "tipo_procedimento"), _attr(fascicolo, "procedura_operativa_nome")))
+    grado = grado_dal_testo(testo)
+    if giudice_pace and grado == "primo_grado":
+        return True, grado
+    return False, grado
 
 
 def contributo_unificato_da_fascicolo(fascicolo: Any) -> dict[str, Any]:
@@ -180,6 +199,7 @@ def contributo_unificato_da_fascicolo(fascicolo: Any) -> dict[str, Any]:
     """
     valore = getattr(fascicolo, "valore_causa", None)
     categoria = _categoria_contributo(fascicolo)
+    giudice_pace, grado = _ufficio_e_grado_contributo(fascicolo)
     try:
         valore_num = float(valore or 0)
     except (TypeError, ValueError):
@@ -190,7 +210,8 @@ def contributo_unificato_da_fascicolo(fascicolo: Any) -> dict[str, Any]:
         esito = GestioneStrumentiLegali().calcola_contributo_unificato(
             {
                 "cu_categoria": categoria,
-                "cu_grado": "primo_grado",
+                "cu_grado": grado,
+                "cu_giudice_pace": giudice_pace,
                 "cu_valore": valore_num if valore_num > 0 else "",
                 "cu_valore_tipo": "determinato" if valore_num > 0 else "non_indicato",
             }

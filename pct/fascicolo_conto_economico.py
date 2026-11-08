@@ -91,7 +91,8 @@ def _riga_senza_credito(sentenze: list[Mapping[str, Any]]) -> dict[str, Any]:
                  dettaglio=f"{della} regola le spese ma l'importo o il beneficiario non sono stati letti con certezza: aprire il dispositivo.")
 
 
-def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, Any]] | None = None) -> dict[str, Any]:
+def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, Any]] | None = None,
+                  *, regime: str = "") -> dict[str, Any]:
     """Spese liquidate dalla sentenza della causa: a favore del cliente o distratte in favore dell'avvocato.
 
     ``sentenze``: le regolazioni delle spese lette dal dispositivo (``pct/archivio_letture/spese_sentenza.py``); se la
@@ -117,8 +118,13 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
     if len(gruppi) > 1:
         avvisi.append("Importi diversi in più sentenze del fascicolo: verificare quale è definitiva prima di chiedere il pagamento.")
     if any(c.get("accessori") for c in scelti):
+        # Nel regime forfetario o dei minimi l'IVA non si applica (art. 1, comma 58, L. 190/2014; art. 27 D.L. 98/2011).
+        iva = ("senza IVA per il regime forfetario dello studio" if str(regime).upper() in {"RF19", "RF02"}
+               else "IVA")
         avvisi.append(f"Oltre all'importo liquidato spettano gli accessori: rimborso forfettario del 15% ({NORMA_FORFETTARIO}), "
-                      "contributo previdenziale e IVA, da indicare nella proforma.")
+                      f"contributo previdenziale e {iva}, da indicare nella proforma." if iva == "IVA" else
+                      f"Oltre all'importo liquidato spettano gli accessori: rimborso forfettario del 15% ({NORMA_FORFETTARIO}) "
+                      f"e contributo previdenziale ({iva}), da indicare nella proforma.")
     if distratte and any(c.get("distrazione_condizionata") for c in distratte):
         avvisi.append("La sentenza distrae le spese «ove richiesto»: verificare che negli atti ci sia la dichiarazione di antistatarietà.")
     if distratte:
@@ -280,8 +286,9 @@ def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]]
 
 def conto_economico(*, voci: Mapping[str, Mapping[str, Any]], crediti: list[Mapping[str, Any]],
                     documenti_contributo: list[Mapping[str, Any]], parcelle: list[Mapping[str, Any]],
-                    oggi: date | None = None, sentenze: list[Mapping[str, Any]] | None = None) -> dict[str, Any]:
-    righe = [riga_sentenza(crediti, sentenze), riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo)]
+                    oggi: date | None = None, sentenze: list[Mapping[str, Any]] | None = None,
+                    regime: str = "") -> dict[str, Any]:
+    righe = [riga_sentenza(crediti, sentenze, regime=regime), riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo)]
     righe += righe_parcella(parcelle, voci.get("spese_esborsi") or {}, voci.get("fondo_spese") or {})
     liquidazione = voci.get("liquidazione_giudice") or {}
     dichiarato = None

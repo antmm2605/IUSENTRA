@@ -130,12 +130,12 @@ def crediti_dalle_sentenze_lette(sentenze: list[dict[str, Any]]) -> list[dict[st
 
 
 def documenti_contributo(fascicolo: Any) -> list[dict[str, str]]:
-    from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
+    from web.services.document_intelligence_runtime import build_document_ai_repository, document_ai_tenant_id
 
     fid = _testo(getattr(fascicolo, "id", ""))
     nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "") or getattr(d, "nome_file", "")) for d in getattr(fascicolo, "documenti", []) or []}
     risultato = []
-    for assegnazione in build_document_ai_service().repository.list_catalog_assignments(document_ai_tenant_id(), fid):
+    for assegnazione in build_document_ai_repository().list_catalog_assignments(document_ai_tenant_id(), fid):
         etichetta = _testo(getattr(assegnazione, "document_label", ""))
         documento_id = _testo(getattr(assegnazione, "document_id", ""))
         if not etichetta.lower().startswith("contributo unificato") or _testo(getattr(assegnazione, "status", "")) == "rejected":
@@ -173,9 +173,10 @@ def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
 
 def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     from pct.fascicolo_conto_economico import conto_economico
-    from web.helpers import get_fascicoli
+    from web.services.sentenza_economic_runtime import _fascicoli_repository_mirato
 
-    fascicolo = get_fascicoli().get(fascicolo_id)
+    # Un fascicolo solo: lettura per chiave, non tutto l'archivio dello studio.
+    fascicolo = _fascicoli_repository_mirato().get(fascicolo_id)
     if fascicolo is None:
         return {"ok": False, "message": "Fascicolo non trovato."}
     voci = dict(getattr(fascicolo, "pagamenti", {}) or {})
@@ -190,7 +191,9 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     crediti = crediti_da_sentenza(fascicolo_id) or credito_da_liquidazione_registrata(fascicolo)
     sentenze = sentenze_dall_archivio(fascicolo)
     crediti = crediti or crediti_dalle_sentenze_lette(sentenze)
-    risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze,
+    from web.helpers import regime_fiscale_studio
+
+    risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze, regime=regime_fiscale_studio(),
                                 documenti_contributo=documenti_contributo(fascicolo), parcelle=parcelle_del_fascicolo(fascicolo_id))
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 

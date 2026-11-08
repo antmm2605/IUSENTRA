@@ -82,6 +82,13 @@ def document_ai_user_context() -> dict[str, Any]:
     return context
 
 
+def build_document_ai_repository() -> DocumentAIRepository:
+    """Solo l'archivio delle catalogazioni, senza caricare i fascicoli: per chi deve soltanto leggerle."""
+    anchor = fascicoli_db_path()
+    structured_db = get_request_studio_db(anchor) if has_app_context() else None
+    return DocumentAIRepository.from_fascicoli_db(anchor, structured_db=structured_db, initialize_schema=structured_db is None)
+
+
 def build_document_ai_service() -> DocumentAIService:
     anchor = fascicoli_db_path()
     structured_db = get_request_studio_db(anchor) if has_app_context() else None

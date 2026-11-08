@@ -122,3 +122,12 @@ def test_spese_con_fonte_senza_importo():
     assert spese["stato"] == "Importo da riportare" and spese["tono"] == "warning"
     vuote = next(r for r in righe_parcella([], {}, {}) if r["voce"] == "spese_esborsi")
     assert vuote["stato"] == "Nessuna spesa registrata"
+
+
+def test_accessori_senza_iva_nel_regime_forfetario():
+    from pct.fascicolo_conto_economico import riga_sentenza
+    credito = {"importo": 250.0, "distrazione": True, "accessori": True, "fonti": []}
+    forfetario = riga_sentenza([credito], regime="RF19")["dettaglio"]
+    ordinario = riga_sentenza([credito], regime="RF01")["dettaglio"]
+    assert "senza IVA per il regime forfetario" in forfetario and "e IVA" not in forfetario
+    assert "contributo previdenziale e IVA" in ordinario

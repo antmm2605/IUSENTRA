@@ -101,7 +101,7 @@ def propose_terms(comm: CourtCommunication, *, dies_a_quo: date, labour: bool) -
                 norm="art. 327 c.p.c.",
                 note=(
                     "Estinzione dichiarata dal giudice monocratico: provvedimento con natura di sentenza, impugnabile "
-                    f"con appello. Sei mesi calcolati dal {dies_label}, da verificare sulla data di pubblicazione. "
+                    f"con appello (Cass. civ., sez. III, n. 29852/2022). Sei mesi calcolati dal {dies_label}, da verificare sulla data di pubblicazione. "
                     f"{_ferial_note(labour)}"
                 ),
             )

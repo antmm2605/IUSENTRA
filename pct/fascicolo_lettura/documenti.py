@@ -90,6 +90,14 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
             documento["data_evento"] = str(sorted(date_evento, key=lambda f: f.get("posizione", 0))[0]["valore"])[:10]
         if documento["etichetta"].lower().startswith("sentenza") and not documento["sentenza_pertinente"]:
             documento["data_evento"] = ""
+        # Ordinanza della causa che dichiara estinto il processo (artt. 181, 307, 309 c.p.c.): il motore documenti la
+        # registra come «estinzione_processo»; la data è quella in calce, la pubblicazione va verificata.
+        estinzioni = [f for f in prove if f.get("campo") == "estinzione_processo" and f.get("verifica") in {"verificata", "corretta"}]
+        if estinzioni and documento["sentenza_pertinente"]:
+            documento["estinzione"] = str(estinzioni[0].get("valore") or "estinzione")
+            in_calce = sorted((f for f in prove if f.get("campo") == "data_atto" and f.get("verifica") in {"verificata", "corretta"}),
+                              key=lambda f: f.get("posizione", 0))
+            documento["data_estinzione"] = str(in_calce[-1]["valore"])[:10] if in_calce else ""
         if documento["sentenza_pertinente"]:
             # Esito e spese letti dal dispositivo dal motore documenti (pct/archivio_letture/estrazione_esito.py).
             documento["esito"] = {f.get("campo"): f.get("valore") for f in prove
@@ -139,6 +147,7 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
         "procura": ultimo({"procura"}),
         "sentenza": next((voce for voce in reversed(letti) if voce["etichetta"].lower().startswith("sentenza") and voce["sentenza_pertinente"]), None),
         "sentenze": [voce for voce in letti if voce["etichetta"].lower().startswith("sentenza") and voce["sentenza_pertinente"]],
+        "estinzione": next((voce for voce in reversed(letti) if voce.get("estinzione")), None),
     }
 
 

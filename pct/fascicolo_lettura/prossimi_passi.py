@@ -18,6 +18,7 @@ from ._testo import data_da, data_it, pulisci
 from .fase import (
     CODICE_FASE_CHIUSA,
     CODICE_FASE_DECISA,
+    CODICE_FASE_ESTINTA,
     CODICE_FASE_ESECUTIVA,
     CODICE_FASE_ISCRITTA,
     CODICE_FASE_TRATTAZIONE,
@@ -310,6 +311,44 @@ def _udienza_in_trattazione_scritta(giorno: str, scadenze: list[dict[str, Any]] 
     return False
 
 
+# Giurisprudenza sul mezzo d'impugnazione, letta nel corpus SentenzeWeb del software l'08/11/2026: l'ordinanza del
+# giudice monocratico dichiarativa dell'estinzione si impugna con l'appello, non con il reclamo al collegio.
+FONTE_APPELLO_ESTINZIONE = ("Cass. civ., sez. III, n. 29852/2022, pubblicata il 12/10/2022, conformi Cass. n. 2837/2016 "
+                            "e n. 22917/2010")
+
+
+def _passi_estinzione(estinzione: dict[str, Any]) -> list[Passo]:
+    """Processo estinto (artt. 181, 307, 309 c.p.c.): impugnazione da verificare, niente riassunzione, chiusura.
+
+    Il mezzo d'impugnazione dell'ordinanza dipende dal giudice: reclamo al collegio contro l'ordinanza del giudice
+    istruttore nelle cause collegiali (art. 308 c.p.c.); con il giudice monocratico il provvedimento è trattato come
+    sentenza e si appella nei termini degli artt. 325 e 327 c.p.c. (``FONTE_APPELLO_ESTINZIONE``). Il termine lungo
+    decorre dal deposito, non dalla comunicazione.
+    """
+    data = data_it(estinzione.get("data_estinzione")) if estinzione.get("data_estinzione") else ""
+    del_ = f" del {data}" if data else ""
+    fonte = FONTE_APPELLO_ESTINZIONE
+    passi = [
+        Passo(1, f"Verificare mezzo e termine per impugnare il provvedimento di estinzione{del_}",
+              "giudice monocratico: appello, con il termine lungo dalla pubblicazione (deposito) del provvedimento, non dalla "
+              f"comunicazione (art. 327 c.p.c.; {fonte}); causa collegiale: reclamo al collegio (art. 308 c.p.c.)",
+              "", "lettura del fascicolo", ("cpc_308", "cpc_327"), HREF_DOCUMENTI),
+        Passo(2, "Riassunzione non più possibile: valutare se riproporre la domanda",
+              "il giudice ha dichiarato l'estinzione"
+              + (" insieme alla cancellazione dal ruolo (artt. 181 e 309 c.p.c., D.Lgs. 149/2022)" if estinzione.get("estinzione") == "cancellazione_e_estinzione" else "")
+              + ": la riassunzione nei tre mesi vale solo per la cancellazione senza estinzione (art. 307 c.p.c.); l'azione non è "
+              "estinta (art. 310 c.p.c.) e si può riproporre con un nuovo giudizio, verificando prescrizione e decadenze",
+              "", "lettura del fascicolo", ("cpc_307", "cpc_309", "cpc_181", "cpc_310"), HREF_DOCUMENTI),
+        Passo(2, "Informare il cliente dell'estinzione e delle spese",
+              "le spese del processo estinto restano a carico delle parti che le hanno anticipate (art. 310 c.p.c.)",
+              "", "lettura del fascicolo", ("cpc_310",), HREF_DOCUMENTI),
+        Passo(3, "Chiudere il fascicolo se non si impugna né si ripropone la domanda",
+              "decorso il termine per impugnare, il fascicolo si porta a «definito» e poi in archivio", "",
+              "lettura del fascicolo", (), HREF_DOCUMENTI),
+    ]
+    return passi
+
+
 def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], notifiche_lette: dict[str, Any], documenti_letti: dict[str, Any], *, intestazione: dict[str, Any] | None = None,
                 scadenze: list[dict[str, Any]] | None = None) -> list[Passo]:
     passi: list[Passo] = []
@@ -335,6 +374,8 @@ def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], noti
             ragione = "Esamina il provvedimento che fissa questa udienza e gli adempimenti del rito: i termini delle memorie non si applicano automaticamente a un rinvio."
             fonti, template = (), ""
         passi.append(Passo(2, f"Preparare l'udienza del {giorno}", ragione, giorno, "lettura del fascicolo", fonti, HREF_SCADENZE, template))
+    if codice == CODICE_FASE_ESTINTA:
+        passi.extend(_passi_estinzione(documenti_letti.get("estinzione") or {}))
     if codice == CODICE_FASE_DECISA:
         from .percorso import identificativi, impugnazione_del_grado, percorso_dopo_sentenza
 

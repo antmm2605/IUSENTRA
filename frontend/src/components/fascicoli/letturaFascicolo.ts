@@ -186,6 +186,7 @@ export const FASI_ETICHETTE: Record<string, string> = {
   istruttoria: 'Istruttoria',
   decisoria: 'Decisoria',
   decisa: 'Decisa',
+  estinta: 'Processo estinto',
   esecutiva: 'Esecutiva',
   chiusa: 'Chiusa',
 }
@@ -196,7 +197,7 @@ export function etichettaFase(codice: string): string {
 
 export function tonoFase(codice: string): TonoLettura {
   if (codice === 'chiusa') return 'neutral'
-  if (codice === 'decisa' || codice === 'esecutiva') return 'warning'
+  if (codice === 'decisa' || codice === 'esecutiva' || codice === 'estinta') return 'warning'
   if (codice === 'stragiudiziale' || codice === 'preparatoria') return 'info'
   return 'success'
 }

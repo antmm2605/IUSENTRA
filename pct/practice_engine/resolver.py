@@ -11,7 +11,7 @@ from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, normalize_c
 from .dati_certi import DatiCerti, deduci_dati_certi, materia_del_profilo
 from .models import PracticeProfile, ResolverResult
 from .profiles import DEPOSITABLE_CHANNELS, get_profile, list_profiles
-from .profili_rito import RITO_LAVORO
+from .profili_rito import RITO_ESECUZIONE, RITO_LAVORO
 
 
 def _value(source: Any, *names: str) -> str:
@@ -88,6 +88,10 @@ def _profile_from_codice_oggetto_pst(code: str, entry: dict[str, str] | None, *s
     descrizione = str(entry.get("descrizione") or "").lower()
     fascicolo_type = _source_type(*sources)
 
+    # Area «Esecuzioni mobiliari / obblighi» o «Esecuzioni immobiliari» del catalogo ufficiale (es. 510002
+    # «Espropriazione mobiliare presso terzi»): la procedura è un'esecuzione forzata (artt. 474 ss. c.p.c.).
+    if "esecuzion" in area:
+        return get_profile(RITO_ESECUZIONE)
     if ("lavoro" in area or "previdenza" in area or fascicolo_type == "LAVORO") and "SICID" in registri:
         if "700" in descrizione:
             return None
@@ -255,16 +259,17 @@ class PracticeResolver:
 
         # 9. proposta del rito della materia, se i dati lo indicano, con le sole alternative pertinenti
         if rito_profile and not dati.discordanti:
-            return ResolverResult(
-                rito_profile, 0.6, dati.spiegazione(), _alternative_pertinenti(dati, exclude=rito_profile.code), True,
-            )
+            # Un precetto o un pignoramento fanno un'esecuzione forzata: le pratiche della materia del titolo
+            # (sanatoria edilizia, responsabilità medica…) non sono alternative (collaudo 08/11/2026).
+            alternative = [] if rito_profile.code == RITO_ESECUZIONE else _alternative_pertinenti(dati, exclude=rito_profile.code)
+            return ResolverResult(rito_profile, 0.6, dati.spiegazione(), alternative, True)
         return ResolverResult(None, 0.0, dati.spiegazione(), _alternative_pertinenti(dati), True)
 
 
 def alternative_del_fascicolo(fascicolo: Any, etichette: list[str] | None = None, *, exclude: str = "") -> list[dict[str, Any]]:
     """I profili fra cui l'avvocato può cambiare quello applicato: solo materia e ufficio del fascicolo."""
     dati = deduci_dati_certi(fascicolo, list(etichette or []))
-    righe = _alternative_pertinenti(dati, exclude=exclude)
+    righe = [] if dati.rito == RITO_ESECUZIONE else _alternative_pertinenti(dati, exclude=exclude)
     rito = get_profile(dati.rito) if dati.rito and not dati.discordanti else None
     if rito and rito.code != exclude and all(riga["code"] != rito.code for riga in righe):
         righe.insert(0, _alternative(rito, 0.6, "rito indicato dai dati del fascicolo"))

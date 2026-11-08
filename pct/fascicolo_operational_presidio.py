@@ -411,13 +411,22 @@ def _relata_sector(notification_relata: dict[str, Any], *, fid: str) -> dict[str
     )
 
 
+def spese_senza_liquidazione(spese_sentenza: Iterable[dict[str, Any]] | None) -> bool:
+    """La sentenza della causa compensa interamente le spese (art. 92 c.p.c.) e nessuna sentenza le liquida:
+    non c'è una liquidazione del giudice da registrare."""
+    regolazioni = {_text(voce.get("regolazione")) for voce in spese_sentenza or [] if isinstance(voce, dict)}
+    return bool(regolazioni) and regolazioni <= {"compensazione"}
+
+
 def _economico_sector(
     payment_summary: dict[str, Any],
     sentenze_economiche: dict[str, Any] | None,
     *,
     fid: str,
+    spese_sentenza: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     actions: list[dict[str, Any]] = []
+    compensate = spese_senza_liquidazione(spese_sentenza)
     items = payment_summary.get("items") if isinstance(payment_summary.get("items"), dict) else {}
     analysis = payment_summary.get("analysis") if isinstance(payment_summary.get("analysis"), dict) else {}
     analysis_status = _text(analysis.get("status"))
@@ -452,6 +461,8 @@ def _economico_sector(
         status = _text(raw.get("status"))
         if status not in {"da_registrare", "da_emettere", "parziale"}:
             continue
+        if kind == "liquidazione_giudice" and compensate:
+            continue  # spese compensate dalla sentenza della causa: nulla da liquidare (collaudo 08/11/2026)
         amount_label = _text(raw.get("importoLabel"))
         title = labels.get(kind, _text(raw.get("label"), "Voce economica da completare"))
         if amount_label:
@@ -615,6 +626,7 @@ def build_fascicolo_operational_presidio(
     duplicate_check_ready: bool = True,
     duplicate_check_reason: str = "",
     sentenze_economiche: dict[str, Any] | None = None,
+    spese_sentenza: list[dict[str, Any]] | None = None,
     today: date | None = None,
 ) -> dict[str, Any]:
     today = today or oggi_roma()
@@ -625,7 +637,7 @@ def build_fascicolo_operational_presidio(
         pec_sector,
         document_sector,
         _relata_sector(notification_relata or {}, fid=fid),
-        _economico_sector(payment_summary or {}, sentenze_economiche, fid=fid),
+        _economico_sector(payment_summary or {}, sentenze_economiche, fid=fid, spese_sentenza=spese_sentenza),
         _duplicates_sector(
             duplicate_group,
             fid=fid,

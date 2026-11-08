@@ -5099,6 +5099,16 @@ def _ensure_auto_proforma_for_fascicolo(
     return {"status": "missing_basis", "reason": "Nessuna sentenza/importo utile per creare una bozza proforma."}
 
 
+def _spese_lette_dalla_sentenza(fascicolo: Any) -> list[dict[str, Any]]:
+    """Le spese regolate dalla sentenza della causa, dall'archivio delle letture (nessuna lettura del PDF)."""
+    try:
+        from web.services.fascicolo_conto_economico_runtime import sentenze_dall_archivio
+
+        return sentenze_dall_archivio(fascicolo)
+    except Exception:
+        return []
+
+
 def generate_react_fascicolo_proforma(
     *,
     get_fascicoli: Callable[[], Any],
@@ -5124,7 +5134,12 @@ def generate_react_fascicolo_proforma(
             "errors": {"fascicolo": "Il fascicolo non è disponibile nello studio."},
         }, 404
     economic_summary = payment_summary_for_fascicolo(fascicolo)
-    if any(item.get("richiedeConferma") for item in economic_summary["items"].values()):
+    from web.services.proforma_da_sentenza import base_dalla_sentenza_letta, voci_che_bloccano
+
+    sentenza_amount, sentenza_source = base_dalla_sentenza_letta(fascicolo)
+    base_da_sentenza = sentenza_amount is not None and _fascicolo_auto_proforma_amount(fascicolo)[0] is None
+    bloccanti = voci_che_bloccano(economic_summary["items"], base_da_sentenza=base_da_sentenza)
+    if bloccanti:
         from web.services.react_fatturazione_bridge import _is_proforma
 
         existing = next((item for item in get_fatturazione().per_fascicolo(_text(fascicolo.id))
@@ -5133,7 +5148,7 @@ def generate_react_fascicolo_proforma(
             return {"ok": True, "message": "Proforma esistente conservata; verifica le discordanze prima di modificarla.",
                     "proformaId": _text(existing.id), "paymentSummary": economic_summary,
                     "redirectHref": f"/fatturazione?id_documento={quote(_text(existing.id), safe='')}"}, 200
-        return {"ok": False, "message": "Verifica e conferma gli importi discordanti prima di generare la proforma.",
+        return {"ok": False, "message": "Prima di preparare la proforma conferma l'importo: " + "; ".join(bloccanti),
                 "errors": {"importi": "Importi economici da verificare."}, "paymentSummary": economic_summary}, 409
     requested_basis, basis_error = _requested_proforma_basis(payload)
     if basis_error:
@@ -5143,6 +5158,8 @@ def generate_react_fascicolo_proforma(
             "errors": {"importo": basis_error},
         }, 400
     amount, amount_source = _fascicolo_auto_proforma_amount(fascicolo)
+    if amount is None and requested_basis is None and base_da_sentenza:
+        amount, amount_source = sentenza_amount, sentenza_source
     if amount is not None and requested_basis is not None:
         requested_amount = float(requested_basis["importo"])
         if abs(float(amount) - requested_amount) > 0.009:
@@ -9932,6 +9949,7 @@ def build_react_fascicolo_detail_payload(
         duplicate_check_ready=duplicate_check_ready,
         duplicate_check_reason=duplicate_check_reason,
         sentenze_economiche=sentenze_economiche,
+        spese_sentenza=_spese_lette_dalla_sentenza(fascicolo),
     )
     quick_counts["presidio_operativo"] = len(operational_presidio.get("actions") or [])
     regia_payload = (

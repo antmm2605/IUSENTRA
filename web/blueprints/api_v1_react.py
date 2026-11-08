@@ -10858,6 +10858,11 @@ def _notiziario_save_cache(cache: Mapping[str, Any]) -> str:
 
 
 def _notiziario_cache_item(news_id: str) -> dict[str, Any] | None:
+    from web.services.notiziario_runtime import archivio_in_lettura, voce_singola
+
+    dall_archivio = voce_singola(archivio_in_lettura(current_app.config), news_id)
+    if dall_archivio:
+        return dall_archivio
     return next(
         (
             row for row in _notiziario_load_cache().get("items", [])
@@ -11034,10 +11039,80 @@ def _notiziario_response_data(
             "mockFallback": False,
         },
     }
+_NOTIZIARIO_GIRO_IN_CORSO = threading.Lock()
+
+
+def _notiziario_archivio():
+    """Archivio condiviso delle Notizie utili (pct/notiziario), None finché il lavoro pianificato non l'ha creato."""
+    from web.services.notiziario_runtime import archivio_in_lettura
+
+    archivio = archivio_in_lettura(current_app.config)
+    return archivio if archivio is not None and archivio.elenco(limite=1) else None
+
+
+def _notiziario_risposta_archivio(archivio):
+    from web.services import notiziario_runtime as vista
+
+    try:
+        righe = get_fascicoli().indice_leggero()
+    except Exception as exc:  # senza indice la pagina resta leggibile, senza fascicoli pertinenti
+        current_app.logger.warning("Notizie utili: indice dei fascicoli non disponibile: %s", exc)
+        righe = []
+    payload = vista.costruisci_vista(
+        archivio,
+        interazioni=_notiziario_load_interactions(),
+        fascicoli=vista.fascicoli_aperti(righe),
+        filtri=vista.filtri_richiesti(request.args),
+        oggi=datetime.now(ZoneInfo("Europe/Rome")).date(),
+    )
+    payload.update({
+        "generatedAt": _iso_now(),
+        "filters": list(_NOTIZIARIO_SOURCE_FILTERS),
+        "quickSources": _notiziario_quick_sources(),
+        "contracts": {"publishedOnly": True, "officialExcerptOnly": True, "sharedOfficialArchive": True, "mockFallback": False},
+    })
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+def _notiziario_aggiorna_archivio():
+    """Pulsante «Aggiorna»: un giro sulle fonti non interrogate negli ultimi 5 minuti, con tempo limitato."""
+    from pct.notiziario.archivio import ArchivioNotiziario
+    from pct.notiziario.giro import esegui_giro
+    from pct.notiziario.pianificazione import percorso_archivio
+
+    if _NOTIZIARIO_GIRO_IN_CORSO.acquire(blocking=False):
+        try:
+            archivio = ArchivioNotiziario(percorso_archivio(current_app.config))
+            recenti = [
+                riga.get("ultimo_tentativo") or "" for riga in archivio.stato_fonti().values()
+            ]
+            ultimo = max(recenti, default="")
+            soglia = (datetime.now(timezone.utc) - _NOTIZIARIO_INTERVALLO_MINIMO).replace(microsecond=0)
+            if not ultimo or ultimo < soglia.isoformat().replace("+00:00", "Z"):
+                esito = esegui_giro(archivio, forza=True, tempo_massimo=45)
+                _audit_event(
+                    "notizie_utili.aggiornamento",
+                    "informazione_professionale",
+                    "notizie_utili_archivio",
+                    f"Interrogate {esito['fonti_interrogate']} fonti, {esito['notizie_nuove']} notizie nuove.",
+                )
+        finally:
+            _NOTIZIARIO_GIRO_IN_CORSO.release()
+    archivio = _notiziario_archivio()
+    if archivio is None:
+        return jsonify({"ok": False, "message": "Le fonti ufficiali non sono raggiungibili in questo momento."}), 502
+    return _notiziario_risposta_archivio(archivio)
+
+
 @api_v1_react.get("/notiziario")
 @_richiedi_auth
 def notiziario_react():
     try:
+        archivio = _notiziario_archivio()
+        if archivio is not None:
+            return _notiziario_risposta_archivio(archivio)
         cache = _notiziario_load_cache()
         rows = list(cache.get("items") or [])
         source = "notizie_utili_fonti_ufficiali"
@@ -11104,6 +11179,12 @@ def _notiziario_risposta_dalla_cache(cache: Mapping[str, Any]):
 @api_v1_react.post("/notiziario/aggiorna")
 @_richiedi_auth
 def notiziario_react_aggiorna():
+    try:
+        if _notiziario_archivio() is not None:
+            return _notiziario_aggiorna_archivio()
+    except Exception as exc:
+        current_app.logger.exception("Aggiornamento Notizie utili non riuscito: %s", exc)
+        return jsonify({"ok": False, "message": "Aggiornamento delle fonti non riuscito. Riprova tra poco."}), 502
     try:
         cache = _notiziario_load_cache()
         # appena aggiornate: si risponde con quello che c'e', senza rifare il giro

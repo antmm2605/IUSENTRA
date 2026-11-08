@@ -505,6 +505,19 @@ def _source_collectors(request_get: RequestGet, *, limit: int) -> dict[str, Call
     }
 
 
+def raccogli_pagina_istituzionale(
+    source_id: str,
+    *,
+    request_get: RequestGet = requests.get,
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Notizie di una sola pagina istituzionale (usato dal giro di `pct.notiziario.giro`)."""
+    collectors = _source_collectors(request_get, limit=max(1, min(int(limit or 12), 24)))
+    if source_id not in collectors:
+        raise ValueError("Pagina istituzionale non censita.")
+    return collectors[source_id]()
+
+
 def refresh_notizie_utili(
     *,
     request_get: RequestGet = requests.get,

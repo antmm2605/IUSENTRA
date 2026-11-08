@@ -815,6 +815,25 @@ def start_scheduler(app):
         from pct.legal_intelligence import official_telematic_source_ids
         _run_legal_monitor(list(official_telematic_source_ids()), "telematico")
 
+    @scheduler.scheduled_job("interval", minutes=30, id="notiziario_fonti_ufficiali", max_instances=1, coalesce=True)
+    def _notiziario_fonti_ufficiali():
+        # Notizie utili: solo le fonti scadute secondo la loro frequenza (pct/notiziario/fonti.py).
+        from pct.notiziario.pianificazione import esegui_da_pianificazione
+
+        with app.app_context():
+            try:
+                esito = esegui_da_pianificazione(app.config)
+                logger.info(
+                    "[scheduler] Notizie utili: %d fonti interrogate, %d notizie nuove, %d non raggiungibili",
+                    int(esito.get("fonti_interrogate") or 0),
+                    int(esito.get("notizie_nuove") or 0),
+                    len(esito.get("fonti_non_raggiungibili") or []),
+                )
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Notizie utili non aggiornate: %s", e)
+                return {"ok": False, "status": "errore", "error": str(e)}
+
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=6, minute=5), id="legal_sources_daily_check", max_instances=1, coalesce=True)
     def _legal_sources_daily_check():
         # «Controllo giornaliero delle fonti ufficiali» della Ricerca legale: stesso motore del pulsante della

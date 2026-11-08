@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" media="screen" href="./../screen-rss.xsl"?>
+<rss version="2.0">
+<channel xmlns:dc="http://purl.org/dc/elements/1.1/">
+   <title>5 - Acts of the Official Journal L</title>
+   <pubDate>Sun, 08 Nov 2026 18:20:26 +0100</pubDate>
+   <description>This feed retrieves individual acts published in the latest editions of the L series (Legislation) of the &lt;em&gt;Official Journal of the European Union&lt;/em&gt;.</description>
+   <language>it</language>
+   <link>https://eur-lex.europa.eu/homepage.html</link>
+   <image>
+      <title>5 - Acts of the Official Journal L</title>
+      <url>https://eur-lex.europa.eu/images/eurlex_logo.png</url>
+      <link>https://eur-lex.europa.eu/homepage.html</link>
+   </image>
+   <item>
+      <title>CELEX:32026H2394: Raccomandazione (UE) 2026/2394 della Commissione, del 29 ottobre 2026, sulle clausole contrattuali tipo non vincolanti relative all'accesso ai dati e al relativo utilizzo e sulle clausole contrattuali standard non vincolanti per i contratti di cloud computing</title>
+      <description/>
+      <link>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELEX:32026H2394</link>
+      <guid>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELLAR:fea1d35a-d982-11f1-8501-01aa75ed71a1</guid>
+      <category>Lex Alerts</category>
+      <pubDate>Fri, 06 Nov 2026 00:00:00 +0100</pubDate>
+      <dc:creator>Commissione europea, Direzione generale della Giustizia e dei consumatori</dc:creator>
+   </item>
+<item>
+      <title>CELEX:32026R2496: Regolamento di esecuzione (UE) 2026/2496 della Commissione, del 5 novembre 2026, recante modifica dell'allegato I del regolamento di esecuzione (UE) 2023/594 che stabilisce misure speciali di controllo delle malattie per la peste suina africana</title>
+      <description/>
+      <link>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELEX:32026R2496</link>
+      <guid>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELLAR:fe67d799-d982-11f1-8501-01aa75ed71a1</guid>
+      <category>Lex Alerts</category>
+      <pubDate>Fri, 06 Nov 2026 00:00:00 +0100</pubDate>
+      <dc:creator>Commissione europea, Direzione generale della Salute e della sicurezza alimentare</dc:creator>
+   </item>
+<item>
+      <title>CELEX:32026R2467: Regolamento di esecuzione (UE) 2026/2467 della Commissione, del 5 novembre 2026, relativo alla compensazione finanziaria per i consumatori finali di combustibili e alle quote restituite per le emissioni non contemplate dal capo IV bis della direttiva 2003/87/CE del Parlamento europeo e del Consiglio</title>
+      <description/>
+      <link>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELEX:32026R2467</link>
+      <guid>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELLAR:fec4015b-d982-11f1-8501-01aa75ed71a1</guid>
+      <category>Lex Alerts</category>
+      <pubDate>Fri, 06 Nov 2026 00:00:00 +0100</pubDate>
+      <dc:creator>Commissione europea, Direzione generale per l’Azione per il clima</dc:creator>
+   </item>
+<item>
+      <title>CELEX:32026R2409: Regolamento di esecuzione (UE) 2026/2409 della Commissione, del 5 novembre 2026, che dispone la registrazione delle importazioni di determinati polioli di polietere originari della Repubblica popolare cinese al fine di consentire la riscossione di dazi antidumping sulle importazioni soggette a registrazione</title>
+      <description/>
+      <link>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELEX:32026R2409</link>
+      <guid>https://eur-lex.europa.eu/./legal-content/AUTO/?uri=CELLAR:4ad43434-d983-11f1-8501-01aa75ed71a1</guid>
+      <category>Lex Alerts</category>
+      <pubDate>Fri, 06 Nov 2026 00:00:00 +0100</pubDate>
+      <dc:creator>Direzione generale del Commercio e della sicurezza economica, Commissione europea</dc:creator>
+   </item>
+</channel>
+</rss>

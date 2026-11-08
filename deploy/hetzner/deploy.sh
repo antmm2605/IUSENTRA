@@ -466,7 +466,7 @@ fi
 # Il risultato del collaudo del lettore lo scrive l'utente del gestionale: un file creato dall'amministratore
 # del server lo bloccava con «permesso negato» ogni notte (07/11/2026). Nessun altro file viene toccato.
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" exec -T -u root scheduler-worker \
-  sh -c 'f=/data/intelligence/collaudo_lettore.json; if [ -e "$f" ]; then chown iusentra "$f"; fi' \
+  sh -c 'd=/data/intelligence; f=$d/collaudo_lettore.json; mkdir -p "$d"; chown iusentra "$d"; if [ -e "$f" ]; then chown iusentra "$f"; fi' \
   || echo "Permessi del file del collaudo non riallineati (non bloccante)."
 
 # ---------------------------------------------------------------------------

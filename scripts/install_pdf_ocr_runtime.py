@@ -11,6 +11,8 @@ import io
 from pathlib import Path
 import platform
 import tarfile
+import time
+import urllib.error
 import urllib.request
 
 ARTIFACTS = (
@@ -22,15 +24,31 @@ ARTIFACTS = (
 )
 
 
+def _scarica(url: str, tentativi: int = 5) -> bytes:
+    """Un errore temporaneo del server (5xx, rete) si ritenta con attesa crescente; l'integrità resta verificata dopo."""
+    request = urllib.request.Request(url, headers={'User-Agent': 'IUSENTRA-OCR-build'})
+    for tentativo in range(1, tentativi + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                return response.read(150_000_001)
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500 or tentativo == tentativi:
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if tentativo == tentativi:
+                raise
+        print(f'Scaricamento non riuscito, nuovo tentativo {tentativo + 1}/{tentativi}: {url}', flush=True)
+        time.sleep(5 * 2 ** (tentativo - 1))
+    raise RuntimeError('Scaricamento non riuscito: ' + url)
+
+
 def install(destination: Path) -> None:
     if platform.system() != 'Linux' or platform.machine() not in {'x86_64', 'AMD64'}:
         raise RuntimeError('Installazione OCR governata disponibile nel container Linux x64.')
     destination = destination.resolve()
     destination.mkdir(parents=True, exist_ok=True)
     for relative, url, expected in ARTIFACTS:
-        request = urllib.request.Request(url, headers={'User-Agent': 'IUSENTRA-OCR-build'})
-        with urllib.request.urlopen(request, timeout=120) as response:
-            data = response.read(150_000_001)
+        data = _scarica(url)
         if len(data) > 150_000_000 or hashlib.sha256(data).hexdigest() != expected:
             raise RuntimeError('Integrità del componente OCR non verificata: ' + relative)
         target = destination / relative

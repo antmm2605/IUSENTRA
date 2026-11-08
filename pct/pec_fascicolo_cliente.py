@@ -5,7 +5,7 @@ Base normativa e limite di ambito:
 - D.M. 44/2011, art. 13 (ricevute del deposito telematico: accettazione,
   consegna, esito dei controlli automatici, intervento della cancelleria) e
   art. 16 (comunicazioni e biglietti di cancelleria via PEC), con le
-  Specifiche tecniche DGSIA (rev. 04.01.24) che fissano i tracciati
+  Specifiche tecniche DGSIA (provvedimento 7/8/2024, in vigore dal 30/09/2024) che fissano i tracciati
   ``Comunicazione.xml`` / ``EsitoAtto.xml``: il procedimento e' identificato
   da ufficio giudiziario e numero di ruolo, non dal nominativo del cliente.
 - Il cliente dello studio quindi non si legge dalla PEC: si ricava soltanto

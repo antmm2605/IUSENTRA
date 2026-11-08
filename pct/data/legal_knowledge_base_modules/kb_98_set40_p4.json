@@ -933,15 +933,30 @@
           "descrizione": "NULLITÀ DELLA NOTIFICAZIONE – sanatoria per raggiungimento dello scopo"
         },
         {
+          "fonte": "c.p.c.",
+          "articolo": "147",
+          "descrizione": "TEMPO DELLE NOTIFICAZIONI – la notifica via PEC si esegue senza limiti orari; si perfeziona per il notificante alla ricevuta di accettazione e per il destinatario alla ricevuta di avvenuta consegna; se questa è generata tra le 21 e le 7 si perfeziona per il destinatario alle 7 (commi 2-3, testo vigente da D.Lgs. 149/2022, per i procedimenti instaurati dal 28/02/2023)"
+        },
+        {
+          "fonte": "L. 53/1994",
+          "articolo": "3-bis",
+          "descrizione": "NOTIFICA IN PROPRIO VIA PEC – all'indirizzo risultante da pubblici elenchi, dalla PEC del notificante in pubblici elenchi; perfezionamento alla RAC per il notificante e alla RdAC per il destinatario, fermo l'art. 147 commi 2-3 c.p.c. (comma 3)"
+        },
+        {
+          "fonte": "L. 53/1994",
+          "articolo": "3-ter",
+          "descrizione": "OBBLIGO DI NOTIFICA PEC – verso chi ha domicilio digitale obbligatorio o eletto in INAD; se la notifica non riesce per causa imputabile al destinatario: inserimento nell'area web riservata del Portale dei servizi telematici (perfezionata al decimo giorno o al primo accesso); se per causa non imputabile: posta o ufficiale giudiziario"
+        },
+        {
           "fonte": "D.L. 179/2012",
           "articolo": "16-septies",
-          "descrizione": "NOTIFICA VIA PEC – equivale alla notifica a mano; validità"
+          "descrizione": "REGIME ANTERIORE (abrogato dal D.Lgs. 149/2022 come modificato dalla L. 197/2022; si applica ai soli procedimenti pendenti al 28/02/2023, art. 35 D.Lgs. 149/2022): notifica telematica eseguita dopo le 21 perfezionata alle 7 del giorno successivo; Corte cost. 9/4/2019 n. 75 ne ha dichiarato l'illegittimità nella parte in cui fa perfezionare alle 7 del giorno dopo, per il notificante, la notifica la cui ricevuta di accettazione è generata tra le 21 e le 24: per il notificante vale il momento della ricevuta di accettazione"
         }
       ],
       "notifica_PEC": {
-        "quando_valida": "Se destinatario ha PEC nel registro pubblico (CED REGINDE per gli avvocati; INI-PEC per le imprese)",
-        "orario": "Se inviata oltre le 21:00: notificata il giorno successivo",
-        "PEC_non_funzionante": "Se il destinatario non riceve per problema della propria PEC: il notificante deve provare il tentativo"
+        "quando_valida": "All'indirizzo del destinatario risultante da pubblici elenchi (art. 16-ter D.L. 179/2012: ReGIndE, INI-PEC, INAD, registro PA) e dalla PEC del notificante risultante da pubblici elenchi (art. 3-bis comma 1 L. 53/1994)",
+        "orario": "Nessun limite orario per la notifica via PEC (art. 147 comma 2 c.p.c.). Per il notificante si perfeziona quando è generata la ricevuta di accettazione, anche se dopo le 21; per il destinatario quando è generata la ricevuta di avvenuta consegna, ma se questa è generata tra le 21 e le 7 si perfeziona alle 7 (art. 147 comma 3 c.p.c.; art. 3-bis comma 3 L. 53/1994). Procedimenti pendenti al 28/02/2023: art. 16-septies D.L. 179/2012 come inciso da Corte cost. 75/2019 (per il notificante vale comunque la ricevuta di accettazione)",
+        "PEC_non_funzionante": "Se la consegna non riesce per causa imputabile al destinatario (es. casella piena): inserimento dell'atto nell'area web riservata del Portale dei servizi telematici con dichiarazione dei presupposti (art. 3-ter comma 2 L. 53/1994); se per causa non imputabile: notifica a mezzo posta o ufficiale giudiziario (art. 3-ter comma 3)"
       },
       "nullita_e_sanatoria_156": {
         "nullita": "Notifica a indirizzo errato; notifica ad altro soggetto senza qualifica per riceverla",
@@ -985,7 +1000,7 @@
         ],
         "avvertimenti_obbligatori": [
           "Sanatoria: se la parte compare non può più eccepire la nullità",
-          "PEC oltre le 21:00: notificata il giorno dopo",
+          "PEC dopo le 21: per il notificante la notifica è perfezionata alla ricevuta di accettazione; per il destinatario la RdAC generata tra le 21 e le 7 vale dalle 7 (art. 147 commi 2-3 c.p.c.; art. 3-bis comma 3 L. 53/1994; Corte cost. 75/2019 per i procedimenti pendenti al 28/02/2023)",
           "Rinnovazione: il giudice può ordinare la rinnovazione della notifica nulla"
         ]
       },

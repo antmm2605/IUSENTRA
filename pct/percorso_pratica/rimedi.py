@@ -1,7 +1,8 @@
 """Dopo la sentenza: rimedi possibili, ipotesi difensive e, se la causa è vinta, la strada per ottenere quanto deciso.
 
 Ogni voce cita la norma vigente letta il 06/11/2026 nell'archivio Normattiva del software (art. 59 L. 69/2009 su
-Normattiva). Le ipotesi sono spunti per l'avvocato, agganciati alla ragione della decisione: non sostituiscono la
+Normattiva). Giurisdizione e grado (amministrativo, tributario, penale; appello e cassazione) scelgono il mezzo
+d'impugnazione: ``pct/percorso_pratica/giurisdizioni.py``. Le ipotesi sono spunti per l'avvocato, agganciati alla ragione della decisione: non sostituiscono la
 valutazione dei motivi sul testo della sentenza.
 """
 
@@ -10,8 +11,17 @@ from __future__ import annotations
 from typing import Any
 
 
-def _rimedio(nome: str, termine: str, norme: list[str], quando: str) -> dict[str, Any]:
-    return {"rimedio": nome, "termine": termine, "norme": norme, "quando": quando}
+from pct.percorso_pratica.giurisdizioni import (
+    ALTRI_RIMEDI,
+    CASSAZIONE,
+    CIVILE,
+    IMPUGNAZIONI_PER_GRADO,
+    REALIZZAZIONE_PER_GIURISDIZIONE,
+)
+
+
+def _rimedio(nome: str, termine: str, norme: list[str], quando: str, template: str = "") -> dict[str, Any]:
+    return {"rimedio": nome, "termine": termine, "norme": norme, "quando": quando, "template": template}
 
 
 CORREZIONE = _rimedio("Correzione dell'errore materiale o di calcolo", "finché la sentenza non è appellata; con ricorso allo stesso giudice",
@@ -22,15 +32,18 @@ REVOCAZIONE = _rimedio("Revocazione", "30 giorni dalla notifica (art. 325); per 
 IMPUGNAZIONI = {
     "lavoro": [
         _rimedio("Appello alla corte d'appello, sezione lavoro", "30 giorni dalla notificazione della sentenza; senza notifica sei mesi dalla pubblicazione",
-                 ["art. 433 c.p.c.", "art. 434 c.p.c.", "art. 327 c.p.c."], "sentenza di primo grado sfavorevole in tutto o in parte"),
+                 ["art. 433 c.p.c.", "art. 434 c.p.c.", "art. 327 c.p.c."], "sentenza di primo grado sfavorevole in tutto o in parte",
+                 "CIV_APPELLO_BREVE"),
     ],
     "ordinario": [
         _rimedio("Appello", "30 giorni dalla notificazione della sentenza; senza notifica sei mesi dalla pubblicazione",
-                 ["art. 325 c.p.c.", "art. 326 c.p.c.", "art. 327 c.p.c."], "sentenza di primo grado sfavorevole in tutto o in parte"),
+                 ["art. 325 c.p.c.", "art. 326 c.p.c.", "art. 327 c.p.c."], "sentenza di primo grado sfavorevole in tutto o in parte",
+                 "CIV_APPELLO_BREVE"),
     ],
     "appello": [
         _rimedio("Ricorso per cassazione", "60 giorni dalla notificazione della sentenza; senza notifica sei mesi dalla pubblicazione",
-                 ["art. 360 c.p.c.", "art. 325 c.p.c.", "art. 327 c.p.c.", "art. 366 c.p.c."], "sentenza d'appello: solo per i motivi dell'art. 360 c.p.c."),
+                 ["art. 360 c.p.c.", "art. 325 c.p.c.", "art. 327 c.p.c.", "art. 366 c.p.c."], "sentenza d'appello: solo per i motivi dell'art. 360 c.p.c.",
+                 "CIV_CASSAZIONE_BREVE"),
     ],
 }
 IMPUGNAZIONI["semplificato"] = IMPUGNAZIONI["ordinario"]
@@ -69,17 +82,36 @@ REALIZZAZIONE = [
 ]
 
 
-def rimedi(esito: dict[str, Any], *, rito: str = "ordinario", grado: str = "primo", controparte_pa: bool = False) -> dict[str, Any]:
-    """Che cosa fare dopo la sentenza, secondo l'esito per il cliente."""
+def _impugnazioni(giurisdizione: str, grado: str, rito: str) -> list[dict[str, Any]]:
+    """Il mezzo d'impugnazione del grado e della giurisdizione, poi i rimedi davanti allo stesso giudice."""
+    if giurisdizione == CIVILE and grado != CASSAZIONE:
+        principali = IMPUGNAZIONI["appello"] if grado == "appello" else IMPUGNAZIONI.get(rito, IMPUGNAZIONI["ordinario"])
+        return [*principali, REVOCAZIONE, CORREZIONE]
+    principali = IMPUGNAZIONI_PER_GRADO.get((giurisdizione, grado), [])
+    if grado == CASSAZIONE:
+        return list(principali)
+    return [*principali, *ALTRI_RIMEDI.get(giurisdizione, [])]
+
+
+def rimedi(esito: dict[str, Any], *, rito: str = "ordinario", grado: str = "primo", controparte_pa: bool = False,
+           giurisdizione: str = CIVILE) -> dict[str, Any]:
+    """Che cosa fare dopo la sentenza, secondo l'esito per il cliente, la giurisdizione e il grado della sentenza."""
     per_noi = esito.get("per_il_cliente")
+    civile = giurisdizione == CIVILE
     if per_noi == "favorevole":
-        passi = [p for p in REALIZZAZIONE if (controparte_pa or not p.get("solo_pa")) and (esito.get("spese", {}).get("distrazione") or not p.get("solo_distrazione"))]
-        ipotesi = IPOTESI["spese_compensate"] if esito.get("spese", {}).get("regolazione") == "compensazione" else []
-        return {"strada": "realizzazione", "passi": passi, "ipotesi": ipotesi, "rimedi": [CORREZIONE]}
-    impugnazioni = IMPUGNAZIONI["appello"] if grado == "appello" else IMPUGNAZIONI.get(rito, IMPUGNAZIONI["ordinario"])
+        if civile:
+            passi = [p for p in REALIZZAZIONE if (controparte_pa or not p.get("solo_pa")) and (esito.get("spese", {}).get("distrazione") or not p.get("solo_distrazione"))]
+        else:
+            passi = list(REALIZZAZIONE_PER_GIURISDIZIONE.get(giurisdizione, []))
+        ipotesi = IPOTESI["spese_compensate"] if civile and esito.get("spese", {}).get("regolazione") == "compensazione" else []
+        correzione = [CORREZIONE] if civile and grado != CASSAZIONE else [r for r in ALTRI_RIMEDI.get(giurisdizione, []) if "Correzione" in r["rimedio"]]
+        return {"strada": "realizzazione", "passi": passi, "ipotesi": ipotesi, "rimedi": correzione,
+                "giurisdizione": giurisdizione, "grado": grado}
     ragioni = [voce["ragione"] for voce in esito.get("ragioni", [])]
     if esito.get("esito") in {"incompetenza", "difetto_giurisdizione"}:
         ragioni.insert(0, esito["esito"])
-    ipotesi = [voce for chiave in dict.fromkeys(ragioni) for voce in IPOTESI.get(chiave, []) if rito in voce.get("riti", [rito])]
+    # Le ipotesi citano il processo civile (artt. 342, 434, 437 c.p.c.): fuori da quello non si propongono.
+    ipotesi = [voce for chiave in dict.fromkeys(ragioni) for voce in IPOTESI.get(chiave, []) if rito in voce.get("riti", [rito])] if civile else []
     return {"strada": "impugnazione" if per_noi in {"sfavorevole", "parziale"} else "da_valutare",
-            "rimedi": [*impugnazioni, REVOCAZIONE, CORREZIONE], "ipotesi": ipotesi, "passi": []}
+            "rimedi": _impugnazioni(giurisdizione, grado, rito), "ipotesi": ipotesi, "passi": [],
+            "giurisdizione": giurisdizione, "grado": grado}

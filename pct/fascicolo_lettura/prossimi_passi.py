@@ -295,7 +295,7 @@ def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], noti
             fonti, template = (), ""
         passi.append(Passo(2, f"Preparare l'udienza del {giorno}", ragione, giorno, "lettura del fascicolo", fonti, HREF_SCADENZE, template))
     if codice == CODICE_FASE_DECISA:
-        from .percorso import identificativi, percorso_dopo_sentenza
+        from .percorso import identificativi, impugnazione_del_grado, percorso_dopo_sentenza
 
         percorso = percorso_dopo_sentenza(intestazione or {}, documenti_letti)
         if percorso and percorso["strada"] == "realizzazione":
@@ -305,10 +305,15 @@ def _passi_fase(fase_letta: dict[str, Any], depositi_letti: dict[str, Any], noti
         elif percorso and percorso["strada"] == "impugnazione":
             for voce in percorso["rimedi"][:1]:
                 passi.append(Passo(1, f"Valutare: {voce['rimedio'].lower()}", f"{voce['termine']}; {voce['quando']}", "", "percorso della pratica",
-                                   identificativi(voce["norme"]), HREF_DOCUMENTI, "CIV_APPELLO_BREVE"))
+                                   identificativi(voce["norme"]), HREF_DOCUMENTI, voce.get("template", "")))
             for voce in percorso["ipotesi"]:
                 passi.append(Passo(2, voce["ipotesi"], "ipotesi da verificare sulla motivazione della sentenza", "", "percorso della pratica",
                                    identificativi(voce["norme"]), HREF_DOCUMENTI))
+        elif (voce := (percorso["rimedi"][0] if percorso and percorso["rimedi"] else impugnazione_del_grado(intestazione or {}, documenti_letti))):
+            # Esito per il cliente non deciso o non letto: il mezzo d'impugnazione resta quello del grado e della giurisdizione.
+            passi.append(Passo(1, f"Valutare l'impugnazione o l'esecuzione della sentenza: {voce['rimedio'].lower()}",
+                               f"{voce['termine']}; {voce['quando']}", "", "percorso della pratica", identificativi(voce["norme"]),
+                               HREF_DOCUMENTI, voce.get("template", "")))
         else:
             passi.append(Passo(1, "Valutare l'impugnazione o l'esecuzione della sentenza", "appello entro trenta giorni dalla notificazione della sentenza, o entro sei mesi dalla pubblicazione se non notificata", "", "lettura del fascicolo", ("cpc_325", "cpc_327"), HREF_DOCUMENTI, "CIV_APPELLO_BREVE"))
     if codice == CODICE_FASE_ESECUTIVA:

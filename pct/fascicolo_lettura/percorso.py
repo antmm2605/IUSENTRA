@@ -20,6 +20,8 @@ _NORMA = (
     (re.compile(r"art\. (\d+(?:-[a-z]+)?)(?:, [a-z]+ comma,)? c\.p\.c\."), "cpc_{}"),
     (re.compile(r"art\. (\d+(?:-[a-z]+)?) c\.p\.a\."), "cpa_{}"),
     (re.compile(r"art\. (\d+(?:-[a-z]+)?) c\.c\."), "cc_{}"),
+    (re.compile(r"art\. (\d+(?:-[a-z]+)?) c\.p\.p\."), "cpp_{}"),
+    (re.compile(r"art\. (\d+(?:-[a-z]+)?) D\.Lgs\. 546/1992"), "dlgs546_{}"),
     (re.compile(r"art\. 11 R\.D\. 1611/1933"), "rd1611_art11"),
     (re.compile(r"art\. 14 D\.L\. 669/1996"), "dl669_art14"),
     (re.compile(r"art\. 59, comma 2, L\. 69/2009"), "l69_art59"),
@@ -78,10 +80,35 @@ def percorso_dopo_sentenza(intestazione: dict[str, Any], documenti_letti: dict[s
     from pct.procedura_fasi.riti import rito_per_fascicolo
 
     rito = rito_per_fascicolo(intestazione.get("tipo", ""), intestazione.get("rito", ""))
+    giurisdizione, grado = _giurisdizione_e_grado(intestazione, sentenza)
     controparti = " ".join(nome for nomi in dict(intestazione.get("parti") or {}).values() for nome in nomi) + " " + pulisci(intestazione.get("controparte"))
-    percorso = rimedi(esito, rito=rito if rito in {"lavoro", "ordinario", "semplificato"} else "ordinario", controparte_pa=bool(_PA.search(controparti)))
+    percorso = rimedi(esito, rito=rito if rito in {"lavoro", "ordinario", "semplificato"} else "ordinario", grado=grado,
+                      giurisdizione=giurisdizione, controparte_pa=bool(_PA.search(controparti)))
     return {"sentenza": pulisci(sentenza.get("etichetta")), "data": pulisci(sentenza.get("data_it")), "esito": codice,
             "per_il_cliente": per_noi, "ruolo_cliente": ruolo, "fonte_ruolo": fonte_ruolo, "spese": esito["spese"], **percorso}
+
+
+def _giurisdizione_e_grado(intestazione: dict[str, Any], sentenza: dict[str, Any]) -> tuple[str, str]:
+    """Dall'ufficio del fascicolo, dal rito e dall'intestazione della sentenza letta: una sentenza d'appello non si
+    impugna con l'appello, una del TAR non con i termini del c.p.c."""
+    from pct.percorso_pratica.giurisdizioni import giurisdizione_e_grado
+
+    return giurisdizione_e_grado(
+        tipo=intestazione.get("tipo", ""), ufficio=intestazione.get("ufficio", ""), rito=intestazione.get("rito", ""),
+        sentenza=" ".join(pulisci(sentenza.get(campo)) for campo in ("etichetta", "intestazione", "ufficio")))
+
+
+def impugnazione_del_grado(intestazione: dict[str, Any], documenti_letti: dict[str, Any]) -> dict[str, Any] | None:
+    """Il mezzo d'impugnazione della sentenza quando l'esito non è letto; None per il primo grado civile."""
+    from pct.procedura_fasi.riti import rito_per_fascicolo
+
+    giurisdizione, grado = _giurisdizione_e_grado(intestazione, documenti_letti.get("sentenza") or {})
+    if (giurisdizione, grado) == ("civile", "primo"):
+        return None
+    rito = rito_per_fascicolo(intestazione.get("tipo", ""), intestazione.get("rito", ""))
+    elenco = rimedi({"per_il_cliente": "da_valutare"}, rito=rito if rito in {"lavoro", "ordinario", "semplificato"} else "ordinario",
+                    grado=grado, giurisdizione=giurisdizione)["rimedi"]
+    return elenco[0] if elenco else None
 
 
 def _per_il_cliente(codice: str, ruolo: str) -> str:
@@ -95,4 +122,4 @@ def _per_il_cliente(codice: str, ruolo: str) -> str:
     return "da_valutare"
 
 
-__all__ = ["identificativi", "percorso_dopo_sentenza"]
+__all__ = ["identificativi", "impugnazione_del_grado", "percorso_dopo_sentenza"]

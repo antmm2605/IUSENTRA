@@ -8,6 +8,7 @@ non calcola date: cita la regola e rimanda al motore dei termini.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -186,19 +187,27 @@ _RITO_PER_TIPO = {
     "CIVILE": "ordinario", "LAVORO": "lavoro", "FAMIGLIA": "ordinario", "SUCCESSIONI": "ordinario",
     "PENALE": "penale", "AMMINISTRATIVO": "amministrativo", "TRIBUTARIO": "tributario", "STRAGIUDIZIALE": "mediazione",
 }
+# Indizi come inizio di parola: «tar» dentro «volontaria», «testamentaria» o «notarile» non è il TAR, e
+# «amministrazione di sostegno» non è il processo amministrativo (serve «amministrativ»).
 _RITO_PER_PROCEDIMENTO = (
     ("semplificat", "semplificato"), ("281", "semplificato"), ("lavoro", "lavoro"), ("ingiunt", "decreto_ingiuntivo"),
     ("monitor", "decreto_ingiuntivo"), ("esecu", "esecuzione"), ("pignor", "esecuzione"), ("precett", "esecuzione"),
-    ("cautel", "cautelare"), ("mediaz", "mediazione"), ("amministr", "amministrativo"), ("tar", "amministrativo"),
-    ("tribut", "tributario"), ("penal", "penale"), ("ordinar", "ordinario"),
+    ("cautel", "cautelare"), ("mediaz", "mediazione"), ("amministrativ", "amministrativo"), ("tar", "amministrativo"),
+    ("t.a.r", "amministrativo"), ("tribut", "tributario"), ("penal", "penale"), ("ordinar", "ordinario"),
 )
+_PAROLE_INTERE = {"tar", "t.a.r"}
+
+
+def _indizio_presente(indizio: str, testo: str) -> bool:
+    fine = r"(?![a-zà-ù])" if indizio in _PAROLE_INTERE else ""
+    return re.search(rf"(?<![a-zà-ù0-9]){re.escape(indizio)}{fine}", testo) is not None
 
 
 def rito_per_fascicolo(tipo: str, tipo_procedimento: str = "") -> str:
     """Il codice del rito dal tipo di fascicolo e dal tipo di procedimento dichiarato."""
     procedimento = " ".join(str(tipo_procedimento or "").split()).lower()
     for indizio, codice in _RITO_PER_PROCEDIMENTO:
-        if indizio in procedimento:
+        if _indizio_presente(indizio, procedimento):
             return codice
     return _RITO_PER_TIPO.get(" ".join(str(tipo or "").split()).upper(), "")
 

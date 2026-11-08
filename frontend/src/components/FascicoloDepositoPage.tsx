@@ -5184,7 +5184,7 @@ function notificationProofLabel(doc: FascicoloDocument): string {
 
 function notificationCommunicationDetail(doc: FascicoloDocument): string {
   const kind = notificationProofKind(doc)
-  if (kind === 'atto_notificato') return 'Documento originale notificato: deve provenire dal Portale Servizi, non dall’allegato PEC d’ufficio.'
+  if (kind === 'atto_notificato') return 'Atto notificato: il documento firmato allegato alla PEC di notifica (art. 3-bis L. 53/1994), da depositare con RAC e RdAC; non sostituirlo con la copia arrivata da una comunicazione di cancelleria.'
   if (kind === 'rac') return 'Ricevuta di accettazione della notifica PEC conservata nel fascicolo.'
   if (kind === 'rdac') return 'Ricevuta di avvenuta consegna della notifica PEC conservata nel fascicolo.'
   if (kind === 'pec') return 'Messaggio PEC di invio notifica collegato al documento notificato.'

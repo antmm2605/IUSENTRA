@@ -2,7 +2,7 @@
 
 Nascono dalla scadenza «Deposito note scritte ex art. 127-ter c.p.c.» del fascicolo (proposta
 in bozza o confermata): la lista è quella di ``pct/note_127_ter/adempimenti.py`` — sole istanze e
-conclusioni, le cinque indicazioni del decreto, la prova della notifica quando il cliente è il
+conclusioni, i dati che identificano causa e udienza, la prova della notifica quando il cliente è il
 ricorrente e la resistente non risulta costituita (Specifiche DGSIA art. 26, già art. 19-bis
 Provv. DGSIA 16/04/2014; art. 196-undecies disp. att. c.p.c., già artt. 16-decies e 16-undecies
 D.L. 179/2012), il provvedimento atteso nei trenta giorni successivi. L'opposizione (art.
@@ -101,10 +101,15 @@ def passi_note_127_ter(
                 passi.append(Passo(vicino, f"Preparare le note scritte per l'udienza del {entro}: sole istanze e conclusioni",
                                    voce.dettaglio + bozza, entro, "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE))
             elif voce.codice == "indicazioni":
-                passi.append(Passo(vicino, "Riportare nelle note le cinque indicazioni richieste dal decreto", voce.dettaglio,
+                # Il decreto qui non è riletto: non si può dire che le chieda proprio lui (collaudo 08/11/2026, Tribunale
+                # di Vicenza: il decreto chiedeva altro). Sono i dati che identificano la causa e l'udienza sostituita.
+                passi.append(Passo(vicino, "Riportare nelle note i dati che identificano la causa e l'udienza sostituita",
+                                   voce.dettaglio + "; verificare nel decreto le indicazioni specifiche che chiede",
                                    entro, "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE))
             elif voce.codice == "prova_notifica":
-                passi.append(Passo(1, voce.testo[:1].upper() + voce.testo[1:], voce.dettaglio, entro,
+                # L'urgenza segue la scadenza delle note, come le altre voci: «entro pochi giorni» per una data fra mesi
+                # contraddiceva la data stessa (collaudo 08/11/2026).
+                passi.append(Passo(vicino, voce.testo[:1].upper() + voce.testo[1:], voce.dettaglio, entro,
                                    "decreto di trattazione scritta", voce.fonti, HREF_DOCUMENTI))
             elif voce.codice == "decisione":
                 passi.append(Passo(3, f"Attendere il provvedimento sulle note del {entro}", voce.dettaglio, "",

@@ -3,6 +3,8 @@
 Fonti consultate, senza rileggere documenti nella richiesta:
 - crediti da sentenza: eventi del controllo economico delle sentenze della causa (le sentenze di altri procedimenti,
   allegate come precedenti, sono escluse da `build_sentenza_economic_payload`), con il documento da cui nascono;
+  in mancanza, le spese lette dal dispositivo dal motore documenti nell'archivio delle letture
+  (`pct/archivio_letture/spese_sentenza.py`), anche quando la sentenza le compensa o condanna il cliente;
 - contributo unificato: documenti classificati dal catalogo come ricevuta di versamento o autocertificazione;
 - parcella, spese, anticipazioni e incassi: documenti economici del fascicolo e registro degli incassi.
 """
@@ -73,6 +75,60 @@ def credito_da_liquidazione_registrata(fascicolo: Any) -> list[dict[str, Any]]:
              "fonti": fonti}]
 
 
+def _lato_del_cliente(fascicolo: Any) -> str:
+    """«attivo» se il cliente ha promosso la causa, «passivo» se resiste, vuoto se le parti non lo dicono."""
+    from pct.fascicolo_lettura.passi_note_127_ter import _ruolo_cliente
+    from web.helpers import get_soggetti
+
+    parti: dict[str, list[str]] = {}
+    try:
+        for parte, soggetto in get_soggetti().parti_fascicolo(_testo(getattr(fascicolo, "id", ""))):
+            ruolo = _testo(getattr(getattr(parte, "ruolo", ""), "value", getattr(parte, "ruolo", ""))).replace("_", " ").lower()
+            nome = _testo(getattr(soggetto, "nome_completo", "") or getattr(soggetto, "denominazione", "") or getattr(soggetto, "nome", ""))
+            if ruolo and nome:
+                parti.setdefault(ruolo, []).append(nome)
+    except Exception:
+        return ""
+    attivo = _ruolo_cliente({"cliente": _testo(getattr(fascicolo, "nome_cliente", "")), "parti": parti})
+    return "" if attivo is None else ("attivo" if attivo else "passivo")
+
+
+def sentenze_dall_archivio(fascicolo: Any) -> list[dict[str, Any]]:
+    """Le spese regolate dalla sentenza della causa, lette dal motore documenti e conservate nell'archivio.
+
+    Serve quando il controllo economico non ha registrato né eventi né liquidazione (identità della parte non
+    dimostrata in altri documenti, sentenza letta dopo): il dispositivo già letto basta a dire che cosa ha deciso
+    il giudice sulle spese, con il documento come fonte. Nessuna lettura del PDF nella richiesta.
+    """
+    from pct.archivio_letture.spese_sentenza import spese_lette
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+    fid = _testo(getattr(fascicolo, "id", ""))
+    numero, anno = _testo(getattr(fascicolo, "numero_rg", "")), _testo(getattr(fascicolo, "anno_rg", ""))
+    rg = f"{numero}/{anno}" if numero and anno not in {"", "0"} else numero
+    fatti = [f for f in registro_corrente().fatti(tenant_corrente(), fid, verifiche=None)
+             if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"spese_sentenza", "data_atto"})]
+    lette = spese_lette(fatti, rg=rg)
+    if not lette:
+        return []
+    nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "")) for d in getattr(fascicolo, "documenti", []) or []}
+    lato = _lato_del_cliente(fascicolo)
+    for voce in lette:
+        documento_id = voce["documento_id"]
+        voce["fonti"] = [{"label": nomi.get(documento_id) or "Sentenza", "norma": "sentenza della causa",
+                          "href": _href_documento(fid, documento_id) if documento_id in nomi else ""}]
+        voce["a_favore_del_cliente"] = None if not (lato and voce["beneficiario"]) else lato == voce["beneficiario"]
+    return lette
+
+
+def crediti_dalle_sentenze_lette(sentenze: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Il credito per le spese liquidate in favore del cliente (o distratte al difensore); mai una condanna del cliente."""
+    return [{"importo": voce["importo"], "distrazione": voce["distrazione"], "confermato": False, "fonti": voce["fonti"],
+             "distrazione_condizionata": voce.get("distrazione_condizionata", False), "accessori": voce.get("accessori", False)}
+            for voce in sentenze
+            if voce["regolazione"] == "condanna" and voce["importo"] and voce.get("a_favore_del_cliente") is not False]
+
+
 def documenti_contributo(fascicolo: Any) -> list[dict[str, str]]:
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
 
@@ -132,9 +188,12 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
             voce["href"] = _href_documento(fascicolo_id, documento_id)
         voci[chiave] = voce
     crediti = crediti_da_sentenza(fascicolo_id) or credito_da_liquidazione_registrata(fascicolo)
-    risultato = conto_economico(voci=voci, crediti=crediti,
+    sentenze = sentenze_dall_archivio(fascicolo)
+    crediti = crediti or crediti_dalle_sentenze_lette(sentenze)
+    risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze,
                                 documenti_contributo=documenti_contributo(fascicolo), parcelle=parcelle_del_fascicolo(fascicolo_id))
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 
 
-__all__ = ["conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_sentenza", "documenti_contributo", "parcelle_del_fascicolo"]
+__all__ = ["conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_sentenza", "crediti_dalle_sentenze_lette",
+           "documenti_contributo", "parcelle_del_fascicolo", "sentenze_dall_archivio"]

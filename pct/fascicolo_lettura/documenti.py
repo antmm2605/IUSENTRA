@@ -30,6 +30,17 @@ ETICHETTE_SEZIONE = {
 }
 
 
+def _data_pubblicazione(fatti: list[dict[str, Any]]) -> str:
+    """La data di deposito/pubblicazione letta nella sentenza, solo se univoca (``data_pubblicazione_da_fatti``)."""
+    from types import SimpleNamespace
+
+    from pct.termine_lungo_sentenza import data_pubblicazione_da_fatti
+
+    giorno = data_pubblicazione_da_fatti([SimpleNamespace(**{k: f.get(k) for k in ("categoria", "campo", "verifica", "contesto", "valore")})
+                                          for f in fatti])
+    return giorno.isoformat() if giorno else ""
+
+
 def _data(documento: dict[str, Any]) -> str:
     return pulisci(documento.get("data_documento") or documento.get("data_caricamento"))[:10]
 
@@ -92,6 +103,9 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
             date = in_calce[-1:] or intestazione_date[:1]
             documento["data"] = str(date[0]["valore"])[:10] if date else ""
             documento["data_it"] = data_it(documento["data"])
+            # La pubblicazione (art. 133 c.p.c.) è il deposito in cancelleria: «pubbl. il…», «depositata il…». È da
+            # lì che decorre il termine lungo (art. 327 c.p.c.), non dalla data della decisione in calce.
+            documento["data_pubblicazione"] = _data_pubblicazione(certe)
     letti.sort(key=lambda voce: voce["data"])
     conteggi = {sezione: sum(1 for voce in letti if voce["sezione"] == sezione) for sezione in SEZIONI}
     conteggi = {chiave: valore for chiave, valore in conteggi.items() if valore}

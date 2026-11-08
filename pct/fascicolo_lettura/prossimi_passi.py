@@ -75,10 +75,51 @@ def _norme_della_scadenza(titolo: str) -> tuple[tuple[str, ...], str]:
     return (), ""
 
 
-def stato_passi(intestazione: dict[str, Any]) -> dict[str, Any]:
+_GIURISDIZIONI_SENZA_327 = {"penale", "amministrativo", "tributario"}
+
+
+def _avviso_giudicato(intestazione: dict[str, Any], documenti_letti: dict[str, Any] | None, oggi: Any) -> str:
+    """Perché non si archivia ancora: la sentenza civile della causa può essere impugnata (artt. 324 e 327 c.p.c.).
+
+    Il termine lungo decorre dalla **pubblicazione**, cioè dal deposito in cancelleria (art. 133 c.p.c.), letta nella
+    sentenza («pubbl. il…», «depositata il…»), non dalla data della decisione in calce. Sospensione feriale salvo
+    lavoro e previdenza (art. 3 L. 742/1969); scadenza in sabato o festivo prorogata (art. 155 c.p.c.). Se la
+    pubblicazione non è letta e la decisione è recente, la data va verificata: nessuna data inventata.
+    """
+    sentenze = (documenti_letti or {}).get("sentenze") or []
+    oggi_giorno = data_da(oggi)
+    tipo = pulisci(intestazione.get("tipo")).lower()
+    if not sentenze or not oggi_giorno or tipo in _GIURISDIZIONI_SENZA_327:
+        return ""
+    from pct.termine_lungo_sentenza import scadenza_termine_lungo
+
+    lavoro = "lavoro" in tipo or "lavoro" in pulisci(intestazione.get("rito")).lower() or "previdenz" in tipo
+    sentenza = sentenze[-1]
+    pubblicazione = data_da(sentenza.get("data_pubblicazione"))
+    base = ("Causa decisa: prima di archiviare attendere il passaggio in giudicato (art. 324 c.p.c.). Senza notifica "
+            "della sentenza l'impugnazione è possibile per sei mesi dalla pubblicazione (art. 327 c.p.c.")
+    feriale = ", senza sospensione feriale nel lavoro" if lavoro else ", più la sospensione feriale"
+    if pubblicazione:
+        termine = data_da(scadenza_termine_lungo(pubblicazione, lavoro=lavoro).get("deadline"))
+        if not termine or termine < oggi_giorno:
+            return ""
+        return (f"{base}{feriale}): pubblicata il {data_it(pubblicazione)}, termine fino al {data_it(termine)}. "
+                "Verificare allora che non sia stata impugnata, poi archiviare.")
+    decisione = data_da(sentenza.get("data"))
+    if decisione and (oggi_giorno - decisione).days <= 548:
+        return (f"{base}{feriale}): la data di pubblicazione (deposito in cancelleria, art. 133 c.p.c.) non è letta "
+                "nella sentenza: verificarla sulla copia o sul portale e contare sei mesi da lì prima di archiviare.")
+    return ""
+
+
+def stato_passi(intestazione: dict[str, Any], documenti_letti: dict[str, Any] | None = None, oggi: Any = None) -> dict[str, Any]:
     """Se il fascicolo ammette passaggi: un fascicolo definito, da archiviare o archiviato non ne ha."""
     stato = pulisci(intestazione.get("stato_codice")).upper()
     if intestazione.get("da_archiviare"):
+        avviso = _avviso_giudicato(intestazione, documenti_letti, oggi)
+        if avviso:
+            # «Da archiviare» non è giudicato (direttiva 07/10/2026): finché l'impugnazione è possibile lo si dice.
+            return {"attivi": False, "motivo": avviso}
         return {"attivi": False, "motivo": "Fascicolo pronto per l'archivio: nessun passaggio da eseguire, solo l'archiviazione."}
     if stato in STATI_SENZA_PASSI:
         return {"attivi": False, "motivo": f"Fascicolo {intestazione.get('stato') or stato.lower()}: nessun passaggio da eseguire."}
@@ -346,7 +387,7 @@ def _passi_documenti(documenti_letti: dict[str, Any], verifiche: dict[str, Any])
     if proposte > 0:
         passi.append(Passo(3, f"Confermare con un clic le {proposte} propost{'a' if proposte == 1 else 'e'} di catalogazione pronte", "il presidio ha identificato i documenti dal contenuto con la prova; la conferma resta dell'avvocato", "", "catalogazione", (), HREF_CATALOGO))
     if documenti_letti["totale"] and not documenti_letti.get("procura") and not non_indicizzati and not da_acquisire:
-        passi.append(Passo(2, "Acquisire la procura alle liti", "non risulta fra i documenti del fascicolo, tutti letti dal presidio documentale", "", "catalogazione", ("cpc_165",), HREF_DOCUMENTI))
+        passi.append(Passo(2, "Acquisire la procura alle liti", "non risulta fra i documenti del fascicolo, tutti letti dal presidio documentale", "", "catalogazione", ("cpc_83",), HREF_DOCUMENTI))
     return passi
 
 
@@ -398,7 +439,7 @@ def prossimi_passi(
     appuntamenti: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """I passi e lo stato dei passi (attivi o no, e perché)."""
-    stato = stato_passi(intestazione)
+    stato = stato_passi(intestazione, documenti_letti, oggi)
     if not stato["attivi"]:
         return [], stato
     giorno_oggi = data_da(oggi)

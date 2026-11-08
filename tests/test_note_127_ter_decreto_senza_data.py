@@ -150,7 +150,9 @@ def test_ricorrente_con_resistente_non_costituita_ha_la_voce_della_prova_della_n
     prova = next(passo for azione, passo in azioni.items() if "prova della notifica" in azione)
     assert ".eml" in prova["motivo"] and "ricevuta_avvenuta_consegna_completa.eml" in prova["motivo"]
     assert "attestazione di conformità" in prova["motivo"]
-    indicazioni = azioni["Riportare nelle note le cinque indicazioni richieste dal decreto"]["motivo"]
+    assert prova["urgenza"] == 2  # scadenza fra 43 giorni: non «entro pochi giorni» (collaudo 08/11/2026)
+    indicazioni = azioni["Riportare nelle note i dati che identificano la causa e l'udienza sostituita"]["motivo"]
+    assert "verificare nel decreto le indicazioni specifiche" in indicazioni
     for voce in ("«Note per la trattazione scritta»", "15/12/2026", "R.G. 4711/2025", "Mario Bianchi", "Avv. Anna Verdi per Mario Rossi"):
         assert voce in indicazioni
     contenuto = next(p for p in passi if p["azione"].startswith("Preparare le note scritte per l'udienza del 15/12/2026"))

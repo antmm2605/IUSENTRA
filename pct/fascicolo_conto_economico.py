@@ -21,11 +21,15 @@ from datetime import date, timedelta
 from typing import Any, Iterable, Mapping
 
 NORMA_DISTRAZIONE = "art. 93 c.p.c."
+NORMA_CONDANNA = "art. 91 c.p.c."
+NORMA_COMPENSAZIONE = "art. 92 c.p.c."
+NORMA_FORFETTARIO = "art. 2, comma 2, D.M. 55/2014"
 NORMA_PAGAMENTO = "art. 6, terzo comma, D.P.R. 633/1972"
 NORMA_TERMINE_FATTURA = "art. 21, comma 4, D.P.R. 633/1972"
 NORMA_ANTICIPAZIONI = "art. 15, primo comma, n. 3, D.P.R. 633/1972"
 NORMA_CU = "art. 13 D.P.R. 115/2002"
 NORMA_ESENZIONE_CU = "art. 9, comma 1-bis, D.P.R. 115/2002"
+NORMA_ANTICIPAZIONE_FORFETTARIA = "art. 30 D.P.R. 115/2002"
 GIORNI_EMISSIONE_FATTURA = 12
 
 _ETICHETTA_ESENZIONE = "contributo unificato / esenzione"
@@ -62,8 +66,39 @@ def _riga(voce: str, etichetta: str, *, importo: float | None, stato: str, tono:
             "tono": tono, "dettaglio": dettaglio, "fonti": [dict(f) for f in fonti if f.get("label")], "norma": norma}
 
 
-def riga_sentenza(crediti: list[Mapping[str, Any]]) -> dict[str, Any]:
-    """Spese liquidate dalla sentenza della causa: a favore del cliente o distratte in favore dell'avvocato."""
+def _riga_senza_credito(sentenze: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """La sentenza della causa c'è ma non dà un credito: spese compensate, a carico del cliente o importo da leggere."""
+    fonti = [f for s in sentenze for f in s.get("fonti") or []]
+    data = next((_data_it(s.get("data")) for s in sentenze if s.get("data")), "")
+    della = f"La sentenza{' del ' + data if data else ''}"
+    regolazioni = {str(s.get("regolazione") or "") for s in sentenze}
+    if regolazioni <= {"compensazione"}:
+        return _riga("sentenza", "Importo liquidato in sentenza", importo=None, stato="Spese compensate", tono="neutral",
+                     norma=NORMA_COMPENSAZIONE, fonti=fonti,
+                     dettaglio=f"{della} compensa le spese: ciascuna parte sostiene le proprie, nulla da chiedere alla controparte.")
+    if "compensazione_parziale" in regolazioni:
+        return _riga("sentenza", "Importo liquidato in sentenza", importo=None, stato="Spese compensate in parte", tono="warning",
+                     norma=NORMA_COMPENSAZIONE, fonti=fonti,
+                     dettaglio=f"{della} compensa le spese solo in parte: leggere il dispositivo per la quota liquidata e chi la paga.")
+    a_carico = [s for s in sentenze if s.get("regolazione") == "condanna" and s.get("a_favore_del_cliente") is False]
+    if a_carico:
+        return _riga("sentenza", "Importo liquidato in sentenza", importo=_numero(a_carico[0].get("importo")),
+                     stato="Spese a carico del cliente", tono="danger", norma=NORMA_CONDANNA, fonti=fonti,
+                     dettaglio=f"{della} condanna il cliente alle spese: non è un credito dello studio; informare il cliente "
+                               "e valutare l'impugnazione.")
+    return _riga("sentenza", "Importo liquidato in sentenza", importo=None, stato="Importo da leggere sul dispositivo", tono="warning",
+                 norma=NORMA_CONDANNA, fonti=fonti,
+                 dettaglio=f"{della} regola le spese ma l'importo o il beneficiario non sono stati letti con certezza: aprire il dispositivo.")
+
+
+def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, Any]] | None = None) -> dict[str, Any]:
+    """Spese liquidate dalla sentenza della causa: a favore del cliente o distratte in favore dell'avvocato.
+
+    ``sentenze``: le regolazioni delle spese lette dal dispositivo (``pct/archivio_letture/spese_sentenza.py``); se la
+    sentenza c'è ma non dà un credito, la riga dice perché invece di attendere una sentenza già arrivata.
+    """
+    if not crediti and sentenze:
+        return _riga_senza_credito(list(sentenze))
     if not crediti:
         return _riga("sentenza", "Importo liquidato in sentenza", importo=None, stato="Nessuna sentenza con spese liquidate",
                      tono="neutral", dettaglio="Quando arriva la sentenza della causa, l'importo e la fonte compaiono qui.")
@@ -81,6 +116,11 @@ def riga_sentenza(crediti: list[Mapping[str, Any]]) -> dict[str, Any]:
         avvisi.append("Stesso importo in più documenti: contato una volta, verificare che sia la stessa sentenza.")
     if len(gruppi) > 1:
         avvisi.append("Importi diversi in più sentenze del fascicolo: verificare quale è definitiva prima di chiedere il pagamento.")
+    if any(c.get("accessori") for c in scelti):
+        avvisi.append(f"Oltre all'importo liquidato spettano gli accessori: rimborso forfettario del 15% ({NORMA_FORFETTARIO}), "
+                      "contributo previdenziale e IVA, da indicare nella proforma.")
+    if distratte and any(c.get("distrazione_condizionata") for c in distratte):
+        avvisi.append("La sentenza distrae le spese «ove richiesto»: verificare che negli atti ci sia la dichiarazione di antistatarietà.")
     if distratte:
         return _riga("sentenza", "Importo liquidato in sentenza", importo=totale, stato="Distratte in favore dell'avvocato",
                      tono="primary", norma=NORMA_DISTRAZIONE, fonti=fonti,
@@ -88,6 +128,23 @@ def riga_sentenza(crediti: list[Mapping[str, Any]]) -> dict[str, Any]:
     return _riga("sentenza", "Importo liquidato in sentenza", importo=totale, stato="Spese liquidate al cliente",
                  tono="primary" if not avvisi else "warning", fonti=fonti,
                  dettaglio=" ".join(["Le paga la controparte al cliente."] + avvisi))
+
+
+def _avviso_importo_contributo(voce: Mapping[str, Any]) -> str:
+    """Perché l'importo del contributo non si può dare per certo: più importi letti o lettura da confermare.
+
+    Nelle ricevute dei depositi compare spesso anche l'anticipazione forfettaria di € 27 (art. 30 D.P.R. 115/2002),
+    che non è contributo unificato: indicarla come tale falserebbe il conto e le anticipazioni da recuperare.
+    """
+    letti = sorted({n for n in (_numero(v) for v in voce.get("importiLetti") or []) if n})
+    if len(letti) > 1:
+        testo = f"Importi letti nelle ricevute: {', '.join(_euro(n) for n in letti)}"
+        if 27.0 in letti:
+            testo += f"; {_euro(27.0)} è l'anticipazione forfettaria ({NORMA_ANTICIPAZIONE_FORFETTARIA}), non il contributo unificato"
+        return testo + ": confermare sulla ricevuta l'importo del contributo."
+    if voce.get("richiedeConferma"):
+        return "Lettura della ricevuta da confermare: aprirla e verificare importo, data e procedimento."
+    return ""
 
 
 def riga_contributo(voce: Mapping[str, Any], documenti: list[Mapping[str, Any]]) -> dict[str, Any]:
@@ -105,9 +162,15 @@ def riga_contributo(voce: Mapping[str, Any], documenti: list[Mapping[str, Any]])
         versamenti = []
     importo = _numero(voce.get("importo"))
     if versamenti:
+        fonti = [_fonte(d["nome"], d.get("href", ""), "ricevuta di versamento") for d in versamenti]
+        da_confermare = _avviso_importo_contributo(voce)
+        if da_confermare or not any(d.get("confermato") for d in versamenti):
+            return _riga("contributo_unificato", "Contributo unificato", importo=None if da_confermare else importo,
+                         stato="Versato, da confermare", tono="warning", norma=NORMA_CU, fonti=fonti,
+                         dettaglio=da_confermare or "Ricevuta proposta dal catalogo e non ancora confermata: aprirla e "
+                                                    "confermare importo e procedimento.")
         return _riga("contributo_unificato", "Contributo unificato", importo=importo, stato="Versato", tono="success",
-                     norma=NORMA_CU, fonti=[_fonte(d["nome"], d.get("href", ""), "ricevuta di versamento") for d in versamenti],
-                     dettaglio="" if importo else "Importo da riportare dalla ricevuta.")
+                     norma=NORMA_CU, fonti=fonti, dettaglio="" if importo else "Importo da riportare dalla ricevuta.")
     if esenzioni:
         confermata = any(d.get("confermato") for d in esenzioni)
         return _riga("contributo_unificato", "Contributo unificato", importo=None,
@@ -135,9 +198,13 @@ def righe_parcella(parcelle: list[Mapping[str, Any]], voce_spese: Mapping[str, A
                        fonti=[_fonte(f"{'Fattura' if _documento(p) == 'fattura' else 'Proforma'} {p.get('numero') or ''}".strip(),
                                      f"/fatturazione?id_documento={p.get('id')}") for p in attive]))
     spese = round(sum(float(p.get("spese") or 0) for p in attive), 2) or _numero(voce_spese.get("importo"))
-    righe.append(_riga("spese_esborsi", "Spese ed esborsi", importo=spese,
-                       stato="Documentate" if spese else "Nessuna spesa registrata", tono="neutral" if not spese else "primary",
-                       fonti=[_fonte(str(voce_spese.get("documento_fonte") or ""), str(voce_spese.get("href") or ""))]))
+    fonte_spese = str(voce_spese.get("documento_fonte") or "")
+    # Un documento indicato come fonte senza importo non è «nessuna spesa»: l'importo va riportato dal documento.
+    stato_spese = "Documentate" if spese else ("Importo da riportare" if fonte_spese else "Nessuna spesa registrata")
+    righe.append(_riga("spese_esborsi", "Spese ed esborsi", importo=spese, stato=stato_spese,
+                       tono="primary" if spese else ("warning" if fonte_spese else "neutral"),
+                       dettaglio="" if spese or not fonte_spese else "Il documento indicato come fonte non ha un importo registrato: riportare le spese documentate.",
+                       fonti=[_fonte(fonte_spese, str(voce_spese.get("href") or ""))]))
     anticipi = round(sum(float(p.get("anticipazioni") or 0) for p in attive), 2) or None
     fondo = _numero(voce_fondo.get("importo"))
     fonti_anticipi = [_fonte(f"Voci di anticipazione nella {_documento(p)} {p.get('numero') or ''}".strip(),
@@ -213,15 +280,18 @@ def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]]
 
 def conto_economico(*, voci: Mapping[str, Mapping[str, Any]], crediti: list[Mapping[str, Any]],
                     documenti_contributo: list[Mapping[str, Any]], parcelle: list[Mapping[str, Any]],
-                    oggi: date | None = None) -> dict[str, Any]:
-    righe = [riga_sentenza(crediti), riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo)]
+                    oggi: date | None = None, sentenze: list[Mapping[str, Any]] | None = None) -> dict[str, Any]:
+    righe = [riga_sentenza(crediti, sentenze), riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo)]
     righe += righe_parcella(parcelle, voci.get("spese_esborsi") or {}, voci.get("fondo_spese") or {})
     liquidazione = voci.get("liquidazione_giudice") or {}
     dichiarato = None
     if str(liquidazione.get("status") or "") == "pagato" and liquidazione.get("data_pagamento"):
         dichiarato = {"data": str(liquidazione["data_pagamento"])[:10],
                       "automatico": str(liquidazione.get("origine") or "").startswith("lex_ai")}
-    return {"righe": righe, "percorso": percorso(parcelle, crediti, oggi=oggi, dichiarato=dichiarato)}
+    risultato_percorso = percorso(parcelle, crediti, oggi=oggi, dichiarato=dichiarato)
+    if sentenze and not crediti:
+        risultato_percorso["passi"][0].update(fatto=True, dettaglio=righe[0]["stato"])
+    return {"righe": righe, "percorso": risultato_percorso}
 
 
 __all__ = ["conto_economico", "percorso", "riga_contributo", "riga_sentenza", "righe_parcella"]

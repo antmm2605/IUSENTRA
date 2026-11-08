@@ -84,6 +84,11 @@ FONTI: dict[str, dict[str, Any]] = {
         "Le notificazioni a mezzo PEC possono essere eseguite senza limiti orari; si perfezionano per il notificante quando è generata la ricevuta di accettazione e per il destinatario quando è generata la ricevuta di avvenuta consegna; se questa è generata tra le 21 e le 7, la notificazione si intende perfezionata per il destinatario alle ore 7."),
     "cpc_163bis": _norma("art. 163-bis c.p.c.", "Termini per comparire", _CPC, "163bis",
         "Tra il giorno della notificazione della citazione e quello dell'udienza di comparizione debbono intercorrere termini liberi non minori di centoventi giorni se il luogo della notificazione si trova in Italia e di centocinquanta giorni se si trova all'estero."),
+    "cpc_83": _norma("art. 83 c.p.c.", "Procura alle liti", _CPC, "83",
+        "Quando la parte sta in giudizio col ministero di un difensore, questi deve essere munito di procura. La procura alle "
+        "liti può essere generale o speciale, e deve essere conferita con atto pubblico o scrittura privata autenticata.",
+        verifica=("primo e secondo comma; URN Normattiva consultato l'08/11/2026 (il servizio ha restituito l'indice "
+                  "dell'atto ma non il testo dell'articolo: estratto da riscontrare alla prossima consultazione)")),
     "cpc_165": _norma("art. 165 c.p.c.", "Costituzione dell'attore", _CPC, "165",
         "L'attore, entro dieci giorni dalla notificazione della citazione al convenuto, deve costituirsi in giudizio iscrivendo la causa a ruolo e depositando l'originale della citazione, la procura e i documenti offerti in comunicazione."),
     "cpc_166": _norma("art. 166 c.p.c.", "Costituzione del convenuto", _CPC, "166",

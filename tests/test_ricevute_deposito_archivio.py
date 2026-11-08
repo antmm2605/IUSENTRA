@@ -43,7 +43,7 @@ def _archivio(tmp_path: Path, messaggi: list[tuple[str, bytes]], cartella: str =
     # Le colonne usate di pct/pec_pipeline.py::pec_messages; metadata_json come lo scrive il presidio PEC.
     percorso = tmp_path / "pec_audit.sqlite"
     conn = sqlite3.connect(percorso)
-    conn.execute("CREATE TABLE pec_messages (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT 'studio', folder TEXT NOT NULL, original_mime BLOB NOT NULL, "
+    conn.execute("CREATE TABLE pec_messages (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL DEFAULT 'studio', imap_uid TEXT NOT NULL DEFAULT '1', folder TEXT NOT NULL, original_mime BLOB NOT NULL, "
                  "mime_size INTEGER NOT NULL, received_at TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}')")
     for numero, (ricevuta_il, grezzo) in enumerate(messaggi):
         intest = message_from_bytes(grezzo)
@@ -105,6 +105,22 @@ def test_esito_del_ministero_letto_per_intero(tmp_path):
     archivio = _archivio(tmp_path, [("2026-10-12T10:05:00", esito)])
     [ricevuta] = ricevute_da_archivio(archivio, dal=datetime(2026, 10, 11, tzinfo=ROMA))
     assert MSGID in ricevuta["testo"] and ricevuta["fonte"] == "archivio_pec"
+
+
+def test_pec_senza_numero_imap_o_di_piu_studi_non_lette(tmp_path):
+    archivio = _archivio(tmp_path, [("2026-10-12T10:01:00", _pec("CONSEGNA: DEPOSITO TELEMATICO"))])
+    dal = datetime(2026, 10, 11, tzinfo=ROMA)
+    conn = sqlite3.connect(archivio)
+    conn.execute("UPDATE pec_messages SET imap_uid = ''")
+    conn.commit()
+    assert ricevute_da_archivio(archivio, dal=dal) == []  # non scaricata dalla casella
+    conn.execute("UPDATE pec_messages SET imap_uid = '7'")
+    conn.execute("INSERT INTO pec_messages (id, tenant_id, folder, original_mime, mime_size, received_at) "
+                 "VALUES ('altro', 'altro-studio', 'INBOX', x'00', 1, '2026-10-12')")
+    conn.commit()
+    conn.close()
+    assert ricevute_da_archivio(archivio, dal=dal) == []  # due studi e nessuno indicato
+    assert len(ricevute_da_archivio(archivio, dal=dal, studio="studio")) == 1
 
 
 def test_archivio_assente_non_blocca(tmp_path):

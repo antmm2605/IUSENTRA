@@ -203,3 +203,52 @@ def test_rete_passa_timeout_e_niente_reindirizzamenti_automatici():
 
     assert scarica("https://www.inps.it/feed", ("www.inps.it",), request_get=_get) == b"<rss></rss>"
     assert chiamate[0]["timeout"] and chiamate[0]["allow_redirects"] is False
+
+
+_GU = ("www.gazzettaufficiale.it", "gazzettaufficiale.it")
+
+
+@pytest.mark.parametrize("url", [
+    "javascript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "https://www.gazzettaufficiale.it@evil.example/",
+    "https://evil.example\\@www.gazzettaufficiale.it",
+    "https://utente:segreta@www.gazzettaufficiale.it/eli/id/2026/11/07/26A05807/SG",
+    "https://www.gazzettaufficiale.it:8443/eli/id/2026/11/07/26A05807/SG",
+    "https://evil.example/eli/id/2026/11/07/26A05807/SG",
+    "https://www.gazzettaufficiale.it.evil.example/",
+    "ftp://www.gazzettaufficiale.it/file",
+    "https://www.gazzettaufficiale.it/eli/\x00id",
+    "//www.gazzettaufficiale.it/eli/id",
+    "",
+])
+def test_collegamento_ufficiale_scarta_gli_indirizzi_non_dell_ente(url):
+    assert adattatori.collegamento_ufficiale(url, _GU) == ""
+
+
+def test_collegamento_ufficiale_mantiene_e_porta_su_https_l_indirizzo_dell_ente():
+    assert adattatori.collegamento_ufficiale("http://www.gazzettaufficiale.it/eli/id/2026/11/07/26A05807/SG", _GU) == (
+        "https://www.gazzettaufficiale.it/eli/id/2026/11/07/26A05807/SG"
+    )
+    assert adattatori.collegamento_ufficiale("https://WWW.GazzettaUfficiale.it/rss/SG?x=1#frammento", _GU) == (
+        "https://www.gazzettaufficiale.it/rss/SG?x=1"
+    )
+
+
+def test_pagine_istituzionali_scartano_i_collegamenti_fuori_dal_dominio_della_fonte():
+    righe = [
+        {"id": "official_" + "1" * 24, "title": "Avviso PST", "published_at": "2026-11-03",
+         "source_url": "https://pst.giustizia.it/PST/it/news.page?contentId=NEW1", "short_summary": ""},
+        {"id": "official_" + "2" * 24, "title": "Avviso ingannevole", "published_at": "2026-11-03",
+         "source_url": "https://www.cortedicassazione.it/it/altro.page", "short_summary": ""},
+        {"id": "official_" + "3" * 24, "title": "Avviso script", "published_at": "2026-11-03",
+         "source_url": "javascript:alert(1)", "short_summary": ""},
+    ]
+    notizie = adattatori.da_pagina_istituzionale(fonti.fonte("pst_giustizia"), righe)
+    assert [n["url"] for n in notizie] == ["https://pst.giustizia.it/PST/it/news.page?contentId=NEW1"]
+
+
+def test_ogni_fonte_dichiara_i_propri_host_ufficiali():
+    for fonte in fonti.FONTI:
+        assert fonte.host_ammessi, fonte.id
+        assert fonte.url.split("/")[2] in fonte.host_ammessi, fonte.id

@@ -42,6 +42,19 @@ function visibleText(value: string, fallback = ''): string {
   return sanitizeDisplayText(value || fallback)
 }
 
+/** Solo collegamenti https:// verso un host, senza credenziali: mai javascript:, data: o altri schemi. */
+function safeExternalHref(value: string): string {
+  const candidate = (value || '').trim()
+  if (!candidate.toLowerCase().startsWith('https://')) return ''
+  try {
+    const parsed = new URL(candidate)
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || !parsed.hostname) return ''
+    return parsed.href
+  } catch {
+    return ''
+  }
+}
+
 function sourceInitials(value: string): string {
   const parts = visibleText(value, 'Fonte').split(/\s+/).filter(Boolean)
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'FI'
@@ -425,7 +438,7 @@ export function NotiziarioPanel() {
                   <div className="iu-notiziario__source-state is-warning" role="alert"><ExternalLink size={20} /><strong>Fonte non leggibile nel pannello</strong><span>{visibleText(sourceReader?.message || '', 'Usa il collegamento al sito ufficiale per consultare il contenuto.')}</span></div>
                 )}
               </div>
-              <a className="iu-notiziario__original" href={webSource.url} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {webSource.requiresAuthentication ? 'Apri l’accesso ufficiale' : webSource.directOpen ? 'Apri la Gazzetta Ufficiale' : 'Apri il sito ufficiale'}</a>
+              {safeExternalHref(webSource.url) ? <a className="iu-notiziario__original" href={safeExternalHref(webSource.url)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> {webSource.requiresAuthentication ? 'Apri l’accesso ufficiale' : webSource.directOpen ? 'Apri la Gazzetta Ufficiale' : 'Apri il sito ufficiale'}</a> : null}
             </>
           ) : selected ? (
             <>
@@ -487,7 +500,7 @@ export function NotiziarioPanel() {
                   <Check size={16} /> {selected.read ? 'Segna da leggere' : 'Segna come letta'}
                 </button>
               </div>
-              {selected.sourceUrl ? <a className="iu-notiziario__original" href={selected.sourceUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} /> Apri il testo ufficiale</a> : null}
+              {safeExternalHref(selected.sourceUrl) ? <a className="iu-notiziario__original" href={safeExternalHref(selected.sourceUrl)} target="_blank" rel="noopener noreferrer"><ExternalLink size={15} /> Apri il testo ufficiale</a> : null}
             </>
           ) : (
             <div className="iu-notiziario__empty is-reader"><BookOpen size={28} /><strong>Seleziona una notizia</strong><span>Il testo pubblicato dall’ente si apre qui, senza lasciare la Panoramica.</span></div>
@@ -521,7 +534,7 @@ export function NotiziarioPanel() {
           <ul>
             {payload.sourceStates.map((state) => (
               <li key={state.id} className={state.checked && !state.ok ? 'is-failing' : ''}>
-                <a href={state.url} target="_blank" rel="noreferrer">{visibleText(state.label)}</a>
+                {safeExternalHref(state.url) ? <a href={safeExternalHref(state.url)} target="_blank" rel="noopener noreferrer">{visibleText(state.label)}</a> : <strong>{visibleText(state.label)}</strong>}
                 <span>{visibleText(state.authority)}</span>
                 <span>
                   {!state.checked ? 'Non ancora interrogata' : state.ok ? 'Aggiornata' : visibleText(state.message, 'Non raggiungibile')}

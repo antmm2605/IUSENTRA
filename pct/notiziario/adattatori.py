@@ -38,16 +38,27 @@ def sintesi_ufficiale(testo: str, limite: int = LUNGHEZZA_SINTESI) -> str:
 
 
 def collegamento_ufficiale(url: str, host_ammessi: tuple[str, ...]) -> str:
+    """URL `https://` ricostruito dall'host validato, o "" se il collegamento non è dell'ente.
+
+    Si rifiutano spazi e caratteri di controllo (es. «doc.jsp?ID=Concorso notai: …» nel feed del
+    Garante), la barra rovesciata, le credenziali nella netloc («@»), le porte esplicite e gli
+    schemi diversi da http/https (javascript:, data:, …).
+    """
     testo = str(url or "").strip()
-    if not testo or any(carattere.isspace() for carattere in testo):
-        # es. «doc.jsp?ID=Concorso notai: …» nel feed del Garante: collegamento non affidabile
+    if not testo or "\\" in testo or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in testo):
         return ""
-    parti = urlsplit(testo)
+    try:
+        parti = urlsplit(testo)
+        porta = parti.port
+    except ValueError:
+        return ""
+    if parti.scheme.lower() not in {"http", "https"} or "@" in parti.netloc or porta is not None:
+        return ""
     host = (parti.hostname or "").lower()
-    if host not in host_ammessi or parti.scheme not in {"http", "https"}:
+    if not host or host not in host_ammessi or parti.netloc.lower() != host:
         return ""
     percorso = parti.path.replace("/./", "/")
-    return urlunsplit(("https", parti.netloc, percorso, parti.query, ""))
+    return urlunsplit(("https", host, percorso, parti.query, ""))
 
 
 def _adesso() -> str:
@@ -129,7 +140,7 @@ def da_pagina_istituzionale(fonte: Fonte, righe: Iterable[dict[str, Any]]) -> li
     """Righe prodotte da `pct.notizie_utili` (stesso identificativo, stessa sintesi ufficiale)."""
     risultato: list[dict[str, Any]] = []
     for riga in righe:
-        url = str(riga.get("source_url") or "").strip()
+        url = collegamento_ufficiale(str(riga.get("source_url") or ""), fonte.host_ammessi)
         data = str(riga.get("published_at") or "")[:10]
         titolo = " ".join(str(riga.get("title") or "").split())
         if not url or not data or not titolo:

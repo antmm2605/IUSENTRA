@@ -53,10 +53,11 @@ def _pagine_istituzionali(monkeypatch, *, giu: frozenset[str] = frozenset()):
     def _raccogli(source_id, **_kwargs):
         if source_id in giu:
             raise ValueError("pagina non leggibile")
+        url = f"https://{fonti.fonte(source_id).host_ammessi[0]}/{source_id}"
         return [{
-            "id": identificativo_notizia(source_id, f"https://www.cortedicassazione.it/{source_id}"),
+            "id": identificativo_notizia(source_id, url),
             "title": f"Notizia {source_id}",
-            "source_url": f"https://www.cortedicassazione.it/{source_id}",
+            "source_url": url,
             "published_at": "2026-11-07",
             "short_summary": "Testo pubblicato.",
         }]

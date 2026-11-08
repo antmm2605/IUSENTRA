@@ -125,25 +125,28 @@ FONTI: tuple[Fonte, ...] = (
     Fonte(
         "cassazione", "Corte di Cassazione", "Corte suprema di cassazione — ultime dalla Corte",
         "https://www.cortedicassazione.it/it/ultime_dalla_corte.page", "html", PRONUNCIA, 120, VERIFICA_20261108,
+        host_ammessi=("www.cortedicassazione.it", "cortedicassazione.it"),
         codice_aggiornamenti="cassazione_ultime_sent_ord_questioni",
     ),
     Fonte(
         "pst_giustizia", "PST Giustizia", "Ministero della Giustizia — Portale dei servizi telematici, avvisi",
         "https://pst.giustizia.it/PST/it/news.page?metadata_category_frame6=avvisi", "html", AVVISO_PCT, 180,
-        VERIFICA_20261108, materia=m.GIUSTIZIA,
+        VERIFICA_20261108, materia=m.GIUSTIZIA, host_ammessi=("pst.giustizia.it",),
     ),
     Fonte(
         "giustizia", "Ministero della Giustizia", "Ministero della Giustizia — decreti, circolari, direttive e provvedimenti",
         "https://www.giustizia.it/giustizia/page/it/decreti_circolari_direttive_provvedimenti_note", "html", PRASSI, 720,
-        VERIFICA_20261108, materia=m.GIUSTIZIA,
+        VERIFICA_20261108, materia=m.GIUSTIZIA, host_ammessi=("www.giustizia.it", "giustizia.it"),
     ),
     Fonte(
         "cnf", "CNF", "Consiglio nazionale forense — notizie", "https://www.consiglionazionaleforense.it/", "html",
         NOTIZIA, 360, VERIFICA_20261108, materia=m.FORENSE, materia_certa=True,
+        host_ammessi=("www.consiglionazionaleforense.it", "consiglionazionaleforense.it"),
     ),
     Fonte(
         "cassa_forense", "Cassa Forense", "Cassa nazionale di previdenza e assistenza forense — CF News",
         "https://www.cfnews.it/", "html", NOTIZIA, 720, VERIFICA_20261108, materia=m.FORENSE, materia_certa=True,
+        host_ammessi=("www.cfnews.it", "cfnews.it"),
     ),
 )
 

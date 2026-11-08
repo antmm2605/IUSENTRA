@@ -21,7 +21,7 @@ import unicodedata
 from typing import Any, Iterable
 
 from pct.normativa_fascicolo.materie import materie_del_fascicolo
-from pct.notiziario.classifica import atti_citati
+from pct.notiziario.classifica import atti_citati, citazioni_atti
 
 MASSIMO_FASCICOLI = 5
 _PAROLA = re.compile(r"[a-zà-ÿ]{5,}", re.IGNORECASE)
@@ -100,6 +100,8 @@ class _Fascicolo:
     materie: tuple[str, ...]
     atti: frozenset[str]
     parole: frozenset[str]
+    # atto → (articolo citato, documento) dalle norme citate negli atti (lettore «norme_citate»)
+    nei_documenti: dict[str, tuple[str, str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -107,42 +109,108 @@ class IndicePertinenza:
     fascicoli: list[_Fascicolo] = field(default_factory=list)
     per_parola: dict[str, list[int]] = field(default_factory=dict)
     per_atto: dict[str, list[int]] = field(default_factory=dict)
+    diffusi: frozenset[str] = frozenset()
 
 
-def costruisci_indice(fascicoli: Iterable[dict[str, Any]]) -> IndicePertinenza:
-    """`fascicoli`: dict con id, etichetta, titolo, oggetto, tipo, area_pratica, codice_oggetto_pst."""
+def costruisci_indice(
+    fascicoli: Iterable[dict[str, Any]],
+    atti_documenti: dict[str, list[dict[str, Any]]] | None = None,
+) -> IndicePertinenza:
+    """`fascicoli`: dict con id, etichetta, titolo, oggetto, tipo, area_pratica, codice_oggetto_pst.
+
+    `atti_documenti`: per fascicolo, gli atti citati nei suoi documenti (riepilogo del
+    lettore «norme_citate», già calcolato in sfondo).
+    """
     indice = IndicePertinenza()
+    atti_documenti = atti_documenti or {}
     for voce in fascicoli:
         testo = " ".join((
             str(voce.get("titolo") or ""), str(voce.get("oggetto") or ""),
             descrizione_oggetto_pst(str(voce.get("codice_oggetto_pst") or "")),
         ))
+        fascicolo_id = str(voce.get("id") or "")
+        if not fascicolo_id:
+            continue
+        nei_documenti = {
+            str(atto.get("chiave")): (str(atto.get("articolo") or ""), str(atto.get("documento") or ""))
+            for atto in atti_documenti.get(fascicolo_id, []) if atto.get("chiave")
+        }
         fascicolo = _Fascicolo(
-            id=str(voce.get("id") or ""),
+            id=fascicolo_id,
             etichetta=str(voce.get("etichetta") or voce.get("titolo") or "Fascicolo"),
             materie=tuple(materie_del_fascicolo(str(voce.get("tipo") or ""), str(voce.get("area_pratica") or ""))),
-            atti=frozenset(atti_citati(testo)),
+            atti=frozenset(atti_citati(testo)) | frozenset(nei_documenti),
             parole=frozenset(parole_significative(testo)),
+            nei_documenti=nei_documenti,
         )
-        if not fascicolo.id:
-            continue
         posizione = len(indice.fascicoli)
         indice.fascicoli.append(fascicolo)
         for parola in fascicolo.parole:
             indice.per_parola.setdefault(parola, []).append(posizione)
         for atto in fascicolo.atti:
             indice.per_atto.setdefault(atto, []).append(posizione)
+    indice.diffusi = atti_diffusi(indice)
     return indice
+
+
+QUOTA_DIFFUSIONE = 0.5
+MINIMO_FASCICOLI_DIFFUSIONE = 20
+
+
+def atti_diffusi(indice: IndicePertinenza) -> frozenset[str]:
+    """Atti citati in più della metà dei fascicoli (almeno 20): da soli non distinguono un fascicolo."""
+    totale = len(indice.fascicoli)
+    if totale < MINIMO_FASCICOLI_DIFFUSIONE:
+        return frozenset()
+    return frozenset(atto for atto, posizioni in indice.per_atto.items() if len(posizioni) > totale * QUOTA_DIFFUSIONE)
+
+
+def _numero_articolo(articolo: str) -> str:
+    """«art. 1 c. 121» → «1»: il confronto è sull'articolo."""
+    parti = str(articolo or "").split()
+    return parti[1].lower() if len(parti) > 1 and parti[0] == "art." else ""
+
+
+def _nome_breve(fascicolo: _Fascicolo) -> str:
+    """«RG 771/2025 - Rossi c. MIUR» → «RG 771/2025»; senza ruolo, il titolo."""
+    return fascicolo.etichetta.split(" - ", 1)[0].strip() or fascicolo.etichetta
+
+
+def _motivo_atti(fascicolo: _Fascicolo, atti: list[str]) -> str:
+    atto = atti[0]
+    articolo, documento = fascicolo.nei_documenti.get(atto, ("", ""))
+    citato = f"l'{articolo} {etichetta_atto(atto)}" if articolo else etichetta_atto(atto)
+    if documento:
+        motivo = f"Il fascicolo {_nome_breve(fascicolo)} cita {citato} (documento «{documento}»)"
+    else:
+        motivo = f"Il fascicolo {_nome_breve(fascicolo)} cita {citato} nel titolo o nell'oggetto"
+    if len(atti) > 1:
+        motivo += " e anche " + ", ".join(etichetta_atto(a) for a in atti[1:3])
+    return motivo
 
 
 def fascicoli_pertinenti(notizia: dict[str, Any], indice: IndicePertinenza) -> list[dict[str, str]]:
     """Fino a cinque fascicoli, i più vicini per primi, ciascuno con il motivo."""
+    return pertinenza(notizia, indice)[0]
+
+
+def pertinenza(notizia: dict[str, Any], indice: IndicePertinenza) -> tuple[list[dict[str, str]], int]:
+    """I fascicoli più vicini (fino a cinque), ciascuno con il motivo, e quanti sono in tutto."""
     parole = parole_significative(f"{notizia.get('titolo') or ''} {notizia.get('sintesi') or ''}")
     atti = [atto for atto in notizia.get("atti") or [] if atto in indice.per_atto]
+    articoli_notizia = dict(citazioni_atti(f"{notizia.get('titolo') or ''} {notizia.get('sintesi') or ''}"))
     materia = str(notizia.get("materia") or "")
     candidati: dict[int, dict[str, list[str]]] = {}
+    diffusi = indice.diffusi
     for atto in atti:
+        articolo_notizia = _numero_articolo(articoli_notizia.get(atto, ""))
         for posizione in indice.per_atto[atto]:
+            if atto in diffusi:
+                # Atto citato in quasi tutti i fascicoli (clausole di procure, contratti, moduli): conta solo
+                # se notizia e fascicolo citano lo stesso articolo.
+                articolo_fascicolo = _numero_articolo(indice.fascicoli[posizione].nei_documenti.get(atto, ("", ""))[0])
+                if not articolo_notizia or articolo_notizia != articolo_fascicolo:
+                    continue
             candidati.setdefault(posizione, {"atti": [], "parole": []})["atti"].append(atto)
     for radice in parole:
         for posizione in indice.per_parola.get(radice, ()):
@@ -152,17 +220,20 @@ def fascicoli_pertinenti(notizia: dict[str, Any], indice: IndicePertinenza) -> l
         fascicolo = indice.fascicoli[posizione]
         materia_compatibile = not materia or not fascicolo.materie or materia in fascicolo.materie
         if segnali["atti"]:
-            motivo = "Cita lo stesso atto: " + ", ".join(etichetta_atto(a) for a in segnali["atti"])
+            motivo = _motivo_atti(fascicolo, segnali["atti"])
         elif len(segnali["parole"]) >= 2 and materia_compatibile:
             motivo = "Stesso tema dell'oggetto: " + ", ".join(f"«{parole[r]}»" for r in segnali["parole"][:4])
             if materia and materia in fascicolo.materie:
                 motivo += f" · materia {materia}"
         else:
             continue
-        punteggio = 3 * len(segnali["atti"]) + len(segnali["parole"])
+        # l'articolo citato in un documento pesa più del solo atto
+        punteggio = sum(4 if fascicolo.nei_documenti.get(a, ("", ""))[0] else 3 for a in segnali["atti"]) + len(segnali["parole"])
         scelti.append((punteggio, {"id": fascicolo.id, "etichetta": fascicolo.etichetta, "motivo": motivo}))
     scelti.sort(key=lambda voce: (-voce[0], voce[1]["etichetta"]))
-    return [voce for _, voce in scelti[:MASSIMO_FASCICOLI]]
+    return [voce for _, voce in scelti[:MASSIMO_FASCICOLI]], len(scelti)
 
 
-__all__ = ["IndicePertinenza", "costruisci_indice", "etichetta_atto", "fascicoli_pertinenti", "parole_significative"]
+__all__ = [
+    "IndicePertinenza", "costruisci_indice", "etichetta_atto", "fascicoli_pertinenti", "parole_significative", "pertinenza",
+]

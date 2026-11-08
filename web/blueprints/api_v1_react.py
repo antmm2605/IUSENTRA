@@ -11050,6 +11050,18 @@ def _notiziario_archivio():
     return archivio if archivio is not None and archivio.elenco(limite=1) else None
 
 
+def _notiziario_norme_dei_fascicoli() -> dict[str, list[dict[str, Any]]]:
+    """Norme citate negli atti di ogni fascicolo, già calcolate in sfondo (una lettura del registro)."""
+    try:
+        from web.services.notiziario_norme_runtime import atti_per_fascicolo
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        return atti_per_fascicolo(registro_corrente(sola_lettura=True), tenant_corrente())
+    except Exception as exc:
+        current_app.logger.warning("Notizie utili: norme citate dei fascicoli non disponibili: %s", exc)
+        return {}
+
+
 def _notiziario_risposta_archivio(archivio):
     from web.services import notiziario_runtime as vista
 
@@ -11064,6 +11076,7 @@ def _notiziario_risposta_archivio(archivio):
         fascicoli=vista.fascicoli_aperti(righe),
         filtri=vista.filtri_richiesti(request.args),
         oggi=datetime.now(ZoneInfo("Europe/Rome")).date(),
+        atti_documenti=_notiziario_norme_dei_fascicoli(),
     )
     payload.update({
         "generatedAt": _iso_now(),

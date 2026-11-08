@@ -153,7 +153,7 @@ def test_pertinenza_per_atto_citato_e_per_tema_con_il_motivo():
     per_atto = fascicoli_pertinenti(
         {"titolo": "Sentenza n. 1/2026", "sintesi": "", "atti": ["legge:107:2015"], "materia": ""}, indice,
     )
-    assert per_atto == [{"id": "F1", "etichetta": "RG 10/2026 - Rossi c. MIM", "motivo": "Cita lo stesso atto: L. 107/2015"}]
+    assert per_atto == [{"id": "F1", "etichetta": "RG 10/2026 - Rossi c. MIM", "motivo": "Il fascicolo RG 10/2026 cita L. 107/2015 nel titolo o nell'oggetto"}]
     per_tema = fascicoli_pertinenti(
         {"titolo": "Usura nei contratti di mutuo bancario", "sintesi": "", "atti": [], "materia": "Banca, finanza e assicurazioni"},
         indice,
@@ -187,7 +187,8 @@ def test_vista_filtri_pagine_pertinenti_e_nuove(tmp_path: Path, monkeypatch):
         )
 
     tutte = _vista()
-    assert tutte["total"] == len(archivio.elenco())
+    # i comunicati di servizio della Gazzetta (AIFA, cambi) sono nascosti finché non si chiedono
+    assert tutte["total"] + tutte["serviceCount"] == len(archivio.elenco()) and tutte["serviceCount"] > 0
     assert len(tutte["items"]) == vista.PER_PAGINA and tutte["hasMore"] is True
     seconda = _vista(pagina="2")
     assert {v["id"] for v in seconda["items"]}.isdisjoint({v["id"] for v in tutte["items"]})

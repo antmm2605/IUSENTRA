@@ -956,6 +956,17 @@ def _allinea_ocr(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict
         return {}
 
 
+def _norme_citate(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
+    """Norme citate negli atti, dai testi già salvati, per le Notizie utili pertinenti al fascicolo."""
+    try:
+        from web.services.notiziario_norme_runtime import aggiorna_norme_citate
+
+        return aggiorna_norme_citate(fascicolo, registro, tenant)
+    except Exception as exc:
+        logger.warning("Norme citate non aggiornate per il fascicolo %s: %s", getattr(fascicolo, "id", ""), exc)
+        return {}
+
+
 def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, registro: RegistroLetture | None = None, recupera_metadati: bool = False, rileggi_superati: bool = False, rinvia_derivati: bool = False) -> dict[str, Any]:
     """Un giro del ciclo: i motori leggono solo ciò che manca, l'archivio conferma, poi ci si ferma.
 
@@ -996,6 +1007,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
             # Fascicolo fermo: la riga di sintesi si riscrive solo se è cambiata l'identità (stato, date, cliente…).
             _allinea_ocr(fascicolo, registro, tenant)
+            _norme_citate(fascicolo, registro, tenant)
             _aggiorna_sintesi(fascicolo, registro, solo_se_cambiata=True)
             if not int(metadati.get("restano") or 0):
                 _azzera_errore_coda(registro, tenant, fascicolo_id)
@@ -1072,6 +1084,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     )
     _segna_riga_pec(registro, tenant, fascicolo_id, impronta=impronta)
     _allinea_ocr(fascicolo, registro, tenant)
+    _norme_citate(fascicolo, registro, tenant)
     _aggiorna_sintesi(fascicolo, registro)
     if restano == 0:
         _azzera_errore_coda(registro, tenant, fascicolo_id)

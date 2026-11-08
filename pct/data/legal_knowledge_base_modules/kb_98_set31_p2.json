@@ -967,7 +967,9 @@
         "ritardo_illegittimo": "Clausole che estendono oltre 60 giorni: nulle salvo accordo espresso"
       },
       "obbligo_mediazione": {
-        "obbligatoria": false
+        "obbligatoria": true,
+        "materia": "subfornitura",
+        "fonte": "art. 5, comma 1, D.Lgs. 28/2010"
       },
       "atto_principale": {
         "tipo_atto": "azione_subfornitura_abuso_dipendenza_L192",
@@ -1367,6 +1369,23 @@
           "verificato_il": "2026-06-06",
           "metodo": "ricerca web su fonte ufficiale",
           "matched_by": "proprietà industriale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5, comma 1",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5",
+          "ambito": "materie della mediazione obbligatoria, fra cui la subfornitura",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "La subfornitura è fra le materie della mediazione obbligatoria (art. 5, comma 1, D.Lgs. 28/2010, testo vigente).",
+          "fonti": [
+            "art. 5, comma 1, D.Lgs. 28/2010"
+          ]
         }
       ]
     },

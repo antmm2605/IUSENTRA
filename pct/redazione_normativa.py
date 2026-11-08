@@ -37,6 +37,8 @@ FONTI_UFFICIALI: dict[str, dict[str, str]] = {
     "l. 300/1970": {"label": "Statuto dei lavoratori (L. 20 maggio 1970, n. 300)", "url": _NORMATTIVA + "legge:1970-05-20;300"},
     "l. 604/1966": {"label": "Licenziamenti individuali (L. 15 luglio 1966, n. 604)", "url": _NORMATTIVA + "legge:1966-07-15;604"},
     "d.lgs. 23/2015": {"label": "Contratto a tutele crescenti (D.Lgs. 4 marzo 2015, n. 23)", "url": _NORMATTIVA + "decreto.legislativo:2015-03-04;23"},
+    "d.lgs. 165/2001": {"label": "Lavoro alle dipendenze delle pubbliche amministrazioni (D.Lgs. 30 marzo 2001, n. 165)", "url": _NORMATTIVA + "decreto.legislativo:2001-03-30;165"},
+    "r.d. 1611/1933": {"label": "Rappresentanza e difesa in giudizio dello Stato (R.D. 30 ottobre 1933, n. 1611)", "url": _NORMATTIVA + "regio.decreto:1933-10-30;1611"},
     "l. 898/1970": {"label": "Disciplina dei casi di scioglimento del matrimonio (L. 1 dicembre 1970, n. 898)", "url": _NORMATTIVA + "legge:1970-12-01;898"},
     "l. 392/1978": {"label": "Locazione di immobili urbani (L. 27 luglio 1978, n. 392)", "url": _NORMATTIVA + "legge:1978-07-27;392"},
     "d.p.r. 115/2002": {"label": "T.U. spese di giustizia (D.P.R. 30 maggio 2002, n. 115)", "url": _NORMATTIVA + "decreto.del.presidente.della.repubblica:2002-05-30;115"},
@@ -63,6 +65,8 @@ CONDIZIONI_LABELS: dict[str, str] = {
     "possesso": "tutela possessoria",
     "successioni": "materia successoria",
     "tutele_crescenti": "rapporto di lavoro a tutele crescenti",
+    "pubblico_impiego": "rapporto di lavoro alle dipendenze di una pubblica amministrazione",
+    "licenziamento": "impugnazione di un licenziamento",
     "immobile": "bene immobile coinvolto nella controversia",
 }
 
@@ -139,6 +143,13 @@ _CITAZIONE = ("CIV_CIT_001",)
 _INTRO_CIVILI = ("CIV_CIT_001", "CIV_LAVRIC_001", "CIV_SFRINT_001", "CIV_CONVSFR_001", "CIV_RDI_001", "SOC_RIC_001")
 
 RIFERIMENTI_BASE: list[RiferimentoNormativo] = [
+    # ----- Procedimento semplificato di cognizione (sostituisce il sommario ex art. 702-bis, abrogato) -----
+    _rif("cpc_281decies", "c.p.c.", "281-decies", "Ambito di applicazione", "processuale",
+         "Presupposti del procedimento semplificato: fatti non controversi, prova documentale, pronta soluzione o istruzione non complessa; "
+         "nelle cause monocratiche anche senza tali presupposti.", ("CIV_INT_001",)),
+    _rif("cpc_281undecies", "c.p.c.", "281-undecies", "Forma della domanda e costituzione delle parti", "processuale",
+         "Ricorso con le indicazioni dell'art. 163 e gli avvertimenti di legge; decreto di fissazione, termini liberi di quaranta giorni, "
+         "costituzione del convenuto non oltre dieci giorni prima dell'udienza.", ("CIV_INT_001",)),
     # ----- Citazione e giudizio ordinario di cognizione (processuali) -----
     _rif("cpc_163", "c.p.c.", "163", "Contenuto della citazione", "processuale",
          "Requisiti formali dell'atto introduttivo del giudizio ordinario.", _CITAZIONE),
@@ -256,6 +267,19 @@ RIFERIMENTI_BASE: list[RiferimentoNormativo] = [
          "Contenuto del ricorso introduttivo nel rito del lavoro.", ("LAV_RIC_001", "LAV_IMPLIC_001", "LAV_PREV_001", "CIV_LAVRIC_001")),
     _rif("cpc_415", "c.p.c.", "415", "Decreto di fissazione dell'udienza", "processuale",
          "Deposito del ricorso, decreto e notifica al convenuto.", ("LAV_RIC_001", "LAV_IMPLIC_001")),
+    # Pubblico impiego contrattualizzato (testi vigenti letti l'08/11/2026 nell'archivio Normattiva del software).
+    _rif("dlgs165_63", "d.lgs. 165/2001", "63", "Controversie relative ai rapporti di lavoro", "processuale",
+         "Giurisdizione del giudice ordinario in funzione di giudice del lavoro per i rapporti alle dipendenze delle pubbliche amministrazioni.",
+         ("LAV_RIC_001", "CIV_LAVRIC_001"), condizione="pubblico_impiego"),
+    _rif("cpc_413_pa", "c.p.c.", "413", "Giudice competente", "processuale",
+         "Pubblico impiego: competente il giudice del luogo dell'ufficio al quale il dipendente e' o era addetto (quinto comma).",
+         ("LAV_RIC_001", "CIV_LAVRIC_001"), condizione="pubblico_impiego", comma="5"),
+    _rif("cpc_417bis", "c.p.c.", "417-bis", "Difesa delle pubbliche amministrazioni", "processuale",
+         "In primo grado l'amministrazione puo' stare in giudizio avvalendosi di propri dipendenti, salvo che l'Avvocatura dello Stato assuma la causa.",
+         ("LAV_RIC_001", "CIV_LAVRIC_001"), condizione="pubblico_impiego"),
+    _rif("rd1611_11", "r.d. 1611/1933", "11", "Notificazioni alle Amministrazioni dello Stato", "processuale",
+         "Ricorso e decreto si notificano all'amministrazione statale presso l'Avvocatura dello Stato del distretto dell'autorita' giudiziaria adita.",
+         ("LAV_RIC_001", "CIV_LAVRIC_001"), condizione="pubblico_impiego"),
     _rif("cpc_416", "c.p.c.", "416", "Costituzione del convenuto", "processuale",
          "Memoria difensiva nel rito del lavoro e decadenze.", ("LAV_MEM_001", "CIV_LAVMEM_001")),
     _rif("cpc_433", "c.p.c.", "433", "Giudice d'appello", "processuale",

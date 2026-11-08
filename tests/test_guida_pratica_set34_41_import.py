@@ -46,7 +46,7 @@ def test_set34_41_files_zip_integrati_in_sessantotto_moduli_e_trecentoquaranta_g
 
     assert len(SET34_41_MODULES) == 68
     assert len(rows) == 340
-    assert sum(len(item.get("termini_processuali") or []) for item in rows) == 343
+    assert sum(len(item.get("termini_processuali") or []) for item in rows) == 344  # 08/11/2026: domanda ultratardiva (art. 208, comma 3, CCII) nella guida 500015
     assert report["records_received"] == 340
     assert report["records_integrated"] == 340
     assert report["official_depositable_kept"] == []
@@ -75,7 +75,7 @@ def test_set34_41_scadenziario_importa_termini_dai_moduli_versionati():
     rows = collect_terms(SET34_41_MODULES)
     report = json.loads(TERMS_REPORT.read_text(encoding="utf-8"))
 
-    assert len(rows) == 343
+    assert len(rows) == 344
     assert report["records"] == 3908
     assert report["calculable_templates"] == 1184
     assert report["by_phase"]["notifica"] >= 2180

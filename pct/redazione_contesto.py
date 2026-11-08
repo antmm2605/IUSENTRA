@@ -141,7 +141,13 @@ _PAROLE_CONDIZIONI: dict[str, tuple[str, ...]] = {
     "successioni": ("eredit", "testament", "successione", "legittima", "divisione ereditaria"),
     "immobile": ("immobile", "immobiliare", "fabbricato", "terreno", "appartamento"),
     "tutele_crescenti": ("tutele crescenti",),
+    "licenziamento": ("licenziament",),
 }
+
+# Datore di lavoro pubblico (art. 1, comma 2, D.Lgs. 165/2001): dal nome della controparte o dalla materia della pratica.
+_PUBBLICO_IMPIEGO = ("pubblico impiego", "pubblica amministrazione", "ministero", "istituto comprensivo", "istituto scolastico",
+                     "ufficio scolastico", "carta del docente", "carta docente", "comune di", "regione ", "provincia di",
+                     "azienda sanitaria", "azienda ospedaliera", "universita", "università", "agenzia delle entrate")
 
 
 def condizioni_dal_fascicolo(fascicolo: Any) -> dict[str, bool]:
@@ -153,6 +159,8 @@ def condizioni_dal_fascicolo(fascicolo: Any) -> dict[str, bool]:
     tipo = _attr(fascicolo, "tipo")
     if tipo == "SUCCESSIONI":
         condizioni["successioni"] = True
+    controparte = " ".join([_attr(fascicolo, "controparte"), testo]).lower()
+    condizioni["pubblico_impiego"] = any(parola in controparte for parola in _PUBBLICO_IMPIEGO)
     return condizioni
 
 

@@ -1095,6 +1095,9 @@ class GestioneCorpusGiurisprudenza:
                     continue
             gia = {int(row["id"]) for row in per_estremi}
             ordinate = _riordina([row for key, row in candidati.items() if key not in gia], domanda, termini)
+            from pct.giurisprudenza_richiami import precedenti_richiamati_prima
+
+            ordinate = precedenti_richiamati_prima(conn, ordinate)
             risultato = (per_estremi + ordinate)[:limite]
             self._massime_pertinenti_prima(conn, risultato, termini)
             return risultato

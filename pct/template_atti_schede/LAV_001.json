@@ -55,6 +55,16 @@
    "atto": "115/2002",
    "articolo": "9",
    "perche": "contributo unificato nelle cause di lavoro"
+  },
+  {
+   "atto": "165/2001",
+   "articolo": "63",
+   "perche": "pubblico impiego: giurisdizione del giudice ordinario in funzione di giudice del lavoro"
+  },
+  {
+   "atto": "codice_procedura_civile",
+   "articolo": "417bis",
+   "perche": "pubblico impiego: difesa dell'amministrazione in primo grado con propri dipendenti"
   }
  ],
  "campi": [
@@ -149,7 +159,7 @@
   },
   {
    "campo": "datore",
-   "etichetta": "Datore di lavoro (denominazione, sede, partita IVA)",
+   "etichetta": "Datore di lavoro (denominazione, sede, partita IVA) o amministrazione pubblica",
    "obbligatorio": true,
    "fonte": {
     "tipo": "database",
@@ -217,11 +227,11 @@
   },
   {
    "campo": "dimensione_datore",
-   "etichetta": "Numero di dipendenti del datore",
-   "obbligatorio": true,
+   "etichetta": "Numero di dipendenti del datore (solo licenziamento nel lavoro privato)",
+   "obbligatorio": false,
    "fonte": {
     "tipo": "avvocato",
-    "domanda": "Il datore occupa più di 15 dipendenti nell’unità produttiva o più di 60 in totale?"
+    "domanda": "Solo se impugni un licenziamento di un datore privato: occupa più di 15 dipendenti nell’unità produttiva o più di 60 in totale?"
    },
    "norma": [
     {
@@ -230,7 +240,55 @@
      "perche": "tutela applicabile"
     }
    ],
-   "se_manca": "senza questo dato non si individua la tutela applicabile al licenziamento"
+   "se_manca": "serve solo per individuare la tutela contro il licenziamento nel lavoro privato; non si chiede per differenze retributive o per il pubblico impiego"
+  },
+  {
+   "campo": "pubblico_impiego",
+   "etichetta": "Rapporto alle dipendenze di una pubblica amministrazione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Il datore è una pubblica amministrazione (es. Ministero, istituto scolastico, ente locale, azienda sanitaria)?"
+   },
+   "norma": [
+    {
+     "atto": "165/2001",
+     "articolo": "63",
+     "perche": "controversie devolute al giudice ordinario in funzione di giudice del lavoro"
+    }
+   ]
+  },
+  {
+   "campo": "ufficio_di_servizio",
+   "etichetta": "Ufficio al quale il dipendente pubblico è o era addetto",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "avvocato",
+    "domanda": "Presso quale ufficio presta (o prestava alla cessazione) servizio il dipendente pubblico?"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "413",
+     "perche": "quinto comma: competenza del giudice del luogo dell’ufficio"
+    }
+   ]
+  },
+  {
+   "campo": "notifica_amministrazione",
+   "etichetta": "Notifica del ricorso e del decreto all’amministrazione",
+   "obbligatorio": false,
+   "fonte": {
+    "tipo": "calcolo",
+    "regola": "amministrazione dello Stato: notifica presso l’Avvocatura dello Stato del distretto in cui ha sede il giudice adito (art. 11 R.D. 1611/1933); altre amministrazioni: presso la sede dell’ente"
+   },
+   "norma": [
+    {
+     "atto": "codice_procedura_civile",
+     "articolo": "417bis",
+     "perche": "in primo grado l’amministrazione può stare in giudizio con propri dipendenti, salvo che l’Avvocatura dello Stato assuma la causa"
+    }
+   ]
   },
   {
    "campo": "licenziamento",
@@ -354,7 +412,7 @@
   },
   {
    "blocco": "Diritto",
-   "compito": "norme applicabili alla tutela in base alla data di assunzione e alla dimensione del datore"
+   "compito": "norme applicabili alla domanda; per il licenziamento la tutela secondo data di assunzione e dimensione del datore; per il pubblico impiego art. 63 D.Lgs. 165/2001 e disciplina del rapporto pubblico"
   },
   {
    "blocco": "Conclusioni",
@@ -364,9 +422,9 @@
  "astensione": [
   "data di assunzione o di licenziamento sconosciuta quando decide la tutela applicabile",
   "termini di decadenza verosimilmente scaduti: segnalarlo invece di redigere",
-  "dimensione del datore ignota quando decide la tutela applicabile"
+  "dimensione del datore ignota quando si impugna un licenziamento nel lavoro privato"
  ],
- "versione": "2026-10-19.1",
+ "versione": "2026-11-08.1",
  "principio": "I dati che il gestionale conosce li compila il software; Lex scrive le parti narrative solo con fatti del fascicolo e norme della biblioteca, e chiede all’avvocato solo ciò che manca.",
  "modelli_compilatore": [
   "CIV_LAVRIC_001",

@@ -447,6 +447,9 @@ MODELS: list[dict[str, Any]] = [
     _model("STR_INC_001", "STRAGIUDIZIALE", "Incarico Professionale", "client", "professional", "assignment_object", "included_activities", "fee_or_fee_criteria", "expenses_terms", "payment_terms", "privacy_consents", "parties_signatures"),
     _model("STR_PREV_001", "STRAGIUDIZIALE", "Preventivo Professionale", "client", "professional_activity_object", "fee_items", "expenses", "cpa_amount", "vat_amount", "total_amount", "estimate_valid_until", "payment_terms"),
     _model("CIV_CIT_001", "CIVILE", "Atto di Citazione", "court_name", "plaintiff", "defendant", "lawyer_tax_code", "lawyer_pec", "claim_subject", "legal_arguments", "evidence_means", "documents_offered", "hearing_date", "appearance_notice", "ritual_warnings", "case_value"),
+    # Ricorso del procedimento semplificato di cognizione (artt. 281-decies ss. c.p.c., D.Lgs. 149/2022): sostituisce il
+    # ricorso sommario ex art. 702-bis, abrogato. Contenuto dell'art. 163 nn. 1-6 e avvertimenti dell'art. 281-undecies.
+    _model("CIV_INT_001", "CIVILE", "Ricorso nel procedimento semplificato di cognizione", "court_name", "plaintiff", "defendant", "lawyer_tax_code", "lawyer_pec", "claim_subject", "legal_arguments", "evidence_means", "documents_offered", "ritual_warnings", "case_value"),
     _model("CIV_COM_001", "CIVILE", "Comparsa di Costituzione e Risposta", "court_name", "proceeding_number", "defendant", "plaintiff", "lawyer_tax_code", "lawyer_pec", "position_on_facts", "procedural_exceptions", "merit_exceptions", "counterclaim", "third_party_call", "evidence_means", "documents_offered"),
     _model("CIV_RDI_001", "CIVILE", "Ricorso per Decreto Ingiuntivo", "competent_court", "claimant", "debtor", "credit_source", "requested_amount", "credit_due_date", "written_evidence", "interest_requested", "requested_costs", "provisional_enforceability_request"),
     _model("CIV_OPPDI_001", "CIVILE", "Opposizione a Decreto Ingiuntivo", "issuing_court", "injunction_number", "injunction_date", "injunction_service_date", "opponent", "opposed_party", "grounds_of_opposition", "credit_or_amount_or_procedure_objections", "request_for_stay_of_enforceability", "evidence_means", "documents_offered"),
@@ -940,6 +943,30 @@ MODEL_GUIDANCE_OVERRIDES: dict[str, dict[str, Any]] = {
             "D.M. 44/2011.",
         ],
     },
+    "CIV_INT_001": {
+        "summary": "Ricorso introduttivo del procedimento semplificato di cognizione: il rito che ha sostituito il procedimento sommario ex art. 702-bis c.p.c., abrogato dal D.Lgs. 149/2022.",
+        "when_to_use": [
+            "Quando i fatti non sono controversi, la domanda è fondata su prova documentale, è di pronta soluzione o richiede un'istruzione non complessa (art. 281-decies, primo comma, c.p.c.).",
+            "Nelle cause in cui il tribunale giudica in composizione monocratica, anche senza quei presupposti (art. 281-decies, secondo comma), e quando la legge lo prescrive (es. art. 14 D.Lgs. 150/2011).",
+        ],
+        "structure": [
+            "Intestazione del tribunale e titolo dell'atto (ricorso ex art. 281-undecies c.p.c.).",
+            "Indicazioni dei nn. 1), 2), 3), 3-bis), 4), 5) e 6) dell'art. 163 c.p.c.: parti, oggetto, fatti e diritto, mezzi di prova e documenti.",
+            "Avvertimenti dell'art. 281-undecies: decadenze per la costituzione tardiva, difesa tecnica obbligatoria, patrocinio a spese dello Stato.",
+            "Conclusioni e dichiarazione di valore.",
+        ],
+        "technical_notes": [
+            "Il giudice fissa con decreto l'udienza entro cinque giorni dalla designazione; il convenuto si costituisce non oltre dieci giorni prima dell'udienza (art. 281-undecies, secondo comma).",
+            "Ricorso e decreto si notificano a cura dell'attore con termini liberi non minori di quaranta giorni prima dell'udienza (sessanta se all'estero).",
+            "Ai procedimenti instaurati fino al 28 febbraio 2023 restano applicabili gli artt. 702-bis ss. (art. 35, comma 1, D.Lgs. 149/2022): un ricorso già proposto non si converte.",
+        ],
+        "references": [
+            "Art. 281-decies c.p.c.",
+            "Art. 281-undecies c.p.c.",
+            "Art. 163 c.p.c.",
+            "Art. 35 D.Lgs. 149/2022.",
+        ],
+    },
     "CIV_RDI_001": {
         "summary": "Ricorso monitorio strutturato per crediti da prova scritta, con attenzione a importi, scadenza e documentazione a supporto.",
         "when_to_use": [
@@ -1031,6 +1058,7 @@ AREA_DEFAULT_SECTIONS: dict[str, list[str]] = {
 MODEL_SECTION_OVERRIDES: dict[str, list[str]] = {
     "STR_DIFF_001": ["intestazione", "parti", "oggetto", "premessa", "diffida", "avvertimento_finale", "allegati", "firma"],
     "CIV_CIT_001": ["intestazione", "parti", "fatto", "diritto", "vocatio_in_ius", "avvertimenti_rito", "conclusioni", "fase_istruttoria", "dichiarazione_valore", "firma"],
+    "CIV_INT_001": ["intestazione", "parti", "fatto", "diritto", "avvertimenti_rito", "conclusioni", "fase_istruttoria", "dichiarazione_valore", "firma"],
     "CIV_RDI_001": ["intestazione", "ricorrente", "debitore", "credito", "prova_scritta", "richieste", "provvisoria_esecutorieta", "allegati", "firma"],
     "CIV_COM_001": ["intestazione", "parti", "posizione_sui_fatti", "eccezioni_processuali", "eccezioni_di_merito", "domande", "mezzi_istruttori", "conclusioni", "firma"],
     "CIV_PROCBASE_001": ["intestazione", "mandato", "poteri", "domicilio", "allegati", "firma"],
@@ -1078,6 +1106,18 @@ MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
         "facts": ["fascicolo.note"],
         "documents_offered": ["fascicolo.documenti[].nome"],
         "hearing_date": ["fascicolo.data_prossima_udienza", "fascicolo.data_prima_udienza"],
+    },
+    "CIV_INT_001": {
+        "court_name": ["fascicolo.tribunale"],
+        "plaintiff": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "defendant": ["fascicolo.controparte"],
+        "lawyer": ["utente.nome_completo", "config.STUDIO_AVVOCATO"],
+        "lawyer_tax_code": ["config.STUDIO_CF"],
+        "lawyer_pec": ["config.SMTP_FROM", "config.PCT_STUDIO_PEC"],
+        "claim_subject": ["fascicolo.oggetto", "fascicolo.titolo"],
+        "facts": ["fascicolo.note"],
+        "documents_offered": ["fascicolo.documenti[].nome"],
+        "case_value": ["fascicolo.valore_causa"],
     },
     "CIV_RDI_001": {
         "competent_court": ["fascicolo.tribunale"],

@@ -85,3 +85,32 @@ def test_intestazione_dell_articolo_non_e_il_comma_omonimo():
     from web.services.ricerca_legale_norma_citata import testo_del_comma as comma_testo
 
     assert comma_testo("Art. 2. 1 Art. 2. Cessioni di beni. Costituiscono cessioni di beni gli atti.", "2") == ""
+
+
+def _archivio_decreti(tmp_path):
+    db = _archivio(tmp_path)
+    with sqlite3.connect(db) as conn:
+        # Come nell'archivio reale: i decreti ministeriali sono sotto il tipo generico «DECRETO_».
+        conn.execute("INSERT INTO normative_documents VALUES (3,'55','2014-03-10','Parametri compensi forensi','VIGENTE',"
+                     "'DECRETO_20140310_55/2014-04-02_14G00067_VIGENZA_2025-10-14_V0.xml','')")
+        conn.execute("INSERT INTO normative_articles VALUES (30,3,'Art. 4.',?,'k30')",
+                     ("1. Il giudice tiene conto dei valori medi, che possono essere aumentati fino al 50 per cento. 2. Altro.",))
+        # Stesso numero e anno, date diverse fra i due tipi: gli estremi non individuano un atto solo.
+        conn.execute("INSERT INTO normative_documents VALUES (4,'12','2020-01-10','Decreto A','VIGENTE',"
+                     "'DECRETO_20200110_12/x_VIGENZA_2025-01-01_V0.xml','')")
+        conn.execute("INSERT INTO normative_documents VALUES (5,'12','2020-05-02','Decreto B','VIGENTE',"
+                     "'DECRETO MINISTERIALE_20200502_12/x_VIGENZA_2025-01-01_V0.xml','')")
+    return db
+
+
+def test_decreto_ministeriale_si_apre_per_estremi_anche_sotto_il_tipo_generico(tmp_path):
+    db = _archivio_decreti(tmp_path)
+    scheda = norma_citata(db, estremi("art. 4 comma 1 d.m. 55/2014"))
+    assert scheda["title"].startswith("D.M. 55/2014 — art. 4, comma 1")
+    assert "fino al 50 per cento" in scheda["officialContext"]
+    campi = estremi("", {"atto_tipo": "DECRETO MINISTERIALE", "atto_numero": "55", "atto_anno": "2014", "articolo": "4"})
+    assert norma_citata(db, campi)["title"].startswith("D.M. 55/2014 — art. 4")
+
+
+def test_decreti_omonimi_con_date_diverse_non_si_scelgono(tmp_path):
+    assert norma_citata(_archivio_decreti(tmp_path), estremi("art. 1 d.m. 12/2020")) is None

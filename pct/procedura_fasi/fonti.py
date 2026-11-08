@@ -276,6 +276,11 @@ from pct.procedura_fasi.fonti_guide_20261106 import FONTI_GUIDE_20261106  # noqa
 
 FONTI.update({chiave: voce for chiave, voce in FONTI_GUIDE_20261106.items() if chiave not in FONTI})
 
+# Rimedi dopo la sentenza secondo giurisdizione e grado (pct/percorso_pratica/rimedi.py), verificati l'08/11/2026.
+from pct.procedura_fasi.fonti_impugnazioni import FONTI_IMPUGNAZIONI  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_IMPUGNAZIONI.items() if chiave not in FONTI})
+
 
 def fonte(identificativo: str) -> dict[str, Any]:
     """La voce del registro, o un dizionario vuoto se l'identificativo non esiste."""

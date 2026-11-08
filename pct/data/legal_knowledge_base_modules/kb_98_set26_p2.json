@@ -511,26 +511,22 @@
         "prescrizione_Cass_SU_18798_2020": "10 anni dall'istanza di rimborso non contestata"
       },
       "obbligo_mediazione": {
-        "obbligatoria": true,
-        "fonte": "art. 17-bis D.Lgs. 546/1992",
-        "materia": "Atti fino a €50.000"
+        "obbligatoria": false,
+        "nota": "Il reclamo-mediazione dell'art. 17-bis D.Lgs. 546/1992 è stato abrogato dall'art. 2, comma 3, lett. a), D.Lgs. 220/2023 a decorrere dalla sua entrata in vigore (4 gennaio 2024): oggi il ricorso non è preceduto dal reclamo",
+        "fonte": "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
       },
       "adempimenti_propedeutici": [
         {
           "step": 1,
-          "descrizione": "Presentare istanza di rimborso IVA all'Agenzia delle Entrate"
+          "descrizione": "Presentare istanza di rimborso IVA all'Agenzia delle Entrate nei termini della legge d'imposta"
         },
         {
           "step": 2,
-          "descrizione": "Attendere 60 gg: se silenzio → silenzio-rigetto impugnabile"
+          "descrizione": "Diniego espresso: ricorso entro 60 gg dalla notificazione (art. 21, comma 1, D.Lgs. 546/1992)"
         },
         {
           "step": 3,
-          "descrizione": "Impugnare il diniego (espresso o tacito) entro 60 gg"
-        },
-        {
-          "step": 4,
-          "descrizione": "Reclamo/mediazione se rimborso ≤ €50.000"
+          "descrizione": "Silenzio: il ricorso contro il rifiuto tacito si propone dopo il novantesimo giorno dalla domanda e fino a quando il diritto alla restituzione non è prescritto (art. 21, comma 2, D.Lgs. 546/1992)"
         }
       ],
       "atto_principale": {
@@ -591,10 +587,6 @@
             "critico": true
           },
           {
-            "id": "reclamo_mediazione_se_entro_50000",
-            "type": "boolean"
-          },
-          {
             "id": "domande",
             "type": "select_multi",
             "required": true,
@@ -606,8 +598,9 @@
           }
         ],
         "avvertimenti_obbligatori": [
-          "Termine 60 GG dal diniego espresso o dalla scadenza del silenzio-rigetto – DECADENZIALE",
-          "Reclamo/mediazione obbligatorio per importi ≤ €50.000",
+          "Diniego espresso: termine 60 GG dalla notificazione – a pena di inammissibilità (art. 21, comma 1, D.Lgs. 546/1992)",
+          "Rifiuto tacito: ricorso dopo il 90° giorno dalla domanda di rimborso e fino alla prescrizione del diritto (art. 21, comma 2, D.Lgs. 546/1992)",
+          "Reclamo/mediazione art. 17-bis ABROGATO dal 4 gennaio 2024 (D.Lgs. 220/2023)",
           "Interessi legali sul rimborso decorrono dalla domanda"
         ]
       },
@@ -618,17 +611,13 @@
           "critico": true
         },
         {
-          "id": "diniego_AE_o_prova_silenzio_60_gg",
+          "id": "diniego_AE_o_prova_silenzio_90_gg",
           "required": true,
           "critico": true
         },
         {
           "id": "documentazione_credito_IVA",
           "required": true
-        },
-        {
-          "id": "verbale_reclamo_mediazione_se_applicabile",
-          "required_if": "≤50000"
         },
         {
           "id": "procura_alle_liti",
@@ -686,6 +675,32 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "512060"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 dicembre 1992, n. 546, art. 21 - termine per la proposizione del ricorso",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art21",
+          "ambito": "ricorso contro diniego espresso e rifiuto tacito di rimborso",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a)",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2023-12-30;220~art2",
+          "ambito": "abrogazione del reclamo-mediazione tributario",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rimosso il reclamo-mediazione (art. 17-bis abrogato dal D.Lgs. 220/2023); rifiuto tacito impugnabile dopo 90 giorni dalla domanda, non 60 (art. 21, comma 2, D.Lgs. 546/1992).",
+          "fonti": [
+            "art. 21 D.Lgs. 546/1992",
+            "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
+          ]
         }
       ]
     },

@@ -1159,7 +1159,7 @@ def _compiler_family_for_model(model: dict[str, Any]) -> str:
         return "impugnazione_civile"
     if code in {"CIV_MEM_001", "CIV_IST_001", "CIV_DEPDOC_001"}:
         return "civile_processuale"
-    if code in {"CIV_CIT_001", "CIV_COM_001", "CIV_LAVRIC_001", "CIV_LAVMEM_001"}:
+    if code in {"CIV_CIT_001", "CIV_INT_001", "CIV_COM_001", "CIV_LAVRIC_001", "CIV_LAVMEM_001"}:
         return "civile_intro"
     if area == "STRAGIUDIZIALE":
         return "stragiudiziale"
@@ -1709,7 +1709,7 @@ BUILTIN_TEMPLATE_SPECS.extend(
         },
         [
             ("TMP-CIV-001", {"titolo": "Atto di citazione", "link_compilatore_code": "CIV_CIT_001"}),
-            ("TMP-CIV-002", {"titolo": "Ricorso ex art. 702-bis / rito semplificato"}),
+            ("TMP-CIV-002", {"titolo": "Ricorso nel procedimento semplificato di cognizione (art. 281-undecies c.p.c.)"}),
             ("TMP-CIV-003", {"titolo": "Comparsa di costituzione e risposta", "link_compilatore_code": "CIV_COM_001"}),
             ("TMP-CIV-004", {"titolo": "Memoria n. 1", "family": "civile_processuale", "profilo_deposito": "atto_successivo"}),
             ("TMP-CIV-005", {"titolo": "Memoria n. 2", "family": "civile_processuale", "profilo_deposito": "atto_successivo"}),

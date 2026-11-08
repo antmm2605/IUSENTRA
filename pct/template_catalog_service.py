@@ -454,6 +454,9 @@ def _master_compiler_code(
         return _first_compiler_code("CIV_MEM_001", "CIV_CONCL_001", "CIV_REPL_001")
     if _contains_any(text, "istanza", "deposito documenti", "ordine di esibizione", "ctu"):
         return _first_compiler_code("CIV_IST_001", "CIV_DEPDOC_001")
+    if _contains_any(text, "semplificat", "281-undecies", "281 undecies", "702-bis", "702 bis"):
+        # Il procedimento sommario ex art. 702-bis è abrogato (D.Lgs. 149/2022): il ricorso è quello del rito semplificato.
+        return _first_compiler_code("CIV_INT_001", "CIV_CIT_001")
     if _contains_any(text, "ricorso"):
         return _first_compiler_code("CIV_CIT_001", "CIV_RCAUT_001")
     return _first_compiler_code("CIV_CIT_001")

@@ -866,7 +866,7 @@
       "codice": "GUIDA_RESPONSABILIT_CIVILE_AUTO_RCA_PROCEDURA_DI_RISARCIMENTO_DIRETTO_E_CONTRO_156020",
       "denominazione": "Responsabilità civile auto: RCA, procedura di risarcimento diretto e controversie (D.Lgs. 209/2005 artt. 148-150)",
       "categoria": "Contratti – RCA auto – sinistro stradale",
-      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA",
+      "rito": "Rito ordinario o semplificato, preceduto dalla NEGOZIAZIONE ASSISTITA obbligatoria (art. 3 D.L. 132/2014)",
       "competenza": "Foro del danneggiato",
       "uffici_destinatari": [
         "SICID"
@@ -890,6 +890,11 @@
         {
           "fonte": "D.P.R. 254/2006",
           "descrizione": "Regolamento CARD – liquidazione dei sinistri tra assicuratori"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "3",
+          "descrizione": "Negoziazione assistita obbligatoria per il risarcimento del danno da circolazione di veicoli e natanti: condizione di procedibilità"
         }
       ],
       "risarcimento_diretto_149": {
@@ -903,8 +908,10 @@
         "prova_strumentale": "Per micropermanenti: obbligo di referto strumentale dall'1/1/2019"
       },
       "obbligo_mediazione": {
-        "obbligatoria": true,
-        "materia": "ASSICURAZIONI"
+        "obbligatoria": false,
+        "negoziazione_assistita_obbligatoria": true,
+        "fonte": "art. 3, comma 1, D.L. 132/2014",
+        "nota": "Per il risarcimento del danno da circolazione di veicoli e natanti la condizione di procedibilità è l'invito alla negoziazione assistita (art. 3, comma 1, D.L. 132/2014); la mediazione obbligatoria dell'art. 5, comma 1, D.Lgs. 28/2010 riguarda i contratti assicurativi, non l'azione del danneggiato da sinistro stradale"
       },
       "atto_principale": {
         "tipo_atto": "azione_RC_auto_sinistro_stradale_Cod_Ass",
@@ -953,7 +960,7 @@
         ],
         "avvertimenti_obbligatori": [
           "Micropermanenti >9%: prova strumentale OBBLIGATORIA dall'1/1/2019",
-          "Mediazione: CONDIZIONE DI PROCEDIBILITÀ",
+          "Negoziazione assistita: CONDIZIONE DI PROCEDIBILITÀ (art. 3, comma 1, D.L. 132/2014) – non la mediazione",
           "Risarcimento diretto: solo se responsabilità accertata con 2 veicoli"
         ]
       },
@@ -965,7 +972,7 @@
           "id": "perizia_medico_legale"
         },
         {
-          "id": "verbale_mediazione",
+          "id": "invito_negoziazione_assistita_e_dichiarazione_mancato_accordo",
           "required": true
         }
       ],
@@ -1400,6 +1407,24 @@
           "verificato_il": "2026-06-06",
           "metodo": "ricerca web su fonte ufficiale",
           "matched_by": "consulenza tecnica"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3, comma 1",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3",
+          "ambito": "condizione di procedibilità per il danno da circolazione",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Mediazione obbligatoria sostituita dalla negoziazione assistita: il danno da circolazione non è fra le materie dell'art. 5, comma 1, D.Lgs. 28/2010; vale l'art. 3, comma 1, D.L. 132/2014.",
+          "fonti": [
+            "art. 3, comma 1, D.L. 132/2014",
+            "art. 5, comma 1, D.Lgs. 28/2010"
+          ]
         }
       ]
     },

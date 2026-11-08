@@ -68,6 +68,13 @@ def contains_specific_unverified_reference(text: str) -> bool:
     haystack = _normalize_text(text)
     if not haystack:
         return False
+    from .hallucination_guard import extract_legal_references
+
+    # Le pronunce scritte senza «n.» («Cass. 22222/2023», «Corte cost. 77/2018», «Cass. SS.UU. 9999/2021»)
+    # sono riferimenti puntuali come quelle con «n.»: le riconosce lo stesso estrattore della guardia
+    # anti-invenzione, che lascia fuori gli estremi delle norme («L. 107/2015», «D.Lgs. 165/2001»).
+    if any(ref.kind in {"case_law", "ecli"} for ref in extract_legal_references(text)):
+        return True
     return any(
         re.search(pattern, haystack)
         for pattern in (

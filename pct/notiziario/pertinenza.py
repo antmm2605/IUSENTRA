@@ -153,12 +153,14 @@ def costruisci_indice(
     return indice
 
 
-QUOTA_DIFFUSIONE = 0.5
+# Un atto citato in più di un quarto dei fascicoli (es. D.P.R. 115/2002 nei ricorsi, D.Lgs. 28/2010 nelle procure)
+# descrive lo studio, non la pratica: collega solo per stesso articolo e comma (misura 08/11/2026: 98 su 308).
+QUOTA_DIFFUSIONE = 0.25
 MINIMO_FASCICOLI_DIFFUSIONE = 20
 
 
 def atti_diffusi(indice: IndicePertinenza) -> frozenset[str]:
-    """Atti citati in più della metà dei fascicoli (almeno 20): da soli non distinguono un fascicolo."""
+    """Atti citati in più di un quarto dei fascicoli (almeno 20): da soli non distinguono un fascicolo."""
     totale = len(indice.fascicoli)
     if totale < MINIMO_FASCICOLI_DIFFUSIONE:
         return frozenset()

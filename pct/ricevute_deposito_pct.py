@@ -25,7 +25,7 @@ import html
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from email.utils import parsedate_to_datetime
+from email.utils import getaddresses, parsedate_to_datetime
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
@@ -216,7 +216,7 @@ def criterio_collegamento(ricevuta: dict, dep: Any, ident_dep: dict | None = Non
     return ""
 
 
-INTESTAZIONI_IMAP = "SUBJECT FROM DATE MESSAGE-ID X-RICEVUTA X-RIFERIMENTO-MESSAGE-ID"
+INTESTAZIONI_IMAP = "SUBJECT FROM DATE MESSAGE-ID X-RICEVUTA X-TRASPORTO X-RIFERIMENTO-MESSAGE-ID"
 _LIMITE_TESTO = 200_000
 
 
@@ -240,6 +240,7 @@ def ricevuta_da_intestazioni(msg: Any) -> dict:
         "date": str(msg.get("Date", "") or ""),
         "message_id": str(msg.get("Message-ID", "") or "").strip(),
         "x_ricevuta": str(msg.get("X-Ricevuta", "") or "").strip(),
+        "x_trasporto": str(msg.get("X-Trasporto", "") or "").strip(),
         "riferimento_message_id": str(msg.get("X-Riferimento-Message-ID", "") or "").strip(),
     }
 
@@ -293,9 +294,30 @@ _TIPI_MINISTERO = {ESITO_CONTROLLI, ESITO_CANCELLERIA}
 _CRITERIO_MSGID = "Message-ID del messaggio di deposito"
 
 
+# Valori di X-Ricevuta emessi dai gestori (regole tecniche PEC, d.m. 2/11/2005, all. par. 3.1-3.3).
+_X_RICEVUTA_GESTORE = {
+    "accettazione", "non-accettazione", "presa-in-carico", "avvenuta-consegna", "posta-certificata",
+    "errore-consegna", "preavviso-errore-consegna", "rilevazione-virus",
+}
+_PER_CONTO_DI = re.compile(r"per\s+conto\s+di\s*:?\s*", re.I)
+
+
 def _indirizzi(valore: Any) -> set[str]:
-    """Tutti gli indirizzi in un'intestazione From, compreso il «Per conto di:» del gestore."""
-    return {m.group(0).casefold() for m in _EMAIL.finditer(str(valore or ""))}
+    """Indirizzi effettivi (addr-spec) di un'intestazione From; il nome visualizzato non conta.
+
+    Unica eccezione: il «Per conto di: <mittente>» che il gestore PEC scrive nel nome visualizzato della
+    busta di trasporto, letto solo quando l'indirizzo effettivo è quello del gestore (posta-certificata@)."""
+    trovati: set[str] = set()
+    for nome, indirizzo in getaddresses([str(valore or "")]):
+        indirizzo = indirizzo.strip().casefold()
+        if not _EMAIL.fullmatch(indirizzo):
+            continue
+        trovati.add(indirizzo)
+        if indirizzo.startswith("posta-certificata@") and _PER_CONTO_DI.search(nome or ""):
+            conto = _PER_CONTO_DI.split(nome, maxsplit=1)[-1].strip().casefold()
+            if _EMAIL.fullmatch(conto):
+                trovati.add(conto)
+    return trovati
 
 
 def _ministeriale(indirizzo: str) -> bool:
@@ -303,11 +325,19 @@ def _ministeriale(indirizzo: str) -> bool:
     return dominio == DOMINIO_MINISTERIALE or dominio.endswith("." + DOMINIO_MINISTERIALE)
 
 
+def _anomalia(ricevuta: dict) -> bool:
+    """Messaggio non PEC imbustato dal nostro gestore come anomalia (X-Trasporto: errore): mittente non garantito."""
+    return str(ricevuta.get("x_trasporto") or "").strip().casefold() == "errore"
+
+
 def da_gestore_pec(ricevuta: dict) -> bool:
-    """Ricevuta emessa dal gestore PEC: intestazione X-Ricevuta (d.m. 2/11/2005) o mittente
-    «posta-certificata@» del gestore. Una e-mail qualunque con oggetto «CONSEGNA:» non lo e'."""
-    if str(ricevuta.get("x_ricevuta") or "").strip():
-        return True
+    """Ricevuta emessa dal gestore PEC: indirizzo effettivo «posta-certificata@» del gestore e, se presente,
+    X-Ricevuta con un valore delle regole tecniche. Una e-mail qualunque con oggetto «CONSEGNA:» non lo è."""
+    if _anomalia(ricevuta):
+        return False
+    x_ric = str(ricevuta.get("x_ricevuta") or "").strip().casefold()
+    if x_ric and x_ric not in _X_RICEVUTA_GESTORE:
+        return False
     return any(a.startswith("posta-certificata@") for a in _indirizzi(ricevuta.get("from")))
 
 
@@ -327,11 +357,15 @@ def motivo_non_applicabile(rc: "RicevutaCollegata", dep: Any) -> str:
     if rc.tipo in _TIPI_MINISTERO:
         if rc.criterio != _CRITERIO_MSGID:
             return f"collegata solo per {rc.criterio}, non per l'identificativo del messaggio di deposito (IdMsgMitt)"
+        if _anomalia(r):
+            return "messaggio non PEC (anomalia del gestore): mittente non garantito"
         ufficio = str(getattr(dep, "pec_destinatario", "") or "").strip().casefold()
         esterni = _indirizzi(r.get("from"))
         if not any(_ufficio_ammesso(a, ufficio) for a in esterni):
             return "mittente diverso dall'ufficio del deposito o da un indirizzo ministeriale"
         interni = [_indirizzi(m) for m in r.get("mittenti_interni") or [] if str(m or "").strip()]
+        if not interni:
+            return "messaggio interno (postacert.eml) assente: mittente dell'ufficio non verificabile"
         if any(not any(_ufficio_ammesso(a, ufficio) for a in gruppo) for gruppo in interni):
             return "messaggio interno (postacert.eml) non inviato dall'ufficio"
         return ""

@@ -46,11 +46,18 @@ ESTRANEO = "truffatore@mail.example"
 XML_MITT = f"<EsitoAtto><IdMsgMitt>&lt;{MSGID}&gt;</IdMsgMitt></EsitoAtto>"
 
 
+GESTORE = "posta-certificata@gestore.example"
+UFFICIO_INTERNO = "tribunale.esempio@civile.ptel.giustiziacert.it"
+
+
 def _ric(subject: str, *, rif: str = "", testo: str = "", date: str = "Tue, 11 Aug 2026 12:45:00 +0200", x: str = "",
-         frm: str = "", interni: list | None = None) -> dict:
+         frm: str = GESTORE, interni: list | None = None, trasporto: str = "") -> dict:
+    # Le PEC reali del Ministero contengono il messaggio dell'ufficio come postacert.eml.
+    if interni is None:
+        interni = [UFFICIO_INTERNO] if frm == UFFICIO else []
     return {"subject": subject, "riferimento_message_id": rif, "testo": testo, "date": date,
-            "x_ricevuta": x, "message_id": "<ric-1@gestore.example>", "from": frm,
-            "mittenti_interni": interni or []}
+            "x_ricevuta": x, "x_trasporto": trasporto, "message_id": "<ric-1@gestore.example>", "from": frm,
+            "mittenti_interni": interni}
 
 
 # ---------------------------------------------------------------- casi reali del difetto
@@ -293,7 +300,7 @@ def test_attendi_ricevute_usa_solo_x_riferimento(monkeypatch):
 
         def fetch(self, numeri, domanda):
             return "OK", [
-                (b"1 (BODY[HEADER] {10}", f"Subject: CONSEGNA: DEPOSITO\r\nX-Ricevuta: avvenuta-consegna\r\nX-Riferimento-Message-ID: <{MSGID}>\r\n\r\n".encode()),
+                (b"1 (BODY[HEADER] {10}", f"Subject: CONSEGNA: DEPOSITO\r\nFrom: posta-certificata@gestore.example\r\nX-Ricevuta: avvenuta-consegna\r\nX-Riferimento-Message-ID: <{MSGID}>\r\n\r\n".encode()),
                 (b"2 (BODY[HEADER] {10}", b"Subject: CONSEGNA: appuntamento\r\nX-Riferimento-Message-ID: <altro@x>\r\n\r\n"),
                 b")",
             ]
@@ -451,3 +458,45 @@ def test_mittente_interno_letto_da_postacert():
     esterno.set_content("busta di trasporto")
     esterno.add_attachment(interno, filename="postacert.eml")
     assert mittenti_interni(esterno) == ["tribunale.esempio@civile.ptel.giustiziacert.it"]
+
+
+# ---------------------------------------------------------------- mittente non falsificabile (revisione 08/11/2026)
+
+ESITO_OGG = "POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO"
+XML_WARN = f"<EsitoAtto><IdMsgMitt>&lt;{MSGID}&gt;</IdMsgMitt><DatiEsito><MsgEsito><CodiceEsito>-1</CodiceEsito>" \
+           "<DescrizioneEsito>WARN</DescrizioneEsito></MsgEsito></DatiEsito></EsitoAtto>"
+
+
+def test_nome_visualizzato_ministeriale_con_indirizzo_estraneo_non_vale():
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    finto = '"tribunale.esempio@civile.ptel.giustiziacert.it" <truffatore@mail.example>'
+    applica_ricevute(dep, [_ric(ESITO_OGG, testo=XML_WARN, frm=finto, interni=[finto])])
+    assert dep.stato == "CONSEGNATO"
+
+
+def test_per_conto_di_valido_solo_dal_gestore():
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    finto = '"Per conto di: tribunale.esempio@civile.ptel.giustiziacert.it" <truffatore@mail.example>'
+    applica_ricevute(dep, [_ric(ESITO_OGG, testo=XML_WARN, frm=finto, interni=[UFFICIO_INTERNO])])
+    assert dep.stato == "CONSEGNATO"
+
+
+def test_esito_senza_postacert_interno_non_vale():
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    applica_ricevute(dep, [_ric(ESITO_OGG, testo=XML_WARN, frm=UFFICIO, interni=[])])
+    assert dep.stato == "CONSEGNATO"
+
+
+def test_anomalia_del_gestore_non_vale_ne_come_esito_ne_come_ricevuta():
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    applica_ricevute(dep, [_ric(ESITO_OGG, testo=XML_WARN, frm=UFFICIO, trasporto="errore")])
+    assert dep.stato == "CONSEGNATO"
+    dep2 = _deposito()
+    applica_ricevute(dep2, [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", x="avvenuta-consegna", trasporto="errore")])
+    assert dep2.stato == "INVIATO"
+
+
+def test_x_ricevuta_con_valore_non_previsto_non_e_del_gestore():
+    dep = _deposito()
+    applica_ricevute(dep, [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", x="consegna-finta")])
+    assert dep.stato == "INVIATO"

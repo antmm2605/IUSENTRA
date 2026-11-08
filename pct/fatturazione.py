@@ -811,7 +811,7 @@ class GestioneFatturazione:
              applica_iva:     bool = True,
              applica_cassa:   bool = True,
              applica_ritenuta: bool = False,
-             applica_bollo:   Optional[bool] = None,
+             applica_bollo:   Optional[bool] = False,
              percentuale_spese_generali: float = 0.0,
              note:            str = "",
              origine:         str = "",
@@ -903,7 +903,8 @@ class GestioneFatturazione:
             dati_personalizzati=dati,
         )
         if applica_bollo is None and p.bollo_dovuto:
-            # Proposta del bollo dovuto (art. 13 Tariffa all. A D.P.R. 642/1972): l'avvocato può
+            # applica_bollo=None: proposta automatica del bollo dovuto (art. 13 Tariffa all. A
+            # D.P.R. 642/1972), usata dalle proforma predisposte dal software; l'avvocato può
             # indicarlo a carico dello studio, ma il documento lo deve esporre.
             p.applica_bollo = True
         self._parcelle[p.id] = p

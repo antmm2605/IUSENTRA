@@ -1208,7 +1208,10 @@ def test_proforma_su_richiesta_esplicita_e_replay_idempotente(tmp_path: Path):
     proforme = fatturazione.per_fascicolo("FASC-1")
     assert len(proforme) == 1
     # La proforma ha numerazione propria non fiscale (art. 21 D.P.R. 633/1972).
-    assert proforme[0].numero == "PF-2024/001"
+    # numerazione non fiscale dell'anno di predisposizione (data del giorno, non della sentenza)
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _Zone
+    assert proforme[0].numero == f"PF-{_dt.now(_Zone('Europe/Rome')).year}/001"
     assert proforme[0].origine == ORIGIN
     assert proforme[0].dati_personalizzati["document"]["documento_operativo"] == "PROFORMA"
 

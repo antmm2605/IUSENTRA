@@ -88,6 +88,8 @@ def test_proforma_da_sentenza_regime_forfetario_senza_iva_ritenuta_con_bollo(tmp
 def test_bollo_esplicitamente_escluso_resta_escluso(tmp_path: Path):
     manager = GestioneFatturazione(str(tmp_path / "p.json"))
     voci = [VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=300)]
-    proposto = manager.crea(id_cliente="c1", voci=voci, applica_iva=False)
+    proposto = manager.crea(id_cliente="c1", voci=voci, applica_iva=False, applica_bollo=None)
+    predefinito = manager.crea(id_cliente="c1", voci=voci, applica_iva=False)
+    assert not predefinito.applica_bollo  # i chiamanti esistenti decidono in modo esplicito
     escluso = manager.crea(id_cliente="c1", voci=voci, applica_iva=False, applica_bollo=False)
     assert proposto.applica_bollo and not escluso.applica_bollo

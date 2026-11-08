@@ -1207,7 +1207,8 @@ def test_proforma_su_richiesta_esplicita_e_replay_idempotente(tmp_path: Path):
 
     proforme = fatturazione.per_fascicolo("FASC-1")
     assert len(proforme) == 1
-    assert proforme[0].numero == "2024/001"
+    # La proforma ha numerazione propria non fiscale (art. 21 D.P.R. 633/1972).
+    assert proforme[0].numero == "PF-2024/001"
     assert proforme[0].origine == ORIGIN
     assert proforme[0].dati_personalizzati["document"]["documento_operativo"] == "PROFORMA"
 
@@ -1590,12 +1591,16 @@ def test_numerazione_configurata_e_conversione_proforma(tmp_path: Path):
         voci=[VoceParcella(descrizione="Compenso", prezzo_unitario=100.0)],
         dati_personalizzati={"document": {"documento_operativo": "PROFORMA", "tipo_documento_label": "Proforma"}},
     )
-    assert proforma.numero == "2024/016"
-    assert manager.carica_numerazione(2024)["prossimoNumero"] == "2024/017"
+    # La proforma non consuma la serie fiscale configurata.
+    assert proforma.numero == "PF-2024/001"
+    assert manager.carica_numerazione(2024)["prossimoNumero"] == "2024/016"
 
     manager.cambia_stato(proforma.id, StatoParcella.EMESSA)
     converted = manager.get(proforma.id)
     assert converted.stato == StatoParcella.EMESSA
+    # Alla conversione la fattura prende il numero fiscale successivo dell'anno corrente.
+    assert not converted.numero.startswith("PF-")
+    assert converted.dati_personalizzati["proforma"]["numero_proforma"] == "PF-2024/001"
     assert converted.dati_personalizzati["document"]["documento_operativo"] == "FATTURA"
     assert converted.dati_personalizzati["document"]["tipo_documento_label"] == "Fattura"
 

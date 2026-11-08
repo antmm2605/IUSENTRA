@@ -611,7 +611,7 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
 
     data_emissione_label = format_date_it(p.data_emissione) or str(p.data_emissione or "")
     data_scadenza_label = format_date_it(p.data_scadenza) if p.data_scadenza else ""
-    n_str   = f"<b>N. {p.numero}</b>"
+    n_str   = f"<b>N. {getattr(p, 'numero_visibile', '') or p.numero}</b>"
     dt_str  = f"Data: {data_emissione_label}"
     sc_str  = f"Scadenza: {data_scadenza_label}" if data_scadenza_label else ""
 
@@ -631,7 +631,7 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
     info_tbl = Table(
         [[Paragraph("\n".join([studio_ind, f"P.IVA {studio_piva}" if studio_piva else "",
                                 f"C.F. {studio_cf}" if studio_cf else ""]).strip(), style_small),
-          Paragraph(f"<b>N. {p.numero}</b><br/>{dt_str}<br/>{sc_str}", ParagraphStyle(
+          Paragraph(f"<b>N. {getattr(p, 'numero_visibile', '') or p.numero}</b><br/>{dt_str}<br/>{sc_str}", ParagraphStyle(
               "infori", parent=style_small, alignment=TA_RIGHT))]],
         colWidths=["60%", "40%"]
     )

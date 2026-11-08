@@ -259,10 +259,15 @@ class ParcellaIncassiRepository:
                 'revision': parcella_revision(item), 'receipts': receipts, 'due_cents': due}
 
     @staticmethod
-    def _financial_identity(item):
+    def _financial_identity(item, *, conversione=False):
         payload = item.to_dict()
         for key in ('stato', 'data_pagamento', 'metodo_pagamento', 'note'):
             payload.pop(key, None)
+        if conversione:
+            # Conversione proforma → fattura: numero e data diventano quelli fiscali
+            # (art. 21, c. 2, lett. a-b, D.P.R. 633/1972); gli importi restano invariati.
+            for key in ('numero', 'data_emissione', 'data_scadenza'):
+                payload.pop(key, None)
         custom = dict(payload.get('dati_personalizzati') or {})
         custom.pop('incassi_sql', None)
         # Emissione/invio e incasso sono fatti distinti: la conferma fiscale
@@ -272,12 +277,14 @@ class ParcellaIncassiRepository:
         document = dict(custom.get('document') or {})
         for key in ('documento_operativo', 'tipo_documento_label', 'numero_documento', 'data_conversione_proforma'):
             document.pop(key, None)
+        if conversione:
+            document.pop('data_documento', None)
         if document:
             custom['document'] = document
         else:
             custom.pop('document', None)
         proforma = dict(custom.get('proforma') or {})
-        for key in ('convertita', 'convertita_il', 'stato_destinazione'):
+        for key in ('convertita', 'convertita_il', 'stato_destinazione', 'numero_proforma', 'data_proforma'):
             proforma.pop(key, None)
         if proforma:
             custom['proforma'] = proforma
@@ -288,19 +295,25 @@ class ParcellaIncassiRepository:
 
     @classmethod
     def _same_financial_source(cls, original, current):
-        if cls._financial_identity(original) != cls._financial_identity(current):
-            return False
         old = GestioneFatturazione._document_payload(original)
         new = GestioneFatturazione._document_payload(current)
         kind = lambda value: str(value.get('documento_operativo') or '').strip().upper()
         if kind(old) == kind(new):
+            if cls._financial_identity(original) != cls._financial_identity(current):
+                return False
             return all(old.get(key) == new.get(key) for key in
                        ('numero_documento', 'data_conversione_proforma'))
+        if cls._financial_identity(original, conversione=True) != cls._financial_identity(current, conversione=True):
+            return False
         proof = (current.dati_personalizzati or {}).get('proforma', {})
+        # Le conversioni registrate prima della numerazione separata conservavano il numero:
+        # in loro assenza di riferimento il numero deve coincidere con quello originale.
+        numero_proforma = proof.get('numero_proforma', original.numero) if isinstance(proof, dict) else None
         return (GestioneFatturazione._is_proforma(original) and kind(new) == 'FATTURA'
                 and current.stato in {StatoParcella.EMESSA, StatoParcella.SCADUTA, StatoParcella.PAGATA}
                 and isinstance(proof, dict) and proof.get('convertita') is True
                 and proof.get('stato_destinazione') in {'EMESSA', 'PAGATA'}
+                and numero_proforma == original.numero
                 and new.get('numero_documento') == current.numero
                 and bool(new.get('data_conversione_proforma'))
                 and proof.get('convertita_il') == new.get('data_conversione_proforma'))

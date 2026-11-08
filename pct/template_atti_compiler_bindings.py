@@ -53,7 +53,9 @@ BUILTIN_COMPILER_BINDINGS: list[dict[str, Any]] = [
     _binding("Invito a negoziazione assistita", "STR_BLT_007", "STR_COM_001", area="STRAGIUDIZIALE"),
     _binding("Atto di messa in mora", "STR_BLT_008", "STR_MM_001", area="STRAGIUDIZIALE"),
     # Civile introduttivo / cautelare
-    _binding("Ricorso ex art. 702-bis / rito semplificato", "CIV_INT_001", "CIV_CIT_001", area="CIVILE"),
+    # Il ricorso sommario ex art. 702-bis c.p.c. è abrogato (D.Lgs. 149/2022): il modello introduce il procedimento
+    # semplificato (artt. 281-decies e 281-undecies c.p.c.) con il proprio compilatore, non con quello della citazione.
+    _binding("Ricorso nel procedimento semplificato di cognizione (art. 281-undecies c.p.c.)", "CIV_INT_001", "CIV_INT_001", area="CIVILE"),
     _binding("Riassunzione del giudizio", "CIV_INT_002", "CIV_CIT_001", area="CIVILE"),
     _binding("Reclamo cautelare", "CIV_INT_003", "CIV_RCAUT_001", area="CIVILE"),
     _binding("Ricorso per sequestro conservativo", "CIV_INT_004", "CIV_RCAUT_001", area="CIVILE"),

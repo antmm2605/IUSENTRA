@@ -913,6 +913,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      # Copia conservata di Python 3.12.15: un guasto dei download di GitHub (504 dell'08/11/2026) non ferma la CI.
+      - name: Python 3.12.15 dalla cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/hostedtoolcache/Python/3.12.15
+          key: python-toolcache-3.12.15-${{ runner.os }}-${{ runner.arch }}-${{ env.ImageOS }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12.15"
@@ -956,6 +962,12 @@ jobs:
           # Il banco fonti confronta la ricerca con il commit storico 2.435.0.
           fetch-depth: 0
 
+      # Copia conservata di Python 3.12.15: un guasto dei download di GitHub (504 dell'08/11/2026) non ferma la CI.
+      - name: Python 3.12.15 dalla cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/hostedtoolcache/Python/3.12.15
+          key: python-toolcache-3.12.15-${{ runner.os }}-${{ runner.arch }}-${{ env.ImageOS }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -1026,6 +1038,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      # Copia conservata di Python 3.12.15: un guasto dei download di GitHub (504 dell'08/11/2026) non ferma la CI.
+      - name: Python 3.12.15 dalla cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/hostedtoolcache/Python/3.12.15
+          key: python-toolcache-3.12.15-${{ runner.os }}-${{ runner.arch }}-${{ env.ImageOS }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12.15"
@@ -1084,6 +1102,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      # Copia conservata di Python 3.12.15: un guasto dei download di GitHub (504 dell'08/11/2026) non ferma la CI.
+      - name: Python 3.12.15 dalla cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/hostedtoolcache/Python/3.12.15
+          key: python-toolcache-3.12.15-${{ runner.os }}-${{ runner.arch }}-${{ env.ImageOS }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12.15"

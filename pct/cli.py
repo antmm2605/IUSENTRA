@@ -1622,7 +1622,7 @@ def cmd_par_nuova(cliente, fascicolo, voce, iva, cassa, ritenuta, bollo, scadenz
             applica_iva=iva,
             applica_cassa=cassa,
             applica_ritenuta=ritenuta,
-            applica_bollo=bollo,
+            applica_bollo=True if bollo else None,
             note=note,
         )
         click.echo(f"Parcella creata: {p.id}  (n. {p.numero})")

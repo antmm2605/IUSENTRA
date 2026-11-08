@@ -132,7 +132,7 @@ def nuova(id_cliente: str = ""):
             applica_iva=bool(f.get("applica_iva")),
             applica_cassa=bool(f.get("applica_cassa")),
             applica_ritenuta=bool(f.get("applica_ritenuta")),
-            applica_bollo=bool(f.get("applica_bollo")),
+            applica_bollo=True if f.get("applica_bollo") else None,
             note=f.get("note", "").strip(),
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
@@ -454,8 +454,8 @@ def _genera_pdf(p, cliente, fascicolo, config) -> io.BytesIO:
         rows.append(["Contributo Cassa Forense (4 %)", format_euro_it(p.cassa_forense)])
     if p.applica_iva:
         rows.append([f"IVA 22 % su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)])
-    if p.applica_bollo:
-        rows.append(["Marca da bollo", format_euro_it(p.bollo)])
+    if p.bollo > 0:
+        rows.append([p.bollo_etichetta, format_euro_it(p.bollo)])
     if p.applica_ritenuta:
         rows.append(["Ritenuta d'acconto (20 %)", f"- {format_euro_it(p.ritenuta)}"])
     rows.append(["TOTALE", format_euro_it(p.totale)])

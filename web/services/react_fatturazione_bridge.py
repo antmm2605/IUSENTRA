@@ -1537,7 +1537,8 @@ def _validate_payload(
         "applica_iva": _as_bool(raw_options.get("applica_iva"), True),
         "applica_cassa": _as_bool(raw_options.get("applica_cassa"), True),
         "applica_ritenuta": _as_bool(raw_options.get("applica_ritenuta"), False),
-        "applica_bollo": _as_bool(raw_options.get("applica_bollo"), False),
+        # Senza spunta vale la regola di legge (art. 13 Tariffa all. A D.P.R. 642/1972).
+        "applica_bollo": True if _as_bool(raw_options.get("applica_bollo"), False) else None,
         "percentuale_spese_generali": percentuale_spese_generali,
         "metodo_pagamento": _text(payload.get("metodo_pagamento"), limit=60),
         "sdi_identificativo": _text(payload.get("sdi_identificativo"), limit=120),

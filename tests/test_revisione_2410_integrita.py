@@ -55,7 +55,8 @@ def test_appuntamento_eliminato_scollega_senza_cancellare(tmp_path):
 
 
 def _parcella(gestore, *, stato, anno_emissione):
-    p = gestore.crea("CLI1", [VoceParcella("Onorario", 1, 1000.0)], data_emissione=f"{anno_emissione}-03-01", applica_iva=False, applica_cassa=False)
+    p = gestore.crea("CLI1", [VoceParcella("Onorario", 1, 1000.0)], data_emissione=f"{anno_emissione}-03-01", applica_iva=False, applica_cassa=False,
+                       applica_bollo=False)  # scelta esplicita: il test misura i crediti, non il bollo
     gestore._parcelle[p.id].stato = stato
     return p
 

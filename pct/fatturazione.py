@@ -176,7 +176,9 @@ class Parcella:
     applica_iva:       bool  = True    # 22 %
     applica_cassa:     bool  = True    # Cassa Forense 4 %
     applica_ritenuta:  bool  = False   # Ritenuta d'acconto 20 %
-    applica_bollo:     bool  = False   # Marca da bollo € 2,00
+    # Bollo € 2,00: None = secondo la legge (art. 13 Tariffa all. A D.P.R. 642/1972, vedi
+    # pct.fatturazione_regime); True/False = scelta esplicita salvata sul documento.
+    applica_bollo:     Optional[bool] = None
 
     note:              str   = ""
     creato_da:         str   = ""
@@ -321,14 +323,37 @@ class Parcella:
         return round(base_ritenuta * 0.20, 2) if self.applica_ritenuta else 0.0
 
     @property
-    def bollo(self) -> float:
-        return 2.00 if self.applica_bollo else 0.0
+    def importo_non_soggetto_iva(self) -> float:
+        """Parte senza IVA (natura N2-N4 e anticipazioni art. 15) su cui si misura la soglia del bollo."""
+        from pct.fatturazione_regime import importo_non_soggetto_iva
+        return importo_non_soggetto_iva(iva_applicabile=self.iva_applicabile, base_iva=self.base_iva,
+                                        anticipazioni=self.totale_anticipazioni)
 
     @property
     def bollo_dovuto(self) -> bool:
-        """Bollo di € 2 dovuto: somme non soggette a IVA oltre € 77,47 (anticipazioni N1 escluse)."""
-        from pct.fatturazione_regime import bollo_dovuto
-        return bollo_dovuto(iva_applicabile=self.iva_applicabile, importo_non_soggetto=self.base_iva)
+        """Bollo di € 2 dovuto per legge (art. 13 Tariffa all. A D.P.R. 642/1972; art. 6 D.M. 17/06/2014)."""
+        from pct.fatturazione_regime import bollo_dovuto, esclusione_bollo
+        document = self.dati_personalizzati.get("document", {}) if isinstance(self.dati_personalizzati, dict) else {}
+        return bollo_dovuto(iva_applicabile=self.iva_applicabile, importo_non_soggetto=self.importo_non_soggetto_iva,
+                            esclusione=esclusione_bollo(document))
+
+    @property
+    def bollo_applicato(self) -> bool:
+        """Scelta esplicita salvata sul documento; senza scelta (None) vale la regola di legge."""
+        if self.applica_bollo is None:
+            return self.bollo_dovuto
+        return bool(self.applica_bollo)
+
+    @property
+    def bollo(self) -> float:
+        return 2.00 if self.bollo_applicato else 0.0
+
+    @property
+    def bollo_etichetta(self) -> str:
+        """La proforma non è un documento fiscale: il bollo si applica sulla fattura."""
+        if _e_proforma(self.dati_personalizzati):
+            return "Imposta di bollo (da applicare in fattura)"
+        return "Imposta di bollo"
 
     @property
     def bollo_addebitato(self) -> float:
@@ -811,7 +836,7 @@ class GestioneFatturazione:
              applica_iva:     bool = True,
              applica_cassa:   bool = True,
              applica_ritenuta: bool = False,
-             applica_bollo:   Optional[bool] = False,
+             applica_bollo:   Optional[bool] = None,
              percentuale_spese_generali: float = 0.0,
              note:            str = "",
              origine:         str = "",
@@ -868,7 +893,7 @@ class GestioneFatturazione:
             applica_iva=applica_iva,
             applica_cassa=applica_cassa,
             applica_ritenuta=applica_ritenuta,
-            applica_bollo=bool(applica_bollo),
+            applica_bollo=None if applica_bollo is None else bool(applica_bollo),
             percentuale_spese_generali=max(float(percentuale_spese_generali or 0.0), 0.0),
             note=note,
             origine=origine,
@@ -902,11 +927,6 @@ class GestioneFatturazione:
             sdi_note=sdi_note,
             dati_personalizzati=dati,
         )
-        if applica_bollo is None and p.bollo_dovuto:
-            # applica_bollo=None: proposta automatica del bollo dovuto (art. 13 Tariffa all. A
-            # D.P.R. 642/1972), usata dalle proforma predisposte dal software; l'avvocato può
-            # indicarlo a carico dello studio, ma il documento lo deve esporre.
-            p.applica_bollo = True
         self._parcelle[p.id] = p
         self._salva_parcella(p)
         return p

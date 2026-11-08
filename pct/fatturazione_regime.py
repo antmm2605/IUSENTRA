@@ -10,10 +10,17 @@ Basi normative:
 - regime forfetario (RF19): niente IVA (art. 1, comma 58, L. 190/2014) e niente ritenuta
   (art. 1, comma 67, L. 190/2014);
 - regime dei minimi (RF02): niente IVA né ritenuta (art. 27, commi 1 e 5, D.L. 98/2011);
-- imposta di bollo di € 2 sulle fatture per somme non soggette a IVA superiori a € 77,47
-  (art. 13, comma 1, Tariffa parte I, all. A, D.P.R. 642/1972; art. 6 D.M. 17/06/2014 per le
-  fatture elettroniche; elenco B delle fatture da integrare dell'Agenzia delle Entrate: nature
-  N2.1, N2.2, N3.5, N3.6, N4; le anticipazioni N1, art. 15 D.P.R. 633/1972, non contano).
+- imposta di bollo di € 2 sulle fatture (anche note di variazione e proforma, da applicare in
+  fattura) quando la parte non soggetta a IVA supera € 77,47 (art. 13, comma 1, Tariffa parte I,
+  all. A, D.P.R. 642/1972; art. 6 D.M. 17/06/2014 per le fatture elettroniche). Non è dovuta sulla
+  parte assoggettata a IVA (art. 6 Tabella all. B D.P.R. 642/1972): nelle fatture miste conta solo
+  la parte senza IVA. Rientrano nella parte senza IVA le operazioni con natura N2.x, N3.x, N4
+  (forfetario RF19, minimi RF02, non soggette, non imponibili, esenti) e le anticipazioni in nome e
+  per conto del cliente escluse ex art. 15 D.P.R. 633/1972 (Risposta AdE n. 491 del 20/07/2021:
+  l'esenzione delle operazioni IVA non copre le somme anticipate). Esclusioni registrate solo con
+  fonte (Guida AdE «L'imposta di bollo sulle fatture elettroniche», ed. 2024, elenco B): codici NB1
+  (documento assicurativo), NB2 (ente del terzo settore), NB3 (banca e cliente correntista) e i tipi
+  documento TD16, TD17, TD18, TD19, TD28.
 """
 from __future__ import annotations
 
@@ -59,10 +66,58 @@ def parametri_fiscali(regime: Any, *, pagatore_sostituto: bool) -> dict[str, Any
     }
 
 
-def bollo_dovuto(*, iva_applicabile: bool, importo_non_soggetto: float) -> bool:
-    """Bollo di € 2 dovuto sulle somme non soggette a IVA oltre € 77,47."""
-    return (not iva_applicabile) and round(float(importo_non_soggetto or 0.0), 2) > SOGLIA_BOLLO
+# Esclusioni con fonte: Guida AdE «L'imposta di bollo sulle fatture elettroniche» (2024), elenco B.
+ESCLUSIONI_BOLLO = {
+    "NB1": "Documento assicurativo: bollo assorbito nell'imposta sulle assicurazioni (Guida AdE 2024, elenco B)",
+    "NB2": "Documento emesso da ente del terzo settore (Guida AdE 2024, elenco B)",
+    "NB3": "Documento tra banca e cliente correntista: bollo assorbito nell'estratto conto (Guida AdE 2024, elenco B)",
+}
+TIPI_DOCUMENTO_ESCLUSI = frozenset({"TD16", "TD17", "TD18", "TD19", "TD28"})
 
 
-__all__ = ["IMPORTO_BOLLO", "REGIMI", "SOGLIA_BOLLO", "bollo_dovuto", "e_sostituto_imposta",
+def importo_non_soggetto_iva(*, iva_applicabile: bool, base_iva: float, anticipazioni: float) -> float:
+    """Parte del documento senza IVA: base (se l'IVA non si applica) più anticipazioni art. 15."""
+    parte = (0.0 if iva_applicabile else float(base_iva or 0.0)) + float(anticipazioni or 0.0)
+    return round(parte, 2)
+
+
+def esclusione_bollo(document: Any) -> str:
+    """Motivo dell'esclusione registrata sul documento (solo esclusioni con fonte), altrimenti ""."""
+    if not isinstance(document, dict):
+        return ""
+    codice = str(document.get("esclusione_bollo") or "").strip().upper()
+    if codice in ESCLUSIONI_BOLLO:
+        return ESCLUSIONI_BOLLO[codice]
+    tipo = str(document.get("tipo_documento") or "").strip().upper()
+    if tipo in TIPI_DOCUMENTO_ESCLUSI:
+        return f"Tipo documento {tipo} escluso dal bollo (Guida AdE 2024, elenco B)"
+    return ""
+
+
+def bollo_dovuto(*, iva_applicabile: bool, importo_non_soggetto: float, esclusione: str = "") -> bool:
+    """Bollo di € 2 dovuto quando la parte non soggetta a IVA supera € 77,47, salvo esclusione con fonte.
+
+    ``importo_non_soggetto`` è già la sola parte senza IVA: ``iva_applicabile`` resta per compatibilità.
+    """
+    del iva_applicabile
+    if esclusione:
+        return False
+    return round(float(importo_non_soggetto or 0.0), 2) > SOGLIA_BOLLO
+
+
+def scelta_bollo(inviato: Any, attuale: Any = None) -> bool | None:
+    """Valore da salvare dal modulo: spunta = bollo esplicito; senza spunta vale la legge (None).
+
+    Il bollo dovuto non è facoltativo (art. 13 Tariffa all. A D.P.R. 642/1972): togliere la spunta
+    non lo elimina. Resta prevalente solo un «no» già salvato in modo esplicito sul documento;
+    chi non vuole addebitarlo al cliente usa «bollo a carico dello studio».
+    """
+    if inviato is True:
+        return True
+    return False if attuale is False else None
+
+
+__all__ = ["ESCLUSIONI_BOLLO", "IMPORTO_BOLLO", "REGIMI", "SOGLIA_BOLLO", "TIPI_DOCUMENTO_ESCLUSI",
+           "bollo_dovuto", "e_sostituto_imposta", "esclusione_bollo", "importo_non_soggetto_iva",
+           "scelta_bollo",
            "parametri_fiscali", "regime_normalizzato"]

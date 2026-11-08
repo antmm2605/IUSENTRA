@@ -244,7 +244,7 @@ def nuova(id_cliente: str = ""):
             applica_iva=bool(f.get("applica_iva")),
             applica_cassa=bool(f.get("applica_cassa")),
             applica_ritenuta=bool(f.get("applica_ritenuta")),
-            applica_bollo=bool(f.get("applica_bollo")),
+            applica_bollo=True if f.get("applica_bollo") else None,
             note=note,
             origine=origine,
             id_preventivo=id_preventivo,
@@ -694,8 +694,8 @@ def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) 
         rows.append(["Contributo Cassa Forense (4 %)", format_euro_it(p.cassa_forense)])
     if p.iva_applicabile:
         rows.append([f"IVA {p.aliquota_iva:g} % su {format_euro_it(p.base_iva)}", format_euro_it(p.iva)])
-    if p.applica_bollo:
-        label_bollo = "Bollo virtuale a carico dello studio (non addebitato)" if p.bollo_addebitato == 0 else "Bollo virtuale addebitato"
+    if p.bollo > 0:
+        label_bollo = p.bollo_etichetta + (" a carico dello studio (non addebitato)" if p.bollo_addebitato == 0 else " addebitato")
         rows.append([label_bollo, format_euro_it(p.bollo)])
     if p.applica_ritenuta:
         rows.append(["Ritenuta d'acconto (20 %)", f"- {format_euro_it(p.ritenuta)}"])

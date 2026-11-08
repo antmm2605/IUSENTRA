@@ -574,8 +574,10 @@ def build_react_fatturazione_detail_payload(
         "applica_iva": bool(getattr(parcella, "applica_iva", False)),
         "applica_cassa": bool(getattr(parcella, "applica_cassa", False)),
         "applica_ritenuta": bool(getattr(parcella, "applica_ritenuta", False)),
-        "applica_bollo": bool(getattr(parcella, "applica_bollo", False)),
+        "applica_bollo": bool(getattr(parcella, "bollo_applicato", getattr(parcella, "applica_bollo", False))),
         "bollo_a_carico_studio": document.get("bollo_a_carico_studio") is True,
+        "bollo_dovuto_per_legge": bool(getattr(parcella, "bollo_dovuto", False)),
+        "bollo_etichetta": _text(getattr(parcella, "bollo_etichetta", "")) or "Imposta di bollo",
         "percentuale_spese_generali": _text(getattr(parcella, "percentuale_spese_generali", 0)),
         "regime_fiscale": _text(document.get("regime_fiscale")).upper() or "RF01",
     }
@@ -705,7 +707,11 @@ def update_react_fatturazione_detail(
         applica_iva = False
     applica_cassa = _bool_value(raw_fiscal.get("applica_cassa"), bool(getattr(parcella, "applica_cassa", True)))
     applica_ritenuta = _bool_value(raw_fiscal.get("applica_ritenuta"), bool(getattr(parcella, "applica_ritenuta", False)))
-    applica_bollo = _bool_value(raw_fiscal.get("applica_bollo"), bool(getattr(parcella, "applica_bollo", False)))
+    from pct.fatturazione_regime import scelta_bollo
+
+    bollo_attuale = getattr(parcella, "applica_bollo", None)
+    applica_bollo = (bollo_attuale if raw_fiscal.get("applica_bollo") is None
+                     else scelta_bollo(_bool_value(raw_fiscal.get("applica_bollo"), False), bollo_attuale))
     if errors:
         return {"ok": False, "message": "Controlla i dati fiscali, il pagamento e le voci.", "errors": errors, "item": None}, 400
 
@@ -855,7 +861,7 @@ def apply_react_fatturazione_defaults_to_proformas(
                 applica_iva=bool(defaults.get("applica_iva")) and regime not in {"RF02", "RF19"},
                 applica_cassa=bool(defaults.get("applica_cassa")),
                 applica_ritenuta=bool(defaults.get("applica_ritenuta")),
-                applica_bollo=bool(defaults.get("applica_bollo")),
+                applica_bollo=True if bool(defaults.get("applica_bollo")) else None,  # None: regola di legge
                 percentuale_spese_generali=float(defaults.get("percentuale_spese_generali") or 0.0),
                 metodo_pagamento=metodo,
                 studio_piva=_text(studio_config.get("STUDIO_PIVA")),

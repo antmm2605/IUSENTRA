@@ -63,3 +63,26 @@ def profilo_per_materia(profilo: Any, *, lavoro: bool) -> Any:
 
 
 __all__ = ["NOTA_LAVORO", "fascicolo_di_lavoro", "lavoro_da_richiesta", "profilo_per_materia"]
+
+
+def profilo_della_richiesta(preset_key: str, profile_code: str, payload: Mapping[str, Any],
+                            trova_fascicolo: Callable[[str], Any]) -> tuple[Any, bool, bool]:
+    """Profilo del termine scelto (preset o profilo) adattato alla materia della richiesta.
+
+    Restituisce (profilo, materia di lavoro, sospensione feriale tolta). Art. 3 L. 742/1969: nessuna
+    sospensione feriale nelle controversie di lavoro e previdenza.
+    """
+    from pct.scadenziario import ProfiloTermine, profili_termine_builtin, profilo_da_preset
+
+    if preset_key:
+        profilo = profilo_da_preset(preset_key)
+    elif profile_code:
+        profili = profili_termine_builtin()
+        if profile_code not in profili:
+            raise ValueError("Profilo termine non valido")
+        profilo = ProfiloTermine.from_dict(profili[profile_code])
+    else:
+        raise ValueError("Seleziona un preset o un profilo termine")
+    lavoro = lavoro_da_richiesta(payload, trova_fascicolo)
+    adattato = profilo_per_materia(profilo, lavoro=lavoro)
+    return adattato, lavoro, adattato is not profilo

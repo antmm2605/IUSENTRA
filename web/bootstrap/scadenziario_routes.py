@@ -11,17 +11,15 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 from markupsafe import escape
 from pct.ora_italiana import oggi_roma
 from pct.scadenze_titolo_avvocato import traccia_titolo_avvocato
-from pct.termini_materia import NOTA_LAVORO, lavoro_da_richiesta, profilo_per_materia
+from pct.termini_materia import NOTA_LAVORO, profilo_della_richiesta
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
     PrioritaTermine,
-    ProfiloTermine,
     Scadenza,
     StatoTermine,
     TipoTermine,
     calcola_termine,
-    profilo_da_preset,
     profili_termine_builtin,
     regola_patrono_ufficio,
     riepilogo_operativo_scadenza,
@@ -99,22 +97,10 @@ def register_scadenziario_routes(
         operational_lead_business_days = _parse_int(payload.get("operational_lead_business_days", 0))
         october_observance_blocks = _parse_bool(payload.get("october_observance_blocks"))
 
-        if preset_key:
-            profile = profilo_da_preset(preset_key)
-        elif profile_code:
-            profili = profili_termine_builtin()
-            if profile_code not in profili:
-                raise ValueError("Profilo termine non valido")
-            profile = ProfiloTermine.from_dict(profili[profile_code])
-        else:
-            raise ValueError("Seleziona un preset o un profilo termine")
-
+        profile, materia_lavoro, senza_sospensione = profilo_della_richiesta(
+            preset_key, profile_code, payload, lambda id_fasc: get_fascicoli().get(id_fasc))
         if not source_event_at:
             raise ValueError("Data/ora evento origine obbligatoria per il calcolo del termine")
-        # Art. 3 L. 742/1969: nessuna sospensione feriale nelle controversie di lavoro e previdenza.
-        materia_lavoro = lavoro_da_richiesta(payload, lambda id_fasc: get_fascicoli().get(id_fasc))
-        profilo_generale = profile
-        profile = profilo_per_materia(profile, lavoro=materia_lavoro)
 
         office_rule = regola_patrono_ufficio(
             office_code,
@@ -134,7 +120,7 @@ def register_scadenziario_routes(
             include_october_observance_blocking=october_observance_blocks,
             operational_lead_business_days=operational_lead_business_days,
         )
-        if profile is not profilo_generale:
+        if senza_sospensione:
             result.trace.insert(0, NOTA_LAVORO)
         return {
             "profile": profile,

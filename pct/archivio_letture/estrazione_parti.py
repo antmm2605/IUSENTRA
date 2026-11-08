@@ -226,10 +226,27 @@ def _frase_del_nome(dati: str) -> str:
     return dati[: fine.start()] if fine else dati[:400]
 
 
+# Toponimi: «residente in Taurianova, via Pietro Nenni, rappresentata e difesa…» nomina una strada, non la parte
+# (caso reale 08/11/2026, RG 833/2025 e 1152/2025). Il nome che segue queste parole è un indirizzo (art. 163 c.p.c.:
+# residenza e domicilio sono dati della parte, non il suo nome).
+_TOPONIMO_PRIMA = re.compile(
+    r"\b(?:via|viale|v\.le|piazza|p\.zza|piazzale|corso|c\.so|largo|vicolo|vico|contrada|c\.da|localit[aà]|loc\.|"
+    r"frazione|fraz\.|traversa|salita|strada|lungomare|borgo|rione|quartiere|parco|residente\s+in|resident[ei]\s+a|"
+    r"domiciliat[oaie]\s+in|con\s+sede\s+in|sit[oa]\s+in)\s*+[,.]?\s*+$",
+    re.IGNORECASE,
+)
+
+
+def _nome_di_strada(blocco: str, inizio: int) -> bool:
+    return bool(_TOPONIMO_PRIMA.search(blocco[max(0, inizio - 40):inizio]))
+
+
 def _parte_del_blocco(lato: str, blocco: str) -> list[ParteLetta]:
     """Una o più parti dello stesso lato: ognuna parte dal suo nome, con i suoi dati e il suo difensore."""
     ancore: list[tuple[int, str]] = []
     for m in _ANCORA_PERSONA.finditer(blocco[:2500]):
+        if _nome_di_strada(blocco, m.start()):
+            continue
         if m.group(1):
             ancore.append((m.start(1), m.group(1)))
             continue

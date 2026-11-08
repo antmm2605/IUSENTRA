@@ -9184,16 +9184,12 @@ def fascicoli_react_export():
 def fascicolo_react_stato(id_fasc: str):
     if not (_api_key_valida() or _session_user_can("fascicoli.scrivi")):
         return jsonify({"ok": False, "message": "Operazione non autorizzata.", "errors": {"permission": "Operazione non autorizzata."}}), 403
-    _payload_stato = _request_payload()
-    _stato_richiesto = str(_payload_stato.get("stato") or _payload_stato.get("status") or "").strip().lower()
-    if _stato_richiesto == "archiviato" and not (_api_key_valida() or _session_user_can("fascicoli.archivia")):
-        _msg = "Non hai il permesso per archiviare i fascicoli."
-        return jsonify({"ok": False, "message": _msg, "errors": {"permission": _msg}}), 403
     result, status = update_react_fascicolo_status(
         get_fascicoli=_fascicoli_loader(),
         id_fasc=id_fasc,
         payload=_request_payload(),
         actor=_actor_label(),
+        puo_archiviare=bool(_api_key_valida() or _session_user_can("fascicoli.archivia")),
     )
     if result.get("ok"):
         _clear_fascicoli_list_payload_cache()

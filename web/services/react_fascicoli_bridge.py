@@ -5666,7 +5666,15 @@ def update_react_fascicolo_status(
     id_fasc: str,
     payload: dict[str, Any],
     actor: str = "",
+    puo_archiviare: bool,
 ) -> tuple[dict[str, Any], int]:
+    """Cambia lo stato dall'elenco fascicoli.
+
+    ``puo_archiviare`` è il permesso «fascicoli.archivia»: serve sia per archiviare
+    sia per riaprire un fascicolo archiviato. Il controllo usa lo stato già
+    normalizzato e quello attuale del fascicolo, così nessuna grafia o riapertura
+    lo aggira (art. 32 GDPR; conservazione del fascicolo archiviato).
+    """
     raw = _text(payload.get("stato") or payload.get("status")).strip().lower().replace(" ", "_")
     target = _INLINE_STATUS_TARGETS.get(raw)
     if target is None:
@@ -5681,6 +5689,14 @@ def update_react_fascicolo_status(
         return {"ok": False, "message": "Fascicolo non trovato.", "errors": {"fascicolo": "Fascicolo non trovato."}}, 404
     fid = _text(getattr(fascicolo, "id", id_fasc))
     previous = _status_for_filters(fascicolo)
+    archiviato_ora = _enum_value(getattr(fascicolo, "stato", "")).upper() == StatoFascicolo.ARCHIVIATO.value
+    if (target == StatoFascicolo.ARCHIVIATO or archiviato_ora) and previous != raw and not puo_archiviare:
+        messaggio = (
+            "Non hai il permesso per riaprire i fascicoli archiviati."
+            if archiviato_ora
+            else "Non hai il permesso per archiviare i fascicoli."
+        )
+        return {"ok": False, "message": messaggio, "errors": {"permission": messaggio}}, 403
     if previous == raw:
         return {
             "ok": True,

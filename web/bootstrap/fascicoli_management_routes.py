@@ -491,15 +491,20 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
     def cambia_stato_fascicolo(id_fasc: str):
-        richiesto = str(request.form.get("stato") or "").strip().upper()
-        if (negato := _negato("fascicoli.archivia" if richiesto == StatoFascicolo.ARCHIVIATO.name else "fascicoli.scrivi", id_fasc)) is not None:
+        if (negato := _negato("fascicoli.scrivi", id_fasc)) is not None:
             return negato
         gf = get_fascicoli()
         form = request.form
         try:
+            # Stesso valore per permesso e applicazione; archiviare o riaprire richiede «fascicoli.archivia».
+            stato = StatoFascicolo(str(form.get("stato") or "").strip().upper())
+            attuale = getattr(gf.get(id_fasc), "stato", None)
+            archivio = StatoFascicolo.ARCHIVIATO in {stato, attuale} and stato != attuale
+            if archivio and (negato := _negato("fascicoli.archivia", id_fasc)) is not None:
+                return negato
             gf.cambia_stato(
                 id_fasc,
-                StatoFascicolo(form.get("stato")),
+                stato,
                 note=form.get("note", ""),
                 avvocato=form.get("avvocato", ""),
             )

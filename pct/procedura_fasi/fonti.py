@@ -31,6 +31,9 @@ _L742 = "urn:nir:stato:legge:1969-10-07;742"
 
 VERIFICA_NORMATTIVA = "testo vigente consultato su Normattiva il 14/09/2026"
 VERIFICA_NORMATTIVA_20 = "testo vigente consultato su Normattiva il 20/09/2026"
+# Normattiva ha restituito l'indice dell'atto ma non il testo dell'articolo (08/11/2026): estratto da riscontrare.
+_DA_RISCONTRARE = ("URN Normattiva consultato l'08/11/2026 (il servizio ha restituito l'indice dell'atto ma non il testo "
+                   "dell'articolo: estratto da riscontrare alla prossima consultazione)")
 # L'articolo è stato sostituito: la data da sola non direbbe quale testo.
 VERIFICA_CPC_133 = (
     "testo vigente come sostituito dal D.Lgs. 31 ottobre 2024, n. 164; consultato su Normattiva il 20/09/2026"
@@ -87,8 +90,7 @@ FONTI: dict[str, dict[str, Any]] = {
     "cpc_83": _norma("art. 83 c.p.c.", "Procura alle liti", _CPC, "83",
         "Quando la parte sta in giudizio col ministero di un difensore, questi deve essere munito di procura. La procura alle "
         "liti può essere generale o speciale, e deve essere conferita con atto pubblico o scrittura privata autenticata.",
-        verifica=("primo e secondo comma; URN Normattiva consultato l'08/11/2026 (il servizio ha restituito l'indice "
-                  "dell'atto ma non il testo dell'articolo: estratto da riscontrare alla prossima consultazione)")),
+        verifica="primo e secondo comma; " + _DA_RISCONTRARE),
     "cpc_165": _norma("art. 165 c.p.c.", "Costituzione dell'attore", _CPC, "165",
         "L'attore, entro dieci giorni dalla notificazione della citazione al convenuto, deve costituirsi in giudizio iscrivendo la causa a ruolo e depositando l'originale della citazione, la procura e i documenti offerti in comunicazione."),
     "cpc_166": _norma("art. 166 c.p.c.", "Costituzione del convenuto", _CPC, "166",
@@ -249,6 +251,25 @@ FONTI.update({
     "cpc_309": _norma("art. 309 c.p.c.", "Mancata comparizione all’udienza", _CPC, "309",
         "Se nel corso del processo nessuna delle parti si presenta all’udienza, il giudice provvede a norma del primo comma dell’articolo 181.",
         verifica="Testo acquisito dalla banca dati normativa istituzionale MEF il 16/09/2026."),
+    # Estinzione del processo (collaudo 08/11/2026, RG 771/2025 Palmi). Estratti dal testo vigente come lo conosce il
+    # software; Normattiva non ha restituito il testo degli articoli del c.p.c. all'ultima consultazione.
+    "cpc_181": _norma("art. 181 c.p.c.", "Mancata comparizione delle parti", _CPC, "181",
+        "Se nessuna delle parti compare alla prima udienza, il giudice ordina che la causa sia cancellata dal ruolo e "
+        "dichiara l’estinzione del processo (testo del D.Lgs. 149/2022, per i procedimenti introdotti dopo il 28/02/2023).",
+        verifica=_DA_RISCONTRARE),
+    "cpc_307": _norma("art. 307 c.p.c.", "Estinzione del processo per inattività delle parti", _CPC, "307",
+        "Quando la legge prevede la cancellazione della causa dal ruolo senza estinzione, il processo deve essere riassunto "
+        "nel termine perentorio di tre mesi dal provvedimento di cancellazione; altrimenti si estingue. L’estinzione opera "
+        "di diritto ed è dichiarata, anche d’ufficio, con ordinanza del giudice istruttore ovvero con sentenza del collegio.",
+        verifica=_DA_RISCONTRARE),
+    "cpc_308": _norma("art. 308 c.p.c.", "Comunicazione e impugnabilità dell’ordinanza", _CPC, "308",
+        "L’ordinanza che dichiara l’estinzione è comunicata a cura del cancelliere se pronunciata fuori udienza; contro di "
+        "essa è ammesso reclamo al collegio nei modi dell’art. 178, commi terzo, quarto e quinto.",
+        verifica=_DA_RISCONTRARE),
+    "cpc_310": _norma("art. 310 c.p.c.", "Effetti dell’estinzione del processo", _CPC, "310",
+        "L’estinzione del processo non estingue l’azione. Le spese del processo estinto stanno a carico delle parti che "
+        "le hanno anticipate.",
+        verifica=_DA_RISCONTRARE),
     "dgsia_2024": {"norma": "Specifiche tecniche DGSIA 7/8/2024", "titolo": "Testo integrale delle specifiche tecniche", "estratto": "Documento ufficiale, da leggere con le rettifiche del 16/09/2024 e del 30/10/2024.", "verifica": "PDF ufficiale PST acquisito e confrontato il 16/09/2026.", "url": _PST_DOWNLOAD},
     "dgsia_modifica_art27": {"norma": "Rettifica DGSIA 16/09/2024", "titolo": "Rettifica degli artt. 17, comma 4, e 27, comma 1", "estratto": "Corregge il riferimento all’art. 196-undecies disp. att. c.p.c. e sostituisce «la busta telematica» con «l’atto.enc» nell’art. 17, comma 4.", "verifica": "PDF ufficiale PST acquisito e confrontato il 16/09/2026.", "url": _PST_DOWNLOAD},
     "dgsia_rettifica": {"norma": "Rettifica DGSIA 30/10/2024", "titolo": "Rettifica dell’art. 19, comma 12, lettera c)", "estratto": "Per denuncia, querela e istanza di procedimento l’accoglimento equivale al ricevimento nel ReGeWEB; è eliminato il riferimento all’iscrizione.", "verifica": "PDF ufficiale PST acquisito e confrontato il 16/09/2026.", "url": _PST_DOWNLOAD},

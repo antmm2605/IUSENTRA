@@ -32,7 +32,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .profili_rito import RITO_FAMIGLIA, RITO_LAVORO, RITO_ORDINARIO, RITO_SEMPLIFICATO, RITO_TAR
+from .profili_rito import RITO_ESECUZIONE, RITO_FAMIGLIA, RITO_LAVORO, RITO_ORDINARIO, RITO_SEMPLIFICATO, RITO_TAR
 
 LAVORO = "lavoro"
 FAMIGLIA = "famiglia"
@@ -106,6 +106,10 @@ class DatiCerti:
             return f"Profilo impostato dai dati certi del fascicolo: {fonti}."
         if self.discordanti:
             return f"Dati del fascicolo discordanti ({fonti}): scegli il rito fra quelli compatibili."
+        if self.rito == RITO_ESECUZIONE:
+            return (f"Atto di precetto o di pignoramento nel fascicolo ({fonti}): la pratica è un'esecuzione forzata davanti "
+                    "al giudice ordinario dell'esecuzione, qualunque sia il giudice che ha emesso il titolo (artt. 474 ss. "
+                    "c.p.c.; art. 115 c.p.a. per le sentenze amministrative): conferma il profilo dell'esecuzione.")
         if self.materia:
             etichetta = ETICHETTE_MATERIA.get(self.materia, self.materia)
             return (f"Materia {etichetta} dai dati del fascicolo ({fonti}), ma il rito non è fissato da un atto introduttivo, "
@@ -165,6 +169,8 @@ _REGISTRI: tuple[tuple[str, frozenset[str], str], ...] = (
     (r"\bptt\b|\bsigit\b", frozenset({TRIBUTARIO}), TRIBUTARIO),
 )
 
+_TITOLI_ESECUTIVI = frozenset({CIVILE, LAVORO, FAMIGLIA, GDP, AMMINISTRATIVO, TRIBUTARIO})
+
 # Atti introduttivi riconosciuti dal catalogo documentale (etichetta della voce) → materia e rito.
 ATTI_INTRODUTTIVI: dict[str, tuple[frozenset[str], str, str, str]] = {
     "ricorso in materia di lavoro (art. 414 c.p.c.)": (frozenset({LAVORO}), LAVORO, RITO_LAVORO, "art. 414 c.p.c."),
@@ -176,7 +182,12 @@ ATTI_INTRODUTTIVI: dict[str, tuple[frozenset[str], str, str, str]] = {
     "ricorso per affidamento e mantenimento dei figli": (frozenset({FAMIGLIA}), FAMIGLIA, RITO_FAMIGLIA, "art. 473-bis.12 c.p.c."),
     "ricorso al tar": (frozenset({AMMINISTRATIVO}), AMMINISTRATIVO, RITO_TAR, "artt. 40 e 41 c.p.a."),
     "ricorso tributario": (frozenset({TRIBUTARIO}), TRIBUTARIO, PROFILO_TRIBUTARIO, "D.Lgs. 546/1992"),
+    # Il titolo esecutivo può venire da ogni giurisdizione (sentenza civile, del lavoro, del TAR: art. 115 c.p.a.),
+    # ma precetto e pignoramento aprono sempre l'esecuzione forzata davanti al giudice ordinario.
+    "atto di precetto": (_TITOLI_ESECUTIVI, "", RITO_ESECUZIONE, "artt. 474 e 480 c.p.c."),
+    "atto di pignoramento": (_TITOLI_ESECUTIVI, "", RITO_ESECUZIONE, "artt. 491 e 543 c.p.c."),
 }
+_ATTI_ESECUTIVI_NEL_NOME = re.compile(r"\b(atto di precetto|atto di pignoramento)\b")
 
 # Il rito che la materia assume quando un dato specializzato (sezione, ufficio) la fissa senza atto introduttivo.
 _RITO_DI_MATERIA = {LAVORO: RITO_LAVORO, GDP: PROFILO_GDP, AMMINISTRATIVO: RITO_TAR, TRIBUTARIO: PROFILO_TRIBUTARIO}
@@ -203,6 +214,9 @@ def _etichette_documenti(fascicolo: Any, etichette: Iterable[str]) -> list[str]:
     for documento in list(documenti or []):
         if _valore(documento, "tipo").upper() == "CITAZIONE":
             elenco.append("Atto di citazione")
+        trovato = _ATTI_ESECUTIVI_NEL_NOME.search(_piatto(_valore(documento, "nome", "nome_file")))
+        if trovato:
+            elenco.append(trovato.group(1).capitalize())
     return elenco
 
 
@@ -243,7 +257,8 @@ def deduci_dati_certi(fascicolo: Any, etichette: Iterable[str] = ()) -> DatiCert
             continue
         visti.add(chiave)
         compatibili, indica, rito, norma = atto
-        esito.indizi.append(Indizio(f"atto introduttivo «{etichetta.strip()}» ({norma})", compatibili, indica, rito))
+        natura = "atto esecutivo" if rito == RITO_ESECUZIONE else "atto introduttivo"
+        esito.indizi.append(Indizio(f"{natura} «{etichetta.strip()}» ({norma})", compatibili, indica, rito))
 
     _decidi(esito)
     return esito

@@ -725,6 +725,20 @@ def _ricollauda_plausibili(fascicolo: Any, registro: RegistroLetture, tenant: st
     return promossi
 
 
+def _recupera_esiti_sentenze(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
+    """Esito e spese delle sentenze lette prima dell'estrazione dell'esito, dal testo salvato (evento puntuale)."""
+    from web.services.esito_sentenze_recovery import recupera_esiti
+
+    try:
+        esito = recupera_esiti(fascicolo, registro, tenant)
+    except Exception:
+        logger.exception("Recupero dell'esito delle sentenze non riuscito per %s", getattr(fascicolo, "id", ""))
+        return {"controllate": 0, "recuperate": 0}
+    if esito.get("recuperate"):
+        invalida_lettura(_testo(getattr(fascicolo, "id", "")))
+    return esito
+
+
 def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
     """Le regole di oggi ripassano ciò che è già registrato: niente resta aperto per una regola superata.
 
@@ -1002,6 +1016,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
                 from web.services.giudice_archivio_recovery import recupera_giudice
 
                 metadati = recupera_giudice(fascicolo, registro, tenant, limite=limite)
+                metadati["esiti"] = _recupera_esiti_sentenze(fascicolo, registro, tenant)
                 consegne = _consegna_ai_presidi(fascicolo, registro)
                 consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
             catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
@@ -1046,6 +1061,7 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite, rileggi_superati=rileggi_superati)
         pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite)
         promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)
+        _recupera_esiti_sentenze(fascicolo, registro, tenant)
     except Exception as exc:
         # Il fascicolo non esce dal ciclo: resta in errore dichiarato e si riprova.
         logger.exception("Giro del ciclo non riuscito per il fascicolo %s", fascicolo_id)

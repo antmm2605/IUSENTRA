@@ -132,6 +132,7 @@ def test_profili_di_rito_hanno_canale_e_fonte_normativa():
     riti = [profilo for profilo in list_profiles() if profilo.code.startswith("PROC_RITO_")]
     assert {p.code for p in riti} == {
         "PROC_RITO_LAVORO_001", "PROC_RITO_ORDINARIO_001", "PROC_RITO_SEMPLIFICATO_001", "PROC_RITO_FAMIGLIA_001", "PROC_RITO_TAR_001",
+        "PROC_RITO_ESECUZIONE_001",
     }
     for profilo in riti:
         assert profilo.depositable and profilo.required_slots

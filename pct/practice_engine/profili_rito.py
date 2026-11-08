@@ -15,6 +15,9 @@ Basi normative:
 - procedimento semplificato di cognizione: artt. 281-decies, 281-undecies c.p.c.;
 - procedimento in materia di persone, minorenni e famiglie: artt. 473-bis,
   473-bis.11, 473-bis.12 c.p.c.;
+- esecuzione forzata (precetto, pignoramento, espropriazione anche presso terzi): artt. 474, 479, 480,
+  491, 543 c.p.c.; il titolo può essere anche una sentenza del giudice amministrativo (art. 115 c.p.a.),
+  ma l'esecuzione si svolge davanti al giudice dell'esecuzione ordinario;
 - ricorso al TAR: artt. 40, 41, 45 c.p.a. (D.Lgs. 104/2010) e deposito
   telematico PAT (D.P.C.M. 16 febbraio 2016, n. 40);
 - per tutti: procura alle liti (art. 83 c.p.c.; art. 24 c.p.a.) e contributo
@@ -34,6 +37,7 @@ RITO_ORDINARIO = "PROC_RITO_ORDINARIO_001"
 RITO_SEMPLIFICATO = "PROC_RITO_SEMPLIFICATO_001"
 RITO_FAMIGLIA = "PROC_RITO_FAMIGLIA_001"
 RITO_TAR = "PROC_RITO_TAR_001"
+RITO_ESECUZIONE = "PROC_RITO_ESECUZIONE_001"
 
 _VERIFICA_DATI = "Verifica dati cliente e parti"
 _CODICE_OGGETTO = "Codice oggetto PST ufficiale"
@@ -167,9 +171,24 @@ def profili_di_rito() -> list[PracticeProfile]:
             checklist=(_VERIFICA_DATI, _CLASSIFICAZIONE, _FIRMA_BUSTA),
             template_labels=("Ricorso al TAR",),
         ), "artt. 40, 41, 45 c.p.a.; D.P.C.M. 40/2016"),
+        _profilo(_procedura(
+            RITO_ESECUZIONE, "Esecuzione forzata (precetto e pignoramento)",
+            area="Esecuzioni civili", fascicolo_type="CIVILE", channel="PCT_CIVILE", registry="SIECIC",
+            workflow="WF_RITO_ESECUZIONE",
+            documenti=(
+                _documento("Titolo esecutivo (art. 474 c.p.c.)"),
+                _documento("Atto di precetto notificato (artt. 479 e 480 c.p.c.)"),
+                _documento("Atto di pignoramento notificato (artt. 491 e 543 c.p.c.)", required=False,
+                           message="Dopo il precetto e non prima di dieci giorni dalla sua notificazione (art. 482 c.p.c.)."),
+                procura,
+                _contributo("art. 13, comma 2, D.P.R. 115/2002"),
+            ),
+            checklist=(_VERIFICA_DATI, _CODICE_OGGETTO, _CLASSIFICAZIONE, _FIRMA_BUSTA),
+            template_labels=("Atto di precetto", "Atto di pignoramento presso terzi"),
+        ), "artt. 474, 479, 480, 491, 543 c.p.c."),
     ]
 
 
 __all__ = [
-    "RITO_FAMIGLIA", "RITO_LAVORO", "RITO_ORDINARIO", "RITO_SEMPLIFICATO", "RITO_TAR", "profili_di_rito",
+    "RITO_ESECUZIONE", "RITO_FAMIGLIA", "RITO_LAVORO", "RITO_ORDINARIO", "RITO_SEMPLIFICATO", "RITO_TAR", "profili_di_rito",
 ]

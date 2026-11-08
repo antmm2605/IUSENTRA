@@ -21,6 +21,7 @@ CODICE_FASE_TRATTAZIONE = "trattazione"
 CODICE_FASE_ISTRUTTORIA = "istruttoria"
 CODICE_FASE_DECISORIA = "decisoria"
 CODICE_FASE_DECISA = "decisa"
+CODICE_FASE_ESTINTA = "estinta"
 CODICE_FASE_ESECUTIVA = "esecutiva"
 CODICE_FASE_CHIUSA = "chiusa"
 
@@ -111,6 +112,19 @@ def fase(
             prove.append(f"PEC di cancelleria del {sentenza_pec['data']} «{sentenza_pec['oggetto']}»")
         if stato_codice in {"APERTO", "IN_CORSO"}:
             incoerenze.append("è presente una sentenza ma lo stato del fascicolo è ancora «in corso»: valutare impugnazione, esecuzione o definizione")
+
+    estinzione = documenti_letti.get("estinzione")
+    if estinzione:
+        # L'ordinanza della causa dichiara estinto il processo (artt. 181, 307, 309 c.p.c.): la causa non è più in
+        # trattazione. Collaudo 08/11/2026, RG 771/2025 Palmi.
+        codice = CODICE_FASE_ESTINTA
+        data = data_it(estinzione.get("data_estinzione")) or estinzione.get("data_it") or ""
+        descrizione = "processo estinto" + (f" con il provvedimento del {data}" if data else "") + (
+            ": cancellazione dal ruolo ed estinzione" if estinzione.get("estinzione") == "cancellazione_e_estinzione" else "")
+        prove.append(f"{estinzione['etichetta']} ({estinzione['nome']}): dichiara l'estinzione del processo")
+        if stato_codice in {"APERTO", "IN_CORSO"}:
+            incoerenze.append("il processo è estinto ma lo stato del fascicolo è ancora «in corso»: valutare impugnazione, "
+                              "riproposizione della domanda o chiusura")
 
     if any(voce["natura"] == "atto_esecutivo" for voce in atti):
         codice = CODICE_FASE_ESECUTIVA

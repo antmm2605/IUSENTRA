@@ -80,7 +80,10 @@ def test_sentenza_e_ricevute_nel_fascicolo_notifica_eseguita_e_sentenza_facoltat
     contesto = {
         "notifica_estero": False, "sentenze": ["sent"], "documenti_atti": ["ric", "ric_not", "sent"],
         "udienze_tenute": ["2026-06-10"],
-        "nomi_documenti": {"rac": "accettazione.eml", "rdac": "consegna.eml"},
+        # Dal 2.479.0 una ricevuta prova la notifica solo se il messaggio era una notificazione L. 53/1994
+        # (relata o oggetto «notificazione ai sensi della legge n. 53 del 1994», art. 3-bis commi 4-5).
+        "nomi_documenti": {"rac": "accettazione.eml",
+                           "rdac": "consegna notificazione ai sensi della legge n. 53 del 1994.eml"},
         "prove_notifica": [  # ricevute PEC in file separati, non collegate a un altro atto
             {"documento_id": "rac", "atto_documento_id": "", "relata": False, "consegna": False, "verificata": False},
             {"documento_id": "rdac", "atto_documento_id": "", "relata": False, "consegna": True, "verificata": False},
@@ -91,7 +94,7 @@ def test_sentenza_e_ricevute_nel_fascicolo_notifica_eseguita_e_sentenza_facoltat
     ricorso = voci["lavoro_415"]
     assert ricorso["stato"] == STATO_NOTIFICATO
     assert ricorso["dati_mancanti"] == [] and ricorso["scadenza"] == ""
-    assert "consegna.eml" in ricorso["motivo"] and "sentenza" in ricorso["motivo"]
+    assert "consegna notificazione" in ricorso["motivo"] and "sentenza" in ricorso["motivo"]
     assert voci["sentenza_notifica_breve"]["stato"] == STATO_FACOLTATIVO
     assert {"art. 285 c.p.c.", "art. 325 c.p.c.", "art. 326 c.p.c."} <= set(voci["sentenza_notifica_breve"]["fonti"])
 
@@ -311,3 +314,14 @@ def test_le_norme_delle_notifiche_del_lavoro_corrispondono_al_registro():
     assert lavoro.fonti == ("art. 415, commi 4, 5 e 7, c.p.c.", "art. 417-bis c.p.c.")
     assert "propri dipendenti" in lavoro.avvertenze and "propri dipendenti" in FONTI["cpc_417bis"]["estratto"]
     assert "Avvocatura dello Stato" in FONTI["rd1611_art11"]["estratto"]
+
+
+def test_ricevuta_di_una_pec_qualsiasi_non_prova_la_notifica_del_ricorso():
+    """Una RdAC senza relata né oggetto L. 53/1994 non è prova di notifica (collaudo 03/11/2026)."""
+    documenti = [*_due_copie(), DocumentoCatalogato("sent", "sentenza.pdf", "Sentenza", data="2026-09-30")]
+    contesto = {
+        "notifica_estero": False, "sentenze": ["sent"], "documenti_atti": ["ric", "ric_not", "sent"],
+        "udienze_tenute": ["2026-06-10"], "nomi_documenti": {"rdac": "consegna.eml"},
+        "prove_notifica": [{"documento_id": "rdac", "atto_documento_id": "", "relata": False, "consegna": True, "verificata": False}],
+    }
+    assert [v["regola"] for v in _voci(documenti, contesto)] == ["sentenza_notifica_breve"]

@@ -74,11 +74,23 @@ def test_le_famiglie_che_contano_sono_coperte():
         "Calibri": "Carlito",
         "Cambria": "Caladea",
     }
+    presenti = " ".join(str(v) for v in caratteri_reali.registro().values())
     for dichiarata, famiglia in attese.items():
+        if famiglia not in presenti:
+            continue  # carattere non installato su questa macchina: l'immagine lo installa (test sotto)
         tagli = caratteri_reali.tagli_per(dichiarata)
         assert tagli, f"{dichiarata} non e' coperta"
         assert famiglia in tagli["normal"], f"{dichiarata} -> {tagli['normal']}"
         assert set(tagli) == {"normal", "bold", "italic", "bold_italic"}
+
+
+def test_l_immagine_installa_gli_equivalenti_metrici():
+    """In esercizio le cinque famiglie devono esserci: le installa il Dockerfile."""
+    from pathlib import Path
+
+    dockerfile = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
+    for pacchetto in ("fonts-liberation2", "fonts-crosextra-carlito", "fonts-crosextra-caladea"):
+        assert pacchetto in dockerfile, pacchetto
 
 
 def test_una_famiglia_entra_solo_col_corredo_completo(monkeypatch, tmp_path):

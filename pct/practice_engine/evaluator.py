@@ -448,7 +448,16 @@ def _economic_summary(
         ],
     }
 
-def build_regia_payload(
+def build_regia_payload(repository: PracticeEngineRepository, **argomenti: Any) -> dict[str, Any]:
+    """La regia del fascicolo; le modifiche che la regia registra si scrivono una volta sola alla fine."""
+    salvataggio = getattr(repository, "salvataggio_unico", None)
+    if not callable(salvataggio):
+        return _build_regia_payload(repository, **argomenti)
+    with salvataggio(_text(getattr(argomenti.get("fascicolo"), "id", ""))):
+        return _build_regia_payload(repository, **argomenti)
+
+
+def _build_regia_payload(
     repository: PracticeEngineRepository,
     *,
     fascicolo: Any,

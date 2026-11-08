@@ -75,10 +75,40 @@ def _norme_della_scadenza(titolo: str) -> tuple[tuple[str, ...], str]:
     return (), ""
 
 
-def stato_passi(intestazione: dict[str, Any]) -> dict[str, Any]:
+_GIURISDIZIONI_SENZA_327 = {"penale", "amministrativo", "tributario"}
+
+
+def _giudicato_non_prima_del(intestazione: dict[str, Any], documenti_letti: dict[str, Any] | None, oggi: Any) -> str:
+    """Il giorno prima del quale la sentenza civile della causa non può essere passata in giudicato, se è ancora futuro.
+
+    Senza notificazione la sentenza si impugna entro sei mesi dalla pubblicazione (art. 327 c.p.c.) e passa in giudicato
+    solo dopo (art. 324 c.p.c.). La data letta è quella della decisione in calce o della pubblicazione: la pubblicazione
+    non la precede, quindi il giorno calcolato è un limite inferiore («non prima del»). Sospensione feriale salvo lavoro
+    e previdenza (art. 3 L. 742/1969).
+    """
+    sentenze = (documenti_letti or {}).get("sentenze") or []
+    giorno, oggi_giorno = (data_da(sentenze[-1].get("data")) if sentenze else None), data_da(oggi)
+    tipo = pulisci(intestazione.get("tipo")).lower()
+    if not giorno or not oggi_giorno or tipo in _GIURISDIZIONI_SENZA_327:
+        return ""
+    from pct.termine_lungo_sentenza import scadenza_termine_lungo
+
+    lavoro = "lavoro" in tipo or "lavoro" in pulisci(intestazione.get("rito")).lower() or "previdenz" in tipo
+    termine = data_da(scadenza_termine_lungo(giorno, lavoro=lavoro).get("deadline"))
+    return data_it(termine) if termine and termine >= oggi_giorno else ""
+
+
+def stato_passi(intestazione: dict[str, Any], documenti_letti: dict[str, Any] | None = None, oggi: Any = None) -> dict[str, Any]:
     """Se il fascicolo ammette passaggi: un fascicolo definito, da archiviare o archiviato non ne ha."""
     stato = pulisci(intestazione.get("stato_codice")).upper()
     if intestazione.get("da_archiviare"):
+        giudicato = _giudicato_non_prima_del(intestazione, documenti_letti, oggi)
+        if giudicato:
+            # «Da archiviare» non è giudicato (direttiva 07/10/2026): finché l'impugnazione è possibile lo si dice.
+            return {"attivi": False, "motivo": (
+                f"Causa decisa: prima di archiviare attendere il passaggio in giudicato (art. 324 c.p.c.). Senza notifica "
+                f"della sentenza l'impugnazione è possibile per sei mesi dalla pubblicazione (art. 327 c.p.c.): non prima "
+                f"del {giudicato}. Verificare allora che non sia stata impugnata, poi archiviare.")}
         return {"attivi": False, "motivo": "Fascicolo pronto per l'archivio: nessun passaggio da eseguire, solo l'archiviazione."}
     if stato in STATI_SENZA_PASSI:
         return {"attivi": False, "motivo": f"Fascicolo {intestazione.get('stato') or stato.lower()}: nessun passaggio da eseguire."}
@@ -346,7 +376,7 @@ def _passi_documenti(documenti_letti: dict[str, Any], verifiche: dict[str, Any])
     if proposte > 0:
         passi.append(Passo(3, f"Confermare con un clic le {proposte} propost{'a' if proposte == 1 else 'e'} di catalogazione pronte", "il presidio ha identificato i documenti dal contenuto con la prova; la conferma resta dell'avvocato", "", "catalogazione", (), HREF_CATALOGO))
     if documenti_letti["totale"] and not documenti_letti.get("procura") and not non_indicizzati and not da_acquisire:
-        passi.append(Passo(2, "Acquisire la procura alle liti", "non risulta fra i documenti del fascicolo, tutti letti dal presidio documentale", "", "catalogazione", ("cpc_165",), HREF_DOCUMENTI))
+        passi.append(Passo(2, "Acquisire la procura alle liti", "non risulta fra i documenti del fascicolo, tutti letti dal presidio documentale", "", "catalogazione", ("cpc_83",), HREF_DOCUMENTI))
     return passi
 
 
@@ -398,7 +428,7 @@ def prossimi_passi(
     appuntamenti: list[dict[str, Any]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """I passi e lo stato dei passi (attivi o no, e perché)."""
-    stato = stato_passi(intestazione)
+    stato = stato_passi(intestazione, documenti_letti, oggi)
     if not stato["attivi"]:
         return [], stato
     giorno_oggi = data_da(oggi)

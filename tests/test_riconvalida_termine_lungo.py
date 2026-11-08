@@ -134,3 +134,64 @@ def test_decisioni_diverse_o_lontane_non_si_sceglie(tmp_path):
     for testi in ([SENTENZA_429, altra], [vecchia]):
         assert riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: testi)["dalla_decisione"] == 0
     assert scadenziario.get(bozza.id).data_scadenza == "2027-04-08"
+
+
+def test_le_frasi_della_proposta_seguono_la_scadenza_ricalcolata(tmp_path):
+    """Collaudo 08/11/2026 (Alessi, 8080): scadenza 07/04/2027 ma note «entro il 08/04/2027» e «calcolati dal 08/10/2026»."""
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="1674/2026", fascicolo="F1", comunicazione="08/10/2026")
+    scadenziario.aggiorna(
+        bozza.id, data_scadenza="2027-04-08", data_decorrenza="2026-10-08", source_event_at="2026-10-08T13:19:56Z",
+        note=bozza.note + "\nTermine proposto: Impugnazione sentenza - termine lungo: entro il 08/04/2027 (art. 327 c.p.c.)",
+        descrizione=bozza.descrizione + " Sei mesi dalla pubblicazione: calcolati dal 08/10/2026, data da verificare sul provvedimento.",
+    )
+    riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: [SENTENZA_429])
+    voce = scadenziario.get(bozza.id)
+    assert voce.data_scadenza == "2027-04-07"
+    assert "entro il 07/04/2027" in voce.note and "08/04/2027" not in voce.note
+    assert "calcolati dal 07/10/2026 (giorno della decisione" in voce.descrizione
+    assert "calcolati dal 08/10/2026" not in voce.descrizione
+
+
+def test_voce_gia_ricalcolata_con_frasi_vecchie_si_riallinea(tmp_path):
+    from pct.riconvalida_termine_lungo import DALLA_DECISIONE
+
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="1674/2026", fascicolo="F1", comunicazione="08/10/2026")
+    scadenziario.aggiorna(
+        bozza.id, data_scadenza="2027-04-07", data_decorrenza="2026-10-07", source_event_at="2026-10-08T13:19:56Z",
+        note=(bozza.note + f"\n{NON_CERTA}\nTermine proposto: Impugnazione sentenza - termine lungo: entro il 08/04/2027 "
+              f"(art. 327 c.p.c.)\n{DALLA_DECISIONE} decisione=2026-10-07: in attesa della data di deposito"),
+        descrizione=bozza.descrizione + " Sei mesi dalla pubblicazione: calcolati dal 08/10/2026, data da verificare sul provvedimento.",
+    )
+    esito = riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: [SENTENZA_429])
+    assert esito["dalla_decisione"] == 0  # la data non cambia
+    voce = scadenziario.get(bozza.id)
+    assert voce.data_scadenza == "2027-04-07" and "entro il 07/04/2027" in voce.note
+    assert "calcolati dal 07/10/2026" in voce.descrizione
+
+
+ORDINANZA_ESTINZIONE = (
+    "R.G. 771 /2025 TRIBUNALE DI PALMI SEZIONE LAVORO ORDINANZA RESA A SEGUITO DI DEPOSITO DI NOTE SCRITTE IN SOSTITUZIONE "
+    "DELL'UDIENZA DEL 08/09/2026 Il giudice ... preso atto del mancato deposito delle note di trattazione scritta da parte "
+    "dalle parti; visti gli art. 181 e 309 cod. proc. Civ. P.Q.M. Ordina la cancellazione della causa dal ruolo e dichiara "
+    "l'estinzione del processo. Si comunichi. Palmi, 10/09/2026 Il giudice del lavoro dott. Carlo Gabutti")
+
+
+def test_estinzione_dichiarata_con_ordinanza_si_conta_dalla_decisione(tmp_path):
+    """Collaudo 08/11/2026 (RG 771/2025 Palmi, lavoro): ordinanza del 10/09/2026 comunicata l'11/09, proposta all'11/03/2027."""
+    from datetime import date
+
+    from pct.riconvalida_termine_lungo import decisione_dai_testi
+
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="", fascicolo="F4", comunicazione="11/09/2026")
+    scadenziario.aggiorna(bozza.id, titolo="Impugnazione del provvedimento di estinzione - termine lungo - RG 771/2025",
+                          data_scadenza="2027-03-11", data_decorrenza="2026-09-11", source_event_at="2026-09-11T06:23:00Z")
+    esito = riconvalida_bozze(scadenziario, lambda fid: [], None, lambda fid: [ORDINANZA_ESTINZIONE])
+    assert esito["dalla_decisione"] == 1
+    voce = scadenziario.get(bozza.id)
+    assert voce.data_scadenza == "2027-03-10" and voce.data_decorrenza == "2026-09-10" and voce.stato == StatoTermine.BOZZA
+    # una sentenza non vale come ordinanza di estinzione, e un'ordinanza non vale come sentenza
+    assert decisione_dai_testi([SENTENZA_429], comunicazione=date(2026, 10, 8), estinzione=True) is None
+    assert decisione_dai_testi([ORDINANZA_ESTINZIONE], comunicazione=date(2026, 9, 11)) is None

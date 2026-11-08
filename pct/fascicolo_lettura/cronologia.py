@@ -38,6 +38,9 @@ ESITI = {
 }
 
 
+# Codici degli eventi del registro di cancelleria importati dal portale (es. «SDP», «LD», «J1», «_SG», «DNSU»).
+_CODICE_REGISTRO = re.compile(r"^_?[A-Z0-9]{1,5}$")
+
 _ACQUISIZIONI_TECNICHE = ("acquisizione file ufficiali", "download ufficiale completo", "acquisiti localmente da polisweb", "acquisizione guidata da polisweb")
 
 
@@ -86,12 +89,16 @@ def cronologia(
         if _acquisizione_tecnica(voce):
             continue
         esito = ESITI.get(pulisci(voce.get("esito")).upper(), "")
+        descrizione = pulisci(voce.get("descrizione"))
+        registro = bool(_CODICE_REGISTRO.match(titolo)) and bool(descrizione)
         eventi.append(Evento(
             data=pulisci(voce.get("data"))[:10],
             categoria=TIPI_ATTIVITA.get(tipo, "attività"),
-            titolo=pulisci(voce.get("titolo")) or TIPI_ATTIVITA.get(tipo, "attività"),
-            dettaglio=pulisci(voce.get("descrizione"))[:160],
-            esito=esito,
+            # Evento del registro di cancelleria (SICID/SIGP): il codice («SDP», «LD», «J1») non dice nulla
+            # all'avvocato e l'evento non ha un esito da attendere; parla la sua descrizione.
+            titolo=descrizione[:160] if registro else (titolo or TIPI_ATTIVITA.get(tipo, "attività")),
+            dettaglio=f"evento del registro di cancelleria (codice {titolo})" if registro else descrizione[:160],
+            esito="" if registro else esito,
             fonte="attività processuale",
             fonte_id=pulisci(voce.get("id")),
         ))

@@ -273,13 +273,20 @@ def _pec_sector(
                 fascicolo_id=fid,
             )
         )
-    if any(_text(item.get("type")) == "udienza_127_bis" for item in doc_actions):
+    # Solo per un'udienza da remoto ancora da tenere: per un'udienza già celebrata (Alessi, udienza del 07/10/2026
+    # decisa con sentenza lo stesso giorno, collaudo 08/11/2026) verificare il collegamento non ha più senso.
+    oggi_iso = oggi_roma().isoformat()
+    udienze_remote = sorted(_text(item.get("dateIso")) for item in doc_actions
+                            if _text(item.get("type")) == "udienza_127_bis" and _text(item.get("dateIso")) >= oggi_iso)
+    if udienze_remote:
         actions.append(
             _action(
                 sector="pec",
                 action_id="link-udienza-127-bis",
                 title="Verificare link audiovisivo e comunicazione dell'udienza",
-                reason="L'udienza da remoto richiede collegamento e istruzioni operative: se il link non è nel fascicolo va recuperato dalla PEC o dal portale.",
+                reason=(f"Udienza da remoto del {format_date_it(udienze_remote[0])}: richiede collegamento e istruzioni operative; "
+                        "se il link non è nel fascicolo va recuperato dalla PEC o dal portale."),
+                due=udienze_remote[0],
                 priority="P1",
                 tone="warning",
                 href=f"/fascicoli/{fid}#cancelleria" if fid else "#cancelleria",

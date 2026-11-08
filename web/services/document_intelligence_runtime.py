@@ -544,9 +544,12 @@ def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_do
         tenant = tenant_corrente()
         letti: list[Oggetto] = []
         non_leggibili: list[Oggetto] = []
+        inventario = _inventario_registro(registro, tenant, fascicolo_id)
+        sha_fonte: dict[str, str] = {}
         for source in sources:
             document_id = str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or "")
-            oggetto = Oggetto(tipo="documento", oggetto_id=document_id, nome=str(source.filename or ""), sha256=str(source.sha256 or ""), dimensione=int(source.size_bytes or 0))
+            oggetto = _oggetto_del_registro(inventario, source)
+            sha_fonte[document_id] = str(source.sha256 or "")
             assignment = by_document.get((document_id, source.sha256))
             if assignment is not None:
                 letti.append(oggetto)
@@ -558,7 +561,7 @@ def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_do
             # Registriamo la versione dell'assegnazione già acquisita senza
             # riavviare la lettura solo perché è cambiato il lettore.
             for oggetto in da_segnare:
-                assignment = by_document.get((str(oggetto.oggetto_id or ""), str(oggetto.impronta or "")))
+                assignment = by_document.get((str(oggetto.oggetto_id or ""), sha_fonte.get(str(oggetto.oggetto_id or ""), "")))
                 effective_version = str(getattr(assignment, "resolver_version", "") or "").strip()
                 registro.segna_letti(
                     tenant,
@@ -578,6 +581,47 @@ def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_do
         current_app.logger.debug("Registro letture non aggiornato per il catalogo: %s", exc)
 
 
+def _inventario_registro(registro: Any, tenant: str, fascicolo_id: str) -> dict[str, Any]:
+    try:
+        return {o.oggetto_id: o for o in registro.oggetti(tenant, str(fascicolo_id or "")) if o.tipo == "documento"}
+    except Exception:
+        return {}
+
+
+def _oggetto_del_registro(inventario: dict[str, Any], source: DocumentAISource) -> Any:
+    """L'oggetto dell'inventario con la sua impronta, se il contenuto è lo stesso.
+
+    Fino alla 2.480.14 l'indice e il catalogo costruivano un oggetto senza l'impronta del file conservato:
+    per i documenti cifrati l'esito finiva sotto «dimensione:N» mentre l'inventario li conosce come
+    «archivio:<sha>», e migliaia di documenti restavano «da leggere» per sempre (08/11/2026).
+    """
+    from pct.registro_letture import Oggetto
+
+    oggetto_id = str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or "")
+    sha = str(source.sha256 or "").lower()
+    noto = inventario.get(oggetto_id)
+    if noto is not None and (not sha or not noto.sha256 or noto.sha256.lower() == sha):
+        return noto
+    return Oggetto(tipo="documento", oggetto_id=oggetto_id, nome=str(source.filename or ""), sha256=str(source.sha256 or ""), dimensione=int(source.size_bytes or 0))
+
+
+def registra_indice_senza_lettura(fascicolo_id: str, user_context: object) -> None:
+    """Fascicolo già tutto indicizzato: si registra l'esito nel registro senza rileggere alcun contenuto."""
+    try:
+        tenant_id = document_ai_tenant_id()
+        service = build_document_ai_service()
+        sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id, allow_content_read=False)
+        registro = _registro_indice_documentale(fascicolo_id, sources)
+        if registro.get("invariato"):
+            return
+        from web.services.document_index_outcomes import summary_with_registered_outcomes
+
+        summary = summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, user_context)
+        _registra_indice_documentale(registro, summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=user_context)
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Indice documentale non registrato per %s: %s", fascicolo_id, exc)
+
+
 def _registro_indice_documentale(fascicolo_id: str, sources: list[DocumentAISource]) -> dict[str, Any]:
     """Il registro delle letture per l'indice documentale: impronta del fascicolo e stato «invariato»."""
     try:
@@ -586,16 +630,8 @@ def _registro_indice_documentale(fascicolo_id: str, sources: list[DocumentAISour
 
         registro = registro_corrente()
         tenant = tenant_corrente()
-        oggetti = [
-            Oggetto(
-                tipo="documento",
-                oggetto_id=str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or ""),
-                nome=str(source.filename or ""),
-                sha256=str(source.sha256 or ""),
-                dimensione=int(source.size_bytes or 0),
-            )
-            for source in sources
-        ]
+        inventario = _inventario_registro(registro, tenant, fascicolo_id)
+        oggetti = [_oggetto_del_registro(inventario, source) for source in sources]
         impronta = impronta_inventario(oggetti)
         return {
             "registro": registro,

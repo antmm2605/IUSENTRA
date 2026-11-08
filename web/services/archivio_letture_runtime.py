@@ -1246,6 +1246,9 @@ def _indicizza_fonti_pendenti(fascicolo_id: str, tenant_slug: str) -> dict[str, 
     stato = build_lex_indexing_summary_payload(fascicolo_id, process=False, user_context=context, apply_automations=False)
     mancanti = sum(int(stato.get(campo) or 0) for campo in ("not_indexed", "queued", "stale"))
     if not mancanti:
+        from web.services.document_intelligence_runtime import registra_indice_senza_lettura
+
+        registra_indice_senza_lettura(fascicolo_id, context)
         return stato
     return build_lex_indexing_summary_payload(
         fascicolo_id, process=True, retry_errors=False,

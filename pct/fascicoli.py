@@ -2242,8 +2242,37 @@ class GestioneFascicoli:
                         'nella cartella di recupero: è presente un aggiornamento concorrente.')
                 staged.rename(fasc_dir)
             raise
-        if staged is not None:
-            shutil.rmtree(staged)
+        self._conserva_nel_cestino(original, staged)
+
+    CESTINO_FASCICOLI = '.cestino-fascicoli'
+
+    def _conserva_nel_cestino(self, fascicolo: 'Fascicolo', staged: Optional[Path]) -> Optional[Path]:
+        """Conserva documenti e scheda del fascicolo eliminato nel cestino dello studio.
+
+        L'eliminazione dall'elenco non distrugge i documenti: l'obbligo di
+        conservare la documentazione della pratica (art. 2961 c.c., restituzione
+        e prescrizione presuntiva; art. 31 D.Lgs. 231/2007, conservazione per
+        dieci anni dei dati del rapporto) impone di poterla ricostruire.
+        La cartella resta fuori dall'elenco e si ripristina a mano.
+        """
+        cestino = self.documents_dir / self.CESTINO_FASCICOLI
+        try:
+            cestino.mkdir(parents=True, exist_ok=True)
+            marca = datetime.now().strftime('%Y%m%dT%H%M%S')
+            destinazione = cestino / f'{fascicolo.id}-{marca}-{uuid.uuid4().hex[:6]}'
+            if staged is not None:
+                staged.rename(destinazione)
+            else:
+                destinazione.mkdir()
+            (destinazione / 'fascicolo.json').write_text(
+                json.dumps(fascicolo.to_dict(), ensure_ascii=False, indent=2, default=str),
+                encoding='utf-8',
+            )
+            return destinazione
+        except Exception:
+            # Il fascicolo è già eliminato dall'archivio: i documenti restano nella
+            # cartella di appoggio, mai cancellati senza copia.
+            return None
 
     # ---------------------------------------------------------------- Stato
 

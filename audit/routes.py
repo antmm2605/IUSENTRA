@@ -126,9 +126,13 @@ def _internal_auth_ok() -> bool:
     if mtls_verify == "SUCCESS":
         allowed = _text(current_app.config.get("AUDIT_INTERNAL_MTLS_FINGERPRINTS") or os.getenv("AUDIT_INTERNAL_MTLS_FINGERPRINTS"))
         fingerprint = _text(request.headers.get("X-SSL-Client-Fingerprint") or request.headers.get("X-Client-Cert-Fingerprint")).lower()
-        if not allowed:
+        # Un client può scrivere da sé le intestazioni mTLS: valgono solo se
+        # l'impronta del certificato è fra quelle dichiarate. Senza elenco
+        # configurato l'accesso mTLS resta chiuso (fail-closed) e si passa al
+        # controllo del token di servizio.
+        ammesse = {item.strip().lower() for item in allowed.split(",") if item.strip()}
+        if ammesse and fingerprint and fingerprint in ammesse:
             return True
-        return fingerprint in {item.strip().lower() for item in allowed.split(",") if item.strip()}
     auth = _text(request.headers.get("Authorization"))
     token = auth.removeprefix("Bearer ").strip() if auth.lower().startswith("bearer ") else _text(request.headers.get("X-Audit-Service-Token"))
     if _internal_hmac_valid(token):

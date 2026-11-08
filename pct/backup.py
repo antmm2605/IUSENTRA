@@ -454,7 +454,10 @@ class GestioneBackup:
                     comp = nome.split("/")[0]
                     if comp not in componenti:
                         continue
-                out = dest / nome
+                out = (dest / nome).resolve()
+                if not out.is_relative_to(dest.resolve()):
+                    errori.append({"file": nome, "errore": "Percorso fuori dalla cartella di ripristino: voce ignorata."})
+                    continue
                 if out.exists() and not sovrascrivi:
                     saltati.append(nome)
                     continue

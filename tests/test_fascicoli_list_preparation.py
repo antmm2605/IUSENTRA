@@ -73,8 +73,13 @@ def test_preparazione_backup_persistenza_e_pagina_primaria(tmp_path, monkeypatch
                 database.conn.commit()
         pending = client.get('/api/v1/ui/fascicoli?page=1&page_size=25',
             headers={'X-API-Key': 'react-test-key'})
-        assert pending.status_code == 503
-        assert 'items' not in pending.get_json()
+        # Un evento non ancora consegnato non blocca più l'elenco (08/11/2026):
+        # si vedono i dati confermati e la pratica in attesa è dichiarata.
+        assert pending.status_code == 200, pending.get_json()
+        corpo = pending.get_json()
+        assert corpo['refreshPending']['count'] >= 1
+        assert row[0] in {item['id'] for item in corpo['items'] if item.get('refreshPending')} or corpo['refreshPending']['onPage'] == 0
+        assert all(item.get('title') != 'Titolo aggiornato soltanto sulla fonte' for item in corpo['items'])
         with app.test_request_context('/__deliver-controlled-source'):
             from web.services.fascicoli_list_events_runtime import resume_owner_events
             with worker_studio_writer(anchor) as database:

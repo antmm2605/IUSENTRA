@@ -16,9 +16,12 @@ from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from pct.uffici_giudiziari import risolvi_ufficio
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.permessi_route import permesso_negato
 from web.services.fascicolo_controparti_aggiuntive import (
     EsitoControparti,
+    avviso_conflitto_interessi,
     collega_controparti_aggiuntive,
+    dividi_clienti,
     leggi_controparti_aggiuntive,
 )
 from web.services.fascicoli_create_helpers import (
@@ -120,8 +123,8 @@ def register_fascicoli_create_routes(
                 return soggetto
         return None
 
-    def _controparte_coincide_con_cliente(nome: str, identificativo: str) -> bool:
-        probe = SimpleNamespace(
+    def _probe_controparte(nome: str, identificativo: str) -> SimpleNamespace:
+        return SimpleNamespace(
             id_cliente="",
             nome="",
             cognome="",
@@ -129,15 +132,26 @@ def register_fascicoli_create_routes(
             codice_fiscale=str(identificativo or "").strip(),
             partita_iva=str(identificativo or "").strip(),
         )
-        return soggetto_coincide_con_cliente(probe, get_clienti().tutti())
 
-    def _crea_o_riusa_controparte(gestore_soggetti: Any, form: Any, *, nome_base: str, identificativo_base: str):
+    def _controparte_coincide_con_cliente(nome: str, identificativo: str, clienti: list[Any] | None = None) -> bool:
+        elenco = get_clienti().tutti() if clienti is None else clienti
+        return soggetto_coincide_con_cliente(_probe_controparte(nome, identificativo), elenco)
+
+    def _crea_o_riusa_controparte(
+        gestore_soggetti: Any,
+        form: Any,
+        *,
+        nome_base: str,
+        identificativo_base: str,
+        clienti_propri: list[Any] | None = None,
+    ):
+        propri = get_clienti().tutti() if clienti_propri is None else clienti_propri
         id_soggetto = str(form.get("id_soggetto_controparte", "") or "").strip()
         if id_soggetto:
             soggetto = gestore_soggetti.get(id_soggetto)
             if not soggetto:
                 raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
-            if soggetto_coincide_con_cliente(soggetto, get_clienti().tutti()):
+            if soggetto_coincide_con_cliente(soggetto, propri):
                 return None
             return soggetto
 
@@ -148,7 +162,7 @@ def register_fascicoli_create_routes(
 
         esistente = _soggetto_esistente_per_identificativo(gestore_soggetti, identificativo)
         if esistente:
-            if soggetto_coincide_con_cliente(esistente, get_clienti().tutti()):
+            if soggetto_coincide_con_cliente(esistente, propri):
                 return None
             return esistente
 
@@ -267,6 +281,13 @@ def register_fascicoli_create_routes(
             return render_react_shell_response("fascicoli/nuovo")
 
         if request.method == "POST":
+            negato = permesso_negato(
+                "fascicoli.scrivi",
+                "Non hai il permesso per aprire nuovi fascicoli.",
+                url_for("lista_fascicoli"),
+            )
+            if negato is not None:
+                return negato
             form = request.form
             id_cliente = form.get("id_cliente", "").strip()
             source_preventivo = form.get("source_preventivo", "").strip()
@@ -420,24 +441,32 @@ def register_fascicoli_create_routes(
                     fascicolo_veloce=fascicolo_veloce,
                     note=form.get("note", ""),
                 )
+                clienti_studio = get_clienti().tutti()
+                clienti_propri, altri_clienti = dividi_clienti(clienti_studio, fascicolo.id_cliente or "")
                 esito_controparti = EsitoControparti(collegate=(), escluse_cliente=())
                 if controparti_aggiuntive:
                     esito_controparti = collega_controparti_aggiuntive(
                         gestore_soggetti,
-                        get_clienti().tutti(),
+                        clienti_studio,
                         fascicolo.id,
                         controparti_aggiuntive,
                         momento="l'apertura",
+                        id_cliente_fascicolo=fascicolo.id_cliente or "",
                     )
                 soggetto_controparte = None
                 if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte") or (controparte and cf_controparte):
-                    if not _controparte_coincide_con_cliente(controparte, cf_controparte):
+                    if not _controparte_coincide_con_cliente(controparte, cf_controparte, clienti_propri):
                         soggetto_controparte = _crea_o_riusa_controparte(
                             gestore_soggetti,
                             form,
                             nome_base=controparte,
                             identificativo_base=cf_controparte,
+                            clienti_propri=clienti_propri,
                         )
+                conflitto_controparte = bool(controparte and altri_clienti) and (
+                    _controparte_coincide_con_cliente(controparte, cf_controparte, altri_clienti)
+                    or (soggetto_controparte is not None and soggetto_coincide_con_cliente(soggetto_controparte, altri_clienti))
+                )
                 if soggetto_controparte:
                     gestore_soggetti.aggiungi_parte(
                         fascicolo.id,
@@ -496,6 +525,8 @@ def register_fascicoli_create_routes(
                 messaggio_creazione = f"Fascicolo {fascicolo.numero} creato."
                 if esito_controparti.messaggio():
                     messaggio_creazione += f" {esito_controparti.messaggio()}"
+                if conflitto_controparte and controparte not in esito_controparti.conflitti:
+                    messaggio_creazione += f" {avviso_conflitto_interessi([controparte])}"
                 if fascicolo_veloce and (documenti_iniziali or email_iniziali):
                     messaggio_creazione += f" Caricati {documenti_iniziali} documenti e {email_iniziali} email EML."
                 if email_scartate:

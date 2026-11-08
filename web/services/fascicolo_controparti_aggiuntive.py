@@ -9,7 +9,11 @@ Regole:
 - il dato del registro e un suggerimento: l'avvocato lo vede nel form e lo conferma salvando;
 - nessun duplicato: si riusa la scheda con lo stesso codice fiscale/partita IVA e si completa solo la
   PEC mancante, senza sovrascrivere dati gia presenti;
-- una voce che coincide con il cliente dello studio non viene collegata come controparte;
+- una voce che coincide con il cliente del fascicolo non viene collegata come controparte;
+- una voce che coincide con un altro cliente dello studio viene collegata e segnalata come
+  possibile conflitto di interessi (art. 24 Codice deontologico forense, commi 1 e 3: dovere
+  di astensione quando l'incarico confligge con gli interessi di un'altra parte assistita);
+  la valutazione resta dell'avvocato, il software non esclude la parte in silenzio;
 - la validazione avviene prima di creare il fascicolo, cosi un dato errato non lascia fascicoli a meta.
 """
 
@@ -254,10 +258,36 @@ def _probe(controparte: ControparteAggiuntiva) -> SimpleNamespace:
     )
 
 
+def avviso_conflitto_interessi(nomi: list[str] | tuple[str, ...]) -> str:
+    """Avviso per controparti che sono anche clienti dello studio (art. 24 CDF)."""
+    if not nomi:
+        return ""
+    return (
+        f"Attenzione: {', '.join(nomi)} {'è' if len(nomi) == 1 else 'sono'} anche "
+        f"{'cliente' if len(nomi) == 1 else 'clienti'} dello studio. Verifica il conflitto di "
+        "interessi prima di proseguire (art. 24 Codice deontologico forense)."
+    )
+
+
+def dividi_clienti(clienti: list[Any], id_cliente_fascicolo: str | None) -> tuple[list[Any], list[Any]]:
+    """Separa il cliente del fascicolo dagli altri clienti dello studio.
+
+    Senza cliente del fascicolo indicato tutti i clienti valgono come «propri»
+    (comportamento storico: la parte non si collega).
+    """
+    if id_cliente_fascicolo is None:
+        return list(clienti), []
+    proprio = str(id_cliente_fascicolo or "").strip()
+    propri = [c for c in clienti if proprio and str(getattr(c, "id", "") or "").strip() == proprio]
+    altri = [c for c in clienti if c not in propri]
+    return propri, altri
+
+
 @dataclass(frozen=True)
 class EsitoControparti:
     collegate: tuple[str, ...]
     escluse_cliente: tuple[str, ...]
+    conflitti: tuple[str, ...] = ()
 
     def messaggio(self) -> str:
         parti: list[str] = []
@@ -265,6 +295,8 @@ class EsitoControparti:
             parti.append(f"Collegate altre {len(self.collegate)} parti: {', '.join(self.collegate)}.")
         if self.escluse_cliente:
             parti.append(f"Non collegate perché coincidono con il cliente: {', '.join(self.escluse_cliente)}.")
+        if self.conflitti:
+            parti.append(avviso_conflitto_interessi(self.conflitti))
         return " ".join(parti)
 
 
@@ -275,23 +307,26 @@ def collega_controparti_aggiuntive(
     controparti: list[ControparteAggiuntiva],
     *,
     momento: str = "l'apertura",
+    id_cliente_fascicolo: str | None = None,
 ) -> EsitoControparti:
     """Crea o riusa le schede soggetto e le collega al fascicolo con il ruolo scelto."""
+    propri, altri = dividi_clienti(clienti, id_cliente_fascicolo)
     collegate: list[str] = []
     escluse: list[str] = []
+    conflitti: list[str] = []
     for controparte in controparti:
         soggetto = (
             gestore_soggetti.get(controparte.id_soggetto)
             if controparte.id_soggetto
             else _soggetto_per_identificativo(gestore_soggetti, controparte.identificativo)
         )
-        if soggetto is not None and soggetto_coincide_con_cliente(soggetto, clienti):
+        record = soggetto if soggetto is not None else _probe(controparte)
+        if soggetto_coincide_con_cliente(record, propri):
             escluse.append(controparte.nome)
             continue
+        if altri and soggetto_coincide_con_cliente(record, altri):
+            conflitti.append(controparte.nome)
         if soggetto is None:
-            if soggetto_coincide_con_cliente(_probe(controparte), clienti):
-                escluse.append(controparte.nome)
-                continue
             soggetto = _crea_soggetto(gestore_soggetti, controparte, momento=momento)
         else:
             soggetto = _completa_pec_mancante(gestore_soggetti, soggetto, controparte.pec)
@@ -302,7 +337,7 @@ def collega_controparti_aggiuntive(
             note=f"Aggiunta durante {momento} del fascicolo ({controparte.fonte_label}).",
         )
         collegate.append(soggetto.nome_completo)
-    return EsitoControparti(collegate=tuple(collegate), escluse_cliente=tuple(escluse))
+    return EsitoControparti(collegate=tuple(collegate), escluse_cliente=tuple(escluse), conflitti=tuple(conflitti))
 
 
 __all__ = [
@@ -310,6 +345,8 @@ __all__ = [
     "MAX_CONTROPARTI_AGGIUNTIVE",
     "ControparteAggiuntiva",
     "EsitoControparti",
+    "avviso_conflitto_interessi",
+    "dividi_clienti",
     "collega_controparti_aggiuntive",
     "identificativo_valido",
     "leggi_controparti_aggiuntive",

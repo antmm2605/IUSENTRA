@@ -118,12 +118,14 @@ def build_fascicoli_list_request(**params):
         postgres = getattr(database, 'backend_kind', '') == 'postgresql'
         in_aggiornamento = set(registry_ready(tenant, in_corso_ammessi=True))
         repository = FascicoliListQuery(database, tenant)
+        repository.in_corso_ammessi = True
         with catalog_snapshot(database):
             if not catalog_exists(database.conn, 'fascicoli_list_owner', postgres=postgres):
                 raise FascicoliListNotReady('Catalogo fascicoli non preparato: recupero governato necessario.')
             payload = build_sql_list_payload(repository,
                 enrich_economic=lambda items: enrich_economic_page(database, tenant, anchor, items), **params)
         repository._ready()
+        in_aggiornamento |= repository.in_aggiornamento
         in_aggiornamento |= set(registry_ready(tenant, in_corso_ammessi=True))
         return segna_in_aggiornamento(payload, in_aggiornamento)
 

@@ -1,7 +1,9 @@
 import json
 
 import pytest
-from flask import Flask, jsonify
+from types import SimpleNamespace
+
+from flask import Flask, g, jsonify
 
 from pct.clienti import GestioneClienti
 from pct.fascicoli import GestioneFascicoli
@@ -17,6 +19,8 @@ def form_api(request, tmp_path):
     calls = []
     app = Flask(__name__)
     app.secret_key = 'controlled-session-only'
+    # Le scritture del fascicolo richiedono il permesso: utente dello studio abilitato.
+    app.before_request(lambda: setattr(g, 'utente_corrente', SimpleNamespace(ha_permesso=lambda _p: True)))
     app.add_url_rule('/fascicoli', endpoint='lista_fascicoli', view_func=lambda: 'controlled')
     app.add_url_rule('/fascicoli/<id_fasc>', endpoint='dettaglio_fascicolo',
                      view_func=lambda id_fasc: jsonify(id=id_fasc))

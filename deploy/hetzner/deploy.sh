@@ -465,8 +465,10 @@ fi
 
 # Il risultato del collaudo del lettore lo scrive l'utente del gestionale: un file creato dall'amministratore
 # del server lo bloccava con «permesso negato» ogni notte (07/11/2026). Nessun altro file viene toccato.
+# Il comando gira come root dentro il container: «chown -h» non segue i collegamenti simbolici e si tocca
+# solo una cartella o un file regolare veri, mai un collegamento che punti a file di sistema.
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" exec -T -u root scheduler-worker \
-  sh -c 'd=/data/intelligence; f=$d/collaudo_lettore.json; mkdir -p "$d"; chown iusentra "$d"; if [ -e "$f" ]; then chown iusentra "$f"; fi' \
+  sh -c 'd=/data/intelligence; f=$d/collaudo_lettore.json; [ -L "$d" ] && exit 0; mkdir -p "$d"; if [ -d "$d" ] && [ ! -L "$d" ]; then chown -h iusentra "$d"; fi; if [ -f "$f" ] && [ ! -L "$f" ]; then chown -h iusentra "$f"; fi' \
   || echo "Permessi del file del collaudo non riallineati (non bloccante)."
 
 # ---------------------------------------------------------------------------

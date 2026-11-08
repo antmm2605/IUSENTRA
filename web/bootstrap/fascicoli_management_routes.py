@@ -21,8 +21,11 @@ from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_clie
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
 from web.services.fascicolo_copertina import contesto_copertina
+from web.services.permessi_route import permesso_negato
 from web.services.fascicolo_controparti_aggiuntive import (
+    avviso_conflitto_interessi,
     collega_controparti_aggiuntive,
+    dividi_clienti,
     leggi_controparti_aggiuntive,
 )
 
@@ -85,6 +88,16 @@ def register_fascicoli_management_routes(
 ) -> None:
     """Register management, archive, and API routes for fascicoli."""
 
+    _MESSAGGI_PERMESSO = {
+        "fascicoli.scrivi": "Non hai il permesso per modificare i fascicoli.",
+        "fascicoli.archivia": "Non hai il permesso per archiviare o ripristinare i fascicoli.",
+        "fascicoli.elimina": "Non hai il permesso per eliminare i fascicoli.",
+    }
+
+    def _negato(permesso: str, id_fasc: str = ""):
+        rimando = url_for("dettaglio_fascicolo", id_fasc=id_fasc) if id_fasc else url_for("lista_fascicoli")
+        return permesso_negato(permesso, _MESSAGGI_PERMESSO[permesso], rimando)
+
     def _avvocato_titolare_studio() -> str:
         try:
             config_manager = get_config_studio()
@@ -126,8 +139,8 @@ def register_fascicoli_management_routes(
                 return soggetto
         return None
 
-    def _controparte_coincide_con_cliente(nome: str, identificativo: str) -> bool:
-        probe = SimpleNamespace(
+    def _probe_controparte(nome: str, identificativo: str) -> SimpleNamespace:
+        return SimpleNamespace(
             id_cliente="",
             nome="",
             cognome="",
@@ -135,15 +148,26 @@ def register_fascicoli_management_routes(
             codice_fiscale=str(identificativo or "").strip(),
             partita_iva=str(identificativo or "").strip(),
         )
-        return soggetto_coincide_con_cliente(probe, get_clienti().tutti())
 
-    def _crea_o_riusa_controparte(gestore_soggetti: Any, form: Any, *, nome_base: str, identificativo_base: str):
+    def _controparte_coincide_con_cliente(nome: str, identificativo: str, clienti: list[Any] | None = None) -> bool:
+        elenco = get_clienti().tutti() if clienti is None else clienti
+        return soggetto_coincide_con_cliente(_probe_controparte(nome, identificativo), elenco)
+
+    def _crea_o_riusa_controparte(
+        gestore_soggetti: Any,
+        form: Any,
+        *,
+        nome_base: str,
+        identificativo_base: str,
+        clienti_propri: list[Any] | None = None,
+    ):
+        propri = get_clienti().tutti() if clienti_propri is None else clienti_propri
         id_soggetto = str(form.get("id_soggetto_controparte", "") or "").strip()
         if id_soggetto:
             soggetto = gestore_soggetti.get(id_soggetto)
             if not soggetto:
                 raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
-            if soggetto_coincide_con_cliente(soggetto, get_clienti().tutti()):
+            if soggetto_coincide_con_cliente(soggetto, propri):
                 return None
             return soggetto
 
@@ -154,7 +178,7 @@ def register_fascicoli_management_routes(
 
         esistente = _soggetto_esistente_per_identificativo(gestore_soggetti, identificativo)
         if esistente:
-            if soggetto_coincide_con_cliente(esistente, get_clienti().tutti()):
+            if soggetto_coincide_con_cliente(esistente, propri):
                 return None
             return esistente
 
@@ -260,6 +284,9 @@ def register_fascicoli_management_routes(
 
         render_status = 200
         if request.method == "POST":
+            negato = _negato("fascicoli.scrivi", id_fasc)
+            if negato is not None:
+                return negato
             form = request.form
             id_cliente = form.get("id_cliente", fascicolo.id_cliente).strip()
             nome_cliente = fascicolo.nome_cliente
@@ -365,25 +392,42 @@ def register_fascicoli_management_routes(
                     compenso_pattuito=float(form.get("compenso_pattuito") or 0),
                     note=form.get("note", ""),
                 )
+                id_cliente_fascicolo = str(getattr(gf.get(id_fasc) or fascicolo, "id_cliente", "") or "")
+                clienti_studio = get_clienti().tutti()
+                clienti_propri, altri_clienti = dividi_clienti(clienti_studio, id_cliente_fascicolo)
                 soggetto_controparte = None
                 if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte"):
-                    if not _controparte_coincide_con_cliente(controparte, cf_controparte):
+                    if not _controparte_coincide_con_cliente(controparte, cf_controparte, clienti_propri):
                         soggetto_controparte = _crea_o_riusa_controparte(
                             gestore_soggetti,
                             form,
                             nome_base=controparte,
                             identificativo_base=cf_controparte,
+                            clienti_propri=clienti_propri,
                         )
                 linked_subject_message = ""
                 messaggio_controparti = ""
+                conflitti_aggiuntive: tuple[str, ...] = ()
                 if controparti_aggiuntive:
-                    messaggio_controparti = collega_controparti_aggiuntive(
+                    esito_aggiuntive = collega_controparti_aggiuntive(
                         gestore_soggetti,
-                        get_clienti().tutti(),
+                        clienti_studio,
                         id_fasc,
                         controparti_aggiuntive,
                         momento="la modifica",
-                    ).messaggio()
+                        id_cliente_fascicolo=id_cliente_fascicolo,
+                    )
+                    messaggio_controparti = esito_aggiuntive.messaggio()
+                    conflitti_aggiuntive = esito_aggiuntive.conflitti
+                if (
+                    soggetto_controparte is not None
+                    and altri_clienti
+                    and soggetto_coincide_con_cliente(soggetto_controparte, altri_clienti)
+                    and soggetto_controparte.nome_completo not in conflitti_aggiuntive
+                ):
+                    messaggio_controparti = (
+                        f"{messaggio_controparti} {avviso_conflitto_interessi([soggetto_controparte.nome_completo])}"
+                    ).strip()
                 if soggetto_controparte:
                     gestore_soggetti.aggiungi_parte(
                         id_fasc,
@@ -458,6 +502,10 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
     def cambia_stato_fascicolo(id_fasc: str):
+        richiesto = str(request.form.get("stato") or "").strip().upper()
+        negato = _negato("fascicoli.archivia" if richiesto == StatoFascicolo.ARCHIVIATO.name else "fascicoli.scrivi", id_fasc)
+        if negato is not None:
+            return negato
         gf = get_fascicoli()
         form = request.form
         try:
@@ -476,6 +524,9 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/conformita/controlli", methods=["POST"])
     def toggle_controlli_conformita_fascicolo(id_fasc: str):
+        negato = _negato("fascicoli.scrivi", id_fasc)
+        if negato is not None:
+            return negato
         gf = get_fascicoli()
         enabled = str(request.form.get("enabled", "1") or "").strip().lower() in {"1", "true", "on", "yes"}
         try:
@@ -500,6 +551,9 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/definisci", methods=["POST"])
     def definisci_fascicolo(id_fasc: str):
+        negato = _negato("fascicoli.scrivi", id_fasc)
+        if negato is not None:
+            return negato
         gf = get_fascicoli()
         form = request.form
         try:
@@ -519,6 +573,9 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/archivia", methods=["POST"])
     def archivia_fascicolo(id_fasc: str):
+        negato = _negato("fascicoli.archivia", id_fasc)
+        if negato is not None:
+            return negato
         gf = get_fascicoli()
         try:
             gf.archivia(
@@ -536,6 +593,9 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/ripristina", methods=["POST"])
     def ripristina_fascicolo(id_fasc: str):
+        negato = _negato("fascicoli.archivia", id_fasc)
+        if negato is not None:
+            return negato
         try:
             get_fascicoli().ripristina_da_archivio(id_fasc, avvocato=request.form.get("avvocato", ""))
             _clear_react_fascicoli_list_cache()
@@ -548,8 +608,30 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/elimina", methods=["POST"])
     def elimina_fascicolo(id_fasc: str):
+        negato = _negato("fascicoli.elimina", id_fasc)
+        if negato is not None:
+            return negato
         try:
-            get_fascicoli().elimina(id_fasc)
+            gestore = get_fascicoli()
+            fascicolo = gestore.get(id_fasc)
+            if fascicolo is None:
+                raise KeyError(id_fasc)
+            descrizione = " - ".join(
+                parte
+                for parte in (
+                    str(getattr(fascicolo, "numero", "") or "").strip(),
+                    str(getattr(fascicolo, "titolo", "") or "").strip(),
+                    str(getattr(fascicolo, "nome_cliente", "") or "").strip(),
+                )
+                if parte
+            )
+            gestore.elimina(id_fasc)
+            audit(
+                "fascicoli.elimina",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"Fascicolo eliminato e conservato nel cestino dello studio: {descrizione}"[:500],
+            )
             try:
                 get_telematico().delete_cases_for_practice(id_fasc)
             except Exception as exc:

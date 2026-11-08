@@ -424,6 +424,9 @@ def _restore_root(manager: Any) -> Path:
     return base.parent / "ripristini"
 
 
+cartella_ripristini = _restore_root
+
+
 def restore_react_backup(
     *,
     get_backup: Callable[[], Any],

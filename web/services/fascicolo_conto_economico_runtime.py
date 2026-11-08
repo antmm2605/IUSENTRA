@@ -44,6 +44,35 @@ def crediti_da_sentenza(fascicolo_id: str) -> list[dict[str, Any]]:
     return crediti
 
 
+def credito_da_liquidazione_registrata(fascicolo: Any) -> list[dict[str, Any]]:
+    """Credito dalla liquidazione già registrata dal controllo della sentenza nella voce del fascicolo.
+
+    Serve quando gli eventi del controllo economico non ci sono (sentenze lette prima del registro eventi):
+    la voce «liquidazione_giudice» scritta dalla lettura della sentenza porta importo, distrazione
+    (art. 93 c.p.c.) e documento fonte. Resta da confermare dall'avvocato.
+    """
+    voce = (getattr(fascicolo, "pagamenti", {}) or {}).get("liquidazione_giudice")
+    if not isinstance(voce, dict) or _testo(voce.get("origine")) != "lex_ai_sentenza_tribunale":
+        return []
+    try:
+        importo = round(float(voce.get("importo") or 0), 2)
+    except (TypeError, ValueError):
+        return []
+    if importo <= 0:
+        return []
+    evidenza = voce.get("evidenza_dispositivo") if isinstance(voce.get("evidenza_dispositivo"), dict) else {}
+    distrazione = _testo(voce.get("beneficiario_credito")) == "avvocato" or evidenza.get("distraction_granted") is True
+    fid = _testo(getattr(fascicolo, "id", ""))
+    documento_id = _testo(voce.get("documento_fonte")).removeprefix("document_id:")
+    documenti = {_testo(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
+    fonti = []
+    if documento_id in documenti:
+        nome = _testo(getattr(documenti[documento_id], "nome", "")) or "Sentenza"
+        fonti.append({"label": nome, "href": _href_documento(fid, documento_id), "norma": "sentenza della causa"})
+    return [{"importo": importo, "distrazione": distrazione, "confermato": _testo(voce.get("status")) in {"pagato", "parziale"},
+             "fonti": fonti}]
+
+
 def documenti_contributo(fascicolo: Any) -> list[dict[str, str]]:
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
 
@@ -102,9 +131,10 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
         if documento_id:
             voce["href"] = _href_documento(fascicolo_id, documento_id)
         voci[chiave] = voce
-    risultato = conto_economico(voci=voci, crediti=crediti_da_sentenza(fascicolo_id),
+    crediti = crediti_da_sentenza(fascicolo_id) or credito_da_liquidazione_registrata(fascicolo)
+    risultato = conto_economico(voci=voci, crediti=crediti,
                                 documenti_contributo=documenti_contributo(fascicolo), parcelle=parcelle_del_fascicolo(fascicolo_id))
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 
 
-__all__ = ["conto_economico_fascicolo", "crediti_da_sentenza", "documenti_contributo", "parcelle_del_fascicolo"]
+__all__ = ["conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_sentenza", "documenti_contributo", "parcelle_del_fascicolo"]

@@ -174,3 +174,20 @@ def test_profilo_deposito_non_scambia_contratto_per_atto_principale():
     assert contract_slots
     assert contract_slots[0]["type"] == SlotType.DOCUMENTO_PROVA.value
     assert contract_slots[0]["slot_key"] != "ATTO_PRINCIPALE"
+
+
+def test_contributo_esente_o_prenotato_a_debito_non_blocca_il_deposito():
+    """Artt. 9, comma 1-bis, 10 e 131, comma 2, lett. a, D.P.R. 115/2002."""
+    from pct.practice_engine.models import DocumentSlot
+
+    slot = DocumentSlot(id="s1", fascicolo_id="F1", profile_id="p", slot_key="CONTRIBUTO_UNIFICATO",
+                        label="Contributo unificato", type=SlotType.CONTRIBUTO_UNIFICATO.value)
+
+    def esito(voce):
+        fascicolo = SimpleNamespace(id="F1", pagamenti={"contributo_unificato": voce} if voce is not None else {})
+        return run_validator("contributo_unificato_pagato", ValidationContext(fascicolo=fascicolo, slots=[slot])).status
+
+    assert esito(None) == ValidatorStatus.BLOCK.value
+    assert esito({"status": "da_registrare", "importo": 49}) == ValidatorStatus.BLOCK.value
+    assert esito({"status": "prenotato_a_debito"}) == ValidatorStatus.OK.value
+    assert esito({"status": "esente"}) == ValidatorStatus.WARNING.value

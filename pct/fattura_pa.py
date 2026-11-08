@@ -336,7 +336,10 @@ def genera_xml_fattura_pa(
         _el(dr, "TipoRitenuta", "RT01")
         _el(dr, "ImportoRitenuta", f"{parcella.ritenuta:.2f}")
         _el(dr, "AliquotaRitenuta", "20.00")
-        _el(dr, "CausalePagamento", "P")
+        # Codici del mod. CU (XSD FatturaPA, CausalePagamentoType): «A» = prestazioni di lavoro
+        # autonomo rientranti nell'esercizio di arte o professione abituale (istruzioni CU 2026,
+        # Agenzia delle Entrate); «P» riguarda i non residenti per l'uso di attrezzature.
+        _el(dr, "CausalePagamento", "A")
 
     if parcella.applica_bollo and parcella.bollo > 0:
         db = _el(dgd, "DatiBollo")

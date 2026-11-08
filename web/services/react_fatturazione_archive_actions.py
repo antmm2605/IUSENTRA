@@ -219,7 +219,7 @@ def _record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str, Any]) -
     id_fascicolo = _text(getattr(parcella, "id_fascicolo", ""))
     payload = {
         "id": pid,
-        "number": _text(getattr(parcella, "numero", "")) or pid,
+        "number": _text(getattr(parcella, "numero_visibile", "") or getattr(parcella, "numero", "")) or pid,
         "customerName": _client_label(clienti.get(id_cliente)),
         "caseId": id_fascicolo,
         "caseTitle": _case_label(fascicoli.get(id_fascicolo)) if id_fascicolo else "",
@@ -281,7 +281,7 @@ def _status_result(item: Any) -> dict[str, Any]:
     status = _enum(getattr(item, "stato", ""))
     payload = {
         "id": _text(getattr(item, "id", "")),
-        "number": _text(getattr(item, "numero", "")),
+        "number": _text(getattr(item, "numero_visibile", "") or getattr(item, "numero", "")),
         "amountDisplay": _money(getattr(item, "totale", 0)),
         "state": status,
         "stateLabel": _status_label(status),

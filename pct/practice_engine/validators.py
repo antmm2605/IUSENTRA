@@ -265,12 +265,39 @@ def contributo_unificato_calcolato(ctx: ValidationContext) -> ValidationResult:
     return _warning("contributo_unificato_calcolato", "Attenzione: contributo unificato non determinato.", "Verifica importo e debenza prima del deposito.")
 
 
+def _regime_contributo_fascicolo(fascicolo: Any) -> str:
+    """«esente», «prenotato_a_debito» o "" dalla voce contributo unificato dei pagamenti del fascicolo."""
+    pagamenti = getattr(fascicolo, "pagamenti", None)
+    voce = pagamenti.get("contributo_unificato") if isinstance(pagamenti, dict) else None
+    if not isinstance(voce, dict):
+        return ""
+    stato = _text(voce.get("status") or voce.get("stato")).casefold()
+    if stato == "prenotato_a_debito" or voce.get("prenotato_a_debito") is True:
+        return "prenotato_a_debito"
+    if stato in {"esente", "esenzione_dichiarata"} or voce.get("esente") is True:
+        return "esente"
+    return ""
+
+
 def contributo_unificato_pagato(ctx: ValidationContext) -> ValidationResult:
     slot = _slot(ctx, SlotType.CONTRIBUTO_UNIFICATO.value)
     if not slot:
         return _na("contributo_unificato_pagato")
     if slot.document_id:
         return _ok("contributo_unificato_pagato", "Ricevuta contributo unificato collegata.")
+    if _enum_value(slot.status) == "NON_APPLICABILE":
+        return _na("contributo_unificato_pagato")
+    regime = _regime_contributo_fascicolo(ctx.fascicolo)
+    if regime == "prenotato_a_debito":
+        # Patrocinio a spese dello Stato: il contributo è prenotato a debito (art. 131, comma 2, lett. a, D.P.R. 115/2002).
+        return _ok("contributo_unificato_pagato", "Contributo unificato prenotato a debito: nessuna ricevuta da allegare.",
+                   evidence={"regime": regime, "norma": "art. 131, comma 2, lett. a, D.P.R. 115/2002"})
+    if regime == "esente":
+        # Esenzione (art. 10 D.P.R. 115/2002) o reddito sotto soglia nelle cause di lavoro e previdenza
+        # (art. 9, comma 1-bis): non blocca, ma la dichiarazione o l'autocertificazione va depositata.
+        return _warning("contributo_unificato_pagato", "Contributo unificato esente: nessuna ricevuta da allegare.",
+                        "Indica il motivo dell'esenzione nell'atto e deposita l'autocertificazione del reddito se prevista (art. 9, comma 1-bis, D.P.R. 115/2002).",
+                        evidence={"regime": regime, "norma": "artt. 9, comma 1-bis, e 10 D.P.R. 115/2002"})
     return _block("contributo_unificato_pagato", "Impossibile depositare: manca la ricevuta del Contributo Unificato.", "Carica o collega la ricevuta di pagamento.")
 
 

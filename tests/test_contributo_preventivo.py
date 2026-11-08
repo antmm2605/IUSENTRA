@@ -39,3 +39,41 @@ def test_tipologie_non_mappate_e_grado():
     assert grado_dal_testo("Corte di Cassazione") == "cassazione"
     assert grado_dal_testo("Consiglio di Stato") == "appello"
     assert grado_dal_testo("") == "primo_grado"
+
+
+def test_opposizione_decreto_ingiuntivo_dimezzata(calcolatore):
+    """Art. 13, comma 3, D.P.R. 115/2002: metà «compreso il giudizio di opposizione a decreto ingiuntivo»."""
+    assert contributo_per_preventivo(calcolatore, "opposizione_di", valore=10000) == 118.5
+    assert contributo_per_preventivo(calcolatore, "opposizione_di", valore=10000, grado_scelto="Corte d'Appello") == 177.75
+
+
+def test_indeterminabile_giudice_di_pace_e_473bis47(calcolatore):
+    """Art. 13, comma 1, lett. b-d, D.P.R. 115/2002."""
+    base = {"cu_categoria": "civile_ordinario", "cu_valore_tipo": "indeterminabile"}
+    assert calcolatore.calcola_contributo_unificato(base)["base"] == 518.0
+    assert calcolatore.calcola_contributo_unificato({**base, "cu_giudice_pace": True})["base"] == 237.0
+    famiglia = {"cu_categoria": "famiglia_473bis47"}
+    assert calcolatore.calcola_contributo_unificato(famiglia)["base"] == 98.0
+    assert calcolatore.calcola_contributo_unificato({**famiglia, "cu_grado": "appello"})["base"] == 147.0
+
+
+def test_redazione_legge_grado_e_ufficio_dal_fascicolo(calcolatore):
+    from types import SimpleNamespace
+    from pct.redazione_contesto import contributo_unificato_da_fascicolo
+
+    def fascicolo(**campi):
+        dati = {"tipo": "CIVILE", "titolo": "Causa", "oggetto": "", "note": "", "valore_causa": 30000,
+                "tribunale": "Tribunale di Roma", "tipo_procedimento": "", "documenti": []}
+        dati.update(campi)
+        return SimpleNamespace(**dati)
+
+    def atteso(**parametri):
+        return calcolatore.calcola_contributo_unificato({"cu_valore": 30000, "cu_valore_tipo": "determinato", **parametri})["totale"]
+
+    assert contributo_unificato_da_fascicolo(fascicolo())["totale"] == atteso(cu_categoria="civile_ordinario")
+    appello = contributo_unificato_da_fascicolo(fascicolo(tribunale="Corte d'Appello di Roma"))
+    assert appello["totale"] == atteso(cu_categoria="civile_ordinario", cu_grado="appello")
+    assert "Appello" in appello["descrizione"]
+    famiglia = contributo_unificato_da_fascicolo(fascicolo(valore_causa=0, titolo="Separazione giudiziale"))
+    assert famiglia["categoria"] == "famiglia_473bis47"
+    assert famiglia["totale"] == calcolatore.calcola_contributo_unificato({"cu_categoria": "famiglia_473bis47"})["totale"]

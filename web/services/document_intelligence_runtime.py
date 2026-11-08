@@ -793,6 +793,7 @@ def apply_sentenza_automation_for_document_text(
         text=text,
         document_metadata=clean_metadata,
         actor=actor or "Lex AI",
+        regime_fiscale=_regime_fiscale_studio(),
     )
     document_key = _document_key(clean_metadata)
     vector_result: dict[str, Any] = {}
@@ -1175,3 +1176,13 @@ __all__ = [
     "resolve_document_catalog_assignment",
     "apply_sentenza_automation_for_document_text",
 ]
+
+
+def _regime_fiscale_studio() -> str:
+    """Regime fiscale dello studio per le proforma automatiche (pct.fatturazione_regime)."""
+    try:
+        from web.helpers import regime_fiscale_studio
+
+        return regime_fiscale_studio()
+    except Exception:
+        return ""

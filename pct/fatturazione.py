@@ -7,7 +7,25 @@ per uno studio legale italiano, con:
   - IVA 22 % su (imponibile + cassa forense)
   - Ritenuta d'acconto 20 % (opzionale, per clienti PF/aziende)
   - Marca da bollo € 2,00 (se dovuta)
-  - Numerazione progressiva per anno (es. 2024/001)
+  - Numerazione progressiva per anno (es. 2024/001) riservata ai documenti
+    fiscali (fatture e note di credito); le proforma hanno una numerazione
+    propria non fiscale (es. PF-2024/001).
+
+Numerazione e conversione proforma → fattura (art. 21, comma 2, lett. a-b,
+D.P.R. 633/1972): la fattura porta la data di emissione e un numero
+progressivo che la identifica in modo univoco. La proforma non è una fattura
+(non è trasmessa allo SdI né annotata nel registro IVA): per questo non entra
+nella serie fiscale. Quando la proforma diventa fattura (emissione o
+pagamento, art. 6, terzo comma, D.P.R. 633/1972) riceve il numero fiscale
+successivo e la data del giorno (fuso Europe/Rome); il riferimento alla
+proforma resta nei dati del documento (``dati_personalizzati.proforma``).
+
+Regola per le proforma storiche: quelle create prima di questa regola hanno un
+numero nel formato fiscale (es. 2026/050). Restano proforma, non si
+rinumerano sul disco e non contano nella serie fiscale (nessun blocco e nessun
+buco); sono mostrate come «PF-2026/050» (``numero_visibile``) e la serie delle
+nuove proforma riparte dopo il loro numero più alto, così nessun numero
+visibile si ripete.
 """
 from __future__ import annotations
 
@@ -19,6 +37,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
+import re
 
 from pct.legal_platform_catalog import build_operational_fields
 from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
@@ -26,6 +46,18 @@ from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
 _REGIMI_SENZA_IVA = {"RF19", "RF02"}
 _NUMBERING_SECTION = "fatturazione_numerazione"
 _PROFORMA_OPERATIVA = "PROFORMA"
+_PROFORMA_PREFIX = "PF-"
+_ROME_TZ = ZoneInfo("Europe/Rome")
+
+
+def _oggi_rome() -> date:
+    return datetime.now(_ROME_TZ).date()
+
+
+def _e_proforma(dati_personalizzati: Any) -> bool:
+    data = dati_personalizzati if isinstance(dati_personalizzati, dict) else {}
+    document = data.get("document") if isinstance(data.get("document"), dict) else {}
+    return str(document.get("documento_operativo") or "").strip().upper() == _PROFORMA_OPERATIVA
 
 
 class ParcellaConcurrentUpdate(ValueError):
@@ -293,6 +325,12 @@ class Parcella:
         return 2.00 if self.applica_bollo else 0.0
 
     @property
+    def bollo_dovuto(self) -> bool:
+        """Bollo di € 2 dovuto: somme non soggette a IVA oltre € 77,47 (anticipazioni N1 escluse)."""
+        from pct.fatturazione_regime import bollo_dovuto
+        return bollo_dovuto(iva_applicabile=self.iva_applicabile, importo_non_soggetto=self.base_iva)
+
+    @property
     def bollo_addebitato(self) -> float:
         document = self.dati_personalizzati.get("document", {}) if isinstance(self.dati_personalizzati, dict) else {}
         studio_pays = isinstance(document, dict) and document.get("bollo_a_carico_studio") is True
@@ -305,6 +343,15 @@ class Parcella:
     @property
     def totale(self) -> float:
         return round(self.totale_documento - self.ritenuta, 2)
+
+    @property
+    def numero_visibile(self) -> str:
+        """Numero da mostrare: le proforma storiche col numero in formato fiscale
+        si mostrano con il prefisso PF- perché non appartengono alla serie fiscale."""
+        numero = str(self.numero or "")
+        if _e_proforma(self.dati_personalizzati) and numero and not numero.startswith(_PROFORMA_PREFIX):
+            return _PROFORMA_PREFIX + numero
+        return numero
 
     @property
     def netto_a_pagare(self) -> float:
@@ -611,12 +658,7 @@ class GestioneFatturazione:
                 configured_last = max(0, int(raw_year.get("ultimo_numero_usato") or 0))
             except (TypeError, ValueError):
                 configured_last = 0
-        prefix = f"{anno}/"
-        used_numbers = [
-            int(p.numero[len(prefix):])
-            for p in self._parcelle.values()
-            if p.numero.startswith(prefix) and p.numero[len(prefix):].isdigit()
-        ]
+        used_numbers = self._numeri_usati(anno, proforma=False)
         max_existing = max(used_numbers) if used_numbers else 0
         next_number = max(max_existing, configured_last) + 1
         return {
@@ -624,6 +666,7 @@ class GestioneFatturazione:
             "ultimoNumeroConfigurato": configured_last,
             "ultimoNumeroEsistente": max_existing,
             "prossimoNumero": f"{anno}/{next_number:03d}",
+            "prossimoNumeroProforma": self._prossimo_numero_proforma(anno),
             "updatedAt": str(raw_year.get("updated_at") or "") if isinstance(raw_year, dict) else "",
             "updatedBy": str(raw_year.get("updated_by") or "") if isinstance(raw_year, dict) else "",
         }
@@ -652,18 +695,42 @@ class GestioneFatturazione:
         self._save_numbering_payload(payload)
         return self.carica_numerazione(year)
 
+    def _numeri_usati(self, anno: int, *, proforma: bool) -> List[int]:
+        """Progressivi già usati nell'anno.
+
+        Serie fiscale (``proforma=False``): solo fatture e note di credito,
+        in qualsiasi stato (anche annullate: il numero resta consumato).
+        Serie proforma (``proforma=True``): numeri «PF-anno/n» e numeri delle
+        proforma storiche in formato fiscale, così i numeri visibili non si ripetono.
+        """
+        fiscale = re.compile(rf"^{int(anno)}/(\d+)$")
+        serie_pf = re.compile(rf"^{re.escape(_PROFORMA_PREFIX)}{int(anno)}/(\d+)$")
+        numeri: List[int] = []
+        for parcella in self._parcelle.values():
+            numero = str(parcella.numero or "").strip()
+            is_proforma = _e_proforma(parcella.dati_personalizzati)
+            if proforma:
+                match = (serie_pf.match(numero) or fiscale.match(numero)) if is_proforma else None
+            else:
+                match = fiscale.match(numero) if not is_proforma else None
+            if match:
+                numeri.append(int(match.group(1)))
+        return numeri
+
     def _prossimo_numero(self, anno: Optional[int] = None) -> str:
-        anno = anno or date.today().year
-        prefix = f"{anno}/"
-        numeri = [
-            int(p.numero[len(prefix):])
-            for p in self._parcelle.values()
-            if p.numero.startswith(prefix) and p.numero[len(prefix):].isdigit()
-        ]
+        """Prossimo numero della serie fiscale (art. 21, c. 2, lett. b, D.P.R. 633/1972)."""
+        anno = anno or _oggi_rome().year
+        numeri = self._numeri_usati(anno, proforma=False)
         configured = int(self.carica_numerazione(anno).get("ultimoNumeroConfigurato") or 0)
         max_number = max(max(numeri) if numeri else 0, configured)
         n = max_number + 1
         return f"{anno}/{n:03d}"
+
+    def _prossimo_numero_proforma(self, anno: Optional[int] = None) -> str:
+        """Prossimo numero non fiscale delle proforma (es. «PF-2026/001»)."""
+        anno = anno or _oggi_rome().year
+        numeri = self._numeri_usati(anno, proforma=True)
+        return f"{_PROFORMA_PREFIX}{anno}/{(max(numeri) if numeri else 0) + 1:03d}"
 
     @staticmethod
     def _year_from_iso(value: Optional[str]) -> int:
@@ -686,16 +753,37 @@ class GestioneFatturazione:
         document = cls._document_payload(parcella)
         return str(document.get("documento_operativo") or "").strip().upper() == _PROFORMA_OPERATIVA
 
-    @classmethod
-    def _converti_proforma_se_fiscale(cls, parcella: Parcella, stato: StatoParcella) -> bool:
-        if stato not in {StatoParcella.EMESSA, StatoParcella.PAGATA} or not cls._is_proforma(parcella):
+    def _converti_proforma_se_fiscale(self, parcella: Parcella, stato: StatoParcella) -> bool:
+        """Trasforma la proforma in fattura quando è emessa o pagata.
+
+        Art. 21, comma 2, lett. a-b, D.P.R. 633/1972: la fattura reca la data di
+        emissione e il numero progressivo successivo della serie fiscale; il
+        servizio si considera effettuato al pagamento (art. 6, terzo comma).
+        Il numero e la data della proforma restano come riferimento in
+        ``dati_personalizzati.proforma`` (numero_proforma, data_proforma).
+        """
+        if stato not in {StatoParcella.EMESSA, StatoParcella.PAGATA} or not self._is_proforma(parcella):
             return False
+        oggi = _oggi_rome()
+        numero_proforma = parcella.numero
+        data_proforma = parcella.data_emissione
+        numero_fiscale = self._prossimo_numero(oggi.year)
+        if parcella.data_scadenza and parcella.data_emissione:
+            try:
+                giorni = (date.fromisoformat(parcella.data_scadenza[:10]) - date.fromisoformat(parcella.data_emissione[:10])).days
+            except ValueError:
+                giorni = None
+            if giorni is not None and parcella.data_scadenza[:10] < oggi.isoformat():
+                parcella.data_scadenza = date.fromordinal(oggi.toordinal() + max(giorni, 0)).isoformat()
+        parcella.numero = numero_fiscale
+        parcella.data_emissione = oggi.isoformat()
         data = dict(parcella.dati_personalizzati or {})
         document = dict(data.get("document") or {})
         document["documento_operativo"] = "FATTURA"
         document["tipo_documento_label"] = "Fattura"
-        document["numero_documento"] = parcella.numero
-        document["data_conversione_proforma"] = datetime.now().replace(microsecond=0).isoformat()
+        document["numero_documento"] = numero_fiscale
+        document["data_documento"] = oggi.isoformat()
+        document["data_conversione_proforma"] = datetime.now(_ROME_TZ).replace(microsecond=0).isoformat()
         data["document"] = document
         data.setdefault("proforma", {})
         if isinstance(data["proforma"], dict):
@@ -704,6 +792,8 @@ class GestioneFatturazione:
                     "convertita": True,
                     "convertita_il": document["data_conversione_proforma"],
                     "stato_destinazione": stato.value,
+                    "numero_proforma": numero_proforma,
+                    "data_proforma": data_proforma,
                 }
             )
         parcella.dati_personalizzati = data
@@ -721,7 +811,7 @@ class GestioneFatturazione:
              applica_iva:     bool = True,
              applica_cassa:   bool = True,
              applica_ritenuta: bool = False,
-             applica_bollo:   bool = False,
+             applica_bollo:   Optional[bool] = False,
              percentuale_spese_generali: float = 0.0,
              note:            str = "",
              origine:         str = "",
@@ -756,9 +846,19 @@ class GestioneFatturazione:
             tipo_procedimento=tipo_procedimento,
             oggetto=note or origine,
         )
+        dati = dict(dati_personalizzati or {})
+        anno_numero = self._year_from_iso(data_emissione_effettiva)
+        if _e_proforma(dati):
+            # La proforma non consuma la serie fiscale (art. 21 D.P.R. 633/1972).
+            numero = self._prossimo_numero_proforma(anno_numero)
+            document = dict(dati.get("document") or {})
+            document["numero_documento"] = numero
+            dati["document"] = document
+        else:
+            numero = self._prossimo_numero(anno_numero)
         p = Parcella(
             id=str(uuid.uuid4()),
-            numero=self._prossimo_numero(self._year_from_iso(data_emissione_effettiva)),
+            numero=numero,
             id_cliente=id_cliente,
             id_fascicolo=id_fascicolo,
             data_emissione=data_emissione_effettiva,
@@ -768,7 +868,7 @@ class GestioneFatturazione:
             applica_iva=applica_iva,
             applica_cassa=applica_cassa,
             applica_ritenuta=applica_ritenuta,
-            applica_bollo=applica_bollo,
+            applica_bollo=bool(applica_bollo),
             percentuale_spese_generali=max(float(percentuale_spese_generali or 0.0), 0.0),
             note=note,
             origine=origine,
@@ -800,8 +900,13 @@ class GestioneFatturazione:
             sdi_data_esito=sdi_data_esito,
             sdi_ricevuta=sdi_ricevuta,
             sdi_note=sdi_note,
-            dati_personalizzati=dict(dati_personalizzati or {}),
+            dati_personalizzati=dati,
         )
+        if applica_bollo is None and p.bollo_dovuto:
+            # applica_bollo=None: proposta automatica del bollo dovuto (art. 13 Tariffa all. A
+            # D.P.R. 642/1972), usata dalle proforma predisposte dal software; l'avvocato può
+            # indicarlo a carico dello studio, ma il documento lo deve esporre.
+            p.applica_bollo = True
         self._parcelle[p.id] = p
         self._salva_parcella(p)
         return p

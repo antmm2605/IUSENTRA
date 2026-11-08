@@ -728,7 +728,7 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
     record = {
         "id": pid,
         "revision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
-        "number": _text(getattr(parcella, "numero", "")) or pid,
+        "number": _text(getattr(parcella, "numero_visibile", "") or getattr(parcella, "numero", "")) or pid,
         "customerName": _client_label(clienti.get(id_cliente)),
         "caseId": id_fascicolo,
         "caseReference": _case_reference(fascicolo, id_fascicolo) if id_fascicolo else "",
@@ -768,7 +768,7 @@ def _created_item(parcella: Any) -> dict[str, Any]:
     item = {
         "id": pid,
         "revision": parcella_revision(parcella) if callable(getattr(parcella, "to_dict", None)) else "",
-        "number": _text(getattr(parcella, "numero", "")) or pid,
+        "number": _text(getattr(parcella, "numero_visibile", "") or getattr(parcella, "numero", "")) or pid,
         "amountDisplay": _money(getattr(parcella, "totale", 0)),
         "issuedAt": _date_label(getattr(parcella, "data_emissione", "")),
         "dueAt": _date_label(getattr(parcella, "data_scadenza", "")),

@@ -403,3 +403,76 @@ def test_i_fascicoli_da_collegare_si_leggono_dall_indice_leggero(monkeypatch):
         {"id": "C", "label": "2026/0003 - Senza ruolo"},
         {"id": "A", "label": "RG 3001/2025 - Affinito c. MIM"},
     ]
+
+
+def _archivio_con_una_notizia(tmp_path: Path):
+    from pct.notiziario import fonti
+    from pct.notiziario.adattatori import notizia
+    from pct.notiziario.archivio import ArchivioNotiziario
+
+    archivio = ArchivioNotiziario(tmp_path / "notiziario.sqlite")
+    voce = notizia(
+        fonti.fonte("inps_circolari"),
+        titolo="Circolare numero 109 del 02-11-2026",
+        url="https://www.inps.it/it/it/inps-comunica/circolare-109.html",
+        data="2026-11-02",
+        descrizione="Cessione fino a un quinto della pensione e traslazione del contratto.",
+    )
+    archivio.salva([voce])
+    archivio.registra_esito("inps_circolari", ok=True, quando="2026-11-08T10:00:00Z", voci=1)
+    return voce
+
+
+def test_api_notiziario_legge_l_archivio_condiviso_con_filtri_e_fascicoli_pertinenti(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    voce = _archivio_con_una_notizia(tmp_path)
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {voce["id"]: {"read": True}})
+
+    class _Gestione:
+        def indice_leggero(self):
+            return [SimpleNamespace(
+                id="F3", numero="2026/0003", titolo="Verdi c. INPS", oggetto="Cessione del quinto della pensione",
+                tipo="LAVORO", stato="APERTO", numero_rg="12", anno_rg="2026", area_pratica="previdenza",
+            )]
+
+    monkeypatch.setattr(api, "get_fascicoli", lambda: _Gestione())
+    client, headers = _client(tmp_path)
+    client.application.config["NOTIZIARIO_DB"] = str(tmp_path / "notiziario.sqlite")
+
+    response = client.get("/api/v1/ui/notiziario?tipo=prassi&pertinenti=1", headers=headers)
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["source"] == "archivio_notizie_utili"
+    assert payload["total"] == 1 and payload["unreadCount"] == 0
+    item = payload["items"][0]
+    assert item["kindLabel"] == "Prassi e circolari"
+    assert item["matterName"] == "Lavoro e previdenza"
+    assert item["authority"].startswith("Istituto nazionale della previdenza sociale")
+    assert item["relatedCases"][0]["id"] == "F3"
+    assert item["read"] is True
+    assert payload["cases"] == [{"id": "F3", "label": "RG 12/2026 - Verdi c. INPS"}]
+    inps = next(row for row in payload["sourceStates"] if row["id"] == "inps_circolari")
+    assert inps["ok"] is True and inps["count"] == 1
+
+    vuota = client.get("/api/v1/ui/notiziario?fonte=curia", headers=headers).get_json()
+    assert vuota["total"] == 0 and vuota["items"] == []
+
+
+def test_api_interazione_trova_la_notizia_nell_archivio_condiviso(tmp_path: Path, monkeypatch):
+    import web.blueprints.api_v1_react as api
+
+    voce = _archivio_con_una_notizia(tmp_path)
+    saved: dict[str, object] = {}
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {})
+    monkeypatch.setattr(api, "_notiziario_save_interactions", lambda interactions: saved.update(interactions) or "2026-11-08T10:00:00Z")
+    monkeypatch.setattr(api, "_notiziario_case_options", lambda: [])
+    monkeypatch.setattr(api, "_audit_event", lambda *_args, **_kwargs: None)
+    client, headers = _client(tmp_path)
+    client.application.config["NOTIZIARIO_DB"] = str(tmp_path / "notiziario.sqlite")
+
+    response = client.patch(f"/api/v1/ui/notiziario/{voce['id']}/interazione", headers=headers, json={"favorite": True})
+
+    assert response.status_code == 200
+    assert saved[voce["id"]]["favorite"] is True

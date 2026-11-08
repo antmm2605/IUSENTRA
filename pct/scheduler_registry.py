@@ -518,6 +518,14 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("legal_sources_daily_check", "Controllo giornaliero delle fonti ufficiali", "Aggiornamenti legali", "Confronta impronta e testo delle fonti ufficiali della Ricerca legale e propone le variazioni da approvare.", "cron", "6", "5", built_in=True),
         SchedulerTemplate("legal_monitor_pst", "Monitor PST", "Aggiornamenti legali", "Controlla aggiornamenti PST durante la giornata.", "cron", "6,12,18", "15", built_in=True),
         SchedulerTemplate(
+            "notiziario_fonti_ufficiali", "Notizie utili dalle fonti ufficiali", "Aggiornamenti legali",
+            "Ogni 30 minuti interroga solo le fonti scadute: Gazzetta Ufficiale e Cassazione ogni 2 ore, PST ogni 3, "
+            "Corte di giustizia UE e Agenzia delle Entrate ogni 4, INPS, EUR-Lex, Garante, CNF e Corte costituzionale "
+            "ogni 6, Ministero della Giustizia, Cassa Forense e Corte EDU ogni 12. Una fonte giù non ferma le altre; "
+            "norme, pronunce e prassi nuove entrano nella revisione degli aggiornamenti legali.",
+            "interval", interval_minutes=30, built_in=True,
+        ),
+        SchedulerTemplate(
             "legal_updates_batch",
             "Aggiornamenti legali fonti verdi",
             "Aggiornamenti legali",

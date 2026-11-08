@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1326.
+- File pytest censiti: 1327.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -20,7 +20,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | RBAC | 172 |
 | Security | 64 |
 | Smoke CLI | 6 |
-| Tenant isolation | 315 |
+| Tenant isolation | 316 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 97 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 221 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 702 |
+| 09-misc | Test non classificati dalle fasi principali | 703 |
 
 ## Suite CI aggiuntive
 
@@ -1370,6 +1370,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Telematico | Security | tests/test_pst_catalog.py | file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Security | tests/test_telematico_case_catalog.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_pst_original_presidio_runtime.py | 401 anonimo, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Telematico | Tenant isolation | tests/test_ricevute_deposito_archivio.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_telematico_dashboard.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Tenant isolation | tests/test_telematico_export_cache.py | tenant, file | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Tenant isolation | API contract | tests/test_lex_model_runtime_tenant_cache.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

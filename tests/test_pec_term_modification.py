@@ -240,7 +240,7 @@ def test_senza_termine_precedente_crea_il_nuovo_termine_dichiarando_la_modifica(
     assert len(deadlines) == 1
     created = deadlines[0]
     assert created.titolo == f"Deposito note scritte ex art. 127-ter c.p.c. - {_it(new_day)} - RG 523/2026 - termine modificato"
-    assert created.tipo == TipoTermine.ADEMPIMENTO
+    assert created.tipo == TipoTermine.TERMINE_PERENTORIO  # art. 127-ter, comma 1, c.p.c.: il termine per le note è perentorio
     assert "Modifica termine:" in created.note
     appointment = Agenda(str(tmp_path / "agenda.json")).get(created.id_appuntamento)
     assert appointment.data_ora == f"{new_day.isoformat()}T09:00:00"

@@ -39,7 +39,7 @@ from .pst_catalog import (
     PST_BUSTA_ENCRYPTION_REQUIRED_FROM,
     PST_BUSTA_ENCRYPTION_UPDATE_URL,
     PST_DM44_SPECIFICHE_2024_DETAIL_URL,
-    PST_DM44_SPECIFICHE_REVISION,
+    PST_DM44_SPECIFICHE_LABEL,
     PST_DM44_SPECIFICHE_URL,
     PST_FORMAL_ERROR_CODES,
     PST_MAX_BUSTA_BYTES,
@@ -3611,7 +3611,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                     "level": "BLOCK",
                     "title": "Dati del deposito non generabili",
                     "detail": "Il riepilogo del deposito non è stato generato correttamente.",
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Correggi i dati indicati e prepara nuovamente il deposito.",
                 }
             )
@@ -3642,7 +3642,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                         f"{INDICE_BUSTA_FILENAME} esterno e IndiceBusta interno nel DatiAtto.xml.p7m "
                         "non devono coesistere: il PST reale lo segnala come indice busta ambiguo."
                     ),
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Rigenera DatiAtto.xml senza IndiceBusta interno e ripeti la simulazione PEC.",
                 }
             )
@@ -3657,7 +3657,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                         "Atto.msg deve contenere IndiceBusta.xml come parte MIME nominata, "
                         "con riferimenti coerenti ai file fisici della busta."
                     ),
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Rigenera la busta e verifica l'indice ministeriale prima dell'invio reale.",
                 }
             )
@@ -3671,7 +3671,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                         "Ogni Nome/ID dell'IndiceBusta deve corrispondere al file e al Content-ID "
                         "della parte MIME presente in Atto.msg."
                     ),
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Rigenera Atto.msg e ripeti la simulazione PEC prima dell'invio reale.",
                 }
             )
@@ -3697,7 +3697,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                     "level": "BLOCK",
                     "title": "DatiAtto.xml non firmato",
                     "detail": "DatiAtto.xml deve essere sottoscritto digitalmente e inserito in busta come DatiAtto.xml.p7m.",
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Firma DatiAtto.xml con Local Signer e riprendi la generazione di Atto.enc.",
                 }
             )
@@ -3713,7 +3713,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                         f"La busta stimata pesa circa {round(size_bytes / (1024 * 1024), 2)} MB "
                         f"e supera il limite PST di {PST_MAX_BUSTA_MB} MB."
                     ),
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Riduci scansioni e allegati o suddividi il deposito.",
                 }
             )
@@ -3743,7 +3743,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                         "Atto.msg deve contenere parti fisiche coerenti con IndiceBusta.xml: "
                         "ogni Nome e ID deve corrispondere al file e al Content-ID MIME."
                     ),
-                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "source": PST_DM44_SPECIFICHE_LABEL,
                     "suggested_action": "Rigenera la busta e ripeti la simulazione PEC prima dell'invio reale.",
                 }
             )
@@ -3758,7 +3758,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
                         f"di Atto.msg con algoritmo {PST_BUSTA_ENCRYPTION_ALGORITHM}."
                     ),
                     "source": (
-                        f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}; "
+                        f"{PST_DM44_SPECIFICHE_LABEL}; "
                         "comunicazione PST 23/12/2025"
                     ),
                     "suggested_action": "Genera di nuovo la busta dopo il recupero del certificato PST dell'ufficio.",
@@ -3876,7 +3876,7 @@ class BustaTelematica(CassazioneAttiV21DatiAttoMixin):
             },
             "sources": [
                 {
-                    "label": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "label": PST_DM44_SPECIFICHE_LABEL,
                     "url": PST_DM44_SPECIFICHE_URL,
                 },
                 {

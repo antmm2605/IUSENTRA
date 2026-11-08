@@ -669077,6 +669077,123 @@
       ]
     },
     {
+      "codice": "GUIDA_FORENSE_DEPOSITO_TELEMATICO_PERFEZIONAMENTO",
+      "denominazione": "Deposito telematico civile: quando si perfeziona e come leggere le quattro PEC di ritorno (art. 196-sexies disp. att. c.p.c.)",
+      "categoria": "Professione forense – processo civile telematico",
+      "materia": "Professione forense",
+      "rito": "Tutti i procedimenti civili con deposito telematico (art. 196-quater disp. att. c.p.c.)",
+      "competenza": "Ufficio giudiziario destinatario del deposito",
+      "uffici_destinatari": [
+        "SICID",
+        "SIECIC"
+      ],
+      "verificato_il": "2026-11-08",
+      "normativa": [
+        {
+          "fonte": "disp. att. c.p.c.",
+          "articolo": "196-sexies",
+          "descrizione": "PERFEZIONAMENTO DEL DEPOSITO – il deposito telematico si ha per avvenuto quando è generata la conferma del completamento della trasmissione (ricevuta di avvenuta consegna) ed è tempestivo se la conferma è generata entro la fine del giorno di scadenza; si applica l'art. 155, quarto e quinto comma, c.p.c.; oltre la dimensione massima delle specifiche il deposito può farsi con più trasmissioni",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-12-18;1368~art196sexies",
+          "verificato_il": "2026-11-08"
+        },
+        {
+          "fonte": "disp. att. c.p.c.",
+          "articolo": "196-quater",
+          "descrizione": "Obbligo del deposito telematico di atti e documenti delle parti costituite"
+        },
+        {
+          "fonte": "D.M. 44/2011",
+          "articolo": "13-14",
+          "descrizione": "Trasmissione dei documenti da parte dei soggetti abilitati esterni e ricevute del deposito"
+        },
+        {
+          "fonte": "Specifiche tecniche DGSIA (provvedimento 7/8/2024, in vigore dal 30/09/2024)",
+          "articolo": "17",
+          "descrizione": "Busta telematica fino a 60 MB; controlli formali T001-T003; anomalie WARN (non bloccante), ERROR (serve l'intervento della cancelleria), FATAL (deposito rifiutato); comunicazione dell'avvenuto deposito con effetto dalla ricevuta di accettazione del gestore PEC del depositante",
+          "url": "https://pst.giustizia.it/PST/resources/cms/documents/m_dg.DOG07.07082024.0004292.ID_SPECIFICHETECNICHE_DM_44_2011_FINALE_31_.pdf",
+          "verificato_il": "2026-11-08"
+        },
+        {
+          "fonte": "D.P.R. 68/2005",
+          "articolo": "6",
+          "descrizione": "Ricevuta di accettazione (gestore del mittente) e ricevuta di avvenuta consegna (gestore del destinatario); avviso di mancata consegna se il messaggio non è consegnato"
+        }
+      ],
+      "obbligo_mediazione": {
+        "obbligatoria": false
+      },
+      "atto_principale": {
+        "tipo_atto": "verifica_esito_deposito_telematico",
+        "denominazione": "Verifica dell'esito di un deposito telematico",
+        "campi_chiave": [
+          {
+            "id": "deposito",
+            "label": "Deposito inviato (data, atto, ufficio)",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "id": "termine",
+            "label": "Giorno di scadenza del termine",
+            "required": false,
+            "type": "date"
+          }
+        ],
+        "campi_obbligatori": [
+          {
+            "id": "deposito",
+            "label": "Deposito inviato (data, atto, ufficio)",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "avvertimenti_obbligatori": [
+          "Il deposito è perfezionato solo con la ricevuta di avvenuta consegna (RdAC) di QUEL messaggio, generata entro la fine del giorno di scadenza (art. 196-sexies disp. att. c.p.c.): un avviso di mancata consegna o di non accettazione significa che il deposito non è avvenuto e va ripetuto.",
+          "Le quattro PEC di ritorno sono: 1) accettazione del gestore PEC; 2) avvenuta consegna; 3) esito dei controlli automatici; 4) esito dell'intervento della cancelleria. Si riconoscono dall'identificativo del messaggio di deposito, non dal numero di ruolo o dall'oggetto generico.",
+          "Esito FATAL dei controlli automatici: il deposito è rifiutato e va ripetuto; ERROR: serve l'intervento della cancelleria, che può comunque accettare; WARN: anomalia non bloccante da leggere (art. 17 c. 8-11 Specifiche DGSIA)."
+        ]
+      },
+      "allegati_obbligatori": [],
+      "adempimenti_propedeutici": [
+        {
+          "step": 1,
+          "azione": "Conservare la ricevuta di accettazione e la ricevuta di avvenuta consegna del messaggio di deposito",
+          "obbligatorio": true
+        },
+        {
+          "step": 2,
+          "azione": "Controllare l'esito dei controlli automatici e l'esito della cancelleria; in caso di FATAL o rifiuto ripetere subito il deposito",
+          "obbligatorio": true
+        }
+      ],
+      "termini_processuali": [],
+      "adempimenti_fiscali_telematici": {
+        "contributo_unificato": "Secondo l'atto depositato (art. 13 D.P.R. 115/2002)"
+      },
+      "avvertenze_redazionali": [
+        "Fino al 31/12/2022 la stessa regola era nell'art. 16-bis, comma 7, D.L. 179/2012; l'art. 196-sexies disp. att. c.p.c. (D.Lgs. 149/2022) si applica dal 1/1/2023 ai procedimenti davanti a tribunale, corte d'appello e Cassazione e dal 30/06/2023 davanti a giudice di pace, tribunale per i minorenni, commissario per la liquidazione degli usi civici e tribunale superiore delle acque pubbliche (art. 35, commi 2-3, D.Lgs. 149/2022 come modificato dalla L. 197/2022)."
+      ],
+      "guida_interna_non_depositabile": true,
+      "depositabile": false,
+      "codice_deposito_automatico": false,
+      "parole_chiave": [
+        "deposito telematico",
+        "perfezionamento deposito",
+        "ricevuta di avvenuta consegna",
+        "RdAC",
+        "esito controlli automatici",
+        "196-sexies"
+      ],
+      "_source_file": "kb_22_professione_forense_guide_pratiche.json",
+      "_macro_area_id": "FORENSE",
+      "_macro_area_denominazione": "Professione forense: guide pratiche",
+      "_registro": "",
+      "_quality_hint": "operativa_curata",
+      "_source_files": [
+        "kb_22_professione_forense_guide_pratiche.json"
+      ]
+    },
+    {
       "codice": "GUIDA_FORENSE_EQUO_COMPENSO",
       "denominazione": "Equo compenso nei rapporti con banche, assicurazioni e grandi imprese (L. 49/2023)",
       "categoria": "Professione forense – equo compenso",
@@ -747785,15 +747902,30 @@
           "descrizione": "NULLITÀ DELLA NOTIFICAZIONE – sanatoria per raggiungimento dello scopo"
         },
         {
+          "fonte": "c.p.c.",
+          "articolo": "147",
+          "descrizione": "TEMPO DELLE NOTIFICAZIONI – la notifica via PEC si esegue senza limiti orari; si perfeziona per il notificante alla ricevuta di accettazione e per il destinatario alla ricevuta di avvenuta consegna; se questa è generata tra le 21 e le 7 si perfeziona per il destinatario alle 7 (commi 2-3, testo vigente da D.Lgs. 149/2022, per i procedimenti instaurati dal 28/02/2023)"
+        },
+        {
+          "fonte": "L. 53/1994",
+          "articolo": "3-bis",
+          "descrizione": "NOTIFICA IN PROPRIO VIA PEC – all'indirizzo risultante da pubblici elenchi, dalla PEC del notificante in pubblici elenchi; perfezionamento alla RAC per il notificante e alla RdAC per il destinatario, fermo l'art. 147 commi 2-3 c.p.c. (comma 3)"
+        },
+        {
+          "fonte": "L. 53/1994",
+          "articolo": "3-ter",
+          "descrizione": "OBBLIGO DI NOTIFICA PEC – verso chi ha domicilio digitale obbligatorio o eletto in INAD; se la notifica non riesce per causa imputabile al destinatario: inserimento nell'area web riservata del Portale dei servizi telematici (perfezionata al decimo giorno o al primo accesso); se per causa non imputabile: posta o ufficiale giudiziario"
+        },
+        {
           "fonte": "D.L. 179/2012",
           "articolo": "16-septies",
-          "descrizione": "NOTIFICA VIA PEC – equivale alla notifica a mano; validità"
+          "descrizione": "REGIME ANTERIORE (abrogato dal D.Lgs. 149/2022 come modificato dalla L. 197/2022; si applica ai soli procedimenti pendenti al 28/02/2023, art. 35 D.Lgs. 149/2022): notifica telematica eseguita dopo le 21 perfezionata alle 7 del giorno successivo; Corte cost. 9/4/2019 n. 75 ne ha dichiarato l'illegittimità nella parte in cui fa perfezionare alle 7 del giorno dopo, per il notificante, la notifica la cui ricevuta di accettazione è generata tra le 21 e le 24: per il notificante vale il momento della ricevuta di accettazione"
         }
       ],
       "notifica_PEC": {
-        "quando_valida": "Se destinatario ha PEC nel registro pubblico (CED REGINDE per gli avvocati; INI-PEC per le imprese)",
-        "orario": "Se inviata oltre le 21:00: notificata il giorno successivo",
-        "PEC_non_funzionante": "Se il destinatario non riceve per problema della propria PEC: il notificante deve provare il tentativo"
+        "quando_valida": "All'indirizzo del destinatario risultante da pubblici elenchi (art. 16-ter D.L. 179/2012: ReGIndE, INI-PEC, INAD, registro PA) e dalla PEC del notificante risultante da pubblici elenchi (art. 3-bis comma 1 L. 53/1994)",
+        "orario": "Nessun limite orario per la notifica via PEC (art. 147 comma 2 c.p.c.). Per il notificante si perfeziona quando è generata la ricevuta di accettazione, anche se dopo le 21; per il destinatario quando è generata la ricevuta di avvenuta consegna, ma se questa è generata tra le 21 e le 7 si perfeziona alle 7 (art. 147 comma 3 c.p.c.; art. 3-bis comma 3 L. 53/1994). Procedimenti pendenti al 28/02/2023: art. 16-septies D.L. 179/2012 come inciso da Corte cost. 75/2019 (per il notificante vale comunque la ricevuta di accettazione)",
+        "PEC_non_funzionante": "Se la consegna non riesce per causa imputabile al destinatario (es. casella piena): inserimento dell'atto nell'area web riservata del Portale dei servizi telematici con dichiarazione dei presupposti (art. 3-ter comma 2 L. 53/1994); se per causa non imputabile: notifica a mezzo posta o ufficiale giudiziario (art. 3-ter comma 3)"
       },
       "nullita_e_sanatoria_156": {
         "nullita": "Notifica a indirizzo errato; notifica ad altro soggetto senza qualifica per riceverla",
@@ -747837,7 +747969,7 @@
         ],
         "avvertimenti_obbligatori": [
           "Sanatoria: se la parte compare non può più eccepire la nullità",
-          "PEC oltre le 21:00: notificata il giorno dopo",
+          "PEC dopo le 21: per il notificante la notifica è perfezionata alla ricevuta di accettazione; per il destinatario la RdAC generata tra le 21 e le 7 vale dalle 7 (art. 147 commi 2-3 c.p.c.; art. 3-bis comma 3 L. 53/1994; Corte cost. 75/2019 per i procedimenti pendenti al 28/02/2023)",
           "Rinnovazione: il giudice può ordinare la rinnovazione della notifica nulla"
         ]
       },
@@ -945759,7 +945891,7 @@
       ]
     }
   ],
-  "n_codici": 2218,
+  "n_codici": 2219,
   "duplicates_merged": {
     "010001": [
       "kb_98_top9_codici_frequenti_dettaglio_massimo.json"

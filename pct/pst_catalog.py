@@ -43,8 +43,29 @@ PST_USER_VADEMECUM_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
     "Manuale_utente_PSTVademecum.pdf"
 )
-PST_DM44_SPECIFICHE_REVISION = "04.01.24"
+# Specifiche tecniche vigenti ex art. 34 D.M. 44/2011: provvedimento DGSIA del 7 agosto 2024
+# (prot. m_dg.DOG07.07/08/2024.0004292.ID), efficace dal 30 settembre 2024, con le modifiche del
+# 16/09/2024 (prot. 0004740, art. 27 comma 1) e del 30/10/2024 (prot. 0005785, rettifica).
+# Riscontro sul sito ufficiale pst.giustizia.it (pagina ACC3429 «Il provvedimento acquisterà
+# efficacia a decorrere dal 30 settembre 2024» e PDF, HTTP 200) dell'08/11/2026. Copia archiviata in
+# docs/specs/ministero/Specifiche_Tecniche_DGSIA_DM44_2011_2024_08_07.pdf.
+# Il file «SPECIFICHE_TECNICHE_DM_44_2011REV_04.01.24.pdf» e' la versione del 04/01/2024, anteriore
+# al provvedimento vigente: resta come riferimento storico, mai come fonte dei controlli.
+PST_DM44_SPECIFICHE_REVISION = "07.08.24"
+PST_DM44_SPECIFICHE_LABEL = (
+    "Specifiche tecniche D.M. 44/2011 - provvedimento DGSIA 7/8/2024, in vigore dal 30/09/2024"
+)
 PST_DM44_SPECIFICHE_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/"
+    "m_dg.DOG07.07082024.0004292.ID_SPECIFICHETECNICHE_DM_44_2011_FINALE_31_.pdf"
+)
+PST_DM44_SPECIFICHE_RETTIFICHE_URLS = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/"
+    "m_dg.DOG07.16092024.0004740.ID_20240912_Modifica_art._27_comma_1_ST_V.pdf",
+    "https://pst.giustizia.it/PST/resources/cms/documents/"
+    "m_dg.DOG07.30102024.0005785.ID_RettificaSpecificheTecniche_v2_signed.pdf",
+)
+PST_DM44_SPECIFICHE_STORICHE_04_01_24_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
     "SPECIFICHE_TECNICHE_DM_44_2011REV_04.01.24.pdf"
 )
@@ -581,7 +602,7 @@ def get_catalog_sources() -> list[dict[str, str]]:
             "url": PST_XSD_DOWNLOAD_PAGE_URL,
         },
         {
-            "label": f"PST - specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+            "label": f"PST - {PST_DM44_SPECIFICHE_LABEL}",
             "url": PST_DM44_SPECIFICHE_URL,
         },
         {

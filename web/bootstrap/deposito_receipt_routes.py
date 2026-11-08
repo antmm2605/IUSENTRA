@@ -66,54 +66,22 @@ def register_deposito_receipt_routes(
                     }
                 )
 
-            from pct.pec import ClientPEC, ConfigPEC
+            # Le quattro PEC di ritorno (accettazione, consegna, esito dei controlli automatici,
+            # esito della cancelleria: D.M. 44/2011 artt. 13-14; Specifiche DGSIA 7/8/2024 art. 17)
+            # entrano nel deposito solo se ne portano un identificativo (Message-ID, IdBusta,
+            # RefID): pct/ricevute_deposito_pct.py. Mai PEC del giorno scelte per parola.
+            from pct.polling_depositi import _cerca_ricevute_imap
+            from pct.ricevute_deposito_pct import applica_ricevute
 
-            config_pec = ConfigPEC(
-                indirizzo=pec_cfg.indirizzo,
-                password=pec_cfg.password,
-                smtp_host=getattr(pec_cfg, "smtp_host", ""),
+            ricevute = _cerca_ricevute_imap(
                 imap_host=pec_cfg.imap_host,
                 imap_port=getattr(pec_cfg, "imap_port", 993),
+                indirizzo=pec_cfg.indirizzo,
+                password=pec_cfg.password,
+                giorni_indietro=30,
             )
-            client_pec = ClientPEC(config_pec)
-            ricevute = client_pec.attendi_ricevute(timeout=15)
-            aggiornato = False
-
-            if ricevute.get("accettazione") and not deposito.ricevuta_accettazione:
-                deposito.ricevuta_accettazione = ricevute["accettazione"]
-                if deposito.stato in ("INVIATO",):
-                    deposito.stato = "ACCETTATO_PEC"
-                aggiornato = True
-
-            if ricevute.get("consegna") and not deposito.ricevuta_consegna:
-                deposito.ricevuta_consegna = ricevute["consegna"]
-                if deposito.stato not in (
-                    "WARN_CONTROLLI",
-                    "ERRORE_CONTROLLI",
-                    "ACCETTATO_CANCELLERIA",
-                    "RIFIUTATO_CANCELLERIA",
-                ):
-                    deposito.stato = "CONSEGNATO"
-                aggiornato = True
-
-            if ricevute.get("controlli") and not deposito.ricevuta_controlli_automatici:
-                deposito.ricevuta_controlli_automatici = ricevute["controlli"]
-                esito_controlli = str(ricevute.get("esito_controlli", "OK")).upper()
-                deposito.esito_controlli = esito_controlli
-                if esito_controlli == "ERROR":
-                    deposito.stato = "ERRORE_CONTROLLI"
-                elif esito_controlli == "WARN":
-                    deposito.stato = "WARN_CONTROLLI"
-                aggiornato = True
-
-            if ricevute.get("cancelleria") and not deposito.ricevuta_cancelleria:
-                deposito.ricevuta_cancelleria = ricevute["cancelleria"]
-                deposito.stato = (
-                    "ACCETTATO_CANCELLERIA"
-                    if ricevute.get("cancelleria_accettato", True)
-                    else "RIFIUTATO_CANCELLERIA"
-                )
-                aggiornato = True
+            esito_ricevute = applica_ricevute(deposito, ricevute)
+            aggiornato = bool(esito_ricevute["aggiornato"])
 
             if aggiornato:
                 gestore_fascicoli._salva()
@@ -133,7 +101,12 @@ def register_deposito_receipt_routes(
                     "esito_controlli": deposito.esito_controlli,
                     "ricevuta_cancelleria": bool(deposito.ricevuta_cancelleria),
                     "aggiornato": aggiornato,
-                    "messaggio": "Ricevute aggiornate." if aggiornato else "Nessuna nuova ricevuta PEC trovata.",
+                    "eventi": esito_ricevute["eventi"],
+                    "messaggio": (
+                        "Ricevute aggiornate: " + "; ".join(esito_ricevute["eventi"]) + "."
+                        if aggiornato and esito_ricevute["eventi"]
+                        else "Nessuna nuova ricevuta PEC collegata a questo deposito."
+                    ),
                 }
             )
         except Exception as exc:

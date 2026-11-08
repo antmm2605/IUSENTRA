@@ -34,6 +34,7 @@ from .deposito_studio_telematico_validation import validate_studio_telematico_de
 from .fascicoli import Fascicolo
 from .pst_catalog import (
     PST_CATALOG_VERSION,
+    PST_DM44_SPECIFICHE_LABEL,
     PST_DM44_SPECIFICHE_URL,
     PST_SCHEMA_VERSION,
     PST_MAX_BUSTA_BYTES,
@@ -1582,7 +1583,7 @@ class DocumentValidator:
                         f"La selezione attuale pesa circa {round(total_bytes / (1024 * 1024), 2)} MB "
                         f"e supera il limite PST di {PST_MAX_BUSTA_MB} MB (controllo T003)."
                     ),
-                    source="Specifiche tecniche D.M. 44/2011 rev. 04.01.24",
+                    source=PST_DM44_SPECIFICHE_LABEL,
                     suggested_action="Riduci la dimensione complessiva del deposito prima di generare la busta.",
                     field="allegati_ids",
                 )
@@ -1598,7 +1599,7 @@ class DocumentValidator:
                         f"La selezione attuale pesa circa {round(total_bytes / (1024 * 1024), 2)} MB: "
                         "verifica il margine residuo rispetto al limite ministeriale e l'opportunita di un deposito piu snello."
                     ),
-                    source="Specifiche tecniche D.M. 44/2011 rev. 04.01.24",
+                    source=PST_DM44_SPECIFICHE_LABEL,
                     suggested_action="Valuta la riduzione di scansioni e allegati non essenziali.",
                     field="allegati_ids",
                 )

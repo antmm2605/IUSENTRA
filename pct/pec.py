@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
+from email.utils import formatdate, make_msgid
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
@@ -68,6 +69,12 @@ class ClientPEC:
         msg["From"] = self.config.indirizzo
         msg["To"] = destinatario_pec
         msg["Subject"] = oggetto or self.SUBJECT_DEPOSITO
+        # Message-ID fissato da chi invia: le ricevute del gestore lo riportano in
+        # X-Riferimento-Message-ID (d.m. 2/11/2005) ed EsitoAtto.xml in IdMsgMitt; e' l'unico
+        # aggancio certo tra il deposito e le sue ricevute.
+        dominio = (self.config.indirizzo.rpartition("@")[2] or "localhost").strip() or "localhost"
+        msg["Message-ID"] = make_msgid(domain=dominio)
+        msg["Date"] = formatdate(localtime=True)
 
         corpo_testo = corpo or (
             "Deposito telematico tramite PCT.\n"
@@ -107,74 +114,95 @@ class ClientPEC:
 
         return risultato
 
-    def attendi_ricevute(self, timeout: int = TIMEOUT_RICEVUTA) -> dict:
+    def attendi_ricevute(self, timeout: int = TIMEOUT_RICEVUTA, message_id: str | None = None) -> dict:
         """
-        Attende le ricevute PEC dopo l'invio della busta.
+        Attende le ricevute PEC (accettazione e avvenuta consegna) del messaggio ``message_id``.
 
-        Il sistema PCT invia due ricevute:
-        1. Ricevuta di accettazione (dal gestore PEC mittente)
-        2. Ricevuta di consegna (dal gestore PEC destinatario)
-
-        Args:
-            timeout: Timeout in secondi per l'attesa delle ricevute
+        Le ricevute si cercano solo con l'intestazione ``X-Riferimento-Message-ID`` uguale al
+        Message-ID del messaggio di deposito (d.P.R. 68/2005; d.m. 2/11/2005): una PEC del giorno
+        con «accettazione» o «consegna» nell'oggetto non e' una ricevuta di QUESTO deposito.
+        Gli avvisi di non accettazione e di mancata consegna sono restituiti come tali, mai come
+        ricevute positive. Senza Message-ID non si collega nulla.
 
         Returns:
-            Dizionario con le ricevute ottenute
+            {"accettazione", "consegna", "non_accettazione", "mancata_consegna": testo di prova o None,
+             "completato": bool, "ricevute": [dict per pct.ricevute_deposito_pct], "errore"?/"info"?}
         """
+        from pct.ricevute_deposito_pct import (
+            ACCETTAZIONE,
+            CONSEGNA,
+            INTESTAZIONI_IMAP,
+            MANCATA_CONSEGNA,
+            NON_ACCETTAZIONE,
+            classifica,
+            da_gestore_pec,
+            normalizza_message_id,
+            ricevuta_da_intestazioni,
+        )
+
         ricevute = {
             "accettazione": None,
             "consegna": None,
+            "non_accettazione": None,
+            "mancata_consegna": None,
             "completato": False,
+            "ricevute": [],
         }
 
         if not self.config.imap_host:
             return ricevute
+        riferimento = normalizza_message_id(message_id)
+        if not riferimento:
+            ricevute["info"] = (
+                "Identificativo del messaggio di deposito non disponibile: le ricevute non si possono "
+                "collegare in automatico. Verificale nella casella PEC."
+            )
+            return ricevute
 
-        # Filtro data: cerca solo messaggi da oggi per evitare match su ricevute vecchie
-        from email.utils import formatdate as _fmtdate
-        _oggi = time.strftime("%d-%b-%Y", time.localtime()).upper()
-
-        # Pattern alternativi per provider PEC italiani:
-        # Aruba:    "Ricevuta di accettazione del messaggio" / "Ricevuta di consegna"
-        # InfoCert: "ACCETTAZIONE" / "CONSEGNA"
-        # Namirial: "accettazione" / "consegna"
-        # Il criterio IMAP SUBJECT è case-insensitive (RFC 3501) ma
-        # alcune implementazioni sono case-sensitive → usiamo OR su varianti.
-        _CRITERI_ACC = (
-            'OR OR SUBJECT "accettazione" SUBJECT "ACCETTAZIONE" SUBJECT "Accettazione"'
-        )
-        _CRITERI_CONS = (
-            'OR OR SUBJECT "consegna" SUBJECT "CONSEGNA" SUBJECT "Consegna"'
-        )
+        _oggi = time.strftime("%d-%b-%Y", time.localtime())
+        criterio = f'(SINCE {_oggi} HEADER X-Riferimento-Message-ID "{riferimento}")'
+        chiavi = {ACCETTAZIONE: "accettazione", CONSEGNA: "consegna",
+                  NON_ACCETTAZIONE: "non_accettazione", MANCATA_CONSEGNA: "mancata_consegna"}
 
         inizio = time.time()
         try:
             mail = imaplib.IMAP4_SSL(self.config.imap_host, self.config.imap_port)
             mail.login(self.config.indirizzo, self.config.password)
-            mail.select("INBOX")
+            mail.select("INBOX", readonly=True)
 
             while time.time() - inizio < timeout:
                 try:
-                    _, messages = mail.search(
-                        None, f'SINCE {_oggi} {_CRITERI_ACC}'
-                    )
-                    if messages[0]:
-                        ricevute["accettazione"] = messages[0].decode()
-
-                    _, messages = mail.search(
-                        None, f'SINCE {_oggi} {_CRITERI_CONS}'
-                    )
-                    if messages[0]:
-                        ricevute["consegna"] = messages[0].decode()
+                    _, messages = mail.search(None, criterio)
                 except imaplib.IMAP4.error:
-                    # Alcuni server non supportano OR — fallback senza filtro data
-                    _, messages = mail.search(None, 'SUBJECT "accettazione"')
-                    if messages[0]:
-                        ricevute["accettazione"] = messages[0].decode()
-                    _, messages = mail.search(None, 'SUBJECT "consegna"')
-                    if messages[0]:
-                        ricevute["consegna"] = messages[0].decode()
+                    messages = [b""]
+                numeri = (messages[0] or b"").split() if messages else []
+                if numeri:
+                    _, dati = mail.fetch(
+                        b",".join(numeri).decode("ascii"),
+                        f"(BODY.PEEK[HEADER.FIELDS ({INTESTAZIONI_IMAP})])",
+                    )
+                    for parte in dati or []:
+                        if not isinstance(parte, tuple) or len(parte) < 2 or not isinstance(parte[1], bytes):
+                            continue
+                        r = ricevuta_da_intestazioni(email.message_from_bytes(parte[1]))
+                        # Il server puo' ignorare il criterio HEADER: si ricontrolla qui.
+                        if normalizza_message_id(r.get("riferimento_message_id")) != riferimento:
+                            continue
+                        if not da_gestore_pec(r):  # solo ricevute emesse dal gestore PEC
+                            continue
+                        tipo, _esito = classifica(r.get("subject"), x_ricevuta=r.get("x_ricevuta"))
+                        chiave = chiavi.get(tipo)
+                        if not chiave or r in ricevute["ricevute"]:
+                            continue
+                        ricevute["ricevute"].append(r)
+                        ricevute[chiave] = ricevute[chiave] or (
+                            f"Oggetto: {r.get('subject', '')}\nData: {r.get('date', '')}\n"
+                            f"Message-ID ricevuta: {r.get('message_id', '')}\n"
+                            f"Riferimento: {riferimento}"
+                        )
 
+                if ricevute["non_accettazione"] or ricevute["mancata_consegna"]:
+                    break
                 if ricevute["accettazione"] and ricevute["consegna"]:
                     ricevute["completato"] = True
                     break

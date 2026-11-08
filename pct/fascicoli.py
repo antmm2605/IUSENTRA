@@ -467,7 +467,7 @@ def _normalizza_esito_controlli(esito: str) -> str:
     valore = str(esito or "").strip().upper()
     if not valore:
         return ""
-    if valore not in {"OK", "WARN", "ERROR"}:
+    if valore not in {"OK", "WARN", "ERROR", "FATAL"}:  # art. 17 c. 8 Specifiche DGSIA 7/8/2024
         raise ValueError(f"Esito controlli non valido: {esito}")
     return valore
 
@@ -665,7 +665,7 @@ class EsitoDepositoPCT:
     ricevuta_consegna: str = ""
     # ── Fase 6: esito controlli automatici ─────────────────────────
     ricevuta_controlli_automatici: str = ""   # messaggio PEC fase 6
-    esito_controlli: str = ""                 # OK | WARN | ERROR
+    esito_controlli: str = ""                 # OK | WARN | ERROR | FATAL
     # ── Fase 7: esito cancelleria ──────────────────────────────────
     ricevuta_cancelleria: str = ""            # messaggio PEC fase 7
     note: str = ""

@@ -383,10 +383,12 @@ def test_deposito_civile_risolve_codice_ufficio_prima_della_busta(tmp_path, monk
             catture["pec_destinatario"] = destinatario_pec
             catture["busta_path"] = busta_path
             catture["oggetto"] = oggetto
-            return {"inviato": True}
+            return {"inviato": True, "message_id": "<dep-1@pec.it>"}
 
-        def attendi_ricevute(self):
-            return {"accettazione": "ACC-PEC"}
+        def attendi_ricevute(self, message_id=None):
+            # Le ricevute si collegano solo al Message-ID del messaggio di deposito.
+            catture["message_id_atteso"] = message_id
+            return {"accettazione": "ACC-PEC"} if message_id == "<dep-1@pec.it>" else {}
 
     class FakeReGINde:
         def ottieni_ufficio(self, codice_ufficio):

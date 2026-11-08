@@ -5066,6 +5066,7 @@ def _ensure_auto_proforma_for_fascicolo(
                 document_metadata=metadata,
                 actor=actor,
                 proforma_requested=True,
+                regime_fiscale=_regime_fiscale_studio(),
             )
             if outcome.extraction.discordanze:
                 return {"status": "missing_basis", "reason": "La sentenza contiene importi da verificare; nessuna proforma creata."}
@@ -10080,3 +10081,13 @@ def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], ge
         "recent": recent,
         "facets": page["facets"],
     }
+
+
+def _regime_fiscale_studio() -> str:
+    """Regime fiscale dello studio per le proforma automatiche (pct.fatturazione_regime)."""
+    try:
+        from web.helpers import regime_fiscale_studio
+
+        return regime_fiscale_studio()
+    except Exception:
+        return ""

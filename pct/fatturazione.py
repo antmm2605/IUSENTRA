@@ -325,6 +325,12 @@ class Parcella:
         return 2.00 if self.applica_bollo else 0.0
 
     @property
+    def bollo_dovuto(self) -> bool:
+        """Bollo di € 2 dovuto: somme non soggette a IVA oltre € 77,47 (anticipazioni N1 escluse)."""
+        from pct.fatturazione_regime import bollo_dovuto
+        return bollo_dovuto(iva_applicabile=self.iva_applicabile, importo_non_soggetto=self.base_iva)
+
+    @property
     def bollo_addebitato(self) -> float:
         document = self.dati_personalizzati.get("document", {}) if isinstance(self.dati_personalizzati, dict) else {}
         studio_pays = isinstance(document, dict) and document.get("bollo_a_carico_studio") is True
@@ -805,7 +811,7 @@ class GestioneFatturazione:
              applica_iva:     bool = True,
              applica_cassa:   bool = True,
              applica_ritenuta: bool = False,
-             applica_bollo:   bool = False,
+             applica_bollo:   Optional[bool] = None,
              percentuale_spese_generali: float = 0.0,
              note:            str = "",
              origine:         str = "",
@@ -862,7 +868,7 @@ class GestioneFatturazione:
             applica_iva=applica_iva,
             applica_cassa=applica_cassa,
             applica_ritenuta=applica_ritenuta,
-            applica_bollo=applica_bollo,
+            applica_bollo=bool(applica_bollo),
             percentuale_spese_generali=max(float(percentuale_spese_generali or 0.0), 0.0),
             note=note,
             origine=origine,
@@ -896,6 +902,10 @@ class GestioneFatturazione:
             sdi_note=sdi_note,
             dati_personalizzati=dati,
         )
+        if applica_bollo is None and p.bollo_dovuto:
+            # Proposta del bollo dovuto (art. 13 Tariffa all. A D.P.R. 642/1972): l'avvocato può
+            # indicarlo a carico dello studio, ma il documento lo deve esporre.
+            p.applica_bollo = True
         self._parcelle[p.id] = p
         self._salva_parcella(p)
         return p

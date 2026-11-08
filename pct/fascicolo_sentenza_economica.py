@@ -585,8 +585,13 @@ def apply_sentenza_tribunale_automation(
     document_metadata: dict[str, Any] | None = None,
     actor: str = "",
     proforma_requested: bool = False,
+    regime_fiscale: str = "",
 ) -> SentenzaAutomationOutcome:
-    """Applica al fascicolo la matrice economica derivata dalla sentenza indicizzata."""
+    """Applica al fascicolo la matrice economica derivata dalla sentenza indicizzata.
+
+    ``regime_fiscale`` è il regime dello studio (configurazione studio.json): decide IVA,
+    ritenuta e bollo della proforma (vedi ``pct.fatturazione_regime``).
+    """
 
     metadata = dict(document_metadata or {})
     extraction = analyze_sentenza_tribunale_text(text, metadata)
@@ -798,6 +803,7 @@ def apply_sentenza_tribunale_automation(
             extraction=extraction,
             metadata=metadata,
             actor=operator,
+            regime_fiscale=regime_fiscale,
         )
         changes["proformaCreated"] = proforma is not None
     if proforma is not None:
@@ -2164,7 +2170,17 @@ def _create_proforma(
     extraction: SentenzaEconomicaExtraction,
     metadata: dict[str, Any],
     actor: str,
+    regime_fiscale: str = "",
 ) -> Any | None:
+    """Proforma dal capo spese della sentenza.
+
+    Data: il giorno di predisposizione (Europe/Rome), non la data della sentenza (la fattura porta
+    la data di emissione, art. 21, comma 2, lett. a, D.P.R. 633/1972; la data della sentenza resta
+    nella causale e nei dati letti). Regime: IVA, ritenuta e bollo da ``pct.fatturazione_regime``.
+    """
+    from pct.fatturazione_regime import e_sostituto_imposta, parametri_fiscali
+    from pct.spese_liquidate_esito import CONTROPARTE
+
     if extraction.discordanze:
         return None
     creator = getattr(fatturazione_repository, "crea", None)
@@ -2204,13 +2220,24 @@ def _create_proforma(
         )
     if not voci:
         return None
-    due = (date.fromisoformat(extraction.sentence_date) + timedelta(days=30)).isoformat()
+    oggi = datetime.now(ZoneInfo("Europe/Rome")).date()
+    due = (oggi + timedelta(days=30)).isoformat()
+    # Paga la controparte (distrazione art. 93 c.p.c. o condanna della controparte): se è un
+    # sostituto d'imposta, in regime ordinario opera la ritenuta (art. 25 D.P.R. 600/1973).
+    paga_controparte = bool(extraction.antistatario) or extraction.spese_condannato == CONTROPARTE
+    pagatore_sostituto = paga_controparte and e_sostituto_imposta(
+        getattr(fascicolo, "controparte", ""), getattr(fascicolo, "cf_controparte", "")
+    )
+    fiscale = parametri_fiscali(regime_fiscale, pagatore_sostituto=pagatore_sostituto)
     data = {
         "document": {
             "tipo_documento": "TD01",
             "tipo_documento_label": "Proforma",
             "numero_documento": "",
-            "data_documento": extraction.sentence_date,
+            "data_documento": oggi.isoformat(),
+            "data_sentenza": extraction.sentence_date,
+            "regime_fiscale": fiscale["regime_fiscale"],
+            "pagatore_sostituto_imposta": pagatore_sostituto,
             "causale_oggetto": _sentenza_note(extraction, metadata) or "Proforma da sentenza",
             "documento_operativo": "PROFORMA",
             "fascicolo_label": _text(getattr(fascicolo, "titolo", "")) or _text(getattr(fascicolo, "numero_rg", "")),
@@ -2237,12 +2264,12 @@ def _create_proforma(
         id_fascicolo=_text(getattr(fascicolo, "id", "")),
         voci=voci,
         creato_da=actor,
-        data_emissione=extraction.sentence_date,
+        data_emissione=oggi.isoformat(),
         data_scadenza=due,
-        applica_iva=True,
+        applica_iva=fiscale["applica_iva"],
         applica_cassa=True,
-        applica_ritenuta=False,
-        applica_bollo=False,
+        applica_ritenuta=fiscale["applica_ritenuta"],
+        applica_bollo=None,  # proposto se dovuto (art. 13 Tariffa D.P.R. 642/1972)
         percentuale_spese_generali=15.0 if extraction.spese_generali else 0.0,
         note="Proforma predisposta automaticamente da Sentenza Tribunale indicizzata da Lex AI.",
         origine=ORIGIN,

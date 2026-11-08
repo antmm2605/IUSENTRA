@@ -170,6 +170,19 @@ def get_fatturazione() -> GestioneFatturazione:
     return GestioneFatturazione(db_path=_cfg("FATTURAZIONE_DB"), studio_db=_studio_db("FATTURAZIONE_DB"))
 
 
+def regime_fiscale_studio() -> str:
+    """Regime fiscale dello studio (config studio.json, sezione fatturazione); "" se non leggibile.
+
+    Decide IVA, ritenuta e bollo dei documenti predisposti in automatico (pct.fatturazione_regime).
+    """
+    try:
+        from pct.config_studio import GestioneConfigStudio
+
+        return str(GestioneConfigStudio(config_path=_cfg("CONFIG_STUDIO_DB")).config.fatturazione.regime_fiscale or "")
+    except Exception:
+        return ""
+
+
 def get_pagamenti() -> GestionePagamenti:
     return GestionePagamenti(db_dir=_cfg("PAGAMENTI_DIR"), studio_db=_studio_db("PAGAMENTI_DIR"))
 

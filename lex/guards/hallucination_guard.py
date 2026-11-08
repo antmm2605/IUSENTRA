@@ -56,17 +56,43 @@ def _normalize(value: Any) -> str:
 _ARTICOLO = re.compile(r"\b(?:artt?\.|articol[oi])\s*(\d+[a-z]*(?:[-/]\w+)?)(?:\s*(?:,|e)\s*(\d+[a-z]*))?(?:\s*(?:,|del|della|del\s+codice)?\s*)(c\.c\.|c\.p\.c\.|c\.p\.p\.|c\.p\.|cost\.)?")
 # Fra autorita' e numero il modello scrive sezione, data e abbreviazioni puntate («Cass. civ., sez. III,
 # 12 marzo 2021, n. 9999»): i punti delle abbreviazioni non chiudono la citazione, gli altri si'.
-_ABBREVIAZIONI = ("sez", "civ", "pen", "lav", "un", "unite", "trib", "sent", "ord", "s", "u", "sc", "amm", "pres",
-                  "rel", "ud", "dep", "pubbl", "giur", "sect", "cass", "c", "st", "reg", "sic", "camp", "lomb")
+_ABBREVIAZIONI = ("sez", "sezz", "civ", "pen", "lav", "un", "unite", "uu", "ss", "trib", "sent", "ord", "s", "u", "sc",
+                  "amm", "pres", "rel", "ud", "dep", "pubbl", "giur", "sect", "cass", "c", "st", "reg", "sic", "camp",
+                  "lomb", "plen", "ad", "tribut")
 _PUNTO_ABBREVIAZIONE = "(?:" + "|".join(rf"(?<=\b{a})" for a in _ABBREVIAZIONI) + r")\."
 _TRATTO_CITAZIONE = rf"(?:[^.\n;]|{_PUNTO_ABBREVIAZIONE})"
-_CASSAZIONE_BREVE = re.compile(
-    rf"\bcass\b\.?{_TRATTO_CITAZIONE}{{0,80}}?(?:n\.|numero)\s*(\d{{1,7}})(?:\s*/\s*(\d{{4}})|\s+del\s+(?:\d{{1,2}}\s+[a-z]+\s+)?(\d{{4}}))?"
+# Estremi della pronuncia: con «n.» («n. 9999/2021», «n. 9999 del 2021») o nella forma breve senza «n.»
+# («Cass. 22222/2023», «Corte cost. 77/2018»). La forma breve esige numero/anno a quattro cifre non
+# incastonati in una data («12/03/2021») e, fra organo e numero, nessun richiamo a una norma
+# («Cass. ... legge 107/2015» resta una legge): il controllo e' in _estremi_del_match.
+_ESTREMI_PRONUNCIA = (
+    r"(?:(?:sentenza|ordinanza|pronuncia|decreto)\s*)?(?:(?:n\.|numero)\s*(?P<numero>\d{1,7})"
+    r"(?:\s*/\s*(?P<anno_barra>\d{4})|\s+del\s+(?:\d{1,2}\s+[a-z]+\s+)?(?P<anno_del>\d{4}))?"
+    r"|(?<![\d/.,])(?P<numero_breve>\d{1,7})\s*/\s*(?P<anno_breve>(?:19|20)\d{2})(?![\d/]))"
 )
+_CASSAZIONE_BREVE = re.compile(rf"\bcass\b\.?(?P<tratto>{_TRATTO_CITAZIONE}{{0,80}}?){_ESTREMI_PRONUNCIA}")
 _AUTORITA = re.compile(
-    rf"\b(cassazione|corte costituzionale|consiglio di stato|tar(?:\s+(?!n\.)[a-z]+)?)\b{_TRATTO_CITAZIONE}{{0,80}}?"
-    r"(?:sentenza|ordinanza|pronuncia|decreto)?\s*(?:n\.|numero)\s*(\d{1,7})(?:\s*/\s*(\d{4})|\s+del\s+(?:\d{1,2}\s+[a-z]+\s+)?(\d{4}))?"
+    rf"\b(?P<autorita>cassazione|corte costituzionale|consiglio di stato|tar(?:\s+(?!n\.)[a-z]+)?)\b"
+    rf"(?P<tratto>{_TRATTO_CITAZIONE}{{0,80}}?){_ESTREMI_PRONUNCIA}"
 )
+# Richiami a norme che, fra l'organo e il numero, fanno del «numero/anno» l'estremo di un atto normativo.
+_NORMA_NEL_TRATTO = re.compile(
+    r"\b(?:legge|leggi|l|d\s*\.?\s*lgs|dlgs|d\s*\.?\s*l|d\s*\.?\s*p\s*\.?\s*r|dpr|d\s*\.?\s*m|decreto|decreti|"
+    r"regolamento|regolamenti|direttiva|direttive|art|artt|articolo|articoli|codice|testo unico|t\.u|circolare|"
+    r"delibera|deliberazione|ccnl|contratto)\b"
+)
+
+
+def _estremi_del_match(match: re.Match) -> tuple[str, str, int] | None:
+    """(numero, anno, inizio del numero) della pronuncia, o None se la forma breve e' l'estremo di una norma."""
+    if match.group("numero"):
+        anno = match.group("anno_barra") or match.group("anno_del") or ""
+        return match.group("numero"), anno, match.start("numero")
+    if _NORMA_NEL_TRATTO.search(match.group("tratto") or ""):
+        return None
+    return match.group("numero_breve"), match.group("anno_breve"), match.start("numero_breve")
+
+
 _ANNO = re.compile(r"\b(?:19|20)\d{2}\b")
 _ECLI_CORTI = {"cass": "cassazione", "cost": "corte costituzionale", "cds": "consiglio di stato", "cga": "consiglio di stato"}
 
@@ -105,8 +131,12 @@ def extract_legal_references(text: Any) -> list[_LegalReference]:
 
     refs: list[_LegalReference] = []
     for match in _AUTORITA.finditer(normalized):
-        authority, number, year_slash, year_del = match.groups()
-        year = year_slash or year_del or _anno_nel_tratto(normalized[match.end(1):match.start(2)])
+        estremi = _estremi_del_match(match)
+        if estremi is None:
+            continue
+        number, year, inizio = estremi
+        authority = match.group("autorita")
+        year = year or _anno_nel_tratto(normalized[match.end("autorita"):inizio])
         key = f"{authority}:{number}:{year or ''}"
         _add_reference(refs, "case_law", key, match.group(0))
 
@@ -125,8 +155,11 @@ def extract_legal_references(text: Any) -> list[_LegalReference]:
                 _add_reference(refs, "case_law", f"{corte}:{numero.group(1)}:{parti[3]}", ecli)
 
     for match in _CASSAZIONE_BREVE.finditer(normalized):
-        number, year_slash, year_del = match.groups()
-        year = year_slash or year_del or _anno_nel_tratto(normalized[match.start():match.start(1)])
+        estremi = _estremi_del_match(match)
+        if estremi is None:
+            continue
+        number, year, inizio = estremi
+        year = year or _anno_nel_tratto(normalized[match.start():inizio])
         _add_reference(refs, "case_law", f"cassazione:{number}:{year}", match.group(0))
 
     for match in _ARTICOLO.finditer(normalized):
@@ -248,7 +281,7 @@ def _autorita_della_riga(row: Any) -> str:
     for value in (get("organo_giudicante"), metadata.get("organo_giudicante"), metadata.get("autorita"),
                   metadata.get("court"), get("authority")):
         for match in _AUTORITA.finditer(_normalize(f"{value or ''} n. 1/2000")):
-            return _classe_autorita(match.group(1))
+            return _classe_autorita(match.group("autorita"))
     url = _clean(get("official_url") or get("url") or metadata.get("official_url")).lower()
     return next((corte for host, corte in _AUTORITA_DA_HOST if host in url), "")
 

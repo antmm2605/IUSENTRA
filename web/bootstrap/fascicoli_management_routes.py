@@ -9,17 +9,16 @@ from copy import copy
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 
-from pct.clienti import Recapiti
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.fascicoli_sql_writer import FascicoloConcurrentUpdate
-from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
+from pct.soggetti import RuoloSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
+from web.services.fascicolo_controparte_modulo import controparte_coincide_con_cliente, crea_o_riusa_controparte
 from web.services.fascicolo_copertina import contesto_copertina
 from web.services.permessi_route import descrizione_fascicolo, permesso_fascicolo_negato as _negato
 from web.services.fascicolo_controparti_aggiuntive import (
@@ -105,101 +104,6 @@ def register_fascicoli_management_routes(
 
     def _form_bool(form: Any, name: str) -> bool:
         return str(form.get(name, "") or "").strip().lower() in {"1", "true", "on", "si", "sì", "yes"}
-
-    def _split_nome_persona(nome_completo: str) -> tuple[str, str]:
-        parti = [parte for parte in str(nome_completo or "").strip().split() if parte]
-        if not parti:
-            return "", ""
-        if len(parti) == 1:
-            return parti[0], ""
-        return parti[0], " ".join(parti[1:])
-
-    def _tipo_soggetto_da_form(valore: str) -> TipoSoggetto:
-        try:
-            return TipoSoggetto(str(valore or "").strip() or "PERSONA_GIURIDICA")
-        except ValueError:
-            return TipoSoggetto.PERSONA_GIURIDICA
-
-    def _soggetto_esistente_per_identificativo(gestore_soggetti: Any, identificativo: str):
-        valore = str(identificativo or "").strip().casefold()
-        if not valore:
-            return None
-        for soggetto in gestore_soggetti.cerca(q=identificativo):
-            if str(getattr(soggetto, "identificativo", "") or "").strip().casefold() == valore:
-                return soggetto
-        return None
-
-    def _probe_controparte(nome: str, identificativo: str) -> SimpleNamespace:
-        return SimpleNamespace(
-            id_cliente="",
-            nome="",
-            cognome="",
-            ragione_sociale=str(nome or "").strip(),
-            codice_fiscale=str(identificativo or "").strip(),
-            partita_iva=str(identificativo or "").strip(),
-        )
-
-    def _controparte_coincide_con_cliente(nome: str, identificativo: str, clienti: list[Any] | None = None) -> bool:
-        elenco = get_clienti().tutti() if clienti is None else clienti
-        return soggetto_coincide_con_cliente(_probe_controparte(nome, identificativo), elenco)
-
-    def _crea_o_riusa_controparte(
-        gestore_soggetti: Any,
-        form: Any,
-        *,
-        nome_base: str,
-        identificativo_base: str,
-        clienti_propri: list[Any] | None = None,
-    ):
-        propri = get_clienti().tutti() if clienti_propri is None else clienti_propri
-        id_soggetto = str(form.get("id_soggetto_controparte", "") or "").strip()
-        if id_soggetto:
-            soggetto = gestore_soggetti.get(id_soggetto)
-            if not soggetto:
-                raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
-            if soggetto_coincide_con_cliente(soggetto, propri):
-                return None
-            return soggetto
-
-        nome_completo = str(form.get("nuovo_soggetto_nome_completo", "") or "").strip() or nome_base
-        identificativo = str(form.get("nuovo_soggetto_identificativo", "") or "").strip() or identificativo_base
-        if not nome_completo or not identificativo:
-            return None
-
-        esistente = _soggetto_esistente_per_identificativo(gestore_soggetti, identificativo)
-        if esistente:
-            if soggetto_coincide_con_cliente(esistente, propri):
-                return None
-            return esistente
-
-        tipo = _tipo_soggetto_da_form(form.get("nuovo_soggetto_tipo", "PERSONA_GIURIDICA"))
-        recapiti = Recapiti(
-            telefono=str(form.get("nuovo_soggetto_telefono", "") or "").strip(),
-            email=str(form.get("nuovo_soggetto_email", "") or "").strip(),
-            pec=str(form.get("nuovo_soggetto_pec", "") or "").strip(),
-        )
-        common = {
-            "recapiti": recapiti,
-            "note": "Creato durante la modifica del fascicolo.",
-            "tag": ["controparte"],
-        }
-        if tipo == TipoSoggetto.PERSONA_FISICA:
-            nome, cognome = _split_nome_persona(nome_completo)
-            return gestore_soggetti.crea(
-                tipo=tipo,
-                nome=nome,
-                cognome=cognome,
-                codice_fiscale=identificativo,
-                **common,
-            )
-        partita_iva = identificativo if identificativo.isdigit() and len(identificativo) == 11 else ""
-        return gestore_soggetti.crea(
-            tipo=tipo,
-            ragione_sociale=nome_completo,
-            codice_fiscale="" if partita_iva else identificativo,
-            partita_iva=partita_iva,
-            **common,
-        )
 
     @app.route("/fascicoli/<id_fasc>/copertina")
     def copertina_fascicolo(id_fasc: str):
@@ -386,8 +290,8 @@ def register_fascicoli_management_routes(
                 clienti_propri, altri_clienti = dividi_clienti(clienti_studio, id_cliente_fascicolo)
                 soggetto_controparte = None
                 if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte"):
-                    if not _controparte_coincide_con_cliente(controparte, cf_controparte, clienti_propri):
-                        soggetto_controparte = _crea_o_riusa_controparte(
+                    if not controparte_coincide_con_cliente(controparte, cf_controparte, clienti_propri):
+                        soggetto_controparte = crea_o_riusa_controparte(
                             gestore_soggetti,
                             form,
                             nome_base=controparte,

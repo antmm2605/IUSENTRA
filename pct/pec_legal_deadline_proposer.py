@@ -96,6 +96,11 @@ _PROSPECTIVE_127_TER_MARKERS = (
     "depositare le note scritte",
     "assegna termine per note",
     "assegna alle parti termine",
+    # Evento del registro di cancelleria (Comunicazione.xml) che sostituisce l'udienza con note:
+    # «REVOCATA UDIENZA E FISSATO TERMINE PER NOTE IN SOST. UDIENZA», «FISSAZIONE TERMINE PER NOTE IN
+    # SOSTITUZIONE UDIENZA». La riassegnazione del termine (art. 127-ter, comma 4) non riapre l'opposizione.
+    "fissato termine per note in sost",
+    "fissazione termine per note in sost",
 )
 
 

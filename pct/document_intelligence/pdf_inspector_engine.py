@@ -61,7 +61,14 @@ def plain_markdown(text: str) -> str:
     """Keep headings as text for existing catalogue contracts, not Markdown syntax."""
     text = re.sub(r'(?m)^#{1,6}\s+', '', text)
     text = re.sub(r'\*\*([^*\n]+)\*\*', r'\1', text)
+    # Corsivo «*Avv. Mario Rossi*»: l'asterisco non è nel documento (doc reali del 08/11/2026).
+    text = re.sub(r'(?<![\w*])\*(?=\S)([^*\n]+?)(?<=\S)\*(?![\w*])', r'\1', text)
     text = re.sub(r'</?u>', '', text)
+    # Tabelle Markdown: la riga di separazione «|---|:--:|» sparisce, le barre diventano spazi
+    # («||STUDIO LEGALE||» → «STUDIO LEGALE»), il contenuto delle celle resta nell'ordine di lettura.
+    text = re.sub(r'(?m)^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-*:?\s*$\n?', '', text)
+    text = re.sub(r'(?m)^[ \t]*\|+[ \t]*|[ \t]*\|+[ \t]*$', '', text)
+    text = re.sub(r'[ \t]*\|+[ \t]*', '  ', text)
     #  `[etichetta](indirizzo)`, comprese le forme annidate prodotte
     #  dall'estrattore per gli indirizzi gia' scritti per esteso.
     text = re.sub(r'\[([^\]\n]*)\]\(\s*([^)\s]*)\s*\)', _unwrap_markdown_link, text)

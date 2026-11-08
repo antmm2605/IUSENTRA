@@ -549,7 +549,43 @@ def _content_identity(
     # CTU, note scritte o termini nel dispositivo restano segnali separati.
     # Solo nell'intestazione: nel corpo di note e memorie «il ricorso e il
     # pedissequo decreto di fissazione udienza» e' una citazione.
-    if re.search(r"\bdecreto\s+di\s+fissazione\s+(?:dell(?:['\u2019]|\s+)?)?udienza\b", zona_titolo):
+    # La parte che dichiara di costituirsi («l'Amministrazione resistente si costituisce depositando
+    # l'odierna MEMORIA DIFENSIVA ex art. 416 c.p.c.») scrive un atto difensivo: il decreto citato poco
+    # prima è quello notificato con il ricorso (artt. 415-416 c.p.c.; art. 167 c.p.c.).
+    # Vale solo quando l'intestazione cita il decreto: la dichiarazione di costituzione sta di solito dopo
+    # epigrafe e parti, quindi si cerca nelle prime pagine (6.000 caratteri).
+    cita_decreto = re.search(r"\bdecreto\s+di\s+fissazione\s+(?:dell(?:['\u2019]|\s+)?)?udienza\b", zona_titolo)
+    zona_costituzione = _normalise(raw[:6000]) if cita_decreto else ""
+    costituzione = re.search(
+        r"\bsi costituisc\w*\b.{0,120}?\b(memoria difensiva|comparsa di costituzione|comparsa di risposta)\b",
+        zona_costituzione,
+    )
+    if costituzione:
+        memoria = costituzione.group(1) == "memoria difensiva"
+        rito_lavoro = bool(memoria and re.search(r"\bart \d*\s*416\b|\b416 c p c\b", zona_costituzione))
+        if memoria:
+            etichetta = "Memoria difensiva ex art. 416 c.p.c." if rito_lavoro else "Memoria difensiva"
+        else:
+            etichetta = "Comparsa di costituzione e risposta"
+        return replace(
+            result(
+                role="atto_difensivo",
+                label=etichetta,
+                section="atti",
+                confidence=97,
+                evidence="testo iniziale: la parte dichiara di costituirsi con l'atto"
+                + (" (art. 416 c.p.c.)" if rito_lavoro else "" if memoria else " (art. 167 c.p.c.)"),
+                tipo_documento=TipoDocumento.MEMORIA if memoria else TipoDocumento.COMPARSA,
+                deposit_role="atto_principale",
+                deposit_candidate=True,
+                excerpt_pattern=r"\bsi\s+costituisc\w*\b",
+            ),
+            fonte="normattiva_cpc_rito_lavoro" if rito_lavoro else ("normattiva_cpc" if memoria else "cpc_art_167_comparsa"),
+        )
+    if cita_decreto and not re.search(
+        r"\bpedissequ\w*\s+decreto\s+di\s+fissazione\b|\bunitamente\s+al\s+decreto\s+di\s+fissazione\b",
+        zona_titolo,
+    ):
         return result(
             role="provvedimento",
             label="Decreto di fissazione udienza",

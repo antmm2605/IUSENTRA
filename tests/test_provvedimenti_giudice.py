@@ -385,9 +385,11 @@ def test_pec_con_decreto_415_propone_le_bozze_una_volta_sola(tmp_path):
     primo = _run_cancelleria(repo, _decreto_415_mime("415-1", oggi), "INBOX:UID:4151")
     repo.link_fascicolo(primo, threshold=0.5, actor="pytest")
     codici = sorted(s.deadline_profile_code for s in bozze())
-    assert codici == ["LAV_415_NOTIFICA_DIECI_GIORNI", "LAV_415_NOTIFICA_TRENTA_GIORNI", "LAV_416_COSTITUZIONE"]
+    # Lo studio difende il ricorrente (cliente = «Ricorr. principale» della Comunicazione.xml): la costituzione
+    # del convenuto (art. 416 c.p.c.) spetta alla controparte e non si propone (pct.provvedimenti.parte_assistita).
+    assert codici == ["LAV_415_NOTIFICA_DIECI_GIORNI", "LAV_415_NOTIFICA_TRENTA_GIORNI"]
     assert all(s.stato == StatoTermine.BOZZA for s in bozze())
     repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
     secondo = _run_cancelleria(repo, _decreto_415_mime("415-2", oggi), "INBOX:UID:4152")
     repo.link_fascicolo(secondo, threshold=0.5, actor="pytest")
-    assert len(bozze()) == 3
+    assert len(bozze()) == 2

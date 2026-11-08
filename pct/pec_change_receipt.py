@@ -278,7 +278,7 @@ def select_rescheduled_appointments(
     """Udienze (o termini in sostituzione) superate dal cambio comunicato.
 
     Fail-closed: si considerano solo gli impegni aperti dello stesso fascicolo/RG, precedenti
-    la nuova data. Vince la data dell'evento di cancelleria; altrimenti serve un'unica data
+    la nuova data (successivi, se l'udienza è anticipata). Vince la data dell'evento di cancelleria; altrimenti serve un'unica data
     candidata nella finestra attorno alla ricezione.
     """
 
@@ -299,7 +299,10 @@ def select_rescheduled_appointments(
         if not _is_hearing_like(item) or not appointment_matches_fascicolo(item, fascicolo_id=fascicolo_id, rg=rg):
             continue
         day = _appointment_date(item)
-        if day is None or day >= new_day:
+        if day is None or day == new_day:
+            continue
+        # L'anticipazione porta l'udienza prima: è superata quella successiva alla nuova data.
+        if (day < new_day) == (change.kind == "udienza_anticipata"):
             continue
         candidates.append((day, item))
     if not candidates:

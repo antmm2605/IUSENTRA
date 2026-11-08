@@ -26,6 +26,14 @@ _RUOLO_AMMINISTRATIVO = re.compile(
     re.IGNORECASE,
 )
 
+# Formula estesa dell'intestazione: «causa iscritta al n. 2539, del Ruolo Generale degli affari contenziosi
+# dell'anno 2025» (sentenza del 05/11/2026 non riconosciuta come provvedimento della causa). Quantificatori limitati.
+_RUOLO_ESTESO = re.compile(
+    rf"\b(?:n\.|numero)\s{{0,3}}(?P<numero>{_SEGNO}{{1,7}}),?\s{{1,3}}(?:del\s{{1,3}})?ruolo\s{{1,3}}generale\b"
+    rf"[^\n]{{0,80}}?\b(?:dell['’]\s?anno|anno)\s{{1,3}}(?P<anno>{_SEGNO}{{4}})(?![\w])",
+    re.IGNORECASE,
+)
+
 _RUOLO_POSTPOSTO = re.compile(
     rf"\b(?:n\.?|numero)\s*(?P<numero>{_SEGNO}{{1,7}})\s*/\s*(?P<anno>{_SEGNO}{{2,4}})(?![\w/])\s+(?P<sigla>R\.?\s*G\.?)\b",
     re.IGNORECASE,
@@ -35,7 +43,7 @@ _RUOLO_POSTPOSTO = re.compile(
 # Forma estesa dell'epigrafe delle sentenze di tribunale: «nella causa iscritta al n. 2539, del Ruolo Generale Affari
 # Contenziosi dell'anno 2025» (e varianti «rubricata», «pendente», «degli affari civili», «per l'anno»); e «n. 2539/2025
 # del Ruolo Generale».
-_RUOLO_ESTESO = re.compile(
+_RUOLO_ISCRITTO = re.compile(
     rf"\b(?:iscritt[ao]|rubricat[ao]|pendente|promoss[ao])\s+al\s+n(?:umero|\.)?\s*(?P<numero>{_SEGNO}{{1,7}})\s*,?\s*"
     rf"del\s+(?:R|r)uolo\s+(?:G|g)enerale(?:\s+(?:degli\s+)?(?:A|a)ffari\s+(?:[A-Za-zàè]+\s*){{1,3}}?)?\s*,?\s*"
     rf"(?:dell['’]\s*anno|per\s+l['’]\s*anno|del)\s+(?P<anno>{_SEGNO}{{4}})\b"
@@ -59,16 +67,16 @@ def estrai_ruoli(testo: str, *, origine: str) -> list[Fatto]:
     fatti: list[Fatto] = []
     visti: set[str] = set()
     trovati = sorted([*_RUOLO.finditer(testo), *_RUOLO_AMMINISTRATIVO.finditer(testo), *_RUOLO_POSTPOSTO.finditer(testo),
-                      *_RUOLO_ESTESO.finditer(testo)], key=lambda m: m.start())
+                      *_RUOLO_ESTESO.finditer(testo), *_RUOLO_ISCRITTO.finditer(testo)], key=lambda m: m.start())
     for match in trovati:
         amministrativo = match.re is _RUOLO_AMMINISTRATIVO
-        doppio = match.re in (_RUOLO_AMMINISTRATIVO, _RUOLO_ESTESO)
+        doppio = match.re in (_RUOLO_AMMINISTRATIVO, _RUOLO_ISCRITTO)
         grezzo_numero = match.group("numero") or (match.group("numero2") if doppio else "")
         grezzo_anno = match.group("anno") or (match.group("anno2") if doppio else "")
         numero, anno = a_cifre(grezzo_numero or ""), _anno(grezzo_anno or "")
         if not numero.isdigit() or not anno:
             continue
-        sigla = "REGRIC" if amministrativo else ("RG" if match.re is _RUOLO_ESTESO else re.sub(r"[\s.]", "", match.group("sigla")).upper())
+        sigla = "REGRIC" if amministrativo else ("RG" if match.re in (_RUOLO_ESTESO, _RUOLO_ISCRITTO) else re.sub(r"[\s.]", "", match.group("sigla")).upper())
         campo = "numero_ruolo_penale" if "NR" in sigla and sigla.startswith("RGN") else "numero_ruolo"
         valore = f"{int(numero)}/{anno}"
         if (campo, valore) in visti:

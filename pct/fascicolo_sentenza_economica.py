@@ -67,6 +67,13 @@ _SENTENZA_TEXTUAL_DATE_RE = re.compile(
     r"(?P<date>" + _ITALIAN_DATE_TEXT_PATTERN + r"|\d{1,2}/\d{1,2}/\d{4})",
     re.IGNORECASE | re.DOTALL,
 )
+# Rito del lavoro e decisioni a verbale: «all'esito … dell'udienza del 7 ottobre 2026, ha pronunciato in pari
+# data la seguente sentenza». È la data della pronuncia; una data citata nella motivazione non lo è (06/11/2026).
+_TITOLO_SPAZIATO_RE = re.compile(r"\bS ?E ?N ?T ?E ?N ?Z ?A\b")
+_SENTENZA_PARI_DATA_RE = re.compile(
+    r"\budienza\s+del\s+(?P<date>" + _ITALIAN_DATE_TEXT_PATTERN + r"|\d{1,2}/\d{1,2}/\d{4})[^.]{0,160}?\bpronunciat\w*\s+in\s+pari\s+data",
+    re.IGNORECASE,
+)
 _RG_RE = re.compile(
     r"\b(?:n\.?\s*)?R\.?\s*G\.?\s*(?:R\.?\s*)?(?:n\.?\s*)?(?P<num>[\d.]+)\s*/\s*(?P<year>\d{4})",
     re.IGNORECASE,
@@ -468,7 +475,8 @@ class SentenzaFascicoloContext:
 def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None = None) -> SentenzaEconomicaExtraction:
     """Estrae data e importi da una sentenza del Tribunale con regole deterministiche."""
 
-    raw_text = str(text or "")
+    # Titolo a lettere spaziate («S E N T E N Z A»): si ricompone prima di ogni controllo (06/11/2026).
+    raw_text = _TITOLO_SPAZIATO_RE.sub("SENTENZA", str(text or ""))
     meta = metadata or {}
     meta_text = " ".join(str(value or "") for value in meta.values()).casefold()
     raw_probe = raw_text[:240000].casefold()
@@ -486,9 +494,11 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
     ):
         return SentenzaEconomicaExtraction(found=False)
     compact = _compact(raw_text)
-    date_match = _SENTENZA_DATE_RE.search(compact)
+    date_match = _SENTENZA_DATE_RE.search(compact) or _SENTENZA_PARI_DATA_RE.search(compact)
     if not date_match:
-        date_match = _SENTENZA_TEXTUAL_DATE_RE.search(compact)
+        # Luogo e data in calce: l'ultima formula, non la prima (che può essere una data citata in motivazione).
+        in_calce = list(_SENTENZA_TEXTUAL_DATE_RE.finditer(compact))
+        date_match = in_calce[-1] if in_calce else None
     has_sentence_signal = bool(date_match) and ("sentenza" in compact.casefold() or "sentenza" in meta_text)
     has_tribunal_signal = "tribunale" in compact.casefold() or "tribunale" in meta_text
     has_document_type_signal = any(token in meta_text for token in ("sentenza", "provvedimento"))

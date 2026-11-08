@@ -224,3 +224,42 @@ def test_route_parcella_registrata():
     from web.blueprints.api_v1_sentenza_economic import sentenza_economic_parcella
 
     assert callable(sentenza_economic_parcella)
+
+
+def test_titolo_sentenza_con_lettere_spaziate():
+    """Sentenza del rito del lavoro (06/11/2026): «la seguente S E N T E N Z A ex art. 429 c.p.c.»."""
+    from pct.sentenza_conclusiva import valuta_sentenza
+
+    testo = ("TRIBUNALE DI ROMA SEZIONE LAVORO ha pronunciato la seguente S E N T E N Z A ex art. 429 c.p.c. "
+             "nella causa iscritta al n. 1, del Ruolo Generale dell'anno 2025. P.Q.M. il Tribunale definitivamente "
+             "pronunciando rigetta il ricorso. Spese compensate.")
+    assert valuta_sentenza(testo)["conclusiva"] is True
+    assert valuta_sentenza("decreto di fissazione dell'udienza di discussione")["conclusiva"] is False
+
+
+def test_data_della_sentenza_pronunciata_in_pari_data_e_non_quella_citata():
+    """06/11/2026: «udienza del 7 ottobre 2026, ha pronunciato in pari data» e non una data citata in motivazione."""
+    from pct.fascicolo_sentenza_economica import analyze_sentenza_tribunale_text
+
+    testo = ("TRIBUNALE DI ROMA SEZIONE LAVORO Il Giudice, all’esito della camera di consiglio relativa all’udienza del "
+             "7 ottobre 2026, ha pronunciato in pari data la seguente S E N T E N Z A ex art. 429 c.p.c. MOTIVI. Roma, "
+             "16/03/2022 la Corte ha deciso. P.Q.M. rigetta. Spese compensate. Roma, 7 ottobre 2026 Il Giudice")
+    estratto = analyze_sentenza_tribunale_text(testo)
+    assert estratto.found and estratto.sentence_date == "2026-10-07"
+
+
+def test_correzione_data_definizione_automatica(monkeypatch):
+    from types import SimpleNamespace
+    import web.helpers as helpers
+    from web.services.sentenza_automatica_runtime import correggi_data_definizione
+
+    aggiornati = {}
+    fascicolo = SimpleNamespace(stato="DEFINITO", data_chiusura="2022-03-16")
+    gestore = SimpleNamespace(get=lambda _id: fascicolo, aggiorna=lambda _id, **campi: aggiornati.update(campi))
+    monkeypatch.setattr(helpers, "get_fascicoli", lambda: gestore)
+    auto = {"definito": True, "data_definizione": "2022-03-16"}
+    esito = correggi_data_definizione("F1", automatica=auto, estremi={"data": "2026-10-07"})
+    assert aggiornati == {"data_chiusura": "2026-10-07"} and esito["data_definizione"] == "2026-10-07"
+    fascicolo.data_chiusura = "2025-01-01"  # data scelta dall'avvocato: non si tocca
+    aggiornati.clear()
+    assert correggi_data_definizione("F1", automatica=auto, estremi={"data": "2026-10-07"}) is None and not aggiornati

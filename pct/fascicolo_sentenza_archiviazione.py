@@ -12,8 +12,9 @@ from pct.spese_liquidate_lettura import estrai_spese_liquidate
 RULE = 'sentenza-propria-da-archiviare-v3-conclusiva'
 # Lettore «proposta_definizione»: cambia con la regola, con la lettura del dispositivo e con la
 # registrazione automatica dei casi certi (pct/sentenza_automatica.py): lo storico si riesamina sui testi salvati.
-# automatica.v2: definizione e credito con certezze separate; pec.v1: anche gli allegati delle PEC collegate.
-VERSIONE_PROPOSTA = RULE + '+proposta-avvocato.v1+automatica.v2+pec.v1'
+# automatica.v2: definizione e credito con certezze separate; pec.v1: anche gli allegati delle PEC collegate;
+# ruolo-esteso: numero di ruolo scritto per esteso nell'intestazione («n. 2539, del Ruolo Generale … dell'anno 2025»).
+VERSIONE_PROPOSTA = RULE + '+proposta-avvocato.v1+automatica.v2+pec.v1+ruolo-esteso+sentenza-spaziata+data-pronuncia'
 
 def verifica_sentenza_da_archiviare(*, fascicolo: Any, testo: str, fonte: dict[str, Any], cliente: dict[str, Any] | None = None) -> dict[str, Any]:
     result = {'eligible': False, 'rule': RULE, 'fascicolo_id': str(fascicolo.id), 'source': fonte,

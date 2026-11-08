@@ -1246,6 +1246,9 @@ def _indicizza_fonti_pendenti(fascicolo_id: str, tenant_slug: str) -> dict[str, 
     stato = build_lex_indexing_summary_payload(fascicolo_id, process=False, user_context=context, apply_automations=False)
     mancanti = sum(int(stato.get(campo) or 0) for campo in ("not_indexed", "queued", "stale"))
     if not mancanti:
+        from web.services.document_intelligence_runtime import registra_indice_senza_lettura
+
+        registra_indice_senza_lettura(fascicolo_id, context)
         return stato
     return build_lex_indexing_summary_payload(
         fascicolo_id, process=True, retry_errors=False,
@@ -1364,6 +1367,10 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                                 # delle udienze e scheda «Lettura» vanno preparati lo stesso. Prima l'errore
                                 # chiudeva in errore ogni lettura in sfondo (collaudo della catena del 04/11/2026).
                                 pass
+                            except Exception as exc:
+                                # Il controllo delle discordanze non ferma mai la lettura del fascicolo: un suo errore
+                                # rimetteva in coda lo stesso fascicolo a ogni giro (07/11/2026, letture ferme).
+                                logger.warning("Verifica delle discordanze non riuscita per %s: %s", fascicolo_id, exc)
                             proroga()
                             # Una relata o una ricevuta appena entrata può chiudere una notifica
                             # aperta: si riallineano solo i presìdi di questo fascicolo, ora.

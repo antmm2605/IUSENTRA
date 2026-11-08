@@ -127,13 +127,23 @@ def test_nome_discordante_con_prova_idempotente_senza_correggere_cliente(tmp_pat
 
 
 def test_nome_discordante_rifiuta_fonti_estranee(tmp_path, monkeypatch):
-    import pytest
     from types import SimpleNamespace
     from web.services import discordanze_letture_runtime as runtime
     repo = RegistroDiscordanze(RegistroLetture(tmp_path / 'registro.db'))
     monkeypatch.setattr(runtime, 'repository', lambda: (repo, 'studio-a'))
-    caso = SimpleNamespace(documenti=[])
-    with pytest.raises(ValueError):
-        runtime.pubblica_discordanza_nome_cliente(caso, 'Rossi Mario',
-                                                 [{'id': 'altro', 'sha256': 'a' * 64, 'valore': 'Rosso Mario'}])
+    caso = SimpleNamespace(id='F0', documenti=[])
+    # Una fonte estranea al fascicolo non si pubblica e non interrompe la lettura (07/11/2026).
+    runtime.pubblica_discordanza_nome_cliente(caso, 'Rossi Mario',
+                                             [{'id': 'altro', 'sha256': 'a' * 64, 'valore': 'Rosso Mario'}])
     assert repo.aperte('studio-a')['totale'] == 0
+
+
+def test_impronta_con_prefisso_archivio_non_blocca(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from web.services import discordanze_letture_runtime as runtime
+    repo = RegistroDiscordanze(RegistroLetture(tmp_path / 'registro.db'))
+    monkeypatch.setattr(runtime, 'repository', lambda: (repo, 'studio-a'))
+    caso = SimpleNamespace(id='F1', documenti=[SimpleNamespace(id='D1', nome='atto.pdf')], numero_rg='1', anno_rg='2026',
+                           id_cliente='C1', titolo='Causa', nome_cliente='Rossi Mario')
+    runtime.pubblica_discordanza_nome_cliente(caso, 'Rossi Mario',
+                                             [{'id': 'D1', 'sha256': 'archivio:' + 'b' * 64, 'valore': 'Bianchi Luca'}])

@@ -317,6 +317,9 @@ def verifica_documenti(fascicolo_id: str, tenant_slug: str = "") -> dict[str, An
     totale = int(stato.get("total_documents") or 0)
     da_leggere = int(stato.get("not_indexed") or 0) + int(stato.get("queued") or 0) + int(stato.get("stale") or 0)
     if not da_leggere:
+        from web.services.document_intelligence_runtime import registra_indice_senza_lettura
+
+        registra_indice_senza_lettura(fascicolo_id, contesto)
         errori = int(stato.get("errors") or 0)
         mancanti = [item for item in list(stato.get("source_errors") or []) if item.get("error_code") == "source_unavailable"]
         return {"documenti": totale, "letti": int(stato.get("ready") or 0), "indicizzati": 0, "errori": errori, "da_acquisire": len(mancanti), "non_scaricati": [str(item.get("filename") or "") for item in mancanti], "esito": "errori_presenti" if errori else "tutti_letti"}

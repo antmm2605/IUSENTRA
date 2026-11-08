@@ -87,6 +87,27 @@ def _definisci(fascicolo_id: str, *, estremi: dict[str, Any], nome: str, sha: st
             "data_definizione": _testo(getattr(corrente, "data_chiusura", "")) or data, "norma_definizione": norma}
 
 
+def correggi_data_definizione(fascicolo_id: str, *, automatica: dict[str, Any], estremi: dict[str, Any]) -> dict[str, Any] | None:
+    """La data della definizione automatica segue la data della sentenza letta con la regola corrente.
+
+    Solo se il fascicolo è ancora definito e la data di chiusura è quella scritta dalla registrazione automatica:
+    una data scelta dall'avvocato non si tocca mai (06/11/2026: data citata in motivazione presa per la pronuncia).
+    """
+    from web.helpers import get_fascicoli
+
+    nuova, vecchia = _testo(estremi.get("data")), _testo(automatica.get("data_definizione"))
+    if not nuova or not vecchia or nuova == vecchia or automatica.get("annullata") or not automatica.get("definito"):
+        return None
+    gestore = get_fascicoli()
+    corrente = gestore.get(fascicolo_id)
+    if corrente is None or _testo(getattr(corrente, "stato", "")).upper() != "DEFINITO":
+        return None
+    if _testo(getattr(corrente, "data_chiusura", "")) != vecchia:
+        return None
+    gestore.aggiorna(fascicolo_id, data_chiusura=nuova)
+    return {**automatica, "data_definizione": nuova, "data_corretta": {"prima": vecchia, "dopo": nuova}}
+
+
 def _credito_certo(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[str, Any]) -> dict[str, Any]:
     """Il credito delle spese, registrato solo se certo; `motivi` dice perché no. Non tocca lo stato del fascicolo."""
     try:

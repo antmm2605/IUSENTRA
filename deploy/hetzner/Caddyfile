@@ -145,3 +145,5 @@
 		}
 	}
 }
+
+import /config/caddy/pilot.caddy

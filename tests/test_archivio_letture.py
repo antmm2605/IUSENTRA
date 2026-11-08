@@ -602,3 +602,14 @@ def test_i_motivi_degli_scarti_si_raggruppano_senza_i_valori_letti():
                          "motivo": "orizzonte: … precede l'apertura del fascicolo (…)"}
     assert motivi[1]["motivo"] == "calendario: «…» non è una data" and motivi[1]["numero"] == 1
     assert riassunto_archivio(fatti)["motivi_scarto"] == motivi
+
+
+def test_ruolo_scritto_per_esteso_nell_intestazione_della_sentenza():
+    """Sentenza del rito del lavoro (05/11/2026): «iscritta al n. 2539, del Ruolo Generale … dell'anno 2025»."""
+    from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
+
+    testo = ("ha pronunciato la seguente SENTENZA ex art. 429 c.p.c. nella causa iscritta al n. 2539, del Ruolo Generale "
+             "degli affari contenziosi dell’anno 2025, promossa da")
+    assert [f.valore for f in estrai_ruoli(testo, origine="t")] == ["2539/2025"]
+    assert [f.valore for f in estrai_ruoli("al numero 12 del ruolo generale dell'anno 2024", origine="t")] == ["12/2024"]
+    assert estrai_ruoli("ruolo generale dei difensori", origine="t") == []

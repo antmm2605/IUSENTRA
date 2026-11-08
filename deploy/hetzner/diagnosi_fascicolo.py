@@ -33,6 +33,59 @@ def _righe(conn, sql, parametri=()):
         return [{"errore": _breve(f"{type(exc).__name__}: {exc}")}]
 
 
+def _esito_sintetico(grezzo) -> dict:
+    """Solo chiavi decisionali dell'esito (pertinenza, proposta, motivi): niente testo del documento."""
+    try:
+        esito = json.loads(grezzo or "{}")
+    except Exception:
+        return {"illeggibile": True}
+    sintesi = {}
+    for chiave in ("pertinente", "proposta", "motivo", "non_automatica", "decisione", "conclusiva", "identita", "motivi"):
+        if chiave in esito:
+            valore = esito[chiave]
+            sintesi[chiave] = valore if isinstance(valore, (bool, int, float)) or valore is None else _breve(json.dumps(valore, ensure_ascii=False))[:400]
+    sintesi["chiavi"] = sorted(esito)[:30]
+    return sintesi
+
+
+def _maschera(testo: str) -> str:
+    """Pseudonimizza: lascia cifre, punteggiatura e le sigle del ruolo; ogni altra parola diventa «x…»."""
+    sigle = {"r", "g", "n", "l", "rg", "rgl", "rgac", "nrg", "ruolo", "generale", "n.", "numero", "del", "al", "anno", "causa",
+             "iscritta", "lavoro", "lav", "sentenza", "reg", "ric", "sez", "tribunale", "di", "nella", "promossa", "r.g."}
+    return re.sub(r"[A-Za-zÀ-ÿ]+", lambda m: m.group(0) if m.group(0).lower() in sigle else "x" * min(len(m.group(0)), 3), testo)
+
+
+def _ruolo_nel_documento(fascicolo_id: str, tenant: str, documento_id: str) -> dict:
+    """Dove e come compare il numero di ruolo nel testo indicizzato di un documento (testo pseudonimizzato)."""
+    sys.path.insert(0, "/app")
+    try:
+        from pct.scheduler_worker import create_scheduler_app
+        from web.helpers import get_fascicoli
+        from web.services.archivio_letture_runtime import testi_indice_archivio
+        from pct.archivio_letture.estrazione_ruolo import estrai_ruoli
+
+        from scripts.backfill_archivio_batches import _targets, _tenant_context
+
+        app = create_scheduler_app()
+        manager, owners = _targets(app, "")
+        for slug, owner in owners.items():
+            with _tenant_context(app, manager, owner, slug):
+                fascicolo = get_fascicoli().get(fascicolo_id)
+                if fascicolo is None:
+                    continue
+                testi = testi_indice_archivio(fascicolo)
+                testo = testi.get(documento_id) or ""
+                rg = f"{getattr(fascicolo, 'numero_rg', '')}"
+                finestre = [_maschera(testo[max(0, m.start() - 70):m.end() + 50].replace("\n", " | "))
+                            for m in re.finditer(re.escape(rg), testo)][:6] if rg else []
+                return {"caratteri_testo": len(testo), "numero_rg_fascicolo_presente": bool(rg), "occorrenze": len(finestre),
+                        "finestre_mascherate": finestre, "inizio_mascherato": _maschera(testo[:400].replace("\n", " | ")),
+                        "ruoli_estratti": [f.valore for f in estrai_ruoli(testo, origine="diagnosi")]}
+        return {"errore": "fascicolo non trovato in nessuno studio"}
+    except Exception as exc:
+        return {"errore": _breve(f"{type(exc).__name__}: {exc}")}
+
+
 def main() -> int:
     fascicolo = re.sub(r"[^0-9A-Za-z_-]", "", os.getenv("FASCICOLO", ""))
     if not fascicolo:
@@ -59,7 +112,7 @@ def main() -> int:
             SELECT l.lettore, COUNT(*) AS da_leggere FROM letture_oggetti o
             JOIN (SELECT DISTINCT lettore FROM letture WHERE fascicolo_id=?) l
             WHERE o.fascicolo_id=? AND o.presente=1 AND NOT EXISTS (SELECT 1 FROM letture x WHERE x.fascicolo_id=o.fascicolo_id
-              AND x.tipo=o.tipo AND x.oggetto_id=o.oggetto_id AND x.sha256=o.sha256 AND x.lettore=l.lettore AND x.stato<>'in_corso')
+              AND x.tipo=o.tipo AND x.oggetto_id=o.oggetto_id AND x.sha256=(CASE WHEN o.sha256 <> '' THEN lower(o.sha256) WHEN o.sha256_archivio <> '' THEN 'archivio:' || lower(o.sha256_archivio) ELSE 'dimensione:' || o.dimensione END) AND x.lettore=l.lettore AND x.stato<>'in_corso')
             GROUP BY l.lettore""", (fascicolo, fascicolo))
         voce["letture_non_concluse"] = [{**r, "esito_json": _breve(r.get("esito_json"))} for r in _righe(conn,
             "SELECT tipo, oggetto_id, lettore, stato, versione_lettore, aggiornato_il, esito_json FROM letture "
@@ -71,6 +124,14 @@ def main() -> int:
 
             generazione = RegistroLetture(percorso).accoda_evento(tenant, fascicolo, forza=True, prioritario=True)
             voce["riaccodato"] = {"generazione": generazione}
+        if os.getenv("RUOLO_DOC"):
+            voce["letture_del_documento"] = [
+                {**{k: r[k] for k in ("lettore", "stato", "versione_lettore", "aggiornato_il")},
+                 "esito": _esito_sintetico(r.get("esito_json"))}
+                for r in _righe(sqlite3.connect(f"file:{percorso}?mode=ro", uri=True, timeout=10),
+                                "SELECT lettore, stato, versione_lettore, aggiornato_il, esito_json FROM letture "
+                                "WHERE fascicolo_id=? AND oggetto_id=? ORDER BY aggiornato_il DESC", (fascicolo, os.getenv("RUOLO_DOC")))]
+            voce["ruolo_nel_documento"] = _ruolo_nel_documento(fascicolo, tenant, os.getenv("RUOLO_DOC", ""))
         esito["registri"].append(voce)
     print(MARCATORE + json.dumps(esito, ensure_ascii=False, default=str), flush=True)
     return 0

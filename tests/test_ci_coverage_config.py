@@ -26,7 +26,8 @@ def _baseline_api(monkeypatch, runs, jobs, ci=None):
         if endpoint.startswith('actions/workflows/deploy-hetzner.yml/runs?'):
             return {'workflow_runs': runs}
         if endpoint.startswith('actions/workflows/ci.yml/runs?'):
-            return {'workflow_runs': ci or []}
+            # Come GitHub: le run del commit con il loro esito; il filtro sul successo lo fa il gate.
+            return {'workflow_runs': [{'status': 'completed', 'conclusion': 'success', **run} for run in (ci or [])]}
         run_id = int(endpoint.split('/')[2])
         page = int(endpoint.rsplit('page=', 1)[1])
         records = jobs[run_id]
@@ -294,3 +295,14 @@ def test_shards_checkout_history_for_lex_source_benchmark(job):
     assert checkout["with"].get("fetch-depth") == 0, (
         "Il banco fonti deve poter caricare il retriever storico 2.435.0 tramite git show"
     )
+
+
+def test_coverage_baseline_ignora_la_ci_non_riuscita_dello_stesso_commit(monkeypatch):
+    """05/11/2026: GitHub non combina più head_sha e status; il gate tiene solo la CI conclusa con successo."""
+    import pytest
+    from tools.check_critical_coverage_regression import select_baseline
+    runs = [{'id': 1, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T04:32:00Z'}]
+    _baseline_api(monkeypatch, runs, {1: [_deploy_proof('2026-10-14T04:31:00Z')]},
+                  [{'id': 10, 'head_sha': 'a' * 40, 'updated_at': '2026-10-14T04:00:00Z', 'conclusion': 'failure'}])
+    with pytest.raises(ValueError, match='CI positiva'):
+        select_baseline('example/repo', 'c' * 40)

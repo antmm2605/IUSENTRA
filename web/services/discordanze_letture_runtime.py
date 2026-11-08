@@ -1,9 +1,12 @@
 """Verificatori di confronto: pubblicazione dopo la lettura, GET solo SQL."""
 from __future__ import annotations
+import logging
 import hashlib
 import json
 from pct.discordanze_letture_repository import RegistroDiscordanze
 from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+logger = logging.getLogger(__name__)
 
 
 class StudioNonIdentificato(RuntimeError):
@@ -91,9 +94,12 @@ def pubblica_discordanza_nome_cliente(fascicolo, nome_anagrafica, fonti, *, cf_a
     for fonte in fonti:
         doc = docs.get(str(fonte.get('id') or ''))
         valore = str(fonte.get('valore') or '').strip()
-        impronta = str(fonte.get('sha256') or '').strip()
-        if doc is None or not valore or len(impronta) != 64:
-            raise ValueError('Confronto del nome senza documento e impronta verificabili')
+        # L'impronta dei fatti letti dall'archivio porta il prefisso «archivio:» (impronta del file conservato).
+        impronta = str(fonte.get('sha256') or '').strip().lower().removeprefix('archivio:')
+        if doc is None or not valore or len(impronta) != 64 or any(c not in '0123456789abcdef' for c in impronta):
+            # Una fonte non verificabile si scarta: non deve interrompere la lettura del fascicolo (07/11/2026).
+            logger.warning('Confronto del nome: fonte senza documento o impronta verificabile, ignorata (%s)', fascicolo.id)
+            continue
         if not discordanza_nome(valore, nome_anagrafica, citazione=fonte.get('citazione'), cf_anagrafica=cf_anagrafica):
             continue
         prove[(doc.id, impronta, valore)] = {

@@ -41,9 +41,16 @@ def _deposito(stato: str = "INVIATO", **extra) -> EsitoDepositoPCT:
     return EsitoDepositoPCT(**valori)
 
 
-def _ric(subject: str, *, rif: str = "", testo: str = "", date: str = "Tue, 11 Aug 2026 12:45:00 +0200", x: str = "") -> dict:
+UFFICIO = '"Per conto di: tribunale.esempio@civile.ptel.giustiziacert.it" <posta-certificata@gestore.example>'
+ESTRANEO = "truffatore@mail.example"
+XML_MITT = f"<EsitoAtto><IdMsgMitt>&lt;{MSGID}&gt;</IdMsgMitt></EsitoAtto>"
+
+
+def _ric(subject: str, *, rif: str = "", testo: str = "", date: str = "Tue, 11 Aug 2026 12:45:00 +0200", x: str = "",
+         frm: str = "", interni: list | None = None) -> dict:
     return {"subject": subject, "riferimento_message_id": rif, "testo": testo, "date": date,
-            "x_ricevuta": x, "message_id": "<ric-1@gestore.example>"}
+            "x_ricevuta": x, "message_id": "<ric-1@gestore.example>", "from": frm,
+            "mittenti_interni": interni or []}
 
 
 # ---------------------------------------------------------------- casi reali del difetto
@@ -77,15 +84,30 @@ def test_casella_del_12_ottobre_non_porta_trenta_depositi_a_consegnato():
 
 def test_mancata_consegna_del_deposito_non_e_mai_consegnato():
     dep = _deposito()
-    applica_ricevute(dep, [_ric("AVVISO DI MANCATA CONSEGNA: DEPOSITO TELEMATICO - RICORSO", rif=f"<{MSGID}>")])
+    applica_ricevute(dep, [_ric("AVVISO DI MANCATA CONSEGNA: DEPOSITO TELEMATICO - RICORSO", rif=f"<{MSGID}>",
+                                x="errore-consegna")])
     assert dep.stato == "ERRORE"
     assert "196-sexies" in dep.note
 
 
 def test_non_accettazione_del_deposito_e_errore():
     dep = _deposito()
-    applica_ricevute(dep, [_ric("AVVISO DI NON ACCETTAZIONE: DEPOSITO TELEMATICO - RICORSO", rif=f"<{MSGID}>")])
+    applica_ricevute(dep, [_ric("AVVISO DI NON ACCETTAZIONE: DEPOSITO TELEMATICO - RICORSO", rif=f"<{MSGID}>",
+                                x="non-accettazione")])
     assert dep.stato == "ERRORE"
+
+
+def test_consegna_non_emessa_dal_gestore_pec_ignorata():
+    """Una e-mail qualunque con oggetto «CONSEGNA:» e lo stesso riferimento non e' una RdAC."""
+    dep = _deposito()
+    assert applica_ricevute(dep, [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", frm=ESTRANEO)])["aggiornato"] is False
+    assert dep.stato == "INVIATO"
+
+
+def test_consegna_per_codice_nell_oggetto_non_basta():
+    dep = _deposito()
+    applica_ricevute(dep, [_ric("CONSEGNA: deposito CD8044C6", x="avvenuta-consegna")])
+    assert dep.stato == "INVIATO"
 
 
 # ---------------------------------------------------------------- le quattro PEC collegate
@@ -105,39 +127,60 @@ def test_esito_controlli_fatal_collegato_per_idmsgmitt():
     xml = f"<EsitoAtto><IdMsgMitt>&lt;{MSGID}&gt;</IdMsgMitt><DatiEsito><MsgEsito><CodiceEsito>-5</CodiceEsito>" \
           "<DescrizioneEsito>FATAL Impossibile decifrare la busta</DescrizioneEsito></MsgEsito></DatiEsito></EsitoAtto>"
     dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
-    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO", testo=xml)])
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO", testo=xml, frm=UFFICIO)])
     assert dep.stato == "ERRORE_CONTROLLI"
     assert dep.esito_controlli == "FATAL"
     assert "FATAL" in dep.note
     # Il modello accetta e ricarica l'esito FATAL.
     assert EsitoDepositoPCT.from_dict(dep.to_dict()).esito_controlli == "FATAL"
     # Con FATAL un successivo esito «accettazione» non rende accettato il deposito.
-    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO", testo=xml)])
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO", testo=xml, frm=UFFICIO)])
     assert dep.stato == "ERRORE_CONTROLLI"
 
 
-def test_esito_controlli_warn_collegato_per_idbusta_e_accettazione_cancelleria():
+def test_esito_falso_da_mittente_estraneo_con_idbusta_giusto_non_cambia_lo_stato():
     dep = _deposito("CONSEGNATO", id_deposito_esterno="35508878", ricevuta_consegna="RdAC")
+    # IdBusta corretto ma mittente estraneo e nessun IdMsgMitt: nessun effetto, solo nota «da verificare».
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO",
+                                testo="IDBUSTA: 35508878 deposito accettato", frm=ESTRANEO)])
+    assert dep.stato == "CONSEGNATO" and dep.ricevuta_cancelleria == ""
+    assert "da verificare" in dep.note
+    # Anche con IdMsgMitt giusto, un mittente estraneo non basta.
     applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO",
-                                testo="IDBUSTA: 35508878\nWARN: manca la procura alle liti")])
+                                testo=XML_MITT + " OK controlli terminati con successo", frm=ESTRANEO)])
+    assert dep.stato == "CONSEGNATO" and dep.ricevuta_controlli_automatici == ""
+    # Busta esterna ministeriale ma postacert.eml interna da un estraneo: non applicato.
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO",
+                                testo=XML_MITT + " WARN", frm=UFFICIO, interni=[ESTRANEO])])
+    assert dep.stato == "CONSEGNATO"
+    # Ufficio ministeriale ma collegamento solo per IdBusta: non applicato.
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO",
+                                testo="IDBUSTA: 35508878 WARN", frm=UFFICIO)])
+    assert dep.stato == "CONSEGNATO"
+
+
+def test_esito_vero_da_giustiziacert_con_idmsgmitt_applicato():
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO",
+                                testo=XML_MITT + "\nWARN: manca la procura alle liti", frm=UFFICIO,
+                                interni=["tribunale.esempio@civile.ptel.giustiziacert.it"])])
     assert (dep.stato, dep.esito_controlli) == ("WARN_CONTROLLI", "WARN")
     applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG 1733/2026",
-                                testo="IDBUSTA: 35508878")])
+                                testo=XML_MITT, frm=UFFICIO)])
     assert dep.stato == "ACCETTATO_CANCELLERIA"
 
 
 def test_esito_intervento_cancelleria_rifiuto():
-    dep = _deposito("ERRORE_CONTROLLI", id_deposito_esterno="155701307", esito_controlli="ERROR",
-                    ricevuta_controlli_automatici="esito")
-    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO INTERVENTO CANCELLERIA",
-                                testo="IDBUSTA: 155701307 Il deposito e' stato rifiutato dalla cancelleria")])
+    dep = _deposito("ERRORE_CONTROLLI", esito_controlli="ERROR", ricevuta_controlli_automatici="esito")
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO INTERVENTO CANCELLERIA", frm=UFFICIO,
+                                testo=XML_MITT + " Il deposito e' stato rifiutato dalla cancelleria")])
     assert dep.stato == "RIFIUTATO_CANCELLERIA"
 
 
 def test_esito_senza_livello_non_inventa_lo_stato():
-    dep = _deposito("CONSEGNATO", id_deposito_esterno="111222", ricevuta_consegna="RdAC")
-    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO",
-                                testo="IDBUSTA: 111222 Codice esito: -1")])
+    dep = _deposito("CONSEGNATO", ricevuta_consegna="RdAC")
+    applica_ricevute(dep, [_ric("POSTA CERTIFICATA: ESITO CONTROLLI AUTOMATICI DEPOSITO TELEMATICO", frm=UFFICIO,
+                                testo=XML_MITT + " Codice esito: -1")])
     assert dep.stato == "CONSEGNATO"
     assert dep.esito_controlli == ""
     assert dep.ricevuta_controlli_automatici
@@ -145,7 +188,8 @@ def test_esito_senza_livello_non_inventa_lo_stato():
 
 def test_ricevuta_anteriore_all_invio_ignorata_e_rg_non_basta():
     dep = _deposito()
-    vecchia = _ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", date="Mon, 10 Aug 2026 09:00:00 +0200")
+    vecchia = _ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", date="Mon, 10 Aug 2026 09:00:00 +0200",
+                   x="avvenuta-consegna")
     assert applica_ricevute(dep, [vecchia])["aggiornato"] is False
     assert criterio_collegamento(_ric("CONSEGNA: RG 1375/2026 Ricorso.pdf.p7m"), dep) == ""
 
@@ -187,7 +231,7 @@ def test_polling_solo_fascicolo_indicato_e_prove_escluse(monkeypatch):
     dep_b = _deposito(id="BBBB2222")
     prova = _deposito(id="CCCC3333", note="[PROVA SENZA INVIO REALE - nessun atto realmente inviato]")
     gf = _GF([SimpleNamespace(id="F1", depositi_pct=[dep_a, prova]), SimpleNamespace(id="F2", depositi_pct=[dep_b])])
-    casella = [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>")]
+    casella = [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>", x="avvenuta-consegna")]
     monkeypatch.setattr(polling, "_cerca_ricevute_imap", lambda **_k: casella)
     cfg = SimpleNamespace(imap_host="imap.example", imap_port=993, indirizzo="studio@pec.example", password="x")
 
@@ -214,7 +258,7 @@ def test_stima_nuovo_stato_non_modifica_il_deposito():
 
     dep = _deposito()
     assert polling._stima_nuovo_stato(dep, [_ric("AVVISO DI MANCATA CONSEGNA: fattura cliente Rossi")]) is None
-    assert polling._stima_nuovo_stato(dep, [_ric("CONSEGNA: x", rif=f"<{MSGID}>")]) == "CONSEGNATO"
+    assert polling._stima_nuovo_stato(dep, [_ric("CONSEGNA: x", rif=f"<{MSGID}>", x="avvenuta-consegna")]) == "CONSEGNATO"
     assert dep.stato == "INVIATO"
 
 
@@ -249,7 +293,7 @@ def test_attendi_ricevute_usa_solo_x_riferimento(monkeypatch):
 
         def fetch(self, numeri, domanda):
             return "OK", [
-                (b"1 (BODY[HEADER] {10}", f"Subject: CONSEGNA: DEPOSITO\r\nX-Riferimento-Message-ID: <{MSGID}>\r\n\r\n".encode()),
+                (b"1 (BODY[HEADER] {10}", f"Subject: CONSEGNA: DEPOSITO\r\nX-Ricevuta: avvenuta-consegna\r\nX-Riferimento-Message-ID: <{MSGID}>\r\n\r\n".encode()),
                 (b"2 (BODY[HEADER] {10}", b"Subject: CONSEGNA: appuntamento\r\nX-Riferimento-Message-ID: <altro@x>\r\n\r\n"),
                 b")",
             ]
@@ -318,7 +362,7 @@ def test_controlla_ricevute_non_attribuisce_pec_del_giorno(monkeypatch):
     assert "collegata a questo deposito" in risposta["messaggio"]
 
     monkeypatch.setattr(polling, "_cerca_ricevute_imap", lambda **_k: [
-        _ric("CONSEGNA: DEPOSITO TELEMATICO - RICORSO", rif=f"<{MSGID}>"),
+        _ric("CONSEGNA: DEPOSITO TELEMATICO - RICORSO", rif=f"<{MSGID}>", x="avvenuta-consegna"),
     ])
     risposta = app.test_client().post("/api/fascicoli/F1/depositi/CD8044C6/controlla").get_json()
     assert risposta["stato"] == "CONSEGNATO" and risposta["ricevuta_consegna"] is True
@@ -395,3 +439,15 @@ def test_download_pubblico_uffici_senza_percorso_del_pc():
     assert "QuickOrganizer" not in pubblico and "C:\\" not in pubblico
     dati = json.loads(pubblico)
     assert "0530010" in dati["uffici"] and dati["fonte"].startswith("Elenco degli uffici")
+
+
+def test_mittente_interno_letto_da_postacert():
+    from pct.ricevute_deposito_pct import mittenti_interni
+
+    interno = EmailMessage()
+    interno["From"] = "tribunale.esempio@civile.ptel.giustiziacert.it"
+    interno.set_content("esito")
+    esterno = EmailMessage()
+    esterno.set_content("busta di trasporto")
+    esterno.add_attachment(interno, filename="postacert.eml")
+    assert mittenti_interni(esterno) == ["tribunale.esempio@civile.ptel.giustiziacert.it"]

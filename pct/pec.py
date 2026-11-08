@@ -135,6 +135,7 @@ class ClientPEC:
             MANCATA_CONSEGNA,
             NON_ACCETTAZIONE,
             classifica,
+            da_gestore_pec,
             normalizza_message_id,
             ricevuta_da_intestazioni,
         )
@@ -186,6 +187,8 @@ class ClientPEC:
                         r = ricevuta_da_intestazioni(email.message_from_bytes(parte[1]))
                         # Il server puo' ignorare il criterio HEADER: si ricontrolla qui.
                         if normalizza_message_id(r.get("riferimento_message_id")) != riferimento:
+                            continue
+                        if not da_gestore_pec(r):  # solo ricevute emesse dal gestore PEC
                             continue
                         tipo, _esito = classifica(r.get("subject"), x_ricevuta=r.get("x_ricevuta"))
                         chiave = chiavi.get(tipo)

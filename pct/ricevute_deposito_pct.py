@@ -270,6 +270,74 @@ def serve_testo(ricevuta: dict) -> bool:
     return tipo in {ESITO_CONTROLLI, ESITO_CANCELLERIA}
 
 
+def mittenti_interni(msg: Any) -> list[str]:
+    """Mittenti dei messaggi annidati (postacert.eml): per gli esiti e' l'ufficio che ha scritto."""
+    mittenti: list[str] = []
+    for parte in msg.walk():
+        if (parte.get_content_type() or "").lower() != "message/rfc822":
+            continue
+        for interno in parte.get_payload() or []:
+            if hasattr(interno, "get"):
+                mittenti.append(_decodifica_intestazione(interno.get("From", "")))
+    return mittenti
+
+
+# ---------------------------------------------------------------------------
+# Provenienza: chi puo' emettere ciascuna PEC di ritorno
+# ---------------------------------------------------------------------------
+
+_EMAIL = re.compile(r"[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+DOMINIO_MINISTERIALE = "giustiziacert.it"
+_TIPI_GESTORE = {ACCETTAZIONE, NON_ACCETTAZIONE, CONSEGNA, MANCATA_CONSEGNA, PREAVVISO_MANCATA_CONSEGNA}
+_TIPI_MINISTERO = {ESITO_CONTROLLI, ESITO_CANCELLERIA}
+_CRITERIO_MSGID = "Message-ID del messaggio di deposito"
+
+
+def _indirizzi(valore: Any) -> set[str]:
+    """Tutti gli indirizzi in un'intestazione From, compreso il «Per conto di:» del gestore."""
+    return {m.group(0).casefold() for m in _EMAIL.finditer(str(valore or ""))}
+
+
+def _ministeriale(indirizzo: str) -> bool:
+    dominio = indirizzo.rpartition("@")[2]
+    return dominio == DOMINIO_MINISTERIALE or dominio.endswith("." + DOMINIO_MINISTERIALE)
+
+
+def da_gestore_pec(ricevuta: dict) -> bool:
+    """Ricevuta emessa dal gestore PEC: intestazione X-Ricevuta (d.m. 2/11/2005) o mittente
+    «posta-certificata@» del gestore. Una e-mail qualunque con oggetto «CONSEGNA:» non lo e'."""
+    if str(ricevuta.get("x_ricevuta") or "").strip():
+        return True
+    return any(a.startswith("posta-certificata@") for a in _indirizzi(ricevuta.get("from")))
+
+
+def _ufficio_ammesso(indirizzo: str, ufficio: str) -> bool:
+    return bool(indirizzo) and (indirizzo == ufficio or _ministeriale(indirizzo))
+
+
+def motivo_non_applicabile(rc: "RicevutaCollegata", dep: Any) -> str:
+    """"" se la PEC puo' cambiare lo stato del deposito; altrimenti il motivo (fail-closed)."""
+    r = rc.ricevuta
+    if rc.tipo in _TIPI_GESTORE:
+        if not da_gestore_pec(r):
+            return "non emessa dal gestore PEC"
+        if rc.criterio != _CRITERIO_MSGID:
+            return "non riferita al Message-ID del messaggio di deposito"
+        return ""
+    if rc.tipo in _TIPI_MINISTERO:
+        if rc.criterio != _CRITERIO_MSGID:
+            return f"collegata solo per {rc.criterio}, non per l'identificativo del messaggio di deposito (IdMsgMitt)"
+        ufficio = str(getattr(dep, "pec_destinatario", "") or "").strip().casefold()
+        esterni = _indirizzi(r.get("from"))
+        if not any(_ufficio_ammesso(a, ufficio) for a in esterni):
+            return "mittente diverso dall'ufficio del deposito o da un indirizzo ministeriale"
+        interni = [_indirizzi(m) for m in r.get("mittenti_interni") or [] if str(m or "").strip()]
+        if any(not any(_ufficio_ammesso(a, ufficio) for a in gruppo) for gruppo in interni):
+            return "messaggio interno (postacert.eml) non inviato dall'ufficio"
+        return ""
+    return "tipo di PEC non riconosciuto"
+
+
 def _data_ricevuta(ricevuta: dict) -> datetime | None:
     try:
         valore = parsedate_to_datetime(str(ricevuta.get("date") or ""))
@@ -359,6 +427,14 @@ def applica_ricevute(dep: Any, ricevute: Iterable[dict], *, adesso: datetime | N
     eventi: list[str] = []
     avvertenze: list[str] = []
     for rc in ricevute_del_deposito(dep, ricevute):
+        motivo = motivo_non_applicabile(rc, dep)
+        if motivo:
+            if rc.tipo in _TIPI_MINISTERO:
+                avvertenze.append(
+                    f"{ETICHETTA[rc.tipo]} da verificare, stato non modificato: {motivo} "
+                    f"(oggetto «{str(rc.ricevuta.get('subject') or '')[:120]}»)"
+                )
+            continue
         stato = str(getattr(dep, "stato", "") or "")
         prova = _prova(rc)
         if rc.tipo == ACCETTAZIONE:

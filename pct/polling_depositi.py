@@ -34,6 +34,7 @@ from pct.imap_runtime import (
 from pct.ricevute_deposito_pct import (
     INTESTAZIONI_IMAP,
     applica_ricevute,
+    mittenti_interni,
     ricevuta_da_intestazioni,
     serve_testo,
     testo_messaggio,
@@ -155,7 +156,9 @@ def _cerca_ricevute_imap(
                     b"",
                 )
                 if grezzo and len(grezzo) <= _ESITO_BYTES_MAX:
-                    ricevuta["testo"] = testo_messaggio(_email_lib.message_from_bytes(grezzo))
+                    completo = _email_lib.message_from_bytes(grezzo)
+                    ricevuta["testo"] = testo_messaggio(completo)
+                    ricevuta["mittenti_interni"] = mittenti_interni(completo)
             except (imaplib.IMAP4.error, ValueError):
                 continue
 

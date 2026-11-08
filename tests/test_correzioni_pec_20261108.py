@@ -275,3 +275,75 @@ def test_specifiche_dgsia_vigenti_e_testo_senza_marcatori():
     assert "Provvedimento DGSIA 7 agosto 2024 (in vigore dal 30/09/2024)" in sorgente
     testo = plain_markdown("||STUDIO LEGALE ROSSI||\n*Avv. Mario Rossi*\n| Data | Importo |\n|---|---:|\n| 12/03/2026 | 5*3 |")
     assert testo == "STUDIO LEGALE ROSSI\nAvv. Mario Rossi\nData  Importo\n12/03/2026  5*3"
+
+
+# ── 8. Chiusura delle udienze superate solo da fonte certificata ─────────────────────
+
+
+def _scadenziario_e_agenda(tmp_path):
+    from pct.agenda import Agenda, TipoAppuntamento
+    from pct.scadenziario import GestioneScadenziario, TipoTermine
+
+    agenda = Agenda(str(tmp_path / "agenda.json"))
+    gestione = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    vecchia = OGGI + timedelta(days=30)
+    appuntamento = agenda.aggiungi("Udienza di discussione - RG 731/2026", TipoAppuntamento.UDIENZA, f"{vecchia.isoformat()}T09:30:00",
+                                   allow_overlap=True, note="PEC_AUDIT:pec_fissazione\nFascicolo: F1", procedimento="RG 731/2026")
+    superata = gestione.nuova(titolo="Udienza di discussione - RG 731/2026", tipo=TipoTermine.UDIENZA, data_scadenza=vecchia.isoformat(),
+                              id_fascicolo="F1", note="PEC_AUDIT:pec_fissazione", id_appuntamento=appuntamento.id)
+    nuova = gestione.nuova(titolo="Rinvio udienza - RG 731/2026", tipo=TipoTermine.UDIENZA,
+                           data_scadenza=(OGGI + timedelta(days=120)).isoformat(), id_fascicolo="F1", note="PEC_AUDIT:pec_rinvio")
+    repo = SimpleNamespace(
+        scadenziario_db_path=tmp_path / "scadenze.json", agenda_db_path=tmp_path / "agenda.json",
+        _scadenziario_manager=lambda: GestioneScadenziario(str(tmp_path / "scadenze.json")),
+        _agenda_manager=lambda: Agenda(str(tmp_path / "agenda.json")),
+        _push_local_calendar_item=lambda *_a, **_k: {"ok": True},
+    )
+    return repo, superata, nuova, appuntamento
+
+
+def _chiudi(repo, nuova, profilo, *, proposta=None):
+    return pp.PecAuditRepository._close_superseded_hearings(
+        repo, new_deadline=nuova, proposal=proposta or {}, report={"procedural_profile": profilo},
+        title="Rinvio udienza - RG 731/2026", fascicolo_id="F1", origin="pec_rinvio", actor="pytest",
+    )
+
+
+def _profilo_rinvio(fonte_certa: bool) -> dict:
+    return {"fonte_certa": fonte_certa, "oggetto_evento": "RINVIO DI UDIENZA",
+            "descrizione_evento": f"UDIENZA RINVIATA AL {_it(OGGI + timedelta(days=120))}"}
+
+
+def test_rinvio_da_mittente_non_certificato_resta_proposta(tmp_path):
+    from pct.agenda import Agenda, StatoAppuntamento
+    from pct.scadenziario import GestioneScadenziario, StatoTermine
+
+    repo, superata, nuova, appuntamento = _scadenziario_e_agenda(tmp_path)
+    esito = _chiudi(repo, nuova, _profilo_rinvio(False))
+    assert esito["closed_deadline_ids"] == [] and esito["rescheduled_agenda_ids"] == []
+    assert esito["candidate_ids"] == [superata.id] and "Mittente non certificato" in esito["reason"]
+    gestione = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    assert gestione.get(superata.id).stato == StatoTermine.APERTO
+    assert "UDIENZA_DA_VERIFICARE:pec_rinvio" in gestione.get(nuova.id).note
+    assert Agenda(str(tmp_path / "agenda.json")).get(appuntamento.id).stato == StatoAppuntamento.PROGRAMMATO
+    # anche quando la fonte non certa è dichiarata nella proposta
+    assert _chiudi(repo, nuova, {"oggetto_evento": "RINVIO DI UDIENZA"}, proposta={"fonte_non_certa": True})["closed_deadline_ids"] == []
+
+
+def test_rinvio_letto_solo_nel_titolo_resta_proposta(tmp_path):
+    repo, superata, nuova, _ = _scadenziario_e_agenda(tmp_path)
+    esito = _chiudi(repo, nuova, {})
+    assert esito["closed_deadline_ids"] == [] and esito["candidate_ids"] == [superata.id]
+    assert "titolo o nel testo libero" in esito["reason"]
+
+
+def test_rinvio_dalla_comunicazione_certificata_chiude_con_traccia(tmp_path):
+    from pct.agenda import Agenda, StatoAppuntamento
+    from pct.scadenziario import GestioneScadenziario, StatoTermine
+
+    repo, superata, nuova, appuntamento = _scadenziario_e_agenda(tmp_path)
+    esito = _chiudi(repo, nuova, _profilo_rinvio(True))
+    assert esito["closed_deadline_ids"] == [superata.id] and esito["rescheduled_agenda_ids"] == [appuntamento.id]
+    chiusa = GestioneScadenziario(str(tmp_path / "scadenze.json")).get(superata.id)
+    assert chiusa.stato == StatoTermine.ANNULLATO and "UDIENZA_SUPERATA:pec_rinvio" in chiusa.note
+    assert Agenda(str(tmp_path / "agenda.json")).get(appuntamento.id).stato == StatoAppuntamento.RINVIATO

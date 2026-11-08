@@ -552,13 +552,17 @@ def _content_identity(
     # La parte che dichiara di costituirsi («l'Amministrazione resistente si costituisce depositando
     # l'odierna MEMORIA DIFENSIVA ex art. 416 c.p.c.») scrive un atto difensivo: il decreto citato poco
     # prima è quello notificato con il ricorso (artt. 415-416 c.p.c.; art. 167 c.p.c.).
+    # Vale solo quando l'intestazione cita il decreto: la dichiarazione di costituzione sta di solito dopo
+    # epigrafe e parti, quindi si cerca nelle prime pagine (6.000 caratteri).
+    cita_decreto = re.search(r"\bdecreto\s+di\s+fissazione\s+(?:dell(?:['\u2019]|\s+)?)?udienza\b", zona_titolo)
+    zona_costituzione = _normalise(raw[:6000]) if cita_decreto else ""
     costituzione = re.search(
         r"\bsi costituisc\w*\b.{0,120}?\b(memoria difensiva|comparsa di costituzione|comparsa di risposta)\b",
-        zona_titolo,
+        zona_costituzione,
     )
     if costituzione:
         memoria = costituzione.group(1) == "memoria difensiva"
-        rito_lavoro = bool(memoria and re.search(r"\bart \d*\s*416\b|\b416 c p c\b", zona_titolo))
+        rito_lavoro = bool(memoria and re.search(r"\bart \d*\s*416\b|\b416 c p c\b", zona_costituzione))
         if memoria:
             etichetta = "Memoria difensiva ex art. 416 c.p.c." if rito_lavoro else "Memoria difensiva"
         else:
@@ -578,7 +582,7 @@ def _content_identity(
             ),
             fonte="normattiva_cpc_rito_lavoro" if rito_lavoro else ("normattiva_cpc" if memoria else "cpc_art_167_comparsa"),
         )
-    if re.search(r"\bdecreto\s+di\s+fissazione\s+(?:dell(?:['\u2019]|\s+)?)?udienza\b", zona_titolo) and not re.search(
+    if cita_decreto and not re.search(
         r"\bpedissequ\w*\s+decreto\s+di\s+fissazione\b|\bunitamente\s+al\s+decreto\s+di\s+fissazione\b",
         zona_titolo,
     ):

@@ -17539,21 +17539,34 @@ class PecAuditRepository:
         Anticipazione, rinvio o revoca letti nel provvedimento, oppure note in sostituzione dell'udienza
         (art. 127-ter c.p.c.). Solo voci automatiche dello stesso fascicolo; l'impegno d'agenda collegato
         passa a «rinviato» salvo che l'udienza resti come data delle note. Mai bloccante, mai silenzioso.
+
+        Chiude da sola solo se il cambio è scritto dalla cancelleria nell'evento certificato (Comunicazione.xml:
+        oggetto e descrizione dell'evento) di una PEC da un ufficio giudiziario. Da un mittente non certificato,
+        o se il cambio si legge solo nel titolo o nel testo libero (documenti del fascicolo, corpo del
+        messaggio), le voci che sarebbero superate restano aperte e si propongono all'avvocato
+        (``candidate_ids`` e riga ``UDIENZA_DA_VERIFICARE`` nella nuova voce): un testo che chiunque può
+        scrivere non annulla udienze (stessa regola di ``build_deadline_proposal``).
         """
+        from pct.udienze_superate import ETICHETTE as ETICHETTE_CAMBIO
         from pct.udienze_superate import NOTE_127_TER, cambio_da_testo, riga_traccia, udienze_superate
 
-        result: dict[str, Any] = {"closed_deadline_ids": [], "rescheduled_agenda_ids": [], "reason": ""}
+        result: dict[str, Any] = {"closed_deadline_ids": [], "rescheduled_agenda_ids": [], "candidate_ids": [], "reason": ""}
         if not fascicolo_id or not self.scadenziario_db_path:
             return result
         new_id = clean_text(getattr(new_deadline, "id", "") or "", 120)
         tipo = str(getattr(getattr(new_deadline, "tipo", ""), "value", getattr(new_deadline, "tipo", "")) or "").upper()
         profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
         candidate = proposal.get("detected_procedural_date") if isinstance(proposal.get("detected_procedural_date"), dict) else {}
+        # Mittente certificato: un ufficio giudiziario (pct.pec_profilo_ufficio, chiave «fonte_certa» del profilo).
+        mittente_non_certo = bool(proposal.get("fonte_non_certa")) or ("fonte_certa" in profile and not profile.get("fonte_certa"))
+        evento_certificato = cambio_da_testo(profile.get("oggetto_evento"), profile.get("descrizione_evento"))
         if proposal.get("note_127_ter"):
             cambio = NOTE_127_TER
+            certo = evento_note_127_ter(profile)
             new_day = _date_from_iso_or_it(str(proposal.get("udienza_sostituita") or proposal.get("due_date") or ""))
         elif tipo == "UDIENZA":
-            cambio = cambio_da_testo(title, profile.get("oggetto_evento"), profile.get("descrizione_evento"), candidate.get("context"))
+            cambio = evento_certificato or cambio_da_testo(title, candidate.get("context"))
+            certo = bool(evento_certificato)
             new_day = _date_from_iso_or_it(str(getattr(new_deadline, "data_scadenza", "") or ""))
         else:
             return result
@@ -17568,6 +17581,23 @@ class PecAuditRepository:
                 oggi=datetime.now(ROME_TZ).date(), escludi={new_id},
             )
             result["reason"] = esito.motivo
+            if mittente_non_certo or not certo:
+                # Proposta, non chiusura: le voci restano aperte e la nuova voce dice quali verificare.
+                result["candidate_ids"] = [str(getattr(voce, "id", "") or "") for voce in esito.voci]
+                result["reason"] = (
+                    "Mittente non certificato: le udienze superate vanno confermate dall'avvocato."
+                    if mittente_non_certo
+                    else "Cambio d'udienza letto solo nel titolo o nel testo libero: le udienze superate vanno confermate dall'avvocato."
+                ) + (f" ({esito.motivo})" if esito.motivo else "")
+                if result["candidate_ids"] and new_id:
+                    riga = (
+                        f"UDIENZA_DA_VERIFICARE:{origin} Possibile udienza superata ({ETICHETTE_CAMBIO.get(cambio, cambio)}): "
+                        f"voci {', '.join(result['candidate_ids'])}. {result['reason']}"
+                    )
+                    nota = str(getattr(new_deadline, "note", "") or "")
+                    if riga not in nota:
+                        manager.aggiorna(new_id, note="\n".join(part for part in (nota.rstrip(), riga) if part))
+                return result
             line = riga_traccia(origine=origin, cambio=cambio, nuova_data=new_day, nuova_voce=new_id)
             agenda = self._agenda_manager() if self.agenda_db_path and cambio != NOTE_127_TER else None
             for voce in esito.voci:

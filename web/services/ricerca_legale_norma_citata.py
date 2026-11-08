@@ -92,12 +92,21 @@ def _comma_per_parole(righe: list[dict], parole: str) -> tuple[dict, str] | None
     return (migliore[2], migliore[3]) if migliore else None
 
 
+# Nell'archivio Normattiva i decreti ministeriali stanno quasi tutti sotto il tipo generico «DECRETO_»
+# (D.M. 55/2014: «DECRETO_20140310_55/...»; così D.M. 44/2011, 147/2022, 150/2023, 217/2023), pochi sotto
+# «DECRETO MINISTERIALE_»: si cercano entrambi, con la stessa regola di unicità (una sola data per numero e anno).
+_PREFISSI_ARCHIVIO: dict[str, tuple[str, ...]] = {"DECRETO MINISTERIALE": ("DECRETO MINISTERIALE", "DECRETO")}
+
+
 def _documento(conn: sqlite3.Connection, e: Mapping[str, str]) -> dict | None:
     conn.row_factory = sqlite3.Row
+    prefissi = _PREFISSI_ARCHIVIO.get(e["prefisso"], (e["prefisso"],))
+    filtro = " OR ".join("xml_entry LIKE ? ESCAPE '\\'" for _ in prefissi)
     righe = [dict(r) for r in conn.execute(
         "SELECT id, numero, data_atto, titolo, vigenza, xml_entry, zip_path FROM normative_documents "
-        "WHERE numero=? AND data_atto>=? AND data_atto<? AND xml_entry LIKE ? ESCAPE '\\'",
-        (e["numero"], f"{e['anno']}-01-01", f"{int(e['anno']) + 1}-01-01", e["prefisso"].replace("_", "\\_") + "\\_%"))]
+        f"WHERE numero=? AND data_atto>=? AND data_atto<? AND ({filtro})",
+        (e["numero"], f"{e['anno']}-01-01", f"{int(e['anno']) + 1}-01-01",
+         *(p.replace("_", "\\_") + "\\_%" for p in prefissi)))]
     if len({r["data_atto"] for r in righe}) != 1:
         return None  # nessun atto o atti diversi con lo stesso numero e anno: non si sceglie
     return max(righe, key=lambda r: ((r.get("vigenza") or "").upper() == "VIGENTE", _vigenza_file(r), r["id"]))

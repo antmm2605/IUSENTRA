@@ -341,7 +341,8 @@ def genera_xml_fattura_pa(
         # Agenzia delle Entrate); «P» riguarda i non residenti per l'uso di attrezzature.
         _el(dr, "CausalePagamento", "A")
 
-    if parcella.applica_bollo and parcella.bollo > 0:
+    # Bollo virtuale (art. 6 D.M. 17/06/2014): dovuto per legge o per scelta salvata sul documento.
+    if parcella.bollo > 0:
         db = _el(dgd, "DatiBollo")
         _el(db, "BolloVirtuale", "SI")
         _el(db, "ImportoBollo", f"{parcella.bollo:.2f}")
@@ -398,6 +399,19 @@ def genera_xml_fattura_pa(
             _el(dl_spese, "Natura", natura)
         line_number += 1
 
+    bollo_rivalsa = float(getattr(parcella, "bollo_addebitato", 0.0) or 0.0)
+    if bollo_rivalsa > 0:
+        # Rivalsa del bollo al cliente: somma esclusa dalla base IVA (art. 15 D.P.R. 633/1972).
+        dl_bollo = _el(dbs, "DettaglioLinee")
+        _el(dl_bollo, "NumeroLinea", str(line_number))
+        _el(dl_bollo, "Descrizione", "Rimborso imposta di bollo (art. 15 D.P.R. 633/1972)")
+        _el(dl_bollo, "Quantita", "1.00")
+        _el(dl_bollo, "PrezzoUnitario", f"{bollo_rivalsa:.8f}")
+        _el(dl_bollo, "PrezzoTotale", f"{bollo_rivalsa:.2f}")
+        _el(dl_bollo, "AliquotaIVA", "0.00")
+        _el(dl_bollo, "Natura", "N1")
+        line_number += 1
+
     dr_rie = _el(dbs, "DatiRiepilogo")
     _el(dr_rie, "AliquotaIVA", aliquota)
     if natura:
@@ -412,11 +426,12 @@ def genera_xml_fattura_pa(
     _el(dr_rie, "EsigibilitaIVA", _clean(document_snapshot.get("esigibilita_iva"), 1) or "I")
     if natura:
         _el(dr_rie, "RiferimentoNormativo", riferimento_normativo)
-    if parcella.totale_anticipazioni > 0:
+    escluse_art15 = round(parcella.totale_anticipazioni + bollo_rivalsa, 2)
+    if escluse_art15 > 0:
         dr_art15 = _el(dbs, "DatiRiepilogo")
         _el(dr_art15, "AliquotaIVA", "0.00")
         _el(dr_art15, "Natura", "N1")
-        _el(dr_art15, "ImponibileImporto", f"{parcella.totale_anticipazioni:.2f}")
+        _el(dr_art15, "ImponibileImporto", f"{escluse_art15:.2f}")
         _el(dr_art15, "Imposta", "0.00")
         _el(dr_art15, "RiferimentoNormativo", "Anticipazioni escluse ex art. 15 DPR 633/1972")
 

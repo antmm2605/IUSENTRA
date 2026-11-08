@@ -34,7 +34,7 @@ def test_sostituto_imposta_e_bollo():
     assert not e_sostituto_imposta("Rossi Mario", "RSSMRA80A01H501U")
     assert bollo_dovuto(iva_applicabile=False, importo_non_soggetto=77.48)
     assert not bollo_dovuto(iva_applicabile=False, importo_non_soggetto=77.47)
-    assert not bollo_dovuto(iva_applicabile=True, importo_non_soggetto=500)
+    assert not bollo_dovuto(iva_applicabile=True, importo_non_soggetto=500, esclusione="NB1 documento assicurativo")
 
 
 def genera_xml_fattura(parcella):
@@ -80,16 +80,41 @@ def test_proforma_da_sentenza_regime_forfetario_senza_iva_ritenuta_con_bollo(tmp
     assert proforma.regime_fiscale == "RF19"
     assert not proforma.iva_applicabile and not proforma.applica_ritenuta
     assert proforma.iva == 0 and proforma.ritenuta == 0
-    assert proforma.applica_bollo and proforma.bollo == 2.0
+    assert proforma.applica_bollo is None and proforma.bollo_applicato and proforma.bollo == 2.0
+    assert proforma.bollo_etichetta == "Imposta di bollo (da applicare in fattura)"
     xml = genera_xml_fattura(proforma)
     assert b"<Natura>N2.2</Natura>" in xml and b"<BolloVirtuale>SI</BolloVirtuale>" in xml
 
 
-def test_bollo_esplicitamente_escluso_resta_escluso(tmp_path: Path):
+def test_bollo_secondo_la_legge_e_scelta_esplicita(tmp_path: Path):
+    """None = regola di legge; True/False già salvati sul documento restano prevalenti."""
+    from pct.fatturazione_regime import scelta_bollo
+
     manager = GestioneFatturazione(str(tmp_path / "p.json"))
-    voci = [VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=300)]
-    proposto = manager.crea(id_cliente="c1", voci=voci, applica_iva=False, applica_bollo=None)
-    predefinito = manager.crea(id_cliente="c1", voci=voci, applica_iva=False)
-    assert not predefinito.applica_bollo  # i chiamanti esistenti decidono in modo esplicito
-    escluso = manager.crea(id_cliente="c1", voci=voci, applica_iva=False, applica_bollo=False)
-    assert proposto.applica_bollo and not escluso.applica_bollo
+    sopra = [VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=300)]
+    sotto = [VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=50)]
+    assert manager.crea(id_cliente="c1", voci=sopra, applica_iva=False).bollo == 2.0
+    assert manager.crea(id_cliente="c1", voci=sotto, applica_iva=False, applica_cassa=False).bollo == 0.0
+    assert manager.crea(id_cliente="c1", voci=sopra, applica_iva=True).bollo == 0.0  # IVA su tutto
+    assert manager.crea(id_cliente="c1", voci=sopra, applica_iva=False, applica_bollo=False).bollo == 0.0
+    mista = manager.crea(id_cliente="c1", applica_iva=True, voci=sopra + [
+        VoceParcella(descrizione="Contributo unificato anticipato", quantita=1, prezzo_unitario=98, tipo="ANTICIPO")])
+    assert mista.importo_non_soggetto_iva == 98.0 and mista.bollo == 2.0  # conta solo la parte senza IVA
+    studio = manager.crea(id_cliente="c1", voci=sopra, applica_iva=False,
+                          dati_personalizzati={"document": {"bollo_a_carico_studio": True}})
+    assert studio.bollo == 2.0 and studio.bollo_addebitato == 0.0
+    escluso = manager.crea(id_cliente="c1", voci=sopra, applica_iva=False,
+                           dati_personalizzati={"document": {"esclusione_bollo": "NB2"}})
+    assert escluso.bollo == 0.0
+    assert scelta_bollo(True, None) is True and scelta_bollo(False, None) is None
+    assert scelta_bollo(False, False) is False
+
+
+def test_fatturapa_bollo_virtuale_e_riga_di_rivalsa(tmp_path: Path):
+    manager = GestioneFatturazione(str(tmp_path / "p.json"))
+    fattura = manager.crea(id_cliente="c1", voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=300)],
+                           applica_iva=False, dati_personalizzati={"document": {"regime_fiscale": "RF19"}})
+    xml = genera_xml_fattura(fattura)
+    assert b"<BolloVirtuale>SI</BolloVirtuale>" in xml and b"<ImportoBollo>2.00</ImportoBollo>" in xml
+    assert b"Rimborso imposta di bollo" in xml
+    assert f"<ImportoTotaleDocumento>{fattura.totale_documento:.2f}</ImportoTotaleDocumento>".encode() in xml

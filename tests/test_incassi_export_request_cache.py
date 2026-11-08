@@ -44,7 +44,8 @@ class CassaRequestCacheTests(unittest.TestCase):
                 self.assertEqual(self.invoice().totale, 1268.8)
                 self.assertEqual(self.invoice(applica_ritenuta=True).totale, 1068.8)
                 self.assertEqual(self.invoice(applica_cassa=False).totale, 1220)
-                self.assertEqual(self.invoice(2025, applica_iva=False).totale, 1040)
+                # senza IVA oltre € 77,47 il bollo è dovuto per legge (art. 13 Tariffa all. A D.P.R. 642/1972)
+                self.assertEqual(self.invoice(2025, applica_iva=False).totale, 1042)
                 self.assertEqual(factory.call_count, 1)
                 self.assertIn(unittest.mock.call(2025), manager.cassa_forense_aliquota_integrativa.call_args_list)
             with app.test_request_context("/fatturazione"):

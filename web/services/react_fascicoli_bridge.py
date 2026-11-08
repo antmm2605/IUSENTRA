@@ -4494,7 +4494,7 @@ def _parcella_amount(parcella: Any) -> float:
         aliquota_iva = 22.0
     base_iva = round(imponibile + cassa, 2)
     iva = round(base_iva * (aliquota_iva / 100.0), 2) if iva_applicabile else 0.0
-    bollo = 2.0 if bool(getattr(parcella, "applica_bollo", False)) else 0.0
+    bollo = float(getattr(parcella, "bollo", 2.0 if bool(getattr(parcella, "applica_bollo", False)) else 0.0) or 0.0)
     ritenuta_base = round(competenze + spese_generali, 2)
     ritenuta = round(ritenuta_base * 0.20, 2) if bool(getattr(parcella, "applica_ritenuta", False)) else 0.0
     return round(base_iva + iva + bollo + anticipazioni - ritenuta, 2)
@@ -4967,7 +4967,7 @@ def _create_review_proforma_from_fascicolo_amount(
         applica_iva=False,
         applica_cassa=False,
         applica_ritenuta=False,
-        applica_bollo=False,
+        applica_bollo=None,  # regola di legge (art. 13 Tariffa all. A D.P.R. 642/1972)
         percentuale_spese_generali=0.0,
         note=(
             "Bozza proforma generata automaticamente dal presidio economico; importo totale indicativo "

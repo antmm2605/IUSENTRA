@@ -231,8 +231,11 @@ def test_parcella_forfettaria_non_calcola_iva_anche_se_opzione_attiva(tmp_path: 
     assert parcella.iva_applicabile is False
     assert parcella.base_iva == 308.57
     assert parcella.iva == 0.0
-    assert parcella.totale_documento == 308.57
-    assert parcella.totale == 308.57
+    # Senza IVA oltre € 77,47 il bollo di € 2 è dovuto per legge (art. 13 Tariffa all. A
+    # D.P.R. 642/1972): il vecchio totale 308,57 lo ometteva.
+    assert parcella.bollo_dovuto and parcella.bollo == 2.0
+    assert parcella.totale_documento == 310.57
+    assert parcella.totale == 310.57
 
 
 def test_parcella_sqlite_aggiorna_singolo_record_senza_full_replace(tmp_path: Path):

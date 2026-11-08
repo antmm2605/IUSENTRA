@@ -29,6 +29,7 @@ class Database:
             voci=[VoceParcella(descrizione="Controlled", quantita=1, prezzo_unitario=amount)],
             applica_iva=False,
             applica_cassa=False,
+            applica_bollo=False,  # scelta esplicita: i test misurano gli incassi, non il bollo
             stato=StatoParcella(state),
             data_pagamento=paid_date,
         )

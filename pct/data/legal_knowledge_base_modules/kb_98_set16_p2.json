@@ -528,8 +528,8 @@
       "codice": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
       "denominazione": "Liquidazione giudiziale del compenso del professionista (art. 14 D.Lgs. 150/2011)",
       "categoria": "Contratti – professioni – recupero compensi",
-      "rito": "Procedimento sommario di cognizione ex art. 14 D.Lgs. 150/2011 davanti al Tribunale",
-      "competenza": "Tribunale del luogo in cui è stato eseguito il rapporto di lavoro autonomo",
+      "rito": "Rito semplificato di cognizione (artt. 281-decies ss. c.p.c.) ex art. 14 D.Lgs. 150/2011, come modificato dal D.Lgs. 149/2022 per i procedimenti instaurati dopo il 28 febbraio 2023 (art. 35, comma 1, D.Lgs. 149/2022, come modificato dalla L. 197/2022); il tribunale decide in composizione monocratica",
+      "competenza": "Ufficio giudiziario di merito adito per il processo nel quale l'avvocato ha prestato la propria opera (art. 14, comma 2, D.Lgs. 150/2011)",
       "uffici_destinatari": [
         "SIVG"
       ],
@@ -537,7 +537,12 @@
         {
           "fonte": "D.Lgs. 150/2011",
           "articolo": "14",
-          "descrizione": "Liquidazione delle spese di giudizio e dei compensi degli ausiliari del giudice + professionisti"
+          "descrizione": "Controversie dell'art. 28 L. 794/1942 e opposizione ex art. 645 c.p.c. al decreto ingiuntivo per onorari, diritti o spese dell'avvocato per prestazioni giudiziali: rito semplificato di cognizione; sentenza non appellabile"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "15",
+          "descrizione": "Compensi degli ausiliari del giudice (CTU): opposizione al decreto di pagamento ex art. 170 D.P.R. 115/2002, rito semplificato – non l'art. 14"
         },
         {
           "fonte": "c.c.",
@@ -551,16 +556,12 @@
         },
         {
           "fonte": "c.p.c.",
-          "articolo": "702-bis e ss.",
-          "descrizione": "Procedimento sommario di cognizione"
+          "articolo": "281-decies e ss.",
+          "descrizione": "Procedimento semplificato di cognizione (il procedimento sommario degli artt. 702-bis ss. è abrogato dal D.Lgs. 149/2022)"
         },
         {
           "fonte": "D.M. 55/2014 (aggiornato D.M. 147/2022)",
           "descrizione": "Parametri per la liquidazione dei compensi degli avvocati"
-        },
-        {
-          "fonte": "D.M. 140/2012",
-          "descrizione": "Parametri per professionisti diversi dagli avvocati"
         },
         {
           "fonte": "L. 247/2012 (Ord. Forense)",
@@ -569,10 +570,12 @@
         }
       ],
       "procedimento_14_D_Lgs_150_2011": {
-        "ambito": "Liquidazione dei compensi degli ausiliari del giudice (CTU, CTP) e dei professionisti",
-        "competenza": "Tribunale in composizione monocratica",
-        "forma_atto": "Ricorso + decreto ingiuntivo oppure procedimento sommario",
-        "alternativa": "Decreto ingiuntivo ordinario ex art. 633 c.p.c. se c'è una nota spese"
+        "ambito": "Compensi dell'avvocato per prestazioni giudiziali (art. 28 L. 794/1942) e opposizione al decreto ingiuntivo che li riguarda; non i professionisti diversi né gli ausiliari del giudice (per questi art. 15 D.Lgs. 150/2011)",
+        "competenza": "Ufficio giudiziario di merito del processo in cui l'avvocato ha prestato l'opera; tribunale in composizione monocratica (art. 14, comma 2)",
+        "forma_atto": "Ricorso nelle forme del procedimento semplificato (art. 281-undecies c.p.c.), oppure ricorso per decreto ingiuntivo",
+        "difesa_personale": "Nel giudizio di merito le parti possono stare in giudizio personalmente (art. 14, comma 3)",
+        "impugnazione": "La sentenza non è appellabile (art. 14, comma 4): resta il ricorso per cassazione",
+        "alternativa": "Decreto ingiuntivo ex art. 633 c.p.c. con parcella; l'opposizione segue l'art. 14"
       },
       "tariffe_e_parametri": {
         "avvocati_DM_55_2014_aggiornato_DM_147_2022": "Parametri ministeriali per fasi processuali",
@@ -597,7 +600,7 @@
         },
         {
           "step": 4,
-          "descrizione": "Scegliere tra ricorso ex art. 14 D.Lgs. 150/2011 o decreto ingiuntivo ordinario"
+          "descrizione": "Scegliere tra ricorso ex art. 14 D.Lgs. 150/2011 (rito semplificato) o decreto ingiuntivo; per prestazioni stragiudiziali o professionisti diversi dagli avvocati l'art. 14 non si applica"
         }
       ],
       "atto_principale": {
@@ -618,12 +621,7 @@
                 "id": "categoria",
                 "type": "select",
                 "options": [
-                  "avvocato",
-                  "ingegnere",
-                  "architetto",
-                  "commercialista_revisore",
-                  "CTU_ausiliario_giudice",
-                  "altro_professionista"
+                  "avvocato"
                 ]
               }
             ]
@@ -696,7 +694,10 @@
         "avvertimenti_obbligatori": [
           "Avvocati: accordo scritto sul compenso obbligatorio ex L. 247/2012 (altrimenti parametri D.M.)",
           "Cass. SU 19873/2022: in assenza accordo → parametri D.M. 55/2014 aggiornato D.M. 147/2022",
-          "Alternativa: decreto ingiuntivo ordinario ex 633 c.p.c. con nota spese"
+          "Alternativa: decreto ingiuntivo ordinario ex 633 c.p.c. con nota spese",
+          "Rito semplificato di cognizione (artt. 281-decies ss. c.p.c.): il rito sommario ex art. 702-bis c.p.c. è abrogato",
+          "Sentenza non appellabile (art. 14, comma 4, D.Lgs. 150/2011)",
+          "Solo avvocati per prestazioni giudiziali: CTU e ausiliari seguono l'art. 15 D.Lgs. 150/2011"
         ]
       },
       "allegati_obbligatori": [
@@ -764,6 +765,33 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "413090"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 1 settembre 2011, n. 150, art. 14",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art14",
+          "ambito": "liquidazione degli onorari e dei diritti di avvocato: rito semplificato",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 1 settembre 2011, n. 150, art. 15",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art15",
+          "ambito": "opposizione al decreto di pagamento di spese di giustizia (ausiliari del giudice)",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rito sommario ex art. 702-bis c.p.c. (abrogato) sostituito dal rito semplificato richiamato dall'art. 14 D.Lgs. 150/2011 vigente; ambito limitato ai compensi dell'avvocato per prestazioni giudiziali; competenza, monocraticità e non appellabilità dal testo vigente.",
+          "fonti": [
+            "art. 14 D.Lgs. 150/2011",
+            "art. 15 D.Lgs. 150/2011",
+            "art. 281-decies c.p.c."
+          ]
         }
       ]
     },

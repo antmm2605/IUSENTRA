@@ -621,7 +621,7 @@
     },
     {
       "codice": "GUIDA_INSINUAZIONE_TARDIVA_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_E_OPPOSIZI_500015",
-      "denominazione": "Insinuazione tardiva al passivo nella liquidazione giudiziale e opposizione allo stato passivo (artt. 204-212 D.Lgs. 14/2019 CCII)",
+      "denominazione": "Insinuazione tardiva al passivo nella liquidazione giudiziale e opposizione allo stato passivo (artt. 201-208 D.Lgs. 14/2019 CCII)",
       "categoria": "Procedure concorsuali – stato passivo",
       "rito": "Procedimento camerale davanti al GD (Giudice Delegato)",
       "competenza": "Tribunale delle Imprese – GD della procedura",
@@ -632,49 +632,55 @@
         {
           "fonte": "CCII",
           "articolo": "201",
-          "descrizione": "Domanda di insinuazione al passivo – il creditore presenta domanda al curatore"
+          "descrizione": "Domanda di ammissione al passivo: ricorso trasmesso al curatore almeno trenta giorni prima dell'udienza fissata per l'esame dello stato passivo"
         },
         {
           "fonte": "CCII",
-          "articolo": "202",
-          "descrizione": "Termine per la presentazione – 30 gg prima dell'udienza di verifica"
+          "articolo": "203",
+          "descrizione": "Progetto di stato passivo del curatore e udienza di discussione"
         },
         {
           "fonte": "CCII",
           "articolo": "204",
-          "descrizione": "DOMANDA TARDIVA – presentata dopo il termine; ammessa nei 12 mesi dall'udienza"
+          "descrizione": "Formazione ed esecutività dello stato passivo: decreto del giudice delegato"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "205",
+          "descrizione": "Comunicazione dell'esito dell'accertamento del passivo da parte del curatore"
         },
         {
           "fonte": "CCII",
           "articolo": "206",
-          "descrizione": "ADUNANZA DI VERIFICA – il GD esamina le domande"
+          "descrizione": "Impugnazioni del decreto che rende esecutivo lo stato passivo: opposizione, impugnazione dei crediti ammessi, revocazione"
         },
         {
           "fonte": "CCII",
           "articolo": "207",
-          "descrizione": "OPPOSIZIONE allo stato passivo – entro 30 gg dalla comunicazione"
+          "descrizione": "Procedimento: ricorso entro il termine perentorio di trenta giorni dalla comunicazione dell'art. 205; decide il collegio con decreto, ricorribile per cassazione entro trenta giorni"
         },
         {
           "fonte": "CCII",
-          "articolo": "212",
-          "descrizione": "RECLAMO – avverso le decisioni sull'opposizione al Tribunale"
+          "articolo": "208",
+          "descrizione": "DOMANDE TARDIVE: oltre il termine dell'art. 201 e non oltre sei mesi dal deposito del decreto di esecutività dello stato passivo (prorogabile fino a dodici mesi dal tribunale, con la sentenza di apertura, nelle procedure di particolare complessità); dopo, solo per causa non imputabile, entro sessanta giorni dalla sua cessazione"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "225",
+          "descrizione": "I creditori ammessi tardivamente concorrono soltanto alle ripartizioni posteriori alla loro ammissione, salvo i prelievi per prelazione o ritardo non imputabile"
         }
       ],
       "opposizione_stato_passivo_207": {
-        "chi": "Il creditore escluso o ammesso con riserva può proporre opposizione",
-        "termine": "30 GG dalla comunicazione dello stato passivo",
-        "chi_decide": "Il GD decide sull'opposizione – poi reclamo al Collegio"
-      },
-      "insinuazione_tardiva_204": {
-        "termine_massimo": "Entro 12 mesi dall'udienza di verifica (o 18 mesi per crediti non ancora esigibili)",
-        "effetto": "Il creditore tardivo partecipa alle distribuzioni solo per le quote residue"
+        "chi": "Il creditore o il titolare di diritti la cui domanda è stata respinta o accolta in parte (art. 206, comma 2)",
+        "termine": "30 giorni dalla comunicazione dell'esito ex art. 205 CCII – perentorio (art. 207, comma 1)",
+        "chi_decide": "Il tribunale in composizione collegiale, senza il giudice delegato, con decreto motivato; contro il decreto ricorso per cassazione entro 30 giorni dalla comunicazione (art. 207, commi 12-14)"
       },
       "obbligo_mediazione": {
         "obbligatoria": false
       },
       "atto_principale": {
-        "tipo_atto": "opposizione_stato_passivo_207_o_insinuazione_tardiva_204",
-        "denominazione": "Opposizione allo stato passivo o domanda di insinuazione tardiva ex artt. 204-212 CCII",
+        "tipo_atto": "opposizione_stato_passivo_207_o_insinuazione_tardiva_208",
+        "denominazione": "Opposizione allo stato passivo (artt. 206-207 CCII) o domanda di insinuazione tardiva (art. 208 CCII)",
         "campi_chiave": [
           {
             "id": "tribunale_imprese_GD"
@@ -690,8 +696,8 @@
             "type": "select",
             "options": [
               "opposizione_stato_passivo_207",
-              "insinuazione_tardiva_204",
-              "reclamo_212"
+              "insinuazione_tardiva_208",
+              "insinuazione_ultratardiva_208_comma_3"
             ]
           },
           {
@@ -718,9 +724,10 @@
           }
         ],
         "avvertimenti_obbligatori": [
-          "Opposizione: 30 GG dalla comunicazione – DECADENZIALE",
-          "Insinuazione tardiva: entro 12 MESI dall'udienza di verifica",
-          "Tardiva: partecipa solo alle quote residue non ancora distribuite"
+          "Opposizione: 30 GG dalla comunicazione dell'esito ex art. 205 CCII – PERENTORIO (art. 207)",
+          "Insinuazione tardiva: entro 6 MESI dal deposito del decreto di esecutività dello stato passivo (fino a 12 se prorogato dal tribunale) – art. 208, comma 1",
+          "Oltre il termine: domanda ammissibile solo per causa non imputabile, entro 60 giorni dalla sua cessazione (art. 208, comma 3)",
+          "Tardiva: concorre soltanto alle ripartizioni posteriori all'ammissione (art. 225 CCII)"
         ]
       },
       "allegati_obbligatori": [
@@ -736,13 +743,25 @@
       },
       "termini_processuali": [
         {
-          "termine": "Opposizione",
+          "termine": "Opposizione allo stato passivo",
           "giorni": 30,
-          "natura": "DECADENZIALE"
+          "decorrenza": "comunicazione dell'esito ex art. 205 CCII",
+          "natura": "perentorio",
+          "norma": "art. 207, comma 1, D.Lgs. 14/2019"
         },
         {
           "termine": "Insinuazione tardiva",
-          "mesi": 12
+          "mesi": 6,
+          "decorrenza": "deposito del decreto di esecutività dello stato passivo (prorogabile fino a 12 mesi dal tribunale con la sentenza di apertura)",
+          "natura": "decadenziale",
+          "norma": "art. 208, comma 1, D.Lgs. 14/2019"
+        },
+        {
+          "termine": "Domanda ultratardiva",
+          "giorni": 60,
+          "decorrenza": "cessazione della causa non imputabile che ha impedito il deposito tempestivo",
+          "natura": "decadenziale",
+          "norma": "art. 208, comma 3, D.Lgs. 14/2019"
         }
       ],
       "codice_originale_ricevuto": "500015",
@@ -1112,6 +1131,30 @@
           "verificato_il": "2026-06-06",
           "metodo": "ricerca web su fonte ufficiale",
           "matched_by": "societario e registro imprese"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 12 gennaio 2019, n. 14, artt. 201-208 e 225 (CCII)",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art208",
+          "ambito": "accertamento del passivo, impugnazioni e domande tardive",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "insinuazione_tardiva_208": {
+        "termine_massimo": "Non oltre sei mesi dal deposito del decreto di esecutività dello stato passivo; il tribunale può prorogarlo fino a dodici mesi con la sentenza che apre la liquidazione giudiziale (art. 208, comma 1)",
+        "ultratardiva": "Dopo il termine, e fino all'esaurimento delle ripartizioni, solo se il ritardo è dipeso da causa non imputabile e la domanda è trasmessa entro sessanta giorni dalla cessazione della causa (art. 208, comma 3)",
+        "effetto": "Il creditore tardivo concorre soltanto alle ripartizioni posteriori alla sua ammissione, salvo i prelievi dell'art. 225 CCII"
+      },
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Termine della tardiva corretto da 12 mesi dall'udienza a 6 mesi dal deposito del decreto di esecutività (art. 208 CCII); articoli 204/212 riallineati (impugnazioni artt. 206-207, decisione del collegio e ricorso per cassazione).",
+          "fonti": [
+            "art. 207 D.Lgs. 14/2019",
+            "art. 208 D.Lgs. 14/2019",
+            "art. 225 D.Lgs. 14/2019"
+          ]
         }
       ]
     },

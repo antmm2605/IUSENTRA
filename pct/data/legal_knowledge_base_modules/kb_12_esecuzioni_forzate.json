@@ -313,13 +313,13 @@
         {"id": "precetto_notificato", "label": "Precetto notificato con relata", "required": true},
         {"id": "nota_trascrizione_pignoramento", "label": "Nota trascrizione pignoramento presso Conservatoria", "required": true},
         {"id": "estratto_catastale", "label": "Estratto catastale aggiornato", "required": true},
-        {"id": "documentazione_ipocatastale_art_567", "label": "Documentazione ipotecaria e catastale ex art. 567 c.p.c. (entro 60 gg da istanza vendita): atto di provenienza ventennale + ispezione ipotecaria ventennale + visure aggiornate + certificato destinazione urbanistica + APE", "required": true}
+        {"id": "documentazione_ipocatastale_art_567", "label": "Documentazione ipotecaria e catastale ex art. 567 c.p.c. (entro il termine dell'art. 497 c.p.c., 45 gg dal pignoramento, prorogabile una volta di non oltre 45 gg): atto di provenienza ventennale + ispezione ipotecaria ventennale + visure aggiornate + certificato destinazione urbanistica + APE", "required": true}
       ],
       "termini_processuali": [
         {"termine": "Trascrizione del pignoramento", "giorni": 15, "decorrenza": "consegna ai destinatari", "natura": "perentorio", "norma": "art. 555 c. 3 c.p.c."},
         {"termine": "Iscrizione a ruolo", "giorni": 15, "decorrenza": "restituzione titolo esecutivo trascritto al creditore", "natura": "decadenziale", "norma": "art. 557 c.p.c."},
-        {"termine": "Istanza di vendita", "giorni": 45, "decorrenza": "trascrizione pignoramento", "natura": "perentorio (con possibilità sospensione)", "norma": "art. 497 c.p.c."},
-        {"termine": "Documentazione ipocatastale ex art. 567", "giorni": 60, "decorrenza": "istanza vendita", "natura": "perentorio (prorogabile 120 gg)", "norma": "art. 567 c. 2 c.p.c."}
+        {"termine": "Istanza di vendita", "giorni": 45, "decorrenza": "compimento del pignoramento", "natura": "a pena di inefficacia del pignoramento", "norma": "art. 497 c.p.c."},
+        {"termine": "Documentazione ipocatastale ex art. 567", "giorni": 45, "decorrenza": "compimento del pignoramento (termine dell'art. 497 c.p.c.)", "natura": "prorogabile una sola volta, per giusti motivi, di non oltre 45 giorni; altrimenti inefficacia del pignoramento", "norma": "art. 567, commi 2 e 3, c.p.c.", "fonte_verifica": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art567", "verified_on": "2026-11-08"}
       ]
     },
     {

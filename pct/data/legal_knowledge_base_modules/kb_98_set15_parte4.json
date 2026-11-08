@@ -331,7 +331,8 @@
       },
       "obbligo_mediazione": {
         "obbligatoria": false,
-        "ma": "Reclamo/mediazione obbligatoria ex art. 17-bis D.Lgs. 546/1992 per valore fino a €50.000"
+        "nota": "Il reclamo-mediazione dell'art. 17-bis D.Lgs. 546/1992 è stato abrogato dall'art. 2, comma 3, lett. a), D.Lgs. 220/2023 a decorrere dalla sua entrata in vigore (4 gennaio 2024): oggi il ricorso non è preceduto dal reclamo",
+        "fonte": "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
       },
       "adempimenti_propedeutici": [
         {
@@ -461,7 +462,7 @@
           "TERMINE 60 GG dalla notifica – DECADENZIALE",
           "Per crediti fiscali: Corte di Giustizia Tributaria (non Tribunale ordinario)",
           "Per crediti INPS/INAIL: GdP o Tribunale ordinario",
-          "Reclamo/mediazione obbligatoria per valori ≤ €50.000 (art. 17-bis D.Lgs. 546/1992)",
+          "Reclamo/mediazione art. 17-bis D.Lgs. 546/1992 ABROGATO dal 4 gennaio 2024 (art. 2, comma 3, lett. a), D.Lgs. 220/2023): non va proposto",
           "Sospensione: richiedere contestualmente al ricorso per bloccare l'esecuzione",
           "Prescrizione tributi periodici: 5 anni (non 10)"
         ]
@@ -533,6 +534,24 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "512005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a)",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2023-12-30;220~art2",
+          "ambito": "abrogazione del reclamo-mediazione tributario",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rimosso il reclamo-mediazione obbligatorio fino a 50.000 euro: art. 17-bis D.Lgs. 546/1992 abrogato dal D.Lgs. 220/2023.",
+          "fonti": [
+            "art. 17-bis D.Lgs. 546/1992 (abrogato)",
+            "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
+          ]
         }
       ]
     },

@@ -642,7 +642,7 @@
       "codice": "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
       "denominazione": "Impugnazione della sanzione accessoria (sospensione patente, confisca, ecc.) – art. 204-bis C.d.S.",
       "categoria": "Diritto amministrativo – sanzioni accessorie – C.d.S.",
-      "rito": "Rito sommario ex art. 7 D.Lgs. 150/2011 davanti al GdP o al Tribunale",
+      "rito": "Rito del lavoro (art. 7 D.Lgs. 150/2011 per l'opposizione al verbale; art. 6 per l'opposizione all'ordinanza-ingiunzione)",
       "competenza": "GdP del luogo della commessa violazione (patente); Tribunale per sanzioni oltre la competenza del GdP",
       "uffici_destinatari": [
         "SICID"
@@ -671,7 +671,7 @@
         {
           "fonte": "D.Lgs. 150/2011",
           "articolo": "7",
-          "descrizione": "Rito sommario per le opposizioni alle sanzioni amministrative"
+          "descrizione": "Opposizione al verbale di accertamento del codice della strada: rito del lavoro, davanti al giudice di pace, ricorso entro 30 giorni"
         }
       ],
       "sanzioni_accessorie_contestabili": {
@@ -784,7 +784,7 @@
         "avvertimenti_obbligatori": [
           "TERMINE 30 GG dalla notifica del verbale – DECADENZIALE",
           "Confisca e terzo proprietario: se il veicolo è di un terzo estraneo alla violazione – confisca illegittima",
-          "Rito sommario ex D.Lgs. 150/2011 art. 7"
+          "Rito del lavoro ex art. 7, comma 1, D.Lgs. 150/2011 (il rito sommario non si applica)"
         ]
       },
       "allegati_obbligatori": [
@@ -850,6 +850,24 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "240020"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 1 settembre 2011, n. 150, art. 7",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art7",
+          "ambito": "opposizione al verbale del codice della strada: rito del lavoro",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rito corretto: l'art. 7, comma 1, D.Lgs. 150/2011 rinvia al rito del lavoro, non al rito sommario.",
+          "fonti": [
+            "art. 7 D.Lgs. 150/2011",
+            "art. 6 D.Lgs. 150/2011"
+          ]
         }
       ]
     },

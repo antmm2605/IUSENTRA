@@ -1100,7 +1100,7 @@
         ]
       },
       "termini_processuali": [
-        {"termine": "Ricorso giudiziale", "giorni": 90, "decorrenza": "comunicazione decisione ricorso amministrativo", "natura": "decadenziale", "norma": "art. 47 D.P.R. 639/1970 e successive modifiche"}
+        {"termine": "Azione giudiziaria (decadenza di un anno)", "mesi": 12, "decorrenza": "comunicazione della decisione sul ricorso amministrativo, o scadenza del termine per deciderlo, o scadenza dei termini del procedimento amministrativo computati dalla domanda", "natura": "decadenziale", "norma": "art. 47, terzo comma, D.P.R. 639/1970: un anno per le prestazioni della gestione dell'art. 24 L. 88/1989, fra cui l'indennità di malattia (tre anni per i trattamenti pensionistici)", "fonte_verifica": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1970-04-30;639~art47", "verified_on": "2026-11-08"}
       ]
     },
     {

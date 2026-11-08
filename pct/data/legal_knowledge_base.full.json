@@ -235941,11 +235941,13 @@
       },
       "termini_processuali": [
         {
-          "termine": "Ricorso giudiziale",
-          "giorni": 90,
-          "decorrenza": "comunicazione decisione ricorso amministrativo",
+          "termine": "Azione giudiziaria (decadenza di un anno)",
+          "mesi": 12,
+          "decorrenza": "comunicazione della decisione sul ricorso amministrativo, o scadenza del termine per deciderlo, o scadenza dei termini del procedimento amministrativo computati dalla domanda",
           "natura": "decadenziale",
-          "norma": "art. 47 D.P.R. 639/1970 e successive modifiche"
+          "norma": "art. 47, terzo comma, D.P.R. 639/1970: un anno per le prestazioni della gestione dell'art. 24 L. 88/1989, fra cui l'indennità di malattia (tre anni per i trattamenti pensionistici)",
+          "fonte_verifica": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1970-04-30;639~art47",
+          "verified_on": "2026-11-08"
         }
       ],
       "_source_file": "kb_13_lavoro_previdenza.json",
@@ -378839,7 +378841,7 @@
         },
         {
           "id": "documentazione_ipocatastale_art_567",
-          "label": "Documentazione ipotecaria e catastale ex art. 567 c.p.c. (entro 60 gg da istanza vendita): atto di provenienza ventennale + ispezione ipotecaria ventennale + visure aggiornate + certificato destinazione urbanistica + APE",
+          "label": "Documentazione ipotecaria e catastale ex art. 567 c.p.c. (entro il termine dell'art. 497 c.p.c., 45 gg dal pignoramento, prorogabile una volta di non oltre 45 gg): atto di provenienza ventennale + ispezione ipotecaria ventennale + visure aggiornate + certificato destinazione urbanistica + APE",
           "required": true
         }
       ],
@@ -378861,16 +378863,18 @@
         {
           "termine": "Istanza di vendita",
           "giorni": 45,
-          "decorrenza": "trascrizione pignoramento",
-          "natura": "perentorio (con possibilità sospensione)",
+          "decorrenza": "compimento del pignoramento",
+          "natura": "a pena di inefficacia del pignoramento",
           "norma": "art. 497 c.p.c."
         },
         {
           "termine": "Documentazione ipocatastale ex art. 567",
-          "giorni": 60,
-          "decorrenza": "istanza vendita",
-          "natura": "perentorio (prorogabile 120 gg)",
-          "norma": "art. 567 c. 2 c.p.c."
+          "giorni": 45,
+          "decorrenza": "compimento del pignoramento (termine dell'art. 497 c.p.c.)",
+          "natura": "prorogabile una sola volta, per giusti motivi, di non oltre 45 giorni; altrimenti inefficacia del pignoramento",
+          "norma": "art. 567, commi 2 e 3, c.p.c.",
+          "fonte_verifica": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art567",
+          "verified_on": "2026-11-08"
         }
       ],
       "_source_file": "kb_12_esecuzioni_forzate.json",
@@ -598726,7 +598730,9 @@
         "ritardo_illegittimo": "Clausole che estendono oltre 60 giorni: nulle salvo accordo espresso"
       },
       "obbligo_mediazione": {
-        "obbligatoria": false
+        "obbligatoria": true,
+        "materia": "subfornitura",
+        "fonte": "art. 5, comma 1, D.Lgs. 28/2010"
       },
       "atto_principale": {
         "tipo_atto": "azione_subfornitura_abuso_dipendenza_L192",
@@ -599126,6 +599132,23 @@
           "verificato_il": "2026-06-06",
           "metodo": "ricerca web su fonte ufficiale",
           "matched_by": "proprietà industriale"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 4 marzo 2010, n. 28, art. 5, comma 1",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2010-03-04;28~art5",
+          "ambito": "materie della mediazione obbligatoria, fra cui la subfornitura",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "La subfornitura è fra le materie della mediazione obbligatoria (art. 5, comma 1, D.Lgs. 28/2010, testo vigente).",
+          "fonti": [
+            "art. 5, comma 1, D.Lgs. 28/2010"
+          ]
         }
       ],
       "_source_file": "kb_98_set31_p2.json",
@@ -683265,7 +683288,7 @@
       "codice": "GUIDA_IMPUGNAZIONE_DELLA_SANZIONE_ACCESSORIA_SOSPENSIONE_PATENTE_CONFISCA_ECC__240020",
       "denominazione": "Impugnazione della sanzione accessoria (sospensione patente, confisca, ecc.) – art. 204-bis C.d.S.",
       "categoria": "Diritto amministrativo – sanzioni accessorie – C.d.S.",
-      "rito": "Rito sommario ex art. 7 D.Lgs. 150/2011 davanti al GdP o al Tribunale",
+      "rito": "Rito del lavoro (art. 7 D.Lgs. 150/2011 per l'opposizione al verbale; art. 6 per l'opposizione all'ordinanza-ingiunzione)",
       "competenza": "GdP del luogo della commessa violazione (patente); Tribunale per sanzioni oltre la competenza del GdP",
       "uffici_destinatari": [
         "SICID"
@@ -683294,7 +683317,7 @@
         {
           "fonte": "D.Lgs. 150/2011",
           "articolo": "7",
-          "descrizione": "Rito sommario per le opposizioni alle sanzioni amministrative"
+          "descrizione": "Opposizione al verbale di accertamento del codice della strada: rito del lavoro, davanti al giudice di pace, ricorso entro 30 giorni"
         }
       ],
       "sanzioni_accessorie_contestabili": {
@@ -683407,7 +683430,7 @@
         "avvertimenti_obbligatori": [
           "TERMINE 30 GG dalla notifica del verbale – DECADENZIALE",
           "Confisca e terzo proprietario: se il veicolo è di un terzo estraneo alla violazione – confisca illegittima",
-          "Rito sommario ex D.Lgs. 150/2011 art. 7"
+          "Rito del lavoro ex art. 7, comma 1, D.Lgs. 150/2011 (il rito sommario non si applica)"
         ]
       },
       "allegati_obbligatori": [
@@ -683473,6 +683496,24 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "240020"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 1 settembre 2011, n. 150, art. 7",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art7",
+          "ambito": "opposizione al verbale del codice della strada: rito del lavoro",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rito corretto: l'art. 7, comma 1, D.Lgs. 150/2011 rinvia al rito del lavoro, non al rito sommario.",
+          "fonti": [
+            "art. 7 D.Lgs. 150/2011",
+            "art. 6 D.Lgs. 150/2011"
+          ]
         }
       ],
       "_source_file": "kb_98_set25_p6.json",
@@ -694372,7 +694413,7 @@
     },
     {
       "codice": "GUIDA_INSINUAZIONE_TARDIVA_AL_PASSIVO_NELLA_LIQUIDAZIONE_GIUDIZIALE_E_OPPOSIZI_500015",
-      "denominazione": "Insinuazione tardiva al passivo nella liquidazione giudiziale e opposizione allo stato passivo (artt. 204-212 D.Lgs. 14/2019 CCII)",
+      "denominazione": "Insinuazione tardiva al passivo nella liquidazione giudiziale e opposizione allo stato passivo (artt. 201-208 D.Lgs. 14/2019 CCII)",
       "categoria": "Procedure concorsuali – stato passivo",
       "rito": "Procedimento camerale davanti al GD (Giudice Delegato)",
       "competenza": "Tribunale delle Imprese – GD della procedura",
@@ -694383,49 +694424,55 @@
         {
           "fonte": "CCII",
           "articolo": "201",
-          "descrizione": "Domanda di insinuazione al passivo – il creditore presenta domanda al curatore"
+          "descrizione": "Domanda di ammissione al passivo: ricorso trasmesso al curatore almeno trenta giorni prima dell'udienza fissata per l'esame dello stato passivo"
         },
         {
           "fonte": "CCII",
-          "articolo": "202",
-          "descrizione": "Termine per la presentazione – 30 gg prima dell'udienza di verifica"
+          "articolo": "203",
+          "descrizione": "Progetto di stato passivo del curatore e udienza di discussione"
         },
         {
           "fonte": "CCII",
           "articolo": "204",
-          "descrizione": "DOMANDA TARDIVA – presentata dopo il termine; ammessa nei 12 mesi dall'udienza"
+          "descrizione": "Formazione ed esecutività dello stato passivo: decreto del giudice delegato"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "205",
+          "descrizione": "Comunicazione dell'esito dell'accertamento del passivo da parte del curatore"
         },
         {
           "fonte": "CCII",
           "articolo": "206",
-          "descrizione": "ADUNANZA DI VERIFICA – il GD esamina le domande"
+          "descrizione": "Impugnazioni del decreto che rende esecutivo lo stato passivo: opposizione, impugnazione dei crediti ammessi, revocazione"
         },
         {
           "fonte": "CCII",
           "articolo": "207",
-          "descrizione": "OPPOSIZIONE allo stato passivo – entro 30 gg dalla comunicazione"
+          "descrizione": "Procedimento: ricorso entro il termine perentorio di trenta giorni dalla comunicazione dell'art. 205; decide il collegio con decreto, ricorribile per cassazione entro trenta giorni"
         },
         {
           "fonte": "CCII",
-          "articolo": "212",
-          "descrizione": "RECLAMO – avverso le decisioni sull'opposizione al Tribunale"
+          "articolo": "208",
+          "descrizione": "DOMANDE TARDIVE: oltre il termine dell'art. 201 e non oltre sei mesi dal deposito del decreto di esecutività dello stato passivo (prorogabile fino a dodici mesi dal tribunale, con la sentenza di apertura, nelle procedure di particolare complessità); dopo, solo per causa non imputabile, entro sessanta giorni dalla sua cessazione"
+        },
+        {
+          "fonte": "CCII",
+          "articolo": "225",
+          "descrizione": "I creditori ammessi tardivamente concorrono soltanto alle ripartizioni posteriori alla loro ammissione, salvo i prelievi per prelazione o ritardo non imputabile"
         }
       ],
       "opposizione_stato_passivo_207": {
-        "chi": "Il creditore escluso o ammesso con riserva può proporre opposizione",
-        "termine": "30 GG dalla comunicazione dello stato passivo",
-        "chi_decide": "Il GD decide sull'opposizione – poi reclamo al Collegio"
-      },
-      "insinuazione_tardiva_204": {
-        "termine_massimo": "Entro 12 mesi dall'udienza di verifica (o 18 mesi per crediti non ancora esigibili)",
-        "effetto": "Il creditore tardivo partecipa alle distribuzioni solo per le quote residue"
+        "chi": "Il creditore o il titolare di diritti la cui domanda è stata respinta o accolta in parte (art. 206, comma 2)",
+        "termine": "30 giorni dalla comunicazione dell'esito ex art. 205 CCII – perentorio (art. 207, comma 1)",
+        "chi_decide": "Il tribunale in composizione collegiale, senza il giudice delegato, con decreto motivato; contro il decreto ricorso per cassazione entro 30 giorni dalla comunicazione (art. 207, commi 12-14)"
       },
       "obbligo_mediazione": {
         "obbligatoria": false
       },
       "atto_principale": {
-        "tipo_atto": "opposizione_stato_passivo_207_o_insinuazione_tardiva_204",
-        "denominazione": "Opposizione allo stato passivo o domanda di insinuazione tardiva ex artt. 204-212 CCII",
+        "tipo_atto": "opposizione_stato_passivo_207_o_insinuazione_tardiva_208",
+        "denominazione": "Opposizione allo stato passivo (artt. 206-207 CCII) o domanda di insinuazione tardiva (art. 208 CCII)",
         "campi_chiave": [
           {
             "id": "tribunale_imprese_GD"
@@ -694441,8 +694488,8 @@
             "type": "select",
             "options": [
               "opposizione_stato_passivo_207",
-              "insinuazione_tardiva_204",
-              "reclamo_212"
+              "insinuazione_tardiva_208",
+              "insinuazione_ultratardiva_208_comma_3"
             ]
           },
           {
@@ -694469,9 +694516,10 @@
           }
         ],
         "avvertimenti_obbligatori": [
-          "Opposizione: 30 GG dalla comunicazione – DECADENZIALE",
-          "Insinuazione tardiva: entro 12 MESI dall'udienza di verifica",
-          "Tardiva: partecipa solo alle quote residue non ancora distribuite"
+          "Opposizione: 30 GG dalla comunicazione dell'esito ex art. 205 CCII – PERENTORIO (art. 207)",
+          "Insinuazione tardiva: entro 6 MESI dal deposito del decreto di esecutività dello stato passivo (fino a 12 se prorogato dal tribunale) – art. 208, comma 1",
+          "Oltre il termine: domanda ammissibile solo per causa non imputabile, entro 60 giorni dalla sua cessazione (art. 208, comma 3)",
+          "Tardiva: concorre soltanto alle ripartizioni posteriori all'ammissione (art. 225 CCII)"
         ]
       },
       "allegati_obbligatori": [
@@ -694487,13 +694535,25 @@
       },
       "termini_processuali": [
         {
-          "termine": "Opposizione",
+          "termine": "Opposizione allo stato passivo",
           "giorni": 30,
-          "natura": "DECADENZIALE"
+          "decorrenza": "comunicazione dell'esito ex art. 205 CCII",
+          "natura": "perentorio",
+          "norma": "art. 207, comma 1, D.Lgs. 14/2019"
         },
         {
           "termine": "Insinuazione tardiva",
-          "mesi": 12
+          "mesi": 6,
+          "decorrenza": "deposito del decreto di esecutività dello stato passivo (prorogabile fino a 12 mesi dal tribunale con la sentenza di apertura)",
+          "natura": "decadenziale",
+          "norma": "art. 208, comma 1, D.Lgs. 14/2019"
+        },
+        {
+          "termine": "Domanda ultratardiva",
+          "giorni": 60,
+          "decorrenza": "cessazione della causa non imputabile che ha impedito il deposito tempestivo",
+          "natura": "decadenziale",
+          "norma": "art. 208, comma 3, D.Lgs. 14/2019"
         }
       ],
       "codice_originale_ricevuto": "500015",
@@ -694863,6 +694923,30 @@
           "verificato_il": "2026-06-06",
           "metodo": "ricerca web su fonte ufficiale",
           "matched_by": "societario e registro imprese"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 12 gennaio 2019, n. 14, artt. 201-208 e 225 (CCII)",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2019-01-12;14~art208",
+          "ambito": "accertamento del passivo, impugnazioni e domande tardive",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "insinuazione_tardiva_208": {
+        "termine_massimo": "Non oltre sei mesi dal deposito del decreto di esecutività dello stato passivo; il tribunale può prorogarlo fino a dodici mesi con la sentenza che apre la liquidazione giudiziale (art. 208, comma 1)",
+        "ultratardiva": "Dopo il termine, e fino all'esaurimento delle ripartizioni, solo se il ritardo è dipeso da causa non imputabile e la domanda è trasmessa entro sessanta giorni dalla cessazione della causa (art. 208, comma 3)",
+        "effetto": "Il creditore tardivo concorre soltanto alle ripartizioni posteriori alla sua ammissione, salvo i prelievi dell'art. 225 CCII"
+      },
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Termine della tardiva corretto da 12 mesi dall'udienza a 6 mesi dal deposito del decreto di esecutività (art. 208 CCII); articoli 204/212 riallineati (impugnazioni artt. 206-207, decisione del collegio e ricorso per cassazione).",
+          "fonti": [
+            "art. 207 D.Lgs. 14/2019",
+            "art. 208 D.Lgs. 14/2019",
+            "art. 225 D.Lgs. 14/2019"
+          ]
         }
       ],
       "_source_file": "kb_98_set34_p2.json",
@@ -719591,8 +719675,8 @@
       "codice": "GUIDA_LIQUIDAZIONE_GIUDIZIALE_DEL_COMPENSO_DEL_PROFESSIONISTA_ART_14_D_LGS_150_413090",
       "denominazione": "Liquidazione giudiziale del compenso del professionista (art. 14 D.Lgs. 150/2011)",
       "categoria": "Contratti – professioni – recupero compensi",
-      "rito": "Procedimento sommario di cognizione ex art. 14 D.Lgs. 150/2011 davanti al Tribunale",
-      "competenza": "Tribunale del luogo in cui è stato eseguito il rapporto di lavoro autonomo",
+      "rito": "Rito semplificato di cognizione (artt. 281-decies ss. c.p.c.) ex art. 14 D.Lgs. 150/2011, come modificato dal D.Lgs. 149/2022 per i procedimenti instaurati dopo il 28 febbraio 2023 (art. 35, comma 1, D.Lgs. 149/2022, come modificato dalla L. 197/2022); il tribunale decide in composizione monocratica",
+      "competenza": "Ufficio giudiziario di merito adito per il processo nel quale l'avvocato ha prestato la propria opera (art. 14, comma 2, D.Lgs. 150/2011)",
       "uffici_destinatari": [
         "SIVG"
       ],
@@ -719600,7 +719684,12 @@
         {
           "fonte": "D.Lgs. 150/2011",
           "articolo": "14",
-          "descrizione": "Liquidazione delle spese di giudizio e dei compensi degli ausiliari del giudice + professionisti"
+          "descrizione": "Controversie dell'art. 28 L. 794/1942 e opposizione ex art. 645 c.p.c. al decreto ingiuntivo per onorari, diritti o spese dell'avvocato per prestazioni giudiziali: rito semplificato di cognizione; sentenza non appellabile"
+        },
+        {
+          "fonte": "D.Lgs. 150/2011",
+          "articolo": "15",
+          "descrizione": "Compensi degli ausiliari del giudice (CTU): opposizione al decreto di pagamento ex art. 170 D.P.R. 115/2002, rito semplificato – non l'art. 14"
         },
         {
           "fonte": "c.c.",
@@ -719614,16 +719703,12 @@
         },
         {
           "fonte": "c.p.c.",
-          "articolo": "702-bis e ss.",
-          "descrizione": "Procedimento sommario di cognizione"
+          "articolo": "281-decies e ss.",
+          "descrizione": "Procedimento semplificato di cognizione (il procedimento sommario degli artt. 702-bis ss. è abrogato dal D.Lgs. 149/2022)"
         },
         {
           "fonte": "D.M. 55/2014 (aggiornato D.M. 147/2022)",
           "descrizione": "Parametri per la liquidazione dei compensi degli avvocati"
-        },
-        {
-          "fonte": "D.M. 140/2012",
-          "descrizione": "Parametri per professionisti diversi dagli avvocati"
         },
         {
           "fonte": "L. 247/2012 (Ord. Forense)",
@@ -719632,10 +719717,12 @@
         }
       ],
       "procedimento_14_D_Lgs_150_2011": {
-        "ambito": "Liquidazione dei compensi degli ausiliari del giudice (CTU, CTP) e dei professionisti",
-        "competenza": "Tribunale in composizione monocratica",
-        "forma_atto": "Ricorso + decreto ingiuntivo oppure procedimento sommario",
-        "alternativa": "Decreto ingiuntivo ordinario ex art. 633 c.p.c. se c'è una nota spese"
+        "ambito": "Compensi dell'avvocato per prestazioni giudiziali (art. 28 L. 794/1942) e opposizione al decreto ingiuntivo che li riguarda; non i professionisti diversi né gli ausiliari del giudice (per questi art. 15 D.Lgs. 150/2011)",
+        "competenza": "Ufficio giudiziario di merito del processo in cui l'avvocato ha prestato l'opera; tribunale in composizione monocratica (art. 14, comma 2)",
+        "forma_atto": "Ricorso nelle forme del procedimento semplificato (art. 281-undecies c.p.c.), oppure ricorso per decreto ingiuntivo",
+        "difesa_personale": "Nel giudizio di merito le parti possono stare in giudizio personalmente (art. 14, comma 3)",
+        "impugnazione": "La sentenza non è appellabile (art. 14, comma 4): resta il ricorso per cassazione",
+        "alternativa": "Decreto ingiuntivo ex art. 633 c.p.c. con parcella; l'opposizione segue l'art. 14"
       },
       "tariffe_e_parametri": {
         "avvocati_DM_55_2014_aggiornato_DM_147_2022": "Parametri ministeriali per fasi processuali",
@@ -719660,7 +719747,7 @@
         },
         {
           "step": 4,
-          "descrizione": "Scegliere tra ricorso ex art. 14 D.Lgs. 150/2011 o decreto ingiuntivo ordinario"
+          "descrizione": "Scegliere tra ricorso ex art. 14 D.Lgs. 150/2011 (rito semplificato) o decreto ingiuntivo; per prestazioni stragiudiziali o professionisti diversi dagli avvocati l'art. 14 non si applica"
         }
       ],
       "atto_principale": {
@@ -719681,12 +719768,7 @@
                 "id": "categoria",
                 "type": "select",
                 "options": [
-                  "avvocato",
-                  "ingegnere",
-                  "architetto",
-                  "commercialista_revisore",
-                  "CTU_ausiliario_giudice",
-                  "altro_professionista"
+                  "avvocato"
                 ]
               }
             ]
@@ -719759,7 +719841,10 @@
         "avvertimenti_obbligatori": [
           "Avvocati: accordo scritto sul compenso obbligatorio ex L. 247/2012 (altrimenti parametri D.M.)",
           "Cass. SU 19873/2022: in assenza accordo → parametri D.M. 55/2014 aggiornato D.M. 147/2022",
-          "Alternativa: decreto ingiuntivo ordinario ex 633 c.p.c. con nota spese"
+          "Alternativa: decreto ingiuntivo ordinario ex 633 c.p.c. con nota spese",
+          "Rito semplificato di cognizione (artt. 281-decies ss. c.p.c.): il rito sommario ex art. 702-bis c.p.c. è abrogato",
+          "Sentenza non appellabile (art. 14, comma 4, D.Lgs. 150/2011)",
+          "Solo avvocati per prestazioni giudiziali: CTU e ausiliari seguono l'art. 15 D.Lgs. 150/2011"
         ]
       },
       "allegati_obbligatori": [
@@ -719827,6 +719912,33 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "413090"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 1 settembre 2011, n. 150, art. 14",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art14",
+          "ambito": "liquidazione degli onorari e dei diritti di avvocato: rito semplificato",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 1 settembre 2011, n. 150, art. 15",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2011-09-01;150~art15",
+          "ambito": "opposizione al decreto di pagamento di spese di giustizia (ausiliari del giudice)",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rito sommario ex art. 702-bis c.p.c. (abrogato) sostituito dal rito semplificato richiamato dall'art. 14 D.Lgs. 150/2011 vigente; ambito limitato ai compensi dell'avvocato per prestazioni giudiziali; competenza, monocraticità e non appellabilità dal testo vigente.",
+          "fonti": [
+            "art. 14 D.Lgs. 150/2011",
+            "art. 15 D.Lgs. 150/2011",
+            "art. 281-decies c.p.c."
+          ]
         }
       ],
       "_source_file": "kb_98_set16_p2.json",
@@ -755794,7 +755906,8 @@
       },
       "obbligo_mediazione": {
         "obbligatoria": false,
-        "ma": "Reclamo/mediazione obbligatoria ex art. 17-bis D.Lgs. 546/1992 per valore fino a €50.000"
+        "nota": "Il reclamo-mediazione dell'art. 17-bis D.Lgs. 546/1992 è stato abrogato dall'art. 2, comma 3, lett. a), D.Lgs. 220/2023 a decorrere dalla sua entrata in vigore (4 gennaio 2024): oggi il ricorso non è preceduto dal reclamo",
+        "fonte": "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
       },
       "adempimenti_propedeutici": [
         {
@@ -755924,7 +756037,7 @@
           "TERMINE 60 GG dalla notifica – DECADENZIALE",
           "Per crediti fiscali: Corte di Giustizia Tributaria (non Tribunale ordinario)",
           "Per crediti INPS/INAIL: GdP o Tribunale ordinario",
-          "Reclamo/mediazione obbligatoria per valori ≤ €50.000 (art. 17-bis D.Lgs. 546/1992)",
+          "Reclamo/mediazione art. 17-bis D.Lgs. 546/1992 ABROGATO dal 4 gennaio 2024 (art. 2, comma 3, lett. a), D.Lgs. 220/2023): non va proposto",
           "Sospensione: richiedere contestualmente al ricorso per bloccare l'esecuzione",
           "Prescrizione tributi periodici: 5 anni (non 10)"
         ]
@@ -755996,6 +756109,24 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "512005"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a)",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2023-12-30;220~art2",
+          "ambito": "abrogazione del reclamo-mediazione tributario",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rimosso il reclamo-mediazione obbligatorio fino a 50.000 euro: art. 17-bis D.Lgs. 546/1992 abrogato dal D.Lgs. 220/2023.",
+          "fonti": [
+            "art. 17-bis D.Lgs. 546/1992 (abrogato)",
+            "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
+          ]
         }
       ],
       "_source_file": "kb_98_set15_parte4.json",
@@ -821494,7 +821625,7 @@
       "codice": "GUIDA_RESPONSABILIT_CIVILE_AUTO_RCA_PROCEDURA_DI_RISARCIMENTO_DIRETTO_E_CONTRO_156020",
       "denominazione": "Responsabilità civile auto: RCA, procedura di risarcimento diretto e controversie (D.Lgs. 209/2005 artt. 148-150)",
       "categoria": "Contratti – RCA auto – sinistro stradale",
-      "rito": "Rito ordinario preceduto da MEDIAZIONE OBBLIGATORIA",
+      "rito": "Rito ordinario o semplificato, preceduto dalla NEGOZIAZIONE ASSISTITA obbligatoria (art. 3 D.L. 132/2014)",
       "competenza": "Foro del danneggiato",
       "uffici_destinatari": [
         "SICID"
@@ -821518,6 +821649,11 @@
         {
           "fonte": "D.P.R. 254/2006",
           "descrizione": "Regolamento CARD – liquidazione dei sinistri tra assicuratori"
+        },
+        {
+          "fonte": "D.L. 132/2014",
+          "articolo": "3",
+          "descrizione": "Negoziazione assistita obbligatoria per il risarcimento del danno da circolazione di veicoli e natanti: condizione di procedibilità"
         }
       ],
       "risarcimento_diretto_149": {
@@ -821531,8 +821667,10 @@
         "prova_strumentale": "Per micropermanenti: obbligo di referto strumentale dall'1/1/2019"
       },
       "obbligo_mediazione": {
-        "obbligatoria": true,
-        "materia": "ASSICURAZIONI"
+        "obbligatoria": false,
+        "negoziazione_assistita_obbligatoria": true,
+        "fonte": "art. 3, comma 1, D.L. 132/2014",
+        "nota": "Per il risarcimento del danno da circolazione di veicoli e natanti la condizione di procedibilità è l'invito alla negoziazione assistita (art. 3, comma 1, D.L. 132/2014); la mediazione obbligatoria dell'art. 5, comma 1, D.Lgs. 28/2010 riguarda i contratti assicurativi, non l'azione del danneggiato da sinistro stradale"
       },
       "atto_principale": {
         "tipo_atto": "azione_RC_auto_sinistro_stradale_Cod_Ass",
@@ -821581,7 +821719,7 @@
         ],
         "avvertimenti_obbligatori": [
           "Micropermanenti >9%: prova strumentale OBBLIGATORIA dall'1/1/2019",
-          "Mediazione: CONDIZIONE DI PROCEDIBILITÀ",
+          "Negoziazione assistita: CONDIZIONE DI PROCEDIBILITÀ (art. 3, comma 1, D.L. 132/2014) – non la mediazione",
           "Risarcimento diretto: solo se responsabilità accertata con 2 veicoli"
         ]
       },
@@ -821593,7 +821731,7 @@
           "id": "perizia_medico_legale"
         },
         {
-          "id": "verbale_mediazione",
+          "id": "invito_negoziazione_assistita_e_dichiarazione_mancato_accordo",
           "required": true
         }
       ],
@@ -822028,6 +822166,24 @@
           "verificato_il": "2026-06-06",
           "metodo": "ricerca web su fonte ufficiale",
           "matched_by": "consulenza tecnica"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.L. 12 settembre 2014, n. 132, art. 3, comma 1",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2014-09-12;132~art3",
+          "ambito": "condizione di procedibilità per il danno da circolazione",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Mediazione obbligatoria sostituita dalla negoziazione assistita: il danno da circolazione non è fra le materie dell'art. 5, comma 1, D.Lgs. 28/2010; vale l'art. 3, comma 1, D.L. 132/2014.",
+          "fonti": [
+            "art. 3, comma 1, D.L. 132/2014",
+            "art. 5, comma 1, D.Lgs. 28/2010"
+          ]
         }
       ],
       "_source_file": "kb_98_set35_p2.json",
@@ -856501,26 +856657,22 @@
         "prescrizione_Cass_SU_18798_2020": "10 anni dall'istanza di rimborso non contestata"
       },
       "obbligo_mediazione": {
-        "obbligatoria": true,
-        "fonte": "art. 17-bis D.Lgs. 546/1992",
-        "materia": "Atti fino a €50.000"
+        "obbligatoria": false,
+        "nota": "Il reclamo-mediazione dell'art. 17-bis D.Lgs. 546/1992 è stato abrogato dall'art. 2, comma 3, lett. a), D.Lgs. 220/2023 a decorrere dalla sua entrata in vigore (4 gennaio 2024): oggi il ricorso non è preceduto dal reclamo",
+        "fonte": "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
       },
       "adempimenti_propedeutici": [
         {
           "step": 1,
-          "descrizione": "Presentare istanza di rimborso IVA all'Agenzia delle Entrate"
+          "descrizione": "Presentare istanza di rimborso IVA all'Agenzia delle Entrate nei termini della legge d'imposta"
         },
         {
           "step": 2,
-          "descrizione": "Attendere 60 gg: se silenzio → silenzio-rigetto impugnabile"
+          "descrizione": "Diniego espresso: ricorso entro 60 gg dalla notificazione (art. 21, comma 1, D.Lgs. 546/1992)"
         },
         {
           "step": 3,
-          "descrizione": "Impugnare il diniego (espresso o tacito) entro 60 gg"
-        },
-        {
-          "step": 4,
-          "descrizione": "Reclamo/mediazione se rimborso ≤ €50.000"
+          "descrizione": "Silenzio: il ricorso contro il rifiuto tacito si propone dopo il novantesimo giorno dalla domanda e fino a quando il diritto alla restituzione non è prescritto (art. 21, comma 2, D.Lgs. 546/1992)"
         }
       ],
       "atto_principale": {
@@ -856581,10 +856733,6 @@
             "critico": true
           },
           {
-            "id": "reclamo_mediazione_se_entro_50000",
-            "type": "boolean"
-          },
-          {
             "id": "domande",
             "type": "select_multi",
             "required": true,
@@ -856596,8 +856744,9 @@
           }
         ],
         "avvertimenti_obbligatori": [
-          "Termine 60 GG dal diniego espresso o dalla scadenza del silenzio-rigetto – DECADENZIALE",
-          "Reclamo/mediazione obbligatorio per importi ≤ €50.000",
+          "Diniego espresso: termine 60 GG dalla notificazione – a pena di inammissibilità (art. 21, comma 1, D.Lgs. 546/1992)",
+          "Rifiuto tacito: ricorso dopo il 90° giorno dalla domanda di rimborso e fino alla prescrizione del diritto (art. 21, comma 2, D.Lgs. 546/1992)",
+          "Reclamo/mediazione art. 17-bis ABROGATO dal 4 gennaio 2024 (D.Lgs. 220/2023)",
           "Interessi legali sul rimborso decorrono dalla domanda"
         ]
       },
@@ -856608,17 +856757,13 @@
           "critico": true
         },
         {
-          "id": "diniego_AE_o_prova_silenzio_60_gg",
+          "id": "diniego_AE_o_prova_silenzio_90_gg",
           "required": true,
           "critico": true
         },
         {
           "id": "documentazione_credito_IVA",
           "required": true
-        },
-        {
-          "id": "verbale_reclamo_mediazione_se_applicabile",
-          "required_if": "≤50000"
         },
         {
           "id": "procura_alle_liti",
@@ -856676,6 +856821,32 @@
           "verificato_il": "2026-05-24",
           "metodo": "ricerca web su fonte ufficiale",
           "codice_originale_guida": "512060"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 31 dicembre 1992, n. 546, art. 21 - termine per la proposizione del ricorso",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1992-12-31;546~art21",
+          "ambito": "ricorso contro diniego espresso e rifiuto tacito di rimborso",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        },
+        {
+          "ente": "Normattiva",
+          "titolo": "D.Lgs. 30 dicembre 2023, n. 220, art. 2, comma 3, lett. a)",
+          "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2023-12-30;220~art2",
+          "ambito": "abrogazione del reclamo-mediazione tributario",
+          "verificato_il": "2026-11-08",
+          "metodo": "testo vigente letto dall'archivio Normattiva del software"
+        }
+      ],
+      "rettifiche_normative": [
+        {
+          "verificato_il": "2026-11-08",
+          "motivo": "Rimosso il reclamo-mediazione (art. 17-bis abrogato dal D.Lgs. 220/2023); rifiuto tacito impugnabile dopo 90 giorni dalla domanda, non 60 (art. 21, comma 2, D.Lgs. 546/1992).",
+          "fonti": [
+            "art. 21 D.Lgs. 546/1992",
+            "art. 2, comma 3, lett. a), D.Lgs. 220/2023"
+          ]
         }
       ],
       "_source_file": "kb_98_set26_p2.json",

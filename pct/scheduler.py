@@ -253,12 +253,32 @@ def start_scheduler(app):
                 logger.info("[scheduler] Backup giornaliero non eseguito: archivi automatici disattivati.")
                 return {"ok": True, "skipped": True, "reason": "backup_jobs_disabled"}
             try:
-                from pct.database import GestioneDatabase
-                db = GestioneDatabase(app.config)
-                import tempfile
-                out = tempfile.mkdtemp(prefix="iusentra_sched_")
-                zip_path = db.esporta_tutto(out)
-                logger.info(f"[scheduler] Backup completato: {zip_path}")
+                # La copia entra nel registro dei backup dello studio (cartella
+                # BACKUP_DIR, cifratura e conservazione della configurazione
+                # backup): prima finiva in chiaro in /tmp, fuori dal registro e
+                # persa alla ricreazione del container (art. 32 par. 1 lett. c GDPR).
+                from pct.backup import GestioneBackup, StatoBackup, TipoBackup
+                percorsi = {
+                    nome: str(app.config.get(chiave) or "")
+                    for nome, chiave in (
+                        ("agenda", "AGENDA_DB"),
+                        ("clienti", "CLIENTI_DB"),
+                        ("fascicoli", "FASCICOLI_DB"),
+                        ("messaggi", "MESSAGGI_DB"),
+                        ("documenti", "FASCICOLI_DOCS"),
+                    )
+                    if app.config.get(chiave)
+                }
+                gestore = GestioneBackup(
+                    directory_backup=str(app.config.get("BACKUP_DIR") or "./backup"),
+                    percorsi_dati=percorsi,
+                )
+                record = gestore.esegui_backup(tipo=TipoBackup.COMPLETO, nota="Backup giornaliero automatico")
+                if record.stato != StatoBackup.OK:
+                    logger.error("[scheduler] Backup fallito: %s", record.errore)
+                    return {"ok": False, "error": str(record.errore or "")[:300]}
+                logger.info("[scheduler] Backup completato nel registro: %s", record.id)
+                return {"ok": True, "backup_id": record.id, "cifrato": bool(record.cifrato)}
             except Exception as e:
                 logger.error(f"[scheduler] Backup fallito: {e}")
                 return {"ok": False, "error": str(e)[:300]}

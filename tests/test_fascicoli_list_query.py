@@ -317,3 +317,23 @@ def test_udienza_passata_non_conta_tra_le_scadute(catalog):
     panoramica = repo.deadline_overview()
     assert panoramica['overdueDeadlines'] == 1
     assert [voce['id'] for voce in panoramica['deadlines']] == ['T1']
+
+
+def test_evento_non_consegnato_non_blocca_l_elenco_in_consultazione(catalog):
+    """08/11/2026: tre eventi PENDING (scheduler fermo) davano 503 sull'intero elenco."""
+    from web.services.fascicoli_list_runtime import segna_in_aggiornamento
+    db, repo = catalog
+    for table in ('fascicoli', 'scadenze', 'parcelle', 'clienti'):
+        db.conn.execute('CREATE TABLE ' + table + ' (id TEXT PRIMARY KEY,id_fascicolo TEXT)')
+    install_source_events(db.conn, postgres=db.backend_kind == 'postgresql')
+    db.conn.execute("INSERT INTO fascicoli VALUES ('F003','')")
+    with pytest.raises(FascicoliListNotReady):
+        repo.list_page()  # preparazioni e scritture restano rigorose
+    consultazione = FascicoliListQuery(db, 'studio')
+    consultazione.in_corso_ammessi = True
+    pagina = consultazione.list_page(page_size=100)
+    assert pagina['pagination']['total'] == 61
+    assert consultazione.in_aggiornamento == {'F003'}
+    marcata = segna_in_aggiornamento({'items': pagina['items']}, consultazione.in_aggiornamento)
+    assert marcata['refreshPending'] == {'count': 1, 'onPage': 1}
+    assert [item['id'] for item in marcata['items'] if item.get('refreshPending')] == ['F003']

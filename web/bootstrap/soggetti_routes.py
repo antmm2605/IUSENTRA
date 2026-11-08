@@ -10,6 +10,7 @@ from flask import Flask, abort, flash, jsonify, redirect, render_template, reque
 
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, SoggettoConcurrentUpdate, soggetto_coincide_con_cliente, soggetto_revision
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.permessi_route import permesso_negato
 from web.services.territorio_forms import address_fields_from_form
 
 
@@ -294,6 +295,13 @@ def register_soggetti_routes(
 
     @app.route("/soggetti/<id_soggetto>/elimina", methods=["POST"])
     def elimina_soggetto(id_soggetto):
+        negato = permesso_negato(
+            "clienti.elimina",
+            "Non hai il permesso per eliminare i soggetti.",
+            url_for("dettaglio_soggetto", id_soggetto=id_soggetto),
+        )
+        if negato is not None:
+            return negato
         soggetti = get_soggetti()
         soggetto = soggetti.get(id_soggetto)
         if soggetto:

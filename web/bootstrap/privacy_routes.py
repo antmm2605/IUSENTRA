@@ -29,6 +29,19 @@ def register_privacy_routes(
 ) -> None:
     """Register privacy register, GDPR export, and audit export routes."""
 
+    # Registro dei trattamenti (art. 30 GDPR): consultazione con «utenti.leggi»,
+    # modifiche solo con «admin.configura», perché il registro è tenuto dal
+    # titolare e la responsabilizzazione (art. 5.2 GDPR) richiede che chi può solo
+    # leggere non possa alterarlo o cancellarne le voci.
+    def _scrittura_registro_negata():
+        utente = g.utente_corrente
+        if utente and utente.ha_permesso("admin.configura"):
+            return None
+        messaggio = "Solo il titolare dello studio può modificare il registro dei trattamenti."
+        if _richiede_json():
+            return jsonify({"ok": False, "message": messaggio}), 403
+        abort(403)
+
     @app.route("/privacy/registro")
     def registro_trattamenti():
         utente = g.utente_corrente
@@ -43,6 +56,9 @@ def register_privacy_routes(
             abort(403)
 
         if request.method == "POST":
+            negato = _scrittura_registro_negata()
+            if negato is not None:
+                return negato
             form = request.form
             get_trattamenti().nuovo(
                 nome=form.get("nome", ""),
@@ -76,8 +92,17 @@ def register_privacy_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             abort(403)
+        negato = _scrittura_registro_negata()
+        if negato is not None:
+            return negato
         try:
+            voce = next((t for t in get_trattamenti().tutti() if getattr(t, "id", "") == id_t), None)
             get_trattamenti().elimina(id_t)
+            if voce is not None:
+                # Lo storico della voce eliminata resta nel registro delle azioni (art. 5.2 GDPR).
+                dati = voce.to_dict() if hasattr(voce, "to_dict") else dict(getattr(voce, "__dict__", {}))
+                audit("privacy.registro.elimina.voce", "trattamento", id_t,
+                      dettagli=json.dumps(dati, ensure_ascii=False, default=str)[:2000])
             audit("privacy.registro.elimina", risorsa_id=id_t)
             flash("Trattamento eliminato.", "success")
             if _richiede_json():

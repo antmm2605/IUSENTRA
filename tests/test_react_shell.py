@@ -9878,7 +9878,7 @@ def test_route_map_salvataggi_principali_studio_restano_react_json(tmp_path: Pat
                 "tipo": TipoCliente.PERSONA_FISICA.value,
                 "nome": "Route",
                 "cognome": "React",
-                "codice_fiscale": "RTERCT80A01H501Q",
+                "codice_fiscale": "RTERCT80A01H501N",
             },
             headers=headers,
         )
@@ -9888,7 +9888,7 @@ def test_route_map_salvataggi_principali_studio_restano_react_json(tmp_path: Pat
                 "tipo": TipoSoggetto.PERSONA_FISICA.value,
                 "nome": "Parte",
                 "cognome": "JSON",
-                "codice_fiscale": "PRTJSN80A01H501Z",
+                "codice_fiscale": "PRTJSN80A01H501E",
                 "qualifica": RuoloSoggetto.CONTROPARTE.value,
             },
             headers=headers,

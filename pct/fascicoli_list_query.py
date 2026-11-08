@@ -207,6 +207,10 @@ class FascicoliListQuery:
         if not tenant:
             raise ValueError('Studio proprietario non determinato.')
         self.database, self.tenant = database, tenant
+        # Consultazione dell'elenco: le consegne puntuali di singoli fascicoli
+        # ancora in coda non fermano tutto, si dichiarano sulle righe interessate.
+        self.in_corso_ammessi = False
+        self.in_aggiornamento: set[str] = set()
 
     def project_identity(self, conn, *, key, client_key, duplicate_key, rg_key, parties, aliases, native, archived):
         if not key or str(native.get('id') or '') != key:
@@ -292,11 +296,24 @@ class FascicoliListQuery:
         owner = self.database.conn.execute('SELECT tenant_key,version FROM fascicoli_list_owner WHERE singleton=1').fetchone()
         if owner is None or owner[0] != self.tenant or owner[1] != VERSION:
             raise FascicoliListNotReady('Catalogo fascicoli non attribuito allo studio corrente.')
-        pending = self.database.conn.execute('SELECT 1 FROM transactional_outbox WHERE tenant_id=? '
-            "AND aggregate_type=? AND event_type=? AND status IN ('PENDING','FAILED') LIMIT 1",
-            (self.tenant, AGGREGATE, EVENT_TYPE)).fetchone()
-        if pending is not None:
-            raise FascicoliListNotReady('Aggiornamento mirato del catalogo fascicoli non ancora confermato.')
+        if not self.in_corso_ammessi:
+            pending = self.database.conn.execute('SELECT 1 FROM transactional_outbox WHERE tenant_id=? '
+                "AND aggregate_type=? AND event_type=? AND status IN ('PENDING','FAILED') LIMIT 1",
+                (self.tenant, AGGREGATE, EVENT_TYPE)).fetchone()
+            if pending is not None:
+                raise FascicoliListNotReady('Aggiornamento mirato del catalogo fascicoli non ancora confermato.')
+            return set()
+        # Un evento non consegnato (scheduler fermo) bloccava l'intero elenco con
+        # un 503 (08/11/2026): ora si mostrano i dati confermati e si segnalano
+        # le sole pratiche in attesa. Le consegne che non indicano un fascicolo
+        # (es. una scadenza spostata) restano nel conteggio dell'avviso.
+        rows = self.database.conn.execute('SELECT DISTINCT aggregate_id FROM transactional_outbox WHERE tenant_id=? '
+            "AND aggregate_type=? AND event_type=? AND status IN ('PENDING','FAILED')",
+            (self.tenant, AGGREGATE, EVENT_TYPE)).fetchall()
+        chiavi = {str(row[0] or '') for row in rows} - {''}
+        in_attesa = {chiave.removeprefix('case:') for chiave in chiavi}
+        self.in_aggiornamento |= in_attesa
+        return in_attesa
 
     def aggregates(self, **filters):
         """Metriche dell'intera selezione, senza leggere i payload delle pratiche."""

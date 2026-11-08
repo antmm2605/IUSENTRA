@@ -48,11 +48,20 @@ def register_auth_management_routes(
         )
         return redirect(url_for("admin.utenti_piattaforma"))
 
+    def _permessi_sessione() -> set[str]:
+        return set(getattr(g.utente_corrente, "permessi_effettivi", []) or [])
+
     def _ruolo_legacy_da_form(ruolo_raw: str) -> RuoloUtente:
         ruolo = RuoloUtente(ruolo_raw)
         if ruolo == RuoloUtente.SUPERADMIN:
             raise ValueError(
                 "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma."
+            )
+        # Una delega parziale («utenti.scrivi») non diventa totale: si assegna
+        # solo un ruolo i cui permessi la sessione possiede già (come nell'API React).
+        if not getattr(g.utente_corrente, "is_superadmin", False) and not set(PERMESSI.get(ruolo, []) or []).issubset(_permessi_sessione()):
+            raise ValueError(
+                "Ruolo non assegnabile: richiede permessi che il tuo account non ha."
             )
         return ruolo
 
@@ -396,6 +405,13 @@ def register_auth_management_routes(
         if request.method == "POST":
             extra = request.form.getlist("permessi_extra")
             negati = request.form.getlist("permessi_negati")
+            if target.id == u.id:
+                flash("Non puoi modificare i tuoi permessi: chiedi a un altro amministratore.", "danger")
+                return redirect(url_for("permessi_utente", id_utente=id_utente))
+            non_concedibili = sorted(set(extra) - _permessi_sessione())
+            if non_concedibili and not getattr(u, "is_superadmin", False):
+                flash("Non puoi concedere permessi che il tuo account non ha: " + ", ".join(non_concedibili), "danger")
+                return redirect(url_for("permessi_utente", id_utente=id_utente))
             try:
                 gu.aggiorna_permessi(id_utente, extra, negati)
                 audit(

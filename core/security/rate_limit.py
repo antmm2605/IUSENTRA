@@ -123,7 +123,8 @@ def register_rate_limiter(app: Flask) -> None:
             return None
         endpoint = request.endpoint or ""
         rule = strict_rule if any(token in endpoint for token in ("login", "upload", "assistente", "api_job")) else default_rule
-        identity = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+        # remote_addr è già risolto da ProxyFix: il primo valore di X-Forwarded-For lo sceglie il client.
+        identity = (request.remote_addr or "unknown").strip()
         key = f"{identity}:{endpoint}:{request.method}"
         if limiter.allow(key, rule):
             return None

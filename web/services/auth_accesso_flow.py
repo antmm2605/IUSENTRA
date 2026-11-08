@@ -110,7 +110,14 @@ def destinazione_sicura(value: str) -> str:
 
 
 def ip_cliente() -> str:
-    return (request.headers.get("X-Forwarded-For", request.remote_addr or "") or "").split(",")[0].strip()
+    """IP del client per il blocco dei tentativi.
+
+    Il primo valore di X-Forwarded-For lo sceglie il client quando il proxy
+    accoda l'intestazione (nginx con $proxy_add_x_forwarded_for): cambiandolo a
+    ogni richiesta il contatore non cresceva. Si usa ``remote_addr``, già
+    risolto da ProxyFix (``x_for=1``) con il valore aggiunto dal proxy più vicino.
+    """
+    return (request.remote_addr or "").strip()
 
 
 def messaggio_blocco(secondi: int) -> str:
@@ -325,10 +332,34 @@ def attesa_secondo_fattore(rt: AccessoRuntime):
     return manager, utente
 
 
+# Il conteggio dei codici errati vive sul server, legato all'utente e non al
+# cookie: ripresentare il cookie del primo passo non azzera più i tentativi.
+_TOTP_FINESTRA_SECONDI = 900
+
+
+def _chiave_totp(utente) -> str:
+    return f"totp:utente:{getattr(utente, 'id', '')}"
+
+
+def _totp_bloccato(rt: AccessoRuntime, utente) -> bool:
+    backend = get_login_guard(rt.app)._backend
+    return backend.lock_remaining(_chiave_totp(utente)) > 0
+
+
+def _annulla_secondo_fattore() -> EsitoAccesso:
+    for chiave in _CHIAVI_ANNULLO_2FA:
+        session.pop(chiave, None)
+    flash(MESSAGGIO_TROPPI_CODICI, "danger")
+    return EsitoAccesso(VERIFICA_ANNULLATA, destinazione=url_for("login"), errore=MESSAGGIO_TROPPI_CODICI)
+
+
 def verifica_secondo_fattore(rt: AccessoRuntime, manager, utente, codice: str) -> EsitoAccesso:
     """Secondo passo: stessa sequenza della route ``/login/2fa`` storica."""
     codice = str(codice or "").strip()
+    if _totp_bloccato(rt, utente):
+        return _annulla_secondo_fattore()
     if verifica_totp(utente.totp_secret, codice):
+        get_login_guard(rt.app)._backend.clear(_chiave_totp(utente))
         next_url = destinazione_sicura(session.pop("totp_pending_next", ""))
         force_password_change = bool(session.pop("totp_pending_force_password_change", False))
         tenant_slug = session.pop("totp_pending_tenant_slug", "")
@@ -364,11 +395,11 @@ def verifica_secondo_fattore(rt: AccessoRuntime, manager, utente, codice: str) -
     # codice a sei cifre si indovina per tentativi.
     tentativi = int(session.get("totp_tentativi", 0) or 0) + 1
     session["totp_tentativi"] = tentativi
-    if tentativi >= TOTP_TENTATIVI_MASSIMI:
-        for chiave in _CHIAVI_ANNULLO_2FA:
-            session.pop(chiave, None)
-        flash(MESSAGGIO_TROPPI_CODICI, "danger")
-        return EsitoAccesso(VERIFICA_ANNULLATA, destinazione=url_for("login"), errore=MESSAGGIO_TROPPI_CODICI)
+    backend = get_login_guard(rt.app)._backend
+    tentativi_server = backend.incr(_chiave_totp(utente), _TOTP_FINESTRA_SECONDI)
+    if max(tentativi, tentativi_server) >= TOTP_TENTATIVI_MASSIMI:
+        backend.set_lock(_chiave_totp(utente), _TOTP_FINESTRA_SECONDI)
+        return _annulla_secondo_fattore()
     return EsitoAccesso(ERRORE, errore=MESSAGGIO_CODICE_NON_VALIDO)
 
 

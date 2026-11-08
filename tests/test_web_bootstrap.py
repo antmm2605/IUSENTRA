@@ -743,6 +743,9 @@ def test_i_moduli_bootstrap_restano_governabili():
     per_file_limits = {
         "deposito_routes.py": 1000,
         "scadenziario_routes.py": 700,
+        # Permessi delle azioni e conflitto di interessi sulle controparti (2.487.0):
+        # da scorporare in web/services/ al prossimo intervento sul modulo.
+        "fascicoli_management_routes.py": 710,
         "fascicoli_pdp_routes.py": 900,
         "core_surface_wiring.py": 250,
         "fascicoli_surface_wiring.py": 200,

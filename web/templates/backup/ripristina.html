@@ -39,13 +39,13 @@
       <div class="row g-3">
 
         <div class="col-12">
-          <label class="form-label fw-semibold">Cartella di destinazione <span class="text-danger">*</span></label>
+          <label class="form-label fw-semibold">Nome della cartella di ripristino <span class="text-danger">*</span></label>
           <input type="text" name="destinazione" class="form-control font-monospace"
-                 value="./ripristino" required
-                 placeholder="./ripristino">
+                 value="ripristino" required pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}"
+                 placeholder="ripristino">
           <div class="form-text">
-            I file saranno estratti in questa cartella. Se vuoi sovrascrivere i dati originali,
-            inserisci il percorso dei dati di produzione.
+            I file saranno estratti nella cartella «ripristini» accanto alle copie di sicurezza, per il
+            controllo prima dell'uso. Usa solo lettere, cifre, trattini e trattini bassi.
           </div>
         </div>
 

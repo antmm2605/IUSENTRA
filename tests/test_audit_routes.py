@@ -145,3 +145,36 @@ def test_internal_emit_accepts_testing_bypass_and_idempotency(tmp_path) -> None:
     body = response.get_json()
     assert body["ok"] is True
     assert service.repository.get_event(body["event_id"], tenant_id="tenant-a")
+
+
+def test_internal_emit_rifiuta_intestazione_mtls_senza_impronte_dichiarate(tmp_path, monkeypatch) -> None:
+    """Senza AUDIT_INTERNAL_MTLS_FINGERPRINTS l'intestazione inviata dal client non basta."""
+    monkeypatch.delenv("AUDIT_INTERNAL_MTLS_FINGERPRINTS", raising=False)
+    service, _public = make_service()
+    app = _app_with_service(service)
+    app.testing = False
+    risposta = app.test_client().post(
+        "/internal/audit/emit",
+        json={"kind": "PEC_SENT", "tenant_id": "altro-studio", "idempotency_key": "falso-1"},
+        headers={"X-SSL-Client-Verify": "SUCCESS"},
+    )
+    assert risposta.status_code == 403
+
+
+def test_internal_emit_mtls_accetta_solo_impronta_dichiarata(tmp_path) -> None:
+    service, _public = make_service()
+    app = _app_with_service(service)
+    app.config["AUDIT_INTERNAL_MTLS_FINGERPRINTS"] = "ab:cd:ef"
+    client = app.test_client()
+    estranea = client.post(
+        "/internal/audit/emit",
+        json={},
+        headers={"X-SSL-Client-Verify": "SUCCESS", "X-SSL-Client-Fingerprint": "00:11:22"},
+    )
+    assert estranea.status_code == 403
+    dichiarata = client.post(
+        "/internal/audit/emit",
+        json={},
+        headers={"X-SSL-Client-Verify": "SUCCESS", "X-SSL-Client-Fingerprint": "AB:CD:EF"},
+    )
+    assert dichiarata.status_code == 400  # autenticata: manca solo la chiave di idempotenza

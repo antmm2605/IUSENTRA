@@ -664,11 +664,15 @@ function requiredPermissionsForHref(href: string): string[] {
 }
 
 function shouldShowNavItem(item: NavItem, bootstrap: ShellBootstrap, appV2Navigation: boolean): boolean {
+  // I permessi valgono su ogni indirizzo, non solo nella navigazione App V2:
+  // un praticante non deve vedere «Nuovo fascicolo», «Utenti» o il database tecnico.
+  // Finché il profilo non è caricato il menu resta intero (il server controlla comunque).
+  const permissions = item.requiresAnyPermission || requiredPermissionsForHref(item.href)
+  if (bootstrap.user && !hasAnyPermission(bootstrap, permissions)) return false
   if (!appV2Navigation) return true
   const flag = item.featureFlag || appV2FeatureFlagForPath(item.href)
   if (flag && !isFeatureFlagEnabledSync(flag)) return false
-  const permissions = item.requiresAnyPermission || requiredPermissionsForHref(item.href)
-  return hasAnyPermission(bootstrap, permissions)
+  return true
 }
 
 function visibleNavItems(items: NavItem[], bootstrap: ShellBootstrap, appV2Navigation: boolean): NavItem[] {

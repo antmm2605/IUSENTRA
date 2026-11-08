@@ -133,6 +133,13 @@ from web.services.react_clienti_bridge import (
 from web.services.deposito_pec_runtime import preserve_deposito_workflow
 from web.services.client_document_reader import ClientDocumentReaderError, read_client_document_upload
 from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
+from web.services.clienti_eliminazione import (
+    MESSAGGIO_CLIENTE_CON_FASCICOLI,
+    MESSAGGIO_VERIFICA_NON_RIUSCITA,
+    VerificaFascicoliNonRiuscita,
+    clienti_con_fascicoli,
+)
+from web.services.clienti_visibilita import cliente_visibile, loader_clienti_visibili
 from web.services.mailbox_sync_runtime import sync_mailboxes_for_current_context
 from web.bootstrap.fascicoli_document_helpers import (
     pdf_mobile_preview_html,
@@ -2867,7 +2874,10 @@ def global_search_react_bootstrap():
 @_richiedi_auth
 def clienti_react_list():
     try:
-        return jsonify(build_react_clienti_payload(get_clienti=get_clienti, get_fascicoli=get_fascicoli))
+        return jsonify(build_react_clienti_payload(
+            get_clienti=loader_clienti_visibili(get_clienti, api_key=_api_key_valida()),
+            get_fascicoli=get_fascicoli,
+        ))
     except Exception:
         current_app.logger.exception("Clienti React: bridge non disponibile.")
         return jsonify({
@@ -2910,11 +2920,12 @@ def clienti_react_delete():
     if not ids:
         return _json_validation_error("Seleziona almeno un cliente da eliminare.", {"ids": "Nessun cliente selezionato."}, status=400)
     clienti_repo = get_clienti()
-    # Un cliente con fascicoli collegati non si elimina: i fascicoli resterebbero senza cliente.
+    # Un cliente con fascicoli collegati, anche archiviati, non si elimina (art. 31 D.Lgs. 231/2007).
     try:
-        con_fascicoli = {str(getattr(f, "id_cliente", "") or "") for f in get_fascicoli().tutti()}
-    except Exception:
-        con_fascicoli = set()
+        con_fascicoli = clienti_con_fascicoli(get_fascicoli)
+    except VerificaFascicoliNonRiuscita:
+        current_app.logger.exception("Eliminazione clienti: fascicoli non verificabili.")
+        return jsonify({"ok": False, "message": MESSAGGIO_VERIFICA_NON_RIUSCITA, "deleted": [], "missing": []}), 503
     deleted: list[str] = []
     missing: list[str] = []
     bloccati: list[str] = []
@@ -2931,7 +2942,7 @@ def clienti_react_delete():
             missing.append(cliente_id)
     if not deleted:
         if bloccati:
-            return jsonify({"ok": False, "message": "Il cliente ha fascicoli collegati: archivia o riassegna prima i fascicoli.",
+            return jsonify({"ok": False, "message": MESSAGGIO_CLIENTE_CON_FASCICOLI,
                             "deleted": [], "missing": missing, "blocked": bloccati}), 409
         return jsonify({"ok": False, "message": "Nessun cliente eliminato.", "deleted": [], "missing": missing}), 404
     if len(deleted) == 1:
@@ -2951,6 +2962,8 @@ def _voice_cliente_cf(value: Any) -> str:
 
 def _voice_cliente_error_message(error: Exception) -> str:
     message = str(error or "").strip()
+    if "carattere di controllo" in message:
+        return message
     if "Codice fiscale non valido" in message:
         return "Il codice fiscale non ha un formato valido."
     if "Cliente con CF" in message and "presente" in message:
@@ -2986,6 +2999,7 @@ def clienti_react_voce_crea():
             nome=nome,
             cognome=cognome,
             codice_fiscale=codice_fiscale,
+            verifica_controllo=True,
         )
     except ValueError as exc:
         message = _voice_cliente_error_message(exc)
@@ -3082,6 +3096,8 @@ def territorio_react_comuni():
 @api_v1_react.get("/clienti/<id_cliente>/cartella")
 @_richiedi_auth
 def cliente_cartella_react(id_cliente: str):
+    if not cliente_visibile(id_cliente, api_key=_api_key_valida()):
+        return jsonify({"errore": "Non hai accesso a questa cartella cliente.", "codice": 403}), 403
     include_catalogs = request.args.get("cataloghi") == "1"
     if include_catalogs and not (_session_user_can("clienti.leggi") and _session_user_can("fascicoli.leggi")):
         return jsonify({"errore": "Non hai il permesso di consultare i cataloghi della cartella cliente."}), 403
@@ -3107,6 +3123,8 @@ def cliente_cartella_react(id_cliente: str):
 @api_v1_react.get("/clienti/<id_cliente>/modifica")
 @_richiedi_auth
 def cliente_modifica_react(id_cliente: str):
+    if not cliente_visibile(id_cliente, api_key=_api_key_valida()):
+        return jsonify({"errore": "Non hai accesso a questa cartella cliente.", "codice": 403}), 403
     try:
         return jsonify(build_react_cliente_modifica_payload(
             get_clienti=get_clienti,
@@ -7989,6 +8007,8 @@ def strumenti_legali_react_calcola(tool_id: str):
 @api_v1_react.get("/privacy/registro")
 @_richiedi_auth
 def privacy_registro_react_payload():
+    if not (_api_key_valida() or _session_user_can("utenti.leggi")):
+        return jsonify({"ok": False, "message": "Non hai il permesso per consultare il registro dei trattamenti."}), 403
     get_trattamenti = _core_runtime_func("get_trattamenti")
     if not callable(get_trattamenti):
         return jsonify({
@@ -9077,7 +9097,12 @@ def fascicoli_react_list():
         field_filters=_fascicoli_request_field_filters(),
     )
     try:
-        response = jsonify(provider(**params))
+        dati_elenco = provider(**params)
+        response = jsonify(dati_elenco)
+        # Con pratiche ancora in aggiornamento la pagina non si conserva: alla
+        # consegna dell'evento la richiesta successiva deve mostrare il dato nuovo.
+        if isinstance(dati_elenco, dict) and (dati_elenco.get("refreshPending") or {}).get("count"):
+            cache_key = None
     except FascicoliListNotReady:
         current_app.logger.warning("Catalogo fascicoli non ancora confermato per la pagina richiesta.")
         return jsonify({"ok": False, "code": "fascicoli_catalog_not_ready",
@@ -9164,6 +9189,7 @@ def fascicolo_react_stato(id_fasc: str):
         id_fasc=id_fasc,
         payload=_request_payload(),
         actor=_actor_label(),
+        puo_archiviare=bool(_api_key_valida() or _session_user_can("fascicoli.archivia")),
     )
     if result.get("ok"):
         _clear_fascicoli_list_payload_cache()

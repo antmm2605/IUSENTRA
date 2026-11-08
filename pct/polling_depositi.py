@@ -31,8 +31,10 @@ from pct.imap_runtime import (
     resolve_imap_timeout_seconds,
     run_imap_runtime_operation,
 )
+from pct.ricevute_deposito_archivio import ricevute_da_archivio, unisci_ricevute
 from pct.ricevute_deposito_pct import (
     INTESTAZIONI_IMAP,
+    _data_deposito,
     applica_ricevute,
     mittenti_interni,
     ricevuta_da_intestazioni,
@@ -266,6 +268,7 @@ def esegui_polling(
     giorni_indietro: int = 30,
     timeout_seconds: int | None = None,
     fascicolo_id: str | None = None,
+    archivio_pec: str | os.PathLike | None = None,
 ) -> dict:
     """
     Punto di ingresso principale per il polling scheduler.
@@ -276,6 +279,7 @@ def esegui_polling(
         credenziali_pdp:  Dict credenziali PDP (il PDP non ha servizi: solo messaggio controllato)
         giorni_indietro:  Finestra temporale IMAP
         fascicolo_id:     Se indicato, controlla solo i depositi di quel fascicolo
+        archivio_pec:     Archivio PEC del software (pec_audit.sqlite): ricevute già cancellate dalla casella
 
     Returns:
         dict con "controllati", "aggiornati", "errori", "pdp_non_interrogabili"
@@ -311,14 +315,18 @@ def esegui_polling(
         # Un identificativo vuoto non deve allargare il controllo a tutto lo studio.
         fascicoli = [f for f in fascicoli if fascicolo_id and getattr(f, "id", "") == fascicolo_id]
 
-    for fasc in fascicoli:
-        depositi_pendenti = [
-            dep for dep in (fasc.depositi_pct or [])
-            if dep.stato in STATI_PENDENTI and not is_simulated_deposit(dep)
-        ]
-        if not depositi_pendenti:
-            continue
+    pendenti_per_fascicolo = [
+        (fasc, [dep for dep in (fasc.depositi_pct or []) if dep.stato in STATI_PENDENTI and not is_simulated_deposit(dep)])
+        for fasc in fascicoli
+    ]
+    if archivio_pec:
+        # Le ricevute cancellate dalla casella restano nell'archivio del software: si cercano dal deposito più vecchio.
+        date_invio = [d for _f, deps in pendenti_per_fascicolo for d in map(_data_deposito, deps) if d is not None]
+        if date_invio:
+            dal = min(date_invio) - timedelta(days=1)
+            ricevute_imap = unisci_ricevute(ricevute_imap, ricevute_da_archivio(archivio_pec, dal=dal))
 
+    for fasc, depositi_pendenti in pendenti_per_fascicolo:
         for dep in depositi_pendenti:
             controllati += 1
 

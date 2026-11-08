@@ -73,7 +73,8 @@ def select_billable_timesheet_entries(entries: Iterable[Any], *, entry_ids: Iter
 
     id_cliente = next(iter(clienti), "")
     id_fascicolo = next(iter(fascicoli), "") if len(fascicoli) == 1 else ""
-    ore_totali = round(sum(float(getattr(entry, "ore", 0.0) or 0.0) for entry in rows), 2)
+    # Ore dai minuti effettivi: sommare ore già arrotondate a due decimali accumula l'errore voce per voce.
+    ore_totali = round(sum(int(getattr(entry, "minuti", 0) or 0) for entry in rows) / 60.0, 2)
     valore_totale = round(sum(float(getattr(entry, "valore_totale", 0.0) or 0.0) for entry in rows), 2)
 
     return TimesheetBillingSelection(
@@ -112,7 +113,8 @@ def _timesheet_voice(entry: Any) -> VoceParcella:
     descrizione = str(getattr(entry, "descrizione", "") or "Attivita' professionale").strip()
     return VoceParcella(
         descrizione=f"{data_label} - {descrizione}",
-        quantita=float(getattr(entry, "ore", 0.0) or 0.0),
+        # Ore dai minuti con sei decimali (FatturaPA ammette fino a otto): 20 min a 300 €/h = 100,00 €, non 99,00 €.
+        quantita=round(int(getattr(entry, "minuti", 0) or 0) / 60.0, 6),
         prezzo_unitario=float(getattr(entry, "valore_unitario", 0.0) or 0.0),
     )
 

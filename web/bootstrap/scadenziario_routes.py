@@ -11,6 +11,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 from markupsafe import escape
 from pct.ora_italiana import oggi_roma
 from pct.scadenze_titolo_avvocato import traccia_titolo_avvocato
+from pct.termini_materia import NOTA_LAVORO, lavoro_da_richiesta, profilo_per_materia
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -110,6 +111,10 @@ def register_scadenziario_routes(
 
         if not source_event_at:
             raise ValueError("Data/ora evento origine obbligatoria per il calcolo del termine")
+        # Art. 3 L. 742/1969: nessuna sospensione feriale nelle controversie di lavoro e previdenza.
+        materia_lavoro = lavoro_da_richiesta(payload, lambda id_fasc: get_fascicoli().get(id_fasc))
+        profilo_generale = profile
+        profile = profilo_per_materia(profile, lavoro=materia_lavoro)
 
         office_rule = regola_patrono_ufficio(
             office_code,
@@ -129,6 +134,8 @@ def register_scadenziario_routes(
             include_october_observance_blocking=october_observance_blocks,
             operational_lead_business_days=operational_lead_business_days,
         )
+        if profile is not profilo_generale:
+            result.trace.insert(0, NOTA_LAVORO)
         return {
             "profile": profile,
             "result": result,
@@ -146,6 +153,7 @@ def register_scadenziario_routes(
             "operational_lead_business_days": operational_lead_business_days,
             "october_observance_blocks": october_observance_blocks,
             "preset_key": preset_key,
+            "materia_lavoro": materia_lavoro,
         }
     @app.route("/scadenziario")
     def scadenziario():
@@ -662,13 +670,14 @@ def register_scadenziario_routes(
                         "judicial_office_name": calc["judicial_office_name"],
                         "profile_code": calc["profile"].code,
                         "profile_label": calc["profile"].label,
+                        "materia_lavoro": calc["materia_lavoro"],
                     }
                 )
             d_inizio = date.fromisoformat(data["data_inizio"])
             d_scadenza = calcola_termine(
                 d_inizio,
                 giorni=int(data.get("giorni", 0)),
-                tipo=data.get("tipo", "liberi"),
+                tipo=data.get("tipo", "continui"),
                 sospensione_feriale=data.get("sospensione_feriale", True),
                 mesi=int(data.get("mesi", 0)),
                 anni=int(data.get("anni", 0)),

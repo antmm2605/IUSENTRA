@@ -47,7 +47,7 @@ from pct.scadenze_proposte_pec import (
     select_draft_candidates,
 )
 from pct.notifiche_ricevute_pec import proposta_notifica_ricevuta
-from pct.agenda_eventi_equivalenti import ORA_DA_CONFERMARE, riunisci_fonte, udienza_equivalente
+from pct.agenda_eventi_equivalenti import ORA_DA_CONFERMARE, riunisci_fonte, titolo_note_127_ter, udienza_equivalente
 from pct.pec_legal_event_understanding import RULEPACK_VERSION, build_legal_event_understanding
 from pct.pec_legal_workflow import classifica_pec_legale
 from pct.pec_oggetti_ufficiali import (
@@ -14424,7 +14424,8 @@ class PecAuditRepository:
                 # La stessa udienza già in agenda da un'altra fonte (altra PEC, documenti, portale, calendario):
                 # la PEC diventa una prova in più della voce esistente, non una seconda voce.
                 equivalente = None
-                if is_hearing and agenda.trova_per_uid_esterno(event_uid, provider="pec_audit", profile_id="pec_scadenziario") is None:
+                # Art. 127-ter c.p.c.: il termine per le note vale come udienza, quindi stessa regola di equivalenza.
+                if (is_hearing or titolo_note_127_ter(agenda_title)) and agenda.trova_per_uid_esterno(event_uid, provider="pec_audit", profile_id="pec_scadenziario") is None:
                     equivalente = udienza_equivalente(
                         agenda.tutti(), id_fascicolo=linked_fascicolo_id, procedimento=agenda_procedimento,
                         data_ora=agenda_data_ora, ora_certa=not ora_segnaposto,

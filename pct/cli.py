@@ -1401,7 +1401,7 @@ def cmd_sc_completa(id_sc, note, db):
 @click.option("--giorni", default=0, show_default=True, type=int)
 @click.option("--mesi", default=0, show_default=True, type=int)
 @click.option("--anni", default=0, show_default=True, type=int)
-@click.option("--tipo", default="liberi", type=click.Choice(["liberi", "continui", "lavorativi"]))
+@click.option("--tipo", default="continui", type=click.Choice(["continui", "liberi", "lavorativi"]))
 @click.option("--no-feriale", is_flag=True, default=False,
               help="Ignora sospensione feriale agostana")
 def cmd_sc_calcola(data_inizio, giorni, mesi, anni, tipo, no_feriale):

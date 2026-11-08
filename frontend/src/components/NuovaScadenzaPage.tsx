@@ -566,6 +566,7 @@ export function NuovaScadenzaPage() {
           deadline_profile_code: form.deadline_profile_code,
           source_event_at: form.source_event_at,
           data_decorrenza: form.data_decorrenza,
+          id_fascicolo: form.id_fascicolo,
           judicial_office_id: form.judicial_office_id,
           office_patron_name: form.office_patron_name,
           office_patron_day: form.office_patron_day,

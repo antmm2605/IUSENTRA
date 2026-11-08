@@ -17,10 +17,27 @@ import uuid
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict, Iterable, List, Optional
+
+from pct.ora_italiana import ROME_TZ, oggi_roma
+
+
+def _adesso_roma() -> str:
+    """Ora italiana (Europe/Rome) nel formato senza fuso già usato dalle voci salvate."""
+    return datetime.now(ROME_TZ).replace(tzinfo=None).isoformat()
+
+
+def valore_a_tempo(minuti: int, tariffa_oraria: float) -> float:
+    """Compenso a tempo sui minuti effettivi, arrotondato al centesimo solo alla fine.
+
+    Arrotondare prima le ore (20 min = 0,33 h) falsava l'importo: 20 minuti a 300 €/h valgono 100,00 €, non 99,00 €.
+    """
+    importo = Decimal(int(minuti or 0)) * Decimal(str(tariffa_oraria or 0)) / Decimal(60)
+    return float(importo.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 class StatoTimesheet(str, Enum):
@@ -37,7 +54,7 @@ class VoceTimesheet:
     id_cliente: str = ""
     id_utente: str = ""
     username: str = ""
-    data_attivita: str = field(default_factory=lambda: date.today().isoformat())
+    data_attivita: str = field(default_factory=lambda: oggi_roma().isoformat())
     descrizione: str = ""
     minuti: int = 0
     valore_unitario: float = 0.0
@@ -45,8 +62,8 @@ class VoceTimesheet:
     stato: StatoTimesheet = StatoTimesheet.APERTO
     origine: str = ""
     note: str = ""
-    creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
-    modificato_il: str = field(default_factory=lambda: datetime.now().isoformat())
+    creato_il: str = field(default_factory=lambda: _adesso_roma())
+    modificato_il: str = field(default_factory=lambda: _adesso_roma())
     dati_json: Dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -63,7 +80,7 @@ class VoceTimesheet:
     def valore_totale(self) -> float:
         if not self.fatturabile:
             return 0.0
-        return round(self.ore * float(self.valore_unitario or 0.0), 2)
+        return valore_a_tempo(self.minuti, self.valore_unitario)
 
     def to_dict(self) -> Dict[str, Any]:
         row = asdict(self)
@@ -222,7 +239,7 @@ class GestioneTimesheet:
             id_cliente=str(id_cliente or "").strip(),
             id_utente=str(id_utente or "").strip(),
             username=str(username or "").strip(),
-            data_attivita=str(data_attivita or date.today().isoformat()).strip(),
+            data_attivita=str(data_attivita or oggi_roma().isoformat()).strip(),
             descrizione=str(descrizione).strip(),
             minuti=int(minuti or 0),
             valore_unitario=float(valore_unitario or 0.0),
@@ -279,7 +296,7 @@ class GestioneTimesheet:
             if key == "valore_unitario":
                 value = float(value or 0.0)
             setattr(voce, key, value)
-        voce.modificato_il = datetime.now().isoformat()
+        voce.modificato_il = _adesso_roma()
         self._salva()
         return voce
 
@@ -292,8 +309,11 @@ class GestioneTimesheet:
         fatturabili = [item for item in righe if item.fatturabile and item.stato != StatoTimesheet.ANNULLATO]
         non_fatturabili = [item for item in righe if not item.fatturabile and item.stato != StatoTimesheet.ANNULLATO]
         valore_totale = round(sum(item.valore_totale for item in fatturabili), 2)
+        annullate = sum(1 for item in righe if item.stato == StatoTimesheet.ANNULLATO)
         return {
-            "totale_voci": len(righe),
+            # Stessa base di minuti e valore: le voci annullate si contano a parte.
+            "totale_voci": len(righe) - annullate,
+            "annullate": annullate,
             "totale_minuti": minuti_totali,
             "totale_ore": round(minuti_totali / 60.0, 2),
             "fatturabili": len(fatturabili),

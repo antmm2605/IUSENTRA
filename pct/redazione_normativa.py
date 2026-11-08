@@ -45,6 +45,8 @@ FONTI_UFFICIALI: dict[str, dict[str, str]] = {
 
 # Etichette delle condizioni contestuali rilevabili dal fascicolo.
 CONDIZIONI_LABELS: dict[str, str] = {
+    # Art. 35, comma 1, D.Lgs. 149/2022: ai procedimenti pendenti al 28/02/2023 si applica il rito anteriore.
+    "rito_previgente": "procedimento pendente al 28/02/2023 (rito anteriore al D.Lgs. 149/2022)",
     "mediazione": "mediazione presente o richiesta nel fascicolo",
     "negoziazione": "negoziazione assistita presente nel fascicolo",
     "contratto": "controversia contrattuale",
@@ -114,8 +116,10 @@ def _rif(
     condizione: str = "",
     comma: str = "",
     note: str = "",
+    valid_to: str = "",
 ) -> RiferimentoNormativo:
     return RiferimentoNormativo(
+        valid_to=valid_to,
         id=rif_id,
         fonte=fonte,
         articolo=articolo,
@@ -171,10 +175,18 @@ RIFERIMENTI_BASE: list[RiferimentoNormativo] = [
          "Negoziazione assistita come condizione di procedibilita' (risarcimento da circolazione, pagamenti fino a € 50.000,00).", _CITAZIONE,
          condizione="negoziazione"),
     # ----- Comparsa conclusionale, repliche, appello -----
+    # Art. 189 c.p.c. vigente (D.Lgs. 149/2022): note di precisazione delle conclusioni, comparse conclusionali e
+    # memorie di replica entro 60, 30 e 15 giorni prima dell'udienza di rimessione al collegio.
     _rif("cpc_189", "c.p.c.", "189", "Rimessione al collegio", "processuale",
-         "Precisazione delle conclusioni e rimessione della causa in decisione.", ("CIV_CONCL_001",)),
-    _rif("cpc_190", "c.p.c.", "190", "Comparse conclusionali e memorie", "processuale",
-         "Termini di deposito di comparse conclusionali e memorie di replica.", ("CIV_CONCL_001", "CIV_REPL_001")),
+         "Precisazione delle conclusioni e termini per comparse conclusionali e memorie di replica "
+         "(non oltre 30 e 15 giorni prima dell'udienza di rimessione al collegio).", ("CIV_CONCL_001", "CIV_REPL_001")),
+    # Art. 190 c.p.c. abrogato dal D.Lgs. 149/2022 (Normattiva: «ARTICOLO ABROGATO»): resta solo per i procedimenti
+    # pendenti al 28/02/2023 e si suggerisce soltanto se il fascicolo segue il rito previgente.
+    _rif("cpc_190", "c.p.c.", "190", "Comparse conclusionali e memorie (articolo abrogato)", "processuale",
+         "Articolo abrogato dal D.Lgs. 149/2022, sostituito dall'art. 189 c.p.c.: applicabile solo ai procedimenti "
+         "pendenti al 28/02/2023.", ("CIV_CONCL_001", "CIV_REPL_001"),
+         condizione="rito_previgente", valid_to="2023-02-28",
+         note="Abrogato: per le cause instaurate dal 28/02/2023 citare l'art. 189 c.p.c."),
     _rif("cpc_342", "c.p.c.", "342", "Forma dell'appello", "processuale",
          "Motivi specifici di appello a pena di inammissibilita'.", ("CIV_APP_001", "FAM_REC_001")),
     _rif("cpc_343", "c.p.c.", "343", "Appello incidentale", "processuale",

@@ -99,3 +99,24 @@ def test_sentenza_di_altro_ufficio_dal_nome_e_un_precedente():
     assert not precedente_dal_nome("Decreto fissazione udienza.PDF", "Tribunale di Locri")
     assert not precedente_dal_nome("Sentenza Tribunale di Santa Maria Capua Vetere.pdf", "Tribunale di Santa Maria Capua Vetere")
     assert not precedente_dal_nome("Sentenza Tribunale di Cosenza.pdf", "")
+
+
+def test_termine_note_127_ter_vale_come_udienza(tmp_path):
+    """Art. 127-ter c.p.c.: il giorno di scadenza delle note «è considerato data di udienza a tutti gli effetti».
+
+    Caso reale RG 901/2026: SCADENZA 35B49E1F e UDIENZA 35D9908A del 06/10/2026 ore 14:00.
+    """
+    from pct.agenda_eventi_equivalenti import termine_note_127_ter, titolo_note_127_ter
+
+    agenda = _agenda(tmp_path)
+    note = agenda.aggiungi("Deposito note scritte ex art. 127-ter c.p.c. - 06/10/2026 - RG 901/2026",
+                           TipoAppuntamento.SCADENZA, "2026-10-06T14:00:00", allow_overlap=True,
+                           procedimento="RG 901/2026")
+    agenda.aggiungi("Opposizione alla trattazione scritta (art. 127-ter c.p.c.)", TipoAppuntamento.SCADENZA,
+                    "2026-10-07T14:00:00", allow_overlap=True, procedimento="RG 901/2026")
+    tutti = agenda.tutti()
+    assert termine_note_127_ter(note)
+    assert udienza_equivalente(tutti, procedimento="RG 901/2026", data_ora="2026-10-06T14:00:00").id == note.id
+    assert udienza_equivalente(tutti, procedimento="RG 901/2026", data_ora="2026-10-07T14:00:00") is None
+    assert titolo_note_127_ter("Riassegnazione termine per note in sostituzione udienza - 23/11/2026")
+    assert not titolo_note_127_ter("Opposizione alla trattazione scritta: note entro cinque giorni")

@@ -21,7 +21,7 @@ from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_clie
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
 from web.services.fascicolo_copertina import contesto_copertina
-from web.services.permessi_route import permesso_negato
+from web.services.permessi_route import descrizione_fascicolo, permesso_fascicolo_negato as _negato
 from web.services.fascicolo_controparti_aggiuntive import (
     avviso_conflitto_interessi,
     collega_controparti_aggiuntive,
@@ -87,16 +87,6 @@ def register_fascicoli_management_routes(
     fascicolo_form_correction_context: Callable[[], dict[str, Any]],
 ) -> None:
     """Register management, archive, and API routes for fascicoli."""
-
-    _MESSAGGI_PERMESSO = {
-        "fascicoli.scrivi": "Non hai il permesso per modificare i fascicoli.",
-        "fascicoli.archivia": "Non hai il permesso per archiviare o ripristinare i fascicoli.",
-        "fascicoli.elimina": "Non hai il permesso per eliminare i fascicoli.",
-    }
-
-    def _negato(permesso: str, id_fasc: str = ""):
-        rimando = url_for("dettaglio_fascicolo", id_fasc=id_fasc) if id_fasc else url_for("lista_fascicoli")
-        return permesso_negato(permesso, _MESSAGGI_PERMESSO[permesso], rimando)
 
     def _avvocato_titolare_studio() -> str:
         try:
@@ -284,8 +274,7 @@ def register_fascicoli_management_routes(
 
         render_status = 200
         if request.method == "POST":
-            negato = _negato("fascicoli.scrivi", id_fasc)
-            if negato is not None:
+            if (negato := _negato("fascicoli.scrivi", id_fasc)) is not None:
                 return negato
             form = request.form
             id_cliente = form.get("id_cliente", fascicolo.id_cliente).strip()
@@ -503,8 +492,7 @@ def register_fascicoli_management_routes(
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
     def cambia_stato_fascicolo(id_fasc: str):
         richiesto = str(request.form.get("stato") or "").strip().upper()
-        negato = _negato("fascicoli.archivia" if richiesto == StatoFascicolo.ARCHIVIATO.name else "fascicoli.scrivi", id_fasc)
-        if negato is not None:
+        if (negato := _negato("fascicoli.archivia" if richiesto == StatoFascicolo.ARCHIVIATO.name else "fascicoli.scrivi", id_fasc)) is not None:
             return negato
         gf = get_fascicoli()
         form = request.form
@@ -524,8 +512,7 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/conformita/controlli", methods=["POST"])
     def toggle_controlli_conformita_fascicolo(id_fasc: str):
-        negato = _negato("fascicoli.scrivi", id_fasc)
-        if negato is not None:
+        if (negato := _negato("fascicoli.scrivi", id_fasc)) is not None:
             return negato
         gf = get_fascicoli()
         enabled = str(request.form.get("enabled", "1") or "").strip().lower() in {"1", "true", "on", "yes"}
@@ -551,8 +538,7 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/definisci", methods=["POST"])
     def definisci_fascicolo(id_fasc: str):
-        negato = _negato("fascicoli.scrivi", id_fasc)
-        if negato is not None:
+        if (negato := _negato("fascicoli.scrivi", id_fasc)) is not None:
             return negato
         gf = get_fascicoli()
         form = request.form
@@ -573,8 +559,7 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/archivia", methods=["POST"])
     def archivia_fascicolo(id_fasc: str):
-        negato = _negato("fascicoli.archivia", id_fasc)
-        if negato is not None:
+        if (negato := _negato("fascicoli.archivia", id_fasc)) is not None:
             return negato
         gf = get_fascicoli()
         try:
@@ -593,8 +578,7 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/ripristina", methods=["POST"])
     def ripristina_fascicolo(id_fasc: str):
-        negato = _negato("fascicoli.archivia", id_fasc)
-        if negato is not None:
+        if (negato := _negato("fascicoli.archivia", id_fasc)) is not None:
             return negato
         try:
             get_fascicoli().ripristina_da_archivio(id_fasc, avvocato=request.form.get("avvocato", ""))
@@ -608,23 +592,14 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/elimina", methods=["POST"])
     def elimina_fascicolo(id_fasc: str):
-        negato = _negato("fascicoli.elimina", id_fasc)
-        if negato is not None:
+        if (negato := _negato("fascicoli.elimina", id_fasc)) is not None:
             return negato
         try:
             gestore = get_fascicoli()
             fascicolo = gestore.get(id_fasc)
             if fascicolo is None:
                 raise KeyError(id_fasc)
-            descrizione = " - ".join(
-                parte
-                for parte in (
-                    str(getattr(fascicolo, "numero", "") or "").strip(),
-                    str(getattr(fascicolo, "titolo", "") or "").strip(),
-                    str(getattr(fascicolo, "nome_cliente", "") or "").strip(),
-                )
-                if parte
-            )
+            descrizione = descrizione_fascicolo(fascicolo)
             gestore.elimina(id_fasc)
             audit(
                 "fascicoli.elimina",

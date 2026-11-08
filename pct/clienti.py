@@ -14,6 +14,12 @@ from typing import Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
+from pct.identificativi_fiscali import (
+    controllo_codice_fiscale,
+    controllo_partita_iva,
+    formato_codice_fiscale,
+)
+
 
 def cerca_clienti_sql(studio_db, ricerca: str) -> dict:
     """Selezione anagrafica puntuale sul database proprietario, senza caricare archivi."""
@@ -308,6 +314,16 @@ class Cliente:
 
 # ------------------------------------------------------------------ Repository
 
+MESSAGGIO_CF_CONTROLLO = (
+    "Il codice fiscale non è corretto: l'ultimo carattere (carattere di controllo) non corrisponde. "
+    "Controlla di averlo trascritto senza errori."
+)
+MESSAGGIO_PIVA_CONTROLLO = (
+    "La partita IVA non è corretta: l'ultima cifra (cifra di controllo) non corrisponde. "
+    "Controlla di averla trascritta senza errori."
+)
+
+
 class GestioneClienti:
     """
     Repository per la gestione dell'anagrafica clienti.
@@ -433,9 +449,15 @@ class GestioneClienti:
         ragione_sociale: str = "",
         codice_fiscale: str = "",
         partita_iva: str = "",
+        verifica_controllo: bool = False,
         **kwargs,
     ) -> Cliente:
-        """Crea un nuovo cliente."""
+        """Crea un nuovo cliente.
+
+        ``verifica_controllo`` (dati digitati dall'avvocato) respinge anche il
+        carattere di controllo errato di CF e partita IVA (D.M. 23/12/1976);
+        le importazioni conservano il dato com'è e lo segnalano altrove.
+        """
         if tipo == TipoCliente.PERSONA_FISICA and not (nome or cognome):
             raise ValueError("Nome o cognome obbligatorio per persona fisica.")
         if tipo == TipoCliente.PERSONA_GIURIDICA and not ragione_sociale:
@@ -443,8 +465,10 @@ class GestioneClienti:
 
         if codice_fiscale:
             cf = codice_fiscale.upper().strip()
-            if not self.valida_cf(cf):
+            if not formato_codice_fiscale(cf):
                 raise ValueError("Codice fiscale non valido.")
+            if verifica_controllo and not controllo_codice_fiscale(cf):
+                raise ValueError(MESSAGGIO_CF_CONTROLLO)
             if self._cerca_per_cf(cf):
                 raise ValueError(f"Cliente con CF '{cf}' già presente.")
             codice_fiscale = cf
@@ -452,6 +476,8 @@ class GestioneClienti:
             piva = partita_iva.strip()
             if not self.valida_piva(piva):
                 raise ValueError("Partita IVA non valida.")
+            if verifica_controllo and not controllo_partita_iva(piva):
+                raise ValueError(MESSAGGIO_PIVA_CONTROLLO)
             partita_iva = piva
 
         cliente = Cliente(
@@ -470,22 +496,32 @@ class GestioneClienti:
         self._salva()
         return cliente
 
-    def aggiorna(self, id_cliente: str, **campi) -> Cliente:
-        """Aggiorna i campi di un cliente."""
+    def aggiorna(self, id_cliente: str, verifica_controllo: bool = False, **campi) -> Cliente:
+        """Aggiorna i campi di un cliente.
+
+        Con ``verifica_controllo`` il carattere di controllo si verifica solo sui
+        valori cambiati: una scheda storica resta salvabile.
+        """
         c = self._get_o_errore(id_cliente)
         if "codice_fiscale" in campi:
             cf = str(campi.get("codice_fiscale") or "").strip().upper()
-            if cf:
-                if not self.valida_cf(cf):
+            if cf and cf != str(c.codice_fiscale or "").strip().upper():
+                if not formato_codice_fiscale(cf):
                     raise ValueError("Codice fiscale non valido.")
+                if verifica_controllo and not controllo_codice_fiscale(cf):
+                    raise ValueError(MESSAGGIO_CF_CONTROLLO)
+            if cf:
                 existing = self._cerca_per_cf(cf)
                 if existing and existing.id != c.id:
                     raise ValueError(f"Cliente con CF '{cf}' già presente.")
             campi["codice_fiscale"] = cf
         if "partita_iva" in campi:
             piva = str(campi.get("partita_iva") or "").strip()
-            if piva and not self.valida_piva(piva):
-                raise ValueError("Partita IVA non valida.")
+            if piva and piva != str(c.partita_iva or "").strip():
+                if not self.valida_piva(piva):
+                    raise ValueError("Partita IVA non valida.")
+                if verifica_controllo and not controllo_partita_iva(piva):
+                    raise ValueError(MESSAGGIO_PIVA_CONTROLLO)
             campi["partita_iva"] = piva
         for k, v in campi.items():
             if hasattr(c, k):

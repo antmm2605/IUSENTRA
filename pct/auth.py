@@ -751,7 +751,7 @@ class GestioneUtenti:
         )
         w.writeheader()
         for e in eventi:
-            w.writerow({
+            w.writerow({chiave: _cella_csv_sicura(valore) for chiave, valore in {
                 "timestamp": e.timestamp,
                 "username": e.username,
                 "azione": e.azione,
@@ -760,7 +760,7 @@ class GestioneUtenti:
                 "dettagli": e.dettagli,
                 "ip": e.ip,
                 "esito": e.esito,
-            })
+            }.items()})
         return out.getvalue()
 
     def _crea_admin_default(self):
@@ -1425,6 +1425,20 @@ class GestioneUtenti:
         if not u:
             raise ValueError(f"Utente {id_utente!r} non trovato")
         return u
+
+
+def _cella_csv_sicura(valore) -> str:
+    """Neutralizza le celle che un foglio di calcolo eseguirebbe come formula.
+
+    Lo username digitato nella pagina di accesso finisce nel registro delle
+    azioni: un valore che inizia con «=», «+», «-», «@», tabulazione o ritorno a
+    capo viene preceduto da un apice e resta testo (indicazioni OWASP sulla
+    CSV injection).
+    """
+    testo = "" if valore is None else str(valore)
+    if testo.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return "'" + testo
+    return testo
 
 
 # ------------------------------------------------------------------ Decoratori Flask

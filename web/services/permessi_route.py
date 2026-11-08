@@ -12,7 +12,9 @@ art. 2-quaterdecies D.Lgs. 196/2003 (persone autorizzate al trattamento).
 
 from __future__ import annotations
 
-from flask import flash, g, jsonify, redirect
+from typing import Any
+
+from flask import flash, g, jsonify, redirect, url_for
 
 from web.services.request_mode import richiede_json
 
@@ -30,3 +32,22 @@ def permesso_negato(permesso: str, messaggio: str, rimando: str):
         return jsonify({"ok": False, "message": messaggio, "messaggio": messaggio, "permesso": permesso}), 403
     flash(messaggio, "danger")
     return redirect(rimando)
+
+
+_MESSAGGI_FASCICOLI = {
+    "fascicoli.scrivi": "Non hai il permesso per modificare i fascicoli.",
+    "fascicoli.archivia": "Non hai il permesso per archiviare o ripristinare i fascicoli.",
+    "fascicoli.elimina": "Non hai il permesso per eliminare i fascicoli.",
+}
+
+
+def permesso_fascicolo_negato(permesso: str, id_fasc: str = ""):
+    """Rifiuto per le azioni dei fascicoli: rimanda al fascicolo o all'elenco."""
+    rimando = url_for("dettaglio_fascicolo", id_fasc=id_fasc) if id_fasc else url_for("lista_fascicoli")
+    return permesso_negato(permesso, _MESSAGGI_FASCICOLI[permesso], rimando)
+
+
+def descrizione_fascicolo(fascicolo: Any) -> str:
+    """Numero, titolo e cliente del fascicolo per il registro delle attività."""
+    parti = (str(getattr(fascicolo, campo, "") or "").strip() for campo in ("numero", "titolo", "nome_cliente"))
+    return " - ".join(parte for parte in parti if parte)

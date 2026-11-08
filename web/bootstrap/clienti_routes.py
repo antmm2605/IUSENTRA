@@ -12,6 +12,13 @@ from pct.clienti import RiferimentoProcedimento, StatoCliente, TipoCliente, Tipo
 from pct.condivisione import RuoloCondivisione
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.app_v2_routing import is_safe_internal_path
+from web.services.clienti_eliminazione import (
+    MESSAGGIO_CLIENTE_CON_FASCICOLI,
+    MESSAGGIO_VERIFICA_NON_RIUSCITA,
+    VerificaFascicoliNonRiuscita,
+    clienti_con_fascicoli,
+)
+from web.services.permessi_route import permesso_negato
 from web.services.territorio_forms import address_fields_from_form
 
 
@@ -165,6 +172,13 @@ def register_clienti_routes(
             return render_react_shell_response("clienti/nuovo")
 
         if request.method == "POST":
+            negato = permesso_negato(
+                "clienti.scrivi",
+                "Non hai il permesso per creare clienti.",
+                url_for("lista_clienti"),
+            )
+            if negato is not None:
+                return negato
             form = request.form
             next_url = form.get("next_url", "").strip()
             if next_url and not is_safe_internal_path(next_url):
@@ -173,6 +187,7 @@ def register_clienti_routes(
             try:
                 cliente = gc.nuovo(
                     tipo=tipo,
+                    verifica_controllo=True,
                     nome=form.get("nome", ""),
                     cognome=form.get("cognome", ""),
                     ragione_sociale=form.get("ragione_sociale", ""),
@@ -317,6 +332,7 @@ def register_clienti_routes(
             try:
                 gc.aggiorna(
                     id_cliente,
+                    verifica_controllo=True,
                     nome=form.get("nome", cliente.nome),
                     cognome=form.get("cognome", cliente.cognome),
                     ragione_sociale=form.get("ragione_sociale", cliente.ragione_sociale),
@@ -385,17 +401,45 @@ def register_clienti_routes(
 
     @app.route("/clienti/<id_cliente>/elimina", methods=["POST"])
     def elimina_cliente(id_cliente: str):
+        negato = permesso_negato(
+            "clienti.elimina",
+            "Non hai il permesso per eliminare i clienti.",
+            url_for("dettaglio_cliente", id_cliente=id_cliente),
+        )
+        if negato is not None:
+            return negato
+        try:
+            bloccato = id_cliente in clienti_con_fascicoli(get_fascicoli)
+        except VerificaFascicoliNonRiuscita:
+            app.logger.exception("Eliminazione cliente %s: fascicoli non verificabili.", id_cliente)
+            if _richiede_json():
+                return jsonify({"ok": False, "message": MESSAGGIO_VERIFICA_NON_RIUSCITA}), 503
+            flash(MESSAGGIO_VERIFICA_NON_RIUSCITA, "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+        if bloccato:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": MESSAGGIO_CLIENTE_CON_FASCICOLI}), 409
+            flash(MESSAGGIO_CLIENTE_CON_FASCICOLI, "warning")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
         gc = get_clienti()
         try:
             gc.elimina(id_cliente)
+            audit("clienti.elimina", "cliente", id_cliente, "")
             flash("Cliente eliminato.", "success")
             sync_pubblica("elimina", "clienti", id_cliente)
+            if _richiede_json():
+                return jsonify({"ok": True, "message": "Cliente eliminato.", "redirect": url_for("lista_clienti")})
         except KeyError as exc:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": "Cliente non trovato."}), 404
             flash(str(exc), "danger")
         return redirect(url_for("lista_clienti"))
 
     @app.route("/clienti/<id_cliente>/procedimento", methods=["POST"])
     def aggiungi_procedimento(id_cliente: str):
+        if not cliente_accessibile(id_cliente, RuoloCondivisione.SCRITTURA):
+            flash("Non hai permesso di modificare questa cartella cliente.", "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
         gc = get_clienti()
         form = request.form
         try:

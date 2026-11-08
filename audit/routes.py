@@ -84,7 +84,7 @@ def _service() -> AuditService:
 
 def _rate_limit_internal() -> bool:
     now = time.time()
-    key = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    key = (request.remote_addr or "unknown").strip()  # già risolto da ProxyFix
     hits = current_app.extensions.setdefault("legal_audit_internal_rate_limit", {})
     window = [item for item in hits.get(key, []) if item > now - 60]
     if len(window) >= int(current_app.config.get("AUDIT_INTERNAL_RATE_LIMIT_PER_MINUTE", 60)):

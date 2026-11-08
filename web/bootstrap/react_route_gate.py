@@ -631,6 +631,11 @@ def register_react_route_gate(app: Flask) -> None:
             return None
         if _excluded(path) or not _is_react_route(path):
             return None
+        from web.services.clienti_visibilita import pagina_cartella_negata
+
+        negato = pagina_cartella_negata(path)
+        if negato is not None:
+            return negato
         spa_path = "" if path == "/" else path.lstrip("/")
         _preserve_react_route_side_effects(path)
         return render_react_shell_response(spa_path, bootstrap_texts=_react_bootstrap_texts_for_path(path))

@@ -1250,13 +1250,16 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def cliente_accessibile(id_cliente: str, richiesto: RuoloCondivisione = RuoloCondivisione.LETTURA) -> bool:
         """
         Verifica se l'utente corrente può accedere alla cartella di un cliente.
-        - Utenti con permesso globale 'clienti.leggi' -> sempre True
+        - Lettura: permesso globale 'clienti.leggi'
+        - Scrittura o gestione: permesso globale 'clienti.scrivi' (la sola
+          lettura non basta per modificare l'anagrafica)
         - Altri -> solo se la cartella è stata condivisa con loro al livello richiesto
         """
         u = g.utente_corrente
         if not u:
             return False
-        if u.ha_permesso("clienti.leggi"):
+        permesso_globale = "clienti.leggi" if richiesto == RuoloCondivisione.LETTURA else "clienti.scrivi"
+        if u.ha_permesso(permesso_globale):
             return True
         return get_condivisioni().ha_accesso(u.id, id_cliente, richiesto)
 

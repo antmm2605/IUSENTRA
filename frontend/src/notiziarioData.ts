@@ -3,9 +3,21 @@ export type NotiziarioFilter = {
   label: string
 }
 
+export type NotiziarioFacet = {
+  id: string
+  label: string
+  count: number
+}
+
 export type NotiziarioCase = {
   id: string
   label: string
+}
+
+export type NotiziarioRelatedCase = {
+  id: string
+  label: string
+  reason: string
 }
 
 export type NotiziarioQuickSource = {
@@ -35,13 +47,19 @@ export type NotiziarioItem = {
   summary: string
   content: string
   newsType: string
+  kind: string
+  kindLabel: string
   publishedAt: string
   sourceName: string
+  authority: string
   sourceCode: string
   sourceGroup: string
   sourceUrl: string
+  officialReference: string
   matterName: string
   submatterName: string
+  isNew: boolean
+  relatedCases: NotiziarioRelatedCase[]
   read: boolean
   readAt: string
   favorite: boolean
@@ -52,11 +70,15 @@ export type NotiziarioItem = {
 export type NotiziarioSourceState = {
   id: string
   label: string
+  authority: string
   url: string
   ok: boolean
+  checked: boolean
   count: number
   latestPublishedAt: string
+  lastAttemptAt: string
   message: string
+  frequencyMinutes: number
   preservedFromCache: boolean
 }
 
@@ -67,11 +89,44 @@ export type NotiziarioPayload = {
   refreshRequired: boolean
   sourceStates: NotiziarioSourceState[]
   items: NotiziarioItem[]
+  total: number
+  page: number
+  hasMore: boolean
   filters: NotiziarioFilter[]
+  facets: {
+    sources: NotiziarioFacet[]
+    kinds: NotiziarioFacet[]
+    matters: NotiziarioFacet[]
+  }
+  relevantCount: number
+  newCount: number
   quickSources: NotiziarioQuickSource[]
   cases: NotiziarioCase[]
   unreadCount: number
   message: string
+}
+
+/** Filtri applicati dal server sull'archivio delle Notizie utili. */
+export type NotiziarioQuery = {
+  fonte: string
+  tipo: string
+  materia: string
+  stato: 'all' | 'unread' | 'favorite'
+  pertinenti: boolean
+  nuove: boolean
+  q: string
+  pagina: number
+}
+
+export const NOTIZIARIO_QUERY_INIZIALE: NotiziarioQuery = {
+  fonte: '',
+  tipo: '',
+  materia: '',
+  stato: 'all',
+  pertinenti: false,
+  nuove: false,
+  q: '',
+  pagina: 1,
 }
 
 type InteractionPatch = {
@@ -87,7 +142,13 @@ const emptyPayload: NotiziarioPayload = {
   refreshRequired: true,
   sourceStates: [],
   items: [],
+  total: 0,
+  page: 1,
+  hasMore: false,
   filters: [{ id: 'all', label: 'Tutte' }],
+  facets: { sources: [], kinds: [], matters: [] },
+  relevantCount: 0,
+  newCount: 0,
   quickSources: [],
   cases: [],
   unreadCount: 0,
@@ -110,8 +171,16 @@ function rows(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
+function facets(value: unknown): NotiziarioFacet[] {
+  return rows(value).map((entry) => {
+    const item = record(entry)
+    return { id: text(item.id), label: text(item.label), count: Number(item.count || 0) }
+  }).filter((item) => item.id && item.label)
+}
+
 function normaliseItem(value: unknown): NotiziarioItem {
   const item = record(value)
+  const kind = text(item.kind) || text(item.newsType)
   return {
     id: text(item.id),
     slug: text(item.slug),
@@ -119,13 +188,22 @@ function normaliseItem(value: unknown): NotiziarioItem {
     summary: text(item.summary),
     content: text(item.content),
     newsType: text(item.newsType) || 'focus',
+    kind,
+    kindLabel: text(item.kindLabel),
     publishedAt: text(item.publishedAt),
     sourceName: text(item.sourceName) || 'Fonte istituzionale',
+    authority: text(item.authority),
     sourceCode: text(item.sourceCode),
     sourceGroup: text(item.sourceGroup) || 'giustizia',
     sourceUrl: text(item.sourceUrl),
+    officialReference: text(item.officialReference),
     matterName: text(item.matterName),
     submatterName: text(item.submatterName),
+    isNew: boolean(item.isNew),
+    relatedCases: rows(item.relatedCases).map((entry) => {
+      const related = record(entry)
+      return { id: text(related.id), label: text(related.etichetta), reason: text(related.motivo) }
+    }).filter((related) => related.id && related.label),
     read: boolean(item.read),
     readAt: text(item.readAt),
     favorite: boolean(item.favorite),
@@ -136,6 +214,8 @@ function normaliseItem(value: unknown): NotiziarioItem {
 
 function normalisePayload(value: unknown): NotiziarioPayload {
   const payload = record(value)
+  const items = rows(payload.items).map(normaliseItem).filter((item) => item.id)
+  const facetRecord = record(payload.facets)
   return {
     ok: boolean(payload.ok),
     generatedAt: text(payload.generatedAt),
@@ -146,19 +226,33 @@ function normalisePayload(value: unknown): NotiziarioPayload {
       return {
         id: text(item.id),
         label: text(item.label),
+        authority: text(item.authority),
         url: text(item.url),
         ok: boolean(item.ok),
+        checked: item.checked === undefined ? true : boolean(item.checked),
         count: Number(item.count || 0),
         latestPublishedAt: text(item.latestPublishedAt),
+        lastAttemptAt: text(item.lastAttemptAt),
         message: text(item.message),
+        frequencyMinutes: Number(item.frequencyMinutes || 0),
         preservedFromCache: boolean(item.preservedFromCache),
       }
     }).filter((item) => item.id && item.label),
-    items: rows(payload.items).map(normaliseItem).filter((item) => item.id),
+    items,
+    total: payload.total === undefined ? items.length : Number(payload.total || 0),
+    page: Number(payload.page || 1),
+    hasMore: boolean(payload.hasMore),
     filters: rows(payload.filters).map((value) => {
       const item = record(value)
       return { id: text(item.id), label: text(item.label) }
     }).filter((item) => item.id && item.label),
+    facets: {
+      sources: facets(facetRecord.sources),
+      kinds: facets(facetRecord.kinds),
+      matters: facets(facetRecord.matters),
+    },
+    relevantCount: Number(payload.relevantCount || 0),
+    newCount: Number(payload.newCount || 0),
     quickSources: rows(payload.quickSources).map((value) => {
       const item = record(value)
       return {
@@ -199,8 +293,22 @@ async function richiesta(url: string, init: RequestInit): Promise<Response> {
   }
 }
 
-export async function loadNotiziario(): Promise<NotiziarioPayload> {
-  const response = await richiesta('/api/v1/ui/notiziario', {
+export function notiziarioQueryString(query: NotiziarioQuery): string {
+  const params = new URLSearchParams()
+  if (query.fonte) params.set('fonte', query.fonte)
+  if (query.tipo) params.set('tipo', query.tipo)
+  if (query.materia) params.set('materia', query.materia)
+  if (query.stato !== 'all') params.set('stato', query.stato)
+  if (query.pertinenti) params.set('pertinenti', '1')
+  if (query.nuove) params.set('nuove', '1')
+  if (query.q.trim()) params.set('q', query.q.trim())
+  if (query.pagina > 1) params.set('pagina', String(query.pagina))
+  const value = params.toString()
+  return value ? `?${value}` : ''
+}
+
+export async function loadNotiziario(query: NotiziarioQuery = NOTIZIARIO_QUERY_INIZIALE): Promise<NotiziarioPayload> {
+  const response = await richiesta(`/api/v1/ui/notiziario${notiziarioQueryString(query)}`, {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   })
@@ -211,8 +319,8 @@ export async function loadNotiziario(): Promise<NotiziarioPayload> {
   return payload
 }
 
-export async function refreshNotiziario(): Promise<NotiziarioPayload> {
-  const response = await richiesta('/api/v1/ui/notiziario/aggiorna', {
+export async function refreshNotiziario(query: NotiziarioQuery = NOTIZIARIO_QUERY_INIZIALE): Promise<NotiziarioPayload> {
+  const response = await richiesta(`/api/v1/ui/notiziario/aggiorna${notiziarioQueryString(query)}`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
@@ -261,5 +369,5 @@ export async function loadNotiziarioSource(source: NotiziarioQuickSource): Promi
 }
 
 export function notiziarioEmptyPayload(): NotiziarioPayload {
-  return { ...emptyPayload }
+  return { ...emptyPayload, facets: { sources: [], kinds: [], matters: [] } }
 }

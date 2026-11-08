@@ -27,7 +27,7 @@ _TIPI_ATTO: tuple[tuple[str, str], ...] = (
 _MESI = r"(?:gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)"
 _ATTO = re.compile(
     r"\b(?P<tipo>decreto\s+legislativo|d\.\s*lgs\.?|decreto[\s-]+legge|d\.\s*l\.|"
-    r"decreto\s+del\s+presidente\s+della\s+repubblica|d\.\s*p\.\s*r\.|legge\s+costituzionale|legge|l\.)\s*"
+    r"decreto\s+del\s+presidente\s+della\s+repubblica|d\.\s*p\.\s*r\.|legge\s+costituzionale|legge|l\.)(?!\s*(?:regional|provincial|r\.))\s*"
     r"(?:(?:del\s+)?\d{1,2}\s+" + _MESI + r"\s+(?P<anno_esteso>\d{4}),?\s*)?"
     r"(?:n\.|numero|nr\.)?\s*(?P<numero>\d{1,5})"
     r"(?:\s*/\s*(?P<anno_breve>\d{4})|\s+del\s+(?P<anno_del>\d{4}))?",
@@ -56,6 +56,49 @@ def materia_della_notizia(fonte: f.Fonte, testo: str) -> str:
     if trovata != m.ALTRO:
         return trovata
     return fonte.materia
+
+
+_ARTICOLO_PRIMA = re.compile(
+    r"\b(?P<art>artt?\.?|articol[oi])\s*(?P<numero>\d+[a-z\-]*(?:-?(?:bis|ter|quater|quinquies|sexies))?)"
+    r"(?:\s*,?\s*(?:comma|commi|c\.)\s*(?P<comma>\d+[a-z\-]*))?[^.;\n]{0,25}$",
+    re.IGNORECASE,
+)
+
+
+def _chiave(trovato: re.Match) -> str:
+    anno = trovato.group("anno_esteso") or trovato.group("anno_breve") or trovato.group("anno_del")
+    if not anno:
+        return ""
+    tipo_testo = trovato.group("tipo").lower().strip()
+    tipo = next(codice for schema, codice in _TIPI_ATTO if re.fullmatch(schema, tipo_testo, re.IGNORECASE))
+    return f"{tipo}:{int(trovato.group('numero'))}:{anno}"
+
+
+def citazioni_atti(testo: str, *, massimo: int = 60) -> list[tuple[str, str]]:
+    """(chiave dell'atto, articolo e comma citati subito prima, se ci sono), senza ripetizioni.
+
+    «art. 1, comma 121, della legge 13 luglio 2015, n. 107» → ("legge:107:2015", "art. 1 c. 121").
+    Una citazione con l'articolo prevale su quella dello stesso atto senza articolo.
+    """
+    trovate: dict[str, str] = {}
+    testo = testo or ""
+    for trovato in _ATTO.finditer(testo):
+        chiave = _chiave(trovato)
+        if not chiave:
+            continue
+        articolo = ""
+        prima = _ARTICOLO_PRIMA.search(testo[max(0, trovato.start() - 60):trovato.start()])
+        if prima:
+            numero = prima.group('numero').rstrip('-')
+            comma = (prima.group('comma') or '').rstrip('-')
+            articolo = f"art. {numero}" + (f" c. {comma}" if comma else "")
+        if chiave not in trovate:
+            if len(trovate) >= massimo:
+                continue
+            trovate[chiave] = articolo
+        elif articolo and not trovate[chiave]:
+            trovate[chiave] = articolo
+    return list(trovate.items())
 
 
 def atti_citati(testo: str) -> list[str]:

@@ -335,6 +335,12 @@ export function NotiziarioPanel() {
             <button type="button" className={query.nuove ? 'is-active' : ''} aria-pressed={query.nuove} onClick={() => changeQuery({ nuove: !query.nuove })}>
               <Sparkles size={14} /> Pubblicate da ieri
             </button>
+            {payload.serviceCount || query.servizio ? (
+              <button type="button" className={query.servizio ? 'is-active' : ''} aria-pressed={query.servizio} onClick={() => changeQuery({ servizio: !query.servizio })}
+                title="Comunicati degli enti in Gazzetta (medicinali, cambi, …) e atti di esecuzione UE: nascosti perché raramente utili allo studio">
+                <Landmark size={14} /> Mostra anche i comunicati di servizio ({payload.serviceCount})
+              </button>
+            ) : null}
           </div>
         ) : null}
         {payload.refreshedAt ? <small className="iu-notiziario__refreshed">Ultimo controllo delle fonti: {formatDateTimeIt(payload.refreshedAt)}</small> : null}
@@ -366,11 +372,13 @@ export function NotiziarioPanel() {
                       <strong>{visibleText(item.title)}</strong>
                       {item.summary ? <small>{visibleText(item.summary)}</small> : null}
                       <span className="iu-notiziario-row__tags">
+                        {item.relevance >= 3 ? <em className="iu-notiziario-tag is-alta" title={visibleText(item.relevanceRule)}>Rilevanza alta</em> : null}
+                        {item.relevance <= 1 ? <em className="iu-notiziario-tag is-servizio" title={visibleText(item.relevanceRule)}>Comunicato di servizio</em> : null}
                         {item.kindLabel ? <em className={`iu-notiziario-tag is-${item.kind}`}>{visibleText(item.kindLabel)}</em> : null}
                         {item.isNew ? <em className="iu-notiziario-tag is-new">Nuova</em> : null}
                         {item.relatedCases.length ? (
                           <em className="iu-notiziario-tag is-cases">
-                            {item.relatedCases.length === 1 ? '1 fascicolo pertinente' : `${item.relatedCases.length} fascicoli pertinenti`}
+                            {Math.max(item.relatedCasesTotal, item.relatedCases.length) === 1 ? '1 fascicolo pertinente' : `${Math.max(item.relatedCasesTotal, item.relatedCases.length)} fascicoli pertinenti`}
                           </em>
                         ) : null}
                       </span>
@@ -449,7 +457,7 @@ export function NotiziarioPanel() {
               <div className="iu-notiziario__reader-title">
                 <span className="iu-notiziario__source-mark">{sourceInitials(selected.sourceName)}</span>
                 <div>
-                  <small>{[selected.kindLabel, selected.matterName].filter(Boolean).map((value) => visibleText(value)).join(' · ') || 'Aggiornamento istituzionale'}</small>
+                  <small>{[selected.relevanceLabel, selected.kindLabel, selected.matterName].filter(Boolean).map((value) => visibleText(value)).join(' · ') || 'Aggiornamento istituzionale'}</small>
                   <h3>{visibleText(selected.title)}</h3>
                 </div>
               </div>
@@ -476,6 +484,9 @@ export function NotiziarioPanel() {
                       </li>
                     ))}
                   </ul>
+                  {selected.relatedCasesTotal > selected.relatedCases.length ? (
+                    <p className="iu-notiziario__related-more">E altri {selected.relatedCasesTotal - selected.relatedCases.length} fascicoli dello studio con lo stesso riferimento.</p>
+                  ) : null}
                 </section>
               ) : null}
               {selected.linkedCaseLabel ? (

@@ -12,8 +12,9 @@ from typing import Any, Iterable, Mapping
 
 from pct.notiziario.archivio import ArchivioNotiziario
 from pct.notiziario.fonti import ETICHETTE_TIPO, FONTI, PER_ID
-from pct.notiziario.pertinenza import IndicePertinenza, costruisci_indice, fascicoli_pertinenti
+from pct.notiziario.pertinenza import IndicePertinenza, costruisci_indice, pertinenza
 from pct.notiziario.pianificazione import percorso_archivio
+from pct.notiziario.rilevanza import SERVIZIO, rilevanza
 
 PER_PAGINA = 25
 PER_PAGINA_MASSIMO = 60
@@ -75,6 +76,7 @@ def filtri_richiesti(argomenti: Mapping[str, Any]) -> dict[str, Any]:
         "stato": stato if stato in _STATI else "all",
         "pertinenti": str(argomenti.get("pertinenti") or "").lower() in {"1", "true", "si", "sì"},
         "nuove": str(argomenti.get("nuove") or "").lower() in {"1", "true", "si", "sì"},
+        "servizio": str(argomenti.get("servizio") or "").lower() in {"1", "true", "si", "sì"},
         "pagina": pagina,
         "per_pagina": per_pagina,
     }
@@ -84,12 +86,16 @@ def _voce(
     notizia: Mapping[str, Any],
     interazione: Mapping[str, Any],
     etichette_fascicoli: Mapping[str, str],
-    pertinenti: list[dict[str, str]],
+    pertinenti: tuple[list[dict[str, str]], int],
     ieri: str,
 ) -> dict[str, Any]:
     collegato = str(interazione.get("linkedCaseId") or "")
     materia = str(notizia.get("materia") or "")
+    peso = rilevanza(notizia["fonte"], notizia["tipo"], notizia["titolo"], notizia.get("sintesi") or "")
     return {
+        "relevance": peso.livello,
+        "relevanceLabel": peso.etichetta,
+        "relevanceRule": peso.regola,
         "id": notizia["id"],
         "slug": "",
         "title": notizia["titolo"],
@@ -108,7 +114,8 @@ def _voce(
         "matterName": materia or MATERIA_NON_INDICATA,
         "submatterName": "",
         "isNew": notizia["data"] >= ieri,
-        "relatedCases": pertinenti,
+        "relatedCases": pertinenti[0],
+        "relatedCasesTotal": pertinenti[1],
         "read": bool(interazione.get("read")),
         "readAt": str(interazione.get("readAt") or ""),
         "favorite": bool(interazione.get("favorite")),
@@ -118,6 +125,8 @@ def _voce(
 
 
 def _corrisponde(voce: Mapping[str, Any], filtri: Mapping[str, Any], *, salta: str = "") -> bool:
+    if not filtri.get("servizio") and voce["relevance"] == SERVIZIO:
+        return False
     if salta != "fonte" and filtri["fonte"] and voce["sourceCode"] != filtri["fonte"]:
         return False
     if salta != "tipo" and filtri["tipo"] and voce["kind"] != filtri["tipo"]:
@@ -190,18 +199,22 @@ def costruisci_vista(
     filtri: Mapping[str, Any],
     oggi: date,
     indice: IndicePertinenza | None = None,
+    atti_documenti: Mapping[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     notizie = archivio.elenco()
-    indice = indice or costruisci_indice(fascicoli)
+    indice = indice or costruisci_indice(fascicoli, dict(atti_documenti or {}))
     etichette = {voce["id"]: voce["etichetta"] for voce in fascicoli}
     ieri = (oggi - timedelta(days=1)).isoformat()
     voci = [
-        _voce(notizia, interazioni.get(notizia["id"], {}), etichette, fascicoli_pertinenti(notizia, indice), ieri)
+        _voce(notizia, interazioni.get(notizia["id"], {}), etichette, pertinenza(notizia, indice), ieri)
         for notizia in notizie
     ]
+    # prima la rilevanza professionale, poi la data (l'archivio le dà già dalla più recente)
+    voci.sort(key=lambda voce: -voce["relevance"])
     filtrate = [voce for voce in voci if _corrisponde(voce, filtri)]
     pagina, per_pagina = int(filtri["pagina"]), int(filtri["per_pagina"])
     inizio = (pagina - 1) * per_pagina
+    visibili = [voce for voce in voci if filtri.get("servizio") or voce["relevance"] != SERVIZIO]
     stati = stato_fonti(archivio)
     ultimo_giro = max((riga["lastAttemptAt"] for riga in stati), default="")
     return {
@@ -215,13 +228,16 @@ def costruisci_vista(
         "pageSize": per_pagina,
         "hasMore": inizio + per_pagina < len(filtrate),
         "facets": _conteggi(voci, filtri),
-        "relevantCount": sum(1 for voce in voci if voce["relatedCases"]),
-        "newCount": sum(1 for voce in voci if voce["isNew"]),
-        "unreadCount": sum(1 for voce in voci if not voce["read"]),
+        "relevantCount": sum(1 for voce in visibili if voce["relatedCases"]),
+        "newCount": sum(1 for voce in visibili if voce["isNew"]),
+        "unreadCount": sum(1 for voce in visibili if not voce["read"]),
+        "serviceCount": sum(1 for voce in voci if voce["relevance"] == SERVIZIO),
         "sourceStates": stati,
         # l'elenco per «Collega a fascicolo» viaggia solo con la prima pagina
         "cases": [{"id": voce["id"], "label": voce["etichetta"]} for voce in fascicoli] if pagina == 1 else [],
-        "appliedFilters": {chiave: filtri[chiave] for chiave in ("fonte", "tipo", "materia", "stato", "pertinenti", "nuove")},
+        "appliedFilters": {
+            chiave: filtri.get(chiave) for chiave in ("fonte", "tipo", "materia", "stato", "pertinenti", "nuove", "servizio")
+        },
     }
 
 

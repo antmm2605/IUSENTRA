@@ -893,6 +893,14 @@
 .iu-notiziario-tag.is-avviso_pct { background: #fff4e5; color: #8a4b00; }
 .iu-notiziario-tag.is-new { background: #fff1f2; color: #a1123a; }
 .iu-notiziario-tag.is-cases { background: #e6f6f8; color: #0f5c66; }
+.iu-notiziario-tag.is-alta { background: #172033; color: #ffffff; }
+.iu-notiziario-tag.is-servizio { background: #f3f4f6; color: #6b7280; }
+
+.iu-notiziario__related-more {
+  margin: 8px 0 0;
+  color: var(--iu-slate-600);
+  font-size: 12px;
+}
 
 .iu-notiziario__more {
   width: calc(100% - 24px);

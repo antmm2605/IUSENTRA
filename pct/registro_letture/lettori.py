@@ -78,6 +78,12 @@ LETTORI: dict[str, dict[str, Any]] = {
         "tipi": ("documento",),
         "su_richiesta": True,
     },
+    "norme_citate": {
+        "etichetta": "Norme citate negli atti",
+        "descrizione": "Leggi e decreti citati per estremi nei documenti, dai testi già salvati, per le Notizie utili pertinenti al fascicolo",
+        "livello": "oggetto",
+        "tipi": ("documento",),
+    },
     "motore_pec": {
         "etichetta": "Motore PEC (archivio)",
         "descrizione": "Udienze, termini, ricevute ed eventi dei messaggi PEC e dei loro allegati per l'archivio",
@@ -148,6 +154,7 @@ _VERSIONI: dict[str, Callable[[], str]] = {
     "motore_documenti": _versione_motore_documenti,
     "motore_pec": _versione_motore_pec,
     "scadenze_pdf": lambda: "scadenze-pdf.v1",
+    "norme_citate": lambda: __import__("pct.notiziario.norme_fascicolo", fromlist=["VERSIONE"]).VERSIONE,
 }
 
 

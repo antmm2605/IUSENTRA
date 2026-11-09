@@ -51,3 +51,24 @@ def test_backup_prima_di_scrivere(tmp_path: Path):
     _proforma(manager)
     copia = Path(script._backup(manager))
     assert copia.exists() and copia.read_bytes() == (tmp_path / "p.json").read_bytes()
+
+
+def test_backup_su_database_copia_solo_le_parcelle(tmp_path: Path):
+    """Il database dello studio pesa decine di GB: la copia di sicurezza prende solo la tabella che si riscrive."""
+    import sqlite3
+    from types import SimpleNamespace
+
+    sorgente = tmp_path / "studio.db"
+    with sqlite3.connect(sorgente) as conn:
+        conn.execute("CREATE TABLE parcelle (id TEXT PRIMARY KEY, dati TEXT)")
+        conn.executemany("INSERT INTO parcelle VALUES (?, ?)", [("p1", "a"), ("p2", "b")])
+        conn.execute("CREATE TABLE documenti (id TEXT, contenuto BLOB)")
+        conn.execute("INSERT INTO documenti VALUES ('d1', zeroblob(100000))")
+    manager = SimpleNamespace(_studio_db=SimpleNamespace(db_path=str(sorgente)))
+
+    copia = Path(script._backup(manager))
+    with sqlite3.connect(copia) as conn:
+        tabelle = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+        righe = conn.execute("SELECT id, dati FROM parcelle ORDER BY id").fetchall()
+    assert tabelle == ["parcelle"] and righe == [("p1", "a"), ("p2", "b")]
+    assert copia.stat().st_size < sorgente.stat().st_size

@@ -15,7 +15,7 @@ Uso (dentro il container dell'app, con i dati del tenant):
 Con ``--scrivi`` si correggono SOLO proforma in bozza, mai fatture, note di credito, documenti
 inviati allo SdI, proforma convertite o con incassi: questi si elencano a parte «da decidere», con
 le proforma nate da preventivo o conferimento (importo concordato con il cliente). Prima di
-scrivere si salva una copia del database dello studio; ogni documento conserva i valori precedenti
+scrivere si salva una copia della tabella delle parcelle (non dell'intero database dello studio); ogni documento conserva i valori precedenti
 in ``dati_personalizzati.storico_regime`` e ogni correzione lascia una riga di audit.
 """
 from __future__ import annotations
@@ -24,6 +24,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -73,13 +74,17 @@ def _incassato(manager: Any, parcella: Any) -> bool:
         return True
     if isinstance((parcella.dati_personalizzati or {}).get("incassi_sql"), dict):
         return True
-    try:
-        from pct.parcella_incassi_views import balances_for_invoices
-
-        saldo = balances_for_invoices(getattr(manager, "_studio_db", None), {parcella.id: parcella}).get(parcella.id) or {}
-        return int(saldo.get("paid_cents") or 0) > 0
-    except Exception:
+    db = getattr(manager, "_studio_db", None)
+    if db is None:
         return False
+    from pct.parcella_incassi_views import balances_for_invoices
+
+    try:
+        saldo = balances_for_invoices(db, {parcella.id: parcella}).get(parcella.id) or {}
+    except (sqlite3.Error, LookupError, TypeError, ValueError):
+        # Incassi non leggibili: per prudenza la proforma resta fra i casi da decidere, non si corregge.
+        return True
+    return int(saldo.get("paid_cents") or 0) > 0
 
 
 def classifica(manager: Any, regime: str) -> dict[str, list[dict[str, Any]]]:
@@ -132,8 +137,17 @@ def _backup(manager: Any) -> str:
     stamp = datetime.now(ROME).strftime("%Y%m%d_%H%M%S")
     destinazione = Path(sorgente).with_name(f"{Path(sorgente).stem}.prima_riallinea_regime_{stamp}{Path(sorgente).suffix}")
     if db is not None:
-        with sqlite3.connect(str(sorgente)) as src, sqlite3.connect(str(destinazione)) as dst:
-            src.backup(dst)
+        # Solo la tabella che la correzione riscrive: il database dello studio pesa decine di GB e la copia
+        # integrale ha esaurito il disco del PC il 09/11/2026.
+        with closing(sqlite3.connect(str(sorgente))) as src:
+            src.execute("ATTACH DATABASE ? AS copia", (str(destinazione),))
+            src.execute("CREATE TABLE copia.parcelle AS SELECT * FROM main.parcelle")
+            src.commit()
+            copiate = src.execute("SELECT count(*) FROM copia.parcelle").fetchone()[0]
+            originali = src.execute("SELECT count(*) FROM main.parcelle").fetchone()[0]
+            src.execute("DETACH DATABASE copia")
+        if copiate != originali:
+            raise RuntimeError(f"Copia di sicurezza incompleta ({copiate} di {originali} righe): nessuna scrittura.")
     else:
         destinazione.write_bytes(Path(sorgente).read_bytes())
     return str(destinazione)

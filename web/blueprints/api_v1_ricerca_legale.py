@@ -271,7 +271,8 @@ def normativa_atti():
         return denied
     from lex.normativa.consultazione import catalogo
     try:
-        return jsonify(ok=True, items=catalogo(_normativa_db()))
+        from lex.normativa.cerdef_biblioteca import linked_catalogue
+        return jsonify(ok=True, items=catalogo(_normativa_db()) + linked_catalogue())
     except (FileNotFoundError, OSError, sqlite3.Error):
         return jsonify(ok=False, message="L'archivio dei codici e delle leggi non è ancora disponibile."), 503
 
@@ -286,6 +287,10 @@ def normativa_articoli():
     try:
         act = int(request.args.get("act") or 0)
         offset = max(0, int(request.args.get("offset") or 0))
+        from lex.normativa.cerdef_biblioteca import is_linked, linked_articles
+        if is_linked(act):
+            result = linked_articles(act, query=request.args.get("q", ""), article=request.args.get("article", ""), offset=offset)
+            return jsonify(ok=True, **result)
         # «materia» (ripetibile) limita la ricerca alle materie della pratica: pannello Normativa del fascicolo.
         materie = tuple(m.strip()[:80] for m in request.args.getlist("materia")[:6] if m.strip())
         result = articoli(_normativa_db(), act=act, query=request.args.get("q", ""),
@@ -306,7 +311,9 @@ def normativa_articolo(article_id):
         return denied
     from lex.normativa.consultazione import dettaglio
     try:
-        item = dettaglio(_normativa_db(), article_id, includi_archivio_generale=True)
+        from lex.normativa.cerdef_biblioteca import is_linked, linked_article
+        item = linked_article(article_id) if is_linked(article_id) else dettaglio(
+            _normativa_db(), article_id, includi_archivio_generale=True)
         if item is None:
             return jsonify(ok=False, message="Articolo non trovato nell'archivio."), 404
         return jsonify(ok=True, item=item)
@@ -324,7 +331,16 @@ def normativa_visualizza():
     from flask import make_response
     from web.services.normative_article_reader import ArticoloCambiato, documento_html, risolvi
     try:
-        item = risolvi(_normativa_db(), ident=int(request.args.get("id") or 0),
+        from lex.normativa.cerdef_biblioteca import ID_BASE, is_linked, linked_article
+        ident = int(request.args.get("id") or 0)
+        database = _normativa_db()
+        if is_linked(ident):
+            from lex.retrieval.normativa_catalog import runtime_general_path
+            if linked_article(ident) is None:
+                raise LookupError("Articolo collegato non disponibile.")
+            ident -= ID_BASE
+            database = runtime_general_path()
+        item = risolvi(database, ident=ident,
                        atto=request.args.get("atto", ""), articolo=request.args.get("articolo", ""),
                        url=request.args.get("url", ""), sha=request.args.get("sha", ""))
         response = make_response(documento_html(item))

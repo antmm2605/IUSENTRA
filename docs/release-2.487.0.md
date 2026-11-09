@@ -97,6 +97,7 @@ la norma citata mostrava l'articolo intero.
 
 - La lettura delle pagine PDF è serializzata e libera ogni immagine dopo l'uso: più pagine lette insieme non bloccano più il lettore.
 - Ogni provvedimento mostra la data di decisione quando manca quella di deposito, con l'etichetta giusta («Deposito» o «Decisione»).
+- Atti CeRDEF già conservati in Normattiva consultabili dalla ricerca normativa, in sola lettura dall'indice `IUSENTRA_BIBLIOTECA_CERDEF_INDICE` (`lex/normativa/cerdef_biblioteca.py`).
 - Corpus pubblico dei soli provvedimenti ufficiali (Corte costituzionale, giustizia tributaria, Corte di giustizia UE, CEDU, Corte dei conti), in sola lettura da `IUSENTRA_CORPUS_PUBBLICO_DIRECTORY` (`web/services/giurisprudenza_public_corpus.py`), con la richiesta di ricerca separata in `frontend/src/corpusSearchRequest.ts`.
 
 ## Lex, ricerca e guide

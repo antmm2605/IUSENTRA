@@ -334,15 +334,19 @@ def normativa_visualizza():
         from lex.normativa.cerdef_biblioteca import ID_BASE, is_linked, linked_article
         ident = int(request.args.get("id") or 0)
         database = _normativa_db()
+        linked = None
         if is_linked(ident):
             from lex.retrieval.normativa_catalog import runtime_general_path
-            if linked_article(ident) is None:
+            linked = linked_article(ident)
+            if linked is None:
                 raise LookupError("Articolo collegato non disponibile.")
             ident -= ID_BASE
             database = runtime_general_path()
         item = risolvi(database, ident=ident,
                        atto=request.args.get("atto", ""), articolo=request.args.get("articolo", ""),
                        url=request.args.get("url", ""), sha=request.args.get("sha", ""))
+        if linked is not None:
+            item.update(number=linked["number"], title=linked["title"])
         response = make_response(documento_html(item))
         response.headers["Cache-Control"] = "private, no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"

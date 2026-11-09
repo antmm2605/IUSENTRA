@@ -1,6 +1,7 @@
 """Vista in sola lettura degli atti CeRDEF già conservati in Normattiva."""
 from contextlib import closing, contextmanager
 import os
+import re
 from pathlib import Path
 
 from lex.normativa.consultazione import COLLECTION, _catalogue_row, _connect, dettaglio
@@ -50,6 +51,22 @@ def linked_catalogue():
         return catalogue
 
 
+def _article_presentation(number, title, text):
+    """Pulisce le etichette di importazione lasciando intatto il testo della fonte."""
+    prefix = re.match(r"^Art(?:icolo)?\.?\s+", number, re.IGNORECASE)
+    display_number = number[prefix.end():].strip().rstrip(".") if prefix else number
+    if not re.match(r"^1\s+(?:Art\.|La Camera dei deputati\b)", title or "", re.IGNORECASE):
+        return display_number, title
+    same_number = re.escape(display_number)
+    heading = re.match(
+        rf"^Art\.\s*{same_number}\.\s*1\s+(?:La Camera dei deputati\b.{{0,500}}?)?"
+        rf"Art\.\s*{same_number}\s+([^\n]{{1,180}}?)\s+1\.",
+        text or "",
+        flags=re.IGNORECASE,
+    )
+    return display_number, heading[1].strip() if heading else ""
+
+
 def linked_articles(identifier, *, query="", article="", offset=0):
     document_id = identifier - ID_BASE
     with _linked_connection() as connection:
@@ -76,10 +93,14 @@ def linked_articles(identifier, *, query="", article="", offset=0):
             JOIN normative_articles a ON a.document_id=d.id WHERE """ + " AND ".join(where)
         total = connection.execute("SELECT count(*) " + sql, params).fetchone()[0]
         rows = connection.execute(
-            "SELECT a.id,a.article_number AS number,a.article_title AS title,d.titolo AS act_title "
+            "SELECT a.id,a.article_number AS number,a.article_title AS title,a.article_text AS body,d.titolo AS act_title "
             + sql + " ORDER BY a.id LIMIT 30 OFFSET ?", [*params, max(0, offset)]
         )
-        items = [dict(row, id=row["id"] + ID_BASE) for row in rows]
+        items = []
+        for row in rows:
+            item = dict(row, id=row["id"] + ID_BASE)
+            item["number"], item["title"] = _article_presentation(item["number"], item["title"], item.pop("body"))
+            items.append(item)
     return {"items": items, "total": total, "act_id": identifier}
 
 
@@ -94,5 +115,6 @@ def linked_article(identifier):
     item = dettaglio(runtime_general_path(), article_id, includi_archivio_generale=True)
     if item is not None:
         item["id"] = identifier
+        item["number"], item["title"] = _article_presentation(item["number"], item["title"], item["text"])
     return item
 

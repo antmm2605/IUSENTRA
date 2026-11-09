@@ -285,6 +285,33 @@
       "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 431 c.p.c. e registrarne SHA-256 completo."}
     },
     {
+      "id": "src.it.cpc.art415",
+      "citation": "Codice di procedura civile, art. 415, commi 4-5",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art415=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Rito del lavoro: il ricorso, unitamente al decreto di fissazione dell'udienza, deve essere notificato al convenuto a cura dell'attore entro dieci giorni dalla pronuncia del decreto, con almeno trenta giorni liberi prima dell'udienza (quaranta e ottanta se la notifica va effettuata all'estero).",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 415 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art435",
+      "citation": "Codice di procedura civile, art. 435, commi 2-3",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art435=",
+      "legal_state": "current",
+      "effective_from": null,
+      "transition": "Appello nel rito del lavoro: l'appellante notifica ricorso e decreto all'appellato nei dieci giorni successivi al deposito del decreto (decorrenti dalla comunicazione, Corte cost. 15/1977), con almeno venticinque giorni prima dell'udienza.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 435 c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
+      "id": "src.it.cpc.art281undecies",
+      "citation": "Codice di procedura civile, art. 281-undecies",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art281undecies=",
+      "legal_state": "current",
+      "effective_from": "2023-03-01",
+      "transition": "Procedimento semplificato di cognizione (D.Lgs. 149/2022, procedimenti introdotti dopo il 28/02/2023): il ricorso e il decreto di fissazione dell'udienza sono notificati al convenuto a cura dell'attore; verificare sul testo vigente termini a comparire e costituzione.",
+      "snapshot": {"status": "acquisition_required", "local_path": null, "sha256": null, "acquisition_instruction": "Acquisire da Normattiva il testo vigente dell'art. 281-undecies c.p.c. e registrarne SHA-256 completo."}
+    },
+    {
       "id": "src.it.l107_2015.art1c121",
       "citation": "Legge 13 luglio 2015, n. 107, art. 1, comma 121",
       "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=15G00122&atto.dataPubblicazioneGazzetta=2015-07-15&tipoDettaglio=vigente",

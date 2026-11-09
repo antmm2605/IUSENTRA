@@ -326,8 +326,18 @@ def _contains_written_proceeding(value: Any) -> bool:
     )
 
 
+# «FISSA per la discussione l'udienza del …»: verbo e udienza separati da altre parole
+# (art. 415, comma 2, c.p.c.); non vale «in sostituzione dell'udienza» né «della udienza».
+_FISSA_UDIENZA_RE = re.compile(
+    r"\bfissa\b.{0,100}?(?:(?<![a-z])l'\s*|(?<!\bdella)(?<!\balla)(?<!\bnella)\s)(?:la\s+|nuova\s+)?udienza\b"
+)
+
+
 def _contains_current_hearing_order(value: Any) -> bool:
-    lower = _norm(value).replace("_", " ").replace("-", " ")
+    # L'apostrofo tipografico dei provvedimenti (’) vale come quello semplice.
+    lower = _norm(value).replace("_", " ").replace("-", " ").replace("\u2019", "'").replace("\u2018", "'")
+    if _FISSA_UDIENZA_RE.search(lower):
+        return True
     return any(
         marker in lower
         for marker in (
@@ -486,6 +496,53 @@ def _select_operative_attachments(
         "selected_sources": selected_names,
         "excluded_sources": excluded_names,
     }
+
+
+_NON_PROVVEDIMENTO_RE = re.compile(r"(?i)notificat|relata|ricevut|\.eml\b|daticert|postacert")
+
+
+def _notification_orders_outside_operative_sources(
+    parsed: dict[str, Any],
+    report: dict[str, Any],
+    all_rows: list[dict[str, Any]],
+    operative_rows: list[dict[str, Any]],
+    *,
+    already_found: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Ordine di notifica letto negli allegati professionali non scelti come fonte dell'evento.
+
+    La selezione delle fonti serve a non fondere eventi diversi (udienza, sentenza); l'ordine al
+    difensore di notificare ricorso e decreto (artt. 415, commi 4-5, 435 e 281-undecies c.p.c.)
+    vale pero' in qualunque provvedimento allegato alla stessa PEC. Da qui si prende solo quel
+    caso, mai sentenze o altri eventi, e mai dagli allegati marcati come atti storici.
+    """
+
+    operative_ids = {id(row) for row in operative_rows}
+    extra = [
+        row
+        for row in all_rows
+        if id(row) not in operative_ids
+        and _attachment_text(row)
+        and _attachment_role(row) not in _HISTORICAL_SOURCE_ROLES
+        # Atto gia' notificato, relata o ricevuta allegati al deposito: non sono ordini del giudice.
+        and not _NON_PROVVEDIMENTO_RE.search(_attachment_name(row))
+    ]
+    if not extra:
+        return []
+    # Stesso nome fonte che il rulepack assegna all'allegato (detect_notification_candidates).
+    extra_names = {
+        _clean(row.get("filename") or row.get("name") or row.get("nome_file") or f"allegato-{index + 1}", 260)
+        for index, row in enumerate(extra)
+    }
+    seen = {(str(item.get("rule_id")), str(item.get("source_file"))) for item in already_found}
+    found: list[dict[str, Any]] = []
+    for item in detect_notification_candidates(parsed, report, attachments=extra):
+        key = (str(item.get("rule_id")), str(item.get("source_file")))
+        if item.get("notification_case") != "explicit_order" or item.get("source_file") not in extra_names or key in seen:
+            continue
+        seen.add(key)
+        found.append(item)
+    return found
 
 
 def _evidence(source: str, text: str, *, confidence: float = 0.75) -> dict[str, Any]:
@@ -1354,6 +1411,15 @@ def build_legal_event_understanding(
         notification_parsed,
         report,
         attachments=operative_attachments,
+    )
+    notifications.extend(
+        _notification_orders_outside_operative_sources(
+            notification_parsed,
+            report,
+            all_attachment_rows,
+            operative_attachments,
+            already_found=notifications,
+        )
     )
     if _notifica_l53_ricevuta(headers, casella or _dict(parsed.get("casella"))):
         deadlines.extend(_termini_notifica_ricevuta(text, dies_a_quo_date, attachment_names))

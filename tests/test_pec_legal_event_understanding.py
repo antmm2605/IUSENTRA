@@ -403,3 +403,107 @@ def test_worker_persisted_legal_event_tables(tmp_path):
         deadlines = conn.execute("SELECT * FROM pec_legal_deadlines WHERE legal_event_id=?", (event["id"],)).fetchall()
         assert hearings and hearings[0]["mode"] == "remoto"
         assert deadlines
+
+
+def _comunicazione_fissazione_udienza_lavoro() -> dict:
+    return {
+        "filename": "Comunicazione.xml",
+        "ocr_text": (
+            "Comunicazione di cancelleria Tipo procedimento: Diritto del Lavoro Numero di Ruolo 4321/2026 "
+            "Oggetto: FISSAZIONE UDIENZA DI DISCUSSIONE Descrizione: FISSATA UDIENZA DI DISCUSSIONE IL 23/12/2026 "
+            "09:30 in presenza Note: Notificato alla PEC / in cancelleria il 09/11/2026 14:54"
+        ),
+    }
+
+
+def test_decreto_fissa_l_udienza_con_apostrofo_tipografico_resta_fonte_e_crea_ordine_di_notifica():
+    """Regressione 09/11/2026 (Trib. lavoro): il decreto «FISSA per la discussione l’udienza» veniva scartato.
+
+    Restava fonte solo Comunicazione.xml e l'ordine «Dispone che copia del ricorso e del presente decreto
+    sia notificata … a cura di parte ricorrente» (art. 415, commi 4-5, c.p.c.) non arrivava al presidio.
+    """
+
+    parsed = _parsed(
+        "POSTA CERTIFICATA: COMUNICAZIONE 4321/2026/LAV",
+        "Comunicazione di cancelleria: fissazione udienza di discussione.",
+        date="2026-11-09T14:54:02+01:00",
+    )
+    parsed["legal_workflow"]["event_type"] = "udienza_fissata"
+    decreto = {
+        "filename": "31375858s.pdf",
+        "ocr_text": (
+            "IL TRIBUNALE MAGISTRATURA DEL LAVORO IL GIUDICE letto il ricorso che precede; FISSA per la "
+            "discussione l’udienza del 23.12.2026, ore 9.30, ordinando la comparizione personale delle parti. "
+            "Dispone che copia del ricorso e del presente decreto sia notificata a parte resistente a cura di "
+            "parte ricorrente nel termine di trenta giorni prima della data fissata."
+        ),
+    }
+
+    u = build_legal_event_understanding(parsed, {}, attachments=[_comunicazione_fissazione_udienza_lavoro(), decreto])
+
+    binding = u["input_quality"]["source_binding"]
+    assert "31375858s.pdf" in binding["selected_sources"]
+    ordini = [item for item in u["notifications"] if item["notification_case"] == "explicit_order"]
+    assert ordini and ordini[0]["creates_notification_candidate"] is True
+    assert ordini[0]["source_file"] == "31375858s.pdf"
+    assert ordini[0]["human_review_required"] is True
+    assert any(action["action_type"] == "notifica_legale" for action in u["actions"])
+
+
+def test_ordine_di_notifica_in_allegato_non_scelto_come_fonte_viene_comunque_letto():
+    """L'ordine di notifica vale in ogni provvedimento allegato, anche fuori dalle fonti dell'evento."""
+
+    parsed = _parsed(
+        "Comunicazione ordinanza di rinvio",
+        "Si comunica l'ordinanza corrente di rinvio dell'udienza.",
+        date="2026-11-05T10:23:00+01:00",
+    )
+    parsed["legal_workflow"]["event_type"] = "rinvio_udienza"
+    rinvio = {
+        "filename": "ordinanza-rinvio.pdf",
+        "ocr_text": "Il Giudice rinvia la causa all'udienza del 20/05/2027 alle ore 10:00.",
+    }
+    decreto = {
+        "filename": "decreto-notifica.pdf",
+        "ocr_text": "Manda al ricorrente di notificare ricorso e pedissequo decreto alla controparte nei termini.",
+    }
+    storico = {
+        "filename": "decreto-storico.pdf",
+        "source_role": "historical",
+        "ocr_text": "ONERA parte ricorrente della notificazione del ricorso e del decreto.",
+    }
+
+    u = build_legal_event_understanding(parsed, {}, attachments=[rinvio, decreto, storico])
+
+    assert u["input_quality"]["source_binding"]["selected_sources"] == ["ordinanza-rinvio.pdf"]
+    ordini = [item for item in u["notifications"] if item["notification_case"] == "explicit_order"]
+    assert [item["source_file"] for item in ordini] == ["decreto-notifica.pdf"]
+    assert ordini[0]["creates_notification_candidate"] is True
+
+
+def test_fissa_udienza_con_parole_in_mezzo_e_apostrofo_tipografico():
+    from pct.pec_legal_event_understanding import _contains_current_hearing_order
+
+    assert _contains_current_hearing_order("FISSA per la discussione l’udienza del 23.12.2026")
+    assert _contains_current_hearing_order("FISSA ai sensi dell’art. 420 c.p.c., l’udienza di discussione")
+    assert _contains_current_hearing_order("fissa udienza di discussione per il 12.01.2027")
+    assert not _contains_current_hearing_order("fissa il termine per note in sostituzione dell’udienza")
+    assert not _contains_current_hearing_order("fissa termine per note in sostituzione della udienza")
+
+
+def test_ricorso_originale_notificato_allegato_al_deposito_non_e_un_ordine_del_giudice():
+    parsed = _parsed(
+        "Comunicazione ordinanza di rinvio",
+        "Si comunica l'ordinanza corrente di rinvio dell'udienza.",
+        date="2026-11-05T11:27:00+01:00",
+    )
+    parsed["legal_workflow"]["event_type"] = "rinvio_udienza"
+    rinvio = {"filename": "ordinanza-rinvio.pdf", "ocr_text": "Il Giudice rinvia la causa all'udienza del 20/05/2027."}
+    ricorso = {
+        "filename": "Ricorso (originale notificato).pdf",
+        "ocr_text": "Voglia il Tribunale fissare l'udienza e ordinare la notificazione del ricorso e del decreto.",
+    }
+
+    u = build_legal_event_understanding(parsed, {}, attachments=[rinvio, ricorso])
+
+    assert not any(item["notification_case"] == "explicit_order" for item in u["notifications"])

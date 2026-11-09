@@ -7540,3 +7540,133 @@ def test_la_voce_da_assegnare_non_viene_scartata_dal_filtro_legacy(tmp_path):
 
     assert voci
     assert not any(is_legacy_pec_notification_item(voce) for voce in voci)
+
+
+def _decreto_lavoro_con_ordine_di_notifica_mime() -> bytes:
+    """Comunicazione di fissazione udienza (rito lavoro) con l'ordine al difensore nel testo della PEC."""
+
+    messaggio = EmailMessage()
+    messaggio["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 523/2026/LAV"
+    messaggio["From"] = "posta-certificata@legalmail.it"
+    messaggio["To"] = "studio@pec.it"
+    messaggio["Message-ID"] = "<decreto-notifica-test@giustizia.it>"
+    from datetime import datetime
+    from email.utils import format_datetime
+    from zoneinfo import ZoneInfo
+
+    messaggio["Date"] = format_datetime(datetime.now(ZoneInfo("Europe/Rome")).replace(microsecond=0))
+    messaggio.set_content(
+        "Comunicazione di cancelleria nel procedimento iscritto al n. 523/2026 R.G. LAV del Tribunale di Vicenza. "
+        "Parte ricorrente: Barilaro Francesco. Il giudice, letto il ricorso, FISSA per la discussione l’udienza "
+        "del 23.12.2026; Manda al ricorrente di notificare ricorso e pedissequo decreto alla controparte entro e "
+        "non oltre il termine di legge."
+    )
+    comunicazione = (
+        "<?xml version='1.0' encoding='UTF-8'?><Comunicazione><NumeroRuolo>523/2026/LAV</NumeroRuolo>"
+        "<Oggetto>FISSAZIONE UDIENZA DI DISCUSSIONE</Oggetto><Ufficio>Tribunale di Vicenza</Ufficio>"
+        "<Contenuto>Cliente: Barilaro Francesco\nNote: Notificato alla PEC / in cancelleria</Contenuto></Comunicazione>"
+    ).encode("utf-8")
+    messaggio.add_attachment(comunicazione, maintype="text", subtype="xml", filename="Comunicazione.xml")
+    return messaggio.as_bytes()
+
+
+def _fascicoli_dei_presidi(tmp_path: Path) -> list[str]:
+    with sqlite3.connect(tmp_path / "pec_audit.sqlite") as conn:
+        try:
+            righe = conn.execute("SELECT fascicolo_id FROM pec_legal_notification_presidia").fetchall()
+        except sqlite3.OperationalError:
+            return []
+    return [str(riga[0]) for riga in righe]
+
+
+def _proposte_notifica(repo: PecAuditRepository):
+    from pct.presidio_notifica_senza_fascicolo import MARCATORE
+
+    return [
+        voce
+        for voce in repo._scadenziario_manager().tutte(solo_aperte=False)
+        if MARCATORE in str(voce.note or "")
+    ]
+
+
+def test_ordine_di_notifica_senza_fascicolo_diventa_proposta_e_il_collegamento_apre_il_presidio(tmp_path):
+    """Regressione 09/11/2026: senza fascicolo l'ordine di notifica veniva scartato in silenzio.
+
+    Nessun presidio orfano: nasce una proposta in BOZZA «crea o collega il fascicolo RG …» nello
+    scadenziario; al collegamento il presidio si rimaterializza e la proposta si chiude con il motivo.
+    """
+
+    from pct.scadenziario import StatoTermine
+
+    repo = PecAuditRepository(
+        tmp_path / "pec_audit.sqlite",
+        tenant_id="test",
+        fascicoli_db_path=str(tmp_path / "fascicoli.json"),
+        fascicoli_docs_path=str(tmp_path / "docs"),
+        scadenziario_db_path=str(tmp_path / "scadenze.json"),
+        agenda_db_path=str(tmp_path / "agenda.json"),
+    )
+    ingest = repo.ingest_mime(
+        _decreto_lavoro_con_ordine_di_notifica_mime(),
+        account_email="studio@pec.it",
+        folder="INBOX",
+        imap_uid="INBOX:UID:7",
+        actor="pytest",
+    )
+    message_id = str(ingest["id"])
+    report = repo.run_pending_jobs(limit=40)
+    validate = next(job["result"] for job in report["jobs"] if job["job_type"] == "validate")
+
+    assert validate["notification_presidia"]["created"] == 0
+    assert validate["notification_presidia"]["link_proposals"] == 1
+    assert _fascicoli_dei_presidi(tmp_path) == []
+    proposte = _proposte_notifica(repo)
+    assert len(proposte) == 1
+    proposta = proposte[0]
+    assert proposta.stato == StatoTermine.BOZZA
+    assert proposta.id_fascicolo == ""
+    assert proposta.titolo.startswith("PEC con ordine di notifica: crea o collega il fascicolo RG 523/2026")
+    assert proposta.source_message_id == message_id
+    assert "revisione dell'avvocato obbligatoria" in proposta.note
+
+    # Idempotente: un nuovo giro del presidio non duplica la proposta.
+    repo.materialize_legal_notification_candidates(message_id=message_id, actor="pytest")
+    assert len(_proposte_notifica(repo)) == 1
+
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    fascicolo = GestioneFascicoli(db_path=str(tmp_path / "fascicoli.json"), documents_dir=str(tmp_path / "docs")).nuovo(
+        titolo="Barilaro / Ministero",
+        tipo=TipoFascicolo.LAVORO,
+        nome_cliente="Barilaro Francesco",
+        tribunale="Tribunale di Vicenza",
+        numero_rg="523",
+        anno_rg="2026",
+    )
+    link = repo.link_fascicolo(message_id, actor="pytest")
+
+    assert link["fascicolo_id"] == fascicolo.id
+    assert link["notification_presidia"]["created"] >= 1
+    assert link["notification_presidia"]["link_proposals_closed"] == 1
+    assert fascicolo.id in _fascicoli_dei_presidi(tmp_path)
+    chiusa = _proposte_notifica(repo)[0]
+    assert chiusa.stato == StatoTermine.ANNULLATO
+    assert chiusa.id_fascicolo == fascicolo.id
+    assert "presidio della notifica aperto" in chiusa.note
+
+
+def test_proposta_notifica_senza_fascicolo_non_nasce_se_la_verifica_e_gia_decorsa():
+    from pct.presidio_notifica_senza_fascicolo import campi_proposta
+
+    candidato = {"rule_id": "notif.detect.explicit_order.v1", "text_excerpt": "Manda al ricorrente di notificare"}
+    assert campi_proposta(
+        message_id="pec_x", understanding={}, candidate=candidato, received_at="2026-08-01T10:00:00Z",
+        oggi=date(2026, 11, 9),
+    ) is None
+    campi = campi_proposta(
+        message_id="pec_x", understanding={"procedimento": {"rg_numero": "77", "rg_anno": "2026"}},
+        candidate=candidato, received_at="2026-11-09T13:54:02Z", oggi=date(2026, 11, 9),
+    )
+    assert campi["data_scadenza"] == "2026-11-19"
+    assert "RG 77/2026" in campi["titolo"]
+    assert "non il termine di legge" in campi["descrizione"]

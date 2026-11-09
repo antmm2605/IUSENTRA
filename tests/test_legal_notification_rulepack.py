@@ -23,7 +23,7 @@ from pct.pec_pipeline import PecAuditRepository
 def test_rulepack_e_regex_sono_caricati_una_sola_volta():
     assert load_notification_rulepack() is load_notification_rulepack()
     assert compiled_notification_rules() is compiled_notification_rules()
-    assert load_notification_rulepack()["version"] == "legal_notification_detection_rules_v1.0.3"
+    assert load_notification_rulepack()["version"] == "legal_notification_detection_rules_v1.0.4"
 
 
 @pytest.mark.parametrize(
@@ -223,7 +223,7 @@ def test_hash_verificati_e_fonti_mancanti_falliscono_con_istruzione():
 def test_ogni_regola_eseguibile_cita_solo_fonti_censite():
     result = validate_rulepack_source_references()
 
-    assert result["rulepack_version"] == "legal_notification_detection_rules_v1.0.3"
+    assert result["rulepack_version"] == "legal_notification_detection_rules_v1.0.4"
     assert {
         "src.it.cpc.art133",
         "src.it.cpc.art285",
@@ -237,3 +237,81 @@ def test_get_dettaglio_non_riesegue_il_motore_di_scansione():
     source = inspect.getsource(PecAuditRepository.get_message_detail)
     assert "build_legal_event_understanding" not in source
     assert "latest_legal_event_understanding" in source
+
+
+# Formule reali dei decreti di fissazione udienza (testi anonimizzati, PEC dal 26/10 al 09/11/2026):
+# L. 53/1994 art. 3-bis; artt. 415, commi 4-5, 435 e 281-undecies c.p.c.
+_ORDINI_DI_NOTIFICA_REALI = {
+    "onera": (
+        "FISSA ai sensi dell’art. 127 ter c.p.c. in sostituzione dell’udienza il termine del 10.12.2026 per note; "
+        "ONERA parte ricorrente della notificazione a parte resistente del ricorso e del presente decreto entro e "
+        "non oltre 30 giorni prima dell’udienza fissata; Manda alla Cancelleria per le comunicazioni."
+    ),
+    "manda_al_ricorrente": (
+        "Manda al ricorrente di notificare ricorso e pedissequo decreto alla controparte entro e non oltre il "
+        "termine di legge. Manda alla Cancelleria per quanto di competenza."
+    ),
+    "dispone_sia_notificata": (
+        "FISSA per la discussione l’udienza del 23.12.2026, ore 9.30. Dispone che copia del ricorso e del presente "
+        "decreto sia notificata a parte resistente a cura di parte ricorrente nel termine di trenta giorni."
+    ),
+    "siano_notificati_a_cura": "Ricorso e decreto siano notificati al convenuto a cura dell'attore entro dieci giorni.",
+    "deve_essere_notificato_281_undecies": (
+        "Il ricorso, unitamente al presente decreto, deve essere notificato al convenuto a cura dell’attore."
+    ),
+    "notificarsi": "Fissa l'udienza del 12.01.2027; ricorso e decreto da notificarsi entro il 10.12.2026.",
+    "a_cura_di_parte": "La notificazione del ricorso e del decreto avverrà a cura di parte ricorrente nei termini.",
+    "assegna_termine_rinnovazione": (
+        "Assegna alla parte ricorrente termine di giorni trenta per la rinnovazione della notificazione del ricorso."
+    ),
+}
+
+_SENZA_ORDINE_AL_DIFENSORE = {
+    "manda_alla_cancelleria": "Manda alla Cancelleria per le comunicazioni e notificazioni di rito.",
+    "a_cura_della_cancelleria": "Dispone che il presente decreto sia notificato a cura della cancelleria alle parti.",
+    "notificarsi_dalla_cancelleria": "Ricorso e decreto da notificarsi a cura della cancelleria.",
+    "fatto_storico": "Il ricorso, ritualmente notificato, veniva depositato e la convenuta si costituiva.",
+    "termine_di_costituzione": "ASSEGNA al resistente termine sino a 10 giorni prima dell’udienza per la costituzione.",
+}
+
+
+@pytest.mark.parametrize("caso", sorted(_ORDINI_DI_NOTIFICA_REALI))
+def test_ordine_di_notifica_al_difensore_crea_proposta_in_revisione(caso: str):
+    findings = detect_notification_candidates(
+        {"headers": {"subject": "POSTA CERTIFICATA: COMUNICAZIONE 1234/2026/LAV"}},
+        {},
+        attachments=[{"filename": "decreto.pdf", "text": _ORDINI_DI_NOTIFICA_REALI[caso]}],
+    )
+    ordini = [item for item in findings if item["rule_id"] == "notif.detect.explicit_order.v1"]
+    assert ordini, caso
+    assert ordini[0]["creates_notification_candidate"] is True
+    assert ordini[0]["human_review_required"] is True
+    assert ordini[0]["rulepack_version"] == "legal_notification_detection_rules_v1.0.4"
+    assert {"src.it.l53_1994.art3bis", "src.it.cpc.art415"}.issubset(ordini[0]["legal_sources"])
+
+
+@pytest.mark.parametrize("caso", sorted(_SENZA_ORDINE_AL_DIFENSORE))
+def test_comunicazioni_di_cancelleria_senza_ordine_al_difensore_restano_escluse(caso: str):
+    findings = detect_notification_candidates(
+        {"headers": {"subject": "Comunicazione di cancelleria"}},
+        {},
+        attachments=[{"filename": "decreto.pdf", "text": _SENZA_ORDINE_AL_DIFENSORE[caso]}],
+    )
+    assert not any(item["creates_notification_candidate"] for item in findings), caso
+
+
+def test_comunicazione_xml_con_formula_di_cancelleria_non_crea_proposta():
+    findings = detect_notification_candidates(
+        {},
+        {},
+        attachments=[
+            {
+                "filename": "Comunicazione.xml",
+                "text": (
+                    "Oggetto: FISSAZIONE UDIENZA DI DISCUSSIONE Descrizione: FISSATA UDIENZA DI DISCUSSIONE "
+                    "IL 23/12/2026 09:30 Note: Notificato alla PEC / in cancelleria il 09/11/2026 14:54"
+                ),
+            }
+        ],
+    )
+    assert not any(item["creates_notification_candidate"] for item in findings)

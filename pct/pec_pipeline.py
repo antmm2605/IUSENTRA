@@ -8973,6 +8973,7 @@ class PecAuditRepository:
         created = 0
         existing = 0
         skipped = 0
+        link_proposals = 0
         errors: list[str] = []
         warnings: list[str] = []
         duplicate_reconciliation: dict[str, Any] = {
@@ -9004,8 +9005,23 @@ class PecAuditRepository:
                         continue
                     fascicolo_id = clean_text(row.get("linked_fascicolo_id"), 120)
                     if not fascicolo_id:
+                        # Nessun presidio orfano, ma l'ordine non resta muto: proposta in BOZZA
+                        # nello scadenziario «crea o collega il fascicolo» (presidio_notifica_senza_fascicolo).
                         skipped += 1
-                        warnings.append(f"{row.get('id')}: fascicolo non collegato, presidio non creato.")
+                        ordine = next(
+                            (item for item in notifications if item.get("notification_case") == "explicit_order"),
+                            None,
+                        )
+                        proposta = (
+                            self._proponi_collegamento_per_notifica(row, understanding, ordine, actor)
+                            if ordine
+                            else {"created": False, "motivo": "nessun ordine di notifica al difensore"}
+                        )
+                        if proposta.get("created"):
+                            link_proposals += 1
+                        warnings.append(
+                            f"{row.get('id')}: fascicolo non collegato, presidio non creato; {proposta.get('motivo')}."
+                        )
                         continue
                     with self.connect() as conn:
                         attachments = self.attachment_rows(conn, str(row["message_id"]), str(row["parsed_version_id"]))
@@ -9106,11 +9122,50 @@ class PecAuditRepository:
             "created": created,
             "existing": existing,
             "skipped": skipped,
+            "link_proposals": link_proposals,
             "warnings": warnings[:20],
             "errors": errors[:20],
             "duplicate_reconciliation": duplicate_reconciliation,
             "decision_reconciliation": decision_reconciliation,
         }
+
+    def _proponi_collegamento_per_notifica(
+        self,
+        row: dict[str, Any],
+        understanding: dict[str, Any],
+        candidate: dict[str, Any],
+        actor: str,
+    ) -> dict[str, Any]:
+        """Proposta in BOZZA «PEC con ordine di notifica: crea o collega il fascicolo» (mai un presidio orfano)."""
+
+        if not self.scadenziario_db_path:
+            return {"created": False, "motivo": "scadenziario non configurato"}
+        from pct.presidio_notifica_senza_fascicolo import proponi_collegamento
+
+        try:
+            return proponi_collegamento(
+                self._scadenziario_manager(),
+                message_id=str(row.get("message_id") or ""),
+                understanding=understanding,
+                candidate=candidate,
+                received_at=str(row.get("received_at") or row.get("created_at") or ""),
+                responsabile=_deadline_responsible_actor(actor),
+            )
+        except Exception as exc:  # la proposta non deve fermare il presidio delle altre PEC
+            return {"created": False, "motivo": f"proposta non registrata: {clean_text(exc, 160)}"}
+
+    def _chiudi_proposta_collegamento_notifica(self, message_id: str, fascicolo_id: str, actor: str) -> int:
+        if not self.scadenziario_db_path or not fascicolo_id:
+            return 0
+        from pct.presidio_notifica_senza_fascicolo import chiudi_dopo_collegamento
+
+        try:
+            return chiudi_dopo_collegamento(
+                self._scadenziario_manager(), message_id=message_id, fascicolo_id=fascicolo_id, attore=actor,
+            )
+        except Exception:  # pragma: no cover - il collegamento resta valido
+            logging.getLogger(__name__).warning("Proposta di collegamento non chiusa per la PEC %s", message_id)
+            return 0
 
     def reconcile_duplicate_notification_presidia(
         self,
@@ -10820,6 +10875,11 @@ class PecAuditRepository:
                 )
             except Exception as exc:  # pragma: no cover - il collegamento resta valido
                 presidia_dopo_collegamento = {"ok": False, "errors": [str(exc)[:180]]}
+            if presidia_dopo_collegamento.get("created") or presidia_dopo_collegamento.get("existing"):
+                # Il presidio ora c'e': la proposta «crea o collega il fascicolo» ha esaurito lo scopo.
+                presidia_dopo_collegamento["link_proposals_closed"] = self._chiudi_proposta_collegamento_notifica(
+                    message_id, fascicolo_id, actor,
+                )
         try:
             detail = self.get_message_detail(message_id)
             report = detail.get("validation_report") or {}

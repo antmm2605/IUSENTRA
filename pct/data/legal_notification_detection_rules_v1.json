@@ -1,7 +1,7 @@
 {
   "schema": "iusentra.legal_notification_detection_rules.v1",
-  "version": "legal_notification_detection_rules_v1.0.3",
-  "generated_at": "2026-07-19T00:00:00+02:00",
+  "version": "legal_notification_detection_rules_v1.0.4",
+  "generated_at": "2026-11-09T00:00:00+01:00",
   "timezone": "Europe/Rome",
   "source_registry": "legal_sources_registry.json",
   "procedural_resolvers": {
@@ -241,8 +241,16 @@
         "validation_report"
       ],
       "positive_any": [
-        "(?:ordina|dispone).{0,160}notific",
-        "(?:atto|ricorso|decreto|provvedimento).{0,120}da\\s+notificare"
+        "(?:ordina|dispone)(?![^.;]{0,200}a\\s+cura\\s+(?:della\\s+)?cancelleria).{0,160}notific",
+        "(?:atto|ricorso|decreto|provvedimento).{0,120}da\\s+notificare",
+        "\\bonera\\b.{0,160}?notific",
+        "\\b(?:è|e'|costituisce)\\s+onere\\s+(?:del|della|dell['’]|di)\\s*(?:parte\\s+)?(?:ricorrente|appellante|attore|attrice|istante|reclamante|opponente|richiedente|difensore|procuratore).{0,120}?notific",
+        "\\bmanda\\s+(?:al|alla|allo|a)\\s+(?:parte\\s+)?(?:ricorrente|appellante|attore|attrice|istante|reclamante|opponente|richiedente|difensore|procuratore)\\b.{0,160}?notific",
+        "\\b(?:sia|siano|venga|vengano|deve\\s+essere|devono\\s+essere|dovr[aà]\\s+essere|dovranno\\s+essere)\\s+notificat[oaie]\\b.{0,200}?\\ba\\s+cura\\s+(?:(?:di|del|della|dei|delle)\\s+|dell['’]\\s*)(?!cancelleria|ufficio|ufficiale)",
+        "\\bnotificarsi\\b.{0,160}?\\ba\\s+cura\\s+(?:(?:di|del|della|dei|delle)\\s+|dell['’]\\s*)(?!cancelleria|ufficio|ufficiale)",
+        "(?:ricorso|decreto|atto|provvedimento|ordinanza|copia)\\b.{0,160}?\\b(?:da\\s+)?notificarsi\\b(?!.{0,80}?a\\s+cura\\s+della\\s+cancelleria)",
+        "\\bnotific(?:are|arsi|azione|a)\\b.{0,160}?\\ba\\s+cura\\s+(?:di|della)\\s+parte\\s+(?:ricorrente|appellante|attrice|istante|reclamante|opponente|richiedente|interessata|diligente)\\b",
+        "\\bassegna\\b.{0,120}?\\btermine\\b.{0,120}?\\bper\\s+(?:la\\s+|l['’]\\s*)?(?:rinnovazione\\s+della\\s+)?notific"
       ],
       "negative_any": [
         "notificat[oa]\\s+alla\\s+pec",
@@ -258,7 +266,10 @@
       "result_priority": "P1",
       "legal_sources": [
         "src.it.l53_1994.art3bis",
-        "src.it.cpc.arts137_149"
+        "src.it.cpc.arts137_149",
+        "src.it.cpc.art415",
+        "src.it.cpc.art435",
+        "src.it.cpc.art281undecies"
       ],
       "portal_original": "conditional"
     },

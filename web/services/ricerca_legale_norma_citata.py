@@ -86,7 +86,7 @@ def _comma_per_parole(righe: list[dict], parole: str) -> tuple[dict, str] | None
         for i, m in enumerate(inizi):
             pezzo = testo[m.start(): inizi[i + 1].start() if i + 1 < len(inizi) else len(testo)].lower()
             punti = sum(1 for r in radici if r in pezzo) + 2 * sum(1 for r in radici if r in rubrica) + sum(
-                1 for a, b in coppie if re.search(rf"\b{a}\w*\s+(?:\w+\s+)?{b}", pezzo))
+                1 for a, b in coppie if re.search(rf"\b{re.escape(a)}\w*\s+(?:\w+\s+)?{re.escape(b)}", pezzo))
             if punti >= 2 and (migliore is None or punti > migliore[0]):
                 migliore = (punti, -len(pezzo), riga, _normale(m[1]))
     return (migliore[2], migliore[3]) if migliore else None

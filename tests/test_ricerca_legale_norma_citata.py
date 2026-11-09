@@ -114,3 +114,13 @@ def test_decreto_ministeriale_si_apre_per_estremi_anche_sotto_il_tipo_generico(t
 
 def test_decreti_omonimi_con_date_diverse_non_si_scelgono(tmp_path):
     assert norma_citata(_archivio_decreti(tmp_path), estremi("art. 1 d.m. 12/2020")) is None
+
+
+def test_parole_con_caratteri_speciali_non_rompono_la_ricerca_del_comma():
+    """Le parole della domanda entrano nell'espressione regolare solo come testo (CodeQL py/regex-injection)."""
+    from web.services.ricerca_legale_norma_citata import _comma_per_parole
+
+    righe = [{"article_text": "Art. 2 1. Il lavoratore (anche precario) ha diritto alla carta. 2. Altro comma."}]
+    trovato = _comma_per_parole(righe, "precario) carta+ (lavoratore")
+    assert trovato is not None and trovato[1] == "1"
+    assert _comma_per_parole(righe, "[[ (( ** ++") is None

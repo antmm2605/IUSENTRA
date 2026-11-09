@@ -12,24 +12,39 @@ ID_BASE = 10**12
 
 
 def is_linked(identifier):
-    return ID_BASE < identifier < 2 * ID_BASE
+    return ID_BASE < identifier < 3 * ID_BASE and identifier != 2 * ID_BASE
+
+
+def linked_archive(identifier):
+    if identifier > 2 * ID_BASE:
+        path = os.getenv("IUSENTRA_BIBLIOTECA_CERDEF_ARCHIVIO")
+        if not path:
+            raise FileNotFoundError("Edizione Normattiva archiviata non disponibile.")
+        return Path(path), 2 * ID_BASE
+    return runtime_general_path(), ID_BASE
 
 
 @contextmanager
-def _linked_connection():
-    index = os.getenv("IUSENTRA_BIBLIOTECA_CERDEF_INDICE")
+def _linked_connection(base=ID_BASE):
+    setting = "IUSENTRA_BIBLIOTECA_CERDEF_INDICE" if base == ID_BASE else "IUSENTRA_BIBLIOTECA_CERDEF_INDICE_ARCHIVIO"
+    index = os.getenv(setting)
     if not index:
         yield None
         return
     path = Path(index).resolve(strict=True)
-    with closing(_connect(runtime_general_path())) as connection:
+    database, _ = linked_archive(base + 1)
+    with closing(_connect(database)) as connection:
         connection.execute("ATTACH DATABASE ? AS cerdef", (path.as_uri()+"?mode=ro",))
         connection.execute("PRAGMA query_only=ON")
         yield connection
 
 
 def linked_catalogue():
-    with _linked_connection() as connection:
+    return _catalogue(ID_BASE) + _catalogue(2 * ID_BASE)
+
+
+def _catalogue(base):
+    with _linked_connection(base) as connection:
         if connection is None:
             return []
         rows = connection.execute("""
@@ -44,9 +59,13 @@ def linked_catalogue():
             identifier = item["id"]
             item["collection"] = f"{COLLECTION}cerdef_{identifier}"
             year = item["data_atto"][:4]
-            item["title"] = f"{item.pop('tipo').capitalize()} {item['numero']}/{year} — {item['title']}"
+            kind = item.pop("tipo").capitalize()
+            number = str(item["numero"] or "").strip()
+            reference = f"{number}/{year}" if number and number != "0" else item["data_atto"]
+            edition = " [edizione archiviata]" if base != ID_BASE else ""
+            item["title"] = f"{kind} {reference}{edition} — {item['title']}"
             item = _catalogue_row(item)
-            item["id"] += ID_BASE
+            item["id"] += base
             catalogue.append(item)
         return catalogue
 
@@ -68,8 +87,9 @@ def _article_presentation(number, title, text):
 
 
 def linked_articles(identifier, *, query="", article="", offset=0):
-    document_id = identifier - ID_BASE
-    with _linked_connection() as connection:
+    _, base = linked_archive(identifier)
+    document_id = identifier - base
+    with _linked_connection(base) as connection:
         if connection is None:
             return {"items": [], "total": 0, "act_id": identifier}
         where = ["i.document_id=?", "length(trim(coalesce(a.article_text,'')))>0"]
@@ -98,21 +118,22 @@ def linked_articles(identifier, *, query="", article="", offset=0):
         )
         items = []
         for row in rows:
-            item = dict(row, id=row["id"] + ID_BASE)
+            item = dict(row, id=row["id"] + base)
             item["number"], item["title"] = _article_presentation(item["number"], item["title"], item.pop("body"))
             items.append(item)
     return {"items": items, "total": total, "act_id": identifier}
 
 
 def linked_article(identifier):
-    article_id = identifier - ID_BASE
-    with _linked_connection() as connection:
+    database, base = linked_archive(identifier)
+    article_id = identifier - base
+    with _linked_connection(base) as connection:
         if connection is None or not connection.execute("""
             SELECT 1 FROM normative_articles a JOIN normative_documents d ON a.document_id=d.id
             JOIN cerdef.atti i ON i.document_id=d.id AND d.xml_sha256=i.sha256 WHERE a.id=? AND length(trim(coalesce(a.article_text,'')))>0
         """, (article_id,)).fetchone():
             return None
-    item = dettaglio(runtime_general_path(), article_id, includi_archivio_generale=True)
+    item = dettaglio(database, article_id, includi_archivio_generale=True)
     if item is not None:
         item["id"] = identifier
         item["number"], item["title"] = _article_presentation(item["number"], item["title"], item["text"])

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sources": {
     "frontend/index.html": "620b11fb8cdc1ed85fa2c63e97f89d2f83c89bb386ccd114226144ec8f68acc0",
-    "frontend/package.json": "714563aacceaca3c2dd21ec99611d90ff69a798269198e79e0e7f13e825cce92",
+    "frontend/package.json": "be1d5c25946d30684af931d118b91a813833b0a9d8aef69cbb9a96ee973f2515",
     "frontend/src/App.tsx": "b6a9cfa9253cef0daef3c1f8ddf745aaa159d129fac7b93e11ee2db70ea4dae5",
     "frontend/src/accessoData.ts": "f03f0bb0b6bdf1d60e8feb21c6c954b341035b32085edaec23cb6ea2e6062830",
     "frontend/src/adminDatabaseData.ts": "8ea83a56d10c0237228cebc41e2901a5551514bca8c4e66f246acbe4a124b8fc",
@@ -839,7 +839,7 @@
     "web/static/js/studio_site_builder.js": "7385cbca0706c97b384481dad872625be981026f0ab13909239ad66ef84e834a"
   },
   "assets": {
-    ".vite/manifest.json": "dde3a47d8b04c229478ffc111b8a7e58afbcccef5823d88d6b340cf2200667a0",
+    ".vite/manifest.json": "1bd9c9c7f71716e2d20fe9371ba1f597b788720f83b44b694c87929994ec65ba",
     "assets/AccessoApp-CCri8LtX.js": "478c296f23b7afff680a37de170a009abe21a5ed5f8852b53edc356f6940a2c5",
     "assets/AccessoApp-CGWeyqDs.css": "fb544b6542f0472463c58ef26e551abbdfbed3726cc0695681b9229ff564bde9",
     "assets/AdminDatabasePage-DvHOj1ln.js": "32b64c4014426e4974dc4ba5ff8c0b03ef869059e225beea085fa9869b0dfcf2",

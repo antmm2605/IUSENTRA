@@ -401,7 +401,213 @@
         {"fonte": "D.P.R. 602/1973", "articolo": "78-86", "descrizione": "Procedura espropriativa esattoriale"}
       ],
       "note_importante": "Art. 76 D.P.R. 602/73: impignorabilità immobile adibito ad abitazione principale del debitore se unico immobile di proprietà e non di lusso, per debiti tributari verso Agenzia Entrate-Riscossione"
-    }
+    },
+        {
+          "codice": "GUIDA_PRECETTO_ANCHE_CONTRO_PA",
+          "denominazione": "Atto di precetto (artt. 479-481 c.p.c.), anche contro la pubblica amministrazione (art. 14 D.L. 669/1996)",
+          "categoria": "Esecuzione forzata – atto di precetto",
+          "materia": "Esecuzioni forzate",
+          "rito": "Atto stragiudiziale notificato: precede l'esecuzione forzata (non si deposita)",
+          "competenza": "Nel precetto si indica il giudice competente per l'esecuzione (art. 480, terzo comma, c.p.c.); le eventuali opposizioni si propongono davanti a quel giudice",
+          "verificato_il": "2026-11-09",
+          "normativa": [
+            {
+              "fonte": "c.p.c.",
+              "articolo": "474",
+              "descrizione": "Titolo esecutivo per un diritto certo, liquido ed esigibile"
+            },
+            {
+              "fonte": "c.p.c.",
+              "articolo": "475",
+              "descrizione": "Titolo giudiziale in copia attestata conforme all'originale o in duplicato informatico"
+            },
+            {
+              "fonte": "c.p.c.",
+              "articolo": "479",
+              "descrizione": "Notificazione del titolo (duplicato informatico o copia attestata conforme) e del precetto alla parte personalmente; il precetto può seguire il titolo"
+            },
+            {
+              "fonte": "c.p.c.",
+              "articolo": "480",
+              "descrizione": "Contenuto a pena di nullità: parti, data di notifica del titolo, termine non minore di 10 giorni, avvertimenti (anche sovraindebitamento), giudice competente, residenza o domicilio digitale"
+            },
+            {
+              "fonte": "c.p.c.",
+              "articolo": "481",
+              "descrizione": "Inefficacia se l'esecuzione non inizia entro 90 giorni dalla notificazione"
+            },
+            {
+              "fonte": "c.p.c.",
+              "articolo": "431",
+              "descrizione": "Sentenze di condanna a favore del lavoratore provvisoriamente esecutive, anche con la sola copia del dispositivo"
+            },
+            {
+              "fonte": "D.L. 669/1996",
+              "articolo": "14",
+              "descrizione": "Amministrazioni dello Stato ed enti pubblici non economici: 120 giorni dalla notificazione del titolo esecutivo prima di procedere a esecuzione forzata; precetto presso la struttura territoriale dell'ente (comma 1-bis)"
+            },
+            {
+              "fonte": "R.D. 1611/1933",
+              "articolo": "11",
+              "descrizione": "Notifiche alle amministrazioni dello Stato presso l'Avvocatura distrettuale per gli atti dei giudizi e le sentenze"
+            }
+          ],
+          "obbligo_mediazione": {
+            "obbligatoria": false
+          },
+          "atto_principale": {
+            "tipo_atto": "precetto",
+            "denominazione": "Atto di precetto",
+            "campi_chiave": [
+              {
+                "id": "titolo_esecutivo",
+                "label": "Titolo esecutivo (sentenza, decreto ingiuntivo esecutivo, ordinanza) con data e numero",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "id": "data_notifica_titolo",
+                "label": "Data di notificazione del titolo, se notificato separatamente",
+                "required": true,
+                "type": "date"
+              },
+              {
+                "id": "somme_intimate",
+                "label": "Somme intimate: capitale, interessi, rivalutazione, spese liquidate e spese del precetto",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "id": "termine_adempimento",
+                "label": "Termine per adempiere (non meno di 10 giorni)",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "id": "giudice_esecuzione",
+                "label": "Giudice competente per l'esecuzione",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "id": "domicilio_digitale",
+                "label": "Elezione di domicilio o indirizzo PEC dai pubblici elenchi",
+                "required": true,
+                "type": "string"
+              }
+            ],
+            "campi_obbligatori": [
+              {
+                "id": "titolo_esecutivo",
+                "label": "Titolo esecutivo (sentenza, decreto ingiuntivo esecutivo, ordinanza) con data e numero",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "id": "somme_intimate",
+                "label": "Somme intimate: capitale, interessi, rivalutazione, spese liquidate e spese del precetto",
+                "required": true,
+                "type": "string"
+              },
+              {
+                "id": "giudice_esecuzione",
+                "label": "Giudice competente per l'esecuzione",
+                "required": true,
+                "type": "string"
+              }
+            ],
+            "avvertimenti_obbligatori": [
+              "Avvertimento che, in mancanza di adempimento nel termine, si procederà a esecuzione forzata (art. 480, primo comma, c.p.c.)",
+              "Avvertimento sulla composizione della crisi da sovraindebitamento con l'ausilio di un OCC o di un professionista (art. 480, secondo comma, c.p.c.)"
+            ]
+          },
+          "allegati_obbligatori": [
+            {
+              "id": "titolo_esecutivo",
+              "label": "Titolo esecutivo in duplicato informatico o copia attestata conforme (artt. 475 e 479 c.p.c.)",
+              "required": true
+            },
+            {
+              "id": "relata_titolo",
+              "label": "Relata di notificazione del titolo, se notificato prima del precetto",
+              "required": false
+            },
+            {
+              "id": "conteggio",
+              "label": "Conteggio delle somme (capitale, interessi legali, rivalutazione per i crediti di lavoro, spese)",
+              "required": true
+            }
+          ],
+          "adempimenti_propedeutici": [
+            {
+              "step": 1,
+              "azione": "Verificare che il titolo sia esecutivo: per il lavoratore la condanna è provvisoriamente esecutiva (art. 431 c.p.c.)",
+              "obbligatorio": true
+            },
+            {
+              "step": 2,
+              "azione": "Notificare il titolo esecutivo alla parte personalmente (art. 479 c.p.c.); il precetto può seguire nello stesso atto",
+              "obbligatorio": true
+            },
+            {
+              "step": 3,
+              "azione": "Contro le amministrazioni dello Stato e gli enti pubblici non economici: notificare il titolo e attendere 120 giorni prima del precetto e dell'esecuzione (art. 14, comma 1, D.L. 669/1996)",
+              "obbligatorio": true
+            },
+            {
+              "step": 4,
+              "azione": "Individuare dove notificare all'amministrazione: per gli enti territoriali la struttura territoriale (art. 14, comma 1-bis); per i ministeri verificare l'organo che rappresenta l'amministrazione e, per prudenza, notificare anche all'Avvocatura distrettuale (l'art. 11 R.D. 1611/1933 riguarda gli atti dei giudizi e le sentenze)",
+              "obbligatorio": true
+            },
+            {
+              "step": 5,
+              "azione": "Iniziare l'esecuzione entro 90 giorni dalla notificazione del precetto, a pena di inefficacia (art. 481 c.p.c.)",
+              "obbligatorio": true
+            }
+          ],
+          "termini_processuali": [
+            {
+              "termine": "Attesa dopo la notifica del titolo all'amministrazione",
+              "decorrenza": "notificazione del titolo esecutivo",
+              "natura": "dilatorio",
+              "norma": "art. 14, comma 1, D.L. 669/1996",
+              "giorni": 120
+            },
+            {
+              "termine": "Termine per adempiere indicato nel precetto",
+              "decorrenza": "notificazione del precetto",
+              "natura": "minimo",
+              "norma": "art. 480, primo comma, c.p.c.",
+              "giorni": 10
+            },
+            {
+              "termine": "Efficacia del precetto",
+              "decorrenza": "notificazione del precetto",
+              "natura": "decadenza",
+              "norma": "art. 481 c.p.c.",
+              "giorni": 90
+            }
+          ],
+          "adempimenti_fiscali_telematici": {
+            "contributo_unificato": "Non dovuto per il precetto: atto stragiudiziale; il contributo si versa con l'iscrizione a ruolo dell'esecuzione",
+            "notifica": "A mezzo PEC ai sensi della L. 53/1994 oppure tramite ufficiale giudiziario"
+          },
+          "avvertenze_redazionali": [
+            "Le spese del precetto si calcolano secondo i parametri forensi vigenti e non sono ripetibili se il precetto è notificato prima dei 120 giorni contro l'amministrazione",
+            "Indicare con esattezza le somme già pagate dall'amministrazione per evitare l'opposizione"
+          ],
+          "guida_interna_non_depositabile": true,
+          "depositabile": false,
+          "codice_deposito_automatico": false,
+          "parole_chiave": [
+            "precetto",
+            "atto di precetto",
+            "esecuzione contro la pa",
+            "titolo esecutivo",
+            "120 giorni"
+          ],
+          "_quality_hint": "operativa_curata"
+        }
   ],
   "atti_collegati_al_giudice_esecuzione": {
     "descrizione": "Procedimenti accessori e incidentali nelle esecuzioni - non hanno autonomo codice oggetto SIECIC ma sono atti del processo esecutivo principale",

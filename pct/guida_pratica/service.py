@@ -648,7 +648,28 @@ class GuidaPraticaService:
                     }
         if best is None:
             best = self._suggerisci_guida_interna(candidates, materia=materia_fuori_pct, min_score=min_score)
+        if best is None:
+            best = self._suggerisci_da_regola_della_materia(fascicolo)
         return best
+
+    def _suggerisci_da_regola_della_materia(self, fascicolo: dict[str, Any]) -> dict[str, Any] | None:
+        """Oggetto breve o assente: parole processuali e controparte (pct/guida_pratica/regole_materia.py)."""
+        from pct.guida_pratica.regole_materia import regola_della_materia
+
+        trovata = regola_della_materia(fascicolo, self._kb_index)
+        if trovata is None:
+            return None
+        codice, parole = trovata
+        return {
+            "codice": codice,
+            "denominazione": _text(self._kb_index.get(codice, {}).get("denominazione")),
+            "score": 0.9,
+            "source_field": "oggetto e titolo",
+            "matched_by": f"regola della materia ({parole})",
+            "confirmation_required": True,
+            "guide_only": codice not in self._official_catalog_index,
+            "message": "Guida pratica suggerita dalla materia del fascicolo. Confermala nella scheda fascicolo per collegarla.",
+        }
 
     def _guide_interne(self) -> list[tuple[str, str, set[str], str]]:
         """Schede interne (non codici ministeriali) con etichetta, parole e testo della materia per il confronto."""

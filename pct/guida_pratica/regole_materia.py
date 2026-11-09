@@ -8,7 +8,9 @@ processuali che individuano da sole il rito, con la controparte quando decide la
 - ottemperanza: artt. 112-114 c.p.a. (tributaria: art. 70 D.Lgs. 546/1992);
 - silenzio sul riconoscimento di un titolo estero: art. 16 D.Lgs. 206/2007 e artt. 31, 117 c.p.a.;
 - precetto: artt. 479-481 c.p.c. (non l'opposizione, che ha la sua scheda);
-- ricorso contro un decreto ministeriale davanti al TAR: artt. 29 e 41 c.p.a.
+- ricorso contro un decreto ministeriale davanti al TAR: artt. 29 e 41 c.p.a.;
+- carta del docente (art. 1, comma 121, L. 107/2015) e, in mancanza di altro oggetto, ogni causa di lavoro contro una
+  pubblica amministrazione: pubblico impiego contrattualizzato davanti al giudice del lavoro (art. 63 D.Lgs. 165/2001).
 Si applicano solo quando il suggeritore ordinario non trova nulla: non cambiano i collegamenti esistenti.
 """
 
@@ -34,6 +36,9 @@ REGOLE: tuple[tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...] | None, bo
     (("ricorso avverso decreto",), (), ("AMMINISTRATIVO",), None, "GUIDA_AMMINISTRATIVO_RICORSO_TAR"),
     (("retribuzione",), (), ("LAVORO",), True, "222050"),
     (("retribuzione",), (), ("LAVORO",), False, "220050"),
+    (("carta del docente",), (), None, None, "222050"),
+    (("carta docente",), (), None, None, "222050"),
+    ((), (), ("LAVORO",), True, "222050"),
 )
 
 
@@ -60,5 +65,5 @@ def regola_della_materia(fascicolo: dict[str, Any], codici_disponibili: Any) -> 
         if pa is not None and pa != pubblica:
             continue
         if codice in codici_disponibili:
-            return codice, " + ".join(parole)
+            return codice, " + ".join(parole) or "causa di lavoro con controparte pubblica"
     return None

@@ -75,3 +75,10 @@ def test_ottemperanza_allega_il_giudicato_e_non_un_provvedimento_impugnato(servi
     allegati = {a["id"] for a in scheda["allegati_obbligatori"]}
     assert "provvedimento_impugnato" not in allegati and {"sentenza", "giudicato"} <= allegati
     assert "art. 113, comma 2" in scheda["competenza"] and "300" in json.dumps(scheda, ensure_ascii=False)
+
+
+def test_carta_del_docente_e_lavoro_contro_la_pa_senza_oggetto(servizio):
+    assert servizio.suggest_guidance_from_fascicolo({"titolo": "Rossi c. MIM - carta del docente", "tipo": "LAVORO"})["codice"] == "222050"
+    proposta = servizio.suggest_guidance_from_fascicolo({"titolo": "Spadaro II ricorso C. MIM", "tipo": "LAVORO"})
+    assert proposta["codice"] == "222050" and "controparte pubblica" in proposta["matched_by"]
+    assert servizio.suggest_guidance_from_fascicolo({"titolo": "Bianchi c. Gamma srl", "tipo": "LAVORO"}) is None

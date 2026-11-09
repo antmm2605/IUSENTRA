@@ -389,7 +389,7 @@ def allegato(id_email: str, indice_allegato: int):
             download=1,
         )
         if preview.unavailable_reason:
-            return preview_unavailable_html(nome_download, scarica_url)
+            return preview_unavailable_html(nome_download, scarica_url, elenco_file=preview.archive_entries)
         pdf_reader_response = _serve_attachment_pdf_reader(
             preview_data=preview.data,
             preview_mimetype=preview.mimetype,

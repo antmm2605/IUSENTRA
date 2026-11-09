@@ -1719,10 +1719,10 @@ def build_fascicoli_runtime(
         return re.sub(r"[^a-z0-9]+", "", testo)
 
     def _nome_preview_documento(nome_file: str) -> str:
-        nome = Path(str(nome_file or "")).name.strip()
-        if nome.lower().endswith(".p7m"):
-            nome = nome[:-4]
-        return nome
+        from pct.buste_firma import nome_senza_buste
+
+        # Toglie tutte le buste: .p7m annidati, marche .tsd e buste .m7m.
+        return nome_senza_buste(Path(str(nome_file or "")).name.strip())
 
     def _mime_preview_documento(nome_file: str, payload: bytes | None = None) -> tuple[str, str] | None:
         nome_preview = _nome_preview_documento(nome_file)

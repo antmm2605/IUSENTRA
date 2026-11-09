@@ -14,13 +14,17 @@ from typing import Any
 
 from flask import Flask, abort, flash, g, jsonify, redirect, request, send_file, url_for
 
+from pct.document_crypto import ChiaveDocumentiMancante
+from pct.firme_cades import is_signed_container
 from web.bootstrap.fascicoli_document_helpers import (
+    DOCUMENTO_CIFRATO_SENZA_CHIAVE,
     estrai_pdf_da_raw,
     mobile_pdf_preview_response,
     mobile_rich_preview_response,
     nome_documento_operativo,
     payload_bool,
     percorso_documento_lettura,
+    preview_cifrato_senza_chiave_html,
     preview_error_html,
     preview_unavailable_html,
 )
@@ -112,6 +116,10 @@ def register_fascicoli_document_view_routes(
             )
             audit("fascicoli.documento.scarica", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
             return send_file(io.BytesIO(data), as_attachment=True, download_name=download_name)
+        except ChiaveDocumentiMancante:
+            app.logger.error("Documento cifrato senza PCT_DOC_KEY id_fasc=%s id_doc=%s", id_fasc, id_doc)
+            flash(f"{DOCUMENTO_CIFRATO_SENZA_CHIAVE}: impossibile scaricare il documento.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         except Exception as exc:
             app.logger.exception("Errore scarica_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
             flash("Impossibile scaricare il documento. Verifica il fascicolo e riprova.", "danger")
@@ -123,6 +131,7 @@ def register_fascicoli_document_view_routes(
         if utente is None or not utente.ha_permesso("fascicoli.leggi"):
             abort(403)
         gestore_fascicoli = get_fascicoli()
+        documento = None
         try:
             percorso = percorso_documento_lettura(gestore_fascicoli, id_fasc, id_doc)
             fascicolo = gestore_fascicoli.get(id_fasc)
@@ -159,7 +168,9 @@ def register_fascicoli_document_view_routes(
                 )
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
                 if preview_document.unavailable_reason:
-                    return preview_unavailable_html(operational_name, scarica_url)
+                    return preview_unavailable_html(
+                        operational_name, scarica_url, elenco_file=preview_document.archive_entries
+                    )
                 _record_document_operational_audit(
                     fascicolo_id=id_fasc,
                     document_id=id_doc,
@@ -174,7 +185,7 @@ def register_fascicoli_document_view_routes(
                     download_name=preview_document.download_name,
                 )
 
-            if lower_name.endswith(".p7m"):
+            if is_signed_container(lower_name) and not lower_name.endswith(".p7s"):
                 contenuto_estratto = estrai_contenuto_p7m_per_preview(firma_payload)
                 if contenuto_estratto:
                     preview_payload = contenuto_estratto
@@ -267,6 +278,9 @@ def register_fascicoli_document_view_routes(
                 as_attachment=False,
                 download_name=nome_download,
             )
+        except ChiaveDocumentiMancante:
+            app.logger.error("Documento cifrato senza PCT_DOC_KEY id_fasc=%s id_doc=%s", id_fasc, id_doc)
+            return preview_cifrato_senza_chiave_html(str(getattr(documento, "nome", "") or "Documento"))
         except Exception as exc:
             app.logger.exception("Errore visualizza_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, exc)
             try:

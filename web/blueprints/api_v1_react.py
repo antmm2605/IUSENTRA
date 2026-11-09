@@ -17222,7 +17222,7 @@ def email_source_attachment(message_id: str):
             name=original_name,
             download=1,
         )
-        return preview_unavailable_html(original_name, download_url)
+        return preview_unavailable_html(original_name, download_url, elenco_file=preview.archive_entries)
     try:
         _write_email_source_preview_cache(
             cache_key,

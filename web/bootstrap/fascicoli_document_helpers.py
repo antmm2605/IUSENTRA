@@ -25,6 +25,8 @@ PREVIEW_EXTENSIONS = (
     ".txt",
     ".pdf",
     ".p7m",
+    ".tsd",
+    ".m7m",
 )
 
 
@@ -109,9 +111,36 @@ def _safe_preview_download_url(value: str) -> str:
     return escape(raw, quote=True)
 
 
-def preview_unavailable_html(nome_documento: str, scarica_url: str) -> tuple[str, int, dict[str, str]]:
-    escaped_name = escape(str(nome_documento or "Documento"))
-    escaped_download = _safe_preview_download_url(scarica_url)
+def preview_unavailable_html(
+    nome_documento: str,
+    scarica_url: str,
+    *,
+    elenco_file: tuple[str, ...] | list[str] = (),
+    titolo: str = "",
+    messaggio: str = "",
+) -> tuple[str, int, dict[str, str]]:
+    """Pagina del lettore per i file che il browser non sa mostrare.
+
+    Evita che il file venga scaricato dentro il lettore: spiega il motivo,
+    elenca i file contenuti negli archivi leggibili e offre «Scarica».
+    Senza ``scarica_url`` (documento cifrato senza chiave) il pulsante manca.
+    """
+    escaped_name = escape(str(titolo or nome_documento or "Documento"))
+    elenco = ""
+    if elenco_file:
+        voci = "".join(f"<li>{escape(str(nome))}</li>" for nome in list(elenco_file)[:200])
+        elenco = f'<p class="list-title">File contenuti nell\'archivio:</p><ul>{voci}</ul>'
+    testo = (
+        escape(messaggio)
+        if messaggio
+        else "Anteprima non disponibile per questo formato.<br>"
+        "Scarica il file per visualizzarlo con il programma appropriato."
+    )
+    pulsante = (
+        f'<a href="{_safe_preview_download_url(scarica_url)}" download>Scarica documento</a>'
+        if scarica_url
+        else ""
+    )
     html = (
         '<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -124,15 +153,27 @@ def preview_unavailable_html(nome_documento: str, scarica_url: str) -> tuple[str
         'font-size:14px;line-height:1.55}a{min-height:44px;margin-top:18px;display:inline-flex;align-items:center;justify-content:center;'
         'padding:0 16px;border-radius:10px;background:#1e3a8a;color:#fff;font-size:14px;font-weight:800;text-decoration:none}'
         'a:focus-visible{outline:3px solid rgba(37,99,235,.3);outline-offset:2px}'
+        '.list-title{margin-top:16px;font-weight:700;color:#334155}ul{margin:8px 0 0;padding:0 0 0 18px;max-height:40vh;'
+        'overflow:auto;text-align:left;font-size:13px;line-height:1.5;color:#1f2937;overflow-wrap:anywhere}'
         '</style></head><body><main class="card">'
         '<div class="icon" aria-hidden="true">&#128196;</div>'
         f'<h1>{escaped_name}</h1>'
-        '<p>Anteprima non disponibile per questo formato.<br>'
-        "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{escaped_download}" download>Scarica documento</a>'
+        f"<p>{testo}</p>{elenco}{pulsante}"
         "</main></body></html>"
     )
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+DOCUMENTO_CIFRATO_SENZA_CHIAVE = "Documento cifrato: chiave dei documenti dello studio non configurata"
+
+
+def preview_cifrato_senza_chiave_html(nome_documento: str) -> tuple[str, int, dict[str, str]]:
+    """Documento cifrato a riposo ma senza ``PCT_DOC_KEY``: non si può né leggere né scaricare."""
+    return preview_unavailable_html(
+        nome_documento,
+        "",
+        messaggio=f"{DOCUMENTO_CIFRATO_SENZA_CHIAVE}. Chiedi all'amministratore di impostarla sul server.",
+    )
 
 
 def preview_eml_html(
@@ -506,7 +547,11 @@ def mobile_rich_preview_response(
     if rich_preview.unavailable_reason:
         scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
         return (
-            preview_unavailable_html(rich_preview.download_name or preview_name, scarica_url),
+            preview_unavailable_html(
+                rich_preview.download_name or preview_name,
+                scarica_url,
+                elenco_file=rich_preview.archive_entries,
+            ),
             preview_payload,
             preview_name,
         )

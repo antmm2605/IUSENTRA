@@ -20,6 +20,7 @@ SIGNED_CONTAINER_MIME_TYPES = frozenset(
         "application/x-pkcs7-mime",
         "application/pkcs7-signature",
         "application/x-pkcs7-signature",
+        "application/timestamped-data",
     }
 )
 
@@ -67,7 +68,11 @@ def is_p7m_filename(path: str | Path) -> bool:
 def is_signed_container(path: str | Path, mime_type: str = "") -> bool:
     lower_name = str(path or "").strip().casefold()
     mime = str(mime_type or "").split(";", 1)[0].strip().casefold()
-    return is_p7m_filename(path) or lower_name.endswith(".p7s") or mime in SIGNED_CONTAINER_MIME_TYPES
+    return (
+        is_p7m_filename(path)
+        or lower_name.endswith((".p7s", ".tsd", ".m7m"))
+        or mime in SIGNED_CONTAINER_MIME_TYPES
+    )
 
 
 def inner_signed_path(path: str | Path) -> Path:
@@ -76,8 +81,10 @@ def inner_signed_path(path: str | Path) -> Path:
 
 
 def inner_signed_name(name: str) -> str:
-    text = str(name or "").strip()
-    return text[:-4] if text.lower().endswith(".p7m") else text
+    """Nome del documento contenuto: toglie tutte le buste (.p7m annidati, .tsd, .m7m)."""
+    from pct.buste_firma import nome_senza_buste
+
+    return nome_senza_buste(name)
 
 
 def payload_mime_from_bytes(data: bytes, original_name: str = "") -> str:
@@ -256,7 +263,19 @@ def der_da_base64(data: bytes) -> bytes:
 
 
 def extract_signed_payload(data: bytes) -> bytes | None:
-    """Estrae il payload firmato da una busta CAdES (.p7m).
+    """Estrae il documento contenuto, togliendo tutte le buste in sequenza.
+
+    Buste CAdES annidate (``.p7m.p7m.p7m``), marche ``.tsd`` (RFC 5544) e
+    buste ``.m7m`` si aprono una dopo l'altra fino al documento (al massimo
+    ``pct.buste_firma.MAX_LIVELLI_BUSTA`` livelli).
+    """
+    from pct.buste_firma import togli_buste
+
+    return togli_buste(data, _extract_signed_payload_once)
+
+
+def _extract_signed_payload_once(data: bytes) -> bytes | None:
+    """Estrae il payload firmato da un solo involucro CAdES (.p7m).
 
     Strategia multi-livello per la massima compatibilità con i p7m
     generati dai sistemi giudiziari italiani (PST, PDP, PAT):
@@ -484,7 +503,11 @@ def inspect_signed_document_bytes(
     embedded_payload = False
     detached_signature = False
 
-    if openssl_ok:
+    from pct.buste_firma import contenuto_marca_temporale, e_busta
+
+    # Le marche .tsd/.m7m non sono buste che OpenSSL sappia aprire: si apre
+    # direttamente la marca con il parser ASN.1/MIME.
+    if openssl_ok and contenuto_marca_temporale(data) is None:
         try:
             with tempfile.TemporaryDirectory(prefix="iusentra-p7m-") as tmp:
                 tmp_dir = Path(tmp)
@@ -541,6 +564,10 @@ def inspect_signed_document_bytes(
                         signature_verified = True
         except Exception as exc:
             details = str(exc)
+
+    if payload_bytes is not None and embedded_payload and e_busta(payload_bytes):
+        # OpenSSL toglie un solo involucro: le buste annidate si aprono qui.
+        payload_bytes = extract_signed_payload(payload_bytes) or payload_bytes
 
     if payload_bytes is None:
         embedded = extract_signed_payload(data)

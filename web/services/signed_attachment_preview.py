@@ -9,6 +9,7 @@ import mimetypes
 from pathlib import PurePosixPath
 import zipfile
 
+from pct.buste_firma import e_busta
 from pct.firme_cades import (
     inner_signed_name,
     inspect_signed_document_bytes,
@@ -55,6 +56,7 @@ class AttachmentPreviewPayload:
     download_name: str
     extracted_from_signature: bool = False
     unavailable_reason: str = ""
+    archive_entries: tuple[str, ...] = ()
 
 
 def attachment_mimetype(nome_file: str, mime_salvato: str = "") -> str:
@@ -68,6 +70,43 @@ def attachment_mimetype(nome_file: str, mime_salvato: str = "") -> str:
 def is_inline_preview_mime(mimetype: str) -> bool:
     mime = str(mimetype or "").split(";", 1)[0].strip().lower()
     return mime in INLINE_PREVIEW_MIME_TYPES
+
+
+FORMATO_NON_VISUALIZZABILE = "Anteprima non disponibile per questo formato."
+_IMMAGINI_NON_BROWSER = {"image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"}
+_ARCHIVI_SENZA_LETTORE = {
+    "application/vnd.rar": "Archivio RAR",
+    "application/x-rar-compressed": "Archivio RAR",
+    "application/x-7z-compressed": "Archivio 7z",
+}
+
+
+def _browser_mostra(mimetype: str) -> bool:
+    """True se il browser mostra il formato da solo, senza scaricarlo."""
+    mime = str(mimetype or "").split(";", 1)[0].strip().lower()
+    if mime in _IMMAGINI_NON_BROWSER:
+        return False
+    return is_inline_preview_mime(mime) or mime.startswith(("image/", "audio/", "video/", "text/"))
+
+
+def _formato_non_visualizzabile(nome_file: str, data: bytes, mimetype: str) -> AttachmentPreviewPayload:
+    """Il browser scaricherebbe il file dentro il lettore: si mostra la pagina «Scarica».
+
+    I .heic non hanno un convertitore tra le dipendenze (pillow-heif assente)
+    e i .rar/.7z non hanno una libreria di lettura: si scaricano.
+    """
+    mime = str(mimetype or "").split(";", 1)[0].strip().lower()
+    motivo = FORMATO_NON_VISUALIZZABILE
+    if mime in _IMMAGINI_NON_BROWSER or str(nome_file or "").casefold().endswith((".heic", ".heif")):
+        motivo = "Foto HEIC: il browser non la mostra e il convertitore non è installato."
+    elif mime in _ARCHIVI_SENZA_LETTORE:
+        motivo = f"{_ARCHIVI_SENZA_LETTORE[mime]}: l'elenco dei file non è disponibile, scarica l'archivio."
+    return AttachmentPreviewPayload(
+        data=data,
+        mimetype=mimetype or "application/octet-stream",
+        download_name=nome_file,
+        unavailable_reason=motivo,
+    )
 
 
 def _decode_text(data: bytes) -> str:
@@ -248,6 +287,7 @@ def _archive_preview_payload(
             unavailable_reason="L'archivio contiene un ulteriore archivio: scarica l'originale per verificarlo.",
         )
 
+    archive_entries: tuple[str, ...] = ()
     try:
         archive_stream = io.BytesIO(data)
         if not zipfile.is_zipfile(archive_stream):
@@ -263,6 +303,7 @@ def _archive_preview_payload(
         archive_stream.seek(0)
         with zipfile.ZipFile(archive_stream, "r") as archive:
             members = [info for info in archive.infolist() if not info.is_dir()]
+            archive_entries = tuple(info.filename.replace("\\", "/") for info in members)
             if not members:
                 raise ValueError("L'archivio ZIP non contiene documenti.")
             if len(members) > MAX_ARCHIVE_FILES:
@@ -319,6 +360,7 @@ def _archive_preview_payload(
             mimetype=original_mime,
             download_name=nome_file,
             unavailable_reason=str(exc) or "L'archivio ZIP non è leggibile.",
+            archive_entries=archive_entries,
         )
 
     return AttachmentPreviewPayload(
@@ -326,6 +368,7 @@ def _archive_preview_payload(
         mimetype=original_mime,
         download_name=nome_file,
         unavailable_reason="L'archivio ZIP non contiene documenti visualizzabili direttamente.",
+        archive_entries=archive_entries,
     )
 
 
@@ -358,11 +401,23 @@ def build_attachment_preview_payload(
         )
         if textual:
             return textual
-        return AttachmentPreviewPayload(
-            data=data,
-            mimetype=original_mime,
-            download_name=original_name,
-        )
+        if _browser_mostra(original_mime):
+            return AttachmentPreviewPayload(
+                data=data,
+                mimetype=original_mime,
+                download_name=original_name,
+            )
+        if data[:5] == b"%PDF-":
+            # Nome o MIME sconosciuti ma contenuto PDF: si mostra il PDF.
+            return AttachmentPreviewPayload(
+                data=data, mimetype="application/pdf", download_name=original_name
+            )
+        if _archive_depth == 0 and e_busta(data):
+            # Busta di firma con nome o MIME generici: si apre come le altre.
+            return build_attachment_preview_payload(
+                nome_file=f"{original_name}.p7m", data=data, mime_salvato="application/pkcs7-mime"
+            )
+        return _formato_non_visualizzabile(original_name, data, original_mime)
 
     signed = inspect_signed_document_bytes(
         source_name=original_name,

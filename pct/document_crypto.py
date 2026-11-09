@@ -9,6 +9,15 @@ import os
 ENC_MAGIC = b"PCTENC\x01"
 
 
+class ChiaveDocumentiMancante(ValueError):
+    """Documento cifrato a riposo (``PCTENC``) ma ``PCT_DOC_KEY`` non impostata."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Documento cifrato: chiave dei documenti dello studio non configurata (PCT_DOC_KEY)."
+        )
+
+
 def doc_key() -> bytes | None:
     """Restituisce la chiave AES-256 derivata dalla configurazione del tenant."""
     raw = os.getenv("PCT_DOC_KEY", "")
@@ -35,7 +44,7 @@ def decrypt_doc(data: bytes) -> bytes:
         return data
     key = doc_key()
     if not key:
-        raise ValueError("Documento cifrato ma PCT_DOC_KEY non configurata nel server.")
+        raise ChiaveDocumentiMancante()
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
     payload = data[len(ENC_MAGIC) :]

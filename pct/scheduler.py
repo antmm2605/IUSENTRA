@@ -2571,60 +2571,17 @@ def start_scheduler(app):
 
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
     # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO -> ACCETTATO_PEC -> CONSEGNATO)
-    # interrogando PEC IMAP e PDP REST senza bloccare il thread principale.
+    # per OGNI studio, con fascicoli, casella e archivio PEC dello studio
+    # (web/services/polling_depositi_runtime.py, difetto 27 del 09/11/2026).
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/15"), id="polling_esiti_deposito")
     def _polling_esiti_deposito():
         with app.app_context():
             try:
-                from pct.config_studio import GestioneConfigStudio
-                from pct.fascicoli import GestioneFascicoli
-                from pct.polling_depositi import esegui_polling
+                from web.services.polling_depositi_runtime import run_polling_esiti_deposito
 
-                fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
-                if not os.path.exists(fascicoli_db):
-                    return
-
-                gf = GestioneFascicoli(
-                    db_path=fascicoli_db,
-                    documents_dir=app.config.get("FASCICOLI_DOCS", "./fascicoli/documenti"),
-                    archive_dir=app.config.get("FASCICOLI_ARCH", "./fascicoli/archivio"),
-                )
-
-                # Recupera configurazione PEC studio
-                config_pec = None
-                try:
-                    config_studio_db = (
-                        app.config.get("STUDIO_CONFIG")
-                        or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json")
-                    )
-                    cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
-                    config_pec = getattr(cfg_studio.config, "pec", None)
-                    if config_pec and (
-                        not getattr(config_pec, "imap_host", "")
-                        or not getattr(config_pec, "indirizzo", "")
-                    ):
-                        config_pec = None  # IMAP non configurato
-                except Exception as e:
-                    logger.debug("[scheduler] Config PEC non disponibile: %s", e)
-
-                # Credenziali PDP (penale) se presenti
-                credenziali_pdp = None
-                try:
-                    p12 = app.config.get("PDP_P12_PATH", os.getenv("PDP_P12_PATH", ""))
-                    p12_pwd = app.config.get("PDP_P12_PASSWORD", os.getenv("PDP_P12_PASSWORD", ""))
-                    if p12 and os.path.exists(p12):
-                        credenziali_pdp = {"p12_path": p12, "p12_password": p12_pwd}
-                except Exception:
-                    pass
-
-                from pct.ricevute_deposito_archivio import percorso_archivio_pec
-
-                report = esegui_polling(
-                    gf=gf,
-                    config_pec=config_pec,
-                    credenziali_pdp=credenziali_pdp,
-                    archivio_pec=percorso_archivio_pec(app.config),
-                    giorni_indietro=min(
+                return run_polling_esiti_deposito(
+                    app,
+                    giorni=min(
                         _parse_positive_int(
                             app.config.get("IUSENTRA_DEPOSIT_POLL_DAYS")
                             or os.getenv("IUSENTRA_DEPOSIT_POLL_DAYS"),
@@ -2633,13 +2590,9 @@ def start_scheduler(app):
                         7,
                     ),
                 )
-                if report["controllati"]:
-                    logger.info(
-                        "[scheduler] Polling depositi: %d controllati, %d aggiornati, %d errori",
-                        report["controllati"], report["aggiornati"], report["errori"],
-                    )
             except Exception as e:
                 logger.error("[scheduler] Polling esiti deposito fallito: %s", e)
+                return {"ok": False, "job": "polling_esiti_deposito", "error": str(e)}
 
     # ---- Polling PEC -> Comunicazioni di cancelleria (ogni 30 minuti) ----
     # Scansiona la casella PEC alla ricerca di email di cancelleria (ACCETTAZIONE,

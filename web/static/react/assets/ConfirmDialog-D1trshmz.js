@@ -1,0 +1,1 @@
+import"./legalPrimitives-B2-GAkYa.js";

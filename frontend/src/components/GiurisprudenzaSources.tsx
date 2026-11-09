@@ -31,7 +31,7 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
   ]
   function card(source: GiurisprudenzaSource) {
     const publicReady = source.id === 'openga' && inventory?.ok && Number.isInteger(inventory.decisioni)
-    const sharedReady = source.id === 'cassazione' && (source.sharedCorpusCount ?? 0) > 0
+    const sharedReady = (source.sharedCorpusCount ?? 0) > 0 && !isStudio(source)
     const corpusReady = (source.corpusCount ?? 0) > 0 && !isStudio(source)
     const studio = isStudio(source)
     return <article className="iu-legal-source iu-od-source-card" key={source.id}>
@@ -43,7 +43,7 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
         <p>Ricerca in IUSENTRA per estremi, oggetto ed esito. Il catalogo non comprende motivazioni e testi integrali.</p>
       </> : sharedReady ? <>
         <p><strong>{source.sharedCorpusCount!.toLocaleString('it-IT')} decisioni nell’archivio pubblico condiviso</strong></p>
-        <p>Testi scaricati consultabili dalla ricerca Cassazione. La disponibilità del testo è indicata per ogni decisione.</p>
+        <p>{source.id === 'cassazione' ? 'Consulta i testi nella ricerca Cassazione.' : 'Testi consultabili da tutti gli studi abilitati alla ricerca giuridica.'}</p>
         {source.sharedCorpusStatus === 'running' && <p>Acquisizione storica in corso: il conteggio cresce con i dati salvati.</p>}
       </> : corpusReady ? <>
         <p><strong>{source.corpusCount!.toLocaleString('it-IT')} decisioni nel corpus dello studio</strong></p>
@@ -60,8 +60,8 @@ export function GiurisprudenzaSources({ sources }: { sources: GiurisprudenzaSour
         {source.resolutionNote && <p>{source.resolutionNote}</p>}
       </details>
       <footer className="iu-od-action-row iu-legal-source__actions">
-        {sharedReady && <ButtonLink href="#ricerca-cassazione" tone="neutral">Cerca nei testi Cassazione</ButtonLink>}
-        {corpusReady && !sharedReady && <Button type="button" tone="neutral" onClick={()=>window.dispatchEvent(new CustomEvent("iusentra:corpus-source",{detail:source.id}))}>Cerca e leggi i testi</Button>}
+        {sharedReady && source.id === 'cassazione' && <ButtonLink href="#ricerca-cassazione" tone="neutral">Cerca nei testi Cassazione</ButtonLink>}
+        {(corpusReady || sharedReady) && source.id !== 'cassazione' && <Button type="button" tone="neutral" onClick={()=>window.dispatchEvent(new CustomEvent("iusentra:corpus-source",{detail:source.id}))}>Cerca e leggi i testi</Button>}
         {source.id === 'openga' && <ButtonLink href="#ricerca-openga" tone="neutral">Cerca decisioni</ButtonLink>}
         {source.sourceHref && <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri sito della fonte</ButtonLink>}
         {source.legacyHref && <ButtonLink href={source.legacyHref} tone="neutral">Scheda fonte</ButtonLink>}

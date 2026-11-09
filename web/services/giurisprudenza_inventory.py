@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def corpus_inventory(manager):
@@ -26,13 +27,22 @@ def corpus_inventory(manager):
 def attach_corpus_counts(sources, manager, config=None):
     from web.services.sentenzeweb_runtime import inventory as public_inventory
 
+    from web.services.giurisprudenza_public_corpus import PUBLIC_SOURCES, configured_public_corpus
+
     inventory = corpus_inventory(manager)
+    try:
+        public_owner = configured_public_corpus(config or {})
+        public_counts = corpus_inventory(SimpleNamespace(corpus_db_path=public_owner.db_path)) if public_owner else None
+    except (OSError, sqlite3.Error, ValueError):
+        public_counts = None
     try:
         shared = public_inventory(config) if any(source["id"] == "cassazione" for source in sources) else {}
     except (OSError, sqlite3.Error, ValueError):
         shared = {}
     for source in sources:
         source["sharedCorpusCount"] = shared.get("caseCount") if source["id"] == "cassazione" else None
+        if public_counts is not None and source["id"] in PUBLIC_SOURCES:
+            source["sharedCorpusCount"] = public_counts.get(source["id"], {}).get("decisions", 0)
         source["sharedCorpusStatus"] = shared.get("status", "unknown") if source["id"] == "cassazione" else ""
         source["corpusCount"] = None
         source["corpusFullTextCount"] = None

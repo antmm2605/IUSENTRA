@@ -9,6 +9,10 @@ from urllib.parse import urlsplit
 from web.services.sentenzeweb_reader import text_blocks
 
 
+def _decision_date(record):
+    return record.get("data_decisione") or record.get("data_sentenza") or ""
+
+
 def _source_url(value):
     try:
         parsed = urlsplit(str(value or ""))
@@ -19,7 +23,7 @@ def _source_url(value):
     return ""
 
 
-def search(owner, *, source, query="", limit=20):
+def search(owner, *, source, query="", limit=20, prefix="/giurisprudenza/corpus"):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}",source):
         raise ValueError("Seleziona una fonte del catalogo.")
     with owner._connect() as connection:
@@ -45,11 +49,11 @@ def search(owner, *, source, query="", limit=20):
                     languages.setdefault(int(document["sentenza_id"]), set()).add(language)
                 digest=str(document["sha256"] or "")
                 if re.fullmatch(r"[0-9a-f]{64}",digest) and str(document["path_locale"])=="fonti_ufficiali/"+digest+".pdf":
-                    pdfs.setdefault(int(document["sentenza_id"]),f"/giurisprudenza/corpus/{int(document['sentenza_id'])}/documenti/{int(document['id'])}/pdf")
-    return {"ok":True,"source":source,"records":[{"id":int(row["id"]),"title":row.get("titolo") or "Provvedimento archiviato","authority":row.get("organo_giudicante") or "","date":row.get("data_deposito") or "","decisionDate":row.get("data_sentenza") or "","languages":sorted(languages.get(int(row["id"]),set())),"textAvailable":available.get(int(row["id"]),False),"pdfHref":pdfs.get(int(row["id"]),""),"textHref":f"/giurisprudenza/corpus/{int(row['id'])}/testo"} for row in rows]}
+                    pdfs.setdefault(int(document["sentenza_id"]),f"{prefix}/{int(document['sentenza_id'])}/documenti/{int(document['id'])}/pdf")
+    return {"ok":True,"source":source,"records":[{"id":int(row["id"]),"title":row.get("titolo") or "Provvedimento archiviato","authority":row.get("organo_giudicante") or "","date":row.get("data_deposito") or "","decisionDate":_decision_date(row),"languages":sorted(languages.get(int(row["id"]),set())),"textAvailable":available.get(int(row["id"]),False),"pdfHref":pdfs.get(int(row["id"]),""),"textHref":f"{prefix}/{int(row['id'])}/testo"} for row in rows]}
 
 
-def reader_document(owner, record_id):
+def reader_document(owner, record_id, *, prefix="/giurisprudenza/corpus"):
     record=owner.get_sentenza(int(record_id))
     if not record:
         return None
@@ -60,8 +64,8 @@ def reader_document(owner, record_id):
     for document in record.get("documenti",[]):
         if document.get("valido") is False or document.get("valido")==0:
             continue
-        documents.append({"id":int(document["id"]),"language":str(document.get("lingua") or ""),"sha256":str(document.get("sha256") or ""),"official":bool(document.get("ufficiale")),"pdfHref":f"/giurisprudenza/corpus/{int(record_id)}/documenti/{int(document['id'])}/pdf" if str(document.get("path_locale") or "").endswith(".pdf") else ""})
-    return {"title":record.get("titolo") or "Provvedimento archiviato","display_title":record.get("titolo") or "Provvedimento archiviato","authority":record.get("organo_giudicante") or "","section":record.get("sezione") or "","number":record.get("numero_sentenza") or "","year":record.get("anno_sentenza"),"date":record.get("data_deposito") or "","text":text,"blocks":text_blocks(text),"sha256":hashlib.sha256(text.encode()).hexdigest(),"original_sha256":"","status":"content_unreviewed","text_source_url":_source_url(record.get("url_pagina_ufficiale")),"text_source_official":bool(record.get("fonte_ufficiale_confermata")),"source_notice":str(record.get("note_redazionali") or ""),"documents":documents,"legal_approval_claimed":False}
+        documents.append({"id":int(document["id"]),"language":str(document.get("lingua") or ""),"sha256":str(document.get("sha256") or ""),"official":bool(document.get("ufficiale")),"pdfHref":f"{prefix}/{int(record_id)}/documenti/{int(document['id'])}/pdf" if str(document.get("path_locale") or "").endswith(".pdf") else ""})
+    return {"title":record.get("titolo") or "Provvedimento archiviato","display_title":record.get("titolo") or "Provvedimento archiviato","authority":record.get("organo_giudicante") or "","section":record.get("sezione") or "","number":record.get("numero_sentenza") or "","year":record.get("anno_sentenza"),"date":record.get("data_deposito") or _decision_date(record),"date_label":"Deposito" if record.get("data_deposito") else "Decisione","text":text,"blocks":text_blocks(text),"sha256":hashlib.sha256(text.encode()).hexdigest(),"original_sha256":"","status":"content_unreviewed","text_source_url":_source_url(record.get("url_pagina_ufficiale")),"text_source_official":bool(record.get("fonte_ufficiale_confermata")),"source_notice":str(record.get("note_redazionali") or ""),"documents":documents,"legal_approval_claimed":False}
 
 
 def open_pdf(owner, record_id, document_id):

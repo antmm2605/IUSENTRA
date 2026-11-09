@@ -90,6 +90,7 @@ function CampoModulo({
       {campo.type === 'select' ? (
         <select
           id={id}
+          name={campo.name}
           className="iu-input"
           value={valore}
           onChange={(event) => onChange(campo.name, event.target.value)}
@@ -103,6 +104,7 @@ function CampoModulo({
       ) : campo.type === 'textarea' ? (
         <textarea
           id={id}
+          name={campo.name}
           className="iu-input"
           rows={5}
           value={valore}
@@ -111,6 +113,7 @@ function CampoModulo({
       ) : (
         <input
           id={id}
+          name={campo.name}
           className="iu-input"
           type={campo.type === 'date' ? 'date' : campo.type === 'number' ? 'number' : 'text'}
           value={valore}
@@ -336,7 +339,7 @@ function PannelloStrumento({
   datiCalcolo: Record<string, string>
   inCorso: boolean
   onCampo: (name: string, value: string) => void
-  onCalcola: () => void
+  onCalcola: (modulo: FormData) => void
 }) {
   if (strumento.componente === 'impronta-documenti' || strumento.componente === 'confronta-testi') {
     return (
@@ -372,7 +375,7 @@ function PannelloStrumento({
         className="iu-strumenti__form"
         onSubmit={(event) => {
           event.preventDefault()
-          onCalcola()
+          onCalcola(new FormData(event.currentTarget))
         }}
       >
         {strumento.campi.filter((campo) => campoVisibile(campo, strumento.campi, valori)).map((campo) => (
@@ -496,15 +499,24 @@ export default function StrumentiLegaliPage() {
     }
   }, [])
 
-  const calcola = useCallback(async () => {
+  const calcola = useCallback(async (modulo: FormData) => {
     if (!strumento) return
+    // Leggi il valore effettivo dei controlli nativi al momento dell'invio.
+    const dati = { ...valori }
+    for (const campo of strumento.campi) {
+      const value = modulo.get(campo.name)
+      if (typeof value !== 'string' || value === dati[campo.name]) continue
+      dati[campo.name] = value
+      campiModificati.current.add(campo.name)
+    }
+    setValori(dati)
     abort.current?.abort()
     const controller = new AbortController()
     abort.current = controller
     setInCorso(true)
     try {
-      setDatiCalcolo(valori)
-      setEsito(await eseguiCalcolo(strumento.id, valori, controller.signal))
+      setDatiCalcolo(dati)
+      setEsito(await eseguiCalcolo(strumento.id, dati, controller.signal))
     } finally {
       setInCorso(false)
     }
@@ -603,7 +615,7 @@ export default function StrumentiLegaliPage() {
                   datiCalcolo={datiCalcolo}
                   inCorso={inCorso}
                   onCampo={cambiaCampo}
-                  onCalcola={() => void calcola()}
+                  onCalcola={(modulo) => void calcola(modulo)}
                 />
               ) : null}
             </div>

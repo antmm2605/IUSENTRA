@@ -93,6 +93,12 @@ la norma citata mostrava l'articolo intero.
   (al massimo 180 giorni), con gli stessi controlli delle PEC lette via IMAP. Prova sui dati reali in sola lettura:
   le 8 RdAC conservate dei depositi del 12/10 si ritrovano per Message-ID; 0,4 s con gli indici del presidio.
 
+## Archivio delle sentenze (lavoro di acquisizione delle fonti, 08-09/11)
+
+- La lettura delle pagine PDF è serializzata e libera ogni immagine dopo l'uso: più pagine lette insieme non bloccano più il lettore.
+- Ogni provvedimento mostra la data di decisione quando manca quella di deposito, con l'etichetta giusta («Deposito» o «Decisione»).
+- Corpus pubblico dei soli provvedimenti ufficiali (Corte costituzionale, giustizia tributaria, Corte di giustizia UE, CEDU, Corte dei conti), in sola lettura da `IUSENTRA_CORPUS_PUBBLICO_DIRECTORY` (`web/services/giurisprudenza_public_corpus.py`), con la richiesta di ricerca separata in `frontend/src/corpusSearchRequest.ts`.
+
 ## Lex, ricerca e guide
 - Guardia anti-invenzione con «Cass. 22222/2023» e Sezioni Unite; decreti ministeriali aperti per estremi.
 - Percorso dopo la sentenza per giurisdizione e grado (civile, lavoro, TAR, tributario, penale); fase «Processo

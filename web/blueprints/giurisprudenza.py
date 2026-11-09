@@ -208,12 +208,29 @@ def _native_corpus_owner():
     return get_giurisprudenza_corpus_readonly()
 
 
-@giurisprudenza.get("/corpus/api")
+def _public_corpus_owner():
+    from web.services.giurisprudenza_public_corpus import require_public_corpus
+    return require_public_corpus(current_app.config)
+
+
+def _scoped_corpus_owner(public):
+    if not public:
+        return _native_corpus_owner()
+    return _public_corpus_owner()
+
+
+@giurisprudenza.get("/corpus/pubblico/api", defaults={"public": True})
+@giurisprudenza.get("/corpus/api", defaults={"public": False})
 @_richiedi_corpus_lettura
-def native_corpus_search():
+def native_corpus_search(public=False):
     from web.services.giurisprudenza_native_runtime import search
+    from web.services.giurisprudenza_public_corpus import PUBLIC_CORPUS_PREFIX, PUBLIC_SOURCES
     try:
-        response=jsonify(search(_native_corpus_owner(),source=request.args.get("fonte",""),query=request.args.get("q","")))
+        source = request.args.get("fonte", "")
+        if public and source not in PUBLIC_SOURCES:
+            raise ValueError("Fonte pubblica non ammessa.")
+        prefix = PUBLIC_CORPUS_PREFIX if public else "/giurisprudenza/corpus"
+        response=jsonify(search(_scoped_corpus_owner(public), source=source, query=request.args.get("q",""), prefix=prefix))
     except ValueError:
         response=jsonify({"ok":False,"message":"Fonte o ricerca non valida.","records":[]});response.status_code=400
     except (OSError,sqlite3.Error):
@@ -222,14 +239,19 @@ def native_corpus_search():
     return response
 
 
-@giurisprudenza.get("/corpus/<int:record_id>/testo")
+@giurisprudenza.get("/corpus/pubblico/<int:record_id>/testo", defaults={"public": True})
+@giurisprudenza.get("/corpus/<int:record_id>/testo", defaults={"public": False})
 @_richiedi_corpus_lettura
-def native_corpus_text(record_id):
+def native_corpus_text(record_id, public=False):
     from web.services.giurisprudenza_native_runtime import reader_document
+    from web.services.giurisprudenza_public_corpus import PUBLIC_CORPUS_PREFIX
     if request.args.get("embed")!="source":
-        return redirect(url_for("giurisprudenza.index",corpus_documento=record_id))
+        params = {"corpus_documento": record_id}
+        if public:
+            params["corpus_ambito"] = "pubblico"
+        return redirect(url_for("giurisprudenza.index", **params))
     try:
-        document=reader_document(_native_corpus_owner(),record_id)
+        document=reader_document(_scoped_corpus_owner(public), record_id, prefix=PUBLIC_CORPUS_PREFIX if public else "/giurisprudenza/corpus")
         if not document:return Response("Testo non disponibile nell'archivio dello studio.",status=404)
         response=Response(document["text"],mimetype="text/plain") if request.args.get("format")=="txt" else Response(render_template("giurisprudenza/corpus_lettore.html",documento=document),mimetype="text/html")
     except (ValueError,OSError,sqlite3.Error):
@@ -238,25 +260,26 @@ def native_corpus_text(record_id):
     return response
 
 
-@giurisprudenza.get("/corpus/<int:record_id>/documenti/<int:document_id>/pdf")
+@giurisprudenza.get("/corpus/pubblico/<int:record_id>/documenti/<int:document_id>/pdf", defaults={"public": True})
+@giurisprudenza.get("/corpus/<int:record_id>/documenti/<int:document_id>/pdf", defaults={"public": False})
 @_richiedi_corpus_lettura
-def native_corpus_pdf(record_id,document_id):
+def native_corpus_pdf(record_id,document_id,public=False):
     import os
     from flask import send_file
     from web.services.giurisprudenza_native_runtime import open_pdf
     stream=None
     try:
-        stream=open_pdf(_native_corpus_owner(),record_id,document_id)
+        stream=open_pdf(_scoped_corpus_owner(public),record_id,document_id)
         if stream is None:return Response("Documento non disponibile nell'archivio dello studio.",status=404)
         if request.args.get("viewer") == "mobile":
             from pct.rendering_pdf import dimensioni_pagine
             from web.bootstrap.fascicoli_document_helpers import pdf_mobile_preview_html
             dimensions = dimensioni_pagine(stream)
             pages = [url_for("giurisprudenza.native_corpus_pdf_page", record_id=record_id,
-                             document_id=document_id, page_number=page.numero) for page in dimensions]
+                             document_id=document_id, page_number=page.numero, public=public) for page in dimensions]
             html, status, headers = pdf_mobile_preview_html(nome_documento="Provvedimento conservato",
                 page_urls=pages, scarica_url=url_for("giurisprudenza.native_corpus_pdf",
-                record_id=record_id, document_id=document_id), page_dimensions=dimensions)
+                record_id=record_id, document_id=document_id, public=public), page_dimensions=dimensions)
             headers.update({"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
                 "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'self'; form-action 'none'"})
             return html, status, headers
@@ -275,14 +298,15 @@ def native_corpus_pdf(record_id,document_id):
     return response
 
 
-@giurisprudenza.get("/corpus/<int:record_id>/documenti/<int:document_id>/pagine/<int:page_number>.png")
+@giurisprudenza.get("/corpus/pubblico/<int:record_id>/documenti/<int:document_id>/pagine/<int:page_number>.png", defaults={"public": True})
+@giurisprudenza.get("/corpus/<int:record_id>/documenti/<int:document_id>/pagine/<int:page_number>.png", defaults={"public": False})
 @_richiedi_corpus_lettura
-def native_corpus_pdf_page(record_id, document_id, page_number):
+def native_corpus_pdf_page(record_id, document_id, page_number, public=False):
     from pct.rendering_pdf import RenderingPdfError, pagina_png
     from web.services.giurisprudenza_native_runtime import open_pdf
     stream = None
     try:
-        stream = open_pdf(_native_corpus_owner(), record_id, document_id)
+        stream = open_pdf(_scoped_corpus_owner(public), record_id, document_id)
         if stream is None:
             return Response("Documento non disponibile nell'archivio dello studio.", status=404)
         try:

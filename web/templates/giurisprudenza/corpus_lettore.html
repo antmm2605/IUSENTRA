@@ -11,7 +11,7 @@
   <header class="reader-header">
     <p class="eyebrow">IUSENTRA · Lettura del provvedimento</p>
     <h1>{{ documento.title }}</h1>
-    <p>{{ documento.authority }}{% if documento.section %} · Sezione {{ documento.section }}{% endif %} · Deposito {{ documento.date|data_it }}</p>
+    <p>{{ documento.authority }}{% if documento.section %} · Sezione {{ documento.section }}{% endif %}{% if documento.date %} · {{ documento.date_label }} {{ documento.date|data_it }}{% endif %}</p>
     <p class="source-label">{% if documento.text_source_official == false %}Trascrizione da fonte non ufficiale{% elif documento.text_source_official == true %}Testo archiviato dalla fonte ufficiale{% else %}Testo archiviato · provenienza da verificare{% endif %}</p>
     {% if documento.text_source_url %}<p>Fonte della versione conservata: <code>{{ documento.text_source_url }}</code></p>{% endif %}
     {% if documento.status == 'source_notice' %}<p role="status">La fonte contiene un avviso di oscuramento, non il testo della decisione.</p>{% endif %}

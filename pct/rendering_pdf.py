@@ -15,6 +15,18 @@ Il rendering e' puro: legge e disegna, non modifica mai il documento.
 from __future__ import annotations
 
 import io
+from functools import wraps
+from threading import RLock
+
+_PDFIUM_LOCK = RLock()
+
+def _serialized_pdfium(function):
+    @wraps(function)
+    def guarded(*args, **kwargs):
+        with _PDFIUM_LOCK:
+            return function(*args, **kwargs)
+    return guarded
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -72,12 +84,20 @@ def _scala_ammessa(valore: float | None, predefinita: float) -> float:
 
 
 def _png_da_pagina(pagina: Any, scala: float) -> bytes:
-    immagine = pagina.render(scale=scala).to_pil()
-    buffer = io.BytesIO()
-    immagine.save(buffer, format="PNG", compress_level=1)
-    return buffer.getvalue()
+    bitmap = pagina.render(scale=scala)
+    immagine = None
+    try:
+        immagine = bitmap.to_pil()
+        buffer = io.BytesIO()
+        immagine.save(buffer, format="PNG", compress_level=1)
+        return buffer.getvalue()
+    finally:
+        if immagine is not None:
+            immagine.close()
+        bitmap.close()
 
 
+@_serialized_pdfium
 def dimensioni_pagine(origine: bytes | str | Path) -> list[DimensioniPagina]:
     """Numero, larghezza e altezza di ogni pagina, in punti."""
     documento = apri_documento(origine)
@@ -94,6 +114,7 @@ def dimensioni_pagine(origine: bytes | str | Path) -> list[DimensioniPagina]:
         documento.close()
 
 
+@_serialized_pdfium
 def pagina_png(
     origine: bytes | str | Path,
     *,
@@ -111,6 +132,7 @@ def pagina_png(
         documento.close()
 
 
+@_serialized_pdfium
 def pagine_png(origine: bytes | str | Path, *, dpi: int = 130) -> list[dict[str, Any]]:
     """Tutte le pagine come PNG, con le dimensioni in punti.
 

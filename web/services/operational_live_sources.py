@@ -73,6 +73,10 @@ def legal_source_file_revision() -> list:
     shared = current_app.config.get("IUSENTRA_SENTENZEWEB_DIRECTORY") or os.getenv("IUSENTRA_SENTENZEWEB_DIRECTORY")
     if shared:
         paths.append(Path(shared) / "giurisprudenza_corpus.db")
+    from web.services.giurisprudenza_public_corpus import PUBLIC_DATABASE_NAME
+    public_directory = current_app.config.get("IUSENTRA_CORPUS_PUBBLICO_DIRECTORY") or os.getenv("IUSENTRA_CORPUS_PUBBLICO_DIRECTORY")
+    if public_directory:
+        paths.append(Path(public_directory) / PUBLIC_DATABASE_NAME)
     result = []
     from lex.retrieval.normativa_catalog import wal_revision
 

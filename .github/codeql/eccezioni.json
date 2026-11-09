@@ -10,7 +10,7 @@
     {
       "id": "py/clear-text-storage-sensitive-data",
       "file": "pct/cache.py",
-      "motivo": "Falso positivo (decisione dell'avvocato del 09/11/2026): write_json_atomic scrive il JSON solo dopo _assert_serialized_json_has_no_clear_text_sensitive_keys, che rifiuta con ValueError ogni chiave sensibile in chiaro (password, token, segreti); i dati sensibili della cache passano da AES-GCM (_encode_cache_payload). La riga è già marcata codeql[py/clear-text-storage-sensitive-data] nel codice. Presidio alternativo: il controllo delle chiavi sensibili prima di ogni scrittura."
+      "motivo": "Decisione dell'avvocato del 09/11/2026, motivo corretto lo stesso giorno. CodeQL segnala il flusso di dati «private» verso la scrittura del file JSON (save). Prima di scrivere, _assert_serialized_json_has_no_clear_text_sensitive_keys rifiuta con ValueError le chiavi di chiave privata (private, privateKey, private_key, privateKeyPem, keyPemPlain, vapidPrivateKey e varianti): sono quelle del flusso segnalato. NON copre password e token, e il file resta in chiaro su disco (AES-GCM vale solo per la copia in memoria della cache): password e segreti degli studi non passano da qui ma dalla cifratura ENC: con PCT_SECRET_KEY della configurazione. Presidio alternativo: il controllo delle chiavi private prima di ogni scrittura e la riga marcata codeql nel codice."
     }
   ]
 }

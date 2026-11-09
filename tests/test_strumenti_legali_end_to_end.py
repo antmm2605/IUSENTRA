@@ -128,11 +128,16 @@ def test_il_catalogo_react_espone_tutti_gli_strumenti(tmp_path, catalogo):
     assert "Utility" in payload["categorie"]
 
 
+@pytest.fixture(scope="module")
+def client_pagina(tmp_path_factory):
+    # Un'applicazione sola per i 73 calcoli: avviarla costa 10-15 s e il calcolo non lascia stato.
+    return _client(tmp_path_factory.mktemp("strumenti"))
+
+
 @pytest.mark.parametrize("tool", sorted(PAYLOAD_STRUMENTI))
-def test_lo_strumento_calcola_dall_endpoint_della_pagina(tmp_path, tool):
+def test_lo_strumento_calcola_dall_endpoint_della_pagina(client_pagina, tool):
     """Aperta la pagina e premuto «Calcola», lo strumento risponde con un risultato."""
-    client = _client(tmp_path)
-    risposta = client.post(
+    risposta = client_pagina.post(
         "/api/v1/ui/strumenti-legali/calcola",
         json={"tool": tool, "dati": PAYLOAD_STRUMENTI[tool]},
     )

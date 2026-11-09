@@ -161,7 +161,10 @@ class SourceRouter:
             return [TemplateAttiSource(), ComplianceSource()]
 
         solo_giuridiche = workflow in _WORKFLOW_GIURIDICI and not request.fascicolo_id
-        local_sources = [] if solo_giuridiche else [StudioDatabaseSource(), GuidaPraticaSource()]
+        # Domanda giuridica senza fascicolo: niente dati dello studio, ma la guida pratica sì. È conoscenza
+        # verificata (rito, competenza, termini, allegati con le norme vigenti), non un dato dello studio, e la
+        # sorgente cerca solo quando la domanda nomina un istituto (_should_search_text).
+        local_sources = [GuidaPraticaSource()] if solo_giuridiche else [StudioDatabaseSource(), GuidaPraticaSource()]
         if _domanda_senza_segnali(request, workflow):
             # «Scrivi tre frasi sull'organizzazione della giornata»: nessun dato dello studio e
             # nessun istituto giuridico. La Ricerca Studio restituiva documenti qualsiasi

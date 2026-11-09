@@ -171,3 +171,14 @@ def test_provider_risponde_in_modo_conversazionale_sulla_guida_pratica():
     assert "supporto operativo per l'avvocato" in draft.text
     assert "non blocca il lavoro sul fascicolo" in draft.text
     assert "codice risulta presente nel catalogo PST/XSD ufficiale" in draft.text
+
+
+def test_domanda_giuridica_senza_fascicolo_usa_la_guida_ma_non_i_dati_dello_studio():
+    """09/11/2026: le guide pratiche entrano anche nelle domande di normativa senza fascicolo."""
+    from types import SimpleNamespace
+
+    from lex.retrieval.source_router import SourceRouter
+
+    richiesta = SimpleNamespace(query="Come si redige il precetto contro il Ministero?", fascicolo_id=None, metadata={}, mode="chat")
+    fonti = [s.__class__.__name__ for s in SourceRouter().resolve(richiesta, {}, "normativa")]
+    assert "GuidaPraticaSource" in fonti and "StudioDatabaseSource" not in fonti

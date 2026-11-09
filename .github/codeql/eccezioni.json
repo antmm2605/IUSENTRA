@@ -6,6 +6,11 @@
       "id": "py/url-redirection",
       "file": "web/bootstrap/soggetti_routes.py",
       "motivo": "Falso positivo: ogni redirect di questo modulo passa da _safe_internal_next_url, che delega a web.services.app_v2_routing.is_safe_internal_path. Quel controllo rifiuta schema, netloc, percorsi protocol-relative (//), backslash, caratteri di controllo, frammenti e segmenti '..', quindi la destinazione resta sempre un percorso interno. CodeQL non riconosce il sanificatore perche' e' importato dentro la funzione e applicato tramite un ritorno condizionato. Il comportamento e' coperto dai test su is_safe_internal_path."
+    },
+    {
+      "id": "py/clear-text-storage-sensitive-data",
+      "file": "pct/cache.py",
+      "motivo": "Falso positivo (decisione dell'avvocato del 09/11/2026): write_json_atomic scrive il JSON solo dopo _assert_serialized_json_has_no_clear_text_sensitive_keys, che rifiuta con ValueError ogni chiave sensibile in chiaro (password, token, segreti); i dati sensibili della cache passano da AES-GCM (_encode_cache_payload). La riga è già marcata codeql[py/clear-text-storage-sensitive-data] nel codice. Presidio alternativo: il controllo delle chiavi sensibili prima di ogni scrittura."
     }
   ]
 }

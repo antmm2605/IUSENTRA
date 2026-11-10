@@ -152,7 +152,7 @@
     <div>
       <div class="fw-semibold" style="font-size:.88rem;">Consenso firmato</div>
       <div class="text-muted" style="font-size:.75rem;">
-        Il {{ p.data_firma_privacy[:10] if p.data_firma_privacy else '—' }}
+        Il {{ p.data_firma_privacy|fmt_data if p.data_firma_privacy else '—' }}
       </div>
     </div>
     {% elif p.permessi.firma_privacy %}

@@ -45,7 +45,7 @@
         {% endif %}
         <div class="d-flex justify-content-between">
           <span class="text-muted">Data</span>
-          <span>{{ lp.data_pagamento[:10] if lp.data_pagamento else '' }}</span>
+          <span>{{ lp.data_pagamento|fmt_data if lp.data_pagamento else '' }}</span>
         </div>
       </div>
       <div class="alert alert-success py-2">

@@ -191,11 +191,11 @@
             </tr>
             <tr>
               <td class="text-muted">Avviato</td>
-              <td>{{ sessione.creato_il[:10] if sessione.creato_il else '—' }}</td>
+              <td>{{ sessione.creato_il|fmt_data if sessione.creato_il else '—' }}</td>
             </tr>
             <tr>
               <td class="text-muted">Completato</td>
-              <td>{{ sessione.completato_il[:10] if sessione.completato_il else '—' }}</td>
+              <td>{{ sessione.completato_il|fmt_data if sessione.completato_il else '—' }}</td>
             </tr>
             <tr>
               <td class="text-muted">Step confermati</td>

@@ -30,8 +30,8 @@
       <div class="flex-grow-1">
         <div class="fw-semibold">Portale attivo</div>
         <div class="text-muted" style="font-size:.78rem;">
-          Creato il {{ portale_obj.creato_il[:10] }}
-          {% if portale_obj.scade_il %} · Scade il {{ portale_obj.scade_il[:10] }}{% else %} · Nessuna scadenza{% endif %}
+          Creato il {{ portale_obj.creato_il|fmt_data }}
+          {% if portale_obj.scade_il %} · Scade il {{ portale_obj.scade_il|fmt_data }}{% else %} · Nessuna scadenza{% endif %}
           · {{ portale_obj.n_accessi }} accessi
         </div>
       </div>

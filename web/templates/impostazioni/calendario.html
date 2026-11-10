@@ -297,7 +297,7 @@
               <div class="small font-monospace text-break">{{ profilo.source_url }}</div>
             </td>
             <td>
-              <div class="small">{{ profilo.last_sync_at[:16]|replace('T', ' ') if profilo.last_sync_at else 'Mai' }}</div>
+              <div class="small">{{ profilo.last_sync_at|fmt_dataora if profilo.last_sync_at else 'Mai' }}</div>
               <div class="text-muted small">
                 C {{ profilo.last_created or 0 }} · A {{ profilo.last_updated or 0 }} · S {{ profilo.last_skipped or 0 }}
               </div>
@@ -366,7 +366,7 @@
           <i class="bi bi-clock me-1"></i>
           Token generato il:
           {% if token_creato %}
-            {{ token_creato[:10] }}
+            {{ token_creato|fmt_data }}
           {% else %}
             —
           {% endif %}

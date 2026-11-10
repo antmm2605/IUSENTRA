@@ -316,7 +316,7 @@
                 {{ fasc.numero }}
               </a>
             </td>
-            <td class="text-nowrap">{{ doc.data_caricamento[:10]|fmt_data }}</td>
+            <td class="text-nowrap">{{ doc.data_caricamento|fmt_data }}</td>
             <td>
               {% if doc.firmato_digitalmente %}
               <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
@@ -412,7 +412,7 @@
         <tbody>
           {% for fasc, dep in tutti_depositi %}
           <tr>
-            <td class="text-nowrap">{{ dep.timestamp[:10]|fmt_data }}</td>
+            <td class="text-nowrap">{{ dep.timestamp|fmt_data }}</td>
             <td>{{ dep.tipo_atto }}</td>
             <td>
               <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none">
@@ -476,7 +476,7 @@
         <tbody>
           {% for e in audit_trail %}
           <tr>
-            <td class="text-nowrap text-muted">{{ e.timestamp[:16].replace('T',' ') }}</td>
+            <td class="text-nowrap text-muted">{{ e.timestamp|fmt_dataora }}</td>
             <td>{{ e.username or '—' }}</td>
             <td>
               <span class="badge bg-light text-dark border">{{ e.azione }}</span>

@@ -365,8 +365,8 @@
       <tr>
         <td class="font-monospace" style="font-size:.75rem;">{{ lp.id_parcella[:8] }}...</td>
         <td class="fw-semibold">{{ lp.importo|euro }}</td>
-        <td class="text-muted">{{ lp.creato_il[:10] }}</td>
-        <td class="text-muted">{{ lp.scade_il[:10] if lp.scade_il else '—' }}</td>
+        <td class="text-muted">{{ lp.creato_il|fmt_data }}</td>
+        <td class="text-muted">{{ lp.scade_il|fmt_data if lp.scade_il else '—' }}</td>
         <td>
           <span class="badge
             {% if lp.stato == 'PAGATO' %}bg-success

@@ -188,7 +188,7 @@
           <dd class="col-sm-9">
             {% if c.firma_cliente_eseguita %}
             <span class="badge bg-success">Registrata</span>
-            <span class="text-muted small ms-2">{{ c.firma_cliente_il[:10] if c.firma_cliente_il else '' }}</span>
+            <span class="text-muted small ms-2">{{ c.firma_cliente_il|fmt_data if c.firma_cliente_il else '' }}</span>
             {% else %}
             <span class="badge bg-warning text-dark">Da raccogliere</span>
             {% endif %}

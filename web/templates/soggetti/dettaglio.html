@@ -295,11 +295,11 @@
         <code class="small">{{ soggetto.id }}</code>
         {% if soggetto.creato_il %}
         <div class="text-muted mt-2 mb-1">Creato il</div>
-        <div>{{ soggetto.creato_il[:10] | replace('-', '/') }}</div>
+        <div>{{ soggetto.creato_il|fmt_data }}</div>
         {% endif %}
         {% if soggetto.modificato_il %}
         <div class="text-muted mt-2 mb-1">Ultima modifica</div>
-        <div>{{ soggetto.modificato_il[:10] | replace('-', '/') }}</div>
+        <div>{{ soggetto.modificato_il|fmt_data }}</div>
         {% endif %}
       </div>
     </div>

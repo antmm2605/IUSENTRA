@@ -49,7 +49,7 @@
         {% if lp.scadenza %}
           <div class="info-item">
             <span class="text-muted">Scadenza link</span>
-            <span class="fw-500">{{ lp.scadenza[:10] }}</span>
+            <span class="fw-500">{{ lp.scadenza|fmt_data }}</span>
           </div>
         {% endif %}
       </div>

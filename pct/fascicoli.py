@@ -16,6 +16,7 @@ import hashlib
 import re
 import shutil
 from pct.fascicoli_osservatori import documenti_cambiati
+from pct.avanzamento_storico import transizione_gia_registrata
 from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -2188,12 +2189,14 @@ class GestioneFascicoli:
         if "stato" in campi and "avanzamento" not in campi and f.stato != stato_prima:
             # Nessun cambio di stato senza traccia: anche quello scritto con i dati del fascicolo.
             f.stato = f.stato if isinstance(f.stato, StatoFascicolo) else StatoFascicolo(str(f.stato))
-            f.avanzamento.append(AvanzamentoPratica(
-                data=datetime.now().isoformat(),
-                descrizione=f"Stato cambiato da {stato_prima.value} a {f.stato.value}",
-                stato_precedente=stato_prima.value, stato_nuovo=f.stato.value,
-                note=str(campi.get("nota_stato") or "Aggiornamento dei dati del fascicolo"),
-            ))
+            nota_stato = str(campi.get("nota_stato") or "Aggiornamento dei dati del fascicolo")
+            if not transizione_gia_registrata(f.avanzamento, stato_prima.value, f.stato.value, nota_stato):
+                f.avanzamento.append(AvanzamentoPratica(
+                    data=datetime.now().isoformat(),
+                    descrizione=f"Stato cambiato da {stato_prima.value} a {f.stato.value}",
+                    stato_precedente=stato_prima.value, stato_nuovo=f.stato.value,
+                    note=nota_stato,
+                ))
             if f.stato in (StatoFascicolo.DEFINITO, StatoFascicolo.ARCHIVIATO) and not f.data_chiusura:
                 f.data_chiusura = date.today().isoformat()
         if tocchi_profilo and "profilo_deposito" not in campi:
@@ -2297,6 +2300,13 @@ class GestioneFascicoli:
             if not f.data_chiusura:
                 f.data_chiusura = date.today().isoformat()
 
+        if transizione_gia_registrata(f.avanzamento, stato_prev, nuovo_stato.value, note):
+            # Stessa transizione con la stessa fonte già in testa allo storico: lo stato si
+            # riallinea, ma il fatto non si registra una seconda volta.
+            f.modificato_il = datetime.now().isoformat()
+            if persist:
+                self._salva_fascicoli_parziale([f])
+            return f
         av = AvanzamentoPratica(
             data=datetime.now().isoformat(),
             descrizione=f"Stato cambiato da {stato_prev} a {nuovo_stato.value}",

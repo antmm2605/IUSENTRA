@@ -52,13 +52,16 @@ def test_ui_react_espone_presidio_fascicolo_e_payload_reale():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     data = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
     assert "RegiaOperativaSection" in source
-    assert "Presidio del fascicolo" in source
+    assert "Presidio del deposito" in source
     assert "Deposito non disponibile" not in source
     assert "RegiaActionCard" in source
     assert "preventivoHref" in source
     assert "conferimentoHref" in source
-    assert "proformaHref" in source
-    assert "paymentHref" in source
+    # Parcella e pagamento si leggono solo nel Conto economico (riorganizzazione del 10/11/2026):
+    # il presidio economico non li ripete con un secondo stato.
+    economico = source[source.index("function PresidioEconomicoSection"):source.index("function ControlliFascicoloSection")]
+    assert "proformaHref" not in economico and "paymentHref" not in economico
+    assert 'label="Avviso / parcella"' not in source and 'label="Pagamento"' not in source
     assert "Contesto economico" in source
     assert "Evidence pack" in source
     assert "mock_fallback: false" in data
@@ -83,11 +86,11 @@ def test_presidio_non_dichiara_assenza_audit_prima_del_caricamento_reale():
     regia = source[source.index("function RegiaOperativaSection"):source.index("function fLabel")]
     audit = source[source.index("function AuditTrailSection"):source.index("function DetailPage")]
 
-    assert "auditStatus?:LazySectionStatus" in regia
-    assert "Apri Audit per calcolare il conteggio dal registro operativo e probatorio." in regia
-    assert "auditStatus === 'loaded'" in regia
+    # Il presidio non ripete più l'audit con un proprio conteggio: l'audit sta solo nel Registro,
+    # il cui riepilogo usa lo stesso stato di caricamento del pannello (riorganizzazione del 10/11/2026).
+    assert "auditStatus" not in regia and "Audit del fascicolo" not in regia
     assert "Registro audit non ancora caricato" in source
-    assert "auditStatus={lazyStatus.audit}" in source
+    assert "avviso={`${auditNavigation.label} · eventi tecnici, conservazione, gestione e controlli`}" in source
     assert "loadState={lazyStatus.audit}" in source
     assert "count={loadState === 'loaded' ? audit.summary.total : undefined}" in audit
     assert "finché il caricamento non termina, il fascicolo non dichiara l’assenza di evidenze" in audit
@@ -992,7 +995,10 @@ def test_presidio_traduce_stati_tecnici_e_ordina_i_controlli_economici():
     assert "WF_SIGP_GDP:" in source
     assert "DA_COMPLETARE: 'Da completare'" in source
     assert "{regiaChecklistStatusLabel(itemStatus)}" in source
-    assert "{regiaOperationalStateLabel(h.operationalState)}" in source
+    # Il presidio dichiara lo stato del deposito, non uno stato della pratica in concorrenza con la testata.
+    assert ": regiaOperationalStateLabel(h.operationalState)" in source
+    assert "? 'Nessun deposito da preparare'" in source
+    assert "<Badge tone={statusTone}>{depositStateLabel}</Badge>" in source
     assert "regiaWorkflowLabel(h.workflow)" in source
     assert 'label="Provvedimenti economici"' in source
     assert ".iu-fas-regia-action-list{display:grid" in css
@@ -1002,7 +1008,9 @@ def test_presidio_traduce_stati_tecnici_e_ordina_i_controlli_economici():
 
 def test_presidio_prioritario_mostra_azione_e_fonte_e_si_apre_dal_collegamento_diretto():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
-    regia = source[source.index("function RegiaOperativaSection"):source.index("function relataStatusDisplayLabel")]
+    regia = source[source.index("function RegiaOperativaSection"):source.index("function PresidioEconomicoSection")]
+    economico = source[source.index("function PresidioEconomicoSection"):source.index("function ControlliFascicoloSection")]
+    controlli = source[source.index("function ControlliFascicoloSection"):source.index("function relataStatusDisplayLabel")]
 
     assert "defaultOpen?:boolean" in regia
     # La regia esce da piu' strade — caricamento, profilo da confermare, presidio
@@ -1013,16 +1021,19 @@ def test_presidio_prioritario_mostra_azione_e_fonte_e_si_apre_dal_collegamento_d
     uscite_presidio = regia.count('<DetailSection id="presidio-fascicolo"')
     assert uscite_presidio >= 2
     assert regia.count("defaultOpen={defaultOpen}") == uscite_presidio
-    assert "const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)" in regia
-    assert "operationalNext.title" in regia
-    assert "Fonte: ${operationalSource}" in regia
-    assert "note={operationalCardNote}" in regia
-    assert "note={operationalNext?.reason" not in regia
-    assert "const contributoSource = visibleDocumentSource(contributoUnificato.documentoFonte)" in regia
-    assert "const contributoNote = contributoSource" in regia
-    assert "note={contributoNote}" in regia
-    assert "note={contributoUnificato.note" not in regia
+    # La card dei presìdi operativi sta ora nei controlli del Registro, con la stessa azione e la stessa fonte.
+    assert "const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)" in controlli
+    assert "operationalNext.title" in controlli
+    assert "Fonte: ${operationalSource}" in controlli
+    assert "note={operationalCardNote}" in controlli
+    assert "note={operationalNext?.reason" not in controlli
+    # Il contributo unificato si legge solo nel Conto economico: né il presidio del deposito né quello
+    # economico lo ripetono con un proprio stato.
+    assert "contributoUnificato" not in regia and "contributoUnificato" not in economico
+    assert 'label="Contributo unificato"' not in source
     assert "defaultOpen={activeHashSection === 'presidio-fascicolo' || activeHashSection === 'cabina-regia' || activeHashSection === 'regia-operativa'}" in source
+    # #presidio-fascicolo apre la sezione «Deposito telematico» che lo contiene.
+    assert "apriContenitoriDi(element)" in source
 
 
 def test_attivita_react_rende_apribile_la_fonte_documentale_nel_lettore_interno():

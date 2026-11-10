@@ -444,10 +444,11 @@ def test_guida_pratica_ui_fascicolo_restante_nel_rail_operativo():
     guide_column_pos = source.index('<aside className="iu-fas-guide-column"', detail_grid_pos)
     guida_pos = source.index("<GuidaPraticaSidebar", guide_column_pos)
     main_pos = source.index('<div className="iu-fas-detail-main">', guida_pos)
-    rail_pos = source.index('<aside className="iu-fas-detail-side">', main_pos)
-    gestione_pos = source.index('<DetailSection id="gestione"', rail_pos)
+    # Dal 10/11/2026 la gestione del fascicolo sta nella sezione «Registro», dentro la colonna principale.
+    registro_pos = source.index('<SezioneFascicolo id="sezione-registro"', main_pos)
+    gestione_pos = source.index('<DetailSection id="gestione"', registro_pos)
 
-    assert detail_grid_pos < guide_column_pos < guida_pos < main_pos < rail_pos < gestione_pos
+    assert detail_grid_pos < guide_column_pos < guida_pos < main_pos < registro_pos < gestione_pos
     assert ".iu-fas-guide-column > .iu-guida-pratica" in sidebar_css
     assert ".iu-fas-detail-grid--with-guide .iu-fas-detail-side > .iu-guida-pratica" in layout_css
     assert "grid-template-columns:64px minmax(0,1fr) !important" in layout_css

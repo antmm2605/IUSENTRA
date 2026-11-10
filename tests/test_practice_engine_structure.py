@@ -55,6 +55,7 @@ def test_docs_api_bridge_e_ui_senza_mock_fallback_true():
     ui = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     assert "/fascicoli/<id_fasc>/regia" in api
     assert "mock_fallback\": True" not in api
-    assert "Presidio del fascicolo" in ui
+    # Dal 10/11/2026 il presidio sta nella sezione «Deposito telematico» e si chiama per ciò che controlla.
+    assert "Presidio del deposito" in ui
     assert "href={item.href || '#'}" not in ui
     assert "Deposito acquisito correttamente" in Path("pct/practice_engine/messages.py").read_text(encoding="utf-8")

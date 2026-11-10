@@ -4391,7 +4391,7 @@ function DepositPreparePage({ id }:{id:string}) {
                 <div className="iu-fas-deposit-correction__actions">
                   {data.client?.taxCode.replace(/\s/g, '').toUpperCase() === duplicateParticipantTaxCode(participantCorrectionMessage) && data.client?.href ? <a className="iu-fas-side-link" href={`${data.client.href}/modifica`}><Edit3 size={15}/> Correggi cliente {data.client.name}</a> : null}
                   {depositCorrectionArea(participantCorrectionMessage) === 'contributo'
-                    ? <a className="iu-fas-side-link" href={`${detailHref}#presidio-fascicolo`}><Edit3 size={15}/> Completa contributo o esenzione nel fascicolo</a>
+                    ? <a className="iu-fas-side-link" href={`${detailHref}#conto-economico`}><Edit3 size={15}/> Completa contributo o esenzione nel fascicolo</a>
                     : depositCorrectionArea(participantCorrectionMessage) === 'parti'
                       ? <a className="iu-fas-side-link" href={f.editHref || `${detailHref}/modifica`}><Edit3 size={15}/> Correggi parti del fascicolo</a>
                       : depositCorrectionArea(participantCorrectionMessage) === 'fascicolo'

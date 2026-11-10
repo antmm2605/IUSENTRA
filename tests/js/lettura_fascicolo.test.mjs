@@ -73,7 +73,7 @@ test('le card dei presìdi leggono i numeri della lettura e portano dove si agis
   assert.equal(perId.economico.valore, '€ 1.500,00')
   assert.equal(perId.economico.tono, 'danger')
   assert.match(perId.economico.nota, /1 parcelle scadute per € 900,00/)
-  assert.equal(perId.economico.href, '#presidio-fascicolo')
+  assert.equal(perId.economico.href, '#conto-economico')
 })
 
 test('gli atti acquisiti dal fascicolo d\'ufficio si leggono come tali', () => {

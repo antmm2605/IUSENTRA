@@ -212,6 +212,7 @@
     "frontend/src/features/documenti/SchedaCompilazionePanel.css",
     "frontend/src/features/documenti/StesuraLexPanel.css",
     "frontend/src/components/fascicoli/AgendaFascicolo.css",
+    "frontend/src/components/fascicoli/QuadroFascicolo.css",
     "frontend/src/features/passaggi/passaggi.css"
   ],
   "allowedInlineStyles": [

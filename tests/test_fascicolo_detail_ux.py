@@ -184,15 +184,21 @@ def test_lettore_react_avvia_download_nativo_sulla_route_interna():
 
 def test_presidio_economico_unifica_contributo_e_provvedimenti_nella_stessa_superficie():
     source = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "components" / "FascicoliPage.tsx").read_text(encoding="utf-8")
-    regia = source.split("function RegiaOperativaSection", 1)[1].split("function fLabel", 1)[0]
+    economico = source.split("function PresidioEconomicoSection", 1)[1].split("function ControlliFascicoloSection", 1)[0]
     modal = source.split("function EconomicControlModal", 1)[1].split("function recordText", 1)[0]
+    pagina = source.split("function DetailPage", 1)[1]
 
     assert "function SentenzeEconomicheSection" not in source
-    assert "<h4>Presidio economico</h4>" in regia
-    assert 'label="Contributo unificato"' in regia
-    assert 'label="Provvedimenti economici"' in regia
-    assert regia.count("onClick={onOpenEconomicControl}") >= 2
-    assert "Calcola contributo unificato" in regia
+    assert "<h4>Presidio economico</h4>" in economico
+    # Il contributo unificato si legge nel Conto economico, nella stessa sezione «Economia»:
+    # il presidio economico non lo ripete con un secondo stato (riorganizzazione del 10/11/2026).
+    assert 'label="Contributo unificato"' not in economico
+    assert 'label="Provvedimenti economici"' in economico
+    assert economico.count("onClick={onOpenEconomicControl}") >= 2
+    assert "Calcola contributo unificato" in economico
+    sezione_economia = pagina.split('<SezioneFascicolo id="sezione-economia"', 1)[1].split("</SezioneFascicolo>", 1)[0]
+    assert '<DetailSection id="conto-economico"' in sezione_economia
+    assert "<PresidioEconomicoSection" in sezione_economia
     assert "Evidenze economiche da provvedimenti" in modal
     assert "Apri documenti sorgente" in modal
     assert "Calcola contributo" in modal

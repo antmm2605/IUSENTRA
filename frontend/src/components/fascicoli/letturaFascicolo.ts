@@ -281,7 +281,7 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
         ? `liquidato dal giudice · ${economico.liquidazione_incasso === 'incassata' ? 'bonificato sul conto' : economico.liquidazione_incasso === 'parziale' ? `incassato ${economico.incassato_it}` : 'non ancora bonificato'}`
         : !economico.presente ? 'nessun dato economico' : economico.parcelle_scadute.length ? `saldo aperto · ${economico.parcelle_scadute.length} parcelle scadute per ${economico.importo_scaduto_it}` : !economico.ha_incarico ? 'saldo aperto · preventivo e conferimento da formalizzare' : `saldo aperto · fatturato ${economico.fatturato_it || '€ 0,00'}`,
       tono: economico.liquidato ? (economico.liquidazione_incasso === 'incassata' ? 'success' : economico.liquidazione_incasso === 'parziale' ? 'warning' : 'danger') : economico.parcelle_scadute.length ? 'danger' : !economico.presente ? 'neutral' : !economico.ha_incarico ? 'warning' : 'success',
-      href: '#presidio-fascicolo',
+      href: '#conto-economico',
     },
   ]
 }

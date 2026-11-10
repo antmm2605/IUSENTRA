@@ -1,0 +1,57 @@
+/* Pagina del fascicolo: testata, quadro e sezioni numerate (riorganizzazione approvata il 10/11/2026). */
+
+.iu-fas-testata{display:grid;gap:4px;margin:-2px 0 12px;padding:10px 14px;border:1px solid var(--iu-border,#dde2e8);border-radius:12px;background:var(--iu-bg-card,#fff)}
+.iu-fas-testata__riga{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0;color:var(--iu-slate-600,#475569);font-size:13px;font-weight:700;line-height:1.4}
+.iu-fas-testata__riga span{display:inline-flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere}
+.iu-fas-testata__riga i{font-style:normal;color:var(--iu-slate-400,#94a3b8)}
+.iu-fas-testata__riga--parti strong{color:#111827;font-size:14px;font-weight:900;overflow-wrap:anywhere}
+.iu-fas-testata__stato{margin-left:auto}
+
+.iu-quadro-fascicolo{display:grid;gap:8px;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(37,99,235,.22);border-radius:14px;background:var(--iu-bg-card,#fff);box-shadow:var(--iu-shadow-soft,none)}
+.iu-quadro-fascicolo__header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.iu-quadro-fascicolo__header h2{display:flex;align-items:center;gap:7px;margin:0;font-size:15px;font-weight:950;color:#0f172a}
+.iu-quadro-fascicolo__header small{color:var(--iu-slate-500,#64748b);font-size:12px;font-weight:700}
+.iu-quadro-fascicolo__stato{margin:0;color:var(--iu-slate-600,#475569);font-size:13px;font-weight:700}
+.iu-quadro-fascicolo__stato--errore{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#92400e}
+.iu-quadro-fascicolo__stato--errore button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--iu-border,#dde2e8);border-radius:10px;background:#fff;color:var(--iu-slate-700,#334155);font-size:12px;font-weight:900;cursor:pointer}
+.iu-quadro-fascicolo__righe{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.iu-quadro-fascicolo__riga{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) max-content 16px;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border:1px solid var(--iu-border,#dde2e8);border-radius:10px;background:#fff;color:inherit;text-decoration:none}
+.iu-quadro-fascicolo__riga:hover{background:#f4f7fb}
+.iu-quadro-fascicolo__riga:focus-visible{outline:2px solid var(--iu-blue-600,#2563eb);outline-offset:2px}
+.iu-quadro-fascicolo__riga--urgente{border-color:rgba(220,38,38,.35);background:#fff7f7}
+.iu-quadro-fascicolo__riga--attenzione{border-color:rgba(217,119,6,.35)}
+.iu-quadro-fascicolo__tema{color:#0f172a;font-size:13px;font-weight:950}
+.iu-quadro-fascicolo__testo{min-width:0;color:var(--iu-slate-700,#334155);font-size:13px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.iu-quadro-fascicolo__vai{color:var(--iu-slate-400,#94a3b8)}
+
+.iu-fas-sezione{display:block;scroll-margin-top:142px;border:1px solid var(--iu-border,#dde2e8);border-radius:16px;background:var(--iu-slate-50,#f8fafc)}
+.iu-fas-sezione+.iu-fas-sezione{margin-top:2px}
+.iu-fas-sezione--evidenza{border:2px solid #d97706;background:#fffbeb}
+.iu-fas-sezione__summary{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;cursor:pointer;list-style:none}
+.iu-fas-sezione__summary::-webkit-details-marker{display:none}
+.iu-fas-sezione__summary:focus-visible{outline:2px solid var(--iu-blue-600,#2563eb);outline-offset:-2px;border-radius:14px}
+.iu-fas-sezione__numero{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--iu-navy-900,#0f172a);color:#fff;font-size:14px;font-weight:950}
+.iu-fas-sezione--evidenza .iu-fas-sezione__numero{background:#d97706}
+.iu-fas-sezione__testi{display:grid;gap:2px;min-width:0;flex:1 1 auto}
+.iu-fas-sezione__titolo{color:#0f172a;font-size:16px;font-weight:950;line-height:1.25}
+.iu-fas-sezione__descrizione{color:var(--iu-slate-600,#475569);font-size:12.5px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.iu-fas-sezione__chevron{flex:0 0 auto;color:var(--iu-slate-500,#64748b);transition:transform .15s ease}
+.iu-fas-sezione[open]>.iu-fas-sezione__summary .iu-fas-sezione__chevron{transform:rotate(180deg)}
+.iu-fas-sezione__corpo{display:grid;gap:12px;padding:0 12px 12px;min-width:0}
+.iu-fas-sezione__azioni{display:flex;flex-wrap:wrap;gap:8px}
+.iu-fas-sezione__azioni button{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:1px dashed var(--iu-border,#cbd5e1);border-radius:10px;background:#fff;color:var(--iu-slate-700,#334155);font-size:13px;font-weight:900;cursor:pointer}
+
+@media(max-width:760px){
+  .iu-quadro-fascicolo__riga{grid-template-columns:minmax(0,1fr) max-content;grid-template-areas:"tema livello" "testo testo"}
+  .iu-quadro-fascicolo__tema{grid-area:tema}
+  .iu-quadro-fascicolo__testo{grid-area:testo}
+  .iu-quadro-fascicolo__livello{grid-area:livello}
+  .iu-quadro-fascicolo__vai{display:none}
+  .iu-fas-testata__stato{margin-left:0}
+  .iu-fas-sezione{scroll-margin-top:116px}
+  .iu-fas-sezione__corpo{padding:0 6px 8px}
+  .iu-fas-sezione__summary{padding:10px}
+}
+@media (prefers-reduced-motion: reduce){.iu-fas-sezione__chevron{transition:none}}
+.iu-fas-cronologia-stati{display:grid;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--iu-border,#dde2e8)}
+.iu-fas-cronologia-stati h4{margin:0;font-size:13px;font-weight:950;color:#0f172a}

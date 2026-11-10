@@ -209,6 +209,10 @@ import {
 import { AgendaFascicolo } from './fascicoli/AgendaFascicolo'
 import { prossimaScadenza } from './fascicoli/agendaFascicoloVoci'
 import { AgendaFascicoloCompatta } from './fascicoli/AgendaFascicoloCompatta'
+import { QuadroFascicolo, useQuadroFascicolo } from './fascicoli/QuadroFascicolo'
+import { SezioneFascicolo, SEZIONI_FASCICOLO, apriContenitoriDi } from './fascicoli/SezioneFascicolo'
+import { TestataFascicolo } from './fascicoli/TestataFascicolo'
+import { usePresenzaCtuMediazione } from './fascicoli/usePresenzaCtuMediazione'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
@@ -606,10 +610,17 @@ function isInsideQuery(item: FascicoloRow, query: string): boolean {
   return haystack.includes(needle)
 }
 
+/** Tono del badge dello stato unico dichiarato dal quadro del fascicolo. */
+function statoPraticaTono(codice: string, fallback: FascicoloRow['tone']): FascicoloRow['tone'] {
+  const toni: Record<string, FascicoloRow['tone']> = { in_corso: 'primary', definita: 'success', da_archiviare: 'warning', archiviata: 'neutral', sospesa: 'warning' }
+  return toni[codice] || fallback
+}
+
 function openDetailSectionById(id: string) {
   const element = document.getElementById(id)
   const section = element instanceof HTMLDetailsElement ? element : element?.closest('details')
-  if (section instanceof HTMLDetailsElement && !section.open) section.open = true
+  // Il pannello sta dentro una delle otto sezioni numerate: si aprono sezione e pannello insieme.
+  apriContenitoriDi(element)
   // Un'ancora-alias dentro un pannello (es. #conformita) porta al suo riquadro, non all'inizio della sezione.
   const aliasTarget = element?.classList.contains('iu-fas-anchor-alias') && element.parentElement?.tagName === 'SECTION' ? element.parentElement : null
   if (element) window.requestAnimationFrame(() => (aliasTarget || section || element).scrollIntoView({ behavior: 'smooth', block: 'start' }))
@@ -5632,16 +5643,21 @@ function lazySectionForDetailHash(sectionId: string): FascicoloDetailSection | u
     case 'documenti':
       return 'documenti'
     case 'attivita':
+    case 'avanzamento':
       return 'attivita'
     case 'udienze':
       return 'scadenze'
     case 'cancelleria':
       return 'depositi'
+    case 'sezione-termini':
+      return 'scadenze'
     case 'presidio-fascicolo':
     case 'cabina-regia':
     case 'regia-operativa':
-    case 'conformita':
-    case 'presidio-conformita':
+    case 'sezione-deposito':
+    case 'sezione-economia':
+    case 'presidio-economico':
+    case 'economia':
       return 'regia'
     case 'relata-notifica':
       return 'relata'
@@ -7028,7 +7044,7 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
       <header>
         <div>
           <h4 id="presidio-conformita-title">Conformità e qualità</h4>
-          <p>I controlli restano nel presidio del fascicolo: apri ogni esito, correggi il dato e lascia traccia dell'azione.</p>
+          <p>Apri ogni esito, correggi il dato e lascia traccia dell'azione.</p>
         </div>
         <Badge tone={data.quality.some((item) => !item.ok) ? 'warning' : 'success'}>{data.quality.some((item) => !item.ok) ? 'Da verificare' : 'Controlli attivi'}</Badge>
       </header>
@@ -7045,27 +7061,27 @@ function FascicoloCompliancePanel({ data, returnHref }:{data:FascicoloDetailData
   )
 }
 
-function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicControl, onCalculateContribution, returnHref, defaultOpen = false, loading = false, auditStatus = 'idle' }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; returnHref:string; defaultOpen?:boolean; loading?:boolean; auditStatus?:LazySectionStatus}) {
+/**
+ * Presidio del deposito telematico (sezione 7 della pagina del fascicolo, riorganizzazione del 10/11/2026):
+ * profilo della procedura, validazione, checklist, documenti richiesti e busta. Le card che ripetevano dati
+ * di altre sezioni (economia, comunicazioni, udienze, audit, conformità) vivono ora solo nella loro sezione.
+ * Base: D.M. 44/2011 artt. 12 e 14 e Specifiche tecniche DGSIA per la busta.
+ */
+function RegiaOperativaSection({ data, onDone, onError, onOpen, defaultOpen = false, loading = false }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void; onOpen?:()=>void; defaultOpen?:boolean; loading?:boolean}) {
   const regia = data.regia
   if (loading || regia.page_state === 'lazy_non_caricata') {
-    return <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} defaultOpen={defaultOpen} onOpen={onOpen}><p className="iu-empty" role="status">Caricamento dei controlli del fascicolo…</p></DetailSection>
+    return <DetailSection id="presidio-fascicolo" title="Presidio del deposito" icon={<ClipboardCheck size={17}/>} defaultOpen={defaultOpen} onOpen={onOpen}><p className="iu-empty" role="status">Caricamento dei controlli del deposito…</p></DetailSection>
   }
   if (regia.page_state === 'profilo_da_confermare') {
     return (
-      <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={proceduralProfileCandidates(regia).length} defaultOpen={defaultOpen} onOpen={onOpen}>
+      <DetailSection id="presidio-fascicolo" title="Presidio del deposito" icon={<ClipboardCheck size={17}/>} count={proceduralProfileCandidates(regia).length} defaultOpen={defaultOpen} onOpen={onOpen}>
         <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
         <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
-        {loading ? <p className="iu-empty">Caricamento Presidio del fascicolo...</p> : <ProceduralProfileConfirmation data={data} onDone={onDone} onError={onError}/>}
-        <div className="iu-fas-regia__actions">
-          <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
-        </div>
-        {/* I controlli di qualità non dipendono dal profilo: la voce «Controlli» della barra sezioni deve trovarli anche qui. */}
-        <FascicoloCompliancePanel data={data} returnHref={returnHref}/>
+        {loading ? <p className="iu-empty">Caricamento del presidio del deposito...</p> : <ProceduralProfileConfirmation data={data} onDone={onDone} onError={onError}/>}
       </DetailSection>
     )
   }
   const h = regia.header
-  const economics = regia.economics
   const deposit = regia.deposit
   const evidence = regia.evidencePack
   const blocked = recordBool(deposit, 'blocked')
@@ -7075,10 +7091,6 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
   const predepositAction = recordText(regia.actions, 'predepositCheck')
   const recalculateAction = recordText(regia.actions, 'recalculate')
   const evidenceHref = recordText(evidence, 'href')
-  const preventivoHref = recordHref(economics, 'preventivoHref', `/preventivi/nuovo?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
-  const conferimentoHref = recordHref(economics, 'conferimentoHref', `/preventivi/conferimento/nuovo?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
-  const proformaHref = recordHref(economics, 'proformaHref', `/fatturazione/nuova?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
-  const paymentHref = recordHref(economics, 'paymentHref', proformaHref)
   const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
   const metaItems = [
     ['Area', h.area],
@@ -7122,57 +7134,25 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
         : depositPhaseActive
           ? 'warning'
           : 'neutral'
-  const operational = data.operationalPresidio
-  const operationalNext = operational.nextAction || operational.actions[0]
-  const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)
-  const operationalCardNote = operationalNext
-    ? [
-        operationalNext.title,
-        operationalSource
-          ? `Fonte: ${operationalSource}`
-          : 'Apri il controllo prioritario',
-      ].join(' · ')
-    : operational.summary || 'Apri i controlli del fascicolo'
-  const nextDeadline = prossimaScadenza(data.deadlines) || data.appointments.find((app) => !app.past)
-  const notification = data.notificationRelata
-  const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
-  const contributoUnificato = data.fascicolo.paymentSummary.items.contributo_unificato
-  const contributoSource = visibleDocumentSource(contributoUnificato.documentoFonte)
-  const contributoNote = contributoSource
-    ? `Fonte: ${contributoSource}. Apri il presidio economico per verificare importo, ricevuta o esenzione.`
-    : 'Apri il presidio economico per verificare ricevuta, esenzione o pagamento.'
-  const auditValue = auditStatus === 'loaded'
-    ? data.auditTrail.summary.total ? `${data.auditTrail.summary.total} evidenze` : 'Nessuna evidenza'
-    : auditStatus === 'loading'
-      ? 'Caricamento…'
-      : auditStatus === 'error'
-        ? 'Da riprovare'
-        : 'Da caricare'
-  const auditNote = auditStatus === 'loaded'
-    ? data.auditTrail.summary.total ? 'Apri le prove registrate' : 'Le prove nascono da consultazioni, depositi e ricevute'
-    : auditStatus === 'loading'
-      ? 'Lettura del registro audit in corso.'
-      : auditStatus === 'error'
-        ? 'Il registro audit non è stato caricato: aprilo di nuovo per riprovare.'
-        : 'Apri Audit per calcolare il conteggio dal registro operativo e probatorio.'
-  const auditTone: FascicoloRow['tone'] = auditStatus === 'loaded' && data.auditTrail.summary.total
-    ? 'success'
-    : auditStatus === 'error'
-      ? 'warning'
-      : 'neutral'
+  const depositPhaseCode = recordText(h.depositPhase, 'codice')
+  const depositPhaseReason = recordText(h.depositPhase, 'motivo')
+  // Lo stato del presidio parla del deposito, non della pratica: lo stato della pratica è uno solo, nella testata.
+  const depositStateLabel = depositPhaseCode === 'non_richiesta' && !depositAcquired
+    ? 'Nessun deposito da preparare'
+    : regiaOperationalStateLabel(h.operationalState)
   return (
-    <DetailSection id="presidio-fascicolo" title="Presidio del fascicolo" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length + operational.actions.length} defaultOpen={defaultOpen} onOpen={onOpen}>
+    <DetailSection id="presidio-fascicolo" title="Presidio del deposito" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length} defaultOpen={defaultOpen} onOpen={onOpen}>
       <span id="cabina-regia" className="iu-fas-anchor-alias" aria-hidden="true"/>
       <span id="regia-operativa" className="iu-fas-anchor-alias" aria-hidden="true"/>
-      {loading ? <p className="iu-empty">Caricamento Presidio del fascicolo...</p> : null}
+      {loading ? <p className="iu-empty">Caricamento del presidio del deposito...</p> : null}
       <div className="iu-fas-regia">
         <header className="iu-fas-regia__header">
           <div>
-            <Badge tone={statusTone}>{regiaOperationalStateLabel(h.operationalState)}</Badge>
+            <Badge tone={statusTone}>{depositStateLabel}</Badge>
             <h3>{h.practiceType || fLabel(data.fascicolo.title)}</h3>
-            <p>{h.nextAction || 'Completa i controlli operativi del fascicolo.'}</p>
+            <p>{depositPhaseCode === 'non_richiesta' && depositPhaseReason ? depositPhaseReason : h.nextAction || 'Completa i controlli del deposito.'}</p>
           </div>
-          <div className="iu-fas-regia__progress" aria-label="Completamento Presidio del fascicolo">
+          <div className="iu-fas-regia__progress" aria-label="Completamento del presidio del deposito">
             <strong>{h.completion}%</strong>
             <span>verifiche disponibili</span>
             <small>{completionNote}</small>
@@ -7184,43 +7164,7 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           </div>
         ) : null}
         <ProceduralProfileChange data={data} onDone={onDone} onError={onError}/>
-        <section className="iu-fas-regia__priorities" aria-label="Controlli prioritari del fascicolo">
-          <h4>Controlli prioritari</h4>
-          <div className="iu-fas-regia-action-list">
-            <RegiaActionCard label="Presìdi del fascicolo" value={operational.statusLabel || 'Da verificare'} note={operationalCardNote} href={operationalNext?.href || '#presidio-conformita'} tone={operational.tone}/>
-            <RegiaActionCard label="Conformità e qualità" value={data.quality.some((item) => !item.ok) ? `${data.quality.filter((item) => !item.ok).length} verifiche` : 'Controlli attivi'} note="Esiti, qualità dei dati e comando di attivazione nello stesso presidio." href="#presidio-conformita" tone={data.quality.some((item) => !item.ok) ? 'warning' : 'success'}/>
-            <RegiaActionCard label="Comunicazioni, PEC e notifica" value={notification.statusLabel || 'Da verificare'} note={notification.systemNotification || 'Controlla relata, ricevute e prova di notifica'} href="#comunicazioni-notifica" tone={notification.tone}/>
-            <RegiaActionCard label="Udienze e scadenze" value={nextDeadline?.date || (data.fascicolo.nextDeadlineIso ? data.fascicolo.nextDeadline : 'Apri calendario')} note={nextDeadline?.title || 'Consulta appuntamenti e termini della pratica'} href="#udienze" tone={nextDeadline ? nextDeadline.tone : 'neutral'}/>
-            <RegiaActionCard label="Audit del fascicolo" value={auditValue} note={auditNote} href="#audit" tone={auditTone}/>
-          </div>
-        </section>
-        <FascicoloCompliancePanel data={data} returnHref={returnHref}/>
         <div className="iu-fas-regia__grid">
-          <article id="economia">
-            <span id="workflow" className="iu-fas-anchor-alias" aria-hidden="true"/>
-            <span id="sentenze-economiche" className="iu-fas-anchor-alias" aria-hidden="true"/>
-            <h4>Presidio economico</h4>
-            <div className="iu-fas-regia-action-list">
-              <RegiaActionCard label="Preventivo accettato" value={recordBool(economics, 'preventivoAccepted') ? 'Si' : 'No'} note={recordBool(economics, 'preventivoAccepted') ? 'Apri preventivo' : 'Apri per accettare o creare'} href={preventivoHref} tone={recordBool(economics, 'preventivoAccepted') ? 'success' : 'warning'}/>
-              <RegiaActionCard label="Conferimento firmato" value={recordBool(economics, 'conferimentoSigned') ? 'Si' : 'No'} note={recordBool(economics, 'conferimentoSigned') ? 'Apri conferimento' : 'Apri il conferimento'} href={conferimentoHref} tone={recordBool(economics, 'conferimentoSigned') ? 'success' : 'warning'}/>
-              <RegiaActionCard label="Avviso / parcella" value={recordBool(economics, 'proformaIssued') ? 'Emesso' : 'Non emesso'} note={recordBool(economics, 'proformaIssued') ? 'Apri documento economico' : 'Crea la parcella'} href={proformaHref} tone={recordBool(economics, 'proformaIssued') ? 'success' : 'warning'}/>
-              <RegiaActionCard label="Pagamento" value={recordBool(economics, 'paymentRegistered') ? 'Registrato' : 'Da registrare'} note={recordBool(economics, 'paymentRegistered') ? 'Apri incassi' : 'Registra incasso'} href={paymentHref} tone={recordBool(economics, 'paymentRegistered') ? 'success' : 'warning'}/>
-              <RegiaActionButton label="Contributo unificato" value={contributoUnificato.statusLabel || 'Da verificare'} note={contributoNote} onClick={onOpenEconomicControl} tone={contributoUnificato.tone}/>
-              <RegiaActionButton label="Provvedimenti economici" value={sentenzeCount ? `${sentenzeCount} controlli` : 'Nessun controllo aperto'} note="Liquidazioni, spese, distrazioni e contributo unificato sono letti nello stesso presidio." onClick={onOpenEconomicControl} tone={sentenzeCount ? 'warning' : 'neutral'}/>
-            </div>
-            <ul className="iu-fas-regia__facts">
-              <li><span>Compenso pattuito</span><strong>{recordText(economics, 'agreedFee', '€ 0,00')}</strong></li>
-              <li><span>Spese vive / anticipazioni</span><strong>{recordText(economics, 'expenses', '€ 0,00')}</strong></li>
-            </ul>
-            <div className="iu-fas-regia__actions" aria-label="Azioni presidio economico">
-              <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
-              <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo unificato</button>
-            </div>
-            <div className="iu-fas-regia-action-list iu-fas-regia-action-list--compact">
-              {data.economics.filter((item) => ['valore', 'controllo_pagamenti', 'fatturapa', 'tempo'].includes(item.id)).map((item) => <RegiaActionCard key={item.id} label={item.label} value={item.value} note={item.note} href={item.href || '#presidio-fascicolo'} tone={item.tone}/>) }
-            </div>
-            {Array.isArray(economics.overrides) && economics.overrides.length ? <p className="iu-fas-regia__warn">Variazione economica presente e registrata.</p> : null}
-          </article>
           <article>
             <h4>Validazione</h4>
             <Badge tone={statusTone}>{regiaValidationStatusLabel(regia.validation.status)}</Badge>
@@ -7282,6 +7226,77 @@ function RegiaOperativaSection({ data, onDone, onError, onOpen, onOpenEconomicCo
           </section>
         ) : null}
       </div>
+    </DetailSection>
+  )
+}
+
+/**
+ * Presidio economico del fascicolo (sezione 6 «Economia», accanto al Conto economico): ciò che il Conto
+ * economico non mostra — preventivo accettato e conferimento firmato (art. 13 L. 247/2012), compenso pattuito,
+ * provvedimenti economici da controllare e tempo registrato. Contributo unificato, parcella, pagamento, spese e
+ * fattura si leggono solo nel Conto economico, per non mostrare lo stesso dato con due stati diversi.
+ */
+function PresidioEconomicoSection({ data, onOpen, onOpenEconomicControl, onCalculateContribution, defaultOpen = false, loading = false }:{data:FascicoloDetailData; onOpen?:()=>void; onOpenEconomicControl:()=>void; onCalculateContribution:()=>void; defaultOpen?:boolean; loading?:boolean}) {
+  const regia = data.regia
+  const economics = regia.economics
+  const regiaReady = !loading && regia.page_state !== 'lazy_non_caricata'
+  const preventivoHref = recordHref(economics, 'preventivoHref', `/preventivi/nuovo?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
+  const conferimentoHref = recordHref(economics, 'conferimentoHref', `/preventivi/conferimento/nuovo?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
+  const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
+  const tempo = data.economics.find((item) => item.id === 'tempo')
+  return (
+    <DetailSection id="presidio-economico" title="Preventivo, conferimento e controlli economici" icon={<WalletCards size={17}/>} defaultOpen={defaultOpen} onOpen={onOpen}>
+      <article id="economia" className="iu-fas-regia">
+        <span id="workflow" className="iu-fas-anchor-alias" aria-hidden="true"/>
+        <span id="sentenze-economiche" className="iu-fas-anchor-alias" aria-hidden="true"/>
+        <h4>Presidio economico</h4>
+        {regiaReady ? (
+          <>
+            <div className="iu-fas-regia-action-list">
+              <RegiaActionCard label="Preventivo accettato" value={recordBool(economics, 'preventivoAccepted') ? 'Si' : 'No'} note={recordBool(economics, 'preventivoAccepted') ? 'Apri preventivo' : 'Apri per accettare o creare'} href={preventivoHref} tone={recordBool(economics, 'preventivoAccepted') ? 'success' : 'warning'}/>
+              <RegiaActionCard label="Conferimento firmato" value={recordBool(economics, 'conferimentoSigned') ? 'Si' : 'No'} note={recordBool(economics, 'conferimentoSigned') ? 'Apri conferimento' : 'Apri il conferimento'} href={conferimentoHref} tone={recordBool(economics, 'conferimentoSigned') ? 'success' : 'warning'}/>
+              <RegiaActionButton label="Provvedimenti economici" value={sentenzeCount ? `${sentenzeCount} controlli` : 'Nessun controllo aperto'} note="Liquidazioni, spese e distrazioni lette dai provvedimenti del fascicolo." onClick={onOpenEconomicControl} tone={sentenzeCount ? 'warning' : 'neutral'}/>
+            </div>
+            {tempo ? <div className="iu-fas-regia-action-list iu-fas-regia-action-list--compact"><RegiaActionCard label={tempo.label} value={tempo.value} note={tempo.note} href={tempo.href || '#presidio-economico'} tone={tempo.tone}/></div> : null}
+            <ul className="iu-fas-regia__facts">
+              <li><span>Compenso pattuito</span><strong>{recordText(economics, 'agreedFee', '€ 0,00')}</strong></li>
+            </ul>
+            {Array.isArray(economics.overrides) && economics.overrides.length ? <p className="iu-fas-regia__warn">Variazione economica presente e registrata.</p> : null}
+          </>
+        ) : <p className="iu-empty" role="status">Caricamento del presidio economico…</p>}
+        <div className="iu-fas-regia__actions" aria-label="Azioni presidio economico">
+          <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
+          <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo unificato</button>
+        </div>
+      </article>
+    </DetailSection>
+  )
+}
+
+/**
+ * Controlli del fascicolo (sezione 8 «Registro»): presìdi operativi e conformità e qualità dei dati,
+ * con il comando di attivazione. Prima comparivano anche dentro il presidio, con un secondo riepilogo.
+ */
+function ControlliFascicoloSection({ data, returnHref, defaultOpen = false }:{data:FascicoloDetailData; returnHref:string; defaultOpen?:boolean}) {
+  const operational = data.operationalPresidio
+  const operationalNext = operational.nextAction || operational.actions[0]
+  const operationalSource = visibleDocumentSource(operationalNext?.source || operationalNext?.evidence)
+  const operationalCardNote = operationalNext
+    ? [
+        operationalNext.title,
+        operationalSource
+          ? `Fonte: ${operationalSource}`
+          : 'Apri il controllo prioritario',
+      ].join(' · ')
+    : operational.summary || 'Nessun controllo prioritario aperto'
+  const qualityIssues = data.quality.filter((item) => !item.ok).length
+  return (
+    <DetailSection id="controlli-fascicolo" title="Controlli di conformità e qualità" icon={<ShieldCheck size={17}/>} count={qualityIssues + operational.actions.length} defaultOpen={defaultOpen}>
+      <h4>Controlli prioritari</h4>
+      <div className="iu-fas-regia-action-list">
+        <RegiaActionCard label="Presìdi del fascicolo" value={operational.statusLabel || 'Da verificare'} note={operationalCardNote} href={operationalNext?.href || '#presidio-conformita'} tone={operational.tone}/>
+      </div>
+      <FascicoloCompliancePanel data={data} returnHref={returnHref}/>
     </DetailSection>
   )
 }
@@ -9892,6 +9907,9 @@ function DetailPage({ id }:{id:string}) {
   const [letturaOpen, setLetturaOpen] = useState(() => currentDetailHashSectionId() === 'lettura-fascicolo')
   const [contoOpen, setContoOpen] = useState(() => currentDetailHashSectionId() === 'conto-economico')
   const [ctuVisible, setCtuVisible] = useState(() => currentDetailHashSectionId() === 'ctu')
+  const [ctuMediazioneRichieste, setCtuMediazioneRichieste] = useState(() => ['ctu', 'mediazione'].includes(currentDetailHashSectionId()))
+  const quadro = useQuadroFascicolo(id)
+  const presenzaCtuMediazione = usePresenzaCtuMediazione(id)
   useEffect(() => {
     let active = true
     const initialIncludes = initialDetailIncludesFromHash()
@@ -9959,7 +9977,6 @@ function DetailPage({ id }:{id:string}) {
   const cancelleriaRows = data.deposits.filter(isCancelleriaCommunication)
   const communicationTotal = notificationCommunicationDocuments.length + comunicazioniRows.length + cancelleriaRows.length
   const displayedCommunicationTotal = communicationTotal || data.quickCounts.comunicazioni || 0
-  const operationalPresidio = data.operationalPresidio
   const shouldAutoOpenCommunications =
     activeHashSection === 'cancelleria'
     || activeHashSection === 'comunicazioni-notifica'
@@ -10028,6 +10045,12 @@ function DetailPage({ id }:{id:string}) {
   const openSectionFromContext = (sectionId: string, lazySection?: FascicoloDetailSection) => {
     setContextMenu(null)
     if (lazySection) loadLazySection(lazySection)
+    if (sectionId === 'ctu' || sectionId === 'mediazione') {
+      // CTU e mediazione compaiono solo se il fascicolo ne ha: dal menu si mostrano e poi si apre la richiesta.
+      setCtuMediazioneRichieste(true)
+      window.setTimeout(() => openDetailSectionById(sectionId), 0)
+      return
+    }
     openDetailSectionById(sectionId)
   }
   const openOfficeDocumentsFromContext = () => {
@@ -10100,6 +10123,13 @@ function DetailPage({ id }:{id:string}) {
     loadLazySection('scadenze')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, f.id, id])
+  // La sezione «Deposito telematico» si apre da sola solo se c'è un deposito da preparare: la fase del
+  // deposito sta nel presidio, che si legge appena il fascicolo è pronto (D.M. 44/2011 artt. 12 e 14).
+  useEffect(() => {
+    if (loading || !(f.id || id)) return
+    loadLazySection('regia')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, f.id, id])
   useEffect(() => {
     if (loading) return undefined
     const openHashSection = () => {
@@ -10108,12 +10138,11 @@ function DetailPage({ id }:{id:string}) {
       setActiveHashSection(sectionId)
       const lazySection = lazySectionForDetailHash(sectionId)
       if (lazySection) loadLazySection(lazySection)
-      // «Controlli» punta a un'ancora dentro il Presidio, che disegna il contenuto solo da aperto:
-      // si apre il Presidio e si attende l'ancora prima di scorrere (verifica visiva 02/11/2026).
-      const parentSection = sectionId === 'conformita' || sectionId === 'presidio-conformita' ? 'presidio-fascicolo' : ''
+      // «Controlli» punta a un'ancora dentro il pannello dei controlli del Registro, che disegna il contenuto
+      // solo da aperto: si aprono sezione e pannello e si attende l'ancora prima di scorrere (verifica visiva 02/11/2026).
+      const parentSection = sectionId === 'conformita' || sectionId === 'presidio-conformita' ? 'controlli-fascicolo' : sectionId === 'avanzamento' ? 'attivita' : ''
       if (parentSection && !document.getElementById(sectionId)) {
-        const parent = document.getElementById(parentSection)
-        if (parent instanceof HTMLDetailsElement && !parent.open) parent.open = true
+        apriContenitoriDi(document.getElementById(parentSection))
         let attempts = 0
         const waitAnchor = () => {
           if (document.getElementById(sectionId) || attempts >= 40) { openDetailSectionById(sectionId); return }
@@ -10221,6 +10250,30 @@ function DetailPage({ id }:{id:string}) {
     })
     setToast({ tone: 'success', message: message || 'Controllo economico aggiornato.' })
   }, [id])
+  const mostraCtu = ctuMediazioneRichieste || presenzaCtuMediazione.ctu || activeHashSection === 'ctu'
+  const mostraMediazione = ctuMediazioneRichieste || presenzaCtuMediazione.mediazione || activeHashSection === 'mediazione'
+  const regiaLetta = lazyStatus.regia === 'loaded' && data.regia.page_state !== 'lazy_non_caricata'
+  const fasePresidio = data.regia.header.depositPhase
+  const faseDeposito = regiaLetta ? recordText(fasePresidio, 'codice') : ''
+  const depositoSezione = !regiaLetta
+    ? { apri: activeHashSection === 'sezione-deposito', evidenza: false, avviso: lazyStatus.regia === 'error' ? 'Verifica del deposito non riuscita: apri la sezione per riprovare' : 'Verifica del deposito in corso…' }
+    : faseDeposito === 'preparazione'
+      ? { apri: true, evidenza: true, avviso: 'Deposito da preparare: checklist, documenti richiesti e busta' }
+      : faseDeposito === 'in_corso'
+        ? { apri: true, evidenza: false, avviso: 'Deposito inviato: in attesa delle ricevute' }
+        : { apri: activeHashSection === 'sezione-deposito', evidenza: false, avviso: data.regia.page_state === 'profilo_da_confermare' ? 'Nessun deposito da preparare · profilo della procedura da confermare' : 'Nessun deposito da preparare' }
+  const statoQuadro = quadro.lettura.fase === 'pronto' ? quadro.lettura.dati.stato : null
+  const statoTestata: { etichetta: string; tono: FascicoloRow['tone']; dettaglio: string } = statoQuadro?.etichetta
+    ? { etichetta: statoQuadro.etichetta, tono: statoPraticaTono(statoQuadro.codice, f.tone), dettaglio: statoQuadro.dettaglio }
+    : { etichetta: f.status === 'definito' && f.archiveReady ? 'Definito, da archiviare' : formatFascicoloStatus(f.status), tono: f.tone, dettaglio: '' }
+  const sezioneCounts: Record<string, number> = {
+    'sezione-pratica': data.parties.length + (data.client ? 1 : 0),
+    'sezione-andamento': data.quickCounts.attivita || 0,
+    'sezione-termini': data.quickCounts.udienze_scadenze || 0,
+    'sezione-documenti': data.quickCounts.documenti || 0,
+    'sezione-comunicazioni': displayedCommunicationTotal + notificationRelataCount,
+    'sezione-deposito': faseDeposito === 'preparazione' || faseDeposito === 'in_corso' ? data.regia.checklist.length + data.regia.documentSlots.length : 0,
+  }
   const openSection = (sectionId: string, lazySection?: FascicoloDetailSection) => (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
     if (lazySection) loadLazySection(lazySection)
@@ -10231,12 +10284,13 @@ function DetailPage({ id }:{id:string}) {
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
-        <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/strumenti-legali/?id_fascicolo=${encodeURIComponent(f.id || id)}`} aria-label="Strumenti Forensi del fascicolo" title="Strumenti Forensi del fascicolo"><Calculator size={18}/></a><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/email/?id_fascicolo=${encodeURIComponent(f.id || id)}&cartella=TUTTE`} aria-label="PEC del fascicolo" title="PEC del fascicolo: ricevute, inviate e cestino"><Mail size={18}/></a><FascicoloNormativaButton fascicoloId={f.id || id}/>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
+        <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge><span>{f.object || f.subtitle}</span></p></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/strumenti-legali/?id_fascicolo=${encodeURIComponent(f.id || id)}`} aria-label="Strumenti Forensi del fascicolo" title="Strumenti Forensi del fascicolo"><Calculator size={18}/></a><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/email/?id_fascicolo=${encodeURIComponent(f.id || id)}&cartella=TUTTE`} aria-label="PEC del fascicolo" title="PEC del fascicolo: ricevute, inviate e cestino"><Mail size={18}/></a><FascicoloNormativaButton fascicoloId={f.id || id}/>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
       </section>
-      <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
+      <TestataFascicolo rg={f.rg || f.ref} ufficio={f.court} rito={f.procedureType} giudice={f.judge} cliente={data.client?.name || f.client} controparte={f.counterparty} valore={Number(f.caseValue) || 0} stato={statoTestata.etichetta} statoTono={statoTestata.tono} statoDettaglio={statoTestata.dettaglio}/>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#presidio-fascicolo">Presidio fascicolo <b>{data.regia.documentSlots.length + operationalPresidio.actions.length}</b></a><a href="#lettura-fascicolo">Lettura</a><a href="#profilo">Anagrafica <b>{data.quickCounts.profilo || 0}</b></a>{f.type === 'penale' ? <a href="#penale-pdp">Deposito penale</a> : null}{f.type === 'amministrativo' ? <a href="#pat-formweb">Deposito amministrativo</a> : null}{f.type === 'tributario' ? <a href="#ptt-sigit">Deposito tributario</a> : null}<a href="#editor-fascicolo" onClick={() => setEditorVisited(true)}>Editor e redazione</a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#comunicazioni-notifica">Comunicazioni e notifica <b>{displayedCommunicationTotal + notificationRelataCount}</b></a><a href="#attivita">Cronologia <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#mediazione">Mediazione</a><a href="#ctu">CTU</a><a href="#audit" title={auditNavigation.label}>Audit <b aria-label={auditNavigation.label}>{auditNavigation.value}</b></a><a href="#conformita">Controlli <b>{data.quickCounts.presidio_operativo || operationalPresidio.actions.length || 0}</b></a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a><a href="#telematico">Servizi telematici</a></nav>
+      <QuadroFascicolo lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => openDetailSectionById(sezione)}/>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni del fascicolo">{SEZIONI_FASCICOLO.map((sezione) => <a key={sezione.id} href={`#${sezione.id}`} onClick={openSection(sezione.id)} title={`${sezione.titolo}: ${sezione.descrizione}`}>{sezione.numero}. {sezione.breve}{sezioneCounts[sezione.id] ? <b>{sezioneCounts[sezione.id]}</b> : null}</a>)}</nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
           <Suspense fallback={null}>
@@ -10245,54 +10299,52 @@ function DetailPage({ id }:{id:string}) {
         </aside>
         <div className="iu-fas-detail-content-column">
         <div className="iu-fas-detail-main">
-          <AgendaFascicoloCompatta fascicoloId={f.id || id} scadenze={data.deadlines} appuntamenti={data.appointments} stato={lazyStatus.scadenze} onTutti={openSection('udienze', 'scadenze')}/>
-          <RegiaOperativaSection
-            data={data}
-            onDone={refreshDetail}
-            onError={failDetail}
-            onOpen={() => loadLazySection('regia')}
-            onOpenEconomicControl={() => setEconomicControlOpen(true)}
-            onCalculateContribution={() => setContributoModalOpen(true)}
-            returnHref={detailReturnHref}
-            defaultOpen={activeHashSection === 'presidio-fascicolo' || activeHashSection === 'cabina-regia' || activeHashSection === 'regia-operativa'}
-            loading={lazyStatus.regia === 'loading'}
-            auditStatus={lazyStatus.audit}
-          />
-          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'} onToggle={setLetturaOpen}>
-            <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
-          </DetailSection>
-          <DetailSection id="conto-economico" title="Conto economico" icon={<Calculator size={17}/>} defaultOpen={activeHashSection === 'conto-economico'} onToggle={setContoOpen}>
-            <ContoEconomicoPanel active={contoOpen} fascicoloId={f.id || id}/>
-          </DetailSection>
+        <SezioneFascicolo id="sezione-pratica">
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Modifica dati fascicolo</a><SourceSnapshotPanel fascicolo={f}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
+          <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>
+          <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length && !partiLetteDaRegistrare(f.sourceSnapshot, data.parties).length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><PartiLetteDalPortale nomi={partiLetteDaRegistrare(f.sourceSnapshot, data.parties)}/><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen={activeHashSection === 'uffici-competenti'}>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>
-          {f.type === 'penale' ? (
-            <DetailSection id="penale-pdp" title="Deposito penale (PDP)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'penale-pdp'} onOpen={() => setPenaleVisited(true)}>
-              {penaleVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito penale" message="Preparazione della sezione richiesta in corso."/>}><PenalePdpSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
-            </DetailSection>
-          ) : null}
-          {f.type === 'amministrativo' ? (
-            <DetailSection id="pat-formweb" title="Deposito amministrativo (PAT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'pat-formweb'} onOpen={() => setPatVisited(true)}>
-              {patVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito amministrativo" message="Preparazione della sezione richiesta in corso."/>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()} onPreview={setPreviewDoc}/></Suspense> : null}
-            </DetailSection>
-          ) : null}
-          {f.type === 'tributario' ? (
-            <DetailSection id="ptt-sigit" title="Deposito tributario (PTT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'ptt-sigit'} onOpen={() => setPttVisited(true)}>
-              {pttVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito tributario" message="Preparazione della sezione richiesta in corso."/>}><PttSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
-            </DetailSection>
-          ) : null}
-          <DetailSection id="editor-fascicolo" title="Editor e redazione" icon={<Edit3 size={17}/>} defaultOpen={activeHashSection === 'editor-fascicolo'} onOpen={() => setEditorVisited(true)}>
-            <nav className="iu-fas-toolbar iu-fas-azioni" aria-label="Scrittura nel fascicolo">
-              <Button href={`/editor-professionale?fascicolo=${encodeURIComponent(f.id || id)}`}><Edit3 size={15}/> Modifica documenti e versioni</Button>
-              <Button href="#documenti"><BookOpen size={15}/> Consulta le fonti</Button>
-              {f.clientId ? <Button href={`/clienti/${encodeURIComponent(f.clientId)}/modifica?id_fascicolo=${encodeURIComponent(f.id || id)}`}><UserRound size={15}/> Anagrafica da documento</Button> : null}
-            </nav>
-            {editorVisited ? <Suspense fallback={<LoadingState title="Caricamento redazione" message="Preparazione dell’editor del fascicolo in corso."/>}>
-              <FascicoloRedazioneWizard initialMatter={{ id: f.id || id, numero: f.ref, titolo: f.title, clienteId: f.clientId }}/>
-            </Suspense> : null}
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-andamento">
+          <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'} onToggle={setLetturaOpen}>
+            <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
           </DetailSection>
+          <DetailSection id="attivita" title="Cronologia della pratica" icon={<ListChecks size={17}/>} count={(data.quickCounts.attivita || 0) + data.history.length} defaultOpen={activeHashSection === 'attivita' || activeHashSection === 'avanzamento'} onOpen={() => loadLazySection('attivita')}>
+            <p className="iu-fas-section-intro">Attività processuali e avanzamento della pratica in un solo elenco: prima le attività, poi i cambi di stato registrati.</p>
+            <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
+            <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento attività...</p> : null}{data.activities.map((activity) => <ActivityRow activity={activity} key={activity.id} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.activities.length ? <p className="iu-empty">Nessuna attività processuale registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per caricare la timeline processuale.</p> : null}</div>
+            <section className="iu-fas-cronologia-stati" aria-labelledby="cronologia-stati-titolo">
+              <span id="avanzamento" className="iu-fas-anchor-alias" aria-hidden="true"/>
+              <h4 id="cronologia-stati-titolo">Avanzamento: cambi di stato della pratica</h4>
+              <div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong>{item.from && item.to ? <span>{item.from} → {item.to}</span> : null}<p>{item.notes}</p></article>)}{!data.history.length ? <div className="iu-fas-empty-action"><Badge tone="neutral">Nessun evento</Badge><strong>Nessun avanzamento registrato.</strong><p>Registra l'attività o una scadenza effettiva: lo storico del fascicolo verrà aggiornato con data, autore ed esito.</p><div><a href="#attivita" onClick={openSection('attivita', 'attivita')}><ListChecks size={14}/> Registra attività processuale</a><a href="#udienze" onClick={openSection('udienze', 'scadenze')}><CalendarDays size={14}/> Registra udienza o termine</a></div></div> : null}</div>
+            </section>
+          </DetailSection>
+          {mostraMediazione ? (
+            <DetailSection id="mediazione" title="Mediazione" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'mediazione'} onOpen={() => setMediazioneVisited(true)}>
+              {mediazioneVisited ? <Suspense fallback={<LoadingState title="Caricamento mediazione" message="Preparazione della sezione richiesta in corso."/>}><MediazioneFascicolo key={f.id || id} id={f.id || id} preview={setPreviewDoc} onDocuments={refreshDocuments}/></Suspense> : null}
+            </DetailSection>
+          ) : null}
+          {mostraCtu ? (
+            <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'} onToggle={setCtuVisible}><Suspense fallback={<LoadingState title="Caricamento incarichi CTU" message="Preparazione della sezione richiesta in corso."/>}><CtuSection key={f.id} fascicoloId={f.id} active={ctuVisible}/></Suspense></DetailSection>
+          ) : null}
+          {!mostraCtu || !mostraMediazione ? (
+            <div className="iu-fas-sezione__azioni">
+              <button type="button" onClick={() => setCtuMediazioneRichieste(true)}><Plus size={15}/> Aggiungi CTU / mediazione</button>
+            </div>
+          ) : null}
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-termini">
+          <AgendaFascicoloCompatta fascicoloId={f.id || id} scadenze={data.deadlines} appuntamenti={data.appointments} stato={lazyStatus.scadenze} onTutti={openSection('udienze', 'scadenze')}/>
+          <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => { loadLazySection('scadenze'); loadLazySection('documenti') }}>
+            {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
+            {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
+          <DocumentPresidioPanel data={data} fascicoloId={f.id} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} onDone={refreshDocuments} onError={failDetail}/>
+            <AgendaFascicolo fascicoloId={f.id} scadenze={data.deadlines} appuntamenti={data.appointments} caricato={lazyStatus.scadenze === 'loaded'}/>
+          </DetailSection>
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-documenti">
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
             <Suspense fallback={<LoadingState title="Caricamento documenti d’ufficio" message="Preparazione degli strumenti di consultazione in corso."/>}>
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
@@ -10321,23 +10373,18 @@ function DetailPage({ id }:{id:string}) {
               <Button href={`/documenti?scope=cestino&fascicolo=${encodeURIComponent(f.id || id)}`}><Trash2 size={15}/> Cestino del fascicolo</Button>
             </nav>
           </DetailSection>
-          <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.quickCounts.attivita || 0} defaultOpen={activeHashSection === 'attivita'} onOpen={() => loadLazySection('attivita')}>
-            <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
-            <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento attività...</p> : null}{data.activities.map((activity) => <ActivityRow activity={activity} key={activity.id} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.activities.length ? <p className="iu-empty">Nessuna attività processuale registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per caricare la timeline processuale.</p> : null}</div>
+          <DetailSection id="editor-fascicolo" title="Editor e redazione" icon={<Edit3 size={17}/>} defaultOpen={activeHashSection === 'editor-fascicolo'} onOpen={() => setEditorVisited(true)}>
+            <nav className="iu-fas-toolbar iu-fas-azioni" aria-label="Scrittura nel fascicolo">
+              <Button href={`/editor-professionale?fascicolo=${encodeURIComponent(f.id || id)}`}><Edit3 size={15}/> Modifica documenti e versioni</Button>
+              <Button href="#documenti"><BookOpen size={15}/> Consulta le fonti</Button>
+              {f.clientId ? <Button href={`/clienti/${encodeURIComponent(f.clientId)}/modifica?id_fascicolo=${encodeURIComponent(f.id || id)}`}><UserRound size={15}/> Anagrafica da documento</Button> : null}
+            </nav>
+            {editorVisited ? <Suspense fallback={<LoadingState title="Caricamento redazione" message="Preparazione dell’editor del fascicolo in corso."/>}>
+              <FascicoloRedazioneWizard initialMatter={{ id: f.id || id, numero: f.ref, titolo: f.title, clienteId: f.clientId }}/>
+            </Suspense> : null}
           </DetailSection>
-          <DetailSection id="eventi-tecnici" title="Eventi tecnici e acquisizioni" icon={<RefreshCw size={17}/>} count={data.quickCounts.eventi_tecnici || 0} defaultOpen={activeHashSection === 'eventi-tecnici'} onOpen={() => loadLazySection('attivita')}>
-            <p className="iu-fas-section-intro">Registrazioni delle acquisizioni disponibili nel fascicolo, separate dalle attività processuali. Ogni voce indica cosa è stato effettivamente acquisito.</p>
-            <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento eventi tecnici...</p> : null}{data.technicalEvents.map((activity) => <ActivityRow activity={activity} key={`technical-${activity.id}`} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.technicalEvents.length ? <p className="iu-empty">Non è disponibile una registrazione dell'acquisizione. Questo non significa che il fascicolo sia privo di documenti: puoi consultarli in Documenti e atti.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per leggere le acquisizioni registrate.</p> : null}</div>
-          </DetailSection>
-          <DetailSection id="mediazione" title="Mediazione" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'mediazione'} onOpen={() => setMediazioneVisited(true)}>
-            {mediazioneVisited ? <Suspense fallback={<LoadingState title="Caricamento mediazione" message="Preparazione della sezione richiesta in corso."/>}><MediazioneFascicolo key={f.id || id} id={f.id || id} preview={setPreviewDoc} onDocuments={refreshDocuments}/></Suspense> : null}
-          </DetailSection>
-          <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => { loadLazySection('scadenze'); loadLazySection('documenti') }}>
-            {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
-            {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
-          <DocumentPresidioPanel data={data} fascicoloId={f.id} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} onDone={refreshDocuments} onError={failDetail}/>
-            <AgendaFascicolo fascicoloId={f.id} scadenze={data.deadlines} appuntamenti={data.appointments} caricato={lazyStatus.scadenze === 'loaded'}/>
-          </DetailSection>
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-comunicazioni">
           <DetailSection id="comunicazioni-notifica" title="Comunicazioni, PEC e notifica" icon={<Mail size={17}/>} count={displayedCommunicationTotal + notificationRelataCount} defaultOpen={shouldAutoOpenCommunications} onOpen={() => { loadLazySection('depositi'); loadLazySection('documenti'); loadLazySection('relata') }}>
             <span id="cancelleria" className="iu-fas-anchor-alias" aria-hidden="true"/>
             <span id="relata-notifica" className="iu-fas-anchor-alias" aria-hidden="true"/>
@@ -10398,20 +10445,60 @@ function DetailPage({ id }:{id:string}) {
               </div>
             </div>
           </DetailSection>
-          <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong>{item.from && item.to ? <span>{item.from} → {item.to}</span> : null}<p>{item.notes}</p></article>)}{!data.history.length ? <div className="iu-fas-empty-action"><Badge tone="neutral">Nessun evento</Badge><strong>Nessun avanzamento registrato.</strong><p>Registra l'attività o una scadenza effettiva: lo storico del fascicolo verrà aggiornato con data, autore ed esito.</p><div><a href="#attivita" onClick={openSection('attivita', 'attivita')}><ListChecks size={14}/> Registra attività processuale</a><a href="#udienze" onClick={openSection('udienze', 'scadenze')}><CalendarDays size={14}/> Registra udienza o termine</a></div></div> : null}</div></DetailSection>
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-economia">
+          <DetailSection id="conto-economico" title="Conto economico" icon={<Calculator size={17}/>} defaultOpen={activeHashSection === 'conto-economico'} onToggle={setContoOpen}>
+            <ContoEconomicoPanel active={contoOpen} fascicoloId={f.id || id}/>
+          </DetailSection>
+          <PresidioEconomicoSection
+            data={data}
+            onOpen={() => loadLazySection('regia')}
+            onOpenEconomicControl={() => setEconomicControlOpen(true)}
+            onCalculateContribution={() => setContributoModalOpen(true)}
+            defaultOpen={activeHashSection === 'presidio-economico' || activeHashSection === 'economia' || activeHashSection === 'workflow' || activeHashSection === 'sentenze-economiche'}
+            loading={lazyStatus.regia === 'loading'}
+          />
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-deposito" apriQuando={depositoSezione.apri} evidenza={depositoSezione.evidenza} avviso={depositoSezione.avviso}>
+          <RegiaOperativaSection
+            data={data}
+            onDone={refreshDetail}
+            onError={failDetail}
+            onOpen={() => loadLazySection('regia')}
+            defaultOpen={activeHashSection === 'presidio-fascicolo' || activeHashSection === 'cabina-regia' || activeHashSection === 'regia-operativa'}
+            loading={lazyStatus.regia === 'loading'}
+          />
+          {f.type === 'penale' ? (
+            <DetailSection id="penale-pdp" title="Deposito penale (PDP)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'penale-pdp'} onOpen={() => setPenaleVisited(true)}>
+              {penaleVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito penale" message="Preparazione della sezione richiesta in corso."/>}><PenalePdpSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
+            </DetailSection>
+          ) : null}
+          {f.type === 'amministrativo' ? (
+            <DetailSection id="pat-formweb" title="Deposito amministrativo (PAT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'pat-formweb'} onOpen={() => setPatVisited(true)}>
+              {patVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito amministrativo" message="Preparazione della sezione richiesta in corso."/>}><PatFormwebSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()} onPreview={setPreviewDoc}/></Suspense> : null}
+            </DetailSection>
+          ) : null}
+          {f.type === 'tributario' ? (
+            <DetailSection id="ptt-sigit" title="Deposito tributario (PTT)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'ptt-sigit'} onOpen={() => setPttVisited(true)}>
+              {pttVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito tributario" message="Preparazione della sezione richiesta in corso."/>}><PttSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
+            </DetailSection>
+          ) : null}
+          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
+        </SezioneFascicolo>
+        <SezioneFascicolo id="sezione-registro" apriQuando={false} avviso={`${auditNavigation.label} · eventi tecnici, conservazione, gestione e controlli`}>
+          <ControlliFascicoloSection data={data} returnHref={detailReturnHref} defaultOpen={activeHashSection === 'controlli-fascicolo' || activeHashSection === 'conformita' || activeHashSection === 'presidio-conformita'}/>
           <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle} onOpen={() => loadLazySection('audit')} onOpenDocuments={openSection('documenti', 'documenti')} onPreview={setPreviewDoc} loading={lazyStatus.audit === 'loading'} loadState={lazyStatus.audit} defaultOpen={activeHashSection === 'audit'}/>
-        </div>
-        <aside className="iu-fas-detail-side">
+          <DetailSection id="eventi-tecnici" title="Eventi tecnici e acquisizioni" icon={<RefreshCw size={17}/>} count={data.quickCounts.eventi_tecnici || 0} defaultOpen={activeHashSection === 'eventi-tecnici'} onOpen={() => loadLazySection('attivita')}>
+            <p className="iu-fas-section-intro">Registrazioni delle acquisizioni disponibili nel fascicolo, separate dalle attività processuali. Ogni voce indica cosa è stato effettivamente acquisito.</p>
+            <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento eventi tecnici...</p> : null}{data.technicalEvents.map((activity) => <ActivityRow activity={activity} key={`technical-${activity.id}`} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.technicalEvents.length ? <p className="iu-empty">Non è disponibile una registrazione dell'acquisizione. Questo non significa che il fascicolo sia privo di documenti: puoi consultarli in Documenti e atti.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per leggere le acquisizioni registrate.</p> : null}</div>
+          </DetailSection>
+          <DetailSection id="conservazione" title="Conservazione a norma" icon={<Archive size={17}/>} defaultOpen={activeHashSection === 'conservazione'}><Suspense fallback={<p className="iu-empty">Caricamento…</p>}><ConservazionePanel fascicoloId={f.id}/></Suspense></DetailSection>
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>} defaultOpen={activeHashSection === 'gestione'}>
             <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={statoSelezionabile(f.status)}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
             <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction>{exportPdfHref ? <a className="iu-fas-side-link" href={exportPdfHref}><FileDown size={15}/> PDF fascicolo</a> : <button className="iu-fas-side-link is-disabled" type="button" disabled title="PDF fascicolo non disponibile"><FileDown size={15}/> PDF fascicolo</button>}<PagoPaActionButton variant="side" onClick={openPagoPaModal}/>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
-          <DetailSection id="ctu" title="CTU e perizie" icon={<Gavel size={17}/>} defaultOpen={activeHashSection === 'ctu'} onToggle={setCtuVisible}><Suspense fallback={<LoadingState title="Caricamento incarichi CTU" message="Preparazione della sezione richiesta in corso."/>}><CtuSection key={f.id} fascicoloId={f.id} active={ctuVisible}/></Suspense></DetailSection>
-          <DetailSection id="conservazione" title="Conservazione a norma" icon={<Archive size={17}/>} defaultOpen={activeHashSection === 'conservazione'}><Suspense fallback={<p className="iu-empty">Caricamento…</p>}><ConservazionePanel fascicoloId={f.id}/></Suspense></DetailSection>
-          <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><RegistroSyncButton fascicoloId={f.id} lastSyncAt={f.lastSyncAt}/><RegistroCancelleriaPanel fascicoloId={f.id}/><RegistroRgSearch fascicoloId={f.id}/><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
-          <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <><KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/><a className="iu-fas-inline-link" href={data.client.href}><Edit3 size={14}/> Apri e modifica anagrafica cliente</a></> : <><p className="iu-empty">Cliente non collegato.</p><a className="iu-fas-inline-link" href={f.editHref}><Edit3 size={14}/> Collega un cliente al fascicolo</a></>}</DetailSection>
-          <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length} defaultOpen={activeHashSection === 'soggetti'}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length && !partiLetteDaRegistrare(f.sourceSnapshot, data.parties).length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><PartiLetteDalPortale nomi={partiLetteDaRegistrare(f.sourceSnapshot, data.parties)}/><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
-        </aside>
+        </SezioneFascicolo>
+        </div>
         </div>
       </section>
       <FascicoloContextMenu

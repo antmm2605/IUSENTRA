@@ -526,6 +526,13 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
             "interval", interval_minutes=30, built_in=True,
         ),
         SchedulerTemplate(
+            "gazzetta_ufficiale_sommari", "Gazzetta Ufficiale: sommari delle sei serie", "Aggiornamenti legali",
+            "Ogni ora legge l'elenco ufficiale degli ultimi 30 giorni di Serie generale, Corte costituzionale, Unione "
+            "europea, Regioni, Concorsi ed esami e Contratti pubblici e archivia i sommari dei fascicoli nuovi, con "
+            "l'indirizzo ufficiale di ogni atto. Una serie non raggiungibile non ferma le altre.",
+            "cron", "", "25", built_in=True,
+        ),
+        SchedulerTemplate(
             "legal_updates_batch",
             "Aggiornamenti legali fonti verdi",
             "Aggiornamenti legali",
@@ -2183,6 +2190,21 @@ def _run_dynamic_job(app, repository: SchedulerRegistryRepository, job: dict[str
         raise
 
 
+def _allinea_lavoro_integrato(scheduler, existing, job_id: str, trigger) -> None:
+    """Porta un lavoro integrato sull'orario del registro senza spostarne il prossimo giro se l'orario è lo stesso.
+
+    `apply_scheduler_registry` gira ogni 5 minuti. Prima ripianificava ogni volta tutti i lavori integrati: per un
+    lavoro «a intervallo» `reschedule_job` fa ripartire il conto da adesso, quindi un lavoro ogni 30 o 60 minuti
+    (Notizie utili, alimentazione della giurisprudenza) veniva rimandato di continuo e non partiva mai
+    (verifica del 10/11/2026: nessuna esecuzione registrata per `notiziario_fonti_ufficiali`, archivio mai creato).
+    Ora si ripianifica solo se l'orario del registro è diverso da quello in uso, e si riprende solo un lavoro in pausa.
+    """
+    if str(getattr(existing, "trigger", "")) != str(trigger):
+        scheduler.reschedule_job(job_id, trigger=trigger)
+    if getattr(existing, "next_run_time", True) is None:
+        scheduler.resume_job(job_id)
+
+
 def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryRepository | None = None) -> dict[str, int]:
     repo = repository or scheduler_registry_repository(app.config)
     repo.upsert_default_jobs(app.config)
@@ -2208,8 +2230,7 @@ def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryReposi
                 continue
             if trigger is not None:
                 try:
-                    scheduler.reschedule_job(job_id, trigger=trigger)
-                    scheduler.resume_job(job_id)
+                    _allinea_lavoro_integrato(scheduler, existing, job_id, trigger)
                 except Exception:
                     pass
             repo.update_applied_signature(job_id, signature)

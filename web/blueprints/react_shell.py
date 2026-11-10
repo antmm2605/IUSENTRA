@@ -168,6 +168,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/portale-cliente", "src/components/ClientPortalPage.tsx"),
     ("/ricerca-legale/schede-atti", "src/components/SchedeFontiPage.tsx"),
     ("/ricerca-legale/codici", "src/components/CodiciLeggiPage.tsx"),
+    ("/ricerca-legale/gazzetta-ufficiale", "src/components/GazzettaUfficialePage.tsx"),
     ("/ricerca-legale", "src/components/LegalIntelligencePage.tsx"),
     ("/giurisprudenza", "src/components/GiurisprudenzaPage.tsx"),
     ("/strumenti-legali", "src/components/StrumentiLegaliPage.tsx"),
@@ -660,6 +661,7 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/ricerca-legale/") and lower not in {
         "/ricerca-legale/codici",
+        "/ricerca-legale/gazzetta-ufficiale",
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",
         "/ricerca-legale/ricerca",

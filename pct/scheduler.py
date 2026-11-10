@@ -815,7 +815,11 @@ def start_scheduler(app):
         from pct.legal_intelligence import official_telematic_source_ids
         _run_legal_monitor(list(official_telematic_source_ids()), "telematico")
 
-    @scheduler.scheduled_job("interval", minutes=30, id="notiziario_fonti_ufficiali", max_instances=1, coalesce=True)
+    # misfire_grace_time ampio: il lavoro sta nella corsia lunga e, se la corsia è occupata, deve aspettare
+    # il suo turno invece di essere «saltato» dopo 5 minuti.
+    @scheduler.scheduled_job(
+        "interval", minutes=30, id="notiziario_fonti_ufficiali", max_instances=1, coalesce=True, misfire_grace_time=1500,
+    )
     def _notiziario_fonti_ufficiali():
         # Notizie utili: solo le fonti scadute secondo la loro frequenza (pct/notiziario/fonti.py).
         from pct.notiziario.pianificazione import esegui_da_pianificazione
@@ -832,6 +836,28 @@ def start_scheduler(app):
                 return esito
             except Exception as e:
                 logger.error("[scheduler] Notizie utili non aggiornate: %s", e)
+                return {"ok": False, "status": "errore", "error": str(e)}
+
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute=25), id="gazzetta_ufficiale_sommari", max_instances=1, coalesce=True,
+        misfire_grace_time=3000,
+    )
+    def _gazzetta_ufficiale_sommari():
+        # Gazzetta Ufficiale: sommari ufficiali dei fascicoli nuovi delle sei serie (pct/gazzetta/).
+        from pct.gazzetta.pianificazione import esegui_da_pianificazione
+
+        with app.app_context():
+            try:
+                esito = esegui_da_pianificazione(app.config)
+                logger.info(
+                    "[scheduler] Gazzetta Ufficiale: %d fascicoli nuovi, %d atti, serie non raggiungibili: %s",
+                    int(esito.get("fascicoli_nuovi") or 0),
+                    int(esito.get("atti_nuovi") or 0),
+                    ", ".join(esito.get("serie_non_raggiungibili") or []) or "nessuna",
+                )
+                return esito
+            except Exception as e:
+                logger.error("[scheduler] Gazzetta Ufficiale non aggiornata: %s", e)
                 return {"ok": False, "status": "errore", "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=6, minute=5), id="legal_sources_daily_check", max_instances=1, coalesce=True)

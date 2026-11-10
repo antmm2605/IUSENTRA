@@ -125,6 +125,7 @@ _REACT_EXACT = {
     "/registro-attivita",
     "/ricerca-legale",
     "/ricerca-legale/codici",
+    "/ricerca-legale/gazzetta-ufficiale",
     "/ricerca-legale/mediazione",
     "/ricerca-legale/news",
     "/ricerca-legale/ricerca",
@@ -466,6 +467,7 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/ricerca-legale/") and lower not in {
         "/ricerca-legale/codici",
+        "/ricerca-legale/gazzetta-ufficiale",
         "/ricerca-legale/mediazione",
         "/ricerca-legale/news",
         "/ricerca-legale/ricerca",
@@ -594,9 +596,9 @@ def register_react_route_gate(app: Flask) -> None:
     def _react_route_gate():
         if request.method != "GET" or not _accepts_html():
             return None
-        # Questa pagina nasce in React e non ha un corrispettivo Jinja.
+        # Queste pagine nascono in React e non hanno un corrispettivo Jinja.
         # Le finestre storiche possono aggiungere _legacy: non deve provocare un 404.
-        solo_react = _normalise_path(request.path).lower() == "/ricerca-legale/schede-atti"
+        solo_react = _normalise_path(request.path).lower() in {"/ricerca-legale/schede-atti", "/ricerca-legale/gazzetta-ufficiale"}
         if _legacy_requested() and not solo_react:
             return None
         raw_lower = (request.path or "/").lower()

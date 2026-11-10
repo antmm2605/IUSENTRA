@@ -94,6 +94,8 @@
     "frontend/src/components/FascicoliPage.css",
     "frontend/src/components/FascicoloSearchSelect.css",
     "frontend/src/components/FatturazionePage.css",
+    "frontend/src/components/GazzettaUfficialePage.css",
+    "frontend/src/components/GazzettaUltime.css",
     "frontend/src/components/GiurisprudenzaPage.css",
     "frontend/src/components/GuidaPraticaSidebar.css",
     "frontend/src/components/IncassiPagamentiPage.css",

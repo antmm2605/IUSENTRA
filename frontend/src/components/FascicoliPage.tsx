@@ -1,4 +1,5 @@
 import { ErrorState } from '../ui/ErrorState'
+import { CampoData } from '../ui/CampoData'
 import { Button as ActionButton, ButtonLink as ActionButtonLink } from '../ui/Button'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { LoadingState } from '../ui/LoadingState'
@@ -2643,7 +2644,7 @@ function EconomicPaymentCell({ row, kind, onSaved, onError, onDraftChange, onSou
       </label>
       <label>
         <span>Data</span>
-        <input value={date} onChange={(event) => setDate(event.target.value)} type="date" aria-label={`${paymentLabel} - data`}/>
+        <CampoData value={date} onChange={setDate} aria-label={`${paymentLabel} - data`}/>
       </label>
       <button type="submit" disabled={saving || !dirty} title="Salva aggiornamento economico" aria-label={`Salva ${paymentLabel} per ${row.ref}`}>
         {saving ? <RefreshCw size={14}/> : <Save size={14}/>}
@@ -4319,7 +4320,7 @@ function Field({ label, name, defaultValue = '', type = 'text', required = false
   return (
     <label className="iu-fas-field">
       <span>{label}{required ? <b>*</b> : null}</span>
-      {children || <input type={type} name={name} defaultValue={value} required={required} readOnly={readOnly} placeholder={placeholder} step={step} min={min} inputMode={inputMode}/>}
+      {children || (type === 'date' ? <CampoData name={name} defaultValue={value} required={required} readOnly={readOnly} min={min === undefined ? undefined : String(min)}/> : <input type={type} name={name} defaultValue={value} required={required} readOnly={readOnly} placeholder={placeholder} step={step} min={min} inputMode={inputMode}/>)}
     </label>
   )
 }
@@ -6672,7 +6673,7 @@ function EconomicControlModal({
                 }} />
               </Suspense> : <>
               <label>Importo ricevuto (€)<input type="text" inputMode="decimal" readOnly={selectedPaidIncome || bonificoOptionsLoading || !bonificoOptionsReady} value={bonifico.importo} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, importo: value })) }} placeholder="es. 4500,00"/></label>
-              <label>Data del bonifico<input type="date" readOnly={selectedPaidIncome || bonificoOptionsLoading || !bonificoOptionsReady} value={bonifico.data} max={oggiIso} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, data: value })) }}/></label>
+              <label>Data del bonifico<CampoData readOnly={selectedPaidIncome || bonificoOptionsLoading || !bonificoOptionsReady} value={bonifico.data} max={oggiIso} aria-label="Data del bonifico" onChange={(value) => { setBonifico((current) => ({ ...current, data: value })) }}/></label>
               <label>Nota (facoltativa)<input type="text" value={bonifico.note} maxLength={400} onChange={(event) => { const value = event.currentTarget.value; setBonifico((current) => ({ ...current, note: value })) }} placeholder="es. banca, causale"/></label>
               </>}
             </div>
@@ -8307,7 +8308,7 @@ function DocumentUploadWorkspace({
         </label>
         <label className="iu-fas-field">
           <span>Data documento</span>
-          <input type="date" name="data_documento"/>
+          <CampoData name="data_documento"/>
         </label>
         <label className="iu-fas-field">
           <span>Etichette</span>
@@ -10320,7 +10321,7 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
           <DetailSection id="attivita" title="Cronologia della pratica" icon={<ListChecks size={17}/>} count={(data.quickCounts.attivita || 0) + data.history.length} defaultOpen={activeHashSection === 'attivita' || activeHashSection === 'avanzamento'} onOpen={() => loadLazySection('attivita')}>
             <p className="iu-fas-section-intro">Attività processuali e avanzamento della pratica in un solo elenco: prima le attività, poi i cambi di stato registrati.</p>
-            <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
+            <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><CampoData name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
             <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento attività...</p> : null}{data.activities.map((activity) => <ActivityRow activity={activity} key={activity.id} onPreview={setPreviewDoc}/>)}{lazyStatus.attivita === 'loaded' && !data.activities.length ? <p className="iu-empty">Nessuna attività processuale registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per caricare la timeline processuale.</p> : null}</div>
             <section className="iu-fas-cronologia-stati" aria-labelledby="cronologia-stati-titolo">
               <span id="avanzamento" className="iu-fas-anchor-alias" aria-hidden="true"/>

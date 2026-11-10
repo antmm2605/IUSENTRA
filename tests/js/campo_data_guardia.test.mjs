@@ -8,11 +8,9 @@ import { test } from 'node:test'
 
 const radice = resolve(import.meta.dirname, '../../frontend/src')
 
-// Eccezioni dichiarate. FascicoliPage.tsx: in riorganizzazione da un altro lavoro,
-// le sue date si sistemano subito dopo; togliere la riga quando è convertito.
+// Eccezione dichiarata: il componente stesso.
 const ECCEZIONI = new Set([
   'ui/CampoData.tsx',
-  'components/FascicoliPage.tsx',
 ])
 
 function sorgenti(cartella, uscita = []) {

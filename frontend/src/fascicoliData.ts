@@ -1914,7 +1914,7 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     customText1: text(item.customText1 ?? item.testo_personalizzabile_1),
     customText2: text(item.customText2 ?? item.testo_personalizzabile_2),
     groupName: text(item.groupName ?? item.nome_gruppo),
-    caseValue: number(item.value ?? item.valore_causa),
+    caseValue: number(item.valueRaw ?? item.valore_causa ?? item.value),
     rg,
     rgNumber: number(item.rgNumber ?? item.rg_number ?? item.numeroRg ?? item.numero_rg),
     rgYear: number(item.rgYear ?? item.rg_year ?? item.annoRg ?? item.anno_rg),

@@ -107,6 +107,20 @@ export function useQuadroFascicolo(fascicoloId: string): { lettura: QuadroLettur
     return () => controller.abort()
   }, [fascicoloId, tentativo])
   const riprova = useCallback(() => setTentativo((n) => n + 1), [])
+  // Obblighi di notifica non ancora calcolati: si calcolano una volta in sfondo (l'endpoint salva la sintesi)
+  // e poi si rilegge il quadro, così la riga dice lo stato vero invece di «da calcolare».
+  const [notificheCalcolate, setNotificheCalcolate] = useState('')
+  useEffect(() => {
+    if (lettura.fase !== 'pronto' || notificheCalcolate === fascicoloId) return undefined
+    const daCalcolare = lettura.dati.righe.some((riga) => riga.tema === 'notifiche' && /da calcolare/i.test(riga.testo))
+    if (!daCalcolare) return undefined
+    setNotificheCalcolate(fascicoloId)
+    const controller = new AbortController()
+    ensureJson<unknown>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/obblighi-notifica`, { signal: controller.signal, activity: false })
+      .then(() => { if (!controller.signal.aborted) setTentativo((n) => n + 1) })
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [lettura, fascicoloId, notificheCalcolate])
   return { lettura, riprova }
 }
 

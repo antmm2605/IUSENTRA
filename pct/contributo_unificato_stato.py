@@ -86,7 +86,10 @@ def e_fonte_del_contributo(fonte: Mapping[str, Any]) -> bool:
     if campo in _CAMPI_RICEVUTA:
         return True
     if campo == "esenzione_cu_dichiarata":
-        return tipo_dichiarazione(fonte) in _DICHIARAZIONI_FONTE
+        # Si esclude solo il richiamo dell'esenzione dentro un atto (ricorso, notifica): una dichiarazione il cui tipo
+        # non è stato letto (es. riconosciuta dal nome del documento, senza OCR) resta una fonte da aprire.
+        tipo = tipo_dichiarazione(fonte)
+        return tipo in _DICHIARAZIONI_FONTE or tipo != "richiamo_nell_atto"
     return False
 
 

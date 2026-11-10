@@ -8,6 +8,7 @@ import { useReaderDrag } from './useReaderDrag'
 import { OPERATIONAL_REFRESH_RETRY, useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { coversRevisionProof, type OperationalRevisions } from '../operationalRevisionProof'
 import { EconomicVerificationPanel } from './EconomicVerificationPanel'
+import { SourceDocumentModal } from './SourceDocumentModal'
 import { EconomicSourceWindow } from './EconomicSourceWindow'
 import { OperationalModal } from './OperationalModal'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
@@ -2389,7 +2390,8 @@ function visibleDocumentSource(value?: string): string {
 function economicEvidenceLabel(kind: FascicoloPaymentKind, payment: FascicoloPaymentItem): string {
   const amount = payment.importoLabel
   if (kind === 'contributo_unificato') {
-    if (payment.status === 'non_previsto') return 'Contributo non dovuto o esente'
+    if (payment.statoContributo?.etichetta) return payment.statoContributo.importoLabel ? `${payment.statoContributo.etichetta}: ${payment.statoContributo.importoLabel}` : payment.statoContributo.etichetta
+    if (payment.status === 'non_previsto') return payment.statusLabel || 'Contributo da verificare'
     if (payment.status === 'pagato') return amount ? `Contributo pagato: ${amount}` : 'Contributo pagato'
     if (payment.status === 'parziale') return amount ? `Contributo parziale: ${amount}` : 'Contributo parziale'
     return amount ? `Contributo da registrare: ${amount}` : 'Contributo da verificare'
@@ -6373,6 +6375,7 @@ function EconomicControlModal({
   const oggiIso = formatDateInputIt(new Date())
   const [editing, setEditing] = useState(false)
   const [bonificoOpen, setBonificoOpen] = useState(false)
+  const [contributoSource, setContributoSource] = useState<{ href: string; label: string; context: string } | null>(null)
   const [economicSourceOpen, setEconomicSourceOpen] = useState(false)
   const [bonificoBusy, setBonificoBusy] = useState(false)
   const [bonificoOptionsLoading, setBonificoOptionsLoading] = useState(false)
@@ -6521,23 +6524,23 @@ function EconomicControlModal({
   const proformaEditorMessage = proformaNeedsConfirmation
     ? 'Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma.'
     : proformaMessage
-  const contributionStatusLabel = contribution.status === 'non_previsto'
-    ? 'Contributo non dovuto o esente'
-    : contribution.statusLabel
-  const receiptStatus = contribution.status === 'pagato'
-    ? 'Ricevuta presente'
-    : contribution.status === 'non_previsto'
-      ? contribution.documentoFonte ? 'Esenzione verificata' : 'Non prevista'
-      : contribution.documentoFonte ? 'Fonte da verificare' : 'Da allegare'
-  const rows = [
-    { ...economicControlPaymentRow(contribution, 'Contributo'), status: contributionStatusLabel },
+  // Stato unico del contributo unificato (pct/contributo_unificato_stato.py): stessa etichetta di card,
+  // conto economico e quadro; la fonte è solo il documento che decide lo stato (art. 13 e art. 9 c. 1-bis D.P.R. 115/2002).
+  const statoContributo = contribution.statoContributo || null
+  const contributionStatusLabel = statoContributo?.etichetta || contribution.statusLabel
+  const contributionTone = statoContributo?.tono || contribution.tone
+  const contributionDocument = statoContributo?.documento || null
+  const contributionNote = [statoContributo?.norma, statoContributo?.dettaglio].filter(Boolean).join(' · ')
+  const rows: Array<{ key: string; label: string; value: string; status: string; tone: string; note: string; source?: { href: string; label: string } }> = [
+    { ...economicControlPaymentRow(contribution, 'Contributo'), value: statoContributo?.importoLabel || paymentValueLabel(contribution, 'n.d.'), status: contributionStatusLabel, tone: contributionTone, note: contributionNote || paymentNote(contribution) || 'Stato del contributo da verificare.' },
     {
       key: 'ricevuta_pagopa',
       label: 'Fonte del contributo',
-      value: cleanDisplayText(contribution.documentoFonte) || 'n.d.',
-      status: receiptStatus,
-      tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning',
-      note: contribution.origine || contribution.note || 'Collega ricevuta PagoPA, F23/F24 o documento di esenzione quando disponibile.',
+      value: contributionDocument?.nome || 'Nessun documento collegato',
+      status: contributionDocument ? (statoContributo?.confermato ? 'Fonte collegata' : 'Fonte da confermare') : 'Da allegare',
+      tone: contributionDocument ? (statoContributo?.confermato ? 'success' : 'warning') : 'warning',
+      note: contributionDocument ? 'Documento che decide lo stato del contributo: aprilo per verificarlo.' : 'Collega la ricevuta pagoPA/F23, la nota di iscrizione a ruolo che lo riporta o l’autocertificazione di esenzione.',
+      source: contributionDocument?.href ? { href: contributionDocument.href, label: contributionDocument.nome } : undefined,
     },
     ...registroContributoRows(summary.registroContributo),
     economicControlPaymentRow(expenses, 'Spese/esborsi'),
@@ -6557,8 +6560,8 @@ function EconomicControlModal({
   const caseDate = italianDateOrRaw(f.sourceSnapshot.dataIscrizione || f.openedAt || f.dataAperturaIso)
   const objectLabel = fascicoloOggettoRicorso(f)
   const chips = [
-    { label: contributionStatusLabel, tone: contribution.status === 'non_previsto' ? 'neutral' : contribution.tone },
-    { label: 'Fonte del contributo', tone: contribution.status === 'pagato' ? 'success' : contribution.status === 'non_previsto' ? 'neutral' : 'warning' },
+    { label: contributionStatusLabel, tone: contributionTone },
+    { label: contributionDocument ? 'Fonte del contributo collegata' : 'Fonte del contributo da allegare', tone: contributionDocument ? (statoContributo?.confermato ? 'success' : 'warning') : 'warning' },
     { label: (items.parcella.previsto && items.parcella.status === 'da_emettere') || summary.parcelleDaEmettere ? 'Parcella da emettere' : items.parcella.statusLabel, tone: items.parcella.tone },
     { label: proformaStatus, tone: proformaNeedsConfirmation ? 'warning' : summary.proformaPresidio.tone },
   ]
@@ -6606,12 +6609,14 @@ function EconomicControlModal({
                     <span>{row.label}</span>
                     <strong>{row.value}</strong>
                     <small>{row.note}</small>
+                    {row.source ? <button type="button" className="iu-fas-inline-link" onClick={() => setContributoSource({ href: row.source?.href || '', label: row.source?.label || 'Fonte del contributo', context: 'Fonte del contributo unificato' })}><Eye size={14}/> Apri fonte</button> : null}
                   </div>
                   <Badge tone={row.tone as FascicoloRow['tone']}>{row.status}</Badge>
                 </article>
               ))}
               {economicPaymentKinds.map((kind) => <EconomicVerificationPanel key={kind} payment={items[kind]} onSourceOpenChange={setEconomicSourceOpen}/>)}
             </section>
+            <SourceDocumentModal source={contributoSource} onClose={() => setContributoSource(null)}/>
             <section className="iu-fas-economic-control-modal__sentenze" aria-label="Evidenze economiche da provvedimenti">
               <header>
                 <div>
@@ -7244,6 +7249,7 @@ function PresidioEconomicoSection({ data, onOpen, onOpenEconomicControl, onCalcu
   const conferimentoHref = recordHref(economics, 'conferimentoHref', `/preventivi/conferimento/nuovo?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
   const sentenzeCount = sentenzeEconomicheCount(data.sentenzeEconomiche)
   const tempo = data.economics.find((item) => item.id === 'tempo')
+  const fatturazioneHref = recordHref(economics, 'fatturazioneHref', `/fatturazione?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)
   return (
     <DetailSection id="presidio-economico" title="Preventivo, conferimento e controlli economici" icon={<WalletCards size={17}/>} defaultOpen={defaultOpen} onOpen={onOpen}>
       <article id="economia" className="iu-fas-regia">
@@ -7267,6 +7273,7 @@ function PresidioEconomicoSection({ data, onOpen, onOpenEconomicControl, onCalcu
         <div className="iu-fas-regia__actions" aria-label="Azioni presidio economico">
           <button type="button" onClick={onOpenEconomicControl}><WalletCards size={15}/> Apri presidio economico</button>
           <button type="button" onClick={onCalculateContribution}><Calculator size={15}/> Calcola contributo unificato</button>
+          <a href={fatturazioneHref}><FileText size={15}/> Parcelle e proforma del fascicolo</a>
         </div>
       </article>
     </DetailSection>
@@ -10640,6 +10647,8 @@ function QuadroPage({ id }:{id:string}) {
   const encodedId = encodeURIComponent(f.id || id)
   const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`
   const detailHref = f.href || `/fascicoli/${encodedId}`
+  // La fatturazione si apre già filtrata sul fascicolo (solo parcelle e proforma della pratica).
+  const fatturazioneHref = recordHref(data.regia.economics, 'fatturazioneHref', `/fatturazione?id_fascicolo=${encodedId}`)
   const exportPdfHref = data.actions.exportPdf || f.exportPdfHref
   const preventivo = workflowFrom(data, /preventiv/i, 'Preventivo')
   const conferimento = workflowFrom(data, /conferiment|incaric/i, 'Conferimento')
@@ -10672,7 +10681,7 @@ function QuadroPage({ id }:{id:string}) {
         <StatCard icon={<FileCheck2 size={19}/>} label="Da firmare" value={unsignedDocuments} note="firma / verifica" tone={unsignedDocuments ? 'warning' : 'success'} href={`${detailHref}#documenti`}/>
         <StatCard icon={<Send size={19}/>} label="Cancelleria" value={data.deposits.length} note={data.deposits[0]?.status || 'nessuna PEC'} tone="purple" href={`${detailHref}#cancelleria`}/>
         <StatCard icon={<Clock3 size={19}/>} label="Scadenze aperte" value={data.deadlines.length + data.appointments.length} note={nextDeadline?.date || nextAppointment?.date || 'nessuna data'} tone="info" href={`${detailHref}#udienze`}/>
-        <StatCard icon={<WalletCards size={19}/>} label="Parcelle" value={parcelle} note={`valore ${valore}`} tone="orange" href="/fatturazione/"/>
+        <StatCard icon={<WalletCards size={19}/>} label="Parcelle" value={parcelle} note={`valore ${valore}`} tone="orange" href={fatturazioneHref}/>
         <StatCard icon={<ShieldCheck size={19}/>} label="Conformità" value={qualityStatus} note={qualityIssues ? 'da verificare' : 'nessun blocco critico'} tone={qualityIssues ? 'warning' : 'success'} href="#conformita"/>
       </section>
       <section className="iu-fas-quadro-client">
@@ -10682,7 +10691,7 @@ function QuadroPage({ id }:{id:string}) {
         <QuadroAxis id="commerciale" title="Commerciale" icon={<BriefcaseBusiness size={18}/>} status={conferimento.value !== 'Non collegato' && conferimento.value !== '0' ? 'Conferito' : preventivo.value !== 'Non collegato' && preventivo.value !== '0' ? 'Da conferire' : 'Da creare'} tone={conferimento.value !== 'Non collegato' && conferimento.value !== '0' ? 'success' : 'warning'} actionHref="/preventivi/" actionLabel="Gestisci preventivi e incarichi"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Preventivo" value={preventivo.value} note={preventivo.note} tone={preventivo.tone} href={preventivo.href} actionLabel="Crea o apri preventivo"/><QuadroMiniCard label="Conferimento" value={conferimento.value} note={conferimento.note} tone={conferimento.tone} href={conferimento.href} actionLabel="Collega incarico"/><QuadroMiniCard label="Compenso" value={compenso} note="dato contrattuale del fascicolo" tone="purple" href="/preventivi/" actionLabel="Gestisci compenso"/></div></QuadroAxis>
         <QuadroAxis id="operativo" title="Operativo" icon={<ClipboardCheck size={18}/>} status={formatFascicoloStatus(f.status)} tone={f.tone} actionHref={`${detailHref}#gestione`} actionLabel="Aggiorna stato e avanzamento"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Stato" value={formatFascicoloStatus(f.status)} note={f.nextDeadline || 'nessuna prossima scadenza'} tone={f.tone} href={`${detailHref}#gestione`} actionLabel="Apri gestione"/><QuadroMiniCard label="Udienze / scadenze" value={data.deadlines.length + data.appointments.length} note={nextDeadline?.title || nextAppointment?.title || 'nessun evento registrato'} tone="info" href={`${detailHref}#udienze`} actionLabel="Registra o verifica"/><QuadroMiniCard label="Cancelleria" value={data.deposits.length} note={data.deposits[0]?.status || 'nessuna PEC collegata'} tone="purple" href={`${detailHref}#cancelleria`} actionLabel="Apri comunicazioni"/></div></QuadroAxis>
         <QuadroAxis id="conformita" title="Conformità" icon={<ShieldCheck size={18}/>} status={qualityStatus} tone={qualityIssues ? 'warning' : 'success'} actionHref={`${detailHref}#conformita`} actionLabel="Esamina controlli qualità"><div className="iu-fas-quadro-quality">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}{!data.quality.length ? <p className="iu-empty">Nessuna verifica registrata.</p> : null}</div></QuadroAxis>
-        <QuadroAxis id="economico" title="Contesto economico" icon={<WalletCards size={18}/>} status={parcelle === '€ 0,00' ? 'Da valorizzare' : 'Valorizzato'} tone={parcelle === '€ 0,00' ? 'warning' : 'success'} actionHref={`${detailHref}#economia`} actionLabel="Apri controlli economici"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Valore causa" value={valore} note="profilo fascicolo" tone="primary" href={`${detailHref}#profilo`} actionLabel="Apri profilo"/><QuadroMiniCard label="Parcelle" value={parcelle} note="documenti economici collegati" tone="success" href="/fatturazione/" actionLabel="Apri fatturazione"/>{fatturaPa ? <QuadroMiniCard label={fatturaPa.label} value={fatturaPa.value} note={fatturaPa.note} tone={fatturaPa.tone} href={fatturaPa.href} actionLabel="Genera FatturaPA"/> : null}<QuadroMiniCard label="Tempo" value={tempo} note="voci timesheet valorizzabili" tone="info" href="/timesheet" actionLabel="Apri timesheet"/></div></QuadroAxis>
+        <QuadroAxis id="economico" title="Contesto economico" icon={<WalletCards size={18}/>} status={parcelle === '€ 0,00' ? 'Da valorizzare' : 'Valorizzato'} tone={parcelle === '€ 0,00' ? 'warning' : 'success'} actionHref={`${detailHref}#economia`} actionLabel="Apri controlli economici"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Valore causa" value={valore} note="profilo fascicolo" tone="primary" href={`${detailHref}#profilo`} actionLabel="Apri profilo"/><QuadroMiniCard label="Parcelle" value={parcelle} note="documenti economici collegati" tone="success" href={fatturazioneHref} actionLabel="Apri fatturazione"/>{fatturaPa ? <QuadroMiniCard label={fatturaPa.label} value={fatturaPa.value} note={fatturaPa.note} tone={fatturaPa.tone} href={fatturaPa.href} actionLabel="Genera FatturaPA"/> : null}<QuadroMiniCard label="Tempo" value={tempo} note="voci timesheet valorizzabili" tone="info" href="/timesheet" actionLabel="Apri timesheet"/></div></QuadroAxis>
         <QuadroAxis id="documenti" title="Documenti" icon={<FileText size={18}/>} status={unsignedDocuments ? `${unsignedDocuments} da firmare` : 'Completi'} tone={unsignedDocuments ? 'warning' : 'success'} actionHref={`${detailHref}#documenti`} actionLabel="Apri documenti e controlli"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Nel fascicolo" value={localDocumentCount} note="documenti acquisiti" tone="primary" href={`${detailHref}#documenti`} actionLabel="Apri documenti"/><QuadroMiniCard label="Firmati" value={signedDocuments} note="depositabili / verificati" tone="success" href={`${detailHref}#documenti`} actionLabel="Verifica firme"/><QuadroMiniCard label="Da firmare" value={unsignedDocuments} note="controllo operativo" tone={unsignedDocuments ? 'warning' : 'success'} href={`${detailHref}#documenti`} actionLabel="Apri da firmare"/>{portalDocumentsToAcquire ? <QuadroMiniCard label="Dal portale" value={portalDocumentsToAcquire} note="ancora da acquisire" tone="info" href={`${detailHref}#documenti`} actionLabel="Acquisisci dal portale"/> : null}</div></QuadroAxis>
         <QuadroAxis id="soggetti" title="Soggetti e parti" icon={<UsersRound size={18}/>} status={data.parties.length ? `${data.parties.length} collegati` : 'Da verificare'} tone={data.parties.length ? 'success' : 'warning'} actionHref={`${detailHref}#soggetti`} actionLabel="Apri soggetti e parti"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Totale" value={data.parties.length} note="assistiti, controparti e ruoli" tone={data.parties.length ? 'success' : 'warning'} href={`${detailHref}#soggetti`} actionLabel="Apri soggetti"/><QuadroMiniCard label="Cliente" value={data.client?.name || f.client || 'n.d.'} note="assistito principale" tone="primary" href={data.client?.href || `${detailHref}#profilo`} actionLabel="Apri cliente"/><QuadroMiniCard label="Controparte" value={f.counterparty || 'n.d.'} note="dato fascicolo o parte strutturata" tone={f.counterparty ? 'orange' : 'neutral'} href={`${detailHref}#soggetti`} actionLabel="Verifica controparte"/></div></QuadroAxis>
         <QuadroAxis id="cancelleria" title="Comunicazioni e cancelleria" icon={<Gavel size={18}/>} status={data.deposits.length ? `${data.deposits.length} PEC` : 'Nessuna PEC'} tone={data.deposits.length ? 'purple' : 'neutral'} actionHref={`${detailHref}#cancelleria`} actionLabel="Apri comunicazioni"><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Comunicazioni" value={data.deposits.length} note={data.deposits[0]?.message || 'nessuna PEC collegata'} tone="purple" href={`${detailHref}#cancelleria`} actionLabel="Apri PEC"/><QuadroMiniCard label="Storico" value={data.history.length} note="transizioni e stati fascicolo" tone="info" href={`${detailHref}#avanzamento`} actionLabel="Apri avanzamento"/></div></QuadroAxis>

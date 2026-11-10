@@ -83,3 +83,23 @@ def test_quadro_e_testata_con_stato_unico():
     assert "<Button href=\"#presidio-fascicolo\">" not in sorgente
     testata = (COMPONENTI / "fascicoli" / "TestataFascicolo.tsx").read_text(encoding="utf-8")
     assert testata.count("<Badge") == 1
+
+
+def test_finestra_economica_usa_lo_stato_unico_del_contributo_e_la_sua_fonte():
+    sorgente = (COMPONENTI / "FascicoliPage.tsx").read_text(encoding="utf-8")
+    finestra = sorgente.split("function EconomicControlModal", 1)[1].split("function recordText", 1)[0]
+    assert "contribution.statoContributo" in finestra
+    assert "const contributionStatusLabel = statoContributo?.etichetta || contribution.statusLabel" in finestra
+    assert "[statoContributo?.norma, statoContributo?.dettaglio]" in finestra
+    assert "statoContributo?.documento" in finestra
+    assert "<SourceDocumentModal source={contributoSource}" in finestra
+    # Niente più etichette proprie in concorrenza con lo stato unico.
+    for vecchia in ("Contributo non dovuto o esente", "Esenzione verificata", "'Fonte da verificare'", "contribution.documentoFonte"):
+        assert vecchia not in finestra, vecchia
+
+
+def test_link_alla_fatturazione_filtrati_sul_fascicolo():
+    sorgente = (COMPONENTI / "FascicoliPage.tsx").read_text(encoding="utf-8")
+    assert 'href="/fatturazione/"' not in sorgente
+    assert "recordHref(data.regia.economics, 'fatturazioneHref', `/fatturazione?id_fascicolo=${encodedId}`)" in sorgente
+    assert "recordHref(economics, 'fatturazioneHref', `/fatturazione?id_fascicolo=${encodeURIComponent(data.fascicolo.id)}`)" in sorgente

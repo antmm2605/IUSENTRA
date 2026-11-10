@@ -47,6 +47,12 @@ def test_pagato_letto_dall_archivio_resta_da_confermare():
 
 def test_anticipazione_forfettaria_non_e_contributo():
     stato = stato_contributo({"status": "pagato", "importo": 125, "importiLetti": ["27.00", "98.00"]}, [_RICEVUTA])
+    # € 27 è l'anticipazione forfettaria (art. 30): il contributo è € 98, senza chiedere conferma.
+    assert stato["codice"] == "pagato" and stato["importo"] == 98.0
+
+
+def test_tre_importi_letti_restano_da_confermare():
+    stato = stato_contributo({"status": "pagato", "importo": 125, "importiLetti": ["27.00", "98.00", "43.00"]}, [_RICEVUTA])
     assert stato["codice"] == "pagato_da_confermare" and stato["importo"] is None
     assert "anticipazione forfettaria" in stato["dettaglio"]
 
@@ -98,3 +104,20 @@ def test_verifiche_mostrano_solo_le_fonti_del_contributo():
 def test_fonte_senza_campo_esclusa_solo_se_e_un_richiamo():
     assert e_fonte_del_contributo({"riscontri": ["Autocertificazione reddituale: riscontrare il dichiarante."]})
     assert not e_fonte_del_contributo({"riscontri": ["L'atto richiama l'esenzione; il richiamo non sostituisce l'autocertificazione reddituale."]})
+
+
+def test_anticipazione_forfettaria_non_chiede_conferma():
+    from pct.contributo_unificato_stato import stato_contributo
+    voce = {"status": "pagato", "importo": 27, "importiLetti": [27, 259], "documento_fonte": "ricevuta.pdf"}
+    esito = stato_contributo(voce, [{"etichetta": "Contributo unificato / pagamento", "id": "D1", "nome": "ricevuta.pdf",
+                                     "confermato": True}])
+    assert esito["codice"] == "pagato"
+    assert esito["importo"] == 259.0
+
+
+def test_lettura_certa_dal_contenuto():
+    from pct.document_intelligence.certezza_lettura import lettura_certa
+    assert lettura_certa("proposed", 98)
+    assert lettura_certa("confirmed", 0)
+    assert not lettura_certa("proposed", 80)
+    assert not lettura_certa("review_required", 97)

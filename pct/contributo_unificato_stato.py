@@ -113,14 +113,25 @@ def avviso_importo(voce: Mapping[str, Any]) -> str:
     che non è contributo unificato: indicarla come tale falserebbe il conto e le anticipazioni da recuperare.
     """
     letti = sorted({n for n in (_numero(v) for v in voce.get("importiLetti") or []) if n})
+    if 27.0 in letti and len(letti) == 2:
+        # € 27 non è uno scaglione dell'art. 13 D.P.R. 115/2002: è l'anticipazione dell'art. 30, e l'altro importo è il
+        # contributo. Il dubbio si scioglie da sé, senza chiedere all'avvocato.
+        if not voce.get("richiedeConferma"):
+            return ""
+        contributo = next(n for n in letti if n != 27.0)
+        return (f"Contributo letto {_euro(contributo)} ({_euro(27.0)} è l'anticipazione forfettaria, "
+                f"{NORMA_ANTICIPAZIONE_FORFETTARIA}). " + _AVVISO_LETTURA)
     if len(letti) > 1:
         testo = f"Importi letti nelle ricevute: {', '.join(_euro(n) for n in letti)}"
         if 27.0 in letti:
             testo += f"; {_euro(27.0)} è l'anticipazione forfettaria ({NORMA_ANTICIPAZIONE_FORFETTARIA}), non il contributo unificato"
         return testo + ": confermare sulla ricevuta l'importo del contributo."
     if voce.get("richiedeConferma"):
-        return "Lettura della ricevuta da confermare: aprirla e verificare importo, data e procedimento."
+        return _AVVISO_LETTURA
     return ""
+
+
+_AVVISO_LETTURA = "Lettura della ricevuta incerta (testo non nitido o importo non leggibile): aprirla e verificare importo, data e procedimento."
 
 
 def _documento(d: Mapping[str, Any]) -> dict[str, str]:
@@ -161,14 +172,19 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
         # Ricevuta registrata nella voce (dall'avvocato o dall'archivio delle letture) senza voce di catalogo.
         versamenti = [{**documento_voce, "confermato": manuale}]
     importo = _numero(voce.get("importo"))
+    letti = {n for n in (_numero(v) for v in voce.get("importiLetti") or []) if n}
+    if 27.0 in letti and len(letti) == 2:
+        contributo = next(n for n in letti if n != 27.0)  # l'altro importo è il contributo (vedi avviso_importo)
+        if importo in {None, 27.0, round(contributo + 27.0, 2)}:
+            importo = contributo
     if versamenti:
         fonti = [_documento(d) for d in versamenti]
         da_confermare = avviso_importo(voce)
         if da_confermare or not any(d.get("confermato") for d in versamenti):
             return _esito("pagato_da_confermare", importo=None if da_confermare else importo, norma=NORMA_CU,
                           fonti=fonti, ruolo_fonti="ricevuta di versamento",
-                          dettaglio=da_confermare or "Ricevuta letta e non ancora confermata dall'avvocato: aprirla e "
-                                                    "confermare importo e procedimento.")
+                          dettaglio=da_confermare or "Il documento non è stato riconosciuto con certezza come ricevuta del "
+                                                    "contributo: aprirlo e confermare importo e procedimento.")
         return _esito("pagato", importo=importo, norma=NORMA_CU, fonti=fonti, ruolo_fonti="ricevuta di versamento",
                       dettaglio="" if importo else "Importo da riportare dalla ricevuta.")
     if esenzioni:
@@ -176,7 +192,8 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
         return _esito("esente" if confermata else "esente_da_confermare", importo=None, norma=NORMA_ESENZIONE_CU,
                       fonti=[_documento(d) for d in esenzioni], ruolo_fonti="autocertificazione del reddito",
                       dettaglio="Esenzione per reddito con autocertificazione depositata." if confermata else
-                      "Aprire l'autocertificazione e confermarla (anno di reddito, soglia): il documento non è ancora confermato.")
+                      "Il documento non è stato riconosciuto con certezza come autocertificazione del reddito: aprirlo e "
+                      "confermarlo (anno di reddito, soglia).")
     if stato_voce == "non_previsto" and manuale:
         return _esito("non_dovuto", importo=None, norma="", fonti=[],
                       dettaglio="L'avvocato ha indicato che per questo procedimento il contributo non è dovuto.")

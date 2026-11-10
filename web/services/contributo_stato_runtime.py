@@ -28,6 +28,7 @@ def href_documento(fascicolo_id: str, documento_id: str) -> str:
 
 def documenti_contributo(fascicolo: Any) -> list[dict[str, Any]]:
     """Le voci del catalogo sul contributo unificato, solo per i documenti presenti nel fascicolo."""
+    from pct.document_intelligence.certezza_lettura import lettura_certa
     from web.services.document_intelligence_runtime import build_document_ai_repository, document_ai_tenant_id
 
     fid = _testo(getattr(fascicolo, "id", ""))
@@ -39,11 +40,12 @@ def documenti_contributo(fascicolo: Any) -> list[dict[str, Any]]:
         logger.debug("Catalogo del contributo non disponibile per %s: %s", fid, exc)
         return []
     risultato = []
-    for documento_id, etichetta, stato in voci:
+    for documento_id, etichetta, stato, affidabilita in voci:
         if documento_id not in nomi:
             continue  # allegati PEC: la fonte si apre dalla comunicazione
+        # Riconosciuto con certezza dal contenuto vale come confermato: l'avvocato non deve riverificarlo.
         risultato.append({"etichetta": etichetta, "id": documento_id, "nome": nomi[documento_id] or etichetta,
-                          "href": href_documento(fid, documento_id), "confermato": stato in {"confirmed", "overridden"}})
+                          "href": href_documento(fid, documento_id), "confermato": lettura_certa(stato, affidabilita)})
     return risultato
 
 

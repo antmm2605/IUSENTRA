@@ -99,7 +99,7 @@ export interface LetturaFascicolo {
   depositi: { totale: number; importati?: unknown[]; perfezionati: unknown[]; in_corso: unknown[]; falliti: unknown[]; tutti: { atto: string; data: string; fase: string; attesa: string; perfezionato: boolean; fase_procedurale: string; prova_attesa: string }[] }
   scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
   notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
-  pec: { totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: { data: string; oggetto: string; motivi_controllo: string[] }[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
+  pec: { conteggio?: ConteggioPec; totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: { data: string; oggetto: string; motivi_controllo: string[] }[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
   documenti: { errori_lettura?: number; da_leggere_lettura?: number | null; totale: number; catalogati: number; confermati: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
   economico: {
     presente: boolean; preventivato_it: string; conferito_it: string; fatturato_it: string; incassato_it: string; saldo_aperto_it: string
@@ -126,6 +126,9 @@ export const ESITI_DEPOSITI: Record<string, string> = {
   polling_fallito: 'controllo delle ricevute non riuscito',
 }
 
+// Un solo conteggio delle PEC (pct/fascicolo_pec_conteggio.py): collegate, da controllare, collegamento da confermare.
+export interface ConteggioPec { collegate: number; da_controllare: number; da_confermare: number; esaminate: number; testo: string }
+
 export interface RigaVerifica {
   presidio: string
   esito: string
@@ -133,13 +136,13 @@ export interface RigaVerifica {
 }
 
 // Le righe della sezione «Verifiche automatiche»: che cosa ha controllato ogni presidio.
-export function righeVerifiche(verifiche: VerificheAutomatiche | undefined): RigaVerifica[] {
+export function righeVerifiche(verifiche: VerificheAutomatiche | undefined, conteggio?: ConteggioPec): RigaVerifica[] {
   if (!verifiche?.eseguita_il) return []
   const esiti = verifiche.esiti || {}
   const righe: RigaVerifica[] = []
   if (esiti.pec) {
     const daConfermare = esiti.pec.da_confermare?.length || 0
-    righe.push({ presidio: 'Presidio PEC', esito: `${esiti.pec.esaminate} messaggi esaminati · ${esiti.pec.collegate} collegati al fascicolo${daConfermare ? ` · ${daConfermare} da confermare` : ''}`, tono: daConfermare ? 'warning' : 'success' })
+    righe.push({ presidio: 'Presidio PEC', esito: conteggio ? `${esiti.pec.esaminate} messaggi esaminati · ${conteggio.testo}` : `${esiti.pec.esaminate} messaggi esaminati · ${esiti.pec.collegate} collegati al fascicolo${daConfermare ? ` · ${daConfermare} da confermare` : ''}`, tono: daConfermare ? 'warning' : 'success' })
   }
   if (esiti.notifiche) righe.push({ presidio: 'Presidio notifiche', esito: `${esiti.notifiche.esaminati} presidi esaminati · ${esiti.notifiche.riallineati} riallineati alle prove`, tono: 'success' })
   if (esiti.depositi) {
@@ -255,9 +258,9 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
     {
       id: 'pec',
       titolo: 'Presidio PEC',
-      valore: String(pec.totale),
-      nota: pec.da_controllare.length ? `${pec.da_controllare.length} da controllare · ${pec.termini_da_registrare.length} termini da registrare` : pec.totale ? `${pec.collegate} collegate · ${pec.totale - pec.collegate} per ruolo o assistito` : 'nessuna PEC per ruolo o assistito',
-      tono: pec.da_controllare.length || pec.termini_da_registrare.length || pec.udienze_da_registrare.length ? 'warning' : pec.totale ? 'success' : 'neutral',
+      valore: String(pec.conteggio ? pec.conteggio.collegate : pec.totale),
+      nota: pec.conteggio?.da_confermare ? pec.conteggio.testo : pec.da_controllare.length ? `${pec.da_controllare.length} da controllare · ${pec.termini_da_registrare.length} termini da registrare` : pec.totale ? `${pec.collegate} collegate · ${pec.totale - pec.collegate} per ruolo o assistito` : 'nessuna PEC per ruolo o assistito',
+      tono: pec.conteggio?.da_confermare || pec.da_controllare.length || pec.termini_da_registrare.length || pec.udienze_da_registrare.length ? 'warning' : pec.totale ? 'success' : 'neutral',
       href: '#comunicazioni-notifica',
     },
     {

@@ -9244,6 +9244,31 @@ def fascicolo_react_conto_economico(id_fasc: str):
     return response
 
 
+@api_v1_react.get("/fascicoli/<id_fasc>/quadro")
+@_richiedi_auth
+def fascicolo_react_quadro(id_fasc: str):
+    """Quadro del fascicolo: stato della pratica e cinque righe (passo, termini, economia, notifiche, documenti).
+
+    Sola lettura di dati già materializzati (Lettura in cache, conto economico, sintesi degli obblighi di notifica):
+    nessun documento si rilegge nella richiesta. Una fonte mancante diventa una frase «da verificare».
+    """
+    if not (_api_key_valida() or _session_user_can("fascicoli.leggi")):
+        return jsonify({"ok": False, "message": "Operazione non autorizzata."}), 403
+    from web.services.fascicolo_quadro_runtime import quadro_fascicolo
+
+    try:
+        fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
+        if fascicolo is None:
+            return _jsonify_public_payload({"ok": False, "notFound": True, "message": "Fascicolo non trovato."}, 404)
+        result = quadro_fascicolo(fascicolo)
+    except Exception as exc:  # il quadro mostra il messaggio, mai un errore del server
+        current_app.logger.exception("Quadro del fascicolo %s non disponibile: %s", id_fasc, exc)
+        return jsonify({"ok": False, "message": "Quadro del fascicolo non disponibile in questo momento."}), 200
+    response = redacted_json_response(result, 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/bonifico-ricevuto")
 @_richiedi_auth
 def fascicolo_react_bonifico_documenti(id_fasc: str):
@@ -9900,7 +9925,11 @@ def fascicolo_react_obblighi_notifica(id_fasc: str):
             return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
         from web.services.notifiche_l53_applicazione_runtime import copie_pst_richiesta
 
-        return _jsonify_public_payload({"ok": True, "obblighi": obblighi_fascicolo(fascicolo), "copiePst": copie_pst_richiesta(fascicolo=fascicolo)})
+        obblighi = obblighi_fascicolo(fascicolo)
+        from web.services.obblighi_notifica_sintesi import salva as salva_sintesi_obblighi
+
+        salva_sintesi_obblighi(str(fascicolo.id), obblighi)  # il quadro del fascicolo la legge senza ricalcolare
+        return _jsonify_public_payload({"ok": True, "obblighi": obblighi, "copiePst": copie_pst_richiesta(fascicolo=fascicolo)})
     except Exception as exc:
         current_app.logger.exception("Obblighi di notifica del fascicolo %s non disponibili: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Obblighi di notifica non disponibili.", "obblighi": []}, 200)

@@ -4249,6 +4249,13 @@ def _totale_pagamenti_registrati(items: dict[str, dict[str, Any]], payments: Any
     return round(totale, 2)
 
 
+def _apply_stato_contributo(items: dict[str, dict[str, Any]], fascicolo: Any, payments: Any) -> None:
+    """Etichetta unica del contributo unificato (card, finestra, conto economico e quadro dicono la stessa cosa)."""
+    from web.services.contributo_stato_runtime import applica_stato_contributo
+
+    applica_stato_contributo(items, fascicolo, _payment_source_for_kind(payments, "contributo_unificato"))
+
+
 def _registro_contributo(fascicolo: Any) -> dict[str, Any]:
     from web.services.contributo_registro_runtime import registro_del_fascicolo
 
@@ -4283,6 +4290,7 @@ def payment_summary_for_fascicolo(
     _apply_sentenza_discordanze(items, fascicolo)
     parcelle = list(parcelle) if parcelle is not None else None
     _apply_optional_parcella(items, fascicolo, parcelle)
+    _apply_stato_contributo(items, fascicolo, payments)
     expected = [item for item in items.values() if item["previsto"] or item["richiedeConferma"]]
     missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"} or item["richiedeConferma"]]
     paid = [item for item in expected if item["status"] == "pagato"]
@@ -4365,6 +4373,7 @@ def payment_summary_for_fascicolo_fast(
     _apply_sentenza_discordanze(items, fascicolo)
     parcelle = list(parcelle) if parcelle is not None else None
     _apply_optional_parcella(items, fascicolo, parcelle)
+    _apply_stato_contributo(items, fascicolo, payments)
     expected = [item for item in items.values() if item["previsto"] or item["richiedeConferma"]]
     missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"} or item["richiedeConferma"]]
     paid = [item for item in expected if item["status"] == "pagato"]

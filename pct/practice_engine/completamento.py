@@ -54,13 +54,21 @@ def stato_operativo(
     in_deposito: bool = True,
     stato_derivato: str = "",
     stato_fascicolo_aperto: str = "FASCICOLO_APERTO",
+    stato_fascicolo: str = "",
 ) -> str:
-    """Lo stato operativo: il deposito reale del fascicolo viene prima di ogni deduzione."""
+    """Lo stato operativo: il deposito reale del fascicolo viene prima di ogni deduzione.
+
+    Fuori dalla fase di deposito una pratica definita o archiviata non è «in lavorazione»: lo stato è quello del
+    record del fascicolo (``pct/fascicolo_stato_pratica.py``), lo stesso della Lettura e del quadro.
+    """
     if sessione is not None and str(getattr(sessione, "status", "") or ""):
         return str(sessione.status)
     if deposito is not None and bool(getattr(deposito, "presente", False)):
         return str(getattr(deposito, "stato_operativo", "") or stato_derivato)
     if not in_deposito:
+        definitivo = str(stato_fascicolo or "").strip().upper()
+        if definitivo in {"DEFINITO", "ARCHIVIATO"}:
+            return definitivo
         return stato_fascicolo_aperto
     return stato_derivato
 

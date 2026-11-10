@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pct.fascicolo_pec_conteggio import conteggio_pec
 from pct.procedura_fasi import lacune_conoscenza, schede_per_fascicolo
 
 from ._testo import data_da, data_it, pulisci
@@ -122,6 +123,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     notifiche_lette = notifiche(dati.notifiche, dati.attivita)
     notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
     pec_letto = pec(dati.pec)
+    pec_letto["conteggio"] = conteggio_pec(pec_letto, dati.verifiche)
     economico_letto = economico(dati.economico, oggi)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}
     stato_documenti = (archivio_letto.get("lettura_automatica") or {}).get("documenti") or {}
@@ -133,7 +135,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         intestazione=testata, fase_letta=fase_letta, depositi_letti=depositi_letti, notifiche_lette=notifiche_lette,
         documenti_letti=documenti_letti, scadenze=dati.scadenze, conformita=dati.conformita, regia=dati.regia,
         economico_letto=economico_letto, pec_letto=pec_letto, verifiche=dati.verifiche, oggi=oggi,
-        appuntamenti=dati.appuntamenti,
+        appuntamenti=dati.appuntamenti, fascicolo_id=pulisci(dati.fascicolo.get("id")),
     )
     # Le schede procedurali pertinenti: rito, canale di deposito, canali di notifica usati.
     conoscenza = schede_per_fascicolo(

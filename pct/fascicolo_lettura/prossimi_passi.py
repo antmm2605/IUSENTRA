@@ -432,7 +432,14 @@ def _passi_documenti(documenti_letti: dict[str, Any], verifiche: dict[str, Any])
     return passi
 
 
-def _passi_economico(economico_letto: dict[str, Any]) -> list[Passo]:
+def _href_fatturazione(fascicolo_id: str) -> str:
+    """La fatturazione aperta sui soli documenti economici del fascicolo."""
+    from urllib.parse import quote
+
+    return f"/fatturazione?id_fascicolo={quote(fascicolo_id, safe='')}" if fascicolo_id else "/fatturazione"
+
+
+def _passi_economico(economico_letto: dict[str, Any], fascicolo_id: str = "") -> list[Passo]:
     passi: list[Passo] = []
     if not economico_letto.get("presente"):
         return passi
@@ -447,9 +454,9 @@ def _passi_economico(economico_letto: dict[str, Any]) -> list[Passo]:
             passi.append(Passo(2, f"Confermare nel presidio economico la liquidazione di {liquidato_it} letta dalla sentenza{quando}", f"il presidio l'ha letta automaticamente{fonte}: va confermata per diventare credito da riscuotere", "", "presidio economico", (), HREF_PRESIDIO))
         stato_incasso = economico_letto.get("liquidazione_incasso")
         if stato_incasso == "non_incassata":
-            passi.append(Passo(1, f"Riscuotere la somma liquidata dal giudice ({liquidato_it}): non risulta bonificata sul conto dello studio", f"sentenza{quando}{fonte}; incassato finora {economico_letto.get('incassato_it') or '€ 0,00'} (in Fatturazione)", "", "presidio economico", (), "/fatturazione"))
+            passi.append(Passo(1, f"Riscuotere la somma liquidata dal giudice ({liquidato_it}): non risulta bonificata sul conto dello studio", f"sentenza{quando}{fonte}; incassato finora {economico_letto.get('incassato_it') or '€ 0,00'} (in Fatturazione)", "", "presidio economico", (), _href_fatturazione(fascicolo_id)))
         elif stato_incasso == "parziale":
-            passi.append(Passo(1, f"Completare la riscossione della somma liquidata ({liquidato_it}): incassato {economico_letto.get('incassato_it')}", f"sentenza{quando}{fonte}; il resto non risulta bonificato", "", "presidio economico", (), "/fatturazione"))
+            passi.append(Passo(1, f"Completare la riscossione della somma liquidata ({liquidato_it}): incassato {economico_letto.get('incassato_it')}", f"sentenza{quando}{fonte}; il resto non risulta bonificato", "", "presidio economico", (), _href_fatturazione(fascicolo_id)))
     if float(economico_letto.get("incassato_bonifico") or 0) > float(economico_letto.get("fatturato") or 0):
         passi.append(Passo(2, f"Emettere la parcella per l'incasso ricevuto ({economico_letto.get('incassato_bonifico_it')})", "i bonifici registrati superano il fatturato del fascicolo", "", "presidio economico", (), "/fatturazione/nuova"))
     if float(economico_letto.get("anticipazioni_da_recuperare") or 0) > 0:
@@ -478,6 +485,7 @@ def prossimi_passi(
     verifiche: dict[str, Any] | None = None,
     oggi: Any,
     appuntamenti: list[dict[str, Any]] | None = None,
+    fascicolo_id: str = "",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """I passi e lo stato dei passi (attivi o no, e perché)."""
     stato = stato_passi(intestazione, documenti_letti, oggi)
@@ -496,7 +504,7 @@ def prossimi_passi(
     passi.extend(_passi_conformita(conformita))
     passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti, intestazione=intestazione, scadenze=scadenze))
     passi.extend(_passi_documenti(documenti_letti, verifiche))
-    passi.extend(_passi_economico(economico_letto))
+    passi.extend(_passi_economico(economico_letto, fascicolo_id))
 
     for passo in passi:
         giorno = data_da(passo.entro)

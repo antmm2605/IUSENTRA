@@ -457,7 +457,11 @@ def _build_regia_payload(
         sessione=session, deposito=deposito, in_deposito=in_deposito,
         stato_derivato=derive_state(depositable=profile.depositable, validation_results=readiness["results"], slots_missing=missing_slots),
         stato_fascicolo_aperto=PracticeState.FASCICOLO_APERTO.value,
+        stato_fascicolo=_text(getattr(getattr(fascicolo, "stato", ""), "value", getattr(fascicolo, "stato", ""))),
     )
+    from pct.fascicolo_stato_pratica import stato_pratica_da_fascicolo
+
+    stato_della_pratica = stato_pratica_da_fascicolo(fascicolo)
     completion, completion_detail = completamento(checklist_payload, slots, in_deposito=in_deposito, motivo_fase=motivo_fase)
     if blockers:
         next_action = blockers[0].suggested_action or blockers[0].message
@@ -496,6 +500,7 @@ def _build_regia_payload(
             "registry": profile.registry,
             "workflow": profile.workflow_code,
             "operationalState": operational_state,
+            "statoPratica": stato_della_pratica,
             "completion": completion,
             "completionDetail": completion_detail,
             "depositPhase": fase.to_dict() if fase is not None else {},

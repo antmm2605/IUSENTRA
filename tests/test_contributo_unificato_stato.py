@@ -1,0 +1,100 @@
+"""Stato unico del contributo unificato (art. 13 e art. 9, comma 1-bis, D.P.R. 115/2002) e sue fonti."""
+
+from __future__ import annotations
+
+import json
+
+from pct.contributo_unificato_stato import e_fonte_del_contributo, solo_fonti_del_contributo, stato_contributo
+from pct.fascicolo_conto_economico import riga_contributo
+
+_AUTOCERT = {"etichetta": "Contributo unificato / esenzione", "id": "D1", "nome": "AUTOCERTIFICAZIONE_REDDITO.PDF",
+             "href": "/fascicoli/F1/documenti/D1/visualizza", "confermato": False}
+_RICEVUTA = {"etichetta": "Contributo unificato / pagamento", "id": "D2", "nome": "Ricevuta pagoPA.pdf",
+             "href": "/fascicoli/F1/documenti/D2/visualizza", "confermato": True}
+
+
+def test_esente_con_autocertificazione_depositata_da_confermare():
+    stato = stato_contributo({"status": "non_previsto"}, [_AUTOCERT])
+    assert stato["codice"] == "esente_da_confermare" and stato["categoria"] == "esente"
+    assert stato["etichetta"] == "Esente, da confermare"
+    assert stato["norma"] == "art. 9, comma 1-bis, D.P.R. 115/2002"
+    assert stato["documento"] == {"id": "D1", "nome": "AUTOCERTIFICAZIONE_REDDITO.PDF", "href": "/fascicoli/F1/documenti/D1/visualizza"}
+
+
+def test_esenzione_dalla_voce_del_fascicolo_senza_catalogo():
+    # Caso 9A681FDF: la voce economica indica la copia di deposito dell'autocertificazione, il catalogo non la ha.
+    stato = stato_contributo({"status": "non_previsto", "documento_fonte": "COPIA ... AUTOCERTIFICAZIONE_...ESENZIONE_CONTRIBUTO_UNIFICATO_2025.EML",
+                              "documento_id": "F1E4404B", "href": "/f"})
+    assert stato["etichetta"] == "Esente, da confermare" and stato["documento"]["id"] == "F1E4404B"
+
+
+def test_esenzione_registrata_dall_avvocato_e_confermata():
+    stato = stato_contributo({"status": "non_previsto", "documento_fonte": "autocertificazione.pdf", "manuale": True})
+    assert stato["codice"] == "esente" and stato["confermato"] is True
+
+
+def test_dovuto_e_pagato_con_ricevuta_confermata():
+    stato = stato_contributo({"status": "pagato", "importo": 259}, [_RICEVUTA])
+    assert stato["codice"] == "pagato" and stato["etichetta"] == "Versato"
+    assert stato["importoLabel"] == "€ 259,00" and stato["norma"] == "art. 13 D.P.R. 115/2002"
+    assert stato["documento"]["id"] == "D2"
+
+
+def test_pagato_letto_dall_archivio_resta_da_confermare():
+    stato = stato_contributo({"status": "pagato", "importo": 98, "documento_fonte": "Ricevuta telematica.pdf"})
+    assert stato["codice"] == "pagato_da_confermare" and stato["categoria"] == "dovuto_pagato"
+
+
+def test_anticipazione_forfettaria_non_e_contributo():
+    stato = stato_contributo({"status": "pagato", "importo": 125, "importiLetti": ["27.00", "98.00"]}, [_RICEVUTA])
+    assert stato["codice"] == "pagato_da_confermare" and stato["importo"] is None
+    assert "anticipazione forfettaria" in stato["dettaglio"]
+
+
+def test_dovuto_e_non_pagato():
+    stato = stato_contributo({"status": "da_registrare", "importo": 518})
+    assert stato["codice"] == "da_pagare" and stato["etichetta"] == "Da versare" and stato["importoLabel"] == "€ 518,00"
+
+
+def test_non_dovuto_per_decisione_dell_avvocato():
+    stato = stato_contributo({"status": "non_previsto", "manuale": True})
+    assert stato["codice"] == "non_dovuto" and stato["etichetta"] == "Non dovuto" and stato["documento"] is None
+
+
+def test_senza_fonte_da_verificare():
+    # «Non previsto» scritto da una lettura automatica senza documento non è un'esenzione.
+    for voce in ({}, {"status": "non_previsto"}, {"status": "da_registrare"}):
+        stato = stato_contributo(voce)
+        assert stato["codice"] == "da_verificare" and stato["etichetta"] == "Da verificare" and stato["documento"] is None
+
+
+def test_ricevuta_solo_proposta_non_vince_sull_autocertificazione():
+    stato = stato_contributo({}, [{**_RICEVUTA, "confermato": False}, _AUTOCERT])
+    assert stato["codice"] == "esente_da_confermare"
+
+
+def test_conto_economico_usa_la_stessa_etichetta():
+    voce, documenti = {"status": "non_previsto"}, [_AUTOCERT]
+    riga = riga_contributo(voce, documenti)
+    assert riga["stato"] == stato_contributo(voce, documenti)["etichetta"]
+    assert riga["statoContributo"]["codice"] == "esente_da_confermare"
+
+
+def _fonte(campo: str, tipo: str = "", documento: str = "D") -> dict:
+    prove = [{"codice": "dichiarazione_economica", "dettaglio": json.dumps({"tipo": tipo})}] if tipo else []
+    return {"campo": campo, "documentoId": documento, "tipo": "documento", "prove": prove}
+
+
+def test_verifiche_mostrano_solo_le_fonti_del_contributo():
+    fonti = [_fonte("esenzione_cu_dichiarata", "autocertificazione", "A"),
+             _fonte("esenzione_cu_dichiarata", "richiamo_nell_atto", "RICORSO"),
+             _fonte("esenzione_cu_dichiarata", "richiamo_nell_atto", "NOTIFICA"),
+             _fonte("contributo_unificato", documento="RICEVUTA"),
+             _fonte("esenzione_cu_dichiarata", "attestazione_registro", "REGISTRO"),
+             _fonte("esenzione_cu_dichiarata", "autocertificazione", "A")]
+    assert [f["documentoId"] for f in solo_fonti_del_contributo(fonti)] == ["A", "RICEVUTA", "REGISTRO"]
+
+
+def test_fonte_senza_campo_esclusa_solo_se_e_un_richiamo():
+    assert e_fonte_del_contributo({"riscontri": ["Autocertificazione reddituale: riscontrare il dichiarante."]})
+    assert not e_fonte_del_contributo({"riscontri": ["L'atto richiama l'esenzione; il richiamo non sostituisce l'autocertificazione reddituale."]})

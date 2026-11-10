@@ -410,7 +410,11 @@ export type FatturazionePageData = {
   actions: AdminAction[]
   forms: FatturazioneFormDefinition[]
   warnings: AdminWarning[]
+  // Aperta dal fascicolo con ?id_fascicolo=: solo le sue parcelle e proforma.
+  filtroFascicolo: FatturazioneFiltroFascicolo | null
 }
+
+export type FatturazioneFiltroFascicolo = { id: string; etichetta: string; rimuoviHref: string }
 
 export type CreateFatturaVoice = {
   descrizione: string
@@ -617,6 +621,7 @@ export const emptyFatturazionePage: FatturazionePageData = {
   fiscal_options: [],
   metrics: [],
   sections: [],
+  filtroFascicolo: null,
   records: [],
   documents: [],
   statuses: [],
@@ -1152,7 +1157,20 @@ function normalisePage(raw: unknown): FatturazionePageData {
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
     forms: list(page.forms).map(normaliseForm),
     warnings: list(page.warnings).map(normaliseWarning),
+    filtroFascicolo: normaliseFiltroFascicolo(page.filtroFascicolo),
   }
+}
+
+function normaliseFiltroFascicolo(raw: unknown): FatturazioneFiltroFascicolo | null {
+  const item = asRecord(raw)
+  const id = text(item.id)
+  return id ? { id, etichetta: text(item.etichetta) || id, rimuoviHref: '/fatturazione' } : null
+}
+
+function fatturazioneListPath(): string {
+  if (typeof window === 'undefined') return '/api/v1/ui/fatturazione'
+  const fascicolo = new URLSearchParams(window.location.search).get('id_fascicolo') || ''
+  return fascicolo ? `/api/v1/ui/fatturazione?id_fascicolo=${encodeURIComponent(fascicolo)}` : '/api/v1/ui/fatturazione'
 }
 
 function normaliseCreateResult(raw: unknown): CreateFatturaResult {
@@ -1251,7 +1269,7 @@ function normaliseWorkflowResult(raw: unknown): FatturazioneWorkflowResult {
 }
 
 export async function getFatturazionePage(options: ApiRequestOptions = {}): Promise<FatturazionePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/fatturazione', emptyFatturazionePage, options)
+  const payload = await apiJson<unknown>(fatturazioneListPath(), emptyFatturazionePage, options)
   return normalisePage(payload)
 }
 

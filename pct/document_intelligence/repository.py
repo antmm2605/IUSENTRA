@@ -1332,6 +1332,34 @@ class DocumentAIRepository:
         rows = self._conn().execute(sql, (tenant_id, fascicolo_id)).fetchall()
         return [assignment for row in rows if (assignment := self._catalog_assignment_from_row(row)) is not None]
 
+    def list_contributo_labels(self, tenant_id: str, fascicolo_id: str) -> list[tuple[str, str, str]]:
+        """(documento, voce, stato) delle sole voci «contributo unificato» attive: lettura leggera per i presìdi economici."""
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            "SELECT document_id, document_label, status FROM document_catalog_assignments "
+            "WHERE tenant_id = ? AND fascicolo_id = ? AND status NOT IN ('superseded', 'rejected') "
+            "AND LOWER(document_label) LIKE 'contributo unificato%' ORDER BY updated_at DESC, document_label ASC",
+            (tenant_id, fascicolo_id),
+        ).fetchall()
+        voci = [self._dict_row(row) for row in rows]
+        return [(str(v.get("document_id") or ""), str(v.get("document_label") or ""), str(v.get("status") or "")) for v in voci]
+
+    def catalog_status_by_document(self, tenant_id: str, fascicolo_id: str) -> dict[str, str]:
+        """Lo stato di catalogazione più avanzato per documento (confermato > proposto > da rivedere), in una query."""
+        self._require_catalog_sql()
+        rows = self._conn().execute(
+            "SELECT document_id, status FROM document_catalog_assignments "
+            "WHERE tenant_id = ? AND fascicolo_id = ? AND status NOT IN ('superseded', 'rejected')",
+            (tenant_id, fascicolo_id),
+        ).fetchall()
+        ordine = {"confirmed": 3, "overridden": 3, "proposed": 2, "review_required": 1}
+        stati: dict[str, str] = {}
+        for voce in (self._dict_row(row) for row in rows):
+            documento, stato = str(voce.get("document_id") or ""), str(voce.get("status") or "")
+            if documento and ordine.get(stato, 0) > ordine.get(stati.get(documento, ""), 0):
+                stati[documento] = stato
+        return stati
+
     def list_reader_source_assignments(self, tenant_id: str, fascicolo_id: str, document_id: str) -> list[DocumentCatalogAssignment]:
         """Provenienza SQL di un documento, incluse le letture originali storiche."""
         self._require_catalog_sql()

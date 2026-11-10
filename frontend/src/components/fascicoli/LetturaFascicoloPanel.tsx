@@ -115,7 +115,7 @@ export function LetturaFascicoloPanel({
 
   const passi = useMemo(() => (lettura ? passiOrdinati(lettura) : []), [lettura])
   const cards = useMemo(() => (lettura ? presidiCards(lettura) : []), [lettura])
-  const verifiche = useMemo(() => righeVerifiche(lettura?.verifiche), [lettura])
+  const verifiche = useMemo(() => righeVerifiche(lettura?.verifiche, lettura?.pec?.conteggio), [lettura])
   const economico = useMemo(() => (lettura ? righeEconomico(lettura.economico) : []), [lettura])
   const eventi = useMemo(() => {
     if (!lettura) return []

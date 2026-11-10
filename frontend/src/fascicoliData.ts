@@ -56,6 +56,20 @@ export type FascicoloPaymentItem = {
   importiLetti?: string[]
   richiedeConferma?: boolean
   discordanzaVersione?: string
+  // Solo per il contributo unificato: lo stato unico di pct/contributo_unificato_stato.py (card, finestra, conto economico, quadro).
+  statoContributo?: FascicoloStatoContributo | null
+}
+
+export type FascicoloStatoContributo = {
+  codice: 'pagato' | 'pagato_da_confermare' | 'da_pagare' | 'esente' | 'esente_da_confermare' | 'non_dovuto' | 'da_verificare'
+  categoria: 'dovuto_pagato' | 'dovuto_da_pagare' | 'esente' | 'non_dovuto' | 'da_verificare'
+  etichetta: string
+  tono: Tone
+  norma: string
+  importoLabel: string
+  dettaglio: string
+  confermato: boolean
+  documento: { id: string; nome: string; href: string } | null
 }
 
 export type FascicoloProformaPresidio = {
@@ -1787,6 +1801,29 @@ export function normalizePaymentItem(value: unknown, kind: FascicoloPaymentKind,
     importiLetti: Array.isArray(row.importiLetti) ? row.importiLetti.map((item) => text(item)).filter(Boolean) : [],
     richiedeConferma: bool(row.richiedeConferma),
     discordanzaVersione: text(row.discordanzaVersione),
+    statoContributo: normalizeStatoContributo(row.statoContributo),
+  }
+}
+
+const statiContributo = ['pagato', 'pagato_da_confermare', 'da_pagare', 'esente', 'esente_da_confermare', 'non_dovuto', 'da_verificare'] as const
+
+function normalizeStatoContributo(value: unknown): FascicoloStatoContributo | null {
+  if (!isRecord(value)) return null
+  const codice = text(value.codice) as FascicoloStatoContributo['codice']
+  if (!statiContributo.includes(codice)) return null
+  const documento = isRecord(value.documento) && text(value.documento.id || value.documento.nome)
+    ? { id: text(value.documento.id), nome: text(value.documento.nome), href: text(value.documento.href) }
+    : null
+  return {
+    codice,
+    categoria: text(value.categoria, 'da_verificare') as FascicoloStatoContributo['categoria'],
+    etichetta: text(value.etichetta, 'Da verificare'),
+    tono: (text(value.tono, 'warning') as Tone),
+    norma: text(value.norma),
+    importoLabel: text(value.importoLabel),
+    dettaglio: text(value.dettaglio),
+    confermato: bool(value.confermato),
+    documento,
   }
 }
 

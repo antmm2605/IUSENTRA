@@ -984,6 +984,15 @@ def _actions_for(route: str, current_user: Any) -> list[dict[str, Any]]:
     ]
 
 
+def _filtro_fascicolo(query: dict[str, Any], fascicoli: dict[str, Any]) -> dict[str, str] | None:
+    """Il filtro «solo questo fascicolo» richiesto con ``?id_fascicolo=``: vale solo per un fascicolo dello studio."""
+    richiesto = _text(query.get("id_fascicolo") or query.get("fascicolo"))
+    fascicolo = fascicoli.get(richiesto) if richiesto else None
+    if fascicolo is None:
+        return None
+    return {"id": richiesto, "etichetta": _case_label(fascicolo) or richiesto, "rimuoviHref": "/fatturazione"}
+
+
 def build_react_fatturazione_payload(
     *,
     get_fatturazione: Callable[[], Any],
@@ -1095,6 +1104,13 @@ def build_react_fatturazione_payload(
             memberships.append("scaduto")
         record["metricFilters"] = memberships
         records.append(record)
+    filtro_fascicolo = _filtro_fascicolo(raw_query, fascicoli) if route == "/fatturazione" else None
+    if filtro_fascicolo:
+        # Dal fascicolo si aprono solo le sue parcelle e proforma; i totali in alto restano quelli dello studio.
+        records = [record for record in records if record.get("caseId") == filtro_fascicolo["id"]]
+        warnings.append({"code": "filtro_fascicolo", "message": (
+            f"Sono mostrati solo i documenti economici del fascicolo {filtro_fascicolo['etichetta']}: "
+            "i totali in alto restano quelli dello studio.")})
     state_items: list[dict[str, Any]] = []
     for code in ("BOZZA", "EMESSA", "PAGATA", "SCADUTA", "ANNULLATA"):
         count = len([record for record in records if record["state"] == code])
@@ -1172,6 +1188,7 @@ def build_react_fatturazione_payload(
         ],
         "records": records,
         "documents": records,
+        "filtroFascicolo": filtro_fascicolo,
         "statuses": [
             {"value": code, "label": _status_label(code), "tone": _status_tone(code)}
             for code in ("BOZZA", "EMESSA", "PAGATA", "SCADUTA", "ANNULLATA")

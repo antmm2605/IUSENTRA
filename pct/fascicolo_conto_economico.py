@@ -29,11 +29,8 @@ NORMA_TERMINE_FATTURA = "art. 21, comma 4, D.P.R. 633/1972"
 NORMA_ANTICIPAZIONI = "art. 15, primo comma, n. 3, D.P.R. 633/1972"
 NORMA_CU = "art. 13 D.P.R. 115/2002"
 NORMA_ESENZIONE_CU = "art. 9, comma 1-bis, D.P.R. 115/2002"
-NORMA_ANTICIPAZIONE_FORFETTARIA = "art. 30 D.P.R. 115/2002"
 GIORNI_EMISSIONE_FATTURA = 12
 
-_ETICHETTA_ESENZIONE = "contributo unificato / esenzione"
-_ETICHETTA_VERSAMENTO = "contributo unificato / pagamento"
 
 
 def _euro(valore: float | None) -> str:
@@ -136,57 +133,21 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
                  dettaglio=" ".join(["Le paga la controparte al cliente."] + avvisi))
 
 
-def _avviso_importo_contributo(voce: Mapping[str, Any]) -> str:
-    """Perché l'importo del contributo non si può dare per certo: più importi letti o lettura da confermare.
+def riga_contributo(voce: Mapping[str, Any], documenti: list[Mapping[str, Any]],
+                    stato: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Contributo unificato: lo stato unico di ``pct.contributo_unificato_stato`` (lo stesso di card, finestra e quadro).
 
-    Nelle ricevute dei depositi compare spesso anche l'anticipazione forfettaria di € 27 (art. 30 D.P.R. 115/2002),
-    che non è contributo unificato: indicarla come tale falserebbe il conto e le anticipazioni da recuperare.
+    ``stato``: lo stato già calcolato dal chiamante; se manca si calcola qui da voce e documenti del catalogo.
     """
-    letti = sorted({n for n in (_numero(v) for v in voce.get("importiLetti") or []) if n})
-    if len(letti) > 1:
-        testo = f"Importi letti nelle ricevute: {', '.join(_euro(n) for n in letti)}"
-        if 27.0 in letti:
-            testo += f"; {_euro(27.0)} è l'anticipazione forfettaria ({NORMA_ANTICIPAZIONE_FORFETTARIA}), non il contributo unificato"
-        return testo + ": confermare sulla ricevuta l'importo del contributo."
-    if voce.get("richiedeConferma"):
-        return "Lettura della ricevuta da confermare: aprirla e verificare importo, data e procedimento."
-    return ""
+    from pct.contributo_unificato_stato import stato_contributo
 
-
-def riga_contributo(voce: Mapping[str, Any], documenti: list[Mapping[str, Any]]) -> dict[str, Any]:
-    """Contributo unificato: versato (ricevuta), esente (autocertificazione) o da verificare.
-
-    Prevale ciò che l'avvocato ha confermato nel catalogo; una ricevuta solo proposta non vince su un'autocertificazione
-    (una PEC di deposito classificata come «versamento» non prova il pagamento).
-    """
-    esenzioni = [d for d in documenti if _ETICHETTA_ESENZIONE in str(d.get("etichetta") or "").lower()]
-    versamenti = [d for d in documenti if _ETICHETTA_VERSAMENTO in str(d.get("etichetta") or "").lower()]
-    nome_voce = str(voce.get("documento_fonte") or "")
-    if not esenzioni and any(p in nome_voce.lower() for p in ("autocertificazione", "esenzione")):
-        esenzioni = [{"nome": nome_voce, "href": str(voce.get("href") or ""), "confermato": False}]
-    if esenzioni and not any(d.get("confermato") for d in versamenti):
-        versamenti = []
-    importo = _numero(voce.get("importo"))
-    if versamenti:
-        fonti = [_fonte(d["nome"], d.get("href", ""), "ricevuta di versamento") for d in versamenti]
-        da_confermare = _avviso_importo_contributo(voce)
-        if da_confermare or not any(d.get("confermato") for d in versamenti):
-            return _riga("contributo_unificato", "Contributo unificato", importo=None if da_confermare else importo,
-                         stato="Versato, da confermare", tono="warning", norma=NORMA_CU, fonti=fonti,
-                         dettaglio=da_confermare or "Ricevuta proposta dal catalogo e non ancora confermata: aprirla e "
-                                                    "confermare importo e procedimento.")
-        return _riga("contributo_unificato", "Contributo unificato", importo=importo, stato="Versato", tono="success",
-                     norma=NORMA_CU, fonti=fonti, dettaglio="" if importo else "Importo da riportare dalla ricevuta.")
-    if esenzioni:
-        confermata = any(d.get("confermato") for d in esenzioni)
-        return _riga("contributo_unificato", "Contributo unificato", importo=None,
-                     stato="Esente" if confermata else "Esente, da confermare", tono="success" if confermata else "warning",
-                     norma=NORMA_ESENZIONE_CU,
-                     fonti=[_fonte(d["nome"], d.get("href", ""), "autocertificazione del reddito") for d in esenzioni],
-                     dettaglio="Esenzione per reddito con autocertificazione depositata." if confermata else
-                     "Aprire l'autocertificazione e confermarla (anno di reddito, soglia): il documento non è ancora confermato.")
-    return _riga("contributo_unificato", "Contributo unificato", importo=importo, stato="Da verificare", tono="warning",
-                 norma=NORMA_CU, dettaglio="Manca la ricevuta del versamento o l'autocertificazione di esenzione.")
+    stato = dict(stato) if stato else stato_contributo(voce, documenti)
+    ruolo = str(stato.get("ruoloFonti") or "")
+    riga = _riga("contributo_unificato", "Contributo unificato", importo=stato.get("importo"), stato=stato["etichetta"],
+                 tono=stato["tono"], norma=stato.get("norma") or "", dettaglio=stato.get("dettaglio") or "",
+                 fonti=[_fonte(f.get("nome") or "", f.get("href") or "", ruolo) for f in stato.get("fonti") or []])
+    riga["statoContributo"] = stato
+    return riga
 
 
 def _documento(parcella: Mapping[str, Any]) -> str:
@@ -287,8 +248,9 @@ def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]]
 def conto_economico(*, voci: Mapping[str, Mapping[str, Any]], crediti: list[Mapping[str, Any]],
                     documenti_contributo: list[Mapping[str, Any]], parcelle: list[Mapping[str, Any]],
                     oggi: date | None = None, sentenze: list[Mapping[str, Any]] | None = None,
-                    regime: str = "") -> dict[str, Any]:
-    righe = [riga_sentenza(crediti, sentenze, regime=regime), riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo)]
+                    regime: str = "", stato_contributo: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    righe = [riga_sentenza(crediti, sentenze, regime=regime),
+             riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo, stato_contributo)]
     righe += righe_parcella(parcelle, voci.get("spese_esborsi") or {}, voci.get("fondo_spese") or {})
     liquidazione = voci.get("liquidazione_giudice") or {}
     dichiarato = None

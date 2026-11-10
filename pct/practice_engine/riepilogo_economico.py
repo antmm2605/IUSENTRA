@@ -96,6 +96,8 @@ def _economic_summary(
         "conferimentoHref": conferimento_href,
         "proformaIssued": emitted,
         "proformaHref": proforma_href,
+        # La fatturazione aperta sui soli documenti economici del fascicolo (non tutto l'archivio dello studio).
+        "fatturazioneHref": _query_url("/fatturazione", id_fascicolo=fascicolo_id),
         "primaryParcellaId": parcella_id,
         "paymentRegistered": bool(paid),
         "paymentHref": payment_href,

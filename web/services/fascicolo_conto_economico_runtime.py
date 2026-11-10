@@ -5,7 +5,7 @@ Fonti consultate, senza rileggere documenti nella richiesta:
   allegate come precedenti, sono escluse da `build_sentenza_economic_payload`), con il documento da cui nascono;
   in mancanza, le spese lette dal dispositivo dal motore documenti nell'archivio delle letture
   (`pct/archivio_letture/spese_sentenza.py`), anche quando la sentenza le compensa o condanna il cliente;
-- contributo unificato: documenti classificati dal catalogo come ricevuta di versamento o autocertificazione;
+- contributo unificato: lo stato unico di `web/services/contributo_stato_runtime.py` (voce economica + catalogo);
 - parcella, spese, anticipazioni e incassi: documenti economici del fascicolo e registro degli incassi.
 """
 
@@ -129,22 +129,10 @@ def crediti_dalle_sentenze_lette(sentenze: list[dict[str, Any]]) -> list[dict[st
             if voce["regolazione"] == "condanna" and voce["importo"] and voce.get("a_favore_del_cliente") is not False]
 
 
-def documenti_contributo(fascicolo: Any) -> list[dict[str, str]]:
-    from web.services.document_intelligence_runtime import build_document_ai_repository, document_ai_tenant_id
+def documenti_contributo(fascicolo: Any) -> list[dict[str, Any]]:
+    from web.services.contributo_stato_runtime import documenti_contributo as _documenti
 
-    fid = _testo(getattr(fascicolo, "id", ""))
-    nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "") or getattr(d, "nome_file", "")) for d in getattr(fascicolo, "documenti", []) or []}
-    risultato = []
-    for assegnazione in build_document_ai_repository().list_catalog_assignments(document_ai_tenant_id(), fid):
-        etichetta = _testo(getattr(assegnazione, "document_label", ""))
-        documento_id = _testo(getattr(assegnazione, "document_id", ""))
-        if not etichetta.lower().startswith("contributo unificato") or _testo(getattr(assegnazione, "status", "")) == "rejected":
-            continue
-        if documento_id not in nomi:
-            continue  # allegati PEC: la fonte si apre dalla comunicazione
-        risultato.append({"etichetta": etichetta, "nome": nomi[documento_id] or etichetta, "href": _href_documento(fid, documento_id),
-                          "confermato": _testo(getattr(assegnazione, "status", "")) in {"confirmed", "overridden"}})
-    return risultato
+    return _documenti(fascicolo)
 
 
 def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
@@ -193,8 +181,12 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     crediti = crediti or crediti_dalle_sentenze_lette(sentenze)
     from web.helpers import regime_fiscale_studio
 
+    from web.services.contributo_stato_runtime import stato_contributo_fascicolo
+
+    # Lo stesso stato del contributo della card e della finestra del presidio economico (stessa voce, stesso catalogo).
     risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze, regime=regime_fiscale_studio(),
-                                documenti_contributo=documenti_contributo(fascicolo), parcelle=parcelle_del_fascicolo(fascicolo_id))
+                                documenti_contributo=[], stato_contributo=stato_contributo_fascicolo(fascicolo),
+                                parcelle=parcelle_del_fascicolo(fascicolo_id))
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 
 

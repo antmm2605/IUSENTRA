@@ -914,15 +914,20 @@ def _proposte_definizione(fascicolo: Any, registro: RegistroLetture, tenant: str
         return {"errore": type(exc).__name__}
 
 
-def _allinea_obblighi_notifica(fascicolo: Any) -> dict[str, Any]:
-    """Il presidio notifiche: dai documenti catalogati gli obblighi con scadenza entrano nello scadenziario."""
-    try:
-        from web.services.obblighi_notifica_runtime import allinea_scadenze
+def _allinea_obblighi_notifica(fascicolo: Any) -> tuple[dict[str, Any], list[dict[str, Any]] | None]:
+    """Il presidio notifiche: dai documenti catalogati gli obblighi con scadenza entrano nello scadenziario.
 
-        return allinea_scadenze(fascicolo)
+    Restituisce anche gli obblighi calcolati: la loro sintesi per il quadro del fascicolo si salva dopo
+    l'eventuale invalidazione della Lettura, che altrimenti la cancellerebbe subito.
+    """
+    try:
+        from web.services.obblighi_notifica_runtime import allinea_scadenze, obblighi_fascicolo
+
+        obblighi = obblighi_fascicolo(fascicolo)
+        return allinea_scadenze(fascicolo, obblighi), obblighi
     except Exception as exc:
         logger.exception("Obblighi di notifica non allineati per il fascicolo %s", getattr(fascicolo, "id", ""))
-        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}, None
 
 
 def _aggiorna_rag(fascicolo: Any, registro: RegistroLetture) -> dict[str, Any]:
@@ -1081,14 +1086,19 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
     consegne: dict[str, Any] = {}
     catalogo: dict[str, Any] = {}
     economia: Any = {}
+    obblighi_calcolati: list[dict[str, Any]] | None = None
     if not (rinvia_derivati and restano > 0):
         consegne = _consegna_ai_presidi(fascicolo, registro)
         catalogo = _aggiorna_catalogo_sql(fascicolo, registro)
-        consegne["obblighi_notifica"] = _allinea_obblighi_notifica(fascicolo)
+        consegne["obblighi_notifica"], obblighi_calcolati = _allinea_obblighi_notifica(fascicolo)
         economia = _analisi_economica_sentenze(fascicolo, registro, tenant, fascicolo_id)
         consegne["proposte_definizione"] = _proposte_definizione(fascicolo, registro, tenant)
     if documenti["letti"] or pec["letti"] or promossi or riconvalidati["anomalie"] or riconvalidati["fatti"] or metadati.get("fatti"):
         invalida_lettura(fascicolo_id)
+    if obblighi_calcolati is not None:
+        from web.services.obblighi_notifica_sintesi import salva as salva_sintesi_obblighi
+
+        salva_sintesi_obblighi(fascicolo_id, obblighi_calcolati)
     # L'archivio conferma: il ciclo si chiude quando non resta nulla da leggere.
     impronta = _impronta_viva(fascicolo)
     _segna_ciclo(

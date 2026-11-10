@@ -3094,7 +3094,18 @@ export function FatturazionePage() {
         isNew ? (
           <NewInvoiceForm data={data} form={form} />
         ) : (
-          <ArchiveView data={data} onReload={setData} />
+          <>
+            {data.filtroFascicolo ? (
+              <section className="iu-fatt-state" aria-live="polite">
+                <ReceiptText size={20} />
+                <div>
+                  <strong>Documenti economici del fascicolo {data.filtroFascicolo.etichetta}</strong>
+                  <span>Sono mostrate solo le parcelle e le proforma di questo fascicolo; i totali in alto restano quelli dello studio. <a href={data.filtroFascicolo.rimuoviHref}>Mostra tutta la fatturazione</a></span>
+                </div>
+              </section>
+            ) : null}
+            <ArchiveView data={data} onReload={setData} />
+          </>
         )
       ) : null}
     </Page>

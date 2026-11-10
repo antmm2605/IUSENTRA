@@ -5480,7 +5480,11 @@ def _ensure_fascicolo_definito_from_economics(
         setattr(fascicolo, "stato", StatoFascicolo.DEFINITO)
         if hasattr(fascicolo, "data_chiusura") and not _text(getattr(fascicolo, "data_chiusura", "")):
             setattr(fascicolo, "data_chiusura", date.today().isoformat())
-        if hasattr(fascicolo, "avanzamento"):
+        from pct.avanzamento_storico import transizione_gia_registrata
+
+        if hasattr(fascicolo, "avanzamento") and not transizione_gia_registrata(
+            getattr(fascicolo, "avanzamento", []) or [], previous, StatoFascicolo.DEFINITO.value, note
+        ):
             avanzamento = list(getattr(fascicolo, "avanzamento", []) or [])
             avanzamento.append(
                 AvanzamentoPratica(
@@ -9341,9 +9345,16 @@ def _etichetta_stato(value: Any) -> str:
 
 def _history(fascicolo: Any) -> list[dict[str, str]]:
     """Avanzamento leggibile: stati in italiano, nessun passaggio fittizio, nessuna voce ripetuta."""
+    from pct.avanzamento_storico import voci_ripetute
+
     out = []
     viste: set[tuple[str, str, str]] = set()
-    for item in getattr(fascicolo, "avanzamento", []) or []:
+    voci = list(getattr(fascicolo, "avanzamento", []) or [])
+    # La stessa transizione con la stessa fonte (es. la sentenza indicizzata due volte) si mostra una volta.
+    ripetute = voci_ripetute(voci)
+    for indice, item in enumerate(voci):
+        if indice in ripetute:
+            continue
         precedente = _etichetta_stato(getattr(item, "stato_precedente", ""))
         nuovo = _etichetta_stato(getattr(item, "stato_nuovo", ""))
         if precedente == nuovo:

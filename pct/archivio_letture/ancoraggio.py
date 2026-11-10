@@ -55,6 +55,14 @@ _PROCESSUALE_VICINO = re.compile(
     r"udienz|notific|perentori|costitu|impugn|opposizion|fiss[ao]|rinvi|assegn|deposit|comparir|ingiun|precetto|intima|decreto|sentenza|ordinanza",
     re.IGNORECASE,
 )
+# Segni propri di un documento d'identità (carta cartacea o elettronica, passaporto, patente,
+# permesso di soggiorno), tolleranti all'OCR delle scansioni («FUNZIÓNARIO», «D'IDENTITA»).
+_IDENTITA_DOCUMENTO = re.compile(
+    r"carta\s*d\W{0,2}\s*identit|carta\s+di\s+identit|funzi\w{0,2}nario\s+incaricato|impronta\s+del\s+dito|"
+    r"indice\s+sinistro|connotati|contrassegni\s+salienti|\bstatura\b|patente\s+di\s+guida|passaporto|"
+    r"permesso\s+di\s+soggiorno|identity\s+card|\bpassport\b",
+    re.IGNORECASE,
+)
 _ORA = re.compile(r"(?:ore|alle ore|alle|h\.?)\s*(?P<ora>[01]?\d|2[0-3])\s*[:.,]\s*(?P<minuti>[0-5]\d)", re.IGNORECASE)
 # Fine di una frase: punto seguito da spazio e da una maiuscola. Le abbreviazioni
 # («art. 3-bis», «Prot. n.», «L. 53/1994») non chiudono la frase: dopo il loro
@@ -165,6 +173,24 @@ def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
     tessera = re.search(r"tessera\s+sanitaria|dati\s+sanitari\s+regionali|numero\s+di\s+identificazione\s+della\s+tessera", vicino, re.I)
     if tessera and re.search(r"scadenza|nascita|validit[àa]", vicino, re.I) and not re.search(r"(?:fissa|rinvia|udienza|notificare|depositare|termin[ei]|entro|perentori[oa]|assegna|dispone)\b", vicino, re.I):
         return "data di validità o nascita della tessera sanitaria, non termine processuale"
+    # Data di nascita: «nata il …», «nato a Reggio di Calabria (RC) il …», «data di nascita: …».
+    # Una data di nascita non è mai un termine, un'udienza o una notifica.
+    # Fra «nato a» e «il» stanno solo le parole del luogo: mai un verbo del processo
+    # («nata a Roma ha proposto ricorso notificato il …» resta una notifica).
+    if re.search(r"\bnat[oaie]\s+(?:(?:a|in)(?:\s+(?!(?:notific|deposit|propos|udienz|ricors|citat|convenut|chiede)\w*)[A-Za-zÀ-ÿ'’().\-]+){1,5}\s+)?(?:il|in\s+data)\s*$"
+                 r"|\b(?:data\s+di\s+)?nascita\W{0,3}$", prima, re.I):
+        return "data di nascita, non termine processuale"
+    # Documento d'identità cartaceo scansionato dentro l'atto (copia allegata al ricorso o alla
+    # notifica): «Scadenza» è la validità del documento — che per legge scade nel giorno del
+    # compleanno del titolare (art. 7, c. 1, D.L. 5/2012, conv. L. 35/2012) — non un termine del processo.
+    # Le scansioni hanno l'OCR sporco («FUNZIÓNARIO», «COMVNE»): si riconoscono più segni propri
+    # del documento, oppure un segno con l'etichetta di validità subito prima della data.
+    segni_identita = {m.group(0).casefold()[:8] for m in _IDENTITA_DOCUMENTO.finditer(vicino)}
+    etichetta_validita = re.search(r"(?:scadenza|scade(?:\s+il)?|valid[oaità]+(?:\s+fino\s+al)?|emissione|rilasci\w*)\W{0,3}$", prima[-30:], re.I)
+    if segni_identita and (len(segni_identita) >= 2 or etichetta_validita):
+        vicino_stretto = testo[max(0, inizio - 80):fine + 80]
+        if not re.search(r"(?:fissa|rinvia|udienz\w*|notificare|depositare|termin[ei]|entro|perentori[oa]|assegna|dispone|costitu\w*)\b", vicino_stretto, re.I):
+            return "data del documento di identità (validità, rilascio o nascita), non termine processuale"
     if re.search(r"decorrenza\s+dal\s*$", prima, re.I) and re.search(r"cessazione|ore settimanali|tipologia posto|lezione presso", vicino, re.I):
         return "decorrenza del rapporto di lavoro, non termine processuale"
     if re.search(r"supplenza|anno scolastico|attivit[àa]\s+(?:di\s+)?didattiche|costituzione della Carta", vicino, re.I):

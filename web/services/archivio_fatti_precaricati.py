@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import logging
 from functools import wraps
-from copy import deepcopy
 from contextlib import contextmanager
 from typing import Any, Iterable, Iterator
 
@@ -30,9 +29,22 @@ def _testo(valore: Any) -> str:
     return str(valore or "").strip()
 
 
+def _copie(fatti: Iterable[Any]) -> list[Any]:
+    """Copie indipendenti dei fatti in memoria: l'unico campo mutabile di Fatto è la lista delle prove.
+
+    Prima si usava deepcopy, che per una pagina di 25 fascicoli copiava 13.000 fatti in quasi 2 secondi.
+    """
+    from dataclasses import replace
+
+    return [replace(f, prove=[dict(p) for p in f.prove]) for f in fatti]
+
+
 @contextmanager
 def precaricati(fascicoli: Iterable[Any], categorie: Iterable[str]) -> Iterator[None]:
-    """Dentro il blocco, i fatti delle categorie indicate arrivano dalla lettura cumulativa."""
+    """Dentro il blocco, i fatti delle categorie indicate arrivano dalla lettura cumulativa.
+
+    Con tutte le categorie anche le domande senza categoria rispondono dalla memoria.
+    """
     if not has_request_context():
         yield
         return
@@ -40,11 +52,15 @@ def precaricati(fascicoli: Iterable[Any], categorie: Iterable[str]) -> Iterator[
     try:
         from web.services.registro_letture_runtime import registro_corrente, tenant_corrente, percorso_registro
 
+        from pct.registro_letture.fatti_repository import CATEGORIE
+
         ids = [_testo(getattr(f, "id", "")) for f in fascicoli]
+        categorie = tuple(dict.fromkeys(categorie))
         tenant, path = tenant_corrente(), percorso_registro()
         grezzi = registro_corrente().fatti_per_fascicoli(tenant, ids, categorie, verifiche=None)
         nomi = registro_corrente().nomi_documenti_per_fascicoli(tenant, ids)
-        setattr(g, _CHIAVE, {'tenant': tenant, 'path': path, 'fatti': grezzi, 'nomi': nomi, 'ids': frozenset(ids)})
+        setattr(g, _CHIAVE, {'tenant': tenant, 'path': path, 'fatti': grezzi, 'nomi': nomi, 'ids': frozenset(ids),
+                             'tutte_le_categorie': set(CATEGORIE) <= set(categorie)})
     except Exception as exc:
         raise RuntimeError("Archivio delle letture non disponibile per l’elenco dei fascicoli.") from exc
     try:
@@ -76,7 +92,7 @@ def fatti_precaricati(fascicolo_id: str, filtri: dict[str, Any], canonico: bool)
             allowed = set(allowed) if allowed is not None else None
             facts = [f for f in snapshot['fatti'] if (allowed is None or f.verifica in allowed)
                      and all(not filtri.get(k) or getattr(f, k) == filtri[k] for k in ('categoria', 'campo', 'motore', 'tipo'))]
-            facts = deepcopy(facts)
+            facts = _copie(facts)
             return fatti_canonici(facts) if canonico and not filtri.get('motore') and not filtri.get('tipo') else facts
     if not has_request_context() or set(filtri) - {'categoria', 'campo', 'verifiche', 'motore', 'tipo'}:
         return None
@@ -86,17 +102,33 @@ def fatti_precaricati(fascicolo_id: str, filtri: dict[str, Any], canonico: bool)
     from web.services.registro_letture_runtime import tenant_corrente, percorso_registro
     if memoria['tenant'] != tenant_corrente() or memoria['path'] != percorso_registro():
         return None
-    fatti = memoria['fatti'].get((_testo(fascicolo_id), _testo(filtri.get("categoria"))))
+    from pct.registro_letture.fatti_repository import CATEGORIE, VERIFICHE_UTILI
+    from pct.archivio_letture import fatti_canonici
+    fid = _testo(fascicolo_id)
+    if fid not in memoria['ids']:
+        return None
+    if _testo(filtri.get("categoria")):
+        fatti = memoria['fatti'].get((fid, _testo(filtri.get("categoria"))))
+    elif memoria.get('tutte_le_categorie'):
+        # Stesso ordine di `fatti()`: posizione e data di lettura, attraverso le categorie.
+        fatti = sorted((f for c in CATEGORIE for f in memoria['fatti'].get((fid, c), [])),
+                       key=lambda f: (f.posizione, f.letto_il))
+    else:
+        fatti = None
     if fatti is None:
         return None
-    from pct.registro_letture.fatti_repository import VERIFICHE_UTILI
-    from pct.archivio_letture import fatti_canonici
     allowed = filtri.get('verifiche', VERIFICHE_UTILI)
     allowed = set(allowed) if allowed is not None else None
-    selected = deepcopy([f for f in fatti if (allowed is None or f.verifica in allowed)
-                         and all(not filtri.get(k) or getattr(f, k) == filtri[k]
-                                 for k in ('campo', 'motore', 'tipo'))])
-    return fatti_canonici(selected) if canonico and not filtri.get('motore') and not filtri.get('tipo') else selected
+    unisci = canonico and not filtri.get('motore') and not filtri.get('tipo')
+    # La stessa domanda nella stessa richiesta (ogni colonna della riga la ripete) si calcola una volta sola.
+    chiave = (fid, _testo(filtri.get('categoria')), _testo(filtri.get('campo')), _testo(filtri.get('motore')),
+              _testo(filtri.get('tipo')), None if allowed is None else frozenset(allowed), unisci)
+    risposte = memoria.setdefault('risposte', {})
+    if chiave not in risposte:
+        selected = [f for f in fatti if (allowed is None or f.verifica in allowed)
+                    and all(not filtri.get(k) or getattr(f, k) == filtri[k] for k in ('campo', 'motore', 'tipo'))]
+        risposte[chiave] = fatti_canonici(_copie(selected)) if unisci else selected
+    return _copie(risposte[chiave])
 
 
 def istantanea_dettaglio(function):

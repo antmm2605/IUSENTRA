@@ -100,7 +100,12 @@ def enrich_economic_page(database, tenant, anchor, items):
     for name in names:
         setattr(g, name, native)
     try:
-        with borrowed_studio_backend(database, anchor), registro_consultivo():
+        from pct.registro_letture.fatti_repository import CATEGORIE
+        from web.services.archivio_fatti_precaricati import precaricati
+        # Una sola lettura dell'archivio per i fascicoli della pagina (e i loro doppioni): ogni colonna della riga
+        # (importi, termini, impronta, sentenze) risponde dalla memoria della richiesta invece di rileggere.
+        with borrowed_studio_backend(database, anchor), registro_consultivo(), \
+                precaricati(models, CATEGORIE):
             return enrich_economic_list_items(items, gf=native, fascicoli_for_summary=models,
                 duplicate_groups_by_key=groups, parcelle_by_fasc=invoices)
     finally:

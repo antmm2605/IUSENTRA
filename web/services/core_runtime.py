@@ -404,6 +404,8 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "motori.json"),
         ),
     )
+    # Archivio della Gazzetta Ufficiale (pct/gazzetta): vuoto = accanto a LEGAL_INTELLIGENCE_DB.
+    app.config["GAZZETTA_UFFICIALE_DB"] = cfg.get("GAZZETTA_UFFICIALE_DB", os.getenv("PCT_GAZZETTA_UFFICIALE_DB", ""))
     app.config["LEGAL_COVERAGE_SQLITE_DB"] = cfg.get(
         "LEGAL_COVERAGE_SQLITE_DB",
         os.getenv(

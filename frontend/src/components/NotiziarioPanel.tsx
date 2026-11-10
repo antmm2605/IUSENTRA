@@ -36,6 +36,8 @@ import {
   type NotiziarioQuickSource,
   type NotiziarioSourceReader,
 } from '../notiziarioData'
+import { GazzettaUltimePubblicazioni } from './GazzettaUltime'
+import { GAZZETTA_PAGINA } from '../gazzettaData'
 import './NotiziarioPanel.css'
 
 function visibleText(value: string, fallback = ''): string {
@@ -429,6 +431,7 @@ export function NotiziarioPanel() {
                     <ExternalLink size={20} />
                     <strong>Consulta la pubblicazione ufficiale</strong>
                     <span>La Gazzetta Ufficiale si apre dalla fonte istituzionale, così visualizzi sempre l’edizione corrente.</span>
+                    <a href={GAZZETTA_PAGINA}>Tutte le Gazzette in IUSENTRA: ricerca e filtri</a>
                   </div>
                 ) : webSource.requiresAuthentication ? (
                   <div className="iu-notiziario__source-state">
@@ -518,6 +521,8 @@ export function NotiziarioPanel() {
           )}
         </article>
       </div>
+
+      <GazzettaUltimePubblicazioni />
 
       <footer className="iu-notiziario__quick-sources">
         <strong>Fonti rapide</strong>

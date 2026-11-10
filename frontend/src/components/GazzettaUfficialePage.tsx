@@ -1,0 +1,286 @@
+import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, FileText, Landmark, RefreshCw, Search, X } from 'lucide-react'
+import { Page } from '../ui/Page'
+import { Button, ButtonLink } from '../ui/Button'
+import { CampoData } from '../ui/CampoData'
+import { useBusyActivity } from '../ui/useBusyActivity'
+import { sanitizeDisplayText } from '../displayText'
+import { formatDateIt, formatDateTimeIt } from '../formatting'
+import {
+  GAZZETTA_QUERY_INIZIALE,
+  estremiGazzetta,
+  gazzettaQueryDaIndirizzo,
+  gazzettaQueryString,
+  gazzettaVuota,
+  loadGazzetta,
+  refreshGazzetta,
+  type GazzettaAtto,
+  type GazzettaPayload,
+  type GazzettaQuery,
+  type GazzettaStatoSerie,
+} from '../gazzettaData'
+import './GazzettaUfficialePage.css'
+
+const SITO_UFFICIALE = 'https://www.gazzettaufficiale.it/'
+
+function testo(valore: string, ripiego = ''): string {
+  return sanitizeDisplayText(valore || ripiego)
+}
+
+function dataIt(valore: string): string {
+  return formatDateIt(valore, 'data non indicata')
+}
+
+/** Solo collegamenti https:// verso il sito della Gazzetta Ufficiale. */
+function collegamentoUfficiale(valore: string): string {
+  try {
+    const url = new URL((valore || '').trim())
+    if (url.protocol !== 'https:' || url.username || url.password) return ''
+    return ['www.gazzettaufficiale.it', 'gazzettaufficiale.it'].includes(url.hostname) ? url.href : ''
+  } catch {
+    return ''
+  }
+}
+
+function StatoSerie({ stato }: { stato: GazzettaStatoSerie }) {
+  const sommario = stato.latestIssue ? collegamentoUfficiale(stato.latestIssue.url) : ''
+  const classe = !stato.checked ? 'is-pending' : stato.ok ? 'is-ok' : 'is-error'
+  return (
+    <li className={`iu-gazzetta-stato__voce ${classe}`}>
+      <span className="iu-gazzetta-stato__icona" aria-hidden="true">{stato.checked && !stato.ok ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}</span>
+      <span className="iu-gazzetta-stato__testo">
+        <strong>{testo(stato.label)}</strong>
+        {stato.latestIssue ? (
+          sommario
+            ? <a href={sommario} target="_blank" rel="noopener noreferrer" title="Apri il sommario ufficiale del fascicolo">Ultimo fascicolo n. {stato.latestIssue.number} del {dataIt(stato.latestIssue.date)}</a>
+            : <span>Ultimo fascicolo n. {stato.latestIssue.number} del {dataIt(stato.latestIssue.date)}</span>
+        ) : <span>Nessun fascicolo in archivio</span>}
+        <span className="iu-gazzetta-stato__controllo">{stato.checked ? `Controllata il ${formatDateTimeIt(stato.lastAttemptAt)}` : 'Non ancora controllata'}</span>
+        {stato.message ? <small>{testo(stato.message)}</small> : null}
+      </span>
+    </li>
+  )
+}
+
+function RigaAtto({ atto }: { atto: GazzettaAtto }) {
+  const url = collegamentoUfficiale(atto.officialUrl)
+  const sommario = collegamentoUfficiale(atto.issueUrl)
+  return (
+    <li className="iu-gazzetta-atto">
+      <span className={`iu-gazzetta-atto__serie is-${atto.series.toLowerCase()}`} title={testo(atto.seriesLabel)}>{testo(atto.seriesShort)}</span>
+      <div className="iu-gazzetta-atto__corpo">
+        <div className="iu-gazzetta-atto__etichette">
+          <span className="iu-gazzetta-atto__tipo">{testo(atto.kindLabel)}</span>
+          {atto.authority ? <span className="iu-gazzetta-atto__ente">{testo(atto.authority)}</span> : null}
+        </div>
+        <h3>{url ? <a href={url} target="_blank" rel="noopener noreferrer">{testo(atto.title)}</a> : testo(atto.title)}</h3>
+        {atto.description ? <p>{testo(atto.description)}</p> : null}
+        <p className="iu-gazzetta-atto__estremi">
+          {estremiGazzetta(atto, dataIt)}
+          {atto.page ? ` · pag. ${atto.page}` : ''}
+          {atto.section ? ` · ${testo(atto.section)}` : ''}
+          {atto.editorialCode ? ` · codice redazionale ${atto.editorialCode}` : ''}
+        </p>
+      </div>
+      <div className="iu-gazzetta-atto__azioni">
+        {url ? <a className="iu-gazzetta-atto__apri" href={url} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Apri l’atto</a> : null}
+        {sommario ? <a href={sommario} target="_blank" rel="noopener noreferrer"><FileText size={14} /> Sommario del fascicolo</a> : null}
+      </div>
+    </li>
+  )
+}
+
+export function GazzettaUfficialePage() {
+  const [query, setQuery] = useState<GazzettaQuery>(() => gazzettaQueryDaIndirizzo(window.location.search))
+  const [cerca, setCerca] = useState(query.q)
+  const [ente, setEnte] = useState(query.ente)
+  const [numero, setNumero] = useState(query.numero)
+  const [dati, setDati] = useState<GazzettaPayload>(gazzettaVuota)
+  const [caricamento, setCaricamento] = useState(true)
+  const [aggiornamento, setAggiornamento] = useState(false)
+  const [errore, setErrore] = useState('')
+  const [avviso, setAvviso] = useState('')
+  useBusyActivity(caricamento, 'Ricerca nella Gazzetta Ufficiale…')
+  useBusyActivity(aggiornamento, 'Lettura dei sommari ufficiali…')
+
+  const cambia = (patch: Partial<GazzettaQuery>) => setQuery((attuale) => ({ ...attuale, ...patch, pagina: patch.pagina ?? 1 }))
+
+  // Ricerca, ente e numero partono dopo una breve pausa di digitazione.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setQuery((attuale) => (attuale.q === cerca && attuale.ente === ente && attuale.numero === numero
+        ? attuale
+        : { ...attuale, q: cerca, ente, numero: numero.replace(/\D/g, ''), pagina: 1 }))
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [cerca, ente, numero])
+
+  useEffect(() => {
+    const controllo = new AbortController()
+    setCaricamento(true)
+    setErrore('')
+    window.history.replaceState({}, '', `${window.location.pathname}${gazzettaQueryString(query)}`)
+    loadGazzetta(query, controllo.signal)
+      .then(setDati)
+      .catch((motivo: unknown) => { if (!controllo.signal.aborted) setErrore(motivo instanceof Error ? motivo.message : 'Ricerca non disponibile.') })
+      .finally(() => { if (!controllo.signal.aborted) setCaricamento(false) })
+    return () => controllo.abort()
+  }, [query])
+
+  const aggiorna = () => {
+    setAggiornamento(true)
+    setErrore('')
+    setAvviso('')
+    refreshGazzetta(query)
+      .then((nuovi) => {
+        setDati(nuovi)
+        setQuery((attuale) => ({ ...attuale, pagina: 1 }))
+        if (nuovi.refresh && !nuovi.refresh.done && nuovi.refresh.reason) setAvviso(nuovi.refresh.reason)
+      })
+      .catch((motivo: unknown) => setErrore(motivo instanceof Error ? motivo.message : 'Aggiornamento non riuscito.'))
+      .finally(() => setAggiornamento(false))
+  }
+
+  const azzera = () => {
+    setCerca('')
+    setEnte('')
+    setNumero('')
+    setQuery(GAZZETTA_QUERY_INIZIALE)
+  }
+
+  const pagine = Math.max(1, Math.ceil(dati.total / Math.max(1, dati.pageSize)))
+  const serieInErrore = dati.sourceStates.filter((stato) => stato.checked && !stato.ok)
+  const filtriAttivi = useMemo(
+    () => Boolean(query.q || query.serie || query.tipo || query.rubrica || query.ente || query.dal || query.al || query.numero),
+    [query],
+  )
+  const totaleSerie = dati.facets.series.reduce((somma, voce) => somma + voce.count, 0)
+
+  return (
+    <Page
+      title="Gazzetta Ufficiale"
+      subtitle="Gli atti pubblicati nelle sei serie della Gazzetta Ufficiale, letti dai sommari ufficiali: cerca, filtra e apri l’atto sul sito istituzionale."
+      className="iu-gazzetta"
+      actions={(
+        <>
+          <Button tone="neutral" onClick={aggiorna} disabled={aggiornamento} aria-busy={aggiornamento} title="Legge subito i sommari dei fascicoli nuovi">
+            <RefreshCw size={15} /> Aggiorna ora
+          </Button>
+          <ButtonLink tone="neutral" href={SITO_UFFICIALE} target="_blank" rel="noopener noreferrer"><Landmark size={15} /> Sito della Gazzetta Ufficiale</ButtonLink>
+        </>
+      )}
+    >
+      {dati.archiveMissing ? <div className="iu-gazzetta__messaggio is-info" role="status">{testo(dati.message)}</div> : null}
+      {serieInErrore.length ? (
+        <div className="iu-gazzetta__messaggio is-error" role="alert">
+          <AlertTriangle size={16} />
+          <span>
+            {serieInErrore.length === 1 ? 'Una serie non è stata letta all’ultimo controllo' : `${serieInErrore.length} serie non sono state lette all’ultimo controllo`}
+            {': '}
+            {serieInErrore.map((stato) => `${stato.label} (${stato.message || 'non raggiungibile'})`).join('; ')}. Gli atti già in archivio restano consultabili.
+          </span>
+        </div>
+      ) : null}
+      {avviso ? <div className="iu-gazzetta__messaggio is-info" role="status">{testo(avviso)}</div> : null}
+      {errore ? <div className="iu-gazzetta__messaggio is-error" role="alert">{testo(errore)}</div> : null}
+
+      <section className="iu-gazzetta__filtri" aria-label="Ricerca e filtri">
+        <label className="iu-gazzetta__cerca">
+          <Search size={16} aria-hidden="true" />
+          <span className="sr-only">Cerca nella Gazzetta Ufficiale</span>
+          <input value={cerca} onChange={(evento) => setCerca(evento.currentTarget.value)} placeholder="Cerca nel titolo e nel testo del sommario: parole, numero dell’atto, codice redazionale" />
+          {cerca ? <button type="button" onClick={() => setCerca('')} title="Cancella ricerca"><X size={14} /></button> : null}
+        </label>
+        <div className="iu-gazzetta__serie" role="group" aria-label="Serie">
+          <button type="button" className={!query.serie ? 'is-active' : ''} aria-pressed={!query.serie} onClick={() => cambia({ serie: '' })}>
+            Tutte le serie <span>{totaleSerie}</span>
+          </button>
+          {dati.facets.series.map((voce) => (
+            <button type="button" key={voce.id} className={query.serie === voce.id ? 'is-active' : ''} aria-pressed={query.serie === voce.id} onClick={() => cambia({ serie: query.serie === voce.id ? '' : voce.id })}>
+              {testo(voce.label)} <span>{voce.count}</span>
+            </button>
+          ))}
+        </div>
+        <div className="iu-gazzetta__campi">
+          <label>
+            <span>Tipo di atto</span>
+            <select value={query.tipo} onChange={(evento) => cambia({ tipo: evento.currentTarget.value })}>
+              <option value="">Tutti i tipi</option>
+              {dati.facets.kinds.map((voce) => <option key={voce.id} value={voce.id}>{testo(voce.label)} ({voce.count})</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Sezione del sommario</span>
+            <select value={query.rubrica} onChange={(evento) => cambia({ rubrica: evento.currentTarget.value })}>
+              <option value="">Tutte le sezioni</option>
+              {dati.facets.sections.map((voce) => <option key={voce.id} value={voce.id}>{testo(voce.label)} ({voce.count})</option>)}
+            </select>
+          </label>
+          <label className="iu-gazzetta__campo-ente">
+            <span>Ente emanante</span>
+            <input list="iu-gazzetta-enti" value={ente} onChange={(evento) => setEnte(evento.currentTarget.value)} placeholder="Scegli o scrivi l’ente" />
+            <datalist id="iu-gazzetta-enti">
+              {dati.facets.authorities.map((voce) => <option key={voce.id} value={voce.id}>{`${voce.count} atti`}</option>)}
+            </datalist>
+          </label>
+          <label>
+            <span>Pubblicata dal</span>
+            <CampoData value={query.dal} max={query.al || undefined} onChange={(valore) => cambia({ dal: valore })} aria-label="Pubblicata dal giorno" />
+          </label>
+          <label>
+            <span>al</span>
+            <CampoData value={query.al} min={query.dal || undefined} onChange={(valore) => cambia({ al: valore })} aria-label="Pubblicata fino al giorno" />
+          </label>
+          <label className="iu-gazzetta__campo-numero">
+            <span>N. Gazzetta</span>
+            <input inputMode="numeric" value={numero} onChange={(evento) => setNumero(evento.currentTarget.value.replace(/\D/g, '').slice(0, 4))} placeholder="es. 261" />
+          </label>
+          <label>
+            <span>Ordina</span>
+            <select value={query.ordine} onChange={(evento) => cambia({ ordine: evento.currentTarget.value })}>
+              <option value="recenti">Dalla più recente</option>
+              <option value="meno_recenti">Dalla meno recente</option>
+            </select>
+          </label>
+          {filtriAttivi ? <button type="button" className="iu-gazzetta__azzera" onClick={azzera}><X size={14} /> Azzera filtri</button> : null}
+        </div>
+      </section>
+
+      <div className="iu-gazzetta__corpo">
+        <section className="iu-gazzetta__risultati" aria-label="Atti trovati">
+          <header className="iu-gazzetta__intestazione-risultati">
+            <strong>{dati.total.toLocaleString('it-IT')} {dati.total === 1 ? 'atto' : 'atti'}</strong>
+            {dati.archive.total ? <span>Archivio: {dati.archive.total.toLocaleString('it-IT')} atti pubblicati dal {dataIt(dati.archive.from)} al {dataIt(dati.archive.to)}</span> : null}
+          </header>
+          {caricamento && !dati.items.length ? (
+            <div className="iu-gazzetta__caricamento" role="status"><span /><span /><span /></div>
+          ) : dati.items.length ? (
+            <ul className={`iu-gazzetta__elenco ${caricamento ? 'is-loading' : ''}`}>
+              {dati.items.map((atto) => <RigaAtto key={atto.id} atto={atto} />)}
+            </ul>
+          ) : (
+            <div className="iu-gazzetta__vuoto">
+              <FileText size={22} />
+              <strong>{dati.archiveMissing ? 'Archivio non ancora disponibile' : 'Nessun atto con questi filtri'}</strong>
+              <span>{dati.archiveMissing ? 'Usa «Aggiorna ora» per leggere subito i sommari ufficiali.' : 'Togli un filtro o cambia la ricerca.'}</span>
+            </div>
+          )}
+          {pagine > 1 ? (
+            <nav className="iu-gazzetta__pagine" aria-label="Pagine dei risultati">
+              <button type="button" disabled={query.pagina <= 1 || caricamento} onClick={() => cambia({ pagina: query.pagina - 1 })}><ChevronLeft size={15} /> Precedente</button>
+              <span>Pagina {dati.page} di {pagine}</span>
+              <button type="button" disabled={!dati.hasMore || caricamento} onClick={() => cambia({ pagina: query.pagina + 1 })}>Successiva <ChevronRight size={15} /></button>
+            </nav>
+          ) : null}
+        </section>
+        <aside className="iu-gazzetta-stato" aria-label="Stato delle serie">
+          <h2>Serie della Gazzetta Ufficiale</h2>
+          <p>Ogni ora il software legge l’elenco ufficiale degli ultimi 30 giorni e archivia i sommari dei fascicoli nuovi.</p>
+          <ul>{dati.sourceStates.map((stato) => <StatoSerie key={stato.id} stato={stato} />)}</ul>
+        </aside>
+      </div>
+    </Page>
+  )
+}
+
+export default GazzettaUfficialePage

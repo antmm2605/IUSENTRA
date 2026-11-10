@@ -26,6 +26,7 @@ import { plainTextToParagraphs, sanitizePastedHtml } from './templateEditor/past
 import { Panel } from '../ui/Panel'
 import './TemplateStudioPage.css'
 
+import { CampoData } from '../ui/CampoData'
 function csrfToken(): string {
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 }
@@ -152,6 +153,8 @@ function Field({ field, value, onChange }: { field: StudioTemplateField; value: 
           <option value="">—</option>
           {field.options.map((opt) => <option value={opt.value} key={opt.value}>{opt.label}</option>)}
         </select>
+      ) : field.type === 'date' ? (
+        <CampoData id={id} value={value} onChange={onChange} />
       ) : (
         <input id={id} type={field.type} value={value} placeholder={field.placeholder} onChange={(event) => onChange(event.target.value)} />
       )}

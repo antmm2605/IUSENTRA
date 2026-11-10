@@ -8,6 +8,7 @@ import { useCtuCommand } from '../../hooks/useCtuCommand'
 import type { CtuDettaglio } from './CtuIncaricoDettaglio'
 import './CtuSection.css'
 import { useBusyActivity } from '../../ui/useBusyActivity'
+import { CampoData } from '../../ui/CampoData'
 
 const CtuIncaricoDettaglio = lazy(() => import('./CtuIncaricoDettaglio'))
 
@@ -231,16 +232,16 @@ export default function CtuSection({ fascicoloId, active = true }:{fascicoloId:s
             </select>
           </label>
           <label><span>Nome CTU</span><input value={form.nomeCtu} onChange={(e) => setForm({ ...form, nomeCtu: e.target.value })} placeholder="Es. Ing. Bruni"/></label>
-          <label><span>Ordinanza di nomina</span><input type="date" value={form.dataNomina} onChange={(e) => setForm({ ...form, dataNomina: e.target.value })}/></label>
-          <label><span>Termine bozza (art. 195)</span><input type="date" value={form.termineBozza} onChange={(e) => setForm({ ...form, termineBozza: e.target.value })}/></label>
-          <label><span>Termine osservazioni</span><input type="date" value={form.termineOsservazioni} onChange={(e) => setForm({ ...form, termineOsservazioni: e.target.value })}/></label>
-          <label><span>Termine deposito</span><input type="date" value={form.termineDeposito} onChange={(e) => setForm({ ...form, termineDeposito: e.target.value })}/></label>
+          <label><span>Ordinanza di nomina</span><CampoData value={form.dataNomina} onChange={(valore) => setForm({ ...form, dataNomina: valore })}/></label>
+          <label><span>Termine bozza (art. 195)</span><CampoData value={form.termineBozza} onChange={(valore) => setForm({ ...form, termineBozza: valore })}/></label>
+          <label><span>Termine osservazioni</span><CampoData value={form.termineOsservazioni} onChange={(valore) => setForm({ ...form, termineOsservazioni: valore })}/></label>
+          <label><span>Termine deposito</span><CampoData value={form.termineDeposito} onChange={(valore) => setForm({ ...form, termineDeposito: valore })}/></label>
           <section className="iu-fas-ctu__calc" aria-label="Calcolo assistito dall’ordinanza">
             <header>
               <strong>Calcolo assistito dall’ordinanza</strong>
               <span>Usa solo decorrenza e giorni indicati dal giudice.</span>
             </header>
-            <label><span>Decorrenza indicata</span><input type="date" value={ctuCalc.decorrenza} onChange={(e) => setCtuCalc({ ...ctuCalc, decorrenza: e.target.value })}/></label>
+            <label><span>Decorrenza indicata</span><CampoData value={ctuCalc.decorrenza} onChange={(valore) => setCtuCalc({ ...ctuCalc, decorrenza: valore })}/></label>
             <label><span>Giorni bozza</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniBozza} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniBozza: e.target.value })}/></label>
             <label><span>Giorni osservazioni</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniOsservazioni} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniOsservazioni: e.target.value })}/></label>
             <label><span>Giorni deposito</span><input type="number" min="0" inputMode="numeric" value={ctuCalc.giorniDeposito} onChange={(e) => setCtuCalc({ ...ctuCalc, giorniDeposito: e.target.value })}/></label>

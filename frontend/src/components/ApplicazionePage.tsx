@@ -18,6 +18,7 @@ import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import './ApplicazionePage.css'
 
+import { CampoData } from '../ui/CampoData'
 const CATALOGO = '/strumenti-operativi'
 
 function valoriIniziali(item: Applicazione | null): Record<string, string> {
@@ -41,6 +42,8 @@ function Campo({ campo, valore, onChange }: { campo: CampoApplicazione; valore: 
         <select id={id} value={valore} required={campo.required} onChange={(event) => { const value = event.currentTarget.value; onChange(campo.name, value) }}>
           {campo.options.map((opzione) => <option key={opzione.value} value={opzione.value}>{opzione.label}</option>)}
         </select>
+      ) : campo.kind === 'date' ? (
+        <CampoData id={id} value={valore} required={campo.required} onChange={(value) => onChange(campo.name, value)} />
       ) : (
         <input
           id={id}

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import type { AttoImpugnato, CatalogoPtt, QuadroPtt } from './types'
+import { CampoData } from '../../ui/CampoData'
 
 const euro = (n: number) => `€ ${n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -58,7 +59,7 @@ export function ProcedimentoPtt({ quadro, catalogo, tipo, onSalva }: {
           <label>Posizione dell’assistito
             <select name="posizione" defaultValue={p.posizione || 'ricorrente'}><option value="ricorrente">Ricorrente / appellante</option><option value="resistente">Resistente (controdeduzioni)</option></select></label>
           <label>Numero di ruolo (RGR/RGA)<input name="rg" defaultValue={p.rg || ''} placeholder="es. 1234/2026"/></label>
-          <label>Ricorso notificato il<input type="date" name="notificaRicorso" defaultValue={p.notificaRicorso || ''}/><small>Da qui i 30 giorni per costituirsi (art. 22).</small></label>
+          <label>Ricorso notificato il<CampoData name="notificaRicorso" defaultValue={p.notificaRicorso || ''}/><small>Da qui i 30 giorni per costituirsi (art. 22).</small></label>
           <label>Trattazione
             <select name="pubblicaUdienza" defaultValue={p.pubblicaUdienza || ''}><option value="">No (camera di consiglio)</option>{(catalogo?.pubblicaUdienza || []).slice(1).map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
           {tipo === 'altri-atti' ? (
@@ -83,7 +84,7 @@ export function ProcedimentoPtt({ quadro, catalogo, tipo, onSalva }: {
             <label>Numero<input name="sentNumero" defaultValue={sentenza.numero || ''}/></label>
             <label>Sezione<input name="sentSezione" defaultValue={sentenza.sezione || ''}/></label>
             <label>Anno<input name="sentAnno" inputMode="numeric" maxLength={4} defaultValue={sentenza.anno || ''}/></label>
-            <label>Data<input type="date" name="sentData" defaultValue={sentenza.data || ''}/></label>
+            <label>Data<CampoData name="sentData" defaultValue={sentenza.data || ''}/></label>
           </div>
         </section>
       ) : null}
@@ -94,7 +95,7 @@ export function ProcedimentoPtt({ quadro, catalogo, tipo, onSalva }: {
             <label>Atto (Tabella B)<select value={a.tipo || ''} onChange={(e) => aggiornaAtto(i, 'tipo', e.target.value)}><option value="">Scegli</option>{(catalogo?.attiImpugnati || []).map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
             <label>Numero dell’atto<input value={a.numero || ''} onChange={(e) => aggiornaAtto(i, 'numero', e.target.value)}/></label>
             <label>Ufficio che l’ha emesso<input value={a.ufficio || ''} onChange={(e) => aggiornaAtto(i, 'ufficio', e.target.value)} placeholder="es. Direzione provinciale di Bari"/></label>
-            <label>Notificato il<input type="date" value={a.dataNotifica || ''} onChange={(e) => aggiornaAtto(i, 'dataNotifica', e.target.value)}/></label>
+            <label>Notificato il<CampoData value={a.dataNotifica || ''} onChange={(valore) => aggiornaAtto(i, 'dataNotifica', valore)}/></label>
             <label>Periodo d’imposta<input value={a.periodo || ''} onChange={(e) => aggiornaAtto(i, 'periodo', e.target.value)} placeholder="es. 2021"/></label>
             <label>Tributo in lite (€, senza interessi e sanzioni)<input inputMode="decimal" value={a.tributo || ''} onChange={(e) => aggiornaAtto(i, 'tributo', e.target.value)}/></label>
             <label>Sanzioni (€, se in lite solo queste)<input inputMode="decimal" value={a.sanzioni || ''} onChange={(e) => aggiornaAtto(i, 'sanzioni', e.target.value)}/></label>
@@ -115,7 +116,7 @@ export function ProcedimentoPtt({ quadro, catalogo, tipo, onSalva }: {
             <select value={modalita} onChange={(e) => setModalita(e.target.value)}><option value="">Scegli</option>{(catalogo?.modalitaCut || []).map((v) => <option key={v} value={v}>{v}</option>)}</select>
             <small>{modalita === 'F23' ? `Codice tributo 171T${corte ? `, codice ufficio ${corte.codiceF23}` : ''}.` : modalita === 'pagoPA' ? 'Dal link nella PEC con il numero di ruolo o dal menu «PagoPA effettua pagamenti».' : ''}</small></label>
           {!esente ? <label>Estremi del versamento<input name="cutEstremi" defaultValue={p.cutEstremi || ''} placeholder="IUV, n. contrassegno, ABI…"/></label> : null}
-          {!esente ? <label>Data del versamento<input type="date" name="cutData" defaultValue={p.cutData || ''}/></label> : null}
+          {!esente ? <label>Data del versamento<CampoData name="cutData" defaultValue={p.cutData || ''}/></label> : null}
         </div>
       </section>
       <div className="iu-pat-barra">

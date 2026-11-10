@@ -1,4 +1,4 @@
-import { formatDateTimeIt } from '../formatting'
+import { formatDateTimeIt, formatDateLabelIt } from '../formatting'
 import { NormativeArticleLink } from './NormativeArticleLink'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type HTMLAttributes } from 'react'
@@ -39,6 +39,7 @@ import { catalogPage, catalogScopeFromQuery, catalogScopeCounts, matchesCatalogS
 import './TemplateAttiPage.css'
 import './templateEditor/templateEditor.css'
 
+import { CampoData } from '../ui/CampoData'
 const TemplateCompilationGuide = lazy(() => import('../features/documenti/TemplateCompilationGuide'))
 
 const EDITABLE_DOM_PROPS = {
@@ -746,7 +747,7 @@ function TemplateCard({ record, onOpen }: { record: TemplateAttiRecord; onOpen: 
         {record.updatedAt ? (
           <div>
             <dt>Aggiornato</dt>
-            <dd>{record.updatedAt}</dd>
+            <dd>{formatDateLabelIt(record.updatedAt)}</dd>
           </div>
         ) : null}
       </dl>
@@ -955,11 +956,19 @@ function CompilerField({ field }: { field: TemplateCompilerField }) {
           rows={field.type === 'richtext' ? 7 : 5}
           aria-invalid={field.error ? 'true' : 'false'}
         />
+      ) : field.type === 'date' ? (
+        <CampoData
+          id={`compiler-${field.name}`}
+          name={field.name}
+          defaultValue={field.value}
+          required={field.required}
+          aria-invalid={field.error ? 'true' : 'false'}
+        />
       ) : (
         <input
           id={`compiler-${field.name}`}
           name={field.name}
-          type={field.type === 'number' || field.type === 'date' ? field.type : 'text'}
+          type={field.type === 'number' ? field.type : 'text'}
           defaultValue={field.value}
           placeholder={field.placeholder}
           required={field.required}

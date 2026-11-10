@@ -49,7 +49,9 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import './PreventiviPage.css'
+import { CampoData } from '../ui/CampoData'
 
+import { formatDateLabelIt } from '../formatting'
 type PageMode = 'archive' | 'new-preventivo' | 'new-conferimento' | 'detail-conferimento'
 type SaveStatus = 'idle' | 'loading' | 'saving' | 'success' | 'validation' | 'permission' | 'error'
 
@@ -471,11 +473,11 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           </label>
           <label className="iu-prev-field">
             <span>Data emissione</span>
-            <input type="date" required value={formState.data_emissione} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, data_emissione: value })) }} />
+            <CampoData required value={formState.data_emissione} onChange={(valore) => { const value = valore; setFormState((current) => ({ ...current, data_emissione: value })) }} />
           </label>
           <label className="iu-prev-field">
             <span>Scadenza</span>
-            <input type="date" required value={formState.data_scadenza} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, data_scadenza: value })) }} />
+            <CampoData required value={formState.data_scadenza} onChange={(valore) => { const value = valore; setFormState((current) => ({ ...current, data_scadenza: value })) }} />
           </label>
         </div>
         <label className="iu-prev-field">
@@ -640,7 +642,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
           </label>
           <label className="iu-prev-field">
             <span>Data incarico</span>
-            <input type="date" required value={formState.data_incarico} onChange={(event) => { const value = event.currentTarget.value; setFormState((current) => ({ ...current, data_incarico: value })) }} />
+            <CampoData required value={formState.data_incarico} onChange={(valore) => { const value = valore; setFormState((current) => ({ ...current, data_incarico: value })) }} />
           </label>
         </div>
         <label className="iu-prev-field">
@@ -897,7 +899,7 @@ function ConferimentoDetailView({
             <DetailFact label="Tipo compenso" value={detail.compensationType} />
             <DetailFact label="Tipo procedimento" value={detail.proceedingType} />
             <DetailFact label="Preventivo collegato" value={detail.preventivoNumber || detail.preventivoId || 'Non collegato'} />
-            <DetailFact label="Firma cliente" value={detail.signed ? `Registrata${detail.signedAt ? ` il ${detail.signedAt}` : ''}` : 'Da registrare'} />
+            <DetailFact label="Firma cliente" value={detail.signed ? `Registrata${detail.signedAt ? ` il ${formatDateLabelIt(detail.signedAt)}` : ''}` : 'Da registrare'} />
           </div>
           {detail.notes ? <p className="iu-prev-detail-note">{detail.notes}</p> : null}
         </Panel>

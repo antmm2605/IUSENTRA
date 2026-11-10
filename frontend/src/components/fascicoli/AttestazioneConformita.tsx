@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Eye, PenLine, RefreshCw, Signature, SquareDa
 import { csrfHeader } from '../../api/csrf'
 import { Modal } from '../../ui/Modal'
 import './attestazioneConformita.css'
+import { CampoData } from '../../ui/CampoData'
 
 type Voce = { id: string; etichetta: string }
 type Opzioni = {
@@ -249,7 +250,7 @@ export default function AttestazioneConformitaFinestra({ action, documento, onCh
                   {scelta('tipo', 'Tipo di copia', opzioni.tipi)}
                   <label>Avvocato che attesta<input value={valori.avvocato || ''} onChange={(e) => aggiorna('avvocato', e.currentTarget.value)} maxLength={120} required/></label>
                   <label>Luogo<input value={valori.luogo || ''} onChange={(e) => aggiorna('luogo', e.currentTarget.value)} maxLength={80} required/></label>
-                  <label>Data<input type="date" value={valori.data || ''} onChange={(e) => aggiorna('data', e.currentTarget.value)} required/></label>
+                  <label>Data<CampoData value={valori.data || ''} onChange={(valore) => aggiorna('data', valore)} required/></label>
                 </div>
                 <label>Testo<textarea rows={3} value={valori.testo || ''} onChange={(e) => aggiorna('testo', e.currentTarget.value)} maxLength={1200}/></label>
                 <div className="iu-attestazione__griglia">

@@ -23,6 +23,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import './ChecklistAttiPage.css'
+import { CampoData } from '../ui/CampoData'
 
 function Checks({ items }: { items: ChecklistCheck[] }) {
   if (!items.length) return null
@@ -239,7 +240,7 @@ function StepView({ data, step, onReload }: { data: WizardData; step: WizardStep
         </label>
         <label>
           <span>Data del documento</span>
-          <input type="date" value={documentDate} onChange={(event) => { const value = event.currentTarget.value; setDocumentDate(value) }} />
+          <CampoData value={documentDate} onChange={(valore) => { const value = valore; setDocumentDate(value) }} />
         </label>
         <label className="iu-chk-check">
           <input type="checkbox" checked={signed} onChange={(event) => { const value = event.currentTarget.checked; setSigned(value) }} />

@@ -45,6 +45,7 @@ import { destinazioneDopoSalvataggio, destinazioneInterna, messaggioSalvataggio 
 import { anagraficaDraftKey, useAnagraficaDraft, type AnagraficaDraftStatus } from '../features/anagrafiche/useAnagraficaDraft'
 import './NuovoClientePage.css'
 import { formatDateIt } from '../formatting'
+import { CampoData } from '../ui/CampoData'
 
 type Tab = 'cliente' | 'soggetto'
 type PublicRegistryKind = 'reginde' | 'registro_ppaa' | 'inipec'
@@ -680,7 +681,9 @@ function Field({
   return (
     <label className={`iu-cln-field ${wide ? 'is-wide' : ''} ${mono ? 'is-mono' : ''}`.trim()}>
       <span>{label}{required ? <b>*</b> : null}</span>
-      <input name={name} type={type} value={value} required={required} placeholder={placeholder} onChange={(event) => onChange(name, event.currentTarget.value)}/>
+      {type === 'date' || type === 'datetime-local'
+        ? <CampoData name={name} value={value} conOra={type === 'datetime-local'} required={required} onChange={(valore) => onChange(name, valore)}/>
+        : <input name={name} type={type} value={value} required={required} placeholder={placeholder} onChange={(event) => onChange(name, event.currentTarget.value)}/>}
       {children}
     </label>
   )

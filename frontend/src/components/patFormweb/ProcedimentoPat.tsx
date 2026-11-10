@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Save } from 'lucide-react'
 import type { CatalogoPat, Procedimento, QuadroPat } from './types'
+import { CampoData } from '../../ui/CampoData'
 
 const POSIZIONI = [['ricorrente', 'Ricorrente'], ['resistente', 'Resistente'], ['controinteressato', 'Controinteressato'], ['interveniente', 'Interveniente']]
 
@@ -119,7 +120,7 @@ export function ProcedimentoPat({ quadro, catalogo, onSalva }: {
           <div id="pat-versamento" className="iu-pat-versamento">
             <p className="iu-pat-nota">Se il contributo non è ancora pagato basta «Non esente». Se è pagato indica il versamento F24 (modalità unica dal 2018) e allega la quietanza nei Documenti come «Ricevuta contributo».</p>
             <div className="iu-pat-form">
-              <label>Data del versamento<input type="date" name="versamentoData" defaultValue={versamento.data || ''}/></label>
+              <label>Data del versamento<CampoData name="versamentoData" defaultValue={versamento.data || ''}/></label>
               <label>Importo versato (€)<input name="versamentoImporto" inputMode="decimal" defaultValue={versamento.importo || ''} maxLength={20}/></label>
               <label>Estremi (protocollo telematico)<input name="versamentoEstremi" defaultValue={versamento.estremi || ''} maxLength={24} placeholder="i due campi dopo «PROTOCOLLO TELEMATICO»"/></label>
               <label>Numero riga F24<input name="versamentoRiga" inputMode="numeric" defaultValue={versamento.numeroRiga || '1'} maxLength={2}/></label>

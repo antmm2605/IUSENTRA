@@ -25,6 +25,7 @@ import './StrumentiLegaliPage.css'
 import { applicaPrecompilatoUtility, catalogoUtility, destinazioneUtility } from '../utilityCatalog'
 import { LoadingState } from '../ui/LoadingState'
 
+import { CampoData } from '../ui/CampoData'
 const OcrDocumentoTool = lazy(() => import('./strumenti/OcrDocumentoTool'))
 const DocumentChecksTool = lazy(() => import('./strumenti/DocumentChecksTool'))
 
@@ -110,12 +111,22 @@ function CampoModulo({
           value={valore}
           onChange={(event) => onChange(campo.name, event.target.value)}
         />
+      ) : campo.type === 'date' ? (
+        <CampoData
+          id={id}
+          name={campo.name}
+          classeTesto="iu-input"
+          value={valore}
+          min={campo.min === undefined ? undefined : String(campo.min)}
+          max={campo.max === undefined ? undefined : String(campo.max)}
+          onChange={(valore) => onChange(campo.name, valore)}
+        />
       ) : (
         <input
           id={id}
           name={campo.name}
           className="iu-input"
-          type={campo.type === 'date' ? 'date' : campo.type === 'number' ? 'number' : 'text'}
+          type={campo.type === 'number' ? 'number' : 'text'}
           value={valore}
           min={campo.min}
           max={campo.max}

@@ -5,6 +5,7 @@ import { modes, regimes, states, text } from './types'
 import { AllegatiMediazione } from './AllegatiMediazione'
 import { DocumentoMediazione } from './DocumentoMediazione'
 
+import { CampoData } from '../../ui/CampoData'
 const documents: [string, string][] = [
   ['istanza_documento', 'Istanza da depositare / depositata'],
   ['delega_documento', 'Delega / procura'], ['pagamento_documento', 'Prova del pagamento'],
@@ -21,7 +22,9 @@ const checks: [string, string][] = [
 export function ProcedimentoForm({ value, change, docs, preview }: {
   value: Procedure; change: (patch: Partial<Procedure>) => void; docs: Document[]; preview: (doc: Preview) => void
 }) {
-  const field = (key: string, label: string, type = 'text') => <label key={key}>{label}<input type={type} value={text(value, key)} onChange={(e) => change({ [key]: e.target.value })} /></label>
+  const field = (key: string, label: string, type = 'text') => <label key={key}>{label}{type === 'date'
+    ? <CampoData value={text(value, key)} onChange={(valore) => change({ [key]: valore })} />
+    : <input type={type} value={text(value, key)} onChange={(e) => change({ [key]: e.target.value })} />}</label>
   const area = (key: string, label: string) => <label key={key}>{label}<textarea rows={3} value={text(value, key)} onChange={(e) => change({ [key]: e.target.value })} /></label>
   const select = (key: string, label: string, options: Record<string, string>) => <label>{label}<select value={text(value, key)} onChange={(e) => change({ [key]: e.target.value })}>{Object.entries(options).map(([v, title]) => <option key={v} value={v}>{title}</option>)}</select></label>
   const docSelect = (label: string, selected: string, update: (id: string) => void) => {
@@ -32,6 +35,9 @@ export function ProcedimentoForm({ value, change, docs, preview }: {
   const rowField = (key: 'parti' | 'incontri' | 'proroghe', index: number, name: string, label: string, type = 'text') => {
     const raw = value[key][index][name] || ''
     const visible = type === 'datetime-local' ? raw.slice(0, 16) : raw
+    if (type === 'date' || type === 'datetime-local') {
+      return <label key={name}>{label}<CampoData conOra={type === 'datetime-local'} value={visible} onChange={(valore) => updateRow(key, index, { [name]: valore })} /></label>
+    }
     return <label key={name}>{label}<input type={type} value={visible} onChange={(e) => updateRow(key, index, { [name]: e.target.value })} /></label>
   }
   return <>

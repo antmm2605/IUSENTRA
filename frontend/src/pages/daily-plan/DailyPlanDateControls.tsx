@@ -1,5 +1,6 @@
 import { ArrowRight, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CampoData } from '../../ui/CampoData'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -88,15 +89,14 @@ export function DailyPlanDateControls({
         <label className="flex min-w-0 items-center gap-2 text-sm font-medium">
           <CalendarDays size={16} aria-hidden="true" />
           <span className="sr-only">Scegli una data</span>
-          <input
-            type="date"
+          <CampoData
             name="date"
             min={today}
             value={value}
             aria-label="Scegli una data del piano"
-            className="iu-od-focus-ring h-9 min-w-0 rounded-md border bg-background px-2 text-sm sm:w-auto"
-            onChange={(event) => {
-              if (isValidFutureDate(event.target.value, today)) onChange(event.target.value)
+            classeTesto="iu-od-focus-ring h-9 min-w-0 rounded-md border bg-background px-2 text-sm sm:w-auto"
+            onChange={(valore) => {
+              if (isValidFutureDate(valore, today)) onChange(valore)
             }}
           />
         </label>

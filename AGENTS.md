@@ -730,6 +730,7 @@ python -m pytest tests/ -v
 - Tutto il testo visibile in UI deve essere in **lingua italiana**. Evitare etichette miste come `Dashboard`, `Logout`, `Sync`, `Runtime: missing` quando sono esposte all'utente finale.
 - Tutte le date/ore **esposte in UI** devono usare formati italiani tramite i filtri template condivisi (`fmt_data`, `fmt_dataora`, `fmt_data_estesa`, ecc.), non `strftime('%B')` o `strftime('%A')` direttamente nei template.
 - Eccezione consentita: i valori tecnici per campi HTML `type=\"date\"`, `datetime-local`, attributi `data-*`, API o payload macchina possono restare in formato ISO.
+- **Campi di inserimento data nel frontend React**: solo `CampoData` (`frontend/src/ui/CampoData.tsx`), che mostra e accetta `gg/mm/aaaa` (con `conOra` `gg/mm/aaaa hh:mm`) in qualunque lingua del browser e passa al codice lo stesso valore ISO dell'input nativo. L'input nativo `type="date"`/`datetime-local` mostra il formato della lingua del browser (in inglese `07/27/2026`) ed è vietato in `frontend/src`: lo blocca `tests/js/campo_data_guardia.test.mjs`.
 
 ## PEC/email — REGOLA OBBLIGATORIA SUGLI ALLEGATI
 

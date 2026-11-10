@@ -2,7 +2,7 @@ import { canCheckPctDeposit, depositActionMessage, depositCorrectionArea, duplic
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
-import { formatDateIt } from '../formatting'
+import { formatDateIt, formatDateLabelIt } from '../formatting'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -60,6 +60,7 @@ import {
 import { csrfToken, redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { AvanzamentoCaricamento, caricaDocumentiConAvanzamento, type StatoCaricamento } from './fascicoli/caricaDocumenti'
 import './FascicoliPage.css'
+import { CampoData } from '../ui/CampoData'
 
 function normaliseText(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -904,15 +905,19 @@ function DepositTextInput({
   return (
     <label className="iu-fas-deposit-specific__field">
       <span>{label}{required ? <b aria-hidden="true"> *</b> : null}</span>
-      <input
-        type={type}
-        value={depositValueText(value)}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        required={required}
-        aria-required={required}
-        placeholder={placeholder}
-        inputMode={inputMode}
-      />
+      {type === 'date' ? (
+        <CampoData value={depositValueText(value)} onChange={onChange} required={required} />
+      ) : (
+        <input
+          type={type}
+          value={depositValueText(value)}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          required={required}
+          aria-required={required}
+          placeholder={placeholder}
+          inputMode={inputMode}
+        />
+      )}
     </label>
   )
 }
@@ -5779,9 +5784,9 @@ function depositCommunicationText(dep: FascicoloDeposit): string {
 function depositMetaLine(dep: FascicoloDeposit): string {
   const docs = dep.documentsCount === 1 ? '1 documento' : dep.documentsCount > 1 ? `${dep.documentsCount} documenti` : ''
   const date = dep.acceptedAt
-    ? `Accettato il ${dep.acceptedAt}`
+    ? `Accettato il ${formatDateLabelIt(dep.acceptedAt)}`
     : dep.sentAt
-      ? `Depositato il ${dep.sentAt}`
+      ? `Depositato il ${formatDateLabelIt(dep.sentAt)}`
       : dep.timestamp || 'Data non indicata'
   const role = dep.roleNumber ? `RG ${dep.roleNumber}` : ''
   const external = dep.externalId ? `IDBUSTA ${dep.externalId}` : ''
@@ -5879,7 +5884,7 @@ function DepositStateSummary({ dep }:{dep:FascicoloDeposit}) {
   const facts = [
     dep.roleNumber ? `RG ${dep.roleNumber}` : '',
     dep.externalId ? `IDBUSTA ${dep.externalId}` : '',
-    dep.acceptedAt ? `Accettato il ${dep.acceptedAt}` : '',
+    dep.acceptedAt ? `Accettato il ${formatDateLabelIt(dep.acceptedAt)}` : '',
     dep.acceptedBy ? `Da ${dep.acceptedBy}` : '',
     dep.registeredBy ? `Registrato da ${dep.registeredBy}` : '',
     dep.sourceMessageId ? `Messaggio deposito ${dep.sourceMessageId}` : '',
@@ -5967,7 +5972,7 @@ function DocumentUploadWorkspace({
         </label>
         <label className="iu-fas-field">
           <span>Data documento</span>
-          <input type="date" name="data_documento"/>
+          <CampoData name="data_documento"/>
         </label>
         <label className="iu-fas-field">
           <span>Etichette</span>

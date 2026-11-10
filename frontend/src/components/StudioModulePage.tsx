@@ -53,6 +53,7 @@ import {
 import { csrfToken } from '../formSubmit'
 import './StudioModulePage.css'
 
+import { CampoData } from '../ui/CampoData'
 type ToolResultState = {
   loading: boolean
   result?: StudioRuntimeResult
@@ -279,6 +280,9 @@ function RuntimeField({ field }: { field: StudioRuntimeField }) {
         {field.options.map((option) => <option value={option.value} key={`${field.name}-${option.value}`}>{option.label}</option>)}
       </select>
     )
+  }
+  if (field.type === 'date') {
+    return <CampoData name={field.name} required={field.required} defaultValue={fieldValue(field)} min={field.min || undefined} max={field.max || undefined} />
   }
   return (
     <input

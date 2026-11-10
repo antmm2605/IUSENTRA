@@ -4,6 +4,7 @@ import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, FileText, MessageS
 import { dataIt, type Fonte, type SchedaUdienza, type TermineAssegnato } from './preparazioneUdienzaTipi'
 import { SourceDocumentModal, type SourceDocument } from './SourceDocumentModal'
 import { VerbaleUdienzaDocumento } from './VerbaleUdienzaDocumento'
+import { CampoData } from '../ui/CampoData'
 
 export type Azioni = {
   salvaCampi: (passo: number, campi: Record<string, unknown>, conferma?: boolean) => Promise<'saved' | 'deferred' | 'failed'>
@@ -223,7 +224,7 @@ export function PassoEsito({ s, a }: { s: SchedaUdienza; a: Azioni }) {
       </div>
       {esito === 'rinvio' ? (
         <div className="iu-pu-riga">
-          <label className="iu-pu-campo"><span>Rinvio al</span><input type="date" value={rinvioData} readOnly={bloccato} onChange={(e) => setRinvioData(e.target.value)}/></label>
+          <label className="iu-pu-campo"><span>Rinvio al</span><CampoData value={rinvioData} readOnly={bloccato} onChange={(valore) => setRinvioData(valore)}/></label>
           <label className="iu-pu-campo"><span>Ore</span><input type="time" value={rinvioOra} readOnly={bloccato} onChange={(e) => setRinvioOra(e.target.value)}/></label>
           <p className="iu-pu-nota">L'udienza di rinvio viene inserita in agenda e diventa la prossima udienza del fascicolo.</p>
         </div>
@@ -234,8 +235,8 @@ export function PassoEsito({ s, a }: { s: SchedaUdienza; a: Azioni }) {
           <div className="iu-pu-riga" key={i}>
             <label className="iu-pu-campo is-largo"><span>Adempimento</span><input value={t.descrizione} placeholder="Es. deposito note scritte" disabled={bloccato || Boolean(t.id_scadenza)}
               onChange={(e) => setTermini(termini.map((x, j) => (j === i ? { ...x, descrizione: e.target.value } : x)))}/></label>
-            <label className="iu-pu-campo"><span>Entro il</span><input type="date" value={t.data} disabled={bloccato || Boolean(t.id_scadenza)}
-              onChange={(e) => setTermini(termini.map((x, j) => (j === i ? { ...x, data: e.target.value } : x)))}/></label>
+            <label className="iu-pu-campo"><span>Entro il</span><CampoData value={t.data} disabled={bloccato || Boolean(t.id_scadenza)}
+              onChange={(valore) => setTermini(termini.map((x, j) => (j === i ? { ...x, data: valore } : x)))}/></label>
             <label className="iu-pu-spunta"><input type="checkbox" checked={t.perentorio} disabled={bloccato || Boolean(t.id_scadenza)}
               onChange={(e) => setTermini(termini.map((x, j) => (j === i ? { ...x, perentorio: e.target.checked } : x)))}/><span>Perentorio</span></label>
             {!bloccato && !t.id_scadenza ? <button type="button" className="iu-pu-icona" aria-label="Togli il termine" onClick={() => { a.bozzaEsito(); setTermini(termini.filter((_, j) => j !== i)) }}><Trash2 size={14}/></button> : null}

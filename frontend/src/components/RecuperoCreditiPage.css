@@ -124,7 +124,7 @@
 }
 
 .iu-rc-page select,
-.iu-rc-page input[type='date'],
+.iu-rc-page input.iu-campo-data__testo,
 .iu-rc-page input:not([type]) {
   min-height: 34px;
   padding: 4px 8px;

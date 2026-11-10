@@ -1,6 +1,7 @@
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useState, type FormEvent } from 'react'
 import type { VerificaNotifiche } from './VerificaNotifichePanel'
+import { CampoData } from '../ui/CampoData'
 
 export type ContestoVerificato = { fonte_documento_id?: string; verifica_documento_id?: string; revisione?: number; atto_studio?: boolean; regime_corrente?: boolean
   notifica_estero?: boolean; sospensione_feriale?: boolean; udienza?: string; pronuncia_decreto?: string; pubblicazione?: string; conoscenza?: string }
@@ -42,7 +43,7 @@ export default function VerificaNotificheForm({ fascicoloId, documentoId, docume
       <div className="iu-cs-verifica-form__campi">{([
         ['udienza', 'Udienza collegata all’atto'], ['pronuncia_decreto', 'Pronuncia del decreto collegato'],
         ['pubblicazione', 'Pubblicazione della sentenza impugnata'], ['conoscenza', 'Notifica, comunicazione o piena conoscenza dell’atto impugnato'],
-      ] as const).map(([campo, label]) => <label key={campo}>{label}<input type="date" name={campo} defaultValue={contesto?.[campo] || ''}/></label>)}</div>
+      ] as const).map(([campo, label]) => <label key={campo}>{label}<CampoData name={campo} defaultValue={contesto?.[campo] || ''}/></label>)}</div>
       <label className="iu-cs-verifica-form__conferma"><input type="checkbox" name="dati_verificati" required/>Ho verificato questi dati nel documento fonte e la disciplina applicabile al caso.</label>
       {errore ? <p role="alert">{errore}</p> : null}{saved ? <p role="status">Dati verificati salvati. Calcolo aggiornato.</p> : null}
       <button type="submit" disabled={saving}>{saving ? 'Salvataggio…' : 'Salva i dati verificati'}</button>

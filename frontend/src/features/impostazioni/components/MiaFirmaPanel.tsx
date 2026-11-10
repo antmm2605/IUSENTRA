@@ -9,6 +9,7 @@ import { IusStatusBadge } from '@/components/iusentra'
 import { apiJson, apiPostJson } from '@/lib/apiClient'
 import './MiaFirmaPanel.css'
 
+import { formatDateLabelIt } from '../../../formatting'
 type Canale = 'studio' | 'pkcs11' | 'remota'
 type Valori = {
   canale: Canale
@@ -341,7 +342,7 @@ export function MiaFirmaPanel() {
             prova.ok ? (
               <p className="iu-mia-firma__esito is-ok" role="status">
                 <CheckCircle2 aria-hidden="true" />
-                {prova.message} Certificato di {prova.intestatario}, emesso da {prova.emittente}, valido fino al {prova.scadenza}.
+                {prova.message} Certificato di {prova.intestatario}, emesso da {prova.emittente}, valido fino al {formatDateLabelIt(prova.scadenza)}.
               </p>
             ) : <p className="iu-mia-firma__esito" role="alert">{prova.message}</p>
           ) : null}

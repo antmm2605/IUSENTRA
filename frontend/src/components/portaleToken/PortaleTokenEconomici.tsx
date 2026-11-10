@@ -4,6 +4,7 @@ import type { AzioneRichiesta, DatiEconomici, DocumentoEconomico } from '../../p
 import { tonoBootstrap, tonoStato } from './PortaleTokenComuni'
 import { AzioniRichieste } from './PortaleTokenHome'
 
+import { formatDateLabelIt } from '../../formatting'
 const TITOLI: Record<DocumentoEconomico['kind'], string> = {
   preventivo: 'Preventivo',
   conferimento: 'Conferimento',
@@ -27,7 +28,7 @@ function SchedaDocumento({ doc, occupato, onAzione }: { doc: DocumentoEconomico;
             <Badge tone={tonoStato(doc.stato)}>{doc.stato}</Badge>
           </div>
           <span className="iu-ptk-meta">
-            {doc.data}{doc.scadenza ? ` · Scadenza ${doc.scadenza}` : ''}
+            {formatDateLabelIt(doc.data)}{doc.scadenza ? ` · Scadenza ${formatDateLabelIt(doc.scadenza)}` : ''}
           </span>
         </div>
         <strong className="iu-ptk-importo">{doc.totale}</strong>

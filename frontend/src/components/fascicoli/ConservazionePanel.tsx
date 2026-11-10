@@ -2,6 +2,7 @@ import { useBusyActivity } from '../../ui/useBusyActivity'
 import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Download, FileArchive, TriangleAlert } from 'lucide-react'
 import './ConservazionePanel.css'
+import { CampoData } from '../../ui/CampoData'
 
 type Documento = { id: string; nome: string; tipo: string; data: string; formato: string; idoneo: boolean; nota: string; firmato: boolean; versato: boolean }
 type Versamento = {
@@ -118,7 +119,7 @@ export default function ConservazionePanel({ fascicoloId }:{ fascicoloId: string
                 <div className="iu-cons__esito" role="form" aria-label={`Esito del versamento ${v.id}`}>
                   <label><span>Esito</span><select value={esito.stato} onChange={(e) => setEsito({ ...esito, stato: e.target.value })}><option value="versato">Accettato: rapporto di versamento ricevuto</option><option value="rifiutato">Rifiutato</option></select></label>
                   <label><span>Conservatore</span><input value={esito.conservatore} onChange={(e) => setEsito({ ...esito, conservatore: e.target.value })}/></label>
-                  <label><span>Data del rapporto</span><input type="date" value={esito.data} max={oggiIso()} onChange={(e) => setEsito({ ...esito, data: e.target.value })}/></label>
+                  <label><span>Data del rapporto</span><CampoData value={esito.data} max={oggiIso()} onChange={(valore) => setEsito({ ...esito, data: valore })}/></label>
                   <label><span>Identificativo del rapporto</span><input value={esito.idRapporto} onChange={(e) => setEsito({ ...esito, idRapporto: e.target.value })}/></label>
                   <div className="iu-cons__azioni"><button type="button" disabled={occupato || !esito.conservatore.trim()} onClick={() => void registraEsito()}>Salva l'esito</button><button type="button" onClick={() => setEsito(null)}>Annulla</button></div>
                 </div>

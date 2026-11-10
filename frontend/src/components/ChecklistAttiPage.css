@@ -16,7 +16,7 @@
 .iu-chk-filters input,
 .iu-chk-form select,
 .iu-chk-form input[type='text'],
-.iu-chk-form input[type='date'] {
+.iu-chk-form input.iu-campo-data__testo {
   min-height: 36px;
   padding: 6px 10px;
   border: 1px solid var(--iu-border);

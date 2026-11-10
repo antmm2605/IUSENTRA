@@ -69,6 +69,7 @@ import {
 import { csrfToken } from '../formSubmit'
 import { formatDateIt, formatDateTimeIt } from '../formatting'
 import './NotificheLegaliPage.css'
+import { CampoData } from '../ui/CampoData'
 
 type TabKey = 'notifica' | 'unep' | 'nonpec' | 'cliente'
 
@@ -4948,7 +4949,7 @@ export function NotificheLegaliPage() {
                 <Field label="Città studio"><input value={notifica.studio_citta} onChange={(event) => changeNotifica('studio_citta', event.currentTarget.value)} /></Field>
                 <Field label="Provincia studio"><input maxLength={2} value={notifica.studio_provincia} onChange={(event) => changeNotifica('studio_provincia', event.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2))} /></Field>
                 <Field label="Luogo relata" wide><input value={notifica.luogo} onChange={(event) => changeNotifica('luogo', event.currentTarget.value)} /></Field>
-                <Field label="Data relata"><input type="date" value={notifica.data_relata} onChange={(event) => changeNotifica('data_relata', event.currentTarget.value)} /></Field>
+                <Field label="Data relata"><CampoData value={notifica.data_relata} onChange={(valore) => changeNotifica('data_relata', valore)} /></Field>
                 <Field label="Ora relata" hint="Ora italiana riportata nella relata."><input type="time" step="60" value={notifica.ora_relata} onChange={(event) => changeNotifica('ora_relata', event.currentTarget.value)} /></Field>
                 <Field label="Parte assistita"><input value={notifica.assistito_nome} onChange={(event) => changeNotifica('assistito_nome', event.currentTarget.value)} /></Field>
                 <Field label="C.F. / P. IVA assistito"><input value={notifica.assistito_cf} onChange={(event) => changeNotifica('assistito_cf', event.currentTarget.value.toUpperCase())} /></Field>
@@ -4982,7 +4983,7 @@ export function NotificheLegaliPage() {
                   </select>
                 </Field>
                 {notifica.origine_documento === 'comunicazione_cancelleria' ? (
-                  <Field label="Data comunicazione cancelleria"><input type="date" value={notifica.data_comunicazione_cancelleria} onChange={(event) => changeNotifica('data_comunicazione_cancelleria', event.currentTarget.value)} /></Field>
+                  <Field label="Data comunicazione cancelleria"><CampoData value={notifica.data_comunicazione_cancelleria} onChange={(valore) => changeNotifica('data_comunicazione_cancelleria', valore)} /></Field>
                 ) : null}
                 <Field label="Impronta allegato" hint="Facoltativa per la notifica; non blocca l'invio PEC.">
                   <input value={notifica.hash_sha256} maxLength={64} onChange={(event) => changeNotifica('hash_sha256', normalizeSha256Input(event.currentTarget.value))} placeholder="64 caratteri esadecimali" />
@@ -5350,7 +5351,7 @@ export function NotificheLegaliPage() {
                   <span>La richiesta riguarda un precetto già notificato</span>
                 </label>
                 <Field label="Data notifica precetto">
-                  <input type="date" value={unep.data_notifica_precetto} onChange={(event) => changeUnep('data_notifica_precetto', event.currentTarget.value)} disabled={!unep.precetto_gia_notificato} />
+                  <CampoData value={unep.data_notifica_precetto} onChange={(valore) => changeUnep('data_notifica_precetto', valore)} disabled={!unep.precetto_gia_notificato} />
                 </Field>
                 <label className="iu-legal-check">
                   <input type="checkbox" checked={unep.spese_unep_dovute} onChange={(event) => changeUnep('spese_unep_dovute', event.currentTarget.checked)} />
@@ -5455,7 +5456,7 @@ export function NotificheLegaliPage() {
                   <input value={nonPec.notifica_id} onChange={(event) => changeNonPec('notifica_id', event.currentTarget.value)} placeholder="Numero o riferimento interno" />
                 </Field>
                 <Field label="Data notifica">
-                  <input type="date" value={nonPec.data_notifica} onChange={(event) => changeNonPec('data_notifica', event.currentTarget.value)} />
+                  <CampoData value={nonPec.data_notifica} onChange={(valore) => changeNonPec('data_notifica', valore)} />
                 </Field>
                 <Field label="Destinatario">
                   <input value={nonPec.destinatario_nome} onChange={(event) => changeNonPec('destinatario_nome', event.currentTarget.value)} />
@@ -5472,10 +5473,10 @@ export function NotificheLegaliPage() {
                       <input value={nonPec.numero_raccomandata} onChange={(event) => changeNonPec('numero_raccomandata', event.currentTarget.value)} />
                     </Field>
                     <Field label="Data spedizione">
-                      <input type="date" value={nonPec.data_spedizione} onChange={(event) => changeNonPec('data_spedizione', event.currentTarget.value)} />
+                      <CampoData value={nonPec.data_spedizione} onChange={(valore) => changeNonPec('data_spedizione', valore)} />
                     </Field>
                     <Field label="Data ricezione o compiuta giacenza">
-                      <input type="date" value={nonPec.data_ricevuta_raccomandata} onChange={(event) => changeNonPec('data_ricevuta_raccomandata', event.currentTarget.value)} />
+                      <CampoData value={nonPec.data_ricevuta_raccomandata} onChange={(valore) => changeNonPec('data_ricevuta_raccomandata', valore)} />
                     </Field>
                   </>
                 ) : null}

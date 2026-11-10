@@ -10,6 +10,7 @@ import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { loadPendingCommand, savePendingCommand, clearPendingCommand, type PendingPrimaNotaCommand } from '../primaNotaCommand'
 import './PrimaNotaPage.css'
 import { LoadingState } from '../ui/LoadingState'
+import { CampoData } from '../ui/CampoData'
 
 const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
 
@@ -112,7 +113,7 @@ function NewMovementForm({ data, onDone, onMessage }:{data:PrimaNotaData; onDone
   return (
     <>
     <fieldset className="iu-pn-form" disabled={busy || uncertain || Boolean(recoveryError)} aria-label="Nuovo movimento di prima nota">
-      <label><span>Data</span><input type="date" value={form.data} onChange={(e) => update('data', e.target.value)}/></label>
+      <label><span>Data</span><CampoData value={form.data} onChange={(valore) => update('data', valore)}/></label>
       <label><span>Tipo</span>
         <select value={form.tipo} onChange={(e) => update('tipo', e.target.value)}>
           <option value="INCASSO">Incasso</option>
@@ -359,8 +360,8 @@ export function PrimaNotaPage() {
       <div className="iu-pn-toolbar">
         <NewMovementForm data={data} onDone={() => load()} onMessage={showMessage} />
         <div className="iu-pn-toolbar__side">
-          <label><span>Dal</span><input type="date" value={filters.dal} onChange={(e) => { const next = { ...filters, dal: e.target.value }; setFilters(next); load(next) }}/></label>
-          <label><span>Al</span><input type="date" value={filters.al} onChange={(e) => { const next = { ...filters, al: e.target.value }; setFilters(next); load(next) }}/></label>
+          <label><span>Dal</span><CampoData value={filters.dal} onChange={(valore) => { const next = { ...filters, dal: valore }; setFilters(next); load(next) }}/></label>
+          <label><span>Al</span><CampoData value={filters.al} onChange={(valore) => { const next = { ...filters, al: valore }; setFilters(next); load(next) }}/></label>
           <button type="button" onClick={riconcilia}><RefreshCw size={15}/> Riconcilia parcelle</button>
           {!loadError ? <a href={exportHref}><FileDown size={15}/> Esporta CSV</a> : null}
         </div>

@@ -7,6 +7,7 @@ import { mergeRegistryRefresh } from '../../features/anagrafiche/mergeRegistryRe
 import { useCtuCommand } from '../../hooks/useCtuCommand'
 import type { CtuWriteProtocol } from '../../ctuCommand'
 import './CtuIncaricoDettaglio.css'
+import { CampoData } from '../../ui/CampoData'
 
 export type CtuOperazione = { id: string; data: string; ora: string; tipo: string; luogo: string; descrizione: string; minuti: number; presenza_giudice: boolean }
 export type CtuDettaglio = {
@@ -167,8 +168,8 @@ export default function CtuIncaricoDettaglio({ incarico, fascicoloId, writeProto
         <h4>Stato e liquidazione</h4>
         <div className="iu-ctu-det__campi">
           <label><span>Stato</span><select value={date.stato} onChange={(e) => setDate({ ...date, stato: e.target.value })}>{incarico.stati.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
-          <label><span>Relazione depositata il</span><input type="date" value={date.dataDepositoRelazione} onChange={(e) => setDate({ ...date, dataDepositoRelazione: e.target.value })}/></label>
-          <label><span>Decreto di liquidazione comunicato il</span><input type="date" value={date.dataComunicazioneDecreto} onChange={(e) => setDate({ ...date, dataComunicazioneDecreto: e.target.value })}/></label>
+          <label><span>Relazione depositata il</span><CampoData value={date.dataDepositoRelazione} onChange={(valore) => setDate({ ...date, dataDepositoRelazione: valore })}/></label>
+          <label><span>Decreto di liquidazione comunicato il</span><CampoData value={date.dataComunicazioneDecreto} onChange={(valore) => setDate({ ...date, dataComunicazioneDecreto: valore })}/></label>
           <label><span>Importo liquidato (€)</span><input inputMode="decimal" value={date.importoLiquidato} onChange={(e) => setDate({ ...date, importoLiquidato: e.target.value })}/></label>
         </div>
         <button type="button" disabled={occupato || command.blocked || concurrentFields.length > 0} onClick={() => void salvaDate()}><Save size={14}/> Salva</button>
@@ -190,7 +191,7 @@ export default function CtuIncaricoDettaglio({ incarico, fascicoloId, writeProto
         ) : <p className="iu-ctu-det__nota">Nessuna operazione registrata.</p>}
         <p className="iu-ctu-det__nota">Vacazioni dal registro: <strong>{incarico.vacazioniRegistro.vacazioni}</strong>{incarico.vacazioniRegistro.escluse_per_tetto ? ` (${incarico.vacazioniRegistro.escluse_per_tetto} oltre il tetto di quattro al giorno)` : ''}.</p>
         <div className="iu-ctu-det__campi">
-          <label><span>Data</span><input type="date" value={op.data} onChange={(e) => setOp({ ...op, data: e.target.value })}/></label>
+          <label><span>Data</span><CampoData value={op.data} onChange={(valore) => setOp({ ...op, data: valore })}/></label>
           <label><span>Ora</span><input type="time" value={op.ora} onChange={(e) => setOp({ ...op, ora: e.target.value })}/></label>
           <label><span>Attività</span><select value={op.tipo} onChange={(e) => setOp({ ...op, tipo: e.target.value })}>
             <option value="inizio">Inizio operazioni</option><option value="sopralluogo">Sopralluogo</option><option value="riunione">Riunione con i consulenti</option>

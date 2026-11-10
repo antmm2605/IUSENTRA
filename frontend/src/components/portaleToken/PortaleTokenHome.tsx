@@ -19,6 +19,7 @@ import { Badge } from '../../ui/Badge'
 import { percorsoSezione, type AzioneRichiesta, type DatiHome, type Fascicolo } from '../../portaleTokenData'
 import { LinkSezione, type Naviga } from './PortaleTokenComuni'
 
+import { formatDateLabelIt } from '../../formatting'
 type Props = {
   token: string
   dati: DatiHome
@@ -178,7 +179,7 @@ export function PortaleTokenHome({ token, dati, occupato, onNaviga, onAzione }: 
                 <CalendarDays size={22} className={`iu-ptk-priorita ${tonoPriorita(scadenza.priorita)}`} aria-hidden="true" />
                 <span className="iu-ptk-flessibile">
                   <strong>{scadenza.titolo}</strong>
-                  <span className="iu-ptk-meta">{scadenza.data}</span>
+                  <span className="iu-ptk-meta">{formatDateLabelIt(scadenza.data)}</span>
                 </span>
                 {scadenza.perentorio ? <Badge tone="danger">PERENTORIO</Badge> : null}
               </li>
@@ -212,7 +213,7 @@ export function PortaleTokenHome({ token, dati, occupato, onNaviga, onAzione }: 
                     {iconaDocumento(voce.kind)}
                     <span className="iu-ptk-flessibile">
                       <strong>{voce.numero} - {voce.titolo}</strong>
-                      <span className="iu-ptk-meta">{voce.data}{voce.fascicoloLabel ? ` - ${voce.fascicoloLabel}` : ''}</span>
+                      <span className="iu-ptk-meta">{formatDateLabelIt(voce.data)}{voce.fascicoloLabel ? ` - ${voce.fascicoloLabel}` : ''}</span>
                     </span>
                     <span className="iu-ptk-importo">{voce.totale}</span>
                   </li>

@@ -2,6 +2,7 @@ import { Paperclip } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IusStatusBadge } from './IusStatusBadge'
 
+import { formatDateLabelIt } from '../../formatting'
 export type IusMessageListItem = {
   id: string
   sender: string
@@ -34,7 +35,7 @@ export function IusMessageList({
               {item.channel ? <IusStatusBadge tone="info">{item.channel}</IusStatusBadge> : null}
               {item.unread ? <IusStatusBadge tone="warning">Non letto</IusStatusBadge> : null}
               {item.attachments ? <span><Paperclip aria-hidden="true" /> {item.attachments}</span> : null}
-              <time>{item.date}</time>
+              <time>{formatDateLabelIt(item.date)}</time>
             </div>
           </>
         )

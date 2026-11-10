@@ -573,7 +573,7 @@ assertContains(dailyPlanApi, 'date: targetDate', 'Oggi invia al job la data sele
 assertContains(dailyPlanApi, 'pianoCache = new Map', 'Oggi separa la cache ETag per data e utente')
 assertContains(dailyPlanDateControls, "label: 'Domani'", 'Piano del giorno espone Domani')
 assertContains(dailyPlanDateControls, "label: 'Dopodomani'", 'Piano del giorno espone Dopodomani')
-assertContains(dailyPlanDateControls, 'type="date"', 'Piano del giorno permette una data libera')
+assertContains(dailyPlanDateControls, '<CampoData', 'Piano del giorno permette una data libera')
 assertContains(dailyPlanDateControls, 'new FormData(event.currentTarget)', 'Piano del giorno conferma la data dal form nativo')
 assertContains(dailyPlanDateControls, 'aria-label="Apri data selezionata"', 'Piano del giorno espone il comando data accessibile')
 assertContains(dailyPlanPageParts, 'sequence={false}', 'Piano del giorno mantiene i titoli sopra i contenuti locali')

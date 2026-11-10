@@ -22,6 +22,7 @@ import {
 } from '../clientiCollaboratoriData'
 import './ClientiCollaboratoriPage.css'
 import './ClientiCollaboratoriControls.css'
+import { CampoData } from '../ui/CampoData'
 
 function clientIdFromLocation(): string {
   const parts = window.location.pathname.split('/').filter(Boolean)
@@ -281,7 +282,7 @@ export function ClientiCollaboratoriPage() {
                 {selectedRoleDescription ? <p className="iu-client-collab-role-help"><Info size={15} />{selectedRoleDescription}</p> : null}
                 <label>
                   Scadenza accesso <span>facoltativa</span>
-                  <input type="date" min={todayInRomeIso()} value={deadline} onChange={(event) => setDeadline(event.target.value)} />
+                  <CampoData min={todayInRomeIso()} value={deadline} onChange={(valore) => setDeadline(valore)} />
                 </label>
                 <label>
                   Note operative <span>facoltative</span>

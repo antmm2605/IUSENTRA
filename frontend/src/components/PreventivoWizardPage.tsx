@@ -46,6 +46,7 @@ import {
 } from '../preventivoWizardUtils'
 import { LoadingState } from '../ui/LoadingState'
 import './PreventivoWizardPage.css'
+import { CampoData } from '../ui/CampoData'
 
 type OpenMap = Record<string, boolean>
 
@@ -210,14 +211,25 @@ function TextInput({
 }) {
   return (
     <Field id={id} label={label} help={help} error={error}>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        aria-describedby={[help ? `${id}-help` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      {type === 'date' || type === 'datetime-local' ? (
+        <CampoData
+          id={id}
+          value={value}
+          conOra={type === 'datetime-local'}
+          aria-invalid={Boolean(error)}
+          aria-describedby={[help ? `${id}-help` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined}
+          onChange={onChange}
+        />
+      ) : (
+        <input
+          id={id}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          aria-describedby={[help ? `${id}-help` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
     </Field>
   )
 }

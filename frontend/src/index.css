@@ -3172,3 +3172,221 @@ body.iu-agenda-planner-expanded .iu-ag-planner.is-expanded .iu-ag-calendar-card{
 @layer utilities {
   .iu-ui-button--primary { background-color: var(--primary); }
 }
+
+/* Campo data italiano (CampoData): gg/mm/aaaa in ogni browser, calendario in italiano.
+   Le regole raddoppiano la classe per non ereditare gli stili delle etichette («label span»). */
+span.iu-campo-data.iu-campo-data {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 10.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+span.iu-campo-data.iu-campo-data--ora {
+  min-width: 13.5rem;
+}
+
+span.iu-campo-data.iu-campo-data span.iu-campo-data__riga {
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
+span.iu-campo-data.iu-campo-data input.iu-campo-data__testo {
+  width: 100%;
+  padding-right: 2.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+span.iu-campo-data.iu-campo-data[data-invalid='true'] input.iu-campo-data__testo {
+  border-color: oklch(55% 0.2 27);
+}
+
+span.iu-campo-data.iu-campo-data button.iu-campo-data__apri {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  min-width: 0;
+  border: 0;
+  border-radius: var(--iu-radius-control);
+  background: transparent;
+  box-shadow: none;
+  color: var(--iu-text-subtle);
+  cursor: pointer;
+}
+
+span.iu-campo-data.iu-campo-data button.iu-campo-data__apri:hover {
+  background: var(--iu-surface-accent);
+  color: var(--iu-text-strong);
+}
+
+span.iu-campo-data.iu-campo-data button.iu-campo-data__apri:focus-visible {
+  outline: 2px solid var(--iu-focus-ring);
+  outline-offset: 1px;
+}
+
+span.iu-campo-data.iu-campo-data button.iu-campo-data__apri:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+span.iu-campo-data.iu-campo-data span.iu-campo-data__errore {
+  display: block;
+  margin: 0;
+  color: oklch(48% 0.19 27);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.iu-calendario {
+  z-index: 1300;
+  width: 18.5rem;
+  max-width: calc(100vw - 24px);
+  padding: 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-panel);
+  background: var(--iu-surface-solid);
+  color: var(--iu-text-strong);
+  box-shadow: 0 12px 32px oklch(22% 0.03 255 / 18%), var(--iu-shadow-hairline);
+  font-size: 14px;
+}
+
+.iu-calendario__testata,
+.iu-calendario__piede {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.iu-calendario__testata strong {
+  font-size: 14px;
+  font-weight: 760;
+  text-transform: capitalize;
+}
+
+.iu-calendario__piede {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.iu-calendario table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.iu-calendario th {
+  padding: 4px 0;
+  color: var(--iu-text-subtle);
+  font-size: 11px;
+  font-weight: 760;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.iu-calendario td {
+  padding: 1px;
+  text-align: center;
+}
+
+.iu-calendario__mese,
+.iu-calendario__oggi,
+.iu-calendario__giorno {
+  border: 1px solid transparent;
+  border-radius: var(--iu-radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.iu-calendario__mese {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.iu-calendario__oggi {
+  min-height: 36px;
+  padding: 0 12px;
+  border-color: var(--iu-border);
+  font-weight: 700;
+}
+
+.iu-calendario__giorno {
+  width: 100%;
+  height: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.iu-calendario__mese:hover,
+.iu-calendario__oggi:hover,
+.iu-calendario__giorno:hover {
+  background: var(--iu-surface-accent);
+}
+
+.iu-calendario__mese:focus-visible,
+.iu-calendario__oggi:focus-visible,
+.iu-calendario__giorno:focus-visible {
+  outline: 2px solid var(--iu-focus-ring);
+  outline-offset: 1px;
+}
+
+.iu-calendario__giorno--fuori {
+  color: var(--iu-text-subtle);
+  opacity: .6;
+}
+
+.iu-calendario__giorno--oggi {
+  border-color: var(--iu-focus-ring);
+  font-weight: 760;
+}
+
+.iu-calendario__giorno.iu-calendario__giorno--scelto {
+  background: var(--iu-focus-ring);
+  color: var(--iu-text-inverse);
+  font-weight: 760;
+}
+
+.iu-calendario__giorno:disabled,
+.iu-calendario__oggi:disabled {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+@media (prefers-color-scheme: dark) {
+  .iu-calendario {
+    box-shadow: 0 12px 32px oklch(0% 0 0 / 45%), var(--iu-shadow-hairline);
+  }
+}
+
+@media print {
+  span.iu-campo-data.iu-campo-data button.iu-campo-data__apri {
+    display: none;
+  }
+}

@@ -49,6 +49,7 @@ import {
   type LegalSection,
 } from '../giurisprudenzaData'
 import './GiurisprudenzaPage.css'
+import { CampoData } from '../ui/CampoData'
 
 const INTERNAL_FULLSCREEN_BODY_CLASS = 'iusentra-ui-fullscreen-open'
 const GIURISPRUDENZA_FULLSCREEN_CLASS = 'iu-legal-fullscreen-mode'
@@ -515,16 +516,28 @@ function CreateTextField({
   return (
     <div className="iu-legal-create-field">
       <label htmlFor={inputId}>{label}</label>
-      <input
-        id={inputId}
-        value={value}
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${inputId}-error` : undefined}
-        onChange={(event) => onChange(id, event.target.value)}
-      />
+      {type === 'date' || type === 'datetime-local' ? (
+        <CampoData
+          id={inputId}
+          value={value}
+          conOra={type === 'datetime-local'}
+          required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          onChange={(valore) => onChange(id, valore)}
+        />
+      ) : (
+        <input
+          id={inputId}
+          value={value}
+          type={type}
+          required={required}
+          placeholder={placeholder}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          onChange={(event) => onChange(id, event.target.value)}
+        />
+      )}
       {error ? <small id={`${inputId}-error`}>{error}</small> : null}
     </div>
   )

@@ -12,6 +12,7 @@ import { TimesheetMetrics } from './TimesheetMetrics'
 import { todayInRome } from '../pages/daily-plan/DailyPlanDateControls'
 import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { publishMutationRefresh } from '../operationalRefresh'
+import { CampoData } from '../ui/CampoData'
 
 function csrfToken(): string {
   return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
@@ -118,11 +119,11 @@ function FilterBar({ data, onFilter }: { data: TimesheetData; onFilter: (filters
       </label>
       <label>
         <span>Dal</span>
-        <input type="date" name="data_da" defaultValue={data.filters.data_da || ''} />
+        <CampoData name="data_da" defaultValue={data.filters.data_da || ''} />
       </label>
       <label>
         <span>Al</span>
-        <input type="date" name="data_a" defaultValue={data.filters.data_a || ''} />
+        <CampoData name="data_a" defaultValue={data.filters.data_a || ''} />
       </label>
       <label className="iu-timesheet-filters__search">
         <span>Ricerca</span>
@@ -159,7 +160,7 @@ function NewEntryForm({ data, onDone }: { data: TimesheetData; onDone: () => Pro
         </label>
         <label>
           <span>Data attività</span>
-          <input name="data_attivita" type="date" defaultValue={todayInRome()} />
+          <CampoData name="data_attivita" defaultValue={todayInRome()} />
         </label>
         <label>
           <span>Cliente</span>
@@ -285,7 +286,7 @@ function BillingPanel({ data, onDone }: { data: TimesheetData; onDone: () => Pro
           </div>
           <label>
             <span>Data scadenza</span>
-            <input type="date" name="data_scadenza" />
+            <CampoData name="data_scadenza" />
           </label>
           <button type="submit" disabled={!selected.length}>Genera parcella da voci validate</button>
         </JsonPostForm>

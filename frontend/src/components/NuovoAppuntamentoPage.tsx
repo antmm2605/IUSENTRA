@@ -28,6 +28,7 @@ import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { Badge } from './dashboard'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import './NuovoAppuntamentoPage.css'
+import { CampoData } from '../ui/CampoData'
 
 type AppointmentType = 'UDIENZA' | 'CONSULTAZIONE' | 'DEPOSITO' | 'SCADENZA' | 'RIUNIONE' | 'ALTRO'
 
@@ -888,11 +889,10 @@ export function NuovoAppuntamentoPage() {
               </Field>
 
               <Field label="Data" required icon={<CalendarDays size={16} />}>
-                <input
+                <CampoData
                   name="data" aria-label="Data appuntamento"
-                  type="date"
                   value={form.data}
-                  onChange={(event) => update('data', event.currentTarget.value)}
+                  onChange={(valore) => update('data', valore)}
                   required
                 />
               </Field>

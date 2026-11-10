@@ -56,7 +56,7 @@ export function ManagedWindowDock() {
   const items = useSyncExternalStore(subscribe, () => windows)
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || !event.isTrusted || document.querySelector('[data-window-snap-menu]')) return
+      if (event.key !== 'Escape' || !event.isTrusted || document.querySelector('[data-window-snap-menu], [data-esc-locale]')) return
       const active = windows.filter((entry) => !entry.minimized).sort((a, b) => b.zIndex - a.zIndex)[0]
       if (!active) return
       event.preventDefault(); event.stopImmediatePropagation(); active.close()

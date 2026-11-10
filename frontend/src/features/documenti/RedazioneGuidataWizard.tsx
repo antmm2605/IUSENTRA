@@ -20,6 +20,7 @@ import '../../components/RedazioneAttiPage.css'
 import { SchedaCompilazionePanel } from './SchedaCompilazionePanel'
 import { StesuraLexPanel } from './StesuraLexPanel'
 
+import { CampoData } from '../../ui/CampoData'
 type PassoWizard = 1 | 2 | 3 | 4
 
 const PASSI: Array<{ numero: PassoWizard; titolo: string }> = [
@@ -429,9 +430,14 @@ function PassoAnteprima({
                     rows={3}
                     placeholder={campo.motivo || 'Dato non presente nel fascicolo'}
                   />
+                ) : campo.type === 'date' ? (
+                  <CampoData
+                    value={valori[campo.name] ?? ''}
+                    onChange={(valore) => aggiornaValore(campo.name, valore)}
+                  />
                 ) : (
                   <input
-                    type={campo.type === 'date' || campo.type === 'number' ? campo.type : 'text'}
+                    type={campo.type === 'number' ? campo.type : 'text'}
                     value={valori[campo.name] ?? ''}
                     onChange={(event) => aggiornaValore(campo.name, event.target.value)}
                     placeholder={campo.motivo || 'Dato non presente nel fascicolo'}

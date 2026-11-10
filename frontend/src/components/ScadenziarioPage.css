@@ -228,7 +228,7 @@
   background:white;
   color:var(--iu-slate-500);
 }
-.iu-scad-search input,.iu-scad-select select,.iu-scad-advanced select,.iu-scad-advanced input[type="date"]{
+.iu-scad-search input,.iu-scad-select select,.iu-scad-advanced select,.iu-scad-advanced input.iu-campo-data__testo{
   width:100%;
   min-width:0;
   border:0;

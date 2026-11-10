@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowRightLeft, FilePlus2, FolderPlus, Gavel, Upload } from 'lucide-react'
 import { csrfHeader } from '../api/csrf'
 import './RecuperoCreditiPage.css'
+import { CampoData } from '../ui/CampoData'
 
 type Opzione = { value: string; label: string }
 type Posizione = {
@@ -137,7 +138,7 @@ export function RecuperoCreditiPage() {
           <div className="iu-rc-azioni__avanza">
             <label><span>Evento</span><select value={nuovoStato} onChange={(e) => setNuovoStato(e.target.value)}>
               <option value="">Scegli l'evento</option>{passaggiComuni.map((s) => <option key={s} value={s}>{etichetta(s)}</option>)}</select></label>
-            <label><span>Data</span><input type="date" value={dataEvento} max={oggiIso()} onChange={(e) => setDataEvento(e.target.value)}/></label>
+            <label><span>Data</span><CampoData value={dataEvento} max={oggiIso()} onChange={(valore) => setDataEvento(valore)}/></label>
             <button type="button" disabled={occupato || !nuovoStato} onClick={() => void esegui(() => invia('/recupero-crediti/avanza', { ids, stato: nuovoStato, data: dataEvento }))}><ArrowRightLeft size={15}/> Registra evento</button>
           </div>
         </section>

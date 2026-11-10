@@ -58,6 +58,7 @@ import {
 } from '../clientPortalData'
 import { reviewStudioDocument } from '../clientPortalSigning'
 import { SigningWorkflowPanel } from './client-portal/SigningWorkflowPanel'
+import { CampoData } from '../ui/CampoData'
 
 type ClientPortalPageProps = {
   mode?: 'studio' | 'client'
@@ -845,15 +846,14 @@ function ClientPortalStudio() {
                 <h3>Appuntamenti</h3>
                 <label>
                   Data e ora
-                  <input
+                  <CampoData
                     id="client-portal-appointment-start"
                     name="startsAt"
                     aria-label="Data e ora"
-                    type="datetime-local"
+                    conOra
                     required
                     value={appointmentStart}
-                    onInput={(event) => setAppointmentStart(event.currentTarget.value)}
-                    onChange={(event) => setAppointmentStart(event.target.value)}
+                    onChange={(valore) => setAppointmentStart(valore)}
                   />
                 </label>
                 {videoCallsEnabled ? (
@@ -1295,7 +1295,7 @@ function ClientPortalClient() {
             <label>Email *<input type="email" value={profileForm.email} onChange={updateProfileField('email')} autoComplete="email"/></label>
             <label>Telefono *<input value={profileForm.phone} onChange={updateProfileField('phone')} autoComplete="tel"/></label>
             <label>Codice fiscale *<input className="iu-client-portal-input-upper" value={profileForm.fiscalCode} onChange={updateProfileField('fiscalCode')}/></label>
-            <label>Data di nascita *<input type="date" value={profileForm.birthDate} onChange={updateProfileField('birthDate')}/></label>
+            <label>Data di nascita *<CampoData value={profileForm.birthDate} onChange={(valore) => updateProfileField('birthDate')({ target: { value: valore } })}/></label>
             <label>Luogo di nascita *<input value={profileForm.birthPlace} onChange={updateProfileField('birthPlace')}/></label>
             <label>Indirizzo (via e civico) *<input value={profileForm.address} onChange={updateProfileField('address')} autoComplete="street-address"/></label>
             <label>CAP *<input value={profileForm.cap} onChange={updateProfileField('cap')} inputMode="numeric" maxLength={5}/></label>
@@ -1304,7 +1304,7 @@ function ClientPortalClient() {
             <label>PEC<input type="email" value={profileForm.pec} onChange={updateProfileField('pec')}/></label>
             <label>Partita IVA<input value={profileForm.vatNumber} onChange={updateProfileField('vatNumber')} inputMode="numeric"/></label>
             <label>Professione<input value={profileForm.profession} onChange={updateProfileField('profession')}/></label>
-            <label>Scadenza documento d'identità<input type="date" value={profileForm.identityExpiresAt} onChange={updateProfileField('identityExpiresAt')}/></label>
+            <label>Scadenza documento d'identità<CampoData value={profileForm.identityExpiresAt} onChange={(valore) => updateProfileField('identityExpiresAt')({ target: { value: valore } })}/></label>
           </div>
           <button className="iu-client-portal-button" type="submit">Salva anagrafica</button>
         </form>

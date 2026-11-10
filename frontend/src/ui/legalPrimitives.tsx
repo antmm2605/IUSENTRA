@@ -17,6 +17,7 @@ import { Badge, type BadgeTone } from './Badge'
 import { Button, ButtonLink, type ButtonTone } from './Button'
 import './ui.css'
 
+import { CampoData, type CampoDataProps } from './CampoData'
 export type CommonProps = {
   children?: ReactNode
   className?: string
@@ -294,8 +295,14 @@ export function TextField({ label, ...props }: InputHTMLAttributes<HTMLInputElem
   )
 }
 
-export function DateField(props: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
-  return <TextField type="date" {...props} />
+/** Campo data con etichetta: gg/mm/aaaa a schermo, valore ISO al chiamante (vedi CampoData). */
+export function DateField({ label, ...props }: CampoDataProps & { label: string }) {
+  return (
+    <label className="iu-field">
+      <span>{label}</span>
+      <CampoData {...props} />
+    </label>
+  )
 }
 
 export function TextArea({ label, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {

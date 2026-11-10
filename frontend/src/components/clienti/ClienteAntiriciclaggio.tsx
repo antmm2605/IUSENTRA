@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, FileDown, SearchCheck, ShieldCheck } from 'lucide-react'
 import { csrfHeader } from '../../api/csrf'
 import './ClienteAntiriciclaggio.css'
+import { CampoData } from '../../ui/CampoData'
 
 type Indice = { macro_area: string; descrizione: string; punteggio: number; note: string }
 type Evidenza = { outcome: string; subject_label: string; checked_at: string }
@@ -128,8 +129,8 @@ export function ClienteAntiriciclaggio({ idCliente }: { idCliente: string }) {
             <label><span>Tipo</span><select value={testo('documentoTipo')} onChange={(e) => campo('documentoTipo', e.target.value)}><option value="">—</option>{opzioni.documenti.map((d) => <option key={d} value={d}>{DOCUMENTI[d] || d}</option>)}</select></label>
             <label><span>Numero</span><input value={testo('documentoNumero')} onChange={(e) => campo('documentoNumero', e.target.value)} autoComplete="off"/></label>
             <label><span>Rilasciato da</span><input value={testo('documentoRilasciatoDa')} onChange={(e) => campo('documentoRilasciatoDa', e.target.value)}/></label>
-            <label><span>Rilascio</span><input type="date" value={testo('documentoDataRilascio')} onChange={(e) => campo('documentoDataRilascio', e.target.value)}/></label>
-            <label><span>Scadenza</span><input type="date" value={testo('documentoScadenza')} onChange={(e) => campo('documentoScadenza', e.target.value)}/></label>
+            <label><span>Rilascio</span><CampoData value={testo('documentoDataRilascio')} onChange={(valore) => campo('documentoDataRilascio', valore)}/></label>
+            <label><span>Scadenza</span><CampoData value={testo('documentoScadenza')} onChange={(valore) => campo('documentoScadenza', valore)}/></label>
           </div>
           <div className="iu-cli-aml__gruppo"><strong className="iu-cli-aml__titolo">Titolare effettivo (art. 20)</strong>
             <label><span>Nome e cognome</span><input value={testo('titolareNome')} onChange={(e) => campo('titolareNome', e.target.value)}/></label>
@@ -153,7 +154,7 @@ export function ClienteAntiriciclaggio({ idCliente }: { idCliente: string }) {
           ) : null}
           <div className="iu-cli-aml__gruppo"><strong className="iu-cli-aml__titolo">Segnalazione di operazione sospetta (art. 35)</strong>
             <label><span>Esito della valutazione</span><select value={testo('sosValutazione')} onChange={(e) => campo('sosValutazione', e.target.value)}>{opzioni.sos.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></label>
-            <label><span>Data</span><input type="date" value={testo('sosData')} onChange={(e) => campo('sosData', e.target.value)}/></label>
+            <label><span>Data</span><CampoData value={testo('sosData')} onChange={(valore) => campo('sosData', valore)}/></label>
             <label className="is-wide"><span>Note (riservate, art. 39)</span><input value={testo('sosNote')} onChange={(e) => campo('sosNote', e.target.value)}/></label>
           </div>
           <label className="is-wide"><span>Note</span><textarea rows={2} value={testo('note')} onChange={(e) => campo('note', e.target.value)}/></label>

@@ -72,6 +72,7 @@ import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { formatEuroInput, parseItalianAmount } from '../formatting'
 import './FatturazionePage.css'
+import { CampoData } from '../ui/CampoData'
 
 const InvoiceReceiptsPanel = lazy(() => import('./InvoiceReceiptsPanel'))
 
@@ -1158,12 +1159,11 @@ function NewInvoiceForm({
             </label>
             <label className="iu-fatt-field">
               <span>Data documento</span>
-              <input
-                type="date"
+              <CampoData
                 required
                 value={formState.data_emissione}
-                onChange={(event) => {
-                  const value = event.currentTarget.value
+                onChange={(valore) => {
+                  const value = valore
                   setFormState((current) => ({
                     ...current,
                     data_emissione: value,
@@ -1180,12 +1180,11 @@ function NewInvoiceForm({
             </label>
             <label className="iu-fatt-field">
               <span>Scadenza pagamento</span>
-              <input
-                type="date"
+              <CampoData
                 required
                 value={formState.data_scadenza}
-                onChange={(event) => {
-                  const value = event.currentTarget.value
+                onChange={(valore) => {
+                  const value = valore
                   setFormState((current) => ({
                     ...current,
                     data_scadenza: value,
@@ -2296,11 +2295,11 @@ function ArchiveDetailPanel({
                 <div className="iu-fatt-form-grid">
                   <label className="iu-fatt-field">
                     <span>Data documento</span>
-                    <input type="date" value={issuedAt} disabled={!editable} onChange={(event) => setIssuedAt(event.currentTarget.value)} />
+                    <CampoData value={issuedAt} disabled={!editable} onChange={(valore) => setIssuedAt(valore)} />
                   </label>
                   <label className="iu-fatt-field">
                     <span>Scadenza</span>
-                    <input type="date" value={dueAt} disabled={!editable} onChange={(event) => setDueAt(event.currentTarget.value)} />
+                    <CampoData value={dueAt} disabled={!editable} onChange={(valore) => setDueAt(valore)} />
                   </label>
                   <label className="iu-fatt-field">
                     <span>Regime fiscale</span>

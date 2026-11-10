@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ensureJson } from '../../lib/apiClient'
 import type { Sede } from './types'
 import '../patFormweb/patFormweb.css'
+import { CampoData } from '../../ui/CampoData'
 
 type Catalogo = {
   ok: boolean
@@ -90,11 +91,11 @@ export function PttApertura() {
         <select name="ptt_atto_tipo" defaultValue=""><option value="">Da scegliere</option>{catalogo.attiImpugnati.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
       <label className="iu-fas-field"><span>Numero dell’atto</span><input name="ptt_atto_numero" maxLength={120}/></label>
       <label className="iu-fas-field"><span>Ufficio che l’ha emesso</span><input name="ptt_atto_ufficio" maxLength={120} placeholder="es. Direzione provinciale di Bari"/></label>
-      <label className="iu-fas-field"><span>Atto notificato il</span><input type="date" name="ptt_atto_notifica"/></label>
+      <label className="iu-fas-field"><span>Atto notificato il</span><CampoData name="ptt_atto_notifica"/></label>
       <label className="iu-fas-field"><span>Periodo d’imposta</span><input name="ptt_periodo" maxLength={20} placeholder="es. 2021"/></label>
       <label className="iu-fas-field"><span>Valore della lite (€){cut !== null ? ` · CUT € ${cut}` : ''}</span>
         <input name="ptt_valore" inputMode="decimal" value={valore} onChange={(e) => setValore(e.target.value)} placeholder="tributo senza interessi e sanzioni"/></label>
-      <label className="iu-fas-field"><span>Ricorso notificato il (per il termine di 30 giorni)</span><input type="date" name="ptt_notifica_ricorso"/></label>
+      <label className="iu-fas-field"><span>Ricorso notificato il (per il termine di 30 giorni)</span><CampoData name="ptt_notifica_ricorso"/></label>
       <label className="iu-fas-field"><span>Numero di ruolo (se già iscritto)</span><input name="ptt_rg" maxLength={20} placeholder="es. 1234/2026"/></label>
       <label className="iu-fas-field"><span>Trattazione</span>
         <select name="ptt_pubblica_udienza" defaultValue=""><option value="">No (camera di consiglio)</option>{catalogo.pubblicaUdienza.slice(1).map((v) => <option key={v} value={v}>{v}</option>)}</select></label>

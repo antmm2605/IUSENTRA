@@ -30,6 +30,7 @@ import { sanitizeDisplayText } from '../displayText'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { Badge } from './dashboard'
 import './NuovaScadenzaPage.css'
+import { CampoData } from '../ui/CampoData'
 
 type DeadlineType =
   | 'UDIENZA'
@@ -677,12 +678,12 @@ export function NuovaScadenzaPage() {
               </Field>
 
               <Field label="Evento origine" required icon={<Clock3 size={16} />}>
-                <input
+                <CampoData
                   name="source_event_at" aria-label="Data e ora evento origine"
-                  type="datetime-local"
+                  conOra
                   value={form.source_event_at}
-                  onChange={(event) => {
-                    update('source_event_at', event.currentTarget.value)
+                  onChange={(valore) => {
+                    update('source_event_at', valore)
                     setCalcResult(null)
                   }}
                 />
@@ -824,11 +825,10 @@ export function NuovaScadenzaPage() {
               </Field>
 
               <Field label="Ultima verifica" icon={<ShieldCheck size={16} />}>
-                <input
+                <CampoData
                   name="office_verified_at" aria-label="Data ultima verifica"
-                  type="date"
                   value={form.office_verified_at}
-                  onChange={(event) => update('office_verified_at', event.currentTarget.value)}
+                  onChange={(valore) => update('office_verified_at', valore)}
                 />
               </Field>
             </div>
@@ -872,12 +872,11 @@ export function NuovaScadenzaPage() {
               </Field>
 
               <Field label="Data scadenza manuale" icon={<CalendarDays size={16} />}>
-                <input
+                <CampoData
                   name="data_scadenza" aria-label="Data scadenza manuale"
-                  type="date"
                   value={form.data_scadenza}
-                  onChange={(event) => {
-                    update('data_scadenza', event.currentTarget.value)
+                  onChange={(valore) => {
+                    update('data_scadenza', valore)
                     setCalcResult(null)
                   }}
                 />
@@ -885,11 +884,10 @@ export function NuovaScadenzaPage() {
               </Field>
 
               <Field label="Data decorrenza" icon={<CalendarDays size={16} />}>
-                <input
+                <CampoData
                   name="data_decorrenza" aria-label="Data decorrenza"
-                  type="date"
                   value={form.data_decorrenza}
-                  onChange={(event) => update('data_decorrenza', event.currentTarget.value)}
+                  onChange={(valore) => update('data_decorrenza', valore)}
                 />
               </Field>
 

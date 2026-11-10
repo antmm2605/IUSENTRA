@@ -3,6 +3,7 @@ import { useOperationalRefresh } from '../hooks/useOperationalRefresh'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button, ButtonLink } from '../ui/Button'
 
+import { formatDateLabelIt } from '../formatting'
 type Decision = { id: number; title: string; authority: string; date: string; textAvailable: boolean; textHref: string; textStatus?: string; textSourceUrl?: string; textSourceOfficial?: boolean | null }
 type Result = { ok: boolean; available?: boolean; message?: string; caseCount?: number; received?: number; expected?: number; status?: string; records: Decision[] }
 
@@ -91,6 +92,6 @@ export function SentenzeWebSearch() {
     </form>
     {busy ? <p role="status">Lettura dell’archivio locale…</p> : null}
     {error ? <p role="alert">{error}</p> : null}
-    {result?.records.length ? <ol>{result.records.map(record => <li key={record.id}><article><h3>{record.title}</h3><p>{record.authority} · deposito {record.date || 'non indicato'}</p>{record.textAvailable ? <><ButtonLink href={record.textHref} target="_blank" rel="noreferrer">Leggi testo archiviato</ButtonLink>{record.textSourceOfficial === false ? <p>Trascrizione da fonte non ufficiale: identità collegata, revisione professionale da completare.</p> : null}{record.textSourceUrl ? <ButtonLink href={record.textSourceUrl} target="_blank" rel="noreferrer">Apri la fonte del testo</ButtonLink> : null}</> : <p>{record.textStatus === 'source_notice' ? 'La fonte contiene un avviso di oscuramento: recupero del testo da completare.' : 'Record conservato: testo OCR da completare.'}</p>}<SourceVariants recordId={record.id} /></article></li>)}</ol> : result?.available && !busy ? <p>Nessuna decisione trovata con questa ricerca.</p> : null}
+    {result?.records.length ? <ol>{result.records.map(record => <li key={record.id}><article><h3>{record.title}</h3><p>{record.authority} · deposito {formatDateLabelIt(record.date, 'non indicato')}</p>{record.textAvailable ? <><ButtonLink href={record.textHref} target="_blank" rel="noreferrer">Leggi testo archiviato</ButtonLink>{record.textSourceOfficial === false ? <p>Trascrizione da fonte non ufficiale: identità collegata, revisione professionale da completare.</p> : null}{record.textSourceUrl ? <ButtonLink href={record.textSourceUrl} target="_blank" rel="noreferrer">Apri la fonte del testo</ButtonLink> : null}</> : <p>{record.textStatus === 'source_notice' ? 'La fonte contiene un avviso di oscuramento: recupero del testo da completare.' : 'Record conservato: testo OCR da completare.'}</p>}<SourceVariants recordId={record.id} /></article></li>)}</ol> : result?.available && !busy ? <p>Nessuna decisione trovata con questa ricerca.</p> : null}
   </section>
 }

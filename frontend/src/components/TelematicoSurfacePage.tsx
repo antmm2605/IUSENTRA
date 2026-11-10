@@ -59,6 +59,7 @@ import {
 } from '../features/telematico/localSignerForeground'
 import './TelematicoSurfacePage.css'
 
+import { CampoData } from '../ui/CampoData'
 const iconMap: Record<string, LucideIcon> = {
   monitor: MonitorCheck,
   download: Download,
@@ -2317,9 +2318,12 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         </select>
       )
     }
+    if (field.type === 'date') {
+      return <CampoData value={value} onChange={(valore) => updateDraftField(field.id, valore)} />
+    }
     return (
       <input
-        type={field.type === 'date' ? 'date' : 'text'}
+        type="text"
         value={value}
         onChange={(event) => updateDraftField(field.id, event.target.value)}
         placeholder={field.placeholder}
@@ -2399,9 +2403,12 @@ function PatProcedureWorkspace({ data }:{ data:TelematicoSurfaceData }) {
         </>
       )
     }
+    if (field.type === 'date') {
+      return <CampoData value={value} disabled={disabled} onChange={(valore) => updateXfaField(field, path, valore)} />
+    }
     return (
       <input
-        type={field.type === 'date' ? 'date' : 'text'}
+        type="text"
         value={value}
         disabled={disabled}
         onChange={(event) => updateXfaField(field, path, event.target.value)}

@@ -19,6 +19,7 @@ import {
 } from '../guidaPraticaData'
 import './GuidaPraticaSidebar.css'
 
+import { formatDateLabelIt } from '../formatting'
 type TabKey = 'checklist' | 'contesto' | 'normativa' | 'atto' | 'adempimenti'
 
 type Props = {
@@ -292,7 +293,7 @@ function PercorsoSection({ percorso }:{percorso?: GuidaPercorso}) {
   const voci = percorso.strada === 'realizzazione' ? (percorso.passi || []) : (percorso.rimedi || [])
   return (
     <Section title="Dopo la sentenza" icon={<Gavel size={16}/> }>
-      <p className="iu-guida-lead">{[`${text(percorso.sentenza, 'Sentenza')}${percorso.data ? ` del ${percorso.data}` : ''}`, ESITO_PER_IL_CLIENTE[text(percorso.per_il_cliente)] || '', speseTesto].filter(Boolean).join(' · ')}</p>
+      <p className="iu-guida-lead">{[`${text(percorso.sentenza, 'Sentenza')}${percorso.data ? ` del ${formatDateLabelIt(String(percorso.data))}` : ''}`, ESITO_PER_IL_CLIENTE[text(percorso.per_il_cliente)] || '', speseTesto].filter(Boolean).join(' · ')}</p>
       <ol className="iu-guida-ordered">
         {voci.map((voce, index) => (
           <li key={itemKey('percorso', index, voce.passo || voce.rimedio)}>

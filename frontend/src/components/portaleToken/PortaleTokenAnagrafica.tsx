@@ -3,6 +3,7 @@ import { Building2, CalendarDays, CreditCard, Mail, MapPin, Phone, Save, Shield,
 import { percorsoSezione, type DatiAnagrafica } from '../../portaleTokenData'
 import { LinkSezione, type Naviga } from './PortaleTokenComuni'
 
+import { formatDateLabelIt } from '../../formatting'
 type Recapiti = DatiAnagrafica['recapiti']
 
 type Props = {
@@ -78,7 +79,7 @@ export function PortaleTokenAnagrafica({ token, dati, occupato, onNaviga, onSalv
         <dl className="iu-ptk-card iu-ptk-dati">
           <Dato icona={<User size={18} />} etichetta="Nome completo"><strong>{anagrafica.nomeCompleto}</strong></Dato>
           {anagrafica.tipo === 'PF' && anagrafica.dataNascita ? (
-            <Dato icona={<CalendarDays size={18} />} etichetta="Data di nascita">{anagrafica.dataNascita}</Dato>
+            <Dato icona={<CalendarDays size={18} />} etichetta="Data di nascita">{formatDateLabelIt(anagrafica.dataNascita)}</Dato>
           ) : null}
           {anagrafica.tipo === 'PF' && anagrafica.codiceFiscale ? (
             <Dato icona={<CreditCard size={18} />} etichetta="Codice fiscale">{anagrafica.codiceFiscale}</Dato>

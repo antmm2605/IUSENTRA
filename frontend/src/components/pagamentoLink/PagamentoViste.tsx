@@ -21,6 +21,7 @@ import {
 import type { MessaggioPagina } from '../../pubblicoTokenApi'
 import type { DatiCheckout, DatiEsito, DatiGiaPagato, Provider } from '../../pagamentoLinkData'
 
+import { formatDateLabelIt } from '../../formatting'
 /** Schermate del link di pagamento: stessi testi delle pagine classiche. */
 
 const PROVIDER: Record<Provider, { etichetta: string; dettaglio: string; icona: ReactNode }> = {
@@ -73,7 +74,7 @@ export function VistaCheckout({
       <div className="iu-pgl-corpo">
         {dati.scadenza ? (
           <dl className="iu-pgl-info">
-            <div><dt>Scadenza link</dt><dd>{dati.scadenza}</dd></div>
+            <div><dt>Scadenza link</dt><dd>{formatDateLabelIt(dati.scadenza)}</dd></div>
           </dl>
         ) : null}
 
@@ -128,7 +129,7 @@ export function VistaGiaPagato({ studioNome, dati }: { studioNome: string; dati:
       <div className="iu-pgl-corpo is-centrata">
         <p className="iu-pgl-muted">
           Questa parcella risulta già saldata.
-          {dati.dataPagamento ? <> Pagamento registrato il <strong>{dati.dataPagamento}</strong>.</> : null}
+          {dati.dataPagamento ? <> Pagamento registrato il <strong>{formatDateLabelIt(dati.dataPagamento)}</strong>.</> : null}
         </p>
         {dati.metodo ? <p className="iu-pgl-muted">Metodo: <strong>{dati.metodo}</strong></p> : null}
         <PiedeStudio studioNome={studioNome} />
@@ -189,7 +190,7 @@ export function VistaEsito({ studioNome, dati }: { studioNome: string; dati: Dat
           <dl className="iu-pgl-info">
             <div><dt>Metodo</dt><dd>{dati.metodo}</dd></div>
             {dati.idTransazione ? <div><dt>ID transazione</dt><dd className="iu-pgl-spezza">{dati.idTransazione}</dd></div> : null}
-            <div><dt>Data</dt><dd>{dati.dataPagamento}</dd></div>
+            <div><dt>Data</dt><dd>{formatDateLabelIt(dati.dataPagamento)}</dd></div>
           </dl>
           <div className="iu-pgl-avviso is-success"><Mail size={18} aria-hidden="true" />Conserva questa pagina come ricevuta.</div>
           <PiedeStudio studioNome={studioNome} />

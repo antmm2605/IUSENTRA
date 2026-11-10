@@ -63,7 +63,9 @@ import {
 } from '../scadenziarioData'
 import { cleanAccessInfo, deadlineFactGroups, deadlineWhatToDo, plausiblePasscode, readablePlatform } from '../features/scadenziario/deadlineDetailFacts'
 import './ScadenziarioPage.css'
+import { CampoData } from '../ui/CampoData'
 
+import { formatDateLabelIt } from '../formatting'
 type SortKey = 'scadenza' | 'priorita' | 'titolo' | 'fascicolo' | 'giorni'
 
 const calculationRuleLabels: Record<string, string> = {
@@ -720,7 +722,7 @@ function ProcessDeadlineCalculator({
           </label>
           <label>
             <span>Data evento</span>
-            <input type="date" value={form.inputDate} onChange={(event) => onForm({ ...form, inputDate: event.target.value })}/>
+            <CampoData value={form.inputDate} onChange={(valore) => onForm({ ...form, inputDate: valore })}/>
           </label>
           <label>
             <span>Riferimento pratica</span>
@@ -955,7 +957,7 @@ function PdfDeadlineImportPanel({
             <article className={`iu-scad-pdf-candidate ${candidate.duplicate ? 'is-duplicate' : ''}`} key={candidate.id}>
               <label>
                 <input type="checkbox" disabled={candidate.duplicate} checked={selectedIds.includes(candidate.id)} onChange={() => onToggle(candidate.id)}/>
-                <span>{candidate.dueDate}</span>
+                <span>{formatDateLabelIt(candidate.dueDate)}</span>
               </label>
               <div>
                 <strong>{candidate.title}</strong>
@@ -1583,8 +1585,8 @@ export function ScadenziarioPage() {
 
       {advancedOpen ? (
         <section className="iu-scad-advanced" aria-label="Filtri avanzati scadenziario">
-          <label><span>Dal</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)}/></label>
-          <label><span>Al</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)}/></label>
+          <label><span>Dal</span><CampoData value={from} onChange={(valore) => setFrom(valore)}/></label>
+          <label><span>Al</span><CampoData value={to} onChange={(valore) => setTo(valore)}/></label>
           <label><span>Ordinamento</span><select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((key) => <option value={key} key={key}>{sortLabels[key]}</option>)}</select></label>
           <label className="iu-scad-check"><input type="checkbox" checked={peremptory} onChange={(event) => setPeremptory(event.target.checked)}/><span>Solo perentorie</span></label>
           <label className="iu-scad-check"><input type="checkbox" checked={advanced} onChange={(event) => setAdvanced(event.target.checked)}/><span>Solo calcolo avanzato</span></label>

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { FileCheck2, FileUp } from 'lucide-react'
 import { penaleApi } from './penaleApi'
 import type { Deposito } from './types'
+import { CampoData } from '../../ui/CampoData'
 
 /**
  * Ricevuta di deposito o di esito scaricata dal PDP: IUSENTRA legge identificativo, data, ufficio, procedimento,
@@ -34,7 +35,7 @@ export function RicevutaPanel({ fascicoloId, deposito, onRegistrata }: { fascico
         <label className="iu-pdp-carica"><FileUp size={14}/> {nomeFile || 'Scegli la ricevuta (PDF)'}
           <input type="file" name="ricevuta" accept="application/pdf,.pdf" onChange={(e) => setNomeFile(e.target.files?.[0]?.name || '')}/></label>
         <label>Identificativo invio<input name="identificativo" placeholder="AAAA/NNNNNNN" defaultValue={deposito.identificativo}/></label>
-        <label>Data e ora invio<input name="dataInvio" type="datetime-local"/></label>
+        <label>Data e ora invio<CampoData name="dataInvio" conOra/></label>
         <button type="submit" disabled={lavoro}>{lavoro ? 'Lettura…' : 'Registra ricevuta'}</button>
       </div>
       {messaggio ? <p className="iu-pdp-ok" role="status">{messaggio}</p> : null}

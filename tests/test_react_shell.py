@@ -8184,7 +8184,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Proforma da preparare" in page_source
     assert "Importo o fonte economica letta dal fascicolo: verifica se emettere la proforma." in page_source
     assert "remainingActions.slice(0, 5)" in page_source
-    assert "Presidio del fascicolo" in page_source
+    assert "Presidio del deposito" in page_source
     assert "Controlli prioritari" in page_source
     assert "prossimaAzione" not in page_source
     assert "EconomicTotalSummary" not in page_source
@@ -8211,15 +8211,16 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "onToggle={(event) =>" in page_source
     assert 'className="iu-fas-detail-section" open' not in page_source
     assert "Quadro fascicolo" in page_source
-    assert "Presidio fascicolo" in page_source
-    assert '<Button href="#presidio-fascicolo"><Gauge size={15}/> Presidio fascicolo</Button>' in page_source
+    # Dal 10/11/2026 il presidio si raggiunge dalla sezione «7. Deposito» della barra, non da un pulsante in testata.
+    assert '<Button href="#presidio-fascicolo">' not in page_source
+    assert "<SezioneFascicolo id=\"sezione-deposito\"" in page_source
     assert 'secondaryHref={quadroHref}' in page_source
     assert 'id="uffici-competenti" title="Uffici giudiziari per Comune"' in page_source
     assert "FascicoloUfficiCompetentiPanel" in page_source
     assert "splitOfficeComuneQuery" in page_source
     assert "normaliseStudioRuntimeResult" in page_source
     assert "/api/v1/ui/strumenti-legali/uffici_competenti" in page_source
-    assert '<a href="#documenti">Documenti e atti <b>' in page_source
+    assert "{SEZIONI_FASCICOLO.map((sezione) => <a key={sezione.id} href={`#${sezione.id}`}" in page_source
     assert 'id="documenti" title="Documenti e atti"' in page_source
     assert 'id="editor-professionale" title="Editor professionale e compilatore atti"' not in page_source
     assert "_fatturapa_item" in bridge
@@ -8268,7 +8269,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "PDP_PENALE" in bridge
     assert "PAT_AMMINISTRATIVO" in bridge
     assert "PTT_TRIBUTARIO" in bridge
-    assert 'title="Attività processuali"' in page_source
+    # Cronologia unica dal 10/11/2026: attività processuali e avanzamento nello stesso pannello.
+    assert 'title="Cronologia della pratica"' in page_source
+    assert '<span id="avanzamento" className="iu-fas-anchor-alias" aria-hidden="true"/>' in page_source
     assert "Conformità" in page_source
     assert "fascicolo-top" in page_source
     assert "iu-fas-compliance-toggle" in page_source
@@ -8386,7 +8389,7 @@ def test_react_fascicoli_detail_nav_lessico_e_referente_studio_presidiati():
     assert "_next_hearing_value" in bridge
     assert "_closure_date_value" in bridge
     assert 'className="iu-fas-detail-section" open' not in page_source
-    assert "Presidio del fascicolo" in page_source
+    assert "Presidio del deposito" in page_source
     assert ".iu-fas-action-stack .iu-fas-post" in css
     assert ".iu-fas-smart-board" in css
 

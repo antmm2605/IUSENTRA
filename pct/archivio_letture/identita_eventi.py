@@ -47,4 +47,12 @@ def ambito_fatto(fatto: Any) -> str:
     qualified = adempimento_fatto(fatto)
     if qualified:
         return qualified
+    # Lo stesso brano letto in due copie dello stesso atto (l'atto notificato e il suo deposito
+    # telematico) è lo stesso fatto: si mostra una volta, con tutte le fonti. Due termini generici
+    # con brani diversi restano distinti anche se cadono nello stesso giorno.
+    brano = " ".join(str(getattr(fatto, "contesto", "") or "").casefold().split())
+    if len(brano) >= 60:
+        import hashlib
+
+        return "brano:" + hashlib.sha256(brano.encode("utf-8")).hexdigest()[:20]
     return "fonte:" + "|".join(str(getattr(fatto, k, "") or "") for k in ("tipo", "oggetto_id", "sha256", "id"))

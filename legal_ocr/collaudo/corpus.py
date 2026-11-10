@@ -72,6 +72,27 @@ CASI: tuple[Caso, ...] = (
         attesi=(("ruolo", "numero_ruolo", "1234/2026"), ("data", "udienza", "2026-11-10T09:30"), ("data", "termine", "2026-10-31"), ("data", "notifica", "2026-08-15"), ("data", "data_atto", "2026-09-20")),
     ),
     Caso(
+        id="ricorso_con_carta_identita_scansionata",
+        titolo="Ricorso con la copia della carta d'identita' cartacea in coda",
+        righe=(
+            "TRIBUNALE DI ROCCAVERDE - SEZIONE LAVORO",
+            "Ricorso ex art. 414 c.p.c. per la sig.ra Anna Rossi,",
+            "nata a Roccaverde (RC) il 03/07/1982, residente in Roccaverde.",
+            "rappresentata e difesa dall'avv. Paolo Verdi, contro il Ministero",
+            "dell'Istruzione e del Merito, in persona del Ministro pro tempore.",
+            "La ricorrente, docente a tempo determinato, chiede il riconoscimento",
+            "della carta del docente per gli anni scolastici di servizio prestati.",
+            "Si producono i contratti di lavoro e la copia del documento personale.",
+            "Impronta del dito indice sinistro",
+            "IL FUNZIONARIO INCARICATO Mario Bianchi",
+            "Scadenza 03-07-2027",
+            "REPUBBLICA ITALIANA COMUNE DI ROCCAVERDE",
+            "CARTA D'IDENTITA N. AX0000000",
+        ),
+        attesi=(),
+        vietati=("2027-07-03", "1982-07-03"),
+    ),
+    Caso(
         id="relata_con_dati_anagrafici",
         titolo="Relata di notifica con dati anagrafici e documento d'identita'",
         righe=(

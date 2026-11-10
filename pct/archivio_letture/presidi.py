@@ -37,6 +37,12 @@ def _istituto_del_fatto(fatto: Fatto):
     return istituto_di(codice) if codice else None
 
 
+def _oggetti_fonte(fatto: Fatto) -> list[str]:
+    fonti = next((p.get("fonti") for p in fatto.prove if p.get("codice") == "fonti_unite"), None) or []
+    elenco = [fatto.oggetto_id] + [str(f.get("oggetto_id") or "") for f in fonti if isinstance(f, dict)]
+    return [oggetto for oggetto in dict.fromkeys(elenco) if oggetto]
+
+
 def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> list[dict[str, Any]]:
     """Le date di udienza e i termini letti, nella forma delle azioni del presidio documentale."""
     from .adempimenti import perentorieta_documentata
@@ -79,6 +85,8 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
             "time": ora,
             "rawDate": fatto.valore_letto,
             "documentId": fatto.oggetto_id,
+            # Tutte le copie che portano lo stesso fatto (atto notificato e deposito dello stesso atto).
+            "documentIds": _oggetti_fonte(fatto),
             "objectType": fatto.tipo,
             "source": fatto.origine,
             "tone": "neutral" if giorno < oggi else "warning" if fatto.verifica != "plausibile" else "neutral",

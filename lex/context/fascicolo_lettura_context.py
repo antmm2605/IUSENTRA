@@ -10,10 +10,14 @@ si fa con le altre e lo dichiara nelle lacune, invece di fallire.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
+from flask import g, has_request_context
+
 from pct.fascicolo_lettura import DatiLettura, costruisci_lettura, lettura_come_payload
-from web.helpers import get_clienti, get_fascicoli, get_fatturazione, get_practice_engine, get_preventivi_readonly, get_scadenziario, get_soggetti
+from web.helpers import get_clienti, get_fascicoli, get_fatturazione, get_practice_engine, get_preventivi_readonly, get_scadenziario, get_soggetti, stato_ultima_sessione_deposito
+from web.services.archivio_fatti_precaricati import fatti_del_dettaglio
 from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
 
 from .fascicolo_sections_context import _agenda_fascicolo_rows, _serialize_appuntamento, _serialize_attivita, _serialize_scadenza
@@ -53,6 +57,7 @@ def _deposito_dict(deposito: Any) -> dict[str, Any]:
     )
     dati = {campo: getattr(deposito, campo, "") for campo in campi}
     dati["documenti_ids"] = list(getattr(deposito, "documenti_ids", []) or [])
+    dati["consegne_archivio"] = list(getattr(deposito, "consegne_archivio", ()) or ())
     dati["titolo"] = _clean(getattr(deposito, "nome_atto_principale", "") or getattr(deposito, "tipo_atto", ""))
     return dati
 
@@ -173,14 +178,24 @@ def _presidi_notifiche(fascicolo_id: str) -> list[dict[str, Any]]:
         from web.services.notification_presidia_payloads import build_presidia_list_payload
         from web.services.notification_presidia_runtime import build_notification_presidio_repository
 
-        payload = build_presidia_list_payload(build_notification_presidio_repository(), {"fascicolo": fascicolo_id, "limit": MASSIMO_PRESIDI})
+        payload = build_presidia_list_payload(build_notification_presidio_repository(), {"fascicolo": fascicolo_id, "limit": MASSIMO_PRESIDI}, include_controls=False)
         return [dict(item) for item in list(payload.get("items") or [])]
     except Exception:
         return []
 
 
-def _regia(fascicolo_id: str) -> dict[str, Any]:
+def _regia(fascicolo: Any) -> dict[str, Any]:
+    from pct.practice_engine.fase_deposito import STATI_FASCICOLO_SENZA_DEPOSITO, fase_deposito
+
+    fascicolo_id = str(fascicolo.id)
     try:
+        definito = _enum(getattr(fascicolo, "stato", "")).upper() in STATI_FASCICOLO_SENZA_DEPOSITO
+        if definito and not fase_deposito(fascicolo).in_deposito:
+            stato_sessione = _sicuro(lambda: stato_ultima_sessione_deposito(fascicolo_id), None)
+            if stato_sessione is not None and not fase_deposito(
+                fascicolo, sessione=SimpleNamespace(status=stato_sessione)
+            ).in_deposito:
+                return {}
         from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
         payload = build_react_practice_engine_payload(
@@ -218,8 +233,9 @@ def _regia(fascicolo_id: str) -> dict[str, Any]:
     }
 
 
-def _economico(fascicolo_id: str) -> dict[str, Any]:
-    """Il quadro economico del fascicolo senza la ricerca semantica dei preventivi (che costa mezzo secondo)."""
+def _economico(fascicolo: Any) -> dict[str, Any]:
+    """Raccoglie le voci economiche per il fascicolo già caricato."""
+    fascicolo_id = _clean(getattr(fascicolo, "id", ""))
     try:
         gestore_preventivi = get_preventivi_readonly()
         preventivi = list(gestore_preventivi.preventivi_per_fascicolo(fascicolo_id))
@@ -241,10 +257,8 @@ def _economico(fascicolo_id: str) -> dict[str, Any]:
     try:
         from web.services.react_fascicoli_bridge import _sentenze_economiche, payment_summary_for_fascicolo_fast
 
-        fascicolo = get_fascicoli().get(fascicolo_id)
-        if fascicolo is not None:
-            presidio = dict(payment_summary_for_fascicolo_fast(fascicolo, parcelle=parcelle) or {})
-            sentenze = dict(_sentenze_economiche(fascicolo_id, presidio) or {})
+        presidio = dict(payment_summary_for_fascicolo_fast(fascicolo, parcelle=parcelle) or {})
+        sentenze = dict(_sentenze_economiche(fascicolo_id, presidio) or {})
     except Exception:
         presidio, sentenze = {}, {}
     return {
@@ -289,9 +303,25 @@ def raccogli_dati_lettura(fascicolo_id: str, *, solo_cronologia: bool = False) -
     target = _clean(fascicolo_id)
     if not target:
         return None
+    if not has_request_context():
+        return _raccogli_dati_lettura(target, solo_cronologia=solo_cronologia)
+    precedente = g.get("fascicoli_sql_puntuali", False)
+    g.fascicoli_sql_puntuali = True
+    try:
+        return _raccogli_dati_lettura(target, solo_cronologia=solo_cronologia)
+    finally:
+        g.fascicoli_sql_puntuali = precedente
+
+
+def _raccogli_dati_lettura(target: str, *, solo_cronologia: bool) -> DatiLettura | None:
     fascicolo = _sicuro(lambda: get_fascicoli().get(target), None)
     if not fascicolo:
         return None
+    with fatti_del_dettaglio(fascicolo):
+        return _dati_del_fascicolo(fascicolo, target=target, solo_cronologia=solo_cronologia)
+
+
+def _dati_del_fascicolo(fascicolo: Any, *, target: str, solo_cronologia: bool) -> DatiLettura:
     # The archive is the primary reading source, even while some objects await OCR.
     # Missing readings are explicit; an old text store must never replace them.
     archivio = _archivio(fascicolo)
@@ -306,12 +336,12 @@ def raccogli_dati_lettura(fascicolo_id: str, *, solo_cronologia: bool = False) -
         documento["domanda_archivio"] = domande[0]["valore"] if domande else ""
     catalogo = _catalogo_da_archivio(documenti, fascicolo)
     verifiche = {} if solo_cronologia else _verifiche(fascicolo)
-    regia = {} if solo_cronologia else _regia(target)
+    regia = {} if solo_cronologia else _regia(fascicolo)
     from web.services.correlazioni_ricevute_archivio import depositi_da_archivio
     depositi_correnti = depositi_da_archivio(fascicolo)
     ids_rappresentati = {d.id for d in depositi_correnti}
     ids_sostituiti = {d.id for d in fascicolo.depositi_pct} - ids_rappresentati
-    return DatiLettura(
+    dati = DatiLettura(
         fascicolo=_fascicolo_dict(fascicolo),
         documenti=list(documenti or []),
         catalogo=catalogo,
@@ -324,25 +354,36 @@ def raccogli_dati_lettura(fascicolo_id: str, *, solo_cronologia: bool = False) -
         # mancanti arrivano dalla regia, che li calcola già; i blocchi sono i suoi.
         conformita={"missing_documents": list(regia.get("missing_documents") or [])},
         regia=regia,
-        economico={} if solo_cronologia else _economico(target),
+        economico={} if solo_cronologia else _economico(fascicolo),
         parti=[] if solo_cronologia else _parti(target),
         pec=[] if solo_cronologia else _sicuro(lambda: messaggi_pec_per_fascicolo(fascicolo, solo_collegate=True), []),
         verifiche=verifiche,
         archivio=archivio,
     )
+    if not solo_cronologia:
+        # Il motore unico del ragionamento: i passi giuridici e la sezione «ragionamento» della Lettura vengono dal modello.
+        from web.services.ragionamento_raccolta import ragionamento_per_lettura
+
+        dati.ragionamento = ragionamento_per_lettura(fascicolo, dati, archivio.pop("_fatti", []))
+    archivio.pop("_fatti", None)
+    return dati
 
 
 def _archivio(fascicolo: Any) -> dict[str, Any]:
     """L'archivio delle letture come lo espone la lettura: mai una lettura, solo ciò che i motori hanno già collaudato."""
     from pct.archivio_letture import eventi_letti, fatti_canonici, riassunto_archivio, ruoli_letti, udienze_e_termini
-    from web.services.archivio_letture_runtime import stato_archivio_payload
+    from web.services.archivio_letture_runtime import fatti_fascicolo, stato_archivio_payload
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
     registro = registro_corrente()
     tenant = tenant_corrente()
     fid = str(fascicolo.id)
-    grezzi = registro.fatti(tenant, fid, verifiche=None)
+    grezzi = fatti_fascicolo(fascicolo, verifiche=None, canonico=False)
     fatti = fatti_canonici(grezzi)
+    from pct.archivio_letture.pertinenza_documentale import documenti_ufficio_incompatibile
+
+    ufficio_incompatibile = documenti_ufficio_incompatibile(grezzi)
+    fatti_processuali = [f for f in grezzi if f.tipo != "documento" or f.oggetto_id not in ufficio_incompatibile]
     stato = stato_archivio_payload(fascicolo, registro=registro, fatti=fatti, fatti_gia_canonici=True)
     lette = {(l.oggetto_id, l.sha256): l for l in registro.letture(tenant, fid, lettore="motore_documenti")}
     oggetti = [o for o in registro.oggetti(tenant, fid) if o.tipo == "documento"]
@@ -353,13 +394,15 @@ def _archivio(fascicolo: Any) -> dict[str, Any]:
         "domande": [f.to_dict() for f in grezzi if f.campo == "domanda_atto"],
         "ricevute": [p for f in grezzi if f.campo == "esito_deposito" and f.verifica in {"verificata", "corretta"} for p in f.prove if p.get("codice") == "correlazione_ricevuta"],
         "riassunto": riassunto_archivio(fatti),
-        "azioni": udienze_e_termini(fatti),
+        "azioni": udienze_e_termini(fatti_canonici(fatti_processuali) if ufficio_incompatibile else fatti),
         "eventi": eventi_letti(fatti),
+        "documenti_ufficio_incompatibile": sorted(ufficio_incompatibile),
         "ruoli": ruoli_letti(fatti),
-        "fonti_documenti": [f.to_dict() for f in grezzi if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"provvedimento", "natura_documentale", "data_atto", "esito_sentenza", "spese_sentenza", "estinzione_processo"})],
+        "fonti_documenti": [f.to_dict() for f in grezzi if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"provvedimento", "natura_documentale", "data_atto", "esito_sentenza", "spese_sentenza", "estinzione_processo", "notifica", "deposito"})],
         "letture_documenti": {o.oggetto_id: {"presente": o.presente, "stato": lette[(o.oggetto_id, o.impronta)].stato if (o.oggetto_id, o.impronta) in lette else "da_leggere"} for o in oggetti},
         "stato": dict(stato.get("lettura_automatica") or {}),
         "collaudo": dict(stato.get("collaudo_lettore") or {}),
+        "_fatti": [f.to_dict() for f in grezzi],
     }
 
 

@@ -91,7 +91,7 @@ SCHEDE_RITO: dict[str, dict[str, Any]] = {
     "decreto_ingiuntivo": {
         "codice": "decreto_ingiuntivo",
         "nome": "Procedimento per decreto ingiuntivo",
-        "base": "c.p.c., artt. 641, 644 e 647",
+        "base": "c.p.c., artt. 633, 641, 644, 645, 647 e 654",
         "fasi": [
             _fase("emissione", "Ricorso e decreto",
                   _adempimento("Depositare il ricorso monitorio", "il decreto è emesso entro trenta giorni dal deposito", "cpc_641", parte="ricorrente")),
@@ -101,6 +101,8 @@ SCHEDE_RITO: dict[str, dict[str, Any]] = {
                   _adempimento("Proporre opposizione", "entro quaranta giorni dalla notificazione del decreto", "cpc_641", template="CIV_OPPOSIZIONE_DI", parte="ingiunto")),
             _fase("esecutorietà", "Esecutorietà",
                   _adempimento("Chiedere la dichiarazione di esecutorietà", "decorso il termine di opposizione senza opposizione o senza costituzione dell'opponente, su istanza anche verbale", "cpc_647", parte="ricorrente")),
+            _fase("precetto", "Precetto ed esecuzione",
+                  _adempimento("Notificare il precetto menzionando il decreto di esecutorietà", "non occorre una nuova notificazione del decreto esecutivo; il precetto intima di adempiere entro un termine non minore di dieci giorni", "cpc_654", "cpc_480", template="ESE_PRECETTO_ADEMPIMENTO_10GG", parte="ricorrente")),
         ],
     },
     "esecuzione": {
@@ -118,6 +120,23 @@ SCHEDE_RITO: dict[str, dict[str, Any]] = {
                   _adempimento("Iscrivere a ruolo il pignoramento presso terzi", "nel termine di legge dalla notificazione dell'atto", "cpc_543", template="ESE_ISCRIZIONE_RUOLO_PRESSO_TERZI", parte="creditore"),
                   _adempimento("Iscrivere a ruolo il pignoramento immobiliare", "entro quindici giorni dalla consegna dell'atto di pignoramento", "cpc_557", template="ESE_ISCRIZIONE_RUOLO_IMMOBILIARE", parte="creditore"),
                   _adempimento("Chiedere l'assegnazione o la vendita", "entro quarantacinque giorni dal pignoramento, altrimenti perde efficacia", "cpc_497", parte="creditore")),
+            _fase("presso_terzi", "Espropriazione presso terzi: dichiarazione del terzo e assegnazione",
+                  _adempimento("Verificare la dichiarazione del terzo", "il terzo la invia al creditore con raccomandata o PEC e specifica le somme o le cose dovute", "cpc_547", parte="creditore"),
+                  _adempimento("Se la dichiarazione manca: chiedere all'udienza un'udienza successiva e notificare l'ordinanza al terzo", "l'ordinanza si notifica al terzo almeno dieci giorni prima della nuova udienza; se il terzo non compare il credito si considera non contestato", "cpc_548", parte="creditore"),
+                  _adempimento("Comparire alle udienze del giudice dell'esecuzione", "se nessuna parte compare il giudice fissa un'udienza successiva; alla seconda diserzione dichiara l'estinzione", "cpc_631", parte="creditore")),
+        ],
+    },
+    "volontaria": {
+        "codice": "volontaria",
+        "nome": "Volontaria giurisdizione: procedimento in camera di consiglio",
+        "base": "c.p.c., artt. 737, 739 e 742",
+        "fasi": [
+            _fase("ricorso", "Ricorso e decreto",
+                  _adempimento("Depositare il ricorso al giudice competente", "il provvedimento ha forma di decreto motivato, salvo che la legge disponga altrimenti", "cpc_737", parte="ricorrente")),
+            _fase("reclamo", "Reclamo",
+                  _adempimento("Valutare il reclamo contro il decreto", "dieci giorni dalla comunicazione del decreto (una sola parte) o dalla notificazione (più parti), a pena di decadenza", "cpc_739")),
+            _fase("revoca", "Modifica o revoca",
+                  _adempimento("Chiedere la modifica o la revoca del decreto se mutano le circostanze", "in ogni tempo, salvi i diritti dei terzi in buona fede", "cpc_742")),
         ],
     },
     "cautelare": {
@@ -192,10 +211,36 @@ _RITO_PER_TIPO = {
 _RITO_PER_PROCEDIMENTO = (
     ("semplificat", "semplificato"), ("281", "semplificato"), ("lavoro", "lavoro"), ("ingiunt", "decreto_ingiuntivo"),
     ("monitor", "decreto_ingiuntivo"), ("esecu", "esecuzione"), ("pignor", "esecuzione"), ("precett", "esecuzione"),
+    ("espropriaz", "esecuzione"), ("volontaria", "volontaria"), ("giudice tutelare", "volontaria"),
+    # Amministrazione di sostegno: ricorso al giudice tutelare, procedimento camerale (artt. 720-bis e 737 ss. c.p.c.).
+    ("amministrazione di sostegno", "volontaria"),
+    ("camera di consiglio", "volontaria"),
     ("cautel", "cautelare"), ("mediaz", "mediazione"), ("amministrativ", "amministrativo"), ("tar", "amministrativo"),
     ("t.a.r", "amministrativo"), ("tribut", "tributario"), ("penal", "penale"), ("ordinar", "ordinario"),
 )
 _PAROLE_INTERE = {"tar", "t.a.r"}
+
+# Il codice oggetto ministeriale (catalogo PST, pct/data/cataloghi/codici_oggetto_pst.json): le prime tre cifre sono il
+# gruppo («codicePadre») e dicono il rito. 010/050/210: ingiunzione (artt. 633 ss. c.p.c.); 011-019, 051-059, 211, 310:
+# cautelari (artt. 669-bis ss.); 2xx: lavoro e previdenza (artt. 409 ss.); 4xx: volontaria giurisdizione (artt. 737 ss.);
+# 5xx: esecuzioni mobiliari e presso terzi (artt. 513 ss., 543 ss.); 6xx: esecuzioni immobiliari (artt. 555 ss.).
+_RITO_PER_GRUPPO_PST = {
+    **{gruppo: "decreto_ingiuntivo" for gruppo in ("010", "050", "210")},
+    **{gruppo: "cautelare" for gruppo in ("011", "012", "014", "015", "017", "019", "051", "052", "053", "055", "059", "211", "310")},
+}
+_RITO_PER_CLASSE_PST = {"2": "lavoro", "4": "volontaria", "5": "esecuzione", "6": "esecuzione"}
+_RITO_PER_AREA_PST = {
+    "lavoro e previdenza": "lavoro", "volontaria giurisdizione": "volontaria", "esecuzioni mobiliari / obblighi": "esecuzione",
+    "esecuzioni immobiliari": "esecuzione",
+}
+# Gli atti del fascicolo, quando profilo e codice oggetto tacciono: l'atto di pignoramento e il precetto aprono
+# l'esecuzione (artt. 480, 492, 543 c.p.c.), il ricorso monitorio il procedimento d'ingiunzione (art. 638 c.p.c.).
+_RITO_PER_ATTO = (
+    (r"\batto\s+di\s+pignoramento|\bprecetto\b|istanza\s+ex\s+art\.?\s*492", "esecuzione"),
+    (r"opposizione\s+a\s+decreto\s+ingiuntivo", "ordinario"),
+    (r"ricorso\s+per\s+decreto\s+ingiuntivo", "decreto_ingiuntivo"),
+    (r"ricorso\s+in\s+materia\s+di\s+lavoro|\b414\b", "lavoro"),
+)
 
 
 def _indizio_presente(indizio: str, testo: str) -> bool:
@@ -203,13 +248,61 @@ def _indizio_presente(indizio: str, testo: str) -> bool:
     return re.search(rf"(?<![a-zà-ù0-9]){re.escape(indizio)}{fine}", testo) is not None
 
 
-def rito_per_fascicolo(tipo: str, tipo_procedimento: str = "") -> str:
-    """Il codice del rito dal tipo di fascicolo e dal tipo di procedimento dichiarato."""
-    procedimento = " ".join(str(tipo_procedimento or "").split()).lower()
+def _da_indizi(testo: str, *, senza_generico: bool = False) -> str:
+    testo = " ".join(str(testo or "").split()).lower()
     for indizio, codice in _RITO_PER_PROCEDIMENTO:
-        if _indizio_presente(indizio, procedimento):
+        if senza_generico and codice == "ordinario":
+            continue
+        if _indizio_presente(indizio, testo):
             return codice
-    return _RITO_PER_TIPO.get(" ".join(str(tipo or "").split()).upper(), "")
+    return ""
+
+
+def rito_da_codice_oggetto(codice_oggetto: str, area: str = "") -> str:
+    """Il rito dal codice oggetto ministeriale PST (sei cifre) o, in mancanza, dalla sua area del catalogo."""
+    codice = re.sub(r"\D", "", str(codice_oggetto or ""))[:6]
+    if len(codice) == 6:
+        if codice[:3] in _RITO_PER_GRUPPO_PST:
+            return _RITO_PER_GRUPPO_PST[codice[:3]]
+        if codice[0] in _RITO_PER_CLASSE_PST:
+            return _RITO_PER_CLASSE_PST[codice[0]]
+    return _RITO_PER_AREA_PST.get(" ".join(str(area or "").split()).lower(), "")
+
+
+def rito_per_fascicolo(tipo: str, tipo_procedimento: str = "", *, codice_oggetto: str = "", oggetto: str = "", area: str = "",
+                       etichette_atti: tuple[str, ...] | list[str] = ()) -> str:
+    """Il codice del rito, dalla fonte più certa alla più generica.
+
+    1. il tipo di procedimento dichiarato nel profilo, se specifico (non il generico «ordinario»);
+    2. il codice oggetto ministeriale PST (``rito_da_codice_oggetto``) o l'area del catalogo;
+    3. l'oggetto del fascicolo per esteso («Espropriazione mobiliare presso terzi», «Decreto ingiuntivo»);
+    4. gli atti del fascicolo (atto di pignoramento, precetto, ricorso monitorio);
+    5. il tipo di fascicolo (civile → cognizione ordinaria, lavoro → rito del lavoro…), e il «ordinario» dichiarato.
+
+    Collaudo 10/11/2026: un'espropriazione presso terzi (codice 510002), un decreto ingiuntivo del giudice di pace
+    (010001) e un'autorizzazione del giudice tutelare (413014) risultavano «cognizione ordinaria Cartabia» perché si
+    guardava solo il tipo «civile».
+    """
+    dichiarato = _da_indizi(tipo_procedimento, senza_generico=True)
+    if dichiarato:
+        return dichiarato
+    dal_codice = rito_da_codice_oggetto(codice_oggetto, area)
+    if dal_codice:
+        return dal_codice
+    dall_oggetto = _da_indizi(oggetto, senza_generico=True)
+    if dall_oggetto:
+        return dall_oggetto
+    for espressione, codice in _RITO_PER_ATTO:
+        if any(re.search(espressione, str(etichetta or ""), re.I) for etichetta in etichette_atti):
+            return codice
+    return _da_indizi(tipo_procedimento) or _RITO_PER_TIPO.get(" ".join(str(tipo or "").split()).upper(), "")
+
+
+def rito_da_intestazione(intestazione: dict[str, Any], etichette_atti: tuple[str, ...] | list[str] = ()) -> str:
+    """Il rito dall'intestazione della Lettura (tipo, rito dichiarato, codice oggetto PST, oggetto, area) e dagli atti."""
+    voce = intestazione or {}
+    return rito_per_fascicolo(voce.get("tipo", ""), voce.get("rito", ""), codice_oggetto=voce.get("codice_oggetto_pst", ""),
+                              oggetto=voce.get("oggetto", ""), area=voce.get("area", ""), etichette_atti=etichette_atti)
 
 
 def scheda_rito(codice: str) -> dict[str, Any]:
@@ -217,4 +310,4 @@ def scheda_rito(codice: str) -> dict[str, Any]:
     return dict(scheda) if scheda else {}
 
 
-__all__ = ["SCHEDE_RITO", "rito_per_fascicolo", "scheda_rito"]
+__all__ = ["SCHEDE_RITO", "rito_da_codice_oggetto", "rito_da_intestazione", "rito_per_fascicolo", "scheda_rito"]

@@ -1,12 +1,14 @@
+import { fetchPannelloFascicolo } from '../../lib/apiClient'
 import { NormativeArticleLink } from '../NormativeArticleLink'
-import { beginActivity } from '../../ui/activity'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, BookOpen, Calculator, ChevronDown, ChevronUp, ExternalLink, Landmark, RefreshCw, Scale, ShieldCheck } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { formatDateIt } from '../../formatting'
 import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
 import { LettureFascicoloSection } from './LettureFascicoloSection'
+import RiscontriProcessuali from './RiscontriProcessuali'
 import {
+  descriviEsitoDispositivo,
   etichettaFase,
   etichettaUrgenza,
   hrefCalcoloTermine,
@@ -47,52 +49,61 @@ export function LetturaFascicoloPanel({
   active?: boolean
   initialLettura?: LetturaFascicolo | null
   onError?: (message: string) => void
-  onReady?: () => void
+  onReady?: (lettura: LetturaFascicolo) => void
 }) {
   const [lettura, setLettura] = useState<LetturaFascicolo | null>(initialLettura || null)
   const [loading, setLoading] = useState(false)
   const [registroRevision, setRegistroRevision] = useState(0)
+  const [sentenzaAperta, setSentenzaAperta] = useState<SourceDocument | null>(null)
   const [error, setError] = useState('')
   const [fontiAperte, setFontiAperte] = useState<Set<number>>(() => new Set())
   const [tuttiGliEventi, setTuttiGliEventi] = useState(false)
   const [schedeAperte, setSchedeAperte] = useState(false)
-  const richiestaInCorso = useRef(false)
+  const richiestaInCorso = useRef<AbortController | null>(null)
   const fascicoloVisualizzato = useRef(fascicoloId)
+  const primaApertura = useRef(true)
+  const letturaDalDettaglio = useRef(initialLettura)
+  letturaDalDettaglio.current = initialLettura
 
   const load = useCallback(async (aggiorna = false, silent = false) => {
     if (!fascicoloId || !active || richiestaInCorso.current) return
-    richiestaInCorso.current = true
-    const finish = silent ? () => {} : beginActivity('Caricamento del riepilogo del fascicolo…')
+    const controller = new AbortController()
+    richiestaInCorso.current = controller
     setLoading(true)
     setError('')
     try {
       const url = `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/lettura${aggiorna ? '?aggiorna=1' : ''}`
-      const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      const response = await fetchPannelloFascicolo(url, { signal: controller.signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       const payload = await response.json().catch(() => ({})) as { ok?: boolean; lettura?: LetturaFascicolo; errore?: string }
       if (!response.ok || !payload.ok || !payload.lettura) throw new Error(payload.errore || 'Lettura del fascicolo non disponibile.')
+      if (controller.signal.aborted) return
       setLettura(payload.lettura)
       if (aggiorna) setRegistroRevision((value) => value + 1)
       if (!silent) setFontiAperte(new Set())
-      onReady?.()
+      if (!payload.lettura.aggiornamento_pendente) onReady?.(payload.lettura)
     } catch (requestError) {
+      if (controller.signal.aborted) return
       const message = requestError instanceof Error ? requestError.message : 'Lettura del fascicolo non disponibile.'
       setError(message)
       onError?.(message)
     } finally {
-      finish()
-      setLoading(false)
-      richiestaInCorso.current = false
+      if (richiestaInCorso.current === controller) {
+        richiestaInCorso.current = null
+        setLoading(false)
+      }
     }
   }, [fascicoloId, active, onError, onReady])
 
   useEffect(() => {
     if (fascicoloVisualizzato.current !== fascicoloId) {
       fascicoloVisualizzato.current = fascicoloId
+      primaApertura.current = true
       setLettura(initialLettura || null)
       setError('')
       setFontiAperte(new Set())
       setTuttiGliEventi(false)
       setSchedeAperte(false)
+      setSentenzaAperta(null)
     } else if (initialLettura) {
       // Un aggiornamento live parziale può omettere il riepilogo iniziale.
       // Il risultato già ricevuto dalla sua API rimane quello visibile.
@@ -100,11 +111,24 @@ export function LetturaFascicoloPanel({
     }
   }, [fascicoloId, initialLettura, onReady])
 
-  // La riapertura conserva il riepilogo visibile e riceve lo stato corrente.
-  useEffect(() => { if (active) void load() }, [active, load])
+  // Il dettaglio ha già consegnato la Lettura corrente. Alla prima apertura
+  // si usa quel risultato, mentre una riapertura chiede lo stato aggiornato.
+  useEffect(() => {
+    if (!active) return
+    if (primaApertura.current) {
+      primaApertura.current = false
+      const precedente = letturaDalDettaglio.current
+      if (precedente && !precedente.aggiornamento_pendente && !precedente.verifiche?.in_corso) return
+    }
+    void load()
+  }, [active, load])
+  useEffect(() => () => {
+    richiestaInCorso.current?.abort()
+    richiestaInCorso.current = null
+  }, [fascicoloId, active])
 
   // Consulta soltanto l'esito SQL finché il worker conclude; non riavvia le verifiche.
-  const inCorso = Boolean(lettura?.verifiche?.in_corso)
+  const inCorso = Boolean(lettura?.verifiche?.in_corso || lettura?.aggiornamento_pendente)
   useEffect(() => {
     if (!active || !inCorso) return undefined
     const timer = globalThis.setInterval(() => {
@@ -135,14 +159,34 @@ export function LetturaFascicoloPanel({
 
   const fase = lettura.fase
   const testata = lettura.intestazione
+  const percorso = lettura.percorso
+  const esitoSentenza = descriviEsitoDispositivo(percorso)
 
   return (
     <div className="iu-fas-lettura" aria-busy={loading}>
+      <SourceDocumentModal source={sentenzaAperta} onClose={() => setSentenzaAperta(null)}/>
+      {lettura.aggiornamento_pendente ? (
+        <p className="iu-fas-lettura__attenzione" role="status">
+          <AlertTriangle size={14}/> Ultima lettura salvata. Aggiornamento in corso.
+          Per gli adempimenti e le scadenze verifica gli atti e l’agenda.
+        </p>
+      ) : null}
       <header className="iu-fas-lettura__header">
         <div className="iu-fas-lettura__fase">
           <Badge tone={tonoFase(fase.codice)}>{etichettaFase(fase.codice)}</Badge>
           <h3>{fase.descrizione.charAt(0).toUpperCase() + fase.descrizione.slice(1)}</h3>
           {fase.prove.length ? <p>Lo dicono: {fase.prove.join('; ')}.</p> : null}
+          {percorso && esitoSentenza ? (
+            <p>
+              <strong>Esito del dispositivo</strong> · {esitoSentenza}
+              {percorso.documento_id ? (
+                <> · <button type="button" className="iu-fas-lettura__retry" onClick={() => setSentenzaAperta({
+                  href: `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(percorso.documento_id || '')}/visualizza`,
+                  label: percorso.sentenza, context: 'Esito del dispositivo',
+                })}>Apri la sentenza</button></>
+              ) : null}
+            </p>
+          ) : null}
           {fase.prossima_udienza ? <p><strong>Prossimo appuntamento o termine:</strong> {fase.prossima_udienza}</p> : null}
           {fase.incoerenze.map((voce) => <p className="iu-fas-lettura__attenzione" key={voce}><AlertTriangle size={14}/> {voce}.</p>)}
         </div>
@@ -156,9 +200,9 @@ export function LetturaFascicoloPanel({
       <section className="iu-fas-lettura__passi" aria-label="Prossimi passaggi del fascicolo">
         <div className="iu-fas-lettura__section-head">
           <h4><Scale size={16}/> Prossimi passaggi</h4>
-          {lettura.stato_passi.attivi ? <span>{riassuntoStatoPassi(lettura)}</span> : null}
+          {(lettura.stato_passi.attivi || passi.length > 0) ? <span>{riassuntoStatoPassi(lettura)}</span> : null}
         </div>
-        {!lettura.stato_passi.attivi ? (
+        {!lettura.stato_passi.attivi && !passi.length ? (
           <p className="iu-fas-lettura__nessun-passo">{lettura.stato_passi.motivo}</p>
         ) : passi.length ? (
           <ol className="iu-fas-lettura__lista">
@@ -180,8 +224,13 @@ export function LetturaFascicoloPanel({
             </ol>
           </details>
         ) : null}
+        {!lettura.stato_passi.attivi && passi.length ? <p className="iu-fas-lettura__nota">Restano questi controlli da fare prima di archiviare il fascicolo.</p> : null}
         {lettura.stato_passi.attivi && lettura.stato_passi.motivo ? <p className="iu-fas-lettura__nota">{lettura.stato_passi.motivo}</p> : null}
       </section>
+
+      {lettura.ragionamento?.conclusioni?.length ? (
+        <RiscontriProcessuali fascicoloId={fascicoloId} dati={lettura.ragionamento}/>
+      ) : null}
 
       <section className="iu-fas-lettura__presidi" aria-label="Presìdi del fascicolo">
         {cards.map((card) => (
@@ -310,7 +359,7 @@ function PassoRow({ passo, indice, fontiAperte, onToggleFonti }: { passo: PassoL
           <Badge tone={urgenza.tono}>{urgenza.etichetta}{passo.entro ? ` · ${passo.scaduto ? 'il' : 'entro'} ${passo.entro}` : ''}</Badge>
           {passo.href ? <a href={passo.href}>{passo.azione}</a> : <strong>{passo.azione}</strong>}
         </div>
-        {passo.motivo ? <p>{passo.motivo}.</p> : null}
+        {passo.motivo ? <p>{passo.motivo}</p> : null}
         <div className="iu-fas-lettura__chips">
           {passo.fonte ? <em>{passo.fonte}</em> : null}
           {norma ? <button type="button" className="iu-fas-lettura__norma" aria-expanded={fontiAperte} onClick={onToggleFonti} title="Mostra le fonti ufficiali"><Scale size={12}/> {norma}</button> : null}

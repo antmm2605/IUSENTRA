@@ -42,6 +42,7 @@ export function SezioneFascicolo({
   avviso,
   apriQuando = true,
   evidenza = false,
+  onOpen,
   children,
 }:{
   id: SezioneFascicoloId
@@ -51,6 +52,7 @@ export function SezioneFascicolo({
   apriQuando?: boolean
   /** Sezione da guardare subito: bordo e titolo in evidenza. */
   evidenza?: boolean
+  onOpen?: () => void
   children: ReactNode
 }) {
   const ref = useRef<HTMLDetailsElement | null>(null)
@@ -65,7 +67,7 @@ export function SezioneFascicolo({
     if (ref.current && bersaglio && ref.current.contains(bersaglio)) ref.current.open = true
   }, [])
   return (
-    <details ref={ref} id={id} className={`iu-fas-sezione${evidenza ? ' iu-fas-sezione--evidenza' : ''}`}>
+    <details ref={ref} id={id} onToggle={(event) => { if (event.currentTarget.open) onOpen?.() }} className={`iu-fas-sezione${evidenza ? ' iu-fas-sezione--evidenza' : ''}`}>
       <summary className="iu-fas-sezione__summary">
         <span className="iu-fas-sezione__numero">{sezione.numero}</span>
         <span className="iu-fas-sezione__testi">

@@ -19,7 +19,7 @@ from .depositi import SCHEDE_DEPOSITO, canale_deposito, fase_deposito, scheda_de
 from .fonti import FONTI, fonte, fonti, norme
 from .lacune import lacune_conoscenza, riferimenti_nel_testo
 from .notifiche import SCHEDE_NOTIFICA, canale_notifica, fase_notifica, scheda_notifica
-from .riti import SCHEDE_RITO, rito_per_fascicolo, scheda_rito
+from .riti import SCHEDE_RITO, rito_da_intestazione, rito_per_fascicolo, scheda_rito
 
 VERSIONE_CONOSCENZA = "2026.09.15.fasi-procedurali.v2"
 
@@ -48,9 +48,15 @@ def schede_per_fascicolo(
     tipo_procedimento: str = "",
     canale_operativo: str = "",
     canali_notifica: list[str] | tuple[str, ...] = (),
+    codice_oggetto: str = "",
+    oggetto: str = "",
+    area: str = "",
+    etichette_atti: list[str] | tuple[str, ...] = (),
 ) -> dict[str, Any]:
-    """Le schede pertinenti a un fascicolo: rito, canale di deposito, canali di notifica usati."""
-    rito = rito_per_fascicolo(tipo, tipo_procedimento)
+    """Le schede pertinenti a un fascicolo: rito (dal profilo, dal codice oggetto PST e dagli atti), canale di
+    deposito, canali di notifica usati."""
+    rito = rito_per_fascicolo(tipo, tipo_procedimento, codice_oggetto=codice_oggetto, oggetto=oggetto, area=area,
+                              etichette_atti=etichette_atti)
     canale = canale_deposito(canale_operativo) or {
         "PENALE": "PDP_PENALE", "AMMINISTRATIVO": "PAT_AMMINISTRATIVO", "TRIBUTARIO": "PTT_TRIBUTARIO",
     }.get(" ".join(str(tipo or "").split()).upper(), "PCT_TELEMATICO")
@@ -72,5 +78,5 @@ def schede_per_fascicolo(
 __all__ = [
     "FONTI", "SCHEDE_DEPOSITO", "SCHEDE_NOTIFICA", "SCHEDE_RITO", "VERSIONE_CONOSCENZA",
     "canale_deposito", "canale_notifica", "fase_deposito", "fase_notifica", "fonte", "fonti", "lacune_conoscenza", "norme", "riferimenti_nel_testo",
-    "rito_per_fascicolo", "scheda_deposito", "scheda_notifica", "scheda_rito", "schede_per_fascicolo",
+    "rito_da_intestazione", "rito_per_fascicolo", "scheda_deposito", "scheda_notifica", "scheda_rito", "schede_per_fascicolo",
 ]

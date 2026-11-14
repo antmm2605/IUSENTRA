@@ -1846,6 +1846,24 @@ def start_scheduler(app):
                 return {"ok": False, "job": "fascicoli_document_economic_presidio", "error": str(e)}
 
     @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute="*/1"),
+        id="pannelli_pronti_ricalcolo",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=60,
+    )
+    def _pannelli_pronti_ricalcolo():
+        # Controllo leggero (impronta delle fonti); il calcolo vero gira in un processo a bassa priorità.
+        with app.app_context():
+            try:
+                from web.services.pannelli_pronti_calcolatore import avvia_se_serve
+
+                return {"job": "pannelli_pronti_ricalcolo", **avvia_se_serve(app)}
+            except Exception as e:
+                logger.error("[scheduler] Controllo dei pannelli pronti fallito: %s", e)
+                return {"ok": False, "job": "pannelli_pronti_ricalcolo", "error": str(e)}
+
+    @scheduler.scheduled_job(
         CronTrigger(timezone="Europe/Rome", day_of_week="sun", hour=0, minute=17),
         id="letture_recupero_completo",
         max_instances=1,

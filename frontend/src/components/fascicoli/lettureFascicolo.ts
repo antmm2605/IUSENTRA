@@ -131,6 +131,7 @@ export interface SintesiRegistro {
   prossima_udienza: string
   documenti_presenti: number
   pec_collegate: number
+  eml_archiviati?: number
   allegati_pec: number
   da_leggere: number
   aggiornato_il: string
@@ -154,7 +155,7 @@ export function lettoriSintesi(sintesi: SintesiRegistro): Array<SintesiRegistroL
 // Il sommario della riga di sintesi: le letture in attesa sono somme per motore, non documenti. Scritto
 // «132 da leggere» accanto a «Tutto letto e collaudato» (archivio) sembrava una contraddizione (collaudo 03/11/2026).
 export function riepilogoAttesaSintesi(sintesi: SintesiRegistro): string {
-  if (!sintesi.da_leggere) return 'tutto letto'
+  if (!sintesi.da_leggere) return Object.values(sintesi.lettori || {}).some((voce) => voce.errori > 0) ? 'nessuna lettura in attesa · esiti da verificare' : 'nessuna lettura in attesa'
   const motori = Object.values(sintesi.lettori || {}).filter((voce) => voce.da_leggere > 0).length
   if (!motori) return `${sintesi.da_leggere} letture in attesa`
   return `${sintesi.da_leggere} letture in attesa in ${motori} ${motori === 1 ? 'motore' : 'motori'}`

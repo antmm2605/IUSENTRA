@@ -213,43 +213,11 @@ def _current_tenant_runtime_label() -> str:
         return "default"
 
 
-def _lettura_fascicolo_cache_key(fid: str) -> tuple | None:
-    try:
-        from web.services.lettura_cache import chiave_lettura
-        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
-
-        registro = registro_corrente()
-        ciclo = registro.impronta_fascicolo(tenant_corrente(), str(fid), "motore_documenti")
-        revisione = str((ciclo or {}).get("aggiornato_il") or "")
-        tenant_versionato = f"{_current_tenant_runtime_label()}@{APP_VERSION}@{revisione}"
-        return chiave_lettura(tenant_versionato, str(fid))
-    except Exception:
-        return None
-
-
 def _initial_lettura_fascicolo(fid: str) -> dict[str, Any] | None:
-    """Payload consultivo già materializzato per aprire il pannello senza avviare letture."""
-    if not _text(fid):
-        return None
-    try:
-        from web.services.lettura_cache import LETTURA_CACHE
+    """Usa lo stesso pannello SQL valido per profilo e fonte che alimenta il Quadro."""
+    from web.services.riscontri_processuali_runtime import lettura_materializzata
 
-        chiave = _lettura_fascicolo_cache_key(fid)
-        if chiave is not None:
-            cached = LETTURA_CACHE.get(chiave)
-            if cached:
-                payload = json.loads(cached.decode("utf-8"))
-                lettura = payload.get("lettura") if isinstance(payload, dict) else None
-                if isinstance(lettura, dict) and lettura:
-                    return lettura
-
-        # Il dettaglio non materializza il contesto costoso: la sezione aperta
-        # lo carica attraverso la propria API e alimenta la stessa cache.
-        return None
-    except Exception as exc:
-        if has_app_context():
-            current_app.logger.warning("Lettura iniziale del fascicolo %s non caricata: %s", fid, exc)
-        return None
+    return lettura_materializzata(fid) if _text(fid) else None
 
 
 def _current_cache_scope() -> str:
@@ -346,6 +314,8 @@ def _fascicoli_base_cache_key(
     payment_filters: dict[str, str] | None,
     field_filters: dict[str, str] | None,
 ) -> tuple | None:
+    from pct.ora_italiana import oggi_roma
+
     if _FASCICOLI_LIST_BASE_TTL_SECONDS <= 0:
         return None
     filters = tuple(
@@ -369,6 +339,7 @@ def _fascicoli_base_cache_key(
         _current_cache_scope(),
         _current_user_cache_id(),
         APP_VERSION,
+        oggi_roma().isoformat(),
         _text(query).strip().lower(),
         _text(client_filter).strip().lower(),
         _text(rg_filter).strip().lower(),
@@ -2061,6 +2032,8 @@ PAYMENT_STATUS_LABELS = {
     "pagato": "Pagato",
     "parziale": "Parziale",
     "da_emettere": "Da emettere",
+    # Riconvalida degli incassi (pct.incasso_provato): credito senza prova di pagamento.
+    "da_incassare": "Da incassare",
 }
 
 PAYMENT_STATUS_TONES = {
@@ -2070,6 +2043,7 @@ PAYMENT_STATUS_TONES = {
     "pagato": "success",
     "parziale": "orange",
     "da_emettere": "warning",
+    "da_incassare": "warning",
 }
 
 PAYMENT_DEFAULT_STATUS = {
@@ -2091,7 +2065,7 @@ def _normalise_payment_kind(value: Any) -> str:
 def _normalise_payment_status(value: Any, *, default: str = "") -> str:
     raw = _text(value).lower().replace("-", "_").replace(".", "_")
     raw = re.sub(r"\s+", "_", raw).strip("_")
-    if raw == "esenzione_dichiarata":
+    if raw in {"esenzione_dichiarata", "da_incassare"}:
         return raw
     if raw in {"si", "sì", "yes", "true", "1", "paid", "pagata", "pagato", "saldata", "saldato"}:
         return "pagato"
@@ -4292,7 +4266,7 @@ def payment_summary_for_fascicolo(
     _apply_optional_parcella(items, fascicolo, parcelle)
     _apply_stato_contributo(items, fascicolo, payments)
     expected = [item for item in items.values() if item["previsto"] or item["richiedeConferma"]]
-    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"} or item["richiedeConferma"]]
+    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale", "da_incassare"} or item["richiedeConferma"]]
     paid = [item for item in expected if item["status"] == "pagato"]
     if not expected:
         state = "non_previsto"
@@ -4375,7 +4349,7 @@ def payment_summary_for_fascicolo_fast(
     _apply_optional_parcella(items, fascicolo, parcelle)
     _apply_stato_contributo(items, fascicolo, payments)
     expected = [item for item in items.values() if item["previsto"] or item["richiedeConferma"]]
-    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale"} or item["richiedeConferma"]]
+    missing = [item for item in expected if item["status"] in {"da_registrare", "da_emettere", "parziale", "da_incassare"} or item["richiedeConferma"]]
     paid = [item for item in expected if item["status"] == "pagato"]
     if not expected:
         state = "non_previsto"
@@ -6136,10 +6110,18 @@ def _prove_notifica_archivio(fascicolo: Any) -> dict[str, str]:
     try:
         from pct.archivio_letture.presidi import prove_notifica_per_oggetto
 
+        from pct.notifica_atto_l53 import e_notificazione_l53
+
         prove = prove_notifica_per_oggetto(_fatti_archivio(fascicolo, categoria="prova_notifica"))
+        nomi = {_document_id(doc): _notification_document_haystack(doc) for doc in getattr(fascicolo, "documenti", []) or []}
         # Anche un allegato PEC è una prova letta: scartarlo perdeva le relate e le
         # ricevute che arrivano dentro un messaggio invece che come documento.
-        return {oggetto_id: str(voce.get("kind") or "") for oggetto_id, voce in prove.items() if voce.get("tipo") in {"documento", "allegato_pec"}}
+        # Una ricevuta PEC è prova di notifica solo se il messaggio è una notificazione (oggetto «notificazione ai
+        # sensi della legge n. 53 del 1994», art. 3-bis, comma 4, L. 53/1994): quella di una diffida non lo è (G-3).
+        return {oggetto_id: str(voce.get("kind") or "") for oggetto_id, voce in prove.items()
+                if voce.get("tipo") in {"documento", "allegato_pec"}
+                and (str(voce.get("kind") or "") not in {"rac", "rdac", "pec"}
+                     or e_notificazione_l53(f"{nomi.get(oggetto_id, '')} {voce.get('contesto') or ''}"))}
     except Exception:
         return {}
 
@@ -6182,18 +6164,36 @@ def _next_deadline(
     *,
     automatic_from_documents: bool = False,
 ) -> Any | None:
+    """Regola unica della «prossima scadenza» dell'elenco (vista operativa, vista economica, esportazione).
+
+    È la data più vicina fra: l'attività processuale futura ancora in attesa del fascicolo, i termini aperti
+    dello scadenziario collegati (anche già scaduti: restano da gestire) e, se il fascicolo ha documenti, le date
+    certe già lette dai motori nell'archivio delle letture (udienze e termini non trascorsi che non chiedono
+    conferma). Prima la vista economica sostituiva la data con quella dell'archivio e la vista operativa la
+    ignorava: due regole per lo stesso dato. ``automatic_from_documents`` resta per compatibilità della firma.
+    """
+    del automatic_from_documents
+    candidates: list[Any] = []
     prop = getattr(fascicolo, "prossima_scadenza", None)
     if prop:
-        return prop
+        candidates.append(prop)
     if scadenze_by_fasc is not None:
-        deadlines = scadenze_by_fasc.get(_text(getattr(fascicolo, "id", "")), [])
-        dated = [item for item in deadlines if _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", ""))]
-        dated.sort(key=lambda item: _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", "")) or date.max)
-        if dated:
-            return dated[0]
-    if automatic_from_documents:
-        return _automatic_next_deadline_from_documents(fascicolo)
-    return None
+        candidates.extend(scadenze_by_fasc.get(_text(getattr(fascicolo, "id", "")), []))
+    if _fast_documents_count(fascicolo) > 0:
+        automatic = _automatic_next_deadline_from_documents(fascicolo)
+        automatic_day = _parse_date(getattr(automatic, "data_scadenza", "")) if automatic is not None else None
+        # Dall'archivio solo date future: una data letta e già trascorsa non è la «prossima» scadenza.
+        if automatic_day is not None and automatic_day >= datetime.now(ROME_TZ).date():
+            candidates.append(automatic)
+
+    def _day(item: Any) -> date | None:
+        return _parse_date(getattr(item, "data_scadenza", "") or getattr(item, "data", ""))
+
+    dated = [item for item in candidates if _day(item)]
+    if not dated:
+        return None
+    # A parità di giorno vale l'ordine delle fonti: attività del fascicolo, scadenziario, archivio.
+    return min(enumerate(dated), key=lambda pair: (_day(pair[1]) or date.max, pair[0]))[1]
 
 
 def _next_deadline_date_value(fascicolo: Any, next_deadline: Any | None) -> str:
@@ -6360,6 +6360,7 @@ def _item_light(
     related_fascicoli: Iterable[Any] | None = None,
     parcelle: Iterable[Any] | None = None,
     duplicate_group: dict[str, Any] | None = None,
+    payment_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
@@ -6376,21 +6377,22 @@ def _item_light(
     rg_meta = _rg_meta(fascicolo)
     if rg_meta["rgMissing"]:
         alerts += 1
-    if full_payment_summary:
-        payment_summary = payment_summary_for_fascicolo(
-            fascicolo,
-            automatic=automatic_evidence,
-            related_fascicoli=related_fascicoli,
-            parcelle=parcelle,
-            duplicate_group=duplicate_group,
-        )
-    else:
-        payment_summary = payment_summary_for_fascicolo_fast(
-            fascicolo,
-            related_fascicoli=related_fascicoli,
-            parcelle=parcelle,
-            duplicate_group=duplicate_group,
-        )
+    if payment_summary is None:
+        if full_payment_summary:
+            payment_summary = payment_summary_for_fascicolo(
+                fascicolo,
+                automatic=automatic_evidence,
+                related_fascicoli=related_fascicoli,
+                parcelle=parcelle,
+                duplicate_group=duplicate_group,
+            )
+        else:
+            payment_summary = payment_summary_for_fascicolo_fast(
+                fascicolo,
+                related_fascicoli=related_fascicoli,
+                parcelle=parcelle,
+                duplicate_group=duplicate_group,
+            )
     relata_summary: dict[str, Any] = {}
     if office_pec_messages is not None:
         fid_for_relata = quote(fid)
@@ -6707,6 +6709,7 @@ def _deadline_rows_from_scadenze(
     *,
     resolved_matter_ids: dict[str, str] | None = None,
     include_overdue: bool = True,
+    overdue_days: int | None = None,
     escludi_udienze_passate: bool = True,
 ) -> list[dict[str, Any]]:
     from pct.ora_italiana import oggi_roma
@@ -6714,10 +6717,11 @@ def _deadline_rows_from_scadenze(
 
     today = oggi_roma()
     horizon = today + timedelta(days=days)
+    earliest = today - timedelta(days=overdue_days) if overdue_days is not None else None
     out: list[dict[str, Any]] = []
     for scadenza in scadenze:
         due = _parse_date(getattr(scadenza, "data_scadenza", "") or getattr(scadenza, "data", ""))
-        if not due or due > horizon or (not include_overdue and due < today):
+        if not due or due > horizon or (earliest is not None and due < earliest) or (not include_overdue and due < today):
             continue
         # Un'udienza passata non è una scadenza scaduta ma un esito da registrare (V28; artt. 126 e 127-ter
         # c.p.c.): la pagina Fascicoli contava «9 scadute» dove Scadenziario e Controllo Studio ne contano 3
@@ -6951,46 +6955,6 @@ def _pagination(page: int, page_size: int, total: int) -> dict[str, int]:
     return {"page": current, "pageSize": page_size, "total": total, "pages": pages}
 
 
-def enrich_economic_list_items(items, *, gf, fascicoli_for_summary, duplicate_groups_by_key, parcelle_by_fasc):
-    """Vista economica dell'elenco: sola lettura di dati gia' consolidati.
-
-    L'elenco e' un endpoint caldo (FAS-01): per ogni riga legge soltanto il
-    marcatore del presidio documentale salvato nel fascicolo, i fatti SQL
-    dell'archivio delle letture e le parcelle. Non idrata gli allegati, non
-    interroga l'indice Document AI e non ricalcola l'impronta dei documenti:
-    quella lettura appartiene al presidio economico pianificato e al dettaglio
-    del fascicolo. Se il consolidamento manca o e' superato, la riga lo dice
-    («Da analizzare», «Da rianalizzare») invece di rifarlo nella richiesta.
-    """
-    del gf  # la vista non rilegge i fascicoli: resta nella firma per i chiamanti
-    fascicoli_by_id = {_text(getattr(value, "id", "")): value for value in fascicoli_for_summary}
-    enriched_items: list[dict[str, Any]] = []
-    for item in items:
-        fid = _text(item.get("id"))
-        fascicolo = fascicoli_by_id.get(fid)
-        if fascicolo is None:
-            enriched_items.append(item)
-            continue
-        enriched = dict(item)
-        enriched["paymentSummary"] = payment_summary_for_fascicolo_fast(
-            fascicolo,
-            related_fascicoli=_related_duplicate_fascicoli(fascicoli_for_summary, fascicolo),
-            parcelle=parcelle_by_fasc.get(fid, []),
-            duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
-        )
-        # Prossima data certa gia' scritta e collaudata dai motori nell'archivio
-        # delle letture (query SQL, nessun documento riaperto). Solo per le
-        # righe che hanno documenti: senza documenti l'archivio e' vuoto.
-        if _positive_int(item.get("documents"), 0, minimum=0, maximum=10**9) > 0:
-            automatic_deadline = _automatic_next_deadline_from_documents(fascicolo)
-            automatic_deadline_date = _next_deadline_date_value(fascicolo, automatic_deadline)
-            if automatic_deadline_date:
-                enriched["nextDeadline"] = _date_label(automatic_deadline_date)
-                enriched["nextDeadlineIso"] = automatic_deadline_date
-        enriched_items.append(enriched)
-    return enriched_items
-
-
 def build_react_fascicoli_payload(
     *,
     get_fascicoli: Callable[[], Any],
@@ -7016,7 +6980,6 @@ def build_react_fascicoli_payload(
     payment_filters: dict[str, str] | None = None,
     field_filters: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    view_key = _text(view).strip().lower()
     base_cache_key = _fascicoli_base_cache_key(
         query=query,
         client_filter=client_filter,
@@ -7047,15 +7010,22 @@ def build_react_fascicoli_payload(
         duplicate_groups = _fase("duplicati", lambda: duplicate_practice_groups(fascicoli))
         duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
         parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
+        duplicates_by_key: dict[str, list[Any]] = {}
+        for value in fascicoli:
+            duplicate_key = normalise_practice_duplicate_key(value)
+            if duplicate_key:
+                duplicates_by_key.setdefault(duplicate_key, []).append(value)
 
         light_items = _fase("righe_elenco", lambda: _righe_elenco_precaricate(fascicoli, lambda: _annotate_duplicate_items(
             [
                 _item_light(
                     fascicolo,
                     scadenze_by_fasc=scadenze_by_fasc,
-                    automatic_evidence=False,
+                    automatic_evidence=True,
                     full_payment_summary=False,
                     parcelle=parcelle_by_fasc.get(_text(getattr(fascicolo, "id", "")), []),
+                    related_fascicoli=_related_duplicate_fascicoli(
+                        duplicates_by_key.get(normalise_practice_duplicate_key(fascicolo), []), fascicolo),
                     duplicate_group=duplicate_groups_by_key.get(normalise_practice_duplicate_key(fascicolo)),
                 )
                 for fascicolo in fascicoli
@@ -7095,6 +7065,7 @@ def build_react_fascicoli_payload(
             days=7,
             resolved_matter_ids=resolved_scadenze,
             include_overdue=True,
+            overdue_days=6,  # sette giorni di calendario, compreso oggi
         )
         upcoming_deadlines7 = _deadline_rows_from_scadenze(
             scadenze_rows,
@@ -7145,14 +7116,7 @@ def build_react_fascicoli_payload(
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
-    if view_key == "economica" and items:
-        gf = get_fascicoli()
-        fascicoli_for_summary = _safe("fascicoli_economica_summary", lambda: gf.tutti(archiviati=False), [])
-        duplicate_groups = duplicate_practice_groups(fascicoli_for_summary)
-        duplicate_groups_by_key = {_text(group.get("key")): group for group in duplicate_groups if _text(group.get("key"))}
-        parcelle_by_fasc = _parcelle_by_fascicolo(get_fatturazione)
-        items = enrich_economic_list_items(items, gf=gf, fascicoli_for_summary=fascicoli_for_summary,
-            duplicate_groups_by_key=duplicate_groups_by_key, parcelle_by_fasc=parcelle_by_fasc)
+    # Vista economica e operativa usano le stesse righe: riepilogo e prossima scadenza hanno una sola regola.
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -8018,8 +7982,44 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         if notification_kinds.get(id(doc)) in {"atto_notificato", "pec", "rac", "rdac", "attestazione", "deposito_prova"}
     ]
     proof_deposit_documents = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "deposito_prova"]
-    has_rac = any(notification_kinds.get(id(doc)) == "rac" for doc in local_documents)
-    has_rdac = any(notification_kinds.get(id(doc)) == "rdac" for doc in local_documents)
+    # Le ricevute provano la notifica dell'atto solo se successive all'atto da notificare (G-3, 10/11/2026).
+    office_dates = [
+        when for doc in office_documents
+        if not any(token in _doc_haystack(doc) for token in ("originale notificato", "attestazione"))
+        and (when := _notification_document_effective_datetime(doc)) is not None
+    ]
+    latest_office = max(office_dates).date() if office_dates else None
+
+    def _receipt_after_act(doc: Any) -> bool:
+        when = _notification_document_effective_datetime(doc)
+        return latest_office is None or when is None or when.date() >= latest_office
+
+    accepted_receipts = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "rac" and _receipt_after_act(doc)]
+    delivered_receipts = [doc for doc in local_documents if notification_kinds.get(id(doc)) == "rdac" and _receipt_after_act(doc)]
+    last_receipt = max(
+        (when for doc in local_documents if notification_kinds.get(id(doc)) in {"rac", "rdac"}
+         and (when := _notification_document_effective_datetime(doc)) is not None),
+        default=None,
+    )
+    # Un deposito del ricorso già notificato può appartenere a una fase anteriore.
+    # Le ricevute della notifica successiva non dimostrano il deposito della loro prova.
+    if last_receipt is not None:
+        proof_deposit_documents = [
+            doc for doc in proof_deposit_documents
+            if (when := _notification_document_effective_datetime(doc)) is not None
+            and when.date() >= last_receipt.date()
+        ]
+
+    def _open_proof(documents: list[Any]) -> str:
+        doc = max(
+            (doc for doc in documents if _document_id(doc)),
+            key=lambda doc: _notification_document_effective_datetime(doc) or datetime.min,
+            default=None,
+        )
+        doc_id = _document_id(doc)
+        return f"/fascicoli/{quote(fid)}/documenti/{quote(doc_id)}/visualizza" if fid and doc_id else ""
+
+    has_rac, has_rdac = bool(accepted_receipts), bool(delivered_receipts)
     notification_already_sent = any(
         notification_kinds.get(id(doc)) in {"pec", "rac", "rdac", "atto_notificato", "deposito_prova"}
         for doc in local_documents
@@ -8051,13 +8051,13 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         status = "prova_depositata"
         status_label = "Prova notifica depositata"
         tone = "success"
-        primary_href = f"/fascicoli/{quote(fid)}#cancelleria" if fid else "#cancelleria"
+        primary_href = _open_proof(proof_deposit_documents)
         primary_label = "Apri prova depositata"
     elif proof_complete:
         status = "prova_raccolta"
-        status_label = "Prova notifica raccolta"
-        tone = "success"
-        primary_href = deposit_href
+        status_label = "Ricevute di notifica presenti"
+        tone = "warning"
+        primary_href = _open_proof(delivered_receipts) or deposit_href
         primary_label = "Controlla prova"
     elif legacy_assumed_handled:
         status = "storico_gestito"
@@ -8081,7 +8081,7 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         status = "ricevute_da_completare"
         status_label = "Ricevute notifica da completare"
         tone = "warning"
-        primary_href = deposit_href
+        primary_href = _open_proof(delivered_receipts) or deposit_href
         primary_label = "Controlla prova"
     elif signed_relata and not proof_documents:
         status = "pronta_invio"
@@ -8095,7 +8095,8 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
         tone = "neutral"
         primary_href = prepare_href
         primary_label = "Apri notifica"
-    primary_href = primary_href or prepare_href
+    if not proof_deposited:
+        primary_href = primary_href or prepare_href
     release_step_status = "da_acquisire" if pending_releases else "superato" if office_documents or historical_pending_releases else "monitorato"
     release_step_detail = (
         f"{len(pending_releases)} documento/i comunicati via PEC da scaricare dal portale"
@@ -8134,7 +8135,7 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     )
     proof_step_status = "superato" if proof_complete or proof_deposited or legacy_assumed_handled else "da_completare" if signed_relata or notification_already_sent else "in_attesa"
     proof_step_detail = (
-        f"{len(proof_documents)} documento/i prova collegati."
+        f"{len(proof_documents)} documenti candidati alla prova; verificare a quale notifica si riferiscono."
         if proof_documents
         else "Storico notifiche chiuso fino al 19/07/2026: nessuna nuova notifica da preparare."
         if legacy_assumed_handled
@@ -8222,7 +8223,8 @@ def _notification_relata(fascicolo: Any, office_pec_messages: list[Any] | None =
     elif notification_already_sent and not proof_complete:
         system_notification = "Notifica già inviata: completa RAC e RdAC originali per depositare la prova, senza preparare un nuovo invio."
     elif proof_complete:
-        system_notification = "Notifica già inviata e prova raccolta: controlla i file e deposita la prova quando previsto."
+        system_notification = ("Sono presenti ricevute PEC. Verifica per ciascun atto che relata, messaggio e consegna "
+                               "si riferiscano allo stesso destinatario prima di usare o depositare la prova.")
     if legacy_assumed_handled and status == "storico_gestito":
         system_notification = "Fino al 19/07/2026 lo studio ha dichiarato le notifiche eseguite: nessuna nuova notifica da preparare; il presidio resta attivo solo per eventi dal 20/07/2026."
     return {
@@ -8421,7 +8423,7 @@ def _document_catalog_from_saved_type(doc: Any) -> DocumentCatalogClassification
     )
 
 
-def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[dict[str, Any]]:
+def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None, solo_inventario: bool = False) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
     local_doc_ids = set()
@@ -8480,6 +8482,9 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
             "missing": [],
             "needs_refresh": False,
         }
+        if solo_inventario:
+            # Il metadato non attesta gli attributi richiesti per il deposito.
+            return {**fallback, "ready": False}
         if gestore_fascicoli is None or not fid or not _text(getattr(doc, "id", "")):
             return fallback
         try:
@@ -8649,7 +8654,9 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                 "signatureReadyForDeposit": signature_state["ready"],
                 "signatureMissingAttributes": signature_state["missing"],
                 "signatureNeedsRefresh": signature_state["needs_refresh"],
-                "statusLabel": "Firma CAdES-BES da aggiornare" if signature_state["needs_refresh"] else ("Firmato" if signed else "Da firmare"),
+                "statusLabel": "Firma CAdES-BES da aggiornare" if signature_state["needs_refresh"] else (
+                    "Firmato" if signed else ("Firma non verificata" if solo_inventario else "Da firmare")
+                ),
                 "statusTone": "warning" if signature_state["needs_refresh"] else ("success" if signed else "warning"),
                 "source": _source_label_for_document(doc),
                 "portalName": _clean_document_filename(getattr(doc, "nome_portale", "")) or (_clean_document_filename(getattr(doc, "nome_originale", "")) if not _technical_filename(getattr(doc, "nome_originale", "")) else ""),
@@ -8681,7 +8688,7 @@ def _documents(fascicolo: Any, *, gestore_fascicoli: Any | None = None) -> list[
                     "sign": f"/fascicoli/{fid}/documenti/{did}/firma",
                     # PDF/A e attestazione solo sui PDF; la conversione non si offre su un documento già
                     # PDF/A, firmato (la firma si romperebbe) o acquisito dal portale (si conserva com'è).
-                    "pdfa": f"/fascicoli/{fid}/documenti/{did}/converti-pdfa" if _pdfa_convertibile(doc, signed) else "",
+                    "pdfa": f"/fascicoli/{fid}/documenti/{did}/converti-pdfa" if not solo_inventario and _pdfa_convertibile(doc, signed) else "",
                     "attest": f"/fascicoli/{fid}/documenti/{did}/attestazione" if _e_pdf(doc) else "",
                     "metadata": f"/fascicoli/{fid}/documenti/{did}/metadati",
                     "rename": f"/fascicoli/{fid}/documenti/{did}/rinomina",
@@ -8996,9 +9003,10 @@ def _deposit_receipt_texts(dep: Any) -> list[str]:
     return texts
 
 
-def _deposit_receipt_field(dep: Any, label: str) -> str:
+def _deposit_receipt_field(dep: Any, label: str, *, source: str = "") -> str:
     pattern = re.compile(rf"(?im)^\s*{re.escape(label)}\s*:\s*(.+?)\s*$")
-    for text in _deposit_receipt_texts(dep):
+    texts = [_text(getattr(dep, source, ""))] if source else _deposit_receipt_texts(dep)
+    for text in texts:
         match = pattern.search(text)
         if match:
             return _text(match.group(1))
@@ -9018,12 +9026,24 @@ def _activities(
     *,
     records: Iterable[Any] | None = None,
     technical: bool = False,
+    appointments: Iterable[Any] | None = None,
 ) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
+    from pct.agenda_del_fascicolo import udienze_in_agenda
+
+    # Un'udienza già in agenda è un dato confermato: la stessa data rilevata da un documento non è una
+    # «rilevazione da verificare» (pct/agenda_del_fascicolo.udienze_in_agenda).
+    hearing_days = udienze_in_agenda(appointments or ())
     out = []
     for att in records if records is not None else _visible_activity_records(fascicolo):
         aid = _text(getattr(att, "id", ""))
         source_document = _activity_source_document_payload(fid, att)
+        if (source_document["sourceIsDerived"] and _enum_value(getattr(att, "tipo", "")).upper() == "UDIENZA"
+                and _text(getattr(att, "data", ""))[:10] in hearing_days
+                and _enum_value(getattr(att, "esito", "")).upper() != "ANNULLATO"):
+            source_document = {**source_document, "sourceIsDerived": False, "sourceConfirmedInAgenda": True}
+        else:
+            source_document = {**source_document, "sourceConfirmedInAgenda": False}
         result = _enum_value(getattr(att, "esito", "IN_ATTESA"))
         type_value = _enum_value(getattr(att, "tipo", "ALTRO"))
         portal_imported = type_value.upper() in {"UDIENZA", "ISCRIZIONE_A_RUOLO"} and any(
@@ -9031,7 +9051,8 @@ def _activities(
             for marker in ("importata da polisweb", "sincronizzata da polisweb", "importato da pst")
         )
         system_observation = _activity_is_system_observation(att)
-        read_only = bool(technical or portal_imported or source_document["sourceIsDerived"] or system_observation)
+        read_only = bool(technical or portal_imported or source_document["sourceIsDerived"] or source_document.get("sourceConfirmedInAgenda")
+                         or system_observation)
         if technical or portal_imported:
             result = "REGISTRATO"
         remote_url = _text(getattr(att, "remote_hearing_url", ""))
@@ -9096,8 +9117,11 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
     Verifica del 03/11/2026: il riquadro «Udienze e scadenze» del presidio prende la prima voce e mostrava
     come prossima udienza un rinvio già trascorso. Il giorno di riferimento è quello di Roma.
     """
+    from web.services.pec_source_links import pec_audit_message_ids
+
     oggi = oggi_rome()
     out = []
+    written: dict[tuple[str, str], list[tuple[str, dict, Any]]] = {}
     trascorse: set[int] = set()
     for item in scadenze:
         sid = _text(getattr(item, "id", ""), f"deadline-{len(out)}")
@@ -9120,6 +9144,31 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
                 "tone": _deadline_tone(item),
             }
         )
+        profile = _text(getattr(item, "deadline_profile_code", ""))
+        if giorno and profile in {"NOTE_127_TER", "PEC_AUTO_PRESIDIO"} and _text(getattr(item, "hearing_mode", "")) == "note_scritte":
+            sources = pec_audit_message_ids(item)
+            if len(sources) == 1 and out[-1]["status"] not in {"ANNULLATO", "ANNULLATA"}:
+                written.setdefault((sources[0], giorno.isoformat()), []).append((profile, out[-1], item))
+
+    # The hearing marker and the proposed term can describe the same court order.
+    # Keep both stored records and annotate only unambiguous pairs in this view.
+    for entries in written.values():
+        term = [(row, item) for profile, row, item in entries if profile == "NOTE_127_TER"]
+        markers = [(row, item) for profile, row, item in entries if profile == "PEC_AUTO_PRESIDIO"]
+        if len(term) != 1 or len(markers) != 1:
+            continue
+        projected, term_item = term[0]
+        marker, marker_item = markers[0]
+        appointment_id = _text(getattr(marker_item, "id_appuntamento", ""))
+        if not appointment_id:
+            continue
+        marker["representedByDeadlineId"] = projected["id"]
+        projected["replacesAppointmentId"] = appointment_id
+        due_at = _text(getattr(term_item, "legal_due_at", "")) or _text(getattr(term_item, "operational_due_at", ""))
+        if due_at.startswith(projected["dateIso"][:10] + "T"):
+            hearing_time = _time_label(due_at)
+            if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", hearing_time):
+                projected["writtenHearingTime"] = hearing_time
     prossime = sorted((voce for i, voce in enumerate(out) if i not in trascorse), key=lambda item: item["dateIso"] or "9999")
     passate = sorted((voce for i, voce in enumerate(out) if i in trascorse), key=lambda item: item["dateIso"], reverse=True)
     return prossime + passate
@@ -9200,7 +9249,8 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
         message = _deposit_display_message(dep, portal_docs)
         simulated = is_simulated_deposit(dep)
         next_phase = next_receipt_phase(dep)
-        accepted_at = _datetime_label(_deposit_receipt_field(dep, "Data esito"))
+        accepted = status == "ACCETTATO_CANCELLERIA"
+        accepted_at = _datetime_label(_deposit_receipt_field(dep, "Data esito", source="ricevuta_cancelleria")) if accepted else ""
         role_number = _deposit_receipt_field(dep, "Numero ruolo") or _fascicolo_role_number(fascicolo)
         out.append(
             {
@@ -9210,9 +9260,9 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
                 or (max(portal_dates) if portal_dates else None),
                 "id": did,
                 "timestamp": _date_label(getattr(dep, "timestamp", "")),
-                "sentAt": _datetime_label(getattr(dep, "timestamp", "")),
+                "sentAt": _datetime_label(getattr(dep, "timestamp", "")) if getattr(dep, "fonte_portale", "") != "PEC_PCT" else "",
                 "acceptedAt": accepted_at,
-                "acceptedBy": _deposit_receipt_field(dep, "Mittente PEC"),
+                "acceptedBy": _deposit_receipt_field(dep, "Mittente PEC", source="ricevuta_cancelleria") if accepted else "",
                 "registeredBy": _text(getattr(dep, "registrato_da", "")),
                 "registeredAt": _datetime_label(getattr(dep, "registrato_il", "")),
                 "roleNumber": role_number,
@@ -9407,7 +9457,7 @@ def _economics(
     timesheet_entries: list[Any],
     fascicolo: Any,
     *,
-    duplicate_group: dict[str, Any] | None = None,
+    payment_summary: dict[str, Any],
 ) -> list[dict[str, Any]]:
     minutes = sum(int(getattr(item, "minuti", 0) or 0) for item in timesheet_entries)
     parcelle_total = sum(float(getattr(item, "totale", 0.0) or getattr(item, "netto_a_pagare", 0.0) or 0.0) for item in parcelle)
@@ -9421,11 +9471,6 @@ def _economics(
     preventivo_href = f"/preventivi/p/{preventivo_id}" if preventivo_id else f"/preventivi/nuovo?id_fascicolo={fid}"
     conferimento_href = f"/preventivi/conferimento/{conferimento_id}" if conferimento_id else f"/preventivi/conferimento/nuovo?id_fascicolo={fid}"
     parcelle_href = f"/fatturazione?id_documento={parcella_id}" if parcella_id else f"/fatturazione/nuova?id_fascicolo={fid}"
-    payment_summary = payment_summary_for_fascicolo_fast(
-        fascicolo,
-        parcelle=parcelle,
-        duplicate_group=duplicate_group,
-    )
     return [
         {"id": "valore", "label": "Valore causa", "value": _euro(getattr(fascicolo, "valore_causa", 0)), "note": "dato fascicolo", "href": "#profilo", "tone": "primary"},
         {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": conferimento_href, "tone": "purple"},
@@ -9508,15 +9553,12 @@ def _full_fascicolo(
     *,
     apps: Iterable[Any] | None = None,
     studio_avvocato_titolare: str = "",
-    parcelle: Iterable[Any] | None = None,
-    duplicate_group: dict[str, Any] | None = None,
+    payment_summary: dict[str, Any],
 ) -> dict[str, Any]:
     base = _item_light(
         fascicolo,
         automatic_evidence=False,
-        full_payment_summary=False,
-        parcelle=parcelle,
-        duplicate_group=duplicate_group,
+        payment_summary=payment_summary,
     )
     next_hearing = _next_hearing_value(fascicolo, apps)
     closure_date = _closure_date_value(fascicolo)
@@ -9752,7 +9794,7 @@ def build_react_fascicolo_detail_payload(
     timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(fid), [])
     visible_activity_records = _visible_activity_records(fascicolo)
     technical_activity_records = _technical_activity_records(fascicolo)
-    visible_activities = _activities(fascicolo) if load_activities else []
+    visible_activities = _activities(fascicolo, appointments=apps) if load_activities else []
     activities = visible_activities if load_activities else []
     technical_events = _activities(
         fascicolo,
@@ -9771,6 +9813,9 @@ def build_react_fascicolo_detail_payload(
         int(notification_relata.get("proofDocuments") or 0),
         1 if _text(notification_relata.get("status")) not in {"monitoraggio", "nessuna_notifica"} else 0,
     )
+    from pct.practice_engine.fase_deposito import fase_deposito
+
+    fase_deposito_corrente = fase_deposito(fascicolo)
     quick_counts = {
         "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
@@ -9849,18 +9894,16 @@ def build_react_fascicolo_detail_payload(
     quick_counts["presidio_documenti"] = len(document_presidio.get("actions") or [])
     fascicoli_scope: list[Any] = []
     duplicate_check_reason = ""
-    try:
-        # Per sapere QUALI fascicoli sono doppioni bastano cliente e numero di
-        # ruolo: l'indice leggero li legge senza tirare su documenti e
-        # attivita' di tutto l'archivio. I pochi fascicoli che risultano
-        # davvero collegati vengono poi idratati uno a uno piu' sotto, perche'
-        # di quelli il presidio documentale legge i documenti sul serio.
-        indice = getattr(fascicoli_repo, "indice_leggero", None)
-        fascicoli_scope = list(indice()) if callable(indice) else list(fascicoli_repo.tutti())
-    except Exception:
-        duplicate_check_reason = "L'archivio fascicoli non è stato letto: riprova il controllo prima di attestare l'assenza di doppioni."
     duplicate_key = normalise_practice_duplicate_key(fascicolo)
-    if not duplicate_check_reason and not duplicate_key:
+    if duplicate_key:
+        try:
+            indice = getattr(fascicoli_repo, "identita_per_confronto_fascicoli", None)
+            if not callable(indice):
+                indice = getattr(fascicoli_repo, "indice_leggero", None)
+            fascicoli_scope = list(indice()) if callable(indice) else list(fascicoli_repo.tutti())
+        except Exception:
+            duplicate_check_reason = "L'archivio fascicoli non è stato letto: riprova il controllo prima di attestare l'assenza di doppioni."
+    else:
         duplicate_check_reason = "Cliente e numero R.G. devono essere completi per confrontare il fascicolo con l'archivio dello studio."
     if not duplicate_check_reason and not fascicoli_scope:
         duplicate_check_reason = "L'archivio fascicoli non ha restituito pratiche confrontabili: aggiorna l'archivio e ripeti il controllo."
@@ -10019,11 +10062,13 @@ def build_react_fascicolo_detail_payload(
         if load_deposit_catalog
         else {}
     )
-    # La lettura già pronta (circa 140 KB) serve all'apertura del fascicolo: le sezioni caricate dopo
-    # (documenti, scadenze, depositi…) non la usano e non la rispediscono (verifica del 01/11/2026).
+    # Il dettaglio salvato non incorpora la Lettura: viene aggiunta al
+    # momento della risposta dal pannello già pronto e valido per il profilo.
+    from web.services.pannelli_pronti_runtime import calcolo_in_corso
+
     initial_lettura = (
         _safe("initial_lettura", lambda: _initial_lettura_fascicolo(fid), None)
-        if not include or include_all or "lettura" in include
+        if (not include or include_all or "lettura" in include) and not calcolo_in_corso()
         else None
     )
     return {
@@ -10039,17 +10084,18 @@ def build_react_fascicolo_detail_payload(
             fascicolo,
             apps=apps,
             studio_avvocato_titolare=studio_avvocato_titolare,
-            parcelle=parcelle,
-            duplicate_group=duplicate_group,
+            payment_summary=payment_summary_detail,
         ),
         "quickCounts": quick_counts,
+        "depositPhaseSummary": {"codice": fase_deposito_corrente.codice},
         "lex_indexing": lex_indexing,
         "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
         "documents": _documents(fascicolo, gestore_fascicoli=fascicoli_repo) if load_documents else [],
         "activities": activities,
         "technicalEvents": technical_events,
-        "deadlines": _deadlines(scadenze) if load_deadlines else [],
-        "appointments": _appointments(apps) if load_deadlines else [],
+        "agendaLoaded": load_deadlines or not include,
+        "deadlines": _deadlines(scadenze) if load_deadlines or not include else [],
+        "appointments": _appointments(apps) if load_deadlines or not include else [],
         "documentPresidio": document_presidio,
         "operationalPresidio": operational_presidio,
         "deposits": visible_deposits if load_deposits else [],
@@ -10058,7 +10104,9 @@ def build_react_fascicolo_detail_payload(
         "parties": parties,
         "history": _history(fascicolo),
         "client": _client_payload(cliente),
-        "economics": _economics(preventivi, conferimenti, parcelle, timesheet_entries, fascicolo, duplicate_group=duplicate_group),
+        "economics": _economics(
+            preventivi, conferimenti, parcelle, timesheet_entries, fascicolo, payment_summary=payment_summary_detail,
+        ),
         "sentenzeEconomiche": sentenze_economiche,
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
         "regia": regia_payload,
@@ -10090,6 +10138,27 @@ def build_react_fascicolo_detail_payload(
             "retryLexIndexErrors": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/riprova-errori",
         },
         "options": _options(),
+    }
+
+
+def build_react_fascicolo_document_inventory(get_fascicoli: Callable[[], Any], id_fasc: str) -> dict[str, Any]:
+    """Serve l'inventario senza aprire gli allegati, riusando anche gli esiti correnti se disponibili."""
+    from web.services.riscontri_processuali_runtime import risultato_materializzato
+
+    salvato = risultato_materializzato(id_fasc, "documenti")
+    if salvato and (salvato.get("fascicolo") or {}).get("id") == id_fasc and isinstance(salvato.get("documents"), list):
+        return {
+            "fascicolo": {"id": id_fasc},
+            "quickCounts": {"documenti": (salvato.get("quickCounts") or {}).get("documenti", 0)},
+            "documents": salvato["documents"],
+        }
+    fascicolo = get_fascicoli().get(id_fasc)
+    if fascicolo is None:
+        return {"notFound": True, "errore": "Fascicolo non trovato."}
+    return {
+        "fascicolo": {"id": fascicolo.id},
+        "quickCounts": {"documenti": len(fascicolo.documenti or [])},
+        "documents": _documents(fascicolo, solo_inventario=True),
     }
 
 

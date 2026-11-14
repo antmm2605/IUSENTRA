@@ -1,3 +1,6 @@
+import type { PassoLettura } from "./components/fascicoli/letturaFascicolo"
+import { fetchPannelloFascicolo } from './api/client'
+
 export type GuidaCoverage = {
   level: string
   source: string
@@ -253,12 +256,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 async function getJson<T>(url: string, fallback: T): Promise<T> {
   try {
-    const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    const response = await fetchPannelloFascicolo(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
     const payload = await response.json().catch(() => fallback)
     if (!response.ok) return { ...(fallback as object), ...(isRecord(payload) ? payload : {}), ok: false } as T
     return payload as T
-  } catch {
-    return fallback
+  } catch (error) {
+    return error instanceof Error && isRecord(fallback)
+      ? { ...fallback, message: error.message }
+      : fallback
   }
 }
 
@@ -272,7 +277,13 @@ export function codiceFromResponse(response: GuidaPraticaResponse): string {
 
 export function getFascicoloGuidaPratica(fascicoloId: string): Promise<GuidaPraticaResponse> {
   if (!fascicoloId) return Promise.resolve(emptyGuidaPraticaResponse('Fascicolo non indicato.'))
-  return getJson<GuidaPraticaResponse>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/guida-pratica`, emptyGuidaPraticaResponse())
+  return getJson<GuidaPraticaResponse>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/guida-pratica?vista=scheda`, emptyGuidaPraticaResponse())
+}
+
+export function getFascicoloGuidaGiurisprudenza(fascicoloId: string) {
+  return getJson<{ ok: boolean; giurisprudenza?: GuidaGiurisprudenza }>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/guida-pratica?vista=giurisprudenza`, { ok: false },
+  )
 }
 
 export type GuidaFaseReale = {
@@ -282,6 +293,14 @@ export type GuidaFaseReale = {
   fase?: string
   percorso?: GuidaPercorso | null
   prima_cosa_da_fare?: string
+  passi_operativi?: (PassoLettura & {
+    documento?: { documento_id?: string; documento?: string }
+    modello_atto?: string
+    come?: string
+    perche?: string
+    riscontri_mancanti?: string[]
+  })[]
+  motivo_stato_passi?: string
 }
 
 // Fase reale e percorso dopo la sentenza dalla Lettura del fascicolo: arrivano dopo la guida, che si apre subito.

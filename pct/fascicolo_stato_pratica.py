@@ -57,15 +57,16 @@ def _provvedimento(avanzamento: Iterable[Mapping[str, Any]]) -> str:
 
 
 def stato_pratica(fascicolo: Mapping[str, Any]) -> dict[str, str]:
-    """Codice, etichetta e dettaglio («Sentenza n. 679/2026 del 17/04/2026») dello stato della pratica."""
+    """Codice, etichetta e dettaglio dello stato registrato della pratica."""
     codice = codice_stato(fascicolo.get("stato"), archivio_pronto=bool(fascicolo.get("archivio_pronto")))
     dettaglio = ""
     if codice in {"definita", "da_archiviare"}:
         provvedimento = _provvedimento(fascicolo.get("avanzamento") or [])
         data = _data_it(fascicolo.get("data_chiusura"))
-        dettaglio = " ".join(p for p in (provvedimento, f"del {data}" if data else "") if p)
-        if not provvedimento:
-            dettaglio = f"Definita il {data}" if data else "Provvedimento che definisce la causa da indicare nel fascicolo"
+        chiusura = f"Chiusura registrata il {data}" if data else ""
+        dettaglio = " · ".join(p for p in (provvedimento, chiusura) if p)
+        if not dettaglio:
+            dettaglio = "Provvedimento che definisce la causa da indicare nel fascicolo"
     elif codice == "archiviata":
         data = _data_it(fascicolo.get("data_archiviazione") or fascicolo.get("data_chiusura"))
         dettaglio = f"Archiviata il {data}" if data else ""

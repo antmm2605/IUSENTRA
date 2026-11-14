@@ -84,7 +84,8 @@ def percorso_dopo_sentenza(intestazione: dict[str, Any], documenti_letti: dict[s
     controparti = " ".join(nome for nomi in dict(intestazione.get("parti") or {}).values() for nome in nomi) + " " + pulisci(intestazione.get("controparte"))
     percorso = rimedi(esito, rito=rito if rito in {"lavoro", "ordinario", "semplificato"} else "ordinario", grado=grado,
                       giurisdizione=giurisdizione, controparte_pa=bool(_PA.search(controparti)))
-    return {"sentenza": pulisci(sentenza.get("etichetta")), "data": pulisci(sentenza.get("data_it")), "esito": codice,
+    return {"sentenza": pulisci(sentenza.get("nome") or sentenza.get("etichetta")),
+            "documento_id": pulisci(sentenza.get("id")), "data": pulisci(sentenza.get("data_it")), "esito": codice,
             "per_il_cliente": per_noi, "ruolo_cliente": ruolo, "fonte_ruolo": fonte_ruolo, "spese": esito["spese"], **percorso}
 
 

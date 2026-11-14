@@ -19,7 +19,7 @@ import {
   type LettureFascicolo,
 } from './lettureFascicolo'
 import { PartiLetteSection } from './PartiLetteSection'
-import { SintesiRegistroCard } from './SintesiRegistroCard'
+import { lazy, Suspense } from 'react'
 import { ObblighiNotificaSection } from './ObblighiNotificaSection'
 import { ProspettiTabellaSection } from './ProspettiTabellaSection'
 import { ProvenienzaAISection } from './ProvenienzaAISection'
@@ -32,6 +32,8 @@ const OGGETTI_VISIBILI = 6
 // letti che i controlli giudicano dubbi — le date prima di tutto — che
 // l'avvocato conferma o corregge. Legge /api/v1/ui/fascicoli/<id>/letture,
 // mai in cache: le novità sono personali.
+const SintesiRegistroCard = lazy(() => import('./SintesiRegistroCard').then((module) => ({ default: module.SintesiRegistroCard })))
+
 export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey = 0, onAggiornato }: { fascicoloId: string; active?: boolean; refreshKey?: number; onAggiornato?: () => void }) {
   const [letture, setLetture] = useState<LettureFascicolo | null>(null)
   const [requestLoading, setRequestLoading] = useState(false)
@@ -210,7 +212,7 @@ export function LettureFascicoloSection({ fascicoloId, active = true, refreshKey
           ))}
         </ul>
       ) : null}
-      <SintesiRegistroCard sintesi={letture?.sintesi}/>
+      <Suspense fallback={null}><SintesiRegistroCard sintesi={letture?.sintesi}/></Suspense>
       <ObblighiNotificaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
       <PartiLetteSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>
       <ProspettiTabellaSection fascicoloId={fascicoloId} active={active} refreshKey={refreshKey + dettagliRevision}/>

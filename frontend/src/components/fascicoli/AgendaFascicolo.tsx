@@ -18,7 +18,7 @@ function Riga({ voce, oggi }: { voce: Voce; oggi: string }) {
     <a className={`iu-fas-deadline-row iu-agenda-fascicolo__voce${voce.passata ? ' is-passata' : ''}`} href={voce.href}>
       <Badge tone={voce.passata ? 'neutral' : voce.tono}>{voce.etichetta}</Badge>
       <strong>{voce.titolo}</strong>
-      <span>{voce.quando}{voce.perentorio ? ' · perentorio' : ''}{evidenza ? ' · oggi' : ''}</span>
+      <span>{voce.quando}{voce.perentorio && !voce.inBozza ? ' · perentorio' : ''}{evidenza ? ' · oggi' : ''}</span>
     </a>
   )
 }

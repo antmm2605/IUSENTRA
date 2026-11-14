@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { ChevronRight, Gauge, RefreshCw } from 'lucide-react'
 import { ApiClientError, ensureJson } from '../../lib/apiClient'
 import { Badge } from '../dashboard'
 import { isSezioneFascicoloId } from './SezioneFascicolo'
 import type { SezioneFascicoloId } from './SezioneFascicolo'
+import { descriviEsitoDispositivo } from './letturaFascicolo'
 import './QuadroFascicolo.css'
 
 /**
@@ -19,7 +20,7 @@ export type QuadroTema = 'prossimo_passo' | 'termini' | 'economia' | 'notifiche'
 export type QuadroLivello = 'ok' | 'info' | 'attenzione' | 'urgente'
 export type QuadroStatoPratica = { codice: string; etichetta: string; dettaglio: string }
 export type QuadroRiga = { tema: QuadroTema; titolo: string; testo: string; livello: QuadroLivello; sezione: SezioneFascicoloId }
-export type QuadroFascicoloDati = { stato: QuadroStatoPratica; righe: QuadroRiga[]; generatoIl: string }
+export type QuadroFascicoloDati = { stato: QuadroStatoPratica; righe: QuadroRiga[]; generatoIl: string; esitoDispositivo?: string; letturaInPreparazione?: boolean; letturaPrecedente?: boolean; quadroInAggiornamento?: boolean }
 export type QuadroLettura =
   | { fase: 'caricamento' }
   | { fase: 'pronto'; dati: QuadroFascicoloDati }
@@ -76,7 +77,15 @@ export function normalizzaQuadro(payload: unknown): QuadroFascicoloDati | null {
     })
   }
   righe.sort((a, b) => ORDINE_TEMI.indexOf(a.tema) - ORDINE_TEMI.indexOf(b.tema))
+  const esito = record.esito_dispositivo && typeof record.esito_dispositivo === 'object'
+    ? record.esito_dispositivo as Record<string, unknown> : {}
   return {
+    letturaInPreparazione: record.lettura_in_preparazione === true,
+    letturaPrecedente: record.lettura_precedente === true,
+    quadroInAggiornamento: record.quadro_in_aggiornamento === true,
+    esitoDispositivo: descriviEsitoDispositivo({
+      esito: testo(esito.esito), per_il_cliente: testo(esito.per_il_cliente), data: testo(esito.data), sentenza: testo(esito.sentenza),
+    }),
     stato: { codice: testo(stato.codice), etichetta: testo(stato.etichetta), dettaglio: testo(stato.dettaglio) },
     righe,
     generatoIl: testo(record.generato_il),
@@ -87,10 +96,14 @@ export function normalizzaQuadro(payload: unknown): QuadroFascicoloDati | null {
 export function useQuadroFascicolo(fascicoloId: string): { lettura: QuadroLettura; riprova: () => void } {
   const [lettura, setLettura] = useState<QuadroLettura>({ fase: 'caricamento' })
   const [tentativo, setTentativo] = useState(0)
+  const ultimoFascicolo = useRef('')
   useEffect(() => {
     if (!fascicoloId) return undefined
     const controller = new AbortController()
-    setLettura({ fase: 'caricamento' })
+    if (ultimoFascicolo.current !== fascicoloId) {
+      ultimoFascicolo.current = fascicoloId
+      setLettura({ fase: 'caricamento' })
+    }
     ensureJson<unknown>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/quadro`, { signal: controller.signal, activity: false })
       .then((payload) => {
         if (controller.signal.aborted) return
@@ -121,7 +134,18 @@ export function useQuadroFascicolo(fascicoloId: string): { lettura: QuadroLettur
       .catch(() => undefined)
     return () => controller.abort()
   }, [lettura, fascicoloId, notificheCalcolate])
-  return { lettura, riprova }
+  const letturaInPreparazione = lettura.fase === 'pronto' && (lettura.dati.letturaInPreparazione || lettura.dati.quadroInAggiornamento)
+  useEffect(() => {
+    if (!letturaInPreparazione) return undefined
+    const aggiorna = () => { if (document.visibilityState === 'visible') riprova() }
+    const timer = globalThis.setTimeout(aggiorna, 5000)
+    document.addEventListener('visibilitychange', aggiorna)
+    return () => {
+      globalThis.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', aggiorna)
+    }
+  }, [fascicoloId, lettura, letturaInPreparazione, riprova])
+  return { lettura: ultimoFascicolo.current === fascicoloId ? lettura : { fase: 'caricamento' }, riprova }
 }
 
 function oraAggiornamento(iso: string): string {
@@ -148,6 +172,15 @@ export function QuadroFascicolo({ lettura, onRiprova, onApriSezione }:{
         <h2 id="quadro-fascicolo-titolo"><Gauge size={17} aria-hidden="true"/> Quadro del fascicolo</h2>
         {aggiornato ? <small>Aggiornato al {aggiornato}</small> : null}
       </header>
+      {lettura.fase === 'pronto' && lettura.dati.letturaPrecedente ? (
+        <p className="iu-quadro-fascicolo__stato" role="status">Ultima lettura salvata. Aggiornamento in corso. Prima di agire verifica gli atti e l’agenda.</p>
+      ) : null}
+      {lettura.fase === 'pronto' && lettura.dati.quadroInAggiornamento && !lettura.dati.letturaPrecedente ? (
+        <p className="iu-quadro-fascicolo__stato" role="status">Quadro in aggiornamento. Per i termini consulta la Lettura e l’agenda del fascicolo.</p>
+      ) : null}
+      {lettura.fase === 'pronto' && lettura.dati.esitoDispositivo ? (
+        <p><a href="#lettura-fascicolo" onClick={apri('sezione-andamento')}>Esito del dispositivo · {lettura.dati.esitoDispositivo}</a></p>
+      ) : null}
       {lettura.fase === 'caricamento' ? <p className="iu-quadro-fascicolo__stato" role="status">Lettura del quadro del fascicolo…</p> : null}
       {lettura.fase === 'errore' ? (
         <div className="iu-quadro-fascicolo__stato iu-quadro-fascicolo__stato--errore" role="alert">

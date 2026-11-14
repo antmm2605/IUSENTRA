@@ -45,7 +45,7 @@ def _norme_della_scheda(voci: list[Any]) -> list[tuple[str, str]]:
     return norme
 
 
-def arricchisci_giurisprudenza(guida: dict[str, Any]) -> dict[str, Any]:
+def arricchisci_giurisprudenza(guida: dict[str, Any], *, consulta_archivio: bool = True) -> dict[str, Any]:
     normativa = guida.get("normativa") if isinstance(guida.get("normativa"), dict) else {}
     citazioni: list[dict[str, Any]] = []
     tutte_le_norme: list[Any] = []
@@ -54,6 +54,9 @@ def arricchisci_giurisprudenza(guida: dict[str, Any]) -> dict[str, Any]:
         citazioni.extend(v for v in voci if isinstance(v, dict) and e_giurisprudenza(v))
         normativa[chiave] = [v for v in voci if not (isinstance(v, dict) and e_giurisprudenza(v))]
         tutte_le_norme.extend(normativa[chiave])
+    guida["normativa"] = normativa
+    if not consulta_archivio:
+        return guida
     cassazione, costituzionale = _archivi()
     try:
         esiti = verifica_citazioni(citazioni, cassazione=cassazione, costituzionale=costituzionale)
@@ -62,7 +65,6 @@ def arricchisci_giurisprudenza(guida: dict[str, Any]) -> dict[str, Any]:
         logger.warning("giurisprudenza della guida non disponibile: %s", exc)
         esiti, decisioni = [], []
     verificate = [e for e in esiti if e.get("verificata")]
-    guida["normativa"] = normativa
     guida["giurisprudenza"] = {
         "verificate": verificate,
         "non_verificate": len(esiti) - len(verificate),

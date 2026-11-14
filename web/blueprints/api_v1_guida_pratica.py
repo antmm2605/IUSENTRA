@@ -60,7 +60,7 @@ def _core_runtime_func(name: str) -> Callable[..., Any] | None:
 
 
 def _fascicoli_loader() -> Callable[[], Any]:
-    loader = _core_runtime_func("get_fascicoli")
+    loader = _core_runtime_func("get_fascicoli_mirato") or _core_runtime_func("get_fascicoli")
     if callable(loader):
         return loader
     from web.helpers import get_fascicoli
@@ -193,6 +193,7 @@ def guida_pratica_fascicolo(id_fasc: str):
                 get_fascicoli=_fascicoli_loader(),
                 id_fasc=id_fasc,
                 service=_service(),
+                vista=request.args.get("vista", ""),
             )
         )
     except Exception as exc:

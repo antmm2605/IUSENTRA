@@ -1302,9 +1302,12 @@ class GuidaPraticaService:
             "totale_avvertimenti": len(warnings),
         }
 
-    def get_checklist(self, codice_materia: Any, dati_pratica: dict[str, Any] | None = None) -> dict[str, Any]:
+    def get_checklist(
+        self, codice_materia: Any, dati_pratica: dict[str, Any] | None = None, *, guidance: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         dati = dati_pratica or {}
-        guidance = self.get_guidance(codice_materia, fascicolo=_as_dict(dati.get("fascicolo")))
+        if guidance is None:
+            guidance = self.get_guidance(codice_materia, fascicolo=_as_dict(dati.get("fascicolo")))
         atto = _as_dict(guidance.get("atto_principale"))
         fields = [_as_dict(item) for item in _as_list(atto.get("campi_obbligatori")) if isinstance(item, dict)]
         attachments = [_as_dict(item) for item in _as_list(guidance.get("allegati_obbligatori")) if isinstance(item, dict)]

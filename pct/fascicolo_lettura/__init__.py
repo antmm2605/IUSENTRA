@@ -38,9 +38,10 @@ from .notifiche import notifiche
 from .oggetto import oggetto
 from .pec import pec
 from .prossimi_passi import prossimi_passi
+from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.06.lettura-fascicolo.v14-percorso-dopo-sentenza"
+VERSIONE_LETTURA = "2026.11.14.lettura-fascicolo.v28"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -118,7 +119,14 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     """La lettura completa del fascicolo, come dati e come testo."""
     oggi = dati.oggi or datetime.now(ROME_TZ).date()
     testata = intestazione(dati.fascicolo, dati.parti, dati.catalogo)
-    documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=(dati.archivio or {}).get("fonti_documenti", []))
+    fonti_documenti = list((dati.archivio or {}).get("fonti_documenti", []) or [])
+    if not testata.get("rg"):
+        # Il numero di ruolo indicato nel deposito telematico dello studio (deposito integrativo) quando la scheda non lo porta.
+        from pct.procedura_fasi.ruolo_dagli_atti import ruolo_dagli_atti
+
+        if (rg_letto := ruolo_dagli_atti(fonti_documenti)):
+            testata["rg"], testata["rg_fonte"] = rg_letto, "letto nel deposito telematico conservato nel fascicolo"
+    documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=fonti_documenti)
     depositi_letti = depositi(dati.depositi, pulisci(dati.fascicolo.get("canale_operativo")))
     notifiche_lette = notifiche(dati.notifiche, dati.attivita)
     notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
@@ -130,12 +138,14 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     documenti_letti["errori_lettura"] = int(stato_documenti.get("errori") or 0)
     documenti_letti["da_leggere_lettura"] = int(stato_documenti["da_leggere"]) if "da_leggere" in stato_documenti else None
     eventi = cronologia(dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"], dati.appuntamenti, oggi, archivio_letto)
-    fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi, pec_letto=pec_letto)
+    fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi, pec_letto=pec_letto,
+                      appuntamenti=dati.appuntamenti, fonti=fonti_documenti)
     passi, stato = prossimi_passi(
         intestazione=testata, fase_letta=fase_letta, depositi_letti=depositi_letti, notifiche_lette=notifiche_lette,
         documenti_letti=documenti_letti, scadenze=dati.scadenze, conformita=dati.conformita, regia=dati.regia,
         economico_letto=economico_letto, pec_letto=pec_letto, verifiche=dati.verifiche, oggi=oggi,
         appuntamenti=dati.appuntamenti, fascicolo_id=pulisci(dati.fascicolo.get("id")),
+        ragionamento=dati.ragionamento or None,
     )
     # Le schede procedurali pertinenti: rito, canale di deposito, canali di notifica usati.
     conoscenza = schede_per_fascicolo(
@@ -143,6 +153,8 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         tipo_procedimento=pulisci(dati.fascicolo.get("tipo_procedimento")),
         canale_operativo=pulisci(dati.fascicolo.get("canale_operativo")),
         canali_notifica=[voce.get("canale_codice", "") for voce in notifiche_lette["tutte"] if voce.get("canale_codice")],
+        codice_oggetto=testata.get("codice_oggetto_pst", ""), oggetto=testata.get("oggetto", ""), area=testata.get("area", ""),
+        etichette_atti=[voce["etichetta"] for voce in documenti_letti["tutti"] if voce.get("sezione") == "atti"],
     )
     # Ciò che il fascicolo cita e le schede non coprono: dichiarato, non inventato.
     conoscenza["lacune"] = lacune_conoscenza(
@@ -179,8 +191,9 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         "conoscenza": conoscenza,
         "verifiche": dict(dati.verifiche or {}),
         "archivio": archivio_letto,
+        "ragionamento": vista_ragionamento(dati.ragionamento) if dati.ragionamento else {},
     }
-    if fase_letta.get("codice") == "decisa":
+    if documenti_letti.get("sentenza"):
         from .percorso import percorso_dopo_sentenza
 
         lettura["percorso"] = percorso_dopo_sentenza(testata, documenti_letti)

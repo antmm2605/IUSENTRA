@@ -649,7 +649,7 @@ def test_liquidazione_del_giudice_e_bonifici_entrano_nel_presidio_economico():
     azioni = [passo["azione"] for passo in lettura["prossimi_passi"]]
     assert "Confermare nel presidio economico la liquidazione di € 4.500,00 letta dalla sentenza del 01/09/2026" in azioni
     riscossione = next(passo for passo in lettura["prossimi_passi"] if passo["azione"].startswith("Riscuotere la somma liquidata"))
-    assert riscossione["urgenza"] == 1 and riscossione["href"] == "/fatturazione" and "incassato finora € 0,00" in riscossione["motivo"]
+    assert riscossione["urgenza"] == 1 and riscossione["href"] == "/fatturazione?id_fascicolo=F001" and "incassato finora € 0,00" in riscossione["motivo"]
     assert "Recuperare le anticipazioni (€ 259,00)" in azioni
     assert "Liquidazione del giudice: € 4.500,00 (sentenza del 01/09/2026), da registrare nel presidio; non ancora bonificata sul conto dello studio." in lettura["narrativa"]
 
@@ -690,3 +690,89 @@ def test_udienza_trascorsa_senza_esito_chiede_l_esito_una_volta():
     passi = _passi_udienze_senza_esito(app, date(2026, 10, 28))
     assert len(passi) == 1 and "12/06/2026" in passi[0].azione and "un'altra udienza precedente" in passi[0].motivo
     assert _passi_udienze_senza_esito(app[2:], date(2026, 10, 28)) == []
+
+
+def test_ragionamento_non_fa_sparire_una_scadenza_automatica_non_ricostruita():
+    dati = _caso_completo()
+    dati.ragionamento = {"conclusioni": [], "dubbi": [{"testo": "Fonte assente", "manca": "Provvedimento"}]}
+    dati.scadenze[0]["note"] = "PEC_AUDIT:ricezione-test"
+    lettura = costruisci_lettura(dati)
+
+    assert any(
+        passo["azione"].startswith("Adempiere a «Memoria istruttoria n. 1")
+        for passo in lettura["prossimi_passi"]
+    )
+
+
+
+def test_decisa_con_notifica_da_verificare_mantiene_il_controllo_prima_dell_archivio():
+    from pct.fascicolo_lettura.prossimi_passi import prossimi_passi
+
+    azione = "Verificare la consegna della notifica della sentenza"
+    passi, stato = prossimi_passi(
+        intestazione={"stato_codice": "DEFINITO", "da_archiviare": True, "tipo": "lavoro"},
+        fase_letta={}, depositi_letti={}, notifiche_lette={},
+        documenti_letti={}, scadenze=[], conformita={}, regia={},
+        economico_letto={}, pec_letto={}, oggi=OGGI,
+        ragionamento={"conclusioni": [
+            {"codice": "notifica_sentenza", "cosa": azione, "stato": "dubbio",
+             "perche": "Occorre provare il perfezionamento.", "norme": [{"id": "cpc_326"}]},
+            {"codice": "termine_impugnazione", "stato": "non_dovuto", "termine": {"scadenza": "2024-08-02"}},
+        ]},
+    )
+    assert [passo["azione"] for passo in passi] == [azione]
+    assert "326" in passi[0]["norma"]
+    assert "prima di archiviare" in stato["motivo"].lower()
+    assert "pronto" not in stato["motivo"]
+    assert "giudicato" in stato["motivo"]
+
+
+
+def test_decisa_con_sentenza_non_ripropone_note_e_costituzione():
+    from pct.fascicolo_lettura.prossimi_passi import prossimi_passi
+
+    passi, _ = prossimi_passi(
+        intestazione={"stato_codice": "DEFINITO", "da_archiviare": True, "tipo": "lavoro"},
+        fase_letta={}, depositi_letti={}, notifiche_lette={},
+        documenti_letti={"sentenze": [{"data": "2026-07-01"}]}, scadenze=[],
+        conformita={}, regia={}, economico_letto={}, pec_letto={}, oggi=OGGI,
+        ragionamento={"conclusioni": [
+            {"codice": "note_127ter", "stato": "dubbio", "cosa": "Depositare le note scritte", "perche": "Da verificare"},
+            {"codice": "costituzione_convenuto", "stato": "da_fare", "cosa": "Costituirsi", "perche": "Da verificare"},
+            {"codice": "notifica_sentenza", "stato": "dubbio", "cosa": "Verificare la consegna", "perche": "Da verificare"},
+        ]},
+    )
+    assert [passo["azione"] for passo in passi] == ["Verificare la consegna"]
+
+
+def test_prossimi_passi_riusa_il_riscontro_sullo_stesso_adempimento():
+    from pct.fascicolo_lettura.prossimi_passi import prossimi_passi
+
+    passi, _ = prossimi_passi(
+        intestazione={}, fase_letta={}, depositi_letti={"falliti": [], "in_corso": []},
+        notifiche_lette={"fallite": [], "aperte": []},
+        documenti_letti={"tutti": [{"nome": "ACCETTAZIONE: Diffida.eml"}], "non_indicizzati": [], "da_verificare": [], "totale": 0},
+        scadenze=[
+            {"titolo": "Notifica di ricorso e decreto, trenta giorni prima", "data": "2026-12-01", "stato": "APERTO"},
+            {"titolo": "Costituzione del resistente, dieci giorni prima", "data": "2026-12-02", "stato": "APERTO"},
+            {"titolo": "Deposito note scritte ex art. 127-ter c.p.c.", "data": "2026-12-03", "stato": "APERTO"},
+            {"titolo": "Notifica di ricorso e decreto, altro ordine", "data": "2026-12-04", "stato": "APERTO"},
+        ],
+        conformita={}, regia={}, economico_letto={}, pec_letto={}, oggi="2026-11-30",
+        ragionamento={"conclusioni": [
+            {"codice": "notifica_ordinata", "stato": "dubbio", "cosa": "Verificare la notifica del ricorso e del decreto",
+             "perche": "", "termine": {"scadenza": "2026-12-01"},
+             "letto": {"oggetto_id": "decreto", "brano": "atto introduttivo e il presente decreto"}},
+            {"codice": "costituzione_convenuto", "stato": "non_dovuto", "onerato": "controparte",
+             "termine": {"scadenza": "2026-12-02"}, "letto": {"oggetto_id": "decreto"}},
+            {"codice": "note_127ter", "stato": "da_fare", "cosa": "Depositare le note scritte",
+             "perche": "Termine del giudice.", "termine": {"scadenza": "2026-12-03"},
+             "letto": {"oggetto_id": "decreto"}},
+        ]},
+    )
+
+    assert {p["azione"] for p in passi} == {
+        "Verificare la notifica del ricorso e del decreto",
+        "Depositare le note scritte",
+        "Adempiere a «Notifica di ricorso e decreto, altro ordine»",
+    }

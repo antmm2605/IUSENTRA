@@ -1,3 +1,4 @@
+import { ApiClientError, fetchPannelloFascicolo } from './api/client'
 import type { Tone } from './data'
 import { sanitizeDisplayText } from './displayText'
 import { csrfToken } from './formSubmit'
@@ -489,6 +490,9 @@ export type FascicoloDeadline = {
   priority: string
   status: string
   peremptory: boolean
+  representedByDeadlineId?: string
+  replacesAppointmentId?: string
+  writtenHearingTime?: string
   notes: string
   href: string
   tone: Tone
@@ -760,6 +764,10 @@ export type FascicoloFull = FascicoloRow & {
 }
 
 export type RegiaOperativaData = {
+  courtDepositReceipts: {
+    items: Array<{ id: string; date: string; title: string; idBusta: string; href: string }>
+    error: string
+  }
   source: string
   mock_fallback: boolean
   page_state: string
@@ -1086,6 +1094,7 @@ export type FascicoloDetailData = {
   requestError?: string
   fascicolo: FascicoloFull
   quickCounts: Record<string, number>
+  depositPhaseSummary?: Record<string, unknown>
   lexIndexing: LexIndexingSummary
   profile: KeyValue[]
   documents: FascicoloDocument[]
@@ -1112,6 +1121,7 @@ export type FascicoloDetailData = {
   depositCatalog: FascicoloDepositCatalog
   depositReadiness: FascicoloDepositReadiness
   depositPreparation: FascicoloDepositPreparation
+  agendaLoaded: boolean
   initialLettura: unknown | null
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string; canale?: string; produttoreDispositivo?: string }
   auditTrail: FascicoloAuditTrail
@@ -1427,6 +1437,7 @@ export const defaultFascicoliFilterPreferences: FascicoliFilterPreferences = {
 }
 
 export const emptyRegiaOperativa: RegiaOperativaData = {
+  courtDepositReceipts: { items: [], error: '' },
   source: 'repository reale',
   mock_fallback: false,
   page_state: 'vuoto',
@@ -1597,6 +1608,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   depositCatalog: emptyDepositCatalog,
   depositReadiness: emptyDepositReadiness,
   depositPreparation: emptyDepositPreparation,
+  agendaLoaded: false,
   initialLettura: null,
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
@@ -2181,7 +2193,18 @@ function normalizeRegia(value: unknown): RegiaOperativaData {
   if (!isRecord(value)) return emptyRegiaOperativa
   const header = isRecord(value.header) ? value.header : {}
   const validation = isRecord(value.validation) ? value.validation : {}
+  const receipts = isRecord(value.courtDepositReceipts) ? value.courtDepositReceipts : {}
   return {
+    courtDepositReceipts: {
+      items: asArray(receipts.items).filter(isRecord).map((row) => ({
+        id: text(row.id),
+        date: text(row.date),
+        title: text(row.title),
+        idBusta: text(row.idBusta),
+        href: text(row.href),
+      })),
+      error: text(receipts.error),
+    },
     source: text(value.source, 'repository reale'),
     mock_fallback: bool(value.mock_fallback),
     page_state: text(value.page_state, 'operativa'),
@@ -2557,6 +2580,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     notFound: bool(payload.notFound ?? payload.not_found),
     requestError: text(payload.requestError ?? payload.request_error ?? payload.errore ?? payload.error),
     fascicolo: full,
+    depositPhaseSummary: isRecord(payload.depositPhaseSummary) ? payload.depositPhaseSummary : undefined,
     quickCounts: isRecord(payload.quickCounts ?? payload.quick_counts) ? payload.quickCounts as Record<string, number> : {},
     lexIndexing: {
       total_documents: number(lexIndexingSource.total_documents ?? lexIndexingSource.totalDocuments),
@@ -2630,7 +2654,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     technicalEvents: asArray(payload.technicalEvents ?? payload.technical_events).map(normalizeActivity),
     deadlines: asArray(payload.deadlines).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
-      return { id: text(row.id, `scad-${index}`), title: text(row.title ?? row.titolo, 'Scadenza'), date: text(row.date ?? row.data, 'n.d.'), dateIso: text(row.dateIso ?? row.data_scadenza), type: text(row.type ?? row.tipo), priority: text(row.priority ?? row.priorita), status: text(row.status ?? row.stato), peremptory: bool(row.peremptory ?? row.perentorio), notes: text(row.notes ?? row.note), href: text(row.href, '/scadenziario'), tone: text(row.tone, 'warning') as Tone }
+      return { id: text(row.id, `scad-${index}`), title: text(row.title ?? row.titolo, 'Scadenza'), date: text(row.date ?? row.data, 'n.d.'), dateIso: text(row.dateIso ?? row.data_scadenza), type: text(row.type ?? row.tipo), priority: text(row.priority ?? row.priorita), status: text(row.status ?? row.stato), peremptory: bool(row.peremptory ?? row.perentorio), representedByDeadlineId: text(row.representedByDeadlineId), replacesAppointmentId: text(row.replacesAppointmentId), writtenHearingTime: text(row.writtenHearingTime), notes: text(row.notes ?? row.note), href: text(row.href, '/scadenziario'), tone: text(row.tone, 'warning') as Tone }
     }),
     appointments: asArray(payload.appointments).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
@@ -2708,6 +2732,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     depositCatalog: normalizeDepositCatalog(payload.depositCatalog ?? payload.deposit_catalog),
     depositReadiness: normalizeDepositReadiness(payload.depositReadiness ?? payload.deposit_readiness),
     depositPreparation: normalizeDepositPreparation(payload.depositPreparation ?? payload.deposit_preparation),
+    agendaLoaded: payload.agendaLoaded === true,
     initialLettura: isRecord(payload.initialLettura ?? payload.initial_lettura) ? (payload.initialLettura ?? payload.initial_lettura) : null,
     signature: isRecord(payload.signature) ? {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
@@ -3164,9 +3189,9 @@ async function strictFetch<T>(url: string, normalizer: (payload: unknown) => T, 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     let response: Response
     try {
-      response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      response = await fetchPannelloFascicolo(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
     } catch (error) {
-      if (attempt === 2) throw error instanceof Error ? error : new Error('Dati non caricati dal server.')
+      if (error instanceof ApiClientError || attempt === 2) throw error instanceof Error ? error : new Error('Dati non caricati dal server.')
       await retryDelay(attempt)
       continue
     }
@@ -3337,10 +3362,8 @@ export function getFascicoloDetailSection(id: string, section: FascicoloDetailSe
       (payload) => ({ ...emptyFascicoloDetail, regia: normalizeRegia(payload) }),
     )
   }
-  if (section === 'relata' || section === 'audit' || section === 'lex') {
-    return strictFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload)
-  }
-  return strictFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload)
+  const query = section === 'documenti' ? '?vista=inventario' : ''
+  return strictFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}${query}`, normalizeDetailPayload)
 }
 
 export function getFascicoloForm(id?: string, query = ''): Promise<FascicoloFormData> {

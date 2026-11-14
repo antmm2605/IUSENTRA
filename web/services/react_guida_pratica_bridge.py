@@ -542,13 +542,17 @@ def build_document_plan_for_guida(guida: dict[str, Any] | None, fascicolo: dict[
     }
 
 
-def build_react_guida_pratica_payload(*, codice: str, fascicolo: dict[str, Any] | None = None, service: GuidaPraticaService | None = None) -> dict[str, Any]:
+def build_react_guida_pratica_payload(
+    *, codice: str, fascicolo: dict[str, Any] | None = None, service: GuidaPraticaService | None = None, vista: str = "",
+) -> dict[str, Any]:
     service = service or get_guida_pratica_service()
     guida = service.get_guidance(codice, fascicolo=fascicolo or {})
     # Giurisprudenza solo dall'archivio del software: citazioni verificate e decisioni che applicano le norme della scheda.
     from web.services.guida_giurisprudenza_runtime import arricchisci_giurisprudenza
-    guida = arricchisci_giurisprudenza(guida)
-    checklist = service.get_checklist(codice, {"fascicolo": fascicolo or {}})
+    guida = arricchisci_giurisprudenza(guida, consulta_archivio=vista != "scheda")
+    if vista == "giurisprudenza":
+        return {"ok": True, "giurisprudenza": guida["giurisprudenza"]}
+    checklist = service.get_checklist(codice, {"fascicolo": fascicolo or {}}, guidance=guida)
     document_plan = build_document_plan_for_guida(guida, fascicolo or {})
     return {
         "ok": True,
@@ -605,7 +609,9 @@ def build_react_guida_pratica_catalog_payload(*, query: str = "", coverage: str 
     }
 
 
-def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], Any], id_fasc: str, service: GuidaPraticaService | None = None) -> dict[str, Any]:
+def build_react_fascicolo_guida_pratica_payload(
+    *, get_fascicoli: Callable[[], Any], id_fasc: str, service: GuidaPraticaService | None = None, vista: str = "",
+) -> dict[str, Any]:
     service = service or get_guida_pratica_service()
     fascicolo = resolve_fascicolo_for_guida(get_fascicoli, id_fasc)
     if not fascicolo:
@@ -623,9 +629,13 @@ def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], A
             else:
                 context["codice_oggetto_pst_suggerito"] = suggested_code
                 context["codiceOggettoPstSuggerito"] = suggested_code
-            payload = build_react_guida_pratica_payload(codice=_text(match.get("codice")), fascicolo=context, service=service)
+            payload = build_react_guida_pratica_payload(codice=_text(match.get("codice")), fascicolo=context, service=service, vista=vista)
+            if vista == "giurisprudenza":
+                return payload
             payload["fascicolo"] = context
             return _mark_suggested_code_payload(payload, match)
+        if vista == "giurisprudenza":
+            return {"ok": False, "message": "Nessuna scheda collegata alla pratica."}
         return {
             "ok": True,
             "generatedAt": _now(),
@@ -638,7 +648,9 @@ def build_react_fascicolo_guida_pratica_payload(*, get_fascicoli: Callable[[], A
             "bloccaLavoro": False,
             "documentPlan": build_document_plan_for_guida(None, context),
         }
-    payload = build_react_guida_pratica_payload(codice=codice, fascicolo=context, service=service)
+    payload = build_react_guida_pratica_payload(codice=codice, fascicolo=context, service=service, vista=vista)
+    if vista == "giurisprudenza":
+        return payload
     payload["fascicolo"] = context
     # Fase reale e percorso dopo la sentenza arrivano da /guida-pratica/fase (Lettura del fascicolo): la guida si apre subito.
     return payload

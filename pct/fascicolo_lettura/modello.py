@@ -35,6 +35,8 @@ class DatiLettura:
     verifiche: dict[str, Any] = field(default_factory=dict)
     # L'archivio delle letture: riassunto dei fatti, azioni (udienze/termini), ruoli, stato della lettura automatica.
     archivio: dict[str, Any] = field(default_factory=dict)
+    # Il modello della causa del motore unico del ragionamento (pct/ragionamento, Causa.come_dizionario()).
+    ragionamento: dict[str, Any] = field(default_factory=dict)
     oggi: date | None = None
 
 

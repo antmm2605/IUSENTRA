@@ -118,6 +118,9 @@ FONTI: dict[str, dict[str, Any]] = {
         "Il giudice, entro cinque giorni dal deposito del ricorso, fissa con decreto l'udienza di discussione; tra il deposito e l'udienza non devono decorrere più di sessanta giorni; il ricorso con il decreto deve essere notificato al convenuto."),
     "cpc_416": _norma("art. 416 c.p.c.", "Rito del lavoro: costituzione del convenuto", _CPC, "416",
         "Il convenuto deve costituirsi almeno dieci giorni prima dell'udienza depositando una memoria difensiva nella quale devono essere proposte, a pena di decadenza, le domande riconvenzionali e le eccezioni non rilevabili d'ufficio."),
+    "cpc_421": _norma("art. 421 c.p.c.", "Rito del lavoro: poteri istruttori del giudice", _CPC, "421",
+        "Il giudice indica alle parti in ogni momento le irregolarita' degli atti e dei documenti che possono essere sanate assegnando un termine per provvedervi, salvo gli eventuali diritti quesiti. Puo' altresi' disporre d'ufficio in qualsiasi momento l'ammissione di ogni mezzo di prova, anche fuori dei limiti stabiliti dal codice civile, ad eccezione del giuramento decisorio.",
+        verifica="testo vigente dall'archivio Normattiva del software, riscontrato il 10/11/2026"),
     "cpc_429": _norma("art. 429 c.p.c.", "Rito del lavoro: pronuncia della sentenza", _CPC, "429",
         "Il giudice, esaurita la discussione orale e udite le conclusioni, pronuncia sentenza dando lettura del dispositivo e delle ragioni di fatto e di diritto; in caso di particolare complessità fissa nel dispositivo un termine non superiore a sessanta giorni per il deposito della sentenza. Su richiesta delle parti può concedere un termine non superiore a dieci giorni per note difensive.",
         verifica=VERIFICA_NORMATTIVA_20),
@@ -140,7 +143,9 @@ FONTI: dict[str, dict[str, Any]] = {
     "cpc_617": _norma("art. 617 c.p.c.", "Opposizione agli atti esecutivi", _CPC, "617",
         "Le opposizioni relative alla regolarità formale del titolo esecutivo e del precetto si propongono, prima che sia iniziata l'esecuzione, con atto di citazione da notificarsi nel termine perentorio di venti giorni dalla notificazione del titolo esecutivo o del precetto."),
     "cpc_641": _norma("art. 641 c.p.c.", "Decreto ingiuntivo: accoglimento della domanda", _CPC, "641",
-        "Il giudice, con decreto motivato da emettere entro trenta giorni dal deposito del ricorso, ingiunge di pagare nel termine di quaranta giorni, con l'avvertimento che nello stesso termine può essere fatta opposizione."),
+        "Il giudice, con decreto motivato da emettere entro trenta giorni dal deposito del ricorso, ingiunge di pagare nel termine di quaranta giorni, con l'avvertimento che nello stesso termine può essere fatta opposizione. La norma ammette un termine diverso nei casi previsti dal secondo comma."),
+    "cpc_643": _norma("art. 643 c.p.c.", "Notificazione del decreto ingiuntivo", _CPC, "643",
+        "Il ricorso e il decreto sono notificati per copia autentica a norma degli articoli 137 e seguenti. La notificazione determina la pendenza della lite."),
     "cpc_644": _norma("art. 644 c.p.c.", "Decreto ingiuntivo: mancata notificazione", _CPC, "644",
         "Il decreto d'ingiunzione diventa inefficace qualora la notificazione non sia eseguita nel termine di sessanta giorni dalla pronuncia (novanta se all'estero); la domanda può essere riproposta."),
     "cpc_647": _norma("art. 647 c.p.c.", "Decreto ingiuntivo: esecutorietà per mancata opposizione", _CPC, "647",
@@ -253,10 +258,19 @@ FONTI.update({
         verifica="Testo acquisito dalla banca dati normativa istituzionale MEF il 16/09/2026."),
     # Estinzione del processo (collaudo 08/11/2026, RG 771/2025 Palmi). Estratti dal testo vigente come lo conosce il
     # software; Normattiva non ha restituito il testo degli articoli del c.p.c. all'ultima consultazione.
+    # Estratto corretto il 10/11/2026 sul testo vigente dell'archivio Normattiva del software: alla prima
+    # diserzione il giudice fissa un'udienza successiva; l'estinzione segue solo la seconda.
     "cpc_181": _norma("art. 181 c.p.c.", "Mancata comparizione delle parti", _CPC, "181",
-        "Se nessuna delle parti compare alla prima udienza, il giudice ordina che la causa sia cancellata dal ruolo e "
-        "dichiara l’estinzione del processo (testo del D.Lgs. 149/2022, per i procedimenti introdotti dopo il 28/02/2023).",
-        verifica=_DA_RISCONTRARE),
+        "Se nessuna delle parti compare alla prima udienza, il giudice fissa un’udienza successiva, di cui il cancelliere dà "
+        "comunicazione alle parti costituite. Se nessuna delle parti compare alla nuova udienza, il giudice ordina che la "
+        "causa sia cancellata dal ruolo e dichiara l’estinzione del processo.",
+        verifica="Testo vigente letto nell’archivio Normattiva del software il 10/11/2026."),
+    "cpc_631": _norma("art. 631 c.p.c.", "Mancata comparizione all’udienza nel processo esecutivo", _CPC, "631",
+        "Se nel corso del processo esecutivo nessuna delle parti si presenta all’udienza, fatta eccezione per quella in cui "
+        "ha luogo la vendita, il giudice dell’esecuzione fissa una udienza successiva di cui il cancelliere dà comunicazione "
+        "alle parti. Se nessuna delle parti si presenta alla nuova udienza, il giudice dichiara con ordinanza l’estinzione "
+        "del processo esecutivo.",
+        verifica="Testo vigente letto nell’archivio Normattiva del software il 10/11/2026."),
     "cpc_307": _norma("art. 307 c.p.c.", "Estinzione del processo per inattività delle parti", _CPC, "307",
         "Quando la legge prevede la cancellazione della causa dal ruolo senza estinzione, il processo deve essere riassunto "
         "nel termine perentorio di tre mesi dal provvedimento di cancellazione; altrimenti si estingue. L’estinzione opera "
@@ -306,6 +320,16 @@ FONTI.update({chiave: voce for chiave, voce in FONTI_GUIDE_20261106.items() if c
 from pct.procedura_fasi.fonti_impugnazioni import FONTI_IMPUGNAZIONI  # noqa: E402
 
 FONTI.update({chiave: voce for chiave, voce in FONTI_IMPUGNAZIONI.items() if chiave not in FONTI})
+
+# Riti speciali riconosciuti dal codice oggetto (monitorio, esecuzione presso terzi, volontaria), letti il 10/11/2026.
+from pct.procedura_fasi.fonti_riti_speciali import FONTI_RITI_SPECIALI  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_RITI_SPECIALI.items() if chiave not in FONTI})
+
+# Norme applicate dal motore del ragionamento processuale.
+from pct.procedura_fasi.fonti_ragionamento import FONTI_RAGIONAMENTO  # noqa: E402
+
+FONTI.update({chiave: voce for chiave, voce in FONTI_RAGIONAMENTO.items() if chiave not in FONTI})
 
 
 def fonte(identificativo: str) -> dict[str, Any]:

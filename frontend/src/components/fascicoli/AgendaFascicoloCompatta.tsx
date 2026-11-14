@@ -33,7 +33,7 @@ export function AgendaFascicoloCompatta({ fascicoloId, scadenze, appuntamenti, s
         <a key={voce.id} className={`iu-agenda-compatta__voce${voce.giorno === oggi ? ' is-oggi' : ''}`} href={voce.href}>
           <span className="iu-agenda-compatta__quando">{voce.quando}{voce.giorno === oggi ? ' · oggi' : ''}</span>
           <span className="iu-agenda-compatta__titolo">{voce.titolo}</span>
-          <Badge tone={voce.tono}>{voce.perentorio ? 'perentorio' : voce.etichetta}</Badge>
+          <Badge tone={voce.tono}>{voce.perentorio && !voce.inBozza ? 'perentorio' : voce.etichetta}</Badge>
         </a>
       ))}
       <div className="iu-agenda-fascicolo__azioni">

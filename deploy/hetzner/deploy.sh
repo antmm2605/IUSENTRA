@@ -293,6 +293,11 @@ prepare_client_case_index_before_start() {
     -m scripts.fascicoli_list_query_index --tenant all --apply \
     --backup-dir /data/backup/fascicoli-list-query-20261016 \
     --report /data/backup/fascicoli-list-query-20261016/deploy-report.jsonl
+  # Pannelli del fascicolo pronti: contatori di revisione delle fonti (trigger), backup solo se il piano cambia.
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    run --no-deps --rm --entrypoint python app \
+    -m scripts.pannelli_pronti_prepara --tenant all --apply \
+    --backup-dir /data/backup/pannelli-pronti
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
     run --no-deps --rm --entrypoint python app \
     -m scripts.prepare_receipt_query_indexes --tenant all \

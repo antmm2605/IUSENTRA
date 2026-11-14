@@ -1,3 +1,4 @@
+import type { RiscontriProcessualiData } from "./RiscontriProcessuali"
 // Lettura del fascicolo: tipi del payload di /api/v1/ui/fascicoli/<id>/lettura e
 // le trasformazioni pure che il pannello usa (urgenze, presìdi, scelta delle
 // sezioni). Nessun accesso alla rete e nessun DOM: si prova con node --test.
@@ -86,7 +87,26 @@ export interface LacunaConoscenza {
   descrizione: string
 }
 
+export type EsitoDispositivo = { sentenza: string; documento_id?: string; data: string; esito: string; per_il_cliente: string }
+
+const ESITI_SENTENZA: Record<string, string> = {
+  accoglimento: 'Accoglimento', accoglimento_parziale: 'Accoglimento parziale', rigetto: 'Rigetto',
+  inammissibile: 'Inammissibilità', improcedibile: 'Improcedibilità', estinzione: 'Estinzione',
+  cessata_materia: 'Cessazione della materia del contendere', incompetenza: 'Incompetenza',
+  difetto_giurisdizione: 'Difetto di giurisdizione',
+}
+const ESITI_CLIENTE: Record<string, string> = {
+  favorevole: 'favorevole al cliente', sfavorevole: 'sfavorevole al cliente', parziale: 'parzialmente favorevole al cliente',
+}
+
+export function descriviEsitoDispositivo(esito?: EsitoDispositivo | null): string {
+  if (!esito || !ESITI_SENTENZA[esito.esito]) return ''
+  return [ESITI_SENTENZA[esito.esito], ESITI_CLIENTE[esito.per_il_cliente], esito.data && `decisione del ${esito.data}`]
+    .filter(Boolean).join(' · ')
+}
+
 export interface LetturaFascicolo {
+  aggiornamento_pendente?: boolean
   versione: string
   generata_il: string
   intestazione: {
@@ -100,7 +120,7 @@ export interface LetturaFascicolo {
   scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
   notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
   pec: { conteggio?: ConteggioPec; totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: { data: string; oggetto: string; motivi_controllo: string[] }[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
-  documenti: { errori_lettura?: number; da_leggere_lettura?: number | null; totale: number; catalogati: number; confermati: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
+  documenti: { errori_lettura?: number; da_leggere_lettura?: number | null; totale: number; catalogati: number; confermati: number; proposti?: number; automatici?: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
   economico: {
     presente: boolean; preventivato_it: string; conferito_it: string; fatturato_it: string; incassato_it: string; saldo_aperto_it: string
     parcelle_scadute: { numero: string; totale_it: string; scadenza: string }[]; importo_scaduto_it: string; ha_incarico: boolean
@@ -111,12 +131,14 @@ export interface LetturaFascicolo {
     presidio_stato_etichetta?: string; sentenze_lette?: number
   }
   fase: FaseLettura
+  percorso?: EsitoDispositivo | null
   prossimi_passi: PassoLettura[]
   stato_passi: { attivi: boolean; motivo: string }
   lacune: string[]
   conoscenza: { versione: string; rito: SchedaProcedurale | Record<string, never>; deposito: SchedaProcedurale | Record<string, never>; notifiche: SchedaProcedurale[]; lacune?: LacunaConoscenza[] }
   verifiche?: VerificheAutomatiche
   narrativa: string
+  ragionamento?: Pick<RiscontriProcessualiData, "conclusioni" | "impronta">
 }
 
 export const ESITI_DEPOSITI: Record<string, string> = {
@@ -230,13 +252,16 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
   const erroriLettura = documenti.errori_lettura || 0
   const daLeggere = documenti.da_leggere_lettura ?? documenti.non_indicizzati.length
   const daCatalogare = Math.max(0, documenti.totale - documenti.catalogati)
+  const proposti = documenti.proposti || 0
+  const certi = `${documenti.confermati} confermati` + (proposti ? ` · ${proposti} proposti da confermare` : '')
   return [
     {
       id: 'documenti',
       titolo: 'Documentazione',
       valore: `${documenti.catalogati}/${documenti.totale}`,
-      nota: erroriLettura ? `${erroriLettura} letture non riuscite · ${daLeggere} da indicizzare · ${documenti.confermati} confermati` : daAcquisire ? `${daAcquisire} da acquisire dal portale · ${documenti.confermati} confermati` : daLeggere ? `${daLeggere} da indicizzare · ${documenti.confermati} confermati` : daVerificare ? `${daVerificare} da classificare · ${documenti.confermati} confermati` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale` : documenti.totale ? 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '') : 'nessun documento',
-      tono: erroriLettura ? 'danger' : daAcquisire || daVerificare || daCatalogare ? 'warning' : daLeggere ? 'info' : documenti.totale ? 'success' : 'neutral',
+      // Confermati dall'avvocato e proposti dal catalogo si contano separati: una proposta non è una conferma.
+      nota: erroriLettura ? `${erroriLettura} letture non riuscite · ${daLeggere} da indicizzare · ${certi}` : daAcquisire ? `${daAcquisire} da acquisire dal portale · ${certi}` : daLeggere ? `${daLeggere} da indicizzare · ${certi}` : daVerificare ? `${daVerificare} da classificare · ${certi}` : daCatalogare ? `${daCatalogare} da verificare nel catalogo documentale · ${certi}` : documenti.totale ? (proposti ? `tutti letti · ${certi}` : 'tutti letti e catalogati' + (documenti.confermati ? ' · ' + documenti.confermati + ' confermati' : '')) : 'nessun documento',
+      tono: erroriLettura ? 'danger' : daAcquisire || daVerificare || daCatalogare ? 'warning' : daLeggere || proposti ? 'info' : documenti.totale ? 'success' : 'neutral',
       href: '#catalogazione-documentale',
     },
     {
@@ -297,7 +322,7 @@ export function passiOrdinati(lettura: LetturaFascicolo): PassoLettura[] {
 }
 
 export function riassuntoStatoPassi(lettura: LetturaFascicolo): string {
-  if (!lettura.stato_passi.attivi) return lettura.stato_passi.motivo || 'Nessun passaggio da eseguire.'
+  if (!lettura.stato_passi.attivi && !lettura.prossimi_passi.length) return lettura.stato_passi.motivo || 'Nessun passaggio da eseguire.'
   if (!lettura.prossimi_passi.length) return 'Nessun adempimento risulta aperto: il fascicolo è allineato.'
   const subito = lettura.prossimi_passi.filter((passo) => passo.urgenza === 0 && !passo.scaduto).length
   const pochiGiorni = lettura.prossimi_passi.filter((passo) => passo.urgenza === 1 && !passo.scaduto).length

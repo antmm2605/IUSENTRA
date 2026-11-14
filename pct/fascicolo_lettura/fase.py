@@ -16,6 +16,7 @@ from ._testo import data_da, data_it, pulisci
 CODICE_FASE_STRAGIUDIZIALE = "stragiudiziale"
 CODICE_FASE_PREPARATORIA = "preparatoria"
 CODICE_FASE_NOTIFICATA = "atto_notificato"
+CODICE_FASE_DEPOSITATA = "atto_depositato"
 CODICE_FASE_ISCRITTA = "iscritta_a_ruolo"
 CODICE_FASE_TRATTAZIONE = "trattazione"
 CODICE_FASE_ISTRUTTORIA = "istruttoria"
@@ -39,8 +40,13 @@ def fase(
     scadenze: list[dict[str, Any]],
     oggi: Any,
     pec_letto: dict[str, Any] | None = None,
+    appuntamenti: list[dict[str, Any]] | None = None,
+    fonti: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    from pct.procedura_fasi.riti import rito_da_intestazione
+
     giorno_oggi = data_da(oggi)
+    rito = rito_da_intestazione(intestazione, [voce["etichetta"] for voce in documenti_letti["tutti"] if voce.get("sezione") == "atti"])
     prove: list[str] = []
     codice = CODICE_FASE_STRAGIUDIZIALE
     descrizione = "fase preparatoria o stragiudiziale: nessun atto giudiziario risulta ancora notificato o depositato"
@@ -63,10 +69,26 @@ def fase(
         descrizione = f"atto notificato ({ultima['atto']}, {ultima['data']}): in attesa di iscrizione a ruolo o costituzione"
         prove.append(f"notifica perfezionata: {ultima['atto']} del {ultima['data']}")
 
+    # Senza depositi registrati valgono le copie dei messaggi di deposito conservate nel fascicolo (art. 13 D.M. 44/2011).
+    from pct.procedura_fasi.ruolo_dagli_atti import depositi_dalle_copie_pec
+
+    copie_deposito = [] if depositi_letti["tutti"] else depositi_dalle_copie_pec(atti, fonti or [])
+    if copie_deposito:
+        primo = copie_deposito[0]
+        codice = CODICE_FASE_DEPOSITATA
+        descrizione = f"atto depositato telematicamente il {data_it(primo['data'])} («{primo['atto']}»): in attesa del numero di ruolo"
+        prove.append(f"messaggio di deposito telematico del {data_it(primo['data'])} conservato nel fascicolo")
+
     importati = depositi_letti.get("importati") or []
     if depositi_letti["perfezionati"] or importati or intestazione.get("rg"):
         codice = CODICE_FASE_ISCRITTA
-        descrizione = "causa iscritta a ruolo, in attesa della prima udienza"
+        # Iscrizione a ruolo: l'udienza c'è solo nei riti che la prevedono; il ricorso camerale (art. 737 c.p.c.)
+        # e il monitorio (art. 633 c.p.c.) attendono il provvedimento del giudice.
+        descrizione = ("ricorso iscritto a ruolo, in attesa del provvedimento del giudice" if rito in {"volontaria", "decreto_ingiuntivo"}
+                       else "causa iscritta a ruolo, in attesa della prima udienza")
+        if copie_deposito and not depositi_letti["perfezionati"]:
+            prove.append(f"deposito telematico inviato il {data_it(copie_deposito[0]['data'])}"
+                         + (f"; RG {copie_deposito[-1]['rg']} indicato nel deposito del {data_it(copie_deposito[-1]['data'])}" if copie_deposito[-1].get("rg") else ""))
         if depositi_letti["perfezionati"]:
             ultimo = depositi_letti["perfezionati"][-1]
             prove.append("deposito accettato dalla cancelleria" + (f" il {ultimo['data_accettazione']}" if ultimo.get("data_accettazione") else f" (inviato il {ultimo['data']})"))
@@ -126,6 +148,18 @@ def fase(
             incoerenze.append("il processo è estinto ma lo stato del fascicolo è ancora «in corso»: valutare impugnazione, "
                               "riproposizione della domanda o chiusura")
 
+    monitorio = None
+    if rito == "decreto_ingiuntivo":
+        # Il monitorio non ha udienze: fase e passo dal decreto, dalla notifica e dall'esecutorietà (artt. 633-654 c.p.c.).
+        from pct.procedura_fasi.monitorio import FASE_OPPOSTO, stato_monitorio
+
+        ricorso_dello_studio = any(voce["sezione"] == "atti" and "decreto ingiuntivo" in voce["etichetta"].lower() for voce in atti)
+        monitorio = stato_monitorio(atti, fonti or [], oggi=giorno_oggi, cliente_ricorrente=True if ricorso_dello_studio else None,
+                                    lavoro=pulisci(intestazione.get("tipo")).lower() == "lavoro")
+        if monitorio is not None and monitorio.codice != FASE_OPPOSTO and giorno_oggi:
+            codice, descrizione = monitorio.codice, monitorio.descrizione
+            prove = [p for p in prove if not p.startswith("numero di ruolo")] + monitorio.prove
+
     if any(voce["natura"] == "atto_esecutivo" for voce in atti):
         codice = CODICE_FASE_ESECUTIVA
         descrizione = "fase esecutiva: precetto o pignoramento in atto"
@@ -140,26 +174,32 @@ def fase(
         prove.append(f"stato dichiarato: {intestazione.get('stato')}")
 
     prossima_udienza = ""
-    date_udienza = [data_da(intestazione.get("prossima_udienza"))] + [
-        data_da(voce.get("data")) for voce in scadenze if "udienz" in pulisci(voce.get("titolo")).lower()
-    ]
-    future = sorted(giorno for giorno in date_udienza if giorno and giorno_oggi and giorno >= giorno_oggi)
-    if future:
-        prossima_udienza = data_it(future[0])
+    # Solo le udienze vere: un termine contato dall'udienza («costituzione almeno dieci giorni prima dell'udienza»,
+    # «notifica almeno trenta giorni prima») non è un'udienza (pct/procedura_fasi/udienze.py).
+    from pct.procedura_fasi.udienze import prossima_udienza as _prossima_udienza
+
+    futura = _prossima_udienza(dichiarata=intestazione.get("prossima_udienza"), scadenze=scadenze, appuntamenti=appuntamenti or [],
+                               oggi=giorno_oggi) if giorno_oggi else None
+    if futura:
+        prossima_udienza = data_it(futura)
         if codice == CODICE_FASE_CHIUSA:
             # Una causa chiusa non ha udienze future: o lo stato è sbagliato, o l'udienza va annullata in agenda.
             incoerenze.append(
                 f"lo stato del fascicolo è «{intestazione.get('stato')}» ma risulta un'udienza il {prossima_udienza}: "
                 "verificare se la causa è ancora pendente o se l'udienza va tolta da agenda e scadenziario"
             )
-    return {
+    letta = {
         "codice": codice,
         "descrizione": descrizione,
         "prove": prove[-4:],
         "incoerenze": incoerenze,
         "prossima_udienza": prossima_udienza,
         "stato_dichiarato": intestazione.get("stato"),
+        "rito": rito,
     }
+    if monitorio is not None and monitorio.codice == codice:
+        letta["monitorio"] = monitorio.come_dizionario()
+    return letta
 
 
-__all__ = ["fase"]
+__all__ = ["CODICE_FASE_DEPOSITATA", "fase"]

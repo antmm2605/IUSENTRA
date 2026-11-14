@@ -1,9 +1,12 @@
-import { beginActivity } from '../../ui/activity'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { fetchPannelloFascicolo } from '../../lib/apiClient'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, FileText, Send } from 'lucide-react'
 import { Badge } from '../dashboard'
 import { CopiePstPanel, copiePstDaPayload, type CopiaPst } from '../CopiePstPanel'
 import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
+import type { RiscontriProcessualiData } from './RiscontriProcessuali'
+
+const RiscontriProcessuali = lazy(() => import('./RiscontriProcessuali'))
 const VerificaNotifichePanel = lazy(() => import('../VerificaNotifichePanel'))
 
 type PrecedenteNotifica = { fascicolo_id: string; prova_id: string; data: string; domicilio: string; consegnata: boolean }
@@ -59,40 +62,44 @@ function dataItaliana(iso: string): string {
 export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey = 0 }: { fascicoloId: string; active?: boolean; refreshKey?: number }) {
   const [obblighi, setObblighi] = useState<ObbligoNotifica[]>([])
   const [errore, setErrore] = useState('')
+  const [ricarica, setRicarica] = useState(0)
+  const [riscontri, setRiscontri] = useState<{ fid: string; dati?: RiscontriProcessualiData }>()
   const [copiePst, setCopiePst] = useState<CopiaPst[]>([])
   const [source, setSource] = useState<SourceDocument | null>(null)
   const [verificaAtto, setVerificaAtto] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal: AbortSignal) => {
     if (!active || !fascicoloId) return
     try {
-      const response = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/obblighi-notifica`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      const response = await fetchPannelloFascicolo(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/obblighi-notifica`, { signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
       const payload = await response.json()
       if (!response.ok || !payload.ok) throw new Error(payload.errore || 'Obblighi di notifica non disponibili.')
+      if (signal.aborted) return
       setObblighi(Array.isArray(payload.obblighi) ? payload.obblighi : [])
       setCopiePst(copiePstDaPayload(payload.copiePst))
+      setRiscontri({ fid: fascicoloId, dati: payload.riscontriProcessuali })
       setErrore('')
     } catch (requestError) {
+      if (signal.aborted) return
       setErrore(requestError instanceof Error ? requestError.message : 'Obblighi di notifica non disponibili.')
     }
   }, [active, fascicoloId])
 
-  const initialConsultation = useRef('')
   useEffect(() => {
-    if (!active || !fascicoloId) return
-    const finish = initialConsultation.current !== fascicoloId
-      ? beginActivity('Consultazione degli obblighi di notifica…') : () => {}
-    initialConsultation.current = fascicoloId
-    void load().finally(finish)
-    return finish
-  }, [load, refreshKey, active, fascicoloId])
+    if (!active || !fascicoloId) return undefined
+    const controller = new AbortController()
+    void load(controller.signal)
+    return () => controller.abort()
+  }, [load, refreshKey, active, fascicoloId, ricarica])
 
-  if (!obblighi.length && !errore) return <CopiePstPanel copie={copiePst}/>
+  const riscontriAttuali = riscontri?.fid === fascicoloId ? riscontri.dati : undefined
+  if (!obblighi.length && !errore && !riscontriAttuali?.conclusioni?.length) return <CopiePstPanel copie={copiePst}/>
   return (
     <div className="iu-fas-letture__parti iu-fas-letture__obblighi" aria-label="Notifiche richieste dagli atti">
       <h5><Send size={14}/> Notifiche richieste dagli atti ({obblighi.length})</h5>
       {errore ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {errore}</p> : null}
       <CopiePstPanel copie={copiePst}/>
+      {riscontriAttuali?.conclusioni?.length ? <Suspense fallback={null}><RiscontriProcessuali fascicoloId={fascicoloId} dati={riscontriAttuali}/></Suspense> : null}
       <ul>
         {obblighi.map((obbligo) => {
           const stato = STATI[obbligo.stato] ?? STATI.da_verificare
@@ -140,7 +147,7 @@ export function ObblighiNotificaSection({ fascicoloId, active = true, refreshKey
                   {verificaAtto === obbligo.documentoId ? 'Chiudi la verifica del caso' : 'Verifica fonti e dati nella stessa pagina'}
                 </button>
                 {verificaAtto === obbligo.documentoId ? <Suspense fallback={<p role="status">Apertura della verifica…</p>}>
-                  <VerificaNotifichePanel fascicoloId={fascicoloId} documentoId={obbligo.documentoId} onSaved={() => { void load() }}/>
+                  <VerificaNotifichePanel fascicoloId={fascicoloId} documentoId={obbligo.documentoId} onSaved={() => setRicarica((valore) => valore + 1)}/>
                 </Suspense> : null}
               </div>
             </li>

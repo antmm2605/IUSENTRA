@@ -2,11 +2,9 @@
 
 Nascono dalla scadenza «Deposito note scritte ex art. 127-ter c.p.c.» del fascicolo (proposta
 in bozza o confermata): la lista è quella di ``pct/note_127_ter/adempimenti.py`` — sole istanze e
-conclusioni, i dati che identificano causa e udienza, la prova della notifica quando il cliente è il
-ricorrente e la resistente non risulta costituita (Specifiche DGSIA art. 26, già art. 19-bis
-Provv. DGSIA 16/04/2014; art. 196-undecies disp. att. c.p.c., già artt. 16-decies e 16-undecies
-D.L. 179/2012), il provvedimento atteso nei trenta giorni successivi. L'opposizione (art.
-127-ter, comma 2) la propone già il presidio PEC: qui non si ripete.
+conclusioni, i dati che identificano causa e udienza e il provvedimento atteso. Le prescrizioni
+specifiche sulla prova della notifica richiedono il decreto e la prova riferita alla causa.
+L'opposizione (art. 127-ter, comma 2) è seguita dal presidio PEC.
 """
 
 from __future__ import annotations
@@ -21,12 +19,8 @@ from ._testo import data_da, data_it, pulisci
 from .modello import Passo
 
 HREF_SCADENZE = "#udienze"
-HREF_DOCUMENTI = "#documenti"
 _RE_ORA = re.compile(r"entro le ore (\d{2}:\d{2})")
-_RE_PROVA = re.compile(
-    r"avvenuta[\s_-]*consegna|\brdac\b|ricevuta[\s_-]*(?:di[\s_-]*)?consegna|attestazione[\s_-]*di[\s_-]*conformit|\.eml\b",
-    re.I,
-)
+_RE_ESTINZIONE = re.compile(r"\bart\.\s*(631|181)\b.{0,40}estingu", re.I)
 _RUOLI_ATTIVI = {"ricorrente", "attore", "opponente", "reclamante"}
 _RUOLI_PASSIVI = {"resistente", "convenuto", "opposto", "reclamato"}
 
@@ -57,19 +51,10 @@ def _resistente_costituita(pec_letto: dict[str, Any]) -> bool | None:
     return None
 
 
-def _documento_prova(documenti_letti: dict[str, Any]) -> str:
-    for voce in documenti_letti.get("tutti") or []:
-        nome = pulisci(voce.get("nome"))
-        if _RE_PROVA.search(f"{nome} {pulisci(voce.get('etichetta'))}"):
-            return nome
-    return ""
-
-
 def passi_note_127_ter(
     scadenze: list[dict[str, Any]],
     *,
     intestazione: dict[str, Any],
-    documenti_letti: dict[str, Any],
     pec_letto: dict[str, Any],
     giorno_oggi: Any,
 ) -> list[Passo]:
@@ -91,14 +76,24 @@ def passi_note_127_ter(
             ufficio=pulisci(intestazione.get("ufficio")),
             difensori=f"{avvocato} per {cliente}" if avvocato and cliente else "",
             cliente_ricorrente=ruolo, resistente_costituita=_resistente_costituita(pec_letto) if ruolo else None,
-            documento_prova=_documento_prova(documenti_letti), ora_limite=ora.group(1) if ora else "",
+            ora_limite=ora.group(1) if ora else "",
         )
         vicino = 1 if (giorno - giorno_oggi).days <= 7 else 2
         bozza = "; termine proposto in bozza: confermarlo nello scadenziario" if stato == "BOZZA" else ""
         entro = data_it(giorno)
+        rischio = _RE_ESTINZIONE.search(pulisci(scadenza.get("titolo")))
+        if rischio:
+            # Seconda diserzione: senza note il processo si estingue (art. 631 c.p.c. nell'esecuzione,
+            # art. 181 c.p.c. nella cognizione; art. 127-ter, quarto comma, c.p.c.).
+            norma, fonte_norma = f"art. {rischio.group(1)} c.p.c.", f"cpc_{rischio.group(1)}"
+            passi.append(Passo(1, f"Depositare le note entro il {entro}: se nessuna parte le deposita il processo si estingue ({norma})",
+                               "il giudice ha già rinviato per la mancata comparizione di tutte le parti; il termine è perentorio "
+                               "(art. 127-ter, secondo comma, c.p.c.) e non si proroga (art. 153 c.p.c.)",
+                               entro, "provvedimento di rinvio", (fonte_norma, "cpc_127ter", "cpc_153"), HREF_SCADENZE))
         for voce in voci:
             if voce.codice == "contenuto":
-                passi.append(Passo(vicino, f"Preparare le note scritte per l'udienza del {entro}: sole istanze e conclusioni",
+                # Il termine è la data scritta dal giudice (art. 127-ter, secondo comma): «entro il …», non «udienza del …».
+                passi.append(Passo(vicino, f"Depositare le note scritte entro il {entro} (termine perentorio): sole istanze e conclusioni",
                                    voce.dettaglio + bozza, entro, "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE))
             elif voce.codice == "indicazioni":
                 # Il decreto qui non è riletto: non si può dire che le chieda proprio lui (collaudo 08/11/2026, Tribunale
@@ -107,10 +102,13 @@ def passi_note_127_ter(
                                    voce.dettaglio + "; verificare nel decreto le indicazioni specifiche che chiede",
                                    entro, "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE))
             elif voce.codice == "prova_notifica":
-                # L'urgenza segue la scadenza delle note, come le altre voci: «entro pochi giorni» per una data fra mesi
-                # contraddiceva la data stessa (collaudo 08/11/2026).
-                passi.append(Passo(vicino, voce.testo[:1].upper() + voce.testo[1:], voce.dettaglio, entro,
-                                   "decreto di trattazione scritta", voce.fonti, HREF_DOCUMENTI))
+                passi.append(Passo(
+                    vicino, "Verificare se il decreto richiede la prova della notifica con le note",
+                    "Consultare il decreto e il deposito della prova nel fascicolo. Se il decreto lo richiede e "
+                    "la prova non è già depositata, usare la ricevuta di avvenuta consegna (.eml) della notifica "
+                    "di questi atti o la copia della notifica cartacea con attestazione di conformità.",
+                    entro, "checklist di preparazione", voce.fonti, "#comunicazioni-notifica",
+                ))
             elif voce.codice == "decisione":
                 passi.append(Passo(3, f"Attendere il provvedimento sulle note del {entro}", voce.dettaglio, "",
                                    "decreto di trattazione scritta", voce.fonti, HREF_SCADENZE))

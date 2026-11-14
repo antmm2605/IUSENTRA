@@ -167,9 +167,15 @@ def conformita_ed_economico(lettura: dict[str, Any]) -> list[str]:
 
 def a_che_punto_siamo(lettura: dict[str, Any]) -> list[str]:
     fase = lettura["fase"]
-    righe = ["A che punto siamo", f"- {fase['descrizione'][:1].upper() + fase['descrizione'][1:]}."]
-    if fase["prove"]:
-        righe.append(f"- Lo dicono: {elenco(fase['prove'])}.")
+    ragionamento = lettura.get("ragionamento") or {}
+    fase_processuale = ragionamento.get("fase") or fase
+    descrizione = fase_processuale.get("descrizione") or fase["descrizione"]
+    righe = ["A che punto siamo", f"- {descrizione[:1].upper() + descrizione[1:]}."]
+    if fase_processuale.get("prove"):
+        righe.append(f"- Lo dicono: {elenco(fase_processuale['prove'])}.")
+    for evento in ragionamento.get("percorso") or []:
+        if evento["tipo"] in {"data_apertura", "data_chiusura"}:
+            righe.append(f"- {evento['descrizione']} il {data_it(evento['data'])}.")
     if fase["prossima_udienza"]:
         righe.append(f"- Prossima udienza: {fase['prossima_udienza']}.")
     for incoerenza in fase["incoerenze"]:
@@ -203,6 +209,28 @@ ESITI_DEPOSITI = {
     "controllate": "ricevute controllate",
     "polling_fallito": "controllo delle ricevute non riuscito",
 }
+
+
+def riscontri_processuali(lettura: dict[str, Any]) -> list[str]:
+    """Estratto delle conclusioni per la Lettura e per le risposte di Lex."""
+    conclusioni = (lettura.get("ragionamento") or {}).get("conclusioni") or []
+    if not conclusioni:
+        return []
+    righe = ["Riscontri del motore processuale"]
+    for voce in conclusioni[:3]:
+        fonte = voce["letto"]
+        norme = ", ".join(f"{n['norma']} ({n['url']})" for n in voce["norme"] if n.get("norma") and n.get("url"))
+        termine = voce["termine"] or {}
+        dettagli = [
+            voce["stato_etichetta"], voce["prova_o_motivo"], voce["come"], voce["perche"],
+            " · ".join(x for x in (fonte["documento"], fonte["data"]) if x),
+            norme, termine.get("scadenza"), termine.get("situazione"),
+        ]
+        dubbio = next((d["manca"] for d in voce["dubbi"] if d["manca"]), "")
+        if dubbio:
+            dettagli.append(f"Riscontro richiesto: {dubbio}")
+        righe.append(f"- {voce['cosa']} — " + " | ".join(x for x in dettagli if x))
+    return righe
 
 
 def verifiche_automatiche(lettura: dict[str, Any]) -> list[str]:
@@ -245,9 +273,17 @@ def verifiche_automatiche(lettura: dict[str, Any]) -> list[str]:
 
 def lacune(lettura: dict[str, Any]) -> list[str]:
     voci = lettura["lacune"]
-    if not voci:
-        return []
-    return ["Lacune da colmare", *[f"- {voce}." for voce in voci]]
+    righe = [f"- {voce}." for voce in voci]
+    for voce in (lettura.get("ragionamento") or {}).get("conclusioni") or []:
+        if voce["stato"] != "dubbio":
+            continue
+        dubbio = next((d for d in voce["dubbi"] if d["manca"]), None)
+        if dubbio:
+            righe.append(f"- {voce['cosa']}. Riscontro richiesto: {dubbio['manca']}.")
+    for dubbio in (lettura.get("ragionamento") or {}).get("dubbi") or []:
+        if dubbio.get("codice") in {"esito_deposito_da_correlare", "rg_discordante"}:
+            righe.append(f"- {dubbio['testo']} Riscontro richiesto: {dubbio['manca']}.")
+    return ["Lacune da colmare", *dict.fromkeys(righe)] if righe else []
 
 
 SEZIONI = {
@@ -259,6 +295,7 @@ SEZIONI = {
     "conformita_economico": conformita_ed_economico,
     "fase": a_che_punto_siamo,
     "prossimi_passi": prossimi,
+    "ragionamento": riscontri_processuali,
     "verifiche": verifiche_automatiche,
     "lacune": lacune,
 }

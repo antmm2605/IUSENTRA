@@ -46,6 +46,8 @@ def _data(documento: dict[str, Any]) -> str:
 
 
 def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, rg: str = "", fonti: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    from pct.atto_della_causa import stesso_numero_ruolo
+
     per_documento = {pulisci(voce.get("document_id")): voce for voce in catalogo}
     letti: list[dict[str, Any]] = []
     for documento in elenco:
@@ -84,7 +86,7 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
         ruoli = sorted((f for f in prove if f.get("categoria") == "ruolo"), key=lambda f: f.get("posizione", 0))
         # È il ruolo dell'intestazione a identificare la causa, non una citazione
         # nel corpo né l'etichetta «Sentenza» di un allegato di giurisprudenza.
-        documento["sentenza_pertinente"] = bool(ruoli and ruoli[0].get("valore") == rg and ruoli[0].get("verifica") in {"verificata", "corretta"})
+        documento["sentenza_pertinente"] = bool(ruoli and stesso_numero_ruolo(ruoli[0].get("valore"), rg) and ruoli[0].get("verifica") in {"verificata", "corretta"})
         date_evento = [f for f in prove if f.get("campo") == "provvedimento" and f.get("verifica") in {"verificata", "corretta"}]
         if date_evento and documento["sezione"] == "provvedimenti" and documento["sentenza_pertinente"]:
             documento["data_evento"] = str(sorted(date_evento, key=lambda f: f.get("posizione", 0))[0]["valore"])[:10]
@@ -109,8 +111,11 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
             intestazione_date = sorted((f for f in certe if f.get("campo") == "provvedimento" and int(f.get("posizione") or 0) < 3000),
                                        key=lambda f: f.get("posizione", 0))
             date = in_calce[-1:] or intestazione_date[:1]
-            documento["data"] = str(date[0]["valore"])[:10] if date else ""
-            documento["data_it"] = data_it(documento["data"])
+            # Un provvedimento senza data letta resta senza data (quella di caricamento non è la sua); gli altri atti della
+            # causa (messaggi di deposito, istanze) conservano la data del documento.
+            if date or documento["sezione"] == "provvedimenti" or documento["etichetta"].lower().startswith("sentenza"):
+                documento["data"] = str(date[0]["valore"])[:10] if date else ""
+                documento["data_it"] = data_it(documento["data"])
             # La pubblicazione (art. 133 c.p.c.) è il deposito in cancelleria: «pubbl. il…», «depositata il…». È da
             # lì che decorre il termine lungo (art. 327 c.p.c.), non dalla data della decisione in calce.
             documento["data_pubblicazione"] = _data_pubblicazione(certe)

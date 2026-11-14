@@ -13,6 +13,7 @@ export type Voce = {
   passata: boolean
   perentorio: boolean
   genere: 'scadenza' | 'appuntamento'
+  inBozza?: boolean
 }
 
 function giornoIso(data: string, iso = ''): string {
@@ -41,15 +42,20 @@ export function prossimaScadenza(scadenze: FascicoloDeadline[], oggi = oggiRoma(
 }
 
 export function vociAgendaFascicolo(scadenze: FascicoloDeadline[], appuntamenti: FascicoloAppointment[], oggi = oggiRoma()): Voce[] {
+  const deadlineIds = new Set(scadenze.map((s) => s.id))
+  const sostituiti = new Set(scadenze.flatMap((s) => s.replacesAppointmentId ? [s.replacesAppointmentId] : []))
   let voci: Voce[] = [
-    ...scadenze.map((s): Voce => {
+    ...scadenze.filter((s) => !s.representedByDeadlineId || !deadlineIds.has(s.representedByDeadlineId)).map((s): Voce => {
       const giorno = giornoIso(s.date, s.dateIso)
+      const inBozza = s.status === 'BOZZA'
+      const quando = s.writtenHearingTime ? `${s.date} entro le ${s.writtenHearingTime}` : s.date
       return {
-        id: `s-${s.id}`, titolo: s.title, quando: s.date, giorno, etichetta: s.priority || s.type || 'termine',
+        id: `s-${s.id}`, titolo: s.title, quando, giorno, etichetta: inBozza ? 'Da verificare' : s.priority || s.type || 'termine',
+        inBozza,
         tono: s.tone, href: s.href, passata: Boolean(giorno) && giorno < oggi, perentorio: s.peremptory, genere: 'scadenza',
       }
     }),
-    ...appuntamenti.map((a): Voce => {
+    ...appuntamenti.filter((a) => !sostituiti.has(a.id)).map((a): Voce => {
       const giorno = giornoIso(a.date)
       return {
         id: `a-${a.id}`, titolo: a.title, quando: [a.date, a.time, a.place].filter(Boolean).join(' '), giorno,

@@ -13,11 +13,11 @@ OGGI = date(2026, 11, 10)
 HEADERS = {"X-API-Key": "react-test-key"}
 
 
-def test_stato_pratica_definita_con_sentenza_e_data():
+def test_stato_pratica_definita_non_attribuisce_la_chiusura_alla_sentenza():
     stato = stato_pratica({"stato": "DEFINITO", "archivio_pronto": True, "data_chiusura": "2026-04-17",
                            "avanzamento": [{"stato_nuovo": "DEFINITO", "note": "Sentenza n. 679/2026; RG 161/2026"}]})
     assert stato == {"codice": "da_archiviare", "etichetta": "Definita, da archiviare",
-                     "dettaglio": "Sentenza n. 679/2026 del 17/04/2026"}
+                     "dettaglio": "Sentenza n. 679/2026 · Chiusura registrata il 17/04/2026"}
 
 
 def test_codici_stato_pratica():
@@ -57,6 +57,16 @@ def test_righe_del_quadro():
     assert documenti["testo"] == "43 documenti · 40 da classificare · 1 PEC da confermare · 0 PEC collegate"
 
 
+def test_quadro_notifica_con_data_trascorsa_chiede_la_prova():
+    notifiche = riga_notifiche([
+        {"atto": "Ricorso e decreto", "stato": "da_notificare", "scadenza": "2026-10-19"},
+        {"atto": "Altro atto", "stato": "da_notificare", "scadenza": "2026-12-15"},
+    ], oggi=OGGI)
+    assert "Data indicata 19/10/2026 già trascorsa. Verificare invio e ricevute PEC." in notifiche["testo"]
+    assert "da notificare entro il 15/12/2026" in notifiche["testo"]
+    assert notifiche["livello"] == "urgente"
+
+
 def test_riga_economia_dal_conto_economico():
     contributo = {"etichetta": "Esente, da confermare", "categoria": "esente", "tono": "warning",
                   "norma": "art. 9, comma 1-bis, D.P.R. 115/2002", "importoLabel": ""}
@@ -66,6 +76,20 @@ def test_riga_economia_dal_conto_economico():
     assert riga["testo"].startswith("Contributo unificato: Esente, da confermare (art. 9, comma 1-bis, D.P.R. 115/2002)")
     assert "liquidate in sentenza € 515,00, distratte in favore dell'avvocato" in riga["testo"]
     assert riga["livello"] == "attenzione" and riga["sezione"] == "sezione-economia"
+
+
+def test_economia_richiede_verifica_dispositivo_prima_della_proforma():
+    righe = [
+        {"voce": "sentenza", "tono": "warning", "stato": "Sentenza presente: spese da verificare"},
+        {"voce": "parcella", "stato": "Da preparare"},
+    ]
+    contributo = {"etichetta": "Esente", "categoria": "esente", "tono": "success"}
+
+    riga = riga_economia(contributo, righe, "Verificare il dispositivo sulle spese della sentenza.")
+
+    assert riga["livello"] == "attenzione"
+    assert "Verificare il dispositivo" in riga["testo"]
+    assert "proforma da preparare" not in riga["testo"]
 
 
 def _fascicolo_esente(tmp_path: Path):
@@ -91,7 +115,7 @@ def test_endpoint_quadro_contratto(tmp_path: Path):
         assente = client.get("/api/v1/ui/fascicoli/NONESISTE/quadro", headers=HEADERS)
     assert risposta.status_code == 200
     dati = risposta.get_json()
-    assert dati["ok"] is True and set(dati) == {"ok", "stato", "righe", "generato_il"}
+    assert dati["ok"] is True and set(dati) == {"ok", "stato", "righe", "generato_il", "esito_dispositivo", "lettura_precedente"}
     assert dati["stato"]["codice"] in {"in_corso", "definita", "da_archiviare", "archiviata", "sospesa"}
     assert [r["tema"] for r in dati["righe"]] == ["prossimo_passo", "termini", "economia", "notifiche", "documenti"]
     for voce in dati["righe"]:
@@ -144,3 +168,33 @@ def test_lettura_porta_alla_fatturazione_del_solo_fascicolo():
     passi = _passi_economico({"presente": True, "ha_incarico": True, "liquidato": 515, "liquidato_it": "€ 515,00",
                               "liquidazione": {}, "liquidazione_incasso": "non_incassata"}, "9A681FDF")
     assert any(p.href == "/fatturazione?id_fascicolo=9A681FDF" for p in passi)
+
+
+def test_riscontri_leggono_lo_stesso_quadro_per_sezione(monkeypatch):
+    import json
+
+    from web.services import riscontri_processuali_runtime as runtime
+
+    quadro = {"impronta": "fonti-f1", "versione": "v3", "conclusioni": [
+        {"codice": "notifica_sentenza", "stato": "dubbio"},
+        {"codice": "termine_impugnazione", "stato": "dubbio"},
+        {"codice": "spese_liquidate", "stato": "da_fare"},
+    ]}
+    corpo = json.dumps({"lettura": {"ragionamento": quadro}}).encode()
+    monkeypatch.setattr(runtime, "pannello_del_profilo", lambda fid, nome: corpo if (fid, nome) == ("F1", "lettura") else None)
+    for sezione, codice in (("notifiche", "notifica_sentenza"), ("termini", "termine_impugnazione"), ("economia", "spese_liquidate")):
+        vista = runtime.riscontri_processuali("F1", sezione)
+        assert vista["impronta"] == "fonti-f1"
+        assert [c["codice"] for c in vista["conclusioni"]] == [codice]
+    assert runtime.riscontri_processuali("F2", "regia") == {"stato": "da_preparare"}
+
+
+def test_quadro_distingue_scadenza_in_bozza_dal_termine_confermato():
+    from web.services.fascicolo_quadro_runtime import riga_termini_da_lettura
+
+    oggi = date(2026, 11, 14)
+    bozza = {"data": "2027-01-04", "titolo": "Impugnazione sentenza", "tipo": "scadenza", "stato": "BOZZA"}
+    riga = riga_termini_da_lettura([bozza], {"ragionamento": {"impronta": "i", "versione": "v"}}, oggi)
+    assert "confermata in agenda" in riga["testo"]
+    assert "1 scadenza da verificare in agenda" in riga["testo"]
+    assert riga["livello"] == "attenzione"

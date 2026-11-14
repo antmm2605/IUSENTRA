@@ -9,8 +9,10 @@ import {
   getCodiceGuidaPratica,
   getFascicoloGuidaPratica,
   getFascicoloGuidaFase,
+  getFascicoloGuidaGiurisprudenza,
   conFaseReale,
   type GuidaFaseReale,
+  type GuidaGiurisprudenza,
   type GuidaDocumentPlan,
   type GuidaNormativa,
   type GuidaPercorso,
@@ -284,13 +286,13 @@ const ESITO_PER_IL_CLIENTE: Record<string, string> = {
   da_valutare: "Esito da valutare: ruolo del cliente non certo",
 }
 
-function PercorsoSection({ percorso }:{percorso?: GuidaPercorso}) {
+function PercorsoSection({ percorso, mostraIpotesi = true }:{percorso?: GuidaPercorso; mostraIpotesi?: boolean}) {
   if (!percorso?.strada) return null
   const spese = percorso.spese
   const speseTesto = spese?.regolazione && spese.regolazione !== 'non_indicata'
     ? `Spese: ${spese.regolazione.replace('_', ' ')}${spese.importo ? ` € ${spese.importo}` : ''}${spese.distrazione ? ', con distrazione' : ''}`
     : ''
-  const voci = percorso.strada === 'realizzazione' ? (percorso.passi || []) : (percorso.rimedi || [])
+  const voci = !mostraIpotesi ? [] : percorso.strada === 'realizzazione' ? (percorso.passi || []) : (percorso.rimedi || [])
   return (
     <Section title="Dopo la sentenza" icon={<Gavel size={16}/> }>
       <p className="iu-guida-lead">{[`${text(percorso.sentenza, 'Sentenza')}${percorso.data ? ` del ${formatDateLabelIt(String(percorso.data))}` : ''}`, ESITO_PER_IL_CLIENTE[text(percorso.per_il_cliente)] || '', speseTesto].filter(Boolean).join(' · ')}</p>
@@ -302,7 +304,7 @@ function PercorsoSection({ percorso }:{percorso?: GuidaPercorso}) {
           </li>
         ))}
       </ol>
-      {percorso.ipotesi?.length ? (
+      {mostraIpotesi && percorso.ipotesi?.length ? (
         <>
           <p className="iu-guida-lead">Ipotesi da verificare:</p>
           <ul className="iu-guida-source-list">
@@ -314,9 +316,7 @@ function PercorsoSection({ percorso }:{percorso?: GuidaPercorso}) {
   )
 }
 
-function GiurisprudenzaSection({ guida }:{guida?:GuidaPratica}) {
-  const dati = guida?.giurisprudenza
-  if (!dati) return null
+function GiurisprudenzaSection({ dati }: { dati: GuidaGiurisprudenza }) {
   const verificate = dati.verificate || []
   const decisioni = dati.decisioni_per_norma || []
   return (
@@ -486,7 +486,49 @@ function FascicoloContextCard({ fascicolo }: { fascicolo?: Record<string, unknow
   )
 }
 
-function ChecklistTab({ response, fascicoloId = '', faseInLettura = false }:{response:GuidaPraticaResponse; fascicoloId?: string; faseInLettura?: boolean}) {
+function PassiDellaPratica({ fase, fascicoloId }: { fase: GuidaFaseReale; fascicoloId: string }) {
+  const passi = fase.passi_operativi
+  if (!passi) return null
+  const id = encodeURIComponent(fascicoloId)
+  return (
+    <Section title="Cosa fare in questa pratica" icon={<ClipboardCheck size={16}/>}>
+      {passi.length ? (
+        <ol className="iu-guida-ordered">
+          {passi.map((passo, index) => (
+            <li key={itemKey('azione', index, passo.azione)}>
+              {passo.href ? <strong><a href={passo.href}>{passo.azione}</a></strong> : <strong>{passo.azione}</strong>}
+              {passo.entro ? <span>{passo.scaduto ? 'Scadenza trascorsa il' : 'Entro'} {passo.entro}</span> : null}
+              {passo.motivo ? <p>{passo.motivo}</p> : null}
+              {passo.riscontri_mancanti?.length ? (
+                <>
+                  <p><strong>Riscontri da acquisire</strong></p>
+                  <ul>{passo.riscontri_mancanti.map((voce) => <li key={voce}>{voce}</li>)}</ul>
+                </>
+              ) : null}
+              {passo.come && !passo.motivo?.includes(passo.come) ? <p><strong>Come procedere</strong> · {passo.come}</p> : null}
+              {passo.perche && !passo.motivo?.includes(passo.perche) ? <p><strong>Perché serve</strong> · {passo.perche}</p> : null}
+              {passo.documento?.documento_id ? <p><a href={`/fascicoli/${id}/documenti/${encodeURIComponent(passo.documento.documento_id)}/visualizza`}>{passo.documento.documento || 'Atto di riferimento'}</a></p> : null}
+              {(passo.fonti || []).map((fonte) => (
+                <p key={fonte.id}>
+                  {fonte.reader_url ? <a href={fonte.reader_url}>{fonte.norma}</a>
+                    : fonte.url?.startsWith('https://') ? <NormativeArticleLink url={fonte.url} article={fonte.norma}>{fonte.norma}</NormativeArticleLink>
+                    : fonte.norma}
+                </p>
+              ))}
+              {passo.modello_atto ? (
+                <span><a href={`/template-atti/${encodeURIComponent(passo.modello_atto)}/usa?id_fascicolo=${id}${passo.modello_atto === 'builtin-tmp-civ-012' && passo.entro ? `&termine_guida=${encodeURIComponent(passo.entro)}` : ''}`}>Apri il modello con i dati del fascicolo</a></span>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : <p>{fase.motivo_stato_passi || 'Dalla lettura disponibile non risultano passaggi operativi aperti.'}</p>}
+    </Section>
+  )
+}
+
+function ChecklistTab({ response, fascicoloId = '', faseInLettura = false, fase }:{
+  response: GuidaPraticaResponse; fascicoloId?: string; faseInLettura?: boolean; fase?: GuidaFaseReale | null
+}) {
   const checklist = response.checklist
   const guida = response.guida
   const completion = percent(checklist?.percentuale_completamento)
@@ -496,28 +538,31 @@ function ChecklistTab({ response, fascicoloId = '', faseInLettura = false }:{res
   return (
     <div className="iu-guida-tab-panel">
       <ReviewBanner guida={guida}/>
-      <DocumentPlanCard plan={response.documentPlan}/>
-      {guida?.termini_processuali?.length ? (
-        <Section title="Termini e scadenziario" icon={<TimerReset size={16}/> }>
-          <TermsActionList items={guida.termini_processuali} guida={guida} fascicoloId={fascicoloId}/>
-        </Section>
-      ) : null}
       {checklist?.nota_fase ? (
         <Section title="Fase della pratica" icon={<ClipboardCheck size={16}/> }>
           <p className="iu-guida-lead">{checklist.nota_fase}</p>
         </Section>
       ) : null}
       {faseInLettura ? <p className="iu-empty">Fase della pratica in lettura dal fascicolo…</p> : null}
-      <PercorsoSection percorso={response.percorso}/>
+      <PercorsoSection percorso={response.percorso} mostraIpotesi={!fase?.passi_operativi}/>
       {checklist?.nota_fase ? null : (
         <div className="iu-guida-progress" aria-label="Completamento guida pratica">
           <div><strong>{completion}%</strong><span>{checklist?.completati ?? 0}/{checklist?.totale ?? 0} requisiti</span></div>
           <progress value={completion} max={100}/>
         </div>
       )}
-      <Section title="Prima cosa da fare" icon={<ClipboardCheck size={16}/> }>
-        <p className="iu-guida-lead">{guida?.quick_help?.prima_cosa_da_fare || 'Verifica codice materia, rito, parti, competenza e documenti fondativi.'}</p>
-      </Section>
+      {fase?.passi_operativi ? <PassiDellaPratica fase={fase} fascicoloId={fascicoloId}/> : faseInLettura ? null : (
+        <Section title={fascicoloId ? 'Indicazione della scheda di materia' : 'Prima cosa da fare'} icon={<ClipboardCheck size={16}/> }>
+          <p className="iu-guida-lead">{guida?.quick_help?.prima_cosa_da_fare || 'Verifica codice materia, rito, parti, competenza e documenti fondativi.'}</p>
+        </Section>
+      )}
+      {checklist?.nota_fase && response.documentPlan ? <h3>Modello per un nuovo atto</h3> : null}
+      <DocumentPlanCard plan={response.documentPlan}/>
+      {guida?.termini_processuali?.length ? (
+        <Section title="Termini e scadenziario" icon={<TimerReset size={16}/> }>
+          <TermsActionList items={guida.termini_processuali} guida={guida} fascicoloId={fascicoloId}/>
+        </Section>
+      ) : null}
       <Section title={checklist?.nota_fase ? 'Per un nuovo atto: campi' : 'Campi mancanti'} icon={<ListChecks size={16}/> }>
         {missingFields.length ? <ul className="iu-guida-checklist">{missingFields.map((field, index) => <li key={itemKey('field', index, field.id)} className="is-missing"><AlertTriangle size={14}/><span>{field.label || field.id}</span></li>)}</ul> : <p className="iu-guida-ok"><CheckCircle2 size={15}/> Campi obbligatori completati.</p>}
       </Section>
@@ -531,7 +576,19 @@ function ChecklistTab({ response, fascicoloId = '', faseInLettura = false }:{res
   )
 }
 
-function NormativaTab({ guida }:{guida?:GuidaPratica}) {
+function NormativaTab({ guida, fascicoloId }: { guida?: GuidaPratica; fascicoloId?: string }) {
+  const [esito, setEsito] = useState<{ ok: boolean; giurisprudenza?: GuidaGiurisprudenza } | null>(null)
+  const [tentativo, setTentativo] = useState(0)
+  useEffect(() => {
+    if (!fascicoloId || guida?.giurisprudenza) return
+    let attivo = true
+    setEsito(null)
+    void getFascicoloGuidaGiurisprudenza(fascicoloId).then((risultato) => {
+      if (attivo) setEsito(risultato)
+    })
+    return () => { attivo = false }
+  }, [fascicoloId, guida?.giurisprudenza, tentativo])
+  const giurisprudenza = guida?.giurisprudenza || esito?.giurisprudenza
   const primari = guida?.normativa?.riferimenti_primari || []
   const secondari = guida?.normativa?.riferimenti_secondari || []
   const fontiWeb = guida?.fonti_verifica_web || []
@@ -543,7 +600,12 @@ function NormativaTab({ guida }:{guida?:GuidaPratica}) {
       <Section title="Riferimenti secondari" icon={<BookOpen size={16}/> }>
         {secondari.length ? <ul className="iu-guida-law-list">{secondari.map((item, index) => <NormativaItem key={itemKey('law-secondary', index, `${item.fonte}-${item.articolo}`)} item={item}/>)}</ul> : <p className="iu-empty">Nessun riferimento secondario configurato.</p>}
       </Section>
-      <GiurisprudenzaSection guida={guida}/>
+      {giurisprudenza ? <GiurisprudenzaSection dati={giurisprudenza}/> : fascicoloId ? (
+        <Section title="Giurisprudenza verificata" icon={<Gavel size={16}/>}>
+          {esito ? <p role="alert">Ricerca nell’archivio non riuscita. <button type="button" onClick={() => setTentativo((valore) => valore + 1)}>Riprova</button></p>
+            : <p role="status">Consultazione dell’archivio delle decisioni…</p>}
+        </Section>
+      ) : null}
       {guida?.presupposti_sostanziali?.length ? (
         <Section title="Presupposti sostanziali" icon={<Gavel size={16}/> }>
           <ol className="iu-guida-ordered">{guida.presupposti_sostanziali.map((item, index) => {
@@ -836,8 +898,15 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
           <button type="button" onClick={() => setExpanded(false)} title="Nascondi guida pratica"><ChevronUp size={14}/></button>
         </div>
       </header>
+      {((loading && !response.generatedAt) || showOptionalEmpty || !response.ok) && faseReale?.passi_operativi ? (
+        <div className="iu-guida-tab-panel">
+          {faseReale.nota_fase ? <p className="iu-guida-lead">{faseReale.nota_fase}</p> : null}
+          <PercorsoSection percorso={faseReale.percorso || undefined} mostraIpotesi={false}/>
+          <PassiDellaPratica fase={faseReale} fascicoloId={fascicoloId}/>
+        </div>
+      ) : null}
       {loading && !response.generatedAt ? (
-        <div className="iu-guida-loading"><RefreshCw size={16}/><span>Caricamento guida pratica...</span></div>
+        <p className="iu-guida-empty" role="status">Caricamento della scheda di materia…</p>
       ) : showOptionalEmpty ? (
         <div className="iu-guida-empty" role="note">
           <BookOpen size={17}/>
@@ -850,9 +919,9 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
           <nav className="iu-guida-tabs" aria-label="Sezioni guida pratica">
             {(['checklist', 'contesto', 'normativa', 'atto', 'adempimenti'] as TabKey[]).map((key) => <button key={key} type="button" className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>{key === 'checklist' ? 'Ora' : key === 'contesto' ? 'Contesto' : key === 'normativa' ? 'Normativa' : key === 'atto' ? 'Atto' : 'Adempimenti'}</button>)}
           </nav>
-          {tab === 'checklist' ? <ChecklistTab response={conFaseReale(response, faseReale)} fascicoloId={fascicoloId} faseInLettura={faseInLettura}/> : null}
+          {tab === 'checklist' ? <ChecklistTab response={conFaseReale(response, faseReale)} fascicoloId={fascicoloId} faseInLettura={faseInLettura} fase={faseReale}/> : null}
           {tab === 'contesto' ? <ContestoTab response={response}/> : null}
-          {tab === 'normativa' ? <NormativaTab guida={guida}/> : null}
+          {tab === 'normativa' ? <NormativaTab key={effectiveCode} guida={guida} fascicoloId={explicitProcedure ? undefined : fascicoloId}/> : null}
           {tab === 'atto' ? <AttoTab guida={guida}/> : null}
           {tab === 'adempimenti' ? <AdempimentiTab guida={guida} fascicoloId={fascicoloId}/> : null}
         </>

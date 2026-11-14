@@ -188,6 +188,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicoli_export_payload,
     build_react_fascicoli_payload as build_react_fascicoli_payload,
     build_react_fascicolo_detail_payload,
+    build_react_fascicolo_document_inventory,
     build_react_fascicolo_form_payload,
     clear_react_fascicoli_base_cache,
     fasi_lente,
@@ -5520,6 +5521,39 @@ def notifiche_legali_relata_firmata():
     })
 
 
+def _presidio_for_relata_draft(presidio_id: str, practice_id: str, *, write: bool):
+    from web.services.notification_presidia_drafts import STATI_BOZZA
+    from web.services.notification_presidia_runtime import build_notification_presidio_repository, presidio_permissions
+
+    permissions = presidio_permissions()
+    if not permissions["can_view_evidence"] or (write and not permissions["can_write"]):
+        return jsonify({"ok": False, "message": "Permesso insufficiente per la bozza del presidio."}), 403
+    try:
+        row = build_notification_presidio_repository(read_only=True).get_presidio(presidio_id)
+    except KeyError:
+        row = {}
+    if not practice_id or row.get("fascicolo_id") != practice_id or not row.get("source_message_id"):
+        return jsonify({"ok": False, "message": "Presidio non trovato per questo fascicolo."}), 404
+    if write and row.get("status") not in STATI_BOZZA:
+        return jsonify({"ok": False, "message": "Il presidio non è nella fase di preparazione della relata."}), 409
+    return None
+
+
+@api_v1_react.get("/notifiche-legali/bozze-relata/presidio")
+@_richiedi_auth
+def notifiche_legali_leggi_bozza_presidio():
+    from web.services.notification_presidia_drafts import load_presidio_draft
+
+    presidio_id = request.args.get("presidioId", "").strip()
+    practice_id = request.args.get("practiceId", "").strip()
+    error = _presidio_for_relata_draft(presidio_id, practice_id, write=False)
+    if error is not None:
+        return error
+    response = jsonify({"ok": True, "draft": load_presidio_draft(presidio_id, practice_id)})
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @api_v1_react.post("/notifiche-legali/bozze-relata")
 @_richiedi_auth
 def notifiche_legali_salva_bozza_relata():
@@ -5556,9 +5590,19 @@ def notifiche_legali_salva_bozza_relata():
         "savedAt": saved_at,
         "savedBy": _actor_label(),
     }
-    drafts = [item for item in _load_relata_drafts() if item.get("id") != draft_id]
-    drafts.append(draft)
-    _write_relata_drafts(drafts[-100:])
+    presidio_id = str(payload.get("presidioId") or "").strip()
+    if presidio_id:
+        from web.services.notification_presidia_drafts import save_presidio_draft
+
+        error = _presidio_for_relata_draft(presidio_id, practice_id, write=True)
+        if error is not None:
+            return error
+        if not save_presidio_draft(presidio_id, draft):
+            return jsonify({"ok": False, "message": "Riapri il presidio e verifica che sia in preparazione e che l’originale PST sia collegato."}), 409
+    else:
+        drafts = [item for item in _load_relata_drafts() if item.get("id") != draft_id]
+        drafts.append(draft)
+        _write_relata_drafts(drafts[-100:])
     _audit_event("notifiche_legali.bozza_relata", "bozza_relata", draft_id, "Bozza relata salvata per la notifica corrente.")
     return jsonify({"ok": True, "message": "Bozza relata salvata per questa notifica.", "draftId": draft_id, "savedAt": saved_at})
 
@@ -6030,12 +6074,32 @@ def scadenziario_termini_templates():
     })
 
 
+def _input_termine_processuale(payload: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+    from pct.termini_materia import fascicolo_di_lavoro
+
+    id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
+    if not id_fascicolo:
+        return payload, None
+    if not (_api_key_valida() or _session_user_can("fascicoli.leggi")):
+        return payload, (jsonify({"ok": False, "errore": "Permesso insufficiente per consultare il fascicolo."}), 403)
+    fascicolo = get_fascicoli().get(id_fascicolo)
+    if not fascicolo:
+        messaggio = "Fascicolo non trovato nello studio corrente."
+        return payload, (jsonify({"ok": False, "errore": messaggio, "messaggio": messaggio, "crossTenantBlocked": True}), 404)
+    if fascicolo_di_lavoro(fascicolo):
+        return {**payload, "matter_type": "labor"}, None
+    return payload, None
+
+
 @api_v1_react.post("/scadenziario/termini/calculate")
 @_richiedi_auth
 def scadenziario_termini_calculate():
     try:
+        payload, errore = _input_termine_processuale(_json_body())
+        if errore is not None:
+            return errore
         result = calculate_and_audit(
-            _json_body(),
+            payload,
             repository=_termini_processuali_repository(),
             user_id=_current_user_id(),
         )
@@ -6195,6 +6259,9 @@ def scadenziario_termini_override():
     if not reason:
         return jsonify({"ok": False, "errore": "Motivazione override obbligatoria."}), 400
     try:
+        payload, errore = _input_termine_processuale(payload)
+        if errore is not None:
+            return errore
         result = calculate_and_audit(
             payload,
             repository=_termini_processuali_repository(),
@@ -6216,9 +6283,9 @@ def scadenziario_termini_crea_scadenza():
     payload = _json_body()
     try:
         id_fascicolo = str(payload.get("id_fascicolo") or payload.get("fascicoloId") or "").strip()
-        valid_fascicolo, fascicolo_error = _validate_current_tenant_fascicolo_id(id_fascicolo)
-        if not valid_fascicolo:
-            return jsonify({**(fascicolo_error or {}), "crossTenantBlocked": True}), 404
+        payload, errore = _input_termine_processuale(payload)
+        if errore is not None:
+            return errore
         repo = _termini_processuali_repository()
         user_id = _current_user_id()
         result = calculate_and_audit(
@@ -9226,6 +9293,16 @@ def fascicolo_react_pagamento(id_fasc: str, kind: str):
     return redacted_json_response(result, status)
 
 
+def _con_riscontri_processuali(payload: dict[str, Any], fascicolo_id: str, sezione: str) -> dict[str, Any]:
+    if payload.get("notFound") or payload.get("errore") or payload.get("ok") is False:
+        return payload
+    if not (_api_key_valida() or _session_user_can("fascicoli.leggi")):
+        return payload
+    from web.services.riscontri_processuali_runtime import riscontri_processuali
+
+    return {**payload, "riscontriProcessuali": riscontri_processuali(fascicolo_id, sezione)}
+
+
 @api_v1_react.get("/fascicoli/<id_fasc>/conto-economico")
 @_richiedi_auth
 def fascicolo_react_conto_economico(id_fasc: str):
@@ -9239,6 +9316,15 @@ def fascicolo_react_conto_economico(id_fasc: str):
     except Exception as exc:  # la pagina mostra il messaggio, non un errore del server
         current_app.logger.exception("Conto economico del fascicolo %s non disponibile: %s", id_fasc, exc)
         return jsonify({"ok": False, "message": "Conto economico non disponibile in questo momento."}), 200
+    from web.services.riscontri_processuali_runtime import chiarisci_spese_da_sentenza, lettura_materializzata
+
+    from web.services.riscontri_processuali_runtime import proietta_riscontri
+
+    puo_leggere_fascicolo = _api_key_valida() or _session_user_can("fascicoli.leggi")
+    lettura = lettura_materializzata(id_fasc) if puo_leggere_fascicolo else None
+    chiarisci_spese_da_sentenza(result, lettura)
+    if result.get("ok") and puo_leggere_fascicolo:
+        result["riscontriProcessuali"] = proietta_riscontri(lettura, "economia")
     response = redacted_json_response(result, 200 if result.get("ok") else 404)
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -9260,7 +9346,13 @@ def fascicolo_react_quadro(id_fasc: str):
         fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
         if fascicolo is None:
             return _jsonify_public_payload({"ok": False, "notFound": True, "message": "Fascicolo non trovato."}, 404)
+        from web.services.pannelli_pronti_runtime import calcolo_in_corso
+
         result = quadro_fascicolo(fascicolo)
+        if not calcolo_in_corso():
+            result.pop("termini_agenda", None)
+            result.pop("termini_agenda_versione", None)
+            result.pop("lettura_mancante", None)
     except Exception as exc:  # il quadro mostra il messaggio, mai un errore del server
         current_app.logger.exception("Quadro del fascicolo %s non disponibile: %s", id_fasc, exc)
         return jsonify({"ok": False, "message": "Quadro del fascicolo non disponibile in questo momento."}), 200
@@ -9498,6 +9590,8 @@ def fascicolo_react_dettaglio(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/documenti")
 @_richiedi_auth
 def fascicolo_react_documenti(id_fasc: str):
+    if request.args.get("vista") == "inventario":
+        return _jsonify_domain_payload(build_react_fascicolo_document_inventory(_fascicolo_singolo_loader(), id_fasc))
     return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
         get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
@@ -9538,7 +9632,7 @@ def fascicolo_react_attivita(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/scadenze")
 @_richiedi_auth
 def fascicolo_react_scadenze(id_fasc: str):
-    return _jsonify_domain_payload(build_react_fascicolo_detail_payload(
+    payload = build_react_fascicolo_detail_payload(
         get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_agenda=get_agenda,
@@ -9552,7 +9646,8 @@ def fascicolo_react_scadenze(id_fasc: str):
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
         include_sections={"scadenze"},
-    ))
+    )
+    return _jsonify_domain_payload(_con_riscontri_processuali(payload, id_fasc, "termini"))
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/depositi")
@@ -9644,14 +9739,29 @@ from web.services.lettura_cache import LETTURA_CACHE as _LETTURA_CACHE, chiave_l
 
 
 def _lettura_cache_key(id_fasc: str) -> tuple:
+    from pct.fascicolo_lettura import VERSIONE_LETTURA
+    from web.services.pannelli_pronti_runtime import impronta_fascicolo_corrente
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+    # Un solo controllore: con i contatori delle fonti preparati la Lettura in cache vale finché vale l'impronta
+    # delle fonti del fascicolo, la stessa dei pannelli pronti (documenti, letture, agenda, scadenze, giorno...).
+    impronta = impronta_fascicolo_corrente(str(id_fasc))
+    if impronta:
+        return _chiave_lettura(f"{_tenant_runtime_label()}@{APP_VERSION}@{VERSIONE_LETTURA}@impronta:{impronta}", str(id_fasc))
     registro = registro_corrente()
     # Il worker OCR e l'app hanno cache distinte: la revisione SQL rende
     # immediatamente visibile il completamento anche fra container diversi.
     ciclo = registro.impronta_fascicolo(tenant_corrente(), str(id_fasc), "motore_documenti")
     revisione = str(ciclo.get("aggiornato_il") or "")
-    tenant_versionato = f"{_tenant_runtime_label()}@{APP_VERSION}@{revisione}"
+    tenant_versionato = f"{_tenant_runtime_label()}@{APP_VERSION}@{VERSIONE_LETTURA}@{revisione}"
     return _chiave_lettura(tenant_versionato, str(id_fasc))
+
+
+def lettura_preparata(id_fasc: str) -> bytes | None:
+    """Risultato corrente preparato dal ciclo delle letture, per chi può consultare il fascicolo."""
+    if not (_api_key_valida() or _session_user_can("fascicoli.leggi")):
+        return None
+    return _LETTURA_CACHE.get(_lettura_cache_key(id_fasc))
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/lettura")
@@ -9663,6 +9773,8 @@ def fascicolo_react_lettura(id_fasc: str):
 
         aggiorna = str(request.args.get("aggiorna") or "").strip().lower() in {"1", "true", "si", "sì"}
         chiave = _lettura_cache_key(id_fasc)
+        # Il worker documentale prepara già questo risultato per la stessa
+        # impronta. Il salvataggio del pannello può riusarlo subito.
         if not aggiorna:
             in_cache = _LETTURA_CACHE.get(chiave)
             if in_cache is not None:
@@ -9929,7 +10041,8 @@ def fascicolo_react_obblighi_notifica(id_fasc: str):
         from web.services.obblighi_notifica_sintesi import salva as salva_sintesi_obblighi
 
         salva_sintesi_obblighi(str(fascicolo.id), obblighi)  # il quadro del fascicolo la legge senza ricalcolare
-        return _jsonify_public_payload({"ok": True, "obblighi": obblighi, "copiePst": copie_pst_richiesta(fascicolo=fascicolo)})
+        payload = {"ok": True, "obblighi": obblighi, "copiePst": copie_pst_richiesta(fascicolo=fascicolo)}
+        return _jsonify_public_payload(_con_riscontri_processuali(payload, id_fasc, "notifiche"))
     except Exception as exc:
         current_app.logger.exception("Obblighi di notifica del fascicolo %s non disponibili: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Obblighi di notifica non disponibili.", "obblighi": []}, 200)
@@ -9970,15 +10083,16 @@ def fascicolo_react_provenienza_ai(id_fasc: str):
 @api_v1_react.get("/fascicoli/<id_fasc>/regia")
 @_richiedi_auth
 def fascicolo_regia_operativa(id_fasc: str):
-    return _jsonify_public_payload(build_react_practice_engine_payload(
+    payload = build_react_practice_engine_payload(
         fascicolo_id=id_fasc,
-        get_fascicoli=_fascicoli_loader(),
+        get_fascicoli=_fascicolo_singolo_loader(),
         get_clienti=get_clienti,
         get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_practice_engine=get_practice_engine,
         actor=_actor_label(),
-    ))
+    )
+    return _jsonify_public_payload(_con_riscontri_processuali(payload, id_fasc, "regia"))
 
 
 @api_v1_react.post("/fascicoli/<id_fasc>/regia/applica-profilo")
@@ -10889,9 +11003,9 @@ def _notiziario_save_cache(cache: Mapping[str, Any]) -> str:
 def _notiziario_cache_item(news_id: str) -> dict[str, Any] | None:
     from web.services.notiziario_runtime import archivio_in_lettura, voce_singola
 
-    dall_archivio = voce_singola(archivio_in_lettura(current_app.config), news_id)
-    if dall_archivio:
-        return dall_archivio
+    archivio = archivio_in_lettura(current_app.config)
+    if archivio is not None:
+        return voce_singola(archivio, news_id)
     return next(
         (
             row for row in _notiziario_load_cache().get("items", [])
@@ -10976,7 +11090,7 @@ def _notiziario_case_options() -> list[dict[str, str]]:
     riempire un menu costava quasi un secondo di calcolo a ogni apertura della
     Panoramica, e in quel tempo il server non rispondeva ad altro.
     """
-    gestione = get_fascicoli()
+    gestione = _fascicolo_singolo_loader()()
     try:
         righe = gestione.indice_leggero()
     except Exception:
@@ -11015,6 +11129,8 @@ def _notiziario_item_payload(
         "slug": str(row.get("slug") or ""),
         "title": str(row.get("title") or "Aggiornamento senza titolo"),
         "summary": str(row.get("short_summary") or ""),
+        **({"verifiedAction": str(row["verified_action"])} if row.get("verified_action") else {}),
+        **({"verifiedEvidence": str(row["verified_evidence"])} if row.get("verified_evidence") else {}),
         "content": str(row.get("content") or ""),
         "newsType": str(row.get("news_type") or "focus"),
         "publishedAt": str(row.get("published_at") or row.get("created_at") or ""),
@@ -11095,7 +11211,7 @@ def _notiziario_risposta_archivio(archivio):
     from web.services import notiziario_runtime as vista
 
     try:
-        righe = get_fascicoli().indice_leggero()
+        righe = _fascicolo_singolo_loader()().indice_leggero()
     except Exception as exc:  # senza indice la pagina resta leggibile, senza fascicoli pertinenti
         current_app.logger.warning("Notizie utili: indice dei fascicoli non disponibile: %s", exc)
         righe = []
@@ -15125,14 +15241,20 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
         if errore:
             return jsonify({"ok": False, "errore": errore}), 200
         _, parti = _build_parti_template_context(str(getattr(fascicolo, "id", "") or ""))
-        return _jsonify_redacted(
-            build_redazione_contesto_payload(
-                fascicolo=fascicolo,
-                cliente=cliente,
-                parti=parti,
-                config=_studio_prefill_config(),
-            )
+        from pct.fascicolo_quadro import riga_prossimo_passo
+        from web.services.riscontri_processuali_runtime import lettura_materializzata
+
+        payload = build_redazione_contesto_payload(
+            fascicolo=fascicolo,
+            cliente=cliente,
+            parti=parti,
+            config=_studio_prefill_config(),
         )
+        if _session_user_can("fascicoli.leggi"):
+            lettura = lettura_materializzata(id_fascicolo)
+            passi = (lettura or {}).get("prossimi_passi")
+            payload["prossimoPassoFascicolo"] = riga_prossimo_passo(passi if isinstance(passi, list) else None)["testo"]
+        return _jsonify_redacted(payload)
     except Exception as exc:
         current_app.logger.exception("Errore contesto fascicolo redazione atti: %s", exc)
         return jsonify({"ok": False, "errore": "Contesto fascicolo non disponibile dal runtime corrente."}), 200
@@ -15554,7 +15676,7 @@ def giurisprudenza_page():
     try:
         return jsonify(
             build_react_giurisprudenza_payload(
-                get_giurisprudenza=get_giurisprudenza,
+                get_giurisprudenza=get_giurisprudenza_readonly,
                 query=dict(request.args),
                 config=dict(current_app.config),
             )

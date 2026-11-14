@@ -93,18 +93,33 @@ _SEZIONI_DETTAGLIO_FASCICOLO = frozenset({
     "api_v1_react.fascicolo_react_documenti", "api_v1_react.fascicolo_react_attivita",
     "api_v1_react.fascicolo_react_scadenze", "api_v1_react.fascicolo_react_depositi",
     "api_v1_react.fascicolo_react_relata", "api_v1_react.fascicolo_react_audit", "api_v1_react.fascicolo_react_lex",
+    "api_v1_react.fascicolo_react_lettura",
+})
+
+# Il presidio consulta i soli fascicoli già associati ai risultati della propria query SQL.
+_LETTURE_PUNTUALI_PRESIDIO = frozenset({
+    "api_v1_notification_presidia.list_presidi",
+    "api_v1_notification_presidia.get_presidio",
 })
 
 
 def get_fascicoli() -> GestioneFascicoli:
     # Cartella, dettaglio e catalogo consultano una sola istantanea per richiesta.
     # g vive per una richiesta: nuovi comandi, utenti e studi lo ricreano.
-    cartella_read = has_request_context() and request.method == "GET" and request.endpoint in {
+    scadenza_compatta = (
+        has_request_context()
+        and request.method == "GET"
+        and request.endpoint == "api_v1_react.scadenziario_react_list"
+        and bool((request.args.get("focus_id") or request.args.get("focusId") or "").strip())
+        and str(request.args.get("compatto") or "").strip().casefold() in {"1", "true", "yes", "on"}
+    )
+    puntuale = has_request_context() and bool(getattr(g, "fascicoli_sql_puntuali", False))
+    cartella_read = has_request_context() and (puntuale or request.method == "GET" and (scadenza_compatta or request.endpoint in {
         "api_v1_react.cliente_cartella_react",
         "api_v1_react.fascicolo_react_dettaglio",
         "api_v1_documenti_ai.catalogazione_documentale_fascicolo",
-        *_SEZIONI_DETTAGLIO_FASCICOLO,
-    }
+        *_SEZIONI_DETTAGLIO_FASCICOLO, *_LETTURE_PUNTUALI_PRESIDIO,
+    }))
     paths = (_cfg("FASCICOLI_DB"), _cfg("FASCICOLI_DOCS"), _cfg("FASCICOLI_ARCH"))
     studio_db = _studio_db("FASCICOLI_DB")
     snapshot_key = (paths, id(studio_db))
@@ -118,14 +133,14 @@ def get_fascicoli() -> GestioneFascicoli:
     )
     single_sql_projection = studio_db is not None and has_request_context() and request.method == "GET" and request.endpoint in {
         "api_v1_react.fascicolo_react_dettaglio", "api_v1_react.cliente_cartella_react", "editor_new_document_matters",
-        "api_v1_documenti_ai.catalogazione_documentale_fascicolo", *_SEZIONI_DETTAGLIO_FASCICOLO,
+        "api_v1_documenti_ai.catalogazione_documentale_fascicolo", *_SEZIONI_DETTAGLIO_FASCICOLO, *_LETTURE_PUNTUALI_PRESIDIO,
     }
     manager = GestioneFascicoli(
         db_path=paths[0],
         documents_dir=paths[1],
         archive_dir=paths[2],
         studio_db=studio_db,
-        carica_tutto=not (single_document_command or single_sql_projection),
+        carica_tutto=not (single_document_command or single_sql_projection or ((scadenza_compatta or puntuale) and studio_db is not None)),
     )
     if cartella_read:
         g.cartella_fascicoli_snapshot = (snapshot_key, manager)
@@ -140,6 +155,19 @@ def get_practice_engine() -> PracticeEngineRepository:
         # Derivarlo dal mirror creerebbe uno studio.db parallelo nel modulo.
         studio_db=_studio_db("FASCICOLI_DB"),
     )
+
+
+def stato_ultima_sessione_deposito(fascicolo_id: str) -> str:
+    """Consulta lo stato della sessione più recente nel database dello studio."""
+    studio_db = _studio_db("FASCICOLI_DB")
+    if studio_db is None:
+        sessions = get_practice_engine().list_deposit_sessions(fascicolo_id)
+        return str(sessions[0].status) if sessions else ""
+    row = studio_db.conn.execute(
+        "SELECT status FROM deposit_sessions WHERE fascicolo_id = ? ORDER BY created_at DESC, id LIMIT 1",
+        (fascicolo_id,),
+    ).fetchone()
+    return str(row[0] or "") if row else ""
 
 
 def get_scadenziario() -> GestioneScadenziario:

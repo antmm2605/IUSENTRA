@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { CheckCircle2, Circle, ExternalLink } from 'lucide-react'
 import { apiJson } from '../../lib/apiClient'
 import { generateFascicoloProforma } from '../../fascicoliData'
 import { Badge } from '../dashboard'
+import { SourceDocumentModal, type SourceDocument } from '../SourceDocumentModal'
 import { LoadingState } from '../../ui/LoadingState'
+import type { RiscontriProcessualiData } from './RiscontriProcessuali'
+
+const RiscontriProcessuali = lazy(() => import('./RiscontriProcessuali'))
 
 // Conto economico del fascicolo: le voci con la fonte che le giustifica e il percorso
 // sentenza → proforma → pagamento → fattura di pari importo → conferma (art. 6 e art. 21 D.P.R. 633/1972).
@@ -14,15 +18,16 @@ type Fonte = { label: string; href: string; norma?: string }
 type Riga = { voce: string; etichetta: string; importoLabel: string; stato: string; tono: Tono; dettaglio: string; fonti: Fonte[]; norma: string }
 type Azione = { label: string; href?: string; comando?: 'genera_proforma' }
 type Passo = { codice: string; etichetta: string; fatto: boolean; dettaglio?: string; azione?: Azione }
-type ContoEconomico = { ok: boolean; message?: string; righe: Riga[]; percorso: { passi: Passo[]; prossimoPasso: string } }
+type ContoEconomico = { ok: boolean; riscontriProcessuali?: RiscontriProcessualiData; message?: string; righe: Riga[]; percorso: { passi: Passo[]; prossimoPasso: string } }
 
 const VUOTO: ContoEconomico = { ok: false, message: 'Conto economico non disponibile in questo momento.', righe: [], percorso: { passi: [], prossimoPasso: '' } }
 
-export function ContoEconomicoPanel({ fascicoloId, active = true }:{ fascicoloId:string; active?:boolean }) {
+export function ContoEconomicoPanel({ fascicoloId, active = true, onReady }:{ fascicoloId:string; active?:boolean; onReady?: () => void }) {
   const [conto, setConto] = useState<ContoEconomico | null>(null)
   const [ricarica, setRicarica] = useState(0)
   const [messaggio, setMessaggio] = useState('')
   const [inCorso, setInCorso] = useState(false)
+  const [fonteAperta, setFonteAperta] = useState<SourceDocument | null>(null)
   const esegui = async (azione: Azione) => {
     if (azione.comando !== 'genera_proforma') return
     setInCorso(true)
@@ -40,15 +45,21 @@ export function ContoEconomicoPanel({ fascicoloId, active = true }:{ fascicoloId
     if (!active || !fascicoloId) return
     const controller = new AbortController()
     setConto(null)
+    setFonteAperta(null)
     apiJson<ContoEconomico>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/conto-economico`, VUOTO, { signal: controller.signal, activity: 'Lettura del conto economico…' })
-      .then((dati) => { if (!controller.signal.aborted) setConto(dati) })
+      .then((dati) => {
+        if (controller.signal.aborted) return
+        setConto(dati)
+        if (dati.ok) onReady?.()
+      })
     return () => controller.abort()
-  }, [active, fascicoloId, ricarica])
+  }, [active, fascicoloId, ricarica, onReady])
   if (!active) return null
   if (!conto) return <LoadingState title="Conto economico" message="Raccolta di importi e fonti del fascicolo."/>
   if (!conto.ok) return <p className="iu-conto__vuoto">{conto.message || VUOTO.message}</p>
   return (
     <section className="iu-conto" aria-label="Conto economico del fascicolo">
+      <SourceDocumentModal source={fonteAperta} onClose={() => setFonteAperta(null)}/>
       <ol className="iu-conto__percorso" aria-label="Percorso dal pagamento alla fattura">
         {conto.percorso.passi.map((passo) => (
           <li key={passo.codice} className={passo.fatto ? 'iu-conto__passo iu-conto__passo--fatto' : 'iu-conto__passo'}>
@@ -62,6 +73,7 @@ export function ContoEconomicoPanel({ fascicoloId, active = true }:{ fascicoloId
       </ol>
       {messaggio ? <p className="iu-conto__messaggio" role="status">{messaggio}</p> : null}
       {conto.percorso.prossimoPasso ? <p className="iu-conto__prossimo"><strong>Prossimo passo</strong> {conto.percorso.prossimoPasso}</p> : null}
+      {conto.riscontriProcessuali?.conclusioni?.length ? <Suspense fallback={null}><RiscontriProcessuali fascicoloId={fascicoloId} dati={conto.riscontriProcessuali}/></Suspense> : null}
       <table className="iu-conto__tabella">
         <thead><tr><th scope="col">Voce</th><th scope="col">Importo</th><th scope="col">Stato</th><th scope="col">Fonte</th></tr></thead>
         <tbody>
@@ -75,7 +87,11 @@ export function ContoEconomicoPanel({ fascicoloId, active = true }:{ fascicoloId
                   <ul className="iu-conto__fonti">
                     {riga.fonti.map((fonte) => (
                       <li key={`${fonte.href}-${fonte.label}`}>
-                        {fonte.href ? <a href={fonte.href} target="_blank" rel="noopener noreferrer">{fonte.label} <ExternalLink size={12} aria-hidden="true"/></a> : <span>{fonte.label}</span>}
+                        {fonte.href ? <a href={fonte.href} onClick={(event) => {
+                          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                          event.preventDefault()
+                          setFonteAperta({ href: fonte.href, label: fonte.label, context: riga.etichetta })
+                        }}>{fonte.label} <ExternalLink size={12} aria-hidden="true"/></a> : <span>{fonte.label}</span>}
                         {fonte.norma ? <small>{fonte.norma}</small> : null}
                       </li>
                     ))}

@@ -1,0 +1,25 @@
+.iu-fas-collab{display:grid;gap:10px}
+.iu-fas-collab__msg{display:flex;align-items:center;gap:6px;margin:0;padding:8px 12px;border-radius:10px;background:rgba(22,163,74,.08);color:#14532d;font-size:12.5px;font-weight:800}
+.iu-fas-collab__msg--errore{background:rgba(220,38,38,.08);color:#7f1d1d}
+.iu-fas-collab__avviso{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0;padding:9px 12px;border-radius:10px;background:var(--iu-bg,#f8fafc);border:1px solid var(--iu-border);color:#334155;font-size:12.5px;font-weight:700}
+.iu-fas-collab__avviso button{min-height:44px;padding:0 12px;border:1px solid var(--iu-border);border-radius:9px;background:white;font-weight:800;cursor:pointer}
+.iu-fas-collab__lista{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.iu-fas-collab__lista li{display:grid;gap:6px;padding:10px 12px;background:white;border:1px solid var(--iu-border);border-radius:12px}
+.iu-fas-collab__lista li.is-scaduto{border-color:rgba(220,38,38,.35);background:rgba(220,38,38,.03)}
+.iu-fas-collab__chi{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.iu-fas-collab__chi strong{font-size:13.5px;font-weight:900;color:#111827}
+.iu-fas-collab__meta{font-size:11.5px;font-weight:700;color:#475569}
+.iu-fas-collab__stato{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.iu-fas-collab__tag{padding:2px 8px;font-size:11.5px;font-weight:700;color:#334155;border:1px solid var(--iu-border);border-radius:999px;background:#f8fafc}
+.iu-fas-collab__note{margin:0;font-size:12px;color:#475569}
+.iu-fas-collab__azioni{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:700}
+.iu-fas-collab button{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--iu-border);border-radius:9px;background:white;color:#0f172a;font-size:12px;font-weight:800;cursor:pointer}
+.iu-fas-collab button:disabled{opacity:.5;cursor:not-allowed}
+.iu-fas-collab button:focus-visible{outline:2px solid #075985;outline-offset:3px}
+.iu-fas-collab .iu-fas-collab__pericolo{border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08);color:#991b1b}
+.iu-fas-collab__form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:9px;align-items:start;padding:12px;background:white;border:1px solid var(--iu-border);border-radius:12px}
+.iu-fas-collab__form label{display:grid;gap:3px;min-width:0;font-size:11.5px;font-weight:800;color:#475569}
+.iu-fas-collab__form input,.iu-fas-collab__form select{width:100%;min-width:0;box-sizing:border-box;min-height:44px;padding:5px 9px;border:1px solid var(--iu-border);border-radius:8px;font-size:12.5px;font-weight:600}
+.iu-fas-collab__largo{grid-column:1/-1}
+.iu-fas-collab__aiuto{margin:0;font-size:12px;color:#475569}
+.iu-fas-collab .iu-fas-collab__invia{border:0;background:#0f172a;color:white}

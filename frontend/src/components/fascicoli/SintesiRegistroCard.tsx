@@ -18,7 +18,7 @@ export function SintesiRegistroCard({ sintesi }: { sintesi: SintesiRegistro | nu
     <details className="iu-fas-registro">
       <summary>
         <Database size={14}/> Registro del fascicolo
-        <span>{sintesi.documenti_presenti} documenti · {sintesi.pec_collegate} PEC · {sintesi.allegati_pec} allegati{` · ${riepilogoAttesaSintesi(sintesi)}`}</span>
+        <span>{sintesi.documenti_presenti} documenti · {sintesi.pec_collegate} PEC collegate alla casella · {sintesi.allegati_pec} allegati di casella{Boolean(sintesi.eml_archiviati) && ` · ${sintesi.eml_archiviati} file EML nei documenti`}{` · ${riepilogoAttesaSintesi(sintesi)}`}</span>
       </summary>
       <dl className="iu-fas-registro__identita">
         <div><dt>Cliente</dt><dd>{sintesi.cliente || 'n.d.'}</dd></div>

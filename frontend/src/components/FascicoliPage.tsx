@@ -186,7 +186,6 @@ import { FormSubmitError, csrfToken, redirectAfterSuccess, submitFormJson } from
 import { formatDateInputIt, formatDateIt, formatDateTimeIt, formatEuroIt } from '../formatting'
 import { normaliseStudioRuntimeResult, type StudioRuntimeOffice, type StudioRuntimeResult } from '../studioModuleRuntime'
 import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
-import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
 import { ContoEconomicoPanel } from './fascicoli/ContoEconomicoPanel'
 import { ContoEconomicoPulsante } from './fascicoli/ContoEconomicoPulsante'
 import { FascicoloNormativaButton } from '../features/fascicoli/normativa/FascicoloNormativaButton'
@@ -218,6 +217,9 @@ import { usePresenzaCtuMediazione } from './fascicoli/usePresenzaCtuMediazione'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
+const LetturaFascicoloPanel = lazy(() => import('./fascicoli/LetturaFascicoloPanel')
+  .then((modulo) => ({ default: modulo.LetturaFascicoloPanel })))
+const CollaboratoriFascicoloPanel = lazy(() => import('./fascicoli/CollaboratoriFascicoloPanel').then((module) => ({ default: module.CollaboratoriFascicoloPanel })))
 const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((module) => ({ default: module.OfficeDocumentsPanel })))
 const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'))
 const PenalePdpSezione = lazy(() => import('./penalePdp/PenalePdpSezione'))
@@ -659,39 +661,6 @@ function countIt(value: number, singular: string, plural: string): string {
   return `${value} ${value === 1 ? singular : plural}`
 }
 
-type DeadlineAlertItem = FascicoliPageData['deadlines'][number]
-
-function startOfLocalDay(value = new Date()): Date {
-  const day = new Date(value)
-  day.setHours(0, 0, 0, 0)
-  return day
-}
-
-function parseDeadlineDate(value: string): Date | null {
-  const raw = String(value || '').trim()
-  if (!raw) return null
-  const dateOnly = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
-  if (dateOnly) {
-    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-  }
-  const parsed = new Date(raw)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function deadlineAlertWindow(item: DeadlineAlertItem, today = new Date()) {
-  const parsed = parseDeadlineDate(item.dateIso)
-  if (!parsed) return 'unknown'
-  const current = startOfLocalDay(today).getTime()
-  const deadline = startOfLocalDay(parsed).getTime()
-  const nextSevenDays = current + 7 * 24 * 60 * 60 * 1000
-  if (deadline < current) return 'overdue'
-  if (deadline <= nextSevenDays) return 'upcoming7'
-  return 'outside'
-}
-
-function isDeadlineAlertUpcoming7(item: DeadlineAlertItem): boolean {
-  return deadlineAlertWindow(item) === 'upcoming7'
-}
 
 function deadlineUrgencyCopy(summary: FascicoliPageData['summary']) {
   const overdue = Number(summary.overdueDeadlines || 0)
@@ -2210,7 +2179,7 @@ function CatalogazioneDocumentalePanel({
           </div>
         ) : null}
         <dl>
-          <div><dt>Documenti</dt><dd>{summary?.source_documents ?? 0}</dd></div>
+          <div><dt>Documenti</dt><dd>{summary?.source_documents ?? documents.length}</dd></div>
           <div><dt>Catalogati</dt><dd>{summary?.total ?? 0}</dd></div>
           <div><dt>Automatici</dt><dd>{summary?.catalogued ?? 0}</dd></div><div><dt>Proposti</dt><dd>{summary?.proposed ?? 0}</dd></div>
           <div><dt>Confermati</dt><dd>{summary?.confirmed ?? 0}</dd></div>
@@ -4059,13 +4028,15 @@ function FascicoliListPage() {
   )
   const deadlineCopy = deadlineUrgencyCopy(data.summary)
   const [todayDay, todayMonth, todayYear] = formatDateIt(new Date()).split('/').map(Number)
-  const urgentUntil = formatDateIt(new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + 7, 12))).split('/').reverse().join('-')
-  const urgentDeadlinesHref = `/scadenziario?vista=aperte&al=${urgentUntil}`
+  const deadlineDay = (offset: number) => new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + offset, 12)).toISOString().slice(0, 10)
+  const urgentFrom = deadlineDay(-6)
+  const urgentUntil = deadlineDay(7)
+  const urgentDeadlinesHref = `/scadenziario?vista=aperte&dal=${urgentFrom}&al=${urgentUntil}`
   const deadlineAlertItems = data.deadlines
-    .filter((item) => isDeadlineAlertUpcoming7(item) || deadlineAlertWindow(item) === 'overdue')
-    .sort((a, b) => (parseDeadlineDate(a.dateIso)?.getTime() || 0) - (parseDeadlineDate(b.dateIso)?.getTime() || 0))
+    .filter((item) => item.dateIso >= urgentFrom && item.dateIso <= urgentUntil)
+    .sort((a, b) => a.dateIso.localeCompare(b.dateIso))
     .slice(0, 4)
-  const deadlineAlertHeading = `${deadlineCopy.title.replace('Scadenze', 'Scadenze aperte')} dello studio`
+  const deadlineAlertHeading = 'Scadenze aperte degli ultimi 7 giorni e dei prossimi 7 giorni'
 
   const listHeader = (
         <section className="iu-fas-hero">
@@ -5627,6 +5598,23 @@ const emptyLazySections: Record<FascicoloDetailSection, LazySectionStatus> = {
   relata: 'idle',
   audit: 'idle',
   lex: 'idle',
+}
+
+/** Il dettaglio iniziale con i campi delle sezioni già arrivate dalla loro chiamata, che restano quelli. */
+function conservaSezioniCaricate(payload: FascicoloDetailData, current: FascicoloDetailData, loaded: Set<FascicoloDetailSection>): FascicoloDetailData {
+  if (!loaded.size) return payload
+  const next: FascicoloDetailData = { ...payload, quickCounts: { ...current.quickCounts, ...payload.quickCounts } }
+  if (loaded.has('documenti')) { next.documents = current.documents; next.lexIndexing = current.lexIndexing }
+  if (loaded.has('attivita')) { next.activities = current.activities; next.technicalEvents = current.technicalEvents; next.requests = current.requests }
+  if (loaded.has('scadenze')) { next.deadlines = current.deadlines; next.appointments = current.appointments; next.documentPresidio = current.documentPresidio }
+  if (loaded.has('scadenze') || loaded.has('depositi') || loaded.has('relata')) next.operationalPresidio = current.operationalPresidio
+  if (loaded.has('depositi')) next.deposits = current.deposits
+  if (loaded.has('depositi') || loaded.has('regia')) next.depositCatalog = current.depositCatalog
+  if (loaded.has('regia')) next.regia = current.regia
+  if (loaded.has('relata')) next.notificationRelata = current.notificationRelata
+  if (loaded.has('audit')) next.auditTrail = current.auditTrail
+  if (loaded.has('lex')) next.lexIndexing = current.lexIndexing
+  return next
 }
 
 function initialDetailIncludesFromHash(): FascicoloDetailSection[] {
@@ -9913,32 +9901,44 @@ function DetailPage({ id }:{id:string}) {
   const [patVisited, setPatVisited] = useState(() => currentDetailHashSectionId() === 'pat-formweb')
   const [pttVisited, setPttVisited] = useState(() => currentDetailHashSectionId() === 'ptt-sigit')
   const [letturaOpen, setLetturaOpen] = useState(() => currentDetailHashSectionId() === 'lettura-fascicolo')
+  const [collaboratoriOpen, setCollaboratoriOpen] = useState(() => currentDetailHashSectionId() === 'collaboratori-fascicolo')
   const [contoOpen, setContoOpen] = useState(() => currentDetailHashSectionId() === 'conto-economico')
   const [ctuVisible, setCtuVisible] = useState(() => currentDetailHashSectionId() === 'ctu')
   const [ctuMediazioneRichieste, setCtuMediazioneRichieste] = useState(() => ['ctu', 'mediazione'].includes(currentDetailHashSectionId()))
   const quadro = useQuadroFascicolo(id)
-  const presenzaCtuMediazione = usePresenzaCtuMediazione(id)
+  const revisioneLettura = useRef({ fascicoloId: '', impronta: '' })
+  const presenzaCtuMediazione = usePresenzaCtuMediazione(!loading && data.fascicolo.id === id && quadro.lettura.fase !== 'caricamento' ? id : '')
+  const requestedRefreshSections = useRef(new Set<FascicoloDetailSection>())
+  const requestedDetailRefresh = useRef(false)
+  const confirmedDetailView = useRef<{ revisions?: OperationalRevisions; context?: string; sections: FascicoloDetailSection[] }>({ sections: [] })
+  // Sezioni già arrivate con la loro chiamata: il dettaglio iniziale, se arriva dopo, non le sovrascrive.
+  const lazyLoadedSections = useRef(new Set<FascicoloDetailSection>())
+  const lazyPendingSections = useRef(new Set<FascicoloDetailSection>())
+  const refreshWorkspaceId = useRef(id)
+  if (refreshWorkspaceId.current !== id) {
+    refreshWorkspaceId.current = id
+    requestedRefreshSections.current.clear()
+    requestedDetailRefresh.current = false
+    confirmedDetailView.current = { sections: [] }
+    lazyLoadedSections.current = new Set()
+    lazyPendingSections.current = new Set()
+  }
   useEffect(() => {
     let active = true
     const initialIncludes = initialDetailIncludesFromHash()
     setActiveHashSection(currentDetailHashSectionId())
     setLoading(true)
-    setLazyStatus(() => {
-      const next = { ...emptyLazySections }
-      for (const section of initialIncludes) next[section] = 'loading'
-      if (initialIncludes.includes('documenti')) next.lex = 'loading'
-      return next
-    })
-    getFascicoloDetail(id, initialIncludes.length ? { include: initialIncludes } : undefined).then((payload) => {
+    setLazyStatus({ ...emptyLazySections })
+    for (const section of initialIncludes) loadLazySection(section)
+    getFascicoloDetail(id, { confirmRevision: true }).then((payload) => {
       if (active) {
-        setData(payload)
-        if (initialIncludes.length) {
-          setLazyStatus((current) => {
-            const next = { ...current }
-            for (const section of initialIncludes) next[section] = 'loaded'
-            if (initialIncludes.includes('documenti')) next.lex = 'loaded'
-            return next
-          })
+        setData((current) => conservaSezioniCaricate(payload, current, lazyLoadedSections.current))
+        if (payload.readRevision) {
+          confirmedDetailView.current = {
+            revisions: payload.readRevision,
+            context: payload.readRevisionContext,
+            sections: [...lazyLoadedSections.current],
+          }
         }
       }
     }).finally(() => { if (active) setLoading(false) })
@@ -9997,10 +9997,14 @@ function DetailPage({ id }:{id:string}) {
         ? { value: '!', label: 'Registro audit da ricaricare' }
         : { value: '—', label: 'Registro audit non ancora caricato' }
   const loadLazySection = (section: FascicoloDetailSection) => {
-    if (lazyStatus[section] === 'loaded' || lazyStatus[section] === 'loading') return
+    const pending = lazyPendingSections.current
+    const valida = () => lazyPendingSections.current === pending && refreshWorkspaceId.current === id
+    if (pending.has(section) || lazyLoadedSections.current.has(section)) return
+    pending.add(section)
     setLazyStatus((current) => ({ ...current, [section]: 'loading' }))
     getFascicoloDetailSection(id, section)
       .then((payload) => {
+        if (!valida()) return
         setData((current) => ({
           ...current,
           quickCounts: { ...current.quickCounts, ...payload.quickCounts },
@@ -10010,25 +10014,30 @@ function DetailPage({ id }:{id:string}) {
           requests: section === 'attivita' ? payload.requests : current.requests,
           deadlines: section === 'scadenze' ? payload.deadlines : current.deadlines,
           appointments: section === 'scadenze' ? payload.appointments : current.appointments,
-          documentPresidio: section === 'scadenze' || section === 'documenti' ? payload.documentPresidio : current.documentPresidio,
-          operationalPresidio: section === 'scadenze' || section === 'documenti' || section === 'depositi' || section === 'relata' ? payload.operationalPresidio : current.operationalPresidio,
+          documentPresidio: section === 'scadenze' ? payload.documentPresidio : current.documentPresidio,
+          operationalPresidio: section === 'scadenze' || section === 'depositi' || section === 'relata' ? payload.operationalPresidio : current.operationalPresidio,
           deposits: section === 'depositi' ? payload.deposits : current.deposits,
           depositCatalog: section === 'depositi' || section === 'regia' ? payload.depositCatalog : current.depositCatalog,
           regia: section === 'regia' ? payload.regia : current.regia,
           notificationRelata: section === 'relata' ? payload.notificationRelata : current.notificationRelata,
           auditTrail: section === 'audit' ? payload.auditTrail : current.auditTrail,
-          lexIndexing: section === 'lex' || section === 'documenti' ? payload.lexIndexing : current.lexIndexing,
+          lexIndexing: section === 'lex' ? payload.lexIndexing : current.lexIndexing,
         }))
+        lazyLoadedSections.current.add(section)
+        // Letta dopo la revisione confermata del dettaglio: è almeno altrettanto aggiornata.
+        if (confirmedDetailView.current.revisions && !confirmedDetailView.current.sections.includes(section)) {
+          confirmedDetailView.current = { ...confirmedDetailView.current, sections: [...confirmedDetailView.current.sections, section] }
+        }
         setLazyStatus((current) => ({
           ...current,
           [section]: 'loaded',
-          ...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {}),
         }))
       })
       .catch((err) => {
+        if (!valida()) return
         setLazyStatus((current) => ({ ...current, [section]: 'error' }))
         setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Caricamento sezione non riuscito.' })
-      })
+      }).finally(() => pending.delete(section))
   }
   const openDocumentFlow = (mode: DocumentFlowMode) => {
     setContextMenu(null)
@@ -10125,19 +10134,13 @@ function DetailPage({ id }:{id:string}) {
     const currentId = f.id || id
     setContributoMemory(readContributionMemory(currentId))
   }, [f.id, id])
-  // Agenda compatta in testa al fascicolo: le scadenze si caricano appena il fascicolo è pronto.
+  // Il dettaglio porta già gli impegni dell'agenda compatta. Il pannello
+  // completo richiede separatamente il presidio documentale e i suoi riscontri.
   useEffect(() => {
-    if (loading || !(f.id || id)) return
+    if (!id || loading || data.notFound || data.agendaLoaded || data.fascicolo.id !== id) return
     loadLazySection('scadenze')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, f.id, id])
-  // La sezione «Deposito telematico» si apre da sola solo se c'è un deposito da preparare: la fase del
-  // deposito sta nel presidio, che si legge appena il fascicolo è pronto (D.M. 44/2011 artt. 12 e 14).
-  useEffect(() => {
-    if (loading || !(f.id || id)) return
-    loadLazySection('regia')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, f.id, id])
+  }, [id, loading, data.notFound, data.agendaLoaded, data.fascicolo.id])
   useEffect(() => {
     if (loading) return undefined
     const openHashSection = () => {
@@ -10166,16 +10169,6 @@ function DetailPage({ id }:{id:string}) {
     window.addEventListener('hashchange', openHashSection)
     return () => window.removeEventListener('hashchange', openHashSection)
   }, [loading, data.fascicolo.id])
-  const requestedRefreshSections = useRef(new Set<FascicoloDetailSection>())
-  const requestedDetailRefresh = useRef(false)
-  const confirmedDetailView = useRef<{ revisions?: OperationalRevisions; context?: string; sections: FascicoloDetailSection[] }>({ sections: [] })
-  const refreshWorkspaceId = useRef(id)
-  if (refreshWorkspaceId.current !== id) {
-    refreshWorkspaceId.current = id
-    requestedRefreshSections.current.clear()
-    requestedDetailRefresh.current = false
-    confirmedDetailView.current = { sections: [] }
-  }
   const refreshDetail = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
     requestedDetailRefresh.current = true
@@ -10241,9 +10234,16 @@ function DetailPage({ id }:{id:string}) {
     scheduleDetailRefresh()
   }
   const failDetail = useCallback((message: string) => setToast({ tone: 'danger', message }), [])
-  const clearLetturaError = useCallback(() => setToast((current) => (
-    current?.tone === 'danger' && /^Lettura del fascicolo/i.test(current.message) ? null : current
-  )), [])
+  const ricaricaQuadro = quadro.riprova
+  const letturaPronta = useCallback((lettura: LetturaFascicolo) => {
+    setToast((current) => (
+      current?.tone === 'danger' && /^Lettura del fascicolo/i.test(current.message) ? null : current
+    ))
+    const impronta = lettura.ragionamento?.impronta || ''
+    if (revisioneLettura.current.fascicoloId === id && revisioneLettura.current.impronta === impronta) return
+    revisioneLettura.current = { fascicoloId: id, impronta }
+    ricaricaQuadro()
+  }, [id, ricaricaQuadro])
   const handleDetailPaymentSaved = useCallback((savedId: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {
     setData((current) => {
       const currentId = current.fascicolo.id || id
@@ -10261,15 +10261,17 @@ function DetailPage({ id }:{id:string}) {
   const mostraCtu = ctuMediazioneRichieste || presenzaCtuMediazione.ctu || activeHashSection === 'ctu'
   const mostraMediazione = ctuMediazioneRichieste || presenzaCtuMediazione.mediazione || activeHashSection === 'mediazione'
   const regiaLetta = lazyStatus.regia === 'loaded' && data.regia.page_state !== 'lazy_non_caricata'
-  const fasePresidio = data.regia.header.depositPhase
-  const faseDeposito = regiaLetta ? recordText(fasePresidio, 'codice') : ''
-  const depositoSezione = !regiaLetta
-    ? { apri: activeHashSection === 'sezione-deposito', evidenza: false, avviso: lazyStatus.regia === 'error' ? 'Verifica del deposito non riuscita: apri la sezione per riprovare' : 'Verifica del deposito in corso…' }
+  const ricevuteCancelleria = data.regia.courtDepositReceipts
+  const fasePresidio = regiaLetta ? data.regia.header.depositPhase : data.depositPhaseSummary
+  const faseDeposito = fasePresidio ? recordText(fasePresidio, 'codice') : ''
+  const depositoAttivo = faseDeposito === 'preparazione' || faseDeposito === 'in_corso'
+  const depositoSezione = !regiaLetta && !depositoAttivo
+    ? { apri: activeHashSection === 'sezione-deposito', evidenza: false, avviso: lazyStatus.regia === 'error' ? 'Verifica del deposito non riuscita: apri la sezione per riprovare' : lazyStatus.regia === 'loading' ? 'Verifica del deposito in corso…' : 'Apri la sezione per consultare lo stato del deposito' }
     : faseDeposito === 'preparazione'
       ? { apri: true, evidenza: true, avviso: 'Deposito da preparare: checklist, documenti richiesti e busta' }
       : faseDeposito === 'in_corso'
-        ? { apri: true, evidenza: false, avviso: 'Deposito inviato: in attesa delle ricevute' }
-        : { apri: activeHashSection === 'sezione-deposito', evidenza: false, avviso: data.regia.page_state === 'profilo_da_confermare' ? 'Nessun deposito da preparare · profilo della procedura da confermare' : 'Nessun deposito da preparare' }
+        ? { apri: true, evidenza: false, avviso: regiaLetta ? recordText(fasePresidio, 'motivo') || 'Deposito in corso' : 'Deposito registrato · verifica delle ricevute in corso' }
+        : { apri: activeHashSection === 'sezione-deposito', evidenza: false, avviso: ricevuteCancelleria.items.length ? 'Accettazioni della cancelleria disponibili' : data.regia.page_state === 'profilo_da_confermare' ? 'Nessun deposito da preparare · profilo della procedura da confermare' : 'Nessun deposito da preparare' }
   const statoQuadro = quadro.lettura.fase === 'pronto' ? quadro.lettura.dati.stato : null
   const statoTestata: { etichetta: string; tono: FascicoloRow['tone']; dettaglio: string } = statoQuadro?.etichetta
     ? { etichetta: statoQuadro.etichetta, tono: statoPraticaTono(statoQuadro.codice, f.tone), dettaglio: statoQuadro.dettaglio }
@@ -10287,17 +10289,27 @@ function DetailPage({ id }:{id:string}) {
     if (lazySection) loadLazySection(lazySection)
     openDetailSectionById(sectionId)
   }
-  if (loading && !data.fascicolo.id) return <main className="iu-content iu-fascicoli-page iu-page-loading"><LoadingState title="Caricamento fascicolo" message="Lettura dei dati e dei documenti in corso."/></main>
+  const quadroFascicolo = (
+    <QuadroFascicolo lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => openDetailSectionById(
+      sezione === 'sezione-andamento' ? 'lettura-fascicolo' : sezione === 'sezione-economia' ? 'conto-economico' : sezione
+    )}/>
+  )
+  if (loading && data.fascicolo.id !== id) return (
+    <main className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
+      {quadro.lettura.fase === 'pronto' ? quadroFascicolo : null}
+      <LoadingState title="Caricamento fascicolo" message="Caricamento delle sezioni del fascicolo."/>
+    </main>
+  )
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title={data.requestError ? 'Dati fascicolo non caricati' : 'Fascicolo non trovato'} action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>{data.requestError || 'Il fascicolo non è disponibile o non hai i permessi per aprirlo.'}</EmptyState></main>
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page" onContextMenu={openFascicoloContextMenu}>
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge><span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/strumenti-legali/?id_fascicolo=${encodeURIComponent(f.id || id)}`} aria-label="Strumenti Forensi del fascicolo" title="Strumenti Forensi del fascicolo"><Calculator size={18}/></a><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/email/?id_fascicolo=${encodeURIComponent(f.id || id)}&cartella=TUTTE`} aria-label="PEC del fascicolo" title="PEC del fascicolo: ricevute, inviate e cestino"><Mail size={18}/></a><FascicoloNormativaButton fascicoloId={f.id || id}/>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/strumenti-legali/?id_fascicolo=${encodeURIComponent(f.id || id)}`} aria-label="Strumenti Forensi del fascicolo" title="Strumenti Forensi del fascicolo"><Calculator size={18}/></a><a className="iu-button iu-button--secondary iu-fas-tools-shortcut" href={`/email/?id_fascicolo=${encodeURIComponent(f.id || id)}&cartella=TUTTE`} aria-label="PEC del fascicolo" title="PEC del fascicolo: ricevute, inviate e cestino"><Mail size={18}/></a><FascicoloNormativaButton fascicoloId={f.id || id}/>{f.type === 'penale' ? <a className="iu-button iu-button--primary" href="#penale-pdp" onClick={(event) => { setPenaleVisited(true); openSection('penale-pdp')(event) }}><Send size={15}/> Deposito penale (PDP)</a> : f.type === 'amministrativo' ? <a className="iu-button iu-button--primary" href="#pat-formweb" onClick={(event) => { setPatVisited(true); openSection('pat-formweb')(event) }}><Send size={15}/> Deposito amministrativo (PAT)</a> : f.type === 'tributario' ? <a className="iu-button iu-button--primary" href="#ptt-sigit" onClick={(event) => { setPttVisited(true); openSection('ptt-sigit')(event) }}><Send size={15}/> Deposito tributario (PTT)</a> : <button className="iu-button iu-button--primary" type="button" onClick={() => openDocumentFlow('deposito')}><Send size={15}/> Deposito telematico</button>}<RecordOverlayButton icon={<UserRound size={15}/>} label="Cliente" title="Visualizza cliente nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'cliente', title: data.client?.name || f.client || 'Cliente', href: clientRecordHref })}/><RecordOverlayButton icon={<UsersRound size={15}/>} label="Soggetti" title="Visualizza soggetti e parti nel fascicolo" onClick={() => setEmbeddedRecord({ kind: 'soggetti', title: 'Soggetti e parti', href: partiesRecordHref })}/><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><button className="iu-button iu-button--secondary" type="button" title="Prepara una notifica legale per questa pratica" onClick={() => openDocumentFlow('notifica')}><Bell size={15}/> Notifica</button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina (PDF)</Button><Button href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button><PagoPaActionButton onClick={openPagoPaModal}/></div>
       </section>
       <TestataFascicolo rg={f.rg || f.ref} ufficio={f.court} rito={f.procedureType} giudice={f.judge} cliente={data.client?.name || f.client} controparte={f.counterparty} valore={Number(f.caseValue) || 0} stato={statoTestata.etichetta} statoTono={statoTestata.tono} statoDettaglio={statoTestata.dettaglio}/>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <QuadroFascicolo lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => openDetailSectionById(sezione)}/>
+      {quadroFascicolo}
       <nav className="iu-fas-section-nav" aria-label="Sezioni del fascicolo">{SEZIONI_FASCICOLO.map((sezione) => <a key={sezione.id} href={`#${sezione.id}`} onClick={openSection(sezione.id)} title={`${sezione.titolo}: ${sezione.descrizione}`}>{sezione.numero}. {sezione.breve}{sezioneCounts[sezione.id] ? <b>{sezioneCounts[sezione.id]}</b> : null}</a>)}</nav>
       <section className="iu-fas-detail-grid iu-fas-detail-grid--with-guide">
         <aside className="iu-fas-guide-column" aria-label="Guida pratica facoltativa del fascicolo">
@@ -10314,10 +10326,13 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="uffici-competenti" title="Uffici giudiziari per Comune" icon={<MapPin size={17}/>} defaultOpen={activeHashSection === 'uffici-competenti'}>
             <FascicoloUfficiCompetentiPanel fascicolo={f}/>
           </DetailSection>
+          <DetailSection id="collaboratori-fascicolo" title="Collaboratori del fascicolo" icon={<UsersRound size={17}/>} defaultOpen={activeHashSection === 'collaboratori-fascicolo'} onToggle={setCollaboratoriOpen}><Suspense fallback={null}><CollaboratoriFascicoloPanel fascicoloId={f.id || id} active={collaboratoriOpen}/></Suspense></DetailSection>
         </SezioneFascicolo>
         <SezioneFascicolo id="sezione-andamento">
           <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'} onToggle={setLetturaOpen}>
-            <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={clearLetturaError}/>
+            <Suspense fallback={<p role="status">Carico la Lettura del fascicolo…</p>}>
+              <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={letturaPronta}/>
+            </Suspense>
           </DetailSection>
           <DetailSection id="attivita" title="Cronologia della pratica" icon={<ListChecks size={17}/>} count={(data.quickCounts.attivita || 0) + data.history.length} defaultOpen={activeHashSection === 'attivita' || activeHashSection === 'avanzamento'} onOpen={() => loadLazySection('attivita')}>
             <p className="iu-fas-section-intro">Attività processuali e avanzamento della pratica in un solo elenco: prima le attività, poi i cambi di stato registrati.</p>
@@ -10344,7 +10359,7 @@ function DetailPage({ id }:{id:string}) {
           ) : null}
         </SezioneFascicolo>
         <SezioneFascicolo id="sezione-termini">
-          <AgendaFascicoloCompatta fascicoloId={f.id || id} scadenze={data.deadlines} appuntamenti={data.appointments} stato={lazyStatus.scadenze} onTutti={openSection('udienze', 'scadenze')}/>
+          <AgendaFascicoloCompatta fascicoloId={f.id || id} scadenze={data.deadlines} appuntamenti={data.appointments} stato={data.agendaLoaded ? 'loaded' : lazyStatus.scadenze} onTutti={openSection('udienze', 'scadenze')}/>
           <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} defaultOpen={activeHashSection === 'udienze'} onOpen={() => { loadLazySection('scadenze'); loadLazySection('documenti') }}>
             {lazyStatus.scadenze === 'loading' ? <p className="iu-empty">Caricamento udienze e scadenze...</p> : null}
             {lazyStatus.scadenze === 'idle' ? <p className="iu-empty">Apri la sezione per caricare udienze e scadenze collegate.</p> : null}
@@ -10353,15 +10368,15 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
         </SezioneFascicolo>
         <SezioneFascicolo id="sezione-documenti">
-          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti') }}>
+          <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} defaultOpen={activeHashSection === 'documenti'} onOpen={() => { loadLazySection('documenti'); loadLazySection('lex') }}>
             <Suspense fallback={<LoadingState title="Caricamento documenti d’ufficio" message="Preparazione degli strumenti di consultazione in corso."/>}>
               <OfficeDocumentsPanel data={data} onDone={refreshDocuments} onError={failDetail} openOfficeDocumentsRequest={officeDocumentsOpenRequest}/>
             </Suspense>
-            {lazyStatus.lex === 'loaded' || lazyStatus.documenti === 'loaded' ? (
+            {lazyStatus.lex === 'loaded' ? (
               <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             ) : lazyStatus.documenti === 'error' || lazyStatus.lex === 'error' ? (
-              <div className="iu-fas-lex__warnings" role="alert"><p>Caricamento dell’indice non riuscito. I conteggi non sono disponibili.</p><button type="button" className="iu-fas-catalog__retry" onClick={() => loadLazySection('documenti')}><RefreshCw size={14}/> Riprova caricamento</button></div>
-            ) : lazyStatus.documenti === 'loading' ? <LoadingState title="Caricamento documenti" message="Lettura dell’elenco dei documenti del fascicolo in corso."/> : <p className="iu-empty">Apri la sezione documenti per caricare il catalogo del fascicolo.</p>}
+              <div className="iu-fas-lex__warnings" role="alert"><p>Caricamento dell’indice non riuscito. I conteggi non sono disponibili.</p><button type="button" className="iu-fas-catalog__retry" onClick={() => { loadLazySection('documenti'); loadLazySection('lex') }}><RefreshCw size={14}/> Riprova caricamento</button></div>
+            ) : lazyStatus.documenti === 'loading' ? <LoadingState title="Caricamento documenti" message="Lettura dell’elenco dei documenti del fascicolo in corso."/> : null}
             <CatalogazioneDocumentalePanel
               fascicoloId={f.id || id}
               enabled={lazyStatus.documenti === 'loaded'}
@@ -10456,7 +10471,7 @@ function DetailPage({ id }:{id:string}) {
         </SezioneFascicolo>
         <SezioneFascicolo id="sezione-economia">
           <DetailSection id="conto-economico" title="Conto economico" icon={<Calculator size={17}/>} defaultOpen={activeHashSection === 'conto-economico'} onToggle={setContoOpen}>
-            <ContoEconomicoPanel active={contoOpen} fascicoloId={f.id || id}/>
+            <ContoEconomicoPanel active={contoOpen} fascicoloId={f.id || id} onReady={ricaricaQuadro}/>
           </DetailSection>
           <PresidioEconomicoSection
             data={data}
@@ -10467,7 +10482,7 @@ function DetailPage({ id }:{id:string}) {
             loading={lazyStatus.regia === 'loading'}
           />
         </SezioneFascicolo>
-        <SezioneFascicolo id="sezione-deposito" apriQuando={depositoSezione.apri} evidenza={depositoSezione.evidenza} avviso={depositoSezione.avviso}>
+        <SezioneFascicolo id="sezione-deposito" onOpen={() => loadLazySection('regia')} apriQuando={depositoSezione.apri} evidenza={depositoSezione.evidenza} avviso={depositoSezione.avviso}>
           <RegiaOperativaSection
             data={data}
             onDone={refreshDetail}
@@ -10476,6 +10491,20 @@ function DetailPage({ id }:{id:string}) {
             defaultOpen={activeHashSection === 'presidio-fascicolo' || activeHashSection === 'cabina-regia' || activeHashSection === 'regia-operativa'}
             loading={lazyStatus.regia === 'loading'}
           />
+          {ricevuteCancelleria.items.length || ricevuteCancelleria.error ? (
+            <DetailSection id="ricevute-cancelleria-depositi" title="Accettazioni della cancelleria" icon={<Mail size={17}/>} count={ricevuteCancelleria.items.length} defaultOpen={activeHashSection === 'sezione-deposito'}>
+              {ricevuteCancelleria.error ? <p className="iu-empty">{ricevuteCancelleria.error}</p> : null}
+              <div className="iu-fas-side-cards">
+                {ricevuteCancelleria.items.map((ricevuta) => (
+                  <a href={ricevuta.href} key={ricevuta.id}>
+                    <strong>{ricevuta.title}</strong>
+                    <span>{formatDateTimeIt(ricevuta.date, 'Data della ricevuta da verificare')}{ricevuta.idBusta ? ` · IdBusta ${ricevuta.idBusta}` : ''}</span>
+                    <span>Apri PEC di accettazione</span>
+                  </a>
+                ))}
+              </div>
+            </DetailSection>
+          ) : null}
           {f.type === 'penale' ? (
             <DetailSection id="penale-pdp" title="Deposito penale (PDP)" icon={<Send size={17}/>} defaultOpen={activeHashSection === 'penale-pdp'} onOpen={() => setPenaleVisited(true)}>
               {penaleVisited ? <Suspense fallback={<LoadingState title="Caricamento deposito penale" message="Preparazione della sezione richiesta in corso."/>}><PenalePdpSezione key={f.id || id} fascicoloId={f.id || id} onDocumenti={() => refreshDocuments()}/></Suspense> : null}
@@ -10674,7 +10703,7 @@ function QuadroPage({ id }:{id:string}) {
     <main id="fascicolo-quadro-top" className="iu-content iu-fascicoli-page iu-fascicolo-quadro-page">
       <section className="iu-fas-hero iu-fas-quadro-hero">
         <div><span className="iu-fas-eyebrow"><Gauge size={16}/> Quadro fascicolo</span><h1>{f.ref} - {f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge><span>{f.object || f.subtitle || 'Vista sinottica della pratica'}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href={detailHref}><FolderOpen size={15}/> Dettaglio</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href={detailHref}><FolderOpen size={15}/> Dettaglio</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina (PDF)</Button><Button variant="primary" href={exportPdfHref} disabled={!exportPdfHref} title={!exportPdfHref ? 'PDF fascicolo non disponibile' : undefined}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-quadro-strip"><strong>{f.rg}</strong><span>{f.court}</span><span>{f.client}</span><span>{loading ? 'Caricamento quadro...' : 'Dati aggiornati'}</span></section>
       <section className="iu-fas-quadro-kpis" aria-label="Indicatori quadro fascicolo">

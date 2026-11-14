@@ -8,6 +8,7 @@ from typing import Any
 from flask import Flask
 
 from web.bootstrap.core_surface_wiring import register_core_surfaces
+from web.bootstrap.pannelli_pronti_registration import registra_pannelli_pronti
 from web.bootstrap.fascicoli_surface_wiring import register_fascicoli_surfaces
 from web.bootstrap.register_blueprints import register_blueprints
 from web.bootstrap.react_route_gate import register_react_route_gate
@@ -59,3 +60,5 @@ def register_app_wiring(
     register_support_websocket(app)
     # Ogni modifica ai documenti, da qualunque via, arriva al registro delle letture.
     registra_osservatore_documenti(app)
+    # Pannelli del fascicolo pronti: risposta dal salvato finché le fonti non cambiano.
+    registra_pannelli_pronti(app)

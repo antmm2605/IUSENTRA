@@ -131,27 +131,39 @@ def fatti_precaricati(fascicolo_id: str, filtri: dict[str, Any], canonico: bool)
     return _copie(risposte[chiave])
 
 
+@contextmanager
+def fatti_del_dettaglio(fascicolo: Any) -> Iterator[None]:
+    """Rende disponibili i fatti del fascicolo per la durata della proiezione."""
+    if not has_request_context():
+        yield
+        return
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente, percorso_registro
+
+    precedente = getattr(g, "_archivio_fatti_dettaglio", None)
+    tenant, path = tenant_corrente(), percorso_registro()
+    fid = str(fascicolo.id)
+    fatti = registro_corrente().fatti(tenant, fid, verifiche=None)
+    g._archivio_fatti_dettaglio = {"tenant": tenant, "path": path, "fascicolo": fid, "fatti": fatti}
+    try:
+        yield
+    finally:
+        g._archivio_fatti_dettaglio = precedente
+
+
 def istantanea_dettaglio(function):
     """Una sola lettura SQL per la proiezione GET di un singolo fascicolo."""
     @wraps(function)
     def wrapped(**kwargs):
         from flask import request
-        if not has_request_context() or request.method != 'GET':
+        if not has_request_context() or request.method != "GET":
             return function(**kwargs)
-        repo = kwargs['get_fascicoli']()
-        fascicolo = repo.get(kwargs['id_fasc'])
+        repo = kwargs["get_fascicoli"]()
+        fascicolo = repo.get(kwargs["id_fasc"])
         if fascicolo is None:
             return function(**kwargs)
-        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente, percorso_registro
-        previous = getattr(g, '_archivio_fatti_dettaglio', None)
-        tenant, path = tenant_corrente(), percorso_registro()
-        facts = registro_corrente().fatti(tenant, str(fascicolo.id), verifiche=None)
-        g._archivio_fatti_dettaglio = {'tenant': tenant, 'path': path, 'fascicolo': str(fascicolo.id), 'fatti': facts}
-        try:
-            return function(**{**kwargs, 'get_fascicoli': lambda: repo})
-        finally:
-            g._archivio_fatti_dettaglio = previous
+        with fatti_del_dettaglio(fascicolo):
+            return function(**{**kwargs, "get_fascicoli": lambda: repo})
     return wrapped
 
 
-__all__ = ["fatti_precaricati", "precaricati"]
+__all__ = ["fatti_del_dettaglio", "fatti_precaricati", "precaricati"]

@@ -44,18 +44,24 @@ def riga(tema: str, testo: str, livello: str) -> dict[str, str]:
     return {"tema": tema, "titolo": titolo, "testo": testo, "livello": livello, "sezione": sezione}
 
 
-def riga_prossimo_passo(passi: list[Mapping[str, Any]] | None, *, ripiego: str = "") -> dict[str, str]:
+def riga_prossimo_passo(passi: list[Mapping[str, Any]] | None, *, ripiego: str = "",
+                       motivo_stato: str = "") -> dict[str, str]:
     """Il primo dei prossimi passaggi della Lettura; senza Lettura pronta, il passo economico o una frase onesta."""
     if passi:
         passo = passi[0]
         entro = _testo(passo.get("entro"))
-        testo = _testo(passo.get("azione")) + (f" (entro {entro})" if entro else "")
+        testo = _testo(passo.get("azione")) + (f" ({'scaduto il' if passo.get('scaduto') else 'entro il'} {entro})" if entro else "")
+        norma = _testo(passo.get("norma"))
+        if norma:
+            testo += f" · {norma}"
         try:
             urgenza = int(passo.get("urgenza"))
         except (TypeError, ValueError):
             urgenza = 2
         return riga("prossimo_passo", testo, "urgente" if passo.get("scaduto") else _LIVELLO_URGENZA.get(urgenza, "info"))
     if passi is not None:
+        if motivo_stato:
+            return riga("prossimo_passo", motivo_stato, "info")
         return riga("prossimo_passo", "Nessun adempimento aperto risulta dalla Lettura del fascicolo.", "ok")
     if ripiego:
         return riga("prossimo_passo", ripiego, "info")
@@ -64,7 +70,8 @@ def riga_prossimo_passo(passi: list[Mapping[str, Any]] | None, *, ripiego: str =
 
 def riga_termini(termini: Iterable[Mapping[str, Any]], *, oggi: date) -> dict[str, str]:
     """La scadenza o l'udienza futura più vicina; scadenze passate e chiuse non entrano nel quadro."""
-    futuri = sorted((g, t) for t in termini if (g := _giorno(t.get("data"))) and g >= oggi)
+    futuri = sorted(((g, t) for t in termini if (g := _giorno(t.get("data"))) and g >= oggi),
+                    key=lambda voce: (voce[0], _testo(voce[1].get("titolo"))))
     if not futuri:
         return riga("termini", "Nessuna scadenza o udienza futura aperta nel fascicolo.", "ok")
     giorno, primo = futuri[0]
@@ -93,13 +100,16 @@ def riga_economia(contributo: Mapping[str, Any] | None, righe_conto: Iterable[Ma
         parti.append("Contributo unificato: da verificare")
         attenzione = True
     sentenza = per_voce.get("sentenza") or {}
+    spese_da_verificare = sentenza.get("tono") == "warning" and not sentenza.get("importo")
+    attenzione = attenzione or spese_da_verificare
     if sentenza.get("importo"):
         parti.append(f"liquidate in sentenza {sentenza.get('importoLabel')}, {_testo(sentenza.get('stato')).lower()}")
     elif sentenza and _testo(sentenza.get("stato")) not in {"", "Nessuna sentenza con spese liquidate"}:
         parti.append(_testo(sentenza.get("stato")).lower())
     parcella = per_voce.get("parcella") or {}
-    if parcella:
-        stato_parcella = _testo(parcella.get("stato"))
+    stato_parcella = _testo(parcella.get("stato"))
+    spese_compensate = sentenza.get("stato") == "Spese compensate"
+    if stato_parcella and not ((spese_da_verificare or spese_compensate) and stato_parcella == "Da preparare"):
         parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
         attenzione = attenzione or (stato_parcella == "Da preparare" and bool(sentenza.get("importo")))
     testo = " · ".join(p for p in parti if p)
@@ -120,8 +130,14 @@ def riga_notifiche(obblighi: list[Mapping[str, Any]] | None, *, oggi: date) -> d
         stato = _testo(obbligo.get("stato"))
         if stato == "da_notificare":
             scadenza = _giorno(obbligo.get("scadenza"))
-            descrizione = f"da notificare entro il {scadenza.strftime('%d/%m/%Y')}" if scadenza else "da notificare"
-            livello = "urgente" if scadenza and (scadenza - oggi).days <= 7 else "attenzione"
+            if scadenza and scadenza < oggi:
+                descrizione = f"Data indicata {scadenza:%d/%m/%Y} già trascorsa. Verificare invio e ricevute PEC."
+            else:
+                descrizione = f"da notificare entro il {scadenza:%d/%m/%Y}" if scadenza else "da notificare"
+            if scadenza and (scadenza - oggi).days <= 7:
+                livello = "urgente"
+            elif livello != "urgente":
+                livello = "attenzione"
         else:
             descrizione = _STATI_NOTIFICA.get(stato, stato.replace("_", " ") or "da verificare")
             if stato == "da_verificare" and livello == "ok":

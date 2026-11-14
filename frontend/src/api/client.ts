@@ -15,6 +15,45 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
   return response.json()
 }
 
+const PANNELLI_FASCICOLO = /^\/api\/v1\/ui\/fascicoli\/[^/?]+\/(quadro|lettura|obblighi-notifica|conto-economico|regia|scadenze|documenti|letture|catalogazione-documentale|guida-pratica)(?:\?|$)/
+
+export async function fetchPannelloFascicolo(url: string, init: RequestInit): Promise<Response> {
+  if (!PANNELLI_FASCICOLO.test(url) || new URLSearchParams(url.split('?')[1]).has('aggiorna')) {
+    return fetch(url, init)
+  }
+
+  const headers = new Headers(init.headers)
+  headers.set('X-Iusentra-Preparazione', 'sfondo')
+  for (let tentativo = 0; ; tentativo += 1) {
+    const risposta = await fetch(url, { ...init, headers })
+    if (risposta.status !== 202 || risposta.headers.get('X-Iusentra-Pannello') !== 'in-preparazione') {
+      return risposta
+    }
+    if (tentativo >= 44) {
+      throw new ApiClientError(503, { message: 'Il pannello è ancora in preparazione. Riprova tra poco.' })
+    }
+    await risposta.body?.cancel()
+    const attesa = Number(risposta.headers.get('Retry-After')) || 2
+    await new Promise<void>((resolve, reject) => {
+      const segnale = init.signal
+      if (segnale?.aborted) {
+        reject(segnale.reason)
+        return
+      }
+      const fine = () => {
+        segnale?.removeEventListener('abort', annulla)
+        resolve()
+      }
+      const timer = globalThis.setTimeout(fine, Math.max(1, Math.min(5, attesa)) * 1000)
+      function annulla() {
+        globalThis.clearTimeout(timer)
+        reject(segnale?.reason)
+      }
+      segnale?.addEventListener('abort', annulla, { once: true })
+    })
+  }
+}
+
 async function requestJson<T>(url: string, init: RequestInit, fallback: T, activity: string | false): Promise<T> {
   return withActivity(activity, async () => {
   try {
@@ -37,7 +76,7 @@ async function requestJson<T>(url: string, init: RequestInit, fallback: T, activ
 export async function apiJson<T>(url: string, fallback: T, options: ApiRequestOptions = {}): Promise<T> {
   return withActivity(options.activity ?? 'Caricamento dati…', async () => {
   try {
-    const response = await fetch(url, {
+    const response = await fetchPannelloFascicolo(url, {
       credentials: 'same-origin',
       signal: options.signal,
       headers: {
@@ -78,7 +117,7 @@ export async function apiPostJson<T>(
 
 export async function ensureJson<T>(url: string, options: ApiRequestOptions = {}): Promise<T> {
   return withActivity(options.activity ?? 'Caricamento dati…', async () => {
-  const response = await fetch(url, {
+  const response = await fetchPannelloFascicolo(url, {
     credentials: 'same-origin',
     signal: options.signal,
     headers: {

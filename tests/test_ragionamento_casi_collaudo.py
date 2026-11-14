@@ -6,7 +6,9 @@ che cosa si è letto, norma, che cosa fare, come, perché, stato e termine calco
 
 from __future__ import annotations
 
+import re
 from datetime import date
+from urllib.parse import urlsplit
 
 from pct.ragionamento import FontiCausa, ragiona
 
@@ -325,7 +327,10 @@ def test_g15_ruolo_letto_negli_atti_quando_il_fascicolo_non_lo_ha():
 def test_contratto_di_uscita_completo_per_ogni_conclusione():
     causa = ragiona(fonti(LAVORO, [RICORSO_LAVORO, DECRETO_415]))
     for c in causa.conclusioni:
-        assert c.cosa and c.letto and c.norme and all(n.get("url", "").startswith("https://www.normattiva.it") for n in c.norme)
+        assert c.cosa and c.letto and c.norme
+        for norma in c.norme:
+            fonte = urlsplit(norma.get("url", ""))
+            assert (fonte.scheme, fonte.netloc) == ("https", "www.normattiva.it")
         assert c.come and c.perche and c.stato in {"fatto", "da_fare", "non_dovuto", "dubbio"}
         assert c.termine is None or c.termine.scadenza or c.dubbi
 
@@ -441,7 +446,8 @@ def test_riscontro_per_lex_indica_la_prova_mancante_della_sentenza():
     testo = "\n".join(righe)
     assert "Verificare la consegna" in testo
     assert "ricevuta originale riferita alla sentenza" in testo
-    assert "https://www.normattiva.it/" in testo
+    fonti_normative = [urlsplit(url) for url in re.findall(r"\((https?://[^)]+)\)", testo)]
+    assert any((fonte.scheme, fonte.netloc) == ("https", "www.normattiva.it") for fonte in fonti_normative)
 
 
 def test_termine_lungo_richiede_la_pubblicazione_e_non_la_data_della_sentenza():

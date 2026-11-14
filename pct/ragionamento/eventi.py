@@ -74,7 +74,7 @@ def depositi_eseguiti(atti: Iterable[Atto], depositi: Iterable[dict[str, Any]]) 
         oggetto, data = _intestazione(atto.testo)
         # Il nome dell'EML consente di chiedere il riscontro anche se manca la lettura
         # dell'intestazione. In quel caso l'evento non porta una data di deposito.
-        pattern = r"(?:(?:posta certificata|copia non crittografata|consegna)\s*:?\s+)*deposito telematico\s*[:-]\s*(.+)"
+        pattern = r"(?:(?:posta certificata|copia non crittografata|consegna)(?:\s*:)?\s+)*deposito telematico\s*[:-]\s*(.+)"
         m = re.match(pattern, semplice(oggetto))
         if not m and atto.nome.lower().endswith((".eml", ".msg")):
             m = re.match(pattern, semplice(atto.nome.rsplit(".", 1)[0]))

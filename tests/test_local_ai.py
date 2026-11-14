@@ -1250,21 +1250,19 @@ def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path, monke
     assert payload["evidence_summary"]["evidence_count"] >= 1
 
 
-def test_impostazioni_template_contains_ai_locale_tab():
-    from tests._gestori_legacy import template_con_gestori
+def test_impostazioni_react_espone_le_azioni_ai_locale():
+    frontend = REPO_ROOT / "frontend" / "src" / "features" / "impostazioni"
+    costanti = (frontend / "constants.ts").read_text(encoding="utf-8")
+    azioni = (frontend / "components" / "SettingsActions.tsx").read_text(encoding="utf-8")
+    client = (frontend / "api.ts").read_text(encoding="utf-8")
 
-    html = template_con_gestori(REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html")
-
-    assert "AI Locale" in html
-    assert "Prepara il motore locale" in html
-    assert "runLocalAiBootstrap" in html
-    assert "Indirizzo del motore locale" in html
-    assert "Servizio locale sul dispositivo cliente" in html
-    assert "127.0.0.1:27272" in html
-    assert "ai-runtime-summary" in html
-    assert "http://host.docker.internal:11434/api" in html
-    assert "/api/version" in html
-    assert "openLocalAiVersionCheck" in html
+    assert "AI Locale" in costanti
+    assert "Collegamento AI sul PC" in costanti
+    assert "Verifica PC e modelli" in azioni
+    assert "Prepara AI locale" in azioni
+    assert "prepareLocalAiViaLocalSigner" in azioni
+    assert "127.0.0.1:27272" in client
+    assert "/api/v1/ui/impostazioni/ai/bootstrap" in client
 
 
 def test_ollama_runtime_provisioner_selects_windows_installer_asset_per_l_utente(tmp_path: Path):

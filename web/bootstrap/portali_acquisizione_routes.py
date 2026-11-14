@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 import re
 from typing import Any
+from urllib.parse import urlencode
 
 from flask import Flask, flash, jsonify, redirect, request, url_for
 from web.blueprints.react_shell import render_react_shell_response
@@ -176,21 +177,26 @@ def register_portali_acquisizione_routes(
         # Acquisizione guidata: pagina React (TelematicoSurfacePage / PdpPenalePage); dati da /api/portali/<portale>/acquisizione.
         return render_react_shell_response(f"portali/{portale}/acquisizione")
 
+    def _apri_acquisizione(portale: str):
+        url = url_for("portale_acquisizione_wizard", portale=portale)
+        query = urlencode(list(request.args.items(multi=True)))
+        return redirect(f"{url}?{query}" if query else url)
+
     @app.route("/polisWeb/acquisizione", methods=["GET"])
     def polisweb_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pst"))
+        return _apri_acquisizione("pst")
 
     @app.route("/pdp/acquisizione", methods=["GET"])
     def pdp_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
+        return _apri_acquisizione("pdp")
 
     @app.route("/pat/acquisizione", methods=["GET"])
     def pat_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
+        return _apri_acquisizione("pat")
 
     @app.route("/sigit/acquisizione", methods=["GET"])
     def sigit_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
+        return _apri_acquisizione("ptt")
 
     @app.route("/api/portali/<portale>/acquisizione/status", methods=["GET"])
     def api_portale_acquisizione_status(portale: str):

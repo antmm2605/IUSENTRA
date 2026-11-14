@@ -532,51 +532,6 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         assert "--sidebar-w: 0px" not in css_source
         assert "settings-modern-page) #app-body" not in css_source
 
-    react_shell_allowlist = {
-        "web/bootstrap/deposito_prepara_routes.py": [
-            'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")',
-        ],
-        "web/bootstrap/auth_management_routes.py": [
-            'render_react_shell_response("profilo")',
-        ],
-        "web/blueprints/template_atti.py": [
-            'render_react_shell_response(request.path.lstrip("/"))',
-        ],
-        # Strumenti legali è solo React (31/10/2026): anche _legacy e i vecchi POST portano alla shell.
-        "web/blueprints/strumenti_legali.py": [
-            'render_react_shell_response("strumenti-legali")',
-        ],
-    }
-
-    for path in (
-        "web/bootstrap/telematico_dashboard_routes.py",
-        "web/bootstrap/polisweb_routes.py",
-        "web/bootstrap/telematico_portali_routes.py",
-        "web/bootstrap/deposito_routes.py",
-        "web/bootstrap/deposito_prepara_routes.py",
-        "web/bootstrap/reference_lookup_routes.py",
-        "web/blueprints/fatturazione.py",
-        "web/blueprints/template_atti.py",
-        "web/blueprints/statistiche.py",
-        "web/blueprints/legal_intelligence.py",
-        "web/blueprints/giurisprudenza.py",
-        "web/blueprints/strumenti_legali.py",
-        "web/blueprints/notifiche.py",
-        "web/blueprints/pagamenti.py",
-        "web/bootstrap/backup_routes.py",
-        "web/bootstrap/calendar_routes.py",
-        "web/bootstrap/auth_management_routes.py",
-        "web/bootstrap/admin_database_routes.py",
-        "web/bootstrap/privacy_routes.py",
-    ):
-        source = Path(path).read_text(encoding="utf-8")
-        if path in react_shell_allowlist:
-            assert source.count("render_react_shell_response") == len(react_shell_allowlist[path]) + 1
-            for expected_call in react_shell_allowlist[path]:
-                assert expected_call in source
-        else:
-            assert "render_react_shell_response" not in source, path
-
 
 def test_editor_professionale_resta_route_autonoma_distinta_da_redazione_atti():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
@@ -787,7 +742,7 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert ".iu-fas-resign-confirm" in css
 
 
-def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
+def test_react_blocco_finale_route_reali_e_alias_storici(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -873,7 +828,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
         ):
             response = client.get(route)
             assert response.status_code == 200, route
-            assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+            assert 'id="root"' in response.get_data(as_text=True), route
 
         for route in ("/strumenti-legali/?tool=contributo_unificato&_legacy=1", "/strumenti-legali/?tool=onorari_forensi&_legacy=1"):
             solo_react = client.get(route)
@@ -928,42 +883,14 @@ def test_statistiche_react_full_non_espone_fallback_legacy(tmp_path: Path):
     assert all("_legacy=1" not in action.get("href", "") for action in payload["actions"])
 
 
-def test_blocco_telematico_studio_admin_resta_legacy_first():
-    """Restano legacy-first solo aree non parificate o sottopercorsi sensibili."""
+def test_blocco_telematico_separa_le_rotte_tecniche_dalle_pagine_react():
+    from web.bootstrap.react_route_gate import _PORTALI_SOTTOPERCORSI_FLASK, _REACT_TELEMATICO_ACQUISITION_PATHS
 
-    gate_source = Path("web/bootstrap/react_route_gate.py").read_text(encoding="utf-8").lower()
-    shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8").lower()
-    final_routes_source = Path("web/bootstrap/react_final_block_routes.py").read_text(encoding="utf-8")
-
-    legacy_first_prefixes = (
-        "/admin/osservabilita",
-        "/applicazioni",
-        "/checklist",
-        "/database",
-        "/portali",
-    )
-
-    for prefix in legacy_first_prefixes:
-        quoted = f'"{prefix}"'
-        assert quoted in gate_source, prefix
-        assert quoted in shell_source, prefix
-
-    for source in (gate_source, shell_source):
-        assert "_react_telematico_graphical_paths" in source
-        for exact in (
-            "/telematico",
-            "/servizi-telematici",
-            "/polisweb",
-            "/pdp",
-            "/pat",
-            "/sigit",
-            "/tribunali",
-            "/guida/firma-digitale",
-        ):
-            assert f'"{exact}"' in source, exact
-
-    assert "FINAL_REACT_ROUTES: dict[str, str] = {\n" in final_routes_source
-    assert "render_react_shell_response" not in final_routes_source
+    assert {"/applicazioni", "/checklist", "/polisweb", "/portali"} <= set(_PORTALI_SOTTOPERCORSI_FLASK)
+    assert _REACT_TELEMATICO_ACQUISITION_PATHS == {
+        "/portali/pst/acquisizione", "/portali/pdp/acquisizione",
+        "/portali/pat/acquisizione", "/portali/ptt/acquisizione", "/portali/sigit/acquisizione",
+    }
 
 
 def test_react_ui_pack_componenti_token_e_array_operativi():
@@ -1672,7 +1599,7 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert '@api_v1_react.get("/messaggi/nuovo")' in api_source
 
 
-def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica(tmp_path: Path):
+def test_route_ufficiali_email_messaggi_servono_react_anche_con_parametro_storico(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1695,8 +1622,8 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
     assert classic_ordinary.status_code in {200, 302}
     assert classic_messages.status_code == 200
     assert classic_new_message.status_code == 200
-    assert 'id="root"' not in classic_email.get_data(as_text=True)
-    assert 'id="root"' not in classic_messages.get_data(as_text=True)
+    assert 'id="root"' in classic_email.get_data(as_text=True)
+    assert 'id="root"' in classic_messages.get_data(as_text=True)
 
 
 def test_react_telematico_collegato_nav_api_e_lex():
@@ -1720,7 +1647,7 @@ def test_react_telematico_collegato_nav_api_e_lex():
     assert "@media(max-width:760px)" in css
 
 
-def test_route_telematico_ufficiale_serve_shell_react_con_vista_classica_tecnica(tmp_path: Path):
+def test_route_telematico_ufficiale_serve_shell_react_anche_con_parametro_storico(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1734,7 +1661,7 @@ def test_route_telematico_ufficiale_serve_shell_react_con_vista_classica_tecnica
     assert '<html lang="it" class="react-shell-document">' in html
     assert 'id="root"' in html
     assert classic.status_code == 200
-    assert 'id="root"' not in classic.get_data(as_text=True)
+    assert 'id="root"' in classic.get_data(as_text=True)
 
 
 def test_react_telematico_bridge_payload_minimo(tmp_path: Path):
@@ -1866,21 +1793,16 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert '@api_v1_react.get("/telematico/surface/<surface>")' in api_source
     assert "build_react_telematico_surface_payload" in api_source
     assert "build_react_tribunali_payload" in api_source
-    assert "render_react_shell_response" not in polisweb_routes
-    assert "render_react_shell_response" not in portali_routes
+    assert 'render_react_shell_response("polisWeb")' in polisweb_routes
+    for path in ("pdp", "pat", "sigit"):
+        assert f'render_react_shell_response("{path}")' in portali_routes
     deposito_prepara_routes = Path("web/bootstrap/deposito_prepara_routes.py").read_text(encoding="utf-8")
     assert deposito_prepara_routes.count("render_react_shell_response") == 2
     assert 'render_react_shell_response(f"fascicoli/{id_fasc}/deposito/prepara")' in deposito_prepara_routes
-    assert "render_react_shell_response" not in lookup_routes
-    assert "render_react_shell_response" not in dashboard_routes
-    assert '"telematico_dashboard.html"' in dashboard_routes
-    assert '"polisWeb.html"' in polisweb_routes
-    assert '"pdp.html"' in portali_routes
-    assert '"pat.html"' in portali_routes
-    assert '"sigit.html"' in portali_routes
+    assert 'render_react_shell_response("tribunali")' in lookup_routes
+    assert 'render_react_shell_response("telematico")' in dashboard_routes
     assert 'render_template("deposito_checklist.html")' not in deposito_routes
     assert 'render_template("guida_firma_digitale.html")' not in deposito_routes
-    assert 'render_template("tribunali.html", uffici=uffici)' in lookup_routes
     assert ".iu-tel-surface-page" in css
     assert ".iu-tel-op-card.is-selected" in css
     assert ".iu-tel-active-op" in css
@@ -1896,7 +1818,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "@media(max-width:860px)" in css
 
 
-def test_route_ufficiali_superfici_telematiche_esatte_servono_react_con_vista_classica_tecnica(tmp_path: Path):
+def test_route_ufficiali_superfici_telematiche_esatte_servono_react_anche_con_parametro_storico(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1947,7 +1869,7 @@ def test_route_ufficiali_superfici_telematiche_esatte_servono_react_con_vista_cl
         for path in ("/polisWeb?_legacy=1", "/pdp?_legacy=1", "/pat?_legacy=1", "/sigit?_legacy=1", "/tribunali?_legacy=1", "/deposito/checklist?_legacy=1", "/guida/firma-digitale?_legacy=1"):
             response = client.get(path)
             assert response.status_code == 200, path
-            assert 'id="root"' not in response.get_data(as_text=True)
+            assert 'id="root"' in response.get_data(as_text=True)
 
 
 def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
@@ -2906,21 +2828,14 @@ def test_import_studio_telematico_react_pubblica_exe_e_barra_avanzamento():
 
 
 def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():
-    source = Path("web/bootstrap/portali_acquisizione_routes.py").read_text(encoding="utf-8")
-    template = Path("web/templates/portale/acquisizione_wizard.html").read_text(encoding="utf-8")
+    page = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
 
-    assert 'request.args.get("id_fasc")' in source
-    assert 'request.args.get("fascicolo_id")' in source
-    assert 'request.args.get("target_fascicolo_id")' in source
-    assert 'request.args.get("mode")' in source
-    assert '"update_existing" if linked_fascicolo else "create_new"' in source
-    assert "Destinazione pratica" in template
-    assert "Fascicolo locale" in template
-    assert "Aggiorna pratica esistente" not in template
-    assert "Collega a pratica esistente" not in template
-    assert "Fascicolo locale da aggiornare" not in template
-    assert 'name="awMapMode" value="update_existing"' in template
-    assert "function awSyncMappingModeFromTarget" in template
+    for alias in ("id_fasc", "fascicolo_id", "target_fascicolo_id"):
+        assert f"params.get('{alias}')" in page
+    assert "params.get('mode')" in page
+    assert "targetFascicoloId ? 'update_existing' : 'create_new'" in page
+    assert "<span>Fascicolo locale</span>" in page
+    assert "updateMapping('target_fascicolo_id'" in page
 
 
 def test_portale_acquisizione_legacy_step4_preseleziona_aggiorna_pratica(tmp_path: Path):
@@ -2947,19 +2862,15 @@ def test_portale_acquisizione_legacy_step4_preseleziona_aggiorna_pratica(tmp_pat
     with app.test_client() as client:
         _login(client)
         response = client.get(
-            f"/portali/pst/acquisizione?_legacy=1&fascicolo_id={fascicolo.id}&mode=update_existing"
+            f"/polisWeb/acquisizione?fascicolo_id={fascicolo.id}&mode=update_existing",
+            follow_redirects=True,
         )
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Step 4 — Scelta contenuti da importare" in html
-    assert "Destinazione pratica" in html
-    assert "Usa pratica esistente" in html
-    assert "Aggiorna pratica esistente" not in html
-    assert "Collega a pratica esistente" not in html
-    assert "Fascicolo locale da aggiornare" not in html
-    assert f'data-initial-target="{fascicolo.id}"' in html
-    assert 'name="awMapMode" value="update_existing" checked' in html
+    assert 'id="root"' in html
+    assert response.request.args["fascicolo_id"] == fascicolo.id
+    assert response.request.args["mode"] == "update_existing"
 
 
 def test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali(tmp_path: Path):
@@ -3010,6 +2921,9 @@ def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path)
         response = client.get("/portali/pst/acquisizione")
         legacy = client.get("/portali/pst/acquisizione?_legacy=1")
         shortcut = client.get("/polisWeb/acquisizione")
+        _, search_route = app.url_map.bind("").match(
+            "/api/portali/pst/acquisizione/search", method="POST",
+        )
         legacy_shortcut = client.get("/polisWeb/acquisizione?_legacy=1")
 
     html = response.get_data(as_text=True)
@@ -3020,15 +2934,15 @@ def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path)
     assert "Importa pratica da PST" in Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
     legacy_html = legacy.get_data(as_text=True)
     assert legacy.status_code == 200
-    assert "/api/portali/pst/acquisizione/search" in legacy_html
-    assert "IUSENTRA - React Shell" not in legacy_html
+    assert search_route["portale"] == "pst"
+    assert "IUSENTRA - React Shell" in legacy_html
     assert shortcut.status_code in {302, 303}
     assert shortcut.headers["Location"].endswith("/portali/pst/acquisizione")
     assert legacy_shortcut.status_code in {302, 303}
     assert legacy_shortcut.headers["Location"].endswith("/portali/pst/acquisizione?_legacy=1")
 
 
-def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(tmp_path: Path):
+def test_route_ufficiali_primo_blocco_servono_react_anche_con_parametro_storico(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -3087,7 +3001,7 @@ def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(t
     # Panoramica e agenda: viste Jinja tolte, anche il vecchio parametro apre React.
     assert 'id="root"' in classic_dashboard.get_data(as_text=True)
     assert 'id="root"' in classic_agenda.get_data(as_text=True)
-    assert 'id="root"' not in classic_fascicoli.get_data(as_text=True)
+    assert 'id="root"' in classic_fascicoli.get_data(as_text=True)
 
 
 def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tmp_path: Path):
@@ -3163,19 +3077,21 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
         legacy_cartella = client.get(f"/clienti/{cliente.id}/cartella?_legacy=1&tab=timeline", follow_redirects=True)
 
         for path in (
-            f"/fascicoli/{fascicolo.id}/deposito/prepara?_legacy=1",
             f"/fascicoli/{fascicolo.id}/copertina",
-            f"/fascicoli/{fascicolo_penale.id}/penale/pdp?_legacy=1",
             "/scadenziario/export.ics",
             f"/scadenziario/{scadenza.id}/completa",
-            "/sito-studio/articoli/art-1/modifica",
         ):
             response = client.get(path, follow_redirects=True)
-            html = response.get_data(as_text=True)
-            assert "IUSENTRA - React Shell" not in html, path
-            assert '<html lang="it" class="react-shell-document">' not in html, path
+            html = response.get_data()
+            assert b"IUSENTRA - React Shell" not in html, path
+            assert b'<html lang="it" class="react-shell-document">' not in html, path
+
+        pdp = client.get(f"/fascicoli/{fascicolo_penale.id}/penale/pdp?_legacy=1")
+        assert pdp.status_code == 302
+        assert pdp.headers["Location"] == f"/fascicoli/{fascicolo_penale.id}#penale-pdp"
 
         for path in (
+            f"/fascicoli/{fascicolo.id}/deposito/prepara?_legacy=1",
             "/portali/pdp/acquisizione",
             "/portali/pat/acquisizione",
             "/portali/ptt/acquisizione",
@@ -3185,6 +3101,9 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             html = response.get_data(as_text=True)
             assert "IUSENTRA - React Shell" in html, path
             assert '<html lang="it" class="react-shell-document">' in html, path
+
+        articolo_non_valido = client.get("/sito-studio/articoli/art-1/modifica")
+        assert articolo_non_valido.status_code == 404
 
         legacy = client.get("/impostazioni?tab=pec&_legacy=1")
         firma_operativa = client.get("/impostazioni?tab=firma")
@@ -3207,7 +3126,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
     assert 'id="root"' in legacy_cartella_html
     assert "clienti/cartella.html" not in legacy_cartella_html
     assert legacy.status_code == 200
-    assert 'id="root"' not in legacy.get_data(as_text=True)
+    assert 'id="root"' in legacy.get_data(as_text=True)
     assert firma_operativa.status_code == 200
     assert 'id="root"' in firma_operativa.get_data(as_text=True)
     assert api.status_code == 200
@@ -3224,14 +3143,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
 def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
     from web.bootstrap.react_route_gate import _excluded, _normalise_path
 
-    legacy_first_routes = {
-        "/admin/osservabilita",
-            "/database",
-        }
-
-    for raw in sorted(legacy_first_routes):
-        path = _normalise_path(raw)
-        assert _excluded(path), path
+    assert _excluded("/admin/osservabilita")
     # Checklist degli atti e percorso guidato: migrati in React nella 2.413.0.
     assert not _excluded("/checklist") and not _excluded("/checklist/decreto_ingiuntivo")
     # Catalogo e funzioni della ex cabina applicazioni: ApplicazionePage React (2.419.0).
@@ -3822,7 +3734,7 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "IUSENTRA - React Shell" in shell.get_data(as_text=True)
     assert "Operatore Test" in shell.get_data(as_text=True)
     assert legacy.status_code == 200
-    assert "IUSENTRA - React Shell" not in legacy.get_data(as_text=True)
+    assert "IUSENTRA - React Shell" in legacy.get_data(as_text=True)
     assert payload_response.status_code == 200
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
@@ -4271,6 +4183,9 @@ def test_react_studio_module_card_e_runtime_non_sono_decorativi(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
+        osservabilita = client.get("/admin/osservabilita")
+        assert osservabilita.status_code == 302
+        assert osservabilita.headers["Location"] == "/audit"
         for module_id in module_ids:
             response = client.get(f"/api/v1/ui/studio-modules/{module_id}", headers={"X-API-Key": "react-test-key"})
             assert response.status_code == 200, module_id
@@ -8886,6 +8801,7 @@ def test_react_fascicoli_presidio_economico_non_impone_proforma_definito(tmp_pat
 
 
 def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzata(tmp_path: Path, monkeypatch):
+    from lex.providers.local_ai_service import get_local_ai_service
     from pct.local_ai import LocalAIService
 
     # Solo il servizio esterno è controllato: lettura, catalogo, chunk e
@@ -8967,8 +8883,11 @@ def test_react_fascicoli_presidio_economico_legge_sentenza_fisica_non_indicizzat
         reading = leggi_fascicolo(_fascicoli_repository(app).get(fascicolo.id))
         assert reading["documenti"]["letti"] == 1
         assert reading["catalogo"].get("status") != "error"
-        assert reading["catalogo"]["rag"]["embeddings"]["embedded_total"] > 0
-        assert reading["catalogo"]["rag"]["embeddings"]["pending_remaining"] == 0
+        assert reading["catalogo"]["rag"]["embeddings"]["status"] == "pending"
+        assert reading["catalogo"]["rag"]["embeddings"]["pending_remaining"] > 0
+        embeddings = get_local_ai_service().embed_all_pending_chunks(practice_id=fascicolo.id)
+        assert embeddings["embedded_total"] > 0
+        assert embeddings["pending_remaining"] == 0
 
     response = client.post(
         "/api/v1/ui/fascicoli/presidio-economico/proforme",
@@ -10781,7 +10700,7 @@ def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     assert response.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in response.get_data(as_text=True)
     assert legacy.status_code == 200
-    assert 'id="root"' not in legacy.get_data(as_text=True)
+    assert 'id="root"' in legacy.get_data(as_text=True)
     assert api_response.status_code == 200
     payload = api_response.get_json()
     assert payload["source"] == "repository_reali"

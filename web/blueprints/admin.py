@@ -41,7 +41,6 @@ from pct.core_storage_backend import build_core_storage_backend
 from web.services.product_governance_surface import build_product_governance_surface
 from web.services.security_redaction import redacted_json_response
 from web.services.system_health_surface import build_system_health_api_payload
-from web.blueprints.react_shell import render_react_shell_response
 from web.services.piattaforma_shell_runtime import render_piattaforma_shell
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -183,13 +182,12 @@ def osservabilita():
     utente = getattr(g, "utente_corrente", None)
     if not utente:
         return redirect(url_for("login", next=request.full_path.rstrip("?")))
-    # Il superamministratore la apre nel pannello React di piattaforma;
-    # l'utente di studio con il permesso di audit nella shell dello studio.
+    # Lo studio e la piattaforma usano registri con ambiti di accesso distinti.
     if utente.is_superadmin:
         return render_piattaforma_shell("osservabilita", "Osservabilità")
     if not utente.ha_permesso("audit.leggi"):
         abort(403)
-    return render_react_shell_response("admin/osservabilita")
+    return redirect(url_for("audit_log"))
 
 
 @admin_bp.route("/governance")

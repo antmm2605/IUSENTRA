@@ -9,7 +9,9 @@ from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 
 
 def _extract_csrf_token(html: str) -> str:
-    match = re.search(r'name="_csrf_token"\s+value="([^"]+)"', html)
+    match = re.search(r'name="csrf-token"\s+content="([^"]+)"', html)
+    if not match:
+        match = re.search(r'name="_csrf_token"\s+value="([^"]+)"', html)
     assert match, "Token CSRF non trovato nella pagina."
     return match.group(1)
 
@@ -22,7 +24,6 @@ def test_login_headers_e_bootstrap_password_forzata(tmp_path: Path):
     app = create_app(cfg)
 
     with app.test_client() as client:
-        # Vista classica: la pagina predefinita ora è React (test_migrazione_react_accesso).
         page = client.get("/login?_legacy=1")
         html = page.get_data(as_text=True)
         token = _extract_csrf_token(html)
@@ -33,18 +34,12 @@ def test_login_headers_e_bootstrap_password_forzata(tmp_path: Path):
         assert page.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
         assert page.headers["Cross-Origin-Opener-Policy"] == "same-origin"
         assert "max-age=31536000" in page.headers["Strict-Transport-Security"]
-        assert 'class="auth-shell"' in html
-        assert "Rientra nel lavoro dello studio." in html
+        assert 'id="accesso-react-root"' in html
+        assert 'data-vista="login"' in html
         assert "iusentra-login-mark.svg" in html
-        assert 'class="brand-name">IUSENTRA' in html
-        assert "Lo studio legale, in un unico sistema" in html
-        assert 'class="brand-logo"' in html
-        assert 'aria-label="Mostra o nascondi password"' in html
 
         next_page = client.get("/login?next=/notifiche-legali&_legacy=1")
-        assert "Dopo l'accesso torni automaticamente alla pagina richiesta." in next_page.get_data(
-            as_text=True
-        )
+        assert 'data-next="/notifiche-legali"' in next_page.get_data(as_text=True)
 
         blocked = client.post(
             "/login",

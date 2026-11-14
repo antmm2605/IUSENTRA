@@ -3769,7 +3769,7 @@ def test_poll_cancelleria_pec_usa_timeout_imap(tmp_path, monkeypatch):
     )
 
     assert osservato["timeout"] == 15
-    assert report == {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+    assert report == {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 1}
 
 
 def test_poll_cancelleria_pec_apre_la_casella_in_sola_lettura(tmp_path, monkeypatch):

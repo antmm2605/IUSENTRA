@@ -1353,8 +1353,9 @@ def test_login_route_blocca_account_globale_non_superadmin_se_esistono_piu_studi
     body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "<form" in body
-    assert "Accedi" in body
+    assert 'id="accesso-react-root"' in body
+    assert 'data-vista="login"' in body
+    assert response.request.path == "/login"
     with client.session_transaction() as session_data:
         assert "user_id" not in session_data
         assert "tenant_slug" not in session_data

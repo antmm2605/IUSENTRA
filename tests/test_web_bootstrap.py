@@ -513,6 +513,7 @@ def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_p
         )
         response = client.get("/impostazioni?tab=pec")
         legacy = client.get("/impostazioni?tab=pec&_legacy=1")
+        payload_response = client.get("/api/v1/ui/impostazioni")
 
     html = response.get_data(as_text=True)
     legacy_html = legacy.get_data(as_text=True)
@@ -520,18 +521,16 @@ def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_p
     assert "IUSENTRA - React Shell" in html
     assert 'id="root"' in html
     assert legacy.status_code == 200
-    assert "IUSENTRA - React Shell" not in legacy_html
-    assert 'data-nav-surface="react-aligned-legacy"' in legacy_html
+    assert 'id="root"' in legacy_html
     assert 'id="iusentra-local-signer-monitor"' in legacy_html
-    assert 'data-local-signer-url="http://127.0.0.1:27272"' in legacy_html
-    assert 'data-latest-version="' in legacy_html
-    assert "/static/js/local-signer-monitor.js?v=" in legacy_html
-    assert 'id="pec-local-signer-meta"' in legacy_html
-    assert 'data-has-saved-password="1"' in legacy_html
-    assert "Testa SMTP" in legacy_html
-    assert "Diagnostica server (non invio reale)" not in legacy_html
-    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" not in legacy_html
-    assert 'class="d-none"' in legacy_html
+    assert payload_response.status_code == 200
+    payload = payload_response.get_json()
+    assert payload["local_signer"]["base_url"] == "http://127.0.0.1:27272"
+    assert payload["pec"]["password"]["present"] is True
+    assert set(payload["pec"]["password"]) == {"present", "label", "placeholder"}
+    actions = (REPO_ROOT / "frontend/src/features/impostazioni/components/SettingsActions.tsx").read_text(encoding="utf-8")
+    assert "Verifica invio PEC" in actions
+    assert "Verifica ricezione PEC" in actions
 
 
 def test_route_domini_estratti_restano_operativi(tmp_path: Path):
@@ -640,8 +639,11 @@ def test_nuovo_cliente_renderizza_il_form_prima_del_modal_scanner(tmp_path: Path
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Dati studio" in html
-    assert 'id="modalScanner"' in html
-    assert html.index("Dati studio") < html.index('id="modalScanner"')
+    assert 'id="root"' in html
+    pagina = (REPO_ROOT / "frontend/src/components/NuovoClientePage.tsx").read_text(encoding="utf-8")
+    assert "<ClientForm" in pagina
+    assert "normalizeClientDocumentScan" in pagina
+    assert "nuovo-cliente" in pagina
 
 
 def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
@@ -1017,9 +1019,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
         assert "<style" not in content
 
     base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
-    admin_base = (REPO_ROOT / "web/templates/admin/base.html").read_text(encoding="utf-8")
-    admin_dashboard = (REPO_ROOT / "web/templates/admin/dashboard.html").read_text(encoding="utf-8")
-    admin_studio_nuovo = (REPO_ROOT / "web/templates/admin/studio_nuovo.html").read_text(encoding="utf-8")
+    piattaforma_shell = (REPO_ROOT / "web/templates/piattaforma_shell.html").read_text(encoding="utf-8")
 
     assert "style=" not in base_template
     assert "topbar-counter-badge" in base_template
@@ -1027,19 +1027,10 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "notif-item__body" in base_template
     assert "ss-chip-identificativo" in base_template
     assert ("logo-iusentra.png" in base_template) or ("sb-brand-wordmark" in base_template)
-    assert "logo-iusentra.png" in admin_base
-
-    for css_link in (
-        "/static/css/app.css?v={{ app_version }}",
-        "/static/css/design-system.css?v={{ app_version }}",
-        "/static/css/mobile.css?v={{ app_version }}",
-        "/static/css/theme.css?v={{ app_version }}",
-    ):
-        assert css_link in admin_base
-    assert "style=" not in admin_base
-    assert "style=" not in admin_dashboard
-    assert "style=" not in admin_studio_nuovo
-
+    assert 'id="piattaforma-react-root"' in piattaforma_shell
+    assert '<link rel="stylesheet" href="{{ css_file }}">' in piattaforma_shell
+    assert "<style" not in piattaforma_shell
+    assert "style=" not in piattaforma_shell
 
 
 def test_template_html_restano_entra_il_budget_inline_style():
@@ -1623,7 +1614,7 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
     assert ".hearing-prep-mobile-cta" in scss
 
 
-def test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo(tmp_path: Path):
+def test_preparazione_udienza_guidata_supporta_la_vecchia_route_nuovo(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     studio, tenant_admin = _seed_tenant_admin(app)
@@ -1645,8 +1636,8 @@ def test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo(tmp_pat
     html = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "IUSENTRA - React Shell" in html
-    assert legacy.status_code == 302
-    assert legacy.headers["Location"].endswith("/wizard-pro/?id_fascicolo=FASC001")
+    assert legacy.status_code == 200
+    assert 'id="root"' in legacy.get_data(as_text=True)
     assert api_response.status_code == 200
     assert api_response.is_json
 
@@ -1873,15 +1864,14 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
             follow_redirects=False,
         )
         assert login.status_code == 302
-        response = client.get("/audit?_legacy=1")
-
-    html = response.get_data(as_text=True)
+        response = client.get("/api/v1/ui/audit")
 
     assert response.status_code == 200
-    assert "Riconciliato" in html
-    assert "Evento storico registrato con ID 8962DDEB" in html
-    assert fascicolo.id in html
-    assert "Vendita immobili" in html
+    evento = next(item for item in response.get_json()["events"] if item["resourceId"] == "8962DDEB")
+    assert evento["resourceBadgeLabel"] == "Riconciliato"
+    assert "Evento storico registrato con ID 8962DDEB" in evento["resourceNote"]
+    assert fascicolo.id in evento["resourceUrl"]
+    assert "Vendita immobili" in evento["resourceLabel"]
 
 
 def test_file_critici_non_contengono_marker_di_mojibake():

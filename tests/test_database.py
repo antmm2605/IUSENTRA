@@ -1438,6 +1438,8 @@ def test_admin_database_get(client_admin):
 
 
 def test_admin_database_get_rileva_ultimo_sqlite_migrato(client_admin):
+    from web.services.react_admin_database_bridge import build_react_admin_database_payload
+
     backup_dir = Path(client_admin.application.config["BACKUP_DIR"])
     backup_dir.mkdir(parents=True, exist_ok=True)
     db_path = backup_dir / "studio_legale_2026-04-05.db"
@@ -1446,11 +1448,20 @@ def test_admin_database_get_rileva_ultimo_sqlite_migrato(client_admin):
     conn.commit()
     conn.close()
 
-    r = client_admin.get("/admin/database?_legacy=1")
+    r = client_admin.get("/api/v1/ui/admin/database")
 
     assert r.status_code == 200
-    html = r.get_data(as_text=True)
-    assert "Database SQLite già presente" in html
+    assert r.get_json()["sqlite"]["role"] == "operativo"
+
+    core = client_admin.application.extensions["core_runtime"]
+    with client_admin.application.app_context():
+        payload = build_react_admin_database_payload(
+            core["get_database"], core["latest_sqlite_snapshot_path"], backup_dir=str(backup_dir),
+        )
+    sqlite = payload["sqlite"]
+    assert sqlite["exists"] is True
+    assert sqlite["role"] == "snapshot"
+    assert sqlite["path"] == str(db_path)
 
 
 def test_admin_database_verifica_json(client_admin):

@@ -159,6 +159,7 @@ _EXCLUDED_PREFIXES = (
     "/portale/",
     "/preventivi/ajax",
     "/static/",
+    "/statistiche/api/",
     "/support/",
     "/sw.js",
     "/web/",
@@ -398,6 +399,9 @@ def _checklist_atti(lower: str) -> bool:
 
 def _excluded(path: str) -> bool:
     lower = path.lower()
+    if lower == "/admin/osservabilita":
+        # La rotta assegna il registro in base all'ambito dell'utente.
+        return True
     if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
         if not _scadenziario_react_allowed(lower):
             return True

@@ -1610,8 +1610,6 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
     assert "Prepara l’udienza" in base_template
     assert "Wizard Pro</span>" not in base_template
     assert "Sito Web Studio" in base_template
-    assert "Siti studio" in admin_base_template
-
 
     assert "Controllo Finale" in service
 

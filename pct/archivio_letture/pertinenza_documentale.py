@@ -119,6 +119,29 @@ def precedenti_del_fascicolo(fascicolo: Any, fatti: Iterable[Any] = ()) -> set[s
     return precedenti
 
 
+
+def documenti_ufficio_incompatibile(fatti: Iterable[Fatto]) -> set[str]:
+    """Usa il collaudo del ruolo già registrato per la versione corrente dell'atto."""
+    incompatibili: set[str] = set()
+    confermati: set[str] = set()
+    for fatto in fatti:
+        if fatto.tipo != "documento" or fatto.campo != "numero_ruolo" or not fatto.oggetto_id:
+            continue
+        if fatto.verifica == "corretta" or (
+            fatto.verifica == "verificata" and any(
+                prova.get("codice") == "concordanza" and prova.get("esito") == "ok"
+                for prova in fatto.prove
+            )
+        ):
+            confermati.add(fatto.oggetto_id)
+        elif fatto.verifica == "respinta" and any(
+            prova.get("codice") == "ufficio_giudiziario" and prova.get("esito") == "respinta"
+            for prova in fatto.prove
+        ):
+            incompatibili.add(fatto.oggetto_id)
+    return incompatibili - confermati
+
+
 def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", ufficio: str = "") -> tuple[str, str]:
     from .copie_atti import messaggio_strutturato
     if messaggio_strutturato(testo):
@@ -157,6 +180,27 @@ def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", uffic
         intestazione = re.sub(r"[^a-z0-9àèéìòù]+", " ", head[:1500].casefold())
         ruolo_del_fascicolo = re.search(rf"(?<!\d){int(numero_rg)}\s*/\s*{anno_rg}\b", head) if str(numero_rg).isdigit() else None
         if citta and f" {citta} " not in f" {intestazione} " and not ruolo_del_fascicolo and re.search(r"\b(?:tribunale|corte)\b", intestazione[:700]):
+            return "precedente_giurisprudenziale", f"L'intestazione indica un ufficio giudiziario diverso da quello del fascicolo ({ufficio.strip()})."
+    elif judicial and str(ufficio or "").strip():
+        # Fascicolo senza numero di ruolo (ancora da iscrivere o non compilato): basta l'ufficio. Una decisione
+        # della Corte di cassazione in un fascicolo di merito, o di un altro tribunale, è giurisprudenza prodotta,
+        # non il provvedimento della causa (revisione del 10/11/2026: Cass. 29961/2023 in un fascicolo del
+        # Tribunale di Vicenza senza RG letta come sentenza della causa).
+        # Solo le decisioni (sentenza o ordinanza «in nome del popolo italiano»): un provvedimento qualsiasi di
+        # un altro ufficio (convalida del GIP, decreto) senza RG non basta; la Corte costituzionale ha la sua voce.
+        intestazione = re.sub(r"[^a-z0-9àèéìòù]+", " ", head[:1500].casefold())
+        decisione = re.search(r"\bin nome del popolo italiano\b", intestazione) and re.search(r"\b(?:sentenza|ordinanza)\b", intestazione)
+        # Nei fascicoli amministrativi (ottemperanza, art. 112 c.p.a.) la sentenza del giudice ordinario è il titolo
+        # da eseguire, non giurisprudenza; in appello la sentenza del primo grado è quella impugnata.
+        sede = str(ufficio).casefold()
+        if not decisione or re.search(r"\bcorte costituzionale\b", intestazione) or re.search(
+                r"amministrativ|\btar\b|consiglio di stato|giustizia amministrativa", sede):
+            return "", ""
+        appello = bool(re.search(r"\bcorte\s+d\W?\s*appello\b|\bcorte\s+di\s+appello\b", sede))
+        if re.search(r"\bcorte (?:suprema )?di cassazione\b", intestazione) and "cassazione" not in str(ufficio).casefold():
+            return "precedente_giurisprudenziale", f"Decisione della Corte di cassazione in un fascicolo di merito ({ufficio.strip()})."
+        citta = _citta_dell_ufficio(ufficio)
+        if not appello and citta and f" {citta} " not in f" {intestazione} " and re.search(r"\b(?:tribunale|corte)\b", intestazione[:700]):
             return "precedente_giurisprudenziale", f"L'intestazione indica un ufficio giudiziario diverso da quello del fascicolo ({ufficio.strip()})."
     return "", ""
 

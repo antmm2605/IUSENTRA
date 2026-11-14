@@ -97,7 +97,9 @@ def test_scadenza_cambia_fascicolo_senza_leggere_pratiche_estranee(catalog, snap
             "SELECT record_key,payload_json FROM fascicoli_list_rows WHERE record_key IN ('F000','F001')").fetchall()}
         assert values['F000']['nextDeadlineIso'] == ''
         assert values['F001']['nextDeadlineIso'] == day
-        assert calls == [('F000',), ('F001',)]
+        # Si leggono solo i due fascicoli interessati (anche come doppioni l'uno dell'altro, per il riepilogo
+        # economico della riga), mai la pratica estranea F002.
+        assert calls[:2] == [('F000',), ('F001',)] and set(calls) <= {('F000',), ('F001',)}
         assert db.conn.execute('SELECT COUNT(*) FROM fascicoli').fetchone()[0] == 3
         assert db.conn.execute('SELECT COUNT(*) FROM scadenze').fetchone()[0] == 1
         # Riferimento indipendente: il vecchio costruttore completo resta una
@@ -116,6 +118,7 @@ def test_scadenza_cambia_fascicolo_senza_leggere_pratiche_estranee(catalog, snap
         expected = bridge.build_react_fascicoli_payload(get_fascicoli=lambda: reference_native,
             get_scadenziario=lambda: SimpleNamespace(tutte=lambda **_kwargs: [source]),
             get_fatturazione=lambda: SimpleNamespace(tutte=lambda: []), page_size=2, sort='cliente')
+        writer.recover(limit=20)
         calls.clear()
         actual = build_sql_list_payload(writer.repository, page_size=2, sort='cliente')
         for value in (expected, actual):

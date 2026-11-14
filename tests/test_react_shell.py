@@ -1206,7 +1206,9 @@ def test_react_telematico_due_colonne_e_testi_visibili_in_italiano():
 def test_react_fascicolo_non_mostra_un_falso_not_found_durante_il_caricamento():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 
-    loading_guard = 'if (loading && !data.fascicolo.id) return'
+    inizio = source.index("function DetailPage(")
+    source = source[inizio:source.index("function moneyFrom(", inizio)]
+    loading_guard = 'if (loading && data.fascicolo.id !== id) return'
     not_found_guard = 'if (!loading && data.notFound) return'
     assert loading_guard in source
     assert 'title="Caricamento fascicolo"' in source
@@ -6759,7 +6761,7 @@ def test_react_fascicoli_economia_pagamento_cu_classificato_resta_da_registrare_
 
     assert response.status_code == 200
     assert contributo["status"] == "da_registrare"
-    assert contributo["statusLabel"] == "Da registrare"
+    assert contributo["statusLabel"] == "Da verificare"
     assert contributo["importo"] is None
     assert contributo["importoLabel"] == ""
     assert contributo["dataPagamento"] == ""
@@ -7732,7 +7734,7 @@ def test_react_fascicolo_lazy_scadenze_unisce_presidio_documenti():
 
     assert "quickCounts: { ...current.quickCounts, ...payload.quickCounts }" in source
     assert (
-        "documentPresidio: section === 'scadenze' || section === 'documenti' ? "
+        "documentPresidio: section === 'scadenze' ? "
         "payload.documentPresidio : current.documentPresidio"
     ) in source
     assert "function documentPresidioDeadlineHref" in source
@@ -10861,13 +10863,13 @@ def test_react_fascicolo_documenti_non_duplica_chiamata_lex_lazy():
     assert "lazySectionForDetailHash(currentDetailHashSectionId())" in page_source
     assert "case 'documenti':" in page_source
     assert "return 'documenti'" in page_source
-    assert "getFascicoloDetail(id, initialIncludes.length ? { include: initialIncludes } : undefined)" in page_source
-    assert "onOpen={() => { loadLazySection('documenti') }}" in page_source
+    assert "for (const section of initialIncludes) loadLazySection(section)" in page_source
+    assert "getFascicoloDetail(id, { confirmRevision: true })" in page_source
+    assert "onOpen={() => { loadLazySection('documenti'); loadLazySection('lex') }}" in page_source
     assert "defaultOpen={activeHashSection === 'documenti'}" in page_source
     assert "window.addEventListener('hashchange', openHashSection)" in page_source
-    assert "loadLazySection('documenti'); loadLazySection('lex')" not in page_source
-    assert "lexIndexing: section === 'lex' || section === 'documenti' ? payload.lexIndexing : current.lexIndexing" in page_source
-    assert "...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {})" in page_source
+    assert "if (pending.has(section) || lazyLoadedSections.current.has(section)) return" in page_source
+    assert "lexIndexing: section === 'lex' ? payload.lexIndexing : current.lexIndexing" in page_source
 
 
 def test_manifest_vite_riletto_solo_quando_cambia_la_build(tmp_path: Path, monkeypatch):

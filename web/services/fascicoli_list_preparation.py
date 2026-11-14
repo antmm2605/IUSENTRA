@@ -89,6 +89,15 @@ def prepare_catalog(database, *, tenant, anchor, destination, limit=100, max_bat
                 day = datetime.fromisoformat(previous[0]).astimezone(ZoneInfo('Europe/Rome')).date().isoformat() if previous and previous[0] else '1970-01-01'
                 initialize_clock(conn, tenant, day)
                 target.commit()
+            from pct.fascicoli_list_query import missing_source_events
+            from pct.fascicoli_list_rules import RULES_VERSION, reproject_for_rules, rules_version
+            if missing_source_events(conn, postgres=postgres) or rules_version(conn, tenant) < RULES_VERSION:
+                # Fonti o regole della riga aggiunte dopo la prima preparazione: backup verificato, trigger
+                # mancanti, riproiezione puntuale di tutte le righe con le regole correnti.
+                verified_backup(database, Path(destination) / 'source-events-guard')
+                install_source_events(conn, postgres=postgres)
+                reproject_for_rules(conn, tenant)
+                target.commit()
             for _ in range(max_batches):
                 result = resume_owner_events(database, tenant, anchor, limit=limit)
                 if not result['delivered']:
@@ -115,6 +124,10 @@ def prepare_catalog(database, *, tenant, anchor, destination, limit=100, max_bat
                 delivered = resume_owner_events(database, tenant, anchor, limit=limit)
                 if not delivered['delivered']:
                     break
+        from pct.fascicoli_list_rules import RULES_VERSION, install_rules_schema
+        install_rules_schema(conn)
+        conn.execute('INSERT INTO fascicoli_list_rules(tenant_key,rules_version) VALUES (?,?) '
+                     'ON CONFLICT(tenant_key) DO UPDATE SET rules_version=excluded.rules_version', (tenant, RULES_VERSION))
         writer = FascicoliListWriter(database, tenant, native)
         processed = 0
         for _ in range(max_batches):

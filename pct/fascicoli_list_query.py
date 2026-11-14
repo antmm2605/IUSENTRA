@@ -117,6 +117,12 @@ def install_schema(conn, *, postgres=False):
                  'ON fascicoli_list_fields(tenant_key,field_key,field_value,record_key)')
 
 
+def _table_exists(conn, table, *, postgres=False):
+    sql = ('SELECT 1 FROM information_schema.tables WHERE table_schema=current_schema() AND table_name=?'
+           if postgres else "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?")
+    return conn.execute(sql, (table,)).fetchone() is not None
+
+
 def install_source_events(conn, *, postgres=False):
     """Stessa outbox nativa; chiavi puntuali, mai una richiesta di scansione."""
     from pct.query_projection_outbox import install_source_trigger
@@ -132,8 +138,13 @@ def install_source_events(conn, *, postgres=False):
         ('scadenze', "'deadline:' || {row}.id"),
         ('parcelle', "'case:' || {row}.id_fascicolo"),
         ('clienti', "'client:' || {row}.id"),
+        # Lo stato del contributo unificato della riga dipende dal catalogo dei documenti del fascicolo.
+        ('document_catalog_assignments', "'case:' || {row}.fascicolo_id"),
     ):
-        relevant = "TRIM(COALESCE({row}.id_fascicolo,''))<>''" if table == 'parcelle' else 'TRUE'
+        relevant = {'parcelle': "TRIM(COALESCE({row}.id_fascicolo,''))<>''",
+                    'document_catalog_assignments': "TRIM(COALESCE({row}.fascicolo_id,''))<>''"}.get(table, 'TRUE')
+        if table == 'document_catalog_assignments' and not _table_exists(conn, table, postgres=postgres):
+            continue  # catalogo non ancora creato: i trigger arrivano con la preparazione successiva
         for action in ('INSERT', 'UPDATE', 'DELETE'):
             install_source_trigger(conn, table=table, action=action,
                 name=f'iusentra_fascicoli_list_{table}_{action.lower()}', tenant_sql=owner,
@@ -146,6 +157,24 @@ def install_source_events(conn, *, postgres=False):
             predicate=f'{owner} IS NOT NULL AND ({old_key}) IS NOT NULL '
                       f"AND {relevant.replace('{row}', 'OLD')} "
                       f'AND NOT COALESCE(({old_key})=({new_key}),FALSE)', postgres=postgres)
+
+
+SOURCE_EVENT_TRIGGERS = ('iusentra_fascicoli_list_document_catalog_assignments_insert',
+                         'iusentra_fascicoli_list_document_catalog_assignments_update',
+                         'iusentra_fascicoli_list_document_catalog_assignments_delete',
+                         'iusentra_fascicoli_list_document_catalog_assignments_old_owner')
+
+
+def missing_source_events(conn, *, postgres=False):
+    """I trigger delle fonti aggiunti dopo la prima preparazione e non ancora installati."""
+    if not _table_exists(conn, 'document_catalog_assignments', postgres=postgres):
+        return []
+    if postgres:
+        rows = conn.execute('SELECT tgname FROM pg_trigger WHERE NOT tgisinternal').fetchall()
+    else:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'").fetchall()
+    present = {str(row[0]) for row in rows}
+    return [name for name in SOURCE_EVENT_TRIGGERS if name not in present]
 
 
 def install_registry_events(conn, *, tenant, postgres=False):
@@ -175,11 +204,18 @@ def install_registry_events(conn, *, tenant, postgres=False):
 
 
 def registry_pending_cases(conn, tenant, *, limit=2000):
-    """I fascicoli con un aggiornamento puntuale del catalogo non ancora confermato (in attesa o fallito)."""
-    rows = conn.execute('SELECT DISTINCT aggregate_id FROM transactional_outbox WHERE tenant_id=? AND aggregate_type=? '
-        "AND event_type=? AND status IN ('PENDING','FAILED') LIMIT ?", (tenant, AGGREGATE, EVENT_TYPE, int(limit))).fetchall()
-    return {str(row[0]).removeprefix('case:') for row in rows}
-
+    """Fascicoli con un aggiornamento del catalogo in attesa o fallito."""
+    # Le uguaglianze sullo stato fanno usare l'indice completo anche a SQLite.
+    # DISTINCT con IN poteva scorrere l'intero storico delle consegne.
+    base = ('SELECT aggregate_id FROM transactional_outbox WHERE tenant_id=? AND aggregate_type=? '
+            'AND event_type=? AND status=')
+    sql = base + "'PENDING' UNION " + base + "'FAILED'"
+    keys = (tenant, AGGREGATE, EVENT_TYPE)
+    params = keys + keys
+    if limit is not None:
+        sql += ' LIMIT ?'
+        params += (int(limit),)
+    return {str(row[0] or '').removeprefix('case:') for row in conn.execute(sql, params).fetchall()}
 
 def assert_registry_ready(conn, tenant, *, in_corso_ammessi=False):
     """Registro delle fonti preparato per lo studio; restituisce i fascicoli ancora in aggiornamento.
@@ -297,21 +333,14 @@ class FascicoliListQuery:
         if owner is None or owner[0] != self.tenant or owner[1] != VERSION:
             raise FascicoliListNotReady('Catalogo fascicoli non attribuito allo studio corrente.')
         if not self.in_corso_ammessi:
-            pending = self.database.conn.execute('SELECT 1 FROM transactional_outbox WHERE tenant_id=? '
-                "AND aggregate_type=? AND event_type=? AND status IN ('PENDING','FAILED') LIMIT 1",
-                (self.tenant, AGGREGATE, EVENT_TYPE)).fetchone()
-            if pending is not None:
+            if registry_pending_cases(self.database.conn, self.tenant, limit=1):
                 raise FascicoliListNotReady('Aggiornamento mirato del catalogo fascicoli non ancora confermato.')
             return set()
         # Un evento non consegnato (scheduler fermo) bloccava l'intero elenco con
         # un 503 (08/11/2026): ora si mostrano i dati confermati e si segnalano
         # le sole pratiche in attesa. Le consegne che non indicano un fascicolo
         # (es. una scadenza spostata) restano nel conteggio dell'avviso.
-        rows = self.database.conn.execute('SELECT DISTINCT aggregate_id FROM transactional_outbox WHERE tenant_id=? '
-            "AND aggregate_type=? AND event_type=? AND status IN ('PENDING','FAILED')",
-            (self.tenant, AGGREGATE, EVENT_TYPE)).fetchall()
-        chiavi = {str(row[0] or '') for row in rows} - {''}
-        in_attesa = {chiave.removeprefix('case:') for chiave in chiavi}
+        in_attesa = registry_pending_cases(self.database.conn, self.tenant, limit=None) - {''}
         self.in_aggiornamento |= in_attesa
         return in_attesa
 
@@ -347,14 +376,15 @@ class FascicoliListQuery:
         from pct.ora_italiana import oggi_roma
 
         today = oggi_roma()
+        first_day = today - timedelta(days=6)  # ultimi sette giorni incluso oggi
         week, month = today + timedelta(days=7), today + timedelta(days=30)
         conn = self.database.conn
         # Un'udienza passata non è una scadenza scaduta ma un esito da registrare (V28; artt. 126 e 127-ter
         # c.p.c.; `pct.scadenze_stato`): la pagina Fascicoli contava «9 scadute» dove Scadenziario e Controllo
         # Studio ne contano 3 (verifica a vista del 02/11/2026).
         righe = conn.execute("SELECT record_key,event_day,payload_json FROM fascicoli_list_deadlines "
-            "WHERE tenant_key=? AND event_day<>'' AND event_day<=? ORDER BY event_day,record_key",
-            (self.tenant, month.isoformat())).fetchall()
+            "WHERE tenant_key=? AND event_day>=? AND event_day<=? ORDER BY event_day,record_key",
+            (self.tenant, first_day.isoformat(), month.isoformat())).fetchall()
         oggi, settimana, mese = today.isoformat(), week.isoformat(), month.isoformat()
         udienze = self._udienze(conn, [str(r[0]) for r in righe if str(r[1]) < oggi])
         righe = [r for r in righe if not (str(r[1]) < oggi and str(r[0]) in udienze)]

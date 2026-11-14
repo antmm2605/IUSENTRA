@@ -43,6 +43,10 @@ def prepare_empty_catalog(database, *, tenant, registry_path, backup_dir):
         from datetime import date
         from pct.fascicoli_list_clock import initialize_clock
         initialize_clock(database.conn, tenant, date.today().isoformat())
+        from pct.fascicoli_list_rules import RULES_VERSION, install_rules_schema
+        install_rules_schema(database.conn)
+        database.conn.execute('INSERT INTO fascicoli_list_rules(tenant_key,rules_version) VALUES (?,?) '
+                              'ON CONFLICT(tenant_key) DO NOTHING', (tenant, RULES_VERSION))
         (getattr(database, 'raw_conn', None) or database.conn).commit()
         return True
     finally:

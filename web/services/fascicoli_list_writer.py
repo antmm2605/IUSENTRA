@@ -15,7 +15,7 @@ from web.services.fascicoli_list_projection import (
 )
 from web.services.react_fascicoli_bridge import (
     _item_light, _annotate_duplicate_items, _righe_elenco_precaricate, _parse_date,
-    _deadline_rows_from_scadenze, _deadline_rg_candidates, _identity_key,
+    _deadline_rows_from_scadenze, _deadline_rg_candidates, _identity_key, _related_duplicate_fascicoli,
 )
 from web.services.registro_letture_runtime import con_registro_consultivo
 
@@ -190,9 +190,14 @@ class FascicoliListWriter:
         group_models.sort(key=lambda value: value.numero, reverse=True)
         groups = duplicate_practice_groups(group_models)
         groups_by_key = {value['key']: value for value in groups}
-        item = _righe_elenco_precaricate([model], lambda: _annotate_duplicate_items([
-            _item_light(model, scadenze_by_fasc={key: deadlines}, automatic_evidence=False,
-                full_payment_summary=False, parcelle=invoices, duplicate_group=groups_by_key.get(identity['duplicate_key'])),
+        # Il riepilogo economico considera anche le prove dei fascicoli doppioni, come la vista economica:
+        # la riga salvata è l'unica fonte di entrambe le viste.
+        peer_keys = sorted(str(value.id) for value in group_models if str(value.id) != key)
+        related = _related_duplicate_fascicoli(self.native.elenco_per_ids(peer_keys), model) if peer_keys else []
+        item = _righe_elenco_precaricate([model, *related], lambda: _annotate_duplicate_items([
+            _item_light(model, scadenze_by_fasc={key: deadlines}, automatic_evidence=True,
+                full_payment_summary=False, parcelle=invoices, related_fascicoli=related,
+                duplicate_group=groups_by_key.get(identity['duplicate_key'])),
         ], groups_by_key)[0])
         day = _parse_date(item.get('nextDeadlineIso'))
         revision = hashlib.sha256(json.dumps(item, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
@@ -209,6 +214,10 @@ class FascicoliListWriter:
             payload['matterRef'] = item['ref'] if item.get('status') != 'archiviato' else key
             conn.execute('UPDATE fascicoli_list_deadlines SET payload_json=? WHERE tenant_key=? AND record_key=?',
                          (json.dumps(payload, ensure_ascii=False), self.tenant, row[0]))
+        # I doppioni leggono anche le prove di questo fascicolo: la loro riga si riallinea (si ferma da sola
+        # quando la riga del doppione non cambia più).
+        for peer in peer_keys:
+            self.enqueue(conn, 'case:' + peer)
         signal_domain_changed(conn, 'fascicoli')
         return {'state': 'updated', 'key': key, 'revision': revision}
 

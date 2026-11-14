@@ -52,6 +52,16 @@ def refresh_clock(conn, tenant, *, postgres=False, limit=100):
             aggregate_id='deadline:' + str(value[0]), aggregate_version=1, event_type=EVENT_TYPE,
             idempotency_key='fascicoli-clock:' + uuid.uuid4().hex, payload={}, actor_id='native-list-clock'))
     complete = len(rows) < limit
+    if complete:
+        # Le righe la cui prossima data è stata raggiunta o superata cambiano da sole con il giorno (udienza
+        # trascorsa, data dell'archivio non più futura, termine che diventa scaduto): si riproiettano.
+        reached = conn.execute("SELECT record_key FROM fascicoli_list_rows WHERE tenant_key=? AND next_deadline_day<>'' "
+            'AND next_deadline_day>=? AND next_deadline_day<=?',
+            (tenant, (min(current, previous) - timedelta(days=1)).isoformat(), max(current, previous).isoformat())).fetchall()
+        for value in reached:
+            enqueue(conn, OutboxEvent(tenant_id=tenant, aggregate_type=AGGREGATE,
+                aggregate_id='case:' + str(value[0]), aggregate_version=1, event_type=EVENT_TYPE,
+                idempotency_key='fascicoli-clock:' + uuid.uuid4().hex, payload={}, actor_id='native-list-clock'))
     confirmed = conn.execute('UPDATE fascicoli_list_clock SET event_day=?,target_day=?,after_key=? '
         'WHERE tenant_key=? AND event_day=? AND target_day=? AND after_key=? RETURNING tenant_key',
         (current.isoformat() if complete else previous.isoformat(), '' if complete else current.isoformat(),

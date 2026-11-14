@@ -20,11 +20,13 @@ Configurazione tramite env vars:
   PCT_SYNC_IPA_ENABLED     — abilita enrichment PEC da IPA (default "1")
   PCT_SYNC_GA_ENABLED      — abilita sync da giustizia-amministrativa.it (default "1")
   PCT_SYNC_GT_ENABLED      — abilita sync da giustiziatributaria.gov.it (default "1")
+  PCT_PST_CATALOGO_CA_BUNDLE — bundle TLS del solo catalogo pubblico PST
 """
 from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 import os
 import re
 import unicodedata
@@ -45,13 +47,14 @@ _GA_SEDI_URL   = "https://www.giustizia-amministrativa.it/web/guest/sedi-dei-tar
 _GA_API_URL    = "https://www.giustizia-amministrativa.it/web/guest/-/servizi-tar"
 _GT_SEDI_URL   = "https://www.giustiziatributaria.gov.it/sezioni/corti-tributarie"
 _PST_URL       = "https://pst.giustizia.it/PST/resources/rest/ricercaUfficiGiudiziari"
+_PST_CATALOGO_URL = "https://servizipst.giustizia.it/PST/it/pst_2_4.wp"
 _IPA_API_URL   = "https://indicepa.gov.it/ipa-dati/api/v1/enti"
 
 # Parole chiave IPA per categoria uffici giudiziari
 _IPA_CODICI_CATEGORIA = ["GIUSTIZIA", "AM_GIUSTIZIA"]
 
 FONTI_UFFICIALI_UFFICI = [
-    {"id": "pst", "nome": "PST Ministero della Giustizia", "url": _PST_URL, "tipo": "REST"},
+    {"id": "pst", "nome": "PST Ministero della Giustizia", "url": _PST_CATALOGO_URL, "tipo": "Catalogo pubblico"},
     {
         "id": "giustizia_amm",
         "nome": "Giustizia Amministrativa - sedi TAR",
@@ -109,8 +112,52 @@ def sync_da_pst() -> List[Dict]:
         log.info("[sync_pst] %d uffici da PST MinGiust", len(uffici))
         return uffici
     except Exception as exc:
-        log.warning("[sync_pst] Fallito: %s", exc)
+        log.warning("[sync_pst] API precedente non disponibile: %s", exc)
+    try:
+        bundle = os.getenv("PCT_PST_CATALOGO_CA_BUNDLE", "").strip()
+        if not bundle:
+            root = os.getenv("PCT_DATA_ROOT", "").strip()
+            local_bundle = Path(root) / "uffici" / "pst-catalogo-ca.pem" if root else None
+            if local_bundle is not None and local_bundle.is_file():
+                bundle = str(local_bundle)
+        response = _get(_PST_CATALOGO_URL, **({"verify": bundle} if bundle else {}), params={
+            "actionPath": "/ExtStr2/do/ufficiepda/uffici/ricerca/search.action",
+            "currentFrame": "8", "ufficioSelect": "giudiziari", "distretto": "", "action:search": "ricerca",
+        })
+        return _parse_pst_public_catalog(response.text)
+    except Exception as exc:
+        log.warning("[sync_pst] Catalogo pubblico non acquisito: %s", exc)
         return []
+
+
+def _parse_pst_public_catalog(source: str) -> List[Dict]:
+    from urllib.parse import parse_qs, urlsplit
+
+    from lxml import html
+
+    tree = html.fromstring(source)
+    table = tree.xpath("//table[@id='ufficio']")
+    if len(table) != 1:
+        return []
+    headers = [" ".join(node.text_content().split()).casefold() for node in table[0].xpath("./thead/tr/th")]
+    if headers[:4] != ["descrizione", "distretto", "città/comune", "pec"]:
+        return []
+    rows = []
+    for row in table[0].xpath("./tbody/tr"):
+        cells = row.xpath("./td")
+        if len(cells) < 4:
+            continue
+        links = cells[0].xpath("./a[contains(@href,'viewUfficio.action')]/@href")
+        code = (parse_qs(urlsplit(links[0]).query).get("codiceUfficio") or [""])[0] if links else ""
+        if not re.fullmatch(r"[0-9A-Z]{6,20}", code):
+            continue
+        name, district, city, address = (" ".join(cell.text_content().split()) for cell in cells[:4])
+        if not re.fullmatch(r"[\w.-]+@(?:[\w-]+\.)*giustiziacert\.it", address, re.IGNORECASE):
+            address = ""
+        # Il catalogo include sedi storiche: aggiorna solo codici già identificati nel registro locale.
+        rows.append({"codice": code, "nome": name, "distretto": district, "citta": city, "pec": address,
+                     "solo_codice_esatto": True})
+    return rows
 
 
 # ================================================================ Fonte 2: Giustizia Amministrativa
@@ -266,7 +313,9 @@ def _parse_gt_html(html: str) -> List[Dict]:
             "nome":      nome,
             "tipo":      tipo,
             "distretto": citta,
-            "pec":       f"{tipo.lower()}.{_slug(citta)}@pec.mef.gov.it",
+            # L’elenco identifica la corte. Una PEC assente va verificata
+            # nella fonte che pubblica il recapito, senza ricostruirla dal nome.
+            "pec":       "",
             "codice":    "",  # matched per nome
         })
 
@@ -276,7 +325,7 @@ def _parse_gt_html(html: str) -> List[Dict]:
 
 # ================================================================ Fonte 4: IPA (PEC)
 
-def arricchisci_pec_da_ipa(uffici: List[Dict]) -> tuple[List[Dict], int]:
+def arricchisci_pec_da_ipa(uffici: List[Dict]) -> tuple[List[Dict], int, dict]:
     """
     Aggiorna gli indirizzi PEC degli uffici interrogando l'IPA (Indice PA).
 
@@ -284,15 +333,16 @@ def arricchisci_pec_da_ipa(uffici: List[Dict]) -> tuple[List[Dict], int]:
     Cerca corrispondenze per nome (full-text fuzzy) e aggiorna il campo 'pec'
     se l'IPA restituisce un indirizzo diverso da quello nel bundle.
 
-    Restituisce (lista_aggiornata, n_pec_aggiornate).
+    Restituisce anche l’esito delle categorie consultate.
     Documeentazione API IPA: https://indicepa.gov.it/ipa-dati/opendata/
     """
     if not _IPA_ENABLED:
-        return uffici, 0
+        return uffici, 0, {"ok": True, "skipped": True, "motivo": "fonte disattivata"}
 
     aggiornati = 0
     # Recupera enti di tipo giustizia dall'IPA (paginato)
     ipa_enti: Dict[str, str] = {}  # slug_nome → pec
+    fallite: list[str] = []
 
     for categoria in _IPA_CODICI_CATEGORIA:
         page = 0
@@ -308,7 +358,7 @@ def arricchisci_pec_da_ipa(uffici: List[Dict]) -> tuple[List[Dict], int]:
                 )
                 data = resp.json()
                 # Struttura IPA: {"data": [{"denominazione": "...", "pecPrimaria": "...", ...}]}
-                items = data.get("data") or data.get("items") or (data if isinstance(data, list) else [])
+                items = data if isinstance(data, list) else data.get("data") or data.get("items") or []
                 if not items:
                     break
                 for ente in items:
@@ -324,12 +374,20 @@ def arricchisci_pec_da_ipa(uffici: List[Dict]) -> tuple[List[Dict], int]:
                 if len(items) < 100:
                     break
             except Exception as exc:
+                fallite.append(categoria)
                 log.warning("[sync_ipa] Pagina %d categoria %s fallita: %s", page, categoria, exc)
                 break
 
+    esito = {
+        "ok": not fallite,
+        "categorie_non_disponibili": fallite,
+        "n_remoti": len(ipa_enti),
+    }
+    if fallite:
+        esito["motivo"] = "categorie non raggiungibili: " + ", ".join(fallite)
     if not ipa_enti:
         log.warning("[sync_ipa] Nessun ente IPA recuperato.")
-        return uffici, 0
+        return uffici, 0, esito
 
     log.info("[sync_ipa] %d enti IPA caricati", len(ipa_enti))
 
@@ -347,7 +405,7 @@ def arricchisci_pec_da_ipa(uffici: List[Dict]) -> tuple[List[Dict], int]:
                 u["pec"] = nuova_pec
                 aggiornati += 1
 
-    return uffici, aggiornati
+    return uffici, aggiornati, esito
 
 
 # ================================================================ Merge e sync completo
@@ -380,6 +438,8 @@ def _merge_uffici(base: List[Dict], aggiornamenti: List[Dict]) -> tuple[List[Dic
         esistente = None
         if codice and codice in base_per_cod:
             esistente = base_per_cod[codice]
+        elif agg.get("solo_codice_esatto"):
+            continue
         elif nome:
             slug_n = _slug(nome)
             if slug_n in base_per_nome:
@@ -388,6 +448,8 @@ def _merge_uffici(base: List[Dict], aggiornamenti: List[Dict]) -> tuple[List[Dic
         if esistente:
             # Aggiorna PEC se cambiata
             pec_base = (esistente.get("pec") or "").strip().lower()
+            if agg.get("solo_codice_esatto") and (pec_base or _slug(nome) != _slug(esistente.get("nome") or "")):
+                continue
             if pec and pec != pec_base:
                 log.info(
                     "[merge] PEC aggiornata %s: %s → %s",
@@ -559,8 +621,8 @@ def esegui_sync_completo(
             report["fonti"]["giustizia_tributaria"] = {"ok": False, "motivo": "sorgente non disponibile"}
 
         # ---- IPA (arricchimento PEC) ----
-        uffici, n_ipa = arricchisci_pec_da_ipa(uffici)
-        report["fonti"]["ipa"] = {"ok": True, "n_pec_aggiornate": n_ipa}
+        uffici, n_ipa, esito_ipa = arricchisci_pec_da_ipa(uffici)
+        report["fonti"]["ipa"] = {**esito_ipa, "n_pec_aggiornate": n_ipa}
         report["n_pec_aggiornate"] += n_ipa
 
         # ---- Metadati ministeriali e validazione resolver PST ----

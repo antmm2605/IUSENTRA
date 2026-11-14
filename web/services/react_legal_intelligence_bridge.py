@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
 
-from pct.legal_relevance import is_low_value_public_legal_record
+from pct.legal_relevance import is_catalog_only_legal_summary, is_low_value_public_legal_record
 from pct.legal_update_batch_runner import LegalUpdateJobConfig
 from pct.legal_update_autofetch import (
     LEGAL_SOURCE_QUALITY_QUESTIONS,
@@ -1107,13 +1107,16 @@ def _pipeline_snapshot(pipeline: Any, warnings: list[dict[str, str]]) -> dict[st
 def _news_rows(pipeline: Any, warnings: list[dict[str, str]], query: Mapping[str, Any] | None) -> list[dict[str, Any]]:
     query = query or {}
     try:
-        return list(
-            pipeline.repository.list_news(
-                matter_slug=_text(query.get("materia")),
-                news_type=_text(query.get("tipo")),
-                limit=80,
-            )
+        rows = pipeline.repository.list_news(
+            matter_slug=_text(query.get("materia")),
+            news_type=_text(query.get("tipo")),
+            limit=80,
         )
+        return [
+            row for row in rows if not is_catalog_only_legal_summary(
+                title=row.get("title"), summary=row.get("short_summary"), context=row.get("content"),
+            )
+        ]
     except Exception as exc:
         warnings.append(_warning("news_non_disponibili", f"News giuridiche non disponibili: {type(exc).__name__}."))
         return []

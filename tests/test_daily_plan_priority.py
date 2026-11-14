@@ -109,6 +109,19 @@ def test_hint_presidio_rispettato():
     assert decisione.rule_id == "R8"
 
 
+def test_proposta_documentale_con_termine_lontano_non_e_immediata():
+    gruppo = _group(source_type="case_presidio", kind="document_review",
+                    due_at="2026-08-06", priority_hint="P0", peremptory=True)
+    decisione = decide_priority(gruppo, today=TODAY)
+    assert decisione.priority == "P3"
+
+
+def test_proposta_documentale_con_decorrenza_da_chiarire_mantiene_priorita():
+    gruppo = _group(source_type="case_presidio", kind="document_review",
+                    due_at="2026-08-06", priority_hint="P0", metadata={"needs_review": True})
+    assert decide_priority(gruppo, today=TODAY).priority == "P0"
+
+
 def test_organizzativa_senza_scadenza_p3():
     decisione = decide_priority(_group(due_at="", kind="duplicate_reconciliation"), today=TODAY)
     assert decisione.priority == "P3"

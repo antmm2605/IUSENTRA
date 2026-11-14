@@ -6,11 +6,12 @@ from collections.abc import Callable
 from datetime import date
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Flask, g, jsonify, redirect, request, url_for
 
 from pct.condivisione import RuoloCondivisione
 from pct.formatting import format_date_it
 from web.blueprints.react_shell import render_react_shell_response
+from web.bootstrap.collaboratori_fascicolo_api import register_collaboratori_fascicolo_api
 from web.services.react_condivisioni_bridge import build_client_collaborators_payload
 
 
@@ -37,80 +38,19 @@ def register_condivisioni_routes(
         _ = id_cliente
         return render_react_shell_response("clienti-collaboratori")
 
-    @app.route("/fascicoli/<id_fasc>/collaboratori", methods=["GET", "POST"])
+    @app.route("/fascicoli/<id_fasc>/collaboratori", methods=["GET"])
     def gestione_collaboratori_fascicolo(id_fasc: str):
-        fascicolo = get_fascicoli().get(id_fasc)
-        if not fascicolo:
-            flash("Fascicolo non trovato.", "warning")
-            return redirect(url_for("lista_fascicoli"))
+        # Pagina classica sostituita dal pannello React «Collaboratori del fascicolo» nella
+        # sezione «1 Pratica» (API in collaboratori_fascicolo_api.py): i vecchi link restano validi.
+        return redirect(f"{url_for('dettaglio_fascicolo', id_fasc=id_fasc)}#collaboratori-fascicolo")
 
-        utente = g.utente_corrente
-        puo_gestire = utente.ha_permesso("fascicoli.scrivi") or get_condivisioni().ha_accesso_fascicolo(
-            utente.id,
-            id_fasc,
-            RuoloCondivisione.GESTORE,
-        )
-        if not puo_gestire:
-            flash("Non hai il permesso di gestire i collaboratori di questo fascicolo.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-        gcd = get_condivisioni()
-        gu = get_utenti()
-
-        if request.method == "POST":
-            azione = request.form.get("azione", "condividi")
-            id_dest = request.form.get("id_utente", "").strip()
-            utente_dest = gu.get(id_dest)
-
-            if azione == "condividi" and utente_dest:
-                ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
-                gcd.condividi_fascicolo(
-                    id_fascicolo=id_fasc,
-                    id_cliente=fascicolo.id_cliente,
-                    id_utente=utente_dest.id,
-                    username=utente_dest.username,
-                    nome_completo=utente_dest.nome_completo or utente_dest.username,
-                    ruolo=RuoloCondivisione(ruolo_str),
-                    condiviso_da=utente.username,
-                    note=request.form.get("note", "").strip(),
-                    data_scadenza=request.form.get("data_scadenza", "").strip(),
-                    tags=[tag.strip() for tag in request.form.get("tags", "").split(",") if tag.strip()],
-                )
-                flash(f"Fascicolo condiviso con {utente_dest.username}.", "success")
-                audit(
-                    "condivisione.fascicolo.condividi",
-                    "fascicolo",
-                    id_fasc,
-                    dettagli=f"→ {utente_dest.username} [{ruolo_str}]",
-                )
-            elif azione == "revoca":
-                username_dest = utente_dest.username if utente_dest else id_dest
-                if gcd.revoca_fascicolo(id_fasc, id_dest):
-                    flash(f"Accesso fascicolo revocato per {username_dest}.", "success")
-                    audit(
-                        "condivisione.fascicolo.revoca",
-                        "fascicolo",
-                        id_fasc,
-                        dettagli=f"→ {username_dest}",
-                    )
-                else:
-                    flash("Accesso non trovato.", "warning")
-            return redirect(url_for("gestione_collaboratori_fascicolo", id_fasc=id_fasc))
-
-        collaboratori = gcd.collaboratori_fascicolo(id_fasc)
-        ids_collaboratori = {accesso.id_utente for accesso in collaboratori}
-        tutti_utenti = [
-            utente_item
-            for utente_item in gu.tutti(solo_attivi=True)
-            if utente_item.id != utente.id and utente_item.id not in ids_collaboratori
-        ]
-        return render_template(
-            "fascicoli/collaboratori_fascicolo.html",
-            fascicolo=fascicolo,
-            collaboratori=collaboratori,
-            utenti_disponibili=tutti_utenti,
-            ruoli_condivisione=list(RuoloCondivisione),
-        )
+    register_collaboratori_fascicolo_api(
+        app,
+        get_condivisioni=get_condivisioni,
+        get_fascicoli=get_fascicoli,
+        get_utenti=get_utenti,
+        audit=audit,
+    )
 
     def _utente_api_corrente():
         utente = getattr(g, "utente_corrente", None)

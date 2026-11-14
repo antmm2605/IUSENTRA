@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request
 
 from web.services.lex_operational_surface import build_lex_operational_payload
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_lex_operational_routes(
@@ -20,21 +21,8 @@ def register_lex_operational_routes(
 
     @app.route("/lex-operativo")
     def lex_operativo():
-        try:
-            horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
-        except ValueError:
-            horizon_days = 14
-        payload = build_lex_operational_payload(
-            get_workspace_intelligente=get_workspace_intelligente,
-            get_fascicoli=get_fascicoli,
-            get_telematico=get_telematico,
-            horizon_days=horizon_days,
-        )
-        return render_template(
-            "lex_operational.html",
-            payload=payload,
-            horizon_days=horizon_days,
-        )
+        # Lex operativo: pagina React (LexOperativoPage).
+        return render_react_shell_response("lex-operativo")
 
     @app.route("/api/lex-operativo")
     def api_lex_operativo():

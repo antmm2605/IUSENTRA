@@ -7,22 +7,20 @@ Richiede autenticazione tramite g.utente_corrente (gestita da app.py).
 from __future__ import annotations
 
 import io
-import json
-import hashlib
 import html
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 
 from flask import (Blueprint, abort, flash, g, redirect,
-                   render_template, request, send_file, url_for, current_app)
+                   request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_pagamenti, get_preventivi as _shared_get_preventivi
 from pct.economico_context import (
-    carica_log_calcolo,
     dump_log_calcolo,
     riepilogo_contesto_economico,
     sincronizza_contesto_economico,
 )
 from pct.formatting import format_date_it, format_datetime_it, format_euro_it
+from web.blueprints.react_shell import render_react_shell_response
 
 fatturazione = Blueprint("fatturazione", __name__, url_prefix="/fatturazione")
 
@@ -139,46 +137,8 @@ def _prefill_base():
 def lista():
     gf = _get_gf()
     gf.aggiorna_scadute()
-
-    anno = int(request.args.get("anno", date.today().year))
-    stato_filtro = request.args.get("stato", "")
-    cliente_filtro = request.args.get("id_cliente", "")
-    q = request.args.get("q", "").strip()
-
-    parcelle = gf.tutte()
-    parcelle = [p for p in parcelle if p.data_emissione.startswith(str(anno))]
-
-    if stato_filtro:
-        parcelle = [p for p in parcelle if p.stato.value == stato_filtro]
-    if cliente_filtro:
-        parcelle = [p for p in parcelle if p.id_cliente == cliente_filtro]
-
-    # Ricerca testuale per numero o cliente
-    if q:
-        clienti_map_tmp = {c.id: c for c in get_clienti().tutti()}
-        ql = q.lower()
-        parcelle = [p for p in parcelle
-                    if ql in p.numero.lower()
-                    or ql in (clienti_map_tmp.get(p.id_cliente, None) and clienti_map_tmp[p.id_cliente].nome_completo or "").lower()]
-
-    stats = gf.statistiche(anno)
-    clienti_map = {c.id: c for c in get_clienti().tutti()}
-
-    anni_disponibili = sorted({
-        int(p.data_emissione[:4]) for p in gf.tutte()
-    } | {date.today().year}, reverse=True)
-
-    return render_template(
-        "fatturazione/lista.html",
-        parcelle=parcelle,
-        stats=stats,
-        clienti_map=clienti_map,
-        anno=anno,
-        anni_disponibili=anni_disponibili,
-        stato_filtro=stato_filtro,
-        cliente_filtro=cliente_filtro,
-        q=q,
-    )
+    # Archivio: pagina React (FatturazionePage); restano gli stati aggiornati come prima.
+    return render_react_shell_response("fatturazione")
 
 
 # ================================================================ NUOVA PARCELLA
@@ -187,13 +147,12 @@ def lista():
 @fatturazione.route("/nuova/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuova(id_cliente: str = ""):
-    gc = get_clienti()
     gf_parc = _get_gf()
     nuova_url = url_for("fatturazione.nuova", id_cliente=id_cliente) if id_cliente else url_for("fatturazione.nuova")
     gp_prev = _get_gp()
 
     if request.method == "POST":
-        from pct.fatturazione import VoceParcella, StatoParcella
+        from pct.fatturazione import VoceParcella
         f = request.form
 
         id_cliente = f.get("id_cliente", "").strip()
@@ -266,103 +225,8 @@ def nuova(id_cliente: str = ""):
             from flask import url_for as _url_for
             return redirect(_url_for("cartella_cliente", id_cliente=from_cliente))
         return redirect(url_for("fatturazione.dettaglio", id_parcella=p.id))
-
-    # GET
-    from_cliente_get = request.args.get("from_cliente", "")
-    id_cliente_query = request.args.get("id_cliente", "").strip()
-    if not id_cliente and id_cliente_query:
-        id_cliente = id_cliente_query
-    id_fascicolo_pre = request.args.get("id_fascicolo", "").strip()
-    fascicolo_pre = get_fascicoli().get(id_fascicolo_pre) if id_fascicolo_pre else None
-    id_preventivo = request.args.get("id_preventivo", "").strip()
-    preventivo_pre = gp_prev.get_preventivo(id_preventivo) if id_preventivo else None
-    if preventivo_pre:
-        id_cliente = preventivo_pre.id_cliente or id_cliente
-        if preventivo_pre.id_fascicolo and not id_fascicolo_pre:
-            id_fascicolo_pre = preventivo_pre.id_fascicolo
-            fascicolo_pre = get_fascicoli().get(id_fascicolo_pre)
-    if fascicolo_pre and not id_cliente:
-        id_cliente = fascicolo_pre.id_cliente or ""
-    clienti = gc.tutti()
-    cliente_sel = gc.get(id_cliente) if id_cliente else None
-    fascicoli = []
-    if cliente_sel:
-        fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
-    prefill = _prefill_base()
-    if preventivo_pre:
-        prefill.update(
-            {
-                "origine": prefill["origine"] or "preventivo",
-                "id_preventivo": preventivo_pre.id,
-                "id_pratica": preventivo_pre.id_pratica,
-                "area_pratica": preventivo_pre.area_pratica,
-                "tipo_compenso": preventivo_pre.tipo_compenso,
-                "tipo_procedimento": preventivo_pre.tipo_procedimento,
-                "valore_controversia": f"{preventivo_pre.valore_controversia:.2f}" if preventivo_pre.valore_controversia else "",
-                "complessita": preventivo_pre.complessita,
-                "note": prefill["note"] or preventivo_pre.note or "",
-                "applica_cassa": preventivo_pre.applica_cassa,
-                "applica_iva": preventivo_pre.applica_iva,
-                "log_calcolo": prefill["log_calcolo"] or _contesto_parcella_da_preventivo(preventivo_pre),
-            }
-        )
-    raw_voci_json = (request.args.get("voci_json", "") or "").strip()
-    voci_prefill = []
-    if raw_voci_json:
-        try:
-            parsed = json.loads(raw_voci_json)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            parsed = []
-        if isinstance(parsed, list):
-            for row in parsed:
-                if not isinstance(row, dict):
-                    continue
-                descrizione = (row.get("descrizione") or "").strip()
-                if not descrizione:
-                    continue
-                try:
-                    quantita = float(row.get("quantita", 1) or 1)
-                except (ValueError, TypeError):
-                    quantita = 1.0
-                try:
-                    prezzo = float(row.get("prezzo_unitario", row.get("importo", 0)) or 0)
-                except (ValueError, TypeError):
-                    prezzo = 0.0
-                voci_prefill.append(
-                    {
-                        "descrizione": descrizione,
-                        "quantita": f"{quantita:g}",
-                        "prezzo_unitario": f"{prezzo:.2f}",
-                    }
-                )
-    elif preventivo_pre:
-        voci_prefill = _voci_prefill_da_preventivo(preventivo_pre)
-    if not voci_prefill:
-        voci_prefill = [
-            {
-                "descrizione": prefill["descrizione"],
-                "quantita": prefill["quantita"] or "1",
-                "prezzo_unitario": prefill["importo"],
-            }
-        ]
-    prefill["voci"] = voci_prefill
-    if prefill.get("log_calcolo"):
-        prefill["log_calcolo"] = dump_log_calcolo(sincronizza_contesto_economico(prefill.get("log_calcolo")))
-    prefill["calc_summary"] = riepilogo_contesto_economico(prefill.get("log_calcolo"))
-
-    return render_template(
-        "fatturazione/form.html",
-        clienti=clienti,
-        cliente_sel=cliente_sel,
-        fascicoli=fascicoli,
-        id_fascicolo_pre=id_fascicolo_pre,
-        fascicolo_pre=fascicolo_pre,
-        preventivo_pre=preventivo_pre,
-        prefill=prefill,
-        oggi=date.today(),
-        scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
-        from_cliente=from_cliente_get,
-    )
+    # Pagina React (FatturazionePage): la vista Jinja è stata tolta.
+    return render_react_shell_response("fatturazione/nuova")
 
 
 @fatturazione.route("/da-preventivo/<id_preventivo>", methods=["GET"])
@@ -388,18 +252,8 @@ def dettaglio(id_parcella: str):
     p = gf.get(id_parcella)
     if not p:
         abort(404)
-    cliente = get_clienti().get(p.id_cliente)
-    fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
-    preventivo = _get_gp().get_preventivo(p.id_preventivo) if p.id_preventivo else None
-    return render_template(
-        "fatturazione/dettaglio.html",
-        p=p,
-        cliente=cliente,
-        fascicolo=fascicolo,
-        preventivo=preventivo,
-        calc_summary=riepilogo_contesto_economico(p.log_calcolo),
-        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
-    )
+    # Scheda della parcella: FatturazionePage React la apre da ?id_parcella=.
+    return redirect(url_for("fatturazione.lista", id_parcella=id_parcella))
 
 
 # ================================================================ CAMBIA STATO

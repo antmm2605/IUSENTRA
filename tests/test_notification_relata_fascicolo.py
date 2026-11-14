@@ -79,6 +79,7 @@ def test_relata_storica_con_rac_rdac_e_deposito_non_diventa_da_firmare() -> None
     assert payload["proofComplete"] is True
     assert payload["proofDeposited"] is True
     assert payload["primaryLabel"] == "Apri prova depositata"
+    assert payload["primaryHref"] == "/fascicoli/FTEST/documenti/6/visualizza"
     assert all(step["status"] != "da_firmare" for step in payload["steps"])
     assert "nessuna nuova notifica da preparare" in payload["systemNotification"]
 
@@ -170,3 +171,19 @@ def test_provvedimento_successivo_al_cutoff_resta_da_notificare() -> None:
     assert "documenti=9" in payload["prepareHref"]
     assert "ingresso=presidio" in payload["prepareHref"]
     assert payload["primaryHref"] == payload["prepareHref"]
+
+
+def test_le_ricevute_della_sentenza_non_usano_il_deposito_precedente_del_ricorso():
+    acceptance = _doc("RAC", "ACCETTAZIONE: Notificazione ai sensi della legge n. 53 [Notifica_ID:APRILE]")
+    delivery = _doc("RDAC", "CONSEGNA: Notificazione ai sensi della legge n. 53 [Notifica_ID:APRILE]")
+    previous = _doc("OLD", "CONSEGNA: DEPOSITO TELEMATICO: Ricorso (originale notificato).pdf")
+    acceptance.data_documento = delivery.data_documento = "2026-04-20"
+    previous.data_documento = "2026-02-02"
+    copia = _doc("COPY", "Sentenza (originale notificato).pdf", tipo="SENTENZA")
+    copia.data_documento = "2026-05-31"
+    case = SimpleNamespace(id="FTEST", documenti=[previous, acceptance, delivery, copia])
+    result = _notification_relata(case, [])
+    assert result["status"] == "prova_raccolta"
+    assert result["proofComplete"] is True
+    assert result["proofDeposited"] is False
+    assert result["primaryHref"] == "/fascicoli/FTEST/documenti/RDAC/visualizza"

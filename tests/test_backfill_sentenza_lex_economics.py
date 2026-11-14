@@ -3,14 +3,14 @@ import os
 from pathlib import Path
 
 from pct.fascicoli import Fascicolo, StatoFascicolo, TipoFascicolo
-from pct.fascicolo_sentenza_economica import AUTOMATION_KEY, ORIGIN, SENTENZA_VECTOR_SCHEMA_VERSION
+from pct.fascicolo_sentenza_economica import AUTOMATION_KEY, ORIGIN
 from pct.fatturazione import GestioneFatturazione, VoceParcella
 from scripts.backfill_sentenza_lex_economics import (
     TenantBackfillTarget,
     _looks_like_contributo_evidence,
     _metadata_for_text,
     _vector_relevant_excerpt,
-    _vector_result_current,
+    _count_vector_result,
     run_backfill,
 )
 
@@ -112,31 +112,29 @@ def test_vector_relevant_excerpt_limita_testo_ma_preserva_importi():
     assert "spese generali" in excerpt
 
 
-def test_vector_result_current_richiede_schema_compatto_e_pending_zero():
-    old_result = {"ok": True, "document_id": "rag-old", "embedding": {"pending_remaining": 0}}
-    pending_result = {
-        "ok": True,
-        "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
-        "document_id": "rag-new",
-        "embedding": {"pending_remaining": 1},
-    }
-    error_result = {
-        "ok": True,
-        "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
-        "document_id": "rag-new",
-        "embedding": {"status": "error"},
-    }
-    current_result = {
-        "ok": True,
-        "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
-        "document_id": "rag-new",
-        "embedding": {"pending_remaining": 0},
-    }
+def test_riscontri_lex_distinguono_indice_da_embedding():
+    from collections import Counter
 
-    assert _vector_result_current(old_result) is False
-    assert _vector_result_current(pending_result) is False
-    assert _vector_result_current(error_result) is False
-    assert _vector_result_current(current_result) is True
+    totals = Counter()
+    for result in (
+        {"ok": False, "status": "unsupported"},
+        {"ok": True, "status": "indexed", "embedding": {"status": "disabled"}},
+        {"ok": True, "status": "skipped", "embedding": {"status": "missing"}},
+        {"ok": True, "status": "skipped", "embedding": {"status": "ready", "pending_remaining": 2}},
+        {"ok": True, "status": "skipped", "embedding": {"status": "ready", "pending_remaining": 0}},
+        {"ok": True, "status": "indexed", "embedding": {"status": "error"}},
+    ):
+        _count_vector_result(totals, result)
+
+    assert totals == {
+        "vector_index_errors": 1,
+        "vector_indexed": 2,
+        "vector_reused": 3,
+        "vector_embeddings_ready": 1,
+        "vector_embeddings_pending": 1,
+        "vector_embeddings_unavailable": 2,
+        "vector_embedding_errors": 1,
+    }
 
 
 def test_metadata_senza_classificazione_non_inventa_sentenza(tmp_path: Path):
@@ -652,7 +650,7 @@ def _doc_path(tenant_root: Path, document_id: str) -> Path:
     )
 
 
-def test_backfill_con_documento_guasto_non_rifa_la_scansione_integrale(tmp_path: Path):
+def test_backfill_con_documento_guasto_non_rifa_la_scansione_integrale(tmp_path: Path, monkeypatch):
     """Sei documenti illeggibili non devono tenere occupato il server ogni dieci minuti.
 
     Prima il segnaposto viveva dentro l'esito dell'ultima esecuzione *riuscita*:
@@ -693,8 +691,20 @@ def test_backfill_con_documento_guasto_non_rifa_la_scansione_integrale(tmp_path:
         "usa_cursore_persistente": True,
     }
 
+    from collections import Counter
+
+    from pct.incremental_jobs import file_mtime_ns
+
+    letture_mtime = Counter()
+
+    def misura(percorso):
+        letture_mtime[percorso] += 1
+        return file_mtime_ns(percorso)
+
+    monkeypatch.setattr("scripts.backfill_sentenza_lex_economics.file_mtime_ns", misura)
     primo = run_backfill(**comuni)
 
+    assert len(letture_mtime) == 3 and set(letture_mtime.values()) == {1}
     assert primo["ok"] is False  # il documento guasto resta un errore dichiarato
     assert primo["totals"]["documents_seen"] == 3
     assert primo["cursore_persistente"]["attivo"] is True
@@ -721,3 +731,29 @@ def test_backfill_con_documento_guasto_non_rifa_la_scansione_integrale(tmp_path:
     sospesi = ultimo["cursore_persistente"]["tenants"][0]["documenti_sospesi"]
     assert sospesi[0]["percorso"] == str(guasto)
     assert sospesi[0]["errore"]
+
+
+def test_inventario_rinviato_non_avanza_il_cursore(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from pct import cursore_sentenze_lex
+
+    root = tmp_path / "data"
+    tenant = root / "tenants" / "tenant-test"
+    registry = root / "tenants.json"
+    _write_json(registry, {"tenant-test": {"slug": "tenant-test"}})
+    _write_json(_doc_path(tenant, "DOC-1"), {"text": "Memoria istruttoria."})
+
+    orologio = iter((1, 3))
+    monkeypatch.setattr(
+        "scripts.backfill_sentenza_lex_economics.time",
+        SimpleNamespace(monotonic=lambda: next(orologio)),
+    )
+    risultato = run_backfill(
+        data_root=root, registry=registry, repo_root=tmp_path, skip_lex=True,
+        usa_cursore_persistente=True, budget_inventario_secondi=1,
+    )
+    assert risultato["status"] == "parziale"
+    assert risultato["totals"]["inventari_rinviati"] == 1
+    assert risultato["totals"]["documents_seen"] == 0
+    assert not cursore_sentenze_lex.percorso_stato(tenant).exists()

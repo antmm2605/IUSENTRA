@@ -552,6 +552,12 @@ Verifica in sola lettura sul codice al commit `93e70dc18` (cinque analisi, una p
 | Propagazione | correzione da «Sentenza» ad «Allegato» | entro il giro successivo 0 scadenze aperte di quell'obbligo |
 | Velocità | caricamento di un PDF scansionato; RAG oltre 60 s; 10.000 scadenze + 50 nuove | 1 OCR e 1 giro; evento riuscito con RAG rimandato; nessuna rilettura completa della tabella |
 
+#### 9.3.1 Prova di comprensione operativa (13/11/2026)
+
+Applicare la direttiva «Comprensibilità operativa su tutto IUSENTRA» in `AGENTS.md`. Per ogni superficie interessata verificare sul dato reale: fonte originale e passaggio → conclusione → azione o motivo per cui non è dovuta → data, prova e stato → schermata di destinazione. In mancanza degli elementi, la schermata indica il dubbio e il controllo da fare; l'originale si conserva. Una notizia che ripete il titolo o l'indice della fonte non supera il collaudo anche se il job è concluso.
+
+Il collaudo visivo è un criterio di accettazione dell’obiettivo su tutto IUSENTRA. Per ogni materia, rito e risultato interessato, aprire le viste sullo studio locale e gli eventuali documenti o esportazioni nel formato finale. Verificare dal punto di vista di un avvocato specializzato che siano chiari il fatto e la prova, la norma applicabile, l’azione da compiere, il termine e le conseguenze, secondo le sette risposte previste per le conclusioni giuridiche. Tracciare nel verbale i casi reali osservati, le viste attraversate e gli esiti. Correggere le incongruenze alla fonte, ripetere la prova nelle viste collegate e tenere aperte le verifiche mancanti.
+
 ### 9.4 Decisioni che servono all'avvocato
 
 1. Via libera all'ordine della sezione 9.2 (o un ordine diverso).

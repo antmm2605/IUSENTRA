@@ -3,7 +3,7 @@ import json
 import pytest
 
 from pct.pec_deposit_query_projection import projected_receipt
-from pct.pec_pipeline import sha256_json
+from pct.pec_pipeline import _pct_deposit_state_from_lifecycle, sha256_json
 
 
 def source(stage='accettazione_deposito', final='accepted'):
@@ -55,3 +55,23 @@ def test_collegamento_legacy_non_diventa_identita_confermata():
     assert result['candidate_case_id'] == 'controlled-case'
     row['case_link_status'] = 'ricevuta_identificativi_verificati'
     assert projected_receipt(row)['case_id'] == 'controlled-case'
+
+
+@pytest.mark.parametrize(
+    "stage, final, accepted",
+    [
+        ("consegna_pec", "consegna_pec", False),
+        ("intervento_cancelleria", "awaiting_clerk_confirmation", False),
+        ("intervento_cancelleria", "intervento_cancelleria", False),
+        ("intervento_cancelleria", "accepted_manually", True),
+        ("accettazione_deposito", "accepted", True),
+        ("accettazione_deposito", "technical_error", False),
+        ("rifiuto_deposito", "rejected", False),
+    ],
+)
+def test_fascicolo_e_indice_ricevute_concordano_sull_accettazione(stage, final, accepted):
+    row = source(stage, final)
+    life = json.loads(row["report_json"])["deposit_lifecycle"]
+
+    assert (projected_receipt(row)["state"] == "ACCETTATO_CANCELLERIA") is accepted
+    assert (_pct_deposit_state_from_lifecycle(life)[0] == "ACCETTATO_CANCELLERIA") is accepted

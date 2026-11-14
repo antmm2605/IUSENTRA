@@ -9,7 +9,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 - Aree rilevate o governate: 17.
 - Route nel manifest: 119.
 - Priorita route: P0=31; P1=47; P2=41.
-- Stato aree: blocked=1; complete_tested=8; complete_unverified=4; partial=4.
+- Stato aree: complete_tested=8; complete_unverified=4; partial=5.
 - `complete_tested` non viene assegnato a un'area con route legacy/parziali o senza gate fase 8.
 - Le aree non parificate restano `partial`, `pending` o `blocked` e non devono essere esposte come complete nella shell App V2.
 
@@ -33,7 +33,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 | Ricerca studio e Lex | /global-search; /ricerca-studio | /app/global-search; /app/ricerca-studio | routes.appV2.search.global | ricerca.leggi; fonti e citazioni governate | query, fonti, risultati e cronologia ricerca | ricerca globale; ricerca legale; giurisprudenza | query vuota; query senza risultati; tenant B zero risultati; filtro invalido gestito | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Scadenze e termini | /scadenziario/:id/modifica; /scadenziario/nuova; /scadenziario; /scadenziario/:id; /wizard-pro | /app/scadenziario/:id/modifica; /app/scadenziario/nuova; /app/scadenziario; /app/scadenziario/:id; /app/wizard-pro | routes.appV2.deadlines.create; routes.appV2.deadlines.detail; routes.appV2.deadlines.hearingWizard; routes.appV2.deadlines.list | scadenze.leggi / scadenze.scrivi | termini, reminder e collegamenti a fascicolo | scadenziario; nuova scadenza; termini guidati | lista tenant A; scadenza tenant B negata; filtro invalido gestito; readonly non muta | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
 | Studio e sito studio | /sito-studio/articoli/:id/modifica; /sito-studio/builder; /sito-studio/redazione-ai; /strumenti-legali; /workflow-agents; /legal-skills; /sito-studio; /sito-studio/contatti; +2 altre | /app/amministrazione?tab=studio-redazione-ai; /app/amministrazione?tab=studio; /app/amministrazione?tab=studio-redazione-ai; /app/studio; /app/workflow-agents; /app/legal-skills; +4 altre | routes.appV2.legalSkills.catalog; routes.appV2.studio.modules; routes.appV2.studio.site; routes.appV2.studio.siteBuilder; routes.appV2.studio.siteDrafting; routes.appV2.studio.statistics; +1 altre | studio.leggi / studio.scrivi; admin.configura per sito e pubblicazione | configurazioni, contenuti pubblici, richieste contatto e prenotazioni | studio; statistiche; sito studio; builder; redazione AI | builder con dati/empty; asset upload senza permesso 403; contatti tenant-safe; mobile senza overflow | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate fase 7; provider verification P0/P1; build Vite | P1; P2 | complete_tested |
-| Servizi telematici | /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /portali/pat/acquisizione; /portali/pdp/acquisizione; +9 altre | /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; +11 altre | routes.appV2.dashboard.home; routes.appV2.documents.checklist; routes.appV2.telematico.center; routes.appV2.telematico.surface | telematico.leggi / telematico.scrivi; Local Signer e portali fail-closed | buste, ricevute, allegati, dati ministeriali e Local Signer | controlli atti; centro telematico; PST/PDP/PAT/PTT/SIGP/POLISWEB dove presenti | controlli atti React; portali non parificati pending; download senza permesso 403; flag off senza API dati | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; controlli atti React; workflow ministeriali non parificati marcati blocked | P0 | blocked |
+| Servizi telematici | /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /portali/pat/acquisizione; /portali/pdp/acquisizione; +9 altre | /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; +11 altre | routes.appV2.dashboard.home; routes.appV2.documents.checklist; routes.appV2.telematico.center; routes.appV2.telematico.surface | telematico.leggi / telematico.scrivi; Local Signer e portali fail-closed | buste, ricevute, allegati, dati ministeriali e Local Signer | controlli atti; centro telematico; PST/PDP/PAT/PTT/SIGP/POLISWEB dove presenti | controlli atti React; portali non parificati pending; download senza permesso 403; flag off senza API dati | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; controlli atti React; workflow ministeriali non parificati marcati blocked | P0 | partial |
 
 ## Dettaglio aree
 
@@ -56,7 +56,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ### Amministrazione, utenti e permessi
 
 - Stato: `partial` (area mista: alcune route sono React full, altre parziali o legacy).
-- Route censite: 16; priorita: P0; P1; P2; migrazione: legacy_operational=3; react_operational_full=13.
+- Route censite: 16; priorita: P0; P1; P2; migrazione: react_operational_full=13; react_operational_partial=3.
 - URL legacy principali: /admin/osservabilita; /database; /applicazioni; /importa-pratiche; /importa-pratiche-studio-telematico; /privacy/registro/nuovo; /admin/database; /amministrazione; /audit; /privacy/registro; /profili; /profilo; +4 altre.
 - URL App V2: /app/amministrazione; /app/amministrazione; /app/amministrazione; /app/importa-pratiche; /app/importa-pratiche-studio-telematico; /app/privacy/registro/nuovo; /app/admin/database; /app/amministrazione; /app/amministrazione?tab=audit; /app/privacy/registro; /app/amministrazione?tab=profili; /app/profilo; +4 altre.
 - Endpoint API: /api/v1/ui/amministrazione*, /api/v1/ui/utenti*, /api/v1/ui/profili*, /api/v1/ui/audit*, /api/v1/ui/admin/database, /api/v1/ui/privacy/registro.
@@ -104,7 +104,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ### Documenti, redazione e ricerca legale
 
 - Stato: `partial` (area mista: alcune route sono React full, altre parziali o legacy).
-- Route censite: 18; priorita: P0; P1; P2; migrazione: legacy_operational=7; react_operational_full=11.
+- Route censite: 18; priorita: P0; P1; P2; migrazione: react_operational_full=11; react_operational_partial=7.
 - URL legacy principali: /checklist; /giurisprudenza/*; /legal-intelligence/*; /redazione-atti/*; /ricerca-legale/*; /template-atti/*; /template-atti/nuovo; /giurisprudenza; /giurisprudenza/nuova; /legal-intelligence; /legal-intelligence/mediazione; /legal-intelligence/news; +6 altre.
 - URL App V2: /app; /app/lex; /app/lex; /app/documenti?tab=redazione; /app/lex; /app/documenti?tab=template; /app/documenti?tab=template; /app/lex; /app/lex; /app/lex; /app/lex; /app/lex; +6 altre.
 - Endpoint API: /api/v1/ui/template-atti*, /api/v1/ui/redazione-atti*, /api/v1/ui/studio-modules/*, /api/editor/*.
@@ -120,7 +120,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ### Fatturazione e pagamenti
 
 - Stato: `partial` (area mista: alcune route sono React full, altre parziali o legacy).
-- Route censite: 4; priorita: P0; P1; migrazione: legacy_operational=1; react_operational_full=3.
+- Route censite: 4; priorita: P0; P1; migrazione: react_operational_full=3; react_operational_partial=1.
 - URL legacy principali: /fatturazione/*; /fatturazione; /fatturazione/nuova; /incassi-pagamenti.
 - URL App V2: /app/mandato?tab=fatturazione; /app/mandato?tab=fatturazione; /app/mandato?tab=fatturazione&drawer=nuova; /app/mandato?tab=incassi.
 - Endpoint API: /api/v1/ui/fatturazione*, /api/v1/ui/preventivi*, /api/v1/ui/pagamenti*, /api/v1/ui/incassi-pagamenti*.
@@ -184,7 +184,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ### Mandato, preventivi e compensi
 
 - Stato: `partial` (area mista: alcune route sono React full, altre parziali o legacy).
-- Route censite: 10; priorita: P0; P1; migrazione: legacy_operational=3; react_operational_full=7.
+- Route censite: 10; priorita: P0; P1; migrazione: react_operational_full=7; react_operational_partial=3.
 - URL legacy principali: /compensi-forensi/*; /preventivi/*; /tariffario/*; /compensi-forensi; /preventivi; /preventivi/conferimento/:id; /preventivi/conferimento/nuovo; /preventivi/nuovo; /preventivi/wizard; /tariffario.
 - URL App V2: /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=tariffario; /app/mandato?tab=compensi; /app/mandato?tab=preventivi; /app/mandato?tab=conferimenti; /app/mandato?tab=conferimenti; /app/mandato?tab=preventivi; /app/mandato?tab=wizard; /app/mandato?tab=tariffario.
 - Endpoint API: /api/v1/ui/preventivi*, /api/v1/ui/fatturazione*, /api/v1/ui/tariffario*.
@@ -295,8 +295,8 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 
 ### Servizi telematici
 
-- Stato: `blocked` (presente ma bloccata da workflow non parificati o rimandati esplicitamente).
-- Route censite: 17; priorita: P0; migrazione: legacy_operational=3; react_operational_full=14.
+- Stato: `partial` (area mista: alcune route sono React full, altre parziali o legacy).
+- Route censite: 17; priorita: P0; migrazione: react_operational_full=14; react_operational_partial=3.
 - URL legacy principali: /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /portali/pat/acquisizione; /portali/pdp/acquisizione; /portali/pst/acquisizione; /portali/ptt/acquisizione; /portali/sigit/acquisizione; /servizi-telematici; +5 altre.
 - URL App V2: /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; +5 altre.
 - Endpoint API: /api/v1/ui/telematico*, /api/v1/ui/local-signer*.

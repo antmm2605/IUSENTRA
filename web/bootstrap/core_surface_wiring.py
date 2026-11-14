@@ -30,6 +30,7 @@ from web.bootstrap.lex_operational_routes import register_lex_operational_routes
 from web.bootstrap.messages_routes import register_messages_routes
 from web.bootstrap.privacy_routes import register_privacy_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
+from web.services.sito_pubblico_runtime import registra_pregenerazione
 from web.bootstrap.react_final_block_routes import register_react_final_block_routes
 from web.bootstrap.scadenziario_proposte_routes import register_scadenziario_proposte_routes
 from web.bootstrap.scadenziario_routes import register_scadenziario_routes
@@ -71,6 +72,7 @@ def register_core_surfaces(
     )
     register_pwa_routes(app)
     register_error_handlers(app)
+    registra_pregenerazione(app)
     register_auth_management_routes(app, get_utenti=core["get_utenti"], audit=core["audit"])
     register_scadenziario_routes(
         app,

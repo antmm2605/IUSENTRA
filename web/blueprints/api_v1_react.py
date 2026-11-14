@@ -9815,13 +9815,16 @@ def prepara_lettura_in_cache(id_fasc: str) -> bool:
     Serve il contesto del fascicolo già impostato in ``g`` dal chiamante.
     """
     from lex.context.fascicolo_lettura_context import load_fascicolo_lettura_context
+    from web.services.ragionamento_raccolta import salva_percorso_concluso
 
     chiave = _lettura_cache_key(id_fasc)
-    if _LETTURA_CACHE.get(chiave) is not None:
-        return False
+    in_cache = _LETTURA_CACHE.get(chiave)
+    if in_cache is not None:
+        return salva_percorso_concluso(id_fasc, json.loads(in_cache).get("lettura") or {})
     lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc)
     if not lettura or bool((lettura.get("verifiche") or {}).get("in_corso")):
         return False
+    salva_percorso_concluso(id_fasc, lettura)
     risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
     _LETTURA_CACHE.set(chiave, risposta.get_data())
     return True

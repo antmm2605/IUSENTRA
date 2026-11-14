@@ -71,7 +71,10 @@ def test_cosa_e_arrivato_con_decorrenza_in_italiano():
     from web.services.react_agenda_lavorazione_bridge import _arrivo
 
     testo = _arrivo("Evento: FISSAZIONE TERMINE PER NOTE IN SOSTITUZIONE UDIENZA\nDecorrenza letta: 2026-11-03T14:00:00")
-    assert testo == "Fissazione termine per note in sostituzione udienza. Decorrenza: 03/11/2026 ore 14:00."
+    assert testo == "Fissazione termine per note in sostituzione udienza."
+    assert _arrivo("Evento: COMUNICAZIONE SENTENZA\nDecorrenza letta: 2026-11-03T14:00:00") == (
+        "Comunicazione sentenza. Decorrenza: 03/11/2026 ore 14:00."
+    )
 
 
 def test_proposta_di_collegamento_della_pec_al_fascicolo():

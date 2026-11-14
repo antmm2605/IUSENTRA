@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sqlite3
 import threading
 import time
 import uuid
@@ -51,28 +52,48 @@ class SemaforoOccupato(TimeoutError):
     """Il turno non è arrivato entro l'attesa massima."""
 
 
+class SemaforoNonDisponibile(SemaforoOccupato):
+    """L'archivio del semaforo non è tornato disponibile entro l'attesa."""
+
+
 @contextmanager
 def motore_pesante(nome: str, *, priorita: int = PRIORITA_SEQUENZA, attesa_massima: float | None = None,
                    semaforo: Semaforo | None = None, intervallo: float = 2.0) -> Iterator[bool]:
-    """Esegue il blocco quando è il proprio turno. Se il semaforo non è disponibile si lavora comunque (fail-open)."""
-    sem = semaforo or semaforo_predefinito()
-    if sem is None or getattr(_IN_TURNO, "attivo", False):
+    """Esegue il blocco con il turno confermato dal semaforo, se configurato."""
+    if getattr(_IN_TURNO, "attivo", False):
         yield False
         return
+    sem = semaforo
     titolare = f"{nome}:{uuid.uuid4().hex[:12]}"
     inizio = time.monotonic()
-    try:
-        while not sem.prova(titolare, nome, priorita):
-            if attesa_massima is not None and time.monotonic() - inizio >= attesa_massima:
-                raise SemaforoOccupato(f"{nome}: turno non arrivato entro {int(attesa_massima)} secondi.")
-            time.sleep(intervallo)
-    except SemaforoOccupato:
-        sem.rilascia(titolare)
-        raise
-    except Exception as exc:  # archivio non leggibile: non si ferma il lavoro
-        logger.warning("[semaforo] Non disponibile per %s: %s", nome, type(exc).__name__)
-        yield False
-        return
+    prossimo_log = inizio
+    while True:
+        errore_archivio = None
+        try:
+            if sem is None:
+                sem = semaforo_predefinito()
+            if sem is not None and sem.prova(titolare, nome, priorita):
+                break
+        except (OSError, sqlite3.Error) as exc:
+            errore_archivio = exc
+            if time.monotonic() >= prossimo_log:
+                logger.warning("[semaforo] Attesa archivio per %s: %s", nome, type(exc).__name__)
+                prossimo_log = time.monotonic() + 60
+        if sem is None and errore_archivio is None:
+            yield False
+            return
+        trascorso = time.monotonic() - inizio
+        if attesa_massima is not None and trascorso >= attesa_massima:
+            try:
+                if sem is not None:
+                    sem.rilascia(titolare)
+            except (OSError, sqlite3.Error):
+                logger.warning("[semaforo] Prenotazione di %s in scadenza naturale.", nome)
+            if errore_archivio is not None:
+                raise SemaforoNonDisponibile(f"{nome}: archivio del semaforo indisponibile.") from errore_archivio
+            raise SemaforoOccupato(f"{nome}: turno non arrivato entro {int(attesa_massima)} secondi.")
+        residuo = attesa_massima - trascorso if attesa_massima is not None else intervallo
+        time.sleep(min(intervallo, residuo))
     fermo = threading.Event()
 
     def _rinnova() -> None:

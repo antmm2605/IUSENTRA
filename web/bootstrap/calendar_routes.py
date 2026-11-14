@@ -5,11 +5,11 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from datetime import date, timedelta
-from urllib.parse import quote
 
-from flask import Flask, Response, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, Response, flash, jsonify, redirect, request, url_for
 
 from pct.agenda import TipoAppuntamento
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_calendar_routes(
@@ -138,33 +138,8 @@ def register_calendar_routes(
 
     @app.route("/impostazioni/calendario")
     def impostazioni_calendario():
-        from pct.cal_token import get_token
-
-        token_data = get_token(_cal_token_dir())
-        token = token_data["token"]
-        base = _get_base_url()
-        calendar_sync = get_calendar_sync()
-        agenda = get_agenda()
-        feeds = {
-            "agenda": f"{base}/cal/{token}/agenda.ics",
-            "scadenze": f"{base}/cal/{token}/scadenze.ics",
-            "completo": f"{base}/cal/{token}/completo.ics",
-        }
-        gcal_completo = (
-            "https://calendar.google.com/calendar/r/settings/addbyurl"
-            f"?url={quote(feeds['completo'], safe='')}"
-        )
-        profili = calendar_sync.list_profiles()
-        return render_template(
-            "impostazioni/calendario.html",
-            token=token,
-            token_creato=token_data.get("creato_il", ""),
-            feeds=feeds,
-            gcal_url=gcal_completo,
-            profili_sync=profili,
-            profili_attivi=sum(1 for profilo in profili if profilo.get("enabled", True)),
-            eventi_agenda=len(agenda.tutti()),
-        )
+        # Calendari: sezione React delle impostazioni (ImpostazioniPage).
+        return render_react_shell_response("impostazioni/calendario")
 
     @app.route("/impostazioni/calendario/rigenera", methods=["POST"])
     def rigenera_token_calendario():

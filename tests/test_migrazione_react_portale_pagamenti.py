@@ -105,7 +105,7 @@ def _senza_segreti(testo: str) -> None:
 
 # ------------------------------------------------------------------ shell React
 
-def test_shell_react_del_portale_e_vista_classica(tmp_path):
+def test_shell_react_del_portale_anche_con_vecchio_link(tmp_path):
     app = _app_sessione(tmp_path)
     mario, _ = _cliente_e_fascicolo(app, "Mario")
     token, scheda = _portale(app, mario.id, carica_documenti=False)
@@ -131,15 +131,14 @@ def test_shell_react_del_portale_e_vista_classica(tmp_path):
         assert _scheda(app, scheda.id).n_accessi == 0
         classica = client.get(f"/portale/{token}?_legacy=1")
         assert classica.status_code == 200
-        assert "Benvenuto, Prova Mario" in classica.get_data(as_text=True)
-        assert "portale-token-react-root" not in classica.get_data(as_text=True)
+        assert 'id="portale-token-react-root"' in classica.get_data(as_text=True)
         assert client.get(f"/portale/{token}/documenti?_legacy=1").status_code == 403
         assert client.get("/portale/token-inesistente?_legacy=1").status_code == 410
-    # Vista classica: accesso registrato prima del controllo dei permessi (home + documenti).
-    assert _scheda(app, scheda.id).n_accessi == 2
+    # Anche i vecchi link caricano la pagina. L'accesso è registrato dalle API.
+    assert _scheda(app, scheda.id).n_accessi == 0
 
 
-def test_shell_react_del_pagamento_e_vista_classica(tmp_path):
+def test_shell_react_del_pagamento_anche_con_vecchio_link(tmp_path):
     app = _app_sessione(tmp_path)
     _configura_pagamenti(app)
     lp = _link_pagamento(app)
@@ -156,7 +155,7 @@ def test_shell_react_del_pagamento_e_vista_classica(tmp_path):
         assert 'data-provider="bonifico"' in esito.get_data(as_text=True)
         assert client.get("/pagamenti/paga/token-inesistente/successo").status_code == 404
         classica = client.get(f"/pagamenti/paga/{lp.token}?_legacy=1")
-        assert classica.status_code == 200 and "Scegli il metodo di pagamento" in classica.get_data(as_text=True)
+        assert classica.status_code == 200 and 'data-vista="checkout"' in classica.get_data(as_text=True)
         _senza_segreti(classica.get_data(as_text=True))
 
 
@@ -491,22 +490,16 @@ def test_api_pagamento_esito(tmp_path):
     assert pagato["data_pagamento"] == datetime.now().strftime("%d/%m/%Y")
 
 
-def test_vista_classica_del_pagamento_invariata(tmp_path, monkeypatch):
+def test_vecchio_link_esito_pagamento_apre_la_pagina_react(tmp_path):
     app = _app_sessione(tmp_path)
     _configura_pagamenti(app)
     lp = _link_pagamento(app)
-    _gestori_finti(monkeypatch, [])
     with app.test_client() as client:
-        stripe = client.post(f"/pagamenti/paga/{lp.token}/avvia", data={"provider": "stripe"})
-        assert stripe.status_code == 302 and stripe.headers["Location"] == "https://checkout.stripe.com/c/pay/cs_test_1"
-        bonifico = client.post(f"/pagamenti/paga/{lp.token}/avvia", data={"provider": "bonifico"})
-        assert bonifico.headers["Location"].endswith(f"/pagamenti/paga/{lp.token}/successo?provider=bonifico")
-        sumup = client.post(f"/pagamenti/paga/{lp.token}/avvia", data={"provider": "sumup"})
-        assert sumup.status_code == 200 and "chk_123" in sumup.get_data(as_text=True)
-        _senza_segreti(sumup.get_data(as_text=True))
-        assert client.post(f"/pagamenti/paga/{lp.token}/avvia", data={"provider": "contanti"}).status_code == 400
-        successo = client.get(f"/pagamenti/paga/{lp.token}/successo?provider=bonifico&_legacy=1")
-        assert "Effettua il bonifico" in successo.get_data(as_text=True)
+        esito = client.get(f"/pagamenti/paga/{lp.token}/successo?provider=bonifico&_legacy=1")
+        assert esito.status_code == 200
+        html = esito.get_data(as_text=True)
+        assert 'data-vista="esito"' in html and 'data-provider="bonifico"' in html
+        _senza_segreti(html)
 
 
 # ------------------------------------------------------------------ CSRF e accesso

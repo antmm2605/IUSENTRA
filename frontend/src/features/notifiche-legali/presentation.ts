@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/ui/Badge'
-import type { PresidioPriority, PresidioStatus, PresidioTabKey } from './types'
+import type { PresidioPriority, PresidioStatus, PresidioSummary, PresidioTabKey } from './types'
 
 export function downloadHrefForPresidioDocument(viewerHref: string, fallbackHref: string): string {
   if (viewerHref.includes('/documenti/') && viewerHref.includes('/visualizza')) {
@@ -114,4 +114,15 @@ export function tabCount(
 ): number | null {
   if (!counts) return null
   return statuses.reduce((total, status) => total + Number(counts[status] || 0), 0)
+}
+
+export function presidioRecipientStatus(status: PresidioStatus, recipientStatus: string): string {
+  const toReview = status === 'DETECTED' || status === 'NEEDS_REVIEW'
+  return toReview && recipientStatus === 'Da inviare' ? 'Invio da verificare' : recipientStatus
+}
+
+export function presidioUnresolvedTerm(item: Pick<PresidioSummary, 'notification_case'>): string {
+  return item.notification_case === 'explicit_order'
+    ? 'Termine da verificare sul provvedimento e sulla norma applicabile'
+    : 'Termine non indicato nelle fonti collegate'
 }

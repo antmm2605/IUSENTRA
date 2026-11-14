@@ -11,7 +11,7 @@ export function repoPath(path) {
 
 export function read(path) {
   const full = resolve(root, path)
-  return existsSync(full) ? readFileSync(full, 'utf8') : ''
+  return existsSync(full) && statSync(full).isFile() ? readFileSync(full, 'utf8') : ''
 }
 
 export function walk(dir, predicate, output = []) {
@@ -37,9 +37,18 @@ export function fullRoutes() {
   return (manifest().routes || []).filter((route) => route.status === 'react_operational_full')
 }
 
+export function routeComponentSource(route) {
+  const primary = read(route.targetComponent || '')
+  const delegated = read(route.actionComponent || '')
+  const source = route.targetComponent === 'frontend/src/App.tsx'
+    ? primary.replace(/<form className="iu-sidebar__logout-form" method="post" action=\{logoutAction\}>[\s\S]*?<\/form>/, '')
+    : primary
+  return delegated ? `${source}\n${delegated}` : source
+}
+
 export function routeSources(route) {
   return {
-    component: read(route.targetComponent || ''),
+    component: routeComponentSource(route),
     data: read(route.targetData || ''),
     bridge: read(route.targetBridge || ''),
   }

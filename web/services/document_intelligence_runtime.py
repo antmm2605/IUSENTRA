@@ -492,6 +492,9 @@ def build_lex_indexing_summary_payload(
     user_context: object | None = None,
     apply_automations: bool = True,
     forza: bool = False,
+    fine_turno: float | None = None,
+    registra_se_pronto: bool = False,
+    aggiorna_catalogo: bool = True,
 ) -> dict[str, Any]:
     """Stato dell'indice Lex del fascicolo; con `process` indicizza ciò che manca.
 
@@ -508,7 +511,19 @@ def build_lex_indexing_summary_payload(
     service = build_document_ai_service()
     sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id, allow_content_read=process)
     if not process:
-        return summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, context).to_dict()
+        summary = summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, context)
+        payload = summary.to_dict()
+        if registra_se_pronto and not any(payload.get(campo) for campo in ("not_indexed", "queued", "stale")):
+            try:
+                registro = _registro_indice_documentale(fascicolo_id, sources)
+                if not registro.get("invariato"):
+                    _registra_indice_documentale(
+                        registro, summary, sources, service=service, tenant_id=tenant_id,
+                        fascicolo_id=fascicolo_id, user_context=context,
+                    )
+            except Exception as exc:
+                logging.getLogger(__name__).warning("Indice documentale non registrato per %s: %s", fascicolo_id, exc)
+        return payload
     registro = _registro_indice_documentale(fascicolo_id, sources)
     if forza:
         registro["invariato"] = False
@@ -523,9 +538,15 @@ def build_lex_indexing_summary_payload(
             sources,
             context,
             retry_errors=retry_errors,
+            **({"fine_turno": fine_turno} if fine_turno is not None else {}),
+            **({"aggiorna_catalogo": False} if not aggiorna_catalogo else {}),
         )
         payload = result.summary.to_dict()
-        _registra_indice_documentale(registro, result.summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context)
+        rinviato = bool(getattr(result, "rinviato", False))
+        _registra_indice_documentale(registro, result.summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=context, chiudi_fascicolo=not rinviato)
+        if rinviato:
+            payload["rinviato"] = True
+            return payload
         if not apply_automations:
             return payload
         payload.update(
@@ -549,38 +570,21 @@ def _registra_catalogo(fascicolo_id: str, sources: list[DocumentAISource], by_do
 
         registro = registro_corrente()
         tenant = tenant_corrente()
+        from web.services.catalogo_archivio_runtime import conferma_catalogo_archiviato
+
         letti: list[Oggetto] = []
         non_leggibili: list[Oggetto] = []
         inventario = _inventario_registro(registro, tenant, fascicolo_id)
-        sha_fonte: dict[str, str] = {}
         for source in sources:
             document_id = str(dict(getattr(source, "metadata", {}) or {}).get("documento_id") or source.source_id or "")
             oggetto = _oggetto_del_registro(inventario, source)
-            sha_fonte[document_id] = str(source.sha256 or "")
-            assignment = by_document.get((document_id, source.sha256))
-            if assignment is not None:
+            if by_document.get((document_id, source.sha256)) is not None:
                 letti.append(oggetto)
             elif not source.supported:
                 non_leggibili.append(oggetto)
         fid = str(fascicolo_id or "")
         if letti:
-            da_segnare = registro.da_confermare(tenant, fid, "catalogo", oggetti=letti)
-            # Registriamo la versione dell'assegnazione già acquisita senza
-            # riavviare la lettura solo perché è cambiato il lettore.
-            for oggetto in da_segnare:
-                assignment = by_document.get((str(oggetto.oggetto_id or ""), sha_fonte.get(str(oggetto.oggetto_id or ""), "")))
-                effective_version = str(getattr(assignment, "resolver_version", "") or "").strip()
-                registro.segna_letti(
-                    tenant,
-                    fid,
-                    [oggetto],
-                    "catalogo",
-                    versione=effective_version or None,
-                    esito={
-                        "fonte": "assegnazione di catalogo",
-                        "resolver_version": effective_version,
-                    },
-                )
+            conferma_catalogo_archiviato(registro, tenant, fid, letti, by_document.values())
         if non_leggibili:
             da_segnare = registro.da_leggere(tenant, fid, "catalogo", oggetti=non_leggibili)
             registro.segna_letti(tenant, fid, da_segnare, "catalogo", stato="non_leggibile", esito={"motivo": "formato non supportato"})
@@ -613,20 +617,10 @@ def _oggetto_del_registro(inventario: dict[str, Any], source: DocumentAISource) 
 
 
 def registra_indice_senza_lettura(fascicolo_id: str, user_context: object) -> None:
-    """Fascicolo già tutto indicizzato: si registra l'esito nel registro senza rileggere alcun contenuto."""
-    try:
-        tenant_id = document_ai_tenant_id()
-        service = build_document_ai_service()
-        sources = collect_document_ai_sources_for_fascicolo(fascicolo_id, tenant_id=tenant_id, allow_content_read=False)
-        registro = _registro_indice_documentale(fascicolo_id, sources)
-        if registro.get("invariato"):
-            return
-        from web.services.document_index_outcomes import summary_with_registered_outcomes
-
-        summary = summary_with_registered_outcomes(service, tenant_id, fascicolo_id, sources, user_context)
-        _registra_indice_documentale(registro, summary, sources, service=service, tenant_id=tenant_id, fascicolo_id=fascicolo_id, user_context=user_context)
-    except Exception as exc:
-        logging.getLogger(__name__).warning("Indice documentale non registrato per %s: %s", fascicolo_id, exc)
+    """Registra l'indice esistente per i chiamanti che non ne hanno già il riepilogo."""
+    build_lex_indexing_summary_payload(
+        fascicolo_id, user_context=user_context, apply_automations=False, registra_se_pronto=True,
+    )
 
 
 def _registro_indice_documentale(fascicolo_id: str, sources: list[DocumentAISource]) -> dict[str, Any]:

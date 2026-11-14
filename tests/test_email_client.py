@@ -491,7 +491,8 @@ def test_base_template_non_renderizza_vecchio_lex_duplicato():
     assert template.count('include "components/pct_ai_widget.html"') == 1
     assert "iusentra_embedded_source_view = request.args.get('embed') == 'source'" in template
     assert "{% if not iusentra_embedded_source_view %}" in template
-    assert react_shell.count('include "components/pct_ai_widget.html"') == 1
+    assert react_shell.count('id="lex-widget-root"') == 1  # widget Lex React (LexWidget)
+    assert 'include "components/pct_ai_widget.html"' not in react_shell
     assert "iusentra_embedded_source_view = request.args.get('embed') == 'source'" in react_shell
     assert "{% if not iusentra_embedded_source_view %}" in react_shell
     assert '@pec_pipeline_api.get("/messages/<message_id>/source")' in pec_api
@@ -553,13 +554,13 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
         _autentica_admin_session(app, client, cfg)
 
         response = client.get(
-            "/email/?_legacy=1&cartella=INBOX&stato=LETTA&pst=1&con_allegati=1&stato_pct=ACCETTATO_PEC&data_da=2026-04-01&data_a=2026-04-30"
+            "/api/v1/ui/email?cartella=INBOX&stato=LETTA&pst=1&con_allegati=1&stato_pct=ACCETTATO_PEC&data_da=2026-04-01&data_a=2026-04-30"
         )
 
-        body = response.get_data(as_text=True)
         assert response.status_code == 200, response.get_data(as_text=True)
-        assert "ACCETTAZIONE DEPOSITO TELEMATICO RG 1025/2024" in body
-        assert "Memo interno" not in body
+        assert [item["subject"] for item in response.get_json()["items"]] == [
+            "ACCETTAZIONE DEPOSITO TELEMATICO RG 1025/2024"
+        ]
 
         post = client.post("/email/MAIL-1/segna-non-letta", data={"cartella": "INBOX"}, follow_redirects=True)
         assert post.status_code == 200
@@ -649,7 +650,7 @@ def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_p
         _autentica_admin_session(app, client, cfg)
 
         react = client.get("/email/")
-        classic = client.get("/email/?_legacy=1&cartella=INBOX")
+        inbox_api = client.get("/api/v1/ui/email", query_string={"cartella": "INBOX"}, headers={"X-API-Key": "react-test-key"})
         sent_api = client.get("/api/v1/ui/email", query_string={"cartella": "INVIATI"}, headers={"X-API-Key": "react-test-key"})
         trash_api = client.get("/api/v1/ui/email", query_string={"cartella": "CESTINO"}, headers={"X-API-Key": "react-test-key"})
 
@@ -658,8 +659,8 @@ def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_p
 
     assert react.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in react.get_data(as_text=True)
-    assert classic.status_code == 200
-    assert 'id="root"' not in classic.get_data(as_text=True)
+    assert inbox_api.status_code == 200
+    assert [item["folder"] for item in inbox_api.get_json()["items"]] == [CartellaEmail.INBOX]
     assert sent_api.status_code == 200
     assert trash_api.status_code == 200
     assert sent_payload["source"] == "repository_reali"
@@ -1178,19 +1179,16 @@ def test_impostazioni_smtp_espone_imap_ordinario_e_pec_non_mostra_diagnostica_se
     app = create_app(cfg)
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
-        smtp = client.get("/impostazioni?tab=smtp&_legacy=1")
-        pec = client.get("/impostazioni?tab=pec&_legacy=1")
-        ai = client.get("/impostazioni?tab=ai&_legacy=1")
+        settings = client.get("/api/v1/ui/impostazioni?include_ai_dataset=0")
 
-    smtp_html = smtp.get_data(as_text=True)
-    pec_html = pec.get_data(as_text=True)
-    ai_html = ai.get_data(as_text=True)
-    assert "smtp_imap_host" in smtp_html
-    assert "smtp_imap_port" in smtp_html
-    assert "Testa connessione IMAP" in smtp_html
-    assert "Diagnostica server (non invio reale)" not in pec_html
-    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" not in pec_html
-    assert "http://127.0.0.1:11434/api/version" in ai_html
+    assert settings.status_code == 200
+    payload = settings.get_json()
+    assert payload["ok"]
+    assert {"imap_host", "imap_port"} <= payload["smtp"].keys()
+    assert payload["permissions"]["can_test_connections"]
+    assert "Diagnostica server (non invio reale)" not in str(payload["pec"])
+    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" not in str(payload["pec"])
+    assert payload["ai"]["base_url"] == "http://127.0.0.1:11434/api/version"
 
 
 def test_dashboard_ultime_pec_usa_inbox_completa_e_invalida_cache(tmp_path):
@@ -3088,9 +3086,13 @@ def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
-        dettaglio = client.get("/email/messaggio/MAIL-ATT-XML?_legacy=1", follow_redirects=True)
-        body = dettaglio.get_data(as_text=True)
-        assert body.count("Visualizza") >= 2
+        dettaglio = client.get("/api/v1/ui/email/messaggio/MAIL-ATT-XML")
+        assert dettaglio.status_code == 200
+        allegati = dettaglio.get_json()["attachments"]
+        assert [(a["name"], a["viewHref"]) for a in allegati] == [
+            ("daticert.xml", "/email/messaggio/MAIL-ATT-XML/allegato/0"),
+            ("ricevuta.eml", "/email/messaggio/MAIL-ATT-XML/allegato/1"),
+        ]
 
         xml_inline = client.get("/email/messaggio/MAIL-ATT-XML/allegato/0")
         assert xml_inline.status_code == 200
@@ -3201,6 +3203,53 @@ def test_aggiorna_comunicazioni_cancelleria_da_email_riconosce_notifiche_giustiz
     ]
     assert len(comunicazioni) == 1
     assert "Notificazione ai sensi del D.L. 179/2012" in comunicazioni[0].titolo
+
+
+def test_comunicazioni_sql_usano_solo_il_fascicolo_confermato_dal_presidio(tmp_path):
+    from pct.pec_fascicolo_documenti import conferma_collegamento
+    from pct.pec_pipeline import PecAuditRepository
+
+    email_path = tmp_path / "email" / "casella.json"
+    mailbox = sql_mailbox(email_path)
+    paths = dict(
+        db_path=tmp_path / "fascicoli" / "fascicoli.json",
+        documents_dir=tmp_path / "fascicoli" / "documenti",
+    )
+    fascicoli = GestioneFascicoli(**paths, studio_db=mailbox.repository.db)
+    palmi = fascicoli.nuovo(
+        "Palmi", TipoFascicolo.CIVILE, tribunale="Tribunale di Palmi",
+        numero_rg="42", anno_rg=2026,
+    )
+    vicenza = fascicoli.nuovo(
+        "Vicenza", TipoFascicolo.CIVILE, tribunale="Tribunale di Vicenza",
+        numero_rg="42", anno_rg=2026,
+    )
+    repo = PecAuditRepository(
+        email_path.with_name("pec_audit.sqlite"),
+        fascicoli_db_path=paths["db_path"], fascicoli_docs_path=paths["documents_dir"],
+    )
+    for suffix in ("confermata", "aperta"):
+        message_id = f"<{suffix}@giustiziacert.test>"
+        sender = "tribunale.palmi@civile.ptel.giustiziacert.it"
+        subject = f"Comunicazione di cancelleria RG 42/2026 {suffix}"
+        mailbox.aggiungi(EmailRicevuta(
+            id=suffix, cartella="INBOX", stato=StatoEmail.NON_LETTA,
+            mittente=sender, oggetto=subject, corpo_testo="Comunicazione di cancelleria.",
+            message_id=message_id, uid_imap=f"INBOX:{suffix}",
+        ))
+        if suffix == "confermata":
+            mime = EmailMessage()
+            mime["From"], mime["Subject"], mime["Message-ID"] = sender, subject, message_id
+            mime.set_content("Comunicazione di cancelleria.")
+            message = repo.ingest_mime(mime.as_bytes(), enqueue=False)
+            repo.parse_and_store(message["id"])
+            assert conferma_collegamento(repo, message["id"], palmi.id)["ok"]
+
+    fascicoli = GestioneFascicoli(**paths, studio_db=mailbox.repository.db)
+    assert aggiorna_comunicazioni_cancelleria_da_email(mailbox, fascicoli)["associati"] == 1
+    assert [a.email_uid_imap for a in fascicoli.get(palmi.id).attivita] == ["INBOX:confermata"]
+    assert fascicoli.get(vicenza.id).attivita == []
+    assert aggiorna_comunicazioni_cancelleria_da_email(mailbox, fascicoli)["duplicati"] == 1
 
 
 def test_trova_fascicolo_da_email_pesa_rg_e_nome_cliente(tmp_path):

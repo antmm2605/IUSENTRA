@@ -142,6 +142,10 @@ def _db_pec(path, *, evento="deposito_sentenza", fascicolo="F-1", ricevuta="2026
 def test_runtime_legge_le_comunicazioni_in_sola_lettura(tmp_path, scadenziario, monkeypatch):
     db = tmp_path / "pec_audit.sqlite"
     _db_pec(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute("INSERT INTO pec_legal_events VALUES ('PEC-1','t','deposito_sentenza')")
+        conn.execute("INSERT INTO pec_messages VALUES ('ESTRANEA','t','F-9','{}','2026-03-03T10:00:00')")
+        conn.execute("INSERT INTO pec_legal_events VALUES ('ESTRANEA','altro-studio','deposito_sentenza')")
     comunicazioni = comunicazioni_deposito_sentenza(db, oggi=OGGI)
     assert [c["id"] for c in comunicazioni] == ["PEC-1", "PEC-2"]
     assert comunicazioni[0]["lavoro"] is True and comunicazioni[1]["testo"].startswith("Deposito")

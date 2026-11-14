@@ -103,3 +103,37 @@ def test_lex_dataset_review_queue_scarto_non_crea_export_training(tmp_path):
     assert rows[0]["review_status"] == "rejected"
     assert rows[0]["requires_human_review"] is True
     assert not (queue.parent / "alpaca.jsonl").exists()
+
+
+def test_coda_sql_importa_revisioni_e_preserva_approvazioni(tmp_path):
+    import json
+
+    from lex.dataset import review_sql
+    from web.services.lex_dataset_review_queue import load_lex_dataset_review_queue, update_lex_dataset_review_item
+
+    directory = tmp_path / "intelligence" / "lex_dataset" / "studio-a"
+    directory.mkdir(parents=True)
+    db = directory / review_sql.NOME_ARCHIVIO
+    db.with_suffix(".json").write_text(json.dumps([
+        {"qa_id": "a", "question": "Domanda A", "answer": "Risposta già approvata", "review_status": "approved"},
+    ]))
+    rows = [
+        {"qa_id": "a", "question": "Domanda A", "answer": "Risposta generata"},
+        {"qa_id": "b", "question": "Domanda B", "answer": "Risposta B"},
+    ]
+
+    review_sql.pubblica(db, rows)
+    snapshot = load_lex_dataset_review_queue(data_root=tmp_path)
+    assert snapshot["summary"] == {"total": 2, "pending": 1, "approved": 1, "rejected": 0, "files": 1}
+    assert [row["id"] for row in snapshot["items"]] == ["b"]
+
+    result = update_lex_dataset_review_item("b", action="approve", answer="Risposta rivista", data_root=tmp_path)
+    assert result["updated_item"]["answer"] == "Risposta rivista"
+    assert review_sql.leggi(db)[0] == {"approved": 2}
+    review_sql.pubblica(db, rows)
+    counts, pending = review_sql.leggi(db, limite=12)
+    assert counts == {"approved": 2}
+    assert pending == []
+    assert review_sql.revisiona(db, "a", lambda row: row | {"reviewer_id": "studio", "reviewed_at": "2026-11-12"})[
+        "answer"
+    ] == "Risposta già approvata"

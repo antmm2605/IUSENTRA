@@ -25,7 +25,7 @@ def memoria_libera_mb(meminfo: str = "/proc/meminfo") -> int:
     return 0
 
 
-def ocr_in_coda(config: dict[str, Any]) -> int:
+def ocr_in_coda(config: dict[str, Any]) -> int | None:
     """Documenti in attesa nella coda del worker OCR (sola lettura)."""
     percorso = str(os.getenv("PCT_OCR_QUEUE_DB", "")).strip()
     if not percorso:
@@ -33,14 +33,13 @@ def ocr_in_coda(config: dict[str, Any]) -> int:
         if not indice:
             return 0
         percorso = str(Path(str(indice)).parent / "ocr_jobs.db")
-    if not Path(percorso).exists():
-        return 0
     try:
         with closing(sqlite3.connect(f"file:{percorso}?mode=ro", uri=True, timeout=10)) as conn:
             row = conn.execute("SELECT COUNT(*) FROM ocr_jobs WHERE status IN ('pending','running')").fetchone()
         return int(row[0] if row else 0)
-    except sqlite3.Error:
-        return 0
+    except sqlite3.Error as exc:
+        logger.warning("Coda OCR non verificabile: %s", type(exc).__name__)
+        return None
 
 
 def _base_ollama() -> str:

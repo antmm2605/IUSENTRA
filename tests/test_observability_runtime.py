@@ -151,15 +151,15 @@ def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
     with app.test_client() as client:
         client.get("/login")
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.get("/admin/osservabilita?_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/osservabilita")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Osservabilità runtime" in html
+    assert "Osservabilità" in html
     assert "Pipeline OCR" in html
-    assert "Capability di prodotto" in html
+    assert "Funzioni del prodotto" in html
     assert "Segnali di degrado" in html
-    assert "Disco server" in html
+    assert "Disco" in html
 
 
 def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
@@ -182,15 +182,16 @@ def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.get("/admin/osservabilita?_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/osservabilita")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Degradi rilevati" in html
-    assert "Runtime AI locale non operativo" in html
+    assert "Runtime AI locale" in html
+    assert "AI_MODEL_UNAVAILABLE" in html
     assert "Come intervenire" in html
-    assert "Messaggio operatore" in html
-    assert "Soglia operativa" in html
+    assert "AI locale non disponibile: il prodotto resta operativo" in html
+    assert "Soglia: Runtime AI locale deve risultare online" in html
 
 
 def test_admin_system_health_restituisce_json_azionabile(tmp_path):

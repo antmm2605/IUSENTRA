@@ -50,8 +50,20 @@ class LegalIntelligenceDailyEngine:
             "errors_count": 0,
             "log": [],
         }
+        try:
+            self._sync_selected(selected, summary)
+        except Exception:
+            summary["status"] = "failed"
+            summary["errors_count"] += 1
+            self.store.finish_run(run_id, summary)
+            raise
+        if summary["errors_count"]:
+            summary["status"] = "completed_with_errors"
+        self.store.finish_run(run_id, summary)
+        return summary
+
+    def _sync_selected(self, selected: list[LegalSource], summary: dict) -> None:
         for source in selected:
-            self.store.upsert_source(source)
             summary["sources_checked"] += 1
             headers = self.store.source_headers(source.id)
             result = self._fetch(source, headers)
@@ -97,13 +109,23 @@ class LegalIntelligenceDailyEngine:
                 summary["log"].append({"source_id": source.id, "status": applied["status"], "update_id": update_id})
             else:
                 summary["log"].append({"source_id": source.id, "status": "invariata"})
-        if summary["errors_count"]:
-            summary["status"] = "completed_with_errors"
-        self.store.finish_run(run_id, summary)
-        return summary
-
     def dashboard_snapshot(self) -> dict:
         return self.store.dashboard()
+
+    @classmethod
+    def read_dashboard(cls, db_path: str | Path) -> dict:
+        path = Path(db_path)
+        if path.is_file():
+            return LegalIntelligenceStore(path, readonly=True).dashboard()
+        return {
+            "last_run": None, "updates": [],
+            "sources": [
+                {"id": source.id, "name": source.name, "url": source.url, "last_status": "never",
+                 "last_checked_at": "", "category": source.category}
+                for source in DEFAULT_LEGAL_SOURCES
+            ],
+            "counts": {"sources": len(DEFAULT_LEGAL_SOURCES), "updates": 0, "pending": 0, "applied": 0, "errors": 0},
+        }
 
     def approve_update(self, update_id: int) -> None:
         self.store.update_status(

@@ -32,6 +32,7 @@ def processo_corrente() -> str:
 # chi aspettava con priorità più bassa (la catena notturna, i lavori pianificati) non otteneva mai il turno:
 # notte del 03-04/11/2026, catena mai partita e corsia lunga dello scheduler ferma fino al mattino.
 INVECCHIAMENTO_SECONDI = 10.0
+_ORDINE_CODA = "priorita - (? - entrato_alle) / ?, entrato_alle, titolare"
 
 
 class Semaforo:
@@ -56,10 +57,10 @@ class Semaforo:
 
     def prova(self, titolare: str, motore: str, priorita: int) -> bool:
         """Entra (o resta) in coda; prende il semaforo se è libero e si è i primi della coda."""
-        ora = self.orologio()
         with closing(self._conn()) as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
+                ora = self.orologio()
                 self._pulisci(conn, ora)
                 attuale = conn.execute("SELECT titolare FROM semaforo WHERE id=1").fetchone()
                 if attuale and attuale["titolare"] == titolare:
@@ -71,7 +72,7 @@ class Semaforo:
                     (titolare, motore, processo_corrente(), int(priorita), ora, ora + self.affitto),
                 )
                 primo = conn.execute(
-                    "SELECT titolare FROM coda ORDER BY priorita - (? - entrato_alle) / ?, entrato_alle LIMIT 1",
+                    f"SELECT titolare FROM coda ORDER BY {_ORDINE_CODA} LIMIT 1",
                     (ora, INVECCHIAMENTO_SECONDI),
                 ).fetchone()
                 preso = attuale is None and primo is not None and primo["titolare"] == titolare
@@ -100,7 +101,10 @@ class Semaforo:
         ora = self.orologio()
         with closing(self._conn()) as conn:
             attuale = conn.execute("SELECT * FROM semaforo WHERE id=1 AND scade_alle>=?", (ora,)).fetchone()
-            coda = conn.execute("SELECT * FROM coda WHERE scade_alle>=? ORDER BY priorita, entrato_alle", (ora,)).fetchall()
+            coda = conn.execute(
+                f"SELECT * FROM coda WHERE scade_alle>=? ORDER BY {_ORDINE_CODA}",
+                (ora, ora, INVECCHIAMENTO_SECONDI),
+            ).fetchall()
         in_corso = attuale["motore"] if attuale else ""
         attesa = [r["motore"] for r in coda]
         testo = f"In corso: {in_corso or 'nessun motore'}; in coda: {', '.join(attesa) if attesa else 'nessuno'}."

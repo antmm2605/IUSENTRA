@@ -9,10 +9,11 @@ from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, flash, g, jsonify, redirect, send_file, url_for
 
 from web.bootstrap.admin_database_sqlite_helpers import ottimizza_sqlite_file
 from web.services.security_redaction import redacted_json_response
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_admin_database_routes(
@@ -360,21 +361,8 @@ def register_admin_database_routes(
         if not utente or not utente.ha_permesso("utenti.leggi"):
             flash("Accesso riservato agli amministratori.", "danger")
             return redirect(url_for("dashboard"))
-        database = get_database()
-        statistiche = database.statistiche()
-        uso = database.analisi_uso()
-        percorso_db = _studio_db_path()
-        sqlite_info = database.statistiche_sqlite(percorso_db) if percorso_db else None
-        if not sqlite_info:
-            sqlite_info = database.statistiche_sqlite(
-                latest_sqlite_snapshot_path(cfg_data_path("BACKUP_DIR"))
-            )
-        return render_template(
-            "admin/database.html",
-            statistiche=statistiche,
-            uso=uso,
-            sqlite_info=sqlite_info,
-        )
+        # Gestione database: pagina React (AdminDatabasePage); dati da /api/v1/ui/admin/database.
+        return render_react_shell_response("admin/database")
 
     @app.route("/admin/database/verifica")
     def admin_database_verifica():

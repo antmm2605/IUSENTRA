@@ -160,7 +160,7 @@ def test_run_lex_dataset_nightly_scrive_chunk_sensibili_solo_in_locale(tmp_path:
 def test_run_lex_dataset_nightly_usa_documenti_ai_condivisi_ma_scrive_nel_tenant(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     manager = GestioneTenant(str(registry))
-    studio = manager.crea("Studio Rossi", "studio-rossi", db_config={"mode": "SQLITE"})
+    studio = manager.crea("Studio Rossi", "studio-rossi", db_config={"mode": "JSON"})
     shared_source = tmp_path / "fascicoli" / "documenti_ai" / "documenti_ai.json"
     _write_document_ai_json(shared_source, tenant_id=studio.slug)
 
@@ -177,3 +177,43 @@ def test_run_lex_dataset_nightly_usa_documenti_ai_condivisi_ma_scrive_nel_tenant
     assert report["documents_count"] == 1
     assert (tenant_output / "qa_review_queue.json").exists()
     assert not (tmp_path / "intelligence" / "lex_dataset" / studio.slug / "qa_review_queue.json").exists()
+
+
+def test_dataset_sql_usa_versione_corrente_e_rispetta_lo_studio(tmp_path):
+    import sqlite3
+    from types import SimpleNamespace
+
+    from lex.dataset.nightly import _build_lex_dataset_from_sql
+
+    db = tmp_path / "studio.db"
+    with sqlite3.connect(db) as conn:
+        conn.executescript("""
+            CREATE TABLE fascicolo_documenti_ai (
+              id TEXT, tenant_id TEXT, fascicolo_id TEXT, current_version_id TEXT,
+              sha256 TEXT, status TEXT, original_filename TEXT, safe_filename TEXT, mime_type TEXT
+            );
+            CREATE TABLE fascicolo_documenti_ai_testi (
+              id INTEGER PRIMARY KEY, tenant_id TEXT, fascicolo_id TEXT, document_id TEXT,
+              version_id TEXT, created_at TEXT, extraction_engine TEXT, text TEXT, pages_json TEXT
+            );
+            CREATE TABLE fascicoli (id TEXT PRIMARY KEY);
+            INSERT INTO fascicoli VALUES ('a'), ('b');
+            INSERT INTO fascicolo_documenti_ai VALUES
+              ('d', 'studio-a', 'a', 'v2', 'sha-a', 'ready', 'ricorso.pdf', 'ricorso.pdf', 'application/pdf'),
+              ('d', 'studio-b', 'b', 'v1', 'sha-b', 'ready', 'memoria.pdf', 'memoria.pdf', 'application/pdf');
+            INSERT INTO fascicolo_documenti_ai_testi VALUES
+              (1, 'studio-a', 'a', 'd', 'v1', '2026-11-11', 'pdf', 'VERSIONE SUPERATA', '[]'),
+              (2, 'studio-a', 'a', 'd', 'v2', '2026-11-12', 'pdf', 'TESTO CORRENTE DEL RICORSO', '[]'),
+              (3, 'studio-b', 'b', 'd', 'v1', '2026-11-12', 'pdf', 'DOCUMENTO DI ALTRO STUDIO', '[]');
+        """)
+    core = SimpleNamespace(backend_kind="sqlite", db_path=db)
+    options = dict(tenant_id="studio-a", output_root=tmp_path / "dataset", max_documents=None,
+                   allow_sensitive_export=True, include_pending_review_export=False)
+
+    result = _build_lex_dataset_from_sql(core, **options)
+    assert result["status"] == "completed"
+    assert result["documents_count"] == 1
+    chunks = (tmp_path / "dataset" / "studio-a" / "chunks.jsonl").read_text()
+    assert "TESTO CORRENTE DEL RICORSO" in chunks
+    assert "VERSIONE SUPERATA" not in chunks and "ALTRO STUDIO" not in chunks
+    assert _build_lex_dataset_from_sql(core, **options)["status"] == "skipped_unchanged"

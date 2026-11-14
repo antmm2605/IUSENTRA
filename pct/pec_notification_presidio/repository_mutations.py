@@ -62,6 +62,9 @@ class NotificationPresidioMutationMixin:
         with self.connection() as conn:
             if self.backend_kind == "sqlite":
                 conn.execute("BEGIN IMMEDIATE")
+            fascicolo_pec = self._fascicolo_pec(conn, str(candidate.get("source_message_id") or ""))
+            if fascicolo_pec and fascicolo_pec != str(candidate.get("fascicolo_id") or ""):
+                raise ValueError("Il presidio deve appartenere al fascicolo della PEC sorgente.")
             existing = conn.execute(
                 """
                 SELECT * FROM pec_legal_notification_presidia

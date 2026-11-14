@@ -12,6 +12,7 @@ si scrive nulla, come in una transazione.
 
 from __future__ import annotations
 
+import json
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -32,6 +33,21 @@ def _righe_degli_altri(dati: dict[str, list[dict[str, Any]]], fascicolo_id: str)
             for chiave in TABELLE}
 
 
+def _contenuto_regia(dati: dict[str, list[dict[str, Any]]], fascicolo_id: str) -> dict[str, list[str]]:
+    timestamp_calcolo = {
+        "practice_document_slots": "last_validation_at",
+        "practice_validation_results": "created_at",
+    }
+    return {
+        chiave: sorted(
+            json.dumps({k: v for k, v in riga.items() if k != timestamp_calcolo.get(chiave)},
+                       ensure_ascii=False, sort_keys=True)
+            for riga in dati.get(chiave, []) if riga.get("fascicolo_id") == fascicolo_id
+        )
+        for chiave in TABELLE
+    }
+
+
 def scrivi_fascicolo(repository: Any, fascicolo_id: str) -> None:
     """Riscrive in una transazione solo le righe del fascicolo."""
     conn = repository.studio_db.conn
@@ -49,12 +65,15 @@ def scrivi_fascicolo(repository: Any, fascicolo_id: str) -> None:
 
 
 @contextmanager
-def salvataggio_unico(repository: Any, fascicolo_id: str = "") -> Iterator[None]:
+def salvataggio_unico(
+    repository: Any, fascicolo_id: str = "", *, confronta_contenuto: bool = False,
+) -> Iterator[None]:
     if repository._suspend_persist:  # già dentro un'operazione: scrive chi l'ha aperta
         yield
         return
     fascicolo_id = str(fascicolo_id or "").strip()
     altri = _righe_degli_altri(repository._data, fascicolo_id) if fascicolo_id else None
+    prima = _contenuto_regia(repository._data, fascicolo_id) if fascicolo_id and confronta_contenuto else None
     repository._suspend_persist = True
     repository._salvataggio_rinviato = False
     try:
@@ -65,10 +84,9 @@ def salvataggio_unico(repository: Any, fascicolo_id: str = "") -> Iterator[None]
         return
     repository._salvataggio_rinviato = False
     if altri is not None and altri == _righe_degli_altri(repository._data, fascicolo_id):
-        try:
-            scrivi_fascicolo(repository, fascicolo_id)
-        except Exception:
-            repository._persist_all()
+        if prima is not None and prima == _contenuto_regia(repository._data, fascicolo_id):
+            return
+        scrivi_fascicolo(repository, fascicolo_id)
         repository._write_legacy_mirror()
         return
     repository._save()

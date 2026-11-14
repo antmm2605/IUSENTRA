@@ -27,6 +27,7 @@ from pct.agenda_lavorazione import (
     voce_proposta,
 )
 from pct.agenda_linguaggio import nome_proprio, parole_del_registro, riga_contesto
+from pct.note_127_ter.comunicazione import e_termine_note_127_ter
 from pct.notifiche_obblighi import scheda_notifica
 from web.services.pec_source_links import pec_source_href
 
@@ -67,12 +68,18 @@ def _frase(testo: str) -> str:
 
 def _arrivo(note: str) -> str:
     righe = []
-    for riga in str(note or "").splitlines():
+    note = str(note or "")
+    fissa_note = any(e_termine_note_127_ter(riga) for riga in note.splitlines()
+                     if riga.strip().startswith(("Evento:", "Descrizione evento:")))
+    for riga in note.splitlines():
         riga = riga.strip()
         for etichetta in _RIGHE_ARRIVO:
             if riga.startswith(etichetta):
                 valore = date_italiane(riga.removeprefix(etichetta).strip().rstrip("."))
-                righe.append(("Decorrenza: " + valore if etichetta == "Decorrenza letta:" else _frase(date_italiane(valore))) + ".")
+                if etichetta == "Decorrenza letta:" and fissa_note:
+                    continue
+                testo = "Decorrenza: " + valore if etichetta == "Decorrenza letta:" else _frase(valore)
+                righe.append(testo + ".")
     testo = " ".join(dict.fromkeys(r for r in righe if len(r) > 1))
     return date_italiane(re.sub(r"\s+", " ", testo))[:600]
 
@@ -284,6 +291,10 @@ def build_agenda_lavorazione_payload(
     controparte = nome_proprio(str((prova.pop("profilo", None) or {}).get("controparte") or ""))
     voci = [_con_notifica(s, voce_proposta(s), controparte=controparte, fascicolo=fascicolo) for s in proposte]
     propria = _con_notifica(impegno, {}, controparte=controparte, fascicolo=fascicolo) if genere == "scadenza" else {}
+    from web.services.riscontri_processuali_runtime import riscontro_note_scritte
+
+    data_impegno = str(getattr(impegno, "data_ora", "") if genere == "appuntamento" else getattr(impegno, "data_scadenza", ""))[:10]
+    riscontro_note = riscontro_note_scritte(fascicolo, data_impegno, titolo=str(getattr(impegno, "titolo", "") or ""), note=note)
     return {
         "ok": True,
         "id": event_id,
@@ -297,7 +308,7 @@ def build_agenda_lavorazione_payload(
         "collegaPec": collega_pec,
         "notificaHref": f"/notifiche-legali?notifica={quote(notifica, safe='')}" if notifica else "",
         "fascicoloHref": f"/fascicoli/{quote(fascicolo, safe='')}" if fascicolo else "",
-        "prossimo": date_italiane(prossimo_passo(note, descrizione)),
+        "prossimo": riscontro_note or date_italiane(prossimo_passo(note, descrizione)),
     }
 
 

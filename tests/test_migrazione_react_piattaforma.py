@@ -85,14 +85,16 @@ def test_dati_delle_pagine_dal_servizio(tmp_path: Path):
         assert client.get("/api/v1/ui/piattaforma/sconosciuta").status_code == 404
 
 
-def test_vista_classica_ancora_raggiungibile(tmp_path: Path):
+def test_vista_classica_tolta_anche_con_il_vecchio_parametro(tmp_path: Path):
+    """Le viste Jinja del pannello sono state eliminate (10/11/2026): anche i vecchi
+    collegamenti con `?_legacy=1` aprono l'applicazione React."""
     app = _app(tmp_path)
     with app.test_client() as client:
         _login_superadmin(client)
         for percorso in PAGINE:
             risposta = client.get(f"{percorso}?_legacy=1")
             assert risposta.status_code == 200, percorso
-            assert "piattaforma-react-root" not in risposta.get_data(as_text=True), percorso
+            assert "piattaforma-react-root" in risposta.get_data(as_text=True), percorso
 
 
 def test_pannello_riservato_al_superamministratore(tmp_path: Path):

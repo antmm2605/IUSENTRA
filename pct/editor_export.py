@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import shutil
+import signal
 import re
 import subprocess
 import tempfile
@@ -211,6 +213,31 @@ def anteprima_stampa_pdf(dati: bytes) -> str:
     return '<!doctype html><html lang="it"><meta charset="utf-8"><title>Anteprima di stampa</title><style>body{margin:0;background:#e5e7eb}.pagina{margin:12px auto;background:#fff;break-after:page}.pagina:last-child{break-after:auto}img{display:block;width:100%;height:100%}@media print{body{background:white}.pagina{margin:0}}</style><style>' + ''.join(stili) + '</style><style>@media screen{.pagina{max-width:100%;height:auto}img{height:auto}}</style><body>' + ''.join(pagine) + '</body></html>'
 
 
+class ConversioneEditorScaduta(RuntimeError):
+    """La conversione locale ha superato il tempo consentito."""
+
+
+def _converti_editor(comando: list[str], environment: dict[str, str]) -> None:
+    gruppo_posix = os.name == "posix"
+    with subprocess.Popen(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          env=environment, start_new_session=gruppo_posix) as processo:
+        try:
+            stdout, stderr = processo.communicate(timeout=45)
+        except subprocess.TimeoutExpired:
+            try:
+                if gruppo_posix:
+                    os.killpg(processo.pid, signal.SIGKILL)
+                else:
+                    processo.kill()
+            except ProcessLookupError:
+                pass  # il gruppo può essere uscito mentre scadeva il timer
+            raise ConversioneEditorScaduta(
+                "La conversione locale non è terminata in tempo. Riprova tra poco."
+            ) from None
+        if processo.returncode:
+            raise subprocess.CalledProcessError(processo.returncode, comando, stdout, stderr)
+
+
 def esporta_documento_editor(html: str, *, formato: str, titolo: str = "Documento", studio_timbro=None, fonte_word: bytes | None = None) -> bytes:
     if formato not in {"docx", "rtf", "pdf"}:
         raise ValueError("Formato del documento non consentito.")
@@ -242,14 +269,13 @@ def esporta_documento_editor(html: str, *, formato: str, titolo: str = "Document
         output = root / "output"
         output.mkdir()
         profilo = root / "profilo"
-        import os
         environment = dict(os.environ)
         if font_config:
             environment['FONTCONFIG_FILE'] = str(font_config)
-        subprocess.run(
+        _converti_editor(
             [programma, "-env:UserInstallation=" + profilo.as_uri(), "--headless", "--convert-to",
              "pdf:writer_pdf_Export" if formato == "pdf" else "rtf", "--outdir", str(output), str(fonte)],
-            check=True, timeout=45, capture_output=True, env=environment,
+            environment,
         )
         prodotto = output / ("documento." + formato)
         if not prodotto.is_file() or prodotto.stat().st_size == 0:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from functools import wraps
 import sqlite3
 
@@ -16,6 +16,17 @@ from web.helpers import get_giurisprudenza, get_giurisprudenza_readonly
 from web.services.giurisprudenza_sync_runtime import (
     resolve_giurisprudenza_db_path,
     start_giurisprudenza_sync_job,
+)
+from web.blueprints.react_shell import render_react_shell_response
+
+from web.services.lettore_sentenze import (
+    payload_corpus,
+    payload_sentenzeweb,
+    payload_testo_ufficiale,
+    payload_traduzione,
+    richiesta_json,
+    risposta_json,
+    risposta_lettore,
 )
 
 giurisprudenza = Blueprint("giurisprudenza", __name__, url_prefix="/giurisprudenza")
@@ -117,36 +128,8 @@ def _form_context(record: dict):
 @giurisprudenza.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    gestore = get_giurisprudenza()
-    fonti = _decorate_sources(gestore.catalogo_fonti())
-    filters = {
-        "q": request.args.get("q", ""),
-        "source_system": request.args.get("source_system", ""),
-        "area": request.args.get("area", ""),
-        "branca": request.args.get("branca", ""),
-        "sottobranca": request.args.get("sottobranca", ""),
-        "grado": request.args.get("grado", ""),
-        "giurisdizione": request.args.get("giurisdizione", ""),
-        "orientamento": request.args.get("orientamento", ""),
-        "uso_nel_software": request.args.get("uso_nel_software", ""),
-    }
-    results = [_decorate_record(row) for row in gestore.cerca(**filters)]
-    return render_template(
-        "giurisprudenza/index.html",
-        oggi=date.today(),
-        statistiche=gestore.statistiche(),
-        storage_stats=gestore.storage_stats(),
-        fonti=fonti,
-        giurisdizioni=sorted({item["giurisdizione"] for item in fonti if item.get("giurisdizione")}),
-        tassonomia=gestore.tassonomia(),
-        filtri_catalogo=gestore.filtri(),
-        filtri_correnti=filters,
-        risultati=results,
-        run_log=[dict(item, checked_at_fmt=_fmt_datetime_it(item.get("checked_at", ""))) for item in gestore.recent_sync_runs()],
-        orientamenti=ORIENTAMENTI,
-        usi_nel_software=USI_NEL_SOFTWARE,
-        page_title="Archivio Sentenze",
-    )
+    # Pagina React (GiurisprudenzaPage): la vista Jinja è stata tolta.
+    return render_react_shell_response("giurisprudenza")
 
 
 @giurisprudenza.route("/nuova", methods=["GET", "POST"])
@@ -161,12 +144,8 @@ def nuova():
         except Exception as exc:
             current_app.logger.exception("Errore salvataggio scheda sentenza: %s", exc)
             flash(f"Salvataggio non riuscito: {exc}", "warning")
-    source_id = request.args.get("source", "manuale_interno")
-    record = gestore.empty_record(source_id)
-    record["area"] = request.args.get("area", record.get("area", ""))
-    record["branca"] = request.args.get("branca", "")
-    record["sottobranca"] = request.args.get("sottobranca", "")
-    return render_template("giurisprudenza/form.html", oggi=date.today(), **_form_context(record))
+    # Pagina React (GiurisprudenzaPage): la vista Jinja è stata tolta.
+    return render_react_shell_response("giurisprudenza/nuova")
 
 
 @giurisprudenza.route("/<judgment_id>", methods=["GET"])
@@ -177,18 +156,8 @@ def dettaglio(judgment_id: str):
     if not record:
         flash("Scheda sentenza non trovata.", "warning")
         return redirect(url_for("giurisprudenza.index"))
-    fonti = _decorate_sources(gestore.catalogo_fonti())
-    fonte = next((row for row in fonti if row["id"] == record.get("source_system")), None)
-    return render_template(
-        "giurisprudenza/dettaglio.html",
-        oggi=date.today(),
-        record=_decorate_record(record),
-        fonte=fonte,
-        correlati=[_decorate_record(row) for row in gestore.related(judgment_id)],
-        text_versions=[dict(item, created_at_fmt=_fmt_datetime_it(item.get("created_at", ""))) for item in gestore.judgment_text_versions(judgment_id)],
-        raw_documents=[dict(item, downloaded_at_fmt=_fmt_datetime_it(item.get("downloaded_at", ""))) for item in gestore.raw_documents(judgment_id)],
-        practice_links=gestore.practice_links(judgment_id),
-    )
+    # Pagina React (GiurisprudenzaPage): la vista Jinja è stata tolta.
+    return render_react_shell_response(f"giurisprudenza/{judgment_id}")
 
 
 def _richiedi_corpus_lettura(fn):
@@ -253,7 +222,10 @@ def native_corpus_text(record_id, public=False):
     try:
         document=reader_document(_scoped_corpus_owner(public), record_id, prefix=PUBLIC_CORPUS_PREFIX if public else "/giurisprudenza/corpus")
         if not document:return Response("Testo non disponibile nell'archivio dello studio.",status=404)
-        response=Response(document["text"],mimetype="text/plain") if request.args.get("format")=="txt" else Response(render_template("giurisprudenza/corpus_lettore.html",documento=document),mimetype="text/html")
+        if request.args.get("format")!="txt":
+            # Lettore React (LettoreSentenzaApp): testo mostrato solo come testo, dal JSON dello stesso indirizzo.
+            return risposta_json(payload_corpus(document)) if richiesta_json() else risposta_lettore(document["title"])
+        response=Response(document["text"],mimetype="text/plain")
     except (ValueError,OSError,sqlite3.Error):
         return Response("Lettura del testo conservato non riuscita. Nessuna acquisizione avviata.",status=503)
     response.headers.update({"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; style-src 'self'; frame-ancestors 'self'; sandbox allow-same-origin"})
@@ -387,16 +359,13 @@ def native_translation_reader(record_id, identity):
         return redirect(url_for("giurisprudenza.index", corpus_documento=record_id, corpus_traduzione=identity))
     try:
         data = document(_native_corpus_owner(), record_id, identity)
-        response = Response(render_template("giurisprudenza/traduzione_lettore.html", documento=data), content_type="text/html; charset=utf-8")
+        return risposta_json(payload_traduzione(data)) if richiesta_json() else risposta_lettore(f"Traduzione italiana — {data['titolo']}")
     except KeyError:
         return Response("Traduzione non presente nello studio.", status=404)
     except ValueError:
         return Response("Traduzione non completa o integrità non riscontrata. Apri l'originale o riprendi la traduzione.", status=409)
     except (OSError, sqlite3.Error):
         return Response("Archivio delle traduzioni non disponibile.", status=503)
-    response.headers.update({"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
-        "Content-Security-Policy": "default-src 'none'; style-src 'self'; base-uri 'none'; frame-ancestors 'self'; sandbox allow-same-origin"})
-    return response
 
 
 @giurisprudenza.get("/sentenzeweb/api")
@@ -438,10 +407,12 @@ def _sentenzeweb_reader_response(record_id: int, document_id: int | None = None)
             response = Response("Il testo non può essere mostrato: verifica di integrità non completata.",
                                 status=503, content_type="text/plain; charset=utf-8")
         else:
-            response = (Response(render_template("giurisprudenza/sentenzeweb_lettore.html", documento=document),
-                                 content_type="text/html; charset=utf-8") if document else
-                        Response("Testo archiviato non disponibile.", status=404,
-                                 content_type="text/plain; charset=utf-8"))
+            if document:
+                # Lettore React (LettoreSentenzaApp) e suo JSON: stesse intestazioni no-store e nosniff.
+                return (risposta_json(payload_sentenzeweb(document)) if richiesta_json()
+                        else risposta_lettore(f"Cassazione {document.get('number')}/{document.get('year')}"))
+            response = Response("Testo archiviato non disponibile.", status=404,
+                                content_type="text/plain; charset=utf-8")
     response.headers["Cache-Control"] = "private, no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Content-Security-Policy"] = ("default-src 'none'; style-src 'self'; "
@@ -497,7 +468,8 @@ def modifica(judgment_id: str):
         except Exception as exc:
             current_app.logger.exception("Errore aggiornamento scheda sentenza: %s", exc)
             flash(f"Aggiornamento non riuscito: {exc}", "warning")
-    return render_template("giurisprudenza/form.html", oggi=date.today(), **_form_context(current))
+    # Pagina React (GiurisprudenzaPage): la vista Jinja è stata tolta.
+    return render_react_shell_response(f"giurisprudenza/{judgment_id}/modifica")
 
 
 @giurisprudenza.route("/sync", methods=["POST"])
@@ -541,8 +513,6 @@ def sync():
         current_app.logger.exception("Errore sync giurisprudenza: %s", exc)
         flash(f"Recupero sentenze non riuscito: {exc}", "warning")
     redirect_args = {"source_system": source_id} if source_id else {}
-    if (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}:
-        redirect_args["_legacy"] = "1"
     return redirect(url_for("giurisprudenza.index", **redirect_args))
 
 
@@ -634,8 +604,4 @@ def testo_ufficiale(job_id):
     document = result.get("documento")
     if result.get("stato") != "acquisito" or not document:
         return "Il testo non è ancora disponibile o non ha superato la verifica.", 409
-    response = current_app.make_response(render_template(
-        "giurisprudenza/testo_ufficiale.html", documento=document))
-    response.headers["Cache-Control"] = "private, no-store"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    return response
+    return risposta_json(payload_testo_ufficiale(document)) if richiesta_json() else risposta_lettore("Testo del provvedimento")

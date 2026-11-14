@@ -22,6 +22,13 @@ from typing import Any
 # dell'archivio; nessuno scriveva più il lettore dal 16/09) e «Sentenza e preparazione archivio» (lo stesso
 # lavoro lo fa «Sentenza e definizione», sentenza_proposte_runtime; nessuno lo scriveva dall'08/10).
 LETTORI: dict[str, dict[str, Any]] = {
+    "percorso_concluso": {
+        "etichetta": "Esperienza dei fascicoli conclusi",
+        "descrizione": "Fasi documentate e conclusioni giuridiche con le prove del fascicolo",
+        "livello": "fascicolo",
+        "tipi": ("documento",),
+        "su_richiesta": True,
+    },
     "proposta_definizione": {
         "etichetta": "Sentenza e definizione",
         "descrizione": "Definizione del fascicolo e credito delle spese dalla sentenza che decide la causa, nei documenti e negli allegati PEC: automatici solo se certi, altrimenti da confermare dall'avvocato",
@@ -133,8 +140,11 @@ def _versione_motore_pec() -> str:
 def _versioni_compatibili_motore_pec() -> tuple[str, ...]:
     from pct.archivio_letture.estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE
 
+    from pct.archivio_letture.motore_pec import VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO
+
     current = _versione_motore_pec()
-    return (current, current.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE))
+    precedenti = (current, VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO)
+    return tuple(dict.fromkeys(v for base in precedenti for v in (base, base.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE))))
 
 
 def _versione_presidio_economico() -> str:
@@ -144,6 +154,7 @@ def _versione_presidio_economico() -> str:
 
 
 _VERSIONI: dict[str, Callable[[], str]] = {
+    "percorso_concluso": lambda: __import__("pct.ragionamento", fromlist=["VERSIONE"]).VERSIONE,
     "proposta_definizione": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["VERSIONE_PROPOSTA"]).VERSIONE_PROPOSTA,
     "ocr": _versione_ocr,
     "indice_documentale": _versione_indice_documentale,

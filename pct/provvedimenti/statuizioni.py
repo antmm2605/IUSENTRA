@@ -47,9 +47,25 @@ _RE_ATTESA = re.compile(r"\b(?:provvedimento|decisione|decider\w*|sentenza|provv
 
 
 def _titolo(capo: Capo) -> str:
+    """Il titolo dice che cosa fare: per un deposito, ciò che il giudice ordina di depositare con le sue parole
+    (``coerenza_termini.titolo_deposito``); «deposito (ricorrente)» non basta all'avvocato."""
+    if capo.oggetto == "deposito":
+        from .coerenza_termini import titolo_deposito
+
+        preciso = titolo_deposito(capo.testo, capo.chi)
+        if preciso:
+            return preciso
     cosa = _ETICHETTE.get(capo.oggetto, "adempimento")
     chi = f" ({capo.chi})" if capo.chi else ""
     return f"Termine assegnato dal giudice: {cosa}{chi}"
+
+
+def _norme_del_capo(capo: Capo, materia: str) -> tuple[str, ...]:
+    """Nel rito del lavoro il termine per depositare o sanare atti e documenti lo assegna il giudice con i poteri
+    dell'art. 421, comma 1, c.p.c.; negli altri riti vale l'art. 175 c.p.c. (direzione del procedimento)."""
+    if materia == "lavoro" and capo.oggetto == "deposito":
+        return ("cpc_421",)
+    return NORME_RITO.get(materia, ())
 
 
 def _voce(capo: Capo, materia: str, regola: dict[str, Any] | None = None, **campi: Any) -> Voce:
@@ -57,7 +73,7 @@ def _voce(capo: Capo, materia: str, regola: dict[str, Any] | None = None, **camp
     perentorio = capo.perentorio if capo.perentorio is not None or regola is None else regola.get("perentorio")
     tipo = _TIPO_TERMINE.get(capo.oggetto) or ("TERMINE_PERENTORIO" if perentorio else "TERMINE_ORDINATORIO" if perentorio is False else "ADEMPIMENTO")
     base: dict[str, Any] = {
-        "regola_id": PREFISSO + oggetto, "genere": "termine", "titolo": _titolo(capo), "norme": NORME_RITO.get(materia, ()),
+        "regola_id": PREFISSO + oggetto, "genere": "termine", "titolo": _titolo(capo), "norme": _norme_del_capo(capo, materia),
         "prova": capo.testo[:300], "confidenza": 0.8, "chi": capo.chi, "perentorio": perentorio,
         "codice": f"PROVV_{oggetto.upper()}", "tipo_termine": tipo, "scadenziario": True,
     }

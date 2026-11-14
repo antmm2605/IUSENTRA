@@ -7,6 +7,8 @@ Uso tipico:
 
 from __future__ import annotations
 
+from contextlib import closing
+from tempfile import NamedTemporaryFile
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Iterable, Iterator, Any
@@ -83,6 +85,7 @@ class DocumentRecord:
 @dataclass
 class ImportStats:
     zip_files: int = 0
+    zip_immutati: int = 0
     xml_seen: int = 0
     documents_imported: int = 0
     documents_skipped_not_relevant: int = 0
@@ -407,6 +410,14 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             report_json TEXT NOT NULL DEFAULT '{}'
         );
 
+        CREATE TABLE IF NOT EXISTS normative_zip_imports (
+            collection_name TEXT NOT NULL,
+            zip_sha256 TEXT NOT NULL,
+            pipeline_key TEXT NOT NULL,
+            completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(collection_name, zip_sha256, pipeline_key)
+        );
+
         CREATE VIEW IF NOT EXISTS normattiva_documents AS SELECT * FROM normative_documents;
         CREATE VIEW IF NOT EXISTS normattiva_articles AS SELECT * FROM normative_articles;
         CREATE VIEW IF NOT EXISTS normattiva_chunks AS SELECT * FROM normative_chunks;
@@ -681,12 +692,9 @@ def insert_chunk(conn: sqlite3.Connection, doc_id: int, article_id: int | None, 
         (doc_id, article_id, chunk_key, chunk_text, metadata_json),
     )
     if cur.rowcount:
-        payload = {
-            "id": chunk_key,
-            "text": chunk_text,
-            "metadata": metadata,
-        }
-        jsonl_file.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        if jsonl_file is not None:
+            payload = {"id": chunk_key, "text": chunk_text, "metadata": metadata}
+            jsonl_file.write(json.dumps(payload, ensure_ascii=False) + "\n")
         return 1
     return 0
 
@@ -724,11 +732,33 @@ def iter_zip_xml(zip_path: Path) -> Iterator[tuple[str, bytes]]:
                 yield name, z.read(name)
 
 
+def _file_sha(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def _esporta_chunk(conn: sqlite3.Connection, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with NamedTemporaryFile(mode="w", dir=path.parent, encoding="utf-8", delete=False) as stream:
+            temporary = Path(stream.name)
+            for key, text, metadata in conn.execute(
+                "SELECT chunk_key, chunk_text, metadata_json FROM normative_chunks ORDER BY id"
+            ):
+                row = {"id": key, "text": text, "metadata": json.loads(metadata or "{}")}
+                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
 def import_raw_dir(
     *,
     raw_dir: Path,
     db_path: Path,
-    jsonl_path: Path,
+    jsonl_path: Path | None,
     min_score: float = 1.0,
     only_relevant: bool = True,
     store_full_text: bool = False,
@@ -739,55 +769,43 @@ def import_raw_dir(
 ) -> ImportStats:
     stats = ImportStats()
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
-
     zip_files = sorted(raw_dir.glob("*.zip"))
     if solo_vigenza:
-        # i file scaricati si chiamano <collezione>_XML_<VIGENZA>_<data>.zip: si importa una sola vigenza,
-        # cosi' ZIP vecchi di un'altra vigenza rimasti nella cartella non finiscono nel database
         marcatore = f"_{solo_vigenza.strip().upper()}_"
         zip_files = [z for z in zip_files if marcatore in z.name.upper()]
     stats.zip_files = len(zip_files)
+    pipeline_key = sha256_bytes(safe_json([
+        _file_sha(Path(__file__)),
+        _file_sha(Path(__file__).with_name("articoli_testuali.py")),
+        _file_sha(Path(__file__).with_name("relevance_rules.py")),
+        min_score, only_relevant, store_full_text, max_chunk_chars,
+    ]).encode("utf-8"))
 
-    conn = sqlite3.connect(str(db_path))
-    conn.execute("PRAGMA foreign_keys=ON")
-    ensure_schema(conn)
-    run_id = conn.execute(
-        "INSERT INTO normative_sync_runs(raw_dir, status) VALUES (?, ?)",
-        (str(raw_dir), "running"),
-    ).lastrowid
-    conn.commit()
-
-    with jsonl_path.open("w", encoding="utf-8") as jf:
+    with closing(sqlite3.connect(str(db_path), timeout=20)) as conn:
+        conn.execute("PRAGMA foreign_keys=ON")
+        ensure_schema(conn)
+        run_id = conn.execute(
+            "INSERT INTO normative_sync_runs(raw_dir, status) VALUES (?, ?)",
+            (str(raw_dir), "running"),
+        ).lastrowid
+        conn.commit()
         for zip_path in zip_files:
+            if limit is not None and stats.xml_seen >= limit:
+                break
             collection_name = infer_collection_from_zip(zip_path)
             print(f"\nZIP: {zip_path.name}")
+            errori_prima = stats.errors
             try:
+                identity = (collection_name, _file_sha(zip_path), pipeline_key)
+                if limit is None and conn.execute(
+                    "SELECT 1 FROM normative_zip_imports WHERE collection_name=? AND zip_sha256=? AND pipeline_key=?",
+                    identity,
+                ).fetchone():
+                    stats.zip_immutati += 1
+                    continue
                 for entry, xml_bytes in iter_zip_xml(zip_path):
                     if limit is not None and stats.xml_seen >= limit:
-                        conn.execute(
-                            """
-                            UPDATE normative_sync_runs
-                            SET finished_at=CURRENT_TIMESTAMP, status=?, zip_files=?, xml_seen=?,
-                                documents_imported=?, chunks_written=?, errors=?, report_json=?
-                            WHERE id=?
-                            """,
-                            (
-                                "ok",
-                                stats.zip_files,
-                                stats.xml_seen,
-                                stats.documents_imported,
-                                stats.chunks_written,
-                                stats.errors,
-                                safe_json(asdict(stats)),
-                                run_id,
-                            ),
-                        )
-                        conn.commit()
-                        if indice_fts:
-                            _sincronizza_indice_fts(conn, stats)
-                        conn.close()
-                        return stats
+                        break
                     stats.xml_seen += 1
                     try:
                         doc = parse_xml(xml_bytes, zip_path=zip_path, entry=entry, collection_name=collection_name)
@@ -795,18 +813,23 @@ def import_raw_dir(
                             stats.documents_skipped_not_relevant += 1
                             continue
                         doc.is_relevant = doc.relevance_score >= min_score
-                        doc_id = insert_document(conn, doc, store_full_text=store_full_text)
+                        if not conn.in_transaction:
+                            conn.execute("BEGIN")
+                        conn.execute("SAVEPOINT documento_normattiva")
+                        try:
+                            doc_id = insert_document(conn, doc, store_full_text=store_full_text)
+                            a_count, c_count = (0, 0) if doc_id is None else insert_articles_and_chunks(
+                                conn, doc_id, doc, jsonl_file=None, max_chunk_chars=max_chunk_chars,
+                                only_relevant_articles=only_relevant,
+                            )
+                        except Exception:
+                            conn.execute("ROLLBACK TO documento_normattiva")
+                            raise
+                        finally:
+                            conn.execute("RELEASE documento_normattiva")
                         if doc_id is None:
                             continue
                         stats.documents_imported += 1
-                        a_count, c_count = insert_articles_and_chunks(
-                            conn,
-                            doc_id,
-                            doc,
-                            jsonl_file=jf,
-                            max_chunk_chars=max_chunk_chars,
-                            only_relevant_articles=only_relevant,
-                        )
                         stats.articles_imported += a_count
                         stats.chunks_written += c_count
                         if stats.documents_imported % 100 == 0:
@@ -815,33 +838,35 @@ def import_raw_dir(
                     except Exception as exc:
                         stats.errors += 1
                         print(f"  ERRORE XML {entry}: {exc}", file=sys.stderr)
-            except BadZipFile as exc:
+                if limit is None and stats.errors == errori_prima:
+                    if _file_sha(zip_path) != identity[1]:
+                        raise OSError("Il pacchetto è cambiato durante l'importazione.")
+                    conn.execute(
+                        "INSERT OR IGNORE INTO normative_zip_imports(collection_name, zip_sha256, pipeline_key) VALUES (?, ?, ?)",
+                        identity,
+                    )
+            except (OSError, BadZipFile) as exc:
                 stats.errors += 1
                 print(f"ERRORE ZIP {zip_path}: {exc}", file=sys.stderr)
             conn.commit()
 
-    conn.execute(
-        """
-        UPDATE normative_sync_runs
-        SET finished_at=CURRENT_TIMESTAMP, status=?, zip_files=?, xml_seen=?,
-            documents_imported=?, chunks_written=?, errors=?, report_json=?
-        WHERE id=?
-        """,
-        (
-            "ok" if stats.errors == 0 else "completed_with_errors",
-            stats.zip_files,
-            stats.xml_seen,
-            stats.documents_imported,
-            stats.chunks_written,
-            stats.errors,
-            safe_json(asdict(stats)),
-            run_id,
-        ),
-    )
-    conn.commit()
-    if indice_fts:
-        _sincronizza_indice_fts(conn, stats)
-    conn.close()
+        if not zip_files:
+            stats.errors += 1
+            print("Nessun pacchetto Normattiva corrispondente all'importazione.", file=sys.stderr)
+        if indice_fts:
+            _sincronizza_indice_fts(conn, stats)
+        if jsonl_path is not None and (stats.chunks_written or not jsonl_path.exists()):
+            _esporta_chunk(conn, jsonl_path)
+        conn.execute(
+            """
+            UPDATE normative_sync_runs SET finished_at=CURRENT_TIMESTAMP, status=?,
+                zip_files=?, xml_seen=?, documents_imported=?, chunks_written=?, errors=?, report_json=?
+            WHERE id=?
+            """,
+            ("ok" if stats.errors == 0 else "completed_with_errors", stats.zip_files, stats.xml_seen,
+             stats.documents_imported, stats.chunks_written, stats.errors, safe_json(asdict(stats)), run_id),
+        )
+        conn.commit()
     return stats
 
 
@@ -870,6 +895,7 @@ def cli_main() -> None:
     parser = argparse.ArgumentParser(description="Importa XML Normattiva scaricati in SQLite + JSONL per Lex AI")
     parser.add_argument("--raw-dir", default="data/normativa/raw", help="Cartella con ZIP Normattiva")
     parser.add_argument("--db", default="data/normativa/normattiva.sqlite", help="Database SQLite output")
+    parser.add_argument("--solo-sql", action="store_true", help="Scrive solo nel database autorevole")
     parser.add_argument("--jsonl", default="data/normativa/index/normattiva_chunks.jsonl", help="File JSONL chunks per RAG")
     parser.add_argument("--report", default="data/normativa/reports/normattiva_import_report.json", help="Report import")
     parser.add_argument("--min-score", type=float, default=1.0, help="Soglia rilevanza")
@@ -889,7 +915,7 @@ def cli_main() -> None:
     stats = import_raw_dir(
         raw_dir=Path(args.raw_dir),
         db_path=Path(args.db),
-        jsonl_path=Path(args.jsonl),
+        jsonl_path=None if args.solo_sql else Path(args.jsonl),
         min_score=args.min_score,
         only_relevant=not args.include_not_relevant,
         store_full_text=args.store_full_text,
@@ -902,8 +928,11 @@ def cli_main() -> None:
     print("\nImport completato")
     print(json.dumps(asdict(stats), ensure_ascii=False, indent=2))
     print(f"DB: {args.db}")
-    print(f"JSONL: {args.jsonl}")
+    if not args.solo_sql:
+        print(f"JSONL: {args.jsonl}")
     print(f"Report: {args.report}")
+    if stats.errors:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

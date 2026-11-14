@@ -926,6 +926,7 @@ def agenda_scadenziario_notification_items(
     include_agenda: bool = True,
     include_scadenziario: bool = True,
     now: datetime | None = None,
+    strict: bool = False,
 ) -> list[dict[str, Any]]:
     current = now or datetime.now(ROME_TZ)
     if current.tzinfo is None:
@@ -951,6 +952,8 @@ def agenda_scadenziario_notification_items(
                 if dt and current <= dt <= current + timedelta(hours=48):
                     upcoming_appointments.append(appointment)
         except Exception:
+            if strict:
+                raise
             current_app.logger.info("Top bar notifiche: agenda non disponibile", exc_info=True)
     upcoming_appointment_ids = {
         _clean_text(getattr(appointment, "id", ""), limit=220)
@@ -1026,6 +1029,8 @@ def agenda_scadenziario_notification_items(
                     )
                 )
         except Exception:
+            if strict:
+                raise
             current_app.logger.info("Top bar notifiche: scadenze non disponibili", exc_info=True)
     if include_agenda:
         try:
@@ -1065,6 +1070,8 @@ def agenda_scadenziario_notification_items(
                     )
                 )
         except Exception:
+            if strict:
+                raise
             current_app.logger.info("Top bar notifiche: agenda non disponibile", exc_info=True)
     return coalesce_operational_items(items)
 

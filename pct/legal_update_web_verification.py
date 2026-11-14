@@ -4,6 +4,8 @@ import hashlib
 import json
 import os
 import re
+import time
+from contextvars import ContextVar
 from html import escape, unescape
 from pathlib import Path
 from typing import Any, Iterator
@@ -14,6 +16,30 @@ from lxml import html as lxml_html
 
 from lex.research.source_policy.inference import get_tier_for_domain, infer_area, normalize_domain
 from lex.research.source_policy.models import Tier
+
+
+_VERIFICATION_DEADLINE: ContextVar[float | None] = ContextVar("legal_verification_deadline", default=None)
+
+
+class VerificationBudgetExpired(TimeoutError):
+    """La verifica potrà riprendere; il risultato non è una prova negativa."""
+
+
+def _check_budget() -> float | None:
+    deadline = _VERIFICATION_DEADLINE.get()
+    if deadline is None:
+        return None
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise VerificationBudgetExpired()
+    return remaining
+
+
+def _budgeted_get(url: str, **kwargs: Any):
+    remaining = _check_budget()
+    if remaining is not None:
+        kwargs["timeout"] = min(remaining, float(kwargs.get("timeout") or remaining))
+    return requests.get(url, **kwargs)
 
 
 STRUCTURED_ACTIONS = {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}
@@ -158,7 +184,9 @@ def _looks_like_attachment(href: str, label: str) -> bool:
     path = urlparse(href).path.lower()
     query = urlparse(href).query.lower()
     real_file_extensions = tuple(ext for ext in ATTACHMENT_EXTENSIONS if ext not in {".html", ".htm"})
-    if path.endswith(real_file_extensions) or path.endswith("/pdf"):
+    if path.endswith(real_file_extensions) or path.endswith("/pdf") or (
+        path.startswith("/documents/") and any(segment.endswith(real_file_extensions) for segment in path.split("/"))
+    ):
         return True
     if "downloadpdf" in path or "pdfpaginato" in path or "estensione=pdf" in query:
         return True
@@ -593,7 +621,7 @@ def _deduplicate_confirmations(rows: list[dict[str, Any]]) -> list[dict[str, Any
 
 def _file_type_from_url(url: str, content_type: str = "") -> str:
     path = urlparse(str(url or "")).path.lower()
-    if path.endswith(".pdf") or "pdf" in content_type.lower():
+    if any(segment.endswith(".pdf") for segment in path.split("/")) or "pdf" in content_type.lower():
         return "pdf"
     if path.endswith(".docx"):
         return "docx"
@@ -760,7 +788,7 @@ def _download_limited(url: str, *, timeout: int, max_bytes: int, base_url: str =
     redirects = 0
     try:
         while True:
-            response = requests.get(
+            response = _budgeted_get(
                 current_url,
                 timeout=timeout,
                 stream=True,
@@ -790,6 +818,7 @@ def _download_limited(url: str, *, timeout: int, max_bytes: int, base_url: str =
     total = 0
     try:
         for chunk in response.iter_content(chunk_size=65536):
+            _check_budget()
             if not chunk:
                 continue
             total += len(chunk)
@@ -1258,7 +1287,7 @@ def _verification_result(
     }
 
 
-def verify_legal_update_against_public_sources(
+def _verify_legal_update_against_public_sources(
     review: dict[str, Any],
     source: dict[str, Any],
     *,
@@ -1327,6 +1356,7 @@ def verify_legal_update_against_public_sources(
             )
             confirmations.append(enriched_attachment)
 
+    _check_budget()
     if direct_only:
         searched["web_results"] = 0
         return _verification_result(
@@ -1344,6 +1374,7 @@ def verify_legal_update_against_public_sources(
     web_results_seen = 0
     seen_web_urls: set[str] = set()
     for candidate_query in queries:
+        _check_budget()
         confirmations.extend(
             _search_and_confirm(
                 origin="archivio_fonti_ufficiali",
@@ -1376,7 +1407,14 @@ def verify_legal_update_against_public_sources(
                 )
             )
 
+        if _VERIFICATION_DEADLINE.get() is not None:
+            verified = _verification_result(action=action, query=query, confirmations=confirmations,
+                                             warnings=warnings, searched=searched, direct_only=False)
+            if verified["ok"]:
+                searched["web_results"] = web_results_seen
+                return verified
         for plan in _web_search_plans(list(searched["source_ids"] or [])):
+            _check_budget()
             plan_source_ids = list(plan.get("source_ids") or [])
             plan_scope = _clean_spaces(plan.get("scope") or "estesa")
             try:
@@ -1384,6 +1422,7 @@ def verify_legal_update_against_public_sources(
                     candidate_query,
                     source_ids=plan_source_ids,
                     limit_results=max(int(limit or 0), 4),
+                    **({"request_get": _budgeted_get} if _VERIFICATION_DEADLINE.get() is not None else {}),
                 )
                 searched["web_searches"].append(
                     {
@@ -1395,6 +1434,7 @@ def verify_legal_update_against_public_sources(
                 )
                 web_results_seen += len(web_rows)
                 for row in web_rows:
+                    _check_budget()
                     candidate = dict(row or {})
                     candidate_url = _clean_spaces(candidate.get("url") or candidate.get("official_url") or candidate.get("url_origine"))
                     if candidate_url and candidate_url in seen_web_urls:
@@ -1428,8 +1468,11 @@ def verify_legal_update_against_public_sources(
                                 review,
                             )
                             confirmations.append(enriched_attachment)
+            except VerificationBudgetExpired:
+                raise
             except Exception as exc:
                 warnings.append(f"Ricerca web governata non completata: {_truncate(exc, 140)}")
+    _check_budget()
     searched["web_results"] = web_results_seen
 
     return _verification_result(
@@ -1440,6 +1483,24 @@ def verify_legal_update_against_public_sources(
         searched=searched,
         direct_only=False,
     )
+
+
+def verify_legal_update_against_public_sources(
+    review: dict[str, Any],
+    source: dict[str, Any],
+    *,
+    limit: int = 5,
+    direct_only: bool = False,
+    deadline: float | None = None,
+) -> dict[str, Any]:
+    token = _VERIFICATION_DEADLINE.set(deadline)
+    try:
+        return _verify_legal_update_against_public_sources(review, source, limit=limit, direct_only=direct_only)
+    except VerificationBudgetExpired:
+        return {"ok": False, "status": "deferred", "confirmation_count": 0,
+                "reason": "Tempo della verifica esaurito; il riscontro deve essere ripreso."}
+    finally:
+        _VERIFICATION_DEADLINE.reset(token)
 
 
 __all__ = ["extract_official_attachment_confirmations", "verify_legal_update_against_public_sources"]

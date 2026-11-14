@@ -1739,6 +1739,33 @@ def _se_libero(attivita: Callable[[], Any], ripiego: Any) -> Any:
         return ripiego
 
 
+
+def aggiorna_esperienza_conclusi(app: Any, registro: RegistroLetture, tenant_id: str, paths: dict[str, Any],
+                                *, limite: int = 4) -> int:
+    """Prepara un lotto storico con i dati già letti, anche a seguito di nuove regole."""
+    from pct.ragionamento import VERSIONE
+    from web.services.ragionamento_raccolta import LETTORE_PERCORSO_CONCLUSO, STATI_PERCORSO_CONCLUSO
+
+    if datetime.now(ROME).hour not in ORE_RILETTURA:
+        return 0
+    pronti = {r["fascicolo_id"] for r in registro.righe_fascicoli(tenant_id, lettore=LETTORE_PERCORSO_CONCLUSO)
+              if r["versione_lettore"] == VERSIONE}
+    candidati = [r["fascicolo_id"] for r in registro.sintesi_studio(tenant_id)
+                 if _testo(r.get("stato")).upper() in STATI_PERCORSO_CONCLUSO and r["fascicolo_id"] not in pronti]
+    fatti = 0
+    for fascicolo_id in candidati[:max(0, limite)]:
+        with app.test_request_context("/__esperienza-fascicoli/" + fascicolo_id):
+            g.data_paths = dict(paths)
+            g.tenant_context_slug = tenant_id
+            g.tenant_context_required = False
+            if tenant_id and app.config.get("MULTI_TENANT"):
+                from pct.tenant import GestioneTenant
+
+                g.tenant = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"]).get(tenant_id)
+            fatti += int(_prepara_lettura(fascicolo_id))
+    return fatti
+
+
 def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[str, int]:
     """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
     targets = _studi_della_coda(app)
@@ -1754,6 +1781,7 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20) -> dict[st
         ripresi_fermi += _se_libero(lambda: riprendi_letture_ferme(registro, tenant_id), 0)
         accodati += _se_libero(lambda: accoda_letture_pendenti(registro, tenant_id), 0)
         proposte_storico += int(_se_libero(lambda: esamina_proposte_storico_studio(app, registro, tenant_id, paths), {}).get("fascicoli") or 0)
+        _se_libero(lambda: aggiorna_esperienza_conclusi(app, registro, tenant_id, paths), 0)
         liberi = LETTURE_CONCORRENTI - letture_attive()
         if liberi <= 0:
             continue

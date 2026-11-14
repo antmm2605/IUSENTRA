@@ -191,3 +191,22 @@ Ogni voce ha una correzione prevista; lo stato si aggiorna qui.
 - Generazione reale di undici atti da un fascicolo di prova (decreto ingiuntivo, citazione, comparsa, precetto, diffida, messe in mora, procure, memoria 171-ter, nota di iscrizione a ruolo) e rendering di tutti i 192 modelli del catalogo senza errori.
 - Domande reali a Lex (termini di appello, 171-ter, opposizione a decreto ingiuntivo, contributo unificato, articolo di codice, giurisprudenza).
 - Non eseguita in questa sessione la verifica nel browser sulla macchina dello studio (AGENTS.md): va fatta dopo il deploy.
+
+## Apertura del fascicolo e pannelli, verifica dell'11/11/2026
+
+Il dettaglio iniziale usa il caricatore mirato del singolo fascicolo e chiede la revisione
+dei dati letti. La candidata separa le sezioni indicate dall'indirizzo della pagina dal
+caricamento della testata. Le sezioni arrivano attraverso le proprie API.
+
+| Passaggio | Sorgente e dati | Verifica |
+|---|---|---|
+| Apertura e scelta delle sezioni | `FascicoliPage.tsx`, `fascicoliData.ts`, `fascicolo_react_dettaglio` e `get_fascicoli_mirato` | Il dettaglio iniziale chiede la revisione. Le sezioni seguono le proprie richieste. |
+| Autorizzazione e riscontro delle revisioni | `auth_runtime.py`, `pannelli_pronti_runtime.py` e `pct/pannelli_pronti/impronta.py` | Profilo, studio e fascicolo partecipano alla selezione. L'impronta usa i contatori di `studio.db` e `registro_letture.db`. |
+| Pannello già disponibile | `pct/pannelli_pronti/archivio.py`, database `intelligence/pannelli_pronti.db` | Il payload viene servito con l'impronta corrente. La registrazione delle consultazioni ripetute è limitata a una scrittura ogni 30 secondi per chiave. |
+| Pannello da preparare | `pannelli_pronti_runtime.py`, `pannelli_pronti_calcolatore.py`, `pannelli_pronti_sfondo.py` | Il server accoda nel database e risponde 202. Il processo prepara e salva il payload. Il browser rilegge quel pannello. |
+| Modifica di una fonte | Trigger SQL e controllo dell'impronta; dipendenze in `pannelli_pronti_catalogo.py` | La modifica rende superato il risultato. Il processo prepara Lettura prima delle sezioni che la usano. |
+| Installazione locale rilevata | Container `iusentra-app`, versione 2.488.0 | Il Quadro è presente. Il servizio dei pannelli pronti e i contatori dei due database sono ancora da attivare con il rilascio della candidata. |
+
+La prova automatica esegue richiesta a freddo, ricalcolo in sfondo, lettura del payload
+salvato, modifica SQL e nuova lettura. La preparazione dei contatori è già prevista
+da `deploy/hetzner/deploy.sh` tramite `scripts.pannelli_pronti_prepara`.

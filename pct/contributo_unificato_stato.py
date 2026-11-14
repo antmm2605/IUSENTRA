@@ -19,6 +19,7 @@ Modulo puro: riceve la voce economica e i documenti del contributo già letti, n
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Iterable, Mapping
 
 NORMA_CU = "art. 13 D.P.R. 115/2002"
@@ -26,6 +27,7 @@ NORMA_ESENZIONE_CU = "art. 9, comma 1-bis, D.P.R. 115/2002"
 NORMA_ANTICIPAZIONE_FORFETTARIA = "art. 30 D.P.R. 115/2002"
 
 _ETICHETTA_ESENZIONE = "contributo unificato / esenzione"
+_ATTO_DI_PARTE = re.compile(r"^(?:ricorso|istanza|atto[\s_]+di|citazione|comparsa|memoria|note|procura)(?=[\W_]|$)", re.IGNORECASE)
 _ETICHETTA_VERSAMENTO = "contributo unificato / pagamento"
 _INDIZI_ESENZIONE = ("autocertificazione", "esenzione")
 
@@ -158,13 +160,20 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
     href, confermato).
     """
     documenti = list(documenti)
-    esenzioni = [d for d in documenti if _ETICHETTA_ESENZIONE in _testo(d.get("etichetta")).lower()]
-    versamenti = [d for d in documenti if _ETICHETTA_VERSAMENTO in _testo(d.get("etichetta")).lower()]
+    inviti = [_documento(d) for d in voce.get("invitiRideposito") or []]
+    id_inviti = {d["id"] for d in inviti}
+    esenzioni = [d for d in documenti if _ETICHETTA_ESENZIONE in _testo(d.get("etichetta")).lower()
+                 and _testo(d.get("id")) not in id_inviti]
+    # Un atto di parte (ricorso, istanza, citazione) cita il contributo ma non è la ricevuta del versamento (G-16).
+    versamenti = [d for d in documenti if _ETICHETTA_VERSAMENTO in _testo(d.get("etichetta")).lower()
+                  and not _ATTO_DI_PARTE.match(_testo(d.get("nome")))]
+    confronto = dict(voce.get("confronto") or {})
+    verificata = dict(voce.get("esenzioneVerificata") or {})
     stato_voce = _testo(voce.get("status") or voce.get("stato")).lower()
     manuale = bool(voce.get("manuale"))
     nome_voce = _testo(voce.get("documento_fonte"))
     documento_voce = {"id": _testo(voce.get("documento_id")), "nome": nome_voce, "href": _testo(voce.get("href"))}
-    if not esenzioni and any(p in nome_voce.lower() for p in _INDIZI_ESENZIONE):
+    if not esenzioni and documento_voce["id"] not in id_inviti and any(p in nome_voce.lower() for p in _INDIZI_ESENZIONE):
         esenzioni = [{**documento_voce, "confermato": manuale and stato_voce == "non_previsto"}]
     if esenzioni and not any(d.get("confermato") for d in versamenti):
         versamenti = []
@@ -177,8 +186,17 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
         contributo = next(n for n in letti if n != 27.0)  # l'altro importo è il contributo (vedi avviso_importo)
         if importo in {None, 27.0, round(contributo + 27.0, 2)}:
             importo = contributo
+    if versamenti and esenzioni and verificata.get("certa"):
+        versamenti = []  # esenzione certa: la ricevuta proposta non prevale
     if versamenti:
         fonti = [_documento(d) for d in versamenti]
+        if confronto.get("esito") == "insufficiente":
+            return _esito("da_verificare", importo=confronto.get("versato") or None, norma=confronto.get("norma") or NORMA_CU,
+                          fonti=fonti, ruolo_fonti="ricevuta di versamento", dettaglio=confronto["dettaglio"])
+        if confronto.get("esito") == "coincide":
+            # Importo versato pari a quello dovuto per valore e rito: il versamento è certo (direttiva 10/11/2026).
+            return _esito("pagato", importo=confronto["versato"], norma=confronto.get("norma") or NORMA_CU, fonti=fonti,
+                          ruolo_fonti="ricevuta di versamento", dettaglio=confronto["dettaglio"])
         da_confermare = avviso_importo(voce)
         if da_confermare or not any(d.get("confermato") for d in versamenti):
             return _esito("pagato_da_confermare", importo=None if da_confermare else importo, norma=NORMA_CU,
@@ -187,8 +205,21 @@ def stato_contributo(voce: Mapping[str, Any], documenti: Iterable[Mapping[str, A
                                                     "contributo: aprirlo e confermare importo e procedimento.")
         return _esito("pagato", importo=importo, norma=NORMA_CU, fonti=fonti, ruolo_fonti="ricevuta di versamento",
                       dettaglio="" if importo else "Importo da riportare dalla ricevuta.")
+    if inviti:
+        return _esito(
+            "da_verificare", importo=None, norma=NORMA_ESENZIONE_CU, fonti=inviti,
+            ruolo_fonti="invito al rideposito",
+            dettaglio="Il fascicolo contiene un invito a ridepositare l’autocertificazione. "
+                     "Verificare il deposito successivo e la dichiarazione relativa all’anno di reddito richiesto.",
+        )
     if esenzioni:
+        if verificata.get("certa"):
+            return _esito("esente", importo=None, norma=NORMA_ESENZIONE_CU, fonti=[_documento(d) for d in esenzioni],
+                          ruolo_fonti="autocertificazione del reddito", dettaglio=verificata["motivo"])
         confermata = any(d.get("confermato") for d in esenzioni)
+        if not confermata and verificata.get("motivo"):
+            return _esito("esente_da_confermare", importo=None, norma=NORMA_ESENZIONE_CU, fonti=[_documento(d) for d in esenzioni],
+                          ruolo_fonti="autocertificazione del reddito", dettaglio=verificata["motivo"])
         return _esito("esente" if confermata else "esente_da_confermare", importo=None, norma=NORMA_ESENZIONE_CU,
                       fonti=[_documento(d) for d in esenzioni], ruolo_fonti="autocertificazione del reddito",
                       dettaglio="Esenzione per reddito con autocertificazione depositata." if confermata else

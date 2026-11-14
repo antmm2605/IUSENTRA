@@ -36,6 +36,7 @@ export type StatoPagamento =
   | { tipo: 'checkout'; dati: DatiCheckout }
   | { tipo: 'gia_pagato'; dati: DatiGiaPagato }
   | { tipo: 'scaduto' }
+  | { tipo: 'da_verificare'; messaggio: string }
   | { tipo: 'sumup'; checkoutId: string; urlEsito: string; importo: string }
   | { tipo: 'esito'; dati: DatiEsito }
   | { tipo: 'errore'; messaggio: string }
@@ -80,9 +81,18 @@ export function datiEsito(raw: Grezzo): DatiEsito {
   }
 }
 
+const MESSAGGIO_VERIFICA = 'Il pagamento richiede una verifica dello studio prima di procedere.'
+
+/** 409 «payment_review»: il residuo non autorizza un nuovo pagamento, nessun addebito avviato. */
+function daVerificare(risposta: { status: number; dati: Grezzo; messaggio?: string }): string | null {
+  return risposta.status === 409 && testo(risposta.dati.code) === 'payment_review' ? (risposta.messaggio || MESSAGGIO_VERIFICA) : null
+}
+
 export async function caricaCheckout(token: string, signal?: AbortSignal): Promise<StatoPagamento> {
   const risposta = await leggiPubblico(api(token), signal)
   if (risposta.status === 410) return { tipo: 'scaduto' }
+  const verifica = daVerificare(risposta)
+  if (verifica) return { tipo: 'da_verificare', messaggio: verifica }
   if (risposta.status !== 200) return { tipo: 'errore', messaggio: risposta.messaggio || 'Pagina di pagamento non disponibile. Riprova più tardi.' }
   const raw = risposta.dati
   if (testo(raw.vista) === 'gia_pagato') {
@@ -104,6 +114,8 @@ export async function caricaEsito(token: string, providerScelto: string, signal?
   const parametri = providerScelto && provider(providerScelto) ? `?provider=${encodeURIComponent(providerScelto)}` : ''
   const risposta = await leggiPubblico(api(token, `/esito${parametri}`), signal)
   if (risposta.status === 410) return { tipo: 'scaduto' }
+  const verifica = daVerificare(risposta)
+  if (verifica) return { tipo: 'da_verificare', messaggio: verifica }
   if (risposta.status !== 200) return { tipo: 'errore', messaggio: risposta.messaggio || 'Esito del pagamento non disponibile. Riprova più tardi.' }
   return { tipo: 'esito', dati: datiEsito(risposta.dati) }
 }
@@ -114,12 +126,15 @@ export type AvvioPagamento =
   | { tipo: 'sumup'; checkoutId: string; urlEsito: string }
   | { tipo: 'bonifico'; urlEsito: string; esito: DatiEsito }
   | { tipo: 'scaduto' }
+  | { tipo: 'da_verificare'; messaggio: string }
   | { tipo: 'errore'; messaggio: string }
 
 export async function avviaPagamento(token: string, scelto: Provider, revision?: string): Promise<AvvioPagamento> {
   const risposta = await scriviPubblico(api(token, '/avvia'), { provider: scelto, ...(revision ? {payment_revision: revision} : {}) })
   if (risposta.status === 409 && testo(risposta.dati.code) === 'payment_changed') return {tipo:'aggiornato', messaggio:risposta.messaggio}
   if (risposta.status === 410) return { tipo: 'scaduto' }
+  const verifica = daVerificare(risposta)
+  if (verifica) return { tipo: 'da_verificare', messaggio: verifica }
   const raw = risposta.dati
   const errore = risposta.messaggio || 'Pagamento non avviato. Riprova o scegli un altro metodo.'
   if (risposta.status !== 200) return { tipo: 'errore', messaggio: errore }

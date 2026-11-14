@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import sqlite3
 import threading
 import time
 
 import pytest
 
-from pct.semaforo_motori import PRIORITA_URGENTE, Semaforo, SemaforoOccupato, motore_pesante
+from pct.semaforo_motori import PRIORITA_URGENTE, Semaforo, SemaforoNonDisponibile, SemaforoOccupato, motore_pesante
 
 
 class Orologio:
@@ -106,3 +107,41 @@ def test_invecchiamento_chi_aspetta_supera_chi_rientra_subito(tmp_path):
             break
         assert sem.prova(f"ocr-{giro + 2}", "OCR", PRIORITA_URGENTE)
     assert turno_catena and orologio.t - 1000 <= 10 * 60
+
+
+def test_archivio_indisponibile_non_avvia_il_motore_e_riprova(tmp_path, monkeypatch):
+    sem = Semaforo(tmp_path / "s.sqlite")
+    prova = sem.prova
+    tentativi = []
+
+    def intermittente(*args):
+        tentativi.append(1)
+        if len(tentativi) == 1:
+            raise sqlite3.OperationalError("database is locked")
+        return prova(*args)
+
+    monkeypatch.setattr(sem, "prova", intermittente)
+    with motore_pesante("Lex", semaforo=sem, intervallo=0.01):
+        assert len(tentativi) == 2
+        assert sem.stato()["in_corso"] == "Lex"
+
+    def indisponibile(*_args):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(sem, "prova", indisponibile)
+    with pytest.raises(SemaforoNonDisponibile):
+        with motore_pesante("Lex", semaforo=sem, attesa_massima=0.02, intervallo=0.01):
+            pytest.fail("Il motore non ha un turno confermato.")
+
+
+def test_coda_visibile_rispetta_lo_stesso_invecchiamento_dell_assegnazione(tmp_path):
+    orologio = Orologio()
+    sem = Semaforo(tmp_path / "s.sqlite", affitto_secondi=1000, orologio=orologio)
+    assert sem.prova("a", "attivo", PRIORITA_URGENTE)
+    assert not sem.prova("b", "sequenza in attesa", 54)
+    orologio.t += 500
+    assert not sem.prova("c", "OCR appena arrivato", PRIORITA_URGENTE)
+    assert sem.stato()["in_coda"] == ["sequenza in attesa", "OCR appena arrivato"]
+    sem.rilascia("a")
+    assert not sem.prova("c", "OCR appena arrivato", PRIORITA_URGENTE)
+    assert sem.prova("b", "sequenza in attesa", 54)

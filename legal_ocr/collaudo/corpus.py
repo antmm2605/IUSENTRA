@@ -93,6 +93,42 @@ CASI: tuple[Caso, ...] = (
         vietati=("2027-07-03", "1982-07-03"),
     ),
     Caso(
+        # Collaudo dell'avvocato del 10/11/2026: il termine per le note è quello scritto dal giudice (art. 127-ter,
+        # primo comma, c.p.c.), non l'udienza tenuta né quella sostituita; la seconda diserzione estingue (art. 631).
+        id="rinvio_631_note_127_ter",
+        titolo="Verbale di esecuzione: rinvio per mancata comparizione con note scritte entro termine perentorio",
+        righe=(
+            "TRIBUNALE DI ALFA - CANCELLERIA ESECUZIONI MOBILIARI",
+            "Proc. n. 111/2025 R.G.E.",
+            "All'udienza del 2.11.2026 tenuta dal G.E., viene chiamata la causa.",
+            "Poiché nessuno è presente rinvia all'udienza del 21.12.2026 che sostituisce",
+            "con il deposito di note scritte ex art. 127 ter c.p.c.",
+            "entro il termine perentorio del 16.12.2026.",
+            "Ai sensi dell'art. 631 c.p.c. Si comunichi.",
+        ),
+        attesi=(("data", "termine", "2026-12-16"), ("data", "udienza", "2026-12-21")),
+        fascicolo=(("id", "COLLAUDO-631"), ("numero_rg", "111"), ("anno_rg", "2025"), ("tribunale", "Tribunale di Alfa")),
+        vietati_fatti=(("data", "termine", "2026-12-21"), ("data", "termine", "2026-11-02")),
+    ),
+    Caso(
+        # Provvedimento collettivo: per la causa 111/2025 vale solo la clausola del suo gruppo (udienza in presenza).
+        id="rinvio_collettivo_gruppi_rg",
+        titolo="Comunicazione del G.E. con due gruppi di cause e due udienze",
+        righe=(
+            "TRIBUNALE DI ALFA - CANCELLERIA ESECUZIONI MOBILIARI",
+            "Il G.E. comunica che le cause sono rinviate come segue:",
+            "I procedimenti recanti n. 10/24; 22/25; 111/25; 300/26",
+            "sono rinviati all'udienza del 2.11.2026 che sarà trattata in presenza.",
+            "I procedimenti recanti n. 5/21; 83/25; 400/25",
+            "sono rinviati all'udienza del 9.11.2026 che sostituisce",
+            "con il deposito di note scritte ex art. 127 ter c.p.c.",
+            "entro il termine perentorio del 4.11.2026.",
+        ),
+        attesi=(("data", "udienza", "2026-11-02"),),
+        fascicolo=(("id", "COLLAUDO-COLLETTIVO"), ("numero_rg", "111"), ("anno_rg", "2025"), ("tribunale", "Tribunale di Alfa")),
+        vietati=("2026-11-04", "2026-11-09"),
+    ),
+    Caso(
         id="relata_con_dati_anagrafici",
         titolo="Relata di notifica con dati anagrafici e documento d'identita'",
         righe=(
@@ -121,6 +157,54 @@ CASI: tuple[Caso, ...] = (
         ),
         attesi=(("prova_notifica", "comunicazione_cancelleria", "comunicazione_cancelleria"), ("ruolo", "numero_ruolo", "987/2025"), ("data", "provvedimento", "2026-09-05"), ("data", "udienza", "2027-03-12T11:00")),
         vietati=("2020-01-01", "2021-02-02", "2022-03-03", "2026-02-01", "2026-02-28", "2034-02-01"),
+    ),
+    Caso(
+        id="istanza_esecutorieta_decorrenza_errata",
+        titolo="Istanza di esecutorietà del decreto ingiuntivo con decorrenza scritta per errore",
+        righe=(
+            "GIUDICE DI PACE DI ROCCAVERDE - R.G. n. 321/2024",
+            "Istanza per la dichiarazione di esecutorietà ex art. 647 c.p.c.",
+            "PREMESSO che il decreto ingiuntivo è stato notificato all'ingiunto",
+            "in data 23/12/2024 a mezzo PEC ex art. 3-bis L. 53/94;",
+            "considerato che è scaduto il termine di quaranta giorni ex art. 641",
+            "decorrente dal 10/02/2024 e che non è stata proposta opposizione,",
+            "chiede che il decreto sia dichiarato esecutivo.",
+            "Roccaverde, li' 10/02/2025",
+        ),
+        attesi=(("ruolo", "numero_ruolo", "321/2024"), ("data", "notifica", "2024-12-23")),
+        # la data da cui il termine decorre (anteriore alla notifica) non è un termine né un'udienza
+        vietati=("2024-02-10",),
+    ),
+    # Collaudo 10/11/2026: il numero di ruolo della volontaria giurisdizione risultava solo dal deposito integrativo
+    # (art. 13 D.M. 44/2011): la Lettura lo prende da qui (pct/procedura_fasi/ruolo_dagli_atti.py).
+    Caso(
+        id="deposito_integrativo_con_ruolo",
+        titolo="Copia del messaggio di deposito telematico integrativo con il numero di ruolo",
+        righe=(
+            "COPIA NON CRITTOGRAFATA DEPOSITO TELEMATICO",
+            "Oggetto: DEPOSITO TELEMATICO: ricevuta pagamento RG: 14848/2025",
+            "Mittente: Avv. Mario Rossi <mario.rossi@pec.example.it>",
+            "Destinatari: tribunale.firenze@civile.ptel.giustiziacert.it",
+            "Tali documenti si riferiscono alla causa RG: 14848/2025 di codesto TRIBUNALE DI FIRENZE",
+        ),
+        attesi=(("ruolo", "numero_ruolo", "14848/2025"),),
+    ),
+    # Collaudo 10/11/2026: il decreto che dichiara esecutivo il decreto ingiuntivo (art. 647 c.p.c.) porta in calce la
+    # data dell'esecutorietà; la data di emissione del d.i. richiamata nel testo è un provvedimento, non un'udienza.
+    Caso(
+        id="decreto_esecutorieta_ingiuntivo",
+        titolo="Decreto di esecutorietà del decreto ingiuntivo",
+        righe=(
+            "UFFICIO DEL GIUDICE DI PACE DI PALMI",
+            "N.RG 4202 / 2024",
+            "Visto il decreto ingiuntivo n. 1109/2024, emesso in data 20-12-2024,",
+            "notificato in data 23-12-2024;",
+            "atteso che avverso il suddetto decreto non è stata proposta opposizione; visto l'art. 647 c.p.c.;",
+            "DICHIARA esecutivo il decreto ingiuntivo n. 1109/2024. Si comunichi PALMI, 10-03-2025",
+            "Il Giudice di Pace Dott. Mario Bianchi",
+        ),
+        attesi=(("ruolo", "numero_ruolo", "4202/2024"), ("data", "notifica", "2024-12-23"), ("data", "data_atto", "2025-03-10")),
+        vietati_fatti=(("data", "udienza", "2024-12-20"), ("data", "udienza", "2025-03-10")),
     ),
 )
 

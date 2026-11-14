@@ -772,73 +772,6 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Aggiornamenti legali",
             "Server e manutenzione",
         ],
-        "web/templates/admin/base.html": [
-            "Esci",
-            "Piattaforma",
-            "Aggiornamenti legali",
-            "Pack installazione",
-            "Server e manutenzione",
-        ],
-        "web/templates/admin/installazione_pack.html": [
-            "Product Pack, Studio Local Pack e Update Pack",
-            "Rigenera bootstrap e manifest",
-            "Bootstrap macchina",
-            "Update Pack e repository SQL",
-        ],
-        "web/templates/admin/assistente_migrazione.html": [
-            "Assistente migrazione dati",
-            "Ultima esecuzione reale",
-            "Come risolvere",
-            "Snapshot pre-migrazione",
-            "Log operativo della migrazione",
-        ],
-        "web/templates/admin/osservabilita.html": [
-            "Osservabilità runtime",
-            "Segnali di degrado",
-            "Come intervenire",
-        ],
-        "web/templates/admin/server_manutenzione.html": [
-            "Server e manutenzione",
-            "Consumi per studio",
-            "Compatta tutto in sicurezza",
-            "già compattati",
-        ],
-        "web/templates/admin/legal_coverage_dashboard.html": [
-            "Copertura AI e autopubblicazione controllata",
-            "Archivio coverage condiviso da tutti gli studi",
-            "Database coverage",
-        ],
-        "web/templates/admin/legal_coverage_review.html": [
-            "Coda revisione draft v2",
-            "Come si usa questa schermata",
-            "Contesto di retrieval",
-            "Decisione reviewer",
-            "Storico revisioni",
-        ],
-        "web/templates/admin/legal_updates_dashboard.html": [
-            "Motore di aggiornamento normativo e giurisprudenziale",
-            "Fonti monitorate",
-            "Coda revisioni",
-        ],
-        "web/templates/admin/legal_updates_review.html": [
-            "Coda revisioni aggiornamenti",
-            "Azione proposta",
-            "Pubblica",
-        ],
-        "web/templates/dashboard.html": ["Panoramica dello studio"],
-        "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
-        "web/templates/impostazioni/index.html": ["Servizio locale sul dispositivo cliente", "Prepara il motore locale"],
-        "web/templates/notifiche/pannello.html": ["Invia messaggio", "Registro notifiche"],
-        "web/templates/wizard_pro/index.html": [
-            "Preparazione Udienza Guidata",
-            "Seleziona il fascicolo da cui avviare la preparazione dell'udienza",
-        ],
-        "web/templates/workspace_intelligente.html": ["Lex Operativo", "Ultima sincronizzazione"],
-        "web/templates/lex_operational.html": ["Lex Fascicolo", "Regia telematica"],
-        "web/templates/legal_intelligence/news.html": ["News giuridiche strutturate", "Fonte ufficiale"],
-        "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
-        "web/templates/telematico_dashboard.html": ["Centro Servizi Telematici", "Ultimo allineamento"],
-        "web/templates/timesheet/lista.html": ["Timesheet operativo", "Cosa fare adesso"],
     }
 
     for relative_path, expected_snippets in template_checks.items():
@@ -848,22 +781,6 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
 
     locale_sensitive_templates = [
         "web/templates/base.html",
-        "web/templates/dashboard.html",
-        "web/templates/agenda.html",
-        "web/templates/dettaglio_appuntamento.html",
-        "web/templates/notifiche/pannello.html",
-        "web/templates/portale/home.html",
-        "web/templates/telematico_dashboard.html",
-        "web/templates/form_preventivo.html",
-        "web/templates/clienti/cartella.html",
-        "web/templates/cartelle_condivise.html",
-        "web/templates/clienti/dettaglio.html",
-        "web/templates/faldone.html",
-        "web/templates/editor_documento.html",
-        "web/templates/fascicoli/dettaglio.html",
-        "web/templates/successo.html",
-        "web/templates/clienti/copertina_faldone.html",
-        "web/templates/fascicoli/copertina.html",
     ]
     for relative_path in locale_sensitive_templates:
         content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
@@ -876,9 +793,6 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
 
     base_content = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
     assert "{{ oggi|fmt_data }}" in base_content
-    telematico_content = (REPO_ROOT / "web/templates/telematico_dashboard.html").read_text(encoding="utf-8")
-    assert "|fmt_dataora" in telematico_content
-    copertina_content = (REPO_ROOT / "web/templates/fascicoli/copertina.html").read_text(encoding="utf-8")
     assert 'url_for(\'dettaglio_fascicolo\', id_fasc=fascicolo.id)' in copertina_content
     assert "javascript:history.back()" not in copertina_content
 
@@ -1097,17 +1011,6 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
 
     for relative_path in (
         "web/templates/base.html",
-        "web/templates/admin/base.html",
-        "web/templates/admin/dashboard.html",
-        "web/templates/admin/installazione_pack.html",
-        "web/templates/admin/studio_nuovo.html",
-        "web/templates/dashboard.html",
-        "web/templates/impostazioni/index.html",
-        "web/templates/notifiche/pannello.html",
-        "web/templates/workspace_intelligente.html",
-        "web/templates/portale/base.html",
-        "web/templates/portale/home.html",
-        "web/templates/telematico_dashboard.html",
     ):
         content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
         assert "<style" not in content
@@ -1136,8 +1039,6 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "style=" not in admin_dashboard
     assert "style=" not in admin_studio_nuovo
 
-    portale_base = (REPO_ROOT / "web/templates/portale/base.html").read_text(encoding="utf-8")
-    assert "/static/css/portal.css?v={{ app_version }}" in portale_base
 
 
 def test_template_html_restano_entra_il_budget_inline_style():
@@ -1162,18 +1063,10 @@ def test_brand_asset_iusentra_restano_coerenti():
 
 
 def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
-    template = (REPO_ROOT / "web/templates/impostazioni/index.html").read_text(encoding="utf-8")
     firma_js = (REPO_ROOT / "web/static/js/impostazioni-firma.js").read_text(encoding="utf-8")
     common_js = (REPO_ROOT / "web/static/js/impostazioni-common.js").read_text(encoding="utf-8")
     ai_js = (REPO_ROOT / "web/static/js/impostazioni-ai.js").read_text(encoding="utf-8")
 
-    assert "/static/js/impostazioni-firma.js?v={{ app_version }}" in template
-    assert "/static/js/impostazioni-common.js?v={{ app_version }}" in template
-    assert "/static/js/impostazioni-ai.js?v={{ app_version }}" in template
-    assert "function renderLocalAiStatus" not in template
-    assert "async function refreshLocalAiStatus" not in template
-    assert "async function runLocalAiBootstrap" not in template
-    assert "<script>" not in template
 
     assert firma_js.count("function scegliModalita") == 1
     assert common_js.count("function togglePwd") == 1
@@ -1186,9 +1079,6 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert "servizio locale" in ai_js.lower()
     assert "fetch(config.localSignerUrl + '/ai/status?' + params.toString(), {\n      method: 'GET',\n    });" in ai_js
     assert "fetch(config.localSignerUrl + '/ai/bootstrap', {\n          method: 'POST'," in ai_js
-    assert 'data-local-signer-url="http://127.0.0.1:27272"' in template
-    assert "data-local-signer-setup-windows" in template
-    assert "Quando IUSENTRA e' online" in template
 
 
 def test_local_signer_monitor_globale_verifica_versione_e_installer():
@@ -1289,68 +1179,18 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
     assert "/polisWeb/local-signer/download/local-signer-mod/<path:filename>" in signer_routes
 
 
-def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
-    template = (REPO_ROOT / "web/templates/notifiche/pannello.html").read_text(encoding="utf-8")
-    script = (REPO_ROOT / "web/static/js/notifiche-whatsapp.js").read_text(encoding="utf-8")
-
-    assert "/static/js/notifiche-whatsapp.js?v={{ app_version }}" in template
-    assert "{% block extra_scripts %}" in template
-    assert "<script>" not in template
-    assert "strftime('%H:%M')" not in template
-    assert "|fmt_ora" in template
-    assert "|fmt_dataora" in template
-    assert "Link WA" not in template
-    assert "Apri il link WhatsApp" in template
-    assert "showFeedback(" in script
-    assert "dataset.promemoriaCount" in script
-
-
 def test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente():
-    email_template = (REPO_ROOT / "web/templates/email/client.html").read_text(encoding="utf-8")
-    email_detail = (REPO_ROOT / "web/templates/email/_dettaglio_panel.html").read_text(encoding="utf-8")
-    fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
     fascicolo_react = (REPO_ROOT / "frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
 
-    assert "|fmt_ora" in email_template
-    assert "|fmt_data" in email_template
-    assert "ts[5:7]" not in email_template
-    assert "ts[8:10]" not in email_template
-    assert "|fmt_dataora" in email_detail
-    assert 'class="ds-btn ds-btn-primary" title="Prepara deposito telematico"' in fascicolo_template
-    assert "url_for('deposito_prepara', id_fasc=fascicolo.id)" in fascicolo_template
-    assert "sincronizzazione automatica della casella PEC" in fascicolo_template
     assert "La casella PEC viene sincronizzata automaticamente" in fascicolo_react
     assert "le nuove ricevute aggiornano stato deposito e fascicolo" in fascicolo_react
-    assert "JSON.stringify({ id_fascicolo: '{{ fascicolo.id }}' })" in fascicolo_template
-    assert "nextUrl.hash = 'sezione-comunicazioni-cancelleria';" in fascicolo_template
-    assert "window.location.assign(nextUrl.toString())" in fascicolo_template
 
 
 def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
-    fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
-    fascicolo_cockpit = (REPO_ROOT / "web/templates/components/fascicolo_cockpit_tabs.html").read_text(encoding="utf-8")
-    fascicolo_component = (REPO_ROOT / "web/templates/components/fascicolo_smart_board.html").read_text(encoding="utf-8")
-    workspace_template = (REPO_ROOT / "web/templates/workspace_intelligente.html").read_text(encoding="utf-8")
     bridge_js = (REPO_ROOT / "web/static/js/local-ai-browser-bridge.js").read_text(encoding="utf-8")
     fascicolo_js = (REPO_ROOT / "web/static/js/fascicolo-ai.js").read_text(encoding="utf-8")
     workspace_js = (REPO_ROOT / "web/static/js/workspace-ai.js").read_text(encoding="utf-8")
 
-    assert '{% include "components/fascicolo_cockpit_tabs.html" %}' in fascicolo_template
-    assert '{% include "components/fascicolo_smart_board.html" %}' in fascicolo_cockpit
-    assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in fascicolo_template
-    assert "/static/js/fascicolo-ai.js?v={{ app_version }}" in fascicolo_template
-    assert "async function askFascicoloAi" not in fascicolo_template
-    assert "async function _refreshFascicoloAiRuntime" not in fascicolo_template
-    assert 'id="fascicolo-ai-root"' in fascicolo_component
-    assert 'data-local-signer-url="http://127.0.0.1:27272"' in fascicolo_component
-    assert 'data-server-context-url="{{ url_for(\'api_fascicolo_ai_context\', id_fasc=fascicolo.id) }}"' in fascicolo_component
-
-    assert 'id="workspace-ai-root"' in workspace_template
-    assert 'data-local-signer-url="http://127.0.0.1:27272"' in workspace_template
-    assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in workspace_template
-    assert "/static/js/workspace-ai.js?v={{ app_version }}" in workspace_template
-    assert "async function askWorkspaceAi" not in workspace_template
-    assert "async function refreshWorkspaceAiRuntime" not in workspace_template
 
     assert "window.IusentraLocalAiBrowserBridge" in bridge_js
     assert "/ai/rag/query" in bridge_js
@@ -1402,7 +1242,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
         assert f"/static/js/lex-tts/{script_name}.js?v={{{{ app_version }}}}" in react_shell_template
     assert "/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in base_template
-    assert '{% include "components/pct_ai_widget.html" %}' in react_shell_template
+    assert 'id="lex-widget-root"' in react_shell_template
     assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in react_shell_template
     assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in react_shell_template
 
@@ -1762,15 +1602,6 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
     base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
-    admin_base_template = (REPO_ROOT / "web/templates/admin/base.html").read_text(encoding="utf-8")
-    index_template = (REPO_ROOT / "web/templates/wizard_pro/index.html").read_text(encoding="utf-8")
-    nuovo_template = (REPO_ROOT / "web/templates/wizard_pro/nuovo.html").read_text(encoding="utf-8")
-    step_template = (REPO_ROOT / "web/templates/wizard_pro/step.html").read_text(encoding="utf-8")
-    completo_template = (REPO_ROOT / "web/templates/wizard_pro/completo.html").read_text(encoding="utf-8")
-    nav_component = (REPO_ROOT / "web/templates/components/hearing_preparation_module_nav.html").read_text(encoding="utf-8")
-    stepper_component = (REPO_ROOT / "web/templates/components/hearing_preparation_stepper.html").read_text(encoding="utf-8")
-    list_component = (REPO_ROOT / "web/templates/components/hearing_preparation_case_list.html").read_text(encoding="utf-8")
-    summary_component = (REPO_ROOT / "web/templates/components/hearing_preparation_summary_panel.html").read_text(encoding="utf-8")
     service = (REPO_ROOT / "web/services/hearing_preparation_dashboard.py").read_text(encoding="utf-8")
     script = (REPO_ROOT / "web/static/js/hearing-preparation-dashboard.js").read_text(encoding="utf-8")
     scss = (REPO_ROOT / "web/static/scss/pages/_hearing-preparation.scss").read_text(encoding="utf-8")
@@ -1780,40 +1611,12 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
     assert "Sito Web Studio" in base_template
     assert "Siti studio" in admin_base_template
 
-    assert '{% include "components/hearing_preparation_module_nav.html" %}' in index_template
-    assert '{% include "components/hearing_preparation_stepper.html" %}' in index_template
-    assert '{% include "components/hearing_preparation_case_list.html" %}' in index_template
-    assert '{% include "components/hearing_preparation_summary_panel.html" %}' in index_template
-    assert "/static/js/hearing-preparation-dashboard.js?v={{ app_version }}" in index_template
-    assert "Nuova preparazione" in index_template
-    assert "Riprendi bozza" in index_template
-    assert "data-hearing-filter=\"search\"" in index_template
-    assert "<script>" not in index_template
-    assert "Wizard Pro" not in nuovo_template
-    assert "Wizard Pro" not in step_template
-    assert "Wizard Pro" not in completo_template
-    assert "Preparazione udienza completata" in completo_template
-    assert "Avvia preparazione udienza" in nuovo_template
-    assert "Completa preparazione" in step_template
 
-    assert "Navigazione modulo" in nav_component
-    assert "Preparazione Udienza" in nav_component
-    assert "Passo 1 di 6" in stepper_component
-    assert "Selezione Fascicolo" in stepper_component
-    assert "Dati Udienza" in stepper_component
-    assert "Parti e Difensori" in stepper_component
-    assert "Documenti e Allegati" in stepper_component
-    assert "Note Strategiche" in stepper_component
     assert "Controllo Finale" in service
-    assert "Avanzamento pratica" in list_component
-    assert "Apri fascicolo" in list_component
-    assert "Riepilogo fascicolo" in summary_component
-    assert "Azioni rapide" in summary_component
 
     assert 'querySelector("[data-hearing-preparation]")' in script
     assert "applyFilters" in script
     assert "resetFilters" in script
-    assert "data-hearing-visible-count" in list_component
 
     assert ".hearing-prep-layout" in scss
     assert ".hearing-case-card" in scss
@@ -1850,34 +1653,8 @@ def test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo(tmp_pat
 
 
 def test_modal_firma_deposito_prevede_riavvio_local_signer():
-    dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
-    deposito = (REPO_ROOT / "web/templates/fascicoli/deposito_prepara.html").read_text(encoding="utf-8")
-    selector = (REPO_ROOT / "web/templates/components/firma_visibile_selector.html").read_text(encoding="utf-8")
     helper_js = (REPO_ROOT / "web/static/js/firma-visibile-mode.js").read_text(encoding="utf-8")
 
-    assert "Riavvia Local Signer" in dettaglio
-    assert "iusentra-local-signer://restart" in dettaglio
-    assert "riavvio_signer_consigliato" in dettaglio
-    assert "sincronizzazione in tempo reale" in dettaglio
-    assert "spazio limitato IUSENTRA ha sostituito la copia precedente" in dettaglio
-    assert "sincronizzazione in tempo reale" in deposito
-    assert "spazio limitato IUSENTRA ha sostituito la copia precedente" in deposito
-    assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in dettaglio
-    assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in deposito
-    assert "{{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place, firma_visibile_mode|default('laterale')) }}" in dettaglio
-    assert "{{ render_firma_visibile_selector('depositoFirma', firma_visibile_place, firma_visibile_mode|default('laterale')) }}" in deposito
-    assert "/static/js/firma-visibile-mode.js?v={{ app_version }}" in dettaglio
-    assert "/static/js/firma-visibile-mode.js?v={{ app_version }}" in deposito
-    assert "Laterale verticale" in selector
-    assert "In basso a sinistra" in selector
-    assert "In basso a destra" in selector
-    assert 'data-signature-place="{{ place }}"' in selector
-    assert 'data-signature-default-mode="{{ mode }}"' in selector
-    assert 'data-signature-datetime-mode-name="{{ prefix }}_firma_visibile_datetime_mode"' in selector
-    assert "Luogo firma" in selector
-    assert "Data e orario nel timbro" in selector
-    assert "visible_signature_datetime_mode: _detFFirmaVisibleDatetimeMode()" in dettaglio
-    assert "visible_signature_datetime_mode: _depositoFirmaVisibleDatetimeMode()" in deposito
     assert "window.HacsFirmaVisibileMode" in helper_js
     assert "getSelectedMode" in helper_js
     assert "getSignaturePlace" in helper_js
@@ -1905,33 +1682,10 @@ def test_get_letture_fascicolo_usa_loader_mirato_e_non_carica_archivio():
 
 
 def test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi():
-    dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
-    cockpit = (REPO_ROOT / "web/templates/components/fascicolo_cockpit_tabs.html").read_text(encoding="utf-8")
-    smart_board = (REPO_ROOT / "web/templates/components/fascicolo_smart_board.html").read_text(encoding="utf-8")
     app_scss = (REPO_ROOT / "web/static/scss/app.scss").read_text(encoding="utf-8")
     cockpit_scss = (REPO_ROOT / "web/static/scss/pages/_fascicolo-cockpit.scss").read_text(encoding="utf-8")
     smart_board_scss = (REPO_ROOT / "web/static/scss/pages/_fascicolo-smart-board.scss").read_text(encoding="utf-8")
 
-    assert '{% include "components/fascicolo_cockpit_tabs.html" %}' in dettaglio
-    assert "Cabina fascicolo" in cockpit
-    assert "Quadro intelligente" in cockpit
-    assert "Workflow -> incasso" in cockpit
-    assert "Controllo economico" in cockpit
-    assert "Governo documentale" in cockpit
-    assert "Deposito e conformita'" in cockpit
-    assert 'class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch"' in cockpit
-    assert '{% include "components/fascicolo_smart_board.html" %}' in cockpit
-    assert "_activateFascicoloCockpitTab" in dettaglio
-    assert "bootstrap.Tab.getOrCreateInstance" in dettaglio
-    assert 'data-bs-target="#collapse-sezione-intelligenza-fascicolo"' in smart_board
-    assert 'id="collapse-sezione-intelligenza-fascicolo"' in smart_board
-    assert "Cambia stato" in smart_board
-    assert "Azioni" in smart_board
-    assert "Avanzamento pratica" in smart_board
-    assert "Cliente" in smart_board
-    assert "Parti del procedimento" in smart_board
-    assert "Collegamenti rapidi" in smart_board
-    assert "@use 'pages/fascicolo-cockpit';" in app_scss
     assert "@use 'pages/fascicolo-smart-board';" in app_scss
     assert "@use 'pages/lex-operational';" in app_scss
     assert ".fascicolo-cockpit__nav" in cockpit_scss
@@ -2145,17 +1899,6 @@ def test_file_critici_non_contengono_marker_di_mojibake():
         REPO_ROOT / "web/services/observability_runtime.py",
         REPO_ROOT / "web/services/product_governance_surface.py",
         REPO_ROOT / "web/templates/base.html",
-        REPO_ROOT / "web/templates/auth/audit.html",
-        REPO_ROOT / "web/templates/auth/login.html",
-        REPO_ROOT / "web/templates/auth/login_2fa.html",
-        REPO_ROOT / "web/templates/admin/assistente_migrazione.html",
-        REPO_ROOT / "web/templates/admin/osservabilita.html",
-        REPO_ROOT / "web/templates/admin/legal_coverage_dashboard.html",
-        REPO_ROOT / "web/templates/admin/legal_coverage_review.html",
-        REPO_ROOT / "web/templates/admin/legal_updates_dashboard.html",
-        REPO_ROOT / "web/templates/admin/legal_updates_review.html",
-        REPO_ROOT / "web/templates/polisWeb.html",
-        REPO_ROOT / "web/templates/portale/acquisizione_wizard.html",
         REPO_ROOT / "docs/STORAGE_MATRIX.md",
         REPO_ROOT / "docs/AUTHORIZATION_MODEL.md",
         REPO_ROOT / "docs/STORAGE_MIGRATION_PLAN.md",

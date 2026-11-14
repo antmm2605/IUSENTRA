@@ -178,7 +178,7 @@ def _cliente_label(cliente: Any) -> str:
     return _text(getattr(cliente, "nome_completo", "")) or _text(getattr(cliente, "ragione_sociale", "")) or _text(getattr(cliente, "id", ""))
 
 
-def uso_modello(id_template: str, *, id_cliente: str = "", id_fascicolo: str = "") -> tuple[dict[str, Any], int]:
+def uso_modello(id_template: str, *, id_cliente: str = "", id_fascicolo: str = "", termine_guida: str = "") -> tuple[dict[str, Any], int]:
     from web.helpers import get_clienti, get_fascicoli
 
     bp = _bp()
@@ -194,6 +194,18 @@ def uso_modello(id_template: str, *, id_cliente: str = "", id_fascicolo: str = "
     _soggetti, parti = bp._build_parti_template_context(id_fascicolo)
     valori = bp._prefill_template_fields(template, cliente=cliente, fascicolo=fascicolo, parti=parti)
     valori.pop("_prefill_resolution", None)
+    bozza = None
+    if termine_guida and fascicolo and (not id_cliente or id_cliente == fascicolo.id_cliente):
+        campi = _campi_bozza_note(fascicolo.id, id_template, termine_guida)
+        if campi:
+            numero = _text(getattr(fascicolo, "numero_rg", ""))
+            anno = _text(getattr(fascicolo, "anno_rg", ""))
+            if numero and anno and anno != "0" and "/" not in numero:
+                campi["procedimento_riferimento"] = f"{numero}/{anno}"
+            valori.update(campi)
+            bozza, _ = genera_testo(id_template, {
+                "clientId": getattr(cliente, "id", ""), "matterId": fascicolo.id, "fields": valori,
+            })
     id_cliente_scelto = _text(getattr(cliente, "id", "")) if cliente else ""
     fascicoli = [
         {"id": f.id, "label": " · ".join(x for x in (_text(getattr(f, "titolo", "")), _text(getattr(f, "numero_rg", ""))) if x) or f.id}
@@ -210,7 +222,31 @@ def uso_modello(id_template: str, *, id_cliente: str = "", id_fascicolo: str = "
         "matters": fascicoli,
         "selectedClientId": id_cliente_scelto,
         "selectedMatterId": _text(getattr(fascicolo, "id", "")) if fascicolo else "",
+        "bozza": bozza,
     }, 200
+
+
+def _campi_bozza_note(fascicolo_id: str, modello: str, scadenza: str) -> dict[str, str]:
+    if modello != "builtin-tmp-civ-012" or not scadenza:
+        return {}
+    from web.services.guida_fase_runtime import fase_per_la_guida
+
+    fase = fase_per_la_guida(fascicolo_id)
+    passi = [p for p in fase.get("passi_operativi", ()) if p.get("modello_atto") == modello and p.get("entro") == scadenza]
+    if len(passi) != 1:
+        return {}
+    passo = passi[0]
+    titolo = (passo.get("documento") or {}).get("documento")
+    if not titolo:
+        return {}
+    return {
+        "contenuto_istanza": (
+            f"Note per la trattazione scritta ai sensi dell’art. 127-ter c.p.c.\n"
+            f"Provvedimento di riferimento: {titolo}.\n"
+            f"Termine per il deposito: {scadenza}.\n\n"
+            "[Inserire le sole istanze e conclusioni da sottoporre al giudice.]"
+        ),
+    }
 
 
 _CAMPI_STORICI = {

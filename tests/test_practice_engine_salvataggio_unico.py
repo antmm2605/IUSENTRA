@@ -85,3 +85,24 @@ def test_errore_dentro_il_blocco_non_scrive_e_letture_invariate_non_scrivono(tmp
     repository.ensure_slots("F1", _profilo())
     repository.ensure_checklist("F1", _profilo())
     assert conteggio == {"tutto": 0, "fascicolo": 0}
+
+
+def test_regia_ripetuta_non_riscrive_sql_e_mirror_se_cambia_solo_ora_di_calcolo(tmp_path, monkeypatch):
+    repository = _repo(tmp_path)
+    repository.apply_profile("F1", _profilo(), actor="avv")
+    result = dict(key="cliente_presente", status="OK", severity="INFO", message="ok")
+    repository.save_validation_results("F1", [ValidationResult(**result, created_at="2026-11-10T10:00:00Z")])
+    mtime = repository.db_path.stat().st_mtime_ns
+    conteggio = _conta_scritture(repository, monkeypatch)
+    with repository.salvataggio_unico("F1", confronta_contenuto=True):
+        repository.save_validation_results("F1", [ValidationResult(**result, created_at="2026-11-10T10:05:00Z")])
+    assert conteggio == {"tutto": 0, "fascicolo": 0}
+    assert repository.db_path.stat().st_mtime_ns == mtime
+    assert _repo(tmp_path).list_validation_results("F1")[0].created_at == "2026-11-10T10:00:00Z"
+
+    with repository.salvataggio_unico("F1", confronta_contenuto=True):
+        repository.save_validation_results("F1", [ValidationResult(
+            **{**result, "status": "BLOCCANTE", "evidence": {"fonte": "nuova"}},
+        )])
+    assert conteggio == {"tutto": 0, "fascicolo": 1}
+    assert _repo(tmp_path).list_validation_results("F1")[0].evidence == {"fonte": "nuova"}

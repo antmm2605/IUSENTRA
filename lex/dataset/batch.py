@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from tempfile import NamedTemporaryFile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -139,6 +140,7 @@ def build_studio_dataset_batch(
     options: StudioDatasetBatchOptions,
     *,
     output_dir: str | Path | None = None,
+    review_sql: bool = False,
 ) -> StudioDatasetBatchResult:
     document_rows = tuple(documents)
     pipeline = build_studio_dataset_pipeline(
@@ -177,11 +179,14 @@ def build_studio_dataset_batch(
     else:
         output_files.extend(
             [
-                str(_write_jsonl(target / "chunks.jsonl", [chunk.to_dict(include_text=True) for chunk in pipeline.chunks])),
-                str(_write_jsonl(target / "qa_tasks.jsonl", [task.to_dict() for task in pipeline.qa_tasks])),
-                str(_write_json(target / "qa_review_queue.json", [pair.to_dict() for pair in pipeline.qa_pairs])),
+                str(_write_jsonl(target / "chunks.jsonl", (chunk.to_dict(include_text=True) for chunk in pipeline.chunks))),
+                str(_write_jsonl(target / "qa_tasks.jsonl", (task.to_dict() for task in pipeline.qa_tasks))),
             ]
         )
+        if not review_sql:
+            output_files.append(str(_write_json(
+                target / "qa_review_queue.json", [pair.to_dict() for pair in pipeline.qa_pairs],
+            )))
         for dataset_format in options.dataset_formats:
             payload = export_qa_pairs(
                 pipeline.qa_pairs,
@@ -193,6 +198,16 @@ def build_studio_dataset_batch(
             )
             suffix = options.file_type
             output_files.append(str(_write_text(target / f"{dataset_format}.{suffix}", payload)))
+
+    if review_sql:
+        from .review_sql import NOME_ARCHIVIO, pubblica
+
+        queue_path = target / NOME_ARCHIVIO
+        if not blocked:
+            pubblica(queue_path, (pair.to_dict() for pair in pipeline.qa_pairs))
+            output_files.append(str(queue_path))
+        elif queue_path.exists():
+            pubblica(queue_path, ())
 
     return StudioDatasetBatchResult(
         pipeline=pipeline,
@@ -255,8 +270,17 @@ def _write_json(path: Path, payload: Any) -> Path:
 
 
 def _write_jsonl(path: Path, rows: Iterable[dict[str, Any]]) -> Path:
-    payload = "\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows)
-    return _write_text(path, payload)
+    temporary = None
+    try:
+        with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            for row in rows:
+                stream.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    return path
 
 
 def _write_text(path: Path, payload: str) -> Path:

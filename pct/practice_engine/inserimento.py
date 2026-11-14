@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from typing import Any
 
-from .models import SlotStatus, new_id, utc_now
+from .models import AuditEvent, SlotStatus, new_id, utc_now
 
 
 def _json_dump(value: Any) -> str:
@@ -36,4 +37,32 @@ def inserisci_righe(conn: Any, data: dict[str, Any]) -> None:
     for row in data["evidence_packs"]:
         conn.execute("INSERT INTO evidence_packs (id,fascicolo_id,deposit_session_id,path,hash_sha256,created_at,available) VALUES (?,?,?,?,?,?,?)", (row.get("id") or new_id("evidence"), row.get("fascicolo_id", ""), row.get("deposit_session_id", ""), row.get("path", ""), row.get("hash_sha256", ""), row.get("created_at", utc_now()), bool(row.get("available", True))))
     for row in data["audit_events"]:
-        conn.execute("INSERT INTO practice_audit_events (id,fascicolo_id,event_type,actor,message,reason,payload_json,created_at) VALUES (?,?,?,?,?,?,?,?)", (row.get("id") or new_id("audit"), row.get("fascicolo_id", ""), row.get("event_type", ""), row.get("actor", ""), row.get("message", ""), row.get("reason", ""), _json_dump(row.get("payload", {})), row.get("created_at", utc_now())))
+        inserisci_audit(conn, row)
+
+
+def inserisci_audit(conn: Any, row: dict[str, Any]) -> None:
+    conn.execute(
+        "INSERT INTO practice_audit_events (id,fascicolo_id,event_type,actor,message,reason,payload_json,created_at) "
+        "VALUES (?,?,?,?,?,?,?,?)",
+        (
+            row.get("id") or new_id("audit"), row.get("fascicolo_id", ""), row.get("event_type", ""),
+            row.get("actor", ""), row.get("message", ""), row.get("reason", ""),
+            _json_dump(row.get("payload", {})), row.get("created_at", utc_now()),
+        ),
+    )
+
+
+def registra_consultazione_documento(
+    studio_db: Any, fascicolo_id: str, event_type: str, *,
+    actor: str, message: str, payload: dict[str, Any],
+) -> None:
+    """Registra la consultazione senza caricare lo stato della regia."""
+    event = AuditEvent(new_id("audit"), fascicolo_id, event_type, actor=actor, message=message, payload=payload)
+    conn = studio_db.conn
+    transazione = getattr(studio_db, "raw_conn", None) or conn
+    try:
+        inserisci_audit(conn, asdict(event))
+        transazione.commit()
+    except Exception:
+        transazione.rollback()
+        raise

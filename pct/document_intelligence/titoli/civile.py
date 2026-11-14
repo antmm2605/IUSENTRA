@@ -133,7 +133,11 @@ REGOLE = (
         "note_127ter",
         r"note\s+(?:scritte\s+)?(?:ex\s+|ai\s+sensi\s+dell.?\s*)?art\.?\s*127[\s.-]*ter(?:\s+.*)?|note\s+scritte(?:\s+in\s+sostituzione\s+dell.?\s*udienza)?(?:\s+.*)?"
         # l'intestazione breve dei modelli di studio: «Trattazione scritta R.G. …»
-        r"|trattazione\s+scritta(?:\s+.*)?",
+        r"|trattazione\s+scritta(?:\s+.*)?"
+        # l'intestazione dei modelli Vicenza/Palmi: «Udienza del 30.06.2026 Trattazione scritta»
+        r"|udienza\s+del\s+\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\s+trattazione\s+scritta(?:\s+.*)?"
+        # «RGN 1612/2025 Note scritte in sostituzione dell'udienza»: il ruolo in testa alla riga del titolo
+        r"|r\.?\s*g\.?\s*n?\.?\s*(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\s+note\s+scritte(?:\s+.*)?",
         r"\b127[\s.-]*ter\b|\budienza\b|\btrattazione\b",
         "Note scritte ex art. 127-ter c.p.c.",
         role="atto_difensivo", section="atti", tipo=TipoDocumento.MEMORIA,

@@ -89,9 +89,10 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 for (const route of ['/app/portale-clienti', '/portale-cliente']) {
   reactExact.add(normaliseRoute(route))
 }
-const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
+// Le viste Jinja sono state tolte (10/11/2026): restano esclusi solo i sotto-percorsi tecnici dei portali.
+const legacyOperationalPrefixes = extractTuple(gate, '_PORTALI_SOTTOPERCORSI_FLASK')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
-const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
+const shellLegacyFirstPrefixes = []
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/app/portale-clienti', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/:id/cartella', '/clienti/:id/collaboratori', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/editor-professionale', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fascicoli/:id/deposito/prepara', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/giurisprudenza/nuova', '/global-search', '/importa-pratiche', '/importa-pratiche-studio-telematico', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/impostazioni/sdi', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/legal-skills', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/oggi', '/portale-cliente', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/procedure-completion', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/articoli/:id/modifica', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workflow-agents', '/workspace-intelligente'])
@@ -231,10 +232,10 @@ for (const entry of manifest.routes ?? []) {
       violations.push(`${entry.route}: unlockFromGate=true ma la route non e' in _REACT_PREFIXES/_REACT_EXACT`)
     }
     if (blocked) {
-      violations.push(`${entry.route}: unlockFromGate=true ma resta in _LEGACY_OPERATIONAL_PREFIXES o esclusioni`)
+      violations.push(`${entry.route}: unlockFromGate=true ma resta in _PORTALI_SOTTOPERCORSI_FLASK o esclusioni`)
     }
     if (blockedByShell) {
-      violations.push(`${entry.route}: unlockFromGate=true ma resta in _LEGACY_FIRST_PREFIXES`)
+      violations.push(`${entry.route}: unlockFromGate=true ma la shell la rinvia altrove`)
     }
     for (const field of ['targetComponent', 'targetData', 'targetBridge', 'legacyContract']) {
       const value = entry[field]
@@ -257,8 +258,10 @@ for (const [route, status] of expectedStatuses) {
 
 for (const route of legacyRoutes) {
   const entry = (manifest.routes ?? []).find((item) => item.route === route)
-  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false`)
+  // Viste Jinja tolte il 10/11/2026: la route è servita da React (react_operational_partial),
+  // ma resta governata (unlockFromGate=false) finché il contratto «full» non è verificato.
+  if (!entry || entry.status !== 'react_operational_partial' || entry.unlockFromGate !== false) {
+    violations.push(`${route}: deve essere react_operational_partial con unlockFromGate=false`)
   }
 }
 
@@ -342,9 +345,6 @@ for (const snippet of [
 ]) {
   if (!gate.includes(snippet)) {
     violations.push(`react_route_gate.py: manca protezione ${snippet}`)
-  }
-  if (!reactShell.includes(snippet)) {
-    violations.push(`react_shell.py: manca protezione ${snippet}`)
   }
 }
 

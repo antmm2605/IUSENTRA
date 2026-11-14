@@ -4,8 +4,9 @@ import { ExternalLink, LayoutDashboard, LogOut, Menu, Search, X } from 'lucide-r
 import { csrfHeader } from '../api/csrf'
 import { eseguiAzionePiattaforma, getPaginaPiattaforma, type AzionePf, type EsitoAzione, type PaginaPiattaforma, type Sezione, type ValoriAzione } from '../piattaformaData'
 import { ModuloAzione, PulsanteAzione, type EseguiAzione } from './PiattaformaAzioni'
+import { activatePlatformPushNotifications, browserSupportsPush, deactivatePlatformPushNotifications } from '../lib/pushNotifications'
 import { Badge } from '../ui/Badge'
-import { ButtonLink } from '../ui/Button'
+import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { LoadingState } from '../ui/LoadingState'
 import './PiattaformaApp.css'
@@ -246,6 +247,7 @@ export default function PiattaformaApp() {
                 ))}
               </div>
             </header>
+            {data.page === 'supporto-remoto' ? <NotificheDispositivoSupporto /> : null}
             {data.filter && data.filter.options.length ? (
               <div className="iu-pf-filter">
                 <label>
@@ -287,5 +289,30 @@ export default function PiattaformaApp() {
         ) : null}
       </main>
     </div>
+  )
+}
+
+/** Notifiche delle richieste di assistenza su questo dispositivo (Web Push del browser). */
+function NotificheDispositivoSupporto() {
+  const [messaggio, setMessaggio] = useState('')
+  const [occupato, setOccupato] = useState(false)
+  if (!browserSupportsPush()) return null
+  const esegui = async (azione: () => Promise<{ ok: boolean; message: string }>) => {
+    setOccupato(true)
+    try {
+      const esito = await azione()
+      setMessaggio(esito.message || (esito.ok ? 'Operazione completata.' : 'Operazione non completata.'))
+    } catch (errore) {
+      setMessaggio(errore instanceof Error ? errore.message : 'Operazione non completata.')
+    } finally {
+      setOccupato(false)
+    }
+  }
+  return (
+    <section className="iu-pf-links" aria-label="Notifiche su questo dispositivo">
+      <Button type="button" disabled={occupato} onClick={() => void esegui(activatePlatformPushNotifications)}>Attiva le notifiche su questo dispositivo</Button>
+      <Button type="button" tone="neutral" disabled={occupato} onClick={() => void esegui(deactivatePlatformPushNotifications)}>Disattiva su questo dispositivo</Button>
+      {messaggio ? <span role="status">{messaggio}</span> : null}
+    </section>
   )
 }

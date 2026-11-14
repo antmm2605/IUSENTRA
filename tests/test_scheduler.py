@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from flask import Flask
 
 from pct.scheduler import start_scheduler
@@ -74,7 +76,52 @@ def test_local_ai_maintenance_disabilitata_di_default_su_server(monkeypatch):
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
 
-def test_mailbox_sync_runtime_job_usa_limite_automatico(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    ("embedding", "status", "ok", "saved"),
+    [
+        ({"status": "ready", "embedded": 7, "pending_remaining": 18}, "parziale", True, 7),
+        ({"status": "error", "embedded": 0, "embedded_total": 7, "pending_remaining": 18}, "errore", False, 7),
+        ({"status": "ready", "embedded": 7, "pending_remaining": 0}, "completato", True, 7),
+    ],
+)
+def test_local_ai_maintenance_distingue_salvati_residui_ed_errori(
+    monkeypatch, tmp_path, embedding, status, ok, saved
+):
+    from pct.local_ai import LocalAIService
+
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+    monkeypatch.setattr(
+        LocalAIService, "scheduled_maintenance",
+        lambda *_: {"status": "ready", "indexed": 0, "embeddings": embedding},
+    )
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test", BACKUP_ORA="02:00", WA_REMINDER_ORA="18:00",
+        PCT_SCHEDULER_WORKER=True, IUSENTRA_LOCAL_AI_MAINTENANCE_ENABLED=True,
+        AGENDA_DB=str(tmp_path / "agenda.json"),
+        FASCICOLI_DB=str(tmp_path / "fascicoli.json"),
+        FASCICOLI_DOCS=str(tmp_path / "documenti"),
+        FASCICOLI_ARCH=str(tmp_path / "archivio"),
+        SCADENZIARIO_DB=str(tmp_path / "scadenziario.json"),
+        LOCAL_AI_DB=str(tmp_path / "local_ai.db"),
+        LOCAL_AI_MODELS_DIR=str(tmp_path / "models"),
+        SCHEDULER_REGISTRY_DB=str(tmp_path / "scheduler.sqlite"),
+    )
+    scheduler = start_scheduler(app)
+    try:
+        result = scheduler.get_job("local_ai_maintenance").func()
+        assert result["status"] == status
+        assert result["ok"] is ok
+        assert result["totals"]["embedded"] == saved
+        assert result["totals"]["in_attesa"] == embedding["pending_remaining"]
+        assert f"in attesa: {embedding['pending_remaining']}" in result["message"]
+    finally:
+        scheduler.shutdown(wait=False)
+        monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+
+@pytest.mark.parametrize("avviso", [False, True])
+def test_mailbox_sync_runtime_job_usa_limite_automatico(monkeypatch, tmp_path, avviso):
     monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
     calls: list[dict[str, object]] = []
 
@@ -100,7 +147,7 @@ def test_mailbox_sync_runtime_job_usa_limite_automatico(monkeypatch, tmp_path):
         return {
             "ok": True,
             "pec": {"ok": True, "skipped": False, "reason": "", "result": {"nuove": 1}},
-            "ordinary": {"ok": True, "skipped": False, "reason": "", "result": {"nuove": 2}},
+            "ordinary": {"ok": True, "skipped": False, "reason": "", "result": {"nuove": 2, "warning": avviso}},
         }
 
     monkeypatch.setattr(mailbox_runtime, "sync_mailboxes_for_paths", fake_sync_mailboxes_for_paths)
@@ -125,6 +172,8 @@ def test_mailbox_sync_runtime_job_usa_limite_automatico(monkeypatch, tmp_path):
         result = scheduler.get_job("mailbox_sync_runtime").func()
 
         assert result["ok"] is True
+        assert result["status"] == ("parziale" if avviso else "ok")
+        assert ("posta ordinaria" in result["message"]) is avviso
         assert result["automatic_limit"] == 100
         assert result["incremental_only"] is True
         assert calls
@@ -252,9 +301,15 @@ def test_scheduler_polling_pec_cappa_finestre_automatiche(monkeypatch, tmp_path)
     scheduler = start_scheduler(app)
     try:
         scheduler.get_job("polling_esiti_deposito").func()
-        scheduler.get_job("poll_pec_cancelleria").func()
-
+        esito = scheduler.get_job("poll_pec_cancelleria").func()
+        assert esito["ok"] is True and esito["totals"]["errori"] == 0
         assert calls == {"depositi": 7, "cancelleria": 7}
+
+        app.config["MULTI_TENANT"] = True
+        calls.clear()
+        esito = scheduler.get_job("poll_pec_cancelleria").func()
+        assert esito["skipped"] and esito["reason"] == "presidio_pec"
+        assert calls == {}
     finally:
         scheduler.shutdown(wait=False)
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
@@ -304,11 +359,14 @@ def test_lex_sentenza_economia_job_lancia_backfill_automatico(monkeypatch, tmp_p
 
     import scripts.backfill_sentenza_lex_economics as backfill_module
 
+    cursore = {"tenants": [{"scritto": True}], "sospesi": 0}
+
     def fake_run_backfill(**kwargs):
         calls.append(kwargs)
         return {
             "ok": True,
             "source_of_truth": "sqlite/postgresql runtime repositories",
+            "cursore_persistente": cursore,
             "totals": {
                 "documents_seen": 4,
                 "sentenze_found": 1,
@@ -349,6 +407,18 @@ def test_lex_sentenza_economia_job_lancia_backfill_automatico(monkeypatch, tmp_p
         assert call["data_root"] == tmp_path
         assert call["registry"] == registry
         assert call["modified_after_ns"] == 0
+
+        cursore["tenants"][0]["scritto"] = False
+        risultato = job.func()
+        assert risultato["ok"] is False
+        assert risultato["totals"]["cursori_non_salvati"] == 1
+        assert "non salvata" in risultato["message"]
+
+        cursore["tenants"][0]["scritto"] = True
+        cursore["sospesi"] = 2
+        risultato = job.func()
+        assert risultato["status"] == "parziale"
+        assert risultato["totals"]["documenti_sospesi"] == 2
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)
@@ -419,12 +489,15 @@ def test_lex_sentenza_economia_job_riusa_cursore_ultimo_run(monkeypatch, tmp_pat
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
 
-def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_path):
+@pytest.mark.parametrize("esito", ["ok", "errore_studio", "interrotto", "archivio_assente"])
+def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_path, esito):
     monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
 
     import web.services.pec_pipeline_runtime as pec_runtime
 
     def fake_acquire(paths, *, tenant_label: str, batch_size: int):
+        if esito == "archivio_assente":
+            return {"scan_mode": "not_started", "skipped": True, "reason": "archivio email assente"}
         return {
             "scan_mode": "incremental",
             "archive_seen": 12,
@@ -443,7 +516,10 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
 
     def fake_workers(paths, *, tenant_label: str, limit: int, document_presidio_limit: int):
         worker_calls.append({"limit": limit, "document_presidio_limit": document_presidio_limit})
+        if esito == "errore_studio":
+            raise RuntimeError("Archivio studio non disponibile")
         return {
+            "stale_jobs": {"recovered": int(esito == "interrotto")},
             "processed": 2,
             "failed": 0,
             "jobs": [],
@@ -472,6 +548,18 @@ def test_pec_audit_pipeline_job_restituisce_report_operativo(monkeypatch, tmp_pa
     try:
         result = scheduler.get_job("pec_audit_pipeline_workers").func()
 
+        if esito == "archivio_assente":
+            assert result["status"] == "parziale"
+            assert "archivio email assente" in result["message"]
+            assert result["totals"]["processed_jobs"] == 2
+            return
+        if esito != "ok":
+            assert result["ok"] is False
+            assert result["totals"]["errors"] == 1
+            assert result["totals"]["studio_errors"] == int(esito == "errore_studio")
+            assert result["totals"]["interrupted_jobs"] == int(esito == "interrotto")
+            assert result["message"].startswith("Pipeline PEC da verificare")
+            return
         assert result["ok"] is True
         assert result["job"] == "pec_audit_pipeline_workers"
         assert result["scan_mode"] == "incremental"

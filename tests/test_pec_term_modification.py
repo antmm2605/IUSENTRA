@@ -34,7 +34,7 @@ def _it(value: date) -> str:
     return value.strftime("%d/%m/%Y")
 
 
-def _modifica_termine_mime(event_day: date, new_day: date, *, rg: str = "523/2026") -> bytes:
+def _modifica_termine_mime(event_day: date, new_day: date, *, rg: str = "523/2026", ora: str = "00:00") -> bytes:
     msg = EmailMessage()
     msg["From"] = "Tribunale di Vicenza <tribunale.vicenza@civile.ptel.giustiziacert.it>"
     msg["To"] = "studio@pec.it"
@@ -50,7 +50,7 @@ def _modifica_termine_mime(event_day: date, new_day: date, *, rg: str = "523/202
         f"Data Evento: {_it(event_day)}\n"
         "Tipo Evento: EVENTI FASE ISTRUTTORIA\n"
         "Oggetto: MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA\n"
-        f"Descrizione: MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il {_it(new_day)} 00:00, ADEMPIMENTI:\n"
+        f"Descrizione: MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il {_it(new_day)} {ora}, ADEMPIMENTI:\n"
     )
     xml = f"""<Comunicazione><NumeroRuolo>{rg}</NumeroRuolo>
     <Oggetto>MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA</Oggetto>
@@ -60,7 +60,7 @@ def _modifica_termine_mime(event_day: date, new_day: date, *, rg: str = "523/202
     Data Evento: {_it(event_day)}
     Tipo Evento: EVENTI FASE ISTRUTTORIA
     Oggetto: MODIFICA TERMINE PER NOTE IN SOSTITUZIONE UDIENZA
-    Descrizione: MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il {_it(new_day)} 00:00, ADEMPIMENTI:]]></Contenuto>
+    Descrizione: MODIFICATO TERMINE PER NOTE IN SOSTITUZIONE UDIENZA il {_it(new_day)} {ora}, ADEMPIMENTI:]]></Contenuto>
     </Comunicazione>""".encode("utf-8")
     msg.add_attachment(xml, maintype="application", subtype="xml", filename="Comunicazione.xml")
     return msg.as_bytes(policy=policy.SMTP)
@@ -91,9 +91,9 @@ def _termine_presidiato(tmp_path: Path, fascicolo_id: str, due: date, *, source:
     return deadline, appointment
 
 
-def _run_modifica(repo, event_day: date, new_day: date) -> tuple[dict, str]:
+def _run_modifica(repo, event_day: date, new_day: date, *, ora: str = "00:00") -> tuple[dict, str]:
     ingest = repo.ingest_mime(
-        _modifica_termine_mime(event_day, new_day),
+        _modifica_termine_mime(event_day, new_day, ora=ora),
         account_email="studio@pec.it",
         folder="INBOX",
         imap_uid=f"INBOX:UID:{new_day.toordinal()}",
@@ -245,6 +245,20 @@ def test_senza_termine_precedente_crea_il_nuovo_termine_dichiarando_la_modifica(
     appointment = Agenda(str(tmp_path / "agenda.json")).get(created.id_appuntamento)
     assert appointment.data_ora == f"{new_day.isoformat()}T09:00:00"
     assert "Comunicazione di cancelleria: Si da' atto" in appointment.note
+
+
+def test_modifica_con_ora_conserva_orario_anche_alla_rilettura(tmp_path):
+    repo, _ = _repo_con_fascicolo(tmp_path)
+    today = date.today()
+    day = today + timedelta(days=25)
+    link, message_id = _run_modifica(repo, today, day, ora="09:30")
+    deadline_id = link["auto_deadline"]["deadline_id"]
+    for _ in range(2):
+        deadline = GestioneScadenziario(str(tmp_path / "scadenze.json")).get(deadline_id)
+        appointment = Agenda(str(tmp_path / "agenda.json")).get(deadline.id_appuntamento)
+        assert deadline.operational_due_at == f"{day.isoformat()}T09:30"
+        assert appointment.data_ora == f"{day.isoformat()}T09:30:00"
+        assert repo.schedule_deadline(message_id, actor="pytest")["ok"]
 
 
 def test_termine_di_altra_attivita_o_gia_completato_non_viene_spostato():

@@ -143,7 +143,13 @@ def run_lex_autonomous_learning_nightly(
         "respinte": result.sources_rejected,
         "nuove_citazioni": result.new_citations,
         "nuovi_termini": result.new_terms,
-        "proposte": result.proposals_count,
+        "proposte": result.new_proposals_count,
+        "proposte_in_revisione": result.proposals_count,
+        "message": (
+            f"Nuove citazioni: {result.new_citations}; nuovi termini: {result.new_terms}; "
+            f"nuove proposte: {result.new_proposals_count}; "
+            f"proposte in revisione: {result.proposals_count}."
+        ),
         "memoria": result.memory_dir,
     }
 

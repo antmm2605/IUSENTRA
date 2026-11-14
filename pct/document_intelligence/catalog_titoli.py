@@ -107,8 +107,9 @@ _CONFERMA_DEPOSITO = re.compile(r"\bdeposito\b|\bgiustiziacert\b|\bptel\b|\bcanc
 def _righe_titolo(testo: str) -> list[str]:
     righe: list[str] = []
     for grezza in str(testo or "")[:CARATTERI_TITOLO].splitlines():
-        # L'OCR in forma di tabella («|ATTESTAZIONE DI CONFORMITÀ||», «|---|---|») non cambia il titolo.
-        riga = re.sub(r"\s+", " ", grezza.replace("|", " ")).strip(" \t-–—•·:;")
+        # L'OCR in forma di tabella («|ATTESTAZIONE DI CONFORMITÀ||», «|---|---|») non cambia il titolo, e
+        # nemmeno il corsivo e il grassetto che l'estrazione segna con gli asterischi («*Trattazione scritta*»).
+        riga = re.sub(r"\s+", " ", grezza.replace("|", " ").replace("*", " ")).strip(" \t-–—•·:;")
         if riga:
             righe.append(riga)
         if len(righe) >= RIGHE_TITOLO:

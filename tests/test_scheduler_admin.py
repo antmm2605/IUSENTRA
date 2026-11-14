@@ -7,15 +7,38 @@ from web.app import create_app
 from tests.test_legal_updates_pipeline import _cfg_web, _seed_platform_superadmin, _write_studio_config
 
 
+
+PANNELLO = "/api/v1/ui/piattaforma/pianificazioni"
+
+
+def _azione(client, nome: str, params: dict | None = None, values: dict | None = None):
+    """Azione della pagina React «Pianificazioni» (la stessa dei moduli storici)."""
+    return client.post(f"{PANNELLO}/azioni/{nome}", json={"params": params or {}, "values": values or {}})
+
 def test_superadmin_puo_aprire_console_pianificazioni(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)
     app = create_app(cfg)
     username, password = _seed_platform_superadmin(app)
 
+    from pct.scheduler_notturno import finestra
+    from pct.scheduler_notturno.registro import RegistroNotte
+    from pct.scheduler_registry import scheduler_registry_repository
+
+    ora = finestra.adesso()
+    sera = finestra.sera_della_notte(ora).isoformat()
+    registro = RegistroNotte(scheduler_registry_repository(app.config).db_path)
+    registro.apri_notte(sera, 0, "", ora.isoformat())
+    registro.scrivi_passo(sera, 0, 1, "mailbox_sync_runtime", "completato",
+                          messaggio="Giro eseguito.", avvio=ora.isoformat(), fine=ora.isoformat(), avanza=True,
+                          risultato={"totals": {"warnings": 2}})
+    registro.scrivi_passo(sera, 1, 1, "pec_audit_pipeline_workers", "rinviato",
+                          messaggio="Risorsa occupata. La sincronizzazione resta da eseguire.",
+                          avvio=ora.isoformat(), fine=ora.isoformat(), avanza=True, conclusa=True)
+
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        response = client.get("/admin/pianificazioni?_legacy=1")
+        response = client.get(PANNELLO)
         alias = client.get("/admin/cronjob", follow_redirects=False)
 
     assert login.status_code == 302
@@ -27,8 +50,30 @@ def test_superadmin_puo_aprire_console_pianificazioni(tmp_path: Path):
     assert "Fonte legale: Gazzetta Ufficiale" in html
     assert "Agente clienti e soggetti" in html
     assert "Agente email PEC" in html
+    assert "Sequenza notturna" in html
+    assert "Conclusa con verifiche da fare" in html
+    assert "Risultati dei passi notturni" in html
+    assert "2 avvisi registrati" in html
+    assert "Risorsa occupata. La sincronizzazione resta da eseguire." in html
     assert alias.status_code == 302
     assert alias.headers["Location"].endswith("/admin/pianificazioni")
+
+
+def test_console_distingue_il_passo_in_coda_dal_motore_attivo():
+    from web.services.react_piattaforma_pagina_pianificazioni import adatta
+
+    notte = {
+        "stato": "In corso", "inizio": "21:30", "fine": "07:30",
+        "prossimo": "pec_audit_pipeline_workers", "motore_prossimo": "pec_audit_pipeline_workers",
+        "passo_avviato_alle": "2026-11-13T22:03:00+01:00",
+    }
+    semaforo = {
+        "testo": "Lettura in corso", "in_corso": "Lettura del fascicolo", "da_secondi": 60,
+        "motore_attivo": "letture del fascicolo", "motori_in_coda": ["pec_audit_pipeline_workers"],
+    }
+    payload = adatta({"sequenza_notturna": notte, "semaforo_motori": semaforo})
+    fatti = next(s["items"] for s in payload["sections"] if s["title"] == "Sequenza notturna")
+    assert {"label": "Stato del passo", "value": "In attesa del semaforo"} in fatti
 
 
 def test_api_pianificazioni_non_espone_traceback(tmp_path: Path, monkeypatch):
@@ -76,10 +121,7 @@ def test_superadmin_crea_e_modifica_cronjob_agente(tmp_path: Path):
 
     with app.test_client() as client:
         client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        create = client.post(
-            "/admin/pianificazioni/crea",
-            data={
-                "_csrf_token": "test",
+        create = _azione(client, "crea", values={
                 "template_key": "agent_clienti_soggetti",
                 "name": "Controllo clienti serale",
                 "trigger_kind": "cron",
@@ -87,10 +129,8 @@ def test_superadmin_crea_e_modifica_cronjob_agente(tmp_path: Path):
                 "minute": "45",
                 "interval_minutes": "60",
                 "enabled": "1",
-            },
-            follow_redirects=True,
-        )
-        page = create.get_data(as_text=True)
+            })
+        page = create.get_data(as_text=True) + client.get(PANNELLO).get_data(as_text=True)
 
     assert create.status_code == 200
     assert "Controllo clienti serale" in page
@@ -106,12 +146,8 @@ def test_superadmin_puo_richiedere_esecuzione_cronjob(tmp_path: Path):
 
     with app.test_client() as client:
         client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        response = client.post(
-            "/admin/pianificazioni/legal_updates_batch/esegui",
-            data={"_csrf_token": "test"},
-            follow_redirects=True,
-        )
-        html = response.get_data(as_text=True)
+        response = _azione(client, "esegui", params={"job_id": "legal_updates_batch"})
+        html = response.get_data(as_text=True) + client.get(PANNELLO).get_data(as_text=True)
 
     assert response.status_code == 200
     assert "Esecuzione richiesta" in html
@@ -151,12 +187,8 @@ def test_superadmin_annulla_fonti_legali_in_corso_senza_toccare_altri_job(tmp_pa
 
     with app.test_client() as client:
         client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
-        response = client.post(
-            "/admin/pianificazioni/fonti-legali/annulla",
-            data={"_csrf_token": "test"},
-            follow_redirects=True,
-        )
-        html = response.get_data(as_text=True)
+        response = _azione(client, "annulla-fonti")
+        html = response.get_data(as_text=True) + client.get(PANNELLO).get_data(as_text=True)
 
     with app.app_context():
         repo = scheduler_registry_repository(app.config)
@@ -169,7 +201,7 @@ def test_superadmin_annulla_fonti_legali_in_corso_senza_toccare_altri_job(tmp_pa
             }
 
     assert response.status_code == 200
-    assert "Controlli fonti legali annullati: 2 esecuzioni aperte chiuse." in html
+    assert "Controlli delle fonti legali annullati: 2 esecuzioni aperte chiuse." in html
     assert "Archivio legale verificato" in html
     assert "Annullata" in html
     assert statuses == {
@@ -177,3 +209,17 @@ def test_superadmin_annulla_fonti_legali_in_corso_senza_toccare_altri_job(tmp_pa
         "run-legal-batch": "cancelled",
         "run-ai": "running",
     }
+
+
+def test_console_distingue_accodamento_dall_avvio_confermato():
+    from datetime import UTC, datetime
+
+    from web.services.scheduler_admin_surface import _job_status, _surface_run
+
+    run = {"status": "running", "started_at": datetime.now(UTC).isoformat(),
+           "result": {"event": "submitted"}}
+    surfaced = _surface_run(run)
+    assert _job_status({"enabled": True}, surfaced) == {
+        "label": "Avvio non confermato", "class": "warning",
+    }
+    assert _job_status({"enabled": True}, _surface_run({**run, "result": {}}))["label"] == "In corso"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Flask, jsonify, render_template, send_file
+from flask import Flask, jsonify, send_file
 
 
 def register_pwa_routes(app: Flask) -> None:
@@ -37,7 +37,11 @@ def register_pwa_routes(app: Flask) -> None:
 
     @app.route("/offline")
     def offline():
-        return render_template("offline.html")
+        # HTML statico autonomo (web/static/errori/offline.html): il service worker lo conserva
+        # e lo mostra senza rete, quindi non può dipendere da Jinja o dal bundle React.
+        from web.services.errore_shell_runtime import risposta_statica
+
+        return risposta_statica("offline.html", 200)
 
     @app.route("/.well-known/assetlinks.json")
     def app_links_android():

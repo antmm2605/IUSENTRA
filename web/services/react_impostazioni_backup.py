@@ -6,7 +6,7 @@ from typing import Any
 
 from flask import g
 
-from web.services.react_backup_bridge import build_react_backup_payload
+from web.services.react_backup_bridge import _backup_creation_disabled, build_react_backup_payload
 
 
 def build_backup_settings_payload(get_backup: Any) -> dict[str, Any]:
@@ -21,7 +21,12 @@ def build_backup_settings_payload(get_backup: Any) -> dict[str, Any]:
             "status": {},
             "backups": [],
             "integrity": {"available": False, "state": "error", "label": "Backup non disponibile"},
-            "actions": {"canCreate": False, "canVerify": False, "canDownload": False},
+            "actions": {
+                "canCreate": False,
+                "canVerify": False,
+                "canDownload": False,
+                "backupDisabled": _backup_creation_disabled(),
+            },
             "warnings": [{"message": "Backup non disponibile in questo momento."}],
         }
     return {

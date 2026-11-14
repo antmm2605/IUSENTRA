@@ -21,7 +21,9 @@ from typing import Any
 
 from flask import Blueprint, current_app, jsonify, request, url_for
 
+from pct.payment_links_sql import PaymentLinkConflict
 from web.services.pagamenti_link_azioni import (
+    MESSAGGIO_LINK_DISCORDANTE,
     PaymentCheckoutReview,
     avvia_pagamento,
     gestore_pagamenti,
@@ -101,6 +103,9 @@ def _risposta_json(funzione):
             return _errore(404, "non_trovato", "Documento non disponibile per questo accesso.")
         except PaymentCheckoutReview as exc:
             return _errore(409, 'payment_review', str(exc))
+        except PaymentLinkConflict as exc:
+            current_app.logger.warning("Pagamenti: collegamento discordante dalla fonte SQL: %s", exc)
+            return _errore(409, "payment_review", MESSAGGIO_LINK_DISCORDANTE)
         except Exception:
             current_app.logger.exception("API pubblica %s non completata", request.endpoint)
             return _errore(500, "errore_interno", "Operazione non completata. Riprova o contatta lo studio.")

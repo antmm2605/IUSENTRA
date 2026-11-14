@@ -267,7 +267,7 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
         manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
         for studio in active:
             slug = _text(getattr(studio, "slug", "")).lower()
-            with app.test_request_context(f"/__scheduler/fascicoli-presidi/{slug}"):
+            with app.app_context(), app.test_request_context(f"/__scheduler/fascicoli-presidi/{slug}"):
                 _attach_tenant_context(manager, studio)
                 report = run_fascicoli_document_economic_presidio_for_current_context(
                     limit=limit_per_tenant,
@@ -292,7 +292,7 @@ def run_fascicoli_document_economic_presidio_for_all_tenants(
             "totals": totals,
         }
     else:
-        with app.test_request_context("/__scheduler/fascicoli-presidi/default"):
+        with app.app_context(), app.test_request_context("/__scheduler/fascicoli-presidi/default"):
             g.multi_tenant_enabled = False
             g.tenant_context_missing = False
             g.tenant_context_slug = ""

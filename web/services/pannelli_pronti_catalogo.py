@@ -14,7 +14,7 @@ from typing import Any, Callable
 
 from pct import __version__ as APP_VERSION
 
-VERSIONE_PANNELLI = f"{APP_VERSION}:quadro-processuale-v25"
+VERSIONE_PANNELLI = f"{APP_VERSION}:quadro-processuale-v26"
 
 # Parametri che non cambiano il payload: anti-cache dei browser e segnali della richiesta.
 PARAMETRI_IGNORATI_SEMPRE = frozenset({"_", "t", "ts", "nocache"})

@@ -681,6 +681,7 @@ def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: 
             numero_rg="274",
             anno_rg=2026,
             oggetto="Usucapione",
+            tribunale="Tribunale di Palmi",
             avvocato_referente="Antonella Mammola",
         )
         scadenza = get_scadenziario().nuova(
@@ -688,6 +689,7 @@ def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: 
             TipoTermine.UDIENZA,
             "2026-07-09",
             id_fascicolo=fascicolo.id,
+            judicial_office_name="Ufficio giudiziario civile",
         )
 
     response = client.get("/api/v1/ui/scadenziario?vista=tutte", headers={"X-API-Key": "react-test-key"})
@@ -698,6 +700,7 @@ def test_react_scadenziario_mostra_cliente_fascicolo_non_responsabile(tmp_path: 
     assert row["fascicoloLabel"] == "RG 274/2026 - Usucapione"
     assert row["clientLabel"] == "Azzaro Filippo"
     assert row["ownerLabel"] == "Antonella Mammola"
+    assert row["officeLabel"] == "Tribunale di Palmi"
 
 
 def _register_source_for_link_test(app, *, filename: str) -> str:
@@ -1330,6 +1333,13 @@ def test_react_scadenziario_vista_pec_mostra_solo_scadenze_operative(tmp_path: P
     assert payload["summary"]["pec_overdue"] == 0
     assert payload["summary"]["hearingsToRecord"] >= 1
 
+    response = client.get("/api/v1/ui/scadenziario?vista=esiti_udienza", headers={"X-API-Key": "react-test-key"})
+    assert response.status_code == 200
+    rows = response.get_json()["items"]
+    assert {row["id"] for row in rows} == {scaduta.id}
+    assert rows[0]["statusLabel"] == "Esito da registrare"
+    assert rows[0]["overdue"] is False
+
 
 def test_react_scadenziario_calcolatore_non_ripete_template_identici():
     base = {
@@ -1365,7 +1375,7 @@ def test_react_scadenziario_calcolatore_non_ripete_template_identici():
     assert len({template["displayName"] for template in visible}) == 2
 
 
-def test_route_ufficiale_scadenziario_serve_react_con_vista_classica_tecnica(tmp_path: Path):
+def test_route_ufficiale_scadenziario_serve_solo_react(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1378,5 +1388,80 @@ def test_route_ufficiale_scadenziario_serve_react_con_vista_classica_tecnica(tmp
     assert response.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in html
     assert 'id="root"' in html
+    # La vista Jinja è stata tolta: anche il vecchio parametro apre React.
     assert classic.status_code == 200
-    assert 'id="root"' not in classic.get_data(as_text=True)
+    assert 'id="root"' in classic.get_data(as_text=True)
+
+
+def test_fonte_modalita_note_scritte_usa_allegato_indicizzato():
+    scadenza = SimpleNamespace(
+        tipo=TipoTermine.UDIENZA,
+        titolo="Trattazione scritta",
+        descrizione="",
+        note="PEC_AUDIT:pec_udienza_scritta",
+        source_event_type="comunicazione_cancelleria",
+        hearing_mode_source="comunicazione di cancelleria (art. 127-ter c.p.c.)",
+        remote_hearing_source="",
+    )
+    fonte = _source_evidence(scadenza, pec_profile={"_indexed_source_name": "decreto.pdf.zip"})
+    assert fonte["sourceHref"] == "/api/v1/ui/email/source/pec_udienza_scritta?name=decreto.pdf.zip"
+    senza_allegato = _source_evidence(scadenza)
+    assert senza_allegato["sourceHref"] == "/email/?audit_id=pec_udienza_scritta"
+
+
+def test_ora_note_scritte_da_proposta_salvata():
+    from web.services.react_scadenziario_bridge import _remote_hearing_payload
+
+    proposta = SimpleNamespace(
+        hearing_mode="note_scritte",
+        note="PEC_TERMINE_PROPOSTO:pec_decreto:NOTE_127_TER",
+        operational_due_at="2026-11-19T14:00:00",
+    )
+    assert _remote_hearing_payload(proposta)["hearingTime"] == "14:00"
+    proposta.operational_due_at = "2026-11-19T23:59:00"
+    assert _remote_hearing_payload(proposta)["hearingTime"] == ""
+    proposta.operational_due_at = "2026-11-19T14:00:00"
+    proposta.note = ""
+    assert _remote_hearing_payload(proposta)["hearingTime"] == ""
+
+
+def test_agenda_e_scadenziario_mantengono_il_deposito_note_con_fonte_udienza():
+    from types import SimpleNamespace
+
+    from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
+    from web.services.react_agenda_bridge import _deadline_event
+    from web.services.react_scadenziario_bridge import _row
+
+    item = SimpleNamespace(
+        id="note", titolo=f"{TITOLO_NOTE_127_TER} - RG 3384/2025",
+        data_scadenza="2026-12-01", tipo="UDIENZA", stato="APERTO",
+    )
+    source = {"displayTitle": "Fissazione udienza", "legalEventType": "fissazione_udienza"}
+    event = _deadline_event(item, control_tower_source=source)
+    deadline = _row(item, gestione_fascicoli=None, gestione_utenti=None, control_tower_source=source)
+
+    assert event["originTitle"] == deadline["title"] == TITOLO_NOTE_127_TER
+    assert event["kind"] == "DEPOSITO"
+    assert event["start"][:10] == deadline["date"] == "2026-12-01"
+    assert deadline["typeLabel"] == "Trattazione scritta"
+    assert deadline["sourceEventTypeLabel"] == "Comunicazione di cancelleria"
+
+
+def test_note_scritte_pec_storica_non_presenta_mezzanotte_come_ora_assegnata():
+    from web.services.react_scadenziario_bridge import _remote_hearing_payload
+
+    scadenza = SimpleNamespace(
+        hearing_mode="note_scritte",
+        hearing_time="00:00",
+        operational_due_at="2027-05-20",
+        note="PEC_IDENTITA_TERMINE:2477/2026|tribunale di brescia|PEC_AUTO_PRESIDIO|2027-05-20",
+    )
+    payload = _remote_hearing_payload(scadenza)
+    assert payload["hearingTime"] == ""
+    assert payload["hearingTimeVerificationRequired"] is True
+
+    scadenza.operational_due_at = "2027-05-20T00:00:00"
+    assert _remote_hearing_payload(scadenza)["hearingTime"] == "00:00"
+    scadenza.operational_due_at = "2027-05-20"
+    scadenza.hearing_time = "09:30"
+    assert _remote_hearing_payload(scadenza)["hearingTime"] == "09:30"

@@ -48,7 +48,7 @@ def test_console_nella_applicazione_react(tmp_path: Path):
         html = client.get("/admin/supporto-remoto").get_data(as_text=True)
         assert 'id="piattaforma-react-root"' in html and 'data-pagina="supporto-remoto"' in html
         classica = client.get("/admin/supporto-remoto?_legacy=1").get_data(as_text=True)
-        assert "Assistenza remota cliente" in classica and "piattaforma-react-root" not in classica
+        assert "piattaforma-react-root" in classica
         menu = client.get(PAGINA).get_json()["menu"]
         assert {"key": "supporto-remoto", "label": "Assistenza remota", "href": "/admin/supporto-remoto"} in menu
 

@@ -278,6 +278,37 @@ def test_export_editor_non_aggiunge_carta_intestata_non_presente(tmp_path: Path,
     assert conversioni == ["docx", "pdf", "rtf"]
 
 
+def test_timeout_pdf_chiude_il_gruppo_del_convertitore_e_risponde_503(tmp_path: Path, monkeypatch):
+    import signal
+    import subprocess
+    from unittest.mock import MagicMock
+
+    from pct import editor_export
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_editabile(app)
+    processo = MagicMock(pid=123456)
+    processo.__enter__.return_value = processo
+    processo.communicate.side_effect = subprocess.TimeoutExpired("libreoffice", 45)
+    lancio = MagicMock(return_value=processo)
+    termina = MagicMock()
+    monkeypatch.setattr(editor_export.subprocess, "Popen", lancio)
+    monkeypatch.setattr(editor_export.os, "killpg", termina, raising=False)
+
+    with app.test_client() as client:
+        _login(client)
+        risposta = client.post(f"/api/editor/{fascicolo.id}/{documento.id}/pdf",
+                               json={"html": "<p>Prova</p>"})
+    assert risposta.status_code == 503
+    assert "Riprova tra poco" in risposta.get_json()["errore"]
+    assert lancio.call_args.kwargs["start_new_session"] == (editor_export.os.name == "posix")
+    if editor_export.os.name == "posix":
+        termina.assert_called_once_with(processo.pid, signal.SIGKILL)
+    else:
+        processo.kill.assert_called_once()
+
+
 def test_editor_pdf_endpoint_restituisce_il_pdf_originale(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)

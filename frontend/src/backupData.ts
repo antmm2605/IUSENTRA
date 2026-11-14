@@ -157,7 +157,7 @@ export const emptyBackupPage: BackupPageData = {
     canRestore: false,
     createEndpoint: '/api/v1/ui/backup/crea',
     verifyEndpoint: '/api/v1/ui/backup/verifica',
-    legacyHref: '/backup?_legacy=1',
+    legacyHref: '/backup',
   },
   warnings: [],
 }
@@ -266,7 +266,7 @@ function normaliseActions(raw: unknown): BackupPermissions {
     canRestore: bool(item.canRestore),
     createEndpoint: text(item.createEndpoint) || '/api/v1/ui/backup/crea',
     verifyEndpoint: text(item.verifyEndpoint) || '/api/v1/ui/backup/verifica',
-    legacyHref: text(item.legacyHref) || '/backup?_legacy=1',
+    legacyHref: text(item.legacyHref) || '/backup',
   }
 }
 

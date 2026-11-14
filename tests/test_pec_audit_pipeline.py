@@ -1847,10 +1847,15 @@ def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario
     assert "Istruzioni per acquisire il link udienza" in scadenze[0].remote_hearing_access_info
     assert "Istruzioni accesso udienza: Istruzioni per acquisire il link udienza" in scadenze[0].note
     agenda_items = Agenda(str(agenda_db)).tutti()
-    assert len(agenda_items) == 1
-    assert agenda_items[0].remote_hearing_pdf_required is True
-    assert "Istruzioni per acquisire il link udienza" in agenda_items[0].remote_hearing_access_info
-    assert agenda_items[0].remote_hearing_platform == ""
+    receipts = [item for item in agenda_items if item.external_uid == f"PEC_RICEZIONE:{ingest['id']}"]
+    hearings = [item for item in agenda_items if item.tipo.value == "UDIENZA"]
+    assert len(agenda_items) == 2
+    assert len(receipts) == len(hearings) == 1
+    assert receipts[0].data_ora == "2026-07-06T09:02:00"
+    assert hearings[0].data_ora.startswith("2026-11-23T15:00")
+    assert hearings[0].remote_hearing_pdf_required is True
+    assert "Istruzioni per acquisire il link udienza" in hearings[0].remote_hearing_access_info
+    assert hearings[0].remote_hearing_platform == ""
 
     generic_report = {
         "event_type": "fissazione_udienza",
@@ -1882,7 +1887,9 @@ def test_pec_remote_hearing_link_acquisition_instruction_arrives_in_scadenziario
 
     assert generic_agenda["ok"] is True
     agenda_items = Agenda(str(agenda_db)).tutti()
+    assert len(agenda_items) == 2
     generic_item = next(item for item in agenda_items if item.id == generic_agenda["agenda_id"])
+    assert generic_item.id == hearings[0].id
     assert generic_item.remote_hearing_pdf_required is True
     assert "Istruzioni per acquisire il link udienza" in generic_item.remote_hearing_access_info
     assert "Piattaforma: altra" not in generic_item.remote_hearing_access_info
@@ -2163,6 +2170,7 @@ def test_ricalcolo_senza_link_non_degrada_collegamento_agenda_verificato(tmp_pat
         target_date=hearing_day.isoformat(),
         proposal={**base_proposal, "remote_hearing": verified_remote},
         report={"remote_hearing": verified_remote},
+        linked_fascicolo_id="FASCICOLO-1",
         deadline_id="SCAD-1",
         actor="pytest",
     )
@@ -2181,6 +2189,7 @@ def test_ricalcolo_senza_link_non_degrada_collegamento_agenda_verificato(tmp_pat
         target_date=hearing_day.isoformat(),
         proposal={**base_proposal, "remote_hearing": missing_remote},
         report={"remote_hearing": missing_remote},
+        linked_fascicolo_id="FASCICOLO-DIVERSO",
         deadline_id="SCAD-1",
         actor="pytest",
     )
@@ -2188,6 +2197,7 @@ def test_ricalcolo_senza_link_non_degrada_collegamento_agenda_verificato(tmp_pat
     assert second["agenda_id"] == first["agenda_id"]
     item = Agenda(str(agenda_db)).get(first["agenda_id"])
     assert item is not None
+    assert item.id_fascicolo == "FASCICOLO-1"
     assert item.remote_hearing_url == link
     assert item.remote_hearing_verified is True
 
@@ -2234,19 +2244,25 @@ def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agend
 
     assert scheduled["ok"] is True
     scadenze = GestioneScadenziario(str(scadenziario_db)).tutte(solo_aperte=False)
-    assert len(scadenze) == 1
-    assert scadenze[0].remote_hearing_url == exact_link
-    assert scadenze[0].remote_hearing_pdf_required is False
-    assert "Link udienza audiovisiva: da acquisire" not in scadenze[0].note
-    assert exact_link in scadenze[0].note
+    assert sorted(row.deadline_profile_code for row in scadenze) == ["LAV_416_COSTITUZIONE", "PEC_AUTO_PRESIDIO"]
+    udienza = next(row for row in scadenze if row.deadline_profile_code == "PEC_AUTO_PRESIDIO")
+    costituzione = next(row for row in scadenze if row.deadline_profile_code == "LAV_416_COSTITUZIONE")
+    assert costituzione.stato.value == "BOZZA"
+    assert udienza.remote_hearing_url == exact_link
+    assert udienza.remote_hearing_pdf_required is False
+    assert "Link udienza audiovisiva: da acquisire" not in udienza.note
+    assert exact_link in udienza.note
     agenda = Agenda(str(agenda_db))
-    agenda_items = agenda.tutti()
+    receipt_items = [item for item in agenda.tutti() if item.external_uid.startswith("PEC_RICEZIONE:")]
+    assert len(receipt_items) == 1
+    assert receipt_items[0].data_ora[:10] == "2026-05-27"
+    agenda_items = [item for item in agenda.tutti() if item.tipo == TipoAppuntamento.UDIENZA]
     assert len(agenda_items) == 1
     assert exact_link in agenda_items[0].note
     assert agenda_items[0].luogo == "Udienza da remoto"
 
     agenda.aggiungi(
-        titolo=f"Presidio PEC - {scadenze[0].titolo}",
+        titolo=f"Presidio PEC - {udienza.titolo}",
         tipo=TipoAppuntamento.SCADENZA,
         data_ora="2027-01-13T09:00:00",
         durata_minuti=30,
@@ -2260,6 +2276,7 @@ def test_pec_remote_hearing_clickable_pdf_link_arrives_in_scadenziario_and_agend
 
     assert enriched["agenda_updated"] >= 1
     synced_items = [item for item in Agenda(str(agenda_db)).tutti() if ingest["id"] in item.note or item.external_source_url.endswith(ingest["id"])]
+    synced_items = [item for item in synced_items if not item.external_uid.startswith("PEC_RICEZIONE:")]
     assert len(synced_items) == 1
     assert all(exact_link in item.note for item in synced_items)
     assert all("da acquisire" not in item.note.lower() for item in synced_items)
@@ -3577,6 +3594,22 @@ def test_tribunale_locri_non_viene_classificato_come_giudice_di_pace():
     assert report["event_type"] == "comunicazione_cancelleria"
 
 
+@pytest.mark.parametrize("tipo, secondo", [("accettazione", "40"), ("avvenuta-consegna", "42")])
+def test_pct_deposit_uses_provider_receipt_date_with_offset(tipo, secondo):
+    msg = EmailMessage()
+    msg["Subject"] = "DEPOSITO TELEMATICO: Note RG: 2208/2025"
+    msg["Date"] = "Fri, 13 Nov 2026 19:59:00 +0100"
+    msg.set_content("Deposito telematico.")
+    daticert = (
+        f'<postacert tipo="{tipo}"><dati><data zona="+0100">'
+        f'<giorno>13/11/2026</giorno><ora>19:16:{secondo}</ora>'
+        '</data></dati></postacert>'
+    )
+    msg.add_attachment(daticert.encode(), maintype="application", subtype="xml", filename="daticert.xml")
+    parsed = parse_pec_message(msg.as_bytes(policy=policy.SMTP))
+    assert parsed["pct_deposit_receipt"]["occurred_at"] == f"2026-11-13T19:16:{secondo}+01:00"
+
+
 def test_pct_deposit_lifecycle_explains_expected_pec_sequence(tmp_path):
     repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="default")
     ingest_synthetic_dataset(repo)
@@ -3759,6 +3792,39 @@ def test_pct_deposit_receipts_upsert_one_fascicolo_card_and_no_duplicate_history
     assert deposito.note.count("PEC_DEPOSIT_EVENT:") == 2
     assert first["duplicate"] is False
     assert second["duplicate"] is False
+
+
+def test_pct_receipts_bridge_refid_to_idbusta_without_merging_conflicts(tmp_path):
+    from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+
+    path = tmp_path / "fascicoli.json"
+    manager = GestioneFascicoli(str(path))
+    fid = manager.nuovo("Note scritte", TipoFascicolo.CIVILE).id
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", fascicoli_db_path=path)
+    ref = "RefID_001_test"
+
+    def apply(stage, idbusta=""):
+        key = f"idbusta:{idbusta}" if idbusta else f"refid:{ref}"
+        report = {"event_type": "pct_deposito", "deposit_lifecycle": {
+            "current_stage": {"id": stage, "status": "ok"},
+            "correlation": {"key": key, "ref_id": ref, "idbusta": idbusta},
+        }}
+        return repo._upsert_pct_deposit_from_report(
+            f"{stage}-{idbusta}", parsed={}, report=report, attachments=[],
+            fascicolo_id=fid, actor="test",
+        )
+
+    first = apply("accettazione_pec")
+    final = apply("accettazione_deposito", "157189641")
+    late = apply("consegna_pec")
+    assert first["ok"] and final["ok"] and late["ok"]
+    assert first["deposito_id"] == final["deposito_id"] == late["deposito_id"]
+    conflict = apply("accettazione_deposito", "157189642")
+    assert not conflict["ok"]
+    deposits = GestioneFascicoli(str(path)).get(fid).depositi_pct
+    assert len(deposits) == 1
+    assert deposits[0].id_deposito_esterno == "157189641"
+    assert deposits[0].ricevuta_cancelleria
 
 
 def test_pct_receipt_reference_aggiorna_deposito_esistente_senza_duplicarlo(tmp_path):
@@ -7489,6 +7555,7 @@ def test_la_pec_senza_fascicolo_resta_visibile_allo_studio(tmp_path):
     assert len(voci) == 1
     voce = voci[0]
     assert voce["title"] == "PEC da assegnare a un fascicolo"
+    assert voce["href"] == "/email/?embed=source&audit_id=" + voce["id"].split(":", 1)[1]
     assert "523/2026" in voce["message"]
     # Ogni riga mostrata dichiara da dove viene il dato.
     assert "Fonte:" in voce["message"]
@@ -7547,7 +7614,7 @@ def _decreto_lavoro_con_ordine_di_notifica_mime() -> bytes:
 
     messaggio = EmailMessage()
     messaggio["Subject"] = "POSTA CERTIFICATA: COMUNICAZIONE 523/2026/LAV"
-    messaggio["From"] = "posta-certificata@legalmail.it"
+    messaggio["From"] = "cancelleria.tribunale.vicenza@giustiziacert.it"
     messaggio["To"] = "studio@pec.it"
     messaggio["Message-ID"] = "<decreto-notifica-test@giustizia.it>"
     from datetime import datetime
@@ -7614,8 +7681,10 @@ def test_ordine_di_notifica_senza_fascicolo_diventa_proposta_e_il_collegamento_a
         actor="pytest",
     )
     message_id = str(ingest["id"])
-    report = repo.run_pending_jobs(limit=40)
-    validate = next(job["result"] for job in report["jobs"] if job["job_type"] == "validate")
+    lavori = []
+    for _ in range(3):
+        lavori.extend(repo.run_pending_jobs(limit=40)["jobs"])
+    validate = next(job["result"] for job in lavori if job["job_type"] == "validate")
 
     assert validate["notification_presidia"]["created"] == 0
     assert validate["notification_presidia"]["link_proposals"] == 1
@@ -7654,6 +7723,14 @@ def test_ordine_di_notifica_senza_fascicolo_diventa_proposta_e_il_collegamento_a
     assert chiusa.id_fascicolo == fascicolo.id
     assert "presidio della notifica aperto" in chiusa.note
 
+    from pct.agenda import Agenda
+
+    eventi = [
+        evento for evento in Agenda(str(tmp_path / "agenda.json")).tutti()
+        if message_id in (evento.external_uid or "") or message_id in (evento.external_source_url or "")
+    ]
+    assert eventi, link["change_receipt"]
+
 
 def test_proposta_notifica_senza_fascicolo_non_nasce_se_la_verifica_e_gia_decorsa():
     from pct.presidio_notifica_senza_fascicolo import campi_proposta
@@ -7670,3 +7747,68 @@ def test_proposta_notifica_senza_fascicolo_non_nasce_se_la_verifica_e_gia_decors
     assert campi["data_scadenza"] == "2026-11-19"
     assert "RG 77/2026" in campi["titolo"]
     assert "non il termine di legge" in campi["descrizione"]
+
+
+def test_pec_senza_fascicolo_prioritaria_precede_quella_piu_recente(tmp_path):
+    from web.services.notifications_runtime import _unlinked_pec_items
+
+    db = tmp_path / "pec_audit.sqlite"
+    repo = PecAuditRepository(
+        db, tenant_id="test", fascicoli_db_path=str(tmp_path / "fascicoli.json"),
+        agenda_db_path=str(tmp_path / "agenda.json"),
+    )
+    originale = _comunicazione_pct_mime()
+    prima = repo.ingest_mime(originale, account_email="studio@pec.it", folder="INBOX", imap_uid="91", actor="pytest")
+    seconda = repo.ingest_mime(
+        originale.replace(b"<comunicazione-test@giustizia.it>", b"<seconda-comunicazione-test@giustizia.it>", 1),
+        account_email="studio@pec.it", folder="INBOX", imap_uid="92", actor="pytest",
+    )
+    assert prima["id"] != seconda["id"]
+    repo.run_pending_jobs(limit=60)
+    with repo.connect() as conn:
+        conn.execute("UPDATE pec_legal_events SET priority='P0' WHERE message_id=?", (prima["id"],))
+        conn.execute("UPDATE pec_legal_events SET priority='P2' WHERE message_id=?", (seconda["id"],))
+        conn.execute("UPDATE pec_messages SET received_at='2026-01-01T00:00:00Z' WHERE id=?", (prima["id"],))
+        conn.execute("UPDATE pec_messages SET received_at='2026-01-02T00:00:00Z' WHERE id=?", (seconda["id"],))
+    prima_visibile, = _unlinked_pec_items({"PEC_AUDIT_DB": str(db)}, limit=1)
+    assert prima_visibile["id"].endswith(prima["id"])
+    assert prima_visibile["priority"] == "urgent"
+
+
+def test_worker_riprova_la_consegna_al_presidio_se_il_link_ha_un_sottoerrore(tmp_path, monkeypatch):
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite", tenant_id="test")
+    ingresso = repo.ingest_mime(
+        _comunicazione_pct_mime(), account_email="studio@pec.it", folder="INBOX", imap_uid="93", actor="pytest",
+    )
+    with repo.connect() as conn:
+        conn.execute("DELETE FROM pec_jobs WHERE tenant_id=?", (repo.tenant_id,))
+        job_id = repo.enqueue_job(conn, "link", message_id=ingresso["id"], actor="pytest")
+    monkeypatch.setattr(repo, "link_fascicolo", lambda *a, **kw: {"notification_presidia": {"ok": False, "errors": ["archivio indisponibile"]}})
+    result = repo.run_pending_jobs(limit=1)
+    assert result["failed"] == 1 and result["processed"] == 0
+    with repo.connect() as conn:
+        job = conn.execute("SELECT status, error FROM pec_jobs WHERE id=?", (job_id,)).fetchone()
+    assert job["status"] == "queued" and "archivio indisponibile" in job["error"]
+
+
+def test_protocollo_ente_con_busta_pec_non_e_ricevuta_o_pst():
+    from pct.pec_pipeline import build_validation_report, parse_pec_message
+    from web.services.react_email_bridge import _pec_audit_virtual_row
+
+    message = EmailMessage()
+    message["Subject"] = "POSTA CERTIFICATA: Protocollo nr: 123 - del 10/11/2026 - AOO - Sentenza - richiesta documentazione"
+    message["From"] = "posta-certificata@example.test"
+    message["To"] = "studio@example.test"
+    message.set_content("Richiesta documentazione per esecuzione della sentenza del Tribunale.")
+    message.add_attachment(
+        b'<postacert tipo="posta-certificata" errore="nessuno"/>',
+        maintype="application", subtype="xml", filename="daticert.xml",
+    )
+    parsed = parse_pec_message(message.as_bytes())
+    report = build_validation_report(parsed, [])
+    assert report["event_type"] == "comunicazione_ente_protocollata"
+    assert report["procedural_profile"]["fase_pratica"] == "Comunicazione protocollata di un ente pubblico"
+    assert not report["deadline_proposal"].get("auto_create")
+    row = _pec_audit_virtual_row({"id": "pec-test", "validation_report": report})
+    assert row["isPst"] is False
+    assert not row["pctStatus"]

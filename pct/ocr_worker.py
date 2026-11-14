@@ -95,15 +95,18 @@ def _alimenta_archivio(job, testo: str) -> None:
 
 
 def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event) -> None:
-    from pct.semaforo_motori import PRIORITA_URGENTE, motore_pesante
+    from pct.semaforo_motori import PRIORITA_URGENTE, SemaforoOccupato, motore_pesante
 
     while not stop_event.is_set():
         if store.pending_count() == 0:
             sleep(1.0)
             continue
         # Un solo motore pesante alla volta sul server: l'OCR di un documento appena caricato ha priorità alta.
-        with motore_pesante("OCR dei documenti", priorita=PRIORITA_URGENTE):
-            _lavora_un_job(store, worker_id)
+        try:
+            with motore_pesante("OCR dei documenti", priorita=PRIORITA_URGENTE, attesa_massima=30):
+                _lavora_un_job(store, worker_id)
+        except SemaforoOccupato:
+            stop_event.wait(1.0)
 
 
 def _lavora_un_job(store: OCRJobStore, worker_id: str) -> None:

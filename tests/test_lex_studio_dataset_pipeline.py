@@ -109,6 +109,16 @@ def test_chunking_pagine_conserva_intervallo_pagina():
     assert [chunk.source.page_end for chunk in chunks] == [1, 2]
 
 
+def test_proposte_omittono_binario_esadecimale_ma_conservano_prosa_con_impronta():
+    binary = _document(document_id="binary", text=("µç|¨\x02w\x7f\x0fÜB ßð\x18 " * 22))
+    hexadecimal = _document(document_id="hex", text=" ".join(["804100000000000000000200000046"] * 10))
+    prose = _document(document_id="prose", text="La ricevuta del deposito è associata all'impronta " + "a" * 64
+                      + ". La ricevuta è conservata nel fascicolo e resta disponibile per la verifica.")
+    result = build_studio_dataset_pipeline("tenant-a", [binary, hexadecimal, prose])
+    assert {chunk.document_id for chunk in result.chunks} == {"binary", "hex", "prose"}
+    assert [pair.document_id for pair in result.qa_pairs] == ["prose"]
+
+
 def test_generazione_task_e_qa_mock_richiede_revisione_e_non_salva_ragionamento_interno():
     chunks = chunk_document(_document(), options=ChunkingOptions(max_chars=220, overlap_chars=0, min_chars=20))
     policy = QAGenerationPolicy(max_pairs_per_chunk=1, min_chunk_chars=20)

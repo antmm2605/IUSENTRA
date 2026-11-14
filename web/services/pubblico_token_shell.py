@@ -2,7 +2,7 @@
 
 Le pagine non hanno la cornice dello studio: una shell minima monta
 `PortaleTokenApp` o `PagamentoLinkApp`, che leggono i dati dalle API
-`/api/v1/pubblico/...`. La vista classica resta con `?_legacy=1`.
+`/api/v1/pubblico/...`. Le pagine Jinja storiche sono state eliminate (10/11/2026).
 Il token è già nell'indirizzo; la shell lo ripete solo come attributo della
 radice React e non contiene altri dati del cliente.
 """
@@ -11,9 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import get_flashed_messages, make_response, render_template, request
+from flask import get_flashed_messages, make_response, render_template
 
-from web.services.piattaforma_shell_runtime import vista_classica_richiesta
 
 COMPONENTE_PORTALE = "src/components/PortaleTokenApp.tsx"
 COMPONENTE_PAGAMENTO = "src/components/PagamentoLinkApp.tsx"
@@ -21,7 +20,6 @@ COMPONENTE_PAGAMENTO = "src/components/PagamentoLinkApp.tsx"
 __all__ = [
     "render_pagamento_shell",
     "render_portale_token_shell",
-    "vista_classica_richiesta",
 ]
 
 
@@ -64,11 +62,12 @@ def render_portale_token_shell(token: str, sezione: str, *, titolo: str, studio_
         titolo=titolo,
         studio_nome=studio_nome,
         messaggi=_messaggi_in_attesa(),
-        percorso_classico=request.path,
     )
 
 
-def render_pagamento_shell(token: str, vista: str, *, titolo: str, studio_nome: str, status: int = 200, provider: str = ""):
+def render_pagamento_shell(
+    token: str, vista: str, *, titolo: str, studio_nome: str, status: int = 200, provider: str = "", messaggio: str = "",
+):
     return _risposta(
         "pagamento_link_shell.html",
         status,
@@ -78,6 +77,6 @@ def render_pagamento_shell(token: str, vista: str, *, titolo: str, studio_nome: 
         provider=provider,
         titolo=titolo,
         studio_nome=studio_nome,
+        messaggio=messaggio,
         messaggi=_messaggi_in_attesa(),
-        percorso_classico=request.path,
     )

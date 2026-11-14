@@ -9,9 +9,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import quote, urlencode, urlsplit
+from urllib.parse import quote
 
-from flask import Blueprint, current_app, g, make_response, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, g, make_response, render_template, request, session, url_for
 
 from web.services.feature_flags import (
     app_v2_route_flag_for_path,
@@ -29,57 +29,6 @@ _INLINE_ENTRY_CACHE: dict[str, tuple[int, str]] = {}
 _MANIFEST_CACHE: dict[str, tuple[tuple[int, int], dict[str, Any]]] = {}
 _ROUTE_ASSETS_CACHE: dict[tuple[str, tuple[int, int], str], dict[str, list[str]]] = {}
 
-
-_LEGACY_FIRST_PREFIXES = (
-    "/admin/osservabilita",
-    "/applicazioni",
-    "/checklist",
-    "/database",
-    "/guida/firma-digitale",
-    "/pat",
-    "/pdp",
-    "/polisweb",
-    "/portali",
-    "/servizi-telematici",
-    "/sigit",
-    "/telematico",
-    "/tribunali",
-)
-
-
-def _local_redirect_target(path: str, query: dict[str, str]) -> str:
-    clean_path = str(path or "/").replace("\r", "").replace("\n", "")
-    parsed = urlsplit(clean_path)
-    if parsed.scheme or parsed.netloc or not clean_path.startswith("/") or clean_path.startswith("//"):
-        clean_path = "/"
-    clean_path = "/" + "/".join(
-        quote(part, safe="-._~:@")
-        for part in clean_path.split("/")
-        if part
-    )
-    encoded = urlencode(query)
-    return f"{clean_path}?{encoded}" if encoded else clean_path
-
-_REACT_TELEMATICO_ACQUISITION_PATHS = {
-    "/portali/pst/acquisizione",
-    "/portali/pdp/acquisizione",
-    "/portali/pat/acquisizione",
-    "/portali/ptt/acquisizione",
-    "/portali/sigit/acquisizione",
-}
-
-_REACT_TELEMATICO_GRAPHICAL_PATHS = {
-    "/guida/firma-digitale",
-    "/pat",
-    "/pdp",
-    "/polisweb",
-    "/pst",
-    "/servizi-telematici",
-    "/sigit",
-    "/telematico",
-    "/telematici",
-    "/tribunali",
-}
 
 _SITO_STUDIO_REACT_SUBPATHS = {
     "/sito-studio/contatti",
@@ -443,18 +392,11 @@ def react_app(spa_path: str = ""):
 
 
 def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable[Any] | None = None):
-    """Render condiviso per le superfici migrate a React.
+    """Render condiviso delle pagine React dello studio.
 
-    La shell React resta sempre disponibile sotto ``/app-v2``. Fuori da
-    ``/app-v2`` le route operative storiche non vengono piu' promosse
-    implicitamente: questo evita che una card React sostituisca un wizard
-    completo non ancora ricostruito con parita' reale.
+    Le viste Jinja sono state eliminate (10/11/2026): la shell si serve sempre,
+    anche quando l'indirizzo porta il vecchio parametro di compatibilità.
     """
-
-    if _deve_mantenere_vista_classica():
-        query = request.args.to_dict(flat=True)
-        query["_legacy"] = "1"
-        return redirect(_local_redirect_target(request.path, query), code=302)
 
     from core.security.headers import applica_nonce_documento_stabile, prepara_nonce_documento_stabile
 
@@ -552,131 +494,6 @@ def _applicazione_react(lower: str) -> bool:
     """Catalogo e singola funzione della ex cabina applicazioni: ApplicazionePage React."""
     parti = [parte for parte in lower.strip("/").split("/") if parte]
     return parti[:1] == ["applicazioni"] and len(parti) <= 2
-
-
-def _deve_mantenere_vista_classica() -> bool:
-    """Blocca promozioni React non validate fuori dalla shell progressiva."""
-
-    path = (request.path or "").rstrip("/") or "/"
-    if path == "/app-v2" or path.startswith("/app-v2/"):
-        return False
-    forced_react = (request.args.get("_react") or "").strip().lower()
-    if forced_react in {"1", "true", "si", "yes", "on"}:
-        return False
-    enabled = current_app.config.get("REACT_PROMOTE_LEGACY_ROUTES", False)
-    if enabled:
-        return False
-    lower = path.lower()
-    # Checklist degli atti e raccolta guidata del fascicolo: ChecklistAttiPage React.
-    if _checklist_atti(lower):
-        return False
-    # Catalogo e funzioni della ex cabina applicazioni: ApplicazionePage React.
-    if _applicazione_react(lower):
-        return False
-    if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
-        return True
-    if lower.startswith("/fascicoli/") and lower.endswith("/deposito/prepara"):
-        return False
-    if lower.startswith("/fascicoli/") and (
-        "/wizard/" in lower
-        or "/deposito/" in lower
-        or "/penale/pdp" in lower
-    ):
-        return True
-    if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
-        # Modifica e permessi del singolo utente: UtentiPage React.
-        parti = [parte for parte in lower.strip("/").split("/") if parte]
-        return not (len(parti) == 3 and parti[2] in {"modifica", "permessi"})
-    if lower.startswith("/profili/"):
-        return True
-    if lower.startswith("/backup/"):
-        # Il ripristino di una copia è nella sezione Backup delle impostazioni React.
-        parti = [parte for parte in lower.strip("/").split("/") if parte]
-        return not (len(parti) == 3 and parti[2] == "ripristina")
-    if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
-        if not _scadenziario_react_allowed(lower):
-            return True
-    if lower.startswith("/sito-studio/") and not _sito_studio_react_allowed(lower):
-        return True
-    if lower.startswith("/studio/"):
-        return True
-    if lower.startswith("/amministrazione/"):
-        return True
-    if lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova":
-        return True
-    if lower.startswith("/incassi-pagamenti/"):
-        return True
-    if lower.startswith("/impostazioni/pagamenti/"):
-        return True
-    if lower.startswith("/impostazioni/calendario/"):
-        return True
-    if lower.startswith("/sincronizzazione-calendari/"):
-        return True
-    is_conferimento_detail = lower.startswith("/preventivi/conferimento/") and lower.count("/") == 3
-    # Scheda del preventivo: React (PreventiviPage apre il dettaglio con workflow e azioni).
-    is_preventivo_detail = lower.startswith("/preventivi/p/") and lower.count("/") == 3
-    if lower.startswith("/preventivi/") and lower not in {
-        "/preventivi/nuovo",
-        "/preventivi/wizard",
-        "/preventivi/conferimento/nuovo",
-    } and not is_conferimento_detail and not is_preventivo_detail:
-        return True
-    if lower.startswith("/compensi-forensi/"):
-        return True
-    if lower.startswith("/tariffario/"):
-        return True
-    # Modelli di studio (nuovo, scheda, modifica, compilazione): TemplateStudioPage React.
-    if _modello_di_studio(lower):
-        return False
-    if _scheda_ricerca_legale(lower):
-        return False
-    if lower == "/template-atti/nuovo":
-        return True
-    if lower in {"/template-atti/editor", "/template-atti/editor-libero"}:
-        return False
-    if lower.startswith("/template-atti/compila/"):
-        return False
-    if lower.startswith("/template-atti/") and lower != "/template-atti/catalogo":
-        return True
-    if lower.startswith("/redazione-atti/"):
-        return True
-    if lower == "/checklist" or lower.startswith("/checklist/"):
-        return True
-    if lower.startswith("/deposito/checklist/"):
-        return True
-    if lower.startswith("/giurisprudenza/") and lower != "/giurisprudenza/nuova":
-        # Scheda e modifica di una sentenza: GiurisprudenzaPage React.
-        parti = [parte for parte in lower.strip("/").split("/") if parte]
-        return not (len(parti) == 2 or (len(parti) == 3 and parti[2] == "modifica"))
-    # /legal-intelligence/fonte/<id>/scarica e /daily/ restano legacy (download file e rendering server-side).
-    if lower.startswith("/legal-intelligence/") and lower not in {
-        "/legal-intelligence/mediazione",
-        "/legal-intelligence/news",
-        "/legal-intelligence/ricerca",
-    }:
-        return True
-    if lower.startswith("/legal-intelligence/fonte/") and lower.endswith("/scarica"):
-        return True
-    if lower.startswith("/ricerca-legale/fonte/") and lower.endswith("/scarica"):
-        return True
-    if lower.startswith("/ricerca-legale/") and lower not in {
-        "/ricerca-legale/codici",
-        "/ricerca-legale/gazzetta-ufficiale",
-        "/ricerca-legale/mediazione",
-        "/ricerca-legale/news",
-        "/ricerca-legale/ricerca",
-        "/ricerca-legale/schede-atti",
-    }:
-        return True
-    if lower.startswith("/legal-intelligence/daily/"):
-        return True
-    if lower.startswith("/ricerca-legale/daily/"):
-        return True
-    if lower in _REACT_TELEMATICO_GRAPHICAL_PATHS:
-        return False
-    if lower in _REACT_TELEMATICO_ACQUISITION_PATHS:
-        return False
-    return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
 
 
 def _initials(value: str) -> str:

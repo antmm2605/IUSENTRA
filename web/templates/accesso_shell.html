@@ -24,12 +24,11 @@
        data-vista="{{ vista }}"
        data-next="{{ next_sicuro }}"
        data-sessione-scaduta="{{ '1' if sessione_scaduta else '0' }}"
-       data-logo="{{ url_for('static', filename='img/iusentra-login-mark.svg') }}"
-       data-vista-classica="{{ url_vista_classica }}"></div>
+       data-logo="{{ url_for('static', filename='img/iusentra-login-mark.svg') }}"></div>
   <noscript>
     <main class="accesso-noscript">
       <h1>{{ titolo }}</h1>
-      <p>Abilita JavaScript per accedere a IUSENTRA, oppure apri la <a href="{{ url_vista_classica }}">vista classica</a>.</p>
+      <p>Abilita JavaScript per accedere a IUSENTRA.</p>
     </main>
   </noscript>
   {% for js_file in react_assets.js %}

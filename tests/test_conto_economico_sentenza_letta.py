@@ -37,6 +37,8 @@ def _sentenza_lavoro(rg: str = "100/2025", oggetto: str = "SENT1"):
 def test_spese_lette_dalla_sentenza_della_causa():
     lette = spese_lette(_sentenza_lavoro(), rg="100/2025")
     assert len(lette) == 1
+    assert spese_lette(_sentenza_lavoro(), rg="00000100/2025") == lette
+    assert spese_lette(_sentenza_lavoro(rg="00000100/2025"), rg="100/2025") == lette
     voce = lette[0]
     assert voce["regolazione"] == "condanna" and voce["importo"] == 250.0 and voce["distrazione"] is True
     assert voce["distrazione_condizionata"] is True and voce["accessori"] is True
@@ -131,3 +133,19 @@ def test_accessori_senza_iva_nel_regime_forfetario():
     ordinario = riga_sentenza([credito], regime="RF01")["dettaglio"]
     assert "senza IVA per il regime forfetario" in forfetario and "e IVA" not in forfetario
     assert "contributo previdenziale e IVA" in ordinario
+
+
+def test_due_copie_verificate_mostrano_l_importo_senza_richiedere_conferma():
+    sentenza = _sentenze_runtime(
+        a_favore_del_cliente=True, distrazione_condizionata=False, identita_atto="stesso-testo-verificato",
+    )[0]
+    copia = {**sentenza, "fonti": [{"label": "Copia notificata", "href": "/copia"}]}
+    riga = riga_sentenza(crediti_dalle_sentenze_lette([sentenza, copia]))
+
+    assert riga["importoLabel"] == "€ 250,00"
+    assert len(riga["fonti"]) == 2
+    assert "verificare" not in riga["dettaglio"]
+
+    copia["identita_atto"] = "altro-atto"
+    dubbia = riga_sentenza(crediti_dalle_sentenze_lette([sentenza, copia]))
+    assert "verificare" in dubbia["dettaglio"]

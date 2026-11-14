@@ -28,6 +28,13 @@ ROLE_DESCRIPTIONS = {
 }
 
 
+MATTER_ROLE_DESCRIPTIONS = {
+    RuoloCondivisione.LETTURA.value: "Può consultare il fascicolo senza modificare i dati.",
+    RuoloCondivisione.SCRITTURA.value: "Può consultare e aggiornare i contenuti del fascicolo.",
+    RuoloCondivisione.GESTORE.value: "Può aggiornare il fascicolo e gestire gli altri collaboratori.",
+}
+
+
 def _safe_text(value: Any, fallback: str = "") -> str:
     text = str(value or "").strip()
     return text or fallback
@@ -338,4 +345,57 @@ def build_client_collaborators_payload(
             "noCollaborators": not collaborators,
             "noAvailableUsers": not available_users,
         },
+    }
+
+
+def build_matter_collaborators_payload(
+    *,
+    fascicolo: Any,
+    get_condivisioni: Callable[[], Any],
+    get_utenti: Callable[[], Any],
+    current_user: Any,
+) -> dict[str, Any]:
+    """Payload per il pannello React «Collaboratori del fascicolo».
+
+    Sostituisce la pagina classica ``fascicoli/collaboratori_fascicolo.html``: stessi dati
+    (accessi al singolo fascicolo e profili attivi ancora senza accesso), letti dagli stessi
+    gestori del tenant corrente.
+    """
+
+    condivisioni = get_condivisioni()
+    matter_id = _safe_text(getattr(fascicolo, "id", ""))
+    user_id = _safe_text(getattr(current_user, "id", ""))
+    collaborators = list(condivisioni.collaboratori_fascicolo(matter_id))
+    collaborator_ids = {_safe_text(getattr(accesso, "id_utente", "")) for accesso in collaborators}
+    available_users = [
+        {
+            "id": _safe_text(getattr(user, "id", "")),
+            "username": _safe_text(getattr(user, "username", "")),
+            "name": _safe_text(getattr(user, "nome_completo", "") or getattr(user, "username", ""), "Collaboratore"),
+        }
+        for user in get_utenti().tutti(solo_attivi=True)
+        if _safe_text(getattr(user, "id", "")) not in collaborator_ids
+        and _safe_text(getattr(user, "id", "")) != user_id
+    ]
+    return {
+        "source": "repository_reali",
+        "contracts": {"mock_fallback": False, "writes": "operational_routes", "route_owner": "react_shell"},
+        "matter": {
+            "id": matter_id,
+            "number": _safe_text(getattr(fascicolo, "numero", "")),
+            "title": _safe_text(getattr(fascicolo, "titolo", ""), "Fascicolo"),
+        },
+        "permissions": {"canManage": True},
+        "collaborators": [_access_payload(accesso) for accesso in collaborators],
+        "availableUsers": sorted(available_users, key=lambda item: item["name"].casefold()),
+        "roleOptions": [
+            {
+                "value": role.value,
+                "label": ROLE_LABELS[role.value],
+                "tone": ROLE_TONES[role.value],
+                "description": MATTER_ROLE_DESCRIPTIONS[role.value],
+            }
+            for role in RuoloCondivisione
+        ],
+        "actions": {"collection": f"/api/v1/fascicoli/{matter_id}/collaboratori"},
     }

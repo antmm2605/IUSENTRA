@@ -660,9 +660,17 @@ def run_legal_update_autofetch_tick(
         only_source_codes=source_codes,
     )
     enqueued_jobs = []
+    jobs_by_source = {}
+    queue.recover_stale_running()
     generated_at = str(plan.get("generated_at") or _iso(now or datetime.now(tz=UTC)))
     for item in plan["selected"]:
-        job = queue.enqueue(
+        code = item["source_code"]
+        stato = (cursor_payload.get("sources") or {}).get(code) or {}
+        precedente = queue.get(str(stato.get("last_job_id") or ""))
+        data = _parse_dt(item["due_at"]) or datetime.now(tz=UTC)
+        finestra = int(data.timestamp()) // (item["polling_minutes"] * 60)
+        job = precedente if precedente and precedente.source_code == code and precedente.status in {"queued", "running"} else queue.enqueue(
+            dedupe_key=f"autofetch:{code}:{finestra}",
             source_code=item["source_code"],
             source_name=item["source_name"],
             item_url=item["base_url"],
@@ -681,6 +689,7 @@ def run_legal_update_autofetch_tick(
             timeout_seconds=config.item_timeout_seconds,
             max_attempts=config.max_attempts,
         )
+        jobs_by_source[code] = job.job_id
         enqueued_jobs.append(job.to_dict())
         cursor_store.mark_enqueued(
             item["source_code"],
@@ -691,7 +700,21 @@ def run_legal_update_autofetch_tick(
 
     execution_report: dict[str, Any] = {"ok": True, "mode": "enqueue_only", "reports": []}
     selected_codes = [str(item.get("source_code") or "") for item in plan["selected"]]
-    if config.execute_due_sources and selected_codes:
+    if config.execute_due_sources:
+        def claim_source(code: str) -> bool:
+            return queue.claim(jobs_by_source[code], worker_id="legal_autofetch") is not None
+
+        def finish_source(code: str, row: dict[str, Any]) -> None:
+            status = "completed" if row.get("ok") else ("timeout" if row.get("timeout") else "failed")
+            error = str(row.get("stderr") or row.get("inner_errors") or "")
+            if row.get("ok"):
+                queue.complete(jobs_by_source[code], result=row)
+            else:
+                queue.fail(jobs_by_source[code], error=error, timed_out=bool(row.get("timeout")))
+            cursor_store.mark_result(
+                code, status=status, finished_at=str(row.get("finished_at") or generated_at), error=error,
+            )
+
         execution_report = run_legal_update_batch_with_timeouts(
             config.to_job_config(),
             source_codes=selected_codes,
@@ -699,18 +722,10 @@ def run_legal_update_autofetch_tick(
             item_timeout_seconds=config.item_timeout_seconds,
             publish_max_items=config.publish_max_items,
             runner=runner,
+            claim_source=claim_source,
+            finish_source=finish_source,
         )
-        for row in list(execution_report.get("reports") or []):
-            code = _source_code(row.get("label"))
-            if not code:
-                continue
-            status = "completed" if row.get("ok") else ("timeout" if row.get("timeout") else "failed")
-            cursor_store.mark_result(
-                code,
-                status=status,
-                finished_at=str(row.get("finished_at") or generated_at),
-                error=str(row.get("stderr") or row.get("inner_errors") or ""),
-            )
+        enqueued_jobs = [queue.get(job_id).to_dict() for job_id in jobs_by_source.values()]
 
     monitor = build_legal_update_operational_monitor(
         config,
@@ -720,6 +735,7 @@ def run_legal_update_autofetch_tick(
     )
     return {
         "ok": bool(execution_report.get("ok", True)),
+        "status": str(execution_report.get("status") or ""),
         "schema": LEGAL_UPDATE_AUTOFETCH_SCHEMA,
         "queue_schema": LEGAL_UPDATE_JOB_QUEUE_SCHEMA,
         "plan": plan,

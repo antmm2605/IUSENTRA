@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sqlite3
 import sys
+import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -145,11 +147,19 @@ def _fascicolo_id_from_path(path: Path) -> str:
     return ""
 
 
-def _iter_extracted_texts(tenant_root: Path) -> list[Path]:
+def _iter_extracted_texts(tenant_root: Path, *, fine_turno: float | None = None):
     base = tenant_root / "fascicoli" / "documenti_ai"
     if not base.exists():
-        return []
-    return sorted(base.rglob("extracted_text.json"))
+        return
+    for directory, _, nomi in os.walk(base, onerror=_errore_inventario):
+        if fine_turno is not None and time.monotonic() >= fine_turno:
+            raise TimeoutError("Tempo disponibile per l’inventario dei testi esaurito.")
+        if "extracted_text.json" in nomi:
+            yield Path(directory) / "extracted_text.json"
+
+
+def _errore_inventario(errore: OSError) -> None:
+    raise errore
 
 
 def _document_key(metadata: dict[str, Any]) -> str:
@@ -256,18 +266,6 @@ def _local_ai_service(tenant_root: Path, repo_root: Path) -> LocalAIService:
         app_root=str(repo_root),
         models_path=str(intelligence / "models"),
     )
-
-
-def _existing_vector_result(fascicolo: Any, document_key: str) -> dict[str, Any]:
-    payments = getattr(fascicolo, "pagamenti", {}) or {}
-    automation = payments.get(AUTOMATION_KEY) if isinstance(payments, dict) else {}
-    if not isinstance(automation, dict):
-        return {}
-    vector_indexes = automation.get("vector_indexes")
-    if not isinstance(vector_indexes, dict):
-        return {}
-    result = vector_indexes.get(document_key)
-    return dict(result) if isinstance(result, dict) else {}
 
 
 def _is_lex_payment(value: Any) -> bool:
@@ -427,17 +425,6 @@ def _reset_sentenza_vector_documents_for_tenant(
     return report
 
 
-def _vector_result_current(result: dict[str, Any]) -> bool:
-    if not (result.get("ok") and result.get("document_id")):
-        return False
-    if result.get("schema_version") != SENTENZA_VECTOR_SCHEMA_VERSION:
-        return False
-    embedding = result.get("embedding") if isinstance(result.get("embedding"), dict) else {}
-    if str(embedding.get("status") or "").lower() == "error":
-        return False
-    return int(embedding.get("pending_remaining") or 0) <= 0
-
-
 def _record_vector_result(fascicoli: GestioneFascicoli, fascicolo_id: str, document_key: str, result: dict[str, Any]) -> None:
     if not document_key:
         return
@@ -447,7 +434,9 @@ def _record_vector_result(fascicoli: GestioneFascicoli, fascicolo_id: str, docum
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
     automation = dict(payments.get(AUTOMATION_KEY) or {})
     vector_indexes = automation.get("vector_indexes") if isinstance(automation.get("vector_indexes"), dict) else {}
-    vector_indexes[document_key] = dict(result or {})
+    if vector_indexes.get(document_key) == result:
+        return
+    vector_indexes[document_key] = dict(result)
     automation["vector_indexes"] = vector_indexes
     payments[AUTOMATION_KEY] = automation
     fascicoli.aggiorna(fascicolo_id, pagamenti=payments)
@@ -469,9 +458,6 @@ def _feed_vector_index(
     fascicolo = fascicoli.get(fascicolo_id)
     if not fascicolo:
         return {"ok": False, "status": "skipped", "error": "Fascicolo non trovato"}
-    existing = _existing_vector_result(fascicolo, document_key)
-    if _vector_result_current(existing):
-        return existing
     try:
         service = _local_ai_service(tenant.root, repo_root)
         extraction = outcome.extraction
@@ -519,7 +505,7 @@ def _feed_vector_index(
             except Exception as exc:
                 embedding = {"status": "error", "error": str(exc)}
         result = {
-            "ok": True,
+            "ok": bool(document_id and indexed.get("chunk_count")),
             "schema_version": SENTENZA_VECTOR_SCHEMA_VERSION,
             "status": indexed.get("status"),
             "document_id": document_id,
@@ -532,6 +518,24 @@ def _feed_vector_index(
     return result
 
 
+def _count_vector_result(totals: dict[str, int], result: dict[str, Any]) -> None:
+    if not result.get("ok"):
+        totals["vector_index_errors"] += 1
+        return
+    index_counter = "vector_indexed" if result.get("status") == "indexed" else "vector_reused"
+    totals[index_counter] += 1
+    embedding = result.get("embedding") or {}
+    status = embedding.get("status")
+    if status == "ready" and embedding.get("pending_remaining") == 0:
+        totals["vector_embeddings_ready"] += 1
+    elif status == "error":
+        totals["vector_embedding_errors"] += 1
+    elif status in {"ready", "pending"}:
+        totals["vector_embeddings_pending"] += 1
+    else:
+        totals["vector_embeddings_unavailable"] += 1
+
+
 def _build_repositories(tenant: TenantBackfillTarget) -> tuple[GestioneFascicoli, GestioneFatturazione]:
     studio_db = StudioDB.get(str(tenant.root / "studio.db")) if (tenant.root / "studio.db").exists() else None
     fascicoli = GestioneFascicoli(
@@ -539,6 +543,7 @@ def _build_repositories(tenant: TenantBackfillTarget) -> tuple[GestioneFascicoli
         documents_dir=str(tenant.root / "fascicoli" / "documenti"),
         archive_dir=str(tenant.root / "fascicoli" / "archivio"),
         studio_db=studio_db,
+        carica_tutto=False,
     )
     fatturazione = GestioneFatturazione(
         db_path=str(tenant.root / "fatturazione" / "parcelle.json"),
@@ -610,8 +615,10 @@ def run_backfill(
     usa_cursore_persistente: bool = False,
     lex_embed_batch_size: int = 64,
     lex_embed_max_batches: int = 3,
+    budget_inventario_secondi: int = 0,
 ) -> dict[str, Any]:
     selected = tenants or set()
+    fine_inventario = time.monotonic() + budget_inventario_secondi if budget_inventario_secondi > 0 else None
     unique_sentenze: set[str] = set()
     unique_fascicoli_found: set[str] = set()
     unique_fascicoli_applied: set[str] = set()
@@ -648,6 +655,11 @@ def run_backfill(
             "applied": 0,
             "matrix_confirmed": 0,
             "vector_indexed": 0,
+            "vector_reused": 0,
+            "vector_index_errors": 0,
+            "vector_embeddings_ready": 0,
+            "vector_embeddings_unavailable": 0,
+            "vector_embeddings_pending": 0,
             "vector_embedding_errors": 0,
             "reset_fascicoli_touched": 0,
             "reset_payment_entries_removed": 0,
@@ -682,8 +694,10 @@ def run_backfill(
             "documents": [],
             "summary": {},
         }
-        fascicoli, fatturazione = _build_repositories(tenant)
+        repositories = None
         if reset_lex_amounts:
+            repositories = _build_repositories(tenant)
+            fascicoli, fatturazione = repositories
             reset_report = _reset_sentenza_lex_amounts_for_tenant(
                 fascicoli=fascicoli,
                 fatturazione=fatturazione,
@@ -703,9 +717,21 @@ def run_backfill(
                 reset_vector_report.get("documents_removed") or 0
             )
             report["totals"]["reset_vector_chunks_removed"] += int(reset_vector_report.get("chunks_removed") or 0)
-        paths = _iter_extracted_texts(tenant.root)
+        # Cursore e selezione usano la stessa fotografia. Non avanzare il cursore
+        # dello studio se l’inventario non ha potuto vedere tutte le fonti.
+        try:
+            modifiche = {
+                path: file_mtime_ns(path)
+                for path in _iter_extracted_texts(tenant.root, fine_turno=fine_inventario)
+            }
+        except TimeoutError:
+            report["status"] = "parziale"
+            report["message"] = "Inventario dei testi rinviato: esaurito il turno di disco. La notte prosegue."
+            report["totals"]["inventari_rinviati"] = 1
+            break
+        paths = sorted(modifiche)
         report["totals"]["documents_catalogued"] += len(paths)
-        tenant_cursor = newest_file_cursor(paths)
+        tenant_cursor = newest_file_cursor(paths, mtime_di=modifiche.__getitem__)
         if int(tenant_cursor.get("mtime_ns") or 0) > int(report["incremental"].get("newest_mtime_ns") or 0):
             report["incremental"]["newest_mtime_ns"] = int(tenant_cursor.get("mtime_ns") or 0)
             report["incremental"]["newest_path"] = str(tenant_cursor.get("path") or "")
@@ -721,7 +747,7 @@ def run_backfill(
             paths, dettaglio_cursore = cursore_sentenze_lex.documenti_da_esaminare(
                 all_paths,
                 stato_cursore,
-                mtime_di=file_mtime_ns,
+                mtime_di=modifiche.__getitem__,
             )
             report["totals"]["skipped_by_cursor"] += int(dettaglio_cursore.get("saltati_dal_cursore") or 0)
             tenant_report["incremental"] = {
@@ -733,7 +759,7 @@ def run_backfill(
             }
         elif int(modified_after_ns or 0) > 0:
             all_paths = paths
-            paths = [path for path in all_paths if file_mtime_ns(path) > int(modified_after_ns or 0)]
+            paths = [path for path in all_paths if modifiche[path] > int(modified_after_ns or 0)]
             skipped_by_cursor = len(all_paths) - len(paths)
             report["totals"]["skipped_by_cursor"] += skipped_by_cursor
             tenant_report["incremental"] = {
@@ -779,6 +805,9 @@ def run_backfill(
                     continue
                 report["totals"]["raw_sentenze_found"] += 1
                 fascicolo_id = _text(metadata.get("fascicolo_id"))
+                if repositories is None:
+                    repositories = _build_repositories(tenant)
+                fascicoli, fatturazione = repositories
                 fascicolo = fascicoli.get(fascicolo_id)
                 sentenza_key = _sentenza_key(tenant, metadata, extraction)
                 fascicolo_key = f"{tenant.storage_key}:{fascicolo_id}"
@@ -896,10 +925,7 @@ def run_backfill(
                         embed_batch_size=lex_embed_batch_size,
                         embed_max_batches=lex_embed_max_batches,
                     )
-                    if result.vector_index.get("ok"):
-                        report["totals"]["vector_indexed"] += 1
-                    if str((result.vector_index.get("embedding") or {}).get("status") or "") == "error":
-                        report["totals"]["vector_embedding_errors"] += 1
+                    _count_vector_result(report["totals"], result.vector_index)
             else:
                 result.message = "Dry-run: sentenza riconosciuta, matrice applicabile."
             tenant_report["documents"].append(result.to_dict())
@@ -932,7 +958,7 @@ def run_backfill(
                 stato_cursore,
                 letti_senza_errore=letti_senza_errore,
                 falliti=falliti_del_giro,
-                mtime_di=file_mtime_ns,
+                mtime_di=modifiche.__getitem__,
             )
             scritto = cursore_sentenze_lex.scrivi_stato(tenant.root, stato_cursore)
             riepilogo_cursore = cursore_sentenze_lex.riepilogo(stato_cursore)

@@ -339,8 +339,6 @@ def test_pagina_gazzetta_e_solo_react(monkeypatch):
     assert react_shell._route_component_key(percorso) == "src/components/GazzettaUfficialePage.tsx"
     app = Flask(__name__)
     app.secret_key = "fixture-gazzetta"
-    with app.test_request_context(percorso):
-        assert react_shell._deve_mantenere_vista_classica() is False
 
     @app.before_request
     def _utente():

@@ -319,6 +319,22 @@ def test_udienza_passata_non_conta_tra_le_scadute(catalog):
     assert [voce['id'] for voce in panoramica['deadlines']] == ['T1']
 
 
+def test_panoramica_scadenze_limita_il_passato_a_sette_giorni_incluso_oggi(catalog):
+    from datetime import timedelta
+    from pct.ora_italiana import oggi_roma
+
+    db, repo = catalog
+    for offset in (-7, -6, 0, 7, 8):
+        db.conn.execute('INSERT INTO fascicoli_list_deadlines VALUES (?,?,?,?,?,?)',
+            ('studio', str(offset), 'F000', (oggi_roma() + timedelta(days=offset)).isoformat(),
+             'sintetico', '{"id": "%s"}' % offset))
+    panoramica = repo.deadline_overview()
+    assert [voce['id'] for voce in panoramica['deadlines']] == ['-6', '0', '7']
+    assert panoramica['urgentDeadlines'] == 3
+    assert panoramica['overdueDeadlines'] == 1
+    assert panoramica['deadlines30'] == 3
+
+
 def test_evento_non_consegnato_non_blocca_l_elenco_in_consultazione(catalog):
     """08/11/2026: tre eventi PENDING (scheduler fermo) davano 503 sull'intero elenco."""
     from web.services.fascicoli_list_runtime import segna_in_aggiornamento

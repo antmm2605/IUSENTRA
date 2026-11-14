@@ -14,6 +14,7 @@ from email.utils import parsedate_to_datetime
 from html import escape as _html_escape
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
@@ -720,7 +721,11 @@ class GestioneGiurisprudenza:
         self.repository_sync_json_path = derive_giurisprudenza_sync_json_path(self.db_path)
         self.timeout = timeout
         self._data: Dict[str, Any] = self._empty_storage()
-        self._corpus = GestioneCorpusGiurisprudenza(self.corpus_db_path)
+        corpus_esistente = Path(self.corpus_db_path).is_file()
+        self._corpus = GestioneCorpusGiurisprudenza(
+            self.corpus_db_path,
+            read_only=not sync_repository_on_init and corpus_esistente,
+        )
         self._repository = GestioneRepositoryGiurisprudenza(
             self.repository_db_path,
             json_path=self.repository_json_path,
@@ -730,7 +735,7 @@ class GestioneGiurisprudenza:
             sync_json_path=self.repository_sync_json_path,
             postgres_dsn=self.postgres_dsn,
         )
-        self._load()
+        self._load(persist_migrations=sync_repository_on_init)
         # Le letture di sola consultazione (Panoramica, presidio fascicoli) non
         # riallineano il repository SQL e non riesportano i JSON: la
         # sincronizzazione resta nelle scritture e nelle superfici di gestione.
@@ -749,7 +754,7 @@ class GestioneGiurisprudenza:
             "sync_runs": [],
         }
 
-    def _load(self) -> None:
+    def _load(self, *, persist_migrations: bool = True) -> None:
         try:
             raw = self._repository.load_runtime_state() if self.postgres_dsn else (_cache.load(self.db_path, default={}) or {})
             base = self._empty_storage()
@@ -764,7 +769,7 @@ class GestioneGiurisprudenza:
             self._data = base
             changed = self._seed_sources_registry()
             changed = self._migrate_existing_judgments() or changed
-            if changed:
+            if changed and persist_migrations:
                 self._save()
         except Exception:
             self._data = self._empty_storage()
@@ -935,12 +940,13 @@ class GestioneGiurisprudenza:
     def tassonomia(self) -> List[Dict[str, Any]]:
         return copy.deepcopy(TASSONOMIA_GIURISPRUDENZA)
 
-    def statistiche(self) -> Dict[str, Any]:
+    def statistiche(self, *, includi_corpus: bool = True) -> Dict[str, Any]:
         judgments = list(self._data.get("judgments", []))
         source_ids = {item.get("source_system") for item in judgments if item.get("source_system")}
         aree = {item.get("area") for item in judgments if item.get("area")}
-        corpus_stats = self._corpus.storage_stats()
+        corpus_stats = self._corpus.storage_stats() if includi_corpus else {}
         return {
+            "storage_version": int(self._data.get("storage_version") or GIURISPRUDENZA_STORAGE_VERSION),
             "totale_sentenze": len(judgments),
             "fonti_attive": len(self._data.get("legal_sources", [])),
             "fonti_usate": len(source_ids),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Callable
+from urllib.parse import quote
 
 from pct.practice_engine.evaluator import build_regia_payload
 
@@ -46,6 +47,42 @@ def _etichette_catalogo(fascicolo_id: str) -> list[str]:
 
 def _profilo_salvato(engine: Any, fascicolo_id: str) -> bool:
     return bool(_safe("profilo", lambda: engine.get_profile_snapshot(fascicolo_id), None))
+
+
+def _ricevute_cancelleria_depositi(fid: str) -> dict[str, Any]:
+    import sqlite3
+
+    from flask import g, has_request_context
+    from pct.pec_deposit_query_repository import PecDepositQueryRepository
+    from web.services.notification_presidia_runtime import _tenant_id
+    from web.services.pec_audit_query_connection import pec_audit_query_connection
+    from web.services.tenant_api_auth import api_key_valid_for_request
+
+    if not has_request_context():
+        return {"items": [], "error": ""}
+    utente = g.get("utente_corrente")
+    if not (api_key_valid_for_request() or (utente and utente.ha_permesso("fascicoli.leggi"))):
+        return {"items": [], "error": ""}
+    tenant = _tenant_id()
+    try:
+        with pec_audit_query_connection(tenant=tenant) as conn:
+            rows = PecDepositQueryRepository(conn, tenant).accettazioni_cancelleria_fascicolo(fid)
+    except (RuntimeError, sqlite3.Error, PermissionError):
+        return {"items": [], "error": "Catalogo delle ricevute PEC in aggiornamento o non disponibile."}
+    return {
+        "items": [
+            {
+                "id": row["message_id"],
+                "date": row["event_at"],
+                "title": row["title"] or "Accettazione del deposito",
+                "idBusta": row["correlation_key"].removeprefix("idbusta:")
+                if row["correlation_key"].startswith("idbusta:") else "",
+                "href": f"/email/?audit_id={quote(row['message_id'], safe='')}",
+            }
+            for row in rows
+        ],
+        "error": "",
+    }
 
 
 def build_react_practice_engine_payload(
@@ -103,6 +140,7 @@ def build_react_practice_engine_payload(
     if not gia_salvato and _profilo_salvato(engine, fascicolo_id):
         # Profilo impostato ora dai dati certi: la Lettura del fascicolo non deve più chiederne la conferma.
         _safe("lettura", lambda: _invalida_lettura(fascicolo_id), None)
+    payload["courtDepositReceipts"] = _ricevute_cancelleria_depositi(fascicolo.id)
     return payload
 
 

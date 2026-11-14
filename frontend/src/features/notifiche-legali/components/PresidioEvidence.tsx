@@ -12,16 +12,25 @@ export function PresidioEvidence({
   presidioId,
   items,
   canView,
+  protocols,
 }: {
   presidioId: string
   items: Evidence[]
   canView: boolean
+  protocols?: Array<{ number: string; href: string; received_at: string; folder: string; sender: string }>
 }) {
   const [selectedEvidence, setSelectedEvidence] = useState<Evidence | null>(null)
 
   return (
     <section className="nlp-detail-section" aria-labelledby="nlp-evidence-title">
       <h3 id="nlp-evidence-title">Evidenze</h3>
+      {canView && protocols?.length ? <div>
+        <h4>Protocolli delle notifiche già collegate al fascicolo</h4>
+        <ul>{protocols.map((reply) => <li key={reply.href}>
+          <a href={safeInternalHref(reply.href)} target="_blank" rel="noreferrer">Protocollo {reply.number} · {reply.sender}</a>
+          <small>{formatDateTimeIt(reply.received_at)} · {reply.folder}</small>
+        </li>)}</ul>
+      </div> : null}
       {items.length ? (
         <div className="nlp-evidence-list">
           {items.map((item) => {

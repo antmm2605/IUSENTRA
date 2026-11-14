@@ -200,21 +200,8 @@ def main() -> int:
                 f"{frontend_path} usa spazi di rete non validi per il Local Signer: {', '.join(invalid_spaces)}"
             )
 
-    wizard_text = _read("web/templates/portale/acquisizione_wizard.html")
-    wizard_required = (
-        "const exactByRg = !!(String(query.numero || '').trim() && String(query.anno || '').trim());",
-        "nome_parte: exactByRg ? '' : (query.assistito || query.controparte || '')",
-        "cf_parte: exactByRg ? '' : (query.cf || '')",
-        "pst_session_id: activeSession?.session_id || ''",
-        "`${AW_PST_LS_BASE}/pst/ricerca-snapshot`",
-        "`${AW_PST_LS_BASE}/pst/download-documenti-batch`",
-        "preflight_auth: false",
-    )
-    for snippet in wizard_required:
-        if snippet not in wizard_text:
-            failures.append(f"Wizard acquisizione non preserva baseline PST: {snippet}")
-    if "`${AW_PST_LS_BASE}/pst/preflight-auth`" in wizard_text:
-        failures.append("Wizard acquisizione non deve chiamare /pst/preflight-auth")
+    # La vecchia pagina Jinja dell'acquisizione guidata (portale/acquisizione_wizard.html) è stata tolta:
+    # l'acquisizione passa dalla pagina React, controllata sopra con gli altri file frontend.
 
     if failures:
         print("Local Signer boundary check FAILED")

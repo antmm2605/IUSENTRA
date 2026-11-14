@@ -39,3 +39,15 @@ def test_si_apre_e_si_legge_mentre_un_altro_scrive(tmp_path):
     finally:
         scrittore.execute("ROLLBACK")
         scrittore.close()
+
+
+def test_connessione_del_registro_chiusa_dopo_il_giro(tmp_path):
+    import pytest
+
+    percorso = tmp_path / "registro_letture.db"
+    for sola_lettura in (False, True):
+        registro = RegistroLetture(percorso, read_only=sola_lettura)
+        with registro.connection() as conn:
+            assert conn.execute("SELECT COUNT(*) FROM letture").fetchone()[0] == 0
+        with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+            conn.execute("SELECT 1")

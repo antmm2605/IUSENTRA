@@ -36,13 +36,16 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
         if not allowed("fascicoli.scrivi") or not allowed("fascicoli.leggi"):
             return jsonify(ok=False, errore="Operazione non autorizzata."), 403
         body = request.get_json(silent=True)
-        if not isinstance(body, dict) or set(body) not in ({"titolo", "command_id", "html"}, {"titolo", "command_id", "html", "preparazione_id"}):
+        if not isinstance(body, dict) or set(body) not in ({"titolo", "command_id", "html"}, {"titolo", "command_id", "html", "preparazione_id"}, {"titolo", "command_id", "html", "termine_note"}):
             return jsonify(ok=False, errore="Richiesta non valida."), 400
         preparation_id = body.get("preparazione_id")
         if "preparazione_id" in body and (not isinstance(preparation_id, str) or not preparation_id):
             return jsonify(ok=False, errore="Preparazione non valida."), 400
         if preparation_id and (not allowed("agenda.leggi") or not allowed("agenda.scrivi")):
             return jsonify(ok=False, errore="Operazione non autorizzata."), 403
+        termine_note = body.get("termine_note")
+        if "termine_note" in body and (not isinstance(termine_note, str) or not re.fullmatch(r"\d{2}/\d{2}/\d{4}", termine_note)):
+            return jsonify(ok=False, errore="Termine delle note non valido."), 400
         title = body.get("titolo")
         try:
             command = str(UUID(body.get("command_id")))
@@ -67,6 +70,19 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
                 matter = repository.get(id_fasc)
                 if matter is None:
                     return jsonify(ok=False, errore="Fascicolo non trovato."), 404
+                marker_note = ""
+                if termine_note:
+                    marker_note = "bozza-note-127ter:" + termine_note
+                    collegate = [doc for doc in matter.documenti if marker_note in (doc.tags or [])]
+                    if len(collegate) > 1:
+                        return jsonify(ok=False, errore="Più bozze collegate a questo termine."), 409
+                    if collegate:
+                        documento = collegate[0]
+                        return jsonify(ok=True, document_id=documento.id, url=f"/fascicoli/{id_fasc}/documenti/{documento.id}/editor"), 201
+                    from web.services.react_template_studio_bridge import _campi_bozza_note
+
+                    if not _campi_bozza_note(id_fasc, "builtin-tmp-civ-012", termine_note):
+                        return jsonify(ok=False, errore="Il termine della bozza è cambiato o non è verificabile. Riapri la guida."), 409
                 preparation_marker = ""
                 if preparation_id:
                     from web.services.preparazione_udienza_verbale import source, marker as source_marker, validate_content
@@ -97,7 +113,7 @@ def register_editor_new_document_routes(app, *, get_fascicoli, audit, encrypt_do
                         id_fasc, filename, TipoDocumento.ALLEGATO, encrypt_doc(raw),
                         caricato_da=g.utente_corrente.username, fonte_documento="REDAZIONE_STUDIO",
                         note="Documento creato nell’editor professionale dello studio.",
-                        tags=["bozza-editor", marker, fingerprint, *([preparation_marker] if preparation_marker else [])], nome_originale=filename,
+                        tags=["bozza-editor", marker, fingerprint, *filter(None, (preparation_marker, marker_note))], nome_originale=filename,
                         hash_contenuto_sha256=hashlib.sha256(raw).hexdigest(), salvataggio_mirato=True,
                     )
                 audit("fascicoli.documento.editor_nuovo", "fascicolo", id_fasc, dettagli=f"doc {document.id}; comando {command}; ripetizione {bool(previous)}")

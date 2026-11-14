@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from functools import wraps
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, request, url_for
 
-from pct.studio_site import BLOCK_TYPES, WEEKDAY_LABELS, normalize_hex_color
-from pct.studio_site_blocks import block_presets
+from pct.studio_site import normalize_hex_color
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.studio_site_runtime import (
     ALLOWED_SITE_IMAGE_EXTENSIONS,
@@ -35,10 +34,6 @@ def site_admin_required(fn):
 
 def _site_id() -> int:
     return int(get_site_for_current_tenant()["id"])
-
-
-def _legacy_requested() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _redirect_dashboard(anchor: str = ""):
@@ -110,11 +105,8 @@ def _booking_rule_payload_from_form() -> dict[str, object]:
 @studio_site.get("/")
 @site_admin_required
 def dashboard():
-    if not _legacy_requested():
-        build_studio_site_dashboard_payload()
-        return render_react_shell_response("sito-studio")
-    payload = build_studio_site_dashboard_payload()
-    return render_template("studio_site/dashboard.html", payload=payload, weekday_labels=WEEKDAY_LABELS)
+    build_studio_site_dashboard_payload()
+    return render_react_shell_response("sito-studio")
 
 
 @studio_site.get("/api/slot-disponibili")
@@ -130,7 +122,8 @@ def slots_api():
 @studio_site.get("/impostazioni")
 @site_admin_required
 def settings_form():
-    return render_template("studio_site/settings_form.html", site=get_site_for_current_tenant())
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response("sito-studio/impostazioni")
 
 
 @studio_site.post("/impostazioni")
@@ -173,14 +166,14 @@ def save_settings():
         "accessibility_statement_url": request.form.get("accessibility_statement_url", ""),
         "legal_disclaimer": request.form.get("legal_disclaimer", ""),
     }
-    updated = repo.save_site(int(site["id"]), payload)
+    repo.save_site(int(site["id"]), payload)
     audit_studio_site_action(
         "sito_studio.aggiorna_impostazioni",
         resource_id=str(site["id"]),
         details=f"{site_admin_identity_or_403().username} ha aggiornato le impostazioni del sito studio.",
     )
     flash("Impostazioni sito studio aggiornate.", "success")
-    return render_template("studio_site/settings_form.html", site=updated)
+    return redirect(url_for("studio_site.settings_form"))
 
 
 @studio_site.post("/assets")
@@ -217,16 +210,8 @@ def _render_content_form(
     item: dict | None = None,
     item_type: str = "page",
 ):
-    return render_template(
-        "studio_site/content_form.html",
-        mode=mode,
-        title=title,
-        endpoint=endpoint,
-        item=item or {},
-        item_type=item_type,
-        block_types=BLOCK_TYPES,
-        block_presets=block_presets(),
-    )
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response(request.path.strip("/"))
 
 
 @studio_site.get("/pagine/nuova")
@@ -342,19 +327,7 @@ def create_article():
 @studio_site.get("/articoli/<int:article_id>/modifica")
 @site_admin_required
 def edit_article_form(article_id: int):
-    if not _legacy_requested():
-        return render_react_shell_response(f"sito-studio/articoli/{article_id}/modifica")
-    item = studio_site_repository().get_article(_site_id(), article_id)
-    if item is None:
-        flash("Articolo non trovato.", "warning")
-        return _redirect_dashboard("articoli")
-    return _render_content_form(
-        mode="edit",
-        title="Modifica articolo",
-        endpoint=url_for("studio_site.update_article", article_id=article_id),
-        item=item,
-        item_type="article",
-    )
+    return render_react_shell_response(f"sito-studio/articoli/{article_id}/modifica")
 
 
 @studio_site.post("/articoli/<int:article_id>/modifica")
@@ -391,15 +364,8 @@ def delete_article(article_id: int):
 
 
 def _render_collection_form(*, title: str, endpoint: str, item: dict | None, item_type: str):
-    return render_template(
-        "studio_site/collection_form.html",
-        title=title,
-        endpoint=endpoint,
-        item=item or {},
-        item_type=item_type,
-        weekday_labels=WEEKDAY_LABELS,
-        offices=studio_site_repository().list_offices(_site_id()),
-    )
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response(request.path.strip("/"))
 
 
 @studio_site.get("/servizi/nuovo")
@@ -565,8 +531,8 @@ def delete_booking_rule(rule_id: int):
 @studio_site.get("/prenotazioni")
 @site_admin_required
 def booking_requests():
-    payload = build_studio_site_dashboard_payload()
-    return render_template("studio_site/booking_requests.html", payload=payload)
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response("sito-studio/contatti")
 
 
 @studio_site.post("/prenotazioni/<int:booking_request_id>/approva")
@@ -594,8 +560,8 @@ def reject_booking_request(booking_request_id: int):
 @studio_site.get("/contatti")
 @site_admin_required
 def contact_submissions():
-    payload = build_studio_site_dashboard_payload()
-    return render_template("studio_site/contact_submissions.html", payload=payload)
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response("sito-studio/contatti")
 
 
 @studio_site.post("/contatti/<int:submission_id>/crea-cliente")

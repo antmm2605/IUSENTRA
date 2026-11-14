@@ -1,5 +1,6 @@
 """Consegna finita per proiezioni nella outbox esistente, senza seconda coda."""
 from datetime import UTC, datetime, timedelta
+import sqlite3
 
 
 def deliver_pending(*, conn, finish, tenant, aggregate, event_type, project, limit=50,
@@ -35,6 +36,12 @@ def deliver_pending(*, conn, finish, tenant, aggregate, event_type, project, lim
             delivered += 1
         except Exception as exc:
             finish(conn, rollback=True)
+            if isinstance(exc, sqlite3.OperationalError) and (
+                getattr(exc, 'sqlite_errorcode', 0) & 0xff
+            ) in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                # Il prossimo giro recupera la consegna con lo stesso budget.
+                failed += 1
+                break
             failed += 1
             retry_at = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
             conn.execute('UPDATE transactional_outbox SET attempts=attempts+1,available_at=?, '

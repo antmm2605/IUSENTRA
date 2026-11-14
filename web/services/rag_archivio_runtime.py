@@ -74,8 +74,7 @@ def aggiorna_rag_da_archivio(fascicolo: Any, registro: Any) -> dict:
     report = indicizza_testi_archivio(fascicolo, repository, rag, registro, tenant)
     with rag._connect() as conn:
         pending = rag._pending_chunks_count(conn, practice_id=str(fascicolo.id))
-    if pending:
-        report["embeddings"] = rag.embed_all_pending_chunks(practice_id=str(fascicolo.id), batch_size=32, max_batches=128)
-        if report["embeddings"].get("status") != "ready" or report["embeddings"].get("pending_remaining"):
-            raise RuntimeError("Indicizzazione semantica del fascicolo non terminata")
+    # I frammenti sono già salvati in SQL. Il job di manutenzione AI consuma
+    # la stessa coda senza occupare il turno di Lettura mentre prepara i vettori.
+    report["embeddings"] = {"status": "pending" if pending else "ready", "pending_remaining": pending}
     return report

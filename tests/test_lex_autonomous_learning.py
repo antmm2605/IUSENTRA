@@ -147,6 +147,9 @@ def test_seconda_run_converge_senza_nuove_informazioni(tmp_path, _niente_rete):
     assert second.new_terms == 0
     assert second.new_citations == 0
     assert second.new_readings == 0
+    assert first.new_proposals_count == first.proposals_count > 0
+    assert second.new_proposals_count == 0
+    assert second.proposals_count == first.proposals_count
 
 
 def test_max_runtime_ferma_il_ciclo(tmp_path, _niente_rete):

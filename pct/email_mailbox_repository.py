@@ -377,6 +377,29 @@ class EmailMailboxRepository:
             self.original = deepcopy(records)
         return records
 
+    def load_by_references(self, message_keys, message_headers):
+        """Legge solo i messaggi già collegati al fascicolo dal registro PEC."""
+        self._assert_initialized()
+        keys = sorted({str(value).strip() for value in message_keys if value})
+        headers = sorted({str(value).strip() for value in message_headers if value})
+        header = (
+            "trim(CAST(payload_json AS JSON)->>'message_id')"
+            if getattr(self.db, "backend_kind", "") == "postgresql"
+            else "trim(json_extract(payload_json, '$.message_id'))"
+        )
+        records = {}
+        for column, values in (("message_key", keys), (header, headers)):
+            for offset in range(0, len(values), 400):
+                batch = values[offset:offset + 400]
+                slots = ",".join("?" for _ in batch)
+                rows = self.db.conn.execute(
+                    "SELECT message_key,payload_json FROM email_mailbox_records "
+                    f"WHERE tenant_key=? AND mailbox_kind=? AND {column} IN ({slots})",
+                    (self.tenant, self.kind, *batch),
+                ).fetchall()
+                records.update((str(row[0]), json.loads(row[1])) for row in rows)
+        return _validate(records)
+
     def save(self, records, *, actor_key='system', action='save', reload_records=True, required_folder=None):
         records = _validate(records)
         if self.original is None:

@@ -623,6 +623,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.solo_esistente and IndiceVettoriale.apri(args.out) is None:
         print(f"Indice vettoriale assente in {args.out}: aggiornamento saltato (si crea con il pacchetto o a mano).")
+        print(json.dumps({"status": "saltato", "reason": "indice_assente"}))
         return 0
     # costruzione lunga: piu' tentativi e attese piu' lunghe (Ollama puo' ricaricare il modello dopo un errore)
     embedder = OllamaEmbedder(
@@ -634,6 +635,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Ollama non raggiungibile su {embedder.url} con il modello {embedder.modello}: {exc}")
         if args.se_disponibile:
             print("Indice vettoriale non aggiornato: la ricerca resta lessicale (FTS) e riprovera' al prossimo giro.")
+            print(json.dumps({"status": "saltato", "reason": "modello_non_disponibile"}))
             return 0
         return 3
     conn = sqlite3.connect(args.db)
@@ -652,7 +654,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     except IndiceIncompatibile as exc:
         print(f"\n{exc}")
-        return 0 if args.se_disponibile else 4
+        if args.se_disponibile:
+            print(json.dumps({"status": "saltato", "reason": "indice_incompatibile"}))
+            return 0
+        return 4
     except KeyboardInterrupt:
         print("\nInterrotto: rilancia lo stesso comando per riprendere dall'ultimo blocco salvato.")
         return 130

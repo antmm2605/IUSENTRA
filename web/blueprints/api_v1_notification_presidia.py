@@ -6,8 +6,9 @@ from typing import Any, Mapping
 
 from flask import Blueprint, Response, jsonify, request
 
-from web.blueprints.api_v1_react import _richiedi_auth
+from web.blueprints.api_v1_react import _read_pec_source_message_blob, _richiedi_auth
 from web.services.notification_presidia_payloads import (
+    assert_recipient_pec_original,
     build_evidence_payload,
     build_presidia_list_payload,
     build_presidio_detail_payload,
@@ -141,6 +142,25 @@ def get_evidence_content(presidio_id: str, evidence_id: str):
     if str(request.args.get("download") or "") == "1":
         headers["Content-Disposition"] = f'attachment; filename="evidenza-{evidence_id}.txt"'
     return Response(text, headers=headers, mimetype="text/plain; charset=utf-8")
+
+
+@api_v1_notification_presidia.get("/presidi/<presidio_id>/originale-pec/<message_id>")
+@_richiedi_auth
+def download_pec_original(presidio_id: str, message_id: str):
+    repo, error = _repo_or_error()
+    if error:
+        return error
+    try:
+        assert_recipient_pec_original(repo, presidio_id, message_id)
+        raw = _read_pec_source_message_blob(message_id)
+        if not raw:
+            raise KeyError("Originale PEC non disponibile.")
+    except Exception as exc:
+        return _handle_error(exc)
+    return Response(raw, mimetype="message/rfc822", headers={
+        "Content-Disposition": "attachment; filename=originale-pec.eml",
+        "Cache-Control": "private, no-store",
+    })
 
 
 @api_v1_notification_presidia.post("/presidi/<path:presidio_id>/<mutation>")

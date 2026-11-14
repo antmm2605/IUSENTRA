@@ -85,6 +85,40 @@ def _parse_iso(value: Any) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _esiti_notturni_presidi(registry_repo: Any, ora: datetime, configured: Mapping[str, Any]) -> dict[str, Any]:
+    """Consulta il passaggio realmente eseguito quando il cron è delegato alla sequenza."""
+    if configured.get("sequenza_notturna", {}).get("enabled") not in (True, 1, "1"):
+        return {}
+    if os.getenv("PCT_SEQUENZA_NOTTURNA", "1").strip().lower() in {"0", "false", "no", "off"}:
+        return {}
+    path = getattr(registry_repo, "db_path", None)
+    if not path:
+        return {}
+    from pct.scheduler_notturno import finestra
+    from pct.scheduler_notturno.sequenza import LAVORI_FREQUENTI_PESANTI
+
+    if not finestra.in_finestra(ora):
+        return {}
+    sera = finestra.sera_della_notte(ora).isoformat()
+    with closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True, timeout=5)) as conn:
+        conn.row_factory = sqlite3.Row
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='notte_passi'").fetchone():
+            return {}
+        righe = conn.execute(
+            "SELECT lavoro,esito,avvio,fine,messaggio FROM notte_passi WHERE sera=? ORDER BY indice",
+            (sera,),
+        )
+        esiti = {"completato": "completed", "fallito": "failed", "rinviato": "missed"}
+        return {
+            row["lavoro"]: {
+                "status": esiti[row["esito"]], "finished_at": row["fine"], "started_at": row["avvio"],
+                "message": row["messaggio"], "sequenza": True,
+            }
+            for row in righe
+            if row["lavoro"] in LAVORI_FREQUENTI_PESANTI and row["esito"] in esiti
+        }
+
+
 def presidio_heartbeat(
     registry_repo: Any,
     *,
@@ -105,6 +139,7 @@ def presidio_heartbeat(
         latest: Mapping[str, Any] = registry_repo.latest_runs_by_job() or {}
         list_jobs = getattr(registry_repo, "list_jobs", None)
         configured = {row["job_id"]: row for row in list_jobs()} if callable(list_jobs) else {}
+        latest = {**latest, **_esiti_notturni_presidi(registry_repo, adesso, configured)}
     except Exception as exc:
         return {
             "ok": False,
@@ -133,7 +168,7 @@ def presidio_heartbeat(
             problema = f"ultima esecuzione: {status}"
         elif eta_minuti is None:
             problema = "ultima esecuzione senza data registrata"
-        elif eta_minuti > tolleranza_minuti:
+        elif not run.get("sequenza") and eta_minuti > tolleranza_minuti:
             problema = f"ultima esecuzione {eta_minuti} minuti fa (tolleranza {tolleranza_minuti})"
         else:
             problema = ""
@@ -156,7 +191,8 @@ def presidio_heartbeat(
                 "problem": problema,
                 "message": str(run.get("message") or ""),
                 "error": str(run.get("error_message") or ""),
-                "source": f"registro pianificazioni — ultima esecuzione del job {job_id}",
+                "source": "registro SQL della sequenza notturna" if run.get("sequenza")
+                          else f"registro pianificazioni — ultima esecuzione del job {job_id}",
             }
         )
 

@@ -354,7 +354,7 @@ def build_regia_payload(repository: PracticeEngineRepository, **argomenti: Any) 
     salvataggio = getattr(repository, "salvataggio_unico", None)
     if not callable(salvataggio):
         return _build_regia_payload(repository, **argomenti)
-    with salvataggio(_text(getattr(argomenti.get("fascicolo"), "id", ""))):
+    with salvataggio(_text(getattr(argomenti.get("fascicolo"), "id", "")), confronta_contenuto=True):
         return _build_regia_payload(repository, **argomenti)
 
 

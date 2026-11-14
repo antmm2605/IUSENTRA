@@ -39,13 +39,17 @@ def comunicazioni_deposito_sentenza(db_path: Path, *, oggi: date) -> list[dict[s
     try:
         righe = conn.execute(
             """
+            WITH eventi AS (
+                SELECT DISTINCT tenant_id, message_id FROM pec_legal_events
+                WHERE primary_event = 'deposito_sentenza'
+            )
             SELECT m.id, m.linked_fascicolo_id, m.metadata_json,
                    (SELECT p.parsed_json FROM pec_parsed_versions p WHERE p.message_id = m.id
                     ORDER BY p.version DESC LIMIT 1) AS parsed_json
-            FROM pec_messages m
+            FROM eventi e CROSS JOIN pec_messages m
+            ON m.id = e.message_id AND m.tenant_id = e.tenant_id
             WHERE TRIM(COALESCE(m.linked_fascicolo_id, '')) <> '' AND m.received_at >= ?
-              AND EXISTS (SELECT 1 FROM pec_legal_events e WHERE e.message_id = m.id AND e.tenant_id = m.tenant_id
-                          AND e.primary_event = 'deposito_sentenza')
+            ORDER BY m.id
             """,
             ((oggi - timedelta(days=FINESTRA_GIORNI)).isoformat(),),
         ).fetchall()

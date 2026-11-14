@@ -6175,3 +6175,9 @@ rilascio `2.386.1` costituiscono il presidio anti-regressione.
 
 ## 30/09/2026 — Campi dei dodici atti SICID
 Correzione limitata a CCI, Istanza manuale e presentazione del sub-procedimento facoltativo. Fonte XSD, confronto baseline e prove documentati in [campi-deposito-sicid-20260930.md](campi-deposito-sicid-20260930.md). Nessuna modifica a generatori XML, firme o PEC.
+
+## 11/11/2026 — Verifica trasversale, deposito e ricevute
+
+L'audit locale ha interrogato le route Telematico, Deposito e PEC con sette ruoli in copie isolate. Chromium ha aperto Telematico nelle due copie. Le prove HTTP e browser hanno usato dati fittizi. Le prove documentali precedenti sui fascicoli reali lasciano aperti G-05 per la consegna della notifica della sentenza e G-15 per l'esito positivo del deposito. Il rapporto di fase conserva la provenienza documentale e i riferimenti normativi già esaminati. In questa verifica trasversale non sono state introdotte nuove regole giuridiche o cambiamenti al codice.
+
+La prova materiale di firma con dispositivo fisico, deposito e acquisizione dell'esito originale resta aperta per il collaudo complessivo. L'inventario operativo collega ingressi, codice, controlli, database e prove locali. I risultati di navigazione e i test isolati misurano il rispettivo perimetro di prova.

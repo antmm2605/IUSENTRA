@@ -8,6 +8,16 @@ from web.app import create_app
 from web.services.storage_runtime import get_request_studio_db
 
 
+def _azione_piattaforma(client, azione: str, params: dict, values: dict) -> dict:
+    """Azione della pagina React «Utenti di piattaforma» (le stesse dei moduli storici)."""
+    risposta = client.post(
+        f"/api/v1/ui/piattaforma/utenti-piattaforma/azioni/{azione}",
+        json={"params": params, "values": values},
+    )
+    assert risposta.status_code == 200, risposta.get_data(as_text=True)
+    return risposta.get_json()
+
+
 def test_studio_legale_legacy_db_config_string_non_rompe_database():
     studio = StudioLegale.from_dict(
         {
@@ -60,7 +70,7 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
         data={"username": "admin", "password": "superpass123"},
         follow_redirects=False,
     )
-    resp = client.get("/admin/studi/antonella-mammola?_legacy=1")
+    resp = client.get("/api/v1/ui/piattaforma/studio?slug=antonella-mammola")
 
     assert resp.status_code == 200
     assert b"Antonella Mammola" in resp.data
@@ -112,7 +122,7 @@ def test_admin_dettaglio_studio_non_va_in_500_se_backend_studio_non_e_disponibil
         data={"username": "admin", "password": "superpass123"},
         follow_redirects=False,
     )
-    resp = client.get("/admin/studi/antonella-mammola?_legacy=1")
+    resp = client.get("/api/v1/ui/piattaforma/studio?slug=antonella-mammola")
 
     assert resp.status_code == 200
     assert b"Antonella Mammola" in resp.data
@@ -268,7 +278,7 @@ def test_admin_dettaglio_studio_mostra_storage_root_canonico_e_non_slug_legacy(t
         data={"username": "admin", "password": "superpass123"},
         follow_redirects=False,
     )
-    resp = client.get("/admin/studi/antonella-mammola?_legacy=1")
+    resp = client.get("/api/v1/ui/piattaforma/studio?slug=antonella-mammola")
 
     html = resp.get_data(as_text=True)
 
@@ -330,11 +340,10 @@ def test_superadmin_ha_superficie_piattaforma_separata_dagli_utenti_studio(tmp_p
     )
     assert login.status_code == 302
 
-    response = client.get("/admin/utenti-piattaforma?_legacy=1")
+    response = client.get("/api/v1/ui/piattaforma/utenti-piattaforma")
     html = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Account piattaforma" in html
     assert "admin" in html
     assert "adminstudio" not in html
 
@@ -396,11 +405,10 @@ def test_superadmin_globale_ignora_ruolo_stale_nel_sql_locale(tmp_path):
     )
     assert login.status_code == 302
 
-    response = client.get("/admin/utenti-piattaforma?_legacy=1")
+    response = client.get("/api/v1/ui/piattaforma/utenti-piattaforma")
     html = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Account piattaforma" in html
     assert "admin" in html
     assert "adminstudio" not in html
 
@@ -566,13 +574,9 @@ def test_reset_password_piattaforma_aggiorna_l_unico_superadmin(tmp_path):
     superadmin = platform_users.get_by_username("admin")
     assert superadmin is not None
 
-    response = client.post(
-        f"/admin/utenti-piattaforma/{superadmin.id}/reset-password",
-        data={"nuova_password": "NuovaPiattaforma123!"},
-        follow_redirects=False,
-    )
+    response = _azione_piattaforma(client, "reset-password", {"uid": superadmin.id}, {"nuova_password": "NuovaPiattaforma123!"})
 
-    assert response.status_code == 302
+    assert response["ok"] is True
     refreshed_users = GestioneUtenti(
         db_path=app.config["AUTH_DB"],
         audit_path=app.config["AUDIT_DB"],
@@ -623,20 +627,16 @@ def test_superadmin_puo_modificare_un_account_globale_dalla_piattaforma(tmp_path
         follow_redirects=False,
     )
     assert login.status_code == 302
-    page = client.get("/admin/utenti-piattaforma?_legacy=1")
+    page = client.get("/api/v1/ui/piattaforma/utenti-piattaforma")
     assert page.status_code == 200
 
-    response = client.post(
-        f"/admin/utenti-piattaforma/{utente_globale.id}/modifica",
-        data={
+    response = _azione_piattaforma(client, "modifica", {"uid": utente_globale.id}, {
             "nome_completo": "Avv. Roberto Montagnese",
             "email": "roberto@iusentra.it",
             "attivo": "1",
-        },
-        follow_redirects=False,
-    )
+        })
 
-    assert response.status_code == 302
+    assert response["ok"] is True
     refreshed = GestioneUtenti(
         db_path=app.config["AUTH_DB"],
         audit_path=app.config["AUDIT_DB"],
@@ -672,23 +672,19 @@ def test_superadmin_puo_generare_un_nuovo_account_piattaforma_e_trasferire_il_ru
         follow_redirects=False,
     )
     assert login.status_code == 302
-    page = client.get("/admin/utenti-piattaforma?_legacy=1")
+    page = client.get("/api/v1/ui/piattaforma/utenti-piattaforma")
     assert page.status_code == 200
 
-    response = client.post(
-        "/admin/utenti-piattaforma/genera-superadmin",
-        data={
+    response = _azione_piattaforma(client, "genera-superadmin", {}, {
             "username": "antmm2605",
             "password": "PasswordNuova123!",
             "email": "antmm2605@gmail.com",
             "nome_completo": "Mm",
             "ruolo_superadmin_precedente": "AMMINISTRATORE",
-        },
-        follow_redirects=False,
-    )
+        })
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/login")
+    assert response["ok"] is True
+    assert response["navigate"].endswith("/login")
 
     refreshed_users = GestioneUtenti(
         db_path=app.config["AUTH_DB"],
@@ -746,17 +742,13 @@ def test_superadmin_puo_trasferire_il_ruolo_a_un_account_globale_esistente(tmp_p
         follow_redirects=False,
     )
     assert login.status_code == 302
-    page = client.get("/admin/utenti-piattaforma?_legacy=1")
+    page = client.get("/api/v1/ui/piattaforma/utenti-piattaforma")
     assert page.status_code == 200
 
-    response = client.post(
-        f"/admin/utenti-piattaforma/{target.id}/trasferisci-superadmin",
-        data={"ruolo_superadmin_precedente": "AVVOCATO"},
-        follow_redirects=False,
-    )
+    response = _azione_piattaforma(client, "trasferisci-superadmin", {"uid": target.id}, {"ruolo_superadmin_precedente": "AVVOCATO"})
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/login")
+    assert response["ok"] is True
+    assert response["navigate"].endswith("/login")
 
     refreshed_users = GestioneUtenti(
         db_path=app.config["AUTH_DB"],
@@ -810,7 +802,7 @@ def test_superadmin_piattaforma_viene_reindirizzato_al_pannello_admin_fuori_dall
     assert login.status_code == 302
 
     response = client.get("/", follow_redirects=False)
-    manutenzione = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=False)
+    manutenzione = client.get("/api/v1/ui/piattaforma/server-manutenzione", follow_redirects=False)
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/admin/")
@@ -877,23 +869,18 @@ def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):
     )
     assert login.status_code == 302
 
-    page = client.get("/admin/utenti-piattaforma?_legacy=1")
+    page = client.get("/api/v1/ui/piattaforma/utenti-piattaforma")
     html = page.get_data(as_text=True)
 
     assert page.status_code == 200
-    assert "Sposta nello studio" in html
+    assert "sposta-nello-studio" in html
 
-    response = client.post(
-        f"/admin/utenti-piattaforma/{utente_globale.id}/sposta-nello-studio",
-        data={
-            "tenant_slug": "antonella-mammola",
+    response = _azione_piattaforma(client, "sposta-nello-studio", {"uid": utente_globale.id}, {
+            "studio_destinazione": "antonella-mammola",
             "ruolo": "AMMINISTRATORE",
-        },
-        follow_redirects=False,
-    )
+        })
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/utenti-piattaforma?_legacy=1")
+    assert response["ok"] is True
 
     refreshed_platform = GestioneUtenti(
         db_path=app.config["AUTH_DB"],

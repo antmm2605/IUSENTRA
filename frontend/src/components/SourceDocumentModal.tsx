@@ -57,14 +57,20 @@ export function sourceViewerHref(source: Pick<SourceDocument, 'href'>, preview =
   }
 }
 
+function isLettoreProvvedimenti(path: string): boolean {
+  return /^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(path)
+    || /^\/giurisprudenza\/corpus(?:\/pubblico)?\/\d+\/testo$/.test(path)
+    || /^\/giurisprudenza\/corpus\/\d+\/traduzioni\/[0-9a-f]{32}$/.test(path)
+    || /^\/giurisprudenza\/testo-ufficiale\/[A-Za-z0-9_-]+$/.test(path)
+}
+
 function sourceIframeSandbox(href: string): string {
   try {
     const parsed = new URL(href, window.location.origin)
     const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/'
-    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/sentenzeweb\/\d+(?:\/documenti\/\d+)?\/testo$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
-
-    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/corpus\/\d+\/testo$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
-    if (parsed.origin === window.location.origin && /^\/giurisprudenza\/corpus\/\d+\/traduzioni\/[0-9a-f]{32}$/.test(normalizedPath)) return 'allow-downloads allow-same-origin'
+    // Lettore React dei provvedimenti (LettoreSentenzaApp): script dell'applicazione e JSON dello stesso
+    // studio; il testo esterno resta testo (nodi React, JSON con < > & codificati), mai HTML interpretato.
+    if (parsed.origin === window.location.origin && isLettoreProvvedimenti(normalizedPath)) return 'allow-downloads allow-same-origin allow-scripts'
     // Solo HTML generato dal lettore a pagine; nessun contenuto PDF attivo.
     if (parsed.origin === window.location.origin && /^\/giurisprudenza\/corpus\/\d+\/documenti\/\d+\/pdf$/.test(normalizedPath) && parsed.searchParams.get('viewer') === 'mobile') return 'allow-downloads allow-same-origin allow-scripts'
 

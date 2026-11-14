@@ -1,46 +1,76 @@
 {
-  "generatedAt": "2026-05-09T15:07:53.814Z",
+  "generatedAt": "2026-11-11T15:35:08.361Z",
   "react": {
     "dependencies": {
-      "@fontsource-variable/geist": "^5.2.8",
-      "@vitejs/plugin-react": "^5.0.0",
-      "class-variance-authority": "^0.7.1",
-      "clsx": "^2.1.1",
-      "lucide-react": "^0.468.0",
-      "radix-ui": "^1.4.3",
-      "react": "^19.0.0",
-      "react-dom": "^19.0.0",
-      "shadcn": "^4.7.0",
-      "tailwind-merge": "^3.5.0",
-      "tw-animate-css": "^1.4.0",
-      "typescript": "^5.6.3",
-      "vite": "^6.4.1"
+      "@fontsource-variable/geist": "5.3.0",
+      "@iusentra/ui": "workspace:*",
+      "@vitejs/plugin-react": "6.1.0",
+      "autoprefixer": "10.5.4",
+      "class-variance-authority": "0.7.1",
+      "clsx": "2.1.1",
+      "lucide-react": "1.33.0",
+      "postcss": "8.5.26",
+      "radix-ui": "1.6.7",
+      "react": "19.2.8",
+      "react-dom": "19.2.8",
+      "shadcn": "4.22.0",
+      "tailwind-merge": "3.6.0",
+      "tailwindcss": "4.3.3",
+      "tw-animate-css": "1.4.0",
+      "typescript": "7.0.2",
+      "vite": "8.2.4"
     },
     "devDependencies": {
-      "@types/react": "^19.0.0",
-      "@types/react-dom": "^19.0.0",
-      "autoprefixer": "^10.4.20",
-      "postcss": "^8.4.49",
-      "tailwindcss": "^3.4.17"
+      "@storybook/addon-a11y": "10.6.2",
+      "@storybook/addon-docs": "10.6.2",
+      "@storybook/addon-vitest": "10.6.2",
+      "@storybook/react-vite": "10.6.2",
+      "@tailwindcss/vite": "4.3.3",
+      "@types/react": "19.2.18",
+      "@types/react-dom": "19.2.4",
+      "@typescript/typescript6": "6.0.2",
+      "@vitest/browser-playwright": "4.1.12",
+      "chromatic": "^18.5.0",
+      "playwright": "^1.62.1",
+      "storybook": "10.6.2",
+      "vitest": "4.1.12"
     },
     "scripts": {
       "dev": "vite --host 0.0.0.0 --port 5173",
-      "test": "node scripts/check-react-contracts.mjs",
+      "test": "python ../tools/build_pdf_editor_release.py --check && node --import ../tests/js/support/resolve_ts_extensionless.mjs --test ../tests/js/agenda_daylight_saving.test.mjs ../tests/js/campo_data.test.mjs ../tests/js/campo_data_guardia.test.mjs ../tests/js/formatting_date_italiane.test.mjs ../tests/js/agenda_actual_duration.test.mjs ../tests/js/utility_catalog.test.mjs ../tests/js/template_catalog_filters.test.mjs ../tests/js/studio_navigation.test.mjs ../tests/js/loading_activity.test.mjs ../tests/js/lazy_page_boundary.test.mjs ../tests/js/anagrafica_draft_ocr.test.mjs ../tests/js/document_capture.test.mjs ../tests/js/fascicolo_document_list.test.mjs ../tests/js/fascicolo_form_conflict.test.mjs ../tests/js/fascicoli_page_loading.test.mjs ../tests/js/agenda_fascicolo.test.mjs ../tests/js/pec_cancelleria_testo.test.mjs ../tests/js/economic_payment_commands.test.mjs ../tests/js/invoice_receipts_commands.test.mjs ../tests/js/deposit_correction.test.mjs ../tests/js/document_acquisition.test.mjs ../tests/js/lettura_fascicolo.test.mjs ../tests/js/letture_fascicolo.test.mjs ../tests/js/editor_recovery_commands.test.mjs ../tests/js/ocr_blocks.test.mjs ../tests/js/salvataggio_cliente.test.mjs ../tests/js/conversazione_portale.test.mjs ../tests/js/email_page_errors.test.mjs ../tests/js/mailbox_detail_errors.test.mjs ../tests/js/native_pdf_fonts.test.mjs ../tests/js/native_pdf_shapes.test.mjs ../tests/js/native_pdf_hosted.test.mjs ../tests/js/mailbox_operational_refresh.test.mjs ../tests/js/agenda_load_errors.test.mjs ../tests/js/quickorganizer_import.test.mjs ../tests/js/ordinary_email_send.test.mjs ../tests/js/agenda_deadline_context.test.mjs ../tests/js/mailbox_work_windows.test.mjs ../tests/js/mediazione_public_module.test.mjs ../tests/js/window_resize_bounds.test.mjs ../tests/js/document_work_window.test.mjs ../tests/js/viewer_request_recovery.test.mjs ../tests/js/pdf_reader_visible_text.test.mjs ../tests/js/reader_passo.test.mjs ../tests/js/source_work_windows.test.mjs ../tests/js/statistiche_load_errors.test.mjs ../tests/js/prima_nota_load_errors.test.mjs ../tests/js/studio_today.test.mjs ../tests/js/local_embedding_status.test.mjs ../tests/js/local_embedding_preparation_guard.test.mjs ../tests/js/operational_refresh_queue.test.mjs ../tests/js/ctu_table_errors.test.mjs ../tests/js/ctu_draft_refresh.test.mjs ../tests/js/ctu_command_recovery.test.mjs ../tests/js/preparazione_udienza_commands.test.mjs ../tests/js/scadenziario_load_errors.test.mjs ../tests/js/openga_progressive_search.test.mjs ../tests/js/normative_article_links.test.mjs ../tests/js/gazzetta_query.test.mjs && node --test --test-timeout=45000 ../tests/js/dependency_security.test.mjs && node scripts/check-hook-order.mjs && node scripts/check-react-contracts.mjs && node scripts/check-notifiche-legali-presidi.mjs && node ../scripts/react-migration/audit-ui-preset-sequence.mjs && node ../scripts/react-migration/check-design-system-governance.mjs && node scripts/check-app-v2-frontend.mjs && node scripts/check-studio-voice-assistant.mjs && node scripts/check-legal-skills.mjs && node scripts/check-storybook-page-coverage.mjs && python ../scripts/validate_ui_coverage.py",
+      "test:notifiche-legali-presidi": "node scripts/check-notifiche-legali-presidi.mjs",
+      "test:loading": "node --import ../tests/js/support/resolve_ts_extensionless.mjs --test ../tests/js/loading_activity.test.mjs",
+      "test:notifiche-legali-presidi:bundle": "node scripts/check-notifiche-legali-presidi-bundle.mjs",
+      "test:notifiche-legali-presidi:full": "npm run test:notifiche-legali-presidi && npm run build:vite && npm run test:notifiche-legali-presidi:bundle",
+      "test:app-v2": "node scripts/check-app-v2-frontend.mjs",
+      "test:ui-coverage": "python ../scripts/validate_ui_coverage.py",
       "typecheck": "tsc --noEmit",
-      "build": "tsc --noEmit && vite build",
+      "build": "tsc --noEmit && vite build && vite build --config vite.ssr.config.ts",
+      "build:ssr-sito": "vite build --config vite.ssr.config.ts",
       "build:vite": "vite build",
-      "preview": "vite preview --host 0.0.0.0 --port 4173"
+      "test:generated-sources": "node scripts/check-tailwind-generated-sources.mjs",
+      "preview": "vite preview --host 0.0.0.0 --port 4173",
+      "clean": "node -e \"const fs=require('node:fs'); for (const dir of ['dist','storybook-static']) fs.rmSync(dir,{recursive:true,force:true});\"",
+      "storybook": "storybook dev -p 6006 --host 0.0.0.0",
+      "build-storybook": "storybook build --output-dir storybook-static",
+      "test:storybook": "vitest run --project=storybook",
+      "chromatic": "chromatic --storybook-build-dir=storybook-static --exit-zero-on-changes",
+      "chromatic:changed": "chromatic --only-changed --storybook-build-dir=storybook-static --exit-zero-on-changes",
+      "test:anagrafica-draft-ocr": "node --import ../tests/js/support/resolve_ts_extensionless.mjs --test ../tests/js/anagrafica_draft_ocr.test.mjs"
     }
   },
   "gate": {
     "reactPrefixes": [
       "/",
+      "/contratti",
       "/agenda",
       "/applicazioni",
+      "/backup",
       "/cartelle-condivise",
       "/checklist",
       "/clienti",
       "/deposito/checklist",
+      "/editor-professionale",
       "/email",
       "/email-ordinaria",
       "/fatturazione",
@@ -49,8 +79,16 @@
       "/global-search",
       "/guida/firma-digitale",
       "/impostazioni",
+      "/importa-pratiche",
+      "/importa-pratiche-studio-telematico",
+      "/import/quickorganizer",
+      "/legal-skills",
       "/legal-intelligence",
+      "/lex-apprendimento",
+      "/procedure-completion",
       "/messaggi",
+      "/ricerca-legale",
+      "/notifiche-legali",
       "/notifiche",
       "/pat",
       "/pdp",
@@ -65,6 +103,7 @@
       "/privacy/registro",
       "/profili",
       "/redazione-atti",
+      "/regia-agentica",
       "/regia-operativa",
       "/registro-attivita",
       "/registro-gdpr",
@@ -72,14 +111,13 @@
       "/scadenziario",
       "/servizi-telematici",
       "/sigit",
-      "/sigp",
-      "/sigp-sync",
       "/sincronizzazione-calendari",
       "/soggetti",
       "/sito-studio",
       "/statistiche",
       "/strumenti-legali",
       "/strumenti-operativi",
+      "/strumenti-documentali",
       "/studio",
       "/tariffario",
       "/telematico",
@@ -88,53 +126,69 @@
       "/tribunali",
       "/utenti",
       "/wizard-pro",
-      "/workspace-intelligente"
+      "/workspace-intelligente",
+      "/workflow-agents"
     ],
     "reactExact": [
       "/admin/database",
-      "/admin/osservabilita",
-      "/admin/osservabilita",
       "/amministrazione",
       "/audit",
       "/backup",
       "/cerca",
       "/compensi-forensi",
-      "/database",
+      "/documenti",
+      "/editor-professionale",
       "/fatturazione",
       "/fatturazione/nuova",
       "/giurisprudenza",
-      "/giurisprudenza/nuova",
       "/impostazioni/pagamenti",
       "/impostazioni",
       "/impostazioni-studio",
       "/incassi-pagamenti",
+      "/legal-skills",
+      "/lex-operativo",
+      "/procedure-completion",
       "/legal-intelligence",
+      "/lex-apprendimento",
       "/legal-intelligence/mediazione",
       "/legal-intelligence/news",
+      "/legal-intelligence/ricerca",
       "/notifiche",
+      "/notifiche-legali",
       "/notifiche-whatsapp",
+      "/oggi",
       "/privacy/registro",
       "/privacy/registro/nuovo",
       "/preventivi",
       "/preventivi/nuovo",
       "/preventivi/conferimento/nuovo",
+      "/profilo",
       "/profili",
       "/redazione-atti",
+      "/regia-agentica",
       "/registro-attivita",
       "/ricerca-legale",
-      "/servizi-telematici",
+      "/ricerca-legale/codici",
+      "/ricerca-legale/gazzetta-ufficiale",
+      "/ricerca-legale/mediazione",
+      "/ricerca-legale/news",
+      "/ricerca-legale/ricerca",
+      "/ricerca-legale/schede-atti",
       "/sito-studio",
       "/sito-studio/builder",
       "/sito-studio/contatti",
+      "/sito-studio/redazione-ai",
       "/statistiche",
       "/studio",
       "/strumenti-legali",
       "/strumenti-operativi",
+      "/strumenti-documentali",
       "/template-atti",
       "/template-atti/catalogo",
-      "/template-atti/nuovo",
       "/utenti",
-      "/utenti/nuovo"
+      "/utenti/nuovo",
+      "/workflow-agents",
+      "/workflow-agents/approvals"
     ],
     "excludedPrefixes": [
       "/api",
@@ -153,10 +207,8 @@
       "/webhooks/"
     ],
     "legacyOperationalPrefixes": [
-      "/admin/osservabilita",
       "/applicazioni",
       "/checklist",
-      "/database",
       "/guida/firma-digitale",
       "/pat",
       "/pdp",
@@ -164,195 +216,12 @@
       "/portali",
       "/servizi-telematici",
       "/sigit",
-      "/sigp",
-      "/sigp-sync",
       "/telematico",
       "/tribunali"
     ]
   },
   "app": {
-    "lazyComponents": [
-      {
-        "name": "AgendaPage",
-        "importPath": "./components/AgendaPage"
-      },
-      {
-        "name": "NuovoAppuntamentoPage",
-        "importPath": "./components/NuovoAppuntamentoPage"
-      },
-      {
-        "name": "RicercaStudioPage",
-        "importPath": "./components/RicercaStudioPage"
-      },
-      {
-        "name": "FascicoliPage",
-        "importPath": "./components/FascicoliPage"
-      },
-      {
-        "name": "DocumentEditorPage",
-        "importPath": "./components/DocumentEditorPage"
-      },
-      {
-        "name": "AnagraficaClientiPage",
-        "importPath": "./components/AnagraficaClientiPage"
-      },
-      {
-        "name": "CartellaClientePage",
-        "importPath": "./components/CartellaClientePage"
-      },
-      {
-        "name": "NuovoClientePage",
-        "importPath": "./components/NuovoClientePage"
-      },
-      {
-        "name": "SoggettiPage",
-        "importPath": "./components/SoggettiPage"
-      },
-      {
-        "name": "EmailPecPage",
-        "importPath": "./components/EmailPecPage"
-      },
-      {
-        "name": "EmailOrdinariaPage",
-        "importPath": "./components/EmailPecPage"
-      },
-      {
-        "name": "EmailComposePage",
-        "importPath": "./components/EmailPecPage"
-      },
-      {
-        "name": "MessaggiPage",
-        "importPath": "./components/MessaggiPage"
-      },
-      {
-        "name": "NuovoMessaggioPage",
-        "importPath": "./components/MessaggiPage"
-      },
-      {
-        "name": "ScadenziarioPage",
-        "importPath": "./components/ScadenziarioPage"
-      },
-      {
-        "name": "NuovaScadenzaPage",
-        "importPath": "./components/NuovaScadenzaPage"
-      },
-      {
-        "name": "WizardProPage",
-        "importPath": "./components/WizardProPage"
-      },
-      {
-        "name": "WizardProStepPage",
-        "importPath": "./components/WizardProStepPage"
-      },
-      {
-        "name": "WizardProCompletePage",
-        "importPath": "./components/WizardProCompletePage"
-      },
-      {
-        "name": "TimesheetPage",
-        "importPath": "./components/TimesheetPage"
-      },
-      {
-        "name": "CartelleCondivisePage",
-        "importPath": "./components/CartelleCondivisePage"
-      },
-      {
-        "name": "TelematicoPage",
-        "importPath": "./components/TelematicoPage"
-      },
-      {
-        "name": "TelematicoSurfacePage",
-        "importPath": "./components/TelematicoSurfacePage"
-      },
-      {
-        "name": "StudioModulePage",
-        "importPath": "./components/StudioModulePage"
-      },
-      {
-        "name": "PrivacyRegistroPage",
-        "importPath": "./components/PrivacyRegistroPage"
-      },
-      {
-        "name": "AdminDatabasePage",
-        "importPath": "./components/AdminDatabasePage"
-      },
-      {
-        "name": "StatistichePage",
-        "importPath": "./components/StatistichePage"
-      },
-      {
-        "name": "ImpostazioniPage",
-        "importPath": "./components/ImpostazioniPage"
-      },
-      {
-        "name": "AuditPage",
-        "importPath": "./components/AuditPage"
-      },
-      {
-        "name": "UtentiPage",
-        "importPath": "./components/UtentiPage"
-      },
-      {
-        "name": "ProfiliPage",
-        "importPath": "./components/ProfiliPage"
-      },
-      {
-        "name": "BackupPage",
-        "importPath": "./components/BackupPage"
-      },
-      {
-        "name": "SitoStudioPage",
-        "importPath": "./components/SitoStudioPage"
-      },
-      {
-        "name": "StudioPage",
-        "importPath": "./components/StudioPage"
-      },
-      {
-        "name": "AmministrazionePage",
-        "importPath": "./components/AmministrazionePage"
-      },
-      {
-        "name": "FatturazionePage",
-        "importPath": "./components/FatturazionePage"
-      },
-      {
-        "name": "IncassiPagamentiPage",
-        "importPath": "./components/IncassiPagamentiPage"
-      },
-      {
-        "name": "PreventiviPage",
-        "importPath": "./components/PreventiviPage"
-      },
-      {
-        "name": "PreventivoWizardPage",
-        "importPath": "./components/PreventivoWizardPage"
-      },
-      {
-        "name": "CompensiForensiPage",
-        "importPath": "./components/CompensiForensiPage"
-      },
-      {
-        "name": "TariffarioPage",
-        "importPath": "./components/TariffarioPage"
-      },
-      {
-        "name": "TemplateAttiPage",
-        "importPath": "./components/TemplateAttiPage"
-      },
-      {
-        "name": "RedazioneAttiPage",
-        "importPath": "./components/RedazioneAttiPage"
-      },
-      {
-        "name": "GiurisprudenzaPage",
-        "importPath": "./components/GiurisprudenzaPage"
-      },
-      {
-        "name": "LegalIntelligencePage",
-        "importPath": "./components/LegalIntelligencePage"
-      }
-    ],
+    "lazyComponents": [],
     "routeChecks": [
       "isNewAppointment",
       "isAppointmentEdit",
@@ -361,25 +230,36 @@
       "isSearchPage",
       "isNewAppointmentPage",
       "isAppointmentEditPage",
+      "isAgendaImportPage",
       "isAgendaPage",
       "isRegiaPage",
+      "isChecklistAttiPage",
+      "isContrattiPage",
+      "isApplicazionePage",
+      "isNewDocumentEditorPage",
       "isDocumentEditorPage",
       "isFascicoliPage",
       "isNewClientPage",
       "isNewSubjectPage",
       "isClientEditPage",
       "isSubjectEditPage",
+      "isClientCollaboratorsPage",
       "isClientFolderPage",
       "isClientiPage",
+      "isCrmPage",
+      "isPrimaNotaPage",
+      "isRecuperoCreditiPage",
       "isSoggettiPage",
       "isEmailComposePage",
       "isEmailOrdinariaComposePage",
+      "isNotificheLegaliPage",
       "isEmailPage",
       "isEmailOrdinariaPage",
       "isNewMessagePage",
       "isMessagesPage",
       "isNewDeadlinePage",
       "isDeadlineEditPage",
+      "isCalculatorPage",
       "isScadenziarioPage",
       "isTimesheetPage",
       "isCartelleCondivisePage",
@@ -391,27 +271,59 @@
       "isTelematicoSurfacePage",
       "isPrivacyRegistroPage",
       "isAdminDatabasePage",
+      "isLexLearningPage",
+      "isQuickOrganizerImportPage",
+      "isDocumentToolsPage",
       "isStatistichePage",
+      "isLexOperativoPage",
       "isImpostazioniPage",
       "isAuditPage",
       "isRegistroAttivitaPage",
       "isUtentiPage",
       "isProfiliPage",
+      "isProfiloPage",
       "isBackupPage",
+      "isSitoStudioBuilderPage",
+      "isFascicoloDetailViewPage",
+      "isSitoStudioRedazioneAiPage",
+      "isSitoStudioArticleEditPage",
+      "isSitoStudioContenutiPage",
       "isSitoStudioPage",
       "isStudioPage",
+      "isEditorProfessionalePage",
       "isAmministrazionePage",
       "isFatturazionePage",
       "isIncassiPagamentiPage",
       "isPreventivoWizardPage",
       "isPreventiviPage",
       "isCompensiForensiPage",
+      "isStrumentiLegaliPage",
       "isTariffarioPage",
+      "isTemplateStudioPage",
       "isTemplateAttiPage",
       "isRedazioneAttiPage",
       "isGiurisprudenzaPage",
+      "isRicercaLegaleSchedaPage",
       "isLegalIntelligencePage",
+      "isLegalSkillsCatalogPage",
+      "isLegalSkillsProfilePage",
+      "isColdStartInterviewPage",
+      "isLegalSkillsRunPage",
+      "isLegalSkillsReviewQueuePage",
+      "isLegalSkillsRunDetailPage",
+      "isLegalSkillsReviewPage",
+      "isPromptLibraryPage",
+      "isPromptPathwaysPage",
+      "isLegalSkillsPage",
+      "isOggiPage",
+      "isWorkflowAgentsHomePage",
+      "isWorkflowAgentsApprovalPage",
+      "isWorkflowAgentsRunPage",
+      "isProcedureCompletionPage",
+      "isWorkflowAgentsPage",
+      "isClientPortalStudioPage",
       "isStudioModulePage",
+      "isPresetExcludedPage",
       "isDashboardPage",
       "isStandalonePage"
     ]
@@ -428,17 +340,21 @@
       "/checklist",
       "/compensi-forensi",
       "/database",
+      "/documenti",
+      "/editor-professionale",
       "/fatturazione",
       "/fatturazione/nuova",
       "/giurisprudenza",
       "/giurisprudenza/nuova",
+      "/import/quickorganizer",
+      "/importa-pratiche",
+      "/importa-pratiche-studio-telematico",
       "/impostazioni",
       "/impostazioni-studio",
       "/impostazioni?tab=backup",
       "/impostazioni/calendario",
       "/impostazioni/pagamenti",
       "/incassi-pagamenti",
-      "/legal-intelligence",
       "/legal-intelligence/mediazione",
       "/legal-intelligence/news",
       "/notifiche",
@@ -456,10 +372,15 @@
       "/registro-attivita",
       "/registro-gdpr",
       "/ricerca-legale",
+      "/ricerca-legale/mediazione",
+      "/ricerca-legale/news",
+      "/ricerca-legale/ricerca",
       "/sincronizzazione-calendari",
       "/sito-studio",
+      "/sito-studio/articoli/:id/modifica",
       "/sito-studio/builder",
       "/sito-studio/contatti",
+      "/sito-studio/redazione-ai",
       "/statistiche",
       "/strumenti-legali",
       "/strumenti-operativi",

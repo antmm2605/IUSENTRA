@@ -2,20 +2,13 @@
 
 Il pannello del superamministratore non usa la cornice dello studio (menu dei
 moduli, barra con notifiche e scadenze dello studio): monta un'applicazione
-React propria (`PiattaformaApp`) in una pagina minima. Le viste storiche
-restano raggiungibili con `?_legacy=1` finché non si eliminano.
+React propria (`PiattaformaApp`) in una pagina minima. Le viste Jinja storiche
+sono state eliminate (10/11/2026).
 """
 
 from __future__ import annotations
 
 from flask import render_template, request
-
-VALORI_LEGACY = {"1", "true", "si", "yes", "on"}
-
-
-def vista_classica_richiesta() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in VALORI_LEGACY
-
 
 def render_piattaforma_shell(pagina: str, titolo: str, parametri: dict[str, str] | None = None):
     """Pagina React del pannello. `parametri` sono le parti dell'indirizzo (es. lo
@@ -31,4 +24,4 @@ def render_piattaforma_shell(pagina: str, titolo: str, parametri: dict[str, str]
     )
 
 
-__all__ = ["render_piattaforma_shell", "vista_classica_richiesta"]
+__all__ = ["render_piattaforma_shell"]

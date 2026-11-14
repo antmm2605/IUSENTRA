@@ -879,10 +879,6 @@ function GiurisprudenzaArchivePage() {
     window.requestAnimationFrame(() => document.querySelector('.iu-legal-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
-  if (loading) {
-    return <LoadingState title="Caricamento archivio giurisprudenza" message="Recupero delle informazioni reali." />
-  }
-
   return (
     <Page
       title="Archivio Giurisprudenza"
@@ -898,12 +894,16 @@ function GiurisprudenzaArchivePage() {
       )}
     >
       <div className="iu-legal-page">
+        <SentenzeWebSearch />
+        <OpenGASearch />
+        {loading ? (
+          <p role="status">Caricamento delle schede e dei conteggi dello studio…</p>
+        ) : (
+          <>
         <Metrics metrics={data.metrics} />
         <ContractStrip data={data} />
         <WarningList data={data} />
-        <SentenzeWebSearch />
         <CorpusGiurisprudenzaSearch sources={data.sources} />
-      <OpenGASearch />
         <div id="filtri-giurisprudenza" />
         <Filters
           query={query}
@@ -958,6 +958,8 @@ function GiurisprudenzaArchivePage() {
         <div id="fonti-disponibili">
           <GiurisprudenzaSources sources={data.sources} />
         </div>
+          </>
+        )}
       </div>
     </Page>
   )

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {# Sito pubblico dello studio: il corpo è HTML pre-generato da React (SitoPubblico) e idratato nel browser. #}
+  <title>{{ titolo }}</title>
+  <meta name="description" content="{{ descrizione }}">
+  <link rel="canonical" href="{{ request.url }}">
+  <meta property="og:title" content="{{ payload.site.site_title or payload.site.site_name }}">
+  <meta property="og:description" content="{{ payload.site.site_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.url }}">
+  {% if payload.site.favicon_url %}<link rel="icon" href="{{ payload.site.favicon_url }}">{% endif %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/css/studio_site_public.css?v={{ app_version }}" rel="stylesheet">
+  {% for css_file in react_assets.page_css %}
+  <link rel="stylesheet" href="{{ css_file }}">
+  {% endfor %}
+  <style>
+    :root {
+      --studio-site-primary: {{ payload.site.primary_color or '#1d4ed8' }};
+      --studio-site-secondary: {{ payload.site.secondary_color or '#0f172a' }};
+      --studio-site-accent: {{ payload.site.accent_color or '#16a34a' }};
+      {{ payload.theme.css_variables|safe if payload.theme else '' }}
+    }
+    {{ payload.theme.custom_css|safe if payload.theme and payload.theme.custom_css else '' }}
+  </style>
+  <script type="application/ld+json">
+    {{ {
+      "@context": "https://schema.org",
+      "@type": "LegalService",
+      "name": payload.site.site_name,
+      "description": payload.site.site_description,
+      "url": request.url_root.rstrip('/') ~ url_for('studio_site_public.home', public_slug=payload.site.public_slug),
+      "telephone": payload.site.contact_phone,
+      "email": payload.site.contact_email,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": payload.site.address,
+        "addressLocality": payload.site.city,
+        "addressRegion": payload.site.province,
+        "postalCode": payload.site.zip_code,
+        "addressCountry": "IT"
+      }
+    }|tojson }}
+  </script>
+</head>
+<body class="studio-site-public studio-site-template-{{ payload.theme.template_code if payload.theme else 'classic_legal' }}">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="container pt-3 sito-pubblico-avvisi" role="status">
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+  <div id="sito-pubblico-root" data-sito-pubblico="1" data-versione="{{ app_version }}">{{ html_pre_generato|safe }}</div>
+  <script type="application/json" id="sito-pubblico-dati">{{ dati_json|safe }}</script>
+  {% if payload.site.analytics_enabled and payload.site.analytics_provider and payload.site.analytics_id %}
+  <script type="application/json" id="studioSiteAnalyticsConfig">{{ {"provider": payload.site.analytics_provider, "id": payload.site.analytics_id}|tojson }}</script>
+  {% endif %}
+  {% for js_file in react_assets.js %}
+  <script type="module" nonce="{{ csp_nonce() }}" src="{{ js_file }}?v={{ app_version }}"></script>
+  {% endfor %}
+</body>
+</html>

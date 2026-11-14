@@ -52,7 +52,19 @@ def test_d2_la_prenotazione_si_proroga_durante_i_passi_finali(tmp_path: Path, mo
         return originale(self, *args, **kwargs)
 
     monkeypatch.setattr(RegistroLetture, "rinnova_evento", rinnova)
-    monkeypatch.setattr(runtime, "_prepara_lettura", lambda fid: passi.append("lettura") or True)
+    monkeypatch.setattr(runtime, "_indicizza_fonti_pendenti", lambda *args, **kwargs: {})
+    monkeypatch.setattr(runtime, "leggi_fascicolo", lambda *args, **kwargs: {"restano": 0})
+    monkeypatch.setattr(runtime, "_riallinea_notifiche_del_fascicolo", lambda fid: None)
+    monkeypatch.setattr("web.services.notifiche_storiche_archivio.registra_riscontri_notifiche",
+                        lambda *args: False)
+    stati_preparazione = []
+
+    def prepara(fid):
+        passi.append("lettura")
+        stati_preparazione.append(registro_per_percorsi(paths).esito_evento("studio", fid)["stato"])
+        return True
+
+    monkeypatch.setattr(runtime, "_prepara_lettura", prepara)
     monkeypatch.setattr(runtime, "_registra_esiti_udienze", lambda f: passi.append("esiti"))
     monkeypatch.setattr("web.services.discordanze_letture_runtime.verifica_discordanze_fascicolo", lambda f: passi.append("discordanze"))
     with app.app_context():
@@ -60,6 +72,7 @@ def test_d2_la_prenotazione_si_proroga_durante_i_passi_finali(tmp_path: Path, mo
         _attendi_thread(runtime, 60)
     assert "esiti" in proroghe  # dopo gli esiti delle udienze e prima della Lettura la prenotazione è prorogata
     assert len(proroghe) >= 4
+    assert stati_preparazione == ["idle"]
 
 
 def test_d3_lettori_doppioni_non_censiti_e_lettori_su_richiesta_senza_arretrato(tmp_path: Path):
@@ -173,8 +186,16 @@ def test_d5_riconciliazione_trova_le_pec_pertinenti_mai_esaminate():
     from web.services.pec_pipeline_runtime import _pec_mai_esaminate
 
     conn = sqlite3.connect(":memory:")
-    conn.execute("CREATE TABLE pec_local_acquire_items (tenant_id TEXT, email_id TEXT, status TEXT)")
-    conn.execute("INSERT INTO pec_local_acquire_items VALUES ('s','e1','ingested'), ('s','e2','error'), ('altro','e3','ingested')")
+    conn.execute(
+        "CREATE TABLE pec_local_acquire_items (tenant_id TEXT, email_id TEXT, status TEXT, "
+        "updated_at TEXT, detail_json TEXT)"
+    )
+    conn.executemany("INSERT INTO pec_local_acquire_items VALUES (?,?,?,?,?)", [
+        ("s", "e1", "failed", "2026-11-13T10:00:00", "{}"),
+        ("s", "e1", "processed", "2026-11-13T10:01:00", "{}"),
+        ("s", "e2", "processed", "2026-11-13T10:01:00", '{"errore":"MIME irraggiungibile"}'),
+        ("altro", "e3", "processed", "2026-11-13T10:01:00", "{}"),
+    ])
 
     class Repo:
         tenant_id = "s"
@@ -186,8 +207,8 @@ def test_d5_riconciliazione_trova_le_pec_pertinenti_mai_esaminate():
     pec = lambda i: SimpleNamespace(id=i, message_id=f"<{i}@pec>", oggetto="POSTA CERTIFICATA: atto", allegati=[], mittente="", mittente_nome="", corpo_testo="", stato_pct="", origine="pec", e_pst=False)  # noqa: E731
     ordinaria = SimpleNamespace(id="e5", message_id="", oggetto="newsletter", allegati=[], mittente="", mittente_nome="", corpo_testo="", stato_pct="", origine="", e_pst=False)
     mancanti = _pec_mai_esaminate(Repo(), [pec("e1"), pec("e2"), pec("e3"), pec("e4"), ordinaria], limite=10)
-    # e1 ed e2 hanno un esito (anche di errore): non si ripropongono; e3 è di un altro studio; la posta ordinaria resta fuori.
-    assert [e.id for e in mancanti] == ["e3", "e4"]
+    # Il nuovo esito chiude e1. e2 va ritentata e l'esito di e3 appartiene a un altro studio.
+    assert [e.id for e in mancanti] == ["e2", "e3", "e4"]
 
 
 def test_d8_ocr_di_un_documento_cifrato_alimenta_l_archivio(tmp_path: Path):
@@ -223,6 +244,7 @@ def test_d7_eventi_dell_avvocato_prima_del_resto_senza_affamare_la_coda(tmp_path
     assert [e["fascicolo_id"] for e in registro.eventi_da_riprendere("s", limite=1)] == ["CARICATO"]
     # Due posti: il documento caricato e l'evento più vecchio, mai solo eventi prioritari.
     assert [e["fascicolo_id"] for e in registro.eventi_da_riprendere("s", limite=2)] == ["CARICATO", "VECCHIO0"]
+    assert [e["fascicolo_id"] for e in registro.eventi_da_riprendere("s", limite=2, solo_prioritari=True)] == ["CARICATO"]
     # La priorità vale una prenotazione sola: dopo il reclamo il fascicolo torna in fila normale.
     assert registro.reclama_evento("s", "CARICATO", "w1") is not None
     with registro.connection() as conn:

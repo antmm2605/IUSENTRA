@@ -148,6 +148,15 @@ def decide_priority(group: MergedSignalGroup, *, today: date) -> PriorityDecisio
         )
 
     hint = _hint(group)
+    if hint in ("P0", "P1") and due and (due - today).days > 7 and all(
+        sig.source_type == "case_presidio" and sig.kind == "document_review"
+        and normalize_due_date(sig.due_at) == due.isoformat()
+        and not (sig.metadata or {}).get("needs_review")
+        for sig in group.signals
+    ):
+        # Una proposta da documento con data futura certa non eredita
+        # l'urgenza del pannello. Gli obblighi in scadenza sono già sopra.
+        hint = ""
     if hint in ("P0", "P1"):
         motivo = group.primary.reason or "Priorità segnalata dal presidio del fascicolo."
         return PriorityDecision(hint, "R8", motivo)

@@ -24,3 +24,25 @@ def test_acquisito_richiede_ricevuta_finale_corretta():
     assert has_final_positive_receipt("PCT_CIVILE", [pec, cancelleria]) is True
     ok, _ = can_transition("ACCETTATO_DA_CANCELLERIA", "ACQUISITO", channel="PCT_CIVILE", receipts=[cancelleria])
     assert ok is True
+
+
+def test_regia_distingue_bozza_documento_emesso_e_incasso():
+    from types import SimpleNamespace
+
+    from pct.practice_engine.riepilogo_economico import _economic_summary
+
+    repo = SimpleNamespace(list_audit=lambda _: [])
+    bozza = SimpleNamespace(id="bozza", stato="BOZZA")
+    emessa = SimpleNamespace(id="emessa", stato="EMESSA")
+    result = _economic_summary(None, None, [bozza], repo, "pratica")
+    assert result["proformaDraft"] is True
+    assert result["proformaIssued"] is False
+    assert result["invoiceIssued"] is False
+    assert result["paymentParcellaId"] == ""
+    assert "id_documento=bozza" in result["proformaHref"]
+
+    result = _economic_summary(None, None, [bozza, emessa], repo, "pratica")
+    assert result["proformaIssued"] is True
+    assert result["invoiceIssued"] is True
+    assert result["paymentParcellaId"] == "emessa"
+    assert "id_documento=emessa" in result["proformaHref"]

@@ -49,6 +49,7 @@ import {
   saveLegalManualRecipient,
   saveLegalAttestationDraft,
   saveLegalAttestationPdfToFile,
+  loadPresidioRelataDraft,
   saveLegalRelataDraft,
   saveLegalRelataTemplate,
   searchLegalRegindeRecipients,
@@ -1475,6 +1476,12 @@ function signaturePlan(outputPlan: Record<string, unknown>) {
   return isRecord(delivery?.signaturePlan) ? delivery.signaturePlan : null
 }
 
+function isInformativeOfficeCopy(document: LegalDocumentSuggestion): boolean {
+  return document.origine === 'comunicazione_cancelleria'
+    && !document.acquisitoDaPortale
+    && [document.nomeFile, document.nomeOriginale, document.label].some((name) => /\.(?:pdf|pdfa|p7m)$/i.test(name.trim()))
+}
+
 function blockedSimulation(outputPlan: Record<string, unknown>) {
   return outputPlan.blockedSimulation === true
 }
@@ -1910,6 +1917,21 @@ export function NotificheLegaliPage() {
   const [relataPreviewWorking, setRelataPreviewWorking] = useState(false)
   useBusyActivity(relataPreviewWorking, 'Preparazione dell’anteprima della relata…')
   const [relataDraftText, setRelataDraftText] = useState('')
+  const presidioId = useMemo(() => new URLSearchParams(window.location.search).get('id_presidio') || '', [])
+  const [presidioDraft, setPresidioDraft] = useState('')
+  const [presidioDraftError, setPresidioDraftError] = useState('')
+  useEffect(() => {
+    setPresidioDraft('')
+    setPresidioDraftError('')
+    if (!presidioId || !selectedPracticeId) return
+    const controller = new AbortController()
+    loadPresidioRelataDraft(presidioId, selectedPracticeId, controller.signal).then((draft) => {
+      if (!controller.signal.aborted) setPresidioDraft(draft)
+    }).catch(() => {
+      if (!controller.signal.aborted) setPresidioDraftError('Impossibile riaprire la bozza salvata nel Presidio.')
+    })
+    return () => controller.abort()
+  }, [presidioId, selectedPracticeId])
   const [savedRelataDraftText, setSavedRelataDraftText] = useState('')
   const [relataDraftDirty, setRelataDraftDirty] = useState(false)
   const [relataDraftSaving, setRelataDraftSaving] = useState(false)
@@ -2204,11 +2226,11 @@ export function NotificheLegaliPage() {
   const selectedNotificationDocuments = useMemo(
     () => selectedNotificationDocumentIds
       .map((id) => documentSuggestions.find((item) => item.id === id))
-      .filter((item): item is LegalDocumentSuggestion => Boolean(item)),
+      .filter((item): item is LegalDocumentSuggestion => Boolean(item && !isInformativeOfficeCopy(item))),
     [documentSuggestions, selectedNotificationDocumentIds],
   )
   const officeDocuments = useMemo(
-    () => documentSuggestions.filter((item) => item.documentoUfficio || item.notificaRichiesta),
+    () => documentSuggestions.filter((item) => (item.documentoUfficio || item.notificaRichiesta) && item.acquisitoDaPortale),
     [documentSuggestions],
   )
   const officeMonitor = selectedPractice?.documentoUfficioMonitor
@@ -2599,7 +2621,8 @@ export function NotificheLegaliPage() {
     || hasNotifiableExtension(documento.nomeOriginale)
   )
   const isPresidioNotificationDocument = (documento: LegalDocumentSuggestion) => (
-    (documento.notificaRichiesta || documento.documentoUfficio) && isNotifiableNotificationDocument(documento)
+    (documento.notificaRichiesta || documento.documentoUfficio)
+    && !isInformativeOfficeCopy(documento) && isNotifiableNotificationDocument(documento)
   )
   const deriveProceedingRg = (...values: string[]) => {
     for (const value of values) {
@@ -2643,7 +2666,7 @@ export function NotificheLegaliPage() {
   useEffect(() => {
     if (!requestedDocumentSelectionTokens.length || !selectedPracticeId || !documentSuggestions.length) return
     const matchedDocuments = documentSuggestions
-      .filter((documento) => documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens))
+      .filter((documento) => documentMatchesSelectionTokens(documento, requestedDocumentSelectionTokens) && !isInformativeOfficeCopy(documento))
     const matchedIds = matchedDocuments
       .map((documento) => documento.id)
       .filter(Boolean)
@@ -2676,6 +2699,7 @@ export function NotificheLegaliPage() {
   }, [documentSuggestions, manualNotificationDocuments.length, requestedDocumentSelectionTokens.length, selectedNotificationDocumentIds.length, selectedPracticeId])
 
   const applyDocument = (documento: LegalDocumentSuggestion) => {
+    if (isInformativeOfficeCopy(documento)) return
     setSelectedDocumentId(documento.id)
     syncNotificaFromNotificationDocuments([documento])
     setUnep((current) => ({
@@ -3106,6 +3130,7 @@ export function NotificheLegaliPage() {
   }
 
   const toggleNotificationDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
+    if (checked && isInformativeOfficeCopy(documento)) return
     const next = checked
       ? Array.from(new Set([...selectedNotificationDocumentIds, documento.id]))
       : selectedNotificationDocumentIds.filter((id) => id !== documento.id)
@@ -3410,10 +3435,12 @@ export function NotificheLegaliPage() {
     const draftText = relataDraftText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
     const saved = await saveLegalRelataDraft({
       practiceId: selectedPracticeId,
+      presidioId: presidioId || undefined,
       templateId: notifica.template_id,
       relataText: draftText,
     }).catch(() => ({ ok: false, message: 'Salvataggio bozza non completato.', draftId: '', savedAt: '' }))
     if (saved.ok) {
+      if (presidioId) setPresidioDraft(draftText)
       setSavedRelataDraftText(draftText)
       setRelataPreview((current) => ({
         ...current,
@@ -4674,20 +4701,22 @@ export function NotificheLegaliPage() {
                       <div className="iu-legal-document-picker__grid">
                         {documentSuggestions.map((documento) => {
                           const viewHref = documentViewHref(documento)
+                          const informative = isInformativeOfficeCopy(documento)
                           return (
                             <div className="iu-legal-check iu-legal-check--with-action" key={documento.id}>
                               <label className="iu-legal-check__select">
                                 <input
                                   type="checkbox"
-                                  checked={selectedNotificationDocumentIds.includes(documento.id)}
+                                  checked={!informative && selectedNotificationDocumentIds.includes(documento.id)}
+                                  disabled={informative}
                                   onChange={(event) => toggleNotificationDocument(documento, event.currentTarget.checked)}
                                 />
                                 <span className="iu-legal-document-line">
                                   <strong>{documentPrimaryName(documento)}</strong>
-                                  {documentDetailLine(documento) ? <small>{documentDetailLine(documento)}</small> : null}
+                                  {informative ? <small>Copia informativa della PEC. Per preparare la notifica, acquisisci il provvedimento dal fascicolo telematico.</small> : documentDetailLine(documento) ? <small>{documentDetailLine(documento)}</small> : null}
                                   {hasEmailEvidenceExtension(documentPrimaryName(documento)) ? <em>EML/MSG selezionabile manualmente</em> : null}
-                                  {documento.necessitaAttestazione ? <em>Incluso nell’attestazione di conformità PDF e nella relata</em> : null}
-                                  {documento.criterioTipoDocumento ? <em>Tipo letto da {documento.criterioTipoDocumento}</em> : null}
+                                  {!informative && documento.necessitaAttestazione ? <em>Incluso nell’attestazione di conformità PDF e nella relata</em> : null}
+                                  {!informative && documento.criterioTipoDocumento ? <em>Tipo letto da {documento.criterioTipoDocumento}</em> : null}
                                 </span>
                               </label>
                               {viewHref ? (
@@ -4877,6 +4906,13 @@ export function NotificheLegaliPage() {
                     />
                     {relataDraftMessage ? <p className="iu-legal-template-message">{relataDraftMessage}</p> : null}
                     <div className="iu-legal-template-actions">
+                      {presidioDraftError && <p role="alert">{presidioDraftError}</p>}
+                      {presidioDraft && (
+                        <details>
+                          <summary>Bozza salvata nel Presidio</summary>
+                          <textarea aria-label="Bozza salvata nel Presidio" readOnly value={presidioDraft} rows={10}/>
+                        </details>
+                      )}
                       <button type="button" disabled={!previewIsAligned || relataDraftSaving || !relataDraftText.trim()} onClick={saveRelataDraft}>
                         <Save size={15} /> {relataDraftSaving ? 'Salvataggio...' : 'Salva bozza per questa notifica'}
                       </button>

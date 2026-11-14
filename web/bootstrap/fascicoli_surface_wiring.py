@@ -54,7 +54,9 @@ def register_fascicoli_surfaces(
     register_fascicoli_document_routes(
         app,
         get_fascicoli=core["get_fascicoli"],
+        get_fascicoli_lettura=core.get("get_fascicoli_mirato", core["get_fascicoli"]),
         get_indice=core["get_indice"],
+        get_studio_db=core["get_studio_db"],
         get_practice_engine=core["get_practice_engine"],
         audit=core["audit"],
         salva_documento_fascicolo=fascicoli["salva_documento_fascicolo"],

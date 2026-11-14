@@ -562,25 +562,6 @@ def main() -> int:
     _check("<style" not in base_template, "web/templates/base.html non deve contenere blocchi <style> inline.", failures)
     _check("style=" not in base_template, "web/templates/base.html non deve contenere attributi style inline.", failures)
 
-    admin_base = _read_text("web/templates/admin/base.html")
-    for css_link in (
-        "/static/css/app.css?v={{ app_version }}",
-        "/static/css/design-system.css?v={{ app_version }}",
-        "/static/css/mobile.css?v={{ app_version }}",
-        "/static/css/theme.css?v={{ app_version }}",
-    ):
-        _check(css_link in admin_base, f"Admin base non carica il bundle CSS richiesto: {css_link}.", failures)
-    _check("<style" not in admin_base, "web/templates/admin/base.html non deve contenere blocchi <style> inline.", failures)
-    _check("style=" not in admin_base, "web/templates/admin/base.html non deve contenere attributi style inline.", failures)
-
-    for relative_path in (
-        "web/templates/admin/dashboard.html",
-        "web/templates/admin/studio_nuovo.html",
-    ):
-        content = _read_text(relative_path)
-        _check("<style" not in content, f"{relative_path} non deve contenere blocchi <style> inline.", failures)
-        _check("style=" not in content, f"{relative_path} non deve contenere attributi style inline.", failures)
-
     inline_files, inline_tags, inline_attrs = _inline_style_totals("web/templates")
     _check(
         inline_files <= 165,

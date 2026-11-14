@@ -535,6 +535,8 @@ def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = Non
     esito["adempimenti"] = riconcilia_adempimenti(fascicolo, registro, tenant, applica=applica_riconciliazioni)
     from web.services.rettifiche_letture_storiche import riconcilia_storico
     esito["riconciliazione_storica"] = riconcilia_storico(fascicolo, registro, tenant, applica=applica_riconciliazioni)
+    from web.services.rettifiche_termini_runtime import riconcilia_termini_riletti
+    esito["termini_riletti"] = riconcilia_termini_riletti(fascicolo, registro, tenant, applica=applica_riconciliazioni)
     tutti = fatti_fascicolo(fascicolo, verifiche=("verificata", "corretta"))
     for presidio in PRESIDI_CHE_SCRIVONO:
         spettanti = [fatto for fatto in tutti if presidio.gli_serve(fatto)]

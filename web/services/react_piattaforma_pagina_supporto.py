@@ -130,7 +130,7 @@ def _pratica_studio(sessione: dict[str, Any]) -> str:
 
 def _notifiche_dispositivo(payload: dict[str, Any]) -> list[dict[str, Any]]:
     """Stato e prova delle notifiche cellulare. Attivazione e disattivazione usano
-    l'interfaccia Push del browser: restano nella vista classica."""
+    l'interfaccia Push del browser: pulsanti della pagina React (PiattaformaApp)."""
     stato = payload.get("push_status") or {}
     configurato = bool(stato.get("configured"))
     attivi = int(stato.get("activeSubscriptions") or 0)
@@ -353,7 +353,7 @@ def adatta(payload: dict[str, Any]) -> dict[str, Any]:
     sezioni.extend(_notifiche_dispositivo(payload))
     sezioni.extend(_sessione_manuale(payload))
     sezioni.append(_impostazioni_rete(payload))
-    collegamenti = [link("Vista classica per le notifiche", f"{INDIRIZZO}?_legacy=1")]
+    collegamenti = []
     if filtri_attivi:
         collegamenti.insert(0, link("Rimuovi filtri", INDIRIZZO))
     return {

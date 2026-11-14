@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, current_app, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, Response, abort, current_app, flash, g, jsonify, redirect, request, send_from_directory, url_for
 
+from web.services.sito_pubblico_runtime import risposta_sito
 from web.services.studio_site_runtime import (
     build_public_site_payload,
     create_lead_cliente_from_submission,
@@ -44,7 +45,7 @@ def home(public_slug: str):
     payload = _public_payload_or_404(public_slug)
     if payload.get("home_page") is None:
         abort(404, description="Home page del sito non configurata.")
-    return render_template("studio_site/public_home.html", payload=payload, page=payload["home_page"])
+    return risposta_sito(payload, "home", titolo=payload["site"].get("site_title") or payload["site"]["site_name"])
 
 
 @studio_site_public.get("/<public_slug>/sitemap.xml")
@@ -76,13 +77,13 @@ def page_detail(public_slug: str, page_slug: str):
     page = studio_site_repository().get_page_by_slug(int(payload["site"]["id"]), page_slug, published_only=not _preview_allowed(payload["site"]))
     if page is None:
         abort(404, description="Pagina non trovata.")
-    return render_template("studio_site/public_page.html", payload=payload, page=page)
+    return risposta_sito(payload, "pagina", pagina=page, titolo=f"{page.get('seo_title') or page.get('title')} - {payload['site']['site_name']}")
 
 
 @studio_site_public.get("/<public_slug>/articoli")
 def articles(public_slug: str):
     payload = _public_payload_or_404(public_slug)
-    return render_template("studio_site/public_articles.html", payload=payload)
+    return risposta_sito(payload, "articoli", titolo=f"Articoli - {payload['site']['site_name']}")
 
 
 @studio_site_public.get("/<public_slug>/articoli/<article_slug>")
@@ -95,13 +96,13 @@ def article_detail(public_slug: str, article_slug: str):
     )
     if article is None:
         abort(404, description="Articolo non trovato.")
-    return render_template("studio_site/public_article_detail.html", payload=payload, article=article)
+    return risposta_sito(payload, "articolo", articolo=article, titolo=f"{article.get('seo_title') or article.get('title')} - {payload['site']['site_name']}")
 
 
 @studio_site_public.get("/<public_slug>/contatti")
 def contacts(public_slug: str):
     payload = _public_payload_or_404(public_slug)
-    return render_template("studio_site/public_contact.html", payload=payload)
+    return risposta_sito(payload, "contatti", titolo=f"Contatti - {payload['site']['site_name']}")
 
 
 @studio_site_public.post("/<public_slug>/contatti")
@@ -135,7 +136,7 @@ def booking(public_slug: str):
     if not payload.get("booking_enabled"):
         flash("Agenda appuntamenti non ancora attiva sul sito studio.", "warning")
         return redirect(url_for("studio_site_public.home", public_slug=public_slug))
-    return render_template("studio_site/public_booking.html", payload=payload)
+    return risposta_sito(payload, "prenota", titolo=f"Prenota un appuntamento - {payload['site']['site_name']}")
 
 
 @studio_site_public.post("/<public_slug>/prenota")
@@ -169,7 +170,7 @@ def legal_tools(public_slug: str):
     payload = _public_payload_or_404(public_slug)
     if not payload["site"].get("show_legal_tools"):
         abort(404)
-    return render_template("studio_site/public_legal_tools.html", payload=payload)
+    return risposta_sito(payload, "strumenti-legali", titolo=f"Strumenti legali - {payload['site']['site_name']}")
 
 
 @studio_site_public.get("/<public_slug>/applicazioni")
@@ -177,7 +178,7 @@ def applications(public_slug: str):
     payload = _public_payload_or_404(public_slug)
     if not payload["site"].get("show_applications"):
         abort(404)
-    return render_template("studio_site/public_applications.html", payload=payload)
+    return risposta_sito(payload, "applicazioni", titolo=f"Applicazioni - {payload['site']['site_name']}")
 
 
 @studio_site_public.get("/<public_slug>/news-giuridiche")
@@ -185,7 +186,7 @@ def legal_news(public_slug: str):
     payload = _public_payload_or_404(public_slug)
     if not payload["site"].get("show_legal_news"):
         abort(404)
-    return render_template("studio_site/public_legal_news.html", payload=payload)
+    return risposta_sito(payload, "news-giuridiche", titolo=f"News giuridiche - {payload['site']['site_name']}")
 
 
 @studio_site_public.get("/<public_slug>/assets/<path:filename>")

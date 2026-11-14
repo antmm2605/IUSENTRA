@@ -14,6 +14,10 @@ Fail-closed: un oggetto che non coincide resta agli altri classificatori.
 from __future__ import annotations
 
 import re
+from datetime import datetime
+
+from defusedxml import ElementTree
+from defusedxml.common import DefusedXmlException
 from typing import Any
 
 _PREFISSO = r"^\s*(?:posta certificata:\s*)?(?:(?:r|re|i|rif|fwd?|inoltro)\s*:\s*)*"
@@ -200,6 +204,19 @@ def normalizza_tipo_ricevuta(valore: Any) -> str:
     if chiave in RICEVUTE_PEC:
         return chiave
     return _TIPI_DATICERT.get(chiave, "")
+
+
+def istante_daticert(xml: str | bytes) -> datetime | None:
+    """Legge giorno, ora e zona dalla sola sezione dati del gestore PEC."""
+    try:
+        root = ElementTree.fromstring(xml)
+        data = root.find("./dati/data")
+        if root.tag != "postacert" or data is None:
+            return None
+        giorno, ora, zona = data.findtext("giorno"), data.findtext("ora"), data.get("zona")
+        return datetime.strptime(f"{giorno} {ora} {zona}", "%d/%m/%Y %H:%M:%S %z")
+    except (ElementTree.ParseError, DefusedXmlException, ValueError):
+        return None
 
 
 def tipo_daticert(xml_text: Any) -> str:

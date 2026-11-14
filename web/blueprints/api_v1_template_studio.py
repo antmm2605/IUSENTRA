@@ -88,6 +88,7 @@ def uso(id_template: str):
             id_template,
             id_cliente=str(request.args.get("id_cliente") or "").strip(),
             id_fascicolo=str(request.args.get("id_fascicolo") or "").strip(),
+            termine_guida=str(request.args.get("termine_guida") or "").strip(),
         )
         return jsonify(risultato), stato
     except Exception:

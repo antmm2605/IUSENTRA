@@ -259,7 +259,7 @@ def seconda_lettura_catalogo(app: Flask) -> dict[str, Any]:
             if totale["lette"] >= per_giro:
                 break
             slug = str(getattr(studio, "slug", "") or "").lower()
-            with app.test_request_context(f"/__scheduler/catalogo-lex/{slug}"):
+            with app.app_context(), app.test_request_context(f"/__scheduler/catalogo-lex/{slug}"):
                 _attach_tenant_context(manager, studio)
                 parziale = seconda_lettura_studio_corrente(per_giro=per_giro - totale["lette"])
             for chiave in ("lette", "scelte", "cambiate", "errori"):
@@ -267,7 +267,7 @@ def seconda_lettura_catalogo(app: Flask) -> dict[str, Any]:
             if parziale.get("errori"):
                 break
     elif not app.config.get("MULTI_TENANT"):
-        with app.test_request_context("/__scheduler/catalogo-lex/default"):
+        with app.app_context(), app.test_request_context("/__scheduler/catalogo-lex/default"):
             g.multi_tenant_enabled = False
             parziale = seconda_lettura_studio_corrente(per_giro=per_giro)
         for chiave in ("lette", "scelte", "cambiate", "errori"):

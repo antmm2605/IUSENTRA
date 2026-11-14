@@ -15,7 +15,6 @@ from __future__ import annotations
 from typing import Any
 
 from flask import current_app, make_response, render_template, request
-from web.services.piattaforma_shell_runtime import vista_classica_richiesta
 from web.services.support_runtime import support_session_payload
 
 DEFAULT_LOCAL_CONTROL_BASE = "http://127.0.0.1:27273"
@@ -74,13 +73,6 @@ def customer_session_view(payload: dict[str, Any]) -> dict[str, Any]:
 def render_customer_room(row: dict[str, Any]):
     bootstrap = build_customer_room_bootstrap(row)
     sessione = support_session_payload(row)
-    if vista_classica_richiesta():
-        return render_template(
-            "support/customer_room.html",
-            bootstrap=bootstrap,
-            sessione=sessione,
-        )
-
     from web.blueprints.react_shell import _vite_entry
 
     response = make_response(

@@ -294,3 +294,37 @@ def test_vista_operativa_espone_fonte_e_alternative_per_cambiare(tmp_path):
     cambiato = build_regia_payload(repo, fascicolo=fascicolo, fascicoli_manager=gf)
     assert cambiato["profile"]["code"] == "PROC_LIC_IMP_001"
     assert cambiato["profile"]["sourceLabel"].startswith("Confermato da Avv. Regia il ")
+
+
+def test_runtime_notturno_isola_i_repository_dei_due_studi(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from flask import Flask, g
+
+    from web.services import profilo_procedurale_runtime as runtime
+
+    app = Flask(__name__)
+    app.config.update(MULTI_TENANT=True, TENANTS_REGISTRY=str(tmp_path / "studi.json"))
+    studios = [SimpleNamespace(slug=slug) for slug in ("primo", "secondo")]
+    monkeypatch.setattr("web.services.fascicoli_presidi_runtime._active_tenants", lambda _: studios)
+    monkeypatch.setattr(
+        "web.services.fascicoli_presidi_runtime._attach_tenant_context",
+        lambda _, studio: setattr(g, "tenant_context_slug", studio.slug),
+    )
+
+    def riconvalida(*, limite):
+        assert not hasattr(g, "_fascicoli")
+        g._fascicoli = g.tenant_context_slug
+        return {"esaminati": {"primo": 3, "secondo": 7}[g._fascicoli]}
+
+    monkeypatch.setattr(runtime, "riconvalida_profili_studio", riconvalida)
+    with app.app_context():
+        g._fascicoli = "contesto_scheduler"
+        report = runtime.riconvalida_profili_notturna(app)
+        assert g._fascicoli == "contesto_scheduler"
+
+    assert report["ok"] is True
+    assert report["totals"]["esaminati"] == 10
+    assert [(studio["studio"], studio["esaminati"]) for studio in report["tenants"]] == [
+        ("primo", 3), ("secondo", 7),
+    ]

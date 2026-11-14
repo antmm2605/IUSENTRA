@@ -54,7 +54,11 @@ def test_installed_worker_and_reader_must_both_match(monkeypatch, tmp_path, diff
     monkeypatch.setattr(update_worker, "source_fingerprints", lambda *args: (
         {"server.py": "old" if different_binary else "current"}, {"server.py": "current"},
     ))
-    monkeypatch.setattr(update_worker, "command", lambda *args: changed_reader)
+    (tmp_path / "pct").mkdir()
+    (tmp_path / "pct/__init__.py").write_text('__version__ = "2.489.0"\n')
+    monkeypatch.setattr(update_worker, "command", lambda *args: (
+        '__version__ = "2.488.0"' if "show" in args else changed_reader
+    ))
     assert update_worker.installed_sources_match(tmp_path, "old", "a" * 40, "b" * 40) is expected
 
 

@@ -70,7 +70,19 @@ def test_fascicolo_grande_si_completa_in_piu_turni_senza_rileggere(lettura, monk
     from web.services import archivio_letture_runtime as runtime
 
     app, fid, documenti, letti = lettura
-    monkeypatch.setattr(runtime, "SECONDI_PER_TURNO", 0)  # ogni turno chiude dopo un giro
+    from types import SimpleNamespace
+
+    tempo = 0
+    leggi_fascicolo = runtime.leggi_fascicolo
+
+    def leggi_un_giro(*args, **kwargs):
+        nonlocal tempo
+        report = leggi_fascicolo(*args, **kwargs)
+        tempo += runtime.SECONDI_PER_TURNO
+        return report
+
+    monkeypatch.setattr(runtime, "time", SimpleNamespace(monotonic=lambda: tempo))
+    monkeypatch.setattr(runtime, "leggi_fascicolo", leggi_un_giro)
     registro, tenant = _registro(app)
     registro.accoda_evento(tenant, fid)
 
@@ -205,3 +217,47 @@ def test_il_tick_riprende_i_fermi_e_rispetta_le_letture_contemporanee(tmp_path, 
         assert report["ferme_riprese"] == 5
         assert report["avviati"] == runtime.LETTURE_CONCORRENTI
         assert runtime.riprendi_eventi_lettura(app, limite_per_tenant=20)["ferme_riprese"] == 0
+
+
+def test_indice_rinviato_libera_il_turno_e_non_chiude_il_fascicolo(lettura, monkeypatch):
+    from web.services import archivio_letture_runtime as runtime
+
+    app, fid, documenti, letti = lettura
+    esiti_indice = iter(({"rinviato": True}, {}))
+    monkeypatch.setattr(runtime, "_indicizza_fonti_pendenti", lambda *a, **k: next(esiti_indice))
+    registro, tenant = _registro(app)
+    registro.accoda_evento(tenant, fid)
+
+    _turno(app, fid)
+    stato = registro.esito_evento(tenant, fid)
+    assert stato["stato"] == "pending" and stato["attempts"] == 0
+    assert not letti
+
+    _turno(app, fid)
+    assert registro.esito_evento(tenant, fid)["stato"] == "idle"
+    assert sorted(letti) == sorted(documenti)
+
+
+def test_blocco_sql_sui_fatti_rimette_in_coda_senza_contare_un_errore(lettura, monkeypatch):
+    import sqlite3
+
+    from web.services import archivio_letture_runtime as runtime
+
+    app, fid, documenti, letti = lettura
+    originale = runtime.leggi_fascicolo
+
+    def archivio_occupato(*args, **kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    registro, tenant = _registro(app)
+    registro.accoda_evento(tenant, fid)
+    monkeypatch.setattr(runtime, "leggi_fascicolo", archivio_occupato)
+    _turno(app, fid)
+    stato = registro.esito_evento(tenant, fid)
+    assert stato["stato"] == "pending" and stato["attempts"] == 0
+    assert not stato["last_error"]
+
+    monkeypatch.setattr(runtime, "leggi_fascicolo", originale)
+    _turno(app, fid)
+    assert registro.esito_evento(tenant, fid)["stato"] == "idle"
+    assert sorted(letti) == sorted(documenti)

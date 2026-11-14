@@ -8,7 +8,8 @@ import os
 from collections.abc import Callable
 from datetime import date, datetime
 
-from flask import Flask, Response, abort, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, abort, flash, g, jsonify, redirect, request, send_file, url_for
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def _richiede_json() -> bool:
@@ -47,7 +48,8 @@ def register_privacy_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             abort(403)
-        return render_template("privacy/registro.html", trattamenti=get_trattamenti().tutti())
+        # Registro dei trattamenti: pagina React (PrivacyRegistroPage).
+        return render_react_shell_response("privacy/registro")
 
     @app.route("/privacy/registro/nuovo", methods=["GET", "POST"])
     def nuovo_trattamento():
@@ -81,11 +83,10 @@ def register_privacy_routes(
             if _richiede_json():
                 return jsonify({"ok": True, "message": "Trattamento aggiunto al registro.", "redirect": url_for("registro_trattamenti")})
             return redirect(url_for("registro_trattamenti"))
-        return render_template(
-            "privacy/registro.html",
-            trattamenti=get_trattamenti().tutti(),
-            form_nuovo=True,
-        )
+        # Nuovo trattamento: pagina React; il salvataggio JSON resta qui sopra.
+        if request.method == "POST":
+            return redirect(request.path)
+        return render_react_shell_response("privacy/registro/nuovo")
 
     @app.route("/privacy/registro/<id_t>/elimina", methods=["POST"])
     def elimina_trattamento(id_t):

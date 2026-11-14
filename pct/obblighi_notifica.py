@@ -82,7 +82,9 @@ class RegolaNotifica:
 
 REGOLE: tuple[RegolaNotifica, ...] = (
     RegolaNotifica(
-        "lavoro_415", ("Ricorso in materia di lavoro (art. 414 c.p.c.)",),
+        # Il decreto di fissazione riconosciuto dal contenuto (pct.decreto_fissazione_lavoro) porta lo stesso obbligo:
+        # «il ricorso, unitamente al decreto di fissazione dell'udienza, deve essere notificato» (art. 415, c. 4).
+        "lavoro_415", ("Ricorso in materia di lavoro (art. 414 c.p.c.)", "Decreto di fissazione udienza (art. 415 c.p.c.)"),
         "ricorso e decreto di fissazione dell'udienza", "controparti",
         ("art. 415, commi 4, 5 e 7, c.p.c.", "art. 417-bis c.p.c."),
         termini=(
@@ -360,7 +362,9 @@ def _base(termine: Termine, documento: DocumentoCatalogato, contesto: dict[str, 
 
 
 def _parole_nome(nome: str) -> frozenset[str]:
-    return frozenset(parola for parola in re.findall(r"[a-zàèéìòù']{3,}", str(nome or "").casefold()) if parola not in {"s.r.l", "srl", "spa", "s.p.a"})
+    # L'apostrofo tipografico («DELL’ISTRUZIONE») e quello dritto della relata sono la stessa parola.
+    testo = str(nome or "").casefold().replace("’", "'").replace("`", "'")
+    return frozenset(parola for parola in re.findall(r"[a-zàèéìòù']{3,}", testo) if parola not in {"s.r.l", "srl", "spa", "s.p.a"})
 
 
 def _destinatari_completi(prova: dict[str, Any], destinatari: list[dict[str, str]]) -> bool:
@@ -373,13 +377,38 @@ def _destinatari_completi(prova: dict[str, Any], destinatari: list[dict[str, str
 
 
 def _notificato(regola: RegolaNotifica, documento: DocumentoCatalogato, contesto: dict[str, Any],
-                destinatari: list[dict[str, str]] | None = None) -> bool:
-    """Solo una prova verificata dell'atto preciso e di tutti i destinatari."""
+                destinatari: list[dict[str, str]] | None = None) -> dict[str, Any] | None:
+    """Solo una prova verificata dell'atto preciso e di tutti i destinatari: la prova, o None."""
     for prova in contesto.get("prove_notifica", ()):
         if (prova.get("atto_documento_id") == documento.id and prova.get("verificata") is True
                 and _destinatari_completi(prova, list(destinatari or []))):
-            return True
-    return False
+            return prova
+    return None
+
+
+def _data_it(iso: str) -> str:
+    giorno = _giorno(iso)
+    return giorno.strftime("%d/%m/%Y") if giorno else ""
+
+
+def _contro_pa(destinatari: list[dict[str, str]]) -> bool:
+    return any(_SCOLASTICO.search(d.get("nome", "")) or _STATALE.search(d.get("nome", "")) or _PA.search(d.get("nome", ""))
+               for d in destinatari)
+
+
+def _sentenza_notificata(obbligo: "ObbligoNotifica", prova: dict[str, Any], contesto: dict[str, Any], oggi: date) -> None:
+    """Sentenza notificata: termine breve, passaggio in giudicato e, contro la P.A., i 120 giorni (pct.sentenza_notificata)."""
+    from pct.sentenza_notificata import termini_dalla_notifica
+
+    data = str(prova.get("data") or prova.get("data_consegna") or "")[:10]
+    condanna = (contesto.get("condanne_al_pagamento") or {}).get(obbligo.documento.id)
+    calcoli = termini_dalla_notifica(data, lavoro=bool(contesto.get("rito_lavoro")), contro_pa=_contro_pa(obbligo.destinatari),
+                                     condanna=bool(condanna), oggi=oggi)
+    obbligo.calcoli.extend(calcoli)
+    pezzi = [f"Sentenza notificata il {_data_it(data)}" + (f" ({prova.get('atto')})" if prova.get("atto") else "")
+             + ": relata ex art. 3-bis L. 53/1994 e ricevute di avvenuta consegna per tutti i destinatari."]
+    pezzi += [c["formula"] for c in calcoli]
+    obbligo.motivo = " ".join(pezzi)
 
 
 def _motivo_prova_incompleta(documento: DocumentoCatalogato, contesto: dict[str, Any]) -> str:
@@ -389,7 +418,7 @@ def _motivo_prova_incompleta(documento: DocumentoCatalogato, contesto: dict[str,
         if not prova.get("consegna"):
             return "La relata è nella copia notificata, ma manca la ricevuta di avvenuta consegna (art. 3-bis L. 53/1994)."
         if prova.get("verificata") is not True:
-            return "La relata è nella copia notificata, ma la sua lettura va ancora confermata."
+            return "La relata e la ricevuta di avvenuta consegna devono essere entrambe verificate."
         return "La relata non nomina tutti i destinatari dell'obbligo: verifica a chi è stato notificato l'atto."
     return ""
 
@@ -413,10 +442,14 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                 obbligo.stato, obbligo.motivo = STATO_DA_VERIFICARE, "Dagli atti non risulta se l'atto è dello studio: confermare prima di notificare."
                 obbligo.dati_mancanti.append({"campo": "atto_studio", "documento_id": documento.id,
                     "descrizione": "La posizione della parte assistita in questo atto non è univoca: verifica l’epigrafe."})
-            if _notificato(regola, documento, contesto, obbligo.destinatari):
+            prova = _notificato(regola, documento, contesto, obbligo.destinatari)
+            if prova:
                 obbligo.stato, obbligo.motivo = STATO_NOTIFICATO, "Prova verificata per questo atto e per tutti i destinatari."
+                if regola.id == "sentenza_notifica_breve":
+                    _sentenza_notificata(obbligo, prova, contesto, oggi)
             elif obbligo.stato == STATO_DA_NOTIFICARE and (incompleta := _motivo_prova_incompleta(documento, contesto)):
                 obbligo.motivo = incompleta
+            candidati: list[tuple[str, Termine]] = []
             for termine in regola.termini:
                 if not obbligo.formula:
                     obbligo.natura, obbligo.formula = termine.natura, termine.formula
@@ -439,6 +472,10 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                 from pct.termini_processuali import LETTURA_PRUDENZIALE, ItalianDeadlineCalculator
 
                 estero = contesto.get("notifica_estero")
+                if estero is None and obbligo.destinatari and _contro_pa(obbligo.destinatari):
+                    # Un'amministrazione pubblica italiana si notifica in Italia (presso l'Avvocatura dello Stato o la
+                    # sede, art. 11 R.D. 1611/1933 e art. 144 c.p.c.): il termine per l'estero non può valere.
+                    estero = False
                 feriale = termine.sospensione_feriale
                 if feriale is None:
                     feriale = contesto.get("sospensione_feriale")
@@ -464,10 +501,19 @@ def obblighi_del_fascicolo(documenti: Iterable[DocumentoCatalogato], parti: Iter
                     obbligo.dati_mancanti.append({"campo": "notifica_estero", "documento_id": documento.id,
                         "descrizione": "Verifica se la notificazione è in Italia o all’estero: la durata del termine cambia."})
                 if feriale is not None and not calcolo["destinazione_da_verificare"]:
-                    if not obbligo.scadenza or calcolo["deadline"] < obbligo.scadenza:
-                        obbligo.scadenza = calcolo["deadline"]
-                        obbligo.formula = termine.formula
-                        obbligo.natura = termine.natura
+                    calcolo["natura"] = termine.natura
+                    candidati.append((calcolo["deadline"], termine))
+            # La scadenza è la prima ancora utile: un termine ordinatorio già decorso (art. 415, c. 4: dieci giorni dalla
+            # pronuncia del decreto) non estingue l'obbligo, che resta quello del termine a difesa (art. 415, c. 5).
+            futuri = [c for c in candidati if c[0] >= oggi.isoformat()]
+            decorsi = [c for c in candidati if c[0] < oggi.isoformat() and c[1].natura == "ordinatorio"]
+            scelta = min(futuri or candidati, key=lambda c: c[0]) if candidati else None
+            if scelta:
+                obbligo.scadenza, obbligo.formula, obbligo.natura = scelta[0], scelta[1].formula, scelta[1].natura
+                if futuri and decorsi and obbligo.stato == STATO_DA_NOTIFICARE:
+                    obbligo.motivo = (obbligo.motivo + " " if obbligo.motivo else "") + (
+                        f"Il termine ordinatorio è decorso il {_data_it(decorsi[0][0])}: la notifica resta dovuta entro il "
+                        f"{_data_it(scelta[0])} ({scelta[1].formula}).")
             if not obbligo.destinatari and obbligo.stato in {STATO_DA_NOTIFICARE, STATO_DA_VERIFICARE}:
                 obbligo.motivo = (obbligo.motivo + " " if obbligo.motivo else "") + "Controparte non ancora letta negli atti: completare le parti del fascicolo."
                 obbligo.dati_mancanti.append({"campo": "destinatari", "documento_id": documento.id,

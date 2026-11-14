@@ -300,3 +300,13 @@ def test_biglietto_di_cancelleria_usa_l_oggetto_del_registro():
              "Descrizione: termine al 10/03/2026\nmittente@civile.ptel.giustiziacert.it")
     r = classifica_pec_legale(subject="POSTA CERTIFICATA: Tribunale di Bari Notificazione ai sensi del D.L. 179/2012", body=corpo)
     assert r["event_type"] == "udienza_sostituita_da_note_scritte" and r["creates_deadline"]
+
+
+
+def test_ricevuta_deposito_con_relata_in_busta_non_e_notifica_l53():
+    parsed = {
+        "headers": {"subject": "CONSEGNA: DEPOSITO TELEMATICO: Ricorso (originale notificato).pdf RG: 123/2026"},
+        "body": {"text": "Ricevuta di avvenuta consegna. Allegati: Relata di notifica e RdAC L. 53/1994."},
+        "semantic_context": {"event_hint": "notifica_l53"},
+    }
+    assert event_type_from_parsed(parsed, ["ricevute", "relata"]) == "pct_deposito"

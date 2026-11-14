@@ -64,6 +64,43 @@ def test_ricevute_interrogate_per_evento_reale_e_fase_senza_leggere_corpi(receip
     assert all('report_json' not in row and 'original_mime' not in row for row in page['rows'])
 
 
+def test_accettazioni_fascicolo_lettura_dal_catalogo_con_link_confermato(receipts):
+    database, repo = receipts
+    conn = database.conn
+    for key, case_id, status in (
+        ('registry', 'CASE-1', 'ruolo_certificato_ufficio'),
+        ('registry-copy', 'CASE-1', 'manuale'),
+        ('registry-other', 'CASE-2', 'ruolo_certificato_ufficio'),
+        ('registry-proposed', 'CASE-1', 'link_candidates'),
+    ):
+        if key != 'registry':
+            add_receipt(conn, key, 'accettazione_deposito')
+        conn.execute('UPDATE pec_messages SET linked_fascicolo_id=? WHERE id=?', (case_id, key))
+        conn.execute(
+            'INSERT INTO pec_fascicolo_links(id,message_id,parsed_version_id,fascicolo_id,score,status,seeds_json,candidates_json,created_at) '
+            "VALUES (?,?,?,?,1,?,'{}','[]','2026-10-14T11:00:00+00:00')",
+            (key + '-link', key, key + '-parsed', case_id, status),
+        )
+        if key == 'registry-copy':
+            report = json.loads(conn.execute('SELECT report_json FROM pec_validation_reports WHERE message_id=?', (key,)).fetchone()[0])
+            report['deposit_lifecycle']['correlation']['key'] = 'registry-deposit'
+            conn.execute('UPDATE pec_validation_reports SET report_json=?,report_sha256=? WHERE message_id=?',
+                         (json.dumps(report), sha256_json(report), key))
+        repo.project_message(conn, key)
+    conn.execute("UPDATE transactional_outbox SET status='PROCESSED'")
+    result = repo.accettazioni_cancelleria_fascicolo('CASE-1')
+    assert len(result) == 1
+    assert result[0]['correlation_key'] == 'registry-deposit'
+    assert result[0]['event_at'] == '2026-10-13T22:30:00.000000+00:00'
+    assert [row['message_id'] for row in repo.accettazioni_cancelleria_fascicolo('CASE-2')] == ['registry-other']
+    conn.execute("INSERT INTO pec_deposit_query_bootstrap VALUES ('study-b',1)")
+    assert PecDepositQueryRepository(conn, 'study-b').accettazioni_cancelleria_fascicolo('CASE-1') == []
+    conn.execute("UPDATE pec_validation_reports SET created_at='2026-10-16T11:00:00Z' WHERE id='registry-report'")
+    with pytest.raises(RuntimeError, match='non ancora confermato'):
+        repo.accettazioni_cancelleria_fascicolo('CASE-1')
+    assert [row['message_id'] for row in repo.accettazioni_cancelleria_fascicolo('CASE-2')] == ['registry-other']
+
+
 def test_report_nuovo_impedisce_di_leggere_un_indice_superato(receipts):
     database, repo = receipts
     database.conn.execute("UPDATE pec_validation_reports SET event_type='altro' WHERE id='registry-report'")

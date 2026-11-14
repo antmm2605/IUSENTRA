@@ -156,3 +156,21 @@ def test_final_pdf_native_sql_retry_preserves_source(environment, monkeypatch):
     assert client.post(endpoint, json={**payload, 'html': ''}).status_code == 400
     permissions.remove('fascicoli.scrivi')
     assert client.post(endpoint, json=payload).status_code == 403
+
+
+def test_bozza_note_riaperta_anche_con_nuovo_comando(environment, monkeypatch):
+    from web.services import react_template_studio_bridge as bridge
+
+    client, repo, matter, _, _ = environment
+    termine = "17/12/2026"
+    monkeypatch.setattr(bridge, "_campi_bozza_note", lambda fid, _modello, data: (
+        {"contenuto_istanza": "Note"} if (fid, data) == (matter, termine) else {}
+    ))
+    url = f"/api/editor/{matter}/nuovo"
+    richiesta = {**body(), "termine_note": termine}
+    assert client.post(url, json={**richiesta, "termine_note": "18/12/2026"}).status_code == 409
+    prima = client.post(url, json=richiesta)
+    assert prima.status_code == 201
+    riaperta = client.post(url, json={**richiesta, "command_id": str(uuid4())})
+    assert riaperta.json == prima.json
+    assert len(repo().get(matter).documenti) == 1

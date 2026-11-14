@@ -88,6 +88,19 @@ def test_tre_controlli_e_fascicolo_unico_collegamento_certo():
     assert STATO_CERTO in LINK_STATI_CERTIFICATI
 
 
+def test_rdac_deposito_usa_recapito_del_gestore_mantenendo_i_tre_controlli():
+    pec = _pec(mittente="posta-certificata@example.test",
+               oggetto="CONSEGNA: DEPOSITO TELEMATICO: Note RG: 523/2026",
+               corpo="Ricevuta di avvenuta consegna. Pratica Mario Rossi.")
+    pec["pec_receipt"] = {"type": "avvenuta_consegna",
+                          "daticert_delivery_recipient": "tribunale.vicenza@civile.ptel.giustiziacert.it"}
+    assert cerca_collegamento_certo(pec, [_fascicolo()])["ufficio_da"] == "destinatario_daticert"
+    assert cerca_collegamento_certo(pec, [_fascicolo()])["fascicolo_id"] == "F1"
+    assert not cerca_collegamento_certo(pec, [_fascicolo(cliente="Verdi Anna")])["fascicolo_id"]
+    pec["pec_receipt"]["daticert_delivery_recipient"] = "tribunale.palmi@civile.ptel.giustiziacert.it"
+    assert not cerca_collegamento_certo(pec, [_fascicolo()])["fascicolo_id"]
+
+
 def test_ufficio_letto_nella_comunicazione_se_il_mittente_non_e_un_ufficio():
     pec = _pec(mittente="Avv. Neri <neri@pec.example.test>", profilo={"ufficio": "TRIBUNALE DI VICENZA"})
     assert cerca_collegamento_certo(pec, [_fascicolo()])["fascicolo_id"] == "F1"

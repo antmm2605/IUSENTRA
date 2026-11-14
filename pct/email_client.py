@@ -1291,7 +1291,28 @@ class GestioneEmailRicevute:
         db = self._carica()
         if self._deduplica_db_in_memoria(db):
             self._salva()
-        emails = list(db.values())
+        return self.filtra_messaggi(
+            db.values(), cartella=cartella, solo_non_lette=solo_non_lette, q=q,
+            stato_lettura=stato_lettura, solo_pst=solo_pst, con_allegati=con_allegati,
+            stato_pct=stato_pct, origine=origine, data_da=data_da, data_a=data_a,
+        )
+
+    @staticmethod
+    def filtra_messaggi(
+        messaggi,
+        *,
+        cartella: Optional[str] = None,
+        solo_non_lette: bool = False,
+        q: str = "",
+        stato_lettura: str = "",
+        solo_pst: bool = False,
+        con_allegati: bool = False,
+        stato_pct: str = "",
+        origine: str = "",
+        data_da: str = "",
+        data_a: str = "",
+    ) -> List[EmailRicevuta]:
+        emails = list(messaggi)
         if cartella:
             emails = [e for e in emails if e.cartella == cartella]
         if solo_non_lette or stato_lettura == StatoEmail.NON_LETTA:
@@ -1344,7 +1365,10 @@ class GestioneEmailRicevute:
         db = self._carica()
         if self._deduplica_db_in_memoria(db):
             self._salva()
-        emails = list(db.values())
+        return self.statistiche_messaggi(list(db.values()))
+
+    @staticmethod
+    def statistiche_messaggi(emails: list[EmailRicevuta]) -> dict:
         return {
             "totale":     len(emails),
             "non_lette":  sum(1 for e in emails if e.stato == StatoEmail.NON_LETTA
@@ -1510,7 +1534,7 @@ class GestioneEmailRicevute:
                 client.login(username, password)
                 return client
 
-            mail = run_imap_runtime_operation(_connect_mail)
+            mail = run_imap_runtime_operation(_connect_mail, account=(imap_host, imap_port, username))
         except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
             risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
             return risultato
@@ -1528,7 +1552,7 @@ class GestioneEmailRicevute:
             nonlocal mail
             _logout_quietly(mail)
             try:
-                mail = run_imap_runtime_operation(_connect_mail)
+                mail = run_imap_runtime_operation(_connect_mail, account=(imap_host, imap_port, username))
                 risultato["riconnessioni_imap"] += 1
                 return True
             except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as exc:
@@ -2299,6 +2323,7 @@ def aggiorna_comunicazioni_cancelleria_da_email(
     gestione_fascicoli,
     fascicolo_id: str | None = None,
 ) -> dict:
+    from pct.email_sql_client import GestioneEmailSQL
     from pct.fascicoli import TipoAttivita, EsitoAttivita
 
     report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
@@ -2308,12 +2333,27 @@ def aggiorna_comunicazioni_cancelleria_da_email(
     if fascicolo_id:
         fascicoli = [fasc for fasc in fascicoli if getattr(fasc, "id", "") == fascicolo_id]
 
+    confermati: dict[str, str] | None = None
+    if isinstance(gestione_email, GestioneEmailSQL):
+        from pct.pec_pipeline import PecAuditRepository
+
+        audit_db = Path(gestione_email.db_path).with_name("pec_audit.sqlite")
+        confermati = {}
+        if audit_db.is_file():
+            tenant = gestione_email.repository.tenant
+            repo = PecAuditRepository(audit_db, tenant_id="default" if tenant == "single-tenant" else tenant)
+            confermati = repo.fascicoli_confermati_per_message_id(em.message_id for em in emails)
+    fascicoli_per_id = {fasc.id: fasc for fasc in fascicoli}
+
     for em in emails:
         if not _email_e_comunicazione_cancelleria(em):
             continue
         report["trovati"] += 1
         try:
-            fascicolo = _trova_fascicolo_da_email(fascicoli, em)
+            if confermati is None:
+                fascicolo = _trova_fascicolo_da_email(fascicoli, em)
+            else:
+                fascicolo = fascicoli_per_id.get(confermati.get(str(em.message_id or "").strip(), ""))
             if not fascicolo:
                 continue
 

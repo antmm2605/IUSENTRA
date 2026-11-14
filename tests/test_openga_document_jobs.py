@@ -152,9 +152,14 @@ def test_html_reader_is_authenticated_tenant_scoped_and_escapes_document_text(tm
         response = client.get(path)
         assert response.status_code == 200
         assert response.mimetype == "text/html"
-        assert b"&lt;script&gt;" in response.data
+        assert b'id="lettore-sentenza-root"' in response.data
         assert b"<script>alert(1)</script>" not in response.data
         assert "no-store" in response.headers["Cache-Control"]
+        dati = client.get(path + "?format=json")
+        assert b"<script>alert(1)</script>" not in dati.data
+        assert dati.get_json()["documento"]["blocchi"][0]["testo"] == text
+        assert "default-src 'none'" in dati.headers["Content-Security-Policy"]
+        assert dati.headers["X-Content-Type-Options"] == "nosniff"
         current_path[0] = str(tmp_path / "b.db")
         assert client.get(path).status_code == 404
 

@@ -19,3 +19,18 @@ def test_esito_e_spese_come_fatti_ammessi_dall_archivio():
 
 def test_un_atto_che_non_e_una_sentenza_non_ha_esito():
     assert estrai_esito("RICORSO EX ART. 414 C.P.C. ... P.Q.M. si chiede che il giudice accolga", origine="nativo") == []
+
+
+def test_riconosce_compensazione_anche_se_la_formula_di_merito_non_e_classificata():
+    testo = (
+        "TRIBUNALE — SENTENZA — RG 123/2024\nP.Q.M.\n"
+        "Attribuisce alla parte ricorrente la somma indicata in motivazione. "
+        "Compensa le spese di lite.\nCosì deciso il 01.02.2024."
+    )
+
+    fatti = {f.campo: f for f in estrai_esito(testo, origine="indice")}
+
+    assert set(fatti) == {"spese_sentenza"}
+    assert fatti["spese_sentenza"].valore == "compensazione"
+    assert fatti["spese_sentenza"].valore_letto == "Compensa le spese di lite"
+    assert fatti["spese_sentenza"].prove[0]["esito"] == "ok"

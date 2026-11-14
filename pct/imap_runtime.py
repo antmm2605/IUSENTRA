@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import socket
 from typing import Any, Callable, TypeVar
@@ -10,6 +11,7 @@ from pct.runtime_resilience import (
     CircuitBreakerOpenError,
     RuntimeCircuitBreaker,
     get_runtime_circuit_breaker,
+    runtime_circuit_breaker_snapshots,
 )
 
 
@@ -48,9 +50,14 @@ def resolve_imap_circuit_timeout_seconds(value: object | None = None) -> int:
     return max(5, min(600, timeout))
 
 
-def get_imap_circuit_breaker() -> RuntimeCircuitBreaker:
+def get_imap_circuit_breaker(*, account: tuple[str, int, str] | None = None) -> RuntimeCircuitBreaker:
+    key = "pec_imap"
+    if account:
+        host, port, username = account
+        identity = f"{host.strip().lower()}\0{port}\0{username.strip()}"
+        key += ":" + hashlib.sha256(identity.encode()).hexdigest()[:20]
     return get_runtime_circuit_breaker(
-        "pec_imap",
+        key,
         component="PEC / IMAP",
         failure_threshold=resolve_imap_circuit_threshold(),
         recovery_timeout_seconds=resolve_imap_circuit_timeout_seconds(),
@@ -61,12 +68,18 @@ def get_imap_circuit_breaker() -> RuntimeCircuitBreaker:
     )
 
 
-def run_imap_runtime_operation(operation: Callable[..., T], *args: Any, **kwargs: Any) -> T:
-    return get_imap_circuit_breaker().call(operation, *args, **kwargs)
+def run_imap_runtime_operation(
+    operation: Callable[..., T], *args: Any, account: tuple[str, int, str] | None = None, **kwargs: Any
+) -> T:
+    return get_imap_circuit_breaker(account=account).call(operation, *args, **kwargs)
 
 
 def imap_breaker_snapshot() -> dict[str, Any]:
-    return get_imap_circuit_breaker().snapshot()
+    snapshots = runtime_circuit_breaker_snapshots()
+    accounts = [state for key, state in snapshots.items() if key.startswith("pec_imap:")]
+    if not accounts:
+        return get_imap_circuit_breaker().snapshot()
+    return max(accounts, key=lambda state: (state["open"], state["failure_count"], state["remaining_seconds"]))
 
 
 def describe_imap_connection_error(exc: Exception, *, timeout_seconds: int) -> str:

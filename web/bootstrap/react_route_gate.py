@@ -1,8 +1,9 @@
-"""Gate centrale per servire la shell React sulle route GET migrate.
+"""Gate centrale per servire la shell React sulle route GET dello studio.
 
-Le route Flask storiche restano disponibili con ``?_legacy=1`` e tutte le
-scritture continuano a passare dai POST esistenti. Questo gate intercetta solo
-GET HTML di aree migrate, evitando API, download e allegati.
+Le pagine Jinja dello studio sono state eliminate (decisione del 10/11/2026: solo
+React); il vecchio parametro ``?_legacy=1`` non apre più nessuna vista classica.
+Questo gate intercetta solo GET HTML, evitando API, download e allegati; le
+scritture continuano a passare dai POST e dalle API esistenti.
 """
 
 from __future__ import annotations
@@ -193,11 +194,14 @@ _EXCLUDED_SEGMENTS = {
     "visualizza",
 }
 
-_LEGACY_OPERATIONAL_PREFIXES = (
-    "/admin/osservabilita",
+# Sotto-percorsi tecnici serviti da Flask e non pagine: download e installatori del
+# Local Signer (/polisWeb/local-signer/...), rinvii storici all'acquisizione guidata
+# (/pat/acquisizione, /pdp/documenti...), dati dei portali. Le pagine con lo stesso
+# prefisso (/pat, /telematico, /checklist/<id>, /applicazioni/<id>...) sono React:
+# le riconoscono le regole più sopra in `_excluded`.
+_PORTALI_SOTTOPERCORSI_FLASK = (
     "/applicazioni",
     "/checklist",
-    "/database",
     "/guida/firma-digitale",
     "/pat",
     "/pdp",
@@ -313,10 +317,6 @@ def _redirect_con_parametro(path: str):
             parametri.setdefault(parametro, trovato.group(1))
             return redirect(f"{target}?{urlencode(parametri)}")
     return None
-
-
-def _legacy_requested() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _accepts_html() -> bool:
@@ -474,7 +474,7 @@ def _excluded(path: str) -> bool:
         "/ricerca-legale/schede-atti",
     }:
         return True
-    # /legal-intelligence/daily/update/<id>/diff resta legacy (rendering server-side).
+    # Sotto-percorsi daily non riconosciuti sopra: restano alle viste Flask (rinvii e dati).
     if lower.startswith("/legal-intelligence/daily/"):
         return True
     if lower.startswith("/ricerca-legale/daily/"):
@@ -483,7 +483,7 @@ def _excluded(path: str) -> bool:
         return False
     if lower in _REACT_TELEMATICO_ACQUISITION_PATHS:
         return False
-    if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+    if any(lower.startswith(f"{prefix}/") for prefix in _PORTALI_SOTTOPERCORSI_FLASK):
         return True
     is_conferimento_detail = lower.startswith("/preventivi/conferimento/") and lower.count("/") == 3
     # Scheda del preventivo: React (PreventiviPage apre il dettaglio con workflow e azioni).
@@ -502,12 +502,12 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/wizard-pro/fascicolo/"):
         return True
-    # I wizard deposito interni al fascicolo restano sui template operativi
-    # finche' il relativo flusso React non copre l'intera procedura.
+    # Percorso guidato del fascicolo fuori dai passi riconosciuti sopra (avvio, indice):
+    # resta alle viste Flask, che rinviano alla pagina React.
     if lower.startswith("/fascicoli/") and "/wizard/" in lower:
         return True
-    # Collaboratori del singolo fascicolo (condividi/revoca): non c'è ancora in React; la shell lo
-    # leggerebbe come dettaglio del fascicolo. Resta la pagina classica finché non è portata (V45).
+    # Collaboratori del singolo fascicolo: indirizzo storico, ora reindirizzato da Flask al pannello
+    # React «Collaboratori del fascicolo» (#collaboratori-fascicolo); la shell non lo deve servire.
     if lower.startswith("/fascicoli/") and lower.endswith("/collaboratori"):
         return True
     # Copertine (fascicolo e faldone del cliente): documenti da stampare, non pagine.
@@ -595,11 +595,6 @@ def register_react_route_gate(app: Flask) -> None:
     @app.before_request
     def _react_route_gate():
         if request.method != "GET" or not _accepts_html():
-            return None
-        # Queste pagine nascono in React e non hanno un corrispettivo Jinja.
-        # Le finestre storiche possono aggiungere _legacy: non deve provocare un 404.
-        solo_react = _normalise_path(request.path).lower() in {"/ricerca-legale/schede-atti", "/ricerca-legale/gazzetta-ufficiale"}
-        if _legacy_requested() and not solo_react:
             return None
         raw_lower = (request.path or "/").lower()
         path = _normalise_path(request.path)

@@ -12,8 +12,7 @@ import './SupportCustomerRoom.css'
 /**
  * Stanza cliente dell'assistenza remota (`/support/join/<token>`), montata da
  * main.tsx su `#support-customer-react-root`. Sostituisce
- * web/templates/support/customer_room.html + web/static/js/support_customer_room.js
- * (ancora raggiungibili con `?_legacy=1`).
+ * la vecchia pagina Jinja (support/customer_room.html, eliminata il 10/11/2026).
  */
 
 type SupportCustomerRoomProps = {

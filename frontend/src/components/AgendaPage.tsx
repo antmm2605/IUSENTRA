@@ -48,7 +48,7 @@ import { SourceDocumentModal } from './SourceDocumentModal'
 import { OperationalModal } from './OperationalModal'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import { formatDateIt } from '../formatting'
-import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, agendaDeadlineCalculatorHref, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
+import { AGENDA_ACTIVITY_PREFIX, agendaActivityText, isWrittenHearing, agendaDeadlineCalculatorHref, agendaProposedSteps, type AgendaProposedStep } from '../features/agenda/agendaDetailActions'
 import { cleanAccessInfo, plausiblePasscode, readablePlatform } from '../features/scadenziario/deadlineDetailFacts'
 import {
   addDays,
@@ -337,6 +337,7 @@ export function AgendaFocus({
   const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
   const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
   const completeHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/stato`
+  const writtenHearing = isWrittenHearing(event.legalLabel)
   const activity = agendaActivityText(event)
   const proposedSteps = agendaProposedSteps(event, activity, { editHref, isDeadline, clientReminderHref: messageReminderHref(event) })
   const visibleDetails = event.detailLines.map(line => line.replace(/\s*ARCHIVIO_FATTO:[\w-]+/g, '').replace(/Stato: PROGRAMMATO/g, 'Stato: Programmato').replace(/Stato: COMPLETATO/g, 'Stato: Completato').replace(/Stato: ANNULLATO/g, 'Stato: Annullato').replace(/Stato: RINVIATO/g, 'Stato: Rinviato').trim()).filter((line) => line.trim() && !AGENDA_ACTIVITY_PREFIX.test(line.trim())).slice(0, 12)
@@ -361,7 +362,7 @@ export function AgendaFocus({
         <AgendaProposedActions event={event} steps={proposedSteps} onOpenSource={onOpenSource}/>
         {visibleDetails.length ? (
           <ul className="iu-ag-focus__details">
-            {visibleDetails.map((line) => <li key={line}>{line}</li>)}
+            {visibleDetails.map((line) => <li key={line}>{writtenHearing ? line.replace(/^Udienza:/, 'Trattazione scritta:') : line}</li>)}
           </ul>
         ) : null}
       </div>
@@ -369,7 +370,10 @@ export function AgendaFocus({
       <AgendaSourceCard event={event} onOpenSource={onOpenSource}/>
       <dl>
         <div><dt>Data</dt><dd>{formatDateIt(event.start)}</dd></div>
-        <div><dt>Orario</dt><dd>{event.timeLabel} · {event.durationLabel}</dd></div>
+        <div>
+          <dt>{writtenHearing ? 'Ora indicata per le note' : 'Orario'}</dt>
+          <dd>{writtenHearing ? event.detailLines.find(line => /^Udienza:/.test(line))?.match(/\b\d{1,2}:\d{2}\b/)?.[0] || 'Da verificare nel provvedimento' : `${event.timeLabel} · ${event.durationLabel}`}</dd>
+        </div>
         <div><dt>Cliente/parte</dt><dd>{event.client || 'Da collegare'}</dd></div>
         <div><dt>Fascicolo/RG</dt><dd>{event.matter || 'Da indicare'}</dd></div>
         <div><dt>Origine</dt><dd>{agendaSourceLabel(event.source, event)}</dd></div>

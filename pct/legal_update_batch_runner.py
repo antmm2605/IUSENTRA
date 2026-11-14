@@ -179,6 +179,7 @@ def build_legal_update_job_command(
         config.ai_base_url,
         "--local-ai-model",
         config.ai_model or "mistral",
+        "--no-dashboard",
     ]
     if config.export_json_enabled:
         command.append("--export-json")
@@ -257,6 +258,8 @@ def run_legal_update_subprocess(
         publish_limit=publish_limit,
         auto_publish=auto_publish,
     )
+    if publish_only and timeout_seconds >= 30:
+        command.extend(["--publish-max-seconds", str(min(60, timeout_seconds - 20))])
     label = "publish" if publish_only else str(source_code or "")
     try:
         completed = runner(
@@ -311,12 +314,18 @@ def run_legal_update_publish_queue_with_timeouts(
     verification_evidence_saved = 0
     verification_attachments_saved = 0
     web_verification_attempts = 0
+    verification_deferred = 0
     max_items = max(1, int(max_items or 1))
-    for _ in range(max_items):
+    published_ids: list[int] = []
+    # Il sottoprocesso ha un budget interno: può riusare apertura archivio,
+    # deduplicazione e riconciliazione per più schede nella stessa finestra.
+    batch_size = 5 if item_timeout_seconds >= 30 else 1
+    while published_count < max_items:
+        limit = min(batch_size, max_items - published_count)
         result = run_legal_update_subprocess(
             config,
             publish_only=True,
-            publish_limit=1,
+            publish_limit=limit,
             timeout_seconds=item_timeout_seconds,
             runner=runner,
         )
@@ -328,17 +337,21 @@ def run_legal_update_publish_queue_with_timeouts(
         published_payload = payload.get("published") if isinstance(payload, dict) else {}
         published_metrics = published_payload if isinstance(published_payload, dict) else {}
         if published_metrics:
+            published_ids.extend(int(item) for item in published_metrics.get("items") or [])
+            verification_deferred += int(published_metrics.get("verification_deferred") or 0)
             verification_evidence_saved += int(published_metrics.get("verification_evidence_saved") or 0)
             verification_attachments_saved += int(published_metrics.get("verification_attachments_saved") or 0)
             web_verification_attempts += int(published_metrics.get("web_verification_attempts") or 0)
         count = int((payload.get("published_count") if isinstance(payload, dict) else 0) or 0)
         published_count += count
-        if count <= 0 and not int(published_metrics.get("web_verification_attempts") or 0):
+        if count < limit or verification_deferred:
             break
     return {
         "ok": all(row.get("ok") for row in reports) if reports else True,
         "mode": "publish_queue_timeout",
+        "verification_deferred": verification_deferred,
         "published_count": published_count,
+        "items": published_ids,
         "verification_evidence_saved": verification_evidence_saved,
         "verification_attachments_saved": verification_attachments_saved,
         "web_verification_attempts": web_verification_attempts,
@@ -356,11 +369,15 @@ def run_legal_update_batch_with_timeouts(
     publish_max_items: int = 40,
     runner: Runner | None = None,
     record_agent_runs: bool | None = None,
+    claim_source: Callable[[str], bool] | None = None,
+    finish_source: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     should_record_runs = bool(record_agent_runs) if record_agent_runs is not None else runner is None
     sources = [str(code or "").strip() for code in source_codes if str(code or "").strip()]
     reports: list[dict[str, Any]] = []
     for source_code in sources:
+        if claim_source is not None and not claim_source(source_code):
+            continue
         result = run_legal_update_subprocess(
             config,
             source_code=source_code,
@@ -370,6 +387,8 @@ def run_legal_update_batch_with_timeouts(
         )
         result = _normalize_source_subprocess_result(result)
         reports.append(result)
+        if finish_source is not None:
+            finish_source(source_code, result)
         if should_record_runs:
             _record_source_agent_run(config, result, trigger_label="batch")
 
@@ -385,12 +404,14 @@ def run_legal_update_batch_with_timeouts(
     return {
         "ok": all(row.get("ok") for row in reports) and bool(published.get("ok", True)),
         "mode": "source_batch_timeout",
+        "status": "parziale" if published.get("verification_deferred") else "",
         "sources": sources,
         "reports": reports,
         "timeouts": sum(1 for row in reports if row.get("timeout")) + int(published.get("timeouts") or 0),
         "autopublished": {
             "count": int(published.get("published_count") or 0),
-            "items": [],
+            "verification_deferred": int(published.get("verification_deferred") or 0),
+            "items": published.get("items") or [],
             "reports": published.get("reports") or [],
             "verification_evidence_saved": int(published.get("verification_evidence_saved") or 0),
             "verification_attachments_saved": int(published.get("verification_attachments_saved") or 0),

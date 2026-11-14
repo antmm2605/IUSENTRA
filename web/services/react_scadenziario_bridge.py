@@ -7,6 +7,8 @@ Flask gia' auditate: crea, modifica, completa, elimina, bulk, export e iCal.
 
 from __future__ import annotations
 
+from pct.pec_term_modification import modification_lines
+
 import re
 from collections.abc import Callable, Iterable
 from datetime import date, datetime, timezone
@@ -14,6 +16,7 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import quote
 
+from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
 from pct.scadenze_stato import aperta, esito_udienza_da_registrare, scaduta_da_chiudere
 from pct.guardiano_scadenze import build_guardiano_scadenze_payload
 from pct.scadenziario import (
@@ -26,6 +29,7 @@ from pct.scadenziario import (
     profili_termine_builtin,
 )
 from pct.pec_operational_cleanup import is_legacy_pec_deadline
+from pct.pec_profilo_ufficio import ufficio_generico
 from pct.proposte_decorse import GRUPPO_DA_VERIFICARE, MARCATORE_SUPERATA, dividi_proposte, riga_da_verificare
 from pct.termini_processuali import (
     CALENDAR_VERSION,
@@ -536,6 +540,8 @@ def _legal_scadenza_title(scadenza: Any, *, fascicolo: Any = None) -> str:
     # dalla comunicazione (art. 127-ter, comma 2, c.p.c.), non all'udienza sostituita dalle note.
     if _is_termine_opposizione_127_ter(scadenza, raw_title_normalized):
         return "Opposizione alla trattazione scritta"
+    if raw_title.startswith(TITOLO_NOTE_127_TER):
+        return TITOLO_NOTE_127_TER
     if is_scadenza_pec(scadenza):
         summary = _pec_event_summary(context)
         rg = _pec_rg_label(context)
@@ -1047,6 +1053,26 @@ def _remote_hearing_payload(scadenza: Any) -> dict[str, Any]:
         hearing_mode_label = mode or "Da remoto"
     if not hearing_time and detected:
         hearing_time = time_value
+    if hearing_mode.casefold() == "note_scritte" and modification_lines(scadenza):
+        hearing_time, hearing_time_invalid = _normalise_hearing_time(getattr(scadenza, "operational_due_at", ""))
+    if not hearing_time and hearing_mode.casefold() == "note_scritte":
+        from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, FINE_GIORNO
+
+        # Le proposte già salvate conservano qui l'ora letta dal decreto.
+        if any(riga.startswith("PEC_TERMINE_PROPOSTO:") and riga.endswith(f":{CODICE_NOTE_127_TER}")
+               for riga in note.splitlines()):
+            proposta_ora, proposta_invalida = _normalise_hearing_time(getattr(scadenza, "operational_due_at", ""))
+            if proposta_ora != FINE_GIORNO and not proposta_invalida:
+                hearing_time = proposta_ora
+    if (
+        hearing_mode.casefold() == "note_scritte"
+        and hearing_time == "00:00"
+        and any(line.startswith("PEC_IDENTITA_TERMINE:") and "|PEC_AUTO_PRESIDIO|" in line for line in note.splitlines())
+        and not modification_lines(scadenza)
+        and not _normalise_hearing_time(getattr(scadenza, "operational_due_at", ""))[0]
+    ):
+        # Il dato storico contiene la mezzanotte del registro, senza un orario nel termine salvato.
+        hearing_time, hearing_time_invalid = "", True
     return {
         "hearingMode": _short_text(hearing_mode_label, 100),
         "hearingModeSource": _readable_source_name(hearing_source),
@@ -1134,10 +1160,21 @@ def _row(
     context_client = _visible_legal_text((display_event or {}).get("client"), 120) if context_matched else ""
     context_court = _visible_legal_text((display_event or {}).get("court"), 140) if context_matched else ""
     pec_court = _visible_legal_text((pec_profile or {}).get("ufficio"), 140)
+    courts = (
+        context_court,
+        str(getattr(scadenza, "judicial_office_name", "") or ""),
+        pec_court,
+        str(getattr(fascicolo, "tribunale", "") or ""),
+    )
+    court = next((name for name in courts if name), "")
+    if fascicolo and ufficio_generico(court):
+        court = next((name for name in courts if name and not ufficio_generico(name)), court)
     base_fascicolo_label = _fascicolo_label(fascicolo, fascicolo_id)
     title = _legal_scadenza_title(scadenza, fascicolo=fascicolo)
     source_event_label = _source_event_label_for_scadenza(scadenza)
-    if control_tower_source:
+    if title == TITOLO_NOTE_127_TER:
+        source_event_label = "Comunicazione di cancelleria"
+    elif control_tower_source:
         control_title = _visible_legal_text(control_tower_source.get("displayTitle"), 112)
         if control_title:
             title = control_title
@@ -1146,6 +1183,11 @@ def _row(
             or source_event_label
         )
     overdue = _is_overdue(scadenza)
+    status_label = _status_label(status)
+    if _is_hearing_to_record(scadenza):
+        status_label = "Esito da registrare"
+    elif status == "ANNULLATO" and MARCATORE_SUPERATA in str(getattr(scadenza, "note", "") or ""):
+        status_label = "Proposta superata"
     display_legal_label = _visible_legal_text((display_event or {}).get("detailTitle"), 112) if context_matched else ""
     if display_legal_label and title.startswith(("Comunicazione", "Udienza da PEC")):
         title = display_legal_label
@@ -1160,12 +1202,12 @@ def _row(
         "detailDescription": context_detail or _visible_legal_text((control_tower_source or {}).get("detailDescription"), 760) or _legal_scadenza_detail_description(scadenza),
         "reconciliationReason": _reconciliation_reason(scadenza) if status == "ANNULLATO" else "",
         "type": _enum_value(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)) or TipoTermine.ALTRO.value,
-        "typeLabel": _type_label_for_scadenza(scadenza),
+        "typeLabel": "Trattazione scritta" if title == TITOLO_NOTE_127_TER else _type_label_for_scadenza(scadenza),
         "priority": priority,
         "priorityLabel": _priority_label(priority),
         "tone": _tone_for(priority, status, days),
         "status": status,
-        "statusLabel": "Proposta superata" if status == "ANNULLATO" and MARCATORE_SUPERATA in str(getattr(scadenza, "note", "") or "") else _status_label(status),
+        "statusLabel": status_label,
         "days": days,
         "daysLabel": _days_label(days),
         "overdue": overdue,
@@ -1183,7 +1225,7 @@ def _row(
         "sourceEventLabel": _format_date(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", "")),
         "sourceEventType": str(getattr(scadenza, "source_event_type", "") or ""),
         "sourceEventTypeLabel": source_event_label,
-        "officeLabel": context_court or str(getattr(scadenza, "judicial_office_name", "") or pec_court or getattr(fascicolo, "tribunale", "") or ""),
+        "officeLabel": court,
         "officeModeLabel": OFFICE_MODE_LABELS.get(office_mode, office_mode.replace("_", " ").title() if office_mode else ""),
         "officePatronLabel": patron_label,
         "officeVerifiedAt": str(getattr(scadenza, "judicial_office_verified_at", "") or ""),
@@ -1883,6 +1925,15 @@ def build_react_scadenziario_payload(
         )
         for item in filtered
     ]
+    if compact and rows:
+        from web.services.riscontri_processuali_runtime import riscontro_note_scritte
+
+        riscontro_note = riscontro_note_scritte(
+            str(getattr(focused_item, "id_fascicolo", "") or ""), rows[0]["date"],
+            titolo=str(getattr(focused_item, "titolo", "") or ""), note=str(getattr(focused_item, "note", "") or ""),
+        )
+        if riscontro_note:
+            rows[0]["proceduralFinding"] = riscontro_note
     guardian = build_guardiano_scadenze_payload(all_items, limit=None)
     if query.get("q"):
         rows = [row for row in rows if _row_matches_query(row, str(query["q"]))]

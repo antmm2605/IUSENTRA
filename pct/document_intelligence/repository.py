@@ -873,6 +873,28 @@ class DocumentAIRepository:
             self._save_json()
         return extracted
 
+    def current_ready_texts(self, tenant_id: str, fascicolo_id: str) -> dict[tuple[str, str], str]:
+        """Restituisce il solo testo delle versioni correnti dei documenti pronti."""
+        if not self._backend:
+            return {
+                (doc.id, doc.current_version_id): str(getattr(extracted, "text", "") or "")
+                for doc in self.list_documents(tenant_id, fascicolo_id)
+                if str(doc.status) == "ready" and doc.sha256 and doc.current_version_id
+                for extracted in [self.get_extracted_text(tenant_id, fascicolo_id, doc.id, doc.current_version_id)]
+            }
+        rows = self._conn().execute(
+            """
+            SELECT t.document_id, t.version_id, t.text
+            FROM fascicolo_documenti_ai AS d
+            JOIN fascicolo_documenti_ai_testi AS t
+              ON t.tenant_id = d.tenant_id AND t.fascicolo_id = d.fascicolo_id
+             AND t.document_id = d.id AND t.version_id = d.current_version_id
+            WHERE d.tenant_id = ? AND d.fascicolo_id = ? AND d.status = 'ready' AND d.sha256 <> ''
+            """,
+            (tenant_id, fascicolo_id),
+        ).fetchall()
+        return {(row["document_id"], row["version_id"]): str(row["text"] or "") for row in rows}
+
     def get_extracted_text(
         self,
         tenant_id: str,

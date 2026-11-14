@@ -64,10 +64,18 @@ class FileLock:
             return FileLock._thread_locks[self._path]
 
     def __enter__(self) -> "FileLock":
-        self._get_thread_lock().acquire()
-        Path(self._lock_path).parent.mkdir(parents=True, exist_ok=True)
-        self._fd = open(self._lock_path, "w")
-        _lock_fd(self._fd)
+        thread_lock = self._get_thread_lock()
+        thread_lock.acquire()
+        try:
+            Path(self._lock_path).parent.mkdir(parents=True, exist_ok=True)
+            self._fd = open(self._lock_path, "w")
+            _lock_fd(self._fd)
+        except BaseException:
+            if self._fd is not None:
+                self._fd.close()
+                self._fd = None
+            thread_lock.release()
+            raise
         return self
 
     def __exit__(self, *_):

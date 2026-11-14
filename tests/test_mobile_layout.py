@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from web.app import create_app
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -36,63 +35,3 @@ def _login_admin(cfg: dict) -> None:
         ruolo=RuoloUtente.AMMINISTRATORE,
         email="admin@example.com",
     )
-
-
-def test_dashboard_classica_mobile_header_usa_griglia_coerente(tmp_path: Path):
-    cfg = _cfg_web(tmp_path)
-    _login_admin(cfg)
-    app = create_app(cfg)
-
-    with app.test_client() as client:
-        login = client.post(
-            "/login",
-            data={"username": "admin-mobile", "password": "Admin1234!"},
-            follow_redirects=True,
-        )
-        assert login.status_code == 200
-
-        page = client.get("/?_legacy=1", follow_redirects=True)
-        html = page.get_data(as_text=True)
-
-    css = Path("web/static/css/mobile.css").read_text(encoding="utf-8")
-    scss = Path("web/static/scss/mobile.scss").read_text(encoding="utf-8")
-
-    assert page.status_code == 200
-    assert 'class="ds-ph-actions"' in html
-    # Il CSS compilato e' compresso (dart-sass --style=compressed): si confronta senza spazi.
-    css_compatto = "".join(css.split())
-    assert "grid-template-columns:repeat(auto-fit,minmax(120px,1fr))" in css_compatto
-    assert ".ds-ph-actions.d-none.d-sm-inline" in css_compatto
-    assert ".topbar-actions.btn," in css_compatto
-    assert "grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));" in scss
-    assert ".ds-ph-actions .d-none.d-sm-inline" in scss
-    assert ".topbar-actions .btn," in scss
-
-
-def test_agenda_classica_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
-    cfg = _cfg_web(tmp_path)
-    _login_admin(cfg)
-    app = create_app(cfg)
-
-    with app.test_client() as client:
-        login = client.post(
-            "/login",
-            data={"username": "admin-mobile", "password": "Admin1234!"},
-            follow_redirects=True,
-        )
-        assert login.status_code == 200
-
-        page = client.get("/agenda?_legacy=1", follow_redirects=True)
-        html = page.get_data(as_text=True)
-
-    css = Path("web/static/css/mobile.css").read_text(encoding="utf-8")
-    scss = Path("web/static/scss/mobile.scss").read_text(encoding="utf-8")
-
-    assert page.status_code == 200
-    assert "agenda-toolbar" in html
-    assert "agenda-toolbar-group--vista" in html
-    assert "agenda-toolbar-group--nav" in html
-    assert ".agenda-toolbar-group--vista" in css
-    assert ".agenda-toolbar-label" in css
-    assert ".agenda-toolbar-group--vista" in scss
-    assert ".agenda-toolbar-label" in scss

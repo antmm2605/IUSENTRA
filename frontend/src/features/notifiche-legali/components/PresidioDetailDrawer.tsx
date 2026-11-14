@@ -15,10 +15,11 @@ import { StatusBadge } from '@/ui/StatusBadge'
 import { Toast } from '@/ui/Toast'
 import { classifyPresidioError, mutatePresidio } from '../api/presidiApi'
 import { usePresidioDetail } from '../hooks/usePresidioDetail'
-import { downloadHrefForPresidioDocument, presidioStatusLabel, presidioStatusTone, priorityTone, safeInternalHref } from '../presentation'
+import { downloadHrefForPresidioDocument, presidioRecipientStatus, presidioStatusLabel, presidioStatusTone, presidioUnresolvedTerm, priorityTone, safeInternalHref } from '../presentation'
 import type { PresidioAvailableAction } from '../types'
 import { PresidioActions } from './PresidioActions'
 import { PresidioEvidence } from './PresidioEvidence'
+import { RecipientPecProof } from './RecipientPecProof'
 import VerificaNotifichePanel from '@/components/VerificaNotifichePanel'
 
 export default function PresidioDetailDrawer({
@@ -95,10 +96,10 @@ export default function PresidioDetailDrawer({
                 <div><dt>Caso</dt><dd>{detail.notification_case_label}</dd></div>
                 <div><dt>Canale</dt><dd>{detail.channel_label}</dd></div>
                 <div><dt>Data sorgente</dt><dd>{formatDateTimeIt(detail.source_effective_at, 'Non disponibile')}</dd></div>
-                <div><dt>Termine</dt><dd>{formatDateTimeIt(detail.explicit_due_at, 'Nessun termine espresso')}</dd></div>
+                {detail.explicit_due_at ? <div><dt>Termine indicato nel provvedimento</dt><dd>{formatDateTimeIt(detail.explicit_due_at)}</dd></div> : null}
                 {detail.legal_term ? (
                   <div><dt>{detail.legal_term.label}</dt><dd><a href={detail.legal_term.href}>{formatDateIt(detail.legal_term.date) || 'da verificare'}</a> · {detail.legal_term.state}. {detail.legal_term.note}</dd></div>
-                ) : null}
+                ) : !detail.explicit_due_at ? <div><dt>Termine</dt><dd>{presidioUnresolvedTerm(detail)}.</dd></div> : null}
               </dl>
               <p><strong>Motivo:</strong> {detail.detection_reason}</p>
               <p><strong>Prossima azione:</strong> {detail.next_action}</p>
@@ -131,9 +132,10 @@ export default function PresidioDetailDrawer({
                     <UserRound size={17} aria-hidden="true" />
                     <div>
                       <strong>{recipient.name}</strong>
-                      <span>{recipient.role || 'Destinatario'} · {recipient.status_label}</span>
+                      <span>{recipient.status_label === 'Parte del fascicolo' ? recipient.status_label : presidioRecipientStatus(detail.status, recipient.status_label)}</span>
                       {recipient.pec_address ? <small>{recipient.pec_address}</small> : null}
                       {recipient.failure_reason ? <small className="nlp-danger-text">{recipient.failure_reason}</small> : null}
+                      <RecipientPecProof recipient={recipient}/>
                     </div>
                   </article>
                 ))}
@@ -193,6 +195,7 @@ export default function PresidioDetailDrawer({
               presidioId={detail.id}
               items={data.evidence.items}
               canView={permissions.can_view_evidence}
+              protocols={detail.practice_protocol_replies}
             />
 
             <section className="nlp-detail-section" aria-labelledby="nlp-history-title">

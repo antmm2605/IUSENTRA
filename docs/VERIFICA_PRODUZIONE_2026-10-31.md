@@ -107,3 +107,150 @@ ora la rilettura avviene di notte, a piccoli gruppi.
 
 ### Regia
 «PROFILO_DA_CONFERMARE», completamento 0%: coerente con il profilo non confermato.
+
+### 11 novembre 2026 — Integrazione locale PEC e motore di ragionamento
+
+- Base `26d58ddd` con le correzioni Codex della copia `iusentra-2488` e il verbale «Collaudo IUSENTRA - PEC e scadenze». Motore, termini, udienze ed economia provengono da `fix-ragionamento`, `fix-termini-a` e `fix-termini-b`. Stato: candidata locale.
+- In Prossimi passi una conclusione incompleta del motore non fa sparire una scadenza registrata. Verifica: `test_ragionamento_non_fa_sparire_una_scadenza_automatica_non_ricostruita`.
+- Il termine che decorre da una comunicazione resta da verificare quando manca la PEC collegata. Un provvedimento successivo non chiude da solo un termine scaduto. Verifica: `test_termine_dalla_comunicazione_richiede_la_data_di_consegna`.
+- Il motore riusa la regola PEC per l'art. 415 c.p.c. e distingue il termine ordinatorio dalla pronuncia e l'intervallo a difesa, che richiede la destinazione. Verifiche: `test_g3_ricevute_della_diffida_non_notificano_il_ricorso_e_obbligo_415` e `test_g9_note_scritte_alle_14_sono_un_termine_e_l_ordine_del_giudice_non_chiede_conferma`. [Fonte ufficiale](https://www.normattiva.it/atto/caricaDettaglioAtto?atto.articolo.numero=3&atto.articolo.sottoArticolo=1&atto.articolo.tipoArticolo=0&atto.codiceRedazionale=24G00183&atto.dataPubblicazioneGazzetta=2024-11-11).
+- La bozza di relata per un presidio usa il database SQL PEC e verifica studio, fascicolo e stato anche al salvataggio. Verifica: `test_bozza_relata_riapribile_solo_nello_studio_e_fascicolo_del_presidio`.
+- Replay in sola lettura dei testi SQL archiviati, con stessi ingressi per le due versioni e data 11/11/2026. Sei fascicoli, 188 documenti, 182 testi collegati per impronta, 21 conclusioni in entrambe le versioni. Nel caso di lavoro l'integrazione espone la destinazione mancante e conserva il calcolo dalla pronuncia. Un fascicolo non produce conclusioni e due conclusioni restano senza prova o motivo esplicito (giudicato e precetto). Il replay parziale non sostituisce le verifiche sui destinatari, sui documenti non letti, sulla catena fino alla bozza nel browser e su tutti i 16 esiti del collaudo.
+- Da completare prima di estendere il motore ai pannelli: la prova di notifica ricavata dal solo testo della spedizione può ancora essere considerata verificata da `prove_per_atto`. Va legata a ricevute e destinatari con riscontro persistente prima di attestare un adempimento o aprire il termine breve.
+
+### 11 novembre 2026 — Verifica dei 16 esiti e prova in Chromium
+
+- Replay di sei fascicoli in sola lettura. Riscontro positivo sul motore per G-01, G-02, G-03, G-07, G-08, G-09, G-12, G-14 e G-16. Riscontri parziali per G-04, G-06, G-10, G-13 e G-15. G-05 e G-11 aperti. Il registro completo è nel verbale locale di collaudo.
+- G-14/G-16: la liquidazione del decreto resta visibile senza attribuzione di credito se la parte è ignota. La verifica del contributo in volontaria giurisdizione distingue €27 dall'importo previsto dal rito senza assegnare un obbligo non dimostrato.
+- Browser: su G-03 manca l'originale PST. Corretta la scrittura diretta della bozza, che ora restituisce 409 nelle stesse condizioni. Su un altro ordine reale con originale PST collegato, bozza salvata e riaperta in Chromium con gli stessi riferimenti. Entrambi i percorsi sono in copie isolate.
+- Ricevute: firma S/MIME verificata offline per entrambi gli ordini e le quattro ricevute del primo fascicolo. Il daticert firmato raggruppa due coppie riferite a invii estranei al presidio G-03. Nel secondo presidio il destinatario è ancora in attesa di invio. G-05 resta da verificare sulla ricevuta originale e sul titolo, pur avendo escluso nel test il termine breve da una relata senza consegna datata.
+
+### 11 novembre 2026 — Chiusura dei riscontri disponibili e integrazione dei rami
+
+- G-04 e G-13 riprodotti su copie delle righe reali. La riconvalida rimuove lo stato automatico di incasso senza prova, marca una proforma superata e allinea il totale alla valida. Il secondo passaggio è idempotente.
+- G-06 e G-10 verificati rileggendo con il profilo dello studio. Il termine ex art. 416 appartiene all'altra parte. Il monitorio cita il provvedimento che dichiara esecutivo il decreto prima del passo sul precetto. G-11 ora segnala sul fascicolo reale la decorrenza anteriore al decreto e la esclude dallo Scadenziario processuale.
+- G-05: EML di deposito con allegato di impronta uguale alla sentenza. Le ricevute del fascicolo riguardano un altro invio. Il motore ammette una data di consegna univoca solo da prova verificata e correlata al singolo destinatario nel registro. G-15: RG ricostruito, trovate le copie di deposito. Controllati gli archivi locali e sei cartelle della casella configurata tramite IMAP in sola lettura. La PEC firmata del 21/04 riguarda un'altra sentenza. Restano aperte la prova di consegna G-05 e la prova di esito positivo G-15.
+- Sorgenti integrati di pannelli precalcolati, pagine React e rimozione delle viste Jinja migrate, catalogazione documentale. Ricompilati i bundle frontend e sito pubblico.
+
+- Suite di integrazione locale: 124 superati e 4 saltati. I riscontri positivi sui fascicoli sono 14 su 16. L'estensione del quadro unico a tutti i pannelli resta da collaudare dopo la chiusura dei due esiti.
+
+### 11 novembre 2026 — Percorso processuale e controllo delle conclusioni
+
+- Il modello espone gli eventi dall'apertura alla chiusura registrata, con data, tipo, stato e riferimento alla fonte. Separa l'invio di una busta dall'esito registrato, la fissazione dell'udienza dal suo svolgimento e la chiusura amministrativa dalla situazione processuale.
+- La fase del monitorio distingue l'istanza dal provvedimento di esecutorietà, riusato anche nella regola sul precetto. Il maturare del termine breve segnala la verifica del giudicato. La sola copia della busta non prova l'adempimento di un termine assegnato.
+- Il controllo delle conclusioni indica il fatto mancante per ciascuna delle sette domande. Lettura e Lex ricevono la fase, la fonte delle conclusioni e i riscontri richiesti. Restano da verificare le coperture per gli altri riti e il passaggio di tutti i pannelli al quadro.
+- Replay in sola lettura su 14 fascicoli reali, inclusi i sei dell'audit, con 541 documenti. Nel percorso risultano 14 aperture, 9 chiusure registrate, 57 tracce di deposito e 29 esiti dal registro, dei quali 9 come accettati dalla cancelleria. Il controllo ha segnalato 43 conclusioni con almeno un elemento del termine incompleto. Restano aperte le prove G-05 e G-15.
+- Prove ripetibili: `test_replay_dall_apertura_alla_chiusura_con_prove_distinte`, `test_collaudo_espone_che_cosa_manca_al_contratto`, `test_riscontro_per_lex_indica_la_prova_mancante_della_sentenza`. Stato: candidata locale.
+
+### 11 novembre 2026 — Riscontri condivisi e verifica normativa
+
+- Impugnazioni: la data in calce alla decisione non sostituisce la pubblicazione. Il termine lungo si calcola quando il documento attesta la pubblicazione. In caso di notifica la prova della consegna e la qualificazione dell'atto come titolo esecutivo sono presupposti distinti. La finestra di attesa prima del precetto contro l'amministrazione non è un termine ordinatorio. Riferimenti consultati: artt. 133, 153, 154, 327 e 475 c.p.c. nell'archivio Normattiva, art. 14 D.L. 669/1996 nel testo pubblicato in Gazzetta Ufficiale.
+- Monitorio: la conferma richiede la prova di consegna riferita a ricorso e decreto. Per l'opposizione si usa il termine scritto nel decreto. Il termine di notificazione richiede la destinazione e l'istanza richiede un riscontro sul registro. Riferimenti consultati: artt. 641, 643, 644 e 647 c.p.c. nell'archivio Normattiva.
+- Depositi: il motore usa la conferma di trasmissione collegata dal registro all'invio, verifica la data e l'ora italiana e richiede gli identificativi degli atti nella busta. Un esito negativo impedisce la conferma automatica. Le copie PEC senza ricevuta correlata generano una richiesta di riscontro. Riferimento consultato: art. 196-sexies disp. att. c.p.c. Le ricevute di notifica per mittente e destinatario restano distinte, come previsto dall'art. 3-bis L. 53/1994.
+- Economia: un importo uguale in una fattura pagata non dimostra l'incasso della liquidazione. Il motore usa il riferimento al provvedimento e il collegamento al documento economico, oppure l'evidenza di pagamento o la decisione registrata dall'avvocato. Riferimento consultato: art. 2697 c.c.
+- I riscontri del quadro sono esposti dalle API di Scadenze, Notifiche, Regia e Conto economico, con la stessa impronta della Lettura e il profilo della richiesta. I pannelli Notifiche ed Economia li mostrano nell'interfaccia. Quadro integra le scadenze operative del motore con quelle registrate. Le operazioni native dei pannelli continuano a usare i rispettivi registri.
+- Replay in sola lettura su 14 fascicoli e 541 documenti: 21 segnalazioni sui termini con almeno un elemento mancante. G-05 mantiene il termine breve sospeso in assenza di consegna verificata. G-15 riconosce quattro copie PEC e indica l'esito della cancelleria da correlare. La fonte positiva di entrambi resta da acquisire. Candidata locale, copertura per gli altri riti da collaudare.
+
+### 11 novembre 2026 — Apertura del fascicolo e persistenza dei pannelli
+
+- Verifica sull'installazione locale in esecuzione: versione 2.488.0 con Quadro. I moduli del servizio dei pannelli pronti sono nella candidata. In `studio.db` e `registro_letture.db` sono stati rilevati zero trigger dei pannelli. L'archivio `pannelli_pronti.db` è da attivare con il rilascio.
+- La candidata consulta i pannelli per profilo e revisione. Se il risultato manca o è superato, il browser riceve uno stato di preparazione. Il processo esistente salva il risultato nel database e il browser rilegge la singola sezione. Il dettaglio iniziale apre la testata indipendentemente dalle sezioni richieste dal collegamento.
+- Prova ripetibile in ambiente isolato: `test_apertura_a_freddo_e_aggiornamento_passano_dal_database`. La richiesta iniziale e quella dopo modifica SQL non chiamano il motore. Il processo in sfondo calcola e salva un solo risultato per revisione verificata.
+- Il percorso codice, API, database e processo è riportato in `docs/MAPPA_APPLICAZIONE.md`. La verifica dei tempi sull'installazione effettiva segue l'attivazione della candidata e dei contatori di revisione.
+
+### 11 novembre 2026 — Verifica trasversale di IUSENTRA
+
+- Installazione locale osservata: versione 2.488.0, immagine `locale-2489-32c60ccd`, con 17 montaggi applicativi. La candidata è stata esaminata separatamente. Sono state rilevate 1.684 registrazioni HTTP nella prima, 1.624 nella seconda, con 72 registrazioni esclusive della prima e 12 della seconda.
+- Censimento dei sorgenti React e dei template, 119 percorsi del registro React provati con ciascuno dei sette ruoli in entrambe le copie. Prove di apertura Chromium con amministratore fittizio e riprove degli indirizzi con varianti note. Il controllo del contratto di migrazione segnala otto percorsi da verificare.
+- Gli schemi dei database sono stati letti in sola lettura. La copia locale usa SQLite. Controllo statico del contratto dati passato nelle 15 aree dichiarate. Restano le prove di persistenza e sincronizzazione, il comportamento in PostgreSQL e le differenze degli ambienti di rilascio.
+- L'unità WSL `iusentra-sentenzeweb-nightly.service` risulta in errore con codice 1. Il registro dello scheduler contiene esecuzioni fallite e mancate. Causa, impatto e prova di ripristino restano da verificare.
+- Stato aperto. L'audit copre inventario, permessi HTTP, apertura delle pagine e prove mirate in isolamento. Restano la verifica materiale dei controlli e le varianti di configurazione, dati, ruoli e integrazioni. La mappa delle prove e l'inventario JSON sono conservati negli output dell'audit locale e richiamati dall'indice Graphify.
+
+### 11 novembre 2026 — Regressioni Firma, PEC e PST
+
+- I sei test su template dismessi o sul vecchio POST PolisWeb ora esercitano i contratti React e le API della candidata. La prova JSON verifica versione e collegamenti dei tre pacchetti, modalità PKCS#11, preferenza del certificato e rifiuto della ricerca server in modalità demo quando il canale locale è richiesto. I controlli del browser e del firmatario mantengono le operazioni PST e la sessione locale nella stessa catena.
+- Suite di Firma, PEC, scheduler, OCR e traduzione dopo il riallineamento: 300 superati, 8 saltati. La verifica con chiave fisica, PIN e acquisizione ministeriale reale resta separata.
+
+### 11 novembre 2026 — SentenzeWeb su disco D
+
+- Il servizio locale era in errore per la riserva di spazio su C:. L’archivio pubblico attivo, inclusi originali, SQLite e dati di ripresa, è stato spostato su `D:\IUSENTRA\SentenzeWeb\corpus.ext4`. Confronto delle impronte e controllo SQLite riusciti. IUSENTRA e lo scheduler leggono lo stesso database su D: con 423.478 decisioni.
+- Ricerca e apertura nel lettore interno verificate in Chromium con corpus reale e sessione di test. Giro di acquisizione locale delle 16:14 concluso alle 16:15 con esito positivo. Nessuna nuova decisione dalla fonte durante la prova. Il recupero ha esaminato 25 record in coda.
+- Timer delle 23:35 abilitato e attivo. Verificata la rimozione della vecchia copia dopo il passaggio. La prova locale non attesta un rilascio su app.iusentra.it.
+
+### 11 novembre 2026 — Riscontro del contratto React sulla candidata
+
+- Suite `run-full-react-migration.mjs` superata. I controlli puntano ai componenti e alle API in uso e riconoscono il ripristino backup con conferma, autorizzazione e cartella dedicata. Il Tariffario non propone più il vecchio collegamento di recupero.
+- Chromium, copia con SQLite e dati fittizi: calcolo Tariffario completato, scadenza in Regia, avvio udienza salvato, anteprima dell’atto e bozza riaperta nell’editor dopo ricarica. Verbale e schermate conservati negli output. Sui fascicoli reali G-05 e G-15 restano da correlare con le ricevute originali.
+
+### 11/11/2026 — originali PEC nei fascicoli G-05 e G-15
+
+- G-05: il fascicolo contiene l'invio della sentenza, la RAC e quattro RdAC complete del 20/04/2026. Il Message-ID dell'invio coincide con il riferimento nel daticert firmato. Tutte e quattro le consegne corrispondono ai destinatari dichiarati e contengono la sentenza con la stessa impronta SHA-256. La firma S/MIME delle cinque ricevute supera OpenSSL alla data di emissione con catena AgID CA1 / Actalis.
+- La firma PAdES copre tutta la relata. Il certificato della firma è valido alla data indicata, con il certificato della CA ArubaPEC pubblicato dal gestore. La CRL firmata dell'11/11/2026 non elenca il certificato. Nella relata figurano i quattro indirizzi e i nomi dei due PDF allegati.
+- In una riproduzione isolata con i documenti del fascicolo e la consegna fornita esplicitamente come prova, il motore riconosce la sentenza come notificata e calcola il termine breve al 20/05/2026. Il database dell'installazione in uso non contiene ancora la catena nel registro delle prove. Resta da verificare il passaggio automatico dal fascicolo importato al registro, quindi alla vista nel browser.
+- Candidata: la raccolta del ragionamento usa un bundle verificato con più destinatari quando tutte le consegne sono datate e convergono sullo stesso giorno italiano. Le ricevute e il bundle ereditano lo studio dal caso di notifica. Il test usa le tabelle e il validatore del registro e copre consegne mancanti, date discordanti e orari privi di fuso.
+- G-15: i 49 documenti includono cinque invii di deposito e le relative copie non crittografate. I 1.986 messaggi dell'archivio PEC e il contenuto dei 114 esiti positivi indicizzati non danno una corrispondenza con gli invii. Le due PEC di cancelleria del fascicolo sono comunicazioni di udienza, senza identificativo di busta. Il registro telematico locale non ha una trasmissione per quel fascicolo. L'accettazione rimane da provare tramite l'esito ufficiale o il registro di cancelleria con un identificativo della stessa busta.
+- Riferimenti verificati: art. 326 c.p.c. nella versione risultante dal d.lgs. 149/2022, art. 3-bis L. 53/1994, indicazioni DGSIA sulle ricevute del PCT e sul quarto messaggio di accettazione.
+
+### 11/11/2026 — originali PEC storici, registro SQL e Lettura
+
+- La lettura in sfondo usa il contenuto coperto dalla firma CMS. Verifica la catena PEC alla data firmata nel daticert. Confronta Message-ID, identificativo del gestore, mittente, destinatari e SHA-256 degli allegati in tutte le RdAC complete. Il controllo è documentale e resta distinto dal perfezionamento giuridico.
+- Replay isolato dei file reali: G-05 ha due invii ricostruiti, rispettivamente con due e quattro consegne. G-15 ha tre notifiche storiche riscontrate e conserva il RG 792/2025. Le notifiche di G-15 non costituiscono esito delle buste di deposito. Due esecuzioni consecutive hanno scritto rispettivamente 2 e 0 righe per G-05, 3 e 0 per G-15.
+- G-05: la verifica eIDAS della relata ha confermato integrità e catena fidata, con esito complessivo non determinabile e revoca non verificata. Due certificati dei gestori PEC sono scaduti dopo l'invio. Per usare il termine breve serve un riscontro storico sufficiente e il riscontro della relata e dei domicili digitali.
+- Chromium sulla candidata con il risultato del replay privato dei dati identificativi: aperta la Lettura, espanso il riscontro della sentenza, verificati fonte, norme, azione e dubbio sul termine. Schermata nel verbale locale.
+- Verifiche: 38 test superati. TypeScript e build Vite superati. Bundle versionato verificato contro 869 sorgenti e 330 asset. Graphify aggiornato. Nessuna modifica ai database dell'installazione attiva.
+
+### 11/11/2026 — ricostruzione PEC dei depositi storici e controllo fonti
+
+- Copia locale: il percorso di manutenzione ha riusato i repository di fascicoli, PEC, ricevute, Agenda, Scadenziario e anagrafiche. Il ruolo proviene dagli esiti originali e la data di apertura si conserva solo se documentata. Associazioni con più fascicoli candidati richiedono riscontro sui documenti.
+- La PEC protocollata di un ente segue la classificazione già disponibile. I metadati della busta non la fanno apparire come ricevuta o come evento PST. Verificato il risultato nella casella locale dopo il nuovo controllo del messaggio.
+- Il dettaglio Agenda tratta la mezzanotte segnaposto come orario da verificare anche nella riga derivata dalla PEC. Nel lettore condiviso, la descrizione «comunicazione di cancelleria» cede al file indicizzato o alla PEC intera quando manca il nome dell'allegato.
+- I test del collegamento da remoto controllano separatamente udienza, ricezione e proposta del termine di costituzione. I test di classificazione, Agenda e apertura delle fonti sono stati eseguiti sulla candidata. Il verbale locale contiene i riscontri visuali e i limiti della ricostruzione.
+
+### 11/11/2026 — ricerca PEC esatta per RG e anno nella copia locale
+
+- Il filtro usa i campi RG già salvati dall'analisi PEC e dagli esiti di deposito. Rispetta la cartella selezionata e mantiene la ricerca testuale per gli altri criteri.
+- Chrome sulla copia attiva, Cestino del gestore: Vicenza 1817/2026 restituisce due esiti, 1830/2026 uno e 1831/2026 uno. Prima della modifica 1831/2026 restituiva zero risultati. I ricorsi integrali e i dati delle parti restano da acquisire. G-15 sospeso.
+- 42 test mirati superati. Graphify incrementale aggiornato a 1.763 nodi e 5.437 relazioni.
+
+### 11/11/2026 — riconciliazione dei collegamenti PEC e apertura del fascicolo
+
+- La ricognizione delle proiezioni storiche considera identificativi PEC con 24 o 64 cifre esadecimali. Ha riallineato 65 voci Agenda e 15 Scadenziario. Collegati 28 messaggi a fascicoli esistenti tramite RG, ufficio ufficiale, esito di cancelleria e RefID oppure originale PAT. Il registro letture ha ricevuto gli eventi per i 13 fascicoli interessati dai collegamenti. Nel perimetro controllato resta in Agenda una ricevuta amministrativa priva di RG.
+- In Agenda e Scadenziario il fascicolo confermato fornisce l'ufficio concreto quando i vecchi metadati sono generici. In Chrome verificati il Tribunale di Palmi, il RG 699/2026, lo stato della proposta e l'apertura del decreto originale. Verificato a video anche il Presidio Milano RG 13817/2026 con due consegne e verifica della prova di deposito ancora aperta.
+- TAR Calabria, sede Reggio Calabria, RG 425/2025. Completata la scheda preesistente con nove PEC e otto PDF verificati per impronta. Confermata l'identità con le istanze, la registrazione PAT e la sentenza n. 543/2026 pubblicata il 25/07/2026. Definizione registrata dal dispositivo. Nel browser verificati conteggio PEC, stato Da archiviare e apertura della sentenza.
+- Il presidio del fascicolo confronta l'intero RG quando l'anno è noto e verifica i confini numerici prima di leggere i dettagli dei candidati. G-05 non propone più la PEC del RG 1617/2023 nel RG 161/2026. Il registro SQL conserva la distinta verifica documentale delle quattro consegne e il riscontro storico dei domicili resta da acquisire.
+- Nel dettaglio fascicolo, riepilogo, riquadro economia e presidio usano lo stesso calcolo dei pagamenti. Il profilo locale sul G-05 passa da tre chiamate a una, con circa 3,3–3,9 secondi prima e 3,0 secondi dopo nel costruttore del payload. Il caricamento completo nel browser e gli aggiornamenti ripetuti delle sezioni restano da ottimizzare.
+- 45 test su Agenda e Scadenziario superati. Altri 86 test superati nella suite di fascicoli, Lettura e PEC. L'asserzione frontend sul vecchio caricamento delle sezioni è stata allineata alla funzione in uso e il test ripetuto con esito positivo. Patch verificata. Graphify incrementale aggiornato. G-15 sospeso.
+
+### 11 novembre 2026 – Persistenza locale della catena PEC e pannelli del fascicolo
+
+- Lo studio locale dispone dei trigger di revisione su studio.db e sul registro delle letture. Backup SQLite verificati su D:. La modifica di prova dell'Agenda ha incrementato la revisione del solo fascicolo interessato ed è stata annullata nella stessa transazione.
+- La sincronizzazione IMAP scrive nel repository SQL dello studio. Il collegamento usato dalla cronologia proviene dal registro PEC e distingue fascicoli con identico R.G. presso uffici diversi. Recuperate 36 attività su 11 fascicoli dopo confronto delle fonti. Il secondo passaggio ha trovato zero attività da recuperare nello stesso insieme.
+- La Regia usa il catalogo SQL PEC per mostrare le accettazioni della cancelleria riferite al fascicolo. Un nuovo report invalida l'accettazione da riallineare, la ricevuta di un altro fascicolo rimane leggibile. La data proviene dalla ricevuta originale, con avviso se assente.
+- La consultazione della Regia salva verifiche, slot e profilo quando cambiano i contenuti. Gli orari del ricalcolo da soli non riscrivono SQL o il mirror. Il calcolatore usa il lock della radice dati condivisa e la pagina unifica le richieste simultanee per la stessa sezione.
+- Suite PEC e sincronizzazione 81 superati. Suite indice ricevute 13 superati e 8 PostgreSQL saltati. Suite salvataggio e pannelli 31 superati. Test JavaScript mirati 17 superati, typecheck e build completati. Verifica server locale, senza attestazione di produzione pubblica.
+- In Chrome, Palmi RG 2208/2025: dall'accettazione nel pannello Deposito si apre la PEC e si legge EsitoAtto.xml, con codice 2, data 09/11/2026 11:29 e IdBusta 36929364. Nel confronto locale con sessione autentica i pannelli pronti Dettaglio e Regia hanno risposto in 29–62 ms e le impronte sono rimaste ferme.
+- Controllo su 349 fascicoli, con zero riferimenti a fascicoli mancanti per Agenda, Scadenziario, PEC e indice ricevute dopo la rettifica dell'unica scadenza orfana. Decreto originale di Palmi RG 1733/2026 aperto in Chrome e voce del 10/09/2026 riscontrata nello storico, con il fascicolo corretto. Recuperate inoltre 9 date dall'EsitoAtto.xml originale, con aggiornamento dell'indice SQL e identità invariate. I 40 test su casi di ragionamento ed economia sono positivi. Ulteriori 11 test JavaScript su Scadenziario e collegamenti Agenda positivi.
+- Verifica della sequenza notturna locale, 21:30–07:30. Due passi di lettura rinviati perché il coordinatore chiedeva lo stesso semaforo usato dai thread lettori e il recupero ordinario era classificato con priorità urgente. Il coordinatore ora delega il semaforo ai thread e il recupero usa la priorità del suo evento SQL. Il battito dello scheduler e il controllo dei pannelli sono in corsia infrastrutturale. Presidio documenti ed economia recuperato e giro periodico delle 23:43 completato. SentenzeWeb ha completato l'acquisizione delle 23:35 sul disco D:, con una sola pianificazione attiva sul PC.
+- G-05, verifica del collegamento nel Presidio. Il pulsante relativo al deposito storico riapriva il fascicolo. Le consegne della sentenza di aprile devono essere distinte dal deposito di febbraio del ricorso. Il pannello verifica la sequenza delle date e apre il documento che usa come riscontro.
+
+### 13 novembre 2026 — ripresa locale dopo arresto WSL
+
+- L'ultimo boot precedente finisce il 12/11 alle 06:13; quello nuovo inizia il 13/11 alle 10:19. Nessuna evidenza di un giro automatico completo fra il 12 e il 13. Docker è ora ordinato dopo il montaggio della biblioteca normativa; il riavvio integrale del PC non è stato usato come collaudo.
+- Il timer persistente SentenzeWeb scattava prima che la web app diventasse healthy, ma il collettore avvia un container isolato con la sola immagine distribuita e l'archivio pubblico su D. Rimosso il controllo di salute della web app dal runner mantenendo versione minima, mount e riserva; servizio reale concluso 10:49:02, batch completo, 0 nuovi. Timer delle 23:35 attivo. HUDOC ha completato il recupero del timer al boot alle 10:23:38.
+- Il guardiano ha interrotto APScheduler durante la scrittura del battito; il vecchio lettore classificava una lettura vuota come data epoca zero. Il test riproduce il falso positivo. Battito ora sostituito in modo atomico; richieste del guardiano distinte dal normale stop, con escalation se i thread non si arrestano. Sette test guardiano/worker verdi e scheduler locale ricreato; app web rimasta attiva.
+- Piano del 13/11 verificato in SQL e a video sulla copia locale: priorità, agenda, PEC, fascicoli e presidio economico. La sessione browser ordinaria ha ricevuto 403 dalla console amministrativa: il registro dei job è stato verificato direttamente in SQL.
+- Gazzetta: il giro dedicato ha raggiunto tutte e sei le serie alle 11:10, senza atti nuovi. Separato dal lotto progressivo automatico, che in precedenza la scaricava in doppio e produceva timeout; assenza dal lotto verificata in test e nella coda reale successiva.
+- Fonti ufficiali: PAT puntato alla pagina istituzionale; per Documentazione tributaria configurato solo il bundle del portale MEF con intermedio Sectigo verificato rispetto alle radici di sistema. Test HTTP 200 per entrambe e recupero SQL reale (run 4, 2 fonti, zero errori).
+- Piano completo: 275 voci nello studio reale e 35 nello studio di prova, zero errori. Presidio: 328 fascicoli esaminati, 73 voci, zero errori.
+
+### 14 novembre 2026 — RG 7646/2023, consultazione dei pannelli dal salvataggio
+
+La prima consultazione dell’archivio dei pannelli da un processo appena avviato apriva SQLite anche per installare lo schema. Le letture per chiave e generazione ora si collegano in sola lettura; le operazioni di scrittura mantengono la preparazione dello schema. Il test di regressione verifica la consultazione di un pannello già salvato durante una transazione di scrittura concorrente e l’assenza di inizializzazione quando il file manca. Suite mirata: 39 test superati.
+
+Verifica su Chrome e sulla copia locale. Dopo un riavvio del worker, il primo Quadro ha risposto in 1.734 ms, la Lettura aperta in 46 ms e il Quadro successivo in 27 ms, secondo il server. I due pannelli concordano su accoglimento, pubblicazione del 02/02/2024, termine lungo del 02/08/2024 e controllo della consegna della notifica. La prima apertura richiede ulteriori misure e il deploy non è stato ancora verificato.
+
+### 14 novembre 2026 — RG 7646/2023, consegna del risultato prima della registrazione della consultazione
+
+La profilazione locale ha isolato 224 ms nel commit SQLite che aggiorna la consultazione di un pannello già pronto. Il server ora invia il risultato valido e registra la consultazione alla chiusura della risposta. La coda per un pannello da preparare continua a registrarsi prima della risposta. Suite dei pannelli pronti: 40 test superati.
+
+Prova in Chrome dopo il riavvio del worker. Primo Quadro 896,5 ms e Lettura 43,1 ms nei log. Accoglimento visibile a 1,81 s dall’avvio della navigazione, riscontri di Lettura visibili a 1,38 s dall’azione di apertura. Esito, fonte, termine lungo e verifica sulla consegna confermati. L’accesso iniziale completo resta da migliorare e il deploy resta aperto.

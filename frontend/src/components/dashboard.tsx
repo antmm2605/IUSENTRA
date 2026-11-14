@@ -85,17 +85,12 @@ export function DossierCard({ dossier }:{dossier:Dossier}) {
     <article className="iu-dossier-card">
       <div className="iu-dossier-card__topline">
         <Badge tone={dossier.tone}>{dossier.area}</Badge>
-        <strong>{dossier.score}</strong>
       </div>
       <a className="iu-dossier-card__title" href={dossier.href}>{dossier.title}</a>
       <p>{dossier.meta}</p>
-      <h3>Prossime mosse</h3>
-      <ul>
-        {dossier.moves.map((move)=><li key={move}>{move}</li>)}
-      </ul>
+      <p>Apri il fascicolo per consultare gli adempimenti, le scadenze e i documenti da cui risultano.</p>
       <div className="iu-dossier-card__actions">
         <Button variant="primary" href={dossier.href}>Apri fascicolo</Button>
-        <Button href="/giurisprudenza/">Ricerca sentenze</Button>
       </div>
     </article>
   )

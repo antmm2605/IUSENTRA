@@ -62,13 +62,18 @@ function sourceInitials(value: string): string {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'FI'
 }
 
-function deadlineHref(item: NotiziarioItem): string {
+function reminderHref(item: NotiziarioItem): string {
   const params = new URLSearchParams()
   params.set('titolo', `Verifica aggiornamento: ${item.title}`)
-  params.set('descrizione', [item.summary, item.sourceUrl ? `Fonte: ${item.sourceUrl}` : ''].filter(Boolean).join('\n\n'))
-  params.set('note', `Aggiornamento da Notizie utili IUSENTRA (${item.sourceName}).`)
+  params.set('tipo', 'ALTRO')
+  params.set('note', [
+    'Promemoria interno: scegli la data della verifica. La notizia non determina un termine per la pratica.',
+    item.summary,
+    item.verifiedAction ? `Cosa fare: ${item.verifiedAction}` : '',
+    item.verifiedEvidence ? `Riscontro: ${item.verifiedEvidence}` : '',
+    item.sourceUrl ? `Fonte: ${item.sourceUrl}` : ''].filter(Boolean).join('\n\n'))
   if (item.linkedCaseId) params.set('id_fascicolo', item.linkedCaseId)
-  return `/scadenziario/nuova?${params.toString()}`
+  return `/agenda/nuovo?${params.toString()}`
 }
 
 /** Il vecchio formato (senza filtri lato server) resta leggibile: si filtra nel browser. */
@@ -471,7 +476,13 @@ export function NotiziarioPanel() {
                 </dl>
               ) : null}
               <p className="iu-notiziario__lead">{visibleText(selected.summary, 'La fonte non pubblica una descrizione: apri il testo ufficiale.')}</p>
-              {selected.content && selected.content !== selected.summary ? (
+              {selected.verifiedAction ? (
+                <div className="iu-notiziario__article-copy">
+                  <h4>Cosa fare</h4>
+                  <p>{visibleText(selected.verifiedAction)}</p>
+                  {selected.verifiedEvidence ? <><h4>Fonte verificata</h4><p>{visibleText(selected.verifiedEvidence)}</p></> : null}
+                </div>
+              ) : selected.content && selected.content !== selected.summary ? (
                 <div className="iu-notiziario__article-copy">
                   {selected.content.split(/\n+/).filter(Boolean).map((paragraph, index) => <p key={`${selected.id}-${index}`}>{visibleText(paragraph)}</p>)}
                 </div>
@@ -509,7 +520,7 @@ export function NotiziarioPanel() {
               <div className="iu-notiziario__actions">
                 {!expanded ? <button type="button" onClick={() => setExpanded(true)}><BookOpen size={16} /> Leggi a tutto schermo</button> : null}
                 <button type="button" onClick={() => { setCaseId(selected.relatedCases[0]?.id || selected.linkedCaseId); setLinking(true) }}><FolderPlus size={16} /> Collega a fascicolo</button>
-                <a href={deadlineHref(selected)}><CalendarPlus size={16} /> Crea scadenza</a>
+                {selected.verifiedAction ? <a href={reminderHref(selected)}><CalendarPlus size={16} /> Prepara promemoria</a> : null}
                 <button type="button" onClick={() => void updateItem(selected, { read: !selected.read })} disabled={busyId === selected.id}>
                   <Check size={16} /> {selected.read ? 'Segna da leggere' : 'Segna come letta'}
                 </button>

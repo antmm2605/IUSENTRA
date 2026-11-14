@@ -9,10 +9,18 @@ def perentorieta_documentata(fatto: Any) -> bool:
         return False
     if any(p.get("codice") == "perentorieta_documentata" and p.get("esito") == "ok" for p in fatto.prove):
         return True
-    # L'attributo deve precedere proprio la data di questo fatto, non un'altra
-    # data citata nello stesso estratto (per esempio la sottoscrizione).
-    token = re.escape(str(fatto.valore_letto or "").strip())
-    return bool(token and re.search(r"termine\s+perentorio\s+(?:fino\s+al|entro\s+il|al)\s+" + token + r"(?!\d)", fatto.contesto, re.I))
+    # L'attributo deve riguardare proprio la data di questo fatto, non un'altra
+    # data citata nello stesso estratto (per esempio la sottoscrizione). La regola è
+    # quella del termine scritto (pct/provvedimenti/termine_scritto, artt. 152-153 c.p.c.):
+    # «termine perentorio del 16.12.2026» è perentorio come «… fino al …» (collaudo 10/11/2026).
+    from pct.provvedimenti.termine_scritto import perentorio_dichiarato
+
+    token = str(fatto.valore_letto or "").strip()
+    contesto = " ".join(str(fatto.contesto or "").split())
+    for trovato in re.finditer(re.escape(token), contesto) if token else ():
+        if not contesto[trovato.end():trovato.end() + 1].isdigit() and perentorio_dichiarato(contesto, trovato.start(), trovato.end()):
+            return True
+    return False
 
 
 def prove_note_depositate(fatti: Iterable[Any]) -> list[dict[str, Any]]:

@@ -9,8 +9,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from pct.scheduler_corsie import (
+    CORSIA_ACQUISIZIONE_PEC,
     CORSIA_INFRASTRUTTURA,
     CORSIA_LUNGA,
+    CORSIA_NOTTURNA,
     CORSIA_RAPIDA,
     LAVORI_INFRASTRUTTURA,
     LAVORI_RAPIDI,
@@ -30,9 +32,12 @@ def test_i_lavori_elencati_nelle_corsie_esistono_nello_scheduler():
 
 
 def test_corsia_di_ogni_lavoro():
+    assert corsia_del_lavoro("manual_pec_audit_pipeline_workers_1a2b3c4d") == CORSIA_ACQUISIZIONE_PEC
     assert corsia_del_lavoro("mailbox_sync_runtime") == CORSIA_RAPIDA
     assert corsia_del_lavoro("manual_mailbox_sync_runtime_1a2b3c4d") == CORSIA_RAPIDA
     assert corsia_del_lavoro("scheduler_registry_reload") == CORSIA_INFRASTRUTTURA
+    assert corsia_del_lavoro("pannelli_pronti_ricalcolo") == CORSIA_INFRASTRUTTURA
+    assert corsia_del_lavoro("fascicoli_document_economic_presidio") == CORSIA_LUNGA
     # Pesanti e sconosciuti, comprese le fonti legali del registro, vanno nella corsia lunga.
     for lavoro in ("operational_crash_morning", "studio_daily_operational_plan", "legal_source_garante", "nuovo"):
         assert corsia_del_lavoro(lavoro) == CORSIA_LUNGA
@@ -52,11 +57,11 @@ def _scheduler_con_registro():
         inizio = time.monotonic()
         time.sleep(0.4)
         intervalli[nome] = (inizio, time.monotonic())
-        if len(intervalli) == 3:
+        if len(intervalli) == 4:
             fatti.set()
 
     adesso = datetime.now().astimezone()
-    for nome in ("legal_updates_batch", "collaudo_lettore", "mailbox_sync_runtime"):
+    for nome in ("legal_updates_batch", "collaudo_lettore", "mailbox_sync_runtime", "sequenza_notturna"):
         scheduler.add_job(lavoro, "date", run_date=adesso + timedelta(milliseconds=200), args=[nome], id=nome)
     return scheduler, intervalli, fatti
 
@@ -65,6 +70,7 @@ def test_due_lavori_pesanti_non_si_sovrappongono_mentre_la_corsia_rapida_procede
     scheduler, intervalli, fatti = _scheduler_con_registro()
     conteggio = assegna_corsie(scheduler)
     assert conteggio[CORSIA_LUNGA] == 2 and conteggio[CORSIA_RAPIDA] == 1
+    assert conteggio[CORSIA_NOTTURNA] == 1
     scheduler.start()
     try:
         assert fatti.wait(5)
@@ -74,6 +80,8 @@ def test_due_lavori_pesanti_non_si_sovrappongono_mentre_la_corsia_rapida_procede
     assert a_fine <= b_inizio or b_fine <= a_inizio, "due lavori della corsia lunga insieme"
     r_inizio, _ = intervalli["mailbox_sync_runtime"]
     assert r_inizio < max(a_fine, b_fine), "la corsia rapida non deve aspettare la corsia lunga"
+    n_inizio, _ = intervalli["sequenza_notturna"]
+    assert n_inizio < min(a_fine, b_fine), "la sequenza deve partire durante il primo lavoro lungo"
 
 
 def test_il_recupero_del_piano_si_tenta_una_volta_al_giorno(tmp_path: Path):
@@ -82,3 +90,28 @@ def test_il_recupero_del_piano_si_tenta_una_volta_al_giorno(tmp_path: Path):
     assert annota_tentativo(tmp_path, oggi)
     assert recupero_gia_tentato(tmp_path, oggi)
     assert not recupero_gia_tentato(tmp_path, oggi + timedelta(days=1))
+
+
+def test_acquisizione_pec_non_blocca_gli_avvisi():
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    scheduler = BackgroundScheduler(executors=esecutori())
+    acquisizione_avviata = threading.Event()
+    avvisi_consegnati = threading.Event()
+    chiudi_acquisizione = threading.Event()
+
+    def acquisisci():
+        acquisizione_avviata.set()
+        chiudi_acquisizione.wait(5)
+
+    scheduler.add_job(acquisisci, id="pec_audit_pipeline_workers")
+    assegna_corsie(scheduler)
+    scheduler.start()
+    try:
+        assert acquisizione_avviata.wait(3)
+        scheduler.add_job(avvisi_consegnati.set, id="agenda_scadenziario_notifications",
+                          executor=corsia_del_lavoro("agenda_scadenziario_notifications"))
+        assert avvisi_consegnati.wait(2)
+    finally:
+        chiudi_acquisizione.set()
+        scheduler.shutdown(wait=True)

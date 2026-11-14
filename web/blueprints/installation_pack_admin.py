@@ -4,10 +4,10 @@ import json
 from functools import wraps
 from typing import Any
 
-from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, g, jsonify, request
 
 from web.services.installation_pack_surface import build_installation_pack_surface
-from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell
 
 
 installation_pack_admin = Blueprint(
@@ -42,10 +42,7 @@ def _admin_json_response(payload: Any):
 @installation_pack_admin.route("/")
 @superadmin_required
 def dashboard():
-    if not vista_classica_richiesta():
-        return render_piattaforma_shell("installazione-pack", "Pacchetto di installazione")
-    payload = build_installation_pack_surface(selected_slug=request.args.get("slug", ""))
-    return render_template("admin/installazione_pack.html", payload=payload)
+    return render_piattaforma_shell("installazione-pack", "Pacchetto di installazione")
 
 
 @installation_pack_admin.route("/api")
@@ -57,18 +54,3 @@ def api_dashboard():
     except Exception as exc:  # pragma: no cover - difensivo UI
         current_app.logger.exception("Errore API pack installazione: %s", exc)
         return jsonify({"ok": False, "message": "Pack installazione non disponibili."}), 200
-
-
-@installation_pack_admin.route("/refresh", methods=["POST"])
-@superadmin_required
-def refresh():
-    selected_slug = str(request.form.get("slug", "") or "").strip().lower()
-    try:
-        build_installation_pack_surface(selected_slug=selected_slug)
-        flash("Bootstrap installazione, manifest Product Pack, Studio Local Pack e Update Pack riallineati.", "success")
-    except Exception as exc:  # pragma: no cover - difensivo UI
-        current_app.logger.exception("Errore refresh pack installazione: %s", exc)
-        flash("Errore nel refresh dei pack di installazione.", "danger")
-    if selected_slug:
-        return redirect(url_for("installation_pack_admin.dashboard", slug=selected_slug, _legacy=1))
-    return redirect(url_for("installation_pack_admin.dashboard", _legacy=1))

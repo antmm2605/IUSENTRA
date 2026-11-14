@@ -21,3 +21,15 @@ def test_citazioni_tolte_dalle_norme_e_verificate(tmp_path, monkeypatch):
     sezione = risultato["giurisprudenza"]
     assert [v["citazione"] for v in sezione["verificate"]] == ["Cass. lav. 33700/2025"] and sezione["non_verificate"] == 1
     assert sezione["decisioni_per_norma"][0]["decisione"] == "Cass. lav. 33700/2025"
+
+
+def test_scheda_di_materia_esclude_le_citazioni_prima_di_consultare_archivio(monkeypatch):
+    def archivio_non_necessario():
+        raise AssertionError("La scheda di materia è disponibile prima dei precedenti")
+
+    monkeypatch.setattr(runtime, "_archivi", archivio_non_necessario)
+    norma = {"fonte": "c.p.c.", "articolo": "326"}
+    guida = {"normativa": {"riferimenti_primari": [norma, {"fonte": "Cass. SU 14897/2021"}]}}
+    esito = runtime.arricchisci_giurisprudenza(guida, consulta_archivio=False)
+    assert esito["normativa"]["riferimenti_primari"] == [norma]
+    assert "giurisprudenza" not in esito

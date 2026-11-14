@@ -102,27 +102,16 @@ def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo
     with app.test_client() as client:
         _login(client)
         response = client.get(f"/fascicoli/{fascicolo.id}")
-        legacy_response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
         react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
         react_documents_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti")
 
     body = response.data.decode("utf-8")
-    legacy_body = legacy_response.data.decode("utf-8")
     react_payload = react_response.get_json()
     react_documents_payload = react_documents_response.get_json()
     assert response.status_code == 200
-    assert legacy_response.status_code == 200
     assert react_response.status_code == 200
     assert react_documents_response.status_code == 200
     assert '<div id="root"></div>' in body
-    assert 'id="docBulkDeleteForm"' in legacy_body
-    assert 'id="modalConfermaAzioneFascicolo"' in legacy_body
-    assert "_prepareFascicoloDeleteForms" in legacy_body
-    assert 'data-bs-target="#collapse-sezione-cabina-fascicolo"' in legacy_body
-    assert 'class="collapse show" id="collapse-sezione-cabina-fascicolo"' in legacy_body
-    assert 'data-bs-target="#modalDettaglioAttivita' in legacy_body
-    assert "elimina_attivita_fascicolo" not in legacy_body
-    assert "/attivita/" in legacy_body and "/elimina" in legacy_body
     assert react_payload["fascicolo"]["title"] == "RG 1025/2024"
     assert react_payload["documents"] == []
     assert react_documents_payload["documents"][0]["name"] == "atto.pdf"
@@ -563,23 +552,13 @@ def test_catalogo_portale_non_viene_contato_come_documento_acquisito(fascicolo_u
     with app.test_client() as client:
         _login(client)
         response = client.get(f"/fascicoli/{fascicolo.id}")
-        legacy_response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
         react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti")
 
     body = response.data.decode("utf-8")
-    legacy_body = legacy_response.data.decode("utf-8")
     react_payload = react_response.get_json()
     assert response.status_code == 200
-    assert legacy_response.status_code == 200
     assert react_response.status_code == 200
     assert '<div id="root"></div>' in body
-    assert "Nessun documento caricato" in legacy_body
-    assert "Non sono file salvati nel fascicolo" in legacy_body
-    assert "Catalogo portale 1" in legacy_body
-    assert "1 metadato" in legacy_body
-    assert "Metadati portale 1" in legacy_body
-    assert "0/1 file acquisiti" in legacy_body
-    assert "2 metadati" not in legacy_body
     assert len(react_payload["documents"]) == 1
     assert react_payload["documents"][0]["name"] == "VerbaleUdienza_32970605.pdf"
     assert react_payload["documents"][0]["statusLabel"] == "Da acquisire"
@@ -588,3 +567,53 @@ def test_catalogo_portale_non_viene_contato_come_documento_acquisito(fascicolo_u
     assert react_payload["documents"][0]["catalogLabel"] == ""
     assert react_payload["documents"][0]["catalogConfidence"] == 0
     assert "contenuto non è ancora nel fascicolo" in react_payload["documents"][0]["catalogEvidence"]
+
+
+def test_inventario_documenti_non_apre_i_file_ne_ricalcola_economia(fascicolo_ux, monkeypatch):
+    from web.app import create_app
+    from web.services import react_fascicoli_bridge as bridge
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    doc = gf.aggiungi_documento(fascicolo.id, "atto.pdf", TipoDocumento.ATTO_GIUDIZIARIO, b"%PDF-1.4")
+
+    def non_consultare(*args, **kwargs):
+        pytest.fail("L'inventario consulta solo i metadati dei documenti")
+
+    app = create_app(cfg)
+    monkeypatch.setattr(bridge, "payment_summary_for_fascicolo_fast", non_consultare)
+    monkeypatch.setattr(bridge, "document_bytes_have_real_digital_signature", non_consultare)
+    with app.test_client() as client:
+        _login(client)
+        risposta = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti?vista=inventario")
+
+    assert risposta.status_code == 200
+    dati = risposta.get_json()
+    assert dati["quickCounts"]["documenti"] == 1
+    riga, = dati["documents"]
+    assert riga["id"] == doc.id
+    assert riga["name"] == "atto.pdf"
+    assert riga["statusLabel"] == "Firma non verificata"
+    assert riga["signatureReadyForDeposit"] is False
+    assert riga["actions"]["preview"].endswith(f"/documenti/{doc.id}/visualizza")
+
+
+def test_inventario_riusa_esiti_firma_salvati_dello_stesso_fascicolo(monkeypatch):
+    from web.services import riscontri_processuali_runtime as riscontri
+    from web.services.react_fascicoli_bridge import build_react_fascicolo_document_inventory
+
+    def solo_salvato():
+        pytest.fail("Il risultato corrente è già disponibile")
+
+    documenti = [{"id": "D1", "signed": True, "signatureReadyForDeposit": True}]
+    monkeypatch.setattr(riscontri, "risultato_materializzato", lambda fid, pannello: {
+        "fascicolo": {"id": fid},
+        "quickCounts": {"documenti": 1},
+        "documents": documenti,
+    } if pannello == "documenti" else None)
+    risultato = build_react_fascicolo_document_inventory(solo_salvato, "F1")
+    assert risultato["documents"] == documenti

@@ -282,58 +282,40 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
         )
         assert login.status_code == 200
 
-        stato = client.get("/admin/stato-installazione?_legacy=1", follow_redirects=True)
-        migrazione = client.get("/admin/assistente-migrazione?_legacy=1", follow_redirects=True)
-        salute = client.get("/admin/salute-sistema?_legacy=1", follow_redirects=True)
-        scorecard = client.get("/admin/lex-scorecard?_legacy=1", follow_redirects=True)
-        osservabilita = client.get("/admin/osservabilita?_legacy=1", follow_redirects=True)
-        server_manutenzione = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=False)
-        pianificazioni = client.get("/admin/pianificazioni?_legacy=1", follow_redirects=False)
-        crash_test = client.get("/admin/crash-test-operativo?_legacy=1", follow_redirects=True)
-        coverage = client.get("/admin/copertura-ai?_legacy=1", follow_redirects=True)
-        coverage_review = client.get("/admin/copertura-ai/review?_legacy=1", follow_redirects=True)
-        aggiornamenti = client.get("/admin/aggiornamenti-legali?_legacy=1", follow_redirects=True)
-        aggiornamenti_fonti = client.get("/admin/aggiornamenti-legali/fonti?_legacy=1", follow_redirects=True)
-        aggiornamenti_review = client.get("/admin/aggiornamenti-legali/review?_legacy=1", follow_redirects=True)
+        # Le viste classiche sono state tolte: ogni pagina si apre nell'applicazione React
+        # di piattaforma e i suoi dati arrivano dal servizio della pagina.
+        pagine = {
+            "/admin/stato-installazione": "stato-installazione",
+            "/admin/assistente-migrazione": "assistente-migrazione",
+            "/admin/salute-sistema": "salute-sistema",
+            "/admin/lex-scorecard": "lex-scorecard",
+            "/admin/osservabilita": "osservabilita",
+            "/admin/server-manutenzione": "server-manutenzione",
+            "/admin/pianificazioni": "pianificazioni",
+            "/admin/crash-test-operativo": "crash-test",
+            "/admin/copertura-ai": "copertura-ai",
+            "/admin/copertura-ai/review": "copertura-ai-revisione",
+            "/admin/aggiornamenti-legali": "aggiornamenti-legali",
+            "/admin/aggiornamenti-legali/fonti": "aggiornamenti-fonti",
+            "/admin/aggiornamenti-legali/review": "aggiornamenti-revisione",
+        }
+        shell = {indirizzo: client.get(indirizzo, follow_redirects=True) for indirizzo in pagine}
+        dati = {chiave: client.get(f"/api/v1/ui/piattaforma/{chiave}") for chiave in pagine.values()}
+        classica = client.get("/admin/salute-sistema?_legacy=1", follow_redirects=True)
         news = client.get("/legal-intelligence/news", follow_redirects=True)
 
-    assert stato.status_code == 200
-    assert "Stato installazione studio" in stato.get_data(as_text=True)
-    assert migrazione.status_code == 200
-    assert "Assistente migrazione dati" in migrazione.get_data(as_text=True)
-    assert salute.status_code == 200
-    assert "Salute sistema" in salute.get_data(as_text=True)
-    assert 'href="/admin/salute-sistema"' in salute.get_data(as_text=True)
-    assert 'href="/admin/governance"' in salute.get_data(as_text=True)
-    assert scorecard.status_code == 200
-    assert "Eval suite e scorecard Lex" in scorecard.get_data(as_text=True)
-    assert "Prove eseguite" in scorecard.get_data(as_text=True)
-    assert osservabilita.status_code == 200
-    assert "Osservabilità runtime" in osservabilita.get_data(as_text=True)
-    assert "Segnali di degrado" in osservabilita.get_data(as_text=True)
-    assert server_manutenzione.status_code == 200
-    assert "Server e manutenzione" in server_manutenzione.get_data(as_text=True)
-    assert "Consumi per studio" in server_manutenzione.get_data(as_text=True)
-    assert 'href="/admin/server-manutenzione"' in stato.get_data(as_text=True)
-    assert pianificazioni.status_code == 200
-    assert "Pianificazioni" in pianificazioni.get_data(as_text=True)
-    assert "Agenti delegati disponibili" in pianificazioni.get_data(as_text=True)
-    assert 'href="/admin/pianificazioni"' in stato.get_data(as_text=True)
-    assert crash_test.status_code == 200
-    assert "Crash test operativo" in crash_test.get_data(as_text=True)
-    assert "Esegui crash test adesso" in crash_test.get_data(as_text=True)
-    assert coverage.status_code == 200
-    assert "Copertura AI e autopubblicazione controllata" in coverage.get_data(as_text=True)
-    assert "Database coverage" in coverage.get_data(as_text=True)
-    assert coverage_review.status_code == 200
-    assert "Coda revisione draft v2" in coverage_review.get_data(as_text=True)
-    assert "Come si usa questa schermata" in coverage_review.get_data(as_text=True)
-    assert aggiornamenti.status_code == 200
-    assert "Motore di aggiornamento normativo e giurisprudenziale" in aggiornamenti.get_data(as_text=True)
-    assert aggiornamenti_fonti.status_code == 200
-    assert "Gestore fonti" in aggiornamenti_fonti.get_data(as_text=True)
-    assert aggiornamenti_review.status_code == 200
-    assert "Coda revisioni aggiornamenti" in aggiornamenti_review.get_data(as_text=True)
+    for indirizzo, risposta in shell.items():
+        assert risposta.status_code == 200, indirizzo
+        assert 'id="piattaforma-react-root"' in risposta.get_data(as_text=True), indirizzo
+    for chiave, risposta in dati.items():
+        assert risposta.status_code == 200, chiave
+        corpo = risposta.get_json()
+        assert corpo["ok"] is True and corpo["page"] == chiave, chiave
+        assert corpo["sections"], chiave
+    menu = {voce["href"] for voce in dati["salute-sistema"].get_json()["menu"]}
+    assert {"/admin/salute-sistema", "/admin/governance", "/admin/server-manutenzione", "/admin/pianificazioni"} <= menu
+    # Anche con il vecchio parametro si apre la pagina React.
+    assert 'id="piattaforma-react-root"' in classica.get_data(as_text=True)
     assert news.status_code == 200
     _assert_react_shell(news.get_data(as_text=True))
 

@@ -60,8 +60,13 @@ def esamina_tutti(
     esiti: list[EsitoArchivio] = []
     attivi = _active_tenants(app)
     if not attivi:
+        if app.config.get("MULTI_TENANT"):
+            return _riepilogo(
+                [EsitoArchivio(studio="", errore="Registro degli studi attivi non disponibile.")],
+                applicato=rispezzare,
+            )
         # Installazione a studio singolo: nessun contesto tenant da montare.
-        with app.test_request_context("/__manutenzione/chunk-rag/default"):
+        with app.app_context(), app.test_request_context("/__manutenzione/chunk-rag/default"):
             g.multi_tenant_enabled = False
             g.tenant_context_missing = False
             g.tenant_context_slug = ""
@@ -78,7 +83,7 @@ def esamina_tutti(
         slug = str(getattr(studio, "slug", "") or "").strip().lower()
         if not slug:
             continue
-        with app.test_request_context(f"/__manutenzione/chunk-rag/{slug}"):
+        with app.app_context(), app.test_request_context(f"/__manutenzione/chunk-rag/{slug}"):
             try:
                 _attach_tenant_context(manager, studio)
                 esiti.append(lavoro(_servizio_corrente(), studio=slug, limite=limite))
@@ -96,12 +101,20 @@ def rispezzatura_notturna(app: Any) -> dict[str, Any]:
     produzione il lavoro completo e' di ore, e nessuna richiesta HTTP le regge.
     Qui invece si puo' lavorare per davvero, di notte, e fermarsi al budget.
     """
-    return esamina_tutti(
+    esito = esamina_tutti(
         app,
         rispezzare=True,
         massimo_documenti=LOTTO_NOTTURNO,
         budget_secondi=BUDGET_NOTTURNO_SECONDI,
     )
+    restano = esito["documenti_restanti"]
+    esito["restano"] = restano
+    esito["message"] = esito["messaggio"].replace(": ripremere il bottone.", ".")
+    if esito["documenti_in_errore"] or (restano and not (esito["documenti_rifatti"] or esito["documenti_verso_ocr"])):
+        esito["status"] = "parziale"
+    if esito["errori"]:
+        esito["error"] = "; ".join(esito["errori"])
+    return esito
 
 
 __all__ = ["BUDGET_NOTTURNO_SECONDI", "LOTTO_NOTTURNO", "esamina_tutti", "rispezzatura_notturna"]

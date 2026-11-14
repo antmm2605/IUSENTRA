@@ -122,7 +122,10 @@ def register_viewer_editor_routes(app):
 
         if not puo("fascicoli.leggi"):
             return jsonify(ok=False, message="Permesso di consultazione insufficiente."), 403
-        fascicolo = get_fascicoli().get(fid)
+        get_repository = get_fascicoli
+        if request.method == "GET":
+            get_repository = app.extensions.get("core_runtime", {}).get("get_fascicoli_mirato", get_fascicoli)
+        fascicolo = get_repository().get(fid)
         documento = next((d for d in getattr(fascicolo, "documenti", []) if d.id == did), None)
         if not documento:
             return jsonify(ok=False, message="Documento non trovato."), 404

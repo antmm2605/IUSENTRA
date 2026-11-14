@@ -2,19 +2,23 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+from contextlib import ExitStack
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from .batch import (
     StudioDatasetBatchOptions,
+    _document_from_ai_rows,
     build_studio_dataset_batch,
     load_document_ai_json_documents,
 )
 from .chunking import ChunkingOptions
-from .qa import QAGenerationPolicy
+from .models import StudioDatasetDocument
+from .qa import QA_TEXT_POLICY_VERSION, QAGenerationPolicy
 
 
 def _truthy(value: Any) -> bool:
@@ -72,6 +76,7 @@ def _dataset_options_fingerprint(
     include_pending_review_export: bool,
 ) -> dict[str, Any]:
     return {
+        "qa_text_policy": QA_TEXT_POLICY_VERSION,
         "max_documents": int(max_documents or 0),
         "allow_sensitive_export": bool(allow_sensitive_export),
         "include_pending_review_export": bool(include_pending_review_export),
@@ -117,10 +122,33 @@ def build_lex_dataset_for_document_ai_json(
     include_pending_review_export: bool = False,
 ) -> dict[str, Any]:
     """Prepara artefatti locali per revisione Lex senza avviare training."""
+    return _build_lex_dataset(
+        tenant_id=tenant_id,
+        source_fingerprint=_file_fingerprint(Path(document_ai_json_path)),
+        load_documents=lambda: load_document_ai_json_documents(
+            document_ai_json_path, tenant_id=tenant_id, max_documents=max_documents,
+        ),
+        output_root=output_root,
+        max_documents=max_documents,
+        allow_sensitive_export=allow_sensitive_export,
+        include_pending_review_export=include_pending_review_export,
+    )
+
+
+def _build_lex_dataset(
+    *,
+    tenant_id: str,
+    source_fingerprint: dict[str, Any],
+    load_documents: Callable[[], list[StudioDatasetDocument]],
+    output_root: str | Path,
+    max_documents: int | None,
+    allow_sensitive_export: bool,
+    include_pending_review_export: bool,
+    review_sql: bool = False,
+) -> dict[str, Any]:
     root = Path(output_root)
     output_dir = root / _safe_slug(tenant_id, "tenant")
     started_at = _utc_now()
-    source_fingerprint = _file_fingerprint(Path(document_ai_json_path))
     options_fingerprint = _dataset_options_fingerprint(
         max_documents=max_documents,
         allow_sensitive_export=allow_sensitive_export,
@@ -137,6 +165,8 @@ def build_lex_dataset_for_document_ai_json(
         and latest_job.get("status") in {"completed", "skipped_unchanged"}
         and latest_job.get("source_fingerprint") == source_fingerprint
         and latest_job.get("dataset_options") == options_fingerprint
+        and latest_job.get("output_files")
+        and all(Path(path).is_file() for path in latest_job["output_files"])
     ):
         job = {
             "status": "skipped_unchanged",
@@ -162,11 +192,7 @@ def build_lex_dataset_for_document_ai_json(
         _append_job_history(output_dir, job)
         return job
     try:
-        documents = load_document_ai_json_documents(
-            document_ai_json_path,
-            tenant_id=tenant_id,
-            max_documents=max_documents,
-        )
+        documents = load_documents()
         result = build_studio_dataset_batch(
             documents,
             StudioDatasetBatchOptions(
@@ -179,6 +205,7 @@ def build_lex_dataset_for_document_ai_json(
                 qa_policy=QAGenerationPolicy(min_chunk_chars=80),
             ),
             output_dir=output_dir,
+            review_sql=review_sql,
         )
         summary = result.summary()
         job = {
@@ -229,11 +256,94 @@ def _config_value(config: Mapping[str, Any], key: str, default: Any = "") -> Any
     return config.get(key) or os.getenv(key) or default
 
 
-def _target_from_paths(slug: str, paths: Mapping[str, Any]) -> dict[str, Any]:
+_TESTI_VERSIONE_CORRENTE = """
+    WITH candidati AS (
+        SELECT MAX(t.id) AS testo_id
+        FROM fascicolo_documenti_ai_testi t
+        CROSS JOIN fascicolo_documenti_ai d
+        CROSS JOIN fascicoli f
+        WHERE t.tenant_id=? AND d.id=t.document_id
+            AND d.tenant_id=t.tenant_id AND d.fascicolo_id=t.fascicolo_id
+            AND d.current_version_id=t.version_id AND f.id=t.fascicolo_id
+        GROUP BY t.fascicolo_id, CASE WHEN length(d.sha256)>0 THEN d.sha256 ELSE d.id END
+    )
+"""
+_RIGHE_DATASET = """
+    FROM candidati c
+    JOIN fascicolo_documenti_ai_testi t ON t.id=c.testo_id
+    JOIN fascicolo_documenti_ai d ON d.id=t.document_id
+        AND d.tenant_id=t.tenant_id AND d.fascicolo_id=t.fascicolo_id
+"""
+
+
+def _build_lex_dataset_from_sql(core, *, tenant_id: str, max_documents: int | None, **options: Any) -> dict[str, Any]:
+    from pct.document_intelligence.read_view import source_snapshot
+
+    with ExitStack() as stack:
+        conn = stack.enter_context(source_snapshot(core)).conn
+        metadata = conn.execute(
+            _TESTI_VERSIONE_CORRENTE
+            + "SELECT t.id, t.document_id, t.version_id, t.created_at, d.sha256, d.status, "
+            "d.original_filename, d.mime_type " + _RIGHE_DATASET + " ORDER BY t.id",
+            (tenant_id,),
+        )
+        impronta = hashlib.sha256()
+        testo_ids = []
+        for row in metadata:
+            impronta.update(json.dumps(dict(row), default=str, sort_keys=True).encode("utf-8"))
+            testo_ids.append(row["id"])
+        if not testo_ids:
+            return {"status": "skipped_empty", "tenant_id": tenant_id, "documents_count": 0,
+                    "message": "Nessuna versione corrente con testo nell'archivio SQL dello studio."}
+
+        def load_documents() -> list[StudioDatasetDocument]:
+            documents = []
+            # Riusa gli ID deduplicati della stessa fotografia. Un solo ordinamento
+            # globale, su metadati: il testo integrale si legge per piccoli lotti.
+            for start in range(0, len(testo_ids), 128):
+                batch = testo_ids[start:start + 128]
+                placeholders = ", ".join("?" for _ in batch)
+                query = (
+                    "SELECT t.document_id, t.fascicolo_id, t.version_id, t.extraction_engine, "
+                    "t.text, t.pages_json, d.original_filename, d.safe_filename, "
+                    "d.mime_type, d.sha256, d.status "
+                    "FROM fascicolo_documenti_ai_testi t "
+                    "JOIN fascicolo_documenti_ai d ON d.id=t.document_id "
+                    "AND d.tenant_id=t.tenant_id AND d.fascicolo_id=t.fascicolo_id "
+                    f"WHERE t.id IN ({placeholders}) AND length(trim(t.text))>0 ORDER BY t.id"
+                )
+                for row in conn.execute(query, batch):
+                    payload = dict(row)
+                    payload["pages"] = json.loads(payload.pop("pages_json") or "[]")
+                    documents.append(_document_from_ai_rows(tenant_id, payload["fascicolo_id"], payload, payload))
+                    if max_documents is not None and len(documents) >= max_documents:
+                        break
+                if max_documents is not None and len(documents) >= max_documents:
+                    break
+            stack.close()
+            return documents
+
+        return _build_lex_dataset(
+            tenant_id=tenant_id,
+            source_fingerprint={"backend": getattr(core, "backend_kind", "sqlite"), "sha256": impronta.hexdigest(),
+                                "versioni": len(testo_ids), "review_store": "sqlite"},
+            load_documents=load_documents,
+            max_documents=max_documents,
+            review_sql=True,
+            **options,
+        )
+
+
+def _target_from_paths(slug: str, paths: Mapping[str, Any], database: Any = None) -> dict[str, Any]:
     fascicoli_db = Path(str(paths.get("FASCICOLI_DB") or ""))
     base = fascicoli_db.parent.parent if fascicoli_db.name else Path()
+    studio_db = str(paths.get("STUDIO_DB") or "")
+    if studio_db:
+        base = Path(studio_db).parent
     return {
         "slug": slug,
+        "database": database,
+        "studio_db": studio_db,
         "data_root": str(base),
         "document_ai_json": str(base / "fascicoli" / "documenti_ai" / "documenti_ai.json"),
         "output_root": str(base / "intelligence" / "lex_dataset"),
@@ -259,7 +369,7 @@ def _iter_targets(config: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
             slug = str(getattr(studio, "slug", "") or "").strip().lower()
             if not slug:
                 continue
-            targets.append(_target_from_paths(slug, manager.percorsi_dati(slug)))
+            targets.append(_target_from_paths(slug, manager.percorsi_dati(slug, reconcile_aliases=False), studio.database))
     except Exception:
         targets = []
 
@@ -267,7 +377,7 @@ def _iter_targets(config: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
         return tuple(targets)
 
     fascicoli_db = str(config.get("FASCICOLI_DB") or "./fascicoli/fascicoli.json")
-    return (_target_from_paths("studio", {"FASCICOLI_DB": fascicoli_db}),)
+    return (_target_from_paths("studio", {**config, "FASCICOLI_DB": fascicoli_db}, config.get("TENANT_DATABASE_CONFIG")),)
 
 
 def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any] | None = None) -> dict[str, Any]:
@@ -291,7 +401,36 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
         allow_sensitive_export=allow_sensitive,
         include_pending_review_export=include_pending,
     )
-    for target in _iter_targets(cfg):
+    targets = _iter_targets(cfg)
+    for target in targets:
+        database = target.get("database")
+        studio_db = str(target.get("studio_db") or "")
+        mode = str(getattr(database, "normalized_mode", "") or "").upper()
+        if studio_db and (mode in {"SQLITE", "POSTGRESQL"} or not mode and Path(studio_db).is_file()):
+            from pct.core_storage_backend import build_core_storage_backend
+            from pct.storage import StudioDB
+
+            tenant_id = str(target["slug"])
+            try:
+                core = build_core_storage_backend(database, studio_db_path=studio_db, readonly=True)
+                if core is None and mode == "POSTGRESQL":
+                    raise RuntimeError("Archivio SQL PostgreSQL non disponibile.")
+                if core is None:
+                    core = StudioDB(studio_db, readonly=True, initialize_schema=False)
+                try:
+                    job = _build_lex_dataset_from_sql(
+                        core, tenant_id=tenant_id, output_root=target["output_root"], max_documents=max_documents,
+                        allow_sensitive_export=allow_sensitive, include_pending_review_export=include_pending,
+                    )
+                finally:
+                    core.chiudi()
+                if job["status"] == "skipped_empty":
+                    skipped.append({"studio": tenant_id, "reason": job["message"]})
+                else:
+                    tenant_jobs.append(job)
+            except Exception as exc:
+                tenant_jobs.append({"status": "failed", "tenant_id": tenant_id, "message": str(exc)})
+            continue
         document_ai_json = Path(str(target.get("document_ai_json") or ""))
         used_shared_document_ai = False
         if not document_ai_json.exists():
@@ -363,13 +502,14 @@ def run_lex_dataset_nightly(*, app: Any | None = None, config: Mapping[str, Any]
     qa_pairs = sum(int(job.get("qa_pairs_count") or 0) for job in tenant_jobs)
     return {
         "ok": failed == 0,
-        "status": "completed" if failed == 0 else "failed",
+        "status": "failed" if failed else ("completed" if tenant_jobs else "parziale"),
         "completed_at": _utc_now(),
-        "studios_checked": len(_iter_targets(cfg)),
+        "studios_checked": len(targets),
         "tenants_processed": len(tenant_jobs),
         "completed": completed,
         "skipped_unchanged": skipped_unchanged,
         "failed": failed,
+        "studios_skipped": len(skipped),
         "skipped": skipped,
         "documents_count": documents,
         "chunks_count": chunks,

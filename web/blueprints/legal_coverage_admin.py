@@ -5,7 +5,7 @@ from __future__ import annotations
 from functools import wraps
 from typing import Any
 
-from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template, request, url_for, current_app
+from flask import Blueprint, abort, g, jsonify, request, current_app
 
 from pct.auth import RuoloUtente
 from pct.legal_coverage_pipeline import (
@@ -16,8 +16,8 @@ from pct.legal_coverage_pipeline import (
     save_draft,
 )
 from pct.legal_taxonomy_sql_generator import generate_sql
-from web.services.legal_coverage_surface import build_generator, build_repository, build_legal_coverage_surface, run_action
-from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
+from web.services.legal_coverage_surface import build_generator, build_repository, run_action
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell
 
 
 legal_coverage_admin = Blueprint(
@@ -27,18 +27,23 @@ legal_coverage_admin = Blueprint(
 )
 
 
+def utente_ammesso_copertura(user) -> bool:
+    """SUPERADMIN oppure admin locale quando il runtime non e' multi-tenant.
+    Lo stesso criterio vale per le pagine React del pannello (`api_v1_piattaforma`)."""
+    if not user:
+        return False
+    if getattr(user, "is_superadmin", False):
+        return True
+    multi_tenant = bool(current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False))
+    return not multi_tenant and getattr(user, "ruolo", None) == RuoloUtente.AMMINISTRATORE
+
+
 def coverage_admin_required(fn):
     """Consente SUPERADMIN oppure admin locale quando il runtime non e' multi-tenant."""
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        user = getattr(g, "utente_corrente", None)
-        if not user:
-            abort(403)
-        if getattr(user, "is_superadmin", False):
-            return fn(*args, **kwargs)
-        multi_tenant = bool(current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False))
-        if not multi_tenant and getattr(user, "ruolo", None) == RuoloUtente.AMMINISTRATORE:
+        if utente_ammesso_copertura(getattr(g, "utente_corrente", None)):
             return fn(*args, **kwargs)
         abort(403)
 
@@ -52,15 +57,6 @@ def _json_error(message: str, *, status: int = 200):
 def _selected_tenant_slug() -> str:
     # Copertura AI e' presidio condiviso: la console non seleziona piu' uno studio.
     return ""
-
-
-def _pannello_react() -> bool:
-    """Vista React solo per il superamministratore: l'API del pannello di
-    piattaforma (`/api/v1/ui/piattaforma`) è riservata a lui. Gli altri
-    amministratori ammessi dal decoratore di questa console restano sulla vista
-    classica, con le stesse funzioni di prima."""
-    utente = getattr(g, "utente_corrente", None)
-    return not vista_classica_richiesta() and bool(getattr(utente, "is_superadmin", False))
 
 
 def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str, str, str]:
@@ -79,62 +75,13 @@ def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str,
 @legal_coverage_admin.get("/")
 @coverage_admin_required
 def dashboard():
-    if _pannello_react():
-        return render_piattaforma_shell("copertura-ai", "Copertura AI")
-    tenant_slug = _selected_tenant_slug()
-    payload = build_legal_coverage_surface(tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_coverage_dashboard.html",
-        payload=payload,
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
-
-
-@legal_coverage_admin.post("/esegui/<string:action>")
-@coverage_admin_required
-def execute_action(action: str):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        result = run_action(
-            action,
-            limit=int(request.form.get("limit") or 20),
-            tenant_slug=tenant_slug,
-        )
-        category = "success"
-        message = {
-            "audit": "Audit copertura aggiornato.",
-            "gaps": "Gap queue rigenerata.",
-            "drafts": "Draft generati correttamente.",
-            "publish": "Publisher eseguito e database riallineato.",
-        }.get(action, "Operazione completata.")
-        if action == "drafts":
-            generated = int((result or {}).get("draft_total") or 0)
-            skipped = int((result or {}).get("skipped_pending_review_total") or 0)
-            if generated == 0 and skipped:
-                category = "warning"
-                message = "Le bozze erano gia' in revisione: nessuna duplicazione generata."
-        if action == "publish" and int((result or {}).get("published_total") or 0) == 0:
-            category = "warning"
-            message = "Nessuna bozza approvata da pubblicare. Apri la coda revisioni, approva una bozza e ripeti il publish."
-        flash(message, category)
-        if result:
-            current_app.logger.info("Coverage action %s -> %s", action, result)
-    except Exception as exc:
-        current_app.logger.exception("Errore action coverage %s: %s", action, exc)
-        flash(f"Errore durante l'azione {action}: {exc}", "danger")
-    return redirect(url_for("legal_coverage_admin.dashboard", _legacy=1))
+    return render_piattaforma_shell("copertura-ai", "Copertura AI")
 
 
 @legal_coverage_admin.get("/review")
 @coverage_admin_required
 def review_page():
-    if _pannello_react():
-        return render_piattaforma_shell("copertura-ai-revisione", "Revisione copertura AI")
-    tenant_slug = _selected_tenant_slug()
-    return render_template(
-        "admin/legal_coverage_review.html",
-        tenant_slug=tenant_slug,
-    )
+    return render_piattaforma_shell("copertura-ai-revisione", "Revisione copertura AI")
 
 
 @legal_coverage_admin.get("/api/drafts")

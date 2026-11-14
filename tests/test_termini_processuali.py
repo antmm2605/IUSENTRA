@@ -381,3 +381,32 @@ def test_modelli_salvati_si_aggiornano_solo_se_la_regola_e_cambiata(tmp_path):
     assert lungo.version >= 2
     assert breve.name == "Appello - prassi di studio"
     assert breve.base_value == 25
+
+
+def test_calcolatore_applica_la_materia_del_fascicolo(tmp_path: Path, monkeypatch):
+    from types import SimpleNamespace
+    from web.blueprints import api_v1_react as ui
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo = SimpleNamespace(tipo="LAVORO")
+    archivio = SimpleNamespace(get=lambda fid: fascicolo if fid == "LAVORO" else None)
+    monkeypatch.setattr(ui, "get_fascicoli", lambda: archivio)
+
+    payload = {
+        "template_code": "CIV_APPELLO_BREVE",
+        "input_date": "2030-07-30",
+        "suspend_august": True,
+        "ferial_suspension_policy": "applies",
+    }
+    with app.test_client() as client:
+        _login(client)
+        url = "/api/v1/ui/scadenziario/termini/calculate"
+        civile = client.post(url, json=payload)
+        lavoro = client.post(url, json={**payload, "id_fascicolo": "LAVORO"})
+        assente = client.post(url, json={**payload, "id_fascicolo": "ASSENTE"})
+    assert civile.get_json()["result"]["deadline"] != lavoro.get_json()["result"]["deadline"]
+    risultato = lavoro.get_json()["result"]
+    assert risultato["deadline"] == "2030-08-29"
+    assert "labour_no_ferial_suspension_art_3_l742_1969" in risultato["rulesApplied"]
+    assert assente.status_code == 404

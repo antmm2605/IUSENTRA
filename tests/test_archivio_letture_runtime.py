@@ -343,6 +343,31 @@ def test_un_documento_nuovo_riattiva_il_ciclo_e_lo_richiude(tmp_path: Path):
         assert leggi_fascicolo(_fascicolo(app, fascicolo_id))["fermo"] is True
 
 
+def test_archivio_pec_indisponibile_riapre_il_ciclo_senza_chiuderlo(tmp_path, monkeypatch):
+    from web.services import archivio_letture_runtime as runtime
+    from web.services import registro_letture_runtime as inventario
+
+    app = _app(tmp_path)
+    fid, _, _ = _seed(app)
+    with app.app_context():
+        fascicolo = _fascicolo(app, fid)
+        assert runtime.leggi_fascicolo(fascicolo)["fermo"]
+
+        def non_consultabile(*args, **kwargs):
+            raise RuntimeError("database is locked")
+
+        with monkeypatch.context() as guasto:
+            guasto.setattr(inventario, "_righe_pec_collegate", non_consultabile)
+            guasto.setattr(runtime, "_messaggi_pec", lambda *args: None)
+            guasto.setattr(runtime, "_consegna_ai_presidi", non_consultabile)
+            esito = runtime.leggi_fascicolo(fascicolo)
+            assert esito["restano"] == 1
+            assert esito["fermo"] is False
+            assert "Archivio PEC non consultabile" in esito["ciclo"]["motivo"]
+
+        assert runtime.leggi_fascicolo(fascicolo)["fermo"]
+
+
 def test_scheduler_salta_studio_fermo_ma_evento_legge_solo_il_fascicolo_cambiato(tmp_path: Path, monkeypatch):
     app = _app(tmp_path)
     fascicolo_a, _decreto_a, _relata_a = _seed(app)
@@ -449,6 +474,22 @@ def test_coda_evento_non_consuma_la_generazione_se_la_lettura_fallisce(tmp_path:
     assert registro.reclama_evento("studio", "09131014", "worker-2") == {"generation": 1, "forza": True}
 
 
+def test_rilettura_periodica_conserva_generazione_e_retry_e_salta_i_worker_attivi(tmp_path):
+    from pct.registro_letture import RegistroLetture
+
+    registro = RegistroLetture(tmp_path / "registro.db")
+    assert registro.accoda_evento("studio", "attivo") == 1
+    assert registro.accoda_evento("studio", "altro") == 1
+    assert registro.accoda_evento("studio", "attivo", solo_se_fermo=True) == 0
+    assert registro.eventi_da_riprendere("studio", limite=1, escludi=("attivo",))[0]["fascicolo_id"] == "altro"
+    assert registro.reclama_evento("studio", "attivo", "worker")["generation"] == 1
+    assert registro.accoda_evento("studio", "attivo", solo_se_fermo=True) == 0
+    registro.concludi_evento("studio", "attivo", "worker", 1, riuscito=False)
+    assert registro.accoda_evento("studio", "attivo", solo_se_fermo=True) == 0
+    assert registro.reclama_evento("studio", "attivo", "worker") is None
+    assert registro.accoda_evento("studio", "attivo", prioritario=True) == 2
+
+
 def test_tick_riprende_solo_eventi_pending_o_con_lease_scaduta_dopo_riavvio(monkeypatch, tmp_path: Path):
     from web.services import archivio_letture_runtime as runtime
     from web.services.registro_letture_runtime import registro_corrente
@@ -484,6 +525,24 @@ def test_tick_riprende_solo_eventi_pending_o_con_lease_scaduta_dopo_riavvio(monk
         ("09131014", "single-studio", False),
         ("LEASE-SCADUTA", "single-studio", False),
     ]
+
+
+def test_giro_notturno_non_chiude_la_coda_se_sqlite_e_occupato(tmp_path, monkeypatch):
+    import sqlite3
+    from web.services import archivio_letture_runtime as runtime
+
+    app = _app(tmp_path)
+
+    def occupato(*args, **kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(runtime, "accoda_riletture_notturne", occupato)
+    with app.app_context():
+        esito = runtime.lettura_automatica_per_tutti(app, usa_marker_scheduler=True)
+
+    assert esito["totals"]["rinvii_archivio"] == 1
+    assert esito["totals"]["restano"] >= 1
+    assert "controlli da ripetere" in esito["message"]
 
 
 def test_evento_web_accoda_generazioni_senza_thread_nel_worker_gevent(monkeypatch, tmp_path: Path):
@@ -627,6 +686,9 @@ def test_rilettura_superati_dai_testi_salvati_senza_riaprire_file(monkeypatch, t
     monkeypatch.setattr("web.services.sentenza_economic_runtime._cu_tiers", lambda: [])
     with app.app_context():
         senza = runtime._leggi_documenti(fascicolo, registro, "studio", Contesto(), forza=False, limite=200)
+        scaduto = runtime._leggi_documenti(fascicolo, registro, "studio", Contesto(), forza=False, limite=200,
+                                          rileggi_superati=True, fine_turno=0)
+        assert scaduto["da_leggere"] == 2 and scaduto["letti"] == 0 and not chiamate
         report = runtime._leggi_documenti(fascicolo, registro, "studio", Contesto(), forza=False, limite=200,
                                           rileggi_superati=True)
     assert senza["da_leggere"] == 0
@@ -763,6 +825,23 @@ def test_la_ripresa_della_coda_non_supera_le_letture_contemporanee(monkeypatch, 
         terzo = runtime.riprendi_eventi_lettura(app, limite_per_tenant=20)
 
     assert primo["avviati"] == runtime.LETTURE_CONCORRENTI
+    assert secondo["eventi_aperti"] == 30
     assert secondo["avviati"] == 0
     assert terzo["avviati"] == runtime.LETTURE_CONCORRENTI
     assert len(avviati) == 2 * runtime.LETTURE_CONCORRENTI
+
+
+def test_errore_obblighi_impedisce_la_chiusura_del_giro(tmp_path, monkeypatch):
+    from web.services import archivio_letture_runtime as runtime
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+    app = _app(tmp_path)
+    fascicolo_id, _, _ = _seed(app)
+    with app.app_context():
+        with monkeypatch.context() as guasto:
+            guasto.setattr(runtime, "_allinea_obblighi_notifica", lambda *_: ({"errore": "Scadenziario indisponibile"}, None))
+            with pytest.raises(RuntimeError, match="Obblighi di notifica non allineati"):
+                runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))
+        stato = runtime.stato_ciclo_fascicolo(fascicolo_id, registro_corrente(), tenant_corrente())
+        assert stato.stato == "in_errore" and "Scadenziario indisponibile" in stato.motivo
+        assert runtime.leggi_fascicolo(_fascicolo(app, fascicolo_id))["ciclo"]["stato"] == "fermo"

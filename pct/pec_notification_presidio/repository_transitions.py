@@ -17,6 +17,68 @@ from .models import (
 
 class NotificationPresidioTransitionMixin:
 
+    def _fascicolo_pec(self, conn: Any, message_id: str) -> str:
+        # L'archivio MIME è nel database PEC SQLite condiviso con il worker.
+        # I repository autonomi non hanno quel registro.
+        if not message_id or self.backend_kind != "sqlite" or not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pec_messages'"
+        ).fetchone():
+            return ""
+        row = conn.execute(
+            "SELECT linked_fascicolo_id FROM pec_messages WHERE tenant_id=? AND id=?",
+            (self.tenant_id, message_id),
+        ).fetchone()
+        return str(row[0] or "") if row is not None else ""
+
+    def annulla_presidio_sul_fascicolo_errato(
+        self, presidio_id: str, presidio_corretto_id: str, *, actor: str,
+    ) -> TransitionResult:
+        return self.transition(
+            presidio_id, PresidioStatus.CANCELLED,
+            actor=actor,
+            reason="Rettifica del collegamento: la PEC appartiene a un altro fascicolo. "
+                   "Il presidio corrispondente è già presente nel fascicolo corretto.",
+            evidence={"source": "rettifica_fascicolo_pec", "presidio_corretto_id": presidio_corretto_id},
+            idempotency_key=f"rettifica-fascicolo-pec:{presidio_corretto_id}",
+        )
+
+    def _verifica_rettifica_fascicolo_pec(
+        self, conn: Any, presidio: Mapping[str, Any], presidio_corretto_id: str,
+    ) -> None:
+        corretto = self._presidio_row(conn, presidio_corretto_id, lock=True)
+        fascicolo_pec = self._fascicolo_pec(conn, str(presidio["source_message_id"]))
+        stessi_riferimenti = all(presidio[key] == corretto[key] for key in (
+            "source_message_id", "source_parsed_version_id", "trigger_type", "notification_case", "channel",
+        ))
+        if (not fascicolo_pec or fascicolo_pec == presidio["fascicolo_id"]
+                or fascicolo_pec != corretto["fascicolo_id"] or not stessi_riferimenti
+                or corretto["status"] == PresidioStatus.CANCELLED.value):
+            raise ValueError("Rettifica non ammessa: PEC e presidio del fascicolo corretto devono concordare.")
+        documenti = conn.execute(
+            "SELECT presidio_id,identity_key FROM pec_legal_notification_documents "
+            "WHERE tenant_id=? AND presidio_id IN (?,?)",
+            (self.tenant_id, presidio["id"], corretto["id"]),
+        ).fetchall()
+        identita = {row[1] for row in documenti if row[0] == presidio["id"]}
+        if not identita or identita != {row[1] for row in documenti if row[0] == corretto["id"]}:
+            raise ValueError("Rettifica non ammessa: i documenti dei due presìdi non coincidono.")
+        invii = conn.execute(
+            "SELECT 1 FROM pec_legal_notification_recipients "
+            "WHERE tenant_id=? AND presidio_id=? AND "
+            "(sent_message_id<>'' OR rac_message_id<>'' OR rdac_message_id<>'' OR failure_message_id<>'')",
+            (self.tenant_id, presidio["id"]),
+        ).fetchone()
+        if invii:
+            raise ValueError("Rettifica non ammessa: il presidio ha invii o ricevute proprie.")
+        if presidio["status"] == PresidioStatus.PROOF_DEPOSITED.value:
+            ultima = conn.execute(
+                "SELECT evidence_json FROM pec_legal_notification_transitions "
+                "WHERE tenant_id=? AND presidio_id=? ORDER BY chain_index DESC LIMIT 1",
+                (self.tenant_id, presidio["id"]),
+            ).fetchone()
+            if not ultima or json_load(ultima[0], default={}).get("source") != "fascicolo_notification_relata":
+                raise ValueError("Rettifica non ammessa: la prova non deriva dal solo fascicolo associato.")
+
     def transition(
         self,
         presidio_id: str,
@@ -65,7 +127,15 @@ class NotificationPresidioTransitionMixin:
                 raise ValueError(f"Stato atteso {expected_status}, trovato {previous.value}")
             if previous == target:
                 return TransitionResult("", previous.value, target.value, "", False)
-            validate_transition(previous.value, target.value, reason=reason)
+            rettifica = target == PresidioStatus.CANCELLED and (evidence or {}).get("source") == "rettifica_fascicolo_pec"
+            if rettifica:
+                self._verifica_rettifica_fascicolo_pec(conn, presidio, str(evidence["presidio_corretto_id"]))
+            if not rettifica or previous != PresidioStatus.PROOF_DEPOSITED:
+                validate_transition(previous.value, target.value, reason=reason)
+            if target == PresidioStatus.PROOF_DEPOSITED:
+                fascicolo_pec = self._fascicolo_pec(conn, str(presidio["source_message_id"]))
+                if fascicolo_pec and fascicolo_pec != presidio["fascicolo_id"]:
+                    raise ValueError("La prova riguarda un fascicolo diverso dal fascicolo della PEC.")
             counts = self._recipient_counts_conn(conn, presidio_id)
             if target == PresidioStatus.DELIVERY_COMPLETE and (
                 counts["recipients_total"] <= 0

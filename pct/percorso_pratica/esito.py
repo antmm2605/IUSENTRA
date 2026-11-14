@@ -12,8 +12,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from pct.spese_liquidate_lettura import estrai_spese_liquidate
+
 _PQM = re.compile(r"\b(?:P\.?\s?Q\.?\s?M\b\.?|PER\s+QUESTI\s+MOTIVI\b)", re.IGNORECASE)
-_IMPORTO = r"(?:€|euro|eur)\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})(?!\d)(?!,\d)"
 # Fine del dispositivo: la firma su una riga breve o «Città, data IL GIUDICE»; non «Il Giudice del Lavoro, definitivamente pronunciando».
 _FIRMA = re.compile(r"\n\s*(?:Il\s+giudice|Il\s+presidente|Così\s+deciso)\b(?!\s+del\s+lavoro)[^\n]{0,60}(?:\n|$)"
                     r"|\b[A-Z][a-zà]+,\s*\d{1,2}[./]\d{1,2}[./]\d{4}\s+IL\s+GIUDICE", re.IGNORECASE)
@@ -29,7 +30,10 @@ _ESITI = (
     ("accoglimento_parziale", r"\baccoglie\s+(?:in\s+parte|parzialmente)\b|\bin\s+parziale\s+accoglimento\b"),
     ("rigetto", r"\b(?:rigetta|respinge)\b"),
     ("accoglimento", r"\baccoglie\b|\b(?:dichiara|accerta)\s+il\s+diritto\b"
-                     r"|\bcondanna\s+(?:il|la|l['’])\s?(?:parte\s+)?(?:convenut|resistent|amministrazione|ministero|opposto|debitore)"),
+                     r"|\bcondanna\s+(?:il|la|l['’])\s?(?:parte\s+)?(?:convenut|resistent|amministrazione|ministero|opposto|debitore)"
+                     r"|\bcondanna\s+(?:il|la|l['’])\s+(?:[a-z]\.\s*){2,}[a-z]\.?\s+"
+                     r"(?:all['’](?:assegnazione|attribuzione|erogazione)|al\s+pagamento)"
+                     r"[^.;]{0,120}\bin\s+favore\s+(?:di|della|del)\s+(?:parte\s+)?(?:ricorrent|attor)"),
 )
 _MASSIMO_DISPOSITIVO = 6000
 # Le frasi del dispositivo finiscono con «;» o con un punto seguito da spazio (non i punti delle cifre, «1.234,00»).
@@ -63,11 +67,6 @@ def dispositivo(testo: str) -> str:
     return re.sub(r"\s+", " ", parte[: fine.start()] if fine else parte).strip(" .:;,")
 
 
-def _importo(frase: str) -> str:
-    m = re.search(_IMPORTO, frase, re.IGNORECASE)
-    return m.group(1) if m else ""
-
-
 def spese(dispositivo_testo: str) -> dict[str, Any]:
     testo = (dispositivo_testo or "")[:_MASSIMO_DISPOSITIVO]
     voce: dict[str, Any] = {"regolazione": "non_indicata", "importo": "", "distrazione": False, "frase": ""}
@@ -79,7 +78,11 @@ def spese(dispositivo_testo: str) -> dict[str, Any]:
         voce.update(regolazione="compensazione_parziale" if parziale else "compensazione", frase=compensazione)
     condanna = next((f for f in frasi if re.search(r"\bcondanna\b.*?\bspese\b", f, re.IGNORECASE | re.DOTALL)), "")
     if condanna:
-        voce.update(regolazione="condanna" if voce["regolazione"] == "non_indicata" else voce["regolazione"], frase=condanna, importo=_importo(condanna))
+        importo, _ = estrai_spese_liquidate(condanna)
+        voce.update(
+            regolazione="condanna" if voce["regolazione"] == "non_indicata" else voce["regolazione"],
+            frase=condanna, importo=f"{importo:.2f}".replace(".", ",") if importo is not None else "",
+        )
     voce["distrazione"] = bool(re.search(r"\bdistra(?:e|zione|tt)|\bantistatari", testo, re.IGNORECASE))
     return voce
 

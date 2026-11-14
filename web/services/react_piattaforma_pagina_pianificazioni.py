@@ -9,6 +9,7 @@ servizi di `web/blueprints/scheduler_admin.py`.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from flask import current_app, g
@@ -20,6 +21,7 @@ from web.services.react_piattaforma_sezioni import (
     campo,
     data_ora,
     esito,
+    facts,
     form,
     link,
     metrics,
@@ -104,6 +106,63 @@ def adatta(payload: dict[str, Any]) -> dict[str, Any]:
             {"label": "Esiti da verificare", "value": totali.get("runs_failed", 0), "note": "ultime esecuzioni registrate", "tone": "danger" if totali.get("runs_failed") else "success"},
         ]),
     ]
+    semaforo = payload.get("semaforo_motori") or {}
+    if semaforo.get("testo"):
+        if "in_corso" in semaforo:
+            sezioni.append(facts("Semaforo dei motori", [
+                ("Motore in esecuzione", semaforo["in_corso"] or "Nessuno"),
+                ("Turno in corso da", f"{semaforo['da_secondi']} s" if semaforo["in_corso"] else ""),
+                ("Ordine della coda", ", ".join(semaforo.get("in_coda") or []) or "Coda vuota"),
+            ]))
+        else:
+            sezioni.append(notes("Semaforo dei motori", [semaforo["testo"]]))
+    notte = payload.get("sequenza_notturna") or {}
+    if notte.get("errore"):
+        sezioni.append(notes("Sequenza notturna", [notte["errore"]]))
+    if notte.get("stato"):
+        titoli = {job["job_id"]: job["name"] for gruppo in payload.get("families") or []
+                  for job in gruppo.get("jobs") or []}
+        giorno = notte.get("notte")
+        prossimo = notte.get("prossimo") or ""
+        motore = notte.get("motore_prossimo")
+        stato_passo = ""
+        if motore and motore in (semaforo.get("motori_in_coda") or []):
+            stato_passo = "In attesa del semaforo"
+        elif motore and motore == semaforo.get("motore_attivo"):
+            stato_passo = "Turno del motore acquisito"
+        elif notte.get("passo_avviato_alle"):
+            stato_passo = "Passo avviato, esito ancora da registrare"
+        elif prossimo:
+            stato_passo = "Da avviare"
+
+        def nome_lavoro(chiave: str) -> str:
+            return titoli.get(chiave) or chiave.removeprefix("__").replace("_", " ").capitalize()
+
+        sezioni.extend([
+            facts("Sequenza notturna", [
+                ("Notte iniziata il", date.fromisoformat(giorno).strftime("%d/%m/%Y") if giorno else ""),
+                ("Finestra prevista", f"{notte['inizio']}–{notte['fine']}"),
+                ("Stato", notte["stato"]),
+                ("Avanzamento", notte.get("avanzamento") if giorno else ""),
+                ("Passo corrente o prossimo", nome_lavoro(prossimo)),
+                ("Stato del passo", stato_passo),
+                ("Primo tentativo del passo", data_ora(notte.get("passo_avviato_alle"))),
+                ("Ultimo aggiornamento del registro", data_ora(notte.get("aggiornata"))),
+                ("Ripresa", notte.get("ripresa_da")),
+            ]),
+            table("Risultati dei passi notturni", [
+                ("job", "Attività"), ("when", "Ultimo riscontro"), ("result", "Esito"), ("message", "Dettaglio"),
+            ], [
+                {
+                    "job": nome_lavoro(p["lavoro"]),
+                    "when": data_ora(p.get("fine") or p.get("avvio")),
+                    "result": p.get("esito_italiano"),
+                    "message": p.get("messaggio"),
+                    "_tone": "warning" if p.get("con_avvisi") else {"completato": "success", "fallito": "danger", "rinviato": "warning"}.get(p.get("esito"), ""),
+                }
+                for p in notte.get("passi") or []
+            ], empty="Il registro non riporta ancora esiti per i passi di questa notte."),
+        ])
     if agenti:
         sezioni.append(form(
             "Crea pianificazione",

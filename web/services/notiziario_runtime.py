@@ -8,13 +8,14 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date, timedelta
+import os
 from typing import Any, Iterable, Mapping
 
 from pct.notiziario.archivio import ArchivioNotiziario
 from pct.notiziario.fonti import ETICHETTE_TIPO, FONTI, PER_ID
 from pct.notiziario.pertinenza import IndicePertinenza, costruisci_indice, pertinenza
 from pct.notiziario.pianificazione import percorso_archivio
-from pct.notiziario.rilevanza import SERVIZIO, rilevanza
+from pct.notiziario.rilevanza import SERVIZIO, motivazione_operativa, rilevanza
 
 PER_PAGINA = 25
 PER_PAGINA_MASSIMO = 60
@@ -92,10 +93,15 @@ def _voce(
     collegato = str(interazione.get("linkedCaseId") or "")
     materia = str(notizia.get("materia") or "")
     peso = rilevanza(notizia["fonte"], notizia["tipo"], notizia["titolo"], notizia.get("sintesi") or "")
+    motivo = motivazione_operativa(
+        notizia["tipo"], notizia["titolo"], notizia.get("sintesi") or "",
+        fascicolo_collegato=bool(collegato or pertinenti[0]),
+    )
     return {
+        "operationalReason": motivo,
         "relevance": peso.livello,
         "relevanceLabel": peso.etichetta,
-        "relevanceRule": peso.regola,
+        "relevanceRule": motivo or peso.regola,
         "id": notizia["id"],
         "slug": "",
         "title": notizia["titolo"],
@@ -201,7 +207,8 @@ def costruisci_vista(
     indice: IndicePertinenza | None = None,
     atti_documenti: Mapping[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
-    notizie = archivio.elenco()
+    verifica_richiesta = os.getenv("IUSENTRA_NOTIZIE_SOLO_VERIFICATE", "").strip() == "1"
+    notizie = archivio.elenco_verificato() if verifica_richiesta else archivio.elenco()
     indice = indice or costruisci_indice(fascicoli, dict(atti_documenti or {}))
     etichette = {voce["id"]: voce["etichetta"] for voce in fascicoli}
     ieri = (oggi - timedelta(days=1)).isoformat()
@@ -210,6 +217,14 @@ def costruisci_vista(
         for notizia in notizie
     ]
     # prima la rilevanza professionale, poi la data (l'archivio le dà già dalla più recente)
+    if verifica_richiesta:
+        for voce, verifica in zip(voci, notizie, strict=True):
+            voce.update(summary=verifica["sintesi_operativa"],
+                        content=f'{verifica["azione"]}\n\nFonte verificata: {verifica["evidenza"]}',
+                        verifiedAction=verifica["azione"], verifiedEvidence=verifica["evidenza"],
+                        operationalReason=verifica["azione"], relevanceRule=verifica["azione"])
+    else:
+        voci = [voce for voce in voci if voce["operationalReason"]]
     voci.sort(key=lambda voce: -voce["relevance"])
     filtrate = [voce for voce in voci if _corrisponde(voce, filtri)]
     pagina, per_pagina = int(filtri["pagina"]), int(filtri["per_pagina"])
@@ -248,14 +263,19 @@ def voce_singola(
     """Riga dell'archivio nel formato della cache precedente (per le interazioni)."""
     if archivio is None:
         return None
-    notizia = archivio.notizia(notizia_id)
+    if os.getenv("IUSENTRA_NOTIZIE_SOLO_VERIFICATE", "").strip() == "1":
+        notizia = next(iter(archivio.elenco_verificato(notizia_id=notizia_id)), None)
+    else:
+        notizia = archivio.notizia(notizia_id)
     if not notizia:
         return None
     return {
         "id": notizia["id"],
         "slug": "",
         "title": notizia["titolo"],
-        "short_summary": notizia.get("sintesi") or "",
+        "short_summary": notizia.get("sintesi_operativa") or notizia.get("sintesi") or "",
+        "verified_action": notizia.get("azione") or "",
+        "verified_evidence": notizia.get("evidenza") or "",
         "content": "",
         "news_type": notizia["tipo"],
         "published_at": notizia["data"],

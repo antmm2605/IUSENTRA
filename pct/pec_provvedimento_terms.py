@@ -70,12 +70,15 @@ def _ferial_note(labour: bool) -> str:
     return "Sospensione feriale 1-31 agosto applicata (L. 742/1969)."
 
 
-def propose_terms(comm: CourtCommunication, *, dies_a_quo: date, labour: bool) -> list[TermProposal]:
+def propose_terms(
+    comm: CourtCommunication, *, dies_a_quo: date | None, labour: bool,
+    comunicata_il: date | None = None, testo_provvedimento: str = "",
+) -> list[TermProposal]:
     """Termini aperti dal provvedimento; ``dies_a_quo`` è la data da cui decorrono (da verificare)."""
 
-    dies_label = date_it(dies_a_quo.isoformat())
+    dies_label = date_it(dies_a_quo.isoformat()) if dies_a_quo else ""
     proposals: list[TermProposal] = []
-    if comm.kind == "sentenza":
+    if comm.kind == "sentenza" and dies_a_quo is not None:
         proposals.append(
             TermProposal(
                 code="CIV_APPELLO_LUNGO",
@@ -92,21 +95,20 @@ def propose_terms(comm: CourtCommunication, *, dies_a_quo: date, labour: bool) -
             )
         )
     elif comm.kind == "estinzione":
-        proposals.append(
-            TermProposal(
+        testo = " ".join(testo_provvedimento.casefold().split())
+        collegiale = bool(re.search(r"\b(?:competenza|composizione) collegiale\b", testo))
+        ordinanza = bool(re.search(r"\bordinanza\b", testo))
+        monocratico = labour or bool(re.search(r"\b(?:giudice monocratico|composizione monocratica)\b", testo))
+        if monocratico and not collegiale and dies_a_quo is not None:
+            proposals.append(TermProposal(
                 code="CIV_APPELLO_LUNGO",
                 title="Impugnazione del provvedimento di estinzione - termine lungo",
                 due_date=_calculate("CIV_APPELLO_LUNGO", dies_a_quo, labour=labour),
                 dies_a_quo=dies_a_quo.isoformat(),
                 norm="art. 327 c.p.c.",
-                note=(
-                    "Estinzione dichiarata dal giudice monocratico: provvedimento con natura di sentenza, impugnabile "
-                    f"con appello (Cass. civ., sez. III, n. 29852/2022). Sei mesi calcolati dal {dies_label}, da verificare sulla data di pubblicazione. "
-                    f"{_ferial_note(labour)}"
-                ),
-            )
-        )
-        if not labour:
+                note=f"Provvedimento del giudice monocratico: sei mesi dalla pubblicazione del {dies_label}. {_ferial_note(labour)}",
+            ))
+        if collegiale and ordinanza and not monocratico and "fuori udienza" in testo and comunicata_il is not None:
             from pct.termini_processuali import DeadlineTemplate
 
             reclamo = DeadlineTemplate(
@@ -116,19 +118,13 @@ def propose_terms(comm: CourtCommunication, *, dies_a_quo: date, labour: bool) -
                 reference_law="Artt. 308 e 178 c.p.c.",
                 suspend_august=True,
             )
-            due = ItalianDeadlineCalculator().calculate_template(dies_a_quo, reclamo).get("deadline") or ""
-            proposals.append(
-                TermProposal(
-                    code="CIV_RECLAMO_ESTINZIONE_308",
-                    title="Reclamo contro l'ordinanza di estinzione (causa collegiale)",
-                    due_date=str(due),
-                    dies_a_quo=dies_a_quo.isoformat(),
-                    norm="artt. 308 e 178 c.p.c.",
-                    note=(
-                        "Solo se l'estinzione è dichiarata dal giudice istruttore in causa di competenza collegiale: "
-                        f"10 giorni dalla comunicazione (qui dal {dies_label}). Con giudice monocratico vale l'appello. "
-                        f"{_ferial_note(False)}"
-                    ),
-                )
-            )
+            due = ItalianDeadlineCalculator().calculate_template(comunicata_il, reclamo).get("deadline") or ""
+            proposals.append(TermProposal(
+                code="CIV_RECLAMO_ESTINZIONE_308",
+                title="Reclamo contro l'ordinanza di estinzione (causa collegiale)",
+                due_date=str(due),
+                dies_a_quo=comunicata_il.isoformat(),
+                norm="artt. 308 e 178 c.p.c.",
+                note=f"Ordinanza pronunciata fuori udienza, comunicata il {date_it(comunicata_il.isoformat())}. {_ferial_note(False)}",
+            ))
     return [proposal for proposal in proposals if proposal.due_date]

@@ -264,3 +264,4 @@ def test_consumer_indicizza_solo_fonti_pendenti(monkeypatch):
     assert chiamate[-1][1]["retry_errors"] is False
     assert chiamate[-1][1]["user_context"]["tenant_slug"] == "studio-a"
     assert chiamate[-1][1]["apply_automations"] is False
+    assert chiamate[-1][1]["aggiorna_catalogo"] is False

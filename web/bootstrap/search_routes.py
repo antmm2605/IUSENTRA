@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, request
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_search_routes(
@@ -63,12 +64,8 @@ def register_search_routes(
 
     @app.route("/cerca")
     def cerca():
-        q = request.args.get("q", "").strip()
-        risultati = {}
-        if q:
-            indice = get_indice()
-            risultati = indice.cerca_globale(q, limit=30)
-        return render_template("cerca.html", q=q, risultati=risultati)
+        # Ricerca nello studio: pagina React.
+        return render_react_shell_response("cerca")
 
     @app.route("/api/ricerca/ricostruisci", methods=["POST"])
     def api_ricerca_ricostruisci():

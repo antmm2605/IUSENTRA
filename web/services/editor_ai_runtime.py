@@ -101,6 +101,8 @@ def build_editor_ai_service() -> EditorAIService:
         core_runtime = current_app.extensions.get("core_runtime", {}) or {}
         candidate = core_runtime.get("audit")
         central_audit = candidate if callable(candidate) else None
+    from web.services.ragionamento_raccolta import stile_ricorsi_per_editor
+
     return EditorAIService(
         repository,
         get_fascicoli(),
@@ -109,6 +111,7 @@ def build_editor_ai_service() -> EditorAIService:
         central_audit=central_audit,
         encrypt_document=encrypt_doc,
         decrypt_document=decrypt_doc,
+        stile_ricorsi=stile_ricorsi_per_editor,
     )
 
 

@@ -27,7 +27,12 @@ def _testo(valore: Any) -> str:
 def compatta(obblighi: Iterable[Mapping[str, Any]]) -> list[dict[str, str]]:
     """Per ogni atto: etichetta, stato dell'obbligo e scadenza (ISO); nient'altro esce dal calcolo."""
     return [{"atto": _testo(o.get("etichetta") or o.get("atti") or o.get("documento")), "stato": _testo(o.get("stato")),
-             "scadenza": _testo(o.get("scadenza"))[:10]} for o in obblighi if _testo(o.get("etichetta") or o.get("atti"))]
+             "scadenza": _testo(o.get("scadenza"))[:10],
+             # I termini che nascono dalla sentenza notificata (pct.sentenza_notificata): breve, giudicato, art. 14 D.L. 669/1996.
+             **({"termini": termini} if (termini := [{"codice": _testo(c.get("codice")), "deadline": _testo(c.get("deadline"))[:10],
+                                                     "precetto_dal": _testo(c.get("precetto_dal"))[:10], "norma": _testo(c.get("norma"))}
+                                                    for c in o.get("calcoli") or [] if c.get("codice")]) else {})}
+            for o in obblighi if _testo(o.get("etichetta") or o.get("atti"))]
 
 
 def salva(fascicolo_id: str, obblighi: Iterable[Mapping[str, Any]]) -> None:

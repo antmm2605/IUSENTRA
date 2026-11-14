@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 
-from flask import Flask, flash, g, redirect, render_template, request, url_for
+from flask import Flask, flash, g, redirect, request, url_for
 
 from legal_deposit.office_rules import resolve_office_rule
 from legal_deposit.penal_rules import (
@@ -73,25 +73,8 @@ def register_fascicoli_pdp_routes(
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp")
     def pdp_penale_workspace(id_fasc: str):
-        # Il deposito penale vive nella sezione React del fascicolo; la pagina
-        # storica resta solo come ripiego con ?_legacy=1.
-        if str(request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
-        try:
-            fascicolo = require_pdp_penale_fascicolo(id_fasc)
-            cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
-            workspace = pdp_penale_build_workspace(fascicolo, cliente)
-            return render_template(
-                "fascicoli/pdp_penale.html",
-                fascicolo=fascicolo,
-                cliente=cliente,
-                workspace=workspace,
-                oggi=date.today(),
-            )
-        except Exception as exc:
-            app.logger.exception("Errore pdp_penale_workspace(%s): %s", id_fasc, exc)
-            flash(str(exc), "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        # Il deposito penale vive nella sezione React del fascicolo (PdpPenalePage).
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case", methods=["POST"])
     def pdp_penale_save_case(id_fasc: str):
@@ -209,11 +192,11 @@ def register_fascicoli_pdp_routes(
                 dettagli=f"{title}: {case['id']}",
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case["id"], _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception("Errore pdp_penale_save_case(%s): %s", id_fasc, exc)
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/document-link", methods=["POST"])
     def pdp_penale_link_local_document(id_fasc: str, case_id: str):
@@ -241,7 +224,7 @@ def register_fascicoli_pdp_routes(
             )
             if existing:
                 flash("Documento gia collegato al modulo PDP Penale.", "info")
-                return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
             module_doc = repo.add_document(
                 case_id,
@@ -278,7 +261,7 @@ def register_fascicoli_pdp_routes(
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
             flash("Documento collegato al workflow PDP Penale.", "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception(
                 "Errore pdp_penale_link_local_document(%s, %s): %s",
@@ -287,7 +270,7 @@ def register_fascicoli_pdp_routes(
                 exc,
             )
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/access-request", methods=["POST"])
     def pdp_penale_create_access_request(id_fasc: str, case_id: str):
@@ -359,7 +342,7 @@ def register_fascicoli_pdp_routes(
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
             flash("Richiesta di accesso atti registrata.", "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception(
                 "Errore pdp_penale_create_access_request(%s, %s): %s",
@@ -368,7 +351,7 @@ def register_fascicoli_pdp_routes(
                 exc,
             )
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/generate-request", methods=["POST"])
     def pdp_penale_generate_access_request(id_fasc: str, case_id: str):
@@ -482,7 +465,7 @@ def register_fascicoli_pdp_routes(
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
             flash("Richiesta di accesso atti generata e salvata nel fascicolo.", "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception(
                 "Errore pdp_penale_generate_access_request(%s, %s): %s",
@@ -491,7 +474,7 @@ def register_fascicoli_pdp_routes(
                 exc,
             )
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/sync-pec", methods=["POST"])
     def pdp_penale_sync_pec(id_fasc: str, case_id: str):
@@ -526,11 +509,11 @@ def register_fascicoli_pdp_routes(
                 )
             else:
                 flash("Nessuna nuova PEC PDP associabile al fascicolo.", "info")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception("Errore pdp_penale_sync_pec(%s, %s): %s", id_fasc, case_id, exc)
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/import-download", methods=["POST"])
     def pdp_penale_import_download(id_fasc: str, case_id: str):
@@ -590,7 +573,7 @@ def register_fascicoli_pdp_routes(
             if staging_archived:
                 msg += " Inbox tecnica archiviata."
             flash(msg, "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception(
                 "Errore pdp_penale_import_download(%s, %s): %s",
@@ -599,7 +582,7 @@ def register_fascicoli_pdp_routes(
                 exc,
             )
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/pec", methods=["POST"])
     def pdp_penale_register_pec(id_fasc: str, case_id: str):
@@ -672,11 +655,11 @@ def register_fascicoli_pdp_routes(
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
             flash("PEC registrata nel workflow PDP Penale.", "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception("Errore pdp_penale_register_pec(%s, %s): %s", id_fasc, case_id, exc)
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/task", methods=["POST"])
     def pdp_penale_create_task(id_fasc: str, case_id: str):
@@ -712,11 +695,11 @@ def register_fascicoli_pdp_routes(
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
             flash("Task operativo PDP creato.", "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception("Errore pdp_penale_create_task(%s, %s): %s", id_fasc, case_id, exc)
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
 
     @app.route("/fascicoli/<id_fasc>/penale/pdp/task/<task_id>/complete", methods=["POST"])
     def pdp_penale_complete_task(id_fasc: str, task_id: str):
@@ -748,8 +731,8 @@ def register_fascicoli_pdp_routes(
             )
             sync_pubblica("modifica", "fascicoli", id_fasc)
             flash("Task operativo segnato come completato.", "success")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case["id"], _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")
         except Exception as exc:
             app.logger.exception("Errore pdp_penale_complete_task(%s, %s): %s", id_fasc, task_id, exc)
             flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, _legacy=1))
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#penale-pdp")

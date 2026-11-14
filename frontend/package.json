@@ -1,7 +1,7 @@
 {
   "name": "@iusentra/studio",
   "private": true,
-  "version": "2.488.0",
+  "version": "2.489.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
@@ -13,7 +13,8 @@
     "test:app-v2": "node scripts/check-app-v2-frontend.mjs",
     "test:ui-coverage": "python ../scripts/validate_ui_coverage.py",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --config vite.ssr.config.ts",
+    "build:ssr-sito": "vite build --config vite.ssr.config.ts",
     "build:vite": "vite build",
     "test:generated-sources": "node scripts/check-tailwind-generated-sources.mjs",
     "preview": "vite preview --host 0.0.0.0 --port 4173",

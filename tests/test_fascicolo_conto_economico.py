@@ -78,7 +78,34 @@ def test_pagato_segnato_dalla_lettura_automatica_non_e_un_incasso():
         crediti=[{"importo": 350, "fonti": [_SENTENZA]}], documenti_contributo=[], parcelle=[_proforma()])
     pagamento = conto["percorso"]["passi"][2]
     assert not pagamento["fatto"] and "lettura automatica" in pagamento["dettaglio"]
+    # Direttiva 10/11/2026 (G-4): senza prova d'incasso il «pagato» automatico non vale, il credito è da incassare.
+    assert "da incassare" in pagamento["dettaglio"]
+    assert "attendere il pagamento" in conto["percorso"]["prossimoPasso"]
+
+
+def test_pagato_segnato_dall_avvocato_resta_e_chiede_l_incasso_reale():
+    voce = {"status": "pagato", "data_pagamento": "2026-07-01", "origine": "lex_ai_sentenza_tribunale",
+            "history": [{"by": "Mario Rossi", "toStatus": "pagato"}]}
+    conto = conto_economico(voci={"liquidazione_giudice": voce}, crediti=[{"importo": 350, "fonti": [_SENTENZA]}],
+                            documenti_contributo=[], parcelle=[_proforma()])
     assert "registrare l'incasso reale" in conto["percorso"]["prossimoPasso"]
+
+
+def test_credito_verso_la_pa_dopo_i_120_giorni_richiesta_o_precetto():
+    from datetime import date
+
+    conto = conto_economico(voci={}, crediti=[{"importo": 515, "distrazione": True, "fonti": [_SENTENZA]}], documenti_contributo=[],
+                            parcelle=[_proforma()], oggi=date(2026, 11, 10),
+                            esecuzione={"codice": "esecuzione_pa_120_giorni", "deadline": "2026-08-18"})
+    assert "18/08/2026" in conto["percorso"]["prossimoPasso"] and "precetto" in conto["percorso"]["prossimoPasso"]
+
+
+def test_bozza_superata_non_si_somma():
+    superata = _proforma(numero="2026/036", onorari=296.70) | {"id": "A", "superata": {"da_numero": "2026/062"}}
+    valida = _proforma(numero="2026/062", onorari=515.0) | {"id": "B"}
+    riga = next(r for r in conto_economico(voci={}, crediti=[], documenti_contributo=[], parcelle=[superata, valida])["righe"]
+                if r["voce"] == "parcella")
+    assert riga["importo"] == 515.0 and "2026/036" in riga["dettaglio"] and "annullarla" in riga["dettaglio"]
 
 
 def test_anticipazioni_con_fonte_e_norma():

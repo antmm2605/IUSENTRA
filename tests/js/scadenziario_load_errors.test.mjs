@@ -33,3 +33,25 @@ test('elenco realmente vuoto e provenienza CTU conservati', async () => {
   assert.equal(result.draftProposals[1].sourceOrigin, 'interno')
   assert.equal(result.draftProposals[1].sourceOriginLabel, 'Registro interno')
 })
+
+test('la scheda delle udienze passate conserva la vista richiesta', async () => {
+  let requested
+  globalThis.fetch = async (url) => {
+    requested = new URL(url, 'http://localhost')
+    return { ok: true, json: async () => ({
+      items: [],
+      query: { view: 'esiti_udienza' },
+      operativeCards: [{
+        id: 'hearings_to_record',
+        title: 'Udienze: esito da registrare',
+        action: { kind: 'filter', label: 'Apri udienze passate', view: 'esiti_udienza' },
+      }],
+    }) }
+  }
+  const first = await getScadenziarioPage()
+  const view = first.operativeCards[0].action.view
+  assert.equal(view, 'esiti_udienza')
+  const filtered = await getScadenziarioPage({ view })
+  assert.equal(requested.searchParams.get('vista'), 'esiti_udienza')
+  assert.equal(filtered.query.view, 'esiti_udienza')
+})

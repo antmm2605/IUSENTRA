@@ -199,7 +199,7 @@ def uffici_fascicolo(fascicolo: Any) -> set[str]:
 
 def uffici_della_pec(parsed: dict[str, Any], profilo: dict[str, Any]) -> tuple[set[str], str]:
     """L'ufficio della comunicazione: prima il mittente ministeriale, poi l'ufficio letto nella comunicazione."""
-    from pct.pec_pipeline import DOMINI_UFFICIO_GIUDIZIARIO, _indirizzi_del_messaggio
+    from pct.pec_pipeline import DOMINI_UFFICIO_GIUDIZIARIO, _indirizzi_del_messaggio, detect_pct_deposit_stage
 
     note, _ = _indice_bundle()
     domini = "|".join(re.escape(dominio) for dominio in DOMINI_UFFICIO_GIUDIZIARIO)
@@ -208,6 +208,12 @@ def uffici_della_pec(parsed: dict[str, Any], profilo: dict[str, Any]) -> tuple[s
     mittente &= note
     if mittente:
         return mittente, "mittente"
+    ricevuta = parsed.get("pec_receipt") or {}
+    destinatario = ricevuta.get("daticert_delivery_recipient") or ""
+    if destinatario and detect_pct_deposit_stage(parsed).get("id") == "consegna_pec":
+        recapito = {chiave_ufficio(locale) for locale in schema.findall(destinatario)} & note
+        if recapito:
+            return recapito, "destinatario_daticert"
     letto = {chiave_ufficio(profilo.get("ufficio"))} & note
     return letto, "comunicazione" if letto else ""
 

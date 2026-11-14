@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{{ titolo }} - IUSENTRA</title>
+  <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  {% for css_file in react_assets.css %}
+  <link rel="stylesheet" href="{{ css_file }}">
+  {% endfor %}
+  {% for preload_file in react_assets.preload_js %}
+  <link rel="modulepreload" href="{{ preload_file }}">
+  {% endfor %}
+</head>
+<body class="lettore-sentenza-page">
+  {# Lettore React dei provvedimenti: il testo arriva come JSON dallo stesso indirizzo (?format=json) e si mostra solo come testo. #}
+  <div id="lettore-sentenza-root" data-lettore="1">
+    <main class="iu-content">
+      {% if react_assets.ready %}
+      <p>Caricamento del testo del provvedimento…</p>
+      {% else %}
+      <p role="alert">Il modulo di lettura non è disponibile. Ricarica la pagina dopo l’aggiornamento dell’applicazione.</p>
+      {% endif %}
+    </main>
+  </div>
+  <noscript><p>Abilita JavaScript per leggere il provvedimento, oppure apri il <a href="?format=txt">testo semplice</a>.</p></noscript>
+  {% if react_assets.ready %}
+  <script type="module" src="{{ react_assets.entry }}"></script>
+  {% endif %}
+</body>
+</html>

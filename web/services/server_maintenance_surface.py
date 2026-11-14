@@ -1473,6 +1473,20 @@ def run_system_log_cleanup(
 ) -> dict[str, Any]:
     """Riduce i journal di sistema senza toccare dati applicativi o container."""
 
+    if not apply and not shutil.which("journalctl"):
+        return {
+            "mock_fallback": False,
+            "applied": False,
+            "max_size": max_size,
+            "status": "non_applicabile",
+            "before": "Log di sistema consultabili dal sistema ospitante.",
+            "after": "",
+            "bytes_reclaimable": 0,
+            "bytes_reclaimed": 0,
+            "bytes_reclaimed_label": "non applicabile",
+            "errors": [],
+        }
+
     before_text = ""
     after_text = ""
     error = ""
@@ -1486,6 +1500,8 @@ def run_system_log_cleanup(
             timeout=10,
         )
         before_text = before.stdout.strip() or before.stderr.strip()
+        if before.returncode != 0:
+            error = "Misurazione dei log di sistema non riuscita."
         if apply:
             vacuum = subprocess.run(
                 ["journalctl", f"--vacuum-size={max_size}"],
@@ -1495,13 +1511,17 @@ def run_system_log_cleanup(
             )
             if vacuum.returncode != 0:
                 error = vacuum.stderr.strip() or vacuum.stdout.strip() or "Pulizia log non completata."
-        after = subprocess.run(
-            ["journalctl", "--disk-usage"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        after_text = after.stdout.strip() or after.stderr.strip()
+            after = subprocess.run(
+                ["journalctl", "--disk-usage"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            after_text = after.stdout.strip() or after.stderr.strip()
+            if after.returncode != 0 and not error:
+                error = "Misurazione finale dei log di sistema non riuscita."
+        else:
+            after_text = before_text
     except Exception as exc:
         if has_app_context():
             current_app.logger.warning("Pulizia journal di sistema non completata: %s", exc)

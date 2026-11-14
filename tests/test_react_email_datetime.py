@@ -44,3 +44,46 @@ def test_react_email_bridge_converte_arrivo_utc_in_ora_italiana():
 
     assert parsed is not None
     assert parsed.strftime("%Y-%m-%d %H:%M:%S") == "2026-06-28 21:30:19"
+
+
+def test_pec_cestino_ricerca_rg_presente_solo_nell_esito_xml(tmp_path, monkeypatch):
+    from email.message import EmailMessage
+
+    from pct.email_client import EmailRicevuta, GestioneEmailRicevute
+    from pct.pec_pipeline import PecAuditRepository
+    from web.services.react_email_bridge import build_react_email_payload
+
+    db_path = str(tmp_path / "casella.json")
+    mailbox = GestioneEmailRicevute(db_path=db_path)
+    monkeypatch.setattr("web.services.react_email_bridge.create_email_mailbox", lambda **kwargs: mailbox)
+    repo = PecAuditRepository(tmp_path / "pec_audit.sqlite")
+    for number in (1831, 11831, 1830):
+        header = f"<esito-{number}@example.test>"
+        mime = EmailMessage()
+        mime["From"] = "tribunale.vicenza@civile.ptel.giustiziacert.it"
+        mime["To"] = "studio@example.test"
+        mime["Subject"] = "POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO: Ricorso.pdf"
+        mime["Message-ID"] = header
+        mime.set_content("Deposito accettato.")
+        mime.add_attachment(
+            f"<EsitoAtto><NumeroRuolo>{number}/2026</NumeroRuolo><CodiceEsito>2</CodiceEsito></EsitoAtto>".encode(),
+            maintype="application", subtype="xml", filename="EsitoAtto.xml",
+        )
+        row = repo.ingest_mime(mime.as_bytes(), account_email="studio@example.test", folder="CESTINO", imap_uid=str(number))
+        repo.parse_and_store(row["id"])
+        if number == 1830:
+            audit_only_id = row["id"]
+            continue
+        mailbox.aggiungi(EmailRicevuta(
+            id=str(number), cartella="CESTINO", message_id=header,
+            oggetto=str(mime["Subject"]), corpo_testo="Deposito accettato.",
+        ))
+
+    result = build_react_email_payload(db_path=db_path, folder="CESTINO", query="1831/2026")
+    assert [item["id"] for item in result["items"]] == ["1831"]
+    assert result["summary"]["filtered"] == 1
+    assert build_react_email_payload(db_path=db_path, folder="INBOX", query="1831/2026")["items"] == []
+    formatted = build_react_email_payload(db_path=db_path, folder="TUTTE", query="R.G. 001831 / 2026")
+    assert [item["id"] for item in formatted["items"]] == ["1831"]
+    audit_only = build_react_email_payload(db_path=db_path, folder="CESTINO", query="1830/2026")
+    assert [item["id"] for item in audit_only["items"]] == [f"pec-audit:{audit_only_id}"]

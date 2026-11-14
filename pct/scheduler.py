@@ -11,6 +11,7 @@ Avviato da un worker dedicato tramite pct.scheduler_worker.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import subprocess
@@ -181,9 +182,23 @@ def _run_scheduler_command(label: str, command: list[str], *, timeout_seconds: i
             "stderr": (completed.stderr or "")[-4000:],
             "stdout": (completed.stdout or "")[-4000:],
         }
-    logger.info("[scheduler] %s completato: %s", label, (completed.stdout or "").strip()[-800:])
+    output = (completed.stdout or "").strip()
+    riscontro = {}
+    for separatore in (output.rfind("\n{"), 0):
+        try:
+            candidato = json.loads(output[separatore:].strip())
+        except ValueError:
+            continue
+        if isinstance(candidato, dict):
+            riscontro = candidato
+            break
+    saltato = riscontro.get("status") == "saltato"
+    parziale = riscontro.get("status") == "parziale" or riscontro.get("interrotto_al_massimo") is True
+    logger.info("[scheduler] %s %s: %s", label, "saltato" if saltato else "parziale" if parziale else "completato",
+                (completed.stdout or "").strip()[-800:])
     return {
-        "ok": True,
+        "ok": True, "skipped": saltato, "partial": parziale, "reason": riscontro.get("reason", ""),
+        "totals": {key: value for key, value in riscontro.items() if isinstance(value, (int, float))},
         "timeout": False,
         "label": label,
         "returncode": completed.returncode,
@@ -289,8 +304,17 @@ def start_scheduler(app):
         with app.app_context():
             try:
                 from pct.scadenziario import GestioneScadenziario
-                gs = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
-                conteggi = gs.aggiorna_scadute()
+                targets, motivo = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("aggiorna_scadute", motivo)
+                conteggi = {}
+                for _label, paths in targets:
+                    gs = GestioneScadenziario(
+                        db_path=_mirror_scheduler(paths, "SCADENZIARIO_DB", "scadenziario/scadenze.json"),
+                        studio_db=_backend_scheduler(paths),
+                    )
+                    for chiave, valore in gs.aggiorna_scadute().items():
+                        conteggi[chiave] = conteggi.get(chiave, 0) + valore
             except Exception as e:
                 # Esito veritiero per la console Pianificazioni: un errore non risulta «eseguito».
                 logger.error(f"[scheduler] Aggiorna scadute fallito: {e}")
@@ -299,7 +323,7 @@ def start_scheduler(app):
                        f"{conteggi['scadute_da_chiudere']} scadute da chiudere, "
                        f"{conteggi['esiti_udienza_da_registrare']} udienze con esito da registrare.")
             logger.info(f"[scheduler] {sintesi}")
-            return {"ok": True, "summary": sintesi, **conteggi}
+            return {"ok": True, "message": sintesi, "studi": len(targets), **conteggi}
 
     # ---- Promemoria WhatsApp appuntamenti domani (ogni giorno alle 18:00) ----
     wa_ora = app.config.get("WA_REMINDER_ORA", os.getenv("PCT_WA_REMINDER_ORA", "18:00"))
@@ -340,15 +364,23 @@ def start_scheduler(app):
     def _parcelle_scadute():
         with app.app_context():
             try:
-                db_path = app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-                if not os.path.exists(db_path):
-                    return
                 from pct.fatturazione import GestioneFatturazione
-                gf = GestioneFatturazione(db_path=db_path)
-                gf.aggiorna_scadute()
-                logger.info("[scheduler] Parcelle scadute aggiornate.")
+
+                targets, motivo = _mailbox_sync_plan()
+                if not targets:
+                    return _presidio_senza_target("aggiorna_parcelle_scadute", motivo)
+                aggiornate = 0
+                for _label, paths in targets:
+                    gf = GestioneFatturazione(
+                        db_path=_mirror_scheduler(paths, "FATTURAZIONE_DB", "fatturazione/parcelle.json"),
+                        studio_db=_backend_scheduler(paths),
+                    )
+                    aggiornate += gf.aggiorna_scadute()
+                logger.info("[scheduler] Parcelle scadute aggiornate: %d.", aggiornate)
+                return {"ok": True, "aggiornate": aggiornate, "studi": len(targets)}
             except Exception as e:
                 logger.error(f"[scheduler] Parcelle scadute fallito: {e}")
+                return {"ok": False, "error": str(e)}
 
     # ---- Sync uffici giudiziari da fonti ufficiali (ogni giorno alle 03:30) ----
     # Fonti: PST MinGiust, giustizia-amministrativa.it, giustiziatributaria.gov.it, IPA PEC
@@ -383,8 +415,13 @@ def start_scheduler(app):
                             )
                 else:
                     logger.error("[scheduler] Sync uffici fallito: %s", report.get("errore"))
+                mancanti = [fonte for fonte, stato in report.get("fonti", {}).items() if not stato.get("ok")]
+                return {**report, "fonti_non_disponibili": len(mancanti),
+                        "status": "parziale" if report.get("ok") and mancanti else "",
+                        "message": report.get("errore") or ", ".join(mancanti)}
             except Exception as e:
                 logger.error(f"[scheduler] Sync uffici fallito: {e}")
+                return {"ok": False, "error": str(e)}
 
     # ---- Certificati pubblici PST di cifratura Atto.enc (settimanale) ----
     cert_sync_ora = app.config.get(
@@ -491,7 +528,7 @@ def start_scheduler(app):
                     db_path=app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json"),
                     normative_db_path=app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"),
                 )
-                report = gestore.run_monitor_cycle(source_ids=source_ids)
+                report = gestore.run_monitor_cycle(source_ids=source_ids, sync_tables=(label != "daily"))
                 if report.get("ok"):
                     logger.info(
                         "[scheduler] Legal intelligence %s: %d fonti aggiornate, %d tabelle sincronizzate",
@@ -507,8 +544,12 @@ def start_scheduler(app):
                         report.get("failed", 0),
                         report.get("normative_sync", {}).get("processed_tables", 0),
                     )
+                if report.get("limited"):
+                    report["message"] = "Contenuto non verificato: " + ", ".join(report["limited"])
+                return report
             except Exception as e:
                 logger.error("[scheduler] Legal intelligence %s fallito: %s", label, e)
+                return {"ok": False, "error": str(e)}
 
     def _run_legal_updates(source_ids, label, *, auto_publish=True):
         with app.app_context():
@@ -578,6 +619,22 @@ def start_scheduler(app):
                     int((execution.get("autopublished") or {}).get("count") or 0),
                     int(execution.get("timeouts") or 0),
                 )
+                fonti = execution.get("reports") or []
+                errori_fonti = [str(row.get("label") or "fonte") for row in fonti if not row.get("ok")]
+                report["totals"] = {
+                    "fonti_pianificate": int(plan.get("selected_count") or 0),
+                    "fonti_eseguite": len(fonti),
+                    "fonti_fallite": len(errori_fonti),
+                    "timeout": int(execution.get("timeouts") or 0),
+                    "news_pubblicate": int((execution.get("autopublished") or {}).get("count") or 0),
+                    "verifiche_pubblicazione_rinviate": int((execution.get("autopublished") or {}).get("verification_deferred") or 0),
+                }
+                if report.get("status") == "parziale":
+                    report["message"] = "Verifica di pubblicazione da riprendere al prossimo giro. Le proposte restano nella coda di revisione."
+                if not report.get("ok"):
+                    report["error"] = "Fonti o pubblicazioni da riprendere: " + (
+                        ", ".join(errori_fonti) or "pubblicazione incompleta"
+                    )
                 return report
             except Exception as e:
                 logger.error("[scheduler] Legal updates %s fallito: %s", label, e)
@@ -624,12 +681,6 @@ def start_scheduler(app):
                 "PCT_NORMATTIVA_DB",
                 "/data/normativa/normattiva.sqlite",
             )
-            normativa_jsonl = _runtime_path(
-                app,
-                "NORMATTIVA_JSONL",
-                "PCT_NORMATTIVA_JSONL",
-                "/data/normativa/index/normattiva_chunks.jsonl",
-            )
             normativa_report = _runtime_path(
                 app,
                 "NORMATTIVA_IMPORT_REPORT",
@@ -646,7 +697,7 @@ def start_scheduler(app):
                 app,
                 "LEX_NORMATTIVA_VETTORI_DIR",
                 "LEX_NORMATTIVA_VETTORI_DIR",
-                str(Path(normativa_db).parent / "vettori_normattiva"),
+                str(cartella_vettori_predefinita(normativa_db)),
             )
             # stessa vigenza del pacchetto caricato dal PC (testo in vigore); ORIGINALE solo se richiesto
             vigenza_normattiva = str(os.getenv("IUSENTRA_NORMATTIVA_VIGENZA", "VIGENTE") or "VIGENTE").strip().upper()
@@ -708,8 +759,7 @@ def start_scheduler(app):
                         normativa_raw,
                         "--db",
                         normativa_db,
-                        "--jsonl",
-                        normativa_jsonl,
+                        "--solo-sql",
                         "--report",
                         normativa_report,
                         "--solo-vigenza",
@@ -771,14 +821,27 @@ def start_scheduler(app):
             logger.info(
                 "[scheduler] Archivi ufficiali %s: %d/%d passaggi completati",
                 label,
-                sum(1 for row in results if row.get("ok")),
+                sum(1 for row in results if row.get("ok") and not (row.get("skipped") or row.get("partial"))),
                 len(results),
             )
             return results
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=0), id="legal_official_archives_daily")
     def _legal_official_archives_daily():
-        _run_official_archives_sync("daily")
+        risultati = _run_official_archives_sync("daily")
+        errori = [r for r in risultati if not r.get("ok")]
+        incompleti = [r for r in risultati if r.get("ok") and (r.get("skipped") or r.get("partial"))]
+        return {
+            "ok": not errori,
+            "status": "parziale" if incompleti else "",
+            "completati": len(risultati) - len(errori) - len(incompleti),
+            "incompleti": len(incompleti),
+            "errori": len(errori),
+            "message": ". ".join(
+                f"{r.get('label')}: {str(r.get('reason') or 'passaggio incompleto').replace('_', ' ')}"
+                for r in [*errori, *incompleti]
+            ),
+        }
 
     @scheduler.scheduled_job("interval", minutes=2, id="embeddinggemma2_initial_normattiva")
     def _embeddinggemma2_initial_normattiva():
@@ -790,7 +853,7 @@ def start_scheduler(app):
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=5, minute=45), id="legal_monitor_daily")
     def _legal_monitor_daily():
-        _run_legal_monitor(
+        return _run_legal_monitor(
             [
                 "normattiva",
                 "gazzetta_ufficiale",
@@ -868,21 +931,56 @@ def start_scheduler(app):
         with app.app_context():
             try:
                 from legal_intelligence.engine import LegalIntelligenceDailyEngine
+                from legal_intelligence.fetcher import OfficialSourceFetcher
                 from web.blueprints.legal_intelligence import _daily_db_path
+                from web.services.fascicoli_presidi_runtime import _active_tenants, _attach_tenant_context
 
-                summary = LegalIntelligenceDailyEngine(_daily_db_path()).run_daily_sync()
-                logger.info(
-                    "[scheduler] Controllo giornaliero fonti ufficiali: %d fonti, %d variazioni, %d errori",
-                    int(summary.get("sources_checked") or 0),
-                    int(summary.get("updates_detected") or 0),
-                    int(summary.get("errors_count") or 0),
-                )
+                studi = _active_tenants(app)
+                if app.config.get("MULTI_TENANT") and not studi:
+                    return {"ok": False, "error": "Registro degli studi attivi non disponibile."}
+
+                fetcher = OfficialSourceFetcher()
+                risposte = {}
+
+                def fonte_condivisa(fonte, _headers):
+                    # La fonte è pubblica. La stessa risposta completa alimenta cronologia e diff dei singoli studi.
+                    if fonte.id not in risposte:
+                        risposte[fonte.id] = fetcher.fetch(fonte)
+                    return risposte[fonte.id]
+
+                resoconti = []
+                if studi:
+                    from pct.tenant import GestioneTenant
+
+                    manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                    for studio in studi:
+                        with app.app_context(), app.test_request_context("/__notte/fonti-ufficiali"):
+                            _attach_tenant_context(manager, studio)
+                            summary = LegalIntelligenceDailyEngine(_daily_db_path(), fetcher=fonte_condivisa).run_daily_sync()
+                        resoconti.append({"studio": studio.slug, **summary})
+                else:
+                    resoconti.append(LegalIntelligenceDailyEngine(_daily_db_path()).run_daily_sync())
+                totali = {
+                    "studi": len(resoconti),
+                    "sources_checked": len(risposte) if studi else int(resoconti[0]["sources_checked"]),
+                    "updates_detected": sum(int(r["updates_detected"]) for r in resoconti),
+                    "errors_count": sum(int(r["errors_count"]) for r in resoconti),
+                }
+                logger.info("[scheduler] Controllo fonti ufficiali: %s", totali)
+                return {"ok": True, "totals": totali, "studi": resoconti,
+                        "status": "parziale" if totali["errors_count"] else ""}
             except Exception as e:
                 logger.error("[scheduler] Controllo giornaliero fonti ufficiali fallito: %s", e)
+                return {"ok": False, "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():
-        _run_legal_updates(list(LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES), "fase9_fonti_verdi")
+        # I sommari ufficiali e il notiziario hanno già i propri canali
+        # dedicati alla Gazzetta; il lotto automatico non la scarica di nuovo.
+        from pct.legal_update_source_parsers import GAZZETTA_SOURCE_CODE
+
+        source_ids = [code for code in LEGAL_UPDATE_PROGRESSIVE_STEP1_SOURCE_CODES if code != GAZZETTA_SOURCE_CODE]
+        return _run_legal_updates(source_ids, "fase9_fonti_verdi")
 
     @scheduler.scheduled_job("interval", minutes=60, id="giurisprudenza_alimentazione_continua", max_instances=1, coalesce=True)
     def _giurisprudenza_alimentazione_continua():
@@ -944,10 +1042,20 @@ def start_scheduler(app):
                     "[scheduler] Censimento spazio: recuperabile %s",
                     risultato.get("bytes_reclaimable_label"),
                 )
-                return voce
+                errore_scrittura = voce.get("errore_scrittura")
+                errori = len(risultato.get("errors") or [])
+                messaggio = f"Censimento salvato con {errori} controlli incompleti." if errori else "Censimento salvato per il pannello Manutenzione."
+                return {
+                    **voce,
+                    "ok": not errore_scrittura,
+                    "status": "parziale" if errori else "",
+                    "message": messaggio if not errore_scrittura else "",
+                    "error": f"Censimento non salvato per il pannello Manutenzione. {errore_scrittura}" if errore_scrittura else "",
+                    "totals": {"controlli_incompleti": errori, "salvato": not errore_scrittura},
+                }
             except Exception as e:
                 logger.error("[scheduler] Censimento spazio fallito: %s", e)
-                return None
+                return {"ok": False, "error": str(e)}
 
     # ---- Rispezzatura notturna dei chunk RAG (01:00-04:45, ogni quarto d'ora) ----
     # I chunk lasciati dallo splitter vecchio sono migliaia e rifarli costa ore:
@@ -975,7 +1083,7 @@ def start_scheduler(app):
                 return esito
             except Exception as e:
                 logger.error("[scheduler] Rispezzatura chunk RAG fallita: %s", e)
-                return None
+                return {"ok": False, "error": str(e)}
 
     # ---- Profili procedurali dei fascicoli (corsia lunga, 02:55, a lotti per studio) ----
     # I fascicoli rimasti senza profilo si ripassano con il resolver corrente: con dati certi
@@ -1022,14 +1130,18 @@ def start_scheduler(app):
 
                 esito = controlla_adeguamento_patrocinio(app.config)
                 logger.info("[scheduler] Soglia patrocinio: %s", esito.get("messaggio"))
+                return {**esito, "ok": not esito.get("errore"), "message": esito.get("messaggio")}
             except Exception as e:
                 logger.error("[scheduler] Controllo soglia patrocinio fallito: %s", e)
+                return {"ok": False, "error": str(e)}
 
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=4, minute=30), id="sync_tabelle_normative_daily")
     def _sync_tabelle_normative():
         with app.app_context():
+            report = {}
+            problemi = []
             try:
                 from pct.legal_intelligence import GestioneLegalIntelligence
 
@@ -1055,6 +1167,7 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Sync tabelle normative fallito: %s", e)
+                problemi.append(str(e))
             # Indici FOI dal servizio ufficiale ISTAT: solo se manca un mese già pubblicato.
             try:
                 from pct.istat_aggiornamento import aggiorna_foi, scarica_https, serve_aggiornare
@@ -1065,8 +1178,29 @@ def start_scheduler(app):
                 if serve_aggiornare(norme.rows("istat_foi"), oggi_roma()):
                     esito_istat = aggiorna_foi(norme, scarica_https, oggi=oggi_roma())
                     logger.info("[scheduler] Indici FOI ISTAT: %s", esito_istat)
+                    report["foi_istat"] = esito_istat.get("esito")
+                    if esito_istat.get("esito") not in {"aggiornata", "gia_aggiornata"}:
+                        problemi.append(f"FOI ISTAT: {report['foi_istat']}")
             except Exception as e:
                 logger.error("[scheduler] Aggiornamento indici FOI ISTAT fallito: %s", e)
+                problemi.append(str(e))
+            fonti_non_raggiungibili = sum(
+                tabella.get("sync_status") == "fonte_non_raggiungibile"
+                for tabella in report.get("tables", ())
+            )
+            in_verifica = _as_int(report.get("review_required"))
+            totale = _as_int(report.get("processed_tables"))
+            parziale = bool(report.get("errors") or fonti_non_raggiungibili or in_verifica)
+            dettagli = [
+                f"Tabelle controllate: {totale}; fonti non raggiungibili per {fonti_non_raggiungibili} tabelle; "
+                f"tabelle da verificare: {in_verifica}."
+            ]
+            return {
+                **report, "ok": not problemi, "status": "parziale" if parziale else "",
+                "message": " ".join(dettagli + problemi),
+                "totals": {"tabelle_controllate": totale, "tabelle_fonti_non_raggiungibili": fonti_non_raggiungibili,
+                           "tabelle_da_verificare": in_verifica},
+            }
 
     def _calendar_sync_targets():
         if app.config.get("MULTI_TENANT"):
@@ -1148,6 +1282,7 @@ def start_scheduler(app):
                     yield {
                         "label": studio.slug,
                         "database": studio.database,
+                        "paths": paths,
                         "agenda_db": paths["AGENDA_DB"],
                         "calendar_sync_db": paths["CALENDAR_SYNC_DB"],
                         "fascicoli_db": paths["FASCICOLI_DB"],
@@ -1222,6 +1357,20 @@ def start_scheduler(app):
             "source_of_truth": "registro studi e percorsi dati del worker scheduler",
         }
 
+    def _backend_scheduler(paths: dict):
+        from web.services.notifications_runtime import _core_backend_for_paths, _database_mode_value
+
+        database = paths.get("_TENANT_DATABASE_CONFIG")
+        backend = _core_backend_for_paths(paths, database)
+        if backend is None and _database_mode_value(database) in {"SQLITE", "POSTGRESQL"}:
+            raise RuntimeError("Archivio SQL dello studio non disponibile.")
+        return backend
+
+    def _mirror_scheduler(paths: dict, key: str, default: str) -> str:
+        from web.services.notifications_runtime import _tenant_json_mirror_path
+
+        return _tenant_json_mirror_path(paths, key, default)
+
     def _mailbox_sync_targets(*, ensure_baseline=None):
         if app.config.get("MULTI_TENANT"):
             try:
@@ -1268,6 +1417,7 @@ def start_scheduler(app):
             "MESSAGGI_DB": app.config.get("MESSAGGI_DB", "./messaggi/messaggi.json"),
             "AGENDA_DB": app.config.get("AGENDA_DB", "./agenda/appuntamenti.json"),
             "SCADENZIARIO_DB": app.config.get("SCADENZIARIO_DB", "./scadenziario/scadenze.json"),
+            "FATTURAZIONE_DB": app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json"),
             "NOTIFICATIONS_DB": app.config.get("NOTIFICATIONS_DB", "./notifications/notifications.db"),
             "STUDIO_DB": app.config.get("STUDIO_DB", "./studio.db"),
             "_TENANT_DATABASE_CONFIG": app.config.get("TENANT_DATABASE_CONFIG"),
@@ -1452,6 +1602,7 @@ def start_scheduler(app):
                     return _presidio_senza_target("mailbox_sync_runtime", no_target_reason)
                 processed_targets = 0
                 tenant_reports: list[dict[str, object]] = []
+                connessioni_incomplete: list[str] = []
                 totals = {
                     "targets": 0,
                     "channels": 0,
@@ -1499,6 +1650,8 @@ def start_scheduler(app):
                             totals["skipped"] += 1
                         if warning:
                             totals["warnings"] += 1
+                            canale = "PEC" if channel_name == "pec" else "posta ordinaria"
+                            connessioni_incomplete.append(f"{label} ({canale})")
                         if channel.get("ok") is False and not str(channel_payload["reason"]).strip() and "non configurato" not in errore.lower():
                             totals["errors"] += 1
                     tenant_reports.append(tenant_item)
@@ -1515,6 +1668,11 @@ def start_scheduler(app):
                 return {
                     "ok": totals["errors"] == 0,
                     "job": "mailbox_sync_runtime",
+                    "status": "parziale" if connessioni_incomplete else "ok",
+                    "message": (
+                        "Verificare la sincronizzazione delle caselle con avvisi: " + ", ".join(connessioni_incomplete) + "."
+                        if connessioni_incomplete else ""
+                    ),
                     "scan_mode": "incremental_runtime_guard",
                     "source_of_truth": "mailbox UID/Message-ID tenant-aware",
                     "automatic_limit": automatic_limit,
@@ -1572,11 +1730,14 @@ def start_scheduler(app):
                     "acquire_errors": 0,
                     "processed_jobs": 0,
                     "failed_jobs": 0,
+                    "interrupted_jobs": 0,
+                    "studio_errors": 0,
                     "document_errors": 0,
                     "notification_errors": 0,
                     "errors": 0,
                 }
                 scan_modes: set[str] = set()
+                acquisizioni_non_avviate: list[str] = []
                 for label, paths in targets:
                     try:
                         # Prima l'acquisizione automatica delle PEC archiviate non ancora
@@ -1592,7 +1753,11 @@ def start_scheduler(app):
                         if auto_batch > 0:
                             logger.info("[scheduler] Presidio PEC %s: acquisizione batch=%d", label, auto_batch)
                             acquired = acquire_local_pec_for_paths(paths, tenant_label=label, batch_size=auto_batch)
-                            scan_modes.add(str(acquired.get("scan_mode") or "unknown"))
+                            scan_mode = str(acquired.get("scan_mode") or "unknown")
+                            scan_modes.add(scan_mode)
+                            if scan_mode in {"not_started", "unknown"}:
+                                motivo = str(acquired.get("reason") or "motivo non disponibile")
+                                acquisizioni_non_avviate.append(f"{label} ({motivo})")
                             totals["archive_seen"] += _as_int(acquired.get("archive_seen"))
                             totals["scanned"] += _as_int(acquired.get("scanned"))
                             totals["relevant"] += _as_int(acquired.get("relevant"))
@@ -1627,6 +1792,8 @@ def start_scheduler(app):
                         totals["targets"] += 1
                         totals["processed_jobs"] += _as_int(report.get("processed"))
                         totals["failed_jobs"] += _as_int(report.get("failed"))
+                        stale_jobs = report.get("stale_jobs") or {}
+                        totals["interrupted_jobs"] += _as_int(stale_jobs.get("recovered"))
                         document_presidio = report.get("document_presidio") if isinstance(report.get("document_presidio"), dict) else {}
                         document_errors = _as_int(document_presidio.get("errors"))
                         if isinstance(document_presidio.get("errors"), list):
@@ -1650,6 +1817,7 @@ def start_scheduler(app):
                                 "workers": {
                                     "processed": processed_count,
                                     "failed": failed_count,
+                                    "stale_jobs": stale_jobs,
                                     "document_presidio": document_presidio,
                                     "auto_deadline_notifications": notifications,
                                 },
@@ -1669,7 +1837,7 @@ def start_scheduler(app):
                         )
                     except Exception as exc:  # una casella o uno studio guasto non ferma gli altri
                         logger.exception("[scheduler] Presidio PEC %s non riuscito: %s", label, exc)
-                        totals["studio_errors"] = int(totals.get("studio_errors") or 0) + 1
+                        totals["studio_errors"] += 1
                         tenant_reports.append({"tenant": label, "error": f"{type(exc).__name__}: {exc}"[:300]})
                 if processed_targets:
                     logger.info("[scheduler] Pipeline PEC controllata per %d target; job=%d", processed_targets, processed_jobs)
@@ -1678,12 +1846,21 @@ def start_scheduler(app):
                     + int(totals["failed_jobs"])
                     + int(totals["document_errors"])
                     + int(totals["notification_errors"])
+                    + int(totals["interrupted_jobs"])
+                    + int(totals["studio_errors"])
                 )
-                # Studi o caselle non lavorati: restano in totals.studio_errors e nell'esito per studio (registro
-                # della console); il passo della catena non fallisce per uno studio e gli altri sono lavorati.
                 ordered_modes = sorted(mode for mode in scan_modes if mode)
                 return {
                     "ok": totals["errors"] == 0,
+                    "status": "parziale" if acquisizioni_non_avviate else "ok",
+                    "message": (
+                        f"Pipeline PEC da verificare: {totals['errors']} errori o lavori interrotti, "
+                        f"{totals['studio_errors']} studi con errore. Verificare il dettaglio per studio."
+                        if totals["errors"] else (
+                            "Verificare l’acquisizione PEC non avviata per " + ", ".join(acquisizioni_non_avviate) + "."
+                            if acquisizioni_non_avviate else ""
+                        )
+                    ),
                     "job": "pec_audit_pipeline_workers",
                     "scan_mode": ordered_modes[0] if len(ordered_modes) == 1 else ("mixed:" + ",".join(ordered_modes) if ordered_modes else "workers_only"),
                     "source_of_truth": "pec_audit.sqlite + email tenant-aware",
@@ -1811,7 +1988,7 @@ def start_scheduler(app):
         id="fascicoli_document_economic_presidio",
         max_instances=1,
         coalesce=True,
-        misfire_grace_time=60,
+        misfire_grace_time=600,
     )
     def _fascicoli_document_economic_presidio():
         with app.app_context():
@@ -2057,7 +2234,7 @@ def start_scheduler(app):
         id="studio_daily_operational_plan",
         max_instances=1,
         coalesce=True,
-        misfire_grace_time=1800,
+        misfire_grace_time=3600,
     )
     def _studio_daily_operational_plan():
         """Piano del giorno (Lex Oggi): riconciliazione completa mattutina.
@@ -2105,7 +2282,7 @@ def start_scheduler(app):
         id="daily_plan_incremental_refresh",
         max_instances=1,
         coalesce=True,
-        misfire_grace_time=60,
+        misfire_grace_time=3600,
     )
     def _daily_plan_incremental_refresh():
         """Consuma le richieste manuali e, se abilitato, le entita' cambiate."""
@@ -2172,7 +2349,11 @@ def start_scheduler(app):
                 logger.error("[scheduler] Digest PEC fallito: %s", e)
                 return {"ok": False, "error": str(e)[:300]}
 
-    @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/20"), id="workspace_intelligence_snapshot")
+    @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute="*/20"),
+        id="workspace_intelligence_snapshot",
+        misfire_grace_time=600,
+    )
     def _workspace_intelligence_snapshot():
         with app.app_context():
             try:
@@ -2187,13 +2368,19 @@ def start_scheduler(app):
 
                 processed_targets = 0
                 for target in _workspace_intelligence_targets():
-                    if not os.path.exists(target["fascicoli_db"]):
+                    paths = dict(target.get("paths") or app.config)
+                    paths["_TENANT_DATABASE_CONFIG"] = target.get("database") or paths.get("TENANT_DATABASE_CONFIG")
+                    backend = _backend_scheduler(paths)
+                    if backend is None and not os.path.exists(target["fascicoli_db"]):
                         continue
                     service = WorkspaceIntelligenteService(
-                        agenda=Agenda(db_path=target["agenda_db"]),
-                        scadenziario=GestioneScadenziario(db_path=target["scadenziario_db"]),
+                        agenda=Agenda(db_path=_mirror_scheduler(paths, "AGENDA_DB", "agenda/appuntamenti.json"), studio_db=backend),
+                        scadenziario=GestioneScadenziario(
+                            db_path=_mirror_scheduler(paths, "SCADENZIARIO_DB", "scadenziario/scadenze.json"), studio_db=backend,
+                        ),
                         fascicoli=GestioneFascicoli(
-                            db_path=target["fascicoli_db"],
+                            db_path=_mirror_scheduler(paths, "FASCICOLI_DB", "fascicoli/fascicoli.json"),
+                            studio_db=backend,
                             documents_dir=target["fascicoli_docs"],
                             archive_dir=target["fascicoli_arch"],
                         ),
@@ -2228,8 +2415,11 @@ def start_scheduler(app):
                     )
                 if processed_targets:
                     logger.info("[scheduler] Workspace intelligence aggiornato per %d target", processed_targets)
+                return {"ok": bool(processed_targets), "snapshot_scritti": processed_targets,
+                        "message": "Nessun archivio disponibile per lo snapshot." if not processed_targets else ""}
             except Exception as e:
                 logger.error("[scheduler] Workspace intelligence fallito: %s", e)
+                return {"ok": False, "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/30"), id="local_ai_maintenance")
     def _local_ai_maintenance():
@@ -2243,6 +2433,8 @@ def start_scheduler(app):
                         "ok": True,
                         "job": "local_ai_maintenance",
                         "status": "disabled_cloud_hosted",
+                        "skipped": True,
+                        "message": "Manutenzione eseguita dal companion del cliente.",
                         "scan_mode": "not_applicable",
                         "totals": {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0},
                     }
@@ -2260,6 +2452,8 @@ def start_scheduler(app):
                         "ok": True,
                         "job": "local_ai_maintenance",
                         "status": "disabled_by_default",
+                        "skipped": True,
+                        "message": "Manutenzione AI locale disattivata nella configurazione.",
                         "scan_mode": "manual_or_explicit_opt_in",
                         "totals": {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0},
                     }
@@ -2269,7 +2463,7 @@ def start_scheduler(app):
 
                 processed_targets = 0
                 tenant_reports: list[dict[str, object]] = []
-                totals = {"targets": 0, "indexed": 0, "embedded": 0, "errors": 0}
+                totals = {"targets": 0, "indexed": 0, "embedded": 0, "in_attesa": 0, "errors": 0}
                 for target in _workspace_intelligence_targets():
                     service = LocalAIService(
                         db_path=target["local_ai_db"],
@@ -2289,32 +2483,46 @@ def start_scheduler(app):
                     report = service.scheduled_maintenance(fascicoli, target["fascicoli_docs"])
                     processed_targets += 1
                     embeddings = report.get("embeddings") if isinstance(report.get("embeddings"), dict) else {}
-                    target_errors = _as_int(report.get("errors")) + _as_int(embeddings.get("errors"))
+                    embed_status = embeddings.get("status")
+                    embedded = _as_int(embeddings.get("embedded_total", embeddings.get("embedded")))
+                    target_errors = (
+                        _as_int(report.get("errors")) + _as_int(report.get("index_errors"))
+                        + _as_int(embeddings.get("errors"))
+                        + int(report.get("status") not in {"ready", "pending"} or (
+                            bool(embeddings) and embed_status not in {"ready", "pending"}
+                        ))
+                    )
                     totals["targets"] += 1
                     totals["indexed"] += _as_int(report.get("indexed"))
-                    totals["embedded"] += _as_int(embeddings.get("embedded"))
+                    totals["embedded"] += embedded
+                    totals["in_attesa"] += _as_int(embeddings.get("pending_remaining"))
                     totals["errors"] += target_errors
                     tenant_reports.append(
                         {
                             "tenant": str(target.get("label") or target.get("tenant_id") or ""),
                             "status": str(report.get("status") or ""),
                             "indexed": _as_int(report.get("indexed")),
-                            "embedded": _as_int(embeddings.get("embedded")),
+                            "embedded": embedded,
                             "errors": target_errors,
                         }
                     )
                     logger.info(
                         "[scheduler] Local AI %s: stato=%s, indexed=%s, embed=%s",
                         target["label"],
-                        report.get("status"),
+                        embed_status or report.get("status"),
                         report.get("indexed", 0),
-                        (report.get("embeddings") or {}).get("embedded", 0),
+                        embedded,
                     )
                 if processed_targets:
                     logger.info("[scheduler] Local AI maintenance completata per %d target", processed_targets)
                 return {
                     "ok": totals["errors"] == 0,
                     "job": "local_ai_maintenance",
+                    "status": "errore" if totals["errors"] else ("parziale" if totals["in_attesa"] else "completato"),
+                    "message": (
+                        f"Vettori salvati: {totals['embedded']}; in attesa: {totals['in_attesa']}; "
+                        f"errori: {totals['errors']}."
+                    ),
                     "scan_mode": "maintenance_incremental",
                     "source_of_truth": "local_ai.db tenant-aware",
                     "targets": processed_targets,
@@ -2342,7 +2550,8 @@ def start_scheduler(app):
                     app.config.get("IUSENTRA_DISABLE_SENTENZA_LEX_AUTO")
                     or os.getenv("IUSENTRA_DISABLE_SENTENZA_LEX_AUTO")
                 ):
-                    return {"ok": True, "status": "disabled", "job": "lex_sentenza_economia_auto"}
+                    return {"ok": True, "status": "disabled", "skipped": True, "job": "lex_sentenza_economia_auto",
+                            "message": "Lettura automatica sentenze ed economia disattivata nelle impostazioni."}
 
                 from pct.scheduler_registry import scheduler_registry_repository
                 from scripts.backfill_sentenza_lex_economics import run_backfill
@@ -2397,6 +2606,11 @@ def start_scheduler(app):
                     ),
                     modified_after_ns=max(0, modified_after_ns),
                     usa_cursore_persistente=usa_cursore_persistente,
+                    budget_inventario_secondi=_parse_positive_int(
+                        app.config.get("IUSENTRA_SENTENZA_LEX_INVENTORY_BUDGET_SECONDS")
+                        or os.getenv("IUSENTRA_SENTENZA_LEX_INVENTORY_BUDGET_SECONDS"),
+                        120,
+                    ) if not force_full_scan else 0,
                     lex_embed_batch_size=_parse_positive_int(
                         app.config.get("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE")
                         or os.getenv("IUSENTRA_SENTENZA_LEX_EMBED_BATCH_SIZE"),
@@ -2411,35 +2625,40 @@ def start_scheduler(app):
                 totals = report.get("totals") or {}
                 logger.info(
                     "[scheduler] Sentenze Lex/economia: %d documenti, %d sentenze confermate, "
-                    "%d fascicoli confermati, %d applicati, %d Lex, %d salti contesto RG/cliente",
+                    "%d fascicoli confermati, %d applicati, %d indicizzati, %d indici già presenti, "
+                    "%d embedding pronti, %d salti contesto RG/cliente",
                     int(totals.get("documents_seen") or 0),
                     int(totals.get("sentenze_found") or 0),
                     int(totals.get("unique_fascicoli_confirmed") or 0),
                     int(totals.get("applied") or 0),
                     int(totals.get("vector_indexed") or 0),
+                    int(totals.get("vector_reused") or 0),
+                    int(totals.get("vector_embeddings_ready") or 0),
                     int(totals.get("context_mismatch_skipped") or 0),
                 )
-                visti = int(totals.get("documents_seen") or 0)
-                if visti:
-                    # Un documento trovato qui e' un documento che gli eventi
-                    # non hanno segnalato: la rete di sicurezza ha lavorato,
-                    # e va detto, non nascosto in mezzo ai conteggi.
-                    logger.warning(
-                        "[scheduler] Rete di sicurezza sentenze: %d documenti non segnalati "
-                        "dal motore letture. Se il numero non e' zero, l'aggancio a eventi "
-                        "non sta funzionando.",
-                        visti,
-                    )
+                cursore = report.get("cursore_persistente") or {}
+                cursori_non_salvati = sum(1 for studio in cursore.get("tenants") or [] if studio.get("scritto") is False)
+                sospesi = int(cursore.get("sospesi") or 0)
+                errori_indice = int(totals.get("vector_index_errors") or 0) + int(totals.get("vector_embedding_errors") or 0)
+                avvisi = [str(report["message"])] if report.get("message") else []
+                if cursori_non_salvati:
+                    avvisi.append(f"Ripresa del lavoro non salvata per {cursori_non_salvati} studi.")
+                if sospesi:
+                    avvisi.append(f"{sospesi} documenti sospesi dopo i tentativi di lettura. Consulta il dettaglio del job.")
+                if errori_indice:
+                    avvisi.append(f"{errori_indice} errori nell’indice Lex delle sentenze.")
                 return {
-                    "ok": bool(report.get("ok")),
+                    "ok": bool(report.get("ok")) and not cursori_non_salvati,
+                    "status": "parziale" if avvisi else "",
+                    "message": " ".join(avvisi),
                     "job": "lex_sentenza_economia_auto",
-                    "sfuggiti_agli_eventi": visti,
+                    "file_esaminati_recupero": int(totals.get("documents_seen") or 0),
                     "source_of_truth": report.get("source_of_truth"),
                     "scan_mode": report.get("scan_mode"),
                     "incremental": report.get("incremental"),
                     "cursore_persistente": report.get("cursore_persistente"),
                     "force_full_scan": force_full_scan,
-                    "totals": totals,
+                    "totals": {**totals, "cursori_non_salvati": cursori_non_salvati, "documenti_sospesi": sospesi},
                     "skip_lex": skip_lex,
                 }
             except Exception as e:
@@ -2465,8 +2684,11 @@ def start_scheduler(app):
                     ok_count,
                     verify_count,
                 )
+                return {"ok": bool(report.get("ok")), "agenti_ok": ok_count, "agenti_da_verificare": verify_count,
+                        "message": f"{verify_count} agenti da verificare" if verify_count else ""}
             except Exception as e:
                 logger.error("[scheduler] Agenti Lex notturni falliti: %s", e)
+                return {"ok": False, "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=2, minute=40), id="lex_autonomous_learning_nightly")
     def _lex_autonomous_learning_nightly():
@@ -2491,8 +2713,10 @@ def start_scheduler(app):
                     )
                 else:
                     logger.warning("[scheduler] Apprendimento autonomo Lex non riuscito: %s", report.get("error"))
+                return report
             except Exception as e:
                 logger.error("[scheduler] Apprendimento autonomo Lex fallito: %s", e)
+                return {"ok": False, "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=1, minute=45), id="lex_dataset_nightly")
     def _lex_dataset_nightly():
@@ -2519,15 +2743,25 @@ def start_scheduler(app):
             try:
                 from pct.utf8_integrity import run_utf8_integrity_service
 
-                report = run_utf8_integrity_service(app.config, repair=True)
+                # Il perimetro include EML, XML e documenti originali.
+                # Il giro verifica e segnala: una riscrittura potrebbe alterare una prova.
+                report = run_utf8_integrity_service(app.config, repair=False)
+                da_verificare = int(report.get("files_with_artifacts") or 0)
+                errori = int(report.get("error_files") or 0)
+                letti = int(report.get("checked_files") or 0)
                 logger.info(
-                    "[scheduler] Integrità UTF-8: %d file controllati, %d riparati, %d da verificare",
-                    int(report.get("checked_files") or 0),
-                    int(report.get("repaired_files") or 0),
-                    int(report.get("unresolved_replacement_files") or 0) + int(report.get("error_files") or 0),
+                    "[scheduler] Integrità UTF-8: %d file controllati, %d da verificare, %d errori",
+                    letti, da_verificare, errori,
                 )
+                return {
+                    **report, "ok": errori == 0,
+                    "status": "parziale" if da_verificare else "",
+                    "message": f"File controllati: {letti}. Da verificare: {da_verificare}. Errori: {errori}.",
+                    "totals": {"controllati": letti, "da_verificare": da_verificare, "errori": errori},
+                }
             except Exception as e:
                 logger.error("[scheduler] Integrità UTF-8 fallita: %s", e)
+                return {"ok": False, "error": str(e)}
 
     def _operational_resilience_targets():
         if app.config.get("MULTI_TENANT"):
@@ -2582,20 +2816,26 @@ def start_scheduler(app):
             try:
                 from web.services.operational_resilience_surface import execute_operational_backup_surface
 
+                reports = []
                 for slug, label in _operational_resilience_targets():
                     report = execute_operational_backup_surface(
                         selected_slug=slug,
                         trigger_source="scheduler",
                         schedule_code=schedule_code,
                     )
+                    reports.append(report)
                     logger.info(
                         "[scheduler] Backup blindato %s %s: %s",
                         schedule_code,
                         label,
                         "OK" if report.get("success") else "CRITICO",
                     )
+                riusciti = sum(1 for report in reports if report.get("success"))
+                return {"ok": bool(reports) and riusciti == len(reports), "studi": len(reports),
+                        "backup_riusciti": riusciti, "backup_falliti": len(reports) - riusciti}
             except Exception as exc:
                 logger.error("[scheduler] Backup blindato %s fallito: %s", schedule_code, exc)
+                return {"ok": False, "error": str(exc)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour=7, minute=0), id="operational_crash_morning")
     def _operational_crash_morning():
@@ -2638,13 +2878,15 @@ def start_scheduler(app):
                 logger.error("[scheduler] Polling esiti deposito fallito: %s", e)
                 return {"ok": False, "job": "polling_esiti_deposito", "error": str(e)}
 
-    # ---- Polling PEC -> Comunicazioni di cancelleria (ogni 30 minuti) ----
-    # Scansiona la casella PEC alla ricerca di email di cancelleria (ACCETTAZIONE,
-    # RIFIUTO, ecc.) che contengono un numero RG e le associa automaticamente
-    # ai fascicoli corrispondenti nella sezione "Comunicazioni di cancelleria".
+    # Compatibilità con il controllo IMAP delle installazioni a studio unico.
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", minute="*/30"), id="poll_pec_cancelleria")
     def _poll_pec_cancelleria():
         with app.app_context():
+            job = "poll_pec_cancelleria"
+            if app.config.get("MULTI_TENANT"):
+                # Il Presidio PEC acquisisce e collega le comunicazioni dal MIME con il contratto tenant-aware.
+                return {"ok": True, "job": job, "skipped": True, "reason": "presidio_pec",
+                        "message": "Le comunicazioni di cancelleria sono lavorate dal Presidio PEC dei singoli studi."}
             try:
                 from pct.config_studio import GestioneConfigStudio
                 from pct.fascicoli import GestioneFascicoli
@@ -2652,7 +2894,7 @@ def start_scheduler(app):
 
                 fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
                 if not os.path.exists(fascicoli_db):
-                    return
+                    return {"ok": False, "job": job, "error": "Archivio fascicoli non disponibile."}
 
                 config_pec = None
                 try:
@@ -2670,17 +2912,17 @@ def start_scheduler(app):
                 except Exception as e:
                     logger.debug("[scheduler] Config PEC cancelleria non disponibile: %s", e)
 
-                if not config_pec:
-                    return
+                if not config_pec or not getattr(config_pec, "password", ""):
+                    return {"ok": True, "job": job, "skipped": True, "reason": "pec_non_configurata",
+                            "message": "Casella PEC dello studio priva di configurazione IMAP."}
 
                 gf = GestioneFascicoli(
                     db_path=fascicoli_db,
                     documents_dir=app.config.get("FASCICOLI_DOCS", "./fascicoli/documenti"),
                     archive_dir=app.config.get("FASCICOLI_ARCH", "./fascicoli/archivio"),
                 )
-                import os as _os
-                state_path = _os.path.join(
-                    _os.path.dirname(_os.path.abspath(fascicoli_db)),
+                state_path = os.path.join(
+                    os.path.dirname(os.path.abspath(fascicoli_db)),
                     "pec_cancelleria_state.json",
                 )
                 report = poll_cancelleria_pec(
@@ -2705,8 +2947,11 @@ def start_scheduler(app):
                         report.get("duplicati", 0),
                         report["errori"],
                     )
+                return {"ok": not report.get("errori"), "job": job, "totals": report,
+                        "error": "Controllo IMAP della cancelleria incompleto." if report.get("errori") else ""}
             except Exception as e:
                 logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
+                return {"ok": False, "job": job, "error": str(e)}
 
     @scheduler.scheduled_job(CronTrigger(timezone="Europe/Rome", hour="20", minute="30"), id="time_tracking_passivo")
     def _time_tracking_passivo():
@@ -2798,12 +3043,14 @@ def start_scheduler(app):
         from pct.scheduler_registry import (
             apply_scheduler_registry,
             dispatch_requested_manual_runs,
+            esito_job_result,
             scheduler_registry_repository,
         )
 
         registry_repo = scheduler_registry_repository(app.config)
         registry_repo.upsert_default_jobs(app.config)
         startup_cutoff = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        registry_repo.requeue_dispatched_manual_runs()
         recovered = registry_repo.cancel_manual_runs_started_before(
             startup_cutoff,
             reason="Esecuzione interrotta dal riavvio del worker; rilanciare dalla console.",
@@ -2834,13 +3081,19 @@ def start_scheduler(app):
 
         def _scheduler_registry_tick():
             with app.app_context():
+                # Le richieste già confermate entrano in corsia anche se la
+                # ripresa degli indici o delle letture impiega più di un giro.
+                dispatch_requested_manual_runs(scheduler, app, registry_repo)
                 if registry_tick_state["count"] % 5 == 0:
                     apply_scheduler_registry(scheduler, app, registry_repo)
                 registry_tick_state["count"] += 1
                 try:
                     from web.services.archivio_letture_runtime import riprendi_eventi_lettura
 
-                    ripresi = riprendi_eventi_lettura(app)
+                    governo_letture = app.extensions.get("notte_solo_letture_prioritarie")
+                    ripresi = riprendi_eventi_lettura(
+                        app, **({"solo_prioritari": True} if governo_letture and governo_letture() else {}),
+                    )
                     if int(ripresi.get("avviati") or 0):
                         logger.info(
                             "[scheduler] Coda letture: ripresi %d eventi puntuali su %d.",
@@ -2873,7 +3126,6 @@ def start_scheduler(app):
                         logger.error('[scheduler] Indice calendario: %d consegne da recuperare.', calendar_result['failed'])
                 except Exception as exc:
                     logger.error('[scheduler] Ripresa indice calendario non riuscita: %s', exc)
-                dispatch_requested_manual_runs(scheduler, app, registry_repo)
 
         scheduler.add_job(
             _scheduler_registry_tick,
@@ -2921,6 +3173,11 @@ def start_scheduler(app):
                     from web.services.catalogo_lex_runtime import seconda_lettura_catalogo
 
                     esito = seconda_lettura_catalogo(app)
+                    if esito.get("attiva") is False:
+                        return {**esito, "ok": True, "skipped": True,
+                                "message": "Seconda lettura Lex disattivata nella configurazione locale."}
+                    if esito.get("errori"):
+                        return {**esito, "ok": False, "error": "Errori durante la seconda lettura del catalogo."}
                     if int(esito.get("lette") or 0):
                         logger.info(
                             "[scheduler] Catalogo, seconda lettura Lex: %d lette, %d scelte, %d cambiate.",
@@ -2957,12 +3214,23 @@ def start_scheduler(app):
                     scheduled_times = list(getattr(event, "scheduled_run_times", None) or [])
                     scheduled_at = str(scheduled_times[-1] if scheduled_times else "")
                 event_code = getattr(event, "code", None)
+                if event_code in {EVENT_JOB_MISSED, EVENT_JOB_MAX_INSTANCES}:
+                    from pct.scheduler_notturno.guardia import motivo_per_saltare
+
+                    momento = datetime.fromisoformat(scheduled_at) if scheduled_at else None
+                    motivo = motivo_per_saltare(job_id, momento)
+                    if motivo:
+                        registry_repo.record_scheduler_event(
+                            job_id, status="cancelled", scheduled_at=scheduled_at, message=motivo,
+                            result={"ok": True, "skipped": True, "reason": "sequenza_notturna"},
+                        )
+                        return
                 if event_code == EVENT_JOB_SUBMITTED:
                     registry_repo.record_scheduler_event(
                         job_id,
                         status="running",
                         scheduled_at=scheduled_at,
-                        message="Esecuzione avviata dal worker.",
+                        message="Accodata al worker: in attesa del turno o in corso.",
                         result={"ok": True, "event": "submitted"},
                     )
                 elif event_code == EVENT_JOB_MAX_INSTANCES:
@@ -2990,18 +3258,14 @@ def start_scheduler(app):
                 else:
                     result = getattr(event, "retval", None)
                     result_payload = result if isinstance(result, dict) else {}
-                    result_ok = result_payload.get("ok") if result_payload else True
+                    stato, dettaglio = esito_job_result(result_payload)
                     registry_repo.record_scheduler_event(
                         job_id,
-                        status="completed" if result_ok is not False else "failed",
+                        status=stato,
                         scheduled_at=scheduled_at,
-                        message=(
-                            "Esecuzione completata dal worker."
-                            if result_ok is not False
-                            else "Esecuzione non completata dal worker."
-                        ),
+                        message=dettaglio or "Esecuzione completata dal worker.",
                         result=result_payload,
-                        error_message=str(result_payload.get("error") or ""),
+                        error_message=dettaglio if stato == "failed" else "",
                     )
             except Exception as exc:  # pragma: no cover - audit best effort
                 logger.warning("[scheduler] Esito non registrato per %s: %s", job_id, exc)
@@ -3015,7 +3279,6 @@ def start_scheduler(app):
             | EVENT_JOB_MAX_INSTANCES,
         )
         apply_scheduler_registry(scheduler, app, registry_repo)
-        dispatch_requested_manual_runs(scheduler, app, registry_repo)
     except Exception as exc:
         logger.warning("[scheduler] Registro pianificazioni non disponibile: %s", exc)
 
@@ -3028,6 +3291,8 @@ def start_scheduler(app):
         logger.error("[scheduler] Sequenza notturna non installata: %s", exc)
 
     try:
+        if registry_repo is not None:
+            dispatch_requested_manual_runs(scheduler, app, registry_repo)
         from pct.scheduler_corsie import assegna_corsie
 
         logger.info("[scheduler] Corsie dei lavori: %s", assegna_corsie(scheduler))

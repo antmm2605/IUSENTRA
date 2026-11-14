@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import os
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -27,6 +29,9 @@ from pct.incremental_jobs import cursor_tuple, is_after_cursor
 from pct.notifications.web_push import safe_remote_hearing_url
 from pct.pec_pipeline import PecAuditRepository, _remote_hearing_deadline_extra
 from web.services.email_storage_runtime import create_email_mailbox
+
+
+logger = logging.getLogger(__name__)
 
 
 def _path_from_mapping(paths: Mapping[str, Any], key: str, default: str) -> str:
@@ -345,9 +350,12 @@ def build_pec_deadline_notification(
     else:
         title = "Scadenza operativa registrata" if source_id.startswith("docpresidio:") else "Scadenza PEC registrata"
         agenda_text = " e all'Agenda" if agenda_id else ""
+        adempimento = " ".join(str(proposal.get("title") or "").split()).rstrip(".")
         body = (
-            f"{origin}: scadenza collegata allo Scadenziario{agenda_text}"
-            f"{f' per il {due_date_label}' if due_date_label else ''}."
+            (f"{adempimento}. " if adempimento else "")
+            + f"{origin}: scadenza collegata allo Scadenziario{agenda_text}"
+            + (f" per il {due_date_label}" if due_date_label and due_date_label not in adempimento else "")
+            + "."
         )
         action_label = "Apri scadenza"
 
@@ -735,13 +743,17 @@ def _sql_mailbox_fingerprint(path: Path) -> str:
 
 
 def _pec_mai_esaminate(repo: Any, emails: list[Any], *, limite: int) -> list[Any]:
-    """Le PEC pertinenti della casella che il presidio non ha mai registrato con alcun esito (solo SQL)."""
-    try:
-        with repo.connect() as conn:
-            esaminate = {str(r[0]) for r in conn.execute(
-                "SELECT DISTINCT email_id FROM pec_local_acquire_items WHERE tenant_id=?", (repo.tenant_id,)).fetchall()}
-    except Exception:
-        return []
+    """PEC pertinenti senza un esito definitivo, comprese quelle da riprovare."""
+    with repo.connect() as conn:
+        esaminate = {str(r[0]) for r in conn.execute(
+            """SELECT email_id FROM (
+                   SELECT email_id, status, detail_json,
+                          ROW_NUMBER() OVER (PARTITION BY email_id ORDER BY updated_at DESC, rowid DESC) AS posizione
+                   FROM pec_local_acquire_items WHERE tenant_id=?
+               ) WHERE posizione=1 AND status<>'failed'
+                 AND NOT (status='processed' AND CASE WHEN json_valid(detail_json)
+                           THEN COALESCE(json_extract(detail_json,'$.errore'),'')<>'' ELSE 0 END)""",
+            (repo.tenant_id,)).fetchall()}
     mancanti = [e for e in emails if str(getattr(e, "id", "") or "") not in esaminate and email_rilevante_per_presidio_pec(e)]
     return mancanti[:max(1, int(limite))]
 
@@ -871,6 +883,7 @@ def acquire_local_pec_for_paths(
     if (
         not full_scan
         and impronta
+        and cursor.get("generation") == "pec_local_acquire_v3"
         and cursor.get("archive_fingerprint") == impronta
         and cursor.get("backlog_complete")
         and cursor.get("riconciliazione_impronta") == impronta
@@ -890,7 +903,7 @@ def acquire_local_pec_for_paths(
     )
     report["archive_seen"] = len(all_emails)
     if not all_emails:
-        return report
+        return {**report, "scan_mode": "empty", "reason": "archivio PEC consultato, nessun messaggio presente"}
     effective_scan_limit = max(1, int(scan_limit or 250))
     newest_cursor = _local_email_cursor(all_emails[0])
     selected_emails: list[Any] = []
@@ -907,7 +920,7 @@ def acquire_local_pec_for_paths(
                 item_cursor.get("sort_key"),
                 item_cursor.get("item_id"),
                 cursor,
-                include_boundary=True,
+                include_boundary=False,
             ):
                 selected_emails.append(item)
                 if len(selected_emails) >= effective_scan_limit:
@@ -1004,7 +1017,7 @@ def acquire_local_pec_for_paths(
             next_cursor["riconciliazione_impronta"] = report["riconciliazione_impronta"]
         else:
             next_cursor.pop("riconciliazione_impronta", None)
-        next_cursor["generation"] = "pec_local_acquire_v2"
+        next_cursor["generation"] = "pec_local_acquire_v3"
         try:
             repo.record_local_acquire_cursor(
                 next_cursor,
@@ -1066,12 +1079,13 @@ def acquire_local_pec_for_paths(
             )
             run_id = str(run.get("id") or "")
         except Exception:
-            run_id = ""
+            logger.warning("Acquisizione PEC di %s: apertura del registro non riuscita.",
+                           tenant_label, exc_info=True)
     if tracked_items and not run_id:
         # Senza run tracciabile non si ingerisce nulla: con le foreign key attive
         # gli esiti per email non sarebbero registrabili e le stesse PEC
         # verrebbero rilette dal disco a ogni giro del presidio.
-        return {**report, "skipped": True, "reason": "registro presidio non disponibile"}
+        return {**report, "errors": report["errors"] + 1, "skipped": True, "reason": "registro presidio non disponibile"}
     for item, message_id, reason in skipped_presided_items:
         _record_auto_acquire_item(
             repo,
@@ -1144,7 +1158,7 @@ def acquire_local_pec_for_paths(
                 run_id,
                 email_id=email_id,
                 subject=subject,
-                status="processed",
+                status="failed",
                 detail={"errore": str(exc)[:180], "origin": "auto"},
             )
     if run_id:
@@ -1173,7 +1187,7 @@ def acquire_local_pec_for_paths(
                 },
                 actor="scheduler",
             )
-            if not batch_exhausted:
+            if not batch_exhausted and not report["errors"]:
                 save_cursor_if_safe(batch_exhausted=False)
         except Exception:
             pass

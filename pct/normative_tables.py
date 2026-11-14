@@ -2882,7 +2882,14 @@ class GestioneTabelleNormative:
                 table["source_codes"] = list(definition.get("source_codes") or [])
                 table["watch_source_ids"] = list(definition.get("watch_source_ids") or [])
                 active_version = self._active_version(table)
-                if not active_version or active_version.get("data_hash") != canonical_hash:
+                # Il seed contiene solo la base iniziale: l'aggiornamento SDMX
+                # è la serie ufficiale più recente, con controlli propri.
+                origine = (active_version or {}).get("origin")
+                usa_versione_ufficiale = (
+                    (table_id == "istat_foi" and origine == "istat_sdmx")
+                    or (table_id == "organismi_mediazione_elenco" and origine == "live_registry")
+                )
+                if not active_version or (not usa_versione_ufficiale and active_version.get("data_hash") != canonical_hash):
                     for version in table.get("versions") or []:
                         if version.get("status") == "active":
                             version["status"] = "superseded"

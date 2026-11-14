@@ -82,3 +82,15 @@ def is_low_value_public_legal_record(
     if not any(marker in text for marker in LOW_VALUE_AGCOM_PUBLIC_CONSULTATION_MARKERS):
         return False
     return not any(marker in text for marker in AGCOM_LEGAL_VALUE_MARKERS)
+
+
+def is_catalog_only_legal_summary(*, title: Any = "", summary: Any = "", context: Any = "") -> bool:
+    """Riconosce schede di navigazione che non descrivono il contenuto dell'atto."""
+    titolo = _clean_spaces(title).casefold()
+    testo = _clean_spaces(summary).casefold()
+    insieme = f"{testo} {_clean_spaces(context).casefold()}"
+    return (
+        ("documenti correlati" in insieme and "non è stato trovato" in insieme)
+        or ("oggetto: quesito" in insieme and "visualizza atto" in insieme)
+        or (titolo in {"documenti", "dettaglio documenti"} and "leggi di più dettaglio documenti" in testo)
+    )

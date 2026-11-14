@@ -46,3 +46,23 @@ def test_public_ca_bundle_is_readable_across_app_worker_uids_without_write_acces
     bundle = tls_bundle(tmp_path)
     assert bundle.stat().st_mode & 0o777 == 0o644
     assert tls_bundle(tmp_path) == bundle
+
+
+def test_lotto_con_testi_senza_riscontro_segnala_esito_parziale(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+    from types import SimpleNamespace
+
+    with sqlite3.connect(tmp_path / "giurisprudenza_corpus.db") as db:
+        db.executescript("""
+            CREATE TABLE sentenzeweb_progress(id,seen,expected,status);
+            INSERT INTO sentenzeweb_progress VALUES (1,0,0,'complete');
+            CREATE TABLE sentenzeweb_recovery_queue(status);
+            INSERT INTO sentenzeweb_recovery_queue VALUES ('pending'), ('needs_evidence');
+        """)
+    counters = {"processed": 2, "recovered": 1, "needs_evidence": 1, "already_available": 0}
+    monkeypatch.setattr("pct.sentenzeweb_nightly.subprocess.run", lambda *a, **k: SimpleNamespace(returncode=0, stdout=json.dumps(counters)))
+    result = run_nightly({"IUSENTRA_SENTENZEWEB_DIRECTORY": str(tmp_path)})
+    assert result["status"] == "parziale"
+    assert result["recovery"] == counters and result["recovery_pending"] == 1
+    assert not result["downloaded"]

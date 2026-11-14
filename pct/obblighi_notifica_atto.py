@@ -141,7 +141,13 @@ def una_voce_per_atto(obblighi: list[dict[str, Any]], contesto: dict[str, Any]) 
             continue
         dell_atto, altre = _prove(contesto, copie)
         if voce.get("stato") == STATO_FACOLTATIVO or voce.get("facoltativa"):
-            if dell_atto and voce.get("stato") == STATO_FACOLTATIVO:
+            storico = next((p for p in dell_atto if p.get("limite_verifica_storica")), None)
+            if storico and voce.get("regola") == "sentenza_notifica_breve":
+                voce.update(stato=STATO_DA_VERIFICARE, scadenza="", calcoli=[],
+                            motivo=storico["limite_verifica_storica"],
+                            prove_documenti=list(dict.fromkeys([str(storico.get("documento_id") or ""),
+                                                                *(storico.get("ricevute") or [])])))
+            elif dell_atto and voce.get("stato") == STATO_FACOLTATIVO:
                 # La copia notificata della sentenza: non è più una scelta da fare, va controllato chi ha notificato
                 # e quando, perché da quella notifica decorre il termine breve (artt. 325 e 326 c.p.c.).
                 voce.update(stato=STATO_DA_VERIFICARE,

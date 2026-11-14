@@ -3999,7 +3999,11 @@
     }
   }
 
+  var avviato = false;
+
   function init() {
+    // Una sola volta: il widget React (LexWidget) può arrivare dopo il DOMContentLoaded.
+    if (avviato) return;
     widget = query('pct-ai-widget');
     panel = query('pct-ai-panel');
     fab = query('pct-ai-fab');
@@ -4027,6 +4031,7 @@
     if (!widget || !panel || !fab || !input || !sendButton) {
       return;
     }
+    avviato = true;
 
     storageKey = widget.dataset.storageKey || STORAGE_FALLBACK;
     bridgeConfig = browserBridge() ? browserBridge().rootConfig(widget) : null;
@@ -4128,4 +4133,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', init);
+  // Widget montato da React (pagine dello studio): avvio anche dopo il caricamento del documento.
+  window.addEventListener('iusentra:lex-widget-montato', init);
+  if (document.readyState !== 'loading') init();
 })();

@@ -19,8 +19,6 @@ def test_generatori_pdf_non_reintroducono_header_tabella_scuro() -> None:
     checked = [
         Path("web/blueprints/fatturazione.py"),
         Path("web/blueprints/preventivi.py"),
-        Path("web/notifiche.py"),
-        Path("web/template_atti.py"),
         Path("pct/reports.py"),
         Path("pct/editor.py"),
         Path("web/services/pdp_penale_runtime.py"),

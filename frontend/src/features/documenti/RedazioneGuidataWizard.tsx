@@ -251,7 +251,13 @@ function PassoTipoAtto({
   return (
     <div className="iu-rg-panel">
       <QuadroContesto contesto={contesto} />
-      <h4 className="iu-rg-subtitle"><Sparkles size={16} aria-hidden="true" /> Atti suggeriti dal fascicolo</h4>
+      {contesto.prossimoPassoFascicolo ? (
+        <section aria-label="Prossimo passo dalla Lettura">
+          <h4 className="iu-rg-subtitle">Prossimo passo dalla Lettura</h4>
+          <p>{contesto.prossimoPassoFascicolo}</p>
+        </section>
+      ) : null}
+      <h4 className="iu-rg-subtitle"><Sparkles size={16} aria-hidden="true" /> Modelli suggeriti dal catalogo</h4>
       {contesto.suggerimenti.length ? (
         <div className="iu-rg-cards" role="list">
           {contesto.suggerimenti.map((suggerimento) => (

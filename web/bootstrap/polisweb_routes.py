@@ -3,16 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
-from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, g, redirect, render_template, request, url_for
+from flask import Flask, flash, g, redirect, request, url_for
 
-from web.bootstrap.telematico_portali_common import (
-    group_documenti_per_deposito,
-    resolve_nome_ufficio,
-)
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_polisweb_routes(
@@ -41,28 +36,8 @@ def register_polisweb_routes(
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
-        import traceback as _tb
-
-        try:
-            auth_mode = polis_auth_mode()
-            demo_mode = auth_mode == "demo"
-            server_demo_mode = auth_mode != "reale"
-            pkcs11_mode = auth_mode == "pkcs11"
-            id_fasc = request.args.get("id_fasc", "")
-            fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-            return render_template(
-                "polisWeb.html",
-                demo_mode=demo_mode,
-                server_demo_mode=server_demo_mode,
-                pkcs11_mode=pkcs11_mode,
-                fascicolo=fascicolo_ctx,
-                id_fasc=id_fasc,
-                cert_preferences=polis_cert_preferences(),
-            )
-        except Exception as exc:
-            tb = "".join(_tb.format_exception(type(exc), exc, exc.__traceback__))
-            app.logger.error("ERRORE polisWeb_home:\n%s", tb)
-            return f"<pre style='color:red;padding:2em'><b>Errore PolisWeb:</b>\n{tb}</pre>", 500
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("polisWeb")
 
     @app.route("/fascicoli/<id_fasc>/sincronizza-registro", methods=["POST"])
     def fascicolo_sincronizza_registro(id_fasc):
@@ -91,146 +66,20 @@ def register_polisweb_routes(
         esito.setdefault("messaggio", esito.get("message", ""))
         return jsonify(esito)
 
-    @app.route("/polisWeb/ricerca", methods=["POST"])
-    def polisWeb_ricerca():
-        form_data = request.form
-        tribunale = form_data.get("tribunale", "").strip()
-        auth_mode = polis_auth_mode()
-        server_demo_mode = form_data.get("server_demo_mode") == "1" or auth_mode != "reale"
-        demo_mode = form_data.get("demo_mode") == "1" or auth_mode == "demo"
-        pkcs11_mode = auth_mode == "pkcs11"
-
-        if not tribunale:
-            flash("Seleziona un tribunale.", "danger")
-            return redirect(url_for("polisWeb_home"))
-
-        id_fasc = form_data.get("id_fasc", "").strip()
-        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-        try:
-            numero_rg = form_data.get("numero_rg", "").strip() or None
-            anno_rg = int(form_data.get("anno_rg") or 0) or None
-            nome_parte = form_data.get("nome_parte", "").strip() or None
-            cf_parte = form_data.get("cf_parte", "").strip() or None
-        except (ValueError, TypeError) as exc:
-            flash(f"Parametri non validi: {exc}", "danger")
-            return redirect(url_for("polisWeb_home"))
-
-        try:
-            from pct.polisWeb import crea_client
-
-            client = crea_client(demo=demo_mode)
-            fascicoli = client.ricerca_fascicoli(
-                tribunale=tribunale,
-                numero_rg=numero_rg,
-                anno_rg=anno_rg,
-                nome_parte=nome_parte,
-                codice_fiscale_parte=cf_parte,
-            )
-        except Exception as exc:
-            app.logger.exception("Errore polisWeb_ricerca: %s", exc)
-            flash(f"Errore ricerca PST: {exc}", "danger")
-            return redirect(url_for("polisWeb_home"))
-
-        tribunale_sel_nome = resolve_nome_ufficio(tribunale)
-        return render_template(
-            "polisWeb.html",
-            fascicoli=fascicoli,
-            tribunale_sel=tribunale,
-            tribunale_sel_nome=tribunale_sel_nome,
-            numero_rg=numero_rg or "",
-            anno_rg=anno_rg or "",
-            nome_parte=nome_parte or "",
-            cf_parte=cf_parte or "",
-            demo_mode=demo_mode,
-            server_demo_mode=server_demo_mode,
-            pkcs11_mode=pkcs11_mode,
-            fascicolo=fascicolo_ctx,
-            id_fasc=id_fasc,
-            cert_preferences=polis_cert_preferences(),
-        )
 
     @app.route("/polisWeb/documenti", methods=["GET"])
     def polisWeb_documenti():
-        codice_ufficio = request.args.get("codice_ufficio", "")
-        numero_rg = request.args.get("numero_rg", "")
-        auth_mode = polis_auth_mode()
-        demo_mode = auth_mode != "reale"
-        try:
-            anno_rg = int(request.args.get("anno_rg", 0) or 0)
-        except (ValueError, TypeError):
-            anno_rg = 0
-        try:
-            from pct.polisWeb import crea_client
+        # Consultazione dai portali: acquisizione guidata React, con ufficio, numero e anno del ruolo.
+        from web.bootstrap.react_route_gate import _redirect_portale
 
-            client = crea_client(demo=demo_mode)
-            documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
-        except Exception as exc:
-            app.logger.exception("Errore polisWeb_documenti: %s", exc)
-            flash(str(exc), "danger")
-            return redirect(url_for("polisWeb_home"))
-
-        return render_template(
-            "polisWeb_documenti.html",
-            documenti=documenti,
-            depositi=group_documenti_per_deposito(documenti),
-            numero_rg=numero_rg,
-            anno_rg=anno_rg,
-            codice_ufficio=codice_ufficio,
-            nome_ufficio=resolve_nome_ufficio(codice_ufficio),
-            demo_mode=demo_mode,
-        )
+        return _redirect_portale(request.path)
 
     @app.route("/polisWeb/fascicolo-wizard", methods=["GET"])
     def polisWeb_fascicolo_wizard():
-        codice_ufficio = request.args.get("codice_ufficio", "")
-        numero_rg = request.args.get("numero_rg", "")
-        auth_mode = polis_auth_mode()
-        demo_mode = auth_mode != "reale"
-        id_fasc = request.args.get("id_fasc", "")
-        sezione_attiva = request.args.get("sezione", "attivita_processuali")
+        # Consultazione dai portali: acquisizione guidata React, con ufficio, numero e anno del ruolo.
+        from web.bootstrap.react_route_gate import _redirect_portale
 
-        try:
-            anno_rg = int(request.args.get("anno_rg", 0) or 0)
-        except (ValueError, TypeError):
-            anno_rg = 0
-
-        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-        try:
-            from pct.polisWeb import PST_SEZIONI_WIZARD, crea_client, raggruppa_per_sezioni_wizard
-
-            client = crea_client(demo=demo_mode)
-            documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
-        except Exception as exc:
-            app.logger.exception("Errore polisWeb_fascicolo_wizard: %s", exc)
-            flash(str(exc), "danger")
-            return redirect(url_for("polisWeb_home"))
-
-        sezioni_dati = raggruppa_per_sezioni_wizard(documenti)
-        sezioni_conteggi = {
-            section_id: sum(len(deposito["documenti"]) for deposito in depositi)
-            for section_id, depositi in sezioni_dati.items()
-        }
-        sezione_ids = [section["id"] for section in PST_SEZIONI_WIZARD]
-        if sezione_attiva not in sezione_ids:
-            sezione_attiva = sezione_ids[0]
-
-        return render_template(
-            "pst_wizard.html",
-            documenti=documenti,
-            sezioni_wizard=PST_SEZIONI_WIZARD,
-            sezioni_dati=sezioni_dati,
-            sezioni_conteggi=sezioni_conteggi,
-            sezione_attiva=sezione_attiva,
-            numero_rg=numero_rg,
-            anno_rg=anno_rg,
-            codice_ufficio=codice_ufficio,
-            nome_ufficio=resolve_nome_ufficio(codice_ufficio),
-            demo_mode=demo_mode,
-            fascicolo=fascicolo_ctx,
-            id_fasc=id_fasc,
-            n_tot=len(documenti),
-            oggi=date.today(),
-        )
+        return _redirect_portale(request.path)
 
     @app.route("/polisWeb/importa", methods=["POST"])
     def polisWeb_importa():

@@ -10,6 +10,7 @@ const MINUSCOLE = new Set(['di', 'del', 'della', 'dello', 'dei', 'degli', 'delle
 const TECNICI: Array<[RegExp, string]> = [
   [/^daticert\.xml$/i, 'Ricevuta del gestore PEC'],
   [/^smime\.p7s$/i, 'Firma del gestore PEC'],
+  [/^esitoatto\.xml(\.p7m)?$/i, 'Esito del deposito telematico'],
   [/^indicebusta\.xml$/i, 'Indice della busta telematica'],
   [/^comunicazione\.xml(\.p7m)?$/i, 'Dati strutturati della comunicazione'],
   [/^postacert\.eml$/i, 'Messaggio originale'],

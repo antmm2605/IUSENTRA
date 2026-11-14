@@ -8,6 +8,7 @@ import {
   Clock,
   CreditCard,
   History,
+  ShieldAlert,
   Hourglass,
   Info,
   Landmark,
@@ -150,6 +151,23 @@ export function VistaScaduto({ studioNome }: { studioNome: string }) {
           Questo link di pagamento non è più valido o è scaduto.<br />
           Contatta lo studio per richiederne uno nuovo.
         </p>
+        <PiedeStudio studioNome={studioNome} />
+      </div>
+    </main>
+  )
+}
+
+/** Il residuo della parcella non autorizza un nuovo pagamento: lo studio deve verificarlo. Nessun addebito avviato. */
+export function VistaDaVerificare({ studioNome, messaggio }: { studioNome: string; messaggio: string }) {
+  return (
+    <main className="iu-pgl-scheda is-stretta" aria-labelledby="iu-pgl-verifica">
+      <header className="iu-pgl-testata is-spento is-centrata">
+        <span className="iu-pgl-cerchio" aria-hidden="true"><ShieldAlert size={40} /></span>
+        <h1 id="iu-pgl-verifica">Pagamento da verificare</h1>
+      </header>
+      <div className="iu-pgl-corpo is-centrata">
+        <p className="iu-pgl-muted" role="status">{messaggio || 'Il pagamento richiede una verifica dello studio prima di procedere.'}</p>
+        <p className="iu-pgl-muted">Nessun addebito è stato avviato. Contatta lo studio: ti invierà un link aggiornato se serve.</p>
         <PiedeStudio studioNome={studioNome} />
       </div>
     </main>

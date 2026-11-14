@@ -19,6 +19,8 @@ from __future__ import annotations
 import re
 from typing import Any, Iterable
 
+from pct.atto_della_causa import stesso_numero_ruolo
+
 VERIFICHE_CERTE = {"verificata", "corretta"}
 NORMA_CONDANNA = "art. 91 c.p.c."
 NORMA_COMPENSAZIONE = "art. 92 c.p.c."
@@ -71,7 +73,6 @@ def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
 
     ``rg`` è il numero di ruolo del fascicolo («2539/2025»): senza, nessuna sentenza è riconoscibile come della causa.
     """
-    rg = re.sub(r"\s+", "", str(rg or ""))
     if not rg:
         return []
     fatti = list(fatti)
@@ -82,8 +83,9 @@ def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
     for documento_id, prove in per_documento.items():
         certe = [f for f in prove if str(_valore(f, "verifica") or "") in VERIFICHE_CERTE]
         ruoli = sorted((f for f in prove if str(_valore(f, "categoria") or "") == "ruolo"), key=lambda f: int(_valore(f, "posizione") or 0))
-        pertinente = bool(ruoli) and re.sub(r"\s+", "", str(_valore(ruoli[0], "valore") or "")) == rg \
-            and str(_valore(ruoli[0], "verifica") or "") in VERIFICHE_CERTE
+        if not ruoli or str(_valore(ruoli[0], "verifica") or "") not in VERIFICHE_CERTE:
+            continue
+        pertinente = stesso_numero_ruolo(_valore(ruoli[0], "valore"), rg)
         spese = next((f for f in certe if _valore(f, "campo") == "spese_sentenza"), None)
         if not documento_id or not pertinente or spese is None:
             continue

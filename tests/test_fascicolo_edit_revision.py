@@ -112,25 +112,18 @@ def test_background_metadata_does_not_block_form_or_get_overwritten(form_api):
     assert cases().get(case.id).note == 'Nota corrente'
 
 
-def test_classic_conflict_renders_posted_draft_without_mutating_repository(form_api, monkeypatch):
+def test_html_conflict_returns_to_react_page_without_mutating_repository(form_api):
+    """La vista Jinja della modifica è stata tolta: un invio HTML in conflitto torna alla
+    pagina React (che rilegge la scheda) con il messaggio, senza toccare l'archivio."""
     client, cases, _, case, calls = form_api
     revision = cases().get(case.id).revisione_modifica
     cases().aggiorna(case.id, note='Nota confermata altrove')
-    rendered = {}
-
-    def capture_template(name, **context):
-        rendered.update(context)
-        return 'controlled template rendering boundary'
-
-    monkeypatch.setattr('web.bootstrap.fascicoli_management_routes.render_template', capture_template)
     response = client.post(f'/fascicoli/{case.id}/modifica', data={
         'base_revision': revision, 'tipo': case.tipo.value, 'titolo': 'Bozza dell’avvocato',
         'note': 'Testo ancora da confrontare',
     })
-    assert response.status_code == 409 and rendered['edit_conflict'] is True
-    assert rendered['fascicolo'].titolo == 'Bozza dell’avvocato'
-    assert rendered['fascicolo'].note == 'Testo ancora da confrontare'
-    assert rendered['fascicolo'].revisione_modifica == revision
+    assert response.status_code in (302, 303)
+    assert response.headers['Location'].endswith(f'/fascicoli/{case.id}/modifica')
     assert cases().get(case.id).note == 'Nota confermata altrove'
     assert cases().get(case.id).titolo == case.titolo
     assert calls == []

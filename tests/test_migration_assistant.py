@@ -17,7 +17,7 @@ def test_admin_assistente_migrazione_esegui_reindirizza_sullo_studio(tmp_path, m
     app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
 
     monkeypatch.setattr(
-        "web.blueprints.admin.execute_migration_assistant",
+        "web.services.migration_assistant.execute_migration_assistant",
         lambda *, selected_slug, target: {"report_path": str(Path(tmp_path) / "report.json")},
     )
 
@@ -29,16 +29,17 @@ def test_admin_assistente_migrazione_esegui_reindirizza_sullo_studio(tmp_path, m
         )
         assert login.status_code == 302
 
+        # Azione «esegui» della pagina React «Assistente migrazione» (la stessa del modulo storico).
         response = client.post(
-            "/admin/assistente-migrazione/esegui",
-            data={"slug": studio.slug, "target": "sqlite"},
-            follow_redirects=False,
+            "/api/v1/ui/piattaforma/assistente-migrazione/azioni/esegui",
+            json={"params": {}, "values": {"slug": studio.slug, "target": "sqlite"}},
         )
+        pagina = client.get(f"/api/v1/ui/piattaforma/assistente-migrazione?slug={studio.slug}")
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith(
-        f"/admin/assistente-migrazione?slug={studio.slug}&_legacy=1"
-    )
+    assert response.status_code == 200
+    assert response.get_json()["ok"] is True
+    assert response.get_json()["message"] == "Migrazione completa su SQL locale eseguita con report reale."
+    assert pagina.status_code == 200 and pagina.get_json()["ok"] is True
 
 
 def test_build_migration_assistant_rileva_postgres_anche_se_storage_corrente_e_json(tmp_path):
@@ -196,7 +197,7 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
     app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
 
     monkeypatch.setattr(
-        "web.blueprints.admin.execute_migration_assistant",
+        "web.services.migration_assistant.execute_migration_assistant",
         lambda *, selected_slug, target: {
             "target": target,
             "generated_at": "2026-04-19T10:30:00",
@@ -208,22 +209,23 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
         login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
         assert login.status_code == 302
 
+        # Azione «esegui» della pagina React «Assistente migrazione» (la stessa del modulo storico).
         response = client.post(
-            "/admin/assistente-migrazione/esegui",
-            data={"slug": studio.slug, "target": "sqlite"},
-            follow_redirects=True,
+            "/api/v1/ui/piattaforma/assistente-migrazione/azioni/esegui",
+            json={"params": {}, "values": {"slug": studio.slug, "target": "sqlite"}},
         )
+        pagina = client.get(f"/api/v1/ui/piattaforma/assistente-migrazione?slug={studio.slug}")
 
-    html = response.get_data(as_text=True)
-    assert response.status_code == 200
+    html = pagina.get_data(as_text=True)
+    assert response.status_code == 200 and response.get_json()["ok"] is True
     assert "Ultima esecuzione reale" in html
     assert "Migrazione completata" in html
     assert "Clienti" in html
     assert "Repository strutturati" in html
-    assert "Diff pre / post migrazione" in html
+    assert "Differenze prima e dopo la migrazione" in html
     assert "Snapshot pre-migrazione" in html
-    assert "Log operativo della migrazione" in html
-    assert "Rollback e recovery guidato" in html
+    assert "Registro operativo della migrazione" in html
+    assert "Ritorno indietro e ripristino guidato" in html
     assert str(report_path) in html
 
 
@@ -249,20 +251,21 @@ def test_admin_assistente_migrazione_renderizza_errori_e_rimedi(tmp_path, monkey
     def _raise_execute(*, selected_slug, target):
         raise RuntimeError("Connessione PostgreSQL non disponibile")
 
-    monkeypatch.setattr("web.blueprints.admin.execute_migration_assistant", _raise_execute)
+    monkeypatch.setattr("web.services.migration_assistant.execute_migration_assistant", _raise_execute)
 
     with app.test_client() as client:
         login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
         assert login.status_code == 302
 
+        # Azione «esegui» della pagina React «Assistente migrazione» (la stessa del modulo storico).
         response = client.post(
-            "/admin/assistente-migrazione/esegui",
-            data={"slug": studio.slug, "target": "postgresql"},
-            follow_redirects=True,
+            "/api/v1/ui/piattaforma/assistente-migrazione/azioni/esegui",
+            json={"params": {}, "values": {"slug": studio.slug, "target": "postgresql"}},
         )
+        pagina = client.get(f"/api/v1/ui/piattaforma/assistente-migrazione?slug={studio.slug}")
 
-    html = response.get_data(as_text=True)
-    assert response.status_code == 200
+    html = pagina.get_data(as_text=True)
+    assert response.status_code == 200 and response.get_json()["ok"] is False
     assert "Esecuzione non completata" in html
     assert "Come risolvere" in html
     assert "Verifica host, porta, nome database, utente e password nello studio selezionato." in html

@@ -9,10 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from flask import Flask, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, current_app, flash, jsonify, redirect, request, url_for
 
 from pct.clienti import Recapiti
-from pct.fascicoli import StatoFascicolo, TipoFascicolo
+from pct.fascicoli import TipoFascicolo
 from pct.soggetti import RuoloSoggetto, TipoSoggetto, soggetto_coincide_con_cliente
 from pct.uffici_giudiziari import risolvi_ufficio
 from web.blueprints.react_shell import render_react_shell_response
@@ -31,10 +31,6 @@ from web.services.fascicoli_create_helpers import (
     profilo_deposito_da_form as _profilo_deposito_da_form,
     salva_upload_fascicolo_veloce as _salva_upload_fascicolo_veloce,
 )
-
-
-def _richiede_vista_classica() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_fascicoli_create_routes(
@@ -215,69 +211,23 @@ def register_fascicoli_create_routes(
 
     @app.route("/fascicoli")
     def lista_fascicoli():
-        if not _richiede_vista_classica():
-            return render_react_shell_response("fascicoli")
-
-        gestore_fascicoli = get_fascicoli()
-        testo = request.args.get("q", "").strip()
-        stato_filtro = request.args.get("stato", "")
-        tipo_filtro = request.args.get("tipo", "")
-        filtro_dal = request.args.get("dal", "")
-        filtro_al = request.args.get("al", "")
-        stato = StatoFascicolo(stato_filtro) if stato_filtro else None
-        tipo = TipoFascicolo(tipo_filtro) if tipo_filtro else None
-        fascicoli = (
-            gestore_fascicoli.cerca(testo=testo, stato=stato, tipo=tipo)
-            if testo
-            else gestore_fascicoli.tutti(stato=stato, tipo=tipo)
-        )
-        if filtro_dal:
-            fascicoli = [fasc for fasc in fascicoli if getattr(fasc, "data_apertura", "") >= filtro_dal]
-        if filtro_al:
-            fascicoli = [fasc for fasc in fascicoli if getattr(fasc, "data_apertura", "") <= filtro_al]
-        stats = gestore_fascicoli.statistiche()
-        scadenze = gestore_fascicoli.fascicoli_con_scadenze_imminenti(entro_giorni=7)
-        return render_template(
-            "fascicoli/lista.html",
-            fascicoli=fascicoli,
-            stats=stats,
-            scadenze=scadenze,
-            q=testo,
-            stato_filtro=stato_filtro,
-            tipo_filtro=tipo_filtro,
-            filtro_dal=filtro_dal,
-            filtro_al=filtro_al,
-            tipi=list(TipoFascicolo),
-            stati=list(StatoFascicolo),
-        )
+        return render_react_shell_response("fascicoli")
 
     @app.route("/fascicoli/archivio")
     def lista_archivio():
-        if not _richiede_vista_classica():
-            return render_react_shell_response("fascicoli/archivio")
-
-        testo = request.args.get("q", "").strip()
-        fascicoli = get_fascicoli().cerca(
-            testo=testo,
-            stato=StatoFascicolo.ARCHIVIATO,
-            archiviati=True,
-        )
-        return render_template("fascicoli/archivio.html", fascicoli=fascicoli, q=testo)
+        return render_react_shell_response("fascicoli/archivio")
 
     @app.route("/fascicoli/esporta")
     def esporta_fascicoli_view():
-        if not _richiede_vista_classica():
-            return render_react_shell_response("fascicoli/esporta")
-        return redirect(url_for("lista_fascicoli"))
+        return render_react_shell_response("fascicoli/esporta")
 
     @app.route("/fascicoli/nuovo", methods=["GET", "POST"])
     def nuovo_fascicolo():
-        from pct.workflow_onboarding import build_fascicolo_onboarding
 
         gestore_clienti = get_clienti()
         gestore_fascicoli = get_fascicoli()
         gestore_preventivi = get_preventivi()
-        if request.method == "GET" and not _richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response("fascicoli/nuovo")
 
         if request.method == "POST":
@@ -577,44 +527,4 @@ def register_fascicoli_create_routes(
                 if failure is not None:
                     return failure
 
-        source_preventivo = request.args.get("source_preventivo", "").strip()
-        source_conferimento = request.args.get("source_conferimento", "").strip()
-        from_page = request.args.get("from_page", "").strip()
-        id_cliente_pre = request.args.get("id_cliente", "").strip()
-        preventivo_src = (
-            gestore_preventivi.get_preventivo(source_preventivo) if source_preventivo else None
-        )
-        conferimento_src = (
-            gestore_preventivi.get_conferimento(source_conferimento)
-            if source_conferimento
-            else None
-        )
-        if not id_cliente_pre:
-            id_cliente_pre = (
-                (conferimento_src.id_cliente if conferimento_src else "")
-                or (preventivo_src.id_cliente if preventivo_src else "")
-            )
-        cliente_src = gestore_clienti.get(id_cliente_pre) if id_cliente_pre else None
-        workflow_prefill = None
-        if cliente_src and (preventivo_src or conferimento_src):
-            workflow_prefill = build_fascicolo_onboarding(
-                cliente=cliente_src,
-                preventivo=preventivo_src,
-                conferimento=conferimento_src,
-            )
-
-        return render_template(
-            "fascicoli/form.html",
-            fascicolo=None,
-            clienti=gestore_clienti.tutti(stato=None),
-            tipi=list(TipoFascicolo),
-            stati=list(StatoFascicolo),
-            id_cliente_pre=id_cliente_pre,
-            workflow_prefill=workflow_prefill,
-            source_preventivo=source_preventivo,
-            source_conferimento=source_conferimento,
-            from_page=from_page,
-            studio_avvocato_titolare=_avvocato_titolare_studio(),
-            correction_context=fascicolo_form_correction_context(),
-            oggi=date.today(),
-        )
+        return redirect(request.path)

@@ -15,7 +15,7 @@ from pct.ora_italiana import oggi_roma
 _DATE_RE = re.compile(r"\b(?P<day>[0-3]?\d)[./-](?P<month>[01]?\d)[./-](?P<year>(?:19|20)\d{2})\b")
 _ISO_RE = re.compile(r"\b(?P<year>(?:19|20)\d{2})-(?P<month>[01]\d)-(?P<day>[0-3]\d)\b")
 _TIME_RE = re.compile(r"\b(?:ore|h\.?)\s*(?P<hour>[0-2]?\d)[:.,](?P<minute>[0-5]\d)\b", re.IGNORECASE)
-_RG_RE = re.compile(r"\b(?:r\.?\s*g\.?|rgl|n\.?\s*r\.?\s*g\.?)\s*(?:n\.?)?\s*(?P<num>\d{1,7})\s*/\s*(?P<year>(?:19|20)\d{2})\b", re.IGNORECASE)
+_RG_RE = re.compile(r"\b(?:r\.?\s*g\.?|rgl|n\.?\s*r\.?\s*g\.?)\s*(?:n\.?)?\s*(?P<num>\d+)\s*/\s*(?P<year>(?:19|20)\d{2})\b", re.IGNORECASE)
 _WORD_RE = re.compile(r"[^a-z0-9]+")
 _PERSONAL_DOCUMENT_MARKERS = (
     "carta di identita",
@@ -276,11 +276,11 @@ def normalise_rg_parts(fascicolo: Any) -> tuple[str, str] | None:
             number = number or match.group("num")
             year = year or match.group("year")
     if not number or not year:
-        match = re.search(r"(?P<num>\d{1,7})\s*/\s*(?P<year>(?:19|20)\d{2})", rg_full)
+        match = re.search(r"(?P<num>\d+)\s*/\s*(?P<year>(?:19|20)\d{2})", rg_full)
         if match:
             number = number or match.group("num")
             year = year or match.group("year")
-    number_match = re.search(r"\d{1,7}", number)
+    number_match = re.search(r"\d+", number)
     year_match = re.search(r"(?:19|20)\d{2}", year)
     if not number_match or not year_match:
         return None

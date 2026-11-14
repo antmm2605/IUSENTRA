@@ -61,6 +61,23 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
   const [sort, setSortState] = useState<DocumentSortKey>(readStoredSort)
   const [section, setSection] = useState('tutte')
   const [status, setStatus] = useState<DocumentStatusFilter>('tutti')
+  const [applicaFiltriSalvati, setApplicaFiltriSalvati] = useState(false)
+  const [vistaSenzaRisultati, setVistaSenzaRisultati] = useState(false)
+  const filtriScelti = useRef(false)
+  const setSezioneScelta = (next: string) => {
+    filtriScelti.current = true
+    setApplicaFiltriSalvati(false)
+    setVistaSenzaRisultati(false)
+    setStatus(statoVisibile)
+    setSection(next)
+  }
+  const setStatoScelto = (next: DocumentStatusFilter) => {
+    filtriScelti.current = true
+    setApplicaFiltriSalvati(false)
+    setVistaSenzaRisultati(false)
+    setSection(sezioneVisibile)
+    setStatus(next)
+  }
   const searchRef = useRef<HTMLInputElement>(null)
   const deferredQuery = useDeferredValue(query)
 
@@ -81,6 +98,8 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
         if (!salvata.configured) return
         // La preferenza dello studio prevale sull'ordinamento locale del browser.
         if (isDocumentSortKey(salvata.preferences.sort)) setSortState(salvata.preferences.sort)
+        if (filtriScelti.current) return
+        setApplicaFiltriSalvati(true)
         if (SEZIONI_AMMESSE.has(salvata.preferences.section)) setSection(salvata.preferences.section)
         if (isStatusFilter(salvata.preferences.status)) setStatus(salvata.preferences.status)
       })
@@ -116,34 +135,48 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
 
   const matchingQuery = useMemo(() => searchResult.items.map(({ item }) => item), [searchResult])
 
+  // Durante il caricamento del catalogo un filtro salvato può non avere ancora riscontri.
+  // L'inventario resta visibile. Un filtro selezionato esplicitamente conserva anche l'esito vuoto.
+  const filtriSalvatiSenzaRisultati = applicaFiltriSalvati && entries.length > 0
+    && !entries.some((entry) => (section === 'tutte' || entry.sectionId === section) && matchesStatus(entry, status))
+  useEffect(() => {
+    if (filtriSalvatiSenzaRisultati) setVistaSenzaRisultati(true)
+  }, [filtriSalvatiSenzaRisultati])
+  const usaInventario = vistaSenzaRisultati || filtriSalvatiSenzaRisultati
+  const sezioneVisibile = usaInventario ? 'tutte' : section
+  const statoVisibile = usaInventario ? 'tutti' : status
+
   const sectionCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const entry of matchingQuery) {
-      if (!matchesStatus(entry, status)) continue
+      if (!matchesStatus(entry, statoVisibile)) continue
       counts.set(entry.sectionId, (counts.get(entry.sectionId) || 0) + 1)
     }
     return counts
-  }, [matchingQuery, status])
+  }, [matchingQuery, statoVisibile])
 
   const statusCounts = useMemo(() => {
-    const inSection = matchingQuery.filter((entry) => section === 'tutte' || entry.sectionId === section)
+    const inSection = matchingQuery.filter((entry) => sezioneVisibile === 'tutte' || entry.sectionId === sezioneVisibile)
     return {
       tutti: inSection.length,
       da_firmare: inSection.filter((entry) => matchesStatus(entry, 'da_firmare')).length,
       da_verificare: inSection.filter((entry) => matchesStatus(entry, 'da_verificare')).length,
     } satisfies Record<DocumentStatusFilter, number>
-  }, [matchingQuery, section])
+  }, [matchingQuery, sezioneVisibile])
 
   const visible = useMemo(
     () => matchingQuery
-      .filter((entry) => (section === 'tutte' || entry.sectionId === section) && matchesStatus(entry, status))
+      .filter((entry) => (sezioneVisibile === 'tutte' || entry.sectionId === sezioneVisibile) && matchesStatus(entry, statoVisibile))
       .sort((a, b) => (relevanceActive ? (relevanceRank.get(a.id) ?? 0) - (relevanceRank.get(b.id) ?? 0) : 0) || compareDocuments(sort, a.document, b.document)),
-    [matchingQuery, section, status, sort, relevanceActive, relevanceRank],
+    [matchingQuery, sezioneVisibile, statoVisibile, sort, relevanceActive, relevanceRank],
   )
 
-  const filtersActive = Boolean(query.trim()) || section !== 'tutte' || status !== 'tutti'
+  const filtersActive = Boolean(query.trim()) || sezioneVisibile !== 'tutte' || statoVisibile !== 'tutti'
 
   const resetFilters = useCallback(() => {
+    filtriScelti.current = true
+    setApplicaFiltriSalvati(false)
+    setVistaSenzaRisultati(false)
     setQuery('')
     setSection('tutte')
     setStatus('tutti')
@@ -165,7 +198,7 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
 
   // La ricerca non entra nella vista salvata: e' una domanda del momento, non
   // un modo di guardare l'archivio.
-  const vistaCorrente = useMemo(() => ({ sort, section, status }), [sort, section, status])
+  const vistaCorrente = useMemo(() => ({ sort, section: sezioneVisibile, status: statoVisibile }), [sort, sezioneVisibile, statoVisibile])
   const vistaModificata =
     vistaCorrente.sort !== vistaSalvata.sort ||
     vistaCorrente.section !== vistaSalvata.section ||
@@ -193,6 +226,8 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
       const salvata = await dimenticaVistaDocumenti()
       setVistaSalvata(salvata.preferences)
       setVistaConfigurata(false)
+      setVistaSenzaRisultati(false)
+      setApplicaFiltriSalvati(false)
       setSortState(DEFAULT_DOCUMENT_SORT)
       setSection('tutte')
       setStatus('tutti')
@@ -209,10 +244,10 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
     setQuery,
     sort,
     setSort,
-    section,
-    setSection,
-    status,
-    setStatus,
+    section: sezioneVisibile,
+    setSection: setSezioneScelta,
+    status: statoVisibile,
+    setStatus: setStatoScelto,
     searchRef,
     visible,
     searchMode,
@@ -225,7 +260,7 @@ export function useDocumentListControls<T>(entries: DocumentListEntry<T>[]) {
     vistaConfigurata,
     vistaModificata,
     vistaStato,
-    vistaMessaggio,
+    vistaMessaggio: vistaMessaggio || (usaInventario ? 'La vista salvata non mostrava atti all’apertura. Mostro tutti i documenti.' : ''),
     salvaVista,
     ripristinaVista,
   }

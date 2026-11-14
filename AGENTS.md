@@ -42,6 +42,39 @@ Logica di lavoro da usare sempre, per ogni modifica e ogni sessione (Codex e Cla
    comando sul PC, accesso a un portale), indicare sempre: dove (nome esatto della sessione o della
    finestra), il testo o il comando esatto da incollare, e cosa deve vedere se è andato a buon fine.
 
+## Comprensibilità operativa su tutto IUSENTRA — direttiva utente 13/11/2026
+
+Ogni contenuto aggiunto, scaricato, importato, ricostruito o generato deve essere collegato al suo contesto e reso comprensibile a chi lo usa: documenti, PEC, notizie, fascicoli, agenda, scadenziario, presìdi, esiti dei job, pannelli, card ed esportazioni. La verifica vale anche per l'arretrato corretto o ripubblicato.
+
+1. Conservare l'originale e la provenienza; leggere l'atto effettivo, inclusi gli allegati pertinenti. Una pagina indice, un titolo, uno stato tecnico o un estratto senza contesto non dimostrano cosa dice la fonte.
+2. Mostrare in parole semplici il fatto, a chi e a quali casi si applica, cosa cambia, cosa fare e come, perché, entro quando e con quale prova dell'esecuzione. Collegare ogni conclusione al passaggio e alla data della fonte; per gli effetti giuridici mantenere il contratto delle sette risposte, con norma applicabile e riferimento verificabile. Distinguere fatti, inferenze e proposte.
+3. Se la risposta non è verificabile, spiegare cosa manca e come chiarirlo. Conservare il materiale acquisito, ma non pubblicarlo come sintesi operativa e non derivarne una scadenza o un adempimento certo. Segnalare esplicitamente i punti non applicabili.
+4. Collaudare la catena dalla fonte originale a ciò che vede la persona sulla copia locale. Controllo tecnico e controllo di comprensione hanno esiti separati: HTTP 200, SQL scritto o schermata aperta non completano il collaudo. Registrare esempi reali, esito e pendenze; riusare il medesimo controllo nei pannelli che mostrano la stessa conclusione.
+
+### Come deve parlare il software all’avvocato
+
+Scrivere come un collega che consegna la pratica: iniziare dall’esito concreto, chiarire chi deve muoversi, indicare dove agire e con quali documenti. Mostrare il motivo e l’effetto dell’inerzia. Se ci sono una proposta, un dubbio o un dato mancante, nominarli subito e dire come scioglierli. Una comunicazione ricevuta e una notifica perfezionata devono restare distinguibili. Le etichette di sistema, i codici interni e gli esiti tecnici non sostituiscono la spiegazione.
+
+Usare Graphify per seguire ogni artefatto dal produttore ai dati salvati e a tutti i punti in cui viene letto. Verificare il percorso nel codice e nella copia locale: il grafo orienta, la prova sul dato reale dimostra. Quando più schermate riferiscono lo stesso fatto, correggere prima la conclusione condivisa e collaudare ciascuna rappresentazione. Il collaudo a video deve permettere a chi non ha seguito il lavoro di spiegare, con parole proprie, cosa fare e perché. Registrare schermate, stati e risultati distinti; non chiudere come verificata una superficie non aperta o una notte non conclusa.
+
+La lavorazione delle PEC è a carico del processo automatico. Il software acquisisce l’originale, verifica allegati e firme e registra gli esiti, i collegamenti e le scadenze che risultano dalle fonti. Le viste leggono gli stessi esiti salvati. Chiedere un intervento all’avvocato solo quando serve sciogliere un dubbio o compiere un adempimento, indicando il motivo e la prova disponibile.
+
+### Collaudo visivo dal punto di vista dell’avvocato
+
+**Criterio obbligatorio dell’obiettivo IUSENTRA.** Verificare sempre nel browser della copia locale, e nel formato finale per documenti ed esportazioni, ogni risultato destinato all’avvocato. La verifica copre tutte le aree del prodotto e tutte le materie giuridiche e i riti gestiti, anche per i risultati dei job automatici, delle integrazioni e delle riletture dell’arretrato. L’esito va giudicato con il livello di precisione richiesto a un collega specializzato nella materia del caso.
+
+- Prima di chiudere un lavoro, aprire nella copia locale effettivamente in uso ogni pagina, pannello, sezione, scheda o esportazione interessata. Seguire il percorso ordinario dell’avvocato, dalla fonte originale fino a ciascuna vista che comunica l’esito. Nei flussi automatici verificare anche una lavorazione partita senza intervento dalla pagina e il relativo esito registrato.
+- Verificare il risultato con il punto di vista di un avvocato specializzato nella materia e nel rito del caso. Controllare che l’interfaccia permetta di capire che cosa è accaduto, a quale pratica e parte si riferisce, quale fonte e norma vigente si applicano, che cosa fare, come ed entro quando, le conseguenze e la prova dell’adempimento. Quando manca una prova, deve essere comprensibile quale dato manca e chi può completarlo. Verificare che la stessa conclusione, con data e fonte coerenti, arrivi in tutte le viste pertinenti.
+- Usare fascicoli reali per i flussi disponibili e casi ancorati a fonti ufficiali per le materie o gli esiti assenti nell’archivio dello studio. Includere casi positivi, esiti negativi e dubbi, oltre a stati di caricamento o di errore quando rilevanti. Registrare nel verbale versione locale, materia, percorso, fonte, risultato visto e difetti aperti. Il test automatico, l’interrogazione SQL e Graphify integrano questa prova. Una schermata che non è stata aperta e una catena che non è stata osservata restano da verificare.
+
+### Fonti giuridiche, vigenza e prove del fascicolo
+
+Acquisire dai canali ufficiali disponibili tramite i connettori censiti, riusando l’archivio già competente. Coprire leggi, decreti e regolamenti nazionali ed europei, pronunce, prassi, specifiche del processo telematico e, per la singola causa, provvedimenti, udienze, depositi e notifiche. Riferimenti secondari e comunicati servono a trovare il documento; non sostituiscono il testo applicabile. Identificare l’autorità, il documento, la versione, la data, il passaggio pertinente e il collegamento. Controllare modifiche, decorrenza, norme transitorie, ambito e rito alla data dell’evento. Se una fonte è indisponibile, indicare quale controllo manca; non trasformare un titolo o un conteggio in un precedente né una data di pubblicazione in un termine del fascicolo.
+
+### Selezione delle Notizie utili
+
+Nel notiziario operativo pubblicare solo aggiornamenti che servono allo studio nel lavoro quotidiano: una decisione, un controllo, una scadenza, un'attività o un orientamento spendibile in una pratica. Tipo ed emittente sono indizi, non dimostrano utilità da soli. Una notizia deve spiegare il suo nesso con un prossimo passo, di un effetto concreto o di un criterio applicabile. Avvisi generici, eventi promozionali e atti senza utilità dimostrata restano consultabili nell'archivio ufficiale; non occupano il notiziario operativo.
+
 ## Metodo di lavoro sul codice — direttiva utente 02/11/2026
 
 Principi adottati su richiesta dell'avvocato (dalle osservazioni di Andrej Karpathy sugli errori tipici degli

@@ -329,6 +329,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
     rinnovi_documenti = _proponi_rinnovi_documenti(paths, backend, scadenziario, oggi_roma())
     doppioni_riuniti = _riunisci_doppioni(scadenziario, agenda)
     proposte_decorse = _chiudi_proposte_decorse(scadenziario)
+    proposte_giudice = _riconvalida_proposte_giudice(scadenziario)
     recipients = notification_recipients_for_paths(paths, database=database_config)
     service = NotificationService(
         notification_repository,
@@ -349,7 +350,21 @@ def materialize_agenda_scadenziario_notifications_for_paths(
         "rinnoviDocumentiIdentita": rinnovi_documenti,
         "doppioniRiuniti": doppioni_riuniti,
         "proposteDecorse": proposte_decorse,
+        "proposteGiudice": proposte_giudice,
     }
+    controlli = {
+        "Memorie dalla prima udienza": memorie_da_udienza,
+        "Termini lunghi delle sentenze": termini_lunghi,
+        "Riconvalida delle bozze per il termine lungo": termini_lunghi["riconvalida"],
+        "Rinnovi dei documenti d’identità": rinnovi_documenti,
+        "Riunione delle voci duplicate": doppioni_riuniti,
+        "Proposte con termine decorso": proposte_decorse,
+        "Proposte dai provvedimenti del giudice": proposte_giudice,
+    }
+    report["controlliNonCompletati"] = {
+        nome: esito["errore"] for nome, esito in controlli.items() if esito.get("errore")
+    }
+    report["errors"] = len(report["controlliNonCompletati"])
     for user in recipients:
         try:
             can_agenda = not hasattr(user, "ha_permesso") or bool(user.ha_permesso("agenda.leggi"))
@@ -364,6 +379,7 @@ def materialize_agenda_scadenziario_notifications_for_paths(
                 scadenziario,
                 include_agenda=can_agenda,
                 include_scadenziario=can_scadenziario,
+                strict=True,
             )
             service.sync_operational_items(
                 tenant_id=resolved_tenant_id,
@@ -555,6 +571,17 @@ def _chiudi_proposte_decorse(scadenziario: Any) -> dict[str, Any]:
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
 
 
+def _riconvalida_proposte_giudice(scadenziario: Any) -> dict[str, Any]:
+    """Bozze dai provvedimenti del giudice create con regole superate (pct.riconvalida_proposte_giudice)."""
+    from pct.riconvalida_proposte_giudice import riconvalida_proposte_giudice
+
+    try:
+        return riconvalida_proposte_giudice(scadenziario)
+    except Exception as exc:  # la riconvalida non deve fermare le notifiche
+        logging.getLogger(__name__).warning("Proposte dai provvedimenti non riconvalidate: %s", exc)
+        return {"errore": f"{type(exc).__name__}: {exc}"[:200]}
+
+
 def _proponi_rinnovi_documenti(paths: Mapping[str, Any], backend: Any, scadenziario: Any, oggi: Any) -> dict[str, Any]:
     """Documenti d'identità dei clienti in scadenza entro 60 giorni → voce di rinnovo nello scadenziario."""
     from pct.clienti import GestioneClienti
@@ -613,9 +640,12 @@ def _core_fascicolo_rows(
     database: Any = None,
     *,
     fascicolo_ids: Iterable[str] | None = None,
+    strict: bool = False,
 ) -> list[Any]:
     backend = _core_backend_for_paths(paths, database)
     if backend is None:
+        if strict:
+            raise NotificationRuntimeUnavailable("Archivio fascicoli non disponibile per il presidio notifiche.")
         return []
     selected_ids = tuple(
         sorted({_notification_text(value) for value in (fascicolo_ids or ()) if _notification_text(value)})
@@ -636,18 +666,24 @@ def _core_fascicolo_rows(
                 sql += f" WHERE id IN ({','.join('?' for _ in selected_ids)})"
                 params = selected_ids
             return list(fetchall(sql, params))
-        except Exception:
+        except Exception as exc:
+            if strict:
+                raise NotificationRuntimeUnavailable("Lettura dei fascicoli fallita durante il presidio notifiche.") from exc
             return []
     loader = getattr(backend, "carica_tabella", None)
     if callable(loader):
         try:
             rows = list(loader("fascicoli") or [])
-        except Exception:
+        except Exception as exc:
+            if strict:
+                raise NotificationRuntimeUnavailable("Lettura dei fascicoli fallita durante il presidio notifiche.") from exc
             return []
         if selected_ids:
             selected = set(selected_ids)
             rows = [row for row in rows if _notification_text(_notification_row_value(row, "id")) in selected]
         return rows
+    if strict:
+        raise NotificationRuntimeUnavailable("Lettura dei fascicoli non disponibile per il presidio notifiche.")
     return []
 
 
@@ -655,14 +691,10 @@ def _notification_fascicolo_rows(
     paths: Mapping[str, Any],
     database: Any = None,
 ) -> tuple[int, int, list[Any]]:
-    try:
-        rows = [
-            row
-            for row in _core_fascicolo_rows(paths, database)
-            if _notification_text(_notification_row_value(row, "id"))
-        ]
-    except Exception:
-        return 0, 0, []
+    rows = [
+        row for row in _core_fascicolo_rows(paths, database, strict=True)
+        if _notification_text(_notification_row_value(row, "id"))
+    ]
     rows.sort(
         key=lambda row: (
             _notification_text(
@@ -886,29 +918,40 @@ def _unlinked_pec_items(paths: Mapping[str, Any], *, limit: int = UNLINKED_PEC_M
         # deve comunque rilasciare sempre il handle.
         conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
+        if conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pec_messages'"
+        ).fetchone() is None:
+            return []
         righe = conn.execute(
             """
-                SELECT m.id, m.metadata_json, m.received_at, l.seeds_json, l.status AS link_status
-                FROM pec_messages m
-                JOIN (
-                    SELECT message_id, MAX(created_at) AS ultimo
-                    FROM pec_fascicolo_links
-                    GROUP BY message_id
-                ) ultimo_link ON ultimo_link.message_id = m.id
-                JOIN pec_fascicolo_links l
-                  ON l.message_id = m.id AND l.created_at = ultimo_link.ultimo
-                WHERE TRIM(COALESCE(m.linked_fascicolo_id, '')) = ''
-                ORDER BY m.received_at DESC
-                LIMIT ?
+                WITH candidati AS (
+                    SELECT m.id, m.received_at,
+                           (SELECT ll.id FROM pec_fascicolo_links ll
+                            WHERE ll.message_id = m.id
+                            ORDER BY ll.created_at DESC, ll.rowid DESC LIMIT 1) AS link_id,
+                           (SELECT le.priority FROM pec_legal_events le
+                            WHERE le.tenant_id = m.tenant_id AND le.message_id = m.id
+                            ORDER BY le.created_at DESC, le.rowid DESC LIMIT 1) AS legal_priority
+                    FROM pec_messages m
+                    WHERE TRIM(COALESCE(m.linked_fascicolo_id, '')) = ''
+                ), selezionati AS MATERIALIZED (
+                    SELECT id, received_at, link_id, legal_priority,
+                           CASE legal_priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END AS priorita
+                    FROM candidati
+                    WHERE link_id IS NOT NULL
+                    ORDER BY priorita, received_at DESC, id LIMIT ?
+                )
+                SELECT s.id, m.metadata_json, s.received_at, l.seeds_json, l.status AS link_status,
+                       s.legal_priority
+                FROM selezionati s
+                JOIN pec_messages m ON m.id = s.id
+                JOIN pec_fascicolo_links l ON l.id = s.link_id
+                ORDER BY s.priorita, s.received_at DESC, s.id
                 """,
             (max(1, int(limit or UNLINKED_PEC_MAX_ITEMS)),),
         ).fetchall()
     except sqlite3.Error as exc:
-        # Un errore qui significa che le PEC non collegate restano invisibili:
-        # va detto, non ingoiato.
-        if has_app_context():
-            current_app.logger.warning("PEC non collegate non leggibili da %s: %s", db_path, exc)
-        return []
+        raise NotificationRuntimeUnavailable("Lettura delle PEC da assegnare non riuscita.") from exc
     finally:
         # Mai un ``return`` qui: scarterebbe le righe lette a ogni chiamata e
         # inghiottirebbe le eccezioni, lasciando le PEC da assegnare invisibili
@@ -950,10 +993,10 @@ def _unlinked_pec_items(paths: Mapping[str, Any], *, limit: int = UNLINKED_PEC_M
                 "id": f"{UNLINKED_PEC_ITEM_PREFIX}:{_notification_text(dati.get('id'))}",
                 "fascicoloId": "",
                 "type": LEGAL_NOTIFICATION_SOURCE_TYPE,
-                "priority": "important",
+                "priority": "urgent" if dati.get("legal_priority") == "P0" else "important",
                 "title": "PEC da assegnare a un fascicolo",
                 "message": messaggio,
-                "href": "/email?canale=pec",
+                "href": f"/email/?embed=source&audit_id={quote(_notification_text(dati.get('id')), safe='')}",
                 "actionLabel": "Apri la PEC",
                 "createdAt": _notification_text(dati.get("received_at")),
             }

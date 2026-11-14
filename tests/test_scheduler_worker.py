@@ -38,7 +38,19 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("lex_operational_agents_nightly") is not None
         assert scheduler.get_job("lex_dataset_nightly") is not None
         assert scheduler.get_job("legal_official_archives_daily") is not None
-        assert scheduler.get_job("legal_updates_batch") is not None
+        lotto = scheduler.get_job("legal_updates_batch")
+        assert lotto is not None
+        assert scheduler.get_job("gazzetta_ufficiale_sommari") is not None
+        configurazioni = []
+
+        with monkeypatch.context() as patch:
+            def cattura(_config, *, source_codes):
+                configurazioni.append(source_codes)
+                return {"ok": True}
+            patch.setattr("pct.legal_update_autofetch.run_legal_update_autofetch_tick", cattura)
+            assert lotto.func()["ok"] is True
+        assert "gazzetta_ufficiale" not in configurazioni[0]
+        assert "cassazione_ultime_sent_ord_questioni" in configurazioni[0]
         cortecost = scheduler.get_job("corte_costituzionale_opendata_weekly")
         assert cortecost is not None
         assert "day_of_week='sat'" in str(cortecost.trigger)

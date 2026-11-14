@@ -34,7 +34,7 @@ MONEY_RE = re.compile(
 
 # Forma con connettore esplicito: "liquida ... la somma di € 3.000,00".
 _LIQUIDAZIONE_CONNETTORE_PATTERN = (
-    r"\bliquid(?:a|ando|ata|ato|ate|ati)\b.{0,160}?"
+    r"\bliquid(?:a|ano|ando|ata|ato|ate|ati)\b.{0,160}?"
     r"(?:(?:complessiv[aoei]\s+)?(?:somma|importo)\s+(?:di\s+)?|(?:in\s+)?complessiv[aoei]\s+)"
 )
 # Forma diretta, la piu' frequente nei dispositivi italiani: "condanna ... alla
@@ -42,10 +42,11 @@ _LIQUIDAZIONE_CONNETTORE_PATTERN = (
 # generali, iva e cpa". Senza connettore "somma/importo/complessiva" il pattern
 # sopra non aggancia nulla e il credito dell'avvocato non nasce.
 _LIQUIDAZIONE_DIRETTA_PATTERN = (
-    r"\bliquid(?:a|ando|ata|ato|ate|ati)\b"
+    r"\bliquid(?:a|ano|ando|ata|ato|ate|ati)\b"
     r"(?:\s+(?:la\s+|le\s+|i\s+|il\s+)?(?:spese|competenze|compensi|onorari|somma|importo)"
     r"(?:\s+(?:di\s+lite|di\s+giudizio|legali|professionali|complessiv[aoei]|forfettari[ao]))?"
     r"(?:\s+di)?)?"
+    r"(?:\s+complessivamente)?"
     r"(?:\s+(?:in|nella\s+misura\s+di|pari\s+a))?"
     r"[\s,:]*"
 )
@@ -58,7 +59,7 @@ _VALUTA_DOPO_PATTERN = r"\s*(?:euro\b|EUR\b|€)"
 _LIQUIDAZIONE_PATTERNS = tuple(
     re.compile(ancora + importo, re.IGNORECASE | re.DOTALL)
     for importo in (
-        MONEY_PREFIX_PATTERN + r"\s*" + _IMPORTO_NOMINATO_PATTERN,
+        MONEY_PREFIX_PATTERN + r"\s*" + _IMPORTO_NOMINATO_PATTERN + r"(?![\w]|[.,]\d)",
         _IMPORTO_NOMINATO_PATTERN + _VALUTA_DOPO_PATTERN,
     )
     for ancora in (_LIQUIDAZIONE_CONNETTORE_PATTERN, _LIQUIDAZIONE_DIRETTA_PATTERN)
@@ -67,7 +68,7 @@ _MONEY_SUFFIX_RE = re.compile(
     r"(?<![\w.,])" + _IMPORTO_NOMINATO_PATTERN + _VALUTA_DOPO_PATTERN,
     re.IGNORECASE,
 )
-_LIQUIDAZIONE_WORD_RE = re.compile(r"\bliquid(?:a|ando|ata|ato|ate|ati)\b", re.IGNORECASE)
+_LIQUIDAZIONE_WORD_RE = re.compile(r"\bliquid(?:a|ano|ando|ata|ato|ate|ati)\b", re.IGNORECASE)
 _LIQUIDAZIONE_CONTEXT_RE = re.compile(
     r"\b(?:spese\s+di\s+lite|rifusione\s+delle\s+spese|compensi\s+professionali|onorari|"
     r"p\.?\s*q\.?\s*m\.?|definitivamente\s+pronunciando)\b",

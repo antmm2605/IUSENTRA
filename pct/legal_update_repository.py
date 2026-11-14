@@ -942,6 +942,21 @@ class LegalUpdateRepository:
 
     def seed_matters(self) -> None:
         with self._connect() as conn:
+            existing = {
+                row["slug"]: (row["name"], row["parent_slug"] or "", row["level"], row["sort_order"], row["enabled"])
+                for row in conn.execute(
+                    "SELECT m.slug, m.name, p.slug AS parent_slug, m.level, m.sort_order, m.enabled "
+                    "FROM matters m LEFT JOIN matters p ON p.id = m.parent_id"
+                ).fetchall()
+            }
+            if all(
+                existing.get(_normalize_token(row["slug"])) == (
+                    row["name"], _normalize_token(str(row.get("parent_slug") or "")),
+                    int(row["level"]), int(row["sort_order"]), 1,
+                )
+                for row in DEFAULT_MATTERS
+            ):
+                return
             for row in DEFAULT_MATTERS:
                 parent_id = self._matter_id(conn, str(row.get("parent_slug") or ""))
                 conn.execute(
@@ -1776,6 +1791,20 @@ class LegalUpdateRepository:
                 (int(source_id), _clean_spaces(external_id)),
             ).fetchone()
         return dict(row) if row else None
+
+    def source_document_is_processed(self, raw_document_id: int, normalized_hash: str) -> bool:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT 1
+                FROM source_documents_normalized n
+                JOIN ai_documents_analysis a ON a.normalized_document_id = n.id
+                JOIN review_queue q ON q.normalized_document_id = n.id AND q.analysis_id = a.id
+                WHERE n.raw_document_id = ? AND n.normalized_hash = ?
+                """,
+                (int(raw_document_id), normalized_hash),
+            ).fetchone()
+        return row is not None
 
     def list_raw_documents(
         self,

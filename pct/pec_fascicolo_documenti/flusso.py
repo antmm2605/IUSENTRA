@@ -66,6 +66,7 @@ def _gestione_fascicoli(repo: Any) -> Any:
         db_path=str(repo.fascicoli_db_path),
         documents_dir=str(repo.fascicoli_docs_path or Path(repo.fascicoli_db_path).parent / "documenti"),
         studio_db=repo._studio_db_for_data_path(repo.fascicoli_db_path),
+        carica_tutto=False,
     )
 
 

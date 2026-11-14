@@ -9,7 +9,7 @@ from dataclasses import asdict
 import json
 from pathlib import Path
 from typing import Any
-from .inserimento import inserisci_righe
+from .inserimento import inserisci_audit, inserisci_righe
 from .models import (
     AuditEvent, ChecklistItem, DepositReceipt, DepositSession, DocumentSlot, EvidencePack, PracticeProfile,
     PracticeState, SlotStatus, TimelineEvent, ValidationResult, dataclass_from_dict, new_id, utc_now,
@@ -331,11 +331,11 @@ class PracticeEngineRepository:
         self._write_legacy_mirror()
     def reload(self) -> None:
         self._data = self._load()
-    def salvataggio_unico(self, fascicolo_id: str = ""):
+    def salvataggio_unico(self, fascicolo_id: str = "", *, confronta_contenuto: bool = False):
         """Le modifiche dentro il blocco si scrivono una volta sola (``salvataggio.py``)."""
         from .salvataggio import salvataggio_unico
 
-        return salvataggio_unico(self, fascicolo_id)
+        return salvataggio_unico(self, fascicolo_id, confronta_contenuto=confronta_contenuto)
 
     def apply_profile(
         self,

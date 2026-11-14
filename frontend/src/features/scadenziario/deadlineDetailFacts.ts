@@ -1,4 +1,5 @@
 import type { ScadenziarioRow } from '../../scadenziarioData'
+import { isWrittenHearing, WRITTEN_HEARING_ACTION } from '../agenda/agendaDetailActions'
 
 export type DeadlineFact = { label: string; value: string; wide?: boolean }
 export type DeadlineFactGroup = { id: 'termine' | 'udienza' | 'remoto'; title: string; facts: DeadlineFact[] }
@@ -48,6 +49,7 @@ export function cleanAccessInfo(value: string): string {
 }
 
 export function deadlineFactGroups(row: ScadenziarioRow, { notificationPresidio }: { notificationPresidio: boolean }): DeadlineFactGroup[] {
+  const writtenHearing = isWrittenHearing(row.hearingMode)
   const hasLink = Boolean(row.remoteHearingUrl)
   const groups: DeadlineFactGroup[] = [
     {
@@ -58,17 +60,17 @@ export function deadlineFactGroups(row: ScadenziarioRow, { notificationPresidio 
           ? { label: 'Visibilità', value: 'Calendario e notifiche operative' }
           : { label: 'Scadenza operativa', value: row.operationalDueLabel || 'Non impostata' },
         { label: 'Responsabile', value: row.ownerLabel || 'Non assegnato' },
-        { label: 'Tipo', value: notificationPresidio ? '' : row.typeLabel },
+        { label: 'Tipo', value: notificationPresidio ? '' : writtenHearing ? 'Trattazione scritta' : row.typeLabel },
       ],
     },
     {
       id: 'udienza',
-      title: 'Udienza e ufficio',
+      title: writtenHearing ? 'Trattazione scritta e ufficio' : 'Udienza e ufficio',
       facts: [
-        { label: 'Evento', value: row.sourceEventTypeLabel, wide: true },
+        { label: 'Evento', value: writtenHearing ? 'Deposito di note scritte in sostituzione dell’udienza' : row.sourceEventTypeLabel, wide: true },
         { label: 'Ufficio', value: row.officeLabel },
         { label: 'Modalità udienza', value: row.hearingMode },
-        { label: 'Orario udienza', value: row.hearingTime },
+        { label: writtenHearing ? 'Ora indicata per le note' : 'Orario udienza', value: writtenHearing && (row.hearingTimeVerificationRequired || !row.hearingTime) ? 'Da verificare nel provvedimento' : row.hearingTime },
         { label: 'Verifica orario', value: row.hearingTimeVerificationRequired ? "L'orario letto non è valido: apri la fonte e registra quello corretto." : '', wide: true },
         { label: 'Fonte modalità', value: readableModeSource(row.hearingModeSource) },
         { label: 'Operatività ufficio', value: row.officeModeLabel },
@@ -100,6 +102,9 @@ export function deadlineFactGroups(row: ScadenziarioRow, { notificationPresidio 
 }
 
 export function deadlineWhatToDo(row: ScadenziarioRow): string {
+  const finding = row.proceduralFinding?.trim()
+  if (finding) return finding
+  if (isWrittenHearing(row.hearingMode)) return WRITTEN_HEARING_ACTION
   const text = String(row.detailDescription || row.description || '').trim()
   const match = text.match(/Attivit[àa] per l['’]avvocato\s*:\s*(.+)$/i)
   const activity = (match ? match[1] : text).trim()

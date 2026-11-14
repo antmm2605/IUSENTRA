@@ -44,9 +44,10 @@ def test_tariffario_react_payload_console_operativa(tmp_path: Path):
     assert payload["support"]["auditRows"]
     assert payload["support"]["tables"]
     assert payload["support"]["references"]
+    assert {action["href"] for action in payload["actions"]} == {"/compensi-forensi", "/preventivi/wizard"}
 
 
-def test_tariffario_react_e_legacy_smoke(tmp_path: Path):
+def test_tariffario_solo_react_smoke(tmp_path: Path):
     _app_obj, client = _logged_client(tmp_path)
 
     react_response = client.get("/tariffario")
@@ -58,8 +59,9 @@ def test_tariffario_react_e_legacy_smoke(tmp_path: Path):
     assert 'id="root"' in react_html
     assert legacy_response.status_code == 200
     legacy_html = legacy_response.get_data(as_text=True)
-    assert "Tariffario Forense" in legacy_html
-    assert "iusentra-react-root" not in legacy_html
+    # La vista Jinja è stata tolta: anche il vecchio parametro apre la pagina React.
+    assert 'id="root"' in legacy_html
+    assert "Tariffario Forense" not in legacy_html
 
 
 def test_tariffario_riepilogo_realtime_sticky_sul_wrapper():

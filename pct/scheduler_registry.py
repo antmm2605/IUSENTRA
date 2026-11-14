@@ -616,6 +616,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("archivio_letture_automatico", "Lettura automatica dei fascicoli", "Fascicoli", "I due motori (documenti e PEC) leggono solo i documenti e le PEC che il registro delle letture dice non ancora letti, collaudano ogni dato e alimentano l'archivio da cui i presìdi attingono; a fascicolo invariato non fa nulla.", "cron", "", "3-58/10", built_in=True),
         SchedulerTemplate("pec_fascicolo_documenti_recupero", "PEC nei documenti del fascicolo", "Comunicazioni", "Di notte, a lotti limitati e riprendibili, porta nei documenti del fascicolo provvedimenti, atti ed .eml di notifica e ricevute delle PEC già collegate con certezza; i collegamenti solo proposti restano in attesa della conferma dell'avvocato. Le PEC nuove entrano subito, al collegamento.", "cron", "0-5", "50", built_in=True),
         SchedulerTemplate("collaudo_lettore", "Collaudo del lettore", "Fascicoli", "Ogni notte legge con l'OCR reale un corpus di pagine di prova con date, ruoli e prove di notifica e verifica che i motori estraggano i dati giusti: se il collaudo non passa, il pannello delle letture lo dice.", "cron", "4", "10", built_in=True),
+        SchedulerTemplate("pannelli_pronti_ricalcolo", "Pannelli del fascicolo pronti all'apertura", "Fascicoli", "Ogni minuto controlla con l'impronta delle fonti se i pannelli dei fascicoli aperti di recente sono ancora aggiornati; se qualcosa è cambiato (documento, lettura, catalogo, pagamento, scadenza, PEC, giorno) li ricalcola in sfondo, a bassa priorità e a piccoli lotti, così l'avvocato apre il fascicolo senza attese. Non rilegge documenti.", "cron", "", "*/1", built_in=True),
         SchedulerTemplate("fascicoli_document_economic_presidio", "Presidio fascicoli ed economia", "Fascicoli", "Lavora a piccoli lotti sui documenti nuovi o modificati, classifica evidenze processuali/economiche, salva pagamenti e stato pratica nel DB e lascia la UI veloce.", "cron", "", "13-58/15", built_in=True),
         SchedulerTemplate("workspace_intelligence_snapshot", "Quadro studio", "Lex AI", "Aggiorna inventario operativo dei fascicoli.", "cron", "", "*/20", built_in=True),
         SchedulerTemplate(
@@ -648,7 +649,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("lex_sentenza_economia_auto", "Sentenze Lex ed economia", "Lex AI", "Applica la matrice economica solo alle Sentenze Tribunale con RG e cliente coincidenti col fascicolo. A orario resta la sola ricognizione notturna di sicurezza: il lavoro parte quando arrivano i documenti.", "cron", "3", "25", built_in=True),
         SchedulerTemplate("lex_dataset_nightly", "Dataset Lex notturno", "Lex AI", "Prepara dataset locali di revisione da Documenti AI senza avviare addestramento automatico.", "cron", "1", "45", built_in=True),
         SchedulerTemplate("lex_operational_agents_nightly", "Agenti Lex notturni", "Lex AI", "Aggiorna inventario operativo completo di studio per Lex.", "cron", "1", "20", built_in=True),
-        SchedulerTemplate("utf8_integrity_nightly", "Integrità testo UTF-8", "Manutenzione", "Verifica e ripara mojibake, accenti italiani e caratteri sostitutivi nei dati testuali.", "cron", "0", "35", built_in=True),
+        SchedulerTemplate("utf8_integrity_nightly", "Integrità testo UTF-8", "Manutenzione", "Controlla la codifica e segnala i testi da verificare. Conserva gli originali PEC e i documenti del fascicolo.", "cron", "0", "35", built_in=True),
         SchedulerTemplate("operational_crash_morning", "Controllo operativo mattina", "Manutenzione", "Esegue controllo operativo con riparazione assistita.", "cron", "7", "0", built_in=True),
         SchedulerTemplate("operational_crash_midday", "Controllo operativo pranzo", "Manutenzione", "Esegue controllo operativo intermedio.", "cron", "13", "30", built_in=True),
         SchedulerTemplate("operational_crash_evening", "Controllo operativo sera", "Manutenzione", "Esegue controllo operativo serale.", "cron", "19", "30", built_in=True),
@@ -1106,11 +1107,10 @@ class SchedulerRegistryRepository:
             conn.execute(
                 """
                 UPDATE scheduled_jobs
-                SET last_applied_signature=?,
-                    updated_at=CASE WHEN last_applied_signature<>? THEN ? ELSE updated_at END
-                WHERE job_id=?
+                SET last_applied_signature=?, updated_at=?
+                WHERE job_id=? AND last_applied_signature<>?
                 """,
-                (signature, signature, _iso(), job_id),
+                (signature, _iso(), job_id, signature),
             )
 
     def request_manual_run(
@@ -1166,7 +1166,7 @@ class SchedulerRegistryRepository:
                     FROM scheduled_job_runs
                     WHERE job_id = ?
                       AND origin = 'manuale'
-                      AND status IN ('requested', 'running')
+                      AND status IN ('requested', 'dispatched', 'running')
                     ORDER BY id DESC
                     LIMIT 1
                     """,
@@ -1186,7 +1186,7 @@ class SchedulerRegistryRepository:
                     SELECT job_id, status
                     FROM scheduled_job_runs
                     WHERE origin='manuale'
-                      AND status IN ('requested', 'running')
+                      AND status IN ('requested', 'dispatched', 'running')
                       AND job_id <> ?
                     ORDER BY id ASC
                     LIMIT 1
@@ -1244,7 +1244,7 @@ class SchedulerRegistryRepository:
                     SELECT job_id, status
                     FROM scheduled_job_runs
                     WHERE origin='manuale'
-                      AND status IN ('requested', 'running')
+                      AND status IN ('requested', 'dispatched', 'running')
                       AND job_id <> ?
                     ORDER BY id ASC
                     LIMIT 1
@@ -1265,7 +1265,7 @@ class SchedulerRegistryRepository:
                             started_at, finished_at, duration_ms, message, result_json,
                             error_message, requested_by, created_at
                         )
-                        VALUES (?, ?, ?, 'manuale', 'completed', ?, ?, ?, 0, ?, ?, '', ?, ?)
+                        VALUES (?, ?, ?, 'manuale', 'cancelled', ?, ?, ?, 0, ?, ?, '', ?, ?)
                         """,
                         (
                             run_id,
@@ -1294,7 +1294,7 @@ class SchedulerRegistryRepository:
                             now,
                         ),
                     )
-                    return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
+                    return {"run_id": run_id, "job_id": job_id, "status": "cancelled", "message": message}
         if job_id in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS:
             placeholders = ",".join("?" for _ in EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS)
             params = tuple(sorted(EXCLUSIVE_MANUAL_MAINTENANCE_JOB_IDS))
@@ -1303,7 +1303,7 @@ class SchedulerRegistryRepository:
                     f"""
                     SELECT job_id, status
                     FROM scheduled_job_runs
-                    WHERE status IN ('requested', 'running')
+                    WHERE status IN ('requested', 'dispatched', 'running')
                       AND job_id IN ({placeholders})
                     ORDER BY id ASC
                     LIMIT 1
@@ -1324,7 +1324,7 @@ class SchedulerRegistryRepository:
                             started_at, finished_at, duration_ms, message, result_json,
                             error_message, requested_by, created_at
                         )
-                        VALUES (?, ?, ?, 'manuale', 'completed', ?, ?, ?, 0, ?, ?, '', ?, ?)
+                        VALUES (?, ?, ?, 'manuale', 'cancelled', ?, ?, ?, 0, ?, ?, '', ?, ?)
                         """,
                         (
                             run_id,
@@ -1353,7 +1353,7 @@ class SchedulerRegistryRepository:
                             now,
                         ),
                     )
-                    return {"run_id": run_id, "job_id": job_id, "status": "completed", "message": message}
+                    return {"run_id": run_id, "job_id": job_id, "status": "cancelled", "message": message}
         with self.connect() as conn:
             conn.execute(
                 """
@@ -1388,13 +1388,34 @@ class SchedulerRegistryRepository:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def mark_run_running(self, run_id: str) -> None:
+    def mark_run_dispatched(self, run_id: str) -> bool:
+        """Riserva una richiesta prima di consegnarla all'esecutore."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "UPDATE scheduled_job_runs SET status='dispatched', message=? WHERE run_id=? AND status='requested'",
+                ("Esecuzione in coda al worker.", run_id),
+            )
+            return row.rowcount == 1
+
+    def requeue_dispatched_manual_runs(self) -> int:
+        """Al riavvio ricrea le code che appartenevano al processo precedente."""
+        with self.connect() as conn:
+            row = conn.execute(
+                "UPDATE scheduled_job_runs SET status='requested', message=? "
+                "WHERE origin='manuale' AND status='dispatched'",
+                ("Esecuzione riaccodata al riavvio del worker.",),
+            )
+            return max(0, row.rowcount)
+
+    def mark_run_running(self, run_id: str) -> bool:
         now = _iso()
         with self.connect() as conn:
-            conn.execute(
-                "UPDATE scheduled_job_runs SET status='running', started_at=?, message=? WHERE run_id=?",
+            row = conn.execute(
+                "UPDATE scheduled_job_runs SET status='running', started_at=?, message=? "
+                "WHERE run_id=? AND status IN ('requested', 'dispatched')",
                 (now, "Esecuzione in corso.", run_id),
             )
+            return row.rowcount == 1
 
     def mark_run_finished(
         self,
@@ -1446,7 +1467,7 @@ class SchedulerRegistryRepository:
         exact_ids = tuple(str(job_id or "").strip() for job_id in job_ids if str(job_id or "").strip())
         if not prefixes and not exact_ids:
             return {"cancelled": 0, "running": 0, "requested": 0}
-        where_parts = ["status IN ('requested', 'running')"]
+        where_parts = ["status IN ('requested', 'dispatched', 'running')"]
         params: list[Any] = []
         job_clauses: list[str] = []
         for prefix in prefixes:
@@ -1465,7 +1486,7 @@ class SchedulerRegistryRepository:
                 tuple(params),
             ).fetchall()
             running = sum(1 for row in rows if str(row["status"]) == "running")
-            requested = sum(1 for row in rows if str(row["status"]) == "requested")
+            requested = sum(1 for row in rows if str(row["status"]) in {"requested", "dispatched"})
             conn.execute(
                 f"""
                 UPDATE scheduled_job_runs
@@ -1781,7 +1802,7 @@ class SchedulerRegistryRepository:
             "jobs_custom": int(job_totals.get("custom") or 0),
             "runs_total": int(run_totals.get("total") or 0),
             "runs_failed": int(run_totals.get("failed") or 0),
-            "runs_requested": int(run_totals.get("requested") or 0),
+            "runs_requested": int(run_totals.get("requested") or 0) + int(run_totals.get("dispatched") or 0),
             "runs_running": int(run_totals.get("running") or 0),
             "runs_cancelled": int(run_totals.get("cancelled") or 0),
         }
@@ -1887,6 +1908,7 @@ def run_status_label(value: Any) -> str:
     key = str(value or "").strip().lower()
     return {
         "requested": "Richiesta",
+        "dispatched": "Accodata",
         "running": "In corso",
         "completed": "Completata",
         "failed": "Non riuscita",
@@ -2166,18 +2188,26 @@ def _run_dynamic_job(app, repository: SchedulerRegistryRepository, job: dict[str
                     "Esecuzione agente in corso.",
                 ),
             )
-    else:
-        repository.mark_run_running(owned_run_id)
+    elif not repository.mark_run_running(owned_run_id):
+        return {"ok": True, "skipped": True, "reason": "Richiesta già presa in carico."}
     try:
+        template_key = str(job.get("template_key") or "")
+        args = job.get("args") or {}
+        if args.get("kind") == "legal_update_source_scan":
+            from pct.scheduler_notturno.guardia import custodisci
+
+            esegui = custodisci(str(job["job_id"]), run_delegated_agent_template)
+        else:
+            esegui = run_delegated_agent_template
         with app.app_context():
-            result = run_delegated_agent_template(str(job.get("template_key") or ""), app, job.get("args") or {})
-        status = "completed" if result.get("ok") else "failed"
+            result = esegui(template_key, app, args)
+        status, detail = esito_job_result(result)
         repository.mark_run_finished(
             owned_run_id,
             status=status,
-            message=str(result.get("summary") or ""),
+            message=str(result.get("summary") or result.get("message") or detail),
             result=result,
-            error_message="" if result.get("ok") else str(result.get("self_check") or ""),
+            error_message=str(result.get("self_check") or detail) if status == "failed" else "",
         )
         return result
     except Exception as exc:  # pragma: no cover - difesa runtime
@@ -2216,6 +2246,7 @@ def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryReposi
             continue
         existing = scheduler.get_job(job_id)
         signature = job_signature(job)
+        changed = str(job.get("last_applied_signature") or "") != signature
         trigger = _job_trigger(job)
         if job.get("built_in"):
             if not existing:
@@ -2225,7 +2256,8 @@ def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryReposi
                     scheduler.pause_job(job_id)
                 except Exception:
                     pass
-                repo.update_applied_signature(job_id, signature)
+                if changed:
+                    repo.update_applied_signature(job_id, signature)
                 applied += 1
                 continue
             if trigger is not None:
@@ -2233,14 +2265,16 @@ def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryReposi
                     _allinea_lavoro_integrato(scheduler, existing, job_id, trigger)
                 except Exception:
                     pass
-            repo.update_applied_signature(job_id, signature)
+            if changed:
+                repo.update_applied_signature(job_id, signature)
             applied += 1
             continue
         if not job.get("enabled") or trigger is None:
             if existing:
                 scheduler.remove_job(job_id)
                 removed += 1
-            repo.update_applied_signature(job_id, signature)
+            if changed:
+                repo.update_applied_signature(job_id, signature)
             continue
         if not existing or str(job.get("last_applied_signature") or "") != signature:
             if existing:
@@ -2253,7 +2287,8 @@ def apply_scheduler_registry(scheduler, app, repository: SchedulerRegistryReposi
                 max_instances=1,
                 coalesce=True,
             )
-            repo.update_applied_signature(job_id, signature)
+            if changed:
+                repo.update_applied_signature(job_id, signature)
             applied += 1
     return {"applied": applied, "removed": removed}
 
@@ -2272,6 +2307,8 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
             repo.mark_run_finished(run_id, status="failed", message="Pianificazione non trovata.")
             failed += 1
             continue
+        if not repo.mark_run_dispatched(run_id):
+            continue
         existing = scheduler.get_job(job_id)
         manual_job_id = f"manual_{job_id}_{run_id[:8]}"
         from pct.scheduler_corsie import corsia_del_lavoro
@@ -2286,6 +2323,7 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
                     id=manual_job_id,
                     replace_existing=True,
                     max_instances=1,
+                    misfire_grace_time=None,
                     executor=corsia,
                 )
             else:
@@ -2295,6 +2333,7 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
                     id=manual_job_id,
                     replace_existing=True,
                     max_instances=1,
+                    misfire_grace_time=None,
                     executor=corsia,
                 )
             dispatched += 1
@@ -2309,12 +2348,25 @@ def dispatch_requested_manual_runs(scheduler, app, repository: SchedulerRegistry
     return {"dispatched": dispatched, "failed": failed}
 
 
+def esito_job_result(result: dict[str, Any]) -> tuple[str, str]:
+    """Classifica il riscontro del job prima di aggiornare il registro."""
+    if result.get("ok") is False or result.get("status") == "parziale":
+        return "failed", str(result.get("error") or result.get("message") or "Esito negativo o parziale.")
+    skipped = result.get("skipped")
+    if skipped is True or isinstance(skipped, str) and skipped:
+        return "cancelled", str(result.get("message") or result.get("reason") or "Esecuzione rinviata o non prevista.")
+    return "completed", ""
+
+
 def _run_existing_scheduler_job(func, args: list[Any], kwargs: dict[str, Any], db_path: Path, run_id: str) -> None:
+    from pct.scheduler_notturno.guardia import esegui_manualmente
+
     repo = SchedulerRegistryRepository(db_path)
-    repo.mark_run_running(run_id)
+    if not repo.mark_run_running(run_id):
+        return
     started = time.monotonic()
     try:
-        result = func(*(args or []), **(kwargs or {}))
+        result = esegui_manualmente(func, args, kwargs)
     except Exception as exc:
         repo.mark_run_finished(
             run_id,
@@ -2326,11 +2378,12 @@ def _run_existing_scheduler_job(func, args: list[Any], kwargs: dict[str, Any], d
     # Una mancata consegna dell'audit non è un fallimento della funzione:
     # non sovrascrivere l'esito reale con l'errore del registro.
     result_payload = result if isinstance(result, dict) else {"summary": "" if result is None else str(result)[:4000]}
-    result_ok = result_payload.get("ok") if isinstance(result_payload, dict) else True
+    stato, dettaglio = esito_job_result(result_payload)
+    messaggio = dettaglio or f"Esecuzione completata in {time.monotonic() - started:.1f}s."
     repo.mark_run_finished(
         run_id,
-        status="completed" if result_ok is not False else "failed",
-        message=f"Esecuzione completata in {time.monotonic() - started:.1f}s.",
+        status=stato,
+        message=messaggio,
         result=result_payload,
-        error_message=str(result_payload.get("error") or "") if result_ok is False else "",
+        error_message=dettaglio if stato == "failed" else "",
     )

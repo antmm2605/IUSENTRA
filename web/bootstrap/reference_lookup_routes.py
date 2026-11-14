@@ -5,9 +5,9 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, request
 
-from pct.reginde import ClientReGINde
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_reference_lookup_routes(
@@ -199,6 +199,5 @@ def register_reference_lookup_routes(
 
     @app.route("/tribunali")
     def tribunali():
-        reginde = ClientReGINde()
-        uffici = reginde.elenca_uffici()
-        return render_template("tribunali.html", uffici=uffici)
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("tribunali")

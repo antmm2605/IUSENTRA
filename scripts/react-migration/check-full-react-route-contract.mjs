@@ -9,14 +9,19 @@ const api = [
   read('web/blueprints/api_v1_client_portal.py'),
   read('web/blueprints/api_v1_daily_plan.py'),
   read('web/blueprints/api_v1_legal_skills.py'),
+  read('web/bootstrap/controllo_studio_routes.py'),
+  read('web/bootstrap/preparazione_udienza_routes.py'),
+  read('web/bootstrap/condivisioni_routes.py'),
 ].join('\n')
 const violations = []
 const apiAliasMarkers = new Map([
   ['/app/portale-clienti', ['@api_v1_client_portal.get("/dashboard")', '@api_v1_client_portal.get("/studio/dashboard")']],
-  ['/workspace-intelligente', ['("/dashboard")', "('/dashboard')"]],
-  ['/regia-operativa', ['("/dashboard")', "('/dashboard')"]],
+  ['/workspace-intelligente', ['("/api/v1/ui/controllo-studio")']],
+  ['/regia-operativa', ['("/api/v1/ui/controllo-studio")']],
+  ['/wizard-pro', ['("/api/v1/ui/preparazione-udienza")']],
   ['/ricerca-studio', ['("/global-search")', "('/global-search')"]],
   ['/agenda/nuovo', ['("/agenda")', "('/agenda')"]],
+  ['/clienti/:id/collaboratori', ['@app.route("/api/v1/clienti/<id_cliente>/condivisioni", methods=["GET"])']],
   ['/clienti/:id/cartella', ['("/clienti/<id_cliente>/cartella")', "('/clienti/<id_cliente>/cartella')"]],
   ['/soggetti/nuovo', ['("/clienti/nuovo")', "('/clienti/nuovo')"]],
   ['/privacy/registro/nuovo', ['("/privacy/registro")', "('/privacy/registro')"]],

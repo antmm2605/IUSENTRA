@@ -546,12 +546,6 @@ export default function AccessoApp() {
           )}
           <p className="iu-accesso-piede">
             <ShieldCheck size={14} aria-hidden="true" /> Accesso riservato al personale autorizzato
-            {config.vistaClassica ? (
-              <>
-                {' · '}
-                <a href={config.vistaClassica}>Vista classica</a>
-              </>
-            ) : null}
           </p>
         </div>
       </section>

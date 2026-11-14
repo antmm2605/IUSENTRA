@@ -112,16 +112,25 @@ def esegui_giro(
             archivio.registra_esito(fonte_id, ok=esito["ok"], quando=quando, messaggio=esito["messaggio"], voci=esito["voci"])
     archivio.pota(oggi=adesso.astimezone(ROME_TZ).date())
     inoltrate = 0
+    inoltro_rinviato = False
     if inoltra is not None:
         try:
             inoltrate = int(inoltra(archivio) or 0)
         except Exception as exc:  # la revisione degli aggiornamenti legali non deve fermare il notiziario
+            inoltro_rinviato = True
             logger.warning("[notiziario] inoltro alla revisione non riuscito: %s", exc)
+    fonti_mancanti = [fonte for fonte in scadute if not esiti[fonte.id]["ok"]]
+    avvisi = []
+    if fonti_mancanti:
+        avvisi.append("Fonti da riprovare: " + ", ".join(fonte.etichetta for fonte in fonti_mancanti) + ".")
+    if inoltro_rinviato:
+        avvisi.append("L’inoltro delle schede alla revisione sarà ripreso al prossimo giro.")
     return {
-        "ok": all(esito["ok"] for esito in esiti.values()) if esiti else True,
-        "status": "completato" if esiti else "nessuna_fonte_scaduta",
+        "ok": not avvisi,
+        "status": "parziale" if avvisi else ("completato" if esiti else "nessuna_fonte_scaduta"),
+        "message": " ".join(avvisi),
         "fonti_interrogate": len(esiti),
-        "fonti_non_raggiungibili": sorted(fonte_id for fonte_id, esito in esiti.items() if not esito["ok"]),
+        "fonti_non_raggiungibili": sorted(fonte.id for fonte in fonti_mancanti),
         "notizie_nuove": nuove_totali,
         "inoltrate_revisione": inoltrate,
         "esiti": esiti,

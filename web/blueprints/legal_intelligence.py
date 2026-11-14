@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import io
 import sqlite3
-from datetime import date, datetime
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
 
-from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, request, send_file, url_for
 
 from legal_intelligence.engine import LegalIntelligenceDailyEngine
 from pct.portale import GestionePortale
@@ -19,8 +19,17 @@ from web.helpers import (
     get_normative_tables,
     get_scadenziario,
 )
+from web.blueprints.react_shell import render_react_shell_response
 
 legal_intelligence = Blueprint("legal_intelligence", __name__, url_prefix="/legal-intelligence")
+
+
+def _percorso_react() -> str:
+    """Percorso della pagina React: /legal-intelligence/* è l'alias storico di /ricerca-legale/*."""
+    percorso = (request.path or "/").strip("/")
+    if percorso.startswith("legal-intelligence"):
+        percorso = "ricerca-legale" + percorso[len("legal-intelligence"):]
+    return percorso
 
 
 def _cfg_path(key: str, default: str = "") -> str:
@@ -83,7 +92,7 @@ def _daily_engine() -> LegalIntelligenceDailyEngine:
 
 def _daily_snapshot() -> dict:
     try:
-        return _daily_engine().dashboard_snapshot()
+        return LegalIntelligenceDailyEngine.read_dashboard(_daily_db_path())
     except Exception as exc:
         current_app.logger.exception("Errore snapshot motore giornaliero Legal Intelligence: %s", exc)
         return {"last_run": None, "sources": [], "updates": [], "counts": {}, "error": str(exc)}
@@ -100,72 +109,29 @@ def _ultime_news(limit: int = 6):
 @legal_intelligence.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    snapshot = _snapshot()
-    daily = _daily_snapshot()
-    return render_template(
-        "legal_intelligence/index.html",
-        snapshot=snapshot,
-        updates_snapshot=get_legal_update_pipeline().dashboard_snapshot(),
-        daily_snapshot=daily,
-        ultime_news=_ultime_news(limit=6),
-        active_tab=request.args.get("tab", "panoramica"),
-        oggi=date.today(),
-    )
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())
 
 
 @legal_intelligence.route("/news", methods=["GET"])
 @_richiedi_login
 def news():
-    pipeline = get_legal_update_pipeline()
-    return render_template(
-        "legal_intelligence/news.html",
-        news_items=pipeline.repository.list_news(
-            matter_slug=request.args.get("materia", ""),
-            news_type=request.args.get("tipo", ""),
-            limit=80,
-        ),
-        matters=pipeline.repository.list_matters(),
-        selected_matter=request.args.get("materia", ""),
-        selected_type=request.args.get("tipo", ""),
-        snapshot=pipeline.dashboard_snapshot(),
-        oggi=date.today(),
-    )
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())
 
 
 @legal_intelligence.route("/news/<string:slug>", methods=["GET"])
 @_richiedi_login
 def dettaglio_news(slug: str):
-    pipeline = get_legal_update_pipeline()
-    news_item = pipeline.repository.get_news_by_slug(slug)
-    if not news_item:
-        flash("News non trovata o non ancora pubblicata.", "warning")
-        return redirect(url_for(".news"))
-    return render_template(
-        "legal_intelligence/news_detail.html",
-        news_item=news_item,
-        oggi=date.today(),
-    )
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())
 
 
 @legal_intelligence.route("/mediazione", methods=["GET"])
 @_richiedi_login
 def registro_mediazione():
-    return render_template(
-        "legal_intelligence/mediazione.html",
-        snapshot=_snapshot(),
-        registro=get_legal_intelligence().mediazione_registry_snapshot(
-            q=request.args.get("q", ""),
-            city=request.args.get("city", ""),
-            registry_number=request.args.get("registry_number", ""),
-            organismo_type=request.args.get("organismo_type", ""),
-            status=request.args.get("status", ""),
-            tax_code=request.args.get("tax_code", ""),
-            vat_number=request.args.get("vat_number", ""),
-            has_email=request.args.get("has_email", ""),
-            has_website=request.args.get("has_website", ""),
-        ),
-        oggi=date.today(),
-    )
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())
 
 
 @legal_intelligence.route("/monitor/esegui", methods=["POST"])
@@ -219,11 +185,8 @@ def approva_daily_update(update_id: int):
 @legal_intelligence.route("/daily/update/<int:update_id>/diff", methods=["GET"])
 @_richiedi_login
 def diff_daily_update(update_id: int):
-    update = _daily_engine().get_update(update_id)
-    if not update:
-        flash("Aggiornamento non trovato.", "warning")
-        return redirect(url_for(".index"))
-    return render_template("legal_intelligence/daily_diff.html", update=update, oggi=date.today())
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())
 
 
 @legal_intelligence.route("/daily/rigenera-indice-ai", methods=["POST"])
@@ -354,22 +317,8 @@ def api_news():
 @legal_intelligence.route("/fonte/<string:source_id>", methods=["GET"])
 @_richiedi_login
 def scheda_fonte(source_id: str):
-    snapshot = _snapshot()
-    fonte_row = next((row for row in snapshot.get("source_rows", []) if row.get("id") == source_id), None)
-    if not fonte_row:
-        flash("Fonte non trovata nel registro Legal Intelligence.", "warning")
-        return redirect(url_for(".index", tab="fonti"))
-    snapshot_card = None
-    try:
-        snapshot_card = _daily_engine().get_source_card(source_id)
-    except Exception:
-        current_app.logger.exception("Errore caricamento scheda fonte %s", source_id)
-    return render_template(
-        "legal_intelligence/fonte_dettaglio.html",
-        fonte=fonte_row,
-        card=snapshot_card or {},
-        oggi=date.today(),
-    )
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())
 
 
 @legal_intelligence.route("/fonte/<string:source_id>/scarica", methods=["GET"])
@@ -445,26 +394,5 @@ def scarica_fonte(source_id: str):
 @legal_intelligence.route("/ricerca", methods=["GET"])
 @_richiedi_login
 def ricerca_unificata():
-    from web.services.legal_intelligence_research import build_unified_search
-
-    query = (request.args.get("q") or "").strip()
-    snapshot = _snapshot()
-    pipeline = get_legal_update_pipeline()
-    news_items = pipeline.repository.list_news(limit=120) if query else []
-    mediazione_rows = snapshot.get("mediazione_registry", {}).get("rows", []) if query else []
-    daily_updates = _daily_snapshot().get("updates", []) if query else []
-    risultati = build_unified_search(
-        query=query,
-        snapshot=snapshot,
-        news_items=news_items,
-        mediazione_rows=mediazione_rows,
-        daily_updates=daily_updates,
-    )
-    if request.args.get("formato") == "json":
-        return jsonify({"ok": True, "risultati": risultati})
-    return render_template(
-        "legal_intelligence/ricerca.html",
-        risultati=risultati,
-        snapshot=snapshot,
-        oggi=date.today(),
-    )
+    # Ricerca legale: pagine React (LegalIntelligencePage, RicercaLegaleSchedaPage).
+    return render_react_shell_response(_percorso_react())

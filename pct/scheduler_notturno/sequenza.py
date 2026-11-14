@@ -14,6 +14,9 @@ class Passo:
     ripeti_minuti: int = 0
     # Lavoro dello scheduler da eseguire quando il nome del passo è diverso (stesso lavoro due volte nella notte).
     esegue: str = ""
+    # Mesi della data mattutina della pianificazione e giorno del mese, per i lavori periodici.
+    mesi: tuple[int, ...] = ()
+    giorno_mese: int = 1
 
 
 @dataclass(frozen=True)
@@ -57,7 +60,7 @@ FASI: tuple[Fase, ...] = (
          "Scadenze, avvisi e presidio economico usano i fatti appena letti; il piano del giorno chiude la fase.",
          (Passo("aggiorna_scadute"), Passo("aggiorna_parcelle_scadute"), Passo("agenda_scadenziario_notifications"),
           Passo("fascicoli_document_economic_presidio"), Passo("profili_procedurali_riconvalida"),
-          Passo("patrocinio_adeguamento_bimestrale"))),
+          Passo("patrocinio_adeguamento_bimestrale", mesi=(1, 3, 5, 7, 9, 11)))),
     Fase(6, "Indici e Lex (AI locale)",
          "Catalogo, RAG, embedding e apprendimento di Lex: l'AI locale si carica solo qui e si scarica alla fine.",
          (Passo("catalogo_seconda_lettura_lex", ripeti_minuti=45), Passo("lex_operational_agents_nightly"),
@@ -86,7 +89,12 @@ LAVORI_ANCHE_DI_GIORNO = frozenset({
 # Lavori frequenti e pesanti: di giorno con il loro orario, di notte solo nella catena.
 LAVORI_FREQUENTI_PESANTI = frozenset({
     "pec_fascicolo_documenti_recupero", "archivio_letture_automatico", "fascicoli_document_economic_presidio",
-    "workspace_intelligence_snapshot", "local_ai_maintenance", "daily_plan_incremental_refresh",
+    "workspace_intelligence_snapshot", "local_ai_maintenance",
+})
+# Il piano mantiene l'orario assegnato, con lo stesso semaforo delle altre elaborazioni.
+LAVORI_CON_ORARIO_CUSTODITO = frozenset({
+    "studio_daily_operational_plan",
+    "daily_plan_incremental_refresh",
 })
 # Lavori che usano l'AI locale: solo nella fase 6 (mai insieme all'OCR pesante).
 LAVORI_SOLO_NOTTURNI_AI = frozenset({"catalogo_seconda_lettura_lex"})

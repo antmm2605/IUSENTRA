@@ -26,7 +26,6 @@ from flask import (
     g,
     make_response,
     redirect,
-    render_template,
     request,
     url_for,
 )
@@ -36,20 +35,14 @@ from pct.wizard_pro import (
     DocumentoChecklist,
     STEP_LABELS,
     STEP_ICONS,
-    ESITI,
 )
 from web.blueprints.react_shell import render_react_shell_response
-from web.helpers import get_agenda, get_fascicoli, get_wizard_pro
-from web.services.hearing_preparation_dashboard import build_hearing_preparation_dashboard
+from web.helpers import get_fascicoli, get_wizard_pro
 from web.services.preparazione_udienza_http_commands import persistent, governed_write
 
 wizard_pro_bp = Blueprint("wizard_pro", __name__, url_prefix="/wizard-pro")
 
 N_STEP = 5
-
-
-def _richiede_vista_classica() -> bool:
-    return str(request.args.get("_legacy", "")).strip().lower() in {"1", "true", "si", "sì", "yes"}
 
 
 # ─────────────────────────────────────────────────── helpers interni
@@ -72,24 +65,9 @@ def _governed_form(function):
     @wraps(function)
     def wrapped(*args, **kwargs):
         response = make_response(governed_write(current_app)(function)(*args, **kwargs))
-        if response.status_code >= 400 and response.is_json:
-            g._preparazioni_form_error = True
-            error = response.get_json() or {}
-            fields = list(request.form.items(multi=True))
-            return render_template("wizard_pro/command_error.html", command_error=error,
-                submitted_fields=fields, retry_href=request.full_path.rstrip("?"),
-                can_retry=response.status_code == 503), response.status_code
+        # Le pagine Jinja della preparazione sono state tolte: l'esito d'errore resta la risposta JSON.
         return response
     return wrapped
-
-
-@wizard_pro_bp.context_processor
-def _form_context():
-    from uuid import uuid4
-    if g.get("_preparazioni_form_error"):
-        return {"preparazione_sql": False}
-    manager = get_wizard_pro()
-    return {"preparazione_sql": persistent(manager), "preparazione_command_key": str(uuid4())}
 
 
 def _get_or_404(id_sessione: str) -> SessioneWizardPro:
@@ -145,14 +123,7 @@ def _checklist_da_fascicolo(fascicolo) -> list:
 @wizard_pro_bp.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("wizard-pro")
-    return render_template(
-        "wizard_pro/index.html",
-        dashboard=build_hearing_preparation_dashboard(
-            selected_fascicolo_id=request.args.get("id_fascicolo", "").strip()
-        ),
-    )
+    return render_react_shell_response("wizard-pro")
 
 
 # ─────────────────────────────────────────────────── ROUTE: NUOVO
@@ -246,14 +217,6 @@ def step(id_sessione: str, n: int):
     gf = get_fascicoli()
     fascicolo = gf.get(sessione.id_fascicolo) if sessione.id_fascicolo else None
 
-    appuntamento = None
-    if sessione.id_appuntamento:
-        try:
-            ga = get_agenda()
-            appuntamento = ga.get(sessione.id_appuntamento)
-        except Exception:
-            pass
-
     wiz = get_wizard_pro()
 
     # ── POST: salva dati step ──────────────────────────────────────────
@@ -339,23 +302,7 @@ def step(id_sessione: str, n: int):
         return redirect(url_for("wizard_pro.completo", id_sessione=id_sessione))
 
     # ── GET: mostra step ──────────────────────────────────────────────
-    if not _richiede_vista_classica():
-        return render_react_shell_response(f"wizard-pro/{id_sessione}/step/{n}")
-
-    return render_template(
-        "wizard_pro/step.html",
-        sessione=sessione,
-        fascicolo=fascicolo,
-        appuntamento=appuntamento,
-        step_n=n,
-        n_step=N_STEP,
-        steps_stato=_steps_stato(sessione),
-        step_labels=STEP_LABELS,
-        step_icons=STEP_ICONS,
-        esiti=ESITI,
-        docs_checklist=sessione.docs_checklist,
-        oggi=datetime.now().date(),
-    )
+    return render_react_shell_response(f"wizard-pro/{id_sessione}/step/{n}")
 
 
 # ─────────────────────────────────────────────────── ROUTE: COMPLETO
@@ -367,30 +314,7 @@ def completo(id_sessione: str):
     if not sessione:
         return redirect(url_for("wizard_pro.index"))
 
-    gf = get_fascicoli()
-    fascicolo = gf.get(sessione.id_fascicolo) if sessione.id_fascicolo else None
-
-    appuntamento = None
-    if sessione.id_appuntamento:
-        try:
-            ga = get_agenda()
-            appuntamento = ga.get(sessione.id_appuntamento)
-        except Exception:
-            pass
-
-    if not _richiede_vista_classica():
-        return render_react_shell_response(f"wizard-pro/{id_sessione}/completo")
-
-    return render_template(
-        "wizard_pro/completo.html",
-        sessione=sessione,
-        fascicolo=fascicolo,
-        appuntamento=appuntamento,
-        steps_stato=_steps_stato(sessione),
-        step_labels=STEP_LABELS,
-        step_icons=STEP_ICONS,
-        esiti=ESITI,
-    )
+    return render_react_shell_response(f"wizard-pro/{id_sessione}/completo")
 
 
 # ─────────────────────────────────────────────────── ROUTE: ELIMINA

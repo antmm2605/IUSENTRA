@@ -15,7 +15,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--intelligence-db", required=True)
     parser.add_argument("--giurisprudenza-db", default="")
     parser.add_argument("--source-code", default="")
+    parser.add_argument("--no-dashboard", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
+    parser.add_argument("--publish-max-seconds", type=int, default=0)
     parser.add_argument("--publish-limit", type=int, default=1)
     parser.add_argument("--backfill-web-evidence", action="store_true")
     parser.add_argument("--backfill-limit", type=int, default=100)
@@ -65,13 +67,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             "dashboard": backfill.get("dashboard") or pipeline.dashboard_snapshot(),
         }
     elif args.publish_only:
-        published = pipeline.publish_auto_news(limit=max(1, int(args.publish_limit or 1)))
+        published = pipeline.publish_auto_news(
+            limit=max(1, int(args.publish_limit or 1)),
+            **({"max_seconds": args.publish_max_seconds} if args.publish_max_seconds > 0 else {}),
+        )
         payload = {
             "ok": True,
             "mode": "publish",
             "published": published,
             "published_count": int((published or {}).get("count") or 0),
-            "dashboard": pipeline.dashboard_snapshot(),
+            **({"dashboard": pipeline.dashboard_snapshot()} if not args.no_dashboard else {}),
         }
     else:
         source_code = str(args.source_code or "").strip()
@@ -80,6 +85,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = pipeline.run_cycle(
             source_codes=[source_code],
             auto_publish=not bool(args.no_auto_publish),
+            **({"include_dashboard": False} if args.no_dashboard else {}),
         )
         payload = {
             "ok": True,
@@ -88,7 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "report": report,
             "processed": sum(int(row.get("processed") or 0) for row in report.get("reports") or []),
             "documents_found": sum(int(row.get("documents_found") or 0) for row in report.get("reports") or []),
-            "dashboard": report.get("dashboard") or pipeline.dashboard_snapshot(),
+            **({"dashboard": report.get("dashboard") or pipeline.dashboard_snapshot()} if not args.no_dashboard else {}),
         }
 
     print(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))

@@ -114,13 +114,13 @@ def test_pagine_nella_applicazione_react(client):
     assert 'data-pagina="aggiornamenti-staging-scheda"' in html and "&#34;id&#34;: &#34;7&#34;" in html
 
 
-def test_vista_classica_ancora_raggiungibile(client, app):
+def test_vista_classica_tolta_anche_con_il_vecchio_parametro(client, app):
     _seed_motore(app)
     for percorso in [*PAGINE, "/admin/aggiornamenti-legali/archivio?tab=news"]:
         separatore = "&" if "?" in percorso else "?"
         risposta = client.get(f"{percorso}{separatore}_legacy=1")
         assert risposta.status_code == 200, percorso
-        assert "piattaforma-react-root" not in risposta.get_data(as_text=True), percorso
+        assert "piattaforma-react-root" in risposta.get_data(as_text=True), percorso
 
 
 def test_dati_delle_pagine_dal_servizio(client, app):

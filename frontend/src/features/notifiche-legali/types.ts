@@ -112,6 +112,8 @@ export type PresidioRecipientSummary = {
   role?: string
   status_label: string
   delivery_status?: string
+  pec_proof?: Array<{ label: string; status: string; href: string; date: string; folder: string }>
+  protocol_replies?: Array<{ number: string; href: string; received_at: string; folder: string }>
   pec_address?: string
   failure_reason?: string
 }
@@ -189,6 +191,7 @@ export type PresidioAvailableAction = {
 export type PresidioDetail = PresidioSummary & {
   notification_verification?: import('@/components/VerificaNotifichePanel').VerificaNotifiche
   recipients: PresidioRecipient[]
+  practice_protocol_replies?: Array<{ number: string; href: string; received_at: string; folder: string; sender: string }>
   documents: PresidioDocument[]
   available_actions: PresidioAvailableAction[]
   assignment_options: PresidioOption[]

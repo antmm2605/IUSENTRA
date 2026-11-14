@@ -292,3 +292,13 @@ BEFORE DELETE ON pec_legal_notification_transitions
 BEGIN
     SELECT RAISE(ABORT, 'pec_legal_notification_transitions is append-only');
 END;
+
+CREATE TABLE IF NOT EXISTS pec_legal_notification_relata_drafts (
+    tenant_id TEXT NOT NULL,
+    presidio_id TEXT NOT NULL,
+    fascicolo_id TEXT NOT NULL,
+    draft_json TEXT NOT NULL CHECK (json_valid(draft_json)),
+    PRIMARY KEY (tenant_id, presidio_id),
+    FOREIGN KEY (tenant_id, presidio_id)
+        REFERENCES pec_legal_notification_presidia (tenant_id, id) ON DELETE CASCADE
+);

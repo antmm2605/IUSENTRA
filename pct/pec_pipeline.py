@@ -19,6 +19,7 @@ import json
 import mimetypes
 import re
 import sqlite3
+import subprocess
 import threading
 import time
 import uuid
@@ -60,6 +61,7 @@ from pct.pec_legal_workflow import classifica_pec_legale
 from pct.pec_oggetti_ufficiali import (
     RICEVUTE_NEGATIVE,
     classifica_ricevuta_pec,
+    istante_daticert,
     normalizza_tipo_ricevuta,
     tipo_daticert,
     tipo_ricevuta_da_oggetto,
@@ -495,7 +497,13 @@ CREATE INDEX IF NOT EXISTS idx_pec_messages_list_summary ON pec_messages(
 CREATE INDEX IF NOT EXISTS idx_pec_messages_fascicolo_received ON pec_messages(tenant_id, linked_fascicolo_id, received_at DESC);
 CREATE INDEX IF NOT EXISTS idx_pec_messages_quality ON pec_messages(tenant_id, quality_status);
 CREATE INDEX IF NOT EXISTS idx_pec_validation_reports_message ON pec_validation_reports(message_id);
+CREATE INDEX IF NOT EXISTS idx_pec_fascicolo_links_chronology ON pec_fascicolo_links(message_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_pec_messages_unlinked_queue
+ON pec_messages(received_at, id, tenant_id, linked_fascicolo_id)
+WHERE TRIM(COALESCE(linked_fascicolo_id, '')) = '';
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_message ON pec_legal_events(tenant_id, message_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pec_legal_events_deposito_sentenza
+ON pec_legal_events(tenant_id, message_id) WHERE primary_event = 'deposito_sentenza';
 CREATE INDEX IF NOT EXISTS idx_pec_legal_events_priority ON pec_legal_events(tenant_id, priority, human_review_required);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_deadlines_event ON pec_legal_deadlines(tenant_id, legal_event_id);
 CREATE INDEX IF NOT EXISTS idx_pec_legal_hearings_event ON pec_legal_hearings(tenant_id, legal_event_id, hearing_date);
@@ -503,11 +511,13 @@ CREATE INDEX IF NOT EXISTS idx_pec_legal_payments_event ON pec_legal_payments(te
 CREATE INDEX IF NOT EXISTS idx_pec_jobs_due ON pec_jobs(status, available_at, priority);
 CREATE INDEX IF NOT EXISTS idx_pec_local_runs_status ON pec_local_acquire_runs(tenant_id, status, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_run ON pec_local_acquire_items(tenant_id, run_id, status);
+CREATE INDEX IF NOT EXISTS idx_pec_local_items_recent ON pec_local_acquire_items(tenant_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_email ON pec_local_acquire_items(tenant_id, email_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_message ON pec_local_acquire_items(tenant_id, message_id, updated_at);
 CREATE INDEX IF NOT EXISTS idx_pec_local_items_deadline ON pec_local_acquire_items(tenant_id, deadline_status, due_date);
 CREATE INDEX IF NOT EXISTS idx_pec_audit_resource ON pec_audit_log(resource_type, resource_id);
 CREATE INDEX IF NOT EXISTS idx_pec_audit_action_resource ON pec_audit_log(tenant_id, action, resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_pec_audit_tenant_chronology ON pec_audit_log(tenant_id, occurred_at);
 """
 
 
@@ -1506,7 +1516,11 @@ def build_pct_deposit_receipt_profile(
     headers = parsed.get("headers") if isinstance(parsed.get("headers"), dict) else {}
     body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
     sources = xml_texts or {}
-    xml_joined = "\n".join(str(value or "") for value in sources.values())
+    daticert = [value for name, value in sources.items() if name.casefold() == "daticert.xml"]
+    xml_joined = "\n".join(
+        str(value or "") for name, value in sources.items()
+        if name.casefold() != "daticert.xml"
+    )
     raw_text = "\n".join(
             [
                 str(headers.get("subject") or ""),
@@ -1534,7 +1548,8 @@ def build_pct_deposit_receipt_profile(
     ora = xml_tag_value(xml_joined, ("Ora", "ora"))
     zone_match = re.search(r"<(?:\w+:)?Ora\b[^>]*\bzoneDesignator=[\"']([^\"']+)[\"']", xml_joined or "", flags=re.I)
     zone = _pct_token(zone_match.group(1) if zone_match else "", 20)
-    occurred_at = ""
+    provider_time = istante_daticert(daticert[0]) if len(daticert) == 1 else None
+    occurred_at = provider_time.isoformat() if provider_time else ""
     if data and ora:
         clean_time = ora.replace(".", ":")
         clean_zone = zone
@@ -1961,6 +1976,16 @@ def build_pec_procedural_profile(
     if resolved_office:
         office = resolved_office
 
+    oggetto_xml = ""
+    if not mittente_incerto:
+        # La cancelleria può indicare l'evento solo nel tag, senza ripeterlo
+        # come riga «Oggetto:» nel corpo. Il subject della busta è generico.
+        for nome, testo in sources.items():
+            if nome.rsplit(":", 1)[-1].replace("\\", "/").rsplit("/", 1)[-1].casefold() == "comunicazione.xml":
+                oggetto_xml = clean_text(xml_tag_value(testo, ("Oggetto",)), 280)
+                if oggetto_xml:
+                    break
+
     profile = {
         "ufficio": office,
         "cancelleria": _first_profile_value(
@@ -2020,7 +2045,7 @@ def build_pec_procedural_profile(
         ),
         "data_evento": _profile_value(readable, "Data Evento"),
         "tipo_evento": _profile_value(readable, "Tipo Evento", limit=240),
-        "oggetto_evento": _profile_value(readable, "Oggetto", limit=280) or subject,
+        "oggetto_evento": _profile_value(readable, "Oggetto", limit=280) or oggetto_xml or subject,
         "descrizione_evento": _profile_value(readable, "Descrizione", limit=320),
         "notificato_il": _first_profile_value(
             readable,
@@ -2139,9 +2164,12 @@ def build_pec_procedural_profile(
         profile["modalita_udienza"] = "strumenti audiovisivi"
     elif any(needle in lower for needle in ("udienza da remoto", "videoconferenza", "aula virtuale", "stanza virtuale")):
         profile["modalita_udienza"] = "da remoto"
+    amministrativa = event_type == "comunicazione_ente_protocollata"
     practice_phase = ""
     oggetto_lower = (subject or "").lower()
-    if pec_profilo_ufficio.e_ricevuta_di_deposito(subject):
+    if amministrativa:
+        practice_phase = "Comunicazione protocollata di un ente pubblico"
+    elif pec_profilo_ufficio.e_ricevuta_di_deposito(subject):
         # Accettazione, consegna o esito del nostro deposito: i nomi dei file
         # depositati («Sentenza_Tribunale_….PDF») non sono un provvedimento arrivato.
         practice_phase = "deposito telematico da completare o monitorare"
@@ -2186,7 +2214,7 @@ def build_pec_procedural_profile(
         "Controllare se serve produrre un atto, una notifica, un deposito o una comunicazione al cliente.",
         "Conservare MIME, daticert/postacert, allegati e hash come prova della comunicazione.",
     ]
-    if "sentenza" in lower:
+    if "sentenza" in lower and not amministrativa:
         checklist.extend(
             [
                 "Leggere la sentenza o il provvedimento allegato e annotare esito, motivazione decisiva e termini successivi.",
@@ -2215,7 +2243,7 @@ def build_pec_procedural_profile(
         questions.append("Il giudice indicato incide su udienza, fase decisoria o strategia del fascicolo?")
     if not profile.get("cliente") or not _profile_party_values(profile):
         questions.append("Cliente e parte processuale sono presenti in Comunicazione.xml o vanno verificati manualmente?")
-    if "sentenza" in lower:
+    if "sentenza" in lower and not amministrativa:
         questions.append("Quali termini decorrono dalla sentenza e cosa devo preparare per eventuale notifica o impugnazione?")
     if profile.get("udienza_data_ora") or profile.get("modalita_udienza"):
         questions.append("L'udienza va svolta in presenza o con strumenti audiovisivi, e dove si trova il link di collegamento?")
@@ -3016,6 +3044,19 @@ def _remote_hearing_link_records(remote_hearing: dict[str, Any]) -> list[dict[st
         row["classification_reason"] = clean_text(row.get("classification_reason") or reason, 120)
         records.append(row)
     return records
+
+
+def _allegati_della_causa(parsed: dict[str, Any], attachments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Il provvedimento collettivo allegato si legge per il ruolo della comunicazione.
+
+    Regola in ``pct/provvedimenti/collettivi`` (il provvedimento vale per le cause per cui dispone,
+    art. 175 c.p.c.; art. 484 c.p.c.): «792/25 … udienza del 2.11.2026 in presenza» non eredita la
+    trattazione scritta e il termine del 4.11.2026 disposti per l'altro gruppo di cause.
+    """
+    from pct.provvedimenti.collettivi import allegati_per_il_ruolo
+
+    profilo = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
+    return allegati_per_il_ruolo(list(attachments or []), str(profilo.get("numero_rg") or ""))
 
 
 def _remote_hearing_deadline_extra(report: dict[str, Any], proposal: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -4669,6 +4710,11 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
     receipt_features = [receipt_source] if receipt_type else []
     receipt_original_message_id = _receipt_original_message_id(msg, xml_joined)
     receipt_recipient = _receipt_recipient_address(xml_joined, body_all)
+    daticert = [text for name, text in xml_texts.items() if name.casefold() == "daticert.xml"]
+    verified_delivery_recipient = ""
+    if len(daticert) == 1 and normalizza_tipo_ricevuta(tipo_daticert(daticert[0])) == "avvenuta_consegna":
+        verified_delivery_recipient = _normalised_email_address(xml_tag_value(daticert[0], ("consegna",)))
+
     rg_values = extract_rg_candidates(body_all)
     delivery_date = (
         parsedate_iso(xml_tag_value(xml_joined, ("data", "dataOraConsegna", "dataConsegna")))
@@ -4718,6 +4764,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
         receipt_type=receipt_type,
         receipt_type_known=True,
     )
+    if legal_workflow.get("event_type") == "comunicazione_ente_protocollata":
+        legal_context = {"event_hint": legal_workflow["event_type"]}
     procedural_profile = build_pec_procedural_profile(
         subject=subject,
         body_text=body_all,
@@ -4899,6 +4947,8 @@ def parse_pec_message(raw_mime: bytes) -> dict[str, Any]:
             "type": receipt_type,
             "original_message_id": receipt_original_message_id,
             "recipient_address": receipt_recipient,
+            "daticert_delivery_recipient": verified_delivery_recipient,
+            "daticert_message_id": _canonical_message_id_value(xml_tag_value(daticert[0], ("identificativo",))) if len(daticert) == 1 else "",
             "source": "daticert/postacert" if xml_joined else "headers/body",
         },
         "rg_candidates": rg_values,
@@ -4932,6 +4982,15 @@ def event_type_from_parsed(parsed: dict[str, Any], classes: Iterable[str]) -> st
     body = str(((parsed.get("body") or {}).get("text") or ""))
     receipt = str((((parsed.get("fields") or {}).get("tipo_ricevuta") or {}).get("value") or ""))
     text = f"{subject} {body} {receipt}".lower()
+    # Fa fede l'involucro della ricevuta: le notifiche elencate dentro la busta
+    # sono documenti depositati, non il tipo del messaggio ricevuto.
+    if re.match(r"^(?:POSTA CERTIFICATA:\s*)?(?:ACCETTAZIONE|CONSEGNA|MANCATA CONSEGNA|NON ACCETTAZIONE)"
+                r":\s*DEPOSITO TELEMATICO\b", subject.strip(), re.IGNORECASE):
+        return "pct_deposito"
+    legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
+    legal_event = str(legal_workflow.get("event_type") or "")
+    if legal_event == "comunicazione_ente_protocollata" and not receipt:
+        return legal_event
     class_set = set(classes)
     semantic_context = parsed.get("semantic_context") if isinstance(parsed.get("semantic_context"), dict) else {}
     event_hint = str(semantic_context.get("event_hint") or "")
@@ -4981,8 +5040,6 @@ def event_type_from_parsed(parsed: dict[str, Any], classes: Iterable[str]) -> st
         ),
     ):
         return "pct_deposito"
-    legal_workflow = parsed.get("legal_workflow") if isinstance(parsed.get("legal_workflow"), dict) else {}
-    legal_event = str(legal_workflow.get("event_type") or "")
     if legal_event and legal_event != "pec_non_riconosciuta":
         return legal_event
     if _contains_any(
@@ -5703,7 +5760,10 @@ def _agenda_datetime_for_pec_proposal(
     deadline_kind = str(proposal.get("deadline_kind") or "")
     remote_hearing = bool(remote_extra.get("remote_hearing_detected") or remote_extra.get("remote_hearing_url"))
     if deadline_kind != "udienza" and not remote_hearing:
-        return ""
+        if not proposal.get("force_agenda_without_time"):
+            return ""
+        explicit_time = _time_label_from_text(str(proposal.get("event_time") or ""))
+        return _agenda_datetime_from_text(f"{target_date[:10]}T{explicit_time}") if explicit_time else ""
     fallback_day = _date_from_iso_or_it(target_date) or _date_from_iso_or_it(str(proposal.get("due_date") or ""))
     profile = report.get("procedural_profile") if isinstance(report.get("procedural_profile"), dict) else {}
     detected = proposal.get("detected_procedural_date") if isinstance(proposal.get("detected_procedural_date"), dict) else {}
@@ -6452,7 +6512,10 @@ def build_validation_report(parsed: dict[str, Any], attachments: list[dict[str, 
                 }
             )
     procedural_profile = parsed.get("procedural_profile") if isinstance(parsed.get("procedural_profile"), dict) else {}
-    remote_hearing = build_remote_hearing_profile(parsed, attachments)
+    if event_type == "pct_deposito":
+        procedural_profile = {key: value for key, value in procedural_profile.items()
+                              if key not in {"remote_hearing", "modalita_udienza", "udienza_data_ora"}}
+    remote_hearing = {} if event_type == "pct_deposito" else build_remote_hearing_profile(parsed, attachments)
     if remote_hearing:
         procedural_profile = dict(procedural_profile)
         procedural_profile["remote_hearing"] = remote_hearing
@@ -6719,6 +6782,13 @@ _PCT_DEPOSIT_STATE_RANK = {
 }
 
 
+def pct_deposit_clerk_accepted(stage_id: str, final_state: str) -> bool:
+    """Riconosce l'esito positivo della cancelleria nel ciclo già accertato."""
+    return stage_id in {"accettazione_deposito", "intervento_cancelleria"} and final_state in {
+        "accepted", "accepted_manually",
+    }
+
+
 def _pct_deposit_state_from_lifecycle(lifecycle: dict[str, Any]) -> tuple[str, str]:
     stage = lifecycle.get("current_stage") if isinstance(lifecycle.get("current_stage"), dict) else {}
     stage_id = str(stage.get("id") or "")
@@ -6735,7 +6805,7 @@ def _pct_deposit_state_from_lifecycle(lifecycle: dict[str, Any]) -> tuple[str, s
         if stage_status == "danger" or (isinstance(outcome_code, int) and outcome_code < 0):
             return "ERRORE_CONTROLLI", "ERROR"
         return "WARN_CONTROLLI", "WARN"
-    if stage_id in {"accettazione_deposito", "intervento_cancelleria"}:
+    if pct_deposit_clerk_accepted(stage_id, lifecycle.get("final_state") or ""):
         return "ACCETTATO_CANCELLERIA", "OK"
     if stage_id == "rifiuto_deposito":
         return "RIFIUTATO_CANCELLERIA", "ERROR"
@@ -6850,6 +6920,10 @@ def _render_pct_deposit_receipt_text(parsed: dict[str, Any], lifecycle: dict[str
     source_message_id = _pct_display_token(correlation.get("source_message_id"), 240)
     if source_message_id:
         lines.append(f"Message-ID deposito: {source_message_id}")
+    pec_receipt = parsed.get("pec_receipt") or {}
+    provider_message_id = _pct_display_token(pec_receipt.get("daticert_message_id"), 240)
+    if provider_message_id:
+        lines.append(f"Identificativo messaggio: {provider_message_id}")
     if receipt.get("outcome_code") is not None:
         lines.append(f"Codice esito: {receipt.get('outcome_code')}")
     if receipt.get("description"):
@@ -7705,6 +7779,15 @@ def _rg_equivalenti(primo: str, secondo: str) -> bool:
     return bool(primo_parti[0]) and primo_parti == secondo_parti
 
 
+_PEC_MESSAGE_METADATA_COLUMNS = """
+            id, tenant_id, account_email, folder, imap_uid, message_id_header,
+            mime_sha256, mime_size, received_at, ingested_at, status,
+            quality_status, signature_status, linked_fascicolo_id,
+            linked_fascicolo_score, retention_policy_id, retention_until,
+            metadata_json
+        """
+
+
 class PecAuditRepository:
     """Repository SQLite per PEC audit-grade e coda worker automatizzata."""
 
@@ -7723,6 +7806,7 @@ class PecAuditRepository:
         #  senza questo punto un test che verifica la data legale esatta
         #  smette di funzionare appena quella data passa.
         now_provider: Callable[[], datetime] | None = None,
+        read_only: bool = False,
     ):
         self._now_provider = now_provider or (lambda: datetime.now(ROME_TZ))
         self.db_path = Path(db_path)
@@ -7733,6 +7817,11 @@ class PecAuditRepository:
         self.scadenziario_db_path = Path(scadenziario_db_path) if scadenziario_db_path else None
         self.agenda_db_path = Path(agenda_db_path) if agenda_db_path else None
         self.calendar_sync_db_path = Path(calendar_sync_db_path) if calendar_sync_db_path else None
+        self.read_only = read_only
+        if read_only:
+            if not self.db_path.is_file():
+                raise FileNotFoundError(self.db_path)
+            return
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._quarantine_stale_journal()
         self.ensure_schema()
@@ -7783,7 +7872,8 @@ class PecAuditRepository:
                 return
 
     def connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path, timeout=5.0, factory=ManagedConnection)
+        path = self.db_path.resolve().as_uri() + "?mode=ro" if self.read_only else self.db_path
+        conn = sqlite3.connect(path, uri=self.read_only, timeout=5.0, factory=ManagedConnection)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA busy_timeout=5000")
@@ -7797,6 +7887,12 @@ class PecAuditRepository:
         with lock:
             if ready_key in _PEC_AUDIT_SCHEMA_READY:
                 return
+            from pct.storage import configura_journal_mode_governato
+
+            # Enable the shared SQLite policy before checking the migration
+            # receipt, so existing archives are covered alongside new ones.
+            with self.connect() as journal_conn:
+                configura_journal_mode_governato(journal_conn, self.db_path)
             migration_sha = sha256_bytes(SQLITE_SCHEMA.encode("utf-8"))
             schema_receipt = f"{SCHEMA_VERSION}:schema:{migration_sha}"
             # Un altro processo può avere già installato questa stessa impronta.
@@ -7978,6 +8074,7 @@ class PecAuditRepository:
         message_pk = _tenant_scoped_message_id(self.tenant_id, mime_hash)
         retention_until = (date.today() + timedelta(days=3650)).isoformat()
         with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             existing = conn.execute(
                 """
                 SELECT id FROM pec_messages
@@ -8106,10 +8203,13 @@ class PecAuditRepository:
             self.append_audit(conn, action="pec.imap.fetch", resource_type="pec_mailbox", resource_id=username, payload=report, actor=actor)
         return report
 
-    def get_message_row(self, conn: sqlite3.Connection, message_id: str) -> sqlite3.Row:
+    def get_message_row(
+        self, conn: sqlite3.Connection, message_id: str, *, include_mime: bool = True,
+    ) -> sqlite3.Row:
         clean_id = clean_text(message_id)
+        columns = "*" if include_mime else _PEC_MESSAGE_METADATA_COLUMNS
         row = conn.execute(
-            "SELECT * FROM pec_messages WHERE tenant_id=? AND id=?",
+            f"SELECT {columns} FROM pec_messages WHERE tenant_id=? AND id=?",
             (self.tenant_id, clean_id),
         ).fetchone()
         if row is None:
@@ -9717,6 +9817,7 @@ class PecAuditRepository:
                 db_path=str(self.fascicoli_db_path),
                 documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
                 studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+                carica_tutto=False,
             )
             fascicolo = manager.get(fascicolo_id)
             if fascicolo is None:
@@ -9743,6 +9844,7 @@ class PecAuditRepository:
                     # Chiave per allegato: con il solo Message-ID il secondo provvedimento della stessa PEC
                     # veniva assorbito dal primo come «stesso documento del portale».
                     msg_id_portale=f"{message_id}#{impronta[:16]}",
+                    salvataggio_mirato=True,
                 )
                 presenti.add(impronta)
                 archiviati += 1
@@ -9771,6 +9873,7 @@ class PecAuditRepository:
                 db_path=str(self.fascicoli_db_path),
                 documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
                 studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+                carica_tutto=False,
             )
             fascicolo = manager.get(fascicolo_id)
         except Exception as exc:
@@ -9832,6 +9935,7 @@ class PecAuditRepository:
                 nome_archivio=self._safe_eml_archive_name(subject),
                 hash_contenuto_sha256=clean_text(row.get("mime_sha256"), 80),
                 msg_id_portale=message_id,
+                salvataggio_mirato=True,
             )
         else:
             document = existing_doc
@@ -9967,7 +10071,7 @@ class PecAuditRepository:
             if parsed_row is None:
                 raise KeyError("JSON PEC non ancora disponibile.")
             parsed = json.loads(parsed_row["parsed_json"])
-            attachments = self.attachment_rows(conn, message_id, parsed_row["id"])
+            attachments = _allegati_della_causa(parsed, self.attachment_rows(conn, message_id, parsed_row["id"]))
             report = build_validation_report(parsed, attachments)
             result = self._insert_validation_report(
                 conn,
@@ -10244,7 +10348,7 @@ class PecAuditRepository:
                                 else "pec.attachments.ocr_repaired"
                             ),
                         )
-                    attachments = self.attachment_rows(conn, message_id, parsed_id)
+                    attachments = _allegati_della_causa(parsed, self.attachment_rows(conn, message_id, parsed_id))
                     report = build_validation_report(parsed, attachments)
                     self._insert_validation_report(
                         conn,
@@ -10297,8 +10401,10 @@ class PecAuditRepository:
                 db_path=str(self.fascicoli_db_path),
                 documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
                 studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+                carica_tutto=False,
             )
-            fascicoli = manager.tutti(archiviati=True)
+            lookup = getattr(manager, "dati_collegamento_pec", None)
+            fascicoli = lookup() if lookup else manager.tutti(archiviati=True)
         except Exception:
             return {"rg": [], "parties": [], "office": "", "keywords": []}, []
         clients_by_id: dict[str, dict[str, Any]] = {}
@@ -10365,10 +10471,12 @@ class PecAuditRepository:
         receipt_source_message_id = _canonical_message_id_value(
             correlation.get("source_message_id") or ""
         )
+        receipt_stage = detect_pct_deposit_stage(parsed).get("id")
+        if not receipt_source_message_id and receipt_stage == "accettazione_pec":
+            receipt_source_message_id = _canonical_message_id_value(pec_receipt.get("daticert_message_id"))
         receipt_source_key = _normalised_message_id_value(receipt_source_message_id)
         provider_message_id = _canonical_message_id_value(headers.get("message_id"))
         receipt_recipient = _normalised_email_address(pec_receipt.get("recipient_address"))
-        receipt_stage = detect_pct_deposit_stage(parsed).get("id")
         idbusta_match_allowed = receipt_stage in {
             "accettazione_deposito",
             "intervento_cancelleria",
@@ -10414,6 +10522,7 @@ class PecAuditRepository:
                 certified_receipt_chain = bool(
                     receipt_stage
                     in {
+                        "accettazione_pec",
                         "esito_controlli_deposito",
                         "accettazione_deposito",
                         "intervento_cancelleria",
@@ -10631,6 +10740,15 @@ class PecAuditRepository:
                         "reason": "riferimento_idbusta_non_coincidente",
                         "deposito_id": reference_deposito_id,
                     }
+            elif reference_strategy == "certified_receipt_chain":
+                source_key = _normalised_message_id_value(archive_reference.get("source_message_id"))
+                if not source_key or source_key not in _deposit_receipt_message_ids(deposito):
+                    return {
+                        "ok": False,
+                        "skipped": True,
+                        "reason": "riferimento_catena_ricevute_non_coincidente",
+                        "deposito_id": reference_deposito_id,
+                    }
             else:
                 reference_original = _normalised_message_id_value(
                     archive_reference.get("original_message_id") or ""
@@ -10646,13 +10764,23 @@ class PecAuditRepository:
                         "deposito_id": reference_deposito_id,
                     }
         if deposito is None:
+            corrispondenze = []
             for dep in getattr(fascicolo, "depositi_pct", []) or []:
-                if external_id and external_id == clean_text(getattr(dep, "id_deposito_esterno", "") or "", 180):
-                    deposito = dep
-                    break
-                if marker in str(getattr(dep, "note", "") or ""):
-                    deposito = dep
-                    break
+                esterno = clean_text(getattr(dep, "id_deposito_esterno", "") or "", 180)
+                marcatori = set(str(getattr(dep, "note", "") or "").splitlines())
+                stessa_busta = bool(idbusta and (idbusta == esterno or marker in marcatori))
+                stesso_riferimento = bool(ref_id and (
+                    ref_id == esterno or f"PEC_DEPOSIT_CORRELATION:refid:{ref_id}" in marcatori
+                ))
+                if stessa_busta or (stesso_riferimento and (not idbusta or esterno in {"", ref_id, idbusta})):
+                    corrispondenze.append(dep)
+                elif not idbusta and marker in marcatori:
+                    corrispondenze.append(dep)
+            if len(corrispondenze) > 1:
+                return {"ok": False, "skipped": True, "reason": "piu_depositi_con_stesso_riferimento",
+                        "fascicolo_id": fascicolo_id, "correlation": correlation}
+            if corrispondenze:
+                deposito = corrispondenze[0]
         if (
             deposito is None
             and list(getattr(fascicolo, "depositi_pct", []) or [])
@@ -10693,6 +10821,19 @@ class PecAuditRepository:
                 "state": state,
                 "correlation": correlation,
             }
+
+        data_accettazione = ""
+        if stage_id == "accettazione_pec":
+            from pct.pec_ricevute_archivio import verifica_ricevuta_storica
+
+            try:
+                with self.connect() as conn:
+                    raw = self.get_message_row(conn, message_id)["original_mime"]
+                ricevuta_firmata = verifica_ricevuta_storica(raw)
+                if ricevuta_firmata.tipo == "accettazione":
+                    data_accettazione = ricevuta_firmata.data.astimezone(ROME_TZ).isoformat()
+            except (KeyError, ValueError, OSError, subprocess.SubprocessError):
+                logging.getLogger(__name__).debug("Data di accettazione PEC non verificabile per %s", message_id)
 
         document_name = clean_text(
             correlation.get("document_name") or correlation.get("atto") or receipt.get("document_name") or "Deposito telematico PEC",
@@ -10762,10 +10903,25 @@ class PecAuditRepository:
             event_marker,
             f"Evento PEC deposito: {receipt.get('occurred_at') or iso_now()} - {stage.get('label') or stage_id} - {lifecycle.get('final_state')}",
         ]
+        if idbusta and ref_id:
+            note_lines.append(f"PEC_DEPOSIT_CORRELATION:refid:{ref_id}")
         if lifecycle.get("requires_new_deposit") is False:
             note_lines.append("Nuovo deposito richiesto: no.")
         note_lines.extend(rg_note_lines)
+        if data_accettazione and deposito.fonte_portale == "PEC_PCT":
+            deposito.timestamp = data_accettazione
+            note_lines.append(f"Accettazione del gestore PEC (daticert.xml): {data_accettazione}")
         deposito.note = _append_note_once(getattr(deposito, "note", ""), note_lines)
+        from pct.fascicoli import EsitoAttivita
+
+        for attivita in fascicolo.attivita:
+            if attivita.id_deposito_pct != deposito.id:
+                continue
+            if data_accettazione and deposito.fonte_portale == "PEC_PCT":
+                attivita.data = data_accettazione[:10]
+            if deposito.stato == "ACCETTATO_CANCELLERIA" and attivita.esito == EsitoAttivita.IN_ATTESA:
+                attivita.esito = EsitoAttivita.FAVOREVOLE
+                attivita.descrizione = f"Atto: {deposito.nome_atto_principale}. Deposito accettato dalla cancelleria."
         try:
             fascicolo.modificato_il = datetime.now().isoformat()
             manager._salva()
@@ -11073,6 +11229,11 @@ class PecAuditRepository:
                     result = self.build_daily_digest(digest_date=str(payload.get("digest_date") or date.today().isoformat()), actor=actor)
                 else:
                     raise ValueError(f"Job PEC non riconosciuto: {job_type}")
+                presidia = result.get("notification_presidia") if isinstance(result, dict) else None
+                if job_type in {"link", "validate"} and isinstance(presidia, dict) and presidia.get("ok") is False:
+                    raise RuntimeError("Presidio notifiche non allineato: " + "; ".join(
+                        str(errore) for errore in (presidia.get("errors") or [])[:3]
+                    ))
                 with self.connect() as conn:
                     conn.execute(
                         """
@@ -13346,19 +13507,13 @@ class PecAuditRepository:
         limit: int = 100,
         folder: str = "",
         q: str = "",
+        numero_rg: str = "",
         include_details: bool = True,
         fascicolo_id: str = "",
         offset: int = 0,
         connection: sqlite3.Connection | None = None,
     ) -> list[dict[str, Any]]:
-        columns = """
-            id, tenant_id, account_email, folder, imap_uid, message_id_header,
-            mime_sha256, mime_size, received_at, ingested_at, status,
-            quality_status, signature_status, linked_fascicolo_id,
-            linked_fascicolo_score, retention_policy_id, retention_until,
-            metadata_json
-        """
-        query = f"SELECT {columns} FROM pec_messages WHERE tenant_id=?"
+        query = f"SELECT {_PEC_MESSAGE_METADATA_COLUMNS} FROM pec_messages WHERE tenant_id=?"
         params: list[Any] = [self.tenant_id]
         if fascicolo_id:
             query += " AND linked_fascicolo_id=?"
@@ -13369,6 +13524,20 @@ class PecAuditRepository:
         if q:
             query += " AND metadata_json LIKE ?"
             params.append(f"%{q}%")
+        if numero_rg:
+            query += """
+                AND EXISTS (
+                    SELECT 1 FROM pec_parsed_versions v
+                    WHERE v.message_id=pec_messages.id AND v.version=(
+                        SELECT MAX(ultima.version) FROM pec_parsed_versions ultima
+                        WHERE ultima.message_id=pec_messages.id
+                    ) AND (
+                        json_extract(v.parsed_json,'$.procedural_profile.numero_rg')=?
+                        OR json_extract(v.parsed_json,'$.pct_deposit_receipt.numero_ruolo_certificato')=?
+                    )
+                )
+            """
+            params.extend((numero_rg, numero_rg))
         query += " ORDER BY received_at DESC, id DESC LIMIT ? OFFSET ?"
         params.append(int(limit or 100))
         params.append(max(0, int(offset)))
@@ -13388,7 +13557,7 @@ class PecAuditRepository:
 
     def get_message_detail(self, message_id: str) -> dict[str, Any]:
         with self.connect() as conn:
-            row = self.get_message_row(conn, message_id)
+            row = self.get_message_row(conn, message_id, include_mime=False)
             item = _row_to_dict(row)
             item["original_mime"] = None
             item["metadata"] = json.loads(item.pop("metadata_json") or "{}")
@@ -13427,20 +13596,8 @@ class PecAuditRepository:
         """
 
         clean_id = clean_text(message_id)
-        columns = """
-            id, tenant_id, account_email, folder, imap_uid, message_id_header,
-            mime_sha256, mime_size, received_at, ingested_at, status,
-            quality_status, signature_status, linked_fascicolo_id,
-            linked_fascicolo_score, retention_policy_id, retention_until,
-            metadata_json
-        """
         with self.connect() as conn:
-            row = conn.execute(
-                f"SELECT {columns} FROM pec_messages WHERE tenant_id=? AND id=?",
-                (self.tenant_id, clean_id),
-            ).fetchone()
-            if row is None:
-                raise KeyError(f"PEC non trovata: {clean_id}")
+            row = self.get_message_row(conn, clean_id, include_mime=False)
             item = _row_to_dict(row)
             item["metadata"] = json.loads(item.pop("metadata_json") or "{}")
             parsed_row = self.latest_parsed_row(conn, clean_id)
@@ -13496,6 +13653,40 @@ class PecAuditRepository:
             if not row:
                 return None
         return self.get_message_detail(str(row["id"]))
+
+    def fascicoli_confermati_per_message_id(self, headers: Iterable[str]) -> dict[str, str]:
+        """Legge i collegamenti certificati univoci senza riaprire i MIME."""
+        values = sorted({str(header).strip() for header in headers if str(header or "").strip()})
+        if not values:
+            return {}
+        candidati: dict[str, set[str]] = {}
+        certi: set[str] = set()
+        with self.connect() as conn:
+            for start in range(0, len(values), 900):
+                chunk = values[start:start + 900]
+                placeholders = ",".join("?" for _ in chunk)
+                rows = conn.execute(
+                    f"""
+                    SELECT m.message_id_header, m.linked_fascicolo_id,
+                           (SELECT l.status FROM pec_fascicolo_links l
+                            WHERE l.message_id=m.id AND l.fascicolo_id=m.linked_fascicolo_id
+                            ORDER BY l.created_at DESC, l.rowid DESC LIMIT 1) AS link_status
+                    FROM pec_messages m
+                    WHERE m.tenant_id=? AND m.message_id_header IN ({placeholders})
+                      AND COALESCE(m.linked_fascicolo_id, '')<>''
+                    """,
+                    (self.tenant_id, *chunk),
+                )
+                for row in rows:
+                    header = str(row["message_id_header"])
+                    candidati.setdefault(header, set()).add(str(row["linked_fascicolo_id"]))
+                    if row["link_status"] in LINK_STATI_CERTIFICATI:
+                        certi.add(header)
+        return {
+            header: next(iter(ids))
+            for header, ids in candidati.items()
+            if header in certi and len(ids) == 1
+        }
 
     def summaries_by_header_message_ids(
         self,
@@ -13733,7 +13924,8 @@ class PecAuditRepository:
                 placeholders = ",".join("?" for _ in chunk)
                 rows = conn.execute(
                     f"""
-                    SELECT email_id, status
+                    SELECT email_id, status,
+                           CASE WHEN json_valid(detail_json) THEN json_extract(detail_json,'$.errore') END AS errore
                     FROM pec_local_acquire_items
                     WHERE tenant_id=? AND email_id IN ({placeholders})
                     ORDER BY updated_at DESC, rowid DESC
@@ -13745,7 +13937,10 @@ class PecAuditRepository:
                     if not email_id or email_id in resolved:
                         continue
                     resolved.add(email_id)
-                    if str(row["status"] or "") in wanted:
+                    stato = str(row["status"] or "")
+                    if stato == "processed" and row["errore"]:
+                        continue
+                    if stato in wanted:
                         presided.add(email_id)
                 legacy_uids = [f"legacy:{item}" for item in chunk]
                 uid_placeholders = ",".join("?" for _ in legacy_uids)
@@ -14122,7 +14317,10 @@ class PecAuditRepository:
                 db_path=str(self.fascicoli_db_path),
                 documents_dir=str(self.fascicoli_docs_path or self.fascicoli_db_path.parent / "documenti"),
                 studio_db=self._studio_db_for_data_path(self.fascicoli_db_path),
+                carica_tutto=False,
             )
+            if manager.get(target_id) is None:
+                raise LookupError("Fascicolo non trovato.")
             subject = clean_text(((json.loads(row["metadata_json"] or "{}").get("headers") or {}).get("subject") or "PEC"), 80)
             doc = manager.aggiungi_documento(
                 target_id,
@@ -14134,6 +14332,7 @@ class PecAuditRepository:
                 caricato_da=actor,
                 fonte_documento="PEC_AUDIT_PIPELINE",
                 msg_id_portale=message_id,
+                salvataggio_mirato=True,
             )
         except Exception as exc:
             return {"ok": False, "message": f"Salvataggio nel fascicolo non completato: {exc}"}
@@ -14684,6 +14883,8 @@ class PecAuditRepository:
                         }.items()
                         if value not in ("", None)
                     }
+                    if linked_fascicolo_id and not getattr(appuntamento, "id_fascicolo", ""):
+                        agenda_updates["id_fascicolo"] = linked_fascicolo_id
                     current_remote_url = clean_text(
                         getattr(appuntamento, "remote_hearing_url", "") or "",
                         1200,
@@ -15125,12 +15326,19 @@ class PecAuditRepository:
                     "\n".join(_attachment_ocr_text(item) for item in allegati),
                     numero_della_comunicazione(f"{comm.event} {comm.description}"),
                 )
-        if change is None and dies_day is not None:
-            term_proposals = propose_provvedimento_terms(comm, dies_a_quo=dies_day, labour=labour)
+        verifiche_termini: list[str] = []
+        if change is None and decisorio:
+            testo_provvedimento = "\n".join(_attachment_ocr_text(item) for item in (detail.get("attachments") or []) if isinstance(item, dict))
+            term_proposals = propose_provvedimento_terms(
+                comm, dies_a_quo=dies_day, labour=labour,
+                comunicata_il=received.date(), testo_provvedimento=testo_provvedimento,
+            )
+            if comm.kind == "estinzione" and not term_proposals:
+                verifiche_termini.append("Estinzione: verificare sull'originale il rimedio e l'evento da cui decorre il termine.")
         if change is None and comm.kind != "sentenza":
             # Decreto del giudice del lavoro che ordina la notifica «nei termini di legge»: art. 415 c.p.c.
             try:
-                from pct.notifica_ricorso_lavoro import proposte_art_415
+                from pct.notifica_ricorso_lavoro import ordine_di_notifica_nei_termini_di_legge, proposte_art_415
 
                 allegati_415 = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
                 udienza_415 = None
@@ -15138,9 +15346,13 @@ class PecAuditRepository:
                     udienza_415 = date.fromisoformat(str(comm.date or "")[:10]) if comm.date else None
                 except ValueError:
                     udienza_415 = None
-                term_proposals = list(term_proposals) + proposte_art_415(
-                    "\n".join(_attachment_ocr_text(item) for item in allegati_415), udienza=udienza_415,
-                )
+                testo_415 = "\n".join(_attachment_ocr_text(item) for item in allegati_415)
+                term_proposals = list(term_proposals) + proposte_art_415(testo_415, udienza=udienza_415)
+                if ordine_di_notifica_nei_termini_di_legge(testo_415):
+                    verifiche_termini.append(
+                        "Notifica di ricorso e decreto (art. 415 c.p.c.): verificare l'udienza e se la notifica "
+                        "avviene in Italia o all'estero prima di confermare il termine a difesa."
+                    )
             except Exception as exc:  # la proposta non deve fermare la registrazione della comunicazione
                 logging.getLogger(__name__).warning("Termini dell'art. 415 non proposti: %s", exc)
         note_127_ter = None
@@ -15211,6 +15423,7 @@ class PecAuditRepository:
                     for item in term_proposals
                     if item.due_date >= today_rome
                 ),
+                *verifiche_termini,
                 *(provvedimento.righe_descrizione() if provvedimento is not None else ()),
                 f"Attività per l'avvocato: {communication_activity(comm)}",
                 f"Fascicolo: {fascicolo_id}" if fascicolo_id else "",
@@ -15253,6 +15466,7 @@ class PecAuditRepository:
                         "procedimento": f"RG {rg}" if rg else "",
                         "cliente": cliente,
                         "tribunale": ufficio,
+                        "id_fascicolo": fascicolo_id if not getattr(appointment, "id_fascicolo", "") else "",
                     }.items()
                     if value and getattr(appointment, key, "") != value
                 }
@@ -15462,7 +15676,7 @@ class PecAuditRepository:
         codici già proposti dagli altri percorsi della stessa PEC e le scadenze equivalenti già nel fascicolo.
         """
         from pct.provvedimenti import esamina_provvedimento, proposte_scadenziario
-        from pct.provvedimenti.parte_assistita import ruolo_cliente
+        from pct.provvedimenti.parte_assistita import notifica_uscente_dello_studio, ruolo_cliente, ruolo_da_relata
 
         body = parsed.get("body") if isinstance(parsed.get("body"), dict) else {}
         allegati = [item for item in list(detail.get("attachments") or []) if isinstance(item, dict)]
@@ -15496,12 +15710,22 @@ class PecAuditRepository:
             appuntamenti=appuntamenti,
             scadenze=scadenze,
             opposizione_proposta=opposizione,
-            # Parti scritte dalla cancelleria (Comunicazione.xml) confrontate col cliente del fascicolo.
+            # Parti scritte dalla cancelleria (Comunicazione.xml) confrontate col cliente del fascicolo; in loro
+            # assenza, la relata con cui il difensore del cliente notifica l'atto introduttivo (art. 415, c. 4, c.p.c.),
+            # solo se la PEC è verificabilmente partita dalla casella dello studio. Altrimenti il ruolo resta incerto
+            # e il termine si propone con il dubbio dichiarato, mai filtrato.
             ruolo_cliente=ruolo_cliente(
                 getattr(fascicolo, "nome_cliente", "") if fascicolo is not None else "",
                 attore=profile.get("attore_principale"),
                 convenuto=profile.get("convenuto_principale"),
                 controparte=getattr(fascicolo, "controparte", "") if fascicolo is not None else "",
+            ) or (
+                ruolo_da_relata(testo, getattr(fascicolo, "nome_cliente", "") if fascicolo is not None else "")
+                if notifica_uscente_dello_studio(
+                    casella=((parsed.get("casella") or {}) if isinstance(parsed.get("casella"), dict) else {}).get("account_email"),
+                    cartella=((parsed.get("casella") or {}) if isinstance(parsed.get("casella"), dict) else {}).get("folder"),
+                )
+                else ""
             ),
         )
         # Il proponente dei termini legali della PEC ha già il suo percorso (es. opposizione ex art. 127-ter).
@@ -15601,7 +15825,7 @@ class PecAuditRepository:
             new_title = str(getattr(previous, "titolo", "") or new_title)
         updates: dict[str, Any] = {
             "data_scadenza": new_date,
-            "operational_due_at": new_date,
+            "operational_due_at": f"{new_date}T{modification.new_time}" if modification.new_time else new_date,
             "titolo": new_title,
             "descrizione": clean_text(
                 " ".join(part for part in (human, str(getattr(previous, "descrizione", "") or "")) if part),
@@ -16790,10 +17014,17 @@ class PecAuditRepository:
         with self.connect() as conn:
             rows = conn.execute(
                 """
-                SELECT * FROM pec_local_acquire_items
-                WHERE tenant_id=?
-                ORDER BY updated_at DESC, rowid DESC
-                LIMIT ?
+                WITH recent AS MATERIALIZED (
+                    SELECT rowid AS item_rowid, updated_at
+                    FROM pec_local_acquire_items
+                    WHERE tenant_id=?
+                    ORDER BY updated_at DESC, rowid DESC
+                    LIMIT ?
+                )
+                SELECT item.*
+                FROM recent
+                CROSS JOIN pec_local_acquire_items AS item ON item.rowid=recent.item_rowid
+                ORDER BY recent.updated_at DESC, recent.item_rowid DESC
                 """,
                 (self.tenant_id, max(1, int(limit or 10000))),
             ).fetchall()
@@ -17398,7 +17629,10 @@ class PecAuditRepository:
                     authoritative_updates = {
                         "titolo": str(getattr(existing, "titolo", "") or title) if existing_modifications else title,
                         "data_scadenza": target_date[:10],
-                        "operational_due_at": target_date,
+                        "operational_due_at": (
+                            f"{target_date[:10]}T{rerun_modification.new_time}"
+                            if existing_modifications and rerun_modification and rerun_modification.new_time else target_date
+                        ),
                         "perentorio": bool(legal_fields["perentorio"]),
                         "deadline_profile_code": legal_fields["profile_code"],
                         **legal_fields["extra"],
@@ -17506,7 +17740,10 @@ class PecAuditRepository:
                 perentorio=bool(legal_fields["perentorio"]),
                 source_event_type=str(legal_fields["source_event_type"] or proposal.get("source_event_type") or report.get("event_type") or ""),
                 source_event_at=str(legal_fields["source_event_at"] or proposal.get("source_event_at") or ""),
-                operational_due_at=target_date,
+                operational_due_at=(
+                    f"{target_date[:10]}T{term_modification.new_time}"
+                    if term_modification and term_modification.new_time else target_date
+                ),
                 deadline_profile_code=legal_fields["profile_code"],
                 **_source_evidence_fields(proposal, message_id=_source_message_id or message_id),
                 **remote_extra,

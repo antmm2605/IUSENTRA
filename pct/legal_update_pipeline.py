@@ -15,7 +15,7 @@ from lxml import html as lxml_html
 
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.legal_update_ai import analyze_document
-from pct.legal_relevance import is_low_value_public_legal_record
+from pct.legal_relevance import is_catalog_only_legal_summary, is_low_value_public_legal_record
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
 from pct.legal_update_source_capabilities import (
     get_source_capability,
@@ -1706,11 +1706,14 @@ class LegalUpdatePipeline:
         result["autopublished"] = self.publish_auto_news(limit=20) if auto_publish else {"count": 0, "items": []}
         return result
 
-    def scan_source(self, source_code: str, *, request_get: RequestGet = requests.get, auto_publish: bool = True) -> dict[str, Any]:
+    def scan_source(
+        self, source_code: str, *, request_get: RequestGet = requests.get,
+        auto_publish: bool = True, deduplicate: bool = True,
+    ) -> dict[str, Any]:
         source = self.repository.get_source_by_code(source_code)
         if not source:
             raise ValueError(f"Fonte non configurata: {source_code}")
-        cleanup = self.repository.deduplicate_archive(performed_by="system")
+        cleanup = self.repository.deduplicate_archive(performed_by="system") if deduplicate else {}
         documents = self._fetch_source(source, request_get=request_get)
         processed: list[dict[str, Any]] = []
         skipped_unchanged = 0
@@ -1720,8 +1723,10 @@ class LegalUpdatePipeline:
         for document in documents:
             existing = self.repository.get_raw_document_by_external(int(source["id"]), str(document.get("external_id") or ""))
             if existing and _clean_spaces(existing.get("content_hash")) == _clean_spaces(document.get("content_hash")):
-                skipped_unchanged += 1
-                continue
+                normalized_hash = self._normalize_document(source, document)["normalized_hash"]
+                if self.repository.source_document_is_processed(int(existing["id"]), normalized_hash):
+                    skipped_unchanged += 1
+                    continue
             processed_result = self.process_document(source, document)
             evidence = processed_result.get("verification_evidence") if isinstance(processed_result, dict) else {}
             if isinstance(evidence, dict):
@@ -1758,6 +1763,7 @@ class LegalUpdatePipeline:
         source_codes: list[str] | None = None,
         request_get: RequestGet = requests.get,
         auto_publish: bool = True,
+        include_dashboard: bool = True,
     ) -> dict[str, Any]:
         self.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
         cleanup = self.repository.deduplicate_archive(performed_by="system")
@@ -1765,7 +1771,9 @@ class LegalUpdatePipeline:
         reports: list[dict[str, Any]] = []
         for source_code in selected:
             try:
-                reports.append(self.scan_source(source_code, request_get=request_get, auto_publish=False))
+                reports.append(self.scan_source(
+                    source_code, request_get=request_get, auto_publish=False, deduplicate=False,
+                ))
             except Exception:
                 reports.append({
                     "source": source_code,
@@ -1785,7 +1793,7 @@ class LegalUpdatePipeline:
             "duplicates_removed": int(cleanup.get("removed") or 0)
             + sum(int(row.get("duplicates_removed") or 0) for row in reports),
             "autopublished": autopublished,
-            "dashboard": self.repository.dashboard_snapshot(),
+            **({"dashboard": self.repository.dashboard_snapshot()} if include_dashboard else {}),
         }
 
     def backfill_web_verification_evidence(
@@ -2398,7 +2406,9 @@ class LegalUpdatePipeline:
                 report["downgraded_to_news"] += 1
         return report
 
-    def publish_auto_news(self, *, limit: int = 20) -> dict[str, Any]:
+    def publish_auto_news(self, *, limit: int = 20, max_seconds: int = 0) -> dict[str, Any]:
+        deadline = time.monotonic() + max_seconds if max_seconds > 0 else None
+        deferred = 0
         cleanup = self.repository.deduplicate_archive(performed_by="system")
         reconciliation = self.reconcile_pending_reviews(limit=max(limit * 3, 120), reviewer="system")
         candidate_limit = max(max(1, int(limit or 1)) * 12, 40)
@@ -2410,6 +2420,9 @@ class LegalUpdatePipeline:
         verification_attachments_saved = 0
         for row in items:
             if len(published) >= max(1, int(limit or 1)):
+                break
+            if deadline is not None and time.monotonic() >= deadline:
+                deferred += 1
                 break
             proposed_action = str(row.get("proposed_action") or "").upper()
             if proposed_action in {"DUPLICATE", "OUT_OF_SCOPE"}:
@@ -2429,7 +2442,10 @@ class LegalUpdatePipeline:
                 continue
             review = self.repository.get_review_item(int(row["id"])) or row
             try:
-                verification = verify_legal_update_against_public_sources(review, source)
+                verification = verify_legal_update_against_public_sources(
+                    review, source,
+                    **({"deadline": min(deadline, time.monotonic() + 40)} if deadline is not None else {}),
+                )
             except Exception:
                 verification = {
                     "ok": False,
@@ -2437,6 +2453,14 @@ class LegalUpdatePipeline:
                     "confirmation_count": 0,
                 }
             verification_attempts += 1
+            if verification.get("status") == "deferred":
+                deferred += 1
+                self.repository.set_review_status(
+                    int(row["id"]), "pending", reviewer="system",
+                    notes=str(verification["reason"]), priority=10,
+                )
+                skipped.append({"id": int(row["id"]), "reason": "verifica_da_riprendere"})
+                continue
             evidence = self._record_verification_evidence(
                 review,
                 source,
@@ -2445,6 +2469,18 @@ class LegalUpdatePipeline:
             )
             verification_evidence_saved += int(evidence.get("saved") or 0)
             verification_attachments_saved += int(evidence.get("attachments") or 0)
+            # Una scheda indice può confermare l'identità dell'atto, ma non
+            # rappresenta la sua risposta operativa. Va rivista con l'allegato.
+            if verification.get("ok") and is_catalog_only_legal_summary(
+                title=review.get("title"), summary=review.get("summary_short"),
+                context=" ".join(str(review.get(k) or "") for k in ("body_text", "what_changes")),
+            ):
+                self.repository.set_review_status(
+                    int(row["id"]), "pending", reviewer="system", priority=10,
+                    notes="Letta la scheda indice. Serve una sintesi operativa dell’atto ufficiale prima della pubblicazione.",
+                )
+                skipped.append({"id": int(row["id"]), "reason": "sintesi_operativa_da_verificare"})
+                continue
             if not verification.get("ok"):
                 reason = _truncate(str(verification.get("reason") or "Verifica pubblica insufficiente."), 220)
                 self.repository.set_review_status(
@@ -2501,6 +2537,7 @@ class LegalUpdatePipeline:
         return {
             "count": len(published),
             "items": published,
+            "verification_deferred": deferred,
             "skipped": skipped,
             "web_verification_attempts": verification_attempts,
             "verification_evidence_saved": verification_evidence_saved,

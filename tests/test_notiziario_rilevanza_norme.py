@@ -66,9 +66,9 @@ def _archivio(tmp_path: Path) -> ArchivioNotiziario:
         notizia(gu, titolo="AGENZIA ITALIANA DEL FARMACO - COMUNICATO", url="https://www.gazzettaufficiale.it/eli/id/1",
                 data="2026-11-07", descrizione="Autorizzazione all'immissione in commercio del medicinale Alfa."),
         notizia(gu, titolo="DECRETO-LEGGE 31 ottobre 2026, n. 158", url="https://www.gazzettaufficiale.it/eli/id/2",
-                data="2026-10-31", descrizione="Modifiche all'articolo 1, comma 121, della legge 13 luglio 2015, n. 107."),
+                data="2026-10-31", descrizione="Nuovo termine per il deposito dei ricorsi in materia di istruzione."),
         notizia(gu, titolo="MINISTERO DELL'AGRICOLTURA - DECRETO 2 novembre 2026", url="https://www.gazzettaufficiale.it/eli/id/3",
-                data="2026-11-06", descrizione="Conferma dell'incarico al Consorzio di tutela."),
+                data="2026-11-06", descrizione="Nuovi requisiti per il rimborso dei contributi dei consorzi."),
     ])
     return archivio
 
@@ -82,10 +82,11 @@ def test_vista_ordina_per_rilevanza_e_nasconde_i_comunicati_di_servizio(tmp_path
     normale = _vista()
     assert [voce["title"][:13] for voce in normale["items"]] == ["DECRETO-LEGGE", "MINISTERO DEL"]
     assert normale["items"][0]["relevanceLabel"] == "Rilevanza alta"
-    assert normale["serviceCount"] == 1 and normale["total"] == 2
+    assert normale["serviceCount"] == 0 and normale["total"] == 2
     con_servizio = _vista(servizio="1")
-    assert con_servizio["total"] == 3
-    assert con_servizio["items"][-1]["relevanceLabel"] == "Comunicato di servizio"
+    assert con_servizio["total"] == 2
+    assert len(archivio.elenco()) == 3
+    assert all(item["operationalReason"] for item in normale["items"])
 
 
 def test_citazioni_con_articolo_e_comma_e_leggi_regionali_escluse():
@@ -167,3 +168,31 @@ def test_atto_citato_in_quasi_tutti_i_fascicoli_conta_solo_con_lo_stesso_articol
     stesso_articolo = {"titolo": "Informativa sulla mediazione", "sintesi": "art. 4, comma 3, del D.Lgs. 28/2010",
                        "atti": ["dlgs:28:2010"], "materia": ""}
     assert pertinenza(stesso_articolo, indice)[1] == 25
+
+
+def test_notiziario_mostra_solo_verifiche_attuali_senza_lost_source(tmp_path, monkeypatch):
+    monkeypatch.setenv("IUSENTRA_NOTIZIE_SOLO_VERIFICATE", "1")
+    archivio = _archivio(tmp_path)
+    righe = archivio.elenco()
+    scelta = next(r for r in righe if r["titolo"].startswith("DECRETO-LEGGE"))
+    archivio.salva_verifica(scelta["id"], sintesi="Nuova regola per il deposito.",
+                           azione="Controllare il termine del ricorso.", evidenza="Atto, art. 1.",
+                           verificata_il="2026-11-08")
+
+    def leggi():
+        return vista.costruisci_vista(archivio, interazioni={}, fascicoli=[],
+                                      filtri=vista.filtri_richiesti({}), oggi=date(2026, 11, 8))
+
+    archivio.salva([
+        {**scelta, "id": f"non-verificata-{i}", "url": f"https://example.test/{i}",
+         "titolo": f"Ultima notizia {i}", "data": "2026-11-09"}
+        for i in range(800)
+    ])
+    assert all(r["id"] != scelta["id"] for r in archivio.elenco())
+    payload = leggi()
+    assert payload["total"] == 1
+    assert payload["items"][0]["summary"] == "Nuova regola per il deposito."
+    assert "Atto, art. 1." in payload["items"][0]["content"]
+    archivio.salva([{**scelta, "sintesi": "La fonte ha cambiato il testo."}])
+    assert leggi()["total"] == 0
+    assert len(archivio.elenco(limite=900)) == 803

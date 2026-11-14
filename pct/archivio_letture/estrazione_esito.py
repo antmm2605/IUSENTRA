@@ -14,7 +14,7 @@ import re
 from pct.percorso_pratica.esito import esito_sentenza
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_ESITO = "2026.11.08.esito-dispositivo.v3-estinzione"
+VERSIONE_ESTRAZIONE_ESITO = "2026.11.14.esito-dispositivo.v6-liquidazione-condivisa"
 _SENTENZA = re.compile(r"\bS\s?E\s?N\s?T\s?E\s?N\s?Z\s?A\b", re.IGNORECASE)
 
 
@@ -49,24 +49,32 @@ def estrai_esito(testo: str, *, origine: str) -> list[Fatto]:
     if not _SENTENZA.search(testo[:4000]):
         return estrai_estinzione(testo, origine=origine)
     esito = esito_sentenza(testo)
-    if esito["esito"] == "non_riconosciuto" or not esito["dispositivo"]:
+    if not esito["dispositivo"]:
         return []
     posizione = max(0, testo.rfind(esito["dispositivo"][:40]))
     spese = esito["spese"]
-    fatti = [Fatto(
-        categoria="evento", campo="esito_sentenza", valore=esito["esito"], valore_letto=esito["etichetta"],
-        etichetta=esito["etichetta"], contesto=esito["dispositivo"][:600], posizione=posizione, origine=origine,
-        verifica="verificata", confidenza=0.9,
-        prove=[{"codice": "dispositivo", "esito": "ok", "dettaglio": "esito letto dopo «P.Q.M.» (art. 132, n. 5, c.p.c.)"}],
-    )]
+    fatti: list[Fatto] = []
+    if esito["esito"] != "non_riconosciuto":
+        fatti.append(Fatto(
+            categoria="evento", campo="esito_sentenza", valore=esito["esito"], valore_letto=esito["etichetta"],
+            etichetta=esito["etichetta"], contesto=esito["dispositivo"][:600], posizione=posizione, origine=origine,
+            verifica="verificata", confidenza=0.9,
+            prove=[{"codice": "dispositivo", "esito": "ok", "dettaglio": "esito letto dopo «P.Q.M.» (art. 132, n. 5, c.p.c.)"}],
+        ))
     if spese["regolazione"] != "non_indicata":
+        importo_atteso = spese["regolazione"] in {"condanna", "compensazione_parziale"}
+        prova = (
+            "Importo liquidato letto nel dispositivo." if spese["importo"]
+            else "Importo da verificare sul dispositivo." if importo_atteso
+            else "Compensazione integrale letta nel dispositivo (art. 92 c.p.c.)."
+        )
         valore = spese["regolazione"] + (f";importo={spese['importo']}" if spese["importo"] else "") + (";distrazione" if spese["distrazione"] else "")
         fatti.append(Fatto(
             categoria="evento", campo="spese_sentenza", valore=valore, valore_letto=spese["frase"][:200],
             etichetta="Spese: " + spese["regolazione"].replace("_", " ") + (f" € {spese['importo']}" if spese["importo"] else ""),
             contesto=spese["frase"][:400], posizione=posizione, origine=origine, verifica="verificata", confidenza=0.85,
-            prove=[{"codice": "dispositivo", "esito": "ok" if spese["importo"] or spese["regolazione"] != "condanna" else "attenzione",
-                    "dettaglio": "importo letto" if spese["importo"] else "importo non leggibile: verificare sul dispositivo"}],
+            prove=[{"codice": "dispositivo", "esito": "attenzione" if importo_atteso and not spese["importo"] else "ok",
+                    "dettaglio": prova}],
         ))
     return fatti
 

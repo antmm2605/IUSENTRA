@@ -444,8 +444,38 @@ def test_recupero_con_errori_parziali_non_e_fallito_ma_tutti_in_errore_si(monkey
     ora = datetime(2026, 11, 4, 3, 0)
     monkeypatch.setattr(catena, "esegui_in_catena", lambda f, a, k: report)
     stato, messaggio = catena._esegui_lavoro(SimpleNamespace(func=None, args=[], kwargs={}), catena.Passo("x"), ora, lambda: ora)
-    assert stato == "completato" and "4 errori" in messaggio
+    assert stato == "rinviato" and "4 errori" in messaggio
 
     assert runtime.recupero_per_studi([("guasto", {})], limite=100)["ok"] is False
+    esiti["parziale"] = {"esaminati": 1, "completati": 1, "errori": 0, "restano": 0}
+    monkeypatch.setattr(runtime, "_notifiche_l53", lambda repo: {"ok": False, "restano": 2, "errori": 1})
+    notifiche = runtime.recupero_per_studi([("parziale", {})], limite=100)
+    assert notifiche["status"] == "parziale"
+    assert notifiche["totals"]["restano"] == 2 and notifiche["totals"]["controlli_rinviati"] == 1
     esiti["parziale"] = {"esaminati": 5, "errori": 5}
     assert runtime.recupero_per_studi([("parziale", {})], limite=100)["ok"] is False
+
+
+def test_pec_sql_salva_eml_e_allegati_senza_caricare_gli_altri_fascicoli(tmp_path, monkeypatch):
+    from pct.storage import StudioDB
+
+    db = StudioDB.get(str(tmp_path / "studio.db"))
+    db.ensure_schema()
+    repo, fascicolo = _ambiente(tmp_path)
+    studio = GestioneFascicoli(db_path=str(tmp_path / "fascicoli.json"),
+                              documents_dir=str(tmp_path / "docs"), studio_db=db)
+    altro = studio.nuovo(titolo="Altra causa", tipo=TipoFascicolo.CIVILE, numero_rg="991", anno_rg="2026")
+    message_id = _ingesta(repo, _comunicazione(), "INBOX:UID:sql")
+    _certifica(repo, message_id, fascicolo.id)
+
+    def non_caricare_archivio(_):
+        raise AssertionError("L'acquisizione deve aprire il solo fascicolo collegato.")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(GestioneFascicoli, "_carica", non_caricare_archivio)
+        esito = processa_messaggio(repo, message_id, eventi=lambda *_: None)
+
+    assert esito["ok"] and esito["salvati"] == 1 and esito["eml_salvati"] == 1
+    lettore = GestioneFascicoli(db_path=str(tmp_path / "fascicoli.json"), studio_db=db, carica_tutto=False)
+    assert len(lettore.get(fascicolo.id).documenti) == 2
+    assert lettore.get(altro.id).documenti == []

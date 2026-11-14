@@ -133,3 +133,49 @@ def test_comando_daily_sync_eseguibile_con_fonte_selezionata(tmp_path: Path):
     assert code == 0
     engine = LegalIntelligenceDailyEngine(tmp_path / "daily.sqlite", fetcher=fetcher)
     assert engine.dashboard_snapshot()["last_run"]["sources_checked"] == 1
+
+
+def test_job_fonti_scrive_nei_due_studi_con_una_sola_acquisizione(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from flask import Flask, g
+    from pct.scheduler import start_scheduler
+    from web.services import fascicoli_presidi_runtime
+
+    studi = [SimpleNamespace(slug="studio-a"), SimpleNamespace(slug="studio-b")]
+    monkeypatch.setattr(fascicoli_presidi_runtime, "_active_tenants", lambda app: studi)
+    monkeypatch.setattr("pct.tenant.GestioneTenant", lambda **kw: None)
+
+    def collega(manager, studio):
+        g.data_paths = {"LEGAL_INTELLIGENCE_DAILY_DB": str(tmp_path / studio.slug / "daily.sqlite")}
+
+    monkeypatch.setattr(fascicoli_presidi_runtime, "_attach_tenant_context", collega)
+    fonte = _source()
+    monkeypatch.setattr("legal_intelligence.engine.DEFAULT_LEGAL_SOURCES", [fonte])
+    chiamate = []
+
+    def acquisisci(self, source):
+        chiamate.append(source.id)
+        return FetchResult(True, source.url, 200, b"Testo pubblico", {"content-type": "text/plain"})
+
+    monkeypatch.setattr("legal_intelligence.fetcher.OfficialSourceFetcher.fetch", acquisisci)
+    app = Flask(__name__)
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+    monkeypatch.delenv("PCT_DISABLE_SCHEDULER", raising=False)
+    app.config.update(
+        MULTI_TENANT=True, TENANTS_REGISTRY="test", DATA_DIR=str(tmp_path), PCT_SCHEDULER_WORKER=True,
+    )
+    scheduler = start_scheduler(app)
+    try:
+        from pct.scheduler_notturno.guardia import esegui_manualmente
+
+        result = esegui_manualmente(scheduler.get_job("legal_sources_daily_check").func, [], {})
+    finally:
+        scheduler.shutdown(wait=False)
+
+    assert result["totals"]["studi"] == 2
+    assert chiamate == [fonte.id]
+    for studio in studi:
+        db = tmp_path / studio.slug / "daily.sqlite"
+        assert db.is_file()
+        assert LegalIntelligenceDailyEngine(db, sources=[fonte]).dashboard_snapshot()["last_run"]

@@ -899,3 +899,75 @@ def test_filtro_canale_non_pec_comprende_i_due_alias(tmp_path: Path) -> None:
     ids = [str(item["id"]) for item in repo.list_presidia(channel="non_pec").to_public_dict()["items"]]
     assert ids == [presidio_id]
     assert repo.list_presidia(channel="pec").to_public_dict()["items"] == []
+
+
+def test_bozza_relata_riapribile_solo_nello_studio_e_fascicolo_del_presidio(tmp_path, monkeypatch):
+    from web.services import notification_presidia_drafts as drafts
+
+    repo = _repo(tmp_path)
+    presidio_id = _candidate(NotificationPresidioService(repo), recipients=[{"name": "Controparte", "role": "controparte"}])
+    monkeypatch.setattr(drafts, "build_notification_presidio_repository", lambda **_: repo)
+    draft = {"practiceId": "FASC-001", "relataText": "Prima bozza"}
+    assert drafts.load_presidio_draft(presidio_id, "FASC-001") is None
+    assert not drafts.save_presidio_draft(presidio_id, draft)
+
+    with repo.connection() as conn:
+        conn.execute(
+            "UPDATE pec_legal_notification_presidia SET status = 'NOTIFICATION_CONFIRMED' WHERE tenant_id = ? AND id = ?",
+            (repo.tenant_id, presidio_id),
+        )
+
+    repo.upsert_document(presidio_id, {
+        "document_role": "office_pec_copy", "fascicolo_document_id": "COPIA-01",
+        "content_sha256": "b" * 64, "original_filename": "Copia PEC.pdf", "authoritative": True,
+    })
+    assert not drafts.save_presidio_draft(presidio_id, draft)
+    repo.upsert_document(presidio_id, {
+        "document_role": "portal_original", "fascicolo_document_id": "ORIGINALE-01",
+        "content_sha256": "c" * 64, "original_filename": "Originale PST.pdf", "authoritative": True,
+    })
+    assert not drafts.save_presidio_draft(presidio_id, {**draft, "practiceId": "altro-fascicolo"})
+    assert drafts.save_presidio_draft(presidio_id, draft)
+    aggiornata = {**draft, "relataText": "Bozza aggiornata"}
+    assert drafts.save_presidio_draft(presidio_id, aggiornata)
+    assert drafts.load_presidio_draft(presidio_id, "FASC-001") == {**aggiornata, "presidioId": presidio_id}
+    assert drafts.load_presidio_draft(presidio_id, "altro-fascicolo") is None
+
+    altro_studio = NotificationPresidioRepository(repo.db_path, tenant_id="altro-studio", read_only=True)
+    monkeypatch.setattr(drafts, "build_notification_presidio_repository", lambda **_: altro_studio)
+    assert drafts.load_presidio_draft(presidio_id, "FASC-001") is None
+
+
+@pytest.mark.parametrize("prova_storica", [False, True])
+def test_rettifica_del_presidio_solo_con_pec_e_duplicato_coerenti(tmp_path, prova_storica):
+    repo = _repo(tmp_path)
+    service = NotificationPresidioService(repo)
+    erroneo = _candidate(service, recipients=[{"name": "Ministero", "role": "controparte"}])
+    if prova_storica:
+        repo.transition(erroneo, "PROOF_DEPOSITED", actor="test", reason="prova",
+                        evidence={"source": "fascicolo_notification_relata"}, idempotency_key="storico")
+    with repo.connection() as conn:
+        conn.execute("CREATE TABLE pec_messages (tenant_id TEXT, id TEXT, linked_fascicolo_id TEXT)")
+        conn.execute("INSERT INTO pec_messages VALUES (?,?,?)",
+                     (repo.tenant_id, "ordine-notifica-001", "FASC-002"))
+    source = {
+        "fascicolo_id": "FASC-002", "source_message_id": "ordine-notifica-001",
+        "source_effective_at": "2026-07-20T10:00:00+02:00", "trigger_type": "EXPLICIT_NOTIFICATION_ORDER",
+        "notification_case": "notifica_l53", "rulepack_version": "legal-notification-rulepack-v1",
+        "documents": [{"content_sha256": "a" * 64, "document_role": "notified_act"}],
+        "recipients": [{"name": "Ministero", "role": "controparte"}],
+    }
+    with pytest.raises(ValueError, match="fascicolo della PEC"):
+        service.create_candidate({**source, "fascicolo_id": "FASC-003"})
+    corretto = service.create_candidate(source)["id"]
+    if not prova_storica:
+        with pytest.raises(ValueError, match="fascicolo della PEC"):
+            repo.transition(erroneo, "PROOF_DEPOSITED", actor="test", reason="prova",
+                            evidence={}, idempotency_key="prova-errata")
+    with pytest.raises(ValueError, match="Rettifica"):
+        repo.annulla_presidio_sul_fascicolo_errato(corretto, erroneo, actor="test")
+    assert repo.annulla_presidio_sul_fascicolo_errato(erroneo, corretto, actor="test").inserted
+    assert not repo.annulla_presidio_sul_fascicolo_errato(erroneo, corretto, actor="test").inserted
+    assert repo.get_presidio(erroneo)["status"] == "CANCELLED"
+    assert repo.get_presidio(corretto)["status"] == "DETECTED"
+    assert repo.verify_transition_chain(erroneo)["ok"]

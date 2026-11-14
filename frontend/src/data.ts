@@ -1,7 +1,7 @@
 export type Tone = 'primary'|'info'|'success'|'warning'|'danger'|'purple'|'orange'|'neutral'
 export type Metric = { id:string; label:string; value:string|number; tag?:string; tone:Tone; href?:string; actionLabel?:string }
 export type Row = { id:string; title:string; subtitle:string; time?:string; avatar?:string; unread?:boolean; badge?:string; tone?:Tone; href?:string }
-export type Dossier = { id:string; area:string; title:string; meta:string; score:number; moves:string[]; href:string; tone:Tone }
+export type Dossier = { id:string; area:string; title:string; meta:string; href:string; tone:Tone }
 export type Source = { id:string; title:string; description:string; href:string; badge?:string; tone:Tone }
 /**
  * Stato del quadro operativo:
@@ -187,12 +187,6 @@ function asNumber(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-function dossierScore(row: Row, index: number): number {
-  if (row.tone === 'danger') return 18 - index
-  if (row.tone === 'orange' || row.tone === 'warning') return 12 - index
-  return Math.max(1, 8 - index)
-}
-
 function asDossiers(payload: Record<string, unknown>): Dossier[] {
   const rows = asRows(payload.high_priority_matters)
   return rows.map((row, index) => ({
@@ -200,12 +194,6 @@ function asDossiers(payload: Record<string, unknown>): Dossier[] {
     area: row.badge || 'FASCICOLO',
     title: row.title,
     meta: row.subtitle || 'Dati fascicolo collegati agli archivi operativi',
-    score: dossierScore(row, index),
-    moves: [
-      'Verificare scadenze, udienze e documenti recenti del fascicolo.',
-      'Aggiornare attività e prossime azioni nella regia operativa.',
-      'Avviare una ricerca giurisprudenziale collegata all’oggetto della pratica.'
-    ],
     href: row.href || '/fascicoli',
     tone: asTone(row.tone),
   }))

@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import (Blueprint, flash, g, jsonify, redirect,
-                   render_template, request, url_for, current_app)
+                   request, url_for, current_app)
 
 from web.helpers import get_clienti, get_agenda
 
@@ -77,31 +77,10 @@ def _leggi_log() -> list:
 @notifiche.route("/", methods=["GET"])
 @_richiedi_login
 def pannello():
-    config = _config_wa()
-    clienti = get_clienti().tutti()
-    clienti_by_id = {c.id: c for c in clienti}
-    log = _leggi_log()
-    from datetime import timedelta
+    # Notifiche WhatsApp: sezione React delle impostazioni (ImpostazioniPage).
+    from web.blueprints.react_shell import render_react_shell_response
 
-    domani_dt = date.today() + timedelta(days=1)
-    ag = get_agenda()
-    app_domani = [a for a in ag.tutti() if a.data_ora_dt.date() == domani_dt]
-    app_domani_con_cell = []
-    for a in app_domani:
-        if a.id_cliente:
-            c = clienti_by_id.get(a.id_cliente)
-            if c and getattr(getattr(c, "recapiti", None), "cellulare", ""):
-                app_domani_con_cell.append(a)
-
-    return render_template(
-        "notifiche/pannello.html",
-        config=config,
-        clienti=clienti,
-        clienti_by_id=clienti_by_id,
-        log=log,
-        app_domani=app_domani,
-        app_domani_con_cell=app_domani_con_cell,
-    )
+    return render_react_shell_response("notifiche")
 
 
 # ================================================================ INVIA MESSAGGIO LIBERO

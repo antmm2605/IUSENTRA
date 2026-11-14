@@ -61,14 +61,14 @@ def eta_ore(censimento: dict[str, Any] | None) -> float | None:
 
 def esegui_censimento(config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Misura e scrive. Non cancella niente: e' l'analisi, non l'azione."""
+    from pct.sync import get_gestore
     from web.services.server_maintenance_surface import run_professional_server_maintenance
 
     risultato = run_professional_server_maintenance(apply=False, config=config)
     voce = {"eseguito_il": datetime.now(UTC).isoformat(), "risultato": risultato}
     percorso = percorso_censimento(config)
     try:
-        percorso.parent.mkdir(parents=True, exist_ok=True)
-        percorso.write_text(json.dumps(voce, ensure_ascii=False, indent=2), encoding="utf-8")
+        get_gestore().scrivi_atomico(str(percorso), voce)
         voce["percorso"] = str(percorso)
     except Exception as exc:
         # Il numero resta comunque utile a chi ha chiamato: si dichiara solo

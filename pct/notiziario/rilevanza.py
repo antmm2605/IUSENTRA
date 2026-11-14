@@ -111,4 +111,38 @@ def rilevanza(fonte_id: str, tipo: str, titolo: str, sintesi: str = "") -> Rilev
     return Rilevanza(UTILE, "Notizia o prassi di un ente istituzionale")
 
 
-__all__ = ["ALTA", "ETICHETTE", "Rilevanza", "SERVIZIO", "UTILE", "rilevanza"]
+# Segnali di un effetto o di un controllo professionale, non di prestigio dell'emittente.
+_USO_STUDIO = re.compile(
+    r"\b(?:scadenz\w*|termine|termini|proroga\w*|adempiment\w*|deposit\w*|notific\w*|"
+    r"ricors\w*|impugn\w*|prescrizion\w*|decadenz\w*|contributo unificato|"
+    r"processo telematico|schemi xsd|contraddittorio|competenza territoriale|"
+    r"procedur\w*|requisit\w*|tracciabilit\w*|cig|fvoe|obblig\w*|diviet\w*|"
+    r"rimbors\w*|sanzion\w*|liquidazion\w*|prestazion\w*|pension\w*|"
+    r"indennit\w*|incompatibilit\w*|sospension\w*|disservizi\w*|"
+    r"privacy|protezione dei dati|responsabilit\w*|risarciment\w*|"
+    r"licenziament\w*|contributiv\w*|relazione annuale\s+(?:del\s+)?rpct)\b",
+    re.IGNORECASE,
+)
+_SOLO_PROMOZIONE = re.compile(
+    r"^(?:invito al |avviso di |iscrizioni (?:aperte )?(?:al|alla|per il) )?"
+    r"(?:webinar|convegno|seminario|conferenza stampa|comunicato stampa)\b",
+    re.IGNORECASE,
+)
+
+
+def motivazione_operativa(tipo: str, titolo: str, sintesi: str, *, fascicolo_collegato: bool = False) -> str:
+    titolo = " ".join(str(titolo or "").split())
+    sintesi = " ".join(str(sintesi or "").split())
+    if not titolo or _SOLO_PROMOZIONE.search(titolo):
+        return ""
+    if fascicolo_collegato and (sintesi.casefold() != titolo.casefold() or _USO_STUDIO.search(titolo)):
+        return "Attinente a un fascicolo dello studio."
+    if tipo == f.AVVISO_PCT and (_USO_STUDIO.search(titolo) or _USO_STUDIO.search(sintesi)):
+        return "Riguarda l’operatività del processo telematico."
+    segnale = _USO_STUDIO.search(f"{titolo} {sintesi}")
+    if segnale:
+        return f"Da valutare per il lavoro dello studio: {segnale.group(0).lower()}."
+    return ""
+
+
+__all__ = ["ALTA", "ETICHETTE", "Rilevanza", "SERVIZIO", "UTILE", "motivazione_operativa", "rilevanza"]

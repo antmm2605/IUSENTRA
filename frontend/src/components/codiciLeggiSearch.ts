@@ -1,4 +1,4 @@
-type CatalogueAct = { key?: string; label: string; title: string; materia?: string; tipo?: string }
+type CatalogueAct = { key?: string; label: string; title: string; materia?: string; tipo?: string; numero?: string | number | null; data_atto?: string | null }
 
 const aliases: Record<string, string> = {
   codice_privacy: 'privacy protezione dati personali',
@@ -26,6 +26,21 @@ const abbreviations = new Set(['cc', 'c.c.', 'cpc', 'c.p.c.', 'cp', 'c.p.', 'cpp
 
 export function matchesCatalogueAct(act: CatalogueAct, query: string) {
   const term = normaliseCatalogueText(query).trim()
+  const eu = act.key?.match(/^reg_ue_(\d{4})_(\d+)$/)
+  const euReference = term.match(/^(\d+)\s*\/\s*(\d+)$/)
+  if (eu && euReference) {
+    const [, year, number] = eu
+    const [, left, right] = euReference
+    return (left === year && right === number) || (left === number && right === year)
+  }
+  const reference = term.match(/^(\d+[a-z]*)\s*\/\s*(\d{4})$/)
+  if (reference) {
+    const [, number, year] = reference
+    const actNumber = normaliseCatalogueText(String(act.numero ?? '')).replace(/[ .-]+/g, '')
+    const actYear = act.data_atto?.match(/^(\d{4})-\d{2}-\d{2}$/)?.[1]
+    if (actNumber && actYear) return actNumber === number && actYear === year
+    return new RegExp(`(?:^|[^a-z0-9])${number}\\s*/\\s*${year}(?![a-z0-9])`).test(normaliseCatalogueText(`${act.label} ${act.title}`))
+  }
   const synonyms = normaliseCatalogueText(aliases[act.key || ''] || '')
   return normaliseCatalogueText(`${act.label} ${act.title} ${act.materia || ''} ${act.tipo || ''}`).includes(term) || (abbreviations.has(term) ? synonyms.split(' ').includes(term) : synonyms.includes(term))
 }

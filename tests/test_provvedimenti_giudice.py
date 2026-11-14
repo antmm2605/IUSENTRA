@@ -125,7 +125,8 @@ def test_decreto_415_notifica_e_costituzione_senza_sospensione_feriale():
     voci = {v.codice: v for v in esito.voci if v.codice}
     assert voci["LAV_415_NOTIFICA_DIECI_GIORNI"].giorno == date(2026, 11, 9)  # 07/11 è sabato
     assert voci["LAV_415_NOTIFICA_DIECI_GIORNI"].perentorio is False
-    assert voci["LAV_415_NOTIFICA_TRENTA_GIORNI"].giorno == date(2027, 1, 18)
+    assert voci["LAV_415_NOTIFICA_TRENTA_GIORNI"].genere == "da_verificare"
+    assert voci["LAV_415_NOTIFICA_TRENTA_GIORNI"].giorno is None
     costituzione = voci["LAV_416_COSTITUZIONE"]
     assert costituzione.giorno == date(2027, 2, 5) and costituzione.regola_id == "giudice.costituzione"
     assert costituzione.norme == ("cpc_416",) and costituzione.chi == "resistente"
@@ -387,9 +388,20 @@ def test_pec_con_decreto_415_propone_le_bozze_una_volta_sola(tmp_path):
     codici = sorted(s.deadline_profile_code for s in bozze())
     # Lo studio difende il ricorrente (cliente = «Ricorr. principale» della Comunicazione.xml): la costituzione
     # del convenuto (art. 416 c.p.c.) spetta alla controparte e non si propone (pct.provvedimenti.parte_assistita).
-    assert codici == ["LAV_415_NOTIFICA_DIECI_GIORNI", "LAV_415_NOTIFICA_TRENTA_GIORNI"]
+    assert codici == ["LAV_415_NOTIFICA_DIECI_GIORNI"]
     assert all(s.stato == StatoTermine.BOZZA for s in bozze())
     repo.record_pec_schedule_change_receipts(since="2026-01-01T00:00:00Z", actor="pytest")
     secondo = _run_cancelleria(repo, _decreto_415_mime("415-2", oggi), "INBOX:UID:4152")
     repo.link_fascicolo(secondo, threshold=0.5, actor="pytest")
-    assert len(bozze()) == 2
+    assert len(bozze()) == 1
+
+
+def test_termine_di_notifica_prima_della_data_fissata_si_conta_a_ritroso():
+    from pct.provvedimenti.ancore import ancora_del_capo
+
+    ancora = ancora_del_capo(
+        "Dispone che copia del ricorso e del presente decreto sia notificata a parte "
+        "resistente a cura di parte ricorrente nel termine di trenta giorni prima della data fissata."
+    )
+    assert ancora is not None
+    assert (ancora.tipo, ancora.giorni) == ("prima_udienza", 30)

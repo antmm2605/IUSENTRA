@@ -71,8 +71,11 @@ def credito_da_liquidazione_registrata(fascicolo: Any) -> list[dict[str, Any]]:
     if documento_id in documenti:
         nome = _testo(getattr(documenti[documento_id], "nome", "")) or "Sentenza"
         fonti.append({"label": nome, "href": _href_documento(fid, documento_id), "norma": "sentenza della causa"})
-    return [{"importo": importo, "distrazione": distrazione, "confermato": _testo(voce.get("status")) in {"pagato", "parziale"},
-             "fonti": fonti}]
+    from pct.incasso_provato import pagato_senza_prova
+
+    # «Pagato» scritto da un automatismo senza prova d'incasso non conferma nulla (pct.incasso_provato, G-4).
+    confermato = _testo(voce.get("status")) in {"pagato", "parziale"} and not pagato_senza_prova(voce)
+    return [{"importo": importo, "distrazione": distrazione, "confermato": confermato, "fonti": fonti}]
 
 
 def _lato_del_cliente(fascicolo: Any) -> str:
@@ -101,20 +104,24 @@ def sentenze_dall_archivio(fascicolo: Any) -> list[dict[str, Any]]:
     il giudice sulle spese, con il documento come fonte. Nessuna lettura del PDF nella richiesta.
     """
     from pct.archivio_letture.spese_sentenza import spese_lette
+    from web.services.obblighi_notifica_runtime import _impronte_testo_atti
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
     fid = _testo(getattr(fascicolo, "id", ""))
     numero, anno = _testo(getattr(fascicolo, "numero_rg", "")), _testo(getattr(fascicolo, "anno_rg", ""))
     rg = f"{numero}/{anno}" if numero and anno not in {"", "0"} else numero
     fatti = [f for f in registro_corrente().fatti(tenant_corrente(), fid, verifiche=None)
-             if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"spese_sentenza", "data_atto"})]
+             if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"spese_sentenza", "data_atto", "impronta_testo_atto"})]
     lette = spese_lette(fatti, rg=rg)
     if not lette:
         return []
     nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "")) for d in getattr(fascicolo, "documenti", []) or []}
+    documenti = {_testo(d.id): d for d in getattr(fascicolo, "documenti", []) or []}
+    identita = _impronte_testo_atti(documenti, fatti)
     lato = _lato_del_cliente(fascicolo)
     for voce in lette:
         documento_id = voce["documento_id"]
+        voce["identita_atto"] = identita.get(documento_id, "")
         voce["fonti"] = [{"label": nomi.get(documento_id) or "Sentenza", "norma": "sentenza della causa",
                           "href": _href_documento(fid, documento_id) if documento_id in nomi else ""}]
         voce["a_favore_del_cliente"] = None if not (lato and voce["beneficiario"]) else lato == voce["beneficiario"]
@@ -124,9 +131,48 @@ def sentenze_dall_archivio(fascicolo: Any) -> list[dict[str, Any]]:
 def crediti_dalle_sentenze_lette(sentenze: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Il credito per le spese liquidate in favore del cliente (o distratte al difensore); mai una condanna del cliente."""
     return [{"importo": voce["importo"], "distrazione": voce["distrazione"], "confermato": False, "fonti": voce["fonti"],
-             "distrazione_condizionata": voce.get("distrazione_condizionata", False), "accessori": voce.get("accessori", False)}
+             "distrazione_condizionata": voce.get("distrazione_condizionata", False), "accessori": voce.get("accessori", False),
+             "identita_atto": voce.get("identita_atto", "")}
             for voce in sentenze
             if voce["regolazione"] == "condanna" and voce["importo"] and voce.get("a_favore_del_cliente") is not False]
+
+
+def crediti_da_provvedimenti(fascicolo: Any) -> list[dict[str, Any]]:
+    """Le spese liquidate dai provvedimenti della causa diversi dalla sentenza (decreto ingiuntivo, ordinanze, decreti).
+
+    Solo i provvedimenti di questa causa (``pct.atto_della_causa``) ottenuti dalla parte assistita (il lato «attivo»
+    del cliente): nel decreto ingiuntivo le spese le paga l'ingiunto al ricorrente (art. 641 c.p.c.). Fonte: i testi
+    già salvati nell'indice documentale e la voce del catalogo; nessuna lettura di file nella richiesta (G-14).
+    """
+    from pct.atto_della_causa import provvedimento_della_causa, ruoli_in_intestazione
+    from pct.spese_liquidate_provvedimento import natura_provvedimento, spese_liquidate
+    from web.services.archivio_letture_runtime import testi_indice_archivio
+    from web.services.obblighi_notifica_runtime import _catalogo
+
+    if _lato_del_cliente(fascicolo) == "passivo":
+        return []
+    fid = _testo(getattr(fascicolo, "id", ""))
+    nomi = {_testo(getattr(d, "id", "")): _testo(getattr(d, "nome", "")) for d in getattr(fascicolo, "documenti", []) or []}
+    try:
+        etichette, testi = _catalogo(fascicolo), testi_indice_archivio(fascicolo)
+    except Exception:
+        return []
+    crediti, visti = [], set()
+    for documento_id, etichetta in etichette.items():
+        natura = natura_provvedimento(etichetta)
+        if natura is None or documento_id not in testi or documento_id not in nomi:
+            continue
+        esito, _motivo = provvedimento_della_causa(ruoli=ruoli_in_intestazione(testi[documento_id]), date_atto=(),
+                                                   numero_rg=getattr(fascicolo, "numero_rg", ""), anno_rg=getattr(fascicolo, "anno_rg", ""))
+        letto = spese_liquidate(testi[documento_id]) if esito is not False else None
+        if not letto or (letto["compensi"], letto["esborsi"]) in visti:
+            continue  # la copia notificata dello stesso decreto non è un secondo credito
+        visti.add((letto["compensi"], letto["esborsi"]))
+        crediti.append({"importo": letto["compensi"], "distrazione": letto["distrazione"], "confermato": False,
+                        "accessori": letto["accessori"], "esborsi": letto["esborsi"], "provvedimento": natura[0],
+                        "fonti": [{"label": nomi[documento_id], "href": _href_documento(fid, documento_id),
+                                   "norma": f"{natura[0]} della causa ({natura[1]})"}]})
+    return crediti
 
 
 def documenti_contributo(fascicolo: Any) -> list[dict[str, Any]]:
@@ -155,8 +201,24 @@ def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
         data_pagamento = max((str(r.get("paid_on") or "") for r in ricevute), default="") or _testo(p.data_pagamento)
         righe.append({"id": p.id, "numero": p.numero, "stato": stato, "operativo": operativo, "totale": p.totale,
                       "onorari": p.totale_competenze, "spese": p.totale_spese_imponibili, "anticipazioni": p.totale_anticipazioni,
-                      "incassato": incassato, "data_pagamento": data_pagamento, "sdi_stato": _testo(p.sdi_stato)})
+                      "incassato": incassato, "data_pagamento": data_pagamento, "sdi_stato": _testo(p.sdi_stato),
+                      "superata": (p.dati_personalizzati or {}).get("superata") if isinstance(p.dati_personalizzati, dict) else None})
     return righe
+
+
+def _esecuzione_pa(fascicolo_id: str) -> dict[str, Any] | None:
+    """I 120 giorni dell'art. 14 D.L. 669/1996 dalla sintesi degli obblighi di notifica (sentenza notificata alla P.A.)."""
+    try:
+        from web.services.obblighi_notifica_sintesi import leggi
+
+        sintesi = leggi(fascicolo_id) or {}
+    except Exception:
+        return None
+    for obbligo in sintesi.get("obblighi") or []:
+        for termine in obbligo.get("termini") or []:
+            if termine.get("codice") == "esecuzione_pa_120_giorni":
+                return dict(termine)
+    return None
 
 
 def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
@@ -179,6 +241,8 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     crediti = crediti_da_sentenza(fascicolo_id) or credito_da_liquidazione_registrata(fascicolo)
     sentenze = sentenze_dall_archivio(fascicolo)
     crediti = crediti or crediti_dalle_sentenze_lette(sentenze)
+    if not crediti and not sentenze:
+        crediti = crediti_da_provvedimenti(fascicolo)
     from web.helpers import regime_fiscale_studio
 
     from web.services.contributo_stato_runtime import stato_contributo_fascicolo
@@ -186,9 +250,9 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     # Lo stesso stato del contributo della card e della finestra del presidio economico (stessa voce, stesso catalogo).
     risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze, regime=regime_fiscale_studio(),
                                 documenti_contributo=[], stato_contributo=stato_contributo_fascicolo(fascicolo),
-                                parcelle=parcelle_del_fascicolo(fascicolo_id))
+                                parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(fascicolo_id))
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 
 
-__all__ = ["conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_sentenza", "crediti_dalle_sentenze_lette",
+__all__ = ["conto_economico_fascicolo", "credito_da_liquidazione_registrata", "crediti_da_provvedimenti", "crediti_da_sentenza", "crediti_dalle_sentenze_lette",
            "documenti_contributo", "parcelle_del_fascicolo", "sentenze_dall_archivio"]

@@ -1,7 +1,3 @@
-import re
-
-from werkzeug.datastructures import MultiDict
-
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.tariffario import Grado, Materia
 from web.app import create_app
@@ -38,30 +34,19 @@ def _login(client) -> None:
     assert response.status_code == 200
 
 
-def _parse_euro_label(value: str) -> float:
-    return float(value.replace(".", "").replace(",", "."))
+def _euro(value: str) -> float:
+    return float(value.replace("€", "").replace(".", "").replace(",", ".").strip())
 
 
-def _extract_totale_compenso_base(html: str) -> float:
-    match = re.search(
-        r"Totale compenso</th>\s*"
-        r"<th[^>]*>€ ([0-9.]+,[0-9]{2})</th>\s*"
-        r"<th[^>]*>€ ([0-9.]+,[0-9]{2})</th>",
-        html,
-        re.IGNORECASE | re.DOTALL,
-    )
-    assert match, "Totale compenso non trovato nel markup del tariffario"
-    return _parse_euro_label(match.group(2))
-
-
-def _extract_totale_operativo(html: str) -> float:
-    match = re.search(
-        r"border-top pt-1 text-primary\">€ ([0-9.]+,[0-9]{2})</div>",
-        html,
-        re.IGNORECASE | re.DOTALL,
-    )
-    assert match, "Totale operativo non trovato nel markup del tariffario"
-    return _parse_euro_label(match.group(1))
+def _calcola(client, **campi) -> dict:
+    """Calcolo dalla pagina React del tariffario (stesso motore della vecchia pagina Jinja)."""
+    stato = dict(client.get("/api/v1/ui/tariffario").get_json()["state"])
+    stato.update(campi)
+    risposta = client.post("/api/v1/ui/tariffario/calcola", json=stato)
+    assert risposta.status_code == 200
+    corpo = risposta.get_json()
+    assert corpo["ok"] is True, corpo
+    return corpo
 
 
 def test_tariffario_route_rispetta_toggle_spese_generali(tmp_path):
@@ -69,42 +54,22 @@ def test_tariffario_route_rispetta_toggle_spese_generali(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     _crea_admin(app)
 
-    data_base = [
-        ("materia", Materia.CIVILE_COGN.value),
-        ("grado", Grado.TRIBUNALE.value),
-        ("complessita", "media"),
-        ("valore", "10000"),
-        ("fasi", "studio"),
-        ("fasi", "introduttiva"),
-        ("fasi", "istruttoria"),
-        ("fasi", "decisionale"),
-        ("perc_spese_generali", "15"),
-    ]
-
+    base = {
+        "materia": Materia.CIVILE_COGN.value,
+        "grado": Grado.TRIBUNALE.value,
+        "complessita": "media",
+        "valore": "10000",
+        "fasi": ["Studio", "Introduttiva", "Istruttoria / Istruzione", "Decisionale"],
+        "perc_spese_generali": "15",
+    }
     with app.test_client() as client:
         _login(client)
-        senza_spese = client.post(
-            "/tariffario",
-            data=MultiDict(data_base + [("spese_generali", "0")]),
-            follow_redirects=True,
-        )
-        con_spese = client.post(
-            "/tariffario",
-            data=MultiDict(data_base + [("spese_generali", "0"), ("spese_generali", "1")]),
-            follow_redirects=True,
-        )
+        senza_spese = _calcola(client, **base, spese_generali="0")
+        con_spese = _calcola(client, **base, spese_generali="1")
 
-    html_senza_spese = senza_spese.get_data(as_text=True)
-    html_con_spese = con_spese.get_data(as_text=True)
-
-    assert senza_spese.status_code == 200
-    assert con_spese.status_code == 200
-    assert ">Spese generali<" not in html_senza_spese
-    assert ">Spese generali<" in html_con_spese
-    assert "Motore di calcolo attivo" in html_senza_spese
-    assert "Spese generali escluse dal totale." in html_senza_spese
-    assert "Spese generali incluse nel totale." in html_con_spese
-    assert _extract_totale_compenso_base(html_con_spese) > _extract_totale_compenso_base(html_senza_spese)
+    assert "Spese generali 15%" not in str(senza_spese["result"])
+    assert "Spese generali 15%" in str(con_spese["result"])
+    assert _euro(con_spese["result"]["selectedTotal"]) > _euro(senza_spese["result"]["selectedTotal"])
 
 
 def test_tariffario_route_mediazione_odm_incide_sul_totale(tmp_path):
@@ -112,38 +77,24 @@ def test_tariffario_route_mediazione_odm_incide_sul_totale(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     _crea_admin(app)
 
-    data_base = [
-        ("materia", Materia.MEDIAZIONE.value),
-        ("grado", Grado.PROCEDURA_ADR.value),
-        ("complessita", "media"),
-        ("valore", "10000"),
-        ("perc_spese_generali", "15"),
-    ]
-
+    base = {
+        "materia": Materia.MEDIAZIONE.value,
+        "grado": Grado.PROCEDURA_ADR.value,
+        "complessita": "media",
+        "valore": "10000",
+        "perc_spese_generali": "15",
+    }
     with app.test_client() as client:
         _login(client)
-        senza_odm = client.post(
-            "/tariffario",
-            data=MultiDict(data_base),
-            follow_redirects=True,
-        )
-        con_odm = client.post(
-            "/tariffario",
-            data=MultiDict(
-                data_base
-                + [
-                    ("mediazione_odm_attiva", "1"),
-                    ("mediazione_odm_regime", "volontaria"),
-                    ("mediazione_odm_esito", "primo_incontro_senza_accordo"),
-                ]
-            ),
-            follow_redirects=True,
+        senza_odm = _calcola(client, **base, mediazione_odm_attiva="0")
+        con_odm = _calcola(
+            client,
+            **base,
+            mediazione_odm_attiva="1",
+            mediazione_odm_regime="volontaria",
+            mediazione_odm_esito="primo_incontro_senza_accordo",
         )
 
-    html_senza_odm = senza_odm.get_data(as_text=True)
-    html_con_odm = con_odm.get_data(as_text=True)
-
-    assert senza_odm.status_code == 200
-    assert con_odm.status_code == 200
-    assert "Mediazione civile - costi organismo D.M. 150/2023" in html_con_odm
-    assert _extract_totale_operativo(html_con_odm) > _extract_totale_operativo(html_senza_odm)
+    assert "Costi organismo mediazione D.M. 150/2023" in str(con_odm)
+    assert "Costi organismo mediazione D.M. 150/2023" not in str(senza_odm)
+    assert con_odm["economicRaw"]["totale"] > senza_odm["economicRaw"]["totale"]

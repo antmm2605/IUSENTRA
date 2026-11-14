@@ -208,6 +208,8 @@ class AutonomousLearningCycle:
         result.new_terms = final_counts["legal_terms"] - initial_counts["legal_terms"]
         result.new_citations = final_counts["citations"] - initial_counts["citations"]
         result.new_readings = final_counts["source_readings"] - initial_counts["source_readings"]
+        result.proposals_count = final_counts["improvement_proposals"]
+        result.new_proposals_count = result.proposals_count - initial_counts["improvement_proposals"]
         result.new_unknown_concepts = final_counts["unknown_concepts"] - initial_counts["unknown_concepts"]
         result.stop_reason = stop_reason or "max_cycles"
         result.finished_at = self._iso_now()

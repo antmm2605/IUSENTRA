@@ -390,9 +390,18 @@ def test_notification_fascicolo_rows_postgres_fail_closed_non_legge_sqlite(monke
     database = _fake_postgres_database()
     monkeypatch.setattr(core_storage_backend, "build_core_storage_backend", lambda *_args, **_kwargs: None)
 
-    total, archived, rows = notifications_runtime._notification_fascicolo_rows(paths, database)
+    with pytest.raises(notifications_runtime.NotificationRuntimeUnavailable, match="Archivio fascicoli non disponibile"):
+        notifications_runtime._notification_fascicolo_rows(paths, database)
 
-    assert (total, archived, rows) == (0, 0, [])
+
+def test_notification_fascicolo_rows_segnala_lettura_sql_fallita(monkeypatch) -> None:
+    def fetchall(_sql, _params):
+        raise OSError("lettura interrotta")
+
+    backend = SimpleNamespace(fetchall_readonly=fetchall)
+    monkeypatch.setattr(notifications_runtime, "_core_backend_for_paths", lambda *_: backend)
+    with pytest.raises(notifications_runtime.NotificationRuntimeUnavailable, match="Lettura dei fascicoli fallita"):
+        notifications_runtime._notification_fascicolo_rows({})
 
 
 def test_advanced_notification_items_usa_pec_audit_sqlite_anche_con_core_postgres(

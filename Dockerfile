@@ -178,6 +178,9 @@ RUN addgroup --system iusentra \
 # Copia il venv compilato dallo stage builder
 COPY --from=builder /venv /venv
 COPY --from=builder /ocr-runtime /opt/iusentra/ocr
+# Solo il binario Node dello stage frontend-builder (nessun npm/node_modules): esegue la
+# pre-generazione del sito pubblico (web/sito_pubblico_ssr/sito-pubblico-ssr.mjs, React incluso nel file).
+COPY --from=frontend-builder /usr/local/bin/node /usr/local/bin/node
 ENV PDFIUM_LIB_PATH=/opt/iusentra/ocr/pdfium/lib/libpdfium.so \
     ORT_DYLIB_PATH=/opt/iusentra/ocr/onnx/onnxruntime-linux-x64-1.27.0/lib/libonnxruntime.so.1.27.0 \
     IUSENTRA_PDF_OCR_MODEL_DIR=/opt/iusentra/ocr/models

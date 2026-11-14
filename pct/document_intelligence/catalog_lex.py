@@ -108,6 +108,17 @@ _VOCI_DEL_RESOLVER = (
     VoceCatalogo("Ricevuta PCT — rifiuto della cancelleria", "comunicazioni", "ricevuta_deposito", "fuori_busta", False),
     VoceCatalogo("Ricevuta PCT — deposito telematico", "comunicazioni", "ricevuta_deposito", "fuori_busta", False),
     VoceCatalogo("Procura speciale per la mediazione", "procure", "procura_mediazione", "procura", True),
+    # Revisione del 10/11/2026: voci riconosciute dal resolver.
+    VoceCatalogo("Copia non crittografata del deposito telematico", "comunicazioni", "comunicazione", "fuori_busta", False),
+    VoceCatalogo("Istanza online al Ministero dell'istruzione (POLIS)", "allegati", "istanza_amministrativa", "allegato", True),
+    VoceCatalogo("Decreto di variazione tabellare dell'ufficio giudiziario", "provvedimenti", "provvedimento_organizzativo", "fuori_busta", False),
+    VoceCatalogo("Certificato della cancelleria sull'impugnazione della sentenza", "provvedimenti", "certificato_cancelleria", "allegato", True),
+    VoceCatalogo("PEC di deposito telematico", "comunicazioni", "comunicazione", "fuori_busta", False),
+    VoceCatalogo("Dichiarazione di reddito ex art. 152 disp. att. c.p.c.", "allegati", "dichiarazione_reddito_spese", "allegato", True),
+    VoceCatalogo("Avviso di pagamento Equitalia Giustizia (recupero crediti di giustizia)", "pagamenti",
+                 "recupero_crediti_giustizia", "fuori_busta", False),
+    VoceCatalogo("Pagamento a Equitalia Giustizia (recupero crediti di giustizia)", "pagamenti",
+                 "recupero_crediti_giustizia", "allegato", False),
 )
 
 

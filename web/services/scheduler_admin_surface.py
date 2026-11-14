@@ -201,6 +201,9 @@ def _surface_run(run: dict[str, Any]) -> dict[str, Any]:
         row["message"] = "Esecuzione rimasta in corso oltre il tempo atteso."
         return row
     row["status_class"] = _status_class(status)
+    if status == "running" and result.get("event") == "submitted":
+        row["status_label"] = "Avvio non confermato"
+        row["status_class"] = "warning"
     if status == "completed" and _is_legal_update_run(row):
         row["status_label"] = "Controllo completato"
         # Il riepilogo dell'agente ("presidio rinviato, fonte fuori dalla fase 9",
@@ -220,10 +223,11 @@ def _job_status(job: dict[str, Any], latest_run: dict[str, Any] | None) -> dict[
             return {"label": str(latest_run.get("status_label") or "Da verificare"), "class": "danger"}
         if status == "cancelled":
             return {"label": "Annullata", "class": "secondary"}
-        if status == "requested":
+        if status in {"requested", "dispatched"}:
             return {"label": "Richiesta", "class": "warning"}
         if status == "running":
-            return {"label": "In corso", "class": "primary"}
+            return {"label": str(latest_run.get("status_label") or "In corso"),
+                    "class": str(latest_run.get("status_class") or "primary")}
     return {"label": "Attiva", "class": "success"}
 
 
@@ -361,7 +365,11 @@ def _semaforo_motori(nomi: dict[str, str]) -> dict[str, Any]:
         in_corso = nomi.get(stato["in_corso"], stato["in_corso"])
         in_coda = [nomi.get(m, m) for m in stato["in_coda"]]
         testo = f"In corso: {in_corso or 'nessun motore'}; in coda: {', '.join(in_coda) if in_coda else 'nessuno'}."
-        return {**stato, "in_corso": in_corso, "in_coda": in_coda, "testo": testo}
+        return {
+            **stato,
+            "motore_attivo": stato["in_corso"], "motori_in_coda": stato["in_coda"],
+            "in_corso": in_corso, "in_coda": in_coda, "testo": testo,
+        }
     except Exception as exc:
         return {"testo": f"Semaforo dei motori non leggibile: {type(exc).__name__}"}
 

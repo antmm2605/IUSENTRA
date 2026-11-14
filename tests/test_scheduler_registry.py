@@ -198,9 +198,10 @@ def test_scheduler_registry_rinvia_crash_test_dentro_avvio_massivo(tmp_path: Pat
     requested = repo.list_requested_runs(limit=10)
     recent = repo.list_recent_runs(limit=2)
 
-    assert second["status"] == "completed"
+    assert second["status"] == "cancelled"
     assert "Manutenzione pesante non avviata" in second["message"]
     assert [run["job_id"] for run in requested] == ["legal_monitor_daily"]
+    assert recent[0]["status"] == "cancelled"
     assert recent[0]["job_id"] == "operational_crash_morning"
     assert recent[0]["result"]["status"] == "manutenzione_massiva_rinviata"
 
@@ -548,7 +549,7 @@ def test_scheduler_registry_applica_agenti_e_richieste_manuali(monkeypatch, tmp_
     assert any(str(call["id"]).startswith("manual_") for call in calls)
     recent = repo.list_recent_runs(limit=1)[0]
     assert recent["run_id"] == request["run_id"]
-    assert recent["status"] == "requested"
+    assert recent["status"] == "dispatched"
 
     manual_job_id = next(str(call["id"]) for call in calls if str(call["id"]).startswith("manual_"))
     scheduler.jobs[manual_job_id]()
@@ -687,3 +688,55 @@ def test_scheduler_registry_normalizza_disponibilita_manuale_e_run_non_avviata(t
     })
     assert normalized["not_started"] is True
     assert normalized["status_label"] == "Non avviata"
+
+
+def test_richiesta_manuale_accodata_una_sola_volta_e_ripresa_dopo_riavvio(tmp_path):
+    from types import SimpleNamespace
+
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    request = repo.request_manual_run("studio_daily_operational_plan", requested_by="collaudo")
+    chiamate = []
+    registrazioni = []
+    esecuzione = SimpleNamespace(func=lambda: chiamate.append(1) or {"ok": True}, args=(), kwargs={})
+    scheduler = SimpleNamespace(
+        get_job=lambda job_id: esecuzione,
+        add_job=lambda fn, **kwargs: registrazioni.append((fn, kwargs["args"])),
+    )
+    app = SimpleNamespace(config={})
+
+    assert dispatch_requested_manual_runs(scheduler, app, repo)["dispatched"] == 1
+    assert dispatch_requested_manual_runs(scheduler, app, repo)["dispatched"] == 0
+    assert repo.list_recent_runs(limit=1)[0]["status"] == "dispatched"
+
+    assert repo.requeue_dispatched_manual_runs() == 1
+    assert dispatch_requested_manual_runs(scheduler, app, repo)["dispatched"] == 1
+    for runner, args in registrazioni:
+        runner(*args)
+    assert chiamate == [1]
+    assert repo.list_recent_runs(limit=1)[0]["run_id"] == request["run_id"]
+
+
+def test_agente_fonte_attende_semaforo_e_registra_il_rinvio(tmp_path, monkeypatch):
+    from flask import Flask
+    from pct import scheduler_registry
+    from pct.scheduler_notturno import guardia
+
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+    repo.upsert_default_jobs({})
+    job = repo.get_job("legal_source_corte_conti")
+    seen = []
+
+    def custodisci(nome, funzione):
+        seen.append(nome)
+        return lambda *a, **kw: {
+            "ok": True, "skipped": True, "reason": guardia.SEMAFORO_OCCUPATO,
+            "message": "In attesa del semaforo",
+        }
+
+    monkeypatch.setattr(guardia, "custodisci", custodisci)
+    scheduler_registry._run_dynamic_job(Flask(__name__), repo, job)
+    run = repo.list_recent_runs(limit=1)[0]
+    assert seen == ["legal_source_corte_conti"]
+    assert run["status"] == "cancelled"
+    assert run["message"] == "In attesa del semaforo"

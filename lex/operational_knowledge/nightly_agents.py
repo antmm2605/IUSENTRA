@@ -7,10 +7,12 @@ domain is ready, incomplete or needs follow-up.
 
 from __future__ import annotations
 
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import os
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -34,11 +36,6 @@ def _json_load(path: Path, default: Any) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return default
-
-
-def _json_dump(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def _records_count(payload: Any) -> int:
@@ -83,28 +80,83 @@ class OperationalAgentRunRepository:
     def __init__(self, db_path: str | Path):
         self.db_path = Path(db_path)
 
+    @property
+    def sqlite_path(self) -> Path:
+        return self.db_path.with_suffix(".sqlite") if self.db_path.suffix.lower() == ".json" else self.db_path
+
+    def _legacy(self) -> dict[str, Any]:
+        payload = _json_load(self.db_path.with_suffix(".json"), {})
+        return payload if isinstance(payload, dict) else {}
+
+    @staticmethod
+    def _empty() -> dict[str, Any]:
+        return {"schema_version": SCHEMA_VERSION, "generated_at": "", "latest": {}, "runs": []}
+
     def load(self) -> dict[str, Any]:
-        payload = _json_load(self.db_path, {})
-        if not isinstance(payload, dict):
-            payload = {}
-        payload.setdefault("schema_version", SCHEMA_VERSION)
-        payload.setdefault("generated_at", "")
-        payload.setdefault("latest", {})
-        payload.setdefault("runs", [])
+        payload = self._empty()
+        if not self.sqlite_path.is_file():
+            return {**payload, **self._legacy()}
+        uri = self.sqlite_path.resolve().as_uri() + "?mode=ro"
+        with closing(sqlite3.connect(uri, uri=True, timeout=5)) as conn:
+            conn.execute("BEGIN")
+            schema = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='run'").fetchone()
+            if schema is None:
+                return {**payload, **self._legacy()}
+            for agent, studio, raw in conn.execute("SELECT agent, studio, payload FROM ultimo"):
+                payload["latest"].setdefault(agent, {})[studio] = json.loads(raw)
+            payload["runs"] = [json.loads(row[0]) for row in conn.execute(
+                "SELECT payload FROM (SELECT id, payload FROM run ORDER BY id DESC LIMIT 500) ORDER BY id"
+            )]
+            data = conn.execute("SELECT aggiornato FROM stato WHERE id=1").fetchone()
+            payload["generated_at"] = data[0] if data else ""
         return payload
 
-    def record(self, run: dict[str, Any]) -> dict[str, Any]:
-        payload = self.load()
-        payload["generated_at"] = _now_iso()
-        agent_id = _clean(run.get("agent_id"))
-        tenant_slug = _clean(run.get("tenant_slug") or "platform")
-        latest = payload.setdefault("latest", {})
-        latest.setdefault(agent_id, {})[tenant_slug] = run
-        runs = list(payload.get("runs") or [])
-        runs.append(run)
-        payload["runs"] = runs[-500:]
-        _json_dump(self.db_path, payload)
-        return payload
+    @staticmethod
+    def _indice(run: dict[str, Any]) -> tuple[str, str, str]:
+        return (
+            _clean(run.get("agent_id")),
+            _clean(run.get("tenant_slug") or "platform"),
+            json.dumps(run, ensure_ascii=False),
+        )
+
+    def migra_storico(self) -> None:
+        """Prepara la proiezione SQL dei rapporti già registrati."""
+        self._salva(None)
+
+    def record(self, run: dict[str, Any], *, ritorna_rapporto: bool = True) -> dict[str, Any]:
+        self._salva(run)
+        return self.load() if ritorna_rapporto else {}
+
+    def _salva(self, run: dict[str, Any] | None) -> None:
+        self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+        with closing(sqlite3.connect(self.sqlite_path, timeout=15)) as conn, conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute("CREATE TABLE IF NOT EXISTS run (id INTEGER PRIMARY KEY, payload TEXT NOT NULL)")
+            conn.execute("""CREATE TABLE IF NOT EXISTS ultimo (
+                agent TEXT NOT NULL, studio TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (agent, studio)
+            )""")
+            conn.execute("CREATE TABLE IF NOT EXISTS stato (id INTEGER PRIMARY KEY CHECK (id=1), aggiornato TEXT NOT NULL)")
+            upsert = """INSERT INTO ultimo VALUES (?, ?, ?)
+                ON CONFLICT(agent, studio) DO UPDATE SET payload=excluded.payload"""
+            aggiornato = _now_iso()
+            if conn.execute("SELECT 1 FROM stato WHERE id=1").fetchone() is None:
+                legacy = self._legacy()
+                if run is None:
+                    aggiornato = str(legacy.get("generated_at") or "")
+                for rows in (legacy.get("latest") or {}).values():
+                    conn.executemany(upsert, (self._indice(row) for row in rows.values()))
+                conn.executemany("INSERT INTO run (payload) VALUES (?)", (
+                    (self._indice(row)[2],) for row in legacy.get("runs") or []
+                ))
+            elif run is None:
+                return
+            if run is not None:
+                indice = self._indice(run)
+                conn.execute(upsert, indice)
+                conn.execute("INSERT INTO run (payload) VALUES (?)", (indice[2],))
+            conn.execute("""INSERT INTO stato VALUES (1, ?)
+                ON CONFLICT(id) DO UPDATE SET aggiornato=excluded.aggiornato""", (aggiornato,))
 
     def latest(self, agent_id: str = "") -> dict[str, Any]:
         payload = self.load()
@@ -280,7 +332,7 @@ def run_operational_micro_agent(
                 else "L'agente ha registrato il blocco e richiede configurazione, sincronizzazione o riparazione mirata."
             ),
         }
-        repository.record(run)
+        repository.record(run, ritorna_rapporto=False)
         runs.append(run)
 
     ok = overall_missing == 0 and overall_errors == 0
@@ -310,7 +362,7 @@ def run_operational_micro_agent(
         "criteria": list(criteria),
         "missing_keys": missing_keys,
         "runs": runs,
-        "db_path": str(repository.db_path),
+        "db_path": str(repository.sqlite_path),
     }
 
 
@@ -348,7 +400,7 @@ def load_operational_agents_payload(
     cfg = dict(config or getattr(app, "config", {}) or {})
     repository = OperationalAgentRunRepository(_db_path(cfg))
     payload = repository.load()
-    payload["db_path"] = str(repository.db_path)
+    payload["db_path"] = str(repository.sqlite_path)
     return payload
 
 

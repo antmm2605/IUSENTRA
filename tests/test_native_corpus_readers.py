@@ -98,8 +98,13 @@ def test_native_reader_is_internal_escaped_and_plaintext_preserved(app,corpus):
         response=client.get("/giurisprudenza/corpus/1/testo")
         assert response.status_code==302 and "corpus_documento=1" in response.headers["Location"]
         response=client.get("/giurisprudenza/corpus/1/testo?embed=source")
-        assert response.status_code==200 and b"curia 1/2026" in response.data
-        assert "default-src 'none'" in response.headers["Content-Security-Policy"]
+        # Lettore React: la pagina non contiene il testo, che arriva come JSON dallo stesso indirizzo.
+        assert response.status_code==200 and b'id="lettore-sentenza-root"' in response.data
+        assert "no-store" in response.headers["Cache-Control"] and response.headers["X-Content-Type-Options"]=="nosniff"
+        dati=client.get("/giurisprudenza/corpus/1/testo?embed=source&format=json")
+        assert dati.status_code==200 and dati.json["documento"]["titolo"]=="curia 1/2026"
+        assert "default-src 'none'" in dati.headers["Content-Security-Policy"]
+        assert "no-store" in dati.headers["Cache-Control"] and dati.headers["X-Content-Type-Options"]=="nosniff"
         assert client.get("/giurisprudenza/corpus/1/testo?embed=source&format=txt").get_data(as_text=True)==corpus.get_sentenza(1)["testo_integrale"]
         assert client.get("/giurisprudenza/corpus/99999/testo?embed=source").status_code==404
 
@@ -138,9 +143,15 @@ def test_native_corpus_revision_tracks_current_studio_and_wal_only(tmp_path,monk
 def test_native_reader_escapes_stored_titles_and_body(app,corpus):
     writer=native.GestioneCorpusGiurisprudenza(corpus.db_path,schema_path=SCHEMA_GIURISPRUDENZA_CORPUS)
     record=writer.salva_sentenza({"uuid_interno":"escaped:1","fonte_codice":"curia","titolo":"<img src=x onerror=alert(1)>","testo_integrale":"<script>alert(1)</script>","testo_integrale_presente":True})
-    response=app.test_client().get(f"/giurisprudenza/corpus/{record['id']}/testo?embed=source")
+    client=app.test_client()
+    response=client.get(f"/giurisprudenza/corpus/{record['id']}/testo?embed=source")
     assert response.status_code==200 and b"<script>" not in response.data and b"<img src=x" not in response.data
-    assert b"&lt;script&gt;" in response.data
+    dati=client.get(f"/giurisprudenza/corpus/{record['id']}/testo?embed=source&format=json")
+    # Il testo resta testo: nel JSON i caratteri < > sono codificati e React lo mostra come nodo di testo.
+    assert b"<script>" not in dati.data and b"<img src=x" not in dati.data
+    assert dati.json["documento"]["titolo"]=="<img src=x onerror=alert(1)>"
+    assert dati.json["documento"]["blocchi"][0]["testo"]=="<script>alert(1)</script>"
+    assert dati.mimetype=="application/json"
 
 
 @pytest.mark.parametrize("url",["javascript:alert(1)","http://example.test","https://user:secret@example.test","https://example.test:444/a"])
@@ -242,12 +253,17 @@ def test_translation_reader_is_internal_and_escapes_both_languages(app, monkeypa
     redirect_response=client.get(url)
     assert redirect_response.status_code==302 and "corpus_traduzione=" in redirect_response.headers["Location"]
     response=client.get(url+"?embed=source")
-    assert response.status_code==200
+    assert response.status_code==200 and b'id="lettore-sentenza-root"' in response.data
     assert b"<script>" not in response.data and b"<img src=x" not in response.data
-    assert b"&lt;script&gt;original" in response.data and b"&lt;script&gt;tradotto" in response.data
-    assert b"non ufficiale" in response.data and b"Originale" in response.data
-    assert "default-src 'none'" in response.headers["Content-Security-Policy"]
     assert "no-store" in response.headers["Cache-Control"]
+    dati=client.get(url+"?embed=source&format=json")
+    assert b"<script>" not in dati.data and b"<img src=x" not in dati.data
+    parte=dati.json["documento"]["parti"][0]
+    assert parte["originale"]=="<script>original</script>" and parte["traduzione"]=="<script>tradotto</script>"
+    assert any("non ufficiale" in avviso for avviso in dati.json["documento"]["avvisi"])
+    assert dati.json["documento"]["linguaOriginale"]=="fr"
+    assert "default-src 'none'" in dati.headers["Content-Security-Policy"]
+    assert "no-store" in dati.headers["Cache-Control"]
     assert client.get("/giurisprudenza/corpus/1/traduzioni/not-a-translation?embed=source").status_code==404
 
 

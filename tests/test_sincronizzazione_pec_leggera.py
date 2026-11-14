@@ -182,3 +182,30 @@ def test_l_archivio_degli_allegati_si_legge_una_volta_finche_non_cambia(tmp_path
     with zipfile.ZipFile(archivio, "a") as zip_file:
         zip_file.writestr("pec/2/postacert.eml", b"y")
     assert ge._allegato_salvato({**info, "archivio_membro": "pec/2/postacert.eml"})
+
+
+def test_imap_una_casella_guasta_non_blocca_le_altre_e_resta_visibile(monkeypatch):
+    import pytest
+
+    from pct.imap_runtime import imap_breaker_snapshot, run_imap_runtime_operation
+    from pct.runtime_resilience import CircuitBreakerOpenError, clear_runtime_circuit_breakers
+
+    monkeypatch.setenv("PCT_IMAP_CIRCUIT_FAILURE_THRESHOLD", "2")
+    prova = ("imap.example.it", 993, "prova@example.it")
+    studio = ("imap.example.it", 993, "studio@example.it")
+    clear_runtime_circuit_breakers()
+
+    def errore():
+        raise TimeoutError("Casella di prova irraggiungibile")
+
+    try:
+        for _ in range(2):
+            with pytest.raises(TimeoutError):
+                run_imap_runtime_operation(errore, account=prova)
+        with pytest.raises(CircuitBreakerOpenError):
+            run_imap_runtime_operation(lambda: "ok", account=prova)
+        assert run_imap_runtime_operation(lambda: "ok", account=studio) == "ok"
+        assert imap_breaker_snapshot()["open"]
+        assert "prova@example.it" not in imap_breaker_snapshot()["name"]
+    finally:
+        clear_runtime_circuit_breakers()

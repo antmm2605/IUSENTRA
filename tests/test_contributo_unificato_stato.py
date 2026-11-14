@@ -121,3 +121,24 @@ def test_lettura_certa_dal_contenuto():
     assert lettura_certa("confirmed", 0)
     assert not lettura_certa("proposed", 80)
     assert not lettura_certa("review_required", 97)
+
+
+def test_invito_rideposito_non_prova_esenzione():
+    from pct.esenzione_reddito_cu import invito_rideposito, leggi_autocertificazione
+
+    testo = (
+        "TRIBUNALE ORDINARIO DI BRESCIA. SI INVITA A RIDEPOSITARE L’AUTOCERTIFICAZIONE "
+        "ATTESTANTE IL DIRITTO ALL’ESENZIONE DAL PAGAMENTO DEL CONTRIBUTO UNIFICATO. "
+        "Quella allegata si riferisce ai redditi percepiti nel 2023 e non nel 2022. "
+        "La soglia riportata è euro 35.240,04."
+    )
+    assert invito_rideposito(testo)
+    assert leggi_autocertificazione(testo)["soglia"] is None
+    fonte = {"id": "INV", "nome": "Invito.pdf", "href": "/invito"}
+    stato = stato_contributo(
+        {"invitiRideposito": [fonte]},
+        [{**fonte, "etichetta": "Contributo unificato / Esenzione", "confermato": True}],
+    )
+    assert stato["codice"] == "da_verificare"
+    assert stato["ruoloFonti"] == "invito al rideposito"
+    assert stato["fonti"] == [fonte]

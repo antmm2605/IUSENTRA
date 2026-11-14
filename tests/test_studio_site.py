@@ -405,8 +405,9 @@ def test_console_superadmin_siti_studio_espone_il_catalogo(tmp_path: Path):
     assert dati.status_code == 200
     righe = next(s for s in dati.get_json()["sections"] if s["kind"] == "table")["rows"]
     assert any("Studio Sito Test" in r["cells"]["site"] for r in righe)
+    # La vista Jinja è stata tolta: anche il vecchio parametro apre la pagina React.
     assert classica.status_code == 200
-    assert "Siti Studio" in classica.get_data(as_text=True)
+    assert 'id="piattaforma-react-root"' in classica.get_data(as_text=True)
 
 
 

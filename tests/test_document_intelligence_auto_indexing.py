@@ -396,3 +396,28 @@ def test_failed_unchanged_document_is_not_automatically_read_again(tmp_path: Pat
     assert len(calls) == 1
     assert first.errors and second.errors
     assert len(service.repository.list_documents("tenant-a", "fas-1")) == 1
+
+
+def test_scadenza_turno_salva_lettura_e_riprende_solo_la_fonte_mancante(tmp_path, monkeypatch):
+    from pct.document_intelligence import indexer
+
+    _patch_extraction(monkeypatch)
+    chiamate = []
+    originale = indexer.index_source
+
+    def registra(service, source, records, context):
+        chiamate.append(source.source_id)
+        return originale(service, source, records, context)
+
+    monkeypatch.setattr(indexer, "index_source", registra)
+    monkeypatch.setattr(indexer, "time", SimpleNamespace(monotonic=lambda: len(chiamate)))
+    service = _service(tmp_path)
+    fonti = [_source(), _source(b"contenuto diverso", document_id="doc-src-2", filename="memoria.docx")]
+
+    primo = service.process_lex_indexing_sources("tenant-a", "fas-1", fonti, _context(), fine_turno=1)
+    assert primo.rinviato and primo.summary.ready == 1 and primo.summary.queued == 1
+    assert len(service.repository.list_documents("tenant-a", "fas-1")) == 1
+
+    ultimo = service.process_lex_indexing_sources("tenant-a", "fas-1", fonti, _context(), fine_turno=2)
+    assert not ultimo.rinviato and ultimo.summary.ready == 2
+    assert chiamate == ["doc-src-1", "doc-src-2"]

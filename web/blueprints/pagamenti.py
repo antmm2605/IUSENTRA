@@ -23,28 +23,40 @@ from pct.pagamenti_verifica import (
 )
 from web.helpers import get_fatturazione as _shared_get_fatturazione, get_pagamenti as _shared_get_pagamenti
 from web.services.pagamenti_link_azioni import (
+    MESSAGGIO_LINK_DISCORDANTE,
     PaymentCheckoutReview,
     aggiorna_parcella_pagata,
-    avvia_pagamento as _avvia_presso_gestore,
     entra_studio_webhook,
-    indirizzo_webhook,
     risolvi_studio_pagamento,
     risolvi_studio_webhook,
     verifica_ritorno,
     vista_link,
 )
-from web.services.pubblico_token_shell import render_pagamento_shell, vista_classica_richiesta
+from pct.payment_links_sql import PaymentLinkConflict
+from web.services.pubblico_token_shell import render_pagamento_shell
 
 pagamenti = Blueprint("pagamenti", __name__)
 
 
+@pagamenti.errorhandler(PaymentLinkConflict)
+def _collegamento_discordante(exc):
+    # Link discordante dalla fonte SQL: mai un 500. Lo studio trova l'anomalia nel log, il cliente
+    # vede lo stato «da verificare» senza dettagli tecnici e senza alcun addebito avviato.
+    token = str((request.view_args or {}).get("token") or "")
+    current_app.logger.warning("Pagamenti: collegamento discordante (token ...%s): %s", token[-6:], exc)
+    return render_pagamento_shell(token, "da_verificare", titolo="Pagamento da verificare",
+        studio_nome=_studio_nome(), status=409, messaggio=MESSAGGIO_LINK_DISCORDANTE)
+
+
 @pagamenti.errorhandler(PaymentCheckoutReview)
 def _pagamento_da_riscontrare(exc):
-    return render_template('pagamenti/scaduto.html', studio_nome=_studio_nome(),
-        titolo_pagamento='Pagamento da verificare', messaggio_pagamento=str(exc)), 409
+    # Stato «da verificare» nella pagina React del link (stesso indirizzo), nessun addebito avviato.
+    token = str((request.view_args or {}).get("token") or "")
+    return render_pagamento_shell(token, "da_verificare", titolo="Pagamento da verificare",
+        studio_nome=_studio_nome(), status=409, messaggio=str(exc))
 
 # Pagine del cliente raggiunte con il token del link (i webhook restano esclusi).
-_ENDPOINT_CON_TOKEN = {"pagamenti.checkout", "pagamenti.avvia_pagamento", "pagamenti.successo"}
+_ENDPOINT_CON_TOKEN = {"pagamenti.checkout", "pagamenti.successo"}
 
 
 @pagamenti.before_request
@@ -129,18 +141,8 @@ def impostazioni_pagamenti():
         flash("Impostazioni pagamenti salvate.", "success")
         return redirect(url_for("pagamenti.impostazioni_pagamenti"))
 
-    if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
-        # Le impostazioni dei pagamenti stanno nella sezione Pagamenti di Impostazioni (React).
-        return redirect("/impostazioni?tab=pagamenti")
-    cfg = gp.config
-    link_recenti = gp.tutti_link()[:20]
-    return render_template(
-        "pagamenti/impostazioni.html",
-        cfg=cfg,
-        link_recenti=link_recenti,
-        provider_attivi=cfg.provider_attivi(),
-        url_webhook_stripe=request.host_url.rstrip("/") + indirizzo_webhook("stripe"),
-    )
+    # Le impostazioni dei pagamenti stanno nella sezione Pagamenti di Impostazioni (React).
+    return redirect("/impostazioni?tab=pagamenti")
 
 
 # ================================================================ CREA LINK PAGAMENTO
@@ -179,10 +181,6 @@ def _studio_nome() -> str:
     return current_app.config.get("STUDIO_NOME", "IUSENTRA")
 
 
-def _pagina_scaduto():
-    return render_template("pagamenti/scaduto.html", studio_nome=_studio_nome()), 410
-
-
 _TITOLI_VISTA = {"checkout": "Pagamento", "gia_pagato": "Già pagato", "scaduto": "Link scaduto"}
 
 
@@ -190,67 +188,13 @@ _TITOLI_VISTA = {"checkout": "Pagamento", "gia_pagato": "Già pagato", "scaduto"
 def checkout(token: str):
     gp = _get_gp()
     stato = vista_link(gp, token)
-    if not vista_classica_richiesta():
-        # Pagina React (PagamentoLinkApp): dati da /api/v1/pubblico/pagamenti/<token>.
-        return render_pagamento_shell(
-            token, stato.vista, titolo=_TITOLI_VISTA[stato.vista], studio_nome=_studio_nome(), status=stato.status,
-        )
-    if stato.vista == "scaduto":
-        return _pagina_scaduto()
-    if stato.vista == "gia_pagato":
-        return render_template("pagamenti/gia_pagato.html", lp=stato.link, studio_nome=_studio_nome())
-
-    lp = stato.link
-    cfg = gp.config
-    from web.helpers import get_clienti
-    cliente = get_clienti().get(lp.id_cliente)
-
-    return render_template(
-        "pagamenti/checkout.html",
-        lp=lp,
-        payment_notice=stato.notice,
-        cfg=cfg,
-        cliente=cliente,
-        studio_nome=_studio_nome(),
-        provider_attivi=cfg.provider_attivi(),
+    # Pagina React (PagamentoLinkApp): dati e avvio da /api/v1/pubblico/pagamenti/<token>.
+    return render_pagamento_shell(
+        token, stato.vista, titolo=_TITOLI_VISTA[stato.vista], studio_nome=_studio_nome(), status=stato.status,
     )
 
 
 # ================================================================ AVVIA PAGAMENTO (POST dal checkout)
-
-@pagamenti.route("/paga/<token>/avvia", methods=["POST"])
-def avvia_pagamento(token: str):
-    gp = _get_gp()
-    stato = vista_link(gp, token)
-    if stato.vista == 'gia_pagato':
-        return redirect(url_for('pagamenti.checkout', token=token, _legacy=1))
-    if stato.vista != "checkout":
-        return _pagina_scaduto()
-    lp = stato.link
-    if getattr(gp, '_studio_db', None) is not None and request.form.get('payment_revision') != getattr(lp, 'payment_revision', None):
-        flash('Il residuo è cambiato. Verifica l’importo aggiornato prima di proseguire.', 'warning')
-        return redirect(url_for('pagamenti.checkout', token=token, _legacy=1))
-
-    esito = _avvia_presso_gestore(gp, lp, request.form.get("provider", ""))
-    if esito.tipo == "redirect":
-        return redirect(esito.url)
-    if esito.tipo == "bonifico":
-        return redirect(esito.url)
-    if esito.tipo == "sumup":
-        # Vista classica del widget SumUp: la chiave del gestore non serve al
-        # browser (il widget usa solo l'identificativo del checkout).
-        return render_template(
-            "pagamenti/sumup_checkout.html",
-            lp=lp,
-            checkout_id=esito.checkout_id,
-            success_url=esito.url,
-            studio_nome=_studio_nome(),
-        )
-    if esito.tipo == "provider_non_valido":
-        abort(400)
-    # Solo il messaggio per il cliente: il dettaglio dell'errore del gestore è nel log.
-    flash(esito.messaggio, "danger")
-    return redirect(url_for("pagamenti.checkout", token=token, _legacy=1))
 
 
 # ================================================================ SUCCESSO
@@ -263,16 +207,8 @@ def successo(token: str):
     lp = verifica_ritorno(gp, token, provider, request.args)
     if not lp:
         abort(404)
-    if not vista_classica_richiesta():
-        return render_pagamento_shell(
-            token, "esito", titolo="Pagamento", studio_nome=_studio_nome(), provider=provider,
-        )
-    return render_template(
-        "pagamenti/successo.html",
-        lp=lp,
-        provider=provider or lp.provider_usato or "",
-        cfg_bonifico=gp.config.bonifico if provider == "bonifico" else None,
-        studio_nome=_studio_nome(),
+    return render_pagamento_shell(
+        token, "esito", titolo="Pagamento", studio_nome=_studio_nome(), provider=provider,
     )
 
 

@@ -10,6 +10,8 @@ from typing import Any, Iterable, Mapping
 from flask import current_app, g, has_app_context
 from pct.formatting import format_datetime_it
 
+from lex.dataset import review_sql
+
 
 MAX_SCAN_FILES = 320
 DATASET_DIR_NAMES = (
@@ -49,7 +51,7 @@ def _iter_dataset_files(root: Path) -> Iterable[Path]:
     for path in root.rglob("*"):
         if len(files) >= MAX_SCAN_FILES:
             break
-        if path.is_file() and path.suffix.lower() in {".json", ".jsonl", ".csv"}:
+        if path.is_file() and (path.suffix.lower() in {".json", ".jsonl", ".csv"} or path.name == review_sql.NOME_ARCHIVIO):
             files.append(path)
     return tuple(files)
 
@@ -107,7 +109,8 @@ def _rows(value: Any) -> list[Any]:
 
 def _jsonl_count(path: Path) -> int:
     try:
-        return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+        with path.open(encoding="utf-8") as stream:
+            return sum(1 for line in stream if line.strip())
     except Exception:
         return 0
 
@@ -126,20 +129,31 @@ def _scan_dataset(data_root: Path) -> dict[str, Any]:
         "roots_found": 0,
     }
     latest_file_at = ""
+    seen_files = set()
     for root in _candidate_roots(data_root):
         files = tuple(_iter_dataset_files(root))
         if not files:
             continue
         stats["roots_found"] += 1
         for file_path in files:
+            resolved = file_path.resolve()
+            if resolved in seen_files:
+                continue
+            seen_files.add(resolved)
             lower_name = file_path.name.lower()
             latest_file_at = max(latest_file_at, _iso_from_mtime(file_path))
+            if lower_name == review_sql.NOME_ARCHIVIO:
+                counts, _ = review_sql.leggi(file_path)
+                stats["qa_pending"] += counts.get("pending", 0)
+                stats["qa_approved"] += counts.get("approved", 0)
+                continue
+            if lower_name == "qa_review_queue.json" and (file_path.parent / review_sql.NOME_ARCHIVIO).is_file():
+                continue
             if lower_name.endswith(".jsonl"):
-                rows = _jsonl_count(file_path)
                 if "alpaca" in lower_name:
-                    stats["alpaca_rows"] += rows
+                    stats["alpaca_rows"] += _jsonl_count(file_path)
                 if "sharegpt" in lower_name or "share_gpt" in lower_name:
-                    stats["sharegpt_rows"] += rows
+                    stats["sharegpt_rows"] += _jsonl_count(file_path)
                 continue
             payload = _read_json(file_path)
             if payload is None:
@@ -155,7 +169,7 @@ def _scan_dataset(data_root: Path) -> dict[str, Any]:
             else:
                 qa_rows = _rows(payload)
             for row in qa_rows:
-                if not isinstance(row, Mapping):
+                if not isinstance(row, Mapping) or not (row.get("qa_id") or row.get("question")):
                     continue
                 status = _text(row.get("review_status") or row.get("stato") or row.get("status")).lower()
                 if status in {"approved", "approvata", "approvato"}:
@@ -180,6 +194,7 @@ def _scan_dataset(data_root: Path) -> dict[str, Any]:
                             "label": _text(error.get("label") or error.get("title") or "Verifica non riuscita"),
                             "message": _text(error.get("message") or error.get("note") or error.get("error")),
                         })
+    stats["chunks"] = max(stats["chunks"], int((stats["latest_job"] or {}).get("chunks_count") or 0))
     stats["latest_at"] = latest_file_at
     return stats
 

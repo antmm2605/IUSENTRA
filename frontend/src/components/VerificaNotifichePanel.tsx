@@ -49,7 +49,11 @@ export default function VerificaNotifichePanel({ fascicoloId, verifica, document
         <h4>{item.atti}</h4><p><strong>Documento:</strong> {item.documento}</p>
         <p><strong>Valutazione:</strong> {item.stato === 'facoltativo' ? 'Scelta del difensore' : item.stato === 'notificato' ? 'Prova verificata' : 'Da esaminare'}</p>
         {item.motivo ? <p>{item.motivo}</p> : null}
-        <p><strong>Data proposta:</strong> {item.scadenza ? formatDateIt(item.scadenza) : 'Non determinabile dai dati disponibili'}</p>
+        {item.dati_mancanti?.length ? <div>
+          <strong>Dati da verificare</strong>
+          <ul>{[...new Set(item.dati_mancanti.map((dato) => dato.descrizione).filter(Boolean))].map((descrizione) => <li key={descrizione}>{descrizione}</li>)}</ul>
+        </div> : null}
+        <p><strong>Data proposta dal software:</strong> {item.scadenza ? formatDateIt(item.scadenza) : 'Non determinabile dai dati disponibili'}</p>
         {item.formula ? <p><strong>Regola:</strong> {item.formula}</p> : null}
         {item.calcoli?.map((calcolo, index) => <div key={index}><p><strong>Computo:</strong> {calcolo.formula}</p><p>{calcolo.explanation}</p>{calcolo.destinazione_da_verificare ? <p>Conferma Italia/estero prima di usare la data.</p> : null}</div>)}
         <ul>{item.destinatari.map((destinatario) => <li key={destinatario.nome}>{destinatario.nome} · {destinatario.presso} · {destinatario.fonte}</li>)}</ul>

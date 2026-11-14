@@ -57,7 +57,7 @@ const inventory = {
     reactPrefixes: extractTuple(gate, '_REACT_PREFIXES'),
     reactExact: extractSet(gate, '_REACT_EXACT'),
     excludedPrefixes: extractTuple(gate, '_EXCLUDED_PREFIXES'),
-    legacyOperationalPrefixes: extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES'),
+    legacyOperationalPrefixes: extractTuple(gate, '_PORTALI_SOTTOPERCORSI_FLASK'),
   },
   app: {
     lazyComponents,

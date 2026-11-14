@@ -18,7 +18,7 @@ import re
 import unicodedata
 from urllib.parse import quote
 
-from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
+from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.email_sql_client import GestioneEmailSQL
 from pct.formatting import DISPLAY_TIMEZONE, parse_datetime_rome
 from pct import pec_profilo_ufficio
@@ -414,7 +414,7 @@ def _pec_audit_summaries(
     try:
         from pct.pec_pipeline import PecAuditRepository
 
-        return PecAuditRepository(audit_db, tenant_id=tenant_id).summaries_by_header_message_ids(
+        return PecAuditRepository(audit_db, tenant_id=tenant_id, read_only=True).summaries_by_header_message_ids(
             headers,
             include_details=include_details,
         )
@@ -431,6 +431,7 @@ def _pec_audit_all_summaries(
     include_telematic: bool = True,
     include_details: bool = True,
     fascicolo_id: str = "",
+    numero_rg: str = "",
 ) -> list[dict[str, Any]]:
     if not include_telematic:
         return []
@@ -440,17 +441,17 @@ def _pec_audit_all_summaries(
     try:
         from pct.pec_pipeline import PecAuditRepository
 
-        repo = PecAuditRepository(audit_db, tenant_id=tenant_id)
+        repo = PecAuditRepository(audit_db, tenant_id=tenant_id, read_only=True)
         summaries: list[dict[str, Any]] = []
         # Il fascicolo usa il collegamento SQL governato, mai il solo testo RG.
         # Percorrere tutte le pagine della pratica senza troncare a 200 PEC.
-        if fascicolo_id:
+        if fascicolo_id or numero_rg:
             rows = []
             with repo.connect() as snapshot:
                 snapshot.execute("BEGIN")
                 while True:
                     page = repo.list_messages(limit=200, include_details=include_details,
-                                              fascicolo_id=fascicolo_id, offset=len(rows),
+                                              fascicolo_id=fascicolo_id, numero_rg=numero_rg, offset=len(rows),
                                               connection=snapshot)
                     rows.extend(page)
                     if len(page) < 200:
@@ -497,7 +498,7 @@ def _pec_presidio_index(db_path: str, *, tenant_id: str = "default", include_tel
     try:
         from pct.pec_pipeline import PecAuditRepository
 
-        return PecAuditRepository(audit_db, tenant_id=tenant_id).local_acquire_presidio_index()
+        return PecAuditRepository(audit_db, tenant_id=tenant_id, read_only=True).local_acquire_presidio_index()
     except Exception:
         return {"by_email_id": {}, "by_message_id": {}}
 
@@ -983,6 +984,7 @@ def _pec_audit_virtual_row(
     encoded = quote(pec_id, safe="")
     audit_payload = _pec_audit_payload(summary) or {}
     presidio_payload = dict(pec_presidio or {})
+    amministrativa = audit_payload.get("eventType") == "comunicazione_ente_protocollata"
     return {
         "id": f"pec-audit:{pec_id}",
         "folder": _normalise_folder(summary.get("folder") or CartellaEmail.INBOX),
@@ -995,8 +997,8 @@ def _pec_audit_virtual_row(
         "timestamp": str(summary.get("received_at") or ""),
         "timeLabel": _format_time(summary.get("received_at")),
         "unread": False,
-        "isPst": True,
-        "pctStatus": _safe_text(report.get("event_type")),
+        "isPst": not amministrativa,
+        "pctStatus": "" if amministrativa else _safe_text(report.get("event_type")),
         "attachmentCount": len(list(summary.get("attachments") or [])),
         "origin": "controllo PEC",
         "detailHref": f"/api/pec/messages/{encoded}/mime",
@@ -1152,7 +1154,10 @@ def _email_row(
         )
     if audit_payload:
         row["pecAudit"] = audit_payload
-        if audit_payload.get("eventType"):
+        if audit_payload.get("eventType") == "comunicazione_ente_protocollata":
+            row["isPst"] = False
+            row["pctStatus"] = ""
+        elif audit_payload.get("eventType"):
             row["isPst"] = True
         if audit_payload.get("qualityTone") in {"warning", "danger"}:
             row["tone"] = audit_payload.get("qualityTone")
@@ -1319,18 +1324,36 @@ def build_react_email_payload(
     offset: int = 0,
     fascicolo_id: str = "",
 ) -> dict[str, Any]:
-    gestore = create_email_mailbox(db_path=db_path)
-    _sync_inviati_da_messaggi(gestore, messaggi_db)
+    gestore = create_email_mailbox(
+        db_path=db_path, load_catalog=not (include_telematic or fascicolo_id), allow_initialize=not fascicolo_id,
+    )
+    lettura_mirata = bool(fascicolo_id) and isinstance(gestore, GestioneEmailSQL)
+    lettura_pec_sql = include_telematic and isinstance(gestore, GestioneEmailSQL)
+    if not (lettura_mirata or lettura_pec_sql):
+        _sync_inviati_da_messaggi(gestore, messaggi_db)
     base = "/" + str(base_path or "/email").strip("/")
     sync_href = sync_path or f"{base}/sincronizza"
     page_limit = _page_limit(limit)
     page_offset = _page_offset(offset)
 
     folder_valida = _normalise_folder(folder)
-    emails = gestore.tutte(
+    rg_match = re.fullmatch(r"(?:r\.?\s*g\.?\s*:?\s*)?(\d{1,7})\s*/\s*(\d{4})", query, re.I) if include_telematic else None
+    rg_summaries = []
+    if rg_match:
+        numero_rg = pec_profilo_ufficio.numero_ruolo(f"{rg_match[1]}/{rg_match[2]}")
+        rg_summaries = _pec_audit_all_summaries(
+            db_path, tenant_id=tenant_id, include_details=False, fascicolo_id=fascicolo_id, numero_rg=numero_rg,
+        )
+    rg_ids = {item["id"] for item in rg_summaries}
+    rg_headers = {item["message_id_header"] for item in rg_summaries if item["message_id_header"]}
+    matter_audit_summaries = _pec_audit_all_summaries(
+        db_path, tenant_id=tenant_id, include_telematic=include_telematic,
+        include_details=False, fascicolo_id=fascicolo_id,
+    ) if fascicolo_id else None
+    filtri = dict(
         cartella=None if folder_valida == 'TUTTE' else folder_valida,
         solo_non_lette=stato == StatoEmail.NON_LETTA,
-        q=query,
+        q="" if rg_match else query,
         stato_lettura=stato if stato in {StatoEmail.NON_LETTA, StatoEmail.LETTA} else "",
         solo_pst=False,
         con_allegati=con_allegati,
@@ -1339,13 +1362,36 @@ def build_react_email_payload(
         data_da=data_da,
         data_a=data_a,
     )
-    all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
-    stats = gestore.statistiche()
-    large_mailbox = len(all_emails) > 80
-    matter_audit_summaries = _pec_audit_all_summaries(
-        db_path, tenant_id=tenant_id, include_telematic=include_telematic,
-        include_details=False, fascicolo_id=fascicolo_id,
-    ) if fascicolo_id else None
+    if lettura_mirata:
+        riferimenti = matter_audit_summaries or []
+        records = gestore.repository.load_by_references(
+            (item.get("id") for item in riferimenti), (item.get("message_id_header") for item in riferimenti),
+        )
+        all_emails = [EmailRicevuta.from_dict(record) for record in records.values()]
+        emails = gestore.filtra_messaggi(all_emails, **filtri)
+        stats = {}
+        large_mailbox = True  # I profili persistiti del fascicolo sono già caricati.
+    elif lettura_pec_sql:
+        # L’inviata si sincronizza nel worker. La pagina legge un solo catalogo SQL.
+        records = gestore.repository.load(update_original=False)
+        all_emails = [EmailRicevuta.from_dict(record) for record in records.values()]
+        emails = gestore.filtra_messaggi(all_emails, **filtri)
+        stats = gestore.statistiche_messaggi(all_emails)
+        large_mailbox = len(all_emails) > 80
+    else:
+        emails = gestore.tutte(**filtri)
+        all_emails = list(gestore._carica().values())  # noqa: SLF001
+        stats = gestore.statistiche()
+        large_mailbox = len(all_emails) > 80
+    if rg_match:
+        numero, anno = numero_rg.split("/")
+        exact_rg = re.compile(rf"(?<!\d)0*{numero}\s*/\s*{anno}(?!\d)")
+        emails = [
+            item for item in emails
+            if _safe_text(getattr(item, "message_id", "")).strip() in rg_headers
+            or any(exact_rg.search(_safe_text(getattr(item, field, ""))) for field in
+                   ("oggetto", "corpo_testo", "corpo_html"))
+        ]
     if matter_audit_summaries is not None:
         persisted_audit_summaries = {}
         for item in matter_audit_summaries:
@@ -1437,15 +1483,16 @@ def build_react_email_payload(
             if provisional:
                 audit_summaries[header or email_id] = provisional
     email_headers = {str(getattr(email_obj, "message_id", "") or "").strip() for email_obj in all_emails if str(getattr(email_obj, "message_id", "") or "").strip()}
+    all_audit_summaries = matter_audit_summaries if matter_audit_summaries is not None else _pec_audit_all_summaries(
+        db_path,
+        tenant_id=tenant_id,
+        include_telematic=include_telematic,
+        include_details=not large_mailbox,
+        fascicolo_id=fascicolo_id,
+    )
+    known_audit_ids = {item["id"] for item in all_audit_summaries}
     audit_only_summaries = [
-        item
-        for item in (matter_audit_summaries if matter_audit_summaries is not None else _pec_audit_all_summaries(
-            db_path,
-            tenant_id=tenant_id,
-            include_telematic=include_telematic,
-            include_details=not large_mailbox,
-            fascicolo_id=fascicolo_id,
-        ))
+        item for item in [*all_audit_summaries, *(item for item in rg_summaries if item["id"] not in known_audit_ids)]
         if str(item.get("message_id_header") or "").strip() not in email_headers
         and (not fascicolo_id or item.get("linked_fascicolo_id") == fascicolo_id)
     ]
@@ -1457,10 +1504,10 @@ def build_react_email_payload(
         if not solo_collegate and (not solo_da_presidiare or (
             str(item.get('id') or '').strip() not in presidiati_by_message
             and _pec_quality_label(str(item.get('quality_status') or ''))[1] != 'success'
-        )) and _pec_audit_matches_filters(
+        )) and (not rg_match or item["id"] in rg_ids or exact_rg.search(_pec_audit_text(item))) and _pec_audit_matches_filters(
             item,
             folder=folder_valida,
-            query=query,
+            query="" if rg_match else query,
             stato=stato,
             solo_pst=solo_pst,
             con_allegati=con_allegati,

@@ -160,3 +160,18 @@ def test_bootstrap_espone_template_documenti_e_mock_false(tmp_path: Path):
     assert payload["templates"][0]["id"] == "comparsa_costituzione"
     assert payload["documents"][0]["document_id"] == "doc-ready"
     assert payload["capabilities"]["generate_draft"] is True
+
+
+def test_stile_ricorso_riusa_struttura_senza_riportare_il_contenuto():
+    from pct.editor_ai.stile_studio import aggrega_stile, tratti_del_ricorso
+
+    testo = (
+        "IN FATTO\n" + "Il ricorrente Alfa ha indicato documenti e circostanze nella propria esposizione. " * 20
+        + "\nIN DIRITTO\nCONCLUSIONI\n1. Prima domanda\n2. Seconda domanda\n3. Terza domanda"
+    )
+    tratti = tratti_del_ricorso(testo)
+    assert aggrega_stile([tratti]) == {}
+    profilo = aggrega_stile([tratti, tratti])
+    assert profilo["struttura_ricorrente"] == ["fatti", "diritto", "conclusioni"]
+    assert profilo["titoli_in_maiuscolo"] and profilo["elenchi_numerati"]
+    assert "Alfa" not in str(profilo) and "Prima domanda" not in str(profilo)

@@ -1321,8 +1321,8 @@ export function TariffarioPage() {
           <h2>Catalogo tariffario non disponibile</h2>
           <p>La schermata e' attiva, ma il catalogo non ha restituito opzioni operative.</p>
           <div className="iu-tar-rollback">
-            <strong>Percorso di recupero</strong>
-            <a className="iu-tar-button iu-tar-button-light" href="/tariffario?_legacy=1">Apri vista di recupero</a>
+            <strong>Calcolo alternativo</strong>
+            <a className="iu-tar-button iu-tar-button-light" href="/compensi-forensi">Apri il calcolo dei compensi</a>
           </div>
         </section>
       ) : (

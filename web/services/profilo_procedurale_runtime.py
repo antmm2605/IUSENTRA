@@ -38,7 +38,8 @@ def riconvalida_profili_studio(*, limite: int = 0) -> dict[str, Any]:
     from web.services.react_practice_engine_bridge import _etichette_catalogo
 
     core = current_app.extensions["core_runtime"]
-    fascicoli = list(core["get_fascicoli"]().tutti())
+    carica_elenco = core.get("get_fascicoli_elenco", core["get_fascicoli"])
+    fascicoli = carica_elenco().tutti()
 
     def _etichette(fascicolo_id: str) -> list[str]:
         try:
@@ -72,8 +73,10 @@ def riconvalida_profili_notturna(app: Any) -> dict[str, Any]:
     limite = lotto_riconvalida(app.config)
     studi: list[dict[str, Any]] = []
     attivi = _active_tenants(app)
+    if not attivi and app.config.get("MULTI_TENANT"):
+        return {"ok": False, "job": JOB_ID, "error": "Registro degli studi attivi non disponibile."}
     if not attivi:
-        with app.test_request_context("/__scheduler/profili-procedurali/default"):
+        with app.app_context(), app.test_request_context("/__scheduler/profili-procedurali/default"):
             g.multi_tenant_enabled = False
             g.tenant_context_missing = False
             g.tenant_context_slug = ""
@@ -86,7 +89,7 @@ def riconvalida_profili_notturna(app: Any) -> dict[str, Any]:
             slug = str(getattr(studio, "slug", "") or "").strip().lower()
             if not slug:
                 continue
-            with app.test_request_context(f"/__scheduler/profili-procedurali/{slug}"):
+            with app.app_context(), app.test_request_context(f"/__scheduler/profili-procedurali/{slug}"):
                 try:
                     _attach_tenant_context(manager, studio)
                 except Exception as exc:

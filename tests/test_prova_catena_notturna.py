@@ -46,7 +46,6 @@ def test_prova_esegue_le_fasi_1_5_sotto_la_chiave_dedicata(ambiente, monkeypatch
     prova = _script()
     sfondo = _LettureInSfondo()
     monkeypatch.setattr(archivio, "threading", SimpleNamespace(Thread=sfondo.Thread, Lock=threading.Lock, get_ident=threading.get_ident))
-    monkeypatch.setattr(catena, "dormi", lambda _s: None)
     _ingesta_e_collega(ambiente.app, ambiente.fascicolo_id)
     db = ambiente.tmp / "scheduler_registry.sqlite"
     registro = prova.registro_di_prova(db, "prova-2026-11-04")
@@ -78,11 +77,10 @@ def test_prova_esegue_le_fasi_1_5_sotto_la_chiave_dedicata(ambiente, monkeypatch
         assert registro_corrente().da_leggere(tenant_corrente(), ambiente.fascicolo_id, "motore_documenti", tipi=("documento",)) == []
 
 
-def test_prova_si_ferma_al_primo_passo_fallito_e_allo_scadere(tmp_path, monkeypatch):
+def test_prova_si_ferma_al_primo_passo_fallito_e_allo_scadere(tmp_path):
     from pct.scheduler_notturno import catena
 
     prova = _script()
-    monkeypatch.setattr(catena, "dormi", lambda _s: None)
     rotto = SimpleNamespace(func=lambda: {"ok": False, "error": "guasto"}, args=(), kwargs={}, next_run_time=datetime.now())
     amb = catena.Ambiente(trova_lavoro=lambda nome: rotto if nome == "pec_audit_pipeline_workers" else None,
                           memoria_libera_mb=lambda: 8000, ocr_in_coda=lambda: 0, scarica_ai_locale=list)

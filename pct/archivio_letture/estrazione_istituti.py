@@ -22,6 +22,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Iterable
 
+from pct.provvedimenti.collettivi import testo_per_il_ruolo
+from pct.provvedimenti.termine_scritto import DataLetta, rischio_estinzione, termine_note_127_ter, udienza_tenuta_o_rinviata
 from pct.registro_letture.fatti_repository import Fatto
 
 from .istituti_processuali import (
@@ -35,6 +37,8 @@ from .istituti_processuali import (
 )
 
 VERSIONE_ESTRAZIONE_ISTITUTI = "2026.09.18.istituti.v1"
+#: v2 (10/11/2026): termine scritto dal giudice, perentorietà per legge, rischio di estinzione, cause del ruolo.
+VERSIONE_ESTRAZIONE_ISTITUTI_V2 = "2026.11.10.istituti.v2"
 
 #: i campi che possono portare la data di partenza di un istituto
 _CAMPI_ANCORA = {"termine", "udienza", "costituzione"}
@@ -79,25 +83,46 @@ def _derivato(istituto: Istituto, giorno: date, *, origine: str, posizione: int,
     )
 
 
-def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "") -> list[Fatto]:
+def _qualifica_note(elenco: list[Fatto], testo: str) -> Fatto | None:
+    """Il fatto che porta il termine per le note: quello scritto dal giudice, non la prima data del testo.
+
+    Regola in ``pct/provvedimenti/termine_scritto.termine_note_127_ter`` (art. 127-ter, primo comma,
+    c.p.c.: il giudice «assegna un termine perentorio» per le note). Fino a v1 si prendeva la prima
+    data ancorata: «All'udienza del 2.11.2026 tenuta dal G.E. … rinvia all'udienza del 21.12.2026 che
+    sostituisce con il deposito di note … entro il termine perentorio del 16.12.2026» faceva diventare
+    termine per le note il 02/11 (l'udienza tenuta) e lasciava il 16/12 un «termine» generico
+    (collaudo dell'avvocato, Tribunale di Palmi RG 792/2025, 10/11/2026).
+    """
+    date = [f for f in elenco if f.categoria == "data" and f.campo in _CAMPI_ANCORA and _giorno(f.valore) is not None
+            and f.verifica != "respinta"]
+    scelta = termine_note_127_ter(testo, [DataLetta(f.posizione, f.posizione + len(f.valore_letto or ""), f.campo) for f in date])
+    return date[scelta] if scelta is not None else None
+
+
+def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "", numero_rg: str = "", anno_rg: str = "") -> list[Fatto]:
     """I fatti con la data qualificata e i termini che ne discendono.
 
     Se il testo non cita nessuno degli istituti, i fatti tornano come sono: la
-    qualificazione non si inventa.
+    qualificazione non si inventa. Un provvedimento collettivo si legge solo nella
+    clausola del gruppo di cause del fascicolo (``pct/provvedimenti/collettivi``).
     """
     elenco = list(fatti)
-    testo = str(testo or "")
+    testo = testo_per_il_ruolo(str(testo or ""), numero_rg, anno_rg) if numero_rg and anno_rg else str(testo or "")
     per_127_ter = cita_127_ter(testo)
     per_127_bis = cita_127_bis(testo)
     if not per_127_ter and not per_127_bis:
         return elenco
 
     istituto = NOTE_127_TER if per_127_ter else UDIENZA_127_BIS
-    ancora = next(
-        (f for f in elenco
-         if f.categoria == "data" and f.campo in _CAMPI_ANCORA and _giorno(f.valore) is not None),
-        None,
-    )
+    if per_127_ter:
+        ancora = _qualifica_note(elenco, testo)
+    else:
+        ancora = next(
+            (f for f in elenco
+             if f.categoria == "data" and f.campo in _CAMPI_ANCORA and _giorno(f.valore) is not None and f.verifica != "respinta"
+             and not udienza_tenuta_o_rinviata(testo, f.posizione + len(f.valore_letto or ""))),
+            None,
+        )
     if ancora is None:
         return elenco
     giorno = _giorno(ancora.valore)
@@ -105,6 +130,23 @@ def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "")
         return elenco
 
     _qualifica(ancora, istituto, giorno)
+    if per_127_ter:
+        # Il termine per le note è perentorio per legge (art. 127-ter, primo comma, c.p.c.).
+        ancora.prove.append({"codice": "perentorieta_documentata", "esito": "ok",
+                             "dettaglio": "art. 127-ter, primo comma, c.p.c.: il giudice assegna un termine perentorio per il deposito delle note"})
+        rischio = rischio_estinzione(testo)
+        if rischio is not None:
+            ancora.prove.append({"codice": "rischio_estinzione", "esito": "ok", "dettaglio": rischio.avviso, "norma": rischio.norma})
+            # entro i 120 caratteri del titolo di scadenza: «… — 16/12/2026 — perentorio, art. 631: senza note si estingue»
+            ancora.etichetta = f"{istituto.titolo} — {giorno:%d/%m/%Y} — perentorio, {rischio.norma.replace(' c.p.c.', '')}: senza note si estingue"
+        # Lo stesso termine ripetuto nel testo (busta PEC con corpo e allegato, registro e provvedimento):
+        # ogni copia è lo stesso adempimento, con lo stesso nome.
+        for copia in elenco:
+            if copia is not ancora and copia.categoria == "data" and copia.campo == "termine" and copia.verifica != "respinta" \
+                    and _giorno(copia.valore) == giorno:
+                _qualifica(copia, istituto, giorno)
+                copia.etichetta = ancora.etichetta
+                copia.prove += [dict(p) for p in ancora.prove if p.get("codice") in {"perentorieta_documentata", "rischio_estinzione"}]
     derivati = derivati_da_note(testo, giorno) if per_127_ter else derivati_da_udienza_remota(testo, giorno)
     posizione = ancora.posizione
     for voce, quando in derivati:
@@ -114,4 +156,4 @@ def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "")
     return elenco
 
 
-__all__ = ["VERSIONE_ESTRAZIONE_ISTITUTI", "qualifica_istituti"]
+__all__ = ["VERSIONE_ESTRAZIONE_ISTITUTI", "VERSIONE_ESTRAZIONE_ISTITUTI_V2", "qualifica_istituti"]

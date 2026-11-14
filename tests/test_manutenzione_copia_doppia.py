@@ -117,9 +117,9 @@ def _entra(client):
 def test_le_rotte_sono_chiuse_senza_superadmin(tmp_path: Path):
     app = _app(tmp_path)
     with app.test_client() as client:
-        r = client.post("/admin/server-manutenzione/applica-copia-doppia-fascicoli")
+        r = client.post("/api/v1/ui/piattaforma/server-manutenzione/azioni/applica-copia-doppia-fascicoli", json={"params": {}, "values": {}})
 
-    assert r.status_code in (302, 401, 403)
+    assert r.status_code in (401, 403)
 
 
 def test_la_rotta_di_analisi_risponde_e_non_tocca_l_archivio(tmp_path: Path):
@@ -127,9 +127,10 @@ def test_la_rotta_di_analisi_risponde_e_non_tocca_l_archivio(tmp_path: Path):
     app = _app(tmp_path)
     with app.test_client() as client:
         _entra(client)
-        r = client.post("/admin/server-manutenzione/analizza-copia-doppia-fascicoli")
+        r = client.post("/api/v1/ui/piattaforma/server-manutenzione/azioni/analizza-copia-doppia-fascicoli", json={"params": {}, "values": {}})
 
     assert r.status_code == 200
+    assert r.get_json()["ok"] is True, r.get_json()
     assert "documenti" in _payload(db)
 
 
@@ -138,7 +139,8 @@ def test_la_rotta_che_applica_riscrive(tmp_path: Path):
     app = _app(tmp_path)
     with app.test_client() as client:
         _entra(client)
-        r = client.post("/admin/server-manutenzione/applica-copia-doppia-fascicoli")
+        r = client.post("/api/v1/ui/piattaforma/server-manutenzione/azioni/applica-copia-doppia-fascicoli", json={"params": {}, "values": {}})
 
     assert r.status_code == 200
+    assert r.get_json()["ok"] is True, r.get_json()
     assert "documenti" not in _payload(db)

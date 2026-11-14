@@ -626,3 +626,44 @@ def test_tracker_fascicolo_mostra_avanzamento_e_chiusura(tmp_path):
 
     assert tracker_def["percent"] == 100
     assert tracker_def["current_label"] == "Pratica definita"
+
+
+def test_monitor_distingue_accesso_limitato_da_contenuto_verificato(tmp_path, monkeypatch):
+    gestore = GestioneLegalIntelligence(str(tmp_path / "intelligence.json"))
+    risposte = {
+        "eur_lex": {"ok": True, "run": {"status_code": 202, "comparison_mode": "raw"}},
+        "corte_conti": {"ok": True, "run": {"status_code": 200, "comparison_mode": "challenge_guard"}},
+        "cedu": {"ok": True, "run": {"status_code": 200, "comparison_mode": "normalized_text"}},
+    }
+    monkeypatch.setattr(gestore, "monitor_source", lambda source_id, **kw: risposte[source_id])
+    outcome = gestore.run_monitor_cycle(source_ids=list(risposte), sync_tables=False)
+    assert outcome["ok"] is False
+    assert outcome["status"] == "parziale"
+    assert outcome["successful"] == 1 and outcome["failed"] == 0
+    assert outcome["limited"] == ["eur_lex", "corte_conti"]
+
+
+def test_corte_conti_verifica_distribuzione_e_ignora_latenza(tmp_path):
+    import json
+
+    from pct.legal_intelligence import CORTE_CONTI_DISTRIBUZIONE
+
+    gestore = GestioneLegalIntelligence(str(tmp_path / "intelligence.json"))
+    dati = {"hits": {"total": 9}, "timed_out": False, "_shards": {"failed": 0},
+            "aggregations": {"sentenze": {"buckets": [{"key": 2026, "doc_count": 4}]},
+                             "ordinanze": {"buckets": [{"key": 2026, "doc_count": 5}]}}}
+
+    def fetch(url, **kwargs):
+        assert url == CORTE_CONTI_DISTRIBUZIONE
+        return DummyResponse(json.dumps(dati).encode(), url=url)
+
+    primo = gestore.monitor_source("corte_conti", request_get=fetch)
+    assert primo["ok"] and primo["run"]["comparison_mode"] == "distribuzione_archivio"
+    assert primo["alerts"] == []
+    dati["took"] = 800
+    assert not gestore.monitor_source("corte_conti", request_get=fetch)["run"]["changed"]
+    dati["aggregations"]["sentenze"]["buckets"][0]["doc_count"] += 1
+    modificato = gestore.monitor_source("corte_conti", request_get=fetch)
+    assert modificato["alerts"][0]["alert_type"] == "distribuzione_archivio_variata"
+    dati["timed_out"] = True
+    assert not gestore.monitor_source("corte_conti", request_get=fetch)["ok"]

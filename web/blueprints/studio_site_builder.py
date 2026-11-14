@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import wraps
 
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for, flash
+from flask import Blueprint, jsonify, redirect, request, url_for, flash
 
 from pct.studio_site_blocks import normalize_blocks
 from web.services.studio_site_ai_runtime import (
@@ -25,6 +25,7 @@ from web.services.studio_site_builder_runtime import (
     validate_site_builder,
 )
 from web.services.studio_site_runtime import get_site_for_current_tenant, site_admin_identity_or_403, studio_site_repository
+from web.blueprints.react_shell import render_react_shell_response
 
 
 studio_site_builder = Blueprint("studio_site_builder", __name__, url_prefix="/sito-studio")
@@ -42,10 +43,8 @@ def site_admin_required(fn):
 @studio_site_builder.get("/builder")
 @site_admin_required
 def builder():
-    return render_template(
-        "studio_site/builder.html",
-        payload=build_builder_payload(page_id=request.args.get("page_id", type=int)),
-    )
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response("sito-studio/builder")
 
 
 @studio_site_builder.post("/builder/applica-template")
@@ -96,9 +95,8 @@ def validate_builder():
 @studio_site_builder.get("/preview")
 @site_admin_required
 def preview():
-    payload = build_builder_payload()
-    public_url = payload.get("public_url") or "/"
-    return render_template("studio_site/preview.html", payload=payload, public_url=public_url)
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response("sito-studio/builder")
 
 
 @studio_site_builder.get("/api/theme-presets")
@@ -188,14 +186,8 @@ def delete_asset_api(asset_id: int):
 @studio_site_builder.get("/redazione-ai")
 @site_admin_required
 def ai_redazione():
-    site = get_site_for_current_tenant()
-    repo = studio_site_repository()
-    return render_template(
-        "studio_site/redazione_ai.html",
-        site=site,
-        jobs=repo.list_ai_article_jobs(int(site["id"]), limit=20),
-        articles=repo.list_articles(int(site["id"]), limit=20),
-    )
+    # Sito dello studio: pagine React (SitoStudioPage, SitoStudioContenutiPage, builder).
+    return render_react_shell_response("sito-studio/redazione-ai")
 
 
 @studio_site_builder.post("/redazione-ai/articolo/genera")

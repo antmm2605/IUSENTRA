@@ -806,6 +806,8 @@ def apply_sentenza_tribunale_automation(
             regime_fiscale=regime_fiscale,
         )
         changes["proformaCreated"] = proforma is not None
+        if proforma is not None:
+            _dichiara_bozze_superate(fatturazione_repository, str(getattr(fascicolo, "id", fascicolo_id)))
     if proforma is not None:
         proforma = _sync_existing_proforma_from_extraction(
             fatturazione_repository=fatturazione_repository,
@@ -2161,6 +2163,22 @@ def _sync_existing_proforma_from_extraction(
     if changed or data != getattr(proforma, "dati_personalizzati", {}):
         proforma = updater(_text(getattr(proforma, "id", "")), voci=voci, dati_personalizzati=data)
     return proforma
+
+
+def _dichiara_bozze_superate(fatturazione_repository: Any, fascicolo_id: str) -> None:
+    """Un solo motore per lo stesso compenso (pct.proforma_unica): la bozza del fascicolo definito, superata dalla
+    proforma dalla sentenza, si dichiara superata e non si somma; l'annullamento resta una scelta dell'avvocato."""
+    from pct.proforma_unica import CHIAVE_SUPERATA, dati, decidi, segno_superata
+
+    getter = getattr(fatturazione_repository, "per_fascicolo", None)
+    updater = getattr(fatturazione_repository, "aggiorna", None)
+    if not callable(getter) or not callable(updater):
+        return
+    valida, superate = decidi(list(getter(fascicolo_id) or []))
+    for parcella in superate:
+        nuovi = dati(parcella)
+        nuovi[CHIAVE_SUPERATA] = segno_superata(valida, adesso=_now_rome())
+        updater(_text(getattr(parcella, "id", "")), dati_personalizzati=nuovi)
 
 
 def _create_proforma(

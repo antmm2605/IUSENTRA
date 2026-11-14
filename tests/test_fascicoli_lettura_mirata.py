@@ -41,6 +41,9 @@ def _semina(tmp_path: Path, quanti: int = 5) -> list[str]:
             nome_cliente=f"Cliente {indice}",
             numero_rg=str(1000 + indice),
             anno_rg="2026",
+            oggetto="Oggetto per la pertinenza",
+            area_pratica="lavoro",
+            codice_oggetto_pst="222050",
         )
         ids.append(creato.id)
     return sorted(ids)
@@ -89,6 +92,10 @@ def test_indice_leggero_elenca_tutti_senza_idratarli(tmp_path: Path):
     # Le righe servono ad appaiare cliente e ruolo, non a leggere i documenti.
     assert indice[0].nome_cliente
     assert indice[0].numero_rg
+    assert indice[0].oggetto == "Oggetto per la pertinenza"
+    assert indice[0].tipo == TipoFascicolo.CIVILE.value
+    assert indice[0].area_pratica == "lavoro"
+    assert indice[0].codice_oggetto_pst == "222050"
     assert not hasattr(indice[0], "documenti")
     # E nessun fascicolo e' stato idratato per ottenerle.
     assert mirato._fascicoli == {}

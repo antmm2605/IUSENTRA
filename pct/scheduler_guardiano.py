@@ -12,6 +12,7 @@ al processo 1 il kernel non consegna i segnali senza gestore.
 from __future__ import annotations
 
 import logging
+import math
 import os
 import signal
 import subprocess
@@ -23,21 +24,24 @@ logger = logging.getLogger(__name__)
 
 SOGLIA_SECONDI = int(os.getenv("IUSENTRA_SCHEDULER_GUARDIANO_SOGLIA", "900"))
 INTERVALLO_BATTITO = 30
+SEGNALE_GUARDIANO = getattr(signal, "SIGUSR1", signal.SIGTERM)
 FILE_BATTITO = Path(os.getenv("IUSENTRA_SCHEDULER_BATTITO", "/tmp/iusentra-scheduler-battito"))
 
 
 def scrivi_battito(percorso: Path = FILE_BATTITO) -> None:
     """Lavoro dello scheduler: registra che il ciclo dei lavori automatici è vivo."""
-    percorso.write_text(str(time.time()), encoding="utf-8")
+    temporaneo = percorso.with_name(f".{percorso.name}.{os.getpid()}.tmp")
+    temporaneo.write_text(str(time.time()), encoding="utf-8")
+    temporaneo.replace(percorso)
 
 
 def battito_fermo(percorso: Path, soglia: int, *, adesso: float | None = None) -> bool:
     """Vero se il battito esiste ed è più vecchio della soglia (un file assente è un avvio, non un blocco)."""
     try:
-        ultimo = float(percorso.read_text(encoding="utf-8").strip() or 0)
+        ultimo = float(percorso.read_text(encoding="utf-8").strip())
     except (OSError, ValueError):
         return False
-    return ((adesso if adesso is not None else time.time()) - ultimo) > soglia
+    return math.isfinite(ultimo) and ultimo > 0 and ((adesso if adesso is not None else time.time()) - ultimo) > soglia
 
 
 def avvia_guardiano(percorso: Path = FILE_BATTITO, soglia: int = SOGLIA_SECONDI) -> subprocess.Popen | None:
@@ -52,8 +56,8 @@ def avvia_guardiano(percorso: Path = FILE_BATTITO, soglia: int = SOGLIA_SECONDI)
                             close_fds=True, start_new_session=True)
 
 
-def sorveglia(pid: int, percorso: Path, soglia: int, *, attesa: float = INTERVALLO_BATTITO) -> int:
-    """Ciclo del guardiano: esce quando il worker termina; se il battito è fermo lo termina (prima TERM, poi KILL)."""
+def sorveglia(pid: int, percorso: Path, soglia: int, *, attesa: float = INTERVALLO_BATTITO, grazia: float = 30) -> int:
+    """Ciclo del guardiano: esce quando il worker termina; se il battito è fermo lo termina (prima richiesta di arresto, poi KILL)."""
     while True:
         try:
             os.kill(pid, 0)
@@ -61,7 +65,7 @@ def sorveglia(pid: int, percorso: Path, soglia: int, *, attesa: float = INTERVAL
             return 0  # il worker non c'è più: niente da sorvegliare
         if battito_fermo(percorso, soglia):
             print(f"[guardiano-scheduler] battito fermo da oltre {soglia} s: termino il worker {pid} per il riavvio", flush=True)
-            for segnale, pausa in ((signal.SIGTERM, 30), (signal.SIGKILL, 0)):
+            for segnale, pausa in ((SEGNALE_GUARDIANO, grazia), (signal.SIGKILL, 0)):
                 try:
                     os.kill(pid, segnale)
                 except OSError:

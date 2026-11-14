@@ -585,12 +585,15 @@ export function SettingsActions({
   }, [section])
 
   if (section === 'studio' || section === 'scheduler') {
+    const backupSpento = section === 'scheduler' && Boolean(record(record(data.backup).actions).backupDisabled)
     return (
       <Alert className="iu-settings-alert">
         <ShieldCheck />
-        <AlertTitle>Controllo configurazione</AlertTitle>
+        <AlertTitle>{backupSpento ? 'Backup automatici disattivati' : 'Controllo configurazione'}</AlertTitle>
         <AlertDescription>
-          Questa sezione viene controllata al momento del salvataggio e registrata nello storico dello studio.
+          {backupSpento
+            ? 'Questa installazione ha disattivato le copie dall’applicazione. La preferenza salvata non avvia i backup.'
+            : 'Questa sezione viene controllata al momento del salvataggio e registrata nello storico dello studio.'}
         </AlertDescription>
       </Alert>
     )

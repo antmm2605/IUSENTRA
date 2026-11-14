@@ -1,5 +1,8 @@
 """Scheduler entry point: public-only SQL directory, never a tenant fallback."""
 import logging
+from pathlib import Path
+
+from pct.mediazione_directory_repository import MediazioneDirectoryRepository
 
 from pct.mediazione_source_refresh import refresh_sources, verifiche_in_attesa
 from web.services.mediazione_directory_surface import directory
@@ -7,8 +10,29 @@ from web.services.mediazione_directory_surface import directory
 
 def refresh_mediazione_sources(config):
     repo = directory(config)
-    if repo is None:
-        return {"ok": False, "summary": "Registro degli organismi non disponibile: aggiornamento non eseguito."}
+    anchor = config.get("NORMATIVE_TABLES_DB")
+    popolato = False
+    if repo is not None:
+        with repo.connection() as conn:
+            popolato = conn.execute("SELECT 1 FROM mediazione_organismi LIMIT 1").fetchone() is not None
+    if not popolato and anchor and Path(anchor).is_file():
+        # Prima inizializzazione da uno snapshot pubblico completo già acquisito.
+        # La pagina resta in sola lettura; la rete è gestita dal job.
+        from pct.legal_intelligence import REGISTRO_MEDIAZIONE_DIRECT_URL, REGISTRO_MEDIAZIONE_TABLE_ID
+        from pct.normative_tables import GestioneTabelleNormative
+
+        norme = GestioneTabelleNormative(str(anchor))
+        tabella = norme.get_table(REGISTRO_MEDIAZIONE_TABLE_ID)
+        versione = tabella["active_version"]
+        righe = versione.get("rows") or []
+        attese = tabella["defaults"].get("registry_expected_rows")
+        data = versione.get("acquired_at")
+        if versione.get("origin") == "live_registry" and righe and len(righe) == attese and data:
+            path = config.get("MEDIAZIONE_DIRECTORY_DB") or Path(anchor).with_name("mediazione_directory.db")
+            repo = repo or MediazioneDirectoryRepository(path)
+            popolato = repo.import_registry(righe, source=REGISTRO_MEDIAZIONE_DIRECT_URL, checked_at=data) > 0
+    if not popolato:
+        return {"ok": False, "message": "Archivio degli organismi assente e nessun elenco ministeriale completo disponibile."}
     return refresh_sources(repo, limit=6, workers=2)
 
 

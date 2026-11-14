@@ -4,12 +4,14 @@ Verifica del 02/11/2026: lo scheduler usava l'esecutore predefinito di APSchedul
 lavori giravano insieme sugli stessi archivi SQLite e JSON. Ne venivano «database is locked», «Fascicolo
 aggiornato da un altro processo» e tre chiusure del processo per memoria esaurita.
 
-Ora i lavori stanno in tre corsie, ciascuna con la propria coda:
+I lavori hanno code distinte:
 
 * ``rapida``: lavori brevi da cui dipendono termini, PEC e avvisi (un lavoro alla volta), così non aspettano
   dietro un lavoro pesante;
 * ``default`` (corsia lunga): tutti gli altri, compresi i lavori del registro e le fonti legali (un lavoro alla
   volta in tutto il processo);
+* ``notturna``: coordinatore della sequenza notturna, un passo alla volta. I motori conservano il semaforo;
+* ``pec_acquisizione``: acquisizione, classificazione e OCR PEC, con una sola istanza;
 * ``infrastruttura``: i giri tecnici di pochi millisecondi che consegnano gli eventi alle proiezioni.
 
 Un lavoro che arriva mentre la sua corsia è occupata aspetta in coda e parte appena la corsia si libera: con
@@ -23,13 +25,20 @@ from typing import Any
 CORSIA_LUNGA = "default"
 CORSIA_RAPIDA = "rapida"
 CORSIA_INFRASTRUTTURA = "infrastruttura"
+CORSIA_ACQUISIZIONE_PEC = "pec_acquisizione"
+CORSIA_NOTTURNA = "notturna"
 
-THREAD_PER_CORSIA = {CORSIA_LUNGA: 1, CORSIA_RAPIDA: 1, CORSIA_INFRASTRUTTURA: 3}
+THREAD_PER_CORSIA = {
+    CORSIA_LUNGA: 1,
+    CORSIA_RAPIDA: 1,
+    CORSIA_ACQUISIZIONE_PEC: 1,
+    CORSIA_NOTTURNA: 1,
+    CORSIA_INFRASTRUTTURA: 3,
+}
 
 # Termini legali, PEC, avvisi e calendari: brevi e frequenti.
 LAVORI_RAPIDI = frozenset({
     "mailbox_sync_runtime",
-    "pec_audit_pipeline_workers",
     "poll_pec_cancelleria",
     "polling_esiti_deposito",
     "legal_notification_relata_presidio",
@@ -49,6 +58,7 @@ LAVORI_INFRASTRUTTURA = frozenset({
     "scheduler_registry_reload",
     "fascicoli_list_projection",
     "receipt_query_projection",
+    "pannelli_pronti_ricalcolo",
 })
 
 
@@ -58,6 +68,10 @@ def corsia_del_lavoro(job_id: str) -> str:
     if lavoro.startswith("manual_"):
         # Esecuzione manuale dalla console: «manual_<job>_<run>» segue la corsia del lavoro.
         lavoro = lavoro[len("manual_"):].rsplit("_", 1)[0]
+    if lavoro == "sequenza_notturna":
+        return CORSIA_NOTTURNA
+    if lavoro == "pec_audit_pipeline_workers":
+        return CORSIA_ACQUISIZIONE_PEC
     if lavoro in LAVORI_INFRASTRUTTURA:
         return CORSIA_INFRASTRUTTURA
     if lavoro in LAVORI_RAPIDI:

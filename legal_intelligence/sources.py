@@ -67,7 +67,7 @@ DEFAULT_LEGAL_SOURCES: tuple[LegalSource, ...] = (
     LegalSource(
         id="pat_siga",
         name="Giustizia Amministrativa - PAT/SIGA",
-        url="https://www.giustizia-amministrativa.it/portale/pages/istituzionale/servizi-online",
+        url="https://www.giustizia-amministrativa.it/it/web/guest/processo-amministrativo-telematico",
         category="pat",
         apply_mode="manual",
         impact_areas=("PAT", "template_atti", "compliance"),

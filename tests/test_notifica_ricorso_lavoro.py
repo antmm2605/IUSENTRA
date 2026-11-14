@@ -12,7 +12,7 @@ DECRETO = ("Il Giudice del Lavoro, visto l'art. 415 c.p.c., FISSA l'udienza. ORD
 
 
 def test_dieci_giorni_dalla_pronuncia_e_trenta_giorni_liberi_prima_dell_udienza():
-    proposte = {p.code: p for p in proposte_art_415(DECRETO, udienza=date(2026, 12, 16))}
+    proposte = {p.code: p for p in proposte_art_415(DECRETO, udienza=date(2026, 12, 16), estero=False)}
     assert proposte["LAV_415_NOTIFICA_DIECI_GIORNI"].due_date == "2026-08-03"  # lavoro: niente sospensione feriale
     assert proposte["LAV_415_NOTIFICA_DIECI_GIORNI"].perentorio is False
     assert proposte["LAV_415_NOTIFICA_TRENTA_GIORNI"].due_date == "2026-11-13"  # domenica 15/11 anticipata
@@ -23,6 +23,12 @@ def test_dieci_giorni_dalla_pronuncia_e_trenta_giorni_liberi_prima_dell_udienza(
 def test_senza_fonte_certa_nessuna_data_inventata():
     assert proposte_art_415(DECRETO.replace("nei termini di legge", "entro il termine che sarà fissato"), udienza=date(2026, 12, 16)) == []
     assert proposte_art_415(DECRETO.replace("Giudice del Lavoro", "Giudice").replace("art. 415", "art. 163"), udienza=None) == []
-    solo_udienza = proposte_art_415(DECRETO.replace("Vicenza, 24/07/2026 ", ""), udienza=date(2026, 12, 16))
+    solo_udienza = proposte_art_415(DECRETO.replace("Vicenza, 24/07/2026 ", ""), udienza=date(2026, 12, 16), estero=False)
     assert [p.code for p in solo_udienza] == ["LAV_415_NOTIFICA_TRENTA_GIORNI"]
     assert data_di_pronuncia("Vicenza, 24/07/2026 Il Giudice ... Vicenza, 25/07/2026 Il Giudice") is None
+
+
+def test_destinazione_ignota_non_equivale_a_notifica_in_italia():
+    assert [p.code for p in proposte_art_415(DECRETO, udienza=date(2026, 12, 16))] == [
+        "LAV_415_NOTIFICA_DIECI_GIORNI",
+    ]

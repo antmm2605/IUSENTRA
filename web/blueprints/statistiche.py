@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from collections import defaultdict
 
-from flask import Blueprint, g, jsonify, redirect, render_template, request, url_for, current_app
+from flask import Blueprint, g, jsonify, redirect, url_for, current_app
 
 from web.helpers import get_agenda, get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_scadenziario
 
@@ -36,7 +36,10 @@ def _get_fatturazione():
 @statistiche.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    return render_template("statistiche/index.html", oggi=date.today())
+    # Statistiche: pagina React (StatistichePage).
+    from web.blueprints.react_shell import render_react_shell_response
+
+    return render_react_shell_response("statistiche")
 
 
 # ================================================================ API DATI — tutte con try/except

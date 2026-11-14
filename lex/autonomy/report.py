@@ -31,6 +31,7 @@ def render_text(result: LearningCycleResult) -> str:
         f"Fonti lette: {result.sources_fetched} | Fonti respinte dalla policy: {result.sources_rejected}",
         f"Nuovi termini: {result.new_terms} | Nuove citazioni: {result.new_citations} | Nuove letture: {result.new_readings}",
         f"Lacune aperte registrate: {result.new_unknown_concepts}",
+        f"Nuove proposte di miglioramento: {result.new_proposals_count}",
         f"Proposte di miglioramento in revisione umana: {result.proposals_count}",
     ]
     if result.errors:

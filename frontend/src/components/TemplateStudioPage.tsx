@@ -1,3 +1,4 @@
+import { apiPostJson } from '../api/client'
 import { useBusyActivity } from '../ui/useBusyActivity'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { AlignCenter, AlignJustify, AlignLeft, ArrowLeft, Bold, Copy, FileDown, FilePlus2, FileUp, Italic, List, ListOrdered, PencilLine, Save, Underline, Wand2 } from 'lucide-react'
@@ -343,13 +344,54 @@ function UsaView({ id }: { id: string }) {
   const [busy, setBusy] = useState(false)
   useBusyActivity(busy, 'Aggiornamento del modello…')
 
+  const [erroreBozza, setErroreBozza] = useState('')
+  const [documento, setDocumento] = useState('')
+  const intento = useRef<{ command_id: string; titolo: string; html: string } | null>(null)
+  const parametri = new URLSearchParams(window.location.search)
+  const termineGuida = parametri.get('id_fascicolo') === matterId ? parametri.get('termine_guida') || '' : ''
+
   useEffect(() => {
-    getStudioTemplateUse(id, clientId, matterId).then((payload) => {
+    let attivo = true
+    getStudioTemplateUse(id, clientId, matterId, termineGuida).then((payload) => {
+      if (!attivo) return
       setData(payload)
       setValues(payload.values)
-      if (payload.selectedClientId && payload.selectedClientId !== clientId) setClientId(payload.selectedClientId)
+      if (payload.selectedClientId && payload.selectedClientId !== clientId) {
+        setClientId(payload.selectedClientId)
+        return
+      }
+      setGenerated(payload.bozza?.ok ? payload.bozza.text : '')
+      setGeneratedHtml(payload.bozza?.ok ? payload.bozza.html : '')
+      setPdfAction(payload.bozza?.ok ? payload.bozza.pdfAction : '')
+      setOutputKey((current) => current + 1)
+      setDocumento('')
+      intento.current = null
     })
-  }, [id, clientId, matterId])
+    return () => { attivo = false }
+  }, [id, clientId, matterId, termineGuida])
+
+  async function salvaBozza() {
+    if (busy || !matterId || matterId !== data?.selectedMatterId || !generatedHtml || !data.item) return
+    setBusy(true)
+    setErroreBozza('')
+    const precedente = intento.current
+    const richiesta = precedente?.html === generatedHtml ? precedente : {
+      command_id: crypto.randomUUID(),
+      titolo: data.item.title.replace(/[\\/]/g, ' ').slice(0, 100),
+      html: generatedHtml,
+    }
+    intento.current = richiesta
+    try {
+      const risposta = await apiPostJson<{ ok: boolean; document_id?: string; errore?: string }>(
+        `/api/editor/${encodeURIComponent(matterId)}/nuovo`, { ...richiesta, termine_note: termineGuida }, { ok: false },
+      )
+      if (!risposta.ok || !risposta.document_id || !/^[A-Za-z0-9_-]+$/.test(risposta.document_id)) {
+        setErroreBozza(risposta.errore || 'Salvataggio della bozza non confermato. Riprova.')
+        return
+      }
+      setDocumento(`/fascicoli/${encodeURIComponent(matterId)}/documenti/${encodeURIComponent(risposta.document_id)}/editor`)
+    } finally { setBusy(false) }
+  }
 
   async function genera(event: FormEvent) {
     event.preventDefault()
@@ -378,14 +420,14 @@ function UsaView({ id }: { id: string }) {
         <div className="iu-tstudio-grid">
           <label className="iu-tstudio-field">
             <span>Cliente</span>
-            <select value={clientId} onChange={(event) => { setClientId(event.target.value); setMatterId('') }}>
+            <select value={clientId} disabled={busy} onChange={(event) => { setClientId(event.target.value); setMatterId('') }}>
               <option value="">— nessun cliente —</option>
               {data.clients.map((client) => <option value={client.id} key={client.id}>{client.label}</option>)}
             </select>
           </label>
           <label className="iu-tstudio-field">
             <span>Fascicolo</span>
-            <select value={matterId} disabled={!clientId} onChange={(event) => setMatterId(event.target.value)}>
+            <select value={matterId} disabled={!clientId || busy} onChange={(event) => setMatterId(event.target.value)}>
               <option value="">— nessun fascicolo —</option>
               {data.matters.map((matter) => <option value={matter.id} key={matter.id}>{matter.label}</option>)}
             </select>
@@ -408,7 +450,10 @@ function UsaView({ id }: { id: string }) {
             <RichArea key={outputKey} label="Testo generato" initialHtml={generatedHtml} minRows={24} onChange={(html, plain) => { setGeneratedHtml(html); setGenerated(plain) }} />
             <input type="hidden" name="testo_generato_html" value={generatedHtml} />
             <input type="hidden" name="testo_generato" value={generated} />
+            {erroreBozza ? <p role="alert" className="iu-tstudio-message is-error">{erroreBozza}</p> : null}
             <div className="iu-tstudio-actions">
+              {termineGuida && matterId === data.selectedMatterId && data.bozza?.ok ? (documento ? <ButtonLink href={documento}>Apri la bozza nell’editor</ButtonLink>
+                : <Button type="button" tone="primary" disabled={busy} onClick={() => void salvaBozza()}>Salva bozza nel fascicolo</Button>) : null}
               <Button type="submit" tone="primary"><FileDown size={16} aria-hidden="true" />Scarica PDF</Button>
               <Button type="button" tone="neutral" onClick={() => void navigator.clipboard?.writeText(generated)}><Copy size={16} aria-hidden="true" />Copia testo</Button>
             </div>

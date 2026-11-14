@@ -74,6 +74,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         app: './index.html',
+        lettoreSentenza: './src/lettoreSentenzaEntry.tsx',
         pdfReader: '../web/static/js/mobile-pdf-viewer.js',
         coverageReview: '../web/static/js/admin_coverage_review.js',
         nativeSearch: '../web/static/js/global-search.js',

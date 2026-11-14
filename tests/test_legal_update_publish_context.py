@@ -1595,3 +1595,24 @@ def test_publish_review_manuale_non_pubblica_testo_povero_senza_contesto(tmp_pat
     assert "Aggiornamento giuridico pubblicato in fonte ufficiale" not in news["short_summary"]
     assert "rischio di liquidità" in news["content"]
     assert "Contesto ufficiale verificato" in news["content"]
+
+
+def test_verifica_con_budget_scaduto_non_diventa_prova_negativa():
+    from pct.legal_update_web_verification import verify_legal_update_against_public_sources
+
+    result = verify_legal_update_against_public_sources(
+        {"proposed_action": "NEW_NORMATIVE"}, {}, deadline=0,
+    )
+    assert result["ok"] is False
+    assert result["status"] == "deferred"
+
+
+def test_allegato_anac_con_uuid_dopo_il_nome_pdf():
+    from pct.legal_update_web_verification import _attachment_links
+
+    base = "https://www.anticorruzione.it/-/atto-presidente"
+    href = "/documents/91439/372567852/Atto+presidente.pdf/f179b8f4-6e26-1987-7a57-690bc91b3925?t=123"
+    doc = f'<a href="{href}">Atto a firma del Presidente.pdf</a><a href="/c/portal/language">PDF</a>'
+    links = _attachment_links(doc, base)
+    assert [item["url"] for item in links] == ["https://www.anticorruzione.it" + href]
+    assert links[0]["attachment_type"] == "pdf"

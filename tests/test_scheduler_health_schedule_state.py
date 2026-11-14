@@ -32,3 +32,28 @@ class PersistedScheduleHealthTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_health_usa_esito_notturno_al_posto_del_cron_delegato(tmp_path, monkeypatch):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from pct.scheduler_health import presidio_heartbeat
+    from pct.scheduler_notturno.registro import RegistroNotte
+    from pct.scheduler_registry import SchedulerRegistryRepository
+
+    monkeypatch.setenv("PCT_SEQUENZA_NOTTURNA", "1")
+    db = tmp_path / "scheduler.sqlite"
+    repo = SchedulerRegistryRepository(db)
+    repo.upsert_default_jobs({})
+    lavoro = "fascicoli_document_economic_presidio"
+    repo.record_scheduler_event(lavoro, status="missed", scheduled_at="2026-11-12T01:13:00+01:00")
+    notte = RegistroNotte(db)
+    notte.scrivi_passo("2026-11-11", 16, 5, lavoro, "completato",
+                       avvio="2026-11-12T00:11:00+01:00", fine="2026-11-12T00:12:00+01:00",
+                       messaggio="Presidio verificato.", secondi=60, memoria_libera_mb=4000)
+    now = datetime(2026, 11, 12, 1, 15, tzinfo=ZoneInfo("Europe/Rome"))
+    report = presidio_heartbeat(repo, now=now, jobs=((lavoro, "Presidio", 45),))
+    assert report["ok"]
+    assert report["presidi"][0]["source"] == "registro SQL della sequenza notturna"
+    assert report["presidi"][0]["last_run_status"] == "completed"

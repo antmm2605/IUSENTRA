@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import base64
 import json
+import re
+import sqlite3
 from collections import defaultdict
 from datetime import datetime, time
-from typing import Any, Mapping
+from email.utils import getaddresses
+from functools import cache
+from typing import Any, Callable, Mapping
 from urllib.parse import quote, urlencode
 from zoneinfo import ZoneInfo
 
@@ -249,7 +253,26 @@ def _presidio_rows(repo: Any, ids: list[str]) -> dict[str, dict[str, Any]]:
     return {str(row["id"]): row for row in rows}
 
 
+_PEC_PROOF_FIELDS = (
+    ("sent_message_id", "PEC inviata"),
+    ("rac_message_id", "Ricevuta di accettazione (RAC)"),
+    ("rdac_message_id", "Ricevuta di avvenuta consegna (RdAC)"),
+    ("failure_message_id", "Avviso di mancata consegna"),
+)
+
+
+def _parte_senza_invio(row: Mapping[str, Any]) -> bool:
+    return (
+        row.get("role") == "parte"
+        and not row.get("required")
+        and not row.get("pec_address")
+        and not any(row.get(field) for field, _ in _PEC_PROOF_FIELDS)
+    )
+
+
 def _recipient_status_label(row: Mapping[str, Any]) -> str:
+    if _parte_senza_invio(row):
+        return "Parte del fascicolo"
     delivery = str(row.get("delivery_status") or "pending")
     if delivery == "delivered":
         return "Consegnata"
@@ -296,6 +319,23 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
     channel = str(projection.get("channel") or row.get("channel") or "pec").lower()
     fascicolo_id = str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")
     caso = str(projection.get("notificationCase") or row.get("notification_case") or "")
+    next_action = NEXT_ACTIONS.get(status, "Consulta il presidio")
+    if channel == "pec" and status in {"DETECTED", "NEEDS_REVIEW"}:
+        required = [item for item in recipients if item.get("required")]
+        delivered = [
+            item for item in required
+            if item.get("delivery_status") == "delivered" and item.get("rdac_message_id")
+        ]
+        if required and len(delivered) == len(required):
+            next_action = (
+                "Le ricevute di consegna sono collegate per tutti i destinatari richiesti. "
+                "Verifica nella relata gli atti consegnati e controlla se la prova è già stata depositata."
+            )
+        elif delivered:
+            next_action = (
+                f"Ricevute di consegna collegate per {len(delivered)} di {len(required)} destinatari richiesti. "
+                "Controlla le prove e verifica l'esito per i destinatari rimanenti."
+            )
     return {
         # Termine di legge già in scadenziario (art. 327 c.p.c.) per le sentenze: mai calcolato qui.
         "legal_term": termine_per_presidio(caso, fascicolo_id, termini if termini is not None else {}),
@@ -318,7 +358,7 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "detection_reason": str(row.get("detection_reason") or ""),
         "rule_label": "Valutazione guidata da fonti normative",
         "legal_sources": _legal_sources(row),
-        "next_action": NEXT_ACTIONS.get(status, "Consulta il presidio"),
+        "next_action": next_action,
         "human_review_required": bool(projection.get("humanReviewRequired") or row.get("human_review_required")),
         "legacy_assumed_handled": bool(projection.get("legacyAssumedHandled") or row.get("legacy_assumed_handled")),
         "assigned_user": _assignee(str(projection.get("assignedUserId") or row.get("assigned_user_id") or ""), assignees),
@@ -342,7 +382,10 @@ def _status_facets(repo: Any) -> dict[str, int]:
     return {str(row["status"]): int(row["count"] or 0) for row in rows}
 
 
-def build_presidia_list_payload(repo: Any, filters: Mapping[str, Any]) -> dict[str, Any]:
+def build_presidia_list_payload(
+    repo: Any, filters: Mapping[str, Any], *, include_controls: bool = True,
+) -> dict[str, Any]:
+    """Proietta i presìdi; la lista interattiva include anche filtri e assegnatari."""
     permissions = presidio_permissions()
     if not permissions["can_read"]:
         raise PermissionError("Permesso messaggi.leggi richiesto.")
@@ -365,19 +408,24 @@ def build_presidia_list_payload(repo: Any, filters: Mapping[str, Any]) -> dict[s
     rows = _presidio_rows(repo, ids)
     docs = _query_many(repo, "pec_legal_notification_documents", ids, "ORDER BY authoritative DESC, created_at DESC, id DESC")
     recipients = _query_many(repo, "pec_legal_notification_recipients", ids, "ORDER BY required DESC, updated_at DESC, id DESC")
-    assignees = _user_options()
+    assignees = _user_options() if include_controls else []
     termini: dict[str, Any] = {}
     items = [_summary(item, rows.get(str(item["id"]), {}), recipients.get(str(item["id"]), []), docs.get(str(item["id"]), []), assignees, termini) for item in public["items"]]
-    return {
+    risultato = {
         "ok": True,
         "items": items,
         "pagination": {"cursor": str(filters.get("cursor") or ""), "next_cursor": _cursor_encode(public.get("nextCursor")), "has_more": bool(public.get("nextCursor")), "total": None, "limit": int(filters.get("limit") or 50)},
-        "facets": {"status": _status_facets(repo)},
-        "filter_options": {"assignees": assignees, "channels": [_option(key, label) for key, label in CHANNEL_LABELS.items() if key != "nonpec"]},
         "permissions": public_permissions(permissions),
         "partial": False,
         "warnings": [],
     }
+    if include_controls:
+        risultato["facets"] = {"status": _status_facets(repo)}
+        risultato["filter_options"] = {
+            "assignees": assignees,
+            "channels": [_option(key, label) for key, label in CHANNEL_LABELS.items() if key != "nonpec"],
+        }
+    return risultato
 
 
 def _detail_rows(repo: Any, presidio_id: str) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
@@ -492,6 +540,22 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
         from flask import current_app
         current_app.logger.exception("Riconciliazione delle prove di notifica non disponibile")
         warnings.append({"code": "notification_proof_unavailable", "message": "Il confronto con le prove del fascicolo non è riuscito. Lo stato del presidio deve ancora essere verificato."})
+    if permissions.get("can_view_evidence"):
+        @cache
+        def load_protocols() -> dict[tuple[str, str], list[dict[str, str]]]:
+            return _recipient_protocols(repo)
+
+        _add_recipient_pec_proof(repo, presidio_id, recipients, detail["recipients"], load_protocols=load_protocols)
+        if fascicolo_id:
+            shown = {
+                (reply["href"], reply["number"], recipient["pec_address"].strip().casefold())
+                for recipient in detail["recipients"]
+                for reply in recipient["protocol_replies"]
+            }
+            detail["practice_protocol_replies"] = [
+                reply for reply in _practice_protocol_replies(repo, fascicolo_id, load_protocols)
+                if (reply["href"], reply["number"], reply["sender"]) not in shown
+            ]
     has_portal_original = _has_linked_portal_document(docs)
     detail["documents"] = [
         _public_document(
@@ -507,6 +571,26 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
     detail["assignment_options"] = assignees
     detail["linkable_documents"] = _linkable_documents(str(row.get("fascicolo_id") or ""))
     detail["available_actions"] = _available_actions(row, permissions, bool(detail["linkable_documents"]))
+    originali = [documento for documento in detail["documents"] if documento["authoritative"]]
+    if permissions.get("can_write") and permissions.get("can_view_evidence") and fascicolo_id and originali and row.get("status") in {
+        "NOTIFICATION_CONFIRMED", "RECIPIENTS_TO_VERIFY", "READY_FOR_RELATA", "RELATA_DRAFTED",
+    }:
+        from urllib.parse import quote
+
+        from web.services.notification_presidia_drafts import load_presidio_draft
+        from web.services.react_fascicoli_bridge import _notifiche_legali_operation_href
+
+        href, anchor = _notifiche_legali_operation_href(
+            fascicolo_id, phase="notifica", documents=originali, entry_source="presidio",
+        ).split("#", 1)
+        bozza = load_presidio_draft(presidio_id, fascicolo_id, repository=repo)
+        detail["available_actions"].append({
+            "id": "prepare-relata",
+            "label": "Riapri bozza di relata salvata" if bozza else "Apri preparazione bozza di relata",
+            "kind": "link", "href": f"{href}&id_presidio={quote(presidio_id, safe='')}#{anchor}",
+            "enabled": True,
+        })
+
     detail["source_pec_href"] = "/email"
     if permissions.get("can_view_evidence"):
         from web.services.notification_presidia_sources import correlated_sources
@@ -525,6 +609,164 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
     if not permissions["can_write"]:
         detail["read_only_reason"] = "Permesso messaggi.scrivi non disponibile."
     return {"ok": True, "presidio": detail, "permissions": public_permissions(permissions), "warnings": warnings}
+
+
+def _add_recipient_pec_proof(
+    repo: Any,
+    presidio_id: str,
+    recipients: list[Mapping[str, Any]],
+    public: list[dict[str, Any]],
+    *,
+    load_protocols: Callable[[], dict[tuple[str, str], list[dict[str, str]]]] | None = None,
+) -> None:
+    refs = sorted({str(row[field]) for row in recipients for field, _ in _PEC_PROOF_FIELDS if row.get(field)})
+    by_id: dict[str, Mapping[str, Any]] = {}
+    by_header: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+    if refs:
+        marks = ",".join("?" for _ in refs)
+        with repo.connection() as conn:
+            rows = conn.execute(
+                f"""SELECT id, message_id_header, folder, received_at, mime_sha256,
+                    COALESCE(mime_size, 0) > 0 AS has_mime,
+                    json_extract(metadata_json, '$.headers.subject') AS subject
+                    FROM pec_messages
+                    WHERE tenant_id=? AND (id IN ({marks}) OR message_id_header IN ({marks}))""",
+                (repo.tenant_id, *refs, *refs),
+            ).fetchall()
+        for row in map(repo._row, rows):
+            by_id[row["id"]] = row
+            by_header[row["message_id_header"]].append(row)
+    from pct.notifiche_l53_collegamento.regola import notifica_id
+
+    protocols = load_protocols() if load_protocols is not None and any(notifica_id(row.get("subject")) for row in by_id.values()) else {}
+    for recipient, output in zip(recipients, public):
+        if _parte_senza_invio(recipient):
+            output["pec_proof"] = []
+            output["protocol_replies"] = []
+            continue
+        proof = []
+        codes = set()
+        for field, label in _PEC_PROOF_FIELDS:
+            ref = str(recipient.get(field) or "")
+            if not ref and field == "failure_message_id":
+                continue
+            matches = by_header.get(ref, [])
+            row = by_id.get(ref)
+            if row is None and matches and len({match["mime_sha256"] for match in matches}) == 1:
+                row = next((match for match in matches if match["has_mime"]), matches[0])
+            available = bool(row and row["has_mime"])
+            if row and (code := notifica_id(row.get("subject"))):
+                codes.add(code)
+            proof.append({
+                "label": label,
+                "status": "Originale collegato" if available else "Più originali da verificare" if matches and not row
+                else "Originale da recuperare" if ref else "Da cercare nelle PEC",
+                "href": f"/api/v1/ui/notifiche-legali/presidi/{quote(presidio_id, safe='')}/originale-pec/{quote(row['id'], safe='')}" if available else "",
+                "date": str(row["received_at"] or "") if available else "",
+                "folder": str(row["folder"] or "") if available else "",
+            })
+        invio = next((item for item in proof if item["label"] == "PEC inviata"), None)
+        consegna = next((item for item in proof if item["label"] == "Ricevuta di avvenuta consegna (RdAC)"), None)
+        if invio and invio["status"] == "Originale da recuperare" and consegna and consegna["href"]:
+            invio["status"] = "Originale dalla cartella Inviate da recuperare. Controlla nella RdAC il messaggio e gli atti allegati."
+        output["pec_proof"] = proof
+        address = str(recipient.get("pec_address") or "").strip().casefold()
+        output["protocol_replies"] = protocols.get((next(iter(codes)), address), []) if len(codes) == 1 else []
+
+
+def _recipient_protocols(repo: Any) -> dict[tuple[str, str], list[dict[str, str]]]:
+    """Risposte già classificate e lette. Il codice di spedizione e il mittente
+    devono coincidere con la notifica e il destinatario; l'RG da solo non basta.
+    """
+    from pct.notifiche_l53_collegamento.regola import notifica_id
+
+    result = defaultdict(list)
+    seen = set()
+    with repo.connection() as conn:
+        rows = conn.execute(
+            """SELECT m.id, m.folder, m.received_at, m.metadata_json, p.parsed_json, a.filename, a.ocr_text
+               FROM pec_legal_events e JOIN pec_messages m ON m.tenant_id=e.tenant_id AND m.id=e.message_id
+               JOIN pec_parsed_versions p ON p.id=e.parsed_version_id AND p.message_id=m.id
+               JOIN pec_attachments a ON a.message_id=m.id AND a.parsed_version_id=e.parsed_version_id
+               WHERE e.tenant_id=? AND e.primary_event='ricevuta_protocollazione'
+                   AND a.ocr_text<>'' AND m.folder NOT IN ('INVIATI','BOZZE')
+               ORDER BY m.received_at DESC, a.id""",
+            (repo.tenant_id,),
+        ).fetchall()
+    for item in map(repo._row, rows):
+        text = str(item["ocr_text"])
+        code = notifica_id(text)
+        sender = (_json_value(item["metadata_json"], {}) or {}).get("headers", {}).get("from", "")
+        addresses = {email.casefold() for _, email in getaddresses([str(sender)]) if "@" in email}
+        parsed = _json_value(item["parsed_json"], {}) or {}
+        if parsed.get("pec_receipt", {}).get("source") == "daticert/postacert":
+            certified_senders = {
+                match[1].casefold()
+                for sender_header in parsed.get("headers", {}).get("from", [])
+                if (match := re.fullmatch(r"Per conto di:\s*([^\s<>@]+@[^\s<>@]+)",
+                                          str(sender_header.get("name") or ""), re.IGNORECASE))
+            }
+            if certified_senders:
+                addresses = certified_senders
+        number = re.search(r"\bprotocollo\s+(?:n(?:r|umero)?\.?\s*)?[: ]+\s*(\d[\w/.-]*)", text, re.IGNORECASE)
+        if not code or len(addresses) != 1 or not number:
+            continue
+        key = (code, next(iter(addresses)))
+        unique = (*key, item["id"], number[1])
+        if unique in seen:
+            continue
+        seen.add(unique)
+        result[key].append({
+            "number": number[1], "received_at": item["received_at"], "folder": item["folder"],
+            "href": f"/api/v1/ui/email/source/{quote(item['id'], safe='')}?name={quote(item['filename'], safe='')}",
+        })
+    return result
+
+
+def _practice_protocol_replies(
+    repo: Any,
+    fascicolo_id: str,
+    load_protocols: Callable[[], dict[tuple[str, str], list[dict[str, str]]]],
+) -> list[dict[str, str]]:
+    from pct.notifiche_l53_collegamento.regola import notifica_id
+
+    try:
+        with repo.connection() as conn:
+            rows = conn.execute(
+                """SELECT DISTINCT l.destinatario, json_extract(m.metadata_json, '$.headers.subject') AS subject
+                   FROM pec_notifiche_l53_collegamenti l
+                   JOIN pec_messages m ON m.tenant_id=l.tenant_id AND m.id=l.message_id
+                   WHERE l.tenant_id=? AND l.fascicolo_id=? AND l.destinatario<>''""",
+                (repo.tenant_id, fascicolo_id),
+            ).fetchall()
+    except sqlite3.OperationalError as exc:
+        # The historical linker creates its own SQLite table on first run.
+        if str(exc) != "no such table: pec_notifiche_l53_collegamenti":
+            raise
+        return []
+    except Exception as exc:
+        if getattr(exc, "sqlstate", None) != "42P01" or "pec_notifiche_l53_collegamenti" not in str(exc):
+            raise
+        return []
+    keys = {(notifica_id(row["subject"]), str(row["destinatario"]).strip().casefold()) for row in rows}
+    keys = {key for key in keys if key[0] and "@" in key[1]}
+    if not keys:
+        return []
+    protocols = load_protocols()
+    return [{**reply, "sender": address} for code, address in sorted(keys)
+            for reply in protocols.get((code, address), ())]
+
+
+def assert_recipient_pec_original(repo: Any, presidio_id: str, message_id: str) -> None:
+    if not presidio_permissions()["can_view_evidence"]:
+        raise PermissionError("Permesso di consultazione delle prove richiesto.")
+    repo.get_presidio(presidio_id)
+    recipients = _query_many(repo, "pec_legal_notification_recipients", [presidio_id], "ORDER BY id").get(presidio_id, [])
+    public = [{} for _ in recipients]
+    _add_recipient_pec_proof(repo, presidio_id, recipients, public)
+    if not any(proof["href"].endswith("/" + quote(message_id, safe=""))
+               for recipient in public for proof in recipient["pec_proof"] if proof["href"]):
+        raise KeyError("Originale PEC non collegato al presidio.")
 
 
 def _public_recipient(item: Mapping[str, Any]) -> dict[str, Any]:

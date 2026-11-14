@@ -215,3 +215,64 @@ def test_notification_workflow_remaining_error_and_branch_paths(tmp_path, monkey
         "proof_bundle_id": str(proof["bundle_id"]),
     }
     assert captured["source"] == "notification_proof_validation"
+
+
+def test_motore_usa_consegna_comune_solo_se_tutti_i_destinatari_sono_provati(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from pct.notification_proof_matrix import add_notification_receipt, link_notification_evidence
+    from web import helpers
+    from web.services import notification_presidia_runtime
+    from web.services.ragionamento_raccolta import _consegne_verificate
+
+    repo = make_repo(tmp_path)
+    notification_id = repo.create_notification_event({
+        "tenant_id": "studio",
+        "fascicolo_id": "F1",
+        "notification_type": "PEC",
+        "act_document_id": "atto1",
+        "recipient_address": "primo@example.test",
+        "status": "DELIVERED",
+    })
+    proof = build_complete_notification_proof_bundle(repo, notification_id=notification_id, bundle_id="prova")
+    with repo.connect() as conn:
+        monkeypatch.setattr(helpers, "_studio_db", lambda _: SimpleNamespace(
+            conn=conn, fetchall_readonly=lambda sql, params: conn.execute(sql, params).fetchall(),
+        ))
+        monkeypatch.setattr(notification_presidia_runtime, "_tenant_id", lambda: "studio")
+        atteso = {"atto1": {"data": "2026-06-02", "riferimento": "prova"}}
+        assert _consegne_verificate("F1") == atteso
+        secondo = conn.execute(
+            """INSERT INTO notification_recipients
+               (tenant_id, notification_case_id, fascicolo_id, recipient_address, status)
+               SELECT tenant_id, notification_case_id, fascicolo_id, ?, 'DELIVERY_RECEIVED'
+               FROM notification_recipients WHERE id=?""",
+            ("secondo@example.test", proof["recipient_id"]),
+        ).lastrowid
+        conn.commit()
+        assert _consegne_verificate("F1") == {}
+
+        for tipo, ruolo in (("ACCETTAZIONE", "RICEVUTA_ACCETTAZIONE"),
+                            ("AVVENUTA_CONSEGNA", "RICEVUTA_AVVENUTA_CONSEGNA")):
+            ricevuta_id = add_notification_receipt(repo, {
+                "notification_event_id": notification_id,
+                "recipient_id": secondo,
+                "receipt_type": tipo,
+                "event_time": "2026-06-01T22:00:30+00:00",
+                "raw_eml_document_id": f"secondo-{tipo}.eml",
+                "verification_status": "VERIFIED",
+                "correlation_status": "CORRELATED",
+            })
+            evidence_id = add_evidence_document(
+                repo, fascicolo_id="F1", evidence_type=ruolo,
+                document_id=f"secondo-{tipo}.eml", hash="a" * 64,
+            )
+            link_notification_evidence(
+                repo, bundle_id="prova", evidence_id=evidence_id,
+                evidence_role=ruolo, recipient_id=secondo,
+            )
+        assert _consegne_verificate("F1") == atteso
+
+        for event_time in ("2026-06-03T00:00:30+02:00", "2026-06-02T10:00:30", ""):
+            conn.execute("UPDATE notification_receipts SET event_time=? WHERE id=?", (event_time, ricevuta_id))
+            assert _consegne_verificate("F1") == {}

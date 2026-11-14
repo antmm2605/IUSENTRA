@@ -1232,8 +1232,20 @@ export async function saveLegalAttestationPdfToFile(
   }
 }
 
+export async function loadPresidioRelataDraft(presidioId: string, practiceId: string, signal: AbortSignal): Promise<string> {
+  const query = new URLSearchParams({ presidioId, practiceId })
+  const response = await fetch(`/api/v1/ui/notifiche-legali/bozze-relata/presidio?${query}`, {
+    credentials: 'same-origin',
+    signal,
+  })
+  if (!response.ok) throw new Error('Bozza del presidio non disponibile.')
+  const body = await response.json()
+  return isRecord(body?.draft) ? text(body.draft.relataText) : ''
+}
+
 export async function saveLegalRelataDraft(payload: {
   practiceId?: string
+  presidioId?: string
   templateId: string
   relataText: string
   payloadHash?: string

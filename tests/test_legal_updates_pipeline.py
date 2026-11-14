@@ -490,6 +490,28 @@ def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_p
     assert queue[0]["status"] == "published"
 
 
+def test_scan_riprende_documento_salvato_prima_della_revisione(tmp_path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "legal.json"))
+    source = pipeline.repository.get_source_by_code("gazzetta_ufficiale")
+    document = {
+        "external_id": "interrotto",
+        "source_url": "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto",
+        "title": "Legge 20 gennaio 2026, n. 12",
+        "raw_text": "Legge 20 gennaio 2026, n. 12. Disposizioni per i procedimenti civili.",
+        "content_hash": "impronta-gazzetta",
+    }
+    raw = pipeline.repository.save_raw_document({"source_id": source["id"], **document})
+    pipeline.repository.save_normalized_document(raw["id"], pipeline._normalize_document(source, document))
+    monkeypatch.setattr(pipeline, "_fetch_source", lambda *args, **kwargs: [document])
+    monkeypatch.setattr(pipeline, "_record_ingestion_verification_evidence", lambda *args, **kwargs: {})
+
+    first = pipeline.scan_source(source["code"], auto_publish=False)
+    second = pipeline.scan_source(source["code"], auto_publish=False)
+    assert first["processed"] == 1
+    assert second["skipped_unchanged"] == 1
+    assert len(pipeline.repository.list_review_queue()) == 1
+
+
 def test_legal_update_autopubblica_attende_conferme_web(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
 
@@ -1296,7 +1318,7 @@ def test_news_page_storica_redirige_al_canonico_ricerca_legale(tmp_path: Path):
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get("/legal-intelligence/news?_legacy=1", follow_redirects=False)
+        response = client.get("/legal-intelligence/news", follow_redirects=False)
 
         assert response.status_code == 301
         assert "/ricerca-legale/news" in response.headers["Location"]
@@ -1317,8 +1339,8 @@ def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: 
         assert login.status_code == 302
 
         dashboard = client.get("/")
-        motori = client.get("/legal-intelligence/?_legacy=1", follow_redirects=False)
-        news = client.get("/legal-intelligence/news?_legacy=1", follow_redirects=False)
+        motori = client.get("/legal-intelligence/", follow_redirects=False)
+        news = client.get("/legal-intelligence/news", follow_redirects=False)
         motori_canonico = client.get(motori.headers["Location"], follow_redirects=True)
         news_canonica = client.get(news.headers["Location"], follow_redirects=True)
 
@@ -1361,19 +1383,19 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
         assert login.status_code == 302
 
         routes = {
-            "/admin/aggiornamenti-legali": "Motore di aggiornamento normativo e giurisprudenziale",
-            "/admin/aggiornamenti-legali/fonti": "Gestore fonti",
-            "/admin/aggiornamenti-legali/staging": "Area di acquisizione documenti",
-            "/admin/aggiornamenti-legali/analisi": "Analisi automatica",
-            "/admin/aggiornamenti-legali/archivio": "Archivio strutturato",
+            "/api/v1/ui/piattaforma/aggiornamenti-legali": "Motore di aggiornamento normativo e giurisprudenziale",
+            "/api/v1/ui/piattaforma/aggiornamenti-fonti": "Gestore delle fonti",
+            "/api/v1/ui/piattaforma/aggiornamenti-staging": "Area di acquisizione dei documenti",
+            "/api/v1/ui/piattaforma/aggiornamenti-analisi": "Analisi automatica",
+            "/api/v1/ui/piattaforma/aggiornamenti-archivio": "Archivio strutturato",
         }
 
         for path, needle in routes.items():
-            response = client.get(f"{path}?_legacy=1")
+            response = client.get(path)
             assert response.status_code == 200, path
             assert needle in response.get_data(as_text=True)
 
-        dashboard_html = client.get("/admin/aggiornamenti-legali?_legacy=1").get_data(as_text=True)
+        dashboard_html = client.get("/api/v1/ui/piattaforma/aggiornamenti-legali").get_data(as_text=True)
         assert "Dove finiscono i dati" in dashboard_html
         assert "Documenti letti" in dashboard_html
         assert "Evidenze lette" in dashboard_html
@@ -1381,7 +1403,7 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
         assert "Schede pubblicate" in dashboard_html
         assert "Indice Normattiva" in dashboard_html
         assert "Indice Gazzetta" in dashboard_html
-        assert 'href="/ricerca-legale' in dashboard_html
+        assert '"/ricerca-legale' in dashboard_html
 
 
 def test_admin_review_mostra_etichette_operative_senza_codici_grezzi(tmp_path: Path):
@@ -1403,8 +1425,8 @@ def test_admin_review_mostra_etichette_operative_senza_codici_grezzi(tmp_path: P
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
-        response = client.get("/admin/aggiornamenti-legali/review?_legacy=1")
-        staging_response = client.get("/admin/aggiornamenti-legali/staging?_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/aggiornamenti-revisione")
+        staging_response = client.get("/api/v1/ui/piattaforma/aggiornamenti-staging")
 
     html = response.get_data(as_text=True)
     staging_html = staging_response.get_data(as_text=True)
@@ -1433,7 +1455,7 @@ def test_admin_studio_accede_review_aggiornamenti_legali_senza_403(tmp_path: Pat
             follow_redirects=False,
         )
         assert login.status_code == 302
-        response = client.get("/admin/aggiornamenti-legali/review?_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/aggiornamenti-revisione")
 
     assert response.status_code == 200
     assert "Coda revisioni aggiornamenti" in response.get_data(as_text=True)
@@ -1448,7 +1470,7 @@ def test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero(tmp_path
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get("/admin/aggiornamenti-legali/fonti?_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/aggiornamenti-fonti")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -1619,7 +1641,7 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
         )
         raw_id = int(staging["raw"]["id"])
 
-    monkeypatch.setattr("web.blueprints.legal_updates_admin.build_legal_update_pipeline_runtime", _fake_runtime)
+    monkeypatch.setattr("web.services.legal_update_surface.build_legal_update_pipeline_runtime", _fake_runtime)
     monkeypatch.setattr(pipeline, "fetch_source_by_id", _fake_fetch)
     monkeypatch.setattr(pipeline, "analyze_raw_document", _fake_analyze)
 
@@ -1627,11 +1649,18 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response_fetch = client.post(f"/admin/aggiornamenti-legali/fonti/{source_id}/fetch", data={"_csrf_token": "test"})
-        response_analyze = client.post(f"/admin/aggiornamenti-legali/staging/{raw_id}/analizza", data={"_csrf_token": "test"})
+        # Azioni delle pagine React «Fonti» e «Acquisizione» (le stesse dei moduli storici).
+        response_fetch = client.post(
+            "/api/v1/ui/piattaforma/aggiornamenti-fonti/azioni/acquisisci",
+            json={"params": {"source_id": source_id}, "values": {}},
+        )
+        response_analyze = client.post(
+            "/api/v1/ui/piattaforma/aggiornamenti-staging/azioni/analizza",
+            json={"params": {"id": raw_id}, "values": {}},
+        )
 
-    assert response_fetch.status_code == 302
-    assert response_analyze.status_code == 302
+    assert response_fetch.status_code == 200 and response_fetch.get_json()["ok"] is True, response_fetch.get_json()
+    assert response_analyze.status_code == 200 and response_analyze.get_json()["ok"] is True, response_analyze.get_json()
     assert calls["fetch"] == [source_id]
     assert calls["analyze"] == [raw_id]
 
@@ -1698,7 +1727,7 @@ def test_dashboard_update_intelligence_mostra_presidio_condiviso_senza_selezione
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}&_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/aggiornamenti-legali")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -1733,7 +1762,7 @@ def test_dashboard_update_intelligence_ignora_nome_tenant_divergente_per_il_pres
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}&_legacy=1")
+        response = client.get("/api/v1/ui/piattaforma/aggiornamenti-legali")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200

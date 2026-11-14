@@ -85,6 +85,7 @@ def _serialize_scadenza(scadenza) -> dict[str, Any]:
         "priorita": getattr(getattr(scadenza, "priorita", None), "value", ""),
         "note": getattr(scadenza, "note", ""),
         "id_fascicolo": getattr(scadenza, "id_fascicolo", ""),
+        "id_utente_responsabile": getattr(scadenza, "id_utente_responsabile", ""),
     }
 
 
@@ -105,22 +106,15 @@ def _serialize_appuntamento(appuntamento) -> dict[str, Any]:
 
 
 def _agenda_fascicolo_rows(target_id: str, fascicolo) -> list[Any]:
-    keys = {
-        _clean_spaces(target_id).lower(),
-        _clean_spaces(getattr(fascicolo, "id_cliente", "")).lower(),
-        _clean_spaces(getattr(fascicolo, "numero", "")).lower(),
-        _clean_spaces(getattr(fascicolo, "numero_rg", "")).lower(),
-        _clean_spaces(getattr(fascicolo, "rg_completo", "")).lower(),
-    }
-    keys.discard("")
-    rows: list[Any] = []
-    for appuntamento in get_agenda().tutti():
-        procedimento = _clean_spaces(getattr(appuntamento, "procedimento", "")).lower()
-        id_cliente = _clean_spaces(getattr(appuntamento, "id_cliente", "")).lower()
-        if keys and procedimento not in keys and id_cliente not in keys:
-            continue
-        rows.append(appuntamento)
-    return rows
+    """Gli appuntamenti del fascicolo: per numero di ruolo o riferimento; per cliente solo gli impegni non d'udienza
+    senza procedimento (``pct.agenda_del_fascicolo``: un cliente con più cause non porta qui le udienze delle altre)."""
+    from pct.agenda_del_fascicolo import appuntamento_del_fascicolo, chiavi_fascicolo, ruoli_dei_fascicoli
+
+    chiavi = chiavi_fascicolo(fascicolo)
+    chiavi["testuali"].add(_clean_spaces(target_id).lower())
+    # Solo un fascicolo senza ruolo nella scheda ha bisogno di sapere quali ruoli sono di altre cause dello studio.
+    ruoli = ruoli_dei_fascicoli(get_fascicoli().tutti()) if not chiavi["ruolo"] else frozenset()
+    return [appuntamento for appuntamento in get_agenda().tutti() if appuntamento_del_fascicolo(appuntamento, chiavi, ruoli_dello_studio=ruoli)]
 
 
 def _scadenze_fascicolo_rows(target_id: str) -> list[Any]:

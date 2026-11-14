@@ -53,11 +53,14 @@ def norme_procedura(fascicolo: dict[str, Any]) -> dict[str, Any]:
     tipo = str(fascicolo.get("tipo") or "")
     procedimento = str(fascicolo.get("tipo_procedimento") or "")
     canale = str(fascicolo.get("canale_operativo") or "")
-    rito = rito_per_fascicolo(tipo, procedimento)
+    codice_oggetto = str(fascicolo.get("codice_oggetto_pst") or "")
+    oggetto = str(fascicolo.get("oggetto") or "")
+    rito = rito_per_fascicolo(tipo, procedimento, codice_oggetto=codice_oggetto, oggetto=oggetto)
     voci: dict[str, dict[str, Any]] = {}
     contesto: dict[str, str] = {"rito": "", "deposito": "", "ufficio": str(fascicolo.get("tribunale") or "").strip()}
     if rito or canale:
-        schede = schede_per_fascicolo(tipo=tipo, tipo_procedimento=procedimento, canale_operativo=canale)
+        schede = schede_per_fascicolo(tipo=tipo, tipo_procedimento=procedimento, canale_operativo=canale,
+                                       codice_oggetto=codice_oggetto, oggetto=oggetto)
         contesto["rito"] = str((schede.get("rito") or {}).get("nome") or "")
         contesto["deposito"] = str((schede.get("deposito") or {}).get("nome") or "")
         _da_scheda(voci, schede.get("rito") or {}, "perché: rito del fascicolo —")

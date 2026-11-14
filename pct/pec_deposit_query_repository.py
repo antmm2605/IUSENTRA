@@ -66,10 +66,20 @@ class PecDepositQueryRepository:
             raise ValueError('Studio delle ricevute non determinato.')
         self.conn, self.tenant = conn, tenant
 
-    def _ready(self):
+    def _ready(self, *, case_id=None):
         marker = self.conn.execute('SELECT version FROM pec_deposit_query_bootstrap WHERE tenant_id=?', (self.tenant,)).fetchone()
-        pending = self.conn.execute('SELECT 1 FROM transactional_outbox WHERE tenant_id=? AND aggregate_type=? AND event_type=? '
-                                    "AND status IN ('PENDING','FAILED') LIMIT 1", (self.tenant, AGGREGATE, EVENT_TYPE)).fetchone()
+        query = ("SELECT 1 FROM transactional_outbox o WHERE o.tenant_id=? AND o.aggregate_type=? "
+                 "AND o.event_type=? AND o.status IN ('PENDING','FAILED')")
+        params = [self.tenant, AGGREGATE, EVENT_TYPE]
+        if case_id is not None:
+            query += (
+                ' AND (EXISTS (SELECT 1 FROM pec_messages m WHERE m.id=o.aggregate_id '
+                'AND m.tenant_id=o.tenant_id AND m.linked_fascicolo_id=?) '
+                'OR EXISTS (SELECT 1 FROM pec_deposit_query_index q WHERE q.message_id=o.aggregate_id '
+                'AND q.tenant_id=o.tenant_id AND q.case_id=?))'
+            )
+            params.extend((case_id, case_id))
+        pending = self.conn.execute(query + ' LIMIT 1', tuple(params)).fetchone()
         if marker is None or marker[0] != 1 or pending is not None:
             raise RuntimeError('Catalogo delle ricevute di deposito non ancora confermato.')
 
@@ -111,6 +121,26 @@ class PecDepositQueryRepository:
         return dict(rows=values, unknown_date_count=unknown, unconfirmed_source_count=unconfirmed,
                     unconfirmed_sources=issues, has_more=len(rows) > size,
                     cursor=(values[-1]['event_at'], values[-1]['message_id']) if len(rows) > size else None)
+
+    def accettazioni_cancelleria_fascicolo(self, case_id):
+        """Legge le accettazioni già certificate, senza acquisire o riprocessare il MIME."""
+        self._ready(case_id=case_id)
+        rows = self.conn.execute(
+            "SELECT q.message_id,q.event_at,q.correlation_key,q.title "
+            "FROM pec_deposit_query_index q "
+            "JOIN pec_messages m ON m.id=q.message_id AND m.tenant_id=q.tenant_id "
+            "JOIN pec_validation_reports r ON r.id=q.report_id "
+            "WHERE q.tenant_id=? AND q.case_id=? AND q.state='ACCETTATO_CANCELLERIA' "
+            "AND m.linked_fascicolo_id=q.case_id AND m.mime_sha256=q.mime_sha256 "
+            "AND r.report_sha256=q.source_revision "
+            "ORDER BY q.event_at DESC,q.message_id DESC",
+            (self.tenant, case_id),
+        ).fetchall()
+        self._ready(case_id=case_id)
+        by_deposit = {}
+        for row in rows:
+            by_deposit.setdefault(row["correlation_key"] or row["message_id"], dict(row))
+        return list(by_deposit.values())
 
     def retry_events(self, *, finish, limit=50):
         from pct.query_projection_worker import deliver_pending

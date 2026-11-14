@@ -8,12 +8,12 @@ import os
 from pathlib import Path
 import sqlite3
 
-from flask import Flask, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, jsonify, make_response, redirect, request, session, url_for
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.core_storage_backend import build_core_storage_backend
 from web.services import auth_accesso_flow as accesso
-from web.services.accesso_shell_runtime import render_accesso_shell, vista_classica_accesso_richiesta
+from web.services.accesso_shell_runtime import render_accesso_shell
 from web.services.storage_runtime import get_request_storage_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
@@ -113,7 +113,6 @@ def register_auth_runtime(
         # l'accesso è il token del link (o la firma/verifica del webhook), non
         # la sessione dello studio. Prima reindirizzavano al login dello studio.
         "pagamenti.checkout",
-        "pagamenti.avvia_pagamento",
         "pagamenti.successo",
         "pagamenti.webhook_stripe",
         "pagamenti.webhook_paypal",
@@ -685,23 +684,24 @@ def register_auth_runtime(
             return redirect(url_for("profilo", password_obbligatoria=1))
         return None
 
-    def _pagina_login_legacy(errore, multi_tenant: bool, status: int = 200, retry_after: int = 0):
-        response = make_response(
-            render_template("auth/login.html", errore=errore, multi_tenant=multi_tenant),
-            status,
-        )
+    def _pagina_accesso_con_errore(errore: str, status: int = 200, retry_after: int = 0):
+        """Invio del modulo senza JavaScript: si torna alla pagina React di accesso con il
+        messaggio. La pagina Jinja dell'accesso è stata tolta (10/11/2026)."""
+        if errore:
+            flash(errore, "danger")
+        response = render_accesso_shell("login", titolo="Accesso", status=status)
         if retry_after:
             response.headers["Retry-After"] = str(retry_after)
         return response
 
     def _risposta_login_html(esito: accesso.EsitoAccesso):
         if esito.tipo == accesso.BLOCCATO:
-            return _pagina_login_legacy(esito.errore, esito.multi_studio, 429, esito.retry_after)
+            return _pagina_accesso_con_errore(esito.errore, 429, esito.retry_after)
         if esito.tipo in {accesso.SECONDO_FATTORE, accesso.PASSWORD_DA_CAMBIARE}:
             return redirect(esito.destinazione)
         if esito.tipo == accesso.ACCESSO:
             return _redirect_to_login_target(esito.destinazione)
-        return render_template("auth/login.html", errore=esito.errore, multi_tenant=esito.multi_studio)
+        return _pagina_accesso_con_errore(esito.errore)
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -719,13 +719,7 @@ def register_auth_runtime(
             )
             return _risposta_login_html(esito)
 
-        if not vista_classica_accesso_richiesta():
-            return render_accesso_shell("login", titolo="Accesso")
-        return render_template(
-            "auth/login.html",
-            errore=None,
-            multi_tenant=_runtime_multi_tenant_available(),
-        )
+        return render_accesso_shell("login", titolo="Accesso")
 
     @app.route("/logout", methods=["POST"])
     def logout():
@@ -758,7 +752,6 @@ def register_auth_runtime(
             return redirect(url_for("login"))
         manager, utente = attesa
 
-        errore = None
         if request.method == "POST":
             esito = accesso.verifica_secondo_fattore(
                 accesso_runtime, manager, utente, request.form.get("codice", "")
@@ -767,12 +760,6 @@ def register_auth_runtime(
                 return _redirect_to_login_target(esito.destinazione)
             if esito.tipo in {accesso.PASSWORD_DA_CAMBIARE, accesso.VERIFICA_ANNULLATA}:
                 return redirect(esito.destinazione)
-            errore = esito.errore
-        elif not vista_classica_accesso_richiesta():
-            return render_accesso_shell("2fa", titolo="Verifica identità")
-
-        return render_template(
-            "auth/login_2fa.html",
-            errore=errore,
-            username=utente.username,
-        )
+            if esito.errore:
+                flash(esito.errore, "danger")
+        return render_accesso_shell("2fa", titolo="Verifica identità")

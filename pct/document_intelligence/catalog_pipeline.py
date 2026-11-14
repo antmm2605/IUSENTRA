@@ -271,6 +271,7 @@ class FascicoloDocumentCatalogPipeline:
                 result=result,
                 extracted_text=extracted_by_record_id.get(str(getattr(record, "id", "") or "")),
                 conferma_da_rivedere=conferma_da_rivedere,
+                precedente=existing,
             )
         return result
     def _process_source(
@@ -287,6 +288,7 @@ class FascicoloDocumentCatalogPipeline:
         result: CatalogPipelineResult,
         extracted_text: str | None = None,
         conferma_da_rivedere: Any = None,
+        precedente: Any = None,
     ) -> None:
         self.repository.mark_catalog_job(tenant_id=tenant_id, job_id=job_id, status="processing")
         document_id = str(source.source_id or source.metadata.get("documento_id") or "").strip()
@@ -353,10 +355,13 @@ class FascicoloDocumentCatalogPipeline:
                 },
                 created_by=actor, created_at=now, updated_by=actor, updated_at=now,
             )
+            review = resolution.review
             if conferma_da_rivedere is not None:
                 assignment = _rivedi_conferma(conferma_da_rivedere, assignment, actor=actor, now=now)
+            elif precedente is not None:
+                assignment, review = _rivedi_voce_lex(precedente, assignment, review, now=now)
             self.repository.save_catalog_assignment(
-                assignment, candidates=resolution.candidates, evidence=resolution.evidence, review=resolution.review
+                assignment, candidates=resolution.candidates, evidence=resolution.evidence, review=review
             )
             self.repository.append_audit_event({
                 "id": new_id("catalog-audit"), "tenant_id": tenant_id, "fascicolo_id": fascicolo_id,
@@ -414,6 +419,44 @@ def _rivedi_conferma(existing: Any, nuova: DocumentCatalogAssignment, *, actor: 
             "confirmed_by": existing.updated_by, "resolver_version": existing.resolver_version,
         }},
     )
+
+
+# La seconda lettura Lex (spenta dal 05/11/2026) assegnava la propria voce quando la regola era incerta
+# (confidenza < 90, `catalog_lex.applica_esito`). Se le regole aggiornate leggono ora con certezza un'altra voce,
+# nessuna delle due prevale da sola: l'assegnazione torna «da verificare» con entrambe le letture e decide
+# l'avvocato. Revisione del 10/11/2026: 139 voci Lex rimaste nei dati anche contro una regola sicura.
+_PREFISSO_VOCE_LEX = "Seconda lettura Lex"
+
+
+def _voce_lex(assegnazione: Any) -> bool:
+    return str(getattr(assegnazione, "reason", "") or "").startswith(_PREFISSO_VOCE_LEX)
+
+
+def _rivedi_voce_lex(precedente: Any, nuova: DocumentCatalogAssignment, review: Any, *, now: str) -> tuple[DocumentCatalogAssignment, Any]:
+    from dataclasses import replace as _sostituisci
+    from .catalog_lex import CONFIDENZA_REGOLA_SICURA
+    from .models import DocumentCatalogReview
+
+    voce_lex = str(getattr(precedente, "document_label", "") or "").strip()
+    if (not _voce_lex(precedente) or nuova.status != "proposed" or int(nuova.confidence or 0) < CONFIDENZA_REGOLA_SICURA
+            or voce_lex.casefold() == str(nuova.document_label or "").strip().casefold()):
+        return nuova, review
+    spiegazione = (f"Da verificare: la seconda lettura Lex aveva proposto «{voce_lex}», le regole aggiornate leggono "
+                   f"«{nuova.document_label}». Conferma la voce corretta.")
+    assegnazione = _sostituisci(
+        nuova, status="review_required", source_state="review_required", confidence=min(int(nuova.confidence or 0), 69),
+        reason=f"{spiegazione} {nuova.reason}".strip(),
+        metadata={**dict(nuova.metadata or {}), "automatic_classification": False, "voce_lex_precedente": {
+            "document_label": voce_lex, "document_section": getattr(precedente, "document_section", ""),
+            "resolver_version": getattr(precedente, "resolver_version", ""), "reason": str(getattr(precedente, "reason", "") or "")[:300],
+        }},
+    )
+    revisione = DocumentCatalogReview(
+        id=new_id("catalog-review"), tenant_id=nuova.tenant_id, fascicolo_id=nuova.fascicolo_id, assignment_id="",
+        state="open", reason_code="lex_contraddetta_da_regola", reason=spiegazione, resolved_by=None,
+        resolution_note=None, created_at=now, resolved_at=None,
+    )
+    return assegnazione, revisione
 
 
 def _source_snapshot_matches(

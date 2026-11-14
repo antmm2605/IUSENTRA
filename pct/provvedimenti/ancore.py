@@ -32,7 +32,7 @@ _ULTERIORI = r"(?:ulterior[ei]\s+|altri\s+)?"
 _AGGETTIVI = r"(?:predett[ao]|suddett[ao]|nuov[ao]|prossim[ao]|medesim[ao]|fissat[ao])\s+"
 
 _RE_PRIMA = re.compile(
-    rf"(?:almeno|sino\s+a|fino\s+a|entro|non\s+oltre)\s+(?:il\s+)?(?:termine\s+di\s+)?{NUMERO}\s+{GIORNI}\s+(liberi\s+)?prima\s+"
+    rf"(?:(?:almeno|sino\s+a|fino\s+a|entro|non\s+oltre)\s+(?:il\s+)?(?:termine\s+di\s+)?|nel\s+termine\s+(?:(?:perentorio|ordinatorio)\s+)?di\s+){NUMERO}\s+{GIORNI}\s+(liberi\s+)?prima\s+"
     rf"(?:dell[a']\s*|della\s+|del\s+)?(?:{_AGGETTIVI})?(?:data\s+(?:dell[a']\s*)?(?:{_AGGETTIVI})?)?"
     r"(udienza|data|scadenza|trattazione|camera\s+di\s+consiglio|dibattimento|(?<=del\s)termine)",
     re.I,

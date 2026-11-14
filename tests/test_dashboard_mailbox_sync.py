@@ -244,6 +244,7 @@ def test_sync_pec_automatico_aggiorna_depositi_e_cancelleria(tmp_path, monkeypat
     def _fake_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
         observed["email_db"] = str(gestione_email.db_path)
         observed["fascicoli_db"] = str(gestione_fascicoli.db_path)
+        assert gestione_fascicoli._studio_db is gestione_email.repository.db
         observed["state_path"] = str(kwargs.get("state_path", ""))
         observed["incremental_only"] = str(bool(kwargs.get("incremental_only")))
         observed["pec"] = config_pec.indirizzo

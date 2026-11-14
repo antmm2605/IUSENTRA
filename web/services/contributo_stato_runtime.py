@@ -11,7 +11,12 @@ Base normativa: art. 13 e art. 9, comma 1-bis, D.P.R. 115/2002.
 
 from __future__ import annotations
 
+import json
 import logging
+import re
+from datetime import date
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import quote
 
@@ -98,11 +103,111 @@ def voce_corrente(fascicolo: Any) -> dict[str, Any]:
     return _payment_source_for_kind(pagamenti, "contributo_unificato")
 
 
+@lru_cache(maxsize=1)
+def _voci_pst() -> dict[str, tuple[str, str]]:
+    """codice oggetto → (area, voce padre) dal catalogo ministeriale XSD versionato."""
+    import pct
+
+    percorso = Path(pct.__file__).resolve().parent / "data" / "cataloghi" / "codici_oggetto_pst.json"
+    voci: dict[str, tuple[str, str]] = {}
+
+    def _visita(nodo: Any) -> None:
+        if isinstance(nodo, dict):
+            if "codice" in nodo and "area" in nodo:
+                voci.setdefault(str(nodo["codice"]), (str(nodo.get("area") or ""), str(nodo.get("descrizionePadre") or "")))
+            for valore in nodo.values():
+                _visita(valore)
+        elif isinstance(nodo, list):
+            for valore in nodo:
+                _visita(valore)
+
+    try:
+        _visita(json.loads(percorso.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        logger.warning("Catalogo dei codici oggetto PST non leggibile: il contributo dovuto non si calcola.")
+    return voci
+
+
+def _data_documento(documento: Any) -> date | None:
+    for campo in ("data_documento", "data_deposito_portale", "data_caricamento", "creato_il"):
+        try:
+            return date.fromisoformat(_testo(getattr(documento, campo, ""))[:10])
+        except ValueError:
+            continue
+    return None
+
+
+_DEPOSITO = ("deposito telematico",)
+_ESENZIONE = re.compile(r"autocertific|dichiarazione\s+sostitutiva|esenzione", re.IGNORECASE)
+
+
+def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, Any]:
+    """Confronto del versato con il dovuto (pct.contributo_dovuto) e autocertificazione depositata contro la soglia
+    vigente al deposito (pct.esenzione_reddito_cu). Solo testi già salvati: nessuna lettura di file."""
+    from pct.contributo_dovuto import categoria, confronta, contributo_dovuto
+    from pct.esenzione_reddito_cu import invito_rideposito, leggi_autocertificazione, verifica
+
+    esito: dict[str, Any] = {}
+    area, padre = _voci_pst().get(_testo(getattr(fascicolo, "codice_oggetto_pst", "")), ("", ""))
+    cat = categoria(area=area, padre=padre, tipo_fascicolo=getattr(fascicolo, "tipo", ""))
+    try:
+        valore = float(getattr(fascicolo, "valore_causa", 0) or 0)
+    except (TypeError, ValueError):
+        valore = 0.0
+    giudice_pace = "giudice di pace" in _testo(getattr(fascicolo, "tribunale", "")).casefold()
+    letti = [v for v in [*(voce.get("importiLetti") or []), voce.get("importo")] if v not in (None, "")]
+    if cat and letti:
+        esito["confronto"] = confronta(letti, contributo_dovuto(cat, valore, giudice_pace=giudice_pace), cat=cat)
+    esito["categoria"] = cat
+    try:
+        from web.services.archivio_letture_runtime import testi_indice_archivio
+
+        testi = testi_indice_archivio(fascicolo)
+    except Exception as exc:
+        logger.debug("Testi non disponibili per il contributo di %s: %s", getattr(fascicolo, "id", ""), exc)
+        return esito
+    documenti = {_testo(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
+    depositi = {oid: d for oid, d in documenti.items() if any(t in _testo(getattr(d, "nome", "")).casefold() for t in _DEPOSITO)}
+    verifiche = []
+    inviti = []
+    for oid, documento in documenti.items():
+        testo = testi.get(oid, "")
+        nome = _testo(getattr(documento, "nome", ""))
+        if not testo or not (_ESENZIONE.search(nome) or _ESENZIONE.search(testo[:1500])):
+            continue
+        if invito_rideposito(testo):
+            inviti.append({"id": oid, "nome": nome, "href": href_documento(_testo(fascicolo.id), oid)})
+            continue
+        letta = leggi_autocertificazione(testo)
+        if letta["soglia"] is None:
+            continue
+        # Depositata: è la PEC del deposito, o il file è fra gli allegati di una PEC di deposito del fascicolo.
+        if oid in depositi:
+            data = _data_documento(documento)
+        else:
+            stelo = nome.rsplit(".", 1)[0].casefold()
+            contenitore = next((d for did, d in depositi.items() if stelo and stelo in testi.get(did, "").casefold()), None)
+            if contenitore is None:
+                continue  # autocertificazione non depositata: non conta (art. 9, comma 1-bis)
+            data = _data_documento(contenitore)
+        verifiche.append({"documento_id": oid, **verifica(anno=letta["anno"], soglia=letta["soglia"], data_deposito=data)})
+    esito["invitiRideposito"] = inviti
+    certe = [v for v in verifiche if v.get("certa")]
+    if certe or verifiche:
+        esito["esenzioneVerificata"] = certe[0] if certe else verifiche[0]
+    return esito
+
+
 def stato_contributo_fascicolo(fascicolo: Any, voce: Mapping[str, Any] | None = None) -> dict[str, Any]:
     from pct.contributo_unificato_stato import stato_contributo
 
     grezza = voce if voce is not None else voce_corrente(fascicolo)
-    return stato_contributo(voce_contributo(fascicolo, grezza or {}), documenti_contributo(fascicolo))
+    pronta = voce_contributo(fascicolo, grezza or {})
+    try:
+        pronta.update(verifiche_contributo(fascicolo, pronta))
+    except Exception as exc:  # le verifiche sciolgono dubbi: senza, lo stato resta quello della voce
+        logger.warning("Verifiche del contributo non eseguite per %s: %s", getattr(fascicolo, "id", ""), exc)
+    return stato_contributo(pronta, documenti_contributo(fascicolo))
 
 
 def applica_stato_contributo(items: dict[str, dict[str, Any]], fascicolo: Any, voce: Mapping[str, Any]) -> None:

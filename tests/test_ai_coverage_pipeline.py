@@ -22,12 +22,13 @@ def test_ai_coverage_pipeline_esegue_review_publish_con_audit_completo(tmp_path)
         assert login.status_code == 302
 
         for action in ("audit", "gaps", "drafts"):
+            # Azione della pagina React «Copertura AI» (la stessa del modulo storico).
             response = client.post(
-                f"/admin/copertura-ai/esegui/{action}",
-                data={},
-                follow_redirects=True,
+                f"/api/v1/ui/piattaforma/copertura-ai/azioni/{action}",
+                json={"params": {}, "values": {}},
             )
             assert response.status_code == 200
+            assert response.get_json()["ok"] is True, response.get_json()
 
         drafts_response = client.get("/admin/copertura-ai/api/drafts")
         assert drafts_response.status_code == 200

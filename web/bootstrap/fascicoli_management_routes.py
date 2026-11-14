@@ -5,7 +5,6 @@ from __future__ import annotations
 import io
 import mimetypes
 import sqlite3
-from copy import copy
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -17,9 +16,8 @@ from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.fascicoli_sql_writer import FascicoloConcurrentUpdate
 from pct.soggetti import RuoloSoggetto, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
 from web.services.fascicolo_controparte_modulo import controparte_coincide_con_cliente, crea_o_riusa_controparte
-from web.services.fascicolo_copertina import contesto_copertina
+from web.services.copertine_pdf import copertina_fascicolo_pdf, oggi_roma, risposta_pdf_copertina as _pdf_copertina
 from web.services.permessi_route import descrizione_fascicolo, permesso_fascicolo_negato as _negato
 from web.services.fascicolo_controparti_aggiuntive import (
     avviso_conflitto_interessi,
@@ -27,10 +25,6 @@ from web.services.fascicolo_controparti_aggiuntive import (
     dividi_clienti,
     leggi_controparti_aggiuntive,
 )
-
-
-def _richiede_vista_classica() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _wants_json_response() -> bool:
@@ -119,14 +113,15 @@ def register_fascicoli_management_routes(
                 flash("Non hai accesso a questo fascicolo.", "danger")
                 return redirect(url_for("lista_fascicoli"))
             cfg_studio = get_config_studio()
-            return render_template(
-                "fascicoli/copertina.html",
-                fascicolo=fascicolo,
-                cliente=cliente,
-                copertina=contesto_copertina(fascicolo, _avvocato_titolare_studio()),
+            # Copertina come PDF da stampare (prima pagina Jinja fascicoli/copertina.html).
+            pdf = copertina_fascicolo_pdf(
+                fascicolo,
+                cliente,
                 studio_nome=cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale"),
-                oggi=date.today(),
+                avvocato_studio=_avvocato_titolare_studio(),
+                oggi=oggi_roma(),
             )
+            return _pdf_copertina(pdf, f"copertina_{fascicolo.numero or fascicolo.id}.pdf")
         except Exception as exc:
             app.logger.exception("Errore copertina_fascicolo %s: %s", id_fasc, exc)
             flash(f"Errore copertina fascicolo: {exc}", "danger")
@@ -134,39 +129,11 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/quadro")
     def quadro_fascicolo(id_fasc: str):
-        if not _richiede_vista_classica():
-            return render_react_shell_response(f"fascicoli/{id_fasc}/quadro")
-
-        gf = get_fascicoli()
-        gc = get_clienti()
-        fascicolo = gf.get(id_fasc)
-        if not fascicolo:
-            flash("Fascicolo non trovato.", "warning")
-            return redirect(url_for("lista_fascicoli"))
-
-        cliente = gc.get(fascicolo.id_cliente) if fascicolo.id_cliente else None
-        context = build_quadro_fascicolo_context(
-            id_fasc=id_fasc,
-            fascicolo=fascicolo,
-            cliente=cliente,
-            get_preventivi=get_preventivi,
-            get_fatturazione=get_fatturazione,
-            get_scadenziario=get_scadenziario,
-            get_agenda=get_agenda,
-            get_soggetti=get_soggetti,
-            build_responsabile_conformita_fascicolo=build_responsabile_conformita_fascicolo,
-        )
-        return render_template(
-            "fascicoli/quadro.html",
-            fascicolo=fascicolo,
-            cliente=cliente,
-            oggi=date.today(),
-            **context,
-        )
+        return render_react_shell_response(f"fascicoli/{id_fasc}/quadro")
 
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
     def modifica_fascicolo(id_fasc: str):
-        if request.method == "GET" and not _richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response(f"fascicoli/{id_fasc}/modifica")
 
         gf = get_fascicoli()
@@ -176,7 +143,6 @@ def register_fascicoli_management_routes(
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
 
-        render_status = 200
         if request.method == "POST":
             if (negato := _negato("fascicoli.scrivi", id_fasc)) is not None:
                 return negato
@@ -349,19 +315,6 @@ def register_fascicoli_management_routes(
                 result = _form_result(str(exc), status=409)
                 if result is not None:
                     return result
-                # La vista classica conserva la bozza soltanto nel rendering,
-                # senza mutare il repository o attribuire una revisione nuova.
-                from pct.fascicolo_edit_revision import EDIT_FIELDS
-                draft = copy(fascicolo)
-                for name in EDIT_FIELDS:
-                    if name in form and name != 'tipo':
-                        setattr(draft, name, form[name])
-                if form.get('tipo') in {item.value for item in TipoFascicolo}:
-                    draft.tipo = TipoFascicolo(form['tipo'])
-                draft.personalizzabile = form.get('personalizzabile') in {'1', 'true', 'on', 'si', 'sì'}
-                draft._edit_revision = expected_revision
-                fascicolo = draft
-                render_status = 409
             except (ValueError, KeyError) as exc:
                 app.logger.info("Validazione modifica_fascicolo %s non superata: %s", id_fasc, exc)
                 message = str(exc).strip() or "Dati fascicolo non validi."
@@ -380,18 +333,7 @@ def register_fascicoli_management_routes(
                 if result is not None:
                     return result
 
-        return render_template(
-            "fascicoli/form.html",
-            fascicolo=fascicolo,
-            edit_conflict=render_status == 409,
-            clienti=gc.tutti(stato=None),
-            tipi=list(TipoFascicolo),
-            stati=list(StatoFascicolo),
-            id_cliente_pre="",
-            studio_avvocato_titolare=_avvocato_titolare_studio(),
-            correction_context=fascicolo_form_correction_context(),
-            oggi=date.today(),
-        ), render_status
+        return redirect(request.path)
 
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
     def cambia_stato_fascicolo(id_fasc: str):

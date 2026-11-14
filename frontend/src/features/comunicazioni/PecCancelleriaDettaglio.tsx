@@ -67,11 +67,11 @@ export function PecCancelleriaDettaglio({ profilo, allegati, testo: corpo, onLeg
       </section>
 
       <section className="iu-pec-canc__documenti" aria-label="Documenti della comunicazione">
-        <h3>{documenti.length === 1 ? 'Provvedimento' : 'Documenti'}</h3>
+        <h3>Documenti allegati</h3>
         {documenti.length ? documenti.map((allegato) => (
           <article key={allegato.index}>
             <FileText size={18} aria-hidden="true"/>
-            <span><strong>{allegato.name.replace(/\.zip$/i, '')}</strong><small>{allegato.sizeLabel || 'documento del giudice o della cancelleria'}</small></span>
+            <span><strong>{allegato.name.replace(/\.zip$/i, '')}</strong><small>{allegato.sizeLabel || 'Documento allegato'}</small></span>
             {allegato.available && (allegato.viewHref || allegato.previewHref)
               ? <button type="button" className="is-principale" onClick={() => onLeggi(allegato)}><Eye size={14}/> Leggi</button> : null}
             {allegato.available && allegato.downloadHref ? <a href={allegato.downloadHref}>Scarica</a> : null}
@@ -83,7 +83,7 @@ export function PecCancelleriaDettaglio({ profilo, allegati, testo: corpo, onLeg
       {tecnici.length ? (
         <details className="iu-pec-canc__prove">
           <summary><ShieldCheck size={15} aria-hidden="true"/> Prove di consegna e file tecnici ({tecnici.length})</summary>
-          <p>Conservati come prova della comunicazione: non serve leggerli per lavorare la pratica.</p>
+          <p>Apri le ricevute del gestore e i riscontri della cancelleria per verificare consegna ed esito.</p>
           {tecnici.map((allegato) => (
             <article key={allegato.index}>
               <span><strong>{etichettaTecnica(allegato.name)}</strong><small>{allegato.name}</small></span>

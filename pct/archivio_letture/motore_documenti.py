@@ -25,6 +25,7 @@ from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA, estrai_prove_notifica
 from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI
 from .estrazione_ruolo import estrai_ruoli
 from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
+from .riletture_mirate import REGOLE_TERMINE_SCRITTO
 
 VERSIONE_MOTORE_DOCUMENTI_V13 = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
@@ -70,6 +71,15 @@ VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
     versione.replace(VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI)
     for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI if VERSIONE_ESTRAZIONE_PARTI in versione
 )
+# Termine scritto e provvedimenti collettivi (10/11/2026, collaudo dell'avvocato, Tribunale di Palmi):
+# nessuna rilettura generale. Le sole fonti toccate dalle regole nuove si rileggono una volta dal
+# testo salvato (`riletture_mirate.oggetti_da_rileggere`); le altre restano compatibili.
+VERSIONE_MOTORE_DOCUMENTI_PRE_TERMINE_SCRITTO = VERSIONE_MOTORE_DOCUMENTI
+VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLE_TERMINE_SCRITTO
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI = (
+    VERSIONE_MOTORE_DOCUMENTI,
+    VERSIONE_MOTORE_DOCUMENTI.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE),
+) + VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -100,7 +110,14 @@ def leggi_testo(
     # deve fare. Qui la data prende il nome del suo istituto — deposito di note
     # ex art. 127-ter c.p.c. — e da quello nascono i termini che il decreto
     # impone senza scriverne la data.
-    fatti: list[Fatto] = qualifica_istituti(estrai_date(testo, origine=origine), testo, origine=origine)
+    from pct.provvedimenti.collettivi import testo_per_il_ruolo
+
+    from .termini_scritti import respingi_altre_cause, segna_perentori
+    # Un provvedimento collettivo si legge per il ruolo del fascicolo: le clausole delle altre cause
+    # sono oscurate (stesse posizioni) per le regole che decidono istituto e modalità.
+    testo_ruolo = testo_per_il_ruolo(testo, contesto.numero_rg, contesto.anno_rg) if contesto.numero_rg and contesto.anno_rg else testo
+    fatti: list[Fatto] = qualifica_istituti(estrai_date(testo, origine=origine), testo, origine=origine,
+                                            numero_rg=contesto.numero_rg, anno_rg=contesto.anno_rg)
     fatti.extend(estrai_domanda(testo, origine=origine, contesto=contesto))
     if con_notifiche:
         fatti.extend(estrai_prove_notifica(testo, origine=origine, nome=nome))
@@ -117,7 +134,8 @@ def leggi_testo(
     collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
     from .pertinenza_documentale import applica_pertinenza
 
-    collaudati = applica_pertinenza(collaudati, testo, contesto=contesto, origine=origine)
+    collaudati = applica_pertinenza(collaudati, testo_ruolo, contesto=contesto, origine=origine)
+    collaudati = segna_perentori(respingi_altre_cause(collaudati, testo, contesto.numero_rg, contesto.anno_rg), testo)
     identita = fatto_identita(testo, origine=origine, nome=nome)
     if identita:
         collaudati.append(identita)

@@ -2,14 +2,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, g
+from datetime import date, datetime
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.agenda_sql_writer import AgendaConflict
-from pct.economic_dashboard import build_studio_economic_dashboard
-from pct.studio_demo import build_studio_demo_snapshot
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.request_mode import richiede_json, richiede_vista_classica
+from web.services.request_mode import richiede_json
 from web.bootstrap.agenda_api_routes import agenda_non_autorizzato as _agenda_non_autorizzato, register_agenda_api_routes
 
 
@@ -42,147 +40,13 @@ def register_dashboard_routes(
 
     @app.route("/")
     def dashboard():
-        if not richiede_vista_classica():
-            return render_react_shell_response("")
-        agenda = get_agenda()
-        oggi = date.today()
-        apps_oggi = agenda.per_giorno(oggi)
-        apps_settimana = agenda.per_settimana(oggi)
-        reminder = agenda.prossimi_reminder(entro_minuti=120)
-        stats = agenda.statistiche()
-        gs = get_scadenziario()
-        scadenze_critiche = gs.imminenti(entro_giorni=3)
-        scadenze_imminenti = gs.imminenti(entro_giorni=7)
-        stats_sc = gs.statistiche()
-        gestore_fascicoli = get_fascicoli()
-        gestore_clienti = get_clienti()
-        gestore_timesheet = get_timesheet()
-        gestore_preventivi = get_preventivi()
-        gestore_fatturazione = get_fatturazione()
-        gestore_pagamenti = get_pagamenti()
-        stats_fascicoli = gestore_fascicoli.statistiche()
-        stats_clienti = gestore_clienti.statistiche()
-        economic_overview = build_studio_economic_dashboard(
-            fascicoli=gestore_fascicoli.tutti(stato=None),
-            parcelle=gestore_fatturazione.tutte(),
-            timesheet_entries=gestore_timesheet.tutte(),
-            scadenze_imminenti=scadenze_imminenti,
-        )
-        studio_demo_snapshot = build_studio_demo_snapshot(
-            clienti=gestore_clienti.tutti(stato=None),
-            fascicoli=gestore_fascicoli.tutti(stato=None),
-            preventivi=gestore_preventivi.tutti_preventivi(),
-            conferimenti=gestore_preventivi.tutti_conferimenti(),
-            parcelle=gestore_fatturazione.tutte(),
-            timesheet_entries=gestore_timesheet.tutte(),
-            payment_links=gestore_pagamenti.tutti_link(),
-        )
-        workspace_overview = get_workspace_intelligente().panoramica(
-            horizon_days=14,
-            hot_limit=6,
-        )
-        u_dash = g.utente_corrente
-        cartelle_mie = []
-        accessi_in_scadenza = []
-        if u_dash and not u_dash.ha_permesso("clienti.leggi"):
-            gcd = get_condivisioni()
-            gc = get_clienti()
-            cartelle_mie = [
-                (gc.get(id_c), ac)
-                for id_c, ac in gcd.cartelle_condivise_con(u_dash.id)
-                if gc.get(id_c) and not ac.is_scaduto
-            ][:5]
-            accessi_in_scadenza = gcd.accessi_in_scadenza(entro_giorni=7)
-        clienti_doc_scaduti = []
-        if u_dash and u_dash.ha_permesso("clienti.leggi"):
-            try:
-                clienti_doc_scaduti = [
-                    c
-                    for c in get_clienti().tutti()
-                    if c.documento.scaduto and c.documento.numero
-                ][:10]
-            except Exception:
-                pass
-        return render_template(
-            "dashboard.html",
-            apps_oggi=apps_oggi,
-            apps_settimana=apps_settimana,
-            reminder=reminder,
-            stats=stats,
-            scadenze_critiche=scadenze_critiche,
-            scadenze_imminenti=scadenze_imminenti,
-            stats_sc=stats_sc,
-            stats_fascicoli=stats_fascicoli,
-            stats_clienti=stats_clienti,
-            cartelle_mie=cartelle_mie,
-            accessi_in_scadenza=accessi_in_scadenza,
-            clienti_doc_scaduti=clienti_doc_scaduti,
-            workspace_overview=workspace_overview,
-            economic_overview=economic_overview,
-            studio_demo_snapshot=studio_demo_snapshot,
-        )
+        return render_react_shell_response("")
     @app.route("/agenda")
     def agenda_view():
-        if not richiede_vista_classica():
-            return render_react_shell_response("agenda")
-        agenda = get_agenda()
-        vista = request.args.get("vista", "settimana")
-        oggi = date.today()
-        offset = int(request.args.get("offset", 0))
-        if vista == "giorno":
-            giorno = oggi + timedelta(days=offset)
-            apps = agenda.per_giorno(giorno)
-            return render_template(
-                "agenda.html",
-                vista=vista,
-            apps=apps,
-            giorno=giorno,
-            offset=offset,
-        )
-        if vista == "mese":
-            import calendar
-            anno = oggi.year
-            mese = oggi.month + offset
-            while mese > 12:
-                mese -= 12
-                anno += 1
-            while mese < 1:
-                mese += 12
-                anno -= 1
-            apps = agenda.per_mese(anno, mese)
-            primo = date(anno, mese, 1)
-            pad = primo.weekday()
-            giorni_mese = calendar.monthrange(anno, mese)[1]
-            return render_template(
-                "agenda.html",
-                vista=vista,
-                apps=apps,
-                anno=anno,
-                mese=mese,
-                primo=primo,
-                pad=pad,
-                giorni_mese=giorni_mese,
-                offset=offset,
-                nomi_mesi=["", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"],
-            )
-        inizio = oggi + timedelta(weeks=offset) - timedelta(days=oggi.weekday())
-        fine = inizio + timedelta(days=6)
-        apps = agenda.per_settimana(inizio)
-        giorni = [inizio + timedelta(days=i) for i in range(7)]
-        apps_per_giorno = {g: [a for a in apps if a.data_ora_dt.date() == g] for g in giorni}
-        return render_template(
-            "agenda.html",
-            vista=vista,
-            apps=apps,
-            apps_per_giorno=apps_per_giorno,
-            giorni=giorni,
-            inizio=inizio,
-            fine=fine,
-            offset=offset,
-        )
+        return render_react_shell_response("agenda")
     @app.route("/agenda/nuovo", methods=["GET", "POST"])
     def nuovo_appuntamento():
-        if request.method == "GET" and not richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response("agenda/nuovo")
         if request.method == "POST":
             negato = _agenda_non_autorizzato("agenda.scrivi")
@@ -231,21 +95,7 @@ def register_dashboard_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        data_default = request.args.get("data", "")
-        id_cliente_get = request.args.get("id_cliente", "")
-        from_cliente_get = request.args.get("from_cliente", "")
-        cliente_presel = None
-        if id_cliente_get:
-            cliente_presel = get_clienti().get(id_cliente_get)
-        return render_template(
-            "form_appuntamento.html",
-            app=None,
-            tipi=list(TipoAppuntamento),
-            data_default=data_default,
-            id_cliente=id_cliente_get,
-            from_cliente=from_cliente_get,
-            cliente_presel=cliente_presel,
-        )
+        return redirect(request.path)
     @app.route("/agenda/<id_app>")
     def dettaglio_appuntamento(id_app):
         agenda = get_agenda()
@@ -253,16 +103,7 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
-        if not richiede_vista_classica():
-            return render_react_shell_response(f"agenda/{id_app}")
-        track_recente(
-            "appuntamento",
-            id_app,
-            app_item.titolo,
-            url_for("dettaglio_appuntamento", id_app=id_app),
-            "bi-calendar-event",
-        )
-        return render_template("dettaglio_appuntamento.html", app=app_item)
+        return render_react_shell_response(f"agenda/{id_app}")
     def _allinea_scadenze_spostamento(id_app: str, data_prima: str, data_dopo: str) -> None:
         # L'udienza spostata in agenda sposta anche la scadenza collegata.
         try:
@@ -290,7 +131,7 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
-        if request.method == "GET" and not richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response(f"agenda/{id_app}/modifica")
         if request.method == "POST":
             data = request.form.get("data", "")
@@ -327,11 +168,7 @@ def register_dashboard_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return render_template(
-            "form_appuntamento.html",
-            app=app_item,
-            tipi=list(TipoAppuntamento),
-        )
+        return redirect(request.path)
     @app.route("/agenda/<id_app>/stato", methods=["POST"])
     def cambia_stato(id_app):
         _negato = _agenda_non_autorizzato("agenda.scrivi")
@@ -374,7 +211,7 @@ def register_dashboard_routes(
         return redirect(url_for("agenda_view"))
     @app.route("/agenda/importa", methods=["GET", "POST"])
     def importa_calendario():
-        if request.method == "GET" and not richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response("agenda/importa")
         import json as _json
         from pct.agenda import TipoAppuntamento

@@ -55,7 +55,11 @@ def verify_sources(repo, container):
 
 def installed_sources_match(repo, container, previous_sha, candidate_sha):
     actual, expected = source_fingerprints(repo, container)
-    if actual != expected:
+    # La versione del gestionale può cambiare senza cambiare il codice di OpenGA.
+    # __init__ contiene la versione esposta dall'app, che il sidecar non usa.
+    codice_attivo = {p: digest for p, digest in actual.items() if p != "pct/__init__.py"}
+    codice_atteso = {p: digest for p, digest in expected.items() if p != "pct/__init__.py"}
+    if codice_attivo != codice_atteso:
         return False
     # Il servizio pubblico e la coda/lettore nell'app sono distribuiti in immagini diverse.
     # Il collaudo su fonti esterne resta necessario se cambia uno dei due.
@@ -69,6 +73,12 @@ def installed_sources_match(repo, container, previous_sha, candidate_sha):
     try:
         changed = command("git", "-C", str(repo), "diff", "--name-only",
                           previous_sha, candidate_sha, "--", *reading_paths)
+        # Controlla che in pct/__init__ sia cambiata al più la versione.
+        previous_init = command("git", "-C", str(repo), "show", f"{previous_sha}:pct/__init__.py")
+        candidate_init = (repo / "pct/__init__.py").read_text()
+        version_line = re.compile(r"(?m)^__version__[^\S\n]*=.*$")
+        if version_line.sub("", previous_init).strip() != version_line.sub("", candidate_init).strip():
+            return False
     except subprocess.CalledProcessError:
         return False
     return not changed

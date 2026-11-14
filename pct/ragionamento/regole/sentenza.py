@@ -113,11 +113,38 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
                 titolo_verificato=prova.get("titolo_esecutivo") == "verificato",
             ))
             continue
+        lungo = None
+        if pubblicata and pubblicata <= ctx.oggi:
+            calcolo = ItalianDeadlineCalculator().calculate(
+                pubblicata, 6, direction="forward", period_type="months", suspend_august=ctx.rito.sospensione_feriale,
+                ferial_suspension_policy="applies" if ctx.rito.sospensione_feriale else "not_applicable", reference_law="art. 327 c.p.c.")
+            lungo = esito(giorno(calcolo.get("deadline")), oggi=ctx.oggi, perentorio=True, decorrenza=pubblicata.isoformat(),
+                          evento="pubblicazione della sentenza", rito=ctx.rito,
+                          computo="sei mesi dalla pubblicazione (art. 327 c.p.c.), con la proroga dell'art. 155 c.p.c.",
+                          conseguenze="Il decorso senza impugnazione rileva ai fini del giudicato (art. 324 c.p.c.).")
         invio_storico, data_invio_storico = next(
             (ctx.notifiche_storiche[oid] for oid in (sentenza.id, *sentenza.copie)
              if oid in ctx.notifiche_storiche), ("", ""),
         )
-        if candidate or prove or invio_storico:
+        condanna_pa = ctx.rito.contro_pa and ctx.posizione == "attiva" and condanna_al_pagamento(sentenza.testo)
+        if lungo and lungo.scaduto:
+            risultato.append(Conclusione(
+                "notifica_sentenza", "Notifica ai fini del termine breve", fonte,
+                norme("cpc_326", "cpc_327"), "Conservare le ricevute e la relata eventualmente acquisite.",
+                "Il termine lungo è già decorso. Una notifica eseguita ora non riapre il termine ordinario.",
+                "non_dovuto", "Consegna non attestata dalle fonti disponibili. Riscontro storico consultabile in Comunicazioni.",
+                motivo_senza_termine="Il termine lungo già calcolato resta nei riscontri.",
+            ))
+            if condanna_pa:
+                motivo = "Per l’esecuzione occorrono la prova della notificazione del titolo all’amministrazione obbligata e il riscontro dell’adempimento."
+                risultato.append(Conclusione(
+                    "esecuzione_pa", "Verificare la notifica del titolo e l’adempimento prima del precetto",
+                    fonte, norme("dl669_art14", "cpc_475"),
+                    "Aprire le ricevute PEC del titolo e i riscontri di incasso o adempimento.",
+                    "I 120 giorni decorrono dalla notifica del titolo esecutivo.", "dubbio", motivo,
+                    dubbi=[Dubbio("notifica_titolo_da_verificare", motivo, "la prova della notifica del titolo e dello stato dell’adempimento", fonte)],
+                ))
+        elif candidate or prove or invio_storico:
             motivo = "Manca una consegna univoca con ricevute verificate e correlate alla notifica della sentenza."
             manca = "la ricevuta originale riferita alla sentenza"
             fonte_dubbio = fonte
@@ -144,14 +171,7 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
                 "da_fare", "scelta difensiva: la notifica accorcia il termine per impugnare", None, "builtin-tmp-not-003",
                 motivo_senza_termine="La notifica è una scelta difensiva. Il termine per impugnare è valutato a parte.",
             ))
-        if pubblicata and pubblicata <= ctx.oggi:
-            calcolo = ItalianDeadlineCalculator().calculate(
-                pubblicata, 6, direction="forward", period_type="months", suspend_august=ctx.rito.sospensione_feriale,
-                ferial_suspension_policy="applies" if ctx.rito.sospensione_feriale else "not_applicable", reference_law="art. 327 c.p.c.")
-            lungo = esito(giorno(calcolo.get("deadline")), oggi=ctx.oggi, perentorio=True, decorrenza=pubblicata.isoformat(),
-                          evento="pubblicazione della sentenza", rito=ctx.rito,
-                          computo="sei mesi dalla pubblicazione (art. 327 c.p.c.), con la proroga dell'art. 155 c.p.c.",
-                          conseguenze="scaduto il termine lungo la sentenza passa in giudicato (art. 324 c.p.c.)")
+        if lungo:
             lavoro = ctx.rito.codice == "lavoro"
             norme_impugnazione = norme("cpc_327", "cpc_324", "cpc_434") if lavoro else norme("cpc_327", "cpc_324")
             come = "Deposito del ricorso in appello presso la Corte d’appello (art. 434 c.p.c.)" if lavoro else "Atto di appello"

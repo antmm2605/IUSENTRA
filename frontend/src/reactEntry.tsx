@@ -12,6 +12,7 @@ type ReactEntryOptions = {
   shouldMountAccesso?: boolean
   shouldMountPortaleToken?: boolean
   shouldMountPagamento?: boolean
+  shouldMountErrore?: boolean
 }
 
 export async function mountReactApp({
@@ -22,6 +23,7 @@ export async function mountReactApp({
   shouldMountAccesso = false,
   shouldMountPortaleToken = false,
   shouldMountPagamento = false,
+  shouldMountErrore = false,
 }: ReactEntryOptions) {
   const reactRoot = ReactDOM.createRoot(root)
   // Le applicazioni fuori dalla cornice dello studio sono chunk separati,
@@ -38,7 +40,9 @@ export async function mountReactApp({
             ? await import('./components/PagamentoLinkApp')
             : shouldMountSupportOperator
               ? await import('./components/SupportOperatorRoom')
-              : App
+              : shouldMountErrore
+                ? await import('./components/ErroreApp')
+                : App
   const Component = resolveDefaultComponent(selected)
 
   reactRoot.render(
@@ -47,6 +51,16 @@ export async function mountReactApp({
       <Component />
     </React.StrictMode>,
   )
+  if (Component === App) await mountLexWidget()
+}
+
+/** Widget Lex delle pagine dello studio: radice propria, montato una volta e mai ridisegnato. */
+async function mountLexWidget() {
+  const lexRoot = document.getElementById('lex-widget-root')
+  if (!lexRoot || lexRoot.dataset.montato === '1') return
+  lexRoot.dataset.montato = '1'
+  const { LexWidget } = await import('./components/lex/LexWidget')
+  ReactDOM.createRoot(lexRoot).render(<LexWidget versione={lexRoot.dataset.versione || ''} />)
 }
 
 function resolveDefaultComponent(component: unknown): ComponentType {

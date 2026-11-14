@@ -63,6 +63,8 @@ const piattaformaRoot = document.getElementById('piattaforma-react-root')
 const accessoRoot = document.getElementById('accesso-react-root')
 const portaleTokenRoot = document.getElementById('portale-token-react-root')
 const pagamentoRoot = document.getElementById('pagamento-react-root')
+const erroreRoot = document.getElementById('errore-react-root')
+const sitoRoot = document.getElementById('sito-pubblico-root')
 
 // Applicazioni React fuori dalla cornice dello studio: una sola per pagina.
 // Stanza operatore e cliente dell'assistenza, pannello di piattaforma, accesso
@@ -74,6 +76,9 @@ const shouldMountPiattaforma = Boolean(piattaformaRoot?.dataset.piattaforma === 
 const shouldMountAccesso = Boolean(accessoRoot?.dataset.accesso === '1' && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma)
 const shouldMountPortaleToken = Boolean(portaleTokenRoot?.dataset.token && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma && !shouldMountAccesso)
 const shouldMountPagamento = Boolean(pagamentoRoot?.dataset.token && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma && !shouldMountAccesso && !shouldMountPortaleToken)
+const shouldMountErrore = Boolean(erroreRoot?.dataset.errore && !appRoot && !shouldMountSupportOperator && !shouldMountSupportCustomer && !shouldMountPiattaforma && !shouldMountAccesso && !shouldMountPortaleToken && !shouldMountPagamento)
+// Sito pubblico dello studio: HTML pre-generato sul server, qui solo idratato (mai ridisegnato da zero).
+const shouldHydrateSito = Boolean(sitoRoot?.dataset.sitoPubblico === '1' && !appRoot)
 const isPublicTokenPage = shouldMountPortaleToken || shouldMountPagamento || shouldMountSupportCustomer
 const root = shouldMountSupportOperator
   ? supportOperatorRoot
@@ -87,7 +92,11 @@ const root = shouldMountSupportOperator
           ? portaleTokenRoot
           : shouldMountPagamento
             ? pagamentoRoot
-            : appRoot ?? supportOperatorRoot
+            : shouldMountErrore
+              ? erroreRoot
+              : shouldHydrateSito
+                ? sitoRoot
+                : appRoot ?? supportOperatorRoot
 
 function escapeHtml(value: string): string {
   return value.replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char] || char)
@@ -100,6 +109,8 @@ function startupErrorMessage(error: unknown): string {
 
 function renderLoadingShell(target: HTMLElement) {
   bootstrapState.shellRendered = true
+  // Pagina d'errore: il testo inviato dal server resta visibile finché React non lo sostituisce.
+  if (shouldMountErrore || shouldHydrateSito) return
   if (shouldMountAccesso) {
     // Nessun dato dello studio prima dell'accesso: messaggio neutro.
     target.innerHTML = '<main class="iu-content iu-react-loading" role="status" aria-busy="true"><span class="iu-activity-spinner" aria-hidden="true"></span><div><h1>Caricamento della pagina di accesso</h1></div></main>'
@@ -128,6 +139,7 @@ function accessoFallbackHref(): string {
 
 function renderStartupError(target: HTMLElement, error: unknown) {
   const message = startupErrorMessage(error)
+  if (shouldMountErrore || shouldHydrateSito) return
   if (shouldMountAccesso) {
     target.innerHTML = [
       '<main class="iu-content iu-react-error" role="alert">',
@@ -165,7 +177,13 @@ async function bootReact() {
   window.__IUSENTRA_REACT_ROOT_OWNER__ = moduleUrl.pathname
   renderLoadingShell(root)
   bootstrapState.renderScheduled = true
-  await mountReactApp({ root, shouldMountSupportOperator, shouldMountSupportCustomer, shouldMountPiattaforma, shouldMountAccesso, shouldMountPortaleToken, shouldMountPagamento })
+  if (shouldHydrateSito) {
+    const { idrataSito } = await import('./sitoPubblico/idrataSito')
+    idrataSito(root)
+    bootstrapState.renderCompleted = true
+    return
+  }
+  await mountReactApp({ root, shouldMountSupportOperator, shouldMountSupportCustomer, shouldMountPiattaforma, shouldMountAccesso, shouldMountPortaleToken, shouldMountPagamento, shouldMountErrore })
   bootstrapState.renderCompleted = true
 }
 

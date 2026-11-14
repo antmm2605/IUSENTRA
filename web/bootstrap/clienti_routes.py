@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Flask, flash, jsonify, redirect, request, url_for
 
 from pct.clienti import RiferimentoProcedimento, StatoCliente, TipoCliente, TipoDocumento as TipoDocumentoCliente
 from pct.condivisione import RuoloCondivisione
@@ -105,10 +105,6 @@ def _cliente_autocomplete_dict(cliente: Any, fascicoli: list[Any] | None = None)
     return payload
 
 
-def _richiede_vista_legacy() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
-
-
 def _richiede_json() -> bool:
     return (
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -136,39 +132,12 @@ def register_clienti_routes(
 
     @app.route("/clienti")
     def lista_clienti():
-        if not _richiede_vista_legacy():
-            return render_react_shell_response("clienti")
-
-        gc = get_clienti()
-        utente = g.utente_corrente
-        testo = request.args.get("q", "").strip()
-        tipo_f = request.args.get("tipo")
-        stato_f = request.args.get("stato", "")
-
-        tipo = TipoCliente(tipo_f) if tipo_f else None
-        stato = StatoCliente(stato_f) if stato_f else None
-
-        clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
-
-        if utente and not utente.ha_permesso("clienti.leggi"):
-            ids_accessibili = get_condivisioni().ids_clienti_accessibili(utente.id)
-            clienti = [cliente for cliente in clienti if cliente.id in ids_accessibili]
-
-        return render_template(
-            "clienti/lista.html",
-            clienti=clienti,
-            stats=gc.statistiche(),
-            q=testo,
-            tipo_filtro=tipo_f or "",
-            stato_filtro=stato_f or "",
-            tipi=list(TipoCliente),
-            stati=list(StatoCliente),
-        )
+        return render_react_shell_response("clienti")
 
     @app.route("/clienti/nuovo", methods=["GET", "POST"])
     def nuovo_cliente():
         gc = get_clienti()
-        if request.method == "GET" and not _richiede_vista_legacy():
+        if request.method == "GET":
             return render_react_shell_response("clienti/nuovo")
 
         if request.method == "POST":
@@ -253,14 +222,7 @@ def register_clienti_routes(
                     return jsonify({"ok": False, "message": str(exc)}), 400
                 flash(str(exc), "danger")
 
-        return render_template(
-            "clienti/form.html",
-            cliente=None,
-            tipi=list(TipoCliente),
-            stati=list(StatoCliente),
-            tipi_doc=list(TipoDocumentoCliente),
-            next_url=request.args.get("next_url", "").strip(),
-        )
+        return redirect(request.path)
 
     @app.route("/clienti/<id_cliente>")
     def dettaglio_cliente(id_cliente: str):
@@ -272,40 +234,7 @@ def register_clienti_routes(
         if not cliente_accessibile(id_cliente):
             flash("Non hai accesso a questa cartella cliente.", "danger")
             return redirect(url_for("lista_clienti"))
-        if not _richiede_vista_legacy():
-            return render_react_shell_response(f"clienti/{id_cliente}")
-
-        agenda = get_agenda()
-        apps_cliente = agenda.cerca(cliente=cliente.nome_completo)
-        gcd = get_condivisioni()
-        n_collaboratori = gcd.n_collaboratori(id_cliente)
-        utente = g.utente_corrente
-        ruolo_cond = gcd.ruolo_accesso(utente.id, id_cliente) if utente else None
-        if utente and not utente.ha_permesso("clienti.leggi") and ruolo_cond:
-            audit(
-                "condivisione.accesso",
-                "cliente",
-                id_cliente,
-                dettagli=f"accesso lettura [{ruolo_cond.value}]",
-            )
-        link_attivi = gcd.link_attivi_per_cliente(id_cliente)
-        fascicoli_cliente = [fascicolo for fascicolo in get_fascicoli().tutti() if fascicolo.id_cliente == id_cliente][:5]
-        track_recente(
-            "cliente",
-            id_cliente,
-            cliente.nome_completo,
-            url_for("dettaglio_cliente", id_cliente=id_cliente),
-            "bi-person",
-        )
-        return render_template(
-            "clienti/dettaglio.html",
-            cliente=cliente,
-            apps_cliente=apps_cliente,
-            n_collaboratori=n_collaboratori,
-            ruolo_condivisione=ruolo_cond,
-            link_attivi=link_attivi,
-            fascicoli_cliente=fascicoli_cliente,
-        )
+        return render_react_shell_response(f"clienti/{id_cliente}")
 
     @app.route("/clienti/<id_cliente>/modifica", methods=["GET", "POST"])
     def modifica_cliente(id_cliente: str):
@@ -321,7 +250,7 @@ def register_clienti_routes(
                 return jsonify({"ok": False, "message": "Non hai permesso di modificare questa cartella cliente."}), 403
             flash("Non hai permesso di modificare questa cartella cliente.", "danger")
             return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
-        if request.method == "GET" and not _richiede_vista_legacy():
+        if request.method == "GET":
             return render_react_shell_response(f"clienti/{id_cliente}/modifica")
 
         if request.method == "POST":
@@ -390,14 +319,7 @@ def register_clienti_routes(
                     return jsonify({"ok": False, "message": str(exc)}), 400
                 flash(str(exc), "danger")
 
-        return render_template(
-            "clienti/form.html",
-            cliente=cliente,
-            tipi=list(TipoCliente),
-            stati=list(StatoCliente),
-            tipi_doc=list(TipoDocumentoCliente),
-            next_url=request.args.get("next_url", "").strip(),
-        )
+        return redirect(request.path)
 
     @app.route("/clienti/<id_cliente>/elimina", methods=["POST"])
     def elimina_cliente(id_cliente: str):

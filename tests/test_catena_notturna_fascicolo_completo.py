@@ -20,11 +20,12 @@ import io
 import threading
 import uuid
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from email import policy
 from email.message import EmailMessage
 from pathlib import Path
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -94,6 +95,7 @@ def ambiente(tmp_path, monkeypatch):
 
     monkeypatch.setattr(presidi, "oggi_roma", lambda: date(2026, 11, 3))
     app = _app(tmp_path)
+    app.config["SENTENZA_ECONOMIC_DB"] = str(tmp_path / "economico" / "sentenza_economic.db")
     app.config.setdefault("FEATURE_FLAGS", {})
     with app.app_context():
         fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
@@ -196,7 +198,6 @@ def test_pec_con_sentenza_in_zip_completa_il_fascicolo_in_una_notte(ambiente, mo
 
     sfondo = _LettureInSfondo()
     monkeypatch.setattr(archivio, "threading", SimpleNamespace(Thread=sfondo.Thread, Lock=threading.Lock, get_ident=threading.get_ident))
-    monkeypatch.setattr(catena, "dormi", lambda _s: None)
     message_id = _ingesta_e_collega(app, fascicolo_id)
     registro_notte = RegistroNotte(ambiente.tmp / "scheduler_registry.sqlite")
     esiti = _esegui_notte(registro_notte, _lavori(app), sfondo)
@@ -270,7 +271,8 @@ def test_passo_ripetuto_si_ferma_quando_i_totali_sono_a_zero():
     from pct.scheduler_notturno.catena import _niente_da_fare
 
     assert _niente_da_fare({"ok": True, "limite": 100, "studi": 1, "totals": {"esaminati": 0, "restano": 0, "errori": 0}})
-    assert not _niente_da_fare({"ok": True, "limite": 100, "studi": 1, "totals": {"esaminati": 3, "restano": 0}})
+    assert _niente_da_fare({"ok": True, "limite": 100, "studi": 1, "totals": {"esaminati": 3, "restano": 0}})
+    assert not _niente_da_fare({"ok": True, "limite": 100, "studi": 1, "totals": {"esaminati": 3, "restano": 1}})
     # Letture: eventi pronti o letture in sfondo ancora vive tengono aperto il passo.
     assert not _niente_da_fare({"ok": True, "mode": "event_queue", "totals": {"esaminati": 0, "restano": 2}})
     assert _niente_da_fare({"ok": True, "mode": "event_queue", "totals": {"esaminati": 0, "restano": 0}})
@@ -278,17 +280,33 @@ def test_passo_ripetuto_si_ferma_quando_i_totali_sono_a_zero():
     assert _niente_da_fare(None)
 
 
-def test_passo_ripetuto_respira_fra_un_giro_e_l_altro(monkeypatch):
+def test_passo_ripetuto_rilascia_lo_scheduler_e_riprende_dal_registro(tmp_path, monkeypatch):
     from pct.scheduler_notturno import catena
-    from pct.scheduler_notturno.sequenza import Passo
+    from pct.scheduler_notturno.registro import RegistroNotte
+    from pct.scheduler_notturno.sequenza import Fase, Passo
 
-    pause: list[float] = []
+    passo = Passo("x", ripeti_minuti=40)
+    fase = Fase(1, "letture", "", (passo,))
+    monkeypatch.setattr(catena, "passi_in_ordine", lambda: [(fase, passo)])
     giri = iter([{"totals": {"esaminati": 1}}, {"totals": {"esaminati": 1}}, {"totals": {"esaminati": 0}}])
-    monkeypatch.setattr(catena, "dormi", pause.append)
-    job = SimpleNamespace(func=lambda: next(giri), args=(), kwargs={})
-    adesso = lambda: datetime(2026, 11, 3, 22, 0)  # noqa: E731
-    esito = catena._esegui_lavoro(job, Passo("x", ripeti_minuti=40), datetime(2026, 11, 4, 7, 30), adesso)
-    assert esito == ("completato", "Eseguito 3 volte.") and pause == [catena.PAUSA_TRA_GIRI_SECONDI] * 2
+    momento = datetime(2026, 11, 3, 22, 0, tzinfo=ZoneInfo("Europe/Rome"))
+    job = SimpleNamespace(func=lambda: next(giri), args=(), kwargs={}, next_run_time=momento)
+    amb = catena.Ambiente(lambda _nome: job, lambda: 8000, lambda: 0, lambda: [])
+    db = tmp_path / "scheduler.sqlite"
+
+    for i in range(2):
+        ora = momento + timedelta(minutes=i)
+        registro = RegistroNotte(db)
+        assert catena.esegui_passo(registro, amb, ora, adesso=lambda: ora)["esito"] == "in_corso"
+        assert registro.avanzamento("2026-11-03")["indice"] == 0
+
+    ora = momento + timedelta(minutes=2)
+    registro = RegistroNotte(db)
+    assert catena.esegui_passo(registro, amb, ora, adesso=lambda: ora)["esito"] == "completato"
+    assert registro.avanzamento("2026-11-03")["conclusa"] == 1
+    assert [r["esito"] for r in registro.passi("2026-11-03")] == ["completato"]
+    esito = registro.passo("2026-11-03", 0)["risultato"]
+    assert [giro["totals"]["esaminati"] for giro in esito["giri"]] == [1, 1, 0]
 
 
 @pytest.mark.parametrize("intestazione", [
@@ -456,7 +474,6 @@ def test_sentenza_scansionata_arrivata_stanotte_e_letta_nella_stessa_notte(ambie
     app.extensions["ocr_runtime"] = ocr
     sfondo = _LettureInSfondo()
     monkeypatch.setattr(archivio, "threading", SimpleNamespace(Thread=sfondo.Thread, Lock=threading.Lock, get_ident=threading.get_ident))
-    monkeypatch.setattr(catena, "dormi", lambda _s: None)
     _ingesta_e_collega(app, fascicolo_id, sentenza=_pdf_senza_testo())
 
     def ocr_in_coda() -> int:

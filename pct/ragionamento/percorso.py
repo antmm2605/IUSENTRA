@@ -24,6 +24,13 @@ def ricostruisci_percorso(ctx: Contesto) -> list[EventoCausa]:
             continue
         descrizione = atto.etichetta or atto.nome
         registra("atto", atto.data, descrizione, Fonte(atto.id, atto.nome, data=atto.data), "documentato")
+        if atto.sentenza:
+            from .regole.sentenza import data_pubblicazione
+
+            pubblicata = data_pubblicazione(atto.testo)
+            if pubblicata:
+                registra("pubblicazione_sentenza", pubblicata, "Pubblicazione della sentenza",
+                         Fonte(atto.id, atto.nome, data=pubblicata), "documentato")
 
     for deposito in ctx.depositi:
         if not deposito.fonte_id:

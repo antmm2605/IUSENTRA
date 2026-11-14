@@ -57,6 +57,7 @@ export type StudioTemplateUse = {
   matters: { id: string; label: string }[]
   selectedClientId: string
   selectedMatterId: string
+  bozza?: StudioTemplateResult
 }
 
 export type StudioTemplateResult = {
@@ -184,10 +185,11 @@ export async function saveStudioTemplate(values: StudioTemplateForm['values'], i
   return result(await apiPostJson<unknown>(url, values, { ok: false, message: 'Salvataggio non riuscito.' }))
 }
 
-export async function getStudioTemplateUse(id: string, clientId = '', matterId = ''): Promise<StudioTemplateUse> {
+export async function getStudioTemplateUse(id: string, clientId = '', matterId = '', termineGuida = ''): Promise<StudioTemplateUse> {
   const params = new URLSearchParams()
   if (clientId) params.set('id_cliente', clientId)
   if (matterId) params.set('id_fascicolo', matterId)
+  if (termineGuida) params.set('termine_guida', termineGuida)
   const query = params.toString()
   const payload = obj(await apiJson<unknown>(`${BASE}/${encodeURIComponent(id)}/usa${query ? `?${query}` : ''}`, { ok: false }))
   return {
@@ -200,6 +202,7 @@ export async function getStudioTemplateUse(id: string, clientId = '', matterId =
     matters: list(payload.matters).map((m) => ({ id: text(obj(m).id), label: text(obj(m).label) })).filter((m) => m.id),
     selectedClientId: text(payload.selectedClientId),
     selectedMatterId: text(payload.selectedMatterId),
+    bozza: payload.bozza ? result(payload.bozza) : undefined,
   }
 }
 

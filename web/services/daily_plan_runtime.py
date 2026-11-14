@@ -400,7 +400,7 @@ def run_daily_plan_for_all_tenants(
         for studio in active:
             slug = str(getattr(studio, "slug", "") or "").strip().lower()
             try:
-                with app.test_request_context(f"/__scheduler/daily-plan/{slug}"):
+                with app.app_context(), app.test_request_context(f"/__scheduler/daily-plan/{slug}"):
                     _attach_tenant_context(manager, studio)
                     report = _run_for_current(slug)
             except Exception as exc:
@@ -419,7 +419,7 @@ def run_daily_plan_for_all_tenants(
                 ) if k in report}})
     else:
         try:
-            with app.test_request_context("/__scheduler/daily-plan/default"):
+            with app.app_context(), app.test_request_context("/__scheduler/daily-plan/default"):
                 g.multi_tenant_enabled = False
                 g.tenant_context_missing = False
                 g.tenant_context_slug = ""

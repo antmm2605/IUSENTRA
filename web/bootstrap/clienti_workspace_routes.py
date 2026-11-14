@@ -15,16 +15,9 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 
 from pct.fascicoli import StatoFascicolo
 from pct.reports import faldone_pdf
+from web.services.copertine_pdf import copertina_faldone_pdf, oggi_roma, risposta_pdf_copertina
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.clienti_faldone_runtime import carica_note_faldone, salva_note_faldone
-
-
-def _richiede_vista_legacy() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
-
-
-def _query_senza_legacy() -> dict[str, str]:
-    return {key: value for key, value in request.args.items() if key != "_legacy"}
 
 
 def _get_portale_mgr(app: Flask):
@@ -71,122 +64,20 @@ def register_clienti_workspace_routes(
             url_for("cartella_cliente", id_cliente=id_cliente),
             "bi-folder2-open",
         )
-        if _richiede_vista_legacy():
-            return redirect(url_for("cartella_cliente", id_cliente=id_cliente, **_query_senza_legacy()), code=302)
         return render_react_shell_response(f"clienti/{id_cliente}/cartella")
 
     @app.route("/clienti/<id_cliente>/faldone")
     def faldone_cliente(id_cliente: str):
-        try:
-            gc = get_clienti()
-            cliente = gc.get(id_cliente)
-            if not cliente:
-                flash("Cliente non trovato.", "warning")
-                return redirect(url_for("lista_clienti"))
-            if not cliente_accessibile(id_cliente):
-                flash("Non hai accesso a questa cartella cliente.", "danger")
-                return redirect(url_for("lista_clienti"))
-
-            gf = get_fascicoli()
-            gs = get_scadenziario()
-            tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
-            stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
-            fascicoli_attivi = [fascicolo for fascicolo in tutti if fascicolo.stato not in stati_chiusi]
-            fascicoli_archiviati = [fascicolo for fascicolo in tutti if fascicolo.stato in stati_chiusi]
-
-            ordine_tipi = [
-                "CIVILE",
-                "PENALE",
-                "LAVORO",
-                "FAMIGLIA",
-                "AMMINISTRATIVO",
-                "TRIBUTARIO",
-                "STRAGIUDIZIALE",
-                "SUCCESSIONI",
-                "CONSULENZA",
-                "ALTRO",
-            ]
-            fascicoli_per_tipo: dict[str, list[Any]] = {}
-            for tipo in ordine_tipi:
-                gruppo = [fascicolo for fascicolo in fascicoli_attivi if fascicolo.tipo.value == tipo]
-                if gruppo:
-                    fascicoli_per_tipo[tipo] = gruppo
-            for fascicolo in fascicoli_attivi:
-                fascicoli_per_tipo.setdefault(fascicolo.tipo.value, []).append(fascicolo)
-
-            scadenze_per_fascicolo: dict[str, list[Any]] = {}
-            for fascicolo in tutti:
-                scadenze = gs.tutte(id_fascicolo=fascicolo.id, stato=None)
-                if scadenze:
-                    scadenze_per_fascicolo[fascicolo.id] = scadenze
-
-            from pct.scadenziario import StatoTermine
-
-            scadenze_aperte = sorted(
-                [
-                    (fascicolo, scadenza)
-                    for fascicolo in tutti
-                    for scadenza in scadenze_per_fascicolo.get(fascicolo.id, [])
-                    if scadenza.stato == StatoTermine.APERTO and scadenza.data_scadenza
-                ],
-                key=lambda item: item[1].data_scadenza,
-            )
-
-            tutti_documenti = sorted(
-                [(fascicolo, documento) for fascicolo in tutti for documento in fascicolo.documenti],
-                key=lambda item: item[1].data_caricamento,
-                reverse=True,
-            )
-            tutti_depositi = sorted(
-                [(fascicolo, deposito) for fascicolo in tutti for deposito in fascicolo.depositi_pct],
-                key=lambda item: item[1].timestamp,
-                reverse=True,
-            )
-
-            note_faldone = carica_note_faldone(app.config["NOTE_FALDONE_DB"], id_cliente)
-            try:
-                from pct.auth import GestioneUtenti
-
-                gestore_utenti = GestioneUtenti(
-                    db_path=app.config["AUTH_DB"],
-                    audit_path=app.config["AUDIT_DB"],
-                )
-                audit_trail = [entry for entry in gestore_utenti.audit_log(limit=500) if entry.risorsa_id == id_cliente][:20]
-            except Exception:
-                audit_trail = []
-
-            track_recente(
-                "cliente",
-                id_cliente,
-                cliente.nome_completo,
-                url_for("faldone_cliente", id_cliente=id_cliente),
-                "bi-folder2-open",
-            )
-            audit("faldone.accesso", "cliente", id_cliente)
-
-            return render_template(
-                "clienti/faldone.html",
-                cliente=cliente,
-                tutti=tutti,
-                fascicoli_attivi=fascicoli_attivi,
-                fascicoli_archiviati=fascicoli_archiviati,
-                fascicoli_per_tipo=fascicoli_per_tipo,
-                scadenze_per_fascicolo=scadenze_per_fascicolo,
-                scadenze_aperte=scadenze_aperte,
-                tutti_documenti=tutti_documenti[:60],
-                tutti_depositi=tutti_depositi[:60],
-                n_doc=sum(fascicolo.documenti_count for fascicolo in tutti),
-                n_dep=sum(len(fascicolo.depositi_pct) for fascicolo in tutti),
-                n_scad=len(scadenze_aperte),
-                n_att=sum(fascicolo.attivita_count for fascicolo in fascicoli_attivi),
-                note_faldone=note_faldone,
-                audit_trail=audit_trail,
-                oggi=date.today(),
-            )
-        except Exception as exc:
-            app.logger.exception("Errore faldone_cliente %s: %s", id_cliente, exc)
-            flash(f"Errore nel caricamento del faldone: {exc}", "danger")
-            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+        cliente = get_clienti().get(id_cliente)
+        if not cliente:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+        if not cliente_accessibile(id_cliente):
+            flash("Non hai accesso a questa cartella cliente.", "danger")
+            return redirect(url_for("lista_clienti"))
+        audit("faldone.accesso", "cliente", id_cliente)
+        # Faldone del cliente: pagina React (AnagraficaClientiPage); dati da /api/v1/ui.
+        return render_react_shell_response(f"clienti/{id_cliente}/faldone")
 
     @app.route("/clienti/<id_cliente>/faldone/note", methods=["POST"])
     def faldone_salva_note(id_cliente: str):
@@ -340,15 +231,15 @@ def register_clienti_workspace_routes(
             fascicoli_attivi = [fascicolo for fascicolo in tutti if fascicolo.stato not in stati_chiusi]
             fascicoli_archiviati = [fascicolo for fascicolo in tutti if fascicolo.stato in stati_chiusi]
             cfg_studio = get_config_studio()
-            return render_template(
-                "clienti/copertina_faldone.html",
-                cliente=cliente,
-                fascicoli_attivi=fascicoli_attivi,
-                fascicoli_archiviati=fascicoli_archiviati,
-                tutti=tutti,
+            # Copertina come PDF da stampare (prima pagina Jinja clienti/copertina_faldone.html).
+            pdf = copertina_faldone_pdf(
+                cliente,
+                fascicoli_attivi,
+                fascicoli_archiviati,
                 studio_nome=cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale"),
-                oggi=date.today(),
+                oggi=oggi_roma(),
             )
+            return risposta_pdf_copertina(pdf, f"copertina_faldone_{cliente.id}.pdf")
         except Exception as exc:
             app.logger.exception("Errore copertina_faldone %s: %s", id_cliente, exc)
             flash(f"Errore copertina faldone: {exc}", "danger")
@@ -356,34 +247,12 @@ def register_clienti_workspace_routes(
 
     @app.route("/clienti/<id_cliente>/portale", methods=["GET"])
     def portale_config(id_cliente: str):
-        try:
-            cliente = get_clienti().get(id_cliente)
-            if not cliente:
-                flash("Cliente non trovato.", "warning")
-                return redirect(url_for("lista_clienti"))
-            gp = _get_portale_mgr(app)
-            portale_obj = gp.get_by_cliente(id_cliente)
-            link_portale = None
-            if portale_obj and portale_obj.is_attivo:
-                base = request.host_url.rstrip("/")
-                raw_token = session.pop("portale_token_grezzo", None)
-                if raw_token:
-                    link_portale = f"{base}/portale/{raw_token}"
-                    session["portale_link_cache"] = link_portale
-                else:
-                    link_portale = session.get("portale_link_cache")
-            return render_template(
-                "clienti/portale_config.html",
-                cliente=cliente,
-                portale_obj=portale_obj,
-                link_portale=link_portale,
-                oggi=date.today(),
-                studio_nome=app.config.get("STUDIO_NOME", "IUSENTRA"),
-            )
-        except Exception as exc:
-            app.logger.exception("Errore portale_config [%s]: %s", id_cliente, exc)
-            flash(f"Errore caricamento portale: {exc}", "danger")
-            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+        cliente = get_clienti().get(id_cliente)
+        if not cliente:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+        # Portale del cliente: sezione della cartella React (AnagraficaClientiPage).
+        return render_react_shell_response(f"clienti/{id_cliente}/portale")
 
     @app.route("/clienti/<id_cliente>/portale/attiva", methods=["POST"])
     def portale_attiva(id_cliente: str):

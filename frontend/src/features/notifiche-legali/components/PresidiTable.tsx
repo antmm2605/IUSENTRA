@@ -6,7 +6,9 @@ import { EmptyState } from '@/ui/EmptyState'
 import { StatusBadge } from '@/ui/StatusBadge'
 import {
   confidenceLabel,
+  presidioRecipientStatus,
   presidioStatusLabel,
+  presidioUnresolvedTerm,
   presidioStatusTone,
   priorityTone,
   safeInternalHref,
@@ -52,7 +54,7 @@ function RecipientsCell({ item }: { item: PresidioSummary }) {
         {item.notification_case_label}
       </strong>
       {visible.map((recipient) => (
-        <span key={recipient.id}>{recipient.name}: {recipient.status_label}</span>
+        <span key={recipient.id}>{recipient.name} · {presidioRecipientStatus(item.status, recipient.status_label)}</span>
       ))}
       {item.recipients.length > visible.length
         ? <small>Altri {item.recipients.length - visible.length} destinatari</small>
@@ -81,7 +83,7 @@ function StatusCell({ item }: { item: PresidioSummary }) {
           <Clock3 size={14} aria-hidden="true" />
           {item.legal_term.label}: {formatDateIt(item.legal_term.date) || 'da verificare'} · {item.legal_term.state}
         </a>
-      ) : <small>Nessun termine espresso</small>}
+      ) : <small>{presidioUnresolvedTerm(item)}</small>}
       {item.assigned_user ? <small>Assegnata a {item.assigned_user.label}</small> : null}
     </div>
   )

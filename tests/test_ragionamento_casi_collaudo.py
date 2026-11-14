@@ -375,8 +375,9 @@ def test_volontaria_senza_parte_accertata_mostra_la_verifica_del_contributo():
 
 
 def test_relata_della_sentenza_senza_consegna_non_avvia_il_termine_breve():
+    recente = {**SENTENZA, "testo": SENTENZA["testo"].replace("pubbl. il 17/04/2026", "pubbl. il 17/05/2026")}
     documenti = [
-        RICORSO_161, SENTENZA,
+        RICORSO_161, recente,
         _notifica("N1", "Ric1234", "02/02/2026", "Ricorso Gialli.PDF", "Ricorso"),
         _consegna("K1", "Ric1234", "02/02/2026"),
         _notifica("N2", "Sen1234", "20/04/2026", "Sentenza.PDF", "Sentenza"),
@@ -435,12 +436,13 @@ def test_collaudo_espone_che_cosa_manca_al_contratto():
 
 
 def test_riscontro_per_lex_indica_la_prova_mancante_della_sentenza():
+    recente = {**SENTENZA, "testo": SENTENZA["testo"].replace("pubbl. il 17/04/2026", "pubbl. il 17/05/2026")}
     from pct.fascicolo_lettura.narrativa import riscontri_processuali
     from pct.fascicolo_lettura.ragionamento import vista
 
     causa = ragiona(fonti(
         {**LAVORO, "numero_rg": "161"},
-        [RICORSO_161, SENTENZA, _notifica("N2", "Sen1234", "20/04/2026", "Sentenza.PDF", "Sentenza")],
+        [RICORSO_161, recente, _notifica("N2", "Sen1234", "20/04/2026", "Sentenza.PDF", "Sentenza")],
     ))
     righe = riscontri_processuali({"ragionamento": vista(causa.come_dizionario())})
     testo = "\n".join(righe)
@@ -531,7 +533,8 @@ def test_note_accettate_senza_atto_identificato_restano_da_correlare(monkeypatch
 
 
 def test_g05_riscontro_pec_storica_da_sql_non_attiva_termine_breve():
-    documenti = [{**SENTENZA, "sha256": "a" * 64},
+    recente = {**SENTENZA, "testo": SENTENZA["testo"].replace("pubbl. il 17/04/2026", "pubbl. il 17/05/2026")}
+    documenti = [{**recente, "sha256": "a" * 64},
                  {**doc("INVIO", "Invio originale.eml", "comunicazione", "PEC", ""), "sha256": "b" * 64},
                  {**doc("RAC", "RAC.eml", "comunicazione", "RAC", ""), "sha256": "c" * 64},
                  {**doc("RDAC", "RdAC.eml", "comunicazione", "RdAC", ""), "sha256": "d" * 64}]
@@ -600,3 +603,14 @@ def test_decreto_lavoro_usa_la_data_delle_note_per_i_termini_a_ritroso():
     costituzione = conclusione(causa, "costituzione_convenuto")
     assert costituzione.termine.scadenza == "2026-12-07"
     assert costituzione.stato == "non_dovuto"
+
+
+def test_termine_lungo_decorso_esclude_la_notifica_per_l_impugnazione_dai_prossimi_passaggi():
+    from pct.fascicolo_lettura.ragionamento import passi
+
+    decisione = {**SENTENZA, "testo": SENTENZA["testo"].split("P.Q.M.")[0] + "P.Q.M. accoglie il ricorso e compensa le spese."}
+    relata = _notifica("N2", "Sen1234", "20/04/2026", "Sentenza.PDF", "Sentenza")
+    causa = ragiona(fonti({**LAVORO, "numero_rg": "161", "stato": "DEFINITO"}, [RICORSO_161, decisione, relata]))
+    assert conclusione(causa, "notifica_sentenza").stato == "non_dovuto"
+    assert conclusione(causa, "termine_impugnazione").termine.scaduto
+    assert not any("consegna della notifica della sentenza" in p.azione for p in passi(causa.come_dizionario()))

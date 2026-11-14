@@ -576,8 +576,7 @@ def build_react_giurisprudenza_payload(
             continue
         detailed = manager.get(_text(row.get("id"))) or row
         records.append(_safe_record(detailed, source_lookup, index))
-    stats = manager.statistiche()
-    storage_stats = manager.storage_stats()
+    stats = manager.statistiche(includi_corpus=False)
     catalog_filters = manager.filtri()
     run_log = [
         _item(
@@ -648,7 +647,7 @@ def build_react_giurisprudenza_payload(
                 [
                     _item("fonti", "Fonti", len(_list(catalog_filters.get("fonti"))), "Catalogo"),
                     _item("aree", "Aree", len(_list(catalog_filters.get("aree"))), "Tassonomia"),
-                    _item("storage", "Versione archivio", storage_stats.get("storage_version", ""), "Matrice archivi"),
+                    _item("storage", "Versione archivio", stats.get("storage_version", ""), "Matrice archivi"),
                 ],
                 "Nessun filtro disponibile.",
             ),

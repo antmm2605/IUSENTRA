@@ -1,0 +1,23 @@
+.lettore-sentenza-page{margin:0;background:#f6f7f9;color:#111827}
+.iu-lettore{box-sizing:border-box;max-width:900px;margin:2rem auto;padding:2.5rem 3.5rem;background:#fff;border:1px solid #e2e8f0;border-radius:14px;font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+.iu-lettore a{color:#1e3a8a;text-underline-offset:.2em}
+.iu-lettore a:focus-visible,.iu-lettore summary:focus-visible,.iu-lettore button:focus-visible{outline:3px solid #1d4ed8;outline-offset:4px}
+.iu-lettore code{overflow-wrap:anywhere}
+.iu-lettore summary{cursor:pointer}
+.iu-lettore__testata{border-bottom:1px solid #e2e8f0;padding-bottom:1.5rem}
+.iu-lettore__testata p{margin:.35rem 0}
+.iu-lettore__occhiello{font-size:.8rem;letter-spacing:.05em;color:#475569}
+.iu-lettore h1{font-size:1.8rem;line-height:1.25;margin:.5rem 0}
+.iu-lettore__provenienza{font-weight:600;color:#92400e}
+.iu-lettore__avviso{padding:.5rem .75rem;border-radius:8px;background:#fffbeb;color:#78350f}
+.iu-lettore__azioni{display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;align-items:center;margin-top:.8rem;font-size:.9rem}
+.iu-lettore__azioni button{min-height:44px;padding:0 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font:inherit;font-weight:600;cursor:pointer}
+.iu-lettore__indice{display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;margin:1.5rem 0;font-size:.85rem}
+.iu-lettore__testo{font-size:1.125rem;line-height:1.85;overflow-wrap:anywhere;white-space:pre-line}
+.iu-lettore__testo p{margin:0 0 1.15rem}
+.iu-lettore__testo h2{font-size:1.15rem;line-height:1.5;margin:2.5rem 0 1.2rem;color:#1e3a8a;border-bottom:1px solid #e2e8f0;padding-bottom:.6rem}
+.iu-lettore__testo h3{font-size:1rem;margin:0 0 .5rem}
+.iu-lettore__colonne{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:1rem}
+.iu-lettore__piede{margin-top:3rem;border-top:1px solid #e2e8f0;padding-top:1rem;font-size:.85rem;color:#475569}
+@media(max-width:650px){.iu-lettore{margin:0;padding:1.5rem 1.1rem;border:0;border-radius:0}.iu-lettore__testo{font-size:1.05rem;line-height:1.8}.iu-lettore h1{font-size:1.5rem}}
+@media print{.lettore-sentenza-page{background:#fff}.iu-lettore{max-width:none;border:0;margin:0;padding:0}.iu-lettore__azioni,.iu-lettore__indice,.iu-lettore__piede{display:none}.iu-lettore__testo{font-size:11pt;line-height:1.6}}

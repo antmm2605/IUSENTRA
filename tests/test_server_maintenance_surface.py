@@ -531,7 +531,7 @@ def test_superadmin_server_manutenzione_renderizza(tmp_path: Path):
             follow_redirects=True,
         )
         assert login.status_code == 200
-        response = client.get("/admin/server-manutenzione?_legacy=1", follow_redirects=True)
+        response = client.get("/api/v1/ui/piattaforma/server-manutenzione", follow_redirects=True)
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -542,7 +542,7 @@ def test_superadmin_server_manutenzione_renderizza(tmp_path: Path):
     assert "Cartelle più pesanti" in html
     assert "File principali" in html
     assert "Compatta" in html
-    assert "Ottimizza archivi studi" in html
-    assert "Pulisci cache servizi" in html
+    assert "Ottimizza archivi degli studi" in html
+    assert "Pulisci memoria temporanea dei servizi" in html
     assert "Pulisci backup Normattiva" in html
-    assert "retention backup" in html
+    assert "Applica conservazione dei backup" in html

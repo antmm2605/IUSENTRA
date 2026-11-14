@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+from itertools import islice
 from typing import Any
 
 MASSIMO_MESSAGGI = 0
@@ -29,11 +30,9 @@ def chiavi_ruolo(numero_rg: str, anno_rg: str) -> list[str]:
     anno = re.sub(r"\D", "", _clean(anno_rg))
     if not numero:
         return []
-    chiavi = []
     if len(anno) == 4:
-        chiavi.extend([f"{numero}/{anno}", f"{numero}/{anno[2:]}", f"{numero}-{anno}"])
-    chiavi.extend([f"RG {numero}", f"R.G. {numero}", f"n. {numero}"])
-    return chiavi
+        return [f"{numero}/{anno}", f"{numero}/{anno[2:]}", f"{numero}-{anno}"]
+    return [f"RG {numero}", f"R.G. {numero}", f"n. {numero}"]
 
 
 def chiavi_cliente(nome_cliente: str) -> list[str]:
@@ -48,7 +47,7 @@ def _corrispondenza(riga: dict[str, Any], fascicolo_id: str, ruolo: list[str], c
     if _clean(riga.get("linked_fascicolo_id")) == fascicolo_id:
         return "collegamento"
     testo = _clean(riga.get("metadata_json")).lower()
-    if any(chiave.lower() in testo for chiave in ruolo):
+    if any(re.search(rf"(?<!\d){re.escape(chiave.lower())}(?!\d)", testo) for chiave in ruolo):
         return "rg"
     if any(chiave.lower() in testo for chiave in cliente):
         return "cliente"
@@ -61,14 +60,21 @@ def _messaggi(conn: sqlite3.Connection, tenant_id: str, fascicolo_id: str, ruolo
     for chiave in ruolo + cliente:
         condizioni.append("metadata_json LIKE ?")
         params.append(f"%{chiave}%")
+    solo_collegate = not (ruolo or cliente)
+    # Con il solo collegamento, l'indice della casella può visitare tutte le PEC dello studio.
+    indice = " INDEXED BY idx_pec_messages_fascicolo_received" if solo_collegate else ""
     query = (
         "SELECT id, received_at, mime_sha256, status, quality_status, signature_status, linked_fascicolo_id, metadata_json "
-        f"FROM pec_messages WHERE tenant_id=? AND ({' OR '.join(condizioni)}) ORDER BY received_at DESC"
+        f"FROM pec_messages{indice} WHERE tenant_id=? AND ({' OR '.join(condizioni)}) ORDER BY received_at DESC"
     )
-    if limit > 0:
+    if limit > 0 and solo_collegate:
         query += " LIMIT ?"
         params.append(int(limit))
-    return [dict(row) for row in conn.execute(query, tuple(params)).fetchall()]
+    righe = (dict(row) for row in conn.execute(query, tuple(params)))
+    pertinenti = (row for row in righe if _corrispondenza(row, fascicolo_id, ruolo, cliente))
+    if limit > 0:
+        return list(islice(pertinenti, limit))
+    return list(pertinenti)
 
 
 def _per_messaggio(conn: sqlite3.Connection, tenant_id: str, ids: list[str]) -> tuple[dict[str, list], dict[str, list], dict[str, list]]:

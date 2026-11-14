@@ -301,10 +301,13 @@ def test_reader_html_is_escaped_authenticated_and_raw_text_remains_available(tmp
         assert 'sentenzeweb=' in redirect_response.headers['Location']
         response = client.get(url + '?embed=source')
         assert response.status_code == 200 and response.mimetype == "text/html"
-        assert b"Trascrizione da fonte non ufficiale" in response.data
-        assert b"Sezioni del provvedimento" in response.data
-        assert b"14/10/2026" in response.data
-        assert "default-src 'none'" in response.headers["Content-Security-Policy"]
+        assert b'id="lettore-sentenza-root"' in response.data
+        dati = client.get(url + '?embed=source&format=json')
+        documento = dati.get_json()["documento"]
+        assert documento["provenienza"] == "Trascrizione da fonte non ufficiale"
+        assert any(blocco["tipo"] == "titolo" for blocco in documento["blocchi"])
+        assert "14/10/2026" in documento["righe"][0]
+        assert "default-src 'none'" in dati.headers["Content-Security-Policy"]
         plain = client.get(url + "?format=txt")
         assert plain.mimetype == "text/plain"
         assert plain.get_data(as_text=True) == " ".join(parsed()["text"].split())

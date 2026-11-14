@@ -14,7 +14,8 @@ def test_agenda_compatta_visibile_in_testa_al_fascicolo_e_caricata_subito():
     inizio = pagina.index('<div className="iu-fas-detail-main">')
     regia = pagina.index("<RegiaOperativaSection", inizio)
     assert "<AgendaFascicoloCompatta" in pagina[inizio:regia], "l'agenda compatta deve precedere le sezioni richiudibili"
-    assert "loadLazySection('scadenze')\n    // eslint-disable-next-line" in pagina, "le scadenze si caricano senza aprire la sezione"
+    assert "stato={data.agendaLoaded ? 'loaded' : lazyStatus.scadenze}" in pagina
+    assert "|| data.agendaLoaded ||" in pagina, "il caricamento separato serve quando il dettaglio non porta l'agenda"
 
 
 def test_agenda_compatta_usa_le_stesse_voci_dell_agenda_del_fascicolo():

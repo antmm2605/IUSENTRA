@@ -157,6 +157,12 @@ def depositi_da_archivio(fascicolo: Any) -> list[Any]:
             # tardivamente importata o per una data assente nella ricevuta.
             if stage in {'accettazione_deposito', 'rifiuto_deposito'} or str(dep.stato) not in {'ACCETTATO_CANCELLERIA', 'RIFIUTATO_CANCELLERIA'}:
                 dep.stato = stato
+            if stage == 'consegna_pec':
+                data = data_ricevuta(ref.get('occurred_at'))
+                fonte = str(ref.get('message_id') or '').strip()
+                if data and fonte:
+                    precedenti = getattr(dep, 'consegne_archivio', ())
+                    dep.consegne_archivio = (*precedenti, (data, fonte))
             if stage == 'accettazione_deposito':
                 dep.data_accettazione = data_ricevuta(ref.get('occurred_at'))
             field=receipt_fields[stage]

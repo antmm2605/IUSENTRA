@@ -43,7 +43,9 @@ from .models import (
 
 # Incrementato quando cambia l'evidenza persistita: il refresh deve sostituire
 # le prove automatiche precedenti senza toccare le correzioni manuali.
-RESOLVER_VERSION = "2026.10.31.catalogo-fascicolo.v32-identita-congiunta"
+# v33 (10/11/2026): le regole del 01-06/11 non erano mai arrivate al catalogo salvato perché la versione era ferma
+# alla v32; con la v33 il giro automatico ricataloga dai testi salvati, a lotti (catalogo_archivio_runtime).
+RESOLVER_VERSION = "2026.11.10.catalogo-fascicolo.v33-revisione-regole"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -137,6 +139,24 @@ _OGGETTI_MESSAGGIO = (
     (r"deposito\s+telematico\s*:", "PEC di deposito telematico"),
     (r"notificazione\s+ai\s+sensi\s+della\s+legge\s+n\.?\s*53", "Notificazione a mezzo PEC (L. 53/1994)"),
 )
+# Comunicazione di cancelleria via PEC (art. 136 c.p.c.; art. 16, comma 4, D.L. 179/2012): l'oggetto è
+# «COMUNICAZIONE <numero>/<anno>/<ruolo>» e il messaggio parte dal sistema della giustizia (giustiziacert.it),
+# anche quando il gestore lo inoltra «per conto di» (revisione del 10/11/2026: 94 su 94 lette come «Messaggio PEC»).
+_COMUNICAZIONE_CANCELLERIA = re.compile(r"\s*(?:posta\s+certificata:\s*)?comunicazione\s+\d+\s*/\s*\d{4}(?:\s*/\s*[a-z]+)?\b", re.I)
+_MITTENTE_GIUSTIZIA = re.compile(r"(?im)^\s*(?:mittente|from|da)\s*:.*\bgiustiziacert\.it\b")
+ETICHETTA_COMUNICAZIONE_CANCELLERIA = "Comunicazione di cancelleria"
+ETICHETTA_COPIA_DEPOSITO = "Copia non crittografata del deposito telematico"
+
+
+def _copia_in_chiaro_del_deposito(raw: str) -> bool:
+    """La copia in chiaro che il redattore conserva non è la PEC inviata all'ufficio.
+
+    Porta l'oggetto del deposito, ma non la data di invio, e contiene in chiaro DatiAtto.xml, che nella PEC vera
+    sta dentro la busta Atto.enc cifrata per l'ufficio (D.M. 44/2011, art. 14; specifiche tecniche DGSIA).
+    Revisione del 10/11/2026: 1.065 copie su 1.065 con queste caratteristiche, nessuna PEC inviata.
+    """
+    testa = raw[:1500]
+    return not re.search(r"(?im)^\s*(?:data|date)\s*:", testa) and "[Allegato: DatiAtto.xml" in raw
 
 
 def _etichetta_messaggio(raw: str, predefinita: str) -> str:
@@ -145,8 +165,12 @@ def _etichetta_messaggio(raw: str, predefinita: str) -> str:
     if not oggetto:
         return predefinita
     testo = oggetto.group(1)
+    if _COMUNICAZIONE_CANCELLERIA.match(testo) and _MITTENTE_GIUSTIZIA.search(raw[:1500]):
+        return ETICHETTA_COMUNICAZIONE_CANCELLERIA
     for formula, etichetta in _OGGETTI_MESSAGGIO:
         if re.match(r"\s*(?:posta\s+certificata:\s*)?" + formula, testo, re.I):
+            if etichetta == "PEC di deposito telematico" and _copia_in_chiaro_del_deposito(raw):
+                return ETICHETTA_COPIA_DEPOSITO
             return etichetta
     return predefinita
 
@@ -155,6 +179,20 @@ def _messaggio(raw: str, predefinita: str) -> dict[str, str]:
     """Etichetta e sezione del messaggio: la notificazione in proprio e' una notifica."""
     etichetta = _etichetta_messaggio(raw, predefinita)
     return {"label": etichetta, "section": "notifiche" if etichetta.startswith("Notificazione") else "comunicazioni"}
+
+
+def _fonte_messaggio(etichetta: str) -> str:
+    if etichetta == ETICHETTA_COMUNICAZIONE_CANCELLERIA:
+        return "normattiva_cpc_art_136_comunicazioni"
+    if etichetta in {"PEC di deposito telematico", ETICHETTA_COPIA_DEPOSITO}:
+        return "normattiva_dm_44_2011_art_13_busta"
+    return ""
+
+
+def _con_fonte_messaggio(identita: "ContentIdentity") -> "ContentIdentity":
+    """Il messaggio riconosciuto dall'oggetto porta la norma che lo definisce."""
+    fonte = _fonte_messaggio(identita.classification.label)
+    return replace(identita, fonte=fonte) if fonte else identita
 
 
 def _normalise(value: Any) -> str:
@@ -328,6 +366,108 @@ def _sentenza_contestuale(result: Any) -> ContentIdentity:
     )
 
 
+_UFFICIO_IN_TESTA = re.compile(r"\b(?:tribunale|corte d appello|corte di appello|giudice di pace)\b")
+_VISTO_IL_RICORSO_FISSA = re.compile(
+    r"\b(?:visto|vista|visti|letto|letti|esaminato|esaminati|lett[oi] e esaminat[oi])\s+(?:il|i)\s+ricors[oi]\b.{0,600}?\bfissa\b")
+_FORMULE_DELLA_PARTE = re.compile(
+    r"\brappresentat\w*\s+e\s+difes\w*\b|\bil sottoscritto\b|\bla sottoscritta\b|\bcon procura\b|\bnell interesse d\w+\b")
+
+
+_RICEVUTA_PAGAMENTO = re.compile(
+    r"\bricevuta di pagamento\b|\bpagamento cbill numero\b|\btotale addebitato\b|\bda te disposto\b|\besito\W+(?:pagato|eseguito)\b|\bquietanza\b")
+
+
+def _pagamento_spese_di_giustizia(raw: str, head: str) -> tuple[dict[str, Any], str] | None:
+    """Modelli F23/F24, ricevute pagoPA e avvisi di Equitalia Giustizia, dal contenuto.
+
+    Il contributo unificato si paga oggi con la piattaforma pagoPA (art. 192, comma 1, D.P.R. 115/2002); i
+    fascicoli più vecchi conservano i modelli F23 e F24. L'omesso o insufficiente versamento si recupera con
+    l'invito al pagamento dell'ufficio o di Equitalia Giustizia (art. 248, comma 3-bis). Il documento è del
+    contributo solo se lo dice («contributo unificato» nel testo): gli avvisi di Equitalia Giustizia che non lo
+    dicono restano un recupero di crediti di giustizia, senza attribuire la natura del credito. I codici tributo
+    non sono usati: non sono verificabili sull'archivio normativo.
+    """
+    # Solo la ricevuta o l'avviso stessi: un ricorso che «allega la ricevuta di pagamento pagoPA del contributo
+    # unificato» resta il ricorso (formule della parte e zona iniziale).
+    if _FORMULE_DELLA_PARTE.search(head[:4000]):
+        return None
+    testa = head[:400]
+    head = head[:2500]
+    cu = bool(re.search(r"\bcontributo unificato\b", head))
+    pagato = bool(_RICEVUTA_PAGAMENTO.search(head))
+    modello = re.search(r"^\W*(?:\w{0,8}\s)?\w{0,8}?mod(?:ello)?\s*f\s*(23|24)\b", testa)
+    if modello and cu:
+        return {"role": "contributo_unificato", "label": "Contributo unificato / pagamento", "section": "pagamenti",
+                "confidence": 96, "evidence": f"modello F{modello.group(1)} con la descrizione «contributo unificato» del versamento",
+                "tipo_documento": TipoDocumento.DEPOSITO_PCT, "deposit_role": "contributo_unificato", "deposit_candidate": True,
+                "excerpt_pattern": r"contributo\s+unificato"}, "normattiva_dpr_115_2002_art192_pagamento_cu"
+    equitalia = bool(re.search(r"\bequitalia giustizia\b", head))
+    pagopa = bool(re.search(r"\bpago\s?pa\b|\bcbill\b|\bcodice avviso\b|\biuv\b", head))
+    if pagopa and pagato and (cu or equitalia or re.search(r"\bministero della giustizia\b", head)):
+        if cu or not equitalia:
+            return {"role": "contributo_unificato", "label": "Contributo unificato / pagamento", "section": "pagamenti",
+                    "confidence": 96, "evidence": "ricevuta del pagamento pagoPA del contributo unificato (art. 192, comma 1, D.P.R. 115/2002)",
+                    "tipo_documento": TipoDocumento.DEPOSITO_PCT, "deposit_role": "contributo_unificato", "deposit_candidate": True,
+                    "excerpt_pattern": r"ricevuta\s+di\s+pagamento|pago\s?pa"}, "normattiva_dpr_115_2002_art192_pagamento_cu"
+        return {"role": "recupero_crediti_giustizia", "label": "Pagamento a Equitalia Giustizia (recupero crediti di giustizia)",
+                "section": "pagamenti", "confidence": 95,
+                "evidence": "ricevuta del pagamento dell'avviso di Equitalia Giustizia (art. 248, comma 3-bis, D.P.R. 115/2002); il testo non indica la natura del credito",
+                "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "allegato", "deposit_candidate": False,
+                "excerpt_pattern": r"equitalia\s+giustizia"}, "normattiva_dpr_115_2002_art248_invito_pagamento"
+    # L'avviso pagoPA di Equitalia Giustizia («Rec.Cred.», «QUANTO E QUANDO PAGARE?»); l'invito che si intitola
+    # tale resta alla regola del titolo «Invito al pagamento delle spese di giustizia» (art. 212 D.P.R. 115/2002).
+    if equitalia and re.search(r"\brec\s*cred\b", head) and re.search(r"\bquanto e quando pagare\b|\bcodice avviso\b|\bpago\s?pa\b", head) and not pagato:
+        if cu:
+            return {"role": "contributo_unificato", "label": "Contributo unificato / invito pagamento", "section": "pagamenti",
+                    "confidence": 95, "evidence": "invito al pagamento del contributo unificato di Equitalia Giustizia (art. 248, comma 3-bis, D.P.R. 115/2002)",
+                    "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "fuori_busta", "deposit_candidate": False,
+                    "excerpt_pattern": r"equitalia\s+giustizia"}, "normattiva_dpr_115_2002_art248_invito_pagamento"
+        return {"role": "recupero_crediti_giustizia", "label": "Avviso di pagamento Equitalia Giustizia (recupero crediti di giustizia)",
+                "section": "pagamenti", "confidence": 95,
+                "evidence": "avviso pagoPA di Equitalia Giustizia per il recupero di un credito di giustizia (art. 248, comma 3-bis, D.P.R. 115/2002); il testo non indica la natura del credito",
+                "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "fuori_busta", "deposit_candidate": False,
+                "excerpt_pattern": r"equitalia\s+giustizia"}, "normattiva_dpr_115_2002_art248_invito_pagamento"
+    return None
+
+
+def _documento_d_ufficio(head: str) -> tuple[dict[str, Any], str] | None:
+    """Istanze POLIS del Ministero dell'istruzione, decreti di variazione tabellare e certificati della cancelleria."""
+    zona = head[:900]
+    # Ricevuta protocollata dell'istanza online POLIS (graduatorie, supplenze): dichiarazioni rese ai sensi del
+    # D.P.R. 445/2000 e prodotte in causa come prova del servizio, non un atto del processo.
+    if re.match(r"\W*numero protocollo\W+m pi aoopolis\b", zona) and re.search(r"\bistanza\b", head[:1500]):
+        return {"role": "istanza_amministrativa", "label": "Istanza online al Ministero dell'istruzione (POLIS)", "section": "allegati",
+                "confidence": 96, "evidence": "protocollo del registro ufficiale POLIS del Ministero dell'istruzione e istanza compilata ai sensi del D.P.R. 445/2000",
+                "tipo_documento": TipoDocumento.ALLEGATO, "deposit_role": "allegato", "deposit_candidate": True,
+                "excerpt_pattern": r"m_pi\.AOOPOLIS"}, "normattiva_dpr_445_2000_documentazione_amministrativa"
+    # Decreto del capo dell'ufficio che varia le tabelle (assegnazione dei magistrati, art. 7-bis ord. giud.).
+    if re.search(r"\bvariazione tabellare\b", zona) and re.search(r"\bdecreto\b", zona) and re.search(r"\btribunale\b|\bcorte\b", zona):
+        return {"role": "provvedimento_organizzativo", "label": "Decreto di variazione tabellare dell'ufficio giudiziario", "section": "provvedimenti",
+                "confidence": 96, "evidence": "decreto organizzativo dell'ufficio sulla variazione delle tabelle (art. 7-bis R.D. 12/1941)",
+                "tipo_documento": TipoDocumento.DECRETO, "deposit_role": "fuori_busta", "deposit_candidate": False,
+                "excerpt_pattern": r"variazione\s+tabellare"}, "normattiva_ord_giud_art7bis_tabelle"
+    # Certificato del cancelliere sul passaggio in giudicato o sulla mancata impugnazione (art. 124 disp. att. c.p.c.).
+    if (re.search(r"\b(?:tribunale|corte d appello|corte di appello)\b", head[:300])
+            and re.search(r"\bil sottoscritto (?:funzionario|cancelliere)\b.{0,200}\b(?:esaminati gli atti|certifica)\b|\bsi certifica\b", head[:1200])
+            and re.search(r"\bpassat\w* in giudicato\b|\bpassaggio in giudicato\b|\bnon (?:e|risulta) stat\w* propost\w*\b|\bavverso la sentenza\b|\bimpugnazion\w*\b|\bappello\b", head[:3000])):
+        return {"role": "certificato_cancelleria", "label": "Certificato della cancelleria sull'impugnazione della sentenza", "section": "provvedimenti",
+                "confidence": 96, "evidence": "certificazione del cancelliere sull'impugnazione della sentenza (art. 124 disp. att. c.p.c.)",
+                "tipo_documento": TipoDocumento.ALLEGATO, "deposit_role": "allegato", "deposit_candidate": True,
+                "excerpt_pattern": r"certifica"}, "normattiva_disp_att_cpc_art124_giudicato"
+    return None
+
+
+def _decreto_fissazione_udienza(raw: str) -> bool:
+    """Il giudice, visto il ricorso, fissa l'udienza: è il decreto dell'art. 415 c.p.c., non un atto di parte."""
+    zona = _normalise(raw[:1500])
+    return bool(
+        _UFFICIO_IN_TESTA.search(zona[:600])
+        and re.search(r"\bil giudice\b", zona[:900])
+        and _VISTO_IL_RICORSO_FISSA.search(zona)
+        and not _FORMULE_DELLA_PARTE.search(_normalise(raw[:4000]))
+    )
+
+
 def _content_identity(
     extracted_text: str,
     *,
@@ -403,7 +543,7 @@ def _content_identity(
         )
 
     if re.match(r"Oggetto:", raw, re.I) and re.search(r"(?m)^Mittente:", raw[:1200]) and re.search(r"(?m)^Destinatari:", raw[:1200]) and "Corpo email:" in raw[:1800]:
-        return result(role="comunicazione", **_messaggio(raw, "Messaggio PEC" if re.search(r"posta certificata|messaggio di posta certificata", raw[:1200], re.I) else "Messaggio email"), confidence=99, evidence="Intestazioni e corpo del messaggio; gli allegati restano documenti distinti.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Oggetto:")
+        return _con_fonte_messaggio(result(role="comunicazione", **_messaggio(raw, "Messaggio PEC" if re.search(r"posta certificata|messaggio di posta certificata", raw[:1200], re.I) else "Messaggio email"), confidence=99, evidence="Intestazioni e corpo del messaggio; gli allegati restano documenti distinti.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Oggetto:"))
 
     from pct.archivio_letture.pertinenza_documentale import natura_documentale
     nature, reason = natura_documentale(raw, numero_rg, anno_rg, ufficio)
@@ -414,21 +554,71 @@ def _content_identity(
     if nature == "precedente_giurisprudenziale":
         return result(role="precedente_giurisprudenziale", label="Sentenza di altro procedimento — precedente", section="allegati", confidence=98, evidence=reason, tipo_documento=TipoDocumento.SENTENZA, deposit_role="allegato", deposit_candidate=True, excerpt_pattern=r"repubblica italiana|sentenza")
     if re.search(r"(?im)^tipo contenuto: messaggio (?:pec|email)", raw[:400]):
-        return result(role="comunicazione", **_messaggio(raw, "Messaggio PEC" if "messaggio pec" in raw[:100].lower() else "Messaggio email"), confidence=99, evidence="Messaggio MIME originale: intestazioni e corpo separati dagli allegati.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"(?im)^oggetto:.*")
+        return _con_fonte_messaggio(result(role="comunicazione", **_messaggio(raw, "Messaggio PEC" if "messaggio pec" in raw[:100].lower() else "Messaggio email"), confidence=99, evidence="Messaggio MIME originale: intestazioni e corpo separati dagli allegati.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"(?im)^oggetto:.*"))
     if re.search(r"^MIME-Version:", raw, re.I) and all(re.search(rf"\b{h}:", raw[:1500], re.I) for h in ("From", "To", "Subject", "Content-Type")):
-        return result(role="comunicazione", **_messaggio(raw, "Messaggio email"), confidence=99, evidence="Intestazioni MIME complete del messaggio originale; gli allegati non cambiano la natura della busta email.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Subject:")
+        return _con_fonte_messaggio(result(role="comunicazione", **_messaggio(raw, "Messaggio email"), confidence=99, evidence="Intestazioni MIME complete del messaggio originale; gli allegati non cambiano la natura della busta email.", tipo_documento=TipoDocumento.COMUNICAZIONE, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Subject:"))
     if re.search(r"^fissazione udienza", head[:120]) and re.search(r"tribunale", head[:400]) and re.search(r"letto il ricorso.{0,180}fissa", head[:900]):
         return result(role="provvedimento", label="Decreto di fissazione udienza", section="provvedimenti", confidence=99, evidence="Intestazione Fissazione udienza e disposizione FISSA del giudice dopo la lettura del ricorso.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Fissazione udienza")
+    # Il decreto con cui il giudice, letto o visto il ricorso, fissa l'udienza (art. 415 c.p.c.; con la sostituzione
+    # dell'udienza con note scritte, art. 127-ter c.p.c.), anche senza l'intestazione «Fissazione udienza»: ufficio e
+    # giudice in testa, la formula «visto/letto il ricorso … fissa» nella zona del titolo e nessuna formula della
+    # parte («rappresentata e difesa», «il sottoscritto», «con procura»), che distingue le note di parte che
+    # riportano il decreto (revisione del 10/11/2026).
+    if _decreto_fissazione_udienza(raw):
+        return replace(result(role="provvedimento", label="Decreto di fissazione udienza", section="provvedimenti", confidence=98,
+                              evidence="ufficio e giudice in intestazione; il giudice, visto il ricorso, fissa l'udienza (art. 415 c.p.c.)",
+                              tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False,
+                              excerpt_pattern=r"\bfissa\b"),
+                       fonte="normattiva_cpc_art_415_decreto_fissazione")
     if re.search(r"^tribunale", head) and re.search(r"successivamente oggi.{0,120}avanti al giudice", head[:700]) and re.search(r"il giudice.{0,70}(?:rinvia|dispone|assegna)", head[:1500]):
         if _verbale_con_sentenza_contestuale(raw[:12000]):
             return _sentenza_contestuale(result)
         return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=99, evidence="Ufficio, data della comparizione davanti al giudice e sua disposizione nel verbale.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Successivamente oggi")
+    # Documenti d'ufficio che non sono atti di parte (revisione del 10/11/2026: 41 casi letti come «Atto difensivo»).
+    ufficio = _documento_d_ufficio(head)
+    if ufficio is not None:
+        return replace(result(**ufficio[0]), fonte=ufficio[1])
+    # Il cedolino (prospetto di paga, art. 1 L. 4/1953) prodotto in causa: anagrafica del dipendente, rata o
+    # periodo di paga e voci della retribuzione. Prima finiva fra gli «Allegati di prova» generici.
+    if (re.search(r"\bid cedolino\b|\bcedolino\b|\bprospetto (?:di )?paga\b|\bbusta paga\b", head[:600])
+            and re.search(r"\banagrafica del dipendente\b|\bdipendente\b|\bmatricola\b", head[:1500])
+            and re.search(r"\brata\b|\bperiodo di paga\b|\bnetto\b|\bcompetenze\b|\britenute\b|\bretribuzion\w*\b", head[:3000])
+            and not _FORMULE_DELLA_PARTE.search(head[:4000])):
+        return replace(result(role="documento_economico", label="Prospetto di paga", section="allegati", confidence=96,
+                              evidence="prospetto di paga con anagrafica del dipendente, periodo e voci della retribuzione (art. 1 L. 4/1953)",
+                              tipo_documento=TipoDocumento.ALLEGATO, deposit_role="allegato", deposit_candidate=True,
+                              excerpt_pattern=r"cedolino|prospetto\s+(?:di\s+)?paga|busta\s+paga"),
+                       fonte="normattiva_legge_4_1953_prospetto_paga")
+    pagamento = _pagamento_spese_di_giustizia(raw, head)
+    if pagamento is not None:
+        return replace(result(**pagamento[0]), fonte=pagamento[1])
+    # La dichiarazione del reddito nelle conclusioni dei giudizi previdenziali e assistenziali (art. 152 disp. att.
+    # c.p.c.) esonera dalle spese di lite: non è l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R.
+    # 115/2002), che ha presupposti e soglia diversi (revisione del 10/11/2026: 173 dichiarazioni lette come
+    # «Dichiarazione sostitutiva» generica).
+    if (re.search(r"\b(?:autocertificazione|dichiarazione sostitutiva|dichiara)\b", head[:1500])
+            and re.search(r"\bart\w*\s*152\s*(?:d\s*a|disp\w*\s*att\w*)\s*(?:del\s*)?c\s*p\s*c\b", head[:2500])
+            and not re.search(r"\brappresentat\w*\s+e\s+difes\w*\b|\bnote scritte\b|\btrattazione scritta\b", head[:4000])
+            and not re.search(r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato", head[:2000])):
+        return replace(result(role="dichiarazione_reddito_spese", label="Dichiarazione di reddito ex art. 152 disp. att. c.p.c.",
+                              section="allegati", confidence=97,
+                              evidence="dichiarazione sostitutiva del reddito per l'esonero dalle spese nei giudizi previdenziali e assistenziali (art. 152 disp. att. c.p.c.)",
+                              tipo_documento=TipoDocumento.ALLEGATO, deposit_role="allegato", deposit_candidate=True,
+                              excerpt_pattern=r"art\.?\s*152"),
+                       fonte="normattiva_disp_att_cpc_art152_dichiarazione_reddito")
     # Autocertificazione reddituale per l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R. 115/2002):
     # è il documento dell'esenzione, non una dichiarazione sostitutiva qualsiasi (revisione del 04/11/2026: 80 casi).
-    if re.search(r"\b(?:autocertificazione|dichiarazione sostitutiva)\b", head[:400]) and re.search(
-            r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato", head[:900]):
+    # L'OCR delle tabelle sposta il titolo dopo le righe del modulo: titolo ed esenzione si cercano nella prima
+    # pagina, e il ricorso che richiama l'esenzione (scritto dal difensore, «rappresentata e difesa») resta il ricorso
+    # (revisione del 10/11/2026: 25 autocertificazioni lasciate «da verificare» con affidabilità 60). La barra della
+    # tabella OCR prima del titolo diventa una «I» («|AUTOCERTIFICAZIONE» → «iautocertificazione»).
+    if (re.search(r"(?:\b|\bi)(?:autocertificazione|autodichiarazione|dichiarazione sostitutiva)\b", head[:1500])
+            and re.search(r"esenzione dal(?:l)? (?:pagamento del )?contributo unificato", head[:2000])
+            and re.search(r"\breddit\w*\b", head[:3000])
+            and not re.search(r"\brappresentat\w*\s+e\s+difes\w*\b|\bnell interesse d\w+\b", head[:4000])
+            and not re.search(r"\bricorso\b", head[:300])):
         return replace(result(role="contributo_unificato", label="Contributo unificato / esenzione", section="pagamenti", confidence=97,
-                              evidence="autocertificazione della situazione reddituale (art. 46 D.P.R. 445/2000) per l'esenzione dal contributo unificato (art. 9, comma 1-bis, D.P.R. 115/2002)",
+                              evidence="autocertificazione della situazione reddituale (art. 46 D.P.R. 445/2000) per l'esenzione dal contributo unificato (art. 9, comma 1-bis, e art. 76 D.P.R. 115/2002)",
                               tipo_documento=TipoDocumento.DEPOSITO_PCT, deposit_role="contributo_unificato", deposit_candidate=True,
                               excerpt_pattern=r"esenzione\s+dal\s+contributo\s+unificato"),
                        fonte="normattiva_dpr_115_2002_art9_contributo_unificato")
@@ -614,7 +804,9 @@ def _content_identity(
     # Nei modelli giudiziari è comune anche la formulazione «note per la
     # trattazione scritta». La particella non può far ricadere l'atto nelle
     # sole segnalazioni CTU eventualmente richiamate nel merito.
-    if re.search(r"\bnote\s+(?:di\s+|per\s+(?:la\s+)?)?trattazione\s+scritt\w*\b", head):
+    # Solo nella zona del titolo: il decreto che sostituisce l'udienza chiede nel corpo le «note di trattazione
+    # scritta» delle parti, e quella citazione non fa del decreto un atto di parte (revisione del 10/11/2026).
+    if re.search(r"\bnote\s+(?:di\s+|per\s+(?:la\s+)?)?trattazione\s+scritt\w*\b", zona_titolo):
         return result(
             role="atto_difensivo",
             label="Note di trattazione scritta",
@@ -981,6 +1173,12 @@ def infer_fascicolo_context_from_document_corpus(
     return inferred
 
 
+# Norme che una fonte di regola richiama sempre insieme.
+_FONTI_COLLEGATE: dict[str, tuple[str, ...]] = {
+    "normattiva_cpc_art_136_comunicazioni": ("normattiva_dl_179_2012_art16_comunicazioni_telematiche",),
+}
+
+
 def resolve_document_catalog(
     *,
     tenant_id: str,
@@ -1049,6 +1247,11 @@ def resolve_document_catalog(
     source_rows = profile_source_rows(profile_id) if profile_id else []
     linked_ids = {row["id"] for row in source_rows}
     extra_ids = document_source_ids(classification.role, classification.section, profile_id)
+    # La norma dichiarata dalla regola d'identità che ha riconosciuto il documento è la prima prova: prima
+    # del 10/11/2026 restava nella regola e non arrivava alle evidenze dell'assegnazione.
+    fonte_regola = identity.fonte if identity is not None and classification is identity.classification else ""
+    if fonte_regola:
+        extra_ids = (fonte_regola, *_FONTI_COLLEGATE.get(fonte_regola, ()), *extra_ids)
     if context.get("_official_object_code"):
         extra_ids += ("catalog_pst_xsd",)
     for source_id in extra_ids:
@@ -1061,7 +1264,7 @@ def resolve_document_catalog(
         if extra:
             source_rows.append(extra)
             linked_ids.add(source_id)
-    has_manual_browser_evidence = any(row["source_type"] == "browser_evidence" for row in source_rows)
+    has_manual_browser_evidence = any(row.get("source_type") == "browser_evidence" for row in source_rows)
     source_state = "manual_browser_evidence" if has_manual_browser_evidence else "verified_snapshot"
     confidence = int(classification.confidence)
     status = "proposed"

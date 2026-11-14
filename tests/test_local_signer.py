@@ -1064,64 +1064,25 @@ def test_local_signer_ha_guardia_istanza_unica_e_diagnosi_certificato():
 
 def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     root = Path(__file__).resolve().parents[1]
-    template = (root / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(
-        encoding="utf-8"
-    )
-    signer = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+    ui = (root / "frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    signer = (root / "tools/local_signer.py").read_text(encoding="utf-8")
 
-    assert "/pst/ricerca-snapshot" in signer
-    assert "/pst/ricerca-snapshot" in template
-    assert "function awCanUsePstSearchSnapshot" in template
-    assert "/pst/fascicolo-snapshot" in signer
-    assert "/pst/fascicolo-snapshot" in template
-    assert "AW_PST_SNAPSHOT_PROMISE" in template
-    assert "/pst/download-documenti-batch" in template
-    assert "purpose: 'view'" in template
-    assert "purpose: 'import'" not in template
-    assert "import_session_id: AW_PST_SESSION?.session_id || ''" in template
-    assert "AW_PST_IMPORT_SESSION = AW_PST_SESSION;" in template
-    assert "function awGetActivePstSession" in template
-    assert "pst_session_id: activeSession?.session_id || ''" in template
-    assert "`${AW_PST_LS_BASE}/pst/preflight-auth`" not in template
-    assert "`${AW_PST_LS_BASE}/pst/documenti`" not in template
-    assert "function awNewPstOperationId" in template
-    assert "AW_PST_SEARCH_OPERATION_PROMISE" in template
-    assert "AW_PST_DOWNLOAD_OPERATION_PROMISE" in template
-    assert "XMLHttpRequest" not in template
-    assert "awPstSearchViaLocalSigner(query, false)" not in template
-    assert "awPstPreviewViaLocalSigner(selection, false)" not in template
-    assert "awPstDownloadSelectionViaLocalSigner(false)" not in template
-    search_fn = template[
-        template.index("async function awPstSearchViaLocalSigner"):
-        template.index("async function awPstPreviewViaLocalSigner")
-    ]
-    assert "const operationId = awNewPstOperationId('ricerca')" in search_fn
-    assert search_fn.count("operation_id: operationId") == 2
-    assert "not found" not in search_fn.lower()
-    search_guard = template[
-        template.index("async function awRunSearch()"):
-        template.index("function awRenderResults")
-    ]
-    assert "if (AW_PST_SEARCH_OPERATION_PROMISE) return AW_PST_SEARCH_OPERATION_PROMISE" in search_guard
-    preview_fn = template[
-        template.index("async function awPstPreviewViaLocalSigner"):
-        template.index("function awMapLocalSignerSearchRows")
-    ]
-    assert "operation_id: operationId" in preview_fn
-    assert preview_fn.index("AW_STATE.pstSnapshot?.documenti?.length") < preview_fn.index(
-        "awEnsurePstCertReady"
-    )
-    download_fn = template[
-        template.index("async function awPstDownloadSelectionViaLocalSigner"):
-        template.index("function awShowDownloadProgress")
-    ]
-    assert "const operationId = awNewPstOperationId('scarico')" in download_fn
-    assert "operation_id: operationId" in download_fn
-    assert "purpose: 'view'" in download_fn
-    assert "purpose: 'import'" not in download_fn
-    assert "awGetActivePstSession(tribunale, 'view')" in download_fn
-    assert "preflight_auth: false" in download_fn
-    assert "if (AW_PST_DOWNLOAD_OPERATION_PROMISE) return AW_PST_DOWNLOAD_OPERATION_PROMISE" in download_fn
+    for route in ("/pst/ricerca-snapshot", "/pst/fascicolo-snapshot", "/pst/download-documenti-batch"):
+        assert route in signer
+        assert route in ui
+    assert "const REACT_PST_SESSION_PURPOSE = 'view'" in ui
+    search = ui[ui.index("const executeSearch ="):ui.index("const runSearch =")]
+    assert "canUsePstSearchSnapshot(searchQuery, tribunale)" in search
+    assert "pst_session_id: session?.sessionId || ''" in search
+    assert "operation_id:" in search
+    assert "pstSearchOperationRef.current" in ui
+    download = ui[ui.index("const executeDownloadPstDocumentsFromSigner ="):ui.index("const downloadSelectedPstDocuments =")]
+    assert "activePstSessionFor(tribunale, cert)" in download
+    assert "pst_session_id: session?.sessionId || ''" in download
+    assert "purpose: REACT_PST_SESSION_PURPOSE" in download
+    assert "preflight_auth: false" in download
+    assert "operation_id: operationId" in download
+    assert "pstDownloadOperationRef.current" in download
 
 
 @pytest.mark.parametrize("pin_present", [False, True])
@@ -2686,45 +2647,23 @@ def test_download_documenti_batch_job_accetta_post_e_pubblica_contatori():
 
 def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
     root = Path(__file__).resolve().parents[1]
-    template = (root / "web" / "templates" / "impostazioni" / "index.html").read_text(
-        encoding="utf-8"
-    )
-    script = (root / "web" / "static" / "js" / "impostazioni-common.js").read_text(
-        encoding="utf-8"
-    )
-    firma_script = (root / "web" / "static" / "js" / "impostazioni-firma.js").read_text(
-        encoding="utf-8"
-    )
-    ai_script = (root / "web" / "static" / "js" / "impostazioni-ai.js").read_text(
-        encoding="utf-8"
-    )
+    settings = root / "frontend/src/features/impostazioni"
+    ui = (settings / "components/SettingsActions.tsx").read_text(encoding="utf-8")
+    signer = (settings / "localSigner.ts").read_text(encoding="utf-8")
+    guard = (root / "web/static/js/react-pec-local-signer-guard.js").read_text(encoding="utf-8")
 
-    assert "btn-test-smtp-locale" in template
-    assert "Testa SMTP" in template
-    assert "data-windows-url" in template
-    assert "data-latest-version" in template
-    assert "data-has-saved-password" in template
-    assert "testPecSmtpLocale" in script
-    assert "iusentra.pec.localSignerPassword.once" in script
-    assert "collectPecPasswordForLocalSigner" in script
-    assert "Connessione SMTP PEC riuscita." in script
-    assert "iusentra-local-signer://restart" in script
-    assert "iusentra-local-signer://restart" in firma_script
-    assert "iusentra-local-signer://restart" in ai_script
-    assert "isDesktopLocalSignerHost" in script
-    assert "isDesktopLocalSignerHost" in firma_script
-    assert "Da mobile o tablet il controllo non viene eseguito" in script
-    assert "Da mobile o tablet il controllo non viene eseguito" in firma_script
-    assert "localSignerOutdatedHtml" in script
-    assert "compareVersions" in script
-    assert "viene inviata solo al Local Signer su questo dispositivo" in script
-    assert "fetch('/impostazioni/test/pec-smtp'" not in script
-    assert "Diagnostica server (non invio reale)" in template
-    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" in template
-    assert "localSignerMissingMessage" in firma_script
-    assert "ensureLocalSignerCompanionStarted" in ai_script
-    assert "Local Signer non rilevato" in script
-    assert "Scarica Local Signer per Windows" in script
+    assert "testPecSmtpViaLocalSigner" in ui
+    assert "data.local_signer.downloads.windows" in ui
+    assert "data.local_signer.restart_protocol" in ui
+    assert "await ensureLocalSignerService(baseUrl, restartProtocol)" in signer
+    assert "requestStart(restartProtocol)" in signer
+    assert "isDesktopHost()" in signer
+    assert "Connessione SMTP PEC riuscita." in signer
+    assert "Local Signer non rilevato" in signer
+    assert "viene inviata solo al Local Signer sul PC in uso" in signer
+    assert "iusentra-local-signer://restart" in guard
+    assert "${localBaseUrl(baseUrl)}/pec/smtp/test" in signer
+    assert "/impostazioni/test/pec-smtp" not in signer
 
 
 def test_metadata_impostazioni_windows_pubblica_solo_exe():
@@ -6142,19 +6081,18 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
         )
         assert login.status_code in (302, 303)
 
-        r = c.get("/impostazioni?tab=firma&_legacy=1")
+        r = c.get("/api/v1/ui/impostazioni?include_ai_dataset=0")
 
     assert r.status_code == 200
-    body = r.data.decode("utf-8")
-    assert "Scarica Local Signer" in body
-    assert "/polisWeb/local-signer/setup/windows" in body
-    assert "/polisWeb/local-signer/setup/macos" in body
-    assert "/polisWeb/local-signer/setup/linux" in body
-    assert f"Versione corrente pubblicata: v{version}" in body
-    assert "Script Python" not in body
-    assert "Registro uffici PST" not in body
-    assert "Pacchetti disponibili:" not in body
-    assert "bit4xpki.dll" not in body
+    signer = r.get_json()["local_signer"]
+    assert signer["version"] == version
+    assert signer["downloads"] == {
+        platform: f"/polisWeb/local-signer/setup/{platform}"
+        for platform in ("windows", "macos", "linux")
+    }
+    assert signer["windows_filename"].endswith(".exe")
+    assert signer["macos_filename"].endswith((".dmg", ".command"))
+    assert signer["linux_filename"].endswith(".run")
 
 
 def test_impostazioni_firma_carica_p12_nel_volume_configurato(tmp_path):
@@ -6216,14 +6154,13 @@ def test_polisweb_non_mostra_demo_se_pkcs11_e_configurato(tmp_path):
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
-        r = c.get("/polisWeb?_legacy=1")
+        r = c.get("/api/portali/pst/acquisizione/status")
 
     assert r.status_code == 200
-    body = r.data.decode("utf-8")
-    assert 'name="demo_mode" value="0"' in body
-    assert 'name="server_demo_mode" value="1"' in body
-    assert 'id="badge-demo-mode"' not in body
-    assert 'id="banner-demo"' not in body
+    status = r.get_json()["status"]
+    assert status["auth_mode"] == "pkcs11"
+    assert status["pkcs11_mode"] is True
+    assert status["demo_mode"] is False
 
 
 def test_polisweb_passa_il_cf_configurato_alle_preferenze_certificato(tmp_path):
@@ -6249,12 +6186,12 @@ def test_polisweb_passa_il_cf_configurato_alle_preferenze_certificato(tmp_path):
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
-        r = c.get("/polisWeb?_legacy=1")
+        r = c.get("/api/portali/pst/acquisizione/status")
 
     assert r.status_code == 200
-    body = r.data.decode("utf-8")
-    assert 'preferCf: "MNTRRT64L01L063H"' in body
-    assert "Filtro automatico attivo sul codice fiscale" in body
+    status = r.get_json()["status"]
+    assert status["pkcs11_mode"] is True
+    assert status["cert_preferences"]["prefer_cf"] == "MNTRRT64L01L063H"
 
 
 def test_portali_acquisizione_status_mantiene_pkcs11_anche_fuori_da_pst(tmp_path):
@@ -6318,42 +6255,27 @@ def test_polisweb_ricerca_non_torna_in_demo_se_pkcs11_e_configurato(tmp_path, mo
     cfg.firma.pkcs11_library = str(dll_path)
     gs.aggiorna(cfg)
 
-    chiamate_demo = []
-
-    class _ClientStub:
-        def ricerca_fascicoli(self, **kwargs):
-            return []
-
-    def _crea_client_stub(*args, **kwargs):
-        chiamate_demo.append(kwargs.get("demo"))
-        return _ClientStub()
-
-    monkeypatch.setattr("pct.polisWeb.crea_client", _crea_client_stub)
+    chiamate_server = []
+    monkeypatch.setattr("pct.polisWeb.crea_client", lambda **kwargs: chiamate_server.append(kwargs))
 
     app = create_app({**_cfg_web(tmp_path), "STUDIO_CONFIG": str(studio_cfg)})
     with app.test_client() as c:
         login = c.post(
             "/login",
-        data={"username": "admin", "password": "Admin1234!"},
+            data={"username": "admin", "password": "Admin1234!"},
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
         r = c.post(
-            "/polisWeb/ricerca",
-            data={
-                "tribunale": "0580010",
-                "demo_mode": "0",
-                "server_demo_mode": "1",
-            },
+            "/api/portali/pst/acquisizione/search",
+            json={"ufficio_codice": "0580010", "numero": "123", "anno": "2025", "demo_mode": True},
         )
 
     assert r.status_code == 200
-    assert chiamate_demo == [False]
-    body = r.data.decode("utf-8")
-    assert 'name="demo_mode" value="0"' in body
-    assert 'name="server_demo_mode" value="1"' in body
-    assert 'id="badge-demo-mode"' not in body
-    assert 'id="banner-demo"' not in body
+    payload = r.get_json()
+    assert payload["ok"] is False
+    assert payload["results"] == []
+    assert chiamate_server == []
 
 
 def test_installer_locale_windows_registra_protocollo_e_attesa_ping():

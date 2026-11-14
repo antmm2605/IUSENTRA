@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS notte_passi (
     fine TEXT NOT NULL DEFAULT '',
     secondi REAL NOT NULL DEFAULT 0,
     memoria_libera_mb INTEGER NOT NULL DEFAULT 0,
+    risultato_json TEXT NOT NULL DEFAULT '{}',
     PRIMARY KEY (sera, indice)
 );
 CREATE TABLE IF NOT EXISTS ai_esiti (
@@ -44,7 +46,8 @@ ESITI_ITALIANI = {
     "fallito": "Non riuscito",
     "saltato": "Non previsto stanotte",
     "spento": "Pianificazione spenta",
-    "rinviato": "Rinviato: semaforo occupato",
+    "rinviato": "Rinviato",
+    "in_corso": "In corso",
 }
 
 
@@ -54,7 +57,15 @@ class RegistroNotte:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with closing(self._conn()) as conn:
             conn.executescript(SCHEMA)
+            if not self._ha_risultati(conn):
+                conn.execute("BEGIN IMMEDIATE")
+                if not self._ha_risultati(conn):
+                    conn.execute("ALTER TABLE notte_passi ADD COLUMN risultato_json TEXT NOT NULL DEFAULT '{}'")
             conn.commit()
+
+    @staticmethod
+    def _ha_risultati(conn: sqlite3.Connection) -> bool:
+        return any(colonna[1] == "risultato_json" for colonna in conn.execute("PRAGMA table_info(notte_passi)"))
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path), timeout=30)
@@ -94,11 +105,23 @@ class RegistroNotte:
             conn.commit()
 
     def scrivi_passo(self, sera: str, indice: int, fase: int, lavoro: str, esito: str, *, messaggio: str = "",
-                     avvio: str = "", fine: str = "", secondi: float = 0.0, memoria_libera_mb: int = 0) -> None:
+                     avvio: str = "", fine: str = "", secondi: float = 0.0, memoria_libera_mb: int = 0,
+                     avanza: bool = False, conclusa: bool = False, risultato: dict[str, Any] | None = None) -> None:
         with closing(self._conn()) as conn:
+            if avanza:
+                cursor = conn.execute(
+                    "UPDATE notte_avanzamento SET indice=?,passo_avviato_alle='',conclusa=?,aggiornata=? "
+                    "WHERE sera=? AND indice=?",
+                    (indice + 1, int(conclusa), fine, sera, indice),
+                )
+                if cursor.rowcount != 1:
+                    return
             conn.execute(
-                "INSERT OR REPLACE INTO notte_passi VALUES (?,?,?,?,?,?,?,?,?,?)",
-                (sera, indice, fase, lavoro, esito, messaggio[:500], avvio, fine, round(secondi, 1), memoria_libera_mb),
+                "INSERT OR REPLACE INTO notte_passi "
+                "(sera,indice,fase,lavoro,esito,messaggio,avvio,fine,secondi,memoria_libera_mb,risultato_json) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (sera, indice, fase, lavoro, esito, messaggio[:500], avvio, fine, round(secondi, 1), memoria_libera_mb,
+                 json.dumps(risultato or {}, ensure_ascii=False)),
             )
             conn.commit()
 
@@ -116,10 +139,21 @@ class RegistroNotte:
             rows = conn.execute("SELECT * FROM ai_esiti ORDER BY quando DESC LIMIT ?", (limite,)).fetchall()
         return [dict(r) for r in rows]
 
+    @staticmethod
+    def _passo(row: sqlite3.Row) -> dict[str, Any]:
+        dato = dict(row)
+        dato["risultato"] = json.loads(dato.pop("risultato_json") or "{}")
+        return dato
+
+    def passo(self, sera: str, indice: int) -> dict[str, Any]:
+        with closing(self._conn()) as conn:
+            row = conn.execute("SELECT * FROM notte_passi WHERE sera=? AND indice=?", (sera, indice)).fetchone()
+        return self._passo(row) if row else {}
+
     def passi(self, sera: str) -> list[dict[str, Any]]:
         with closing(self._conn()) as conn:
             rows = conn.execute("SELECT * FROM notte_passi WHERE sera=? ORDER BY indice", (sera,)).fetchall()
-        return [dict(r) for r in rows]
+        return [self._passo(row) for row in rows]
 
     def durate_medie(self, notti: int = 7) -> dict[str, float]:
         with closing(self._conn()) as conn:

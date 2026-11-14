@@ -1,0 +1,15 @@
+/* Sito pubblico dello studio: stili che nei template Jinja erano attributi style (vietati nei .tsx). */
+.sito-pubblico-intro{max-width:600px}
+.sito-pubblico-gruppo{font-size:.72rem;letter-spacing:.07em}
+.sito-pubblico-icona{margin-bottom:0}
+.sito-pubblico-titolo{font-size:.95rem;font-weight:700;color:#0f172a;line-height:1.3}
+.sito-pubblico-testo{line-height:1.45;font-size:.82rem}
+.sito-pubblico-badge{background:rgba(29,78,216,.08);color:#1d4ed8;border-radius:999px;font-size:.68rem;font-weight:700;padding:.15rem .55rem}
+.sito-pubblico-piede{border-top:1px solid rgba(15,23,42,.06)}
+.sito-pubblico-modo{font-size:.75rem}
+.sito-pubblico-azione{background:rgba(29,78,216,.07);border:1px solid rgba(29,78,216,.15);color:#1d4ed8;font-weight:600;font-size:.8rem}
+.sito-pubblico-scheda{transition:box-shadow .2s,transform .2s}
+.sito-pubblico-scheda:hover{box-shadow:0 8px 28px rgba(15,23,42,.12);transform:translateY(-2px)}
+.sito-pubblico-banner-titolo{font-size:1.05rem;font-weight:700}
+.sito-pubblico-banner-testo{font-size:.9rem;color:rgba(255,255,255,.78)}
+.sito-pubblico-avvisi{position:relative;z-index:5}

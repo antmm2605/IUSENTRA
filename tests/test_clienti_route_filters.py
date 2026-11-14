@@ -32,13 +32,16 @@ def test_lista_clienti_default_mostra_tutti_gli_stati(tmp_path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/clienti?_legacy=1")
+        response = client.get("/api/v1/ui/clienti")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
     assert attivo.nome_completo in body
     assert potenziale.nome_completo in body
     assert archiviato.nome_completo in body
-    assert ">3<" in body
-    assert "potenziali" in body
-    assert "archiviati" in body
+    # Elenco React: tutti gli stati per impostazione e i contatori dal servizio.
+    riepilogo = response.get_json()["summary"]
+    assert riepilogo["total"] == 3
+    assert riepilogo["potential"] == 1
+    assert riepilogo["archived"] == 1
+    assert riepilogo["active"] == 1

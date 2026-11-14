@@ -293,8 +293,6 @@ def main() -> int:
     py_visible_files = [
         Path("web/blueprints/fatturazione.py"),
         Path("web/blueprints/preventivi.py"),
-        Path("web/notifiche.py"),
-        Path("web/template_atti.py"),
         Path("pct/cli.py"),
         Path("pct/compilatore_atti.py"),
         Path("pct/compensi_a_tempo.py"),

@@ -84,8 +84,6 @@ def test_note_motore_con_maggiorazione_accordo():
 def test_etichette_nei_template_e_nel_frontend():
     for rel in (
         "frontend/src/preventivoWizardUtils.ts",
-        "web/templates/preventivi/wizard.html",
-        "web/templates/preventivi/form_preventivo.html",
     ):
         testo = (REPO / rel).read_text(encoding="utf-8")
         assert "'Rivitalizzazione'" not in testo, rel

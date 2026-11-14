@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from lex.dataset import review_sql
 from web.services.lex_dataset_training_status import _candidate_roots, _resolve_data_root
 
 
@@ -82,10 +83,14 @@ def _iter_queue_paths(data_root: Path) -> tuple[Path, ...]:
     for root in _candidate_roots(data_root):
         if not root.exists() or not root.is_dir():
             continue
-        for path in root.rglob("qa_review_queue.json"):
-            if len(paths) >= MAX_QUEUE_FILES:
-                break
-            if path.is_file():
+        for pattern in (review_sql.NOME_ARCHIVIO, "qa_review_queue.json"):
+            for path in root.rglob(pattern):
+                if len(paths) >= MAX_QUEUE_FILES:
+                    break
+                if not path.is_file():
+                    continue
+                if pattern == "qa_review_queue.json" and (path.parent / review_sql.NOME_ARCHIVIO).is_file():
+                    continue
                 paths.append(path)
     unique: list[Path] = []
     seen: set[str] = set()
@@ -154,6 +159,7 @@ def load_lex_dataset_review_queue(
     root = _resolve_data_root(data_root)
     paths = _iter_queue_paths(root)
     rows_with_paths: list[tuple[dict[str, Any], Path]] = []
+    capped = max(1, min(int(limit or 12), 50))
     summary = {
         "total": 0,
         "pending": 0,
@@ -162,6 +168,13 @@ def load_lex_dataset_review_queue(
         "files": len(paths),
     }
     for path in paths:
+        if path.name == review_sql.NOME_ARCHIVIO:
+            counts, rows = review_sql.leggi(path, limite=max(0, capped - len(rows_with_paths)))
+            summary["total"] += sum(counts.values())
+            for status in ("pending", "approved", "rejected"):
+                summary[status] += counts.get(status, 0)
+            rows_with_paths.extend((row, path) for row in rows)
+            continue
         payload = _read_json(path)
         for row in _queue_rows(payload):
             status = _text(row.get("review_status") or row.get("status")).lower()
@@ -172,8 +185,8 @@ def load_lex_dataset_review_queue(
                 summary["rejected"] += 1
             else:
                 summary["pending"] += 1
-                rows_with_paths.append((row, path))
-    capped = max(1, min(int(limit or 12), 50))
+                if len(rows_with_paths) < capped:
+                    rows_with_paths.append((row, path))
     items = [_normalize_item(row, path) for row, path in rows_with_paths[:capped]]
     return {
         "ok": True,
@@ -202,44 +215,59 @@ def update_lex_dataset_review_item(
     if normalized_action not in {"approve", "approved", "reject", "rejected"}:
         return {"ok": False, "message": "Azione non disponibile.", "errors": {"action": "Scegli approvazione o scarto."}}
     root = _resolve_data_root(data_root)
+    approved = normalized_action in {"approve", "approved"}
+    validation_error = None
+
+    def modify(row: dict[str, Any]) -> dict[str, Any] | None:
+        nonlocal validation_error
+        clean_question = _display_text(question) or _display_text(row.get("question"))
+        clean_answer = _display_text(answer) or _display_text(row.get("answer"))
+        if approved and (not clean_question or not clean_answer):
+            validation_error = {
+                "ok": False,
+                "message": "Domanda e risposta sono obbligatorie prima dell'approvazione.",
+                "errors": {"question": "Completa la domanda.", "answer": "Completa la risposta."},
+            }
+            return None
+        updated = dict(row)
+        if approved:
+            updated.update(question=clean_question, answer=clean_answer)
+        updated.update(
+            review_status="approved" if approved else "rejected",
+            requires_human_review=not approved,
+            reviewer_id=_text(reviewer_id) or "studio",
+            review_note=_text(note) or ("Approvata dallo studio." if approved else "Scartata dallo studio."),
+            reviewed_at=_utc_now(),
+        )
+        return updated
+
     for path in _iter_queue_paths(root):
-        payload = _read_json(path)
-        rows = _queue_rows(payload)
-        for index, row in enumerate(rows):
-            if _text(row.get("qa_id") or row.get("id")) != target_id:
-                continue
-            approved = normalized_action in {"approve", "approved"}
-            clean_question = _display_text(question) or _display_text(row.get("question"))
-            clean_answer = _display_text(answer) or _display_text(row.get("answer"))
-            if approved and (not clean_question or not clean_answer):
-                return {
-                    "ok": False,
-                    "message": "Domanda e risposta sono obbligatorie prima dell'approvazione.",
-                    "errors": {
-                        "question": "Completa la domanda.",
-                        "answer": "Completa la risposta.",
-                    },
-                }
-            updated = dict(row)
-            if approved:
-                updated["question"] = clean_question
-                updated["answer"] = clean_answer
-            updated["review_status"] = "approved" if approved else "rejected"
-            updated["requires_human_review"] = not approved
-            updated["reviewer_id"] = _text(reviewer_id) or "studio"
-            updated["review_note"] = _text(note) or ("Approvata dallo studio." if approved else "Scartata dallo studio.")
-            updated["reviewed_at"] = _utc_now()
-            rows[index] = updated
-            _write_json_atomic(path, _with_rows(payload, rows))
-            _append_review_event(path, {
-                "qa_id": target_id,
-                "action": "approved" if approved else "rejected",
-                "reviewer_id": updated["reviewer_id"],
-                "reviewed_at": updated["reviewed_at"],
-                "source_title": _source_label(updated)["title"],
-                "automatic_training": False,
-                "external_transfer": False,
-            })
+        if path.name == review_sql.NOME_ARCHIVIO:
+            updated = review_sql.revisiona(path, target_id, modify)
+        else:
+            payload = _read_json(path)
+            rows = _queue_rows(payload)
+            updated = None
+            for index, row in enumerate(rows):
+                if _text(row.get("qa_id") or row.get("id")) != target_id:
+                    continue
+                updated = modify(row)
+                if updated is not None:
+                    rows[index] = updated
+                    _write_json_atomic(path, _with_rows(payload, rows))
+                    _append_review_event(path, {
+                        "qa_id": target_id,
+                        "action": updated["review_status"],
+                        "reviewer_id": updated["reviewer_id"],
+                        "reviewed_at": updated["reviewed_at"],
+                        "source_title": _source_label(updated)["title"],
+                        "automatic_training": False,
+                        "external_transfer": False,
+                    })
+                break
+        if validation_error:
+            return validation_error
+        if updated is not None:
             refreshed = load_lex_dataset_review_queue(data_root=root)
             refreshed["message"] = "Revisione salvata. Il modello non viene addestrato automaticamente."
             refreshed["updated_item"] = _normalize_item(updated, path)

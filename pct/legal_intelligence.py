@@ -17,6 +17,7 @@ import requests
 from lxml import html as lxml_html
 from urllib3.exceptions import InsecureRequestWarning
 
+from pct.notiziario.fonti import HUDOC_ITALIA_RSS, PER_ID
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.legal_intelligence_repository import (
     GestioneLegalIntelligenceRepository,
@@ -92,6 +93,9 @@ from pct.telematico_repository import (
 )
 
 USER_AGENT = "IUSENTRA-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
+# Public endpoint advertised in the Corte dei conti database portal configuration.
+CORTE_CONTI_DISTRIBUZIONE = "https://corteconti-iit.almawave.cloud/api/service/getDocDistribution/public"
+
 MAX_MONITOR_BYTES = 512_000
 MAX_MONITOR_RUNS = 600
 MAX_ALERTS = 400
@@ -622,7 +626,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="giurisprudenza_orientamenti",
         area="Giurisprudenza costituzionale",
         official_url="https://www.cortecostituzionale.it/",
-        monitor_url="https://www.cortecostituzionale.it/",
+        monitor_url=PER_ID["gu_corte_costituzionale"].url,
         connector_kind="portal",
         cadence="giornaliera",
         formats=["HTML", "PDF"],
@@ -690,7 +694,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="fonti_ufficiali",
         area="Normativa UE",
         official_url="https://eur-lex.europa.eu/",
-        monitor_url="https://eur-lex.europa.eu/oj/direct-access.html",
+        monitor_url=PER_ID["eurlex_gu_l"].url,
         connector_kind="portal-rss",
         cadence="giornaliera",
         formats=["HTML", "RSS", "XML", "PDF"],
@@ -782,7 +786,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="giurisprudenza_orientamenti",
         area="Giurisprudenza contabile",
         official_url="https://www.corteconti.it/",
-        monitor_url="https://www.corteconti.it/",
+        monitor_url=CORTE_CONTI_DISTRIBUZIONE,
         connector_kind="portal",
         cadence="giornaliera",
         formats=["HTML", "PDF"],
@@ -827,7 +831,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="giurisprudenza_orientamenti",
         area="Giurisprudenza europea",
         official_url="https://www.echr.coe.int/",
-        monitor_url="https://hudoc.echr.coe.int/",
+        monitor_url=HUDOC_ITALIA_RSS,
         connector_kind="portal-rss",
         cadence="giornaliera",
         formats=["HTML", "PDF"],
@@ -1466,14 +1470,15 @@ class GestioneLegalIntelligence:
         except Exception:
             self._data = {"monitor_runs": [], "alerts": [], "audit_traces": []}
 
-    def _save(self) -> None:
+    def _save(self, *, aggiorna_cataloghi: bool = True) -> None:
         from pct import cache as _cache
         if self.postgres_dsn:
             self._repository.save_runtime_state(self._data)
         else:
             # indent=None: file fino a 2.9 MB, non serve leggibilità umana
             _cache.save(self.db_path, self._data, indent=None)
-        self._sync_repository()
+        if aggiorna_cataloghi:
+            self._sync_repository()
 
     def _append_limited(self, key: str, payload: Dict[str, Any], limit: int) -> None:
         self._data.setdefault(key, []).append(payload)
@@ -2160,6 +2165,29 @@ class GestioneLegalIntelligence:
                 comparison_mode = "challenge_guard"
                 content_hash = latest_hash or _sha256(b"challenge_guard")
                 warning = "Controllo limitato da pagina di protezione applicativa."
+            elif candidate == CORTE_CONTI_DISTRIBUZIONE and status == "ok":
+                try:
+                    dati = json.loads(content)
+                    totale = dati["hits"]["total"]
+                    tipologie = dati["aggregations"]
+                    confronto = {tipo: sorted((riga["key"], riga["doc_count"])
+                                               for riga in tipologie[tipo]["buckets"])
+                                 for tipo in ("sentenze", "ordinanze")}
+                    if (dati.get("timed_out") is not False or dati["_shards"]["failed"] != 0
+                            or type(totale) is not int or totale <= 0
+                            or not all(tipologie[tipo]["buckets"] for tipo in ("sentenze", "ordinanze"))):
+                        raise ValueError("Distribuzione incompleta.")
+                except (ValueError, KeyError, TypeError) as exc:
+                    status = "errore"
+                    comparison_mode = "distribuzione_non_valida"
+                    content_hash = latest_hash or _sha256(b"distribuzione_non_valida")
+                    warning = f"Distribuzione della banca dati non verificata: {exc}"
+                else:
+                    # Ignore latency and other response metadata when comparing successive reads.
+                    content_hash = _sha256(json.dumps(confronto, sort_keys=True).encode("utf-8"))
+                    changed = bool(latest_hash and latest_hash != content_hash)
+                    comparison_mode = "distribuzione_archivio"
+                    warning = "Verificate le statistiche pubbliche di sentenze e ordinanze."
             elif change_detection == "availability_only" and status == "ok":
                 comparison_mode = "availability_only"
                 content_hash = latest_hash or _sha256((official_url or final_url or label).encode("utf-8"))
@@ -2359,10 +2387,14 @@ class GestioneLegalIntelligence:
         source_id: str,
         request_get: Optional[Callable[..., Any]] = None,
         now: Optional[datetime] = None,
+        *,
+        aggiorna_cataloghi: bool = True,
     ) -> Dict[str, Any]:
         source = FONTI_UFFICIALI[source_id]
         current_time = now or datetime.now()
         latest_ok = self._latest_success(source_id)
+        if source_id == "corte_conti" and getattr(latest_ok, "comparison_mode", "") != "distribuzione_archivio":
+            latest_ok = None
         try:
             payload = self._fetch_state(
                 source_id=source_id,
@@ -2389,6 +2421,20 @@ class GestioneLegalIntelligence:
                         title=f"{source.nome} non raggiungibile",
                         details=f"Il controllo ha restituito HTTP {run.status_code}. Verificare la fonte ufficiale.",
                         official_url=source.official_url,
+                        now=current_time,
+                    )
+                )
+            elif run.changed and run.comparison_mode == "distribuzione_archivio":
+                alerts.append(
+                    self._create_alert(
+                        source_id=source_id,
+                        motore_id=source.motore,
+                        alert_type="distribuzione_archivio_variata",
+                        severity="bassa",
+                        title=f"{source.nome}: conteggi della banca dati variati",
+                        details="Sono cambiati i conteggi per anno di sentenze o ordinanze. "
+                                "Per sapere quali provvedimenti sono interessati, consultare la banca dati.",
+                        official_url="https://banchedati.corteconti.it/",
                         now=current_time,
                     )
                 )
@@ -2466,7 +2512,7 @@ class GestioneLegalIntelligence:
                             now=current_time,
                         )
                     )
-            self._save()
+            self._save(aggiorna_cataloghi=aggiorna_cataloghi)
             return {"ok": run.status == "ok", "run": run.to_dict(), "alerts": [alert.to_dict() for alert in alerts]}
         except Exception as exc:
             run = MonitorRun(
@@ -2493,7 +2539,7 @@ class GestioneLegalIntelligence:
                 official_url=source.official_url,
                 now=current_time,
             )
-            self._save()
+            self._save(aggiorna_cataloghi=aggiorna_cataloghi)
             return {"ok": False, "run": run.to_dict(), "alerts": [alert.to_dict()]}
 
     def run_monitor_cycle(
@@ -2501,16 +2547,27 @@ class GestioneLegalIntelligence:
         source_ids: Optional[List[str]] = None,
         request_get: Optional[Callable[..., Any]] = None,
         now: Optional[datetime] = None,
+        *,
+        sync_tables: bool = True,
     ) -> Dict[str, Any]:
         results = []
         ok_count = 0
+        limitate: list[str] = []
         ids = source_ids or list(FONTI_UFFICIALI.keys())
         for source_id in ids:
-            result = self.monitor_source(source_id, request_get=request_get, now=now)
+            # Conserva ogni riscontro e aggiorna i cataloghi una volta, con la traccia finale.
+            result = self.monitor_source(source_id, request_get=request_get, now=now, aggiorna_cataloghi=False)
             results.append(result)
             if result.get("ok"):
-                ok_count += 1
-        sync_report = self.sync_normative_tables(source_ids=ids, request_get=request_get, now=now)
+                run = result.get("run") or {}
+                if run.get("comparison_mode") == "challenge_guard" or run.get("status_code") == 202:
+                    limitate.append(source_id)
+                    result["content_verified"] = False
+                else:
+                    ok_count += 1
+                    result["content_verified"] = True
+        sync_report = (self.sync_normative_tables(source_ids=ids, request_get=request_get, now=now)
+                       if sync_tables else {"delegated": True, "processed_tables": 0})
         self.registra_trace_risposta(
             query="Monitoraggio fonti ufficiali",
             user="sistema",
@@ -2519,16 +2576,18 @@ class GestioneLegalIntelligence:
             ai_model="sistema",
             result_summary=(
                 f"Controllate {len(ids)} fonti ufficiali: {ok_count} riuscite, "
-                f"{len(ids) - ok_count} con criticita; sync tabelle {sync_report.get('updated', 0)} aggiornate."
+                f"{len(limitate)} con accesso limitato, {len(ids) - ok_count - len(limitate)} fallite; sync tabelle {sync_report.get('updated', 0)} aggiornate."
             ),
             warning="" if ok_count == len(ids) else "Alcune fonti ufficiali richiedono verifica operativa.",
             now=now,
         )
         return {
             "ok": ok_count == len(ids),
+            "status": "parziale" if limitate and ok_count + len(limitate) == len(ids) else "",
             "checked": len(ids),
             "successful": ok_count,
-            "failed": len(ids) - ok_count,
+            "failed": len(ids) - ok_count - len(limitate),
+            "limited": limitate,
             "results": results,
             "normative_sync": sync_report,
         }
@@ -3069,6 +3128,9 @@ class GestioneLegalIntelligence:
         if alert.alert_type == "fonte_non_raggiungibile":
             latest = latest_runs.get(alert.source_id)
             return bool(latest and latest.status == "ok")
+        if alert.source_id == "corte_conti" and alert.alert_type == "nuovo_orientamento_ufficiale":
+            latest_ok = self._latest_success("corte_conti")
+            return bool(latest_ok and latest_ok.comparison_mode == "distribuzione_archivio")
         if alert.related_entity_type == "normative_table" and alert.related_entity_id:
             try:
                 table = self.normative_tables.get_table(alert.related_entity_id)

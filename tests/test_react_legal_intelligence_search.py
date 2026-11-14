@@ -1390,3 +1390,51 @@ def test_mediazione_importata_non_viene_deduplicata_come_solo_link():
     assert imported["taxCode"] == "ABCDEF12G34H501Z"
     assert imported["email"] == "segreteria@example.it"
     assert any(record["id"] == "registro-mediazione-organismo-42" for record in ricerca_payload["records"])
+
+
+def test_inventario_agenti_migra_storico_e_indicizza_ultimo_esito(tmp_path):
+    import json
+    import sqlite3
+
+    from lex.operational_knowledge.nightly_agents import OperationalAgentRunRepository
+
+    legacy = tmp_path / "agenti.json"
+    primo = {"agent_id": "notifiche", "tenant_slug": "studio-a", "status": "da_verificare"}
+    altro_studio = {"agent_id": "notifiche", "tenant_slug": "studio-b", "status": "ok"}
+    legacy.write_text(json.dumps({"latest": {"notifiche": {"studio-a": primo}}, "runs": [primo]}))
+    repo = OperationalAgentRunRepository(legacy)
+    assert repo.load()["runs"] == [primo]
+    assert not repo.sqlite_path.exists()
+
+    repo.migra_storico()
+    repo.migra_storico()
+    assert repo.load()["runs"] == [primo]
+    repo.record(altro_studio, ritorna_rapporto=False)
+    aggiornato = {**primo, "status": "ok"}
+    report = repo.record(aggiornato)
+    assert report["runs"] == [primo, altro_studio, aggiornato]
+    assert report["latest"]["notifiche"] == {"studio-a": aggiornato, "studio-b": altro_studio}
+    assert json.loads(legacy.read_text())["runs"] == [primo]
+    with sqlite3.connect(repo.sqlite_path) as conn:
+        assert conn.execute("SELECT count(*) FROM run").fetchone() == (3,)
+
+
+def test_presidio_lex_consulta_i_soli_esiti_dello_studio(tmp_path):
+    from flask import Flask, g
+
+    from lex.operational_knowledge.nightly_agents import OperationalAgentRunRepository
+    from web.services.lex_studio_knowledge_status import build_lex_agent_metric
+
+    repository = OperationalAgentRunRepository(tmp_path / "agenti.json")
+    for studio, stato, data in (("primo", "da_verificare", "2026-01-01"), ("secondo", "ok", "2026-01-02")):
+        repository.record({"agent_id": "fonti_legal_update", "tenant_slug": studio,
+                           "status": stato, "generated_at": data})
+    app = Flask(__name__)
+    with app.test_request_context("/ricerca-legale"):
+        g.tenant_context_slug = "primo"
+        metric = build_lex_agent_metric(
+            config={"LEX_OPERATIONAL_AGENTS_DB": str(repository.db_path)},
+            focus_agent_ids=("fonti_legal_update",),
+        )
+    assert metric["value"] == 0
+    assert "1 da verificare" in metric["note"]

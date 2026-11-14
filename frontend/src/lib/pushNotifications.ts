@@ -336,3 +336,40 @@ export async function sendPushTest(): Promise<PushActionResult> {
   if (response.ok) notifyTopbarChanged()
   return showLocalTestNotification(response)
 }
+
+// ------------------------------------------------------------------ superamministratore
+// Notifiche delle richieste di assistenza sul dispositivo del SUPERADMIN (pannello di
+// piattaforma). Prima stavano nella console Jinja `/admin/supporto-remoto`, tolta il 10/11/2026:
+// stesse rotte del server (`/admin/supporto-remoto/notifiche-dispositivo`).
+const PIATTAFORMA_PUSH = '/admin/supporto-remoto/notifiche-dispositivo'
+
+type PiattaformaPushStatus = { ok?: boolean; publicKey?: string; message?: string }
+
+export async function activatePlatformPushNotifications(): Promise<PushActionResult> {
+  if (!browserSupportsPush()) {
+    return { ok: false, message: 'Questo browser/dispositivo non supporta Web Push.' }
+  }
+  const stato = await apiJson<PiattaformaPushStatus>(PIATTAFORMA_PUSH, { ok: false })
+  if (!stato.publicKey) {
+    return { ok: false, message: stato.message || 'Chiave pubblica Web Push non disponibile: configura il server.' }
+  }
+  const permission = await Notification.requestPermission().catch(() => 'denied' as NotificationPermission)
+  if (permission !== 'granted') return { ok: false, message: 'Autorizzazione notifiche non concessa.' }
+  const subscription = await currentSubscription(stato.publicKey, { create: true })
+  if (!subscription) return { ok: false, active: false, message: 'Iscrizione del dispositivo non disponibile.' }
+  return apiPostJson<PushActionResult>(`${PIATTAFORMA_PUSH}/subscribe`, subscriptionPayload(subscription), fallbackAction)
+}
+
+export async function deactivatePlatformPushNotifications(): Promise<PushActionResult> {
+  if (!browserSupportsPush()) return { ok: false, message: 'Notifiche non supportate su questo dispositivo.' }
+  const registration = await existingRegistration()
+  const subscription = registration ? await registration.pushManager.getSubscription() : null
+  const response = await apiPostJson<PushActionResult>(
+    `${PIATTAFORMA_PUSH}/subscribe`,
+    { endpoint: subscription?.endpoint || '' },
+    fallbackAction,
+    { method: 'DELETE' },
+  )
+  if (subscription) await subscription.unsubscribe()
+  return response
+}

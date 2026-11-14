@@ -17,6 +17,7 @@ HREF = {
     "note_127ter": "#udienze", "deposito_ordinato": "#udienze", "termine_assegnato": "#udienze",
     "notifica_ordinata": "#comunicazioni-notifica", "notifica_ricorso_decreto_415": "#comunicazioni-notifica",
     "notifica_sentenza": "#comunicazioni-notifica", "notifica_decreto_ingiuntivo": "#comunicazioni-notifica",
+    "esecuzione_pa": "#comunicazioni-notifica",
     "spese_liquidate": "#economia", "contributo_unificato": "#economia",
 }
 STATI = {"fatto": "già fatto", "da_fare": "da fare", "non_dovuto": "non dovuto", "dubbio": "da chiarire"}
@@ -65,6 +66,8 @@ def _conclusione(voce: dict[str, Any]) -> dict[str, Any]:
     perche = voce["perche"]
     if _notifica_facoltativa(voce):
         stato_etichetta = "Scelta difensiva"
+    if voce["codice"] == "notifica_sentenza" and voce["stato"] == "non_dovuto":
+        stato_etichetta = "Riscontro storico"
     if voce["codice"] == "termine_impugnazione" and termine and voce["stato"] == "non_dovuto":
         stato_etichetta = "Termine decorso" if termine["scaduto"] else "Termine per chi intende impugnare"
         perche = "La scadenza indica il limite per impugnare. Prima di attestare il giudicato, verificare a registro le impugnazioni."
@@ -101,6 +104,7 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
                       "ignota": "posizione del cliente non determinata"}.get(causa.get("ruolo_cliente") or "", ""),
         "fase": causa.get("fase") or {},
         "percorso": causa.get("percorso") or [],
+        "stile_ricorsi": causa.get("stile_ricorsi") or [],
         "udienze": [{"data": data_it(u["data"]), "ora": u.get("ora") or "",
                      "modalita": {"note_scritte": "sostituita da note scritte (art. 127-ter c.p.c.)", "remota": "da remoto (art. 127-bis c.p.c.)",
                                   "presenza": "in presenza"}.get(u.get("modalita"), u.get("modalita")),

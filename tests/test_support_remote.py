@@ -258,18 +258,16 @@ def test_support_remote_console_and_routes_register_on_runtime(tmp_path: Path):
             session_tx["auth_tenant_slug"] = ""
             session_tx["last_activity"] = datetime.now().isoformat()
 
-        response = client.get("/admin/supporto-remoto?_legacy=1")
+        response = client.get("/admin/supporto-remoto")
+        dati = client.get("/api/v1/ui/piattaforma/supporto-remoto")
 
-    html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Assistenza remota cliente" in html
-    assert "Percorso reale di assistenza" in html
-    assert "Richieste dallo studio" in html
-    assert "<summary" in html
-    assert "Sessione manuale, solo se il cliente non usa Assistenza" in html
-    assert "Impostazioni rete avanzate" in html
-    assert "Notifiche cellulare SUPERADMIN" in html
-    assert "Cancella prove/test" in html
+    assert 'id="piattaforma-react-root"' in response.get_data(as_text=True)
+    assert dati.status_code == 200
+    corpo = dati.get_json()
+    assert corpo["ok"] is True and corpo["page"] == "supporto-remoto"
+    html = dati.get_data(as_text=True)
+    assert "cancella-prove" in html
     assert "Presidio realtime" not in html
     assert "TURN non configurato" not in html
 
@@ -451,7 +449,7 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
             session_tx["auth_tenant_slug"] = ""
             session_tx["last_activity"] = datetime.now().isoformat()
 
-        console = client.get(f"/admin/supporto-remoto?sessione={public_id}&_legacy=1")
+        console = client.get(f"/api/v1/ui/piattaforma/supporto-remoto?sessione={public_id}")
         operator_room = client.get(f"/support/operatore/{public_id}")
         customer_state_after_operator = client.get(
             f"/support/api/{public_id}/state?role=client&token={client_token}"
@@ -502,12 +500,8 @@ def test_support_remote_studio_user_can_request_assistance_from_studio(tmp_path:
     assert console.status_code == 200
     console_html = console.get_data(as_text=True)
     assert "Panoramica dello studio" in console_html
-    assert "Richiesta assistenza remota" in console_html
-    assert "Cambia stato assistenza" in console_html
-    assert "Cancella sessione" in console_html
-    assert "Prossimo passo: apri la stanza operatore" in console_html
-    assert "Prendi in carico" in console_html
-    assert 'class="btn btn-sm btn-primary" href="/support/operatore/' in console_html
+    assert f"/support/operatore/{public_id}" in console_html
+    assert '"stato"' in console_html and '"cancella"' in console_html
     assert operator_room.status_code == 200
     assert 'id="support-operator-react-root"' in operator_room.get_data(as_text=True)
     assert customer_state_after_operator.status_code == 200
@@ -553,19 +547,21 @@ def test_support_remote_console_can_manage_status_delete_and_cleanup_tests(tmp_p
         first_id = first.get_json()["session"]["public_id"]
         keep_id = keep.get_json()["session"]["public_id"]
 
-        changed = client.post(
-            f"/admin/supporto-remoto/{first_id}/stato",
-            json={"status": "closed"},
-        )
-        deleted_one = client.post(f"/admin/supporto-remoto/{keep_id}/cancella", json={})
-        cleanup = client.post("/admin/supporto-remoto/prove/cancella", json={})
+        # Azioni della pagina React «Assistenza remota» (le stesse della console storica).
+        base = "/api/v1/ui/piattaforma/supporto-remoto/azioni"
+        changed = client.post(f"{base}/stato", json={"params": {"public_id": first_id}, "values": {"status": "closed"}})
+        with app.app_context():
+            stato_dopo = support_repository().get_session_by_public_id(first_id)["status"]
+        deleted_one = client.post(f"{base}/cancella", json={"params": {"public_id": keep_id}, "values": {}})
+        cleanup = client.post(f"{base}/cancella-prove", json={"params": {}, "values": {}})
 
     assert changed.status_code == 200
-    assert changed.get_json()["session"]["status"] == "closed"
+    assert changed.get_json()["ok"] is True
+    assert stato_dopo == "closed"
     assert deleted_one.status_code == 200
-    assert deleted_one.get_json()["deleted"] == 1
+    assert deleted_one.get_json()["ok"] is True
     assert cleanup.status_code == 200
-    assert cleanup.get_json()["deleted"] == 1
+    assert cleanup.get_json()["message"] == "Sessioni di prova cancellate: 1."
 
     with app.app_context():
         repo = support_repository()
@@ -814,43 +810,14 @@ def test_support_remote_operator_room_has_full_screen_control_panel(tmp_path: Pa
 
 def test_support_remote_pc_control_scripts_use_browser_screen_and_local_signer_fallback():
     operator_script = Path("web/static/js/support_operator_room.js").read_text(encoding="utf-8")
-    customer_script = Path("web/static/js/support_customer_room.js").read_text(encoding="utf-8")
     agent_source = Path("pct/support_remote.py").read_text(encoding="utf-8")
     local_signer = Path("tools/local_signer.py").read_text(encoding="utf-8")
 
     assert 'type: "remote_control"' in operator_script
-    assert 'message.type === "remote_control"' in customer_script
-    assert 'fetchAgent("/arm"' in customer_script
-    assert 'fetchAgent("/screenshot"' in customer_script
     assert "screen_frame" in operator_script
-    assert "screen_frame" in customer_script
     assert "remoteDisplayedRect" in operator_script
     assert "remoteFrameMeta" in operator_script
     assert "remoteFrameMeta = {" in operator_script
-    assert "getUserMedia({ audio: true, video: false })" in customer_script
-    assert "getDisplayMedia" in customer_script
-    assert "http://127.0.0.1:27273" in customer_script
-    assert "http://127.0.0.1:27272/support" in customer_script
-    assert "localSignerLatestVersion" in customer_script
-    assert "fetchLocalSigner(\"/update\"" in customer_script
-    assert "fetchLocalSigner(\"/support/status\"" in customer_script
-    assert "Local Signer pronto per il controllo PC" in customer_script
-    assert "Verifico Local Signer o agente IUSENTRA Assistenza sul PC" in customer_script
-    assert "La sola visualizzazione dello schermo funziona già dal browser." in customer_script
-    assert "Microfono non autorizzato o non disponibile sul PC: assistenza avviata senza audio." in customer_script
-    assert "Microfono non disponibile: assistenza avviata senza audio." in customer_script
-    assert "return [];" in customer_script
-    assert "localStream = audioTracks.length ? new MediaStream(audioTracks) : null" in customer_script
-    assert 'targetAddressSpace: "loopback"' in customer_script
-    assert "await startAgentScreenShare();" in customer_script
-    assert "wsOpenPromise = new Promise" in customer_script
-    assert "Canale realtime chiuso prima della connessione." in customer_script
-    assert "function toggleCustomerMicrophone()" in customer_script
-    assert "tracks.length > 0 || Boolean(consentAudio?.checked)" in customer_script
-    assert "Microfono cliente disattivato all'avvio" in customer_script
-    assert 'consentAudio?.addEventListener("change"' in customer_script
-    assert "track.enabled = !customerMicMuted" in customer_script
-    assert "Microfono cliente disattivato" in customer_script
     assert 'pc.addTransceiver("audio", { direction: "recvonly" })' in operator_script
     assert 'pc.addTransceiver("video", { direction: "recvonly" })' in operator_script
     assert 'const remoteAudio = $("remoteAudio")' in operator_script
@@ -868,13 +835,11 @@ def test_support_remote_pc_control_scripts_use_browser_screen_and_local_signer_f
     assert "handleRemoteControlAck" in operator_script
     assert "remoteCommandAckTimeoutMs = 10000" in operator_script
     assert "document.hidden) return" not in operator_script
-    assert "document.hidden) return" not in customer_script
     assert "Microfono operatore disattivato all'avvio" in operator_script
     assert 'operatorMic?.addEventListener("change"' in operator_script
     assert "track.enabled = !operatorMicMuted" in operator_script
     assert "Microfono operatore disattivato" in operator_script
     assert "allow_control: bool" in agent_source
-    assert "await connectWs();" in customer_script
     assert 'id="support-operator-react-root"' in Path("web/templates/support/operator_room.html").read_text(encoding="utf-8")
     assert "SupportOperatorRoom" in Path("frontend/src/reactEntry.tsx").read_text(encoding="utf-8")
     assert "IUSENTRA Support Remote Agent" in agent_source
@@ -919,21 +884,21 @@ def test_support_remote_platform_config_can_be_saved_from_console(tmp_path: Path
             session_tx["auth_tenant_slug"] = ""
             session_tx["last_activity"] = datetime.now().isoformat()
 
+        # Azione «configurazione» della pagina React «Assistenza remota».
         response = client.post(
-            "/admin/supporto-remoto/configurazione",
-            data={
+            "/api/v1/ui/piattaforma/supporto-remoto/azioni/configurazione",
+            json={"params": {}, "values": {
                 "stun_urls": "stun:turn.example.it:3478",
                 "turn_urls": "turn:turn.example.it:3478?transport=udp",
                 "turn_shared_secret": "support-secret-demo",
                 "turn_ttl_seconds": "7200",
                 "ws_token_max_age": "1800",
                 "advanced_url_template": "https://support.example.it/advanced/{public_id}",
-            },
-            follow_redirects=True,
+            }},
         )
 
     assert response.status_code == 200
-    assert "Configurazione assistenza remota aggiornata." in response.get_data(as_text=True)
+    assert response.get_json()["message"] == "Configurazione assistenza remota aggiornata."
     assert app.config["SUPPORT_STUN_URLS"] == ["stun:turn.example.it:3478"]
     assert app.config["SUPPORT_TURN_URLS"] == ["turn:turn.example.it:3478?transport=udp"]
     assert app.config["SUPPORT_TURN_SHARED_SECRET"] == "support-secret-demo"
@@ -958,17 +923,17 @@ def test_support_remote_empty_stun_preserves_ready_default(tmp_path: Path):
             session_tx["auth_tenant_slug"] = ""
             session_tx["last_activity"] = datetime.now().isoformat()
 
+        # Azione «configurazione» della pagina React «Assistenza remota».
         response = client.post(
-            "/admin/supporto-remoto/configurazione",
-            data={
+            "/api/v1/ui/piattaforma/supporto-remoto/azioni/configurazione",
+            json={"params": {}, "values": {
                 "stun_urls": "",
                 "turn_urls": "",
                 "turn_shared_secret": "",
                 "turn_ttl_seconds": "3600",
                 "ws_token_max_age": "43200",
                 "advanced_url_template": "",
-            },
-            follow_redirects=True,
+            }},
         )
 
     assert response.status_code == 200
@@ -981,19 +946,8 @@ def test_support_remote_empty_stun_preserves_ready_default(tmp_path: Path):
     assert payload["warnings"] == []
 
 
-def test_support_remote_console_clipboard_failure_non_bloccante():
-    script = Path("web/static/js/support_console.js").read_text(encoding="utf-8")
-
-    assert "let clipboardCopied = false" in script
-    assert "clipboardCopied = false;" in script
-    assert "Link cliente pronto nel campo dedicato" in script
-    assert "Impossibile creare la sessione" in script
-
-
 def test_support_remote_studio_launcher_opens_customer_room():
     script = Path("web/static/js/support_launch.js").read_text(encoding="utf-8")
-    customer_script = Path("web/static/js/support_customer_room.js").read_text(encoding="utf-8")
-    customer_page = Path("web/templates/support/customer_room.html").read_text(encoding="utf-8")
 
     assert "payload.customer_entry" in script
     assert "Apri stanza cliente" in script
@@ -1001,26 +955,3 @@ def test_support_remote_studio_launcher_opens_customer_room():
     assert "function showSupportModal()" in script
     assert "modal.style.display = \"block\"" in script
     assert 'button.dataset.supportEndpoint || "/support/api/session"' in script
-    assert 'id="takeChargeNotice"' in customer_page
-    assert 'id="customerFullscreenBtn"' in customer_page
-    assert 'id="compactChatBtn"' in customer_page
-    assert 'id="customerMuteMicBtn"' in customer_page
-    assert 'id="customerScreenPanel"' in customer_page
-    assert 'id="customerChatPanel"' in customer_page
-    assert "Autorizzazioni assistenza" in customer_page
-    assert "Schermo condiviso: la visualizzazione" not in customer_page
-    assert "Il video del cliente comparir" not in customer_page
-    assert 'id="customerChatPanel">\n        <div class="card-header fw-semibold">\n          <i class="bi bi-chat-dots' in customer_page
-    assert "Local Signer aggiornato o l'agente IUSENTRA Assistenza" in customer_page
-    assert "Richiesta visualizzata dal SUPERADMIN" in customer_page
-    assert "support-customer-shell--fullscreen" in customer_page
-    assert "support-customer-chat--compact" in customer_page
-    assert "setTakeChargeNotice(session)" in customer_script
-    assert "startBtn.disabled = !canStart" in customer_script
-    assert "toggleCustomerFullscreen" in customer_script
-    assert "toggleCompactChat" in customer_script
-    assert "toggleCustomerMicrophone" in customer_script
-    assert "statePollDelayMs = 12000" in customer_script
-    assert "stateUrl()" in customer_script
-    assert "stateSyncInFlight" in customer_script
-    assert "window.setInterval(syncState, statePollDelayMs)" in customer_script

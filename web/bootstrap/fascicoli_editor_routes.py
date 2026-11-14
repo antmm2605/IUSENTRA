@@ -6,16 +6,17 @@ import hashlib
 import io
 import tempfile
 from collections.abc import Callable
-from datetime import date
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
+from pct.editor_export import ConversioneEditorScaduta
 from web.services.security_redaction import redacted_json_response
 from web.services.document_edit_policy import motivo_blocco_editor, pdf_studio_modificabile
 from web.services.document_word_fonts import SourceFontCoverageError
 from web.services.editor_document_indexing import indicizza_salvataggio_editor as _indicizza_salvataggio_editor
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def _wants_json_response() -> bool:
@@ -23,10 +24,6 @@ def _wants_json_response() -> bool:
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or "application/json" in request.headers.get("Accept", "")
     )
-
-
-def _richiede_vista_classica() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_fascicoli_editor_routes(
@@ -107,49 +104,8 @@ def register_fascicoli_editor_routes(
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
     def editor_documento(id_fasc, id_doc):
-        from pct.editor import estensione_editabile
-
-        gestore_fascicoli = get_fascicoli()
-        try:
-            fascicolo = gestore_fascicoli.get(id_fasc)
-            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None) if fascicolo else None
-            # Firmati e buste .p7m si aprono nell'editor React in «modifica su copia»:
-            # l'originale resta intatto. La vista classica non la gestisce.
-            if documento and _richiede_vista_classica() and (documento.firmato_digitalmente or documento.nome.lower().endswith(".p7m")):
-                return redirect(url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc))
-        except Exception:
-            fascicolo = None
-            documento = None
-
-        if not _richiede_vista_classica():
-            from web.blueprints.react_shell import render_react_shell_response
-
-            return render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")
-
-        try:
-            if not fascicolo:
-                flash("Fascicolo non trovato.", "warning")
-                return redirect(url_for("lista_fascicoli"))
-            if not documento:
-                flash("Documento non trovato.", "warning")
-                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-            if not estensione_editabile(documento.nome):
-                flash(
-                    f"Formato '{documento.nome.split('.')[-1].upper()}' non supportato dall'editor.",
-                    "warning",
-                )
-                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-            return render_template(
-                "fascicoli/editor_documento.html",
-                id_fasc=id_fasc,
-                fasc=fascicolo,
-                doc=documento,
-                oggi=date.today(),
-            )
-        except Exception as exc:
-            app.logger.exception("Errore editor_documento: %s", exc)
-            flash("Documento non aperto nell'editor.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        # Editor del documento: pagina React (DocumentEditorPage); firmati e .p7m in modifica su copia.
+        return render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/converti-pdfa", methods=["POST"])
     def converti_documento_pdfa(id_fasc, id_doc):
@@ -379,6 +335,8 @@ def register_fascicoli_editor_routes(
             )
         except ImportError:
             return jsonify({"errore": "Generazione PDF non disponibile."}), 503
+        except ConversioneEditorScaduta as exc:
+            return jsonify({"errore": str(exc)}), 503
         except SourceFontCoverageError as error:
             return jsonify({"errore": str(error)}), 422
         except Exception as exc:

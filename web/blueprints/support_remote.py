@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from functools import wraps
 
-from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, g, jsonify, redirect, render_template, request, url_for
 
 from pct.notifications import NotificationServiceError
 from pct.support_remote import (
@@ -13,7 +13,7 @@ from pct.support_remote import (
     issue_operator_token,
     verify_operator_token,
 )
-from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell
 from web.services.support_runtime import (
     audit_support_studio_action,
     audit_support_action,
@@ -31,7 +31,6 @@ from web.services.support_runtime import (
 )
 from web.services.support_customer_room import render_customer_room
 from web.services.support_surface import build_support_console_payload
-from web.services.support_surface import save_support_configuration
 
 
 support_remote = Blueprint("support_remote", __name__)
@@ -72,14 +71,7 @@ SUPPORT_SESSION_STATUSES = {
 @support_remote.get("/admin/supporto-remoto")
 @superadmin_required
 def support_console():
-    if not vista_classica_richiesta():
-        return render_piattaforma_shell("supporto-remoto", "Assistenza remota")
-    payload = build_support_console_payload(
-        selected_public_id=str(request.args.get("sessione") or "").strip(),
-        status_filter=str(request.args.get("stato") or "").strip(),
-        query=str(request.args.get("q") or "").strip(),
-    )
-    return render_template("admin/support_console.html", payload=payload)
+    return render_piattaforma_shell("supporto-remoto", "Assistenza remota")
 
 
 @support_remote.get("/admin/supporto-remoto/api")
@@ -144,92 +136,6 @@ def support_push_test():
     except Exception:
         current_app.logger.exception("Test notifiche dispositivo assistenza non completato")
         return _json_error("Notifica di test non completata.", 500)
-
-
-@support_remote.post("/admin/supporto-remoto/configurazione")
-@superadmin_required
-def save_support_config():
-    try:
-        save_support_configuration(request.form.to_dict())
-    except Exception as exc:
-        flash(f"Configurazione assistenza remota non salvata: {exc}", "danger")
-        return redirect(url_for("support_remote.support_console", _legacy=1))
-    flash("Configurazione assistenza remota aggiornata.", "success")
-    return redirect(url_for("support_remote.support_console", _legacy=1))
-
-
-@support_remote.post("/admin/supporto-remoto/<public_id>/stato")
-@superadmin_required
-def change_console_status(public_id: str):
-    operator = support_operator_identity_or_403()
-    next_status = str(request.form.get("status") or _json_payload().get("status") or "").strip()
-    if next_status not in SUPPORT_SESSION_STATUSES:
-        message = "Stato assistenza non valido."
-        if request.is_json:
-            return _json_error(message, 400)
-        flash(message, "danger")
-        return redirect(url_for("support_remote.support_console", _legacy=1, sessione=public_id))
-    repo = support_repository()
-    if repo.get_session_by_public_id(public_id) is None:
-        if request.is_json:
-            return _json_error("Sessione assistenza non trovata.", 404)
-        flash("Sessione assistenza non trovata.", "danger")
-        return redirect(url_for("support_remote.support_console", _legacy=1))
-    updated = repo.update_session(public_id, status=next_status) or {}
-    log_support_event(
-        public_id,
-        event_type="status_changed",
-        actor_role="operator",
-        actor_name=operator["name"],
-        payload={"status": next_status},
-    )
-    audit_support_action(
-        "supporto_remoto.cambia_stato",
-        public_id=public_id,
-        details=f"{operator['name']} ha impostato lo stato assistenza a {next_status}.",
-    )
-    if request.is_json:
-        return jsonify({"ok": True, "session": support_session_payload(updated)})
-    flash("Stato assistenza aggiornato.", "success")
-    return redirect(url_for("support_remote.support_console", _legacy=1, sessione=public_id))
-
-
-@support_remote.post("/admin/supporto-remoto/<public_id>/cancella")
-@superadmin_required
-def delete_from_console(public_id: str):
-    operator = support_operator_identity_or_403()
-    repo = support_repository()
-    row = repo.get_session_by_public_id(public_id)
-    if row is None:
-        if request.is_json:
-            return _json_error("Sessione assistenza non trovata.", 404)
-        flash("Sessione assistenza non trovata.", "danger")
-        return redirect(url_for("support_remote.support_console", _legacy=1))
-    deleted = repo.delete_session(public_id)
-    audit_support_action(
-        "supporto_remoto.cancella_sessione",
-        public_id=public_id,
-        details=f"{operator['name']} ha cancellato la sessione assistenza {public_id}.",
-    )
-    if request.is_json:
-        return jsonify({"ok": deleted, "deleted": 1 if deleted else 0})
-    flash("Sessione assistenza cancellata." if deleted else "Sessione assistenza non cancellata.", "success" if deleted else "warning")
-    return redirect(url_for("support_remote.support_console", _legacy=1))
-
-
-@support_remote.post("/admin/supporto-remoto/prove/cancella")
-@superadmin_required
-def delete_test_sessions_from_console():
-    operator = support_operator_identity_or_403()
-    deleted = support_repository().delete_test_sessions()
-    audit_support_action(
-        "supporto_remoto.cancella_prove",
-        details=f"{operator['name']} ha cancellato {deleted} sessioni di prova assistenza remota.",
-    )
-    if request.is_json:
-        return jsonify({"ok": True, "deleted": deleted})
-    flash(f"Sessioni di prova cancellate: {deleted}.", "success")
-    return redirect(url_for("support_remote.support_console", _legacy=1))
 
 
 @support_remote.post("/support/api/session")
@@ -382,7 +288,7 @@ def customer_room(token: str):
         actor_name=row["customer_name"] or "Cliente",
         payload={"user_agent": request.headers.get("User-Agent", "")},
     )
-    # Pagina React; con ?_legacy=1 la vista classica (template + script legacy).
+    # Pagina React della stanza del cliente.
     return render_customer_room(row)
 
 
@@ -638,20 +544,3 @@ def close_api(public_id: str):
             details=f"{actor_name} ha chiuso la sessione di assistenza remota.",
         )
     return jsonify({"ok": True, "session": support_session_payload(updated)})
-
-
-@support_remote.post("/admin/supporto-remoto/<public_id>/chiudi")
-@superadmin_required
-def close_from_console(public_id: str):
-    operator = support_operator_identity_or_403()
-    updated = support_repository().update_session(
-        public_id,
-        status="closed",
-        ended_at=datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-    )
-    if updated is None:
-        flash("Sessione non trovata.", "warning")
-        return redirect(url_for("support_remote.support_console", _legacy=1))
-    log_support_event(public_id, event_type="session_closed", actor_role="operator", actor_name=operator["name"])
-    flash("Sessione di assistenza chiusa.", "success")
-    return redirect(url_for("support_remote.support_console", _legacy=1, sessione=public_id))

@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
-from dataclasses import replace
-from datetime import date
-from pathlib import Path
 
-from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, redirect, request, session, url_for
 
 from pct.fascicoli import TipoDocumento
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_checklist_routes(
@@ -22,19 +19,6 @@ def register_checklist_routes(
     audit: Callable[..., None],
 ) -> None:
     """Register checklist catalog and fascicolo wizard routes."""
-
-    endpoint_aliases = {
-        "messaggi": "lista_messaggi",
-    }
-
-    def _resolve_endpoint_operativo(endpoint_name: str) -> str:
-        raw = str(endpoint_name or "").strip()
-        if not raw:
-            return ""
-        for candidate in (raw, endpoint_aliases.get(raw, "")):
-            if candidate and candidate in app.view_functions:
-                return candidate
-        return ""
 
     def _wizard_step_stato(fascicolo, documento_richiesto, id_template):
         nota_tag = f"[wizard:{id_template}:step{documento_richiesto.numero}]"
@@ -58,83 +42,13 @@ def register_checklist_routes(
 
     @app.route("/checklist")
     def checklist_atti():
-        from pct.checklist_atti import AREA_META, CANALE_COL, CANALE_ICON, CANALE_LABEL, CATEGORIE, TUTTI_I_TEMPLATE, costruisci_catalogo_checklist, statistiche_copertura_template_atti
-
-        query = (request.args.get("q") or "").strip()
-        area_filtro = (request.args.get("area") or "").strip()
-        catalogo = costruisci_catalogo_checklist(area=area_filtro, q=query)
-        catalogo_completo = costruisci_catalogo_checklist()
-        copertura_template_atti = statistiche_copertura_template_atti()
-        aree_disponibili = [
-            {
-                "nome": area["nome"],
-                "label": area["nome"],
-                "count": area["template_count"],
-                "meta": AREA_META.get(area["nome"], {}),
-            }
-            for area in catalogo_completo
-        ]
-        totale_template = sum(area["template_count"] for area in catalogo)
-        totale_obbligatori = sum(area["documenti_obbligatori"] for area in catalogo)
-        totale_critici = sum(area["critici_count"] for area in catalogo)
-        return render_template(
-            "checklist/lista.html",
-            catalogo=catalogo,
-            aree_disponibili=aree_disponibili,
-            area_meta=AREA_META,
-            categorie=CATEGORIE,
-            canale_label=CANALE_LABEL,
-            canale_icon=CANALE_ICON,
-            canale_col=CANALE_COL,
-            q=query,
-            area_filtro=area_filtro,
-            totale_template=totale_template,
-            totale_aree=len(catalogo),
-            totale_documenti_obbligatori=totale_obbligatori,
-            totale_critici=totale_critici,
-            totale_template_completo=len(TUTTI_I_TEMPLATE),
-            copertura_template_atti=copertura_template_atti,
-            oggi=date.today(),
-        )
+        # Checklist degli atti e percorso guidato: pagina React (ChecklistAttiPage); dati e passi da /api/v1/ui.
+        return render_react_shell_response("checklist")
 
     @app.route("/checklist/<id_template>")
     def checklist_dettaglio(id_template):
-        from pct.checklist_atti import AREA_META, CANALE_COL, CANALE_ICON, CANALE_LABEL, CATEGORIE, get_template, nome_cartella_compilato, normalizza_data_cartella
-
-        template = get_template(id_template)
-        if not template:
-            flash("Template non trovato.", "warning")
-            return redirect(url_for("checklist_atti"))
-        endpoint_operativo = _resolve_endpoint_operativo(getattr(template, "endpoint_deposito", ""))
-        if endpoint_operativo != getattr(template, "endpoint_deposito", ""):
-            template = replace(template, endpoint_deposito=endpoint_operativo)
-        id_fasc = request.args.get("id_fasc", "")
-        fascicolo_ctx = None
-        if id_fasc:
-            fascicolo = get_fascicoli().get(id_fasc)
-            if fascicolo:
-                fascicolo_ctx = fascicolo
-        parte = request.args.get("parte") or (fascicolo_ctx.controparte if fascicolo_ctx else "")
-        rg = request.args.get("rg") or (getattr(fascicolo_ctx, "numero_rg", "") if fascicolo_ctx else "")
-        data = request.args.get("data", date.today().isoformat())
-        cartella = nome_cartella_compilato(template, parte=parte, rg=rg, data=data)
-        return render_template(
-            "checklist/dettaglio.html",
-            tmpl=template,
-            cartella=cartella,
-            parte=parte,
-            rg=rg,
-            data=data,
-            data_cartella=normalizza_data_cartella(data),
-            id_fasc=id_fasc,
-            fascicolo=fascicolo_ctx,
-            categorie=CATEGORIE,
-            canale_label=CANALE_LABEL,
-            canale_icon=CANALE_ICON,
-            canale_col=CANALE_COL,
-            area_meta=AREA_META,
-            oggi=date.today(),
-        )
+        # Checklist degli atti e percorso guidato: pagina React (ChecklistAttiPage); dati e passi da /api/v1/ui.
+        return render_react_shell_response(f"checklist/{id_template}")
 
     @app.route("/fascicoli/<id_fasc>/wizard/<id_template>")
     def wizard_atto_avvia(id_fasc, id_template):
@@ -163,177 +77,15 @@ def register_checklist_routes(
 
     @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/step/<int:n>", methods=["GET", "POST"])
     def wizard_atto_step(id_fasc, id_template, n):
-        from pct.checklist_atti import get_template, nome_cartella_compilato
-
-        gestore_fascicoli = get_fascicoli()
-        fascicolo = gestore_fascicoli.get(id_fasc)
-        if not fascicolo:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-        template = get_template(id_template)
-        if not template:
-            flash("Template non trovato.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-        doc_step = next((doc for doc in template.documenti if doc.numero == n), None)
-        if not doc_step:
-            flash("Step non trovato.", "danger")
-            return redirect(url_for("wizard_atto_avvia", id_fasc=id_fasc, id_template=id_template))
-
+        # Checklist degli atti e percorso guidato: pagina React (ChecklistAttiPage); dati e passi da /api/v1/ui.
         if request.method == "POST":
-            azione = request.form.get("azione", "carica")
-            utente = g.utente_corrente
-
-            if azione == "salta" and not doc_step.obbligatorio:
-                skip_key = f"wiz_skip_{id_fasc}_{id_template}"
-                skipped = session.get(skip_key, [])
-                if n not in skipped:
-                    skipped.append(n)
-                session[skip_key] = skipped
-                flash(f"'{doc_step.descrizione}' saltato.", "info")
-
-            elif azione == "carica":
-                if "file" not in request.files or not request.files["file"].filename:
-                    flash("Seleziona un file da caricare.", "warning")
-                    return redirect(url_for("wizard_atto_step", id_fasc=id_fasc, id_template=id_template, n=n))
-                file = request.files["file"]
-                estensione = Path(file.filename).suffix or ".pdf"
-                nome_wizard = f"{doc_step.nome_file}{estensione}"
-                try:
-                    contenuto = encrypt_doc(file.read())
-                    nota = f"[wizard:{id_template}:step{n}]"
-                    nota_extra = request.form.get("note", "").strip()
-                    if nota_extra:
-                        nota = f"{nota} {nota_extra}"
-                    gestore_fascicoli.aggiungi_documento(
-                        id_fasc,
-                        nome_file=nome_wizard,
-                        tipo=TipoDocumento(request.form.get("tipo_doc", "ALTRO")),
-                        contenuto=contenuto,
-                        note=nota,
-                        data_documento=request.form.get("data_documento", ""),
-                        firmato=request.form.get("firmato") == "1",
-                        caricato_da=utente.username if utente else "",
-                    )
-                    flash(f"'{doc_step.descrizione}' caricato come {nome_wizard}.", "success")
-                    audit(
-                        "fascicoli.wizard.carica",
-                        "fascicolo",
-                        id_fasc,
-                        dettagli=f"template:{id_template} step:{n} -> {nome_wizard}",
-                    )
-                except (ValueError, KeyError) as exc:
-                    flash(str(exc), "danger")
-                    return redirect(url_for("wizard_atto_step", id_fasc=id_fasc, id_template=id_template, n=n))
-
-            prossimo = n + 1
-            if prossimo <= len(template.documenti):
-                return redirect(url_for("wizard_atto_step", id_fasc=id_fasc, id_template=id_template, n=prossimo))
-            return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc, id_template=id_template))
-
-        skip_key = f"wiz_skip_{id_fasc}_{id_template}"
-        skipped = session.get(skip_key, [])
-        steps_stato = []
-        for documento in template.documenti:
-            stato = _wizard_step_stato(fascicolo, documento, id_template)
-            if stato == "pending" and not documento.obbligatorio and documento.numero in skipped:
-                stato = "saltato"
-            steps_stato.append(
-                {
-                    "doc": documento,
-                    "stato": stato,
-                    "documento": _trova_documento_wizard(fascicolo, documento, id_template),
-                }
-            )
-        return render_template(
-            "fascicoli/wizard_atto.html",
-            fascicolo=fascicolo,
-            tmpl=template,
-            step_corrente=doc_step,
-            step_n=n,
-            step_totale=len(template.documenti),
-            steps_stato=steps_stato,
-            doc_esistente=_trova_documento_wizard(fascicolo, doc_step, id_template),
-            nome_cartella=nome_cartella_compilato(template, fascicolo.controparte, fascicolo.numero_rg),
-            oggi=date.today(),
-            tipo_documento_choices=[(tipo.value, tipo.value.replace("_", " ").title()) for tipo in TipoDocumento],
-        )
+            return redirect(request.path)
+        return render_react_shell_response(f"fascicoli/{id_fasc}/wizard/{id_template}/step/{n}")
 
     @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/completa")
     def wizard_atto_completa(id_fasc, id_template):
-        from pct.checklist_atti import CANALE_COL, CANALE_ICON, CANALE_LABEL, get_template, nome_cartella_compilato
-
-        fascicolo = get_fascicoli().get(id_fasc)
-        if not fascicolo:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-        template = get_template(id_template)
-        if not template:
-            flash("Template non trovato.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-        skip_key = f"wiz_skip_{id_fasc}_{id_template}"
-        skipped = session.get(skip_key, [])
-        steps_stato = []
-        tutti_obbligatori = True
-        for documento in template.documenti:
-            stato = _wizard_step_stato(fascicolo, documento, id_template)
-            if stato == "pending" and not documento.obbligatorio and documento.numero in skipped:
-                stato = "saltato"
-            if documento.obbligatorio and stato == "pending":
-                tutti_obbligatori = False
-            steps_stato.append(
-                {
-                    "doc": documento,
-                    "stato": stato,
-                    "documento": _trova_documento_wizard(fascicolo, documento, id_template),
-                }
-            )
-
-        pec_tribunale = ""
-        if fascicolo.tribunale:
-            try:
-                from pct.uffici_giudiziari import get_gestore as get_uffici
-
-                cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                ufficio = next(
-                    (
-                        row
-                        for row in get_uffici(cache_path).carica()
-                        if str(row.get("nome", "")).lower() == fascicolo.tribunale.lower()
-                    ),
-                    None,
-                )
-                pec_tribunale = str((ufficio or {}).get("pec") or "")
-            except Exception:
-                pass
-
-        pec_configurata = False
-        firma_backend = "nessuno"
-        canale_reale_configurato = False
-        try:
-            config = get_config_studio().config
-            pec_configurata = bool(config and config.pec and config.pec.indirizzo and config.pec.password)
-            firma_backend = getattr(getattr(config, "firma", None), "backend_firma_effettivo_safe", "nessuno") or "nessuno"
-            canale_reale_configurato = firma_backend in {"p12", "pem"} if template.canale == "PTT_TRIBUTARIO" else pec_configurata
-        except Exception:
-            pass
-
-        return render_template(
-            "fascicoli/wizard_completa.html",
-            fascicolo=fascicolo,
-            tmpl=template,
-            steps_stato=steps_stato,
-            tutti_obbligatori=tutti_obbligatori,
-            nome_cartella=nome_cartella_compilato(template, fascicolo.controparte, fascicolo.numero_rg),
-            pec_tribunale=pec_tribunale,
-            pec_configurata=pec_configurata,
-            firma_backend=firma_backend,
-            canale_reale_configurato=canale_reale_configurato,
-            canale_label=CANALE_LABEL,
-            canale_icon=CANALE_ICON,
-            canale_col=CANALE_COL,
-            oggi=date.today(),
-        )
+        # Checklist degli atti e percorso guidato: pagina React (ChecklistAttiPage); dati e passi da /api/v1/ui.
+        return render_react_shell_response(f"fascicoli/{id_fasc}/wizard/{id_template}/completa")
 
     @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/genera-indice", methods=["POST"])
     def wizard_genera_indice(id_fasc, id_template):

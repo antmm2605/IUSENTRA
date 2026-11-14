@@ -46,6 +46,8 @@ export type NotiziarioItem = {
   title: string
   summary: string
   content: string
+  verifiedAction?: string
+  verifiedEvidence?: string
   newsType: string
   kind: string
   kindLabel: string
@@ -195,6 +197,8 @@ function normaliseItem(value: unknown): NotiziarioItem {
     title: text(item.title) || 'Aggiornamento senza titolo',
     summary: text(item.summary),
     content: text(item.content),
+    verifiedAction: text(item.verifiedAction),
+    verifiedEvidence: text(item.verifiedEvidence),
     newsType: text(item.newsType) || 'focus',
     kind,
     kindLabel: text(item.kindLabel),

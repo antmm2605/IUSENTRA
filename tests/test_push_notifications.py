@@ -926,6 +926,21 @@ def test_scheduler_materializza_udienza_collegata_e_push_senza_aprire_pannello(t
             tenant_id="default",
         )
 
+    monkeypatch.setattr(
+        "web.services.termine_lungo_runtime.riconvalida_termini_lunghi_runtime",
+        lambda _: {"errore": "Archivio delle letture non disponibile"},
+    )
+    with app.app_context():
+        parziale = materialize_agenda_scadenziario_notifications_for_paths(
+            paths, tenant_label="default", tenant_id="default",
+        )
+    assert parziale["ok"] is False
+    assert parziale["errors"] == 1
+    assert parziale["items"] == first["items"]
+    assert parziale["controlliNonCompletati"] == {
+        "Riconvalida delle bozze per il termine lungo": "Archivio delle letture non disponibile",
+    }
+
     user_id = _stored_user_id_from_paths(paths)
     records = NotificationRepository(paths["NOTIFICATIONS_DB"]).list_notifications("default", user_id)
     assert first["ok"] is True
@@ -937,6 +952,28 @@ def test_scheduler_materializza_udienza_collegata_e_push_senza_aprire_pannello(t
     assert records[0].source_type == "pec_deadline"
     assert records[0].payload_json["remoteHearingUrl"] == remote_url
     assert len(pushed) == 1
+
+    def archivio_non_leggibile(self, *args, **kwargs):
+        raise OSError("Agenda temporaneamente non disponibile")
+
+    monkeypatch.setattr(
+        "web.services.termine_lungo_runtime.riconvalida_termini_lunghi_runtime", lambda _: {},
+    )
+    NotificationService(NotificationRepository(paths["NOTIFICATIONS_DB"])).sync_operational_items(
+        tenant_id="default", user_id=user_id,
+        items=[{"id": "hearing:existing", "type": "hearing", "title": "Udienza già nella lista"}],
+        expire_source_types={"hearing"},
+    )
+    monkeypatch.setattr(Agenda, "tutti", archivio_non_leggibile)
+    with app.app_context():
+        incompleto = materialize_agenda_scadenziario_notifications_for_paths(
+            paths, tenant_label="default", tenant_id="default",
+        )
+    assert incompleto["ok"] is False
+    assert incompleto["recipients"] == 0
+    assert incompleto["errors"] >= 1
+    ancora_attive = NotificationRepository(paths["NOTIFICATIONS_DB"]).list_notifications("default", user_id)
+    assert {record.dedupe_key for record in ancora_attive} == {dedupe_key, "hearing:existing"}
     assert pushed[0]["remoteHearingUrl"] == remote_url
 
 

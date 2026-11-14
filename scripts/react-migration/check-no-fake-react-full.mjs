@@ -254,6 +254,7 @@ if (backupRow?.manifestStatus === 'react_operational_full') {
   const backupPostEndpoints = [
     '@api_v1_react.post("/backup/crea")',
     '@api_v1_react.post("/backup/verifica")',
+    '@api_v1_react.post("/backup/ripristina")',
   ]
 
   if (/\bLegacyPostForm\b/.test(backupComponent)) {
@@ -279,8 +280,16 @@ if (backupRow?.manifestStatus === 'react_operational_full') {
   if (/response\.blob|new Blob|URL\.createObjectURL/.test(backupCombined)) {
     violations.push('/backup: download backup non deve essere gestito con blob React.')
   }
-  if (/\brestoreBackup\b|\bdeleteBackup\b|ripristinaBackup|eliminaBackup/.test(backupCombined)) {
-    violations.push('/backup: restore/delete non devono essere implementati nel flusso React.')
+  const restorePanel = read('frontend/src/features/impostazioni/components/BackupSettingsPanel.tsx')
+  const restorePermission = /@api_v1_react\.post\("\/backup\/ripristina"\)\s+@_richiedi_auth\s+def backup_ripristina\(\):\s+if not _puo_eseguire_backup\(\):/.test(apiSource)
+  if (/\bdeleteBackup\b|eliminaBackup/.test(`${backupCombined}\n${restorePanel}`)) {
+    violations.push('/backup: eliminazione copie fuori dal contratto React.')
+  }
+  if (!restorePanel.includes('confirm: confirmRestore')
+      || !restorePermission
+      || !backupBridge.includes('payload.get("confirm") is not True')
+      || !backupBridge.includes('destinazione = _restore_root(manager) / folder')) {
+    violations.push('/backup: ripristino privo di conferma, permesso o destinazione dedicata.')
   }
   if (/"(token|api_key|secret|stack_trace|traceback|absolute_path|full_path)"\s*:/i.test(backupBridge)) {
     violations.push('/backup: bridge React non deve serializzare token, API key, secret, stack trace o path sensibili.')
@@ -466,8 +475,14 @@ if (incassiRow?.manifestStatus === 'react_operational_full') {
   if (/\?_legacy=1/.test(page) && !/(Rollback tecnico|Percorso di recupero|Impostazioni provider legacy)/.test(page)) {
     violations.push('/incassi-pagamenti: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
-  if (!/\bapiPostJson\b/.test(data) || !/\bregisterIncasso\b/.test(page)) {
-    violations.push('/incassi-pagamenti: azioni principali devono usare apiPostJson e funzioni data client.')
+  const receiptPanel = read('frontend/src/components/InvoiceReceiptsPanel.tsx')
+  const receiptClient = read('frontend/src/invoiceReceiptsData.ts')
+  const receiptRoutes = read('web/bootstrap/invoice_receipts_routes.py')
+  if (!/\bapiPostJson\b/.test(data) || !page.includes('<InvoiceReceiptsPanel')
+      || !receiptPanel.includes('useInvoiceReceiptCommand')
+      || !receiptClient.includes('export async function sendReceiptCommand')
+      || !receiptRoutes.includes("@app.post('/api/fatturazione/<invoice_id>/incassi')")) {
+    violations.push('/incassi-pagamenti: la registrazione deve passare dal pannello e dall’API degli incassi del documento.')
   }
   if (!/["']writes["']\s*:\s*["']json_api["']/.test(bridge)) {
     violations.push('/incassi-pagamenti: bridge incassi deve dichiarare writes json_api.')

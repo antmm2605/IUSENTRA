@@ -73,3 +73,42 @@ def test_senza_testo_salvato_non_si_apre_il_file():
     registro = _Registro([_ruolo()])
     assert recupera_esiti(_fascicolo(), registro, "t", sentenze={"S1"}, testo_salvato=lambda d: "") == {"controllate": 0, "recuperate": 0}
     assert registro.scritture == []
+
+
+def test_recupera_il_merito_mancante_senza_sovrascrivere_le_spese():
+    spese = SimpleNamespace(
+        oggetto_id="S1", fascicolo_id="F1", sha256="sha1", motore="documenti",
+        campo="spese_sentenza", valore="compensazione", categoria="evento",
+    )
+    registro = _Registro([_ruolo(), spese])
+    testo = (
+        "TRIBUNALE — SENTENZA\nP.Q.M.\n"
+        "Condanna il M.I.U.R. all’assegnazione in favore di parte ricorrente del beneficio; "
+        "compensa le spese di lite."
+    )
+
+    esito = recupera_esiti(_fascicolo(), registro, "t", sentenze={"S1"}, testo_salvato=lambda d: testo)
+
+    assert esito == {"controllate": 1, "recuperate": 1}
+    assert [f for f in registro.fatti if f.campo == "spese_sentenza"] == [spese]
+    assert [f.valore for f in registro.fatti if f.campo == "esito_sentenza"] == ["accoglimento"]
+
+
+def test_complete_spese_esistenti_dal_dispositivo_senza_duplicarle():
+    dati = dict(oggetto_id="S1", fascicolo_id="F1", sha256="sha1", motore="documenti",
+                categoria="evento", verifica="verificata")
+    esito_salvato = SimpleNamespace(**dati, campo="esito_sentenza", valore="accoglimento")
+    spese_salvate = SimpleNamespace(**dati, campo="spese_sentenza", valore="condanna;distrazione")
+    registro = _Registro([_ruolo(), esito_salvato, spese_salvate])
+    testo = (
+        "SENTENZA\nP.Q.M. accoglie il ricorso e riconosce buoni spesa pari a Euro 500; "
+        "condanna il Ministero a rimborsare a parte ricorrente le spese di lite, che si liquidano "
+        "complessivamente in \u20ac 258 oltre spese generali al 15%, IVA e CPA con distrazione al difensore."
+    )
+
+    esito = recupera_esiti(_fascicolo(), registro, "t", sentenze={"S1"}, testo_salvato=lambda d: testo)
+
+    assert esito == {"controllate": 1, "recuperate": 1}
+    assert [f.valore for f in registro.fatti if f.campo == "spese_sentenza"] == ["condanna;importo=258,00;distrazione"]
+    assert [f for f in registro.fatti if f.campo == "esito_sentenza"] == [esito_salvato]
+    assert recupera_esiti(_fascicolo(), registro, "t", sentenze={"S1"}, testo_salvato=lambda d: testo)["controllate"] == 0

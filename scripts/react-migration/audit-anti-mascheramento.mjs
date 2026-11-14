@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { routeComponentSource } from './full-react-check-utils.mjs'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const root = resolve(scriptDir, '../..')
@@ -152,7 +153,7 @@ if (!routeMap.has('/utenti/nuovo')) {
 
 const rows = [...routeMap.values()].map((entry) => {
   const sources = {
-    component: read(entry.targetComponent || ''),
+    component: routeComponentSource(entry),
     data: read(entry.targetData || ''),
     bridge: read(entry.targetBridge || ''),
     api: apiSource,

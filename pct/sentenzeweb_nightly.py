@@ -1,6 +1,7 @@
 """Nightly public acquisition, sharing the historical collector and its lock."""
 
 import hashlib
+import json
 import os
 import sqlite3
 import subprocess
@@ -72,10 +73,28 @@ def run_nightly(config):
                               timeout=max(1200, 3 * int(recovery_command[-1])), check=False, env=environment)
     if recovery.returncode not in (0, 75):
         raise RuntimeError("Public recovery failed; native queue and preserved originals retained")
+    report = {}
+    if recovery.returncode == 0:
+        try:
+            report = json.loads(recovery.stdout.strip().splitlines()[-1])
+            counters = ("processed", "recovered", "needs_evidence", "already_available")
+            if any(type(report.get(key)) is not int or report[key] < 0 for key in counters):
+                raise ValueError("Invalid recovery counters")
+            report = {key: report[key] for key in counters}
+            if report["processed"] != sum(report[key] for key in counters[1:]):
+                raise ValueError("Inconsistent recovery counters")
+        except (IndexError, ValueError, AttributeError) as exc:
+            raise RuntimeError("Public recovery completed without verifiable counters") from exc
+    with sqlite3.connect((directory / "giurisprudenza_corpus.db").as_uri() + "?mode=ro", uri=True) as connection:
+        pending = connection.execute("SELECT count(*) FROM sentenzeweb_recovery_queue WHERE status='pending'").fetchone()[0]
+    unresolved = report.get("needs_evidence", 0)
     return {
         "ok": True,
+        "status": "parziale" if unresolved else progress["status"],
+        "message": f"{unresolved} testi senza riscontro verificabile. {pending} ancora da esaminare." if unresolved else "",
         "recovery_status": "already_running" if recovery.returncode == 75 else "bounded_batch_completed",
-        "status": progress["status"],
+        "recovery": report,
+        "recovery_pending": pending,
         "source_records": progress["seen"],
         "expected": progress["expected"],
         "downloaded": progress["seen"] > 0,

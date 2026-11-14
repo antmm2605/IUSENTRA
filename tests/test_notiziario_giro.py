@@ -73,6 +73,8 @@ def test_giro_completo_con_una_fonte_giu_che_non_ferma_le_altre(tmp_path: Path, 
 
     assert esito["fonti_interrogate"] == len(fonti.FONTI)
     assert esito["fonti_non_raggiungibili"] == ["cnf", "curia"]
+    assert esito["status"] == "parziale"
+    assert "Corte di giustizia UE" in esito["message"]
     assert esito["notizie_nuove"] > 30
     stato = archivio.stato_fonti()
     assert stato["curia"]["ultimo_esito_ok"] is False
@@ -176,6 +178,12 @@ def test_vista_filtri_pagine_pertinenti_e_nuove(tmp_path: Path, monkeypatch):
     _pagine_istituzionali(monkeypatch)
     archivio = ArchivioNotiziario(tmp_path / "notiziario.sqlite")
     esegui_giro(archivio, request_get=_rete_registrata(), adesso=ADESSO)
+    monkeypatch.setenv("IUSENTRA_NOTIZIE_SOLO_VERIFICATE", "1")
+    for notizia in archivio.elenco():
+        archivio.salva_verifica(
+            notizia["id"], sintesi=notizia["titolo"], azione="Consultare l’atto per il caso in esame.",
+            evidenza=notizia["url"], verificata_il="2026-11-08",
+        )
     fascicoli = _fascicoli() + [{
         "id": "F3", "etichetta": "RG 12/2026 - Verdi c. INPS", "titolo": "Verdi c. INPS",
         "oggetto": "Cessione del quinto della pensione e traslazione del contratto", "tipo": "LAVORO", "area_pratica": "previdenza",

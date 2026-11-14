@@ -211,7 +211,6 @@ def build_support_console_payload(
         "push_status": push_status,
         "support_notifications": support_notifications,
         "create_action": url_for("support_remote.create_session_api"),
-        "config_action": url_for("support_remote.save_support_config"),
         "operator_rule": "Se la richiesta arriva dal bottone Assistenza dello studio, non creare una nuova sessione: selezionala dall'elenco e prendila in carico.",
         "advanced_ready": advanced_ready,
     }

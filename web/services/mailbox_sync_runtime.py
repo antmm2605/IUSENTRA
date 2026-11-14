@@ -187,17 +187,27 @@ def _pec_state_path(ctx: MailboxRuntimeContext) -> str:
     return os.path.join(os.path.dirname(os.path.abspath(fascicoli_db)), "pec_cancelleria_state.json")
 
 
-def _fascicoli_manager(ctx: MailboxRuntimeContext):
+def _fascicoli_manager(ctx: MailboxRuntimeContext, mailbox):
     if not ctx.data_paths and has_app_context():
         from web.helpers import get_fascicoli
 
         return get_fascicoli()
+    from pct.email_sql_client import GestioneEmailSQL
     from pct.fascicoli import GestioneFascicoli
 
+    fascicoli_db = _cfg_path(ctx, "FASCICOLI_DB", "./fascicoli/fascicoli.json")
+    studio_db = None
+    if isinstance(mailbox, GestioneEmailSQL):
+        root = Path(mailbox.db_path).resolve().parent.parent
+        if not Path(fascicoli_db).resolve().is_relative_to(root):
+            raise TenantDataPathError(CROSS_STUDIO_DATA_MESSAGE)
+        studio_db = mailbox.repository.db
     return GestioneFascicoli(
-        db_path=_cfg_path(ctx, "FASCICOLI_DB", "./fascicoli/fascicoli.json"),
+        db_path=fascicoli_db,
         documents_dir=_cfg_path(ctx, "FASCICOLI_DOCS", "./fascicoli/documenti"),
         archive_dir=_cfg_path(ctx, "FASCICOLI_ARCH", "./fascicoli/archivio"),
+        studio_db=studio_db,
+        carica_tutto=studio_db is None,
     )
 
 
@@ -298,7 +308,7 @@ def run_pec_mailbox_sync(
 
             workflow = sincronizza_pec_e_fascicoli(
                 gestione_email=gestore,
-                gestione_fascicoli=_fascicoli_manager(runtime),
+                gestione_fascicoli=_fascicoli_manager(runtime, gestore),
                 config_pec=pec_cfg,
                 state_path=_pec_state_path(runtime),
                 limite=limite,
@@ -324,7 +334,7 @@ def run_pec_mailbox_sync(
                 incremental_only=incremental_only,
             )
             if report.get("pst_trovate", 0) > 0:
-                log_esiti = aggiorna_esiti_da_email(gestore, _fascicoli_manager(runtime))
+                log_esiti = aggiorna_esiti_da_email(gestore, _fascicoli_manager(runtime, gestore))
                 auto_summary = _auto_summary(gestore, log_esiti)
 
         inizio_inviati = monotonic()

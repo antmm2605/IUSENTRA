@@ -38,7 +38,7 @@ from web.services.storage_runtime import (
 )
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data, legacy_root_data_paths
 from web.services.topbar_operational import _cfg_value as topbar_cfg_value
-from web.template_atti import _get_gp
+from web.blueprints.preventivi import _get_gp
 
 
 def _write_studio_config(path: Path) -> None:
@@ -727,17 +727,17 @@ def test_superadmin_can_create_studio_with_sqlite_strategy(tmp_path: Path):
     client = app.test_client()
     _login_superadmin(client, username=superadmin.username, password="superpass123")
 
+    # Azione «crea» della pagina React «Nuovo studio» (la stessa del modulo storico).
     response = client.post(
-        "/admin/studi/nuovo",
-        data={
+        "/api/v1/ui/piattaforma/studio-nuovo/azioni/crea",
+        json={"params": {}, "values": {
             "nome": "Studio SQLite",
             "slug": "studio-sqlite",
             "piano": "TRIAL",
             "admin_username": "amministratore",
             "admin_password": "PasswordSicura!123",
             "db_mode": "SQLITE",
-        },
-        follow_redirects=False,
+        }},
     )
 
     tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
@@ -747,8 +747,8 @@ def test_superadmin_can_create_studio_with_sqlite_strategy(tmp_path: Path):
     utenti_count = conn.execute("SELECT COUNT(*) FROM utenti").fetchone()[0]
     conn.close()
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/studi/studio-sqlite?_legacy=1")
+    assert response.status_code == 200
+    assert response.get_json()["navigate"] == "/admin/studi/studio-sqlite"
     assert studio is not None
     assert studio.database.normalized_mode == DbMode.SQLITE
     assert Path(paths["STUDIO_DB"]).exists()
@@ -1593,18 +1593,18 @@ def test_superadmin_database_ripara_accesso_studio_da_pannello(tmp_path: Path):
 
     client = app.test_client()
     _login_superadmin(client, username=superadmin.username, password="superpass123")
-    page = client.get(f"/admin/studi/{studio.slug}/database?_legacy=1")
+    page = client.get(f"/api/v1/ui/piattaforma/studio-database?slug={studio.slug}")
     response = client.post(
-        f"/admin/studi/{studio.slug}/database/ripara-runtime",
-        follow_redirects=False,
+        "/api/v1/ui/piattaforma/studio-database/azioni/ripara-runtime",
+        json={"params": {"slug": studio.slug}, "values": {}},
     )
     persisted = json.loads(Path(paths["AUTH_DB"]).read_text(encoding="utf-8"))
     directory = json.loads((tmp_path / "tenant_user_directory.json").read_text(encoding="utf-8"))
 
     assert page.status_code == 200
     assert "Ripara studio" in page.get_data(as_text=True)
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith(f"/admin/studi/{studio.slug}/database?_legacy=1")
+    assert response.status_code == 200
+    assert response.get_json()["ok"] is True, response.get_json()
     assert persisted[tenant_user.id]["tenant_slug"] == studio.slug
     assert directory["users"]["admin"]["tenant_slug"] == studio.slug
     assert directory["emails"]["giuseppe.montagnese94@gmail.com"]["tenant_slug"] == studio.slug
@@ -1680,7 +1680,7 @@ def test_admin_utenti_studio_mostra_utenti_tenant_sqlite(tmp_path: Path):
     client = app.test_client()
     _login_superadmin(client, username=superadmin.username, password="superpass123")
 
-    response = client.get(f"/admin/studi/{studio.slug}/utenti?_legacy=1")
+    response = client.get(f"/api/v1/ui/piattaforma/studio-utenti?slug={studio.slug}")
 
     assert response.status_code == 200
     assert b"roberto.montagnese" in response.data
@@ -2157,25 +2157,25 @@ def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     client = app.test_client()
     _login_superadmin(client, username=superadmin.username, password="superpass123")
 
+    # Azione «crea» della pagina React «Nuovo studio» (la stessa del modulo storico).
     response = client.post(
-        "/admin/studi/nuovo",
-        data={
+        "/api/v1/ui/piattaforma/studio-nuovo/azioni/crea",
+        json={"params": {}, "values": {
             "nome": "Studio PostgreSQL",
             "slug": "studio-postgresql",
             "piano": "ENTERPRISE",
             "admin_username": "amministratore",
             "admin_password": "PasswordSicura!123",
             "db_mode": "POSTGRESQL",
-        },
-        follow_redirects=False,
+        }},
     )
 
     tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
     studio = tm.get("studio-postgresql")
     manifest = tm.storage_manifest("studio-postgresql")
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/studi/studio-postgresql/database?_legacy=1")
+    assert response.status_code == 200
+    assert response.get_json()["navigate"] == "/admin/studi/studio-postgresql/database"
     assert studio is not None
     assert studio.database.normalized_mode == DbMode.POSTGRESQL
     assert manifest["selected_mode"] == DbMode.POSTGRESQL

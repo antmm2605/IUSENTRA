@@ -162,7 +162,7 @@ def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
     if _clausola_sottoscrizione(testo, inizio, fine):
         return "data di redazione e sottoscrizione dell’atto, non termine o notifica"
     prima = testo[max(0, inizio - 160):inizio]
-    if re.search(r"(?:contratto|rapporto|servizio|assunzione).{0,120}decorrenza\s+(?:dal|da|del)\s*$", prima, re.I | re.S):
+    if re.search(r"(?:contratto|rapporto|servizio|assunzione).{0,120}decorren(?:za|te)\s+(?:dal|da|del)\s*$", prima, re.I | re.S):
         return "decorrenza del rapporto di lavoro, non termine processuale"
     if re.search(r"(?:termine|fine)\s+(?:delle?\s+)?(?:attività didattiche|anno scolastico).{0,25}$", prima, re.I | re.S):
         return "periodo di servizio scolastico, non termine processuale"
@@ -196,6 +196,12 @@ def motivo_non_processuale(testo: str, inizio: int, fine: int) -> str:
     if re.search(r"supplenza|anno scolastico|attivit[àa]\s+(?:di\s+)?didattiche|costituzione della Carta", vicino, re.I):
         if re.search(r"servizio|supplenza|costituzione della Carta", vicino, re.I):
             return "periodo di servizio scolastico o beneficio, non termine processuale"
+    # «termine di quaranta giorni … decorrente dal 10/02/2024»: è il giorno da cui il termine decorre (dies a quo,
+    # escluso dal computo: art. 155, comma 1, c.p.c.), non la scadenza né un'udienza. La coerenza con l'atto che
+    # lo fa decorrere si controlla in `date_incoerenti.motivo_incoerenza`.
+    from .date_incoerenti import RE_DECORRENZA
+    if RE_DECORRENZA.search(prima[-60:]):
+        return "data da cui decorre il termine (giorno iniziale, art. 155 c.p.c.), non la sua scadenza"
     if re.search(r"cronol\.?(?:ogico)?\s*\d+/\d+\s+del\s*$", prima, re.I):
         return "data di registrazione del provvedimento, non data di udienza"
     # La data di sottoscrizione vale anche per uffici non presenti in una

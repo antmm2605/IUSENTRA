@@ -238,6 +238,14 @@ def main() -> None:
     print(f"ZIP salvati in: {args.out}")
     print(f"Manifest: {args.manifest}")
     print(f"Nuovi/scaricati: {len(results)} - gia' presenti: {len(skipped)}")
+    mancanti = [name for name in download_now if name not in {result.collection_name for result in results}]
+    print(json.dumps({
+        "status": "parziale" if mancanti else "completato",
+        "reason": "Collezioni non acquisite: " + ", ".join(mancanti) if mancanti else "",
+        "scaricate": len(results),
+        "gia_presenti": len(skipped),
+        "non_acquisite": mancanti,
+    }, ensure_ascii=False))
 
 
 if __name__ == "__main__":

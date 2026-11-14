@@ -72,7 +72,9 @@ def is_generic_pec_source_label(value: Any) -> bool:
     """Riconosce etichette tecniche interne della PEC, non nomi di allegato."""
 
     text = re.sub(r"\s+", " ", str(value or "").strip()).casefold()
-    return text in GENERIC_PEC_SOURCE_LABELS
+    return text in GENERIC_PEC_SOURCE_LABELS or bool(
+        re.fullmatch(r"comunicazione di cancelleria(?: \([^()]+\))?", text)
+    )
 
 
 def pec_original_label(source_name: str) -> str:

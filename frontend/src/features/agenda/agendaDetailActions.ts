@@ -21,7 +21,18 @@ export type AgendaProposedStep = {
   href?: string
 }
 
+export const WRITTEN_HEARING_ACTION = 'Predisponi e deposita le note scritte. Apri il provvedimento per controllare quanto richiesto e verifica l’esito del deposito.'
+
+export function isWrittenHearing(label: string): boolean {
+  return label.trim().toLocaleLowerCase('it-IT') === 'trattazione scritta'
+}
+
 export function agendaActivityText(event: AgendaEvent): string {
+  if (event.proceduralFinding) return event.proceduralFinding
+  if (isWrittenHearing(event.legalLabel)) {
+    if (event.completed) return 'Controlla nel fascicolo la prova del deposito delle note scritte.'
+    return WRITTEN_HEARING_ACTION
+  }
   const line = event.detailLines.find((item) => AGENDA_ACTIVITY_PREFIX.test(item.trim()))
   return line ? line.trim().replace(AGENDA_ACTIVITY_PREFIX, '').trim() : ''
 }
@@ -31,6 +42,16 @@ export function agendaProposedSteps(
   activity: string,
   { editHref, isDeadline, clientReminderHref }: { editHref: string; isDeadline: boolean; clientReminderHref: string },
 ): AgendaProposedStep[] {
+  if (event.proceduralFinding || isWrittenHearing(event.legalLabel)) {
+    const steps: AgendaProposedStep[] = []
+    if (event.sourceHref) {
+      steps.push({ id: 'fonte', label: 'Leggi il provvedimento che dispone la trattazione scritta', actionLabel: 'Visualizza fonte' })
+    }
+    if (event.matterId && !event.completed && !event.proceduralFinding) {
+      steps.push({ id: 'atti', label: 'Predisponi le note scritte per il deposito', actionLabel: 'Prepara deposito', href: `/fascicoli/${encodeURIComponent(event.matterId)}/deposito/prepara` })
+    }
+    return steps
+  }
   const text = (activity || `${event.legalLabel} ${event.title}`).toLocaleLowerCase('it-IT')
   const steps: AgendaProposedStep[] = []
   const add = (step: AgendaProposedStep) => {

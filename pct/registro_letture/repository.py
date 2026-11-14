@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
+from pct.sqlite_connection import ClosingSQLiteConnection
 
 from .consegne import COLONNE_CONSEGNE, ConsegneMixin
 from .event_retry import (
@@ -338,15 +339,16 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
     def connection(self):
         if self._pg is not None:
             return self._pg.connection()
-        if self.read_only:
-            conn = sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True, timeout=30)
-            conn.execute("PRAGMA query_only = ON")
-        else:
-            conn = sqlite3.connect(str(self.db_path), timeout=ATTESA_SCRITTURA_MS / 1000)
-        conn.row_factory = sqlite3.Row
-        # Con 5 s il giro notturno e il giro ogni 10 minuti che scrivono insieme facevano fallire le letture
-        # con «database is locked» (verifica del 01/11/2026: 99 fascicoli); con 30 s ancora sotto carico.
-        conn.execute(f"PRAGMA busy_timeout = {30000 if self.read_only else ATTESA_SCRITTURA_MS}")
+        timeout = 30 if self.read_only else ATTESA_SCRITTURA_MS / 1000
+        path = self.db_path.resolve().as_uri() + "?mode=ro" if self.read_only else str(self.db_path)
+        conn = sqlite3.connect(path, uri=self.read_only, timeout=timeout, factory=ClosingSQLiteConnection)
+        try:
+            conn.row_factory = sqlite3.Row
+            if self.read_only:
+                conn.execute("PRAGMA query_only = ON")
+        except BaseException:
+            conn.close()
+            raise
         return conn
 
     def close(self) -> None:
@@ -926,13 +928,13 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                 "WHERE tenant_id=? AND fascicolo_id=? AND stato='idle' AND last_error<>''",
                 (_adesso(), _testo(tenant_id), _testo(fascicolo_id)),
             )
-            return bool(getattr(cursore, "rowcount", 0))
+            return cursore.fetchone() is not None
 
     def stato_evento(self, tenant_id: str, fascicolo_id: str) -> str:
         return self.esito_evento(tenant_id, fascicolo_id)['stato']
 
     def accoda_evento(self, tenant_id: str, fascicolo_id: str, *, forza: bool = False, presidi: bool = False,
-                      prioritario: bool = False) -> int:
+                      prioritario: bool = False, solo_se_fermo: bool = False) -> int:
         """Registra una generazione per un solo fascicolo, anche se è già in lavoro.
 
         ``prioritario``: l'evento nasce da un'azione dell'avvocato (documento caricato o modificato, PEC
@@ -943,7 +945,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             return 0
         adesso = _adesso()
         with self.connection() as conn:
-            return self._accoda_evento_conn(conn, tenant, fascicolo, forza, adesso, presidi=presidi, prioritario=prioritario)
+            return self._accoda_evento_conn(conn, tenant, fascicolo, forza, adesso, presidi=presidi, prioritario=prioritario, solo_se_fermo=solo_se_fermo)
 
     def richiedi_recupero(self, tenant_id: str, fascicolo_id: str, *, generation: int) -> dict[str, Any]:
         """Ripresa esplicita con generazione osservata: nessun reset da doppioni."""
@@ -975,10 +977,10 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
         return bool(row and row["stato"] in {"pending", "running"} and (row["pending_presidi"] or row["claimed_presidi"]))
 
     def _accoda_evento_conn(self, conn: Any, tenant: str, fascicolo: str, forza: bool, adesso: str, *, presidi: bool = False,
-                            prioritario: bool = False) -> int:
+                            prioritario: bool = False, solo_se_fermo: bool = False) -> int:
         self._require_event_retry(conn)
         self._prepare_live_write(conn)
-        conn.execute(
+        aggiornato = conn.execute(
                 'INSERT INTO "letture_eventi" '
                 '(id, tenant_id, fascicolo_id, generation, claimed_generation, stato, pending_force, claimed_force, pending_presidi, claimed_presidi, priorita, worker_id, lease_until, creato_il, aggiornato_il) '
                 'VALUES (?, ?, ?, 1, 0, \'pending\', ?, 0, ?, 0, ?, \'\', \'\', ?, ?) '
@@ -993,9 +995,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                 # riaccodarlo a ogni apertura del fascicolo lo rimandava in fondo per sempre
                 # (verifica del 03/11/2026: fascicoli «in coda» dal 21/09 e dal 13/10).
                 'aggiornato_il = CASE WHEN letture_eventi.stato = \'pending\' THEN letture_eventi.aggiornato_il '
-                'ELSE excluded.aggiornato_il END',
-                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, 1 if prioritario else 0, adesso, adesso),
+                'ELSE excluded.aggiornato_il END '"WHERE ?=0 OR letture_eventi.stato='idle'",
+                (_nuovo_id("lev"), tenant, fascicolo, 1 if forza else 0, 1 if presidi else 0, 1 if prioritario else 0, adesso, adesso, int(solo_se_fermo)),
             )
+        if solo_se_fermo and aggiornato.rowcount == 0:
+            return 0
         riga = conn.execute(
                 'SELECT generation FROM "letture_eventi" WHERE tenant_id = ? AND fascicolo_id = ?',
                 (tenant, fascicolo),
@@ -1030,6 +1034,35 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                  "in_corso", _json({"origine": "ocr", "motivo": "Testo pronto: verifica nel contesto del fascicolo in attesa."}), adesso, adesso),
             )
             return self._accoda_evento_conn(conn, tenant, fascicolo, False, adesso)
+
+    def riapri_lettura(self, tenant_id: str, fascicolo_id: str, oggetto: Oggetto, lettore: str, *, motivo: str) -> bool:
+        """Riapre una sola lettura riuscita perché una regola nuova la legge diversamente (rilettura mirata).
+
+        Solo se la fonte è ancora presente con la stessa impronta e la lettura è «letto»: la riga torna
+        «in_corso» con il motivo e ``rilettura_mirata`` (si rilegge dal testo salvato). La versione resta
+        quella registrata finché la rilettura non la riscrive. Le decisioni dell'avvocato sui fatti
+        restano (``registra_fatti``). Nessun evento accodato: chi riapre legge nello stesso giro.
+        """
+        tenant, fascicolo, lettore = _testo(tenant_id), _testo(fascicolo_id), _lettore(lettore)
+        if not tenant or not fascicolo:
+            return False
+        adesso = _adesso()
+        with self.connection() as conn:
+            row = conn.execute(
+                'SELECT sha256,sha256_archivio,dimensione FROM "letture_oggetti" WHERE tenant_id=? AND fascicolo_id=? '
+                'AND tipo=? AND oggetto_id=? AND presente=1',
+                (tenant, fascicolo, oggetto.tipo, oggetto.oggetto_id),
+            ).fetchone()
+            if row is None or impronta_oggetto(dict(row)) != oggetto.impronta:
+                return False
+            self._prepare_live_write(conn)
+            cursore = conn.execute(
+                'UPDATE "letture" SET stato=?, esito_json=?, aggiornato_il=? WHERE tenant_id=? AND fascicolo_id=? '
+                'AND tipo=? AND oggetto_id=? AND sha256=? AND lettore=? AND stato=? RETURNING "id"',
+                ("in_corso", _json({"rilettura_mirata": True, "motivo": _testo(motivo)[:300]}), adesso,
+                 tenant, fascicolo, oggetto.tipo, oggetto.oggetto_id, oggetto.impronta, lettore, "letto"),
+            )
+            return cursore.fetchone() is not None
 
     def reclama_evento(self, tenant_id: str, fascicolo_id: str, worker_id: str, *, lease_seconds: int = LEASE_SECONDS) -> dict[str, Any] | None:
         """Prenota la lettura del fascicolo per un lavoratore, con una scadenza (lease).
@@ -1209,20 +1242,39 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
                          ('succeeded' if riuscito else 'failed',code,error,now,tenant,fascicolo,worker,int(generation)))
         return updated['stato'] == 'pending'
 
-    def eventi_da_riprendere(self, tenant_id: str = '', *, limite: int = 20) -> list[dict[str, Any]]:
+    def eventi_aperti(self, tenant_id: str = '') -> int:
+        """Conta il lavoro persistito, incluse le prenotazioni e i tentativi in attesa."""
+        tenant = _testo(tenant_id)
+        filtro_studio = ' AND tenant_id=?' if tenant else ''
+        params = (tenant,) if tenant else ()
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM letture_eventi WHERE stato IN ('pending','running')" + filtro_studio,
+                params,
+            ).fetchone()
+        return int(row[0])
+
+    def eventi_da_riprendere(self, tenant_id: str = '', *, limite: int = 20, escludi: Iterable[str] = (),
+                             solo_prioritari: bool = False) -> list[dict[str, Any]]:
         tenant,now = _testo(tenant_id),_adesso()
         scope = 'tenant_id=? AND ' if tenant else ''
         parameters = ([tenant] if tenant else []) + [MAX_ATTEMPTS,now,now,max(1,int(limite))]
         condizione = ('SELECT * FROM letture_eventi WHERE ' + scope +
                       "((stato='pending' AND attempts<? AND (available_at='' OR available_at<=?)) "
                       "OR (stato='running' AND lease_until<?))")
+        esclusi = tuple(escludi)
+        if esclusi:
+            condizione += " AND fascicolo_id NOT IN (" + ",".join("?" for _ in esclusi) + ")"
+            parameters[-1:-1] = esclusi
         with self.connection() as conn:
             self._require_event_retry(conn)
             # Prima i documenti e le PEC dell'avvocato (priorita=1), poi il resto per anzianità. Senza fame:
             # con almeno due posti uno va sempre all'evento più vecchio, e la priorità vale una sola prenotazione.
             limite_n = max(1, int(limite))
             prioritari = conn.execute(condizione + " AND priorita=1 ORDER BY aggiornato_il ASC LIMIT ?",
-                                      tuple(parameters[:-1]) + (max(1, limite_n - 1) if limite_n > 1 else 1,)).fetchall()
+                                      tuple(parameters[:-1]) + (limite_n if solo_prioritari else max(1, limite_n - 1),)).fetchall()
+            if solo_prioritari:
+                return [_riga(row) for row in prioritari]
             ordinari = conn.execute(condizione + " ORDER BY aggiornato_il ASC LIMIT ?",
                                     tuple(parameters[:-1]) + (limite_n,)).fetchall()
         scelti: list[Any] = []

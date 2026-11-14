@@ -119,7 +119,9 @@ def controllo_giornaliero():
         from web.blueprints.legal_intelligence import _daily_db_path
 
         percorso = str(_daily_db_path())
-        cruscotto = _motore_giornaliero().dashboard_snapshot()
+        from legal_intelligence.engine import LegalIntelligenceDailyEngine
+
+        cruscotto = LegalIntelligenceDailyEngine.read_dashboard(percorso)
         with _LOCK_CONTROLLI:
             in_corso = percorso in _CONTROLLI_IN_CORSO
         return jsonify(dettagli.controllo_giornaliero(cruscotto, puo_eseguire=_puo_configurare(), in_corso=in_corso))

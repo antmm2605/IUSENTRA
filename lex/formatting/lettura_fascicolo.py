@@ -14,12 +14,12 @@ from typing import Any
 from pct.fascicolo_lettura.narrativa import ORDINE_SEZIONI, componi
 
 _FUOCHI: tuple[tuple[str, tuple[str, ...]], ...] = (
-    (r"\bnotific|\brelat[ae]\b|\bpec\b|\bconsegn", ("quadro", "depositi_notifiche", "prossimi_passi", "verifiche", "lacune")),
-    (r"\bdeposit|\bbusta\b|\bcanceller|\bricevut", ("quadro", "depositi_notifiche", "prossimi_passi", "verifiche", "lacune")),
+    (r"\bnotific|\brelat[ae]\b|\bpec\b|\bconsegn", ("quadro", "depositi_notifiche", "prossimi_passi", "ragionamento", "verifiche", "lacune")),
+    (r"\bdeposit|\bbusta\b|\bcanceller|\bricevut", ("quadro", "depositi_notifiche", "prossimi_passi", "ragionamento", "verifiche", "lacune")),
     (r"\bverific|\bcontroll|\bpresid", ("quadro", "verifiche", "prossimi_passi", "lacune")),
     (r"\bdocument|\batti\b|\ballegat|\bcatalog|\bprovvediment|\bsentenz|\bordinanz", ("quadro", "documenti", "oggetto", "prossimi_passi")),
     (r"\budienz|\bfase\b|\bpunto\b|\bstato\b|\bsituazion", ("quadro", "fase", "cronologia", "prossimi_passi")),
-    (r"\bscadenz|\btermin|\bprossim|\bcosa\s+(?:devo|dobbiamo|bisogna)\s+fare|\bda\s+fare|\badempiment", ("quadro", "fase", "prossimi_passi", "lacune")),
+    (r"\bscadenz|\btermin|\bprossim|\bcosa\s+(?:devo|dobbiamo|bisogna)\s+fare|\bda\s+fare|\badempiment", ("quadro", "fase", "prossimi_passi", "ragionamento", "lacune")),
     (r"\beconom|\bparcell|\bfattur|\bincass|\bpreventiv|\bcompens|\bconformit", ("quadro", "conformita_economico", "prossimi_passi")),
     (r"\bcosa\s+tratta|\boggetto\b|\bdi\s+che\s+cosa|\bmateria\b|\bdomanda\b", ("quadro", "oggetto", "documenti", "fase")),
     (r"\bfatto\b|\bstoria\b|\bcronolog|\bfinora|\bfin\s+qui|\bsvolt", ("quadro", "cronologia", "fase", "prossimi_passi")),

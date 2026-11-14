@@ -7,7 +7,7 @@ from pct.formatting import DISPLAY_TIMEZONE
 
 def projected_receipt(row):
     """Non attribuisce fascicoli e non modifica lo stato di alcun deposito."""
-    from pct.pec_pipeline import LINK_STATI_CERTIFICATI, sha256_json
+    from pct.pec_pipeline import LINK_STATI_CERTIFICATI, pct_deposit_clerk_accepted, sha256_json
 
     row = dict(row)
     stored_report = row['report_json']
@@ -31,7 +31,7 @@ def projected_receipt(row):
     state = ''
     if stage_id == 'accettazione_pec':
         state = 'ACCETTATO_PEC'
-    elif stage_id in {'accettazione_deposito', 'intervento_cancelleria'} and life.get('final_state') in {'accepted', 'accepted_manually'}:
+    elif pct_deposit_clerk_accepted(stage_id, life.get('final_state') or ''):
         state = 'ACCETTATO_CANCELLERIA'
     elif stage_id == 'rifiuto_deposito':
         state = 'RIFIUTATO_CANCELLERIA'

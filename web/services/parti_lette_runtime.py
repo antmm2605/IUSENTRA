@@ -113,6 +113,16 @@ def _completa_intestazione(fascicolo: Any, voci: list[ParteDelFascicolo]) -> dic
     return campi
 
 
+
+def _documenti_estranei(fascicolo: Any) -> set[str]:
+    from pct.archivio_letture.pertinenza_documentale import documenti_ufficio_incompatibile
+    from web.services.archivio_letture_runtime import fatti_fascicolo
+
+    return documenti_ufficio_incompatibile(
+        fatti_fascicolo(fascicolo, campo="numero_ruolo", verifiche=None, canonico=False)
+    )
+
+
 def consegna_parti(fascicolo: Any, fatti: list[Any], *, gestione: Any = None) -> list[dict[str, str]]:
     """Consegnatario del presidio «parti»: un esito per ogni fatto consegnato."""
     if gestione is None:
@@ -120,13 +130,16 @@ def consegna_parti(fascicolo: Any, fatti: list[Any], *, gestione: Any = None) ->
 
         gestione = get_soggetti()
     fid = _testo(getattr(fascicolo, "id", ""))
-    voci = confronta_con_fascicolo(parti_lette(fatti), nome_cliente=_testo(getattr(fascicolo, "nome_cliente", "")),
+    esclusi = _documenti_estranei(fascicolo)
+    voci = confronta_con_fascicolo(parti_lette(f for f in fatti if f.oggetto_id not in esclusi), nome_cliente=_testo(getattr(fascicolo, "nome_cliente", "")),
                                    parti_esistenti=gestione.parti_fascicolo(fid))
     esiti: list[dict[str, str]] = []
     per_fatto: dict[str, ParteDelFascicolo] = {fatto_id: voce for voce in voci for fatto_id in voce.fatti}
     for fatto in fatti:
         voce = per_fatto.get(str(getattr(fatto, "id", "") or ""))
-        if voce is None:
+        if fatto.oggetto_id in esclusi:
+            esiti.append({"fatto_id": fatto.id, "stato": "non_pertinente", "motivo": "L’atto indica un ufficio giudiziario incompatibile con il fascicolo."})
+        elif voce is None:
             esiti.append({"fatto_id": fatto.id, "stato": "non_pertinente", "motivo": "Lettura non riconducibile a una parte."})
         elif voce.e_il_cliente:
             esiti.append({"fatto_id": fatto.id, "stato": "non_pertinente", "motivo": "È il cliente del fascicolo."})
@@ -153,8 +166,9 @@ def parti_proposte(fascicolo: Any, *, gestione: Any = None) -> list[dict[str, An
         from web.helpers import get_soggetti
 
         gestione = get_soggetti()
-    fatti = fatti_fascicolo(fascicolo, categoria="parte")
-    voci = confronta_con_fascicolo(parti_lette(fatti), nome_cliente=_testo(getattr(fascicolo, "nome_cliente", "")),
+    esclusi = _documenti_estranei(fascicolo)
+    fatti = fatti_fascicolo(fascicolo, categoria="parte", canonico=False)
+    voci = confronta_con_fascicolo(parti_lette(f for f in fatti if f.oggetto_id not in esclusi), nome_cliente=_testo(getattr(fascicolo, "nome_cliente", "")),
                                    parti_esistenti=gestione.parti_fascicolo(_testo(getattr(fascicolo, "id", ""))))
     risultato = [voce.to_dict() for voce in voci]
     # Il dato dello studio si legge dalla scheda collegata, non si ricava
@@ -182,7 +196,9 @@ def aggiungi_parte_proposta(fascicolo: Any, nome: str, ruolo: str, *, gestione: 
         gestione = get_soggetti()
     if ruolo not in RUOLO_SOGGETTO:
         raise ValueError("Ruolo non riconosciuto.")
-    voci = parti_lette(fatti_fascicolo(fascicolo, categoria="parte"))
+    esclusi = _documenti_estranei(fascicolo)
+    fatti = fatti_fascicolo(fascicolo, categoria="parte", canonico=False)
+    voci = parti_lette(f for f in fatti if f.oggetto_id not in esclusi)
     voce = next((v for v in voci if stesso_nome(v.nome, nome)), None)
     if voce is None:
         raise LookupError("La parte non è fra quelle lette dagli atti del fascicolo.")

@@ -89,6 +89,7 @@ export type ScadenziarioRow = {
   title: string
   description: string
   detailDescription: string
+  proceduralFinding?: string
   reconciliationReason?: string
   type: string
   typeLabel: string
@@ -487,7 +488,7 @@ function asArray(value: unknown): unknown[] {
   return []
 }
 
-function safeView(value: unknown): ScadenziarioView {
+export function normalizeScadenziarioView(value: unknown): ScadenziarioView {
   const text = asString(value, 'aperte')
   const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'esiti_udienza', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
   return allowed.includes(text as ScadenziarioView) ? text as ScadenziarioView : 'aperte'
@@ -556,6 +557,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     title: asString(item.title, 'Scadenza senza titolo'),
     description: asString(item.description),
     detailDescription: asString(item.detailDescription, asString(item.description)),
+    proceduralFinding: asString(item.proceduralFinding),
     reconciliationReason: asString(item.reconciliationReason),
     type: asString(item.type, 'ALTRO'),
     typeLabel: asString(item.typeLabel, asString(item.type, 'Altro')),
@@ -737,7 +739,7 @@ function normalizeCard(value: unknown, index = 0): ScadenziarioActionCard | null
       kind: ['link', 'filter', 'bulk_complete', 'lex'].includes(kind) ? kind : 'link',
       label: asString(action.label, 'Apri'),
       href: asString(action.href),
-      view: action.view ? safeView(action.view) : undefined,
+      view: action.view ? normalizeScadenziarioView(action.view) : undefined,
     },
   }
 }
@@ -879,7 +881,7 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
         route_owner: asString(payload.contracts.route_owner, 'react_shell'),
       } : emptyScadenziarioPage.contracts,
       query: {
-        view: safeView(queryPayload.view),
+        view: normalizeScadenziarioView(queryPayload.view),
         q: asString(queryPayload.q),
         type: asString(queryPayload.type),
         priority: asString(queryPayload.priority),

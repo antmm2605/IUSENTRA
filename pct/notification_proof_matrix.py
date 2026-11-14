@@ -446,6 +446,13 @@ def add_notification_relata(repo: Any, row: dict[str, Any], *, actor: str = "", 
     return relata_id
 
 
+def _proof_tenant(case: dict[str, Any], row: dict[str, Any]) -> Any:
+    tenant = case.get("tenant_id")
+    if row.get("tenant_id") not in (None, "", tenant):
+        raise _err("La prova deve appartenere allo stesso studio della notifica.")
+    return tenant
+
+
 def add_notification_receipt(repo: Any, row: dict[str, Any], *, actor: str = "", source: str = "notification_matrix") -> int:
     repo.ensure_extended_schema()
     receipt_type = str(row.get("receipt_type") or "")
@@ -470,7 +477,7 @@ def add_notification_receipt(repo: Any, row: dict[str, Any], *, actor: str = "",
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
-                row.get("tenant_id"),
+                _proof_tenant(case, row),
                 case["fascicolo_id"],
                 int(case["id"]),
                 recipient_id,
@@ -524,7 +531,7 @@ def create_notification_proof_bundle(repo: Any, row: dict[str, Any], *, actor: s
                 missing_evidence_json, validation_status, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, '[]', ?, 'DRAFT', CURRENT_TIMESTAMP)
             """,
-            (row.get("tenant_id"), case["fascicolo_id"], int(case["id"]), row.get("recipient_id"), bundle_id, row.get("bundle_type", "NOTIFICA_AVVOCATO_PEC"), _dumps(required), _dumps(required)),
+            (_proof_tenant(case, row), case["fascicolo_id"], int(case["id"]), row.get("recipient_id"), bundle_id, row.get("bundle_type", "NOTIFICA_AVVOCATO_PEC"), _dumps(required), _dumps(required)),
         )
         after = repo._fetch_one(conn, "SELECT * FROM notification_proof_bundles WHERE bundle_id = ?", (bundle_id,))
         repo.audit_log(entity_type="notification_proof_bundles", entity_id=bundle_id, action="notification_proof_bundle_create", after=after, actor=actor, source=source, conn=conn)

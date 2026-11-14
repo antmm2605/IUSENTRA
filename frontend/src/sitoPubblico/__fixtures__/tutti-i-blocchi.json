@@ -1,0 +1,1772 @@
+[
+ {
+  "vista": "home",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": {
+   "title": "Home",
+   "slug": "home",
+   "excerpt": "",
+   "body_json": [
+    {
+     "type": "applications",
+     "title": "Titolo applications con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "article_carousel",
+     "title": "Titolo article_carousel con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Articoli pubblicati dallo studio dopo revisione interna.",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "booking_cta",
+     "title": "Titolo booking_cta con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "Apri agenda",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "contact_cta_split",
+     "title": "Titolo contact_cta_split con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "Invia una richiesta con i dati essenziali: lo studio valuterà il primo contatto e ti indicherà i passaggi successivi.",
+     "items": [],
+     "image_url": "",
+     "image_alt": "Contatto con lo studio legale",
+     "button_text": "Richiedi contatto",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "contact_form",
+     "title": "Titolo contact_form con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "cta",
+     "title": "Titolo cta con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "Contattaci",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "document_checklist",
+     "title": "Titolo document_checklist con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "faq",
+     "title": "Titolo faq con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "title": "Come richiedere un appuntamento?",
+       "text": "Usa il modulo contatti o la prenotazione online."
+      },
+      {
+       "title": "Quali documenti servono?",
+       "text": "Porta gli atti principali e una breve cronologia."
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "feature_grid",
+     "title": "Titolo feature_grid con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "title": "Analisi",
+       "text": "Studio della documentazione."
+      },
+      {
+       "title": "Strategia",
+       "text": "Percorso operativo condiviso."
+      },
+      {
+       "title": "Presidio",
+       "text": "Monitoraggio di attivita e scadenze."
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "featured_services_carousel",
+     "title": "Titolo featured_services_carousel con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Aree selezionate dallo studio.",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "footer_rich",
+     "title": "Titolo footer_rich con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "gallery_grid",
+     "title": "Titolo gallery_grid con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Immagini dello studio o elementi istituzionali generici.",
+     "text": "",
+     "items": [
+      {
+       "title": "Sala riunioni",
+       "image_url": "",
+       "image_alt": "Sala riunioni dello studio"
+      },
+      {
+       "title": "Biblioteca",
+       "image_url": "",
+       "image_alt": "Biblioteca giuridica"
+      },
+      {
+       "title": "Accoglienza",
+       "image_url": "",
+       "image_alt": "Ambiente professionale dello studio"
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "hero",
+     "title": "Titolo hero con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Assistenza professionale chiara e organizzata.",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "Contatta lo studio",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "hero_centered",
+     "title": "Titolo hero_centered con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Consulenza e difesa con un percorso chiaro.",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "Richiedi informazioni",
+     "button_url": "",
+     "style_variant": "centered",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "hero_slider",
+     "title": "Titolo hero_slider con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Assistenza professionale con un percorso chiaro e verificabile.",
+     "text": "",
+     "items": [
+      {
+       "title": "Ascolto e metodo",
+       "text": "Inquadriamo il caso, i documenti e le priorita operative.",
+       "image_url": "",
+       "image_alt": "Studio legale con documenti ordinati",
+       "button_text": "Richiedi informazioni",
+       "button_url": ""
+      },
+      {
+       "title": "Gestione digitale della pratica",
+       "text": "Scadenze, documenti e comunicazioni restano organizzati.",
+       "image_url": "",
+       "image_alt": "Scrivania professionale con fascicolo digitale",
+       "button_text": "Prenota un appuntamento",
+       "button_url": ""
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "Contatta lo studio",
+     "button_url": "",
+     "style_variant": "slider",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "hero_split",
+     "title": "Titolo hero_split con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Metodo, ascolto e gestione digitale della pratica.",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "Prenota un appuntamento",
+     "button_url": "",
+     "style_variant": "split",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "image_text_slider",
+     "title": "Titolo image_text_slider con <em>enfasi</em> <script>x</script>",
+     "subtitle": "Sezioni scorrevoli con testo e immagine.",
+     "text": "",
+     "items": [
+      {
+       "title": "Analisi iniziale",
+       "text": "Valutazione dei documenti e dei primi passaggi.",
+       "image_url": "",
+       "image_alt": "Analisi documentale"
+      },
+      {
+       "title": "Strategia operativa",
+       "text": "Definizione delle attivita e delle scadenze.",
+       "image_url": "",
+       "image_alt": "Pianificazione legale"
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "image_text_split",
+     "title": "Titolo image_text_split con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "La relazione con il cliente viene gestita con passaggi chiari, documenti tracciati e comunicazioni verificabili.",
+     "items": [],
+     "image_url": "",
+     "image_alt": "Documenti e agenda di studio",
+     "button_text": "Scopri il metodo",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "latest_articles",
+     "title": "Titolo latest_articles con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "legal_news",
+     "title": "Titolo legal_news con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "legal_tools",
+     "title": "Titolo legal_tools con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "logo_strip",
+     "title": "Titolo logo_strip con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "title": "PCT",
+       "text": "Deposito telematico civile"
+      },
+      {
+       "title": "PEC",
+       "text": "Comunicazioni e notifiche"
+      },
+      {
+       "title": "Agenda",
+       "text": "Scadenze presidiate"
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "newsletter",
+     "title": "Titolo newsletter con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "office_map",
+     "title": "Titolo office_map con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "offices",
+     "title": "Titolo offices con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "practice_areas",
+     "title": "Titolo practice_areas con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "privacy_notice",
+     "title": "Titolo privacy_notice con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "process_steps",
+     "title": "Titolo process_steps con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "title": "1. Inquadramento",
+       "text": "Raccolta dati e documenti essenziali."
+      },
+      {
+       "title": "2. Strategia",
+       "text": "Valutazione delle opzioni praticabili."
+      },
+      {
+       "title": "3. Esecuzione",
+       "text": "Gestione della pratica e aggiornamenti."
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "professional_profile",
+     "title": "Titolo professional_profile con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "quote_banner",
+     "title": "Titolo quote_banner con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "Ogni pratica richiede ascolto, verifica dei fatti e valutazione delle opzioni concretamente percorribili.",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "istituzionale",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "rich_text",
+     "title": "Titolo rich_text con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "Inserisci qui il testo della sezione.",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "service_detail",
+     "title": "Titolo service_detail con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "services",
+     "title": "Titolo services con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "stats",
+     "title": "Titolo stats con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "title": "Metodo",
+       "text": "Workflow documentale tracciato"
+      },
+      {
+       "title": "Agenda",
+       "text": "Scadenze e appuntamenti presidiati"
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "team",
+     "title": "Titolo team con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "testimonials_safe",
+     "title": "Titolo testimonials_safe con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "Usa questa sezione solo con contenuti autorizzati, sobri e non comparativi.",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "text_ticker",
+     "title": "Titolo text_ticker con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "text": "Prenotazioni su appuntamento"
+      },
+      {
+       "text": "Documenti caricabili prima del colloquio"
+      },
+      {
+       "text": "Riscontro alle richieste tramite canali ufficiali"
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "timeline",
+     "title": "Titolo timeline con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    },
+    {
+     "type": "trust_bar",
+     "title": "Titolo trust_bar con <em>enfasi</em> <script>x</script>",
+     "subtitle": "",
+     "text": "",
+     "items": [
+      {
+       "title": "Metodo",
+       "text": "Analisi iniziale e passaggi chiari."
+      },
+      {
+       "title": "Documenti",
+       "text": "Raccolta e verifica delle evidenze."
+      },
+      {
+       "title": "Aggiornamenti",
+       "text": "Comunicazioni sullo stato pratica."
+      }
+     ],
+     "image_url": "",
+     "image_alt": "",
+     "button_text": "",
+     "button_url": "",
+     "style_variant": "default",
+     "background": "default",
+     "visibility": {
+      "desktop": true,
+      "tablet": true,
+      "mobile": true
+     },
+     "spacing": "standard",
+     "alignment": "start",
+     "animation": "fade-up"
+    }
+   ]
+  },
+  "articolo": null
+ },
+ {
+  "vista": "contatti",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": null,
+  "articolo": null
+ },
+ {
+  "vista": "prenota",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": null,
+  "articolo": null
+ },
+ {
+  "vista": "strumenti-legali",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": null,
+  "articolo": null
+ },
+ {
+  "vista": "applicazioni",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": null,
+  "articolo": null
+ },
+ {
+  "vista": "news-giuridiche",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": null,
+  "articolo": null
+ },
+ {
+  "vista": "articoli",
+  "payload": {
+   "site": {
+    "site_name": "Studio Prova",
+    "site_title": "Studio Prova Roma",
+    "site_description": "Assistenza legale",
+    "public_slug": "studio-prova",
+    "logo_url": "",
+    "city": "Roma",
+    "province": "RM",
+    "address": "",
+    "contact_phone": "",
+    "contact_email": "info@example.invalid",
+    "whatsapp_number": "+39 333 000",
+    "facebook_url": "",
+    "instagram_url": "",
+    "linkedin_url": "",
+    "privacy_url": "",
+    "cookie_policy_url": "",
+    "accessibility_statement_url": "",
+    "legal_disclaimer": "",
+    "hero_claim": "Chiarezza e metodo",
+    "cookie_banner_enabled": true
+   },
+   "menu_pages": [
+    {
+     "title": "Lo studio",
+     "slug": "studio"
+    }
+   ],
+   "articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "latest_articles": [
+    {
+     "title": "Recesso dal contratto",
+     "slug": "recesso",
+     "excerpt": "Guida pratica",
+     "category": "Civile",
+     "cover_url": "",
+     "body_json": []
+    }
+   ],
+   "services": [
+    {
+     "title": "Contenzioso civile",
+     "icon": "bi-briefcase",
+     "short_description": "Cause e mediazioni"
+    }
+   ],
+   "professionals": [
+    {
+     "full_name": "Avv. Maria Rossi",
+     "role_title": "Titolare",
+     "bio": "Civilista",
+     "email": "",
+     "phone": ""
+    }
+   ],
+   "offices": [
+    {
+     "name": "Sede di Roma",
+     "address": "Via Roma 1",
+     "city": "Roma",
+     "province": "RM",
+     "phone": "",
+     "email": "",
+     "opening_hours": "9-18",
+     "map_url": "",
+     "id": 1
+    }
+   ],
+   "booking_enabled": true,
+   "show_legal_tools": true,
+   "show_applications": true,
+   "show_legal_news": true,
+   "legal_tools": [
+    {
+     "title": "Calcolo interessi",
+     "subtitle": "Tasso legale",
+     "icon": "bi-calculator",
+     "category": "Calcoli"
+    }
+   ],
+   "applications": [
+    {
+     "title": "Portale clienti",
+     "summary": "Documenti",
+     "icon": "bi-grid",
+     "badge": "Nuovo",
+     "section_title": "Clienti",
+     "access_mode": "diretta"
+    }
+   ],
+   "legal_news": [
+    {
+     "title": "Riforma",
+     "summary": "Novità",
+     "url": "https://www.gazzettaufficiale.it/",
+     "source_name": "Gazzetta",
+     "matter_name": "",
+     "publication_date": "01/11/2026"
+    }
+   ],
+   "template_code": "classic_legal"
+  },
+  "pagina": null,
+  "articolo": null
+ }
+]

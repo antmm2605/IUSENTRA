@@ -153,8 +153,9 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
   </script>
   {% endif %}
   {% set iusentra_embedded_source_view = request.args.get('embed') == 'source' %}
-  {% if not iusentra_embedded_source_view %}
-  {% include "components/pct_ai_widget.html" %}
+  {% if not iusentra_embedded_source_view and g.utente_corrente %}
+  {# Radice del widget Lex: il markup è il componente React LexWidget (frontend/src/components/lex). #}
+  <div id="lex-widget-root" data-versione="{{ app_version }}"></div>
   {% endif %}
   {% if g.utente_corrente %}
   {% if react_runtime_flags.local_signer_monitor %}
@@ -185,7 +186,7 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
   <script src="/static/js/lex-tts/supertonic-engine.js?v={{ app_version }}" defer></script>
   <script src="/static/js/lex-tts/tts-engine-registry.js?v={{ app_version }}" defer></script>
   <script src="/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" defer></script>
-  <script src="/static/js/pct-lex-assistant.js?v={{ app_version }}&lex_status=cdd68c41719dc393" defer></script>
+  <script src="/static/js/pct-lex-assistant.js?v={{ app_version }}&lex_status=a993b99d3b889be3" defer></script>
   {% endif %}
   {% endif %}
   <script src="/static/js/iusentra-visible-text-guard.js?v={{ app_version }}" defer></script>

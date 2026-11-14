@@ -965,3 +965,16 @@ def test_template_giurisprudenza_usa_layout_responsive():
     assert "@media (max-width: 767.98px)" in form_html
     assert "Testo normalizzato e archivio redazionale" in detail_html
     assert "Archivio tecnico" in detail_html
+
+def test_archivio_react_non_ricalcola_statistiche_complete_corpus(tmp_path, monkeypatch):
+    from web.services.react_giurisprudenza_bridge import build_react_giurisprudenza_payload
+
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+
+    def conteggio_pesante():
+        raise AssertionError("La pagina usa i conteggi per fonte già richiesti")
+
+    monkeypatch.setattr(gestore._corpus, "storage_stats", conteggio_pesante)
+    payload = build_react_giurisprudenza_payload(get_giurisprudenza=lambda: gestore)
+    assert payload["source"] == "repository_reali"
+    assert payload["metrics"]

@@ -18,12 +18,11 @@ from typing import Any
 from xml.etree import ElementTree
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
-                   redirect, render_template, request, send_file, url_for)
+                   redirect, request, send_file, url_for)
 from werkzeug.utils import secure_filename
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
 from web.blueprints.react_shell import render_react_shell_response
-from web.services.app_v2_routing import is_safe_internal_path
 
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
@@ -179,17 +178,6 @@ def _get_studio_timbro():
         config_studio=config_studio,
         app_config=current_app.config,
     )
-
-
-@template_atti.context_processor
-def _inject_editor_preferences():
-    from pct.template_atti import DEFAULT_EDITOR_LAYOUT, catalogo_font_editor
-
-    return {
-        "editor_preferences": _get_gp().carica(),
-        "editor_default_preferences": DEFAULT_EDITOR_LAYOUT,
-        "editor_font_choices": catalogo_font_editor(),
-    }
 
 
 def _richiedi_login(f):
@@ -994,92 +982,15 @@ def _resolve_template_prefill_response(codice: str, payload: dict | None = None)
 @template_atti.route("/", methods=["GET"])
 @_richiedi_login
 def lista():
-    gt = _get_gt()
-    templates = gt.tutti()
-    from pct.template_atti import CATEGORIE
-    from pct.compilatore_atti import modelli_per_area
-    builtin_templates = [t for t in templates if t.builtin]
-    custom_templates = [t for t in templates if not t.builtin]
-    area_options = sorted({t.area for t in builtin_templates if t.area})
-    branch_options = sorted({t.branca for t in builtin_templates if t.branca})
-    channel_options = sorted({t.canale_telematico for t in builtin_templates if t.canale_telematico})
-    profile_options = sorted({t.profilo_deposito for t in builtin_templates if t.profilo_deposito})
-    collections: dict[str, list] = {}
-    for tmpl in builtin_templates:
-        key = tmpl.collezione or tmpl.categoria or "Altro"
-        collections.setdefault(key, []).append(tmpl)
-    workspace_sections = [
-        {
-            "title": title,
-            "count": len(items),
-            "templates": sorted(items, key=lambda item: (item.ordine, item.titolo.lower())),
-        }
-        for title, items in collections.items()
-    ]
-    workspace_sections.sort(key=lambda section: section["templates"][0].ordine if section["templates"] else 9999)
-    featured_titles = {
-        "Atto di citazione",
-        "Ricorso per decreto ingiuntivo",
-        "Atto di precetto",
-        "Ricorso per separazione giudiziale",
-        "Ricorso lavoro",
-        "Nomina del difensore di fiducia",
-    }
-    featured_templates = [t for t in builtin_templates if t.titolo in featured_titles][:6]
-    stats = {
-        "totale": len(builtin_templates),
-        "con_compilatore": sum(1 for t in builtin_templates if t.link_compilatore_code),
-        "canali": len(channel_options),
-        "collezioni": len(workspace_sections),
-        "custom": len(custom_templates),
-    }
-    return render_template(
-        "template_atti/lista.html",
-        templates=templates,
-        builtin_templates=builtin_templates,
-        custom_templates=custom_templates,
-        workspace_sections=workspace_sections,
-        area_options=area_options,
-        branch_options=branch_options,
-        channel_options=channel_options,
-        profile_options=profile_options,
-        featured_templates=featured_templates,
-        stats=stats,
-        categorie=CATEGORIE,
-        modelli_compilatore=modelli_per_area(),
-    )
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
+    return render_react_shell_response("template-atti")
 
 
 @template_atti.route("/scheda/<id_template>", methods=["GET"])
 @_richiedi_login
 def scheda(id_template: str):
-    gt = _get_gt()
-    template = gt.get(id_template)
-    if not template:
-        abort(404)
-    related = []
-    for candidate in gt.tutti():
-        if candidate.id == template.id:
-            continue
-        if template.branca and candidate.branca == template.branca:
-            related.append(candidate)
-        elif template.area and candidate.area == template.area:
-            related.append(candidate)
-        if len(related) >= 8:
-            break
-    compiler_model = None
-    if template.link_compilatore_code:
-        from pct.compilatore_atti import get_modello
-
-        compiler_model = get_modello(template.link_compilatore_code)
-    field_sections = _group_template_fields(template.campi_guidati or _fallback_template_fields())
-    return render_template(
-        "template_atti/scheda.html",
-        t=template,
-        related_templates=related,
-        compiler_model=compiler_model,
-        field_sections=field_sections,
-    )
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
+    return render_react_shell_response(f"template-atti/scheda/{id_template}")
 
 
 # ================================================================ CATALOGO ATTI
@@ -1087,70 +998,8 @@ def scheda(id_template: str):
 @template_atti.route("/catalogo", methods=["GET"])
 @_richiedi_login
 def catalogo():
-    from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE, get_essential_docs
-    from pct.template_catalog_service import build_template_catalog_page_context
-
-    # Raggruppa i modelli del compilatore per area con metadati
-    area_groups: list[dict] = []
-    for area_key in AREA_ORDINE:
-        modelli = []
-        for m in MODELS:
-            if m["area"] == area_key:
-                modelli.append({**m, "essential_docs": get_essential_docs(m["code"])})
-        if modelli:
-            area_groups.append({
-                "area_key": area_key,
-                "area_label": AREA_LABELS.get(area_key, area_key.title()),
-                "modelli": modelli,
-            })
-
-    # Catalogo piatto per JS (ricerca client-side)
-    catalogo_flat = []
-    for grp in area_groups:
-        for m in grp["modelli"]:
-            catalogo_flat.append({
-                "code":  m["code"],
-                "name":  m["name"],
-                "area":  grp["area_key"],
-                "area_label": grp["area_label"],
-                "url":   url_for("template_atti.compila", model_code=m["code"]),
-            })
-
-    # Tipologie del wizard preventivi con mapping verso atti (per la sezione "da pratica")
-    try:
-        from pct.motore_preventivo import catalogo_wizard as _cw
-        wizard_cat = _cw()
-    except Exception:
-        wizard_cat = {}
-    from pct.compilatore_atti import PRATICA_TO_MODELS, MODEL_INDEX
-    wizard_tipologie = []
-    for area_name, items in wizard_cat.items():
-        for tip in items:
-            pid = tip.get("id", "")
-            codes = PRATICA_TO_MODELS.get(pid, [])
-            modelli_atti = [{"code": c, "name": MODEL_INDEX[c]["name"]} for c in codes if c in MODEL_INDEX]
-            if modelli_atti:
-                wizard_tipologie.append({
-                    "id": pid,
-                    "label": tip.get("label", pid),
-                    "area": area_name,
-                    "modelli_atti": modelli_atti,
-                })
-
-    catalog_context = build_template_catalog_page_context()
-
-    return render_template(
-        "template_atti/catalogo.html",
-        area_groups=area_groups,
-        catalogo_flat=catalogo_flat,
-        wizard_tipologie=wizard_tipologie,
-        studio_timbro_preview={
-            "lines": _get_studio_timbro().to_lines(),
-            "text": _get_studio_timbro().to_text(),
-        },
-        **catalog_context,
-        oggi=date.today(),
-    )
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
+    return render_react_shell_response("template-atti/catalogo")
 
 
 @template_atti.route("/catalogo/data", methods=["GET"])
@@ -1391,22 +1240,10 @@ def api_modelli_per_pratica(id_pratica: str):
 @template_atti.route("/nuovo", methods=["GET", "POST"])
 @_richiedi_login
 def nuovo():
-    from pct.template_atti import CATEGORIE
-
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        gt = _get_gt()
-        titolo   = request.form.get("titolo", "").strip()
-        categoria = request.form.get("categoria", "Altro")
-        corpo    = request.form.get("corpo", "").strip()
-        note     = request.form.get("note", "").strip()
-        if not titolo or not corpo:
-            flash("Titolo e corpo obbligatori.", "danger")
-            return render_template("template_atti/form.html", categorie=CATEGORIE,
-                                   t=None, form=request.form)
-        t = gt.crea(titolo=titolo, categoria=categoria, corpo=corpo, note=note)
-        flash(f"Template '{t.titolo}' creato.", "success")
-        return redirect(url_for("template_atti.lista"))
-    return render_template("template_atti/form.html", categorie=CATEGORIE, t=None, form={})
+        return redirect(request.path)
+    return render_react_shell_response("template-atti/nuovo")
 
 
 # ================================================================ MODIFICA
@@ -1414,27 +1251,10 @@ def nuovo():
 @template_atti.route("/<id_template>/modifica", methods=["GET", "POST"])
 @_richiedi_login
 def modifica(id_template: str):
-    from pct.template_atti import CATEGORIE
-    gt = _get_gt()
-    t = gt.get(id_template)
-    if not t:
-        abort(404)
-    if t.builtin:
-        flash("I modelli integrati non possono essere modificati. Clonalo prima.", "warning")
-        return redirect(url_for("template_atti.lista"))
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        try:
-            gt.aggiorna(id_template,
-                        titolo=request.form.get("titolo", t.titolo),
-                        categoria=request.form.get("categoria", t.categoria),
-                        corpo=request.form.get("corpo", t.corpo),
-                        note=request.form.get("note", t.note))
-            flash("Template aggiornato.", "success")
-        except ValueError as e:
-            current_app.logger.warning("Template atti non aggiornato: %s", e)
-            flash("Template non aggiornato: controlla i dati inseriti.", "danger")
-        return redirect(url_for("template_atti.lista"))
-    return render_template("template_atti/form.html", categorie=CATEGORIE, t=t, form=t.to_dict())
+        return redirect(request.path)
+    return render_react_shell_response(f"template-atti/{id_template}/modifica")
 
 
 # ================================================================ CLONA
@@ -1476,97 +1296,10 @@ def elimina(id_template: str):
 @template_atti.route("/<id_template>/usa", methods=["GET", "POST"])
 @_richiedi_login
 def usa(id_template: str):
-    gt = _get_gt()
-    t = gt.get(id_template)
-    if not t:
-        abort(404)
-    clienti   = get_clienti().tutti()
-    fascicoli_tutti = get_fascicoli().tutti()
-    selected_cliente = None
-    selected_fascicolo = None
-    selected_cliente_id = request.args.get("id_cliente", "").strip()
-    selected_fascicolo_id = request.args.get("id_fascicolo", "").strip()
-    if selected_cliente_id:
-        selected_cliente = get_clienti().get(selected_cliente_id)
-    if selected_fascicolo_id:
-        selected_fascicolo = get_fascicoli().get(selected_fascicolo_id)
-    if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
-        selected_cliente = get_clienti().get(selected_fascicolo.id_cliente)
-        selected_cliente_id = getattr(selected_cliente, "id", selected_cliente_id) if selected_cliente else selected_cliente_id
-    _, parti_prefill = _build_parti_template_context(selected_fascicolo_id)
-    field_specs = t.campi_guidati or _fallback_template_fields()
-    field_sections = _group_template_fields(field_specs)
-    form_values = _prefill_template_fields(
-        t,
-        cliente=selected_cliente,
-        fascicolo=selected_fascicolo,
-        parti=parti_prefill,
-    )
-
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        f = request.form
-        id_cliente   = f.get("id_cliente", "").strip()
-        id_fascicolo = f.get("id_fascicolo", "").strip()
-
-        cliente  = get_clienti().get(id_cliente) if id_cliente else None
-        fascicolo = get_fascicoli().get(id_fascicolo) if id_fascicolo else None
-
-        variabili = _variabili_base(current_app.config)
-        soggetti_fascicolo, parti = _build_parti_template_context(id_fascicolo)
-        variabili["cliente"]             = cliente
-        variabili["fascicolo"]           = fascicolo
-        variabili["soggetti"]            = soggetti_fascicolo
-        variabili["parti"]               = parti
-        submitted_fields = {}
-        for field in field_specs:
-            value = f.get(field["name"], "")
-            variabili[field["name"]] = value
-            submitted_fields[field["name"]] = value
-        for legacy_name, default in {
-            "destinatario_nome": "",
-            "destinatario_indirizzo": "",
-            "oggetto_diffida": "",
-            "importo_dovuto": "",
-            "titolo_credito": "",
-            "termine_giorni": "15",
-            "tribunale_competente": "",
-            "durata_anni": "5",
-        }.items():
-            variabili.setdefault(legacy_name, f.get(legacy_name, default))
-            submitted_fields.setdefault(legacy_name, variabili[legacy_name])
-
-        try:
-            testo_generato = gt.renderizza(id_template, variabili)
-        except Exception as e:
-            flash(f"Errore nella generazione: {e}", "danger")
-            testo_generato = ""
-
-        return render_template(
-            "template_atti/anteprima.html",
-            t=t,
-            testo_generato=testo_generato,
-            editor_html=_to_editor_html(testo_generato),
-            id_template=id_template,
-            variabili_json=_variabili_safe(variabili),
-            cliente=cliente,
-            fascicolo=fascicolo,
-            submitted_fields=submitted_fields,
-        )
-
-    fascicoli = []
-    if selected_cliente_id:
-        fascicoli = [f for f in fascicoli_tutti if f.id_cliente == selected_cliente_id]
-
-    return render_template(
-        "template_atti/usa.html",
-        t=t,
-        clienti=clienti,
-        fascicoli=fascicoli,
-        field_sections=field_sections,
-        form_values=form_values,
-        selected_cliente_id=selected_cliente_id,
-        selected_fascicolo_id=selected_fascicolo_id,
-    )
+        return redirect(request.path)
+    return render_react_shell_response(f"template-atti/{id_template}/usa")
 
 
 @template_atti.route("/editor", methods=["GET"])
@@ -1579,206 +1312,10 @@ def editor_libero():
 @template_atti.route("/compila/<model_code>", methods=["GET", "POST"])
 @_richiedi_login
 def compila(model_code: str):
-    from pct.compilatore_atti import (
-        get_modello,
-        validate_payload,
-        render_compiled_act,
-    )
-    model = get_modello(model_code)
-    if not model:
-        abort(404)
-    resolved = _resolve_compiler_context(model_code)
-    selected_cliente = resolved["selected_cliente"]
-    selected_fascicolo = resolved["selected_fascicolo"]
-    payload = resolved["payload"]
-    correction_context = resolved["correction_context"]
-    assistant_analysis = _build_assistant_analysis(
-        model_code,
-        payload=payload,
-        selected_cliente=selected_cliente,
-        selected_fascicolo=selected_fascicolo,
-    )
-    guide_mode = bool(
-        str(request.form.get("guida_pratica") or request.args.get("guida_pratica") or "").strip()
-        or str(request.args.get("origine") or request.form.get("origine") or "").strip().lower() == "guida_pratica"
-    )
-
+    # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        errors = validate_payload(model_code, payload)
-        blockers = [issue for issue in assistant_analysis.get("issues", []) if issue.get("level") == "BLOCK"]
-        compliance_result = _build_contextual_compliance(
-            model_code,
-            payload=payload,
-            selected_cliente=selected_cliente,
-            selected_fascicolo=selected_fascicolo,
-        )
-        if errors:
-            flash("Completa i campi obbligatori evidenziati prima di generare l'atto.", "warning")
-            if request.form.get("_react_return"):
-                return jsonify({
-                    "ok": False,
-                    "message": "Completa i campi obbligatori evidenziati prima di generare l'atto.",
-                    "errors": errors,
-                    "compliance": compliance_result.to_dict(),
-                }), 400
-            ctx = _contesto_compilatore(
-                model_code,
-                payload=payload,
-                selected_cliente=selected_cliente,
-                selected_fascicolo=selected_fascicolo,
-                errors=errors,
-                assistant_analysis=assistant_analysis,
-                correction_context=correction_context,
-            )
-            return render_template(
-                "template_atti/compilatore.html",
-                **ctx,
-            )
-        if blockers and not guide_mode:
-            first = blockers[0]
-            flash(
-                f"Bozza bloccata: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                "warning",
-            )
-            if request.form.get("_react_return"):
-                return jsonify({
-                    "ok": False,
-                    "message": f"Bozza bloccata: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                    "compliance": compliance_result.to_dict(),
-                }), 400
-            ctx = _contesto_compilatore(
-                model_code,
-                payload=payload,
-                selected_cliente=selected_cliente,
-                selected_fascicolo=selected_fascicolo,
-                assistant_analysis=assistant_analysis,
-                correction_context=correction_context,
-            )
-            return render_template("template_atti/compilatore.html", **ctx)
-
-        requested_draft = request.form.get("requested_draft", "final_draft").strip() or "final_draft"
-        confirmed_warning = request.form.get("confirmed_warning") in {"1", "true", "on", "si"}
-        if guide_mode:
-            requested_draft = "working_draft"
-            confirmed_warning = True
-        if compliance_result.overall_state == "block" and not guide_mode:
-            message = "La bozza finale è bloccata dai controlli applicabili."
-            flash(message, "warning")
-            if request.form.get("_react_return"):
-                return jsonify({
-                    "ok": False,
-                    "message": message,
-                    "created_as": "blocked",
-                    "compliance_state": "block",
-                    "compliance": compliance_result.to_dict(),
-                }), 400
-            ctx = _contesto_compilatore(
-                model_code,
-                payload=payload,
-                selected_cliente=selected_cliente,
-                selected_fascicolo=selected_fascicolo,
-                assistant_analysis={**assistant_analysis, "contextual_compliance": compliance_result.to_dict()},
-                correction_context=correction_context,
-            )
-            return render_template("template_atti/compilatore.html", **ctx)
-        if compliance_result.overall_state == "warning" and not confirmed_warning:
-            message = "I controlli richiedono conferma: posso creare solo una bozza di lavoro da revisionare."
-            flash(message, "warning")
-            if request.form.get("_react_return"):
-                return jsonify({
-                    "ok": False,
-                    "message": message,
-                    "requires_confirmation": True,
-                    "created_as": "warning_requires_confirmation",
-                    "compliance_state": "warning",
-                    "compliance": compliance_result.to_dict(),
-                }), 409
-            ctx = _contesto_compilatore(
-                model_code,
-                payload=payload,
-                selected_cliente=selected_cliente,
-                selected_fascicolo=selected_fascicolo,
-                assistant_analysis={**assistant_analysis, "contextual_compliance": compliance_result.to_dict()},
-                correction_context=correction_context,
-            )
-            return render_template("template_atti/compilatore.html", **ctx)
-        if compliance_result.overall_state == "warning":
-            requested_draft = "working_draft"
-
-        testo_generato = render_compiled_act(model_code, payload)
-        if selected_fascicolo:
-            try:
-                editor_import = _importa_compilazione_editor_professionale(
-                    model_code=model_code,
-                    model=model,
-                    payload=payload,
-                    testo_generato=testo_generato,
-                    selected_fascicolo=selected_fascicolo,
-                    compliance_result=compliance_result,
-                    requested_draft=requested_draft,
-                    confirmed_warning=confirmed_warning,
-                )
-                if editor_import:
-                    document_id = str(editor_import["document_id"])
-                    id_fascicolo = str(getattr(selected_fascicolo, "id", "") or "").strip()
-                    editor_url = url_for("editor_documento", id_fasc=id_fascicolo, id_doc=document_id)
-                    signature_url = url_for("firma_documento", id_fasc=id_fascicolo, id_doc=document_id)
-                    if not is_safe_internal_path(editor_url):
-                        raise RuntimeError("Percorso editor generato non valido.")
-                    flash("Bozza importata nell'editor professionale. Puoi impaginarla e salvarla nel fascicolo.", "success")
-                    if request.form.get("_react_return"):
-                        return jsonify({
-                            "ok": True,
-                            "message": "Bozza creata nell'editor professionale.",
-                            "document_id": document_id,
-                            "editor_url": editor_url,
-                            "signature_url": signature_url,
-                            "redirect": editor_url,
-                            "created_as": editor_import.get("created_as") or requested_draft,
-                            "compliance_state": editor_import.get("compliance_state") or compliance_result.overall_state,
-                            "compliance": compliance_result.to_dict(),
-                        })
-                    return redirect(editor_url)
-            except Exception as exc:
-                current_app.logger.exception("Import editor professionale non riuscito per %s: %s", model_code, exc)
-                flash("Bozza creata, ma l'importazione nell'editor professionale non è riuscita. Resta disponibile l'anteprima.", "warning")
-        ctx = _contesto_compilatore(
-            model_code,
-            payload=payload,
-            selected_cliente=selected_cliente,
-            selected_fascicolo=selected_fascicolo,
-            assistant_analysis=assistant_analysis,
-            correction_context=correction_context,
-        )
-        return render_template(
-            "template_atti/anteprima_compilatore.html",
-            model=model,
-            payload=payload,
-            form_values={key: _valore_form(value) for key, value in payload.items()},
-            testo_generato=testo_generato,
-            editor_html=_to_editor_html(testo_generato),
-            selected_cliente=selected_cliente,
-            selected_fascicolo=selected_fascicolo,
-            guidance=ctx["guidance"],
-            suggested_attachments=ctx["suggested_attachments"],
-            suggested_clauses=ctx["suggested_clauses"],
-            sections=ctx["sections"],
-            renderer_name=ctx["renderer_name"],
-            assistant_analysis=assistant_analysis,
-            correction_context=correction_context,
-        )
-
-    return render_template(
-        "template_atti/compilatore.html",
-        **_contesto_compilatore(
-            model_code,
-            payload=payload,
-            selected_cliente=selected_cliente,
-            selected_fascicolo=selected_fascicolo,
-            assistant_analysis=assistant_analysis,
-            correction_context=correction_context,
-        ),
-    )
+        return redirect(request.path)
+    return render_react_shell_response(f"template-atti/compila/{model_code}")
 
 
 @template_atti.route("/compila/<model_code>/guida-pratica/salva", methods=["POST"])
@@ -2389,14 +1926,6 @@ def api_riscrivi_passaggio():
 
 # ================================================================ helpers
 
-def _variabili_safe(v: dict) -> dict:
-    """Serializza le variabili per il form nascosto (solo stringhe)."""
-    safe = {}
-    for k, val in v.items():
-        if isinstance(val, str):
-            safe[k] = val
-    return safe
-
 
 def _parse_editor_layout(raw: str | None) -> dict | None:
     if not raw:
@@ -2534,33 +2063,6 @@ def _request_editor_content(default_text: str = "") -> tuple[str, str]:
     return text, ""
 
 
-def _stamp_lines(stamp: Any) -> list[dict[str, Any]]:
-    if not stamp or not getattr(stamp, "enabled", False):
-        return []
-    try:
-        lines = stamp.to_lines()
-    except Exception:
-        lines = []
-    if lines:
-        return [line for line in lines if str(line.get("text") or "").strip()]
-    text = str(getattr(stamp, "text", "") or "")
-    return [{"text": line.strip()} for line in text.splitlines() if line.strip()]
-
-
-def _stamp_text(stamp: Any) -> str:
-    return "\n".join(str(line.get("text") or "").strip() for line in _stamp_lines(stamp)).strip()
-
-
-def _document_text_with_stamp(text: str, stamp: Any) -> str:
-    stamp_text = _stamp_text(stamp)
-    body = str(text or "").strip()
-    if not stamp_text:
-        return body
-    if body.startswith(stamp_text.splitlines()[0]):
-        return body
-    return f"{stamp_text}\n\n{body}".strip()
-
-
 def _pdf_layout_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:
     """Il PDF importato nell'editor atti, fedele all'originale.
 
@@ -2588,7 +2090,6 @@ def _pdf_layout_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:
     for avviso in documento.avvisi:
         current_app.logger.info("Importazione documento: %s", avviso)
     return html, sorted(documento.caratteri), True
-
 
 
 def _pdf_righe_html_from_bytes(data: bytes) -> tuple[str, list[str], bool]:

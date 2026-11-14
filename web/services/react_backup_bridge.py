@@ -181,7 +181,7 @@ def _actions(current_user: Any) -> dict[str, Any]:
         "backupDisabled": backups_disabled,
         "createEndpoint": "/api/v1/ui/backup/crea",
         "verifyEndpoint": "/api/v1/ui/backup/verifica",
-        "legacyHref": "/backup?_legacy=1",
+        "legacyHref": "/backup",
     }
 
 
@@ -230,7 +230,7 @@ def build_react_backup_error_payload(message: str = "Backup non disponibile.") -
             "canRestore": False,
             "createEndpoint": "/api/v1/ui/backup/crea",
             "verifyEndpoint": "/api/v1/ui/backup/verifica",
-            "legacyHref": "/backup?_legacy=1",
+            "legacyHref": "/backup",
         },
         "warnings": [{"code": "backup_errore_controllato", "message": message}],
     }

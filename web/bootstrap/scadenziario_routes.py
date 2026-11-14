@@ -7,7 +7,7 @@ from datetime import date
 from typing import Any
 
 from web.blueprints.react_shell import render_react_shell_response
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, url_for
 from markupsafe import escape
 from pct.ora_italiana import oggi_roma
 from pct.scadenze_titolo_avvocato import traccia_titolo_avvocato
@@ -16,8 +16,6 @@ from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
     PrioritaTermine,
-    Scadenza,
-    StatoTermine,
     TipoTermine,
     calcola_termine,
     profili_termine_builtin,
@@ -25,9 +23,9 @@ from pct.scadenziario import (
     riepilogo_operativo_scadenza,
     è_giorno_lavorativo,
 )
-from web.services.request_mode import richiede_json, richiede_vista_classica
+from web.services.request_mode import richiede_json
 from web.services.scadenziario_shell_bootstrap import scadenza_detail_shell_texts, scadenziario_shell_texts
-from web.services.scadenziario_views import label_vista_scadenziario, normalizza_vista_scadenziario, scadenza_detail_context, scadenze_per_vista
+from web.services.scadenziario_views import normalizza_vista_scadenziario, scadenza_detail_context, scadenze_per_vista
 
 
 def register_scadenziario_routes(
@@ -45,30 +43,6 @@ def register_scadenziario_routes(
 ) -> None:
     """Register scadenziario CRUD, notifications, and calculation routes."""
 
-    def _scadenziario_form_context(scadenza: Scadenza | None = None):
-        gf = get_fascicoli()
-        gu = get_utenti()
-        id_cliente_get = request.args.get("id_cliente", "")
-        from_cliente_get = request.args.get("from_cliente", "")
-        fascicoli = gf.tutti()
-        id_fascicolo_presel = ""
-        if id_cliente_get and not scadenza:
-            fascicoli_cliente = [f for f in fascicoli if f.id_cliente == id_cliente_get]
-            if fascicoli_cliente:
-                fascicoli = fascicoli_cliente
-                id_fascicolo_presel = fascicoli_cliente[0].id
-        return {
-            "tipi": list(TipoTermine),
-            "preset_list": PRESET_TERMINI,
-            "profili_termine": profili_termine_builtin(),
-            "fascicoli": fascicoli,
-            "utenti": gu.tutti(solo_attivi=True),
-            "scadenza": scadenza,
-            "id_cliente": id_cliente_get,
-            "from_cliente": from_cliente_get,
-            "id_fascicolo_presel": id_fascicolo_presel,
-            "studio_cfg": get_config_studio().config.studio,
-        }
 
     def _parse_int(value, default=0):
         try:
@@ -181,37 +155,11 @@ def register_scadenziario_routes(
             scadenze = [s for s in scadenze if s.ha_calcolo_avanzato]
         if filtro_operative:
             scadenze = [s for s in scadenze if bool(s.operational_due_at)]
-        if not richiede_vista_classica():
-            texts = scadenziario_shell_texts(scadenze, avanzate=filtro_avanzate, operative=filtro_operative)
-            return render_react_shell_response("scadenziario", bootstrap_texts=texts)
-        scadute = gs.tutte(stato=StatoTermine.SCADUTO, solo_aperte=False)
-        scadenze_critiche = gs.imminenti(entro_giorni=3)
-        imminenti = gs.imminenti(entro_giorni=7)
-        stats = gs.statistiche()
-        return render_template(
-            "scadenziario/lista.html",
-            scadenze=scadenze,
-            scadute=scadute,
-            scadenze_critiche=scadenze_critiche,
-            imminenti=imminenti,
-            stats=stats,
-            tipi=list(TipoTermine),
-            priorita_list=list(PrioritaTermine),
-            filtro_tipo=filtro_tipo,
-            filtro_priorita=filtro_priorita,
-            id_fascicolo=id_fascicolo,
-            q=q,
-            filtro_dal=filtro_dal,
-            filtro_al=filtro_al,
-            filtro_perentorio=filtro_perentorio,
-            filtro_avanzate=filtro_avanzate,
-            filtro_operative=filtro_operative,
-            filtro_vista=filtro_vista,
-            vista_label=label_vista_scadenziario(filtro_vista),
-        )
+        texts = scadenziario_shell_texts(scadenze, avanzate=filtro_avanzate, operative=filtro_operative)
+        return render_react_shell_response("scadenziario", bootstrap_texts=texts)
     @app.route("/scadenziario/nuova", methods=["GET", "POST"])
     def nuova_scadenza():
-        if request.method == "GET" and not richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response("scadenziario/nuova")
         if request.method == "POST":
             gs = get_scadenziario()
@@ -290,7 +238,7 @@ def register_scadenziario_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return render_template("scadenziario/form.html", **_scadenziario_form_context())
+        return redirect(request.path)
     @app.route("/scadenziario/<id_sc>")
     def dettaglio_scadenza(id_sc):
         gs = get_scadenziario()
@@ -303,9 +251,7 @@ def register_scadenziario_routes(
             gestione_agenda=get_agenda(), studio_cfg=get_config_studio().config.studio,
             profili_termine=profili_termine_builtin(),
         )
-        if not richiede_vista_classica():
-            return render_react_shell_response(f"scadenziario/{id_sc}", bootstrap_texts=scadenza_detail_shell_texts(context))
-        return render_template("scadenziario/dettaglio.html", **context)
+        return render_react_shell_response(f"scadenziario/{id_sc}", bootstrap_texts=scadenza_detail_shell_texts(context))
     @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])
     def modifica_scadenza(id_sc):
         gs = get_scadenziario()
@@ -313,7 +259,7 @@ def register_scadenziario_routes(
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
-        if request.method == "GET" and not richiede_vista_classica():
+        if request.method == "GET":
             return render_react_shell_response(f"scadenziario/{id_sc}/modifica")
         if request.method == "POST":
             form = request.form
@@ -401,7 +347,7 @@ def register_scadenziario_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return render_template("scadenziario/form.html", **_scadenziario_form_context(sc))
+        return redirect(request.path)
     @app.route("/scadenziario/<id_sc>/completa", methods=["POST"])
     def completa_scadenza(id_sc):
         gs = get_scadenziario()

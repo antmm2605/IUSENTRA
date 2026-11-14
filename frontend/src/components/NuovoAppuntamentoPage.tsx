@@ -241,7 +241,7 @@ function initialForm(): AppointmentForm {
     procedimento: '',
     tribunale: '',
     avvocato: '',
-    note: '',
+    note: params.get('note')?.slice(0, 4000) ?? '',
   }
 }
 

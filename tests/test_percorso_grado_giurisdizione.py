@@ -97,10 +97,12 @@ def test_riconoscimento_giurisdizione_senza_falsi_positivi():
 
 
 def test_rito_non_riconosciuto_per_sottostringa():
-    assert rito_per_fascicolo("FAMIGLIA", "volontaria giurisdizione") == "ordinario"
+    # «tar» dentro «volontaria» non è il TAR: la volontaria giurisdizione è il rito camerale (artt. 737 ss. c.p.c.,
+    # collaudo 10/11/2026), e l'amministrazione di sostegno ne segue le forme (art. 720-bis c.p.c.).
+    assert rito_per_fascicolo("FAMIGLIA", "volontaria giurisdizione") == "volontaria"
     assert rito_per_fascicolo("SUCCESSIONI", "successione testamentaria") == "ordinario"
     assert rito_per_fascicolo("CIVILE", "atto notarile") == "ordinario"
-    assert rito_per_fascicolo("FAMIGLIA", "amministrazione di sostegno") == "ordinario"
+    assert rito_per_fascicolo("FAMIGLIA", "amministrazione di sostegno") == "volontaria"
     assert rito_per_fascicolo("CIVILE", "ricorso al TAR") == "amministrativo"
     assert rito_per_fascicolo("CIVILE", "giudizio amministrativo") == "amministrativo"
     assert rito_per_fascicolo("CIVILE", "rito semplificato di cognizione") == "semplificato"

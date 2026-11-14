@@ -62,11 +62,14 @@ def build_generation_prompt(
             "warnings": context.get("warnings") or [],
         },
     }
+    if context.get("stile_studio"):
+        payload["stile_studio"] = context["stile_studio"]
     return (
         "Genera il contenuto HTML della bozza atto seguendo il piano strutturato.\n"
         "Regole obbligatorie:\n"
         "- usa solo italiano;\n"
         "- non inventare dati mancanti;\n"
+        "- usa eventuali tratti di stile solo per la forma, rispettando struttura obbligatoria e fonti del caso corrente;\n"
         "- se manca un dato, usa [DATO DA COMPLETARE: ...];\n"
         "- cita i documenti con marker brevi tra parentesi quadre, ad esempio [Doc: nome file, p. 1];\n"
         "- non rispondere con spiegazioni fuori dall'HTML dell'atto.\n\n"

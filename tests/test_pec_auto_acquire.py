@@ -615,3 +615,100 @@ def first_user_id(paths: dict[str, str]) -> str:
         crea_admin_se_vuoto=False,
     )
     return str(gestore.tutti(solo_attivi=True)[0].id)
+
+
+def test_acquisizione_segnala_errore_se_non_puo_registrare_il_giro(tmp_path: Path, monkeypatch):
+    paths = _paths(tmp_path)
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
+    _archivia_pec(gestore, email_id="MAIL-AUTO-RIPROVA", message_id="<auto-riprova@example.test>",
+                  subject="POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 12/2026")
+    repo = repository_from_paths(paths, tenant_label="default")
+
+    def registro_non_disponibile(*args, **kwargs):
+        raise RuntimeError("Registro non disponibile")
+
+    monkeypatch.setattr(type(repo), "start_local_acquire_run", registro_non_disponibile)
+    esito = acquire_local_pec_for_paths(paths, tenant_label="default", batch_size=10)
+
+    assert esito["reason"] == "registro presidio non disponibile"
+    assert esito["errors"] == 1
+    assert esito["ingested"] == 0
+    assert esito["cursor_saved"] is False
+
+
+def test_avviso_scadenza_pec_indica_adempimento_e_rg():
+    from web.services.pec_pipeline_runtime import build_pec_deadline_notification
+
+    titolo = "Deposito note scritte ex art. 127-ter c.p.c. - 01/12/2026 - RG 3556/2025"
+    esito = {"deadline_id": "D1", "due_date": "2026-12-01", "proposal": {"title": titolo}}
+    for automatico in (True, False):
+        notifica = build_pec_deadline_notification(esito, source_id="PEC1", automatic=automatico)
+        assert notifica["body"].startswith(titolo + ".")
+        assert notifica["body"].count("01/12/2026") == 1
+        assert notifica["href"] == "/scadenziario/D1?vista=tutte"
+
+
+def test_acquisizione_riprova_originale_dopo_errore_transitorio(tmp_path, monkeypatch):
+    import sqlite3
+
+    from pct.pec_pipeline import PecAuditRepository
+
+    paths = _paths(tmp_path)
+    _archivia_pec(
+        sql_mailbox(paths["EMAIL_CASELLA_DB"]),
+        email_id="MAIL-RETRY",
+        message_id="<retry@example.test>",
+        subject="POSTA CERTIFICATA: ACCETTAZIONE DEPOSITO TELEMATICO RG: 12/2026",
+    )
+    with monkeypatch.context() as patch:
+        def archivio_occupato(*args, **kwargs):
+            raise sqlite3.OperationalError("database is locked")
+
+        patch.setattr(PecAuditRepository, "ingest_mime", archivio_occupato)
+        first = acquire_local_pec_for_paths(paths, tenant_label="default")
+
+    assert first["errors"] == 1
+    assert not first["cursor_saved"]
+    assert not repository_from_paths(paths, tenant_label="default").presided_email_ids(["MAIL-RETRY"])
+    second = acquire_local_pec_for_paths(paths, tenant_label="default")
+    assert second["ingested"] == 1 and second["errors"] == 0
+
+
+def test_riconcilia_pec_fallita_prima_del_cursore_anche_con_confine_gia_presidiato(tmp_path):
+    paths = _paths(tmp_path)
+    gestore = sql_mailbox(paths["EMAIL_CASELLA_DB"])
+    _archivia_pec(
+        gestore, email_id="MAIL-NEW", message_id="<new@example.test>",
+        subject="POSTA CERTIFICATA: PEC più recente", data="2026-06-25T10:05:00",
+    )
+    assert acquire_local_pec_for_paths(paths, tenant_label="default")["ingested"] == 1
+    _archivia_pec(
+        gestore, email_id="MAIL-OLD", message_id="<old@example.test>",
+        subject="POSTA CERTIFICATA: PEC rimasta indietro", data="2026-06-25T10:00:00",
+    )
+    repo = repository_from_paths(paths, tenant_label="default")
+    run = repo.start_local_acquire_run(total_emails=1, batch_size=1)
+    repo.record_local_acquire_item(run["id"], email_id="MAIL-OLD", status="processed",
+                                   detail={"errore": "database is locked"})
+    # La casella era già presente alla precedente scansione, senza arrivi successivi.
+    cursor = repo.latest_local_acquire_cursor(origin="auto")
+    repo.record_local_acquire_cursor({**cursor, "archive_seen": 2})
+
+    retry = acquire_local_pec_for_paths(paths, tenant_label="default")
+
+    assert retry["scan_mode"] == "riconciliazione"
+    assert retry["ingested"] == 1
+    assert repo.presided_email_ids(["MAIL-OLD"]) == {"MAIL-OLD"}
+
+
+def test_acquisizione_distingue_archivio_vuoto_da_archivio_assente(tmp_path):
+    email_db = tmp_path / "email" / "casella.json"
+    email_db.parent.mkdir()
+    paths = {"EMAIL_CASELLA_DB": str(email_db)}
+    assente = acquire_local_pec_for_paths(paths, tenant_label="default")
+    assert assente["scan_mode"] == "not_started"
+    assert assente["reason"] == "archivio email assente"
+    sql_mailbox(str(email_db))
+    vuoto = acquire_local_pec_for_paths(paths, tenant_label="default")
+    assert vuoto["scan_mode"] == "empty"
+    assert vuoto["archive_seen"] == 0

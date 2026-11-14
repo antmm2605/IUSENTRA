@@ -472,7 +472,6 @@ def build_react_tariffario_payload(
         "actions": [
             _action("compensi", "Calcolo Tariffario", "/compensi-forensi", "primary"),
             _action("percorso_guidato", "Percorso preventivi", "/preventivi/wizard", "neutral"),
-            _action("percorso_recupero", "Percorso di recupero", "/tariffario?_legacy=1", "warning"),
         ],
         "forms": [],
         "warnings": warnings + list(initial.get("warnings") or []),
@@ -500,7 +499,7 @@ def build_react_tariffario_error_payload(message: str = "Tariffario non disponib
         "metrics": [],
         "sections": [],
         "records": [],
-        "actions": [_action("percorso_recupero", "Percorso di recupero", "/tariffario?_legacy=1", "warning")],
+        "actions": [],
         "forms": [],
         "warnings": [_warning("tariffario_errore_controllato", message)],
     }

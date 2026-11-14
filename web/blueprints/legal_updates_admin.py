@@ -3,16 +3,14 @@
 from functools import wraps
 from typing import Any
 
-from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, g, jsonify, request
 
 from pct.auth import RuoloUtente
 from web.services.legal_update_surface import (
-    build_legal_source_catalog,
     build_legal_update_pipeline_runtime,
     build_legal_update_surface,
-    run_legal_update_action,
 )
-from web.services.piattaforma_shell_runtime import render_piattaforma_shell, vista_classica_richiesta
+from web.services.piattaforma_shell_runtime import render_piattaforma_shell
 from web.services.security_redaction import redacted_json_response
 
 
@@ -53,21 +51,27 @@ STATUS_LABELS = {
 }
 
 
+def utente_ammesso_console(user) -> bool:
+    """Chi apre la console Update Intelligence: il superamministratore, oppure
+    l'amministratore dello studio o chi ha i permessi `admin.leggi` e `ai.configura`.
+    Lo stesso criterio vale per le pagine React del pannello (`api_v1_piattaforma`)."""
+    if not user:
+        return False
+    if getattr(user, "is_superadmin", False):
+        return True
+    has_permissions = bool(
+        getattr(user, "ha_permesso", lambda _perm: False)("admin.leggi")
+        and getattr(user, "ha_permesso", lambda _perm: False)("ai.configura")
+    )
+    return has_permissions or getattr(user, "ruolo", None) == RuoloUtente.AMMINISTRATORE
+
+
 def superadmin_required(fn):
     """Consente la console Update Intelligence agli amministratori autorizzati."""
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        user = getattr(g, "utente_corrente", None)
-        if not user:
-            abort(403)
-        if getattr(user, "is_superadmin", False):
-            return fn(*args, **kwargs)
-        has_permissions = bool(
-            getattr(user, "ha_permesso", lambda _perm: False)("admin.leggi")
-            and getattr(user, "ha_permesso", lambda _perm: False)("ai.configura")
-        )
-        if has_permissions or getattr(user, "ruolo", None) == RuoloUtente.AMMINISTRATORE:
+        if utente_ammesso_console(getattr(g, "utente_corrente", None)):
             return fn(*args, **kwargs)
         abort(403)
 
@@ -153,23 +157,9 @@ def _reviewer_name() -> str:
     return str(getattr(user, "username", "") or "superadmin")
 
 
-def _pannello_react() -> bool:
-    """Vista React solo per il superamministratore: l'API del pannello di
-    piattaforma (`/api/v1/ui/piattaforma`) è riservata a lui. Gli altri
-    amministratori ammessi dal decoratore di questa console restano sulla vista
-    classica, con le stesse funzioni di prima."""
-    utente = getattr(g, "utente_corrente", None)
-    return not vista_classica_richiesta() and bool(getattr(utente, "is_superadmin", False))
-
-
 def _selected_tenant_slug() -> str:
     # Presidio condiviso: questa console non seleziona piu' uno studio.
     return ""
-
-
-def _redirect_kwargs(tenant_slug: str) -> dict[str, str]:
-    # Gli invii della vista classica tornano alla vista classica, dove si leggono i messaggi.
-    return {"_legacy": "1"}
 
 
 def _request_payload() -> dict[str, Any]:
@@ -245,303 +235,43 @@ def _upsert_source_from_payload(payload: dict[str, Any], *, current_source: dict
 @legal_updates_admin.get("/")
 @superadmin_required
 def dashboard():
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-legali", "Aggiornamenti legali")
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_dashboard.html",
-        payload=payload,
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
+    return render_piattaforma_shell("aggiornamenti-legali", "Aggiornamenti legali")
 
 
 @legal_updates_admin.get("/fonti")
 @superadmin_required
 def sources_page():
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-fonti", "Fonti degli aggiornamenti")
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_sources.html",
-        payload=payload,
-        catalog=build_legal_source_catalog(pipeline),
-        sources=pipeline.repository.list_sources(enabled_only=False),
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
-
-
-@legal_updates_admin.post("/fonti/nuova")
-@superadmin_required
-def create_source():
-    tenant_slug = _selected_tenant_slug()
-    try:
-        source_row = _upsert_source_from_payload(request.form.to_dict())
-        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).repository.upsert_sources([source_row])
-        flash("Fonte salvata correttamente.", "success")
-    except Exception as exc:
-        current_app.logger.exception("Errore create_source: %s", exc)
-        flash(f"Errore salvataggio fonte: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
-
-
-@legal_updates_admin.post("/fonti/<int:source_id>/aggiorna")
-@superadmin_required
-def update_source(source_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-        current_source = pipeline.repository.get_source_by_id(source_id)
-        if not current_source:
-            flash("Fonte non trovata.", "warning")
-            return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
-        pipeline.repository.upsert_sources([_upsert_source_from_payload(request.form.to_dict(), current_source=current_source)])
-        flash("Fonte aggiornata.", "success")
-    except Exception as exc:
-        current_app.logger.exception("Errore update_source: %s", exc)
-        flash(f"Errore aggiornamento fonte: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
-
-
-@legal_updates_admin.post("/fonti/<int:source_id>/fetch")
-@superadmin_required
-def fetch_source(source_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        result = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).fetch_source_by_id(source_id, auto_publish=True)
-        flash(
-            f"Acquisizione completata: {result.get('documents_found', 0)} documenti trovati e {result.get('processed', 0)} processati.",
-            "success",
-        )
-    except Exception as exc:
-        current_app.logger.exception("Errore fetch_source %s: %s", source_id, exc)
-        flash(f"Errore acquisizione fonte: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
+    return render_piattaforma_shell("aggiornamenti-fonti", "Fonti degli aggiornamenti")
 
 
 @legal_updates_admin.get("/staging")
 @superadmin_required
 def staging_page():
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-staging", "Acquisizione dei documenti")
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    try:
-        pipeline.reconcile_pending_reviews(limit=300, reviewer="system")
-    except Exception as exc:
-        current_app.logger.warning("Riconciliazione staging non completata: %s", exc)
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_staging.html",
-        payload=payload,
-        documents=pipeline.repository.list_raw_documents(
-            source_code=request.args.get("source", ""),
-            classification_type=request.args.get("classification", ""),
-            status=request.args.get("status", ""),
-            limit=120,
-        ),
-        source_filter=request.args.get("source", ""),
-        classification_filter=request.args.get("classification", ""),
-        status_filter=request.args.get("status", ""),
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
+    return render_piattaforma_shell("aggiornamenti-staging", "Acquisizione dei documenti")
 
 
 @legal_updates_admin.get("/staging/<int:raw_document_id>")
 @superadmin_required
 def staging_detail_page(raw_document_id: int):
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-staging-scheda", "Dettaglio acquisizione", {"id": str(raw_document_id)})
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    document = pipeline.repository.get_staging_document(raw_document_id)
-    if not document:
-        flash("Documento di staging non trovato.", "warning")
-        return redirect(url_for("legal_updates_admin.staging_page", **_redirect_kwargs(tenant_slug)))
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_staging_detail.html",
-        payload=payload,
-        document=document,
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
-
-
-@legal_updates_admin.post("/staging/<int:raw_document_id>/analizza")
-@superadmin_required
-def analyze_staging_document(raw_document_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        result = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).analyze_raw_document(
-            raw_document_id,
-            auto_publish=True,
-        )
-        auto_count = int(((result.get("autopublished") or {}).get("count")) or 0)
-        if auto_count:
-            flash("Documento analizzato e pubblicato automaticamente negli archivi operativi.", "success")
-        else:
-            flash("Documento analizzato: resta in revisione solo se serve controllo umano.", "success")
-    except Exception as exc:
-        current_app.logger.exception("Errore analyze_staging_document %s: %s", raw_document_id, exc)
-        flash(f"Errore rianalisi documento: {exc}", "danger")
-    return redirect(
-        url_for(
-            "legal_updates_admin.staging_detail_page",
-            raw_document_id=raw_document_id,
-            **_redirect_kwargs(tenant_slug),
-        )
-    )
+    return render_piattaforma_shell("aggiornamenti-staging-scheda", "Dettaglio acquisizione", {"id": str(raw_document_id)})
 
 
 @legal_updates_admin.get("/analisi")
 @superadmin_required
 def analysis_page():
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-analisi", "Catalogazione")
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_analysis.html",
-        payload=payload,
-        analyses=pipeline.repository.list_analyses(
-            classification_type=request.args.get("classification", ""),
-            matter_slug=request.args.get("materia", ""),
-            limit=120,
-        ),
-        classification_filter=request.args.get("classification", ""),
-        matter_filter=request.args.get("materia", ""),
-        matters=pipeline.repository.list_matters(),
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
+    return render_piattaforma_shell("aggiornamenti-analisi", "Catalogazione")
 
 
 @legal_updates_admin.get("/archivio")
 @superadmin_required
 def archive_page():
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-archivio", "Archivio degli aggiornamenti")
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    selected = (request.args.get("tab") or "normative").strip().lower()
-    if selected not in {"normative", "jurisprudence", "prassi", "news", "audit"}:
-        selected = "normative"
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_archive.html",
-        payload=payload,
-        selected_tab=selected,
-        normative=pipeline.repository.list_published_normative(limit=120),
-        jurisprudence=pipeline.repository.list_published_jurisprudence(limit=120),
-        prassi=pipeline.repository.list_published_prassi(limit=120),
-        news=pipeline.repository.list_news(limit=120, include_drafts=True),
-        audit_rows=pipeline.repository.list_audit(limit=120),
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
-
-
-@legal_updates_admin.post("/esegui/<string:action>")
-@superadmin_required
-def execute_action(action: str):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        result = run_legal_update_action(action, tenant_slug=tenant_slug)
-        labels = {
-            "scan": "Ricerca completata: archivio controllato, duplicati esclusi e nuovi contenuti pubblicati quando idonei.",
-            "autopublish": "Pubblicazione automatica completata sui contenuti idonei.",
-            "cleanup": "Pulizia archivio completata: i duplicati sono stati rimossi o accorpati.",
-        }
-        flash(labels.get(action, "Operazione completata."), "success")
-        current_app.logger.info("Legal updates action %s -> %s", action, result)
-    except Exception as exc:
-        current_app.logger.exception("Errore legal updates action %s: %s", action, exc)
-        flash(f"Errore durante l'azione {action}: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.dashboard", **_redirect_kwargs(tenant_slug)))
+    return render_piattaforma_shell("aggiornamenti-archivio", "Archivio degli aggiornamenti")
 
 
 @legal_updates_admin.get("/review")
 @superadmin_required
 def review_page():
-    if _pannello_react():
-        return render_piattaforma_shell("aggiornamenti-revisione", "Coda revisioni aggiornamenti")
-    tenant_slug = _selected_tenant_slug()
-    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
-    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
-    return render_template(
-        "admin/legal_updates_review.html",
-        review_items=pipeline.repository.list_review_queue(limit=100),
-        payload=payload,
-        tenant_slug=payload["runtime"].get("tenant_slug", ""),
-    )
-
-
-@legal_updates_admin.post("/review/<int:review_id>/approve")
-@superadmin_required
-def approve(review_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).approve_review(
-            review_id,
-            reviewer=_reviewer_name(),
-            notes=request.form.get("review_notes", ""),
-        )
-        flash("Proposta approvata.", "success")
-    except Exception as exc:
-        current_app.logger.exception("Errore approve review %s: %s", review_id, exc)
-        flash(f"Errore approvazione: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
-
-
-@legal_updates_admin.post("/review/<int:review_id>/edit-and-approve")
-@superadmin_required
-def edit_and_approve(review_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).edit_and_approve_review(
-            review_id,
-            reviewer=_reviewer_name(),
-            review_notes=request.form.get("review_notes", ""),
-            summary_short=request.form.get("summary_short", ""),
-            what_changes=request.form.get("what_changes", ""),
-        )
-        flash("Proposta aggiornata e approvata.", "success")
-    except Exception as exc:
-        current_app.logger.exception("Errore edit_and_approve %s: %s", review_id, exc)
-        flash(f"Errore modifica e approvazione: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
-
-
-@legal_updates_admin.post("/review/<int:review_id>/reject")
-@superadmin_required
-def reject(review_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).reject_review(
-            review_id,
-            reviewer=_reviewer_name(),
-            notes=request.form.get("review_notes", ""),
-        )
-        flash("Proposta rifiutata.", "warning")
-    except Exception as exc:
-        current_app.logger.exception("Errore reject review %s: %s", review_id, exc)
-        flash(f"Errore rifiuto: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
-
-
-@legal_updates_admin.post("/review/<int:review_id>/publish")
-@superadmin_required
-def publish(review_id: int):
-    tenant_slug = _selected_tenant_slug()
-    try:
-        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).publish_review(review_id, reviewer=_reviewer_name())
-        flash("Contenuto pubblicato correttamente.", "success")
-    except Exception as exc:
-        current_app.logger.exception("Errore publish review %s: %s", review_id, exc)
-        flash(f"Errore pubblicazione: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
+    return render_piattaforma_shell("aggiornamenti-revisione", "Coda revisioni aggiornamenti")
 
 
 @legal_updates_admin.get("/api/review-queue")

@@ -14,7 +14,7 @@ from pct.pec_fascicolo_documenti import recupera_storico, stato_flusso
 from web.services.pec_pipeline_runtime import repository_from_paths
 
 LIMITE_PREDEFINITO = 100
-_SOMME = ("esaminati", "completati", "in_attesa_conferma", "salvati", "eml_salvati", "gia_presenti", "scartati", "errori", "restano")
+_SOMME = ("esaminati", "completati", "in_attesa_conferma", "salvati", "eml_salvati", "gia_presenti", "scartati", "errori", "restano", "controlli_rinviati")
 
 
 def limite_recupero(config: Mapping[str, Any] | None = None) -> int:
@@ -63,7 +63,7 @@ def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limi
 
     Gli errori su singoli messaggi o studi restano contati in ``totals.errori`` e nel dettaglio per studio, ma
     l'esito è negativo solo se il lotto non ha potuto lavorare: tutti gli studi guasti, oppure ogni elemento
-    esaminato finito in errore senza nulla di completato o salvato.
+    esaminato finito in errore senza nulla di completato o salvato. Un errore parziale resta visibile al coordinatore.
     """
     totali = dict.fromkeys(_SOMME, 0)
     studi: list[dict[str, Any]] = []
@@ -72,12 +72,18 @@ def recupero_per_studi(targets: Iterable[tuple[str, Mapping[str, Any]]], *, limi
             repo = repository_from_paths(paths, tenant_label=etichetta)
             esito = recupera_storico(repo, limite=limite, eventi=eventi_dello_studio(etichetta, paths))
             esito["notifiche_l53"] = _notifiche_l53(repo)
+            controlli = (esito.get("riconvalida") or {}, esito["notifiche_l53"])
+            esito["controlli_rinviati"] = sum(voce.get("ok") is False for voce in controlli)
+            esito["restano"] = int(esito.get("restano") or 0) + int(esito["notifiche_l53"].get("restano") or 0)
         except Exception as exc:  # uno studio guasto non ferma gli altri, ma rende rosso l'esito
             esito = {"ok": False, "errori": 1, "errore": type(exc).__name__}
         for chiave in _SOMME:
             totali[chiave] += int(esito.get(chiave) or 0)
         studi.append({"studio": etichetta, **{k: v for k, v in esito.items() if k in (*_SOMME, "ok", "errore", "riconvalida", "notifiche_l53")}})
-    return {"ok": esito_positivo(totali, studi), "job": "pec_fascicolo_documenti_recupero", "limite": limite,
+    ok = esito_positivo(totali, studi)
+    parziale = ok and bool(totali["errori"] or totali["controlli_rinviati"])
+    return {"ok": ok, "job": "pec_fascicolo_documenti_recupero", "limite": limite,
+            "status": "parziale" if parziale else ("ok" if ok else "fallito"),
             "studi": len(studi), "totals": totali, "tenants": studi, "message": messaggio_recupero(totali)}
 
 
@@ -98,7 +104,7 @@ def messaggio_recupero(totali: Mapping[str, Any]) -> str:
         return int(totali.get(chiave) or 0)
 
     return (f"{n('esaminati')} PEC elaborate, {n('salvati')} documenti e {n('eml_salvati')} .eml salvati, "
-            f"{n('errori')} errori, {n('restano')} restano.")
+            f"{n('errori')} errori, {n('restano')} restano, {n('controlli_rinviati')} controlli non riusciti.")
 
 
 def studi_attivi(config: Mapping[str, Any]) -> list[tuple[str, dict[str, Any]]]:

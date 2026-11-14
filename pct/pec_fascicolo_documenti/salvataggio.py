@@ -92,6 +92,7 @@ def salva_allegato(manager: Any, fascicolo_id: str, allegato: Allegato, provenie
         nome_originale=allegato.nome, hash_contenuto_sha256=allegato.sha256,
         # Chiave per allegato: due atti della stessa PEC restano due documenti distinti.
         msg_id_portale=f"{provenienza.message_id}#{allegato.sha256[:16]}",
+        salvataggio_mirato=True,
     )
 
 
@@ -117,6 +118,7 @@ def salva_eml(manager: Any, fascicolo_id: str, raw: bytes, impronta: str, proven
         data_documento=provenienza.giorno, caricato_da=actor,
         fonte_documento=fonte,
         nome_originale=nome, nome_archivio=nome, hash_contenuto_sha256=impronta, msg_id_portale=provenienza.message_id,
+        salvataggio_mirato=True,
     )
 
 

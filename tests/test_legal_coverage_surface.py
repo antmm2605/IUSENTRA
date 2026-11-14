@@ -79,18 +79,18 @@ def test_admin_copertura_ai_ignora_tenant_postgres_legacy_e_usa_archivio_condivi
         )
         assert login.status_code == 302
 
-        page = client.get("/admin/copertura-ai?_legacy=1")
+        page = client.get("/api/v1/ui/piattaforma/copertura-ai")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert "DB configurato: si" in html
-    assert "Archivio coverage condiviso da tutti gli studi" in html
-    assert "Una sola esecuzione aggiorna audit, gap queue, bozze, review e publish" in html
+    assert "Archivio configurato: sì" in html
+    assert "Archivio della copertura condiviso da tutti gli studi" in html
+    assert "Una sola esecuzione aggiorna verifica, lacune, bozze, revisione e pubblicazione" in html
     assert "Studi attivi coperti:" in html
     assert "Studio attivo:" not in html
     assert "Studio Coverage Operativo" not in html
     assert "PostgreSQL tenant-aware" not in html
-    assert 'name="tenant_slug"' not in html
+    assert '"tenant_slug"' not in html
 
 
 def test_review_copertura_ai_spiega_il_flusso_e_mostra_la_coda(tmp_path: Path):
@@ -115,17 +115,14 @@ def test_review_copertura_ai_spiega_il_flusso_e_mostra_la_coda(tmp_path: Path):
         )
         assert login.status_code == 302
 
-        page = client.get(f"/admin/copertura-ai/review?tenant_slug={studio.slug}&_legacy=1")
+        page = client.get("/api/v1/ui/piattaforma/copertura-ai-revisione")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert "Come si usa questa schermata" in html
-    assert "Contesto di retrieval" in html
-    assert "Decisione reviewer" in html
-    assert "Storico revisioni" in html
-    assert "Diff bozza -&gt; versione corrente" in html or "Diff bozza -> versione corrente" in html
-    assert "Nessuna bozza selezionata." in html
+    assert "Nessuna bozza disponibile." in html
     assert "Studio selezionato:" not in html
+    assert "Studio Coverage" not in html
 
 
 def test_admin_copertura_ai_sqlite_tenant_mostra_database_connesso(tmp_path: Path):
@@ -155,15 +152,15 @@ def test_admin_copertura_ai_sqlite_tenant_mostra_database_connesso(tmp_path: Pat
         )
         assert login.status_code == 302
 
-        page = client.get(f"/admin/copertura-ai?tenant_slug={studio.slug}&_legacy=1")
+        page = client.get("/api/v1/ui/piattaforma/copertura-ai")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert "Database coverage connesso" in html
-    assert "Archivio coverage condiviso" in html
+    assert "Archivio della copertura connesso" in html
+    assert "Archivio della copertura condiviso" in html
     assert "Studio SQLite" not in html
     assert "Configurazione interna studio" not in html
-    assert 'name="tenant_slug"' not in html
+    assert '"tenant_slug"' not in html
 
 
 def test_build_repository_ignora_tenant_slug_e_request_context_per_archivio_condiviso(tmp_path: Path):
@@ -244,14 +241,14 @@ def test_admin_copertura_ai_single_studio_sqlite_mostra_runtime_connesso(tmp_pat
         )
         assert login.status_code == 302
 
-        page = client.get("/admin/copertura-ai?_legacy=1")
+        page = client.get("/api/v1/ui/piattaforma/copertura-ai")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert "Database coverage connesso" in html
-    assert "Archivio coverage condiviso" in html
+    assert "Archivio della copertura connesso" in html
+    assert "Archivio della copertura condiviso" in html
     assert "Studio Refactor" not in html
-    assert 'name="tenant_slug"' not in html
+    assert '"tenant_slug"' not in html
 
 
 def test_copertura_ai_single_studio_sqlite_esegue_pipeline_e_publish(tmp_path: Path):
@@ -274,13 +271,13 @@ def test_copertura_ai_single_studio_sqlite_esegue_pipeline_e_publish(tmp_path: P
         assert login.status_code == 302
 
         for action in ("audit", "gaps", "drafts"):
+            # Azione della pagina React «Copertura AI» (la stessa del modulo storico).
             response = client.post(
-                f"/admin/copertura-ai/esegui/{action}",
-                data={},
-                follow_redirects=True,
+                f"/api/v1/ui/piattaforma/copertura-ai/azioni/{action}",
+                json={"params": {}, "values": {}},
             )
             assert response.status_code == 200
-            assert "Errore durante l'azione" not in response.get_data(as_text=True)
+            assert response.get_json()["ok"] is True, response.get_json()
 
         drafts_response = client.get("/admin/copertura-ai/api/drafts")
         assert drafts_response.status_code == 200

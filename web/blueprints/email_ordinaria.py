@@ -8,7 +8,6 @@ solo posta ordinaria su ``EMAIL_ORDINARIA_DB`` e usa i parametri del tab
 from __future__ import annotations
 
 import os
-from datetime import date
 from functools import wraps
 from io import BytesIO
 from pathlib import Path
@@ -22,7 +21,6 @@ from flask import (
     g,
     jsonify,
     redirect,
-    render_template,
     request,
     Response,
     send_file,
@@ -57,10 +55,6 @@ def _login_required(func):
         return func(*args, **kwargs)
 
     return wrapper
-
-
-def _legacy_requested() -> bool:
-    return request.args.get("_legacy") == "1"
 
 
 def _wants_json_response() -> bool:
@@ -276,9 +270,7 @@ def _public_sync_payload(raw_payload, *, fallback_message: str, success_message:
 @email_ordinaria.route("/")
 @_login_required
 def casella():
-    if not _legacy_requested():
-        return render_react_shell_response("email-ordinaria")
-    return redirect(url_for("email_client.casella", _legacy=1))
+    return render_react_shell_response("email-ordinaria")
 
 
 @email_ordinaria.route("/scrivi", methods=["GET", "POST"])
@@ -286,27 +278,7 @@ def casella():
 def scrivi():
     """Composizione email ordinaria separata dalla casella PEC."""
     if request.method == "GET":
-        try:
-            from pct.clienti import GestioneClienti
-
-            clienti = GestioneClienti(
-                db_path=_cfg_path("CLIENTI_DB", "./clienti/anagrafica.json")
-            ).tutti()
-        except Exception:
-            clienti = []
-        return render_template(
-            "email/scrivi.html",
-            a=request.args.get("a", ""),
-            oggetto=request.args.get("oggetto", ""),
-            clienti=clienti,
-            oggi=date.today(),
-            compose_title="Componi email ordinaria",
-            compose_subtitle="Il messaggio verra' inviato tramite la configurazione SMTP ordinaria dello studio.",
-            compose_channel_label="Email ordinaria - SMTP",
-            compose_form_action=url_for("email_ordinaria.scrivi"),
-            compose_back_url=url_for("email_ordinaria.casella", cartella="INBOX"),
-            compose_settings_url="/impostazioni?tab=smtp",
-        )
+        return render_react_shell_response("email-ordinaria/scrivi")
 
     form = request.form
     destinatario = form.get("a", "").strip()
@@ -430,23 +402,7 @@ def conferma_locale():
 @email_ordinaria.route("/messaggio/<id_email>")
 @_login_required
 def dettaglio(id_email: str):
-    if not _legacy_requested():
-        return render_react_shell_response(f"email-ordinaria/messaggio/{id_email}")
-    gestore = _get_gestore()
-    em = gestore.get(id_email)
-    if not em:
-        flash("Email ordinaria non trovata.", "warning")
-        return redirect(url_for("email_ordinaria.casella"))
-    if em.stato == "NON_LETTA":
-        gestore.marca_letta(id_email)
-        em.stato = "LETTA"
-    return render_template(
-        "email/dettaglio.html",
-        em=em,
-        oggi=date.today(),
-        email_route_prefix="email_ordinaria",
-        email_back_endpoint="email_ordinaria.casella",
-    )
+    return render_react_shell_response(f"email-ordinaria/messaggio/{id_email}")
 
 
 @email_ordinaria.route("/messaggio/<id_email>/allegato/<int:indice_allegato>")

@@ -8,7 +8,7 @@ from functools import wraps
 from pathlib import Path
 from typing import Any
 
-from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, g, jsonify, redirect, request, url_for
 
 from pct.global_search.repository import GlobalSearchRepository
 from pct.global_search.service import GlobalSearchService
@@ -32,10 +32,6 @@ from web.blueprints.react_shell import render_react_shell_response
 from web.services.global_search_context import costruisci_contesto_ricerca, percorso_indice_ricerca_studio
 
 global_search = Blueprint("global_search", __name__)
-
-
-def _richiede_vista_classica() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _richiedi_login(fn):
@@ -115,31 +111,7 @@ def _types_from_request() -> list[str] | None:
 @global_search.get("/global-search")
 @_richiedi_login
 def index():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("ricerca-studio")
-
-    q = request.args.get("q", "").strip()
-    active_type = request.args.get("type", "tutto").strip() or "tutto"
-    service = _service()
-    try:
-        ctx = _context()
-        stats = service.stats(ctx)
-        results = service.search(
-            ctx,
-            q,
-            entity_types=_types_from_request(),
-            limit=int(request.args.get("limit", 25)),
-            user=g.get("utente_corrente"),
-        ) if q else {"results": [], "total": 0, "took_ms": 0}
-    finally:
-        service.repository.close()
-    return render_template(
-        "global_search/index.html",
-        q=q,
-        active_type=active_type,
-        stats=stats,
-        payload=results,
-    )
+    return render_react_shell_response("ricerca-studio")
 
 
 @global_search.get("/api/global-search")

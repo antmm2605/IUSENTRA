@@ -78,7 +78,7 @@ def test_timesheet_react_shell_api_e_post_operativi(tmp_path: Path):
     assert response.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in response.get_data(as_text=True)
     assert classic.status_code == 200
-    assert 'id="root"' not in classic.get_data(as_text=True)
+    assert 'id="root"' in classic.get_data(as_text=True)  # vista Jinja tolta: anche il vecchio parametro apre React
     assert api.status_code == 200
     payload = api.get_json()
     assert payload["contracts"]["mock_fallback"] is False

@@ -7,11 +7,12 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
 from pct.backup import StatoBackup, TipoBackup, backup_operations_disabled
 from web.services.permessi_route import permesso_negato
 from web.services.react_backup_bridge import cartella_ripristini
+from web.blueprints.react_shell import render_react_shell_response
 
 # Le copie contengono tutti i dati dello studio (anagrafiche, fascicoli, documenti):
 # consultazione con «backup.leggi», creazione/verifica/eliminazione/ripristino con
@@ -48,17 +49,8 @@ def register_backup_routes(
         negato = _negato("backup.leggi")
         if negato is not None:
             return negato
-        gb = get_backup()
-        backup_list = gb.tutti()
-        stats = gb.statistiche()
-        return render_template(
-            "backup/lista.html",
-            backup_list=backup_list,
-            stats=stats,
-            config=gb.config,
-            tipi=list(TipoBackup),
-            stati=list(StatoBackup),
-        )
+        # Copie di sicurezza: sezione React delle impostazioni (ImpostazioniPage).
+        return render_react_shell_response("backup")
 
     @app.route("/backup/esegui", methods=["POST"])
     def esegui_backup():
@@ -149,7 +141,7 @@ def register_backup_routes(
             nome_cartella = nome_cartella or datetime.now().strftime("ripristino-%Y%m%d-%H%M%S")
             if not _CARTELLA_RIPRISTINO.fullmatch(nome_cartella):
                 flash("Nome della cartella di ripristino non valido: usa solo lettere, cifre, trattini e trattini bassi.", "danger")
-                return render_template("backup/ripristina.html", record=record)
+                return redirect(request.path)
             dest = str(cartella_ripristini(gb) / nome_cartella)
             componenti_raw = request.form.getlist("componenti")
             componenti = componenti_raw if componenti_raw else None
@@ -172,7 +164,10 @@ def register_backup_routes(
                 return redirect(url_for("lista_backup"))
             except Exception as e:
                 flash(str(e), "danger")
-        return render_template("backup/ripristina.html", record=record)
+        # Ripristino: sezione Backup delle impostazioni React; il ripristino passa da /api/v1/ui/backup/ripristina.
+        if request.method == "POST":
+            return redirect(request.path)
+        return render_react_shell_response(f"backup/{id_bk}/ripristina")
 
     @app.route("/api/backup/statistiche")
     def api_backup_statistiche():

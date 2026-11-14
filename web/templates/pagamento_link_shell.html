@@ -24,12 +24,15 @@
        data-vista="{{ vista }}"
        data-provider="{{ provider }}"
        data-studio="{{ studio_nome }}"
+       data-messaggio="{{ messaggio }}"
        data-messaggi="{{ messaggi | tojson | forceescape }}"></div>
   <noscript>
     <main class="pagamento-link-noscript">
       <h1>{{ titolo }}</h1>
       {% if vista == 'scaduto' %}
       <p>Questo link di pagamento non è più valido o è scaduto. Contatta lo studio per richiederne uno nuovo.</p>
+      {% elif vista == 'da_verificare' %}
+      <p>{{ messaggio or 'Il pagamento richiede una verifica dello studio.' }} Nessun addebito è stato avviato: contatta lo studio.</p>
       {% else %}
       <p>Abilita JavaScript per pagare, oppure apri la <a href="{{ percorso_classico }}?_legacy=1{% if provider %}&amp;provider={{ provider }}{% endif %}">vista classica</a>.</p>
       {% endif %}

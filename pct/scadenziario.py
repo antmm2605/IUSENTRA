@@ -851,10 +851,19 @@ class Scadenza:
         )
 
     def _calcola_priorita(self) -> PrioritaTermine:
+        """Priorità della scadenza.
+
+        Un termine perentorio è sempre CRITICO: non si abbrevia né si proroga, nemmeno sull'accordo
+        delle parti, e la sua inosservanza produce la decadenza, rimediabile solo con la rimessione in
+        termini per causa non imputabile (artt. 152-153 c.p.c.). Fino al 10/11/2026 un termine
+        perentorio fra 36 giorni risultava BASSA (collaudo dell'avvocato: note ex art. 127-ter
+        c.p.c. «entro il termine perentorio del 16.12.2026», art. 631 c.p.c.). Gli altri termini
+        seguono la distanza dalla scadenza.
+        """
         giorni = self.giorni_alla_scadenza
         if giorni is None:
-            return PrioritaTermine.BASSA
-        if giorni <= 3 or (self.perentorio and giorni <= 7):
+            return PrioritaTermine.CRITICA if self.perentorio else PrioritaTermine.BASSA
+        if giorni <= 3 or self.perentorio:
             return PrioritaTermine.CRITICA
         if giorni <= 7:
             return PrioritaTermine.ALTA

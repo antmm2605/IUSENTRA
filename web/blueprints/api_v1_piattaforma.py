@@ -25,9 +25,33 @@ def _superadmin() -> bool:
 PAGINE_OPERATORE_ASSISTENZA = {"supporto-remoto"}
 
 
+# Pagine aperte, come le console `/admin/aggiornamenti-legali` e `/admin/copertura-ai`,
+# anche all'amministratore ammesso dai loro decoratori (amministratore dello studio,
+# o chi ha `admin.leggi` e `ai.configura`; per la copertura solo fuori dal multi-studio).
+PAGINE_AGGIORNAMENTI = {
+    "aggiornamenti-legali",
+    "aggiornamenti-fonti",
+    "aggiornamenti-staging",
+    "aggiornamenti-staging-scheda",
+    "aggiornamenti-analisi",
+    "aggiornamenti-archivio",
+    "aggiornamenti-revisione",
+}
+PAGINE_COPERTURA = {"copertura-ai", "copertura-ai-revisione"}
+
+
 def _autorizzato(pagina: str) -> bool:
     if _superadmin():
         return True
+    utente = g.get("utente_corrente")
+    if pagina in PAGINE_AGGIORNAMENTI:
+        from web.blueprints.legal_updates_admin import utente_ammesso_console
+
+        return utente_ammesso_console(utente)
+    if pagina in PAGINE_COPERTURA:
+        from web.blueprints.legal_coverage_admin import utente_ammesso_copertura
+
+        return utente_ammesso_copertura(utente)
     if pagina not in PAGINE_OPERATORE_ASSISTENZA:
         return False
     from werkzeug.exceptions import HTTPException
@@ -49,6 +73,9 @@ def pagina(pagina: str):
     try:
         risultato, stato = bridge.pagina(pagina)
         risultato["user"] = str(getattr(g.get("utente_corrente"), "username", "") or "")
+        if not _superadmin():
+            # Chi non è superamministratore vede nel menu solo le pagine che può aprire.
+            risultato["menu"] = [voce for voce in risultato.get("menu") or [] if _autorizzato(str(voce.get("key") or ""))]
         risposta = redacted_json_response(risultato, consenti_percorsi=True)
         risposta.status_code = stato
         return risposta

@@ -85,6 +85,8 @@ def _cerca_ricevute_imap(
     password: str,
     giorni_indietro: int = 30,
     timeout_seconds: int | None = None,
+    *,
+    riscontro: dict | None = None,
 ) -> list[dict]:
     """
     Si connette all'IMAP e restituisce una lista di messaggi recenti
@@ -100,8 +102,10 @@ def _cerca_ricevute_imap(
             client.login(indirizzo, password)
             return client
 
-        mail = run_imap_runtime_operation(_connect_mail)
-        mail.select("INBOX", readonly=True)
+        mail = run_imap_runtime_operation(_connect_mail, account=(imap_host, imap_port, indirizzo))
+        stato, _ = mail.select("INBOX", readonly=True)
+        if stato != "OK":
+            raise imaplib.IMAP4.error("Apertura della cartella PEC non riuscita.")
 
         since_dt = datetime.now() - timedelta(days=giorni_indietro)
         since_str = _formato_data_imap(since_dt)
@@ -118,8 +122,12 @@ def _cerca_ricevute_imap(
             f'(SINCE "{since_str}" SUBJECT "ESITO")',
         ]:
             try:
-                _, data = mail.search(None, criterio)
+                stato, data = mail.search(None, criterio)
+                if stato != "OK":
+                    raise imaplib.IMAP4.error("Ricerca ricevute non riuscita.")
             except imaplib.IMAP4.error:
+                if riscontro is not None:
+                    riscontro["incompleto"] = True
                 continue
             if data and data[0]:
                 numeri.extend(data[0].split())
@@ -131,8 +139,12 @@ def _cerca_ricevute_imap(
         for inizio in range(0, len(numeri), _INTESTAZIONI_PER_RICHIESTA):
             gruppo = b",".join(numeri[inizio:inizio + _INTESTAZIONI_PER_RICHIESTA]).decode("ascii")
             try:
-                _, msg_data = mail.fetch(gruppo, f"(BODY.PEEK[HEADER.FIELDS ({INTESTAZIONI_IMAP})])")
+                stato, msg_data = mail.fetch(gruppo, f"(BODY.PEEK[HEADER.FIELDS ({INTESTAZIONI_IMAP})])")
+                if stato != "OK":
+                    raise imaplib.IMAP4.error("Lettura intestazioni non riuscita.")
             except imaplib.IMAP4.error:
+                if riscontro is not None:
+                    riscontro["incompleto"] = True
                 continue
             for parte in msg_data or []:
                 if not isinstance(parte, tuple) or len(parte) < 2 or not isinstance(parte[1], bytes):
@@ -152,7 +164,9 @@ def _cerca_ricevute_imap(
         # piccoli; si leggono solo quelli, mai le RdAC complete che contengono la busta.
         for numero, ricevuta in da_leggere[:_ESITI_DA_LEGGERE_MAX]:
             try:
-                _, dati = mail.fetch(numero, "(BODY.PEEK[])")
+                stato, dati = mail.fetch(numero, "(BODY.PEEK[])")
+                if stato != "OK":
+                    raise imaplib.IMAP4.error("Lettura esito del deposito non riuscita.")
                 grezzo = next(
                     (p[1] for p in dati or [] if isinstance(p, tuple) and len(p) > 1 and isinstance(p[1], bytes)),
                     b"",
@@ -162,12 +176,18 @@ def _cerca_ricevute_imap(
                     ricevuta["testo"] = testo_messaggio(completo)
                     ricevuta["mittenti_interni"] = mittenti_interni(completo)
             except (imaplib.IMAP4.error, ValueError):
+                if riscontro is not None:
+                    riscontro["incompleto"] = True
                 continue
 
         mail.logout()
     except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
+        if riscontro is not None:
+            riscontro["incompleto"] = True
         logger.warning("IMAP polling depositi: connessione fallita — %s", e)
     except Exception as e:
+        if riscontro is not None:
+            riscontro["incompleto"] = True
         logger.warning("IMAP polling depositi: errore inatteso — %s", e)
     return risultati
 
@@ -293,6 +313,7 @@ def esegui_polling(
 
     # Carica ricevute IMAP una volta sola (costoso)
     ricevute_imap: list[dict] = []
+    riscontro_imap: dict = {}
     if config_pec and getattr(config_pec, "imap_host", ""):
         timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
         ricevute_imap = _cerca_ricevute_imap(
@@ -302,6 +323,7 @@ def esegui_polling(
             password=config_pec.password,
             giorni_indietro=giorni_indietro,
             timeout_seconds=timeout_s,
+            riscontro=riscontro_imap,
         )
         logger.info("Polling depositi: trovate %d ricevute PEC recenti", len(ricevute_imap))
 
@@ -363,6 +385,7 @@ def esegui_polling(
         "aggiornati": aggiornati,
         "errori": errori,
         "pdp_non_interrogabili": pdp_non_interrogabili,
+        "imap_incompleto": bool(riscontro_imap.get("incompleto")),
     }
 
 
@@ -462,13 +485,15 @@ def poll_cancelleria_pec(
     uid_processati = _carica_uid_processati(state_path)
 
     # Costruisce indice fascicoli per lookup rapido (numero_rg, str(anno_rg)) → fascicolo
-    fascicoli_index: dict[tuple, object] = {}
+    fascicoli_index: dict[tuple, object | None] = {}
     try:
         tutti = gf.tutti() if hasattr(gf, "tutti") else list(
             gf._fascicoli.values() if hasattr(gf, "_fascicoli") else []
         )
     except Exception:
-        tutti = []
+        logger.exception("Poll cancelleria PEC: fascicoli non consultabili")
+        report["errori"] += 1
+        return report
 
     if fascicolo_id:
         tutti = [f for f in tutti if getattr(f, "id", "") == fascicolo_id]
@@ -477,13 +502,14 @@ def poll_cancelleria_pec(
         nr = str(getattr(f, "numero_rg", "") or "").strip()
         ar = str(getattr(f, "anno_rg", 0) or "").strip()
         if nr and ar and ar != "0":
-            fascicoli_index[(nr, ar)] = f
+            chiave = (nr, ar)
+            fascicoli_index[chiave] = None if chiave in fascicoli_index else f
 
     if not fascicoli_index:
         logger.debug("Poll cancelleria PEC: nessun fascicolo con RG — skip")
         return report
 
-    uid_nuovi: set = set()
+    uid_precedenti = set(uid_processati)
 
     try:
         timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
@@ -496,10 +522,15 @@ def poll_cancelleria_pec(
             client.login(config_pec.indirizzo, config_pec.password)
             return client
 
-        mail = run_imap_runtime_operation(_connect_mail)
+        mail = run_imap_runtime_operation(
+            _connect_mail,
+            account=(config_pec.imap_host, getattr(config_pec, "imap_port", 993), config_pec.indirizzo),
+        )
         # Sola lettura: il FETCH (RFC822) su una casella aperta in scrittura segna i messaggi come letti sul
         # server PEC dello studio, che l'avvocato non vedrebbe più come nuovi nel suo programma di posta.
-        mail.select("INBOX", readonly=True)
+        status, _ = mail.select("INBOX", readonly=True)
+        if status != "OK":
+            raise imaplib.IMAP4.error("Apertura INBOX non riuscita")
 
         since_dt = datetime.now() - timedelta(days=giorni_indietro)
         since_str = _formato_data_imap(since_dt)
@@ -515,26 +546,27 @@ def poll_cancelleria_pec(
         visti: set[bytes] = set()
         for criterio in criteri_ricerca:
             try:
-                _, data = mail.uid("SEARCH", None, criterio)
+                status, data = mail.uid("SEARCH", None, criterio)
+                if status != "OK":
+                    raise imaplib.IMAP4.error("Ricerca IMAP non riuscita")
                 if data and data[0]:
                     for uid_b in data[0].split():
                         if uid_b not in visti:
                             visti.add(uid_b)
                             uid_da_esaminare.append(uid_b)
             except imaplib.IMAP4.error:
-                pass
+                report["errori"] += 1
 
         for uid_b in uid_da_esaminare:
             uid_str = uid_b.decode()
-            uid_nuovi.add(uid_str)
 
             if uid_str in uid_processati:
                 continue
 
             try:
-                _, msg_data = mail.uid("FETCH", uid_b, "(RFC822)")
-                if not msg_data or not msg_data[0]:
-                    uid_nuovi.add(uid_str)  # marca processato anche se fetch fallisce
+                status, msg_data = mail.uid("FETCH", uid_b, "(RFC822)")
+                if status != "OK" or not msg_data or not msg_data[0]:
+                    report["errori"] += 1
                     continue
 
                 raw_message = msg_data[0][1]
@@ -558,7 +590,8 @@ def poll_cancelleria_pec(
                 # Cerca fascicolo corrispondente
                 fasc = fascicoli_index.get((numero_rg, str(anno_rg)))
                 if not fasc:
-                    uid_processati.add(uid_str)
+                    if (numero_rg, str(anno_rg)) in fascicoli_index:
+                        report["errori"] += 1
                     continue
 
                 # Normalizza data dalla PEC
@@ -652,6 +685,7 @@ def poll_cancelleria_pec(
                         getattr(fasc, "id", "?"), e,
                     )
                     report["errori"] += 1
+                    continue
 
                 uid_processati.add(uid_str)
 
@@ -663,12 +697,13 @@ def poll_cancelleria_pec(
 
     except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
         logger.warning("Poll cancelleria PEC: connessione IMAP fallita — %s", e)
+        report["errori"] += 1
     except Exception as e:
         logger.warning("Poll cancelleria PEC: errore inatteso — %s", e)
+        report["errori"] += 1
     finally:
         # Salva sempre lo stato aggiornato
-        if uid_nuovi:
-            uid_processati.update(uid_nuovi)
+        if uid_processati != uid_precedenti:
             _salva_uid_processati(uid_processati, state_path)
 
     return report

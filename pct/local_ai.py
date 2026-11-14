@@ -24,6 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from threading import Lock
 from typing import Any
+from urllib.parse import urlsplit
 
 import pdfplumber
 import requests
@@ -470,10 +471,27 @@ class LocalAiSettings:
     auto_index_documents: bool = True
 
 
+def _gateway_embedding_locale() -> str:
+    raw = os.getenv("PCT_LOCAL_AI_EMBED_BASE_URL", "").strip()
+    if not raw:
+        return ""
+    url = urlsplit(raw)
+    if (
+        url.scheme != "http"
+        or url.hostname not in {"host.docker.internal", "172.17.0.1", "127.0.0.1", "localhost"}
+        or url.port != 11435
+        or url.username or url.password or url.query or url.fragment
+        or url.path.rstrip("/") not in {"", "/api"}
+    ):
+        raise ValueError("Il gateway embedding deve essere il servizio locale isolato.")
+    return _normalize_api_base_url(raw)
+
+
 class OllamaHttpClient:
-    def __init__(self, base_url: str, timeout: float = 30.0) -> None:
+    def __init__(self, base_url: str, timeout: float = 30.0, *, solo_locale: bool = False) -> None:
         self.base_url = _normalize_api_base_url(base_url)
         self.timeout = timeout
+        self.solo_locale = solo_locale
 
     def _request(
         self,
@@ -484,6 +502,17 @@ class OllamaHttpClient:
         use_circuit_breaker: bool = True,
     ) -> dict[str, Any]:
         def _perform_request() -> dict[str, Any]:
+            if self.solo_locale:
+                with requests.Session() as session:
+                    session.trust_env = False
+                    response = session.request(
+                        method, f"{self.base_url}{path}", json=payload,
+                        timeout=min(timeout or self.timeout, 45), allow_redirects=False,
+                    )
+                response.raise_for_status()
+                if response.status_code != 200:
+                    raise ValueError("Il gateway locale non può reindirizzare la richiesta.")
+                return response.json()
             response = requests.request(
                 method=method,
                 url=f"{self.base_url}{path}",
@@ -1038,7 +1067,8 @@ class LocalAIService:
         if self._embedding_provider() == embeddinggemma2.PROVIDER:
             return embeddinggemma2.LocalEmbeddingClient()
         if self._embedding_provider() != "gemini":
-            return self._ollama_client(settings)
+            gateway = _gateway_embedding_locale()
+            return OllamaHttpClient(gateway, solo_locale=True) if gateway else self._ollama_client(settings)
         if not _external_embeddings_allowed():
             raise RuntimeError("Gemini Embedding 2 richiede autorizzazione esplicita ai provider esterni")
         api_key = _gemini_api_key()
@@ -2658,7 +2688,10 @@ class LocalAIService:
         if provider == embeddinggemma2.PROVIDER and not settings.enabled:
             return {"status": "disabled", "embedded": 0, "embedding_provider": provider}
         bootstrap: dict[str, Any] = {"status": "ready"}
-        if provider == "ollama":
+        gateway = _gateway_embedding_locale() if provider == "ollama" else ""
+        if gateway:
+            limit = min(limit, 32)
+        if provider == "ollama" and not gateway:
             bootstrap = self.bootstrap_runtime()
             if bootstrap.get("status") != "ready":
                 return {"status": bootstrap.get("status"), "embedded": 0, "error": bootstrap.get("error")}
@@ -2793,6 +2826,8 @@ class LocalAIService:
             vectors = embed_result.get("embeddings") or []
             if len(vectors) != len(valid_rows):
                 raise ValueError("Numero embeddings diverso dai chunk validi in pending")
+            if gateway and any(len(vector) != 768 or not all(math.isfinite(x) for x in vector) for vector in vectors):
+                raise ValueError("Il gateway locale ha restituito un vettore non valido.")
             touched_documents: set[str] = set()
             for idx, row in enumerate(valid_rows):
                 vector = vectors[idx]
@@ -3849,6 +3884,12 @@ class LocalAIService:
         )
 
     def scheduled_maintenance(self, fascicoli_gestore: Any | None = None, documents_dir: str | None = None) -> dict[str, Any]:
+        if self._embedding_provider() == "ollama" and _gateway_embedding_locale():
+            batch_size, max_batches = self._maintenance_embed_budget()
+            embeddings = self.embed_all_pending_chunks(
+                batch_size=min(batch_size, 32), max_batches=min(max_batches, 4),
+            )
+            return {"status": embeddings.get("status"), "indexed": 0, "embeddings": embeddings}
         bootstrap = self.bootstrap_runtime()
         if bootstrap.get("status") != "ready":
             return {"status": bootstrap.get("status"), "error": bootstrap.get("error")}

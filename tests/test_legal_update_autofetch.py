@@ -409,3 +409,35 @@ def test_giurisprudenza_structured_canary_non_forza_promozione_senza_chiavi(tmp_
     assert report["status"] == "chiuso_con_blocco_intenzionale"
     assert report["complete_candidate_count"] == 0
     assert "non viene forzata" in report["reason"]
+
+
+def test_autofetch_riprende_pubblicazione_senza_nuove_fonti(tmp_path):
+    config = LegalAutoFetchConfig(
+        intelligence_db=str(tmp_path / "motori.json"),
+        queue_db_path=str(tmp_path / "jobs.sqlite"),
+        cursor_path=str(tmp_path / "cursors.json"),
+        publish_max_items=5,
+    )
+    calls = []
+
+    def runner(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout=json.dumps({
+            "mode": "publish",
+            "published_count": 1,
+            "published": {"verification_deferred": 1},
+        }), stderr="")
+
+    report = run_legal_update_autofetch_tick(
+        config,
+        pipeline=FakePipeline(),
+        source_codes=["fonte-assente"],
+        runner=runner,
+        now=datetime(2026, 5, 18, 10, 0, tzinfo=UTC),
+    )
+
+    assert report["plan"]["selected_count"] == 0
+    assert len(calls) == 1 and "--publish-only" in calls[0]
+    assert report["status"] == "parziale"
+    assert report["execution_report"]["autopublished"]["count"] == 1
+    assert report["execution_report"]["autopublished"]["verification_deferred"] == 1

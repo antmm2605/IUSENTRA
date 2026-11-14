@@ -76,8 +76,20 @@ def _voci_udienze(lette: list, materia: str) -> list[Voce]:
 
 
 def _riferimenti(lette: list, *, oggi: date, comunicata_il: date | None, pronuncia: date | None, pubblicazione: date | None,
-                 prove: dict[str, str], fascicolo: dict[str, Any]) -> Riferimenti:
+                 prove: dict[str, str], fascicolo: dict[str, Any], proprie_passate: list | None = None) -> Riferimenti:
+    """Da quale udienza si contano i termini del provvedimento.
+
+    Prima l'udienza che il provvedimento stesso scrive; se il provvedimento ne scrive una sola e già passata
+    (es. il decreto ex art. 415 riletto dopo la prima udienza), i termini si contano da quella e risultano
+    decorsi: l'udienza futura del fascicolo è un rinvio, che non riapre i termini contati dalla prima
+    udienza (art. 416 c.p.c., costituzione e decadenze del convenuto; art. 420 c.p.c.). Solo un
+    provvedimento che non scrive alcuna udienza si riferisce all'udienza futura del fascicolo.
+    """
     base = {"oggi": oggi, "comunicata_il": comunicata_il, "pronuncia": pronuncia, "pubblicazione": pubblicazione, "prove_tipo": prove}
+    if not lette and proprie_passate:
+        ultima = max(proprie_passate, key=lambda u: u.giorno)
+        return Riferimenti(udienza=ultima.giorno, udienza_ora=ultima.ora, udienza_fonte="provvedimento",
+                           udienza_candidate=(ultima.giorno,), modalita=ultima.modalita, **base)
     if len(lette) == 1:
         return Riferimenti(udienza=lette[0].giorno, udienza_ora=lette[0].ora, udienza_fonte="provvedimento",
                            udienza_candidate=(lette[0].giorno,), modalita=lette[0].modalita, **base)
@@ -120,6 +132,9 @@ def esamina_provvedimento(
     sentenza = "sentenza" in tipi
     capi_letti = [] if sentenza else capi(pulito)
     lette = [] if sentenza else udienze_lette(pulito, capi_letti, oggi=oggi)
+    # Le udienze che il provvedimento scrive ma sono già passate: i termini contati da quelle restano del
+    # provvedimento e sono decorsi, non si spostano sull'udienza futura del fascicolo (art. 416 c.p.c.).
+    proprie_passate = [] if sentenza or lette else [u for u in udienze_lette(pulito, capi_letti, oggi=date.min) if u.giorno < oggi]
     pubblicazione = None
     if sentenza:
         from pct.termine_lungo_sentenza import data_pubblicazione
@@ -128,7 +143,8 @@ def esamina_provvedimento(
     fascicolo = {"fascicolo_id": fascicolo_id, "rg": rg, "appuntamenti": appuntamenti, "scadenze": scadenze,
                  "prossima_udienza": prossima_udienza}
     rif = _riferimenti(lette, oggi=oggi, comunicata_il=comunicata_il, pronuncia=esito.data_pronuncia,
-                       pubblicazione=pubblicazione, prove=prove, fascicolo=fascicolo if not sentenza else {})
+                       pubblicazione=pubblicazione, prove=prove, fascicolo=fascicolo if not sentenza else {},
+                       proprie_passate=proprie_passate)
     escludi: set[str] = set()
     salta: frozenset[str] = frozenset()
     if "note_127_ter" in tipi and rito in RITI_CPC:
@@ -167,7 +183,16 @@ def _della_parte_assistita(voci: list[Voce], ruolo_cliente: str) -> list[Voce]:
     """Solo i termini che spettano al cliente: quelli della controparte (es. art. 416 c.p.c. per lo studio del
     ricorrente) non si propongono. Adempimenti, attese e verifiche restano (``parte_assistita``)."""
     if not ruolo_cliente:
-        return voci
+        # Ruolo non certo: il termine di una parte determinata resta proposto, con il dubbio dichiarato.
+        from dataclasses import replace
+
+        from .coerenza_termini import INCERTA, parte_onerata
+
+        return [replace(v, nota=(f"{v.nota} " if v.nota else "") + (
+                    f"Non è certo quale parte sia onerata: il termine è a carico di: {v.chi}; dagli atti non risulta con "
+                    "certezza quale parte assiste lo studio; scartarlo se è un onere della controparte.").strip())
+                if v.genere == "termine" and v.chi and parte_onerata(v.chi, "") == INCERTA else v
+                for v in voci]
     return [v for v in voci if v.genere not in {"termine", "da_verificare"} or spetta_al_cliente(v.chi, ruolo_cliente)]
 
 

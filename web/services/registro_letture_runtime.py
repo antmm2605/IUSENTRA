@@ -182,7 +182,7 @@ def _righe_pec_collegate(fascicolo_id: str, *, con_testo: bool = False) -> list[
         raise
 
 
-def inventario_fascicolo(fascicolo: Any, *, con_pec: bool = True) -> list[Oggetto]:
+def inventario_fascicolo(fascicolo: Any, *, con_pec: bool = True, richiedi_pec: bool = False) -> list[Oggetto]:
     oggetti = oggetti_da_fascicolo(fascicolo, cifratura_attiva=cifratura_attiva())
     # Reuse plaintext hashes in a single SQL read, without opening documents.
     known = {(o.tipo, o.oggetto_id): o for o in registro_corrente().oggetti(tenant_corrente(), str(fascicolo.id))}
@@ -194,6 +194,8 @@ def inventario_fascicolo(fascicolo: Any, *, con_pec: bool = True) -> list[Oggett
         try:
             oggetti.extend(oggetti_da_pec(_righe_pec_collegate(str(getattr(fascicolo, "id", "") or "")), fascicolo))
         except Exception:
+            if richiedi_pec:
+                raise
             # Presidio PEC non raggiungibile: le PEC restano come erano nell'inventario.
             oggetti.extend(o for o in known.values() if o.tipo in {"pec", "allegato_pec"})
     return oggetti
@@ -428,6 +430,32 @@ def _oggetto_etichetta(voce: dict[str, Any]) -> str:
     return nome or "documento"
 
 
+def _novita_vuota() -> dict[str, Any]:
+    return {"prima_vista": True, "visto_il": "", "visto_il_it": "", "nuovi": [], "cambiati": [], "rimossi": []}
+
+
+def novita_letture(fascicolo_id: str, *, registro: RegistroLetture | None = None, segna_visto: bool = True) -> dict[str, Any]:
+    """Le novità del pannello «Letture» dall'ultima apertura dell'utente corrente; con ``segna_visto`` registra la vista.
+
+    Dipende dall'utente e dal momento dell'apertura: i pannelli pronti la ricompongono a ogni risposta.
+    """
+    from pct.formatting import format_datetime_it
+
+    registro = registro or registro_corrente()
+    utente = utente_corrente_id()
+    if not utente:
+        return _novita_vuota()
+    novita = registro.novita_e_segna_visto(tenant_corrente(), str(fascicolo_id or "").strip(), utente, segna=segna_visto)
+    return {
+        "prima_vista": bool(novita.get("prima_vista")),
+        "visto_il": str(novita.get("visto_il") or ""),
+        "visto_il_it": format_datetime_it(novita.get("visto_il")) if novita.get("visto_il") else "",
+        "nuovi": [{**v, "etichetta": _oggetto_etichetta(v)} for v in novita.get("nuovi") or []],
+        "cambiati": [{**v, "etichetta": _oggetto_etichetta(v)} for v in novita.get("cambiati") or []],
+        "rimossi": list(novita.get("rimossi") or []),
+    }
+
+
 def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = None, segna_visto: bool = True) -> dict[str, Any]:
     """Il pannello «Letture» del fascicolo: per lettore, per oggetto, novità dall'ultima apertura, anomalie."""
     from pct.formatting import format_datetime_it
@@ -454,11 +482,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     # Le letture operative provengono esclusivamente dai due motori SQL.
     # I vecchi lettori restano diagnostica, senza ricalcolare date nelle GET.
     stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("motore_documenti", "motore_pec"))
-    utente = utente_corrente_id()
-    novita = (
-        passo("novità dall'ultima apertura", lambda: registro.novita_e_segna_visto(tenant, fascicolo_id, utente, segna=segna_visto and bool(utente)))
-        if utente else None
-    ) or {"prima_vista": True, "visto_il": "", "nuovi": [], "cambiati": [], "rimossi": []}
+    novita = passo("novità dall'ultima apertura", lambda: novita_letture(fascicolo_id, registro=registro, segna_visto=segna_visto))
     anomalie = passo("anomalie aperte", lambda: [a.to_dict() for a in registro.anomalie(tenant, fascicolo_id, stato="aperta")], []) or []
     nomi = {(str(v.get("tipo")), str(v.get("oggetto_id"))): _oggetto_etichetta(v) for v in stato.per_oggetto}
     for anomalia in anomalie:
@@ -480,6 +504,12 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     errore_coda = (archivio.get("lettura_automatica") or {}).get("stato_coda") == "failed"
     if errore_coda:
         degradato.append({"passo": "elaborazione automatica", "motivo": (archivio["lettura_automatica"].get("errore_evento") or "Tentativi esauriti.")})
+    sintesi = passo("riga di sintesi del registro", lambda: registro.sintesi(tenant, fascicolo_id), None)
+    if sintesi is not None:
+        sintesi["eml_archiviati"] = sum(
+            1 for voce in stato.per_oggetto
+            if voce.get("tipo") == "documento" and str(voce.get("nome") or "").casefold().endswith(".eml")
+        )
     return {
         "impronta": stato.impronta,
         "oggetti": stato.oggetti,
@@ -488,19 +518,12 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         "lettori": lettori,
         "archivio": archivio,
         "per_oggetto": [{**v, "etichetta": _oggetto_etichetta(v) + (" — metadati tecnici, senza testo" if (v.get("tipo"), v.get("oggetto_id")) in esiti_tecnici else ""), "esito_tecnico": esiti_tecnici.get((v.get("tipo"), v.get("oggetto_id")), {})} for v in stato.per_oggetto],
-        "novita": {
-            "prima_vista": bool(novita.get("prima_vista")),
-            "visto_il": str(novita.get("visto_il") or ""),
-            "visto_il_it": format_datetime_it(novita.get("visto_il")) if novita.get("visto_il") else "",
-            "nuovi": [{**v, "etichetta": _oggetto_etichetta(v)} for v in novita.get("nuovi") or []],
-            "cambiati": [{**v, "etichetta": _oggetto_etichetta(v)} for v in novita.get("cambiati") or []],
-            "rimossi": list(novita.get("rimossi") or []),
-        },
+        "novita": novita or _novita_vuota(),
         "anomalie": anomalie,
         "anomalie_aperte": len(anomalie),
         "lettori_censiti": [{"id": chiave, **valori} for chiave, valori in LETTORI.items()],
         # La riga di sintesi del registro: identità del fascicolo e stato di ogni lettore, già materializzata.
-        "sintesi": passo("riga di sintesi del registro", lambda: registro.sintesi(tenant, fascicolo_id), None),
+        "sintesi": sintesi,
     }
 
 

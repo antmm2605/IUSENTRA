@@ -19,6 +19,7 @@ from typing import Any
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from defusedxml import ElementTree
+from pct.pec_contenuto_firmato import estrai_contenuto_cms
 from pct.sdi_pec_trust import PecTrustError, revocation_bundle, trust_certificates
 
 
@@ -103,11 +104,7 @@ def verify_sdi_pec_provenance(raw_mime: bytes, *, expected_recipient: str) -> di
             paths["message.eml"].write_bytes(raw_mime)
             paths["ca.pem"].write_bytes(ca_pem)
             paths["root.pem"].write_bytes(root_pem)
-            result = subprocess.run([executable, "cms", "-verify", "-verify_retcode", "-inform", "SMIME",
-                "-in", str(paths["message.eml"]), "-noverify", "-out", str(paths["content.mime"]),
-                "-signer", str(paths["signer.pem"])], capture_output=True, timeout=12, check=False)
-            if result.returncode != 0:
-                raise PecTrustError("envelope_signature_invalid", "La firma della busta PEC non supera la verifica di integrità.")
+            estrai_contenuto_cms(executable, paths["message.eml"], paths["content.mime"], paths["signer.pem"])
             signers = x509.load_pem_x509_certificates(paths["signer.pem"].read_bytes())
             if len(signers) != 1:
                 raise PecTrustError("signer_ambiguous", "Il firmatario della busta PEC non è univoco.")

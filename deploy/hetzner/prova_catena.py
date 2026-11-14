@@ -86,6 +86,9 @@ def registro_di_prova(db_path: str | Path, chiave: str) -> Any:
         def passi(self, sera: str) -> list[dict[str, Any]]:
             return super().passi(chiave)
 
+        def passo(self, sera: str, indice: int) -> dict[str, Any]:
+            return super().passo(chiave, indice)
+
     registro = RegistroProva(db_path)
     registro.chiave = chiave  # type: ignore[attr-defined]
     return registro
@@ -141,6 +144,8 @@ def esegui_prova(registro: Any, ambiente: Any, *, minuti: float, fasi: set[int] 
             if esito.get("esito") == "fallito":
                 motivo = "passo_fallito"
                 break
+            if esito.get("esito") == "in_corso":
+                dormi(pausa)
             continue
         if "conclusa" in str(esito.get("message") or ""):
             motivo = "catena_conclusa"

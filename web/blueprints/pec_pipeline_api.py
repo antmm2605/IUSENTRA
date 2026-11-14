@@ -94,7 +94,7 @@ def _runtime_paths() -> dict[str, str]:
     return paths
 
 
-def _repo() -> PecAuditRepository:
+def _repo(*, read_only: bool = False) -> PecAuditRepository:
     email_db = Path(_runtime_path("EMAIL_CASELLA_DB", "./email/casella.json"))
     paths = getattr(g, "data_paths", {}) or {}
     configured_db = paths.get("PEC_AUDIT_DB")
@@ -102,6 +102,7 @@ def _repo() -> PecAuditRepository:
     return PecAuditRepository(
         db_path,
         tenant_id=_tenant_id(),
+        read_only=read_only,
         clienti_db_path=_runtime_path("CLIENTI_DB", "./clienti/anagrafica.json"),
         fascicoli_db_path=_runtime_path("FASCICOLI_DB", "./fascicoli/fascicoli.json"),
         fascicoli_docs_path=_runtime_path("FASCICOLI_DOCS", "./fascicoli/documenti"),
@@ -222,7 +223,7 @@ def pec_message_source(message_id: str):
         if delay:
             time.sleep(delay)
         try:
-            response = _json_success({"ok": True, "data": _repo().get_message_source_detail(message_id)})
+            response = _json_success({"ok": True, "data": _repo(read_only=True).get_message_source_detail(message_id)})
             response.headers["Cache-Control"] = "private, max-age=30"
             return response
         except sqlite3.OperationalError as exc:
@@ -231,7 +232,7 @@ def pec_message_source(message_id: str):
             last_busy = exc
             current_app.logger.warning("Archivio PEC occupato durante apertura fonte %s: tentativo %s", message_id, attempt)
             continue
-        except KeyError:
+        except (KeyError, FileNotFoundError):
             return _json_error(404)
         except TenantDataPathError:
             return _json_error(403)

@@ -3,19 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
 from types import SimpleNamespace
 
-from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, jsonify, redirect, request, url_for
 
-from pct.soggetti import RuoloSoggetto, TipoSoggetto, SoggettoConcurrentUpdate, soggetto_coincide_con_cliente, soggetto_revision
+from pct.soggetti import RuoloSoggetto, TipoSoggetto, SoggettoConcurrentUpdate, soggetto_coincide_con_cliente
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.permessi_route import permesso_negato
 from web.services.territorio_forms import address_fields_from_form
-
-
-def _richiede_vista_legacy() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _richiede_json() -> bool:
@@ -79,25 +74,13 @@ def register_soggetti_routes(
 
     @app.route("/soggetti")
     def lista_soggetti():
-        if not _richiede_vista_legacy():
-            return render_react_shell_response("soggetti")
-
-        query = request.args.get("q", "").strip()
-        tipo_filtro = request.args.get("tipo", "").strip()
-        soggetti = get_soggetti().cerca(q=query, tipo=tipo_filtro)
-        return render_template(
-            "soggetti/lista.html",
-            soggetti=soggetti,
-            q=query,
-            tipo_f=tipo_filtro,
-            oggi=date.today(),
-        )
+        return render_react_shell_response("soggetti")
 
     @app.route("/soggetti/nuovo", methods=["GET", "POST"])
     def nuovo_soggetto():
         soggetti = get_soggetti()
         clienti = get_clienti().tutti()
-        if request.method == "GET" and not _richiede_vista_legacy():
+        if request.method == "GET":
             return render_react_shell_response("soggetti/nuovo")
 
         if request.method == "POST":
@@ -170,48 +153,14 @@ def register_soggetti_routes(
                 return jsonify({"ok": True, "id": soggetto.id, "message": message, "redirect": target})
             return redirect(target)
 
-        prefill = {
-            key: request.args.get(key, "")
-            for key in (
-                "tipo",
-                "nome",
-                "cognome",
-                "ragione_sociale",
-                "codice_fiscale",
-                "partita_iva",
-                "email",
-                "cellulare",
-                "telefono",
-                "pec",
-                "id_cliente",
-            )
-        }
-        return render_template(
-            "soggetti/form.html",
-            soggetto=None,
-            clienti=clienti,
-            TipoSoggetto=TipoSoggetto,
-            oggi=date.today(),
-            prefill=prefill,
-        )
+        return redirect(request.path)
 
     @app.route("/soggetti/<id_soggetto>")
     def dettaglio_soggetto(id_soggetto):
         soggetto = get_soggetti().get(id_soggetto)
         if not soggetto:
             abort(404)
-        if not _richiede_vista_legacy():
-            return render_react_shell_response(f"soggetti/{id_soggetto}")
-        ids_fascicoli = get_soggetti().fascicoli_con_soggetto(id_soggetto)
-        fascicoli_collegati = [fascicolo for fascicolo in (get_fascicoli().get(item) for item in ids_fascicoli) if fascicolo]
-        cliente_collegato = get_clienti().get(soggetto.id_cliente) if soggetto.id_cliente else None
-        return render_template(
-            "soggetti/dettaglio.html",
-            soggetto=soggetto,
-            fascicoli_collegati=fascicoli_collegati,
-            cliente_collegato=cliente_collegato,
-            oggi=date.today(),
-        )
+        return render_react_shell_response(f"soggetti/{id_soggetto}")
 
     @app.route("/soggetti/<id_soggetto>/modifica", methods=["GET", "POST"])
     def modifica_soggetto(id_soggetto):
@@ -222,7 +171,7 @@ def register_soggetti_routes(
                 return jsonify({"ok": False, "message": "Soggetto non trovato."}), 404
             abort(404)
         clienti = get_clienti().tutti()
-        if request.method == "GET" and not _richiede_vista_legacy():
+        if request.method == "GET":
             return render_react_shell_response(f"soggetti/{id_soggetto}/modifica")
         if request.method == "POST":
             if _richiede_json() and not request.form.get("expected_revision"):
@@ -284,14 +233,7 @@ def register_soggetti_routes(
             if _richiede_json():
                 return jsonify({"ok": True, "id": id_soggetto, "message": "Soggetto aggiornato.", "redirect": target})
             return redirect(url_for("dettaglio_soggetto", id_soggetto=id_soggetto))
-        return render_template(
-            "soggetti/form.html",
-            soggetto=soggetto,
-            clienti=clienti,
-            TipoSoggetto=TipoSoggetto,
-            oggi=date.today(),
-            expected_revision=soggetto_revision(soggetto),
-        )
+        return redirect(request.path)
 
     @app.route("/soggetti/<id_soggetto>/elimina", methods=["POST"])
     def elimina_soggetto(id_soggetto):

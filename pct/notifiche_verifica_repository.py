@@ -18,16 +18,36 @@ class VerificaNotificheRepository:
         if database is None or not tenant_id:
             raise RuntimeError("Archivio SQL dello studio non disponibile.")
         self.database, self.tenant_id = database, tenant_id
-        nome = "20260930_notifiche_verifica_postgres.sql" if getattr(database, "backend_kind", "") == "postgresql" else "20260930_notifiche_verifica.sql"
+        with _SCHEMA_LOCK:
+            if database not in _PRONTI:
+                self._prepara_schema()
+                _PRONTI.add(database)
+
+    def _prepara_schema(self):
+        database = self.database
+        postgres = getattr(database, "backend_kind", "") == "postgresql"
+        tabelle = ("notifiche_verifiche", "notifiche_verifiche_audit")
+        if postgres:
+            presenti = all(database.conn.execute(
+                "SELECT to_regclass(?) AS nome", (tabella,),
+            ).fetchone()["nome"] for tabella in tabelle)
+        else:
+            presenti = database.conn.execute(
+                "SELECT COUNT(*) AS numero FROM sqlite_master WHERE type='table' AND name IN (?,?)",
+                tabelle,
+            ).fetchone()["numero"] == len(tabelle)
+        if presenti:
+            return
+
+        nome = "20260930_notifiche_verifica_postgres.sql" if postgres else "20260930_notifiche_verifica.sql"
         istruzioni = (Path(__file__).parent / "sql" / nome).read_text(encoding="utf-8")
+
         def crea(conn, _):
             for istruzione in istruzioni.split(";"):
                 if istruzione.strip():
                     conn.execute(istruzione)
-        with _SCHEMA_LOCK:
-            if database not in _PRONTI:
-                database.salva_tabella("notifiche_verifiche", [None], crea, delete_all=False)
-                _PRONTI.add(database)
+
+        database.salva_tabella("notifiche_verifiche", [None], crea, delete_all=False)
 
     def elenco(self, fascicolo_id: str) -> dict:
         righe = self.database.conn.execute(

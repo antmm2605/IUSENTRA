@@ -1,28 +1,24 @@
 # Audit migrazione React
 
-Generato: 2026-05-09T15:07:53.814Z
+Generato: 2026-11-11T15:35:08.361Z
 
 ## Frontend
 
-Dipendenze runtime: @fontsource-variable/geist, @vitejs/plugin-react, class-variance-authority, clsx, lucide-react, radix-ui, react, react-dom, shadcn, tailwind-merge, tw-animate-css, typescript, vite
-Script disponibili: dev, test, typecheck, build, build:vite, preview
+Dipendenze runtime: @fontsource-variable/geist, @iusentra/ui, @vitejs/plugin-react, autoprefixer, class-variance-authority, clsx, lucide-react, postcss, radix-ui, react, react-dom, shadcn, tailwind-merge, tailwindcss, tw-animate-css, typescript, vite
+Script disponibili: dev, test, test:notifiche-legali-presidi, test:loading, test:notifiche-legali-presidi:bundle, test:notifiche-legali-presidi:full, test:app-v2, test:ui-coverage, typecheck, build, build:ssr-sito, build:vite, test:generated-sources, preview, clean, storybook, build-storybook, test:storybook, chromatic, chromatic:changed, test:anagrafica-draft-ocr
 
 ## Gate React
 
-Route React prefixes: 55
-Route React exact: 44
+Route React prefixes: 67
+Route React exact: 59
 Excluded prefixes: 14
-Legacy operational prefixes: 15
+Legacy operational prefixes: 11
 
 ## App React
 
-Lazy components: 46
-Route checks: 60
-Studio module routes: 53
-
-## Aggiornamento manuale 2026-06-12
-
-Assistente vocale Studio 2.253.1 aggiunto come componente topbar caricato in modo pigro. Il catalogo comandi è testato separatamente e il flusso cliente usa API reale con permessi, audit e repository. Audit browser CDP su Docker reale `127.0.0.1:8080`: 330 frasi, 59 destinazioni, voce/PIN, cliente guidato, responsive desktop/tablet/mobile e visual load baseline confermati senza failure.
+Lazy components: 0
+Route checks: 103
+Studio module routes: 62
 
 ## Nota operativa
 

@@ -38,6 +38,18 @@ _SCHEMA = (
         inoltrata_revisione INTEGER NOT NULL DEFAULT 0
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS notizie_verificate (
+        notizia_id TEXT PRIMARY KEY REFERENCES notizie(id),
+        fonte_url TEXT NOT NULL,
+        sintesi_originale TEXT NOT NULL,
+        titolo_originale TEXT NOT NULL,
+        sintesi_operativa TEXT NOT NULL,
+        azione TEXT NOT NULL,
+        evidenza TEXT NOT NULL,
+        verificata_il TEXT NOT NULL
+    )
+    """,
     "CREATE INDEX IF NOT EXISTS notizie_data ON notizie (data DESC, titolo)",
     "CREATE INDEX IF NOT EXISTS notizie_fonte ON notizie (fonte, data DESC)",
     """
@@ -107,6 +119,46 @@ class ArchivioNotiziario:
                 nuove.append(voce)
             conn.commit()
         return nuove
+
+    def salva_verifica(self, notizia_id: str, *, sintesi: str, azione: str,
+                       evidenza: str, verificata_il: str) -> None:
+        if not all(str(x).strip() for x in (sintesi, azione, evidenza, verificata_il)):
+            raise ValueError("Sintesi, azione, fonte e data di verifica sono obbligatorie.")
+        with closing(self._connetti()) as conn:
+            voce = conn.execute("SELECT url, sintesi, titolo FROM notizie WHERE id=?", (notizia_id,)).fetchone()
+            if voce is None:
+                raise ValueError("Notizia di origine non trovata.")
+            conn.execute("""
+                INSERT INTO notizie_verificate VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(notizia_id) DO UPDATE SET
+                    fonte_url=excluded.fonte_url, sintesi_originale=excluded.sintesi_originale,
+                    titolo_originale=excluded.titolo_originale, sintesi_operativa=excluded.sintesi_operativa,
+                    azione=excluded.azione, evidenza=excluded.evidenza, verificata_il=excluded.verificata_il
+            """, (notizia_id, voce["url"], voce["sintesi"], voce["titolo"], sintesi, azione, evidenza, verificata_il))
+            conn.commit()
+
+    def elenco_verificato(self, *, notizia_id: str | None = None) -> list[dict[str, Any]]:
+        """Tutte le schede con una verifica valida per il testo corrente."""
+        with closing(self._connetti()) as conn:
+            if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='notizie_verificate'").fetchone():
+                return []
+            filtro = " AND n.id=?" if notizia_id is not None else ""
+            parametri = (notizia_id,) if notizia_id is not None else ()
+            righe = conn.execute("""
+                SELECT n.*, v.sintesi_operativa, v.azione, v.evidenza
+                FROM notizie_verificate v JOIN notizie n ON n.id=v.notizia_id
+                WHERE n.url=v.fonte_url AND n.titolo=v.titolo_originale AND n.sintesi=v.sintesi_originale
+            """ + filtro + " ORDER BY n.data DESC, n.acquisita_il DESC, n.titolo", parametri).fetchall()
+        return [_riga(riga) for riga in righe]
+
+    def verifiche_attuali(self) -> dict[str, dict[str, Any]]:
+        with closing(self._connetti()) as conn:
+            if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='notizie_verificate'").fetchone():
+                return {}
+            return {r["notizia_id"]: dict(r) for r in conn.execute("""
+                SELECT v.* FROM notizie_verificate v JOIN notizie n ON n.id=v.notizia_id
+                WHERE n.url=v.fonte_url AND n.titolo=v.titolo_originale AND n.sintesi=v.sintesi_originale
+            """)}
 
     def registra_esito(self, fonte: str, *, ok: bool, quando: str, messaggio: str = "", voci: int = 0) -> None:
         with closing(self._connetti()) as conn:

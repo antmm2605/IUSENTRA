@@ -211,20 +211,20 @@ def test_installation_pack_surface_e_route_admin_sono_accessibili_al_superadmin(
     with app.test_client() as client:
         client.get("/login")
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        page = client.get(f"/admin/installazione-pack/?slug={studio.slug}&_legacy=1")
+        page = client.get(f"/api/v1/ui/piattaforma/installazione-pack?slug={studio.slug}")
         api = client.get(f"/admin/installazione-pack/api?slug={studio.slug}")
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert "Product Pack, Studio Local Pack e Update Pack" in html
-    assert "Rigenera bootstrap e manifest" in html
+    assert "Pacchetti di installazione" in html
+    assert "Rigenera avvio e manifesti" in html
     assert "Il SUPERADMIN installa il prodotto" in html
-    assert "Bootstrap macchina" in html
-    assert "Update Pack e repository SQL" in html
-    assert "Hash manifest" in html
+    assert "Avvio della macchina" in html
+    assert "Pacchetto di aggiornamento e archivio SQL" in html
+    assert "Impronta del manifesto (SHA-256)" in html
     assert "Integrit" in html
-    assert "Dipendenze runtime locali" in html
-    assert "Archivio protezione macchina" in html
+    assert "Dipendenze locali" in html
+    assert "Archivio di protezione della macchina" in html
     assert "Materiale locale governato" in html
 
     assert api.status_code == 200

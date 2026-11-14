@@ -32,6 +32,25 @@ class QAGenerationPolicy:
             raise ValueError("La pipeline Lex non salva ragionamento interno nei dataset.")
 
 
+QA_TEXT_POLICY_VERSION = 2
+_MACHINE_TOKEN = re.compile(r"(?<!\w)[0-9a-fA-F]{24,}(?!\w)")
+_WORD = re.compile(r"[^\W\d_]{3,}", re.UNICODE)
+_BAD_CONTROL = re.compile(r"[\x00-\x08\x0e-\x1f\x7f-\x9f\ufffd]")
+
+
+def is_reviewable_excerpt(text: str) -> bool:
+    """Gate text shown in review: reject damaged or predominantly encoded extracts."""
+    if not text:
+        return False
+    if len(_BAD_CONTROL.findall(text)) >= 3:
+        return False
+    machine_chars = sum(len(token.group()) for token in _MACHINE_TOKEN.finditer(text))
+    meaningful_words = len(_WORD.findall(_MACHINE_TOKEN.sub(" ", text)))
+    if machine_chars > len(text) / 4 and meaningful_words < 12:
+        return False
+    return meaningful_words >= 4
+
+
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -58,7 +77,7 @@ def build_qa_generation_tasks(
                 or chunk.source.metadata.get("training_eligible") is False
                 or chunk.metadata.get("training_eligible") is False):
             continue
-        if len(chunk.text) < opts.min_chunk_chars:
+        if len(chunk.text) < opts.min_chunk_chars or not is_reviewable_excerpt(_extractive_answer(chunk.text)):
             continue
         task_id = stable_id(chunk.chunk_id, "qa-task", opts.max_pairs_per_chunk, prefix="lex-qa-task-")
         tasks.append(
@@ -98,6 +117,8 @@ def generate_mock_qa_pairs(
     for task in tasks:
         privacy = classify_privacy(task.chunk_text, default=task.privacy_classification)
         answer = _extractive_answer(task.chunk_text)
+        if not is_reviewable_excerpt(answer):
+            continue
         if opts.redact_sensitive and privacy in {"sensitive", "highly_sensitive"}:
             answer = redact_sensitive_for_dataset(answer)
         for pair_index in range(1, task.max_pairs + 1):

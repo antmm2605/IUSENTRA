@@ -155,3 +155,24 @@ def test_normattiva_retrieval_usa_raw_codici_senza_reimport_massivo(tmp_path: Pa
     assert rows[0]["metadata"]["no_invented_link"] is True
     assert rows[0]["path_origine"].endswith("Codici_XML_ORIGINALE_2026-05-17.zip")
     assert "danno ingiusto" in rows[0]["testo"]
+
+
+def test_secondo_giro_non_rilegge_pacchetto_e_conserva_export(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    zip_path = raw / "Leggi_XML_VIGENTE_2026-11-11.zip"
+    with ZipFile(zip_path, "w") as archive:
+        archive.writestr("legge.xml", NIR_XML)
+    db = tmp_path / "normattiva.sqlite"
+    export = tmp_path / "chunks.jsonl"
+    opts = dict(raw_dir=raw, db_path=db, jsonl_path=export, min_score=0)
+
+    first = import_raw_dir(**opts)
+    assert first.errors == 0 and first.xml_seen == 1 and first.chunks_written > 0
+    original = export.read_bytes()
+    second = import_raw_dir(**opts)
+    assert second.errors == 0 and second.zip_immutati == 1 and second.xml_seen == 0
+    assert export.read_bytes() == original
+    export.unlink()
+    third = import_raw_dir(**opts)
+    assert third.zip_immutati == 1 and export.read_bytes() == original

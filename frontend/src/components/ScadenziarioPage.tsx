@@ -46,6 +46,7 @@ import {
   getDeadlineCalculator,
   getScadenziarioPage,
   importPdfDeadlines,
+  normalizeScadenziarioView,
   previewPdfDeadlines,
   type DeadlineCalculatorResult,
   type DeadlineCalculatorState,
@@ -72,6 +73,7 @@ const calculationRuleLabels: Record<string, string> = {
   dies_a_quo_excluded: 'Giorno iniziale escluso',
   free_term: 'Termine libero',
   ferial_suspension_1_31_august: 'Sospensione feriale dal 1° al 31 agosto',
+  labour_no_ferial_suspension_art_3_l742_1969: 'Lavoro o previdenza: sospensione feriale esclusa',
   urgent_matter_ferial_bypass: 'Materia urgente: sospensione feriale esclusa',
   saturday_extension_out_of_hearing: 'Proroga del sabato per attività fuori udienza',
   holiday_extension: 'Proroga del giorno festivo',
@@ -119,8 +121,7 @@ function initialView(): ScadenziarioView {
   const params = new URLSearchParams(window.location.search)
   const focusId = routeDeadlineId()
   const raw = params.get('vista') || (focusId ? 'tutte' : 'aperte')
-  const allowed: ScadenziarioView[] = ['aperte', 'critiche', 'alte', 'completate', 'scadute', 'esiti_udienza', 'imminenti', 'avanzate', 'operative', 'pec', 'da_presidiare', 'tutte']
-  return allowed.includes(raw as ScadenziarioView) ? raw as ScadenziarioView : 'aperte'
+  return normalizeScadenziarioView(raw)
 }
 
 function initialQuery(): string {
@@ -350,7 +351,7 @@ function guardianDueLabel(item: DeadlineGuardian['items'][number]): string {
   return `Tra ${item.days} ${item.days === 1 ? 'giorno' : 'giorni'}`
 }
 
-function GuardianPanel({ guardian, loading }:{guardian:DeadlineGuardian; loading:boolean}) {
+function GuardianPanel({ guardian, loading, unavailable }:{guardian:DeadlineGuardian; loading:boolean; unavailable:boolean}) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [band, setBand] = useState('')
@@ -369,9 +370,9 @@ function GuardianPanel({ guardian, loading }:{guardian:DeadlineGuardian; loading
   return <>
     <section className="iu-scad-guardian" aria-label="Guardiano Scadenze">
       <header>
-        <div><span><ShieldCheck size={16}/> Guardiano Scadenze</span><strong>{loading ? 'Caricamento dei presidi…' : total ? `${total} ${total === 1 ? 'elemento richiede' : 'elementi richiedono'} un presidio preventivo` : 'Nessun rischio aperto nel perimetro attivo'}</strong></div>
-        {!loading && <Badge tone={tone}>{guardian.summary.critical ? `${guardian.summary.critical} critici` : guardian.summary.high ? `${guardian.summary.high} ad alto rischio` : total ? 'Da presidiare' : 'Presidiato'}</Badge>}
-        <button className="iu-button" type="button" disabled={loading || !total} onClick={() => setOpen(true)}><ShieldCheck size={15}/> Esamina {loading ? 'i presidi' : `${total} ${total === 1 ? 'presidio' : 'presidi'}`}</button>
+        <div><span><ShieldCheck size={16}/> Guardiano Scadenze</span><strong>{loading ? 'Caricamento dei presidi…' : unavailable ? 'Presidi non verificati. Riprova il caricamento.' : total ? `${total} ${total === 1 ? 'elemento richiede' : 'elementi richiedono'} un presidio preventivo` : 'Nessun rischio aperto nel perimetro attivo'}</strong></div>
+        {!loading && !unavailable && <Badge tone={tone}>{guardian.summary.critical ? `${guardian.summary.critical} critici` : guardian.summary.high ? `${guardian.summary.high} ad alto rischio` : total ? 'Da presidiare' : 'Presidiato'}</Badge>}
+        <button className="iu-button" type="button" disabled={loading || unavailable || !total} onClick={() => setOpen(true)}><ShieldCheck size={15}/> Esamina {loading ? 'i presidi' : `${total} ${total === 1 ? 'presidio' : 'presidi'}`}</button>
       </header>
       <p>Rischi nei dati registrati, con fonte e azione correttiva. Ogni termine resta soggetto alla verifica professionale.</p>
     </section>
@@ -693,6 +694,7 @@ function ProcessDeadlineCalculator({
   onCreate: () => void
 }) {
   const selected = templates.find((template) => template.code === form.templateCode)
+  const ferialeEsclusaPerMateria = result?.rulesApplied.includes('labour_no_ferial_suspension_art_3_l742_1969') === true
   const templateNameCounts = templates.reduce((acc, template) => {
     acc.set(template.name, (acc.get(template.name) || 0) + 1)
     return acc
@@ -752,12 +754,13 @@ function ProcessDeadlineCalculator({
           </label>
           <label>
             <span>Sospensione feriale</span>
-            <select value={form.ferialPolicy} onChange={(event) => onForm({ ...form, ferialPolicy: event.target.value as CalculatorForm['ferialPolicy'], suspendAugust: event.target.value === 'applies' })}>
+            <select value={ferialeEsclusaPerMateria ? 'excluded' : form.ferialPolicy} onChange={(event) => onForm({ ...form, ferialPolicy: event.target.value as CalculatorForm['ferialPolicy'], suspendAugust: event.target.value === 'applies' })}>
               <option value="applies">Applica 1-31 agosto</option>
               <option value="excluded">Esclusa</option>
               <option value="partial">Parziale</option>
               <option value="manual_review">Verifica manuale</option>
             </select>
+            {ferialeEsclusaPerMateria ? <small>Esclusa nel calcolo per la materia del fascicolo (art. 3 L. 742/1969).</small> : null}
           </label>
           <div className="iu-scad-calculator__checks">
             <label><input type="checkbox" checked={form.freeTerm} onChange={(event) => onForm({ ...form, freeTerm: event.target.checked })}/> Termine libero</label>
@@ -1010,20 +1013,23 @@ function DeadlineFocusDetail({
 }) {
   const groups = deadlineFactGroups(row, { notificationPresidio })
   const description = deadlineWhatToDo(row)
+  const completed = row.status === 'COMPLETATO'
+  const closed = completed || row.status === 'ANNULLATO'
+  const detailHeading = row.reconciliationReason ? 'Motivo della rettifica' : completed ? 'Adempimento registrato' : closed ? 'Adempimento annullato' : 'Cosa fare'
   return (
     <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
       <header className="iu-scad-focus-summary">
         <div className="iu-scad-focus-badges">
           <Badge tone={row.tone}>{row.statusLabel}</Badge>
-          <Badge tone={row.priority === 'CRITICA' ? 'danger' : row.priority === 'ALTA' ? 'warning' : 'neutral'}>Priorità {row.priorityLabel.toLowerCase()}</Badge>
+          {closed ? null : <Badge tone={row.priority === 'CRITICA' ? 'danger' : row.priority === 'ALTA' ? 'warning' : 'neutral'}>Priorità {row.priorityLabel.toLowerCase()}</Badge>}
           {row.peremptory ? <Badge tone="danger">Perentoria</Badge> : null}
         </div>
-        <div className={`iu-scad-focus-when${row.overdue ? ' is-overdue' : row.dueToday ? ' is-today' : ''}`}>
+        <div className={`iu-scad-focus-when${closed ? '' : row.overdue ? ' is-overdue' : row.dueToday ? ' is-today' : ''}`}>
           <CalendarDays size={20}/>
           <div>
-            <span>{notificationPresidio ? 'Da presidiare' : 'Scadenza'}</span>
+            <span>{closed ? 'Data del termine' : notificationPresidio ? 'Da presidiare' : 'Scadenza'}</span>
             <strong>{row.dateLabel}</strong>
-            {row.daysLabel && row.daysLabel !== row.dateLabel ? <small>{row.daysLabel}</small> : null}
+            {!closed && row.daysLabel && row.daysLabel !== row.dateLabel ? <small>{row.daysLabel}</small> : null}
           </div>
         </div>
       </header>
@@ -1039,9 +1045,9 @@ function DeadlineFocusDetail({
         <button type="button" className="is-danger" onClick={() => onDelete(row)}><Trash2 size={15}/> Elimina</button>
         {!embedded ? <button type="button" className="iu-scad-focus-back" onClick={onClose}><ArrowLeft size={15}/> Torna allo scadenziario</button> : null}
       </div>
-      <section className="iu-scad-focus-block" aria-label={row.reconciliationReason ? 'Motivo della rettifica' : 'Cosa fare'}>
-        <h3><ListChecks size={15}/> {row.reconciliationReason ? 'Motivo della rettifica' : 'Cosa fare'}</h3>
-        <p>{row.reconciliationReason || description}</p>
+      <section className="iu-scad-focus-block" aria-label={detailHeading}>
+        <h3><ListChecks size={15}/> {detailHeading}</h3>
+        <p>{row.reconciliationReason || (closed ? row.title : description)}</p>
         {row.reconciliationReason ? <p>La proposta automatica è conservata nello storico. Non costituisce un’attività da eseguire.</p> : null}
       </section>
       {groups.map((group) => (
@@ -1256,6 +1262,8 @@ export function ScadenziarioPage() {
 
   const visibleRows = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
   const selectedCompletableIds = data.items.filter((item) => selectedIds.includes(item.id) && ['APERTO', 'SCADUTO'].includes(item.status)).map((item) => item.id)
+  const awaitingFirstResult = data.source === 'empty'
+  const guardianUnavailable = Boolean(loadError) || (!awaitingFirstResult && !data.guardian.referenceDate)
   const mobileLayout = useScadenziarioMobileLayout()
 
   const toggleSelection = (id: string) => {
@@ -1555,17 +1563,17 @@ export function ScadenziarioPage() {
       ) : null}
 
       <section className="iu-scad-stats" aria-label="Indicatori scadenziario">
-        <StatCard icon={<CalendarDays size={19}/>} label="Aperte" value={loading ? '…' : data.summary.open} note="da lavorare" tone="primary" active={view === 'aperte'} onClick={() => changeView('aperte')}/>
-        <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={loading ? '…' : data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => changeView('critiche')}/>
-        <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={loading ? '…' : data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => changeView('alte')}/>
-        <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={loading ? '…' : data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => changeView('completate')}/>
-        <StatCard icon={<TimerReset size={19}/>} label="Storico scadute" value={loading ? '…' : data.summary.overdue} note="fuori dalla vista operativa" tone={data.summary.overdue ? 'warning' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
-        <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={loading ? '…' : data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
-        <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={loading ? '…' : data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
-        <StatCard icon={<ListChecks size={19}/>} label="Operative" value={loading ? '…' : data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
-        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={loading ? '…' : data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
+        <StatCard icon={<CalendarDays size={19}/>} label="Aperte" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.open} note="da lavorare" tone="primary" active={view === 'aperte'} onClick={() => changeView('aperte')}/>
+        <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => changeView('critiche')}/>
+        <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => changeView('alte')}/>
+        <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => changeView('completate')}/>
+        <StatCard icon={<TimerReset size={19}/>} label="Storico scadute" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.overdue} note="fuori dalla vista operativa" tone={data.summary.overdue ? 'warning' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
+        <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
+        <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
+        <StatCard icon={<ListChecks size={19}/>} label="Operative" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
+        <StatCard icon={<Archive size={19}/>} label="Da PEC" value={awaitingFirstResult ? (loadError ? '—' : '…') : data.summary.pec} note="aperte operative" tone="info" active={view === 'pec'} onClick={() => changeView('pec')}/>
       </section>
-      <GuardianPanel guardian={data.guardian} loading={loading}/>
+      <GuardianPanel guardian={data.guardian} loading={awaitingFirstResult && !loadError} unavailable={guardianUnavailable}/>
 
       <DraftProposalsPanel proposals={data.draftProposals} onConfirm={runConfirmProposal} onDiscard={runDiscardProposal} onOpenSource={(row) => setSourcePreview({ ...row })}/>
       <ExpiredProposalsPanel group={data.expiredProposals} onClose={runCloseExpiredProposal}/>
@@ -1613,7 +1621,7 @@ export function ScadenziarioPage() {
       <OperativeCards cards={data.operativeCards} selectedCount={selectedCompletableIds.length} onFilter={changeView} onBulkComplete={runBulkComplete}/>
 
       <section className="iu-scad-status-line">
-        <span className={loading ? '' : 'is-ok'}>
+        <span className={awaitingFirstResult || loading || backgroundLoading || loadError ? '' : 'is-ok'}>
           {loadError ? 'Aggiornamento scadenziario non confermato' : loading ? 'Sincronizzazione scadenziario...' : backgroundLoading ? 'Aggiornamento scadenziario in corso…' : 'Dati scadenziario aggiornati'}
         </span>
         <small><ShieldCheck size={14}/> Scritture e calcoli restano tracciati con controlli operativi.</small>
@@ -1655,7 +1663,7 @@ export function ScadenziarioPage() {
       <section className="iu-scad-layout">
         <div className={`iu-scad-table-card${tableFullscreen ? ' iu-scad-table-card--fullscreen' : ''}`} ref={deadlineTableRef}>
           <header>
-            <div><strong>{loading ? 'Caricamento scadenze…' : `${visibleRows.length} ${visibleRows.length === 1 ? 'scadenza' : 'scadenze'}`}</strong><span>{query.trim() ? 'Ricerca in tutto lo scadenziario' : (data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente')} · {sourceLabel(data.source)}</span></div>
+            <div><strong>{awaitingFirstResult ? (loadError ? 'Scadenze non disponibili' : 'Caricamento scadenze…') : `${visibleRows.length} ${visibleRows.length === 1 ? 'scadenza' : 'scadenze'}`}</strong><span>{query.trim() ? 'Ricerca in tutto lo scadenziario' : (data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente')} · {sourceLabel(data.source)}</span></div>
             <div>
               <Badge tone={query.trim() || view === 'scadute' || view === 'tutte' ? 'warning' : 'success'}>
                 {query.trim() ? 'tutti gli stati' : (view === 'scadute' || view === 'tutte' ? `${data.summary.overdue} nello storico` : 'vista operativa')}
@@ -1682,6 +1690,8 @@ export function ScadenziarioPage() {
                 <MemoDeadlineTable rows={visibleRows} selectedIds={selectedIds} onToggle={toggleSelection} onToggleAll={toggleAll} onComplete={runComplete} onDelete={runDelete} onOpenSource={(row) => setSourcePreview({ ...row })} onOpenDetail={openDeadlineDetail}/>
               )}
             </>
+          ) : loadError ? (
+            <div className="iu-scad-empty"><strong>Elenco non verificato</strong><span>Riprova il caricamento per consultare le scadenze.</span></div>
           ) : (
             <div className="iu-scad-empty">
               <CalendarCheck size={38}/>
@@ -1691,7 +1701,7 @@ export function ScadenziarioPage() {
             </div>
           )}
         </div>
-        <Inspector data={data} rows={visibleRows}/>
+        {!awaitingFirstResult ? <Inspector data={data} rows={visibleRows}/> : null}
       </section>
 
       <section className="iu-scad-lower-grid">

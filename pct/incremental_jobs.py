@@ -7,6 +7,7 @@ bootstrap o richiesta esplicita.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -44,13 +45,13 @@ def file_mtime_ns(path: Path) -> int:
         return 0
 
 
-def newest_file_cursor(paths: list[Path]) -> dict[str, Any]:
+def newest_file_cursor(paths: list[Path], *, mtime_di: Callable[[Path], int] = file_mtime_ns) -> dict[str, Any]:
     """Cursore monotono per archivi documentali ordinati per modifica file."""
 
     newest_path = ""
     newest_ns = 0
     for path in paths:
-        mtime_ns = file_mtime_ns(path)
+        mtime_ns = mtime_di(path)
         token = str(path)
         if (mtime_ns, token) > (newest_ns, newest_path):
             newest_ns = mtime_ns

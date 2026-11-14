@@ -6,6 +6,11 @@ from pct.document_intelligence.catalog_pipeline import FascicoloDocumentCatalogP
 from pct.document_intelligence.catalog_resolver import RESOLVER_VERSION, resolve_profile
 from pct.document_intelligence.sources import DocumentAISource
 
+# Dopo un aggiornamento delle regole (RESOLVER_VERSION) il giro automatico ricataloga i documenti già catalogati
+# dai testi salvati, senza rileggerli: al più questo numero per fascicolo e per giro, il resto al giro successivo
+# (registro delle letture, letture incrementali). I documenti nuovi o cambiati non aspettano il lotto.
+LOTTO_RICATALOGAZIONE = 200
+
 
 def _text(value: Any) -> str:
     return str(getattr(value, 'value', value) or '').strip()
@@ -22,7 +27,7 @@ def _human(assignment: Any) -> bool:
     return assignment.status == 'confirmed' and assignment.resolver_version == RESOLVER_VERSION
 
 
-def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str, *, document_ids: set[str] | None = None, retry: bool = False) -> tuple[list, dict, dict]:
+def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant: str, *, document_ids: set[str] | None = None, retry: bool = False, assegnazioni=None) -> tuple[list, dict, dict]:
     """Solo documenti presenti: l'ID del fascicolo resta distinto dall'ID DocumentAI."""
     fid = str(fascicolo.id)
     # Un documento si riconosce dall'impronta del contenuto in chiaro quando è nota,
@@ -42,14 +47,18 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
             ready.setdefault(record.sha256, record)
     hashes = {doc_id: next((i for i in impronte if i in ready), impronte[0]) for doc_id, impronte in candidati.items()}
     assignments = {}
-    for assignment in sorted(repository.list_catalog_assignments(tenant, fid), key=lambda a: _text(a.updated_at), reverse=True):
+    if assegnazioni is None:
+        assegnazioni = repository.list_catalog_assignments(tenant, fid)
+    for assignment in sorted(assegnazioni, key=lambda a: _text(a.updated_at), reverse=True):
         assignments.setdefault((assignment.document_id, assignment.document_sha256), assignment)
     context = fascicolo_catalog_context(fascicolo)
     profile, _ = resolve_profile(context)
     report = {'fascicolo_id': fid, 'source_of_truth': repository.backend_kind, 'read_mode': 'sql_text_only', 'file_reads': 0,
               'resolver_version': RESOLVER_VERSION, 'current_documents': len(fascicolo.documenti),
               'stale_assignments': 0, 'missing_assignments': 0, 'manual_or_confirmed_preserved': 0,
-              'waiting_for_text': 0, 'eligible_documents': 0, 'status': 'unchanged'}
+              'waiting_for_text': 0, 'eligible_documents': 0, 'deferred_to_next_round': 0, 'status': 'unchanged'}
+    lotto = LOTTO_RICATALOGAZIONE if document_ids is None and not retry else None
+    ricatalogati = 0
     sources, texts = [], {}
     for doc in fascicolo.documenti:
         doc_id = str(doc.id)
@@ -71,10 +80,16 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
                 ('legal_branch', context.get('branca') or ''), ('legal_subfamily', context.get('sottobranca') or '')))
         if not stale and not retry:
             continue
+        if assignment is not None and lotto is not None:
+            if ricatalogati >= lotto:
+                report['deferred_to_next_round'] += 1
+                continue
+            ricatalogati += 1
         report['missing_assignments' if assignment is None else 'stale_assignments'] += 1
         extracted = repository.get_extracted_text(tenant, fid, record.id, record.current_version_id)
         text = _text(getattr(extracted, 'text', ''))
-        if not text or text.lstrip().startswith('PCTENC') or 'binary-best-effort' in _text(getattr(extracted, 'extraction_engine', '')) or _text(getattr(extracted, 'extraction_engine', '')) == 'email.message':
+        # Anche un corpo email letto dal file ancora cifrato a riposo («Corpo email: PCTENC…»): byte, non testo.
+        if not text or 'PCTENC' in text[:400] or 'binary-best-effort' in _text(getattr(extracted, 'extraction_engine', '')) or _text(getattr(extracted, 'extraction_engine', '')) == 'email.message':
             report['waiting_for_text'] += 1
             continue
         filename = _text(getattr(doc, 'nome', '')) or record.original_filename
@@ -94,6 +109,30 @@ def prepara_catalogo(fascicolo: Any, oggetti: list[Any], repository: Any, tenant
     return sources, texts, report
 
 
+def conferma_catalogo_archiviato(registro, tenant: str, fascicolo_id: str, oggetti, assegnazioni) -> int:
+    """Riallinea le ricevute alle assegnazioni già salvate per lo stesso contenuto."""
+    per_documento = {(a.document_id, a.document_sha256): a for a in assegnazioni}
+    esistenti = {}
+    for oggetto in oggetti:
+        if oggetto.tipo != "documento" or not oggetto.presente:
+            continue
+        for sha in (oggetto.sha256, oggetto.sha256_archivio):
+            if sha and (assegnazione := per_documento.get((oggetto.oggetto_id, sha))) is not None:
+                esistenti[oggetto.oggetto_id] = (oggetto, assegnazione)
+                break
+    da_confermare = registro.da_confermare(
+        tenant, fascicolo_id, "catalogo", oggetti=(o for o, _ in esistenti.values()),
+    )
+    per_versione = {}
+    for oggetto in da_confermare:
+        versione = _text(esistenti[oggetto.oggetto_id][1].resolver_version)
+        per_versione.setdefault(versione, []).append(oggetto)
+    return sum(registro.segna_letti(
+        tenant, fascicolo_id, gruppo, "catalogo", versione=versione or None,
+        esito={"fonte": "assegnazione di catalogo", "resolver_version": versione},
+    ) for versione, gruppo in per_versione.items())
+
+
 def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, applica: bool = True, document_ids: set[str] | None = None, retry: bool = False, actor: str = "archivio-letture.catalogo") -> dict[str, Any]:
     from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id, _registra_catalogo
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
@@ -102,9 +141,18 @@ def aggiorna_catalogo_da_archivio(fascicolo: Any, registro: Any = None, *, appli
     repository = build_document_ai_service().repository
     if repository.backend_kind not in {'sqlite', 'postgresql'}:
         raise ValueError('Catalogo archivio richiede una fonte SQL')
-    sources, texts, report = prepara_catalogo(fascicolo, registro.oggetti(tenant_corrente(), fascicolo.id), repository, tenant, document_ids=document_ids, retry=retry)
+    tenant_registro = tenant_corrente()
+    oggetti = registro.oggetti(tenant_registro, fascicolo.id)
+    assegnazioni = repository.list_catalog_assignments(tenant, fascicolo.id)
+    sources, texts, report = prepara_catalogo(fascicolo, oggetti, repository, tenant, document_ids=document_ids, retry=retry, assegnazioni=assegnazioni)
     report['dry_run'] = not applica
-    if not sources or not applica:
+    if not applica:
+        return report
+    if not sources:
+        if assegnazioni:
+            report['ricevute_registro'] = conferma_catalogo_archiviato(
+                registro, tenant_registro, fascicolo.id, oggetti, assegnazioni,
+            )
         return report
     precedenti = {}
     if retry and document_ids is not None:

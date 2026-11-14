@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Mapping
+from urllib.parse import urlsplit
 
 import requests
 
@@ -38,12 +40,20 @@ class OfficialSourceFetcher:
             headers["If-None-Match"] = previous_headers["etag"]
         if previous_headers.get("last_modified"):
             headers["If-Modified-Since"] = previous_headers["last_modified"]
+        # Il portale MEF non sempre invia l'intermedio: il bundle locale
+        # aggiunge il certificato emittente alle radici ordinarie.
+        opzioni = {}
+        if source.id == "documentazione_tributaria" and urlsplit(source.url).hostname == "def.finanze.it":
+            bundle = os.getenv("IUSENTRA_TRIBUTARIO_CA_BUNDLE", "").strip()
+            if bundle:
+                opzioni["verify"] = bundle
         try:
             response = self.session.get(
                 source.url,
                 headers=headers,
                 timeout=self.timeout,
                 allow_redirects=True,
+                **opzioni,
             )
             return FetchResult(
                 ok=200 <= response.status_code < 400,

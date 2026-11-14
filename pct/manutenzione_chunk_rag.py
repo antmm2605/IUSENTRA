@@ -26,6 +26,8 @@ fare esattamente la stessa cosa.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -149,7 +151,7 @@ def documenti_coinvolti(service: Any, scarti: list[dict[str, Any]]) -> list[dict
             segnaposti = ",".join("?" for _ in lotto)
             righe = conn.execute(
                 f"""
-                SELECT id, source_type, source_id, practice_id, title, file_path, mime_type
+                SELECT id, source_type, source_id, practice_id, title, file_path, mime_type, sha256
                 FROM rag_documents WHERE id IN ({segnaposti})
                 """,
                 lotto,
@@ -210,7 +212,7 @@ def documenti_fuori_misura(service: Any, *, massimo: int = 0) -> list[dict[str, 
             segnaposti = ",".join("?" for _ in lotto)
             righe = conn.execute(
                 f"""
-                SELECT id, source_type, source_id, practice_id, title, file_path, mime_type
+                SELECT id, source_type, source_id, practice_id, title, file_path, mime_type, sha256
                 FROM rag_documents WHERE id IN ({segnaposti})
                 """,
                 lotto,
@@ -249,6 +251,31 @@ def esamina(service: Any, *, studio: str = "", limite: int = 0) -> EsitoArchivio
     return esito
 
 
+def _testo_lex_verificato(service: Any, documento: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Recupera la scheda Lex testuale se la ricostruzione coincide con il suo SHA-256."""
+    if documento.get("file_path") or documento.get("source_type") != "lex_sentenza_tribunale":
+        return "", {}
+    with service._connect() as conn:
+        righe = conn.execute(
+            "SELECT text, metadata_json FROM rag_chunks WHERE document_id=? ORDER BY ordinal LIMIT 3",
+            (documento["id"],),
+        ).fetchall()
+    if not 1 <= len(righe) <= 2:
+        return "", {}
+    primo = righe[0]["text"]
+    candidati = [primo]
+    if len(righe) == 2:
+        sinistra, destra = primo.split("\n\n"), righe[1]["text"].split("\n\n")
+        candidati = ["\n\n".join(sinistra + destra)]
+        for sovrapposti in range(1, min(len(sinistra), len(destra)) + 1):
+            if sinistra[-sovrapposti:] == destra[:sovrapposti]:
+                candidati.append("\n\n".join(sinistra + destra[sovrapposti:]))
+    for testo in candidati:
+        if hashlib.sha256(testo.encode("utf-8")).hexdigest() == documento.get("sha256"):
+            return testo, json.loads(righe[0]["metadata_json"] or "{}")
+    return "", {}
+
+
 def rispezza(
     service: Any,
     *,
@@ -268,9 +295,8 @@ def rispezza(
     contato da quando comincia a lavorare, non da quando comincia a guardare —
     e dice quanti ne restano. L'operazione e' ripetibile.
 
-    Si tocca solo chi ha ancora il file di partenza: un documento indicizzato
-    da testo gia' estratto non si puo' ricostruire da qui, e viene contato a
-    parte invece di essere svuotato.
+    Si rilegge il file originale, oppure si ricostruisce la scheda testuale
+    Lex quando il suo SHA-256 conferma il testo integrale della scheda.
     """
     esito = EsitoArchivio(studio=studio or "default")
     try:
@@ -281,24 +307,32 @@ def rispezza(
         esito.errore = str(exc)
         return esito
 
-    rifattibili = [doc for doc in candidati if _file_presente(doc)]
-    esito.documenti_senza_file = len(candidati) - len(rifattibili)
     partenza = time.monotonic()
     fatti = 0
-    for documento in rifattibili:
+    for documento in candidati:
         if fatti >= massimo_documenti or (time.monotonic() - partenza) >= budget_secondi:
             break
         fatti += 1
         try:
-            risultato = service.index_file(
-                source_type=str(documento.get("source_type") or ""),
-                source_id=str(documento.get("source_id") or ""),
-                practice_id=str(documento.get("practice_id") or "") or None,
-                file_path=str(documento.get("file_path") or ""),
-                title=str(documento.get("title") or "") or None,
-                mime_type=str(documento.get("mime_type") or "") or None,
-                force=True,
-            )
+            parametri = {
+                "source_type": str(documento.get("source_type") or ""),
+                "source_id": str(documento.get("source_id") or ""),
+                "practice_id": str(documento.get("practice_id") or "") or None,
+                "title": str(documento.get("title") or "") or "Documento",
+                "force": True,
+            }
+            if _file_presente(documento):
+                risultato = service.index_file(
+                    **parametri,
+                    file_path=documento["file_path"],
+                    mime_type=str(documento.get("mime_type") or "") or None,
+                )
+            else:
+                testo, metadata = _testo_lex_verificato(service, documento)
+                if not testo:
+                    esito.documenti_senza_file += 1
+                    continue
+                risultato = service.index_text_document(**parametri, text=testo, metadata=metadata)
         except Exception as exc:
             esito.documenti_in_errore += 1
             esito.esempi.append({"documento": documento.get("id"), "errore": str(exc)[:160]})

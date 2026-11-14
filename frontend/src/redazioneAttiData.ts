@@ -315,6 +315,7 @@ export type RedazioneContesto = {
   allegati: Array<{ id: string; nome: string; tipo: string }>
   contributoUnificato: { disponibile: boolean; totale: number | null; descrizione: string; fonte: string }
   condizioniAttive: string[]
+  prossimoPassoFascicolo?: string
   suggerimenti: RedazioneSuggerimento[]
   catalogo: RedazioneCatalogoArea[]
 }
@@ -536,6 +537,7 @@ export async function getRedazioneContesto(fascicoloId: string, clienteId: strin
       fonte: display(contributo.fonte),
     },
     condizioniAttive: list(contesto.condizioniAttive).map((item) => display(item)).filter(Boolean),
+    prossimoPassoFascicolo: display(payload.prossimoPassoFascicolo),
     suggerimenti: list(payload.suggerimenti).map((input) => {
       const item = asRecord(input)
       return {

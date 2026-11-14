@@ -29,6 +29,7 @@ NORMA_TERMINE_FATTURA = "art. 21, comma 4, D.P.R. 633/1972"
 NORMA_ANTICIPAZIONI = "art. 15, primo comma, n. 3, D.P.R. 633/1972"
 NORMA_CU = "art. 13 D.P.R. 115/2002"
 NORMA_ESENZIONE_CU = "art. 9, comma 1-bis, D.P.R. 115/2002"
+NORMA_ESECUZIONE_PA = "art. 14, comma 1, D.L. 669/1996"
 GIORNI_EMISSIONE_FATTURA = 12
 
 
@@ -70,9 +71,9 @@ def _riga_senza_credito(sentenze: list[Mapping[str, Any]]) -> dict[str, Any]:
     della = f"La sentenza{' del ' + data if data else ''}"
     regolazioni = {str(s.get("regolazione") or "") for s in sentenze}
     if regolazioni <= {"compensazione"}:
-        return _riga("sentenza", "Importo liquidato in sentenza", importo=None, stato="Spese compensate", tono="neutral",
+        return _riga("sentenza", "Spese di lite in sentenza", importo=None, stato="Spese compensate", tono="neutral",
                      norma=NORMA_COMPENSAZIONE, fonti=fonti,
-                     dettaglio=f"{della} compensa le spese: ciascuna parte sostiene le proprie, nulla da chiedere alla controparte.")
+                     dettaglio=f"{della} compensa le spese. Ciascuna parte sostiene le proprie spese di lite.")
     if "compensazione_parziale" in regolazioni:
         return _riga("sentenza", "Importo liquidato in sentenza", importo=None, stato="Spese compensate in parte", tono="warning",
                      norma=NORMA_COMPENSAZIONE, fonti=fonti,
@@ -102,6 +103,11 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
                      tono="neutral", dettaglio="Quando arriva la sentenza della causa, l'importo e la fonte compaiono qui.")
     distratte = [c for c in crediti if c.get("distrazione")]
     scelti = distratte or list(crediti)
+    # Il decreto ingiuntivo (e gli altri provvedimenti fuori sentenza) liquida le spese anche lui (art. 641 c.p.c.).
+    nature = {str(c.get("provvedimento") or "sentenza") for c in scelti}
+    etichetta = "Importo liquidato in sentenza" if nature == {"sentenza"} else (
+        f"Spese liquidate nel {next(iter(nature))}" if len(nature) == 1 else "Spese liquidate dal giudice")
+    esborsi = round(sum(float(c.get("esborsi") or 0) for c in scelti), 2)
     # Lo stesso importo letto da più documenti (la sentenza e la sua copia arrivata via PEC) è un credito solo:
     # non si somma, si mostrano le fonti e si chiede di verificarlo.
     gruppi: dict[float, list[Mapping[str, Any]]] = {}
@@ -110,7 +116,10 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
     totale = round(sum(gruppi), 2) or None
     fonti = [f for c in scelti for f in c.get("fonti") or []]
     avvisi = []
-    if any(len(g) > 1 for g in gruppi.values()):
+    if any(len(gruppo) > 1 and (
+        not all(c.get("identita_atto") for c in gruppo)
+        or len({c["identita_atto"] for c in gruppo}) > 1
+    ) for gruppo in gruppi.values()):
         avvisi.append("Stesso importo in più documenti: contato una volta, verificare che sia la stessa sentenza.")
     if len(gruppi) > 1:
         avvisi.append("Importi diversi in più sentenze del fascicolo: verificare quale è definitiva prima di chiedere il pagamento.")
@@ -124,11 +133,13 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
                       f"e contributo previdenziale ({iva}), da indicare nella proforma.")
     if distratte and any(c.get("distrazione_condizionata") for c in distratte):
         avvisi.append("La sentenza distrae le spese «ove richiesto»: verificare che negli atti ci sia la dichiarazione di antistatarietà.")
+    if esborsi:
+        avvisi.append(f"Oltre ai compensi sono liquidati {_euro(esborsi)} di esborsi non imponibili ({NORMA_ANTICIPAZIONI}).")
     if distratte:
-        return _riga("sentenza", "Importo liquidato in sentenza", importo=totale, stato="Distratte in favore dell'avvocato",
+        return _riga("sentenza", etichetta, importo=totale, stato="Distratte in favore dell'avvocato",
                      tono="primary", norma=NORMA_DISTRAZIONE, fonti=fonti,
                      dettaglio=" ".join(["Le paga la controparte direttamente al difensore antistatario."] + avvisi))
-    return _riga("sentenza", "Importo liquidato in sentenza", importo=totale, stato="Spese liquidate al cliente",
+    return _riga("sentenza", etichetta, importo=totale, stato="Spese liquidate al cliente",
                  tono="primary" if not avvisi else "warning", fonti=fonti,
                  dettaglio=" ".join(["Le paga la controparte al cliente."] + avvisi))
 
@@ -155,13 +166,22 @@ def _documento(parcella: Mapping[str, Any]) -> str:
 
 
 def righe_parcella(parcelle: list[Mapping[str, Any]], voce_spese: Mapping[str, Any], voce_fondo: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Parcella, spese ed esborsi, anticipazioni: dai documenti economici del fascicolo."""
-    attive = [p for p in parcelle if str(p.get("stato") or "").upper() != "ANNULLATA"]
+    """Parcella, spese ed esborsi, anticipazioni: dai documenti economici del fascicolo.
+
+    Una bozza automatica dichiarata superata (``pct.proforma_unica``) non entra nei totali: lo stesso compenso
+    non si chiede due volte; la riga la indica con la proposta di annullarla.
+    """
+    from pct.proforma_unica import attive_non_superate
+
+    attive = attive_non_superate(parcelle)
+    superate = [p for p in parcelle if p.get("superata") and str(p.get("stato") or "").upper() != "ANNULLATA"]
     righe = []
     onorari = round(sum(float(p.get("onorari") or 0) for p in attive), 2) or None
+    avviso = " ".join(f"La proforma {p.get('numero')} è superata dalla {(p.get('superata') or {}).get('da_numero') or 'proforma valida'}: "
+                      "stesso compenso, non sommata; proposta all'avvocato di annullarla." for p in superate)
     righe.append(_riga("parcella", "Parcella dell'avvocato", importo=onorari or _numero((attive[:1] or [{}])[0].get("totale")),
                        stato="Da preparare" if not attive else ("Fatturata" if any(_documento(p) == "fattura" for p in attive) else "Proforma"),
-                       tono="warning" if not attive else "primary",
+                       tono="warning" if not attive or superate else "primary", dettaglio=avviso,
                        fonti=[_fonte(f"{'Fattura' if _documento(p) == 'fattura' else 'Proforma'} {p.get('numero') or ''}".strip(),
                                      f"/fatturazione?id_documento={p.get('id')}") for p in attive]))
     spese = round(sum(float(p.get("spese") or 0) for p in attive), 2) or _numero(voce_spese.get("importo"))
@@ -188,10 +208,17 @@ def righe_parcella(parcelle: list[Mapping[str, Any]], voce_spese: Mapping[str, A
 
 
 def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]], *, oggi: date | None = None,
-             dichiarato: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    """Sentenza → proforma → pagamento → fattura di pari importo → conferma, con il prossimo passo."""
+             dichiarato: Mapping[str, Any] | None = None, esecuzione: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Sentenza → proforma → pagamento → fattura di pari importo → conferma, con il prossimo passo.
+
+    ``esecuzione``: i 120 giorni dell'art. 14 D.L. 669/1996 dalla notifica della sentenza a una pubblica
+    amministrazione (``pct.sentenza_notificata``). Credito non incassato e termine decorso: il prossimo passo è la
+    richiesta di pagamento o il precetto (artt. 479-480 c.p.c.); prima del termine il precetto non si notifica.
+    """
+    from pct.proforma_unica import attive_non_superate
+
     oggi = oggi or date.today()
-    attive = [p for p in parcelle if str(p.get("stato") or "").upper() != "ANNULLATA"]
+    attive = attive_non_superate(parcelle)
     incassato = round(sum(float(p.get("incassato") or 0) for p in attive), 2)
     pagamenti = sorted(str(p.get("data_pagamento") or "")[:10] for p in attive if p.get("data_pagamento"))
     fatture = [p for p in attive if _documento(p) == "fattura"]
@@ -209,7 +236,9 @@ def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]]
     segnato = dichiarato or {}
     if incassato <= 0 and segnato.get("data"):
         passi[2]["dettaglio"] = (f"Segnato come pagato il {_data_it(segnato['data'])}"
-                                 + (" dalla lettura automatica" if segnato.get("automatico") else "") + ": non registrato negli incassi")
+                                 + (" dalla lettura automatica" if segnato.get("automatico") else "")
+                                 + (" senza prova d'incasso: credito da incassare" if segnato.get("senza_prova")
+                                    else ": non registrato negli incassi"))
     # Ogni passo da fare porta al punto del software dove l'avvocato lo compie: nessuna operazione fiscale parte da qui.
     documento = f"/fatturazione?id_documento={attive[-1].get('id')}" if attive else ""
     azioni = {
@@ -225,9 +254,18 @@ def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]]
     if not attive:
         prossimo = ("Preparare la proforma (avviso di parcella) da inviare: la fattura si emette solo al pagamento "
                     f"({NORMA_PAGAMENTO})." if crediti else "Nessun documento economico: preparare la proforma quando la pratica lo richiede.")
-    elif incassato <= 0 and (dichiarato or {}).get("data"):
+    elif incassato <= 0 and (dichiarato or {}).get("data") and not (dichiarato or {}).get("senza_prova"):
         prossimo = ("Il controllo economico segna un pagamento non registrato negli incassi: registrare l'incasso reale "
                     "(data e importo dell'accredito) prima di emettere la fattura.")
+    elif incassato <= 0 and crediti and (esecuzione or {}).get("deadline"):
+        fine = date.fromisoformat(str(esecuzione["deadline"])[:10])
+        if fine < oggi:
+            prossimo = (f"Credito non incassato: i 120 giorni dalla notifica della sentenza all'amministrazione sono decorsi il "
+                        f"{fine.strftime('%d/%m/%Y')} ({NORMA_ESECUZIONE_PA}): inviare la richiesta di pagamento o notificare il "
+                        "precetto (artt. 479-480 c.p.c.). La fattura si emette solo all'incasso.")
+        else:
+            prossimo = (f"Proforma pronta: inviarla all'amministrazione. Il precetto si potrà notificare solo dopo il "
+                        f"{fine.strftime('%d/%m/%Y')} ({NORMA_ESECUZIONE_PA}).")
     elif incassato <= 0:
         prossimo = "Proforma pronta: inviarla e attendere il pagamento. La fattura non si emette prima dell'incasso."
     elif not fatture:
@@ -248,18 +286,32 @@ def percorso(parcelle: list[Mapping[str, Any]], crediti: list[Mapping[str, Any]]
 def conto_economico(*, voci: Mapping[str, Mapping[str, Any]], crediti: list[Mapping[str, Any]],
                     documenti_contributo: list[Mapping[str, Any]], parcelle: list[Mapping[str, Any]],
                     oggi: date | None = None, sentenze: list[Mapping[str, Any]] | None = None,
-                    regime: str = "", stato_contributo: Mapping[str, Any] | None = None) -> dict[str, Any]:
+                    regime: str = "", stato_contributo: Mapping[str, Any] | None = None,
+                    esecuzione: Mapping[str, Any] | None = None) -> dict[str, Any]:
     righe = [riga_sentenza(crediti, sentenze, regime=regime),
              riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo, stato_contributo)]
     righe += righe_parcella(parcelle, voci.get("spese_esborsi") or {}, voci.get("fondo_spese") or {})
     liquidazione = voci.get("liquidazione_giudice") or {}
+    from pct.incasso_provato import pagato_senza_prova
+
     dichiarato = None
     if str(liquidazione.get("status") or "") == "pagato" and liquidazione.get("data_pagamento"):
+        # «Pagato» scritto da un automatismo senza prova d'incasso non è un pagamento: il credito resta da incassare.
         dichiarato = {"data": str(liquidazione["data_pagamento"])[:10],
-                      "automatico": str(liquidazione.get("origine") or "").startswith("lex_ai")}
-    risultato_percorso = percorso(parcelle, crediti, oggi=oggi, dichiarato=dichiarato)
+                      "automatico": str(liquidazione.get("origine") or "").startswith("lex_ai") or pagato_senza_prova(liquidazione),
+                      "senza_prova": pagato_senza_prova(liquidazione)}
+    risultato_percorso = percorso(parcelle, crediti, oggi=oggi, dichiarato=dichiarato, esecuzione=esecuzione)
     if sentenze and not crediti:
         risultato_percorso["passi"][0].update(fatto=True, dettaglio=righe[0]["stato"])
+        if all(s.get("regolazione") == "compensazione" for s in sentenze):
+            for passo in risultato_percorso["passi"]:
+                if (passo.get("azione") or {}).get("comando") == "genera_proforma":
+                    passo.pop("azione")
+                    passo["dettaglio"] = "Eventuali compensi verso il cliente secondo l'incarico."
+                    risultato_percorso["prossimoPasso"] = (
+                        "Spese di lite compensate (art. 92 c.p.c.). "
+                        "Consultare il conferimento per gli eventuali compensi verso il cliente."
+                    )
     return {"righe": righe, "percorso": risultato_percorso}
 
 

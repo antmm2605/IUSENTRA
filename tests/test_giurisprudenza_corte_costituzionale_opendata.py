@@ -354,3 +354,22 @@ def test_corpus_dei_tenant_dal_registro(tmp_path: Path, monkeypatch):
         str(tmp_path / "intelligence" / "giurisprudenza_corpus.db"),
         str(tmp_path / "tenants" / "studio-b" / "intelligence" / "giurisprudenza_corpus.db"),
     ]
+
+
+def test_import_settimanale_registra_contatori_per_corpus(tmp_path, monkeypatch):
+    cartella = _cartella_open_data(tmp_path)
+    coppie = [(cartella / "P_json2001_oggi.zip", cartella / "CC_OpenMassime_2001_oggi.zip")]
+    primo = tmp_path / "primo.db"
+    secondo = tmp_path / "secondo.db"
+
+    def compattazione_non_prevista(self):
+        raise AssertionError("La passata settimanale aggiorna solo le righe interessate.")
+
+    monkeypatch.setattr(GestioneCorpusGiurisprudenza, "ottimizza_fts", compattazione_non_prevista)
+    importa(coppie, [primo], dal_anno=2025)
+    importa(coppie, [primo, secondo], dal_anno=2025)
+    for db, attese in ((primo, 0), (secondo, 2)):
+        with sqlite3.connect(db) as conn:
+            assert conn.execute(
+                "SELECT record_creati FROM importazioni_giurisprudenza ORDER BY id DESC LIMIT 1"
+            ).fetchone() == (attese,)

@@ -3,23 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
 
-from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for, g
+from flask import Flask, abort, flash, jsonify, redirect, request, session, url_for, g
 
 from pct.auth import (
-    DESCRIZIONI_RUOLI,
     PERMESSI,
-    TUTTI_PERMESSI,
     GestioneUtenti,
     RuoloUtente,
     genera_totp_secret,
-    totp_uri,
     verifica_totp,
 )
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.accesso_shell_runtime import render_accesso_shell
-from web.services.audit_surface import build_audit_view
 
 
 def register_auth_management_routes(
@@ -65,8 +60,6 @@ def register_auth_management_routes(
             )
         return ruolo
 
-    def _richiede_vista_legacy() -> bool:
-        return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
     def _wants_json_response() -> bool:
         return (
@@ -174,22 +167,11 @@ def register_auth_management_routes(
             request.args.get("password_obbligatoria")
             or getattr(u, "must_change_password", False)
         )
-        if not _richiede_vista_legacy():
-            if password_obbligatoria:
-                # Cambio obbligatorio della password: pagina React di accesso,
-                # senza la cornice dello studio (ancora inaccessibile).
-                return render_accesso_shell("password", titolo="Nuova password")
-            return render_react_shell_response("profilo")
-        totp_temp = session.get("totp_temp_secret", "")
-        uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""
-        return render_template(
-            "auth/profilo.html",
-            utente=u,
-            totp_temp_secret=totp_temp,
-            totp_uri_qr=uri_qr,
-            password_obbligatoria=password_obbligatoria,
-            oggi=date.today(),
-        )
+        if password_obbligatoria:
+            # Cambio obbligatorio della password: pagina React di accesso,
+            # senza la cornice dello studio (ancora inaccessibile).
+            return render_accesso_shell("password", titolo="Nuova password")
+        return render_react_shell_response("profilo")
 
     @app.route("/utenti")
     def lista_utenti():
@@ -199,16 +181,8 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
-        gu = _auth_manager()
-        utenti = gu.tutti()
-        stats = gu.statistiche()
-        return render_template(
-            "auth/utenti.html",
-            utenti=utenti,
-            stats=stats,
-            ruoli=_ruoli_gestibili_legacy(),
-            oggi=date.today(),
-        )
+        # Utenti dello studio: pagina React (UtentiPage).
+        return render_react_shell_response("utenti")
 
     @app.route("/utenti/nuovo", methods=["GET", "POST"])
     def nuovo_utente():
@@ -236,12 +210,10 @@ def register_auth_management_routes(
                 return redirect(url_for("lista_utenti"))
             except ValueError as e:
                 flash(str(e), "danger")
-        return render_template(
-            "auth/form_utente.html",
-            ruoli=_ruoli_gestibili_legacy(),
-            utente=None,
-            oggi=date.today(),
-        )
+        # Nuovo utente: pagina React (UtentiPage); salvataggio da /api/v1/ui/utenti.
+        if request.method == "POST":
+            return redirect(request.path)
+        return render_react_shell_response("utenti/nuovo")
 
     @app.route("/utenti/<id_utente>/modifica", methods=["GET", "POST"])
     def modifica_utente(id_utente):
@@ -291,12 +263,10 @@ def register_auth_management_routes(
                 return redirect(url_for("lista_utenti"))
             except ValueError as e:
                 flash(str(e), "danger")
-        return render_template(
-            "auth/form_utente.html",
-            ruoli=_ruoli_gestibili_legacy(),
-            utente=target,
-            oggi=date.today(),
-        )
+        # Modifica utente: pagina React (UtentiPage).
+        if request.method == "POST":
+            return redirect(request.path)
+        return render_react_shell_response(f"utenti/{id_utente}/modifica")
 
     @app.route("/utenti/<id_utente>/elimina", methods=["POST"])
     def elimina_utente(id_utente):
@@ -323,21 +293,8 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
-        gu = _auth_manager()
-        id_utente = request.args.get("id_utente", "")
-        azione = request.args.get("azione", "")
-        eventi = gu.audit_log(id_utente=id_utente, azione=azione, limit=200)
-        audit_view = build_audit_view(eventi)
-        utenti = gu.tutti()
-        return render_template(
-            "auth/audit.html",
-            eventi=audit_view["eventi"],
-            audit_summary=audit_view["summary"],
-            utenti=utenti,
-            filtro_utente=id_utente,
-            filtro_azione=azione,
-            oggi=date.today(),
-        )
+        # Registro attività: pagina React (AuditPage); eventi da /api/v1/ui/audit.
+        return render_react_shell_response("audit")
 
     @app.route("/api/utenti/statistiche")
     def api_utenti_statistiche():
@@ -369,18 +326,8 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
-        gu = _auth_manager()
-        ruoli = _ruoli_gestibili_legacy()
-        utenti_per_ruolo = {r: gu.per_ruolo(r) for r in ruoli}
-        return render_template(
-            "auth/profili.html",
-            ruoli=ruoli,
-            tutti_permessi=TUTTI_PERMESSI,
-            permessi=PERMESSI,
-            descrizioni=DESCRIZIONI_RUOLI,
-            utenti_per_ruolo=utenti_per_ruolo,
-            oggi=date.today(),
-        )
+        # Profili e permessi: pagina React (ProfiliPage).
+        return render_react_shell_response("profili")
 
     @app.route("/utenti/<id_utente>/permessi", methods=["GET", "POST"])
     def permessi_utente(id_utente):
@@ -424,11 +371,5 @@ def register_auth_management_routes(
             except ValueError as e:
                 flash(str(e), "danger")
             return redirect(url_for("permessi_utente", id_utente=id_utente))
-        return render_template(
-            "auth/permessi_utente.html",
-            target=target,
-            tutti_permessi=TUTTI_PERMESSI,
-            permessi_ruolo=PERMESSI.get(target.ruolo, []),
-            descrizioni=DESCRIZIONI_RUOLI,
-            oggi=date.today(),
-        )
+        # Permessi del singolo utente: pagina React (UtentiPage).
+        return render_react_shell_response(f"utenti/{id_utente}/permessi")

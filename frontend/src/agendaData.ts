@@ -15,6 +15,7 @@ export type AgendaEvent = {
   originTitle: string
   detailTitle: string
   detailLines: string[]
+  proceduralFinding?: string
   subtitle: string
   date: string
   start: string
@@ -298,6 +299,7 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     originTitle,
     detailTitle: asString(pickFirst(item, ['detailTitle', 'detail_title', 'titoloDettaglio']), legalLabel),
     detailLines,
+    proceduralFinding: asString(item.proceduralFinding),
     subtitle,
     date: toDateKey(start),
     start: start.toISOString(),

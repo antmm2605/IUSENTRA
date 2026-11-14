@@ -5,16 +5,12 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
-from datetime import date
 from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
-from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, redirect, request, session, url_for
 
-from web.bootstrap.telematico_portali_common import (
-    group_documenti_per_deposito,
-    resolve_nome_ufficio,
-)
+from web.blueprints.react_shell import render_react_shell_response
 
 _PAGOPA_SAFE_PATH_RE = re.compile(r"^[A-Za-z0-9._~!$&'()*+,;=:@%/-]{1,512}$")
 _PAGOPA_ALLOWED_PATH_PREFIXES = ("it/pagopa_", "resources/", "dwr/")
@@ -88,17 +84,8 @@ def register_telematico_portali_routes(
 
     @app.route("/pdp", methods=["GET"])
     def pdp_home():
-        demo_mode = portale_demo_mode("pdp")
-        id_fasc = request.args.get("id_fasc", "")
-        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-        return render_template(
-            "pdp.html",
-            demo_mode=demo_mode,
-            oggi=date.today(),
-            fascicolo=fascicolo_ctx,
-            id_fasc=id_fasc,
-            official_portal_url="https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
-        )
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("pdp")
 
     @app.route("/pdp/ricerca", methods=["POST"])
     def pdp_ricerca():
@@ -114,34 +101,10 @@ def register_telematico_portali_routes(
 
     @app.route("/pdp/documenti")
     def pdp_documenti():
-        codice_ufficio = request.args.get("codice_ufficio", "")
-        numero_rg = request.args.get("numero_rg", "")
-        anno_rg_str = request.args.get("anno_rg", "0")
-        anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else 0
-        demo_mode = portale_demo_mode("pdp")
-        try:
-            from pct.pdp import crea_client_pdp
+        # Consultazione dai portali: acquisizione guidata React, con ufficio, numero e anno del ruolo.
+        from web.bootstrap.react_route_gate import _redirect_portale
 
-            client = crea_client_pdp(demo=demo_mode)
-            documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
-        except Exception as exc:
-            app.logger.exception("Errore pdp_documenti: %s", exc)
-            if is_portale_dns_error(exc):
-                flash(portale_browser_guided_message("pdp"), "warning")
-                return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
-            documenti = []
-            flash("Documenti PDP non disponibili in questo momento.", "danger")
-
-        return render_template(
-            "pdp_documenti.html",
-            documenti=documenti,
-            depositi=group_documenti_per_deposito(documenti),
-            numero_rg=numero_rg,
-            anno_rg=anno_rg,
-            codice_ufficio=codice_ufficio,
-            nome_ufficio=resolve_nome_ufficio(codice_ufficio),
-            demo_mode=demo_mode,
-        )
+        return _redirect_portale(request.path)
 
     @app.route("/pdp/importa", methods=["POST"])
     def pdp_importa():
@@ -218,17 +181,8 @@ def register_telematico_portali_routes(
 
     @app.route("/pat", methods=["GET"])
     def pat_home():
-        demo_mode = portale_demo_mode("pat")
-        id_fasc = request.args.get("id_fasc", "")
-        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-        return render_template(
-            "pat.html",
-            demo_mode=demo_mode,
-            oggi=date.today(),
-            fascicolo=fascicolo_ctx,
-            id_fasc=id_fasc,
-            official_portal_url="https://pe.prod.cloud.giustizia-amministrativa.it",
-        )
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("pat")
 
     @app.route("/pat/ricerca", methods=["POST"])
     def pat_ricerca():
@@ -325,25 +279,8 @@ def register_telematico_portali_routes(
 
     @app.route("/sigit", methods=["GET"])
     def sigit_home():
-        demo_mode = portale_demo_mode("ptt")
-        id_fasc = request.args.get("id_fasc", "")
-        fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
-        return render_template(
-            "sigit.html",
-            demo_mode=demo_mode,
-            id_fasc=id_fasc,
-            fascicolo=fascicolo,
-            official_portal_url="https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
-            telecontenzioso_url="https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
-            temporary_access_url="https://sigit.giustiziatributaria.gov.it/FascicoloProcessuale/login.jsp",
-            commissione_sel="",
-            commissione_sel_nome="",
-            numero_rgt=None,
-            anno_rgt=None,
-            materia=None,
-            nome_ricorrente=None,
-            oggi=date.today(),
-        )
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("sigit")
 
     @app.route("/sigit/ricerca", methods=["POST"])
     def sigit_ricerca():

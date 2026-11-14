@@ -3883,7 +3883,9 @@ class GestioneFascicoli:
         possiamo usare una copia duplicata con stesso nome base, estensione e dimensione;
         la cancellazione continua invece a usare solo il percorso diretto.
         """
-        f = self._get_o_errore(id_fasc)
+        f = self.get(id_fasc)
+        if f is None:
+            raise KeyError(f"Fascicolo '{id_fasc}' non trovato.")
         doc = next((d for d in f.documenti if d.id == id_doc), None)
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato.")
@@ -4286,8 +4288,32 @@ class GestioneFascicoli:
         self._carica()
         self._archivio_completo = True
 
+    def dati_collegamento_pec(self) -> list[Fascicolo]:
+        """Identità e depositi PCT dalla fonte SQL per correlare messaggi e ricevute."""
+        if self._studio_db is not None and not self._archivio_completo:
+            rows = self._studio_db.fetchall_readonly(
+                "SELECT id, numero, titolo, tipo, stato, id_cliente, nome_cliente, "
+                "tribunale, numero_rg, anno_rg, controparte, oggetto, scadenze_json, dati_json "
+                "FROM fascicoli"
+            )
+            if rows:
+                items = [self._row_to_fascicolo(row) for row in rows]
+                return self._filtra_elenco(
+                    (item for item in items if item is not None), archiviati=True
+                )
+        return self.tutti(archiviati=True)
+
+    def identita_per_confronto_fascicoli(self) -> list[SimpleNamespace]:
+        """Legge i campi usati dal confronto cliente e ruolo."""
+        if self._studio_db is None or self._archivio_completo:
+            return self.indice_leggero()
+        righe = self._studio_db.fetchall_readonly(
+            "SELECT id, numero, nome_cliente, numero_rg, anno_rg FROM fascicoli"
+        )
+        return [SimpleNamespace(**dict(riga)) for riga in righe]
+
     def indice_leggero(self) -> list[SimpleNamespace]:
-        """Le sole colonne anagrafiche di tutti i fascicoli, senza i JSON.
+        """I dati anagrafici dei fascicoli, senza caricare atti e documenti.
 
         Serve a rispondere a domande di appaiamento — quali fascicoli hanno lo
         stesso cliente e lo stesso numero di ruolo — senza trascinarsi dietro
@@ -4297,10 +4323,18 @@ class GestioneFascicoli:
         if self._studio_db is None or self._archivio_completo:
             self._assicura_archivio_completo()
             return list(self._fascicoli.values())
+        postgres = getattr(self._studio_db, "backend_kind", "") == "postgresql"
+        campi = (
+            "CAST(dati_json AS JSON)->>'area_pratica' AS area_pratica, "
+            "CAST(dati_json AS JSON)->>'codice_oggetto_pst' AS codice_oggetto_pst"
+            if postgres else
+            "json_extract(dati_json, '$.area_pratica') AS area_pratica, "
+            "json_extract(dati_json, '$.codice_oggetto_pst') AS codice_oggetto_pst"
+        )
         try:
             rows = self._studio_db.fetchall_readonly(
-                "SELECT id, numero, titolo, nome_cliente, numero_rg, anno_rg, stato "
-                "FROM fascicoli"
+                "SELECT id, numero, titolo, nome_cliente, numero_rg, anno_rg, stato, tipo, oggetto, "
+                + campi + " FROM fascicoli"
             )
         except Exception:
             self._assicura_archivio_completo()
@@ -4320,6 +4354,10 @@ class GestioneFascicoli:
                     numero_rg=str(d.get("numero_rg") or ""),
                     anno_rg=str(d.get("anno_rg") or ""),
                     stato=str(d.get("stato") or ""),
+                    tipo=str(d.get("tipo") or ""),
+                    oggetto=str(d.get("oggetto") or ""),
+                    area_pratica=str(d.get("area_pratica") or ""),
+                    codice_oggetto_pst=str(d.get("codice_oggetto_pst") or ""),
                 )
             )
         return leggeri

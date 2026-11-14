@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import hashlib
 from typing import Any, Callable
 
@@ -67,6 +69,7 @@ class EditorAIService:
         central_audit: Callable[..., None] | None = None,
         encrypt_document: Callable[[bytes], bytes] | None = None,
         decrypt_document: Callable[[bytes], bytes] | None = None,
+        stile_ricorsi: Callable[[Any, str], dict[str, Any]] | None = None,
     ) -> None:
         self.repository = repository
         self.fascicoli_repository = fascicoli_repository
@@ -77,6 +80,7 @@ class EditorAIService:
         self.central_audit = central_audit
         self.encrypt_document = encrypt_document
         self.decrypt_document = decrypt_document
+        self.stile_ricorsi = stile_ricorsi
 
     def bootstrap(
         self,
@@ -157,6 +161,11 @@ class EditorAIService:
             context=context,
             document_ids=request.document_ids,
         )
+        if self.stile_ricorsi:
+            try:
+                context["stile_studio"] = self.stile_ricorsi(fascicolo, plan.tipo_atto)
+            except Exception:
+                logging.getLogger(__name__).warning("Profilo redazionale dello studio non disponibile", exc_info=True)
         prompt = build_generation_prompt(request=request, template=template, context=context, plan=plan)
         self._contesto_bozza = (fascicolo, template)
         content, generation_warning = self._generate_content(

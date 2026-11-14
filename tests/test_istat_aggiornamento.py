@@ -7,7 +7,7 @@ tabacchi (00), una provinciale (ITC11) e una variazione congiunturale (6) da sca
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from pct.istat_aggiornamento import aggiorna_foi, confronta, leggi_csv, url_dati
@@ -62,7 +62,12 @@ def test_scarica_aggiorna_e_i_calcolatori_usano_i_mesi_nuovi(tmp_path):
     assert dopo["variazione_foi"] == 3.4  # variazione annua pubblicata dall'ISTAT per agosto 2026
     assert dopo["canone_aggiornato"] == 1025.5  # 1.000 × (1 + 3,4% × 75%)
 
-    di_nuovo = aggiorna_foi(NormativeTables(db), lambda url: CSV, oggi=date(2026, 10, 31))
+    # Il job generale precede il lettore SDMX: non deve ripristinare il seed.
+    generica = NormativeTables(db).sync_from_canonical(now=datetime(2026, 11, 14, 4, 30))
+    assert next(row for row in generica["tables"] if row["id"] == "istat_foi")["updated"] is False
+    persisted = NormativeTables(db)
+    assert persisted.rows("istat_foi")[-1]["index"] == 104.3
+    di_nuovo = aggiorna_foi(persisted, lambda url: CSV, oggi=date(2026, 10, 31))
     assert di_nuovo["esito"] == "gia_aggiornata"
 
 

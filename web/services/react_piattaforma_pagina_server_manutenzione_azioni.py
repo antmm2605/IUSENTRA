@@ -207,8 +207,11 @@ def _analizza_manutenzione(_dati: dict[str, str]) -> dict[str, Any]:
     manutenzione = censimento["risultato"]
     ore = eta_ore(censimento)
     quando = "" if ore is None else f" (scansione di {int(ore)} ore fa)"
-    livello = "warning" if (ore is not None and ore > ORE_PRIMA_DI_DICHIARARLO_VECCHIO) else "info"
+    errori = len(manutenzione.get("errors") or [])
+    livello = "warning" if errori or (ore is not None and ore > ORE_PRIMA_DI_DICHIARARLO_VECCHIO) else "info"
     messaggio = f"Spazio recuperabile secondo l'ultimo censimento: {manutenzione.get('bytes_reclaimable_label')}{quando}."
+    if errori:
+        messaggio += " Il censimento è parziale. Consulta i controlli incompleti nel dettaglio."
     return _risposta(livello, messaggio, esiti.manutenzione_professionale(manutenzione))
 
 

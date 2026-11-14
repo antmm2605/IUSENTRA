@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Nessuna connessione - IUSENTRA</title>
+  <!-- Pagina autonoma conservata dal service worker: niente Jinja, niente bundle React. -->
+  <style>
+    :root { --primario: #1a3a5c; --accento: #c8972b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; text-align: center;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--primario); color: #fff; }
+    main { width: 100%; max-width: 420px; padding: 40px 28px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 20px; }
+    h1 { margin-bottom: 12px; color: var(--accento); font-size: 24px; }
+    p { margin-bottom: 24px; font-size: 15px; line-height: 1.6; opacity: .9; }
+    a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 28px; border-radius: 10px; background: var(--accento); color: #fff; font-weight: 700; text-decoration: none; }
+    a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+    .nota { margin: 24px 0 0; font-size: 13px; opacity: .75; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Nessuna connessione</h1>
+    <p>IUSENTRA non raggiunge il server. Controlla la connessione a Internet e riprova: la pagina si ricarica da sola quando la connessione torna.</p>
+    <a href="/">Riprova</a>
+    <p class="nota">Per proteggere i dati dello studio le pagine non vengono salvate sul dispositivo.</p>
+  </main>
+  <script src="/static/errori/offline.js"></script>
+</body>
+</html>

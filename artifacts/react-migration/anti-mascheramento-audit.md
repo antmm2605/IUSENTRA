@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-09-29T14:16:16.235Z
+Generato: 2026-11-11T15:35:09.776Z
 
 ## Regole operative Parte 12A
 
@@ -13,37 +13,37 @@ Generato: 2026-09-29T14:16:16.235Z
 ## Sintesi
 
 - Route censite: 119
-- Link `?_legacy=1`: 46
+- Link `?_legacy=1`: 40
 - LegacyPostForm: 0
-- Form POST HTML React: 3
+- Form POST HTML React: 0
 - Bridge con scritture legacy: 0
 - Status react_full deprecati: 0
-- API JSON di salvataggio mancanti: 1
+- API JSON di salvataggio mancanti: 0
 
 ## Tabella route
 
 | route | componente | data client | bridge | stato manifest | link legacy presenti | form legacy presenti | scritture JSON presenti | problemi | livello reale |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | --- | --- |
-| / | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 1 | no | form POST HTML in React | react_bridge |
+| / | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /admin/database | frontend/src/components/AdminDatabasePage.tsx | frontend/src/adminDatabaseData.ts | web/services/react_admin_database_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /admin/osservabilita | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /admin/osservabilita | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /agenda | frontend/src/components/AgendaPage.tsx | frontend/src/agendaData.ts | web/services/react_agenda_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /agenda/importa | frontend/src/components/AgendaImportPage.tsx | frontend/src/agendaData.ts | web/bootstrap/dashboard_routes.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /agenda/nuovo | frontend/src/components/NuovoAppuntamentoPage.tsx | frontend/src/agendaData.ts | web/services/react_agenda_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /amministrazione | frontend/src/components/AmministrazionePage.tsx | frontend/src/amministrazioneData.ts | web/services/react_amministrazione_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /app/portale-clienti | frontend/src/components/ClientPortalPage.tsx | frontend/src/clientPortalData.ts | web/services/react_client_portal_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /applicazioni | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /applicazioni | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /audit | frontend/src/components/AuditPage.tsx | frontend/src/auditData.ts | web/services/react_audit_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /backup | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /cartelle-condivise | frontend/src/components/CartelleCondivisePage.tsx | frontend/src/cartelleCondiviseData.ts | web/services/react_condivisioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /checklist | frontend/src/components/ChecklistPage.tsx | frontend/src/checklistData.ts | web/services/react_checklist_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /checklist | frontend/src/components/ChecklistAttiPage.tsx | frontend/src/checklistAttiData.ts | web/services/react_checklist_bridge.py | react_operational_partial | 0 | 0 | si | nessuno | react_operational_full |
 | /clienti | frontend/src/components/AnagraficaClientiPage.tsx | frontend/src/clientiData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /clienti/:id/cartella | frontend/src/components/CartellaClientePage.tsx | frontend/src/clientiCartellaData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /clienti/:id/collaboratori | frontend/src/components/ClientiCollaboratoriPage.tsx | frontend/src/clientiCollaboratoriData.ts | web/services/react_condivisioni_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /clienti/nuovo | frontend/src/components/NuovoClientePage.tsx | frontend/src/clientiNuovoData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /compensi-forensi | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /compensi-forensi/* | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | legacy_operational | 2 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
-| /database | frontend/src/components/AdminDatabasePage.tsx | frontend/src/adminDatabaseData.ts | web/services/react_admin_database_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /compensi-forensi/* | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | react_operational_partial | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /database | frontend/src/components/AdminDatabasePage.tsx | frontend/src/adminDatabaseData.ts | web/services/react_admin_database_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /deposito/checklist | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /documenti | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /editor-professionale | frontend/src/components/EditorProfessionalePage.tsx | frontend/src/components/EditorProfessionalePage.tsx | web/blueprints/react_shell.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
@@ -54,10 +54,10 @@ Generato: 2026-09-29T14:16:16.235Z
 | /fascicoli/archivio | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fascicoli/nuovo | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fatturazione | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /fatturazione/* | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | legacy_operational | 0 | 0 | si | nessuno | legacy_operational |
+| /fatturazione/* | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_partial | 0 | 0 | si | nessuno | react_operational_full |
 | /fatturazione/nuova | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /giurisprudenza | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /giurisprudenza/* | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | legacy_operational | 0 | 0 | si | nessuno | legacy_operational |
+| /giurisprudenza/* | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | react_operational_partial | 0 | 0 | si | nessuno | react_operational_full |
 | /giurisprudenza/nuova | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /global-search | frontend/src/components/RicercaStudioPage.tsx | frontend/src/searchData.ts | web/blueprints/global_search.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /guida/firma-digitale | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
@@ -70,7 +70,7 @@ Generato: 2026-09-29T14:16:16.235Z
 | /impostazioni/sdi | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /incassi-pagamenti | frontend/src/components/IncassiPagamentiPage.tsx | frontend/src/incassiPagamentiData.ts | web/services/react_incassi_pagamenti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /legal-intelligence | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
-| /legal-intelligence/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /legal-intelligence/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /legal-intelligence/mediazione | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /legal-intelligence/news | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /legal-skills | frontend/src/features/legal-skills/pages/LegalSkillsCatalogPage.tsx | frontend/src/features/legal-skills/api.ts | web/blueprints/api_v1_legal_skills.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
@@ -83,14 +83,14 @@ Generato: 2026-09-29T14:16:16.235Z
 | /pdp | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /polisWeb | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /portale-cliente | frontend/src/components/ClientPortalPage.tsx | frontend/src/clientPortalData.ts | web/services/react_client_portal_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /portali/* | frontend/src/components/PortaliPage.tsx | frontend/src/portaliData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /portali/* | frontend/src/components/PortaliPage.tsx | frontend/src/portaliData.ts | web/services/react_telematico_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /portali/pat/acquisizione | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /portali/pdp/acquisizione | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /portali/pst/acquisizione | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /portali/ptt/acquisizione | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /portali/sigit/acquisizione | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /preventivi | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /preventivi/* | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | legacy_operational | 3 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
+| /preventivi/* | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_partial | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /preventivi/conferimento/:id | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /preventivi/conferimento/nuovo | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /preventivi/nuovo | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
@@ -99,14 +99,14 @@ Generato: 2026-09-29T14:16:16.235Z
 | /privacy/registro/nuovo | frontend/src/components/PrivacyRegistroPage.tsx | frontend/src/privacyRegistroData.ts | web/services/react_privacy_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /procedure-completion | frontend/src/features/procedure-completion/ProcedureCompletionPage.tsx | frontend/src/features/procedure-completion/procedureCompletionData.ts | web/services/react_procedure_completion_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /profili | frontend/src/components/ProfiliPage.tsx | frontend/src/profiliData.ts | web/services/react_profili_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /profilo | frontend/src/components/ProfiloPage.tsx | web/blueprints/api_v1_react.py | web/bootstrap/auth_management_routes.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /profilo | frontend/src/components/ProfiloPage.tsx | frontend/src/components/ProfiloPage.tsx | web/bootstrap/auth_management_routes.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /redazione-atti | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /redazione-atti/* | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | legacy_operational | 0 | 0 | si | nessuno | legacy_operational |
-| /regia-operativa | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 1 | no | form POST HTML in React | react_bridge |
+| /redazione-atti/* | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | react_operational_partial | 0 | 0 | si | gestione successo non rilevata | react_operational_full |
+| /regia-operativa | frontend/src/components/ControlloStudioPage.tsx | frontend/src/components/ControlloStudioPage.tsx | web/bootstrap/controllo_studio_routes.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /registro-attivita | frontend/src/components/AuditPage.tsx | frontend/src/auditData.ts | web/services/react_audit_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /registro-gdpr | frontend/src/components/PrivacyRegistroPage.tsx | frontend/src/privacyRegistroData.ts | web/services/react_privacy_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /ricerca-legale | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
-| /ricerca-legale/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /ricerca-legale/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /ricerca-studio | frontend/src/components/RicercaStudioPage.tsx | frontend/src/searchData.ts | web/blueprints/global_search.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /scadenziario | frontend/src/components/ScadenziarioPage.tsx | frontend/src/scadenziarioData.ts | web/services/react_scadenziario_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /scadenziario/:id | frontend/src/components/ScadenziarioPage.tsx | frontend/src/scadenziarioData.ts | web/services/react_scadenziario_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
@@ -114,8 +114,8 @@ Generato: 2026-09-29T14:16:16.235Z
 | /scadenziario/nuova | frontend/src/components/NuovaScadenzaPage.tsx | frontend/src/scadenziarioData.ts | web/services/react_scadenziario_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /servizi-telematici | frontend/src/components/TelematicoPage.tsx | frontend/src/telematicoData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /sigit | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
-| /sigp | frontend/src/components/SigpPage.tsx | frontend/src/sigpData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
-| /sigp-sync | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /sigp | frontend/src/components/SigpPage.tsx | frontend/src/sigpData.ts | web/services/react_telematico_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
+| /sigp-sync | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_partial | 0 | 0 | no | nessuno | react_operational_full |
 | /sincronizzazione-calendari | frontend/src/features/impostazioni/ImpostazioniPage.tsx | frontend/src/features/impostazioni/api.ts | web/services/react_impostazioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /sito-studio | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /sito-studio/articoli/:id/modifica | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
@@ -128,18 +128,18 @@ Generato: 2026-09-29T14:16:16.235Z
 | /strumenti-legali | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /strumenti-operativi | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /studio | frontend/src/components/StudioPage.tsx | frontend/src/studioData.ts | web/services/react_studio_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
-| /tariffario | frontend/src/components/TariffarioPage.tsx | frontend/src/tariffarioData.ts | web/services/react_tariffario_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /tariffario/* | frontend/src/components/TariffarioPage.tsx | frontend/src/tariffarioData.ts | web/services/react_tariffario_bridge.py | legacy_operational | 3 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
-| /telematico | frontend/src/components/TelematicoPage.tsx | frontend/src/telematicoData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /tariffario | frontend/src/components/TariffarioPage.tsx | frontend/src/tariffarioData.ts | web/services/react_tariffario_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /tariffario/* | frontend/src/components/TariffarioPage.tsx | frontend/src/tariffarioData.ts | web/services/react_tariffario_bridge.py | react_operational_partial | 0 | 0 | si | nessuno | react_operational_full |
+| /telematico | frontend/src/components/TelematicoPage.tsx | frontend/src/telematicoData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /template-atti | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /template-atti/* | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | legacy_operational | 0 | 0 | si | nessuno | legacy_operational |
+| /template-atti/* | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_operational_partial | 0 | 0 | si | nessuno | react_operational_full |
 | /template-atti/catalogo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /template-atti/nuovo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | legacy_operational | 0 | 0 | si | nessuno | legacy_operational |
+| /template-atti/nuovo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_operational_partial | 0 | 0 | si | nessuno | react_operational_full |
 | /timesheet | frontend/src/components/TimesheetPage.tsx | frontend/src/timesheetData.ts | web/services/react_timesheet_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /tribunali | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /utenti | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /utenti/nuovo | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /wizard-pro | frontend/src/components/WizardProPage.tsx | frontend/src/components/preparazioneUdienzaTipi.ts | web/services/preparazione_udienza_elenco.py | react_operational_full | 0 | 0 | no | API JSON di salvataggio mancante | react_operational_partial |
+| /wizard-pro | frontend/src/components/WizardProPage.tsx | frontend/src/components/preparazioneUdienzaApi.ts | web/services/preparazione_udienza_elenco.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /oggi | frontend/src/pages/daily-plan/OggiPage.tsx | frontend/src/pages/daily-plan/api.ts | web/blueprints/api_v1_daily_plan.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /workflow-agents | frontend/src/pages/workflow-agents/WorkflowAgentsHome.tsx | frontend/src/pages/workflow-agents/api.ts | web/blueprints/api_v1_react.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
-| /workspace-intelligente | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 1 | no | form POST HTML in React | react_bridge |
+| /workspace-intelligente | frontend/src/components/ControlloStudioPage.tsx | frontend/src/components/ControlloStudioPage.tsx | web/bootstrap/controllo_studio_routes.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |

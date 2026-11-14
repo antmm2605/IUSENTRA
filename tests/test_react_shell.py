@@ -1333,8 +1333,8 @@ def test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative():
     assert '@api_v1_react.get("/clienti/<id_cliente>/cartella")' in api_source
     assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}/cartella")' in route_source
-    assert "def _query_senza_legacy()" in route_source
-    assert 'return redirect(url_for("cartella_cliente", id_cliente=id_cliente, **_query_senza_legacy()), code=302)' in route_source
+    # Vista classica tolta: nessun rinvio con `_legacy` nelle rotte della cartella.
+    assert "_legacy" not in route_source
     assert "redirect(target" not in route_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}")' in clienti_routes
     assert 'render_react_shell_response(f"clienti/{id_cliente}/modifica")' in clienti_routes
@@ -1378,7 +1378,7 @@ def test_react_clienti_bridge_usa_repository_reali(tmp_path: Path):
     assert payload["items"][0]["href"] == f"/clienti/{cliente.id}"
 
 
-def test_route_ufficiali_clienti_e_soggetti_servono_react_con_vista_classica_tecnica(tmp_path: Path):
+def test_route_ufficiali_clienti_e_soggetti_servono_solo_react(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1397,12 +1397,11 @@ def test_route_ufficiali_clienti_e_soggetti_servono_react_con_vista_classica_tec
         classic_soggetti = client.get("/soggetti?_legacy=1")
         classic_soggetto_form = client.get("/soggetti/nuovo?_legacy=1")
 
-    assert classic_clienti.status_code == 200
-    assert classic_cliente_form.status_code == 200
-    assert classic_soggetti.status_code == 200
-    assert classic_soggetto_form.status_code == 200
-    assert 'id="root"' not in classic_clienti.get_data(as_text=True)
-    assert 'id="modalScanner"' in classic_cliente_form.get_data(as_text=True)
+    # Le viste Jinja sono state tolte (10/11/2026): anche il vecchio parametro apre React.
+    for classica in (classic_clienti, classic_cliente_form, classic_soggetti, classic_soggetto_form):
+        assert classica.status_code == 200
+        assert 'id="root"' in classica.get_data(as_text=True)
+        assert 'id="modalScanner"' not in classica.get_data(as_text=True)
 
 
 def test_route_post_clienti_e_soggetti_restano_su_backend_operativo(tmp_path: Path):
@@ -3085,7 +3084,9 @@ def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(t
     assert classic_search.status_code == 200
     assert classic_agenda.status_code == 200
     assert classic_fascicoli.status_code == 200
-    assert 'id="root"' not in classic_dashboard.get_data(as_text=True)
+    # Panoramica e agenda: viste Jinja tolte, anche il vecchio parametro apre React.
+    assert 'id="root"' in classic_dashboard.get_data(as_text=True)
+    assert 'id="root"' in classic_agenda.get_data(as_text=True)
     assert 'id="root"' not in classic_fascicoli.get_data(as_text=True)
 
 
@@ -3197,8 +3198,9 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             follow_redirects=False,
         )
 
-    assert legacy_cartella_redirect.status_code in {302, 303}
-    assert legacy_cartella_redirect.headers["Location"] == f"/clienti/{cliente.id}/cartella?tab=timeline"
+    # Nessun rinvio alla vista classica: la cartella è solo React anche col vecchio parametro.
+    assert legacy_cartella_redirect.status_code == 200
+    assert 'id="root"' in legacy_cartella_redirect.get_data(as_text=True)
     legacy_cartella_html = legacy_cartella.get_data(as_text=True)
     assert legacy_cartella.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in legacy_cartella_html
@@ -9090,6 +9092,14 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
             note=f"Evento acquisito il {imported_at}",
         )
         fascicoli.cambia_stato(fascicolo.id, StatoFascicolo.DEFINITO, avvocato="roberto.montagnese")
+        from pct.agenda import TipoAppuntamento
+        agenda = app.extensions["core_runtime"]["get_agenda"]()
+        appuntamento = agenda.aggiungi(
+            "Colloquio sulla decisione",
+            TipoAppuntamento.CONSULTAZIONE,
+            (datetime.now() + timedelta(days=2)).isoformat(timespec="minutes"),
+            id_fascicolo=fascicolo.id,
+        )
 
     response = client.get(
         f"/api/v1/ui/fascicoli/{fascicolo.id}?include=attivita",
@@ -9099,7 +9109,12 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
         f"/api/v1/ui/fascicoli/{fascicolo.id}/attivita",
         headers={"X-API-Key": "react-test-key"},
     )
+    iniziale = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers={"X-API-Key": "react-test-key"})
+    payload_iniziale = iniziale.get_json()
+    assert iniziale.status_code == 200 and payload_iniziale["agendaLoaded"] is True
+    assert any(voce["id"] == appuntamento.id for voce in payload_iniziale["appointments"])
     payload = response.get_json()
+    assert payload["agendaLoaded"] is False and not payload["appointments"]
     attivita_payload = attivita_response.get_json()
     profile = {item["label"]: item["value"] for item in payload["profile"]}
 

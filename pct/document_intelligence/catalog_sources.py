@@ -5,6 +5,7 @@ La revisione giuridica di ogni atto resta distinta dalla sua classificazione.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .titoli.fonti import FONTI_TITOLI
@@ -88,6 +89,68 @@ CATALOG_SOURCES: dict[str, dict[str, Any]] = {
         "verification_status": "testo vigente consultato su Normattiva il 14/09/2026",
         "source_type": "normativa",
     },
+    # Revisione del catalogo del 10/11/2026: fonti verificate sul testo vigente (archivio Normattiva del software
+    # e Normattiva in linea) prima di collegarle alle regole.
+    "normattiva_cpc_art_136_comunicazioni": {
+        "label": "c.p.c., art. 136: comunicazioni del cancelliere a mezzo PEC; D.L. 179/2012, art. 16, comma 4: comunicazioni e notificazioni di cancelleria esclusivamente per via telematica",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art136",
+        "verification_status": "testo vigente (art. 136 c.p.c. nell'archivio Normattiva; art. 16 D.L. 179/2012, in vigore dal 26/11/2024, su Normattiva) consultato il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_dl_179_2012_art16_comunicazioni_telematiche": {
+        "label": "D.L. 179/2012, art. 16, comma 4: comunicazioni e notificazioni a cura della cancelleria per via telematica all'indirizzo PEC da pubblici elenchi",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2012-10-18;179~art16",
+        "verification_status": "testo vigente (in vigore dal 26/11/2024) consultato su Normattiva il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_dm_44_2011_art_13_busta": {
+        "label": "D.M. 44/2011, art. 13: trasmissione telematica degli atti dei soggetti abilitati esterni; comma 6: crittografia della busta secondo le specifiche tecniche dell'art. 34",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:ministero.giustizia:decreto:2011-02-21;44~art13",
+        "verification_status": "testo vigente (in vigore dal 14/01/2024) consultato su Normattiva il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_art_415_decreto_fissazione": {
+        "label": "c.p.c., art. 415: deposito del ricorso e decreto con cui il giudice fissa l'udienza di discussione",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art415",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_art_127ter_note_scritte": {
+        "label": "c.p.c., art. 127-ter: provvedimento del giudice che sostituisce l'udienza con il deposito di note scritte e note delle parti",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art127ter",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_dpr_115_2002_art192_pagamento_cu": {
+        "label": "D.P.R. 115/2002, art. 192: modalità di pagamento del contributo unificato (piattaforma pagoPA, art. 5 CAD; art. 191 abrogato dal D.Lgs. 149/2022)",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art192",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_dpr_115_2002_art248_invito_pagamento": {
+        "label": "D.P.R. 115/2002, art. 248: invito al pagamento del contributo unificato notificato dall'ufficio o da Equitalia Giustizia (comma 3-bis)",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2002-05-30;115~art248",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_disp_att_cpc_art152_dichiarazione_reddito": {
+        "label": "disp. att. c.p.c., art. 152: dichiarazione sostitutiva del reddito nelle conclusioni per l'esonero dalle spese nei giudizi previdenziali e assistenziali",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-12-18;1368~art152",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_ord_giud_art7bis_tabelle": {
+        "label": "R.D. 12/1941 (ordinamento giudiziario), art. 7-bis: tabelle degli uffici giudicanti e loro variazioni",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-01-30;12~art7bis",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_disp_att_cpc_art124_giudicato": {
+        "label": "disp. att. c.p.c., art. 124: certificato del cancelliere di passaggio in giudicato della sentenza",
+        "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1941-12-18;1368~art124",
+        "verification_status": "testo vigente consultato nell'archivio Normattiva del software il 10/11/2026",
+        "source_type": "normativa",
+    },
     # Fonti delle regole d'identità dal titolo, per area (verificate su Normattiva).
     **FONTI_TITOLI,
 }
@@ -97,7 +160,9 @@ def catalog_source_row(source_id: str) -> dict[str, Any] | None:
     source = CATALOG_SOURCES.get(source_id)
     if not source:
         return None
-    verificata = "2026-09-14" if "14/09/2026" in str(source.get("verification_status") or "") else "2026-09-06"
+    # La data di verifica è l'ultima scritta nello stato («consultato … il 10/11/2026»).
+    date = re.findall(r"\b(\d{2})/(\d{2})/(\d{4})\b", str(source.get("verification_status") or ""))
+    verificata = f"{date[-1][2]}-{date[-1][1]}-{date[-1][0]}" if date else "2026-09-06"
     return {"id": source_id, "last_verified_at": verificata, "snapshot_sha256": "", **source}
 
 

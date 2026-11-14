@@ -1,3 +1,5 @@
+import sqlite3
+from contextlib import contextmanager
 from datetime import date
 
 import pytest
@@ -232,3 +234,33 @@ def test_backup_interrotto_senza_manifest_si_elimina_e_si_rifa(tmp_path):
     assert (destinazione / 'manifest.json').is_file() and snapshot.stat().st_size > len(b'parziale')
     assert [p.name for p in (tmp_path / 'backup').iterdir()] == ['letture']
     conn.close()
+
+def test_consegna_non_consuma_tentativi_se_il_registro_sqlite_e_occupato(registry, monkeypatch):
+    if registry.backend_kind != 'sqlite':
+        pytest.skip('Contesa del registro SQLite.')
+    put(registry, 'one')
+    prepare(registry)
+    assert resume_archive_owner(registry, 'study-a')['failed'] == 0
+    put(registry, 'one', day='2026-10-15T09:30')
+
+    @contextmanager
+    def writer_with_short_timeout(registry):
+        with connessione_registro(registry) as writer:
+            writer.execute('PRAGMA busy_timeout=1')
+            yield writer
+
+    monkeypatch.setattr('web.services.receipt_archive_runtime.registry_outbox_writer', writer_with_short_timeout)
+    with connessione_registro(registry) as other:
+        other.execute('BEGIN IMMEDIATE')
+        pending = "SELECT id, attempts, available_at FROM transactional_outbox WHERE status='PENDING' AND aggregate_type=?"
+        before = [tuple(row) for row in other.execute(pending, (AGGREGATE,))]
+        assert before
+        assert resume_archive_owner(registry, 'study-a')['failed'] == 1
+        assert [tuple(row) for row in other.execute(pending, (AGGREGATE,))] == before
+        other.rollback()
+
+    result = resume_archive_owner(registry, 'study-a')
+    assert result['delivered'] and result['failed'] == 0
+    with connessione_registro(registry) as conn:
+        page = ReceiptArchiveQuery(conn, 'study-a').list_page()
+        assert page['rows'][0]['event_at'] == '2026-10-15T07:30:00.000000+00:00'

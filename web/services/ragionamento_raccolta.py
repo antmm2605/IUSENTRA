@@ -7,6 +7,7 @@ documento si rilegge qui (regola del registro delle letture): se un testo non c'
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -219,12 +220,90 @@ def ragionamento_per_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, An
     from pct.ragionamento import ragiona
 
     try:
-        return ragiona(fonti_da_lettura(fascicolo, dati, fatti)).come_dizionario()
+        fonti = fonti_da_lettura(fascicolo, dati, fatti)
+        modello = ragiona(fonti)
+        esito = modello.come_dizionario()
+        if _enum(getattr(fascicolo, "stato", "")).upper() in STATI_PERCORSO_CONCLUSO:
+            esito["stile_ricorsi"] = _stile_ricorsi(fonti, modello)
+        return esito
     except Exception:  # pragma: no cover - la Lettura resta disponibile
         import logging
 
         logging.getLogger(__name__).exception("ragionamento non disponibile per %s", getattr(fascicolo, "id", ""))
         return {}
+
+
+
+STATI_PERCORSO_CONCLUSO = frozenset({"DEFINITO", "ARCHIVIATO"})
+LETTORE_PERCORSO_CONCLUSO = "percorso_concluso"
+
+
+def _stile_ricorsi(fonti, modello) -> list[dict[str, Any]]:
+    from pct.editor_ai.stile_studio import tratti_del_ricorso
+
+    depositati = {str(oid) for deposito in fonti.depositi if deposito.get("stato") == "ACCETTATO_CANCELLERIA"
+                  for oid in deposito.get("documenti_ids") or ()}
+    esempi = []
+    for atto in modello.atti:
+        if (atto.appartenenza != "causa" or not atto.dello_studio or atto.natura != "atto_principale"
+                or not {atto.id, *atto.copie} & depositati or "ricorso" not in atto.etichetta.casefold()):
+            continue
+        tratti = tratti_del_ricorso(atto.testo)
+        if tratti:
+            esempi.append(tratti)
+    return esempi
+
+
+def stile_ricorsi_per_editor(fascicolo: Any, tipo_atto: str) -> dict[str, Any]:
+    from pct.editor_ai.stile_studio import aggrega_stile
+    from pct.ragionamento import VERSIONE
+    from pct.ragionamento.rito import determina_rito
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+    if "ricorso" not in str(tipo_atto or "").casefold():
+        return {}
+    from lex.context.fascicolo_lettura_context import _fascicolo_dict
+
+    rito = determina_rito(_fascicolo_dict(fascicolo), []).codice
+    if not rito or rito == "ignoto":
+        return {}
+    registro, tenant = registro_corrente(sola_lettura=True), tenant_corrente()
+    esempi = []
+    for riga in registro.righe_fascicoli(tenant, lettore=LETTORE_PERCORSO_CONCLUSO):
+        if riga["fascicolo_id"] == str(fascicolo.id) or riga.get("versione_lettore") != VERSIONE:
+            continue
+        try:
+            esito = json.loads(riga.get("esito_json") or "{}")
+        except (ValueError, TypeError):
+            continue
+        if (esito.get("rito") or {}).get("codice") == rito:
+            esempi.extend(esito.get("stile_ricorsi") or [])
+    return aggrega_stile(esempi)
+
+
+def salva_percorso_concluso(fascicolo_id: str, lettura: dict[str, Any]) -> bool:
+    """Memorizza l'esperienza nello stesso archivio SQL delle letture dello studio."""
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+    registro, tenant = registro_corrente(), tenant_corrente()
+    stato = (lettura.get("intestazione") or {}).get("stato_codice")
+    ragionamento = lettura.get("ragionamento") or {}
+    impronta = ragionamento.get("impronta")
+    percorso = ragionamento.get("percorso") or []
+    if stato not in STATI_PERCORSO_CONCLUSO or not impronta:
+        return False
+    versione = ragionamento["versione"]
+    precedente = registro.impronta_fascicolo(tenant, fascicolo_id, LETTORE_PERCORSO_CONCLUSO)
+    if precedente.get("impronta") == impronta and precedente.get("versione_lettore") == versione:
+        return False
+    registro.segna_fascicolo(
+        tenant, fascicolo_id, LETTORE_PERCORSO_CONCLUSO, impronta=impronta,
+        versione=versione, oggetti_totali=len(percorso), oggetti_letti=len(percorso),
+        esito={campo: ragionamento.get(campo) for campo in (
+            "rito", "posizione", "fase", "percorso", "conclusioni", "contraddizioni", "dubbi", "stile_ricorsi",
+        )} | {"stato_fascicolo": stato},
+    )
+    return True
 
 
 def raccogli_fonti(fascicolo_id: str, *, oggi: date | None = None) -> FontiCausa | None:

@@ -319,3 +319,42 @@ def test_legal_update_publish_queue_pubblica_un_elemento_per_job():
     assert report["ok"] is True
     assert report["published_count"] == 1
     assert calls == 2
+
+
+def test_coda_pubblica_in_lotti_e_conserva_i_riferimenti():
+    limits = []
+    def runner(command, **kwargs):
+        limit = int(command[command.index("--publish-limit") + 1])
+        limits.append(limit)
+        offset = 0 if len(limits) == 1 else 5
+        ids = list(range(101 + offset, 101 + offset + limit))
+        return SimpleNamespace(returncode=0, stderr="", stdout=json.dumps({
+            "mode": "publish", "published_count": len(ids), "published": {"items": ids},
+        }))
+
+    report = run_legal_update_publish_queue_with_timeouts(
+        LegalUpdateJobConfig(intelligence_db="legal.json"), item_timeout_seconds=180,
+        max_items=8, runner=runner,
+    )
+    assert limits == [5, 3]
+    assert report["items"] == list(range(101, 109))
+
+
+def test_pubblicazione_rinviata_non_riparte_nello_stesso_lotto():
+    calls = []
+
+    def runner(command, **kwargs):
+        calls.append(command)
+        return SimpleNamespace(returncode=0, stderr="", stdout=json.dumps({
+            "mode": "publish", "published_count": 0,
+            "published": {"web_verification_attempts": 1, "verification_deferred": 1},
+        }))
+
+    report = run_legal_update_publish_queue_with_timeouts(
+        LegalUpdateJobConfig(intelligence_db="legal.json"), item_timeout_seconds=180,
+        max_items=5, runner=runner,
+    )
+    assert len(calls) == 1
+    assert calls[0][-2:] == ["--publish-max-seconds", "60"]
+    assert report["verification_deferred"] == 1
+    assert report["timeouts"] == 0

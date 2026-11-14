@@ -8,9 +8,11 @@ from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
 from pct.agenda_lavorazione import indice_proposte, proposte_aperte
-from pct.agenda_linguaggio import riga_contesto, titolo_storico
+from pct.agenda_linguaggio import modalita_legale, riga_contesto, titolo_storico
 from pct.formatting import parse_datetime_rome
+from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
 from pct.pec_operational_cleanup import is_legacy_pec_agenda_item, is_legacy_pec_deadline
+from pct.pec_profilo_ufficio import ufficio_generico
 from web.services.pec_source_links import (
     control_tower_source_key,
     extract_pec_attachment_source,
@@ -449,6 +451,8 @@ def _structured_detail_value(label: str, value: Any, *, limit: int = 220) -> str
     cleaned = _visible_legal_text(value, limit=limit)
     if label.casefold() == "evento" and _is_pec_operational_text(cleaned):
         return ""
+    if label.casefold() == "udienza":
+        return re.sub(r"\s+00:00(?::00)?$", " · Orario da verificare", cleaned)
     return cleaned
 
 
@@ -853,7 +857,22 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
         if str(part or "").strip()
     )
     label = _legal_label(raw_title, kind, label_context)
-    origin_title = _agenda_origin_title(raw_title, label, matter, label_context)
+    hearing_mode = str(row.get("hearingMode") or "")
+    if row.get("source") == "scadenziario" and raw_title.startswith(TITOLO_NOTE_127_TER):
+        label = "Trattazione scritta"
+        origin_title = TITOLO_NOTE_127_TER
+    elif kind.casefold() == "udienza" and modalita_legale(hearing_mode) == modalita_legale("note_scritte"):
+        label = "Trattazione scritta"
+        origin_title = "Deposito di note scritte in sostituzione dell’udienza"
+        row.update({
+            "remoteHearingDetected": False,
+            "remoteHearingVerified": False,
+            "remoteHearingPdfRequired": False,
+            "remoteHearingUrl": "",
+            "remoteHearingMode": "",
+        })
+    else:
+        origin_title = _agenda_origin_title(raw_title, label, matter, label_context)
     if _is_pec_operational_text(raw_title, raw_notes) or _has_structured_pec_profile(raw_notes):
         structured_notes = _pec_agenda_visible_notes(
             raw_notes,
@@ -878,7 +897,7 @@ def _decorate_event(row: dict[str, Any]) -> dict[str, Any]:
                                        rg=matter, ufficio=_clean_text(row.get("court"), limit=120))
     row["detailTitle"] = label
     row["detailLines"] = _detail_lines(row, original_title=origin_title, legal_label=label)
-    remote_candidate = _remote_hearing_url(
+    remote_candidate = "" if label == "Trattazione scritta" else _remote_hearing_url(
         row.get("remoteHearingUrl"),
         _extract_labeled_line(raw_notes, "Link udienza audiovisiva", limit=900),
         _extract_labeled_line(raw_notes, "Collegamento remoto", limit=900),
@@ -1135,7 +1154,10 @@ def _deadline_event(
             return None
     item_id = str(getattr(item, "id", "") or "")
     tipo = _enum_value(getattr(item, "tipo", ""))
-    if tipo == "UDIENZA":
+    title = str(getattr(item, "titolo", "") or "Scadenza")
+    if title.startswith(TITOLO_NOTE_127_TER):
+        kind = "DEPOSITO"
+    elif tipo == "UDIENZA":
         kind = "UDIENZA"
     elif "DEPOSITO" in tipo:
         kind = "DEPOSITO"
@@ -1204,9 +1226,9 @@ def _deadline_event(
             "sourceKind": str(control_tower_source.get("sourceKind") or "pec"),
             "sourceVerified": bool(control_tower_source.get("sourceVerified")),
         }
-    title = str(getattr(item, "titolo", "") or "Scadenza")
     if control_tower_source:
-        title = _clean_text(control_tower_source.get("displayTitle"), limit=180) or title
+        if not title.startswith(TITOLO_NOTE_127_TER):
+            title = _clean_text(control_tower_source.get("displayTitle"), limit=180) or title
         source_event_type = str(control_tower_source.get("legalEventType") or source_event_type)
     return _decorate_event({
         "id": f"scadenza-{item_id}" if item_id else f"scadenza-{due_date.isoformat()}",
@@ -1413,7 +1435,12 @@ def _enrich_agenda_event_from_fascicolo(event: dict[str, Any], fascicolo: Any) -
     }
     changed = False
     for key, value in values.items():
-        if value and not _clean_text(enriched.get(key), limit=160):
+        current = _clean_text(enriched.get(key), limit=160)
+        linked_generic_court = (
+            key == "court" and event.get("matterId") == values["matterId"]
+            and ufficio_generico(current) and not ufficio_generico(value)
+        )
+        if value and (not current or linked_generic_court):
             enriched[key] = value
             changed = True
     from web.services.agenda_archivio_source import fonte_corrente
@@ -1609,6 +1636,18 @@ def build_react_agenda_payload(
                 events.append(event)
 
     events = _dedupe_events(events)
+    evento_selezionato = next((event for event in events if selected_id and event["id"] == selected_id), None)
+    if evento_selezionato:
+        from web.services.riscontri_processuali_runtime import riscontro_note_scritte
+
+        riscontro = riscontro_note_scritte(
+            evento_selezionato["matterId"], evento_selezionato["start"][:10],
+            titolo=TITOLO_NOTE_127_TER if evento_selezionato.get("legalLabel") == "Trattazione scritta"
+            else evento_selezionato["title"],
+            note=evento_selezionato.get("technicalNotes") or "",
+        )
+        if riscontro:
+            evento_selezionato["proceduralFinding"] = riscontro
     _segna_proposte_aperte(events, all_deadlines)
     events.sort(key=lambda row: str(row.get("start") or ""))
     return {

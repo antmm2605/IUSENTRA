@@ -11,7 +11,7 @@ from pct.formatting import format_date_it, format_euro_it
 import io
 import json
 from html import escape
-from datetime import date, timedelta
+from datetime import date
 
 from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
@@ -36,7 +36,6 @@ from pct.preventivi import (
     _normalizza_classificazioni_tassonomiche,
     catalogo_clausola_controversie,
     fonte_modello_clausola_controversie,
-    label_modello_clausola_controversie,
     normalizza_modello_clausola_controversie,
     testo_predefinito_clausola_controversie,
 )
@@ -45,9 +44,9 @@ from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_s
 from web.services.mediazione_dm150_runtime import (
     calcola_mediazione_odm_da_context,
     is_mediazione_practice,
-    mediazione_odm_context_for_prefill,
     parse_mediazione_odm_context,
 )
+from web.blueprints.react_shell import render_react_shell_response
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
@@ -61,7 +60,6 @@ def conflitto_preventivi(error):
     fields = [(name, value) for name, value in request.form.items(multi=True)
               if name not in {"csrf_token", "revision"}]
     return render_template("preventivi/conflitto.html", message=str(error), fields=fields), 409
-
 
 
 # ---------------------------------------------------------------- helpers
@@ -544,67 +542,8 @@ def _richiedi_login(f):
 def lista():
     gp = _get_gp()
     gp.aggiorna_scaduti()
-
-    tab = request.args.get("tab", "preventivi")  # preventivi | conferimenti
-    anno = int(request.args.get("anno", date.today().year))
-    stato_filtro = request.args.get("stato", "")
-    cliente_filtro = request.args.get("id_cliente", "")
-    filtro_rapido = request.args.get("filtro", "")
-
-    tutti_prev = gp.tutti_preventivi()
-    tutti_conf = gp.tutti_conferimenti()
-
-    prev_anno = [p for p in tutti_prev if p.data_emissione.startswith(str(anno))]
-    conf_anno = [c for c in tutti_conf if c.data_incarico.startswith(str(anno))]
-
-    clienti_map = {c.id: c for c in get_clienti().tutti()}
-    ids_preventivi_con_conferimento = {c.id_preventivo for c in tutti_conf if c.id_preventivo}
-
-    if stato_filtro:
-        prev_anno = [p for p in prev_anno if p.stato.value == stato_filtro]
-        conf_anno = [c for c in conf_anno if c.stato.value == stato_filtro]
-    if cliente_filtro:
-        prev_anno = [p for p in prev_anno if p.id_cliente == cliente_filtro]
-        conf_anno = [c for c in conf_anno if c.id_cliente == cliente_filtro]
-    if filtro_rapido == "bozze":
-        prev_anno = [p for p in prev_anno if p.stato.value in {"BOZZA", "IN_CALCOLO", "GENERATO"}]
-    elif filtro_rapido == "inviati":
-        prev_anno = [p for p in prev_anno if p.stato.value in {"INVIATO", "APERTO"}]
-    elif filtro_rapido == "accettati":
-        prev_anno = [p for p in prev_anno if p.stato.value == "ACCETTATO"]
-    elif filtro_rapido == "da_completare_anagrafica":
-        prev_anno = [
-            p for p in prev_anno
-            if _cliente_da_completare(clienti_map.get(p.id_cliente))
-        ]
-    elif filtro_rapido == "clienti_potenziali":
-        prev_anno = [
-            p for p in prev_anno
-            if str(getattr(clienti_map.get(p.id_cliente), "stato", "")).endswith("POTENZIALE")
-        ]
-    elif filtro_rapido == "senza_conferimento":
-        prev_anno = [p for p in prev_anno if p.id not in ids_preventivi_con_conferimento]
-
-    anni_disponibili = sorted({
-        int(p.data_emissione[:4]) for p in tutti_prev
-    } | {
-        int(c.data_incarico[:4]) for c in tutti_conf
-    } | {date.today().year}, reverse=True)
-
-    return render_template(
-        "preventivi/lista.html",
-        tab=tab,
-        prev_lista=prev_anno,
-        conf_lista=conf_anno,
-        clienti_map=clienti_map,
-        anno=anno,
-        anni_disponibili=anni_disponibili,
-        stato_filtro=stato_filtro,
-        cliente_filtro=cliente_filtro,
-        filtro_rapido=filtro_rapido,
-        ids_preventivi_con_conferimento=ids_preventivi_con_conferimento,
-        oggi=date.today(),
-    )
+    # Archivio: pagina React (PreventiviPage); restano gli stati aggiornati come prima.
+    return render_react_shell_response("preventivi")
 
 
 # ================================================================ NUOVO PREVENTIVO
@@ -720,29 +659,8 @@ def nuovo_preventivo(id_cliente: str = ""):
         if from_page == "fascicolo" and p.id_fascicolo:
             return redirect(url_for("dettaglio_fascicolo", id_fascicolo=p.id_fascicolo))
         return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=p.id))
-
-    # GET
-    clienti = gc.tutti()
-    cliente_sel = gc.get(id_cliente) if id_cliente else None
-    fascicoli = []
-    if cliente_sel:
-        fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
-
-    from_page = request.args.get("from_page", "")
-    id_fascicolo_pre = request.args.get("id_fascicolo", "")
-
-    return render_template(
-        "preventivi/form_preventivo.html",
-        clienti=clienti,
-        cliente_sel=cliente_sel,
-        fascicoli=fascicoli,
-        clausola_state=_clausola_controversie_form_state(),
-        clausola_catalogo=_clausola_controversie_catalogo_context(),
-        oggi=date.today(),
-        scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
-        from_page=from_page,
-        id_fascicolo_pre=id_fascicolo_pre,
-    )
+    # Pagina React (PreventiviPage): la vista Jinja è stata tolta.
+    return render_react_shell_response("preventivi/nuovo")
 
 
 # ================================================================ DETTAGLIO PREVENTIVO
@@ -750,75 +668,13 @@ def nuovo_preventivo(id_cliente: str = ""):
 @preventivi.route("/p/<id_preventivo>", methods=["GET"])
 @_richiedi_login
 def dettaglio_preventivo(id_preventivo: str):
-    from pct.preventivi import StatoPreventivo
     gp = _get_gp()
     p = gp.get_preventivo(id_preventivo)
     if not p:
         flash("Preventivo non trovato o non piu' disponibile.", "warning")
         return redirect(url_for("preventivi.lista"))
-    cliente = get_clienti().get(p.id_cliente)
-    fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
-    conferimenti = gp.conferimenti_per_preventivo(id_preventivo)
-    conferimento_principale = conferimenti[0] if conferimenti else None
-    portale_obj = _get_portale_mgr().get_by_cliente(cliente.id) if cliente else None
-    url_crea_conferimento = url_for(
-        "preventivi.nuovo_conferimento",
-        id_cliente=p.id_cliente,
-    ) + f"?id_preventivo={p.id}&from_page=preventivo"
-    url_apri_fascicolo = _url_onboarding_fascicolo(
-        p.id_cliente,
-        id_preventivo=p.id,
-        id_conferimento=conferimenti[0].id if conferimenti else "",
-        from_page="preventivo",
-    )
-    url_crea_parcella = url_for("fatturazione.da_preventivo", id_preventivo=p.id)
-    url_invia_cliente = url_for("preventivi.workflow_invia_cliente", id_preventivo=p.id)
-    url_accetta_studio = url_for("preventivi.workflow_accetta_studio", id_preventivo=p.id)
-    suggerisci_conferimento = (
-        p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO}
-        and not conferimenti
-    )
-    suggerisci_fascicolo = bool(
-        not fascicolo and (conferimenti or p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO})
-    )
-    cliente_da_completare = _cliente_da_completare(cliente)
-    campi_cliente_mancanti = _campi_cliente_mancanti(cliente)
-    url_completa_cliente = ""
-    if cliente:
-        url_completa_cliente = _url_completa_cliente(
-            cliente.id,
-            next_url=url_crea_conferimento if suggerisci_conferimento else url_for("cartella_cliente", id_cliente=cliente.id),
-        )
-    workflow_summary = _workflow_summary(
-        cliente=cliente,
-        preventivo=p,
-        conferimento=conferimento_principale,
-        fascicolo=fascicolo,
-    )
-    return render_template(
-        "preventivi/dettaglio_preventivo.html",
-        p=p,
-        cliente=cliente,
-        fascicolo=fascicolo,
-        conferimenti=conferimenti,
-        conferimento_principale=conferimento_principale,
-        portale_obj=portale_obj,
-        url_crea_conferimento=url_crea_conferimento,
-        url_crea_parcella=url_crea_parcella,
-        url_apri_fascicolo=url_apri_fascicolo,
-        url_invia_cliente=url_invia_cliente,
-        url_accetta_studio=url_accetta_studio,
-        url_completa_cliente=url_completa_cliente,
-        suggerisci_conferimento=suggerisci_conferimento,
-        suggerisci_fascicolo=suggerisci_fascicolo,
-        cliente_da_completare=cliente_da_completare,
-        campi_cliente_mancanti=campi_cliente_mancanti,
-        workflow_summary=workflow_summary,
-        calc_summary=riepilogo_contesto_economico(p.log_calcolo),
-        clausola_modello_label=label_modello_clausola_controversie(p.clausola_controversie_modello),
-        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
-        oggi=date.today(),
-    )
+    # Pagina React (PreventiviPage): la vista Jinja è stata tolta.
+    return render_react_shell_response(f"preventivi/p/{id_preventivo}")
 
 
 def prossimo_passo_preventivo(id_preventivo: str) -> dict | None:
@@ -1239,64 +1095,8 @@ def nuovo_conferimento(id_cliente: str = ""):
         if from_page == "cliente":
             return redirect(url_for("cartella_cliente", id_cliente=id_cliente))
         return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=c.id))
-
-    id_preventivo_pre = request.args.get("id_preventivo", "")
-    from_page = request.args.get("from_page", "")
-    id_fascicolo_pre = request.args.get("id_fascicolo", "")
-    prefill = _risolvi_prefill_conferimento(gc, gp, id_cliente, id_preventivo_pre)
-    id_cliente = prefill["id_cliente"]
-    cliente_sel = prefill["cliente"]
-    preventivo_pre = prefill["preventivo"]
-    if prefill["warning"]:
-        flash(prefill["warning"], "warning")
-    if prefill["redirect_needed"] and id_cliente:
-        return redirect(
-            url_for(
-                "preventivi.nuovo_conferimento",
-                id_cliente=id_cliente,
-                **request.args.to_dict(flat=True),
-            )
-        )
-
-    # GET
-    studio_forense = _studio_forense_context()
-    clienti = gc.tutti()
-    fascicoli = []
-    if cliente_sel:
-        fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
-
-    cliente_da_completare = _cliente_da_completare(cliente_sel)
-    campi_cliente_mancanti = _campi_cliente_mancanti(cliente_sel)
-    url_completa_cliente = ""
-    if cliente_sel:
-        url_completa_cliente = _url_completa_cliente(
-            cliente_sel.id,
-            next_url=request.full_path.rstrip("?"),
-        )
-
-    # Preventivi del cliente per il select
-    preventivi_cliente = []
-    if cliente_sel:
-        preventivi_cliente = gp.preventivi_per_cliente(id_cliente)
-
-    return render_template(
-        "preventivi/form_conferimento.html",
-        clienti=clienti,
-        cliente_sel=cliente_sel,
-        fascicoli=fascicoli,
-        preventivo_pre=preventivo_pre,
-        preventivi_cliente=preventivi_cliente,
-        clausola_state=_clausola_controversie_form_state(preventivo_pre),
-        clausola_catalogo=_clausola_controversie_catalogo_context(),
-        cliente_da_completare=cliente_da_completare,
-        campi_cliente_mancanti=campi_cliente_mancanti,
-        url_completa_cliente=url_completa_cliente,
-        oggi=date.today(),
-        from_page=from_page,
-        id_fascicolo_pre=id_fascicolo_pre,
-        studio_forense=studio_forense,
-        apri_fascicolo_default=bool(preventivo_pre and not id_fascicolo_pre and not preventivo_pre.id_fascicolo),
-    )
+    # Pagina React (PreventiviPage): la vista Jinja è stata tolta.
+    return render_react_shell_response("preventivi/conferimento/nuovo")
 
 
 # ================================================================ DETTAGLIO CONFERIMENTO
@@ -1308,45 +1108,8 @@ def dettaglio_conferimento(id_conferimento: str):
     c = gp.get_conferimento(id_conferimento)
     if not c:
         abort(404)
-    cliente = get_clienti().get(c.id_cliente)
-    fascicolo = get_fascicoli().get(c.id_fascicolo) if c.id_fascicolo else None
-    preventivo = gp.get_preventivo(c.id_preventivo) if c.id_preventivo else None
-    url_apri_fascicolo = _url_onboarding_fascicolo(
-        c.id_cliente,
-        id_preventivo=c.id_preventivo or "",
-        id_conferimento=c.id,
-        from_page="conferimento",
-    )
-    cliente_da_completare = _cliente_da_completare(cliente)
-    campi_cliente_mancanti = _campi_cliente_mancanti(cliente)
-    url_completa_cliente = ""
-    if cliente:
-        url_completa_cliente = _url_completa_cliente(
-            cliente.id,
-            next_url=url_apri_fascicolo if not fascicolo else url_for("preventivi.dettaglio_conferimento", id_conferimento=c.id),
-        )
-    workflow_summary = _workflow_summary(
-        cliente=cliente,
-        preventivo=preventivo,
-        conferimento=c,
-        fascicolo=fascicolo,
-    )
-    return render_template(
-        "preventivi/dettaglio_conferimento.html",
-        c=c,
-        cliente=cliente,
-        fascicolo=fascicolo,
-        preventivo=preventivo,
-        url_apri_fascicolo=url_apri_fascicolo,
-        url_firma_studio=url_for("preventivi.workflow_firma_conferimento_studio", id_conferimento=c.id),
-        url_completa_cliente=url_completa_cliente,
-        cliente_da_completare=cliente_da_completare,
-        campi_cliente_mancanti=campi_cliente_mancanti,
-        workflow_summary=workflow_summary,
-        clausola_modello_label=label_modello_clausola_controversie(c.clausola_controversie_modello),
-        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
-        oggi=date.today(),
-    )
+    # Pagina React (PreventiviPage): la vista Jinja è stata tolta.
+    return render_react_shell_response(f"preventivi/conferimento/{id_conferimento}")
 
 
 # ================================================================ CAMBIA STATO CONFERIMENTO
@@ -1668,140 +1431,8 @@ def ajax_parametri_dm55():
 @_richiedi_login
 def wizard():
     """Wizard step-by-step per la costruzione guidata del preventivo."""
-    from pct.motore_preventivo import AREE_WIZARD, catalogo_wizard
-    gc = get_clienti()
-    gf = get_fascicoli()
-    id_cliente = request.args.get("id_cliente", "").strip()
-    id_fascicolo_pre = request.args.get("id_fascicolo", "").strip()
-    fascicolo_pre = gf.get(id_fascicolo_pre) if id_fascicolo_pre else None
-    if fascicolo_pre and not id_cliente:
-        id_cliente = fascicolo_pre.id_cliente or ""
-    cliente_sel = gc.get(id_cliente) if id_cliente else None
-    area_raw = request.args.get("area", "").strip()
-    area_prefill = {
-        "CIVILE_COGN": "Civile",
-        "ESEC_MOB": "Civile",
-        "ESEC_IMMO": "Civile",
-        "VOLONTARIA": "Civile",
-        "LAVORO": "Civile",
-        "PREVIDENZA": "Civile",
-        "PENALE": "Penale",
-        "AMMINISTRATIVO": "Amministrativo",
-        "TRIBUTARIO": "Tributario",
-        "STRAGIUD": "Stragiudiziale",
-        "MEDIAZIONE": "Stragiudiziale",
-        "NEGOZIAZIONE_ASSISTITA": "Stragiudiziale",
-    }.get(area_raw.upper(), area_raw)
-    fasi_prefill = [
-        item.strip()
-        for item in (request.args.get("fasi", "") or "").split(",")
-        if item.strip()
-    ]
-    wizard_prefill = {
-        "id_pratica": request.args.get("id_pratica", "").strip(),
-        "area": area_prefill,
-        "area_tassonomica": request.args.get("area_tassonomica", "").strip(),
-        "macro_area_tassonomica": request.args.get("macro_area_tassonomica", "").strip(),
-        "sottobranca_tassonomica": request.args.get("sottobranca_tassonomica", "").strip(),
-        "procedura_operativa_codice": request.args.get("procedura_operativa_codice", "").strip(),
-        "procedura_operativa_nome": request.args.get("procedura_operativa_nome", "").strip(),
-        "subbranch_operativa_codice": request.args.get("subbranch_operativa_codice", "").strip(),
-        "workflow_operativo_codice": request.args.get("workflow_operativo_codice", "").strip(),
-        "copertura_operativa": request.args.get("copertura_operativa", "").strip(),
-        "canale_operativo": request.args.get("canale_operativo", "").strip(),
-        "registro_operativo": request.args.get("registro_operativo", "").strip(),
-        "valore": request.args.get("valore", "").strip(),
-        "grado": request.args.get("grado", "").strip(),
-        "regola_tariffaria": request.args.get("regola_tariffaria", "").strip(),
-        "complessita": request.args.get("complessita", "media").strip() or "media",
-        "fasi": fasi_prefill,
-        "variazioni_fasi": {
-            key: (request.args.get(f"var_{key}", "") or "").strip()
-            for key in ("attivazione", "rivitalizzazione", "negoziazione", "conciliazione")
-            if (request.args.get(f"var_{key}", "") or "").strip()
-        },
-        "mediazione_odm": mediazione_odm_context_for_prefill(request.args),
-        "adr_accordo": request.args.get("adr_accordo", "0") == "1",
-        "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
-        "spese_generali": request.args.get("spese_generali", "1") == "1",
-        "perc_spese_generali": request.args.get("perc_spese_generali", "15").strip() or "15",
-        "applica_cpa": request.args.get("applica_cpa", "1") == "1",
-        "applica_iva": request.args.get("applica_iva", "1") == "1",
-        "anticipazioni": request.args.get("anticipazioni", "").strip(),
-        "tariffa_oraria": request.args.get("tariffa_oraria", "").strip(),
-        "ore_stimate": request.args.get("ore_stimate", "").strip(),
-        "minuti_stimati": request.args.get("minuti_stimati", "").strip(),
-        "criterio_arrotondamento_orario": request.args.get("criterio_arrotondamento_orario", "").strip(),
-        "massimale_ore": request.args.get("massimale_ore", "").strip(),
-        "soglia_preapprovazione_ore": request.args.get("soglia_preapprovazione_ore", "").strip(),
-        "attivita_orarie_incluse": request.args.get("attivita_orarie_incluse", "").strip(),
-        "attivita_orarie_escluse": request.args.get("attivita_orarie_escluse", "").strip(),
-        "oggetto": request.args.get("oggetto", "").strip(),
-        "note": request.args.get("note", "").strip(),
-        "accessori": [],
-        "esborsi": [],
-        "manual_voci": [],
-        "classificazioni_tassonomiche": [],
-        "has_accessori_prefill": False,
-        "has_esborsi_prefill": False,
-        "has_manual_voci_prefill": False,
-        "has_classificazioni_tassonomiche_prefill": False,
-        "auto_calcola": request.args.get("auto_calcola", "").strip() == "1",
-    }
-    clausola_state = {
-        "attiva": request.args.get("clausola_controversie_attiva", "0") == "1",
-        "modello": normalizza_modello_clausola_controversie(
-            request.args.get("clausola_controversie_modello", "").strip() or CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE
-        ),
-        "testo": request.args.get("clausola_controversie_testo", "").strip(),
-        "trattativa_individuale": request.args.get(
-            "clausola_controversie_trattativa_individuale", "0"
-        )
-        == "1",
-        "fonte": request.args.get("clausola_controversie_fonte", "").strip(),
-    }
-    if not clausola_state["fonte"]:
-        clausola_state["fonte"] = fonte_modello_clausola_controversie(clausola_state["modello"])
-    if clausola_state["attiva"] and not clausola_state["testo"]:
-        clausola_state["testo"] = testo_predefinito_clausola_controversie(clausola_state["modello"])
-    for key, field_name in (
-        ("accessori_json", "accessori"),
-        ("esborsi_json", "esborsi"),
-        ("manual_voci_json", "manual_voci"),
-    ):
-        raw_value = (request.args.get(key, "") or "").strip()
-        if not raw_value:
-            continue
-        try:
-            parsed = json.loads(raw_value)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            parsed = []
-        if isinstance(parsed, list):
-            wizard_prefill[field_name] = parsed
-            wizard_prefill[f"has_{field_name}_prefill"] = True
-    wizard_prefill["classificazioni_tassonomiche"] = _classificazioni_tassonomiche_da_raw(
-        request.args.get("classificazioni_tassonomiche_json", "")
-    )
-    wizard_prefill["has_classificazioni_tassonomiche_prefill"] = bool(
-        wizard_prefill["classificazioni_tassonomiche"]
-    )
-    return render_template(
-        "preventivi/wizard.html",
-        catalogo_per_area=catalogo_wizard(),
-        aree=AREE_WIZARD,
-        clienti=gc.tutti(),
-        cliente_sel=cliente_sel,
-        id_cliente_pre=id_cliente,
-        id_fascicolo_pre=id_fascicolo_pre,
-        fascicolo_pre_context=_contesto_fascicolo_wizard(fascicolo_pre) if fascicolo_pre else None,
-        wizard_prefill=wizard_prefill,
-        clausola_state=clausola_state,
-        clausola_catalogo=_clausola_controversie_catalogo_context(),
-        from_page=request.args.get("from_page", "").strip(),
-        entry_mode=request.args.get("entry", "").strip(),
-        oggi=date.today(),
-        scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
-    )
+    # Pagina React (PreventiviPage): la vista Jinja è stata tolta.
+    return render_react_shell_response("preventivi/wizard")
 
 
 @preventivi.route("/wizard/calcola", methods=["GET"])

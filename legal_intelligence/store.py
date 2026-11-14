@@ -16,18 +16,22 @@ def now_iso() -> str:
 
 
 class LegalIntelligenceStore:
-    def __init__(self, db_path: str | Path):
+    def __init__(self, db_path: str | Path, *, readonly: bool = False):
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._init_db()
+        self.readonly = readonly
+        if not readonly:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._init_db()
 
     def connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        uri = self.db_path.resolve().as_uri() + "?mode=ro" if self.readonly else self.db_path
+        conn = sqlite3.connect(uri, uri=self.readonly, timeout=5 if self.readonly else 20)
         conn.row_factory = sqlite3.Row
         return conn
 
     def _init_db(self) -> None:
         with self.connect() as conn:
+            conn.execute("PRAGMA journal_mode=WAL").fetchone()
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS legal_sources (

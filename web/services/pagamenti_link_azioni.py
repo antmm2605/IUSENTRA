@@ -40,6 +40,12 @@ class VistaLink:
     notice: str = ''
 
 
+MESSAGGIO_LINK_DISCORDANTE = (
+    "Il collegamento di pagamento non corrisponde ai dati dello studio e va verificato. "
+    "Nessun addebito è stato avviato: contatta lo studio."
+)
+
+
 class PaymentCheckoutReview(ValueError):
     """Il residuo non autorizza un nuovo pagamento: nessun addebito avviato."""
 
@@ -313,6 +319,7 @@ def verifica_ritorno(gp, token: str, provider: str, argomenti: Mapping[str, Any]
 
 __all__ = [
     "EsitoAvvio",
+    "MESSAGGIO_LINK_DISCORDANTE",
     "VistaLink",
     "MESSAGGIO_STRIPE_NON_AVVIATO",
     "aggiorna_parcella_pagata",

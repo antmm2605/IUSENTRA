@@ -1080,10 +1080,10 @@ class GestioneFatturazione:
             "scaduto":           round(sum(balance_amount(p, balances, 'residual_cents', p.totale) for p in scadute), 2),
         }
 
-    def aggiorna_scadute(self):
+    def aggiorna_scadute(self) -> int:
         """Marca come SCADUTA le parcelle EMESSE con data_scadenza passata."""
         oggi = date.today().isoformat()
-        modificato = False
+        aggiornate = 0
         for cached in list(self._parcelle.values()):
             p = cached
             if p.stato == StatoParcella.EMESSA and p.data_scadenza and p.data_scadenza < oggi:
@@ -1093,8 +1093,10 @@ class GestioneFatturazione:
                     p.stato = StatoParcella.SCADUTA
                     self._salva_parcella(p, expected_revision=revision)
                     self._parcelle[p.id] = p
+                    aggiornate += 1
                     continue
                 p.stato = StatoParcella.SCADUTA
-                modificato = True
-        if modificato:
+                aggiornate += 1
+        if aggiornate and self._studio_db is None:
             self._salva()
+        return aggiornate

@@ -31,7 +31,8 @@ def _inserisci(repository: PecAuditRepository, id_messaggio: str, subject: str, 
 
 
 def test_chiavi_di_ricerca_per_ruolo_e_cliente():
-    assert chiavi_ruolo("1234", "2026") == ["1234/2026", "1234/26", "1234-2026", "RG 1234", "R.G. 1234", "n. 1234"]
+    assert chiavi_ruolo("1234", "2026") == ["1234/2026", "1234/26", "1234-2026"]
+    assert chiavi_ruolo("1234", "") == ["RG 1234", "R.G. 1234", "n. 1234"]
     assert chiavi_ruolo("", "2026") == []
     assert chiavi_cliente("Anna Bianchi") == ["Anna Bianchi", "Bianchi Anna"]
 
@@ -67,7 +68,31 @@ def test_consultation_uses_confirmed_links_without_mailbox_content_search(tmp_pa
     result = messaggi_pec_per_fascicolo(matter, repository=repository, solo_collegate=True)
     assert [item['id'] for item in result] == ['linked']
     assert {item['id'] for item in messaggi_pec_per_fascicolo(matter, repository=repository)} == {'linked', 'candidate'}
+    from web.services.fascicolo_pec_presidio import _messaggi
+
+    with repository.connect() as conn:
+        statements = []
+        conn.set_trace_callback(statements.append)
+        assert [row["id"] for row in _messaggi(conn, "default", "F1", [], [], 1)] == ["linked"]
+        conn.set_trace_callback(None)
+        query = next(sql for sql in statements if sql.startswith("SELECT id, received_at"))
+        plan = [row[3] for row in conn.execute("EXPLAIN QUERY PLAN " + query)]
+        assert any("idx_pec_messages_fascicolo_received (tenant_id=? AND linked_fascicolo_id=?)" in row for row in plan)
+
     assert chiavi_cliente("Anna") == []  # un nome solo pescherebbe omonimi
+
+
+def test_presidio_non_confonde_ruoli_simili_o_di_anni_diversi(tmp_path):
+    repository = _repository(tmp_path)
+    _inserisci(repository, "giusto", "Avviso R.G. 161/2026", received="2026-09-01T09:00:00")
+    _inserisci(repository, "prefisso", "Avviso R.G. 1617/2023")
+    _inserisci(repository, "suffisso", "Avviso R.G. 1161/2026")
+    _inserisci(repository, "anno", "Avviso R.G. 161/2025")
+    fascicolo = SimpleNamespace(id="F1", numero_rg="161", anno_rg=2026, nome_cliente="Anna Bianchi")
+
+    result = messaggi_pec_per_fascicolo(fascicolo, repository=repository, limit=1)
+
+    assert [(row["id"], row["corrispondenza"]) for row in result] == [("giusto", "rg")]
 
 
 def test_messaggi_per_fascicolo_con_le_tre_corrispondenze(tmp_path: Path):

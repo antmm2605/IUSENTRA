@@ -18,10 +18,7 @@ from web.helpers import get_fascicoli
 from web.services.portale_cliente_legacy_azioni import (
     RisorsaNonTrovata,
     accetta_preventivo as _azione_accetta_preventivo,
-    aggiorna_recapiti,
-    carica_documenti,
     firma_conferimento as _azione_firma_conferimento,
-    registra_consenso_privacy,
 )
 from web.services.portale_cliente_legacy_contesto import (
     REQUISITI_SEZIONE,
@@ -33,15 +30,12 @@ from web.services.portale_cliente_legacy_contesto import (
     verifica_contesto,
 )
 from web.services.portale_cliente_legacy_dati import (
-    arricchisci_economici,
     conferimento_del_cliente,
-    dati_home,
     documenti_economici_cliente as _documenti_economici_cliente,
-    oggi_roma,
     parcella_del_cliente,
     preventivo_del_cliente,
 )
-from web.services.pubblico_token_shell import render_portale_token_shell, vista_classica_richiesta
+from web.services.pubblico_token_shell import render_portale_token_shell
 
 portale = Blueprint("portale", __name__, url_prefix="/portale")
 
@@ -117,21 +111,6 @@ def _shell_react(token: str, sezione: str):
     return render_portale_token_shell(token, sezione, titolo=_TITOLI_SEZIONE[sezione], studio_nome=_studio_nome())
 
 
-def _url_azione(token: str, azione: dict) -> str:
-    if azione["kind"] == "preventivo":
-        return url_for("portale.accetta_preventivo", token=token, id_preventivo=azione["id"])
-    return url_for("portale.firma_conferimento", token=token, id_conferimento=azione["id"])
-
-
-def _azioni_con_url(token: str, azioni: list[dict]) -> list[dict]:
-    return [{**azione, "action_url": _url_azione(token, azione)} for azione in azioni]
-
-
-def _enrich_economici_portale(portale_obj, cliente, dati):
-    token = (request.view_args or {}).get("token")
-    return _azioni_con_url(token, arricchisci_economici(portale_obj, cliente, dati))
-
-
 def _documento_o_404(trovato):
     documento, gestore = trovato
     if documento is None:
@@ -143,129 +122,33 @@ def _documento_o_404(trovato):
 
 @portale.route("/<token>")
 def home(token: str):
-    if not vista_classica_richiesta():
-        return _shell_react(token, "home")
-    gp, p, contesto = _carica_contesto(token)
-    dati = dati_home(contesto)
-    return render_template(
-        "portale/home.html",
-        token=token,
-        p=p,
-        cliente=contesto.cliente,
-        fascicoli=dati["fascicoli"],
-        tracker_map=dati["tracker_map"],
-        appuntamenti=dati["appuntamenti"],
-        scadenze=dati["scadenze"],
-        economici=dati["economici"],
-        azioni_richieste=_azioni_con_url(token, dati["azioni_richieste"]),
-        oggi=dati["oggi"],
-        studio_nome=_studio_nome(),
-    )
+    # Pagina React (PortaleTokenApp): dati e azioni da /api/v1/pubblico/portale/<token>.
+    return _shell_react(token, "home")
 
 
 # ================================================================ PRIVACY
 
-@portale.route("/<token>/privacy", methods=["GET", "POST"])
+@portale.route("/<token>/privacy", methods=["GET"])
 def privacy(token: str):
-    if request.method == "GET" and not vista_classica_richiesta():
-        return _shell_react(token, "privacy")
-    gp, p, contesto = _carica_contesto(token)
-    _richiedi(contesto, *REQUISITI_SEZIONE["privacy"])
-
-    if request.method == "POST":
-        esito = registra_consenso_privacy(contesto, request.form.get("consenso") == "1")
-        if not esito.ok:
-            return render_template(
-                "portale/privacy.html",
-                token=token, p=p, cliente=contesto.cliente,
-                errore=esito.errore,
-                studio_nome=_studio_nome(),
-            )
-        return render_template(
-            "portale/privacy_ok.html",
-            token=token, p=p, cliente=contesto.cliente,
-            studio_nome=_studio_nome(),
-        )
-
-    return render_template(
-        "portale/privacy.html",
-        token=token, p=p, cliente=contesto.cliente,
-        errore=None,
-        studio_nome=_studio_nome(),
-    )
+    # Pagina React (PortaleTokenApp): dati e azioni da /api/v1/pubblico/portale/<token>.
+    return _shell_react(token, "privacy")
 
 
 # ================================================================ DOCUMENTI
 
-def _pagina_documenti(token, p, contesto, fascicoli, *, errore=None):
-    return render_template(
-        "portale/documenti.html",
-        token=token, p=p, cliente=contesto.cliente,
-        fascicoli=fascicoli,
-        max_mb=p.permessi.max_upload_mb,
-        studio_nome=_studio_nome(),
-        errore=errore,
-    )
-
 
 @portale.route("/<token>/documenti", methods=["GET"])
 def documenti(token: str):
-    if not vista_classica_richiesta():
-        return _shell_react(token, "documenti")
-    gp, p, contesto = _carica_contesto(token)
-    _richiedi(contesto, *REQUISITI_SEZIONE["documenti"])
-    fascicoli = _fascicoli_cliente(contesto.cliente.id) if p.permessi.vedi_fascicoli else []
-    return _pagina_documenti(token, p, contesto, fascicoli)
-
-
-@portale.route("/<token>/documenti/carica", methods=["POST"])
-def carica_documento(token: str):
-    gp, p, contesto = _carica_contesto(token)
-    _richiedi(contesto, *REQUISITI_SEZIONE["documenti"])
-
-    esito = carica_documenti(
-        contesto,
-        request.files.getlist("files[]"),
-        request.form.get("id_fascicolo", ""),
-        request.form.get("note", ""),
-    )
-    if esito.errore:
-        pagina = _pagina_documenti(token, p, contesto, _fascicoli_cliente(contesto.cliente.id), errore=esito.errore)
-        return (pagina, esito.status) if esito.status != 200 else pagina
-
-    return render_template(
-        "portale/documenti_ok.html",
-        token=token, p=p, cliente=contesto.cliente,
-        caricati=esito.caricati, errori=esito.errori,
-        studio_nome=_studio_nome(),
-    )
+    # Pagina React (PortaleTokenApp): dati e azioni da /api/v1/pubblico/portale/<token>.
+    return _shell_react(token, "documenti")
 
 
 # ================================================================ ECONOMICI
 
 @portale.route("/<token>/economici", methods=["GET"])
 def economici(token: str):
-    if not vista_classica_richiesta():
-        return _shell_react(token, "economici")
-    gp, p, contesto = _carica_contesto(token)
-    _richiedi(contesto, *REQUISITI_SEZIONE["economici"])
-
-    dati = _documenti_economici_cliente(contesto.cliente.id)
-    azioni_richieste = _enrich_economici_portale(p, contesto.cliente, dati)
-    return render_template(
-        "portale/economici.html",
-        token=token,
-        p=p,
-        cliente=contesto.cliente,
-        preventivi=dati["preventivi"],
-        conferimenti=dati["conferimenti"],
-        parcelle=dati["parcelle"],
-        timeline=dati["timeline"],
-        stats=dati["stats"],
-        azioni_richieste=azioni_richieste,
-        oggi=oggi_roma(),
-        studio_nome=_studio_nome(),
-    )
+    # Pagina React (PortaleTokenApp): dati e azioni da /api/v1/pubblico/portale/<token>.
+    return _shell_react(token, "economici")
 
 
 def _flash_esito(esito) -> None:
@@ -348,25 +231,10 @@ def pdf_parcella(token: str, id_parcella: str):
 
 # ================================================================ ANAGRAFICA
 
-@portale.route("/<token>/anagrafica", methods=["GET", "POST"])
+@portale.route("/<token>/anagrafica", methods=["GET"])
 def anagrafica(token: str):
-    if request.method == "GET" and not vista_classica_richiesta():
-        return _shell_react(token, "anagrafica")
-    gp, p, contesto = _carica_contesto(token)
-    _richiedi(contesto, *REQUISITI_SEZIONE["anagrafica"])
-
-    successo = False
-    if request.method == "POST":
-        _richiedi(contesto, ("modifica_anagrafica", False))
-        aggiorna_recapiti(contesto, request.form)
-        successo = True
-
-    return render_template(
-        "portale/anagrafica.html",
-        token=token, p=p, cliente=contesto.cliente,
-        errore=None, successo=successo,
-        studio_nome=_studio_nome(),
-    )
+    # Pagina React (PortaleTokenApp): dati e azioni da /api/v1/pubblico/portale/<token>.
+    return _shell_react(token, "anagrafica")
 
 
 # ================================================================ 410 GONE
@@ -374,7 +242,8 @@ def anagrafica(token: str):
 # Solo per il portale: prima il gestore valeva per ogni 410 dell'applicazione.
 @portale.errorhandler(410)
 def link_scaduto(e):
-    return render_template(
-        "portale/scaduto.html",
-        studio_nome=_studio_nome(),
-    ), 410
+    # Pagina React del portale nello stato «scaduto» (anche per i PDF chiesti con un link scaduto).
+    token = str((request.view_args or {}).get("token") or "")
+    return render_portale_token_shell(
+        token, "home", titolo="Link non valido", studio_nome=_studio_nome(), status=410, stato="scaduto",
+    )

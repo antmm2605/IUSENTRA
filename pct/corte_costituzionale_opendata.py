@@ -433,10 +433,13 @@ def importa(
     gestori = [] if dry_run else [GestioneCorpusGiurisprudenza(str(path)) for path in db_paths]
     esito.db = [str(path) for path in db_paths]
     buffer: list[dict[str, Any]] = []
+    conteggi_per_corpus = {gestore: {"inserite": 0, "aggiornate": 0, "invariate": 0} for gestore in gestori}
 
     def _scrivi() -> None:
         for gestore in gestori:
             conteggi = gestore.salva_sentenze_blocco(buffer, chiave_naturale=True)
+            for chiave, numero in conteggi.items():
+                conteggi_per_corpus[gestore][chiave] += numero
             esito.inserite += conteggi["inserite"]
             esito.aggiornate += conteggi["aggiornate"]
             esito.invariate += conteggi["invariate"]
@@ -451,7 +454,11 @@ def importa(
     if buffer:
         _scrivi()
     for gestore in gestori:
-        gestore.ottimizza_fts()
+        conteggi = conteggi_per_corpus[gestore]
+        # I trigger FTS aggiornano le righe nuove. La compattazione integrale serve
+        # durante l'import storico, che è separato dal controllo settimanale.
+        if completo and not dal_anno and (conteggi["inserite"] or conteggi["aggiornate"]):
+            gestore.ottimizza_fts()
         gestore.registra_importazione(
             fonte_codice=FONTE_CODICE,
             tipo_importazione="api",
@@ -460,8 +467,8 @@ def importa(
             url_origine=URL_DATI,
             file_origine=", ".join(Path(path).name for path in esito.file),
             record_letti=esito.pronunce_lette,
-            record_creati=esito.inserite,
-            record_aggiornati=esito.aggiornate,
+            record_creati=conteggi["inserite"],
+            record_aggiornati=conteggi["aggiornate"],
             record_scartati=esito.pronunce_scartate,
         )
     esito.secondi = round(time.monotonic() - inizio, 1)

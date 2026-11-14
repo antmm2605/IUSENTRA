@@ -69,3 +69,25 @@ def test_giro_di_verifiche_interrotto_non_resta_in_corso_per_sempre():
     interrotto = {"in_corso": True, "eseguita_il": (adesso - timedelta(days=21)).isoformat()}
     assert in_corso_vivo(vivo) and not verifiche_necessarie(vivo)
     assert not in_corso_vivo(interrotto) and verifiche_necessarie(interrotto)
+
+
+def test_la_coda_notturna_riprende_una_liquidazione_storica_una_volta(tmp_path):
+    from pct.registro_letture import Oggetto
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services.archivio_letture_runtime import accoda_verifiche_periodiche
+
+    registro = _registro(tmp_path)
+    discordanze = RegistroDiscordanze(registro)
+    for fid, valore in [("INCOMPLETA", "condanna;distrazione"), ("COMPLETA", "condanna;importo=258,00")]:
+        documento = Oggetto("documento", fid + "-SENTENZA", sha256=fid.lower())
+        registro.registra_inventario("studio", fid, [documento])
+        registro.registra_fatti("studio", fid, documento, "documenti", [
+            Fatto(categoria="evento", campo="spese_sentenza", valore=valore, verifica="verificata"),
+        ])
+        registro.segna_fascicolo("studio", fid, "motore_documenti", impronta="x", oggetti_totali=1,
+                                 oggetti_letti=1, stato="completa", versione="v")
+        discordanze.pubblica_esito("studio", fid, {"eseguita_il": "oggi"})
+
+    assert accoda_verifiche_periodiche(registro, "studio", ora=2) == 1
+    assert [e["fascicolo_id"] for e in registro.eventi_da_riprendere("studio", limite=10)] == ["INCOMPLETA"]
+    assert accoda_verifiche_periodiche(registro, "studio", ora=2) == 0

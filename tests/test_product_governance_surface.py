@@ -50,7 +50,7 @@ def test_admin_governance_page_e_api_sono_accessibili_al_superadmin(tmp_path):
     with app.test_client() as client:
         client.get("/login")
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        page = client.get(f"/admin/governance?slug={studio.slug}&_legacy=1")
+        page = client.get(f"/api/v1/ui/piattaforma/governance?slug={studio.slug}")
         api = client.get(f"/admin/api/governance?slug={studio.slug}")
         react = client.get(f"/admin/governance?slug={studio.slug}")
         dati = client.get(f"/api/v1/ui/piattaforma/governance?slug={studio.slug}")
@@ -63,11 +63,11 @@ def test_admin_governance_page_e_api_sono_accessibili_al_superadmin(tmp_path):
 
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert "Governance prodotto" in html
-    assert "Backend strutturato effettivo dello studio" in html
-    assert "Matrice storage e read/write parity della piattaforma" in html
-    assert "Percorso di migrazione JSON / SQLite -> PostgreSQL" in html
-    assert "Golden path ufficiali" in html
+    assert "Governance del prodotto" in html
+    assert "Archivio effettivo dello studio" in html
+    assert "Matrice degli archivi della piattaforma" in html
+    assert "Migrazione JSON / SQLite verso PostgreSQL" in html
+    assert "Percorsi certificati (golden path)" in html
     assert "Superfici autorizzative" in html
     assert "SQL locale tenant-aware" in html
 

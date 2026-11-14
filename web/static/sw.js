@@ -9,10 +9,10 @@
 const DEFAULT_HREF = '/app-v2';
 const NOTIFICATION_ICON = '/static/icons/icon-192.png';
 const NOTIFICATION_BADGE = '/static/icons/badge-96.png';
-const SW_VERSION = '2026-09-29-offline-v7';
+const SW_VERSION = '2026-11-10-offline-v8';
 const SHELL_CACHE = `iusentra-shell-${SW_VERSION}`;
 const OFFLINE_URL = '/offline';
-const SHELL_ASSETS = [OFFLINE_URL, NOTIFICATION_ICON, '/static/icons/icon-512.png'];
+const SHELL_ASSETS = [OFFLINE_URL, '/static/errori/offline.js', NOTIFICATION_ICON, '/static/icons/icon-512.png'];
 const REMOTE_HEARING_DOMAINS = [
   'teams.microsoft.com',
   'zoom.us',

@@ -5,6 +5,7 @@ Separato da ``evaluator.py`` per tenere i moduli del presidio entro le 650 righe
 from __future__ import annotations
 from typing import Any
 from urllib.parse import urlencode
+from pct.fatturazione import _e_proforma
 from pct.formatting import format_euro_it
 from .repository import PracticeEngineRepository
 
@@ -40,14 +41,19 @@ def _economic_summary(
     *,
     fascicolo: Any | None = None,
 ) -> dict[str, Any]:
+    emitted = [
+        item for item in parcelle
+        if _enum_value(getattr(item, "stato", "")).upper() in {"EMESSA", "PAGATA", "SALDATA", "SCADUTA"}
+    ]
     paid = [
         item
-        for item in parcelle
+        for item in emitted
         if _enum_value(getattr(item, "stato", "")).upper() in {"PAGATA", "SALDATA"} or _text(getattr(item, "data_pagamento", ""))
     ]
     paid_ids = {_text(getattr(item, "id", "")) for item in paid}
-    primary_parcella = _primary(parcelle)
-    unpaid_parcella = next((item for item in parcelle if _text(getattr(item, "id", "")) not in paid_ids), primary_parcella)
+    primary_parcella = _primary(emitted or parcelle)
+    prima_emessa = _primary(emitted)
+    unpaid_parcella = next((item for item in emitted if _text(getattr(item, "id", "")) not in paid_ids), prima_emessa)
     preventivo_id = _text(getattr(preventivo, "id", ""))
     conferimento_id = _text(getattr(conferimento, "id", ""))
     parcella_id = _text(getattr(primary_parcella, "id", ""))
@@ -80,9 +86,9 @@ def _economic_summary(
     payment_href = _query_url(
         "/incassi-pagamenti",
         id_fascicolo=fascicolo_id,
-        id_parcella=payment_parcella_id or parcella_id,
-    ) if (payment_parcella_id or parcella_id) else proforma_href
-    emitted = bool(parcelle)
+        id_parcella=payment_parcella_id,
+    ) if payment_parcella_id else proforma_href
+    bozza = any(_enum_value(getattr(item, "stato", "")).upper() == "BOZZA" for item in parcelle)
     total = sum(float(getattr(item, "netto_a_pagare", 0.0) or getattr(item, "totale", 0.0) or 0.0) for item in parcelle)
     override = [event for event in repository.list_audit(fascicolo_id) if getattr(event, "event_type", "") == "ECONOMIC_OVERRIDE"]
     return {
@@ -94,7 +100,8 @@ def _economic_summary(
         "conferimentoId": conferimento_id,
         "conferimentoDate": _text(getattr(conferimento, "firma_cliente_il", "")),
         "conferimentoHref": conferimento_href,
-        "proformaIssued": emitted,
+        "proformaIssued": bool(emitted),
+        "proformaDraft": bozza,
         "proformaHref": proforma_href,
         # La fatturazione aperta sui soli documenti economici del fascicolo (non tutto l'archivio dello studio).
         "fatturazioneHref": _query_url("/fatturazione", id_fascicolo=fascicolo_id),
@@ -102,7 +109,7 @@ def _economic_summary(
         "paymentRegistered": bool(paid),
         "paymentHref": payment_href,
         "paymentParcellaId": payment_parcella_id,
-        "invoiceIssued": emitted,
+        "invoiceIssued": any(not _e_proforma(getattr(item, "dati_personalizzati", None)) for item in emitted),
         "agreedFee": _euro(getattr(conferimento, "compenso_pattuito", 0.0) or getattr(preventivo, "totale", 0.0)),
         "expenses": _euro(getattr(preventivo, "totale_spese", 0.0) or getattr(preventivo, "anticipazioni_art15", 0.0)),
         "contributoUnificato": _euro(getattr(preventivo, "contributo_unificato", 0.0)),

@@ -397,7 +397,7 @@ def test_i_fascicoli_da_collegare_si_leggono_dall_indice_leggero(monkeypatch):
         def tutti(self, **_kwargs):
             raise AssertionError("l'archivio intero non serve per il menu")
 
-    monkeypatch.setattr(api, "get_fascicoli", lambda: _Gestione())
+    monkeypatch.setattr(api, "_fascicolo_singolo_loader", lambda: _Gestione)
 
     assert api._notiziario_case_options() == [
         {"id": "C", "label": "2026/0003 - Senza ruolo"},
@@ -436,7 +436,7 @@ def test_api_notiziario_legge_l_archivio_condiviso_con_filtri_e_fascicoli_pertin
                 tipo="LAVORO", stato="APERTO", numero_rg="12", anno_rg="2026", area_pratica="previdenza",
             )]
 
-    monkeypatch.setattr(api, "get_fascicoli", lambda: _Gestione())
+    monkeypatch.setattr(api, "_fascicolo_singolo_loader", lambda: _Gestione)
     client, headers = _client(tmp_path)
     client.application.config["NOTIZIARIO_DB"] = str(tmp_path / "notiziario.sqlite")
 
@@ -476,3 +476,27 @@ def test_api_interazione_trova_la_notizia_nell_archivio_condiviso(tmp_path: Path
 
     assert response.status_code == 200
     assert saved[voce["id"]]["favorite"] is True
+
+
+def test_interazione_conserva_la_scheda_verificata_e_rifiuta_quella_superata(tmp_path, monkeypatch):
+    from pct.notiziario.archivio import ArchivioNotiziario
+    import web.blueprints.api_v1_react as api
+
+    monkeypatch.setenv("IUSENTRA_NOTIZIE_SOLO_VERIFICATE", "1")
+    voce = _archivio_con_una_notizia(tmp_path)
+    archivio = ArchivioNotiziario(tmp_path / "notiziario.sqlite")
+    archivio.salva_verifica(voce["id"], sintesi="Sintesi operativa", azione="Verificare il fascicolo.",
+                           evidenza="Documento ufficiale.", verificata_il="2026-11-08")
+    monkeypatch.setattr(api, "_notiziario_load_interactions", lambda: {})
+    monkeypatch.setattr(api, "_notiziario_save_interactions", lambda _: "2026-11-08T10:00:00Z")
+    monkeypatch.setattr(api, "_notiziario_case_options", lambda: [])
+    monkeypatch.setattr(api, "_audit_event", lambda *_args, **_kwargs: None)
+    client, headers = _client(tmp_path)
+    client.application.config["NOTIZIARIO_DB"] = str(tmp_path / "notiziario.sqlite")
+    url = f"/api/v1/ui/notiziario/{voce['id']}/interazione"
+    result = client.patch(url, headers=headers, json={"favorite": True})
+    assert result.status_code == 200
+    assert result.get_json()["item"]["summary"] == "Sintesi operativa"
+    assert result.get_json()["item"]["verifiedAction"] == "Verificare il fascicolo."
+    archivio.salva([{**voce, "sintesi": "Fonte modificata."}])
+    assert client.patch(url, headers=headers, json={"favorite": True}).status_code == 404

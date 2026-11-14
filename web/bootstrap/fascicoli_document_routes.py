@@ -38,6 +38,7 @@ def register_fascicoli_document_routes(
     *,
     get_fascicoli: Callable[[], Any],
     get_indice: Callable[[], Any],
+    get_studio_db: Callable[[str], Any],
     get_practice_engine: Callable[[], Any],
     audit: Callable[..., None],
     salva_documento_fascicolo: Callable[..., Any],
@@ -55,6 +56,7 @@ def register_fascicoli_document_routes(
     mime_preview_documento: Callable[[str, bytes], tuple[str, str] | None],
     payload_preview_da_versioni_documento: Callable[[Any, Any], bytes | None],
     applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
+    get_fascicoli_lettura: Callable[[], Any] | None = None,
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
@@ -334,7 +336,8 @@ def register_fascicoli_document_routes(
     )
     register_fascicoli_document_view_routes(
         app,
-        get_fascicoli=get_fascicoli,
+        get_fascicoli=get_fascicoli_lettura or get_fascicoli,
+        get_studio_db=get_studio_db,
         get_practice_engine=get_practice_engine,
         audit=audit,
         decrypt_doc=decrypt_doc,

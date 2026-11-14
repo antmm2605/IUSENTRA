@@ -80,3 +80,29 @@ def test_il_job_notturno_e_registrato_a_un_orario_notturno():
     assert voce.hour == "0"
     assert voce.minute == "40"
     assert voce.built_in is True
+
+
+def test_scrittura_fallita_libera_il_lock_e_il_giro_successivo_arriva_al_pannello(tmp_path, monkeypatch):
+    from queue import Queue
+    from threading import Thread
+
+    from web.services import server_maintenance_surface as sms
+
+    genitore = tmp_path / "intelligence"
+    genitore.touch()
+    percorso = genitore / cs.NOME_FILE
+    monkeypatch.setattr(cs, "percorso_censimento", lambda cfg=None: percorso)
+    monkeypatch.setattr(
+        sms, "run_professional_server_maintenance",
+        lambda *, apply, config: {"bytes_reclaimable_label": "5 GiB"},
+    )
+
+    assert cs.esegui_censimento({}).get("errore_scrittura")
+    assert cs.ultimo_censimento({}) is None
+    genitore.unlink()
+
+    esiti = Queue()
+    Thread(target=lambda: esiti.put(cs.esegui_censimento({})), daemon=True).start()
+    voce = esiti.get(timeout=5)
+    assert voce.get("percorso") == str(percorso)
+    assert cs.ultimo_censimento({})["risultato"]["bytes_reclaimable_label"] == "5 GiB"

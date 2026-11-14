@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, request
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_deposito_aux_routes(
@@ -18,12 +19,14 @@ def register_deposito_aux_routes(
     @app.route("/deposito/checklist")
     def deposito_checklist():
         """Checklist operativa per il deposito telematico."""
-        return render_template("deposito_checklist.html")
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("deposito/checklist")
 
     @app.route("/guida/firma-digitale")
     def guida_firma_digitale():
         """Guida interattiva per la firma digitale."""
-        return render_template("guida_firma_digitale.html")
+        # Pagina React (TelematicoSurfacePage/TelematicoPage): la vista Jinja è stata tolta.
+        return render_react_shell_response("guida/firma-digitale")
 
     @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
     def api_deposito_valida(id_fasc):

@@ -225,6 +225,7 @@ class LearningCycleResult:
     new_readings: int = 0
     new_unknown_concepts: int = 0
     proposals_count: int = 0
+    new_proposals_count: int = 0
     signals: list[dict[str, Any]] = field(default_factory=list)
     stop_reason: str = ""
     started_at: str = ""
@@ -245,6 +246,7 @@ class LearningCycleResult:
             "new_readings": self.new_readings,
             "new_unknown_concepts": self.new_unknown_concepts,
             "proposals_count": self.proposals_count,
+            "new_proposals_count": self.new_proposals_count,
             "signals": [dict(item) for item in self.signals],
             "stop_reason": self.stop_reason,
             "started_at": self.started_at,

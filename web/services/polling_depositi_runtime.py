@@ -99,7 +99,7 @@ def _studio(app: Any, manager: Any, studio: Any, *, giorni: int, credenziali_pdp
     config_pec = _config_pec(_text(paths.get("STUDIO_CONFIG")))
     if config_pec is None and credenziali_pdp is None and not archivio_pec.is_file():
         return {"tenant": slug, "esito": "pec_non_configurata", "controllati": 0, "aggiornati": 0, "errori": 0}
-    with app.test_request_context(f"/__scheduler/polling-depositi/{slug}"):
+    with app.app_context(), app.test_request_context(f"/__scheduler/polling-depositi/{slug}"):
         _attach_tenant_context(manager, studio)
         from web.helpers import get_fascicoli
 
@@ -133,10 +133,17 @@ def run_polling_esiti_deposito(app: Any, *, giorni: int) -> dict[str, Any]:
                 studi.append({"tenant": slug, "esito": "polling_fallito", "error": str(exc)[:200]})
     else:
         studi.append(_studio_unico(app, giorni=giorni, credenziali_pdp=credenziali_pdp))
-    falliti = [voce["tenant"] for voce in studi if voce.get("error")]
+    falliti = [voce["tenant"] for voce in studi if voce.get("error") or voce.get("errori")]
+    imap_incompleti = [voce["tenant"] for voce in studi if voce.get("imap_incompleto")]
     return {
         "ok": not falliti,
         "job": JOB_ID,
+        "status": "parziale" if imap_incompleti else "",
+        "message": (
+            "Controllo IMAP delle ricevute incompleto. Verificare collegamento e credenziali PEC per "
+            + ", ".join(imap_incompleti) + ". Le ricevute disponibili nell’archivio locale sono state controllate."
+        ) if imap_incompleti else "",
+        "imap_incompleti": len(imap_incompleti),
         "error": ("polling fallito per: " + ", ".join(falliti)) if falliti else "",
         "source_of_truth": "fascicoli e archivio PEC di ciascuno studio",
         "controllati": sum(int(voce.get("controllati") or 0) for voce in studi),

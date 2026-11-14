@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
+from flask import g, has_request_context
+
 from web.services.react_piattaforma_sezioni import data_ora
 
 
@@ -133,11 +135,16 @@ def _agent_rows(
     definitions = _agent_definitions()
     payload = _load_agents(config)
     latest = payload.get("latest") if isinstance(payload.get("latest"), dict) else {}
+    tenant = _text(getattr(g, "tenant_context_slug", "")) if has_request_context() else ""
     rows: list[dict[str, Any]] = []
     for agent_id in [agent for agent in focus_agent_ids if _text(agent)]:
         definition = definitions.get(agent_id)
         tenant_runs = latest.get(agent_id) if isinstance(latest.get(agent_id), dict) else {}
-        run = _latest_by_date([row for row in tenant_runs.values() if isinstance(row, Mapping)])
+        if tenant:
+            tenant_run = tenant_runs.get(tenant)
+            run = dict(tenant_run) if isinstance(tenant_run, Mapping) else {}
+        else:
+            run = _latest_by_date([row for row in tenant_runs.values() if isinstance(row, Mapping)])
         status = _text(run.get("status")) or "da_verificare"
         generated_at = _text(run.get("generated_at") or run.get("ended_at") or run.get("checked_at"))
         rows.append(

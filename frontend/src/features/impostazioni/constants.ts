@@ -178,7 +178,7 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
     { name: 'callmebot_key', label: 'Chiave CallMeBot', type: 'password', width: 'half' },
   ],
   scheduler: [
-    { name: 'backup_abilitato', label: 'Backup automatico attivo', type: 'checkbox', width: 'half', help: 'Ha effetto solo quando le copie dall’applicazione sono attive: lo stato è indicato nella sezione Backup.' },
+    { name: 'backup_abilitato', label: 'Preferenza per il backup automatico', type: 'checkbox', width: 'half', help: 'Ha effetto solo quando le copie dall’applicazione sono attive: lo stato è indicato nella sezione Backup.' },
     { name: 'backup_ora', label: 'Ora backup', type: 'time', width: 'half' },
     { name: 'wa_reminder_abilitato', label: 'Promemoria WhatsApp attivi', type: 'checkbox', width: 'half' },
     { name: 'wa_reminder_ora', label: 'Ora promemoria', type: 'time', width: 'half' },

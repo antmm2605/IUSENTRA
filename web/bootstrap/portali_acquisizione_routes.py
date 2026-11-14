@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
 import re
 from typing import Any
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, flash, jsonify, redirect, request, url_for
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_portali_acquisizione_routes(
@@ -41,11 +41,6 @@ def register_portali_acquisizione_routes(
 ) -> None:
     """Register guided acquisition routes for PST, PDP, PAT, and PTT."""
 
-    def _richiede_vista_classica() -> bool:
-        return request.args.get("_legacy") == "1"
-
-    def _vista_classica_args() -> dict[str, str]:
-        return {"_legacy": "1"} if _richiede_vista_classica() else {}
 
     def _portale_public_error(portale: str, operation: str) -> str:
         key = str(portale or "").strip().lower()
@@ -71,8 +66,6 @@ def register_portali_acquisizione_routes(
             return "Analisi importazione non completata. Verifica selezione e anteprima."
         return "Operazione non completata. Verifica i dati e riprova."
 
-    def _clean_query_value(name: str) -> str:
-        return str(request.args.get(name) or "").strip()
 
     def _normalise_document_match(value: Any) -> str:
         raw = str(value or "").strip().lower()
@@ -176,88 +169,28 @@ def register_portali_acquisizione_routes(
     @app.route("/portali/<portale>/acquisizione", methods=["GET"])
     def portale_acquisizione_wizard(portale: str):
         try:
-            spec = _spec_portale_acquisizione(portale)
+            _spec_portale_acquisizione(portale)
         except KeyError:
             flash("Portale non supportato.", "warning")
             return redirect(url_for("dashboard"))
-
-        id_fasc = str(
-            request.args.get("id_fasc")
-            or request.args.get("fascicolo_id")
-            or request.args.get("target_fascicolo_id")
-            or ""
-        ).strip()
-        requested_mode = str(request.args.get("mode") or "").strip().lower()
-        if requested_mode not in {"create_new", "attach_existing", "update_existing"}:
-            requested_mode = ""
-        wizard_focus = str(request.args.get("focus") or "").strip().lower()
-        linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
-        linked_fascicolo_url = (
-            url_for("dettaglio_fascicolo", id_fasc=linked_fascicolo.id) if linked_fascicolo else ""
-        )
-        linked_workflow_url = ""
-        if portale == "pdp" and linked_fascicolo:
-            linked_workflow_url = _pdp_penale_workspace_url_for_fascicolo(linked_fascicolo.id)
-        wizard_return_url = linked_fascicolo_url or url_for(spec["home_endpoint"])
-        wizard_return_label = "Torna al fascicolo" if linked_fascicolo else "Torna al portale"
-        initial_target_id = linked_fascicolo.id if linked_fascicolo else id_fasc
-        initial_mode = requested_mode or ("update_existing" if linked_fascicolo else "create_new")
-        if initial_mode == "create_new":
-            initial_target_id = ""
-        elif initial_target_id:
-            initial_mode = "update_existing" if initial_mode == "update_existing" else "attach_existing"
-        wizard_initial_mapping = (
-            {"mode": initial_mode, "target_fascicolo_id": initial_target_id}
-        )
-        wizard_initial_query = {
-            "ufficio": _clean_query_value("ufficio"),
-            "ufficioCodice": _clean_query_value("ufficio_codice"),
-            "numero": _clean_query_value("numero"),
-            "anno": _clean_query_value("anno"),
-            "assistito": _clean_query_value("assistito"),
-            "controparte": _clean_query_value("controparte"),
-            "oggetto": _clean_query_value("oggetto") or _clean_query_value("documento") or _clean_query_value("documento_portale"),
-        }
-        wizard_target_document = {
-            "singleDocument": _clean_query_value("single_document") in {"1", "true", "si", "sì"},
-            "documento": _clean_query_value("documento") or _clean_query_value("documento_portale"),
-            "idDocumento": _clean_query_value("id_documento"),
-            "hash": _clean_query_value("hash"),
-            "pecId": _clean_query_value("pec_id"),
-            "tipoDocumento": _clean_query_value("tipo_documento"),
-        }
-        return render_template(
-            "portale/acquisizione_wizard.html",
-            spec=spec,
-            wizard_status=_build_access_status_payload(portale),
-            wizard_portale=portale,
-            linked_fascicolo=linked_fascicolo,
-            linked_fascicolo_url=linked_fascicolo_url,
-            linked_workflow_url=linked_workflow_url,
-            wizard_return_url=wizard_return_url,
-            wizard_return_label=wizard_return_label,
-            wizard_initial_mapping=wizard_initial_mapping,
-            wizard_initial_query=wizard_initial_query,
-            wizard_target_document=wizard_target_document,
-            wizard_focus=wizard_focus,
-            oggi=date.today(),
-        )
+        # Acquisizione guidata: pagina React (TelematicoSurfacePage / PdpPenalePage); dati da /api/portali/<portale>/acquisizione.
+        return render_react_shell_response(f"portali/{portale}/acquisizione")
 
     @app.route("/polisWeb/acquisizione", methods=["GET"])
     def polisweb_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pst", **_vista_classica_args()))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pst"))
 
     @app.route("/pdp/acquisizione", methods=["GET"])
     def pdp_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pdp", **_vista_classica_args()))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
 
     @app.route("/pat/acquisizione", methods=["GET"])
     def pat_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pat", **_vista_classica_args()))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
 
     @app.route("/sigit/acquisizione", methods=["GET"])
     def sigit_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="ptt", **_vista_classica_args()))
+        return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
 
     @app.route("/api/portali/<portale>/acquisizione/status", methods=["GET"])
     def api_portale_acquisizione_status(portale: str):

@@ -40,7 +40,7 @@
   {% if not react_assets.ready %}
   <main class="support-customer-noscript" role="alert">
     <h1>Assistenza remota con consenso esplicito</h1>
-    <p>L'interfaccia della stanza non è disponibile su questo server. Apri la <a href="{{ request.path }}?_legacy=1">vista classica</a> per proseguire.</p>
+    <p>L'interfaccia della stanza non è disponibile su questo server: avvisa lo studio, che può riaprire l'assistenza.</p>
   </main>
   {% endif %}
   {% for js_file in react_assets.js %}

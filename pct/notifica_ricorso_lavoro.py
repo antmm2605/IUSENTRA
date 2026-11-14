@@ -44,7 +44,7 @@ def data_di_pronuncia(testo: str) -> date | None:
     return next(iter(trovate)) if len(trovate) == 1 else None
 
 
-def proposte_art_415(testo: str, *, udienza: date | None, estero: bool = False) -> list[TermProposal]:
+def proposte_art_415(testo: str, *, udienza: date | None, estero: bool | None = None) -> list[TermProposal]:
     """Le bozze dei termini di notifica dell'art. 415 c.p.c. ricavabili da fonti certe."""
     if not ordine_di_notifica_nei_termini_di_legge(testo):
         return []
@@ -62,7 +62,7 @@ def proposte_art_415(testo: str, *, udienza: date | None, estero: bool = False) 
                   "dieci giorni dalla pronuncia (termine ordinatorio)."),
             perentorio=False,
         ))
-    if udienza is not None:
+    if udienza is not None and estero is not None:
         giorni = 40 if estero else 30
         esito = calcolatore.calculate(udienza, giorni, direction="backward", matter_type="lavoro", free_term=True,
                                       reference_law="Art. 415, comma 5, c.p.c.")

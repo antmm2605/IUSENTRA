@@ -210,6 +210,7 @@ def test_rinvio_udienza_ricezione_in_agenda_udienza_precedente_rinviata_e_titolo
     assert "Ricevuta il: 10/09/2026 alle 14:58 (ora italiana)" in receipt.note
     assert f"Data precedente: {_it(old_day)}" in receipt.note
     assert receipt.external_source_url == f"/api/pec/messages/{message_id}"
+    assert receipt.id_fascicolo == (link["fascicolo_id"] or "")
     assert f"PEC_AUDIT:{message_id}" not in receipt.note, "la riconciliazione dei presidi non deve poterla annullare"
 
     previous = appointments[old_appointment.id]
@@ -407,8 +408,14 @@ def test_termini_proposti_per_sentenza_ed_estinzione_con_rito_del_lavoro():
 
     estinzione = classify_court_communication({"oggetto_evento": "ESTINZIONE", "descrizione_evento": "FASCICOLO ESTINTO"})
     assert [item.code for item in propose_terms(estinzione, dies_a_quo=date(2026, 9, 11), labour=True)] == ["CIV_APPELLO_LUNGO"]
-    civile = propose_terms(estinzione, dies_a_quo=date(2026, 9, 11), labour=False)
-    assert [(item.code, item.due_date) for item in civile] == [("CIV_APPELLO_LUNGO", "2027-03-11"), ("CIV_RECLAMO_ESTINZIONE_308", "2026-09-21")]
+    assert propose_terms(estinzione, dies_a_quo=date(2026, 9, 11), labour=False) == []
+    civile = propose_terms(
+        estinzione, dies_a_quo=date(2026, 11, 9), labour=False, comunicata_il=date(2026, 11, 12),
+        testo_provvedimento="Ordinanza pronunciata fuori udienza in causa di competenza collegiale.",
+    )
+    assert [(item.code, item.dies_a_quo, item.due_date) for item in civile] == [
+        ("CIV_RECLAMO_ESTINZIONE_308", "2026-11-12", "2026-11-23"),
+    ]
 
     designazione = classify_court_communication({"oggetto_evento": "DESIGNAZIONE GIUDICE", "descrizione_evento": "FASCICOLO ASSEGNATO AL GIUDICE ROSSI"})
     assert propose_terms(designazione, dies_a_quo=date(2026, 9, 11), labour=True) == []
@@ -418,8 +425,21 @@ def test_termini_proposti_per_sentenza_ed_estinzione_con_rito_del_lavoro():
 
 def _run_cancelleria(repo, mime: bytes, uid: str):
     ingest = repo.ingest_mime(mime, account_email="studio@pec.it", folder="INBOX", imap_uid=uid, actor="pytest")
-    repo.run_pending_jobs(limit=40)
-    return str(ingest["id"])
+    from time import monotonic, sleep
+
+    message_id = str(ingest["id"])
+    limite = monotonic() + 10
+    while monotonic() < limite:
+        repo.run_pending_jobs(limit=40)
+        with repo.connect() as conn:
+            link = conn.execute(
+                "SELECT status FROM pec_jobs WHERE tenant_id=? AND message_id=? AND job_type='link'",
+                (repo.tenant_id, message_id),
+            ).fetchone()
+        if link is not None and link["status"] == "done":
+            return message_id
+        sleep(0.1)
+    raise AssertionError("Il worker non ha completato il collegamento della PEC di prova")
 
 
 def test_sentenza_estinzione_designazione_in_agenda_alla_ricezione_con_termini_in_bozza(tmp_path):
@@ -544,7 +564,8 @@ def test_il_provvedimento_della_comunicazione_entra_nel_fascicolo_una_volta(tmp_
     mime.add_attachment(zip_buffer.getvalue(), maintype="application", subtype="zip", filename="15494079s.pdf.zip")
     message_id = _run_cancelleria(repo, mime.as_bytes(policy=policy.SMTP), "INBOX:UID:381")
     ricezione = next(item for item in Agenda(str(tmp_path / "agenda.json")).tutti() if message_id in item.external_uid)
-    assert ricezione.id_fascicolo == ""  # la ricezione nasce prima del collegamento
+    iniziale = repo.get_message_detail(message_id)["message"]["linked_fascicolo_id"]
+    assert ricezione.id_fascicolo == (iniziale or "")
     # Collegamento al fascicolo (in produzione dal ruolo e dalle parti; qui confermato con soglia di prova).
     repo.link_fascicolo(message_id, threshold=0.5, actor="pytest")
     # V31: la voce nata prima del collegamento riceve il fascicolo.
@@ -583,7 +604,7 @@ def test_decreto_del_lavoro_con_ordine_di_notifica_propone_i_termini_dell_art_41
     """V33: testo reale dei decreti di Vicenza del 24/07 e del 09/10/2026 («nei termini di legge»)."""
     from email import message_from_bytes
 
-    from pct.scadenziario import GestioneScadenziario, TipoTermine
+    from pct.scadenziario import GestioneScadenziario
 
     repo, _fascicolo = _repo_con_fascicolo(tmp_path)
     oggi = datetime.now(ROME_TZ).date()
@@ -603,8 +624,36 @@ def test_decreto_del_lavoro_con_ordine_di_notifica_propone_i_termini_dell_art_41
         for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).tutte(solo_aperte=False)
         if f"PEC_TERMINE_PROPOSTO:{message_id}" in item.note
     }
-    assert set(bozze) >= {"LAV_415_NOTIFICA_TRENTA_GIORNI"}
-    trenta = bozze["LAV_415_NOTIFICA_TRENTA_GIORNI"]
-    assert trenta.tipo == TipoTermine.NOTIFICA and trenta.data_scadenza < udienza.isoformat()
+    assert "LAV_415_NOTIFICA_TRENTA_GIORNI" not in bozze
+    ricevuta = next(item for item in Agenda(str(tmp_path / "agenda.json")).tutti()
+                    if item.external_uid == f"PEC_RICEZIONE:{message_id}")
+    assert "in Italia o all'estero" in ricevuta.note
     if "LAV_415_NOTIFICA_DIECI_GIORNI" in bozze:  # dieci giorni dalla pronuncia, se non già passati
         assert bozze["LAV_415_NOTIFICA_DIECI_GIORNI"].data_decorrenza == pronuncia.isoformat()
+
+
+def test_pec_estinzione_collegiale_usa_ricezione_in_agenda_e_decorrenza_del_reclamo(tmp_path):
+    from email import message_from_bytes
+    from email.utils import format_datetime
+
+    repo, _ = _repo_con_fascicolo(tmp_path)
+    ricezione = datetime.now(ROME_TZ).replace(hour=9, minute=10, second=0, microsecond=0)
+    pubblicazione = ricezione.date() - timedelta(days=3)
+    messaggio = message_from_bytes(_cancelleria_mime(
+        "ESTINZIONE", "FASCICOLO ESTINTO", rg="523/2026", when=format_datetime(ricezione),
+        tag="estinzione-collegiale", data_evento=pubblicazione.strftime("%d/%m/%Y"),
+    ), policy=policy.SMTP)
+    messaggio.add_attachment(
+        b"TRIBUNALE ORDINARIO DI VICENZA. Ordinanza pronunciata fuori udienza in causa di competenza collegiale. P.Q.M. Dichiara l'estinzione del processo.",
+        maintype="text", subtype="plain", filename="ordinanza.txt",
+    )
+    message_id = _run_cancelleria(repo, messaggio.as_bytes(policy=policy.SMTP), "INBOX:UID:est308")
+    appuntamento = next(item for item in Agenda(str(tmp_path / "agenda.json")).tutti()
+                       if item.external_uid == f"PEC_RICEZIONE:{message_id}")
+    assert appuntamento.data_ora.startswith(ricezione.date().isoformat())
+    bozze = [item for item in GestioneScadenziario(str(tmp_path / "scadenze.json")).bozze()
+             if item.source_message_id == message_id]
+    reclamo, = bozze
+    assert reclamo.deadline_profile_code == "CIV_RECLAMO_ESTINZIONE_308"
+    assert reclamo.data_decorrenza == ricezione.date().isoformat()
+    assert reclamo.data_decorrenza != pubblicazione.isoformat()

@@ -44,7 +44,7 @@ ETICHETTE_TIPO: dict[str, str] = {
 
 VERIFICA_20261108 = "2026-11-08"
 
-_HUDOC_ITALIA = (
+HUDOC_ITALIA_RSS = (
     "https://hudoc.echr.coe.int/app/transform/rss?library=echreng&query=contentsitename%3AECHR%20AND%20"
     "(NOT%20(doctype%3DPR%20OR%20doctype%3DHFCOMOLD%20OR%20doctype%3DHECOMOLD))%20AND%20"
     "((respondent%3D%22ITA%22))%20AND%20((documentcollectionid2%3D%22JUDGMENTS%22))"
@@ -96,7 +96,7 @@ FONTI: tuple[Fonte, ...] = (
     ),
     Fonte(
         "cedu_italia", "Corte EDU", "Corte europea dei diritti dell'uomo — HUDOC, sentenze nei confronti dell'Italia",
-        _HUDOC_ITALIA, "rss", PRONUNCIA, 720, VERIFICA_20261108,
+        HUDOC_ITALIA_RSS, "rss", PRONUNCIA, 720, VERIFICA_20261108,
         materia=m.COSTITUZIONE, host_ammessi=("hudoc.echr.coe.int",),
     ),
     Fonte(

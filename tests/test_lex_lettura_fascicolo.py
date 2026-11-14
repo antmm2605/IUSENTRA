@@ -35,9 +35,9 @@ def _lettura_di_prova() -> dict:
 def test_sezioni_per_domanda_segue_il_fuoco_della_domanda():
     assert formato.sezioni_per_domanda("riassumi il fascicolo") == ORDINE_SEZIONI
     assert formato.sezioni_per_domanda("") == ORDINE_SEZIONI
-    assert formato.sezioni_per_domanda("a che punto siamo con le notifiche?") == ("quadro", "depositi_notifiche", "prossimi_passi", "verifiche", "lacune", "fase", "cronologia")
+    assert formato.sezioni_per_domanda("a che punto siamo con le notifiche?") == ("quadro", "depositi_notifiche", "prossimi_passi", "ragionamento", "verifiche", "lacune", "fase", "cronologia")
     assert formato.sezioni_per_domanda("quali verifiche automatiche risultano?") == ("quadro", "verifiche", "prossimi_passi", "lacune")
-    assert formato.sezioni_per_domanda("cosa devo fare adesso") == ("quadro", "fase", "prossimi_passi", "lacune")
+    assert formato.sezioni_per_domanda("cosa devo fare adesso") == ("quadro", "fase", "prossimi_passi", "ragionamento", "lacune")
     assert formato.sezioni_per_domanda("di cosa tratta la causa") == ("quadro", "oggetto", "documenti", "fase")
     assert formato.sezioni_per_domanda("ciao") == ORDINE_SEZIONI
 
@@ -218,10 +218,65 @@ def test_context_archivio_completo_non_ricostruisce_catalogo_pesante(monkeypatch
     monkeypatch.setattr("web.services.react_fascicoli_bridge._sql_document_catalog_by_id", lambda _fascicolo: {})
     monkeypatch.setattr("web.services.correlazioni_ricevute_archivio.depositi_da_archivio", lambda _fascicolo: [])
 
-    dati = modulo.raccogli_dati_lettura("F1")
+    from flask import Flask, g
+    from web.services import archivio_letture_runtime as archivio_runtime
+    from web.services import registro_letture_runtime as registro_runtime
+
+    chiamate = []
+    registro = SimpleNamespace(fatti=lambda *args, **kwargs: chiamate.append((args, kwargs)) or [])
+    monkeypatch.setattr(registro_runtime, "registro_corrente", lambda: registro)
+    monkeypatch.setattr(registro_runtime, "tenant_corrente", lambda: "studio-prova")
+    monkeypatch.setattr(registro_runtime, "percorso_registro", lambda: "/registro-di-prova")
+    def economico(_id):
+        assert g.fascicoli_sql_puntuali is True
+        assert archivio_runtime.fatti_fascicolo(fascicolo, canonico=False) == []
+        assert archivio_runtime.fatti_fascicolo(fascicolo, categoria="importo") == []
+        return {}
+    monkeypatch.setattr(modulo, "_economico", economico)
+
+    with Flask(__name__).test_request_context("/"):
+        dati = modulo.raccogli_dati_lettura("F1")
+        assert not g.fascicoli_sql_puntuali
+        assert g._archivio_fatti_dettaglio is None
+    assert chiamate == [(("studio-prova", "F1"), {"verifiche": None})]
 
     assert dati is not None
     assert dati.documenti[0]["id"] == "D1"
     assert dati.documenti[0]["lex_read"] is True
     assert dati.catalogo[0]["document_id"] == "D1"
     assert dati.catalogo[0]["indexed"] is True
+
+
+def test_regia_lettura_di_pratica_definita_solo_con_deposito_attivo(monkeypatch):
+    from lex.context import fascicolo_lettura_context as modulo
+    from web.services import react_practice_engine_bridge as bridge
+
+    fascicolo = SimpleNamespace(id="F1", stato="DEFINITO")
+    stati = iter(("", "INVIATO"))
+    monkeypatch.setattr(modulo, "stato_ultima_sessione_deposito", lambda _fid: next(stati))
+    chiamate = []
+    monkeypatch.setattr(bridge, "build_react_practice_engine_payload",
+                        lambda **kw: chiamate.append(kw["fascicolo_id"]) or {})
+    assert modulo._regia(fascicolo) == {}
+    assert chiamate == []
+    modulo._regia(fascicolo)
+    assert chiamate == ["F1"]
+    modulo._regia(fascicolo)  # Lettura mirata non disponibile: usa la Regia ordinaria.
+    assert chiamate == ["F1", "F1"]
+
+
+def test_ultima_sessione_di_deposito_legge_solo_il_fascicolo(monkeypatch):
+    import sqlite3
+    from contextlib import closing
+    from web import helpers
+
+    with closing(sqlite3.connect(":memory:")) as conn:
+        conn.execute("CREATE TABLE deposit_sessions (id TEXT, fascicolo_id TEXT, status TEXT, created_at TEXT)")
+        conn.executemany("INSERT INTO deposit_sessions VALUES (?, ?, ?, ?)", [
+            ("D1", "F1", "INVIATO", "2026-01-02"),
+            ("D2", "F1", "ACQUISITO", "2026-01-03"),
+            ("D3", "F2", "IN_PREPARAZIONE", "2026-01-04"),
+        ])
+        monkeypatch.setattr(helpers, "_studio_db", lambda _anchor: SimpleNamespace(conn=conn))
+        assert helpers.stato_ultima_sessione_deposito("F1") == "ACQUISITO"
+        assert helpers.stato_ultima_sessione_deposito("F3") == ""

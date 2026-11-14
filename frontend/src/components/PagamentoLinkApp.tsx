@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { messaggiDaAttributo, type MessaggioPagina } from '../pubblicoTokenApi'
 import { avviaPagamento, caricaCheckout, caricaEsito, percorsoCheckout, type Provider, type StatoPagamento } from '../pagamentoLinkData'
 import { SumUpWidget } from './pagamentoLink/SumUpWidget'
-import { Messaggi, VistaCheckout, VistaEsito, VistaGiaPagato, VistaScaduto } from './pagamentoLink/PagamentoViste'
+import { Messaggi, VistaCheckout, VistaDaVerificare, VistaEsito, VistaGiaPagato, VistaScaduto } from './pagamentoLink/PagamentoViste'
 import './PagamentoLinkApp.css'
 
 /**
@@ -13,7 +13,7 @@ import './PagamentoLinkApp.css'
  * Satispay), l'identificativo del checkout SumUp o le coordinate del bonifico.
  */
 
-type Radice = { token: string; vista: string; provider: string; studio: string; messaggi: MessaggioPagina[] }
+type Radice = { token: string; vista: string; provider: string; studio: string; messaggio: string; messaggi: MessaggioPagina[] }
 
 function leggiRadice(): Radice {
   const dataset = document.getElementById('pagamento-react-root')?.dataset ?? {}
@@ -22,6 +22,7 @@ function leggiRadice(): Radice {
     vista: dataset.vista || 'checkout',
     provider: dataset.provider || '',
     studio: dataset.studio || '',
+    messaggio: dataset.messaggio || '',
     messaggi: messaggiDaAttributo(dataset.messaggi),
   }
 }
@@ -31,6 +32,7 @@ const TITOLI: Record<StatoPagamento['tipo'], string> = {
   checkout: 'Pagamento',
   gia_pagato: 'Già pagato',
   scaduto: 'Link scaduto',
+  da_verificare: 'Pagamento da verificare',
   sumup: 'Pagamento SumUp',
   esito: 'Pagamento',
   errore: 'Pagamento',
@@ -40,7 +42,10 @@ export default function PagamentoLinkApp() {
   const [radice] = useState(leggiRadice)
   const token = radice.token
   const checkoutHref = useRef(percorsoCheckout(token))
-  const [stato, setStato] = useState<StatoPagamento>(() => (radice.vista === 'scaduto' ? { tipo: 'scaduto' } : { tipo: 'caricamento' }))
+  // Stato deciso dal server (link scaduto, pagamento da verificare): niente richiesta ai dati del link.
+  const [stato, setStato] = useState<StatoPagamento>(() => (radice.vista === 'scaduto'
+    ? { tipo: 'scaduto' }
+    : radice.vista === 'da_verificare' ? { tipo: 'da_verificare', messaggio: radice.messaggio } : { tipo: 'caricamento' }))
   const [messaggi, setMessaggi] = useState<MessaggioPagina[]>(radice.messaggi)
   const [inCorso, setInCorso] = useState<Provider | null>(null)
   const [ricarica, setRicarica] = useState(0)
@@ -48,7 +53,7 @@ export default function PagamentoLinkApp() {
   useBusyActivity(inCorso !== null, 'Preparazione della procedura di pagamento…')
 
   useEffect(() => {
-    if (radice.vista === 'scaduto') return undefined
+    if ((radice.vista === 'scaduto' || radice.vista === 'da_verificare') && ricarica === 0) return undefined
     const controller = new AbortController()
     const carica = radice.vista === 'esito' && ricarica === 0
       ? caricaEsito(token, radice.provider, controller.signal)
@@ -76,6 +81,8 @@ export default function PagamentoLinkApp() {
       setMessaggi([{categoria:'warning',testo:esito.messaggio}])
     } else if (esito.tipo === 'scaduto') {
       setStato({ tipo: 'scaduto' })
+    } else if (esito.tipo === 'da_verificare') {
+      setStato({ tipo: 'da_verificare', messaggio: esito.messaggio })
     } else if (esito.tipo === 'sumup') {
       checkoutHref.current = esito.urlEsito.replace(/\/successo(?:\?.*)?$/, '')
       setStato((corrente) => ({
@@ -128,6 +135,7 @@ export default function PagamentoLinkApp() {
       ) : null}
       {stato.tipo === 'gia_pagato' ? <VistaGiaPagato studioNome={studioNome} dati={stato.dati} /> : null}
       {stato.tipo === 'scaduto' ? <VistaScaduto studioNome={studioNome} /> : null}
+      {stato.tipo === 'da_verificare' ? <VistaDaVerificare studioNome={studioNome} messaggio={stato.messaggio} /> : null}
       {stato.tipo === 'sumup' ? (
         <SumUpWidget studioNome={studioNome} importo={stato.importo} checkoutId={stato.checkoutId} urlEsito={stato.urlEsito} onIndietro={tornaAlCheckout} />
       ) : null}

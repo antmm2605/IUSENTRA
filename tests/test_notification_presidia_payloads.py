@@ -351,10 +351,14 @@ def test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo(mon
     import web.helpers
 
     monkeypatch.setattr(web.helpers, "get_fascicoli", lambda: SimpleNamespace(get=lambda identifier: fascicolo if identifier == "78D6022C" else None))
-    monkeypatch.setattr(payloads, "presidio_permissions", lambda: {"can_read": True, "can_write": True, "can_link_document": True, "can_configure": True})
+    monkeypatch.setattr(payloads, "presidio_permissions", lambda: {"can_read": True, "can_write": True, "can_link_document": True, "can_configure": True, "can_view_evidence": True})
     monkeypatch.setattr(payloads, "current_actor_id", lambda: "pytest")
 
-    detail = payloads.build_presidio_detail_payload(repository, str(presidio["id"]))["presidio"]
+    from flask import Flask
+
+    app = Flask(__name__)
+    with app.app_context():
+        detail = payloads.build_presidio_detail_payload(repository, str(presidio["id"]))["presidio"]
 
     documents = detail["documents"]
     pst_document = next(item for item in documents if item["id"] == "DE29EE7F")
@@ -365,6 +369,18 @@ def test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo(mon
     assert pst_document["viewer_url"] == "/fascicoli/78D6022C/documenti/DE29EE7F/visualizza"
     assert pec_copy["original_acquisition_required"] is False
     assert pec_copy["original_acquisition_url"] == ""
+    assert not any(azione["id"] == "prepare-relata" for azione in detail["available_actions"])
+
+    repository.transition(str(presidio["id"]), "NOTIFICATION_CONFIRMED", actor="pytest", reason="Originale verificato",
+                          evidence={}, idempotency_key="decisione-per-bozza")
+    with app.app_context():
+        confermato = payloads.build_presidio_detail_payload(repository, str(presidio["id"]))["presidio"]
+    azione, = [azione for azione in confermato["available_actions"] if azione["id"] == "prepare-relata"]
+    parametri = parse_qs(urlparse(azione["href"]).query)
+    assert parametri["id_fascicolo"] == ["78D6022C"]
+    assert parametri["documenti"] == ["DE29EE7F"]
+    assert parametri["fase"] == ["notifica"]
+
 
 
 def test_dettaglio_presidio_riconcilia_prova_notifica_depositata_dal_fascicolo(monkeypatch, tmp_path) -> None:
@@ -476,3 +492,38 @@ def test_documenti_collegabili_espongono_nomi_leggibili_non_soli_id(monkeypatch)
             "document_name": "Sentenza.pdf",
         }
     ]
+
+
+def test_azione_presidio_considera_le_consegne_dei_destinatari_richiesti() -> None:
+    delivered = {"required": True, "delivery_status": "delivered", "rdac_message_id": "receipt"}
+    pending = {"required": True, "delivery_status": "pending"}
+    optional = {"role": "parte", "required": False, "delivery_status": "pending"}
+    row = {"status": "NEEDS_REVIEW", "channel": "pec"}
+
+    full = payloads._summary({}, row, [delivered, optional], [], [])["next_action"]
+    partial = payloads._summary({}, row, [delivered, pending], [], [])["next_action"]
+    unproven = payloads._summary({}, row, [{**delivered, "rdac_message_id": ""}], [], [])["next_action"]
+    assert "tutti i destinatari richiesti" in full
+    assert "1 di 2 destinatari richiesti" in partial
+    assert unproven == payloads.NEXT_ACTIONS["NEEDS_REVIEW"]
+    assert payloads._public_recipient(optional)["status_label"] == "Parte del fascicolo"
+    assert payloads._public_recipient({**optional, "required": True})["status_label"] == "Da inviare"
+    assert payloads._public_recipient({**optional, "pec_address": "dest@example.test"})["status_label"] == "Da inviare"
+    prova = [{}]
+    payloads._add_recipient_pec_proof(None, "presidio", [optional], prova)
+    assert prova == [{"pec_proof": [], "protocol_replies": []}]
+
+def test_invito_a_controllare_il_messaggio_nella_rdac_quando_manca_l_invio():
+    from contextlib import closing
+    import sqlite3
+
+    with closing(sqlite3.connect(":memory:")) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute("CREATE TABLE pec_messages (id, tenant_id, message_id_header, folder, received_at, mime_sha256, mime_size, metadata_json)")
+        conn.execute("INSERT INTO pec_messages VALUES ('rdac','studio','ricevuta','INBOX','2026-11-09','hash',100,'{}')")
+        repo = SimpleNamespace(tenant_id="studio", connection=lambda: conn, _row=dict)
+        proof = [{}]
+        payloads._add_recipient_pec_proof(repo, "presidio", [{"sent_message_id": "invio", "rdac_message_id": "rdac"}], proof)
+    invio, _, consegna = proof[0]["pec_proof"]
+    assert "Controlla nella RdAC" in invio["status"] and not invio["href"]
+    assert consegna["href"].endswith("/originale-pec/rdac")

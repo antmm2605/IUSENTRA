@@ -307,14 +307,6 @@ function initials(value: string, fallback: string): string {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || fallback
 }
 
-function isPecOperationalWarning(item: EmailPecRow): boolean {
-  if (item.pecPresidiata) return false
-  const auditWarning = Boolean(item.pecAudit && item.pecAudit.qualityTone !== 'success')
-  const status = item.pctStatus || ''
-  const pctWarning = Boolean(status && (status.includes('RIFIUT') || status.includes('ERRORE') || status.includes('WARN')))
-  return auditWarning || pctWarning
-}
-
 function sortRows(rows: EmailPecRow[], sort: SortKey): EmailPecRow[] {
   const copy = [...rows]
   if (sort === 'mittente') return copy.sort((a, b) => rowPerson(a).localeCompare(rowPerson(b), 'it'))
@@ -384,10 +376,6 @@ type MailActionPayload = {
   warning?: boolean
   nuove?: number
   allegati_salvati?: number
-  run_id?: string
-  has_more?: boolean
-  cursor_index?: number
-  total_emails?: number
   batch_size?: number
 }
 
@@ -406,7 +394,7 @@ function PecAuditBadges({ audit }: { audit?: PecAuditSummary }) {
 function auditOutcomeText(audit?: PecAuditSummary): string {
   if (!audit) return ''
   if (audit.persisted === false) {
-    return 'Esito provvisorio: il software ha controllato i dati visibili, ma deve acquisire il MIME originale per chiudere conservazione, firme, OCR e verifica completa.'
+    return 'Controllo in attesa dell’originale PEC. Il software acquisisce il messaggio e verifica gli allegati e le firme in background.'
   }
   if (audit.qualityTone === 'danger') return 'Esito critico: sono presenti anomalie da presidiare prima di archiviare o collegare la PEC.'
   if (audit.qualityTone === 'warning') return 'Esito da presidiare: il controllo automatico ha trovato elementi da verificare con azione operativa.'
@@ -415,13 +403,19 @@ function auditOutcomeText(audit?: PecAuditSummary): string {
 
 function auditSuggestedAction(audit?: PecAuditSummary): string {
   if (!audit) return ''
-  const recommended = audit.recommendedActions.find(Boolean)
+  if (audit.persisted === false) return ''
+  if (audit.eventType === 'pct_deposito') {
+    const phase = record(audit.depositLifecycle)
+    return text(phase.communication)
+  }
+  const recommended = audit.recommendedActions.find((action) => action && (
+    !audit.linkedFascicoloId || !/^collegare la pec al fascicolo/i.test(action)
+  ))
   if (recommended) return recommended
   const firstIssue = audit.validationIssues.find((item) => item.detail || item.title)
   if (firstIssue) return firstIssue.detail || firstIssue.title
-  if (audit.persisted === false) return 'Esegui controllo: acquisizione MIME da IMAP, verifica allegati/firme e aggiornamento esito.'
-  if (audit.eventType === 'pct_deposito') return 'Verifica sequenza deposito: accettazione, consegna, esito controlli e accettazione finale.'
-  if (audit.eventType) return 'Collega la comunicazione al fascicolo e presidia i termini indicati dalla PEC.'
+  if (audit.linkedFascicoloId) return ''
+  if (audit.eventType) return 'Verifica il fascicolo di destinazione se il collegamento resta da confermare.'
   return 'Nessuna azione urgente rilevata; conserva la PEC nel fascicolo corretto se pertinente.'
 }
 
@@ -616,7 +610,7 @@ function PecAuditInlineNotice({
   onAction: (url: string, label: string) => void
 }) {
   if (!audit) return null
-  const question = audit.agentQuestions[0]
+  const action = auditSuggestedAction(audit)
   const deadlineStatus = auditDeadlineStatus(audit)
   const issues = audit.validationIssues.slice(0, 4)
   const questions = audit.agentQuestions.slice(0, 5)
@@ -641,7 +635,7 @@ function PecAuditInlineNotice({
           <div>
             <span>Controllo automatico PEC</span>
             <strong>{audit.eventType ? auditEventLabel(audit.eventType) : audit.qualityLabel}</strong>
-            <small>{auditOutcomeText(audit)} Azione suggerita: {auditSuggestedAction(audit)}{question ? ` Domanda guida: ${question}` : ''}</small>
+            <small>{auditOutcomeText(audit)}{audit.linkedFascicoloId ? ' La PEC è già collegata al fascicolo.' : ''}{action ? ` ${action}` : ''}</small>
             {deadlineStatus ? <p className="iu-pec-deadline-status"><Clock3 size={14} /> {deadlineStatus}</p> : null}
           </div>
           <div className="iu-pec-audit-badges">
@@ -765,7 +759,7 @@ function PecAuditSidebarPanel({
             <ConfidenceChip label="Modalità" field={fieldConfidence(audit, 'modalita_udienza')} />
           </div>
           <small>Le percentuali indicano la qualità dell'estrazione automatica, non una decisione legale conclusiva.</small>
-          <p className="iu-pec-sidebar-outcome">{auditOutcomeText(audit)} <b>Azione suggerita:</b> {auditSuggestedAction(audit)}</p>
+          <p className="iu-pec-sidebar-outcome">{auditOutcomeText(audit)}{audit.linkedFascicoloId ? ' La PEC è già collegata al fascicolo.' : ''} {auditSuggestedAction(audit)}</p>
           {deadlineStatus ? <p className="iu-pec-deadline-status"><Clock3 size={14} /> {deadlineStatus}</p> : null}
           {issues.length ? (
             <ul className="iu-pec-sidebar-list">
@@ -1456,40 +1450,6 @@ function OrdinaryInspector({ data, rows, onSelect, selected, loading, onAction }
   )
 }
 
-function PecAutomaticNotice({
-  rows,
-  summary,
-  onOpenPresidio,
-  onRunPresidio,
-  running,
-}: {
-  rows: EmailPecRow[]
-  summary: EmailPecPageData['summary']
-  onOpenPresidio: (id: string) => void
-  onRunPresidio: () => void
-  running: boolean
-}) {
-  const warnings = rows.filter(isPecOperationalWarning)
-  const first = warnings[0]
-  const count = Math.max(Number(summary.warnings || 0), warnings.length)
-  if (!count || !first) return null
-  return (
-    <section className="iu-mail-auto-notice" aria-label="Avviso automatico PEC" data-iusentra-sequence-slot="main-content">
-      <AlertTriangle size={17} />
-      <div>
-        <strong>Avviso automatico PEC</strong>
-        <span>{count} comunicazioni richiedono presidio: filtra le PEC da lavorare, acquisisce i MIME locali e aggiorna allegati, firme, scadenze e fascicolo quando disponibili.</span>
-      </div>
-      <div className="iu-mail-auto-notice__actions">
-        <button type="button" onClick={() => onOpenPresidio(first.id)}>Apri presidio</button>
-        <button type="button" onClick={onRunPresidio} disabled={running}>
-          {running ? 'Controllo in corso...' : 'Esegui controllo'}
-        </button>
-      </div>
-    </section>
-  )
-}
-
 function MailboxStats({ data, mode, onSelect, selected, loading, unavailable }: { data: EmailPecPageData; mode: MailboxMode; onSelect: (metric: MailboxMetric) => void; selected: MailboxMetric | null; loading: boolean; unavailable: boolean }) {
   if (mode === 'ordinaria') {
     return (
@@ -1587,6 +1547,7 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
       .finally(() => setSourceWorking(false))
   }
   const visibleTime = formatDateTimeIt(item.timestamp, '', { includeTimezone: true }) || item.timeLabel || '-'
+  const originalMime = mode === 'pec' ? (detail?.pecAudit ?? item.pecAudit)?.quickActions.openMime : ''
   return (
     <main className="iu-mail-source-view" aria-label={mode === 'pec' ? 'PEC originale' : 'Email originale'}>
       <article className="iu-mail-source-message">
@@ -1600,6 +1561,7 @@ function EmailSourceView({ mode }: { mode: MailboxMode }) {
             {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
             {mode === 'pec' && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
             {mode === 'pec' ? <PecAuditBadges audit={detail?.pecAudit ?? item.pecAudit} /> : null}
+            {originalMime ? <a href={originalMime} target="_blank" rel="noreferrer"><Download size={15} /> Apri originale PEC</a> : null}
           </div>
         </header>
         {sourceStatus ? <p className="iu-mail-operation-status" role="status">{sourceStatus}</p> : null}
@@ -1657,11 +1619,9 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
   const [selectionWorking, setSelectionWorking] = useState(false)
   const [allResultsSelected, setAllResultsSelected] = useState(false)
   const selectionRequestRef = useRef(0)
-  const [presidioWorking, setPresidioWorking] = useState(false)
   useBusyActivity(commandWorking, 'Esecuzione del comando sulla posta…')
   useBusyActivity(bulkWorking, 'Aggiornamento dei messaggi selezionati…')
   useBusyActivity(selectionWorking, 'Preparazione della selezione dei messaggi…')
-  useBusyActivity(presidioWorking, 'Aggiornamento del presidio delle comunicazioni…')
   const [mobileReaderOpen, setMobileReaderOpen] = useState(false)
   const [saveMatterRequest, setSaveMatterRequest] = useState<PecSaveMatterRequest | null>(null)
   const markingReadRef = useRef(new Set<string>())
@@ -1929,65 +1889,6 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
       .finally(() => setCommandWorking(false))
   }
 
-  const openPresidio = (id: string) => {
-    setFolder('INBOX')
-    setStatus('tutti')
-    setOnlyPst(false)
-    setOnlyAttachments(false)
-    setOnlyLinked(false)
-    setOnlyWarnings(true)
-    setPctStatus('')
-    setAdvancedOpen(true)
-    setQuery('')
-    setSelectedId(id)
-    writeMailboxSelection(mode, 'INBOX', id)
-    setStatusLine('Presidio PEC aperto: sono visibili solo le comunicazioni che richiedono controllo.')
-  }
-
-  const runPresidio = () => {
-    if (!data.actions.pecLocalAcquire) {
-      setStatusLine('Presidio PEC non configurato per questa casella.')
-      return
-    }
-    setPresidioWorking(true)
-    setStatusLine('Presidio PEC in corso: acquisisco i MIME locali e aggiorno allegati, firme e scadenze disponibili.')
-    const runAllBlocks = async () => {
-      let runId = ''
-      let message = ''
-      let hasMore = true
-      let rounds = 0
-      while (hasMore && rounds < 240) {
-        const separator = data.actions.pecLocalAcquire.includes('?') ? '&' : '?'
-        const url = runId ? `${data.actions.pecLocalAcquire}${separator}run_id=${encodeURIComponent(runId)}` : data.actions.pecLocalAcquire
-        const payload = await postMailActionPayload(url, 'Presidio PEC')
-        rounds += 1
-        runId = payload.run_id || runId
-        hasMore = payload.has_more === true
-        const done = Number(payload.cursor_index || 0)
-        const total = Number(payload.total_emails || 0)
-        message = payload.messaggio || payload.message || 'Presidio PEC aggiornato.'
-        if (hasMore && total) {
-          setStatusLine(`${message} Avanzamento ${done}/${total}.`)
-        } else {
-          setStatusLine(message)
-        }
-      }
-      if (hasMore) {
-        throw new Error('Presidio PEC sospeso: raggiunto il limite di sicurezza dei blocchi, rilancia il controllo per proseguire.')
-      }
-      return message || 'Presidio PEC completato.'
-    }
-    runAllBlocks()
-      .then((message) => {
-        setStatusLine(message)
-        setOnlyWarnings(true)
-        setAdvancedOpen(true)
-        load()
-        setDetailReloadKey((value) => value + 1)
-      })
-      .catch((error) => setStatusLine(erroreLeggibile(error, 'Presidio PEC: errore operativo')))
-      .finally(() => setPresidioWorking(false))
-  }
 
   const toggleSelection = (id: string) => {
     if (loading || pageError || bulkWorking || selectionWorking) return
@@ -2150,7 +2051,6 @@ function EmailMailboxWorkspace({ mode }: { mode: MailboxMode }) {
 
       {pageError ? <section className="iu-mail-empty" role="alert"><AlertTriangle size={26} /><strong>Caricamento della posta non riuscito</strong><span>{pageError}</span><button type="button" className="iu-mail-filter-btn" onClick={load} disabled={loading}><RefreshCw size={16} /> {loading ? 'Caricamento…' : 'Riprova'}</button></section> : null}
 
-      {copy.includeTelematic && !pageError ? <PecAutomaticNotice rows={visible} summary={data.summary} onOpenPresidio={openPresidio} onRunPresidio={runPresidio} running={presidioWorking} /> : null}
 
       {!pageError ? <section className="iu-mail-layout" data-iusentra-sequence-slot="main-content">
         <div className="iu-mail-list-card">

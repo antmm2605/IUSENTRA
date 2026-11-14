@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -40,6 +41,7 @@ class DocumentAIIndexingResult:
     indexed: int = 0
     skipped: int = 0
     errors: list[str] = field(default_factory=list)
+    rinviato: bool = False
 
 
 class DocumentAIIndexer:
@@ -65,6 +67,7 @@ class DocumentAIIndexer:
         sources: list[DocumentAISource],
         user_context: object,
         retry_errors: bool = False,
+        fine_turno: float | None = None,
     ) -> DocumentAIIndexingResult:
         records = self.service.list_fascicolo_documents(tenant_id, fascicolo_id, user_context)
         indexed = 0
@@ -73,7 +76,11 @@ class DocumentAIIndexer:
         source_errors: list[dict[str, Any]] = []
         attempted_hashes: set[str] = set()
         failed_hashes: dict[str, dict[str, Any]] = {}
+        rinviato = False
         for source in sources:
+            if fine_turno is not None and time.monotonic() >= fine_turno:
+                rinviato = True
+                break
             if source.tenant_id != tenant_id or source.fascicolo_id != fascicolo_id:
                 failure = source_error(source, DocumentAIValidationError("La sorgente non appartiene al fascicolo richiesto."))
                 source_errors.append(failure)
@@ -148,7 +155,7 @@ class DocumentAIIndexer:
                     errors.append(f"{source.filename}: {failure['message']}")
         refreshed = self.service.list_fascicolo_documents(tenant_id, fascicolo_id, user_context)
         summary = build_lex_indexing_summary(sources=sources, records=refreshed, extra_warnings=errors, source_errors=source_errors)
-        return DocumentAIIndexingResult(summary=summary, indexed=indexed, skipped=skipped, errors=errors)
+        return DocumentAIIndexingResult(summary=summary, indexed=indexed, skipped=skipped, errors=errors, rinviato=rinviato)
 
 
 def _ready_source_has_extracted_text(

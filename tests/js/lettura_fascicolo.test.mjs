@@ -76,6 +76,20 @@ test('le card dei presìdi leggono i numeri della lettura e portano dove si agis
   assert.equal(perId.economico.href, '#conto-economico')
 })
 
+test('proposti e confermati si contano separati: una proposta non è una conferma', () => {
+  const tutti = { totale: 43, catalogati: 43, confermati: 5, proposti: 38, da_verificare: [], non_indicizzati: [], conteggi: {} }
+  const card = presidiCards(lettura({ documenti: tutti })).find((c) => c.id === 'documenti')
+  assert.equal(card.valore, '43/43')
+  assert.equal(card.nota, 'tutti letti · 5 confermati · 38 proposti da confermare')
+  assert.equal(card.tono, 'info')
+  const confermati = presidiCards(lettura({ documenti: { ...tutti, confermati: 43, proposti: 0 } })).find((c) => c.id === 'documenti')
+  assert.equal(confermati.nota, 'tutti letti e catalogati · 43 confermati')
+  assert.equal(confermati.tono, 'success')
+  const errori = presidiCards(lettura({ documenti: { ...tutti, errori_lettura: 2 } })).find((c) => c.id === 'documenti')
+  assert.match(errori.nota, /^2 letture non riuscite/)
+  assert.equal(errori.tono, 'danger')
+})
+
 test('gli atti acquisiti dal fascicolo d\'ufficio si leggono come tali', () => {
   const cards = presidiCards(lettura({ depositi: { totale: 16, importati: new Array(16).fill({}), perfezionati: [], in_corso: [], falliti: [], tutti: [] } }))
   const card = cards.find((c) => c.id === 'depositi')
@@ -104,6 +118,7 @@ test('i passi si ordinano per urgenza e il riassunto conta subito e pochi giorni
   assert.deepEqual(ordinati.map((p) => p.azione), ['A', 'B', 'C'])
   assert.equal(riassuntoStatoPassi(lettura()), '3 passaggi · 1 da fare subito · 1 entro pochi giorni')
   assert.equal(riassuntoStatoPassi(lettura({ prossimi_passi: [], stato_passi: { attivi: false, motivo: 'Fascicolo definito: nessun passaggio da eseguire.' } })), 'Fascicolo definito: nessun passaggio da eseguire.')
+  assert.equal(riassuntoStatoPassi(lettura({ stato_passi: { attivi: false, motivo: 'Pratica definita' } })), '3 passaggi · 1 da fare subito · 1 entro pochi giorni')
 })
 
 test('norma del passo e link al calcolo del termine', () => {

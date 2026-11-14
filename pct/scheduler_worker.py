@@ -57,8 +57,12 @@ def serve_scheduler_worker(
 
     shutdown_event = stop_event or threading.Event()
 
+    riavvio_guardiano = False
+
     def _default_signal_handler(event: threading.Event) -> Callable[[int, Any], None]:
         def _handle_signal(signum: int, _frame: Any) -> None:
+            nonlocal riavvio_guardiano
+            riavvio_guardiano = signum == SEGNALE_GUARDIANO and signum != signal.SIGTERM
             logger.info("Scheduler worker: ricevuto segnale %s, arresto in corso.", signum)
             event.set()
 
@@ -67,13 +71,13 @@ def serve_scheduler_worker(
     from pct.scheduler_health import mark_worker_started
 
     mark_worker_started()
-    from pct.scheduler_guardiano import INTERVALLO_BATTITO, avvia_guardiano, scrivi_battito
+    from pct.scheduler_corsie import CORSIA_INFRASTRUTTURA
+    from pct.scheduler_guardiano import INTERVALLO_BATTITO, SEGNALE_GUARDIANO, avvia_guardiano, scrivi_battito
 
     # Battito ogni 30 s e guardiano in un processo separato: un lavoro che blocca il processo non ferma più per ore
     # tutti i lavori automatici (08/11/2026); il worker viene chiuso e Docker lo riavvia.
     scheduler.add_job(scrivi_battito, "interval", seconds=INTERVALLO_BATTITO, id="battito_scheduler",
-                      max_instances=1, coalesce=True, replace_existing=True)
-    guardiano = avvia_guardiano()
+                      max_instances=1, coalesce=True, replace_existing=True, executor=CORSIA_INFRASTRUTTURA)
     from pct.preriscaldamento_archivi import avvia_in_sfondo
 
     avvia_in_sfondo(shutdown_event)  # la prima ricerca normativa non attende il disco (solo con IUSENTRA_PRERISCALDA_ARCHIVI=1)
@@ -84,12 +88,18 @@ def serve_scheduler_worker(
         if signum is not None:
             signal.signal(signum, handler)
 
+    if SEGNALE_GUARDIANO != signal.SIGTERM:
+        signal.signal(SEGNALE_GUARDIANO, _default_signal_handler(shutdown_event))
+    guardiano = avvia_guardiano()
+
     logger.info("Scheduler worker dedicato avviato correttamente.")
     try:
         while not shutdown_event.wait(60):
             continue
     finally:
-        if guardiano is not None:
+        # Una richiesta del guardiano deve lasciargli completare l'escalation:
+        # i thread APScheduler possono impedire l'uscita anche dopo shutdown().
+        if guardiano is not None and not riavvio_guardiano:
             guardiano.terminate()
         try:
             scheduler.shutdown(wait=False)
@@ -131,10 +141,11 @@ def check_presidio_health(config: dict[str, Any] | None = None) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    import sys
+    import argparse
 
-    args = list(argv if argv is not None else sys.argv[1:])
-    if "--health" in args:
+    parser = argparse.ArgumentParser(prog="python -m pct.scheduler_worker", allow_abbrev=False)
+    parser.add_argument("--health", "--check-presidi", action="store_true", help="Verifica lo stato dei presìdi ed esce.")
+    if parser.parse_args(argv).health:
         return check_presidio_health()
     return serve_scheduler_worker()
 

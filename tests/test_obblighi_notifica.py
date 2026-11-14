@@ -163,10 +163,19 @@ def test_relata_e_consegna_nella_copia_notificata_chiudono_l_obbligo():
     # Prima della 2.457.7 la raccolta non produceva mai il collegamento all'atto: l'obbligo restava aperto per sempre.
     obbligo = _fascicolo_con_copia_notificata(
         _fatto("di", "prova_notifica", "relata", "relata"),
-        _fatto("di", "prova_notifica", "rdac", "rdac", verifica="plausibile"),
+        _fatto("di", "prova_notifica", "rdac", "rdac"),
     )
     assert obbligo.stato == STATO_NOTIFICATO
     assert obbligo.dati_mancanti == []
+
+
+def test_consegna_plausibile_non_chiude_l_obbligo():
+    obbligo = _fascicolo_con_copia_notificata(
+        _fatto("di", "prova_notifica", "relata", "relata"),
+        _fatto("di", "prova_notifica", "rdac", "rdac", verifica="plausibile"),
+    )
+    assert obbligo.stato == STATO_DA_NOTIFICARE
+    assert "entrambe verificate" in obbligo.motivo
 
 
 def test_relata_senza_ricevuta_di_consegna_lascia_aperto_l_obbligo():
@@ -181,7 +190,7 @@ def test_relata_non_confermata_lascia_aperto_l_obbligo():
         _fatto("di", "prova_notifica", "rdac", "rdac"),
     )
     assert obbligo.stato == STATO_DA_NOTIFICARE
-    assert "va ancora confermata" in obbligo.motivo
+    assert "entrambe verificate" in obbligo.motivo
 
 
 def test_relata_respinta_non_vale_come_prova():
@@ -293,3 +302,74 @@ def test_sentenza_privato_contumace_alla_parte_personalmente():
                                                         contumace=True)], oggi=OGGI)[0]
     assert obbligo.destinatari[0]["presso"].startswith("alla parte personalmente")
     assert obbligo.destinatari[0]["fonte"].startswith("art. 292 c.p.c.")
+
+
+def test_rettifica_aggiorna_la_stessa_bozza_ma_rispetta_la_conferma(tmp_path, monkeypatch):
+    from pct.scadenziario import GestioneScadenziario, StatoTermine
+    from web.services import obblighi_notifica_runtime as runtime
+
+    db = str(tmp_path / "scadenze.json")
+    monkeypatch.setattr("web.helpers.get_scadenziario", lambda: GestioneScadenziario(db))
+    monkeypatch.setattr(runtime, "oggi_roma", lambda: date(2026, 11, 11))
+    fascicolo = SimpleNamespace(id="F1")
+    obbligo = {
+        "stato": STATO_DA_NOTIFICARE, "scadenza": "2026-12-01", "chiave": "prova:atto",
+        "atti": "ricorso", "documento": "Ricorso", "destinatari": [],
+        "fonti": ["art. 415 c.p.c."], "formula": "Termine di prova", "natura": "perentorio", "avvertenze": "",
+    }
+    assert runtime.allinea_scadenze(fascicolo, [obbligo])["creati"] == 1
+    iniziale, = GestioneScadenziario(db).bozze()
+    obbligo["scadenza"] = "2026-12-10"
+    assert runtime.allinea_scadenze(fascicolo, [obbligo])["aggiornati"] == 1
+    manager = GestioneScadenziario(db)
+    aggiornata, = manager.bozze()
+    assert aggiornata.id == iniziale.id and aggiornata.data_scadenza == "2026-12-10"
+    manager.aggiorna(aggiornata.id, stato=StatoTermine.APERTO)
+    obbligo["scadenza"] = "2026-12-15"
+    assert runtime.allinea_scadenze(fascicolo, [obbligo])["da_verificare"] == 1
+    conservata, = GestioneScadenziario(db).tutte(solo_aperte=False)
+    assert conservata.data_scadenza == "2026-12-10"
+
+
+def test_riscontro_storico_non_attesta_il_termine_breve():
+    from types import SimpleNamespace
+    from pct.obblighi_notifica_atto import una_voce_per_atto
+    from web.services.obblighi_notifica_runtime import _qualifica_prove_storiche
+
+    def doc(identifier, impronta):
+        return SimpleNamespace(id=identifier, hash_sha256=impronta)
+
+    documenti = [doc("invio", "a"), doc("rac", "b"), doc("rdac", "c"), doc("sentenza", "d")]
+    fatto = SimpleNamespace(
+        campo="riscontro_notifica_pec_storica", verifica="plausibile", oggetto_id="invio",
+        prove=[{"impronte_eml": {"invio": "a", "rac": "b", "rdac": "c"},
+                "impronte_allegati": ["d"], "accettazione_data": "2026-04-20T10:00:00+02:00",
+                "consegne": [{"documento_id": "rdac", "data": "2026-04-20T10:01:00+02:00"}]}],
+    )
+    prova = {"atto_documento_id": "sentenza", "documento_id": "invio",
+             "verificata": True, "relata": True, "consegna": True, "data": "2026-04-20"}
+    estranea = {**prova, "documento_id": "altra-pec", "data": "2026-05-01"}
+    _qualifica_prove_storiche([prova, estranea], [fatto], documenti)
+    assert prova["verificata"] is False
+    assert estranea["verificata"] is True
+    voce = {"documentoId": "sentenza", "regola": "sentenza_notifica_breve",
+            "stato": "facoltativa", "facoltativa": True}
+    esito, = una_voce_per_atto([voce], {"prove_notifica": [prova]})
+    assert esito["stato"] == "da_verificare"
+    assert esito["calcoli"] == []
+    assert "pubblici elenchi" in esito["motivo"]
+
+    copia = doc("copia", "e")
+    fatti = [fatto, *(
+        SimpleNamespace(oggetto_id=oid, campo="impronta_testo_atto", valore="testo_identico",
+                        verifica="verificata", sha256=impronta)
+        for oid, impronta in (("sentenza", "d"), ("copia", "e"))
+    )]
+    prova_copia = {**estranea, "atto_documento_id": "copia", "data": "2026-04-20"}
+    _qualifica_prove_storiche([prova_copia], fatti, [*documenti, copia])
+    assert prova_copia["verificata"] is False
+
+    documenti[1].hash_sha256 = "modificata"
+    seconda = {**estranea, "documento_id": "invio", "data": "2026-04-20"}
+    _qualifica_prove_storiche([seconda], [fatto], documenti)
+    assert seconda["verificata"] is True

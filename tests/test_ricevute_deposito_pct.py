@@ -524,3 +524,28 @@ def test_ricevuta_senza_x_ricevuta_non_e_del_gestore():
     dep = _deposito()
     applica_ricevute(dep, [_ric("CONSEGNA: DEPOSITO TELEMATICO", rif=f"<{MSGID}>")])
     assert dep.stato == "INVIATO"
+
+
+def test_polling_depositi_conserva_il_riscontro_imap_incompleto(monkeypatch):
+    from flask import Flask
+
+    from pct import polling_depositi as polling
+    from web.services import polling_depositi_runtime as runtime
+
+    def imap_non_disponibile(_connect, **_kwargs):
+        raise TimeoutError("IMAP temporaneamente indisponibile")
+
+    monkeypatch.setattr(polling, "run_imap_runtime_operation", imap_non_disponibile)
+    dep = _deposito(id="AAAA1111")
+    gf = _GF([SimpleNamespace(id="F1", depositi_pct=[dep])])
+    cfg = SimpleNamespace(imap_host="imap.example", indirizzo="studio@pec.example", password="x")
+    report = polling.esegui_polling(gf=gf, config_pec=cfg)
+    assert report["controllati"] == 1
+    assert report["imap_incompleto"] is True
+    assert dep.stato == "INVIATO"
+
+    monkeypatch.setattr(runtime, "_studio_unico", lambda *a, **kw: {"tenant": "default", **report})
+    result = runtime.run_polling_esiti_deposito(Flask(__name__), giorni=3)
+    assert result["status"] == "parziale"
+    assert result["imap_incompleti"] == 1
+    assert "Verificare collegamento e credenziali PEC" in result["message"]

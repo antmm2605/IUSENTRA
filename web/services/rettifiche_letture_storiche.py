@@ -11,7 +11,7 @@ from typing import Any
 from pct.formatting import format_date_it
 from pct.document_intelligence.models import utc_now
 
-VERSIONE = "2026.11.06.rettifiche-storiche.v2+anteriore-al-ruolo"
+VERSIONE = "2026.11.10.rettifiche-storiche.v3+data-del-provvedimento"
 NOTA_TERMINE_STORICO = "Creata dalla lettura automatica dei documenti: da confermare."
 
 
@@ -31,13 +31,30 @@ def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any]
         note = str(getattr(att, "note", "") or "")
         if _enum(getattr(att, "tipo", "")) != "UDIENZA" or _enum(getattr(att, "esito", "")) != "IN_ATTESA" or getattr(att, "avvocato", ""):
             continue
-        if not str(getattr(att, "descrizione", "")).startswith("Attività per l'avvocato: Udienza."):
+        descrizione = str(getattr(att, "descrizione", ""))
+        if not descrizione.startswith("Attività per l'avvocato: Udienza"):
             continue
+        # Le regole storiche valgono per le sole «Udienza.»; la data del provvedimento (n. cronol. … del …, emesso in data …)
+        # vale per ogni attività d'udienza rilevata dal documento, anche «Udienza di discussione.».
+        solo_emissione = not descrizione.startswith("Attività per l'avvocato: Udienza.")
         if not note.startswith("PEC_DOCUMENT_PRESIDIO:docpresidio:") or any(not (line.startswith("PEC_DOCUMENT_PRESIDIO:docpresidio:") or line == "Fonte: documento fascicolo indicizzato da Lex AI.") for line in note.splitlines()):
             continue
         giorno = str(getattr(att, "data", ""))[:10]
         doc_id = str(getattr(att, "id_documento", ""))
         anno_rg = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+        if solo_emissione:
+            from datetime import date as _data
+            from pct.procedura_fasi.udienze import data_di_emissione as _emissione
+
+            try:
+                emessa = _emissione(descrizione, _data.fromisoformat(giorno))
+            except ValueError:
+                emessa = False
+            if emessa:
+                piano.append({"tipo": "attivita", "id": att.id, "motivo": "La data è riferita all’emissione del provvedimento, non a un’udienza.",
+                              "prove": [{"fatto_id": "", "documento_id": doc_id, "sha256": "", "campo": "contesto", "verifica": "regola",
+                                         "estratto": _text(descrizione)[:400]}]})
+            continue
         if anno_rg.isdigit() and len(anno_rg) == 4 and giorno and giorno < f"{anno_rg}-01-01":
             # Una causa non ha udienze prima di essere iscritta a ruolo: la data è altro (nascita, precedente citato).
             numero = str(getattr(fascicolo, "numero_rg", "") or "").strip()
@@ -54,8 +71,24 @@ def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any]
             prove = udienze
             motivo = "La lettura corrente esclude questa data come udienza del fascicolo."
         else:
+            # La data del provvedimento non è l'udienza che il provvedimento fissa. La sola data in calce non basta: note
+            # scritte e verbali portano in calce proprio il giorno dell'udienza (misura del 10/11/2026).
+            from datetime import date as _date
+            from pct.procedura_fasi.udienze import data_di_emissione, udienza_nel_brano
+
+            try:
+                letto = _date.fromisoformat(giorno)
+            except ValueError:
+                continue
+            if udienza_nel_brano(str(getattr(att, "descrizione", "")), letto):
+                continue  # il brano letto dice che quel giorno è l'udienza: la data del provvedimento coincide, non si rettifica
             prove = [f for f in fonte if f.campo == "provvedimento" and f.verifica in {"verificata", "corretta"}]
             if not prove:
+                if not data_di_emissione(str(getattr(att, "descrizione", "")), letto):
+                    continue
+                piano.append({"tipo": "attivita", "id": att.id, "motivo": "La data è riferita all’emissione del provvedimento, non a un’udienza.",
+                              "prove": [{"fatto_id": "", "documento_id": doc_id, "sha256": "", "campo": "contesto", "verifica": "regola",
+                                         "estratto": _text(getattr(att, "descrizione", ""))[:400]}]})
                 continue
             motivo = "La data è riferita all’emissione del provvedimento, non a un’udienza."
         piano.append({"tipo": "attivita", "id": att.id, "motivo": motivo, "prove": [{"fatto_id": f.id, "documento_id": f.oggetto_id, "sha256": f.sha256, "campo": f.campo, "verifica": f.verifica, "estratto": f.contesto} for f in prove]})

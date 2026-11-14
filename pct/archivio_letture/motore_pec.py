@@ -19,12 +19,16 @@ from pct.registro_letture.fatti_repository import Fatto
 from .ancoraggio import VERSIONE_DATE_PROCESSUALI
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
+from .riletture_mirate import REGOLE_TERMINE_SCRITTO
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
 from pct.agenda_linguaggio import modalita_legale
 
 VERSIONE_MOTORE_PEC = "2026.10.07.motore-pec.v12+identita-fascicolo-allegati+contesto-economico+importi:" + VERSIONE_ESTRAZIONE_IMPORTI + "+date:" + VERSIONE_DATE_PROCESSUALI
 VERSIONE_MOTORE_PEC += "+prove:" + VERSIONE_PROVE_NOTIFICA + "+ricezione-ora-italiana"
+# Termine scritto e provvedimenti collettivi: rilettura mirata delle sole fonti toccate (riletture_mirate).
+VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO = VERSIONE_MOTORE_PEC
+VERSIONE_MOTORE_PEC += "+" + REGOLE_TERMINE_SCRITTO
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),

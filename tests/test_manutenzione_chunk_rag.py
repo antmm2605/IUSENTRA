@@ -365,7 +365,7 @@ def test_la_passata_notturna_ha_un_budget_suo(monkeypatch):
 
     def _finto(app, **kwargs):
         passati.update(kwargs)
-        return {"ok": True}
+        return chunk_rag_runtime._riepilogo([], applicato=True)
 
     monkeypatch.setattr(chunk_rag_runtime, "esamina_tutti", _finto)
     chunk_rag_runtime.rispezzatura_notturna(object())
@@ -387,3 +387,43 @@ def test_il_job_notturno_e_registrato_e_gira_solo_di_notte():
     assert voce.hour == "1-4", "solo notte"
     assert voce.minute == "*/15"
     assert voce.built_in is True
+
+
+@pytest.mark.parametrize("sha_coincide", [True, False])
+def test_rispezza_scheda_lex_storica_solo_con_impronta_verificata(tmp_path, sha_coincide):
+    service = _servizio(tmp_path)
+    primo = "provvedimento verificato " * (_RAG_MAX_CHUNK_CHARS // 8)
+    primo = primo.strip()
+    secondo = "Dispositivo. La spesa è liquidata."
+    testo = f"{primo}\n\n{secondo}"
+    result = service.index_text_document(
+        source_type="lex_sentenza_tribunale",
+        source_id="sentenza-1",
+        practice_id="FASC-1",
+        title="Sentenza",
+        text=testo,
+        metadata={"document_id": "DOC-SENTENZA"},
+    )
+    documento = result["document_id"]
+    with service._connect() as conn:
+        conn.execute("DELETE FROM rag_chunks WHERE document_id=? AND ordinal>2", (documento,))
+        conn.execute(
+            "UPDATE rag_chunks SET text=?,token_estimate=? WHERE document_id=? AND ordinal=1",
+            (primo, len(primo) // 4, documento),
+        )
+        conn.execute(
+            "UPDATE rag_chunks SET text=?,token_estimate=? WHERE document_id=? AND ordinal=2",
+            (testo if sha_coincide else secondo + " alterato", len(secondo) // 4, documento),
+        )
+        conn.commit()
+
+    esito = rispezza(service)
+
+    assert esito.documenti_rifatti == int(sha_coincide)
+    assert esito.documenti_restanti == int(not sha_coincide)
+    with service._connect() as conn:
+        metadata = conn.execute(
+            "SELECT metadata_json FROM rag_chunks WHERE document_id=? ORDER BY ordinal LIMIT 1",
+            (documento,),
+        ).fetchone()[0]
+        assert json.loads(metadata)["document_id"] == "DOC-SENTENZA"

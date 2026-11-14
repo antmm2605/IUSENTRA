@@ -164,6 +164,16 @@ def test_fascicoli_scadenze_urgenti_distingue_scadute_da_entro_7_giorni(tmp_path
 
     with app.app_context():
         get_scadenziario().nuova(
+            "Termine aperto di sette giorni fa",
+            TipoTermine.NOTIFICA,
+            (date.today() - timedelta(days=7)).isoformat(),
+        )
+        get_scadenziario().nuova(
+            "Termine aperto nel primo giorno della finestra",
+            TipoTermine.NOTIFICA,
+            (date.today() - timedelta(days=6)).isoformat(),
+        )
+        get_scadenziario().nuova(
             "Presidio ricevute PEC da completare",
             TipoTermine.NOTIFICA,
             (date.today() - timedelta(days=30)).isoformat(),
@@ -197,7 +207,7 @@ def test_fascicoli_scadenze_urgenti_distingue_scadute_da_entro_7_giorni(tmp_path
     assert payload["summary"]["urgentDeadlines"] == 2
     assert payload["summary"]["deadlines30"] == 2
     assert [item["title"] for item in payload["deadlines"]] == [
-        "Presidio ricevute PEC da completare",
+        "Termine aperto nel primo giorno della finestra",
         "Termine entro 7 giorni",
     ]
     assert payload["deadlines"][0]["matterId"] == ""
@@ -1268,10 +1278,10 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "loadLazySection('regia')" in page_source
     assert "loadLazySection('relata')" in page_source
     assert "loadLazySection('audit')" in page_source
-    assert "if (initialIncludes.includes('documenti')) next.lex = 'loading'" in page_source
+    assert "for (const section of initialIncludes) loadLazySection(section, () => active)" in page_source
     assert "...(section === 'documenti' ? { lex: 'loaded' as LazySectionStatus } : {})" in page_source
     assert "lexIndexing: section === 'lex' || section === 'documenti'" in page_source
-    assert "getFascicoloDetail(id, initialIncludes.length ? { include: initialIncludes } : undefined).then" in page_source
+    assert "getFascicoloDetail(id, { confirmRevision: true }).then" in page_source
     assert "getFascicoloDetail(id, { include: 'all' })" in page_source
     assert "fascicoliListCacheKey" in page_source
     assert "pageCacheRef" in page_source
@@ -1305,11 +1315,10 @@ def test_fascicoli_frontend_contratto_query_params_e_lazy_tab():
     assert "overflow-x:auto;overflow-y:hidden" in css_source
     assert "Scadenze urgenti" in page_source
     assert "Scadenze 7g" not in page_source
-    # Scadenze aperte scadute o entro 7 giorni, senza cambiare lo stato legale.
-    assert "function isDeadlineAlertUpcoming7" in page_source
-    assert ".filter((item) => isDeadlineAlertUpcoming7(item) || deadlineAlertWindow(item) === 'overdue')" in page_source
-    assert "const deadlineAlertHeading =" in page_source and "dello studio" in page_source
-    assert "function isDeadlineAlertVisible" not in page_source
+    # Il collegamento riusa i limiti della finestra del riquadro.
+    assert "const urgentFrom = deadlineDay(-6)" in page_source
+    assert "const urgentUntil = deadlineDay(7)" in page_source
+    assert "dal=${urgentFrom}&al=${urgentUntil}" in page_source
     assert "<strong>{deadlineAlertHeading}</strong>" in page_source
     assert "data.deadlines.slice(0, 4)" not in page_source
     assert "data.summary.economicAnalysisDue" in page_source
@@ -1333,7 +1342,7 @@ def test_fascicoli_route_archivio_e_dettaglio_restano_raggiungibili(tmp_path):
     assert detail.status_code == 200
 
 
-def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_path):
+def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_path, monkeypatch):
     app = _app(tmp_path)
     remote_hearing_url = "https://teams.microsoft.com/l/meetup-join/19%3ameeting_timeline"
     with app.app_context():
@@ -1378,8 +1387,21 @@ def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_
         )
     headers = {"X-API-Key": "react-test-key"}
 
+    summaries = []
+    original_summary = react_fascicoli_bridge.payment_summary_for_fascicolo_fast
+
+    def track_summary(*args, **kwargs):
+        summary = original_summary(*args, **kwargs)
+        summaries.append(summary)
+        return summary
+
+    monkeypatch.setattr(react_fascicoli_bridge, "payment_summary_for_fascicolo_fast", track_summary)
     with app.test_client() as client:
         main = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers=headers).get_json()
+        assert len(summaries) == 1
+        assert main["fascicolo"]["paymentSummary"] == summaries[0]
+        economic_card = next(row for row in main["economics"] if row["id"] == "controllo_pagamenti")
+        assert economic_card["value"] == summaries[0]["totaleRegistratoLabel"]
         documenti = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti", headers=headers).get_json()
         attivita = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/attivita", headers=headers).get_json()
         scadenze = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/scadenze", headers=headers).get_json()

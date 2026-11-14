@@ -38,6 +38,7 @@ def register_fascicoli_document_view_routes(
     app: Flask,
     *,
     get_fascicoli: Callable[[], Any],
+    get_studio_db: Callable[[str], Any],
     get_practice_engine: Callable[[], Any],
     audit: Callable[..., None],
     decrypt_doc: Callable[[bytes], bytes],
@@ -75,7 +76,13 @@ def register_fascicoli_document_view_routes(
                 "verify_eidas": "Verifica eIDAS richiesta",
                 "view": "Documento consultato",
             }[action]
-            get_practice_engine().audit(
+            from pct.practice_engine.inserimento import registra_consultazione_documento
+
+            studio_db = get_studio_db("FASCICOLI_DB")
+            if studio_db is None:
+                studio_db = get_practice_engine().studio_db
+            registra_consultazione_documento(
+                studio_db,
                 str(fascicolo_id or ""),
                 event_type,
                 actor=actor,

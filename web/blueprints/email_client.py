@@ -18,14 +18,13 @@ from __future__ import annotations
 
 import os
 from io import BytesIO
-from datetime import date
 from functools import wraps
 from pathlib import Path
 from uuid import uuid4
 
 from flask import (
     Blueprint, abort, current_app, flash, g, jsonify,
-    redirect, render_template, request, send_file, url_for, Response,
+    redirect, request, send_file, url_for, Response,
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
@@ -57,10 +56,6 @@ def _login_required(f):
             return redirect(url_for("login"))
         return f(*a, **kw)
     return w
-
-
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
 
 
 def _wants_json_response() -> bool:
@@ -261,88 +256,14 @@ def _audit(azione: str, dettagli: str = ""):
 @_login_required
 def casella():
     """Vista principale della casella email."""
-    if not _richiede_vista_classica():
-        return render_react_shell_response("email")
-
-    ge = _get_gestore()
-    cartella = request.args.get("cartella", "INBOX")
-    q = request.args.get("q", "").strip()
-    stato_lettura = request.args.get("stato", "").strip().upper()
-    solo_non_lette = request.args.get("non_lette") == "1" or stato_lettura == "NON_LETTA"
-    solo_pst = request.args.get("pst") == "1"
-    con_allegati = request.args.get("con_allegati") == "1"
-    stato_pct = request.args.get("stato_pct", "").strip().upper()
-    origine = request.args.get("origine", "").strip().upper()
-    data_da = request.args.get("data_da", "").strip()
-    data_a = request.args.get("data_a", "").strip()
-
-    from pct.email_client import CartellaEmail
-    cartella_valida = cartella if cartella in (
-        CartellaEmail.INBOX, CartellaEmail.INVIATI, CartellaEmail.CESTINO
-    ) else CartellaEmail.INBOX
-
-    # Sincronizza inviati da messaggi.py al volo
-    _sync_inviati(ge)
-
-    emails = ge.tutte(
-        cartella=cartella_valida,
-        solo_non_lette=solo_non_lette,
-        q=q,
-        stato_lettura=stato_lettura,
-        solo_pst=solo_pst,
-        con_allegati=con_allegati,
-        stato_pct=stato_pct,
-        origine=origine,
-        data_da=data_da,
-        data_a=data_a,
-    )
-    stats  = ge.statistiche()
-
-    # Email selezionata per vista split (desktop)
-    id_sel = request.args.get("id", "")
-    email_sel = None
-    if id_sel:
-        email_sel = ge.get(id_sel)
-        if email_sel and email_sel.stato == "NON_LETTA":
-            ge.marca_letta(id_sel)
-            email_sel.stato = "LETTA"
-            stats = ge.statistiche()
-
-    return render_template(
-        "email/client.html",
-        emails=emails,
-        email_sel=email_sel,
-        cartella=cartella_valida,
-        q=q,
-        solo_non_lette=solo_non_lette,
-        stato_lettura=stato_lettura,
-        solo_pst=solo_pst,
-        con_allegati=con_allegati,
-        stato_pct=stato_pct,
-        origine=origine,
-        data_da=data_da,
-        data_a=data_a,
-        has_advanced_filters=any([solo_pst, con_allegati, stato_pct, origine, data_da, data_a, stato_lettura]),
-        stats=stats,
-        oggi=date.today(),
-    )
+    return render_react_shell_response("email")
 
 
 @email_client.route("/messaggio/<id_email>")
 @_login_required
 def dettaglio(id_email: str):
     """Vista dettaglio email (mobile o link diretto)."""
-    if not _richiede_vista_classica():
-        return render_react_shell_response(f"email/messaggio/{id_email}")
-    ge = _get_gestore()
-    em = ge.get(id_email)
-    if not em:
-        flash("Email non trovata.", "warning")
-        return redirect(url_for("email_client.casella"))
-    if em.stato == "NON_LETTA":
-        ge.marca_letta(id_email)
-        em.stato = "LETTA"
-    return render_template("email/dettaglio.html", em=em, oggi=date.today())
+    return render_react_shell_response(f"email/messaggio/{id_email}")
 
 
 @email_client.route("/messaggio/<id_email>/allegato/<int:indice_allegato>")
@@ -478,22 +399,7 @@ def scrivi():
     """Componi nuova email."""
     if request.method == "GET":
         # Pre-compila se passato in querystring (es. risposta)
-        a = request.args.get("a", "")
-        oggetto = request.args.get("oggetto", "")
-        try:
-            from pct.clienti import GestioneClienti
-            gc = GestioneClienti(
-                db_path=_cfg_path("CLIENTI_DB", "./clienti/anagrafica.json")
-            )
-            clienti = gc.tutti()
-        except Exception:
-            clienti = []
-        return render_template(
-            "email/scrivi.html",
-            a=a, oggetto=oggetto,
-            clienti=clienti,
-            oggi=date.today(),
-        )
+        return render_react_shell_response("email/scrivi")
 
     # POST — invio
     f = request.form
@@ -777,16 +683,8 @@ def impostazioni():
 
         return redirect(url_for("email_client.impostazioni"))
 
-    cfg = gs.config
-    email_cfg = getattr(cfg, "smtp", None)
-    pec_cfg   = getattr(cfg, "pec", None)
-
-    return render_template(
-        "email/impostazioni.html",
-        email_cfg=email_cfg,
-        pec_cfg=pec_cfg,
-        oggi=date.today(),
-    )
+    # Parametri della casella: sezione React di EmailPecPage.
+    return render_react_shell_response("email/impostazioni")
 
 
 # ─────────────────────────────────────────────────────────── API stats
@@ -819,8 +717,6 @@ def reset_smtp():
         return jsonify({"ok": True, "messaggio": "Configurazione SMTP azzerata. Inserisci le nuove credenziali e salva."})
     except Exception:
         return jsonify({"ok": False, "errore": "Reset non completato. Verifica la configurazione e riprova."})
-
-
 
 
 # ─────────────────────────────────────────────────────────── Privati

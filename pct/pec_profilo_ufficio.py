@@ -171,10 +171,18 @@ def avviso_giustizia_amministrativa(testo: str, *, mittente: str | None = None) 
     return {"numero_rg": f"{numero}/{anno}", "nrg": f"{anno}{numero:05d}", "ufficio": etichetta}
 
 
-def numero_ruolo(certificato: str) -> str:
-    """«1263/2026/LAV» del Comunicazione.xml → «1263/2026»."""
-    trovato = re.match(r"\s*(\d{1,7})\s*/\s*(\d{4})", str(certificato or ""))
-    return f"{int(trovato.group(1))}/{trovato.group(2)}" if trovato else ""
+def numero_ruolo(certificato: str, *, completo: bool = False) -> str:
+    """Normalizza il numero RG. Nei certificati accetta un suffisso come /LAV."""
+    numero, separatore, resto = str(certificato or "").partition("/")
+    numero = numero.strip()
+    anno = resto.lstrip()
+    if not completo:
+        anno = anno[:4]
+    if not separatore or not (1 <= len(numero) <= 7 and numero.isdecimal()):
+        return ""
+    if len(anno) != 4 or not anno.isdecimal():
+        return ""
+    return f"{int(numero)}/{anno}"
 
 
 def e_ricevuta_di_deposito(oggetto: str) -> bool:

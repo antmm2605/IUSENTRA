@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
+import secrets
 import socket
+from threading import Lock
 from typing import Any, Callable, TypeVar
 
 from pct.runtime_resilience import (
@@ -21,6 +22,8 @@ MAX_IMAP_TIMEOUT_SECONDS = 60
 DEFAULT_IMAP_CIRCUIT_THRESHOLD = 2
 DEFAULT_IMAP_CIRCUIT_TIMEOUT_SECONDS = 60
 T = TypeVar("T")
+_IMAP_ACCOUNT_KEYS: dict[tuple[str, int, str], str] = {}
+_IMAP_ACCOUNT_KEYS_LOCK = Lock()
 
 
 def resolve_imap_timeout_seconds(value: object | None = None) -> int:
@@ -54,8 +57,15 @@ def get_imap_circuit_breaker(*, account: tuple[str, int, str] | None = None) -> 
     key = "pec_imap"
     if account:
         host, port, username = account
-        identity = f"{host.strip().lower()}\0{port}\0{username.strip()}"
-        key += ":" + hashlib.sha256(identity.encode()).hexdigest()[:20]
+        identity = (host.strip().lower(), port, username.strip())
+        # I nomi dei circuiti compaiono nella diagnostica. L'identificativo
+        # resta stabile nel processo senza contenere dati della casella.
+        with _IMAP_ACCOUNT_KEYS_LOCK:
+            alias = _IMAP_ACCOUNT_KEYS.get(identity)
+            if alias is None:
+                alias = secrets.token_hex(16)
+                _IMAP_ACCOUNT_KEYS[identity] = alias
+        key += ":" + alias
     return get_runtime_circuit_breaker(
         key,
         component="PEC / IMAP",

@@ -38,7 +38,15 @@ DEFAULT_EMAIL_PAGE_LIMIT = 80
 MAX_EMAIL_PAGE_LIMIT = 300
 
 
+_PREFISSO_RG = re.compile(r"r\.?\s*+g\.?", re.I)
 _RG_NEL_TESTO = re.compile(r"(?<!\d)([0-9]++)\s*/\s*(\d{4})(?!\d)")
+
+def _rg_cercato(query: str) -> str:
+    prefisso = _PREFISSO_RG.match(query)
+    if prefisso:
+        query = query[prefisso.end():].lstrip().removeprefix(":")
+    return pec_profilo_ufficio.numero_ruolo(query, completo=True)
+
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -1339,10 +1347,9 @@ def build_react_email_payload(
     page_offset = _page_offset(offset)
 
     folder_valida = _normalise_folder(folder)
-    rg_match = re.fullmatch(r"(?:r\.?\s*g\.?\s*:?\s*)?(\d{1,7})\s*/\s*(\d{4})", query, re.I) if include_telematic else None
+    numero_rg = _rg_cercato(query) if include_telematic else ""
     rg_summaries = []
-    if rg_match:
-        numero_rg = pec_profilo_ufficio.numero_ruolo(f"{rg_match[1]}/{rg_match[2]}")
+    if numero_rg:
         rg_summaries = _pec_audit_all_summaries(
             db_path, tenant_id=tenant_id, include_details=False, fascicolo_id=fascicolo_id, numero_rg=numero_rg,
         )
@@ -1355,7 +1362,7 @@ def build_react_email_payload(
     filtri = dict(
         cartella=None if folder_valida == 'TUTTE' else folder_valida,
         solo_non_lette=stato == StatoEmail.NON_LETTA,
-        q="" if rg_match else query,
+        q="" if numero_rg else query,
         stato_lettura=stato if stato in {StatoEmail.NON_LETTA, StatoEmail.LETTA} else "",
         solo_pst=False,
         con_allegati=con_allegati,
@@ -1385,7 +1392,7 @@ def build_react_email_payload(
         all_emails = list(gestore._carica().values())  # noqa: SLF001
         stats = gestore.statistiche()
         large_mailbox = len(all_emails) > 80
-    if rg_match:
+    if numero_rg:
         numero, anno = numero_rg.split("/")
 
         def contiene_rg(testo: str) -> bool:
@@ -1509,10 +1516,10 @@ def build_react_email_payload(
         if not solo_collegate and (not solo_da_presidiare or (
             str(item.get('id') or '').strip() not in presidiati_by_message
             and _pec_quality_label(str(item.get('quality_status') or ''))[1] != 'success'
-        )) and (not rg_match or item["id"] in rg_ids or contiene_rg(_pec_audit_text(item))) and _pec_audit_matches_filters(
+        )) and (not numero_rg or item["id"] in rg_ids or contiene_rg(_pec_audit_text(item))) and _pec_audit_matches_filters(
             item,
             folder=folder_valida,
-            query="" if rg_match else query,
+            query="" if numero_rg else query,
             stato=stato,
             solo_pst=solo_pst,
             con_allegati=con_allegati,

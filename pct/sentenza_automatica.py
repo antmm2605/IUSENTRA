@@ -33,7 +33,7 @@ from typing import Any
 
 from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, compatta_testo, parse_importo
 
-VERSIONE = "sentenza-automatica.v2"
+VERSIONE = "sentenza-automatica.v3"
 AUTORE = "automatico dalla sentenza"
 STATO_DOPPIONE = "duplicato"
 CREDITI: dict[str, tuple[str, str]] = {
@@ -180,8 +180,32 @@ def importi_liquidati(dispositivo: str) -> set[float]:
     return importi
 
 
+def _condannato_identificato_in_epigrafe(parte: str, testo: str, fascicolo: Any) -> bool:
+    """Ricollega la condanna alla controparte identificata nella stessa sentenza."""
+    from pct.archivio_letture.estrazione_parti import estrai_parti
+    from pct.clienti import GestioneClienti
+
+    if not parte:
+        return False
+    lato_passivo = {"convenuto", "convenuta", "resistente"}
+    parti = estrai_parti(testo, cliente=_testo(getattr(fascicolo, "nome_cliente", "")))
+    if any(p.ruolo == "assistito" and p.posizione.casefold() in lato_passivo for p in parti):
+        return False
+    controparti = [p for p in parti if p.ruolo == "controparte" and p.posizione.casefold() in lato_passivo]
+    if len(controparti) != 1:
+        return False
+    controparte = controparti[0]
+    if not GestioneClienti.valida_piva(controparte.codice_fiscale):
+        return False
+    parole = _parole(parte) - lato_passivo - {"il", "lo", "la"}
+    nome = _parole(controparte.nome)
+    if parole == {"ministero"}:
+        return "ministero" in nome and bool(_parole(parte) & lato_passivo)
+    return bool(parole) and parole == nome
+
+
 def valuta_certezza(*, dispositivo: str, importo_dispositivo: Any, fascicolo: Any, audits: list[dict[str, Any]],
-                    eventi: list[dict[str, Any]]) -> dict[str, Any]:
+                    eventi: list[dict[str, Any]], testo_sentenza: str = "") -> dict[str, Any]:
     """`certo` vero solo se credito e beneficiario si leggono senza ambiguità; `motivi` spiega il contrario.
 
     Presuppone una verifica della sentenza già superata (conclusiva, identità, codice fiscale):
@@ -217,10 +241,14 @@ def valuta_certezza(*, dispositivo: str, importo_dispositivo: Any, fascicolo: An
     distratte = bool(_DISTRAZIONE.search(dispositivo))
     if (tipo == "apri_credito_avvocato_antistatario") != distratte:
         motivi.append("Beneficiario del credito non coerente con il dispositivo.")
-    condannata = _parole(parte_condannata(dispositivo))
+    parte = parte_condannata(dispositivo)
+    condannata = _parole(parte)
     cliente = _parole(_testo(getattr(fascicolo, "nome_cliente", "")))
     controparte = _parole(_testo(getattr(fascicolo, "controparte", "")))
-    if not condannata or not controparte or not (condannata & controparte) or (condannata & cliente):
+    concorda_controparte = bool(condannata & controparte)
+    if not controparte and testo_sentenza:
+        concorda_controparte = _condannato_identificato_in_epigrafe(parte, testo_sentenza, fascicolo)
+    if not condannata or not concorda_controparte or (condannata & cliente):
         motivi.append("Parte condannata alle spese non riconosciuta con certezza come controparte del cliente.")
     if motivi:
         return {"certo": False, "motivi": motivi}

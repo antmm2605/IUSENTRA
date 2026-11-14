@@ -128,7 +128,7 @@ def _credito_certo(*, fascicolo: Any, oggetto: Any, testo: str, esito: dict[str,
         # Spese compensate o non liquidate (art. 92 c.p.c.): nessun credito da registrare.
         return {"confermati": [], "motivi": []}
     certezza = valuta_certezza(dispositivo=valuta_sentenza(testo)["dispositivo"], importo_dispositivo=esito.get("importo"),
-                               fascicolo=fascicolo, audits=audits, eventi=eventi)
+                               fascicolo=fascicolo, audits=audits, eventi=eventi, testo_sentenza=testo)
     if not certezza["certo"]:
         return {"confermati": [], "motivi": certezza["motivi"]}
     evento = certezza["evento"]

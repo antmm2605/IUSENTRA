@@ -165,6 +165,32 @@ def test_sentenza_certa_registra_credito_e_definisce(studio, testo, tipo, norma,
     assert voce["definito"] and voce["dataDefinizione"] == "2026-10-15"
 
 
+@pytest.mark.parametrize("parte_condannata, automatico", [
+    ("il Ministero convenuto", True),
+    ("l'Istituto convenuto", False),
+])
+def test_credito_con_controparte_identificata_nella_sentenza(parte_condannata, automatico):
+    from pct.sentenza_automatica import valuta_certezza
+    from pct.sentenza_conclusiva import valuta_sentenza
+
+    fascicolo = SimpleNamespace(nome_cliente="Rossi Mario", controparte="", stato="DEFINITO")
+    epigrafe = (
+        "ROSSI MARIO (C.F. RSSMRA80A01H501U), ricorrente\ncontro\n"
+        "MINISTERO DELL'ISTRUZIONE E DEL MERITO (C.F. 80185250588), convenuto.\n"
+    )
+    testo = "SENTENZA\n" + epigrafe + (
+        "P.Q.M. Il Tribunale definitivamente pronunciando accoglie il ricorso e condanna "
+        f"{parte_condannata} a rifondere le spese di lite, che liquida in € 258,00 "
+        "con distrazione in favore del procuratore antistatario."
+    )
+    esito = valuta_certezza(
+        dispositivo=valuta_sentenza(testo)["dispositivo"], importo_dispositivo=258,
+        fascicolo=fascicolo, audits=[{"id": "A1", "safe_to_attach": True}],
+        eventi=[_evento("E1", "A1")], testo_sentenza=testo,
+    )
+    assert esito["certo"] is automatico
+
+
 def test_credito_incerto_resta_da_confermare_ma_la_definizione_e_automatica(studio):
     report = studio.carica(CIVILE_INCERTA)
     assert report["automatiche"] == 1 and report["proposte"] == 0

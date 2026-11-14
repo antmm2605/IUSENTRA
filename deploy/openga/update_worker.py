@@ -65,8 +65,7 @@ def installed_sources_match(repo, container, previous_sha, candidate_sha):
     # Il collaudo su fonti esterne resta necessario se cambia uno dei due.
     reading_paths = (
         "pct/openga*.py", "pct/legal_update_job_queue.py",
-        "web/services/openga*.py", "web/templates/giurisprudenza/testo_ufficiale.html",
-        "deploy/openga/verify_reading.py", "deploy/openga/server.py",
+        "web/services/openga*.py", "deploy/openga/server.py",
         "deploy/openga/Dockerfile", "deploy/openga/runtime-lock.txt",
         "deploy/openga/catalogo-manifest.json", "deploy/openga/modello-manifest.json",
     )

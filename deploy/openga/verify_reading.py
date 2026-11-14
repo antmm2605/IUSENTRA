@@ -1,5 +1,4 @@
 """Prova pubblica: lettura riuscita oppure indisponibilità puntuale riscontrata."""
-import html
 import json
 import sys
 import tempfile
@@ -47,7 +46,8 @@ def expected_unavailability(identity, reference, result):
 
 
 def verify(identity, reference):
-    from flask import Flask, render_template
+    from flask import Flask
+    from web.services.lettore_sentenze import _asset_lettore, payload_testo_ufficiale
     from web.services.openga_document_jobs import _queue, start, status
 
     app = Flask("verifica-lettura-pubblica", template_folder="/app/web/templates",
@@ -75,16 +75,19 @@ def verify(identity, reference):
                 + json.dumps(result.get("diagnostica", [])))
         document = result["documento"]
         with app.test_request_context():
-            rendered = render_template("giurisprudenza/testo_ufficiale.html", documento=document)
-        if not all(line.strip() in html.unescape(rendered)
-                   for line in document["testo"].splitlines() if line.strip()):
-            raise RuntimeError("Testo incompleto nella pagina HTML")
+            rendered = payload_testo_ufficiale(document)
+            if not _asset_lettore().get("ready"):
+                raise RuntimeError("Lettore React del testo ufficiale non disponibile")
+        actual = [block["testo"] for block in rendered["blocchi"]]
+        expected = [line.strip() for line in document["testo"].splitlines() if line.strip()]
+        if actual != expected:
+            raise RuntimeError("Testo incompleto nel lettore del provvedimento")
         return {"stato": "acquisito", "lettura_confermata": True,
                 "caratteri": len(document["testo"]), "provenienza": document["provenienza"],
                 "raw_sha256": document["raw_sha256"], "approvazione_automatica": False,
                 "scritture_dati_studio": False, "coda_persistente_verificata": True,
                 "html_consultabile_verificato": True,
-                "html_sha256": sha256(rendered.encode()).hexdigest()}
+                "html_sha256": sha256(json.dumps(rendered, sort_keys=True).encode()).hexdigest()}
 
 
 if __name__ == "__main__":

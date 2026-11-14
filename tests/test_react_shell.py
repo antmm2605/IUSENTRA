@@ -2862,13 +2862,16 @@ def test_portale_acquisizione_legacy_step4_preseleziona_aggiorna_pratica(tmp_pat
     with app.test_client() as client:
         _login(client)
         response = client.get(
-            f"/polisWeb/acquisizione?fascicolo_id={fascicolo.id}&mode=update_existing",
+            f"/polisWeb/acquisizione?fascicolo_id={fascicolo.id}&mode=update_existing&portale=pdp&_external=1",
             follow_redirects=True,
         )
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
     assert 'id="root"' in html
+    assert response.request.path == "/portali/pst/acquisizione"
+    assert "_external" not in response.request.args
+    assert "portale" not in response.request.args
     assert response.request.args["fascicolo_id"] == fascicolo.id
     assert response.request.args["mode"] == "update_existing"
 

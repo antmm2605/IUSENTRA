@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 import re
 from typing import Any
-from urllib.parse import urlencode
 
 from flask import Flask, flash, jsonify, redirect, request, url_for
 from web.blueprints.react_shell import render_react_shell_response
@@ -178,9 +177,10 @@ def register_portali_acquisizione_routes(
         return render_react_shell_response(f"portali/{portale}/acquisizione")
 
     def _apri_acquisizione(portale: str):
-        url = url_for("portale_acquisizione_wizard", portale=portale)
-        query = urlencode(list(request.args.items(multi=True)))
-        return redirect(f"{url}?{query}" if query else url)
+        query = request.args.to_dict(flat=False)
+        for riservato in ("portale", "_anchor", "_external", "_method", "_scheme"):
+            query.pop(riservato, None)
+        return redirect(url_for("portale_acquisizione_wizard", portale=portale, **query))
 
     @app.route("/polisWeb/acquisizione", methods=["GET"])
     def polisweb_acquisizione_redirect():

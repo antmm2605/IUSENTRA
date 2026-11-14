@@ -38,6 +38,8 @@ DEFAULT_EMAIL_PAGE_LIMIT = 80
 MAX_EMAIL_PAGE_LIMIT = 300
 
 
+_RG_NEL_TESTO = re.compile(r"(?<!\d)([0-9]++)\s*/\s*(\d{4})(?!\d)")
+
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -1385,11 +1387,14 @@ def build_react_email_payload(
         large_mailbox = len(all_emails) > 80
     if rg_match:
         numero, anno = numero_rg.split("/")
-        exact_rg = re.compile(rf"(?<!\d)0*{numero}\s*/\s*{anno}(?!\d)")
+
+        def contiene_rg(testo: str) -> bool:
+            return any((m[1].lstrip("0") or "0") == numero and m[2] == anno for m in _RG_NEL_TESTO.finditer(testo))
+
         emails = [
             item for item in emails
             if _safe_text(getattr(item, "message_id", "")).strip() in rg_headers
-            or any(exact_rg.search(_safe_text(getattr(item, field, ""))) for field in
+            or any(contiene_rg(_safe_text(getattr(item, field, ""))) for field in
                    ("oggetto", "corpo_testo", "corpo_html"))
         ]
     if matter_audit_summaries is not None:
@@ -1504,7 +1509,7 @@ def build_react_email_payload(
         if not solo_collegate and (not solo_da_presidiare or (
             str(item.get('id') or '').strip() not in presidiati_by_message
             and _pec_quality_label(str(item.get('quality_status') or ''))[1] != 'success'
-        )) and (not rg_match or item["id"] in rg_ids or exact_rg.search(_pec_audit_text(item))) and _pec_audit_matches_filters(
+        )) and (not rg_match or item["id"] in rg_ids or contiene_rg(_pec_audit_text(item))) and _pec_audit_matches_filters(
             item,
             folder=folder_valida,
             query="" if rg_match else query,

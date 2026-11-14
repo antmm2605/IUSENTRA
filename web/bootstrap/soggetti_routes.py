@@ -153,7 +153,7 @@ def register_soggetti_routes(
                 return jsonify({"ok": True, "id": soggetto.id, "message": message, "redirect": target})
             return redirect(target)
 
-        return redirect(request.path)
+        return redirect(url_for("nuovo_soggetto"))
 
     @app.route("/soggetti/<id_soggetto>")
     def dettaglio_soggetto(id_soggetto):
@@ -233,7 +233,7 @@ def register_soggetti_routes(
             if _richiede_json():
                 return jsonify({"ok": True, "id": id_soggetto, "message": "Soggetto aggiornato.", "redirect": target})
             return redirect(url_for("dettaglio_soggetto", id_soggetto=id_soggetto))
-        return redirect(request.path)
+        return redirect(url_for("modifica_soggetto", id_soggetto=id_soggetto))
 
     @app.route("/soggetti/<id_soggetto>/elimina", methods=["POST"])
     def elimina_soggetto(id_soggetto):

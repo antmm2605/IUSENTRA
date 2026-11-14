@@ -85,7 +85,7 @@ def register_privacy_routes(
             return redirect(url_for("registro_trattamenti"))
         # Nuovo trattamento: pagina React; il salvataggio JSON resta qui sopra.
         if request.method == "POST":
-            return redirect(request.path)
+            return redirect(url_for("nuovo_trattamento"))
         return render_react_shell_response("privacy/registro/nuovo")
 
     @app.route("/privacy/registro/<id_t>/elimina", methods=["POST"])

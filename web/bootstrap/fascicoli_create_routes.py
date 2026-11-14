@@ -527,4 +527,4 @@ def register_fascicoli_create_routes(
                 if failure is not None:
                     return failure
 
-        return redirect(request.path)
+        return redirect(url_for("nuovo_fascicolo"))

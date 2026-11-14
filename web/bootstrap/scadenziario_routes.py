@@ -238,7 +238,7 @@ def register_scadenziario_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return redirect(request.path)
+        return redirect(url_for("nuova_scadenza"))
     @app.route("/scadenziario/<id_sc>")
     def dettaglio_scadenza(id_sc):
         gs = get_scadenziario()
@@ -347,7 +347,7 @@ def register_scadenziario_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return redirect(request.path)
+        return redirect(url_for("modifica_scadenza", id_sc=id_sc))
     @app.route("/scadenziario/<id_sc>/completa", methods=["POST"])
     def completa_scadenza(id_sc):
         gs = get_scadenziario()

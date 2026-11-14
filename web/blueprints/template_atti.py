@@ -1242,7 +1242,7 @@ def api_modelli_per_pratica(id_pratica: str):
 def nuovo():
     # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        return redirect(request.path)
+        return redirect(url_for("template_atti.nuovo"))
     return render_react_shell_response("template-atti/nuovo")
 
 
@@ -1253,7 +1253,7 @@ def nuovo():
 def modifica(id_template: str):
     # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        return redirect(request.path)
+        return redirect(url_for("template_atti.modifica", id_template=id_template))
     return render_react_shell_response(f"template-atti/{id_template}/modifica")
 
 
@@ -1298,7 +1298,7 @@ def elimina(id_template: str):
 def usa(id_template: str):
     # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        return redirect(request.path)
+        return redirect(url_for("template_atti.usa", id_template=id_template))
     return render_react_shell_response(f"template-atti/{id_template}/usa")
 
 
@@ -1314,7 +1314,7 @@ def editor_libero():
 def compila(model_code: str):
     # Modelli d'atto: pagine React (TemplateAttiPage, TemplateStudioPage); salvataggi e compilazione passano da /api/v1/ui/template-atti.
     if request.method == "POST":
-        return redirect(request.path)
+        return redirect(url_for("template_atti.compila", model_code=model_code))
     return render_react_shell_response(f"template-atti/compila/{model_code}")
 
 

@@ -222,7 +222,7 @@ def register_clienti_routes(
                     return jsonify({"ok": False, "message": str(exc)}), 400
                 flash(str(exc), "danger")
 
-        return redirect(request.path)
+        return redirect(url_for("nuovo_cliente"))
 
     @app.route("/clienti/<id_cliente>")
     def dettaglio_cliente(id_cliente: str):
@@ -319,7 +319,7 @@ def register_clienti_routes(
                     return jsonify({"ok": False, "message": str(exc)}), 400
                 flash(str(exc), "danger")
 
-        return redirect(request.path)
+        return redirect(url_for("modifica_cliente", id_cliente=id_cliente))
 
     @app.route("/clienti/<id_cliente>/elimina", methods=["POST"])
     def elimina_cliente(id_cliente: str):

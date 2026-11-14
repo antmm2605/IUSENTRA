@@ -80,7 +80,7 @@ def _fmt_datetime_it(value: str) -> str:
 def index():
     # Catalogo e funzioni delle applicazioni: pagina React (ApplicazionePage); esecuzioni da /api/v1/ui/applicazioni.
     if request.method == "POST":
-        return redirect(request.path)
+        return redirect(url_for("applicazioni.index"))
     return render_react_shell_response("applicazioni")
 
 

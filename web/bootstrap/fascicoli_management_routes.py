@@ -333,7 +333,7 @@ def register_fascicoli_management_routes(
                 if result is not None:
                     return result
 
-        return redirect(request.path)
+        return redirect(url_for("modifica_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
     def cambia_stato_fascicolo(id_fasc: str):

@@ -95,7 +95,7 @@ def register_dashboard_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return redirect(request.path)
+        return redirect(url_for("nuovo_appuntamento"))
     @app.route("/agenda/<id_app>")
     def dettaglio_appuntamento(id_app):
         agenda = get_agenda()
@@ -168,7 +168,7 @@ def register_dashboard_routes(
                 if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return redirect(request.path)
+        return redirect(url_for("modifica_appuntamento", id_app=id_app))
     @app.route("/agenda/<id_app>/stato", methods=["POST"])
     def cambia_stato(id_app):
         _negato = _agenda_non_autorizzato("agenda.scrivi")

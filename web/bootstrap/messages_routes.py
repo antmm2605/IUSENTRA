@@ -87,7 +87,7 @@ def register_messages_routes(
                 if _richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
-        return redirect(request.path)
+        return redirect(url_for("nuovo_messaggio"))
 
     @app.route("/messaggi/<id_msg>")
     def dettaglio_messaggio(id_msg):

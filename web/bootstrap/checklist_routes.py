@@ -79,7 +79,7 @@ def register_checklist_routes(
     def wizard_atto_step(id_fasc, id_template, n):
         # Checklist degli atti e percorso guidato: pagina React (ChecklistAttiPage); dati e passi da /api/v1/ui.
         if request.method == "POST":
-            return redirect(request.path)
+            return redirect(url_for("wizard_atto_step", id_fasc=id_fasc, id_template=id_template, n=n))
         return render_react_shell_response(f"fascicoli/{id_fasc}/wizard/{id_template}/step/{n}")
 
     @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/completa")

@@ -212,7 +212,7 @@ def register_auth_management_routes(
                 flash(str(e), "danger")
         # Nuovo utente: pagina React (UtentiPage); salvataggio da /api/v1/ui/utenti.
         if request.method == "POST":
-            return redirect(request.path)
+            return redirect(url_for("nuovo_utente"))
         return render_react_shell_response("utenti/nuovo")
 
     @app.route("/utenti/<id_utente>/modifica", methods=["GET", "POST"])
@@ -265,7 +265,7 @@ def register_auth_management_routes(
                 flash(str(e), "danger")
         # Modifica utente: pagina React (UtentiPage).
         if request.method == "POST":
-            return redirect(request.path)
+            return redirect(url_for("modifica_utente", id_utente=id_utente))
         return render_react_shell_response(f"utenti/{id_utente}/modifica")
 
     @app.route("/utenti/<id_utente>/elimina", methods=["POST"])

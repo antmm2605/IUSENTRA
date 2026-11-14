@@ -141,7 +141,7 @@ def register_backup_routes(
             nome_cartella = nome_cartella or datetime.now().strftime("ripristino-%Y%m%d-%H%M%S")
             if not _CARTELLA_RIPRISTINO.fullmatch(nome_cartella):
                 flash("Nome della cartella di ripristino non valido: usa solo lettere, cifre, trattini e trattini bassi.", "danger")
-                return redirect(request.path)
+                return redirect(url_for("ripristina_backup", id_bk=id_bk))
             dest = str(cartella_ripristini(gb) / nome_cartella)
             componenti_raw = request.form.getlist("componenti")
             componenti = componenti_raw if componenti_raw else None
@@ -166,7 +166,7 @@ def register_backup_routes(
                 flash(str(e), "danger")
         # Ripristino: sezione Backup delle impostazioni React; il ripristino passa da /api/v1/ui/backup/ripristina.
         if request.method == "POST":
-            return redirect(request.path)
+            return redirect(url_for("ripristina_backup", id_bk=id_bk))
         return render_react_shell_response(f"backup/{id_bk}/ripristina")
 
     @app.route("/api/backup/statistiche")

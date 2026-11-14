@@ -88,7 +88,8 @@ export function ContoEconomicoPanel({ fascicoloId, active = true, onReady }:{ fa
                     {riga.fonti.map((fonte) => (
                       <li key={`${fonte.href}-${fonte.label}`}>
                         {fonte.href ? <a href={fonte.href} onClick={(event) => {
-                          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                          // La fatturazione apre una finestra operativa tramite la navigazione dello studio.
+                          if (fonte.href.startsWith('/fatturazione?') || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                           event.preventDefault()
                           setFonteAperta({ href: fonte.href, label: fonte.label, context: riga.etichetta })
                         }}>{fonte.label} <ExternalLink size={12} aria-hidden="true"/></a> : <span>{fonte.label}</span>}

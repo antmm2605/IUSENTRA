@@ -219,6 +219,34 @@ def test_il_tick_riprende_i_fermi_e_rispetta_le_letture_contemporanee(tmp_path, 
         assert runtime.riprendi_eventi_lettura(app, limite_per_tenant=20)["ferme_riprese"] == 0
 
 
+def test_il_tick_prioritario_riprende_solo_il_fascicolo_con_fonte_nuova(tmp_path, monkeypatch):
+    from web.services import archivio_letture_runtime as runtime
+
+    app = _app(tmp_path)
+    registro, tenant = _registro(app)
+    registro.accoda_evento(tenant, "STORICO")
+    registro.accoda_evento(tenant, "DOCUMENTO-NUOVO", prioritario=True)
+    avviati = []
+
+    def avvia(_app, fascicolo_id, **_kwargs):
+        avviati.append(fascicolo_id)
+        return True
+
+    def manutenzione_non_ammessa(*_args):
+        pytest.fail("La corsia prioritaria non avvia manutenzione degli altri fascicoli")
+
+    monkeypatch.setattr(runtime, "avvia_lettura_in_background", avvia)
+    monkeypatch.setattr(runtime, "letture_attive", lambda: 0)
+    monkeypatch.setattr(runtime, "accoda_riletture_notturne", manutenzione_non_ammessa)
+    monkeypatch.setattr(runtime, "aggiorna_esperienza_conclusi", manutenzione_non_ammessa)
+    with app.app_context():
+        report = runtime.riprendi_eventi_lettura(app, solo_prioritari=True)
+
+    assert report["trovati"] == report["avviati"] == 1
+    assert avviati == ["DOCUMENTO-NUOVO"]
+    assert registro.esito_evento(tenant, "STORICO")["stato"] == "pending"
+
+
 def test_indice_rinviato_libera_il_turno_e_non_chiude_il_fascicolo(lettura, monkeypatch):
     from web.services import archivio_letture_runtime as runtime
 

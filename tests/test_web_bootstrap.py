@@ -793,8 +793,9 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
 
     base_content = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
     assert "{{ oggi|fmt_data }}" in base_content
-    assert 'url_for(\'dettaglio_fascicolo\', id_fasc=fascicolo.id)' in copertina_content
-    assert "javascript:history.back()" not in copertina_content
+    copertina_react = (REPO_ROOT / "frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    assert "${operationalHref}/copertina" in copertina_react
+    assert "Copertina (PDF)" in copertina_react
 
 
 def test_lex_frontend_allinea_smalltalk_e_guardie_legali():

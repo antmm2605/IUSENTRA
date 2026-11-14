@@ -322,6 +322,40 @@ export function LetturaFascicoloPanel({
         ) : <p>Nessun dato economico collegato al fascicolo.</p>}
       </section>
 
+      {lettura.pec.da_controllare.length ? (
+        <section className="iu-fas-lettura__lacune" aria-label="PEC con riscontri aperti">
+          <h4><AlertTriangle size={15}/> PEC con riscontri aperti</h4>
+          <ul>{lettura.pec.da_controllare.map((pec) => (
+            <li key={pec.id || [pec.oggetto, pec.data, pec.mittente].join('|')}>
+              {pec.id ? <a href={`/email/?audit_id=${encodeURIComponent(pec.id)}`}>{pec.oggetto}</a> : <strong>{pec.oggetto}</strong>}
+              <div>{[pec.data, pec.mittente].filter(Boolean).join(' · ')}</div>
+              <div>Riscontro richiesto: {pec.motivi_controllo.join(', ')}.</div>
+              {pec.eventi?.length ? <div>Eventi rilevati: {[...new Set(pec.eventi.map((voce) => voce.evento).filter(Boolean))].join(', ')}</div> : null}
+              {pec.termini?.map((termine) => <div key={termine.id}>{[termine.tipo, termine.scadenza || 'data da determinare', termine.norma, termine.registrato ? 'in scadenziario' : 'da verificare'].filter(Boolean).join(' · ')}</div>)}
+              {pec.udienze?.map((udienza) => <div key={udienza.id}>Udienza rilevata: {[udienza.data, udienza.ora].filter(Boolean).join(' · ')}</div>)}
+            </li>
+          ))}</ul>
+        </section>
+      ) : null}
+
+      {lettura.letture_in_corso?.totale ? (
+        <section className="iu-fas-lettura__blocco" aria-label="Elaborazione automatica delle fonti">
+          <h4>Elaborazione automatica delle fonti</h4>
+          <p>{lettura.letture_in_corso.totale === 1 ? '1 fonte in elaborazione' : `${lettura.letture_in_corso.totale} fonti in elaborazione`}. Il risultato si aggiorna quando il motore termina.</p>
+          {lettura.letture_in_corso.fonti.length ? <ul>{lettura.letture_in_corso.fonti.map((fonte) => (
+            <li key={`${fonte.tipo}:${fonte.id || fonte.nome}`}>
+              {fonte.tipo === 'documento' && fonte.id ? (
+                <button type="button" className="iu-fas-lettura__retry" onClick={() => setSentenzaAperta({
+                  href: `/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(fonte.id!)}/visualizza`,
+                  label: fonte.nome, context: fonte.motivo || "",
+                })}>{fonte.nome}</button>
+              ) : fonte.tipo === 'pec' && fonte.id ? <a href={`/email/?audit_id=${encodeURIComponent(fonte.id)}`}>{fonte.nome}</a> : fonte.nome}
+              {fonte.motivo ? ` · ${fonte.motivo}` : null}
+            </li>
+          ))}</ul> : null}
+        </section>
+      ) : null}
+
       {lettura.lacune.length ? (
         <section className="iu-fas-lettura__lacune" aria-label="Lacune da colmare">
           <h4><AlertTriangle size={15}/> Lacune da colmare</h4>

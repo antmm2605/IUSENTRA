@@ -41,7 +41,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.14.lettura-fascicolo.v28"
+VERSIONE_LETTURA = "2026.11.14.lettura-fascicolo.v30"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -60,10 +60,6 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
     else:
         for deposito in in_corso:
             voci.append(f"il deposito di «{deposito['atto']}» non ha ancora l'accettazione della cancelleria")
-    pec_letto = lettura.get("pec") or {}
-    if pec_letto.get("da_controllare"):
-        quante = len(pec_letto["da_controllare"])
-        voci.append(f"{quante} PEC del presidio {'riguarda' if quante == 1 else 'riguardano'} la pratica ma {'è' if quante == 1 else 'sono'} ancora da controllare")
     documenti_letti = lettura["documenti"]
     if documenti_letti["totale"] and not documenti_letti.get("procura") and lettura["fase"]["codice"] not in {"stragiudiziale"}:
         voci.append("nessun documento catalogato come procura alle liti")
@@ -73,18 +69,12 @@ def _lacune(lettura: dict[str, Any]) -> list[str]:
     archivio_letto = lettura.get("archivio") or {}
     if archivio_letto.get("da_confermare"):
         voci.append(_lacuna_conferme(archivio_letto["da_confermare"]))
-    in_attesa = list((archivio_letto.get("lettura_automatica") or {}).get("in_attesa") or [])
-    if in_attesa:
-        voci.append(_lacuna_letture(in_attesa))
-    elif (archivio_letto.get("lettura_automatica") or {}).get("da_leggere"):
-        quanti = archivio_letto["lettura_automatica"]["da_leggere"]
-        voci.append(f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo")
-    elif (archivio_letto.get("lettura_automatica") or {}).get("errori"):
-        quanti = int(archivio_letto["lettura_automatica"]["errori"])
-        voci.append(f"{quanti} esiti di lettura non riusciti: consultare le cause e recuperare le fonti prima di citarne il contenuto")
-    elif documenti_letti["non_indicizzati"]:
-        quanti = len(documenti_letti["non_indicizzati"])
-        voci.append(f"{quanti} document{'o' if quanti == 1 else 'i'} in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto")
+    errori = int((archivio_letto.get("lettura_automatica") or {}).get("errori") or 0)
+    if errori:
+        voci.append(f"{errori} letture non riuscite: aprire «Letture e verifiche» per vedere le fonti e le cause")
+    mancanti = lettura.get("documenti_da_riallineare") or []
+    if mancanti:
+        voci.append("Documenti acquisiti da riallineare al registro delle letture: " + ", ".join(voce["nome"] for voce in mancanti))
     return voci[:8]
 
 
@@ -105,14 +95,24 @@ def _lacuna_conferme(richieste: list[dict[str, Any]]) -> str:
     )
 
 
-def _lacuna_letture(in_attesa: list[dict[str, Any]]) -> str:
-    """Quale oggetto la lettura automatica deve ancora leggere, e perché."""
-    nomi = [f"«{pulisci(voce.get('nome'))}» ({pulisci(voce.get('motivo'))})" for voce in in_attesa[:3] if pulisci(voce.get("nome"))]
-    quanti = len(in_attesa)
-    elenco = ", ".join(nomi) + (f" e altri {quanti - 3}" if quanti > 3 else "")
-    return f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo: {elenco}" if nomi else (
-        f"la lettura automatica deve ancora leggere {quanti} oggett{'o' if quanti == 1 else 'i'} del fascicolo"
-    )
+def _letture_in_corso(archivio_letto: dict[str, Any], documenti_letti: dict[str, Any]) -> dict[str, Any]:
+    stato = archivio_letto.get("lettura_automatica") or {}
+    fonti = {
+        (voce.get("tipo"), voce.get("oggetto_id") or voce.get("nome")): {
+            "tipo": voce.get("tipo"), "id": voce.get("oggetto_id"),
+            "nome": voce.get("nome"), "motivo": voce.get("motivo"),
+        }
+        for voce in stato.get("in_attesa") or [] if voce.get("nome")
+    }
+    totale = max(len(fonti), int(stato.get("da_leggere") or 0))
+    if not archivio_letto.get("disponibile") and not totale:
+        for voce in documenti_letti["non_indicizzati"]:
+            fonti["documento", voce["id"]] = {
+                "tipo": "documento", "id": voce["id"], "nome": voce["nome"],
+                "motivo": "Testo non ancora disponibile nell’indice.",
+            }
+        totale = len(fonti)
+    return {"totale": totale, "fonti": list(fonti.values())}
 
 
 def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
@@ -197,6 +197,13 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
         from .percorso import percorso_dopo_sentenza
 
         lettura["percorso"] = percorso_dopo_sentenza(testata, documenti_letti)
+    lettura["letture_in_corso"] = _letture_in_corso(archivio_letto, documenti_letti)
+    inventario = (dati.archivio or {}).get("letture_documenti")
+    if isinstance(inventario, dict):
+        lettura["documenti_da_riallineare"] = [
+            voce for voce in documenti_letti["non_indicizzati"]
+            if voce["id"] and not (inventario.get(voce["id"]) or {}).get("presente")
+        ]
     lettura["lacune"] = _lacune(lettura)
     lettura["narrativa"] = narrativa(lettura)
     return lettura

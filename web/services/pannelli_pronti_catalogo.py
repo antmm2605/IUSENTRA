@@ -14,7 +14,7 @@ from typing import Any, Callable
 
 from pct import __version__ as APP_VERSION
 
-VERSIONE_PANNELLI = f"{APP_VERSION}:quadro-processuale-v23"
+VERSIONE_PANNELLI = f"{APP_VERSION}:quadro-processuale-v25"
 
 # Parametri che non cambiano il payload: anti-cache dei browser e segnali della richiesta.
 PARAMETRI_IGNORATI_SEMPRE = frozenset({"_", "t", "ts", "nocache"})
@@ -102,9 +102,9 @@ PANNELLI: tuple[Pannello, ...] = (
              memorizzabile=_letture_valide, ricomponi="novita_letture"),
     Pannello("letture-parti", "api_v1_react.fascicolo_react_letture_parti", percorso=_UI + "/letture/parti"),
     Pannello("letture-prospetti", "api_v1_react.fascicolo_react_letture_prospetti", percorso=_UI + "/letture/prospetti"),
-    Pannello("letture-sentenza", "api_v1_react.fascicolo_react_letture_sentenza", percorso=_UI + "/letture/sentenza"),
+    Pannello("letture-sentenza", "api_v1_react.fascicolo_react_letture_sentenza", percorso=_UI + "/letture/sentenza", prima_apertura=True),
     Pannello("provenienza-ai", "api_v1_react.fascicolo_react_provenienza_ai", percorso=_UI + "/provenienza-ai"),
-    Pannello("conto-economico", "api_v1_react.fascicolo_react_conto_economico", percorso=_UI + "/conto-economico", dipende_da=("lettura",)),
+    Pannello("conto-economico", "api_v1_react.fascicolo_react_conto_economico", percorso=_UI + "/conto-economico", prima_apertura=True, dipende_da=("lettura",)),
     Pannello("checklist", "api_v1_react.fascicolo_regia_checklist", percorso=_UI + "/checklist"),
     Pannello("redazione-atti-contesto", "api_v1_react.redazione_atti_contesto_fascicolo",
              percorso="/api/v1/ui/redazione-atti/fascicoli/{fid}/contesto", parametro_fascicolo="id_fascicolo",

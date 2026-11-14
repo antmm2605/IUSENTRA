@@ -119,7 +119,7 @@ export interface LetturaFascicolo {
   depositi: { totale: number; importati?: unknown[]; perfezionati: unknown[]; in_corso: unknown[]; falliti: unknown[]; tutti: { atto: string; data: string; fase: string; attesa: string; perfezionato: boolean; fase_procedurale: string; prova_attesa: string }[] }
   scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
   notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
-  pec: { conteggio?: ConteggioPec; totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: { data: string; oggetto: string; motivi_controllo: string[] }[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
+  pec: { conteggio?: ConteggioPec; totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: PecDaControllare[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
   documenti: { errori_lettura?: number; da_leggere_lettura?: number | null; totale: number; catalogati: number; confermati: number; proposti?: number; automatici?: number; da_verificare: unknown[]; non_indicizzati: unknown[]; da_acquisire?: unknown[]; conteggi: Record<string, number> }
   economico: {
     presente: boolean; preventivato_it: string; conferito_it: string; fatturato_it: string; incassato_it: string; saldo_aperto_it: string
@@ -135,10 +135,22 @@ export interface LetturaFascicolo {
   prossimi_passi: PassoLettura[]
   stato_passi: { attivi: boolean; motivo: string }
   lacune: string[]
+  letture_in_corso?: { totale: number; fonti: { tipo?: string; id?: string; nome: string; motivo?: string }[] }
   conoscenza: { versione: string; rito: SchedaProcedurale | Record<string, never>; deposito: SchedaProcedurale | Record<string, never>; notifiche: SchedaProcedurale[]; lacune?: LacunaConoscenza[] }
   verifiche?: VerificheAutomatiche
   narrativa: string
   ragionamento?: Pick<RiscontriProcessualiData, "conclusioni" | "impronta">
+}
+
+type PecDaControllare = {
+  id: string
+  data: string
+  oggetto: string
+  mittente: string
+  motivi_controllo: string[]
+  eventi?: { evento: string }[]
+  termini?: { id: string; tipo: string; scadenza: string; norma: string; registrato: boolean }[]
+  udienze?: { id: string; data: string; ora: string }[]
 }
 
 export const ESITI_DEPOSITI: Record<string, string> = {

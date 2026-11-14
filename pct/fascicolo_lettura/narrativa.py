@@ -274,6 +274,14 @@ def verifiche_automatiche(lettura: dict[str, Any]) -> list[str]:
 def lacune(lettura: dict[str, Any]) -> list[str]:
     voci = lettura["lacune"]
     righe = [f"- {voce}." for voce in voci]
+    for pec in (lettura.get("pec") or {}).get("da_controllare") or []:
+        dati = " · ".join(dato for dato in (pec["oggetto"], pec["data"], pec["mittente"]) if dato)
+        motivi = ", ".join(pec["motivi_controllo"])
+        righe.append(f"- PEC «{dati}»: {motivi}.")
+    letture_in_corso = lettura.get("letture_in_corso") or {}
+    if letture_in_corso.get("totale"):
+        nomi = ", ".join(voce["nome"] for voce in letture_in_corso["fonti"] if voce.get("nome"))
+        righe.append(f"- Elaborazione automatica di {letture_in_corso['totale']} fonti" + (f" ({nomi})." if nomi else "."))
     for voce in (lettura.get("ragionamento") or {}).get("conclusioni") or []:
         if voce["stato"] != "dubbio":
             continue

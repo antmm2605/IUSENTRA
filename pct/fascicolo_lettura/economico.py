@@ -71,6 +71,16 @@ def economico(dati: dict[str, Any], oggi: Any = None) -> dict[str, Any]:
     contributo = _voce_presidio(voci.get("contributo_unificato"))
     spese = _voce_presidio(voci.get("spese_esborsi"))
     sentenze = dict((dati or {}).get("sentenze") or {})
+    if liquidazione.get("stato") == "da_registrare" and liquidazione.get("importo"):
+        fonti = (voci.get("liquidazione_giudice") or {}).get("fontiVerifica") or []
+        if any(
+            credito.get("impronta") and credito.get("documento_id")
+            and _importo(credito.get("importo")) == liquidazione["importo"]
+            and any(fonte.get("sha256") == credito["impronta"]
+                    and fonte.get("documentoId") == credito["documento_id"] for fonte in fonti)
+            for credito in sentenze.get("crediti_confermati") or []
+        ):
+            liquidazione.update(stato="credito_registrato", stato_etichetta="Credito registrato")
     giorno_oggi = data_da(oggi)
     scadute = [
         voce for voce in parcelle

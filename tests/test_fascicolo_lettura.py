@@ -168,7 +168,9 @@ def test_lettura_completa_dice_quadro_oggetto_fase_e_prossimi_passi():
     assert lettura["stato_passi"] == {"attivi": True, "motivo": ""}
     assert len(lettura["prossimi_passi"]) <= 8
 
-    assert lettura["lacune"] == ["1 documento in attesa di lettura dal presidio documentale: la lettura non può ancora citarne il contenuto"]
+    assert lettura["lacune"] == []
+    assert lettura["letture_in_corso"]["totale"] == 1
+    assert lettura["letture_in_corso"]["fonti"][0]["nome"]
 
     narrativa = lettura["narrativa"]
     for titolo in ("Quadro della pratica", "Di che cosa tratta", "Che cosa è stato fatto", "Depositi e notifiche", "A che punto siamo", "Prossimi passaggi", "Lacune da colmare"):
@@ -428,7 +430,8 @@ def test_presidio_pec_entra_nella_lettura_con_termini_e_udienze_da_registrare():
     assert any(azione.startswith("Confermare il collegamento della PEC del 12/09/2026") for azione in azioni)
     assert not any(azione.startswith("Verificare l'autenticità della PEC del 12/09/2026") for azione in azioni)
     assert "PEC del presidio che riguardano la pratica: 3 (1 collegate, 1 per numero di ruolo, 1 per nome dell'assistito)" in lettura["narrativa"]
-    assert "2 PEC del presidio riguardano la pratica ma sono ancora da controllare" in lettura["lacune"]
+    assert "Avviso n. 1234/26" in lettura["narrativa"]
+    assert "Per Mario Rossi" in lettura["narrativa"]
 
 
 def test_pec_rg_con_profilo_ufficio_giudiziario_non_diventa_lacuna_di_controllo():
@@ -653,6 +656,17 @@ def test_liquidazione_del_giudice_e_bonifici_entrano_nel_presidio_economico():
     assert "Recuperare le anticipazioni (€ 259,00)" in azioni
     assert "Liquidazione del giudice: € 4.500,00 (sentenza del 01/09/2026), da registrare nel presidio; non ancora bonificata sul conto dello studio." in lettura["narrativa"]
 
+    fonte = {"documentoId": "D1", "sha256": "a" * 64}
+    dati.economico["presidio"]["items"]["liquidazione_giudice"]["fontiVerifica"] = [fonte]
+    credito = {"documento_id": "D1", "impronta": "b" * 64, "importo": 4500.0}
+    dati.economico["sentenze"]["crediti_confermati"] = [credito]
+    assert costruisci_lettura(dati)["economico"]["liquidazione"]["stato"] == "da_registrare"
+    credito["impronta"] = fonte["sha256"]
+    lettura = costruisci_lettura(dati)
+    assert lettura["economico"]["liquidazione"]["stato"] == "credito_registrato"
+    assert lettura["economico"]["liquidazione_incasso"] == "non_incassata"
+    assert not any(passo["azione"].startswith("Confermare nel presidio economico") for passo in lettura["prossimi_passi"])
+
     # Il bonifico registrato in Fatturazione chiude la riscossione: stessa fonte, stessa lettura.
     dati.economico["summary"].update({"totale_incassato": 4500.0, "saldo_aperto": 0.0, "totale_fatturato": 4500.0})
     dati.economico["parcelle"] = [{"id": "P1", "numero": "2026/001", "stato": "PAGATA", "totale": 4500.0, "data_emissione": "2026-09-05", "data_scadenza": "2026-10-05", "data_pagamento": "2026-09-10", "metodo_pagamento": "Bonifico bancario"}]
@@ -672,7 +686,7 @@ def test_esiti_negativi_archivio_non_diventano_documenti_in_attesa():
     risultato = costruisci_lettura(dati)
     assert risultato["documenti"]["errori_lettura"] == 14
     assert risultato["archivio"]["lettura_automatica"]["errori"] == 14
-    assert any("14 esiti di lettura non riusciti" in voce for voce in risultato["lacune"])
+    assert any("14 letture non riuscite" in voce for voce in risultato["lacune"])
     assert not any("in attesa di lettura" in voce for voce in risultato["lacune"])
 
 

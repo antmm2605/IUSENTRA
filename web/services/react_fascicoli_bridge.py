@@ -3791,6 +3791,7 @@ def _importi_dall_archivio(fascicolo: Any, payments: Any) -> dict[str, dict[str,
         elif fonte_corrente and tipo_fonte == "allegato_pec" and oggetto.origine and oggetto.nome:
             preview = f"/api/v1/ui/email/source/{quote(oggetto.origine, safe='')}?name={quote(oggetto.nome, safe='')}&sha256={quote(oggetto.sha256, safe='')}"
         fonti_importo = [{"fattoId": fatto.id, "documentoId": fatto.oggetto_id,
+                         "sha256": fatto.sha256 if fonte_corrente else "", "tipo": tipo_fonte,
                          "nome": nome_fonte or "Fonte dell'importo non disponibile",
                          "contesto": _italian_dates_in_text(fatto.contesto), "previewHref": preview,
                          "riscontri": ["Importo letto nel capo economico della fonte.", nota + "."]}] if fatto else []
@@ -5119,8 +5120,29 @@ def generate_react_fascicolo_proforma(
     economic_summary = payment_summary_for_fascicolo(fascicolo)
     from web.services.proforma_da_sentenza import base_dalla_sentenza_letta, voci_che_bloccano
 
+    requested_basis, basis_error = _requested_proforma_basis(payload)
+    if basis_error:
+        return {"ok": False, "message": basis_error, "errors": {"importo": basis_error}}, 400
+    amount, amount_source = _fascicolo_auto_proforma_amount(fascicolo)
+    payments = getattr(fascicolo, "pagamenti", {}) or {}
+    parcella = _payment_source_for_kind(payments, "parcella")
+    liquidazione = _payment_source_for_kind(payments, "liquidazione_giudice")
+    parcella_salvata = _payment_amount_value(parcella.get("importo")) or 0
+    from pct.fascicolo_sentenza_economica import ORIGIN as ORIGINE_SENTENZA
+
     sentenza_amount, sentenza_source = base_dalla_sentenza_letta(fascicolo)
-    base_da_sentenza = sentenza_amount is not None and _fascicolo_auto_proforma_amount(fascicolo)[0] is None
+    liquidazione_persistita = _payment_amount_value(liquidazione.get("importo"))
+    liquidazione_da_sentenza = (
+        liquidazione.get("origine") == ORIGINE_SENTENZA
+        and liquidazione_persistita == sentenza_amount
+    )
+    base_da_sentenza = (
+        sentenza_amount is not None and parcella_salvata <= 0
+        and (liquidazione_da_sentenza or not _raw_payment_is_manual(liquidazione))
+        and (requested_basis is None or requested_basis["kind"] == "liquidazione_giudice")
+    )
+    if base_da_sentenza:
+        amount, amount_source = sentenza_amount, sentenza_source
     bloccanti = voci_che_bloccano(economic_summary["items"], base_da_sentenza=base_da_sentenza)
     if bloccanti:
         from web.services.react_fatturazione_bridge import _is_proforma
@@ -5131,18 +5153,11 @@ def generate_react_fascicolo_proforma(
             return {"ok": True, "message": "Proforma esistente conservata; verifica le discordanze prima di modificarla.",
                     "proformaId": _text(existing.id), "paymentSummary": economic_summary,
                     "redirectHref": f"/fatturazione?id_documento={quote(_text(existing.id), safe='')}"}, 200
-        return {"ok": False, "message": "Prima di preparare la proforma conferma l'importo: " + "; ".join(bloccanti),
-                "errors": {"importi": "Importi economici da verificare."}, "paymentSummary": economic_summary}, 409
-    requested_basis, basis_error = _requested_proforma_basis(payload)
-    if basis_error:
-        return {
-            "ok": False,
-            "message": basis_error,
-            "errors": {"importo": basis_error},
-        }, 400
-    amount, amount_source = _fascicolo_auto_proforma_amount(fascicolo)
-    if amount is None and requested_basis is None and base_da_sentenza:
-        amount, amount_source = sentenza_amount, sentenza_source
+        return {"ok": False, "message": (
+                    "Apri Economia → Preventivo, conferimento e controlli economici → Apri presidio economico. "
+                    "Verifica la fonte o correggi e salva la voce prima di preparare la proforma. "
+                    + ". ".join(voce.rstrip(".") for voce in bloccanti) + "."
+                ), "errors": {}, "paymentSummary": economic_summary}, 409
     if amount is not None and requested_basis is not None:
         requested_amount = float(requested_basis["importo"])
         if abs(float(amount) - requested_amount) > 0.009:
@@ -9736,10 +9751,21 @@ def _sentenze_economiche(fid: str, payment_summary: dict[str, Any] | None = None
         summary = payload.get("summary") or {}
         totals = summary.get("totals") or {}
         if int(totals.get("sentenze_lette") or 0):
+            audits = {audit["id"]: audit for audit in payload.get("audits") or []}
+            from pct.sentenza_automatica import CREDITI
+
+            crediti_confermati = [
+                {"importo": evento.get("amount"), "documento_id": audit.get("documento_id"),
+                 "impronta": audit.get("document_hash_sha256")}
+                for evento in payload.get("eventi") or []
+                if evento.get("status") == "confirmed" and evento.get("event_type") in CREDITI
+                and (audit := audits.get(evento.get("source_id"))) is not None
+            ]
             return {
                 "totals": totals,
                 "worklist": _sentenze_worklist_visible(summary.get("worklist") or []),
                 "kpi": summary.get("kpi") or {},
+                "crediti_confermati": crediti_confermati,
             }
     return _sentenze_economiche_from_payment_summary(payment_summary)
 

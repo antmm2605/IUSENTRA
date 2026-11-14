@@ -22,16 +22,26 @@ ETICHETTE = {"parcella": "Parcella", "liquidazione_giudice": "Liquidazione del g
 
 def base_dalla_sentenza_letta(fascicolo: Any) -> tuple[float | None, str]:
     """L'importo liquidato dalla sentenza della causa in favore del cliente o del difensore, con la fonte."""
-    from web.services.fascicolo_conto_economico_runtime import crediti_dalle_sentenze_lette, sentenze_dall_archivio
+    from web.services.fascicolo_conto_economico_runtime import (
+        crediti_da_sentenza,
+        crediti_dalle_sentenze_lette,
+        sentenze_dall_archivio,
+    )
 
     try:
-        crediti = crediti_dalle_sentenze_lette(sentenze_dall_archivio(fascicolo))
+        crediti_registrati = crediti_da_sentenza(str(fascicolo.id))
+    except Exception:
+        crediti_registrati = []
+    try:
+        crediti = [voce for voce in crediti_registrati if voce.get("confermato") and voce.get("fonti")]
+        if not crediti:
+            crediti = crediti_dalle_sentenze_lette(sentenze_dall_archivio(fascicolo))
     except Exception:
         return None, ""
     importi = {round(float(c["importo"]), 2) for c in crediti if c.get("importo")}
-    if len(importi) != 1:
+    if len(importi) != 1 or len({bool(c.get("distrazione")) for c in crediti}) != 1:
         return None, ""  # nessuna o più sentenze con importi diversi: decide l'avvocato
-    credito = crediti[0]
+    credito = next(c for c in crediti if c.get("importo"))
     documento = next((f.get("label") for f in credito.get("fonti") or [] if f.get("label")), "sentenza della causa")
     importo = importi.pop()
     distrazione = " distratte (art. 93 c.p.c.)" if credito.get("distrazione") else ""

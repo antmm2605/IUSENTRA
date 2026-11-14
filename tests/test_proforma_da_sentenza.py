@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 import web.services.fascicolo_conto_economico_runtime as conto_runtime
 import web.services.react_fascicoli_bridge as bridge
 from web.services.proforma_da_sentenza import base_dalla_sentenza_letta, voci_che_bloccano
@@ -40,10 +42,16 @@ def test_base_dalla_sentenza_letta(monkeypatch):
     assert base_dalla_sentenza_letta(SimpleNamespace(id="F1")) == (None, "")
 
 
-def test_genera_proforma_dalla_sentenza_letta_nonostante_le_ricevute(monkeypatch):
+@pytest.mark.parametrize(("pagamento", "esito"), [
+    ({}, 418),
+    ({"origine": "lex_ai_sentenza_tribunale", "status": "da_registrare", "importo": 250.0, "updated_by": "utente-id"}, 418),
+    ({"origine": "lex_ai_sentenza_tribunale", "status": "da_registrare", "importo": 210.0, "updated_by": "utente-id"}, 409),
+    ({"origine": "Conferma operatore", "status": "da_registrare", "importo": 250.0, "updated_by": "utente-id"}, 409),
+])
+def test_genera_proforma_dalla_sentenza_letta_nonostante_le_ricevute(monkeypatch, pagamento, esito):
     import web.services.react_fatturazione_bridge as fatturazione_bridge
 
-    fascicolo = SimpleNamespace(id="F1", pagamenti={}, compenso_pattuito=None, valore_preventivato=None)
+    fascicolo = SimpleNamespace(id="F1", pagamenti={"liquidazione_giudice": pagamento}, compenso_pattuito=None, valore_preventivato=None)
     monkeypatch.setattr(bridge, "_resolve_fascicolo", lambda repo, fid: fascicolo)
     monkeypatch.setattr(bridge, "payment_summary_for_fascicolo", lambda f: {"items": LIQUIDAZIONE_SOSPESA})
     monkeypatch.setattr(conto_runtime, "sentenze_dall_archivio", lambda f: SENTENZA_LETTA)
@@ -59,5 +67,8 @@ def test_genera_proforma_dalla_sentenza_letta_nonostante_le_ricevute(monkeypatch
         get_fascicoli=lambda: object(), get_fatturazione=lambda: fatturazione, get_clienti=lambda: object(),
         get_utenti=lambda: object(), get_preventivi=None, current_user=SimpleNamespace(id="U"), id_fasc="F1",
         payload={}, config={})
-    assert stato == 418  # arrivata alla creazione della proforma, non più 409
-    assert catturato["amount"] == 250.0 and "art. 93 c.p.c." in catturato["amount_source"]
+    assert stato == esito
+    if esito == 418:
+        assert catturato["amount"] == 250.0 and "art. 93 c.p.c." in catturato["amount_source"]
+    else:
+        assert not catturato

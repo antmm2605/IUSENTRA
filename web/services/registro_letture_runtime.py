@@ -214,7 +214,8 @@ def _fascicolo(fascicolo_id: str) -> Any:
     try:
         from web.helpers import get_fascicoli
 
-        return get_fascicoli().get(str(fascicolo_id or "").strip())
+        loader = current_app.extensions.get("core_runtime", {}).get("get_fascicoli_mirato") if has_app_context() else None
+        return (loader if callable(loader) else get_fascicoli)().get(str(fascicolo_id or "").strip())
     except Exception:
         return None
 

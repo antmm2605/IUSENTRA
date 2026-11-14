@@ -823,7 +823,8 @@ def test_react_giurisprudenza_nuova_shell_json_e_salvataggio(tmp_path: Path):
 
     assert shell.status_code == 200
     assert "IUSENTRA - React Shell" in shell.get_data(as_text=True)
-    assert "IUSENTRA - React Shell" not in legacy.get_data(as_text=True)
+    assert legacy.status_code == 200
+    assert "IUSENTRA - React Shell" in legacy.get_data(as_text=True)
     assert page.status_code == 200
     page_payload = page.get_json()
     assert page_payload["contracts"]["writes"] == "json_api"

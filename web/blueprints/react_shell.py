@@ -568,7 +568,7 @@ def _embedded_source_bootstrap_payload() -> dict[str, Any]:
         return {
             "mode": "pec",
             "sourceId": f"pec-audit:{audit_id}",
-            "data": _repo().get_message_source_detail(audit_id),
+            "data": _repo(read_only=True).get_message_source_detail(audit_id),
         }
     except Exception as exc:  # pragma: no cover - bootstrap difensivo, la UI ha comunque fetch/errore controllato
         current_app.logger.warning("Fonte PEC embedded non precaricata: %s", exc)

@@ -3598,7 +3598,7 @@ def test_react_privacy_registro_operativo_secondo_pattern_oss(tmp_path: Path):
 
     Il test riflette il protocollo in REACT_MIGRATION_PATTERNS_FROM_OSS:
     API tipizzata, form reali, POST legacy auditati, card non decorative e
-    fallback tecnico `_legacy=1`.
+    accesso React anche dagli indirizzi storici con `_legacy=1`.
     """
 
     app = _app(tmp_path)
@@ -3664,7 +3664,7 @@ def test_react_privacy_registro_operativo_secondo_pattern_oss(tmp_path: Path):
     assert new_shell.status_code == 200
     assert "IUSENTRA - React Shell" in new_shell.get_data(as_text=True)
     assert legacy.status_code == 200
-    assert "IUSENTRA - React Shell" not in legacy.get_data(as_text=True)
+    assert "IUSENTRA - React Shell" in legacy.get_data(as_text=True)
     assert payload_response.status_code == 200
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
@@ -5416,6 +5416,39 @@ def test_react_agenda_fonte_evento_esatta_vince_su_altro_zip_indicizzato() -> No
 
     assert source["sourceHref"] == "/api/v1/ui/email/source/pec_sentenza?name=sentenza.pdf"
     assert source["sourceLabel"] == "PEC originale - sentenza.pdf"
+
+
+def test_link_pec_del_fascicolo_apre_il_messaggio_esatto_senza_lista(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from web.blueprints import pec_pipeline_api
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    aperti = []
+
+    def repo(*, read_only=False):
+        assert read_only
+
+        def fonte(audit_id):
+            aperti.append(audit_id)
+            return {"message": {"id": audit_id, "subject": "Comunicazione di cancelleria"}}
+
+        return SimpleNamespace(get_message_source_detail=fonte)
+
+    monkeypatch.setattr(pec_pipeline_api, "_repo", repo)
+    with app.test_client() as client:
+        _login(client)
+        risposta = client.get("/email/?audit_id=pec_fuori_pagina", follow_redirects=True)
+        casella = client.get("/email/?audit_id=pec_fuori_pagina&view=mailbox")
+
+    assert risposta.status_code == 200
+    assert risposta.history[0].status_code == 302
+    assert risposta.request.args["embed"] == "source"
+    assert risposta.request.args["audit_id"] == "pec_fuori_pagina"
+    assert "pec-audit:pec_fuori_pagina" in risposta.get_data(as_text=True)
+    assert casella.status_code == 200
+    assert aperti == ["pec_fuori_pagina"]
 
 
 def test_email_source_attachment_legge_pec_read_only_senza_audit_sincrono() -> None:

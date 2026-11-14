@@ -614,6 +614,10 @@ def register_react_route_gate(app: Flask) -> None:
             return None
         if raw_lower.rstrip("/") in _CANONICAL_ALIAS_PATHS:
             return None
+        if lower_path == "/email" and request.args.get("view") != "mailbox":
+            audit_id = (request.args.get("audit_id") or "").strip()
+            if audit_id and request.args.get("embed") != "source":
+                return redirect(url_for("email_client.casella", audit_id=audit_id, embed="source"))
         con_parametro = _redirect_con_parametro(path)
         if con_parametro is not None:
             return con_parametro

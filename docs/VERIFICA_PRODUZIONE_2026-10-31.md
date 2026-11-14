@@ -254,3 +254,7 @@ Verifica su Chrome e sulla copia locale. Dopo un riavvio del worker, il primo Qu
 La profilazione locale ha isolato 224 ms nel commit SQLite che aggiorna la consultazione di un pannello già pronto. Il server ora invia il risultato valido e registra la consultazione alla chiusura della risposta. La coda per un pannello da preparare continua a registrarsi prima della risposta. Suite dei pannelli pronti: 40 test superati.
 
 Prova in Chrome dopo il riavvio del worker. Primo Quadro 896,5 ms e Lettura 43,1 ms nei log. Accoglimento visibile a 1,81 s dall’avvio della navigazione, riscontri di Lettura visibili a 1,38 s dall’azione di apertura. Esito, fonte, termine lungo e verifica sulla consegna confermati. L’accesso iniziale completo resta da migliorare e il deploy resta aperto.
+
+### 15 novembre 2026 — apertura della PEC esatta dal fascicolo
+
+Nel RG 2539/2025 il collegamento alla comunicazione dell'8 ottobre apriva la casella e selezionava un altro messaggio quando l'identificativo richiesto era oltre la prima pagina. Il lettore puntuale già disponibile ha mostrato la comunicazione corretta e aperto l'allegato 20708622s.pdf. I collegamenti diretti ora passano da quel lettore in sola lettura, preservando l'accesso esplicito alla casella. Il test HTTP verifica il reindirizzamento, l'identificativo e l'accesso alla casella. Verificato in Chrome sulla candidata locale: l’apertura del collegamento ordinario ha portato alla comunicazione esatta e il pulsante Leggi ha aperto il visualizzatore dell’allegato. Verifica in produzione da registrare.

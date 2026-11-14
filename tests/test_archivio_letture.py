@@ -292,7 +292,7 @@ def test_le_viste_per_i_presidi():
     fatti.extend(relata)
     assert prove_notifica_per_oggetto(fatti)["relata1"]["kind"] == "relata"
     assert ruoli_letti(fatti)[0]["valore"] == "1234/2026"
-    riassunto = riassunto_archivio(fatti)
+    riassunto = riassunto_archivio(fatti, oggi=OGGI)
     assert riassunto["udienze"] == 2 and riassunto["termini"] == 1 and riassunto["prove_notifica"] == 1
     assert [voce["valore"] for voce in riassunto["da_confermare"]] == ["2026-11-10T09:30"]
 

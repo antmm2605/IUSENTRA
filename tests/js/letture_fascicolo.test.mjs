@@ -178,7 +178,7 @@ test('lettura a più riprese: lo stato reale n di m documenti letti, anche se so
 
 test('sintesi del registro: letture in attesa per motore, non «da leggere» generico', () => {
   const voce = (da_leggere) => ({ etichetta: 'x', versione: '', letti: 1, da_leggere, errori: 0, ultima_lettura: '' })
-  assert.equal(riepilogoAttesaSintesi({ da_leggere: 0, lettori: {} }), 'tutto letto')
+  assert.equal(riepilogoAttesaSintesi({ da_leggere: 0, lettori: {} }), 'nessuna lettura in attesa')
   assert.equal(riepilogoAttesaSintesi({ da_leggere: 132, lettori: { ocr: voce(60), catalogo: voce(72), motore_documenti: voce(0) } }), '132 letture in attesa in 2 motori')
   assert.equal(riepilogoAttesaSintesi({ da_leggere: 5, lettori: { ocr: voce(5) } }), '5 letture in attesa in 1 motore')
 })

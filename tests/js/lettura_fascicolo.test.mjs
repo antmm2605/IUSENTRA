@@ -103,7 +103,7 @@ test('i passi si ordinano per urgenza e il riassunto conta subito e pochi giorni
   const ordinati = passiOrdinati(lettura())
   assert.deepEqual(ordinati.map((p) => p.azione), ['A', 'B', 'C'])
   assert.equal(riassuntoStatoPassi(lettura()), '3 passaggi · 1 da fare subito · 1 entro pochi giorni')
-  assert.equal(riassuntoStatoPassi(lettura({ stato_passi: { attivi: false, motivo: 'Fascicolo definito: nessun passaggio da eseguire.' } })), 'Fascicolo definito: nessun passaggio da eseguire.')
+  assert.equal(riassuntoStatoPassi(lettura({ prossimi_passi: [], stato_passi: { attivi: false, motivo: 'Fascicolo definito: nessun passaggio da eseguire.' } })), 'Fascicolo definito: nessun passaggio da eseguire.')
 })
 
 test('norma del passo e link al calcolo del termine', () => {

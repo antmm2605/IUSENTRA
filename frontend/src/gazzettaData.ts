@@ -143,8 +143,14 @@ async function leggi<T>(url: string, init: RequestInit = {}): Promise<T> {
   return dati as T
 }
 
+async function leggiElencoGazzetta(url: string, init: RequestInit): Promise<GazzettaPayload> {
+  const dati = await leggi<GazzettaPayload>(url, init)
+  if (!dati || !Array.isArray(dati.items) || !Array.isArray(dati.sourceStates) || !dati.facets || !dati.archive) throw new Error(ERRORE)
+  return dati
+}
+
 export function loadGazzetta(query: GazzettaQuery, signal?: AbortSignal): Promise<GazzettaPayload> {
-  return leggi<GazzettaPayload>(`/api/v1/ui/gazzetta-ufficiale${gazzettaQueryString(query)}`, { signal })
+  return leggiElencoGazzetta(`/api/v1/ui/gazzetta-ufficiale${gazzettaQueryString(query)}`, { signal })
 }
 
 export function loadGazzettaUltime(signal?: AbortSignal): Promise<GazzettaUltime> {
@@ -152,7 +158,7 @@ export function loadGazzettaUltime(signal?: AbortSignal): Promise<GazzettaUltime
 }
 
 export function refreshGazzetta(query: GazzettaQuery): Promise<GazzettaPayload> {
-  return leggi<GazzettaPayload>(`/api/v1/ui/gazzetta-ufficiale/aggiorna${gazzettaQueryString({ ...query, pagina: 1 })}`, {
+  return leggiElencoGazzetta(`/api/v1/ui/gazzetta-ufficiale/aggiorna${gazzettaQueryString({ ...query, pagina: 1 })}`, {
     method: 'POST',
     headers: csrfHeader(),
   })

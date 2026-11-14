@@ -34,7 +34,7 @@ def request(container, url, payload=None):
 
 
 
-def verify_sources(repo, container):
+def source_fingerprints(repo, container):
     paths = ["pct/openga_catalogo.py", "pct/openga_query.py", "pct/openga_reranker.py",
              "pct/openga_riformulazione.py", "pct/openga_search.py", "pct/openga_identita.py",
              "pct/__init__.py", "server.py"]
@@ -43,9 +43,36 @@ def verify_sources(repo, container):
     actual = json.loads(command("docker", "exec", container, "python", "-c", code, json.dumps(paths)))
     expected = {p: hashlib.sha256((repo / ("deploy/openga/server.py" if p == "server.py" else p)).read_bytes()).hexdigest()
                 for p in paths}
+    return actual, expected
+
+
+def verify_sources(repo, container):
+    actual, expected = source_fingerprints(repo, container)
     if actual != expected:
         raise ValueError("Sorgenti del servizio diversi dalla revisione verificata")
     print("PARITA_SORGENTI_OPENGA_JSON=" + json.dumps(expected))
+
+
+def installed_sources_match(repo, container, previous_sha, candidate_sha):
+    actual, expected = source_fingerprints(repo, container)
+    if actual != expected:
+        return False
+    # Il servizio pubblico e la coda/lettore nell'app sono distribuiti in immagini diverse.
+    # Il collaudo su fonti esterne resta necessario se cambia uno dei due.
+    reading_paths = (
+        "pct/openga*.py", "pct/legal_update_job_queue.py",
+        "web/services/openga*.py", "web/templates/giurisprudenza/testo_ufficiale.html",
+        "deploy/openga/verify_reading.py", "deploy/openga/server.py",
+        "deploy/openga/Dockerfile", "deploy/openga/runtime-lock.txt",
+        "deploy/openga/catalogo-manifest.json", "deploy/openga/modello-manifest.json",
+    )
+    try:
+        changed = command("git", "-C", str(repo), "diff", "--name-only",
+                          previous_sha, candidate_sha, "--", *reading_paths)
+    except subprocess.CalledProcessError:
+        return False
+    return not changed
+
 
 def verify_reading(repo, container):
     # Include the exact regression cases: joined proceedings and legacy XML.
@@ -151,6 +178,15 @@ def run(sha):
     baseline = request("iusentra-app", "http://openga-search:8092/search", {"q": "permesso soggiorno", "semantica": False})
     if not baseline.get("ok"):
         raise ValueError("Servizio precedente non pronto")
+    if installed_sources_match(repo, old_name, base_image.split(":", 1)[1], sha):
+        inventory = request("iusentra-app", "http://openga-search:8092/inventory")
+        if (inventory.get("ok") is not True or inventory.get("evidence_scope") != "metadata_only"
+                or inventory.get("decisioni") != installed["decisioni"]
+                or inventory.get("relazioni") != installed["relazioni"]):
+            raise ValueError("Inventario del servizio installato non corrispondente")
+        print(json.dumps({"componente_invariato": True, "inventario": inventory,
+                          "ricerca_rapida_verificata": True, "letture_esterne_ripetute": False}))
+        return
     # Ranking e pesi preservati nell'immagine di origine; nessuna installazione.
     dockerfile = (f"FROM {base_image}\n"
                   "COPY pct/openga_search.py /app/pct/openga_search.py\n"

@@ -45,6 +45,19 @@ def test_source_parity_rejects_stale_runtime(tmp_path, monkeypatch):
         update_worker.verify_sources(tmp_path, "candidate")
 
 
+@pytest.mark.parametrize(("different_binary", "changed_reader", "expected"), [
+    (False, "", True),
+    (True, "", False),
+    (False, "pct/openga_recupero.py", False),
+])
+def test_installed_worker_and_reader_must_both_match(monkeypatch, tmp_path, different_binary, changed_reader, expected):
+    monkeypatch.setattr(update_worker, "source_fingerprints", lambda *args: (
+        {"server.py": "old" if different_binary else "current"}, {"server.py": "current"},
+    ))
+    monkeypatch.setattr(update_worker, "command", lambda *args: changed_reader)
+    assert update_worker.installed_sources_match(tmp_path, "old", "a" * 40, "b" * 40) is expected
+
+
 def test_release_reading_gate_requires_persisted_queue_proof(tmp_path, monkeypatch):
     import json
     from types import SimpleNamespace

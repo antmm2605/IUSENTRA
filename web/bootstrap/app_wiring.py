@@ -16,6 +16,7 @@ from web.bootstrap.studio_operations_wiring import register_studio_operations
 from web.bootstrap.telematico_surface_wiring import register_telematico_surfaces
 from web.services.registro_letture_osservatore import registra_osservatore_documenti
 from web.services.support_runtime import register_support_websocket
+from web.services.sito_pubblico_runtime import registra_pregenerazione
 
 
 def register_app_wiring(
@@ -39,6 +40,7 @@ def register_app_wiring(
         ocr_runtime=ocr_runtime,
         get_local_ai_service=get_local_ai_service,
     )
+    registra_pregenerazione(app)
     register_fascicoli_surfaces(
         app,
         core=core,

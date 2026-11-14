@@ -18,7 +18,6 @@
     }
   ],
   "approvedCssRationale": {
-    "frontend/src/components/fascicoli/CollaboratoriFascicoloPanel.css": "Accessi dei collaboratori nel fascicolo: campi e comandi adattivi con i token condivisi.",
     "frontend/src/components/fascicoli/riscontriProcessuali.css": "Riscontri processuali nel fascicolo: elenchi, collegamenti alle fonti e stati con i token condivisi.",
     "frontend/src/ui/activity.css": "Indicatori di caricamento richiesti per tutto il prodotto: stato non bloccante, spinner compatto, token condivisi, movimento ridotto e esclusione dalla stampa; nessun tema alternativo.",
     "frontend/src/components/EditorPersonalTemplates.css": "Pannello Modelli: corregge campi e comandi senza stile riscontrati nel browser reale, preservando il contenuto, i due modi di lavoro e il catalogo tenant-aware; token condivisi e layout mobile senza nuovi stili inline.",
@@ -71,7 +70,6 @@
     "frontend/src/features/fascicoli/normativa/fascicoloNormativa.css": "Icona «Normativa» del fascicolo richiesta dall'avvocato (02/11/2026): pannello laterale su computer e foglio a tutto schermo sul telefono con le norme del rito, dei termini aperti e dei documenti, testo dall'archivio Normattiva e ricerca per materia; token condivisi, controlli touch da 44px, nessuno stile inline."
   },
   "approvedCssFiles": [
-    "frontend/src/components/fascicoli/CollaboratoriFascicoloPanel.css",
     "frontend/src/components/fascicoli/riscontriProcessuali.css",
     "frontend/src/components/ControlloStudioPage.css",
     "frontend/src/components/layout/TopBarTimeTracker.css",

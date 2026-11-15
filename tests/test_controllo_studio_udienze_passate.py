@@ -7,7 +7,7 @@ udienze già tenute, di cui va registrato l'esito (regola V28, artt. 126 e 127-t
 from datetime import date
 from types import SimpleNamespace
 
-from pct.controllo_studio.fonti import voci_scadenze
+from pct.controllo_studio.fonti import voci_agenda, voci_scadenze
 from pct.controllo_studio.voce import ordina
 
 OGGI = date(2026, 11, 1)
@@ -40,3 +40,12 @@ def test_note_in_sostituzione_non_sono_una_udienza_da_registrare():
     assert voce.fascia == "scaduto" and voce.gravita == "critica"
     assert "art. 127-ter c.p.c." in voce.dettaglio
     assert "termine perentorio" in voce.dettaglio
+
+
+def test_agenda_mantiene_le_altre_udienze_del_giorno():
+    appuntamenti = [
+        SimpleNamespace(id=nome, tipo="UDIENZA", stato="PROGRAMMATO", data_ora="2026-11-01T09:00:00")
+        for nome in ("sostituita", "in-presenza")
+    ]
+    [voce] = voci_agenda(appuntamenti, {}, {}, OGGI, appuntamenti_sostituiti_da_note={"sostituita"})
+    assert voce.id == "agenda-in-presenza"

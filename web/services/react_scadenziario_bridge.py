@@ -17,7 +17,9 @@ from typing import Any, Mapping
 from urllib.parse import quote
 
 from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
-from pct.scadenze_stato import aperta, esito_udienza_da_registrare, scaduta_da_chiudere
+from pct.scadenze_stato import (
+    aperta, esito_udienza_da_registrare, scaduta_da_chiudere, termine_note_in_sostituzione, termine_perentorio,
+)
 from pct.guardiano_scadenze import build_guardiano_scadenze_payload
 from pct.scadenziario import (
     OFFICE_MODE_LABELS,
@@ -852,6 +854,8 @@ def _type_label(value: Any) -> str:
 def _type_label_for_scadenza(scadenza: Any) -> str:
     if _is_document_presidio_cancelled(scadenza):
         return "Presidio annullato"
+    if termine_note_in_sostituzione(scadenza):
+        return "Deposito note scritte ex art. 127-ter c.p.c."
     return _type_label(getattr(scadenza, "tipo", TipoTermine.ALTRO.value))
 
 
@@ -1212,7 +1216,7 @@ def _row(
         "daysLabel": _days_label(days),
         "overdue": overdue,
         "dueToday": days == 0,
-        "peremptory": bool(getattr(scadenza, "perentorio", False)),
+        "peremptory": termine_perentorio(scadenza),
         "advanced": _has_advanced_calculation(scadenza),
         "operative": bool(getattr(scadenza, "operational_due_at", "")),
         "operationalDueAt": str(getattr(scadenza, "operational_due_at", "") or ""),

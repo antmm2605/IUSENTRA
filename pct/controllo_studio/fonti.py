@@ -105,10 +105,14 @@ def voci_scadenze(scadenze: list[Any], fascicoli: dict[str, Any], oggi: date) ->
     return voci
 
 
-def voci_agenda(appuntamenti: list[Any], per_rg: dict[str, Any], sessioni_udienza: dict[str, Any], oggi: date) -> list[Voce]:
+def voci_agenda(appuntamenti: list[Any], per_rg: dict[str, Any], sessioni_udienza: dict[str, Any], oggi: date,
+                *, appuntamenti_sostituiti_da_note: set[str] | None = None) -> list[Voce]:
     limite = (oggi + timedelta(days=14)).isoformat()
     voci = []
+    sostituiti = appuntamenti_sostituiti_da_note or set()
     for app in appuntamenti:
+        if str(app.id) in sostituiti:
+            continue
         if str(_valore(app, "stato")) in {"COMPLETATO", "ANNULLATO", "RINVIATO"}:
             continue
         inizio = str(_valore(app, "data_ora") or "")

@@ -22,6 +22,7 @@ from pct.controllo_studio.fonti import (
     voci_scadenze,
 )
 from pct.controllo_studio.voce import AREE, FASCE, ordina
+from pct.scadenze_stato import termine_note_in_sostituzione
 
 LOG = logging.getLogger(__name__)
 ROMA = ZoneInfo("Europe/Rome")
@@ -48,13 +49,23 @@ def costruisci(helpers: dict[str, Callable[[], Any]], *, presidi_notifiche: Call
     fascicoli = _prova("Fascicoli", lambda: list(helpers["fascicoli"]().tutti()), mancanti) if puo("fascicoli.leggi") else []
     per_id = {str(f.id): f for f in fascicoli}
     voci = []
+    sostituiti_da_note: set[str] = set()
     if puo("scadenziario.leggi"):
-        voci += _prova("Scadenze", lambda: voci_scadenze(list(helpers["scadenziario"]().tutte(solo_aperte=False)), per_id, giorno), mancanti)
+        def scadenze() -> list:
+            termini = list(helpers["scadenziario"]().tutte(solo_aperte=False))
+            scadenze_visibili = voci_scadenze(termini, per_id, giorno)
+            visibili = {voce.id for voce in scadenze_visibili}
+            sostituiti_da_note.update(str(termine.id_appuntamento) for termine in termini
+                                     if f"scadenza-{termine.id}" in visibili and getattr(termine, "id_appuntamento", "")
+                                     and termine_note_in_sostituzione(termine))
+            return scadenze_visibili
+        voci += _prova("Scadenze", scadenze, mancanti)
     if puo("agenda.leggi"):
         def agenda() -> list:
             sessioni = {str(s.id_appuntamento): s for s in helpers["wizard_pro"]().lista() if getattr(s, "id_appuntamento", "")
                         and getattr(s, "stato", "") != "archiviato"}
-            return voci_agenda(list(helpers["agenda"]().tutti()), indice_rg(fascicoli), sessioni, giorno)
+            return voci_agenda(list(helpers["agenda"]().tutti()), indice_rg(fascicoli), sessioni, giorno,
+                               appuntamenti_sostituiti_da_note=sostituiti_da_note)
         voci += _prova("Agenda", agenda, mancanti)
     if puo("messaggi.leggi"):
         voci += _prova("Notifiche", lambda: voci_notifiche(presidi_notifiche(), giorno, per_id), mancanti)

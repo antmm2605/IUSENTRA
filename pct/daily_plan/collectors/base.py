@@ -47,6 +47,7 @@ class CollectorContext:
     # descrizione leggibile della scadenza (stessa dello Scadenziario): rende
     # distinguibili scadenze con titolo generico ma origine diversa
     scadenza_reason_resolver: Callable[[Any], str] | None = None
+    appuntamenti_sostituiti_da_note: set[str] = field(default_factory=set)
 
 
 @dataclass

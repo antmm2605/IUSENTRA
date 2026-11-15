@@ -132,6 +132,9 @@ class ScadenzarioCollector:
             motivo = _ESITO_UDIENZA_REASON if esito_udienza else _scadenza_reason(ctx, sc, perentorio)
             if termine_note_in_sostituzione(sc):
                 motivo = f"Deposito di note in sostituzione dell’udienza (art. 127-ter c.p.c.). {motivo}"
+                id_appuntamento = str(getattr(sc, "id_appuntamento", "") or "")
+                if id_appuntamento:
+                    ctx.appuntamenti_sostituiti_da_note.add(id_appuntamento)
             signals.append(
                 OperationalSignal(
                     id=f"sig_sc_{scadenza_id}",
@@ -206,6 +209,8 @@ class AgendaCollector:
             tipo = _enum_val(getattr(ap, "tipo", "")).upper()
             is_hearing = "UDIENZA" in tipo
             app_id = str(getattr(ap, "id", "") or "")
+            if app_id in ctx.appuntamenti_sostituiti_da_note:
+                continue
             titolo = str(getattr(ap, "titolo", "") or "Appuntamento")
             avvocato = str(getattr(ap, "avvocato", "") or "")
             durata = int(getattr(ap, "durata_minuti", 0) or 0) or 60

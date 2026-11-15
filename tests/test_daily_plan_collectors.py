@@ -85,6 +85,22 @@ def test_scadenziario_collector_riconosce_termine_note_salvato_come_udienza():
     assert segnale.evidence[0].source_id == "note"
 
 
+def test_un_termine_per_note_assorbe_solo_l_appuntamento_collegato():
+    termine = _scadenza("note", 0)
+    termine.tipo = "UDIENZA"
+    termine.hearing_mode = "note_scritte"
+    termine.titolo = "Fissazione termine per note in sostituzione udienza"
+    termine.id_appuntamento = "cartolare"
+    ctx = _ctx(
+        scadenziario_store=_ScadStore([termine]),
+        agenda_store=_AgendaStore([_appuntamento("cartolare", 0), _appuntamento("altra-udienza", 0)]),
+    )
+    assert len(ScadenzarioCollector().collect(ctx).signals) == 1
+    agenda = AgendaCollector().collect(ctx)
+    assert [segnale.source_id for segnale in agenda.signals] == ["altra-udienza"]
+    assert [voce["id"] for voce in agenda.fixed_agenda] == ["altra-udienza"]
+
+
 def test_scadenziario_collector_conserva_stato_scaduto_e_data_legale():
     termine = _scadenza("storico", -1, perentorio=True, stato="SCADUTO")
     termine.operational_due_at = (TODAY - timedelta(days=5)).isoformat()

@@ -142,20 +142,28 @@ def _risposta_salvata(stato: int, tipo: str, corpo: bytes, esito: str):
 
 def richiedi_lettura_dal_quadro(fascicolo_id: str) -> bool:
     """Registra la stessa richiesta della Lettura, anche se il pannello è chiuso."""
+    return richiedi_pannello_consultivo(fascicolo_id, "lettura")
+
+
+def richiedi_pannello_consultivo(fascicolo_id: str, nome: str) -> bool:
+    """Prepara il pannello richiesto come fonte di un'altra vista del fascicolo."""
     contesto = contesto_corrente()
     if contesto is None or not contesto.sessione:
         return False
     impronta = impronta_attuale(contesto, fascicolo_id)
     if impronta is None:
         return False
-    chiave = chiave_voce(fascicolo_id, "lettura", "", contesto.profilo)
+    from web.services.pannelli_pronti_catalogo import PANNELLI
+
+    pannello = next(p for p in PANNELLI if p.nome == nome)
+    chiave = chiave_voce(fascicolo_id, nome, "", contesto.profilo)
     try:
         voce = contesto.archivio.voce(chiave)
         soglia = (datetime.now(UTC) - timedelta(seconds=SECONDI_TRA_RICHIESTE)).isoformat(timespec="milliseconds")
         if not voce or voce.richiesto_il < soglia or voce.richiesto_il <= max(voce.calcolato_il, voce.servito_il):
-            percorso = PER_ENDPOINT["api_v1_react.fascicolo_react_lettura"].percorso.format(fid=fascicolo_id)
+            percorso = pannello.percorso.format(fid=fascicolo_id)
             contesto.archivio.registra_richiesta(
-                chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello="lettura",
+                chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=nome,
                 percorso=percorso, profilo=contesto.profilo, sessione=contesto.sessione,
                 servito=False, ritenta=bool(voce and voce.tentata == impronta), differibile=False,
             )
@@ -163,7 +171,7 @@ def richiedi_lettura_dal_quadro(fascicolo_id: str) -> bool:
 
         sveglia_calcolatore(str(getattr(g, "tenant_context_slug", "") or "single-studio"), fascicolo_id)
     except (OSError, sqlite3.Error):
-        logger.debug("Preparazione Lettura dal Quadro rinviata per %s", fascicolo_id, exc_info=True)
+        logger.debug("Preparazione del pannello %s rinviata per %s", nome, fascicolo_id, exc_info=True)
     return True
 
 
@@ -339,6 +347,8 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
         try:
             voce = contesto.archivio.voce(chiave)
             valida = bool(voce and voce.impronta == impronta and voce.corpo is not None)
+            if valida and pannello.nome == "redazione-atti-contesto":
+                valida = pannello.memorizzabile(bytes(voce.corpo))
             if valida and pannello.ricomponi == "quadro_da_lettura":
                 valida = json.loads(voce.corpo).get("termini_agenda_versione") == 2
             if valida and pannello.ricomponi == "lettura_del_dettaglio" and not request.args.get("include"):

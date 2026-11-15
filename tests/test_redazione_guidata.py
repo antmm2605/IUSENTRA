@@ -740,3 +740,25 @@ def test_editor_salva_esporta_e_sezioni_atto(tmp_path):
         docx = client.post(f"/api/editor/{fascicolo.id}/{doc_id}/docx", json={"html": riletto})
         assert docx.status_code == 200
         assert docx.data[:2] == b"PK", "Il DOCX deve essere un pacchetto OOXML valido"
+
+
+def test_redazione_attende_le_fonti_prima_di_mostrare_i_suggerimenti(tmp_path, monkeypatch):
+    from web.services import pannelli_pronti_runtime, riscontri_processuali_runtime
+
+    app, cliente, fascicolo = _app_redazione(tmp_path)
+    richieste = []
+    monkeypatch.setattr(pannelli_pronti_runtime, "richiedi_pannello_consultivo",
+                        lambda fid, nome: richieste.append((fid, nome)) or True)
+    monkeypatch.setattr(riscontri_processuali_runtime, "lettura_materializzata", lambda _fid: None)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        risposta = client.get(
+            f"/api/v1/ui/redazione-atti/fascicoli/{fascicolo.id}/contesto?id_cliente={cliente.id}",
+            headers={"X-Iusentra-Preparazione": "sfondo"},
+        )
+
+    assert risposta.status_code == 202
+    assert risposta.headers["X-Iusentra-Pannello"] == "in-preparazione"
+    assert richieste == [(fascicolo.id, "lettura")]
+    assert "suggerimenti" not in risposta.get_json()

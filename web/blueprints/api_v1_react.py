@@ -15251,10 +15251,14 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
             return jsonify({"ok": False, "errore": errore}), 200
         _, parti = _build_parti_template_context(str(getattr(fascicolo, "id", "") or ""))
         from pct.fascicolo_quadro import riga_prossimo_passo
+        from web.services.pannelli_pronti_runtime import _in_preparazione, richiedi_pannello_consultivo
         from web.services.riscontri_processuali_runtime import lettura_materializzata
 
         puo_leggere = _session_user_can("fascicoli.leggi")
+        attende_fonti = puo_leggere and request.headers.get("X-Iusentra-Preparazione") == "sfondo"
         lettura = lettura_materializzata(id_fascicolo) if puo_leggere else None
+        if attende_fonti and lettura is None and richiedi_pannello_consultivo(id_fascicolo, "lettura"):
+            return _in_preparazione()
         payload = build_redazione_contesto_payload(
             fascicolo=fascicolo,
             cliente=cliente,
@@ -15262,6 +15266,7 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
             config=_studio_prefill_config(),
             lettura=lettura,
         )
+        payload["fontiConsultate"] = not puo_leggere or lettura is not None
         if puo_leggere and "prossimoPassoFascicolo" not in payload:
             passi = (lettura or {}).get("prossimi_passi")
             payload["prossimoPassoFascicolo"] = riga_prossimo_passo(passi if isinstance(passi, list) else None)["testo"]
@@ -15269,10 +15274,13 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
             from web.services.riscontri_processuali_runtime import risultato_materializzato
 
             passaggi = risultato_materializzato(id_fascicolo, "passaggi") or {}
+            payload["fontiConsultate"] = bool(passaggi)
             note["passaggio"] = next((
                 chiave for chiave, bozza in (passaggi.get("bozzeNote") or {}).items()
                 if bozza.get("documento_id") == note["documentoId"] and bozza.get("termine") == note["termine"]
             ), "")
+            if attende_fonti and not passaggi and richiedi_pannello_consultivo(id_fascicolo, "passaggi"):
+                return _in_preparazione()
         return _jsonify_redacted(payload)
     except Exception as exc:
         current_app.logger.exception("Errore contesto fascicolo redazione atti: %s", exc)

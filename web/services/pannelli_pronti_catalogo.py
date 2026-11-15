@@ -47,6 +47,11 @@ def _lettura_valida(corpo: bytes) -> bool:
     return True
 
 
+def _redazione_contesto_valido(corpo: bytes) -> bool:
+    payload = _json(corpo)
+    return bool(isinstance(payload, dict) and payload.get("ok") and payload.get("fontiConsultate") is True)
+
+
 def _passaggi_validi(corpo: bytes) -> bool:
     dati = _json(corpo)
     return esito_valido(corpo) and isinstance(dati, dict) and dati.get("lettura_in_preparazione") is False
@@ -114,7 +119,7 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("checklist", "api_v1_react.fascicolo_regia_checklist", percorso=_UI + "/checklist"),
     Pannello("redazione-atti-contesto", "api_v1_react.redazione_atti_contesto_fascicolo",
              percorso="/api/v1/ui/redazione-atti/fascicoli/{fid}/contesto", parametro_fascicolo="id_fascicolo",
-             dipende_da=("lettura", "passaggi")),
+             memorizzabile=_redazione_contesto_valido, dipende_da=("lettura", "passaggi")),
     Pannello("catalogazione-documentale", "api_v1_documenti_ai.catalogazione_documentale_fascicolo", percorso=_UI + "/catalogazione-documentale",
              parametro_fascicolo="fascicolo_id"),
     Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo", percorso=_UI + "/guida-pratica"),

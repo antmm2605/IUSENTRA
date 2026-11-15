@@ -167,11 +167,19 @@ function PassoFascicolo({
   )
 }
 
-function RigaDato({ etichetta, valore, mancante }: { etichetta: string; valore: string; mancante: boolean }) {
+function RigaDato({ etichetta, valore, mancante, fonti, dettaglio }: {
+  etichetta: string; valore: string; mancante: boolean
+  fonti?: { nome: string; href: string }[]
+  dettaglio?: string
+}) {
   return (
     <div className={mancante ? 'iu-rg-dato is-missing' : 'iu-rg-dato'}>
       <span>{etichetta}</span>
-      <strong>{mancante ? 'Non presente' : valore}</strong>
+      <div className="iu-rg-dato__valore">
+        <strong>{valore || 'Non presente'}</strong>
+        {dettaglio ? <small>{dettaglio}</small> : null}
+        {fonti?.map(fonte => <a key={fonte.href} href={fonte.href}>{fonte.nome || 'Apri la fonte'}</a>)}
+      </div>
     </div>
   )
 }
@@ -211,11 +219,16 @@ function QuadroContesto({ contesto }: { contesto: RedazioneContesto }) {
         {chiavi.map(([chiave, fallback]) => {
           const campo = fascicolo[chiave]
           if (!campo) return null
-          return <RigaDato key={chiave} etichetta={campo.etichetta || fallback} valore={valoreLeggibile(chiave, campo.valore)} mancante={campo.mancante} />
+          return <RigaDato key={chiave} etichetta={campo.etichetta || fallback} valore={valoreLeggibile(chiave, campo.valore)} mancante={campo.mancante} fonti={campo.fonte ? [campo.fonte] : undefined} />
         })}
         <RigaDato
           etichetta="Contributo unificato (D.P.R. 115/2002)"
-          valore={contesto.contributoUnificato.totale !== null ? `${formatEuroIt(contesto.contributoUnificato.totale)} - ${contesto.contributoUnificato.descrizione}` : ''}
+          valore={[
+            contesto.contributoUnificato.descrizione,
+            contesto.contributoUnificato.totale !== null ? formatEuroIt(contesto.contributoUnificato.totale) : '',
+          ].filter(Boolean).join(' · ')}
+          dettaglio={[contesto.contributoUnificato.fonte, contesto.contributoUnificato.dettaglio].filter(Boolean).join(' · ')}
+          fonti={contesto.contributoUnificato.fonti}
           mancante={!contesto.contributoUnificato.disponibile}
         />
       </div>

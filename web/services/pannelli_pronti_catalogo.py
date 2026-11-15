@@ -119,7 +119,7 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("checklist", "api_v1_react.fascicolo_regia_checklist", percorso=_UI + "/checklist"),
     Pannello("redazione-atti-contesto", "api_v1_react.redazione_atti_contesto_fascicolo",
              percorso="/api/v1/ui/redazione-atti/fascicoli/{fid}/contesto", parametro_fascicolo="id_fascicolo",
-             prima_apertura=True, memorizzabile=_redazione_contesto_valido, dipende_da=("lettura", "passaggi")),
+             prima_apertura=True, ricomponi="redazione_dal_conto", memorizzabile=_redazione_contesto_valido, dipende_da=("lettura", "conto-economico", "passaggi")),
     Pannello("catalogazione-documentale", "api_v1_documenti_ai.catalogazione_documentale_fascicolo", percorso=_UI + "/catalogazione-documentale",
              parametro_fascicolo="fascicolo_id"),
     Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo", percorso=_UI + "/guida-pratica"),

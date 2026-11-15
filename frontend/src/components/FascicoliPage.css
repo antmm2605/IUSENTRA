@@ -442,10 +442,10 @@
 .iu-fas-detail-grid--with-guide .iu-fas-guide-column{
   display:grid;
   grid-template-columns:48px minmax(0,1fr);
-  grid-template-rows:minmax(0,1fr);
+  grid-template-rows:auto;
   grid-column:1;
   grid-row:auto;
-  align-self:stretch !important;
+  align-self:start !important;
   min-width:0;
   max-width:none;
   width:100%;
@@ -464,10 +464,10 @@
 }
 .iusentra-route-preset--active .iu-fas-detail-grid--with-guide.iusentra-route-grid > .iu-fas-guide-column.iusentra-route-rail{
   grid-template-columns:48px minmax(0,1fr);
-  grid-template-rows:minmax(0,1fr);
+  grid-template-rows:auto;
   grid-column:1;
   grid-row:auto;
-  align-self:stretch !important;
+  align-self:start !important;
   gap:0;
 }
 .iu-fas-guide-column::before{
@@ -505,8 +505,7 @@
   max-height:none;
 }
 .iusentra-route-preset--active .iu-fas-detail-grid--with-guide.iusentra-route-grid > .iu-fas-guide-column.iusentra-route-rail > .iu-guida-pratica{
-  align-self:stretch;
-  min-height:100%;
+  align-self:start;
 }
 .iu-fas-detail-grid--with-guide .iu-fas-detail-main,
 .iu-fas-detail-grid--with-guide .iu-fas-detail-side{

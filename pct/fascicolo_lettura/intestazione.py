@@ -47,6 +47,7 @@ def intestazione(fascicolo: dict[str, Any], parti: list[dict[str, Any]], catalog
         "stato_codice": stato_codice,
         "da_archiviare": bool(fascicolo.get("archivio_pronto")) and stato_codice == "DEFINITO",
         "valore_causa": euro(fascicolo.get("valore_causa")),
+        "fonte_valore_causa": fascicolo.get("fonte_valore_causa") or {},
         "data_apertura": data_it(fascicolo.get("data_apertura")),
         "avvocato": pulisci(fascicolo.get("avvocato_referente")),
         "canale": pulisci(fascicolo.get("canale_operativo") or fascicolo.get("source")).upper(),

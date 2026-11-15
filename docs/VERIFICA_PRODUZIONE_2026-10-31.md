@@ -308,3 +308,7 @@ La Lettura attribuiva al TAR il 25/01/2024, data della sentenza di lavoro oggett
 ### 15 novembre 2026 — Contratto della rotta degli obblighi di notifica
 
 La 2.489.15 ha superato il controllo locale del pannello Notifiche e i 96 test mirati. La CI 43707954577 ha fermato la pubblicazione perché il contratto generato manteneva i riferimenti alla rotta precedente. Nella 2.489.16 sono stati rigenerati OpenAPI e la mappa degli endpoint. Il collaudo del rilascio in produzione resta aperto.
+
+### 15 novembre 2026 — Dati di Guida pratica e Redazione guidata
+
+Il riquadro della Redazione trattava come assenti il valore all’iscrizione e il contributo unificato già verificato nell’applicazione. Mostrava come futura anche una data passata. La Guida pratica si dilatava per l’altezza della colonna accanto. La 2.489.17 condivide i dati salvati della Lettura e del Conto economico e adegua l’altezza della Guida al contenuto. Il registro delle prove documenta il collaudo di valore, udienza e contributo.

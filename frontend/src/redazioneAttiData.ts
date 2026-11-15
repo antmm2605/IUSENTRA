@@ -275,10 +275,13 @@ export type RedazioneFascicolo = {
   controparte: string
 }
 
+type FonteContesto = { nome: string; href: string }
+
 export type RedazioneCampoTracciato = {
   etichetta: string
   valore: string
   mancante: boolean
+  fonte?: FonteContesto
 }
 
 export type RedazioneSchedaParte = {
@@ -313,7 +316,7 @@ export type RedazioneContesto = {
   controparti: RedazioneSchedaParte[]
   difensori: RedazioneSchedaParte[]
   allegati: Array<{ id: string; nome: string; tipo: string }>
-  contributoUnificato: { disponibile: boolean; totale: number | null; descrizione: string; fonte: string }
+  contributoUnificato: { disponibile: boolean; totale: number | null; descrizione: string; fonte: string; dettaglio: string; fonti: FonteContesto[] }
   condizioniAttive: string[]
   prossimoPassoFascicolo?: string
   noteScritte?: { passaggio: string; documentoId: string }
@@ -376,10 +379,12 @@ export type RedazioneGeneraEsito = {
 
 function campoTracciato(input: unknown): RedazioneCampoTracciato {
   const item = asRecord(input)
+  const fonte = asRecord(item.fonte)
   return {
     etichetta: display(item.etichetta) || 'Campo',
     valore: display(item.valore),
     mancante: item.mancante === true,
+    fonte: text(fonte.href) ? { href: text(fonte.href), nome: display(fonte.nome) } : undefined,
   }
 }
 
@@ -537,6 +542,11 @@ export async function getRedazioneContesto(fascicoloId: string, clienteId = ''):
       totale: typeof contributo.totale === 'number' ? contributo.totale : null,
       descrizione: display(contributo.descrizione),
       fonte: display(contributo.fonte),
+      dettaglio: display(contributo.dettaglio),
+      fonti: list(contributo.fonti).map((input) => {
+        const voce = asRecord(input)
+        return { nome: display(voce.nome), href: text(voce.href) }
+      }).filter((voce) => voce.href),
     },
     condizioniAttive: list(contesto.condizioniAttive).map((item) => display(item)).filter(Boolean),
     prossimoPassoFascicolo: display(payload.prossimoPassoFascicolo),

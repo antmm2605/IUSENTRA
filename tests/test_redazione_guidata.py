@@ -762,3 +762,90 @@ def test_redazione_attende_le_fonti_prima_di_mostrare_i_suggerimenti(tmp_path, m
     assert risposta.headers["X-Iusentra-Pannello"] == "in-preparazione"
     assert richieste == [(fascicolo.id, "lettura")]
     assert "suggerimenti" not in risposta.get_json()
+
+
+def test_redazione_legge_esenzione_e_valore_gia_salvati(cliente_mario, fascicolo_preliminare, monkeypatch):
+    from pct import redazione_contesto
+
+    def non_ricalcolare(*args, **kwargs):
+        raise AssertionError("La Redazione usa il risultato del Conto economico")
+
+    monkeypatch.setattr(redazione_contesto, "contributo_unificato_da_fascicolo", non_ricalcolare)
+    fascicolo_preliminare.data_prossima_udienza = "2020-01-15"
+    esenzione = {"nome": "Autocertificazione.pdf", "href": "/fascicoli/F1/documenti/E1/visualizza"}
+    fonte = {"nome": "Nota di iscrizione.pdf", "href": "/fascicoli/F1/documenti/N1/visualizza"}
+    lettura = {
+        "fase": {"prossima_udienza": ""},
+        "intestazione": {"fonte_valore_causa": {"importo": 1500, "documento": fonte}},
+        "ragionamento": {"economia": {"contributo_unificato": {
+            "codice": "esente", "etichetta": "Esente", "norma": "art. 9, comma 1-bis", "fonti": [esenzione],
+        }}},
+    }
+    risultato = build_redazione_contesto_payload(fascicolo=fascicolo_preliminare, cliente=cliente_mario, lettura=lettura)["contesto"]
+    assert risultato["fascicolo"]["prossimaUdienza"]["valore"] == "Nessuna udienza futura registrata"
+    assert risultato["fascicolo"]["valoreCausa"]["fonte"] == fonte
+    assert risultato["fascicolo"]["valoreCausa"]["valore"] == "1500"
+    assert risultato["economia"]["contributoUnificato"]["descrizione"] == "Esente"
+    assert risultato["economia"]["contributoUnificato"]["fonti"] == [esenzione]
+
+
+def test_valore_dichiarato_proveniente_da_nota_e_deposito(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import archivio_letture_runtime, valore_causa_archivio
+
+    nota = SimpleNamespace(id="N1", nome="Nota d'iscrizione a ruolo.pdf")
+    deposito = SimpleNamespace(id="D1", nome="Deposito telematico: Ricorso Mario Rossi RG: 00012 - 2023")
+    f = SimpleNamespace(id="F1", documenti=[nota, deposito], numero_rg="12", anno_rg="2023",
+                        tribunale="Tribunale di Palmi", nome_cliente="Mario Rossi", valore_causa=0)
+    registro = RegistroLetture(tmp_path / "letture.db")
+    oggetti = [Oggetto(tipo="documento", oggetto_id=d.id, nome=d.nome, sha256=sha)
+               for d, sha in [(nota, "a"*64), (deposito, "b"*64)]]
+    registro.registra_inventario("studio", f.id, oggetti)
+    registro.registra_fatti("studio", f.id, oggetti[0], "documenti", [
+        Fatto(categoria="metadato_fascicolo", campo="natura_documentale", valore="nota_di_iscrizione", verifica="verificata"),
+    ])
+    testi = {
+        nota.id: "Tribunale di Palmi Nota di iscrizione a ruolo Ricorso Mario Rossi Valore della controversia: 1.500,00",
+        deposito.id: "Tribunale di Palmi Ricorso Mario Rossi condannare al pagamento della somma di euro 1.500,00",
+    }
+    monkeypatch.setattr(archivio_letture_runtime, "testi_indice_archivio", lambda _: testi)
+    salva = valore_causa_archivio.registra_valore_iscrizione
+    assert salva(f, registro, "studio") == 1
+    assert salva(f, registro, "studio") == 0
+    fatti = registro.fatti("studio", f.id)
+    assert any(voce.campo == "natura_documentale" for voce in fatti)
+    assert valore_causa_archivio.valore_iscrizione(f, fatti, oggetti)["importo"] == 1500
+    assert valore_causa_archivio.valore_iscrizione(f, fatti, oggetti[:1]) == {}
+    deposito.nome = "Deposito telematico: Ricorso Mario Rossi RG: 00013 - 2023"
+    assert salva(f, registro, "studio") == 1
+    assert valore_causa_archivio.valore_iscrizione(f, registro.fatti("studio", f.id), oggetti) == {}
+
+
+def test_lettura_pubblica_lo_stato_economico_e_riusa_il_conto_storico(monkeypatch):
+    from pct.fascicolo_lettura.ragionamento import vista
+    from web.services import riscontri_processuali_runtime as runtime
+
+    esente = {"codice": "esente", "etichetta": "Esente", "fonti": [{"id": "E1"}]}
+    lettura = {"ragionamento": vista({"economia": {"contributo_unificato": esente}})}
+    assert runtime.stato_contributo_da_lettura(lettura) == esente
+    monkeypatch.setattr(runtime, "risultato_materializzato", lambda fid, pannello: {
+        "righe": [{"voce": "contributo_unificato", "statoContributo": esente}],
+    } if (fid, pannello) == ("F1", "conto-economico") else None)
+    assert runtime.contesto_operativo_da_lettura({"fase": {}}, "F1")["contributo"] == esente
+
+
+def test_redazione_riusa_il_conto_che_arriva_dopo_la_proiezione(monkeypatch):
+    import json
+    from web.services import riscontri_processuali_runtime as runtime
+    from web.services.pannelli_pronti_ricomposizione import redazione_dal_conto
+
+    monkeypatch.setattr(runtime, "lettura_materializzata", lambda fid: None)
+    monkeypatch.setattr(runtime, "risultato_materializzato", lambda fid, pannello: {
+        "righe": [{"voce": "contributo_unificato", "statoContributo": {"codice": "esente", "etichetta": "Esente"}}],
+    } if (fid, pannello) == ("F1", "conto-economico") else None)
+    prima = b'{"contesto":{"economia":{"contributoUnificato":{"disponibile":false}}}}'
+    dopo = redazione_dal_conto(prima, "F1")
+    assert json.loads(dopo)["contesto"]["economia"]["contributoUnificato"]["descrizione"] == "Esente"
+    assert redazione_dal_conto(dopo, "F1") is dopo

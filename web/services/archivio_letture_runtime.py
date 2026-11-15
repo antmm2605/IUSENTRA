@@ -1532,7 +1532,10 @@ def avvia_lettura_in_background(app: Any, fascicolo_id: str, *, paths: dict[str,
                             from web.services.notifiche_storiche_archivio import registra_riscontri_notifiche
 
                             proroga()
-                            if registra_riscontri_notifiche(fascicolo, registro, tenant_id):
+                            from web.services.valore_causa_archivio import registra_valore_iscrizione
+
+                            valore_aggiornato = registra_valore_iscrizione(fascicolo, registro, tenant_id)
+                            if registra_riscontri_notifiche(fascicolo, registro, tenant_id) or valore_aggiornato:
                                 from web.services.lettura_cache import invalida_lettura
 
                                 invalida_lettura(fascicolo_id)

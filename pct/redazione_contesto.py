@@ -250,6 +250,7 @@ def estrai_contesto_fascicolo(
     cliente: Any = None,
     parti: Any = None,
     config: Optional[Dict[str, Any]] = None,
+    contributo: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Quadro completo e tracciato dei dati reali utilizzabili nell'atto.
 
@@ -288,7 +289,8 @@ def estrai_contesto_fascicolo(
         if _attr(doc, "nome")
     ]
 
-    contributo = contributo_unificato_da_fascicolo(fascicolo)
+    if contributo is None:
+        contributo = contributo_unificato_da_fascicolo(fascicolo)
     valore_causa = getattr(fascicolo, "valore_causa", None) or ""
     if isinstance(valore_causa, (int, float)) and not valore_causa:
         valore_causa = ""

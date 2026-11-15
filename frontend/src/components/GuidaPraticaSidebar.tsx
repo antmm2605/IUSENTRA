@@ -12,6 +12,7 @@ import {
   getFascicoloGuidaGiurisprudenza,
   conFaseReale,
   type GuidaFaseReale,
+  type GuidaContestoOperativo,
   type GuidaGiurisprudenza,
   type GuidaDocumentPlan,
   type GuidaNormativa,
@@ -21,7 +22,7 @@ import {
 } from '../guidaPraticaData'
 import './GuidaPraticaSidebar.css'
 
-import { formatDateLabelIt } from '../formatting'
+import { formatDateLabelIt, formatEuroIt } from '../formatting'
 type TabKey = 'checklist' | 'contesto' | 'normativa' | 'atto' | 'adempimenti'
 
 type Props = {
@@ -452,7 +453,7 @@ function boolContext(value: unknown): string {
   return value ? 'Presente' : 'Da verificare'
 }
 
-function FascicoloContextCard({ fascicolo }: { fascicolo?: Record<string, unknown> }) {
+function FascicoloContextCard({ fascicolo, operativo }: { fascicolo?: Record<string, unknown>; operativo?: GuidaContestoOperativo }) {
   if (!fascicolo) return null
   const documentiCount = Number(fascicolo.documenti_count || 0)
   const attivitaCount = Number(fascicolo.attivita_count || 0)
@@ -463,7 +464,9 @@ function FascicoloContextCard({ fascicolo }: { fascicolo?: Record<string, unknow
     ['Ufficio', text(fascicolo.ufficio || fascicolo.tribunale)],
     ['Oggetto pratica', text(fascicolo.oggetto || fascicolo.title)],
     ['Codice ufficiale', text(fascicolo.codice_oggetto_pst || fascicolo.codiceOggettoPst, 'Non valorizzato')],
-    ['Valore', text(fascicolo.valore_causa)],
+    ['Valore causa', operativo?.valore_causa?.importo ? formatEuroIt(operativo.valore_causa.importo) : Number(fascicolo.valore_causa) > 0 ? formatEuroIt(Number(fascicolo.valore_causa)) : 'Non presente'],
+    ...(operativo ? [['Prossima udienza', operativo.udienza || 'Nessuna udienza futura registrata']] : []),
+    ...(operativo?.contributo ? [['Contributo unificato', [operativo.contributo.etichetta, operativo.contributo.importoLabel].filter(Boolean).join(' · ')]] : []),
     ['Rito / fase', [text(fascicolo.tipo_procedimento || fascicolo.procedureType), text(fascicolo.stato)].filter(Boolean).join(' · ')],
     ['Preventivo', boolContext(fascicolo.preventivo)],
     ['Conferimento incarico', boolContext(fascicolo.conferimento_incarico)],
@@ -477,7 +480,18 @@ function FascicoloContextCard({ fascicolo }: { fascicolo?: Record<string, unknow
         {rows.map(([label, value]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd>{value}</dd>
+            <dd>
+              {value}
+              {label === 'Valore causa' && operativo?.valore_causa?.documento ? (
+                <div><a href={operativo.valore_causa.documento.href}>{operativo.valore_causa.documento.nome}</a></div>
+              ) : null}
+              {label === 'Contributo unificato' && operativo?.contributo ? (
+                <>
+                  {operativo.contributo.norma ? <div>{operativo.contributo.norma}</div> : null}
+                  {operativo.contributo.fonti?.map(fonte => <div key={fonte.href}><a href={fonte.href}>{fonte.nome}</a></div>)}
+                </>
+              ) : null}
+            </dd>
           </div>
         ))}
       </dl>
@@ -635,13 +649,13 @@ function NormativaTab({ guida, fascicoloId }: { guida?: GuidaPratica; fascicoloI
   )
 }
 
-function ContestoTab({ response }:{response:GuidaPraticaResponse}) {
+function ContestoTab({ response, operativo }: { response: GuidaPraticaResponse; operativo?: GuidaContestoOperativo }) {
   const guida = response.guida
   const mediazione = guida?.obbligo_mediazione || guida?.obbligo_mediazione_o_negoziazione_assistita
   const extraFields = extraGuidaFields(guida)
   return (
     <div className="iu-guida-tab-panel">
-      <FascicoloContextCard fascicolo={response.fascicolo}/>
+      <FascicoloContextCard fascicolo={response.fascicolo} operativo={operativo}/>
       <Section title="Tipologie di intervento" icon={<Scale size={16}/> }>
         <StructuredList items={guida?.tipologie_di_intervento} prefix="tipologia" empty="Tipologie di intervento da completare."/>
       </Section>
@@ -920,7 +934,7 @@ export function GuidaPraticaSidebar({ fascicoloId = '', codice = '', fascicoloTi
             {(['checklist', 'contesto', 'normativa', 'atto', 'adempimenti'] as TabKey[]).map((key) => <button key={key} type="button" className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>{key === 'checklist' ? 'Ora' : key === 'contesto' ? 'Contesto' : key === 'normativa' ? 'Normativa' : key === 'atto' ? 'Atto' : 'Adempimenti'}</button>)}
           </nav>
           {tab === 'checklist' ? <ChecklistTab response={conFaseReale(response, faseReale)} fascicoloId={fascicoloId} faseInLettura={faseInLettura} fase={faseReale}/> : null}
-          {tab === 'contesto' ? <ContestoTab response={response}/> : null}
+          {tab === 'contesto' ? <ContestoTab response={response} operativo={faseReale?.contesto_operativo}/> : null}
           {tab === 'normativa' ? <NormativaTab key={effectiveCode} guida={guida} fascicoloId={explicitProcedure ? undefined : fascicoloId}/> : null}
           {tab === 'atto' ? <AttoTab guida={guida}/> : null}
           {tab === 'adempimenti' ? <AdempimentiTab guida={guida} fascicoloId={fascicoloId}/> : null}

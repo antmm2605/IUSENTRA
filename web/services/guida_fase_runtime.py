@@ -86,11 +86,15 @@ def applica_fase_reale(payload: dict[str, Any], lettura: dict[str, Any] | None) 
 
 
 def _calcola_fase(fascicolo_id: str) -> dict[str, Any]:
-    risultato = applica_fase_reale({"guida": {}, "checklist": {"nota_fase": "scheda"}}, lettura_pronta(fascicolo_id))
+    from web.services.riscontri_processuali_runtime import contesto_operativo_da_lettura
+
+    lettura = lettura_pronta(fascicolo_id)
+    risultato = applica_fase_reale({"guida": {}, "checklist": {"nota_fase": "scheda"}}, lettura)
     if risultato["checklist"].get("nota_fase") == "scheda":
         risultato["checklist"]["nota_fase"] = ""
     fase = {
         "ok": True,
+        "contesto_operativo": contesto_operativo_da_lettura(lettura, fascicolo_id),
         "nota_fase": risultato["checklist"].get("nota_fase", ""),
         "fase": risultato["checklist"].get("fase_lettura", ""),
         "percorso": risultato.get("percorso"),

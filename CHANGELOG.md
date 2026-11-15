@@ -1,3 +1,8 @@
+## 2.489.17 — Dati condivisi in Guida pratica e Redazione
+
+- Ripresi dalla Lettura il contributo unificato con le sue fonti e la prossima udienza. Il valore dichiarato all’iscrizione usa la nota e il deposito riconducibili al fascicolo.
+- Ridotti gli spazi tra le sezioni della Guida pratica.
+
 ## 2.489.16 — Contratto API del pannello Notifiche
 
 - Rigenerata la specifica OpenAPI per descrivere le risposte del pannello Notifiche dalla proiezione salvata.

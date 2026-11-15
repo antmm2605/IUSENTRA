@@ -436,6 +436,20 @@
   display: flex;
   gap: var(--iu-od-space-3);
   justify-content: space-between;
+  align-items: baseline;
+}
+
+.iu-rg-dato__valore {
+  display: grid;
+  justify-items: end;
+  min-width: 0;
+  gap: 3px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.iu-rg-dato__valore small {
+  color: var(--iu-od-muted);
 }
 
 .iu-rg-dato span {

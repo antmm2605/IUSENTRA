@@ -20,9 +20,7 @@
 
 .iu-fas-guide-column > .iu-guida-pratica:not(.iu-guida-pratica--collapsed) {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  min-height: inherit;
-  max-height: inherit;
+  grid-template-rows: auto auto auto;
 }
 
 .iu-fas-detail-side > .iu-guida-pratica + .iu-fas-detail-section {
@@ -243,8 +241,9 @@
 
 .iu-guida-tab-panel {
   display: grid;
-  gap: 12px;
-  padding: 14px;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
 }
 
 .iu-fas-detail-side > .iu-guida-pratica .iu-guida-tab-panel {
@@ -275,7 +274,7 @@
 }
 
 .iu-guida-section h4 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: .98rem;
 }
 

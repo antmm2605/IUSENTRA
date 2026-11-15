@@ -132,7 +132,7 @@ class FattiMixin:
             id=str(riga.get("id") or ""), fascicolo_id=str(riga.get("fascicolo_id") or ""), letto_il=str(riga.get("letto_il") or ""),
         )
 
-    def registra_fatti(self, tenant_id: str, fascicolo_id: str, oggetto: Any, motore: str, fatti: Iterable[Fatto], *, versione: str = "") -> dict[str, int]:
+    def registra_fatti(self, tenant_id: str, fascicolo_id: str, oggetto: Any, motore: str, fatti: Iterable[Fatto], *, versione: str = "", campo: str = "") -> dict[str, int]:
         """I fatti di una lettura sostituiscono quelli della lettura precedente dello stesso contenuto.
 
         Le decisioni dell'avvocato (`corretta`, `ignorata`) restano: un fatto
@@ -148,12 +148,16 @@ class FattiMixin:
             "tenant_id = ? AND tipo = ? AND oggetto_id = ? AND motore = ?",
             (tenant, tipo, oggetto_id, motore),
         )
+        if campo:
+            righe_oggetto = [riga for riga in righe_oggetto if riga["campo"] == campo]
         esistenti = {riga["chiave"]: riga for riga in righe_oggetto if _testo(riga.get("sha256")) == sha}
         obsoleti = [riga for riga in righe_oggetto if _testo(riga.get("sha256")) != sha]
         conteggi = {"nuovi": 0, "aggiornati": 0, "conservati": 0, "rimossi": 0}
         visti: set[str] = set()
         with self.connection() as conn:  # type: ignore[attr-defined]
             for fatto in fatti:
+                if campo and fatto.campo != campo:
+                    raise ValueError("La lettura circoscritta contiene un campo diverso.")
                 if fatto.categoria not in CATEGORIE or fatto.verifica not in VERIFICHE or not _testo(fatto.campo):
                     continue
                 chiave = fatto.chiave

@@ -88,6 +88,18 @@ def verifica_fascicolo_del_cliente(fascicolo: Any, cliente_id: str) -> bool:
     return _testo(getattr(fascicolo, "id_cliente", "")) == _testo(cliente_id)
 
 
+def contributo_per_redazione(stato: dict[str, Any] | None) -> dict[str, Any]:
+    stato = stato or {}
+    return {
+        "disponibile": bool(stato),
+        "totale": stato.get("importo"),
+        "descrizione": stato.get("etichetta") or "Esito del Conto economico in preparazione",
+        "dettaglio": stato.get("dettaglio") or "",
+        "fonte": stato.get("norma") or "",
+        "fonti": stato.get("fonti") or [],
+    }
+
+
 def build_redazione_contesto_payload(
     *,
     fascicolo: Any,
@@ -97,12 +109,31 @@ def build_redazione_contesto_payload(
     lettura: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Passo 3: contesto reale del fascicolo + tipi atto suggeriti + catalogo completo."""
-    contesto = estrai_contesto_fascicolo(fascicolo=fascicolo, cliente=cliente, parti=parti, config=config)
+    from pct.fascicolo_lettura._testo import data_da
+    from pct.formatting import format_date_it
     from pct.note_127_ter.bozza import proposte_note
     from pct.ora_italiana import oggi_roma
-    from pct.formatting import format_date_it
+    from web.services.riscontri_processuali_runtime import contesto_operativo_da_lettura
 
-    note = proposte_note(lettura, oggi_roma())
+    comune = contesto_operativo_da_lettura(lettura, str(fascicolo.id))
+    contesto = estrai_contesto_fascicolo(
+        fascicolo=fascicolo, cliente=cliente, parti=parti, config=config,
+        contributo=contributo_per_redazione(comune.get("contributo")),
+    )
+    oggi = oggi_roma()
+    campi = contesto["fascicolo"]
+    data = data_da(comune.get("udienza")) if lettura else data_da(campi["prossimaUdienza"]["valore"])
+    campi["prossimaUdienza"] = {
+        "valore": data.isoformat() if data and data >= oggi else "Nessuna udienza futura registrata",
+        "etichetta": "Prossima udienza",
+        "mancante": False,
+    }
+    if valore := comune.get("valore_causa"):
+        campo_valore = {**campi["valoreCausa"], "valore": str(valore["importo"]), "mancante": False,
+                        "fonte": valore.get("documento") or {}}
+        campi["valoreCausa"] = contesto["economia"]["valoreCausa"] = campo_valore
+
+    note = proposte_note(lettura, oggi)
     risultato = {
         "ok": True,
         "generatedAt": _iso_now(),

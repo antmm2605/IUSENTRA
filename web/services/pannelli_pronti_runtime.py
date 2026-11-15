@@ -109,6 +109,8 @@ def _chiave_pannello(fascicolo_id: str, nome: str, parametri: str, profilo: str)
         from web.services.obblighi_notifica_fonti import VERSIONE
 
         parametri = f"{VERSIONE}\x1f{parametri}"
+    elif nome == "redazione-atti-contesto":
+        parametri = f"contesto-operativo:v3\x1f{parametri}"
     return chiave_voce(fascicolo_id, nome, parametri, profilo)
 
 
@@ -257,6 +259,19 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
 
             aggiorna_stato_presidi(lettura, fascicolo_id)
         dati["initialLettura"] = lettura
+        if lettura is not None and not lettura.get("aggiornamento_pendente"):
+            intestazione = lettura.get("intestazione") or {}
+            valore = intestazione.get("fonte_valore_causa") or {}
+            documento = valore.get("documento") or {}
+            if documento.get("href") and intestazione.get("valore_causa"):
+                importo = intestazione["valore_causa"]
+                profilo = [voce for voce in dati.get("profile") or [] if voce.get("label") != "Valore causa"]
+                dati["profile"] = [*profilo, {"label": "Valore causa all’iscrizione", "value": importo,
+                                            "href": documento["href"], "mono": False}]
+                dati.get("fascicolo", {})["value"] = importo
+                for voce in dati.get("economics") or []:
+                    if voce.get("id") == "valore":
+                        voce.update(value=importo, note="valore dichiarato all’iscrizione", href=documento["href"])
         return json.dumps(dati, ensure_ascii=False).encode("utf-8")
     from web.services import pannelli_pronti_ricomposizione
 

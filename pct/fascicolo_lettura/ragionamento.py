@@ -111,6 +111,7 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
                                   "presenza": "in presenza"}.get(u.get("modalita"), u.get("modalita")),
                      "documento": (u.get("fonte") or {}).get("nome", ""),
                      "documento_id": (u.get("fonte") or {}).get("oggetto_id", "")} for u in causa.get("udienze") or []],
+        "economia": {"contributo_unificato": (causa.get("economia") or {}).get("contributo_unificato")},
         "conclusioni": conclusioni,
         "contraddizioni": [{"controllo": x["controllo"], "descrizione": x["descrizione"], "sciolta": x["sciolta"], "come": x["come"]}
                            for x in causa.get("contraddizioni") or []],

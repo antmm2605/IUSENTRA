@@ -40,6 +40,24 @@ def stato_contributo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, Any
     return stato if isinstance(stato, dict) and stato.get("codice") else None
 
 
+def contesto_operativo_da_lettura(lettura: dict[str, Any] | None, fascicolo_id: str = "") -> dict[str, Any]:
+    """Le informazioni comuni di Quadro, Guida pratica e Redazione già lette."""
+    contributo = stato_contributo_da_lettura(lettura)
+    if contributo is None and fascicolo_id:
+        # Le Letture già salvate possono avere solo la conclusione narrativa.
+        conto = risultato_materializzato(fascicolo_id, "conto-economico") or {}
+        contributo = next((riga.get("statoContributo") for riga in conto.get("righe") or []
+                           if riga.get("voce") == "contributo_unificato"), None)
+    if not lettura and not contributo:
+        return {}
+    fase = (lettura or {}).get("fase") or {}
+    return {
+        "udienza": fase.get("prossima_udienza") or "",
+        "valore_causa": ((lettura or {}).get("intestazione") or {}).get("fonte_valore_causa") or {},
+        "contributo": contributo,
+    }
+
+
 def lettura_precedente(fascicolo_id: str) -> dict[str, Any] | None:
     """L'ultimo risultato dello stesso profilo, esplicitamente consultivo."""
     corpo = pannello_del_profilo(fascicolo_id, "lettura", precedente=True)

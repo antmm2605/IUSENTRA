@@ -286,7 +286,14 @@ export function getFascicoloGuidaGiurisprudenza(fascicoloId: string) {
   )
 }
 
+export type GuidaContestoOperativo = {
+  udienza?: string
+  valore_causa?: { importo?: number; documento?: { nome: string; href: string } }
+  contributo?: { etichetta: string; importoLabel?: string; norma?: string; fonti?: { nome: string; href: string }[] } | null
+}
+
 export type GuidaFaseReale = {
+  contesto_operativo?: GuidaContestoOperativo
   ok?: boolean
   in_preparazione?: boolean
   nota_fase?: string

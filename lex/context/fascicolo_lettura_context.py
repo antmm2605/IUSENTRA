@@ -341,8 +341,12 @@ def _dati_del_fascicolo(fascicolo: Any, *, target: str, solo_cronologia: bool) -
     depositi_correnti = depositi_da_archivio(fascicolo)
     ids_rappresentati = {d.id for d in depositi_correnti}
     ids_sostituiti = {d.id for d in fascicolo.depositi_pct} - ids_rappresentati
+    dati_fascicolo = _fascicolo_dict(fascicolo)
+    if valore := archivio.pop("_valore_iscrizione", {}):
+        dati_fascicolo["valore_causa"] = valore["importo"]
+        dati_fascicolo["fonte_valore_causa"] = valore
     dati = DatiLettura(
-        fascicolo=_fascicolo_dict(fascicolo),
+        fascicolo=dati_fascicolo,
         documenti=list(documenti or []),
         catalogo=catalogo,
         attivita=[_serialize_attivita(voce) for voce in list(getattr(fascicolo, "attivita", []) or []) if getattr(voce, "id_deposito_pct", "") not in ids_sostituiti],
@@ -387,7 +391,10 @@ def _archivio(fascicolo: Any) -> dict[str, Any]:
     stato = stato_archivio_payload(fascicolo, registro=registro, fatti=fatti, fatti_gia_canonici=True)
     lette = {(l.oggetto_id, l.sha256): l for l in registro.letture(tenant, fid, lettore="motore_documenti")}
     oggetti = [o for o in registro.oggetti(tenant, fid) if o.tipo == "documento"]
+    from web.services.valore_causa_archivio import valore_iscrizione
+
     return {
+        "_valore_iscrizione": valore_iscrizione(fascicolo, grezzi, oggetti),
         "source_of_truth": registro.backend_kind,
         "source": "archivio_letture",
         "prove_notifica_documentali": len({f.sha256 or f.oggetto_id for f in grezzi if f.tipo == "documento" and f.categoria == "prova_notifica" and f.campo in {"relata", "deposito_prova", "atto_notificato", "rdac"} and f.verifica in {"verificata", "corretta"}}),

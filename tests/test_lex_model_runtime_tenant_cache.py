@@ -109,3 +109,30 @@ def test_single_tenant_key_preserves_existing_configuration_contract():
     app.config.update(STUDIO_CONFIG='studio.json', LOCAL_AI_DB='ai.db')
     with app.app_context():
         assert ollama_runtime._chat_runtime_cache_key('accepted-model') == ('accepted-model', 'studio.json', 'ai.db')
+
+
+def test_runtime_with_locked_database_uses_deployment_ollama_configuration(monkeypatch):
+    import sqlite3
+
+    app = Flask(__name__)
+    app.config.update(
+        LOCAL_AI_BASE_URL="http://127.0.0.1:11434/api/version",
+        LOCAL_AI_CHAT_MODEL="modello-precedente",
+    )
+    monkeypatch.setenv("PCT_LOCAL_AI_BASE_URL", "http://ollama:11434/api/version")
+    monkeypatch.setenv("PCT_LOCAL_AI_CHAT_MODEL", "iusentra-lex-v3:9b")
+    monkeypatch.setenv("PCT_LOCAL_AI_KEEP_ALIVE", "30m")
+
+    def database_occupato(_):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(ollama_runtime, "_compute_local_chat_runtime", database_occupato)
+    with app.app_context():
+        payload = ollama_runtime.resolved_ollama_runtime(force_refresh=True)
+    assert payload == {
+        "base_url": "http://ollama:11434",
+        "api_base_url": "http://ollama:11434/api",
+        "chat_model": "iusentra-lex-v3:9b",
+        "keep_alive": "30m",
+        "source": "config",
+    }

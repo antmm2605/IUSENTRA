@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from os import getenv
 from threading import Lock
 from typing import Any, cast
 
@@ -23,17 +24,21 @@ def normalize_ollama_api_base_url(value: str) -> str:
 
 def _fallback_runtime_payload(default_model: str = "mistral") -> dict[str, str]:
     configured_base_url = (
-        current_app.config.get("LOCAL_AI_BASE_URL")
+        getenv("PCT_LOCAL_AI_BASE_URL", "").strip()
+        or current_app.config.get("LOCAL_AI_BASE_URL")
         or current_app.config.get("OLLAMA_URL")
         or "http://127.0.0.1:11434"
     )
     configured_model = str(
-        current_app.config.get("LOCAL_AI_CHAT_MODEL")
+        getenv("PCT_LOCAL_AI_CHAT_MODEL", "").strip()
+        or current_app.config.get("LOCAL_AI_CHAT_MODEL")
         or current_app.config.get("OLLAMA_MODEL")
         or default_model
     ).strip()
     configured_keep_alive = (
-        str(current_app.config.get("LOCAL_AI_KEEP_ALIVE") or "10m").strip() or "10m"
+        getenv("PCT_LOCAL_AI_KEEP_ALIVE", "").strip()
+        or str(current_app.config.get("LOCAL_AI_KEEP_ALIVE") or "10m").strip()
+        or "10m"
     )
     api_base_url = normalize_ollama_api_base_url(str(configured_base_url))
     return {

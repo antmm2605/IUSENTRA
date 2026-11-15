@@ -312,3 +312,5 @@ La 2.489.15 ha superato il controllo locale del pannello Notifiche e i 96 test m
 ### 15 novembre 2026 — Dati di Guida pratica e Redazione guidata
 
 Il riquadro della Redazione trattava come assenti il valore all’iscrizione e il contributo unificato già verificato nell’applicazione. Mostrava come futura anche una data passata. La Guida pratica si dilatava per l’altezza della colonna accanto. La 2.489.17 condivide i dati salvati della Lettura e del Conto economico e adegua l’altezza della Guida al contenuto. Il registro delle prove documenta il collaudo di valore, udienza e contributo.
+
+- **15/11/2026, candidata 2.489.18.** Aggiunta la prova della catena del valore dalla Nota d’iscrizione archiviata fino alla fonte mostrata nella Lettura. La CI della 2.489.17 ha superato la suite funzionale e ha bloccato il deploy nel confronto della copertura critica (31725/38100 contro 31722/38095).

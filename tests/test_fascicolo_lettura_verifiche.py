@@ -260,3 +260,40 @@ def test_endpoint_lettura_apertura_normale_non_avvia_verifiche_pesanti(tmp_path:
     assert risposta.get_json()["ok"] is True
     assert avvii == []
     api_v1_react._LETTURA_CACHE.clear()
+
+
+def test_lettura_riusa_valore_e_fonte_della_nota_di_iscrizione(tmp_path, monkeypatch):
+    from lex.context import fascicolo_lettura_context as contesto
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import archivio_letture_runtime, correlazioni_ricevute_archivio, registro_letture_runtime
+    from web.services.valore_causa_archivio import CAMPO_VALORE, valore_iscrizione
+
+    documento = SimpleNamespace(id="NOTA01", nome="Nota di iscrizione a ruolo.pdf")
+    fascicolo = SimpleNamespace(id="F1", documenti=[documento], depositi_pct=[], valore_causa=0)
+    oggetto = Oggetto(tipo="documento", oggetto_id=documento.id, nome=documento.nome, sha256="a" * 64)
+    registro = RegistroLetture(tmp_path / "nota-letture.db")
+    tenant = "studio-prova"
+    registro.registra_inventario(tenant, fascicolo.id, [oggetto])
+    esito = registro.registra_fatti(tenant, fascicolo.id, oggetto, "documenti", [
+        Fatto(categoria="importo", campo=CAMPO_VALORE, valore="1500.00",
+              etichetta="Valore dichiarato all'iscrizione", verifica="verificata",
+              origine="nota_iscrizione_ruolo", prove=[{"impronte_documenti": {documento.id: oggetto.impronta}}]),
+    ])
+    assert esito["nuovi"] == 1
+
+    for runtime in (archivio_letture_runtime, registro_letture_runtime):
+        monkeypatch.setattr(runtime, "registro_corrente", lambda: registro)
+        monkeypatch.setattr(runtime, "tenant_corrente", lambda: tenant)
+    monkeypatch.setattr(contesto, "get_fascicoli", lambda: SimpleNamespace(get=lambda _: fascicolo))
+    monkeypatch.setattr(contesto, "_catalogo_da_archivio", lambda *args: [])
+    monkeypatch.setattr(contesto, "_presidi_notifiche", lambda _: [])
+    monkeypatch.setattr(correlazioni_ricevute_archivio, "depositi_da_archivio", lambda _: [])
+
+    fonte = valore_iscrizione(fascicolo, registro.fatti(tenant, fascicolo.id), registro.oggetti(tenant, fascicolo.id))
+    assert fonte["importo"] == 1500
+    assert fonte["documento"]["href"].endswith(f"/documenti/{documento.id}/visualizza")
+    lettura = contesto.raccogli_dati_lettura(fascicolo.id, solo_cronologia=True)
+    assert lettura.fascicolo["valore_causa"] == 1500
+    assert lettura.fascicolo["fonte_valore_causa"] == fonte
+    assert "_valore_iscrizione" not in lettura.archivio

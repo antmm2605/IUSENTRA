@@ -222,3 +222,69 @@ def test_agenda_udienza_in_presenza_del_gruppo_della_causa():
     note = _fatto(valore="2026-11-02", etichetta="Deposito note scritte ex art. 127-ter c.p.c. — 02/11/2026",
                   prove=[{"codice": "istituto", "esito": "ok", "dettaglio": "note_127_ter"}], id="fat_n")
     assert piano_agenda([automatico], [presenza, note]) == []
+
+
+def test_agenda_ritira_solo_la_comparizione_sostituita_dallo_stesso_verbale():
+    from pct.archivio_letture.rettifica_termini import piano_udienze_sostituite, sostituzioni_documentate
+
+    data_rinvio = "2026-12-21T00:00:00"
+    app = SimpleNamespace(id="A1", tipo="UDIENZA", stato="PROGRAMMATO", titolo="Rinvio udienza", data_ora=data_rinvio,
+                          external_provider="pec_audit", external_profile_id="pec_scadenziario",
+                          external_uid="PEC_AUDIT:msg1:deadline", hearing_mode="incerta",
+                          durata_minuti=60, luogo="Modalità udienza da verificare",
+                          external_hash=f"Rinvio udienza|{data_rinvio}|60|Modalità udienza da verificare|PEC_AUDIT:msg1|CONFIRMED|scheduler|",
+                          external_source_url="",
+                          note="PEC_AUDIT:msg1\nOrganizzatore: scheduler\nSincronizzato da: Pec Audit\nUID esterno: PEC_AUDIT:msg1:deadline")
+    avviso = _riga("Rinvio udienza", "2026-12-21", id="UD1", tipo="UDIENZA",
+                   id_appuntamento="A1", deadline_profile_code="PEC_AUTO_PRESIDIO", source_message_id="msg1",
+                   id_utente_responsabile="scheduler", note="PEC_AUDIT:msg1\nEvento di cancelleria")
+    termine = _riga("Deposito note", "2026-12-16", id="TN1", perentorio=True,
+                    hearing_mode_source="documento:DOC1")
+    prove = [
+        _fatto(campo="udienza", valore="2026-12-21", valore_letto="21.12.2026",
+               contesto="rinvia all’udienza del 21.12.2026 che sostituisce con il deposito di noet scritte"),
+        _fatto(id="fat_2", prove=[{"codice": "istituto", "esito": "ok", "dettaglio": "note_127_ter"},
+                                  {"codice": "perentorieta_documentata", "esito": "ok"}]),
+    ]
+    oggi = date(2026, 11, 15)
+    sostituzioni = sostituzioni_documentate(prove)
+    piano = piano_udienze_sostituite([avviso, termine], [app], sostituzioni, {"DOC1": "msg1"}, oggi=oggi)
+    assert [(scadenza.scadenza_id, agenda.scadenza_id) for scadenza, agenda in piano] == [("UD1", "A1")]
+    assert "16/12/2026" in piano[0][1].motivo and len(piano[0][1].prove) == 2
+    assert piano_udienze_sostituite([avviso, termine], [app], sostituzioni, {"DOC1": "altra-pec"}, oggi=oggi) == []
+    app.note += "\nNota aggiunta dallo studio"
+    assert piano_udienze_sostituite([avviso, termine], [app], sostituzioni, {"DOC1": "msg1"}, oggi=oggi) == []
+
+
+def test_prossima_udienza_usa_il_termine_per_le_note_con_fonte():
+    from pct.procedura_fasi.udienze import prossima_udienza
+
+    rinvio = {"data_ora": "2026-12-21T00:00:00", "tipo": "UDIENZA", "stato": "ANNULLATO"}
+    note = {"data": "2026-12-16", "tipo": "TERMINE_PERENTORIO", "stato": "APERTO", "hearing_mode": "note_scritte",
+            "hearing_mode_source": "documento:VERBALE", "titolo": "Deposito note scritte ex art. 127-ter c.p.c."}
+    oggi = date(2026, 11, 15)
+    assert prossima_udienza(scadenze=[note], appuntamenti=[rinvio], oggi=oggi) == date(2026, 12, 16)
+    assert prossima_udienza(scadenze=[dict(note, hearing_mode_source="")], appuntamenti=[rinvio], oggi=oggi) is None
+    assert prossima_udienza(scadenze=[dict(note, stato="BOZZA")], appuntamenti=[rinvio], oggi=oggi) is None
+
+
+def test_agenda_archivio_ritira_solo_la_voce_intatta_del_documento_giusto():
+    from pct.archivio_letture.rettifica_termini import piano_agenda_documentale_sostituita, sostituzioni_documentate
+
+    fatti = [
+        _fatto(campo="udienza", valore="2026-12-21", valore_letto="21.12.2026",
+               contesto="rinvia all’udienza del 21.12.2026 che sostituisce con il deposito di note scritte"),
+        _fatto(id="fat_t", prove=[{"codice": "istituto", "esito": "ok", "dettaglio": "note_127_ter"},
+                                  {"codice": "perentorieta_documentata", "esito": "ok"}]),
+    ]
+    sostituzioni = sostituzioni_documentate(fatti)
+    automatico = SimpleNamespace(
+        id="A1", stato="PROGRAMMATO", data_ora="2026-12-21T00:00:00",
+        titolo="Udienza del 21/12/2026 ore 00:00",
+        note="Data e ora verificate nell’archivio.\nARCHIVIO_FATTO:canon-1\nFonte: documento:DOC1",
+    )
+    oggi = date(2026, 11, 15)
+    assert len(piano_agenda_documentale_sostituita([automatico], sostituzioni, oggi=oggi)) == 1
+    assert piano_agenda_documentale_sostituita([automatico], {}, oggi=oggi) == []
+    automatico.note += "\nUndici: appuntamento con il cliente."
+    assert piano_agenda_documentale_sostituita([automatico], sostituzioni, oggi=oggi) == []

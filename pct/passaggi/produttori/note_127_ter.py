@@ -13,10 +13,9 @@ qui si traduce il suo esito in passaggi, senza ricalcolare nulla:
   fascicolo (proposta in bozza o confermata), che è ciò che resta del decreto
   dopo l'esame: è la via usata dalla vista del fascicolo.
 
-L'orario del termine è una scelta del software (09:30 se il decreto invita
-al deposito entro quell'ora, altrimenti fine giornata, art. 196-sexies disp.
-att. c.p.c.): l'avvocato lo può correggere con una regola dello studio. La data
-è quella dell'udienza sostituita: è vincolata e il termine è perentorio.
+Il termine perentorio è quello indicato dal giudice. La data assegnata per le note
+vale come data d'udienza ai sensi dell'art. 127-ter c.p.c. Per la trasmissione
+telematica si applica l'art. 196-sexies disp. att. c.p.c.
 """
 
 from __future__ import annotations
@@ -40,7 +39,7 @@ REGOLA_CARTOLARE = "127ter.udienza_cartolare"
 REGOLA_BOZZA = "127ter.bozza_note"
 PREFISSO_ADEMPIMENTO = "127ter.adempimento."
 _RE_ORA = re.compile(r"entro le ore (\d{1,2}[:.]\d{2})")
-_MOTIVO_DATA = "il decreto assegna il termine «sino alla data della predetta udienza»: è la data dell'udienza sostituita"
+_MOTIVO_DATA = "la scadenza per le note è quella assegnata dal giudice nel provvedimento"
 
 
 def _it(giorno: date | None) -> str:
@@ -56,8 +55,9 @@ def _termine(ordine: int, contesto: Contesto, oggetto: str, giorno: date, ora: s
         chiave=_chiave(REGOLA_TERMINE, contesto, oggetto), produttore=PRODUTTORE, ordine=ordine,
         titolo=f"Termine perentorio per le note: {_it(giorno)} ore {ora}", stato=stato,
         regola_id=REGOLA_TERMINE,
-        regola_descrizione="Il termine per le note scade il giorno dell'udienza sostituita, che vale come data di udienza; "
-                           "orario 09:30 se il decreto lo chiede, altrimenti fine giornata.",
+        regola_descrizione="Il giudice assegna il termine perentorio per le note. Quel giorno vale come data "
+                           "d’udienza. L’orario registrato segue il provvedimento o, in assenza di un orario "
+                           "indicato, la regola ordinaria della fine del giorno.",
         contesto=contesto, norme=("cpc_127ter", "dispatt_196sexies"), prove=prove, dati=dati,
         campi={
             "data": Campo("Data di scadenza", giorno.isoformat(), vincolato=True, motivo_vincolo=_MOTIVO_DATA),
@@ -70,9 +70,10 @@ def _termine(ordine: int, contesto: Contesto, oggetto: str, giorno: date, ora: s
 def _cartolare(ordine: int, contesto: Contesto, oggetto: str, giorno: date, confermato: bool) -> Passaggio:
     return Passaggio(
         chiave=_chiave(REGOLA_CARTOLARE, contesto, oggetto), produttore=PRODUTTORE, ordine=ordine,
-        titolo=f"Udienza del {_it(giorno)} segnata come «cartolare» (senza comparizione)",
+        titolo=f"Il {_it(giorno)} vale come data d’udienza per la trattazione scritta",
         stato="eseguito" if confermato else "proposto", regola_id=REGOLA_CARTOLARE,
-        regola_descrizione="Alla conferma del termine per le note, l'udienza sostituita diventa cartolare in agenda.",
+        regola_descrizione="Il deposito delle note sostituisce la comparizione. Il giorno di scadenza vale "
+                           "come data d’udienza ai sensi dell’art. 127-ter c.p.c.",
         contesto=contesto, norme=("cpc_127ter",), campi={"modalita": Campo("Modalità d'udienza", MODALITA_NOTE_SCRITTE, vincolato=True,
                                                                             motivo_vincolo="la sostituisce il decreto")},
         href="#udienze",
@@ -195,10 +196,11 @@ def passaggi_da_scadenza(scadenze: Iterable[dict[str, Any]], contesto: Contesto,
         oggetto = str(scadenza.get("id") or giorno.isoformat())
         confermato = stato == "APERTO"
         prova = Prova("fascicolo", str(scadenza.get("titolo") or TITOLO_NOTE_127_TER), "scadenziario", oggetto)
-        passaggi.append(_termine(40, contesto, oggetto, giorno, _ora(scadenza), "eseguito" if confermato else "da_confermare", (prova,),
-                                 (Dato("Udienza sostituita", _it(giorno), "scadenza del fascicolo"),)))
+        ora = _ora(scadenza)
+        passaggi.append(_termine(40, contesto, oggetto, giorno, ora, "eseguito" if confermato else "da_confermare", (prova,),
+                                 (Dato("Data assegnata per le note", _it(giorno), "scadenziario"),)))
         passaggi.append(_cartolare(50, contesto, oggetto, giorno, confermato=confermato))
-        voci = adempimenti_note(None, giorno, rg=rg, giudice=contesto.giudice, ufficio=contesto.ufficio, ora_limite=_ora(scadenza) if _ora(scadenza) != FINE_GIORNO else "")
+        voci = adempimenti_note(None, giorno, rg=rg, giudice=contesto.giudice, ufficio=contesto.ufficio, ora_limite=ora if ora != FINE_GIORNO else "")
         passaggi.extend(_adempimenti(60, contesto, oggetto, voci))
         passaggi.append(_bozza(90, contesto, oggetto, giorno))
     return passaggi

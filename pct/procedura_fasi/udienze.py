@@ -5,7 +5,7 @@ trattazione della causa. I termini che si contano a ritroso dall'udienza — not
 giorni prima (art. 415, comma 5, c.p.c.), costituirsi almeno dieci giorni prima (art. 416, comma 1, c.p.c.), le
 memorie integrative (art. 171-ter c.p.c.) — sono adempimenti di parte, non udienze: il loro titolo nomina l'udienza
 («almeno 10 giorni prima dell'udienza») ma la data non lo è. Il termine per le note che sostituiscono l'udienza vale
-come data di udienza solo per effetto dell'art. 127-ter, ultimo comma, c.p.c., e ha già la sua voce di udienza.
+come data di udienza per effetto dell'art. 127-ter, ultimo comma, c.p.c. quando il termine è registrato con la sua fonte.
 
 Collaudo 10/11/2026: «Preparare l'udienza del 12/11/2026» (era la costituzione del convenuto, l'udienza era il
 23/11/2026) e «Preparare l'udienza del 08/01/2027» (era il termine per notificare, l'udienza era il 09/02/2027).
@@ -61,8 +61,17 @@ def e_udienza(voce: dict[str, Any]) -> bool:
 def udienze_future(voci: Iterable[dict[str, Any]], oggi: date) -> list[date]:
     """I giorni delle udienze vere da oggi in poi, in ordine."""
     giorni = set()
+    from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
+
     for voce in voci or ():
-        if not e_udienza(voce):
+        note_in_sostituzione = (
+            _testo(voce.get("stato")).upper() == "APERTO"
+            and _testo(voce.get("tipo")).upper() == "TERMINE_PERENTORIO"
+            and _testo(voce.get("hearing_mode")) == "note_scritte"
+            and bool(_testo(voce.get("hearing_mode_source")))
+            and _testo(voce.get("titolo")).startswith(TITOLO_NOTE_127_TER)
+        )
+        if not (e_udienza(voce) or note_in_sostituzione):
             continue
         giorno = _giorno(voce.get("data") or voce.get("data_scadenza") or voce.get("data_ora"))
         if giorno and giorno >= oggi:

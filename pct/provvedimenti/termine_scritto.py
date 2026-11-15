@@ -65,6 +65,12 @@ _RE_UDIENZA_TENUTA_DOPO = re.compile(
 _RE_UDIENZA_SOSTITUITA_DOPO = re.compile(
     r"^.{0,40}?(?:sostitu\w*|trattazione\s+scritta|note\s+scritte|127\W*ter)", re.I | re.S,
 )
+_RE_DISPOSIZIONE_SOSTITUTIVA = re.compile(
+    r"^(?:(?:che\s+)?sostitui(?:sce|t[ao])|(?:è|e')\s+sostituit[ao])"
+    r"\s+(?:con|dall?[oae]?)\s+(?:il\s+)?deposito\s+(?:di|delle)\s+"
+    r"(?:(?:note|noet)\s+scritte|note\s+di\s+trattazione\s+scritta)\b",
+    re.I,
+)
 _RE_NOTE_VICINE = re.compile(r"note|127\W*ter|trattazione\s+scritta", re.I)
 
 
@@ -96,6 +102,18 @@ def termine_assegnato(testo: str, inizio: int) -> bool:
 def udienza_tenuta_o_rinviata(testo: str, fine: int) -> bool:
     """«All'udienza del 2.11.2026 tenuta dal G.E.», «l'udienza del 6.7.2026 non sarà tenuta»."""
     return bool(_RE_UDIENZA_TENUTA_DOPO.search(_dopo(testo, fine, 60)))
+
+
+def data_udienza_sostituita_nel_brano(testo: str, data_letta: str) -> bool:
+    """Il brano collega la data del rinvio alla sostituzione con le note."""
+    if not data_letta or not re.fullmatch(r"[0-9./-]{5,12}", data_letta):
+        return False
+    prima = re.compile(r"\budienza\s+(?:del|in\s+data)\s*$", re.I)
+    data = re.compile(r"(?<!\d)" + re.escape(data_letta) + r"(?!\d)")
+    return any(
+        prima.search(_prima(testo, m.start(), 60)) and _RE_DISPOSIZIONE_SOSTITUTIVA.search(_dopo(testo, m.end()).lstrip(" ,"))
+        for m in data.finditer(testo)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,6 +198,6 @@ def rischio_estinzione(testo: str) -> RischioEstinzione | None:
 
 
 __all__ = [
-    "DataLetta", "RischioEstinzione", "perentorio_dichiarato", "rischio_estinzione", "termine_assegnato",
+    "DataLetta", "RischioEstinzione", "data_udienza_sostituita_nel_brano", "perentorio_dichiarato", "rischio_estinzione", "termine_assegnato",
     "termine_note_127_ter", "udienza_tenuta_o_rinviata",
 ]

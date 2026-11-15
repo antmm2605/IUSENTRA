@@ -537,6 +537,7 @@ def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = Non
     esito["riconciliazione_storica"] = riconcilia_storico(fascicolo, registro, tenant, applica=applica_riconciliazioni)
     from web.services.rettifiche_termini_runtime import riconcilia_termini_riletti
     esito["termini_riletti"] = riconcilia_termini_riletti(fascicolo, registro, tenant, applica=applica_riconciliazioni)
+    sostituite = {(r["documento"], r["data"]) for r in esito["termini_riletti"].get("fonti_udienze_sostituite", [])}
     tutti = fatti_fascicolo(fascicolo, verifiche=("verificata", "corretta"))
     for presidio in PRESIDI_CHE_SCRIVONO:
         spettanti = [fatto for fatto in tutti if presidio.gli_serve(fatto)]
@@ -552,13 +553,28 @@ def consegna_fascicolo(fascicolo: Any, *, registro: RegistroLetture | None = Non
         consegnatario = CONSEGNATARI.get(presidio.nome)
         if consegnatario is None:
             continue
+        storiche = []
         try:
-            risultati = consegnatario(fascicolo, da_prendere)
+            if presidio.nome == "agenda" and sostituite:
+                da_consegnare = []
+                for fatto in da_prendere:
+                    if (fatto.oggetto_id, _giorno(fatto.valore)) in sostituite:
+                        storiche.append({
+                            "fatto_id": fatto.id, "stato": "non_pertinente",
+                            "motivo": "Il provvedimento sostituisce la comparizione con un distinto termine per le note.",
+                        })
+                    else:
+                        da_consegnare.append(fatto)
+                da_prendere = da_consegnare
+            risultati = storiche + (consegnatario(fascicolo, da_prendere) if da_prendere else [])
         except Exception as exc:
             # Il presidio non ha potuto lavorare: i fatti restano da consegnare
             # e il motivo si registra su ciascuno, così si riprova al giro dopo.
             logger.exception("Consegna al presidio %s non riuscita per il fascicolo %s", presidio.nome, fascicolo_id)
-            risultati = [{"fatto_id": fatto.id, "stato": "rifiutato", "motivo": f"{type(exc).__name__}: {exc}"[:200]} for fatto in da_prendere]
+            risultati = storiche + [
+                {"fatto_id": fatto.id, "stato": "rifiutato", "motivo": f"{type(exc).__name__}: {exc}"[:200]}
+                for fatto in da_prendere
+            ]
         conteggi = {"spettanti": len(spettanti), "consegnati": 0, "non_pertinenti": 0, "rifiutati": 0}
         for riga in risultati:
             stato = str(riga.get("stato") or "rifiutato")

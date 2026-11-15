@@ -25,7 +25,7 @@ from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA, estrai_prove_notifica
 from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI
 from .estrazione_ruolo import estrai_ruoli
 from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
-from .riletture_mirate import REGOLE_TERMINE_SCRITTO
+from .riletture_mirate import REGOLA_RUOLO_ALLEGATO, REGOLE_TERMINE_SCRITTO
 
 VERSIONE_MOTORE_DOCUMENTI_V13 = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
@@ -79,6 +79,10 @@ VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLE_TERMINE_SCRITTO
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
     versione + "+" + REGOLE_TERMINE_SCRITTO for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
 )
+# I documenti storici restano compatibili. Il presidio riapre solo le PEC
+# che alimentano date giudiziali, usando il testo già estratto.
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += (VERSIONE_MOTORE_DOCUMENTI,)
+VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLA_RUOLO_ALLEGATO
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
@@ -131,7 +135,7 @@ def leggi_testo(
 
         fatti.extend(fatti_prospetti(testo, origine=origine))
     collaudati = collauda_tutti(_senza_doppioni(fatti), contesto)
-    from .pertinenza_documentale import applica_pertinenza
+    from .pertinenza_documentale import applica_pertinenza, escludi_date_di_allegati_estranei
 
     collaudati = applica_pertinenza(collaudati, testo_ruolo, contesto=contesto, origine=origine)
     collaudati = segna_perentori(respingi_altre_cause(collaudati, testo, contesto.numero_rg, contesto.anno_rg), testo)
@@ -163,6 +167,8 @@ def leggi_testo(
         # La natura è già dimostrata dal classificatore condiviso sopra.
         if not any(f.campo == "natura_documentale" and f.valore in {"contratto_lavoro", "contratto_prestazione_opera", "documento_identita"} for f in collaudati):
             collaudati.extend(collauda_tutti(fatti_parti(testo, origine=origine, avvocati_studio=list(contesto.avvocati_studio), cliente=contesto.cliente), contesto))
+    if any(f.campo == "natura_documentale" and f.valore == "messaggio_pec" for f in collaudati):
+        escludi_date_di_allegati_estranei(collaudati, testo, contesto=contesto)
     collaudati.sort(key=lambda fatto: (ORDINE_VERIFICA.get(fatto.verifica, 9), fatto.posizione))
     return collaudati
 

@@ -775,7 +775,13 @@ def _riapri_per_regole(fascicolo: Any, registro: RegistroLetture, tenant: str) -
         fatti = [f for f in registro.fatti(tenant, fascicolo_id, categoria="data", verifiche=None)
                  if (f.tipo, f.oggetto_id) in oggetti and f.sha256 == oggetti[(f.tipo, f.oggetto_id)].impronta]
         riaperti = 0
-        for (tipo, oggetto_id), motivo in oggetti_da_rileggere(fatti, versioni).items():
+        buste_email = {
+            (f.tipo, f.oggetto_id)
+            for f in registro.fatti(tenant, fascicolo_id, categoria="evento", campo="natura_documentale")
+            if f.valore == "messaggio_pec" and (f.tipo, f.oggetto_id) in oggetti
+            and f.sha256 == oggetti[(f.tipo, f.oggetto_id)].impronta
+        }
+        for (tipo, oggetto_id), motivo in oggetti_da_rileggere(fatti, versioni, buste_email=buste_email).items():
             lettore = LETTORE_DOCUMENTI if tipo == "documento" else LETTORE_PEC
             if registro.riapri_lettura(tenant, fascicolo_id, oggetti[(tipo, oggetto_id)], lettore, motivo=motivo):
                 riaperti += 1

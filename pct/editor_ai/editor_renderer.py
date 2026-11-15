@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import re
+from hashlib import sha256
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Callable
@@ -296,6 +297,7 @@ def create_editor_document(
         caricato_da=created_by,
         fonte_documento=fonte_documento,
         nome_originale=filename,
+        hash_contenuto_sha256=sha256(raw).hexdigest(),
         **({"salvataggio_mirato": True} if salvataggio_mirato else {}),
     )
     return {

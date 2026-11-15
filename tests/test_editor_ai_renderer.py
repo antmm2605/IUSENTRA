@@ -116,3 +116,29 @@ def test_build_edit_proposals_sostituzione_conserva_testi_quotati():
     assert proposals[0].operation_type == "replace"
     assert proposals[0].find_text == "vecchio importo"
     assert proposals[0].replace_text == "nuovo importo"
+
+
+def test_editor_conserva_le_impronte_del_contenuto_e_del_file_cifrato(tmp_path: Path):
+    from hashlib import sha256
+
+    fascicoli = GestioneFascicoli(
+        str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = fascicoli.nuovo("Ricorso", TipoFascicolo.CIVILE, nome_cliente="Cliente")
+    raw = b"<p>Bozza di lavoro</p>"
+    prefisso = b"file-cifrato:"
+    creato = create_editor_document(
+        fascicoli_repository=fascicoli,
+        fascicolo_id=fascicolo.id,
+        title="Note scritte",
+        html_content=raw.decode(),
+        created_by="operatore",
+        encrypt=lambda contenuto: prefisso + contenuto,
+    )
+
+    documento = fascicoli.get(fascicolo.id).documenti[0]
+    assert documento.id == creato["document_id"]
+    assert documento.hash_contenuto_sha256 == sha256(raw).hexdigest()
+    assert documento.hash_sha256 == sha256(prefisso + raw).hexdigest()

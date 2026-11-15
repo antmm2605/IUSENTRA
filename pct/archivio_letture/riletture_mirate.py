@@ -23,6 +23,7 @@ from typing import Any, Iterable
 
 #: il segno che la lettura è stata fatta con le regole di questo modulo
 REGOLE_TERMINE_SCRITTO = "termine-scritto:v1"
+REGOLA_RUOLO_ALLEGATO = "ruolo-allegato-pec:v1"
 
 _RE_127_TER = re.compile(r"127\W{0,3}ter|trattazione\s+scritta|note\s+(?:scritte|in\s+sost)", re.I)
 _RE_ELENCO_RUOLI = re.compile(r"\d{1,6}\s*/\s*\d{2,4}(?:\s*\+\s*sub\.?\s*\d+)?\s*[;,]\s*(?:n\.?\s*)?\d{1,6}\s*/\s*\d{2,4}", re.I)
@@ -42,12 +43,15 @@ def motivo_rilettura(fatti_oggetto: Iterable[Any]) -> str:
     return ""
 
 
-def oggetti_da_rileggere(fatti: Iterable[Any], versioni_lette: dict[tuple[str, str], str]) -> dict[tuple[str, str], str]:
+def oggetti_da_rileggere(
+    fatti: Iterable[Any], versioni_lette: dict[tuple[str, str], str], *,
+    buste_email: set[tuple[str, str]] | None = None,
+) -> dict[tuple[str, str], str]:
     """Le fonti (tipo, oggetto) lette prima delle regole correnti e toccate da esse, con il motivo.
 
     ``versioni_lette`` dà la versione del motore con cui ogni fonte è stata letta: una fonte già letta
-    con ``REGOLE_TERMINE_SCRITTO`` non si rilegge (una volta sola, mai a ogni giro). Le decisioni
-    dell'avvocato non entrano qui: la rilettura le conserva (``registra_fatti``).
+    con la regola pertinente non si rilegge. ``buste_email`` identifica le PEC dal riscontro
+    di natura documentale già archiviato. Le decisioni dell'avvocato restano nel registro.
     """
     per_oggetto: dict[tuple[str, str], list[Any]] = {}
     for fatto in fatti:
@@ -57,9 +61,12 @@ def oggetti_da_rileggere(fatti: Iterable[Any], versioni_lette: dict[tuple[str, s
     esito: dict[tuple[str, str], str] = {}
     for chiave, elenco in per_oggetto.items():
         versione = versioni_lette.get(chiave)
-        if versione is None or REGOLE_TERMINE_SCRITTO in versione:
+        if versione is None:
             continue
-        motivo = motivo_rilettura(elenco)
+        motivo = motivo_rilettura(elenco) if REGOLE_TERMINE_SCRITTO not in versione else ""
+        if (not motivo and buste_email and chiave in buste_email and REGOLA_RUOLO_ALLEGATO not in versione
+                and any(f.campo in _CAMPI and f.verifica in {"plausibile", "verificata"} for f in elenco)):
+            motivo = "data giudiziale in una PEC: confrontare il ruolo nell’intestazione del singolo allegato"
         if motivo:
             esito[chiave] = motivo
     return esito

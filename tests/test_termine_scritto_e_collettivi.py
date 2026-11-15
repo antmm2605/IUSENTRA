@@ -289,3 +289,28 @@ def test_agenda_archivio_ritira_solo_la_voce_intatta_del_documento_giusto():
     assert piano_agenda_documentale_sostituita([automatico], {}, oggi=oggi) == []
     automatico.note += "\nUndici: appuntamento con il cliente."
     assert piano_agenda_documentale_sostituita([automatico], sostituzioni, oggi=oggi) == []
+
+
+def test_le_date_di_una_pec_si_attribuiscono_al_ruolo_di_ogni_allegato():
+    from pct.archivio_letture import Contesto, leggi_testo
+
+    testo = (
+        "Oggetto: CONSEGNA: Notificazione\nMittente: ricevute@example.test\n"
+        "Destinatari: studio@example.test\nData: 18/05/2026\n\n"
+        "Allegati leggibili:\n"
+        "[Allegato: Decreto fissazione udienza.PDF; parte 1.5]\n"
+        "Fissazione udienza discussione n. cronol. 5846/2026 del 18/05/2026 RG n. 1425/2026\n"
+        "TRIBUNALE DI PALMI Sezione Lavoro\nIl giudice, letto il ricorso (RG 1425 /2026), "
+        "visto l’art. 415 c.p.c.; FISSA per la comparizione personale l’udienza del 22/12/2026.\n"
+        "[Allegato: Decreto fissazione udienza 2.PDF; parte 1.6]\n"
+        "R.G. n. 1477 /2026 TRIBUNALE DI PALMI Sezione Lavoro\n"
+        "Il giudice FISSA per la comparizione l’udienza del 17/12/2026."
+    )
+    contesto = Contesto(oggi=date(2026, 11, 15), numero_rg="1477", anno_rg="2026",
+                        date_note={"2026-12-17": ["scadenziario"], "2026-12-22": ["agenda"]})
+    fatti = [f for f in leggi_testo(testo, origine="indice", contesto=contesto) if f.campo == "udienza"]
+    estranea = next(f for f in fatti if f.valore == "2026-12-22")
+    pertinente = next(f for f in fatti if f.valore == "2026-12-17")
+    assert estranea.verifica == "respinta"
+    assert any(p["codice"] == "ruolo_allegato_pec" and "1425/2026" in p["dettaglio"] for p in estranea.prove)
+    assert pertinente.verifica == "verificata"

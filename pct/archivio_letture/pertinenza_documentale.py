@@ -4,6 +4,59 @@ import re
 from typing import Any, Iterable
 from pct.registro_letture.fatti_repository import Fatto
 
+_ALLEGATO_EMAIL = re.compile(r"(?im)^\[Allegato:[^\]\r\n]+\][ \t]*$")
+_AUTORITA_GIUDIZIARIA = re.compile(r"\b(?:tribunale|corte|giudice\s+di\s+pace)\b", re.I)
+_DISPOSITIVO_DATA = re.compile(
+    r"\b(?:fissa|rifissa|rinvia|differisce|assegna)\b.{0,170}"
+    r"\b(?:udienza|termine|deposito|costituzione)\b",
+    re.I | re.S,
+)
+PROVA_RUOLO_ALLEGATO = "ruolo_allegato_pec"
+
+
+def escludi_date_di_allegati_estranei(fatti: list[Fatto], testo: str, *, contesto) -> None:
+    """Attribuisce una data al ruolo del singolo provvedimento nell’estrazione MIME."""
+    from .estrazione_ruolo import estrai_ruoli
+
+    numero = str(contesto.numero_rg or "").strip()
+    anno = str(contesto.anno_rg or "").strip()
+    if not numero.isdecimal() or not anno.isdecimal():
+        return
+    atteso = f"{int(numero)}/{anno}"
+    date_processuali = [
+        fatto for fatto in fatti
+        if fatto.categoria == "data" and fatto.campo in {"udienza", "termine", "costituzione"}
+        and fatto.verifica in {"plausibile", "verificata"}
+    ]
+    if not date_processuali:
+        return
+    delimitatori = list(_ALLEGATO_EMAIL.finditer(testo))
+    for indice, marker in enumerate(delimitatori):
+        fine = delimitatori[indice + 1].start() if indice + 1 < len(delimitatori) else len(testo)
+        sezione = testo[marker.end():fine].lstrip("\r\n")
+        dispositivo = _DISPOSITIVO_DATA.search(sezione, 0, 1800)
+        if dispositivo is None:
+            continue
+        intestazione = sezione[:dispositivo.start()]
+        if not _AUTORITA_GIUDIZIARIA.search(intestazione):
+            continue
+        ruoli = {f.valore for f in estrai_ruoli(intestazione, origine="indice") if f.confidenza == 1.0}
+        if len(ruoli) != 1 or atteso in ruoli:
+            continue
+        if any(f.valore == atteso for f in estrai_ruoli(sezione[dispositivo.start():], origine="indice")):
+            continue
+        (ruolo,) = ruoli
+        for fatto in date_processuali:
+            if not marker.end() <= fatto.posizione < fine:
+                continue
+            fatto.verifica = "respinta"
+            fatto.prove.append({
+                "codice": PROVA_RUOLO_ALLEGATO,
+                "esito": "respinta",
+                "dettaglio": f"Il provvedimento allegato indica R.G. {ruolo}. Il fascicolo è R.G. {atteso}.",
+            })
+
+
 def _documento_identita_strutturale(head: str) -> bool:
     """Riconosce il documento personale vero, non un atto che lo cita."""
     porzione = head[:1800]

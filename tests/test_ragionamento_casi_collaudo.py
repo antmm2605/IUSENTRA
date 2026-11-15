@@ -359,6 +359,32 @@ def test_g16_contributo_della_volontaria_giurisdizione_e_98_euro_non_27():
     assert conclusione(pagato, "contributo_unificato").stato == "fatto"
 
 
+
+def test_contributo_dal_presidio_non_trasforma_la_nota_di_ruolo_in_ricevuta():
+    dichiarazione = doc("AUTO", "Autocertificazione.pdf", "allegato", "Esenzione contributo unificato",
+                         "Dichiarazione relativa ai redditi dell'anno 2022.", data="2023-05-08")
+    prova = {"id": "AUTO", "nome": "Autocertificazione.pdf"}
+    stato = {"codice": "esente", "etichetta": "Esente", "norma": "art. 9, comma 1-bis, D.P.R. 115/2002",
+             "documento": prova, "fonti": [prova], "dettaglio": "Autocertificazione depositata per i redditi 2022."}
+    importo_nir = fatto("NIR", "contributo_unificato", "49.00", "importo")
+    causa = ragiona(fonti(LAVORO, [RICORSO_LAVORO, dichiarazione], fatti=[importo_nir], contributo=stato))
+    cu = conclusione(causa, "contributo_unificato")
+    assert cu.cosa == "Contributo unificato: esente"
+    assert cu.stato == "non_dovuto" and cu.letto.oggetto_id == "AUTO"
+    assert "dpr115_art9" in {norma["id"] for norma in cu.norme}
+    assert causa.economia["contributo_unificato"] == stato
+
+    ricevuta = doc("XML", "Ricevuta.xml", "allegato", "Ricevuta versamento",
+                   "Ricevuta con esito positivo e importo di euro 21,50.", data="2026-02-14")
+    prova = {"id": "XML", "nome": "Ricevuta.xml"}
+    pagato = {"codice": "pagato", "etichetta": "Versato", "importoLabel": "€ 21,50",
+              "norma": "art. 13 D.P.R. 115/2002", "documento": prova,
+              "fonti": [prova], "dettaglio": "Ricevuta del contributo unificato."}
+    cu = conclusione(ragiona(fonti(LAVORO, [RICORSO_LAVORO, ricevuta], contributo=pagato)), "contributo_unificato")
+    assert cu.cosa == "Contributo unificato: versato (€ 21,50)"
+    assert cu.stato == "fatto" and cu.letto.oggetto_id == "XML"
+
+
 def test_liquidazione_resta_visibile_senza_attribuire_crediti_con_ruolo_ignoto():
     causa = ragiona(FontiCausa(fascicolo=MONITORIO, documenti=[DI], oggi=OGGI))
     assert causa.ruolo_cliente == "ignota"

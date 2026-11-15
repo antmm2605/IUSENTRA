@@ -72,7 +72,7 @@ def _depositi(fascicolo: Any) -> list[dict[str, Any]]:
              "consegne_archivio": list(getattr(d, "consegne_archivio", ()) or ())} for d in depositi_da_archivio(fascicolo)]
 
 
-def _economia(fascicolo: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def _economia(fascicolo: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     from web.helpers import get_fatturazione
     from web.services.react_fascicoli_bridge import payment_summary_for_fascicolo_fast
 
@@ -84,7 +84,12 @@ def _economia(fascicolo: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]
         "data_pagamento": _testo(getattr(p, "data_pagamento", "")), "metodo": _enum(getattr(p, "metodo_pagamento", "")),
     } for p in parcelle]
     presidio = dict(payment_summary_for_fascicolo_fast(fascicolo, parcelle=parcelle) or {})
-    return righe_parcelle, _pagamenti(presidio)
+    return righe_parcelle, _pagamenti(presidio), _stato_contributo(presidio)
+
+
+def _stato_contributo(presidio: dict[str, Any]) -> dict[str, Any]:
+    voce = (presidio.get("items") or {}).get("contributo_unificato") or {}
+    return dict(voce.get("statoContributo") or {})
 
 
 def _pagamenti(presidio: dict[str, Any]) -> list[dict[str, Any]]:
@@ -211,6 +216,7 @@ def fonti_da_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> 
         fatti=[f for f in fatti if f.get("tipo") != "documento" or f.get("oggetto_id") not in estranei],
         depositi=depositi,
         parcelle=parcelle, pagamenti=pagamenti,
+        contributo=_stato_contributo(economico.get("presidio") or {}),
         consegne_verificate=_sicuro(lambda: _consegne_verificate(str(fascicolo.id)), {}),
         scadenze=[{"titolo": x.get("titolo"), "data": x.get("data"), "stato": x.get("stato")} for x in dati.scadenze],
     )
@@ -312,7 +318,7 @@ def raccogli_fonti(fascicolo_id: str, *, oggi: date | None = None) -> FontiCausa
     fascicolo = _sicuro(lambda: get_fascicoli().get(fascicolo_id), None)
     if fascicolo is None:
         return None
-    parcelle, pagamenti = _sicuro(lambda: _economia(fascicolo), ([], []))
+    parcelle, pagamenti, contributo = _sicuro(lambda: _economia(fascicolo), ([], [], {}))
     return FontiCausa(
         fascicolo=_fascicolo_dict(fascicolo),
         studio=_sicuro(_studio, {}),
@@ -320,6 +326,7 @@ def raccogli_fonti(fascicolo_id: str, *, oggi: date | None = None) -> FontiCausa
         fatti=_sicuro(lambda: _fatti(str(fascicolo.id)), []),
         depositi=_sicuro(lambda: _depositi(fascicolo), []),
         parcelle=parcelle, pagamenti=pagamenti,
+        contributo=contributo,
         consegne_verificate=_sicuro(lambda: _consegne_verificate(str(fascicolo.id)), {}),
         scadenze=_sicuro(lambda: _scadenze(str(fascicolo.id)), []),
         oggi=oggi,

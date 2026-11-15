@@ -35,6 +35,11 @@ def lettura_materializzata(fascicolo_id: str) -> dict[str, Any] | None:
     return lettura if isinstance(lettura, dict) else None
 
 
+def stato_contributo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, Any] | None:
+    stato = (((lettura or {}).get("ragionamento") or {}).get("economia") or {}).get("contributo_unificato")
+    return stato if isinstance(stato, dict) and stato.get("codice") else None
+
+
 def lettura_precedente(fascicolo_id: str) -> dict[str, Any] | None:
     """L'ultimo risultato dello stesso profilo, esplicitamente consultivo."""
     corpo = pannello_del_profilo(fascicolo_id, "lettura", precedente=True)

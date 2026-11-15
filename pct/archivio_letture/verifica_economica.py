@@ -12,7 +12,7 @@ import unicodedata
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-VERSIONE = "2026.10.13.economico.v8+autocertificazione-evento-contesto"
+VERSIONE = "2026.10.13.economico.v9+anno-autocertificazione"
 
 
 def _plain(value: Any) -> str:

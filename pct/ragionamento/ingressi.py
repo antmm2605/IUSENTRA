@@ -38,6 +38,8 @@ class FontiCausa:
     oggi: date | None = None
     # Atto esatto -> consegna e identificativo della prova verificata nel registro.
     consegne_verificate: dict[str, dict[str, str]] = field(default_factory=dict)
+    # Lo stato già determinato dal presidio economico, con le sue fonti.
+    contributo: dict[str, Any] | None = None
 
     def impronta(self) -> str:
         """L'impronta delle fonti: se non cambia, il modello salvato resta valido."""

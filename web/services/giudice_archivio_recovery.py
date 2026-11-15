@@ -6,6 +6,8 @@ import json
 import logging
 import re
 
+from pct.esenzione_reddito_cu import CAMPO_ANNO_REDDITO
+
 logger = logging.getLogger(__name__)
 
 VERSIONE = "2026.10.10.giudice-date.v3"
@@ -62,7 +64,7 @@ def recupera_da_testi_sql(fascicolo, registro, tenant, repository, *, codice_fis
         if not native and archived_text.strip() and obj.oggetto_id in contribution_ids:
             previous = [f for f in registro.fatti_oggetto(tenant, obj.tipo, obj.oggetto_id)
                         if f.fascicolo_id == fid and f.sha256 == obj.impronta and f.motore == "documenti"]
-            fields = {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato"}
+            fields = {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato", CAMPO_ANNO_REDDITO}
             manual = any(f.campo in fields and (f.verifica in {"corretta", "ignorata"}
                          or any(p.get("codice") == "decisione_avvocato" for p in f.prove)) for f in previous)
             recovered = recupero_contributo(obj, record, archived_text) if not manual else []
@@ -98,7 +100,7 @@ def recupera_da_testi_sql(fascicolo, registro, tenant, repository, *, codice_fis
                 new.extend(_attribuisci(economic, obj, "documenti"))
                 economic_updated = True
         contribution_updated = False
-        contribution_fields = {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato"}
+        contribution_fields = {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato", CAMPO_ANNO_REDDITO}
         if obj.oggetto_id in contribution_ids and not any(
                 f.campo in contribution_fields and (f.verifica in {"corretta", "ignorata"} or any(p.get("codice") == "decisione_avvocato" for p in f.prove)) for f in previous):
             contribution = recupero_contributo(obj, record, text)
@@ -139,29 +141,39 @@ def recupera_giudice(fascicolo, registro, tenant, *, limite=200):
                         if f.campo in {"liquidazione_giudice", "importi_identita_non_verificata"} and f.oggetto_id in documents)
 
     contribution_ids = {f.oggetto_id for f in registro.fatti(tenant, str(fascicolo.id), tipo="documento", motore="documenti", verifiche=None)
-                        if f.campo in {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato"}}
+                        if f.campo in {"contributo_unificato", "esenzione_cu_dichiarata", "pagamento_cu_non_verificato", CAMPO_ANNO_REDDITO}}
     # Il nome seleziona una fonte da controllare, non prova l'esenzione.
     # Anche una prima lettura incompleta deve poter recuperare il dichiarante:
     # la conferma richiede comunque dichiarazione e identità nel contenuto.
     contribution_ids.update(key for key, doc in documents.items()
                             if re.search(r"autocertific|reddit|contributo", str(getattr(doc, "nome", "")), re.IGNORECASE))
 
+    ultimo_originale: tuple[str, bytes] | None = None
+
     def recover_contribution(obj, record, text):
         from pct.archivio_letture.estrazione_importi import importo_contributo_unificato
         from pct.archivio_letture.verifica_economica import identita_autocertificazione, prova_dichiarazione
+        from pct.esenzione_reddito_cu import leggi_autocertificazione
+        from pct.registro_letture import Fatto
 
         meta = {"fascicolo": fascicolo, "codice_fiscale_cliente": getattr(client, "codice_fiscale", ""),
                 "documento_id": obj.oggetto_id, "document_hash_sha256": obj.sha256}
         declaration = json.loads(prova_dichiarazione(text)["dettaglio"])
         optical = declaration.get("tipo") == "autocertificazione"
         recovery = None
-        if optical and not all(p.get("esito") == "ok" for p in identita_autocertificazione(text, meta)):
-            from legal_ocr.motore.autocertificazione import recupera_dichiarante
+        nome_da_leggere = optical and not all(p.get("esito") == "ok" for p in identita_autocertificazione(text, meta))
+        campi_reddito = leggi_autocertificazione(text) if optical else {}
+        anno_da_leggere = bool(campi_reddito.get("soglia") and not campi_reddito.get("anni"))
+        if nome_da_leggere or anno_da_leggere:
+            from legal_ocr.motore.autocertificazione import recupera_campi
             doc = documents.get(obj.oggetto_id)
-            content = _bytes_documento(str(fascicolo.id), doc) if doc else b""
+            if ultimo_originale and ultimo_originale[0] == obj.oggetto_id:
+                content = ultimo_originale[1]
+            else:
+                content = _bytes_documento(str(fascicolo.id), doc) if doc else b""
             if content and hashlib.sha256(content).hexdigest() == obj.sha256:
                 try:
-                    recovery = recupera_dichiarante(content)
+                    recovery = recupera_campi(content, dichiarante=nome_da_leggere, anno_reddito=anno_da_leggere)
                 except (RuntimeError, OSError, ValueError, ImportError) as exc:
                     # Il tentativo fallito resta nel checkpoint della fonte:
                     # non interrompe gli altri presìdi né diventa una conferma.
@@ -172,6 +184,13 @@ def recupera_giudice(fascicolo, registro, tenant, *, limite=200):
                 # cliente è passato come suggerimento al motore OCR.
                 text += "\n" + "\n".join(recovery["testi"])
         facts = importo_contributo_unificato(text, metadata=meta, origine="ocr" if optical else "nativo")
+        # È il campo del modulo sul documento con questa impronta. Il
+        # presidio valuta a parte il deposito e l’applicabilità dell'esenzione.
+        anno = (recovery or {}).get("anno_reddito")
+        if anno:
+            facts.append(Fatto(categoria="metadato_fascicolo", campo=CAMPO_ANNO_REDDITO, valore=str(anno),
+                               etichetta="Anno del reddito nell’autocertificazione", origine="ocr", verifica="verificata",
+                               prove=[{"codice": CAMPO_ANNO_REDDITO, "esito": "ok", "dettaglio": json.dumps(recovery["prove_anno"])}]))
         if recovery:
             for fact in facts:
                 fact.prove.append({"codice": "recupero_dichiarante", "esito": "ok" if recovery["testi"] else "attenzione",
@@ -204,6 +223,8 @@ def recupera_giudice(fascicolo, registro, tenant, *, limite=200):
         return facts
 
     def validate_native(obj, record):
+        nonlocal ultimo_originale
+        ultimo_originale = None
         doc = documents.get(obj.oggetto_id)
         if doc is None:
             return ""
@@ -215,6 +236,8 @@ def recupera_giudice(fascicolo, registro, tenant, *, limite=200):
             # (verifica del 02/11/2026: la maggior parte dei 241 fascicoli «in errore»).
             logger.info("Riscontro nativo saltato per impronta diversa: fascicolo=%s documento=%s", fascicolo.id, obj.oggetto_id)
             return ""
+        if obj.oggetto_id in contribution_ids:
+            ultimo_originale = obj.oggetto_id, content
         return _testo_nativo(str(fascicolo.id), doc, contenuto=content)
 
     return recupera_da_testi_sql(fascicolo, registro, tenant, build_document_ai_service().repository,

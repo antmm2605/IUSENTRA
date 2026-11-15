@@ -145,7 +145,7 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
     """Confronto del versato con il dovuto (pct.contributo_dovuto) e autocertificazione depositata contro la soglia
     vigente al deposito (pct.esenzione_reddito_cu). Solo testi già salvati: nessuna lettura di file."""
     from pct.contributo_dovuto import categoria, confronta, contributo_dovuto
-    from pct.esenzione_reddito_cu import invito_rideposito, leggi_autocertificazione, verifica
+    from pct.esenzione_reddito_cu import CAMPO_ANNO_REDDITO, invito_rideposito, leggi_autocertificazione, verifica
 
     esito: dict[str, Any] = {}
     area, padre = _voci_pst().get(_testo(getattr(fascicolo, "codice_oggetto_pst", "")), ("", ""))
@@ -170,6 +170,7 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
     depositi = {oid: d for oid, d in documenti.items() if any(t in _testo(getattr(d, "nome", "")).casefold() for t in _DEPOSITO)}
     verifiche = []
     inviti = []
+    anni_archiviati: dict[str, set[int]] | None = None
     for oid, documento in documenti.items():
         testo = testi.get(oid, "")
         nome = _testo(getattr(documento, "nome", ""))
@@ -190,7 +191,22 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
             if contenitore is None:
                 continue  # autocertificazione non depositata: non conta (art. 9, comma 1-bis)
             data = _data_documento(contenitore)
-        verifiche.append({"documento_id": oid, **verifica(anno=letta["anno"], soglia=letta["soglia"], data_deposito=data)})
+        anno = letta["anno"]
+        if not letta["anni"]:
+            if anni_archiviati is None:
+                from web.services.archivio_letture_runtime import fatti_fascicolo
+                anni_archiviati = {}
+                for fatto in fatti_fascicolo(fascicolo, campo=CAMPO_ANNO_REDDITO, tipo="documento",
+                                             verifiche=("verificata", "corretta"), canonico=False):
+                    originale = documenti.get(fatto.oggetto_id)
+                    if originale is None or not re.fullmatch(r"20[0-9]{2}", str(fatto.valore)):
+                        continue
+                    impronta = _testo(getattr(originale, "hash_contenuto_sha256", "") or getattr(originale, "hash_sha256", ""))
+                    if impronta and fatto.sha256 == impronta:
+                        anni_archiviati.setdefault(fatto.oggetto_id, set()).add(int(fatto.valore))
+            anni = anni_archiviati.get(oid, set())
+            anno = next(iter(anni)) if len(anni) == 1 else None
+        verifiche.append({"documento_id": oid, **verifica(anno=anno, soglia=letta["soglia"], data_deposito=data)})
     esito["invitiRideposito"] = inviti
     certe = [v for v in verifiche if v.get("certa")]
     if certe or verifiche:

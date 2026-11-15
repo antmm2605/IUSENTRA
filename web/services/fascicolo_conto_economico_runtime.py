@@ -251,13 +251,16 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     from web.helpers import regime_fiscale_studio
 
     from web.services.contributo_stato_runtime import stato_contributo_fascicolo
+    from web.services.riscontri_processuali_runtime import lettura_materializzata, stato_contributo_da_lettura
+
+    contributo = stato_contributo_da_lettura(lettura_materializzata(fascicolo_id))
 
     tipo = getattr(fascicolo, "tipo", "")
     giurisdizione, _ = giurisdizione_e_grado(tipo=getattr(tipo, "value", tipo), ufficio=getattr(fascicolo, "tribunale", ""))
 
     # Lo stesso stato del contributo della card e della finestra del presidio economico (stessa voce, stesso catalogo).
     risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze, regime=regime_fiscale_studio(),
-                                documenti_contributo=[], stato_contributo=stato_contributo_fascicolo(fascicolo),
+                                documenti_contributo=[], stato_contributo=contributo or stato_contributo_fascicolo(fascicolo),
                                 parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(fascicolo_id),
                                 amministrativo=giurisdizione == AMMINISTRATIVO)
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}

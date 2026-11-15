@@ -116,7 +116,9 @@ def esito_dispositivo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, st
 def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | None, *,
                                 fascicolo: Any = None) -> dict[str, str] | None:
     from pct.fascicolo_quadro import riga_economia
-    from web.services.riscontri_processuali_runtime import chiarisci_spese_da_sentenza, risultato_materializzato
+    from web.services.riscontri_processuali_runtime import (
+        chiarisci_spese_da_sentenza, risultato_materializzato, stato_contributo_da_lettura,
+    )
 
     conto = _sicuro(lambda: risultato_materializzato(fascicolo_id, "conto-economico"), {}, "conto economico") or {}
     chiarisci_spese_da_sentenza(conto, lettura)
@@ -124,6 +126,9 @@ def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | No
     contributo = next((r.get("statoContributo") for r in righe_conto if r.get("voce") == "contributo_unificato"), None)
     prossimo_economico = _testo((conto.get("percorso") or {}).get("prossimoPasso"))
     if not conto:
+        stato_letto = stato_contributo_da_lettura(lettura)
+        if stato_letto and not (lettura or {}).get("aggiornamento_pendente"):
+            return riga_economia(stato_letto, [])
         if fascicolo is None:
             return None
         if lettura is not None:

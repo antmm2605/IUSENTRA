@@ -22,10 +22,11 @@ from typing import Any
 
 from pct.soglie_nei_documenti import importi_nel_testo
 
+CAMPO_ANNO_REDDITO = "anno_reddito_autocertificazione_cu"
 TABELLA = "patrocinio_limiti_reddito"
 NORMA = "art. 9, comma 1-bis, e artt. 76-77 D.P.R. 115/2002"
 _INTESTAZIONE = re.compile(r"esenzione\s+dal\s+contributo\s+unificato|autocertificazione\s+(?:della\s+situazione\s+)?reddituale", re.IGNORECASE)
-_ANNO = re.compile(r"\banno\s+(?:d[ie]\s+(?:imposta|riferimento)\s+|dei\s+redditi\s+)?(20\d{2})\b|\bredditi\s+(?:dell['’]\s*anno\s+|percepiti\s+nel(?:l['’]\s*anno)?\s+|anno\s+)?(20\d{2})\b", re.IGNORECASE)
+_ANNO = re.compile(r"\banno\s*(?:d[ie]\s+(?:imposta|riferimento)\s+|dei\s+redditi\s+)?[ .:…]*(20\d{2})\b|\bredditi\s+(?:dell['’]\s*anno\s+|percepiti\s+nel(?:l['’]\s*anno)?\s+|anno\s+)?(20\d{2})\b", re.IGNORECASE)
 
 
 _INVITO_RIDEPOSITO = re.compile(
@@ -109,4 +110,4 @@ def verifica(*, anno: int | None, soglia: Decimal | None, data_deposito: date | 
                        + f" ({fonte}; {NORMA}).")}
 
 
-__all__ = ["NORMA", "TABELLA", "leggi_autocertificazione", "righe_soglia", "soglia_vigente", "verifica"]
+__all__ = ["CAMPO_ANNO_REDDITO", "NORMA", "TABELLA", "leggi_autocertificazione", "righe_soglia", "soglia_vigente", "verifica"]

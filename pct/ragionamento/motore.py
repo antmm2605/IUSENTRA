@@ -35,7 +35,7 @@ from .regole.termini_assegnati import conclusioni_termini
 from .rito import determina_rito
 from .testo import pulito, rg_normale
 
-VERSIONE = "2026.11.15.ragionamento.v14"
+VERSIONE = "2026.11.15.ragionamento.v15"
 ROMA = ZoneInfo("Europe/Rome")
 
 
@@ -121,7 +121,7 @@ def ragiona(fonti: FontiCausa) -> Causa:
     conclusioni = conclusioni_termini(ctx) + conclusioni_lavoro(ctx) + conclusioni_monitorio(ctx) + conclusioni_sentenza(ctx)
     economiche, economia = conclusioni_economia(ctx, fonti.pagamenti, fonti.parcelle)
     conclusioni += economiche
-    contributo = conclusione_contributo(ctx, fonti.fatti, fonti.pagamenti)
+    contributo = conclusione_contributo(ctx, fonti.fatti, fonti.pagamenti, stato_condiviso=fonti.contributo)
     if contributo:
         conclusioni.append(contributo)
     contraddizioni, dubbi = controlla(ctx, conclusioni, errori, pagamenti=fonti.pagamenti, parcelle=fonti.parcelle, scadenze=fonti.scadenze)
@@ -151,7 +151,7 @@ def ragiona(fonti: FontiCausa) -> Causa:
     return Causa(
         fascicolo_id=ctx.fascicolo_id, rg=rg, ufficio=ctx.ufficio, ruolo_cliente=posizione, rito=rito, atti=atti,
         udienze=ctx.udienze, termini=termini, fase=determina_fase(ctx, conclusioni), conclusioni=conclusioni,
-        contraddizioni=contraddizioni, dubbi=dubbi, economia={"origine_rg": origine_rg, **economia}, oggi=oggi,
+        contraddizioni=contraddizioni, dubbi=dubbi, economia={"origine_rg": origine_rg, "contributo_unificato": fonti.contributo, **economia}, oggi=oggi,
         impronta=fonti.impronta(), versione=VERSIONE, percorso=ricostruisci_percorso(ctx),
     )
 

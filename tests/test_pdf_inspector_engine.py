@@ -116,6 +116,26 @@ def test_recupero_dichiarante_ritaglia_solo_a_destra_dell_etichetta_senza_nome_a
         assert all('nome' not in kwargs and 'cliente' not in kwargs for _, kwargs in calls)
 
 
+@pytest.mark.parametrize("altro_anno,atteso", [(2022, 2022), (2021, None)])
+def test_anno_di_reddito_richiede_due_letture_del_campo(monkeypatch, altro_anno, atteso):
+    from PIL import Image
+    from types import SimpleNamespace
+    from legal_ocr.motore import autocertificazione, consenso
+
+    boxes = {"text": ["relativamente", "all’anno"],
+             "block_num": [1, 1], "par_num": [2, 2], "line_num": [3, 3],
+             "left": [25, 140], "top": [150, 150],
+             "width": [100, 80], "height": [20, 20]}
+    riconoscimenti = iter((2022, altro_anno))
+    monkeypatch.setattr(consenso, "leggi_con_secondo_lettore", lambda *_a, **_kw: SimpleNamespace(
+        testo=f"…{next(riconoscimenti)}...", motore="lettore-locale", confidenza=.83))
+    with Image.new("RGB", (500, 300), color="white") as img:
+        anno, prove = autocertificazione._leggi_anno_reddito(img, boxes, 1)
+    assert anno == atteso
+    assert [fonte["anno"] for fonte in prove] == [2022, altro_anno]
+    assert all(fonte["pagina"] == 1 and fonte["area"][0] >= 220 for fonte in prove)
+
+
 @pytest.mark.parametrize('raw', ['(cid:1)(cid:2)', 'RRoobbeerrttoo MMoonnttaaggnneessee'])
 def test_corrupt_native_layer_is_replaced_not_fused(monkeypatch, raw):
     calls = []

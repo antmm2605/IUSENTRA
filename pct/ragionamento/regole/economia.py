@@ -87,7 +87,41 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
     return risultato, {"liquidazioni": liquidazioni}
 
 
-def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti: list[dict[str, Any]]) -> Conclusione | None:
+def _contributo_dal_presidio(ctx: Contesto, esito: dict[str, Any]) -> Conclusione | None:
+    codice = esito.get("codice")
+    if not codice:
+        return None
+    documento = esito.get("documento") or {}
+    oid = str(documento.get("id") or "")
+    atto = ctx.atto(oid)
+    dettaglio = str(esito.get("dettaglio") or "")
+    fonte = Fonte(oid or "economia", str(documento.get("nome") or "Conto economico"),
+                  dettaglio, atto.data if atto else "", "documento" if oid else "economia")
+    stato = {"pagato": "fatto", "esente": "non_dovuto", "non_dovuto": "non_dovuto"}.get(codice, "dubbio")
+    da_versare = (codice == "da_pagare" and ctx.posizione == "attiva"
+                  and not any(d.accettato for d in ctx.depositi)
+                  and semplice(ctx.fascicolo.get("stato")) not in {"definito", "chiuso", "archiviato"})
+    if da_versare:
+        stato = "da_fare"
+    importo = esito.get("importoLabel") or ""
+    etichetta = str(esito["etichetta"]).lower()
+    titolo = f"Contributo unificato: {etichetta}" + (f" ({importo})" if importo else "")
+    via = "Versare con pagoPA e allegare la ricevuta al deposito." if da_versare else "Aprire il riscontro e le fonti del Conto economico."
+    regole = norme("dpr115_art9") if "art. 9" in str(esito.get("norma") or "") else norme("dpr115_art13")
+    dubbi = []
+    if stato == "dubbio":
+        prova = str(esito.get("ruoloFonti") or "ricevuta o titolo di esenzione")
+        dubbi.append(Dubbio("contributo_da_riscontrare", dettaglio, prova, fonte))
+    return Conclusione(
+        "contributo_unificato", titolo, fonte, regole, via,
+        "Il riscontro dipende dalle fonti del fascicolo e dal regime applicabile al deposito.",
+        stato, dettaglio, onerato="noi" if ctx.posizione == "attiva" else "ignoto", dubbi=dubbi,
+        motivo_senza_termine="La voce descrive il versamento o l'esenzione. Un termine autonomo richiede un atto che lo assegni.",
+    )
+
+
+def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti: list[dict[str, Any]],
+                           *, stato_condiviso: dict[str, Any] | None = None) -> Conclusione | None:
     """Il contributo unificato dovuto per rito e valore e il confronto con il versato (G-16).
 
     Regola unica: `pct/contributo_dovuto` (art. 13, commi 1 e 3, D.P.R. 115/2002; il versamento di € 27 è
@@ -97,6 +131,8 @@ def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti
     posizione_da_verificare = ctx.posizione == "ignota" and ctx.rito.codice == "volontaria_giurisdizione"
     if ctx.posizione != "attiva" and not posizione_da_verificare:
         return None
+    if stato_condiviso is not None:
+        return _contributo_dal_presidio(ctx, stato_condiviso)
     cat = categoria(area=ctx.rito.area, padre=ctx.rito.padre, tipo_fascicolo=ctx.fascicolo.get("tipo"))
     valore = float(ctx.fascicolo.get("valore_causa") or 0) or None
     dovuto = contributo_dovuto(cat, valore, giudice_pace="giudice di pace" in semplice(ctx.ufficio)) if cat else None

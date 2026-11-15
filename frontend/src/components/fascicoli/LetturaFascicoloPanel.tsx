@@ -293,7 +293,13 @@ export function LetturaFascicoloPanel({
           <details className="iu-fas-lettura__nota">
             <summary>PEC con identità da verificare ({lettura.verifiche.esiti.pec.da_confermare.length})</summary>
             <ul>
-              {lettura.verifiche.esiti.pec.da_confermare.map((pec) => <li key={pec.id}><strong>{pec.oggetto || 'Messaggio PEC'}</strong> — {pec.motivo || 'Identità del procedimento non ancora dimostrata.'}</li>)}
+              {lettura.verifiche.esiti.pec.da_confermare.map((pec) => (
+                <li key={pec.id}>
+                  {pec.id ? <a href={`/email/?audit_id=${encodeURIComponent(pec.id)}`}>{pec.oggetto || 'Apri il messaggio PEC'}</a>
+                    : <strong>{pec.oggetto || 'Messaggio PEC'}</strong>}
+                  {' · '}{pec.motivo || 'Identità del procedimento non ancora dimostrata.'}
+                </li>
+              ))}
             </ul>
           </details>
         ) : null}

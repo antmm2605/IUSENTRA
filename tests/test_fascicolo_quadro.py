@@ -216,3 +216,28 @@ def test_riscontro_spese_da_sentenza_richiede_una_fonte_del_fascicolo():
     assert riga["tono"] == "warning"
     assert riga["fonti"][0]["href"] == "/fascicoli/F1/documenti/S1/visualizza"
     assert "azione" not in proforma
+
+
+def test_quadro_riusa_riscontro_storico_solo_per_lo_stesso_atto_e_la_stessa_finalita():
+    from web.services.fascicolo_quadro_runtime import riga_notifiche_da_lettura
+    from web.services.obblighi_notifica_sintesi import compatta
+
+    lettura = {"ragionamento": {"conclusioni": [{
+        "codice": "notifica_sentenza", "stato": "non_dovuto",
+        "letto": {"documento_id": "originale"},
+    }]}}
+    obblighi = compatta([
+        {"etichetta": "Sentenza", "regola": "sentenza_notifica_breve", "documentoId": "copia",
+         "fonti_documentali": [{"documentoId": "originale"}], "stato": "da_verificare"},
+        {"etichetta": "Altra sentenza", "regola": "sentenza_notifica_breve",
+         "documentoId": "altra", "stato": "da_verificare"},
+        {"etichetta": "Titolo esecutivo", "documentoId": "originale", "stato": "da_verificare"},
+    ])
+    sintesi = {"obblighi": obblighi}
+    testo = riga_notifiche_da_lettura(sintesi, lettura, OGGI)["testo"]
+    assert "Sentenza: riscontro storico" in testo
+    assert "Altra sentenza: notifica da verificare" in testo
+    assert "Titolo esecutivo: notifica da verificare" in testo
+    assert obblighi[0]["stato"] == "da_verificare"
+    precedente = {**lettura, "aggiornamento_pendente": True}
+    assert "riscontro storico" not in riga_notifiche_da_lettura(sintesi, precedente, OGGI)["testo"]

@@ -83,6 +83,7 @@ def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
     from pct.fascicolo_lettura.pec import pec
     from web.helpers import get_fascicoli, get_scadenziario
     from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
+    from web.services.riscontri_processuali_runtime import lettura_materializzata
 
     fascicolo = get_fascicoli().get(str(fascicolo_id or "").strip())
     if fascicolo is None:
@@ -92,16 +93,24 @@ def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
     except Exception as exc:
         logger.warning("Scadenze del fascicolo %s non disponibili per i passaggi: %s", fascicolo_id, exc)
         scadenze = []
+    lettura = lettura_materializzata(fascicolo_id)
     try:
-        termini = pec(messaggi_pec_per_fascicolo(fascicolo, solo_collegate=True)).get("termini_da_registrare") or []
+        quadro_pec = (lettura or {}).get("pec")
+        if quadro_pec is None:
+            quadro_pec = pec(messaggi_pec_per_fascicolo(fascicolo, solo_collegate=True))
+        termini = quadro_pec.get("termini_da_registrare") or []
     except Exception as exc:
         logger.warning("Termini PEC del fascicolo %s non disponibili per i passaggi: %s", fascicolo_id, exc)
         termini = []
-    return {"fascicolo": _fascicolo_dict(fascicolo), "scadenze": scadenze, "termini_pec": termini}
+    conclusioni = ((lettura or {}).get("ragionamento") or {}).get("conclusioni") or []
+    return {"fascicolo": _fascicolo_dict(fascicolo), "scadenze": scadenze, "termini_pec": termini, "conclusioni": conclusioni}
 
 
 def passaggi_software(dati: dict[str, Any], *, oggi: date | None = None) -> list[Passaggio]:
-    return passaggi_del_fascicolo(dati["fascicolo"], scadenze=dati["scadenze"], termini_pec=dati["termini_pec"], oggi=oggi or oggi_roma())
+    return passaggi_del_fascicolo(
+        dati["fascicolo"], scadenze=dati["scadenze"], termini_pec=dati["termini_pec"],
+        oggi=oggi or oggi_roma(), conclusioni=dati.get("conclusioni", ()),
+    )
 
 
 def passaggi_con_regole(dati: dict[str, Any], *, repository: RegoleStudioRepository, oggi: date | None = None) -> list[Passaggio]:

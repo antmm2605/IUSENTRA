@@ -28,7 +28,7 @@ from urllib.parse import urlencode
 from flask import current_app, g, has_request_context, request, session
 
 from pct.pannelli_pronti import impronta as impronta_fonti
-from pct.pannelli_pronti.archivio import NOME_FILE, ArchivioPannelli, chiave as chiave_voce
+from pct.pannelli_pronti.archivio import NOME_FILE, ArchivioPannelli, Voce, chiave as chiave_voce
 from web.services.pannelli_pronti_catalogo import DIPENDENTI, PARAMETRI_IGNORATI_SEMPRE, PER_ENDPOINT, VERSIONE_PANNELLI, Pannello
 
 logger = logging.getLogger(__name__)
@@ -171,12 +171,12 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
     if not pannello.ricomponi:
         return corpo
     if pannello.ricomponi == "quadro_da_lettura":
-        from pct.fascicolo_quadro import riga_notifiche
         from web.services.fascicolo_quadro_runtime import (
             ROME_TZ,
             esito_dispositivo_da_lettura,
             prossimo_passo_da_lettura,
             riga_economia_materializzata,
+            riga_notifiche_da_lettura,
             riga_termini_da_lettura,
         )
         from web.services.obblighi_notifica_sintesi import leggi as sintesi_obblighi
@@ -201,7 +201,7 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
             righe["termini"] = riga_termini_da_lettura(agenda, lettura, oggi)
         if "notifiche" in righe:
             sintesi = sintesi_obblighi(fascicolo_id)
-            righe["notifiche"] = riga_notifiche(None if sintesi is None else sintesi.get("obblighi") or [], oggi=oggi)
+            righe["notifiche"] = riga_notifiche_da_lettura(sintesi, lettura, oggi)
         if "economia" in righe:
             economia = riga_economia_materializzata(fascicolo_id, lettura)
             if economia is not None:
@@ -303,6 +303,17 @@ def _in_preparazione():
     return risposta
 
 
+def _lettura_consultiva_salvata(pannello: Pannello, voce: Voce | None):
+    if pannello.ricomponi != "stato_presidi_lettura" or voce is None or not voce.corpo:
+        return None
+    corpo = bytes(voce.corpo)
+    if not pannello.memorizzabile(corpo):
+        return None
+    ultimo = json.loads(corpo)
+    ultimo["lettura"]["aggiornamento_pendente"] = True
+    return _risposta_salvata(200, "application/json", json.dumps(ultimo, ensure_ascii=False).encode("utf-8"), "precedente")
+
+
 def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: dict):
     fascicolo_id = str(kwargs.get(pannello.parametro_fascicolo) or "").strip()
     ricalcolo = bool(request.environ.get(AMBIENTE_RICALCOLO))
@@ -324,6 +335,7 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                    and pannello.ricomponi != "quadro_da_lettura"
                    and request.headers.get(_INTESTAZIONE_ASINCRONA) == "sfondo")
     if not ricalcolo:
+        voce = None
         try:
             voce = contesto.archivio.voce(chiave)
             valida = bool(voce and voce.impronta == impronta and voce.corpo is not None)
@@ -403,16 +415,12 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                     sveglia_calcolatore(str(getattr(g, "tenant_context_slug", "") or "single-studio"), fascicolo_id)
                 except OSError:
                     logger.warning("Avvio immediato del calcolatore non riuscito", exc_info=True)
-                if pannello.ricomponi == "stato_presidi_lettura" and voce and voce.corpo:
-                    ultimo = json.loads(voce.corpo)
-                    if pannello.memorizzabile(bytes(voce.corpo)):
-                        ultimo["lettura"]["aggiornamento_pendente"] = True
-                        corpo = json.dumps(ultimo, ensure_ascii=False).encode("utf-8")
-                        return _risposta_salvata(200, "application/json", corpo, "precedente")
-                return _in_preparazione()
+                return _lettura_consultiva_salvata(pannello, voce) or _in_preparazione()
         except sqlite3.OperationalError as exc:
             logger.warning("Archivio pannelli non disponibile per %s: %s", fascicolo_id, exc)
-            return _in_preparazione() if differibile else vista(*args, **kwargs)
+            if differibile:
+                return _lettura_consultiva_salvata(pannello, voce) or _in_preparazione()
+            return vista(*args, **kwargs)
         except Exception as exc:
             logger.warning("Pannelli pronti non consultabili per %s: %s", fascicolo_id, exc)
             return vista(*args, **kwargs)
@@ -435,12 +443,10 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
     if ricalcolo and impronta_attuale(contesto, fascicolo_id) != impronta:
         return risposta
     try:
-        precedente = contesto.archivio.voce(chiave) if DIPENDENTI.get(pannello.nome) else None
         salvato = contesto.archivio.salva(chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=pannello.nome,
                                 percorso=percorso, profilo=contesto.profilo, impronta=impronta,
-                                stato=risposta.status_code, tipo=risposta.mimetype, corpo=corpo, durata_ms=durata)
-        if salvato and DIPENDENTI.get(pannello.nome) and (precedente is None or bytes(precedente.corpo or b"") != corpo):
-            contesto.archivio.invalida_pannelli(fascicolo_id, DIPENDENTI[pannello.nome])
+                                stato=risposta.status_code, tipo=risposta.mimetype, corpo=corpo, durata_ms=durata,
+                                timeout=10 if ricalcolo else 0, dipendenti=DIPENDENTI.get(pannello.nome, ()))
         if salvato:
             risposta.headers[INTESTAZIONE] = "calcolato"
         elif ricalcolo:
@@ -533,20 +539,25 @@ def pannello_del_profilo(fascicolo_id: str, pannello: str, *, precedente: bool =
         return None
 
 
-def invalida_dopo_scrittura(risposta):
-    """after_request: una scrittura riuscita sul fascicolo invalida subito i suoi pannelli."""
+def segnala_scrittura_fascicolo(fascicolo_id: str) -> None:
+    """Invalida e rimette in coda i pannelli dopo una scrittura riuscita, anche dal worker."""
+    if not fascicolo_id or not has_request_context():
+        return
     try:
-        if request.method not in _METODI_SCRITTURA or risposta.status_code >= 400:
-            return risposta
-        fascicolo_id = fascicolo_della_richiesta()
-        if not fascicolo_id or fascicolo_id in {"nuovo", "preferenze-filtri", "archivio", "presidio-economico"}:
-            return risposta
         archivio = archivio_per_percorsi(dict(getattr(g, "data_paths", {}) or {}))
         if archivio is not None:
             archivio.invalida_fascicolo(fascicolo_id)
             archivio.segnala_fonti_aggiornate(fascicolo_id)
-    except Exception as exc:  # l'invalidazione non deve mai rompere la scrittura già avvenuta
+    except Exception as exc:
         logger.warning("Invalidazione dei pannelli dopo la scrittura non riuscita: %s", exc)
+
+
+def invalida_dopo_scrittura(risposta):
+    """after_request: una scrittura riuscita sul fascicolo invalida subito i suoi pannelli."""
+    if request.method in _METODI_SCRITTURA and risposta.status_code < 400:
+        fascicolo_id = fascicolo_della_richiesta()
+        if fascicolo_id not in {"nuovo", "preferenze-filtri", "archivio", "presidio-economico"}:
+            segnala_scrittura_fascicolo(fascicolo_id)
     return risposta
 
 

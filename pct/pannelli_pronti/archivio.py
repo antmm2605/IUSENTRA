@@ -82,11 +82,12 @@ class ArchivioPannelli:
         try:
             if self.percorso not in _PREPARATI:
                 with _LOCK:
-                    Path(self.percorso).parent.mkdir(parents=True, exist_ok=True)
-                    conn.execute("PRAGMA journal_mode=WAL")
-                    for istruzione in _SCHEMA:
-                        conn.execute(istruzione)
-                    _PREPARATI.add(self.percorso)
+                    if self.percorso not in _PREPARATI:
+                        Path(self.percorso).parent.mkdir(parents=True, exist_ok=True)
+                        conn.execute("PRAGMA journal_mode=WAL")
+                        for istruzione in _SCHEMA:
+                            conn.execute(istruzione)
+                        _PREPARATI.add(self.percorso)
             conn.execute("PRAGMA synchronous=NORMAL")
             yield conn
         finally:
@@ -176,9 +177,9 @@ class ArchivioPannelli:
     def registra_richiesta(self, *, chiave_voce: str, fascicolo_id: str, pannello: str, percorso: str,
                            profilo: str, sessione: dict, servito: bool, ritenta: bool = False, differibile: bool = True) -> None:
         adesso = _adesso()
-        # Una richiesta in sfondo deve essere registrata per il calcolatore.
-        # La consultazione sincrona può proseguire se la registrazione è occupata.
-        with self._conn(timeout=10 if differibile and not servito else 0) as conn, conn:
+        # Il browser riprova una richiesta in preparazione. Un altro
+        # scrittore non deve trattenere la consultazione per secondi.
+        with self._conn(timeout=0.075 if differibile and not servito else 0) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
             conn.execute(
                 "INSERT INTO pannelli(chiave,fascicolo_id,pannello,percorso,profilo,richiesto_il,richieste,servito_il) "
@@ -195,11 +196,14 @@ class ArchivioPannelli:
                          "ON CONFLICT(fascicolo_id) DO UPDATE SET aperto_il=excluded.aperto_il", (str(fascicolo_id), adesso))
 
     def salva(self, *, chiave_voce: str, fascicolo_id: str, pannello: str, percorso: str, profilo: str,
-              impronta: str, stato: int, tipo: str, corpo: bytes, durata_ms: int) -> bool:
+              impronta: str, stato: int, tipo: str, corpo: bytes, durata_ms: int,
+              timeout: float = 10, dipendenti: tuple[str, ...] = ()) -> bool:
         if len(corpo) > MAX_CORPO:
             return False
         adesso = _adesso()
-        with self._conn() as conn:
+        with self._conn(timeout=timeout) as conn, conn:
+            conn.execute("BEGIN IMMEDIATE")
+            precedente = conn.execute("SELECT corpo FROM pannelli WHERE chiave=?", (chiave_voce,)).fetchone() if dipendenti else None
             conn.execute(
                 "INSERT INTO pannelli(chiave,fascicolo_id,pannello,percorso,profilo,impronta,stato,tipo,corpo,"
                 " calcolato_il,durata_ms,richiesto_il,errore) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'') "
@@ -207,6 +211,8 @@ class ArchivioPannelli:
                 " corpo=excluded.corpo, calcolato_il=excluded.calcolato_il, durata_ms=excluded.durata_ms, errore='', tentata=''",
                 (chiave_voce, str(fascicolo_id), pannello, percorso, profilo, impronta, int(stato), tipo, corpo, adesso,
                  int(durata_ms), adesso))
+            if dipendenti and (precedente is None or precedente[0] != corpo):
+                self._invalida_voci(conn, fascicolo_id, dipendenti)
         return True
 
     def segna_tentativo(self, *, chiave_voce: str, fascicolo_id: str, pannello: str, percorso: str, profilo: str,
@@ -244,13 +250,20 @@ class ArchivioPannelli:
         if not pannelli:
             return 0
         with self._conn() as conn:
-            return int(conn.execute(
-                "UPDATE pannelli SET impronta='', tentata='' WHERE fascicolo_id=? AND pannello IN ("
-                + ",".join("?" for _ in pannelli) + ")", (str(fascicolo_id), *pannelli)).rowcount or 0)
+            return self._invalida_voci(conn, fascicolo_id, pannelli)
+
+    @staticmethod
+    def _invalida_voci(conn: sqlite3.Connection, fascicolo_id: str, pannelli: tuple[str, ...]) -> int:
+        return int(conn.execute(
+            "UPDATE pannelli SET impronta='', tentata='' WHERE fascicolo_id=? AND pannello IN ("
+            + ",".join("?" for _ in pannelli) + ")", (str(fascicolo_id), *pannelli)).rowcount or 0)
 
     def ultimo_valido(self, fascicolo_id: str, pannello: str, impronta: str) -> bytes | None:
         """Il payload salvato del pannello, per qualunque profilo, se calcolato con l'impronta indicata."""
-        with self._conn() as conn:
+        riga = None
+        with self._lettura() as conn:
+            if conn is None:
+                return None
             riga = conn.execute("SELECT corpo FROM pannelli WHERE fascicolo_id=? AND pannello=? AND impronta=? "
                                 "AND corpo IS NOT NULL ORDER BY calcolato_il DESC LIMIT 1",
                                 (str(fascicolo_id), pannello, impronta)).fetchone()

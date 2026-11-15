@@ -20,7 +20,12 @@ SEZIONI = {
 }
 _LIVELLO_URGENZA = {0: "urgente", 1: "attenzione", 2: "info", 3: "info"}
 _PARCELLA = {"Da preparare": "proforma da preparare", "Proforma": "proforma preparata", "Fatturata": "parcella fatturata"}
-_STATI_NOTIFICA = {"notificato": "notificato", "facoltativo": "notifica facoltativa", "da_verificare": "notifica da verificare"}
+_STATI_NOTIFICA = {
+    "notificato": "notificato",
+    "facoltativo": "notifica facoltativa",
+    "da_verificare": "notifica da verificare",
+    "riscontro_storico": "riscontro storico della notifica ai fini del termine breve",
+}
 
 
 def _testo(valore: Any) -> str:

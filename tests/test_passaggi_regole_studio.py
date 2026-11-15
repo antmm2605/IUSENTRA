@@ -264,3 +264,21 @@ def test_chiedi_sempre_prevale_a_pari_ambito_e_le_azioni_hanno_etichette_italian
     [corretto], _ = applica_regole([facoltativo], repo.attive_per({facoltativo.regola_id}))
     assert corretto.stato == "da_chiedere"
     assert all(etichetta and etichetta[0].islower() for etichetta in AZIONI.values())
+
+
+def test_note_esecutive_riusano_la_conseguenza_del_termine_dalla_lettura():
+    from datetime import date
+    from pct.passaggi.fascicolo import passaggi_del_fascicolo
+
+    motivo = "Se nessuno deposita le note nel termine il giudice dichiara l’estinzione con ordinanza."
+    esito = {"codice": "note_127ter", "perche": motivo, "termine": {"scadenza_iso": "2026-12-16"},
+             "norme": [{"norma": "art. 631 c.p.c."}]}
+    passaggi = passaggi_del_fascicolo(
+        {"id": "F1", "tipo": "ESECUZIONE"},
+        scadenze=[{"titolo": "Deposito note scritte", "stato": "APERTO",
+                   "deadline_profile_code": "NOTE_127_TER", "data": "2026-12-16"}],
+        termini_pec=[], oggi=date(2026, 11, 15), conclusioni=[esito],
+    )
+    voce, = [p for p in passaggi if p.regola_id == "127ter.adempimento.decisione"]
+    assert voce.regola_descrizione == motivo
+    assert voce.norme == ("cpc_127ter", "cpc_631")

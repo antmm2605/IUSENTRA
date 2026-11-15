@@ -112,7 +112,7 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("catalogazione-documentale", "api_v1_documenti_ai.catalogazione_documentale_fascicolo", percorso=_UI + "/catalogazione-documentale",
              parametro_fascicolo="fascicolo_id"),
     Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo", percorso=_UI + "/guida-pratica"),
-    Pannello("passaggi", "api_v1_passaggi.fascicolo_passaggi", percorso=_UI + "/passaggi"),
+    Pannello("passaggi", "api_v1_passaggi.fascicolo_passaggi", percorso=_UI + "/passaggi", dipende_da=("lettura",)),
 )
 
 PER_ENDPOINT = {p.endpoint: p for p in PANNELLI}

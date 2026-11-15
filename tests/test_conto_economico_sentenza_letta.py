@@ -149,3 +149,13 @@ def test_due_copie_verificate_mostrano_l_importo_senza_richiedere_conferma():
     copia["identita_atto"] = "altro-atto"
     dubbia = riga_sentenza(crediti_dalle_sentenze_lette([sentenza, copia]))
     assert "verificare" in dubbia["dettaglio"]
+
+
+def test_spese_compensate_nel_processo_amministrativo_espongono_il_rinvio():
+    sentenze = [{"regolazione": "compensazione", "nome": "Sentenza TAR.pdf"}]
+    conto = conto_economico(
+        voci={}, crediti=[], sentenze=sentenze, documenti_contributo=[], parcelle=[], amministrativo=True,
+    )
+    norma = "art. 26 c.p.a. in relazione all’art. 92 c.p.c."
+    assert conto["righe"][0]["norma"] == norma
+    assert norma in conto["percorso"]["prossimoPasso"]

@@ -743,7 +743,11 @@ def _recupera_esiti_sentenze(fascicolo: Any, registro: RegistroLetture, tenant: 
         logger.exception("Recupero dell'esito delle sentenze non riuscito per %s", getattr(fascicolo, "id", ""))
         return {"controllate": 0, "recuperate": 0}
     if esito.get("recuperate"):
-        invalida_lettura(_testo(getattr(fascicolo, "id", "")))
+        from web.services.pannelli_pronti_runtime import segnala_scrittura_fascicolo
+
+        fascicolo_id = _testo(getattr(fascicolo, "id", ""))
+        invalida_lettura(fascicolo_id)
+        segnala_scrittura_fascicolo(fascicolo_id)
     return esito
 
 

@@ -223,6 +223,7 @@ def _esecuzione_pa(fascicolo_id: str) -> dict[str, Any] | None:
 
 def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
     from pct.fascicolo_conto_economico import conto_economico
+    from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, giurisdizione_e_grado
     from web.services.sentenza_economic_runtime import _fascicoli_repository_mirato
 
     # Un fascicolo solo: lettura per chiave, non tutto l'archivio dello studio.
@@ -247,10 +248,14 @@ def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:
 
     from web.services.contributo_stato_runtime import stato_contributo_fascicolo
 
+    tipo = getattr(fascicolo, "tipo", "")
+    giurisdizione, _ = giurisdizione_e_grado(tipo=getattr(tipo, "value", tipo), ufficio=getattr(fascicolo, "tribunale", ""))
+
     # Lo stesso stato del contributo della card e della finestra del presidio economico (stessa voce, stesso catalogo).
     risultato = conto_economico(voci=voci, crediti=crediti, sentenze=sentenze, regime=regime_fiscale_studio(),
                                 documenti_contributo=[], stato_contributo=stato_contributo_fascicolo(fascicolo),
-                                parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(fascicolo_id))
+                                parcelle=parcelle_del_fascicolo(fascicolo_id), esecuzione=_esecuzione_pa(fascicolo_id),
+                                amministrativo=giurisdizione == AMMINISTRATIVO)
     return {"ok": True, "fascicoloId": fascicolo_id, **risultato}
 
 

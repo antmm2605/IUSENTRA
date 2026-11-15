@@ -380,24 +380,25 @@ def test_apertura_a_freddo_e_aggiornamento_passano_dal_database(studio, app_prov
     assert app_prova.calcoli["n"] == 2
 
 
-def test_pannello_in_sfondo_con_archivio_occupato_non_calcola_nella_richiesta(studio, app_prova, monkeypatch):
-    from flask import session
+def test_pannello_in_sfondo_con_archivio_occupato_non_aspetta_e_non_calcola(studio, app_prova):
+    from time import perf_counter
 
-    from pct.pannelli_pronti.archivio import ArchivioPannelli
-    from web.services import pannelli_pronti_calcolatore as calcolatore
+    from flask import session
 
     @app_prova.app.before_request
     def _sessione():
         session["user_id"] = "u1"
 
-    def occupato(*args, **kwargs):
-        raise sqlite3.OperationalError("database is locked")
-
-    monkeypatch.setattr(ArchivioPannelli, "registra_richiesta", occupato)
-    monkeypatch.setattr(calcolatore, "sveglia_calcolatore", lambda *_: True)
-    risposta = app_prova.app.test_client().get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"})
+    studio.archivio.invalida_fascicolo("F2")
+    with sqlite3.connect(studio.archivio.percorso) as scrittore:
+        scrittore.execute("BEGIN IMMEDIATE")
+        iniziato = perf_counter()
+        risposta = app_prova.app.test_client().get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"})
+        durata = perf_counter() - iniziato
     assert risposta.status_code == 202 and risposta.headers["Retry-After"] == "2"
     assert app_prova.calcoli["n"] == 0
+    assert durata < 5
+
 
 
 

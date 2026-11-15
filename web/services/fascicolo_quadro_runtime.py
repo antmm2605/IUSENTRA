@@ -77,7 +77,7 @@ def conteggio_pec_fascicolo(fascicolo: Any, lettura: dict[str, Any] | None) -> d
 
 
 def quadro_fascicolo(fascicolo: Any) -> dict[str, Any]:
-    from pct.fascicolo_quadro import riga_documenti, riga_notifiche
+    from pct.fascicolo_quadro import riga_documenti
     from pct.fascicolo_stato_pratica import stato_pratica_da_fascicolo
     from web.services.obblighi_notifica_sintesi import leggi as sintesi_obblighi
     from web.services.riscontri_processuali_runtime import lettura_consultiva
@@ -94,7 +94,7 @@ def quadro_fascicolo(fascicolo: Any) -> dict[str, Any]:
         prossimo_passo_da_lettura(lettura),
         riga_termini_da_lettura(termini, lettura, oggi),
         riga_economia_materializzata(fid, lettura, fascicolo=fascicolo),
-        riga_notifiche(None if sintesi is None else list(sintesi.get("obblighi") or []), oggi=oggi),
+        riga_notifiche_da_lettura(sintesi, lettura, oggi),
         riga_documenti(len(getattr(fascicolo, "documenti", []) or []),
                        _sicuro(lambda: documenti_da_classificare(fascicolo), None, "catalogo"), pec),
     ]
@@ -147,6 +147,31 @@ def prossimo_passo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str]:
     passi = (lettura or {}).get("prossimi_passi")
     motivo_stato = _testo(((lettura or {}).get("stato_passi") or {}).get("motivo"))
     return riga_prossimo_passo(passi if isinstance(passi, list) else None, motivo_stato=motivo_stato)
+
+
+def riga_notifiche_da_lettura(sintesi: dict[str, Any] | None, lettura: dict[str, Any] | None,
+                              oggi: date) -> dict[str, str]:
+    from pct.fascicolo_quadro import riga_notifiche
+
+    if sintesi is None:
+        return riga_notifiche(None, oggi=oggi)
+    # Il riscontro storico non prova la consegna. Il quadro lo distingue da una
+    # notifica ancora azionabile solo per la stessa sentenza e la stessa finalità.
+    lettura = lettura or {}
+    obblighi = list(sintesi.get("obblighi") or [])
+    if lettura.get("aggiornamento_pendente"):
+        return riga_notifiche(obblighi, oggi=oggi)
+    esiti = (lettura.get("ragionamento") or {}).get("conclusioni") or []
+    storici = {_testo((voce.get("letto") or {}).get("documento_id")) for voce in esiti
+               if voce.get("codice") == "notifica_sentenza" and voce.get("stato") == "non_dovuto"} - {""}
+    return riga_notifiche([
+        {**voce, "stato": "riscontro_storico"}
+        if voce.get("regola") == "sentenza_notifica_breve"
+        and voce.get("stato") in {"da_verificare", "facoltativo"}
+        and storici.intersection(voce.get("documenti") or ())
+        else voce
+        for voce in obblighi
+    ], oggi=oggi)
 
 
 def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[str, Any] | None, oggi: date) -> dict[str, str]:

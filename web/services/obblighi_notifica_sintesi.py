@@ -28,6 +28,10 @@ def compatta(obblighi: Iterable[Mapping[str, Any]]) -> list[dict[str, str]]:
     """Per ogni atto: etichetta, stato dell'obbligo e scadenza (ISO); nient'altro esce dal calcolo."""
     return [{"atto": _testo(o.get("etichetta") or o.get("atti") or o.get("documento")), "stato": _testo(o.get("stato")),
              "scadenza": _testo(o.get("scadenza"))[:10],
+             **({"regola": "sentenza_notifica_breve",
+                 "documenti": sorted({oid for f in [o, *(o.get("fonti_documentali") or [])]
+                                      if (oid := _testo(f.get("documentoId")))})}
+                if o.get("regola") == "sentenza_notifica_breve" else {}),
              # I termini che nascono dalla sentenza notificata (pct.sentenza_notificata): breve, giudicato, art. 14 D.L. 669/1996.
              **({"termini": termini} if (termini := [{"codice": _testo(c.get("codice")), "deadline": _testo(c.get("deadline"))[:10],
                                                      "precetto_dal": _testo(c.get("precetto_dal"))[:10], "norma": _testo(c.get("norma"))}

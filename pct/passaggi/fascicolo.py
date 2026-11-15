@@ -33,10 +33,12 @@ def _rg(fascicolo: dict[str, Any]) -> str:
 
 def passaggi_del_fascicolo(
     fascicolo: dict[str, Any], *, scadenze: Iterable[dict[str, Any]], termini_pec: Iterable[dict[str, Any]], oggi: date,
+    conclusioni: Iterable[dict[str, Any]] = (),
 ) -> list[Passaggio]:
     contesto = contesto_del_fascicolo(fascicolo)
     passaggi: list[Passaggio] = []
-    passaggi.extend(passaggi_da_scadenza(list(scadenze), contesto, oggi=oggi, rg=_rg(fascicolo)))
+    passaggi.extend(passaggi_da_scadenza(list(scadenze), contesto, oggi=oggi, rg=_rg(fascicolo),
+                                         conclusioni=conclusioni))
     passaggi.extend(passaggi_termini_pec(list(termini_pec), contesto))
     return passaggi  # ogni produttore restituisce già la propria sequenza in ordine
 

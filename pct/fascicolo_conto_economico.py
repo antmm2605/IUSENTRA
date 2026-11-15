@@ -23,6 +23,7 @@ from typing import Any, Iterable, Mapping
 NORMA_DISTRAZIONE = "art. 93 c.p.c."
 NORMA_CONDANNA = "art. 91 c.p.c."
 NORMA_COMPENSAZIONE = "art. 92 c.p.c."
+NORMA_SPESE_AMMINISTRATIVE = "art. 26 c.p.a."
 NORMA_FORFETTARIO = "art. 2, comma 2, D.M. 55/2014"
 NORMA_PAGAMENTO = "art. 6, terzo comma, D.P.R. 633/1972"
 NORMA_TERMINE_FATTURA = "art. 21, comma 4, D.P.R. 633/1972"
@@ -140,7 +141,7 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
                      tono="primary", norma=NORMA_DISTRAZIONE, fonti=fonti,
                      dettaglio=" ".join(["Le paga la controparte direttamente al difensore antistatario."] + avvisi))
     return _riga("sentenza", etichetta, importo=totale, stato="Spese liquidate al cliente",
-                 tono="primary" if not avvisi else "warning", fonti=fonti,
+                 tono="primary" if not avvisi else "warning", norma=NORMA_CONDANNA, fonti=fonti,
                  dettaglio=" ".join(["Le paga la controparte al cliente."] + avvisi))
 
 
@@ -287,8 +288,11 @@ def conto_economico(*, voci: Mapping[str, Mapping[str, Any]], crediti: list[Mapp
                     documenti_contributo: list[Mapping[str, Any]], parcelle: list[Mapping[str, Any]],
                     oggi: date | None = None, sentenze: list[Mapping[str, Any]] | None = None,
                     regime: str = "", stato_contributo: Mapping[str, Any] | None = None,
-                    esecuzione: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    righe = [riga_sentenza(crediti, sentenze, regime=regime),
+                    esecuzione: Mapping[str, Any] | None = None, amministrativo: bool = False) -> dict[str, Any]:
+    spese = riga_sentenza(crediti, sentenze, regime=regime)
+    if amministrativo and spese.get("norma"):
+        spese["norma"] = f"{NORMA_SPESE_AMMINISTRATIVE} in relazione all’{spese['norma']}"
+    righe = [spese,
              riga_contributo(voci.get("contributo_unificato") or {}, documenti_contributo, stato_contributo)]
     righe += righe_parcella(parcelle, voci.get("spese_esborsi") or {}, voci.get("fondo_spese") or {})
     liquidazione = voci.get("liquidazione_giudice") or {}
@@ -309,7 +313,7 @@ def conto_economico(*, voci: Mapping[str, Mapping[str, Any]], crediti: list[Mapp
                     passo.pop("azione")
                     passo["dettaglio"] = "Eventuali compensi verso il cliente secondo l'incarico."
                     risultato_percorso["prossimoPasso"] = (
-                        "Spese di lite compensate (art. 92 c.p.c.). "
+                        f"Spese di lite compensate ({spese['norma']}). "
                         "Consultare il conferimento per gli eventuali compensi verso il cliente."
                     )
     return {"righe": righe, "percorso": risultato_percorso}

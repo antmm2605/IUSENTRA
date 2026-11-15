@@ -180,10 +180,25 @@ def _ora(scadenza: dict[str, Any]) -> str:
     return f"{int(ore):02d}:{minuti}"
 
 
-def passaggi_da_scadenza(scadenze: Iterable[dict[str, Any]], contesto: Contesto, *, oggi: date, rg: str = "") -> list[Passaggio]:
+def passaggi_da_scadenza(
+    scadenze: Iterable[dict[str, Any]], contesto: Contesto, *, oggi: date, rg: str = "",
+    conclusioni: Iterable[dict[str, Any]] = (),
+) -> list[Passaggio]:
     """I passaggi delle note 127-ter dalla scadenza già nel fascicolo (bozza o confermata), solo se futura."""
     passaggi: list[Passaggio] = []
     visti: set[date] = set()
+    decisioni: dict[str, list[Adempimento]] = {}
+    for voce in conclusioni:
+        if voce.get("codice") != "note_127ter" or not voce.get("perche"):
+            continue
+        scadenza = str((voce.get("termine") or {}).get("scadenza_iso") or "")
+        articoli = {str(n.get("norma") or "") for n in voce.get("norme") or ()}
+        speciale = next((codice for norma, codice in (("art. 631 c.p.c.", "cpc_631"), ("art. 181 c.p.c.", "cpc_181"))
+                         if norma in articoli), "")
+        if scadenza and speciale:
+            decisioni.setdefault(scadenza, []).append(Adempimento(
+                "decisione", "Conseguenza del mancato deposito delle note", voce["perche"], ("cpc_127ter", speciale),
+            ))
     for scadenza in scadenze:
         stato = str(scadenza.get("stato") or "").upper()
         try:
@@ -201,6 +216,9 @@ def passaggi_da_scadenza(scadenze: Iterable[dict[str, Any]], contesto: Contesto,
                                  (Dato("Data assegnata per le note", _it(giorno), "scadenziario"),)))
         passaggi.append(_cartolare(50, contesto, oggetto, giorno, confermato=confermato))
         voci = adempimenti_note(None, giorno, rg=rg, giudice=contesto.giudice, ufficio=contesto.ufficio, ora_limite=ora if ora != FINE_GIORNO else "")
+        decisioni_del_giorno = decisioni.get(giorno.isoformat(), [])
+        if len(decisioni_del_giorno) == 1:
+            voci = [decisioni_del_giorno[0] if voce.codice == "decisione" else voce for voce in voci]
         passaggi.extend(_adempimenti(60, contesto, oggetto, voci))
         passaggi.append(_bozza(90, contesto, oggetto, giorno))
     return passaggi

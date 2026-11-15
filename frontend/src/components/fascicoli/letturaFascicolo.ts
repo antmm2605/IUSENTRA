@@ -87,7 +87,7 @@ export interface LacunaConoscenza {
   descrizione: string
 }
 
-export type EsitoDispositivo = { sentenza: string; documento_id?: string; data: string; esito: string; per_il_cliente: string }
+export type EsitoDispositivo = { sentenza: string; documento_id?: string; data: string; esito: string; per_il_cliente: string; motivo_esito?: string }
 
 const ESITI_SENTENZA: Record<string, string> = {
   accoglimento: 'Accoglimento', accoglimento_parziale: 'Accoglimento parziale', rigetto: 'Rigetto',
@@ -101,7 +101,9 @@ const ESITI_CLIENTE: Record<string, string> = {
 
 export function descriviEsitoDispositivo(esito?: EsitoDispositivo | null): string {
   if (!esito || !ESITI_SENTENZA[esito.esito]) return ''
-  return [ESITI_SENTENZA[esito.esito], ESITI_CLIENTE[esito.per_il_cliente], esito.data && `decisione del ${esito.data}`]
+  const difettoInteresse = esito.esito === 'improcedibile' && esito.motivo_esito === 'difetto_interesse_sopravvenuto'
+  const dispositivo = difettoInteresse ? 'Improcedibilità per sopravvenuto difetto di interesse' : ESITI_SENTENZA[esito.esito]
+  return [dispositivo, difettoInteresse ? '' : ESITI_CLIENTE[esito.per_il_cliente], esito.data && `decisione del ${esito.data}`]
     .filter(Boolean).join(' · ')
 }
 

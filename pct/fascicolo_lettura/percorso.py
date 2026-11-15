@@ -75,7 +75,8 @@ def percorso_dopo_sentenza(intestazione: dict[str, Any], documenti_letti: dict[s
     if not codice:
         return None
     ruolo, fonte_ruolo = _ruolo_cliente(intestazione, documenti_letti)
-    per_noi = _per_il_cliente(codice, ruolo)
+    difetto_interesse = esito_letto.get("motivo_esito_sentenza") == "difetto_interesse_sopravvenuto"
+    per_noi = "da_valutare" if difetto_interesse else _per_il_cliente(codice, ruolo)
     esito = {"esito": codice, "per_il_cliente": per_noi, "spese": _spese(esito_letto.get("spese_sentenza", "")), "ragioni": []}
     from pct.procedura_fasi.riti import rito_per_fascicolo
 
@@ -86,7 +87,8 @@ def percorso_dopo_sentenza(intestazione: dict[str, Any], documenti_letti: dict[s
                       giurisdizione=giurisdizione, controparte_pa=bool(_PA.search(controparti)))
     return {"sentenza": pulisci(sentenza.get("nome") or sentenza.get("etichetta")),
             "documento_id": pulisci(sentenza.get("id")), "data": pulisci(sentenza.get("data_it")), "esito": codice,
-            "per_il_cliente": per_noi, "ruolo_cliente": ruolo, "fonte_ruolo": fonte_ruolo, "spese": esito["spese"], **percorso}
+            "per_il_cliente": per_noi, "motivo_esito": esito_letto.get("motivo_esito_sentenza", ""),
+            "ruolo_cliente": ruolo, "fonte_ruolo": fonte_ruolo, "spese": esito["spese"], **percorso}
 
 
 def _giurisdizione_e_grado(intestazione: dict[str, Any], sentenza: dict[str, Any]) -> tuple[str, str]:

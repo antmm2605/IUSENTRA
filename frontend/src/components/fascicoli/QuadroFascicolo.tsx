@@ -84,7 +84,8 @@ export function normalizzaQuadro(payload: unknown): QuadroFascicoloDati | null {
     letturaPrecedente: record.lettura_precedente === true,
     quadroInAggiornamento: record.quadro_in_aggiornamento === true,
     esitoDispositivo: descriviEsitoDispositivo({
-      esito: testo(esito.esito), per_il_cliente: testo(esito.per_il_cliente), data: testo(esito.data), sentenza: testo(esito.sentenza),
+      esito: testo(esito.esito), per_il_cliente: testo(esito.per_il_cliente), motivo_esito: testo(esito.motivo_esito),
+      data: testo(esito.data), sentenza: testo(esito.sentenza),
     }),
     stato: { codice: testo(stato.codice), etichetta: testo(stato.etichetta), dettaglio: testo(stato.dettaglio) },
     righe,

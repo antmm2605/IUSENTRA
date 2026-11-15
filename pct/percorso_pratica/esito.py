@@ -103,6 +103,17 @@ def ragioni(testo: str, esito: str) -> list[dict[str, Any]]:
     return sorted(trovate, key=lambda voce: voce["posizione"])
 
 
+_DIFETTO_SOPRAVVENUTO = re.compile(
+    r"\bimprocedibil[ei]\s+per\s+sopravvenut[ao]\s+(?:difetto|carenza)\s+di\s+interesse\b",
+    re.IGNORECASE,
+)
+
+
+def improcedibile_per_interesse(dispositivo: str) -> bool:
+    """Il dispositivo chiude in rito per difetto sopravvenuto di interesse."""
+    return bool(_DIFETTO_SOPRAVVENUTO.search(dispositivo))
+
+
 def esito_sentenza(testo: str, *, nostra_parte: str = "") -> dict[str, Any]:
     """Esito, spese e ragioni; ``nostra_parte`` = «attore»/«ricorrente»/«appellante» oppure «convenuto»/«resistente»/«appellato»."""
     disp = dispositivo(testo)
@@ -113,7 +124,8 @@ def esito_sentenza(testo: str, *, nostra_parte: str = "") -> dict[str, Any]:
     if codice in {"accoglimento", "rigetto", "accoglimento_parziale"} and (promotore or difensore):
         favorevole = (codice == "accoglimento") == promotore if codice != "accoglimento_parziale" else None
         per_noi = "parziale" if favorevole is None else ("favorevole" if favorevole else "sfavorevole")
-    elif codice in {"inammissibile", "improcedibile", "estinzione", "incompetenza", "difetto_giurisdizione"} and promotore:
+    elif (codice in {"inammissibile", "improcedibile", "estinzione", "incompetenza", "difetto_giurisdizione"}
+          and promotore and not improcedibile_per_interesse(disp)):
         per_noi = "sfavorevole"
     return {
         "esito": codice,

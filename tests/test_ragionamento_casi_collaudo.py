@@ -614,3 +614,34 @@ def test_termine_lungo_decorso_esclude_la_notifica_per_l_impugnazione_dai_prossi
     assert conclusione(causa, "notifica_sentenza").stato == "non_dovuto"
     assert conclusione(causa, "termine_impugnazione").termine.scaduto
     assert not any("consegna della notifica della sentenza" in p.azione for p in passi(causa.come_dizionario()))
+
+
+def test_tar_ottemperanza_legge_il_proprio_dispositivo_e_usa_il_cpa():
+    from pct.archivio_letture.estrazione_esito import estrai_esito
+    from pct.fascicolo_lettura.documenti import documenti
+    from pct.percorso_pratica.esito import esito_sentenza
+
+    testo = (
+        "N. 00425/2025 REG.RIC.\nTribunale Amministrativo Regionale per la Calabria\n"
+        "SENTENZA\nSul ricorso per l'ottemperanza alla sentenza di lavoro del 25.01.2024. "
+        "Non è stata depositata la prova dell'accredito.\n"
+        "P.Q.M.\nIl TAR dichiara il ricorso improcedibile per sopravvenuto difetto di interesse. Spese compensate.\n"
+        "Così deciso in Reggio Calabria nella camera di consiglio del giorno 30 giugno 2026.\nIL PRESIDENTE"
+    )
+    fs = [x.to_dict() | {"oggetto_id": "TAR", "tipo": "documento"} for x in estrai_esito(testo, origine="indice")]
+    fs += [fatto("TAR", "numero_rg", "425/2025", categoria="ruolo"), fatto("TAR", "provvedimento", "2024-01-25")]
+    catalogo = [{"document_id": "TAR", "document_nature": "provvedimento", "document_section": "provvedimenti",
+                 "document_label": "Sentenza"}]
+    dal_documento = documenti([{"id": "TAR", "nome": "sentenza.pdf"}], catalogo, rg="425/2025", fonti=fs)["sentenza"]
+    assert dal_documento["data"] == "2026-06-30"
+    assert not dal_documento["data_pubblicazione"]
+    assert dal_documento["esito"]["motivo_esito_sentenza"] == "difetto_interesse_sopravvenuto"
+    assert esito_sentenza(testo, nostra_parte="ricorrente")["per_il_cliente"] == "da_valutare"
+
+    fascicolo = {"tipo": "AMMINISTRATIVO", "tribunale": "TAR Calabria", "numero_rg": "425", "anno_rg": "2025"}
+    causa = ragiona(fonti(fascicolo, [doc("TAR", "sentenza.pdf", "provvedimento", "Sentenza", testo)]))
+    termine = conclusione(causa, "termine_impugnazione")
+    assert termine.termine is None and termine.stato == "non_dovuto"
+    assert "art. 92 c.p.a." in norme_di(termine)
+    assert not any("c.p.c." in norma for norma in norme_di(termine))
+    assert "sopravvenuto difetto di interesse" in conclusione(causa, "esito_rito").cosa

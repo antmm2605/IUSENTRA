@@ -216,6 +216,10 @@ def data_pubblicazione_da_fatti(fatti: Iterable[Any], *, numero: str = "") -> da
 
 _PARI_DATA = re.compile(r"\b(?:ha\s+)?pronunciat[ao]\s+in\s+pari\s+data\b|\bdecisa\s+in\s+data\s+odierna\b", re.IGNORECASE)
 _UDIENZA = re.compile(r"\budienza\s+(?:del|dell'|in\s+data)\s*$", re.IGNORECASE)
+_DECISA_IN_CAMERA = re.compile(
+    r"\bcos[iì]\s+decis[ao]\s+(?:in\s+[^,.;]{1,90}\s+)?"
+    r"nella\s+camera\s+di\s+consiglio\s+del(?:\s+giorno)?\s*$", re.IGNORECASE,
+)
 _CALCE = re.compile(r"\b[A-ZÀ-Ü][\wÀ-ÿ'’]+(?:\s+[A-ZÀ-Ü][\wÀ-ÿ'’]+)?\s*,\s*(?:l[iì]\s+)?$")
 _FIRMA = re.compile(r"^\W{0,6}(?:il\s+giudice|il\s+presidente|il\s+consigliere|il\s+giudice\s+estensore|il\s+cancelliere)\b",
                     re.IGNORECASE)
@@ -241,7 +245,8 @@ def data_decisione(testo: str) -> date | None:
     for giorno, inizio, fine, _scritto in date_lette:
         if inizio < len(pulito) - 3000:
             continue
-        if _CALCE.search(pulito[max(0, inizio - 60):inizio]) and _FIRMA.search(pulito[fine:fine + 60]):
+        prima = pulito[max(0, inizio - 180):inizio]
+        if _DECISA_IN_CAMERA.search(prima) or (_CALCE.search(prima[-60:]) and _FIRMA.search(pulito[fine:fine + 60])):
             trovate.add(giorno)
     return next(iter(trovate)) if len(trovate) == 1 else None
 

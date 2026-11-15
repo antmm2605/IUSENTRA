@@ -25,6 +25,20 @@ FONTI_IMPUGNAZIONI: dict[str, dict[str, Any]] = {
                         "La correzione puo' essere chiesta, e puo' essere rilevata d'ufficio dalla Corte, in qualsiasi tempo. La revocazione "
                         "puo' essere chiesta entro il termine perentorio di sessanta giorni dalla notificazione ovvero di sei mesi dalla "
                         "pubblicazione del provvedimento."),
+    "cpa_35": _voce(
+        "art. 35, comma 1, lett. c), c.p.a.", "Improcedibilità", _CPA, "35",
+        "Fra i casi di improcedibilità rientra il sopravvenuto difetto di interesse delle parti alla decisione.",
+    ),
+    "cpa_87": _voce(
+        "art. 87, commi 2 e 3, c.p.a.", "Procedimenti in camera di consiglio", _CPA, "87",
+        "Il giudizio di ottemperanza è trattato in camera di consiglio. I termini sono dimezzati salvo "
+        "le eccezioni indicate dalla norma, fra cui alcuni termini di notificazione in primo grado.",
+    ),
+    "cpa_89": _voce(
+        "art. 89, commi 2 e 3, c.p.a.", "Pubblicazione e comunicazione della sentenza", _CPA, "89",
+        "La pubblicazione avviene con il deposito nella segreteria del giudice. Il segretario attesta il "
+        "deposito e ne dà comunicazione alle parti costituite.",
+    ),
     "cpa_86": _voce("art. 86 c.p.a.", "Procedimento di correzione", _CPA, "86",
                     "Ove occorra correggere omissioni o errori materiali, la domanda per la correzione deve essere proposta al giudice che "
                     "ha emesso il provvedimento."),

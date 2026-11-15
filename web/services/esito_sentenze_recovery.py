@@ -108,7 +108,9 @@ def recupera_esiti(fascicolo: Any, registro: Any, tenant: str, *, sentenze: set[
             and ";importo=" not in f.valore
         ]
         if (
-            ({"esito_sentenza", "spese_sentenza"} <= campi_letti and not spese_incomplete)
+            ({"esito_sentenza", "spese_sentenza", "data_decisione_sentenza"} <= campi_letti and not spese_incomplete
+             and (not any(f.campo == "esito_sentenza" and f.valore == "improcedibile" for f in precedenti)
+                  or "motivo_esito_sentenza" in campi_letti))
             or "estinzione_processo" in campi_letti
             or any(f.campo == CAMPO_CONTROLLO and f.valore == VERSIONE_ESTRAZIONE_ESITO for f in precedenti)
         ):

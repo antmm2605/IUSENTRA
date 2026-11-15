@@ -103,14 +103,15 @@ def documenti(elenco: list[dict[str, Any]], catalogo: list[dict[str, Any]], *, r
         if documento["sentenza_pertinente"]:
             # Esito e spese letti dal dispositivo dal motore documenti (pct/archivio_letture/estrazione_esito.py).
             documento["esito"] = {f.get("campo"): f.get("valore") for f in prove
-                                  if f.get("campo") in {"esito_sentenza", "spese_sentenza"} and f.get("verifica") in {"verificata", "corretta"}}
+                                  if f.get("campo") in {"esito_sentenza", "motivo_esito_sentenza", "spese_sentenza"} and f.get("verifica") in {"verificata", "corretta"}}
             certe = [f for f in prove if f.get("verifica") in {"verificata", "corretta"}]
             # La data della sentenza: quella in calce («Velletri, 7 ottobre 2026»), altrimenti una data di provvedimento
             # dell'intestazione; mai la data di un precedente citato nella motivazione. Una data di caricamento non lo è.
             in_calce = sorted((f for f in certe if f.get("campo") == "data_atto"), key=lambda f: f.get("posizione", 0))
             intestazione_date = sorted((f for f in certe if f.get("campo") == "provvedimento" and int(f.get("posizione") or 0) < 3000),
                                        key=lambda f: f.get("posizione", 0))
-            date = in_calce[-1:] or intestazione_date[:1]
+            decisioni = [f for f in certe if f.get("campo") == "data_decisione_sentenza"]
+            date = decisioni[:1] if len({f["valore"] for f in decisioni}) == 1 else in_calce[-1:] or intestazione_date[:1]
             # Un provvedimento senza data letta resta senza data (quella di caricamento non è la sua); gli altri atti della
             # causa (messaggi di deposito, istanze) conservano la data del documento.
             if date or documento["sezione"] == "provvedimenti" or documento["etichetta"].lower().startswith("sentenza"):

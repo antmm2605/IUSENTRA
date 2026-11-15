@@ -398,7 +398,7 @@ def _archivio(fascicolo: Any) -> dict[str, Any]:
         "eventi": eventi_letti(fatti),
         "documenti_ufficio_incompatibile": sorted(ufficio_incompatibile),
         "ruoli": ruoli_letti(fatti),
-        "fonti_documenti": [f.to_dict() for f in grezzi if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"provvedimento", "natura_documentale", "data_atto", "esito_sentenza", "spese_sentenza", "estinzione_processo", "notifica", "deposito"})],
+        "fonti_documenti": [f.to_dict() for f in grezzi if f.tipo == "documento" and (f.categoria == "ruolo" or f.campo in {"provvedimento", "natura_documentale", "data_atto", "esito_sentenza", "motivo_esito_sentenza", "data_decisione_sentenza", "spese_sentenza", "estinzione_processo", "notifica", "deposito"})],
         "letture_documenti": {o.oggetto_id: {"presente": o.presente, "stato": lette[(o.oggetto_id, o.impronta)].stato if (o.oggetto_id, o.impronta) in lette else "da_leggere"} for o in oggetti},
         "stato": dict(stato.get("lettura_automatica") or {}),
         "collaudo": dict(stato.get("collaudo_lettore") or {}),

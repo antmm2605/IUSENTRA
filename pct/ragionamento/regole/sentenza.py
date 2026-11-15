@@ -11,6 +11,8 @@ contorno e non arrivano qui (G-8).
 
 from __future__ import annotations
 
+from pct.percorso_pratica.esito import dispositivo, improcedibile_per_interesse
+from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, CIVILE, IMPUGNAZIONI_PER_GRADO, PRIMO, giurisdizione_e_grado
 from pct.sentenza_notificata import condanna_al_pagamento, termini_dalla_notifica
 from pct.termine_lungo_sentenza import data_pubblicazione as leggi_pubblicazione
 from pct.termini_processuali import ItalianDeadlineCalculator
@@ -84,6 +86,36 @@ def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, t
     return esiti
 
 
+def _sentenza_amministrativa(sentenza, fonte: Fonte, *, grado: str) -> list[Conclusione]:
+    rimedio = IMPUGNAZIONI_PER_GRADO[(AMMINISTRATIVO, grado)][0]
+    mezzo = "cpa_100" if grado == PRIMO else "cpa_110"
+    esito_dispositivo = dispositivo(sentenza.testo)
+    if improcedibile_per_interesse(esito_dispositivo):
+        fonte_esito = Fonte(sentenza.id, sentenza.nome, pulito(esito_dispositivo)[:400], fonte.data)
+        return [Conclusione(
+            "esito_rito", "Improcedibilità per sopravvenuto difetto di interesse", fonte_esito, norme("cpa_35"),
+            "Conservare la sentenza e il riscontro dell’adempimento, se acquisito al fascicolo.",
+            "Il TAR ha chiuso il giudizio in rito. L’interesse residuo dipende dalla situazione concreta documentata.",
+            "fatto", "Dispositivo letto nella sentenza del fascicolo.",
+            motivo_senza_termine="La pronuncia in rito non accerta da sola l’esecuzione del titolo.",
+        ), Conclusione(
+            "termine_impugnazione", "Valutare l’impugnazione solo se rimane un interesse concreto",
+            fonte_esito, norme(mezzo, "cpa_89", "cpa_92", "cpa_87"),
+            "Aprire il registro PAT del fascicolo e verificare pubblicazione, notificazione e rito applicabile.",
+            "Il termine decorre dalla fonte prevista dal codice del processo amministrativo.",
+            "non_dovuto", "Una pronuncia in rito richiede una valutazione dell’utilità concreta di impugnare.",
+            motivo_senza_termine="Il termine va ancorato alla pubblicazione o alla notifica provata della sentenza del TAR.",
+        )]
+    motivo = "Il computo richiede la pubblicazione in segreteria, la notifica eventualmente perfezionata e il rito applicabile."
+    return [Conclusione(
+        "termine_impugnazione", rimedio["rimedio"], fonte, norme(mezzo, "cpa_89", "cpa_92", "cpa_87"),
+        "Verificare nel registro PAT gli estremi di pubblicazione e nella relata la notificazione della sentenza.",
+        "Il codice del processo amministrativo distingue termine breve, termine lungo e riti con termini abbreviati.",
+        "dubbio", motivo, onerato="tutte_le_parti", motivo_senza_termine=motivo,
+        dubbi=[Dubbio("decorrenza_impugnazione_pat", motivo, "la fonte di decorrenza e il rito del provvedimento", fonte)],
+    )]
+
+
 def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
     risultato: list[Conclusione] = []
     visti: set[str] = set()
@@ -93,6 +125,15 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
         visti.update([sentenza.id, *sentenza.copie])
         pubblicata = giorno(data_pubblicazione(sentenza.testo))
         fonte = Fonte(sentenza.id, sentenza.nome, pulito(sentenza.testo[:300]), pubblicata.isoformat() if pubblicata else sentenza.data)
+        giurisdizione, grado = giurisdizione_e_grado(
+            tipo=ctx.fascicolo.get("tipo", ""), ufficio=ctx.ufficio,
+            rito=ctx.fascicolo.get("rito", ""), sentenza=sentenza.testo[:500],
+        )
+        if giurisdizione == AMMINISTRATIVO:
+            risultato.extend(_sentenza_amministrativa(sentenza, fonte, grado=grado))
+            continue
+        if (giurisdizione, grado) != (CIVILE, PRIMO):
+            continue
         candidate = [n for n in notifiche_di(sentenza.id, ctx.notifiche, ctx.atti) if n.data_invio]
         prove = [ctx.consegne_verificate[oid] for oid in (sentenza.id, *sentenza.copie)
                  if oid in ctx.consegne_verificate]

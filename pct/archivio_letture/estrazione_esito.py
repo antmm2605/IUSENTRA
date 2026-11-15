@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import re
 
-from pct.percorso_pratica.esito import esito_sentenza
+from pct.percorso_pratica.esito import esito_sentenza, improcedibile_per_interesse
+from pct.termine_lungo_sentenza import data_decisione
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_ESITO = "2026.11.14.esito-dispositivo.v6-liquidazione-condivisa"
+VERSIONE_ESTRAZIONE_ESITO = "2026.11.15.esito-dispositivo.v7-data-e-motivo"
 _SENTENZA = re.compile(r"\bS\s?E\s?N\s?T\s?E\s?N\s?Z\s?A\b", re.IGNORECASE)
 
 
@@ -60,6 +61,21 @@ def estrai_esito(testo: str, *, origine: str) -> list[Fatto]:
             etichetta=esito["etichetta"], contesto=esito["dispositivo"][:600], posizione=posizione, origine=origine,
             verifica="verificata", confidenza=0.9,
             prove=[{"codice": "dispositivo", "esito": "ok", "dettaglio": "esito letto dopo «P.Q.M.» (art. 132, n. 5, c.p.c.)"}],
+        ))
+    if improcedibile_per_interesse(esito["dispositivo"]):
+        fatti.append(Fatto(
+            categoria="evento", campo="motivo_esito_sentenza", valore="difetto_interesse_sopravvenuto",
+            valore_letto="Improcedibile per sopravvenuto difetto di interesse",
+            etichetta="Sopravvenuto difetto di interesse", contesto=esito["dispositivo"][:600],
+            posizione=posizione, origine=origine, verifica="verificata", confidenza=0.9,
+            prove=[{"codice": "dispositivo", "esito": "ok", "dettaglio": "motivo di improcedibilità nel dispositivo"}],
+        ))
+    if decisa := data_decisione(testo):
+        fatti.append(Fatto(
+            categoria="evento", campo="data_decisione_sentenza", valore=decisa.isoformat(),
+            valore_letto=decisa.strftime("%d/%m/%Y"), etichetta="Data della decisione", contesto=testo[-1200:],
+            posizione=max(0, len(testo) - 1200), origine=origine, verifica="verificata", confidenza=0.9,
+            prove=[{"codice": "data_decisione", "esito": "ok", "dettaglio": "data della pronuncia, distinta dalla pubblicazione"}],
         ))
     if spese["regolazione"] != "non_indicata":
         importo_atteso = spese["regolazione"] in {"condanna", "compensazione_parziale"}

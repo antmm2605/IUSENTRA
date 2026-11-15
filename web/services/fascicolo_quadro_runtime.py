@@ -110,7 +110,7 @@ def esito_dispositivo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, st
     if not percorso.get("esito"):
         return None
     return {campo: _testo(percorso.get(campo))
-            for campo in ("esito", "per_il_cliente", "data", "documento_id", "sentenza")}
+            for campo in ("esito", "per_il_cliente", "motivo_esito", "data", "documento_id", "sentenza")}
 
 
 def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | None, *,

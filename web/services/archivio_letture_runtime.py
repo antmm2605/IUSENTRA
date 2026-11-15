@@ -982,9 +982,10 @@ def _allinea_obblighi_notifica(fascicolo: Any) -> tuple[dict[str, Any], list[dic
     l'eventuale invalidazione della Lettura, che altrimenti la cancellerebbe subito.
     """
     try:
-        from web.services.obblighi_notifica_runtime import allinea_scadenze, obblighi_fascicolo
+        from web.services.obblighi_notifica_runtime import allinea_scadenze
+        from web.services.obblighi_notifica_sintesi import valuta
 
-        obblighi = obblighi_fascicolo(fascicolo)
+        obblighi = valuta(fascicolo)
         return allinea_scadenze(fascicolo, obblighi), obblighi
     except Exception as exc:
         logger.exception("Obblighi di notifica non allineati per il fascicolo %s", getattr(fascicolo, "id", ""))
@@ -1689,7 +1690,17 @@ def accoda_verifiche_periodiche(registro: RegistroLetture, tenant_id: str, *, or
 
 
 def _prepara_lettura(fascicolo_id: str) -> bool:
-    """Lettura del fascicolo preparata in sfondo; un errore non ferma la lettura dei documenti."""
+    """Risultati consultivi preparati dopo l'ultima scrittura del ciclo documentale."""
+    try:
+        from web.helpers import get_fascicoli
+        from web.services.obblighi_notifica_sintesi import leggi_completi, salva, valuta
+
+        if leggi_completi(fascicolo_id) is None:
+            fascicolo = get_fascicoli().get(fascicolo_id)
+            if fascicolo is not None:
+                salva(fascicolo_id, valuta(fascicolo))
+    except Exception as exc:
+        logger.warning("Obblighi di notifica del fascicolo %s non preparati in sfondo: %s", fascicolo_id, exc)
     try:
         from web.blueprints.api_v1_react import prepara_lettura_in_cache
 

@@ -22,7 +22,7 @@ from web.services.pannelli_pronti_catalogo import PANNELLI, PRIMA_APERTURA, VERS
 logger = logging.getLogger(__name__)
 ORE_APERTURA_RECENTE = 72.0
 MINUTI_ATTESA_LETTURA = 5.0
-PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro")
+PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro", "obblighi-notifica")
 _NOMI_PANNELLI = frozenset(pannello.nome for pannello in PANNELLI)
 # I pannelli che leggono la Lettura o la sintesi delle notifiche seguono le loro fonti.
 _ORDINE = {nome: indice for indice, nome in enumerate(dict.fromkeys(

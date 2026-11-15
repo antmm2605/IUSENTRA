@@ -760,3 +760,42 @@ def test_passaggi_richiesti_hanno_priorita_dopo_la_lettura(studio):
     assert [(voce.fascicolo_id, voce.pannello) for voce in voci] == [
         ("F1", "lettura"), ("F1", "passaggi"), ("F1", "quadro"),
     ]
+
+
+def test_obblighi_gia_materializzati_passano_dalla_vista_autenticata(app_prova, monkeypatch):
+    from web.services import obblighi_notifica_sintesi
+    from web.services import pannelli_pronti_runtime as runtime
+    from web.services.pannelli_pronti_catalogo import Pannello
+
+    app = app_prova.app
+    dettaglio = [{"documentoId": "D1", "stato": "notificato"}]
+    monkeypatch.setattr(obblighi_notifica_sintesi, "leggi_completi",
+                        lambda fid: dettaglio if fid == "F1" else None)
+
+    def vista(id_fasc):
+        assert g.utente_corrente.id == "u1"
+        fascicolo, obblighi = g._obblighi_notifica_pronti
+        assert fascicolo == id_fasc
+        return jsonify(ok=True, obblighi=obblighi)
+
+    app.view_functions["quadro"] = runtime.pannello_pronto(Pannello(
+        "obblighi-notifica", "quadro", ricomponi="obblighi_da_lettura",
+    ))(vista)
+    risposta = app.test_client().get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"})
+    assert risposta.status_code == 200
+    assert risposta.headers[runtime.INTESTAZIONE] == "pronto"
+    assert risposta.get_json() == {"ok": True, "obblighi": dettaglio}
+
+
+def test_riferimento_obblighi_usa_solo_le_revisioni_del_fascicolo(studio, app_prova):
+    from web.services.obblighi_notifica_fonti import riferimento_corrente
+
+    with app_prova.app.test_request_context():
+        g.data_paths = {"STUDIO_DB": studio.studio_db, "REGISTRO_LETTURE_DB": studio.registro_db}
+        prima = riferimento_corrente("F1")
+        assert prima is not None
+        _esegui(studio.studio_db, "UPDATE fascicoli SET dati_json=? WHERE id='F2'", (json.dumps({"esito": "F2"}),))
+        _esegui(studio.studio_db, "INSERT INTO clienti VALUES ('C1', '{}')")
+        assert riferimento_corrente("F1") == prima
+        _esegui(studio.registro_db, "INSERT INTO letture_fatti VALUES ('L1','studio-prova','F1','notifica','2026-11-01','verificata')")
+        assert riferimento_corrente("F1") != prima

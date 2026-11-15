@@ -10036,17 +10036,19 @@ def fascicolo_react_letture_parti_aggiungi(id_fasc: str):
 def fascicolo_react_obblighi_notifica(id_fasc: str):
     """Che cosa va notificato, a chi ed entro quando, dai documenti del fascicolo (catalogo e archivio delle letture)."""
     try:
-        from web.services.obblighi_notifica_runtime import obblighi_fascicolo
+        from web.services.obblighi_notifica_sintesi import salva, valuta
 
         fascicolo = _fascicolo_singolo_loader()().get(str(id_fasc or "").strip())
         if fascicolo is None:
             return _jsonify_public_payload({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}, 404)
         from web.services.notifiche_l53_applicazione_runtime import copie_pst_richiesta
 
-        obblighi = obblighi_fascicolo(fascicolo)
-        from web.services.obblighi_notifica_sintesi import salva as salva_sintesi_obblighi
-
-        salva_sintesi_obblighi(str(fascicolo.id), obblighi)  # il quadro del fascicolo la legge senza ricalcolare
+        salvati = g.get("_obblighi_notifica_pronti")
+        if salvati is not None and salvati[0] == str(fascicolo.id):
+            obblighi = salvati[1]
+        else:
+            obblighi = valuta(fascicolo)
+            salva(str(fascicolo.id), obblighi)
         payload = {"ok": True, "obblighi": obblighi, "copiePst": copie_pst_richiesta(fascicolo=fascicolo)}
         from web.services.pannelli_pronti_runtime import calcolo_in_corso
         if not calcolo_in_corso():

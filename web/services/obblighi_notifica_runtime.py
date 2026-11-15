@@ -31,13 +31,15 @@ def _dettaglio(fatto: Any, codice: str) -> str:
     return next((str(p.get("dettaglio") or "") for p in list(getattr(fatto, "prove", []) or []) if p.get("codice") == codice), "")
 
 
-def _catalogo(fascicolo: Any) -> dict[str, str]:
+def _catalogo(fascicolo: Any, *, rigoroso: bool = False) -> dict[str, str]:
     """document_id → voce del catalogo (proposte e conferme; mai le voci respinte)."""
     try:
         from web.services.document_intelligence_runtime import build_document_ai_service, document_ai_tenant_id
 
         assegnazioni = build_document_ai_service().repository.list_catalog_assignments(document_ai_tenant_id(), _testo(fascicolo.id))
     except Exception:
+        if rigoroso:
+            raise
         logger.debug("Catalogo non disponibile per gli obblighi di notifica di %s", getattr(fascicolo, "id", ""), exc_info=True)
         return {}
     return {_testo(a.document_id): _testo(a.document_label) for a in assegnazioni if _testo(a.document_id) and _testo(a.document_label)}
@@ -279,21 +281,24 @@ def _rito_lavoro(fascicolo: Any, etichette: dict[str, str]) -> bool:
     return any("art. 414" in e or "art. 415" in e for e in etichette.values())
 
 
-def _testi_salvati(fascicolo: Any) -> dict[str, str]:
+def _testi_salvati(fascicolo: Any, *, rigoroso: bool = False) -> dict[str, str]:
     try:
         from web.services.archivio_letture_runtime import testi_indice_archivio
 
         return testi_indice_archivio(fascicolo)
     except Exception:
+        if rigoroso:
+            raise
         logger.debug("Testi salvati non disponibili per gli obblighi di notifica di %s", getattr(fascicolo, "id", ""), exc_info=True)
         return {}
 
 
-def obblighi_fascicolo(fascicolo: Any) -> list[dict[str, Any]]:
+def obblighi_fascicolo(fascicolo: Any, *, rigoroso: bool = False) -> list[dict[str, Any]]:
     from web.services.archivio_letture_runtime import fatti_fascicolo
 
     fatti = fatti_fascicolo(fascicolo, canonico=False)
-    documenti, parti, contesto = raccogli(fascicolo, fatti, _catalogo(fascicolo), _testi_salvati(fascicolo))
+    documenti, parti, contesto = raccogli(fascicolo, fatti, _catalogo(fascicolo, rigoroso=rigoroso),
+                                         _testi_salvati(fascicolo, rigoroso=rigoroso))
     from web.services.verifica_notifiche_contesto import repository
 
     verifiche = repository().elenco(str(fascicolo.id))

@@ -1,10 +1,8 @@
-"""La sintesi degli obblighi di notifica già calcolati, conservata per il quadro del fascicolo.
+"""Il risultato degli obblighi di notifica condiviso da Quadro, pannello e scadenziario.
 
-Calcolare gli obblighi di notifica costa secondi (fatti dell'archivio, catalogo, verifiche per atto): il quadro
-del fascicolo deve rispondere in meno di un secondo e non può ricalcolarli nella richiesta. La sintesi si salva
-quando il calcolo avviene comunque (giro in sfondo della lettura del fascicolo, apertura degli obblighi di notifica)
-nella cache dei payload del registro delle letture, la stessa della Lettura: ``invalida_lettura`` la cancella
-quando cambiano documenti o PEC, e il giro successivo la ricrea. Senza sintesi il quadro lo dice, senza inventare.
+Il motore conserva il risultato integrale con l'impronta delle fonti e la
+sintesi usata dal Quadro. Le vecchie righe con la sola sintesi restano leggibili
+finché il ciclo del fascicolo non consegna il risultato integrale.
 """
 
 from __future__ import annotations
@@ -13,6 +11,8 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping
+
+from flask import g, has_request_context
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +39,52 @@ def compatta(obblighi: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
             for o in obblighi if _testo(o.get("etichetta") or o.get("atti"))]
 
 
+def valuta(fascicolo: Any) -> list[dict[str, Any]]:
+    """Riusa il calcolo corrente o prepara una volta il risultato dalle fonti SQL."""
+    from web.services.obblighi_notifica_fonti import impronta, riferimento_corrente
+    from web.services.obblighi_notifica_runtime import obblighi_fascicolo
+
+    fid = _testo(fascicolo.id)
+    riferimento = riferimento_corrente(fid)
+    record = _leggi_record(fid)
+    pronto = _dettaglio(record) if record and riferimento and record.get("riferimento") == riferimento else None
+    if pronto is not None:
+        g._obblighi_in_calcolo = (fid, riferimento, record["impronta"], pronto)
+        return pronto
+
+    revisione = impronta(fid) if riferimento else None
+    precedente = _dettaglio(record) if record and revisione and record.get("impronta") == revisione else None
+    obblighi = precedente if precedente is not None else obblighi_fascicolo(fascicolo, rigoroso=bool(revisione))
+    if riferimento and revisione:
+        g._obblighi_in_calcolo = (fid, riferimento, revisione, obblighi)
+    return obblighi
+
+
 def salva(fascicolo_id: str, obblighi: Iterable[Mapping[str, Any]]) -> None:
     try:
         from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
         scade = (datetime.now(timezone.utc) + DURATA).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        fid = _testo(fascicolo_id)
+        valutati = g.get("_obblighi_in_calcolo") if has_request_context() else None
+        completo = {}
+        if valutati and valutati[0] == fid and valutati[3] is obblighi:
+            from web.services.obblighi_notifica_fonti import impronta, riferimento_corrente
+
+            riferimento = riferimento_corrente(fid)
+            if not riferimento:
+                return
+            if riferimento != valutati[1]:
+                if impronta(fid) != valutati[2] or riferimento_corrente(fid) != riferimento:
+                    return  # una fonte è cambiata durante la valutazione
+            esistente = _leggi_record(fid)
+            if esistente and esistente.get("riferimento") == riferimento and _dettaglio(esistente) == obblighi:
+                return
+            completo = {"riferimento": riferimento, "impronta": valutati[2], "dettaglio": obblighi}
         payload = json.dumps({"obblighi": compatta(obblighi),
-                              "calcolata_il": datetime.now(timezone.utc).replace(microsecond=0).isoformat()}, ensure_ascii=False)
-        registro_corrente().payload_cache_set(tenant_corrente(), _testo(fascicolo_id), CHIAVE, payload, expires_at=scade)
+                              "calcolata_il": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                              **completo}, ensure_ascii=False)
+        registro_corrente().payload_cache_set(tenant_corrente(), fid, CHIAVE, payload, expires_at=scade)
     except Exception as exc:  # la sintesi è un'accelerazione: il calcolo resta valido anche senza
         logger.debug("Sintesi degli obblighi di notifica non salvata per %s: %s", fascicolo_id, exc)
 
@@ -80,21 +118,48 @@ def _integra_identita(sintesi: dict[str, Any], fascicolo_id: str) -> dict[str, A
     return sintesi
 
 
-def leggi(fascicolo_id: str) -> dict[str, Any] | None:
+def _dettaglio(record: dict[str, Any] | None) -> list[dict[str, Any]] | None:
+    if record is not None and record.get("impronta") and isinstance(record.get("dettaglio"), list):
+        return record["dettaglio"]
+    return None
+
+
+def leggi_completi(fascicolo_id: str) -> list[dict[str, Any]] | None:
+    """Solo il risultato integrale ancorato alle fonti attuali, anche quando è vuoto."""
+    from web.services.obblighi_notifica_fonti import riferimento_corrente
+
+    record = _leggi_record(fascicolo_id)
+    if record and record.get("riferimento") and record["riferimento"] == riferimento_corrente(fascicolo_id):
+        return _dettaglio(record)
+    return None
+
+
+def _leggi_record(fascicolo_id: str) -> dict[str, Any] | None:
     try:
         from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
         grezzo = registro_corrente().payload_cache_get(tenant_corrente(), _testo(fascicolo_id), CHIAVE)
-        sintesi = json.loads(grezzo) if grezzo else None
-        if isinstance(sintesi, dict):
-            try:
-                return _integra_identita(sintesi, fascicolo_id)
-            except (TypeError, ValueError, AttributeError):
-                return sintesi
-        return None
+        record = json.loads(grezzo) if grezzo else None
+        return record if isinstance(record, dict) else None
     except Exception as exc:
-        logger.debug("Sintesi degli obblighi di notifica non leggibile per %s: %s", fascicolo_id, exc)
+        logger.debug("Obblighi di notifica non leggibili per %s: %s", fascicolo_id, exc)
         return None
 
 
-__all__ = ["CHIAVE", "compatta", "leggi", "salva"]
+def leggi(fascicolo_id: str) -> dict[str, Any] | None:
+    record = _leggi_record(fascicolo_id)
+    if record is None:
+        return None
+    sintesi = {k: v for k, v in record.items() if k not in {"impronta", "riferimento", "dettaglio"}}
+    if record.get("impronta"):
+        from web.services.obblighi_notifica_fonti import riferimento_corrente
+
+        riferimento = record.get("riferimento")
+        return sintesi if riferimento and riferimento == riferimento_corrente(fascicolo_id) else None
+    try:
+        return _integra_identita(sintesi, fascicolo_id)
+    except (TypeError, ValueError, AttributeError):
+        return sintesi
+
+
+__all__ = ["CHIAVE", "compatta", "leggi", "leggi_completi", "salva", "valuta"]

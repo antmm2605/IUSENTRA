@@ -134,10 +134,10 @@ def riconvalida_fascicolo(fascicolo: Any, *, con_notifiche: bool = True) -> dict
 
 
 def _allinea_scadenze(fascicolo: Any) -> dict[str, int]:
-    from web.services.obblighi_notifica_runtime import allinea_scadenze, obblighi_fascicolo
-    from web.services.obblighi_notifica_sintesi import salva
+    from web.services.obblighi_notifica_runtime import allinea_scadenze
+    from web.services.obblighi_notifica_sintesi import salva, valuta
 
-    obblighi = obblighi_fascicolo(fascicolo)
+    obblighi = valuta(fascicolo)
     salva(_testo(fascicolo.id), obblighi)
     return allinea_scadenze(fascicolo, obblighi)
 

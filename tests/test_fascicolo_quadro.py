@@ -308,3 +308,47 @@ def test_sintesi_storica_riusa_l_identita_solo_dallo_stesso_risultato(monkeypatc
     integrale["obblighi"][0]["stato"] = "da_verificare"
     istante_archivio = "2026-11-14T02:46:17.865+00:00"
     assert _integra_identita(sintesi, "F1") is sintesi
+
+
+def test_risultato_obblighi_condiviso_vuoto_e_revisione_fonti(monkeypatch):
+    from types import SimpleNamespace
+
+    from flask import Flask
+    from web.services import obblighi_notifica_fonti, obblighi_notifica_runtime, obblighi_notifica_sintesi
+    from web.services import registro_letture_runtime
+
+    righe = {}
+    registro = SimpleNamespace(
+        payload_cache_get=lambda tenant, fid, key: righe.get((tenant, fid, key)),
+        payload_cache_set=lambda tenant, fid, key, payload, **_: righe.update({(tenant, fid, key): payload}),
+    )
+    fonte = {"F1": "iniziale", "F2": "iniziale"}
+    chiamate = []
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente", lambda: registro)
+    monkeypatch.setattr(registro_letture_runtime, "tenant_corrente", lambda: "studio")
+    monkeypatch.setattr(obblighi_notifica_fonti, "impronta", lambda fid: fonte[fid])
+    monkeypatch.setattr(obblighi_notifica_fonti, "riferimento_corrente", lambda fid: fonte[fid])
+
+    def calcola(fascicolo, *, rigoroso=False):
+        chiamate.append((fascicolo.id, rigoroso))
+        return []
+
+    monkeypatch.setattr(obblighi_notifica_runtime, "obblighi_fascicolo", calcola)
+    app = Flask(__name__)
+    f1 = SimpleNamespace(id="F1")
+    with app.test_request_context():
+        obblighi_notifica_sintesi.salva("F1", obblighi_notifica_sintesi.valuta(f1))
+    with app.test_request_context():
+        fonte["F2"] = "aggiornata"
+        assert obblighi_notifica_sintesi.valuta(f1) == []
+        assert obblighi_notifica_sintesi.leggi("F1")["obblighi"] == []
+        assert obblighi_notifica_sintesi.leggi_completi("F1") == []
+    assert chiamate == [("F1", True)]
+    with app.test_request_context():
+        fonte["F1"] = "corrente"
+        risultato = obblighi_notifica_sintesi.valuta(f1)
+        fonte["F1"] = "modificata durante la valutazione"
+        obblighi_notifica_sintesi.salva("F1", risultato)
+        assert obblighi_notifica_sintesi.leggi_completi("F1") is None
+        assert obblighi_notifica_sintesi.leggi("F1") is None
+    assert chiamate == [("F1", True), ("F1", True)]

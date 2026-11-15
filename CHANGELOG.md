@@ -1,3 +1,8 @@
+## 2.489.14 — Risultati degli obblighi di notifica condivisi
+
+- Il ciclo documentale salva il dettaglio e la sintesi degli obblighi per lo stesso fascicolo. Quadro, Notifiche e verifica dello studio riusano i dati correnti dal registro delle letture.
+- La consultazione controlla la revisione SQL del fascicolo. Quando la revisione cambia, il calcolatore confronta le fonti pertinenti prima di ripetere l'analisi e conserva i riferimenti già letti.
+
 ## 2.461.0 — Pacchetto di addestramento del modello di catalogazione e banco di prova
 - Pacchetto per addestrare sul PC dello studio il modello di catalogazione (autorizzazione dell'avvocato del 30/10/2026): testi dei documenti pseudonimizzati (nomi noti al fascicolo e preceduti da titolo, indirizzi, nascita, codice fiscale, partita IVA, IBAN, contatti, numero di ruolo), codici opachi, corrispondenze solo sul server.
 - Documenti inventati per tutte le voci del catalogo (regole di titolo e voci riconosciute dal contenuto), accettati solo se il classificatore completo del catalogo assegna la voce prevista e la citazione è verificata.

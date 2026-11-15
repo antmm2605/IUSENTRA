@@ -328,6 +328,19 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
     contesto = contesto_corrente() if fascicolo_id else None
     if contesto is None or any(p in request.args for p in pannello.parametri_di_calcolo):
         return vista(*args, **kwargs)
+    if not ricalcolo and pannello.ricomponi == "obblighi_da_lettura":
+        from web.services.obblighi_notifica_sintesi import leggi_completi
+
+        obblighi = leggi_completi(fascicolo_id)
+        if obblighi is not None:
+            # Passa sempre dalla vista autenticata: aggiunge le copie PST e i
+            # riscontri consentiti all'utente, senza richiamare il motore.
+            g._obblighi_notifica_pronti = (fascicolo_id, obblighi)
+            risposta = current_app.make_response(vista(*args, **kwargs))
+            if risposta.status_code == 200:
+                risposta.headers[INTESTAZIONE] = "pronto"
+                risposta.headers["Cache-Control"] = "no-store"
+            return risposta
     conferma = _conferma_revisione(pannello)
     parametri = parametri_normalizzati(pannello)
     chiave = chiave_voce(fascicolo_id, pannello.nome, parametri, contesto.profilo)

@@ -4,11 +4,12 @@ Consulta l'archivio delle letture; non rilegge PDF, non esegue OCR e non invia P
 La data proposta non sostituisce l'esame del rito, dei destinatari e del calendario.
 """
 
-from web.services.obblighi_notifica_runtime import obblighi_fascicolo
+from web.services.obblighi_notifica_sintesi import salva, valuta
 
 
 def verifica_fascicolo(fascicolo) -> dict:
-    obblighi = obblighi_fascicolo(fascicolo)
+    obblighi = valuta(fascicolo)
+    salva(str(fascicolo.id), obblighi)
     from flask import g
     user = g.get("utente_corrente")
     for item in obblighi:

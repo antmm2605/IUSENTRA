@@ -304,3 +304,7 @@ La Lettura attribuiva al TAR il 25/01/2024, data della sentenza di lavoro oggett
 - Test mirati di pertinenza e riconvalida superati. Restano da eseguire la prova di apertura della Lettura sulla nuova immagine e il confronto in produzione.
 - Il modello verifica l’identità dell’invio e delle ricevute storiche mediante le impronte archiviate. Per un ordine relativo al ricorso e al decreto, trova l’unico ricorso pertinente e il decreto nella stessa spedizione. La Lettura dà conto della consegna e apre l’originale PEC, con l’indicazione dei controlli di validità rimasti. Provato sui dati salvati e con i casi automatici di prove congiunte e incomplete.
 - Il primo deploy della regola sugli allegati ha fermato il rilascio al test di compatibilità delle epigrafi. La nuova versione del motore conserva tutte le precedenti combinazioni compatibili con il suffisso della regola PEC. La prova storica di compatibilità fa parte del collaudo mirato.
+
+### 15 novembre 2026 — Contratto della rotta degli obblighi di notifica
+
+La 2.489.15 ha superato il controllo locale del pannello Notifiche e i 96 test mirati. La CI 43707954577 ha fermato la pubblicazione perché il contratto generato manteneva i riferimenti alla rotta precedente. Nella 2.489.16 sono stati rigenerati OpenAPI e la mappa degli endpoint. Il collaudo del rilascio in produzione resta aperto.

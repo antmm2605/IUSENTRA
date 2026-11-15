@@ -1,3 +1,7 @@
+## 2.489.16 — Contratto API del pannello Notifiche
+
+- Rigenerata la specifica OpenAPI per descrivere le risposte del pannello Notifiche dalla proiezione salvata.
+
 ## 2.489.15 — Distretto della notifica alle amministrazioni statali
 
 - L'Avvocatura competente deriva dall'ufficio giudiziario del procedimento. I difensori nominati nei testi conservano il proprio valore documentale, senza determinare il distretto della notifica.

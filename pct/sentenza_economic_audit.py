@@ -227,6 +227,13 @@ _SENTENZA_CITAZIONE_RE = re.compile(
 )
 
 
+_SENTENZA_INTESTAZIONE_PUBBLICAZIONE_RE = re.compile(
+    r"^[ \t]*sentenza[ \t]+(?:n\.?|numero)[ \t]*\d+[ \t]*/[ \t]*\d{4}"
+    r"[ \t]+(?:pubbl\.?|pubblicata)[ \t]+il[ \t]+\d{1,2}[./-]\d{1,2}[./-]\d{4}[ \t]*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
 def _tipo_da_intestazione(testo: str, provv: dict[str, Any]) -> str:
     intestazione = provv.get("intestazione") or {}
     if not isinstance(intestazione, dict) or not intestazione:
@@ -252,7 +259,14 @@ def _tipo_da_intestazione(testo: str, provv: dict[str, Any]) -> str:
             match = re.search(pattern, head)
             if match and (best is None or match.start() < best[0]):
                 best = (match.start(), str(tipo))
-    return best[1] if best else ""
+    if best:
+        return best[1]
+    # La testata del deposito PCT riporta numero e data di pubblicazione.
+    # Valutiamo solo le righe della testata, prima del corpo e delle sue citazioni.
+    righe_testata = [line for line in head.splitlines() if line.strip()][:6]
+    if _SENTENZA_INTESTAZIONE_PUBBLICAZIONE_RE.search("\n".join(righe_testata)):
+        return "sentenza"
+    return ""
 
 
 def _tipo_provvedimento(testo: str, text_norm: str, provv: dict[str, Any]) -> str:

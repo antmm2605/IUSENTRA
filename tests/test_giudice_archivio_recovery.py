@@ -7,7 +7,7 @@ from tests.test_giudice_da_provvedimento import TEXT, case
 from web.services.giudice_archivio_recovery import recupera_da_testi_sql
 
 
-@pytest.mark.parametrize("discordanza", ["", "cliente", "rg", "ufficio"])
+@pytest.mark.parametrize("discordanza", ["", "cliente", "rg", "ufficio", "atto_di_parte"])
 def test_native_economic_recovery_updates_existing_sql_audit_without_invoice_or_replay(tmp_path, monkeypatch, discordanza):
     from tests.test_fascicolo_sentenza_economica import FakeFascicoliRepository, SENTENZA_TEXT
     from pct.fatturazione import GestioneFatturazione
@@ -25,7 +25,8 @@ def test_native_economic_recovery_updates_existing_sql_audit_without_invoice_or_
     registry.segna_letto("tenant", case_record.id, source, "motore_documenti", esito={"origine": "nativo"})
     text = SENTENZA_TEXT.replace("€ 1.100,00", "321,00 euro")
     substitutions = {"cliente": ("Spagnolo Sara", "Bianchi Anna"), "rg": ("1548/2023", "1549/2023"),
-                     "ufficio": ("Tribunale di Palmi", "Tribunale di Torino")}
+                     "ufficio": ("Tribunale di Palmi", "Tribunale di Torino"),
+                     "atto_di_parte": ("Sentenza n. 230/2024 pubbl. il 07/05/2024", "Note della parte che citano la sentenza n. 230/2024")}
     if discordanza:
         text = text.replace(*substitutions[discordanza])
     record = SimpleNamespace(id="sql-source", sha256="a" * 64, current_version_id="v1", updated_at="fixed", status="ready")

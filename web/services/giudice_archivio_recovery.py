@@ -36,7 +36,7 @@ def recupera_da_testi_sql(fascicolo, registro, tenant, repository, *, codice_fis
         record = next((ready[sha] for sha in (obj.sha256, obj.sha256_archivio) if sha and sha in ready), None)
         sql_version = f"{record.id}:{record.current_version_id}:{record.updated_at}" if record else "assente"
         checkpoint = reads[(obj.oggetto_id, obj.impronta)].esito.get("controllo_metadati", {})
-        expected_context = f"{VERSIONE}:{context}" + (":economia-valuta-v1" if obj.oggetto_id in economic_ids else "")
+        expected_context = f"{VERSIONE}:{context}" + (":economia-valuta-v2" if obj.oggetto_id in economic_ids else "")
         if obj.oggetto_id in contribution_ids:
             from pct.archivio_letture.verifica_economica import VERSIONE as versione_contributo
             expected_context += f":contributo-fonti:{versione_contributo}"

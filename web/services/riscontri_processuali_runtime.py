@@ -75,6 +75,9 @@ def chiarisci_spese_da_sentenza(conto: dict[str, Any], lettura: dict[str, Any] |
         fonte = voce.get("letto") or {}
         if fonte.get("documento_id") and fonte.get("documento"):
             sentenze[fonte["documento_id"]] = fonte["documento"]
+    if not sentenze:
+        return
+
     from urllib.parse import quote
 
     fid = quote(str(conto.get("fascicoloId") or ""), safe="")
@@ -83,22 +86,14 @@ def chiarisci_spese_da_sentenza(conto: dict[str, Any], lettura: dict[str, Any] |
             "Nessuna sentenza con spese liquidate", "Liquidazione non confermata",
         }:
             continue
-        if not sentenze:
-            riga.update(stato="Liquidazione non confermata", tono="warning",
-                        dettaglio="Non risultano spese liquidate nelle fonti economiche collegate. "
-                                 "Se la sentenza è nel fascicolo, controllare il dispositivo prima di procedere.")
-        else:
-            riga.update(stato="Sentenza presente: spese da verificare", tono="warning",
-                        dettaglio="La sentenza è nel fascicolo. Il dispositivo sulle spese non è ancora confermato: "
-                                 "consultarlo prima di predisporre una proforma o chiedere il pagamento.",
-                        fonti=[{"label": nome, "norma": "Sentenza del fascicolo",
-                                "href": f"/fascicoli/{fid}/documenti/{quote(str(oid), safe='')}/visualizza"}
-                               for oid, nome in sentenze.items()])
+        riga.update(stato="Sentenza presente: spese da verificare", tono="warning",
+                    dettaglio="La sentenza è nel fascicolo. Il dispositivo sulle spese non è ancora confermato: "
+                             "consultarlo prima di predisporre una proforma o chiedere il pagamento.",
+                    fonti=[{"label": nome, "norma": "Sentenza del fascicolo",
+                            "href": f"/fascicoli/{fid}/documenti/{quote(str(oid), safe='')}/visualizza"}
+                           for oid, nome in sentenze.items()])
         percorso = conto.get("percorso") or {}
-        percorso["prossimoPasso"] = (
-            "Verificare il dispositivo sulle spese della sentenza." if sentenze
-            else "Verificare se è stata depositata una decisione sulle spese."
-        )
+        percorso["prossimoPasso"] = "Verificare il dispositivo sulle spese della sentenza."
         for passo in percorso.get("passi") or []:
             if (passo.get("azione") or {}).get("comando") == "genera_proforma":
                 passo.pop("azione")

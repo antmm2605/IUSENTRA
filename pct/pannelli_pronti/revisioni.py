@@ -15,6 +15,8 @@ import hashlib
 import re
 from typing import Iterable
 
+from pct.registro_letture.lettori import LETTORE_PERCORSO_CONCLUSO
+
 VERSIONE_SCHEMA = 1
 TABELLA_FASCICOLI = "pannelli_revisioni"
 TABELLA_TABELLE = "pannelli_revisioni_tabelle"
@@ -129,6 +131,11 @@ def piano_trigger(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str
             consultazione = "'DOC_VIEWED', 'DOC_DOWNLOADED', 'DOC_EIDAS_CHECKED'"
             nuovo = f"(CASE WHEN NEW.event_type NOT IN ({consultazione}) THEN {nuovo} END)"
             vecchio = f"(CASE WHEN OLD.event_type NOT IN ({consultazione}) THEN {vecchio} END)"
+        if t == "letture_fascicoli":
+            # L'esperienza del fascicolo chiuso è ricavata dalla Lettura stessa.
+            # Salvarla non cambia le fonti della Lettura appena preparata.
+            nuovo = f"(CASE WHEN NEW.lettore <> '{LETTORE_PERCORSO_CONCLUSO}' THEN {nuovo} END)"
+            vecchio = f"(CASE WHEN OLD.lettore <> '{LETTORE_PERCORSO_CONCLUSO}' THEN {vecchio} END)"
         piano.update(_piano_per_fascicolo(t, nuovo, vecchio))
     esistenti = {str(r[0]) for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
     for tabella in sorted(set(tabelle_senza_fascicolo)):

@@ -12,6 +12,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+LETTORE_PERCORSO_CONCLUSO = "percorso_concluso"
+
 # `livello`: «oggetto» se il lettore legge documento per documento e registra ogni
 # lettura; «fascicolo» se legge il fascicolo nel suo insieme e registra solo
 # l'impronta dell'inventario che ha esaminato. `tipi`: gli oggetti che legge.
@@ -22,7 +24,7 @@ from typing import Any
 # dell'archivio; nessuno scriveva più il lettore dal 16/09) e «Sentenza e preparazione archivio» (lo stesso
 # lavoro lo fa «Sentenza e definizione», sentenza_proposte_runtime; nessuno lo scriveva dall'08/10).
 LETTORI: dict[str, dict[str, Any]] = {
-    "percorso_concluso": {
+    LETTORE_PERCORSO_CONCLUSO: {
         "etichetta": "Esperienza dei fascicoli conclusi",
         "descrizione": "Fasi documentate e conclusioni giuridiche con le prove del fascicolo",
         "livello": "fascicolo",
@@ -154,7 +156,7 @@ def _versione_presidio_economico() -> str:
 
 
 _VERSIONI: dict[str, Callable[[], str]] = {
-    "percorso_concluso": lambda: __import__("pct.ragionamento", fromlist=["VERSIONE"]).VERSIONE,
+    LETTORE_PERCORSO_CONCLUSO: lambda: __import__("pct.ragionamento", fromlist=["VERSIONE"]).VERSIONE,
     "proposta_definizione": lambda: __import__("pct.fascicolo_sentenza_archiviazione", fromlist=["VERSIONE_PROPOSTA"]).VERSIONE_PROPOSTA,
     "ocr": _versione_ocr,
     "indice_documentale": _versione_indice_documentale,

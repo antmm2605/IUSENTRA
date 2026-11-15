@@ -1849,7 +1849,8 @@ def aggiorna_esperienza_conclusi(app: Any, registro: RegistroLetture, tenant_id:
                                 *, limite: int = 4) -> int:
     """Prepara un lotto storico con i dati già letti, anche a seguito di nuove regole."""
     from pct.ragionamento import VERSIONE
-    from web.services.ragionamento_raccolta import LETTORE_PERCORSO_CONCLUSO, STATI_PERCORSO_CONCLUSO
+    from pct.registro_letture.lettori import LETTORE_PERCORSO_CONCLUSO
+    from web.services.ragionamento_raccolta import STATI_PERCORSO_CONCLUSO
 
     if datetime.now(ROME).hour not in ORE_RILETTURA:
         return 0

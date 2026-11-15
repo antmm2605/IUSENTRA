@@ -126,6 +126,17 @@ def test_audit_di_consultazione_non_invalida_la_lettura():
         assert revisioni.leggi(conn, "F1")[1] == iniziale[1] + 2
 
 
+def test_salvare_esperienza_conclusa_non_invalida_la_lettura(studio, tmp_path):
+    _esegui(studio.registro_db, "CREATE TABLE letture_fascicoli(fascicolo_id TEXT, lettore TEXT, impronta TEXT)")
+    prepara_database(studio.registro_db, backup_dir=tmp_path / "backup", applica=True)
+    iniziale = _impronta(studio)
+    _esegui(studio.registro_db, "INSERT INTO letture_fascicoli VALUES ('F1', 'percorso_concluso', 'v1')")
+    _esegui(studio.registro_db, "UPDATE letture_fascicoli SET impronta='v2' WHERE lettore='percorso_concluso'")
+    assert _impronta(studio) == iniziale
+    _esegui(studio.registro_db, "INSERT INTO letture_fascicoli VALUES ('F1', 'motore_documenti', 'v1')")
+    assert _impronta(studio) != iniziale
+
+
 def test_trigger_per_fascicolo_e_esclusioni(studio):
     conn = sqlite3.connect(studio.studio_db)
     nomi = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import quote
 
 from ._testo import data_da, data_it, pulisci
 from .fase import (
@@ -322,18 +323,20 @@ def _passi_pec(pec_letto: dict[str, Any], giorno_oggi: Any = None) -> list[Passo
             continue
         passi.append(Passo(1, f"Confermare l'udienza del {udienza['data'] or 'data da leggere'} che il presidio PEC propone dalla PEC del {udienza['data_pec']}", f"«{udienza['oggetto']}»: il presidio chiede una revisione prima di metterla in agenda", udienza.get("data", ""), "presidio PEC", ("dgsia_art21", "cpc_136"), HREF_COMUNICAZIONI))
     for messaggio in pec_letto.get("da_controllare", [])[-4:]:
+        messaggio_id = messaggio.get("id")
+        fonte_pec = f"/email/?audit_id={quote(messaggio_id, safe='')}" if messaggio_id else HREF_COMUNICAZIONI
         motivi = list(messaggio.get("motivi_controllo") or [])
         autenticita = [motivo for motivo in motivi if "firma" in motivo or "qualità" in motivo]
         if autenticita:
-            passi.append(Passo(1, f"Verificare l'autenticità della PEC del {messaggio['data']} «{messaggio['oggetto']}»", ", ".join(autenticita) + ": il presidio la segnala, la decisione di farvi affidamento è dell'avvocato", "", "presidio PEC", ("dm44_art16", "dgsia_art21"), HREF_COMUNICAZIONI))
+            passi.append(Passo(1, f"Verificare l'autenticità della PEC del {messaggio['data']} «{messaggio['oggetto']}»", ", ".join(autenticita) + ": il presidio la segnala, la decisione di farvi affidamento è dell'avvocato", "", "presidio PEC", ("dm44_art16", "dgsia_art21"), fonte_pec))
             continue
         if "evento da confermare" in motivi:
-            passi.append(Passo(2, f"Confermare l'evento che il presidio PEC propone per la PEC del {messaggio['data']} «{messaggio['oggetto']}»", "il presidio non è certo della classificazione", "", "presidio PEC", ("dgsia_art21",), HREF_COMUNICAZIONI))
+            passi.append(Passo(2, f"Confermare l'evento che il presidio PEC propone per la PEC del {messaggio['data']} «{messaggio['oggetto']}»", "il presidio non è certo della classificazione", "", "presidio PEC", ("dgsia_art21",), fonte_pec))
             continue
         if not messaggio.get("collegata") and messaggio.get("corrispondenza") == "cliente":
-            passi.append(Passo(2, f"Confermare se la PEC del {messaggio['data']} «{messaggio['oggetto']}» riguarda questa pratica", "cita l'assistito ma non il numero di ruolo: il presidio non la collega da solo per non confondere omonimi", "", "presidio PEC", ("dgsia_art21",), HREF_COMUNICAZIONI))
+            passi.append(Passo(2, f"Confermare se la PEC del {messaggio['data']} «{messaggio['oggetto']}» riguarda questa pratica", "cita l'assistito ma non il numero di ruolo: il presidio non la collega da solo per non confondere omonimi", "", "presidio PEC", ("dgsia_art21",), fonte_pec))
         elif not messaggio.get("collegata") and messaggio.get("corrispondenza") == "rg":
-            passi.append(Passo(2, f"Confermare il collegamento della PEC del {messaggio['data']} «{messaggio['oggetto']}»", "cita il numero di ruolo ma il mittente non è un ufficio giudiziario: il presidio la collega solo su conferma", "", "presidio PEC", ("dgsia_art21",), HREF_COMUNICAZIONI))
+            passi.append(Passo(2, f"Confermare il collegamento della PEC del {messaggio['data']} «{messaggio['oggetto']}»", "cita il numero di ruolo ma il mittente non è un ufficio giudiziario: il presidio la collega solo su conferma", "", "presidio PEC", ("dgsia_art21",), fonte_pec))
     return passi
 
 

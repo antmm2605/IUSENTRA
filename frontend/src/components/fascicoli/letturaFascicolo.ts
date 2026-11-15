@@ -151,7 +151,7 @@ type PecDaControllare = {
   mittente: string
   motivi_controllo: string[]
   eventi?: { evento: string }[]
-  termini?: { id: string; tipo: string; scadenza: string; norma: string; registrato: boolean }[]
+  termini?: { id: string; tipo: string; scadenza: string; norma: string; registrato: boolean; proposta_superata?: boolean }[]
   udienze?: { id: string; data: string; ora: string }[]
 }
 

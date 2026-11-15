@@ -15,7 +15,11 @@ PEC non controllata è un rischio, non una casella piena.
 
 from __future__ import annotations
 
+from datetime import date
+from types import SimpleNamespace
 from typing import Any
+
+from pct.proposte_decorse import SUPERATA, classifica, e_127_ter
 
 from ._testo import data_da, data_it, dataora_it, pulisci
 
@@ -61,15 +65,23 @@ def _profilo_da_ufficio_giudiziario(messaggio: dict[str, Any]) -> bool:
     return ha_ufficio and ha_atto_processuale
 
 
-def _leggi_termine(termine: dict[str, Any]) -> dict[str, Any]:
+def _leggi_termine(termine: dict[str, Any], oggi: date | None) -> dict[str, Any]:
+    data_proposta = termine.get("deadline") or termine.get("deadline_date") or termine.get("calculated_date")
+    registrato = bool(pulisci(termine.get("scadenziario_id")))
+    proposta = SimpleNamespace(
+        stato="BOZZA", data_scadenza=data_proposta, deadline_profile_code=termine.get("deadline_profile_code"),
+        titolo=f"{pulisci(termine.get('deadline_type'))} {pulisci(termine.get('norm_ref'))}",
+    )
+    superata = not registrato and e_127_ter(proposta) and classifica(proposta, oggi) == SUPERATA
     return {
         "id": pulisci(termine.get("id")),
         "tipo": pulisci(termine.get("deadline_type")).replace("_", " "),
         "norma": pulisci(termine.get("norm_ref")),
         "decorrenza": data_it(termine.get("dies_a_quo_date")),
-        "scadenza": data_it(termine.get("deadline") or termine.get("deadline_date") or termine.get("calculated_date")),
+        "scadenza": data_it(data_proposta),
         "stato": pulisci(termine.get("deterministic_status")),
-        "registrato": bool(pulisci(termine.get("scadenziario_id"))),
+        "registrato": registrato,
+        "proposta_superata": superata,
         "perentorio": bool(termine.get("peremptory")),
         "da_rivedere": bool(termine.get("human_review_required")),
     }
@@ -86,7 +98,7 @@ def _leggi_udienza(udienza: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def leggi_messaggio(messaggio: dict[str, Any]) -> dict[str, Any]:
+def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None) -> dict[str, Any]:
     qualita = pulisci(messaggio.get("quality_status")).lower()
     firma = pulisci(messaggio.get("signature_status")).lower()
     eventi = [
@@ -98,7 +110,7 @@ def leggi_messaggio(messaggio: dict[str, Any]) -> dict[str, Any]:
         }
         for voce in list(messaggio.get("eventi") or [])
     ]
-    termini = [_leggi_termine(voce) for voce in list(messaggio.get("termini") or [])]
+    termini = [_leggi_termine(voce, oggi) for voce in list(messaggio.get("termini") or [])]
     udienze = [_leggi_udienza(voce) for voce in list(messaggio.get("udienze") or [])]
     motivi: list[str] = []
     for issue in messaggio.get("issues") or []:
@@ -136,12 +148,12 @@ def leggi_messaggio(messaggio: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def pec(messaggi: list[dict[str, Any]]) -> dict[str, Any]:
-    letti = [leggi_messaggio(voce) for voce in messaggi]
+def pec(messaggi: list[dict[str, Any]], *, oggi: date | None = None) -> dict[str, Any]:
+    letti = [leggi_messaggio(voce, oggi=oggi) for voce in messaggi]
     letti.sort(key=lambda voce: voce["ordine"])
     termini_da_registrare = [
         {**termine, "oggetto": voce["oggetto"], "data_pec": voce["data"], "messaggio_id": voce["id"]}
-        for voce in letti for termine in voce["termini"] if not termine["registrato"]
+        for voce in letti for termine in voce["termini"] if not (termine["registrato"] or termine["proposta_superata"])
     ]
     udienze_da_registrare = [
         {**udienza, "oggetto": voce["oggetto"], "data_pec": voce["data"], "messaggio_id": voce["id"]}

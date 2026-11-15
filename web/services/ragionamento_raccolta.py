@@ -13,6 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pct.ragionamento import FontiCausa
+from pct.registro_letture.lettori import LETTORE_PERCORSO_CONCLUSO
 
 
 def _testo(valore: Any) -> str:
@@ -235,7 +236,6 @@ def ragionamento_per_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, An
 
 
 STATI_PERCORSO_CONCLUSO = frozenset({"DEFINITO", "ARCHIVIATO"})
-LETTORE_PERCORSO_CONCLUSO = "percorso_concluso"
 
 
 def _stile_ricorsi(fonti, modello) -> list[dict[str, Any]]:

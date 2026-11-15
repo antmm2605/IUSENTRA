@@ -35,7 +35,7 @@ from .regole.termini_assegnati import conclusioni_termini
 from .rito import determina_rito
 from .testo import pulito, rg_normale
 
-VERSIONE = "2026.11.15.ragionamento.v13"
+VERSIONE = "2026.11.15.ragionamento.v14"
 ROMA = ZoneInfo("Europe/Rome")
 
 

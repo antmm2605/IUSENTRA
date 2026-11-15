@@ -621,3 +621,9 @@ def test_audit_sql_snapshot_concorrenti_non_cancellano_eventi(tmp_path):
     first.registra_evento('prima-nota.prova-a',username='controllato')
     second.registra_evento('prima-nota.prova-b',username='controllato')
     assert sorted(row[0] for row in database.conn.execute('SELECT azione FROM audit_log').fetchall()) == ['prima-nota.prova-a','prima-nota.prova-b']
+
+
+def test_utente_admin_espone_i_metadati_del_ruolo(gu):
+    admin = gu.get_by_username("admin")
+    assert admin.colore_ruolo == "danger"
+    assert admin.icona_ruolo == "bi-shield-fill"

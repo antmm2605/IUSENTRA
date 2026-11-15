@@ -331,7 +331,7 @@ export function LetturaFascicoloPanel({
               <div>{[pec.data, pec.mittente].filter(Boolean).join(' · ')}</div>
               <div>Riscontro richiesto: {pec.motivi_controllo.join(', ')}.</div>
               {pec.eventi?.length ? <div>Eventi rilevati: {[...new Set(pec.eventi.map((voce) => voce.evento).filter(Boolean))].join(', ')}</div> : null}
-              {pec.termini?.map((termine) => <div key={termine.id}>{[termine.tipo, termine.scadenza || 'data da determinare', termine.norma, termine.registrato ? 'in scadenziario' : 'da verificare'].filter(Boolean).join(' · ')}</div>)}
+              {pec.termini?.map((termine) => <div key={termine.id}>{[termine.tipo, termine.scadenza || 'data da determinare', termine.norma, termine.proposta_superata ? 'proposta storica, termine decorso' : termine.registrato ? 'in scadenziario' : 'da verificare'].filter(Boolean).join(' · ')}</div>)}
               {pec.udienze?.map((udienza) => <div key={udienza.id}>Udienza rilevata: {[udienza.data, udienza.ora].filter(Boolean).join(' · ')}</div>)}
             </li>
           ))}</ul>

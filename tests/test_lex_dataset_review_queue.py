@@ -137,3 +137,29 @@ def test_coda_sql_importa_revisioni_e_preserva_approvazioni(tmp_path):
     assert review_sql.revisiona(db, "a", lambda row: row | {"reviewer_id": "studio", "reviewed_at": "2026-11-12"})[
         "answer"
     ] == "Risposta già approvata"
+
+
+def test_coda_sql_ricostruisce_contatori_e_preserva_decisioni_storiche(tmp_path):
+    import json
+    import sqlite3
+
+    from lex.dataset import review_sql
+
+    db = tmp_path / review_sql.NOME_ARCHIVIO
+    review_sql.riallinea_contatori(db)
+    assert review_sql.leggi(db) == ({}, [])
+    db.with_suffix(".json").write_text(json.dumps({"items": [
+        None,
+        {"id": "a", "status": "approvata"},
+        {"id": "b", "status": "scartata"},
+    ]}), encoding="utf-8")
+    review_sql.pubblica(db, [{"qa_id": "a"}, {"qa_id": "b"}])
+    with sqlite3.connect(db) as conn:
+        conn.execute("DELETE FROM contatori_coda")
+    atteso = {"approved": 1, "rejected": 1}
+    assert review_sql.leggi(db) == (atteso, [])
+    review_sql.riallinea_contatori(db)
+    assert review_sql.leggi(db) == (atteso, [])
+    assert review_sql.revisiona(db, "non_esiste", lambda row: row) is None
+    assert review_sql.revisiona(db, "a", lambda row: None) is None
+    assert review_sql.leggi(db) == (atteso, [])

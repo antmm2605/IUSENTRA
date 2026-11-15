@@ -135,3 +135,66 @@ def test_promozione_default_on_rispetta_le_scelte_umane(tmp_path):
         )
     repo.upsert_default_jobs({})
     assert (repo.get_job(JOB_ID) or {}).get("enabled") is False
+
+
+def test_registro_non_leggibile_e_stati_reali_non_avviano_job(monkeypatch, tmp_path):
+    import pct.scheduler_registry as sched
+    from pct.scheduler_registry import SchedulerRegistryRepository
+
+    repo = SchedulerRegistryRepository(tmp_path / "registro.sqlite")
+    monkeypatch.setattr(sched, "scheduler_registry_repository", lambda _cfg: repo)
+    assert "riga di registro assente" in run_lex_autonomous_learning_nightly()["reason"]
+    repo.upsert_default_jobs({})
+    assert nightly._registry_state({}) == (True, "")
+    with repo.connect() as conn:
+        conn.execute("UPDATE scheduled_jobs SET enabled=0 WHERE job_id=?", (JOB_ID,))
+    assert "disabilitato" in run_lex_autonomous_learning_nightly()["reason"]
+
+    def archivio_indisponibile(_cfg):
+        raise OSError("disco indisponibile")
+
+    monkeypatch.setattr(sched, "scheduler_registry_repository", archivio_indisponibile)
+    assert "registro pianificazioni non leggibile" in run_lex_autonomous_learning_nightly()["reason"]
+
+
+def test_configurazione_errata_e_fonti_irraggiungibili_restano_distinte(monkeypatch, tmp_path):
+    from lex.autonomy.safety import SourceAccessError
+
+    _abilita_registro(monkeypatch, enabled=True)
+    config = tmp_path / "config.json"
+    config.write_text("non è JSON", encoding="utf-8")
+    esito = run_lex_autonomous_learning_nightly(config_path=config)
+    assert esito["ok"] is False and "configurazione web non valida" in esito["error"]
+
+    def ricerca(**parametri):
+        assert parametri["samples"] == []
+        raise SourceAccessError("ricerca non disponibile")
+
+    monkeypatch.setattr(nightly, "run_autonomous_cycle", ricerca)
+    esito = run_lex_autonomous_learning_nightly(samples_path=tmp_path / "campioni-assenti.json")
+    assert esito["ok"] is False and "fonti non raggiungibili" in esito["error"]
+
+
+def test_protocollo_ricerca_fallito_produce_un_esito_diagnostico(monkeypatch, tmp_path):
+    _abilita_registro(monkeypatch, enabled=True)
+
+    class ProviderIndisponibile:
+        def search(self, query, *, limit):
+            raise OSError("catalogo irraggiungibile")
+
+    esito = run_lex_autonomous_learning_nightly(
+        search_provider=ProviderIndisponibile(), memory_dir=tmp_path / "memoria",
+    )
+    assert esito["ok"] is False
+    assert "Tutte le ricerche del provider sono fallite" in esito["error"]
+
+
+def test_rapporto_distingue_errori_dalla_raccolta_delle_fonti(tmp_path):
+    from lex.autonomy.models import LearningCycleResult
+    from lex.autonomy.report import render_text
+
+    esito = LearningCycleResult(mode="offline", started_at="2026-11-15", memory_dir=str(tmp_path))
+    esito.errors = ["Fonte non raggiungibile"]
+    testo = render_text(esito)
+    assert "Errori non bloccanti:" in testo
+    assert "Fonte non raggiungibile" in testo

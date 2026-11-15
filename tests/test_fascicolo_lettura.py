@@ -425,13 +425,28 @@ def test_presidio_pec_entra_nella_lettura_con_termini_e_udienze_da_registrare():
     # La PEC che cita l'assistito: il presidio non collega omonimi, chiede conferma; l'evento incerto va confermato.
     assert any(azione.startswith("Confermare l'evento che il presidio PEC propone per la PEC del 13/09/2026") for azione in azioni)
     passo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"].startswith("Confermare l'evento"))
-    assert passo["href"] == "#comunicazioni-notifica" and passo["norma"] == "Specifiche tecniche DGSIA 7/8/2024, art. 21"
+    assert passo["href"] == "/email/?audit_id=M3" and passo["norma"] == "Specifiche tecniche DGSIA 7/8/2024, art. 21"
     # La PEC per numero di ruolo non collegata chiede il collegamento, senza inventare un allarme di autenticità.
     assert any(azione.startswith("Confermare il collegamento della PEC del 12/09/2026") for azione in azioni)
     assert not any(azione.startswith("Verificare l'autenticità della PEC del 12/09/2026") for azione in azioni)
     assert "PEC del presidio che riguardano la pratica: 3 (1 collegate, 1 per numero di ruolo, 1 per nome dell'assistito)" in lettura["narrativa"]
     assert "Avviso n. 1234/26" in lettura["narrativa"]
     assert "Per Mario Rossi" in lettura["narrativa"]
+
+
+def test_pec_proposta_di_opposizione_decorsa_rimane_nello_storico():
+    dati = _caso_completo()
+    dati.pec = [_pec_messaggio(termini=[
+        {"id": "T1", "deadline_type": "Opposizione alla trattazione scritta",
+         "norm_ref": "art. 127-ter c.p.c.", "deadline": "2026-06-01", "human_review_required": True},
+        {"id": "T2", "deadline_type": "Opposizione alla trattazione scritta",
+         "norm_ref": "art. 127-ter c.p.c.", "deadline": "2027-06-01", "human_review_required": True},
+    ])]
+    pec = costruisci_lettura(dati)["pec"]
+    storico, futuro = pec["tutte"][0]["termini"]
+    assert storico["proposta_superata"] and storico["scadenza"] == "01/06/2026"
+    assert not futuro["proposta_superata"]
+    assert [voce["id"] for voce in pec["termini_da_registrare"]] == ["T2"]
 
 
 def test_pec_rg_con_profilo_ufficio_giudiziario_non_diventa_lacuna_di_controllo():

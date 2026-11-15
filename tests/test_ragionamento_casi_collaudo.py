@@ -338,12 +338,12 @@ def test_contratto_di_uscita_completo_per_ogni_conclusione():
 def test_g14_liquidazione_delle_spese_nel_decreto_ingiuntivo():
     causa = ragiona(fonti(MONITORIO, [RICORSO_DI, DI]))
     spese = conclusione(causa, "spese_liquidate")
-    assert "€ 300.00 di compensi" in spese.cosa and "€ 76.00 di spese" in spese.cosa
+    assert "€ 300,00 di compensi" in spese.cosa and "€ 76,00 di spese" in spese.cosa
     assert "art. 641, terzo comma, c.p.c." in norme_di(spese) and spese.stato == "da_fare"
     assert causa.economia["liquidazioni"][0]["compensi"] == 300.0
     sentenza = ragiona(fonti({**LAVORO, "numero_rg": "161"}, [RICORSO_161, SENTENZA]))
     liquidate = conclusione(sentenza, "spese_liquidate")
-    assert liquidate.cosa.startswith("Riscuotere le spese liquidate dal giudice: € 515.00") and "art. 93 c.p.c." in norme_di(liquidate)
+    assert liquidate.cosa.startswith("Riscuotere le spese liquidate dal giudice: € 515,00") and "art. 93 c.p.c." in norme_di(liquidate)
 
 
 def test_g16_contributo_della_volontaria_giurisdizione_e_98_euro_non_27():
@@ -353,7 +353,7 @@ def test_g16_contributo_della_volontaria_giurisdizione_e_98_euro_non_27():
     solo27 = [{"voce": "contributo_unificato", "stato": "pagato", "importo": 27.0, "origine": "Document AI / fascicolo", "documento": "ricevuta"}]
     causa = ragiona(fonti(vg, [ricorso_vg], pagamenti=solo27))
     cu = conclusione(causa, "contributo_unificato")
-    assert "€ 98.00" in cu.cosa and cu.stato == "da_fare" and "anticipazione forfettaria" in cu.prova_o_motivo
+    assert "€ 98,00" in cu.cosa and cu.stato == "da_fare" and "anticipazione forfettaria" in cu.prova_o_motivo
     assert {"dpr115_art13", "dpr115_art30"} <= {norma["id"] for norma in cu.norme}
     pagato = ragiona(fonti(vg, [ricorso_vg], pagamenti=solo27 + [{**solo27[0], "importo": 98.0}]))
     assert conclusione(pagato, "contributo_unificato").stato == "fatto"
@@ -371,7 +371,7 @@ def test_volontaria_senza_parte_accertata_mostra_la_verifica_del_contributo():
                          pagamenti=[{"voce": "contributo_unificato", "importo": 27}]))
     cu = conclusione(causa, "contributo_unificato")
     assert cu.stato == "dubbio" and cu.onerato == "ignoto"
-    assert "€ 98.00" in cu.cosa and "anticipazione forfettaria" in cu.prova_o_motivo
+    assert "€ 98,00" in cu.cosa and "anticipazione forfettaria" in cu.prova_o_motivo
 
 
 def test_relata_della_sentenza_senza_consegna_non_avvia_il_termine_breve():

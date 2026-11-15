@@ -1,10 +1,7 @@
 {
-  "baseline_sha": "23f0f5dcd2b341beef11893255c07e4753dea6ef",
-  "reason": "Estensione esplicita del perimetro misurato rispetto all'ultima release distribuita e verde (2.466.1): Lex risponde ai calcoli con i calcolatori di Strumenti legali collaudati sulla norma (lex/calcoli_certi: riconoscimento dello strumento, estrazione dei dati dalla domanda, presentazione del risultato e delle stime motivate). Moduli coperti integralmente da tests/test_lex_calcoli_certi.py e tests/test_lex_calcoli_certi_rami.py, entrambi nella suite critica. Nessuna esclusione, soglia ridotta, riga precedentemente coperta persa o nuova baseline accettata automaticamente.",
+  "baseline_sha": "e7ae75e4de7072f1e824184b60f2ff5b2b14d8ee",
+  "reason": "Estensione esplicita del perimetro al repository SQLite di revisione dei materiali Lex. I test verificano migrazione delle decisioni storiche, aggiornamento dei contatori, riapertura della coda e conservazione delle revisioni.",
   "files": {
-    "lex/calcoli_certi/__init__.py": "bb20321a1fa14095009283b3c0763e772dc42141db67d2691b62efcf356c8fa6",
-    "lex/calcoli_certi/estrazione.py": "79ff62fc8ed9cfc0cc3d215b04a4594f8f5d06eeaad2ca8a20ff7e6ac81c7cdc",
-    "lex/calcoli_certi/presentazione.py": "4aeab0a5e9d3acf05e4b4ec82bec7e9befa3debd5fdbf2ce002dc39aaef31dbe",
-    "lex/calcoli_certi/riconoscimento.py": "5be12fdc601e118f6c54176b06aaac7346cca64476ee6c5a7d1adb84f0e85103"
+    "lex/dataset/review_sql.py": "373d35f86d779f2966846038250f332b0a417fa4f67d25f9b42935cde5e4cba4"
   }
 }

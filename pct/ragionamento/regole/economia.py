@@ -14,6 +14,8 @@ import re
 from typing import Any
 
 from pct.contributo_dovuto import categoria, confronta, contributo_dovuto
+from pct.formatting import format_euro_it
+from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, giurisdizione_e_grado
 from pct.incasso_provato import pagamento_provato, pagato_deciso_dall_avvocato
 from pct.spese_liquidate_provvedimento import spese_liquidate
 
@@ -72,8 +74,8 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
         if ctx.posizione != "attiva":
             continue
         risultato.append(Conclusione(
-            "spese_liquidate", f"Riscuotere le spese liquidate dal giudice: € {letta['compensi']:.2f} di compensi"
-            + (f" ed € {letta['esborsi']:.2f} di spese" if letta["esborsi"] else "") + (" oltre accessori di legge" if letta["accessori"] else ""),
+            "spese_liquidate", f"Riscuotere le spese liquidate dal giudice: {format_euro_it(letta['compensi'])} di compensi"
+            + (f" e {format_euro_it(letta['esborsi'])} di spese" if letta["esborsi"] else "") + (" oltre accessori di legge" if letta["accessori"] else ""),
             Fonte(atto.id, atto.nome, letta["brano"], atto.data),
             norme("cpc_641_spese") if decreto else norme("cpc_91") + (norme("cpc_93") if letta["distrazione"] else []),
             "richiesta di pagamento alla controparte e, se non paga, esecuzione con il titolo",
@@ -104,7 +106,19 @@ def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti
     esente = any(f.get("campo") == "esenzione_cu_dichiarata" and f.get("verifica") in {"verificata", "corretta"} for f in fatti)
     fonte = Fonte("economia", "Contributo unificato", ", ".join(f"€ {v:.2f}" for v in sorted(set(versati))) or "nessuna ricevuta letta",
                   "", "economia")
-    if cat == "lavoro" and esente:
+    giurisdizione, _ = giurisdizione_e_grado(tipo=ctx.fascicolo.get("tipo", ""), ufficio=ctx.ufficio)
+    if not cat and giurisdizione == AMMINISTRATIVO:
+        motivo = "Per il ricorso al TAR occorre la ricevuta associata al procedimento oppure la prova di esenzione."
+        return Conclusione(
+            "contributo_unificato", "Riscontrare il contributo unificato nel fascicolo PAT", fonte,
+            norme("dpr115_art13", "dpr115_art9"),
+            "Consultare in PAT il deposito del ricorso e la relativa quietanza, dichiarazione di esenzione o richiesta della segreteria.",
+            "L’importo dipende dal rito e la prova identifica l’eventuale versamento o esenzione. "
+            "Per l’ottemperanza il riferimento ordinario è il comma 6-bis, lett. a), dell’art. 13.",
+            "dubbio", motivo, onerato="noi", motivo_senza_termine="Un termine di pagamento richiede un atto che lo assegni.",
+            dubbi=[Dubbio("contributo_pat_da_riscontrare", motivo, "quietanza, prova di esenzione o avviso della segreteria", fonte)],
+        )
+    if cat == "lavoro" and esente and not versati:
         return Conclusione("contributo_unificato", "Contributo unificato non dovuto: esenzione per reddito dichiarata", fonte,
                            norme("dpr115_art9"), "dichiarazione di esenzione nelle conclusioni del ricorso",
                            "nelle controversie di lavoro il contributo non è dovuto sotto la soglia di reddito", "non_dovuto",
@@ -112,13 +126,23 @@ def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti
     esito = confronta(versati, dovuto, cat=cat) if cat else {"esito": "indeterminato", "dettaglio": ""}
     stato = {"coincide": "fatto", "insufficiente": "da_fare"}.get(esito["esito"], "dubbio")
     importo = esito.get("dovuto") or (dovuto.importo if dovuto else None)
-    cosa = f"Versare il contributo unificato dovuto (€ {importo:.2f})" if importo else "Versare il contributo unificato dovuto"
+    gia_depositato = any(d.accettato for d in ctx.depositi) or semplice(ctx.fascicolo.get("stato")) in {"definito", "chiuso", "archiviato"}
+    azione_pagamento = stato == "da_fare" and bool(importo) and not gia_depositato
+    if stato == "fatto":
+        cosa = f"Contributo unificato versato ({format_euro_it(importo)})"
+    elif azione_pagamento:
+        cosa = f"Versare il contributo unificato dovuto ({format_euro_it(importo)})"
+    elif stato == "da_fare" and importo and versati:
+        cosa = f"Verificare la differenza sul contributo unificato ({format_euro_it(importo)} dovuti)"
+        stato = "dubbio"
+    else:
+        cosa = "Riscontrare il contributo unificato"
+        stato = "dubbio"
     dubbi = [] if stato != "dubbio" else [Dubbio("contributo_indeterminato", "Il contributo dovuto non si può stabilire con certezza "
-             "per questo rito o valore." if not cat else "Il versato non corrisponde a un importo previsto per il rito.",
-             "il valore della causa dichiarato nell'atto introduttivo (art. 14 D.P.R. 115/2002)" if cat else
-             "la regola del contributo per i processi esecutivi (art. 13, comma 2) nel calcolo del dovuto", fonte)]
+             "per questo rito o valore." if not cat else "Il versamento o l’esenzione non risultano riscontrati.",
+             "la ricevuta, il titolo di esenzione o un avviso di pagamento riferito al procedimento", fonte)]
     if posizione_da_verificare:
-        importo_atteso = f" per il rito (€ {importo:.2f})" if importo else ""
+        importo_atteso = f" per il rito ({format_euro_it(importo)})" if importo else ""
         return Conclusione(
             "contributo_unificato", f"Verificare il contributo unificato{importo_atteso}", fonte,
             norme("dpr115_art13", "dpr115_art30"), "controllo del ricorso introduttivo e della ricevuta pagoPA",
@@ -128,8 +152,9 @@ def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti
                           "l'atto introduttivo e la ricevuta del contributo unificato", fonte)],
         )
     return Conclusione("contributo_unificato", cosa, fonte, norme("dpr115_art13", "dpr115_art30"),
-                       "pagamento con pagoPA e deposito della ricevuta con l'atto introduttivo",
-                       "senza il contributo l'ufficio procede al recupero con sanzioni (artt. 16 e 248 D.P.R. 115/2002)",
+                       "pagamento con pagoPA e deposito della ricevuta con l’atto introduttivo" if azione_pagamento
+                       else "aprire la ricevuta originale o riscontrare il titolo di esenzione o un avviso di pagamento",
+                       "il contributo è collegato al deposito del ricorso e all’effettiva situazione di versamento o esenzione",
                        stato, esito.get("dettaglio") or "", None, "", onerato="noi", dubbi=dubbi)
 
 

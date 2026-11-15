@@ -41,7 +41,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.15.lettura-fascicolo.v33"
+VERSIONE_LETTURA = "2026.11.15.lettura-fascicolo.v34"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -130,7 +130,7 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     depositi_letti = depositi(dati.depositi, pulisci(dati.fascicolo.get("canale_operativo")))
     notifiche_lette = notifiche(dati.notifiche, dati.attivita)
     notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
-    pec_letto = pec(dati.pec)
+    pec_letto = pec(dati.pec, oggi=oggi)
     pec_letto["conteggio"] = conteggio_pec(pec_letto, dati.verifiche)
     economico_letto = economico(dati.economico, oggi)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}

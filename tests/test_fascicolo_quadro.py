@@ -198,3 +198,21 @@ def test_quadro_distingue_scadenza_in_bozza_dal_termine_confermato():
     assert "confermata in agenda" in riga["testo"]
     assert "1 scadenza da verificare in agenda" in riga["testo"]
     assert riga["livello"] == "attenzione"
+
+
+def test_riscontro_spese_da_sentenza_richiede_una_fonte_del_fascicolo():
+    from web.services.riscontri_processuali_runtime import chiarisci_spese_da_sentenza
+
+    riga = {"voce": "sentenza", "stato": "Nessuna sentenza con spese liquidate", "tono": "neutral"}
+    proforma = {"azione": {"comando": "genera_proforma"}}
+    conto = {"ok": True, "fascicoloId": "F1", "righe": [riga], "percorso": {"passi": [proforma]}}
+    chiarisci_spese_da_sentenza(conto, {"ragionamento": {"conclusioni": []}})
+    assert riga["tono"] == "neutral"
+    assert proforma["azione"]["comando"] == "genera_proforma"
+    assert "prossimoPasso" not in conto["percorso"]
+
+    conclusione = {"codice": "termine_impugnazione", "letto": {"documento_id": "S1", "documento": "Sentenza.pdf"}}
+    chiarisci_spese_da_sentenza(conto, {"ragionamento": {"conclusioni": [conclusione]}})
+    assert riga["tono"] == "warning"
+    assert riga["fonti"][0]["href"] == "/fascicoli/F1/documenti/S1/visualizza"
+    assert "azione" not in proforma

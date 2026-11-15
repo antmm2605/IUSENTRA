@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Iterable
 from pct.ora_italiana import oggi_roma
+from pct.scadenze_stato import termine_note_in_sostituzione
 
 MODIFICATION_LINE_PREFIX = "PEC_MODIFICA_TERMINE"
 HUMAN_LINE_PREFIX = "Modifica termine:"
@@ -47,6 +48,7 @@ _MODIFICATION_RE = re.compile(
 
 FAMILY_LABELS = {
     "note_scritte": "Deposito note scritte ex art. 127-ter c.p.c.",
+    "opposizione_127ter": "Opposizione alla trattazione scritta ex art. 127-ter c.p.c.",
     "memorie": "Deposito memorie",
     "conclusionali": "Deposito comparse conclusionali e repliche",
     "costituzione": "Costituzione in giudizio",
@@ -67,6 +69,10 @@ def activity_family(*texts: Any) -> str:
     """Attività a cui si riferisce un termine, letta da titolo, descrizione o evento."""
 
     folded = _fold(" ".join(str(item or "") for item in texts)).replace("-", " ")
+    if "civ_opposizione_127_ter" in folded or (
+        "opposizion" in folded and any(token in folded for token in ("trattazione scritta", "127 ter"))
+    ):
+        return "opposizione_127ter"
     if "note" in folded and any(token in folded for token in ("sostituzione", "scritte", "trattazione scritta")):
         return "note_scritte"
     if "127 ter" in folded or "trattazione scritta" in folded:
@@ -253,7 +259,7 @@ def find_deadline_to_modify(
             continue
         if marker in _note_lines(item):
             continue
-        if _enum_value(getattr(item, "tipo", "")) == "UDIENZA":
+        if _enum_value(getattr(item, "tipo", "")) == "UDIENZA" and not termine_note_in_sostituzione(item):
             continue
         due = str(getattr(item, "data_scadenza", "") or "")[:10]
         if not due or due == modification.new_date:

@@ -13,7 +13,8 @@ from typing import Any
 
 from pct.formatting import parse_datetime_rome
 from pct.scadenze_stato import (
-    ANNULLATA, BOZZA, COMPLETATA, ESITO_UDIENZA, stato_operativo, termine_note_in_sostituzione, termine_perentorio,
+    ANNULLATA, BOZZA, COMPLETATA, ESITO_UDIENZA, data_termine_corrente, stato_operativo,
+    termine_note_in_sostituzione, termine_perentorio,
 )
 
 from ..models import OperationalSignal, SignalEvidence, SourceCoverage
@@ -106,10 +107,7 @@ class ScadenzarioCollector:
             fase = stato_operativo(sc, planning_day)
             if fase in {ANNULLATA, BOZZA, COMPLETATA} or stato in _CLOSED_DEADLINE_STATES:
                 continue
-            due = _to_date(
-                getattr(sc, "legal_due_at", "") or getattr(sc, "data_scadenza", "")
-                or getattr(sc, "operational_due_at", "")
-            )
+            due = _to_date(data_termine_corrente(sc))
             # gli arretrati aperti restano SEMPRE nel piano; il futuro oltre
             # l'orizzonte dei 14 giorni non entra nel giorno selezionato
             if due is not None and due > horizon:
@@ -131,7 +129,7 @@ class ScadenzarioCollector:
             esito_udienza = fase == ESITO_UDIENZA
             motivo = _ESITO_UDIENZA_REASON if esito_udienza else _scadenza_reason(ctx, sc, perentorio)
             if termine_note_in_sostituzione(sc):
-                motivo = f"Deposito di note in sostituzione dell’udienza (art. 127-ter c.p.c.). {motivo}"
+                motivo = "Deposito di note in sostituzione dell’udienza (art. 127-ter c.p.c.). Fonte nello scadenziario."
                 id_appuntamento = str(getattr(sc, "id_appuntamento", "") or "")
                 if id_appuntamento:
                     ctx.appuntamenti_sostituiti_da_note.add(id_appuntamento)

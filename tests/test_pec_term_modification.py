@@ -269,10 +269,20 @@ def test_termine_di_altra_attivita_o_gia_completato_non_viene_spostato():
     )
     items = [
         SimpleNamespace(id="m", id_fascicolo="F", stato="APERTO", tipo="ADEMPIMENTO", data_scadenza="2026-09-15", titolo="Deposito memorie 171-ter", descrizione="", note="PEC_AUDIT:x", deadline_profile_code="", source_event_type=""),
+        SimpleNamespace(id="o", id_fascicolo="F", stato="APERTO", tipo="ADEMPIMENTO",
+                        data_scadenza="2026-09-15", titolo="Opposizione alla trattazione scritta (art. 127-ter c.p.c.)",
+                        descrizione="", note="PEC_AUDIT:o", deadline_profile_code="CIV_OPPOSIZIONE_127_TER",
+                        source_event_type="comunicazione_cancelleria"),
         SimpleNamespace(id="c", id_fascicolo="F", stato="COMPLETATO", tipo="ADEMPIMENTO", data_scadenza="2026-09-10", titolo="Deposito note scritte ex art. 127-ter c.p.c.", descrizione="", note="PEC_AUDIT:y", deadline_profile_code="", source_event_type=""),
         SimpleNamespace(id="altro", id_fascicolo="G", stato="APERTO", tipo="ADEMPIMENTO", data_scadenza="2026-09-10", titolo="Deposito note scritte ex art. 127-ter c.p.c.", descrizione="", note="PEC_AUDIT:z", deadline_profile_code="", source_event_type=""),
     ]
     assert find_deadline_to_modify(items, fascicolo_id="F", modification=modification, message_id="pec_new") is None
+
+    termine = SimpleNamespace(id="note", id_fascicolo="F", stato="APERTO", tipo="UDIENZA",
+                            data_scadenza="2026-09-10", titolo="Fissazione termine per note in sostituzione udienza",
+                            hearing_mode="note_scritte")
+    assert find_deadline_to_modify([*items, termine], fascicolo_id="F", modification=modification,
+                                   message_id="pec_new") is termine
 
 
 def test_notifica_web_push_della_modifica_del_termine():

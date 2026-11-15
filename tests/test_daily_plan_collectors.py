@@ -104,6 +104,7 @@ def test_un_termine_per_note_assorbe_solo_l_appuntamento_collegato():
 def test_scadenziario_collector_conserva_stato_scaduto_e_data_legale():
     termine = _scadenza("storico", -1, perentorio=True, stato="SCADUTO")
     termine.operational_due_at = (TODAY - timedelta(days=5)).isoformat()
+    termine.legal_due_at = (TODAY - timedelta(days=10)).isoformat()
     [segnale] = ScadenzarioCollector().collect(_ctx(scadenziario_store=_ScadStore([termine]))).signals
     assert segnale.due_at == termine.data_scadenza
 

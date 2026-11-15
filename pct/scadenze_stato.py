@@ -38,15 +38,25 @@ def _giorno(scadenza: Any) -> date | None:
         return None
 
 
+def data_termine_corrente(scadenza: Any) -> str:
+    """Data dello scadenziario, con l'orario legale se appartiene alla stessa data."""
+    corrente = _valore(scadenza, "data_scadenza").strip()
+    data_calcolata = _valore(scadenza, "legal_due_at").strip()
+    if not corrente or (len(data_calcolata) > 10 and data_calcolata[:10] == corrente):
+        return data_calcolata
+    return corrente
+
+
 def termine_note_in_sostituzione(scadenza: Any) -> bool:
     """Riconosce anche le registrazioni storiche del termine di deposito come UDIENZA."""
     from pct.note_127_ter.comunicazione import e_termine_note_127_ter
-    from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, MODALITA_NOTE_SCRITTE
+    from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, MODALITA_NOTE_SCRITTE, TITOLO_NOTE_127_TER
 
-    if _valore(scadenza, "deadline_profile_code").upper() == CODICE_NOTE_127_TER:
+    titolo = _valore(scadenza, "titolo")
+    if _valore(scadenza, "deadline_profile_code").upper() == CODICE_NOTE_127_TER or titolo.startswith(TITOLO_NOTE_127_TER):
         return True
     return (_valore(scadenza, "hearing_mode").lower() == MODALITA_NOTE_SCRITTE
-            and e_termine_note_127_ter(_valore(scadenza, "titolo")))
+            and e_termine_note_127_ter(titolo))
 
 
 def termine_perentorio(scadenza: Any) -> bool:
@@ -91,5 +101,5 @@ def aperta(scadenza: Any, oggi: date | None = None) -> bool:
 __all__ = [
     "ANNULLATA", "APERTA", "BOZZA", "COMPLETATA", "ESITO_UDIENZA", "SCADUTA",
     "aperta", "esito_udienza_da_registrare", "scaduta_da_chiudere", "stato_operativo",
-    "termine_note_in_sostituzione", "termine_perentorio",
+    "data_termine_corrente", "termine_note_in_sostituzione", "termine_perentorio",
 ]

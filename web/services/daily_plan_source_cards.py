@@ -18,7 +18,7 @@ from typing import Any
 from urllib.parse import quote
 
 from pct.formatting import format_date_it, format_datetime_it
-from pct.scadenze_stato import termine_note_in_sostituzione, termine_perentorio
+from pct.scadenze_stato import data_termine_corrente, termine_note_in_sostituzione, termine_perentorio
 
 VIEWABLE_KINDS = {"documento", "pec"}
 
@@ -149,7 +149,7 @@ def scadenza_sources(scadenza_id: str, *, paths: Any, tenant_label: str) -> list
             )
         )
     perentorio = termine_perentorio(scadenza)
-    data_legale = getattr(scadenza, "legal_due_at", "") or getattr(scadenza, "data_scadenza", "")
+    data_legale = data_termine_corrente(scadenza)
     out.append(
         fonte(
             tipo="scadenza",

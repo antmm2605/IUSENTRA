@@ -15,7 +15,7 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
   return response.json()
 }
 
-const PANNELLI_FASCICOLO = /^\/api\/v1\/ui\/fascicoli\/[^/?]+\/(quadro|lettura|obblighi-notifica|conto-economico|regia|scadenze|documenti|letture|catalogazione-documentale|guida-pratica)(?:\?|$)/
+const PANNELLI_FASCICOLO = /^\/api\/v1\/ui\/fascicoli\/[^/?]+\/(quadro|lettura|obblighi-notifica|conto-economico|regia|scadenze|documenti|letture|catalogazione-documentale|guida-pratica|passaggi)(?:\?|$)/
 
 export async function fetchPannelloFascicolo(url: string, init: RequestInit): Promise<Response> {
   if (!PANNELLI_FASCICOLO.test(url) || new URLSearchParams(url.split('?')[1]).has('aggiorna')) {

@@ -47,6 +47,11 @@ def _lettura_valida(corpo: bytes) -> bool:
     return True
 
 
+def _passaggi_validi(corpo: bytes) -> bool:
+    dati = _json(corpo)
+    return esito_valido(corpo) and isinstance(dati, dict) and dati.get("lettura_in_preparazione") is False
+
+
 def _letture_valide(corpo: bytes) -> bool:
     dati = _json(corpo) or {}
     letture = dati.get("letture") if isinstance(dati, dict) else None
@@ -112,7 +117,8 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("catalogazione-documentale", "api_v1_documenti_ai.catalogazione_documentale_fascicolo", percorso=_UI + "/catalogazione-documentale",
              parametro_fascicolo="fascicolo_id"),
     Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo", percorso=_UI + "/guida-pratica"),
-    Pannello("passaggi", "api_v1_passaggi.fascicolo_passaggi", percorso=_UI + "/passaggi", dipende_da=("lettura",)),
+    Pannello("passaggi", "api_v1_passaggi.fascicolo_passaggi", percorso=_UI + "/passaggi",
+             prima_apertura=True, memorizzabile=_passaggi_validi, dipende_da=("lettura",)),
 )
 
 PER_ENDPOINT = {p.endpoint: p for p in PANNELLI}

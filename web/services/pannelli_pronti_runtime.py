@@ -37,7 +37,7 @@ SECONDI_TRA_RICHIESTE = 30
 # Conto economico e inventario dei documenti si leggono dagli archivi locali.
 # Su cache mancante, il pannello legge subito l'inventario già registrato.
 _PANNELLI_IN_SFONDO = frozenset({"quadro", "lettura", "obblighi-notifica",
-                               "scadenze", "letture", "catalogazione-documentale"})
+                               "scadenze", "letture", "catalogazione-documentale", "passaggi"})
 _INTESTAZIONE_ASINCRONA = "X-Iusentra-Preparazione"
 AMBIENTE_RICALCOLO = "iusentra.pannelli_pronti.ricalcolo"
 CHIAVI_SESSIONE = ("user_id", "auth_scope", "auth_tenant_slug", "tenant_slug", "superadmin_user_id")
@@ -431,7 +431,9 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
     if conferma and corpo:
         corpo = _senza_revisione(corpo) or b""
     if risposta.status_code != 200 or letture_fallite or not corpo or not pannello.memorizzabile(corpo):
-        if ricalcolo:
+        # Un dipendente può attendere la sua fonte. È una preparazione, non
+        # un errore definitivo per questa impronta.
+        if ricalcolo and risposta.headers.get(INTESTAZIONE) != "in-preparazione":
             try:
                 contesto.archivio.segna_tentativo(chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=pannello.nome,
                                                   percorso=percorso, profilo=contesto.profilo, impronta=impronta,
@@ -522,7 +524,13 @@ def pannello_valido(fascicolo_id: str, pannello: str) -> bytes | None:
 
 
 def pannello_del_profilo(fascicolo_id: str, pannello: str, *, precedente: bool = False) -> bytes | None:
-    """Legge per il profilo corrente, con ripiego consultivo se richiesto."""
+    """Legge il payload per il profilo corrente."""
+    voce = voce_del_profilo(fascicolo_id, pannello, precedente=precedente)
+    return bytes(voce.corpo) if voce and voce.corpo else None
+
+
+def voce_del_profilo(fascicolo_id: str, pannello: str, *, precedente: bool = False) -> Voce | None:
+    """Legge la proiezione e la sua provenienza temporale per il profilo corrente."""
     contesto = contesto_corrente()
     if contesto is None or not Path(contesto.archivio.percorso).exists():
         return None
@@ -532,7 +540,7 @@ def pannello_del_profilo(fascicolo_id: str, pannello: str, *, precedente: bool =
     try:
         voce = contesto.archivio.voce(chiave_voce(fascicolo_id, pannello, "", contesto.profilo))
         if voce and voce.corpo and (precedente or voce.impronta == impronta):
-            return bytes(voce.corpo)
+            return voce
         return None
     except Exception:
         logger.warning("Pannello %s del profilo non disponibile per %s", pannello, fascicolo_id)

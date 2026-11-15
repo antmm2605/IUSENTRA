@@ -33,7 +33,7 @@ def _rg(fascicolo: dict[str, Any]) -> str:
 
 def passaggi_del_fascicolo(
     fascicolo: dict[str, Any], *, scadenze: Iterable[dict[str, Any]], termini_pec: Iterable[dict[str, Any]], oggi: date,
-    conclusioni: Iterable[dict[str, Any]] = (),
+    conclusioni: Iterable[dict[str, Any]] | None = (),
 ) -> list[Passaggio]:
     contesto = contesto_del_fascicolo(fascicolo)
     passaggi: list[Passaggio] = []

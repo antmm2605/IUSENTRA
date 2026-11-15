@@ -282,3 +282,19 @@ def test_note_esecutive_riusano_la_conseguenza_del_termine_dalla_lettura():
     voce, = [p for p in passaggi if p.regola_id == "127ter.adempimento.decisione"]
     assert voce.regola_descrizione == motivo
     assert voce.norme == ("cpc_127ter", "cpc_631")
+
+
+def test_note_non_ipotizzano_la_conseguenza_mentre_manca_la_lettura():
+    from web.services.pannelli_pronti_catalogo import PER_ENDPOINT
+
+    passaggi = passaggi_del_fascicolo(
+        {"id": "F1", "tipo": "ESECUZIONE"},
+        scadenze=[{"titolo": "Deposito note scritte", "stato": "APERTO",
+                   "deadline_profile_code": "NOTE_127_TER", "data": "2026-12-16"}],
+        termini_pec=[], oggi=date(2026, 11, 15), conclusioni=None,
+    )
+    assert any(p.regola_id == REGOLA_BOZZA for p in passaggi)
+    assert all(p.regola_id != "127ter.adempimento.decisione" for p in passaggi)
+    pannello = PER_ENDPOINT["api_v1_passaggi.fascicolo_passaggi"]
+    assert not pannello.memorizzabile(b'{"ok":true,"lettura_in_preparazione":true,"passaggi":[]}')
+    assert pannello.memorizzabile(b'{"ok":true,"lettura_in_preparazione":false,"passaggi":[]}')

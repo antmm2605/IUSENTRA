@@ -203,7 +203,9 @@ class ArchivioPannelli:
         adesso = _adesso()
         with self._conn(timeout=timeout) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
-            precedente = conn.execute("SELECT corpo FROM pannelli WHERE chiave=?", (chiave_voce,)).fetchone() if dipendenti else None
+            precedente = conn.execute(
+                "SELECT corpo, impronta FROM pannelli WHERE chiave=?", (chiave_voce,),
+            ).fetchone() if dipendenti else None
             conn.execute(
                 "INSERT INTO pannelli(chiave,fascicolo_id,pannello,percorso,profilo,impronta,stato,tipo,corpo,"
                 " calcolato_il,durata_ms,richiesto_il,errore) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'') "
@@ -211,7 +213,7 @@ class ArchivioPannelli:
                 " corpo=excluded.corpo, calcolato_il=excluded.calcolato_il, durata_ms=excluded.durata_ms, errore='', tentata=''",
                 (chiave_voce, str(fascicolo_id), pannello, percorso, profilo, impronta, int(stato), tipo, corpo, adesso,
                  int(durata_ms), adesso))
-            if dipendenti and (precedente is None or precedente[0] != corpo):
+            if dipendenti and precedente != (corpo, impronta):
                 self._invalida_voci(conn, fascicolo_id, dipendenti)
         return True
 

@@ -727,3 +727,17 @@ def test_quadro_superato_mostra_i_riscontri_correnti_e_accoda_il_ricalcolo(studi
 
     coda = da_ricalcolare(studio.archivio, studio.fonti, limite=1, solo_pannelli_prioritari=True)
     assert [(voce.fascicolo_id, voce.pannello) for voce in coda] == [("F1", "quadro")]
+
+
+def test_nuova_impronta_lettura_invalida_dipendenti_anche_con_corpo_identico(studio):
+    archivio = studio.archivio
+    comune = dict(fascicolo_id="F1", profilo="P1", stato=200, tipo="application/json", durata_ms=1)
+    lettura = dict(chiave_voce="L", pannello="lettura", percorso="/lettura", corpo=b'{"lettura":{}}',
+                   dipendenti=("passaggi",))
+    assert archivio.salva(**comune, **lettura, impronta="prima")
+    assert archivio.salva(**comune, chiave_voce="P", pannello="passaggi", percorso="/passaggi",
+                         corpo=b'{"passaggi":[]}', impronta="dopo")
+    assert archivio.salva(**comune, **lettura, impronta="prima")
+    assert archivio.voce("P").impronta == "dopo"
+    assert archivio.salva(**comune, **lettura, impronta="dopo")
+    assert archivio.voce("P").impronta == ""

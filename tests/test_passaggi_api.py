@@ -142,3 +142,20 @@ def test_le_regole_di_uno_studio_non_valgono_per_un_altro(app):
         assert client.get(f"/api/v1/ui/regole-studio/{regola['id']}/diario", headers=HEADERS).status_code == 404
         app.studio_di_prova["tenant"] = "studio-a"
         assert client.get("/api/v1/ui/regole-studio", headers=HEADERS).get_json()["regole"][0]["attiva"]
+
+
+def test_worker_attende_la_lettura_prima_di_pubblicare_i_passaggi(app, monkeypatch):
+    from web.services import pannelli_pronti_runtime, passaggi_runtime
+
+    dati = {**_dati("F1"), "conclusioni": None}
+    monkeypatch.setattr(passaggi_runtime, "dati_del_fascicolo", lambda _id: dati)
+    monkeypatch.setattr(pannelli_pronti_runtime, "calcolo_in_corso", lambda: True)
+    with app.test_client() as client:
+        url = "/api/v1/ui/fascicoli/F1/passaggi"
+        attesa = client.get(url, headers=HEADERS)
+        assert attesa.status_code == 202
+        assert attesa.headers["X-Iusentra-Pannello"] == "in-preparazione"
+        dati["conclusioni"] = []
+        risposta = client.get(url, headers=HEADERS)
+        assert risposta.status_code == 200
+        assert risposta.get_json()["lettura_in_preparazione"] is False

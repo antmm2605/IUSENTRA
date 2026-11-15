@@ -80,9 +80,7 @@ def _scadenza(voce: Any) -> dict[str, Any]:
 def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
     """Fascicolo, scadenze e termini proposti dal presidio PEC, dagli stessi gestori della Lettura (tenant della richiesta)."""
     from lex.context.fascicolo_lettura_context import _fascicolo_dict
-    from pct.fascicolo_lettura.pec import pec
     from web.helpers import get_fascicoli, get_scadenziario
-    from web.services.fascicolo_pec_presidio import messaggi_pec_per_fascicolo
     from web.services.riscontri_processuali_runtime import lettura_materializzata
 
     fascicolo = get_fascicoli().get(str(fascicolo_id or "").strip())
@@ -94,15 +92,10 @@ def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
         logger.warning("Scadenze del fascicolo %s non disponibili per i passaggi: %s", fascicolo_id, exc)
         scadenze = []
     lettura = lettura_materializzata(fascicolo_id)
-    try:
-        quadro_pec = (lettura or {}).get("pec")
-        if quadro_pec is None:
-            quadro_pec = pec(messaggi_pec_per_fascicolo(fascicolo, solo_collegate=True))
-        termini = quadro_pec.get("termini_da_registrare") or []
-    except Exception as exc:
-        logger.warning("Termini PEC del fascicolo %s non disponibili per i passaggi: %s", fascicolo_id, exc)
-        termini = []
-    conclusioni = ((lettura or {}).get("ragionamento") or {}).get("conclusioni") or []
+    quadro_pec = (lettura or {}).get("pec") or {}
+    termini = quadro_pec.get("termini_da_registrare") or []
+    ragionamento = (lettura or {}).get("ragionamento") or {}
+    conclusioni = None if lettura is None else (ragionamento.get("conclusioni") or [])
     return {"fascicolo": _fascicolo_dict(fascicolo), "scadenze": scadenze, "termini_pec": termini, "conclusioni": conclusioni}
 
 
@@ -130,7 +123,8 @@ def payload_passaggi(fascicolo_id: str) -> dict[str, Any] | None:
     if dati is None:
         return None
     passaggi = passaggi_con_regole(dati, repository=repository_corrente())
-    return {"passaggi": [passaggio.come_dizionario() for passaggio in passaggi], "totale": len(passaggi)}
+    return {"passaggi": [passaggio.come_dizionario() for passaggio in passaggi], "totale": len(passaggi),
+            "lettura_in_preparazione": dati.get("conclusioni", ()) is None}
 
 
 def correggi_passaggio(fascicolo_id: str, chiave: str, richiesta: Mapping[str, Any]) -> dict[str, Any]:

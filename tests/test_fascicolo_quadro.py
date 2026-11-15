@@ -241,3 +241,32 @@ def test_quadro_riusa_riscontro_storico_solo_per_lo_stesso_atto_e_la_stessa_fina
     assert obblighi[0]["stato"] == "da_verificare"
     precedente = {**lettura, "aggiornamento_pendente": True}
     assert "riscontro storico" not in riga_notifiche_da_lettura(sintesi, precedente, OGGI)["testo"]
+
+
+def test_sintesi_storica_riusa_l_identita_solo_dallo_stesso_risultato(monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    from web.services import pannelli_pronti_runtime
+    from web.services.obblighi_notifica_sintesi import _integra_identita
+
+    integrale = {"ok": True, "obblighi": [{
+        "etichetta": "Sentenza", "stato": "da_verificare", "documentoId": "S1", "regola": "sentenza_notifica_breve",
+    }]}
+    istante_archivio = "2026-11-15T02:46:17.865+00:00"
+
+    def pannello(fascicolo_id, nome, *, precedente):
+        assert (fascicolo_id, nome, precedente) == ("F1", "obblighi-notifica", True)
+        return SimpleNamespace(corpo=json.dumps(integrale).encode(), calcolato_il=istante_archivio)
+
+    monkeypatch.setattr(pannelli_pronti_runtime, "voce_del_profilo", pannello)
+    sintesi = {"obblighi": [{"atto": "Sentenza", "stato": "da_verificare", "scadenza": ""}],
+               "calcolata_il": "2026-11-15T02:46:17Z"}
+    aggiornata = _integra_identita(sintesi, "F1")
+    assert aggiornata["obblighi"][0]["documenti"] == ["S1"]
+    assert "documenti" not in sintesi["obblighi"][0]
+    integrale["obblighi"][0]["stato"] = "notificato"
+    assert _integra_identita(sintesi, "F1") is sintesi
+    integrale["obblighi"][0]["stato"] = "da_verificare"
+    istante_archivio = "2026-11-14T02:46:17.865+00:00"
+    assert _integra_identita(sintesi, "F1") is sintesi

@@ -69,6 +69,11 @@ def fascicolo_passaggi(id_fasc: str):
         payload = payload_passaggi(id_fasc)
         if payload is None:
             return jsonify({"ok": False, "notFound": True, "errore": "Fascicolo non trovato."}), 404
+        if payload.get("lettura_in_preparazione"):
+            from web.services.pannelli_pronti_runtime import _in_preparazione, calcolo_in_corso
+
+            if calcolo_in_corso():
+                return _in_preparazione()
         return jsonify({"ok": True, **payload})
     except Exception as exc:
         current_app.logger.exception("Passaggi del fascicolo %s non disponibili: %s", id_fasc, exc)

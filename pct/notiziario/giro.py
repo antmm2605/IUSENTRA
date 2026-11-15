@@ -9,14 +9,14 @@ poi inoltrate alla revisione degli aggiornamenti legali (`alimentazione`).
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import logging
 from typing import Any, Callable
 
 import requests
 
 from pct import notizie_utili
-from pct.notiziario import adattatori
+from pct.notiziario import adattatori, cellar
 from pct.notiziario.archivio import ArchivioNotiziario
 from pct.notiziario.feed import ROME_TZ, leggi_feed
 from pct.notiziario.fonti import FONTI, Fonte
@@ -50,9 +50,18 @@ def fonti_scadute(stato: dict[str, dict[str, Any]], adesso: datetime, *, forza: 
     return scadute
 
 
-def raccogli(fonte: Fonte, *, request_get: RequestGet = requests.get) -> list[dict[str, Any]]:
+def raccogli(
+    fonte: Fonte, *, request_get: RequestGet = requests.get, oggi: date | None = None,
+) -> list[dict[str, Any]]:
     if fonte.formato == "rss":
-        notizie = adattatori.da_feed(fonte, leggi_feed(scarica(fonte.url, fonte.host_ammessi, request_get=request_get)))
+        try:
+            notizie = adattatori.da_feed(fonte, leggi_feed(scarica(fonte.url, fonte.host_ammessi, request_get=request_get)))
+        except ErroreFonte:
+            if fonte.id != "eurlex_gu_l":
+                raise
+            notizie = []
+        if not notizie and fonte.id == "eurlex_gu_l":
+            notizie = cellar.raccogli_serie_l(fonte, request_get=request_get, oggi=oggi or datetime.now(ROME_TZ).date())
     else:
         righe = notizie_utili.raccogli_pagina_istituzionale(fonte.id, request_get=request_get, limit=12)
         notizie = adattatori.da_pagina_istituzionale(fonte, righe)
@@ -68,6 +77,8 @@ def _iso(istante: datetime) -> str:
 def _messaggio(exc: BaseException) -> str:
     if isinstance(exc, ErroreFonte):
         return str(exc)
+    if isinstance(exc, requests.HTTPError) and getattr(exc.response, "status_code", None) == 403:
+        return "Il sito dell’ente ha rifiutato la lettura automatica."
     return "La fonte non ha restituito un contenuto leggibile."
 
 
@@ -88,7 +99,10 @@ def esegui_giro(
     nuove_totali = 0
     if scadute:
         esecutore = ThreadPoolExecutor(max_workers=min(_LAVORATORI, len(scadute)))
-        futuri = {esecutore.submit(raccogli, fonte, request_get=request_get): fonte for fonte in scadute}
+        futuri = {
+            esecutore.submit(raccogli, fonte, request_get=request_get, oggi=adesso.astimezone(ROME_TZ).date()): fonte
+            for fonte in scadute
+        }
         try:
             for futuro in as_completed(futuri, timeout=tempo_massimo):
                 fonte = futuri[futuro]

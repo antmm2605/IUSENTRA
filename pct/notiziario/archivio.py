@@ -104,6 +104,8 @@ class ArchivioNotiziario:
                 valori = [str(voce.get(campo) or "") for campo in _CAMPI]
                 atti = json.dumps(list(voce.get("atti") or []), ensure_ascii=False)
                 adesso = str(voce.get("acquisita_il") or "")
+                if esistente and voce.get("solo_inserimento"):
+                    continue
                 if esistente:
                     conn.execute(
                         "UPDATE notizie SET " + ", ".join(f"{campo} = ?" for campo in _CAMPI[1:])

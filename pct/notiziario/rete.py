@@ -51,6 +51,10 @@ def scarica(url: str, host_ammessi: tuple[str, ...], *, request_get: RequestGet 
                 raise ErroreFonte("La fonte ha restituito un reindirizzamento non valido.")
             corrente = urljoin(corrente, destinazione)
             continue
+        if stato == 202:
+            raise ErroreFonte("Il canale ufficiale ha risposto senza consegnare il flusso di notizie.")
+        if stato == 403:
+            raise ErroreFonte("Il sito dell’ente ha rifiutato la lettura automatica.")
         if stato != 200:
             raise ErroreFonte(f"La fonte ha risposto con lo stato {stato}.")
         return _corpo_limitato(risposta)

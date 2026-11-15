@@ -55,6 +55,16 @@ def consegna_giudice(fascicolo, fatti):
                 "valore": f.valore, "passaggio": f.contesto, "prove": f.prove} for f in fatti]
     registro = registro_corrente()
     current_facts = registro.fatti(tenant_corrente(), fascicolo.id, categoria="metadato_fascicolo", campo="giudice", verifiche=("verificata", "corretta"))
+    stato_fascicolo = getattr(fascicolo, "stato", "")
+    solo_intestazioni = current_facts and all(
+        any(p.get("codice") == "magistrato_intestazione" and p.get("esito") == "ok" for p in f.prove)
+        and not any(p.get("codice") == "sostituzione_giudice" and p.get("esito") == "ok" for p in f.prove)
+        for f in current_facts
+    )
+    if stato_fascicolo in {"DEFINITO", "ARCHIVIATO"} and fascicolo.giudice and solo_intestazioni:
+        RegistroDiscordanze(registro).riconcilia(tenant_corrente(), fascicolo.id, "giudice_da_fonte", [])
+        return [{"fatto_id": f.id, "stato": "non_pertinente", "riferimento": "",
+                 "motivo": "L’intestazione identifica il magistrato dell’atto storico."} for f in fatti]
     all_sources = [{"fatto_id": f.id, "documento_id": f.oggetto_id, "sha256": f.sha256,
                    "valore": f.valore, "passaggio": f.contesto, "prove": f.prove} for f in current_facts]
     if len(values) != 1 or not cronologia_concordante(current_facts, fatti[0].valore):

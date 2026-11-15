@@ -1014,6 +1014,11 @@
   background: #ffffff;
 }
 
+.iu-notiziario__sources-state li.is-delayed {
+  border-color: #e9d8a6;
+  background: #fffcf3;
+}
+
 .iu-notiziario__sources-state li.is-failing {
   border-color: #f2c4c4;
   background: #fff7f7;

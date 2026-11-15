@@ -194,7 +194,9 @@ export function NotiziarioPanel() {
   const sourceOptions = serverSide
     ? payload.facets.sources
     : payload.filters.filter((filter) => filter.id !== 'all').map((filter) => ({ ...filter, count: 0 }))
-  const failingSources = payload.sourceStates.filter((state) => state.checked && !state.ok)
+  const sourcesWithArchive = payload.sourceStates.filter((state) => state.preservedFromCache)
+  const sourcesWithoutArchive = payload.sourceStates.filter((state) => state.checked && !state.ok && !state.preservedFromCache)
+  const uncheckedSources = payload.sourceStates.filter((state) => !state.checked)
 
   const replaceItem = (next: NotiziarioItem) => {
     setPayload((current) => ({
@@ -556,18 +558,23 @@ export function NotiziarioPanel() {
         <details className="iu-notiziario__sources-state">
           <summary>
             Stato delle fonti ufficiali: {payload.sourceStates.filter((state) => state.ok).length} aggiornate
-            {failingSources.length ? `, ${failingSources.length} non raggiungibili all’ultimo controllo` : ''}
+            {sourcesWithArchive.length ? ` · ${sourcesWithArchive.length} con archivio disponibile` : ''}
+            {sourcesWithoutArchive.length ? ` · ${sourcesWithoutArchive.length} senza dati acquisiti` : ''}
+            {uncheckedSources.length ? ` · ${uncheckedSources.length} in attesa del primo controllo` : ''}
           </summary>
           <ul>
             {payload.sourceStates.map((state) => (
-              <li key={state.id} className={state.checked && !state.ok ? 'is-failing' : ''}>
+              <li key={state.id} className={state.preservedFromCache ? 'is-delayed' : state.checked && !state.ok ? 'is-failing' : ''}>
                 {safeExternalHref(state.url) ? <a href={safeExternalHref(state.url)} target="_blank" rel="noopener noreferrer">{visibleText(state.label)}</a> : <strong>{visibleText(state.label)}</strong>}
                 <span>{visibleText(state.authority)}</span>
                 <span>
-                  {!state.checked ? 'Non ancora interrogata' : state.ok ? 'Aggiornata' : visibleText(state.message, 'Non raggiungibile')}
+                  {!state.checked ? 'Primo controllo in attesa' : state.ok ? 'Aggiornata' : state.preservedFromCache
+                    ? 'Aggiornamento in ritardo · ultime notizie acquisite disponibili'
+                    : 'Aggiornamento in ritardo · archivio vuoto'}
                   {state.latestPublishedAt ? ` · ultima notizia del ${formatDateIt(state.latestPublishedAt)}` : ''}
                   {state.count ? ` · ${state.count} in archivio` : ''}
                 </span>
+                {state.checked && !state.ok && state.message ? <span>{visibleText(state.message)}</span> : null}
               </li>
             ))}
           </ul>

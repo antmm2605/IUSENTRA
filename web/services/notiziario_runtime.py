@@ -173,6 +173,13 @@ def _conteggi(voci: list[dict[str, Any]], filtri: Mapping[str, Any]) -> dict[str
     }
 
 
+_INDICI_UFFICIALI = {
+    "gu_serie_generale": "https://www.gazzettaufficiale.it/30giorni/serie_generale",
+    "gu_corte_costituzionale": "https://www.gazzettaufficiale.it/30giorni/corte_costituzionale",
+    "eurlex_gu_l": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?locale=it",
+}
+
+
 def stato_fonti(archivio: ArchivioNotiziario) -> list[dict[str, Any]]:
     stato = archivio.stato_fonti()
     righe: list[dict[str, Any]] = []
@@ -182,7 +189,7 @@ def stato_fonti(archivio: ArchivioNotiziario) -> list[dict[str, Any]]:
             "id": fonte.id,
             "label": fonte.etichetta,
             "authority": fonte.ente,
-            "url": fonte.url,
+            "url": _INDICI_UFFICIALI.get(fonte.id, fonte.url),
             "ok": bool(voce.get("ultimo_esito_ok")),
             "checked": bool(voce),
             "count": int(voce.get("in_archivio") or 0),

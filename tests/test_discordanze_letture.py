@@ -92,6 +92,13 @@ def test_giudici_discordanti_pubblicano_confronto_apribile(tmp_path, monkeypatch
         "/fascicoli/f1/documenti/doc-1/visualizza", "/fascicoli/f1/documenti/doc-2/visualizza"]
     assert len(voce["evidenze"]) == 2
 
+    case.stato = "DEFINITO"
+    for fatto in facts:
+        fatto.prove = [{"codice": "magistrato_intestazione", "esito": "ok"}]
+    consegna_giudice(case, facts)
+    assert RegistroDiscordanze(registro).aperte("studio-a")["voci"] == []
+    assert case.giudice == "Mario Rossi"
+
 
 def test_parita_schema_sqlite_postgresql():
     from pathlib import Path
@@ -147,3 +154,33 @@ def test_impronta_con_prefisso_archivio_non_blocca(tmp_path, monkeypatch):
                            id_cliente='C1', titolo='Causa', nome_cliente='Rossi Mario')
     runtime.pubblica_discordanza_nome_cliente(caso, 'Rossi Mario',
                                              [{'id': 'D1', 'sha256': 'archivio:' + 'b' * 64, 'valore': 'Bianchi Luca'}])
+
+
+def test_coassistiti_nello_stesso_originale_non_sono_nomi_alternativi(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from web import helpers
+    from web.services import archivio_letture_runtime, discordanze_letture_runtime as runtime
+
+    registro = RegistroLetture(tmp_path / "registro.db")
+    repo = RegistroDiscordanze(registro)
+    monkeypatch.setattr(runtime, "repository", lambda: (repo, "studio-a"))
+    monkeypatch.setattr(helpers, "get_clienti", lambda: {})
+    caso = SimpleNamespace(id="f1", id_cliente="c1", titolo="Ricorso congiunto",
+                           nome_cliente="Rossi Mario", numero_rg="", anno_rg="", numero="2026/1",
+                           documenti=[SimpleNamespace(id="d1", nome="Ricorso.pdf")])
+    fatti = [
+        SimpleNamespace(categoria="parte", campo="assistito", valore=nome, valore_letto="",
+                        verifica="verificata", id=f"f{i}", oggetto_id="d1", sha256="a" * 64,
+                        contesto=f"Ricorrente: {nome}", prove=[])
+        for i, nome in enumerate(("Rossi Mario", "Verdi Anna"))
+    ]
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", lambda *a, **k: fatti)
+    runtime.pubblica_discordanza_nome_cliente(caso, caso.nome_cliente, [
+        {"id": "d1", "sha256": "a" * 64, "valore": "Verdi Anna"},
+    ])
+    assert repo.aperte("studio-a")["totale"] == 1
+    runtime.verifica_discordanze_fascicolo(caso)
+    assert repo.aperte("studio-a")["totale"] == 0
+    fatti[0].sha256 = "b" * 64
+    runtime.verifica_discordanze_fascicolo(caso)
+    assert repo.aperte("studio-a")["totale"] == 1

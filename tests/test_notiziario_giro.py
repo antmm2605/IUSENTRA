@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,7 +13,7 @@ from pct.notiziario import fonti
 from pct.notiziario.adattatori import identificativo_notizia
 from pct.notiziario.alimentazione import STATO_ACQUISIZIONE, inoltra_alla_revisione
 from pct.notiziario.archivio import ArchivioNotiziario
-from pct.notiziario.giro import esegui_giro, fonti_scadute
+from pct.notiziario.giro import esegui_giro, fonti_scadute, raccogli
 from pct.notiziario.pertinenza import costruisci_indice, fascicoli_pertinenti
 from web.services import notiziario_runtime as vista
 
@@ -81,6 +82,33 @@ def test_giro_completo_con_una_fonte_giu_che_non_ferma_le_altre(tmp_path: Path, 
     assert stato["curia"]["messaggio"] == "La fonte non è raggiungibile in questo momento."
     assert stato["gu_serie_generale"]["ultimo_esito_ok"] is True
     assert stato["gu_serie_generale"]["ultima_pubblicazione"] == "2026-11-07"
+
+
+def test_eurlex_usa_cellar_ufficiale_se_il_feed_restituisce_202(tmp_path):
+    fonte = fonti.fonte("eurlex_gu_l")
+    url_atto = "https://eur-lex.europa.eu/legal-content/AUTO/?uri=CELEX:32026D2557"
+    record = {"results": {"bindings": [{
+        "id": {"value": "http://publications.europa.eu/resource/oj/L_202602557"},
+        "published": {"value": "2026-11-13"},
+        "title": {"value": "Decisione (UE) 2026/2557"},
+        "celex": {"value": "32026D2557"},
+    }]}}
+
+    def get(url, **_kwargs):
+        if url == fonte.url:
+            return SimpleNamespace(status_code=202)
+        assert url.startswith("https://publications.europa.eu/webapi/rdf/sparql?")
+        return _Risposta(json.dumps(record).encode())
+
+    voci = raccogli(fonte, request_get=get, oggi=date(2026, 11, 15))
+    assert len(voci) == 1
+    voce = voci[0]
+    assert (voce["url"], voce["data"], voce["riferimento_ufficiale"]) == (url_atto, "2026-11-13", "CELEX 32026D2557")
+    assert voce["id"] == identificativo_notizia(fonte.id, url_atto)
+    archivio = ArchivioNotiziario(tmp_path / "notiziario.sqlite")
+    archivio.salva([{**voce, "solo_inserimento": False, "sintesi": "Descrizione ufficiale già acquisita."}])
+    assert archivio.salva(voci) == []
+    assert archivio.notizia(voce["id"])["sintesi"] == "Descrizione ufficiale già acquisita."
 
 
 def test_giro_successivo_interroga_solo_le_fonti_scadute_e_non_duplica(tmp_path: Path, monkeypatch):

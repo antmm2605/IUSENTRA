@@ -31,18 +31,27 @@ def verifica_discordanze_fascicolo(fascicolo):
     cf = str(getattr(cliente,'codice_fiscale','') or '').strip().upper()
     nome = str(getattr(cliente, 'nome_completo', '') or fascicolo.nome_cliente).strip()
     fatti = fatti_fascicolo(fascicolo, categoria='parte')
-    fonti_nome = []
-    confrontabili = False
-    docs = {d.id:d for d in fascicolo.documenti}
+    docs = {d.id: d for d in fascicolo.documenti}
+    assistiti = []
     for fatto in fatti:
         parti = parti_lette([fatto])
-        if len(parti) != 1 or parti[0].ruolo != 'assistito' or fatto.oggetto_id not in docs:
+        if len(parti) == 1 and parti[0].ruolo == 'assistito' and fatto.oggetto_id in docs:
+            assistiti.append((fatto, parti[0]))
+    atti_con_cliente = {
+        (fatto.oggetto_id, fatto.sha256)
+        for fatto, parte in assistiti
+        if fatto.sha256 and parte.verifica in {'verificata', 'corretta'} and stesso_nome(parte.nome, nome)
+    }
+    fonti_nome = []
+    for fatto, parte in assistiti:
+        # Nello stesso originale possono essere presenti più parti assistite.
+        stesso_cf = bool(cf and parte.codice_fiscale == cf)
+        if (fatto.oggetto_id, fatto.sha256) in atti_con_cliente and not stesso_cf:
             continue
-        confrontabili = True
-        if discordanza_nome(parti[0].nome, nome, citazione=fatto.contesto, cf_anagrafica=cf):
-            fonti_nome.append({'id':fatto.oggetto_id, 'sha256':fatto.sha256,
-                               'valore':parti[0].nome, 'citazione':fatto.contesto[:300]})
-    if nome and confrontabili:
+        if discordanza_nome(parte.nome, nome, citazione=fatto.contesto, cf_anagrafica=cf):
+            fonti_nome.append({'id': fatto.oggetto_id, 'sha256': fatto.sha256,
+                               'valore': parte.nome, 'citazione': fatto.contesto[:300]})
+    if nome and assistiti:
         pubblica_discordanza_nome_cliente(fascicolo, nome, fonti_nome, cf_anagrafica=cf)
     voci = []
     if cf:
@@ -119,8 +128,8 @@ def pubblica_discordanza_nome_cliente(fascicolo, nome_anagrafica, fonti, *, cf_a
             'valoreAnagrafica':nome_anagrafica,
             'valoriAtto':sorted({p['valore'] for p in prove.values()}),
             'fonti':sorted(prove.values(), key=lambda p:(p['id'],p['sha256'],p['valore'])),
-            'nota':'Il nome negli originali non coincide con l’anagrafica. '
-                   'Il collegamento automatico resta sospeso; nessun nome o documento viene corretto per somiglianza.',
+            'nota':'Confronta la grafia nell’originale con la procura o un documento di identità, '
+                   'usando il codice fiscale per verificare a chi si riferisce. Correggi il dato solo dopo il riscontro.',
         })
     repo.riconcilia(tenant, fascicolo.id, 'nome_cliente_atto', voci)
 

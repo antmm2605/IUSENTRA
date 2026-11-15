@@ -48,6 +48,7 @@ class CollectorContext:
     # distinguibili scadenze con titolo generico ma origine diversa
     scadenza_reason_resolver: Callable[[Any], str] | None = None
     appuntamenti_sostituiti_da_note: set[str] = field(default_factory=set)
+    udienze_revocate_da_cancelleria: set[tuple[str, date]] = field(default_factory=set)
 
 
 @dataclass

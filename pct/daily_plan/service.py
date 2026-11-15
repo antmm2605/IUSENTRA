@@ -38,7 +38,7 @@ from .collectors import (
     build_coverage_report,
 )
 from .correlation import correlate
-from .deduplication import MergedSignalGroup, collapse_same_source_duplicates, merge_signals
+from .deduplication import MergedSignalGroup, collapse_same_source_duplicates, merge_signals, normalize_due_date
 from .models import (
     DailyPlan,
     DailyWorkItem,
@@ -111,9 +111,24 @@ class RunReport:
         }
 
 
-def _segnali_operativi(signals: Iterable[OperationalSignal]) -> Iterable[OperationalSignal]:
-    """Il termine decorre dalla PEC, mentre la scadenza è governata dallo scadenziario."""
+def _segnali_operativi(
+    signals: Iterable[OperationalSignal], ctx: CollectorContext,
+) -> Iterable[OperationalSignal]:
+    """Usa le risultanze dello scadenziario anche per le PEC già materializzate."""
+    oggi = ctx.planning_date or ctx.clock.today()
+    revoche = {(fid, giorno.isoformat()) for fid, giorno in ctx.udienze_revocate_da_cancelleria}
     for signal in signals:
+        if signal.source_type == "pec" and signal.kind == "hearing_attend":
+            giorno = normalize_due_date(signal.due_at, ctx.clock)
+            if (signal.fascicolo_id, giorno) in revoche and signal.metadata.get("fascicolo_match") != "weak":
+                continue
+            if giorno and giorno < oggi.isoformat():
+                yield replace(
+                    signal, kind="hearing_outcome", title="Verifica l’esito dell’udienza fissata",
+                    reason="La data indicata nella PEC è trascorsa. Consulta il verbale o il provvedimento successivo.",
+                    blocking=False,
+                )
+                continue
         if signal.kind != "pec_deadline" or signal.source_type != "pec":
             yield signal
             continue
@@ -212,7 +227,7 @@ class DailyPlanService:
             results.append(result)
             fixed_agenda.extend(result.fixed_agenda)
         collected = [signal for result in results for signal in result.signals]
-        groups = merge_signals(_segnali_operativi(collapse_same_source_duplicates(correlate(collected, clock=self.clock))))
+        groups = merge_signals(_segnali_operativi(collapse_same_source_duplicates(correlate(collected, clock=self.clock)), ctx))
         resolver = self.resolver_factory()
         fascicoli_lookup = self.fascicoli_lookup_factory()
         drafts = [
@@ -354,7 +369,11 @@ class DailyPlanService:
         # riconciliazione: i segnali non riemessi da una fonte scandita per
         # intero e senza troncamenti vengono risolti
         for result in results:
-            full_scan = mode == "full" or result.source_type in _ALWAYS_FULL_SOURCES
+            # PEC procede con un cursore anche durante il giro giornaliero.
+            # L'assenza da quel lotto non risolve un'attività delle PEC precedenti.
+            full_scan = result.source_type in _ALWAYS_FULL_SOURCES or (
+                mode == "full" and result.source_type != "pec"
+            )
             complete = bool(result.coverage) and result.coverage.status == "complete"
             if full_scan and complete and not result.truncated:
                 keep = {s.dedupe_key for s in correlated if s.source_type == result.source_type}
@@ -375,7 +394,7 @@ class DailyPlanService:
         active_signals = correlate(
             self.repository.list_active_signals(limit=5000), clock=self.clock
         )
-        groups = merge_signals(_segnali_operativi(active_signals))
+        groups = merge_signals(_segnali_operativi(active_signals, ctx))
         resolver = self.resolver_factory()
         fascicoli_lookup = self.fascicoli_lookup_factory()
 

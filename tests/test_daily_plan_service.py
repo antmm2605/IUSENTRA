@@ -362,3 +362,37 @@ def test_anteprima_di_domani_calcolata_in_lettura_senza_salvare(world):
 
     payload = plan_summary_payload(piano)
     assert payload["stato"] == "anteprima" and payload["versione_piano"] == ""
+
+
+def test_ricostruzione_giornaliera_non_risolve_pec_fuori_dal_lotto_incrementale(world):
+    from pct.daily_plan.models import OperationalSignal
+
+    world.repo.upsert_signals([OperationalSignal(
+        id="pec-1", tenant_id="studio-a", source_type="pec", kind="pec_review",
+        title="Comunicazione da leggere", dedupe_key="pec-1",
+    )])
+    watermark = "2026-07-10T08:00:00"
+    world.repo.set_watermark("pec", watermark=watermark, status="ok")
+
+    def nessuna_nuova_pec(since, *, limit):
+        assert since == watermark
+        return []
+
+    pec_repo = SimpleNamespace(
+        list_legal_deadlines_since=nessuna_nuova_pec,
+        list_legal_hearings_since=nessuna_nuova_pec,
+        list_legal_payments_since=nessuna_nuova_pec,
+        list_messages_to_presidiate=nessuna_nuova_pec,
+        daily_plan_watermark=lambda: watermark,
+    )
+    service = world.service()
+
+    def contesto(dirty):
+        ctx = world.context_factory(dirty)
+        ctx.pec_repository = pec_repo
+        return ctx
+
+    service.context_factory = contesto
+    assert service.rebuild_full()["signals_resolved"] == 0
+    segnale, = world.repo.list_active_signals(source_type="pec")
+    assert segnale.id == "pec-1"

@@ -229,7 +229,8 @@ def test_decorrenza_pec_rimane_un_riscontro_e_il_termine_gia_registrato_ha_una_s
         event_at="2026-09-04T10:00:00+02:00", due_at="2026-09-04", peremptory=True,
         reason="Accertare decorrenza e associazione.",
     )
-    groups = merge_signals(_segnali_operativi([pec]))
+    ctx = CollectorContext(tenant_id='default', planning_date=TODAY)
+    groups = merge_signals(_segnali_operativi([pec], ctx))
     group, = groups
     assert group.primary.due_at == "" and not group.primary.peremptory
     assert group.primary.metadata["dies_a_quo_date"] == "2026-09-04"
@@ -239,6 +240,36 @@ def test_decorrenza_pec_rimane_un_riscontro_e_il_termine_gia_registrato_ha_una_s
 
     confirmed = replace(pec, metadata={"scadenziario_id": "sc-1", "esito_deterministico": "ok"})
     scadenza = replace(pec, id="sc-1", source_type="scadenziario", kind="deadline_fulfill", due_at="2026-09-10")
-    assert list(_segnali_operativi([confirmed, scadenza])) == [scadenza]
+    assert list(_segnali_operativi([confirmed, scadenza], ctx)) == [scadenza]
     weak = replace(confirmed, metadata={**confirmed.metadata, "fascicolo_match": "weak"})
-    assert len(list(_segnali_operativi([weak, scadenza]))) == 2
+    assert len(list(_segnali_operativi([weak, scadenza], ctx))) == 2
+
+
+
+def test_piano_usa_la_revoca_di_cancelleria_anche_quando_il_presidio_e_completato():
+    from dataclasses import replace
+    from pct.daily_plan.collectors.calendar_collector import ScadenzarioCollector
+    from pct.daily_plan.models import OperationalSignal
+    from pct.daily_plan.service import _segnali_operativi
+
+    scadenza = SimpleNamespace(
+        id="revoca", id_fascicolo="fasc", titolo="Revoca udienza e fissazione termine per note in sost. udienza",
+        note="PEC_AUDIT:provvedimento-1", stato="COMPLETATO", tipo="UDIENZA",
+        data_scadenza="2026-07-22", hearing_mode="note_scritte",
+        source_event_type="comunicazione_cancelleria", source_event_at="2026-07-21T09:30:00",
+    )
+    ctx = CollectorContext(
+        tenant_id="default", planning_date=TODAY,
+        scadenziario_store=SimpleNamespace(tutte=lambda **_: [scadenza]),
+    )
+    assert not ScadenzarioCollector().collect(ctx).signals
+    pec = OperationalSignal(
+        id="pec", tenant_id="default", source_type="pec", kind="hearing_attend",
+        title="Udienza comunicata via PEC", due_at="2026-07-21", dedupe_key="pec", fascicolo_id="fasc",
+    )
+    assert not list(_segnali_operativi([pec], ctx))
+    altro_fascicolo, = _segnali_operativi([replace(pec, fascicolo_id="altro")], ctx)
+    assert altro_fascicolo.kind == "hearing_outcome"
+    assert altro_fascicolo.fascicolo_id == "altro" and altro_fascicolo.due_at == "2026-07-21"
+    manuale = replace(pec, source_type="agenda")
+    assert list(_segnali_operativi([manuale], ctx)) == [manuale]

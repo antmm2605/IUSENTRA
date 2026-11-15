@@ -68,6 +68,24 @@ def origin_event_metadata(sc: Any) -> dict[str, str]:
     return out
 
 
+_REVOCA_UDIENZA = re.compile(r"^revoca\s+(?:(?:dell[’']|della)\s*)?udienza\b", re.I)
+
+
+def registra_revoca_udienza(ctx: CollectorContext, scadenza: Any, fase: str) -> None:
+    """Usa la revoca della cancelleria già recepita nello Scadenziario."""
+    if fase in {ANNULLATA, BOZZA}:
+        return
+    if (_enum_val(getattr(scadenza, "source_event_type", "")) != "comunicazione_cancelleria"
+            or _enum_val(getattr(scadenza, "hearing_mode", "")) != "note_scritte"
+            or not _REVOCA_UDIENZA.match(_enum_val(getattr(scadenza, "titolo", "")))
+            or not origin_event_metadata(scadenza).get("pec_audit_id")):
+        return
+    giorno_udienza = _to_date(getattr(scadenza, "source_event_at", ""))
+    fascicolo_id = _enum_val(getattr(scadenza, "id_fascicolo", ""))
+    if fascicolo_id and giorno_udienza:
+        ctx.udienze_revocate_da_cancelleria.add((fascicolo_id, giorno_udienza))
+
+
 def _scadenza_reason(ctx: CollectorContext, sc: Any, perentorio: bool) -> str:
     base = "Termine perentorio dello scadenziario." if perentorio else "Scadenza aperta dello scadenziario."
     resolver = ctx.scadenza_reason_resolver
@@ -105,6 +123,7 @@ class ScadenzarioCollector:
         for sc in tutte:
             stato = _enum_val(getattr(sc, "stato", "")).lower()
             fase = stato_operativo(sc, planning_day)
+            registra_revoca_udienza(ctx, sc, fase)
             if fase in {ANNULLATA, BOZZA, COMPLETATA} or stato in _CLOSED_DEADLINE_STATES:
                 continue
             due = _to_date(data_termine_corrente(sc))

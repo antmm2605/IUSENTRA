@@ -133,3 +133,21 @@ def test_il_comportamento_predefinito_non_cambia(tmp_path: Path):
 
     assert len(repo._fascicoli) == 5
     assert len(repo.tutti()) == 5
+
+
+def test_la_riconvalida_economica_scrive_solo_il_fascicolo_letto(tmp_path, monkeypatch):
+    from web.services import riconvalida_economia_runtime as runtime
+
+    primo, secondo = _semina(tmp_path, 2)
+    salvataggio = _repo(tmp_path)
+    voce = {"status": "pagato", "pagato": True, "importo": 258.0, "updated_by": "Lex AI backfill"}
+    for fid in (primo, secondo):
+        salvataggio.aggiorna(fid, pagamenti={"liquidazione_giudice": voce})
+    monkeypatch.setattr(runtime, "incasso_registrato", lambda _fid: False)
+    mirato = _repo(tmp_path, carica_tutto=False)
+
+    assert runtime.riconvalida_incassi(mirato.get(primo), repository=mirato) == ["liquidazione_giudice"]
+    assert list(mirato._fascicoli) == [primo]
+    riletto = _repo(tmp_path)
+    assert riletto.get(primo).pagamenti["liquidazione_giudice"]["status"] == "da_incassare"
+    assert riletto.get(secondo).pagamenti["liquidazione_giudice"]["status"] == "pagato"

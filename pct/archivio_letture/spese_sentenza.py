@@ -64,6 +64,11 @@ def importo_euro(testo: str) -> float | None:
     return valore if valore > 0 else None
 
 
+def accessori_nel_capo_spese(testo: str) -> bool:
+    """Accessori espressamente menzionati nel capo spese del provvedimento."""
+    return bool(_ACCESSORI.search(testo))
+
+
 def _valore(fatto: Any, nome: str) -> Any:
     return fatto.get(nome) if isinstance(fatto, dict) else getattr(fatto, nome, None)
 
@@ -99,7 +104,7 @@ def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
             "importo": importo,
             "distrazione": "distrazione" in parti,
             "distrazione_condizionata": "distrazione" in parti and bool(_OVE_RICHIESTO.search(frase)),
-            "accessori": bool(_ACCESSORI.search(frase)),
+            "accessori": accessori_nel_capo_spese(frase),
             "beneficiario": beneficiario(frase),
             "frase": frase,
             "data": str(_valore(date[-1], "valore") or "")[:10] if date else "",
@@ -107,4 +112,4 @@ def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
     return risultato
 
 
-__all__ = ["NORMA_COMPENSAZIONE", "NORMA_CONDANNA", "NORMA_FORFETTARIO", "beneficiario", "importo_euro", "spese_lette"]
+__all__ = ["NORMA_COMPENSAZIONE", "NORMA_CONDANNA", "NORMA_FORFETTARIO", "accessori_nel_capo_spese", "beneficiario", "importo_euro", "spese_lette"]

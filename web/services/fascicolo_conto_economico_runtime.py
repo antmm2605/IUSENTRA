@@ -26,6 +26,7 @@ def _href_documento(fascicolo_id: str, documento_id: str) -> str:
 
 
 def crediti_da_sentenza(fascicolo_id: str) -> list[dict[str, Any]]:
+    from pct.archivio_letture.spese_sentenza import accessori_nel_capo_spese
     from web.services.registro_letture_runtime import registro_corrente
     from web.services.sentenza_economic_runtime import _tenant_id, build_sentenza_economic_payload, fonte_audit
 
@@ -41,7 +42,10 @@ def crediti_da_sentenza(fascicolo_id: str) -> list[dict[str, Any]]:
             continue
         audit = audits.get(str(evento.get("source_id") or ""))
         fonte = fonte_audit(audit, inventario, fascicolo_id) if audit else None
+        sentenza = ((audit or {}).get("audit") or {}).get("sentenza") or {}
+        capo_spese = (sentenza.get("spese_liquidate") or {}).get("testo_capo_spese")
         crediti.append({"importo": evento.get("amount"), "distrazione": _CREDITI[tipo], "confermato": evento.get("status") == "confirmed",
+                        "accessori": bool(fonte and accessori_nel_capo_spese(_testo(capo_spese))),
                         "fonti": [{"label": fonte["label"], "href": fonte["href"], "norma": "sentenza della causa"}] if fonte else []})
     return crediti
 

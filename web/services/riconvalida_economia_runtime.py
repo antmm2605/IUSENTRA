@@ -62,7 +62,7 @@ def riconvalida_incassi(fascicolo: Any, *, repository: Any) -> list[str]:
             pagamenti[chiave] = nuova
             cambiate.append(chiave)
     if cambiate:
-        repository.aggiorna(fid, pagamenti=pagamenti)
+        repository.aggiorna_pagamenti(fid, pagamenti)
     return cambiate
 
 
@@ -106,7 +106,7 @@ def riconvalida_proforme(fascicolo: Any, *, repository: Any, fatturazione: Any) 
                     data_pagamento="" if _testo(voce.get("status")) != "pagato" else voce.get("data_pagamento"),
                     history=storico[-25:], updated_by="IUSENTRA riconvalida proforma", updated_at=_adesso())
         pagamenti["parcella"] = voce
-        repository.aggiorna(fid, pagamenti=pagamenti)
+        repository.aggiorna_pagamenti(fid, pagamenti)
         esito["voce_parcella"] = True
     return esito
 

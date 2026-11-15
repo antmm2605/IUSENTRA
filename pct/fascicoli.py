@@ -2238,6 +2238,16 @@ class GestioneFascicoli:
         self._salva()
         return f
 
+    def aggiorna_pagamenti(self, id_fasc: str, pagamenti: dict[str, Any]) -> Fascicolo:
+        """Persiste la riconvalida economica sul solo fascicolo caricato."""
+        fascicolo = self._get_o_errore(id_fasc)
+        if fascicolo.pagamenti == pagamenti:
+            return fascicolo
+        fascicolo.pagamenti = pagamenti
+        fascicolo.modificato_il = datetime.now().isoformat()
+        self._salva_fascicoli_parziale([fascicolo], rigenera_mirror=False)
+        return fascicolo
+
     @serialized_documents
     def elimina(self, id_fasc: str) -> None:
         original = self._get_o_errore(id_fasc)

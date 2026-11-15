@@ -99,7 +99,11 @@ def _bozza(ordine: int, contesto: Contesto, oggetto: str, giorno: date) -> Passa
         regola_descrizione="Il software prepara la bozza con intestazione e indicazioni del decreto; "
                            "conclusioni, firma e deposito restano dell'avvocato.",
         contesto=contesto, norme=("cpc_127ter", "dispatt_196quater"),
-        campi={"deposito": Campo("Deposito", "a cura dell'avvocato, con firma digitale")},
+        campi={
+            "termine_note": Campo("Termine assegnato", giorno.isoformat(), vincolato=True,
+                                  motivo_vincolo="data del provvedimento"),
+            "deposito": Campo("Deposito", "a cura dell'avvocato, con firma digitale"),
+        },
         vincoli=("deposito_non_autonomo",), href="#documenti",
     )
 

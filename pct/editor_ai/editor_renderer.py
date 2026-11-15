@@ -275,6 +275,10 @@ def create_editor_document(
     html_content: str,
     created_by: str,
     encrypt: Callable[[bytes], bytes] | None = None,
+    fonte_documento: str = "EDITOR_AI_LEX",
+    note: str = "Bozza creata con Lex nell'editor professionale",
+    tags: list[str] | None = None,
+    salvataggio_mirato: bool = False,
 ) -> dict[str, Any]:
     if fascicoli_repository is None:
         raise EditorAIValidationError("Repository fascicoli non disponibile.")
@@ -287,11 +291,12 @@ def create_editor_document(
         filename,
         TipoDocumento.ATTO_GIUDIZIARIO,
         content,
-        note="Bozza creata con Lex nell'editor professionale",
-        tags=["lex", "atto-ai", "bozza"],
+        note=note,
+        tags=["lex", "atto-ai", "bozza"] if tags is None else tags,
         caricato_da=created_by,
-        fonte_documento="EDITOR_AI_LEX",
+        fonte_documento=fonte_documento,
         nome_originale=filename,
+        **({"salvataggio_mirato": True} if salvataggio_mirato else {}),
     )
     return {
         "document_id": document.id,

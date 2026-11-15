@@ -316,6 +316,7 @@ export type RedazioneContesto = {
   contributoUnificato: { disponibile: boolean; totale: number | null; descrizione: string; fonte: string }
   condizioniAttive: string[]
   prossimoPassoFascicolo?: string
+  noteScritte?: { passaggio: string; documentoId: string }
   suggerimenti: RedazioneSuggerimento[]
   catalogo: RedazioneCatalogoArea[]
 }
@@ -519,6 +520,7 @@ export async function getRedazioneContesto(fascicoloId: string, clienteId: strin
   }
   const economia = asRecord(contesto.economia)
   const contributo = asRecord(economia.contributoUnificato)
+  const noteScritte = asRecord(payload.noteScritte)
   return {
     ok: payload.ok === true,
     errore: payload.ok === true ? '' : display(payload.errore) || 'Contesto non disponibile.',
@@ -538,6 +540,7 @@ export async function getRedazioneContesto(fascicoloId: string, clienteId: strin
     },
     condizioniAttive: list(contesto.condizioniAttive).map((item) => display(item)).filter(Boolean),
     prossimoPassoFascicolo: display(payload.prossimoPassoFascicolo),
+    noteScritte: noteScritte.termine ? { passaggio: text(noteScritte.passaggio), documentoId: text(noteScritte.documentoId) } : undefined,
     suggerimenti: list(payload.suggerimenti).map((input) => {
       const item = asRecord(input)
       return {

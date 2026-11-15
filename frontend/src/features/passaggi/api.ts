@@ -1,7 +1,8 @@
 import { apiJson, apiPostJson } from '@/lib/apiClient'
 import type { Correzione, EsitoCorrezione, Passaggio, RegolaStudio } from './types'
 
-type PassaggiPayload = { ok: boolean; passaggi: Passaggio[]; errore?: string }
+export type BozzaNote = { titolo: string; termine: string; documento: string; documento_id: string }
+type PassaggiPayload = { ok: boolean; passaggi: Passaggio[]; bozzeNote?: Record<string, BozzaNote>; errore?: string }
 type RegolePayload = { ok: boolean; regole: RegolaStudio[]; errore?: string }
 type RegolaPayload = { ok: boolean; regola?: RegolaStudio; errore?: string }
 
@@ -10,6 +11,15 @@ export function leggiPassaggi(fascicoloId: string, signal?: AbortSignal): Promis
     `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/passaggi`,
     { ok: false, passaggi: [], errore: 'Passaggi del software non disponibili.' },
     { signal, activity: false },
+  )
+}
+
+export function apriBozzaNote(fascicoloId: string, chiave: string, documentoId: string) {
+  return apiPostJson<{ ok: boolean; openUrl?: string; errore?: string }>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/passaggi/bozza-note`,
+    { chiave, documentoId },
+    { ok: false, errore: 'Bozza delle note non disponibile.' },
+    { activity: 'Apertura della bozza delle note…' },
   )
 }
 

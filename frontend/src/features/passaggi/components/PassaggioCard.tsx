@@ -2,6 +2,8 @@ import { Lock, PencilLine, ShieldAlert, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IusStatusBadge } from '@/components/iusentra'
 import type { Passaggio } from '../types'
+import type { BozzaNote } from '../api'
+import { ApriBozzaNote } from './ApriBozzaNote'
 
 const TONO_STATO: Record<string, 'success' | 'info' | 'warning' | 'danger' | 'neutral'> = {
   eseguito: 'success',
@@ -19,13 +21,19 @@ const VINCOLI: Record<string, string> = {
 
 // Un passaggio: che cosa ha fatto il software, con quale regola, norma, prove
 // e dati; accanto, le regole dello studio applicate o rifiutate.
-export function PassaggioCard({ passaggio, onCorreggi }: { passaggio: Passaggio; onCorreggi?: (passaggio: Passaggio) => void }) {
+export function PassaggioCard({ passaggio, onCorreggi, bozza, fascicoloId }: {
+  passaggio: Passaggio
+  onCorreggi?: (passaggio: Passaggio) => void
+  bozza?: BozzaNote
+  fascicoloId?: string
+}) {
   const campi = Object.entries(passaggio.campi)
   return (
     <li className={`iu-passaggio is-${passaggio.stato}`}>
       <div className="iu-passaggio__testa">
         <IusStatusBadge tone={TONO_STATO[passaggio.stato] || 'neutral'}>{passaggio.statoEtichetta}</IusStatusBadge>
         <strong className="iu-passaggio__titolo">{passaggio.titolo}</strong>
+        {bozza && fascicoloId ? <ApriBozzaNote fascicoloId={fascicoloId} chiave={passaggio.chiave} documentoId={bozza.documento_id} /> : null}
         {onCorreggi ? (
           <Button type="button" variant="outline" size="sm" onClick={() => onCorreggi(passaggio)} aria-label={`Correggi la regola del passaggio «${passaggio.titolo}»`}>
             <PencilLine data-icon="inline-start" />
@@ -37,6 +45,7 @@ export function PassaggioCard({ passaggio, onCorreggi }: { passaggio: Passaggio;
         <span>Regola del software</span> {passaggio.regola.descrizione}
         {passaggio.confidenza !== null ? <em> · affidabilità {Math.round(passaggio.confidenza * 100)}%</em> : null}
       </p>
+      {bozza?.documento ? <p>Provvedimento · {bozza.documento}</p> : null}
       {passaggio.norme.length ? (
         <p className="iu-passaggio__norme">
           <span>Norma</span>{' '}

@@ -94,17 +94,41 @@ def build_redazione_contesto_payload(
     cliente: Any,
     parti: Any = None,
     config: Optional[dict[str, Any]] = None,
+    lettura: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Passo 3: contesto reale del fascicolo + tipi atto suggeriti + catalogo completo."""
     contesto = estrai_contesto_fascicolo(fascicolo=fascicolo, cliente=cliente, parti=parti, config=config)
-    suggerimenti = suggerisci_modelli(fascicolo)
-    return {
+    from pct.note_127_ter.bozza import proposte_note
+    from pct.ora_italiana import oggi_roma
+    from pct.formatting import format_date_it
+
+    note = proposte_note(lettura, oggi_roma())
+    risultato = {
         "ok": True,
         "generatedAt": _iso_now(),
         "contesto": contesto,
-        "suggerimenti": suggerimenti,
+        "suggerimenti": [] if note else suggerisci_modelli(fascicolo),
         "catalogo": catalogo_per_scelta_manuale(),
     }
+    if note:
+        prossima = note[0]
+        termine = prossima["termine"]
+        risultato["noteScritte"] = {
+            "documentoId": prossima["documento_id"], "termine": termine,
+        }
+        contesto["fascicolo"]["prossimaUdienza"] = {
+            "valore": termine,
+            "etichetta": "Termine delle note scritte",
+            "mancante": False,
+            "fonte": prossima["documento"],
+        }
+        avviso = f"Depositare le note scritte ex art. 127-ter c.p.c. entro il {format_date_it(termine)}"
+        if prossima["udienza_sostituita"]:
+            avviso += f" (udienza sostituita del {prossima['udienza_sostituita']})"
+        if prossima["documento"]:
+            avviso += f" · {prossima['documento']}"
+        risultato["prossimoPassoFascicolo"] = avviso
+    return risultato
 
 
 def build_redazione_anteprima_payload(

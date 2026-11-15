@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Route } from 'lucide-react'
-import { leggiPassaggi } from '../api'
+import { leggiPassaggi, type BozzaNote } from '../api'
 import type { Passaggio } from '../types'
 import { CorreggiRegolaDialog } from './CorreggiRegolaDialog'
 import { PassaggioCard } from './PassaggioCard'
@@ -15,11 +15,12 @@ export function PassaggiFascicoloSection({ fascicoloId, active = true }: { fasci
   const [errore, setErrore] = useState('')
   const [caricato, setCaricato] = useState(false)
   const [daCorreggere, setDaCorreggere] = useState<Passaggio | null>(null)
-
+  const [bozzeNote, setBozzeNote] = useState<Record<string, BozzaNote>>({})
   const carica = useCallback(async (signal?: AbortSignal) => {
     try {
       const risposta = await leggiPassaggi(fascicoloId, signal)
       setPassaggi(risposta.ok ? risposta.passaggi : [])
+      setBozzeNote(risposta.ok ? risposta.bozzeNote || {} : {})
       setErrore(risposta.ok ? '' : risposta.errore || 'Passaggi del software non disponibili.')
       setCaricato(true)
     } catch (eccezione) {
@@ -54,7 +55,11 @@ export function PassaggiFascicoloSection({ fascicoloId, active = true }: { fasci
         <div className="iu-passaggi__gruppo" key={produttore}>
           <h5>{produttore[0]?.toUpperCase()}{produttore.slice(1)}</h5>
           <ol className="iu-passaggi__lista">
-            {voci.map((passaggio) => <PassaggioCard key={passaggio.chiave} passaggio={passaggio} onCorreggi={setDaCorreggere} />)}
+            {voci.map((passaggio) => <PassaggioCard
+              key={passaggio.chiave} passaggio={passaggio} onCorreggi={setDaCorreggere}
+              bozza={bozzeNote[passaggio.chiave]}
+              fascicoloId={fascicoloId}
+            />)}
           </ol>
         </div>
       ))}

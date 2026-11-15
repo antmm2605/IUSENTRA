@@ -108,7 +108,8 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
         "udienze": [{"data": data_it(u["data"]), "ora": u.get("ora") or "",
                      "modalita": {"note_scritte": "sostituita da note scritte (art. 127-ter c.p.c.)", "remota": "da remoto (art. 127-bis c.p.c.)",
                                   "presenza": "in presenza"}.get(u.get("modalita"), u.get("modalita")),
-                     "documento": (u.get("fonte") or {}).get("nome", "")} for u in causa.get("udienze") or []],
+                     "documento": (u.get("fonte") or {}).get("nome", ""),
+                     "documento_id": (u.get("fonte") or {}).get("oggetto_id", "")} for u in causa.get("udienze") or []],
         "conclusioni": conclusioni,
         "contraddizioni": [{"controllo": x["controllo"], "descrizione": x["descrizione"], "sciolta": x["sciolta"], "come": x["come"]}
                            for x in causa.get("contraddizioni") or []],

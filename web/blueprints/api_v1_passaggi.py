@@ -80,6 +80,27 @@ def fascicolo_passaggi(id_fasc: str):
         return jsonify({"ok": False, "errore": "Passaggi del software non disponibili in questo momento."}), 200
 
 
+@api_v1_passaggi.post("/fascicoli/<id_fasc>/passaggi/bozza-note")
+@_richiedi(PERMESSO_SCRITTURA)
+def fascicolo_apri_bozza_note(id_fasc: str):
+    from web.services.passaggi_runtime import apri_bozza_note
+
+    corpo = _corpo()
+    chiave = str(corpo.get("chiave") or "").strip()
+    documento_id = str(corpo.get("documentoId") or "").strip()
+    try:
+        risultato = apri_bozza_note(id_fasc, chiave, documento_id)
+    except LookupError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 409
+    except Exception:
+        current_app.logger.exception("Apertura bozza note non riuscita sul fascicolo %s", id_fasc)
+        return jsonify({"ok": False, "errore": "Bozza delle note non disponibile in questo momento."}), 503
+    _audit("passaggi.bozza_note.aperta", "documento", risultato["documentId"], id_fasc)
+    return jsonify({"ok": True, **risultato})
+
+
 @api_v1_passaggi.post("/fascicoli/<id_fasc>/passaggi/correzioni")
 @_richiedi(PERMESSO_SCRITTURA)
 def fascicolo_passaggi_correzione(id_fasc: str):

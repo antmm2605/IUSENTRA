@@ -96,7 +96,8 @@ def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
     termini = quadro_pec.get("termini_da_registrare") or []
     ragionamento = (lettura or {}).get("ragionamento") or {}
     conclusioni = None if lettura is None else (ragionamento.get("conclusioni") or [])
-    return {"fascicolo": _fascicolo_dict(fascicolo), "scadenze": scadenze, "termini_pec": termini, "conclusioni": conclusioni}
+    return {"fascicolo": _fascicolo_dict(fascicolo), "scadenze": scadenze, "termini_pec": termini,
+            "conclusioni": conclusioni, "lettura": lettura}
 
 
 def passaggi_software(dati: dict[str, Any], *, oggi: date | None = None) -> list[Passaggio]:
@@ -123,8 +124,82 @@ def payload_passaggi(fascicolo_id: str) -> dict[str, Any] | None:
     if dati is None:
         return None
     passaggi = passaggi_con_regole(dati, repository=repository_corrente())
+    bozze = _bozze_preparate(dati, passaggi)
     return {"passaggi": [passaggio.come_dizionario() for passaggio in passaggi], "totale": len(passaggi),
-            "lettura_in_preparazione": dati.get("conclusioni", ()) is None}
+            "bozzeNote": bozze, "lettura_in_preparazione": dati.get("conclusioni", ()) is None}
+
+
+def _bozze_preparate(dati: dict[str, Any], passaggi: list[Passaggio]) -> dict[str, dict[str, str]]:
+    from pct.note_127_ter.bozza import proposte_note, testo_note
+    from pct.passaggi.produttori.note_127_ter import REGOLA_BOZZA
+
+    lettura = dati.get("lettura")
+    proposte = {p["termine"]: p for p in proposte_note(lettura, oggi_roma())}
+    if not proposte:
+        return {}
+    fascicolo = dati["fascicolo"]
+    rg = str((lettura.get("intestazione") or {}).get("rg") or "").removeprefix("RG ").removeprefix("R.G. ")
+    bozze = {}
+    for passaggio in passaggi:
+        if passaggio.regola_id != REGOLA_BOZZA or passaggio.stato != "proposto":
+            continue
+        campo = passaggio.campi.get("termine_note")
+        proposta = proposte.pop(campo.valore, None) if campo else None
+        if proposta is not None:
+            bozze[passaggio.chiave] = {
+                **proposta,
+                "testo": testo_note(
+                    proposta, ufficio=str(fascicolo.get("tribunale") or ""), rg=rg,
+                    giudice=str(fascicolo.get("giudice") or ""), parte=str(fascicolo.get("cliente") or ""),
+                    controparte=str(fascicolo.get("controparte") or ""),
+                    difensore=str(fascicolo.get("avvocato_referente") or ""),
+                ),
+            }
+    return bozze
+
+
+def apri_bozza_note(fascicolo_id: str, chiave: str, documento_id: str) -> dict[str, str]:
+    from hashlib import sha256
+    from pct.editor_ai.editor_renderer import create_editor_document, legal_markdown_to_editor_html
+    from pct.prima_nota_transition import prima_nota_source_lock
+    from web.helpers import get_fascicoli
+    from web.services.document_crypto import encrypt_doc
+    from web.services.riscontri_processuali_runtime import risultato_materializzato
+
+    if not chiave.startswith(f"127ter.bozza_note:{fascicolo_id}:") or len(chiave) > 200:
+        raise ValueError("Passaggio della bozza non riconosciuto.")
+    path = Path(percorso_regole()).with_name("bozza-note-" + sha256(chiave.encode()).hexdigest())
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with prima_nota_source_lock(path):
+        g.fascicoli_sql_puntuali = True
+        repository = get_fascicoli()
+        fascicolo = repository.get(fascicolo_id)
+        if fascicolo is None:
+            raise LookupError("Fascicolo non trovato.")
+        fonte = next((d for d in fascicolo.documenti if d.id == documento_id), None)
+        if fonte is None:
+            raise ValueError("Provvedimento della bozza non disponibile.")
+        impronta = fonte.hash_contenuto_sha256 or fonte.hash_sha256
+        if not impronta:
+            raise ValueError("Il provvedimento non ha ancora un’impronta verificabile.")
+        marcatore = "bozza-note:" + sha256(f"{chiave}:{documento_id}:{impronta}".encode()).hexdigest()
+        for documento in fascicolo.documenti:
+            if documento.fonte_documento == "BOZZA_NOTE_127_TER" and marcatore in (documento.tags or ()):
+                return {"documentId": documento.id, "openUrl": f"/fascicoli/{fascicolo_id}/documenti/{documento.id}/editor"}
+        pannello = risultato_materializzato(fascicolo_id, "passaggi") or {}
+        preparata = (pannello.get("bozzeNote") or {}).get(chiave)
+        if not preparata or preparata["documento_id"] != documento_id:
+            raise ValueError("La bozza attuale dipende dal provvedimento. Attendi che la Lettura sia aggiornata.")
+        doc = create_editor_document(
+            fascicoli_repository=repository, fascicolo_id=fascicolo_id,
+            title=preparata["titolo"] + " " + preparata["termine"],
+            html_content=legal_markdown_to_editor_html(preparata["testo"]),
+            created_by=utente_corrente()[0], encrypt=encrypt_doc,
+            fonte_documento="BOZZA_NOTE_127_TER",
+            note=f"Bozza da rivedere. Provvedimento {preparata['documento']} ({preparata['documento_id']}).",
+            tags=["bozza", marcatore], salvataggio_mirato=True,
+        )
+        return {"documentId": doc["document_id"], "openUrl": doc["open_url"]}
 
 
 def correggi_passaggio(fascicolo_id: str, chiave: str, richiesta: Mapping[str, Any]) -> dict[str, Any]:

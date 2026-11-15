@@ -456,6 +456,30 @@ def test_contesto_payload_completo(repos, cliente_mario, fascicolo_preliminare):
     assert payload["catalogo"], "Il catalogo manuale deve restare disponibile"
 
 
+def test_redazione_riusa_termine_note_e_indica_l_udienza_sostituita(cliente_mario, fascicolo_preliminare, monkeypatch):
+    from datetime import date
+    from pct import ora_italiana
+
+    monkeypatch.setattr(ora_italiana, "oggi_roma", lambda: date(2026, 11, 15))
+    lettura = {"ragionamento": {
+        "impronta": "lettura-salvata",
+        "conclusioni": [{
+            "codice": "note_127ter", "stato": "da_fare", "onerato_codice": "noi",
+            "termine": {"scadenza_iso": "2026-12-16"},
+            "letto": {"tipo": "documento", "documento_id": "D1", "documento": "Provvedimento.pdf"},
+        }],
+        "udienze": [{"documento_id": "D1", "data": "21/12/2026",
+                     "modalita": "sostituita da note scritte (art. 127-ter c.p.c.)"}],
+    }}
+    payload = build_redazione_contesto_payload(
+        fascicolo=fascicolo_preliminare, cliente=cliente_mario, config=CONFIG_STUDIO, lettura=lettura,
+    )
+    assert payload["contesto"]["fascicolo"]["prossimaUdienza"]["valore"] == "2026-12-16"
+    assert payload["noteScritte"] == {"documentoId": "D1", "termine": "2026-12-16"}
+    assert "udienza sostituita del 21/12/2026" in payload["prossimoPassoFascicolo"]
+    assert "Provvedimento.pdf" in payload["prossimoPassoFascicolo"] and not payload["suggerimenti"]
+
+
 # ---------------------------------------------------------------------------
 # End-to-end HTTP: wizard completo dal cliente reale all'editor
 # ---------------------------------------------------------------------------

@@ -159,3 +159,78 @@ def test_worker_attende_la_lettura_prima_di_pubblicare_i_passaggi(app, monkeypat
         risposta = client.get(url, headers=HEADERS)
         assert risposta.status_code == 200
         assert risposta.get_json()["lettura_in_preparazione"] is False
+
+
+def test_note_preparate_dalla_stessa_fonte_con_le_due_date(app, monkeypatch):
+    from datetime import date
+    from web.services import passaggi_runtime
+
+    monkeypatch.setattr(passaggi_runtime, "oggi_roma", lambda: date(2026, 11, 15))
+    dati = _dati("F1")
+    nota = {
+        "codice": "note_127ter", "stato": "da_fare", "onerato_codice": "tutte_le_parti",
+        "termine": {"scadenza_iso": "2027-01-12"},
+        "letto": {"tipo": "documento", "documento_id": "D1", "documento": "Decreto.pdf"},
+    }
+    dati["conclusioni"] = [nota]
+    dati["lettura"] = {
+        "intestazione": {"rg": "632/2026"},
+        "ragionamento": {
+            "impronta": "lettura-preparata",
+            "conclusioni": dati["conclusioni"],
+            "udienze": [
+                {"documento_id": "D1", "data": "18/01/2027",
+                 "modalita": "sostituita da note scritte (art. 127-ter c.p.c.)"},
+                {"documento_id": "D2", "data": "21/01/2027",
+                 "modalita": "sostituita da note scritte (art. 127-ter c.p.c.)"},
+            ],
+        },
+    }
+    monkeypatch.setattr(passaggi_runtime, "dati_del_fascicolo", lambda _id: dati)
+    with app.test_client() as client:
+        payload = client.get("/api/v1/ui/fascicoli/F1/passaggi", headers=HEADERS).get_json()
+        (bozza,) = payload["bozzeNote"].values()
+        assert bozza["documento_id"] == "D1"
+        assert "18/01/2027" in bozza["testo"] and "12/01/2027" in bozza["testo"]
+        assert "21/01/2027" not in bozza["testo"]
+        assert "R.G. 632/2026" in bozza["testo"]
+        nota["dubbi"] = [{"codice": "note_in_attesa_cancelleria"}]
+        payload = client.get("/api/v1/ui/fascicoli/F1/passaggi", headers=HEADERS).get_json()
+        assert payload["bozzeNote"] == {}
+
+
+def test_apertura_bozza_riusa_il_documento_editor(app, tmp_path, monkeypatch):
+    from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+    from web import helpers
+    from web.services import riscontri_processuali_runtime
+
+    archivio = GestioneFascicoli(
+        db_path=str(tmp_path / "bozze" / "fascicoli.json"),
+        documents_dir=str(tmp_path / "bozze" / "documenti"),
+    )
+    fascicolo = archivio.nuovo(titolo="Note scritte", tipo=TipoFascicolo.CIVILE)
+    fonte = archivio.aggiungi_documento(fascicolo.id, "Decreto.pdf", TipoDocumento.DECRETO, b"%PDF-1.4")
+    chiave = f"127ter.bozza_note:{fascicolo.id}:S1"
+    monkeypatch.setattr(helpers, "get_fascicoli", lambda: archivio)
+
+    def salvata(fascicolo_id, pannello):
+        assert (fascicolo_id, pannello) == (fascicolo.id, "passaggi")
+        return {"bozzeNote": {chiave: {
+            "titolo": "Note per la trattazione scritta", "termine": "2027-01-12",
+            "documento_id": fonte.id, "documento": fonte.nome,
+            "testo": "## Note per la trattazione scritta\n\n[Istanze e conclusioni]",
+        }}}
+
+    monkeypatch.setattr(riscontri_processuali_runtime, "risultato_materializzato", salvata)
+    url = f"/api/v1/ui/fascicoli/{fascicolo.id}/passaggi/bozza-note"
+    with app.test_client() as client:
+        assert client.post(url, json={"chiave": chiave, "documentoId": fonte.id}).status_code == 401
+        prima = client.post(url, headers=HEADERS, json={"chiave": chiave, "documentoId": fonte.id})
+        seconda = client.post(url, headers=HEADERS, json={"chiave": chiave, "documentoId": fonte.id})
+        assert prima.status_code == 200 and prima.get_json() == seconda.get_json()
+        data = prima.get_json()
+        assert data["openUrl"] == f"/fascicoli/{fascicolo.id}/documenti/{data['documentId']}/editor"
+        doc = next(d for d in archivio.get(fascicolo.id).documenti if d.id == data["documentId"])
+        assert doc.fonte_documento == "BOZZA_NOTE_127_TER"
+        assert fonte.id in doc.note
+        assert len(archivio.get(fascicolo.id).documenti) == 2

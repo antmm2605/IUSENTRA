@@ -15253,16 +15253,26 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
         from pct.fascicolo_quadro import riga_prossimo_passo
         from web.services.riscontri_processuali_runtime import lettura_materializzata
 
+        puo_leggere = _session_user_can("fascicoli.leggi")
+        lettura = lettura_materializzata(id_fascicolo) if puo_leggere else None
         payload = build_redazione_contesto_payload(
             fascicolo=fascicolo,
             cliente=cliente,
             parti=parti,
             config=_studio_prefill_config(),
+            lettura=lettura,
         )
-        if _session_user_can("fascicoli.leggi"):
-            lettura = lettura_materializzata(id_fascicolo)
+        if puo_leggere and "prossimoPassoFascicolo" not in payload:
             passi = (lettura or {}).get("prossimi_passi")
             payload["prossimoPassoFascicolo"] = riga_prossimo_passo(passi if isinstance(passi, list) else None)["testo"]
+        if note := payload.get("noteScritte"):
+            from web.services.riscontri_processuali_runtime import risultato_materializzato
+
+            passaggi = risultato_materializzato(id_fascicolo, "passaggi") or {}
+            note["passaggio"] = next((
+                chiave for chiave, bozza in (passaggi.get("bozzeNote") or {}).items()
+                if bozza.get("documento_id") == note["documentoId"] and bozza.get("termine") == note["termine"]
+            ), "")
         return _jsonify_redacted(payload)
     except Exception as exc:
         current_app.logger.exception("Errore contesto fascicolo redazione atti: %s", exc)

@@ -1,3 +1,4 @@
+import { ApriBozzaNote } from '../passaggi/components/ApriBozzaNote'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, BookOpenCheck, CheckCircle2, FileWarning, FolderOpen, Scale, Sparkles, UserRound } from 'lucide-react'
 import { Badge } from '../../ui/Badge'
@@ -240,9 +241,11 @@ function QuadroContesto({ contesto }: { contesto: RedazioneContesto }) {
 
 function PassoTipoAtto({
   contesto,
+  fascicoloId,
   onSeleziona,
 }: {
   contesto: RedazioneContesto
+  fascicoloId: string
   onSeleziona: (modelCode: string, nome: string) => void
 }) {
   const [areaCatalogo, setAreaCatalogo] = useState('')
@@ -255,34 +258,40 @@ function PassoTipoAtto({
         <section aria-label="Prossimo passo dalla Lettura">
           <h4 className="iu-rg-subtitle">Prossimo passo dalla Lettura</h4>
           <p>{contesto.prossimoPassoFascicolo}</p>
+          {contesto.noteScritte?.passaggio ? (
+            <ApriBozzaNote fascicoloId={fascicoloId} chiave={contesto.noteScritte.passaggio}
+                           documentoId={contesto.noteScritte.documentoId} />
+          ) : null}
         </section>
       ) : null}
-      <h4 className="iu-rg-subtitle"><Sparkles size={16} aria-hidden="true" /> Modelli suggeriti dal catalogo</h4>
-      {contesto.suggerimenti.length ? (
-        <div className="iu-rg-cards" role="list">
-          {contesto.suggerimenti.map((suggerimento) => (
-            <button
-              type="button"
-              className="iu-rg-card iu-rg-card--suggest iu-od-focus-ring"
-              key={suggerimento.code}
-              onClick={() => onSeleziona(suggerimento.code, suggerimento.name)}
-              role="listitem"
-            >
-              <Scale size={18} aria-hidden="true" />
-              <span className="iu-rg-card__body">
-                <strong>{suggerimento.name}</strong>
-                <small>{suggerimento.areaLabel}</small>
-                <ul className="iu-rg-motivi">
-                  {suggerimento.motivi.slice(0, 3).map((motivo) => <li key={motivo}>{motivo}</li>)}
-                </ul>
-              </span>
-              <Badge tone="primary">Consigliato</Badge>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <EmptyState title="Nessun suggerimento automatico" message="Scegli il tipo di atto dal catalogo completo qui sotto." />
-      )}
+      {!contesto.noteScritte ? <>
+        <h4 className="iu-rg-subtitle"><Sparkles size={16} aria-hidden="true" /> Modelli suggeriti dal catalogo</h4>
+        {contesto.suggerimenti.length ? (
+          <div className="iu-rg-cards" role="list">
+            {contesto.suggerimenti.map((suggerimento) => (
+              <button
+                type="button"
+                className="iu-rg-card iu-rg-card--suggest iu-od-focus-ring"
+                key={suggerimento.code}
+                onClick={() => onSeleziona(suggerimento.code, suggerimento.name)}
+                role="listitem"
+              >
+                <Scale size={18} aria-hidden="true" />
+                <span className="iu-rg-card__body">
+                  <strong>{suggerimento.name}</strong>
+                  <small>{suggerimento.areaLabel}</small>
+                  <ul className="iu-rg-motivi">
+                    {suggerimento.motivi.slice(0, 3).map((motivo) => <li key={motivo}>{motivo}</li>)}
+                  </ul>
+                </span>
+                <Badge tone="primary">Consigliato</Badge>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="Nessun suggerimento automatico" message="Scegli il tipo di atto dal catalogo completo qui sotto." />
+        )}
+      </> : null}
       <h4 className="iu-rg-subtitle"><BookOpenCheck size={16} aria-hidden="true" /> Catalogo completo</h4>
       <div className="iu-rg-catalogo">
         <label>
@@ -598,6 +607,7 @@ export function RedazioneGuidataWizard({ initialMatter }: { initialMatter?: { id
         ) : contesto.ok ? (
           <PassoTipoAtto
             contesto={contesto}
+            fascicoloId={fascicolo?.id || ''}
             onSeleziona={(code, name) => {
               setModello({ code, name })
               setPasso(4)

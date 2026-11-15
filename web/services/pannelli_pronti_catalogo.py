@@ -12,9 +12,9 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-# Mantiene le impronte archiviate dalla 2.489.6. Si cambia quando una regola
-# modifica il risultato salvato; la sola ricomposizione in lettura lo riusa.
-VERSIONE_PANNELLI = "2.489.6:quadro-processuale-v26"
+# Versione dei risultati archiviati. L'identità del provvedimento è ora
+# presente anche nelle udienze della Lettura e guida la bozza delle note.
+VERSIONE_PANNELLI = "2.489.8:quadro-processuale-v27"
 
 # Parametri che non cambiano il payload: anti-cache dei browser e segnali della richiesta.
 PARAMETRI_IGNORATI_SEMPRE = frozenset({"_", "t", "ts", "nocache"})
@@ -114,7 +114,7 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("checklist", "api_v1_react.fascicolo_regia_checklist", percorso=_UI + "/checklist"),
     Pannello("redazione-atti-contesto", "api_v1_react.redazione_atti_contesto_fascicolo",
              percorso="/api/v1/ui/redazione-atti/fascicoli/{fid}/contesto", parametro_fascicolo="id_fascicolo",
-             dipende_da=("lettura",)),
+             dipende_da=("lettura", "passaggi")),
     Pannello("catalogazione-documentale", "api_v1_documenti_ai.catalogazione_documentale_fascicolo", percorso=_UI + "/catalogazione-documentale",
              parametro_fascicolo="fascicolo_id"),
     Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo", percorso=_UI + "/guida-pratica"),

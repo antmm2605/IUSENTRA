@@ -152,6 +152,7 @@ def prossimo_passo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str]:
 def riga_notifiche_da_lettura(sintesi: dict[str, Any] | None, lettura: dict[str, Any] | None,
                               oggi: date) -> dict[str, str]:
     from pct.fascicolo_quadro import riga_notifiche
+    from web.services.riscontri_processuali_runtime import documenti_notifica_storica, obbligo_di_notifica_storico
 
     if sintesi is None:
         return riga_notifiche(None, oggi=oggi)
@@ -162,14 +163,9 @@ def riga_notifiche_da_lettura(sintesi: dict[str, Any] | None, lettura: dict[str,
     if lettura.get("aggiornamento_pendente"):
         return riga_notifiche(obblighi, oggi=oggi)
     esiti = (lettura.get("ragionamento") or {}).get("conclusioni") or []
-    storici = {_testo((voce.get("letto") or {}).get("documento_id")) for voce in esiti
-               if voce.get("codice") == "notifica_sentenza" and voce.get("stato") == "non_dovuto"} - {""}
+    storici = documenti_notifica_storica(esiti)
     return riga_notifiche([
-        {**voce, "stato": "riscontro_storico"}
-        if voce.get("regola") == "sentenza_notifica_breve"
-        and voce.get("stato") in {"da_verificare", "facoltativo"}
-        and storici.intersection(voce.get("documenti") or ())
-        else voce
+        {**voce, "stato": "riscontro_storico"} if obbligo_di_notifica_storico(voce, storici) else voce
         for voce in obblighi
     ], oggi=oggi)
 

@@ -12,9 +12,9 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from pct import __version__ as APP_VERSION
-
-VERSIONE_PANNELLI = f"{APP_VERSION}:quadro-processuale-v26"
+# Mantiene le impronte archiviate dalla 2.489.6. Si cambia quando una regola
+# modifica il risultato salvato; la sola ricomposizione in lettura lo riusa.
+VERSIONE_PANNELLI = "2.489.6:quadro-processuale-v26"
 
 # Parametri che non cambiano il payload: anti-cache dei browser e segnali della richiesta.
 PARAMETRI_IGNORATI_SEMPRE = frozenset({"_", "t", "ts", "nocache"})
@@ -98,7 +98,8 @@ PANNELLI: tuple[Pannello, ...] = (
              parametri_di_calcolo=frozenset({"aggiorna"}), memorizzabile=_lettura_valida, ricomponi="stato_presidi_lettura"),
     Pannello("regia", "api_v1_react.fascicolo_regia_operativa", percorso=_UI + "/regia", prima_apertura=True, dipende_da=("lettura",)),
     Pannello("obblighi-notifica", "api_v1_react.fascicolo_react_obblighi_notifica",
-             percorso=_UI + "/obblighi-notifica", prima_apertura=True, dipende_da=("lettura",)),
+             percorso=_UI + "/obblighi-notifica", prima_apertura=True, dipende_da=("lettura",),
+             ricomponi="obblighi_da_lettura"),
     Pannello("attivita", "api_v1_react.fascicolo_react_attivita", percorso=_UI + "/attivita"),
     Pannello("depositi", "api_v1_react.fascicolo_react_depositi", percorso=_UI + "/depositi"),
     Pannello("relata", "api_v1_react.fascicolo_react_relata", percorso=_UI + "/relata"),

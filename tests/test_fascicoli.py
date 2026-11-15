@@ -301,6 +301,48 @@ def test_riconcilia_doppioni_cliente_rg_unisce_documenti_e_pagamenti(gf):
     assert aggiornato.pagamenti["_presidio_documentale"]["status"] == "stale"
 
 
+@pytest.mark.parametrize("stessa_provenienza", [False, True])
+def test_riconcilia_doppioni_conserva_contenuti_dei_pdf_omonimi(gf, fascicolo_base, stessa_provenienza):
+    from pct.fascicoli import DocumentoVersione
+
+    principale = fascicolo_base
+    secondario = Fascicolo.from_dict(principale.to_dict())
+    secondario.id = "DUPLICATO"
+    secondario.numero = "2024/999"
+    for indice, caso in enumerate((principale, secondario)):
+        contenuto = f"%PDF notifica {indice}".encode()
+        storico = f"%PDF versione {indice}".encode()
+        percorso = Path(caso.id) / "Notifica.pdf"
+        precedente = Path(caso.id) / "prec.pdf"
+        (gf.documents_dir / caso.id).mkdir(exist_ok=True)
+        (gf.documents_dir / percorso).write_bytes(contenuto)
+        (gf.documents_dir / precedente).write_bytes(storico)
+        caso.documenti.append(Documento(
+            id=f"DOC{indice}", nome="Notifica.pdf", tipo=TipoDocumento.NOTIFICA,
+            percorso=str(percorso), hash_sha256=hashlib.sha256(contenuto).hexdigest(),
+            dimensione_bytes=len(contenuto),
+            id_documento_portale=f"fonte-{0 if stessa_provenienza else indice}",
+            versioni=[DocumentoVersione(
+                hash_sha256=hashlib.sha256(storico).hexdigest(), percorso=str(precedente),
+                dimensione_bytes=len(storico),
+                sostituito_il="2026-01-01T09:00:00", sostituito_da="test",
+            )],
+        ))
+    gf._fascicoli[secondario.id] = secondario
+    gf._salva()
+
+    report = gf.riconcilia_doppioni_cliente_rg()
+
+    assert report["removedDuplicates"] == 1
+    risultato = gf.get(report["groups"][0]["primaryId"])
+    assert len(risultato.documenti) == (1 if stessa_provenienza else 2)
+    file = {doc.percorso for doc in risultato.documenti}
+    file.update(versione.percorso for doc in risultato.documenti for versione in doc.versioni)
+    assert {(gf.documents_dir / nome).read_bytes() for nome in file} == {
+        b"%PDF notifica 0", b"%PDF notifica 1", b"%PDF versione 0", b"%PDF versione 1",
+    }
+
+
 def test_aggiungi_documento_marca_presidio_da_rianalizzare(gf, fascicolo_base):
     doc = gf.aggiungi_documento(
         fascicolo_base.id,

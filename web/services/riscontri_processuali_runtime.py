@@ -121,6 +121,38 @@ def proietta_riscontri(lettura: dict[str, Any] | None, sezione: str) -> dict[str
     return risultato
 
 
+def documenti_notifica_storica(conclusioni: list[dict[str, Any]]) -> set[str]:
+    return {
+        voce["letto"]["documento_id"]
+        for voce in conclusioni
+        if voce.get("codice") == "notifica_sentenza"
+        and voce.get("stato") == "non_dovuto"
+        and (voce.get("letto") or {}).get("documento_id")
+    }
+
+
+def obbligo_di_notifica_storico(voce: dict[str, Any], documenti_storici: set[str]) -> bool:
+    if voce.get("regola") != "sentenza_notifica_breve" or voce.get("stato") not in {"da_verificare", "facoltativo"}:
+        return False
+    documenti = set(voce.get("documenti") or ())
+    documenti.add(voce.get("documentoId"))
+    documenti.update(fonte.get("documentoId") for fonte in voce.get("fonti_documentali") or ())
+    return bool(documenti_storici.intersection(documenti))
+
+
+def proietta_obblighi_notifica(payload: dict[str, Any], riscontri: dict[str, Any]) -> dict[str, Any]:
+    """Le notifiche superate restano nei riscontri, con la fonte della Lettura."""
+    storici = documenti_notifica_storica(riscontri.get("conclusioni") or [])
+    return {
+        **payload,
+        "riscontriProcessuali": riscontri,
+        "obblighi": [
+            voce for voce in payload.get("obblighi") or []
+            if not obbligo_di_notifica_storico(voce, storici)
+        ],
+    }
+
+
 def riscontri_processuali(fascicolo_id: str, sezione: str) -> dict[str, Any]:
     return proietta_riscontri(lettura_materializzata(fascicolo_id), sezione)
 

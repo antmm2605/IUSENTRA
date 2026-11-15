@@ -1545,7 +1545,8 @@ class GestioneFascicoli:
     def _documento_identity_keys(doc: "Documento") -> set[str]:
         keys: set[str] = set()
         semantic_key = _documento_semantic_identity_key(doc)
-        if semantic_key:
+        id_portale = str(doc.id_documento_portale or "").strip().casefold()
+        if semantic_key and not id_portale:
             keys.add(semantic_key)
         name = _documento_identity_name_key(doc)
         raw_sha = str(getattr(doc, "hash_contenuto_sha256", "") or "").strip().lower()
@@ -1563,7 +1564,7 @@ class GestioneFascicoli:
             text = str(value or "").strip().lower()
             if text:
                 keys.add(f"portal:{text}")
-        if name:
+        if name and not id_portale:
             keys.add(f"name:{name}:{int(getattr(doc, 'dimensione_bytes', 0) or 0)}")
         return keys
 
@@ -2003,8 +2004,23 @@ class GestioneFascicoli:
                 doc_id_map: dict[str, str] = {}
                 for doc in list(duplicate.documenti or []):
                     doc_keys = self._documento_identity_keys(doc)
-                    if doc_keys and existing_doc_keys.intersection(doc_keys):
-                        doc_id_map[doc.id] = next((existing.id for existing in primary.documenti if self._documento_identity_keys(existing).intersection(doc_keys)), doc.id)
+                    existing = None
+                    if existing_doc_keys.intersection(doc_keys):
+                        existing = next(
+                            (item for item in primary.documenti
+                             if self._documento_identity_keys(item).intersection(doc_keys)),
+                            None,
+                        )
+                    if existing is not None:
+                        doc_id_map[doc.id] = existing.id
+                        stessa_impronta = bool(
+                            (doc.hash_contenuto_sha256 and doc.hash_contenuto_sha256 == existing.hash_contenuto_sha256)
+                            or (doc.hash_sha256 and doc.hash_sha256 == existing.hash_sha256)
+                        )
+                        self._assorbi_metadati_documento(
+                            existing, doc, conserva_file_come_versione=not stessa_impronta,
+                        )
+                        existing_doc_keys.update(self._documento_identity_keys(existing))
                         entry["documentsSkipped"] += 1
                         continue
                     cloned = self._copia_documento_su_fascicolo_principale(

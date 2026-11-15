@@ -243,6 +243,40 @@ def test_quadro_riusa_riscontro_storico_solo_per_lo_stesso_atto_e_la_stessa_fina
     assert "riscontro storico" not in riga_notifiche_da_lettura(sintesi, precedente, OGGI)["testo"]
 
 
+def test_pannello_obblighi_proietta_lettura_senza_riproporre_la_notifica_storica(monkeypatch):
+    import json
+
+    from flask import Flask
+    from web.blueprints import api_v1_react
+    from web.services import riscontri_processuali_runtime
+    from web.services.pannelli_pronti_ricomposizione import obblighi_da_lettura
+
+    storica = {"regola": "sentenza_notifica_breve", "stato": "da_verificare",
+               "documentoId": "copia", "fonti_documentali": [{"documentoId": "S1"}]}
+    corrente = {**storica, "documentoId": "S2", "fonti_documentali": []}
+    titolo = {**storica, "regola": "titolo_esecutivo"}
+    payload = {"ok": True, "obblighi": [storica, corrente, titolo],
+               "riscontriProcessuali": {"stato": "da_preparare"}}
+    riscontri = {"stato": "pronto", "conclusioni": [
+        {"codice": "notifica_sentenza", "stato": "non_dovuto", "letto": {"documento_id": "S1"}}
+    ]}
+    monkeypatch.setattr(api_v1_react, "_api_key_valida", lambda: False)
+    monkeypatch.setattr(api_v1_react, "_session_user_can", lambda permission: permission == "fascicoli.leggi")
+
+    def salvati(fid, sezione):
+        assert (fid, sezione) == ("F1", "notifiche")
+        return riscontri
+
+    monkeypatch.setattr(riscontri_processuali_runtime, "riscontri_processuali", salvati)
+    with Flask(__name__).test_request_context():
+        risposta = json.loads(obblighi_da_lettura(json.dumps(payload).encode(), "F1"))
+        assert risposta["obblighi"] == [corrente, titolo]
+        assert risposta["riscontriProcessuali"] == riscontri
+        riscontri["conclusioni"].clear()
+        risposta = json.loads(obblighi_da_lettura(json.dumps(payload).encode(), "F1"))
+        assert risposta["obblighi"] == payload["obblighi"]
+
+
 def test_sintesi_storica_riusa_l_identita_solo_dallo_stesso_risultato(monkeypatch):
     import json
     from types import SimpleNamespace

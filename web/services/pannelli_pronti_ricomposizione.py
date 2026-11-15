@@ -30,3 +30,11 @@ def novita_letture(corpo: bytes, fascicolo_id: str) -> bytes:
         letture.setdefault("degradato", []).append({"passo": "novità dall'ultima apertura",
                                                      "motivo": "Novità non disponibili in questo momento."})
     return json.dumps(dati, ensure_ascii=False).encode("utf-8")
+
+
+def obblighi_da_lettura(corpo: bytes, fascicolo_id: str) -> bytes:
+    from web.blueprints.api_v1_react import _con_riscontri_processuali, _public_json_payload
+
+    dati = json.loads(corpo)
+    risultato = _con_riscontri_processuali(dati, fascicolo_id, "notifiche")
+    return json.dumps(_public_json_payload(risultato), ensure_ascii=False).encode("utf-8")

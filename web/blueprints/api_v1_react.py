@@ -9298,9 +9298,12 @@ def _con_riscontri_processuali(payload: dict[str, Any], fascicolo_id: str, sezio
         return payload
     if not (_api_key_valida() or _session_user_can("fascicoli.leggi")):
         return payload
-    from web.services.riscontri_processuali_runtime import riscontri_processuali
+    from web.services.riscontri_processuali_runtime import proietta_obblighi_notifica, riscontri_processuali
 
-    return {**payload, "riscontriProcessuali": riscontri_processuali(fascicolo_id, sezione)}
+    riscontri = riscontri_processuali(fascicolo_id, sezione)
+    if sezione == "notifiche":
+        return proietta_obblighi_notifica(payload, riscontri)
+    return {**payload, "riscontriProcessuali": riscontri}
 
 
 @api_v1_react.get("/fascicoli/<id_fasc>/conto-economico")
@@ -10045,7 +10048,10 @@ def fascicolo_react_obblighi_notifica(id_fasc: str):
 
         salva_sintesi_obblighi(str(fascicolo.id), obblighi)  # il quadro del fascicolo la legge senza ricalcolare
         payload = {"ok": True, "obblighi": obblighi, "copiePst": copie_pst_richiesta(fascicolo=fascicolo)}
-        return _jsonify_public_payload(_con_riscontri_processuali(payload, id_fasc, "notifiche"))
+        from web.services.pannelli_pronti_runtime import calcolo_in_corso
+        if not calcolo_in_corso():
+            payload = _con_riscontri_processuali(payload, id_fasc, "notifiche")
+        return _jsonify_public_payload(payload)
     except Exception as exc:
         current_app.logger.exception("Obblighi di notifica del fascicolo %s non disponibili: %s", id_fasc, exc)
         return _jsonify_public_payload({"ok": False, "errore": "Obblighi di notifica non disponibili.", "obblighi": []}, 200)

@@ -457,7 +457,7 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                                               motivo="payload troppo grande")
     except Exception as exc:
         logger.warning("Pannello %s del fascicolo %s non salvato: %s", pannello.nome, fascicolo_id, exc)
-    if pannello.ricomponi == "lettura_del_dettaglio":
+    if pannello.ricomponi == "lettura_del_dettaglio" or (pannello.ricomponi == "obblighi_da_lettura" and not ricalcolo):
         risposta.set_data(_ricomponi(pannello, risposta.get_data(), fascicolo_id))
     elif pannello.ricomponi == "quadro_da_lettura":
         dati = json.loads(corpo)

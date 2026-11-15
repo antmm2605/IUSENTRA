@@ -27,8 +27,23 @@ def test_lettura_pendente_non_pubblica_esiti_precedenti(tmp_path):
     registro.accoda_evento("studio-a", "f1", forza=False)
     result = repo.aperte("studio-a")
     assert result["totale"] == 0
-    assert result["lettureInCorso"] == 1
+    assert result["lettureInCorso"] == 0
+    assert result["lettureInCoda"] == 1
     assert result["voci"] == []
+
+    assert registro.reclama_evento("studio-a", "f1", "worker", lease_seconds=60)
+    repo.riconcilia("studio-a", "f2", "cf", [{"chiave": "c2"}])
+    result = repo.aperte("studio-a")
+    assert result["lettureInCorso"] == 1
+    assert result["lettureInCoda"] == 0
+    assert [voce["fascicoloId"] for voce in result["voci"]] == ["f2"]
+
+    with registro.connection() as c:
+        c.execute("UPDATE letture_eventi SET lease_until=? WHERE tenant_id=? AND fascicolo_id=?",
+                  ("2000-01-01T00:00:00+00:00", "studio-a", "f1"))
+    result = repo.aperte("studio-a")
+    assert result["lettureInCorso"] == 0
+    assert result["lettureInCoda"] == 1
 
 
 def test_revisioni_esiti_condivise_e_isolamento(tmp_path):
@@ -174,7 +189,11 @@ def test_coassistiti_nello_stesso_originale_non_sono_nomi_alternativi(tmp_path, 
                         contesto=f"Ricorrente: {nome}", prove=[])
         for i, nome in enumerate(("Rossi Mario", "Verdi Anna"))
     ]
-    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", lambda *a, **k: fatti)
+    def fatti_del_fascicolo(_caso, *, categoria, canonico):
+        assert categoria == "parte" and canonico is False
+        return fatti
+
+    monkeypatch.setattr(archivio_letture_runtime, "fatti_fascicolo", fatti_del_fascicolo)
     runtime.pubblica_discordanza_nome_cliente(caso, caso.nome_cliente, [
         {"id": "d1", "sha256": "a" * 64, "valore": "Verdi Anna"},
     ])

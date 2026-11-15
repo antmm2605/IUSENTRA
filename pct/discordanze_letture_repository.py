@@ -81,12 +81,19 @@ class RegistroDiscordanze:
         with self.registro.connection() as c:
             size = max(1,min(100,int(limit)))
             offset = (max(1,int(page))-1)*size
-            pending = c.execute("SELECT COUNT(*) AS n FROM letture_eventi WHERE tenant_id=? AND stato IN ('pending','running')",(tenant,)).fetchone()['n']
+            now = datetime.now(timezone.utc).isoformat()
+            coda = c.execute(
+                "SELECT CASE WHEN stato='running' AND lease_until>? THEN 'in_corso' ELSE 'in_coda' END AS fase, "
+                "COUNT(*) AS n FROM letture_eventi WHERE tenant_id=? AND stato IN ('pending','running') GROUP BY 1",
+                (now, tenant),
+            ).fetchall()
+            conteggi = {riga['fase']: int(riga['n']) for riga in coda}
             summary = c.execute("SELECT COUNT(*) AS n, MAX(d.aggiornata_il) AS ultimo FROM letture_discordanze d WHERE d.tenant_id=? AND d.stato='aperta' AND NOT EXISTS (SELECT 1 FROM letture_eventi e WHERE e.tenant_id=d.tenant_id AND e.fascicolo_id=d.fascicolo_id AND e.stato IN ('pending','running'))",(tenant,)).fetchone()
             rows = c.execute("SELECT d.* FROM letture_discordanze d WHERE d.tenant_id=? AND d.stato='aperta' AND NOT EXISTS (SELECT 1 FROM letture_eventi e WHERE e.tenant_id=d.tenant_id AND e.fascicolo_id=d.fascicolo_id AND e.stato IN ('pending','running')) ORDER BY d.aggiornata_il DESC,d.fascicolo_id,d.chiave LIMIT ? OFFSET ?",(tenant,size,offset)).fetchall()
         total = int(summary['n'])
         return {'voci':[{**json.loads(r['payload_json']), 'fascicoloId': r['fascicolo_id'],
                          'codice': r['codice'], 'chiave': r['chiave'], 'revisione':r['revisione']}
                         for r in rows],
-                'lettureInCorso':int(pending),'totale':total,'pagina':max(1,int(page)),
+                'lettureInCorso':conteggi.get('in_corso', 0), 'lettureInCoda':conteggi.get('in_coda', 0),
+                'totale':total,'pagina':max(1,int(page)),
                 'altre':offset+len(rows)<total,'revisione':_revision([total,summary['ultimo']])}

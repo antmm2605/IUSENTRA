@@ -8,7 +8,7 @@ import './DiscordanzeAccesso.css'
 
 type Fonte = { id: string; href: string; label: string; valore: string; citazione: string }
 type Discordanza = { chiave: string; codice: string; revisione: string; giaLetta: boolean; titolo: string; cliente: string; fascicolo: string; fascicoloId: string; rg: string; numeroFascicolo: string; valoreAnagrafica: string; valoriAtto: string[]; fonti: Fonte[]; nota: string }
-type Riepilogo = { ok: boolean; nonLette: number; revisione: string; voci: Discordanza[]; lettureInCorso: number; totale: number; pagina: number; altre: boolean }
+type Riepilogo = { ok: boolean; nonLette: number; revisione: string; voci: Discordanza[]; lettureInCorso: number; lettureInCoda?: number; totale: number; pagina: number; altre: boolean }
 
 const chiaveVoce = (voce: Discordanza) => `${voce.fascicoloId}:${voce.chiave}:${voce.revisione}`
 
@@ -49,12 +49,12 @@ export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string 
         if (!response.ok) throw new Error('Il riepilogo delle verifiche non è disponibile. Riprova tra poco.')
         const result = await response.json() as Riepilogo
         if (!active) return
-        setPayload(previous => previous?.revisione === result.revisione && previous.pagina > 1 ? { ...previous, lettureInCorso: result.lettureInCorso } : result)
+        setPayload(previous => previous?.revisione === result.revisione && previous.pagina > 1 ? { ...previous, lettureInCorso: result.lettureInCorso, lettureInCoda: result.lettureInCoda } : result)
         setError('')
         // Apertura automatica solo per verifiche non lette mai mostrate prima a questo utente: la revisione del riepilogo
         // cambia a ogni lettura dello studio e riapriva la finestra su ogni pagina (segnalazione del 02/11/2026).
         const nuove = result.voci.filter(voce => !voce.giaLetta).map(chiaveVoce).filter(chiave => !mostrate(storageKey).has(chiave))
-        if (nuove.length && !result.lettureInCorso) {
+        if (nuove.length) {
           ricorda(storageKey, nuove)
           seen.current = result.revisione
           setOpen(true)
@@ -92,6 +92,8 @@ export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string 
   }
   if (!payload && !error) return null
   const count = payload?.totale || 0
+  const inCorso = payload?.lettureInCorso || 0
+  const inCoda = payload?.lettureInCoda || 0
   const daLeggere = payload?.voci.some(voce => !voce.giaLetta) ?? false
   const more = async () => {
     if (!payload || loadingMore) return
@@ -112,7 +114,11 @@ export default function DiscordanzeAccesso({ sessionKey }: { sessionKey: string 
     <OperationalModal boxClassName="iu-discordanze-accesso-box" open={open} onClose={close} ariaLabel="Discordanze da verificare" eyebrow={<><AlertTriangle size={16} /> Verifiche documentali</>} title={count ? `${count} ${count === 1 ? 'discordanza' : 'discordanze'}` : 'Verifiche documentali'} subtitle="Confronto tra gli atti letti e i dati dello studio. Gli originali e l’anagrafica restano consultabili." actions={<button type="button" className="iu-button" aria-label={!saving && !daLeggere ? "Presa visione salvata" : undefined} disabled={saving || !daLeggere} onClick={() => void acknowledge()}>{saving ? 'Salvataggio…' : daLeggere ? 'Ho letto' : 'Già letta'}</button>}>
       <div className="iu-discordanze-accesso">
         {error ? <p role="alert">{error} <button type="button" onClick={() => refresh.current()}>Riprova</button></p> : null}
-        {payload?.lettureInCorso ? <p role="status">Letture in corso su {payload.lettureInCorso} {payload.lettureInCorso === 1 ? 'fascicolo' : 'fascicoli'}. Le nuove discordanze appariranno al termine della verifica.</p> : null}
+        {inCorso || inCoda ? <p role="status">
+          {inCorso > 0 ? `${inCorso} ${inCorso === 1 ? 'fascicolo in lettura' : 'fascicoli in lettura'}` : ''}
+          {inCorso > 0 && inCoda > 0 ? ' · ' : ''}
+          {inCoda > 0 ? `${inCoda} ${inCoda === 1 ? 'fascicolo in coda' : 'fascicoli in coda'}` : ''}
+        </p> : null}
         {!count && !error ? <p>Nessuna discordanza pubblicata dai verificatori completati.</p> : null}
         {payload?.voci.map(voce => <article key={`${voce.fascicoloId}:${voce.chiave}`}>
           <h3>{voce.titolo}</h3>

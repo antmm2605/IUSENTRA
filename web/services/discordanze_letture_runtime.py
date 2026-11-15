@@ -30,7 +30,9 @@ def verifica_discordanze_fascicolo(fascicolo):
     cliente = get_clienti().get(client_id) if client_id else None
     cf = str(getattr(cliente,'codice_fiscale','') or '').strip().upper()
     nome = str(getattr(cliente, 'nome_completo', '') or fascicolo.nome_cliente).strip()
-    fatti = fatti_fascicolo(fascicolo, categoria='parte')
+    # Il confronto usa le prove di ogni originale. La vista canonica fonde
+    # le copie e può conservare ciascun coassistito sotto un documento diverso.
+    fatti = fatti_fascicolo(fascicolo, categoria='parte', canonico=False)
     docs = {d.id: d for d in fascicolo.documenti}
     assistiti = []
     for fatto in fatti:

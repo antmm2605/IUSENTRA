@@ -11,7 +11,7 @@ from typing import Any
 from pct.formatting import format_date_it
 from pct.document_intelligence.models import utc_now
 
-VERSIONE = "2026.11.10.rettifiche-storiche.v3+data-del-provvedimento"
+VERSIONE = "2026.11.15.rettifiche-storiche.v4"
 NOTA_TERMINE_STORICO = "Creata dalla lettura automatica dei documenti: da confermare."
 
 
@@ -21,6 +21,28 @@ def _text(value: Any) -> str:
 
 def _enum(value: Any) -> str:
     return str(getattr(value, "value", value) or "").upper()
+
+
+def _rettifica_scadenza_identita(scadenza: Any, descrizione: str, fatti_giorno: list[Any]) -> dict[str, Any] | None:
+    """Collega una proposta storica all'estratto già respinto dall'archivio."""
+    if any(f.verifica in {"verificata", "corretta", "plausibile"} for f in fatti_giorno):
+        return None
+    frammenti = {_text(parte) for parte in descrizione.split(" | ") if len(_text(parte)) >= 48}
+    if not frammenti:
+        return None
+    for fatto in fatti_giorno:
+        if fatto.tipo != "documento" or fatto.verifica != "respinta":
+            continue
+        motivo = next((p.get("dettaglio", "") for p in fatto.prove
+                       if p.get("codice") == "pertinenza_documentale" and p.get("esito") == "respinta"
+                       and "documento di identità" in p.get("dettaglio", "")), "")
+        contesto = {_text(parte) for parte in fatto.contesto.split(" | ") if len(_text(parte)) >= 48}
+        if motivo and contesto and all(any(f in c or c in f for c in contesto) for f in frammenti):
+            return {"tipo": "scadenza", "id": scadenza.id, "motivo": motivo, "prove": [
+                {"fatto_id": fatto.id, "documento_id": fatto.oggetto_id, "sha256": fatto.sha256,
+                 "campo": fatto.campo, "verifica": fatto.verifica, "estratto": fatto.contesto},
+            ]}
+    return None
 
 
 def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any], scadenze: list[Any], testi: dict[str, str]) -> list[dict[str, Any]]:
@@ -93,6 +115,10 @@ def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any]
             motivo = "La data è riferita all’emissione del provvedimento, non a un’udienza."
         piano.append({"tipo": "attivita", "id": att.id, "motivo": motivo, "prove": [{"fatto_id": f.id, "documento_id": f.oggetto_id, "sha256": f.sha256, "campo": f.campo, "verifica": f.verifica, "estratto": f.contesto} for f in prove]})
     contratti = {f.oggetto_id: f for f in correnti if f.tipo == "documento" and f.campo == "natura_documentale" and f.valore == "contratto_lavoro" and f.verifica in {"verificata", "corretta"}}
+    termini_per_giorno: dict[str, list[Any]] = {}
+    for fatto in correnti:
+        if fatto.categoria == "data" and fatto.campo in {"termine", "costituzione"}:
+            termini_per_giorno.setdefault(str(fatto.valore)[:10], []).append(fatto)
     for scadenza in scadenze:
         giorno = str(scadenza.data_scadenza)[:10]
         if _enum(scadenza.stato) != "APERTO" or scadenza.note != NOTA_TERMINE_STORICO or scadenza.titolo != "Termine del " + format_date_it(giorno):
@@ -100,6 +126,11 @@ def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any]
         if getattr(scadenza, "id_appuntamento", "") or getattr(scadenza, "avvisi_inviati", []) or getattr(scadenza, "id_utente_responsabile", "") or str(getattr(scadenza, "trace_json", "") or "").strip() not in {"", "[]"}:
             continue
         descrizione = _text(getattr(scadenza, "descrizione", ""))
+        fatti_giorno = termini_per_giorno.get(giorno, [])
+        rettifica_identita = _rettifica_scadenza_identita(scadenza, descrizione, fatti_giorno)
+        if rettifica_identita:
+            piano.append(rettifica_identita)
+            continue
         decorrenze = re.findall(r"decorrenza dal (\d{2}/\d{2}/\d{4})", descrizione, re.I)
         if not decorrenze or any(data != format_date_it(giorno) for data in decorrenze):
             continue
@@ -113,7 +144,7 @@ def pianifica_rettifiche(fascicolo: Any, *, fatti: list[Any], oggetti: list[Any]
         prove = [f for doc_id, f in contratti.items() if any(part in testi_correnti.get(doc_id, "") for part in frammenti)]
         if not prove:
             continue
-        if any(f.categoria == "data" and f.campo in {"termine", "costituzione"} and str(f.valore)[:10] == giorno and f.verifica in {"verificata", "corretta", "plausibile"} for f in correnti):
+        if any(f.verifica in {"verificata", "corretta", "plausibile"} for f in fatti_giorno):
             continue
         piano.append({"tipo": "scadenza", "id": scadenza.id, "motivo": "La data è la decorrenza del contratto di lavoro, non un termine processuale.", "prove": [{"fatto_id": f.id, "documento_id": f.oggetto_id, "sha256": f.sha256, "campo": f.campo, "verifica": f.verifica, "estratto": descrizione} for f in prove]})
     return piano

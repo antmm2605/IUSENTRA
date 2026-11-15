@@ -17,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
 
@@ -42,6 +42,7 @@ from .deduplication import MergedSignalGroup, collapse_same_source_duplicates, m
 from .models import (
     DailyPlan,
     DailyWorkItem,
+    OperationalSignal,
     SourceCoverage,
 )
 from .priority_engine import decide_priority, rank_sort_key
@@ -108,6 +109,27 @@ class RunReport:
             "coverage": list(self.coverage),
             "dirty_consumed": self.dirty_consumed,
         }
+
+
+def _segnali_operativi(signals: Iterable[OperationalSignal]) -> Iterable[OperationalSignal]:
+    """Il termine decorre dalla PEC, mentre la scadenza è governata dallo scadenziario."""
+    for signal in signals:
+        if signal.kind != "pec_deadline" or signal.source_type != "pec":
+            yield signal
+            continue
+        metadata = dict(signal.metadata or {})
+        if (metadata.get("scadenziario_id") and metadata.get("esito_deterministico") == "ok"
+                and not metadata.get("needs_review") and metadata.get("fascicolo_match") != "weak"):
+            continue
+        metadata["needs_review"] = True
+        if signal.due_at:
+            metadata["dies_a_quo_date"] = signal.due_at
+        yield replace(
+            signal, title="Accerta il possibile termine dalla PEC", due_at="",
+            peremptory=False, blocking=False, metadata=metadata,
+            priority_hint="P1" if signal.peremptory else "P2",
+            reason=signal.reason + " Apri la comunicazione per accertare la decorrenza e la data di scadenza.",
+        )
 
 
 class DailyPlanService:
@@ -190,7 +212,7 @@ class DailyPlanService:
             results.append(result)
             fixed_agenda.extend(result.fixed_agenda)
         collected = [signal for result in results for signal in result.signals]
-        groups = merge_signals(collapse_same_source_duplicates(correlate(collected, clock=self.clock)))
+        groups = merge_signals(_segnali_operativi(collapse_same_source_duplicates(correlate(collected, clock=self.clock))))
         resolver = self.resolver_factory()
         fascicoli_lookup = self.fascicoli_lookup_factory()
         drafts = [
@@ -353,7 +375,7 @@ class DailyPlanService:
         active_signals = correlate(
             self.repository.list_active_signals(limit=5000), clock=self.clock
         )
-        groups = merge_signals(active_signals)
+        groups = merge_signals(_segnali_operativi(active_signals))
         resolver = self.resolver_factory()
         fascicoli_lookup = self.fascicoli_lookup_factory()
 

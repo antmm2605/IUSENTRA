@@ -188,20 +188,17 @@ def deterministic_summary(plan: DailyPlan) -> str:
     p1 = int(counts.get("P1") or 0)
     da_assegnare = int(plan.summary.get("da_assegnare_studio") or 0)
 
-    if not plan.work_items:
-        if not plan.coverage_complete:
-            return (
-                "Nessuna attività elencata, ma alcune fonti non sono aggiornate: "
-                "verifica la copertura prima di considerare libera la giornata."
-            )
-        return "Per la data selezionata non risultano attività urgenti: agenda e scadenze sono sotto controllo."
+    immediate_da_assegnare = int(plan.summary.get("immediate_da_assegnare_studio") or 0)
 
-    frasi: list[str] = []
-    frasi.append(
-        f"Nel giorno selezionato hai {p0} attività immediate e {p1} da completare entro la giornata"
-        + (f", con {da_assegnare} elementi da assegnare." if da_assegnare else ".")
-    )
-    for idx, item in enumerate(plan.work_items[:3], start=1):
+    frasi = [f"Attività assegnate a te: {p0} immediate e {p1} da gestire entro oggi."]
+    if da_assegnare:
+        frasi.append(
+            f"Da assegnare nello studio: {da_assegnare}, di cui {immediate_da_assegnare} immediate."
+        )
+    if not plan.coverage_complete:
+        frasi.append("Alcune fonti sono incomplete. Consulta lo stato delle fonti prima di valutare le priorità.")
+    urgenti = [item for item in plan.work_items if item.priority in {"P0", "P1"}]
+    for idx, item in enumerate(urgenti[:3], start=1):
         hint = primary_source_hint(item)
         fonte = hint["etichetta"] or _SOURCE_TYPE_LABELS.get(hint["tipo"], "presidio dello studio")
         pezzi = [f"{idx}. {item.title}."]
@@ -210,7 +207,7 @@ def deterministic_summary(plan: DailyPlan) -> str:
         if item.fascicolo_label:
             pezzi.append(f"Fascicolo: {item.fascicolo_label}.")
         if item.due_at:
-            pezzi.append(f"Entro: {_format_date_it(item.due_at)}.")
+            pezzi.append(f"Data registrata: {_format_date_it(item.due_at)}.")
         pezzi.append(f"Fonte: {fonte}.")
         if item.review_required:
             pezzi.append("Richiede conferma da parte tua.")

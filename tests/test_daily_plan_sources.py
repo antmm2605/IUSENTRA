@@ -204,3 +204,41 @@ def test_apri_senza_fonti_lo_dichiara():
     payload = resolve_item_sources(item, paths={}, tenant_label="default", today=TODAY)
     assert payload["fonti"] == []
     assert "non risulta ancora una fonte" in payload["messaggio"]
+
+
+def test_sintesi_mostra_immediate_dello_studio_anche_senza_attivita_personali():
+    piano = SimpleNamespace(
+        summary={"per_priorita": {}, "da_assegnare_studio": 5, "immediate_da_assegnare_studio": 2},
+        work_items=[], coverage_complete=True,
+    )
+    assert "Da assegnare nello studio: 5, di cui 2 immediate." in deterministic_summary(piano)
+    piano.work_items = [_item(title="Parcella dallo storico", priority="P3")]
+    assert "Parcella dallo storico" not in deterministic_summary(piano)
+
+
+def test_decorrenza_pec_rimane_un_riscontro_e_il_termine_gia_registrato_ha_una_sola_voce():
+    from dataclasses import replace
+    from pct.daily_plan.models import OperationalSignal
+    from pct.daily_plan.deduplication import merge_signals
+    from pct.daily_plan.priority_engine import decide_priority
+    from pct.daily_plan.service import _segnali_operativi
+
+    pec = OperationalSignal(
+        id="pec", tenant_id="default", source_type="pec", kind="pec_deadline",
+        title="Conferma il termine ricevuto via PEC", dedupe_key="identita-persistita",
+        event_at="2026-09-04T10:00:00+02:00", due_at="2026-09-04", peremptory=True,
+        reason="Accertare decorrenza e associazione.",
+    )
+    groups = merge_signals(_segnali_operativi([pec]))
+    group, = groups
+    assert group.primary.due_at == "" and not group.primary.peremptory
+    assert group.primary.metadata["dies_a_quo_date"] == "2026-09-04"
+    assert group.primary.dedupe_key == pec.dedupe_key
+    assert decide_priority(group, today=TODAY).priority == "P1"
+    assert pec.due_at == "2026-09-04" and pec.peremptory
+
+    confirmed = replace(pec, metadata={"scadenziario_id": "sc-1", "esito_deterministico": "ok"})
+    scadenza = replace(pec, id="sc-1", source_type="scadenziario", kind="deadline_fulfill", due_at="2026-09-10")
+    assert list(_segnali_operativi([confirmed, scadenza])) == [scadenza]
+    weak = replace(confirmed, metadata={**confirmed.metadata, "fascicolo_match": "weak"})
+    assert len(list(_segnali_operativi([weak, scadenza]))) == 2

@@ -76,3 +76,30 @@ class ReadingArchiveConsistencyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_legacy_identity_expiry_uses_current_rejected_excerpt_and_preserves_a_real_term():
+    excerpt = "COMUNE DI VICENZA CARTA D'IDENTITÀ scade il 22/11/2026. Documento valido per l'espatrio."
+    provenance = NS(tipo="documento", oggetto_id="identita", impronta="current")
+    rejected = NS(id="rejected", tipo=provenance.tipo, oggetto_id=provenance.oggetto_id,
+                  sha256=provenance.impronta, categoria="data", campo="termine",
+                  verifica="respinta", valore="2026-11-22", contesto=excerpt,
+                  prove=[{"codice": "pertinenza_documentale", "esito": "respinta",
+                          "dettaglio": "Date di emissione, scadenza e nascita del documento di identità."}])
+    scadenza = NS(id="scadenza", data_scadenza="2026-11-22", stato="APERTO",
+                  note=NOTA_TERMINE_STORICO, titolo="Termine del 22/11/2026", descrizione=excerpt)
+    fascicolo = NS(attivita=[])
+    args = dict(fatti=[rejected], oggetti=[provenance], scadenze=[scadenza], testi={})
+    rettifica, = pianifica_rettifiche(fascicolo, **args)
+    assert rettifica["id"] == scadenza.id and rettifica["prove"][0]["fatto_id"] == rejected.id
+
+    legit = NS(**{**vars(rejected), "id": "giudice", "verifica": "verificata"})
+    assert not pianifica_rettifiche(fascicolo, **{**args, "fatti": [rejected, legit]})
+    scadenza.id_utente_responsabile = "avvocato"
+    assert not pianifica_rettifiche(fascicolo, **args)
+    scadenza.id_utente_responsabile = ""
+    scadenza.descrizione += " | Nel dispositivo il giudice ha ordinato un deposito entro tale data."
+    assert not pianifica_rettifiche(fascicolo, **args)
+    scadenza.descrizione = excerpt
+    provenance.impronta = "changed"
+    assert not pianifica_rettifiche(fascicolo, **args)

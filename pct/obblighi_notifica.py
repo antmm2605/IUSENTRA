@@ -302,8 +302,9 @@ def _destinatario(parte: Parte, *, presso_difensore: bool, ufficio: str, difenso
                 "presso": "alla parte personalmente: indirizzo PEC dei pubblici elenchi o nelle forme degli artt. 137 ss. c.p.c.",
                 "fonte": "art. 292 c.p.c.; art. 3-bis L. 53/1994", "nota": _CONTUMACE}
     if scolastico or _STATALE.search(parte.nome):
-        avvocatura = difensore if "avvocatura" in difensore.casefold() else avvocatura_distrettuale(ufficio)
-        presso = f"presso {avvocatura}"
+        # Il distretto è quello dell'autorità davanti alla quale pende la
+        # causa. Il difensore letto negli atti può appartenere a un altro giudizio.
+        presso = f"presso {avvocatura_distrettuale(ufficio)}"
         fonte = "art. 11 R.D. 1611/1933; art. 144 c.p.c." + ("; art. 415, settimo comma, c.p.c." if lavoro else "")
         if scolastico:
             fonte += "; art. 1, comma 2, D.Lgs. 165/2001"

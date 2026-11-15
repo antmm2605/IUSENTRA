@@ -799,3 +799,14 @@ def test_riferimento_obblighi_usa_solo_le_revisioni_del_fascicolo(studio, app_pr
         assert riferimento_corrente("F1") == prima
         _esegui(studio.registro_db, "INSERT INTO letture_fatti VALUES ('L1','studio-prova','F1','notifica','2026-11-01','verificata')")
         assert riferimento_corrente("F1") != prima
+
+
+def test_cambio_regola_obblighi_invalida_solo_la_chiave_del_pannello(monkeypatch):
+    from web.services import obblighi_notifica_fonti
+    from web.services.pannelli_pronti_runtime import _chiave_pannello
+
+    notifiche = _chiave_pannello("F1", "obblighi-notifica", "", "profilo")
+    quadro = _chiave_pannello("F1", "quadro", "", "profilo")
+    monkeypatch.setattr(obblighi_notifica_fonti, "VERSIONE", "regola-successiva")
+    assert _chiave_pannello("F1", "obblighi-notifica", "", "profilo") != notifiche
+    assert _chiave_pannello("F1", "quadro", "", "profilo") == quadro

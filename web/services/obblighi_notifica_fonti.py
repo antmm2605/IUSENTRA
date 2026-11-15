@@ -14,7 +14,7 @@ from pct.ora_italiana import oggi_roma
 from pct.pannelli_pronti.impronta import revisioni_database
 from web.services.registro_letture_runtime import percorso_registro, tenant_corrente
 
-VERSIONE = "obblighi-notifica-fonti:v1"
+VERSIONE = "obblighi-notifica-fonti:v2"
 
 
 def _apri(percorso: str) -> sqlite3.Connection:
@@ -94,7 +94,7 @@ def impronta(fascicolo_id: str) -> str | None:
                      FROM letture_fatti WHERE tenant_id=? AND fascicolo_id=?
                       AND verifica IN ('verificata','plausibile','corretta')
                       AND (categoria IN ('data','ruolo','parte','prova_notifica')
-                           OR campo IN ('impronta_testo_atto','riscontro_notifica_pec_storica'))
+                           OR campo IN ('impronta_testo_atto','natura_documentale','riscontro_notifica_pec_storica'))
                     ORDER BY posizione, letto_il, id""",
                 parametri,
             ).fetchall()

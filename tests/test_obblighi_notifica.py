@@ -53,16 +53,17 @@ def test_lato_non_letto_resta_da_verificare():
     assert obbligo.scadenza == "2026-10-30"  # termine a ritroso: arretramento del sabato
 
 
-def test_lavoro_contro_ministero_presso_avvocatura_letta_negli_atti():
+def test_lavoro_contro_ministero_usa_il_distretto_del_giudice():
     ricorso = DocumentoCatalogato("r1", "ricorso.pdf", "Ricorso in materia di lavoro (art. 414 c.p.c.)", nostro=True, udienze=("2026-12-15",))
     parti = [
-        Parte("Ministero dell'Istruzione e del Merito", "controparte", difensore="Avvocatura Distrettuale dello Stato di Reggio Calabria"),
+        Parte("Ministero dell'Istruzione e del Merito", "controparte", difensore="Avvocatura Distrettuale dello Stato di Venezia"),
     ]
-    obbligo = obblighi_del_fascicolo([ricorso], parti, contesto={"notifica_estero": False, "decreti_collegati": {"r1": "2026-11-10"}}, oggi=OGGI)[0]
+    obbligo = obblighi_del_fascicolo([ricorso], parti, ufficio="Tribunale di Napoli Nord",
+                                     contesto={"notifica_estero": False, "decreti_collegati": {"r1": "2026-11-10"}}, oggi=OGGI)[0]
     assert obbligo.scadenza == "2026-11-13"  # 30 giorni prima, con arretramento del festivo
     assert {c["evento_base"] for c in obbligo.calcoli} == {"udienza", "pronuncia_decreto"}
     destinatario = obbligo.destinatari[0]
-    assert "Avvocatura Distrettuale dello Stato di Reggio Calabria" in destinatario["presso"]
+    assert destinatario["presso"] == "presso Avvocatura distrettuale dello Stato di Napoli"
     assert "415, settimo comma" in destinatario["fonte"]
 
 

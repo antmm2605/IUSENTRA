@@ -1,3 +1,8 @@
+## 2.489.15 — Distretto della notifica alle amministrazioni statali
+
+- L'Avvocatura competente deriva dall'ufficio giudiziario del procedimento. I difensori nominati nei testi conservano il proprio valore documentale, senza determinare il distretto della notifica.
+- I risultati già salvati dal motore degli obblighi sono ricostruiti con la regola aggiornata.
+
 ## 2.489.14 — Risultati degli obblighi di notifica condivisi
 
 - Il ciclo documentale salva il dettaglio e la sintesi degli obblighi per lo stesso fascicolo. Quadro, Notifiche e verifica dello studio riusano i dati correnti dal registro delle letture.

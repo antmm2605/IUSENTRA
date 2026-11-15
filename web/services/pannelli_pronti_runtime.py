@@ -104,6 +104,14 @@ def contesto_corrente() -> Contesto | None:
     return Contesto(archivio=archivio, fonti=fonti, profilo=_profilo(utente, tenant), sessione=sessione)
 
 
+def _chiave_pannello(fascicolo_id: str, nome: str, parametri: str, profilo: str) -> str:
+    if nome == "obblighi-notifica":
+        from web.services.obblighi_notifica_fonti import VERSIONE
+
+        parametri = f"{VERSIONE}\x1f{parametri}"
+    return chiave_voce(fascicolo_id, nome, parametri, profilo)
+
+
 def parametri_normalizzati(pannello: Pannello) -> str:
     ignorati = PARAMETRI_IGNORATI_SEMPRE | pannello.parametri_ignorati
     coppie = sorted((k, v) for k, v in request.args.items(multi=True) if k not in ignorati)
@@ -156,7 +164,7 @@ def richiedi_pannello_consultivo(fascicolo_id: str, nome: str) -> bool:
     from web.services.pannelli_pronti_catalogo import PANNELLI
 
     pannello = next(p for p in PANNELLI if p.nome == nome)
-    chiave = chiave_voce(fascicolo_id, nome, "", contesto.profilo)
+    chiave = _chiave_pannello(fascicolo_id, nome, "", contesto.profilo)
     try:
         voce = contesto.archivio.voce(chiave)
         soglia = (datetime.now(UTC) - timedelta(seconds=SECONDI_TRA_RICHIESTE)).isoformat(timespec="milliseconds")
@@ -343,7 +351,7 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
             return risposta
     conferma = _conferma_revisione(pannello)
     parametri = parametri_normalizzati(pannello)
-    chiave = chiave_voce(fascicolo_id, pannello.nome, parametri, contesto.profilo)
+    chiave = _chiave_pannello(fascicolo_id, pannello.nome, parametri, contesto.profilo)
     percorso = request.path + (("?" + parametri) if parametri else "")
     try:
         istantanea = _istantanea_revisione(pannello) if conferma and not ricalcolo else None
@@ -561,7 +569,7 @@ def voce_del_profilo(fascicolo_id: str, pannello: str, *, precedente: bool = Fal
     if impronta is None and not precedente:
         return None
     try:
-        voce = contesto.archivio.voce(chiave_voce(fascicolo_id, pannello, "", contesto.profilo))
+        voce = contesto.archivio.voce(_chiave_pannello(fascicolo_id, pannello, "", contesto.profilo))
         if voce and voce.corpo and (precedente or voce.impronta == impronta):
             return voce
         return None

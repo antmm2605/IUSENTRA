@@ -11,9 +11,12 @@ class _Fascicoli:
     def __init__(self, fascicolo):
         self.fascicolo, self.scritture = fascicolo, []
 
-    def aggiorna(self, fid, **campi):
-        self.scritture.append((fid, campi))
-        self.fascicolo.pagamenti = campi["pagamenti"]
+    def get(self, fid):
+        return self.fascicolo if self.fascicolo.id == fid else None
+
+    def aggiorna_pagamenti(self, fid, pagamenti):
+        self.scritture.append((fid, pagamenti))
+        self.fascicolo.pagamenti = pagamenti
 
 
 class _Fatturazione:
@@ -61,3 +64,18 @@ def test_bozza_superata_dichiarata_voce_parcella_e_data_allineate():
     assert sentenza.data_emissione == "2026-09-20" and sentenza.dati_personalizzati["document"]["data_sentenza"] == "2026-04-17"
     seconda = runtime.riconvalida_proforme(fascicolo, repository=_Fascicoli(fascicolo), fatturazione=fattura)
     assert seconda["superate"] == [] and not seconda["voce_parcella"] and "data_corretta" not in seconda
+
+
+def test_il_ciclo_che_aggiorna_il_catalogo_delega_le_notifiche_alla_chiusura(monkeypatch):
+    import web.helpers as helpers
+
+    fascicolo = SimpleNamespace(id="F1", pagamenti={})
+    monkeypatch.setattr(helpers, "get_fascicoli", lambda: _Fascicoli(fascicolo))
+    monkeypatch.setattr(helpers, "get_fatturazione", lambda: _Fatturazione([]))
+    controlli = []
+    monkeypatch.setattr(runtime, "_allinea_scadenze", lambda f: controlli.append(f.id) or {"allineate": 0})
+
+    delegato = runtime.riconvalida_fascicolo(fascicolo, con_notifiche=False)
+    assert "scadenze_notifica" not in delegato and controlli == []
+    autonomo = runtime.riconvalida_fascicolo(fascicolo)
+    assert autonomo["scadenze_notifica"] == {"allineate": 0} and controlli == ["F1"]

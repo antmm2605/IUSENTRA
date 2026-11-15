@@ -314,3 +314,15 @@ def test_le_date_di_una_pec_si_attribuiscono_al_ruolo_di_ogni_allegato():
     assert estranea.verifica == "respinta"
     assert any(p["codice"] == "ruolo_allegato_pec" and "1425/2026" in p["dettaglio"] for p in estranea.prove)
     assert pertinente.verifica == "verificata"
+
+
+def test_una_citazione_di_altro_ufficio_non_esclude_il_ricorso():
+    from pct.archivio_letture.pertinenza_documentale import documenti_ufficio_incompatibile
+    from pct.registro_letture.fatti_repository import Fatto
+
+    prove = [{"codice": "ufficio_giudiziario", "esito": "respinta", "dettaglio": "Altro ufficio giudiziario"}]
+    citazione = Fatto(categoria="ruolo", campo="numero_ruolo", valore="4593/2022", tipo="documento",
+                     oggetto_id="RICORSO", posizione=4830, verifica="respinta", prove=prove)
+    intestazione = Fatto(categoria="ruolo", campo="numero_ruolo", valore="1425/2026", tipo="documento",
+                         oggetto_id="DECRETO", posizione=98, verifica="respinta", prove=prove)
+    assert documenti_ufficio_incompatibile([citazione, intestazione]) == {"DECRETO"}

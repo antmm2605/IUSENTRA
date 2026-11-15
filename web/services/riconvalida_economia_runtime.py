@@ -111,16 +111,20 @@ def riconvalida_proforme(fascicolo: Any, *, repository: Any, fatturazione: Any) 
     return esito
 
 
-def riconvalida_fascicolo(fascicolo: Any) -> dict[str, Any]:
-    """Le tre riconvalide sul fascicolo; un errore resta nel log e non ferma il ciclo delle letture."""
+def riconvalida_fascicolo(fascicolo: Any, *, con_notifiche: bool = True) -> dict[str, Any]:
+    """Riconvalida l’economia e, se richiesto, le scadenze di notifica."""
     from web.helpers import get_fascicoli, get_fatturazione
 
     esito: dict[str, Any] = {}
     repository = get_fascicoli()
-    for nome, passo in (("incassi", lambda: riconvalida_incassi(fascicolo, repository=repository)),
-                        ("proforme", lambda: riconvalida_proforme(repository.get(_testo(fascicolo.id)) or fascicolo,
-                                                                   repository=repository, fatturazione=get_fatturazione())),
-                        ("scadenze_notifica", lambda: _allinea_scadenze(fascicolo))):
+    passi = [
+        ("incassi", lambda: riconvalida_incassi(fascicolo, repository=repository)),
+        ("proforme", lambda: riconvalida_proforme(repository.get(_testo(fascicolo.id)) or fascicolo,
+                                                  repository=repository, fatturazione=get_fatturazione())),
+    ]
+    if con_notifiche:
+        passi.append(("scadenze_notifica", lambda: _allinea_scadenze(fascicolo)))
+    for nome, passo in passi:
         try:
             esito[nome] = passo()
         except Exception as exc:

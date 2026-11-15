@@ -16,7 +16,7 @@ from datetime import date, time
 from pct.ora_italiana import in_ora_italiana
 
 from ..eventi import comunicazione_di
-from ..modello import Conclusione, Dubbio, TermineAssegnato
+from ..modello import Atto, Conclusione, Dubbio, Fonte, TermineAssegnato
 from ..notifiche import notifiche_di
 from ..norme import norme
 from ..testo import data_it, date_nel_testo, giorno, semplice
@@ -90,6 +90,34 @@ def _fatto(ctx: Contesto, codice: str, testo: str, dal: str, al: str, ora: str) 
         if corrisponde:
             return f"Trasmissione confermata il {data_it(giorno_consegna)} alle {momento:%H:%M}, ricevuta {deposito.prova_consegna}"
     return ""
+
+
+def _riscontro_notifica_congiunta(ctx: Contesto, decreto: Atto, ordine: TermineAssegnato) -> Dubbio | None:
+    brano = semplice(ordine.fonte.brano)
+    if "decreto" not in brano or not re.search(r"\b(?:ricorso|atto introduttivo)\b", brano):
+        return None
+    prove_decreto = {ctx.notifiche_storiche[oid] for oid in (decreto.id, *decreto.copie) if oid in ctx.notifiche_storiche}
+    if len(prove_decreto) != 1:
+        return None
+    (prova,) = prove_decreto
+    invio, data = prova
+    notifica, pronuncia = giorno(data), giorno(decreto.data)
+    if not notifica or not pronuncia or not pronuncia <= notifica <= ctx.oggi:
+        return None
+    ricorsi = [a for a in ctx.della_causa() if a.natura == "atto_principale" and a.dello_studio
+               and any("ricorso" in semplice(testo) for testo in (a.etichetta, a.nome))]
+    ricorsi_consegnati = {min((a.id, *a.copie)) for a in ricorsi
+                          if any(ctx.notifiche_storiche.get(oid) == prova for oid in (a.id, *a.copie))}
+    if len(ricorsi_consegnati) != 1:
+        return None
+    documento = ctx.atto(invio)
+    return Dubbio(
+        "validita_notifica_ordinata",
+        f"Accettazione PEC del {data_it(data)}, con consegna documentata del ricorso e del decreto. "
+        "Controlla la relata, il recapito nei pubblici elenchi alla data dell'invio e lo stato storico dei certificati.",
+        "relata, recapito legale alla data dell'invio e stato storico dei certificati",
+        Fonte(invio, documento.nome if documento else "Originale della notifica PEC", data=data),
+    )
 
 
 def _note_in_attesa(ctx: Contesto, dal: str, scadenza: date) -> list[str]:
@@ -196,8 +224,11 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
                                         "il testo delle note depositate o il relativo evento di cancelleria che le riferisce a questa udienza",
                                         termine.fonte))
             if codice == "notifica_ordinata" and atto:
-                tracce = notifiche_di(atto.id, ctx.notifiche, ctx.atti)
-                if tracce:
+                riscontro = _riscontro_notifica_congiunta(ctx, atto, termine) if onerato == "noi" else None
+                if riscontro:
+                    stato, motivo = "dubbio", riscontro.testo
+                    dubbi.append(riscontro)
+                elif notifiche_di(atto.id, ctx.notifiche, ctx.atti):
                     stato = "dubbio"
                     motivo = ("Risultano tracce della notifica del provvedimento. "
                               "Collegare la ricevuta di consegna all'ordine, agli atti richiesti e al destinatario.")

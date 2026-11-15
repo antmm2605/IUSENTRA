@@ -793,7 +793,7 @@ def _riapri_per_regole(fascicolo: Any, registro: RegistroLetture, tenant: str) -
         return 0
 
 
-def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
+def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str, *, con_notifiche: bool = True) -> dict[str, Any]:
     """Le regole di oggi ripassano ciò che è già registrato: niente resta aperto per una regola superata.
 
     Chi ha già letto un documento non lo rilegge; ma le anomalie e i fatti
@@ -832,7 +832,7 @@ def _riconvalida(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict
         # Incassi senza prova, proforma automatiche doppie, scadenze degli obblighi di notifica (10/11/2026).
         from web.services.riconvalida_economia_runtime import riconvalida_fascicolo
 
-        esito["economia_notifiche"] = riconvalida_fascicolo(fascicolo)
+        esito["economia_notifiche"] = riconvalida_fascicolo(fascicolo, con_notifiche=con_notifiche)
     except Exception as exc:
         logger.debug("Riconvalida economica e delle notifiche non riuscita per %s: %s", fascicolo_id, exc)
     return esito
@@ -1127,7 +1127,8 @@ def leggi_fascicolo(fascicolo: Any, *, forza: bool = False, limite: int = 200, r
         contesto = contesto_da_fascicolo(fascicolo, date_note=date_note_fascicolo(fascicolo, messaggi_pec=messaggi or []))
         contesto.importi_noti = importi_noti_fascicolo(fascicolo)
         contesto.avvocati_studio = tuple(dict.fromkeys([*contesto.avvocati_studio, *_avvocati_dello_studio()]))
-        riconvalidati = _riconvalida(fascicolo, registro, tenant)
+        # Gli obblighi si allineano con i fatti e il catalogo aggiornati in chiusura del giro.
+        riconvalidati = _riconvalida(fascicolo, registro, tenant, con_notifiche=messaggi is None)
         documenti = _leggi_documenti(fascicolo, registro, tenant, contesto, forza=forza, limite=limite, rileggi_superati=rileggi_superati, fine_turno=fine_turno)
         pec = _leggi_pec(fascicolo, registro, tenant, contesto, messaggi, limite=limite, fine_turno=fine_turno)
         promossi = _ricollauda_plausibili(fascicolo, registro, tenant, contesto)

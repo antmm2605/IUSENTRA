@@ -82,6 +82,9 @@ VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
 # I documenti storici restano compatibili. Il presidio riapre solo le PEC
 # che alimentano date giudiziali, usando il testo già estratto.
 VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += (VERSIONE_MOTORE_DOCUMENTI,)
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
+    versione + "+" + REGOLA_RUOLO_ALLEGATO for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
+)
 VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLA_RUOLO_ALLEGATO
 FATTI_MASSIMI = 80
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}

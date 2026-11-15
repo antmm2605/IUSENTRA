@@ -20,6 +20,8 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+CARATTERI_INTESTAZIONE = 1500
+
 # «RG n. 161/2026», «N.RG 4202 / 2024», «n. XXX/2022 R.G.», «Numero registro generale 10072/2023».
 _RG_DOPO = re.compile(
     r"(?:\bR\.?\s*G\.?(?:\s*N\.?)?|\bN\.?\s*R\.?\s*G\.?|ruolo\s+generale|registro\s+generale)\s*(?:n\.?|nr\.?|numero)?\s*[:.]?\s*"
@@ -36,7 +38,7 @@ def stesso_numero_ruolo(primo: str, secondo: str) -> bool:
     return bool(primo and secondo) and primo.lstrip("0") == secondo.lstrip("0")
 
 
-def ruoli_in_intestazione(testo: str, *, caratteri: int = 1500) -> list[tuple[str, str]]:
+def ruoli_in_intestazione(testo: str, *, caratteri: int = CARATTERI_INTESTAZIONE) -> list[tuple[str, str]]:
     """I numeri di ruolo scritti nell'intestazione (numero, anno); «XXX» resta per i testi anonimizzati."""
     testata = str(testo or "")[:caratteri]
     ruoli: list[tuple[str, str]] = []
@@ -68,4 +70,4 @@ def provvedimento_della_causa(*, ruoli: Iterable[tuple[str, str]], date_atto: It
     return None, ""
 
 
-__all__ = ["provvedimento_della_causa", "ruoli_in_intestazione", "stesso_numero_ruolo"]
+__all__ = ["CARATTERI_INTESTAZIONE", "provvedimento_della_causa", "ruoli_in_intestazione", "stesso_numero_ruolo"]

@@ -2,6 +2,7 @@
 from __future__ import annotations
 import re
 from typing import Any, Iterable
+from pct.atto_della_causa import CARATTERI_INTESTAZIONE
 from pct.registro_letture.fatti_repository import Fatto
 
 _ALLEGATO_EMAIL = re.compile(r"(?im)^\[Allegato:[^\]\r\n]+\][ \t]*$")
@@ -174,7 +175,11 @@ def precedenti_del_fascicolo(fascicolo: Any, fatti: Iterable[Any] = ()) -> set[s
 
 
 def documenti_ufficio_incompatibile(fatti: Iterable[Fatto]) -> set[str]:
-    """Usa il collaudo del ruolo già registrato per la versione corrente dell'atto."""
+    """Esclude la fonte se il ruolo incompatibile appartiene alla sua intestazione.
+
+    Un ruolo citato nel corpo può essere respinto come dato della causa.
+    La citazione lascia utilizzabili l’atto e gli altri fatti che contiene.
+    """
     incompatibili: set[str] = set()
     confermati: set[str] = set()
     for fatto in fatti:
@@ -187,10 +192,9 @@ def documenti_ufficio_incompatibile(fatti: Iterable[Fatto]) -> set[str]:
             )
         ):
             confermati.add(fatto.oggetto_id)
-        elif fatto.verifica == "respinta" and any(
-            prova.get("codice") == "ufficio_giudiziario" and prova.get("esito") == "respinta"
-            for prova in fatto.prove
-        ):
+        elif (fatto.verifica == "respinta" and fatto.posizione < CARATTERI_INTESTAZIONE
+              and any(prova.get("codice") == "ufficio_giudiziario" and prova.get("esito") == "respinta"
+                      for prova in fatto.prove)):
             incompatibili.add(fatto.oggetto_id)
     return incompatibili - confermati
 

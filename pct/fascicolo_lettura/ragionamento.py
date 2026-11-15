@@ -9,6 +9,7 @@ da qui: i vecchi calcoli paralleli della Lettura non li ripetono.
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 from ._testo import data_it
 from .modello import Passo
@@ -140,8 +141,16 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False) -> list[
         if voce["stato"] == "dubbio":
             motivo = "; ".join(d["testo"] for d in voce.get("dubbi") or []) or motivo
         azione = _azione(voce)
+        href = HREF.get(voce["codice"], "#udienze")
+        prova_pec = next((d.get("fonte") for d in voce.get("dubbi") or []
+                          if d.get("codice") == "validita_notifica_ordinata"), None)
         if any(d.get("codice") == "note_in_attesa_cancelleria" for d in voce.get("dubbi") or []):
             azione = "Verificare l’esito finale del deposito delle note scritte"
+        elif prova_pec:
+            azione = "Controllare la validità della notifica PEC già consegnata"
+            fid, oid = str(causa.get("fascicolo_id") or ""), str(prova_pec.get("oggetto_id") or "")
+            if fid and oid:
+                href = f"/fascicoli/{quote(fid, safe='')}/documenti/{quote(oid, safe='')}/visualizza"
         elif any(d.get("codice") == "notifica_ordinata_da_correlare" for d in voce.get("dubbi") or []):
             azione = "Verificare la prova della notifica ordinata dal giudice"
         elif any(d.get("codice") == "note_depositate_da_correlare" for d in voce.get("dubbi") or []):
@@ -150,7 +159,7 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False) -> list[
             azione = "Verificare se il termine riguarda il cliente: " + azione
         esito.append(Passo(
             urgenza, azione, motivo, data_it(termine.get("scadenza")), "ragionamento sul fascicolo",
-            tuple(n["id"] for n in voce.get("norme") or [] if n.get("id")), HREF.get(voce["codice"], "#udienze"),
+            tuple(n["id"] for n in voce.get("norme") or [] if n.get("id")), href,
         ))
     prossima = next((u for u in sorted(causa.get("udienze") or [], key=lambda u: u["data"]) if u["data"] >= (causa.get("oggi") or "")), None)
     if prossima and prossima.get("modalita") != "note_scritte":

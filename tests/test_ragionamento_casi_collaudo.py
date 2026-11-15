@@ -567,7 +567,8 @@ def test_g05_riscontro_pec_storica_da_sql_non_attiva_termine_breve():
     prova = {
         **fatto("INVIO", "riscontro_notifica_pec_storica", "b" * 64, "metadato_fascicolo", "plausibile"),
         "prove": [{"impronte_allegati": ["a" * 64],
-                   "impronte_eml": {"INVIO": "b" * 64, "RAC": "c" * 64, "RDAC": "d" * 64}}],
+                   "impronte_eml": {"INVIO": "b" * 64, "RAC": "c" * 64, "RDAC": "d" * 64},
+                   "accettazione_id": "RAC", "consegne": [{"documento_id": "RDAC", "data": "2024-03-30T09:01:00+01:00"}]}],
     }
     caso = {**LAVORO, "numero_rg": "161"}
     causa = ragiona(fonti(caso, documenti, fatti=[prova]))
@@ -671,3 +672,32 @@ def test_tar_ottemperanza_legge_il_proprio_dispositivo_e_usa_il_cpa():
     assert "art. 92 c.p.a." in norme_di(termine)
     assert not any("c.p.c." in norma for norma in norme_di(termine))
     assert "sopravvenuto difetto di interesse" in conclusione(causa, "esito_rito").cosa
+
+
+def test_riscontro_storico_congiunto_individua_la_notifica_gia_consegnata():
+    decreto = doc("D", "Decreto.pdf", "provvedimento", "Decreto di fissazione udienza",
+                  "TRIBUNALE DI VICENZA Sezione Lavoro R.G. n. 1571/2026. "
+                  "ASSEGNA alle parti ai sensi dell’art. 127 ter c.p.c. il termine del 17/12/2026 per le note scritte. "
+                  "Dispone che a cura del ricorrente l’atto introduttivo e il presente decreto vengano notificati "
+                  "alla controparte entro e non oltre il termine di trenta giorni prima dell’udienza. Il Giudice del Lavoro.", "2026-05-18")
+    atti = [{**RICORSO_LAVORO, "sha256": "a" * 64}, {**decreto, "sha256": "b" * 64},
+            {**doc("INV", "Originale notifica.eml", "comunicazione", "Invio PEC", ""), "sha256": "c" * 64},
+            {**doc("RAC", "Accettazione.eml", "comunicazione", "Ricevuta PEC", ""), "sha256": "d" * 64},
+            {**doc("RDC", "Consegna.eml", "comunicazione", "Ricevuta PEC", ""), "sha256": "e" * 64}]
+    prova = {"impronte_eml": {"INV": "c" * 64, "RAC": "d" * 64, "RDC": "e" * 64},
+             "accettazione_data": "2026-05-19T10:00:00+02:00", "accettazione_id": "RAC",
+             "consegne": [{"documento_id": "RDC", "data": "2026-05-19T10:01:00+02:00"}],
+             "impronte_allegati": ["a" * 64, "b" * 64]}
+    riscontro = {**fatto("INV", "riscontro_notifica_pec_storica", "c" * 64, "metadato_fascicolo", "plausibile"),
+                 "prove": [prova]}
+    dati_decreto = fatto("D", "data_atto", "2026-05-18", "data")
+    causa = ragiona(fonti(LAVORO, atti, fatti=[riscontro, dati_decreto]))
+    notifica = conclusione(causa, "notifica_ordinata")
+    dubbio = next(d for d in notifica.dubbi if d.codice == "validita_notifica_ordinata")
+    assert notifica.stato == "dubbio" and dubbio.fonte.oggetto_id == "INV"
+    assert "19/05/2026" in dubbio.testo and "pubblici elenchi" in dubbio.testo
+    from pct.fascicolo_lettura.ragionamento import passi
+    assert any(p.href == "/fascicoli/F1/documenti/INV/visualizza" for p in passi(causa.come_dizionario()))
+    prova["impronte_allegati"] = ["b" * 64]
+    incompleta = conclusione(ragiona(fonti(LAVORO, atti, fatti=[riscontro, dati_decreto])), "notifica_ordinata")
+    assert not any(d.codice == "validita_notifica_ordinata" for d in incompleta.dubbi)

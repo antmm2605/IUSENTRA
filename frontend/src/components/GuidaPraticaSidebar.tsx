@@ -465,7 +465,7 @@ function FascicoloContextCard({ fascicolo, operativo }: { fascicolo?: Record<str
     ['Oggetto pratica', text(fascicolo.oggetto || fascicolo.title)],
     ['Codice ufficiale', text(fascicolo.codice_oggetto_pst || fascicolo.codiceOggettoPst, 'Non valorizzato')],
     ['Valore causa', operativo?.valore_causa?.importo ? formatEuroIt(operativo.valore_causa.importo) : Number(fascicolo.valore_causa) > 0 ? formatEuroIt(Number(fascicolo.valore_causa)) : 'Non presente'],
-    ...(operativo ? [['Prossima udienza', operativo.udienza || 'Nessuna udienza futura registrata']] : []),
+    ...(typeof operativo?.udienza === 'string' ? [['Prossima udienza', operativo.udienza || 'Nessuna udienza futura registrata']] : []),
     ...(operativo?.contributo ? [['Contributo unificato', [operativo.contributo.etichetta, operativo.contributo.importoLabel].filter(Boolean).join(' · ')]] : []),
     ['Rito / fase', [text(fascicolo.tipo_procedimento || fascicolo.procedureType), text(fascicolo.stato)].filter(Boolean).join(' · ')],
     ['Preventivo', boolContext(fascicolo.preventivo)],

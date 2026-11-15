@@ -111,3 +111,37 @@ def valore_iscrizione(fascicolo: Any, fatti: list[Any], oggetti: list[Any]) -> d
     return {"importo": float(importo), "documento": {
         "id": oid, "nome": documenti[oid].nome, "href": href_documento(str(fascicolo.id), oid),
     }}
+
+
+
+def valore_iscrizione_corrente(fascicolo_id: str, *, fascicolo: Any = None) -> dict[str, Any]:
+    """Espone il fatto già scritto anche se la Lettura completa non è ancora pronta."""
+    import logging
+    import sqlite3
+
+    from flask import g, has_request_context
+
+    if not fascicolo_id or not has_request_context():
+        return {}
+    from web.helpers import get_fascicoli
+    from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+    try:
+        registro = registro_corrente(sola_lettura=True)
+        tenant = tenant_corrente()
+        fatti = registro.fatti(tenant, fascicolo_id, campo=CAMPO_VALORE, verifiche=("verificata", "corretta"))
+        if not fatti:
+            return {}
+        if fascicolo is None:
+            precedente = g.get("fascicoli_sql_puntuali", False)
+            g.fascicoli_sql_puntuali = True
+            try:
+                fascicolo = get_fascicoli().get(fascicolo_id)
+            finally:
+                g.fascicoli_sql_puntuali = precedente
+        if fascicolo is None or str(fascicolo.id) != fascicolo_id:
+            return {}
+        return valore_iscrizione(fascicolo, fatti, registro.oggetti(tenant, fascicolo_id))
+    except (OSError, sqlite3.Error, RuntimeError) as exc:
+        logging.getLogger(__name__).warning("Fonte del valore non disponibile per %s: %s", fascicolo_id, exc)
+        return {}

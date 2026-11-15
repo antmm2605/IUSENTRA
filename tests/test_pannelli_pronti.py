@@ -810,3 +810,59 @@ def test_cambio_regola_obblighi_invalida_solo_la_chiave_del_pannello(monkeypatch
     monkeypatch.setattr(obblighi_notifica_fonti, "VERSIONE", "regola-successiva")
     assert _chiave_pannello("F1", "obblighi-notifica", "", "profilo") != notifiche
     assert _chiave_pannello("F1", "quadro", "", "profilo") == quadro
+
+
+def test_il_valore_archiviato_arriva_ai_pannelli_anche_senza_lettura(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    from flask import Flask
+
+    from pct.registro_letture import Oggetto, RegistroLetture
+    from pct.registro_letture.fatti_repository import Fatto
+    from web.services import registro_letture_runtime, riscontri_processuali_runtime
+    from web.services.pannelli_pronti_catalogo import PANNELLI
+    from web.services.pannelli_pronti_ricomposizione import redazione_dal_conto
+    from web.services.pannelli_pronti_runtime import _ricomponi
+    from web.services.valore_causa_archivio import CAMPO_VALORE
+
+    documento = SimpleNamespace(id="NIR1", nome="Nota di iscrizione a ruolo.pdf")
+    fascicolo = SimpleNamespace(id="F1", documenti=[documento], valore_causa=0)
+    oggetto = Oggetto(tipo="documento", oggetto_id=documento.id, nome=documento.nome, sha256="b" * 64)
+    archivio = RegistroLetture(tmp_path / "valore-causa.sqlite")
+    archivio.registra_inventario("studio", fascicolo.id, [oggetto])
+    archivio.registra_fatti("studio", fascicolo.id, oggetto, "documenti", [
+        Fatto(categoria="importo", campo=CAMPO_VALORE, valore="500.00", verifica="verificata",
+              prove=[{"impronte_documenti": {documento.id: oggetto.impronta}}]),
+    ])
+    monkeypatch.setattr("web.helpers.get_fascicoli", lambda: SimpleNamespace(get=lambda _: fascicolo))
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente", lambda **_: archivio)
+    monkeypatch.setattr(registro_letture_runtime, "tenant_corrente", lambda: "studio")
+    monkeypatch.setattr(riscontri_processuali_runtime, "lettura_materializzata", lambda _: None)
+    monkeypatch.setattr(riscontri_processuali_runtime, "lettura_precedente", lambda _: None)
+    pannello = next(p for p in PANNELLI if p.nome == "dettaglio")
+    iniziale = {"fascicolo": {"id": fascicolo.id, "valueRaw": "0"}, "profile": [], "economics": [{"id": "valore"}]}
+    redazione = {"contesto": {"fascicolo": {"valoreCausa": {"mancante": True}},
+                             "economia": {"contributoUnificato": {"disponibile": True}}}}
+
+    app = Flask(__name__)
+    with app.test_request_context():
+        guida = riscontri_processuali_runtime.contesto_operativo_da_lettura(None, fascicolo.id)
+        dettaglio = json.loads(_ricomponi(pannello, json.dumps(iniziale).encode(), fascicolo.id))
+        redazione = json.loads(redazione_dal_conto(json.dumps(redazione).encode(), fascicolo.id))["contesto"]
+        fascicolo.valore_causa = 1500
+        discordante = riscontri_processuali_runtime.contesto_operativo_da_lettura(None, fascicolo.id)
+
+    fascicolo.valore_causa = 0
+    with app.test_request_context("/?include=audit"):
+        refresh = json.loads(_ricomponi(pannello, json.dumps(iniziale).encode(), fascicolo.id))
+
+    assert "udienza" not in guida
+    fonte = guida["valore_causa"]["documento"]
+    assert guida["valore_causa"]["importo"] == 500
+    assert float(dettaglio["fascicolo"]["valueRaw"]) == float(refresh["fascicolo"]["valueRaw"]) == 500
+    assert dettaglio["profile"][0]["value"] == dettaglio["economics"][0]["value"] == "€ 500,00"
+    assert dettaglio["profile"][0]["href"] == dettaglio["economics"][0]["href"] == fonte["href"]
+    assert redazione["fascicolo"]["valoreCausa"]["fonte"] == fonte
+    assert redazione["economia"]["valoreCausa"] == redazione["fascicolo"]["valoreCausa"]
+    assert discordante == {}

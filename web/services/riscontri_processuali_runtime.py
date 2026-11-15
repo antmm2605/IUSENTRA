@@ -40,7 +40,7 @@ def stato_contributo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, Any
     return stato if isinstance(stato, dict) and stato.get("codice") else None
 
 
-def contesto_operativo_da_lettura(lettura: dict[str, Any] | None, fascicolo_id: str = "") -> dict[str, Any]:
+def contesto_operativo_da_lettura(lettura: dict[str, Any] | None, fascicolo_id: str = "", *, fascicolo: Any = None) -> dict[str, Any]:
     """Le informazioni comuni di Quadro, Guida pratica e Redazione già lette."""
     contributo = stato_contributo_da_lettura(lettura)
     if contributo is None and fascicolo_id:
@@ -48,12 +48,17 @@ def contesto_operativo_da_lettura(lettura: dict[str, Any] | None, fascicolo_id: 
         conto = risultato_materializzato(fascicolo_id, "conto-economico") or {}
         contributo = next((riga.get("statoContributo") for riga in conto.get("righe") or []
                            if riga.get("voce") == "contributo_unificato"), None)
-    if not lettura and not contributo:
+    valore = ((lettura or {}).get("intestazione") or {}).get("fonte_valore_causa") or {}
+    if not valore and fascicolo_id:
+        from web.services.valore_causa_archivio import valore_iscrizione_corrente
+
+        valore = valore_iscrizione_corrente(fascicolo_id, fascicolo=fascicolo)
+    if not lettura and not contributo and not valore:
         return {}
     fase = (lettura or {}).get("fase") or {}
     return {
-        "udienza": fase.get("prossima_udienza") or "",
-        "valore_causa": ((lettura or {}).get("intestazione") or {}).get("fonte_valore_causa") or {},
+        **({"udienza": fase.get("prossima_udienza") or ""} if lettura else {}),
+        "valore_causa": valore,
         "contributo": contributo,
     }
 

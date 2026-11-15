@@ -244,34 +244,37 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
         ) else corpo
     if pannello.ricomponi == "lettura_del_dettaglio":
         sezioni = request.args.get("include", "").lower().replace(";", " ").replace(",", " ").split()
-        if sezioni and not {"all", "lettura"}.intersection(sezioni):
-            return corpo
-        # Il dettaglio e il Quadro mostrano lo stesso esito consultivo mentre
-        # le nuove fonti vengono elaborate.
-        from web.services.riscontri_processuali_runtime import lettura_consultiva
-
         dati = json.loads(corpo)
-        lettura = lettura_consultiva(fascicolo_id)
-        if lettura is None and not dati.get("initialLettura"):
-            return corpo
-        if lettura is not None:
-            from web.services.riscontri_processuali_runtime import aggiorna_stato_presidi
+        lettura = None
+        if not sezioni or {"all", "lettura"}.intersection(sezioni):
+            # Il dettaglio e il Quadro mostrano lo stesso esito consultivo mentre
+            # le nuove fonti vengono elaborate.
+            from web.services.riscontri_processuali_runtime import aggiorna_stato_presidi, lettura_consultiva
 
-            aggiorna_stato_presidi(lettura, fascicolo_id)
-        dati["initialLettura"] = lettura
-        if lettura is not None and not lettura.get("aggiornamento_pendente"):
-            intestazione = lettura.get("intestazione") or {}
-            valore = intestazione.get("fonte_valore_causa") or {}
-            documento = valore.get("documento") or {}
-            if documento.get("href") and intestazione.get("valore_causa"):
-                importo = intestazione["valore_causa"]
-                profilo = [voce for voce in dati.get("profile") or [] if voce.get("label") != "Valore causa"]
-                dati["profile"] = [*profilo, {"label": "Valore causa all’iscrizione", "value": importo,
-                                            "href": documento["href"], "mono": False}]
-                dati.get("fascicolo", {})["value"] = importo
-                for voce in dati.get("economics") or []:
-                    if voce.get("id") == "valore":
-                        voce.update(value=importo, note="valore dichiarato all’iscrizione", href=documento["href"])
+            lettura = lettura_consultiva(fascicolo_id)
+            if lettura is not None:
+                aggiorna_stato_presidi(lettura, fascicolo_id)
+            dati["initialLettura"] = lettura
+        corrente = lettura if lettura and not lettura.get("aggiornamento_pendente") else {}
+        valore = (corrente.get("intestazione") or {}).get("fonte_valore_causa") or {}
+        if not valore and (dati.get("fascicolo") or {}).get("id") == fascicolo_id:
+            from web.services.valore_causa_archivio import valore_iscrizione_corrente
+
+            valore = valore_iscrizione_corrente(fascicolo_id)
+        documento = valore.get("documento") or {}
+        if documento.get("href"):
+            from pct.formatting import format_euro_it
+
+            importo = valore["importo"]
+            importo_label = format_euro_it(importo)
+            profilo = [voce for voce in dati.get("profile") or [] if voce.get("label") not in
+                       {"Valore causa", "Valore causa all’iscrizione"}]
+            dati["profile"] = [*profilo, {"label": "Valore causa all’iscrizione", "value": importo_label,
+                                        "href": documento["href"], "mono": False}]
+            dati.get("fascicolo", {}).update(value=importo_label, valueRaw=str(importo))
+            for voce in dati.get("economics") or []:
+                if voce.get("id") == "valore":
+                    voce.update(value=importo_label, note="valore dichiarato all’iscrizione", href=documento["href"])
         return json.dumps(dati, ensure_ascii=False).encode("utf-8")
     from web.services import pannelli_pronti_ricomposizione
 

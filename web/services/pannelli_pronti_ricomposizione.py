@@ -40,16 +40,26 @@ def obblighi_da_lettura(corpo: bytes, fascicolo_id: str) -> bytes:
     return json.dumps(_public_json_payload(risultato), ensure_ascii=False).encode("utf-8")
 
 def redazione_dal_conto(corpo: bytes, fascicolo_id: str) -> bytes:
-    """Completa una proiezione di Redazione salvata prima dell'esito economico."""
-    from web.services.react_redazione_guidata_bridge import contributo_per_redazione
+    """Completa la redazione salvata da fatti già disponibili nelle fonti comuni."""
+    from web.services.react_redazione_guidata_bridge import applica_valore_in_redazione, contributo_per_redazione
     from web.services.riscontri_processuali_runtime import contesto_operativo_da_lettura, lettura_materializzata
 
     dati = json.loads(corpo)
-    economia = (dati.get("contesto") or {}).get("economia")
-    if not isinstance(economia, dict) or (economia.get("contributoUnificato") or {}).get("disponibile"):
+    contesto = dati.get("contesto") or {}
+    economia = contesto.get("economia")
+    fascicolo = contesto.get("fascicolo")
+    if not isinstance(economia, dict) or not isinstance(fascicolo, dict):
+        return corpo
+    valore_senza_fonte = not (fascicolo.get("valoreCausa") or {}).get("fonte")
+    contributo_mancante = not (economia.get("contributoUnificato") or {}).get("disponibile")
+    if not valore_senza_fonte and not contributo_mancante:
         return corpo
     comune = contesto_operativo_da_lettura(lettura_materializzata(fascicolo_id), fascicolo_id)
-    if not comune.get("contributo"):
-        return corpo
-    economia["contributoUnificato"] = contributo_per_redazione(comune["contributo"])
-    return json.dumps(dati, ensure_ascii=False).encode("utf-8")
+    cambiato = False
+    if contributo_mancante and comune.get("contributo"):
+        economia["contributoUnificato"] = contributo_per_redazione(comune["contributo"])
+        cambiato = True
+    if valore_senza_fonte and "valoreCausa" in fascicolo and comune.get("valore_causa"):
+        applica_valore_in_redazione(contesto, comune["valore_causa"])
+        cambiato = True
+    return json.dumps(dati, ensure_ascii=False).encode("utf-8") if cambiato else corpo

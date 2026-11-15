@@ -100,6 +100,13 @@ def contributo_per_redazione(stato: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def applica_valore_in_redazione(contesto: dict[str, Any], valore: dict[str, Any]) -> None:
+    campi = contesto["fascicolo"]
+    campo = {**campi["valoreCausa"], "valore": str(valore["importo"]), "mancante": False,
+             "fonte": valore["documento"]}
+    campi["valoreCausa"] = contesto["economia"]["valoreCausa"] = campo
+
+
 def build_redazione_contesto_payload(
     *,
     fascicolo: Any,
@@ -115,7 +122,7 @@ def build_redazione_contesto_payload(
     from pct.ora_italiana import oggi_roma
     from web.services.riscontri_processuali_runtime import contesto_operativo_da_lettura
 
-    comune = contesto_operativo_da_lettura(lettura, str(fascicolo.id))
+    comune = contesto_operativo_da_lettura(lettura, str(fascicolo.id), fascicolo=fascicolo)
     contesto = estrai_contesto_fascicolo(
         fascicolo=fascicolo, cliente=cliente, parti=parti, config=config,
         contributo=contributo_per_redazione(comune.get("contributo")),
@@ -129,9 +136,7 @@ def build_redazione_contesto_payload(
         "mancante": False,
     }
     if valore := comune.get("valore_causa"):
-        campo_valore = {**campi["valoreCausa"], "valore": str(valore["importo"]), "mancante": False,
-                        "fonte": valore.get("documento") or {}}
-        campi["valoreCausa"] = contesto["economia"]["valoreCausa"] = campo_valore
+        applica_valore_in_redazione(contesto, valore)
 
     note = proposte_note(lettura, oggi)
     risultato = {

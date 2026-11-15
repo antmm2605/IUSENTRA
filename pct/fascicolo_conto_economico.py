@@ -113,7 +113,9 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
     # non si somma, si mostrano le fonti e si chiede di verificarlo.
     gruppi: dict[float, list[Mapping[str, Any]]] = {}
     for credito in scelti:
-        gruppi.setdefault(round(float(credito.get("importo") or 0), 2), []).append(credito)
+        importo = _numero(credito.get("importo"))
+        if importo is not None:
+            gruppi.setdefault(importo, []).append(credito)
     totale = round(sum(gruppi), 2) or None
     fonti = [f for c in scelti for f in c.get("fonti") or []]
     avvisi = []
@@ -122,6 +124,8 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
         or len({c["identita_atto"] for c in gruppo}) > 1
     ) for gruppo in gruppi.values()):
         avvisi.append("Stesso importo in più documenti: contato una volta, verificare che sia la stessa sentenza.")
+    if any(_numero(c.get("importo")) is None for c in scelti):
+        avvisi.append("Una fonte indica spese a credito senza riportare un importo leggibile.")
     if len(gruppi) > 1:
         avvisi.append("Importi diversi in più sentenze del fascicolo: verificare quale è definitiva prima di chiedere il pagamento.")
     if any(c.get("accessori") for c in scelti):

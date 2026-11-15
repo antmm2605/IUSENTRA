@@ -160,12 +160,11 @@ def riga_notifiche_da_lettura(sintesi: dict[str, Any] | None, lettura: dict[str,
     # notifica ancora azionabile solo per la stessa sentenza e la stessa finalità.
     lettura = lettura or {}
     obblighi = list(sintesi.get("obblighi") or [])
-    if lettura.get("aggiornamento_pendente"):
-        return riga_notifiche(obblighi, oggi=oggi)
     esiti = (lettura.get("ragionamento") or {}).get("conclusioni") or []
     storici = documenti_notifica_storica(esiti)
+    stato = "riscontro_storico_precedente" if lettura.get("aggiornamento_pendente") else "riscontro_storico"
     return riga_notifiche([
-        {**voce, "stato": "riscontro_storico"} if obbligo_di_notifica_storico(voce, storici) else voce
+        {**voce, "stato": stato} if obbligo_di_notifica_storico(voce, storici) else voce
         for voce in obblighi
     ], oggi=oggi)
 

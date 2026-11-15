@@ -15,7 +15,7 @@ from pct.percorso_pratica.esito import esito_sentenza, improcedibile_per_interes
 from pct.termine_lungo_sentenza import data_decisione
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_ESITO = "2026.11.15.esito-dispositivo.v7-data-e-motivo"
+VERSIONE_ESTRAZIONE_ESITO = "2026.11.15.esito-dispositivo.v8-spese-a-carico"
 _SENTENZA = re.compile(r"\bS\s?E\s?N\s?T\s?E\s?N\s?Z\s?A\b", re.IGNORECASE)
 
 

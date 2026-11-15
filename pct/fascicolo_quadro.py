@@ -25,6 +25,7 @@ _STATI_NOTIFICA = {
     "facoltativo": "notifica facoltativa",
     "da_verificare": "notifica da verificare",
     "riscontro_storico": "riscontro storico della notifica ai fini del termine breve",
+    "riscontro_storico_precedente": "ultimo riscontro storico del termine breve, aggiornamento automatico in corso",
 }
 
 
@@ -145,8 +146,10 @@ def riga_notifiche(obblighi: list[Mapping[str, Any]] | None, *, oggi: date) -> d
                 livello = "attenzione"
         else:
             descrizione = _STATI_NOTIFICA.get(stato, stato.replace("_", " ") or "da verificare")
-            if stato == "da_verificare" and livello == "ok":
+            if stato == "da_verificare" and livello in {"ok", "info"}:
                 livello = "attenzione"
+            elif stato == "riscontro_storico_precedente" and livello == "ok":
+                livello = "info"
         parti.append(f"{_testo(obbligo.get('atto'))}: {descrizione}")
     return riga("notifiche", " · ".join(parti), livello)
 

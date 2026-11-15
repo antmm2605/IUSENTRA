@@ -142,3 +142,13 @@ def test_liquidazione_registrata_dalla_sentenza_alimenta_la_riga_sentenza():
     assert riga["fonti"][0]["href"] == "/fascicoli/F1/documenti/D1/visualizza"
     manuale = SimpleNamespace(id="F1", documenti=[], pagamenti={"liquidazione_giudice": {"importo": 500.0, "origine": "manuale"}})
     assert credito_da_liquidazione_registrata(manuale) == []
+
+
+def test_fonte_senza_importo_non_produce_una_seconda_liquidazione():
+    riga = riga_sentenza([
+        {"importo": 258.0, "distrazione": True, "fonti": [_SENTENZA]},
+        {"importo": None, "distrazione": True, "fonti": []},
+    ])
+    assert riga["importo"] == 258.0
+    assert "Importi diversi" not in riga["dettaglio"]
+    assert "senza riportare un importo" in riga["dettaglio"]

@@ -505,7 +505,17 @@ def build_sentenza_economic_payload(fascicolo_id: str = "") -> dict[str, Any]:
 
         esclusi = precedenti_del_fascicolo(fascicolo, fatti)
         impronte = {_document_id(d): _document_hash(d) for d in getattr(fascicolo, "documenti", [])}
+        from pct.sentenza_automatica import CREDITI
+
+        # Le vecchie letture potevano attribuire a una memoria il credito che
+        # l'avvocato chiedeva nelle conclusioni. Conserva le decisioni esplicite.
+        crediti_decisi = {
+            e.get("source_id") for e in events
+            if e.get("event_type") in CREDITI and e.get("status") in {"confirmed", "rejected"}
+        }
         audits = [a for a in audits if str(a.get("documento_id") or "") not in esclusi
+                  and not (a.get("fonte") == "ARCHIVIO_LETTURE" and a["id"] not in crediti_decisi
+                           and ((a.get("audit") or {}).get("sentenza") or {}).get("tipo_provvedimento") == "incerto")
                   and (a.get("fonte") not in {"FASCICOLO_AUTO", "ARCHIVIO_LETTURE"}
                        or (a.get("fonte") == "ARCHIVIO_LETTURE"
                            and a.get("document_hash_sha256") == impronte.get(str(a.get("documento_id") or ""))))]

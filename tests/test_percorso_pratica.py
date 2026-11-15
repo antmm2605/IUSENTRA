@@ -85,3 +85,20 @@ def test_dispositivo_anomalo_senza_firma_non_blocca_la_lettura():
     inizio = time.monotonic()
     esito_sentenza(testo)
     assert time.monotonic() - inizio < 2.0
+
+
+def test_spese_poste_a_carico_dal_dispositivo_sono_distinte_dalla_condanna_principale():
+    from pct.percorso_pratica.esito import esito_sentenza
+    from pct.sentenza_automatica import parte_condannata
+
+    testo = (
+        "P.Q.M. Condanna il Ministero all'adozione degli atti necessari; "
+        "pone in capo all’amministrazione resistente a corrispondere al ricorrente "
+        "le spese del giudizio, liquidate in euro 258,00 oltre accessori, "
+        "con distrazione a favore del procuratore antistatario."
+    )
+    letto = esito_sentenza(testo)
+    assert letto["spese"]["regolazione"] == "condanna"
+    assert letto["spese"]["importo"] == "258,00"
+    assert letto["spese"]["distrazione"]
+    assert parte_condannata(letto["dispositivo"]) == "amministrazione resistente"

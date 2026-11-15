@@ -240,7 +240,11 @@ def test_quadro_riusa_riscontro_storico_solo_per_lo_stesso_atto_e_la_stessa_fina
     assert "Titolo esecutivo: notifica da verificare" in testo
     assert obblighi[0]["stato"] == "da_verificare"
     precedente = {**lettura, "aggiornamento_pendente": True}
-    assert "riscontro storico" not in riga_notifiche_da_lettura(sintesi, precedente, OGGI)["testo"]
+    testo_precedente = riga_notifiche_da_lettura(sintesi, precedente, OGGI)["testo"]
+    assert "Sentenza: ultimo riscontro storico del termine breve, aggiornamento automatico in corso" in testo_precedente
+    assert "Altra sentenza: notifica da verificare" in testo_precedente
+    assert "Titolo esecutivo: notifica da verificare" in testo_precedente
+    assert riga_notifiche_da_lettura({"obblighi": obblighi[:1]}, precedente, OGGI)["livello"] == "info"
 
 
 def test_pannello_obblighi_proietta_lettura_senza_riproporre_la_notifica_storica(monkeypatch):

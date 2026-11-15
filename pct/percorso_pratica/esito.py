@@ -76,7 +76,9 @@ def spese(dispositivo_testo: str) -> dict[str, Any]:
     if compensazione:
         parziale = bool(re.search(r"\b(?:in\s+parte|per\s+(?:la\s+)?(?:metà|un\s+terzo|\d+/\d+))", compensazione, re.IGNORECASE))
         voce.update(regolazione="compensazione_parziale" if parziale else "compensazione", frase=compensazione)
-    condanna = next((f for f in frasi if re.search(r"\bcondanna\b.*?\bspese\b", f, re.IGNORECASE | re.DOTALL)), "")
+    condanna = next((f for f in frasi if re.search(
+        r"\b(?:condanna|pone\s+in\s+capo)\b.*?\bspese\b", f, re.IGNORECASE | re.DOTALL,
+    )), "")
     if condanna:
         importo, _ = estrai_spese_liquidate(condanna)
         voce.update(

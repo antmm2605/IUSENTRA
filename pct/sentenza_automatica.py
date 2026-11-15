@@ -42,9 +42,12 @@ CREDITI: dict[str, tuple[str, str]] = {
 }
 _PRIORITA_STATO = {"confirmed": 0, "rejected": 1, "to_review": 2}
 
-_CONDANNA = re.compile(r"\bcondann\w*\b", re.IGNORECASE)
+_CONDANNA = re.compile(
+    r"\b(?:condann\w*|pone\s+in\s+capo\s+(?:all['’]|alla\s+|alle\s+|agli\s+|ai\s+|al\s+|a\s+))",
+    re.IGNORECASE,
+)
 _VERSO_PAGAMENTO = re.compile(
-    r"\b(?:al\s+pagamento|alla\s+rifusione|a\s+rifondere|a\s+rimborsare|al\s+rimborso|a\s+pagare|alle\s+spese|in\s+solido)\b",
+    r"\b(?:al\s+pagamento|alla\s+rifusione|a\s+rifondere|a\s+rimborsare|al\s+rimborso|a\s+pagare|a\s+corrispondere|alle\s+spese|in\s+solido)\b",
     re.IGNORECASE,
 )
 _SPESE = re.compile(r"\bspese\b", re.IGNORECASE)
@@ -163,7 +166,10 @@ def parte_condannata(dispositivo: str) -> str:
     """Il tratto tra «condanna» e «al pagamento / alla rifusione» nel capo che parla di spese."""
     testo = compatta_testo(dispositivo)
     for condanna in _CONDANNA.finditer(testo):
-        finestra = testo[condanna.end(): condanna.end() + 260]
+        finestra = testo[condanna.end(): condanna.end() + 260].split(";", 1)[0]
+        altra_condanna = _CONDANNA.search(finestra)
+        if altra_condanna:
+            finestra = finestra[:altra_condanna.start()]
         verso = _VERSO_PAGAMENTO.search(finestra)
         if verso and _SPESE.search(finestra[verso.start(): verso.start() + 160]):
             return finestra[: verso.start()].strip(" ,;:")
@@ -229,7 +235,7 @@ def valuta_certezza(*, dispositivo: str, importo_dispositivo: Any, fascicolo: An
         motivi.append("Credito già respinto dall'avvocato.")
     if importo is None or importo <= 0:
         motivi.append("Importo del credito non determinato.")
-    elif _importo(importo_dispositivo) != importo:
+    elif parse_importo(importo_dispositivo) != importo:
         motivi.append("Importo del dispositivo diverso da quello del controllo economico.")
     liquidati = importi_liquidati(dispositivo)
     if len(liquidati) > 1:

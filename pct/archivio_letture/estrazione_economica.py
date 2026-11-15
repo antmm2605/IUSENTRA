@@ -22,7 +22,7 @@ def estrai_controllo_economico(testo: str, *, origine: str, metadata: dict[str, 
     )
     # Una sentenza istruttoria o un precedente giurisprudenziale è conoscenza,
     # non una fonte economica del fascicolo: richiede match pieno RG + cliente.
-    if not audit.match.safe_to_attach:
+    if not audit.match.safe_to_attach or audit.sentenza.tipo_provvedimento == "incerto":
         return []
     return [Fatto(categoria="evento", campo="controllo_economico",
         valore="analizzato", etichetta="Controllo economico del provvedimento",

@@ -122,7 +122,7 @@ def _date_lette(testo: str, contesto: Contesto) -> dict[tuple[str, str], Fatto]:
 def test_motore_verbale_631_termine_note_perentorio_e_udienza_resta_udienza():
     fatti = _date_lette(VERBALE_631, _contesto())
     note = fatti[("termine", "2026-12-16")]
-    assert note.etichetta.startswith("Deposito note scritte ex art. 127-ter c.p.c. — 16/12/2026 — perentorio, art. 631")
+    assert note.etichetta == "Deposito note scritte ex art. 127-ter c.p.c. — 16/12/2026 — perentorio, art. 631: rischio di estinzione"
     assert len(note.etichetta) <= 120
     assert {p["codice"] for p in note.prove} >= {"istituto", "perentorieta_documentata", "rischio_estinzione"}
     assert ("udienza", "2026-12-21") in fatti and ("termine", "2026-12-21") not in fatti
@@ -185,6 +185,7 @@ def test_rettifica_aggiorna_il_termine_riqualificato_e_annulla_l_udienza_presa_p
     piano = {r.scadenza_id: r for r in piano_rettifiche(righe, [nota, udienza], oggi=date(2026, 11, 10))}
     assert piano["sc1"].azione == "aggiorna" and piano["sc1"].campi["perentorio"] is True
     assert piano["sc1"].campi["tipo"] == "TERMINE_PERENTORIO" and piano["sc1"].campi["titolo"].startswith("Deposito note scritte")
+    assert piano["sc1"].campi["titolo"].endswith("art. 631: rischio di estinzione")
     assert piano["sc2"].azione == "annulla"
 
 

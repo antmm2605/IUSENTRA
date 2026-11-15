@@ -32,7 +32,7 @@ from .adempimenti import perentorieta_documentata
 from .istituti_processuali import ISTITUTI
 
 PRIMA_RIGA = "Data verificata nell’archivio delle letture."
-VERSIONE = "2026.11.15.rettifica-termini.v2"
+VERSIONE = "2026.11.15.rettifica-termini.v3"
 _VERIFICHE_UTILI = {"verificata", "corretta"}
 
 
@@ -141,7 +141,11 @@ def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, 
             continue  # un termine decorso non si rinomina: resta presidiato dallo scadenziario
         migliore = sorted(termini, key=lambda f: (not _qualificato(f), not perentorieta_documentata(f), f.tipo != "documento", f.id))[0]
         perentorio = perentorieta_documentata(migliore) or any(perentorieta_documentata(f) for f in termini if _qualificato(f) == _qualificato(migliore))
-        titolo = _testo(migliore.etichetta)[:120]
+        rischio = next((p for p in migliore.prove if p.get("codice") == "rischio_estinzione"), None)
+        titolo = _testo(migliore.etichetta)
+        if rischio and titolo.endswith(": senza note si estingue"):
+            titolo = titolo.removesuffix(": senza note si estingue") + ": rischio di estinzione"
+        titolo = titolo[:120]
         cambia_titolo = _qualificato(migliore) and titolo and titolo != _testo(getattr(riga, "titolo", ""))
         cambia_perentorio = perentorio and not bool(getattr(riga, "perentorio", False))
         if not cambia_titolo and not cambia_perentorio:
@@ -153,7 +157,6 @@ def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, 
             campi.update(perentorio=True, tipo="TERMINE_PERENTORIO")
         if any(p.get("codice") == "istituto" and p.get("dettaglio") == "note_127_ter" for p in migliore.prove):
             campi.update(hearing_mode="note_scritte", hearing_mode_source=f"{migliore.tipo}:{migliore.oggetto_id}")
-        rischio = next((p for p in migliore.prove if p.get("codice") == "rischio_estinzione"), None)
         motivo = "Lettura corrente del provvedimento: " + (titolo if cambia_titolo else "termine dichiarato perentorio") + "."
         if rischio:
             motivo += " " + str(rischio.get("dettaglio") or "")

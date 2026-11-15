@@ -526,7 +526,6 @@ export function RedazioneGuidataWizard({ initialMatter }: { initialMatter?: { id
   const [modello, setModello] = useState<{ code: string; name: string } | null>(null)
 
   const matterId = initialMatter?.id || ''
-  const matterClientId = initialMatter?.clienteId || ''
   useEffect(() => {
     if (!matterId) return
     let active = true
@@ -534,7 +533,7 @@ export function RedazioneGuidataWizard({ initialMatter }: { initialMatter?: { id
     setContestoCaricamento(true)
     setContesto(null)
     setModello(null)
-    getRedazioneContesto(matterId, matterClientId).then((result) => {
+    getRedazioneContesto(matterId).then((result) => {
       if (!active) return
       setContesto(result.ok && !result.cliente?.id ? { ...result, ok: false, errore: 'Cliente non collegato al fascicolo. Completa l’anagrafica prima di redigere un atto.' } : result)
       if (result.ok && result.cliente?.id) {
@@ -545,7 +544,7 @@ export function RedazioneGuidataWizard({ initialMatter }: { initialMatter?: { id
       }
     }).finally(() => { if (active) setContestoCaricamento(false) })
     return () => { active = false }
-  }, [matterId, matterClientId, initialMatter?.numero, initialMatter?.titolo])
+  }, [matterId, initialMatter?.numero, initialMatter?.titolo])
 
   const selezionaFascicolo = (voce: RedazioneFascicolo) => {
     if (!cliente) return

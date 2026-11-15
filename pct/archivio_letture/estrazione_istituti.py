@@ -137,8 +137,7 @@ def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "",
         rischio = rischio_estinzione(testo)
         if rischio is not None:
             ancora.prove.append({"codice": "rischio_estinzione", "esito": "ok", "dettaglio": rischio.avviso, "norma": rischio.norma})
-            # entro i 120 caratteri del titolo di scadenza: «… — 16/12/2026 — perentorio, art. 631: senza note si estingue»
-            ancora.etichetta = f"{istituto.titolo} — {giorno:%d/%m/%Y} — perentorio, {rischio.norma.replace(' c.p.c.', '')}: senza note si estingue"
+            ancora.etichetta = f"{istituto.titolo} — {giorno:%d/%m/%Y} — perentorio, {rischio.norma.replace(' c.p.c.', '')}: rischio di estinzione"
         # Lo stesso termine ripetuto nel testo (busta PEC con corpo e allegato, registro e provvedimento):
         # ogni copia è lo stesso adempimento, con lo stesso nome.
         for copia in elenco:

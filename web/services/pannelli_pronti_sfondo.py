@@ -26,7 +26,7 @@ PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro")
 _NOMI_PANNELLI = frozenset(pannello.nome for pannello in PANNELLI)
 # I pannelli che leggono la Lettura o la sintesi delle notifiche seguono le loro fonti.
 _ORDINE = {nome: indice for indice, nome in enumerate(dict.fromkeys(
-    ["dettaglio", "lettura", "obblighi-notifica", "quadro", "scadenze", "documenti", "regia"]
+    ["dettaglio", "lettura", "passaggi", "obblighi-notifica", "quadro", "scadenze", "documenti", "regia"]
     + [p.nome for p in PANNELLI]))}
 
 

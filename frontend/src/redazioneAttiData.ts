@@ -505,7 +505,7 @@ export async function getRedazioneFascicoli(clienteId: string): Promise<{ fascic
   }
 }
 
-export async function getRedazioneContesto(fascicoloId: string, clienteId: string): Promise<RedazioneContesto> {
+export async function getRedazioneContesto(fascicoloId: string, clienteId = ''): Promise<RedazioneContesto> {
   const query = clienteId ? `?id_cliente=${encodeURIComponent(clienteId)}` : ''
   const payload = await apiJson<Record<string, unknown>>(
     `/api/v1/ui/redazione-atti/fascicoli/${encodeURIComponent(fascicoloId)}/contesto${query}`,

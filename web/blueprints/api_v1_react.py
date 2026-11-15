@@ -15246,10 +15246,10 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
         from web.services.react_redazione_guidata_bridge import build_redazione_contesto_payload
 
         id_cliente = str(request.args.get("id_cliente") or "").strip()
+        g.fascicoli_sql_puntuali = True
         fascicolo, cliente, errore = _redazione_carica_fascicolo_cliente(id_fascicolo, id_cliente)
         if errore:
             return jsonify({"ok": False, "errore": errore}), 200
-        _, parti = _build_parti_template_context(str(getattr(fascicolo, "id", "") or ""))
         from pct.fascicolo_quadro import riga_prossimo_passo
         from web.services.pannelli_pronti_runtime import _in_preparazione, richiedi_pannello_consultivo
         from web.services.riscontri_processuali_runtime import lettura_materializzata
@@ -15259,6 +15259,7 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
         lettura = lettura_materializzata(id_fascicolo) if puo_leggere else None
         if attende_fonti and lettura is None and richiedi_pannello_consultivo(id_fascicolo, "lettura"):
             return _in_preparazione()
+        _, parti = _build_parti_template_context(str(getattr(fascicolo, "id", "") or ""))
         payload = build_redazione_contesto_payload(
             fascicolo=fascicolo,
             cliente=cliente,

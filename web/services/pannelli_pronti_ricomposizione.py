@@ -48,9 +48,10 @@ def redazione_dal_conto(corpo: bytes, fascicolo_id: str) -> bytes:
     contesto = dati.get("contesto") or {}
     economia = contesto.get("economia")
     fascicolo = contesto.get("fascicolo")
-    if not isinstance(economia, dict) or not isinstance(fascicolo, dict):
+    if not isinstance(economia, dict):
         return corpo
-    valore_senza_fonte = not (fascicolo.get("valoreCausa") or {}).get("fonte")
+    valore_senza_fonte = (isinstance(fascicolo, dict) and "valoreCausa" in fascicolo
+                          and not (fascicolo.get("valoreCausa") or {}).get("fonte"))
     contributo_mancante = not (economia.get("contributoUnificato") or {}).get("disponibile")
     if not valore_senza_fonte and not contributo_mancante:
         return corpo
@@ -59,7 +60,7 @@ def redazione_dal_conto(corpo: bytes, fascicolo_id: str) -> bytes:
     if contributo_mancante and comune.get("contributo"):
         economia["contributoUnificato"] = contributo_per_redazione(comune["contributo"])
         cambiato = True
-    if valore_senza_fonte and "valoreCausa" in fascicolo and comune.get("valore_causa"):
+    if valore_senza_fonte and comune.get("valore_causa"):
         applica_valore_in_redazione(contesto, comune["valore_causa"])
         cambiato = True
     return json.dumps(dati, ensure_ascii=False).encode("utf-8") if cambiato else corpo

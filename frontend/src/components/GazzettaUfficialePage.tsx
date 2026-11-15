@@ -175,9 +175,9 @@ export function GazzettaUfficialePage() {
         <div className="iu-gazzetta__messaggio is-error" role="alert">
           <AlertTriangle size={16} />
           <span>
-            {serieInErrore.length === 1 ? 'Una serie non è stata letta all’ultimo controllo' : `${serieInErrore.length} serie non sono state lette all’ultimo controllo`}
-            {': '}
-            {serieInErrore.map((stato) => `${stato.label} (${stato.message || 'non raggiungibile'})`).join('; ')}. Gli atti già in archivio restano consultabili.
+            {serieInErrore.length === 1 ? 'Aggiornamento in ritardo per una serie.' : `Aggiornamento in ritardo per ${serieInErrore.length} serie.`}
+            {' '}{dati.archive.total ? 'Gli atti già acquisiti restano consultabili.' : 'Consulta il sito ufficiale per leggere le pubblicazioni.'}
+            {' '}I dettagli sono nello stato delle serie.
           </span>
         </div>
       ) : null}

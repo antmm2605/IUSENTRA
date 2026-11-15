@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-DUObHWXh.js";import{t}from"./ImpostazioniPage-CYzXUM8B.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

@@ -32,7 +32,8 @@ export function GazzettaUltimePubblicazioni() {
     return () => controllo.abort()
   }, [])
 
-  const inErrore = (dati?.sourceStates || []).filter((stato) => ['SG', 'S1'].includes(stato.id) && stato.checked && !stato.ok)
+  const inErrore = (dati?.sourceStates || []).some((stato) => ['SG', 'S1'].includes(stato.id) && stato.checked && !stato.ok)
+  const haPubblicazioni = Boolean(dati?.items.length)
 
   return (
     <section className="iu-gazzetta-ultime" aria-labelledby="iu-gazzetta-ultime-titolo">
@@ -41,9 +42,12 @@ export function GazzettaUltimePubblicazioni() {
         <a href={GAZZETTA_PAGINA}>Tutte le Gazzette <ArrowRight size={14} /></a>
       </header>
       {errore ? <p className="iu-gazzetta-ultime__stato is-error" role="alert">{sanitizeDisplayText(errore)}</p> : null}
-      {inErrore.length ? (
-        <p className="iu-gazzetta-ultime__stato is-error" role="alert">
-          <AlertTriangle size={13} /> {inErrore.map((stato) => `${stato.label}: ${stato.message || 'non raggiungibile'}`).join('; ')}
+      {inErrore ? (
+        <p className="iu-gazzetta-ultime__stato is-error" role="status">
+          <AlertTriangle size={13} />
+          {haPubblicazioni ? 'Aggiornamento in ritardo. Sono disponibili gli ultimi atti già acquisiti.' : (
+            <>L’aggiornamento non è riuscito. <a href="https://www.gazzettaufficiale.it/" target="_blank" rel="noopener noreferrer">Consulta il sito ufficiale</a>.</>
+          )}
         </p>
       ) : null}
       {dati?.archiveMissing ? <p className="iu-gazzetta-ultime__stato">{sanitizeDisplayText(dati.message)}</p> : null}

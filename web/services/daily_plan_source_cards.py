@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import quote
 
 from pct.formatting import format_date_it, format_datetime_it
+from pct.scadenze_stato import termine_note_in_sostituzione, termine_perentorio
 
 VIEWABLE_KINDS = {"documento", "pec"}
 
@@ -147,7 +148,8 @@ def scadenza_sources(scadenza_id: str, *, paths: Any, tenant_label: str) -> list
                 verificata=bool(origin.get("sourceVerified")),
             )
         )
-    perentorio = bool(getattr(scadenza, "perentorio", False))
+    perentorio = termine_perentorio(scadenza)
+    data_legale = getattr(scadenza, "legal_due_at", "") or getattr(scadenza, "data_scadenza", "")
     out.append(
         fonte(
             tipo="scadenza",
@@ -155,7 +157,8 @@ def scadenza_sources(scadenza_id: str, *, paths: Any, tenant_label: str) -> list
             apri_href=f"/scadenziario?scadenza={quote(scadenza_id, safe='')}",
             verificata=True,
             dettagli=[
-                _dettaglio("Termine", _date_label(getattr(scadenza, "data_scadenza", ""))),
+                _dettaglio("Termine", _date_label(data_legale)),
+                _dettaglio("Norma", "Art. 127-ter c.p.c." if termine_note_in_sostituzione(scadenza) else ""),
                 _dettaglio("Natura del termine", "Perentorio" if perentorio else "Non perentorio"),
                 _dettaglio("Descrizione", _legal_scadenza_detail_description(scadenza)),
             ],

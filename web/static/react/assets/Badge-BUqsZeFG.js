@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-DUObHWXh.js";import"./app-o6C6Bd5B.js";var t=e();function n({children:e,tone:n=`neutral`}){return(0,t.jsx)(`span`,{className:`iu-badge iu-badge--${n}`,children:e})}export{n as t};

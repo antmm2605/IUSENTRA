@@ -190,7 +190,7 @@ def test_assegnazione_referente_e_coda_studio(world):
     """Casi obbligatori 10-11: referente assegnato, ambiguo in coda."""
     world.scadenze = [
         _scadenza("nota", 2, fascicolo="fasc-1"),
-        _scadenza("orfana", 2, fascicolo="fasc-2"),
+        _scadenza("orfana", -2, fascicolo="fasc-2", perentorio=True),
     ]
     service = world.service()
     service.rebuild_full()
@@ -201,6 +201,8 @@ def test_assegnazione_referente_e_coda_studio(world):
     coda = service.read_plan(user_id="", target_date=DATE)
     assert any(i.fascicolo_id == "fasc-2" for i in coda.work_items)
     assert coda.summary["da_assegnare_studio"] >= 1
+    assert piano_u1.summary["immediate_da_assegnare_studio"] == 1
+    assert not any(i.fascicolo_id == "fasc-2" for i in piano_u1.work_items)
 
 
 def test_responsabile_scadenza_assegnato_direttamente(world):

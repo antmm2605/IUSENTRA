@@ -38,6 +38,23 @@ def _giorno(scadenza: Any) -> date | None:
         return None
 
 
+def termine_note_in_sostituzione(scadenza: Any) -> bool:
+    """Riconosce anche le registrazioni storiche del termine di deposito come UDIENZA."""
+    from pct.note_127_ter.comunicazione import e_termine_note_127_ter
+    from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, MODALITA_NOTE_SCRITTE
+
+    if _valore(scadenza, "deadline_profile_code").upper() == CODICE_NOTE_127_TER:
+        return True
+    return (_valore(scadenza, "hearing_mode").lower() == MODALITA_NOTE_SCRITTE
+            and e_termine_note_127_ter(_valore(scadenza, "titolo")))
+
+
+def termine_perentorio(scadenza: Any) -> bool:
+    return (bool(getattr(scadenza, "perentorio", False))
+            or _valore(scadenza, "tipo").upper() == "TERMINE_PERENTORIO"
+            or termine_note_in_sostituzione(scadenza))
+
+
 def stato_operativo(scadenza: Any, oggi: date | None = None) -> str:
     stato = _valore(scadenza, "stato").upper()
     if stato == "BOZZA":
@@ -54,7 +71,9 @@ def stato_operativo(scadenza: Any, oggi: date | None = None) -> str:
     passata = stato == "SCADUTO" or bool(giorno and giorno < oggi)
     if not passata:
         return APERTA
-    return ESITO_UDIENZA if _valore(scadenza, "tipo").upper() == "UDIENZA" else SCADUTA
+    if _valore(scadenza, "tipo").upper() == "UDIENZA" and not termine_note_in_sostituzione(scadenza):
+        return ESITO_UDIENZA
+    return SCADUTA
 
 
 def scaduta_da_chiudere(scadenza: Any, oggi: date | None = None) -> bool:
@@ -72,4 +91,5 @@ def aperta(scadenza: Any, oggi: date | None = None) -> bool:
 __all__ = [
     "ANNULLATA", "APERTA", "BOZZA", "COMPLETATA", "ESITO_UDIENZA", "SCADUTA",
     "aperta", "esito_udienza_da_registrare", "scaduta_da_chiudere", "stato_operativo",
+    "termine_note_in_sostituzione", "termine_perentorio",
 ]

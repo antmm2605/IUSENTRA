@@ -189,11 +189,12 @@ def daily_plan_home():
         return jsonify(body), status
     version = str(payload.get("versione_piano") or "")
     if version:
+        urgenti_in_coda = (payload.get("riepilogo") or {}).get("immediate_da_assegnare_studio", 0)
         etag = _etag_for(
             user_id,
             str(payload.get("data") or ""),
             version,
-            str(payload.get("generato_il") or ""),
+            f"{payload.get('generato_il') or ''}|{urgenti_in_coda}",
         )
         if request.headers.get("If-None-Match") == etag:
             response = current_app.response_class(status=304)

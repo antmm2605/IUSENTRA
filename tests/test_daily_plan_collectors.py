@@ -70,6 +70,28 @@ def test_scadenziario_collector_include_arretrate():
     assert result.coverage.status == "complete"
 
 
+def test_scadenziario_collector_riconosce_termine_note_salvato_come_udienza():
+    termine = _scadenza("note", -1)
+    termine.tipo = "UDIENZA"
+    termine.hearing_mode = "note_scritte"
+    termine.titolo = "Fissazione termine per note in sostituzione udienza"
+    bozza = _scadenza("bozza", -1, perentorio=True, stato="BOZZA")
+    result = ScadenzarioCollector().collect(_ctx(scadenziario_store=_ScadStore([termine, bozza])))
+    assert len(result.signals) == 1
+    segnale = result.signals[0]
+    assert segnale.kind == "deadline_fulfill"
+    assert segnale.peremptory and segnale.blocking
+    assert "art. 127-ter c.p.c." in segnale.reason
+    assert segnale.evidence[0].source_id == "note"
+
+
+def test_scadenziario_collector_conserva_stato_scaduto_e_data_legale():
+    termine = _scadenza("storico", -1, perentorio=True, stato="SCADUTO")
+    termine.operational_due_at = (TODAY - timedelta(days=5)).isoformat()
+    [segnale] = ScadenzarioCollector().collect(_ctx(scadenziario_store=_ScadStore([termine]))).signals
+    assert segnale.due_at == termine.data_scadenza
+
+
 def test_scadenziario_collector_store_assente():
     result = ScadenzarioCollector().collect(_ctx())
     assert result.coverage.status == "unavailable"

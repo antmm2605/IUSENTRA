@@ -334,3 +334,9 @@ Il riquadro della Redazione trattava come assenti il valore all’iscrizione e i
 
 - In Chrome locale, durante l'aggiornamento il Quadro ometteva il termine lungo del 02/08/2024 visibile nell'ultima Lettura. Il Quadro ora riprende il termine decorso e la norma dalla stessa Lettura e li qualifica come riscontro della lettura precedente. Le proposte di adempimento rimangono legate alle fonti correnti.
 - Il trigger SQL di `letture_eventi` incrementava l'impronta consultiva al solo rinnovo della prenotazione. Si escludono il rinnovo e il timestamp tecnico dalla verifica degli aggiornamenti, mantenendo le variazioni effettive nel fascicolo interessato. La prova di regressione cambia la prenotazione e poi lo stato della coda, confrontando anche l'impronta di un altro fascicolo.
+
+### 15 novembre 2026 · Piano del giorno e Controllo Studio
+
+Nel collaudo locale il Piano personale riportava zero attività immediate e 235 attività da assegnare. Il database del Piano ne conservava tre immediate in coda allo studio, tra cui il termine perentorio del RG 901/2026. Il Piano espone il conteggio delle attività P0 aperte senza assegnatario leggendo le stesse righe già materializzate, con collegamento a Controllo Studio.
+
+Sul RG 795/2026 la voce di cancelleria del 21 ottobre «Fissazione termine per note in sostituzione udienza» era registrata nello scadenziario storico come udienza e il Piano chiedeva di registrarne l’esito. La regola comune riconosce il termine perentorio di deposito ex art. 127-ter c.p.c. dal profilo del termine o dalla modalità e dal testo dell’evento. Dopo la scadenza del termine, la priorità richiede di controllare la prova dell’adempimento e il provvedimento successivo. Il Piano conserva la data legale quando è distinto un anticipo organizzativo.

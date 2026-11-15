@@ -139,6 +139,7 @@ export type PianoGiornoPayload = {
     backlog?: number
     da_rivedere?: number
     da_assegnare_studio?: number
+    immediate_da_assegnare_studio?: number
   }
   sezioni: {
     da_fare_ora: AttivitaPiano[]

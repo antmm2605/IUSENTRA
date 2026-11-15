@@ -12,7 +12,9 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from pct.formatting import parse_datetime_rome
-from pct.scadenze_stato import esito_udienza_da_registrare
+from pct.scadenze_stato import (
+    ANNULLATA, BOZZA, COMPLETATA, ESITO_UDIENZA, stato_operativo, termine_note_in_sostituzione, termine_perentorio,
+)
 
 from ..models import OperationalSignal, SignalEvidence, SourceCoverage
 from .base import CollectorContext, CollectorResult, unavailable_result
@@ -85,7 +87,7 @@ class ScadenzarioCollector:
         if store is None:
             return unavailable_result(self.source_type, "Scadenziario non disponibile.")
         try:
-            tutte = list(store.tutte(solo_aperte=True))
+            tutte = list(store.tutte(solo_aperte=False))
         except TypeError:
             try:
                 tutte = list(store.tutte())
@@ -101,10 +103,12 @@ class ScadenzarioCollector:
         max_watermark = ""
         for sc in tutte:
             stato = _enum_val(getattr(sc, "stato", "")).lower()
-            if stato in _CLOSED_DEADLINE_STATES:
+            fase = stato_operativo(sc, planning_day)
+            if fase in {ANNULLATA, BOZZA, COMPLETATA} or stato in _CLOSED_DEADLINE_STATES:
                 continue
             due = _to_date(
-                getattr(sc, "operational_due_at", "") or getattr(sc, "data_scadenza", "")
+                getattr(sc, "legal_due_at", "") or getattr(sc, "data_scadenza", "")
+                or getattr(sc, "operational_due_at", "")
             )
             # gli arretrati aperti restano SEMPRE nel piano; il futuro oltre
             # l'orizzonte dei 14 giorni non entra nel giorno selezionato
@@ -116,7 +120,7 @@ class ScadenzarioCollector:
             scadenza_id = str(getattr(sc, "id", "") or "")
             fascicolo_id = str(getattr(sc, "id_fascicolo", "") or "")
             responsabile = str(getattr(sc, "id_utente_responsabile", "") or "")
-            perentorio = bool(getattr(sc, "perentorio", False))
+            perentorio = termine_perentorio(sc)
             creata = str(getattr(sc, "creata_il", "") or getattr(sc, "created_at", "") or "")
             max_watermark = max(max_watermark, creata)
             titolo = str(getattr(sc, "titolo", "") or "Scadenza")
@@ -124,7 +128,10 @@ class ScadenzarioCollector:
             # Regola V28 (pct.scadenze_stato): un'udienza passata e ancora aperta non e'
             # un termine scaduto ma un esito da registrare dal verbale o dal provvedimento
             # (artt. 126 e 127-ter c.p.c.); nessun termine perentorio ne dipende.
-            esito_udienza = esito_udienza_da_registrare(sc, planning_day)
+            esito_udienza = fase == ESITO_UDIENZA
+            motivo = _ESITO_UDIENZA_REASON if esito_udienza else _scadenza_reason(ctx, sc, perentorio)
+            if termine_note_in_sostituzione(sc):
+                motivo = f"Deposito di note in sostituzione dell’udienza (art. 127-ter c.p.c.). {motivo}"
             signals.append(
                 OperationalSignal(
                     id=f"sig_sc_{scadenza_id}",
@@ -136,7 +143,7 @@ class ScadenzarioCollector:
                     dedupe_key="",
                     fascicolo_id=fascicolo_id,
                     responsible_user_id=responsabile,
-                    reason=_ESITO_UDIENZA_REASON if esito_udienza else _scadenza_reason(ctx, sc, perentorio),
+                    reason=motivo,
                     due_at=due_iso,
                     peremptory=perentorio and not esito_udienza,
                     blocking=perentorio and not esito_udienza,

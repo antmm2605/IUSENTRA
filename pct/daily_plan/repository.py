@@ -785,8 +785,10 @@ class DailyPlanRepository:
     def get_snapshot(self, target_date: str, user_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT * FROM daily_plan_snapshots "
-                "WHERE tenant_id = ? AND target_date = ? AND user_id = ?",
+                "SELECT s.*, (SELECT COUNT(*) FROM daily_plan_items i "
+                "WHERE i.tenant_id = s.tenant_id AND i.target_date = s.target_date AND i.assigned_user_id = '' "
+                "AND i.priority = 'P0' AND i.status NOT IN ('obsolete', 'completed', 'rejected')) AS urgenti_in_coda "
+                "FROM daily_plan_snapshots s WHERE s.tenant_id = ? AND s.target_date = ? AND s.user_id = ?",
                 (self.tenant_id, target_date, user_id),
             ).fetchone()
         if not row:
@@ -804,6 +806,7 @@ class DailyPlanRepository:
                 data[target] = json.loads(data.pop(key) or default)
             except Exception:
                 data[target] = json.loads(default)
+        data["summary"]["immediate_da_assegnare_studio"] = int(data.pop("urgenti_in_coda"))
         return data
 
     def snapshot_user_ids(self, target_date: str) -> set[str]:

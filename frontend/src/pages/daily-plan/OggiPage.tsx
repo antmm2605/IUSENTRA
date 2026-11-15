@@ -289,9 +289,16 @@ export function OggiPage() {
       <section className="grid gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={conteggi.p0 ? 'destructive' : 'secondary'}>
-            {conteggi.p0} immediate
+            {conteggi.p0} immediate assegnate a me
           </Badge>
           <Badge variant={conteggi.p1 ? 'default' : 'secondary'}>{conteggi.p1} entro il giorno</Badge>
+          {piano.riepilogo.immediate_da_assegnare_studio ? (
+            <Badge asChild variant="destructive">
+              <a href="/workspace-intelligente">
+                {piano.riepilogo.immediate_da_assegnare_studio} immediate da assegnare · Controllo Studio
+              </a>
+            </Badge>
+          ) : null}
           {piano.riepilogo.da_assegnare_studio ? (
             <Badge variant="outline">{piano.riepilogo.da_assegnare_studio} da assegnare</Badge>
           ) : null}

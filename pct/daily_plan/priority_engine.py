@@ -97,7 +97,8 @@ def decide_priority(group: MergedSignalGroup, *, today: date) -> PriorityDecisio
     if peremptory and due is not None and due <= today:
         if due < today:
             return PriorityDecision(
-                "P0", "R1", "Termine perentorio scaduto e ancora aperto: intervento immediato."
+                "P0", "R1", "Termine perentorio decorso e ancora aperto. Verificare subito la prova dell’adempimento "
+                "e l’eventuale provvedimento successivo."
             )
         return PriorityDecision(
             "P0", "R1", "Termine perentorio in scadenza nel giorno del piano."

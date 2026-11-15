@@ -30,3 +30,13 @@ def test_udienza_passata_e_esito_da_registrare_non_termine_scaduto():
     assert per_id["scadenza-u1"].etichetta == "Esito da registrare"
     assert per_id["scadenza-f1"].fascia == "settimana"
     assert sum(1 for v in voci if v.fascia == "scaduto") == 1
+
+
+def test_note_in_sostituzione_non_sono_una_udienza_da_registrare():
+    termine = _scadenza("note", "2026-10-21", "UDIENZA")
+    termine.hearing_mode = "note_scritte"
+    termine.titolo = "Fissazione termine per note in sostituzione udienza"
+    [voce] = ordina(voci_scadenze([termine], {}, OGGI), OGGI)
+    assert voce.fascia == "scaduto" and voce.gravita == "critica"
+    assert "art. 127-ter c.p.c." in voce.dettaglio
+    assert "termine perentorio" in voce.dettaglio

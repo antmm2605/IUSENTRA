@@ -775,6 +775,30 @@ def test_react_scadenziario_presidio_notifica_sentenza_usa_pec_e_titolo_uniforme
     assert "non fa decorrere da sola il termine breve" in row["detailDescription"]
 
 
+def test_fonte_della_modifica_del_termine_prevale_sul_decreto_storico():
+    from types import SimpleNamespace
+    from web.services.pec_source_links import pec_profile_for_item
+    from web.services.react_scadenziario_bridge import _source_evidence
+
+    termine = SimpleNamespace(
+        titolo="Deposito note scritte ex art. 127-ter c.p.c. - RG 1733/2026",
+        data_scadenza="2026-12-10",
+        legal_due_at="2026-09-15",
+        note="PEC_AUDIT:docpresidio:F:D:termine:2026-09-10\n"
+             "PEC_AUDIT:pec_storica\n"
+             "PEC_MODIFICA_TERMINE|2026-09-10|2026-12-10|note_scritte|pec_corrente",
+    )
+    profilo = pec_profile_for_item(termine, {
+        "pec_storica": {"numero_rg": "1733/2026"},
+        "pec_corrente": {"numero_rg": "1733/2026"},
+    })
+    fonte = _source_evidence(termine, pec_profile=profilo)
+    assert profilo["_source_message_id"] == "pec_corrente"
+    assert fonte["sourceKind"] == "pec" and fonte["sourceVerified"]
+    assert "pec_corrente" in fonte["sourceHref"] and "/documenti/" not in fonte["sourceHref"]
+    assert fonte["sourceLabel"].startswith("Comunicazione di modifica")
+
+
 def test_source_evidence_presidio_notifica_senza_marker_pec_non_apre_documenti_fascicolo():
     scadenza = SimpleNamespace(
         tipo=TipoTermine.NOTIFICA,

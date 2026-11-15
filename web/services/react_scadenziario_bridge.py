@@ -63,6 +63,7 @@ from web.services.pec_source_links import (
     pec_original_label,
     pec_source_href,
     resolve_pec_source_name,
+    pec_modifica_termine_corrente,
 )
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
@@ -247,6 +248,17 @@ def _source_evidence(
     pec_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Espone la fonte originaria senza duplicare dati persistenti."""
+
+    modifica_id = pec_modifica_termine_corrente(scadenza)
+    if modifica_id:
+        profilo = pec_profile if (pec_profile or {}).get("_source_message_id") == modifica_id else None
+        nome = resolve_pec_source_name(pec_profile_source_name(profilo), limit=140)
+        return {
+            "sourceHref": _pec_source_href(modifica_id, nome),
+            "sourceLabel": "Comunicazione di modifica · " + _pec_original_label(nome),
+            "sourceKind": "pec",
+            "sourceVerified": True,
+        }
 
     note = str(getattr(scadenza, "note", "") or "")
     description = str(getattr(scadenza, "descrizione", "") or "")

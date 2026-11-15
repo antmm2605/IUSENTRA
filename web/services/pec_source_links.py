@@ -14,6 +14,9 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 from urllib.parse import quote
 
+from pct.pec_term_modification import modification_lines
+from pct.scadenze_stato import data_termine_corrente
+
 
 GENERIC_PEC_SOURCE_LABELS = {
     "corpo",
@@ -157,6 +160,16 @@ def normalize_pec_audit_message_id(value: Any) -> str:
     return message_id
 
 
+def pec_modifica_termine_corrente(item: Any) -> str:
+    """Riferimento della modifica registrata che prova il termine attivo."""
+    data = data_termine_corrente(item)[:10]
+    modifiche = modification_lines(item)
+    if not data or not modifiche or modifiche[-1]["new_date"] != data:
+        return ""
+    message_id = normalize_pec_audit_message_id(modifiche[-1]["message_id"])
+    return message_id if message_id and not message_id.startswith("docpresidio:") else ""
+
+
 def pec_audit_message_ids(item: Any) -> list[str]:
     """Preserva tutti i riferimenti storici, senza scegliere il primo caso."""
     def value(key: str) -> str:
@@ -165,7 +178,7 @@ def pec_audit_message_ids(item: Any) -> list[str]:
     context = item if isinstance(item, str) else "\n".join(
         value(key) for key in ("note", "descrizione", "titolo", "external_uid", "dedupe_key", "event_uid")
     )
-    candidates = [] if isinstance(item, str) else [value("source_message_id")]
+    candidates = [] if isinstance(item, str) else [pec_modifica_termine_corrente(item), value("source_message_id")]
     candidates.extend(match.group(1) for match in PEC_AUDIT_REF_RE.finditer(context))
     if not isinstance(item, str):
         external = re.fullmatch(r"/api/pec/messages/([^/]+)", value("external_source_url").strip())
@@ -185,7 +198,7 @@ def pec_profile_for_item(item: Any, profiles: Mapping[str, Mapping[str, Any]]) -
         return {}
     def value(key: str) -> str:
         return str((item.get(key, "") if isinstance(item, Mapping) else getattr(item, key, "")) or "")
-    explicit = normalize_pec_audit_message_id(value("source_message_id"))
+    explicit = pec_modifica_termine_corrente(item) or normalize_pec_audit_message_id(value("source_message_id"))
     context = "\n".join(value(key) for key in ("titolo", "descrizione", "procedimento", "numero_rg"))
     rg_pattern = r"\b(?:R\.?\s*G\.?|Ruolo generale)\s*(?:n\.?|numero|:)?\s*(\d{1,7})\s*/\s*(\d{4})\b"
     rgs = {(str(int(a)), b) for a, b in re.findall(rg_pattern, context, re.IGNORECASE)}

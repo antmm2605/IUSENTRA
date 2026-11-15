@@ -211,7 +211,7 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
             # L'agenda e il catalogo del Quadro precedente potrebbero essere
             # superati. Mostra solo i riscontri ricomposti dalle fonti correnti.
             righe.pop("termini", None)
-            if lettura and not lettura.get("aggiornamento_pendente"):
+            if lettura is not None:
                 righe["termini"] = riga_termini_da_lettura(None, lettura, oggi)
             righe.pop("documenti", None)
             dati["quadro_in_aggiornamento"] = True

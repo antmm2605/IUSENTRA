@@ -137,6 +137,20 @@ def test_salvare_esperienza_conclusa_non_invalida_la_lettura(studio, tmp_path):
     assert _impronta(studio) != iniziale
 
 
+def test_rinnovo_della_prenotazione_non_invalida_i_pannelli(studio, tmp_path):
+    _esegui(studio.registro_db, "CREATE TABLE letture_eventi(fascicolo_id TEXT, stato TEXT, "
+            "generation INTEGER, last_error_code TEXT, lease_until TEXT, aggiornato_il TEXT)")
+    prepara_database(studio.registro_db, backup_dir=tmp_path / "backup", applica=True)
+    _esegui(studio.registro_db, "INSERT INTO letture_eventi VALUES ('F1', 'running', 4, '', 'prima', 'prima')")
+    iniziale, altro = _impronta(studio), _impronta(studio, "F2")
+    _esegui(studio.registro_db, "UPDATE letture_eventi SET lease_until='dopo', aggiornato_il='dopo'")
+    assert _impronta(studio) == iniziale
+
+    _esegui(studio.registro_db, "UPDATE letture_eventi SET stato='pending', last_error_code='RuntimeError'")
+    assert _impronta(studio) != iniziale
+    assert _impronta(studio, "F2") == altro
+
+
 def test_trigger_per_fascicolo_e_esclusioni(studio):
     conn = sqlite3.connect(studio.studio_db)
     nomi = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
@@ -693,7 +707,9 @@ def test_quadro_superato_mostra_i_riscontri_correnti_e_accoda_il_ricalcolo(studi
 
     avvii = []
     monkeypatch.setattr(pannelli_pronti_calcolatore, "sveglia_calcolatore", lambda _, fid: avvii.append(fid))
+    precedente = False
     monkeypatch.setattr(riscontri, "lettura_consultiva", lambda _: {
+        "aggiornamento_pendente": precedente,
         "prossimi_passi": [{"azione": "Verificare la consegna"}],
         "ragionamento": {"versione": "test", "impronta": "test", "conclusioni": [
             {"codice": "termine_impugnazione", "cosa": "Impugnazione della sentenza",
@@ -727,6 +743,13 @@ def test_quadro_superato_mostra_i_riscontri_correnti_e_accoda_il_ricalcolo(studi
 
     coda = da_ricalcolare(studio.archivio, studio.fonti, limite=1, solo_pannelli_prioritari=True)
     assert [(voce.fascicolo_id, voce.pannello) for voce in coda] == [("F1", "quadro")]
+
+    precedente = True
+    risposta = client.get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"})
+    assert risposta.json["lettura_precedente"]
+    termini = next(riga["testo"] for riga in risposta.json["righe"] if riga["tema"] == "termini")
+    assert "Ultima lettura salvata · Impugnazione della sentenza: 02/08/2024 (decorso) · art. 327 c.p.c." in termini
+
 
 
 def test_nuova_impronta_lettura_invalida_dipendenti_anche_con_corpo_identico(studio):

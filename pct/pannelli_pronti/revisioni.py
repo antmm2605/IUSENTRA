@@ -82,12 +82,13 @@ def _incrementa_tabella(tabella: str) -> str:
             f"ON CONFLICT(tabella) DO UPDATE SET revisione=revisione+1;")
 
 
-def _piano_per_fascicolo(tabella: str, nuovo: str, vecchio: str) -> dict[str, str]:
+def _piano_per_fascicolo(tabella: str, nuovo: str, vecchio: str, *, variazione: str = "") -> dict[str, str]:
     base = f"{PREFISSO_TRIGGER}{tabella}"
+    condizione_update = f" AND ({variazione})" if variazione else ""
     return {
         f"{base}_i": f"CREATE TRIGGER {base}_i AFTER INSERT ON {tabella} WHEN {nuovo} IS NOT NULL "
                      f"BEGIN {_incrementa_fascicolo(nuovo)} END",
-        f"{base}_un": f"CREATE TRIGGER {base}_un AFTER UPDATE ON {tabella} WHEN {nuovo} IS NOT NULL "
+        f"{base}_un": f"CREATE TRIGGER {base}_un AFTER UPDATE ON {tabella} WHEN {nuovo} IS NOT NULL{condizione_update} "
                       f"BEGIN {_incrementa_fascicolo(nuovo)} END",
         f"{base}_uo": f"CREATE TRIGGER {base}_uo AFTER UPDATE ON {tabella} WHEN {vecchio} IS NOT NULL "
                       f"AND NOT COALESCE({vecchio} = {nuovo}, 0) BEGIN {_incrementa_fascicolo(vecchio)} END",
@@ -136,7 +137,17 @@ def piano_trigger(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str
             # Salvarla non cambia le fonti della Lettura appena preparata.
             nuovo = f"(CASE WHEN NEW.lettore <> '{LETTORE_PERCORSO_CONCLUSO}' THEN {nuovo} END)"
             vecchio = f"(CASE WHEN OLD.lettore <> '{LETTORE_PERCORSO_CONCLUSO}' THEN {vecchio} END)"
-        piano.update(_piano_per_fascicolo(t, nuovo, vecchio))
+        variazione = ""
+        if t == "letture_eventi":
+            # Il rinnovo del lease può avvenire più volte nello stesso giro.
+            # Solo le variazioni di stato, generazione, errori e altri dati
+            # della coda invalidano i pannelli, come gli INSERT e i DELETE.
+            colonne = (
+                _nome_sicuro(riga[1]) for riga in conn.execute("PRAGMA table_info('letture_eventi')")
+                if riga[1] not in {"lease_until", "aggiornato_il"}
+            )
+            variazione = " OR ".join(f"NEW.{campo} IS NOT OLD.{campo}" for campo in colonne)
+        piano.update(_piano_per_fascicolo(t, nuovo, vecchio, variazione=variazione))
     esistenti = {str(r[0]) for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
     for tabella in sorted(set(tabelle_senza_fascicolo)):
         if tabella not in esistenti or colonna_fascicolo(conn, tabella):

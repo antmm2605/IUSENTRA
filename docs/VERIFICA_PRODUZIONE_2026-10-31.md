@@ -329,3 +329,8 @@ Il riquadro della Redazione trattava come assenti il valore all’iscrizione e i
 
 - La proiezione canonica destinata ai pannelli deduplicava correttamente i nominativi ma conservava talvolta il primo co-ricorrente sotto una copia e il secondo sotto un'altra. Il verificatore dei nomi usa i fatti salvati per originale e impronta. Il confronto non rilancia l'OCR. Prova reale in sola lettura sui fascicoli 2026/265 e RG 1548/2023, con entrambi gli originali aperti in Chrome: la decisione riprodotta dai fatti salvati supera i due avvisi.
 - Il contatore usa la scadenza della presa in carico per le letture in corso e mostra a parte i fascicoli in coda. Un fascicolo in attesa non ritarda la consultazione delle verifiche già pronte per le altre pratiche. Il test del registro distingue l'evento appena accodato da quello preso in carico.
+
+### 15/11/2026 · Primo accesso al RG 7646/2023 (2.489.22)
+
+- In Chrome locale, durante l'aggiornamento il Quadro ometteva il termine lungo del 02/08/2024 visibile nell'ultima Lettura. Il Quadro ora riprende il termine decorso e la norma dalla stessa Lettura e li qualifica come riscontro della lettura precedente. Le proposte di adempimento rimangono legate alle fonti correnti.
+- Il trigger SQL di `letture_eventi` incrementava l'impronta consultiva al solo rinnovo della prenotazione. Si escludono il rinnovo e il timestamp tecnico dalla verifica degli aggiornamenti, mantenendo le variazioni effettive nel fascicolo interessato. La prova di regressione cambia la prenotazione e poi lo stato della coda, confrontando anche l'impronta di un altro fascicolo.

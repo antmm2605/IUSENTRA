@@ -182,8 +182,13 @@ def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[s
     bozze_future = [voce for voce in (agenda or [])
                     if voce.get("stato") == "BOZZA" and voce["data"] >= oggi.isoformat()]
     riscontri = proietta_riscontri(lettura, "termini")
+    conclusioni = riscontri.get("conclusioni") or []
+    lettura_precedente = bool((lettura or {}).get("aggiornamento_pendente"))
+    if lettura_precedente:
+        conclusioni = [voce for voce in conclusioni if voce.get("codice") == "termine_impugnazione"
+                       and (voce.get("termine") or {}).get("scaduto")]
     presenti = {(t["data"], _testo(t["titolo"]).casefold()) for t in termini}
-    for voce in riscontri.get("conclusioni") or []:
+    for voce in conclusioni:
         data = (voce.get("termine") or {}).get("scadenza_iso")
         titolo = voce.get("cosa") or ""
         chiave = data, _testo(titolo).casefold()
@@ -194,7 +199,7 @@ def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[s
     if agenda is not None and riga_termine["livello"] == "ok" and riscontri.get("stato") != "pronto":
         riga_termine["testo"] = "Nessuna scadenza o udienza futura registrata in agenda. I termini dagli atti sono da verificare."
         riga_termine["livello"] = "attenzione"
-    impugnazioni = [voce for voce in riscontri.get("conclusioni") or []
+    impugnazioni = [voce for voce in conclusioni
                     if voce.get("codice") == "termine_impugnazione" and (voce.get("termine") or {}).get("scadenza")]
     futuri = [voce for voce in impugnazioni if not voce["termine"].get("scaduto")]
     mostrati = futuri or (impugnazioni if riga_termine["livello"] == "ok" else [])
@@ -207,6 +212,8 @@ def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[s
             sintesi_impugnazioni.append(f"{voce['cosa']}: {termine['scadenza']} ({stato_termine})"
                                         + (f" · {norma}" if norma else ""))
         pezzi = list(dict.fromkeys(sintesi_impugnazioni))
+        if lettura_precedente:
+            pezzi[0] = "Ultima lettura salvata · " + pezzi[0]
         if riga_termine["livello"] == "ok":
             riga_termine["testo"] = "Nessuna scadenza o udienza futura registrata in agenda." if agenda is not None else ""
             riga_termine["livello"] = "info"

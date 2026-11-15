@@ -141,15 +141,18 @@ class ArchivioPannelli:
             return [str(r[0]) for r in conn.execute(
                 "SELECT fascicolo_id FROM aperture WHERE aperto_il>=? ORDER BY aperto_il DESC", (soglia,)).fetchall()]
 
-    def fascicoli_in_attesa_di_lettura(self, *, minuti: float, includi_quadro: bool = False) -> list[str]:
+    def fascicoli_in_attesa_di_lettura(self, *, minuti: float, pannelli: tuple[str, ...] = ("lettura",)) -> list[str]:
         """Fascicoli con una consultazione prioritaria dopo l’ultimo calcolo."""
+        if not pannelli:
+            return []
         soglia = (datetime.now(UTC) - timedelta(minutes=minuti)).isoformat(timespec="milliseconds")
         with self._conn() as conn:
+            segnaposti = ",".join("?" for _ in pannelli)
             righe = conn.execute(
-                "SELECT fascicolo_id FROM pannelli WHERE (pannello='lettura' OR (? AND pannello='quadro')) AND richieste>0 "
+                f"SELECT fascicolo_id FROM pannelli WHERE pannello IN ({segnaposti}) AND richieste>0 "
                 "AND richiesto_il>=? AND richiesto_il>calcolato_il AND richiesto_il>servito_il "
                 "GROUP BY fascicolo_id ORDER BY MAX(richiesto_il) DESC",
-                (includi_quadro, soglia),
+                (*pannelli, soglia),
             ).fetchall()
         return [str(riga[0]) for riga in righe]
 

@@ -96,12 +96,12 @@ def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, ten
 def pannello_prioritario_richiesto(app) -> bool:
     """Controlla le consultazioni in attesa prima di chiedere il turno."""
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi
-    from web.services.pannelli_pronti_sfondo import MINUTI_ATTESA_LETTURA, studi
+    from web.services.pannelli_pronti_sfondo import MINUTI_ATTESA_LETTURA, PANNELLI_PRIORITARI, studi
 
     for _owner, percorsi in studi(app):
         archivio = archivio_per_percorsi(percorsi)
         if archivio is not None and Path(archivio.percorso).exists():
-            if archivio.fascicoli_in_attesa_di_lettura(minuti=MINUTI_ATTESA_LETTURA, includi_quadro=True):
+            if archivio.fascicoli_in_attesa_di_lettura(minuti=MINUTI_ATTESA_LETTURA, pannelli=PANNELLI_PRIORITARI):
                 return True
     return False
 
@@ -121,8 +121,11 @@ def main(tenant: str = "", fascicolo_id: str = "") -> int:
 
     app = create_app()
     if tenant and fascicolo_id:
+        from web.services.pannelli_pronti_sfondo import PANNELLI_PRIORITARI
+
         try:
-            esito = giro(app, lotto=1, solo_pannelli_prioritari=True, tenant=tenant, fascicolo_id=fascicolo_id)
+            esito = giro(app, lotto=len(PANNELLI_PRIORITARI), solo_pannelli_prioritari=True,
+                         tenant=tenant, fascicolo_id=fascicolo_id)
             if not esito["trovati"]:
                 with motore_pesante("pannelli pronti", priorita=PRIORITA_DIFFERIBILE, attesa_massima=5.0):
                     esito = giro(app, tenant=tenant, fascicolo_id=fascicolo_id)

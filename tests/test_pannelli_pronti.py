@@ -741,3 +741,22 @@ def test_nuova_impronta_lettura_invalida_dipendenti_anche_con_corpo_identico(stu
     assert archivio.voce("P").impronta == "dopo"
     assert archivio.salva(**comune, **lettura, impronta="dopo")
     assert archivio.voce("P").impronta == ""
+
+
+def test_passaggi_richiesti_hanno_priorita_dopo_la_lettura(studio):
+    from web.services.pannelli_pronti_sfondo import da_ricalcolare
+
+    for pannello in ("quadro", "passaggi", "lettura", "documenti"):
+        studio.archivio.registra_richiesta(
+            chiave_voce=pannello, fascicolo_id="F1", pannello=pannello,
+            percorso=f"/f/F1/{pannello}", profilo="p1", sessione={"user_id": "u1"}, servito=False,
+        )
+    studio.archivio.registra_richiesta(
+        chiave_voce="altro", fascicolo_id="F2", pannello="documenti",
+        percorso="/f/F2/documenti", profilo="p1", sessione={"user_id": "u1"}, servito=False,
+    )
+
+    voci = da_ricalcolare(studio.archivio, studio.fonti, solo_pannelli_prioritari=True)
+    assert [(voce.fascicolo_id, voce.pannello) for voce in voci] == [
+        ("F1", "lettura"), ("F1", "passaggi"), ("F1", "quadro"),
+    ]

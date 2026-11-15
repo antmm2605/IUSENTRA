@@ -22,6 +22,7 @@ from web.services.pannelli_pronti_catalogo import PANNELLI, PRIMA_APERTURA, VERS
 logger = logging.getLogger(__name__)
 ORE_APERTURA_RECENTE = 72.0
 MINUTI_ATTESA_LETTURA = 5.0
+PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro")
 _NOMI_PANNELLI = frozenset(pannello.nome for pannello in PANNELLI)
 # I pannelli che leggono la Lettura o la sintesi delle notifiche seguono le loro fonti.
 _ORDINE = {nome: indice for indice, nome in enumerate(dict.fromkeys(
@@ -65,7 +66,7 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
         in_attesa = (fascicolo_richiesto,)
         fascicoli = in_attesa
     else:
-        in_attesa = archivio.fascicoli_in_attesa_di_lettura(minuti=MINUTI_ATTESA_LETTURA, includi_quadro=True)
+        in_attesa = archivio.fascicoli_in_attesa_di_lettura(minuti=MINUTI_ATTESA_LETTURA, pannelli=PANNELLI_PRIORITARI)
         fascicoli = in_attesa if solo_pannelli_prioritari else dict.fromkeys([*in_attesa, *archivio.fascicoli_aperti_dal(ore)])
     for fascicolo_id in fascicoli:
         attuale = impronta_fonti.impronta(fonti, fascicolo_id, generazione=archivio.generazione(fascicolo_id),
@@ -76,13 +77,13 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
         voci = archivio.voci_del_fascicolo(fascicolo_id)
         presenti = {(pannello, profilo) for _c, pannello, _percorso, profilo, _i, _t in voci}
         for _chiave, pannello, percorso, profilo, impronta_salvata, tentata in voci:
-            if pannello not in _NOMI_PANNELLI or (solo_pannelli_prioritari and pannello not in {"lettura", "quadro"}):
+            if pannello not in _NOMI_PANNELLI or (solo_pannelli_prioritari and pannello not in PANNELLI_PRIORITARI):
                 continue
             if impronta_salvata != attuale and tentata != attuale:
                 risultato.append(DaRicalcolare(fascicolo_id, pannello, percorso, profilo,
                                                "mai calcolato" if not impronta_salvata else "fonti cambiate"))
         if solo_pannelli_prioritari:
-            risultato[inizio:] = sorted(risultato[inizio:], key=lambda voce: voce.pannello != "lettura")
+            risultato[inizio:] = sorted(risultato[inizio:], key=lambda voce: PANNELLI_PRIORITARI.index(voce.pannello))
             if len(risultato) >= limite:
                 break
             continue

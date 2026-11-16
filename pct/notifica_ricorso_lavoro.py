@@ -17,6 +17,9 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from typing import Any
+
+from pct.pec_change_receipt import date_it
 
 from pct.pec_provvedimento_terms import TermProposal
 from pct.termini_processuali import ItalianDeadlineCalculator
@@ -77,4 +80,37 @@ def proposte_art_415(testo: str, *, udienza: date | None, estero: bool | None = 
     return proposte
 
 
-__all__ = ["data_di_pronuncia", "ordine_di_notifica_nei_termini_di_legge", "proposte_art_415"]
+_CODICI_NOTIFICA_415 = ("LAV_415_NOTIFICA_DIECI_GIORNI", "LAV_415_NOTIFICA_TRENTA_GIORNI")
+
+
+def unifica_notifica_art_415(proposte: list[Any], *, oggi: str) -> list[Any]:
+    """Riunisce i due vincoli già calcolati per il medesimo decreto e la stessa PEC."""
+    vincoli = [voce for voce in proposte if voce.code in _CODICI_NOTIFICA_415]
+    if len(vincoli) != 2 or {voce.code for voce in vincoli} != set(_CODICI_NOTIFICA_415):
+        return proposte
+    metadati = [dict(getattr(voce, "campi_scadenza", None) or {}) for voce in vincoli]
+    if any(set(campi) - {"id_appuntamento"} for campi in metadati):
+        return proposte
+    appuntamenti = {campi["id_appuntamento"] for campi in metadati if campi.get("id_appuntamento")}
+    if len(appuntamenti) > 1:
+        return proposte
+    vincoli.sort(key=lambda voce: (voce.due_date, not voce.perentorio))
+    principale = next((voce for voce in vincoli if voce.due_date >= oggi), vincoli[0])
+    spiegazioni = tuple(
+        f"{'Termine ordinatorio dalla pronuncia' if voce.code == _CODICI_NOTIFICA_415[0] else 'Ultimo giorno utile prima dell’udienza'}"
+        f": {date_it(voce.due_date)} ({voce.norm})"
+        for voce in vincoli
+    )
+    unificata = TermProposal(
+        code=principale.code, title="Notifica di ricorso e decreto",
+        due_date=principale.due_date, dies_a_quo=principale.dies_a_quo,
+        norm="art. 415, commi 4 e 5, c.p.c.",
+        note=" ".join(voce.note for voce in vincoli), perentorio=principale.perentorio,
+        altri_codici=tuple(voce.code for voce in vincoli if voce.code != principale.code),
+        vincoli=spiegazioni,
+        campi_scadenza={"id_appuntamento": appuntamenti.pop()} if appuntamenti else {},
+    )
+    return [*[voce for voce in proposte if voce.code not in _CODICI_NOTIFICA_415], unificata]
+
+
+__all__ = ["data_di_pronuncia", "ordine_di_notifica_nei_termini_di_legge", "proposte_art_415", "unifica_notifica_art_415"]

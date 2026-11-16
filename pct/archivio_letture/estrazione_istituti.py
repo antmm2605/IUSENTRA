@@ -19,9 +19,13 @@ nessun giudice ha imposto.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Iterable
 
+from pct.provvedimenti.calcolo import calcola
+from pct.provvedimenti.dispositivo import capi
+from pct.provvedimenti.materia import materia_del_provvedimento
 from pct.provvedimenti.collettivi import testo_per_il_ruolo
 from pct.provvedimenti.termine_scritto import DataLetta, rischio_estinzione, termine_note_127_ter, udienza_tenuta_o_rinviata
 from pct.registro_letture.fatti_repository import Fatto
@@ -99,6 +103,36 @@ def _qualifica_note(elenco: list[Fatto], testo: str) -> Fatto | None:
     return date[scelta] if scelta is not None else None
 
 
+
+def _nota_antecedente(testo: str, ancora: Fatto, udienza: date) -> tuple[bool, Fatto | None]:
+    if ancora.campo != "udienza":
+        return False, None
+    capi_note = [
+        capo for capo in capi(testo)
+        if capo.oggetto == "note" and capo.ancora and capo.ancora.tipo == "prima_udienza"
+    ]
+    if not capi_note:
+        return False, None
+    chiavi = {(capo.ancora.giorni, capo.ancora.liberi) for capo in capi_note}
+    capo = capi_note[0]
+    ancora.prove.append({"codice": "udienza_sostituita_distinta", "esito": "ok",
+                         "dettaglio": f"Il deposito delle note precede questa udienza: {capo.ancora.letto}"})
+    if len(chiavi) != 1:
+        return True, None
+    giorni, liberi = next(iter(chiavi))
+    risultato = calcola(
+        {"giorni": giorni, "direzione": "backward", "liberi": liberi, "prudenziale": not liberi},
+        udienza, materia=materia_del_provvedimento(testo),
+    )
+    if risultato is None:
+        return True, None
+    return True, replace(
+        ancora, valore=risultato.giorno.isoformat(), valore_letto=capo.ancora.letto,
+        contesto=capo.testo, posizione=capo.inizio,
+        prove=[{"codice": "calcolo", "esito": "ok", "dettaglio": risultato.spiegazione}],
+    )
+
+
 def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "", numero_rg: str = "", anno_rg: str = "") -> list[Fatto]:
     """I fatti con la data qualificata e i termini che ne discendono.
 
@@ -129,6 +163,15 @@ def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "",
     if giorno is None:  # pragma: no cover - gia' filtrato sopra
         return elenco
 
+    udienza = giorno
+    if per_127_ter:
+        distinta, nota = _nota_antecedente(testo, ancora, giorno)
+        if distinta:
+            if nota is None:
+                return elenco
+            elenco.append(nota)
+            ancora = nota
+            giorno = date.fromisoformat(nota.valore)
     _qualifica(ancora, istituto, giorno)
     if per_127_ter:
         # Il termine per le note è perentorio per legge (art. 127-ter, primo comma, c.p.c.).
@@ -146,7 +189,7 @@ def qualifica_istituti(fatti: Iterable[Fatto], testo: str, *, origine: str = "",
                 _qualifica(copia, istituto, giorno)
                 copia.etichetta = ancora.etichetta
                 copia.prove += [dict(p) for p in ancora.prove if p.get("codice") in {"perentorieta_documentata", "rischio_estinzione"}]
-    derivati = derivati_da_note(testo, giorno) if per_127_ter else derivati_da_udienza_remota(testo, giorno)
+    derivati = derivati_da_note(testo, udienza) if per_127_ter else derivati_da_udienza_remota(testo, giorno)
     posizione = ancora.posizione
     for voce, quando in derivati:
         posizione += 1

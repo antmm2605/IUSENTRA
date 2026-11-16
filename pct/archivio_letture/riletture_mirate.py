@@ -23,6 +23,7 @@ from typing import Any, Iterable
 
 #: il segno che la lettura è stata fatta con le regole di questo modulo
 REGOLE_TERMINE_SCRITTO = "termine-scritto:v1"
+REGOLA_NOTE_ANTECEDENTI = "note-antecedenti:v1"
 REGOLA_RUOLO_ALLEGATO = "ruolo-allegato-pec:v1"
 
 _RE_127_TER = re.compile(r"127\W{0,3}ter|trattazione\s+scritta|note\s+(?:scritte|in\s+sost)", re.I)
@@ -67,6 +68,12 @@ def oggetti_da_rileggere(
         if (not motivo and buste_email and chiave in buste_email and REGOLA_RUOLO_ALLEGATO not in versione
                 and any(f.campo in _CAMPI and f.verifica in {"plausibile", "verificata"} for f in elenco)):
             motivo = "data giudiziale in una PEC: confrontare il ruolo nell’intestazione del singolo allegato"
+        if not motivo and REGOLA_NOTE_ANTECEDENTI not in versione and any(
+            f.categoria == "data" and f.campo == "termine"
+            and any(prova.get("codice") == "istituto" and prova.get("dettaglio") == "note_127_ter" for prova in f.prove)
+            for f in elenco
+        ):
+            motivo = "trattazione scritta: verificare se il decreto dispone il deposito prima della data d’udienza"
         if motivo:
             esito[chiave] = motivo
     return esito

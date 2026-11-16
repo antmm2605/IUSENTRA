@@ -284,6 +284,8 @@ def applica_pertinenza(fatti: list[Fatto], testo: str, *, contesto, origine: str
         ):
             note.add(f.valore[:10])
     for f in fatti:
+        if any(p.get("codice") == "udienza_sostituita_distinta" for p in f.prove):
+            continue
         if f.categoria == "data" and f.campo in {"udienza", "termine"} and f.valore[:10] in note:
             giorno = f.valore[:10]
             ora = f.valore[11:16] if len(f.valore) >= 16 and f.valore[10] == "T" else ""

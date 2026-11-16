@@ -32,3 +32,30 @@ def test_destinazione_ignota_non_equivale_a_notifica_in_italia():
     assert [p.code for p in proposte_art_415(DECRETO, udienza=date(2026, 12, 16))] == [
         "LAV_415_NOTIFICA_DIECI_GIORNI",
     ]
+
+
+def test_due_vincoli_un_solo_adempimento_di_notifica():
+    from pct.notifica_ricorso_lavoro import unifica_notifica_art_415
+
+    vincoli = proposte_art_415(DECRETO, udienza=date(2026, 12, 16), estero=False)
+    proposta, = unifica_notifica_art_415(vincoli, oggi="2026-08-04")
+    assert proposta.code == "LAV_415_NOTIFICA_TRENTA_GIORNI"
+    assert proposta.due_date == vincoli[1].due_date
+    assert proposta.altri_codici == ("LAV_415_NOTIFICA_DIECI_GIORNI",)
+    assert "03/08/2026" in proposta.summary()
+    assert "comma 4" in proposta.summary() and "comma 5" in proposta.summary()
+    assert unifica_notifica_art_415(vincoli[:1], oggi="2026-08-04") == vincoli[:1]
+
+
+def test_unifica_solo_vincoli_dello_stesso_appuntamento():
+    from dataclasses import replace
+
+    from pct.notifica_ricorso_lavoro import unifica_notifica_art_415
+
+    primo, secondo = proposte_art_415(DECRETO, udienza=date(2026, 12, 16), estero=False)
+    primo = replace(primo, campi_scadenza={"id_appuntamento": "UD1"})
+    secondo = replace(secondo, campi_scadenza={"id_appuntamento": "UD1"})
+    proposta, = unifica_notifica_art_415([primo, secondo], oggi="2026-08-01")
+    assert proposta.campi_scadenza == {"id_appuntamento": "UD1"}
+    altro = replace(secondo, campi_scadenza={"id_appuntamento": "UD2"})
+    assert unifica_notifica_art_415([primo, altro], oggi="2026-08-01") == [primo, altro]

@@ -15538,9 +15538,48 @@ class PecAuditRepository:
                 all_deadlines = list(manager.tutte(solo_aperte=False))
                 existing_notes = "\n".join(str(getattr(item, "note", "") or "") for item in all_deadlines)
                 markers = set(existing_notes.splitlines())
-                for item in term_proposals:
+                from pct.notifica_ricorso_lavoro import unifica_notifica_art_415
+
+                proposte_da_salvare = unifica_notifica_art_415(term_proposals, oggi=today_rome) if fascicolo_id else term_proposals
+                termini_note = [voce for voce in proposte_da_salvare if voce.code == CODICE_NOTE_127_TER]
+                if fascicolo_id and len(termini_note) == 1:
+                    termine_note = termini_note[0]
+                    marcatore_note = termine_note.marker(clean_id)
+                    gia_registrati = [
+                        voce for voce in all_deadlines
+                        if voce.id_fascicolo == fascicolo_id and voce.source_message_id == clean_id
+                        and voce.deadline_profile_code == CODICE_NOTE_127_TER
+                        and voce.stato == StatoTermine.APERTO and f"PEC_AUDIT:{clean_id}" in voce.note.splitlines()
+                        and "Proposta confermata" not in voce.note
+                    ]
+                    campi = getattr(termine_note, "campi_scadenza", None) or {}
+                    if (len(gia_registrati) == 1 and marcatore_note not in markers
+                            and termine_note.due_date >= today_rome and campi.get("operational_due_at")
+                            and getattr(termine_note, "regola_id", "") == "127ter.termine_note"):
+                        scadenza = gia_registrati[0]
+                        riconosciuta = str(scadenza.operational_due_at or "") in {"", scadenza.data_scadenza}
+                        if riconosciuta:
+                            riferimenti = _deadline_identity_line(rg=rg, ufficio=ufficio or _deadline_identity_office_sender(parsed),
+                                                                   profile_code=termine_note.code, due_date=termine_note.due_date)
+                            note = [riga for riga in scadenza.note.splitlines()
+                                    if not riga.startswith(f"{PEC_DEADLINE_IDENTITY_PREFIX}:")]
+                            manager.aggiorna(
+                                scadenza.id, data_scadenza=termine_note.due_date, legal_due_at=termine_note.due_date,
+                                operational_due_at=campi["operational_due_at"],
+                                titolo=clean_text(f"{termine_note.title} - RG {rg}" if rg else termine_note.title, 180),
+                                descrizione=termine_note.note,
+                                note="\n".join((*note, marcatore_note, f"Termine da decreto: {termine_note.summary()}", riferimenti)),
+                            )
+                            markers.add(marcatore_note)
+                            proposed_deadlines.append({
+                                "deadline_id": scadenza.id, "code": termine_note.code,
+                                "due_date": termine_note.due_date, "outcome": "allineato_decreto",
+                            })
+                for item in proposte_da_salvare:
                     marker = item.marker(clean_id)
-                    if item.due_date < today_rome or marker in markers:
+                    altri_marker = [f"PEC_TERMINE_PROPOSTO:{clean_id}:{codice}" for codice in getattr(item, "altri_codici", ())]
+                    chiave_proposta = f"PEC_TERMINE_PROPOSTO:{clean_id}:LAV_415_NOTIFICA" if altri_marker else marker
+                    if item.due_date < today_rome or any(voce in markers for voce in (marker, *altri_marker)):
                         continue
                     term_title = clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180)
                     identity_line = _deadline_identity_line(
@@ -15583,7 +15622,8 @@ class PecAuditRepository:
                             note="\n".join(
                                 part
                                 for part in (
-                                    item.marker(clean_id),
+                                    marker,
+                                    *altri_marker,
                                     f"Termine proposto: {item.summary()}",
                                     "Proposta in bozza: revisione professionale obbligatoria prima della conferma.",
                                     identity_line,
@@ -15599,7 +15639,7 @@ class PecAuditRepository:
                             id_utente_responsabile=_deadline_responsible_actor(actor),
                             perentorio=item.perentorio,
                             stato=StatoTermine.BOZZA,
-                            id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"iusentra:scadenziario:proposta:{marker}")),
+                            id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"iusentra:scadenziario:proposta:{chiave_proposta}")),
                             deadline_profile_code=item.code,
                             source_event_type="comunicazione_cancelleria",
                             source_event_at=item.dies_a_quo,
@@ -15611,7 +15651,7 @@ class PecAuditRepository:
                         # La chiave già inserita da un worker concorrente tutela la stessa proposta.
                         # Gli altri adempimenti della PEC sono elaborati separatamente.
                         continue
-                    markers.add(marker)
+                    markers.update((marker, *altri_marker))
                     all_deadlines.append(scadenza)
                     proposed_deadlines.append(
                         {"deadline_id": str(getattr(scadenza, "id", "") or ""), "code": item.code, "due_date": item.due_date}

@@ -97,3 +97,22 @@ def test_ogni_istituto_dichiara_titolo_descrizione_e_norma():
         assert istituto.descrizione.strip(), f"{istituto.codice} senza descrizione"
         assert "c.p.c." in istituto.norma, f"{istituto.codice} senza norma"
         assert istituto.campo in {"udienza", "termine", "costituzione"}, f"{istituto.codice}: campo fuori catalogo"
+
+
+def test_il_termine_relativo_per_le_note_non_diventa_la_data_dell_udienza():
+    testo = (
+        "TRIBUNALE DI BERGAMO SEZIONE LAVORO RG 1733/2026. "
+        "Il Giudice, visto l'art. 415 c.p.c., FISSA per la discussione della causa l'udienza del 22/12/2026 alle ore 09:00. "
+        "Letto l'art. 127-ter c.p.c., DISPONE che l'udienza abbia svolgimento mediante lo scambio "
+        "e il deposito in telematico di note scritte. INVITA le parti a depositare, sino a cinque giorni prima "
+        "dell'udienza, concise note con espresso consenso alla trattazione scritta, "
+        "affinché siano riconoscibili dalla cancelleria. Bergamo, 10/11/2026."
+    )
+    voci = _per_tipo(testo, oggi=date(2026, 11, 16))
+
+    assert voci["note_127_ter"]["dateIso"] == "2026-12-16"
+    assert "udienza_documento" in voci, voci
+    assert voci["udienza_documento"]["dateIso"] == "2026-12-22"
+    assert voci["udienza_documento"]["time"] == "09:00"
+    assert any("17/12/2026" in prova["dettaglio"] for prova in voci["note_127_ter"]["prove"]
+               if prova.get("codice") == "calcolo")

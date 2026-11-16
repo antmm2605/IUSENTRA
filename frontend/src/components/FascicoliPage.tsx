@@ -9687,7 +9687,7 @@ function DocumentPresidioPanel({ data, fascicoloId, onOpenDocuments, onPreview, 
                     const url = new URL(action.registeredHref!, window.location.origin)
                     url.searchParams.set('embed', 'source')
                     onPreview({ name: `${action.title} · ${action.date}`, url: url.pathname + url.search, downloadUrl: '', operational: true })
-                  }}><CalendarDays size={14}/> Apri scadenza</button> : action.historical ? <span className="iu-muted">Data storica</span> : null}
+                  }}><CalendarDays size={14}/> {action.registeredHref.startsWith("/agenda/") ? "Apri appuntamento" : "Apri scadenza"}</button> : action.historical ? <span className="iu-muted">Data storica</span> : null}
                   {canPrepareDeadline ? <a className="iu-fas-inline-link" href={documentPresidioDeadlineHref(action, fascicoloId)}><CalendarDays size={14}/> Prepara scadenza</a> : null}
                 </div>
                 {action.requiresCommunicationDate ? <p className="iu-fas-presidio-action-note">La data di comunicazione non è stata letta: apri la fonte e registrala prima di predisporre il termine.</p> : null}

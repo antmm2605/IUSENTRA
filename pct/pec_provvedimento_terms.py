@@ -24,8 +24,9 @@ Regole applicate:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
+from typing import Any
 from typing import Any
 
 from pct.pec_change_receipt import CourtCommunication, date_it
@@ -45,11 +46,16 @@ class TermProposal:
     norm: str
     note: str
     perentorio: bool = True
+    altri_codici: tuple[str, ...] = ()
+    vincoli: tuple[str, ...] = ()
+    campi_scadenza: dict[str, Any] = field(default_factory=dict)
 
     def marker(self, message_id: str) -> str:
         return f"{TERM_MARKER_PREFIX}:{message_id}:{self.code}"
 
     def summary(self) -> str:
+        if self.vincoli:
+            return " · ".join(self.vincoli)
         return f"{self.title}: entro il {date_it(self.due_date)} ({self.norm})"
 
 

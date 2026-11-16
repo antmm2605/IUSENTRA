@@ -27,6 +27,12 @@ VERBI = (
 )
 _RE_VERBO = re.compile(r"(?<![\w'])(?:si\s+)?(" + "|".join(VERBI) + r")(?![\w'])", re.I)
 _RE_PQM = re.compile(r"\bP\.?\s?Q\.?\s?M\.?(?=\W)|\bper\s+questi\s+motivi\b", re.I)
+_RE_ONERATO = re.compile(
+    r"^(?:invita|onera|ordina|assegna)\s+(?:(?:a(?:lla?|lle)?|le|i|la|il)\s+)?"
+    r"((?:parte\s+)?(?:parti|difensori|ricorrente|resistente|attrice|attore|convenut[oa]|istante))\b",
+    re.I,
+)
+
 
 _CHI = (
     ("consulente tecnico d'ufficio", r"\bc\.?\s?t\.?\s?u\b|\bconsulente\s+tecnico\s+d'\s*ufficio\b|\bal\s+consulente\b"),
@@ -101,9 +107,10 @@ def capi(testo: str) -> list[Capo]:
     for indice, trovato in enumerate(verbi):
         fine = verbi[indice + 1].start() if indice + 1 < len(verbi) else len(corpo)
         frase = corpo[trovato.start():fine].strip(" ;,.•-")[:600]
+        onerato = _RE_ONERATO.match(frase)
         elenco.append(Capo(
             verbo=trovato.group(1).lower(), testo=frase, inizio=base + trovato.start(),
-            chi=_primo(_CHI, frase), oggetto=_primo(_OGGETTI, frase),
+            chi=_primo(_CHI, onerato.group(1) if onerato else frase), oggetto=_primo(_OGGETTI, frase),
             ancora=ancora_del_capo(frase), perentorio=_perentorio(frase),
         ))
     return elenco

@@ -142,10 +142,10 @@ def _versione_motore_pec() -> str:
 def _versioni_compatibili_motore_pec() -> tuple[str, ...]:
     from pct.archivio_letture.estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE
 
-    from pct.archivio_letture.motore_pec import VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO
+    from pct.archivio_letture.motore_pec import VERSIONE_MOTORE_PEC_PRE_NOTE_ANTECEDENTI, VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO
 
     current = _versione_motore_pec()
-    precedenti = (current, VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO)
+    precedenti = (current, VERSIONE_MOTORE_PEC_PRE_NOTE_ANTECEDENTI, VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO)
     return tuple(dict.fromkeys(v for base in precedenti for v in (base, base.replace(VERSIONE_ESTRAZIONE_IMPORTI, VERSIONE_ESTRAZIONE_IMPORTI_PRE_DISTINZIONE))))
 
 

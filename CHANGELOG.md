@@ -11,6 +11,10 @@
 - La consultazione dello stesso inventario evita nuove scritture. Codici e leggi usa gli indici distinti per le edizioni storiche e i testi con riscontro di vigenza, e riusa il catalogo finché gli archivi non cambiano.
 - Il riepilogo del registro e la Lettura mostrano gli stessi esiti dei motori operativi, anche quando la scheda proviene da un risultato già salvato.
 
+- Agenda conserva una sola azione per i due vincoli della notifica del ricorso e del decreto, quando riguardano lo stesso provvedimento.
+- Il termine per le note segue il provvedimento. Un deposito da eseguire prima dell’udienza e il giorno dell’udienza restano distinti. Le fonti documentali aprono gli adempimenti già registrati.
+- I Prossimi passaggi distinguono consegne PEC, accettazione in cancelleria e verifica del contenuto della busta.
+
 ## 2.489.17 — Dati condivisi in Guida pratica e Redazione
 
 - Ripresi dalla Lettura il contributo unificato con le sue fonti e la prossima udienza. Il valore dichiarato all’iscrizione usa la nota e il deposito riconducibili al fascicolo.

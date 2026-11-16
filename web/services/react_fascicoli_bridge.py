@@ -6069,7 +6069,23 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
     oggetti = {(o["tipo"], o["oggetto_id"]): o for o in stato.per_oggetto}
     consegne = registro.consegne(tenant, str(fascicolo.id))
     from urllib.parse import quote
+    from web.helpers import _studio_db
+    from web.services.eventi_unici_runtime import collegamenti_adempimenti_pec, collegamento_scadenza
     from web.services.pec_source_links import pec_source_href
+
+    documenti = _documenti_per_identificativo(fascicolo)
+    fonti_pec = {}
+    for azione in presidio["actions"]:
+        doc_id = azione.get("documentId")
+        oggetto = oggetti.get((azione.get("objectType"), doc_id), {})
+        if azione.get("objectType") == "allegato_pec":
+            fonte = _text(oggetto.get("origine"))
+        else:
+            fonte = _text(getattr(documenti.get(doc_id), "msg_id_portale", "")).partition("#")[0]
+        if fonte.startswith("pec_"):
+            fonti_pec[azione["id"]] = fonte
+    database = _studio_db("FASCICOLI_DB")
+    collegamenti_pec = collegamenti_adempimenti_pec(database, str(fascicolo.id), presidio["actions"], fonti_pec)
     for azione in presidio["actions"]:
         oggetto = oggetti.get((azione.get("objectType"), azione.get("documentId")), {})
         if oggetto.get("nome"):
@@ -6077,13 +6093,13 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
         if oggetto.get("tipo") == "allegato_pec" and oggetto.get("origine") and oggetto.get("nome"):
             azione["sourceHref"] = pec_source_href(oggetto["origine"], oggetto["nome"])
         consegna = next((c for c in consegne if c.fatto_id == azione.get("fattoId") and c.presidio == "scadenziario" and c.stato == "consegnato" and c.riferimento), None)
-        if consegna:
+        if azione["id"] in collegamenti_pec:
+            azione["registeredHref"] = collegamenti_pec[azione["id"]]
+        elif consegna:
             azione["registeredHref"] = "/scadenziario?focus=" + quote(consegna.riferimento, safe="")
         else:
-            from web.helpers import _studio_db
-            from web.services.eventi_unici_runtime import collegamento_scadenza
             try:
-                href = collegamento_scadenza(_studio_db("FASCICOLI_DB"), tenant, str(fascicolo.id), azione)
+                href = collegamento_scadenza(database, tenant, str(fascicolo.id), azione)
                 if href:
                     azione["registeredHref"] = href
             except ValueError as exc:

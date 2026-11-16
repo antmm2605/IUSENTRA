@@ -1,0 +1,1 @@
+import{rn as e}from"./lettura-fascicolo-B9R4ThEl.js";import{t}from"./LegalSkillsReviewPage-OrcA7PrA.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as ReviewerQueuePage};

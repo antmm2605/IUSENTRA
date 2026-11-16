@@ -320,12 +320,12 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
     fascicolo_id = str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")
     caso = str(projection.get("notificationCase") or row.get("notification_case") or "")
     next_action = NEXT_ACTIONS.get(status, "Consulta il presidio")
+    required = [item for item in recipients if item.get("required")]
+    delivered = [
+        item for item in required
+        if item.get("delivery_status") == "delivered" and item.get("rdac_message_id")
+    ] if channel == "pec" else []
     if channel == "pec" and status in {"DETECTED", "NEEDS_REVIEW"}:
-        required = [item for item in recipients if item.get("required")]
-        delivered = [
-            item for item in required
-            if item.get("delivery_status") == "delivered" and item.get("rdac_message_id")
-        ]
         if required and len(delivered) == len(required):
             next_action = (
                 "Le ricevute di consegna sono collegate per tutti i destinatari richiesti. "
@@ -343,6 +343,7 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "practice": _practice_payload(str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")),
         "document": _document_summary(documents),
         "source_effective_at": str(projection.get("sourceEffectiveAt") or row.get("source_effective_at") or ""),
+        "source_message_id": str(row.get("source_message_id") or ""),
         "explicit_due_at": projection.get("explicitDueAt") or row.get("explicit_due_at"),
         "notification_case": str(projection.get("notificationCase") or row.get("notification_case") or ""),
         "notification_case_label": _notification_case_label(
@@ -359,6 +360,7 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "rule_label": "Valutazione guidata da fonti normative",
         "legal_sources": _legal_sources(row),
         "next_action": next_action,
+        "consegne_pec": {"richieste": len(required), "collegate": len(delivered)},
         "human_review_required": bool(projection.get("humanReviewRequired") or row.get("human_review_required")),
         "legacy_assumed_handled": bool(projection.get("legacyAssumedHandled") or row.get("legacy_assumed_handled")),
         "assigned_user": _assignee(str(projection.get("assignedUserId") or row.get("assigned_user_id") or ""), assignees),

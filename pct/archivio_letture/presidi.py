@@ -65,7 +65,8 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
         # «termine del 10/09/2026» no.
         istituto = _istituto_del_fatto(fatto)
         etichetta = fatto.etichetta.casefold()
-        note_scritte = (
+        udienza_distinta = any(p.get("codice") == "udienza_sostituita_distinta" for p in fatto.prove)
+        note_scritte = not udienza_distinta and (
             any(p.get("codice") == "modalita_note" and p.get("esito") == "ok" for p in fatto.prove)
             or (istituto is not None and istituto.codice == "note_127_ter")
             or (fatto.campo == "termine" and any(x in etichetta for x in ("note in sostituzione", "note scritte")))
@@ -101,6 +102,8 @@ def udienze_e_termini(fatti: Iterable[Fatto], *, oggi: date | None = None) -> li
             "requiresConfirmation": fatto.verifica == "plausibile",
             "peremptory": perentorieta_documentata(fatto),
         }
+        if udienza_distinta:
+            azione.update({"title": "Udienza a trattazione scritta", "hearingMode": "note_scritte", "hearingTime": ora})
         if note_scritte:
             azione.update({"hearingMode": "note_scritte", "hearingTime": ora})
         azioni.append(azione)

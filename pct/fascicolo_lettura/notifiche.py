@@ -53,6 +53,8 @@ def _leggi_presidio(presidio: dict[str, Any]) -> dict[str, Any]:
         "aperta": stato in STATI_APERTI,
         "perfezionata": stato in STATI_PERFEZIONATE,
         "prossima_azione": pulisci(presidio.get("next_action")),
+        "consegne_pec": presidio.get("consegne_pec") or {},
+        "source_message_id": pulisci(presidio.get("source_message_id")),
         "data": data_it(presidio.get("source_effective_at") or presidio.get("updated_at")),
         "scadenza": data_it(presidio.get("explicit_due_at")),
         "fonti": [pulisci(voce) for voce in list(presidio.get("legal_sources") or []) if pulisci(voce)][:3],

@@ -278,11 +278,28 @@ def _passi_depositi(depositi_letti: dict[str, Any], verifiche: dict[str, Any], g
     return passi
 
 
-def _passi_notifiche(notifiche_lette: dict[str, Any], scadenze: list[dict[str, Any]] | None = None, giorno_oggi: Any = None) -> list[Passo]:
+def _deposito_ricorso_notificato(notifica: dict[str, Any], depositi: dict[str, Any]) -> dict[str, Any] | None:
+    data_fonte = data_da(notifica.get("data"))
+    if not data_fonte:
+        return None
+    candidati = [
+        voce for voce in depositi.get("perfezionati", ())
+        if (accettazione := data_da(voce.get("data_accettazione"))) and accettazione >= data_fonte
+        and voce.get("identificativo_busta") and "esito cancelleria" in voce.get("ricevute", ())
+        and re.search(r"\bricorso\b.{0,50}\boriginale\s+notificato\b", str(voce.get("atto") or ""), re.I)
+    ]
+    return candidati[0] if len(candidati) == 1 else None
+
+
+def _passi_notifiche(
+    notifiche_lette: dict[str, Any],
+    scadenze: list[dict[str, Any]] | None = None,
+    giorno_oggi: Any = None,
+    depositi_letti: dict[str, Any] | None = None,
+) -> list[Passo]:
     from pct.procedura_fasi.notifica_ordinata import STATI_DA_VALUTARE, termine_di_notifica_ordinata
 
     # La notifica ordinata dal giudice (art. 415, c. 5, c.p.c.) è dovuta: non si chiede se sia necessaria.
-    ordinata = termine_di_notifica_ordinata(scadenze or [], giorno_oggi)
     passi: list[Passo] = []
     for notifica in notifiche_lette["fallite"]:
         passi.append(Passo(0, f"Rinnovare la notifica di «{notifica['atto']}»", notifica["stato_etichetta"], "", "presidio notifiche", ("cpc_147", "l53_art3bis"), HREF_COMUNICAZIONI))
@@ -294,6 +311,28 @@ def _passi_notifiche(notifiche_lette: dict[str, Any], scadenze: list[dict[str, A
             continue
         azione = notifica.get("prossima_azione") or f"Completare la notifica di «{notifica['atto']}»"
         fase = f" — fase: {notifica['fase_procedurale']}" if notifica.get("fase_procedurale") else ""
+        consegne = notifica.get("consegne_pec") or {}
+        collegate = consegne.get("collegate") or 0
+        if collegate and notifica.get("stato") in STATI_DA_VALUTARE:
+            tutte = collegate == consegne.get("richieste")
+            busta = _deposito_ricorso_notificato(notifica, depositi_letti or {}) if tutte else None
+            if busta:
+                passi.append(Passo(
+                    2, "Riscontrare gli allegati di prova nella busta accettata",
+                    f"La cancelleria ha accettato il ricorso originale notificato il {busta['data_accettazione']}, "
+                    f"busta {busta['identificativo_busta']}. Le consegne PEC risultano collegate. "
+                    "Resta il riscontro del contenuto della busta per relata e ricevute.",
+                    "", "deposito telematico e presidio notifiche", ("l53_art3bis", "dispatt_196sexies"), "#sezione-deposito",
+                ))
+                continue
+            titolo = ("Verificare il deposito della prova della notifica già consegnata" if tutte
+                      else "Verificare le consegne PEC ancora mancanti")
+            passi.append(Passo(1, f"{titolo} («{notifica['atto']}»)", azione, "",
+                               "presidio notifiche", ("l53_art3bis",), HREF_COMUNICAZIONI))
+            continue
+        fonte_pec = notifica.get("source_message_id") or ""
+        pertinenti = [voce for voce in (scadenze or []) if (voce.get("source_message_id") or "") == fonte_pec]
+        ordinata = termine_di_notifica_ordinata(pertinenti, giorno_oggi)
         if ordinata and notifica.get("stato") in STATI_DA_VALUTARE:
             entro = data_it(ordinata["data"])
             passi.append(Passo(1, f"Completare la notifica ordinata dal giudice entro il {entro} («{notifica['atto']}»)",
@@ -618,7 +657,7 @@ def prossimi_passi(
     passi.extend(_passi_udienze_senza_esito(list(appuntamenti or []), giorno_oggi, fase_letta.get("rito") or ""))
     passi.extend(_passi_regia(regia, passi))
     passi.extend(_passi_depositi(depositi_letti, verifiche, giorno_oggi))
-    passi.extend(_passi_notifiche(notifiche_lette, scadenze, giorno_oggi))
+    passi.extend(_passi_notifiche(notifiche_lette, scadenze, giorno_oggi, depositi_letti))
     passi.extend(_passi_pec(pec_letto, giorno_oggi))
     passi.extend(_passi_conformita(conformita))
     if not ragionamento:

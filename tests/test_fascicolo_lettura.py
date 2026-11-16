@@ -805,3 +805,78 @@ def test_prossimi_passi_riusa_il_riscontro_sullo_stesso_adempimento():
         "Depositare le note scritte",
         "Adempiere a «Notifica di ricorso e decreto, altro ordine»",
     }
+
+
+def test_le_consegne_collegate_non_ripropongono_la_notifica_ordinata():
+    from pct.fascicolo_lettura.notifiche import notifiche
+    from pct.fascicolo_lettura.prossimi_passi import _passi_notifiche
+
+    lettura = notifiche([{
+        "id": "N1",
+        "channel": "pec",
+        "status": "NEEDS_REVIEW",
+        "document": {"name": "decreto.pdf"},
+        "next_action": "Le ricevute sono collegate per tutti i destinatari.",
+        "consegne_pec": {"richieste": 2, "collegate": 2},
+        "source_message_id": "pec-decreto",
+    }], [])
+    scadenze = [{
+        "titolo": "Notifica di ricorso e decreto",
+        "data": "2027-01-08",
+        "stato": "BOZZA",
+        "source_message_id": "pec-decreto",
+    }]
+    passi = _passi_notifiche(lettura, scadenze)
+
+    assert len(passi) == 1
+    assert passi[0].azione.startswith("Verificare il deposito della prova")
+    assert not passi[0].entro
+
+
+def test_la_scadenza_del_decreto_non_si_attribuisce_a_un_altro_presidio():
+    from pct.fascicolo_lettura.notifiche import notifiche
+    from pct.fascicolo_lettura.prossimi_passi import _passi_notifiche
+
+    lettura = notifiche([
+        {"id": "N1", "channel": "pec", "status": "DETECTED",
+         "document": {"name": "decreto.pdf"}, "source_message_id": "pec-decreto"},
+        {"id": "N2", "channel": "pec", "status": "DETECTED",
+         "document": {"name": "sentenza.pdf"}, "source_message_id": "pec-sentenza",
+         "next_action": "Esaminare la sentenza"},
+    ], [])
+    scadenze = [{
+        "titolo": "Notifica di ricorso e decreto",
+        "data": "2027-01-08",
+        "stato": "BOZZA",
+        "source_message_id": "pec-decreto",
+    }]
+    primo, secondo = _passi_notifiche(lettura, scadenze)
+
+    assert primo.entro == "08/01/2027"
+    assert secondo.azione == "Esaminare la sentenza («sentenza.pdf»)"
+    assert not secondo.entro
+
+
+def test_la_busta_del_ricorso_notificato_si_cita_con_la_data_della_ricevuta():
+    from pct.fascicolo_lettura.depositi import depositi
+    from pct.fascicolo_lettura.notifiche import notifiche
+    from pct.fascicolo_lettura.prossimi_passi import _passi_notifiche
+
+    presidi = notifiche([{
+        "status": "NEEDS_REVIEW", "channel": "pec",
+        "source_effective_at": "2026-11-09T13:54:02Z",
+        "consegne_pec": {"richieste": 2, "collegate": 2},
+        "document": {"name": "decreto.pdf"},
+    }], [])
+    invii = depositi([
+        {"titolo": "Ricorso.pdf", "stato": "ACCETTATO_CANCELLERIA",
+         "ricevuta_cancelleria": "Data esito: 06/11/2026 11:35", "id_deposito_esterno": "243729027"},
+        {"titolo": "Ricorso (originale notificato).pdf", "stato": "ACCETTATO_CANCELLERIA",
+         "timestamp": "2026-11-11T20:26:56", "ricevuta_cancelleria": "Data esito: 10/11/2026 11:17",
+         "id_deposito_esterno": "243902326"},
+    ])
+    passo, = _passi_notifiche(presidi, depositi_letti=invii)
+    assert "allegati di prova" in passo.azione
+    assert "10/11/2026" in passo.motivo and "243902326" in passo.motivo
+    assert "243729027" not in passo.motivo
+    assert passo.href == "#sezione-deposito"

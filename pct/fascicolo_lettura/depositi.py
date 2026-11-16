@@ -58,13 +58,19 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
         )
         if pulisci(deposito.get(chiave))
     ]
+    data_accettazione = data_it(deposito.get("data_accettazione"))
+    if not data_accettazione and stato == "ACCETTATO_CANCELLERIA":
+        ricevuta = str(deposito.get("ricevuta_cancelleria") or "")
+        esito = re.search(r"^Data esito:\s*(\d{1,2}/\d{1,2}/\d{4})(?:\s|$)", ricevuta, re.M | re.I)
+        if esito:
+            data_accettazione = data_it(esito[1])
     return {
         "id": pulisci(deposito.get("id")),
         "atto": titolo_atto(deposito),
         "tipo_atto": pulisci(deposito.get("tipo_atto")),
         "data": data_it(deposito.get("timestamp")),
         "data_ora": dataora_it(deposito.get("timestamp")),
-        "data_accettazione": data_it(deposito.get("data_accettazione")),
+        "data_accettazione": data_accettazione,
         "stato": stato,
         "fase": fase,
         "attesa": attesa,

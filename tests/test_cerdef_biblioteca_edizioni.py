@@ -160,3 +160,19 @@ def test_catalogo_salvato_riusa_la_stessa_revisione(tmp_path, monkeypatch, linke
         connection.execute("DELETE FROM atti WHERE document_id=?", (documents[0][0],))
     nuova = salvato.catalogo_cerdef_salvato(tmp_path, edizioni, prepara=True)
     assert [atto["id"] for atto in nuova] == [cerdef_biblioteca.ID_BASE + documents[1][0]]
+
+
+def test_le_scritture_estranee_non_invalidano_il_catalogo_collegato(tmp_path, linked_database):
+    from lex.normativa import cerdef_catalogo_salvato as salvato
+
+    database, index, _ = linked_database
+    fonti = ((cerdef_biblioteca.ID_BASE, index, database),)
+    revisione = salvato._revisione(fonti)
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE stato_importazione (fase TEXT)")
+        connection.execute("INSERT INTO stato_importazione VALUES ('in corso')")
+    assert salvato._revisione(fonti) == revisione
+    sostituto = tmp_path / "sostituto.sqlite"
+    sostituto.write_bytes(database.read_bytes())
+    sostituto.replace(database)
+    assert salvato._revisione(fonti) != revisione

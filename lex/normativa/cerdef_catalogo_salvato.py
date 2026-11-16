@@ -10,7 +10,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import Lock, Thread
 
-from lex.normativa.cerdef_biblioteca import _catalogue, fonti_catalogo
+from lex.normativa.cerdef_biblioteca import ID_BASE, _catalogue, fonti_catalogo
 from lex.retrieval.normativa_catalog import wal_revision
 
 _LOG = logging.getLogger(__name__)
@@ -21,10 +21,16 @@ _IN_CORSO: set[Path] = set()
 def _revisione(fonti):
     revisione = []
     for base, indice, database in fonti:
-        for path in (indice, database):
-            stat = path.stat()
-            revisione.extend(((base, str(path), stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns),
-                              wal_revision(Path(str(path) + "-wal"))))
+        registro = indice.stat()
+        archivio = database.stat()
+        revisione.append((base, str(indice), registro.st_dev, registro.st_ino, registro.st_size, registro.st_mtime_ns,
+                          wal_revision(Path(str(indice) + "-wal"))))
+        revisione.append((str(database), archivio.st_dev, archivio.st_ino))
+        if base != ID_BASE:
+            revisione.append((archivio.st_size, archivio.st_mtime_ns, wal_revision(Path(str(database) + "-wal"))))
+        # Nel database generale l'associazione document_id+SHA è stabilita
+        # dall'indice CeRDEF. Le scritture del crawler su altri atti non la
+        # modificano. La consultazione del singolo atto mantiene il controllo SHA.
     return json.dumps(revisione, separators=(",", ":"))
 
 
@@ -87,7 +93,7 @@ def catalogo_cerdef_salvato(data_dir, basi, *, prepara=False):
     if not fonti:
         return []
     edizioni = "-".join(str(base // 10**12) for base in basi)
-    percorso = Path(data_dir) / "search" / f"cerdef-catalogo-v2-{edizioni}.json.gz"
+    percorso = Path(data_dir) / "search" / f"cerdef-catalogo-v3-{edizioni}.json.gz"
     revisione = _revisione(fonti)
     atti = _riscontro(percorso, revisione)
     if atti is not None:

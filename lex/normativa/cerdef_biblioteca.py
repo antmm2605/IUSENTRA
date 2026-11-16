@@ -88,10 +88,6 @@ def alias_originali_storici():
     return aliases
 
 
-def originali_storici():
-    return _catalogue(STORICO_ORIGINALE_BASE), alias_originali_storici()
-
-
 def riscontro_vigente(numero_atti):
     with _linked_connection(VIGENTE_BASE) as connection:
         if connection is None:
@@ -104,11 +100,6 @@ def riscontro_vigente(numero_atti):
         return None
     return {"data": row[0], "atti_richiesti": row[1], "atti_esaminati": esaminate,
             "atti_con_testo_verificato": numero_atti}
-
-
-def vigente_catalogue():
-    items = _catalogue(VIGENTE_BASE)
-    return items, riscontro_vigente(len(items))
 
 
 def _catalogue(base, *, source=None):

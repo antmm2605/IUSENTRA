@@ -27,7 +27,7 @@ async function invia(url: string, corpo: Record<string, unknown>): Promise<Recor
 
 /** Pacchetto di versamento per il conservatore (CAD artt. 43-44; Linee guida AgID, Allegati 2 e 5) e registro degli esiti. */
 export default function ConservazionePanel({ fascicoloId }:{ fascicoloId: string }) {
-  const [dati, setDati] = useState<Dati>({ ok: true })
+  const [dati, setDati] = useState<Dati | null>(null)
   const [scelti, setScelti] = useState<Set<string>>(new Set())
   const [anni, setAnni] = useState('10')
   const [riservato, setRiservato] = useState(true)
@@ -40,12 +40,14 @@ export default function ConservazionePanel({ fascicoloId }:{ fascicoloId: string
   const carica = async () => {
     const risposta = await fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/conservazione`, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => null)
     const valori = risposta ? await risposta.json().catch(() => null) as Dati | null : null
-    if (valori) {
-      setDati(valori)
-      if (valori.anniPredefiniti) setAnni((a) => a || String(valori.anniPredefiniti))
-      const documenti = valori.documenti || []
-      setScelti(new Set(documenti.filter((d) => !d.versato).map((d) => d.id)))
+    if (!valori) {
+      setDati({ ok: false, message: 'Impossibile caricare i documenti da conservare.' })
+      return
     }
+    setDati(valori)
+    if (valori.anniPredefiniti) setAnni((a) => a || String(valori.anniPredefiniti))
+    const documenti = valori.documenti || []
+    setScelti(new Set(documenti.filter((d) => !d.versato).map((d) => d.id)))
   }
   const radice = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -57,7 +59,7 @@ export default function ConservazionePanel({ fascicoloId }:{ fascicoloId: string
     return () => sezione.removeEventListener('toggle', apri)
   }, [fascicoloId])
 
-  const documenti = dati.documenti || []
+  const documenti = dati?.documenti || []
   const nonIdonei = documenti.filter((d) => scelti.has(d.id) && !d.idoneo)
   const crea = async () => {
     setOccupato(true)
@@ -75,7 +77,13 @@ export default function ConservazionePanel({ fascicoloId }:{ fascicoloId: string
     if (r.ok) { setEsito(null); await carica() }
   }
 
-  if (!dati.ok) return <p className="iu-cons__msg" role="alert">{dati.message || 'Conservazione non disponibile.'}</p>
+  if (!dati) return <div className="iu-cons" ref={radice}><p className="iu-cons__nota" role="status">Caricamento dei documenti da conservare…</p></div>
+  if (!dati.ok) return (
+    <div className="iu-cons" ref={radice}>
+      <p className="iu-cons__msg" role="alert">{dati.message || 'Conservazione non disponibile.'}</p>
+      <button type="button" onClick={() => { setDati(null); void carica() }}>Riprova</button>
+    </div>
+  )
   return (
     <div className="iu-cons" ref={radice}>
       <p className="iu-cons__nota">IUSENTRA prepara il <strong>pacchetto di versamento</strong> con i documenti, l'impronta SHA-256 e le informazioni descrittive previste dall'Allegato 5 alle Linee guida AgID. La conservazione a norma (art. 44 CAD) la svolge il conservatore scelto dallo studio, che rilascia il rapporto di versamento.</p>

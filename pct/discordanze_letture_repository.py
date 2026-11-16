@@ -36,25 +36,42 @@ class RegistroDiscordanze:
         with self.registro.connection() as c:
             c.execute('INSERT INTO letture_verifiche_esiti (tenant_id,fascicolo_id,payload_json,revisione,aggiornato_il) VALUES (?,?,?,?,?) ON CONFLICT(tenant_id,fascicolo_id) DO UPDATE SET payload_json=excluded.payload_json,revisione=excluded.revisione,aggiornato_il=excluded.aggiornato_il',(tenant,fid,_json(payload),_revision(payload),now))
 
-    def fascicoli_da_verificare(self, tenant, *, prima_di, limite=4):
-        """Fascicoli letti dal motore documenti con verifiche dei presìdi mai eseguite o più vecchie di `prima_di`.
+    def firma_fonti(self, tenant, fid):
+        """La revisione delle fonti già lette, senza aprire file o ricalcolare fatti."""
+        with self.registro.connection() as conn:
+            rows = conn.execute(
+                "SELECT lettore, impronta FROM letture_fascicoli WHERE tenant_id=? AND fascicolo_id=? "
+                "AND lettore IN ('motore_documenti','motore_pec')",
+                (tenant, fid),
+            ).fetchall()
+        impronte = {row["lettore"]: row["impronta"] for row in rows}
+        return f"{impronte.get('motore_documenti', '') or ''}:{impronte.get('motore_pec', '') or ''}"
 
-        Esclusi quelli già in coda o in lettura: il turno li prende da sé. I mai verificati per primi,
-        poi i più vecchi: ogni giro aggiorna l'esito, quindi l'elenco ruota e nessun fascicolo resta fermo.
-        """
-        if not tenant:
+    def fascicoli_da_verificare(self, tenant, *, versione, retry_prima_di, limite=4):
+        """Prima verifica, fonte cambiata, nuove regole o esito interrotto."""
+        if not tenant or limite <= 0:
             return []
-        with self.registro.connection() as c:
-            rows = c.execute(
+        postgres = self.registro.backend_kind == "postgres"
+        firma = "(CAST(v.payload_json AS jsonb)->>'firma_fonti')" if postgres else "json_extract(v.payload_json,'$.firma_fonti')"
+        regole = "(CAST(v.payload_json AS jsonb)->>'versione_verifiche')" if postgres else "json_extract(v.payload_json,'$.versione_verifiche')"
+        fine = "(CAST(v.payload_json AS jsonb)->>'completata_il')" if postgres else "json_extract(v.payload_json,'$.completata_il')"
+        errori = "(CAST(v.payload_json AS jsonb)->>'errori')" if postgres else "json_extract(v.payload_json,'$.errori')"
+        with self.registro.connection() as conn:
+            rows = conn.execute(
                 "SELECT f.fascicolo_id FROM letture_fascicoli f "
+                "LEFT JOIN letture_fascicoli p ON p.tenant_id=f.tenant_id AND p.fascicolo_id=f.fascicolo_id "
+                "AND p.lettore='motore_pec' "
                 "LEFT JOIN letture_verifiche_esiti v ON v.tenant_id=f.tenant_id AND v.fascicolo_id=f.fascicolo_id "
-                "WHERE f.tenant_id=? AND f.lettore='motore_documenti' "
-                "AND (v.aggiornato_il IS NULL OR v.aggiornato_il<?) "
+                "WHERE f.tenant_id=? AND f.lettore='motore_documenti' AND f.stato='completa' "
+                f"AND (v.aggiornato_il IS NULL OR COALESCE({regole}, '')<>? "
+                f"OR COALESCE({firma}, '')<>COALESCE(f.impronta,'')||':'||COALESCE(p.impronta,'') "
+                f"OR ((COALESCE({fine},'')='' OR COALESCE({errori},'{{}}')<>'{{}}') AND v.aggiornato_il<?)) "
                 "AND NOT EXISTS (SELECT 1 FROM letture_eventi e WHERE e.tenant_id=f.tenant_id AND e.fascicolo_id=f.fascicolo_id "
                 "AND e.stato IN ('pending','running')) "
                 "ORDER BY COALESCE(v.aggiornato_il,''), f.aggiornato_il, f.fascicolo_id LIMIT ?",
-                (tenant, str(prima_di), max(1, int(limite)))).fetchall()
-        return [str(r['fascicolo_id']) for r in rows]
+                (tenant, versione, retry_prima_di, limite),
+            ).fetchall()
+        return [str(row["fascicolo_id"]) for row in rows]
 
     def riconcilia(self, tenant, fid, codice, voci):
         """Solo il verificatore completo può superare una discordanza non più presente."""

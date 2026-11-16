@@ -1672,31 +1672,26 @@ def accoda_riletture_notturne(registro: RegistroLetture, tenant_id: str, *, ora:
     return sum(bool(registro.accoda_evento(tenant_id, fid, solo_se_fermo=True)) for fid in da_aggiornare)
 
 
-# Verifiche dei presìdi più vecchie di un giorno: di notte il fascicolo torna in coda con i presìdi.
-ORE_VERIFICHE_PERIODICHE = 24
-
-
 def accoda_verifiche_periodiche(registro: RegistroLetture, tenant_id: str, *, ora: int | None = None,
-                                limite: int = RILETTURE_PER_GIRO) -> int:
-    """Nessun fascicolo resta fermo: di notte rientrano in coda, con verifiche dei presìdi e riconvalida,
-    i fascicoli mai verificati o verificati da più di un giorno, i più vecchi per primi.
-
-    Fino alla 2.477 le verifiche partivano solo dal pulsante «Aggiorna» della Lettura e la coda si
-    alimentava solo con documenti e PEC nuovi: un fascicolo senza novità restava fermo per settimane
-    (verifica del 03/11/2026: «Verifiche automatiche dei presìdi eseguite il 13/10/2026»).
-    Base: regola del registro delle letture (art. 3 D.M. 44/2011; art. 20 CAD).
-    """
+                               limite: int = RILETTURE_PER_GIRO) -> int:
+    """Recupera le verifiche che mancano o hanno una nuova revisione delle fonti."""
     from datetime import datetime, timedelta, timezone
 
-    from pct.ora_italiana import ROME_TZ
-
-    if not tenant_id or (datetime.now(ROME_TZ).hour if ora is None else ora) not in ORE_RILETTURA:
-        return 0
     from pct.discordanze_letture_repository import RegistroDiscordanze
+    from pct.ora_italiana import ROME_TZ
+    from web.services.esito_sentenze_recovery import accoda_liquidazioni_incomplete
+    from web.services.fascicolo_lettura_verifiche import ORE_MASSIME_IN_CORSO, VERSIONE_VERIFICHE
 
-    soglia = (datetime.now(timezone.utc) - timedelta(hours=ORE_VERIFICHE_PERIODICHE)).isoformat()
-    da_verificare = RegistroDiscordanze(registro).fascicoli_da_verificare(tenant_id, prima_di=soglia, limite=limite)
-    return sum(bool(registro.accoda_evento(tenant_id, fid, presidi=True, solo_se_fermo=True)) for fid in da_verificare)
+    if not tenant_id or limite <= 0 or (datetime.now(ROME_TZ).hour if ora is None else ora) not in ORE_RILETTURA:
+        return 0
+    soglia = (datetime.now(timezone.utc) - timedelta(hours=ORE_MASSIME_IN_CORSO)).isoformat()
+    riscontri = accoda_liquidazioni_incomplete(registro, tenant_id, prima_di=soglia, limite=limite)
+    da_verificare = RegistroDiscordanze(registro).fascicoli_da_verificare(
+        tenant_id, versione=VERSIONE_VERIFICHE, retry_prima_di=soglia, limite=limite-riscontri,
+    )
+    return riscontri + sum(
+        bool(registro.accoda_evento(tenant_id, fid, presidi=True, solo_se_fermo=True)) for fid in da_verificare
+    )
 
 
 def _prepara_lettura(fascicolo_id: str) -> bool:

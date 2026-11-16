@@ -9145,7 +9145,7 @@ def _activities(
     return out
 
 
-def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
+def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> list[dict[str, Any]]:
     """Scadenze del fascicolo: prima le prossime (dalla più vicina), poi le trascorse (dalla più recente).
 
     Verifica del 03/11/2026: il riquadro «Udienze e scadenze» del presidio prende la prima voce e mostrava
@@ -9154,6 +9154,10 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
     from web.services.pec_source_links import pec_audit_message_ids
 
     oggi = oggi_rome()
+    giorni_appuntamenti = {
+        _text(getattr(appuntamento, "id", "")): _parse_date(getattr(appuntamento, "data_ora", ""))
+        for appuntamento in appuntamenti
+    }
     out = []
     written: dict[tuple[str, str], list[tuple[str, dict, Any]]] = {}
     trascorse: set[int] = set()
@@ -9180,8 +9184,18 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
         )
         profile = _text(getattr(item, "deadline_profile_code", ""))
         if giorno and profile in {"NOTE_127_TER", "PEC_AUTO_PRESIDIO"} and _text(getattr(item, "hearing_mode", "")) == "note_scritte":
+            proiezione = out[-1]
+            if profile == "NOTE_127_TER" and proiezione["status"] == "APERTO":
+                collegato = _text(getattr(item, "id_appuntamento", ""))
+                if collegato and giorni_appuntamenti.get(collegato) == giorno:
+                    proiezione["replacesAppointmentId"] = collegato
+                operativo = _text(getattr(item, "operational_due_at", ""))
+                if operativo.startswith(giorno.isoformat() + "T"):
+                    ora_operativa = _time_label(operativo)
+                    if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", ora_operativa):
+                        proiezione["writtenHearingTime"] = ora_operativa
             sources = pec_audit_message_ids(item)
-            if len(sources) == 1 and out[-1]["status"] not in {"ANNULLATO", "ANNULLATA"}:
+            if len(sources) == 1 and proiezione["status"] not in {"ANNULLATO", "ANNULLATA"}:
                 written.setdefault((sources[0], giorno.isoformat()), []).append((profile, out[-1], item))
 
     # The hearing marker and the proposed term can describe the same court order.
@@ -9199,7 +9213,7 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
         marker["representedByDeadlineId"] = projected["id"]
         projected["replacesAppointmentId"] = appointment_id
         due_at = _text(getattr(term_item, "legal_due_at", "")) or _text(getattr(term_item, "operational_due_at", ""))
-        if due_at.startswith(projected["dateIso"][:10] + "T"):
+        if "writtenHearingTime" not in projected and due_at.startswith(projected["dateIso"][:10] + "T"):
             hearing_time = _time_label(due_at)
             if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", hearing_time):
                 projected["writtenHearingTime"] = hearing_time
@@ -10147,7 +10161,7 @@ def build_react_fascicolo_detail_payload(
         "activities": activities,
         "technicalEvents": technical_events,
         "agendaLoaded": load_deadlines or not include,
-        "deadlines": _deadlines(scadenze) if load_deadlines or not include else [],
+        "deadlines": _deadlines(scadenze, appuntamenti=apps) if load_deadlines or not include else [],
         "appointments": _appointments(apps) if load_deadlines or not include else [],
         "documentPresidio": document_presidio,
         "operationalPresidio": operational_presidio,

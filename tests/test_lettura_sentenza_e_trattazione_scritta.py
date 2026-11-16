@@ -60,3 +60,25 @@ def test_presidio_mostra_prima_le_scadenze_future_poi_le_trascorse(monkeypatch):
                                 ("V", "Vecchia", (OGGI - timedelta(days=60)).isoformat()),
                                 ("U", "Udienza", (OGGI + timedelta(days=30)).isoformat()))]
     assert [voce["id"] for voce in bridge._deadlines(scadenze)] == ["N", "U", "R", "V"]
+
+
+def test_agenda_riusa_la_scadenza_note_collegata_senza_copia_del_provvedimento(monkeypatch):
+    from web.services import react_fascicoli_bridge as bridge
+
+    monkeypatch.setattr(bridge, "oggi_rome", lambda: OGGI)
+    giorno = (OGGI + timedelta(days=20)).isoformat()
+    anticipata = (OGGI + timedelta(days=14)).isoformat()
+    appuntamenti = [SimpleNamespace(id="A", data_ora=f"{giorno}T14:00")]
+    scadenza = SimpleNamespace(
+        id="S", titolo="Deposito note", data_scadenza=giorno, stato="APERTO", tipo="DEPOSITO_MEMORIA",
+        priorita="CRITICA", perentorio=True, note="", deadline_profile_code="NOTE_127_TER",
+        hearing_mode="note_scritte", id_appuntamento="A", operational_due_at=f"{giorno}T14:00",
+    )
+    riga, = bridge._deadlines([scadenza], appuntamenti=appuntamenti)
+    assert riga["replacesAppointmentId"] == "A"
+    assert riga["writtenHearingTime"] == "14:00"
+
+    scadenza.data_scadenza = anticipata
+    riga, = bridge._deadlines([scadenza], appuntamenti=appuntamenti)
+    assert "replacesAppointmentId" not in riga
+    assert "writtenHearingTime" not in riga

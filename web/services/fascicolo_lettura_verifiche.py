@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 ROME_TZ = ZoneInfo("Europe/Rome")
 INTERVALLO_MINUTI = 15
+VERSIONE_VERIFICHE = "2026.11.16.presidi-v1"
 DOMINI_UFFICIALI = ("giustiziacert.it", "giustizia.it", "giustizia-amministrativa.it", "giustiziatributaria.gov.it")
 ATTORE = "lettura-fascicolo"
 
@@ -441,8 +442,12 @@ def esegui_verifiche(app: Any, fascicolo_id: str, *, paths: dict[str, Any] | Non
             ("documenti", lambda: verifica_documenti(fascicolo_id, tenant_slug)),
             ("archivio", lambda: verifica_archivio(fascicolo)),
         )
-        record["in_corso"] = True
-        scrivi_registro(fascicolo_id, record, paths=paths, config=app.config)
+        from pct.discordanze_letture_repository import RegistroDiscordanze
+        from web.services.registro_letture_runtime import registro_per_percorsi, tenant_corrente
+
+        registro = RegistroDiscordanze(registro_per_percorsi(paths))
+        record["firma_fonti"] = registro.firma_fonti(tenant_corrente(), fascicolo_id)
+        record["versione_verifiche"] = VERSIONE_VERIFICHE
         for nome, funzione in passi:
             try:
                 record["esiti"][nome] = funzione()

@@ -110,12 +110,16 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
       function rootIsEmpty() {
         return root && root.children.length === 0 && !root.textContent.trim();
       }
+      function startupIsPending() {
+        return rootIsEmpty() || (root && root.children.length === 1 &&
+          root.firstElementChild.hasAttribute("data-iu-attesa-avvio"));
+      }
       function entrySource() {
         if (!entry) return "";
         return entry.getAttribute("data-iusentra-react-entry") || entry.getAttribute("src") || entry.src || "";
       }
       function showStartupError(message) {
-        if (!rootIsEmpty()) return;
+        if (!startupIsPending()) return;
         var errorCount = state.errors && state.errors.length ? String(state.errors.length) : "0";
         var lastError = state.errors && state.errors.length ? String(state.errors[state.errors.length - 1] || "") : "";
         var safeLastError = lastError.replace(/[<>&"]/g, function(char) {
@@ -147,8 +151,12 @@ document.documentElement.dataset.iusentraEntryScript='loaded';
       }, 1200);
       window.setTimeout(function() {
         if (!rootIsEmpty()) return;
-        showStartupError("Il browser non ha completato l'avvio dell'interfaccia operativa. Il dato non viene modificato: ricarica la pagina o riapri il modulo dal menu.");
+        root.innerHTML = '<main class="iu-content" role="status" data-iu-attesa-avvio><p>Apertura di IUSENTRA in corso…</p></main>';
       }, 4500);
+      window.setTimeout(function() {
+        if (!startupIsPending()) return;
+        showStartupError("Il browser non ha completato l’avvio dell’interfaccia. Ricarica la pagina o riapri il modulo dal menu.");
+      }, 20000);
     })();
   </script>
   {% endif %}

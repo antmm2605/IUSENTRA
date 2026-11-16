@@ -916,11 +916,17 @@ def test_riusa_solo_le_ricevute_e_il_decreto_dello_stesso_invio():
 
 def test_messaggi_deposito_archiviati_non_sono_buste_accettate():
     documenti = [
-        _documento("EML1", "Deposito telematico: ricorso [RefID_1].eml"),
+        _documento("EML1", "Deposito telematico: ricorso RG: 00007646 - 2023 [RefID_1].eml", data="2023-07-05"),
         _documento("EML2", "Copia non crittografata deposito telematico: ricorso [RefID_1].eml"),
-        _documento("EML3", "Deposito telematico: note [RefID_2].eml"),
+        _documento("EML3", "Deposito telematico: note [RefID_2].eml", data="2024-01-03"),
     ]
-    lettura = costruisci_lettura(DatiLettura(fascicolo=_fascicolo(), documenti=documenti, oggi=OGGI))
-    assert [v["documento_id"] for v in lettura["depositi"]["messaggi_archiviati"]] == ["EML1", "EML3"]
+    fatti = [{"oggetto_id": "EML1", "campo": "deposito", "valore": "2023-06-19", "verifica": "verificata"}]
+    lettura = costruisci_lettura(DatiLettura(fascicolo=_fascicolo(), documenti=documenti,
+                                           archivio={"fonti_documenti": fatti}, oggi=OGGI))
+    messaggi = lettura["depositi"]["messaggi_archiviati"]
+    assert [(v["documento_id"], v["atto"], v["data"], v["rg"]) for v in messaggi] == [
+        ("EML1", "ricorso", "2023-07-05", "7646/2023"),
+        ("EML3", "note", "2024-01-03", ""),
+    ]
     assert not lettura["depositi"]["tutti"] and not lettura["depositi"]["perfezionati"]
     assert "Messaggi di deposito archiviati: 2" in componi(lettura)

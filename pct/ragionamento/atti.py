@@ -118,9 +118,13 @@ def _autore(natura: str, etichetta: str, testo: str, dello_studio: bool) -> str:
     return "studio" if dello_studio else "ignoto"
 
 
+_ENFASI_TESTO_ESTRATTO = re.compile(r"(?<![\w*])(\*{1,2})([^\s*](?:[^*\n]*[^\s*])?)\1(?![\w*])")
+
+
 def priorita_fonte_sentenza(atto: Atto) -> tuple[bool, bool]:
     """Una copia con estremi di pubblicazione è la fonte da cui esporre l'esito."""
-    from pct.termine_lungo_sentenza import data_pubblicazione, numero_sentenza
+    from pct.termine_lungo_sentenza import numero_sentenza
+    from .regole.sentenza import data_pubblicazione
 
     if not atto.sentenza or not atto.copie:
         return True, True
@@ -136,7 +140,7 @@ def _copie_della_sentenza(atti: list[Atto]) -> None:
         if not atto.sentenza or atto.appartenenza != "causa" or not atto.rg:
             continue
         decisione = data_decisione(atto.testo)
-        testo_decisione = semplice(dispositivo(atto.testo))
+        testo_decisione = semplice(_ENFASI_TESTO_ESTRATTO.sub(r"\2", dispositivo(atto.testo)))
         # Un dispositivo breve o senza data può appartenere a decisioni distinte dello stesso fascicolo.
         if decisione is None or len(testo_decisione.split()) < 30:
             continue

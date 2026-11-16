@@ -21,6 +21,7 @@ from typing import Any, Iterable
 
 UTILI = {"verificata", "corretta"}
 _RE_COPIA_DEPOSITO = re.compile(r"^\s*(?:copia\s+non\s+crittografata\s+)?deposito\s+telematico\s*:", re.I)
+_RUOLO_NELL_OGGETTO = re.compile(r"\bRG\s*:?\s*0*(\d{1,7})\s*[-/]\s*(\d{4})\b", re.I)
 _RE_RUOLO = re.compile(r"^\d{1,7}/\d{4}$")
 _RE_DEPOSITO_NEL_CONTESTO = re.compile(r"deposito\s+telematico", re.I)
 
@@ -46,8 +47,7 @@ def depositi_dalle_copie_pec(documenti: Iterable[dict[str, Any]], fonti: Iterabl
     """I depositi telematici inviati che risultano dalle copie dei messaggi di deposito conservate nel fascicolo.
 
     Una voce per messaggio di deposito (la copia «non crittografata» e la busta dello stesso invio sono lo stesso
-    deposito): atto depositato (dall'oggetto), data (dal fatto «deposito» letto nel messaggio o, in mancanza, dalla
-    data del documento), numero di ruolo indicato nell'oggetto. Stato: inviato, non accettato (manca la ricevuta).
+    deposito): atto depositato (dall'oggetto), data del messaggio conservato o, se assente, da un fatto «deposito» univoco e verificato, numero di ruolo indicato nell'oggetto. Stato: inviato, non accettato (manca la ricevuta).
     """
     fonti = list(fonti or ())
     esito: dict[str, dict[str, str]] = {}
@@ -56,18 +56,21 @@ def depositi_dalle_copie_pec(documenti: Iterable[dict[str, Any]], fonti: Iterabl
         if not _RE_COPIA_DEPOSITO.search(nome) and _testo(documento.get("etichetta")).lower() != "pec di deposito telematico":
             continue
         oggetto = _RE_COPIA_DEPOSITO.sub("", nome)
-        ruolo = re.search(r"\bRG\s*:?\s*(\d{1,7})\s*[-/]\s*(\d{4})", oggetto)
-        atto = _testo(re.sub(r"\[[^\]]*\]|\bRG\s*:?\s*\d{1,7}\s*[-/]\s*\d{4}|\.(?:eml|EML)$", "", oggetto)).strip(" -")
+        ruolo = _RUOLO_NELL_OGGETTO.search(oggetto)
+        atto = _testo(re.sub(r"\[[^\]]*\]|\.eml$", "", _RUOLO_NELL_OGGETTO.sub("", oggetto), flags=re.I)).strip(" -")
         identificativo = re.search(r"\[RefID_[^\]]+\]", nome)
         chiave = identificativo.group(0) if identificativo else atto
-        date = sorted(_testo(f.get("valore"))[:10] for f in fonti
-                      if f.get("oggetto_id") == documento.get("id") and f.get("campo") == "deposito" and _testo(f.get("valore")))
-        giorno = date[0] if date else _testo(documento.get("data"))[:10]
+        giorno = _testo(documento.get("data"))[:10]
+        if not giorno:
+            date = {_testo(f.get("valore"))[:10] for f in fonti
+                    if f.get("oggetto_id") == documento.get("id") and f.get("campo") == "deposito"
+                    and f.get("verifica") in UTILI and _testo(f.get("valore"))}
+            giorno = next(iter(date)) if len(date) == 1 else ""
         voce = esito.setdefault(chiave, {"atto": atto, "data": giorno, "rg": "", "documento_id": _testo(documento.get("id")), "stato": "inviato"})
         if ruolo:
             voce["rg"] = f"{int(ruolo.group(1))}/{ruolo.group(2)}"
-        if date and (not voce["data"] or date[0] < voce["data"]):
-            voce["data"] = date[0]
+        if giorno and not voce["data"]:
+            voce["data"] = giorno
     return sorted(esito.values(), key=lambda voce: voce["data"])
 
 

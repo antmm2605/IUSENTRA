@@ -715,7 +715,7 @@ def test_copie_della_sentenza_riconosciute_dal_dispositivo_e_dalla_data():
     a = Atto("A", "Sentenza", "sentenza", "sentenza", rg="1506/2025",
              sentenza=True, testo="Sentenza n. 605/2025 pubblicata il 10/11/2025. " + contenuto)
     b = Atto("B", "Copia", "sentenza", "sentenza", rg="1506/2025",
-             sentenza=True, testo="Sentenza del Tribunale. " + contenuto)
+             sentenza=True, testo="Sentenza del Tribunale. " + contenuto.replace("rifusione delle spese", "*rifusione delle spese*"))
     c = Atto("C", "Altro", "sentenza", "sentenza", rg="1506/2025",
              sentenza=True, testo="Sentenza n. 606/2025 pubblicata il 10/11/2025. " + contenuto)
     _copie_della_sentenza([a, b, c])

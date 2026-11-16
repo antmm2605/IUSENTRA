@@ -9230,6 +9230,13 @@ paths:
       - $ref: '#/components/parameters/PageSizeParam'
       - $ref: '#/components/parameters/SearchParam'
       - $ref: '#/components/parameters/StatusParam'
+      - name: X-Iusentra-Preparazione
+        in: header
+        required: false
+        schema:
+          type: string
+          enum: [sfondo]
+        description: Con una sessione attiva, accoda la preparazione del Quadro se l'esito manca o è superato.
       responses:
         '200':
           description: Payload operativo Fascicoli e documenti nel tenant corrente.
@@ -9237,6 +9244,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CaseFilesResponse'
+        '202':
+          description: Il calcolatore sta preparando il Quadro richiesto.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                example: 2
+            X-Iusentra-Pannello:
+              schema:
+                type: string
+                enum: [in-preparazione]
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [stato]
+                properties:
+                  stato:
+                    type: string
+                    enum: [in_preparazione]
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -9253,6 +9280,8 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/ServerError'
+        '503':
+          description: Il tentativo di preparazione non è riuscito e non è disponibile un Quadro precedente.
       x-priority: P0
       x-rbac-permission: sessione/API tenant-aware
       x-feature-flag: non applicabile o governato dalla route collegata

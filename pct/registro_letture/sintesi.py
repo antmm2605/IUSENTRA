@@ -89,6 +89,17 @@ def _riga(valori: dict[str, Any]) -> dict[str, Any]:
     return riga
 
 
+def sintesi_lettori_operativi(sintesi: dict[str, Any], lettori: list[dict[str, Any]]) -> dict[str, Any]:
+    """Espone nella scheda il conteggio della stessa lettura operativa del pannello."""
+    attivi = {
+        voce["lettore"]: {campo: voce.get(campo) for campo in (
+            "etichetta", "versione", "letti", "da_leggere", "errori", "ultima_lettura", "completa",
+        )}
+        for voce in lettori if voce.get("lettore")
+    }
+    return {**sintesi, "lettori": attivi, "da_leggere": sum(int(voce["da_leggere"] or 0) for voce in attivi.values())}
+
+
 def identita_cambiata(riga: dict[str, Any] | None, identita: dict[str, Any]) -> bool:
     """Vero se la riga manca o se un campo dell'identità è cambiato (stato, date, cliente, ufficio…)."""
     if not riga:
@@ -96,4 +107,4 @@ def identita_cambiata(riga: dict[str, Any] | None, identita: dict[str, Any]) -> 
     return any(str(riga.get(campo) or "") != str(identita.get(campo) or "") for campo in CAMPI_IDENTITA)
 
 
-__all__ = ["CAMPI_IDENTITA", "COLONNE_SINTESI", "SintesiMixin", "identita_cambiata"]
+__all__ = ["CAMPI_IDENTITA", "COLONNE_SINTESI", "SintesiMixin", "identita_cambiata", "sintesi_lettori_operativi"]

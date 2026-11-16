@@ -516,3 +516,33 @@ def test_topbar_react_traccia_recenti_sulle_rotte_profonde():
     assert "window.addEventListener('iusentra:recent-items-updated'" in recent_hook
     assert "/fascicoli/{fascicolo.id}/deposito/prepara#ricevute-deposito" in operational
     assert "Apri deposito" in operational
+
+
+def test_recent_tracking_and_timer_links_setup_a_targeted_case_reader(monkeypatch):
+    from flask import Flask
+
+    from web import helpers
+
+    app = Flask(__name__)
+    constructed = []
+    studio_db = object()
+    monkeypatch.setattr(helpers, "_cfg", lambda key: key)
+    monkeypatch.setattr(helpers, "_studio_db", lambda _key: studio_db)
+
+    def manager(**options):
+        constructed.append(options["carica_tutto"])
+        return object()
+
+    def read():
+        assert helpers.get_fascicoli() is helpers.get_fascicoli()
+        return "", 204
+
+    monkeypatch.setattr(helpers, "GestioneFascicoli", manager)
+    app.add_url_rule("/recent", "api_topbar.api_recent_track", read, methods=["POST"])
+    app.add_url_rule("/timer/links", "api_topbar.api_time_tracking_links", read)
+
+    with app.test_client() as client:
+        assert client.post("/recent").status_code == 204
+        assert client.get("/timer/links").status_code == 204
+
+    assert constructed == [False, False]

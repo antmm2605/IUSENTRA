@@ -43,9 +43,24 @@ def _indexed(path: Path) -> bool:
 
 
 
+def biblioteca_studio_path() -> Path | None:
+    configured = os.getenv("IUSENTRA_BIBLIOTECA_DIR")
+    if configured:
+        return Path(configured)
+    data_root = os.getenv("PCT_DATA_ROOT")
+    if data_root:
+        return Path(data_root) / "normativa" / "biblioteca-studio"
+    return None
+
+
 def library_path(general: Path) -> Path:
     configured = str(os.getenv("PCT_CODICI_LEGGI_DB", "") or "").strip()
-    return Path(configured) if configured else general.with_name("codici_leggi.sqlite")
+    if configured:
+        return Path(configured)
+    studio = biblioteca_studio_path()
+    if studio and (studio / "biblioteca-storica.sqlite").is_file():
+        return studio / "biblioteca-storica.sqlite"
+    return general.with_name("codici_leggi.sqlite")
 
 
 def consultation_path(general: Path | None = None) -> Path:

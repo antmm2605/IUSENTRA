@@ -8,13 +8,17 @@ from pct.mediazione_procedimenti import FONTI, MediazioneProcedimentiRepository,
 from web.services.mediazione_fascicolo import acquisisci_modulo, collega_organismo, organismo, organismi
 
 
-def register_mediazione_fascicolo_routes(app, *, get_fascicoli, cliente_accessibile, salva_documento_fascicolo, decrypt_doc):
+def register_mediazione_fascicolo_routes(
+    app, *, get_fascicoli, cliente_accessibile, salva_documento_fascicolo, decrypt_doc, get_fascicoli_lettura=None,
+):
+    leggi_fascicoli = get_fascicoli_lettura or get_fascicoli
+
     def context(id_fasc, write=False):
         user = getattr(g, "utente_corrente", None)
         can = getattr(user, "ha_permesso", lambda _: False)
         if not can("fascicoli.scrivi" if write else "fascicoli.leggi"):
             raise PermissionError("Modifica non consentita." if write else "Accesso al fascicolo non consentito.")
-        gf = get_fascicoli()
+        gf = get_fascicoli() if write else leggi_fascicoli()
         fasc = gf.get(id_fasc)
         if not fasc or (fasc.id_cliente and not cliente_accessibile(fasc.id_cliente)):
             raise PermissionError("Fascicolo non accessibile.")

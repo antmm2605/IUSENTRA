@@ -15532,12 +15532,15 @@ class PecAuditRepository:
         if term_proposals and self.scadenziario_db_path:
             try:
                 from pct.scadenziario import StatoTermine, TipoTermine
+                from pct.scadenziario_sql_writer import ScadenziarioConflict
 
                 manager = self._scadenziario_manager()
                 all_deadlines = list(manager.tutte(solo_aperte=False))
                 existing_notes = "\n".join(str(getattr(item, "note", "") or "") for item in all_deadlines)
+                markers = set(existing_notes.splitlines())
                 for item in term_proposals:
-                    if item.due_date < today_rome or item.marker(clean_id) in existing_notes:
+                    marker = item.marker(clean_id)
+                    if item.due_date < today_rome or marker in markers:
                         continue
                     term_title = clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180)
                     identity_line = _deadline_identity_line(
@@ -15563,45 +15566,53 @@ class PecAuditRepository:
                                 note="\n".join((same_note.rstrip(), duplicate_line)),
                             )
                         continue
-                    scadenza = manager.nuova(
-                        titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
-                        tipo=(
-                            TipoTermine(item.tipo_termine) if getattr(item, "tipo_termine", "")
-                            else TipoTermine.NOTIFICA if str(item.code).startswith("LAV_415_") else TipoTermine.IMPUGNAZIONE
-                        ),
-                        data_scadenza=item.due_date,
-                        id_fascicolo=fascicolo_id,
-                        descrizione=clean_text(
-                            f"{communication_summary(comm).capitalize()} comunicata via PEC il {received:%d/%m/%Y}. {item.note}",
-                            1600,
-                        ),
-                        data_decorrenza=item.dies_a_quo,
-                        note="\n".join(
-                            part
-                            for part in (
-                                item.marker(clean_id),
-                                f"Termine proposto: {item.summary()}",
-                                "Proposta in bozza: revisione professionale obbligatoria prima della conferma.",
-                                identity_line,
-                                (
-                                    f"{PEC_DEADLINE_POSSIBLE_DUPLICATE_PREFIX}:{getattr(possible_duplicate, 'id', '')} "
-                                    "Possibile doppione di una proposta gia' generata da un'altra PEC: verificare."
+                    try:
+                        scadenza = manager.nuova(
+                            titolo=clean_text(f"{item.title} - RG {rg}" if rg else item.title, 180),
+                            tipo=(
+                                TipoTermine(item.tipo_termine) if getattr(item, "tipo_termine", "")
+                                else TipoTermine.NOTIFICA if str(item.code).startswith("LAV_415_") else TipoTermine.IMPUGNAZIONE
+                            ),
+                            data_scadenza=item.due_date,
+                            id_fascicolo=fascicolo_id,
+                            descrizione=clean_text(
+                                f"{communication_summary(comm).capitalize()} comunicata via PEC il {received:%d/%m/%Y}. {item.note}",
+                                1600,
+                            ),
+                            data_decorrenza=item.dies_a_quo,
+                            note="\n".join(
+                                part
+                                for part in (
+                                    item.marker(clean_id),
+                                    f"Termine proposto: {item.summary()}",
+                                    "Proposta in bozza: revisione professionale obbligatoria prima della conferma.",
+                                    identity_line,
+                                    (
+                                        f"{PEC_DEADLINE_POSSIBLE_DUPLICATE_PREFIX}:{getattr(possible_duplicate, 'id', '')} "
+                                        "Possibile doppione di una proposta gia' generata da un'altra PEC: verificare."
+                                    )
+                                    if possible_duplicate is not None
+                                    else "",
                                 )
-                                if possible_duplicate is not None
-                                else "",
-                            )
-                            if part
-                        ),
-                        id_utente_responsabile=_deadline_responsible_actor(actor),
-                        perentorio=item.perentorio,
-                        stato=StatoTermine.BOZZA,
-                        deadline_profile_code=item.code,
-                        source_event_type="comunicazione_cancelleria",
-                        source_event_at=item.dies_a_quo,
-                        source_message_id=clean_id,
-                        # Orario operativo, modalità d'udienza e udienza collegata (note ex art. 127-ter c.p.c.).
-                        **dict(getattr(item, "campi_scadenza", None) or {}),
-                    )
+                                if part
+                            ),
+                            id_utente_responsabile=_deadline_responsible_actor(actor),
+                            perentorio=item.perentorio,
+                            stato=StatoTermine.BOZZA,
+                            id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"iusentra:scadenziario:proposta:{marker}")),
+                            deadline_profile_code=item.code,
+                            source_event_type="comunicazione_cancelleria",
+                            source_event_at=item.dies_a_quo,
+                            source_message_id=clean_id,
+                            # Orario operativo, modalità d'udienza e udienza collegata (note ex art. 127-ter c.p.c.).
+                            **dict(getattr(item, "campi_scadenza", None) or {}),
+                        )
+                    except ScadenziarioConflict:
+                        # La chiave già inserita da un worker concorrente tutela la stessa proposta.
+                        # Gli altri adempimenti della PEC sono elaborati separatamente.
+                        continue
+                    markers.add(marker)
+                    all_deadlines.append(scadenza)
                     proposed_deadlines.append(
                         {"deadline_id": str(getattr(scadenza, "id", "") or ""), "code": item.code, "due_date": item.due_date}
                     )

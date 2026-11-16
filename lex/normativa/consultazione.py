@@ -377,40 +377,63 @@ def _connect(db: Path):
 def catalogo(db: Path) -> list[dict]:
     with closing(_connect(db)) as conn:
         return [_catalogue_row(r) for r in conn.execute("""
+            WITH collezioni AS MATERIALIZED (
+                SELECT DISTINCT collection_name FROM normative_documents WHERE collection_name GLOB ?
+            )
             SELECT d.id, d.titolo AS title, d.collection_name AS collection, d.urn, d.redazione_id AS updated_at,
                    d.xml_entry, d.numero, d.data_atto, d.data_pubblicazione, COUNT(a.id) AS articles
-            FROM normative_documents d JOIN normative_articles a ON a.document_id=d.id
-            WHERE d.collection_name LIKE ? AND d.id = (
-                SELECT x.id FROM normative_documents x WHERE x.collection_name=d.collection_name
+            FROM collezioni c
+            JOIN normative_documents d ON d.id = (
+                SELECT x.id FROM normative_documents x WHERE x.collection_name=c.collection_name
                 ORDER BY x.redazione_id DESC, x.id DESC LIMIT 1
-            ) GROUP BY d.id ORDER BY d.titolo COLLATE NOCASE
-        """, (COLLECTION + '%',))]
+            )
+            JOIN normative_articles a ON a.document_id=d.id
+            GROUP BY d.id ORDER BY d.titolo COLLATE NOCASE
+        """, (COLLECTION + '*',))]
 
 
-def articoli(db: Path, *, act: int = 0, query: str = '', article: str = '', category: str = '', offset: int = 0, limit: int = 30, includi_archivio_generale: bool = False, materie: tuple[str, ...] = ()) -> dict:
+def _atto_di_consultazione(db: Path, atto: int) -> int:
+    """Riconduce il link di una vecchia edizione all'edizione pubblicata del suo atto."""
+    with closing(_connect(db)) as conn:
+        row = conn.execute('SELECT collection_name FROM normative_documents WHERE id=?', (atto,)).fetchone()
+        if not row or not str(row[0]).startswith(COLLECTION):
+            return atto
+        corrente = conn.execute("""
+            SELECT d.id FROM normative_documents d
+            WHERE d.collection_name=?
+            ORDER BY d.redazione_id DESC,d.id DESC LIMIT 1
+        """, (row[0],)).fetchone()
+        if corrente and corrente[0] != atto and conn.execute(
+            'SELECT 1 FROM normative_articles WHERE document_id=? LIMIT 1', (corrente[0],),
+        ).fetchone():
+            return int(corrente[0])
+    return atto
+
+
+def articoli(db: Path, *, act: int = 0, query: str = '', article: str = '', category: str = '', offset: int = 0, limit: int = 30, includi_archivio_generale: bool = False, materie: tuple[str, ...] = (), escludi_atti: tuple[int, ...] = ()) -> dict:
     """`materie`: limita la ricerca agli atti della biblioteca di quelle materie (pannello Normativa del fascicolo)."""
     offset = max(0, offset)
     limit = min(100, max(1, limit))
-    acts = catalogo(db)
-    # Saved links to an older imported edition still resolve to the same collection.
-    if act and not any(r['id'] == act for r in acts):
-        with closing(_connect(db)) as conn:
-            previous = conn.execute('SELECT collection_name FROM normative_documents WHERE id=?', (act,)).fetchone()
-        if previous and previous[0].startswith(COLLECTION):
-            key = previous[0][len(COLLECTION):]
-            act = next((r['id'] for r in acts if r['key'] == key), act)
-    ids = [r['id'] for r in acts if (not act or r['id'] == act) and (not category or r['category'] == category) and (not materie or r['materia'] in materie)]
     generale = includi_archivio_generale and not category and not materie and bool(query.strip() or article.strip() or act)
+    if act:
+        act = _atto_di_consultazione(db, act)
     if generale:
-        # Ricerca pubblica paginata: nessuna lista di centinaia di migliaia di
-        # documenti inviata al browser o enumerata nella richiesta.
+        # Il riferimento a un articolo non richiede l'inventario della biblioteca.
         where = ['a.document_id = ?'] if act else ['1=1']
         args = [act] if act else []
     else:
+        ids = [
+            r['id'] for r in catalogo(db)
+            if (not act or r['id'] == act) and (not category or r['category'] == category)
+            and (not materie or r['materia'] in materie)
+        ]
         if not ids:
             return {'items': [], 'total': 0}
         where = ['a.document_id IN (' + ','.join('?' for _ in ids) + ')']
         args = list(ids)
+    if escludi_atti:
+        where.append('a.document_id NOT IN (' + ','.join('?' for _ in escludi_atti) + ')')
+        args.extend(escludi_atti)
     if article.strip():
         from .biblioteca.identita import numero_articolo, espressione_numero_articolo_sql
         value = numero_articolo(article)

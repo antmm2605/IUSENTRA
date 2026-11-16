@@ -111,14 +111,13 @@ export function LetturaFascicoloPanel({
     }
   }, [fascicoloId, initialLettura, onReady])
 
-  // Il dettaglio ha già consegnato la Lettura corrente. Alla prima apertura
-  // si usa quel risultato, mentre una riapertura chiede lo stato aggiornato.
+  // Alla prima apertura si mostra subito il risultato salvato nel dettaglio.
+  // Se è in aggiornamento, la consultazione periodica segue l'esito del worker.
   useEffect(() => {
     if (!active) return
     if (primaApertura.current) {
       primaApertura.current = false
-      const precedente = letturaDalDettaglio.current
-      if (precedente && !precedente.aggiornamento_pendente && !precedente.verifiche?.in_corso) return
+      if (letturaDalDettaglio.current) return
     }
     void load()
   }, [active, load])

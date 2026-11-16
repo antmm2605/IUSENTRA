@@ -143,6 +143,8 @@ def proietta_riscontri(lettura: dict[str, Any] | None, sezione: str) -> dict[str
         "stato": "pronto", "versione": quadro["versione"], "impronta": quadro["impronta"],
         "conclusioni": conclusioni,
     }
+    if (lettura or {}).get("aggiornamento_pendente"):
+        risultato["aggiornamento_pendente"] = True
     if sezione == "regia":
         risultato["fase"] = quadro.get("fase") or {}
         risultato["dubbi"] = quadro.get("dubbi") or []
@@ -182,6 +184,11 @@ def proietta_obblighi_notifica(payload: dict[str, Any], riscontri: dict[str, Any
 
 
 def riscontri_processuali(fascicolo_id: str, sezione: str) -> dict[str, Any]:
+    if sezione == "notifiche":
+        # Durante il ricalcolo il Quadro e la Lettura conservano l'ultimo
+        # riscontro. Il pannello Notifiche applica lo stesso esito e lo espone
+        # come precedente, senza riproporre la notifica del medesimo atto.
+        return proietta_riscontri(lettura_consultiva(fascicolo_id), sezione)
     return proietta_riscontri(lettura_materializzata(fascicolo_id), sezione)
 
 

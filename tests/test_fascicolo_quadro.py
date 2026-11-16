@@ -281,6 +281,32 @@ def test_pannello_obblighi_proietta_lettura_senza_riproporre_la_notifica_storica
         assert risposta["obblighi"] == payload["obblighi"]
 
 
+
+def test_pannello_obblighi_riusa_riscontro_storico_con_lettura_in_aggiornamento(monkeypatch):
+    from web.services import riscontri_processuali_runtime as runtime
+
+    precedente = {"aggiornamento_pendente": True, "ragionamento": {
+        "versione": "v1", "impronta": "precedente", "conclusioni": [
+            {"codice": "notifica_sentenza", "stato": "non_dovuto",
+             "letto": {"documento_id": "S1"}}
+        ],
+    }}
+    monkeypatch.setattr(runtime, "lettura_materializzata", lambda _: None)
+    monkeypatch.setattr(runtime, "lettura_precedente", lambda _: precedente)
+    storica = {"regola": "sentenza_notifica_breve", "stato": "da_verificare", "documentoId": "S1"}
+    altra = {**storica, "documentoId": "S2"}
+    titolo = {**storica, "regola": "titolo_esecutivo"}
+    payload = {"ok": True, "obblighi": [storica, altra, titolo]}
+
+    riscontri = runtime.riscontri_processuali("F1", "notifiche")
+    risposta = runtime.proietta_obblighi_notifica(payload, riscontri)
+    assert risposta["obblighi"] == [altra, titolo]
+    assert risposta["riscontriProcessuali"]["aggiornamento_pendente"] is True
+    assert risposta["riscontriProcessuali"]["conclusioni"] == precedente["ragionamento"]["conclusioni"]
+    assert payload["obblighi"] == [storica, altra, titolo]
+    assert runtime.riscontri_processuali("F1", "economia") == {"stato": "da_preparare"}
+
+
 def test_sintesi_storica_riusa_l_identita_solo_dallo_stesso_risultato(monkeypatch):
     import json
     from types import SimpleNamespace

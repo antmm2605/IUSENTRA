@@ -31,7 +31,7 @@ from flask import current_app, g, has_app_context
 from pct.archivio_letture import VERSIONE_MOTORE_DOCUMENTI, VERSIONE_MOTORE_PEC, fatti_da_allegato, fatti_da_messaggio, leggi_testo, riassunto_archivio
 from pct.archivio_letture.ciclo import StatoCiclo, stato_ciclo
 from pct.archivio_letture.collaudo import Contesto, contesto_da_fascicolo
-from pct.registro_letture import Fatto, Oggetto, RegistroLetture
+from pct.registro_letture import Fatto, Lettura, Oggetto, RegistroLetture, StatoFascicolo
 from web.services.archivio_letture_tentativi import (
     OGGETTI_PER_GIRO,
     SECONDI_PER_TURNO,
@@ -1265,6 +1265,8 @@ def stato_archivio_payload(
     registro: RegistroLetture | None = None,
     fatti: Iterable[Fatto] | None = None,
     fatti_gia_canonici: bool = False,
+    stato: StatoFascicolo | None = None,
+    letture_salvate: list[Lettura] | None = None,
 ) -> dict[str, Any]:
     """Il riquadro dell'archivio nel pannello «Letture e verifiche».
 
@@ -1281,12 +1283,16 @@ def stato_archivio_payload(
     elenco_fatti = list(fatti) if fatti is not None else registro.fatti(tenant, fascicolo_id, verifiche=None)
     canonici = elenco_fatti if fatti_gia_canonici else fatti_canonici(elenco_fatti)
     riassunto = riassunto_archivio(canonici)
-    stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC))
+    if letture_salvate is None:
+        letture_salvate = registro.letture(tenant, fascicolo_id)
+    if stato is None:
+        stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=(LETTORE_DOCUMENTI, LETTORE_PEC),
+                                         letture_salvate=letture_salvate)
     lettori = {voce.lettore: voce for voce in stato.lettori}
     ultima = max([voce.ultima_lettura for voce in stato.lettori] + [""])
     da_leggere = sum(voce.da_leggere for voce in stato.lettori)
     errori = sum(voce.errori for voce in stato.lettori)
-    in_attesa = oggetti_in_attesa(stato, letture=registro.letture(tenant, fascicolo_id))
+    in_attesa = oggetti_in_attesa(stato, letture=letture_salvate)
     with _LOCK:
         in_corso = fascicolo_id in _IN_CORSO
     # Il processo web non possiede il lavoro eseguito dallo scheduler.

@@ -129,3 +129,33 @@ def test_mezzanotte_del_registro_non_si_scrive():
 
     assert date_italiane("termine per note il 10/12/2026 00:00, adempimenti") == "termine per note il 10/12/2026, adempimenti"
     assert date_italiane("udienza il 10/12/2026 09:30") == "udienza il 10/12/2026 09:30"
+
+def test_stessa_pec_le_copie_confluiscono_senza_assorbire_altri_adempimenti():
+    def proposta(id_, codice="NOTE_127_TER", **extra):
+        return SimpleNamespace(**{
+            **vars(_bozza(id_, "2026-12-16")),
+            "id_fascicolo": "DE674F4F", "source_message_id": PEC,
+            "deadline_profile_code": codice, "note": f"PEC_TERMINE_PROPOSTO:{PEC}:{codice}",
+            **extra,
+        })
+
+    copia = proposta("copia", id_appuntamento="APP1")
+    originale = proposta("originale", id_utente_responsabile="avvocato")
+    notifica = proposta("notifica", "LAV_415_NOTIFICA_TRENTA_GIORNI")
+    altro_fascicolo = proposta("distinto", id_fascicolo="ALTRO")
+    altro_orario = proposta("altro-orario", operational_due_at="2026-12-16T23:59:00")
+    scadenze = [copia, originale, notifica, altro_fascicolo, altro_orario]
+    assert {s.id for s in proposte_collegate(scadenze, RICEZIONE, id_impegno="APP1")} == {
+        "originale", "notifica", "distinto", "altro-orario",
+    }
+    assert proposte_aperte(copia, indice_proposte(scadenze)) == 4
+
+    copia.stato = "ANNULLATO"
+    copia.note += "\nPEC_PROPOSTA_DUPLICATA_DI:originale"
+    assert "originale" in {s.id for s in proposte_collegate(scadenze, RICEZIONE, id_impegno="APP1")}
+
+    originale.stato = "APERTO"
+    assert {s.id for s in proposte_collegate(scadenze, RICEZIONE, id_impegno="APP1")} == {
+        "notifica", "distinto", "altro-orario",
+    }
+    assert proposte_aperte(RICEZIONE, indice_proposte(scadenze), id_impegno="APP1") == 3

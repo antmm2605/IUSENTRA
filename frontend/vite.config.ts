@@ -91,6 +91,10 @@ export default defineConfig({
           if (normalizedId.includes('/node_modules/lucide-react/')) {
             return 'vendor-icons'
           }
+          if (normalizedId.endsWith('/src/components/fascicoli/LetturaFascicoloPanel.tsx')) {
+            // Dipendenza statica della pagina: Vite la precarica con il fascicolo.
+            return 'lettura-fascicolo'
+          }
           return undefined
         },
       },

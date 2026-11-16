@@ -37,7 +37,7 @@ test('riassunto: tutto letto, da leggere per lettore, nessun oggetto', () => {
 test('novità dall\'ultima apertura: prima vista silenziosa, poi conteggi in italiano', () => {
   assert.equal(fraseNovita({ prima_vista: true, visto_il: '', visto_il_it: '', nuovi: [], cambiati: [], rimossi: [] }), '')
   const frase = fraseNovita({ prima_vista: false, visto_il: '2026-09-15T10:00:00Z', visto_il_it: '15/09/2026 12:00', nuovi: [oggetto(), oggetto({ tipo: 'pec', oggetto_id: 'm1' })], cambiati: [oggetto({ oggetto_id: 'd2' })], rimossi: [{ tipo: 'documento', oggetto_id: 'd9' }] })
-  assert.equal(frase, "Dall'ultima apertura (15/09/2026 12:00): nuovi 1 documento e 1 PEC · cambiato 1 documento · 1 rimosso.")
+  assert.equal(frase, "Dall’ultimo inventario consultato (15/09/2026 12:00): nuovi 1 documento e 1 PEC · cambiato 1 documento · 1 rimosso.")
   assert.match(fraseNovita({ prima_vista: false, visto_il: '', visto_il_it: '', nuovi: [], cambiati: [], rimossi: [] }), /Nessuna novità/)
 })
 

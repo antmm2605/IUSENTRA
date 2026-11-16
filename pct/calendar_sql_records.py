@@ -36,6 +36,24 @@ def appointment_from_row(row):
     return value
 
 
+def appointment_candidates_for_case(database, fascicolo_id):
+    """Legge le voci collegate e quelle storiche con collegamento implicito."""
+    query = "SELECT * FROM appuntamenti"
+    params = ()
+    if getattr(database, "backend_kind", "") != "postgresql":
+        # Le voci senza identificativo vanno ancora confrontate con RG e
+        # provenienza. Passano anche i documenti JSON anomali per mantenere
+        # lo stesso errore esplicito della lettura del repository nativo.
+        query += """
+            WHERE CASE WHEN json_valid(dati_json)
+                THEN COALESCE(NULLIF(TRIM(CAST(json_extract(dati_json, '$.id_fascicolo') AS TEXT)), ''), ?) = ?
+                ELSE 1 END
+        """
+        params = (str(fascicolo_id), str(fascicolo_id))
+    return sorted((appointment_from_row(row) for row in database.fetchall_readonly(query, params)),
+                  key=lambda appointment: appointment.data_ora_utc)
+
+
 def deadline_from_row(row):
     from pct.scadenziario import Scadenza
 
@@ -49,3 +67,14 @@ def deadline_from_row(row):
     if value.id != str(payload['id']):
         raise ValueError('Identità della scadenza SQL discordante.')
     return value
+
+def deadlines_for_case(database, fascicolo_id):
+    """Legge le scadenze collegate dal registro SQL autorevole."""
+    rows = database.fetchall_readonly(
+        "SELECT * FROM scadenze WHERE id_fascicolo=? ORDER BY data_scadenza, id",
+        (str(fascicolo_id),),
+    )
+    deadlines = [deadline_from_row(row) for row in rows]
+    for deadline in deadlines:
+        deadline.aggiorna_priorita()
+    return deadlines

@@ -23,11 +23,12 @@ type ConclusioneProcessuale = {
 export type RiscontriProcessualiData = {
   stato: 'da_preparare' | 'pronto'
   impronta?: string
+  aggiornamento_pendente?: boolean
   conclusioni?: ConclusioneProcessuale[]
 }
 
 export default function RiscontriProcessuali({ dati, fascicoloId }: {
-  dati?: Pick<RiscontriProcessualiData, "conclusioni">
+  dati?: Pick<RiscontriProcessualiData, "conclusioni" | "aggiornamento_pendente">
   fascicoloId?: string
 }) {
   const [fonte, setFonte] = useState<(SourceDocument & { fascicoloId: string }) | null>(null)
@@ -36,6 +37,7 @@ export default function RiscontriProcessuali({ dati, fascicoloId }: {
     <section className="iu-fas-riscontri" aria-label="Riscontri del fascicolo">
       <SourceDocumentModal source={fonte?.fascicoloId === fascicoloId ? fonte : null} onClose={() => setFonte(null)}/>
       <h5>Riscontri del fascicolo</h5>
+      {dati.aggiornamento_pendente && <p role="status">Ultimo riscontro salvato. Aggiornamento in corso.</p>}
       {dati.conclusioni.map((voce, indice) => (
         <details key={voce.codice + '-' + indice}>
           <summary>{[voce.cosa, voce.termine?.scadenza, voce.stato_etichetta].filter(Boolean).join(' · ')}</summary>

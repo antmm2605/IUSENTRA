@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CdFy2atv.js";export{e as ImpostazioniPage};

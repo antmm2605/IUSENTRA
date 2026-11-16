@@ -168,3 +168,32 @@ test('without pacing live updates keep the previous timing', async t => {
   assert.deepEqual(intents, [true, true])
   queue.dispose()
 })
+
+test('hidden fascicolo views coalesce live revisions and refresh when visible', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const document = Object.assign(new EventTarget(), { visibilityState: 'hidden' })
+  const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: document })
+  const intents = []
+  const queue = createOperationalRefreshQueue(intent => { intents.push(intent) }, () => {}, { pauseWhenHidden: true })
+  t.after(() => {
+    queue.dispose()
+    if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument)
+    else delete globalThis.document
+  })
+
+  queue.schedule()
+  t.mock.timers.tick(120); await flush()
+  assert.deepEqual(intents.map(intent => intent.live), [false])
+
+  const revisionContext = 'a'.repeat(64)
+  queue.schedule({ live: true, revisions: { fascicoli: 5 }, revisionContext })
+  queue.schedule({ live: true, revisions: { fascicoli: 5 }, revisionContext })
+  t.mock.timers.tick(120); await flush()
+  assert.equal(intents.length, 1)
+
+  document.visibilityState = 'visible'
+  document.dispatchEvent(new Event('visibilitychange'))
+  t.mock.timers.tick(120); await flush()
+  assert.deepEqual(intents[1], { live: true, revisions: { fascicoli: 5 }, revisionContext })
+})

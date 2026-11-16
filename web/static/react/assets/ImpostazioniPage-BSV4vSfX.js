@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-JvcG2zvR.js";export{e as ImpostazioniPage};

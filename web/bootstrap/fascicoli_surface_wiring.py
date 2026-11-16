@@ -30,6 +30,7 @@ def register_fascicoli_surfaces(
     register_mediazione_fascicolo_routes(
         app,
         get_fascicoli=core["get_fascicoli"],
+        get_fascicoli_lettura=core.get("get_fascicoli_mirato"),
         cliente_accessibile=core["cliente_accessibile"],
         salva_documento_fascicolo=fascicoli["salva_documento_fascicolo"],
         decrypt_doc=fascicoli["decrypt_doc"],

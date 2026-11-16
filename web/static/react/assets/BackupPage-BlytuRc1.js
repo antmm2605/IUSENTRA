@@ -1,0 +1,1 @@
+import{rn as e}from"./lettura-fascicolo-BfEZWolS.js";import{t}from"./ImpostazioniPage-CdFy2atv.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as BackupPage};

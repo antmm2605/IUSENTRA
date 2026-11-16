@@ -163,6 +163,11 @@ def richiedi_pannello_consultivo(fascicolo_id: str, nome: str) -> bool:
     impronta = impronta_attuale(contesto, fascicolo_id)
     if impronta is None:
         return False
+    tenant = str(getattr(g, "tenant_context_slug", "") or "single-studio")
+    return _accoda_pannello_consultivo(contesto, tenant, fascicolo_id, nome, impronta)
+
+
+def _accoda_pannello_consultivo(contesto: Contesto, tenant: str, fascicolo_id: str, nome: str, impronta: str) -> bool:
     from web.services.pannelli_pronti_catalogo import PANNELLI
 
     pannello = next(p for p in PANNELLI if p.nome == nome)
@@ -179,13 +184,14 @@ def richiedi_pannello_consultivo(fascicolo_id: str, nome: str) -> bool:
             )
         from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
 
-        sveglia_calcolatore(str(getattr(g, "tenant_context_slug", "") or "single-studio"), fascicolo_id)
+        sveglia_calcolatore(tenant, fascicolo_id)
     except (OSError, sqlite3.Error):
         logger.debug("Preparazione del pannello %s rinviata per %s", nome, fascicolo_id, exc_info=True)
     return True
 
 
-def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_precedente: bool = False) -> bytes:
+def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_precedente: bool = False,
+               accoda_lettura: bool = True) -> bytes:
     if not pannello.ricomponi:
         return corpo
     if pannello.ricomponi == "quadro_da_lettura":
@@ -228,7 +234,10 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
                 righe.pop("economia", None)
         dati.pop("lettura_mancante", None)
         dati["lettura_precedente"] = bool((lettura or {}).get("aggiornamento_pendente"))
-        dati["lettura_in_preparazione"] = (lettura is None or dati["lettura_precedente"]) and richiedi_lettura_dal_quadro(fascicolo_id)
+        lettura_da_aggiornare = lettura is None or dati["lettura_precedente"]
+        dati["lettura_in_preparazione"] = lettura_da_aggiornare and (
+            richiedi_lettura_dal_quadro(fascicolo_id) if accoda_lettura else quadro_precedente
+        )
         dati["esito_dispositivo"] = esito_dispositivo_da_lettura(lettura)
         dati["righe"] = list(righe.values())
         return json.dumps(dati, ensure_ascii=False).encode("utf-8")
@@ -337,15 +346,21 @@ def _in_preparazione():
     return risposta
 
 
-def _lettura_consultiva_salvata(pannello: Pannello, voce: Voce | None):
-    if pannello.ricomponi != "stato_presidi_lettura" or voce is None or not voce.corpo:
+def _risposta_consultiva_salvata(pannello: Pannello, voce: Voce | None, fascicolo_id: str, *,
+                                 accoda_lettura: bool = True):
+    if voce is None or not voce.corpo:
         return None
     corpo = bytes(voce.corpo)
     if not pannello.memorizzabile(corpo):
         return None
-    ultimo = json.loads(corpo)
-    ultimo["lettura"]["aggiornamento_pendente"] = True
-    return _risposta_salvata(200, "application/json", json.dumps(ultimo, ensure_ascii=False).encode("utf-8"), "precedente")
+    if pannello.ricomponi == "quadro_da_lettura":
+        corpo = _ricomponi(pannello, corpo, fascicolo_id, quadro_precedente=True, accoda_lettura=accoda_lettura)
+        return _risposta_salvata(200, "application/json", corpo, "precedente")
+    if pannello.ricomponi == "stato_presidi_lettura":
+        ultimo = json.loads(corpo)
+        ultimo["lettura"]["aggiornamento_pendente"] = True
+        return _risposta_salvata(200, "application/json", json.dumps(ultimo, ensure_ascii=False).encode("utf-8"), "precedente")
+    return None
 
 
 def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: dict):
@@ -379,7 +394,6 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
     if impronta is None:
         return vista(*args, **kwargs)
     differibile = (bool(contesto.sessione) and pannello.nome in _PANNELLI_IN_SFONDO
-                   and pannello.ricomponi != "quadro_da_lettura"
                    and request.headers.get(_INTESTAZIONE_ASINCRONA) == "sfondo")
     if not ricalcolo:
         voce = None
@@ -395,23 +409,6 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
             soglia = (datetime.now(UTC) - timedelta(seconds=SECONDI_TRA_RICHIESTE)).isoformat(timespec="milliseconds")
             recente = bool(voce and voce.richiesto_il >= soglia)
             tentata = bool(voce and voce.tentata == impronta)
-            if (not valida and not tentata and contesto.sessione and voce and voce.corpo
-                    and pannello.ricomponi == "quadro_da_lettura"
-                    and request.headers.get(_INTESTAZIONE_ASINCRONA) == "sfondo"):
-                if not recente or voce.richiesto_il <= max(voce.calcolato_il, voce.servito_il):
-                    try:
-                        contesto.archivio.registra_richiesta(
-                            chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=pannello.nome,
-                            percorso=percorso, profilo=contesto.profilo, sessione=contesto.sessione,
-                            servito=False, differibile=False,
-                        )
-                    except sqlite3.OperationalError:
-                        logger.debug("Aggiornamento del Quadro da riaccodare per %s", fascicolo_id)
-                from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
-
-                sveglia_calcolatore(str(g.get("tenant_context_slug") or "single-studio"), fascicolo_id)
-                corpo = _ricomponi(pannello, bytes(voce.corpo), fascicolo_id, quadro_precedente=True)
-                return _risposta_salvata(200, "application/json", corpo, "precedente")
             if not valida and differibile and pannello.ricomponi == "stato_presidi_lettura":
                 from web.blueprints.api_v1_react import lettura_preparata
 
@@ -419,8 +416,8 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                 if preparata is not None:
                     corpo = _ricomponi(pannello, preparata, fascicolo_id)
                     return _risposta_salvata(200, "application/json", corpo, "pronto")
-            lettura_da_accodare = (
-                not valida and not tentata and pannello.ricomponi == "stato_presidi_lettura"
+            fonte_da_accodare = (
+                not valida and not tentata and pannello.ricomponi in {"stato_presidi_lettura", "quadro_da_lettura"}
                 and voce is not None and voce.richiesto_il <= max(voce.calcolato_il, voce.servito_il)
             )
             if valida:
@@ -443,7 +440,38 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
 
                     risposta.call_on_close(registra_consultazione)
                 return risposta
-            if not recente or lettura_da_accodare or not differibile:
+            if differibile and pannello.ricomponi == "quadro_da_lettura":
+                precedente = _risposta_consultiva_salvata(pannello, voce, fascicolo_id, accoda_lettura=False)
+                if precedente is not None:
+                    tenant = str(getattr(g, "tenant_context_slug", "") or "single-studio")
+                    prepara_quadro = not recente or fonte_da_accodare
+                    prepara_lettura = precedente.get_json()["lettura_in_preparazione"]
+                    if prepara_quadro or prepara_lettura:
+                        # Il commit di una scrittura può attendere il disco
+                        # anche quando il risultato è già disponibile.
+                        def accoda_dopo_consegna():
+                            if prepara_quadro:
+                                try:
+                                    contesto.archivio.registra_richiesta(
+                                        chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=pannello.nome,
+                                        percorso=percorso, profilo=contesto.profilo, sessione=contesto.sessione,
+                                        servito=False, ritenta=tentata, differibile=True,
+                                    )
+                                except (OSError, sqlite3.Error):
+                                    logger.debug("Richiesta Quadro rinviata per %s", fascicolo_id, exc_info=True)
+                            if prepara_lettura:
+                                _accoda_pannello_consultivo(contesto, tenant, fascicolo_id, "lettura", impronta)
+                            else:
+                                from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
+
+                                try:
+                                    sveglia_calcolatore(tenant, fascicolo_id)
+                                except OSError:
+                                    logger.warning("Avvio immediato del calcolatore non riuscito", exc_info=True)
+
+                        precedente.call_on_close(accoda_dopo_consegna)
+                    return precedente
+            if not recente or fonte_da_accodare or not differibile:
                 try:
                     contesto.archivio.registra_richiesta(
                         chiave_voce=chiave, fascicolo_id=fascicolo_id, pannello=pannello.nome,
@@ -454,7 +482,7 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                     if differibile:
                         raise
                     logger.debug("Richiesta pannello %s non registrata per %s: %s", pannello.nome, fascicolo_id, exc)
-            if differibile and not valida and tentata and recente:
+            if differibile and tentata and recente:
                 return _risposta_salvata(503, "application/json",
                                         b'{"ok":false,"message":"Preparazione del pannello non riuscita. Riprova tra poco."}', "errore")
             if differibile:
@@ -464,11 +492,11 @@ def servi(pannello: Pannello, vista: Callable[..., Any], args: tuple, kwargs: di
                     sveglia_calcolatore(str(getattr(g, "tenant_context_slug", "") or "single-studio"), fascicolo_id)
                 except OSError:
                     logger.warning("Avvio immediato del calcolatore non riuscito", exc_info=True)
-                return _lettura_consultiva_salvata(pannello, voce) or _in_preparazione()
+                return _risposta_consultiva_salvata(pannello, voce, fascicolo_id) or _in_preparazione()
         except sqlite3.OperationalError as exc:
             logger.warning("Archivio pannelli non disponibile per %s: %s", fascicolo_id, exc)
             if differibile:
-                return _lettura_consultiva_salvata(pannello, voce) or _in_preparazione()
+                return _risposta_consultiva_salvata(pannello, voce, fascicolo_id) or _in_preparazione()
             return vista(*args, **kwargs)
         except Exception as exc:
             logger.warning("Pannelli pronti non consultabili per %s: %s", fascicolo_id, exc)

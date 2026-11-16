@@ -273,8 +273,31 @@ def normativa_atti():
         return denied
     from lex.normativa.consultazione import catalogo
     try:
-        from lex.normativa.cerdef_biblioteca import linked_catalogue
-        return jsonify(ok=True, items=catalogo(_normativa_db()) + linked_catalogue())
+        from lex.normativa.cerdef_biblioteca import (
+            ID_BASE, STORICO_ORIGINALE_BASE, VIGENTE_BASE, alias_originali_storici, fonti_catalogo, riscontro_vigente,
+        )
+        from lex.normativa.cerdef_catalogo_salvato import catalogo_cerdef_salvato
+
+        vista = request.args.get("vista")
+        data_dir = current_app.config["DATA_DIR"]
+        if vista == "vigenti":
+            if fonti_catalogo(VIGENTE_BASE) is None:
+                return jsonify(ok=False, message="L’archivio con riscontri di vigenza non è configurato."), 503
+            atti = catalogo_cerdef_salvato(data_dir, (VIGENTE_BASE,))
+            if atti is not None:
+                return jsonify(ok=True, items=atti, riscontro=riscontro_vigente(len(atti)))
+        else:
+            basi = (ID_BASE, 2 * ID_BASE)
+            if vista == "storico":
+                basi += (STORICO_ORIGINALE_BASE,)
+            collegati = catalogo_cerdef_salvato(data_dir, basi)
+            if collegati is not None:
+                atti = catalogo(_normativa_db()) + collegati
+                if vista == "storico":
+                    sostituzioni = alias_originali_storici()
+                    atti = [atto for atto in atti if atto["id"] not in sostituzioni]
+                return jsonify(ok=True, items=atti)
+        return jsonify(ok=False, message="Il catalogo delle fonti si sta aggiornando."), 503, {"Retry-After": "5"}
     except (FileNotFoundError, OSError, sqlite3.Error):
         return jsonify(ok=False, message="L'archivio dei codici e delle leggi non è ancora disponibile."), 503
 
@@ -290,6 +313,21 @@ def normativa_articoli():
         act = int(request.args.get("act") or 0)
         offset = max(0, int(request.args.get("offset") or 0))
         from lex.normativa.cerdef_biblioteca import is_linked, linked_articles
+        if request.args.get("vista") == "vigenti":
+            result = linked_articles(act, query=request.args.get("q", ""),
+                                     article=request.args.get("article", ""), offset=offset, vigente=True,
+                                     category=request.args.get("category", ""))
+            return jsonify(ok=True, **result)
+        if request.args.get("vista") == "storico" and not act:
+            from lex.normativa.cerdef_biblioteca import ricerca_storica
+            result = ricerca_storica(_normativa_db(), query=request.args.get("q", ""),
+                                      article=request.args.get("article", ""), category=request.args.get("category", ""),
+                                      offset=offset)
+            return jsonify(ok=True, **result)
+        if act and request.args.get("vista") == "storico":
+            from lex.normativa.cerdef_biblioteca import alias_originali_storici
+            sostituzioni = alias_originali_storici()
+            act = sostituzioni.get(act, act)
         if is_linked(act):
             result = linked_articles(act, query=request.args.get("q", ""), article=request.args.get("article", ""), offset=offset)
             return jsonify(ok=True, **result)

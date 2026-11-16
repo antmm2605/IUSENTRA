@@ -774,10 +774,11 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
             else:
                 self._inserisci(conn, "letture_fascicoli", {"id": _nuovo_id("lf"), "tenant_id": tenant, "fascicolo_id": fascicolo, "lettore": lettore, **valori})
 
-    def stato_fascicolo(self, tenant_id: str, fascicolo_id: str, *, lettori: Iterable[str] | None = None) -> StatoFascicolo:
+    def stato_fascicolo(self, tenant_id: str, fascicolo_id: str, *, lettori: Iterable[str] | None = None,
+                        letture_salvate: Iterable[Lettura] | None = None) -> StatoFascicolo:
         tenant, fascicolo = _testo(tenant_id), _testo(fascicolo_id)
         oggetti = self.oggetti(tenant, fascicolo)
-        letture = self.letture(tenant, fascicolo)
+        letture = self.letture(tenant, fascicolo) if letture_salvate is None else letture_salvate
         per_chiave: dict[tuple[str, str, str, str], Lettura] = {(lettura.tipo, lettura.oggetto_id, lettura.sha256, lettura.lettore): lettura for lettura in letture}
         elenco_lettori = [_lettore(nome) for nome in (lettori if lettori is not None else LETTORI)]
         stati: list[StatoLettore] = []
@@ -1291,7 +1292,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
     # ---- viste dell'avvocato ---------------------------------------------------
 
     def novita_e_segna_visto(self, tenant_id: str, fascicolo_id: str, utente_id: str, *, segna: bool = True) -> dict[str, Any]:
-        """Che cosa è nuovo o cambiato dall'ultima apertura di questo utente; poi registra la vista."""
+        """Confronta l'inventario con l'ultima versione consultata da questo utente."""
         tenant, fascicolo, utente = _testo(tenant_id), _testo(fascicolo_id), _testo(utente_id)
         oggetti = self.oggetti(tenant, fascicolo)
         righe = self._seleziona("letture_viste", "tenant_id = ? AND fascicolo_id = ? AND utente_id = ?", (tenant, fascicolo, utente))
@@ -1305,7 +1306,7 @@ class RegistroLetture(FattiMixin, ConsegneMixin, SintesiMixin):
         presenti = {(o.tipo, o.oggetto_id) for o in oggetti}
         rimossi = [{"tipo": tipo, "oggetto_id": oggetto_id} for (tipo, oggetto_id) in visti if (tipo, oggetto_id) not in presenti]
         prima_vista = not precedente
-        if segna:
+        if segna and (prima_vista or nuovi or cambiati or rimossi):
             inventario = [{"tipo": o.tipo, "oggetto_id": o.oggetto_id, "impronta": o.impronta} for o in oggetti]
             valori = {"impronta": impronta_inventario(oggetti), "inventario_json": _json(inventario), "visto_il": _adesso()}
             with self.connection() as conn:

@@ -189,6 +189,7 @@ import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import { ContoEconomicoPanel } from './fascicoli/ContoEconomicoPanel'
 import { ContoEconomicoPulsante } from './fascicoli/ContoEconomicoPulsante'
 import { FascicoloNormativaButton } from '../features/fascicoli/normativa/FascicoloNormativaButton'
+import { LetturaFascicoloPanel } from './fascicoli/LetturaFascicoloPanel'
 import type { LetturaFascicolo } from './fascicoli/letturaFascicolo'
 import { DocumentListToolbar, type DocumentSectionOption } from './fascicoloDocumenti/DocumentListToolbar'
 import { useDocumentListControls, type DocumentListEntry } from './fascicoloDocumenti/useDocumentListControls'
@@ -217,8 +218,6 @@ import { usePresenzaCtuMediazione } from './fascicoli/usePresenzaCtuMediazione'
 import './FascicoliPage.css'
 
 const FascicoloDepositoPage = lazy(() => import('./FascicoloDepositoPage').then((module) => ({ default: module.FascicoloDepositoPage })))
-const LetturaFascicoloPanel = lazy(() => import('./fascicoli/LetturaFascicoloPanel')
-  .then((modulo) => ({ default: modulo.LetturaFascicoloPanel })))
 const CollaboratoriFascicoloPanel = lazy(() => import('./fascicoli/CollaboratoriFascicoloPanel').then((module) => ({ default: module.CollaboratoriFascicoloPanel })))
 const OfficeDocumentsPanel = lazy(() => import('./OfficeDocumentsPanel').then((module) => ({ default: module.OfficeDocumentsPanel })))
 const MediazioneFascicolo = lazy(() => import('./mediazione/MediazioneFascicolo'))
@@ -9910,6 +9909,7 @@ function DetailPage({ id }:{id:string}) {
   const presenzaCtuMediazione = usePresenzaCtuMediazione(!loading && data.fascicolo.id === id && quadro.lettura.fase !== 'caricamento' ? id : '')
   const requestedRefreshSections = useRef(new Set<FascicoloDetailSection>())
   const requestedDetailRefresh = useRef(false)
+  const initialDetailRequest = useRef<{ id: string; settled: Promise<void> } | null>(null)
   const confirmedDetailView = useRef<{ revisions?: OperationalRevisions; context?: string; sections: FascicoloDetailSection[] }>({ sections: [] })
   // Sezioni già arrivate con la loro chiamata: il dettaglio iniziale, se arriva dopo, non le sovrascrive.
   const lazyLoadedSections = useRef(new Set<FascicoloDetailSection>())
@@ -9930,7 +9930,7 @@ function DetailPage({ id }:{id:string}) {
     setLoading(true)
     setLazyStatus({ ...emptyLazySections })
     for (const section of initialIncludes) loadLazySection(section)
-    getFascicoloDetail(id, { confirmRevision: true }).then((payload) => {
+    const settled: Promise<void> = getFascicoloDetail(id, { confirmRevision: true }).then((payload) => {
       if (active) {
         setData((current) => conservaSezioniCaricate(payload, current, lazyLoadedSections.current))
         if (payload.readRevision) {
@@ -9941,7 +9941,11 @@ function DetailPage({ id }:{id:string}) {
           }
         }
       }
-    }).finally(() => { if (active) setLoading(false) })
+    }).finally(() => {
+      if (initialDetailRequest.current?.settled === settled) initialDetailRequest.current = null
+      if (active) setLoading(false)
+    })
+    initialDetailRequest.current = { id, settled }
     return () => { active = false }
   }, [id])
   const f = data.fascicolo
@@ -10176,6 +10180,12 @@ function DetailPage({ id }:{id:string}) {
   }
   const detailRefreshDomains = ['clienti', 'soggetti', 'fascicoli', 'agenda', 'scadenze', 'comunicazioni', 'fatturazione', 'incassi', 'preventivi', 'timesheet'] as const
   const scheduleDetailRefresh = useOperationalRefresh([...detailRefreshDomains], async ({ live, revisions, revisionContext }) => {
+    const initial = initialDetailRequest.current
+    if (live && initial?.id === id) {
+      // La lettura iniziale può già coprire la revisione notificata.
+      await initial.settled.catch(() => undefined)
+      if (refreshWorkspaceId.current !== id) return
+    }
     // Only sections already used by this workspace; retain the open windows,
     // editor drafts, scroll and unloaded sections. No include=all background scan.
     const required = [...requestedRefreshSections.current]
@@ -10226,7 +10236,7 @@ function DetailPage({ id }:{id:string}) {
     // Un precedente errore resta visibile fino al recupero confermato della
     // stessa pratica; altri avvisi operativi non vengono rimossi dal refresh.
     setToast(current => current?.message === 'Aggiornamento live del fascicolo non riuscito.' ? null : current)
-  })
+  }, { pacing: { pauseWhenHidden: true } })
   const refreshDocuments = (message?: string) => {
     if (message) setToast({ tone: 'success', message })
     requestedRefreshSections.current.add('documenti')
@@ -10330,9 +10340,7 @@ function DetailPage({ id }:{id:string}) {
         </SezioneFascicolo>
         <SezioneFascicolo id="sezione-andamento">
           <DetailSection id="lettura-fascicolo" title="Lettura del fascicolo" icon={<BookOpen size={17}/>} defaultOpen={activeHashSection === 'lettura-fascicolo'} onToggle={setLetturaOpen}>
-            <Suspense fallback={<p role="status">Carico la Lettura del fascicolo…</p>}>
-              <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={letturaPronta}/>
-            </Suspense>
+            <LetturaFascicoloPanel active={letturaOpen} fascicoloId={f.id || id} initialLettura={data.initialLettura as LetturaFascicolo | null} onError={failDetail} onReady={letturaPronta}/>
           </DetailSection>
           <DetailSection id="attivita" title="Cronologia della pratica" icon={<ListChecks size={17}/>} count={(data.quickCounts.attivita || 0) + data.history.length} defaultOpen={activeHashSection === 'attivita' || activeHashSection === 'avanzamento'} onOpen={() => loadLazySection('attivita')}>
             <p className="iu-fas-section-intro">Attività processuali e avanzamento della pratica in un solo elenco: prima le attività, poi i cambi di stato registrati.</p>

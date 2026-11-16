@@ -155,3 +155,24 @@ def test_etichetta_senza_punto_finale_anche_dopo_anno_o_apostrofo():
     assert _label("x", "Rendiconto generale per l'esercizio finanziario 1973.").endswith("1973")
     assert _label("x", "Facilitazioni per la fusione di societa'.").endswith("societa'")
     assert _label("x", "Norme di attuazione del c.p.c.").endswith("c.p.c.")
+
+
+def test_articolo_esplicito_usa_edizione_corrente_senza_scorrere_il_catalogo(tmp_path, monkeypatch):
+    from lex.normativa import consultazione
+
+    package, _ = source(tmp_path)
+    db = tmp_path / 'normattiva.sqlite'
+    importa_fonti(package, db, '2026-10-09')
+    precedente = catalogo(db)[0]['id']
+    source(tmp_path, 'Edizione consolidata in archivio.', edizione='2026-10-10')
+    importa_fonti(package, db, '2026-10-10')
+    corrente = catalogo(db)[0]['id']
+
+    def scan_non_previsto(_db):
+        raise AssertionError('Un articolo identificato non richiede il catalogo degli atti')
+
+    monkeypatch.setattr(consultazione, 'catalogo', scan_non_previsto)
+    risultato = articoli(db, act=precedente, article='2545-quindecies', includi_archivio_generale=True)
+    assert risultato['act_id'] == corrente
+    assert risultato['total'] == 1
+    assert dettaglio(db, risultato['items'][0]['id'])['text'] == 'Edizione consolidata in archivio.'

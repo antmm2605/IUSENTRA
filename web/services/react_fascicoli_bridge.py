@@ -1906,7 +1906,8 @@ def _ruolo_diverso(procedimento: Any, rg_key: str) -> bool:
     return (int(trovato.group(1)), trovato.group(2)) != (int(atteso.group(1)), atteso.group(2))
 
 
-def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list[Any]:
+def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any, *,
+                          candidati: Callable[[str], Iterable[Any]] | None = None) -> list[Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     source_external_id = _text(getattr(fascicolo, "source_external_id", ""))
     rg_key = _fascicolo_rg_key(fascicolo)
@@ -1933,7 +1934,8 @@ def _agenda_for_fascicolo(get_agenda: Callable[[], Any], fascicolo: Any) -> list
     profile_id = f"fascicolo:{fid}" if fid else ""
     out: list[Any] = []
     seen: set[str] = set()
-    for app in get_agenda().tutti():
+    appuntamenti = candidati(fid) if candidati is not None else get_agenda().tutti()
+    for app in appuntamenti:
         app_id = _text(getattr(app, "id", ""))
         linked_case_id = _text(getattr(app, "id_fascicolo", ""))
         if linked_case_id and linked_case_id != fid:
@@ -9786,6 +9788,8 @@ def build_react_fascicolo_detail_payload(
     id_fasc: str,
     studio_avvocato_titolare: str = "",
     include_sections: Iterable[str] | None = None,
+    get_agenda_candidati_fascicolo: Callable[[str], Iterable[Any]] | None = None,
+    get_scadenze_del_fascicolo: Callable[[str], list[Any]] | None = None,
 ) -> dict[str, Any]:
     fascicoli_repo = get_fascicoli()
     fascicolo = _safe("fascicolo", lambda: _resolve_fascicolo(fascicoli_repo, id_fasc), None)
@@ -9807,8 +9811,14 @@ def build_react_fascicolo_detail_payload(
     load_lex = include_all or load_documents or "lex" in include or "lex_indexing" in include
     clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None) if getattr(fascicolo, "id_cliente", "") else None
-    apps = _safe("agenda", lambda: _agenda_for_fascicolo(get_agenda, fascicolo), [])
-    scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False), [])
+    apps = _safe("agenda", lambda: _agenda_for_fascicolo(
+        get_agenda, fascicolo, candidati=get_agenda_candidati_fascicolo), [])
+    def scadenze_collegate():
+        if get_scadenze_del_fascicolo is not None:
+            return get_scadenze_del_fascicolo(fid)
+        return get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False)
+
+    scadenze = _safe("scadenziario", scadenze_collegate, [])
     scadenze = [s for s in scadenze if _enum_value(getattr(s, "stato", "")).upper() not in {"ANNULLATO", "COMPLETATO"}]
     apps = [a for a in apps if _enum_value(getattr(a, "stato", "")).upper() != "ANNULLATO"]
     parti = _safe("soggetti", lambda: get_soggetti().parti_fascicolo(fid), [])

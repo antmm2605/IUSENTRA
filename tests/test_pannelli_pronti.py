@@ -726,9 +726,18 @@ def test_quadro_superato_mostra_i_riscontri_correnti_e_accoda_il_ricalcolo(studi
 
     app_prova.app.view_functions["quadro"] = quadro
     client = app_prova.app.test_client()
-    assert client.get("/f/F1/quadro").status_code == 200
+    headers = {"X-Iusentra-Preparazione": "sfondo"}
+    prima = client.get("/f/F1/quadro", headers=headers)
+    assert prima.status_code == 202
+    assert prima.headers["X-Iusentra-Pannello"] == "in-preparazione"
+    assert app_prova.calcoli["n"] == 0
+    assert avvii == ["F1"]
+
+    calcolata = client.get("/f/F1/quadro", environ_overrides={runtime.AMBIENTE_RICALCOLO: True})
+    assert calcolata.headers["X-Iusentra-Pannello"] == "calcolato"
+    avvii.clear()
     studio.archivio.invalida_pannelli("F1", ("quadro",))
-    risposta = client.get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"})
+    risposta = client.get("/f/F1/quadro", headers=headers)
     assert risposta.headers["X-Iusentra-Pannello"] == "precedente"
     assert risposta.json["quadro_in_aggiornamento"]
     righe = {r["tema"]: r["testo"] for r in risposta.json["righe"]}
@@ -737,6 +746,7 @@ def test_quadro_superato_mostra_i_riscontri_correnti_e_accoda_il_ricalcolo(studi
         "termini": "Impugnazione della sentenza: 02/08/2024 (decorso) · art. 327 c.p.c. Agenda in aggiornamento.",
     }
     assert app_prova.calcoli["n"] == 1
+    risposta.close()
     assert avvii == ["F1"]
 
     from web.services.pannelli_pronti_sfondo import da_ricalcolare
@@ -744,8 +754,21 @@ def test_quadro_superato_mostra_i_riscontri_correnti_e_accoda_il_ricalcolo(studi
     coda = da_ricalcolare(studio.archivio, studio.fonti, limite=1, solo_pannelli_prioritari=True)
     assert [(voce.fascicolo_id, voce.pannello) for voce in coda] == [("F1", "quadro")]
 
+    with app_prova.app.test_request_context("/f/F1/quadro"):
+        app_prova.app.preprocess_request()
+        contesto = runtime.contesto_corrente()
+        chiave = runtime._chiave_pannello("F1", "quadro", "", contesto.profilo)
+        studio.archivio.segna_tentativo(
+            chiave_voce=chiave, fascicolo_id="F1", pannello="quadro", percorso="/f/F1/quadro",
+            profilo=contesto.profilo, impronta=runtime.impronta_attuale(contesto, "F1"), motivo="errore di prova",
+        )
+    risposta = client.get("/f/F1/quadro", headers=headers)
+    assert risposta.headers["X-Iusentra-Pannello"] == "precedente"
+    assert app_prova.calcoli["n"] == 1
+    assert avvii == ["F1"]
+
     precedente = True
-    risposta = client.get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"})
+    risposta = client.get("/f/F1/quadro", headers=headers)
     assert risposta.json["lettura_precedente"]
     termini = next(riga["testo"] for riga in risposta.json["righe"] if riga["tema"] == "termini")
     assert "Ultima lettura salvata · Impugnazione della sentenza: 02/08/2024 (decorso) · art. 327 c.p.c." in termini
@@ -889,3 +912,44 @@ def test_il_valore_archiviato_arriva_ai_pannelli_anche_senza_lettura(tmp_path, m
     assert redazione["fascicolo"]["valoreCausa"]["fonte"] == fonte
     assert redazione["economia"]["valoreCausa"] == redazione["fascicolo"]["valoreCausa"]
     assert discordante == {}
+
+
+def test_quadro_precedente_consegnato_prima_di_scrivere_la_coda(studio, app_prova, monkeypatch):
+    from flask import session
+    from web.services import pannelli_pronti_calcolatore as calcolatore
+    from web.services import pannelli_pronti_runtime as runtime
+    from web.services import riscontri_processuali_runtime as riscontri
+    from web.services.pannelli_pronti_catalogo import Pannello
+
+    app = app_prova.app
+
+    @app.before_request
+    def _sessione():
+        session["user_id"] = "u1"
+
+    monkeypatch.setattr(riscontri, "lettura_consultiva", lambda _: {
+        "aggiornamento_pendente": True,
+        "prossimi_passi": [{"azione": "Controllare la sentenza"}],
+    })
+    avvii = []
+    monkeypatch.setattr(calcolatore, "sveglia_calcolatore", lambda tenant, fid: avvii.append(fid))
+
+    @runtime.pannello_pronto(Pannello("quadro", "quadro", ricomponi="quadro_da_lettura"))
+    def quadro(id_fasc):
+        return jsonify(ok=True, righe=[], termini_agenda=[], termini_agenda_versione=2)
+
+    app.view_functions["quadro"] = quadro
+    client = app.test_client()
+    client.get("/f/F1/quadro").close()
+    studio.archivio.invalida_fascicolo("F1")
+    assert studio.archivio.fascicoli_in_attesa_di_lettura(minuti=1) == []
+    avvii.clear()
+
+    risposta = client.get("/f/F1/quadro", headers={"X-Iusentra-Preparazione": "sfondo"}, buffered=False)
+    assert risposta.headers["X-Iusentra-Pannello"] == "precedente"
+    assert risposta.json["lettura_in_preparazione"]
+    assert avvii == []
+    assert studio.archivio.fascicoli_in_attesa_di_lettura(minuti=1) == []
+    risposta.close()
+    assert avvii == ["F1"]
+    assert studio.archivio.fascicoli_in_attesa_di_lettura(minuti=1) == ["F1"]

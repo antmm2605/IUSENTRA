@@ -134,7 +134,7 @@ def test_stato_fascicolo_per_lettore_e_per_oggetto(tmp_path: Path):
     assert registro.stato_fascicolo(T, "F1", lettori=["ocr"]).tutto_letto is True
 
 
-def test_novita_dall_ultima_apertura_dell_utente(tmp_path: Path):
+def test_novita_dall_ultima_apertura_dell_utente(tmp_path: Path, monkeypatch):
     registro = _registro(tmp_path)
     registro.registra_inventario(T, "F1", [_doc("d1", "a" * 64)])
     prima = registro.novita_e_segna_visto(T, "F1", "avv")
@@ -146,7 +146,14 @@ def test_novita_dall_ultima_apertura_dell_utente(tmp_path: Path):
     assert poi["visto_il"]
     # Un altro utente parte da zero; l'utente che ha visto non ha più novità.
     assert registro.novita_e_segna_visto(T, "F1", "collega")["prima_vista"] is True
-    assert registro.novita_e_segna_visto(T, "F1", "avv")["nuovi"] == []
+    with monkeypatch.context() as patch:
+        def no_write(*args, **kwargs):
+            raise AssertionError("La consultazione dello stesso inventario non deve scrivere.")
+
+        patch.setattr(registro, "_aggiorna", no_write)
+        risposta = registro.novita_e_segna_visto(T, "F1", "avv")
+        assert risposta["nuovi"] == []
+        assert risposta["visto_il"]
     registro.registra_inventario(T, "F1", [_doc("d2", "b" * 64)])
     assert registro.novita_e_segna_visto(T, "F1", "avv")["rimossi"] == [{"tipo": "documento", "oggetto_id": "d1"}]
 

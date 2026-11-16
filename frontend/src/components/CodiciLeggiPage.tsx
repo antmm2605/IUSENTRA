@@ -47,12 +47,15 @@ export function CodiciLeggiPage() {
   const [readerError, setReaderError] = useState('')
   const [retry, setRetry] = useState(0)
   const visibleActs = useMemo(() => acts.filter(a => ((!category || a.category === category) && matchesCatalogueAct(a, catalogQuery)) || String(a.id) === act), [acts, catalogQuery, act, category])
+  const actOptions = visibleActs.slice(0, 100)
+  const selection = act && visibleActs.find(item => String(item.id) === act)
+  if (selection && !actOptions.some(item => item.id === selection.id)) actOptions.push(selection)
   const currentAct = acts.find(a => String(a.id) === String(results.act_id || filters.act))
 
   useEffect(() => {
     const controller = new AbortController()
     setCatalogueBusy(true)
-    ensureJson<{ ok: boolean; items: Act[]; riscontro?: Riscontro }>(`${base}/atti?vista=${vista}`, { signal: controller.signal }).then(data => { setActs(data.items); setRiscontro(data.riscontro ?? null) }).catch(e => { if (!controller.signal.aborted) setError(e.status === 403 ? 'Non hai il permesso per consultare le fonti.' : 'Archivio non disponibile. Riprova fra poco.') }).finally(() => { if (!controller.signal.aborted) setCatalogueBusy(false) })
+    ensureJson<{ ok: boolean; items: Act[]; riscontro?: Riscontro }>(`${base}/atti?vista=${vista}`, { signal: controller.signal }).then(data => { setActs(data.items); setRiscontro(data.riscontro ?? null) }).catch(e => { if (!controller.signal.aborted) setError(e.status === 403 ? 'Non hai il permesso per consultare le fonti.' : e.message === 'Il catalogo delle fonti si sta aggiornando.' ? e.message : 'Archivio non disponibile. Riprova fra poco.') }).finally(() => { if (!controller.signal.aborted) setCatalogueBusy(false) })
     return () => controller.abort()
   }, [retry, vista])
   useEffect(() => {
@@ -110,7 +113,7 @@ export function CodiciLeggiPage() {
         <form onSubmit={e => { e.preventDefault(); setFilters({ act, query, article, category, offset: 0 }) }}>
           <label>Raccolta<select value={category} onChange={e => { const value = e.target.value; setCategory(value); setAct(''); setQuery(''); setArticle(''); setFilters({ act: '', query: '', article: '', category: value, offset: 0 }) }}><option value="">Tutte le raccolte</option>{Array.from(new Set(acts.map(a => a.category))).map(c => <option key={c}>{c}</option>)}</select></label>
           <label>Trova un codice o una legge<input value={catalogQuery} onChange={e => setCatalogQuery(e.target.value)} placeholder="Codice civile, privacy, lavoro…" /></label>
-          <label>Codice o legge<select value={act} onChange={e => { chooseAct(e.target.value) }}><option value="">Tutti gli atti</option>{visibleActs.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
+          <label>Codice o legge<select value={act} onChange={e => { chooseAct(e.target.value) }}><option value="">Tutti gli atti</option>{actOptions.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}{visibleActs.length > 100 ? <option disabled>Usa «Trova un codice o una legge» per affinare l’elenco.</option> : null}</select></label>
           <label>Numero dell’articolo<input value={article} onChange={e => setArticle(e.target.value)} placeholder="2043, 416-bis, 473-bis.12" /></label>
           <label>Parole nel testo<input value={query} onChange={e => setQuery(e.target.value)} placeholder="Risarcimento, responsabilità, termini…" /></label>
           <div className="iu-li-normativa-actions"><Button type="submit" disabled={busy}><Search size={16} aria-hidden="true"/>Cerca</Button><Button tone="neutral" type="button" onClick={reset}>Azzera</Button></div>

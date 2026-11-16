@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-DUObHWXh.js";import{Qt as t}from"./app-C8-KIeM6.js";var n=e();function r({title:e,message:r,action:i}){return(0,n.jsx)(t,{title:e,message:r,action:i,className:`iu-empty-state`})}export{r as t};

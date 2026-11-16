@@ -47,3 +47,58 @@ def test_agenda_del_fascicolo_prima_i_prossimi_poi_i_passati_in_tono_neutro(monk
     assert [voce["id"] for voce in voci] == ["D", "C", "B", "A"]
     assert [voce["tone"] for voce in voci] == ["warning", "primary", "neutral", "neutral"]
     assert [voce["past"] for voce in voci] == [False, False, True, True]
+
+
+
+def test_agenda_sql_consulta_il_fascicolo_senza_materializzare_le_voci_degli_altri():
+    import json
+    import sqlite3
+
+    from pct.calendar_sql_records import appointment_candidates_for_case, appointment_from_row
+
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute("CREATE TABLE appuntamenti (id TEXT PRIMARY KEY, dati_json TEXT)")
+        elementi = [
+            ("diretto", "F1", "Udienza", ""),
+            ("storico", "", "Termine note per RG 538/2026", ""),
+            ("altro-anno", "", "Udienza per RG 538/2025", ""),
+            ("altro-fascicolo", "F2", "Udienza per RG 538/2026", ""),
+        ]
+        for id_, fascicolo_id, titolo, procedimento in elementi:
+            dati = {"id": id_, "id_fascicolo": fascicolo_id, "titolo": titolo, "procedimento": procedimento,
+                    "tipo": "UDIENZA", "stato": "PROGRAMMATO", "durata_minuti": 30, "luogo": "", "data_ora": "2026-10-01T09:00:00"}
+            conn.execute("INSERT INTO appuntamenti VALUES (?,?)", (id_, json.dumps(dati)))
+        database = SimpleNamespace(fetchall_readonly=lambda sql, params=(): conn.execute(sql, params).fetchall())
+        tutti = [appointment_from_row(row) for row in conn.execute("SELECT * FROM appuntamenti")]
+        caso = SimpleNamespace(id="F1", numero_rg="538", anno_rg="2026", rg="538/2026", source_snapshot=None)
+
+        def candidati(fid):
+            letti = appointment_candidates_for_case(database, fid)
+            assert {app.id for app in letti} == {"diretto", "storico", "altro-anno"}
+            return letti
+
+        def caricamento_completo():
+            raise AssertionError("Il dettaglio SQL non deve caricare l'Agenda completa")
+
+        vecchi = _agenda_for_fascicolo(lambda: SimpleNamespace(tutti=lambda: tutti), caso)
+        nuovi = _agenda_for_fascicolo(caricamento_completo, caso, candidati=candidati)
+        assert [app.id for app in nuovi] == [app.id for app in vecchi] == ["diretto", "storico"]
+
+
+def test_scadenziario_sql_consulta_solo_le_scadenze_collegate():
+    import json
+    import sqlite3
+
+    from pct.calendar_sql_records import deadlines_for_case
+
+    with sqlite3.connect(":memory:") as conn:
+        conn.row_factory = sqlite3.Row
+        conn.execute("CREATE TABLE scadenze (id TEXT PRIMARY KEY, id_fascicolo TEXT, data_scadenza TEXT, dati_json TEXT)")
+        for id_, giorno, stato in (("seconda", "2026-12-16", "BOZZA"), ("prima", "2026-12-01", "APERTO")):
+            dati = {"id": id_, "titolo": id_, "data_scadenza": giorno, "id_fascicolo": "F1", "stato": stato}
+            conn.execute("INSERT INTO scadenze VALUES (?,?,?,?)", (id_, "F1", giorno, json.dumps(dati)))
+        conn.execute("INSERT INTO scadenze VALUES ('altra', 'F2', '2026-12-01', 'non decodificare')")
+        database = SimpleNamespace(fetchall_readonly=lambda sql, params: conn.execute(sql, params).fetchall())
+        scadenze = deadlines_for_case(database, "F1")
+        assert [(s.id, s.stato.value) for s in scadenze] == [("prima", "APERTO"), ("seconda", "BOZZA")]

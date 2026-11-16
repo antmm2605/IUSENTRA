@@ -14,12 +14,15 @@ from flask import request
 
 
 def novita_letture(corpo: bytes, fascicolo_id: str) -> bytes:
+    from pct.registro_letture.sintesi import sintesi_lettori_operativi
     from web.services.registro_letture_runtime import novita_letture as calcola
 
     dati = json.loads(corpo.decode("utf-8"))
     letture = dati.get("letture") if isinstance(dati, dict) else None
     if not isinstance(letture, dict):
         return corpo
+    if isinstance(letture.get("sintesi"), dict) and isinstance(letture.get("lettori"), list):
+        letture["sintesi"] = sintesi_lettori_operativi(letture["sintesi"], letture["lettori"])
     segna = str(request.args.get("visto") or "1").strip().lower() not in {"0", "false", "no"}
     try:
         from web.blueprints.api_v1_react import _public_json_payload  # stessa sanificazione della risposta del motore

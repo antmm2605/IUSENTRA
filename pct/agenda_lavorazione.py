@@ -20,6 +20,7 @@ _RE_FASCICOLO = re.compile(r"^Fascicolo:\s*([A-Za-z0-9_-]{4,})\s*$", re.M)
 _RE_ATTIVITA = re.compile(r"^Attività per l'avvocato:\s*(.+)$", re.M)
 _RE_NOTIFICA = re.compile(r"IUSENTRA_LEGAL_NOTIFICATION:[\w-]+:([0-9a-f-]{8,})")
 _BOZZA = "BOZZA"
+MARCATORE_PROPOSTA_DUPLICATA = "PEC_PROPOSTA_DUPLICATA_DI:"
 _MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
          "novembre", "dicembre")
 
@@ -56,46 +57,96 @@ def e_bozza(scadenza: Any) -> bool:
     return _testo(scadenza, "stato").upper() == _BOZZA
 
 
+def identita_proposta_pec(scadenza: Any) -> tuple[str, str, str, str] | None:
+    """Identifica la stessa proposta legale emessa dalla medesima PEC."""
+    sorgente = _testo(scadenza, "source_message_id")
+    codice = _testo(scadenza, "deadline_profile_code")
+    giorno = _testo(scadenza, "data_scadenza")[:10]
+    if not (sorgente and codice and giorno):
+        return None
+    marcatore = f"PEC_TERMINE_PROPOSTO:{sorgente}:{codice}"
+    if marcatore not in _testo(scadenza, "note").splitlines():
+        return None
+    return (marcatore, fascicolo_dell_impegno(scadenza), giorno, _testo(scadenza, "operational_due_at"))
+
+
+def _proposte_per_id(scadenze: Iterable[Any]) -> dict[str, Any]:
+    """Le copie storiche confluiscono nella decisione già registrata o nella prima bozza."""
+    gruppi: dict[tuple[str, str, str, str], list[Any]] = defaultdict(list)
+    canoniche = {}
+    for scadenza in scadenze:
+        identificativo = _testo(scadenza, "id")
+        identita = identita_proposta_pec(scadenza)
+        duplicata_risolta = any(riga.startswith(MARCATORE_PROPOSTA_DUPLICATA)
+                               for riga in _testo(scadenza, "note").splitlines())
+        if identita and not duplicata_risolta:
+            gruppi[identita].append(scadenza)
+        else:
+            canoniche[identificativo] = scadenza
+    for gruppo in gruppi.values():
+        principale = min(gruppo, key=lambda s: (
+            e_bozza(s), not _testo(s, "id_utente_responsabile"), _testo(s, "creata_il"), _testo(s, "id"),
+        ))
+        for scadenza in gruppo:
+            canoniche[_testo(scadenza, "id")] = principale
+    return canoniche
+
+
 def proposte_collegate(scadenze: Iterable[Any], impegno: Any, *, id_impegno: str = "") -> list[Any]:
-    """Le bozze nate dalla stessa PEC dell'impegno, collegate al suo appuntamento, o l'impegno stesso se è una bozza."""
+    """Le bozze distinte nate dalla stessa PEC o collegate all'appuntamento."""
+    scadenze = list(scadenze or ())
+    canoniche = _proposte_per_id(scadenze)
     pec = riferimenti_pec(impegno)
     proprio = _testo(impegno, "id")
-    trovate = []
-    for scadenza in scadenze or ():
-        if not e_bozza(scadenza):
+    trovate = {}
+    for scadenza in scadenze:
+        identificativo = _testo(scadenza, "id")
+        principale = canoniche[identificativo]
+        if not e_bozza(principale):
             continue
-        stessa = _testo(scadenza, "id") == proprio and e_bozza(impegno)
+        stessa = identificativo == proprio and e_bozza(impegno)
         dalla_pec = bool(pec & riferimenti_pec(scadenza))
         dall_udienza = bool(id_impegno) and _testo(scadenza, "id_appuntamento") == id_impegno
         if stessa or dalla_pec or dall_udienza:
-            trovate.append(scadenza)
-    return sorted(trovate, key=lambda s: _testo(s, "data_scadenza"))
+            trovate[_testo(principale, "id")] = principale
+    return sorted(trovate.values(), key=lambda s: _testo(s, "data_scadenza"))
 
 
-def indice_proposte(scadenze: Iterable[Any]) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
-    """Bozze aperte per PEC d'origine e per appuntamento (id delle bozze, per non contarle due volte)."""
+def indice_proposte(scadenze: Iterable[Any]) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, str]]:
+    """Bozze aperte per PEC e appuntamento, con gli alias delle copie storiche."""
+    scadenze = list(scadenze or ())
+    canoniche = _proposte_per_id(scadenze)
     per_pec: dict[str, set[str]] = defaultdict(set)
     per_appuntamento: dict[str, set[str]] = defaultdict(set)
-    for scadenza in scadenze or ():
-        if not e_bozza(scadenza):
-            continue
+    per_id = {}
+    for scadenza in scadenze:
         identificativo = _testo(scadenza, "id")
+        principale = canoniche[identificativo]
+        id_principale = _testo(principale, "id") if e_bozza(principale) else ""
+        per_id[identificativo] = id_principale
+        if not id_principale:
+            continue
         for pec in riferimenti_pec(scadenza):
-            per_pec[pec].add(identificativo)
+            per_pec[pec].add(id_principale)
         appuntamento = _testo(scadenza, "id_appuntamento")
         if appuntamento:
-            per_appuntamento[appuntamento].add(identificativo)
-    return per_pec, per_appuntamento
+            per_appuntamento[appuntamento].add(id_principale)
+    return per_pec, per_appuntamento, per_id
 
 
-def proposte_aperte(impegno: Any, indice: tuple[dict[str, set[str]], dict[str, set[str]]], *, id_impegno: str = "") -> int:
-    """Il numero del sigillo «N proposte» per una voce d'agenda."""
-    per_pec, per_appuntamento = indice
+def proposte_aperte(
+    impegno: Any, indice: tuple[dict[str, set[str]], dict[str, set[str]], dict[str, str]], *, id_impegno: str = "",
+) -> int:
+    """Il numero di adempimenti distinti nel sigillo «N proposte»."""
+    per_pec, per_appuntamento, per_id = indice
     trovate: set[str] = set(per_appuntamento.get(id_impegno, set())) if id_impegno else set()
     for pec in riferimenti_pec(impegno):
         trovate |= per_pec.get(pec, set())
     if e_bozza(impegno):
-        trovate.add(_testo(impegno, "id") or "propria")
+        identificativo = _testo(impegno, "id") or "propria"
+        principale = per_id.get(identificativo, identificativo)
+        if principale:
+            trovate.add(principale)
     return len(trovate)
 
 

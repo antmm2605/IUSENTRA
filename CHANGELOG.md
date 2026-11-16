@@ -1,3 +1,16 @@
+## 2.489.30 — Caricamento del Quadro del fascicolo
+
+- La consultazione del Quadro usa il calcolatore in background anche al primo accesso. Se esiste un esito precedente, il pannello lo mostra con i riscontri della Lettura e indica che l’Agenda si sta aggiornando.
+- Gli aggiornamenti in diretta dei dettagli si accorpano quando la scheda è nascosta e riprendono quando torna visibile.
+- Il Quadro precedente viene consegnato prima di accodare gli aggiornamenti. Agenda consulta i record SQL del fascicolo e usa le voci storiche prive di collegamento ove pertinenti.
+- Il registro delle Letture riusa una sola lettura delle righe. Notifiche usa lo stesso riscontro storico della Lettura anche durante la preparazione di un aggiornamento.
+- La Lettura riusa il risultato persistito già consegnato dal dettaglio. Gli aggiornamenti in diretta attendono l’esito della prima richiesta e verificano la sua revisione.
+- Agenda riunisce le copie di una stessa proposta PEC. Il salvataggio usa una chiave stabile anche se due elaborazioni concorrenti esaminano la stessa PEC.
+- Il dettaglio legge le scadenze SQL collegate alla pratica. Il lettore normativo consulta l’edizione dell’atto per identificativo e usa gli indici per il catalogo storico.
+- Recenti, timer e Mediazione aprono il singolo fascicolo quando hanno già il suo identificativo.
+- La consultazione dello stesso inventario evita nuove scritture. Codici e leggi usa gli indici distinti per le edizioni storiche e i testi con riscontro di vigenza, e riusa il catalogo finché gli archivi non cambiano.
+- Il riepilogo del registro e la Lettura mostrano gli stessi esiti dei motori operativi, anche quando la scheda proviene da un risultato già salvato.
+
 ## 2.489.17 — Dati condivisi in Guida pratica e Redazione
 
 - Ripresi dalla Lettura il contributo unificato con le sue fonti e la prossima udienza. Il valore dichiarato all’iscrizione usa la nota e il deposito riconducibili al fascicolo.

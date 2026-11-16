@@ -75,3 +75,18 @@ def test_il_giro_di_lettura_scrive_la_riga_di_sintesi(tmp_path: Path):
         assert riga is not None and riga["documenti_presenti"] == 2
         assert riga["cliente"] == "Anna Bianchi" and riga["ufficio"] == "Tribunale di Torino"
         assert riga["lettori"]["motore_documenti"]["da_leggere"] == 0
+
+
+def test_la_scheda_usa_gli_esiti_operativi_del_pannello():
+    from pct.registro_letture.sintesi import sintesi_lettori_operativi
+
+    salvata = {"documenti_presenti": 44, "da_leggere": 88, "lettori": {
+        "ocr": {"da_leggere": 44},
+        "rag_locale": {"da_leggere": 44},
+    }}
+    lettori = [{"lettore": "motore_documenti", "letti": 44, "da_leggere": 0}]
+    scheda = sintesi_lettori_operativi(salvata, lettori)
+    assert scheda["documenti_presenti"] == 44
+    assert scheda["da_leggere"] == 0
+    assert list(scheda["lettori"]) == ["motore_documenti"]
+    assert salvata["da_leggere"] == 88

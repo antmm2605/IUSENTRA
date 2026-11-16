@@ -9576,6 +9576,8 @@ def fascicolo_react_dettaglio(id_fasc: str):
             id_fasc=id_fasc,
             studio_avvocato_titolare=_studio_avvocato_titolare(),
             include_sections=include_sections,
+            get_agenda_candidati_fascicolo=_core_runtime_func("get_agenda_candidati_fascicolo"),
+            get_scadenze_del_fascicolo=_core_runtime_func("get_scadenze_del_fascicolo"),
         )
     if request.args.get("confirm_revision") == "1":
         from web.services.operational_read_revision import read_authorized_revision_snapshot, with_confirmed_read_revision

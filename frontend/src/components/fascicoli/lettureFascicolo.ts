@@ -226,7 +226,7 @@ export function riassuntoLetture(letture: LettureFascicolo): { testo: string; to
   return { testo: `Da leggere: ${pezzi.join(', ')}${errori ? ` · ${errori} non leggibili` : ''}.`, tono: errori ? 'danger' : 'warning' }
 }
 
-// Le novità dall'ultima apertura di questo utente, già in frase.
+// Le novità rispetto all'ultimo inventario consultato da questo utente.
 export function fraseNovita(novita: NovitaLetture): string {
   if (novita.prima_vista) return ''
   const pezzi: string[] = []
@@ -242,8 +242,8 @@ export function fraseNovita(novita: NovitaLetture): string {
   conta(novita.nuovi, 'nuovo', 'nuovi')
   conta(novita.cambiati, 'cambiato', 'cambiati')
   if (novita.rimossi.length) pezzi.push(`${novita.rimossi.length} rimoss${novita.rimossi.length === 1 ? 'o' : 'i'}`)
-  if (!pezzi.length) return `Nessuna novità dall'ultima apertura${novita.visto_il_it ? ` (${novita.visto_il_it})` : ''}.`
-  return `Dall'ultima apertura${novita.visto_il_it ? ` (${novita.visto_il_it})` : ''}: ${pezzi.join(' · ')}.`
+  if (!pezzi.length) return `Nessuna novità dall’ultimo inventario consultato${novita.visto_il_it ? ` (${novita.visto_il_it})` : ''}.`
+  return `Dall’ultimo inventario consultato${novita.visto_il_it ? ` (${novita.visto_il_it})` : ''}: ${pezzi.join(' · ')}.`
 }
 
 // Gli oggetti che aspettano almeno un lettore, con l'elenco dei lettori mancanti.

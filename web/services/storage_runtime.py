@@ -128,14 +128,14 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
     if not studio_db_path.exists():
         return True
 
-    def _table_count(conn: sqlite3.Connection, table: str) -> int | None:
+    def _has_rows(conn: sqlite3.Connection, table: str) -> bool:
         try:
-            row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+            row = conn.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone()
         except sqlite3.OperationalError as exc:
             if "no such table" in str(exc).lower():
-                return None
+                return False
             raise
-        return int((row or [0])[0] or 0)
+        return row is not None
 
     def _is_unseeded_with_connection(conn: sqlite3.Connection) -> bool:
         operational_tables = (
@@ -155,16 +155,7 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool
             "preventivi_records",
             "conferimenti_records",
         )
-        for marker_table in operational_tables:
-            count = _table_count(conn, marker_table)
-            if count is not None and count > 0:
-                return False
-        total = 0
-        for table in _anchor_seed_tables(anchor_path):
-            count = _table_count(conn, table)
-            if count is not None:
-                total += count
-        return total == 0
+        return not any(_has_rows(conn, table) for table in (*operational_tables, *_anchor_seed_tables(anchor_path)))
 
     try:
         # Non usare immutable qui: con WAL attivo SQLite puo' non vedere le

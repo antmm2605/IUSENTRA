@@ -836,6 +836,17 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             )
         return g._agenda
 
+    def get_agenda_candidati_fascicolo(fascicolo_id: str):
+        if hasattr(g, "_agenda"):
+            return g._agenda.tutti()
+        from pct.calendar_sql_records import appointment_candidates_for_case
+        from pct.scadenziario_sql_owner import resolve_owner
+
+        database, solo_sql = resolve_owner(_cfg_data_path("AGENDA_DB"), get_studio_db("AGENDA_DB"), domain="agenda")
+        if solo_sql:
+            return appointment_candidates_for_case(database, fascicolo_id)
+        return get_agenda().tutti()
+
     def get_calendar_sync():
         if not hasattr(g, "_calendar_sync"):
             from pct.calendar_sync import GestioneCalendarSync
@@ -1065,6 +1076,16 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 studio_db=get_studio_db("SCADENZIARIO_DB") if use_studio_db else None,
             )
         return g._scadenziario
+
+    def get_scadenze_del_fascicolo(fascicolo_id: str):
+        from pct.calendar_sql_records import deadlines_for_case
+        from pct.scadenziario_sql_owner import resolve_owner
+
+        if not hasattr(g, "_scadenziario") and not app.testing:
+            database, solo_sql = resolve_owner(_cfg_data_path("SCADENZIARIO_DB"), get_studio_db("SCADENZIARIO_DB"))
+            if solo_sql:
+                return deadlines_for_case(database, fascicolo_id)
+        return get_scadenziario().tutte(id_fascicolo=fascicolo_id, solo_aperte=False)
 
     def get_timesheet() -> GestioneTimesheet:
         if not hasattr(g, "_timesheet"):
@@ -1478,6 +1499,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "bootstrap_runtime_data_modules": _bootstrap_runtime_data_modules,
         "get_studio_db": get_studio_db,
         "get_agenda": get_agenda,
+        "get_agenda_candidati_fascicolo": get_agenda_candidati_fascicolo,
         "get_calendar_sync": get_calendar_sync,
         "get_giurisprudenza": get_giurisprudenza,
         "get_clienti": get_clienti,
@@ -1494,6 +1516,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_backup": get_backup,
         "get_utenti": get_utenti,
         "get_scadenziario": get_scadenziario,
+        "get_scadenze_del_fascicolo": get_scadenze_del_fascicolo,
         "get_timesheet": get_timesheet,
         "get_crm": get_crm,
         "get_antiriciclaggio": get_antiriciclaggio,

@@ -113,7 +113,10 @@ def get_fascicoli() -> GestioneFascicoli:
         and bool((request.args.get("focus_id") or request.args.get("focusId") or "").strip())
         and str(request.args.get("compatto") or "").strip().casefold() in {"1", "true", "yes", "on"}
     )
-    puntuale = has_request_context() and bool(getattr(g, "fascicoli_sql_puntuali", False))
+    puntuale = has_request_context() and (
+        bool(getattr(g, "fascicoli_sql_puntuali", False))
+        or request.endpoint in {"api_topbar.api_recent_track", "api_topbar.api_time_tracking_links"}
+    )
     cartella_read = has_request_context() and (puntuale or request.method == "GET" and (scadenza_compatta or request.endpoint in {
         "api_v1_react.cliente_cartella_react",
         "api_v1_react.fascicolo_react_dettaglio",

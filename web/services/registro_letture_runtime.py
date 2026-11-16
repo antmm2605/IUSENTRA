@@ -20,6 +20,7 @@ from flask import current_app, g, has_app_context, has_request_context
 
 from pct.registro_letture import LETTORI, Oggetto, RegistroLetture, etichetta_lettore
 from pct.registro_letture.inventario import oggetti_da_fascicolo, oggetti_da_pec, oggetto_da_documento
+from pct.registro_letture.sintesi import sintesi_lettori_operativi
 from pct.registro_letture.verifica import verifica_date_lette, verifica_lettura
 from pct.registro_letture.verifica_date import interpreta_data, orizzonte_fascicolo
 from web.services.lettura_cache import invalida_lettura
@@ -435,9 +436,9 @@ def _novita_vuota() -> dict[str, Any]:
 
 
 def novita_letture(fascicolo_id: str, *, registro: RegistroLetture | None = None, segna_visto: bool = True) -> dict[str, Any]:
-    """Le novità del pannello «Letture» dall'ultima apertura dell'utente corrente; con ``segna_visto`` registra la vista.
+    """Le novità del pannello «Letture» rispetto all'ultimo inventario consultato dall'utente corrente.
 
-    Dipende dall'utente e dal momento dell'apertura: i pannelli pronti la ricompongono a ogni risposta.
+    I pannelli pronti la ricompongono per utente. La vista si registra solo se l'inventario cambia.
     """
     from pct.formatting import format_datetime_it
 
@@ -481,7 +482,9 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     # espliciti: aprire il pannello non avvia query PEC N+1 né transazioni write.
     # Le letture operative provengono esclusivamente dai due motori SQL.
     # I vecchi lettori restano diagnostica, senza ricalcolare date nelle GET.
-    stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("motore_documenti", "motore_pec"))
+    letture_salvate = registro.letture(tenant, fascicolo_id)
+    stato = registro.stato_fascicolo(tenant, fascicolo_id, lettori=("motore_documenti", "motore_pec"),
+                                     letture_salvate=letture_salvate)
     novita = passo("novità dall'ultima apertura", lambda: novita_letture(fascicolo_id, registro=registro, segna_visto=segna_visto))
     anomalie = passo("anomalie aperte", lambda: [a.to_dict() for a in registro.anomalie(tenant, fascicolo_id, stato="aperta")], []) or []
     nomi = {(str(v.get("tipo")), str(v.get("oggetto_id"))): _oggetto_etichetta(v) for v in stato.per_oggetto}
@@ -489,7 +492,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         anomalia["oggetto"] = nomi.get((anomalia["tipo"], anomalia["oggetto_id"]), anomalia["oggetto_id"])
         anomalia["lettore_etichetta"] = etichetta_lettore(anomalia["lettore"])
         anomalia["creata_il_it"] = format_datetime_it(anomalia.get("creata_il"))
-    esiti_tecnici = {(lettura.tipo, lettura.oggetto_id): dict(lettura.esito or {}) for lettura in registro.letture(tenant, fascicolo_id) if lettura.lettore == "motore_pec" and (lettura.esito or {}).get("analisi") == "metadati_tecnici"}
+    esiti_tecnici = {(lettura.tipo, lettura.oggetto_id): dict(lettura.esito or {}) for lettura in letture_salvate if lettura.lettore == "motore_pec" and (lettura.esito or {}).get("analisi") == "metadati_tecnici"}
     lettori = []
     for voce in stato.lettori:
         dati = voce.to_dict()
@@ -498,7 +501,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
     def _archivio() -> dict[str, Any]:
         from web.services.archivio_letture_runtime import stato_archivio_payload
 
-        return stato_archivio_payload(fascicolo, registro=registro)
+        return stato_archivio_payload(fascicolo, registro=registro, stato=stato, letture_salvate=letture_salvate)
 
     archivio = passo("archivio delle letture", _archivio, {}) or {}
     errore_coda = (archivio.get("lettura_automatica") or {}).get("stato_coda") == "failed"
@@ -506,6 +509,7 @@ def stato_letture_payload(fascicolo: Any, *, registro: RegistroLetture | None = 
         degradato.append({"passo": "elaborazione automatica", "motivo": (archivio["lettura_automatica"].get("errore_evento") or "Tentativi esauriti.")})
     sintesi = passo("riga di sintesi del registro", lambda: registro.sintesi(tenant, fascicolo_id), None)
     if sintesi is not None:
+        sintesi = sintesi_lettori_operativi(sintesi, lettori)
         sintesi["eml_archiviati"] = sum(
             1 for voce in stato.per_oggetto
             if voce.get("tipo") == "documento" and str(voce.get("nome") or "").casefold().endswith(".eml")

@@ -298,9 +298,19 @@ def test_get_letture_non_allinea_inventario_ne_scrive(monkeypatch, tmp_path: Pat
     def vietata(*args, **kwargs):
         raise AssertionError("la GET /letture non deve registrare l’inventario")
 
+    from pct.registro_letture import RegistroLetture
+
+    lette = []
+    leggi_dal_registro = RegistroLetture.letture
+
+    def conta_letture(registro, tenant, id_fascicolo, **kwargs):
+        lette.append(id_fascicolo)
+        return leggi_dal_registro(registro, tenant, id_fascicolo, **kwargs)
+
     with app.app_context():
         fascicolo = app.extensions["core_runtime"]["get_fascicoli"]().get(fascicolo_id)
         with monkeypatch.context() as contesto:
+            contesto.setattr(RegistroLetture, "letture", conta_letture)
             contesto.setattr("pct.registro_letture.repository.RegistroLetture.registra_inventario", vietata)
             contesto.setattr("web.services.registro_letture_runtime._righe_pec_collegate", vietata)
             from web.services.registro_letture_runtime import stato_letture_payload
@@ -309,6 +319,8 @@ def test_get_letture_non_allinea_inventario_ne_scrive(monkeypatch, tmp_path: Pat
 
     assert payload["degradato"] == []
     assert payload["oggetti"] == 0
+    assert payload["archivio"]["lettura_automatica"]["da_leggere"] == 0
+    assert lette == [fascicolo_id]
 
 
 def test_indice_non_considera_invariato_documento_senza_impronta(monkeypatch):

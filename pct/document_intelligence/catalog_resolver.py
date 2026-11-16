@@ -45,7 +45,7 @@ from .models import (
 # le prove automatiche precedenti senza toccare le correzioni manuali.
 # v33 (10/11/2026): le regole del 01-06/11 non erano mai arrivate al catalogo salvato perché la versione era ferma
 # alla v32; con la v33 il giro automatico ricataloga dai testi salvati, a lotti (catalogo_archivio_runtime).
-RESOLVER_VERSION = "2026.11.10.catalogo-fascicolo.v33-revisione-regole"
+RESOLVER_VERSION = "2026.11.16.catalogo-fascicolo.v34-documenti-ufficio"
 
 # Triadi versionate nell'audit del 24/08/2026. I riferimenti ``snapshot:`` e
 # ``browser:`` sono prove archiviate/manuali, mai chiamate HTTP dal runtime.
@@ -146,6 +146,7 @@ _COMUNICAZIONE_CANCELLERIA = re.compile(r"\s*(?:posta\s+certificata:\s*)?comunic
 _MITTENTE_GIUSTIZIA = re.compile(r"(?im)^\s*(?:mittente|from|da)\s*:.*\bgiustiziacert\.it\b")
 ETICHETTA_COMUNICAZIONE_CANCELLERIA = "Comunicazione di cancelleria"
 ETICHETTA_COPIA_DEPOSITO = "Copia non crittografata del deposito telematico"
+ETICHETTA_MESSAGGIO_DEPOSITO = "Messaggio di deposito telematico (busta PCT)"
 
 
 def _copia_in_chiaro_del_deposito(raw: str) -> bool:
@@ -159,8 +160,25 @@ def _copia_in_chiaro_del_deposito(raw: str) -> bool:
     return not re.search(r"(?im)^\s*(?:data|date)\s*:", testa) and "[Allegato: DatiAtto.xml" in raw
 
 
+def _busta_pct_allegata(raw: str) -> bool:
+    """Riconosce l'invio da intestazioni e allegato, anche nell'indice MIME appiattito."""
+    testa = raw[:1500]
+    if testa.casefold().startswith("mime-version:"):
+        oggetto = re.search(r"(?i)(?:^|\s)subject:\s*(?:posta certificata:\s*)?deposito telematico\s*:", testa)
+        destinatario = re.search(r"(?i)(?:^|\s)to:\s*[^\r\n]{0,230}?@[^\s>]+\.giustiziacert\.it\b", testa)
+    elif testa.casefold().startswith("oggetto:"):
+        oggetto = re.match(r"(?i)oggetto:\s*(?:posta certificata:\s*)?deposito telematico\s*:", testa)
+        destinatario = re.search(r"(?im)^destinatari?:\s*[^\r\n]{0,230}?@[^\s>]+\.giustiziacert\.it\b", testa)
+    else:
+        return False
+    allegato = re.search(r"""(?i)\[allegato:\s*atto\.enc\b|\b(?:filename|name)\s*=\s*["']?atto\.enc\b""", raw[:12000])
+    return bool(oggetto and destinatario and allegato)
+
+
 def _etichetta_messaggio(raw: str, predefinita: str) -> str:
     """L'etichetta del messaggio letta dal suo oggetto, se ne dichiara la funzione."""
+    if _busta_pct_allegata(raw):
+        return ETICHETTA_MESSAGGIO_DEPOSITO
     oggetto = re.search(r"(?im)^\s*(?:oggetto|subject):\s*(.+)$", raw[:2500])
     if not oggetto:
         return predefinita
@@ -184,7 +202,7 @@ def _messaggio(raw: str, predefinita: str) -> dict[str, str]:
 def _fonte_messaggio(etichetta: str) -> str:
     if etichetta == ETICHETTA_COMUNICAZIONE_CANCELLERIA:
         return "normattiva_cpc_art_136_comunicazioni"
-    if etichetta in {"PEC di deposito telematico", ETICHETTA_COPIA_DEPOSITO}:
+    if etichetta in {"PEC di deposito telematico", ETICHETTA_COPIA_DEPOSITO, ETICHETTA_MESSAGGIO_DEPOSITO}:
         return "normattiva_dm_44_2011_art_13_busta"
     return ""
 
@@ -430,9 +448,79 @@ def _pagamento_spese_di_giustizia(raw: str, head: str) -> tuple[dict[str, Any], 
     return None
 
 
-def _documento_d_ufficio(head: str) -> tuple[dict[str, Any], str] | None:
+def _documento_d_ufficio(raw: str, head: str) -> tuple[dict[str, Any], str] | None:
     """Istanze POLIS del Ministero dell'istruzione, decreti di variazione tabellare e certificati della cancelleria."""
     zona = head[:900]
+    if (
+        re.search(r"(?im)^[ \t]*avviso\s+di\s+pubblicazione\s+(?:della|di)\s+sentenza[ \t]*$", raw[:1600])
+        and re.search(r"\btribunale amministrativo regionale\b|\bconsiglio di stato\b", head[:350])
+        and re.search(r"\bsi comunica che la sentenza\b.{0,180}\bpubblicata\b", zona)
+        and re.search(r"\bart 89\b|\bnumero registro generale\b", zona)
+    ):
+        return {
+            "role": "comunicazione_pubblicazione_sentenza",
+            "label": "Avviso di pubblicazione della sentenza (segreteria amministrativa)",
+            "section": "comunicazioni", "confidence": 98,
+            "evidence": "intestazione dell'ufficio giudiziario amministrativo e avviso della segreteria sulla pubblicazione della sentenza (art. 89, comma 3, c.p.a.)",
+            "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "fuori_busta", "deposit_candidate": False,
+            "excerpt_pattern": r"avviso\s+di\s+pubblicazione\s+(?:della|di)\s+sentenza",
+        }, "normattiva_cpa_art89_comunicazione_sentenza"
+    if (
+        re.match(r"(?:m (?:pi|im) aoo\w+ registro ufficiale u \d{4,}(?: \d{1,2} \d{1,2} \d{4}(?: h \d{1,2} \d{2})?)? )?ministero (?:dell istruzione|dell educazione)\b", zona)
+        and re.search(r"\bufficio scolastico regionale\b|\bambito territoriale\b", head[:450])
+        and re.search(r"\boggetto\b.{0,280}\besecuzione (?:di )?provvedimenti giurisdizionali\b", head[:2100])
+        and re.search(r"\bsi trasmette\b.{0,70}\b(?:la|copia della) sentenza\b", head[:3600])
+    ):
+        return {
+            "role": "nota_amministrativa_trasmissione_sentenza",
+            "label": "Nota dell'Ufficio scolastico di trasmissione della sentenza per l'esecuzione",
+            "section": "comunicazioni", "confidence": 97,
+            "evidence": "intestazione dell'Ufficio scolastico e formula di trasmissione della sentenza per l'esecuzione",
+            "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "allegato", "deposit_candidate": False,
+            "excerpt_pattern": r"esecuzione\s+(?:di\s+)?provvedimenti\s+giurisdizionali",
+        }, "catalog_agid_metadati"
+    if (
+        re.search(r"\bavvocatura (?:distrettuale |generale )?dello stato\b|\bavvocato (?:distrettuale |generale )?dello stato\b", head[:2900])
+        and re.search(r"\bart 417 bis c p c\b", head[:2100])
+        and re.search(r"\bquesta avvocatura ritiene che il giudizio possa essere trattato direttamente\b", head[:2100])
+        and re.search(r"\btrasmette l allegato foglio di istruzione\b|\bsi trasmette l unito ricorso\b", head[:2100])
+    ):
+        return {
+            "role": "nota_avvocatura_difesa_pa",
+            "label": "Nota dell’Avvocatura per la difesa diretta della PA e il deposito della memoria",
+            "section": "comunicazioni", "confidence": 98,
+            "evidence": "indicazioni dell’Avvocatura per la difesa diretta dell’amministrazione (art. 417-bis c.p.c.) e istruzioni relative alla memoria difensiva",
+            "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "allegato", "deposit_candidate": False,
+            "excerpt_pattern": r"questa\s+avvocatura\s+ritiene|art\.\s*417[\s-]*bis",
+        }, "normattiva_cpc_art417bis_difesa_pa"
+    if (
+        re.search(r"\btribunale (?:ordinario )?di\b", zona[:180])
+        and re.search(r"\b(?:il|la) presidente (?:di|della) sezione\b.{0,180}\b(?:ha pronunciato il seguente decreto|decreta)\b", zona)
+        and re.search(r"\bassegna (?:il presente|il) ricorso al giudice\b", zona)
+    ):
+        return {
+            "role": "provvedimento",
+            "label": "Decreto di assegnazione del ricorso al giudice",
+            "section": "provvedimenti", "confidence": 98,
+            "evidence": "intestazione del tribunale e decreto del presidente di sezione che assegna il ricorso al giudice",
+            "tipo_documento": TipoDocumento.DECRETO, "deposit_role": "fuori_busta", "deposit_candidate": False,
+            "excerpt_pattern": r"assegna\s+(?:il\s+presente|il)\s+ricorso\s+al\s+giudice",
+        }, "normattiva_cpc_art168bis_designazione_giudice"
+    if (
+        re.search(r"^tribunale (?:ordinario )?di\b", zona)
+        and re.search(r"\bsi invita a (?:ridepositare|depositare nuovamente) l autocertificazione\b", zona)
+        and re.search(r"\besenzion\w*\b.{0,80}\bcontributo unificato\b", zona)
+    ):
+        anni = re.search(r"\bredditi percepiti nel (20\d{2}) e non nel (20\d{2})\b", zona)
+        dettaglio = f" Il tribunale indica redditi del {anni[1]} e chiede la dichiarazione per il {anni[2]}." if anni else ""
+        return {
+            "role": "invito_rettifica_esenzione_contributo",
+            "label": "Invito del Tribunale a correggere l’autocertificazione del contributo unificato",
+            "section": "comunicazioni", "confidence": 98,
+            "evidence": "Il tribunale chiede di depositare di nuovo l’autocertificazione per l’esenzione." + dettaglio,
+            "tipo_documento": TipoDocumento.COMUNICAZIONE, "deposit_role": "fuori_busta", "deposit_candidate": False,
+            "excerpt_pattern": r"si\s+invita\s+a\s+(?:ridepositare|depositare\s+nuovamente)",
+        }, "normattiva_dpr_115_2002_art9_contributo_unificato"
     # Ricevuta protocollata dell'istanza online POLIS (graduatorie, supplenze): dichiarazioni rese ai sensi del
     # D.P.R. 445/2000 e prodotte in causa come prova del servizio, non un atto del processo.
     if re.match(r"\W*numero protocollo\W+m pi aoopolis\b", zona) and re.search(r"\bistanza\b", head[:1500]):
@@ -575,7 +663,7 @@ def _content_identity(
             return _sentenza_contestuale(result)
         return result(role="provvedimento", label="Verbale di udienza", section="provvedimenti", confidence=99, evidence="Ufficio, data della comparizione davanti al giudice e sua disposizione nel verbale.", tipo_documento=TipoDocumento.DECRETO, deposit_role="fuori_busta", deposit_candidate=False, excerpt_pattern=r"Successivamente oggi")
     # Documenti d'ufficio che non sono atti di parte (revisione del 10/11/2026: 41 casi letti come «Atto difensivo»).
-    ufficio = _documento_d_ufficio(head)
+    ufficio = _documento_d_ufficio(raw, head)
     if ufficio is not None:
         return replace(result(**ufficio[0]), fonte=ufficio[1])
     # Il cedolino (prospetto di paga, art. 1 L. 4/1953) prodotto in causa: anagrafica del dipendente, rata o
@@ -589,6 +677,18 @@ def _content_identity(
                               tipo_documento=TipoDocumento.ALLEGATO, deposit_role="allegato", deposit_candidate=True,
                               excerpt_pattern=r"cedolino|prospetto\s+(?:di\s+)?paga|busta\s+paga"),
                        fonte="normattiva_legge_4_1953_prospetto_paga")
+    if (
+        re.search(r"(?im)^[ \t*|]*(?:\d+/\d+\s+)?memoria\s+di\s+costituzione\s+ex\s+art\.?\s*417[\s-]*bis\b", raw[:3800])
+        and re.search(r"\bsezione lavoro\b", head[:1500])
+        and re.search(r"\bamministrazione resistente\b|\bministero dell istruzione\b|\bpubblica amministrazione\b", head[:3000])
+    ):
+        return replace(result(
+            role="atto_difensivo", label="Memoria di costituzione della PA ex art. 417-bis c.p.c.",
+            section="atti", confidence=98,
+            evidence="titolo della memoria ex art. 417-bis c.p.c., sezione lavoro e amministrazione indicata in epigrafe",
+            tipo_documento=TipoDocumento.MEMORIA, deposit_role="atto_principale", deposit_candidate=True,
+            excerpt_pattern=r"memoria\s+di\s+costituzione\s+ex\s+art\.?\s*417[\s-]*bis",
+        ), fonte="normattiva_cpc_art417bis_difesa_pa")
     pagamento = _pagamento_spese_di_giustizia(raw, head)
     if pagamento is not None:
         return replace(result(**pagamento[0]), fonte=pagamento[1])

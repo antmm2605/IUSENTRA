@@ -1,3 +1,9 @@
+## 2.489.31 — Riconoscimento dei documenti già letti nel fascicolo
+
+- Riconosce avvisi di pubblicazione, note di trasmissione e di difesa della PA, memorie di costituzione, decreti di assegnazione e inviti a correggere l’autocertificazione.
+- Riconosce i messaggi di deposito con busta PCT anche nelle esportazioni con intestazioni MIME su una riga.
+- Le regole usano le letture e le fonti già presenti. Il nuovo catalogo mantiene le correzioni dell’avvocato.
+
 ## 2.489.30 — Caricamento del Quadro del fascicolo
 
 - La consultazione del Quadro usa il calcolatore in background anche al primo accesso. Se esiste un esito precedente, il pannello lo mostra con i riscontri della Lettura e indica che l’Agenda si sta aggiornando.

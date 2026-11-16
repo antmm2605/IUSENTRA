@@ -360,3 +360,7 @@ Il collegamento della data aggiornata sul RG 1733/2026 riapriva il decreto di se
 ## 16 novembre 2026 — runner CI Ubuntu 26.04
 
 I log del gate obbligatorio (job 133168384226) e del deploy (job 133168384754) del commit `3c832afb` attestano l’uso di Ubuntu 26.04 e il successo di entrambi. I workflow ora selezionano `ubuntu-26.04` esplicitamente. La matrice firmatario conserva gli otto nomi dei check attesi. Verifica prima del commit con confronto strutturale YAML e contratto dei check. Esito del nuovo deploy da documentare dopo l’esecuzione.
+
+## 16 novembre 2026 — catalogo v34, provvedimenti, atti difensivi e buste PCT
+
+Verifica sugli originali e sul testo SQL di tre fascicoli. Il titolo della memoria può trovarsi nella stessa riga del tribunale e della sezione. L'avviso amministrativo riporta l'art. 89 c.p.a. e la nota dell'Ufficio scolastico la formula di trasmissione. Il decreto del presidente assegna il ricorso al giudice. La nota di Avvocatura e la memoria della PA usano l'art. 417-bis c.p.c. L'invito alla rettifica espone l'anno chiesto dal tribunale. Le copie MIME hanno oggetto di deposito, destinatario di giustizia e allegato Atto.enc. La categoria resta distinta dalla ricevuta di consegna o accettazione. Prove sintetiche in `tests/test_catalogo_casi_reali.py`. Verifiche a video e deploy da registrare.

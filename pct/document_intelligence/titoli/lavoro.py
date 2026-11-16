@@ -20,7 +20,7 @@ REGOLE = (
     ),
     regola(
         "memoria_416",
-        r"memoria(?:\s+difensiva)?(?:\s+.*)?",
+        r"(?:tribunale\s+(?:di\s+)?[\w’'\s-]{1,80}\s+sezione\s+lavoro\s+)?memoria(?:\s+difensiva)?(?:\s+.*)?",
         r"\b416\b|\bgiudice\s+del\s+lavoro\b|\bsezione\s+lavoro\b",
         "Memoria difensiva ex art. 416 c.p.c.",
         role="atto_difensivo", section="atti", tipo=TipoDocumento.MEMORIA,

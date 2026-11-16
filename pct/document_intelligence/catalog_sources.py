@@ -23,6 +23,24 @@ CATALOG_SOURCES: dict[str, dict[str, Any]] = {
         "verification_status": "fonte ufficiale disponibile; criteri documentali, non certificazione di conservazione",
         "source_type": "documentale",
     },
+    "normattiva_cpa_art89_comunicazione_sentenza": {
+        "label": "Codice del processo amministrativo, art. 89, comma 3 - comunicazione del deposito della sentenza",
+        "official_url": "https://www.giustizia-amministrativa.it/en/il-codice-del-processo-amministrativo",
+        "verification_status": "testo dell'articolo verificato sul portale della Giustizia amministrativa il 16/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_art417bis_difesa_pa": {
+        "label": "Codice di procedura civile, art. 417-bis - difesa delle pubbliche amministrazioni",
+        "official_url": "https://www.gazzettaufficiale.it/eli/gu/2011/09/21/220/sg/pdf",
+        "verification_status": "articolo riportato nelle note della Gazzetta Ufficiale, consultato il 16/11/2026",
+        "source_type": "normativa",
+    },
+    "normattiva_cpc_art168bis_designazione_giudice": {
+        "label": "Codice di procedura civile, art. 168-bis - designazione del giudice istruttore",
+        "official_url": "https://www.gazzettaufficiale.it/eli/gu/2022/10/17/243/so/38/sg/pdf",
+        "verification_status": "articolo verificato nella Gazzetta Ufficiale il 16/11/2026",
+        "source_type": "normativa",
+    },
     "catalog_pec_ricevute": {
         "label": "D.P.R. 68/2005, art. 6: ricevute di accettazione e avvenuta consegna PEC",
         "official_url": "https://def.finanze.it/DocTribFrontend/getAttoNormativoDetail.do?ACTION=getArticolo&articolo=Articolo+6&codiceOrdinamento=200000600000000&id=%7B28C1CCF5-2E9E-4392-99F5-DBCBD37C97C4%7D",
@@ -185,6 +203,13 @@ def document_source_ids(nature: str, section: str, profile_id: str | None) -> tu
         return common + ("catalog_fatturapa", "catalog_fattura_emissione")
     if nature in {"verbale_mediazione", "modulo_mediazione", "accordo_mediazione", "modulo_procura_mediazione", "procura_mediazione"}:
         return common + ("normattiva_d_lgs_28_2010_mediazione",)
+    if nature in {
+        "comunicazione_pubblicazione_sentenza",
+        "nota_amministrativa_trasmissione_sentenza",
+        "nota_avvocatura_difesa_pa",
+        "invito_rettifica_esenzione_contributo",
+    }:
+        return common
     if (section == "comunicazioni" and nature != "corrispondenza_stragiudiziale") or nature.startswith("ricevuta_pec"):
         return common + ("catalog_pec_ricevute", "catalog_pec_specifiche")
     if section in {"procure", "provvedimenti", "atti"}:

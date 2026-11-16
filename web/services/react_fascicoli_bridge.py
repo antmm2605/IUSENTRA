@@ -9176,6 +9176,11 @@ def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> 
         _text(getattr(appuntamento, "id", "")): _parse_date(getattr(appuntamento, "data_ora", ""))
         for appuntamento in appuntamenti
     }
+    appuntamenti_presidio_note = {
+        _text(getattr(voce, "id", "")) for voce in appuntamenti
+        if _enum_value(getattr(voce, "tipo", "")) == "SCADENZA"
+        and titolo_note_127_ter(_text(getattr(voce, "titolo", "")))
+    }
     termini_note: dict[str, list[tuple[dict, Any]]] = {}
     presidi_note: dict[str, list[tuple[dict, Any]]] = {}
     out = []
@@ -9263,6 +9268,10 @@ def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> 
             ora_vecchia = _time_label(operativo_vecchio) if operativo_vecchio.startswith(giorno + "T") else ""
             if not ora_vecchia or ora_vecchia == ora:
                 presidio["representedByDeadlineId"] = termine["id"]
+                appuntamento_presidio = _text(getattr(vecchio, "id_appuntamento", ""))
+                if (appuntamento_presidio in appuntamenti_presidio_note
+                        and giorni_appuntamenti.get(appuntamento_presidio) == _parse_date(giorno)):
+                    presidio["replacesAppointmentId"] = appuntamento_presidio
         collegato = termine.get("replacesAppointmentId")
         if collegato and giorni_appuntamenti.get(collegato) == _parse_date(giorno):
             continue

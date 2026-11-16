@@ -99,8 +99,11 @@ def test_agenda_fascicolo_riusa_bozza_scritta_con_presidio_storico_e_udienza():
                               data_ora="2026-12-16T14:00:00", hearing_mode="note_scritte")
     altra = SimpleNamespace(id="altra", tipo="UDIENZA", stato="PROGRAMMATO",
                             data_ora="2026-12-16T15:00:00", hearing_mode="note_scritte")
-    righe = {r["id"]: r for r in _deadlines([bozza, presidio], appuntamenti=[udienza, altra])}
+    promemoria = SimpleNamespace(id="storico_rimosso", titolo=titolo, tipo="SCADENZA", stato="PROGRAMMATO",
+                                 data_ora="2026-12-16T09:00:00")
+    righe = {r["id"]: r for r in _deadlines([bozza, presidio], appuntamenti=[udienza, altra, promemoria])}
     assert righe["vecchio"]["representedByDeadlineId"] == "bozza"
+    assert righe["vecchio"]["replacesAppointmentId"] == "storico_rimosso"
     assert righe["bozza"]["replacesAppointmentId"] == "oggi"
     assert righe["bozza"]["writtenHearingTime"] == "14:00"
 

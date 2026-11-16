@@ -13,7 +13,7 @@ env:
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
 jobs:
   esportazione:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5

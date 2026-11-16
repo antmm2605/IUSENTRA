@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   install:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     # GitHub rende visibili le bozze solo a identita con accesso push.
     # Il workflow usa esclusivamente GET: nessuna pubblicazione o modifica della release.

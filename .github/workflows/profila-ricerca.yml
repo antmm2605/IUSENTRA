@@ -23,7 +23,7 @@ env:
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
 jobs:
   profila:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5

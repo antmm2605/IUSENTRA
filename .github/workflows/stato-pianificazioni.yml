@@ -56,7 +56,7 @@ env:
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
 jobs:
   stato:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # La prova della catena notturna (esegui = PROVA_CATENA) dura fino a 50 minuti più gli inventari.
     timeout-minutes: ${{ startsWith(inputs.esegui, 'PROVA_CATENA') && 75 || 40 }}
     steps:

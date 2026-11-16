@@ -13,7 +13,7 @@ env:
 jobs:
   dependency-review:
     name: Review dipendenze in ingresso
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:

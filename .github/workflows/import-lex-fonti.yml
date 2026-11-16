@@ -42,7 +42,7 @@ env:
 jobs:
   import:
     name: Trasferimento, dry-run e importazione Normattiva
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Verifica input e bozza privata

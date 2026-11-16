@@ -18,7 +18,7 @@ env:
 jobs:
   e2e-full-shards:
     name: E2E full suite parte ${{ matrix.shard }}/4
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
@@ -59,7 +59,7 @@ jobs:
 
   e2e-full:
     name: E2E full suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - e2e-full-shards
     if: always()

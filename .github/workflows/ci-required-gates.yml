@@ -27,7 +27,7 @@ env:
 jobs:
   current-sha-gates:
     name: CI reale eseguita sul commit corrente
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 95
 
     steps:

@@ -28,7 +28,7 @@ concurrency:
 jobs:
   prune:
     name: Elimina branch non autorizzati
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Elenca ed elimina i branch fuori allowlist
         uses: actions/github-script@v8

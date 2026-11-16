@@ -28,7 +28,7 @@ env:
 jobs:
   quality:
     name: Lint + syntax
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
 
     steps:
@@ -205,7 +205,7 @@ jobs:
 
   governance:
     name: Governance repo
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: quality
     timeout-minutes: 10
 
@@ -226,7 +226,7 @@ jobs:
 
   smoke-flask:
     name: Smoke test Flask
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - quality
       - governance
@@ -272,7 +272,7 @@ jobs:
 
   smoke-scheduler-worker:
     name: Smoke scheduler worker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - quality
       - governance
@@ -375,7 +375,7 @@ jobs:
 
   tests-core-shards:
     name: Pytest core fase ${{ matrix.label }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - quality
       - governance
@@ -883,7 +883,7 @@ jobs:
 
   tests-core:
     name: Pytest core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - tests-core-shards
     if: always()
@@ -900,7 +900,7 @@ jobs:
 
   critical-coverage-environment:
     name: Ambiente riproducibile della copertura critica
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [quality, governance]
     timeout-minutes: 12
     permissions:
@@ -943,7 +943,7 @@ jobs:
 
   coverage-critical-shards:
     name: Coverage moduli critici parte ${{ matrix.shard }}/12
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - quality
       - governance
@@ -1027,7 +1027,7 @@ jobs:
 
   coverage-baseline-shards:
     name: Baseline copertura critica parte ${{ matrix.shard }}/12
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: critical-coverage-environment
     timeout-minutes: 18
     strategy:
@@ -1091,7 +1091,7 @@ jobs:
 
   critical-coverage-regression:
     name: Regressioni della copertura critica
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: [coverage-critical-shards, coverage-baseline-shards, critical-coverage-environment]
     if: ${{ always() }}
     timeout-minutes: 12
@@ -1143,7 +1143,7 @@ jobs:
 
   e2e-smoke:
     name: E2E smoke
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - quality
       - governance
@@ -1194,7 +1194,7 @@ jobs:
 
   signer-shards:
     name: Local Signer e PKCS#11 (${{ matrix.os }}) parte ${{ matrix.shard }}/4
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     needs:
       - quality
       - governance
@@ -1209,6 +1209,12 @@ jobs:
           # macOS non blocca il deploy (runner Mac di GitHub spesso non assegnati): gira ogni notte in
           # .github/workflows/local-signer-macos.yml (autorizzazione dell'avvocato del 03/11/2026).
         shard: [1, 2, 3, 4]
+        include:
+          # Conserva i nomi dei check richiesti durante la migrazione.
+          - os: ubuntu-latest
+            runner: ubuntu-26.04
+          - os: windows-latest
+            runner: windows-latest
 
     steps:
       - name: Checkout
@@ -1238,7 +1244,7 @@ jobs:
 
   signer-matrix:
     name: Local Signer e PKCS#11
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs:
       - signer-shards
     if: always()

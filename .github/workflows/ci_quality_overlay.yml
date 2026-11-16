@@ -14,7 +14,7 @@ env:
 
 jobs:
   quality-gates:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 12
 
     steps:
@@ -57,7 +57,7 @@ jobs:
 
   targeted-tests:
     name: Targeted tests parte ${{ matrix.shard }}/3
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: quality-gates
     timeout-minutes: 10
     strategy:
@@ -90,7 +90,7 @@ jobs:
 
   targeted-tests-summary:
     name: Targeted tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: targeted-tests
     if: always()
     timeout-minutes: 5

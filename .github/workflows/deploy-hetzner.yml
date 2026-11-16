@@ -63,7 +63,7 @@ jobs:
       actions: read
       checks: read
       statuses: read
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # 90 minutes for required CI plus backup, image build and health checks.
     timeout-minutes: 120
 

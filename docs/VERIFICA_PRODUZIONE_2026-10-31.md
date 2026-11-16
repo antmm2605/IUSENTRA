@@ -356,3 +356,7 @@ Il collegamento della data aggiornata sul RG 1733/2026 riapriva il decreto di se
 - 88 test mirati su Lettura e deposito superati. La corrispondenza con il singolo termine di trattazione scritta e il collaudo sul rilascio sono ancora da verificare.
 - In locale aperta la cronologia con la consegna del 29/09 e l'accettazione del 30/09. La vista Cancelleria mostra la stessa busta e il relativo esito. In Agenda del fascicolo `795C50AC` il decreto apre la stessa bozza delle 14:00 già presente nei Prossimi impegni e nel pannello esteso. Il presidio non propone una seconda creazione. Altri cinque fascicoli con un presidio precedente sono stati aperti e le due viste dell'Agenda rimandano allo stesso termine in ognuno.
 - Il rilascio precedente ha trattenuto la coda attendendo la CI di un commit sostituito. Il gate del deploy ora ricontrolla il commit in testa al branch durante l'attesa. Le verifiche del branch corrente restano obbligatorie. 14 test sulla catena CI/CD e 97 su depositi, Lettura e Agenda superati.
+
+## 16 novembre 2026 — runner CI Ubuntu 26.04
+
+I log del gate obbligatorio (job 133168384226) e del deploy (job 133168384754) del commit `3c832afb` attestano l’uso di Ubuntu 26.04 e il successo di entrambi. I workflow ora selezionano `ubuntu-26.04` esplicitamente. La matrice firmatario conserva gli otto nomi dei check attesi. Verifica prima del commit con confronto strutturale YAML e contratto dei check. Esito del nuovo deploy da documentare dopo l’esecuzione.

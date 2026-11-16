@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   sync-peer-branch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Branch unico main
         run: echo "Mirroring disattivato. Commit, push e deploy esclusivamente su main."

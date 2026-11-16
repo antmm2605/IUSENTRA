@@ -26,7 +26,7 @@ env:
 jobs:
   smoke-staging:
     name: Smoke ambiente
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: staging
     timeout-minutes: 20

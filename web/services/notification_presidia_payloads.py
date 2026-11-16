@@ -325,6 +325,13 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         item for item in required
         if item.get("delivery_status") == "delivered" and item.get("rdac_message_id")
     ] if channel == "pec" else []
+    invii = {str(item.get("sent_message_id") or "") for item in delivered}
+    ricevute_associate = sorted({
+        str(item[campo])
+        for item in delivered for campo in ("rac_message_id", "rdac_message_id")
+        if item.get(campo)
+    })
+    stesso_invio = bool(required and len(delivered) == len(required) and len(invii) == 1 and "" not in invii)
     if channel == "pec" and status in {"DETECTED", "NEEDS_REVIEW"}:
         if required and len(delivered) == len(required):
             next_action = (
@@ -360,7 +367,10 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "rule_label": "Valutazione guidata da fonti normative",
         "legal_sources": _legal_sources(row),
         "next_action": next_action,
-        "consegne_pec": {"richieste": len(required), "collegate": len(delivered)},
+        "consegne_pec": {
+            "richieste": len(required), "collegate": len(delivered),
+            "ricevute": ricevute_associate, "stesso_invio": stesso_invio,
+        },
         "human_review_required": bool(projection.get("humanReviewRequired") or row.get("human_review_required")),
         "legacy_assumed_handled": bool(projection.get("legacyAssumedHandled") or row.get("legacy_assumed_handled")),
         "assigned_user": _assignee(str(projection.get("assignedUserId") or row.get("assigned_user_id") or ""), assignees),

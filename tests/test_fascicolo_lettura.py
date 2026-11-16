@@ -880,3 +880,35 @@ def test_la_busta_del_ricorso_notificato_si_cita_con_la_data_della_ricevuta():
     assert "10/11/2026" in passo.motivo and "243902326" in passo.motivo
     assert "243729027" not in passo.motivo
     assert passo.href == "#sezione-deposito"
+
+
+def test_riusa_solo_le_ricevute_e_il_decreto_dello_stesso_invio():
+    from pct.fascicolo_lettura.notifiche import notifiche
+    from pct.fascicolo_lettura.pec import pec
+    from pct.fascicolo_lettura.ragionamento import passi as passi_ragionamento
+
+    lettura = notifiche([{
+        "status": "NEEDS_REVIEW", "channel": "pec", "notification_case": "explicit_order",
+        "source_message_id": "pec_decreto",
+        "consegne_pec": {
+            "richieste": 2, "collegate": 2, "stesso_invio": True,
+            "ricevute": ["pec_rac", "pec_rdac"],
+        },
+    }], [], fonti_provvedimenti={"decreto": "pec_decreto", "altro": "pec_altro"})
+    corrispondenza = {"collegata": True, "eventi": [{"human_review_required": True}]}
+    pec_lette = pec([
+        {"id": "pec_rac", **corrispondenza},
+        {"id": "pec_rdac", **corrispondenza, "firma": "non_valida", "issues": [
+            {"blocking": True, "title": "firma non valida"},
+        ]},
+        {"id": "pec_altro", **corrispondenza},
+    ], eventi_riscontrati=frozenset(lettura["eventi_pec_riscontrati"]))
+    assert {p["id"] for p in pec_lette["da_controllare"]} == {"pec_rdac", "pec_altro"}
+
+    conclusione = {"codice": "notifica_ordinata", "stato": "dubbio", "onerato": "ignoto", "perche": "Controllo residuo"}
+    causa = {"conclusioni": [
+        {**conclusione, "cosa": "Notificare il decreto", "letto": {"oggetto_id": "decreto"}},
+        {**conclusione, "cosa": "Notificare un altro provvedimento", "letto": {"oggetto_id": "altro"}},
+    ]}
+    passi = passi_ragionamento(causa, provvedimenti_consegnati=frozenset(lettura["provvedimenti_consegnati"]))
+    assert len(passi) == 1 and "un altro provvedimento" in passi[0].azione

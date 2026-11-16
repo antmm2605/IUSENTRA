@@ -55,6 +55,7 @@ def _leggi_presidio(presidio: dict[str, Any]) -> dict[str, Any]:
         "prossima_azione": pulisci(presidio.get("next_action")),
         "consegne_pec": presidio.get("consegne_pec") or {},
         "source_message_id": pulisci(presidio.get("source_message_id")),
+        "caso": pulisci(presidio.get("notification_case")),
         "data": data_it(presidio.get("source_effective_at") or presidio.get("updated_at")),
         "scadenza": data_it(presidio.get("explicit_due_at")),
         "fonti": [pulisci(voce) for voce in list(presidio.get("legal_sources") or []) if pulisci(voce)][:3],
@@ -85,12 +86,31 @@ def _leggi_attivita(attivita: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def notifiche(presidi: list[dict[str, Any]], attivita: list[dict[str, Any]]) -> dict[str, Any]:
+def notifiche(
+    presidi: list[dict[str, Any]],
+    attivita: list[dict[str, Any]],
+    *,
+    fonti_provvedimenti: dict[str, str] | None = None,
+) -> dict[str, Any]:
     letture = [_leggi_presidio(voce) for voce in presidi]
     letture.extend(_leggi_attivita(voce) for voce in attivita if pulisci(voce.get("tipo")).upper() == "NOTIFICA")
     letture.sort(key=lambda voce: voce["data"][6:] + voce["data"][3:5] + voce["data"][:2] if voce["data"] else "")
+    ordini_con_ricevute = {
+        voce["source_message_id"] for voce in letture
+        if voce.get("source_message_id") and voce.get("caso") == "explicit_order"
+        and (voce.get("consegne_pec") or {}).get("stesso_invio")
+    }
+    ricevute = {
+        fonte for voce in letture
+        for fonte in (voce.get("consegne_pec") or {}).get("ricevute", [])
+    }
     return {
         "tutte": letture,
+        "eventi_pec_riscontrati": sorted(ricevute | ordini_con_ricevute),
+        "provvedimenti_consegnati": sorted(
+            documento for documento, fonte in (fonti_provvedimenti or {}).items()
+            if fonte in ordini_con_ricevute
+        ),
         "totale": len(letture),
         "aperte": [voce for voce in letture if voce["aperta"]],
         "perfezionate": [voce for voce in letture if voce["perfezionata"]],

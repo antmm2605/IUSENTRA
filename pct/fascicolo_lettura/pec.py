@@ -98,7 +98,7 @@ def _leggi_udienza(udienza: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None) -> dict[str, Any]:
+def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None, evento_riscontrato: bool = False) -> dict[str, Any]:
     qualita = pulisci(messaggio.get("quality_status")).lower()
     firma = pulisci(messaggio.get("signature_status")).lower()
     eventi = [
@@ -118,7 +118,7 @@ def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None) -> d
             motivi.append(pulisci(issue.get("title") or issue.get("code")))
     if firma in FIRMA_NON_VALIDA:
         motivi.append("firma non valida")
-    if messaggio.get("event_type") != "pct_deposito" and any(voce["da_rivedere"] for voce in eventi):
+    if not evento_riscontrato and messaggio.get("event_type") != "pct_deposito" and any(voce["da_rivedere"] for voce in eventi):
         motivi.append("evento da confermare")
     corrispondenza = pulisci(messaggio.get("corrispondenza")) or ("collegamento" if messaggio.get("collegata") else "")
     collegamento_mancante_da_rivedere = (
@@ -148,8 +148,14 @@ def leggi_messaggio(messaggio: dict[str, Any], *, oggi: date | None = None) -> d
     }
 
 
-def pec(messaggi: list[dict[str, Any]], *, oggi: date | None = None) -> dict[str, Any]:
-    letti = [leggi_messaggio(voce, oggi=oggi) for voce in messaggi]
+def pec(
+    messaggi: list[dict[str, Any]], *, oggi: date | None = None,
+    eventi_riscontrati: frozenset[str] = frozenset(),
+) -> dict[str, Any]:
+    letti = [
+        leggi_messaggio(voce, oggi=oggi, evento_riscontrato=pulisci(voce.get("id")) in eventi_riscontrati)
+        for voce in messaggi
+    ]
     letti.sort(key=lambda voce: voce["ordine"])
     termini_da_registrare = [
         {**termine, "oggetto": voce["oggetto"], "data_pec": voce["data"], "messaggio_id": voce["id"]}

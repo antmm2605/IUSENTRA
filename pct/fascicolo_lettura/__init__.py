@@ -41,7 +41,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v35"
+VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v36"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -128,9 +128,13 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
             testata["rg"], testata["rg_fonte"] = rg_letto, "letto nel deposito telematico conservato nel fascicolo"
     documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=fonti_documenti)
     depositi_letti = depositi(dati.depositi, pulisci(dati.fascicolo.get("canale_operativo")))
-    notifiche_lette = notifiche(dati.notifiche, dati.attivita)
+    fonti_provvedimenti = {
+        doc["id"]: doc["pec_origine"] for doc in dati.documenti
+        if doc.get("id") and pulisci(doc.get("pec_origine")).startswith("pec_")
+    }
+    notifiche_lette = notifiche(dati.notifiche, dati.attivita, fonti_provvedimenti=fonti_provvedimenti)
     notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
-    pec_letto = pec(dati.pec, oggi=oggi)
+    pec_letto = pec(dati.pec, oggi=oggi, eventi_riscontrati=frozenset(notifiche_lette["eventi_pec_riscontrati"]))
     pec_letto["conteggio"] = conteggio_pec(pec_letto, dati.verifiche)
     economico_letto = economico(dati.economico, oggi)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}

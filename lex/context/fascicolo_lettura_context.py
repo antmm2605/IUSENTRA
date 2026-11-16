@@ -81,6 +81,7 @@ def _documento_leggero(documento: Any) -> dict[str, Any]:
     )
     return {
         "id": identificativo,
+        "pec_origine": _clean(getattr(documento, "msg_id_portale", "")).partition("#")[0],
         "nome": nome,
         "tipo": _enum(getattr(documento, "tipo", "")) or "Documento",
         "data_documento": _clean(getattr(documento, "data_documento", ""))[:10],

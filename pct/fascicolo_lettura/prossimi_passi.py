@@ -638,7 +638,11 @@ def prossimi_passi(
         intestazione.get("da_archiviare")
         or pulisci(intestazione.get("stato_codice")).upper() in STATI_SENZA_PASSI
     )
-    passi = passi_ragionamento(ragionamento, trattazione_conclusa=bool(chiusa_con_provvedimento)) if ragionamento else []
+    provvedimenti_consegnati = frozenset(notifiche_lette.get("provvedimenti_consegnati", ()))
+    passi = passi_ragionamento(
+        ragionamento, trattazione_conclusa=bool(chiusa_con_provvedimento),
+        provvedimenti_consegnati=provvedimenti_consegnati,
+    ) if ragionamento else []
     stato = stato_passi(intestazione, documenti_letti, oggi, economico_letto,
                        ragionamento=ragionamento, controlli_aperti=bool(passi))
     giorno_oggi = data_da(oggi)

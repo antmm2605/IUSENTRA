@@ -123,13 +123,16 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
 _PASSI_TRATTAZIONE = frozenset({"note_127ter", "costituzione_convenuto", "costituzione_attore"})
 
 
-def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False) -> list[Passo]:
+def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedimenti_consegnati: frozenset[str] = frozenset()) -> list[Passo]:
     """I prossimi passi giuridici: esclude gli adempimenti di trattazione dopo il provvedimento conclusivo."""
 
     esito: list[Passo] = []
     for voce in causa.get("conclusioni") or []:
         if voce["stato"] not in {"da_fare", "dubbio"} or voce.get("onerato") in {"controparte", "terzo"}:
             continue
+        if (voce["codice"] == "notifica_ordinata"
+                and (voce.get("letto") or {}).get("oggetto_id") in provvedimenti_consegnati):
+            continue  # Il presidio espone il riscontro della stessa notifica, con le fonti PEC.
         if trattazione_conclusa and voce["codice"] in _PASSI_TRATTAZIONE:
             # La conclusione resta consultabile nei Riscontri, come dato storico da verificare.
             continue

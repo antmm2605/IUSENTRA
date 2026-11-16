@@ -215,18 +215,14 @@ def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
 
 
 def _esecuzione_pa(fascicolo_id: str) -> dict[str, Any] | None:
-    """I 120 giorni dell'art. 14 D.L. 669/1996 dalla sintesi degli obblighi di notifica (sentenza notificata alla P.A.)."""
-    try:
-        from web.services.obblighi_notifica_sintesi import leggi
+    """Riprende i 120 giorni dalla Lettura preparata per la notifica provata del titolo alla P.A."""
+    from web.services.riscontri_processuali_runtime import lettura_materializzata
 
-        sintesi = leggi(fascicolo_id) or {}
-    except Exception:
-        return None
-    for obbligo in sintesi.get("obblighi") or []:
-        for termine in obbligo.get("termini") or []:
-            if termine.get("codice") == "esecuzione_pa_120_giorni":
-                return dict(termine)
-    return None
+    quadro = ((lettura_materializzata(fascicolo_id) or {}).get("ragionamento") or {})
+    date = [v["termine"]["scadenza_iso"] for v in quadro.get("conclusioni") or ()
+            if v.get("codice") == "esecuzione_pa" and not v.get("dubbi")
+            and (v.get("termine") or {}).get("scadenza_iso")]
+    return {"deadline": date[0]} if len(date) == 1 else None
 
 
 def conto_economico_fascicolo(fascicolo_id: str) -> dict[str, Any]:

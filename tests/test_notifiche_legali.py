@@ -1483,7 +1483,7 @@ def test_notifica_l53_senza_documenti_non_inventa_allegato_generico():
     assert "Attestazione di conform" not in preview["previewText"]
     assert "A) - Relata di notifica." not in preview["previewText"]
     assert "HO NOTIFICATO" not in preview["previewText"]
-    assert "BOZZA INCOMPLETA" in preview["previewText"]
+    assert preview["previewText"] == ""
     assert "Atti da notificare" in preview["missingFields"]
     assert result.ok is True
     assert result.blockers == []

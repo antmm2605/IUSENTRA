@@ -3382,7 +3382,7 @@ export function NotificheLegaliPage() {
     try {
       const preview = await previewLegalRelata(payload, controller.signal)
       if (controller.signal.aborted || requestId !== relataPreviewRequestIdRef.current) return
-      const displayPreview = savedDraftForPreview
+      const displayPreview = savedDraftForPreview && !preview.missingFields.includes('Atti da notificare')
         ? {
             ...preview,
             ok: true,
@@ -4866,6 +4866,8 @@ export function NotificheLegaliPage() {
                         <div className="iu-legal-list iu-legal-list--blockers">
                           {displayedRelataPreview.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {userFacingNotice(item)}</span>)}
                         </div>
+                      ) : displayedRelataPreview.missingFields.includes('Atti da notificare') ? (
+                        <p className="iu-legal-template-message">Bozza incompleta. Aggiungi alla preparazione gli atti da notificare per ottenere la relata compilata.</p>
                       ) : (
                         <pre>{displayedRelataPreview.previewText || (relataPreviewWorking ? 'Ricalcolo dell’anteprima in corso…' : 'Compila i dati principali per vedere la relata con valori e dati mancanti evidenziati.')}</pre>
                       )}
@@ -5161,8 +5163,12 @@ export function NotificheLegaliPage() {
                     </a>
                   ) : null}
                   <div className="iu-legal-automatic-rules">
-                    <span><CheckCircle2 size={14} /> Relata separata predisposta automaticamente</span>
-                    <span><CheckCircle2 size={14} /> Attestazione di conformità prodotta quando richiesta</span>
+                    {currentNotificationDocuments.length ? (
+                      <span>La relata si compila con gli atti selezionati e i dati dei destinatari.</span>
+                    ) : (
+                      <span><AlertTriangle size={14} /> Aggiungi gli atti per compilare la relata.</span>
+                    )}
+                    {attestationDocuments.length ? <span>La preparazione comprende l’attestazione per le copie selezionate.</span> : null}
                   </div>
                 </div>
               </div>

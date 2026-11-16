@@ -14,7 +14,7 @@ from pct.ora_italiana import oggi_roma
 from pct.pannelli_pronti.impronta import revisioni_database
 from web.services.registro_letture_runtime import percorso_registro, tenant_corrente
 
-VERSIONE = "obblighi-notifica-fonti:v3"
+VERSIONE = "obblighi-notifica-fonti:v4"
 
 
 def _apri(percorso: str) -> sqlite3.Connection:

@@ -80,6 +80,14 @@ def test_sentenza_notificata_termine_breve_giudicato_e_120_giorni_contro_la_pa()
                        "esecuzione_pa_120_giorni": "2026-08-18"}
     assert "20/04/2026" in obbligo.motivo and "19/08/2026" in obbligo.motivo
 
+    contesto["termini_sentenza_nei_riscontri"] = True
+    obbligo = obblighi_del_fascicolo([sentenza], parti, ufficio="Tribunale di Reggio Calabria", contesto=contesto,
+                                     oggi=date(2026, 11, 10))[0]
+    assert obbligo.stato == STATO_NOTIFICATO
+    assert obbligo.calcoli == []
+    assert "20/04/2026" in obbligo.motivo and "Riscontri del fascicolo" in obbligo.motivo
+    assert "19/08/2026" not in obbligo.motivo
+
 
 def test_termine_breve_fuori_dal_lavoro_con_sospensione_feriale():
     calcoli = termini_dalla_notifica("2026-07-20", lavoro=False, contro_pa=False, condanna=True)

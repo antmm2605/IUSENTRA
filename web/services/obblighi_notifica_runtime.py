@@ -315,7 +315,7 @@ def obblighi_fascicolo(fascicolo: Any, *, rigoroso: bool = False) -> list[dict[s
     esito = []
     for documento in documenti:
         verificata = verifiche.get(documento.id, {})
-        locale = dict(contesto)
+        locale = {**contesto, "termini_sentenza_nei_riscontri": True}
         if verificata:
             documento = replace(documento, nostro=verificata["atto_studio"],
                                 udienze=(verificata["udienza"],) if verificata.get("udienza") else documento.udienze)

@@ -4980,11 +4980,7 @@ def preview_legal_relata(payload: dict[str, Any]) -> dict[str, Any]:
         # Prima di acquisire gli atti, l'anteprima non può simulare una
         # notifica eseguita né elencare la sola relata come atto notificato.
         missing.append("Atti da notificare")
-        preview_text = (
-            "BOZZA INCOMPLETA — RELATA DI NOTIFICA\n\n"
-            "Acquisisci nel fascicolo gli atti da notificare e aggiungili alla preparazione. "
-            "A quel punto l’anteprima riporterà i documenti effettivi."
-        )
+        preview_text = ""
     missing = list(dict.fromkeys([*missing, *_recipient_missing_fields(context)]))
     return {
         "ok": True,

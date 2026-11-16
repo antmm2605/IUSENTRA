@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-DK0k_H2l.js";export{e as ImpostazioniPage};

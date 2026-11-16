@@ -10300,9 +10300,12 @@ function DetailPage({ id }:{id:string}) {
     openDetailSectionById(sectionId)
   }
   const quadroFascicolo = (
-    <QuadroFascicolo lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => openDetailSectionById(
-      sezione === 'sezione-andamento' ? 'lettura-fascicolo' : sezione === 'sezione-economia' ? 'conto-economico' : sezione
-    )}/>
+    <QuadroFascicolo lettura={quadro.lettura} onRiprova={quadro.riprova} onApriSezione={(sezione) => {
+      const destinazione = sezione === 'sezione-andamento' ? 'lettura-fascicolo' : sezione === 'sezione-economia' ? 'conto-economico' : sezione
+      // Il Quadro può essere visibile prima che siano montate le sezioni del fascicolo.
+      setActiveHashSection(destinazione)
+      openDetailSectionById(destinazione)
+    }}/>
   )
   if (loading && data.fascicolo.id !== id) return (
     <main className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">

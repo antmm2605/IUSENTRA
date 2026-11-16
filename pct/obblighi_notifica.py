@@ -402,6 +402,13 @@ def _sentenza_notificata(obbligo: "ObbligoNotifica", prova: dict[str, Any], cont
     from pct.sentenza_notificata import termini_dalla_notifica
 
     data = str(prova.get("data") or prova.get("data_consegna") or "")[:10]
+    if contesto.get("termini_sentenza_nei_riscontri"):
+        momento = f" del {_data_it(data)}" if _data_it(data) else ""
+        obbligo.motivo = (
+            f"Riscontro di notifica{momento} nei documenti archiviati. "
+            "Per le decorrenze e la prova del titolo notificato consulta i Riscontri del fascicolo."
+        )
+        return
     condanna = (contesto.get("condanne_al_pagamento") or {}).get(obbligo.documento.id)
     calcoli = termini_dalla_notifica(data, lavoro=bool(contesto.get("rito_lavoro")), contro_pa=_contro_pa(obbligo.destinatari),
                                      condanna=bool(condanna), oggi=oggi)

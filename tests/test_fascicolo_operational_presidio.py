@@ -148,8 +148,9 @@ def test_presidio_operativo_non_attribuisce_controlli_senza_prova_o_dati_identif
     sectors = {sector["id"]: sector for sector in payload["sectors"]}
 
     assert sectors["documenti"]["statusLabel"] == "Nessun documento procedurale da analizzare"
-    assert sectors["pec"]["statusLabel"] == "Verifica PEC necessaria"
-    assert sectors["pec"]["actions"][0]["href"].endswith("#cancelleria")
+    assert sectors["pec"]["statusLabel"] == "Nessuna comunicazione o ricevuta collegata"
+    assert sectors["pec"]["href"].endswith("#cancelleria")
+    assert sectors["pec"]["actions"] == []
     assert sectors["relata"]["statusLabel"] == "Nessuna notifica in lavorazione"
     assert sectors["relata"]["actions"] == []
     assert sectors["economico"]["statusLabel"] == "1 controllo economico aperto"

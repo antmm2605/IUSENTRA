@@ -315,32 +315,14 @@ def _pec_sector(
             ],
         )
     if not deposits:
-        action = _action(
-            sector="pec",
-            action_id="verifica-comunicazioni-pec",
-            title="Verificare comunicazioni PEC e ricevute",
-            reason="Nel fascicolo non risultano ancora comunicazioni PEC o esiti di deposito collegati a una prova verificabile. Apri Comunicazioni / Cancelleria e associa gli elementi pertinenti prima di considerare controllate le decorrenze.",
-            priority="P2",
-            tone="warning",
-            href=f"/fascicoli/{fid}#cancelleria" if fid else "#cancelleria",
-            source="Comunicazioni e cancelleria del fascicolo",
-            legal_basis="Presidio PEC e termini del fascicolo",
-            blocking=False,
-        )
         return _sector(
             sector_id="pec",
             label="Presidio PEC",
-            status="da_verificare",
-            status_label="Verifica PEC necessaria",
-            tone="warning",
-            summary="Non sono disponibili nel fascicolo prove PEC o esiti deposito sufficienti per attestare il controllo delle comunicazioni.",
-            href=action["href"],
-            actions=[action],
-            questions=[
-                "Esiste una PEC di cancelleria non ancora associata a questo fascicolo?",
-                "La prossima scadenza deriva da PEC, da documento o da inserimento manuale?",
-                "Ci sono ricevute o esiti PCT da acquisire prima di chiudere il controllo?",
-            ],
+            status="nessuna_comunicazione",
+            status_label="Nessuna comunicazione o ricevuta collegata",
+            tone="neutral",
+            summary="Le comunicazioni e le ricevute collegate compariranno qui insieme ai riscontri del fascicolo.",
+            href=f"/fascicoli/{fid}#cancelleria" if fid else "#cancelleria",
         )
     return _sector(
         sector_id="pec",

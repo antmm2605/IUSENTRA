@@ -6,7 +6,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 1356.
+- File pytest censiti: 1357.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
@@ -16,7 +16,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend | 195 |
 | E2E | 15 |
 | Frontend static gate | 1 |
-| Frontend/UI | 449 |
+| Frontend/UI | 450 |
 | RBAC | 180 |
 | Security | 64 |
 | Smoke CLI | 6 |
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 98 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 223 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 728 |
+| 09-misc | Test non classificati dalle fasi principali | 729 |
 
 ## Suite CI aggiuntive
 
@@ -84,7 +84,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Agenda | Frontend/UI | tests/test_calendar_sql_records.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Agenda | Frontend/UI | tests/test_preparazioni_agenda_links.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Agenda | RBAC | tests/test_agenda_concurrent_api.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Agenda | RBAC | tests/test_agenda_del_fascicolo_ruolo.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Agenda | RBAC | tests/test_agenda_del_fascicolo_ruolo.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | RBAC | tests/test_agenda_linguaggio.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | RBAC | tests/test_agenda_sql_concurrency.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Security | tests/test_agenda_new_case_context.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -324,6 +324,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Frontend/UI | tests/test_catalogo_profilo_parziale.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_catena_notturna_fascicolo_completo.py | tenant, feature flag, audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_censimento_spazio.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| Backend domain | Frontend/UI | tests/test_cerdef_biblioteca_edizioni.py | 401 anonimo, contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_codici_oggetto_sici_xsd_esercizio.py | contratto | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_collaudo_lettore.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Backend domain | Frontend/UI | tests/test_collaudo_motori.py | tenant | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

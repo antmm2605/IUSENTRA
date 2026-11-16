@@ -241,6 +241,23 @@ export function LetturaFascicoloPanel({
         ))}
       </section>
 
+      {lettura.depositi.messaggi_archiviati?.length ? (
+        <details className="iu-fas-lettura__blocco">
+          <summary>Messaggi di deposito archiviati</summary>
+          <p>Per questi messaggi mancano le ricevute collegate di consegna e l’esito della cancelleria.</p>
+          <ul>
+            {lettura.depositi.messaggi_archiviati.map((messaggio) => (
+              <li key={messaggio.documento_id}>
+                {messaggio.data ? <time dateTime={messaggio.data}>{formatDateIt(messaggio.data)} · </time> : null}
+                <a href={`/fascicoli/${encodeURIComponent(fascicoloId)}/documenti/${encodeURIComponent(messaggio.documento_id)}/visualizza`}>
+                  {messaggio.atto || 'Apri il messaggio di deposito'}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+
       <div className="iu-fas-lettura__colonne">
         <section className="iu-fas-lettura__blocco" aria-label="Di che cosa tratta il fascicolo">
           <h4>Di che cosa tratta</h4>

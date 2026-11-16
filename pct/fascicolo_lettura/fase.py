@@ -69,14 +69,11 @@ def fase(
         descrizione = f"atto notificato ({ultima['atto']}, {ultima['data']}): in attesa di iscrizione a ruolo o costituzione"
         prove.append(f"notifica perfezionata: {ultima['atto']} del {ultima['data']}")
 
-    # Senza depositi registrati valgono le copie dei messaggi di deposito conservate nel fascicolo (art. 13 D.M. 44/2011).
-    from pct.procedura_fasi.ruolo_dagli_atti import depositi_dalle_copie_pec
-
-    copie_deposito = [] if depositi_letti["tutti"] else depositi_dalle_copie_pec(atti, fonti or [])
+    copie_deposito = depositi_letti.get("messaggi_archiviati") or []
     if copie_deposito:
         primo = copie_deposito[0]
         codice = CODICE_FASE_DEPOSITATA
-        descrizione = f"atto depositato telematicamente il {data_it(primo['data'])} («{primo['atto']}»): in attesa del numero di ruolo"
+        descrizione = f"messaggio di deposito del {data_it(primo['data'])} per «{primo['atto']}»: ricevute del deposito da riscontrare"
         prove.append(f"messaggio di deposito telematico del {data_it(primo['data'])} conservato nel fascicolo")
 
     importati = depositi_letti.get("importati") or []
@@ -87,7 +84,7 @@ def fase(
         descrizione = ("ricorso iscritto a ruolo, in attesa del provvedimento del giudice" if rito in {"volontaria", "decreto_ingiuntivo"}
                        else "causa iscritta a ruolo, in attesa della prima udienza")
         if copie_deposito and not depositi_letti["perfezionati"]:
-            prove.append(f"deposito telematico inviato il {data_it(copie_deposito[0]['data'])}"
+            prove.append(f"messaggio di deposito del {data_it(copie_deposito[0]['data'])} conservato nel fascicolo"
                          + (f"; RG {copie_deposito[-1]['rg']} indicato nel deposito del {data_it(copie_deposito[-1]['data'])}" if copie_deposito[-1].get("rg") else ""))
         if depositi_letti["perfezionati"]:
             ultimo = depositi_letti["perfezionati"][-1]

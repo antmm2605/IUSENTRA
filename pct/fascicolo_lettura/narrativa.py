@@ -80,6 +80,10 @@ def depositi_e_notifiche(lettura: dict[str, Any]) -> list[str]:
         for deposito in [voce for voce in depositi["tutti"] if not voce.get("importato")][-4:]:
             ricevute = f"; ricevute: {elenco(deposito['ricevute'])}" if deposito["ricevute"] else "; nessuna ricevuta registrata"
             righe.append(f"  · {deposito['data'] or 'senza data'} {deposito['atto']}: {deposito['fase']}" + ("" if deposito["perfezionato"] else f", {deposito['attesa']}") + ricevute + ".")
+    elif messaggi := depositi.get("messaggi_archiviati"):
+        righe.append(f"- Messaggi di deposito archiviati: {len(messaggi)}. Esiti delle buste non collegati.")
+        for messaggio in messaggi[-4:]:
+            righe.append(f"  · {messaggio['data'] or 'senza data'} · {messaggio['atto']}.")
     else:
         righe.append("- Nessun deposito telematico registrato.")
     if notifiche["totale"]:

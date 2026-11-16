@@ -1030,6 +1030,26 @@ def is_legal_notification_subject(value: Any) -> bool:
     )
 
 
+_PEC_CASELLA = re.compile(r"[A-Z0-9._%+\-']+@[A-Z0-9.\-]+\.[A-Z]{2,}", re.I)
+
+
+_AVVOCATURA_STATO_RE = re.compile(r"\bavvocatura\b(?:\s+distrettuale\b|.{0,48}\b(?:dello|di)\s+stato\b)", re.I)
+
+
+def nome_avvocatura_stato(valore: str) -> bool:
+    testo = str(valore or "").casefold()
+    return bool("avvocaturastato.it" in testo or _AVVOCATURA_STATO_RE.search(testo))
+
+
+def recapito_pec_destinatario(indirizzo: str) -> str:
+    """Distingue una casella dagli identificativi dei messaggi e dagli indirizzi tecnici dei gestori."""
+    pulito = text(indirizzo).lower()
+    casella = pulito.partition("@")[0]
+    if casella in {"posta-certificata", "postacert"} or casella.endswith(".posta-certificata"):
+        return ""
+    return pulito if _PEC_CASELLA.fullmatch(pulito) else ""
+
+
 def normalise_public_register(value: Any) -> str:
     raw = text(value).lower().replace("-", "_").replace(" ", "_").replace(".", "")
     aliases = {
@@ -5090,6 +5110,8 @@ def validate_legal_notification(
             warnings.append(block("DESTINATARIO_NOME_REQUIRED", f"{label}: indica nome o denominazione."))
         if not recipient["pec"]:
             warnings.append(block("DESTINATARIO_PEC_REQUIRED", f"{label}: indica l'indirizzo PEC."))
+        elif not recapito_pec_destinatario(recipient["pec"]):
+            warnings.append(block("DESTINATARIO_PEC_NON_RECAPITO", f"{label}: indica una casella PEC del destinatario, non il riferimento di un messaggio o del gestore."))
         if not recipient["tipo"]:
             warnings.append(block("DESTINATARIO_RUOLO_REQUIRED", f"{label}: seleziona il ruolo nella notifica."))
         if recipient["tipo"] in CLIENT_RECIPIENT_ROLES:

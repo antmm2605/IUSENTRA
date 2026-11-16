@@ -77,10 +77,29 @@ def _scadenza(voce: Any) -> dict[str, Any]:
     )} | {"data": str(getattr(voce, "data_scadenza", "") or getattr(voce, "data", "") or "")}
 
 
+def _parti_delle_note(fascicolo: Any, parti: list[tuple[Any, Any]]) -> dict[str, str]:
+    from pct.notifiche_legali import nome_avvocatura_stato
+
+    controparte = str(getattr(fascicolo, "controparte", "") or "").strip()
+    nomi = {"controparte": set(), "difensore_controparte": set()}
+    for parte, soggetto in parti:
+        ruolo = getattr(parte.ruolo, "value", parte.ruolo)
+        nome = str(getattr(soggetto, "nome_completo", "") or getattr(soggetto, "ragione_sociale", "") or "").strip()
+        if nome and ruolo == "CONTROPARTE" and not nome_avvocatura_stato(nome):
+            nomi["controparte"].add(nome)
+        if nome and ruolo == "DIFENSORE_CONTROPARTE":
+            nomi["difensore_controparte"].add(nome)
+    if controparte:
+        chiave = "difensore_controparte" if nome_avvocatura_stato(controparte) else "controparte"
+        if not nomi[chiave]:
+            nomi[chiave].add(controparte)
+    return {campo: next(iter(valori)) if len(valori) == 1 else "" for campo, valori in nomi.items()}
+
+
 def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
     """Fascicolo, scadenze e termini proposti dal presidio PEC, dagli stessi gestori della Lettura (tenant della richiesta)."""
     from lex.context.fascicolo_lettura_context import _fascicolo_dict
-    from web.helpers import get_fascicoli, get_scadenziario
+    from web.helpers import get_fascicoli, get_scadenziario, get_soggetti
     from web.services.riscontri_processuali_runtime import lettura_materializzata
 
     fascicolo = get_fascicoli().get(str(fascicolo_id or "").strip())
@@ -96,7 +115,11 @@ def dati_del_fascicolo(fascicolo_id: str) -> dict[str, Any] | None:
     termini = quadro_pec.get("termini_da_registrare") or []
     ragionamento = (lettura or {}).get("ragionamento") or {}
     conclusioni = None if lettura is None else (ragionamento.get("conclusioni") or [])
-    return {"fascicolo": _fascicolo_dict(fascicolo), "scadenze": scadenze, "termini_pec": termini,
+    try:
+        parti = get_soggetti().parti_fascicolo(str(fascicolo.id))
+    except Exception:
+        parti = []
+    return {"fascicolo": _fascicolo_dict(fascicolo), "parti_note": _parti_delle_note(fascicolo, parti), "scadenze": scadenze, "termini_pec": termini,
             "conclusioni": conclusioni, "lettura": lettura}
 
 
@@ -138,6 +161,7 @@ def _bozze_preparate(dati: dict[str, Any], passaggi: list[Passaggio]) -> dict[st
     if not proposte:
         return {}
     fascicolo = dati["fascicolo"]
+    parti = dati.get("parti_note") or {}
     rg = str((lettura.get("intestazione") or {}).get("rg") or "").removeprefix("RG ").removeprefix("R.G. ")
     bozze = {}
     for passaggio in passaggi:
@@ -151,16 +175,47 @@ def _bozze_preparate(dati: dict[str, Any], passaggi: list[Passaggio]) -> dict[st
                 "testo": testo_note(
                     proposta, ufficio=str(fascicolo.get("tribunale") or ""), rg=rg,
                     giudice=str(fascicolo.get("giudice") or ""), parte=str(fascicolo.get("cliente") or ""),
-                    controparte=str(fascicolo.get("controparte") or ""),
+                    controparte=parti.get("controparte", str(fascicolo.get("controparte") or "")),
+                    difensore_controparte=parti.get("difensore_controparte", ""),
                     difensore=str(fascicolo.get("avvocato_referente") or ""),
+                    sezione=str(fascicolo.get("sezione") or ""),
                 ),
             }
     return bozze
 
 
+def _impagina_bozza_note(testo: str) -> str:
+    from lxml import html
+    from pct.editor_ai.editor_renderer import legal_markdown_to_editor_html
+    from web.blueprints.template_atti import _compiled_editor_html_builder
+
+    corpo = html.fragment_fromstring(legal_markdown_to_editor_html(testo), create_parent="div")
+    for blocco in corpo:
+        contenuto = " ".join(blocco.text_content().split())
+        if blocco.tag == "h1":
+            stile = "text-align:center;font-size:18pt;font-weight:bold"
+        elif blocco.tag == "h2" or contenuto.startswith("R.G. ") or contenuto in {"Per", "contro"}:
+            stile = "text-align:center;font-size:14pt;font-weight:bold"
+        elif contenuto.strip("*").startswith(("Giudice: ", "Udienza del ")):
+            blocco.text = contenuto.strip("*")
+            stile = "text-align:center;font-style:italic"
+            if contenuto.strip("*").startswith("Udienza del "):
+                stile += ";text-decoration:underline"
+        else:
+            stile = "text-align:justify"
+        blocco.set("style", stile + ";margin:0")
+    frammento = "".join(html.tostring(blocco, encoding="unicode") for blocco in corpo)
+    # Profilo misurato sull'atto dello studio già depositato nel RG 7646/2023.
+    stile = {
+        "font_family": "times_new_roman", "heading_font_family": "times_new_roman", "font_size_pt": 12, "line_height": 2,
+        "text_align": "justify", "margin_left_mm": 20, "margin_right_mm": 19, "margin_top_mm": 25, "margin_bottom_mm": 22,
+    }
+    return _compiled_editor_html_builder(testo, frammento, stile)(testo)
+
+
 def apri_bozza_note(fascicolo_id: str, chiave: str, documento_id: str) -> dict[str, str]:
     from hashlib import sha256
-    from pct.editor_ai.editor_renderer import create_editor_document, legal_markdown_to_editor_html
+    from pct.editor_ai.editor_renderer import create_editor_document
     from pct.prima_nota_transition import prima_nota_source_lock
     from web.helpers import get_fascicoli
     from web.services.document_crypto import encrypt_doc
@@ -193,7 +248,7 @@ def apri_bozza_note(fascicolo_id: str, chiave: str, documento_id: str) -> dict[s
         doc = create_editor_document(
             fascicoli_repository=repository, fascicolo_id=fascicolo_id,
             title=preparata["titolo"] + " " + preparata["termine"],
-            html_content=legal_markdown_to_editor_html(preparata["testo"]),
+            html_content=_impagina_bozza_note(preparata["testo"]),
             created_by=utente_corrente()[0], encrypt=encrypt_doc,
             fonte_documento="BOZZA_NOTE_127_TER",
             note=f"Bozza da rivedere. Provvedimento {preparata['documento']} ({preparata['documento_id']}).",

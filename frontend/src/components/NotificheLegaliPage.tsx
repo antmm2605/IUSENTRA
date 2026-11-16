@@ -3160,6 +3160,7 @@ export function NotificheLegaliPage() {
     setSelectedPracticeId(practice.id)
     const destinatariAutomatici = practice.destinatari.filter((item) => Boolean(item.pec) && !isManualNotificationRecipient(item))
     const primoDestinatario = destinatariAutomatici[0] || practice.destinatari.find((item) => !isManualNotificationRecipient(item)) || null
+    const parteRappresentata = primoDestinatario?.parteRappresentata ?? practice.controparte
     setSelectedRecipientId(primoDestinatario?.id || '')
     setSelectedRecipientIds(primoDestinatario?.id ? [primoDestinatario.id] : [])
     setSelectedDocumentId('')
@@ -3188,7 +3189,7 @@ export function NotificheLegaliPage() {
       destinatario_nome: primoDestinatario?.nome || practice.controparte || '',
       destinatario_cf: primoDestinatario?.codiceFiscalePiva || practice.controparteCf || '',
       destinatario_pec: primoDestinatario?.pec || '',
-      destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || practice.controparte || '',
+      destinatario_parte_rappresentata: parteRappresentata,
       ruolo_destinatario: primoDestinatario?.ruolo || 'controparte',
       fonte_pec_destinatario: primoDestinatario?.fontePecSuggerita || 'reginde',
       nome_file: '',
@@ -3200,7 +3201,7 @@ export function NotificheLegaliPage() {
       ...current,
       procedimento_giudice: practice.procedimento.giudice || current.procedimento_giudice || '',
       tipo_procedimento: practice.procedimento.tipoProcedimento || current.tipo_procedimento || '',
-      destinatario_parte_rappresentata: primoDestinatario?.parteRappresentata || practice.controparte || '',
+      destinatario_parte_rappresentata: parteRappresentata,
     }))
     setCliente((current) => ({
       ...current,

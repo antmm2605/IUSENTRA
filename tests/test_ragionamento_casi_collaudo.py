@@ -701,3 +701,24 @@ def test_riscontro_storico_congiunto_individua_la_notifica_gia_consegnata():
     prova["impronte_allegati"] = ["b" * 64]
     incompleta = conclusione(ragiona(fonti(LAVORO, atti, fatti=[riscontro, dati_decreto])), "notifica_ordinata")
     assert not any(d.codice == "validita_notifica_ordinata" for d in incompleta.dubbi)
+
+
+def test_copie_della_sentenza_riconosciute_dal_dispositivo_e_dalla_data():
+    from pct.ragionamento.atti import _copie_della_sentenza
+    from pct.ragionamento.modello import Atto
+
+    contenuto = (
+        "P.Q.M. Il Tribunale, definitivamente pronunciando sul ricorso in atti, accoglie la domanda "
+        "e condanna la parte resistente alla rifusione delle spese di lite, che liquida in euro 100,00 "
+        "oltre accessori di legge e con distrazione. Vicenza, 7/11/2025. Il giudice"
+    )
+    a = Atto("A", "Sentenza", "sentenza", "sentenza", rg="1506/2025",
+             sentenza=True, testo="Sentenza n. 605/2025 pubblicata il 10/11/2025. " + contenuto)
+    b = Atto("B", "Copia", "sentenza", "sentenza", rg="1506/2025",
+             sentenza=True, testo="Sentenza del Tribunale. " + contenuto)
+    c = Atto("C", "Altro", "sentenza", "sentenza", rg="1506/2025",
+             sentenza=True, testo="Sentenza n. 606/2025 pubblicata il 10/11/2025. " + contenuto)
+    _copie_della_sentenza([a, b, c])
+    assert not a.copie and not b.copie and not c.copie
+    _copie_della_sentenza([a, b])
+    assert a.copie == ["B"] and b.copie == ["A"]

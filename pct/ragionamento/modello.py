@@ -111,6 +111,7 @@ class Termine:
     conseguenze: str = ""
     rimedi: str = ""
     natura: str = ""  # finestra procedurale o attesa minima, quando non è un termine per adempiere
+    ora_assegnata: str = ""  # Ora espressa nel provvedimento, distinta dall'orario dell'udienza.
 
 
 @dataclass

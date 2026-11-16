@@ -55,8 +55,11 @@ def riscontro_incasso(voce: dict[str, Any], parcelle: list[dict[str, Any]]) -> s
 
 
 def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcelle: list[dict[str, Any]]) -> tuple[list[Conclusione], dict[str, Any]]:
+    from ..atti import priorita_fonte_sentenza
+
     risultato, liquidazioni, visti = [], [], set()
-    for atto in ctx.della_causa():
+    atti = sorted(ctx.della_causa(), key=priorita_fonte_sentenza)
+    for atto in atti:
         if atto.autore != "giudice" or atto.id in visti:
             continue
         visti.update([atto.id, *atto.copie])

@@ -17,6 +17,8 @@ from pct.notifiche_legali import (
     LEGAL_RECIPIENT_ROLES,
     NON_PEC_NOTIFICATION_TYPES,
     PUBLIC_PEC_REGISTERS,
+    nome_avvocatura_stato,
+    recapito_pec_destinatario,
     UNEP_NOTIFICATION_TYPES,
     UNEP_REQUEST_TYPES,
     available_template_fields,
@@ -218,11 +220,7 @@ def _subject_identity(soggetto: Any, pec: str = "") -> str:
 
 
 def _is_state_attorney_subject(soggetto: Any, pec: str = "") -> bool:
-    identity = _subject_identity(soggetto, pec)
-    return bool(
-        "avvocaturastato.it" in identity
-        or re.search(r"\bavvocatura\b.{0,48}\b(?:dello|di)\s+stato\b", identity)
-    )
+    return nome_avvocatura_stato(_subject_identity(soggetto, pec))
 
 
 def _is_public_administration_subject(soggetto: Any, pec: str = "") -> bool:
@@ -739,7 +737,7 @@ def _notification_suggestion_from_kind(kind: str, source: str) -> dict[str, str]
 
 def _infer_fallback_recipient_role(name: str) -> str:
     text = _text(name).lower()
-    if "avvocatura" in text and "stato" in text:
+    if nome_avvocatura_stato(text):
         return "difensore"
     if any(token in text for token in ("ministero", "mim", "miur", "comune", "agenzia", "inps", "inail")):
         return "pa"
@@ -758,7 +756,7 @@ def _recipient_from_plain(
     source: str = "",
 ) -> dict[str, Any]:
     clean_name = _display_text(name)
-    clean_pec = _text(pec).lower()
+    clean_pec = recapito_pec_destinatario(pec)
     resolved_role = role or _infer_fallback_recipient_role(clean_name)
     resolved_source = source or (
         "reginde"
@@ -776,7 +774,7 @@ def _recipient_from_plain(
         "ruolo": resolved_role,
         "ruoloPratica": resolved_role,
         "fontePecSuggerita": resolved_source,
-        "parteRappresentata": _display_text(represented or clean_name),
+        "parteRappresentata": _display_text(represented or ("" if nome_avvocatura_stato(clean_name) else clean_name)),
         "verificaRichiesta": bool(clean_pec),
     }
 
@@ -854,9 +852,16 @@ def _recipients_from_document_notes(documenti: list[Any], *, represented: str) -
     seen: set[str] = set()
     for documento in documenti:
         note = _text(getattr(documento, "note", ""))
-        for match in _PEC_RE.finditer(note):
+        if _enum_value(getattr(documento, "fonte_documento", "")) != "PORTALE_TELEMATICO":
+            continue
+        # Una nota di archivio può contenere Message-ID, mittente e dati della busta.
+        # Solo il campo PEC esplicito dell'importazione si usa come suggerimento.
+        campo = re.search(r"(?<![\w-])PEC\s*:\s*(.+)$", note, re.I)
+        if not campo:
+            continue
+        for match in _PEC_RE.finditer(campo.group(1)):
             pec = match.group(0).lower()
-            if pec in seen:
+            if not recapito_pec_destinatario(pec) or pec in seen:
                 continue
             seen.add(pec)
             label, source = _recipient_source_from_pec(pec)
@@ -874,7 +879,7 @@ def _recipients_from_document_notes(documenti: list[Any], *, represented: str) -
 
 
 def _recipient_from_subject(soggetto: Any, *, ruolo: str = "", note: str = "", fascicolo: Any = None) -> dict[str, Any]:
-    pec = _text(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
+    pec = recapito_pec_destinatario(getattr(getattr(soggetto, "recapiti", None), "pec", ""))
     role = _infer_recipient_role(soggetto, ruolo, pec)
     source = _infer_public_register(soggetto, ruolo, pec)
     fascicolo_counterparty = _text(getattr(fascicolo, "controparte", ""))
@@ -882,21 +887,21 @@ def _recipient_from_subject(soggetto: Any, *, ruolo: str = "", note: str = "", f
     if role == "difensore" and _is_state_attorney_subject(soggetto, pec):
         counterparty_identity = re.sub(r"[^a-z0-9]+", "", fascicolo_counterparty.casefold())
         if not fascicolo_counterparty or "avvocatura" in counterparty_identity:
-            fascicolo_counterparty = title_counterparty
+            fascicolo_counterparty = title_counterparty if not nome_avvocatura_stato(title_counterparty) else ""
         represented_identity = re.sub(r"[^a-z0-9]+", "", fascicolo_counterparty.casefold())
         if represented_identity in {"mim", "miur"}:
             fascicolo_counterparty = "Ministero dell'Istruzione e del Merito"
     note_text = _text(note)
+    avvocatura = role == "difensore" and _is_state_attorney_subject(soggetto, pec)
+    if avvocatura and nome_avvocatura_stato(note_text):
+        note_text = ""
     represented = (
         fascicolo_counterparty or note_text
         if role == "difensore"
         else note_text or fascicolo_counterparty
     )
-    if fascicolo is None and role == "difensore" and _is_state_attorney_subject(soggetto, pec) and not note_text:
-        represented = ""
-    if not represented and role in {"difensore", "controparte", "impresa", "professionista", "terzo"}:
-        if not (fascicolo is None and role == "difensore" and _is_state_attorney_subject(soggetto, pec)):
-            represented = _text(getattr(soggetto, "nome_completo", "")) or _text(getattr(soggetto, "ragione_sociale", ""))
+    if not represented and not avvocatura and role in {"difensore", "controparte", "impresa", "professionista", "terzo"}:
+        represented = _text(getattr(soggetto, "nome_completo", "")) or _text(getattr(soggetto, "ragione_sociale", ""))
     return {
         "id": _text(getattr(soggetto, "id", "")),
         "label": _display_text(getattr(soggetto, "nome_completo", "")) or _display_text(getattr(soggetto, "ragione_sociale", "")),
@@ -1221,7 +1226,7 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         )
         for parte, soggetto in parti:
             ruolo = _enum_value(getattr(parte, "ruolo", ""))
-            if ruolo == "ASSISTITO":
+            if ruolo in {"ASSISTITO", "GIUDICE"}:
                 continue
             recipient = _recipient_from_subject(
                 soggetto,
@@ -1270,12 +1275,12 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
             _recipient_from_plain(
                 recipient_id=f"fascicolo:{_text(getattr(fascicolo, 'id', ''))}:controparte",
                 name=counterpart_name,
-                represented=counterpart_name,
+                represented=counterpart_name if not nome_avvocatura_stato(counterpart_name) else "",
                 role=_infer_fallback_recipient_role(counterpart_name),
                 source="",
             )
         )
-    for recipient in _recipients_from_document_notes(getattr(fascicolo, "documenti", []) or [], represented=counterpart_name or client_name):
+    for recipient in _recipients_from_document_notes(getattr(fascicolo, "documenti", []) or [], represented=counterpart_name if not nome_avvocatura_stato(counterpart_name) else ""):
         recipient_key = _text(recipient.get("pec")).lower() or _text(recipient.get("nome")).lower()
         if recipient_key and not any(
             (_text(item.get("pec")).lower() or _text(item.get("nome")).lower()) == recipient_key
@@ -1307,8 +1312,8 @@ def _fascicolo_option(fascicolo: Any, *, cliente: Any = None, soggetti_repo: Any
         "assistitoNome": client_name,
         "assistitoCf": client_cf,
         "clienteId": _text(getattr(fascicolo, "id_cliente", "")),
-        "controparte": counterpart_name,
-        "controparteCf": counterpart_cf,
+        "controparte": "" if nome_avvocatura_stato(counterpart_name) else counterpart_name,
+        "controparteCf": "" if nome_avvocatura_stato(counterpart_name) else counterpart_cf,
         "procedimento": {
             "presente": proceeding_present,
             "ufficio": _text(getattr(fascicolo, "tribunale", "")),

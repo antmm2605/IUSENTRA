@@ -117,9 +117,11 @@ def _sentenza_amministrativa(sentenza, fonte: Fonte, *, grado: str) -> list[Conc
 
 
 def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
+    from ..atti import priorita_fonte_sentenza
+
     risultato: list[Conclusione] = []
     visti: set[str] = set()
-    for sentenza in [a for a in ctx.della_causa() if a.sentenza]:
+    for sentenza in sorted((a for a in ctx.della_causa() if a.sentenza), key=priorita_fonte_sentenza):
         if sentenza.id in visti:
             continue
         visti.update([sentenza.id, *sentenza.copie])

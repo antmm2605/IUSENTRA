@@ -4538,3 +4538,26 @@ def test_payload_react_notifiche_legali_segnala_pec_ufficio_da_collegare(monkeyp
     assert "non_duplicare_documenti=1" in pratica["documentoUfficioMonitor"]["documentiRilasciati"][0]["acquisitionHref"]
     assert "id_fasc=fascicolo-portale" in pratica["portaleAcquisizioneHref"]
     assert "numero=5678" in pratica["portaleAcquisizioneHref"]
+
+
+def test_dati_tecnici_della_pec_non_diventano_recapiti_operativi():
+    documento_archivio = SimpleNamespace(
+        fonte_documento="PEC_CANCELLERIA",
+        note="Reference Message-ID: 1234.abcd.posta-certificata@legalmail.it PEC: tribunale.vicenza@civile.ptel.giustiziacert.it",
+    )
+    importazione = SimpleNamespace(
+        fonte_documento="PORTALE_TELEMATICO",
+        note="PEC: 1234.abcd.posta-certificata@legalmail.it; posta-certificata@legalmail.it; segreteria@example.pec.it",
+    )
+    destinatari = react_notifiche_legali_bridge._recipients_from_document_notes(
+        [documento_archivio, importazione], represented="Ente"
+    )
+    assert [d["pec"] for d in destinatari] == ["segreteria@example.pec.it"]
+
+
+def test_avvocatura_distrettuale_senza_denominazione_completa_e_un_difensore():
+    destinatario = react_notifiche_legali_bridge._recipient_from_plain(
+        recipient_id="difensore", name="Avvocatura distrettuale di Venezia",
+    )
+    assert destinatario["ruolo"] == "difensore"
+    assert destinatario["parteRappresentata"] == ""

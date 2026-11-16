@@ -912,3 +912,15 @@ def test_riusa_solo_le_ricevute_e_il_decreto_dello_stesso_invio():
     ]}
     passi = passi_ragionamento(causa, provvedimenti_consegnati=frozenset(lettura["provvedimenti_consegnati"]))
     assert len(passi) == 1 and "un altro provvedimento" in passi[0].azione
+
+
+def test_messaggi_deposito_archiviati_non_sono_buste_accettate():
+    documenti = [
+        _documento("EML1", "Deposito telematico: ricorso [RefID_1].eml"),
+        _documento("EML2", "Copia non crittografata deposito telematico: ricorso [RefID_1].eml"),
+        _documento("EML3", "Deposito telematico: note [RefID_2].eml"),
+    ]
+    lettura = costruisci_lettura(DatiLettura(fascicolo=_fascicolo(), documenti=documenti, oggi=OGGI))
+    assert [v["documento_id"] for v in lettura["depositi"]["messaggi_archiviati"]] == ["EML1", "EML3"]
+    assert not lettura["depositi"]["tutti"] and not lettura["depositi"]["perfezionati"]
+    assert "Messaggi di deposito archiviati: 2" in componi(lettura)

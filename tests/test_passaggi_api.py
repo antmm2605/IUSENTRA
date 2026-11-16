@@ -234,3 +234,21 @@ def test_apertura_bozza_riusa_il_documento_editor(app, tmp_path, monkeypatch):
         assert doc.fonte_documento == "BOZZA_NOTE_127_TER"
         assert fonte.id in doc.note
         assert len(archivio.get(fascicolo.id).documenti) == 2
+
+
+def test_note_espone_ora_del_provvedimento_e_stile_nativo():
+    from pct.note_127_ter.bozza import testo_note
+    from web.services.passaggi_runtime import _impagina_bozza_note
+
+    proposta = {"termine": "2026-12-22", "ora": "14.00", "udienza_sostituita": "22/12/2026"}
+    testo = testo_note(proposta, ufficio="Tribunale di Vicenza", sezione="Lavoro", rg="1851/2026",
+                       giudice="Caterina Neri", parte="Cliente", controparte="", difensore="",
+                       difensore_controparte="Avvocatura distrettuale di Venezia")
+    assert "22/12/2026 entro le ore 14:00" in testo
+    assert "Controparte: Avvocatura" not in testo
+    assert "Difesa indicata nel fascicolo: Avvocatura distrettuale di Venezia." in testo
+    html = _impagina_bozza_note(testo)
+    assert "data-margine-sinistro" in html and 'data-interlinea="24.0000"' in html
+    assert "Times New Roman" in html and "text-align:center;font-size:18pt" in html
+    assert "*Giudice:" not in html and "*Udienza del" not in html
+    assert "text-align:center;font-style:italic;text-decoration:underline" in html

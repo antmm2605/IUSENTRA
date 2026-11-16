@@ -187,6 +187,7 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
         conseguenza = _perche(codice, termine)
         if calcolato := calcolo.get("termine"):
             calcolato.conseguenze = conseguenza
+            calcolato.ora_assegnata = termine.ora
         come, template = _COME.get(codice, ("", ""))
         if not codice:
             dubbi.append(Dubbio("adempimento_generico", "Il provvedimento assegna un termine senza che la lettura riconosca "

@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 from pct.fascicolo_pec_conteggio import conteggio_pec
 from pct.procedura_fasi import lacune_conoscenza, schede_per_fascicolo
+from pct.procedura_fasi.ruolo_dagli_atti import depositi_dalle_copie_pec, ruolo_dagli_atti
 
 from ._testo import data_da, data_it, pulisci
 from .archivio import archivio
@@ -41,7 +42,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v37"
+VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v38"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -122,12 +123,14 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     fonti_documenti = list((dati.archivio or {}).get("fonti_documenti", []) or [])
     if not testata.get("rg"):
         # Il numero di ruolo indicato nel deposito telematico dello studio (deposito integrativo) quando la scheda non lo porta.
-        from pct.procedura_fasi.ruolo_dagli_atti import ruolo_dagli_atti
-
         if (rg_letto := ruolo_dagli_atti(fonti_documenti)):
             testata["rg"], testata["rg_fonte"] = rg_letto, "letto nel deposito telematico conservato nel fascicolo"
     documenti_letti = documenti(dati.documenti, dati.catalogo, rg=testata.get("rg", ""), fonti=fonti_documenti)
     depositi_letti = depositi(dati.depositi, pulisci(dati.fascicolo.get("canale_operativo")))
+    depositi_letti["messaggi_archiviati"] = (
+        depositi_dalle_copie_pec(documenti_letti["tutti"], fonti_documenti)
+        if not depositi_letti["tutti"] else []
+    )
     fonti_provvedimenti = {
         doc["id"]: doc["pec_origine"] for doc in dati.documenti
         if doc.get("id") and pulisci(doc.get("pec_origine")).startswith("pec_")

@@ -40,6 +40,7 @@ def _termine(termine: dict[str, Any] | None) -> dict[str, Any] | None:
         situazione = "scadenza non calcolabile"
     return {
         "scadenza_iso": termine.get("scadenza") or "",
+        "ora_assegnata": termine.get("ora_assegnata") or "",
         "scadenza": data_it(termine.get("scadenza")), "decorrenza": data_it(termine.get("decorrenza")),
         "evento_decorrenza": termine.get("evento_decorrenza") or "", "computo": termine.get("computo") or "",
         "sospensione_feriale": termine.get("sospensione_feriale") or "",

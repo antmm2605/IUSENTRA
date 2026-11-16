@@ -118,6 +118,38 @@ def _autore(natura: str, etichetta: str, testo: str, dello_studio: bool) -> str:
     return "studio" if dello_studio else "ignoto"
 
 
+def priorita_fonte_sentenza(atto: Atto) -> tuple[bool, bool]:
+    """Una copia con estremi di pubblicazione è la fonte da cui esporre l'esito."""
+    from pct.termine_lungo_sentenza import data_pubblicazione, numero_sentenza
+
+    if not atto.sentenza or not atto.copie:
+        return True, True
+    return not bool(data_pubblicazione(atto.testo)), not bool(numero_sentenza(atto.testo[:1200]))
+
+
+def _copie_della_sentenza(atti: list[Atto]) -> None:
+    from pct.percorso_pratica.esito import dispositivo
+    from pct.termine_lungo_sentenza import data_decisione, numero_sentenza
+
+    gruppi: dict[tuple[str, str, str], list[tuple[Atto, str]]] = {}
+    for atto in atti:
+        if not atto.sentenza or atto.appartenenza != "causa" or not atto.rg:
+            continue
+        decisione = data_decisione(atto.testo)
+        testo_decisione = semplice(dispositivo(atto.testo))
+        # Un dispositivo breve o senza data può appartenere a decisioni distinte dello stesso fascicolo.
+        if decisione is None or len(testo_decisione.split()) < 30:
+            continue
+        numero = numero_sentenza(atto.testo[:1200])
+        gruppi.setdefault((atto.rg, decisione.isoformat(), testo_decisione), []).append((atto, numero))
+    for gruppo in gruppi.values():
+        if len(gruppo) < 2 or len({numero for _, numero in gruppo if numero}) > 1:
+            continue
+        identificativi = {atto.id for atto, _ in gruppo}
+        for atto, _ in gruppo:
+            atto.copie = sorted((identificativi | set(atto.copie)) - {atto.id})
+
+
 def leggi_atti(documenti: Iterable[dict[str, Any]], fatti: list[dict[str, Any]], *, rg_causa: str, avvocati: list[str]) -> list[Atto]:
     atti: list[Atto] = []
     copie: dict[str, list[str]] = {}
@@ -162,6 +194,7 @@ def leggi_atti(documenti: Iterable[dict[str, Any]], fatti: list[dict[str, Any]],
             copie=sorted({c for i in impronte for c in copie.get(i, []) if c != oid}),
             sentenza=autore == "giudice" and bool(_SENTENZA.search(etichetta)),
         ))
+    _copie_della_sentenza(atti)
     return atti
 
 

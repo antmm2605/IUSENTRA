@@ -14,6 +14,7 @@ import logging
 from dataclasses import replace
 from typing import Any
 
+from pct.notifiche_legali import nome_avvocatura_stato
 from pct.obblighi_notifica import STATO_DA_NOTIFICARE, DocumentoCatalogato, Parte, obblighi_del_fascicolo
 from pct.ora_italiana import oggi_roma
 
@@ -220,8 +221,11 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str],
                      or "contumac" in f"{voce.posizione} {getattr(voce, 'citazione', '')}".casefold())
         parti.append(Parte(nome=voce.nome, ruolo=ruolo, difensore=voce.difensore, posizione=voce.posizione,
                            documenti=tuple(getattr(voce, "oggetti", ()) or ()), contumace=contumace))
-    if not any(p.ruolo in {"controparte", "controinteressato"} for p in parti) and _testo(getattr(fascicolo, "controparte", "")):
-        parti.append(Parte(nome=_testo(fascicolo.controparte), ruolo="controparte", difensore=_testo(getattr(fascicolo, "avvocato_controparte", ""))))
+    controparte_scheda = _testo(getattr(fascicolo, "controparte", ""))
+    if (controparte_scheda and not nome_avvocatura_stato(controparte_scheda)
+            and not any(p.ruolo in {"controparte", "controinteressato"} for p in parti)):
+        parti.append(Parte(nome=controparte_scheda, ruolo="controparte",
+                           difensore=_testo(getattr(fascicolo, "avvocato_controparte", ""))))
 
     # Le notificazioni PEC (art. 3-bis L. 53/1994): la prova è dell'atto elencato nella relata, con le ricevute
     # della stessa spedizione. I documenti della spedizione non sono più «prove senza atto» del fascicolo.

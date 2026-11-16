@@ -118,7 +118,7 @@ export interface LetturaFascicolo {
   }
   oggetto: { oggetto_dichiarato: string; atti_principali: { etichetta: string; nome: string; data: string }[]; domanda: { etichetta: string; data: string; petitum: string } | null }
   cronologia: EventoLettura[]
-  depositi: { totale: number; importati?: unknown[]; perfezionati: unknown[]; in_corso: unknown[]; falliti: unknown[]; tutti: { atto: string; data: string; fase: string; attesa: string; perfezionato: boolean; fase_procedurale: string; prova_attesa: string }[] }
+  depositi: { totale: number; messaggi_archiviati?: { atto: string; data: string; documento_id: string }[]; importati?: unknown[]; perfezionati: unknown[]; in_corso: unknown[]; falliti: unknown[]; tutti: { atto: string; data: string; fase: string; attesa: string; perfezionato: boolean; fase_procedurale: string; prova_attesa: string }[] }
   scadenze?: { totale: number; scadute: number; prossimi30: number; successive: number }
   notifiche: { prove_documentali?: number; totale: number; perfezionate: unknown[]; aperte: unknown[]; fallite: unknown[]; tutte: { atto: string; data: string; stato_etichetta: string; fase_procedurale: string; destinatari: string[] }[] }
   pec: { conteggio?: ConteggioPec; totale: number; collegate: number; per_corrispondenza: Record<string, number>; da_controllare: PecDaControllare[]; termini_da_registrare: unknown[]; udienze_da_registrare: unknown[]; ultima: { data: string; oggetto: string; mittente: string } | null }
@@ -281,8 +281,8 @@ export function presidiCards(lettura: LetturaFascicolo): PresidioCard[] {
     {
       id: 'depositi',
       titolo: 'Depositi telematici',
-      valore: String(depositi.totale),
-      nota: depositi.falliti.length ? `${depositi.falliti.length} da ripetere · ${depositi.in_corso.length} in corso` : depositi.in_corso.length ? `${depositi.in_corso.length} in corso · ${depositi.perfezionati.length} accettati` : depositi.perfezionati.length ? `${depositi.perfezionati.length} accettati dalla cancelleria${depositi.importati?.length ? ` · ${depositi.importati.length} dal fascicolo d'ufficio` : ''}` : depositi.importati?.length ? `${depositi.importati.length} atti acquisiti dal fascicolo d'ufficio` : 'nessun deposito',
+      valore: String(depositi.totale || depositi.messaggi_archiviati?.length || 0),
+      nota: depositi.falliti.length ? `${depositi.falliti.length} da ripetere · ${depositi.in_corso.length} in corso` : depositi.in_corso.length ? `${depositi.in_corso.length} in corso · ${depositi.perfezionati.length} accettati` : depositi.perfezionati.length ? `${depositi.perfezionati.length} accettati dalla cancelleria${depositi.importati?.length ? ` · ${depositi.importati.length} dal fascicolo d'ufficio` : ''}` : depositi.importati?.length ? `${depositi.importati.length} atti acquisiti dal fascicolo d'ufficio` : depositi.messaggi_archiviati?.length ? 'messaggi archiviati · esiti delle buste non collegati' : 'nessuna busta registrata',
       tono: depositi.falliti.length ? 'danger' : depositi.in_corso.length ? 'warning' : depositi.perfezionati.length ? 'success' : 'neutral',
       href: '#comunicazioni-notifica',
     },

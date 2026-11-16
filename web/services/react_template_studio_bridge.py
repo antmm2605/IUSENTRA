@@ -229,7 +229,10 @@ def uso_modello(id_template: str, *, id_cliente: str = "", id_fascicolo: str = "
 def _campi_bozza_note(fascicolo_id: str, modello: str, scadenza: str) -> dict[str, str]:
     if modello != "builtin-tmp-civ-012" or not scadenza:
         return {}
+    from pct.note_127_ter.bozza import proposte_note, termine_nelle_note
     from web.services.guida_fase_runtime import fase_per_la_guida
+    from web.services.passaggi_runtime import oggi_roma
+    from web.services.riscontri_processuali_runtime import lettura_materializzata
 
     fase = fase_per_la_guida(fascicolo_id)
     passi = [p for p in fase.get("passi_operativi", ()) if p.get("modello_atto") == modello and p.get("entro") == scadenza]
@@ -239,11 +242,16 @@ def _campi_bozza_note(fascicolo_id: str, modello: str, scadenza: str) -> dict[st
     titolo = (passo.get("documento") or {}).get("documento")
     if not titolo:
         return {}
+    proposte = [
+        p for p in proposte_note(lettura_materializzata(fascicolo_id), oggi_roma())
+        if p.get("documento") == titolo and termine_nelle_note({**p, "ora": ""}) == scadenza
+    ]
+    termine = termine_nelle_note(proposte[0]) if len(proposte) == 1 else scadenza
     return {
         "contenuto_istanza": (
             f"Note per la trattazione scritta ai sensi dell’art. 127-ter c.p.c.\n"
             f"Provvedimento di riferimento: {titolo}.\n"
-            f"Termine per il deposito: {scadenza}.\n\n"
+            f"Termine per il deposito: {termine}.\n\n"
             "[Inserire le sole istanze e conclusioni da sottoporre al giudice.]"
         ),
     }

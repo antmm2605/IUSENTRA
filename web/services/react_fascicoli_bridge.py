@@ -6746,7 +6746,7 @@ def _deadline_rows_from_scadenze(
     escludi_udienze_passate: bool = True,
 ) -> list[dict[str, Any]]:
     from pct.ora_italiana import oggi_roma
-    from pct.scadenze_stato import esito_udienza_da_registrare
+    from pct.scadenze_stato import ESITO_UDIENZA, STORICA, stato_operativo
 
     today = oggi_roma()
     horizon = today + timedelta(days=days)
@@ -6759,7 +6759,8 @@ def _deadline_rows_from_scadenze(
         # Un'udienza passata non è una scadenza scaduta ma un esito da registrare (V28; artt. 126 e 127-ter
         # c.p.c.): la pagina Fascicoli contava «9 scadute» dove Scadenziario e Controllo Studio ne contano 3
         # (verifica a vista del 01/11/2026).
-        if escludi_udienze_passate and due < today and esito_udienza_da_registrare(scadenza, today):
+        fase = stato_operativo(scadenza, today)
+        if fase == STORICA or (escludi_udienze_passate and due < today and fase == ESITO_UDIENZA):
             continue
         fid = _resolved_scadenza_fascicolo_id(scadenza, resolved_matter_ids)
         matter = items_by_id.get(fid, {})

@@ -21,6 +21,7 @@ COMPLETATA = "completata"
 APERTA = "aperta"
 SCADUTA = "scaduta"
 ESITO_UDIENZA = "esito_udienza"
+STORICA = "storica"
 
 
 def _valore(oggetto: Any, nome: str) -> str:
@@ -77,6 +78,10 @@ def stato_operativo(scadenza: Any, oggi: date | None = None) -> str:
         from pct.ora_italiana import oggi_roma
 
         oggi = oggi_roma()
+    from pct.scadenze_superate_sentenza import decisione_superante
+
+    if decisione_superante(scadenza, al_giorno=oggi):
+        return STORICA
     giorno = _giorno(scadenza)
     passata = stato == "SCADUTO" or bool(giorno and giorno < oggi)
     if not passata:
@@ -99,7 +104,7 @@ def aperta(scadenza: Any, oggi: date | None = None) -> bool:
 
 
 __all__ = [
-    "ANNULLATA", "APERTA", "BOZZA", "COMPLETATA", "ESITO_UDIENZA", "SCADUTA",
+    "ANNULLATA", "APERTA", "BOZZA", "COMPLETATA", "ESITO_UDIENZA", "SCADUTA", "STORICA",
     "aperta", "esito_udienza_da_registrare", "scaduta_da_chiudere", "stato_operativo",
     "data_termine_corrente", "termine_note_in_sostituzione", "termine_perentorio",
 ]

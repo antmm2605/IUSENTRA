@@ -735,14 +735,15 @@ def _ricollauda_plausibili(fascicolo: Any, registro: RegistroLetture, tenant: st
 
 def _recupera_esiti_sentenze(fascicolo: Any, registro: RegistroLetture, tenant: str) -> dict[str, int]:
     """Esito e spese delle sentenze lette prima dell'estrazione dell'esito, dal testo salvato (evento puntuale)."""
-    from web.services.esito_sentenze_recovery import recupera_esiti
+    from web.services.esito_sentenze_recovery import registra_scadenze_precedenti_alla_decisione, recupera_esiti
 
     try:
         esito = recupera_esiti(fascicolo, registro, tenant)
+        esito["scadenze_superate"] = registra_scadenze_precedenti_alla_decisione(fascicolo, registro, tenant)
     except Exception:
         logger.exception("Recupero dell'esito delle sentenze non riuscito per %s", getattr(fascicolo, "id", ""))
         return {"controllate": 0, "recuperate": 0}
-    if esito.get("recuperate"):
+    if esito.get("recuperate") or esito.get("scadenze_superate"):
         from web.services.pannelli_pronti_runtime import segnala_scrittura_fascicolo
 
         fascicolo_id = _testo(getattr(fascicolo, "id", ""))

@@ -17,7 +17,7 @@ export type ScadenziarioView =
   | 'tutte'
 
 export type ScadenziarioPriority = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BASSA'
-export type ScadenziarioStatus = 'APERTO' | 'COMPLETATO' | 'ANNULLATO' | 'SCADUTO'
+export type ScadenziarioStatus = 'APERTO' | 'COMPLETATO' | 'ANNULLATO' | 'SCADUTO' | 'STORICO'
 export type ScadenziarioActionKind = 'link' | 'filter' | 'bulk_complete' | 'lex'
 
 export type ScadenziarioFacet = {
@@ -91,6 +91,7 @@ export type ScadenziarioRow = {
   detailDescription: string
   proceduralFinding?: string
   reconciliationReason?: string
+  decisionHref?: string
   type: string
   typeLabel: string
   priority: ScadenziarioPriority
@@ -502,7 +503,7 @@ function safePriority(value: unknown): ScadenziarioPriority {
 
 function safeStatus(value: unknown): ScadenziarioStatus {
   const text = asString(value, 'APERTO').toUpperCase()
-  if (text === 'APERTO' || text === 'COMPLETATO' || text === 'ANNULLATO' || text === 'SCADUTO') return text
+  if (text === 'APERTO' || text === 'COMPLETATO' || text === 'ANNULLATO' || text === 'SCADUTO' || text === 'STORICO') return text
   return 'APERTO'
 }
 
@@ -559,6 +560,7 @@ function normalizeRow(value: unknown, index = 0): ScadenziarioRow {
     detailDescription: asString(item.detailDescription, asString(item.description)),
     proceduralFinding: asString(item.proceduralFinding),
     reconciliationReason: asString(item.reconciliationReason),
+    decisionHref: asString(item.decisionHref),
     type: asString(item.type, 'ALTRO'),
     typeLabel: asString(item.typeLabel, asString(item.type, 'Altro')),
     priority,

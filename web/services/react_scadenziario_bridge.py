@@ -17,8 +17,10 @@ from typing import Any, Mapping
 from urllib.parse import quote
 
 from pct.note_127_ter.proposta import TITOLO_NOTE_127_TER
+from pct.scadenze_superate_sentenza import decisione_superante, riscontro_storico
 from pct.scadenze_stato import (
-    aperta, esito_udienza_da_registrare, scaduta_da_chiudere, termine_note_in_sostituzione, termine_perentorio,
+    ESITO_UDIENZA, SCADUTA, STORICA, aperta, esito_udienza_da_registrare, scaduta_da_chiudere,
+    stato_operativo, termine_note_in_sostituzione, termine_perentorio,
 )
 from pct.guardiano_scadenze import build_guardiano_scadenze_payload
 from pct.scadenziario import (
@@ -840,6 +842,7 @@ def _status_label(value: Any) -> str:
         StatoTermine.COMPLETATO.value: "Completata",
         StatoTermine.ANNULLATO.value: "Annullata",
         StatoTermine.SCADUTO.value: "Scaduta",
+        "STORICO": "Storico",
     }.get(status, status.title() or "Aperta")
 
 
@@ -1200,6 +1203,8 @@ def _row(
         )
     overdue = _is_overdue(scadenza)
     status_label = _status_label(status)
+    decisione = decisione_superante(scadenza) if status == "STORICO" else None
+    finding, sentenza_href = riscontro_storico(fascicolo_id, decisione) if decisione else ("", "")
     if _is_hearing_to_record(scadenza):
         status_label = "Esito da registrare"
     elif status == "ANNULLATO" and MARCATORE_SUPERATA in str(getattr(scadenza, "note", "") or ""):
@@ -1214,18 +1219,20 @@ def _row(
         "date": due_date,
         "dateLabel": _format_date(due_date),
         "title": title,
-        "description": context_description or _visible_legal_text((control_tower_source or {}).get("description"), 260) or _legal_scadenza_description(scadenza),
-        "detailDescription": context_detail or _visible_legal_text((control_tower_source or {}).get("detailDescription"), 760) or _legal_scadenza_detail_description(scadenza),
+        "description": finding or context_description or _visible_legal_text((control_tower_source or {}).get("description"), 260) or _legal_scadenza_description(scadenza),
+        "detailDescription": finding or context_detail or _visible_legal_text((control_tower_source or {}).get("detailDescription"), 760) or _legal_scadenza_detail_description(scadenza),
+        "proceduralFinding": finding,
+        "decisionHref": sentenza_href,
         "reconciliationReason": _reconciliation_reason(scadenza) if status == "ANNULLATO" else "",
         "type": _enum_value(getattr(scadenza, "tipo", TipoTermine.ALTRO.value)) or TipoTermine.ALTRO.value,
         "typeLabel": "Trattazione scritta" if title == TITOLO_NOTE_127_TER else _type_label_for_scadenza(scadenza),
         "priority": priority,
         "priorityLabel": _priority_label(priority),
-        "tone": _tone_for(priority, status, days),
+        "tone": "neutral" if decisione else _tone_for(priority, status, days),
         "status": status,
         "statusLabel": status_label,
-        "days": days,
-        "daysLabel": _days_label(days),
+        "days": None if decisione else days,
+        "daysLabel": "" if decisione else _days_label(days),
         "overdue": overdue,
         "dueToday": days == 0,
         "peremptory": termine_perentorio(scadenza),
@@ -1289,7 +1296,10 @@ def _is_hearing_to_record(item: Any) -> bool:
 
 def _effective_status(item: Any) -> str:
     status = _enum_value(getattr(item, "stato", StatoTermine.APERTO.value)) or StatoTermine.APERTO.value
-    if status == StatoTermine.APERTO.value and (_is_overdue(item) or _is_hearing_to_record(item)):
+    stato = stato_operativo(item)
+    if stato == STORICA:
+        return "STORICO"
+    if status == StatoTermine.APERTO.value and stato in {SCADUTA, ESITO_UDIENZA}:
         return StatoTermine.SCADUTO.value
     return status
 
@@ -1358,7 +1368,7 @@ def _facets(all_items: list[Any], summary: dict[str, int]) -> dict[str, list[dic
             _facet(status.value, _status_label(status), status_counts.get(status.value, 0))
             for status in StatoTermine
             if status != StatoTermine.BOZZA
-        ],
+        ] + ([_facet("STORICO", "Storico", status_counts["STORICO"])] if "STORICO" in status_counts else []),
     }
 
 
@@ -1941,7 +1951,7 @@ def build_react_scadenziario_payload(
         )
         for item in filtered
     ]
-    if compact and rows:
+    if compact and rows and rows[0]["status"] != "STORICO":
         from web.services.riscontri_processuali_runtime import riscontro_note_scritte
 
         riscontro_note = riscontro_note_scritte(

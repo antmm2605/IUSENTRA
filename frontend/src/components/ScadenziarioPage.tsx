@@ -397,9 +397,9 @@ function GuardianPanel({ guardian, loading, unavailable }:{guardian:DeadlineGuar
 function DeadlineFlags({ item }:{item:ScadenziarioRow}) {
   return (
     <span className="iu-scad-flags">
-      {item.peremptory ? <Badge tone="danger">Perentorio</Badge> : null}
+      {item.peremptory && item.status !== "STORICO" ? <Badge tone="danger">Perentorio</Badge> : null}
       {item.advanced ? <Badge tone="purple">Calcolo</Badge> : null}
-      {item.operative ? <Badge tone="info">Operativa</Badge> : null}
+      {item.operative && item.status !== "STORICO" ? <Badge tone="info">Operativa</Badge> : null}
       {item.hearingMode ? <Badge tone="info">{item.hearingMode}{item.hearingTime ? `, ore ${item.hearingTime}` : ''}</Badge> : null}
       {item.hearingTimeVerificationRequired ? <Badge tone="warning">Orario da verificare</Badge> : null}
       {item.traceCount ? <em>{item.traceCount} step</em> : null}
@@ -533,7 +533,7 @@ function DeadlineTable({
                 <DeadlineActions item={item} onComplete={onComplete} onDelete={onDelete}/>
               </td>
               <td>{item.operative ? <span className="iu-scad-operative"><TimerReset size={14}/>{item.operationalDueLabel}</span> : <span className="iu-scad-muted">—</span>}</td>
-              <td><Badge tone={item.tone}>{item.priorityLabel}</Badge></td>
+              <td>{item.status === "STORICO" ? "—" : <Badge tone={item.tone}>{item.priorityLabel}</Badge>}</td>
               <td>
                 <span className="iu-scad-fascicolo">{item.fascicoloLabel}</span>
                 <small>{item.clientLabel && item.clientLabel !== '-' ? item.clientLabel : 'Cliente da collegare'}</small>
@@ -570,7 +570,7 @@ function DeadlineCardList({
         <article className={`iu-scad-mobile-card ${item.overdue ? 'is-overdue' : ''}`} key={item.id}>
           <header>
             <label><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => onToggle(item.id)}/><span>{item.dateLabel}</span></label>
-            <Badge tone={item.tone}>{item.priorityLabel}</Badge>
+            {item.status === "STORICO" ? null : <Badge tone={item.tone}>{item.priorityLabel}</Badge>}
           </header>
           <a href={item.href} onClick={(clickEvent) => {
             if (clickEvent.button !== 0 || clickEvent.metaKey || clickEvent.ctrlKey || clickEvent.shiftKey || clickEvent.altKey) return
@@ -1014,15 +1014,16 @@ function DeadlineFocusDetail({
   const groups = deadlineFactGroups(row, { notificationPresidio })
   const description = deadlineWhatToDo(row)
   const completed = row.status === 'COMPLETATO'
-  const closed = completed || row.status === 'ANNULLATO'
-  const detailHeading = row.reconciliationReason ? 'Motivo della rettifica' : completed ? 'Adempimento registrato' : closed ? 'Adempimento annullato' : 'Cosa fare'
+  const historical = row.status === 'STORICO'
+  const closed = historical || completed || row.status === 'ANNULLATO'
+  const detailHeading = historical ? 'Riscontro storico' : row.reconciliationReason ? 'Motivo della rettifica' : completed ? 'Adempimento registrato' : closed ? 'Adempimento annullato' : 'Cosa fare'
   return (
     <section className="iu-scad-focus-card" data-iusentra-sequence-slot="operational-subtitle" aria-label="Scadenza selezionata">
       <header className="iu-scad-focus-summary">
         <div className="iu-scad-focus-badges">
           <Badge tone={row.tone}>{row.statusLabel}</Badge>
           {closed ? null : <Badge tone={row.priority === 'CRITICA' ? 'danger' : row.priority === 'ALTA' ? 'warning' : 'neutral'}>Priorità {row.priorityLabel.toLowerCase()}</Badge>}
-          {row.peremptory ? <Badge tone="danger">Perentoria</Badge> : null}
+          {row.peremptory && !historical ? <Badge tone="danger">Perentoria</Badge> : null}
         </div>
         <div className={`iu-scad-focus-when${closed ? '' : row.overdue ? ' is-overdue' : row.dueToday ? ' is-today' : ''}`}>
           <CalendarDays size={20}/>
@@ -1034,7 +1035,8 @@ function DeadlineFocusDetail({
         </div>
       </header>
       <div className="iu-scad-focus-actions">
-        {row.remoteHearingUrl ? (
+        {row.decisionHref ? <Button href={row.decisionHref}><FileSearch size={15}/> Apri sentenza</Button> : null}
+        {row.remoteHearingUrl && !historical ? (
           <a className="iu-scad-remote-action" href={row.remoteHearingUrl} target="_blank" rel="noreferrer">
             <Link2 size={15}/> Apri link udienza
           </a>
@@ -1047,7 +1049,7 @@ function DeadlineFocusDetail({
       </div>
       <section className="iu-scad-focus-block" aria-label={detailHeading}>
         <h3><ListChecks size={15}/> {detailHeading}</h3>
-        <p>{row.reconciliationReason || (closed ? row.title : description)}</p>
+        <p>{row.reconciliationReason || (!historical && closed ? row.title : description)}</p>
         {row.reconciliationReason ? <p>La proposta automatica è conservata nello storico. Non costituisce un’attività da eseguire.</p> : null}
       </section>
       {groups.map((group) => (
@@ -1125,7 +1127,7 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
           <div className="iu-scad-watch-list">
             {watch.slice(0, 5).map((item) => (
               <a href={item.href} key={item.id}>
-                <Badge tone={item.tone}>{item.priorityLabel}</Badge>
+                {item.status === "STORICO" ? null : <Badge tone={item.tone}>{item.priorityLabel}</Badge>}
                 <strong>{item.title}</strong>
                 <span>{item.dateLabel} · {item.daysLabel}</span>
               </a>

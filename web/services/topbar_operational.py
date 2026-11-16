@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from flask import current_app, g, session
 
-from pct.scadenze_stato import ESITO_UDIENZA, SCADUTA, stato_operativo
+from pct.scadenze_stato import ESITO_UDIENZA, SCADUTA, STORICA, stato_operativo
 from pct.proposte_decorse import AZIONABILE as PROPOSTA_AZIONABILE, classifica as classifica_proposta, opposizione_127_ter_incoerente
 from pct.agenda import TipoAppuntamento
 from pct.email_client import CartellaEmail, GestioneEmailRicevute
@@ -304,6 +304,8 @@ def _deadline_status(scadenza: Any, today: date | None = None) -> str:
     # Regola unica del dominio (V28): un'udienza passata non è un termine scaduto ma un
     # esito da registrare, e non entra fra le scadute della barra.
     stato = stato_operativo(scadenza, today or datetime.now(ROME_TZ).date())
+    if stato == STORICA:
+        return "historical"
     if stato == ESITO_UDIENZA:
         return "hearing_outcome"
     return "overdue" if stato == SCADUTA else "open"
@@ -603,7 +605,7 @@ def today_payload(user: Any, date_value: str | None = None) -> dict[str, Any]:
                     continue
                 status = _deadline_status(scadenza, day)
                 days = (due - day).days
-                if status in {"completed", "cancelled", "draft"}:
+                if status in {"completed", "cancelled", "draft", "historical"}:
                     continue
                 if due == day:
                     summary["deadlinesToday"] += 1
@@ -719,7 +721,7 @@ def quick_deadlines_payload(user: Any, *, full: bool = False) -> dict[str, Any]:
                 summary["drafts"] += 1
             continue
         status = _deadline_status(scadenza, today)
-        if status in {"completed", "cancelled", "draft", "hearing_outcome"}:
+        if status in {"completed", "cancelled", "draft", "hearing_outcome", "historical"}:
             continue
         priority = _priority_from_deadline(scadenza, today)
         if due == today:
@@ -975,7 +977,7 @@ def agenda_scadenziario_notification_items(
                 # Le BOZZE (proposte da confermare) non generano notifiche ne'
                 # Web Push: create_draft_date_proposals garantisce che non
                 # tocchino agenda, notifiche o calendari.
-                if due is None or status in {"completed", "cancelled", "draft"}:
+                if due is None or status in {"completed", "cancelled", "draft", "historical"}:
                     continue
                 days = (due - today).days
                 priority = _priority_from_deadline(scadenza, today)

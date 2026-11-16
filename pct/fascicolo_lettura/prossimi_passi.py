@@ -632,10 +632,14 @@ def prossimi_passi(
     Le conclusioni del modello si aggiungono alle scadenze e ai presidi già registrati.
     Una conclusione assente o incerta non basta per scartare un adempimento.
     """
+    from pct.scadenze_superate_sentenza import decisione_superante
     from .ragionamento import passi as passi_ragionamento
 
+    giorno_oggi = data_da(oggi)
+    scadenze_correnti = [voce for voce in scadenze if not decisione_superante(voce, al_giorno=giorno_oggi)]
     chiusa_con_provvedimento = bool(documenti_letti.get("sentenze")) and (
-        intestazione.get("da_archiviare")
+        len(scadenze_correnti) < len(scadenze)
+        or intestazione.get("da_archiviare")
         or pulisci(intestazione.get("stato_codice")).upper() in STATI_SENZA_PASSI
     )
     provvedimenti_consegnati = frozenset(notifiche_lette.get("provvedimenti_consegnati", ()))
@@ -645,7 +649,6 @@ def prossimi_passi(
     ) if ragionamento else []
     stato = stato_passi(intestazione, documenti_letti, oggi, economico_letto,
                        ragionamento=ragionamento, controlli_aperti=bool(passi))
-    giorno_oggi = data_da(oggi)
     if not stato["attivi"]:
         # I consueti passi del rito restano sospesi; i controlli sulla decisione
         # e sui suoi effetti rimangono nella lista condivisa con il Quadro.
@@ -653,7 +656,7 @@ def prossimi_passi(
     verifiche = dict(verifiche or {})
     scadenze_lette = _scadenze_gia_lette((ragionamento or {}).get("conclusioni") or [])
     scadenze_da_proporre = [
-        voce for voce in scadenze
+        voce for voce in scadenze_correnti
         if (_codice_scadenza(voce), data_da(voce.get("data") or voce.get("data_scadenza"))) not in scadenze_lette
     ]
     passi.extend(_passi_scadenze(scadenze_da_proporre, giorno_oggi))

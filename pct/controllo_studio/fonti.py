@@ -14,7 +14,7 @@ from urllib.parse import quote, urlencode
 
 from pct.controllo_studio.voce import Azione, Voce, quando_etichetta
 from pct.scadenze_stato import (
-    ESITO_UDIENZA, SCADUTA, stato_operativo, termine_note_in_sostituzione, termine_perentorio,
+    ESITO_UDIENZA, SCADUTA, STORICA, stato_operativo, termine_note_in_sostituzione, termine_perentorio,
 )
 from pct.formatting import format_datetime_it, parse_datetime_rome
 
@@ -84,6 +84,8 @@ def voci_scadenze(scadenze: list[Any], fascicoli: dict[str, Any], oggi: date) ->
         # l'esito. Verifica a vista del 01/11/2026: «10 termini scaduti» qui, «3 scadute da chiudere» nello
         # scadenziario; la differenza erano 7 udienze già tenute.
         stato = stato_operativo(scadenza, oggi)
+        if stato == STORICA:
+            continue
         esito_udienza = stato == ESITO_UDIENZA
         scaduta = stato == SCADUTA
         vicina = giorno <= (oggi + timedelta(days=2)).isoformat()

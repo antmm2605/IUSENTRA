@@ -144,4 +144,51 @@ def recupera_esiti(fascicolo: Any, registro: Any, tenant: str, *, sentenze: set[
     return esito
 
 
-__all__ = ["CAMPO_CONTROLLO", "accoda_liquidazioni_incomplete", "recupera_esiti"]
+def registra_scadenze_precedenti_alla_decisione(fascicolo: Any, registro: Any, tenant: str) -> int:
+    """Riconcilia i termini del grado deciso con il dispositivo già letto."""
+    from pct.scadenze_superate_sentenza import dispositivo_conclusivo, segnala_scadenze_superate
+    from web.helpers import get_scadenziario
+
+    fid = str(getattr(fascicolo, "id", "") or "")
+    numero = str(getattr(fascicolo, "numero_rg", "") or "").strip().lstrip("0")
+    anno = str(getattr(fascicolo, "anno_rg", "") or "").strip()
+    if not fid or not numero or not anno:
+        return 0
+    ufficiali = {
+        str(doc.id) for doc in getattr(fascicolo, "documenti", [])
+        if str(getattr(doc, "fonte_documento", "") or "").startswith(("PEC_CANCELLERIA", "PST", "POLISWEB"))
+    }
+    if not ufficiali:
+        return 0
+    ruoli = {
+        fatto.oggetto_id for fatto in registro.fatti(tenant, fid, campo="numero_ruolo", verifiche=("verificata", "corretta"))
+        if "/".join(val.strip().lstrip("0") for val in str(fatto.valore or "").split("/")[:2]) == f"{numero}/{anno}"
+    }
+    documenti = ufficiali & ruoli
+    if not documenti:
+        return 0
+    impronte = {
+        voce.oggetto_id: voce.impronta
+        for voce in registro.oggetti(tenant, fid) if voce.tipo == "documento" and voce.presente and voce.oggetto_id in documenti
+    }
+    conclusioni = {}
+    decisioni = {}
+    for fatto in registro.fatti(tenant, fid, categoria="evento", verifiche=("verificata", "corretta")):
+        if fatto.tipo != "documento" or not fatto.sha256 or fatto.sha256 != impronte.get(fatto.oggetto_id):
+            continue
+        if fatto.campo == "esito_sentenza" and dispositivo_conclusivo(str(fatto.contesto or "")):
+            conclusioni[fatto.oggetto_id] = fatto
+        elif fatto.campo == "data_decisione_sentenza":
+            decisioni[fatto.oggetto_id] = str(fatto.valore or "").strip()
+    date = {decisioni[doc] for doc in conclusioni.keys() & decisioni.keys()}
+    if len(date) != 1 or "" in date:
+        return 0
+    giorno = next(iter(date))
+    originale = min(doc for doc in conclusioni if decisioni.get(doc) == giorno)
+    return segnala_scadenze_superate(
+        get_scadenziario(), fascicolo_id=fid, giorno_sentenza=giorno,
+        origine=f"dispositivo verificato nel documento {originale}", documento_conclusivo=originale,
+    )
+
+
+__all__ = ["CAMPO_CONTROLLO", "accoda_liquidazioni_incomplete", "recupera_esiti", "registra_scadenze_precedenti_alla_decisione"]

@@ -70,7 +70,9 @@ def _reason(code: str, label: str, weight: int, action: str) -> dict[str, Any]:
 
 
 def _risk_for_deadline(item: Any, today: date) -> dict[str, Any] | None:
-    if not _is_open(item) or _is_notification_presidio(item):
+    from pct.scadenze_stato import STORICA, stato_operativo
+
+    if not _is_open(item) or _is_notification_presidio(item) or stato_operativo(item, today) == STORICA:
         return None
 
     reasons: list[dict[str, Any]] = []

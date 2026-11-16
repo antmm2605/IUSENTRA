@@ -1137,6 +1137,10 @@ def _deadline_event(
 ) -> dict[str, Any] | None:
     # Come per gli appuntamenti, le scadenze annullate o completate sono
     # consultabili nello storico, non nell'Agenda delle attività aperte.
+    from pct.scadenze_stato import STORICA, stato_operativo
+
+    if stato_operativo(item) == STORICA:
+        return None
     if _enum_value(getattr(item, "stato", "")) in {"COMPLETATO", "ANNULLATO"}:
         return None
     if is_legacy_pec_deadline(item):

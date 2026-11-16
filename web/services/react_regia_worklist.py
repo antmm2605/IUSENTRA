@@ -21,7 +21,7 @@ from datetime import date
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import quote
 
-from pct.scadenze_stato import esito_udienza_da_registrare
+from pct.scadenze_stato import ESITO_UDIENZA, STORICA, stato_operativo
 
 __all__ = ["build_regia_worklist", "countdown_scadenza"]
 
@@ -89,7 +89,10 @@ def build_regia_worklist(
         priority = enum_value(getattr(scadenza, "priorita", ""))
         due = parse_date(getattr(scadenza, "data_scadenza", ""))
         label, tone, rank = countdown_scadenza(due, oggi)
-        esito_udienza = esito_udienza_da_registrare(scadenza, oggi)
+        stato = stato_operativo(scadenza, oggi)
+        if stato == STORICA:
+            continue
+        esito_udienza = stato == ESITO_UDIENZA
         if esito_udienza:
             # Regola V28 (pct.scadenze_stato): l'udienza passata non «scade», se ne
             # registra l'esito dal verbale o dal provvedimento (artt. 126 e 127-ter c.p.c.).

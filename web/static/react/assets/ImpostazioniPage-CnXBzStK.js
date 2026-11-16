@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CYwizmLN.js";export{e as ImpostazioniPage};

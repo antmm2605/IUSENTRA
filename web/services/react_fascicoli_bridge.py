@@ -6084,7 +6084,7 @@ def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = F
             fonte = _text(getattr(documenti.get(doc_id), "msg_id_portale", "")).partition("#")[0]
         if fonte.startswith("pec_"):
             fonti_pec[azione["id"]] = fonte
-    database = _studio_db("FASCICOLI_DB")
+    database = _studio_db("FASCICOLI_DB") if has_app_context() and presidio["actions"] else None
     collegamenti_pec = collegamenti_adempimenti_pec(database, str(fascicolo.id), presidio["actions"], fonti_pec)
     for azione in presidio["actions"]:
         oggetto = oggetti.get((azione.get("objectType"), azione.get("documentId")), {})

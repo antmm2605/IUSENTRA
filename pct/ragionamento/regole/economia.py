@@ -73,7 +73,7 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
         riscontro = next((prova for prova in riscontri if prova), "")
         incassato = ctx.posizione == "attiva" and bool(riscontro)
         beneficiario = "all'avvocato antistatario (art. 93 c.p.c.)" if letta["distrazione"] else "al cliente"
-        liquidazioni.append({"atto": atto.id, "nome": atto.nome, **letta, "incassato": incassato})
+        liquidazioni.append({"atto": atto.id, "copie": list(atto.copie), "nome": atto.nome, **letta, "incassato": incassato})
         if ctx.posizione != "attiva":
             continue
         risultato.append(Conclusione(

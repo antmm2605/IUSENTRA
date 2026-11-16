@@ -930,3 +930,19 @@ def test_messaggi_deposito_archiviati_non_sono_buste_accettate():
     ]
     assert not lettura["depositi"]["tutti"] and not lettura["depositi"]["perfezionati"]
     assert "Messaggi di deposito archiviati: 2" in componi(lettura)
+
+
+def test_cronologia_riusa_le_copie_accertate_e_conserva_le_fonti():
+    from pct.fascicolo_lettura.cronologia import cronologia
+
+    documenti = [
+        {"id": oid, "nome": f"{oid}.pdf", "etichetta": "Sentenza", "sezione": "provvedimenti",
+         "natura": "provvedimento", "data_evento": "2024-05-07"}
+        for oid in ("ufficiale", "notificata", "distinta")
+    ]
+    eventi = cronologia([], [], [], documenti, [], date(2026, 11, 16),
+                        copie_atti={"notificata": "ufficiale"})
+
+    assert len(eventi) == 2
+    assert {f["fonte_id"] for f in eventi[0]["fonti"]} == {"ufficiale", "notificata"}
+    assert eventi[1]["fonte_id"] == "distinta"

@@ -99,6 +99,7 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
     conclusioni.sort(key=lambda c: (ordine.get(c["stato"], 9), (c["termine"] or {}).get("giorni_residui") is None,
                                     (c["termine"] or {}).get("giorni_residui") or 0))
     rito = causa.get("rito") or {}
+    economia = causa.get("economia") or {}
     return {
         "versione": causa.get("versione", ""), "impronta": causa.get("impronta", ""),
         "rito": {"codice": rito.get("codice"), "etichetta": rito.get("etichetta"), "fonte": rito.get("fonte")},
@@ -112,7 +113,11 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
                                   "presenza": "in presenza"}.get(u.get("modalita"), u.get("modalita")),
                      "documento": (u.get("fonte") or {}).get("nome", ""),
                      "documento_id": (u.get("fonte") or {}).get("oggetto_id", "")} for u in causa.get("udienze") or []],
-        "economia": {"contributo_unificato": (causa.get("economia") or {}).get("contributo_unificato")},
+        "economia": {
+            "contributo_unificato": economia.get("contributo_unificato"),
+            "liquidazioni": [{k: v[k] for k in ("atto", "copie", "compensi", "distrazione") if k in v}
+                             for v in economia.get("liquidazioni") or []],
+        },
         "conclusioni": conclusioni,
         "contraddizioni": [{"controllo": x["controllo"], "descrizione": x["descrizione"], "sciolta": x["sciolta"], "come": x["come"]}
                            for x in causa.get("contraddizioni") or []],

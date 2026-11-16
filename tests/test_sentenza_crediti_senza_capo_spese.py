@@ -42,3 +42,27 @@ def test_credito_con_capo_spese_resta_anche_senza_importo(monkeypatch):
     assert [c["eventId"] for c in crediti] == ["fee1", "fee2"]
     assert crediti[0]["citazione"] == citazione
     assert crediti[1]["importoLabel"] == "€ 1.300,00"
+
+
+def test_credito_documentato_nei_riscontri_non_richiede_seconda_conferma(monkeypatch):
+    eventi = [
+        {"id": "fee1", "event_type": "apri_credito_avvocato_antistatario", "status": "to_review",
+         "amount": 1100.0, "source_id": "originale_notificato"},
+        {"id": "fee2", "event_type": "apri_credito_avvocato_antistatario", "status": "to_review",
+         "amount": 1100.01, "source_id": "originale_notificato"},
+        {"id": "fee3", "event_type": "apri_credito_cliente", "status": "to_review",
+         "amount": 1100.0, "source_id": "originale_notificato"},
+        {"id": "fee4", "event_type": "apri_credito_avvocato_antistatario", "status": "to_review",
+         "amount": 1100.0, "source_id": "altra_sentenza"},
+    ]
+    fonti = {"originale_notificato": {"documentoId": "COPIA"}, "altra_sentenza": {"documentoId": "ALTRA"}}
+    _eventi(monkeypatch, eventi, fonti)
+    ragionamento = {
+        "conclusioni": [{"codice": "spese_liquidate", "stato": "da_fare", "letto": {"documento_id": "UFFICIALE"}}],
+        "economia": {"liquidazioni": [{"atto": "UFFICIALE", "copie": ["COPIA"], "compensi": 1100.0, "distrazione": True}]},
+    }
+
+    attivo, crediti = runtime.crediti_da_sentenza("F1", registro=object(), tenant="studio", ragionamento=ragionamento)
+
+    assert attivo
+    assert [c["eventId"] for c in crediti] == ["fee2", "fee3", "fee4"]

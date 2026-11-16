@@ -42,7 +42,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v39"
+VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v40"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -144,7 +144,12 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     stato_documenti = (archivio_letto.get("lettura_automatica") or {}).get("documenti") or {}
     documenti_letti["errori_lettura"] = int(stato_documenti.get("errori") or 0)
     documenti_letti["da_leggere_lettura"] = int(stato_documenti["da_leggere"]) if "da_leggere" in stato_documenti else None
-    eventi = cronologia(dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"], dati.appuntamenti, oggi, archivio_letto)
+    copie_atti = {atto["id"]: min(atto["id"], *atto["copie"])
+                  for atto in (dati.ragionamento or {}).get("atti", []) if atto.get("copie")}
+    eventi = cronologia(
+        dati.attivita, depositi_letti["tutti"], notifiche_lette["tutte"], documenti_letti["tutti"],
+        dati.appuntamenti, oggi, archivio_letto, copie_atti=copie_atti,
+    )
     fase_letta = fase(testata, documenti_letti, depositi_letti, notifiche_lette, eventi, dati.scadenze, oggi, pec_letto=pec_letto,
                       appuntamenti=dati.appuntamenti, fonti=fonti_documenti)
     passi, stato = prossimi_passi(

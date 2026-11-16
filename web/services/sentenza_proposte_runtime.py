@@ -351,11 +351,14 @@ def _fonti_crediti(fascicolo_id: str, audits: list[dict[str, Any]], registro: An
         citazione = a_parole_intere(_testo(lettura.get("capo_spese")) or rifila_brano(_testo(capo)), 400)
         fonti[_testo(audit.get("id"))] = {"href": con_passo(fonte.get("href", ""), citazione), "documento": fonte.get("label", ""),
                                          "citazione": citazione, "numero": _testo(dati.get("numero")),
-                                         "anno": _testo(dati.get("anno")), "data": _testo(dati.get("data"))}
+                                         "anno": _testo(dati.get("anno")), "data": _testo(dati.get("data")),
+                                         "documentoId": _testo(fonte.get("documentoId"))}
     return fonti
 
 
-def crediti_da_sentenza(fascicolo_id: str, registro: Any = None, tenant: str = "") -> tuple[bool, list[dict[str, Any]]]:
+def crediti_da_sentenza(
+    fascicolo_id: str, registro: Any = None, tenant: str = "", *, ragionamento: dict[str, Any] | None = None,
+) -> tuple[bool, list[dict[str, Any]]]:
     """I crediti letti nel capo spese, una volta sola, da confermare o già confermati, con fonte e parcella.
 
     I crediti registrati in automatico si mostrano con la loro registrazione (`registrazioni_automatiche`).
@@ -373,6 +376,14 @@ def crediti_da_sentenza(fascicolo_id: str, registro: Any = None, tenant: str = "
         return False, []
     parcelle = _parcelle_per_evento(fascicolo_id)
     fonti = _fonti_crediti(fascicolo_id, payload.get("audits") or [], registro, tenant) if registro is not None else {}
+    quadro = ragionamento or {}
+    fonti_spese = {
+        (c.get("letto") or {}).get("documento_id")
+        for c in quadro.get("conclusioni") or []
+        if c.get("codice") == "spese_liquidate" and c.get("stato") in {"da_fare", "fatto"} and not c.get("dubbi")
+    }
+    liquidazioni = [v for v in (quadro.get("economia") or {}).get("liquidazioni") or []
+                    if v.get("atto") in fonti_spese and v.get("compensi")]
     crediti = []
     for evento in payload.get("eventi") or []:
         tipo = _testo(evento.get("event_type"))
@@ -383,6 +394,16 @@ def crediti_da_sentenza(fascicolo_id: str, registro: Any = None, tenant: str = "
         # Senza importo né passaggio del capo spese il credito non è stato letto in una sentenza
         # (es. note scritte con importi di altri atti): resta nel presidio economico, non qui.
         if registro is not None and evento.get("amount") is None and not fonte.get("citazione"):
+            continue
+        oid = fonte.get("documentoId")
+        if stato == "to_review" and oid and any(
+            oid in {v["atto"], *(v.get("copie") or [])}
+            and v["compensi"] == evento.get("amount")
+            and v.get("distrazione") is (tipo == "apri_credito_avvocato_antistatario")
+            for v in liquidazioni
+        ):
+            # Lo stesso importo con fonte provata è già visibile nei Riscontri.
+            # Il controllo sul credito rimane nello storico contabile.
             continue
         evento_id = _testo(evento.get("id"))
         gemelli = [evento_id, *[_testo(e) for e in evento.get("duplicati") or []]]
@@ -403,7 +424,10 @@ def proposte_sentenza_payload(fascicolo: Any) -> dict[str, Any]:
 
     fascicolo_id = _testo(getattr(fascicolo, "id", ""))
     registro, tenant = registro_corrente(sola_lettura=True), tenant_corrente()
-    attivo, crediti = crediti_da_sentenza(fascicolo_id, registro, tenant)
+    from web.services.riscontri_processuali_runtime import lettura_materializzata
+
+    lettura = lettura_materializzata(fascicolo_id)
+    attivo, crediti = crediti_da_sentenza(fascicolo_id, registro, tenant, ragionamento=(lettura or {}).get("ragionamento"))
     return {"stato": _stato(fascicolo), "definizione": proposte_definizione(fascicolo, registro, tenant),
             "crediti": crediti, "automatiche": registrazioni_automatiche(fascicolo, registro, tenant, _parcelle_per_evento(fascicolo_id)),
             "controlloEconomicoAttivo": attivo}

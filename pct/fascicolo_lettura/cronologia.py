@@ -64,6 +64,7 @@ def cronologia(
     appuntamenti: list[dict[str, Any]],
     oggi: Any,
     archivio_letto: dict[str, Any] | None = None,
+    *, copie_atti: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     eventi: list[Evento] = []
     archivio_disponibile = bool((archivio_letto or {}).get("disponibile"))
@@ -213,7 +214,7 @@ def cronologia(
         voce = evento.come_dizionario()
         voce["data_it"] = data_it(evento.data)
         unici.append(voce)
-    raggruppati = _raggruppa(unici)
+    raggruppati = _raggruppa(unici, copie_atti or {})
     for voce in raggruppati:
         fonte_id = str(voce.get("fonte_id") or "")
         if fonte_id.startswith("evento:"):
@@ -232,13 +233,16 @@ def _titolo_base(titolo: str) -> str:
     return testo.rstrip(" .")
 
 
-def _raggruppa(eventi: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _raggruppa(eventi: list[dict[str, Any]], copie_atti: dict[str, str]) -> list[dict[str, Any]]:
     """Combine identical facts across views, keeping every source reference."""
     gruppi: dict[tuple[str, str, str, str], dict[str, Any]] = {}
     for evento in eventi:
         categoria = str(evento.get("categoria") or "")
         titolo = pulisci(evento.get("titolo")).casefold()
-        chiave = (str(evento.get("data") or ""), categoria, titolo, str(evento.get("fonte_id") or ""))
+        fonte_id = str(evento.get("fonte_id") or "")
+        if evento.get("fonte") == "documento catalogato":
+            fonte_id = copie_atti.get(fonte_id, fonte_id)
+        chiave = (str(evento.get("data") or ""), categoria, titolo, fonte_id)
         corrente = gruppi.get(chiave)
         fonte = {k: evento.get(k, "") for k in ("fonte", "fonte_id", "dettaglio", "esito")}
         if corrente is None:

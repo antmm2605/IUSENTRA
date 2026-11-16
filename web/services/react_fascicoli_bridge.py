@@ -5044,6 +5044,8 @@ def _ensure_auto_proforma_for_fascicolo(
             metadata = _document_metadata_for_id(fascicolo, document_id)
             if not _document_may_contain_sentenza_economica(text, metadata):
                 continue
+            from web.services.proforma_da_sentenza import ricevuta_contributo_verificata
+
             outcome = apply_sentenza_tribunale_automation(
                 fascicoli_repository=fascicoli_repository,
                 fatturazione_repository=fatturazione_repository,
@@ -5053,7 +5055,10 @@ def _ensure_auto_proforma_for_fascicolo(
                 actor=actor,
                 proforma_requested=True,
                 regime_fiscale=_regime_fiscale_studio(),
+                riscontro_contributo=lambda: ricevuta_contributo_verificata(fascicolo),
             )
+            if "ricevuta_contributo_incluso_da_collegare" in outcome.extraction.warnings:
+                return {"status": "missing_basis", "reason": "La sentenza include il contributo unificato. Serve la ricevuta corrispondente."}
             if outcome.extraction.discordanze:
                 return {"status": "missing_basis", "reason": "La sentenza contiene importi da verificare; nessuna proforma creata."}
             if _text(getattr(outcome, "proforma_id", "")):
@@ -5120,7 +5125,7 @@ def generate_react_fascicolo_proforma(
             "errors": {"fascicolo": "Il fascicolo non è disponibile nello studio."},
         }, 404
     economic_summary = payment_summary_for_fascicolo(fascicolo)
-    from web.services.proforma_da_sentenza import base_dalla_sentenza_letta, voci_che_bloccano
+    from web.services.proforma_da_sentenza import dati_base_dalla_sentenza, voci_che_bloccano
 
     requested_basis, basis_error = _requested_proforma_basis(payload)
     if basis_error:
@@ -5132,7 +5137,9 @@ def generate_react_fascicolo_proforma(
     parcella_salvata = _payment_amount_value(parcella.get("importo")) or 0
     from pct.fascicolo_sentenza_economica import ORIGIN as ORIGINE_SENTENZA
 
-    sentenza_amount, sentenza_source = base_dalla_sentenza_letta(fascicolo)
+    base = dati_base_dalla_sentenza(fascicolo) or {}
+    sentenza_amount = base.get("importo")
+    sentenza_source = base.get("descrizione", "")
     liquidazione_persistita = _payment_amount_value(liquidazione.get("importo"))
     liquidazione_da_sentenza = (
         liquidazione.get("origine") == ORIGINE_SENTENZA
@@ -5190,6 +5197,14 @@ def generate_react_fascicolo_proforma(
 
     from web.services.react_fatturazione_bridge import create_react_fascicolo_proforma
 
+    esborsi_inclusi = base.get("esborsi_inclusi") if base_da_sentenza else None
+    if esborsi_inclusi and base.get("esborsi_contributo"):
+        from web.services.proforma_da_sentenza import ricevuta_contributo_verificata
+
+        if ricevuta_contributo_verificata(fascicolo).get("importo") != esborsi_inclusi:
+            return {"ok": False, "message": "La sentenza include il contributo unificato. Collega la ricevuta corrispondente per preparare la proforma.",
+                    "errors": {"contributo_unificato": "Ricevuta del contributo unificato da collegare."}}, 409
+
     result, status = create_react_fascicolo_proforma(
         get_fatturazione=get_fatturazione,
         get_clienti=get_clienti,
@@ -5200,6 +5215,7 @@ def generate_react_fascicolo_proforma(
         fascicolo=fascicolo,
         amount=amount,
         amount_source=amount_source,
+        **({"esborsi_inclusi": esborsi_inclusi} if esborsi_inclusi else {}),
         config=config,
         ip_address=ip_address,
     )

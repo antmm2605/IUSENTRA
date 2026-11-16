@@ -87,6 +87,33 @@ _NON_COMPENSI_AFTER_AMOUNT_RE = re.compile(
 )
 
 
+_DOPO_INCLUSIONE_ESBORSI = re.compile(
+    r"\s*(?:per|a titolo di)\s+(?:(?:esborsi?|spese vive)(?:\s+(?:di|per)\s+)?\b|"
+    r"(?=contributo\s+unificato|c\.\s*u\b))(?P<contributo>contributo\s+unificato|c\.\s*u\.?)?",
+    re.IGNORECASE,
+)
+_PRIMA_INCLUSIONE = re.compile(r"^\s*,?\s*di cui\s*$", re.IGNORECASE)
+
+
+def esborsi_inclusi_nel_liquidato(capo: str, totale: float | None) -> tuple[float | None, bool]:
+    """Legge la quota inclusa («€ X, di cui € Y per esborsi») e l'eventuale causale C.U."""
+    if totale is None:
+        return None, False
+    testo = compatta_testo(capo)
+    importi = sorted((*MONEY_RE.finditer(testo), *_MONEY_SUFFIX_RE.finditer(testo)), key=lambda m: m.start())
+    trovati = set()
+    for lordo, quota in zip(importi, importi[1:]):
+        if lordo.end() > quota.start() or parse_importo(lordo.group("amount")) != totale:
+            continue
+        if not _PRIMA_INCLUSIONE.fullmatch(testo[lordo.end():quota.start()]):
+            continue
+        fine = _DOPO_INCLUSIONE_ESBORSI.match(testo, quota.end())
+        importo = parse_importo(quota.group("amount"))
+        if fine and importo is not None and 0 < importo <= totale:
+            trovati.add((importo, bool(fine.group("contributo"))))
+    return trovati.pop() if len(trovati) == 1 else (None, False)
+
+
 def compatta_testo(value: str) -> str:
     """Testo su una riga: l'OCR spezza il dispositivo su piu' righe."""
 

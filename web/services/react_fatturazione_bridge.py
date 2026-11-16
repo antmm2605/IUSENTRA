@@ -1751,6 +1751,7 @@ def create_react_fascicolo_proforma(
     amount_source: str,
     config: dict[str, Any],
     ip_address: str = "",
+    esborsi_inclusi: float = 0,
 ) -> tuple[dict[str, Any], int]:
     """Crea una proforma canonica dal controllo economico del fascicolo."""
 
@@ -1863,6 +1864,13 @@ def create_react_fascicolo_proforma(
         "tipo_procedimento": _text(getattr(fascicolo, "tipo_procedimento", ""), limit=120),
         "valore_controversia": _text(getattr(fascicolo, "valore_causa", ""), limit=40),
     }
+    if esborsi_inclusi:
+        compensi = round(amount - esborsi_inclusi, 2)
+        voci = [
+            {"descrizione": "Compensi liquidati in sentenza", "prezzo_unitario": compensi, "tipo": "ONORARIO"},
+            {"descrizione": "Esborsi inclusi nella liquidazione", "prezzo_unitario": esborsi_inclusi, "tipo": "ANTICIPO"},
+        ]
+        query["voci_json"] = json.dumps([voce for voce in voci if voce["prezzo_unitario"] > 0])
     defaults = _new_form_payload(
         clienti=[cliente],
         fascicoli=[fascicolo],

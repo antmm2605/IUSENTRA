@@ -135,3 +135,30 @@ def test_registro_decisioni_rileva_manomissione(tmp_path):
     tampered = lines[0].replace('"approvato"', '"rifiutato"')
     path.write_text("\n".join([tampered, lines[1]]) + "\n", encoding="utf-8")
     assert log.verify_chain() is False
+
+
+def test_decisioni_concorrenti_conservano_una_catena_lineare(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from time import sleep
+
+    originale = ComplianceDecisionLog._last_hash
+
+    def leggi_predecessore(registro):
+        ultimo = originale(registro)
+        sleep(0.015)
+        return ultimo
+
+    monkeypatch.setattr(ComplianceDecisionLog, "_last_hash", leggi_predecessore)
+    percorso = tmp_path / "decisioni.jsonl"
+
+    def scrivi(indice):
+        ComplianceDecisionLog(percorso).record_decision(
+            tenant_id="studio", actor_id="sistema", kind="test", subject_ref=f"F{indice}",
+            decision="registrato", rationale="scrittura contemporanea",
+        )
+
+    with ThreadPoolExecutor(max_workers=4) as concorrenti:
+        list(concorrenti.map(scrivi, range(12)))
+    registro = ComplianceDecisionLog(percorso)
+    assert len(registro.list_decisions()) == 12
+    assert registro.verify_chain()

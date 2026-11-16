@@ -787,6 +787,8 @@ def apply_sentenza_automation_for_document_text(
     clean_metadata.setdefault("document_id", document_id)
     fascicoli = get_fascicoli()
     fatturazione = get_fatturazione()
+    from web.services.proforma_da_sentenza import ricevuta_contributo_verificata
+
     outcome = apply_sentenza_tribunale_automation(
         fascicoli_repository=fascicoli,
         fatturazione_repository=fatturazione,
@@ -795,6 +797,7 @@ def apply_sentenza_automation_for_document_text(
         document_metadata=clean_metadata,
         actor=actor or "Lex AI",
         regime_fiscale=_regime_fiscale_studio(),
+        riscontro_contributo=lambda: ricevuta_contributo_verificata(fascicoli.get(fascicolo_id)),
     )
     document_key = _document_key(clean_metadata)
     vector_result: dict[str, Any] = {}

@@ -15,7 +15,7 @@ from pct.percorso_pratica.esito import esito_sentenza, improcedibile_per_interes
 from pct.termine_lungo_sentenza import data_decisione
 from pct.registro_letture.fatti_repository import Fatto
 
-VERSIONE_ESTRAZIONE_ESITO = "2026.11.15.esito-dispositivo.v8-spese-a-carico"
+VERSIONE_ESTRAZIONE_ESITO = "2026.11.16.esito-dispositivo.v9-esborsi-inclusi"
 _SENTENZA = re.compile(r"\bS\s?E\s?N\s?T\s?E\s?N\s?Z\s?A\b", re.IGNORECASE)
 
 
@@ -85,6 +85,11 @@ def estrai_esito(testo: str, *, origine: str) -> list[Fatto]:
             else "Compensazione integrale letta nel dispositivo (art. 92 c.p.c.)."
         )
         valore = spese["regolazione"] + (f";importo={spese['importo']}" if spese["importo"] else "") + (";distrazione" if spese["distrazione"] else "")
+        if spese.get("esborsi_inclusi") is not None:
+            quota_esborsi = f"{spese['esborsi_inclusi']:.2f}".replace(".", ",")
+            valore += f";esborsi_inclusi={quota_esborsi}"
+            if spese.get("esborsi_contributo"):
+                valore += ";esborsi_contributo"
         fatti.append(Fatto(
             categoria="evento", campo="spese_sentenza", valore=valore, valore_letto=spese["frase"][:200],
             etichetta="Spese: " + spese["regolazione"].replace("_", " ") + (f" € {spese['importo']}" if spese["importo"] else ""),

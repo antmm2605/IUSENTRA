@@ -14,11 +14,12 @@ from pathlib import Path
 from typing import Any
 
 from legal_document_ingestion.evidence_hash import canonical_json, chain_hash
+from pct.sync import FileLock
 
 
 class ComplianceDecisionLog:
     def __init__(self, path: str | Path) -> None:
-        self.path = Path(path)
+        self.path = Path(path).resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def _entries(self) -> list[dict[str, Any]]:
@@ -41,25 +42,27 @@ class ComplianceDecisionLog:
         rationale: str,
         evidence: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        previous = self._last_hash()
-        entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "tenant_id": str(tenant_id),
-            "actor_id": str(actor_id),
-            "kind": str(kind),
-            "subject_ref": str(subject_ref),
-            "decision": str(decision),
-            "rationale": str(rationale),
-            "evidence": dict(evidence or {}),
-            "previous_hash": previous,
-        }
-        entry["chain_hash"] = chain_hash(previous, entry)
-        with self.path.open("a", encoding="utf-8", newline="\n") as fh:
-            fh.write(canonical_json(entry) + "\n")
-        return entry
+        with FileLock(str(self.path)):
+            previous = self._last_hash()
+            entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "tenant_id": str(tenant_id),
+                "actor_id": str(actor_id),
+                "kind": str(kind),
+                "subject_ref": str(subject_ref),
+                "decision": str(decision),
+                "rationale": str(rationale),
+                "evidence": dict(evidence or {}),
+                "previous_hash": previous,
+            }
+            entry["chain_hash"] = chain_hash(previous, entry)
+            with self.path.open("a", encoding="utf-8", newline="\n") as fh:
+                fh.write(canonical_json(entry) + "\n")
+            return entry
 
     def list_decisions(self, *, tenant_id: str | None = None) -> list[dict[str, Any]]:
-        entries = self._entries()
+        with FileLock(str(self.path)):
+            entries = self._entries()
         if tenant_id is None:
             return entries
         return [e for e in entries if str(e.get("tenant_id")) == str(tenant_id)]
@@ -67,8 +70,10 @@ class ComplianceDecisionLog:
     def verify_chain(self) -> bool:
         """Ricalcola la catena: True se integra, False se manomessa/spezzata."""
 
+        with FileLock(str(self.path)):
+            entries = self._entries()
         previous = ""
-        for entry in self._entries():
+        for entry in entries:
             stored = str(entry.get("chain_hash") or "")
             recomputed = chain_hash(previous, {k: v for k, v in entry.items() if k != "chain_hash"})
             if stored != recomputed or str(entry.get("previous_hash") or "") != previous:

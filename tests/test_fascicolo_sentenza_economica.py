@@ -1423,7 +1423,7 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
         origine=ORIGIN,
         dati_personalizzati={
             "document": {"documento_operativo": "PROFORMA", "tipo_documento_label": "Proforma"},
-            "lex_sentenza": {"origin": ORIGIN, "document_key": document_key},
+            "lex_sentenza": {"origin": ORIGIN, "document_key": document_key, "sha256": "a" * 64},
         },
     )
     fascicoli.fascicolo.pagamenti[AUTOMATION_KEY]["proforme"][document_key] = proforma.id
@@ -1433,7 +1433,7 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
         fatturazione_repository=fatturazione,
         fascicolo_id="FASC-1",
         text=MONTAGNESE_TEXT,
-        document_metadata={"document_id": "DOC-MONTAGNESE", "filename": "Sentenza.pdf", "tipo_documento": "Sentenza Tribunale", "codice_fiscale_cliente": "MNTRRT98P65G791Q"},
+        document_metadata={"document_id": "DOC-MONTAGNESE", "sha256": "a" * 64, "filename": "Sentenza.pdf", "tipo_documento": "Sentenza Tribunale", "codice_fiscale_cliente": "MNTRRT98P65G791Q"},
         actor="Lex AI",
     )
 
@@ -1453,6 +1453,7 @@ def test_sentenza_gia_processata_completa_esborsi_e_importo_parcella(tmp_path: P
     assert react_payment["displayLabel"] == "Spese/esborsi"
     assert react_payment["natura"] == "spese_esborsi"
     assert fascicolo.pagamenti["parcella"]["importo"] == updated_proforma.totale
+    assert updated_proforma.totale_competenze == 300
     assert any(
         voce.tipo == "ANTICIPO"
         and voce.prezzo_unitario == 21.50
@@ -1783,3 +1784,25 @@ def test_sentenza_codice_fiscale_della_parte_deve_essere_valido_e_concordante(ex
     else:
         assert not any(f.categoria == "importo" for f in facts)
         assert any(f.campo == "importi_identita_non_verificata" for f in facts)
+
+
+def test_proforma_con_cu_incluso_usa_la_ricevuta_e_non_somma_due_volte(tmp_path):
+    fascicoli = FakeFascicoliRepository()
+    f = fascicoli.fascicolo
+    f.titolo, f.nome_cliente, f.tribunale, f.numero_rg, f.anno_rg = "Montagnese Roberta c. MIM", "Montagnese Roberta", "Tribunale di Vicenza", "697", 2025
+    fatturazione = GestioneFatturazione(str(tmp_path / "parcelle.json"))
+    testo = MONTAGNESE_TEXT.replace("321,50, di cui € 21,50 per esborsi", "1.349,00, di cui € 49,00 per esborsi di c.u.")
+    args = dict(fascicoli_repository=fascicoli, fatturazione_repository=fatturazione,
+                fascicolo_id="FASC-1", text=testo, proforma_requested=True, regime_fiscale="RF19",
+                document_metadata={"document_id": "D1", "sha256": "9" * 64, "filename": "Sentenza.pdf",
+                                   "codice_fiscale_cliente": "MNTRRT98P65G791Q"})
+    in_attesa = apply_sentenza_tribunale_automation(**args)
+    assert not in_attesa.proforma_id and "ricevuta_contributo_incluso_da_collegare" in in_attesa.extraction.warnings
+    args["riscontro_contributo"] = lambda: {"importo": 49.0, "href": "/fascicoli/FASC-1/documenti/RT1/visualizza"}
+    con_ricevuta = apply_sentenza_tribunale_automation(**args)
+    assert con_ricevuta.proforma_id
+    bozza = fatturazione.get(con_ricevuta.proforma_id)
+    assert bozza.totale_competenze == 1300 and bozza.totale_anticipazioni == 49
+    assert bozza.totale == 1605.80
+    assert apply_sentenza_tribunale_automation(**args).proforma_id == bozza.id
+    assert len(fatturazione.per_fascicolo("FASC-1")) == 1

@@ -21,6 +21,11 @@ ETICHETTE = {"parcella": "Parcella", "liquidazione_giudice": "Liquidazione del g
 
 
 def base_dalla_sentenza_letta(fascicolo: Any) -> tuple[float | None, str]:
+    scelta = dati_base_dalla_sentenza(fascicolo)
+    return (scelta["importo"], scelta["descrizione"]) if scelta else (None, "")
+
+
+def dati_base_dalla_sentenza(fascicolo: Any) -> dict[str, Any] | None:
     """L'importo liquidato dalla sentenza della causa in favore del cliente o del difensore, con la fonte."""
     from web.services.fascicolo_conto_economico_runtime import (
         crediti_da_sentenza,
@@ -37,14 +42,29 @@ def base_dalla_sentenza_letta(fascicolo: Any) -> tuple[float | None, str]:
         if not crediti:
             crediti = crediti_dalle_sentenze_lette(sentenze_dall_archivio(fascicolo))
     except Exception:
-        return None, ""
+        return None
     importi = {round(float(c["importo"]), 2) for c in crediti if c.get("importo")}
     if len(importi) != 1 or len({bool(c.get("distrazione")) for c in crediti}) != 1:
-        return None, ""  # nessuna o più sentenze con importi diversi: decide l'avvocato
+        return None  # nessuna o più sentenze con importi diversi: decide l'avvocato
+    ripartizioni = {(c.get("esborsi_inclusi"), bool(c.get("esborsi_contributo"))) for c in crediti}
+    if len(ripartizioni) != 1:
+        return None
+    quota_esborsi, esborsi_cu = ripartizioni.pop()
     credito = next(c for c in crediti if c.get("importo"))
     documento = next((f.get("label") for f in credito.get("fonti") or [] if f.get("label")), "sentenza della causa")
     importo = importi.pop()
-    return importo, fonte_importo(importo, bool(credito.get("distrazione")), documento)
+    return {"importo": importo, "descrizione": fonte_importo(importo, bool(credito.get("distrazione")), documento),
+            "esborsi_inclusi": quota_esborsi, "esborsi_contributo": esborsi_cu}
+
+
+def ricevuta_contributo_verificata(fascicolo: Any) -> dict[str, Any]:
+    from web.services.contributo_stato_runtime import stato_contributo_fascicolo
+
+    stato = stato_contributo_fascicolo(fascicolo)
+    if stato.get("codice") != "pagato" or stato.get("ruoloFonti") != "ricevuta di versamento":
+        return {}
+    fonte = next((x for x in stato.get("fonti") or [] if x.get("href")), None)
+    return {"importo": stato["importo"], "href": fonte["href"]} if fonte else {}
 
 
 def fonte_importo(importo: float, distratte: bool, documento: str) -> str:

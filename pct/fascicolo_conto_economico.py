@@ -128,6 +128,12 @@ def riga_sentenza(crediti: list[Mapping[str, Any]], sentenze: list[Mapping[str, 
         avvisi.append("Una fonte indica spese a credito senza riportare un importo leggibile.")
     if len(gruppi) > 1:
         avvisi.append("Importi diversi in più sentenze del fascicolo: verificare quale è definitiva prima di chiedere il pagamento.")
+    ripartizioni = {_numero(c.get("esborsi_inclusi")) for c in scelti}
+    if totale is not None and len(gruppi) == 1 and len(ripartizioni) == 1:
+        quota_esborsi = next(iter(ripartizioni))
+        if quota_esborsi is not None and quota_esborsi <= totale:
+            avvisi.append(f"Nell’importo liquidato sono compresi {_euro(quota_esborsi)} di esborsi. "
+                          f"Il compenso a cui si applicano gli accessori è {_euro(round(totale - quota_esborsi, 2))}.")
     if any(c.get("accessori") for c in scelti):
         # Nel regime forfetario o dei minimi l'IVA non si applica (art. 1, comma 58, L. 190/2014; art. 27 D.L. 98/2011).
         iva = ("senza IVA per il regime forfetario dello studio" if str(regime).upper() in {"RF19", "RF02"}

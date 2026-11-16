@@ -162,3 +162,19 @@ def test_conto_economico_mostra_lo_stesso_totale_della_proforma_collegata():
     assert parcella["importo"] == 600
     assert "€ 500,00 di compensi" in parcella["dettaglio"]
     assert parcella["fonti"][0]["href"] == "/fatturazione?id_documento=P1"
+
+
+def test_esborsi_del_dispositivo_sono_compresi_e_non_base_degli_accessori():
+    from pct.archivio_letture.estrazione_esito import estrai_esito
+    from pct.archivio_letture.spese_sentenza import spese_lette
+    from dataclasses import asdict
+
+    testo = ("TRIBUNALE DI VICENZA SENTENZA. P.Q.M. Condanna il Ministero alla rifusione delle spese di lite "
+             "in favore della parte ricorrente, che liquida in euro 1.349,00, di cui euro 49,00 "
+             "per esborsi di c.u., oltre spese generali, iva e cpa, con distrazione al difensore.")
+    fatti = [dict(asdict(f), oggetto_id="D1") for f in estrai_esito(testo, origine="nativo")]
+    fatti.append({"oggetto_id":"D1", "categoria":"ruolo", "valore":"1506/2025", "verifica":"verificata"})
+    esito = spese_lette(fatti, rg="1506/2025")[0]
+    assert (esito["importo"], esito["esborsi_inclusi"], esito["esborsi_contributo"]) == (1349,49,True)
+    riga = riga_sentenza([esito])
+    assert "€ 49,00 di esborsi" in riga["dettaglio"] and "€ 1.300,00" in riga["dettaglio"]

@@ -97,11 +97,20 @@ def spese_lette(fatti: Iterable[Any], *, rg: str) -> list[dict[str, Any]]:
         parti = str(_valore(spese, "valore") or "").split(";")
         importo = next((importo_euro(p.split("=", 1)[1]) for p in parti if p.startswith("importo=")), None)
         frase = str(_valore(spese, "contesto") or _valore(spese, "valore_letto") or "")
+        esborsi = next((importo_euro(p.split("=", 1)[1]) for p in parti if p.startswith("esborsi_inclusi=")), None)
+        if esborsi is None:
+            from pct.spese_liquidate_lettura import esborsi_inclusi_nel_liquidato
+
+            esborsi, esborsi_cu = esborsi_inclusi_nel_liquidato(frase, importo)
+        else:
+            esborsi_cu = "esborsi_contributo" in parti
         date = sorted((f for f in certe if _valore(f, "campo") == "data_atto"), key=lambda f: int(_valore(f, "posizione") or 0))
         risultato.append({
             "documento_id": documento_id,
             "regolazione": parti[0] if parti and parti[0] else "non_indicata",
             "importo": importo,
+            "esborsi_inclusi": esborsi,
+            "esborsi_contributo": esborsi_cu,
             "distrazione": "distrazione" in parti,
             "distrazione_condizionata": "distrazione" in parti and bool(_OVE_RICHIESTO.search(frase)),
             "accessori": accessori_nel_capo_spese(frase),

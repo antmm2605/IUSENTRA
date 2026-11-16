@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, compatta_testo, estrai_spese_liquidate, parse_importo
+from pct.spese_liquidate_lettura import MONEY_AMOUNT_PATTERN, compatta_testo, esborsi_inclusi_nel_liquidato, estrai_spese_liquidate, parse_importo
 
 ETICHETTE = {
     "decreto ingiuntivo": ("decreto ingiuntivo", "art. 641, terzo comma, c.p.c."),
@@ -55,6 +55,9 @@ def spese_liquidate(testo: str) -> dict[str, Any] | None:
         if abs(trovato.start() - piano.find(brano[:40])) < 600 or not brano:
             esborsi = parse_importo(trovato.group("amount"))
             break
+    inclusi, _ = esborsi_inclusi_nel_liquidato(brano, compensi)
+    if inclusi is not None:
+        compensi, esborsi = round(compensi - inclusi, 2), inclusi
     # La distrazione (art. 93 c.p.c.) segue di solito la liquidazione nella stessa frase o subito dopo
     # («… oltre accessori, il tutto da distrarsi a favore dell'avv. …»): si guarda anche il seguito del capo spese.
     posizione = piano.find(brano[:60]) if brano else -1

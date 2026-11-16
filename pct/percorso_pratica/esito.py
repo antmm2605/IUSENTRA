@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from pct.spese_liquidate_lettura import estrai_spese_liquidate
+from pct.spese_liquidate_lettura import esborsi_inclusi_nel_liquidato, estrai_spese_liquidate
 
 _PQM = re.compile(r"\b(?:P\.?\s?Q\.?\s?M\b\.?|PER\s+QUESTI\s+MOTIVI\b)", re.IGNORECASE)
 # Fine del dispositivo: la firma su una riga breve o «Città, data IL GIUDICE»; non «Il Giudice del Lavoro, definitivamente pronunciando».
@@ -81,9 +81,11 @@ def spese(dispositivo_testo: str) -> dict[str, Any]:
     )), "")
     if condanna:
         importo, _ = estrai_spese_liquidate(condanna)
+        esborsi, esborsi_cu = esborsi_inclusi_nel_liquidato(condanna, importo)
         voce.update(
             regolazione="condanna" if voce["regolazione"] == "non_indicata" else voce["regolazione"],
             frase=condanna, importo=f"{importo:.2f}".replace(".", ",") if importo is not None else "",
+            esborsi_inclusi=esborsi, esborsi_contributo=esborsi_cu,
         )
     voce["distrazione"] = bool(re.search(r"\bdistra(?:e|zione|tt)|\bantistatari", testo, re.IGNORECASE))
     return voce

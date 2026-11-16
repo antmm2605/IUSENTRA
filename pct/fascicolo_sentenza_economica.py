@@ -6,7 +6,7 @@ import re
 import unicodedata
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any
+from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 from pct.fatturazione import StatoParcella, VoceParcella
@@ -15,6 +15,7 @@ from pct.spese_liquidate_lettura import (
     MONEY_PREFIX_PATTERN,
     MONEY_RE,
     compatta_testo,
+    esborsi_inclusi_nel_liquidato,
     estrai_spese_liquidate,
     estratto_testo,
     parse_importo,
@@ -414,6 +415,8 @@ class SentenzaEconomicaExtraction:
     contributo_unificato_esente: bool = False
     spese_esborsi_importo: float | None = None
     spese_esborsi_titolo: str = ""
+    esborsi_inclusi: float | None = None
+    esborsi_contributo: bool = False
     fondo_spese_importo: float | None = None
     fondo_spese_titolo: str = ""
     beneficio_cliente_importo: float | None = None
@@ -521,6 +524,7 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
 
     rg_match = _extract_rg_near_sentence(compact, date_match)
     liquidation_amount, liquidation_title = _extract_liquidazione(compact)
+    esborsi_inclusi, esborsi_contributo = esborsi_inclusi_nel_liquidato(liquidation_title, liquidation_amount)
     spese_esborsi_amount, spese_esborsi_title = _extract_contributo_unificato(compact)
     fondo_amount, fondo_title, fondo_discordanze = _extract_fondo_spese(compact)
     warnings: list[str] = []
@@ -544,6 +548,8 @@ def analyze_sentenza_tribunale_text(text: str, metadata: dict[str, Any] | None =
         contributo_unificato_label="",
         spese_esborsi_importo=spese_esborsi_amount,
         spese_esborsi_titolo=spese_esborsi_title,
+        esborsi_inclusi=esborsi_inclusi,
+        esborsi_contributo=esborsi_contributo,
         fondo_spese_importo=fondo_amount,
         fondo_spese_titolo=fondo_title,
         beneficio_cliente_importo=beneficio_amount,
@@ -586,6 +592,7 @@ def apply_sentenza_tribunale_automation(
     actor: str = "",
     proforma_requested: bool = False,
     regime_fiscale: str = "",
+    riscontro_contributo: Callable[[], dict[str, Any]] | None = None,
 ) -> SentenzaAutomationOutcome:
     """Applica al fascicolo la matrice economica derivata dalla sentenza indicizzata.
 
@@ -620,6 +627,11 @@ def apply_sentenza_tribunale_automation(
         )
     apply_contributo_unificato_pdf_evidence(extraction, metadata)
     applica_direzione_spese(extraction, text, fascicolo, metadata)
+    if extraction.esborsi_contributo and riscontro_contributo:
+        metadata["contributo_unificato_verificato"] = riscontro_contributo()
+    contributo_da_provare = extraction.esborsi_contributo and not _riscontra_contributo_incluso(extraction, metadata)
+    if contributo_da_provare:
+        extraction.warnings.append("ricevuta_contributo_incluso_da_collegare")
 
     document_key = _document_key(metadata)
     payments = dict(getattr(fascicolo, "pagamenti", {}) or {})
@@ -796,7 +808,7 @@ def apply_sentenza_tribunale_automation(
         if isinstance(evidence, dict) and evidence.get("stato") == "da_verificare" and evidence not in extraction.discordanze:
             extraction.discordanze.append(evidence)
     proforma = existing_proforma
-    if proforma_requested and proforma is None and extraction.liquidazione_importo is not None:
+    if proforma_requested and proforma is None and extraction.liquidazione_importo is not None and not contributo_da_provare:
         proforma = _create_proforma(
             fatturazione_repository=fatturazione_repository,
             fascicolo=fascicolo,
@@ -808,7 +820,7 @@ def apply_sentenza_tribunale_automation(
         changes["proformaCreated"] = proforma is not None
         if proforma is not None:
             _dichiara_bozze_superate(fatturazione_repository, str(getattr(fascicolo, "id", fascicolo_id)))
-    if proforma is not None:
+    if proforma is not None and not contributo_da_provare:
         proforma = _sync_existing_proforma_from_extraction(
             fatturazione_repository=fatturazione_repository,
             proforma=proforma,
@@ -1146,6 +1158,8 @@ def applica_direzione_spese(
         extraction.warnings.append("parte_condannata_non_nominata_verificare")
     if capo.quota_dovuta < 1:
         extraction.liquidazione_importo = round(extraction.liquidazione_importo * capo.quota_dovuta, 2)
+        if extraction.esborsi_inclusi is not None:
+            extraction.esborsi_inclusi = round(extraction.esborsi_inclusi * capo.quota_dovuta, 2)
     return extraction
 
 
@@ -1994,12 +2008,14 @@ def _find_existing_proforma(
     document_key: str,
     extraction: SentenzaEconomicaExtraction | None = None,
 ) -> Any | None:
+    from pct.proforma_unica import superata
+
     getter = getattr(fatturazione_repository, "per_fascicolo", None)
     if not callable(getter):
         return None
     current_fingerprint = _sentenza_fingerprint(extraction)
     for item in getter(fascicolo_id):
-        if _enum_value(getattr(item, "stato", "")) == StatoParcella.ANNULLATA.value:
+        if _enum_value(getattr(item, "stato", "")) == StatoParcella.ANNULLATA.value or superata(item):
             continue
         if _text(getattr(item, "origine", "")) != ORIGIN:
             continue
@@ -2071,27 +2087,41 @@ def _sync_existing_proforma_from_extraction(
         if "proforma_importi_discordanti" not in extraction.warnings:
             extraction.warnings.append("proforma_importi_discordanti")
         return proforma
+    importo_compensi, spese_esborsi_amount = _compensi_e_esborsi_proforma(extraction)
     voci = list(getattr(proforma, "voci", []) or [])
     data = dict(getattr(proforma, "dati_personalizzati", {}) or {})
     lex_data = dict(data.get("lex_sentenza") or {})
     previous_extraction = lex_data.get("extraction") or {}
-    same_source = (bool(_text(metadata.get("sha256")))
-                   and _text(metadata.get("sha256")) == _text(lex_data.get("sha256"))
-                   and _document_key(metadata) == _text(lex_data.get("document_key"))
-                   and _sentenza_fingerprint(extraction) == _sentenza_fingerprint(previous_extraction)
-                   and lex_data.get("origin") == ORIGIN)
+    impronta = _text(metadata.get("sha256"))
+    same_original = (bool(impronta) and impronta == _text(lex_data.get("sha256"))
+                     and _document_key(metadata) == _text(lex_data.get("document_key"))
+                     and lex_data.get("origin") == ORIGIN)
+    same_source = same_original and _sentenza_fingerprint(extraction) == _sentenza_fingerprint(previous_extraction)
+    changed = False
+    ripartizione = None
     conflicts = []
-    for field_name, description, voice_type in (
-        ("liquidazione_importo", "Compensi liquidati in sentenza", "ONORARIO"),
-        ("contributo_unificato_importo", _contributo_voice_description(extraction), "ANTICIPO"),
-        ("spese_esborsi_importo", _spese_esborsi_voice_description(), "ANTICIPO"),
+    for field_name, amount, description, voice_type in (
+        ("liquidazione_importo", importo_compensi, "Compensi liquidati in sentenza", "ONORARIO"),
+        ("contributo_unificato_importo", extraction.contributo_unificato_importo, _contributo_voice_description(extraction), "ANTICIPO"),
+        ("spese_esborsi_importo", spese_esborsi_amount, _spese_esborsi_voice_description(), "ANTICIPO"),
     ):
-        amount = getattr(extraction, field_name)
         matches = [(i, v) for i, v in enumerate(voci) if _plain(v.descrizione) == _plain(description)]
         if amount is None or not matches or any(abs(_voice_amount(v)-amount) <= .01 for _, v in matches):
             continue
+        if (field_name == "liquidazione_importo" and extraction.esborsi_inclusi and same_original
+                and not data.get("modificata_da_avvocato") and len(matches) == 1
+                and _voice_amount(matches[0][1]) == extraction.liquidazione_importo
+                and matches[0][1].tipo == "ONORARIO" and float(matches[0][1].quantita) == 1):
+            indice, _ = matches[0]
+            voci[indice] = VoceParcella(descrizione=description, prezzo_unitario=amount, tipo=voice_type)
+            ripartizione = {
+                "totale_liquidato": extraction.liquidazione_importo, "compensi": amount,
+                "esborsi_inclusi": extraction.esborsi_inclusi, "sha256_sentenza": impronta,
+            }
+            changed = True
+            continue
         detail = {'field':field_name, 'previous_amounts':[_voice_amount(v) for _, v in matches],
-                  'amount':amount, 'document_key':_document_key(metadata), 'sha256':_text(metadata.get('sha256')),
+                  'amount':amount, 'document_key':_document_key(metadata), 'sha256':impronta,
                   'same_source': same_source, 'voice_type': voice_type}
         conflicts.append(detail)
     if conflicts:
@@ -2104,17 +2134,18 @@ def _sync_existing_proforma_from_extraction(
             proforma = updater(_text(getattr(proforma, 'id', '')), dati_personalizzati=data)
         extraction.warnings.append('proforma_importi_discordanti')
         return proforma
-    changed = False
-    if extraction.liquidazione_importo is not None and not _has_voice(
+    if ripartizione:
+        data["ripartizione_liquidazione"] = ripartizione
+    if importo_compensi and not _has_voice(
         voci,
-        extraction.liquidazione_importo,
+        importo_compensi,
         ("compensi", "liquidati", "liquidazione"),
     ):
         voci.append(
             VoceParcella(
                 descrizione="Compensi liquidati in sentenza",
                 quantita=1.0,
-                prezzo_unitario=extraction.liquidazione_importo,
+                prezzo_unitario=importo_compensi,
                 tipo="ONORARIO",
             )
         )
@@ -2133,7 +2164,6 @@ def _sync_existing_proforma_from_extraction(
             )
         )
         changed = True
-    spese_esborsi_amount = extraction.spese_esborsi_importo
     if spese_esborsi_amount is not None and not _has_voice(
         voci,
         spese_esborsi_amount,
@@ -2161,7 +2191,13 @@ def _sync_existing_proforma_from_extraction(
     )
     data["lex_sentenza"] = lex_data
     if changed or data != getattr(proforma, "dati_personalizzati", {}):
-        proforma = updater(_text(getattr(proforma, "id", "")), voci=voci, dati_personalizzati=data)
+        if getattr(fatturazione_repository, "_studio_db", None) is not None:
+            from pct.fatturazione import parcella_revision
+
+            proforma = updater(_text(getattr(proforma, "id", "")), voci=voci, dati_personalizzati=data,
+                               expected_revision=parcella_revision(proforma))
+        else:
+            proforma = updater(_text(getattr(proforma, "id", "")), voci=voci, dati_personalizzati=data)
     return proforma
 
 
@@ -2179,6 +2215,31 @@ def _dichiara_bozze_superate(fatturazione_repository: Any, fascicolo_id: str) ->
         nuovi = dati(parcella)
         nuovi[CHIAVE_SUPERATA] = segno_superata(valida, adesso=_now_rome())
         updater(_text(getattr(parcella, "id", "")), dati_personalizzati=nuovi)
+
+
+def _riscontra_contributo_incluso(extraction: SentenzaEconomicaExtraction, metadata: dict[str, Any]) -> bool:
+    prova = metadata.get("contributo_unificato_verificato") or {}
+    quota = extraction.esborsi_inclusi
+    if not quota or not prova.get("href") or prova.get("importo") != quota:
+        return False
+    if extraction.contributo_unificato_importo not in (None, quota):
+        return False
+    extraction.contributo_unificato_importo = quota
+    extraction.contributo_unificato_natura = "contributo_unificato"
+    extraction.contributo_unificato_titolo = f"Contributo incluso nella liquidazione. Ricevuta: {prova['href']}"
+    extraction.contributo_unificato_label = "Contributo unificato documentato"
+    return True
+
+
+def _compensi_e_esborsi_proforma(extraction: SentenzaEconomicaExtraction) -> tuple[float | None, float | None]:
+    totale = extraction.liquidazione_importo
+    quota = extraction.esborsi_inclusi
+    if totale is None or quota is None:
+        return totale, extraction.spese_esborsi_importo
+    compensi = round(totale - quota, 2)
+    if extraction.esborsi_contributo and _contributo_is_billable(extraction) and extraction.contributo_unificato_importo == quota:
+        return compensi, None
+    return compensi, quota
 
 
 def _create_proforma(
@@ -2208,12 +2269,13 @@ def _create_proforma(
     if not id_cliente:
         return None
     voci: list[VoceParcella] = []
-    if extraction.liquidazione_importo is not None:
+    importo_compensi, spese_esborsi_amount = _compensi_e_esborsi_proforma(extraction)
+    if importo_compensi:
         voci.append(
             VoceParcella(
                 descrizione="Compensi liquidati in sentenza",
                 quantita=1.0,
-                prezzo_unitario=extraction.liquidazione_importo,
+                prezzo_unitario=importo_compensi,
                 tipo="ONORARIO",
             )
         )
@@ -2226,7 +2288,6 @@ def _create_proforma(
                 tipo="ANTICIPO",
             )
         )
-    spese_esborsi_amount = extraction.spese_esborsi_importo
     if spese_esborsi_amount is not None:
         voci.append(
             VoceParcella(

@@ -556,3 +556,19 @@ def test_coverage_report_watermark_vecchio_diventa_stale():
     coverage, warnings = build_coverage_report(results, watermarks=watermarks, clock=CLOCK)
     assert coverage[0].status == "stale"
     assert warnings
+
+
+
+def test_scadenziario_tiene_il_termine_superato_nello_storico():
+    termine = _scadenza("note-superate", -2, perentorio=True, stato="APERTO")
+    termine.tipo = "UDIENZA"
+    termine.hearing_mode = "note_scritte"
+    termine.titolo = "Fissazione termine per note in sostituzione udienza"
+    termine.id_appuntamento = "cartolare"
+    termine.note = f"SUPERATA_DA_SENTENZA:DEFINITIVA:{(TODAY - timedelta(days=1)).isoformat()}:DOC"
+    ctx = _ctx(
+        scadenziario_store=_ScadStore([termine]),
+        agenda_store=_AgendaStore([_appuntamento("cartolare", -2)]),
+    )
+    assert ScadenzarioCollector().collect(ctx).signals == []
+    assert AgendaCollector().collect(ctx).signals == []

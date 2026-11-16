@@ -12,7 +12,6 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from pct.formatting import parse_datetime_rome
-from pct.scadenze_superate_sentenza import decisione_superante, riscontro_storico
 from pct.scadenze_stato import (
     ANNULLATA, BOZZA, COMPLETATA, ESITO_UDIENZA, STORICA, data_termine_corrente, stato_operativo,
     termine_note_in_sostituzione, termine_perentorio,
@@ -127,6 +126,11 @@ class ScadenzarioCollector:
             registra_revoca_udienza(ctx, sc, fase)
             if fase in {ANNULLATA, BOZZA, COMPLETATA} or stato in _CLOSED_DEADLINE_STATES:
                 continue
+            if fase == STORICA:
+                id_appuntamento = str(getattr(sc, "id_appuntamento", "") or "")
+                if id_appuntamento and termine_note_in_sostituzione(sc):
+                    ctx.appuntamenti_sostituiti_da_note.add(id_appuntamento)
+                continue
             due = _to_date(data_termine_corrente(sc))
             # gli arretrati aperti restano SEMPRE nel piano; il futuro oltre
             # l'orizzonte dei 14 giorni non entra nel giorno selezionato
@@ -148,20 +152,9 @@ class ScadenzarioCollector:
             # (artt. 126 e 127-ter c.p.c.); nessun termine perentorio ne dipende.
             esito_udienza = fase == ESITO_UDIENZA
             motivo = _ESITO_UDIENZA_REASON if esito_udienza else _scadenza_reason(ctx, sc, perentorio)
-            storica = fase == STORICA
-            decisione = decisione_superante(sc, al_giorno=planning_day) if storica else None
             href = f"/scadenziario?scadenza={scadenza_id}" if scadenza_id else "/scadenziario"
-            altra_fonte = []
-            if storica and decisione:
-                data_decisione, documento = decisione
-                motivo, href = riscontro_storico(fascicolo_id, decisione)
-                altra_fonte.append(SignalEvidence(
-                    source_type="case_presidio", source_id=documento, label="Sentenza conclusiva",
-                    timestamp=data_decisione, href=href, confidence=1.0,
-                ))
             if termine_note_in_sostituzione(sc):
-                if not storica:
-                    motivo = "Deposito di note in sostituzione dell’udienza (art. 127-ter c.p.c.). Fonte nello scadenziario."
+                motivo = "Deposito di note in sostituzione dell’udienza (art. 127-ter c.p.c.). Fonte nello scadenziario."
                 id_appuntamento = str(getattr(sc, "id_appuntamento", "") or "")
                 if id_appuntamento:
                     ctx.appuntamenti_sostituiti_da_note.add(id_appuntamento)
@@ -171,17 +164,16 @@ class ScadenzarioCollector:
                     tenant_id=ctx.tenant_id,
                     source_type=self.source_type,
                     source_id=scadenza_id,
-                    kind="document_review" if storica else "hearing_outcome" if esito_udienza else "deadline_fulfill",
-                    title=f"Riscontro storico: {titolo}" if storica else f"Registrare l'esito dell'udienza: {titolo}" if esito_udienza else titolo,
+                    kind="hearing_outcome" if esito_udienza else "deadline_fulfill",
+                    title=f"Registrare l'esito dell'udienza: {titolo}" if esito_udienza else titolo,
                     dedupe_key="",
                     fascicolo_id=fascicolo_id,
                     responsible_user_id=responsabile,
                     reason=motivo,
-                    due_at="" if storica else due_iso,
-                    peremptory=perentorio and not esito_udienza and not storica,
-                    blocking=perentorio and not esito_udienza and not storica,
-                    legal_risk="low" if storica else "medium" if esito_udienza else ("high" if perentorio else "medium"),
-                    priority_hint="P3" if storica else "",
+                    due_at=due_iso,
+                    peremptory=perentorio and not esito_udienza,
+                    blocking=perentorio and not esito_udienza,
+                    legal_risk="high" if perentorio and not esito_udienza else "medium",
                     confidence=0.95,
                     href=href,
                     metadata={"scadenziario_id": scadenza_id, **origin_event_metadata(sc)},
@@ -194,7 +186,6 @@ class ScadenzarioCollector:
                             href=f"/scadenziario?scadenza={scadenza_id}" if scadenza_id else "/scadenziario",
                             confidence=0.95,
                         ),
-                        *altra_fonte,
                     ],
                 )
             )

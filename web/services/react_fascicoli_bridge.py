@@ -6060,6 +6060,45 @@ def _documenti_per_identificativo(fascicolo: Any) -> dict[str, Any]:
     }
 
 
+def _allinea_azioni_documentali_note(
+    presidio: dict[str, Any], fascicolo_id: str, scadenze: list[Any], proiezioni: list[dict[str, Any]],
+) -> None:
+    """Il decreto apre il termine già in agenda, anche quando la PEC è stata importata dopo."""
+    per_id = {voce["id"]: voce for voce in proiezioni}
+    sostituiti = {
+        (voce["replacesAppointmentId"], voce["dateIso"][:10])
+        for voce in proiezioni if voce.get("replacesAppointmentId") and voce.get("writtenHearingTime")
+        and not voce.get("representedByDeadlineId")
+    }
+    documenti: dict[tuple[str, str], set[str]] = {}
+    for scadenza in scadenze:
+        voce = per_id.get(_text(getattr(scadenza, "id", "")))
+        fonte = _text(getattr(scadenza, "source_message_id", "")).split(":")
+        if not voce or len(fonte) < 5 or fonte[:2] != ["docpresidio", fascicolo_id] or fonte[3] != "termine":
+            continue
+        if fonte[4] == voce["dateIso"][:10] and voce.get("representedByDeadlineId"):
+            documenti.setdefault((fonte[2], fonte[4]), set()).add(voce["representedByDeadlineId"])
+
+    azioni = []
+    for azione in presidio["actions"]:
+        giorno = azione.get("dateIso")
+        href = azione.get("registeredHref") or ""
+        if azione.get("type") == "udienza_documento" and href.startswith("/agenda/"):
+            appuntamento = href.split("/", 3)[2]
+            if (appuntamento, giorno) in sostituiti:
+                continue  # L'originale resta nei documenti, l'adempimento è il deposito delle note.
+        if azione.get("type") == "note_127_ter" and not href:
+            candidati = documenti.get((azione.get("documentId"), giorno), set())
+            if len(candidati) == 1:
+                termine = per_id.get(next(iter(candidati)))
+                if termine:
+                    azione["registeredHref"] = termine["href"]
+        azioni.append(azione)
+    presidio["actions"] = azioni
+    if presidio.get("nextAction") not in azioni:
+        presidio["nextAction"] = azioni[0] if azioni else None
+
+
 def _document_presidio_for_fascicolo(fascicolo: Any, *, ensure_missing: bool = False) -> dict[str, Any]:
     """Proiezione dei fatti SQL correnti. Non rilegge testo, OCR o vecchi indici.
 
@@ -9330,6 +9369,7 @@ def _appointments(apps: Iterable[Any]) -> list[dict[str, Any]]:
 
 
 def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
+    from pct.ricevute_deposito_pct import data_consegna_deposito
     from web.services.correlazioni_ricevute_archivio import depositi_da_archivio
     out = []
     seen: set[tuple[str, ...]] = set()
@@ -9368,14 +9408,22 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
         accepted = status == "ACCETTATO_CANCELLERIA"
         accepted_at = _datetime_label(_deposit_receipt_field(dep, "Data esito", source="ricevuta_cancelleria")) if accepted else ""
         role_number = _deposit_receipt_field(dep, "Numero ruolo") or _fascicolo_role_number(fascicolo)
+        timestamp = getattr(dep, "timestamp", "")
+        if getattr(dep, "fonte_portale", "") == "PEC_PCT":
+            consegna = data_consegna_deposito(getattr(dep, "ricevuta_consegna", ""), getattr(dep, "consegne_archivio", ()))
+            timestamp = consegna.isoformat() if consegna else (
+                getattr(dep, "data_accettazione", "") or
+                (_deposit_receipt_field(dep, "Data esito", source="ricevuta_cancelleria") if accepted else "")
+            )
+
         out.append(
             {
-                "_sortAt": _parse_datetime(getattr(dep, "timestamp", ""))
+                "_sortAt": _parse_datetime(timestamp)
                 or _parse_datetime(getattr(dep, "registrato_il", ""))
                 or _parse_datetime(_deposit_receipt_field(dep, "Data esito"))
                 or (max(portal_dates) if portal_dates else None),
                 "id": did,
-                "timestamp": _date_label(getattr(dep, "timestamp", "")),
+                "timestamp": _date_label(timestamp),
                 "sentAt": _datetime_label(getattr(dep, "timestamp", "")) if getattr(dep, "fonte_portale", "") != "PEC_PCT" else "",
                 "acceptedAt": accepted_at,
                 "acceptedBy": _deposit_receipt_field(dep, "Mittente PEC", source="ricevuta_cancelleria") if accepted else "",
@@ -10026,6 +10074,9 @@ def build_react_fascicolo_detail_payload(
             "sources": [],
         }
     )
+    scadenze_proiettate = _deadlines(scadenze, appuntamenti=apps) if load_deadlines or not include else []
+    if document_presidio.get("actions") and scadenze_proiettate:
+        _allinea_azioni_documentali_note(document_presidio, fid, scadenze, scadenze_proiettate)
     quick_counts["presidio_documenti"] = len(document_presidio.get("actions") or [])
     fascicoli_scope: list[Any] = []
     duplicate_check_reason = ""
@@ -10229,7 +10280,7 @@ def build_react_fascicolo_detail_payload(
         "activities": activities,
         "technicalEvents": technical_events,
         "agendaLoaded": load_deadlines or not include,
-        "deadlines": _deadlines(scadenze, appuntamenti=apps) if load_deadlines or not include else [],
+        "deadlines": scadenze_proiettate,
         "appointments": _appointments(apps) if load_deadlines or not include else [],
         "documentPresidio": document_presidio,
         "operationalPresidio": operational_presidio,

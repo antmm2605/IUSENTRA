@@ -111,3 +111,26 @@ def test_agenda_fascicolo_riusa_bozza_scritta_con_presidio_storico_e_udienza():
     righe = {r["id"]: r for r in _deadlines([bozza, presidio], appuntamenti=[altra])}
     assert "representedByDeadlineId" not in righe["vecchio"]
     assert "replacesAppointmentId" not in righe["bozza"]
+
+
+def test_presidio_documentale_riusa_la_bozza_dello_stesso_decreto():
+    from types import SimpleNamespace
+    from web.services.react_fascicoli_bridge import _allinea_azioni_documentali_note
+
+    note = {"type": "note_127_ter", "dateIso": "2026-12-16", "documentId": "decreto"}
+    udienza_sostituita = {"type": "udienza_documento", "dateIso": "2026-12-16", "registeredHref": "/agenda/udienza-14/modifica"}
+    altra_udienza = {"type": "udienza_documento", "dateIso": "2026-12-16", "registeredHref": "/agenda/udienza-15/modifica"}
+    altro_decreto = {"type": "note_127_ter", "dateIso": "2026-12-16", "documentId": "altro-decreto"}
+    presidio = {"actions": [note, udienza_sostituita, altra_udienza, altro_decreto], "nextAction": udienza_sostituita}
+    scadenze = [SimpleNamespace(id="importata", source_message_id="docpresidio:F1:decreto:termine:2026-12-16:impronta")]
+    proiezioni = [
+        {"id": "importata", "dateIso": "2026-12-16", "representedByDeadlineId": "bozza"},
+        {"id": "bozza", "dateIso": "2026-12-16", "href": "/scadenziario?focus=bozza",
+         "replacesAppointmentId": "udienza-14", "writtenHearingTime": "14:00"},
+    ]
+
+    _allinea_azioni_documentali_note(presidio, "F1", scadenze, proiezioni)
+    assert presidio["actions"] == [note, altra_udienza, altro_decreto]
+    assert note["registeredHref"] == "/scadenziario?focus=bozza"
+    assert "registeredHref" not in altro_decreto
+    assert presidio["nextAction"] == note

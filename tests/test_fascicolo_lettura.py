@@ -946,3 +946,23 @@ def test_cronologia_riusa_le_copie_accertate_e_conserva_le_fonti():
     assert len(eventi) == 2
     assert {f["fonte_id"] for f in eventi[0]["fonti"]} == {"ufficiale", "notificata"}
     assert eventi[1]["fonte_id"] == "distinta"
+
+
+
+def test_cronologia_deposito_pec_usa_la_consegna_e_non_la_registrazione():
+    dati = _caso_completo()
+    dati.oggi = date(2026, 11, 16)
+    deposito = _deposito("ACCETTATO_CANCELLERIA", timestamp="2026-11-11T21:09:42")
+    deposito.update(
+        fonte_portale="PEC_PCT",
+        ricevuta_consegna="Data PEC: 29/09/2026 16:46\nData esito: 29/09/2026 16:46:42T16:46:42\nMessage-ID: <rdac@example.test>",
+        ricevuta_cancelleria="Data esito: 30/09/2026 09:59",
+    )
+    dati.depositi = [deposito]
+    lettura = costruisci_lettura(dati)
+    esito = lettura["depositi"]["perfezionati"][0]
+    assert esito["data_ora"] == "29/09/2026 ore 16:46"
+    assert esito["data_accettazione"] == "30/09/2026"
+    evento = next(voce for voce in lettura["cronologia"] if voce["categoria"] == "deposito")
+    assert evento["data"] == "2026-09-29"
+    assert evento["dettaglio"] == "Data della ricevuta di avvenuta consegna"

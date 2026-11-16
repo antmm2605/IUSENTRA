@@ -465,9 +465,22 @@ def run_gate(args: argparse.Namespace) -> int:
     check_rows: list[GateRow] = []
     status_rows: list[GateRow] = []
 
+    branch = getattr(args, "require_branch_head", None)
+    superseded = False
     fetch_errors = 0
     while True:
         try:
+            if branch:
+                ref = gh_api(f"repos/{repo}/git/ref/heads/{quote(branch, safe='/')}")
+                head = str((ref.get("object") or {}).get("sha") or "")
+                if not head:
+                    raise RuntimeError(f"SHA corrente di {branch} non disponibile")
+                if head != sha:
+                    print(f"::notice::Commit {sha[:7]} superato da {head[:7]} su {branch}.", flush=True)
+                    check_rows = [GateRow(str(branch), "superseded", head, "ignored")]
+                    status_rows = []
+                    superseded = True
+                    break
             check_rows = evaluate_required_checks(config, fetch_check_runs(repo, sha), event)
             status_rows = evaluate_statuses(config, fetch_statuses(repo, sha))
         except RuntimeError as exc:
@@ -531,6 +544,8 @@ def run_gate(args: argparse.Namespace) -> int:
     failed_rows = [row for row in check_rows if row.state != "ok"]
     failed_statuses = [row for row in status_rows if row.state == "failed"]
     failed_branches = [row for row in branch_rows or [] if row.state != "ok"]
+    if superseded:
+        return 2
     return 1 if failed_rows or failed_statuses or failed_branches else 0
 
 
@@ -541,6 +556,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sha")
     parser.add_argument("--event", choices=["push", "pull_request", "workflow_dispatch"])
     parser.add_argument("--wait", action="store_true")
+    parser.add_argument("--require-branch-head", help="Interrompi l’attesa se il commit non è più in testa a questo branch.")
     parser.add_argument("--timeout-seconds", type=int, default=5400)
     parser.add_argument("--poll-seconds", type=int, default=30)
     parser.add_argument("--report-md")

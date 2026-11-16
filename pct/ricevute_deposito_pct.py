@@ -29,9 +29,36 @@ from email.utils import getaddresses, parsedate_to_datetime
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
+from pct.formatting import parse_datetime_rome
 from pct.pec_oggetti_ufficiali import classifica_ricevuta_pec
 
 ROME_TZ = ZoneInfo("Europe/Rome")
+
+def data_ricevuta_deposito(testo: Any) -> datetime | None:
+    """Data dell’esito salvata dal presidio, distinta dalla data del messaggio."""
+    testo = str(testo or "")
+    if not re.search(r"^(?:Message-ID(?: ricevuta)?|Fonte PEC):[ \t]*\S", testo, re.M):
+        return None
+    valori = re.findall(r"^(?:Data esito|Data):[ \t]*(.+)$", testo, re.M)
+    # Una versione del parser PEC ripeteva l’orario dopo la data italiana.
+    date = set()
+    for valore in valori:
+        normale = re.sub(r"^(\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2})T.*$", r"\1", valore.strip())
+        data = parse_datetime_rome(normale) or _data_ricevuta({"date": normale})
+        if data:
+            date.add(data)
+    return next(iter(date)) if len(date) == 1 else None
+
+
+def data_consegna_deposito(ricevuta: Any, consegne_archivio: Iterable[Any] = ()) -> datetime | None:
+    """Riusa la consegna dell'archivio o quella registrata dal presidio del deposito."""
+    date_archivio = {data for fonte in consegne_archivio
+                     if isinstance(fonte, (list, tuple)) and len(fonte) == 2 and fonte[1]
+                     and (data := parse_datetime_rome(fonte[0])) is not None}
+    if date_archivio:
+        return next(iter(date_archivio)) if len(date_archivio) == 1 else None
+    return data_ricevuta_deposito(ricevuta)
+
 
 # Tipi canonici delle quattro PEC di ritorno (e delle loro varianti negative).
 ACCETTAZIONE = "accettazione"

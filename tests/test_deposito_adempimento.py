@@ -9,7 +9,8 @@ from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 
 
 def _dep(id_, giorno, stato="ACCETTATO_CANCELLERIA", tipo="NOTE SCRITTE"):
-    return SimpleNamespace(id=id_, timestamp=f"{giorno}T10:00:00", stato=stato, tipo_atto=tipo)
+    return SimpleNamespace(id=id_, timestamp="2026-11-11T10:00:00", stato=stato, tipo_atto=tipo,
+                           consegne_archivio=[(f"{giorno}T10:00:00", f"pec_{id_}")])
 
 
 def test_famiglie_dell_atto():
@@ -47,3 +48,22 @@ def test_deposito_tardivo_rifiutato_o_di_altro_tipo_non_conta(tmp_path):
     assert abbina_depositi(gestione, fascicolo_id="F1", depositi=depositi) == {"chiuse": 0, "avvisate": 0}
     altro = abbina_depositi(gestione, fascicolo_id="F1", depositi=[_dep("memoria", "2026-10-03", tipo="MEMORIA 171-TER")])
     assert altro == {"chiuse": 0, "avvisate": 1}
+
+
+
+def test_sola_data_invio_non_prova_il_deposito(tmp_path):
+    gestione = GestioneScadenziario(str(tmp_path / "s.json"))
+    voce = gestione.nuova("Deposito note scritte", TipoTermine.DEPOSITO_MEMORIA, "2026-10-06", id_fascicolo="F1")
+    deposito = _dep("d1", "2026-10-05")
+    deposito.timestamp = "2026-10-05T10:00:00"
+    deposito.consegne_archivio = []
+    assert abbina_depositi(gestione, fascicolo_id="F1", depositi=[deposito]) == {"chiuse": 0, "avvisate": 0}
+    assert gestione.get(voce.id).stato == StatoTermine.APERTO
+
+
+
+def test_la_data_della_ricevuta_nativa_e_convertita_in_ora_italiana():
+    from pct.ricevute_deposito_pct import data_consegna_deposito
+
+    ricevuta = "Ricevuta di avvenuta consegna\nData: Tue, 29 Sep 2026 22:30:00 +0000\nMessage-ID ricevuta: <rdac@example.test>"
+    assert data_consegna_deposito(ricevuta).isoformat() == "2026-09-30T00:30:00+02:00"

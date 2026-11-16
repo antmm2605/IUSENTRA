@@ -408,3 +408,30 @@ def test_copia_annullata_non_nasconde_la_ci_vera_ancora_in_corso():
     riuscita = {**in_corso, "status": "completed", "conclusion": "success", "completed_at": "2026-11-01T11:45:00Z"}
     assert latest_check_runs_by_name([annullata, riuscita])["Regressioni della copertura critica"]["conclusion"] == "success"
     assert latest_check_runs_by_name([annullata])["Regressioni della copertura critica"]["conclusion"] == "cancelled"
+
+
+def test_deploy_lascia_la_coda_se_un_nuovo_commit_supera_il_precedente(monkeypatch, tmp_path):
+    import json
+    from argparse import Namespace
+
+    module = _load_required_gates_module()
+    heads = iter(["abc123", "def456"])
+    verifiche = []
+    monkeypatch.setattr(module, "gh_api", lambda path: {"object": {"sha": next(heads)}})
+    monkeypatch.setattr(module, "fetch_check_runs", lambda repo, sha: verifiche.append(sha) or [])
+    monkeypatch.setattr(module, "fetch_statuses", lambda repo, sha: [])
+    monkeypatch.setattr(module, "evaluate_required_checks", lambda *args: [module.GateRow("CI", "queued", "", "pending")])
+    monkeypatch.setattr(module, "evaluate_statuses", lambda *args: [])
+    monkeypatch.setattr(module.time, "sleep", lambda seconds: None)
+    config = tmp_path / "config.json"
+    config.write_text("{}", encoding="utf-8")
+    report = tmp_path / "checks.json"
+    args = Namespace(
+        config=str(config), repo="owner/repo", sha="abc123", event="push", wait=True,
+        timeout_seconds=60, poll_seconds=0, report_md="", report_json=str(report),
+        check_branch_protection=False, require_branch_head="main",
+    )
+
+    assert module.run_gate(args) == 2
+    assert verifiche == ["abc123"]
+    assert "superseded" in json.dumps(json.loads(report.read_text()))

@@ -18,6 +18,8 @@ import re
 from datetime import date, datetime, timedelta
 from typing import Any, Iterable
 
+from pct.ricevute_deposito_pct import data_consegna_deposito
+
 MARCATORE_CHIUSURA = "ADEMPIUTA_CON_DEPOSITO"
 MARCATORE_AVVISO = "DEPOSITO_DA_ABBINARE"
 _CONSEGNATI = {"CONSEGNATO", "WARN_CONTROLLI", "CONTROLLI_SUPERATI", "ACCETTATO_CANCELLERIA"}
@@ -54,8 +56,12 @@ def depositi_consegnati_entro(depositi: Iterable[Any], scadenza_il: date, dal: d
     for deposito in depositi:
         if _valore(deposito, "stato").upper() not in _CONSEGNATI:
             continue
-        giorno = _giorno(_valore(deposito, "timestamp"))
-        if giorno is None or giorno > scadenza_il or (dal and giorno < dal):
+        consegna = data_consegna_deposito(getattr(deposito, "ricevuta_consegna", ""),
+                                          getattr(deposito, "consegne_archivio", ()) or ())
+        if consegna is None:
+            continue
+        giorno = consegna.date()
+        if giorno > scadenza_il or (dal and giorno < dal):
             continue
         risultato.append({"giorno": giorno, "tipo": _valore(deposito, "tipo_atto"), "id": _valore(deposito, "id")})
     return risultato
@@ -82,7 +88,7 @@ def abbina_depositi(scadenziario: Any, *, fascicolo_id: str, depositi: list[Any]
             scadenziario.completa(
                 _valore(voce, "id"),
                 note=(f"{MARCATORE_CHIUSURA}:{d['id']}\nDeposito «{d['tipo']}» consegnato il {d['giorno']:%d/%m/%Y}, "
-                      "entro il termine (ricevuta di avvenuta consegna, art. 16-bis, c. 7, D.L. 179/2012)."),
+                      "entro il termine (ricevuta di avvenuta consegna, art. 196-sexies disp. att. c.p.c.)."),
             )
             esito["chiuse"] += 1
             continue

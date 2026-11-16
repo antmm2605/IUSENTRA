@@ -99,6 +99,7 @@ jobs:
             --repo "${GITHUB_REPOSITORY}" \
             --sha "${GITHUB_SHA}" \
             --event push \
+            --require-branch-head "${DEPLOY_BRANCH}" \
             --wait \
             --timeout-seconds 5400 \
             --poll-seconds 30 \

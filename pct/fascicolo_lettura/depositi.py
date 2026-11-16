@@ -11,12 +11,14 @@ fascicolo d'ufficio, e l'avvocato deve saperlo. Le fasi degli altri canali
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import date
 import re
+from typing import Any
 
 from pct.procedura_fasi.depositi import canale_deposito, fase_deposito
+from pct.ricevute_deposito_pct import data_consegna_deposito
 
-from ._testo import data_it, dataora_it, pulisci
+from ._testo import data_da, data_it, dataora_it, pulisci
 
 FASI = {
     "INVIATO": ("inviato", "in attesa della ricevuta di accettazione PEC", False),
@@ -64,12 +66,25 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
         esito = re.search(r"^Data esito:\s*(\d{1,2}/\d{1,2}/\d{4})(?:\s|$)", ricevuta, re.M | re.I)
         if esito:
             data_accettazione = data_it(esito[1])
+    data_evento = deposito.get("timestamp")
+    descrizione_data = ""
+    if canale_letto == "PCT_TELEMATICO" and not importato:
+        consegna = data_consegna_deposito(deposito.get("ricevuta_consegna"), deposito.get("consegne_archivio") or ())
+        if consegna:
+            data_evento = consegna.isoformat()
+            descrizione_data = "Data della ricevuta di avvenuta consegna"
+        elif pulisci(deposito.get("fonte_portale")).upper() == "PEC_PCT":
+            # Queste buste sono ricostruite dalla posta. Il timestamp può
+            # essere il giorno della registrazione nella copia dello studio.
+            data_evento = deposito.get("data_accettazione") or data_accettazione
+            descrizione_data = "Data dell’accettazione in cancelleria" if data_evento else ""
     return {
         "id": pulisci(deposito.get("id")),
         "atto": titolo_atto(deposito),
         "tipo_atto": pulisci(deposito.get("tipo_atto")),
-        "data": data_it(deposito.get("timestamp")),
-        "data_ora": dataora_it(deposito.get("timestamp")),
+        "data": data_it(data_evento),
+        "data_ora": dataora_it(data_evento),
+        "descrizione_data": descrizione_data,
         "data_accettazione": data_accettazione,
         "stato": stato,
         "fase": fase,
@@ -92,7 +107,8 @@ def leggi_deposito(deposito: dict[str, Any], canale: str = "") -> dict[str, Any]
 
 
 def depositi(elenco: list[dict[str, Any]], canale: str = "") -> dict[str, Any]:
-    letti = [leggi_deposito(voce, canale) for voce in sorted(elenco, key=lambda row: str(row.get("timestamp") or ""))]
+    letti = sorted((leggi_deposito(voce, canale) for voce in elenco),
+                   key=lambda voce: (data_da(voce["data"]) or date.min, voce["data_ora"]))
     prove = [voce for voce in letti if "PROVA" in voce["stato"] or "SIMUL" in voce["stato"]]
     letti = [voce for voce in letti if voce not in prove]
     importati = [voce for voce in letti if voce["importato"]]

@@ -344,6 +344,8 @@ def test_g14_liquidazione_delle_spese_nel_decreto_ingiuntivo():
     sentenza = ragiona(fonti({**LAVORO, "numero_rg": "161"}, [RICORSO_161, SENTENZA]))
     liquidate = conclusione(sentenza, "spese_liquidate")
     assert liquidate.cosa.startswith("Riscuotere le spese liquidate dal giudice: € 515,00") and "art. 93 c.p.c." in norme_di(liquidate)
+    assert liquidate.letto.data == "2026-04-17"
+    assert not any(d.codice == "contratto_fonte" for d in liquidate.dubbi)
 
 
 def test_g16_contributo_della_volontaria_giurisdizione_e_98_euro_non_27():

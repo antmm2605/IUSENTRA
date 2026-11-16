@@ -56,6 +56,7 @@ def riscontro_incasso(voce: dict[str, Any], parcelle: list[dict[str, Any]]) -> s
 
 def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcelle: list[dict[str, Any]]) -> tuple[list[Conclusione], dict[str, Any]]:
     from ..atti import priorita_fonte_sentenza
+    from .sentenza import data_pubblicazione
 
     risultato, liquidazioni, visti = [], [], set()
     atti = sorted(ctx.della_causa(), key=priorita_fonte_sentenza)
@@ -76,10 +77,11 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
         liquidazioni.append({"atto": atto.id, "copie": list(atto.copie), "nome": atto.nome, **letta, "incassato": incassato})
         if ctx.posizione != "attiva":
             continue
+        data_fonte = (data_pubblicazione(atto.testo) if atto.sentenza else "") or atto.data
         risultato.append(Conclusione(
             "spese_liquidate", f"Riscuotere le spese liquidate dal giudice: {format_euro_it(letta['compensi'])} di compensi"
             + (f" e {format_euro_it(letta['esborsi'])} di spese" if letta["esborsi"] else "") + (" oltre accessori di legge" if letta["accessori"] else ""),
-            Fonte(atto.id, atto.nome, letta["brano"], atto.data),
+            Fonte(atto.id, atto.nome, letta["brano"], data_fonte),
             norme("cpc_641_spese") if decreto else norme("cpc_91") + (norme("cpc_93") if letta["distrazione"] else []),
             "richiesta di pagamento alla controparte e, se non paga, esecuzione con il titolo",
             f"il provvedimento ne ingiunge o ne condanna il pagamento: la somma spetta {beneficiario}",

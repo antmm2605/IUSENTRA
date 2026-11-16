@@ -9167,13 +9167,17 @@ def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> 
     Verifica del 03/11/2026: il riquadro «Udienze e scadenze» del presidio prende la prima voce e mostrava
     come prossima udienza un rinvio già trascorso. Il giorno di riferimento è quello di Roma.
     """
+    from pct.agenda_eventi_equivalenti import titolo_note_127_ter
     from web.services.pec_source_links import pec_audit_message_ids
 
     oggi = oggi_rome()
+    appuntamenti = list(appuntamenti)
     giorni_appuntamenti = {
         _text(getattr(appuntamento, "id", "")): _parse_date(getattr(appuntamento, "data_ora", ""))
         for appuntamento in appuntamenti
     }
+    termini_note: dict[str, list[tuple[dict, Any]]] = {}
+    presidi_note: dict[str, list[tuple[dict, Any]]] = {}
     out = []
     written: dict[tuple[str, str], list[tuple[str, dict, Any]]] = {}
     trascorse: set[int] = set()
@@ -9199,6 +9203,11 @@ def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> 
             }
         )
         profile = _text(getattr(item, "deadline_profile_code", ""))
+        if giorno and out[-1]["status"] in {"APERTO", "BOZZA"}:
+            if profile == "NOTE_127_TER":
+                termini_note.setdefault(giorno.isoformat(), []).append((out[-1], item))
+            if profile == "PEC_AUTO_PRESIDIO" and titolo_note_127_ter(out[-1]["title"]):
+                presidi_note.setdefault(giorno.isoformat(), []).append((out[-1], item))
         if giorno and profile in {"NOTE_127_TER", "PEC_AUTO_PRESIDIO"} and _text(getattr(item, "hearing_mode", "")) == "note_scritte":
             proiezione = out[-1]
             if profile == "NOTE_127_TER" and proiezione["status"] == "APERTO":
@@ -9233,6 +9242,40 @@ def _deadlines(scadenze: Iterable[Any], *, appuntamenti: Iterable[Any] = ()) -> 
             hearing_time = _time_label(due_at)
             if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", hearing_time):
                 projected["writtenHearingTime"] = hearing_time
+    # Le vecchie importazioni possono aver creato il presidio prima della PEC
+    # da cui è stata preparata la bozza. Un termine legale univoco riassorbe
+    # il presidio automatico compatibile. Un orario esplicito diverso resta visibile.
+    for giorno, termini in termini_note.items():
+        if len(termini) != 1:
+            continue
+        termine, origine = termini[0]
+        operativo = _text(getattr(origine, "operational_due_at", ""))
+        if not operativo.startswith(giorno + "T"):
+            continue
+        ora = _time_label(operativo)
+        if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", ora):
+            continue
+        termine["writtenHearingTime"] = ora
+        presidi = presidi_note.get(giorno, [])
+        if len(presidi) == 1:
+            presidio, vecchio = presidi[0]
+            operativo_vecchio = _text(getattr(vecchio, "operational_due_at", ""))
+            ora_vecchia = _time_label(operativo_vecchio) if operativo_vecchio.startswith(giorno + "T") else ""
+            if not ora_vecchia or ora_vecchia == ora:
+                presidio["representedByDeadlineId"] = termine["id"]
+        collegato = termine.get("replacesAppointmentId")
+        if collegato and giorni_appuntamenti.get(collegato) == _parse_date(giorno):
+            continue
+        termine.pop("replacesAppointmentId", None)
+        stesso_evento = [
+            _text(getattr(voce, "id", "")) for voce in appuntamenti
+            if _enum_value(getattr(voce, "tipo", "")) == "UDIENZA"
+            and _enum_value(getattr(voce, "stato", "")) != "ANNULLATO"
+            and _text(getattr(voce, "hearing_mode", "")) == "note_scritte"
+            and _text(getattr(voce, "data_ora", "")).startswith(giorno + "T" + ora)
+        ]
+        if len(stesso_evento) == 1 and stesso_evento[0]:
+            termine["replacesAppointmentId"] = stesso_evento[0]
     prossime = sorted((voce for i, voce in enumerate(out) if i not in trascorse), key=lambda item: item["dateIso"] or "9999")
     passate = sorted((voce for i, voce in enumerate(out) if i in trascorse), key=lambda item: item["dateIso"], reverse=True)
     return prossime + passate

@@ -82,3 +82,29 @@ def test_agenda_riusa_la_scadenza_note_collegata_senza_copia_del_provvedimento(m
     riga, = bridge._deadlines([scadenza], appuntamenti=appuntamenti)
     assert "replacesAppointmentId" not in riga
     assert "writtenHearingTime" not in riga
+
+
+def test_agenda_fascicolo_riusa_bozza_scritta_con_presidio_storico_e_udienza():
+    from types import SimpleNamespace
+    from web.services.react_fascicoli_bridge import _deadlines
+
+    titolo = "Deposito note scritte ex art. 127-ter c.p.c."
+    bozza = SimpleNamespace(id="bozza", titolo=titolo, data_scadenza="2026-12-16",
+                            deadline_profile_code="NOTE_127_TER", stato="BOZZA", perentorio=True,
+                            hearing_mode="note_scritte", operational_due_at="2026-12-16T14:00:00")
+    presidio = SimpleNamespace(id="vecchio", titolo=titolo, data_scadenza="2026-12-16",
+                               deadline_profile_code="PEC_AUTO_PRESIDIO", stato="APERTO",
+                               id_appuntamento="storico_rimosso", operational_due_at="2026-12-16")
+    udienza = SimpleNamespace(id="oggi", tipo="UDIENZA", stato="PROGRAMMATO",
+                              data_ora="2026-12-16T14:00:00", hearing_mode="note_scritte")
+    altra = SimpleNamespace(id="altra", tipo="UDIENZA", stato="PROGRAMMATO",
+                            data_ora="2026-12-16T15:00:00", hearing_mode="note_scritte")
+    righe = {r["id"]: r for r in _deadlines([bozza, presidio], appuntamenti=[udienza, altra])}
+    assert righe["vecchio"]["representedByDeadlineId"] == "bozza"
+    assert righe["bozza"]["replacesAppointmentId"] == "oggi"
+    assert righe["bozza"]["writtenHearingTime"] == "14:00"
+
+    presidio.operational_due_at = "2026-12-16T15:00:00"
+    righe = {r["id"]: r for r in _deadlines([bozza, presidio], appuntamenti=[altra])}
+    assert "representedByDeadlineId" not in righe["vecchio"]
+    assert "replacesAppointmentId" not in righe["bozza"]

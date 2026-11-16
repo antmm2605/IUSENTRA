@@ -14,7 +14,7 @@ from typing import Any, Callable
 
 # Versione dei risultati archiviati. L'identità del provvedimento è ora
 # presente anche nelle udienze della Lettura e guida la bozza delle note.
-VERSIONE_PANNELLI = "2.489.30:lettura-decorrenze-e-crediti-v41"
+VERSIONE_PANNELLI = "2.489.30:lettura-decorrenze-e-crediti-v42"
 
 # Parametri che non cambiano il payload: anti-cache dei browser e segnali della richiesta.
 PARAMETRI_IGNORATI_SEMPRE = frozenset({"_", "t", "ts", "nocache"})

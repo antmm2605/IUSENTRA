@@ -35,7 +35,7 @@ from .regole.termini_assegnati import conclusioni_termini
 from .rito import determina_rito
 from .testo import pulito, rg_normale
 
-VERSIONE = "2026.11.16.ragionamento.v18-ora-note"
+VERSIONE = "2026.11.16.ragionamento.v19-ricevute-pec"
 ROMA = ZoneInfo("Europe/Rome")
 
 
@@ -76,8 +76,11 @@ def _riscontri_notifiche_storiche(fonti: FontiCausa) -> dict[str, tuple[str, str
         for prova in fatto.get("prove") or ():
             eml = prova.get("impronte_eml") or {}
             consegne = [str(ricevuta.get("documento_id") or "") for ricevuta in prova.get("consegne") or ()]
-            riferimenti = {invio, str(prova.get("accettazione_id") or ""), *consegne}
-            if not consegne or "" in riferimenti or len(riferimenti) != 2 + len(consegne) or not riferimenti.issubset(eml):
+            accettazione = str(prova.get("accettazione_id") or "")
+            riferimenti = {invio, accettazione, *consegne}
+            accettazione_come_fonte = prova.get("originale_nella_ricevuta") is True and invio == accettazione
+            riferimenti_attesi = len(consegne) + (1 if accettazione_come_fonte else 2)
+            if not consegne or "" in riferimenti or len(riferimenti) != riferimenti_attesi or not riferimenti.issubset(eml):
                 continue
             if any(not impronta or impronte.get(oid) != impronta for oid, impronta in eml.items()):
                 continue

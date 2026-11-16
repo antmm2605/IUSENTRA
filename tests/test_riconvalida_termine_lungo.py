@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from pct.riconvalida_termine_lungo import AVVISO, DAI_DOCUMENTI, NON_CERTA, riconvalida_bozze
 from pct.scadenziario import GestioneScadenziario, StatoTermine, TipoTermine
 
@@ -225,3 +227,20 @@ def test_decorrenza_presa_dalla_calce_senza_lettura_torna_alla_comunicazione(tmp
     voce = scadenziario.get(bozza.id)
     assert voce.data_decorrenza == "2026-05-14" and voce.data_scadenza == "2026-12-15"  # 14/11 + 31 giorni feriali
     assert DALLA_DECISIONE not in voce.note and voce.descrizione.startswith(AVVISO) and voce.stato == StatoTermine.BOZZA
+
+
+def test_riallinea_una_bozza_con_data_corretta_e_vecchio_testo(tmp_path):
+    scadenziario = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    bozza = _bozza(scadenziario, numero="778/2026", fascicolo="F1", comunicazione="09/10/2026")
+    scadenziario.aggiorna(
+        bozza.id, data_decorrenza="2026-10-08", data_scadenza="2027-04-08", legal_due_at="2027-04-08",
+        note=f"{bozza.note}\nTermine proposto: entro il 09/04/2027\n{DAI_DOCUMENTI} deposito=2026-10-08",
+        descrizione="Sentenza comunicata il 09/10/2026. Sei mesi calcolati dal 09/10/2026, data da verificare sul provvedimento.",
+    )
+    riconvalida_bozze(scadenziario, lambda _: pytest.fail("La bozza ha già la data di pubblicazione."))
+    voce = scadenziario.get(bozza.id)
+    assert "entro il 08/04/2027" in voce.note
+    assert "comunicata il 09/10/2026" in voce.descrizione and "calcolati dal 08/10/2026" in voce.descrizione
+    prima = voce.descrizione
+    riconvalida_bozze(scadenziario, lambda _: pytest.fail("La bozza ha già la data di pubblicazione."))
+    assert scadenziario.get(bozza.id).descrizione == prima

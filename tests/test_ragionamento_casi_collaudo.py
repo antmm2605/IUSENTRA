@@ -722,3 +722,23 @@ def test_copie_della_sentenza_riconosciute_dal_dispositivo_e_dalla_data():
     assert not a.copie and not b.copie and not c.copie
     _copie_della_sentenza([a, b])
     assert a.copie == ["B"] and b.copie == ["A"]
+
+
+def test_copie_della_sentenza_senza_data_di_decisione_richiedono_testo_integrale_identico():
+    from pct.ragionamento.atti import _copie_della_sentenza
+    from pct.ragionamento.modello import Atto
+
+    intestazione = "Sentenza n. 230/2024 pubblicata il 07/05/2024. "
+    motivazione = "Motivazione del provvedimento riferita alle parti e alla domanda descritta negli atti. " * 18
+    dispositivo = (
+        "P.Q.M. Il Tribunale, definitivamente pronunciando sul ricorso in atti, accoglie la domanda "
+        "e condanna la parte resistente alla rifusione delle spese di lite, che liquida in euro 100,00 "
+        "oltre accessori di legge e con distrazione in favore del difensore antistatario."
+    )
+    testo = intestazione + motivazione + dispositivo
+    a = Atto("A", "Sentenza", "sentenza", "sentenza", rg="1548/2023", sentenza=True, testo=testo)
+    b = Atto("B", "Copia", "sentenza", "sentenza", rg="1548/2023", sentenza=True, testo=testo)
+    c = Atto("C", "Altro", "sentenza", "sentenza", rg="1548/2023", sentenza=True,
+             testo=intestazione + "Parte diversa. " + motivazione + dispositivo)
+    _copie_della_sentenza([a, b, c])
+    assert a.copie == ["B"] and b.copie == ["A"] and not c.copie

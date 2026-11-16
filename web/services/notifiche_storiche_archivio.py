@@ -9,7 +9,12 @@ from xml.etree.ElementTree import ParseError
 
 from defusedxml.common import DefusedXmlException
 
-from pct.pec_ricevute_archivio import riscontra_invio_storico, tipo_eml_storico, verifica_ricevuta_storica
+from pct.pec_ricevute_archivio import (
+    riscontra_invio_storico,
+    riscontri_da_ricevute_storiche,
+    tipo_eml_storico,
+    verifica_ricevuta_storica,
+)
 from pct.registro_letture.fatti_repository import Fatto
 
 _CAMPO = "riscontro_notifica_pec_storica"
@@ -47,12 +52,14 @@ def registra_riscontri_notifiche(fascicolo, registro, tenant: str) -> int:
 
     scritti = 0
     precedenti = {f.oggetto_id: f for f in registro.fatti(tenant, fascicolo_id, campo=_CAMPO, verifiche=None)}
-    for oid in (precedenti.keys() | invii.keys()) & documenti.keys():
+    riscontri = {oid: prova for oid, raw in invii.items() if (prova := riscontra_invio_storico(raw, ricevute))}
+    accettazioni = {prova["accettazione_id"] for prova in riscontri.values()}
+    riscontri.update({oid: prova for oid, prova in riscontri_da_ricevute_storiche(ricevute).items() if oid not in accettazioni})
+    for oid in (precedenti.keys() | riscontri.keys()) & documenti.keys():
         oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oid)
         if oggetto is None:
             continue
-        raw = invii.get(oid)
-        prova = riscontra_invio_storico(raw, ricevute) if raw else {}
+        prova = riscontri.get(oid)
         fatti = []
         if prova:
             ids = [oid, prova["accettazione_id"], *(r["documento_id"] for r in prova["consegne"])]
@@ -67,6 +74,6 @@ def registra_riscontri_notifiche(fascicolo, registro, tenant: str) -> int:
             continue
         if precedente is None and not fatti:
             continue
-        esito = registro.registra_fatti(tenant, fascicolo_id, oggetto, "pec", fatti, versione="notifiche_storiche_v1")
+        esito = registro.registra_fatti(tenant, fascicolo_id, oggetto, "pec", fatti, versione="notifiche_storiche_v2")
         scritti += esito["nuovi"] + esito["aggiornati"] + esito["rimossi"]
     return scritti

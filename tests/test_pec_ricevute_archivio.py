@@ -84,3 +84,31 @@ def test_il_reimport_delle_stesse_ricevute_conserva_il_riscontro_sql(tmp_path, m
     assert notifiche_storiche_archivio.registra_riscontri_notifiche(fascicolo, registro, "studio") == 0
     [fatto] = registro.fatti("studio", fascicolo.id, campo="riscontro_notifica_pec_storica")
     assert set(fatto.prove[0]["impronte_eml"]) == {"invio", "rac", "rdac"}
+
+
+def test_ricevute_firmate_correlano_originale_incluso_nella_consegna():
+    from pct.pec_ricevute_archivio import riscontri_da_ricevute_storiche
+
+    destinatario = "destinatario@example.test"
+    digest = hashlib.sha256(b"sentenza e relata").hexdigest()
+    rac = Ricevuta(
+        "accettazione", "univoco@gestore.test", "atto.studio@example.test",
+        datetime(2026, 10, 12, 8, 44, 34, tzinfo=timezone.utc),
+        frozenset({"studio@example.test"}), frozenset({destinatario}), "", frozenset(), notifica_l53=True,
+    )
+    rdac = replace(
+        rac, tipo="avvenuta-consegna", consegna=destinatario, impronte=frozenset({digest}),
+        message_id="atto. studio@example.test", data=rac.data + timedelta(seconds=4),
+    )
+    risultato = riscontri_da_ricevute_storiche([("rac", rac), ("rdac", rdac)])
+    assert risultato["rac"]["originale_nella_ricevuta"] is True
+    assert risultato["rac"]["impronte_allegati"] == [digest]
+    assert risultato["rac"]["consegne"] == [{"documento_id": "rdac", "data": "2026-10-12T10:44:38+02:00"}]
+    diverse = (
+        replace(rdac, identificativo="altra@gestore.test"),
+        replace(rdac, message_id="atto. ufficio@example.test"),
+        replace(rdac, destinatari=frozenset({"altro@example.test"})),
+        replace(rdac, notifica_l53=False),
+    )
+    for prova in diverse:
+        assert not riscontri_da_ricevute_storiche([("rac", rac), ("rdac", prova)])

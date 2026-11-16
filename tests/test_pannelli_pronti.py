@@ -953,3 +953,27 @@ def test_quadro_precedente_consegnato_prima_di_scrivere_la_coda(studio, app_prov
     risposta.close()
     assert avvii == ["F1"]
     assert studio.archivio.fascicoli_in_attesa_di_lettura(minuti=1) == ["F1"]
+
+
+def test_sfondo_unisce_vecchia_chiave_e_chiave_corrente(studio):
+    from pct.pannelli_pronti.impronta import impronta
+    from web.services.pannelli_pronti_catalogo import VERSIONE_PANNELLI
+    from web.services.pannelli_pronti_runtime import _chiave_pannello
+    from web.services.pannelli_pronti_sfondo import da_ricalcolare
+
+    pannello = "conto-economico"
+    percorso = "/api/v1/ui/fascicoli/F1/conto-economico"
+    profilo = "profilo"
+    valori = dict(fascicolo_id="F1", pannello=pannello, percorso=percorso, profilo=profilo)
+    corrente = _chiave_pannello("F1", pannello, "", profilo)
+    for chiave in ("chiave-precedente", corrente):
+        studio.archivio.registra_richiesta(chiave_voce=chiave, **valori, sessione={"user_id": "u1"}, servito=False)
+    lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+    assert len([voce for voce in lavori if voce.pannello == pannello]) == 1
+
+    impronta_corrente = impronta(studio.fonti, "F1", versione=VERSIONE_PANNELLI,
+                                         generazione=studio.archivio.generazione("F1"))
+    assert studio.archivio.salva(chiave_voce=corrente, **valori, impronta=impronta_corrente,
+                                stato=200, tipo="application/json", corpo=b"{}", durata_ms=0)
+    lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
+    assert not any(voce.pannello == pannello for voce in lavori)

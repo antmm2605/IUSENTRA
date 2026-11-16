@@ -118,7 +118,8 @@ def allinea_testi(note: str, descrizione: str, *, scadenza: str, decorrenza: dat
     giorno = date.fromisoformat(scadenza[:10]).strftime("%d/%m/%Y")
     note = "\n".join(_ENTRO.sub(lambda m: m.group(1) + giorno, riga) if riga.startswith("Termine proposto:") else riga
                      for riga in note.splitlines())
-    descrizione = _CALCOLATI.sub(f"calcolati dal {decorrenza:%d/%m/%Y} ({origine})", descrizione, count=1)
+    base = f"calcolati dal {decorrenza:%d/%m/%Y}"
+    descrizione = _CALCOLATI.sub(lambda m: base if m.group(0) == base else f"{base} ({origine})", descrizione, count=1)
     return note, descrizione
 
 
@@ -155,6 +156,10 @@ def riconvalida_bozze(
 ) -> dict[str, int]:
     esito = {"dal_portale": 0, "dai_documenti": 0, "da_giudicare": 0, "dalla_decisione": 0, "dalla_comunicazione": 0}
     for scadenza in list(scadenziario.tutte(solo_aperte=False)):
+        note = _valore(scadenza, "note")
+        if (_valore(scadenza, "stato") == "BOZZA" and MARCATORE_PEC in note and DAI_DOCUMENTI in note
+                and _valore(scadenza, "deadline_profile_code") == CODICE_TERMINE_LUNGO):
+            _allinea_bozza_gia_riconvalidata(scadenziario, scadenza, note)
         if not da_riconvalidare(scadenza):
             continue
         testo = f"{_valore(scadenza, 'titolo')} {_valore(scadenza, 'descrizione')}"
@@ -202,6 +207,25 @@ def riconvalida_bozze(
                 _torna_alla_comunicazione(scadenziario, scadenza, comunicazione, testo=testo, note=note)
                 esito["dalla_comunicazione"] += 1
     return esito
+
+
+def _allinea_bozza_gia_riconvalidata(scadenziario: Any, scadenza: Any, note: str) -> None:
+    giorno = _valore(scadenza, "data_scadenza")[:10]
+    decorrenza = _valore(scadenza, "data_decorrenza")[:10]
+    if not giorno or not decorrenza or f"{DAI_DOCUMENTI} deposito={decorrenza}" not in note:
+        return
+    try:
+        pubblicazione = date.fromisoformat(decorrenza)
+        date.fromisoformat(giorno)
+    except ValueError:
+        return
+    descrizione = _valore(scadenza, "descrizione")
+    note_allineate, descrizione_allineata = allinea_testi(
+        note, descrizione.replace(AVVISO, "").strip(), scadenza=giorno, decorrenza=pubblicazione,
+        origine="data di pubblicazione verificata nel fascicolo",
+    )
+    if (note_allineate, descrizione_allineata) != (note, descrizione):
+        scadenziario.aggiorna(_valore(scadenza, "id"), note=note_allineate, descrizione=descrizione_allineata)
 
 
 def _torna_alla_comunicazione(scadenziario: Any, scadenza: Any, comunicazione: date, *, testo: str, note: str) -> None:

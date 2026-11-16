@@ -15,6 +15,7 @@ Regole (ognuna con la sua ragione):
 from __future__ import annotations
 
 import re
+from hashlib import sha256
 from typing import Any, Iterable
 
 from pct.atto_della_causa import provvedimento_della_causa, ruoli_in_intestazione
@@ -141,11 +142,17 @@ def _copie_della_sentenza(atti: list[Atto]) -> None:
             continue
         decisione = data_decisione(atto.testo)
         testo_decisione = semplice(_ENFASI_TESTO_ESTRATTO.sub(r"\2", dispositivo(atto.testo)))
-        # Un dispositivo breve o senza data può appartenere a decisioni distinte dello stesso fascicolo.
-        if decisione is None or len(testo_decisione.split()) < 30:
+        if len(testo_decisione.split()) < 30:
             continue
         numero = numero_sentenza(atto.testo[:1200])
-        gruppi.setdefault((atto.rg, decisione.isoformat(), testo_decisione), []).append((atto, numero))
+        if decisione:
+            chiave = atto.rg, decisione.isoformat(), testo_decisione
+        elif numero and len(atto.testo) >= 1000:
+            # Se manca la data di decisione, servono lo stesso numero e l'intero testo identico.
+            chiave = atto.rg, numero, sha256(atto.testo.encode()).hexdigest()
+        else:
+            continue
+        gruppi.setdefault(chiave, []).append((atto, numero))
     for gruppo in gruppi.values():
         if len(gruppo) < 2 or len({numero for _, numero in gruppo if numero}) > 1:
             continue

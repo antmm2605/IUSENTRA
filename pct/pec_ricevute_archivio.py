@@ -58,6 +58,7 @@ class Ricevuta:
     destinatari: frozenset[str]
     consegna: str
     impronte: frozenset[str]
+    notifica_l53: bool = False
 
 
 def leggi_daticert_firmato(contenuto: bytes) -> Ricevuta:
@@ -86,6 +87,7 @@ def leggi_daticert_firmato(contenuto: bytes) -> Ricevuta:
     if istante is None:
         raise ValueError("Data, ora e zona del daticert non valide.")
     consegna, impronte = "", frozenset()
+    notifica_l53 = bool(_NOTIFICA.search(root.findtext("./intestazione/oggetto", "")))
     if tipo == "avvenuta-consegna":
         recapito = _indirizzi([root.findtext("./dati/consegna", "")])
         formato = root.find("./dati/ricevuta")
@@ -100,7 +102,8 @@ def leggi_daticert_firmato(contenuto: bytes) -> Ricevuta:
         if _id(originale["Message-ID"]) not in {provider_id, message_id} or _indirizzi(originale.get_all("From", [])) != mittenti:
             raise ValueError("Il messaggio incapsulato non coincide con il daticert.")
         consegna, impronte = next(iter(recapito)), _impronte(originale)
-    return Ricevuta(tipo, provider_id, message_id, istante, mittenti, destinatari, consegna, impronte)
+        notifica_l53 = notifica_l53 and bool(_NOTIFICA.search(str(originale["Subject"] or "")))
+    return Ricevuta(tipo, provider_id, message_id, istante, mittenti, destinatari, consegna, impronte, notifica_l53)
 
 
 def verifica_ricevuta_storica(raw: bytes) -> Ricevuta:
@@ -150,12 +153,44 @@ def riscontra_invio_storico(invio: bytes, ricevute: list[tuple[str, Ricevuta]]) 
                 and r.identificativo == rac.identificativo and r.data >= rac.data and r.impronte == impronte]
     if len(consegne) != len(destinatari) or {r.consegna for _, r in consegne} != destinatari:
         return {}
+    return _descrivi_riscontro(id_rac, rac, consegne, impronte)
+
+
+def _descrivi_riscontro(id_rac, rac, consegne, impronte) -> dict:
     return {
         "accettazione_id": id_rac,
         "accettazione_data": rac.data.astimezone(_ROME).isoformat(),
         "consegne": [{"documento_id": oid, "data": r.data.astimezone(_ROME).isoformat()} for oid, r in consegne],
         "impronte_allegati": sorted(impronte),
     }
+
+
+def riscontri_da_ricevute_storiche(ricevute: list[tuple[str, Ricevuta]]) -> dict[str, dict]:
+    """Correla le buste firmate quando l'originale è conservato soltanto dentro la RdAC completa."""
+    spedizioni: dict[str, list[tuple[str, Ricevuta]]] = {}
+    for oid, ricevuta in ricevute:
+        if ricevuta.notifica_l53:
+            spedizioni.setdefault(ricevuta.identificativo, []).append((oid, ricevuta))
+    riscontri = {}
+    for spedizione in spedizioni.values():
+        accettazioni = [(oid, r) for oid, r in spedizione if r.tipo == "accettazione"]
+        if len(accettazioni) != 1:
+            continue
+        id_rac, rac = accettazioni[0]
+        # Un gestore può inserire spazi di formattazione nel proprio daticert.
+        # Il confronto si applica solo a ricevute già firmate con lo stesso identificativo PEC.
+        message_id = re.sub(r"[ \t\r\n]+", "", rac.message_id)
+        consegne = [(oid, r) for oid, r in spedizione if r.tipo == "avvenuta-consegna"
+                    and re.sub(r"[ \t\r\n]+", "", r.message_id) == message_id
+                    and r.mittenti == rac.mittenti and r.destinatari == rac.destinatari
+                    and r.data >= rac.data and r.impronte]
+        insiemi_allegati = {r.impronte for _, r in consegne}
+        if (not message_id or len(insiemi_allegati) != 1 or len(consegne) != len(rac.destinatari)
+                or {r.consegna for _, r in consegne} != rac.destinatari):
+            continue
+        prova = _descrivi_riscontro(id_rac, rac, consegne, next(iter(insiemi_allegati)))
+        riscontri[id_rac] = {**prova, "originale_nella_ricevuta": True}
+    return riscontri
 
 
 def tipo_eml_storico(raw: bytes) -> str:

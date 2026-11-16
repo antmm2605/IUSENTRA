@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Any, Iterator
+from urllib.parse import urlsplit
 
 from pct.pannelli_pronti import impronta as impronta_fonti
 from pct.pannelli_pronti.archivio import ArchivioPannelli
@@ -61,6 +62,8 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
                    ore: float = ORE_APERTURA_RECENTE, limite: int = 200,
                    solo_pannelli_prioritari: bool = False, fascicolo_richiesto: str = "") -> list[DaRicalcolare]:
     """Le voci superate (o mancanti per la prima apertura) dei fascicoli aperti di recente, in ordine di calcolo."""
+    from web.services.pannelli_pronti_runtime import _chiave_pannello
+
     risultato: list[DaRicalcolare] = []
     if fascicolo_richiesto:
         in_attesa = (fascicolo_richiesto,)
@@ -75,10 +78,18 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
             return []  # trigger non preparati: nessun pannello si salva, niente da ricalcolare
         inizio = len(risultato)
         voci = archivio.voci_del_fascicolo(fascicolo_id)
-        presenti = {(pannello, profilo) for _c, pannello, _percorso, profilo, _i, _t in voci}
+        # Una vecchia versione della chiave può convivere con quella attuale.
+        # Le richieste dello stesso pannello e profilo condividono un solo calcolo.
+        stati = {chiave: (impronta_salvata, tentata) for chiave, _nome, _percorso, _profilo, impronta_salvata, tentata in voci}
+        per_richiesta = {}
         for _chiave, pannello, percorso, profilo, impronta_salvata, tentata in voci:
+            per_richiesta.setdefault((pannello, percorso, profilo), (impronta_salvata, tentata))
+        presenti = {(pannello, profilo) for pannello, _percorso, profilo in per_richiesta}
+        for (pannello, percorso, profilo), precedente in per_richiesta.items():
             if pannello not in _NOMI_PANNELLI or (solo_pannelli_prioritari and pannello not in PANNELLI_PRIORITARI):
                 continue
+            chiave_attuale = _chiave_pannello(fascicolo_id, pannello, urlsplit(percorso).query, profilo)
+            impronta_salvata, tentata = stati.get(chiave_attuale, precedente)
             if impronta_salvata != attuale and tentata != attuale:
                 risultato.append(DaRicalcolare(fascicolo_id, pannello, percorso, profilo,
                                                "mai calcolato" if not impronta_salvata else "fonti cambiate"))

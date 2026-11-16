@@ -72,3 +72,55 @@ def test_genera_proforma_dalla_sentenza_letta_nonostante_le_ricevute(monkeypatch
         assert catturato["amount"] == 250.0 and "art. 93 c.p.c." in catturato["amount_source"]
     else:
         assert not catturato
+
+
+def test_riusa_solo_la_proforma_riferita_alla_stessa_liquidazione():
+    from types import SimpleNamespace
+    from web.services.proforma_da_sentenza import fonte_importo, proforma_della_liquidazione
+
+    evento = {"id": "credito-1", "amount": 500, "event_type": "apri_credito_avvocato_antistatario"}
+    bozza = SimpleNamespace(
+        origine="controllo_economico_fascicolo", id_cliente="C1", stato="BOZZA", totale_competenze=500,
+        note="Base di calcolo: " + fonte_importo(500, True, "dispositivo.pdf") + ".",
+        dati_personalizzati={"document": {"documento_operativo": "PROFORMA"}},
+    )
+    assert proforma_della_liquidazione([bozza], evento=evento, documento="dispositivo.pdf", id_cliente="C1") is bozza
+    assert proforma_della_liquidazione([bozza], evento=evento, documento="successivo.pdf", id_cliente="C1") is None
+    assert proforma_della_liquidazione([bozza], evento=evento, documento="dispositivo.pdf", id_cliente="C2") is None
+    cliente = {**evento, "event_type": "apri_credito_cliente"}
+    assert proforma_della_liquidazione([bozza], evento=cliente, documento="dispositivo.pdf", id_cliente="C1") is None
+    bozza.stato = "ANNULLATA"
+    assert proforma_della_liquidazione([bozza], evento=evento, documento="dispositivo.pdf", id_cliente="C1") is None
+
+
+def test_generazione_da_credito_riapre_la_proforma_del_conto_economico(monkeypatch):
+    from pct.fatturazione import Parcella, VoceParcella
+    from web import helpers
+    from web.services import registro_letture_runtime, sentenza_economic_runtime, sentenza_proposte_runtime
+    from web.services.proforma_da_sentenza import fonte_importo
+
+    impronta = "a" * 64
+    event = {"id": "E1", "source_id": "S1", "amount": 500, "status": "confirmed",
+             "event_type": "apri_credito_avvocato_antistatario", "beneficiary_type": "avvocato"}
+    fonte = SimpleNamespace(presente=True, impronta=impronta, tipo="documento", oggetto_id="D1", nome="dispositivo.pdf")
+    bozza = Parcella(id="P1", numero="PF-2026/087", id_cliente="C1", id_fascicolo="F1", data_emissione="2026-11-14", data_scadenza=None,
+        origine="controllo_economico_fascicolo", voci=[VoceParcella(descrizione="Compensi", prezzo_unitario=500)],
+        note="Base di calcolo: " + fonte_importo(500, True, fonte.nome) + ".",
+        dati_personalizzati={"document": {"documento_operativo": "PROFORMA"}})
+    database = SimpleNamespace(
+        list_economic_events=lambda *a, **k: [event],
+        list_sentenza_audits=lambda *a, **k: [{"id": "S1", "documento_id": "D1", "document_hash_sha256": impronta}],
+    )
+    aggiornamenti = {}
+    fatturazione = SimpleNamespace(per_fascicolo=lambda _id: [bozza], aggiorna=lambda _id, **k: aggiornamenti.update(k))
+    monkeypatch.setattr(sentenza_economic_runtime, "_flag_on", lambda: True)
+    monkeypatch.setattr(sentenza_economic_runtime, "_tenant_id", lambda: "studio")
+    monkeypatch.setattr(sentenza_economic_runtime, "_repo", lambda: database)
+    monkeypatch.setattr(sentenza_economic_runtime, "_resolve_fascicolo", lambda _id: SimpleNamespace(id="F1", id_cliente="C1"))
+    monkeypatch.setattr(sentenza_proposte_runtime, "_parcelle_per_evento", lambda _id: {})
+    monkeypatch.setattr(registro_letture_runtime, "registro_corrente", lambda **_: SimpleNamespace(oggetti=lambda *a: [fonte]))
+    monkeypatch.setattr(helpers, "get_fatturazione", lambda: fatturazione)
+    risultato = sentenza_economic_runtime.genera_parcella_from_event({"eventId": "E1", "fascicoloId": "F1"})
+    assert risultato["alreadyPresent"] and risultato["parcellaId"] == "P1"
+    assert aggiornamenti["dati_personalizzati"]["event_id"] == "E1"
+    assert aggiornamenti["expected_revision"]

@@ -648,11 +648,44 @@ def genera_parcella_from_event(payload: dict[str, Any]) -> dict[str, Any]:
         # Una parcella per credito: il secondo clic non duplica la voce.
         return {"ok": True, "eventId": event_id, "parcella": gia_generata, "alreadyPresent": True}
     try:
-        from web.helpers import get_fatturazione
+        from pct.fatturazione import parcella_revision
         from pct.sentenza_economic_workflow import genera_parcella_da_credito
+        from web.helpers import get_fatturazione
+        from web.services.proforma_da_sentenza import proforma_della_liquidazione
+        from web.services.registro_letture_runtime import registro_corrente
 
+        fatturazione = get_fatturazione()
+        if evento.get("status") == "confirmed":
+            sorgente = str(evento.get("source_id") or "")
+            audit = next(
+                (riga for riga in repo.list_sentenza_audits(tenant_id, fascicolo_id=fascicolo_id)
+                 if riga.get("id") == sorgente),
+                None,
+            )
+            if audit:
+                registro = registro_corrente(sola_lettura=True)
+                inventario = registro.oggetti(tenant_id, fascicolo_id) if registro else []
+                fonte = fonte_audit(audit, inventario, fascicolo_id)
+                if fonte and fonte["label"] and {o.impronta.lower() for o in inventario
+                        if o.presente and o.nome == fonte["label"]} == {fonte["sha256"]}:
+                    proforma = proforma_della_liquidazione(
+                        fatturazione.per_fascicolo(fascicolo_id), evento=evento, documento=fonte["label"],
+                        id_cliente=str(getattr(fascicolo, "id_cliente", "") or ""),
+                    )
+                    if proforma:
+                        fatturazione.aggiorna(
+                            proforma.id, expected_revision=parcella_revision(proforma),
+                            dati_personalizzati={
+                                **(proforma.dati_personalizzati or {}),
+                                "event_id": event_id,
+                                "sentenza_economic_audit_id": sorgente,
+                                "beneficiario_credito": evento.get("beneficiary_type"),
+                            },
+                        )
+                        return {"ok": True, "eventId": event_id, "parcella": proforma.numero,
+                                "parcellaId": proforma.id, "alreadyPresent": True}
         result = genera_parcella_da_credito(
-            evento=evento, fascicolo=fascicolo, fatturazione=get_fatturazione(),
+            evento=evento, fascicolo=fascicolo, fatturazione=fatturazione,
             creato_da=_actor_id(), audit_id=str(evento.get("source_id", "") or ""),
         )
     except Exception:

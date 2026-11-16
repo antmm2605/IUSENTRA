@@ -15,7 +15,7 @@ Qui si separano i due controlli:
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 ETICHETTE = {"parcella": "Parcella", "liquidazione_giudice": "Liquidazione del giudice"}
 
@@ -44,10 +44,43 @@ def base_dalla_sentenza_letta(fascicolo: Any) -> tuple[float | None, str]:
     credito = next(c for c in crediti if c.get("importo"))
     documento = next((f.get("label") for f in credito.get("fonti") or [] if f.get("label")), "sentenza della causa")
     importo = importi.pop()
-    distrazione = " distratte (art. 93 c.p.c.)" if credito.get("distrazione") else ""
+    return importo, fonte_importo(importo, bool(credito.get("distrazione")), documento)
+
+
+def fonte_importo(importo: float, distratte: bool, documento: str) -> str:
+    distrazione = " distratte (art. 93 c.p.c.)" if distratte else ""
     euro = f"{importo:,.2f}".replace(",", "§").replace(".", ",").replace("§", ".")
-    # La nota della proforma tiene 120 caratteri: il 15% (art. 2, c. 2, D.M. 55/2014) lo applica la proforma.
-    return importo, f"spese liquidate in sentenza € {euro}{distrazione}, oltre accessori ({documento})"[:120]
+    return f"spese liquidate in sentenza € {euro}{distrazione}, oltre accessori ({documento})"[:120]
+
+
+def proforma_della_liquidazione(
+    parcelle: Iterable[Any], *, evento: Mapping[str, Any], documento: str, id_cliente: str,
+) -> Any | None:
+    """Riconosce una proforma già creata dal Conto economico sulla stessa fonte e lo stesso credito."""
+    from pct.proforma_unica import superata
+
+    importo = round(float(evento.get("amount") or 0), 2)
+    tipo = evento.get("event_type")
+    if not documento or not id_cliente or importo <= 0 or tipo not in {
+        "apri_credito_cliente", "apri_credito_avvocato_antistatario",
+    }:
+        return None
+    fonte = fonte_importo(importo, tipo == "apri_credito_avvocato_antistatario", documento)
+    if not fonte.endswith(f"({documento})"):
+        return None
+    suffisso = f"Base di calcolo: {fonte}."
+    for p in parcelle:
+        dati = p.dati_personalizzati or {}
+        stato = getattr(p.stato, "value", p.stato)
+        if (
+            p.origine == "controllo_economico_fascicolo" and p.id_cliente == id_cliente
+            and stato == "BOZZA" and not superata(p)
+            and (dati.get("document") or {}).get("documento_operativo") == "PROFORMA"
+            and dati.get("event_id") in (None, "", evento.get("id"))
+            and p.note.endswith(suffisso) and round(p.totale_competenze, 2) == importo
+        ):
+            return p
+    return None
 
 
 def voci_che_bloccano(items: Mapping[str, Mapping[str, Any]], *, base_da_sentenza: bool) -> list[str]:

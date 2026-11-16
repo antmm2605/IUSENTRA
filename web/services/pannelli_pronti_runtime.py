@@ -111,6 +111,8 @@ def _chiave_pannello(fascicolo_id: str, nome: str, parametri: str, profilo: str)
         parametri = f"{VERSIONE}\x1f{parametri}"
     elif nome == "redazione-atti-contesto":
         parametri = f"contesto-operativo:v3\x1f{parametri}"
+    elif nome == "conto-economico":
+        parametri = f"totale-parcella:v2\x1f{parametri}"
     return chiave_voce(fascicolo_id, nome, parametri, profilo)
 
 

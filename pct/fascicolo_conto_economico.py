@@ -184,7 +184,13 @@ def righe_parcella(parcelle: list[Mapping[str, Any]], voce_spese: Mapping[str, A
     onorari = round(sum(float(p.get("onorari") or 0) for p in attive), 2) or None
     avviso = " ".join(f"La proforma {p.get('numero')} è superata dalla {(p.get('superata') or {}).get('da_numero') or 'proforma valida'}: "
                       "stesso compenso, non sommata; proposta all'avvocato di annullarla." for p in superate)
-    righe.append(_riga("parcella", "Parcella dell'avvocato", importo=onorari or _numero((attive[:1] or [{}])[0].get("totale")),
+    dovuti = [p.get("netto_a_pagare") for p in attive]
+    netto = round(sum(float(n) for n in dovuti), 2) if dovuti and all(n is not None for n in dovuti) else None
+    if netto is not None and onorari is not None and onorari != netto:
+        dettaglio_importo = f"{_euro(onorari)} di compensi. L’importo in tabella è il totale da pagare dei documenti."
+        avviso = " ".join(filter(None, (dettaglio_importo, avviso)))
+    importo_parcella = netto if netto is not None else onorari or _numero((attive[:1] or [{}])[0].get("totale"))
+    righe.append(_riga("parcella", "Parcella dell'avvocato", importo=importo_parcella,
                        stato="Da preparare" if not attive else ("Fatturata" if any(_documento(p) == "fattura" for p in attive) else "Proforma"),
                        tono="warning" if not attive or superate else "primary", dettaglio=avviso,
                        fonti=[_fonte(f"{'Fattura' if _documento(p) == 'fattura' else 'Proforma'} {p.get('numero') or ''}".strip(),

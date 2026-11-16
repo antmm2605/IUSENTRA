@@ -204,7 +204,7 @@ def parcelle_del_fascicolo(fascicolo_id: str) -> list[dict[str, Any]]:
         ricevute = (saldi.get(p.id) or {}).get("receipts") or []
         data_pagamento = max((str(r.get("paid_on") or "") for r in ricevute), default="") or _testo(p.data_pagamento)
         righe.append({"id": p.id, "numero": p.numero, "stato": stato, "operativo": operativo, "totale": p.totale,
-                      "onorari": p.totale_competenze, "spese": p.totale_spese_imponibili, "anticipazioni": p.totale_anticipazioni,
+                      "netto_a_pagare": p.netto_a_pagare, "onorari": p.totale_competenze, "spese": p.totale_spese_imponibili, "anticipazioni": p.totale_anticipazioni,
                       "incassato": incassato, "data_pagamento": data_pagamento, "sdi_stato": _testo(p.sdi_stato),
                       "superata": (p.dati_personalizzati or {}).get("superata") if isinstance(p.dati_personalizzati, dict) else None})
     return righe

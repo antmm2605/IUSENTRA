@@ -152,3 +152,13 @@ def test_fonte_senza_importo_non_produce_una_seconda_liquidazione():
     assert riga["importo"] == 258.0
     assert "Importi diversi" not in riga["dettaglio"]
     assert "senza riportare un importo" in riga["dettaglio"]
+
+
+def test_conto_economico_mostra_lo_stesso_totale_della_proforma_collegata():
+    conto = conto_economico(voci={}, crediti=[{"importo": 500, "distrazione": True, "fonti": [_SENTENZA]}],
+                            documenti_contributo=[], parcelle=[_proforma(onorari=500, totale=600, netto_a_pagare=600)])
+    assert conto["righe"][0]["importo"] == 500
+    parcella = next(r for r in conto["righe"] if r["voce"] == "parcella")
+    assert parcella["importo"] == 600
+    assert "€ 500,00 di compensi" in parcella["dettaglio"]
+    assert parcella["fonti"][0]["href"] == "/fatturazione?id_documento=P1"

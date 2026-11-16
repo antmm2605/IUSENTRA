@@ -79,7 +79,7 @@ def test_il_reimport_delle_stesse_ricevute_conserva_il_riscontro_sql(tmp_path, m
     aggiorna_inventario()
     assert notifiche_storiche_archivio.registra_riscontri_notifiche(fascicolo, registro, "studio") == 1
 
-    contenuti.update({"rac-copia": rac_bytes, "rdac-copia": rdac_bytes})
+    contenuti.update({"rac-copia": rac_bytes, "rdac-copia": rdac_bytes, "invio-copia": messaggio.as_bytes()})
     aggiorna_inventario()
     assert notifiche_storiche_archivio.registra_riscontri_notifiche(fascicolo, registro, "studio") == 0
     [fatto] = registro.fatti("studio", fascicolo.id, campo="riscontro_notifica_pec_storica")

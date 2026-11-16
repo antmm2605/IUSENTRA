@@ -29,7 +29,7 @@ def registra_riscontri_notifiche(fascicolo, registro, tenant: str) -> int:
     if not documenti:
         return 0
     invii, ricevute, impronte = {}, [], {}
-    impronte_ricevute = set()
+    impronte_ricevute, impronte_invii = set(), set()
     for oid, documento in sorted(documenti.items()):
         raw = _bytes_documento(fascicolo_id, documento)
         try:
@@ -44,7 +44,10 @@ def registra_riscontri_notifiche(fascicolo, registro, tenant: str) -> int:
                 ricevute.append((oid, verifica_ricevuta_storica(raw)))
                 impronte_ricevute.add(impronta)
             elif tipo == "invio":
+                if impronta in impronte_invii:
+                    continue
                 invii[oid] = raw
+                impronte_invii.add(impronta)
         except (ValueError, ParseError, DefusedXmlException, OSError, subprocess.TimeoutExpired) as exc:
             logger.debug("Riscontro ricevuta storica indisponibile (%s)", type(exc).__name__)
             continue
@@ -52,8 +55,12 @@ def registra_riscontri_notifiche(fascicolo, registro, tenant: str) -> int:
 
     scritti = 0
     precedenti = {f.oggetto_id: f for f in registro.fatti(tenant, fascicolo_id, campo=_CAMPO, verifiche=None)}
-    riscontri = {oid: prova for oid, raw in invii.items() if (prova := riscontra_invio_storico(raw, ricevute))}
-    accettazioni = {prova["accettazione_id"] for prova in riscontri.values()}
+    riscontri, accettazioni = {}, set()
+    for oid, raw in invii.items():
+        prova = riscontra_invio_storico(raw, ricevute)
+        if prova and prova["accettazione_id"] not in accettazioni:
+            riscontri[oid] = prova
+            accettazioni.add(prova["accettazione_id"])
     riscontri.update({oid: prova for oid, prova in riscontri_da_ricevute_storiche(ricevute).items() if oid not in accettazioni})
     for oid in (precedenti.keys() | riscontri.keys()) & documenti.keys():
         oggetto = registro.oggetto(tenant, fascicolo_id, "documento", oid)

@@ -86,13 +86,14 @@ def main():
         import sqlite3
 
         conn = sqlite3.connect(f"file:{data_paths['STUDIO_DB']}?mode=ro", uri=True)
-        fascicoli = [r[0] for r in conn.execute("SELECT id FROM fascicoli ORDER BY id").fetchall()]
+        fascicoli = [r[0] for r in conn.execute(
+            "SELECT id FROM fascicoli WHERE UPPER(COALESCE(stato,''))<>'ARCHIVIATO' ORDER BY id").fetchall()]
         conn.close()
     if args.fascicoli:
         fascicoli = [f for f in fascicoli if f in set(args.fascicoli.split(","))]
     fascicoli = fascicoli[args.da:args.a]
-    from pct import __version__
     from pct.pannelli_pronti import impronta as impronta_fonti
+    from web.services.pannelli_pronti_catalogo import VERSIONE_PANNELLI
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi, fonti_per_percorsi
 
     archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)
@@ -113,7 +114,7 @@ def main():
                     else:
                         attuale = impronta_fonti.impronta(fonti, fascicolo_id,
                                                           generazione=archivio.generazione(fascicolo_id),
-                                                          versione=__version__)
+                                                          versione=VERSIONE_PANNELLI)
                         salvato = json.loads(bytes(voce.corpo).decode("utf-8"))
                         nuovo = json.loads(risposta.get_data().decode("utf-8"))
                         if pannello.ricomponi:  # le novità personali si ricompongono a ogni apertura
@@ -133,8 +134,10 @@ def _voce_salvata(archivio, fascicolo_id, pannello):
 
     conn = sqlite3.connect(archivio.percorso)
     try:
+        # Solo la richiesta canonica (senza parametri): è quella che la fase di confronto ricalcola.
         riga = conn.execute("SELECT chiave FROM pannelli WHERE fascicolo_id=? AND pannello=? AND impronta<>'' "
-                            "ORDER BY calcolato_il DESC LIMIT 1", (fascicolo_id, pannello.nome)).fetchone()
+                            "AND corpo IS NOT NULL AND percorso=? ORDER BY calcolato_il DESC LIMIT 1",
+                            (fascicolo_id, pannello.nome, pannello.percorso.format(fid=fascicolo_id))).fetchone()
     finally:
         conn.close()
     return archivio.voce(riga[0]) if riga else None

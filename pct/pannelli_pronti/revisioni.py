@@ -158,9 +158,14 @@ def piano_trigger(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str
             piano.update(_piano_agenda_storica())
             continue
         t = _nome_sicuro(tabella)
+        # Una tabella condivisa cambia l'impronta di tutti i fascicoli: un UPDATE che riscrive gli stessi valori
+        # (salvataggi ripetuti della configurazione, sincronizzazioni della casella) non è una variazione.
+        colonne = [_nome_sicuro(str(r[1])) for r in conn.execute(f"PRAGMA table_info('{t}')").fetchall()]
+        variazione = " OR ".join(f"NEW.{c} IS NOT OLD.{c}" for c in colonne)
         for sigla, azione in (("ti", "INSERT"), ("tu", "UPDATE"), ("td", "DELETE")):
             nome = f"{PREFISSO_TRIGGER}{t}_{sigla}"
-            piano[nome] = f"CREATE TRIGGER {nome} AFTER {azione} ON {t} BEGIN {_incrementa_tabella(t)} END"
+            condizione = f" WHEN {variazione}" if azione == "UPDATE" and variazione else ""
+            piano[nome] = f"CREATE TRIGGER {nome} AFTER {azione} ON {t}{condizione} BEGIN {_incrementa_tabella(t)} END"
     return piano
 
 

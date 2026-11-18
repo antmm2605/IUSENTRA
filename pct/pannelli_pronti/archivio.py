@@ -168,6 +168,40 @@ class ArchivioPannelli:
             return [str(r[0]) for r in conn.execute(
                 "SELECT DISTINCT profilo FROM pannelli WHERE fascicolo_id=?", (str(fascicolo_id),)).fetchall()]
 
+    # ---- copertura di tutti i fascicoli (una query per tutto lo studio) ------------------------------------
+
+    def generazioni(self) -> dict[str, int]:
+        with self._lettura() as conn:
+            if conn is None:
+                return {}
+            return {str(r[0]): int(r[1]) for r in conn.execute("SELECT fascicolo_id, generazione FROM generazioni")}
+
+    def profili_attivi(self, *, giorni: float) -> list[str]:
+        """I profili che hanno consultato almeno un pannello negli ultimi ``giorni``: i loro pannelli si preparano."""
+        soglia = (datetime.now(UTC) - timedelta(days=float(giorni))).isoformat(timespec="milliseconds")
+        with self._lettura() as conn:
+            if conn is None:
+                return []
+            return [str(r[0]) for r in conn.execute(
+                "SELECT profilo FROM profili WHERE aggiornato_il>=? ORDER BY aggiornato_il DESC", (soglia,))]
+
+    def varianti_richieste(self, profilo: str) -> list[tuple[str, str]]:
+        """(pannello, parametri) già chiesti dal profilo per un fascicolo qualunque, i più richiesti per primi."""
+        with self._lettura() as conn:
+            if conn is None:
+                return []
+            return [(str(r[0]), str(r[1] or "")) for r in conn.execute(
+                "SELECT pannello, CASE WHEN instr(percorso,'?')>0 THEN substr(percorso, instr(percorso,'?')+1) ELSE '' END q,"
+                " SUM(richieste) n FROM pannelli WHERE profilo=? AND richieste>0 GROUP BY 1,2 ORDER BY n DESC", (profilo,))]
+
+    def stati(self) -> dict[str, tuple[str, str, str]]:
+        """chiave → (fascicolo, impronta salvata, impronta dell'ultimo tentativo) per tutte le voci."""
+        with self._lettura() as conn:
+            if conn is None:
+                return {}
+            return {str(r[0]): (str(r[1]), str(r[2] or ""), str(r[3] or "")) for r in conn.execute(
+                "SELECT chiave, fascicolo_id, CASE WHEN corpo IS NULL THEN '' ELSE impronta END, tentata FROM pannelli")}
+
     def conteggi(self) -> dict[str, int]:
         with self._conn() as conn:
             pronti = conn.execute("SELECT COUNT(*) FROM pannelli WHERE impronta<>''").fetchone()[0]

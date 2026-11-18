@@ -94,10 +94,58 @@ def componenti(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versi
     }
 
 
+def _hash(parti: dict) -> str:
+    grezzo = json.dumps(parti, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(grezzo.encode("utf-8")).hexdigest()
+
+
 def impronta(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versione: str,
              adesso: datetime | None = None) -> str | None:
     parti = componenti(fonti, fascicolo_id, generazione=generazione, versione=versione, adesso=adesso)
-    if parti is None:
+    return None if parti is None else _hash(parti)
+
+
+def _revisioni_di_tutti(percorso: str) -> tuple[str, dict[str, int], tuple[tuple[str, int], ...]] | None:
+    """(firma, revisione per fascicolo, revisioni delle tabelle senza fascicolo) con una sola connessione."""
+    if not percorso or not os.path.exists(percorso):
         return None
-    grezzo = json.dumps(parti, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(grezzo.encode("utf-8")).hexdigest()
+    conn = _connessione_lettura(percorso)
+    try:
+        firma = revisioni.stato(conn)
+        if not firma:
+            return None
+        per_fascicolo = {str(fid): int(rev) for fid, rev in conn.execute(
+            f"SELECT fascicolo_id, revisione FROM {revisioni.TABELLA_FASCICOLI}").fetchall()}
+        tabelle = tuple((str(r[0]), int(r[1])) for r in conn.execute(
+            f"SELECT tabella, revisione FROM {revisioni.TABELLA_TABELLE} ORDER BY tabella").fetchall())
+    finally:
+        conn.close()
+    return firma, per_fascicolo, tabelle
+
+
+def impronte(fonti: FontiTenant, fascicoli: dict[str, int], *, versione: str,
+             adesso: datetime | None = None) -> dict[str, str]:
+    """Le impronte di molti fascicoli (id → generazione) con una lettura per database: stesso valore di ``impronta``.
+
+    Serve al controllo in sfondo di tutti i fascicoli dello studio: le parti comuni (tabelle senza fascicolo, file,
+    giorno) si leggono una volta sola. Se i trigger mancano il risultato è vuoto, come ``impronta`` restituisce None.
+    """
+    studio = _revisioni_di_tutti(fonti.studio_db)
+    registro = _revisioni_di_tutti(fonti.registro_db)
+    if studio is None or registro is None:
+        return {}
+    comuni = {
+        "versione": str(versione),
+        "giorno": giorno_roma(adesso),
+        "file": [list(stato_file(p)) for p in sorted(set(fonti.file))],
+    }
+    risultato = {}
+    for fascicolo_id, generazione in fascicoli.items():
+        fid = str(fascicolo_id)
+        risultato[fid] = _hash({
+            **comuni,
+            "generazione": int(generazione),
+            "studio": [studio[0], studio[1].get(fid, 0), list(studio[2])],
+            "registro": [registro[0], registro[1].get(fid, 0), list(registro[2])],
+        })
+    return risultato

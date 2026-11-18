@@ -117,10 +117,19 @@ def _crea_documento(repository: Any, fascicolo_id: str, bozza: Bozza) -> tuple[s
     return creato["document_id"], _testo(getattr(documento, "hash_contenuto_sha256", ""))
 
 
+def _archivio_intero(repository: Any) -> None:
+    """Sostituzione e cestino salvano l'archivio intero: in lettura puntuale si completa prima il caricamento
+    (stessa salvaguardia del repository, «meglio lento che monco»), come nelle scritture dell'editor."""
+    completa = getattr(repository, "_assicura_archivio_completo", None)
+    if callable(completa):
+        completa()
+
+
 def _riscrivi_documento(repository: Any, fascicolo_id: str, documento: Any, bozza: Bozza) -> str:
     from pct.editor_ai.editor_renderer import sanitize_editor_html
     from web.services.document_crypto import encrypt_doc
 
+    _archivio_intero(repository)
     grezzo = sanitize_editor_html(impagina(bozza.testo)).encode("utf-8")
     impronta = hashlib.sha256(grezzo).hexdigest()
     repository.sostituisci_documento(fascicolo_id, documento.id, nome_file=documento.nome, contenuto=encrypt_doc(grezzo),
@@ -193,6 +202,7 @@ def prepara_bozze_fascicolo(fascicolo_id: str, *, lettura: dict[str, Any] | None
         # Il passo non c'è più: la bozza mai toccata va nel cestino del fascicolo, quella dell'avvocato resta.
         documento = _documento(fascicolo, voce.documento_id)
         if documento is not None and not _toccata(documento, voce):
+            _archivio_intero(repository)
             repository.rimuovi_documento(fascicolo_id, voce.documento_id, eliminato_da=AUTORE)
             archivio.elimina(fascicolo_id, voce.chiave)
         elif documento is None:
@@ -235,9 +245,12 @@ def _fonti_salvate(archivio_pannelli: Any, fonti: Any, fascicolo_id: str) -> tup
         return dati if isinstance(dati, dict) else None
 
     lettura = (leggi("lettura") or {}).get("lettura")
-    if not isinstance(lettura, dict) or lettura.get("aggiornamento_pendente"):
+    conto = leggi("conto-economico")
+    if not isinstance(lettura, dict) or lettura.get("aggiornamento_pendente") or conto is None:
+        # Senza il Conto economico della stessa impronta (spese distratte, regime IVA) si attende il prossimo giro:
+        # una bozza non si riscrive con dati parziali.
         return None, None
-    return lettura, leggi("conto-economico")
+    return lettura, conto
 
 
 def giro(app, *, fascicoli: dict[str, set[str]] | None = None, ore: float = 72.0, limite: int = 40) -> dict[str, int]:

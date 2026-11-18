@@ -216,12 +216,6 @@ export function LetturaFascicoloPanel({
           <h4><Scale size={16}/> Prossimi passaggi</h4>
           {(lettura.stato_passi.attivi || passi.length > 0) ? <span>{riassuntoStatoPassi(lettura)}</span> : null}
         </div>
-        {bozzeLibere.length ? (
-          <div className="iu-fas-lettura__bozze-libere">
-            <p>Bozze pronte per gli adempimenti ancora aperti, da rivedere e firmare: nessuna è stata inviata, depositata o notificata.</p>
-            {bozzeLibere.map((bozza) => <BozzaPassoLink bozza={bozza} key={bozza.chiave}/>)}
-          </div>
-        ) : null}
         {!lettura.stato_passi.attivi && !passi.length ? (
           <p className="iu-fas-lettura__nessun-passo">{lettura.stato_passi.motivo}</p>
         ) : passi.length ? (
@@ -233,6 +227,12 @@ export function LetturaFascicoloPanel({
         ) : (
           <p className="iu-fas-lettura__nessun-passo">Nessun adempimento risulta aperto: il fascicolo è allineato.</p>
         )}
+        {bozzeLibere.length ? (
+          <div className="iu-fas-lettura__bozze-libere">
+            <p>Bozze pronte per gli adempimenti ancora aperti, da rivedere e firmare: nessuna è stata inviata, depositata o notificata.</p>
+            {bozzeLibere.map((bozza) => <BozzaPassoLink bozza={bozza} key={bozza.chiave}/>)}
+          </div>
+        ) : null}
         {passi.some((passo) => passo.scaduto) ? (
           <details className="iu-fas-lettura__scaduti">
             <summary>Scadenze passate da verificare ({passi.filter((passo) => passo.scaduto).length})</summary>

@@ -738,7 +738,7 @@ _FONTI_ECONOMICHE = {"presidio economico"}
 _FONTI_AMMINISTRATIVE = {"catalogazione", "presidio documentale"}
 _RE_AMMINISTRATIVO = re.compile(
     r"anagrafic|profilo procedurale|preventivo|conferimento d.incarico|classific|catalogazion|antiriciclaggio|privacy|"
-    r"casella pec dello studio|dati dello studio|codice fiscale del cliente|^compila\b|fascicolo importato dal portale", re.I)
+    r"casella pec dello studio|dati dello studio|codice fiscale del cliente|^compila\b|^collega un cliente|fascicolo importato dal portale", re.I)
 _RE_ECONOMICO = re.compile(r"contributo unificato|riscuotere|riscossione|parcell|incass|recuperare le anticipazioni|"
                            r"spese liquidate|somma liquidata|liquidazione di €", re.I)
 

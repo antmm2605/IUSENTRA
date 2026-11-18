@@ -311,3 +311,10 @@ def test_contributo_da_verificare_diventa_il_dubbio_concreto_con_dovuto_e_versat
     cu = conclusione(causa, "contributo_unificato")
     assert cu.stato == "dubbio" and "dovuti € 21,50" in cu.cosa and "non c'è la ricevuta" in cu.cosa
     assert "art. 9, comma 1-bis" in cu.cosa and {"dpr115_art16", "dpr115_art248"} <= {n["id"] for n in cu.norme}
+
+
+def test_blocchi_anagrafici_della_regia_sono_amministrativi():
+    from pct.fascicolo_lettura.prossimi_passi import ambito_del_passo
+
+    for azione in ("Completa l'anagrafica cliente.", "Collega un cliente reale al fascicolo.", "Compila tribunale o ufficio competente."):
+        assert ambito_del_passo(Passo(0, azione, "blocco della regia operativa", "", "presidio del fascicolo")) == "amministrativo"

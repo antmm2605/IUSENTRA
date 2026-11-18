@@ -22,7 +22,7 @@ def _has_table(database, name):
 
 def _tenant_core(database, owner, registry, storage_config):
     """Identifica gli indici di uno studio ripristinato con il nome della directory."""
-    if database.backend_kind != 'sqlite' or not _has_table(database, 'email_mailbox_bootstrap'):
+    if getattr(database, 'backend_kind', 'sqlite') != 'sqlite' or not _has_table(database, 'email_mailbox_bootstrap'):
         return owner.slug
     mailboxes = {
         tuple(row) for row in database.conn.execute('SELECT tenant_key, mailbox_kind FROM email_mailbox_bootstrap')

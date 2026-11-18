@@ -90,7 +90,10 @@ def test_catalogo_posta_non_provisionato_non_diventa_casella_vuota(store, tmp_pa
 
 
 def test_preparazione_usa_la_chiave_storica_concorde_senza_toccare_il_registro(tmp_path, monkeypatch):
-    root = tmp_path / 'storage-key'
+    from pct.tenant import GestioneTenant
+    from tools.prepare_deploy_registry import prepare
+
+    root = tmp_path / 'tenants' / 'storage-key'
     manifest = root / 'config' / 'storage.json'
     manifest.parent.mkdir(parents=True)
     manifest.write_text('{"slug":"controlled-study"}', encoding='utf-8')
@@ -110,6 +113,18 @@ def test_preparazione_usa_la_chiave_storica_concorde_senza_toccare_il_registro(t
         assert prepare_core(database, tenant=resolved, destination=tmp_path / 'backup') == []
         assert registry == {'storage-key': owner} and manifest.read_bytes() == before
         assert _tenant_core(database, owner, {**registry, resolved: object()}, manifest) == owner.slug
+        source = tmp_path / 'tenants.json'
+        attributes = {'id': 'controlled-id', 'slug': owner.slug, 'storage_key': owner.storage_key}
+        source.write_text(json.dumps({owner.slug: attributes}), encoding='utf-8')
+        profile = SimpleNamespace(uses_sqlite=True, external_sql_configured=False, studio_db_path=database.db_path)
+        monkeypatch.setattr('tools.prepare_deploy_registry.resolve_storage_runtime', lambda **_: profile)
+        target = tmp_path / '.tenants-preflight-verifica.json'
+        assert prepare(source, target) == 1
+        assert json.loads(source.read_text(encoding='utf-8')) == {owner.slug: attributes}
+        assert json.loads(target.read_text(encoding='utf-8')) == {owner.slug: {**attributes, 'slug': resolved}}
+        projected = GestioneTenant(registry_path=str(target))
+        assert projected.get(resolved).id == projected.get(owner.slug).id == attributes['id']
+        assert projected.data_dir(resolved) == root
         database.conn.execute("UPDATE calendar_query_owner SET tenant_key='other-study'")
         assert _tenant_core(database, owner, registry, manifest) == owner.slug
     finally:

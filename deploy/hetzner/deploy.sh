@@ -249,6 +249,23 @@ compose_up_with_cleanup() {
 # ---------------------------------------------------------------------------
 # 5. Build e avvio servizi
 # ---------------------------------------------------------------------------
+PREPARATION_REGISTRY=""
+
+preparation_python() {
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
+    run --no-deps --rm --entrypoint python -e "PCT_TENANTS_REGISTRY=$PREPARATION_REGISTRY" app "$@"
+}
+
+prepare_release_registry() {
+  PREPARATION_REGISTRY="/data/.tenants-preflight-$(git rev-parse --short HEAD)-$$.json"
+  preparation_python -m tools.prepare_deploy_registry --tenant-registry /data/tenants.json --output "$PREPARATION_REGISTRY"
+  trap cleanup_release_registry EXIT
+}
+
+cleanup_release_registry() {
+  preparation_python -c 'import sys; from pathlib import Path; Path(sys.argv[1]).unlink(missing_ok=True)' "$PREPARATION_REGISTRY"
+}
+
 adopt_termini_before_start() {
   [ "${IUSENTRA_DEPLOY_ADOPT_TERMINI:-0}" = "1" ] || return 0
   local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
@@ -266,7 +283,7 @@ adopt_termini_before_start() {
   done
   # Percorso stabile per riprendere lo stesso backup dopo un'interruzione.
   # Un errore lascia i produttori fermi: non riaprire il vecchio scrittore JSON.
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
+  preparation_python \
     -m scripts.migra_termini_sql --tenant all \
     --report /data/backup/termini-sql-20261012/deploy-report.jsonl \
     --backup-dir /data/backup/termini-sql-20261012/adozione \
@@ -276,39 +293,26 @@ adopt_termini_before_start() {
 prepare_client_case_index_before_start() {
   # Catalogo derivato: preparazione esplicita della release, mai nella GET.
   # SQLite conserva un backup coerente; PostgreSQL usa DDL/transazione nativi.
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
-    run --no-deps --rm --entrypoint python app \
-    -m tools.prepare_fascicoli_client_index --tenant-registry /data/tenants.json \
+  preparation_python -m tools.prepare_fascicoli_client_index --tenant-registry "$PREPARATION_REGISTRY" \
     --backup-dir /data/backup/fascicoli-clienti-index-20261014
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
-    run --no-deps --rm --entrypoint python app \
-    -m tools.prepare_reading_runtime --tenant-registry /data/tenants.json \
+  preparation_python -m tools.prepare_reading_runtime --tenant-registry "$PREPARATION_REGISTRY" \
     --backup-dir /data/backup/reading-runtime-20261020
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
-    run --no-deps --rm --entrypoint python app \
-    -m tools.prepare_operational_query_indexes --tenant-registry /data/tenants.json \
+  preparation_python -m tools.prepare_operational_query_indexes --tenant-registry "$PREPARATION_REGISTRY" \
     --backup-dir /data/backup/operational-query-index-20261016
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
-    run --no-deps --rm --entrypoint python app \
-    -m scripts.fascicoli_list_query_index --tenant all --apply \
+  preparation_python -m scripts.fascicoli_list_query_index --tenant all --apply \
     --backup-dir /data/backup/fascicoli-list-query-20261016 \
     --report /data/backup/fascicoli-list-query-20261016/deploy-report.jsonl
   # Pannelli del fascicolo pronti: contatori di revisione delle fonti (trigger), backup solo se il piano cambia.
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
-    run --no-deps --rm --entrypoint python app \
-    -m scripts.pannelli_pronti_prepara --tenant all --apply \
+  preparation_python -m scripts.pannelli_pronti_prepara --tenant all --apply \
     --backup-dir /data/backup/pannelli-pronti
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" \
-    run --no-deps --rm --entrypoint python app \
-    -m scripts.prepare_receipt_query_indexes --tenant all \
+  preparation_python -m scripts.prepare_receipt_query_indexes --tenant all \
     --backup-dir /data/backup/receipt-query-index-20261017
 }
 
 prepare_template_catalog_before_start() {
   local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
   local result=0 container service
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m tools.prepare_template_catalog --tenant-registry /data/tenants.json --check || result=$?
+  preparation_python -m tools.prepare_template_catalog --tenant-registry "$PREPARATION_REGISTRY" --check || result=$?
   [ "$result" = "0" ] && return 0
   [ "$result" = "2" ] || return "$result"
   echo "Preparazione modelli: arresto degli scrittori prima del backup e dell'adozione SQL."
@@ -320,8 +324,7 @@ prepare_template_catalog_before_start() {
       return 1
     done
   done
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m tools.prepare_template_catalog --tenant-registry /data/tenants.json --writers-drained \
+  preparation_python -m tools.prepare_template_catalog --tenant-registry "$PREPARATION_REGISTRY" --writers-drained \
     --backup-dir /data/backup/template-catalog-20261017
 }
 
@@ -341,8 +344,7 @@ prepare_scadenziario_before_start() {
   [ "$domain" != "incassi" ] || backup_dir=/data/backup/incassi-sql-20261020
   local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
   local result=0 service container
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m "$module" --tenant-registry /data/tenants.json "${check_args[@]}" --check || result=$?
+  preparation_python -m "$module" --tenant-registry "$PREPARATION_REGISTRY" "${check_args[@]}" --check || result=$?
   [ "$result" = "0" ] && return 0
   [ "$result" = "2" ] || return "$result"
   echo "$domain: arresto dei produttori prima del backup e dell'adozione SQL."
@@ -354,16 +356,14 @@ prepare_scadenziario_before_start() {
       return 1
     done
   done
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m "$module" --tenant-registry /data/tenants.json \
+  preparation_python -m "$module" --tenant-registry "$PREPARATION_REGISTRY" \
     --writers-drained --backup-dir "$backup_dir"
 }
 
 prepare_tracking_proposals_before_start() {
   local compose=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}")
   local result=0 container service
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m tools.migrate_tracking_passivo_sql --tenant-registry /data/tenants.json --tenant all --check || result=$?
+  preparation_python -m tools.migrate_tracking_passivo_sql --tenant-registry "$PREPARATION_REGISTRY" --tenant all --check || result=$?
   [ "$result" = "0" ] && return 0
   [ "$result" = "2" ] || return "$result"
   echo "Preparazione proposte Timesheet: arresto degli scrittori prima del backup e dell'adozione SQL."
@@ -375,8 +375,7 @@ prepare_tracking_proposals_before_start() {
       return 1
     done
   done
-  "${compose[@]}" run --no-deps --rm --entrypoint python app \
-    -m tools.migrate_tracking_passivo_sql --tenant-registry /data/tenants.json --tenant all --writers-drained \
+  preparation_python -m tools.migrate_tracking_passivo_sql --tenant-registry "$PREPARATION_REGISTRY" --tenant all --writers-drained \
     --backup-dir /data/backup/tracking-proposals-sql-20261017
 }
 
@@ -435,6 +434,7 @@ if [ "${IUSENTRA_DEPLOY_DRIVER:-compose}" = "portainer" ]; then
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$RELEASE_SHA"
   export IUSENTRA_APP_IMAGE="iusentra-app:${RELEASE_SHA}"
+  prepare_release_registry
   if [ "${IUSENTRA_DEPLOY_ADOPT_TERMINI:-0}" = "1" ]; then
     export IUSENTRA_APP_IMAGE="iusentra-app:${RELEASE_SHA}"
     adopt_termini_before_start
@@ -451,6 +451,7 @@ else
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "${PROFILE_ARGS[@]}" build
   test -z "$(git status --porcelain)"
   python3 deploy/hetzner/check_runtime_sources.py --repo "$REPO_DIR" --target "$(git rev-parse HEAD)"
+  prepare_release_registry
   adopt_termini_before_start
   prepare_scadenziario_before_start agenda
   prepare_scadenziario_before_start

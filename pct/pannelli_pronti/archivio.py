@@ -44,7 +44,8 @@ _SCHEMA = (
 # Si creano solo fuori dalle richieste web (``prepara_indici``): la prima creazione legge l'archivio una volta.
 _INDICI = (
     "CREATE INDEX IF NOT EXISTS idx_pannelli_stati ON pannelli(chiave, fascicolo_id, impronta, tentata)",
-    "CREATE INDEX IF NOT EXISTS idx_pannelli_varianti ON pannelli(profilo, pannello, percorso, richieste)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_varianti_fascicoli ON pannelli(profilo, pannello, percorso, richieste,"
+    " fascicolo_id)",
     "CREATE INDEX IF NOT EXISTS idx_pannelli_attesa ON pannelli(pannello, richiesto_il, richieste, calcolato_il, servito_il,"
     " fascicolo_id)",
     "CREATE INDEX IF NOT EXISTS idx_pannelli_voci ON pannelli(fascicolo_id, richiesto_il, chiave, pannello, percorso, profilo,"
@@ -210,13 +211,18 @@ class ArchivioPannelli:
                 "SELECT profilo FROM profili WHERE aggiornato_il>=? ORDER BY aggiornato_il DESC", (soglia,))]
 
     def varianti_richieste(self, profilo: str) -> list[tuple[str, str]]:
-        """(pannello, parametri) già chiesti dal profilo per un fascicolo qualunque, i più richiesti per primi."""
+        """(pannello, parametri) già chiesti dal profilo, i più richiesti per primi.
+
+        Una variante con parametri vale per tutti i fascicoli solo se è stata chiesta per almeno due fascicoli diversi:
+        parametri propri di un fascicolo (per esempio il cliente) non si applicano agli altri.
+        """
         with self._lettura() as conn:
             if conn is None:
                 return []
             return [(str(r[0]), str(r[1] or "")) for r in conn.execute(
                 "SELECT pannello, CASE WHEN instr(percorso,'?')>0 THEN substr(percorso, instr(percorso,'?')+1) ELSE '' END q,"
-                " SUM(richieste) n FROM pannelli WHERE profilo=? AND richieste>0 GROUP BY 1,2 ORDER BY n DESC", (profilo,))]
+                " SUM(richieste) n FROM pannelli WHERE profilo=? AND richieste>0 GROUP BY 1,2"
+                " HAVING q='' OR COUNT(DISTINCT fascicolo_id)>1 ORDER BY n DESC", (profilo,))]
 
     def stati(self) -> dict[str, tuple[str, str, str]]:
         """chiave → (fascicolo, impronta salvata, impronta dell'ultimo tentativo) per tutte le voci."""

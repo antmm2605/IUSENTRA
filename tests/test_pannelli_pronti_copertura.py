@@ -232,11 +232,19 @@ def test_varianti_chieste_dall_interfaccia_si_preparano_cosi(studio):
     from web.services.pannelli_pronti_sfondo import copertura
 
     _profilo(studio)
-    studio.archivio.registra_richiesta(chiave_voce="det", fascicolo_id="F1", pannello="dettaglio",
-                                       percorso="/api/v1/ui/fascicoli/F1?include=lettura", profilo="p1",
-                                       sessione={"user_id": "u1"}, servito=True)
-    voci = [v for v in copertura(studio.archivio, studio.fonti, limite=500) if v.pannello == "dettaglio"]
-    assert {v.percorso for v in voci if v.fascicolo_id == "F2"} == {"/api/v1/ui/fascicoli/F2?include=lettura"}
+    for fid in ("F1", "F3"):
+        studio.archivio.registra_richiesta(chiave_voce=f"det-{fid}", fascicolo_id=fid, pannello="dettaglio",
+                                           percorso=f"/api/v1/ui/fascicoli/{fid}?include=lettura", profilo="p1",
+                                           sessione={"user_id": "u1"}, servito=True)
+    # Un parametro proprio di un solo fascicolo (il cliente) non si applica agli altri.
+    studio.archivio.registra_richiesta(chiave_voce="red", fascicolo_id="F1", pannello="redazione-atti-contesto",
+                                       percorso="/api/v1/ui/redazione-atti/fascicoli/F1/contesto?id_cliente=K1",
+                                       profilo="p1", sessione={"user_id": "u1"}, servito=True)
+    voci = copertura(studio.archivio, studio.fonti, limite=500)
+    assert {v.percorso for v in voci if v.fascicolo_id == "F2" and v.pannello == "dettaglio"} == {
+        "/api/v1/ui/fascicoli/F2?include=lettura"}
+    assert {v.percorso for v in voci if v.fascicolo_id == "F2" and v.pannello == "redazione-atti-contesto"} == {
+        "/api/v1/ui/redazione-atti/fascicoli/F2/contesto"}
 
 
 def test_ricalcolo_si_ferma_se_l_avvocato_aspetta_un_pannello(studio):
@@ -289,7 +297,7 @@ def test_controlli_in_sfondo_usano_solo_indici_senza_leggere_i_payload(studio):
         piani = {
             "stati": "SELECT chiave, fascicolo_id, impronta, tentata FROM pannelli",
             "varianti": "SELECT pannello, percorso, SUM(richieste) FROM pannelli WHERE profilo='p1' AND richieste>0 "
-                        "GROUP BY 1,2",
+                        "GROUP BY 1,2 HAVING COUNT(DISTINCT fascicolo_id)>1",
         }
         for nome, sql in piani.items():
             piano = " ".join(str(r[-1]) for r in conn.execute("EXPLAIN QUERY PLAN " + sql))

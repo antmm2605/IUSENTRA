@@ -152,10 +152,20 @@ class ArchivioGazzetta:
         return conn
 
     # --- scrittura (lavoro pianificato e pulsante «Aggiorna») ---
-    def salva_fascicolo(self, fascicolo: dict[str, Any], atti: Iterable[dict[str, Any]]) -> int:
+    def salva_fascicolo(
+        self, fascicolo: dict[str, Any], atti: Iterable[dict[str, Any]], *, solo_se_nuovo: bool = False,
+    ) -> int:
         """Sostituisce gli atti del fascicolo con quelli del sommario appena letto; restituisce quanti atti."""
         righe = [{**atto, "testo_ricerca": testo_ricerca(atto)} for atto in atti]
         with closing(self._connetti()) as conn:
+            if solo_se_nuovo:
+                conn.execute("BEGIN IMMEDIATE")
+                gia_letto = conn.execute(
+                    "SELECT 1 FROM fascicoli WHERE serie = ? AND data = ? AND numero = ?",
+                    (fascicolo["serie"], fascicolo["data"], fascicolo["numero"]),
+                ).fetchone()
+                if gia_letto:
+                    return 0
             conn.execute(
                 "DELETE FROM atti WHERE serie = ? AND data_gu = ? AND numero_gu = ?",
                 (fascicolo["serie"], fascicolo["data"], fascicolo["numero"]),
@@ -171,17 +181,22 @@ class ArchivioGazzetta:
             conn.commit()
         return len(righe)
 
-    def registra_esito(self, serie: str, *, ok: bool, quando: str, messaggio: str = "") -> None:
+    def registra_esito(
+        self, serie: str, *, ok: bool, quando: str, messaggio: str = "", completo: bool = True,
+    ) -> None:
         with closing(self._connetti()) as conn:
-            precedente = conn.execute("SELECT ultimo_successo FROM serie_stato WHERE serie = ?", (serie,)).fetchone()
-            successo = quando if ok else (precedente["ultimo_successo"] if precedente else "")
+            successo = quando if ok and completo else ""
             conn.execute(
                 """
                 INSERT INTO serie_stato (serie, ultimo_tentativo, ultimo_esito_ok, ultimo_successo, messaggio)
                 VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(serie) DO UPDATE SET ultimo_tentativo = excluded.ultimo_tentativo,
-                    ultimo_esito_ok = excluded.ultimo_esito_ok, ultimo_successo = excluded.ultimo_successo,
-                    messaggio = excluded.messaggio
+                ON CONFLICT(serie) DO UPDATE SET
+                    ultimo_tentativo = MAX(serie_stato.ultimo_tentativo, excluded.ultimo_tentativo),
+                    ultimo_esito_ok = CASE WHEN excluded.ultimo_tentativo >= serie_stato.ultimo_tentativo
+                        THEN excluded.ultimo_esito_ok ELSE serie_stato.ultimo_esito_ok END,
+                    ultimo_successo = MAX(serie_stato.ultimo_successo, excluded.ultimo_successo),
+                    messaggio = CASE WHEN excluded.ultimo_tentativo >= serie_stato.ultimo_tentativo
+                        THEN excluded.messaggio ELSE serie_stato.messaggio END
                 """,
                 (serie, quando, 1 if ok else 0, successo, messaggio),
             )

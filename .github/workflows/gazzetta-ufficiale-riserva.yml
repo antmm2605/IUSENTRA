@@ -1,0 +1,67 @@
+name: Gazzetta Ufficiale - acquisizione di riserva
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/gazzetta-ufficiale-riserva.yml'
+  schedule:
+    - cron: '43 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gazzetta-ufficiale-riserva
+  cancel-in-progress: false
+
+jobs:
+  acquisisci:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Prepara il lettore delle fonti
+        run: |
+          python -m pip install 'requests>=2.31.0' 'lxml>=6.1.1' 'defusedxml>=0.7.1'
+      - name: Verifica il collegamento diretto alla fonte dal runner
+        if: github.event_name == 'push'
+        run: |
+          python - <<'PY'
+          from pct.gazzetta.serie import HOST_AMMESSI, SERIE
+          from pct.gazzetta.sommario import fascicoli_in_elenco
+          from pct.notiziario.rete import scarica
+
+          for serie in SERIE:
+              fascicoli = fascicoli_in_elenco(serie, scarica(serie.url_elenco, HOST_AMMESSI))
+              if not fascicoli:
+                  raise SystemExit(f"{serie.codice}: elenco ufficiale vuoto")
+              ultimo = fascicoli[0]
+              print(f"{serie.codice}: n. {ultimo.numero} del {ultimo.data}")
+          PY
+      - name: Acquisisci e importa soltanto gli atti pubblici mancanti
+        if: github.event_name != 'push'
+        env:
+          HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+          HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+          HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          trap 'rm -rf "$work"' EXIT
+          umask 077
+          printf '%s\n' "$HETZNER_SSH_PRIVATE_KEY" > "$work/key"
+          printf '%s\n' "$HETZNER_SSH_KNOWN_HOSTS" > "$work/known_hosts"
+          remote=(ssh -i "$work/key" -o BatchMode=yes -o StrictHostKeyChecking=yes
+                  -o "UserKnownHostsFile=$work/known_hosts" -o ConnectTimeout=15
+                  "${HETZNER_USER}@${HETZNER_HOST}")
+          "${remote[@]}" 'docker exec iusentra-app python -m pct.gazzetta.riserva stato' > "$work/stato.json"
+          python -m pct.gazzetta.riserva acquisisci --output "$work/pubblicazioni.json" < "$work/stato.json"
+          if [[ -s "$work/pubblicazioni.json" ]]; then
+            "${remote[@]}" 'docker exec -i iusentra-app python -m pct.gazzetta.riserva importa' < "$work/pubblicazioni.json"
+          fi

@@ -76,6 +76,8 @@ def test_fascicoli_priorita_alta_ignorano_udienze_passate(monkeypatch):
         def tutti(self, archiviati=False):
             return fascicoli
 
-    monkeypatch.setattr(api, "gestore_panoramica", lambda factory: _G(None))
+    # Versione dell'8080 (18/11/2026): i fascicoli vengono dall'indice del Quadro studio (_indice_fascicoli_operativo).
+    monkeypatch.setattr(api, "gestore_panoramica",
+                        lambda factory: fascicoli if factory is api._indice_fascicoli_operativo else _G(None))
     righe = api._high_priority_matters()
     assert [r["id"] for r in righe] == ["F2"]

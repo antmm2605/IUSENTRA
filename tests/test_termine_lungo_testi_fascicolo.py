@@ -17,10 +17,11 @@ def test_i_testi_si_leggono_dal_fascicolo_con_i_suoi_documenti(monkeypatch):
         return {"D1": "ha pronunciato in pari data la seguente sentenza"}
 
     monkeypatch.setattr(archivio, "testi_indice_archivio", testi)
-    assert runtime._testi_del_fascicolo("9DC39668") == ["ha pronunciato in pari data la seguente sentenza"]
+    # Versione dell'8080 (18/11/2026): con i testi torna anche il fascicolo, per gli allegati della PEC fonte.
+    assert runtime._testi_del_fascicolo("9DC39668") == (fascicolo, {"D1": "ha pronunciato in pari data la seguente sentenza"})
     assert ricevuti == [fascicolo] and ricevuti[0].documenti
 
 
 def test_fascicolo_assente_nessun_testo(monkeypatch):
     monkeypatch.setattr(helpers, "get_fascicoli", lambda: {})
-    assert runtime._testi_del_fascicolo("XXXX") == []
+    assert runtime._testi_del_fascicolo("XXXX") == (None, {})

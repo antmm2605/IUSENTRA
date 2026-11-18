@@ -151,7 +151,9 @@ def test_le_frasi_della_proposta_seguono_la_scadenza_ricalcolata(tmp_path):
     voce = scadenziario.get(bozza.id)
     assert voce.data_scadenza == "2027-04-07"
     assert "entro il 07/04/2027" in voce.note and "08/04/2027" not in voce.note
-    assert "calcolati dal 07/10/2026 (giorno dell'udienza in cui la sentenza è stata letta" in voce.descrizione
+    # Versione dell'8080 (18/11/2026): la data della decisione in udienza anticipa la bozza in via prudenziale;
+    # la pubblicazione resta da accertare (stessa scadenza, testo più cauto).
+    assert "calcolati dal 07/10/2026 (data della decisione usata in via prudenziale, pubblicazione da accertare)" in voce.descrizione
     assert "calcolati dal 08/10/2026" not in voce.descrizione
 
 

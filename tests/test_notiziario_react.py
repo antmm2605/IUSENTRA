@@ -398,6 +398,8 @@ def test_i_fascicoli_da_collegare_si_leggono_dall_indice_leggero(monkeypatch):
             raise AssertionError("l'archivio intero non serve per il menu")
 
     monkeypatch.setattr(api, "_fascicolo_singolo_loader", lambda: _Gestione)
+    # Versione dell'8080 (18/11/2026): il menu legge l'indice dei fascicoli del Quadro studio (case_index).
+    monkeypatch.setattr(api, "_indice_fascicoli_operativo", lambda: _Gestione().indice_leggero())
 
     assert api._notiziario_case_options() == [
         {"id": "C", "label": "2026/0003 - Senza ruolo"},
@@ -437,6 +439,8 @@ def test_api_notiziario_legge_l_archivio_condiviso_con_filtri_e_fascicoli_pertin
             )]
 
     monkeypatch.setattr(api, "_fascicolo_singolo_loader", lambda: _Gestione)
+    # Versione dell'8080 (18/11/2026): il menu legge l'indice dei fascicoli del Quadro studio (case_index).
+    monkeypatch.setattr(api, "_indice_fascicoli_operativo", lambda: _Gestione().indice_leggero())
     client, headers = _client(tmp_path)
     client.application.config["NOTIZIARIO_DB"] = str(tmp_path / "notiziario.sqlite")
 

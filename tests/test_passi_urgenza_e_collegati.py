@@ -295,3 +295,11 @@ def test_termine_pec_perentorio_entra_fra_i_perentori():
                                       "tipo": "opposizione", "data_pec": "13/11/2026", "perentorio": True}]}
     [passo] = _passi_pec(pec, OGGI)
     assert passo.natura == "perentorio" and passo.entro == "18/11/2026"
+
+
+def test_anticipazione_dell_udienza_non_e_un_adempimento_economico():
+    from pct.fascicolo_lettura.prossimi_passi import ambito_del_passo
+
+    assert ambito_del_passo(Passo(2, "Pianificare «Decreto anticipazione udienza n. r.g. 805/2026»", "", "15/12/2026",
+                                  "scadenziario")) == "processuale"
+    assert ambito_del_passo(Passo(3, "Recuperare le anticipazioni (€ 27,00)", "", "", "presidio economico")) == "economico"

@@ -739,7 +739,8 @@ _FONTI_AMMINISTRATIVE = {"catalogazione", "presidio documentale"}
 _RE_AMMINISTRATIVO = re.compile(
     r"anagrafic|profilo procedurale|preventivo|conferimento d.incarico|classific|catalogazion|antiriciclaggio|privacy|"
     r"casella pec dello studio|dati dello studio|codice fiscale del cliente|^compila\b|fascicolo importato dal portale", re.I)
-_RE_ECONOMICO = re.compile(r"contributo unificato|riscuotere|riscossione|parcell|incass|anticipazion|liquidat", re.I)
+_RE_ECONOMICO = re.compile(r"contributo unificato|riscuotere|riscossione|parcell|incass|recuperare le anticipazioni|"
+                           r"spese liquidate|somma liquidata|liquidazione di €", re.I)
 
 
 def ambito_del_passo(passo: Passo) -> str:

@@ -185,7 +185,7 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
             "proseguire l'esecuzione nel fascicolo collegato",
             "il precetto intima il pagamento ed è il presupposto dell'esecuzione forzata",
             "fatto", f"Precetto «{atto_precetto['nome']}»" + (f" del {data_it(atto_precetto['data'])}" if atto_precetto.get("data") else "")
-            + (f" e atto di pignoramento «{pign['nome']}»" if pign else "")
+            + (f" e atto dell'esecuzione «{pign['nome']}»" if pign else "")
             + f", fondati sul decreto ingiuntivo n. {esecuzione['decreto_numero']}, nel {descrizione(esecuzione)}",
             None, "builtin-tmp-ese-001", motivo_senza_termine="Precetto già notificato: l'esecuzione prosegue nel fascicolo collegato.",
         ))

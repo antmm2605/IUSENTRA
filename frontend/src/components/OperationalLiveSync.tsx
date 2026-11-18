@@ -6,7 +6,7 @@ import './OperationalLiveSync.css'
 
 /** Share SQL revision polling between tabs of the same tenant/user. */
 export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean; sessionKey: string }) {
-  const [error, setError] = useState('')
+  const [status, setStatus] = useState<'ready' | 'delayed' | 'session-expired'>('ready')
   const [failedViews, setFailedViews] = useState<string[]>([])
   useEffect(() => {
     const changed = (event: Event) => {
@@ -23,9 +23,13 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
     let previous: Record<string, number> | undefined
     let timer: ReturnType<typeof setTimeout>
     let failures = 0
+    let unauthorized = 0
+    let firstFailureAt = 0
+    let polling = false
     let controller: AbortController | undefined
     let receivedAt = 0
     let previousContext: string | undefined
+    setStatus('ready')
     const channel = typeof BroadcastChannel === 'undefined' ? undefined : new BroadcastChannel(`iusentra-live:${sessionKey}`)
     const accept = (next: Record<string, number>, revisionContext?: string) => {
       if (!active) return
@@ -36,22 +40,26 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
       if (context) previousContext = context
       receivedAt = Date.now()
       failures = 0
-      setError('')
+      unauthorized = 0
+      firstFailureAt = 0
+      setStatus('ready')
       if (changed.length) publishOperationalRefresh(changed, { remote: true, revisions: next, revisionContext: context })
     }
-    const fail = (message: string) => {
+    const fail = () => {
       if (!active) return
+      const now = Date.now()
+      if (!failures) firstFailureAt = now
       failures += 1
-      receivedAt = Date.now()
-      setError(message)
+      if (failures >= 3 && now - firstFailureAt >= 12000) {
+        setStatus(current => current === 'session-expired' ? current : 'delayed')
+      }
     }
     if (channel) channel.onmessage = event => {
-      const message = event.data as { revisions?: Record<string, number>; error?: string; revisionContext?: string }
+      const message = event.data as { revisions?: Record<string, number>; revisionContext?: string }
       // An older window cannot certify the current SQL owner. Its unscoped
       // counters never postpone this window's authoritative server polling.
       const proof = sharedRevisionProof(message.revisions, message.revisionContext)
       if (proof) accept(proof.revisions, proof.context)
-      else if (typeof message.error === 'string') fail(message.error)
     }
     const request = async () => {
       if (!active || Date.now() - receivedAt < 1800) return
@@ -60,30 +68,46 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
       const timeout = setTimeout(() => requestController.abort(), 10000)
       try {
         const response = await fetch('/api/v1/ui/sync/revisions', { credentials: 'same-origin', cache: 'no-store', signal: controller.signal, headers: { Accept: 'application/json' } })
-        if (!response.ok) throw new Error('Sincronizzazione live interrotta. Riprovo automaticamente.')
+        if (!active) return
+        if (response.status === 401) {
+          unauthorized += 1
+          if (unauthorized >= 3) {
+            failures = Math.max(4, failures)
+            setStatus('session-expired')
+          }
+          return
+        }
+        unauthorized = 0
+        if (!response.ok) {
+          fail()
+          return
+        }
         const payload = await response.json() as { ok?: boolean; revisions?: Record<string, number>; revisionContext?: string }
-        if (payload.ok !== true || !payload.revisions) throw new Error('Il server non ha confermato la sincronizzazione live.')
+        if (payload.ok !== true || !payload.revisions) {
+          fail()
+          return
+        }
         if (!active) return
         accept(payload.revisions, payload.revisionContext)
         channel?.postMessage({ revisions: payload.revisions, revisionContext: payload.revisionContext })
-      } catch (reason) {
-        if (!active) return
-        // Le eccezioni del browser (rete, timeout, risposta non JSON) sono
-        // tecniche e spesso in inglese. Il problema resta visibile, insieme
-        // al recupero automatico; i messaggi governati sopra restano distinti.
-        const message = reason instanceof Error && reason.name === 'Error' ? reason.message : 'Sincronizzazione live interrotta. Riprovo automaticamente.'
-        fail(message)
-        channel?.postMessage({ error: message })
+      } catch {
+        unauthorized = 0
+        fail()
       } finally {
         clearTimeout(timeout)
       }
     }
     const poll = async () => {
+      if (!active || polling) return
+      polling = true
       try {
         if (channel && navigator.locks) {
           await navigator.locks.request(`iusentra-live:${sessionKey}`, { ifAvailable: true }, async lock => { if (lock) await request() })
         } else await request()
+      } catch {
+        await request()
       } finally {
+        polling = false
         // Scheda nascosta: niente controllo ogni 2 secondi per nessuno (verifica del 31/10/2026);
         // al ritorno sulla scheda il controllo riparte subito.
         const nascosta = typeof document !== 'undefined' && document.visibilityState === 'hidden'
@@ -97,12 +121,25 @@ export function OperationalLiveSync({ enabled, sessionKey }: { enabled: boolean;
       void poll()
     }
     document.addEventListener('visibilitychange', visibile)
+    window.addEventListener('online', visibile)
+    window.addEventListener(OPERATIONAL_REFRESH_RETRY, visibile)
     void poll()
-    return () => { active = false; clearTimeout(timer); controller?.abort(); channel?.close(); document.removeEventListener('visibilitychange', visibile) }
+    return () => {
+      active = false
+      clearTimeout(timer)
+      controller?.abort()
+      channel?.close()
+      document.removeEventListener('visibilitychange', visibile)
+      window.removeEventListener('online', visibile)
+      window.removeEventListener(OPERATIONAL_REFRESH_RETRY, visibile)
+    }
   }, [enabled, sessionKey])
-  if (!error && !failedViews.length) return null
+  if (status === 'ready' && !failedViews.length) return null
   return <aside className="iu-operational-live-notices" aria-label="Stato della sincronizzazione">
-    {error ? <div className="iu-operational-live-notice" role="alert">{error}</div> : null}
-    {failedViews.length ? <div className="iu-operational-live-notice" role="alert">Alcuni dati della vista non sono aggiornati. Il recupero non è ancora confermato. <button type="button" className="iu-button" onClick={() => window.dispatchEvent(new Event(OPERATIONAL_REFRESH_RETRY))}>Riprova aggiornamento</button></div> : null}
+    {status === 'session-expired'
+      ? <div className="iu-operational-live-notice" role="status">Per ricevere gli aggiornamenti, accedi di nuovo. <a className="iu-button" href="/login">Accedi</a></div>
+      : <div className="iu-operational-live-notice" role="status">
+        Alcuni dati potrebbero non essere aggiornati. <button type="button" className="iu-button" onClick={() => window.dispatchEvent(new Event(OPERATIONAL_REFRESH_RETRY))}>Aggiorna</button>
+      </div>}
   </aside>
 }

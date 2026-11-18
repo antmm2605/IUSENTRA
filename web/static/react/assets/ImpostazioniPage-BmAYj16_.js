@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-C294SPXP.js";export{e as ImpostazioniPage};

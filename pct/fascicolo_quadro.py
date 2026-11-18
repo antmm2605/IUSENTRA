@@ -136,11 +136,16 @@ def riga_notifiche(obblighi: list[Mapping[str, Any]] | None, *, oggi: date) -> d
         stato = _testo(obbligo.get("stato"))
         if stato == "da_notificare":
             scadenza = _giorno(obbligo.get("scadenza"))
-            if scadenza and scadenza < oggi:
+            ordinatorio_decorso = bool(scadenza and scadenza < oggi and obbligo.get("natura") == "ordinatorio")
+            if ordinatorio_decorso:
+                descrizione = f"Termine ordinatorio decorso il {scadenza:%d/%m/%Y}. Verificare invio e ricevute PEC."
+                if obbligo.get("termine_da_verificare"):
+                    descrizione += " Termine a difesa da verificare."
+            elif scadenza and scadenza < oggi:
                 descrizione = f"Data indicata {scadenza:%d/%m/%Y} già trascorsa. Verificare invio e ricevute PEC."
             else:
                 descrizione = f"da notificare entro il {scadenza:%d/%m/%Y}" if scadenza else "da notificare"
-            if scadenza and (scadenza - oggi).days <= 7:
+            if scadenza and (scadenza - oggi).days <= 7 and not ordinatorio_decorso:
                 livello = "urgente"
             elif livello != "urgente":
                 livello = "attenzione"

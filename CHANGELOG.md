@@ -1,3 +1,8 @@
+## 2.489.33 — Quadro notifiche e sincronizzazione
+
+- Il Quadro distingue il termine ordinatorio decorso dalle scadenze urgenti.
+- L'avviso di nuovo accesso richiede tre rifiuti consecutivi della sessione operativa.
+
 ## 2.489.31 — Riconoscimento dei documenti già letti nel fascicolo
 
 - Riconosce avvisi di pubblicazione, note di trasmissione e di difesa della PA, memorie di costituzione, decreti di assegnazione e inviti a correggere l’autocertificazione.

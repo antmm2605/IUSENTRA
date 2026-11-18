@@ -25,9 +25,13 @@ def _testo(valore: Any) -> str:
 
 
 def compatta(obblighi: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    """Per ogni atto: etichetta, stato dell'obbligo e scadenza (ISO); nient'altro esce dal calcolo."""
+    """Conserva i campi necessari a mostrare gli obblighi senza nuovi calcoli."""
     return [{"atto": _testo(o.get("etichetta") or o.get("atti") or o.get("documento")), "stato": _testo(o.get("stato")),
              "scadenza": _testo(o.get("scadenza"))[:10],
+             **({"natura": "ordinatorio", "termine_da_verificare": any(
+                    dato.get("campo") in {"udienza", "notifica_estero", "sospensione_feriale"}
+                    for dato in o.get("dati_mancanti") or ())}
+                if o.get("natura") == "ordinatorio" else {}),
              **({"regola": "sentenza_notifica_breve",
                  "documenti": sorted({oid for f in [o, *(o.get("fonti_documentali") or [])]
                                       if (oid := _testo(f.get("documentoId")))})}
@@ -155,7 +159,12 @@ def leggi(fascicolo_id: str) -> dict[str, Any] | None:
         from web.services.obblighi_notifica_fonti import riferimento_corrente
 
         riferimento = record.get("riferimento")
-        return sintesi if riferimento and riferimento == riferimento_corrente(fascicolo_id) else None
+        if not riferimento or riferimento != riferimento_corrente(fascicolo_id):
+            return None
+        dettaglio = _dettaglio(record)
+        if dettaglio is not None and any(o.get("natura") == "ordinatorio" for o in dettaglio):
+            return {**sintesi, "obblighi": compatta(dettaglio)}
+        return sintesi
     try:
         return _integra_identita(sintesi, fascicolo_id)
     except (TypeError, ValueError, AttributeError):

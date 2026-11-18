@@ -201,15 +201,23 @@ def _collegati(fascicolo: Any) -> list[dict[str, Any]]:
     from web.helpers import get_fascicoli
     from web.services.archivio_letture_runtime import testi_indice_archivio
 
+    from pct.ragionamento.rito import rito_da_codice
+
+    def _vicenda_esecutiva(riga: Any) -> bool:
+        # Solo monitorio ed esecuzioni: la regola dei collegamenti non riguarda altri riti (nessuna lettura inutile).
+        rito = rito_da_codice(_testo(getattr(riga, "codice_oggetto_pst", "")))[0]
+        return rito == "monitorio" or rito.startswith("esecuzione")
+
     cliente = _cliente(fascicolo)
-    if not cliente:
+    if not cliente or not _vicenda_esecutiva(fascicolo):
         return []
     repo = get_fascicoli()
-    indice = getattr(repo, "identita_per_confronto_fascicoli", None) or getattr(repo, "indice_leggero", None)
+    indice = getattr(repo, "indice_leggero", None)
     righe = indice() if callable(indice) else repo.tutti()
     fid = _testo(getattr(fascicolo, "id", ""))
     candidati = [_testo(getattr(r, "id", "")) for r in righe
-                 if _testo(getattr(r, "id", "")) != fid and _cliente(r) == cliente][:_MASSIMO_COLLEGATI]
+                 if _testo(getattr(r, "id", "")) != fid and _cliente(r) == cliente
+                 and (not getattr(r, "codice_oggetto_pst", None) or _vicenda_esecutiva(r))][:_MASSIMO_COLLEGATI]
     esito = []
     for cid in candidati:
         altro = _sicuro(lambda cid=cid: repo.get(cid), None)

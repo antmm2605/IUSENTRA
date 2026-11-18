@@ -358,7 +358,8 @@ def _passi_notifiche(
             passi.append(Passo(1, f"Completare la notifica ordinata dal giudice entro il {entro} («{notifica['atto']}»)",
                                f"«{ordinata['titolo']}»: notifica dovuta, verificare destinatari e prova di consegna"
                                + ("; termine proposto in bozza: confermarlo nello scadenziario" if ordinata["bozza"] else ""),
-                               entro, "presidio notifiche", ("cpc_415", "l53_art3bis"), HREF_COMUNICAZIONI))
+                               entro, "presidio notifiche", ("cpc_415", "l53_art3bis"), HREF_COMUNICAZIONI,
+                               natura="perentorio" if ordinata.get("perentorio") else ""))
             continue
         passi.append(Passo(1, f"{azione} («{notifica['atto']}»)", f"{notifica['stato_etichetta']}{fase}", notifica.get("scadenza", ""), "presidio notifiche", tuple(notifica.get("fonti_procedurali") or ("l53_art3bis",)), HREF_COMUNICAZIONI))
     return passi
@@ -376,7 +377,8 @@ def _passi_pec(pec_letto: dict[str, Any], giorno_oggi: Any = None) -> list[Passo
         norma = f" ({termine['norma']})" if termine.get("norma") else ""
         titolo = f"Valutare l’eventuale opposizione alla trattazione scritta{norma}" if "127" in termine.get("norma", "") else f"Valutare il termine «{termine['tipo'] or 'termine'}»{norma}"
         motivo = f"PEC del {termine['data_pec']}: proposta calcolata dalla comunicazione; l’opposizione è una scelta della parte" if scadenza else f"PEC del {termine['data_pec']}: manca una data di scadenza verificabile; nessuna urgenza è attribuita automaticamente"
-        passi.append(Passo(1 if scadenza else 3, titolo, motivo, termine.get("scadenza", ""), "presidio PEC", ("cpc_127ter",) if "127" in termine.get("norma", "") else ("cpc_136",), HREF_COMUNICAZIONI))
+        passi.append(Passo(1 if scadenza else 3, titolo, motivo, termine.get("scadenza", ""), "presidio PEC", ("cpc_127ter",) if "127" in termine.get("norma", "") else ("cpc_136",), HREF_COMUNICAZIONI,
+                           natura="perentorio" if termine.get("perentorio") else ""))
     for udienza in pec_letto.get("udienze_da_registrare", []):
         if not udienza.get("da_rivedere"):
             continue
@@ -572,7 +574,8 @@ def _passi_documenti(documenti_letti: dict[str, Any], verifiche: dict[str, Any])
     if proposte > 0:
         passi.append(Passo(3, f"Confermare con un clic le {proposte} propost{'a' if proposte == 1 else 'e'} di catalogazione pronte", "il presidio ha identificato i documenti dal contenuto con la prova; la conferma resta dell'avvocato", "", "catalogazione", (), HREF_CATALOGO))
     if documenti_letti["totale"] and not documenti_letti.get("procura") and not non_indicizzati and not da_acquisire:
-        passi.append(Passo(2, "Acquisire la procura alle liti", "non risulta fra i documenti del fascicolo, tutti letti dal presidio documentale", "", "catalogazione", ("cpc_83",), HREF_DOCUMENTI))
+        passi.append(Passo(2, "Acquisire la procura alle liti", "non risulta fra i documenti del fascicolo, tutti letti dal presidio documentale", "", "catalogazione", ("cpc_83",), HREF_DOCUMENTI,
+                           ambito="processuale"))
     return passi
 
 
@@ -735,7 +738,7 @@ _FONTI_ECONOMICHE = {"presidio economico"}
 _FONTI_AMMINISTRATIVE = {"catalogazione", "presidio documentale"}
 _RE_AMMINISTRATIVO = re.compile(
     r"anagrafic|profilo procedurale|preventivo|conferimento d.incarico|classific|catalogazion|antiriciclaggio|privacy|"
-    r"casella pec dello studio|dati dello studio|codice fiscale del cliente", re.I)
+    r"casella pec dello studio|dati dello studio|codice fiscale del cliente|^compila\b|fascicolo importato dal portale", re.I)
 _RE_ECONOMICO = re.compile(r"contributo unificato|riscuotere|riscossione|parcell|incass|anticipazion|liquidat", re.I)
 
 

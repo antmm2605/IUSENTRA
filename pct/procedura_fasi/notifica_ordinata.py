@@ -45,7 +45,8 @@ def termine_di_notifica_ordinata(scadenze: Iterable[dict[str, Any]], oggi: date 
     if not candidati:
         return None
     giorno, scadenza = min(candidati, key=lambda voce: voce[0])
-    return {"data": giorno, "titolo": str(scadenza.get("titolo") or ""), "bozza": str(scadenza.get("stato") or "").upper() == "BOZZA"}
+    return {"data": giorno, "titolo": str(scadenza.get("titolo") or ""), "bozza": str(scadenza.get("stato") or "").upper() == "BOZZA",
+            "perentorio": bool(scadenza.get("perentorio"))}
 
 
 __all__ = ["STATI_DA_VALUTARE", "termine_di_notifica_ordinata"]

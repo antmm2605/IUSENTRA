@@ -13,6 +13,7 @@ Modulo puro: legge solo gli atti del modello.
 
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 from typing import Iterable
 
@@ -20,6 +21,7 @@ from .modello import Atto, Fonte, Udienza
 from .testo import data_it, date_nel_testo, giorno, pulito
 
 GIORNI_PROVVEDIMENTO_NOTE = 30
+_NON_DEFINITIVA = re.compile(r"\b(?:non\s+definitivament[eo]|sentenza\s+non\s+definitiva)\b", re.I)
 
 
 def esito_udienza(data_udienza: date, atti: Iterable[Atto], udienze: Iterable[Udienza]) -> Fonte | None:
@@ -29,6 +31,9 @@ def esito_udienza(data_udienza: date, atti: Iterable[Atto], udienze: Iterable[Ud
                         and (d := giorno(a.data)) and d >= data_udienza), key=lambda a: a.data)
     for atto in candidati:
         pronuncia = giorno(atto.data)
+        if atto.sentenza and not _NON_DEFINITIVA.search(atto.testo):
+            # La causa è stata decisa dopo l'udienza: l'esito dell'udienza precedente non ha più effetti da registrare.
+            return Fonte(atto.id, atto.nome, f"causa decisa con sentenza del {data_it(pronuncia)}", atto.data)
         if pronuncia == data_udienza:
             return Fonte(atto.id, atto.nome, f"provvedimento pronunciato il giorno dell'udienza ({data_it(pronuncia)})", atto.data)
         citata = next((pulito(atto.testo[max(0, i - 80):f + 80]) for i, f, d in date_nel_testo(atto.testo) if d == data_udienza), "")

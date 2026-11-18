@@ -236,3 +236,59 @@ def test_termine_della_controparte_non_e_un_dubbio_ne_si_conferma():
                     "letto": {"documento_id": "P", "documento": "decreto.pdf"}, "dubbi": []}]
     assert bozze_certe(scadenze, conclusioni) == {}
     assert bozze_della_controparte(scadenze, conclusioni) == {"S3"}
+
+
+def test_conferma_in_sfondo_solo_delle_bozze_automatiche_certe(monkeypatch):
+    from types import SimpleNamespace
+
+    import web.helpers as helpers
+    from pct.scadenziario import StatoTermine
+    from web.services.termini_certi_runtime import conferma_termini_certi
+
+    def bozza(sid, titolo, note, data, responsabile=""):
+        return SimpleNamespace(id=sid, titolo=titolo, note=note, data_scadenza=data, stato=StatoTermine.BOZZA,
+                               id_utente_responsabile=responsabile)
+
+    righe = [
+        bozza("S1", "Deposito note scritte ex art. 127-ter c.p.c. - RG 1/2026", "PEC_TERMINE_PROPOSTO:pec_x:NOTE_127_TER", "2027-02-09"),
+        bozza("S2", "Deposito note scritte ex art. 127-ter c.p.c. - RG 1/2026", "PEC_TERMINE_PROPOSTO:pec_y:NOTE_127_TER", "2027-02-09"),
+        bozza("S3", "Deposito note scritte ex art. 127-ter c.p.c.", "scritta dall'avvocato", "2027-02-09"),
+        bozza("S4", "Deposito note scritte ex art. 127-ter c.p.c.", "PEC_TERMINE_PROPOSTO:pec_z:NOTE_127_TER", "2027-02-09", "avv1"),
+    ]
+    azioni = []
+
+    class Scadenziario:
+        def tutte(self, **_):
+            return righe
+
+        def conferma_bozza(self, sid, attore=""):
+            azioni.append(("conferma", sid, attore))
+
+        def scarta_bozza(self, sid, motivo="", attore=""):
+            azioni.append(("scarta", sid, motivo))
+
+    monkeypatch.setattr(helpers, "get_scadenziario", lambda: Scadenziario())
+    lettura = {"ragionamento": {"conclusioni": [{"codice": "note_127ter", "termine": {"scadenza_iso": "2027-02-09"},
+                                                 "letto": {"documento_id": "P", "documento": "decreto.pdf"}, "dubbi": []}]}}
+    assert conferma_termini_certi("F1", lettura) == 1
+    assert [a[:2] for a in azioni] == [("conferma", "S1"), ("scarta", "S2")]
+    assert "decreto.pdf" in azioni[0][2] and "doppione" in azioni[1][2]
+
+
+def test_dopo_la_sentenza_i_termini_istruttori_e_gli_esiti_delle_udienze_non_sono_piu_passi():
+    sentenza = doc("SEN", "sentenza.pdf", "provvedimento", "Sentenza",
+                   "REPUBBLICA ITALIANA IN NOME DEL POPOLO ITALIANO Il Tribunale di Vicenza in funzione di giudice del lavoro ha "
+                   "pronunciato la seguente SENTENZA P.Q.M. rigetta il ricorso. Vicenza, 10/11/2026", data="2026-11-10")
+    causa = ragiona(replace(fonti({**LAVORO, "numero_rg": "901"}, [RICORSO_LAV, ORD_2, sentenza]), oggi=OGGI))
+    assert next(a for a in causa.atti if a.id == "SEN").sentenza
+    deposito = next(c for c in causa.conclusioni if c.codice == "deposito_ordinato")
+    assert deposito.stato == "non_dovuto" and "sentenza.pdf" in deposito.prova_o_motivo
+    from pct.ragionamento.udienze_esito import esito_udienza
+    assert esito_udienza(date(2026, 11, 5), causa.atti, causa.udienze).oggetto_id == "SEN"
+
+
+def test_termine_pec_perentorio_entra_fra_i_perentori():
+    pec = {"termini_da_registrare": [{"da_rivedere": True, "scadenza": "18/11/2026", "norma": "Art. 127-ter c.p.c.",
+                                      "tipo": "opposizione", "data_pec": "13/11/2026", "perentorio": True}]}
+    [passo] = _passi_pec(pec, OGGI)
+    assert passo.natura == "perentorio" and passo.entro == "18/11/2026"

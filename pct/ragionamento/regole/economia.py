@@ -174,7 +174,9 @@ def _integrazione_contributo(ctx: Contesto, esito: dict[str, Any], fonte: Fonte,
     dovuto, versato = float(esito["dovuto"]), float(esito.get("versato") or 0)
     solo27 = versato == 0 and ANTICIPAZIONE_FORFETTARIA in {round(float(v), 2) for v in esito.get("letti") or ()}
     versato_testo = (f"risultano versati {format_euro_it(ANTICIPAZIONE_FORFETTARIA)}, che sono l'anticipazione forfettaria "
-                     f"({NORMA_ANTICIPAZIONE}), non il contributo" if solo27 else f"risultano versati {format_euro_it(versato)}")
+                     f"({NORMA_ANTICIPAZIONE}), non il contributo" if solo27
+                     else "nel fascicolo non c'è la ricevuta del versamento" if versato == 0
+                     else f"risultano versati {format_euro_it(versato)}")
     differenza = round(dovuto - versato, 2)
     cosa = (f"Contributo unificato: dovuti {format_euro_it(dovuto)} ({esito.get('norma')}), {versato_testo}: versare "
             f"l'integrazione di {format_euro_it(differenza)} o depositare la ricevuta del contributo, se già versato")

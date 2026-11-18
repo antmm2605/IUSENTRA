@@ -237,6 +237,17 @@ def _superato(ctx: Contesto, termine: TermineAssegnato, codice: str, scadenza: d
     return None
 
 
+_NON_DEFINITIVA = re.compile(r"\b(?:non\s+definitivament[eo]|sentenza\s+non\s+definitiva)\b", re.I)
+
+
+def _decisa_dopo(ctx: Contesto, atto: Atto | None) -> Atto | None:
+    """La sentenza definitiva della causa pronunciata dopo il provvedimento che ha assegnato il termine."""
+    if not atto or not atto.data:
+        return None
+    return next((a for a in sorted(ctx.della_causa(), key=lambda a: a.data or "")
+                 if a.sentenza and a.data and a.data > atto.data and a.testo and not _NON_DEFINITIVA.search(a.testo)), None)
+
+
 def _codice_di(termine: TermineAssegnato) -> str:
     return next((k for k in _COME if termine.adempimento.startswith({"note_127ter": "Depositare le note",
                  "notifica_ordinata": "Notificare", "costituzione_convenuto": "Costituirsi", "deposito_ordinato": "Depositare"}[k])), "")
@@ -269,10 +280,17 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
         # diversi restano distinti, ciascuno con il suo destinatario.
         riassegnato = (None if prova or onerato == "controparte" or codice not in {"note_127ter", "deposito_ordinato", ""}
                        else _superato(ctx, termine, codice, scadenza))
+        decisa = None if prova or codice not in {"note_127ter", "deposito_ordinato", "costituzione_convenuto", ""} else _decisa_dopo(ctx, atto)
         if onerato == "controparte":
             stato, motivo = "non_dovuto", f"termine della controparte ({termine.adempimento.lower()}): non è un nostro adempimento"
         elif prova:
             stato, motivo = "fatto", prova
+        elif decisa is not None:
+            # La sentenza che definisce il giudizio chiude l'istruttoria e la trattazione: il termine non è più un adempimento.
+            stato = "non_dovuto"
+            motivo = (f"La causa è stata decisa con «{decisa.nome}» del {data_it(decisa.data)}: il termine istruttorio o di "
+                      "trattazione non è più dovuto")
+            dubbi = []
         elif riassegnato is not None:
             # Lo stesso adempimento è stato riassegnato da un provvedimento successivo: vale il nuovo termine
             # (un solo adempimento nel modello, non due passi quasi uguali).

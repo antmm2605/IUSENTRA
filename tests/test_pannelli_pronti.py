@@ -241,7 +241,11 @@ def test_fonti_studio_coprono_agenda_storica_e_registro_pec(studio, tmp_path):
     assert _impronta(studio, "F2") != prima_f2
 
     casella = tmp_path / "email" / "casella.json"
-    assert file_dello_studio({"EMAIL_CASELLA_DB": casella}) == (str(casella.with_name("pec_audit.sqlite")),)
+    # L'archivio PEC è una fonte con i suoi trigger per fascicolo (versione dell'8080, 18/11/2026), non un file.
+    from web.services.pannelli_pronti_fonti import percorso_pec
+
+    assert file_dello_studio({"EMAIL_CASELLA_DB": casella}) == ()
+    assert percorso_pec({"EMAIL_CASELLA_DB": casella}) == str(casella.with_name("pec_audit.sqlite"))
 
 
 def test_archivio_salva_e_conteggi(studio):
@@ -281,7 +285,12 @@ def app_prova(studio, monkeypatch):
     from web.services import pannelli_pronti_runtime as runtime
     from web.services.pannelli_pronti_catalogo import Pannello
 
+    from web.services import pannelli_pronti_calcolatore as calcolatore
+
     monkeypatch.setattr(runtime, "fonti_per_percorsi", lambda _paths: studio.fonti)
+    sveglie = []
+    # Nessun processo vero nei test: si registra soltanto la richiesta di avvio del calcolatore.
+    monkeypatch.setattr(calcolatore, "sveglia_calcolatore", lambda *a: sveglie.append(a) or True)
     app = Flask("prova")
     app.secret_key = "prova"
     calcoli = {"n": 0}
@@ -314,7 +323,7 @@ def app_prova(studio, monkeypatch):
     app.view_functions["quadro"] = runtime.pannello_pronto(pannello)(quadro)
     app.view_functions["errore"] = runtime.pannello_pronto(Pannello("errore", "errore"))(errore)
     app.after_request(runtime.invalida_dopo_scrittura)
-    return SimpleNamespace(app=app, calcoli=calcoli)
+    return SimpleNamespace(app=app, calcoli=calcoli, sveglie=sveglie)
 
 
 def test_risposta_dal_salvato_e_ricalcolo_quando_cambia_una_fonte(studio, app_prova):
@@ -332,7 +341,10 @@ def test_risposta_dal_salvato_e_ricalcolo_quando_cambia_una_fonte(studio, app_pr
 def test_scrittura_sul_fascicolo_invalida_subito(app_prova):
     client = app_prova.app.test_client()
     client.get("/f/F1/quadro")
+    app_prova.sveglie.clear()
     client.post("/f/F1/attivita")
+    # Il calcolatore riparte subito per riportare il fascicolo pronto, senza attendere lo scheduler.
+    assert app_prova.sveglie == [()]
     assert client.get("/f/F1/quadro").headers["X-Iusentra-Pannello"] == "calcolato"
     assert app_prova.calcoli["n"] == 2
 
@@ -971,8 +983,10 @@ def test_sfondo_unisce_vecchia_chiave_e_chiave_corrente(studio):
     lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")
     assert len([voce for voce in lavori if voce.pannello == pannello]) == 1
 
-    impronta_corrente = impronta(studio.fonti, "F1", versione=VERSIONE_PANNELLI,
-                                         generazione=studio.archivio.generazione("F1"))
+    from web.services.pannelli_pronti_catalogo import impronta_del_pannello
+
+    impronta_corrente = impronta_del_pannello(pannello, impronta(studio.fonti, "F1", versione=VERSIONE_PANNELLI,
+                                                                 generazione=studio.archivio.generazione("F1")))
     assert studio.archivio.salva(chiave_voce=corrente, **valori, impronta=impronta_corrente,
                                 stato=200, tipo="application/json", corpo=b"{}", durata_ms=0)
     lavori = da_ricalcolare(studio.archivio, studio.fonti, fascicolo_richiesto="F1")

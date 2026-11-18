@@ -12,6 +12,7 @@ from __future__ import annotations
 import fcntl
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -20,9 +21,14 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 LOTTO = 8
+# Copertura di tutti i fascicoli: lotti piccoli, così una consultazione dell'avvocato passa avanti in pochi secondi.
+LOTTO_COPERTURA = 4
 PAUSA_SECONDI = 2.0
 PAUSA_SENZA_SALVATAGGI = 30.0
 CHIUSURA_DOPO_SECONDI = 600.0
+# Il processo si chiude dopo mezz'ora anche con lavoro residuo: libera la memoria, lo scheduler lo riavvia al minuto
+# successivo e la copertura riprende dal primo pannello non pronto.
+DURATA_MASSIMA_SECONDI = 1800.0
 FILE_LOCK = Path(os.getenv("PCT_DATA_ROOT") or tempfile.gettempdir()) / "iusentra-pannelli-pronti-calcolatore.lock"
 
 
@@ -58,6 +64,9 @@ def sveglia_calcolatore(tenant: str = "", fascicolo_id: str = "") -> bool:
             return False
         radice = Path(__file__).resolve().parents[2]
         comando = [sys.executable, "-m", "web.services.pannelli_pronti_calcolatore"]
+        if shutil.which("ionice"):
+            # Disco solo quando nessun altro lo usa: la copertura non rallenta l'app né l'OCR.
+            comando = ["ionice", "-c", "3", *comando]
         if tenant and fascicolo_id:
             comando.extend((tenant, fascicolo_id))
         subprocess.Popen(comando, cwd=str(radice),
@@ -68,10 +77,11 @@ def sveglia_calcolatore(tenant: str = "", fascicolo_id: str = "") -> bool:
         return True
 
 
-def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, tenant: str = "", fascicolo_id: str = "") -> dict[str, int]:
-    """Un lotto per studio: le voci superate dei fascicoli aperti di recente, ricalcolate."""
+def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, tenant: str = "", fascicolo_id: str = "",
+         con_copertura: bool = True) -> dict[str, int]:
+    """Un lotto per studio: le voci superate dei fascicoli aperti di recente; senza, la copertura di tutto lo studio."""
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi, fonti_per_percorsi
-    from web.services.pannelli_pronti_sfondo import da_ricalcolare, ricalcola, studi
+    from web.services.pannelli_pronti_sfondo import copertura, da_ricalcolare, ricalcola, studi
 
     totale = {"trovati": 0, "calcolati": 0, "non_salvati": 0, "errori": 0}
     for owner, data_paths in studi(app):
@@ -80,13 +90,19 @@ def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, ten
         archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)
         if archivio is None or fonti is None or not Path(archivio.percorso).exists():
             continue
+        archivio.prepara_indici()
+        interrompi = None
         if solo_pannelli_prioritari:
             voci = da_ricalcolare(archivio, fonti, limite=lotto, solo_pannelli_prioritari=True, fascicolo_richiesto=fascicolo_id)
         else:
             voci = da_ricalcolare(archivio, fonti, limite=lotto, fascicolo_richiesto=fascicolo_id)
+            if not voci and not fascicolo_id and con_copertura:
+                # Nessun pannello aperto di recente da aggiornare: si prepara il resto dello studio.
+                voci = copertura(archivio, fonti, limite=LOTTO_COPERTURA)
+                interrompi = lambda: pannello_prioritario_richiesto(app)  # noqa: E731
         totale["trovati"] += len(voci)
         if voci:
-            for chiave, valore in ricalcola(app, archivio, voci).items():
+            for chiave, valore in ricalcola(app, archivio, voci, interrompi=interrompi).items():
                 totale[chiave] += valore
             _prepara_bozze(app, owner, voci)
             if solo_pannelli_prioritari:
@@ -151,8 +167,8 @@ def main(tenant: str = "", fascicolo_id: str = "") -> int:
         finally:
             handle.close()
         return 0
-    ultimo_lavoro = time.monotonic()
-    while True:
+    ultimo_lavoro = avvio = time.monotonic()
+    while time.monotonic() - avvio < DURATA_MASSIMA_SECONDI:
         try:
             richiesta = pannello_prioritario_richiesto(app)
             esito = giro(app, lotto=1, solo_pannelli_prioritari=True) if richiesta else {"trovati": 0}
@@ -184,7 +200,7 @@ def main(tenant: str = "", fascicolo_id: str = "") -> int:
 def avvia_se_serve(app) -> dict[str, object]:
     """Lavoro dello scheduler: se qualche pannello è superato e il calcolatore non gira, lo avvia."""
     from web.services.pannelli_pronti_runtime import archivio_per_percorsi, fonti_per_percorsi
-    from web.services.pannelli_pronti_sfondo import da_ricalcolare, studi
+    from web.services.pannelli_pronti_sfondo import copertura, da_ricalcolare, studi
 
     if in_esecuzione():
         return {"ok": True, "avviato": False, "motivo": "calcolatore già in esecuzione"}
@@ -193,8 +209,9 @@ def avvia_se_serve(app) -> dict[str, object]:
         archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)
         if archivio is None or fonti is None or not Path(archivio.percorso).exists():
             continue
+        archivio.prepara_indici()
         archivio.elimina_vecchie()
-        superati += len(da_ricalcolare(archivio, fonti, limite=1))
+        superati += len(da_ricalcolare(archivio, fonti, limite=1)) or len(copertura(archivio, fonti, limite=1))
         if superati:
             break
     if not superati:

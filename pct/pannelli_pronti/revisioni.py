@@ -213,13 +213,20 @@ def piano_trigger(
             piano.update(_piano_agenda_storica())
             continue
         t = _nome_sicuro(tabella)
+        # Una tabella condivisa cambia l'impronta di tutti i fascicoli: un UPDATE che riscrive gli stessi valori
+        # (salvataggi ripetuti della configurazione, sincronizzazioni della casella) non è una variazione.
+        colonne = [_nome_sicuro(str(r[1])) for r in conn.execute(f"PRAGMA table_info('{t}')").fetchall()]
+        variazione = " OR ".join(f"NEW.{c} IS NOT OLD.{c}" for c in colonne)
         for sigla, azione in (("ti", "INSERT"), ("tu", "UPDATE"), ("td", "DELETE")):
             nome = f"{PREFISSO_TRIGGER}{t}_{sigla}"
             condizione = ""
             if sole_tabelle_condivise and azione == "UPDATE":
-                colonne = sorted(_colonne(conn, t) - _COLONNE_TECNICHE_PEC)
-                variazione = " OR ".join(f"NEW.{_nome_sicuro(c)} IS NOT OLD.{c}" for c in colonne)
-                condizione = f" WHEN {variazione}" if variazione else ""
+                # Archivio PEC: le colonne tecniche (tentativi, mime, aggiornamento) non sono variazioni.
+                colonne_pec = sorted(_colonne(conn, t) - _COLONNE_TECNICHE_PEC)
+                variazione_pec = " OR ".join(f"NEW.{_nome_sicuro(c)} IS NOT OLD.{c}" for c in colonne_pec)
+                condizione = f" WHEN {variazione_pec}" if variazione_pec else ""
+            elif azione == "UPDATE" and variazione:
+                condizione = f" WHEN {variazione}"
             piano[nome] = f"CREATE TRIGGER {nome} AFTER {azione} ON {t}{condizione} BEGIN {_incrementa_tabella(t)} END"
     return piano
 

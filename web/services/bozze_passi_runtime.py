@@ -229,7 +229,7 @@ def _segnala_documenti(fascicolo_id: str) -> None:
 def _fonti_salvate(archivio_pannelli: Any, fonti: Any, fascicolo_id: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Lettura e Conto economico salvati per l'impronta attuale delle fonti (nessun calcolo qui)."""
     from pct.pannelli_pronti import impronta as impronta_fonti
-    from web.services.pannelli_pronti_catalogo import VERSIONE_PANNELLI
+    from web.services.pannelli_pronti_catalogo import VERSIONE_PANNELLI, impronta_del_pannello
 
     attuale = impronta_fonti.impronta(fonti, fascicolo_id, generazione=archivio_pannelli.generazione(fascicolo_id),
                                       versione=VERSIONE_PANNELLI)
@@ -237,7 +237,8 @@ def _fonti_salvate(archivio_pannelli: Any, fonti: Any, fascicolo_id: str) -> tup
         return None, None
 
     def leggi(pannello: str) -> dict[str, Any] | None:
-        corpo = archivio_pannelli.ultimo_valido(fascicolo_id, pannello, attuale)
+        # Lettura e Conto economico si salvano con l'impronta propria del pannello (revisione dei motori compresa).
+        corpo = archivio_pannelli.ultimo_valido(fascicolo_id, pannello, impronta_del_pannello(pannello, attuale))
         try:
             dati = json.loads(corpo) if corpo else None
         except (UnicodeDecodeError, ValueError):

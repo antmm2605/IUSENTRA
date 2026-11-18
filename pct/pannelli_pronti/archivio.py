@@ -39,7 +39,22 @@ _SCHEMA = (
     "CREATE INDEX IF NOT EXISTS idx_aperture_quando ON aperture(aperto_il)",
     "CREATE TABLE IF NOT EXISTS generazioni (fascicolo_id TEXT PRIMARY KEY, generazione INTEGER NOT NULL)",
 )
+# Indici di copertura per i controlli dello scheduler e del calcolatore: le colonne lette stanno dopo ``corpo`` (fino a
+# centinaia di KB per voce) e senza indice SQLite scorre le pagine di overflow di ogni payload a ogni controllo.
+# Si creano solo fuori dalle richieste web (``prepara_indici``): la prima creazione legge l'archivio una volta.
+_INDICI = (
+    # ``stati`` legge anche il pannello (impronta propria del pannello): l'indice precedente non copre più la lettura.
+    "DROP INDEX IF EXISTS idx_pannelli_stati",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_stati_pannello ON pannelli(chiave, fascicolo_id, impronta, tentata, pannello)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_varianti_fascicoli ON pannelli(profilo, pannello, percorso, richieste,"
+    " fascicolo_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_attesa ON pannelli(pannello, richiesto_il, richieste, calcolato_il, servito_il,"
+    " fascicolo_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_voci ON pannelli(fascicolo_id, richiesto_il, chiave, pannello, percorso, profilo,"
+    " impronta, tentata)",
+)
 _PREPARATI: set[str] = set()
+_INDICIZZATI: set[str] = set()
 _LOCK = threading.Lock()
 
 
@@ -168,6 +183,61 @@ class ArchivioPannelli:
         with self._conn() as conn:
             return [str(r[0]) for r in conn.execute(
                 "SELECT DISTINCT profilo FROM pannelli WHERE fascicolo_id=?", (str(fascicolo_id),)).fetchall()]
+
+    # ---- copertura di tutti i fascicoli (una query per tutto lo studio) ------------------------------------
+
+    def prepara_indici(self) -> None:
+        """Gli indici di copertura dei controlli in sfondo (una volta per processo; mai in una richiesta web)."""
+        if self.percorso in _INDICIZZATI:
+            return
+        try:
+            with self._conn(timeout=30) as conn:
+                for istruzione in _INDICI:
+                    conn.execute(istruzione)
+        except sqlite3.Error:
+            return  # archivio occupato: i controlli funzionano anche senza, si riprova al giro successivo
+        _INDICIZZATI.add(self.percorso)
+
+    def generazioni(self) -> dict[str, int]:
+        with self._lettura() as conn:
+            if conn is None:
+                return {}
+            return {str(r[0]): int(r[1]) for r in conn.execute("SELECT fascicolo_id, generazione FROM generazioni")}
+
+    def profili_attivi(self, *, giorni: float) -> list[str]:
+        """I profili che hanno consultato almeno un pannello negli ultimi ``giorni``: i loro pannelli si preparano."""
+        soglia = (datetime.now(UTC) - timedelta(days=float(giorni))).isoformat(timespec="milliseconds")
+        with self._lettura() as conn:
+            if conn is None:
+                return []
+            return [str(r[0]) for r in conn.execute(
+                "SELECT profilo FROM profili WHERE aggiornato_il>=? ORDER BY aggiornato_il DESC", (soglia,))]
+
+    def varianti_richieste(self, profilo: str) -> list[tuple[str, str]]:
+        """(pannello, parametri) già chiesti dal profilo, i più richiesti per primi.
+
+        Una variante con parametri vale per tutti i fascicoli solo se è stata chiesta per almeno due fascicoli diversi:
+        parametri propri di un fascicolo (per esempio il cliente) non si applicano agli altri.
+        """
+        with self._lettura() as conn:
+            if conn is None:
+                return []
+            return [(str(r[0]), str(r[1] or "")) for r in conn.execute(
+                "SELECT pannello, CASE WHEN instr(percorso,'?')>0 THEN substr(percorso, instr(percorso,'?')+1) ELSE '' END q,"
+                " SUM(richieste) n FROM pannelli WHERE profilo=? AND richieste>0 GROUP BY 1,2"
+                " HAVING q='' OR COUNT(DISTINCT fascicolo_id)>1 ORDER BY n DESC", (profilo,))]
+
+    def stati(self) -> dict[str, tuple[str, str, str, str]]:
+        """chiave → (fascicolo, impronta salvata, impronta dell'ultimo tentativo, pannello) per tutte le voci.
+
+        Il pannello serve a confrontare l'impronta salvata con quella propria del pannello (con o senza il giorno
+        di consultazione, con la revisione del suo motore: ``pannelli_pronti_catalogo.impronta_del_pannello``)."""
+        with self._lettura() as conn:
+            if conn is None:
+                return {}
+            # Un'impronta si registra solo con il payload (``salva``): senza corpo resta vuota.
+            return {str(r[0]): (str(r[1]), str(r[2] or ""), str(r[3] or ""), str(r[4] or "")) for r in conn.execute(
+                "SELECT chiave, fascicolo_id, impronta, tentata, pannello FROM pannelli")}
 
     def conteggi(self) -> dict[str, int]:
         with self._conn() as conn:

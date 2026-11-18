@@ -9906,6 +9906,8 @@ function DetailPage({ id }:{id:string}) {
   const [ctuMediazioneRichieste, setCtuMediazioneRichieste] = useState(() => ['ctu', 'mediazione'].includes(currentDetailHashSectionId()))
   const quadro = useQuadroFascicolo(id)
   const revisioneLettura = useRef({ fascicoloId: '', impronta: '' })
+  const quadroCorrente = useRef(quadro.lettura)
+  quadroCorrente.current = quadro.lettura
   const presenzaCtuMediazione = usePresenzaCtuMediazione(!loading && data.fascicolo.id === id && quadro.lettura.fase !== 'caricamento' ? id : '')
   const requestedRefreshSections = useRef(new Set<FascicoloDetailSection>())
   const requestedDetailRefresh = useRef(false)
@@ -10251,7 +10253,13 @@ function DetailPage({ id }:{id:string}) {
     ))
     const impronta = lettura.ragionamento?.impronta || ''
     if (revisioneLettura.current.fascicoloId === id && revisioneLettura.current.impronta === impronta) return
+    const primaLettura = revisioneLettura.current.fascicoloId !== id
     revisioneLettura.current = { fascicoloId: id, impronta }
+    // Alla prima Lettura del fascicolo il Quadro appena ricevuto (o in arrivo) è già ricomposto dalla stessa
+    // Lettura salvata: si ricarica solo se dichiarava una Lettura in preparazione o superata.
+    const statoQuadro = quadroCorrente.current
+    if (primaLettura && (statoQuadro.fase === 'caricamento' || (statoQuadro.fase === 'pronto'
+      && !statoQuadro.dati.letturaInPreparazione && !statoQuadro.dati.letturaPrecedente && !statoQuadro.dati.quadroInAggiornamento))) return
     ricaricaQuadro()
   }, [id, ricaricaQuadro])
   const handleDetailPaymentSaved = useCallback((savedId: string, paymentSummary: FascicoloRow['paymentSummary'], message?: string) => {

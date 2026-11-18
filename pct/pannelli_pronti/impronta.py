@@ -104,16 +104,86 @@ def componenti(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versi
     return parti
 
 
+def _hash(parti: dict) -> str:
+    grezzo = json.dumps(parti, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(grezzo.encode("utf-8")).hexdigest()
+
+
 def impronta_componenti(parti: dict | None, *, dipende_dal_giorno: bool = True) -> str | None:
     if parti is None:
         return None
     if not dipende_dal_giorno:
         parti = {nome: valore for nome, valore in parti.items() if nome != "giorno"}
-    grezzo = json.dumps(parti, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(grezzo.encode("utf-8")).hexdigest()
+    return _hash(parti)
 
 
 def impronta(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versione: str,
              adesso: datetime | None = None, dipende_dal_giorno: bool = True) -> str | None:
     parti = componenti(fonti, fascicolo_id, generazione=generazione, versione=versione, adesso=adesso)
     return impronta_componenti(parti, dipende_dal_giorno=dipende_dal_giorno)
+
+
+def _revisioni_di_tutti(percorso: str) -> tuple[str, dict[str, int], tuple[tuple[str, int], ...]] | None:
+    """(firma, revisione per fascicolo, revisioni delle tabelle senza fascicolo) con una sola connessione."""
+    if not percorso or not os.path.exists(percorso):
+        return None
+    conn = _connessione_lettura(percorso)
+    try:
+        firma = revisioni.stato(conn)
+        if not firma:
+            return None
+        per_fascicolo = {str(fid): int(rev) for fid, rev in conn.execute(
+            f"SELECT fascicolo_id, revisione FROM {revisioni.TABELLA_FASCICOLI}").fetchall()}
+        tabelle = tuple((str(r[0]), int(r[1])) for r in conn.execute(
+            f"SELECT tabella, revisione FROM {revisioni.TABELLA_TABELLE} ORDER BY tabella").fetchall())
+    finally:
+        conn.close()
+    return firma, per_fascicolo, tabelle
+
+
+def componenti_di_tutti(fonti: FontiTenant, fascicoli: dict[str, int], *, versione: str,
+                        adesso: datetime | None = None) -> dict[str, dict]:
+    """I componenti dell'impronta di molti fascicoli (id → generazione) con una lettura per database.
+
+    Stesso valore di ``componenti`` per ciascun fascicolo (anche la parte PEC): le parti comuni (tabelle senza
+    fascicolo, file, giorno) si leggono una volta sola. Se i trigger mancano il risultato è vuoto, come
+    ``componenti`` restituisce None.
+    """
+    studio = _revisioni_di_tutti(fonti.studio_db)
+    registro = _revisioni_di_tutti(fonti.registro_db)
+    if studio is None or registro is None:
+        return {}
+    file = [list(stato_file(p)) for p in sorted(set(fonti.file))]
+    pec = _revisioni_di_tutti(fonti.pec_db) if fonti.pec_db else None
+    if fonti.pec_db and pec is None:
+        # Compatibilità con un archivio PEC che deve ancora ricevere i trigger (come ``componenti``).
+        file.append(list(stato_file(fonti.pec_db)))
+        file.sort()
+    comuni = {"versione": str(versione), "giorno": giorno_roma(adesso)}
+    risultato = {}
+    for fascicolo_id, generazione in fascicoli.items():
+        fid = str(fascicolo_id)
+        parti = {
+            **comuni,
+            "generazione": int(generazione),
+            "studio": [studio[0], studio[1].get(fid, 0), list(studio[2])],
+            "registro": [registro[0], registro[1].get(fid, 0), list(registro[2])],
+            "file": [list(voce) for voce in file],
+        }
+        if pec is not None:
+            parti["pec"] = [pec[0], pec[1].get(fid, 0), list(pec[2])]
+        risultato[fid] = parti
+    return risultato
+
+
+def impronte(fonti: FontiTenant, fascicoli: dict[str, int], *, versione: str,
+             adesso: datetime | None = None, dipende_dal_giorno: bool = True) -> dict[str, str]:
+    """Le impronte di molti fascicoli (id → generazione) con una lettura per database: stesso valore di ``impronta``.
+
+    Serve al controllo in sfondo di tutti i fascicoli dello studio. Se i trigger mancano il risultato è vuoto,
+    come ``impronta`` restituisce None.
+    """
+    return {
+        fid: _hash(parti if dipende_dal_giorno else {k: v for k, v in parti.items() if k != "giorno"})
+        for fid, parti in componenti_di_tutti(fonti, fascicoli, versione=versione, adesso=adesso).items()
+    }

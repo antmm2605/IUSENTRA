@@ -10254,7 +10254,7 @@ def build_react_fascicolo_detail_payload(
 
     initial_lettura = (
         _safe("initial_lettura", lambda: _initial_lettura_fascicolo(fid), None)
-        if (not include or include_all or "lettura" in include) and not calcolo_in_corso()
+        if (include_all or "lettura" in include) and not calcolo_in_corso()
         else None
     )
     return {

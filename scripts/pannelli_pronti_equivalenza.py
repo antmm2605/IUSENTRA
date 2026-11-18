@@ -16,8 +16,10 @@ import sys
 import time
 from pathlib import Path
 
-# Campi che dicono quando il payload è stato generato: cambiano a ogni calcolo e non sono dati del fascicolo.
-CAMPI_ORARIO = frozenset({"generatedAt", "generated_at", "generato_il", "generatoIl", "calcolato_il", "calcolatoIl"})
+# Campi che dicono quando e in quanto tempo il payload è stato generato: cambiano a ogni calcolo e non sono dati
+# del fascicolo (``tempiMs`` è la durata delle fasi lente del dettaglio, a fini diagnostici).
+CAMPI_ORARIO = frozenset({"generatedAt", "generated_at", "generato_il", "generatoIl", "calcolato_il", "calcolatoIl",
+                          "tempiMs"})
 
 
 def normalizza(valore):

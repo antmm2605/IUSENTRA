@@ -256,13 +256,13 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
     if pannello.ricomponi == "lettura_del_dettaglio":
         sezioni = request.args.get("include", "").lower().replace(";", " ").replace(",", " ").split()
         dati = json.loads(corpo)
-        lettura = None
-        if not sezioni or {"all", "lettura"}.intersection(sezioni):
-            # Il dettaglio e il Quadro mostrano lo stesso esito consultivo mentre
-            # le nuove fonti vengono elaborate.
-            from web.services.riscontri_processuali_runtime import aggiorna_stato_presidi, lettura_consultiva
+        from web.services.riscontri_processuali_runtime import aggiorna_stato_presidi, lettura_consultiva
 
-            lettura = lettura_consultiva(fascicolo_id)
+        # Il dettaglio e il Quadro mostrano lo stesso esito consultivo mentre le nuove fonti vengono elaborate.
+        lettura = lettura_consultiva(fascicolo_id) if not sezioni or {"all", "lettura"}.intersection(sezioni) else None
+        if {"all", "lettura"}.intersection(sezioni):
+            # La Lettura (fino a centinaia di KB) viaggia nel dettaglio solo se richiesta: alla prima apertura la
+            # sezione è chiusa e, quando l'avvocato la apre, il pannello la chiede dal pronto (/lettura).
             if lettura is not None:
                 aggiorna_stato_presidi(lettura, fascicolo_id)
             dati["initialLettura"] = lettura

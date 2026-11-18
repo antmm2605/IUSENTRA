@@ -252,3 +252,29 @@ def test_ricalcolo_si_ferma_se_l_avvocato_aspetta_un_pannello(studio):
     voci = [DaRicalcolare("F1", "quadro", "/q", "p1", "copertura")]
     esito = ricalcola(app, studio.archivio, voci, interrompi=lambda: chiamate.append(1) or True)
     assert esito == {"calcolati": 0, "non_salvati": 0, "errori": 0} and chiamate == [1]
+
+
+def test_dettaglio_alla_prima_apertura_senza_la_lettura_incorporata(monkeypatch):
+    """La Lettura viaggia nel dettaglio solo se chiesta: la sezione chiusa la chiede dal pronto quando si apre."""
+    import json as _json
+
+    from flask import Flask
+
+    from web.services import pannelli_pronti_runtime as runtime
+    from web.services import riscontri_processuali_runtime as riscontri
+    from web.services import valore_causa_archivio
+    from web.services.pannelli_pronti_catalogo import PANNELLI
+
+    dettaglio = next(p for p in PANNELLI if p.nome == "dettaglio")
+    lettura = {"intestazione": {"fonte_valore_causa": {}}, "cronologia": ["x" * 1000]}
+    monkeypatch.setattr(riscontri, "lettura_consultiva", lambda _fid: dict(lettura))
+    monkeypatch.setattr(riscontri, "aggiorna_stato_presidi", lambda *_a: None)
+    monkeypatch.setattr(valore_causa_archivio, "valore_iscrizione_corrente", lambda _fid, **_k: {})
+    corpo = _json.dumps({"fascicolo": {"id": "F1"}, "profile": []}).encode()
+    app = Flask("prova")
+    with app.test_request_context("/api/v1/ui/fascicoli/F1?confirm_revision=1"):
+        assert "initialLettura" not in _json.loads(runtime._ricomponi(dettaglio, corpo, "F1"))
+    with app.test_request_context("/api/v1/ui/fascicoli/F1?include=lettura"):
+        assert _json.loads(runtime._ricomponi(dettaglio, corpo, "F1"))["initialLettura"] == lettura
+    with app.test_request_context("/api/v1/ui/fascicoli/F1?include=all"):
+        assert _json.loads(runtime._ricomponi(dettaglio, corpo, "F1"))["initialLettura"] == lettura

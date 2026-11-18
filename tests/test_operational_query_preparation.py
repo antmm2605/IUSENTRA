@@ -1,13 +1,15 @@
 import json
 import sqlite3
 import sys
+from types import SimpleNamespace
 
 import pytest
 
 from pct.email_mailbox_repository import EmailMailboxRepository, MailboxNotInitialized
+from pct.storage import StudioDB
 from tests.test_calendar_query_preparation import store as store
 from tests.test_studio_readonly_request import studies as studies
-from tools.prepare_operational_query_indexes import main, prepare_core
+from tools.prepare_operational_query_indexes import _tenant_core, main, prepare_core
 
 
 def test_riepilogo_pec_usa_indice_coprente_senza_modificare_fonti(tmp_path):
@@ -85,6 +87,33 @@ def test_catalogo_posta_non_provisionato_non_diventa_casella_vuota(store, tmp_pa
     with pytest.raises(MailboxNotInitialized):
         prepare_core(store, tenant='controlled-study', destination=tmp_path / 'must-not-exist')
     assert not (tmp_path / 'must-not-exist').exists()
+
+
+def test_preparazione_usa_la_chiave_storica_concorde_senza_toccare_il_registro(tmp_path, monkeypatch):
+    root = tmp_path / 'storage-key'
+    manifest = root / 'config' / 'storage.json'
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text('{"slug":"controlled-study"}', encoding='utf-8')
+    database = StudioDB(str(root / 'studio.db'))
+    try:
+        for kind in ('ordinary', 'pec'):
+            mailbox = EmailMailboxRepository(database, 'controlled-study', kind)
+            mailbox.ensure_schema()
+            mailbox.initialize({}, source_of_truth='sqlite')
+        prepare_core(database, tenant='controlled-study', destination=tmp_path / 'backup')
+        owner = SimpleNamespace(slug='storage-key', storage_key='storage-key')
+        registry = {owner.slug: owner}
+        before = manifest.read_bytes()
+        resolved = _tenant_core(database, owner, registry, manifest)
+        assert resolved == 'controlled-study'
+        monkeypatch.setattr('tools.prepare_operational_query_indexes.verified_backup', lambda *a, **kw: pytest.fail('Backup non necessario'))
+        assert prepare_core(database, tenant=resolved, destination=tmp_path / 'backup') == []
+        assert registry == {'storage-key': owner} and manifest.read_bytes() == before
+        assert _tenant_core(database, owner, {**registry, resolved: object()}, manifest) == owner.slug
+        database.conn.execute("UPDATE calendar_query_owner SET tenant_key='other-study'")
+        assert _tenant_core(database, owner, registry, manifest) == owner.slug
+    finally:
+        database.chiudi()
 
 
 def test_provisione_casella_vuota_verificata_sui_due_backend(store, tmp_path):

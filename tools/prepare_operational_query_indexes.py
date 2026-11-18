@@ -20,6 +20,33 @@ def _has_table(database, name):
     return database.conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
 
 
+def _tenant_core(database, owner, registry, storage_config):
+    """Identifica gli indici di uno studio ripristinato con il nome della directory."""
+    if database.backend_kind != 'sqlite' or not _has_table(database, 'email_mailbox_bootstrap'):
+        return owner.slug
+    mailboxes = {
+        tuple(row) for row in database.conn.execute('SELECT tenant_key, mailbox_kind FROM email_mailbox_bootstrap')
+    }
+    if not mailboxes or any(slug == owner.slug for slug, _ in mailboxes):
+        return owner.slug
+    root = Path(database.db_path).resolve().parent
+    manifest = root / 'config' / 'storage.json'
+    if owner.slug != owner.storage_key or root.name != owner.storage_key or Path(storage_config) != manifest:
+        return owner.slug
+    try:
+        if manifest.resolve(strict=True) != manifest:
+            return owner.slug
+        storico = str(json.loads(manifest.read_text(encoding='utf-8')).get('slug') or '').strip()
+    except (OSError, ValueError, AttributeError):
+        return owner.slug
+    if not storico or registry.get(storico) is not None or mailboxes != {(storico, 'pec'), (storico, 'ordinary')}:
+        return owner.slug
+    if not _has_table(database, 'calendar_query_owner'):
+        return owner.slug
+    calendar = database.conn.execute('SELECT tenant_key FROM calendar_query_owner WHERE singleton=1').fetchone()
+    return storico if calendar is not None and calendar[0] == storico else owner.slug
+
+
 def prepare_core(database, *, tenant, destination, max_batches=1000):
     if not tenant or type(max_batches) is not int or not 1 <= max_batches <= 1000:
         raise ValueError('Studio e budget finito sono obbligatori.')
@@ -164,7 +191,8 @@ def main():
             print(json.dumps(dict(tenant=owner.slug, status='archivio_non_sql')), flush=True)
             continue
         try:
-            changed = prepare_core(backend, tenant=owner.slug, destination=args.backup_dir / owner.slug / 'core')
+            core_tenant = _tenant_core(backend, owner, registry, paths['STORAGE_CONFIG'])
+            changed = prepare_core(backend, tenant=core_tenant, destination=args.backup_dir / owner.slug / 'core')
         finally:
             backend.chiudi()
         path = paths.get('PEC_AUDIT_DB') or str(Path(paths['EMAIL_CASELLA_DB']).parent / 'pec_audit.sqlite')

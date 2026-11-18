@@ -27,6 +27,11 @@ def _fonte(label: str, urn: str, *, tipo: str = "normativa", verifica: str = _VE
 FONTI_TITOLI: dict[str, dict[str, Any]] = {
     # Procedura civile
     "normattiva_cpc_rito_lavoro": _fonte("c.p.c., artt. 409-420: rito del lavoro, ricorso e memoria difensiva", _CPC + "414"),
+    "normattiva_cpc_art416_memoria_difensiva": _fonte(
+        "c.p.c., art. 416: costituzione del convenuto mediante deposito di memoria difensiva",
+        _CPC + "416",
+        verifica="testo dell’art. 416 verificato il 17/11/2026 nella L. 533/1973 su Normattiva",
+    ),
     "normattiva_cpc_famiglia_473_bis": _fonte("c.p.c., artt. 473-bis ss.: procedimento in materia di persone, minorenni e famiglie", _CPC + "473bis.12"),
     "normattiva_cpc_impugnazioni": _fonte("c.p.c., artt. 342 e 360: atto di appello e ricorso per cassazione", _CPC + "342"),
     "normattiva_cpc_opposizione_decreto_ingiuntivo": _fonte("c.p.c., art. 645: opposizione a decreto ingiuntivo", _CPC + "645"),
@@ -58,6 +63,16 @@ FONTI_TITOLI: dict[str, dict[str, Any]] = {
     # Amministrativo
     "normattiva_cpc_citazione": _fonte("c.p.c., art. 163: contenuto dell'atto di citazione", _CPC + "163"),
     "normattiva_cpa_ottemperanza": _fonte("c.p.a., artt. 112 e 114: giudizio di ottemperanza e procedimento", "decreto.legislativo:2010-07-02;104~art114"),
+    "normattiva_cpa_art34_cessazione": _fonte(
+        "c.p.a., art. 34, comma 5: cessazione della materia del contendere per piena soddisfazione della pretesa",
+        "decreto.legislativo:2010-07-02;104~art34",
+        verifica="art. 34, comma 5, verificato il 17/11/2026 su Normattiva e sul portale della Giustizia amministrativa",
+    ),
+    "normattiva_cpa_art87_camera_consiglio": _fonte(
+        "c.p.a., art. 87, commi 2 e 3: riti camerali e audizione su richiesta dei difensori",
+        "decreto.legislativo:2010-07-02;104~art87",
+        verifica="art. 87 verificato il 17/11/2026 sul portale della Giustizia amministrativa",
+    ),
     "normattiva_cpa_ricorso": _fonte("c.p.a., artt. 40, 43, 55 e 100: ricorso, motivi aggiunti, domanda cautelare e appello", "decreto.legislativo:2010-07-02;104~art40"),
     "normattiva_dpr_1199_1971_ricorso_straordinario": _fonte("D.P.R. 1199/1971, art. 8: ricorso straordinario al Presidente della Repubblica", "decreto.del.presidente.della.repubblica:1971-11-24;1199~art8"),
     "normattiva_legge_241_1990_procedimento": _fonte("L. 241/1990, artt. 3, 10-bis e 22: motivazione, preavviso di rigetto e accesso ai documenti", "legge:1990-08-07;241~art22"),

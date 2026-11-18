@@ -4,13 +4,9 @@ Le prove sono lette dal MIME SQL una volta e conservate nei metadati della
 PEC; il motore PEC le versa nell'archivio delle letture per le viste del fascicolo.
 """
 from __future__ import annotations
-import hashlib
 import html
-import json
 import re
 from copy import copy
-from email import policy
-from email.parser import BytesParser
 from typing import Any
 
 
@@ -18,104 +14,158 @@ def canonical(value: Any) -> str:
     return html.unescape(str(value or '')).strip().strip('<> ').lower()
 
 
-def sent_message_id(deposito: Any) -> str:
-    match = re.search(r'Message-ID:\s*<?([^\s<>]+@[^\s<>]+)>?', str(getattr(deposito, 'messaggio', '') or ''), re.I)
-    return canonical(match.group(1)) if match else ''
+def associa_ricevute_salvate(fascicolo: Any, messaggi: list[dict[str, Any]]) -> dict[str, tuple[str, str]]:
+    """Riusa gli identificativi del presidio PEC per l'archivio del fascicolo."""
+    from pct.ragionamento.testo import rg_normale
 
-
-def prepara_correlazioni(fascicolo: Any, messaggi: list[dict], repository: Any) -> int:
-    """Solo il job di lettura chiama questa funzione; le GET non aprono MIME."""
-    from pct.pec_control_tower import _parse_daticert
-    locali = {sent_message_id(d): d for d in fascicolo.depositi_pct if sent_message_id(d) and 'PROVA' not in str(d.stato)}
-    edges: dict[str, set[str]] = {}
-    modificati = 0
-    # Le ricevute native identificano l'invio; i record importati possono
-    # essere alias della stessa busta e non devono creare ambiguità fittizie.
+    depositi = {d.id: d for d in fascicolo.depositi_pct}
+    rg = rg_normale(f"{fascicolo.numero_rg}/{fascicolo.anno_rg}")
+    if not rg or not depositi:
+        return {}
+    associati = {}
+    ancore: dict[str, tuple[str, str, str, str]] = {}
     for m in messaggi:
-        ref = m.get('archive_receipt_reference') or {}
-        dep = locali.get(canonical(ref.get('original_message_id')))
-        if dep and ref.get('deposito_id') == dep.id:
-            for mid in (ref.get('original_message_id'), ref.get('provider_message_id')):
-                if mid: edges.setdefault(canonical(mid), set()).add(dep.id)
-    by_busta = {str(d.id_deposito_esterno): d for d in fascicolo.depositi_pct if d.id_deposito_esterno and str(d.stato) == "ACCETTATO_CANCELLERIA"}
-    rg = f"{fascicolo.numero_rg}/{fascicolo.anno_rg}"
-    for m in messaggi:
-        life = m.get('deposit_lifecycle') or {}
-        corr = life.get('correlation') or {}
-        dep = by_busta.get(str(corr.get('idbusta') or ''))
-        if dep and str(corr.get('rg') or '') == rg and (life.get('receipt') or {}).get('outcome_code') is not None and m.get('collegata'):
-            mid = canonical(corr.get('source_message_id'))
-            if mid and mid not in edges: edges[mid] = {dep.id}
-    for m in messaggi:
-        ref = dict(m.get('archive_receipt_reference') or {})
-        receipt = m.get('pec_receipt') or {}
-        original = canonical(receipt.get('original_message_id'))
-        if not ref and (original in locali or (m.get("deposit_lifecycle") or {}).get("current_stage", {}).get("id") in {"accettazione_pec", "consegna_pec"}):
-            raw, row = repository.original_mime(m['id'])
-            if hashlib.sha256(raw).hexdigest() != row['mime_sha256']:
-                continue
-            for part in BytesParser(policy=policy.default).parsebytes(raw).walk():
-                if (part.get_filename() or '').lower() != 'daticert.xml':
-                    continue
-                data = part.get_payload(decode=True) or b''
-                if len(data) > 500000 or b'<!ENTITY' in data.upper() or b'<!DOCTYPE' in data.upper():
-                    continue
-                cert = _parse_daticert(data)
-                provider = canonical(cert.get('identificativo'))
-                original_xml = canonical(cert.get('msgid'))
-                recipient = str(cert.get('consegna') or cert.get('destinatari') or cert.get('destinatario') or '').strip().lower()
-                candidates = edges.get(provider, set())
-                dep = locali.get(original_xml) or (next((d for d in by_busta.values() if d.id == next(iter(candidates))), None) if len(candidates) == 1 else None)
-                if not dep or not original_xml or not provider or str(dep.pec_destinatario).lower() not in recipient:
-                    continue
-                ref = {'original_message_id': original_xml, 'provider_message_id': provider, 'deposito_id': dep.id, 'recipient': recipient, 'xml_sha256': hashlib.sha256(data).hexdigest(), 'mime_sha256': row['mime_sha256']}
-                break
-            if ref:
-                m['archive_receipt_reference'] = ref
-                with repository.connect() as conn:
-                    row = conn.execute('SELECT metadata_json FROM pec_messages WHERE tenant_id=? AND id=?', (repository.tenant_id, m['id'])).fetchone()
-                    meta = json.loads(row['metadata_json'] or '{}'); meta['archive_receipt_reference'] = ref
-                    conn.execute('UPDATE pec_messages SET metadata_json=? WHERE tenant_id=? AND id=?', (json.dumps(meta, ensure_ascii=False), repository.tenant_id, m['id']))
-                    repository.append_audit(conn, action='pec.receipt.identifiers_correlated', resource_type='pec_message', resource_id=m['id'], payload=ref, actor='archivio-letture')
-                modificati += 1
-        if ref:
-            for mid in (ref.get('original_message_id'), ref.get('provider_message_id')):
-                if mid:
-                    edges.setdefault(canonical(mid), set()).add(str(ref.get('deposito_id') or ''))
-    for m in messaggi:
-        corr = (m.get('deposit_lifecycle') or {}).get('correlation') or {}
-        original = canonical((m.get('pec_receipt') or {}).get('original_message_id'))
-        ids = edges.get(canonical(corr.get('source_message_id')), set()) | edges.get(original, set())
-        if original in locali:
-            ids.add(locali[original].id)
-        ref = m.get('archive_receipt_reference') or {}
-        if ref.get('deposito_id'): ids.add(ref['deposito_id'])
-        if len(ids) != 1:
+        if not m.get("collegata") or m.get("event_type") != "pct_deposito":
             continue
-        depid = next(iter(ids)); m['archive_deposito_id'] = depid
-        with repository.connect() as conn:
-            row = conn.execute('SELECT linked_fascicolo_id FROM pec_messages WHERE tenant_id=? AND id=?',(repository.tenant_id,m['id'])).fetchone()
-            if row and not row['linked_fascicolo_id']:
-                conn.execute('UPDATE pec_messages SET linked_fascicolo_id=?, linked_fascicolo_score=1 WHERE tenant_id=? AND id=?', (fascicolo.id, repository.tenant_id, m['id']))
-                repository.append_audit(conn, action='pec.receipt.linked_exact_message_id', resource_type='pec_message', resource_id=m['id'], payload={'fascicolo_id':fascicolo.id,'deposito_id':depid},actor='archivio-letture')
-                modificati += 1
-            if row and row['linked_fascicolo_id'] not in ('', None, fascicolo.id):
-                m.pop('archive_deposito_id',None)
-            else:
-                m['collegata']=True
-                latest = repository.latest_link(conn, m['id']) or {}
-                if latest.get('fascicolo_id') != fascicolo.id or latest.get('status') not in {'manuale', 'ricevuta_identificativi_verificati'}:
-                    from pct.pec_pipeline import canonical_json, iso_now
-                    import uuid
-                    parsed = repository.latest_parsed_row(conn, m['id'])
-                    if parsed:
-                        conn.execute(
-                            'INSERT INTO pec_fascicolo_links (id, message_id, parsed_version_id, fascicolo_id, score, status, seeds_json, candidates_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                            (uuid.uuid4().hex, m['id'], parsed['id'], fascicolo.id, 1.0, 'ricevuta_identificativi_verificati', canonical_json({'deposito_id': depid, 'source_message_id': corr.get('source_message_id'), 'reference': ref}), canonical_json([{'id': fascicolo.id, 'score': 1.0, 'reasons': ['Identificativi certificati della ricevuta coincidenti con il deposito']}]), iso_now()),
-                        )
-                        repository.append_audit(conn, action='pec.receipt.link_recorded', resource_type='pec_message', resource_id=m['id'], payload={'fascicolo_id': fascicolo.id, 'deposito_id': depid}, actor='archivio-letture')
-                        modificati += 1
-    return modificati
+        lifecycle = m.get("deposit_lifecycle") or {}
+        fase = (lifecycle.get("current_stage") or {}).get("id")
+        corr = lifecycle.get("correlation") or {}
+        prova = lifecycle.get("receipt") or {}
+        ref = m.get("archive_receipt_reference") or {}
+        deposito = depositi.get(ref.get("deposito_id"))
+        if (fase not in {"accettazione_deposito", "rifiuto_deposito"} or deposito is None
+                or ref.get("fascicolo_id") != fascicolo.id or ref.get("strategy") != "idbusta_finale"
+                or prova.get("outcome_code") is None or rg_normale(prova.get("numero_ruolo_certificato") or "") != rg):
+            continue
+        busta = str(corr.get("idbusta") or "")
+        fonte = canonical(corr.get("source_message_id"))
+        if busta and busta == deposito.id_deposito_esterno == ref.get("idbusta") and fonte and m.get("mime_sha256"):
+            associati[m["id"]] = (deposito.id, busta)
+            ancore[m["id"]] = (deposito.id, busta, fonte, m["mime_sha256"])
+
+    for m in messaggi:
+        if not m.get("collegata") or m.get("event_type") != "pct_deposito" or m["id"] in associati:
+            continue
+        lifecycle = m.get("deposit_lifecycle") or {}
+        fase = (lifecycle.get("current_stage") or {}).get("id")
+        corr = lifecycle.get("correlation") or {}
+        prova = lifecycle.get("receipt") or {}
+        ref = m.get("archive_receipt_reference") or {}
+        impronta = m.get("mime_sha256")
+        if not impronta:
+            continue
+        if (fase in {"accettazione_pec", "consegna_pec"}
+                and ref.get("strategy") == "identificativo_xml_esito_ministeriale"
+                and ref.get("fascicolo_id") == fascicolo.id and ref.get("mime_sha256") == impronta):
+            ancora = ancore.get(ref.get("anchor_message_id"))
+            if (ancora and ancora[0] == ref.get("deposito_id") and ancora[2] == canonical(ref.get("provider_message_id"))
+                    and ancora[3] == ref.get("anchor_mime_sha256")):
+                associati[m["id"]] = ancora[:2]
+        if (fase == "esito_controlli_deposito" and prova.get("outcome_code") is not None
+                and rg_normale(prova.get("numero_ruolo_certificato") or "") == rg):
+            candidati = {(dep, busta) for dep, busta, fonte, _impronta in ancore.values()
+                         if busta == corr.get("idbusta") and fonte == canonical(corr.get("source_message_id"))}
+            if len(candidati) == 1:
+                associati[m["id"]] = candidati.pop()
+    return associati
+
+
+def registra_ricevute(fascicolo: Any, registro: Any, tenant: str, messaggi: list[dict[str, Any]]) -> int:
+    """Consegna al registro soltanto i riscontri nuovi o modificati."""
+    from pct.archivio_letture.motore_pec import VERSIONE_MOTORE_PEC, fatto_esito_deposito
+
+    associazioni = associa_ricevute_salvate(fascicolo, messaggi)
+    if not associazioni:
+        return 0
+    oggetti = {o.oggetto_id: o for o in registro.oggetti(tenant, fascicolo.id)
+               if o.tipo == "pec" and o.presente}
+    fonti = [m for m in messaggi if m["id"] in oggetti and oggetti[m["id"]].impronta == m.get("mime_sha256")]
+    reinvio = _reinvio_autocertificazione(fonti, associazioni)
+    esistenti = {f.oggetto_id: f for f in registro.fatti(tenant, fascicolo.id, campo="esito_deposito", tipo="pec", motore="pec")}
+    scritte = 0
+    for messaggio in fonti:
+        ident = messaggio["id"]
+        if ident not in associazioni:
+            continue
+        oggetto = oggetti[ident]
+        fatto = fatto_esito_deposito(messaggio, *associazioni[ident])
+        if ident in reinvio:
+            fatto.prove.append(reinvio[ident])
+        prima = esistenti.get(ident)
+        if prima and prima.sha256 == oggetto.impronta and prima.valore == fatto.valore and prima.prove == fatto.prove:
+            continue
+        scrittura = registro.registra_fatti(tenant, fascicolo.id, oggetto, "pec", [fatto],
+                                             versione=VERSIONE_MOTORE_PEC, campo="esito_deposito")
+        scritte += scrittura["nuovi"] + scrittura["aggiornati"]
+    return scritte
+
+
+def _reinvio_autocertificazione(
+    fonti: list[dict[str, Any]], associazioni: dict[str, tuple[str, str]],
+) -> dict[str, dict[str, Any]]:
+    """Riconosce la correzione documentata della richiesta di esenzione del giorno."""
+    from pct.formatting import parse_datetime_rome
+
+    richieste = [m for m in fonti if m.get("collegata") and any(
+        e.get("fonte_evento") == "Comunicazione.xml" and e.get("richiesta_autocertificazione_cu")
+        for e in m.get("eventi", [])
+    )]
+    if len(richieste) != 1:
+        return {}
+    richiesta, = richieste
+    comunicata = parse_datetime_rome(richiesta.get("received_at"))
+    if not comunicata:
+        return {}
+    rifiuti, accettazioni, consegne = [], [], []
+    for m in fonti:
+        if m["id"] not in associazioni:
+            continue
+        ciclo = m.get("deposit_lifecycle") or {}
+        fase = (ciclo.get("current_stage") or {}).get("id")
+        ricevuta = ciclo.get("receipt") or {}
+        ref = m.get("archive_receipt_reference") or {}
+        if fase == "consegna_pec" and ref.get("strategy") == "identificativo_xml_esito_ministeriale":
+            consegne.append(m)
+        nome = re.sub(r"[^a-z]+", " ", str(ricevuta.get("document_name") or "").casefold()).strip()
+        if not re.fullmatch(r"autocertificazione della situazione reddituale(?: corretta)?", nome):
+            continue
+        esito = ricevuta.get("esito_ministeriale") or {}
+        data = parse_datetime_rome(ricevuta.get("occurred_at"))
+        if not data or data <= comunicata:
+            continue
+        motivo = str(ricevuta.get("description") or "").casefold()
+        if fase == "rifiuto_deposito" and esito.get("codice_esito") == -1 and "dichiarazione dei redditi" in motivo:
+            if data.date() == comunicata.date():
+                rifiuti.append((m, data))
+        if fase == "accettazione_deposito" and esito.get("codice_esito") == 2:
+            accettazioni.append((m, data))
+    if len(rifiuti) != 1:
+        return {}
+    ((rifiuto, data_rifiuto),) = rifiuti
+    coppie = []
+    for accettazione, data_esito in accettazioni:
+        busta = associazioni[accettazione["id"]]
+        if busta == associazioni[rifiuto["id"]]:
+            continue
+        for consegna in consegne:
+            ref = consegna["archive_receipt_reference"]
+            if associazioni[consegna["id"]] != busta or ref.get("anchor_message_id") != accettazione["id"]:
+                continue
+            data_consegna = parse_datetime_rome(ref.get("receipt_at"))
+            if data_consegna and data_consegna.date() == comunicata.date() and data_rifiuto < data_consegna <= data_esito:
+                coppie.append((accettazione, consegna))
+    if len(coppie) != 1:
+        return {}
+    ((accettazione, consegna),) = coppie
+    deposito_id, busta = associazioni[rifiuto["id"]]
+    nuovo_deposito_id, nuova_busta = associazioni[accettazione["id"]]
+    return {rifiuto["id"]: {
+        "codice": "reinvio_autocertificazione_accettato", "deposito_id": deposito_id,
+        "idbusta": busta, "nuovo_deposito_id": nuovo_deposito_id, "nuova_busta": nuova_busta,
+        "fonti": {m["id"]: m["mime_sha256"] for m in (richiesta, accettazione, consegna)},
+        "pec_accettazione": accettazione["id"], "pec_richiesta": richiesta["id"], "pec_consegna": consegna["id"],
+        "pec_rifiuto": rifiuto["id"],
+    }}
 
 
 def depositi_da_archivio(fascicolo: Any) -> list[Any]:
@@ -124,12 +174,26 @@ def depositi_da_archivio(fascicolo: Any) -> list[Any]:
     from pct.formatting import format_datetime_it
     originali=list(getattr(fascicolo,'depositi_pct',[]) or [])
     copie={d.id:copy(d) for d in originali}
-    fatti=registro_corrente().fatti(tenant_corrente(),fascicolo.id,categoria='evento')
+    if not originali:
+        return []
+    registro, tenant = registro_corrente(), tenant_corrente()
+    fatti = registro.fatti(tenant, fascicolo.id, campo="esito_deposito", tipo="pec", motore="pec",
+                           verifiche=("verificata", "corretta"))
+    if not fatti:
+        return originali
+    correnti = {o.oggetto_id: o.impronta for o in registro.oggetti(tenant, fascicolo.id)
+               if o.tipo == "pec" and o.presente}
     refs=[]
     for fatto in fatti:
-        if fatto.campo!='esito_deposito' or fatto.verifica not in {'verificata','corretta'}:continue
+        if not fatto.sha256 or correnti.get(fatto.oggetto_id) != fatto.sha256:
+            continue
         for prova in fatto.prove:
             if prova.get('codice')=='correlazione_ricevuta':refs.append(prova)
+            if prova.get("codice") == "reinvio_autocertificazione_accettato":
+                deposito = copie.get(prova.get("deposito_id"))
+                fonti = prova.get("fonti") or {}
+                if deposito and len(fonti) == 3 and all(correnti.get(k) == v for k, v in fonti.items()):
+                    deposito.reinvio_accettato = prova
     aliases={}
     for ref in refs:
         depid=ref.get('deposito_id'); busta=str(ref.get('idbusta') or '')
@@ -143,11 +207,16 @@ def depositi_da_archivio(fascicolo: Any) -> list[Any]:
             copie.pop(d.id,None)
     states={'accettazione_pec':'ACCETTATO_PEC','consegna_pec':'CONSEGNATO','esito_controlli_deposito':'WARN_CONTROLLI','accettazione_deposito':'ACCETTATO_CANCELLERIA','rifiuto_deposito':'RIFIUTATO_CANCELLERIA'}
     receipt_fields={'accettazione_pec':'ricevuta_accettazione','consegna_pec':'ricevuta_consegna','esito_controlli_deposito':'ricevuta_controlli_automatici','accettazione_deposito':'ricevuta_cancelleria','rifiuto_deposito':'ricevuta_cancelleria'}
+    fasi = {'accettazione_pec': 'accettazione', 'consegna_pec': 'consegna', 'esito_controlli_deposito': 'controlli',
+            'accettazione_deposito': 'cancelleria', 'rifiuto_deposito': 'cancelleria'}
     for ref in sorted(refs, key=lambda x: data_ricevuta(x.get('occurred_at'))):
         dep=copie.get(ref.get('deposito_id'))
         if not dep:continue
         stage=ref.get('stage')
         if stage in states:
+            fonte = str(ref.get('message_id') or '').strip()
+            if fonte:
+                dep.fonti_ricevute = {**getattr(dep, 'fonti_ricevute', {}), fasi[stage]: fonte}
             stato = states[stage]
             code = ref.get('outcome_code')
             if stage == 'esito_controlli_deposito':
@@ -159,7 +228,6 @@ def depositi_da_archivio(fascicolo: Any) -> list[Any]:
                 dep.stato = stato
             if stage == 'consegna_pec':
                 data = data_ricevuta(ref.get('occurred_at'))
-                fonte = str(ref.get('message_id') or '').strip()
                 if data and fonte:
                     precedenti = getattr(dep, 'consegne_archivio', ())
                     dep.consegne_archivio = (*precedenti, (data, fonte))
@@ -167,7 +235,8 @@ def depositi_da_archivio(fascicolo: Any) -> list[Any]:
                 dep.data_accettazione = data_ricevuta(ref.get('occurred_at'))
             field=receipt_fields[stage]
             if not getattr(dep,field,''):
-                setattr(dep,field,'\n'.join(['Esito: '+str(ref.get('label') or stage),'Data esito: '+format_datetime_it(ref.get('occurred_at')), 'Fonte PEC: '+str(ref.get('message_id') or ''),'Message-ID deposito: '+str(ref.get('source_message_id') or '')]))
+                quando = data_ricevuta(ref.get('occurred_at'))
+                setattr(dep,field,'\n'.join(['Esito: '+str(ref.get('label') or stage),'Data esito: '+format_datetime_it(quando), 'Fonte PEC: '+str(ref.get('message_id') or ''),'Message-ID deposito: '+str(ref.get('source_message_id') or '')]))
         if ref.get('idbusta'):dep.id_deposito_esterno=str(ref['idbusta'])
     return [copie[d.id] for d in originali if d.id in copie]
 

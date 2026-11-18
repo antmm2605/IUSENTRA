@@ -31,8 +31,7 @@ def riferimento_domanda(domanda: str) -> dict | None:
     if ref is None:return None
     if ref.urn:
         found=next((c for c in CODICI if c.urn==ref.urn),None)
-        keys={"cc":"codice_civile","cpc":"codice_procedura_civile","cpp":"codice_procedura_penale","cp":"codice_penale","cost":"costituzione"}
-        key=keys.get(found.chiave) if found else None
+        key=found.chiave_biblioteca if found else None
     else:
         tipo,anno,numero=ref.urn_parti
         prefix={"stato:legge":"legge","decreto.legislativo":"dlgs","decreto.legge":"dl","presidente.repubblica:decreto":"dpr"}.get(tipo)

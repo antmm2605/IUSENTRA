@@ -1,11 +1,9 @@
 """La cache della Lettura del fascicolo, invalidabile per fascicolo.
 
-La lettura completa attraversa documenti, PEC, agenda, presìdi e archivio. Sul
-server ci sono più worker: una cache solo in memoria rende veloce un worker ma
-lascia gli altri a ricalcolare lo stesso payload. Questa cache conserva i byte
-JSON già serializzati anche su disco, dentro l'istanza dell'applicazione, così i
-fascicoli già letti si aprono rapidamente e documenti/PEC invalidano comunque
-la voce del fascicolo.
+La lettura completa attraversa documenti, PEC, agenda, presìdi e archivio. I
+worker condividono il risultato nel registro SQL. I file locali restano
+disponibili come riserva quando il registro non risponde e per leggere
+risultati salvati dalle versioni precedenti.
 """
 
 from __future__ import annotations
@@ -74,17 +72,18 @@ class LetturaPayloadCache:
         except Exception:
             return None
 
-    def _db_set(self, key: tuple, payload: bytes) -> None:
+    def _db_set(self, key: tuple, payload: bytes) -> bool:
         parts = self._db_parts(key)
         if parts is None or not has_app_context():
-            return
+            return False
         try:
             from web.services.registro_letture_runtime import registro_corrente
 
             expires = datetime.fromtimestamp(time.time() + self.ttl_seconds, tz=timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
             registro_corrente().payload_cache_set(*parts, payload.decode("utf-8"), expires_at=expires)
+            return True
         except Exception:
-            return
+            return False
 
     def _db_delete_key(self, key: tuple) -> None:
         parts = self._db_parts(key)
@@ -143,9 +142,9 @@ class LetturaPayloadCache:
 
     def set(self, key: tuple, payload: bytes) -> None:
         self._memory.set(key, payload)
-        if isinstance(payload, (bytes, bytearray)):
-            self._db_set(key, bytes(payload))
         if not self.enabled or not isinstance(payload, (bytes, bytearray)):
+            return
+        if self._db_set(key, bytes(payload)):
             return
         paths = self._paths(key)
         if paths is None:

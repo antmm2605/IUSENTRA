@@ -20,6 +20,7 @@ PER_PAGINA = 25
 PER_PAGINA_MASSIMO = 100
 ULTIME_IN_PANORAMICA = 5
 INTERVALLO_MINIMO_AGGIORNAMENTO = timedelta(minutes=5)
+FINESTRA_CONTROLLO_SERIE = timedelta(hours=2)
 TEMPO_MASSIMO_AGGIORNAMENTO = 45  # secondi: il pulsante non deve tenere occupato il processo web
 _DATA_ISO = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _AGGIORNAMENTO_IN_CORSO = threading.Lock()
@@ -109,21 +110,28 @@ def voce(atto: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def stato_delle_serie(archivio: ArchivioGazzetta | None) -> list[dict[str, Any]]:
+def stato_delle_serie(
+    archivio: ArchivioGazzetta | None, *, adesso: datetime | None = None,
+) -> list[dict[str, Any]]:
     stati = archivio.stato_serie() if archivio is not None else {}
+    adesso = adesso or datetime.now(timezone.utc)
     righe: list[dict[str, Any]] = []
     for serie in SERIE:
         stato = stati.get(serie.codice) or {}
         ultimo = stato.get("ultimo_fascicolo") or {}
+        successo = _istante(stato.get("ultimo_successo"))
+        recente = bool(ultimo and successo and adesso - FINESTRA_CONTROLLO_SERIE <= successo <= adesso)
         righe.append({
             "id": serie.codice,
             "label": serie.etichetta,
             "url": serie.url_elenco,
             "checked": bool(stato.get("ultimo_tentativo")),
-            "ok": bool(stato.get("ultimo_esito_ok")),
+            "ok": recente,
             "lastAttemptAt": str(stato.get("ultimo_tentativo") or ""),
             "lastSuccessAt": str(stato.get("ultimo_successo") or ""),
-            "message": str(stato.get("messaggio") or ""),
+            "message": str(stato.get("messaggio") or (
+                "L’ultima verifica completa risale a più di due ore fa." if successo and not recente else ""
+            )),
             "count": int(stato.get("atti") or 0),
             "latestIssue": {
                 "number": str(ultimo.get("numero") or ""),

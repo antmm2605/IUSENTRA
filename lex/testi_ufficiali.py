@@ -49,6 +49,7 @@ class Codice:
     etichetta: str
     urn: str
     sinonimi: tuple[str, ...]
+    chiave_biblioteca: str = ""
 
 
 # URN NIR dei codici (Normattiva). L'ordine conta: le sigle più lunghe prima.
@@ -58,15 +59,17 @@ CODICI: tuple[Codice, ...] = (
     Codice("disp_att_cpp", "norme di attuazione del c.p.p.", "urn:nir:stato:decreto.legislativo:1989-07-28;271",
            ("disp. att. c.p.p.", "disp att cpp", "norme di attuazione del codice di procedura penale")),
     Codice("cpc", "codice di procedura civile", "urn:nir:stato:regio.decreto:1940-10-28;1443",
-           ("c.p.c.", "cpc", "codice di procedura civile", "codice procedura civile", "procedura civile", "cod. proc. civ.")),
+           ("c.p.c.", "cpc", "codice di procedura civile", "codice procedura civile", "procedura civile", "cod. proc. civ."),
+           "codice_procedura_civile"),
     Codice("cpp", "codice di procedura penale", "urn:nir:presidente.repubblica:decreto:1988-09-22;447",
-           ("c.p.p.", "cpp", "codice di procedura penale", "codice procedura penale", "procedura penale", "cod. proc. pen.")),
+           ("c.p.p.", "cpp", "codice di procedura penale", "codice procedura penale", "procedura penale", "cod. proc. pen."),
+           "codice_procedura_penale"),
     Codice("cc", "codice civile", "urn:nir:stato:regio.decreto:1942-03-16;262",
-           ("c.c.", "cc", "codice civile", "cod. civ.")),
+           ("c.c.", "cc", "codice civile", "cod. civ."), "codice_civile"),
     Codice("cp", "codice penale", "urn:nir:stato:regio.decreto:1930-10-19;1398",
-           ("c.p.", "cp", "codice penale", "cod. pen.")),
+           ("c.p.", "cp", "codice penale", "cod. pen."), "codice_penale"),
     Codice("cost", "Costituzione", "urn:nir:stato:costituzione:1947-12-27",
-           ("cost.", "costituzione", "della costituzione")),
+           ("cost.", "costituzione", "della costituzione"), "costituzione"),
 )
 
 _URN_CODICE_CIVILE = next(c.urn for c in CODICI if c.chiave == "cc")

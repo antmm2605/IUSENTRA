@@ -23,6 +23,7 @@ TABELLA_TABELLE = "pannelli_revisioni_tabelle"
 TABELLA_SCHEMA = "pannelli_revisioni_schema"
 PREFISSO_TRIGGER = "pannelli_rev_"
 COLONNE_FASCICOLO = ("fascicolo_id", "id_fascicolo")
+_COLONNE_TECNICHE_PEC = frozenset({"original_mime", "tentativi", "updated_at"})
 
 # Tabelle derivate o di servizio: proiezioni ricalcolabili, code di consegna, indici di ricerca, cache. Una loro
 # scrittura non cambia i dati che un pannello mostra (le loro fonti hanno già i propri trigger).
@@ -45,6 +46,10 @@ def _nome_sicuro(valore: str) -> str:
     return str(valore)
 
 
+def _colonne(conn, tabella: str) -> set[str]:
+    return {str(r[1]) for r in conn.execute(f"PRAGMA table_info('{_nome_sicuro(tabella)}')")}
+
+
 def esclusa(tabella: str) -> bool:
     nome = str(tabella or "").lower()
     return nome in _ESCLUSE_ESATTE or nome.startswith(_ESCLUSE_PREFISSI)
@@ -54,7 +59,7 @@ def colonna_fascicolo(conn, tabella: str) -> str:
     """La colonna che identifica il fascicolo nella tabella, o stringa vuota."""
     if tabella == "fascicoli":
         return "id"
-    colonne = {str(r[1]) for r in conn.execute(f"PRAGMA table_info('{_nome_sicuro(tabella)}')").fetchall()}
+    colonne = _colonne(conn, tabella)
     return next((c for c in COLONNE_FASCICOLO if c in colonne), "")
 
 
@@ -120,10 +125,57 @@ def _piano_agenda_storica() -> dict[str, str]:
     }
 
 
-def piano_trigger(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str, str]:
+def _fascicolo_della_pec(conn, tabella: str, colonne: set[str], riga: str) -> str:
+    """Identifica il fascicolo solo da un collegamento registrato nel presidio."""
+    if tabella == "pec_messages" and "linked_fascicolo_id" in colonne:
+        valore = f"{riga}.linked_fascicolo_id"
+    elif tabella in {"pec_fascicolo_documenti", "pec_fascicolo_documenti_messaggi"} and "fascicolo_id" in colonne:
+        valore = f"{riga}.fascicolo_id"
+    elif {"id", "linked_fascicolo_id"} <= _colonne(conn, "pec_messages"):
+        if "message_id" in colonne:
+            messaggio = f"{riga}.message_id"
+        elif "legal_event_id" in colonne and {"id", "message_id"} <= _colonne(conn, "pec_legal_events"):
+            messaggio = f"(SELECT message_id FROM pec_legal_events WHERE id={riga}.legal_event_id)"
+        else:
+            return ""
+        valore = f"(SELECT linked_fascicolo_id FROM pec_messages WHERE id={messaggio})"
+        if tabella == "pec_fascicolo_links" and "fascicolo_id" in colonne:
+            # Una proposta per un altro fascicolo può cambiare le corrispondenze di studio.
+            valore = f"(CASE WHEN {valore}={riga}.fascicolo_id THEN {valore} END)"
+    else:
+        return ""
+    return f"NULLIF(TRIM({valore}), '')"
+
+
+def _piano_pec(conn, tabella: str) -> dict[str, str]:
+    colonne = _colonne(conn, tabella)
+    monitorate = sorted(_nome_sicuro(c) for c in colonne - _COLONNE_TECNICHE_PEC)
+    variazione = " OR ".join(f"NEW.{campo} IS NOT OLD.{campo}" for campo in monitorate)
+    nuovo = _fascicolo_della_pec(conn, tabella, colonne, "NEW")
+    vecchio = _fascicolo_della_pec(conn, tabella, colonne, "OLD")
+    if nuovo:
+        piano = _piano_per_fascicolo(tabella, nuovo, vecchio, variazione=variazione)
+        globale = {
+            "ti": f"{nuovo} IS NULL",
+            "tu": f"({nuovo} IS NULL OR {vecchio} IS NULL) AND ({variazione})",
+            "td": f"{vecchio} IS NULL",
+        }
+    else:
+        piano = {}
+        globale = {"tu": variazione}
+    for sigla, azione in (("ti", "INSERT"), ("tu", "UPDATE"), ("td", "DELETE")):
+        nome = f"{PREFISSO_TRIGGER}{tabella}_{sigla}"
+        condizione = f" WHEN {globale[sigla]}" if globale.get(sigla) else ""
+        piano[nome] = f"CREATE TRIGGER {nome} AFTER {azione} ON {tabella}{condizione} BEGIN {_incrementa_tabella(tabella)} END"
+    return piano
+
+
+def piano_trigger(
+    conn, tabelle_senza_fascicolo: Iterable[str] = (), *, sole_tabelle_condivise: bool = False,
+) -> dict[str, str]:
     """Nome → istruzione CREATE TRIGGER per tutte le fonti del database."""
     piano: dict[str, str] = {}
-    for tabella, colonna in tabelle_del_fascicolo(conn):
+    for tabella, colonna in (() if sole_tabelle_condivise else tabelle_del_fascicolo(conn)):
         t, c = _nome_sicuro(tabella), _nome_sicuro(colonna)
         nuovo, vecchio = f"NEW.{c}", f"OLD.{c}"
         if t == "practice_audit_events":
@@ -150,7 +202,10 @@ def piano_trigger(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str
         piano.update(_piano_per_fascicolo(t, nuovo, vecchio, variazione=variazione))
     esistenti = {str(r[0]) for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
     for tabella in sorted(set(tabelle_senza_fascicolo)):
-        if tabella not in esistenti or colonna_fascicolo(conn, tabella):
+        if tabella not in esistenti or (not sole_tabelle_condivise and colonna_fascicolo(conn, tabella)):
+            continue
+        if sole_tabelle_condivise and tabella.startswith("pec_"):
+            piano.update(_piano_pec(conn, tabella))
             continue
         if tabella == "appuntamenti" and any(
             row[1] == "dati_json" for row in conn.execute("PRAGMA table_info('appuntamenti')")
@@ -160,7 +215,12 @@ def piano_trigger(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str
         t = _nome_sicuro(tabella)
         for sigla, azione in (("ti", "INSERT"), ("tu", "UPDATE"), ("td", "DELETE")):
             nome = f"{PREFISSO_TRIGGER}{t}_{sigla}"
-            piano[nome] = f"CREATE TRIGGER {nome} AFTER {azione} ON {t} BEGIN {_incrementa_tabella(t)} END"
+            condizione = ""
+            if sole_tabelle_condivise and azione == "UPDATE":
+                colonne = sorted(_colonne(conn, t) - _COLONNE_TECNICHE_PEC)
+                variazione = " OR ".join(f"NEW.{_nome_sicuro(c)} IS NOT OLD.{c}" for c in colonne)
+                condizione = f" WHEN {variazione}" if variazione else ""
+            piano[nome] = f"CREATE TRIGGER {nome} AFTER {azione} ON {t}{condizione} BEGIN {_incrementa_tabella(t)} END"
     return piano
 
 
@@ -180,12 +240,14 @@ def installa_schema(conn) -> None:
                  "singleton INTEGER PRIMARY KEY CHECK (singleton = 1), firma TEXT NOT NULL, installato_il TEXT NOT NULL)")
 
 
-def installa(conn, tabelle_senza_fascicolo: Iterable[str] = ()) -> dict[str, int | str | bool]:
+def installa(
+    conn, tabelle_senza_fascicolo: Iterable[str] = (), *, sole_tabelle_condivise: bool = False,
+) -> dict[str, int | str | bool]:
     """Installa (o riallinea) i trigger. Idempotente; il chiamante gestisce la transazione e il backup."""
     from datetime import UTC, datetime
 
     installa_schema(conn)
-    piano = piano_trigger(conn, tabelle_senza_fascicolo)
+    piano = piano_trigger(conn, tabelle_senza_fascicolo, sole_tabelle_condivise=sole_tabelle_condivise)
     firma = firma_piano(piano)
     attuale = conn.execute(f"SELECT firma FROM {TABELLA_SCHEMA} WHERE singleton=1").fetchone()
     presenti = {str(r[0]) for r in conn.execute(

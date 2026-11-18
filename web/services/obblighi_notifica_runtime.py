@@ -138,6 +138,7 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str],
     from pct.decreto_fissazione_lavoro import e_decreto_fissazione_lavoro, udienza_fissata
     from pct.notifica_atto_l53 import notifiche_pec, prove_per_atto
     from pct.notifica_ricorso_lavoro import data_di_pronuncia
+    from pct.percorso_pratica.giurisdizioni import giurisdizione_e_grado
     from pct.sentenza_notificata import condanna_al_pagamento
 
     testi = dict(testi or {})
@@ -208,7 +209,11 @@ def raccogli(fascicolo: Any, fatti: list[Any], etichette: dict[str, str],
         if oid in udienze_415:
             udienze = (udienze_415[oid],) if udienze_415[oid] else udienze
         data_atto = decreti_415.get(oid) or _data(oid, "provvedimento", "data_atto")
-        documenti.append(DocumentoCatalogato(id=oid, nome=nomi[oid], etichetta=etichetta, data=data_atto, nostro=nostro, udienze=udienze))
+        giurisdizione = ""
+        if etichetta.casefold() == "sentenza" and oid in testi:
+            giurisdizione, _grado = giurisdizione_e_grado(sentenza=testi[oid][:500])
+        documenti.append(DocumentoCatalogato(id=oid, nome=nomi[oid], etichetta=etichetta, data=data_atto, nostro=nostro,
+                                             udienze=udienze, giurisdizione=giurisdizione))
 
     parti: list[Parte] = []
     # Contumace se una qualsiasi lettura della parte lo dice (di solito l'epigrafe della sentenza: «convenuto (contumace)»).

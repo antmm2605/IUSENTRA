@@ -204,7 +204,18 @@ def importi_dalla_sentenza(testo: str, *, metadata: dict[str, Any] | None = None
         importo = _importo(grezzo_importo)
         if importo is None:
             continue
-        fatti.append(_fatto(campo, importo, titolo=titolo or "", testo=grezzo, origine=origine, natura="dispositivo della sentenza"))
+        fatto = _fatto(campo, importo, titolo=titolo or "", testo=grezzo, origine=origine, natura="dispositivo della sentenza")
+        if campo == "liquidazione_giudice":
+            from .copie_atti import identita_dispositivo_sentenza
+            from pct.termine_lungo_sentenza import data_decisione
+
+            giorno = data_decisione(grezzo)
+            impronta, numero = identita_dispositivo_sentenza(grezzo) if giorno else ("", "")
+            if giorno and impronta:
+                fatto.prove.append({"codice": "identita_dispositivo_sentenza", "esito": "ok",
+                                    "impronta": impronta, "data": giorno.isoformat(),
+                                    "numero": numero})
+        fatti.append(fatto)
     etichette_spese = {
         "spese_liquidate_a_carico_del_cliente": "Spese di lite liquidate a carico del cliente (art. 91 c.p.c.)",
         "spese_liquidate_a_favore_dello_stato": "Spese di lite a favore dello Stato (art. 133 D.P.R. 115/2002)",

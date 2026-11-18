@@ -203,17 +203,20 @@ class FascicoliSearchAdapter(BaseSearchAdapter):
     source_module = "fascicoli"
 
     def collect(self, context: dict[str, Any]) -> list[GlobalSearchDocument]:
+        from pct.ragionamento.testo import rg_normale
+
         docs = []
         for item in _manager_items(context.get("fascicoli"), "tutti", archiviati=True):
             data = as_dict(item)
             entity_id = _first(data, "id")
             if not entity_id:
                 continue
-            rg = _first(data, "numero_rg", "numero", "n_registro")
+            numero = _first(data, "numero_rg", "numero", "n_registro")
+            rg = rg_normale(numero, _first(data, "anno_rg")) or numero
             title = _join(f"RG {rg}" if rg else "", _first(data, "titolo", "oggetto"))
             metadata = {
                 "stato": _first(data, "stato"),
-                "numero_rg": rg,
+                "numero_rg": numero,
                 "rg": rg,
                 "date": italian_date(_first(data, "data_apertura", "apertura", "created_at")),
             }
@@ -230,7 +233,7 @@ class FascicoliSearchAdapter(BaseSearchAdapter):
                         _first(data, "note"),
                         _first(data, "avvocato_referente"),
                     ),
-                    keywords=_join(rg, _first(data, "numero"), _first(data, "id_pratica")),
+                    keywords=_join(rg, numero if numero != rg else "", _first(data, "numero"), _first(data, "id_pratica")),
                     metadata=metadata,
                     source_url=f"/fascicoli/{entity_id}",
                     client_id=_first(data, "id_cliente", "cliente_id"),

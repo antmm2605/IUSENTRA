@@ -25,7 +25,7 @@ from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA, estrai_prove_notifica
 from .estrazione_parti import VERSIONE_ESTRAZIONE_PARTI, VERSIONE_ESTRAZIONE_PARTI_PRE_ENTI
 from .estrazione_ruolo import estrai_ruoli
 from .estrazione_tabelle import VERSIONE_ESTRAZIONE_TABELLE
-from .riletture_mirate import REGOLA_NOTE_ANTECEDENTI, REGOLA_RUOLO_ALLEGATO, REGOLE_TERMINE_SCRITTO
+from .riletture_mirate import REGOLA_IDENTITA_LIQUIDAZIONE, REGOLA_NOTE_ANTECEDENTI, REGOLA_RUOLO_ALLEGATO, REGOLE_TERMINE_SCRITTO
 
 VERSIONE_MOTORE_DOCUMENTI_V13 = f"2026.09.21.motore-documenti.v13+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
 VERSIONE_MOTORE_DOCUMENTI_V14 = f"2026.09.23.motore-documenti.v14+ufficio-rg+modalita-note-scritte+ciclo-fermo+fatti-obsoleti+importi:{VERSIONE_ESTRAZIONE_IMPORTI}+istituti:{VERSIONE_ESTRAZIONE_ISTITUTI}+{VERSIONE_FORMULARIO}"
@@ -92,6 +92,8 @@ VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += tuple(
     versione + "+" + REGOLA_NOTE_ANTECEDENTI for versione in VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI
 )
 FATTI_MASSIMI = 80
+VERSIONI_MOTORE_DOCUMENTI_COMPATIBILI += (VERSIONE_MOTORE_DOCUMENTI,)
+VERSIONE_MOTORE_DOCUMENTI += "+" + REGOLA_IDENTITA_LIQUIDAZIONE
 ORDINE_VERIFICA = {"verificata": 0, "corretta": 0, "plausibile": 1, "respinta": 2, "ignorata": 3}
 
 

@@ -7,6 +7,8 @@ import logging
 from typing import Any, Callable, Iterable
 
 from .catalog_resolver import (
+    ETICHETTA_MESSAGGIO_DEPOSITO,
+    PROVA_BUSTA_PCT,
     REGISTRY_VERSION,
     RESOLVER_VERSION,
     PROFILE_SOURCES,
@@ -436,6 +438,34 @@ def _rivedi_voce_lex(precedente: Any, nuova: DocumentCatalogAssignment, review: 
     from dataclasses import replace as _sostituisci
     from .catalog_lex import CONFIDENZA_REGOLA_SICURA
     from .models import DocumentCatalogReview
+
+    precedente_meta = dict(getattr(precedente, "metadata", {}) or {})
+    storico = precedente_meta.get("voce_lex_precedente")
+    if (
+        (_voce_lex(precedente) or storico)
+        and nuova.status == "proposed"
+        and nuova.source_state == "verified_snapshot"
+        and nuova.confidence == 99
+        and nuova.document_label == ETICHETTA_MESSAGGIO_DEPOSITO
+    ):
+        # Il resolver assegna questa voce solo quando destinatario di giustizia,
+        # oggetto del deposito e allegato Atto.enc concordano. Il vecchio
+        # classificatore poteva leggere il testo dell'atto dentro la busta.
+        storico = storico or {
+            "document_label": getattr(precedente, "document_label", ""),
+            "resolver_version": getattr(precedente, "resolver_version", ""),
+            "reason": str(getattr(precedente, "reason", "") or "")[:300],
+        }
+        assegnazione = _sostituisci(nuova, metadata={**dict(nuova.metadata or {}), "voce_lex_precedente": storico})
+        if not _voce_lex(precedente) and getattr(precedente, "status", "") != "review_required":
+            return assegnazione, review
+        return assegnazione, DocumentCatalogReview(
+            id=new_id("catalog-review"), tenant_id=nuova.tenant_id,
+            fascicolo_id=nuova.fascicolo_id, assignment_id="",
+            state="resolved", reason_code="struttura_busta_verificata", reason=PROVA_BUSTA_PCT,
+            resolved_by=nuova.updated_by or "catalog-pipeline", resolution_note=PROVA_BUSTA_PCT,
+            created_at=now, resolved_at=now,
+        )
 
     voce_lex = str(getattr(precedente, "document_label", "") or "").strip()
     if (not _voce_lex(precedente) or nuova.status != "proposed" or int(nuova.confidence or 0) < CONFIDENZA_REGOLA_SICURA

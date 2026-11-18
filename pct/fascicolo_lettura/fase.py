@@ -46,13 +46,13 @@ def fase(
     from pct.procedura_fasi.riti import rito_da_intestazione
 
     giorno_oggi = data_da(oggi)
-    rito = rito_da_intestazione(intestazione, [voce["etichetta"] for voce in documenti_letti["tutti"] if voce.get("sezione") == "atti"])
+    atti = [voce for voce in documenti_letti["tutti"] if not voce.get("bozza_locale")]
+    rito = rito_da_intestazione(intestazione, [voce["etichetta"] for voce in atti if voce.get("sezione") == "atti"])
     prove: list[str] = []
     codice = CODICE_FASE_STRAGIUDIZIALE
     descrizione = "fase preparatoria o stragiudiziale: nessun atto giudiziario risulta ancora notificato o depositato"
     incoerenze: list[str] = []
 
-    atti = documenti_letti["tutti"]
     etichette = [voce["etichetta"].lower() for voce in atti]
     stato_codice = intestazione.get("stato_codice", "")
 
@@ -88,7 +88,10 @@ def fase(
                          + (f"; RG {copie_deposito[-1]['rg']} indicato nel deposito del {data_it(copie_deposito[-1]['data'])}" if copie_deposito[-1].get("rg") else ""))
         if depositi_letti["perfezionati"]:
             ultimo = depositi_letti["perfezionati"][-1]
-            prove.append("deposito accettato dalla cancelleria" + (f" il {ultimo['data_accettazione']}" if ultimo.get("data_accettazione") else f" (inviato il {ultimo['data']})"))
+            accettazione = f" il {ultimo['data_accettazione']}" if ultimo.get("data_accettazione") else f" (inviato il {ultimo['data']})"
+            busta = f", busta {ultimo['identificativo_busta']}" if ultimo.get("identificativo_busta") else ""
+            atto = f" «{ultimo['atto']}»" if ultimo.get("atto") else ""
+            prove.append(f"deposito{atto} accettato dalla cancelleria{accettazione}{busta}")
         elif importati:
             prove.append(f"fascicolo d'ufficio consultato: {len(importati)} atti acquisiti da PolisWeb/PST")
         if intestazione.get("rg"):

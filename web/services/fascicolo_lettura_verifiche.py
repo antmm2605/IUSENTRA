@@ -283,24 +283,31 @@ def _collega_per_ruolo(repository: Any, message_id: str, fascicolo_id: str, *, f
 def verifica_notifiche(fascicolo_id: str) -> dict[str, Any]:
     """Riallinea i presidi notifica aperti alle prove già nel fascicolo."""
     from web.services.notification_presidia_fascicolo_reconciliation import reconcile_presidio_with_fascicolo_notification_proof
-    from web.services.notification_presidia_payloads import build_presidia_list_payload
     from web.services.notification_presidia_runtime import build_notification_presidio_repository
 
     repo = build_notification_presidio_repository()
-    payload = build_presidia_list_payload(repo, {"fascicolo": fascicolo_id, "limit": 50})
     esaminati = 0
     riallineati = 0
-    for voce in list(payload.get("items") or []):
-        identificativo = _clean(voce.get("id"))
-        if not identificativo:
-            continue
+    cursor = None
+    presidi = []
+    while True:
+        page = repo.list_presidia(fascicolo_id=fascicolo_id, cursor=cursor, limit=100)
+        presidi.extend(page.items)
+        cursor = page.next_cursor
+        if cursor is None:
+            break
+    for voce in presidi:
         esaminati += 1
         try:
-            esito = reconcile_presidio_with_fascicolo_notification_proof(repo, identificativo, actor=ATTORE)
+            esito = reconcile_presidio_with_fascicolo_notification_proof(repo, voce.id, actor=ATTORE)
             if esito.get("changed"):
                 riallineati += 1
         except Exception as exc:
-            logger.warning("Presidio notifiche: riallineamento non riuscito per %s: %s", identificativo, exc)
+            logger.warning("Presidio notifiche: riallineamento non riuscito per %s: %s", voce.id, exc)
+    if riallineati:
+        from web.services.daily_plan_runtime import repository_for_current_request
+
+        repository_for_current_request().mark_dirty("fascicolo", [fascicolo_id], reason="Evidenze del presidio notifiche aggiornate")
     return {"esaminati": esaminati, "riallineati": riallineati}
 
 

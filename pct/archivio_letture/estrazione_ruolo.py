@@ -45,7 +45,7 @@ _RUOLO_POSTPOSTO = re.compile(
 # del Ruolo Generale».
 _RUOLO_ISCRITTO = re.compile(
     rf"\b(?:iscritt[ao]|rubricat[ao]|pendente|promoss[ao])\s+al\s+n(?:umero|\.)?\s*(?P<numero>{_SEGNO}{{1,7}})\s*,?\s*"
-    rf"del\s+(?:R|r)uolo\s+(?:G|g)enerale(?:\s+(?:degli\s+)?(?:A|a)ffari\s+(?:[A-Za-zàè]+\s*){{1,3}}?)?\s*,?\s*"
+    rf"del\s+(?:(?:R|r)uolo\s+(?:G|g)enerale(?:\s+(?:degli\s+)?(?:A|a)ffari\s+(?:[A-Za-zàè]+\s*){{1,3}}?)?|[Rr]\.\s*[Gg]\.)\s*,?\s*"
     rf"(?:dell['’]\s*anno|per\s+l['’]\s*anno|del)\s+(?P<anno>{_SEGNO}{{4}})\b"
     rf"|\bn\.?\s*(?P<numero2>{_SEGNO}{{1,7}})\s*/\s*(?P<anno2>{_SEGNO}{{4}})\s+del\s+(?:R|r)uolo\s+(?:G|g)enerale\b",
 )

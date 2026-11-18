@@ -262,7 +262,7 @@ class GlobalSearchRepository:
     def stats(self, tenant_id: str) -> dict[str, Any]:
         rows = self._conn.execute(
             """
-            SELECT entity_type, COUNT(*) AS total
+            SELECT entity_type, COUNT(*) AS total, MAX(indexed_at) AS last_indexed_at
             FROM global_search_index
             WHERE tenant_id = ?
             GROUP BY entity_type
@@ -271,20 +271,12 @@ class GlobalSearchRepository:
             (tenant_id,),
         ).fetchall()
         per_type = {row["entity_type"]: int(row["total"]) for row in rows}
-        last = self._conn.execute(
-            """
-            SELECT MAX(indexed_at) AS last_indexed_at
-            FROM global_search_index
-            WHERE tenant_id = ?
-            """,
-            (tenant_id,),
-        ).fetchone()
         return {
             "tenant_id": tenant_id,
             "total": sum(per_type.values()),
             "per_type": per_type,
             "fts_enabled": self.fts_enabled,
-            "last_indexed_at": str(last["last_indexed_at"] or "") if last else "",
+            "last_indexed_at": max((str(row["last_indexed_at"] or "") for row in rows), default=""),
         }
 
     def audit(self, tenant_id: str, action: str, details: dict[str, Any] | None = None) -> None:

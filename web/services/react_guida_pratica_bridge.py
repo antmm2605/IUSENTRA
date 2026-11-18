@@ -8,6 +8,7 @@ ancora salvato, e delega la conoscenza a `pct.guida_pratica.GuidaPraticaService`
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import re
 import unicodedata
 from urllib.parse import urlencode
 from typing import Any, Callable
@@ -542,6 +543,33 @@ def build_document_plan_for_guida(guida: dict[str, Any] | None, fascicolo: dict[
     }
 
 
+def collega_normativa_guida(guida: Any) -> None:
+    """Collega i riferimenti puntuali riusando l'identità dei codici del lettore ufficiale."""
+    from lex.testi_ufficiali import CODICI, collegamento_normattiva, riconosci_articolo
+
+    normativa = guida.get("normativa") if isinstance(guida, dict) else None
+    if not isinstance(normativa, dict):
+        return
+    for gruppo in ("riferimenti_primari", "riferimenti_secondari"):
+        for voce in normativa.get(gruppo) or ():
+            if not isinstance(voce, dict) or voce.get("url"):
+                continue
+            fonte = _text(voce.get("fonte") or voce.get("source") or voce.get("codice"))
+            articolo = _text(voce.get("articolo") or voce.get("article"))
+            # Una voce può citare un comma o un numero dell'articolo. Il lettore apre l'articolo intero.
+            numero = re.fullmatch(r"(\d{1,5}(?:[ -][a-z]{2,24})?)(?:\s+(?:comma|n\.)\s*\d+)?", articolo, re.I)
+            if not numero:
+                continue
+            codice = next((c for c in CODICI if fonte.casefold() in c.sinonimi), None)
+            if codice is None:
+                continue
+            richiesta = riconosci_articolo(f"art. {numero.group(1)} {fonte}")
+            if richiesta is not None and richiesta.urn == codice.urn:
+                voce["url"] = collegamento_normattiva(richiesta.urn, richiesta.chiave)
+                if codice.chiave_biblioteca:
+                    voce["archivio_atto"] = codice.chiave_biblioteca
+
+
 def build_react_guida_pratica_payload(
     *, codice: str, fascicolo: dict[str, Any] | None = None, service: GuidaPraticaService | None = None, vista: str = "",
 ) -> dict[str, Any]:
@@ -552,6 +580,7 @@ def build_react_guida_pratica_payload(
     guida = arricchisci_giurisprudenza(guida, consulta_archivio=vista != "scheda")
     if vista == "giurisprudenza":
         return {"ok": True, "giurisprudenza": guida["giurisprudenza"]}
+    collega_normativa_guida(guida)
     checklist = service.get_checklist(codice, {"fascicolo": fascicolo or {}}, guidance=guida)
     document_plan = build_document_plan_for_guida(guida, fascicolo or {})
     return {
@@ -652,7 +681,6 @@ def build_react_fascicolo_guida_pratica_payload(
     if vista == "giurisprudenza":
         return payload
     payload["fascicolo"] = context
-    # Fase reale e percorso dopo la sentenza arrivano da /guida-pratica/fase (Lettura del fascicolo): la guida si apre subito.
     return payload
 
 

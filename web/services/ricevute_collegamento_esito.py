@@ -33,14 +33,16 @@ def _certificato(repository, messaggio):
 
 def collega_ricevute_da_esito(fascicolo, messaggi, repository):
     from pct.pec_pipeline import canonical_json, iso_now
-    rg = f'{fascicolo.numero_rg}/{fascicolo.anno_rg}'
+    from pct.ragionamento.testo import rg_normale
+
+    rg = rg_normale(f'{fascicolo.numero_rg}/{fascicolo.anno_rg}')
     depositi = {str(d.id_deposito_esterno): d for d in fascicolo.depositi_pct if d.id_deposito_esterno}
     anchors = {}
     for m in messaggi:
         life = m.get('deposit_lifecycle') or {}
         corr = life.get('correlation') or {}
         dep = depositi.get(str(corr.get('idbusta') or ''))
-        if not dep or not m.get('collegata') or corr.get('rg') != rg:
+        if not dep or not rg or not m.get('collegata') or rg_normale(corr.get('rg') or '') != rg:
             continue
         if (life.get('current_stage') or {}).get('id') not in {'accettazione_deposito', 'rifiuto_deposito', 'intervento_cancelleria'}:
             continue
@@ -55,7 +57,8 @@ def collega_ricevute_da_esito(fascicolo, messaggi, repository):
         anchors.setdefault(source, []).append((dep.id, office, recipient, m['id'], m['mime_sha256'], xmlsha))
     linked = []
     for m in messaggi:
-        if m.get('collegata') or m.get('event_type') != 'pct_deposito':
+        saved = m.get('archive_receipt_reference') or {}
+        if m.get('event_type') != 'pct_deposito' or saved.get('strategy') == 'identificativo_xml_esito_ministeriale':
             continue
         stage = ((m.get('deposit_lifecycle') or {}).get('current_stage') or {}).get('id')
         if stage not in {'accettazione_pec', 'consegna_pec'}:
@@ -73,6 +76,7 @@ def collega_ricevute_da_esito(fascicolo, messaggi, repository):
         ref = {'fascicolo_id': fascicolo.id, 'deposito_id': depid, 'provider_message_id': provider,
                'original_message_id': canonical(cert['msgid']), 'recipient': office,
                'mime_sha256': m['mime_sha256'], 'xml_sha256': xmlsha,
+               'receipt_at': cert.get('receipt_at') or '',
                'anchor_message_id': anchor[3], 'anchor_mime_sha256': anchor[4], 'anchor_xml_sha256': anchor[5],
                'strategy': 'identificativo_xml_esito_ministeriale', 'matched_by': ['certified_provider_id', 'reciprocal_addresses']}
         with repository.connect() as conn:
@@ -81,11 +85,21 @@ def collega_ricevute_da_esito(fascicolo, messaggi, repository):
                 continue
             row = conn.execute('SELECT linked_fascicolo_id,mime_sha256,metadata_json FROM pec_messages WHERE tenant_id=? AND id=?', (repository.tenant_id,m['id'])).fetchone()
             parsed = repository.latest_parsed_row(conn, m['id'])
-            if not row or not parsed or row['linked_fascicolo_id'] not in ('', None) or row['mime_sha256'] != m['mime_sha256']:
+            if not row or not parsed or row['linked_fascicolo_id'] not in ('', None, fascicolo.id) or row['mime_sha256'] != m['mime_sha256']:
                 continue
             meta = json.loads(row['metadata_json'] or '{}')
+            if meta.get('archive_receipt_reference'):
+                continue
             meta['archive_receipt_reference'] = ref
-            changed = conn.execute("UPDATE pec_messages SET linked_fascicolo_id=?,linked_fascicolo_score=1,status='linked',metadata_json=? WHERE tenant_id=? AND id=? AND mime_sha256=? AND (linked_fascicolo_id IS NULL OR linked_fascicolo_id='')", (fascicolo.id,canonical_json(meta),repository.tenant_id,m['id'],m['mime_sha256']))
+            changed = conn.execute(
+                "UPDATE pec_messages SET linked_fascicolo_id=?,linked_fascicolo_score=1,"
+                "status=CASE WHEN linked_fascicolo_id=? THEN status ELSE 'linked' END,metadata_json=? "
+                "WHERE tenant_id=? AND id=? AND mime_sha256=? "
+                "AND (linked_fascicolo_id IS NULL OR linked_fascicolo_id IN ('',?)) "
+                "AND COALESCE(metadata_json,'{}')=?",
+                (fascicolo.id, fascicolo.id, canonical_json(meta), repository.tenant_id, m['id'],
+                 m['mime_sha256'], fascicolo.id, row['metadata_json'] or '{}'),
+            )
             if changed.rowcount != 1:
                 continue
             conn.execute('INSERT INTO pec_fascicolo_links (id,message_id,parsed_version_id,fascicolo_id,score,status,seeds_json,candidates_json,created_at) VALUES (?,?,?,?,?,?,?,?,?)', (uuid.uuid4().hex,m['id'],parsed['id'],fascicolo.id,1.0,'ricevuta_identificativi_verificati',canonical_json(ref),canonical_json([{'id':fascicolo.id,'score':1.0,'reasons':['Identificativo XML coincidente con esito ministeriale e indirizzi reciproci']}]),iso_now()))

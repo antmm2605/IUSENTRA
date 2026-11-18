@@ -280,12 +280,21 @@ def create_editor_document(
     note: str = "Bozza creata con Lex nell'editor professionale",
     tags: list[str] | None = None,
     salvataggio_mirato: bool = False,
+    formato: str = "html",
 ) -> dict[str, Any]:
     if fascicoli_repository is None:
         raise EditorAIValidationError("Repository fascicoli non disponibile.")
     safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", clean_text(title).lower()).strip("._-") or "atto_lex"
-    filename = f"{safe_title[:80]}.html"
-    raw = sanitize_editor_html(html_content).encode("utf-8")
+    if formato not in {"html", "docx"}:
+        raise EditorAIValidationError("Formato di redazione non disponibile.")
+    filename = f"{safe_title[:80]}.{formato}"
+    html_sicuro = sanitize_editor_html(html_content)
+    if formato == "docx":
+        from pct.editor_export import esporta_documento_editor
+
+        raw = esporta_documento_editor(html_sicuro, formato="docx", titolo=title)
+    else:
+        raw = html_sicuro.encode("utf-8")
     content = encrypt(raw) if callable(encrypt) else raw
     document = fascicoli_repository.aggiungi_documento(
         fascicolo_id,

@@ -88,6 +88,7 @@ def percorso_dopo_sentenza(intestazione: dict[str, Any], documenti_letti: dict[s
     return {"sentenza": pulisci(sentenza.get("nome") or sentenza.get("etichetta")),
             "documento_id": pulisci(sentenza.get("id")), "data": pulisci(sentenza.get("data_it")), "esito": codice,
             "per_il_cliente": per_noi, "motivo_esito": esito_letto.get("motivo_esito_sentenza", ""),
+            "brano_dispositivo": pulisci(sentenza.get("brano_dispositivo")),
             "ruolo_cliente": ruolo, "fonte_ruolo": fonte_ruolo, "spese": esito["spese"], **percorso}
 
 

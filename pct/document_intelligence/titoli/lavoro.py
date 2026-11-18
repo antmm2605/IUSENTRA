@@ -24,7 +24,7 @@ REGOLE = (
         r"\b416\b|\bgiudice\s+del\s+lavoro\b|\bsezione\s+lavoro\b",
         "Memoria difensiva ex art. 416 c.p.c.",
         role="atto_difensivo", section="atti", tipo=TipoDocumento.MEMORIA,
-        fonte="normattiva_cpc_rito_lavoro", deposit_role="atto_principale",
+        fonte="normattiva_cpc_art416_memoria_difensiva", deposit_role="atto_principale",
         evidence="titolo della memoria e costituzione nel rito del lavoro (art. 416 c.p.c.)",
     ),
     regola(

@@ -116,8 +116,9 @@ def riga_economia(contributo: Mapping[str, Any] | None, righe_conto: Iterable[Ma
     stato_parcella = _testo(parcella.get("stato"))
     spese_compensate = sentenza.get("stato") == "Spese compensate"
     if stato_parcella and not ((spese_da_verificare or spese_compensate) and stato_parcella == "Da preparare"):
-        parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
         attenzione = attenzione or (stato_parcella == "Da preparare" and bool(sentenza.get("importo")))
+        if not (stato_parcella == "Da preparare" and prossimo_economico and attenzione):
+            parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
     testo = " · ".join(p for p in parti if p)
     if prossimo_economico and attenzione:
         testo += f". {prossimo_economico}"
@@ -136,11 +137,16 @@ def riga_notifiche(obblighi: list[Mapping[str, Any]] | None, *, oggi: date) -> d
         stato = _testo(obbligo.get("stato"))
         if stato == "da_notificare":
             scadenza = _giorno(obbligo.get("scadenza"))
-            if scadenza and scadenza < oggi:
+            ordinatorio_decorso = bool(scadenza and scadenza < oggi and obbligo.get("natura") == "ordinatorio")
+            if ordinatorio_decorso:
+                descrizione = f"Termine ordinatorio decorso il {scadenza:%d/%m/%Y}. Verificare invio e ricevute PEC."
+                if obbligo.get("termine_da_verificare"):
+                    descrizione += " Termine a difesa da verificare."
+            elif scadenza and scadenza < oggi:
                 descrizione = f"Data indicata {scadenza:%d/%m/%Y} già trascorsa. Verificare invio e ricevute PEC."
             else:
                 descrizione = f"da notificare entro il {scadenza:%d/%m/%Y}" if scadenza else "da notificare"
-            if scadenza and (scadenza - oggi).days <= 7:
+            if scadenza and (scadenza - oggi).days <= 7 and not ordinatorio_decorso:
                 livello = "urgente"
             elif livello != "urgente":
                 livello = "attenzione"
@@ -166,7 +172,8 @@ def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, A
     if da_confermare:
         parti.append(f"{da_confermare} PEC da confermare")
     collegate = int(pec.get("collegate") or 0)
-    parti.append(f"{collegate} PEC collegat{'a' if collegate == 1 else 'e'}")
+    if collegate:
+        parti.append(f"{collegate} PEC collegat{'a' if collegate == 1 else 'e'} dalla casella")
     livello = "attenzione" if da_confermare or da_classificare else "ok"
     return riga("documenti", " · ".join(parti), livello)
 

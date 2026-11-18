@@ -11,17 +11,21 @@ contorno e non arrivano qui (G-8).
 
 from __future__ import annotations
 
-from pct.percorso_pratica.esito import dispositivo, improcedibile_per_interesse
+import re
+
+from pct.percorso_pratica.esito import codice_esito_dispositivo, dispositivo, improcedibile_per_interesse
 from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, CIVILE, IMPUGNAZIONI_PER_GRADO, PRIMO, giurisdizione_e_grado
+from pct.riconvalida_termine_lungo import CODICE_TERMINE_LUNGO, DALLA_DECISIONE, MARCATORE_PEC, NON_CERTA
 from pct.sentenza_notificata import condanna_al_pagamento, termini_dalla_notifica
-from pct.termine_lungo_sentenza import data_pubblicazione as leggi_pubblicazione
+from pct.termine_lungo_sentenza import data_decisione, data_pubblicazione as leggi_pubblicazione
+from pct.termine_lungo_sentenza import data_pubblicazione_pat
 from pct.termini_processuali import ItalianDeadlineCalculator
 
 from ..modello import Conclusione, Dubbio, Fonte
 from ..norme import norme
 from ..notifiche import notifiche_di
 from ..testo import data_it, giorno, pulito
-from .calcolo import esito
+from .calcolo import esito, in_avanti
 from .contesto import Contesto
 
 def data_pubblicazione(testo: str) -> str:
@@ -29,6 +33,32 @@ def data_pubblicazione(testo: str) -> str:
     # motivazione possono indicare la pubblicazione di altre sentenze.
     pubblicazione = leggi_pubblicazione(testo[:1500], comunicazione=False)
     return pubblicazione.isoformat() if pubblicazione else ""
+
+
+def termini_lunghi_prudenziali(atti, documenti, scadenze) -> dict[str, str]:
+    """Riusa il termine già in Agenda se la bozza e la sentenza hanno la stessa PEC fonte."""
+    origini = {doc["id"]: doc.get("pec_origine") for doc in documenti if doc.get("id")}
+    bozze = [s for s in scadenze if s.get("deadline_profile_code") == CODICE_TERMINE_LUNGO
+             and s.get("stato") == "BOZZA" and NON_CERTA in (s.get("note") or "")]
+    esiti = {}
+    for atto in atti:
+        if not atto.sentenza or atto.appartenenza != "causa":
+            continue
+        pec = origini.get(atto.id)
+        if not pec or not pec.startswith("pec_"):
+            continue
+        decisione = data_decisione(atto.testo)
+        if not decisione:
+            continue
+        marcatore = f"{MARCATORE_PEC}{pec}:{CODICE_TERMINE_LUNGO}"
+        scadenze_lette = {
+            s["data"] for s in bozze if s.get("source_message_id") == pec and giorno(s.get("data"))
+            and giorno(s.get("data_decorrenza")) == decisione and marcatore in (s.get("note") or "").splitlines()
+            and f"{DALLA_DECISIONE} decisione={decisione.isoformat()}:" in (s.get("note") or "")
+        }
+        if len(scadenze_lette) == 1:
+            esiti[atto.id] = scadenze_lette.pop()
+    return esiti
 
 
 def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, titolo_verificato: bool) -> list[Conclusione]:
@@ -86,10 +116,115 @@ def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, t
     return esiti
 
 
-def _sentenza_amministrativa(sentenza, fonte: Fonte, *, grado: str) -> list[Conclusione]:
+_ORDINE_OTTEMPERANZA = re.compile(
+    r"\bordina\s+all[’']amministrazione\b[^;]{0,240}\b(?:dare\s+esecuzione|ottemperare)\b"
+    r"[^;]{0,240}\b(?:entro\s+il|nel)\s+termine\s+di\s+(?P<giorni>[1-9]\d{0,2})(?:\s*\([^)]{1,24}\))?"
+    r"\s+giorni\b[^;]{0,160}\b(?:comunicazione\s+(?:o|ovvero)\s+notificazione|notificazione\s+(?:o|ovvero)\s+comunicazione)\b[^;]{0,80}",
+    re.IGNORECASE,
+)
+
+
+def _appello_ottemperanza(sentenza, fonte: Fonte, ctx: Contesto) -> Conclusione | None:
+    intestazione = pulito(sentenza.testo[:4500])
+    epigrafe = re.split(r"\bVist[ioe]\s+(?:il\s+ricorso|gli\s+atti|l['’]atto)\b", intestazione, maxsplit=1, flags=re.I)[0]
+    if not re.search(r"\bsul ricorso\b.*?\bper\s+l['’]\s*ottemperanza\b", epigrafe, re.I):
+        return None
+    if re.search(r"\bper\s+l['’]\s*annullamento\b", epigrafe, re.I):
+        return None
+    pubblicazione = (giorno(getattr(sentenza, "pubblicazione_pat", "")) or data_pubblicazione_pat(sentenza.testo)
+                     or giorno(data_pubblicazione(sentenza.testo)))
+    if not pubblicazione or pubblicazione > ctx.oggi:
+        return None
+    fonte = Fonte(fonte.oggetto_id, fonte.nome, fonte.brano, pubblicazione.isoformat(), fonte.tipo)
+    calcolo = ItalianDeadlineCalculator().calculate(
+        pubblicazione, 3, direction="forward", period_type="months",
+        suspend_august=True, ferial_suspension_policy="applies", reference_law="artt. 87, 92 e 54 c.p.a.",
+    )
+    termine = esito(
+        giorno(calcolo.get("deadline")), oggi=ctx.oggi, perentorio=True,
+        decorrenza=pubblicazione.isoformat(), evento="pubblicazione della sentenza nel registro TAR",
+        computo="tre mesi dalla pubblicazione nel giudizio di ottemperanza, con sospensione feriale",
+        conseguenze="Per impugnare occorre notificare il ricorso in appello entro il termine applicabile.",
+    )
+    termine.sospensione_feriale = "si applica (art. 54, comma 2, c.p.a., dal 1° al 31 agosto)"
+    if termine.scaduto:
+        termine.rimedi = "Verificare a registro le impugnazioni. L’errore scusabile si valuta ai sensi dell’art. 37 c.p.a."
+    date_notifiche = {
+        data for oid in (sentenza.id, *sentenza.copie)
+        if (prova := ctx.consegne_verificate.get(oid)) and prova.get("riferimento")
+        and (data := giorno(prova.get("data"))) and pubblicazione <= data <= ctx.oggi
+    }
+    cosa = "Valutare l’appello in ottemperanza (limite dalla pubblicazione)"
+    motivo = ("Verificare l’interesse concreto del cliente e controllare nel registro PAT se una notifica valida "
+              "ha fatto decorrere prima il termine breve di trenta giorni.")
+    if len(date_notifiche) == 1:
+        notifica = next(iter(date_notifiche))
+        breve = in_avanti(notifica, 30, rito=ctx.rito, oggi=ctx.oggi, perentorio=True,
+                          evento="notifica verificata della sentenza", norma="artt. 87 e 92 c.p.a.", feriale=True)
+        if breve.scadenza < termine.scadenza:
+            breve.sospensione_feriale = termine.sospensione_feriale
+            breve.conseguenze = termine.conseguenze
+            breve.rimedi = "Verificare a registro le impugnazioni e l’eventuale errore scusabile (art. 37 c.p.a.)." if breve.scaduto else ""
+            termine = breve
+            cosa = "Valutare l’appello in ottemperanza (termine dalla notifica)"
+        motivo = ("Verificare l’interesse concreto del cliente e le eventuali impugnazioni. "
+                  "La scadenza considera il termine più vicino tra pubblicazione e notifica verificata.")
+    return Conclusione(
+        "termine_impugnazione", cosa, fonte, norme("cpa_100", "cpa_89", "cpa_92", "cpa_87", "cpa_54"),
+        "Verificare nel registro PAT le notifiche, le eventuali impugnazioni e l’interesse concreto del cliente.",
+        "Nel giudizio di ottemperanza il termine lungo è di tre mesi dalla pubblicazione.",
+        "dubbio", motivo, termine, onerato="tutte_le_parti",
+        dubbi=[Dubbio("verifica_appello_ottemperanza", motivo, "il riscontro nel registro PAT e l’interesse a impugnare", fonte)],
+    )
+
+
+def _sentenza_amministrativa(sentenza, fonte: Fonte, *, grado: str, ctx: Contesto) -> list[Conclusione]:
     rimedio = IMPUGNAZIONI_PER_GRADO[(AMMINISTRATIVO, grado)][0]
     mezzo = "cpa_100" if grado == PRIMO else "cpa_110"
     esito_dispositivo = dispositivo(sentenza.testo)
+    appello_ottemperanza = _appello_ottemperanza(sentenza, fonte, ctx) if grado == PRIMO else None
+    ordine = _ORDINE_OTTEMPERANZA.search(esito_dispositivo)
+    if (grado == PRIMO and ctx.posizione == "attiva" and ordine and "ottemperanza" in sentenza.testo[:2000].casefold()
+            and codice_esito_dispositivo(esito_dispositivo) == "accoglimento"):
+        clausola = ordine.group().strip(" .")
+        fonte_ordine = Fonte(sentenza.id, sentenza.nome, clausola, fonte.data)
+        giorni = ordine["giorni"]
+        motivo = f"Il TAR assegna all’Amministrazione {giorni} giorni dalla comunicazione o notificazione della sentenza."
+        identificativi = {sentenza.id, *sentenza.copie}
+        spedizioni = [(oid, prova) for oid, prova in ctx.prove_notifiche_storiche.items()
+                      if identificativi.intersection(prova["documenti_allegati"])]
+        distinta = {}
+        riscontro = ""
+        verifica = "Verificare la decorrenza prevista dal dispositivo e l’eventuale esecuzione."
+        if len(spedizioni) == 1:
+            invio, prova = spedizioni[0]
+            consegne = prova["consegne"]
+            date_consegna = sorted({str(r.get("data") or "")[:10] for r in consegne
+                                   if giorno(str(r.get("data") or "")[:10])})
+            distinta = {"invio_id": invio, "accettazione_id": prova["accettazione_id"],
+                        "consegne_ids": [r["documento_id"] for r in consegne]}
+            if date_consegna:
+                motivo += f" Ricevute PEC della sentenza del {', '.join(map(data_it, date_consegna))}."
+            riscontro = "Invio e ricevute correlate al documento per impronta."
+            verifica = ("Riscontrare il recapito all’Amministrazione obbligata, la validità della notifica, "
+                        "l’eventuale comunicazione del TAR e l’esecuzione dell’ordine.")
+        if re.search(r"\bnomina\b[^;]{0,100}\bcommissario\s+ad\s+acta\b", esito_dispositivo, re.IGNORECASE):
+            motivo += " In caso di inadempimento, verificare l’attivazione del commissario ad acta nominato."
+        return [
+            Conclusione("verifica_ottemperanza", "Riscontrare l’esecuzione ordinata dal TAR",
+                        fonte_ordine, norme("cpa_114", "l53_art3bis") if distinta else norme("cpa_114"),
+                        verifica,
+                        motivo, "dubbio", riscontro, onerato="noi",
+                        motivo_senza_termine="La data di decorrenza dell’ordine è ancora da riscontrare.",
+                        dubbi=[Dubbio("decorrenza_esecuzione_tar", f"{motivo} {verifica}",
+                                     "la prova della decorrenza e il riscontro dell’esecuzione", fonte_ordine)],
+                        prova_notifica=distinta),
+            appello_ottemperanza or Conclusione("termine_impugnazione", "Valutare un eventuale interesse residuo a impugnare",
+                        fonte_ordine, norme(mezzo, "cpa_89", "cpa_92", "cpa_87"),
+                        "Esaminare gli eventuali capi sfavorevoli del dispositivo",
+                        "Il ricorso è accolto. L’impugnazione richiede un interesse concreto.",
+                        "non_dovuto", "Il dispositivo accoglie il ricorso del cliente."),
+        ]
     if improcedibile_per_interesse(esito_dispositivo):
         fonte_esito = Fonte(sentenza.id, sentenza.nome, pulito(esito_dispositivo)[:400], fonte.data)
         return [Conclusione(
@@ -98,14 +233,18 @@ def _sentenza_amministrativa(sentenza, fonte: Fonte, *, grado: str) -> list[Conc
             "Il TAR ha chiuso il giudizio in rito. L’interesse residuo dipende dalla situazione concreta documentata.",
             "fatto", "Dispositivo letto nella sentenza del fascicolo.",
             motivo_senza_termine="La pronuncia in rito non accerta da sola l’esecuzione del titolo.",
-        ), Conclusione(
+        ), appello_ottemperanza or Conclusione(
             "termine_impugnazione", "Valutare l’impugnazione solo se rimane un interesse concreto",
             fonte_esito, norme(mezzo, "cpa_89", "cpa_92", "cpa_87"),
             "Aprire il registro PAT del fascicolo e verificare pubblicazione, notificazione e rito applicabile.",
             "Il termine decorre dalla fonte prevista dal codice del processo amministrativo.",
-            "non_dovuto", "Una pronuncia in rito richiede una valutazione dell’utilità concreta di impugnare.",
+            "dubbio", "Una pronuncia in rito richiede una valutazione dell’utilità concreta di impugnare.",
             motivo_senza_termine="Il termine va ancorato alla pubblicazione o alla notifica provata della sentenza del TAR.",
+            dubbi=[Dubbio("decorrenza_impugnazione_pat", "Controllare il termine anche dopo l’improcedibilità.",
+                          "la pubblicazione o la prova della notifica, e il rito applicabile", fonte_esito)],
         )]
+    if appello_ottemperanza:
+        return [appello_ottemperanza]
     motivo = "Il computo richiede la pubblicazione in segreteria, la notifica eventualmente perfezionata e il rito applicabile."
     return [Conclusione(
         "termine_impugnazione", rimedio["rimedio"], fonte, norme(mezzo, "cpa_89", "cpa_92", "cpa_87"),
@@ -132,7 +271,7 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
             rito=ctx.fascicolo.get("rito", ""), sentenza=sentenza.testo[:500],
         )
         if giurisdizione == AMMINISTRATIVO:
-            risultato.extend(_sentenza_amministrativa(sentenza, fonte, grado=grado))
+            risultato.extend(_sentenza_amministrativa(sentenza, fonte, grado=grado, ctx=ctx))
             continue
         if (giurisdizione, grado) != (CIVILE, PRIMO):
             continue
@@ -226,11 +365,18 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
                 "termine per chi intende impugnare", lungo, onerato="tutte_le_parti",
             ))
         else:
-            motivo = ("La pubblicazione della sentenza va accertata nel registro di cancelleria. "
-                      "La data della decisione e un’eventuale bozza in agenda non attestano il deposito.")
+            prudenziale = next((ctx.termini_lunghi_prudenziali[oid] for oid in (sentenza.id, *sentenza.copie)
+                                if oid in ctx.termini_lunghi_prudenziali), "")
+            motivo = ("Reperire nel registro telematico la data di pubblicazione della sentenza.")
+            riferimenti = ("cpc_133", "cpc_327")
+            if ctx.rito.codice == "lavoro":
+                motivo += " Nel rito del lavoro vale anche il verbale firmato che documenta la lettura del dispositivo e della motivazione."
+                riferimenti += ("cpc_429",)
+            if prudenziale:
+                motivo = f"Agenda: {data_it(prudenziale)} come data prudenziale dalla decisione. {motivo}"
             risultato.append(Conclusione(
                 "termine_impugnazione", "Verificare la pubblicazione della sentenza per stabilire il termine lungo",
-                fonte, norme("cpc_133", "cpc_327"), "verificare la pubblicazione nel registro di cancelleria",
+                fonte, norme(*riferimenti), "verificare la pubblicazione nel registro di cancelleria",
                 "dalla pubblicazione decorre il termine lungo per impugnare", "dubbio", motivo,
                 onerato="tutte_le_parti",
                 motivo_senza_termine="La data ufficiale di deposito è necessaria per il computo.",
@@ -239,4 +385,4 @@ def conclusioni_sentenza(ctx: Contesto) -> list[Conclusione]:
     return risultato
 
 
-__all__ = ["conclusioni_sentenza", "data_pubblicazione"]
+__all__ = ["conclusioni_sentenza", "data_pubblicazione", "termini_lunghi_prudenziali"]

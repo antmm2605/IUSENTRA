@@ -12,6 +12,7 @@ Il giorno di riferimento è quello di Roma (``pct.ora_italiana.oggi_roma``).
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date
 from typing import Any
 
@@ -22,21 +23,33 @@ APERTA = "aperta"
 SCADUTA = "scaduta"
 ESITO_UDIENZA = "esito_udienza"
 STORICA = "storica"
+MARCATORE_FONTE_ESTRANEA = "RETTIFICA_FONTE_ALTRO_RUOLO"
 
 
 def _valore(oggetto: Any, nome: str) -> str:
-    valore = getattr(oggetto, nome, "")
+    valore = oggetto.get(nome, "") if isinstance(oggetto, Mapping) else getattr(oggetto, nome, "")
     return str(getattr(valore, "value", valore) or "")
+
+
+def annullata_per_fonte_estranea(scadenza: Any) -> bool:
+    """Distingue la rettifica della fonte da una proposta scartata dall'avvocato."""
+    return _valore(scadenza, "stato").upper() == "ANNULLATO" and any(
+        riga.startswith(f"{MARCATORE_FONTE_ESTRANEA}:") for riga in _valore(scadenza, "note").splitlines()
+    )
 
 
 def _giorno(scadenza: Any) -> date | None:
     calendario = getattr(scadenza, "data_calendario_obj", None)
     if isinstance(calendario, date):
         return calendario
+    valore = _valore(scadenza, "data_scadenza") or _valore(scadenza, "data")
     try:
-        return date.fromisoformat(_valore(scadenza, "data_scadenza")[:10])
+        return date.fromisoformat(valore[:10])
     except ValueError:
-        return None
+        from pct.formatting import parse_datetime_rome
+
+        data = parse_datetime_rome(valore)
+        return data.date() if data else None
 
 
 def data_termine_corrente(scadenza: Any) -> str:

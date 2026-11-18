@@ -157,7 +157,15 @@ def conformita_ed_economico(lettura: dict[str, Any]) -> list[str]:
         liquidazione = economico.get("liquidazione") or {}
         if economico.get("liquidato"):
             esito = {"incassata": "bonificata sul conto dello studio", "parziale": f"incassata solo in parte ({economico.get('incassato_it')})", "non_incassata": "non ancora bonificata sul conto dello studio"}.get(economico.get("liquidazione_incasso", ""), "")
-            righe.append(f"- Liquidazione del giudice: {economico['liquidato_it']}" + (f" (sentenza del {liquidazione['data']})" if liquidazione.get("data") else "") + (f", {liquidazione['stato_etichetta'].lower()} nel presidio" if liquidazione.get("stato_etichetta") else "") + (f"; {esito}" if esito else "") + ".")
+            titolo = f"- Liquidazione del giudice: {economico['liquidato_it']}"
+            if liquidazione.get("stato") == "letta" and liquidazione.get("fonte_href"):
+                titolo += f" ({liquidazione['fonte']})"
+            else:
+                if liquidazione.get("data"):
+                    titolo += f" (sentenza del {liquidazione['data']})"
+                if liquidazione.get("stato_etichetta"):
+                    titolo += f", {liquidazione['stato_etichetta'].lower()} nel presidio"
+            righe.append(titolo + (f"; {esito}" if esito else "") + ".")
         if economico.get("bonifici"):
             righe.append(f"- Bonifici ricevuti: {len(economico['bonifici'])} per {economico['incassato_bonifico_it']} (" + elenco([f"{voce['numero'] or 'senza numero'} il {voce['pagata_il'] or 'data non registrata'}" for voce in economico["bonifici"][:3]]) + ").")
         if float(economico.get("anticipazioni_da_recuperare") or 0) > 0:

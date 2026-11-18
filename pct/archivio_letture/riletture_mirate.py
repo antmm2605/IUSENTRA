@@ -27,6 +27,7 @@ REGOLA_NOTE_ANTECEDENTI = "note-antecedenti:v1"
 REGOLA_RUOLO_ALLEGATO = "ruolo-allegato-pec:v1"
 #: le premesse che richiamano l'art. 127-ter non dispongono le note (termine_scritto.dispone_note_scritte)
 REGOLA_PREMESSE_127_TER = "premesse-127ter:v1"
+REGOLA_IDENTITA_LIQUIDAZIONE = "identita-liquidazione:v1"
 
 _RE_127_TER = re.compile(r"127\W{0,3}ter|trattazione\s+scritta|note\s+(?:scritte|in\s+sost)", re.I)
 _RE_ELENCO_RUOLI = re.compile(r"\d{1,6}\s*/\s*\d{2,4}(?:\s*\+\s*sub\.?\s*\d+)?\s*[;,]\s*(?:n\.?\s*)?\d{1,6}\s*/\s*\d{2,4}", re.I)
@@ -83,9 +84,14 @@ def oggetti_da_rileggere(
             for f in elenco
         ):
             motivo = "trattazione scritta: verificare che il provvedimento disponga le note e non le richiami solo in premessa"
+        if not motivo and REGOLA_IDENTITA_LIQUIDAZIONE not in versione and any(
+            f.categoria == "importo" and f.campo == "liquidazione_giudice"
+            and f.verifica in {"verificata", "corretta", "plausibile"} for f in elenco
+        ):
+            motivo = "liquidazione giudiziale: verificare se le fonti riproducono lo stesso dispositivo"
         if motivo:
             esito[chiave] = motivo
     return esito
 
 
-__all__ = ["REGOLA_PREMESSE_127_TER", "REGOLE_TERMINE_SCRITTO", "motivo_rilettura", "oggetti_da_rileggere"]
+__all__ = ["REGOLA_IDENTITA_LIQUIDAZIONE", "REGOLA_PREMESSE_127_TER", "REGOLE_TERMINE_SCRITTO", "motivo_rilettura", "oggetti_da_rileggere"]

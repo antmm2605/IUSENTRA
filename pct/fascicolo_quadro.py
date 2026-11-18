@@ -116,8 +116,9 @@ def riga_economia(contributo: Mapping[str, Any] | None, righe_conto: Iterable[Ma
     stato_parcella = _testo(parcella.get("stato"))
     spese_compensate = sentenza.get("stato") == "Spese compensate"
     if stato_parcella and not ((spese_da_verificare or spese_compensate) and stato_parcella == "Da preparare"):
-        parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
         attenzione = attenzione or (stato_parcella == "Da preparare" and bool(sentenza.get("importo")))
+        if not (stato_parcella == "Da preparare" and prossimo_economico and attenzione):
+            parti.append(_PARCELLA.get(stato_parcella, f"parcella: {stato_parcella.lower()}"))
     testo = " · ".join(p for p in parti if p)
     if prossimo_economico and attenzione:
         testo += f". {prossimo_economico}"
@@ -209,7 +210,8 @@ def riga_documenti(totale: int, da_classificare: int | None, pec: Mapping[str, A
     if da_confermare:
         parti.append(f"{da_confermare} PEC da confermare")
     collegate = int(pec.get("collegate") or 0)
-    parti.append(f"{collegate} PEC collegat{'a' if collegate == 1 else 'e'}")
+    if collegate:
+        parti.append(f"{collegate} PEC collegat{'a' if collegate == 1 else 'e'} dalla casella")
     livello = "attenzione" if da_confermare or da_classificare else "ok"
     return riga("documenti", " · ".join(parti), livello)
 

@@ -36,6 +36,7 @@ class FontiTenant:
     studio_db: str
     registro_db: str
     file: tuple[str, ...] = field(default_factory=tuple)
+    pec_db: str = ""
 
 
 def giorno_roma(adesso: datetime | None = None) -> str:
@@ -84,7 +85,7 @@ def componenti(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versi
     registro = revisioni_database(fonti.registro_db, fascicolo_id)
     if studio is None or registro is None:
         return None
-    return {
+    parti = {
         "versione": str(versione),
         "giorno": giorno_roma(adesso),
         "generazione": int(generazione),
@@ -92,12 +93,27 @@ def componenti(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versi
         "registro": [registro[0], registro[1], list(registro[2])],
         "file": [list(stato_file(p)) for p in sorted(set(fonti.file))],
     }
+    if fonti.pec_db:
+        pec = revisioni_database(fonti.pec_db, fascicolo_id)
+        if pec is None:
+            # Compatibilità con un archivio che deve ancora ricevere i trigger.
+            parti["file"].append(list(stato_file(fonti.pec_db)))
+            parti["file"].sort()
+        else:
+            parti["pec"] = [pec[0], pec[1], list(pec[2])]
+    return parti
+
+
+def impronta_componenti(parti: dict | None, *, dipende_dal_giorno: bool = True) -> str | None:
+    if parti is None:
+        return None
+    if not dipende_dal_giorno:
+        parti = {nome: valore for nome, valore in parti.items() if nome != "giorno"}
+    grezzo = json.dumps(parti, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(grezzo.encode("utf-8")).hexdigest()
 
 
 def impronta(fonti: FontiTenant, fascicolo_id: str, *, generazione: int, versione: str,
-             adesso: datetime | None = None) -> str | None:
+             adesso: datetime | None = None, dipende_dal_giorno: bool = True) -> str | None:
     parti = componenti(fonti, fascicolo_id, generazione=generazione, versione=versione, adesso=adesso)
-    if parti is None:
-        return None
-    grezzo = json.dumps(parti, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(grezzo.encode("utf-8")).hexdigest()
+    return impronta_componenti(parti, dipende_dal_giorno=dipende_dal_giorno)

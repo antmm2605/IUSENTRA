@@ -33,6 +33,8 @@ class Contesto:
     # I fascicoli della stessa vicenda (FontiCausa.collegati), per il titolo esecutivo e il precetto (collegamenti).
     collegati: list[dict] = field(default_factory=list)
     collegamenti_trovati: list[dict] = field(default_factory=list)
+    prove_notifiche_storiche: dict[str, dict] = field(default_factory=dict)
+    termini_lunghi_prudenziali: dict[str, str] = field(default_factory=dict)
 
     def atto(self, oggetto_id: str) -> Atto | None:
         return next((a for a in self.atti if a.id == oggetto_id), None)

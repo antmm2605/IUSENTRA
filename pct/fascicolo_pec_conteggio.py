@@ -25,10 +25,10 @@ def _quante(valore: Any) -> int:
 def conteggio_pec(pec_letto: Mapping[str, Any] | None, verifiche: Mapping[str, Any] | None = None) -> dict[str, Any]:
     pec_letto = pec_letto or {}
     esito_pec = dict(((verifiche or {}).get("esiti") or {}).get("pec") or {})
-    collegate = _quante(pec_letto.get("totale"))
+    collegate = _quante(pec_letto.get("collegate", pec_letto.get("totale")))
     da_controllare = _quante(pec_letto.get("da_controllare"))
     da_confermare = _quante(esito_pec.get("da_confermare"))
-    parti = [f"{collegate} {'PEC collegata' if collegate == 1 else 'PEC collegate'} al fascicolo"]
+    parti = [f"{collegate} {'PEC collegata' if collegate == 1 else 'PEC collegate'} dalla casella"]
     if da_controllare:
         parti.append(f"{da_controllare} da controllare")
     if da_confermare:

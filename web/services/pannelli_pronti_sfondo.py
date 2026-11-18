@@ -18,16 +18,18 @@ from urllib.parse import urlsplit
 
 from pct.pannelli_pronti import impronta as impronta_fonti
 from pct.pannelli_pronti.archivio import ArchivioPannelli
-from web.services.pannelli_pronti_catalogo import PANNELLI, PRIMA_APERTURA, VERSIONE_PANNELLI
+from web.services.pannelli_pronti_catalogo import (
+    PANNELLI, PANNELLI_SENZA_DATA_DI_CONSULTAZIONE, PRIMA_APERTURA, VERSIONE_PANNELLI, impronta_del_pannello,
+)
 
 logger = logging.getLogger(__name__)
 ORE_APERTURA_RECENTE = 72.0
 MINUTI_ATTESA_LETTURA = 5.0
-PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro", "obblighi-notifica", "scadenze")
+PANNELLI_PRIORITARI = ("lettura", "passaggi", "conto-economico", "quadro", "obblighi-notifica", "scadenze")
 _NOMI_PANNELLI = frozenset(pannello.nome for pannello in PANNELLI)
 # I pannelli che leggono la Lettura o la sintesi delle notifiche seguono le loro fonti.
 _ORDINE = {nome: indice for indice, nome in enumerate(dict.fromkeys(
-    ["dettaglio", "lettura", "passaggi", "obblighi-notifica", "quadro", "scadenze", "documenti", "regia"]
+    ["dettaglio", "lettura", "passaggi", "conto-economico", "obblighi-notifica", "quadro", "scadenze", "documenti", "regia"]
     + [p.nome for p in PANNELLI]))}
 
 
@@ -72,10 +74,12 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
         in_attesa = archivio.fascicoli_in_attesa_di_lettura(minuti=MINUTI_ATTESA_LETTURA, pannelli=PANNELLI_PRIORITARI)
         fascicoli = in_attesa if solo_pannelli_prioritari else dict.fromkeys([*in_attesa, *archivio.fascicoli_aperti_dal(ore)])
     for fascicolo_id in fascicoli:
-        attuale = impronta_fonti.impronta(fonti, fascicolo_id, generazione=archivio.generazione(fascicolo_id),
-                                          versione=VERSIONE_PANNELLI)
-        if attuale is None:
+        componenti = impronta_fonti.componenti(fonti, fascicolo_id, generazione=archivio.generazione(fascicolo_id),
+                                               versione=VERSIONE_PANNELLI)
+        if componenti is None:
             return []  # trigger non preparati: nessun pannello si salva, niente da ricalcolare
+        per_giorno = impronta_fonti.impronta_componenti(componenti)
+        senza_giorno = impronta_fonti.impronta_componenti(componenti, dipende_dal_giorno=False)
         inizio = len(risultato)
         voci = archivio.voci_del_fascicolo(fascicolo_id)
         # Una vecchia versione della chiave può convivere con quella attuale.
@@ -90,7 +94,9 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
                 continue
             chiave_attuale = _chiave_pannello(fascicolo_id, pannello, urlsplit(percorso).query, profilo)
             impronta_salvata, tentata = stati.get(chiave_attuale, precedente)
-            if impronta_salvata != attuale and tentata != attuale:
+            attuale = senza_giorno if pannello in PANNELLI_SENZA_DATA_DI_CONSULTAZIONE else per_giorno
+            attesa = impronta_del_pannello(pannello, attuale)
+            if impronta_salvata != attesa and tentata != attesa:
                 risultato.append(DaRicalcolare(fascicolo_id, pannello, percorso, profilo,
                                                "mai calcolato" if not impronta_salvata else "fonti cambiate"))
         if solo_pannelli_prioritari:
@@ -101,7 +107,9 @@ def da_ricalcolare(archivio: ArchivioPannelli, fonti: impronta_fonti.FontiTenant
         for profilo in archivio.profili_del_fascicolo(fascicolo_id):
             for pannello in PRIMA_APERTURA:
                 percorso = pannello.percorso.format(fid=fascicolo_id)
-                if (pannello.nome, profilo) not in presenti:
+                gia_richiesto = ((pannello.nome, percorso, profilo) in per_richiesta if urlsplit(percorso).query
+                                 else (pannello.nome, profilo) in presenti)
+                if not gia_richiesto:
                     risultato.append(DaRicalcolare(fascicolo_id, pannello.nome, percorso, profilo, "prima apertura"))
         risultato[inizio:] = sorted(
             risultato[inizio:],

@@ -74,9 +74,9 @@ def clean_pec_source_name(value: Any, *, limit: int = 140) -> str:
 def is_generic_pec_source_label(value: Any) -> bool:
     """Riconosce etichette tecniche interne della PEC, non nomi di allegato."""
 
-    text = re.sub(r"\s+", " ", str(value or "").strip()).casefold()
+    text = re.sub(r"\s+", " ", str(value or "").strip()).casefold().rstrip(".")
     return text in GENERIC_PEC_SOURCE_LABELS or bool(
-        re.fullmatch(r"comunicazione di cancelleria(?: \([^()]+\))?", text)
+        re.fullmatch(r"comunicazione di cancelleria(?: \([^()]+\))?|decreto ex art\.?\s+127[ -]ter c\.p\.c", text)
     )
 
 
@@ -252,6 +252,9 @@ def pec_audit_message_id(item: Any) -> str:
         context = item
         external_source_url = ""
     else:
+        source_message_id = normalize_pec_audit_message_id(getattr(item, "source_message_id", ""))
+        if source_message_id and not source_message_id.casefold().startswith("docpresidio:"):
+            return source_message_id
         context = "\n".join(
             str(getattr(item, key, "") or "")
             for key in ("note", "descrizione", "titolo", "external_uid", "dedupe_key", "event_uid")

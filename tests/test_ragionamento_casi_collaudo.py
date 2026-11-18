@@ -695,7 +695,10 @@ def test_tar_ottemperanza_legge_il_proprio_dispositivo_e_usa_il_cpa():
     fascicolo = {"tipo": "AMMINISTRATIVO", "tribunale": "TAR Calabria", "numero_rg": "425", "anno_rg": "2025"}
     causa = ragiona(fonti(fascicolo, [doc("TAR", "sentenza.pdf", "provvedimento", "Sentenza", testo)]))
     termine = conclusione(causa, "termine_impugnazione")
-    assert termine.termine is None and termine.stato == "non_dovuto"
+    # La pronuncia di improcedibilità resta impugnabile (art. 92 c.p.a.): senza pubblicazione o notifica provata il
+    # termine non si calcola, ma la verifica resta aperta (versione dell'8080, 18/11/2026).
+    assert termine.termine is None and termine.stato == "dubbio"
+    assert [d.codice for d in termine.dubbi] == ["decorrenza_impugnazione_pat"]
     assert "art. 92 c.p.a." in norme_di(termine)
     assert not any("c.p.c." in norma for norma in norme_di(termine))
     assert "sopravvenuto difetto di interesse" in conclusione(causa, "esito_rito").cosa

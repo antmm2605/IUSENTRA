@@ -44,8 +44,8 @@ def chiavi_cliente(nome_cliente: str) -> list[str]:
 
 
 def _corrispondenza(riga: dict[str, Any], fascicolo_id: str, ruolo: list[str], cliente: list[str]) -> str:
-    if _clean(riga.get("linked_fascicolo_id")) == fascicolo_id:
-        return "collegamento"
+    if collegata := _clean(riga.get("linked_fascicolo_id")):
+        return "collegamento" if collegata == fascicolo_id else ""
     testo = _clean(riga.get("metadata_json")).lower()
     if any(re.search(rf"(?<!\d){re.escape(chiave.lower())}(?!\d)", testo) for chiave in ruolo):
         return "rg"
@@ -57,10 +57,12 @@ def _corrispondenza(riga: dict[str, Any], fascicolo_id: str, ruolo: list[str], c
 def _messaggi(conn: sqlite3.Connection, tenant_id: str, fascicolo_id: str, ruolo: list[str], cliente: list[str], limit: int) -> list[dict[str, Any]]:
     condizioni = ["linked_fascicolo_id=?"]
     params: list[Any] = [tenant_id, fascicolo_id]
-    for chiave in ruolo + cliente:
-        condizioni.append("metadata_json LIKE ?")
-        params.append(f"%{chiave}%")
-    solo_collegate = not (ruolo or cliente)
+    chiavi = ruolo + cliente
+    if chiavi:
+        confronti = " OR ".join("metadata_json LIKE ?" for _ in chiavi)
+        condizioni.append(f"(COALESCE(linked_fascicolo_id, '')='' AND ({confronti}))")
+        params.extend(f"%{chiave}%" for chiave in chiavi)
+    solo_collegate = not chiavi
     # Con il solo collegamento, l'indice della casella può visitare tutte le PEC dello studio.
     indice = " INDEXED BY idx_pec_messages_fascicolo_received" if solo_collegate else ""
     query = (
@@ -84,22 +86,35 @@ def _per_messaggio(conn: sqlite3.Connection, tenant_id: str, ids: list[str]) -> 
     if not ids:
         return eventi, termini, udienze
     segnaposto = ",".join("?" for _ in ids)
-    for row in conn.execute(
-        f"SELECT id, message_id, primary_event, family, priority, human_review_required FROM pec_legal_events WHERE tenant_id=? AND message_id IN ({segnaposto})",
+    correnti = conn.execute(
+        "SELECT e.id, e.message_id, e.primary_event, e.family, e.priority, "
+        "json_extract(e.event_json, '$.classification.authoritative_event_source') AS fonte_evento, "
+        "EXISTS (SELECT 1 FROM json_each(e.event_json, '$.classification.events') "
+        "WHERE value = 'richiesta_autocertificazione_contributo_unificato') AS richiesta_autocertificazione_cu, "
+        "CASE WHEN json_extract(e.event_json, '$.classification.authoritative_event_source') = 'Comunicazione.xml' "
+        "THEN 0 ELSE e.human_review_required END AS human_review_required "
+        f"FROM pec_legal_events e WHERE e.tenant_id=? AND e.message_id IN ({segnaposto}) "
+        "AND e.rowid = (SELECT v.rowid FROM pec_legal_events v WHERE v.tenant_id=e.tenant_id AND v.message_id=e.message_id "
+        "ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1)",
         (tenant_id, *ids),
-    ).fetchall():
+    ).fetchall()
+    for row in correnti:
         eventi.setdefault(row["message_id"], []).append(dict(row))
+    if not correnti:
+        return eventi, termini, udienze
+    id_eventi = [row["id"] for row in correnti]
+    segnaposto_eventi = ",".join("?" for _ in id_eventi)
     for row in conn.execute(
         "SELECT d.id, d.deadline_type, d.norm_ref, d.dies_a_quo_date, d.peremptory, d.deterministic_status, d.scadenziario_id, "
         "d.human_review_required, d.duration_value, d.duration_unit, d.direction, e.message_id FROM pec_legal_deadlines d JOIN pec_legal_events e ON e.id=d.legal_event_id AND e.tenant_id=d.tenant_id "
-        f"WHERE d.tenant_id=? AND e.message_id IN ({segnaposto})",
-        (tenant_id, *ids),
+        f"WHERE d.tenant_id=? AND d.legal_event_id IN ({segnaposto_eventi})",
+        (tenant_id, *id_eventi),
     ).fetchall():
         termini.setdefault(row["message_id"], []).append(dict(row))
     for row in conn.execute(
         "SELECT h.id, h.hearing_date, h.hearing_time, h.mode, h.agenda_id, h.human_review_required, e.message_id "
-        f"FROM pec_legal_hearings h JOIN pec_legal_events e ON e.id=h.legal_event_id WHERE h.tenant_id=? AND e.message_id IN ({segnaposto})",
-        (tenant_id, *ids),
+        f"FROM pec_legal_hearings h JOIN pec_legal_events e ON e.id=h.legal_event_id WHERE h.tenant_id=? AND h.legal_event_id IN ({segnaposto_eventi})",
+        (tenant_id, *id_eventi),
     ).fetchall():
         udienze.setdefault(row["message_id"], []).append(dict(row))
     return eventi, termini, udienze

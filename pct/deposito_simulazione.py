@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import html
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
@@ -55,7 +56,7 @@ def is_simulated_deposit(deposito: Any) -> bool:
     """Riconosce depositi creati dal percorso di prova o da vecchie prove Demo."""
 
     text = " ".join(
-        str(getattr(deposito, field, "") or "")
+        str((deposito.get(field) if isinstance(deposito, Mapping) else getattr(deposito, field, "")) or "")
         for field in ("note", "messaggio", "pec_destinatario", "registrato_da")
     ).casefold()
     return any(marker.casefold() in text for marker in _SIMULATION_MARKERS)

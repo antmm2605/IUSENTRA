@@ -2,7 +2,8 @@
 from __future__ import annotations
 import re
 from typing import Any, Iterable
-from pct.atto_della_causa import CARATTERI_INTESTAZIONE
+from pct.atto_della_causa import CARATTERI_INTESTAZIONE, ruoli_in_intestazione
+from pct.ragionamento.testo import rg_normale
 from pct.registro_letture.fatti_repository import Fatto
 
 _ALLEGATO_EMAIL = re.compile(r"(?im)^\[Allegato:[^\]\r\n]+\][ \t]*$")
@@ -223,13 +224,16 @@ def natura_documentale(testo: str, numero_rg: str = "", anno_rg: str = "", uffic
         and not _nomina_difensore_penale(head)
     ):
         return "procura", "Formula di conferimento della rappresentanza processuale riconosciuta nel contenuto."
-    judicial = re.search(r"(?:REPUBBLICA ITALIANA|TRIBUNALE.{0,90}(?:VERBALE|ORDINANZA|SENTENZA))", head[:450], re.I)
+    judicial = re.search(
+        r"(?:REPUBBLICA ITALIANA|TRIBUNALE.{0,90}(?:VERBALE|ORDINANZA|SENTENZA|DECRETO))",
+        head[:450], re.I,
+    )
     if judicial and numero_rg and anno_rg:
-        patterns = [r"(?:VERBALE DELLA CAUSA|numero registro generale|ruolo generale|procedimento.{0,65}iscritto al|causa.{0,40}iscritta al)\s*(?:n\.?|numero)?\s*(?:r\.?\s*g\.?\s*)?(\d+)\s*/\s*(\d{4})", r"(?<![A-Za-z])(?:R\.?\s*G\.?|NRG)\s*(?:n\.?)?\s*(\d+)\s*/\s*(\d{4})"]
-        matches = sorted((m.start(), f"{int(m.group(1))}/{m.group(2)}") for pat in patterns for m in re.finditer(pat, head, re.I))
-        atteso = f"{int(numero_rg)}/{anno_rg}" if str(numero_rg).isdigit() else ""
-        if matches and matches[0][1] != atteso:
-            return "precedente_giurisprudenziale", f"L'intestazione identifica il procedimento {matches[0][1]}, diverso dal fascicolo {atteso}."
+        atteso = rg_normale(numero_rg, anno_rg)
+        ruoli = {rg_normale(numero, anno) for numero, anno in ruoli_in_intestazione(head)} - {""}
+        if atteso and len(ruoli) == 1 and atteso not in ruoli:
+            (letto,) = ruoli
+            return "precedente_giurisprudenziale", f"L'intestazione identifica il procedimento {letto}, diverso dal fascicolo {atteso}."
         # Una sentenza di un altro ufficio, anche con il numero di ruolo
         # oscurato («n. XXX/2022 R.G.»): se non cita né l'ufficio né il ruolo
         # del fascicolo, e' giurisprudenza prodotta, non un provvedimento della causa.

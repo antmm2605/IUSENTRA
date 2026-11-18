@@ -132,6 +132,15 @@ class NotificationPresidioTransitionMixin:
                 self._verifica_rettifica_fascicolo_pec(conn, presidio, str(evidence["presidio_corretto_id"]))
             if not rettifica or previous != PresidioStatus.PROOF_DEPOSITED:
                 validate_transition(previous.value, target.value, reason=reason)
+            ruolo_estraneo = target == PresidioStatus.CANCELLED and (evidence or {}).get("source") == "frontespizio_e_allegato_pec"
+            if ruolo_estraneo:
+                invii = conn.execute(
+                    "SELECT 1 FROM pec_legal_notification_recipients WHERE tenant_id=? AND presidio_id=? "
+                    "AND (sent_message_id<>'' OR rac_message_id<>'' OR rdac_message_id<>'' OR failure_message_id<>'')",
+                    (self.tenant_id, presidio_id),
+                ).fetchone()
+                if invii or presidio.get("confirmed_at"):
+                    raise ValueError("Il presidio ha già una conferma, un invio o una ricevuta.")
             if target == PresidioStatus.PROOF_DEPOSITED:
                 fascicolo_pec = self._fascicolo_pec(conn, str(presidio["source_message_id"]))
                 if fascicolo_pec and fascicolo_pec != presidio["fascicolo_id"]:
@@ -191,4 +200,9 @@ class NotificationPresidioTransitionMixin:
             ).fetchone()
             if updated is None:
                 raise RuntimeError("Conflitto concorrente durante la transizione del presidio")
+            if ruolo_estraneo:
+                conn.execute(
+                    "UPDATE pec_legal_notification_presidia SET resolution_code=?, resolution_reason=? WHERE tenant_id=? AND id=?",
+                    ("PROVVEDIMENTO_ALTRO_RUOLO", reason, self.tenant_id, presidio_id),
+                )
             return result

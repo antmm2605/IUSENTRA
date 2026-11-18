@@ -21,7 +21,7 @@ from typing import Any, Iterable
 from pct.atto_della_causa import provvedimento_della_causa, ruoli_in_intestazione
 from pct.decreto_fissazione_lavoro import ETICHETTA as ETICHETTA_DECRETO_415, e_decreto_fissazione_lavoro
 
-from pct.archivio_letture.copie_atti import messaggio_strutturato
+from pct.archivio_letture.copie_atti import identita_dispositivo_sentenza, messaggio_strutturato
 
 from .modello import Atto
 from .testo import date_nel_testo, giorno, pulito, rg_normale, ruoli_nel_testo, semplice
@@ -108,6 +108,8 @@ def firmato_dal_giudice(testo: str) -> bool:
 
 
 def _autore(natura: str, etichetta: str, testo: str, dello_studio: bool) -> str:
+    if natura == "certificato_cancelleria":
+        return "cancelleria"
     if natura in NATURE_GIUDICE or "sentenza" in etichetta or "decreto" in etichetta or "ordinanza" in etichetta:
         return "giudice"
     if natura in NATURE_DI_PARTE:
@@ -117,9 +119,6 @@ def _autore(natura: str, etichetta: str, testo: str, dello_studio: bool) -> str:
             return "cancelleria"
         return "studio" if dello_studio else "terzo"
     return "studio" if dello_studio else "ignoto"
-
-
-_ENFASI_TESTO_ESTRATTO = re.compile(r"(?<![\w*])(\*{1,2})([^\s*](?:[^*\n]*[^\s*])?)\1(?![\w*])")
 
 
 def priorita_fonte_sentenza(atto: Atto) -> tuple[bool, bool]:
@@ -133,20 +132,18 @@ def priorita_fonte_sentenza(atto: Atto) -> tuple[bool, bool]:
 
 
 def _copie_della_sentenza(atti: list[Atto]) -> None:
-    from pct.percorso_pratica.esito import dispositivo
-    from pct.termine_lungo_sentenza import data_decisione, numero_sentenza
+    from pct.termine_lungo_sentenza import data_decisione
 
     gruppi: dict[tuple[str, str, str], list[tuple[Atto, str]]] = {}
     for atto in atti:
         if not atto.sentenza or atto.appartenenza != "causa" or not atto.rg:
             continue
         decisione = data_decisione(atto.testo)
-        testo_decisione = semplice(_ENFASI_TESTO_ESTRATTO.sub(r"\2", dispositivo(atto.testo)))
-        if len(testo_decisione.split()) < 30:
+        impronta, numero = identita_dispositivo_sentenza(atto.testo)
+        if not impronta:
             continue
-        numero = numero_sentenza(atto.testo[:1200])
         if decisione:
-            chiave = atto.rg, decisione.isoformat(), testo_decisione
+            chiave = atto.rg, decisione.isoformat(), impronta
         elif numero and len(atto.testo) >= 1000:
             # Se manca la data di decisione, servono lo stesso numero e l'intero testo identico.
             chiave = atto.rg, numero, sha256(atto.testo.encode()).hexdigest()
@@ -198,12 +195,16 @@ def leggi_atti(documenti: Iterable[dict[str, Any]], fatti: list[dict[str, Any]],
             if della_causa is False:
                 appartenenza, motivo = "contorno", perche
         impronte = [str(f.get("valore")) for f in letti if f.get("campo") == "impronta_testo_atto"]
+        timbri = {pulito(f.get("valore")) for f in letti if f.get("campo") == "pubblicazione_pat"
+                  and f.get("sha256") and f["sha256"] == documento.get("sha256")}
         atti.append(Atto(
             id=oid, nome=pulito(documento.get("nome")), natura=natura, etichetta=etichetta_mostrata,
             autore=autore, data=data if giorno(data) else "", rg=rg_causa if rg_causa in ruoli else (ruoli[0] if ruoli else ""),
             appartenenza=appartenenza, motivo_appartenenza=motivo, dello_studio=dello_studio, testo=testo,
             copie=sorted({c for i in impronte for c in copie.get(i, []) if c != oid}),
-            sentenza=autore == "giudice" and bool(_SENTENZA.search(etichetta)),
+            pubblicazione_pat=next(iter(timbri)) if len(timbri) == 1 else "",
+            sentenza=autore == "giudice" and (bool(_SENTENZA.match(etichetta))
+                       or natura in NATURE_GIUDICE and bool(_SENTENZA.search(etichetta))),
         ))
     _copie_della_sentenza(atti)
     return atti

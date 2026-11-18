@@ -26,6 +26,7 @@ from typing import Any
 from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, termine_equivalente
 from pct.pec_change_receipt import date_it
 from pct.procedura_fasi.fonti import norme as testo_norme
+from pct.scadenze_stato import annullata_per_fonte_estranea
 
 from .modello import EsitoProvvedimento, Voce
 
@@ -68,7 +69,8 @@ def scadenza_equivalente(scadenze: Iterable[Any], *, fascicolo_id: str, giorno: 
         return termine_equivalente(scadenze, fascicolo_id=fascicolo_id, giorno=giorno)
     for voce in scadenze or []:
         if (_testo(voce, "id_fascicolo") == fascicolo_id and _testo(voce, "data_scadenza")[:10] == giorno.isoformat()
-                and _testo(voce, "deadline_profile_code").upper() == codice.upper()):
+                and _testo(voce, "deadline_profile_code").upper() == codice.upper()
+                and not annullata_per_fonte_estranea(voce)):
             return voce
     return None
 
@@ -82,6 +84,9 @@ def _nota(voce: Voce) -> str:
 
 def termine_proposto(voce: Voce) -> TermineProposto:
     campi = dict(voce.campi_scadenza)
+    if voce.prova:
+        campi.setdefault("source_snippet", voce.prova)
+        campi.setdefault("source_snippet_label", "Dal provvedimento")
     if voce.id_appuntamento:
         campi.setdefault("id_appuntamento", voce.id_appuntamento)
     if voce.ora and "operational_due_at" not in campi and voce.giorno is not None:

@@ -11,14 +11,21 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
-from datetime import date
+from datetime import date, datetime
 from typing import Any
+
+from pct.note_127_ter.proposta import CODICE_NOTE_127_TER, TITOLO_NOTE_127_TER
 
 #: riferimenti alla PEC d'origine scritti dalla pipeline nelle note di scadenze e appuntamenti
 _RE_PEC = re.compile(r"\b(?:PEC_AUDIT|PEC_TERMINE_PROPOSTO|PEC_RICEZIONE|PEC_TERMINE):(pec_[A-Za-z0-9]+)")
 _RE_FASCICOLO = re.compile(r"^Fascicolo:\s*([A-Za-z0-9_-]{4,})\s*$", re.M)
 _RE_ATTIVITA = re.compile(r"^Attività per l'avvocato:\s*(.+)$", re.M)
 _RE_NOTIFICA = re.compile(r"IUSENTRA_LEGAL_NOTIFICATION:[\w-]+:([0-9a-f-]{8,})")
+_RE_COMPUTO_NOTE = re.compile(
+    r"Computo a giorni pieni (\d{2}/\d{2}/\d{4})\.\s*"
+    r"Data operativa prudenziale a giorni liberi (\d{2}/\d{2}/\d{4})\.",
+    re.I,
+)
 _BOZZA = "BOZZA"
 MARCATORE_PROPOSTA_DUPLICATA = "PEC_PROPOSTA_DUPLICATA_DI:"
 _MESI = ("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
@@ -164,12 +171,14 @@ def _ora(scadenza: Any) -> str:
     return "" if ora in ("", "00:00", "23:59") else ora
 
 
-def _spiegazione(note: str) -> str:
+def _spiegazione(note: str, *, computo_visibile: bool = False) -> str:
     """Il calcolo e la regola dalla nota della bozza, senza i marcatori tecnici."""
     righe = []
     for riga in str(note or "").splitlines():
         riga = riga.strip()
         if not riga or re.match(r"^(?:PEC_\w+|IUSENTRA_\w+):", riga) or riga.startswith("Regola "):
+            continue
+        if computo_visibile and riga.startswith(("Termine proposto:", "Proposta in bozza:")):
             continue
         riga = re.sub(r"^(?:Termine proposto|Calcolo|Nota):\s*", "", riga)
         righe.append(riga)
@@ -180,13 +189,29 @@ def voce_proposta(scadenza: Any) -> dict[str, Any]:
     """La proposta come la legge l'avvocato: che cosa, entro quando, perché, con le due azioni."""
     identificativo = _testo(scadenza, "id")
     ora = _ora(scadenza)
+    data = _testo(scadenza, "data_scadenza")[:10]
+    note = _testo(scadenza, "note")
+    titolo = _testo(scadenza, "titolo")
+    data_giorni_pieni = ""
+    sono_note = _testo(scadenza, "deadline_profile_code") == CODICE_NOTE_127_TER or titolo.startswith(TITOLO_NOTE_127_TER)
+    computo = _RE_COMPUTO_NOTE.search(note) if sono_note else None
+    if computo:
+        try:
+            pieni, liberi = (datetime.strptime(valore, "%d/%m/%Y").date() for valore in computo.groups())
+        except ValueError:
+            pass
+        else:
+            if liberi.isoformat() == data and liberi < pieni:
+                data_giorni_pieni = data_italiana(pieni.isoformat())
     return {
         "id": identificativo,
-        "titolo": re.sub(r"\s+[–-]\s+(?:RG|R\.G\.)\s+\S+.*$", "", _testo(scadenza, "titolo")),
-        "data": _testo(scadenza, "data_scadenza")[:10],
-        "dataEtichetta": data_italiana(_testo(scadenza, "data_scadenza")) + (f" ore {ora}" if ora else ""),
+        "titolo": re.sub(r"\s+[–-]\s+(?:RG|R\.G\.)\s+\S+.*$", "", titolo),
+        "data": data,
+        "dataEtichetta": data_italiana(data) + (f" ore {ora}" if ora else ""),
+        "dataGiorniPieni": data_giorni_pieni,
         "perentorio": bool(_campo(scadenza, "perentorio")),
-        "spiegazione": _spiegazione(_testo(scadenza, "note")),
+        "spiegazione": _spiegazione(_RE_COMPUTO_NOTE.sub("", note) if data_giorni_pieni else note,
+                                    computo_visibile=bool(data_giorni_pieni)),
         "confermaHref": f"/scadenziario/{identificativo}/conferma-proposta",
         "scartaHref": f"/scadenziario/{identificativo}/scarta-proposta",
     }

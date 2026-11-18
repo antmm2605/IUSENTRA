@@ -70,6 +70,7 @@ def registra_esiti(
     fascicolo_id: str,
     eventi: list[dict[str, Any]],
     oggi: date,
+    agenda: Any = None,
 ) -> int:
     """Chiude con la nota della fonte le udienze passate del fascicolo il cui esito è certo."""
     from pct.scadenze_stato import esito_udienza_da_registrare
@@ -92,7 +93,48 @@ def registra_esiti(
             note=f"{MARCATORE}:{esito['esito']}:{esito['data_fonte']}:{esito['fonte']}\n{esito['testo']}",
         )
         registrate += 1
+    if agenda is not None:
+        registrate += _registra_trattazioni_decise(agenda, voci, oggi)
     return registrate
+
+
+def _registra_trattazioni_decise(agenda: Any, scadenze: Iterable[Any], oggi: date) -> int:
+    """Aggiorna la voce automatica di Agenda che rappresenta il termine per le note."""
+    from pct.agenda import StatoAppuntamento, TipoAppuntamento
+    from pct.scadenze_stato import termine_note_in_sostituzione
+    from pct.scadenze_superate_sentenza import decisione_superante
+
+    riscontri = {}
+    for scadenza in scadenze:
+        pec = str(getattr(scadenza, "source_message_id", "") or "")
+        giorno = _giorno(getattr(scadenza, "data_scadenza", ""))
+        if (not pec or not termine_note_in_sostituzione(scadenza) or giorno is None or giorno > oggi
+                or getattr(getattr(scadenza, "stato", ""), "value", getattr(scadenza, "stato", "")) == "ANNULLATO"):
+            continue
+        if decisione := decisione_superante(scadenza, al_giorno=oggi):
+            riscontri[str(scadenza.id)] = (pec, giorno, scadenza.id_fascicolo, decisione)
+    if not riscontri:
+        return 0
+
+    completate = 0
+    for voce in agenda.tutti():
+        if (voce.tipo != TipoAppuntamento.UDIENZA
+                or voce.stato not in {StatoAppuntamento.PROGRAMMATO, StatoAppuntamento.CONFERMATO}):
+            continue
+        righe = {riga.strip() for riga in (voce.note or "").splitlines()}
+        riferimenti = {riga.removeprefix("Scadenza: ") for riga in righe if riga.startswith("Scadenza: ")}
+        if len(riferimenti) != 1 or (riscontro := riscontri.get(next(iter(riferimenti)))) is None:
+            continue
+        pec, giorno, fascicolo, (data_sentenza, documento) = riscontro
+        if (f"PEC_AUDIT:{pec}" not in righe or _giorno(voce.data_ora) != giorno
+                or (voce.id_fascicolo and voce.id_fascicolo != fascicolo)):
+            continue
+        nota = (f"{MARCATORE}:decisa:{data_sentenza}:{documento}\n"
+                f"Trattazione scritta conclusa dalla sentenza del {date.fromisoformat(data_sentenza):%d/%m/%Y}.")
+        agenda.modifica(voce.id, expected_version=agenda.revision_token(voce.id),
+                        stato=StatoAppuntamento.COMPLETATO, note=f"{voce.note.rstrip()}\n\n{nota}")
+        completate += 1
+    return completate
 
 
 __all__ = ["MARCATORE", "esito_dalle_fonti", "registra_esiti"]

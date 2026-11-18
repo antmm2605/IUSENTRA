@@ -260,7 +260,9 @@ def test_deposito_in_corso_lo_controlla_il_presidio_non_l_avvocato():
     dati.verifiche = {"eseguita_il": "2026-09-14T10:00:00+02:00", "eseguita_il_it": "14/09/2026 ore 10:00", "esiti": {"depositi": {"pendenti": 1, "esito": "controllate", "controllati": 1, "aggiornati": 0, "errori": 0}}}
     lettura = costruisci_lettura(dati)
     passo = next(passo for passo in lettura["prossimi_passi"] if passo["fonte"] == "presidio depositi")
-    assert passo["azione"] == "Deposito «Atto di citazione» senza esito da 13 giorni nonostante il controllo automatico delle ricevute"
+    # Testo della versione dell'8080 (18/11/2026): il riscontro si fa con il registro dell'ufficio.
+    assert passo["azione"] == "Deposito «Atto di citazione» senza riscontro da 13 giorni"
+    assert "registro dell’ufficio" in passo["motivo"]
     assert "controllo del 14/09/2026 ore 10:00" in passo["motivo"] and passo["urgenza"] == 1
     assert "ricevute controllate: 1 depositi controllati" in lettura["narrativa"]
 
@@ -592,7 +594,7 @@ def test_molti_depositi_fermi_dopo_il_controllo_diventano_un_solo_passo():
     lettura = costruisci_lettura(dati)
     passi = [passo for passo in lettura["prossimi_passi"] if passo["fonte"] == "presidio depositi"]
     assert len(passi) == 1
-    assert passi[0]["azione"] == "5 depositi senza esito della cancelleria dopo il controllo automatico delle ricevute"
+    assert passi[0]["azione"] == "Riscontrare 5 depositi con ricevute mancanti"
     assert "«Atto 5»" in passi[0]["motivo"]
     assert "5 depositi non hanno ancora l'accettazione della cancelleria" in lettura["lacune"]
 

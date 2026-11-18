@@ -30,14 +30,14 @@ from .regole.contesto import Contesto
 from .regole.economia import conclusione_contributo, conclusioni_economia
 from .regole.lavoro import conclusioni_lavoro
 from .regole.monitorio import conclusioni_monitorio
-from .regole.sentenza import conclusioni_sentenza
+from .regole.sentenza import conclusioni_sentenza, termini_lunghi_prudenziali
 from .regole.termini_assegnati import conclusioni_termini
 from .regole.titolo import conclusioni_titolo
 from .udienze_esito import esiti_udienze
 from .rito import determina_rito
 from .testo import pulito, rg_normale
 
-VERSIONE = "2026.11.18.ragionamento.v22-passi-urgenza-collegati-esenzioni"
+VERSIONE = "2026.11.18.ragionamento.v40-passi-urgenza-collegati-esenzioni+timbro-pat"
 ROMA = ZoneInfo("Europe/Rome")
 
 
@@ -45,6 +45,22 @@ def _rg(fonti: FontiCausa) -> tuple[str, str]:
     dal_fascicolo = rg_normale(fonti.fascicolo.get("numero_rg"), fonti.fascicolo.get("anno_rg"))
     if dal_fascicolo:
         return dal_fascicolo, "fascicolo"
+    if pulito(fonti.fascicolo.get("tipo")).casefold() == "amministrativo":
+        from types import SimpleNamespace
+
+        from pct.atto_della_causa import CARATTERI_INTESTAZIONE
+        from pct.pat_formweb.letture import dati_letti
+
+        from .atti import NATURE_GIUDICE
+
+        provvedimenti = {d["id"] for d in fonti.documenti if d.get("natura") in NATURE_GIUDICE}
+        ruolo = dati_letti(
+            SimpleNamespace(**f) for f in fonti.fatti
+            if f.get("oggetto_id") in provvedimenti and 0 <= int(f.get("posizione") or 0) < CARATTERI_INTESTAZIONE
+        ).get("nrg", {})
+        if ruolo.get("altri"):
+            return "", "discordante"
+        return (ruolo["rg"], "letto nell’intestazione del provvedimento amministrativo") if ruolo else ("", "")
     letti = {rg_normale(f.get("valore")) for f in fonti.fatti
              if f.get("campo") == "numero_ruolo" and f.get("verifica") in {"verificata", "corretta"}}
     letti.update(rg_normale(d.get("numero_rg")) for d in fonti.depositi if d.get("stato") == "ACCETTATO_CANCELLERIA")
@@ -68,9 +84,10 @@ def _posizione(atti, rito, depositi) -> str:
     return "ignota"
 
 
-def _riscontri_notifiche_storiche(fonti: FontiCausa) -> dict[str, tuple[str, str]]:
+def _riscontri_notifiche_storiche(fonti: FontiCausa) -> tuple[dict[str, tuple[str, str]], dict[str, dict]]:
     impronte = {str(d["id"]): str(d.get("sha256") or "").lower() for d in fonti.documenti}
     riscontri = {}
+    prove = {}
     for fatto in fonti.fatti:
         if fatto.get("campo") != "riscontro_notifica_pec_storica" or fatto.get("verifica") == "ignorata":
             continue
@@ -87,10 +104,11 @@ def _riscontri_notifiche_storiche(fonti: FontiCausa) -> dict[str, tuple[str, str
             if any(not impronta or impronte.get(oid) != impronta for oid, impronta in eml.items()):
                 continue
             allegati = set(prova.get("impronte_allegati") or ())
-            for oid, impronta in impronte.items():
-                if impronta and impronta in allegati:
-                    riscontri.setdefault(oid, (invio, str(prova.get("accettazione_data") or "")[:10]))
-    return riscontri
+            oggetti = frozenset(oid for oid, impronta in impronte.items() if impronta and impronta in allegati)
+            prove.setdefault(invio, {**prova, "documenti_allegati": oggetti})
+            for oid in oggetti:
+                riscontri.setdefault(oid, (invio, str(prova.get("accettazione_data") or "")[:10]))
+    return riscontri, prove
 
 
 def ragiona(fonti: FontiCausa) -> Causa:
@@ -120,12 +138,15 @@ def ragiona(fonti: FontiCausa) -> Causa:
             if not any(o.codice == ordine.codice and o.testo == ordine.testo for _a, o in ordini):
                 ordini.append((atto, ordine))
         errori.extend(lettura.errori_materiali)
+    notifiche_storiche, prove_notifiche_storiche = _riscontri_notifiche_storiche(fonti)
     ctx = Contesto(
         fascicolo_id=pulito(fonti.fascicolo.get("id")), rg=rg, ufficio=pulito(fonti.fascicolo.get("tribunale")), rito=rito,
         posizione=posizione, atti=atti, udienze=sorted(udienze, key=lambda u: u.data), termini=termini, ordini=ordini,
         notifiche=leggi_notifiche(atti), depositi=depositi, comunicazioni=comunicazioni(atti),
         oggi=oggi, fascicolo=dict(fonti.fascicolo), consegne_verificate=fonti.consegne_verificate,
-        notifiche_storiche=_riscontri_notifiche_storiche(fonti), collegati=list(fonti.collegati or []),
+        notifiche_storiche=notifiche_storiche, prove_notifiche_storiche=prove_notifiche_storiche,
+        termini_lunghi_prudenziali=termini_lunghi_prudenziali(atti, fonti.documenti, fonti.scadenze),
+        collegati=list(fonti.collegati or []),
     )
     conclusioni = conclusioni_termini(ctx) + conclusioni_lavoro(ctx) + conclusioni_monitorio(ctx) + conclusioni_sentenza(ctx)
     titolo, collegamenti_titolo = conclusioni_titolo(ctx)

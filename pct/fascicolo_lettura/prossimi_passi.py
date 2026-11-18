@@ -12,6 +12,7 @@ passaggi: la lettura lo dichiara invece di proporne.
 from __future__ import annotations
 
 import re
+from collections import Counter, defaultdict
 from typing import Any
 from urllib.parse import quote
 
@@ -131,11 +132,13 @@ def stato_passi(intestazione: dict[str, Any], documenti_letti: dict[str, Any] | 
         if impugnazioni:
             # Queste conclusioni contengono già le date e i dubbi vagliati dal motore.
             oggi_giorno = data_da(oggi)
-            aperti = sorted(giorno for voce in impugnazioni
-                            if (giorno := data_da((voce.get("termine") or {}).get("scadenza")))
-                            and oggi_giorno and giorno >= oggi_giorno)
+            aperti = [(giorno, voce.get("stato") == "dubbio") for voce in impugnazioni
+                      if (giorno := data_da((voce.get("termine") or {}).get("scadenza")))
+                      and oggi_giorno and giorno >= oggi_giorno]
             if aperti:
-                avviso = f"Termine per impugnare non ancora decorso (fino al {data_it(aperti[-1])})."
+                data, da_verificare = max(aperti)
+                avviso = (f"Verificare la scadenza per impugnare. Il limite calcolato è il {data_it(data)}."
+                          if da_verificare else f"Termine per impugnare non ancora decorso (fino al {data_it(data)}).")
             else:
                 avviso = "Verificare a registro le eventuali impugnazioni: la data del termine non attesta da sola il giudicato."
         else:
@@ -208,7 +211,8 @@ _NORMA_UDIENZA_PER_RITO = {"lavoro": "cpc_420", "esecuzione": "cpc_631"}
 
 
 def _passi_udienze_senza_esito(appuntamenti: list[dict[str, Any]], giorno_oggi: Any, rito: str = "",
-                               esiti: frozenset[Any] = frozenset()) -> list[Passo]:
+                               esiti: frozenset[Any] = frozenset(), *,
+                               udienze_lette: list[dict[str, Any]] | None = None) -> list[Passo]:
     """Udienza trascorsa ancora «programmata»: l'esito (rinvio, riserva, decisione, termini) non e' registrato.
 
     Registrare l'esito dalla preparazione dell'udienza chiude l'appuntamento (COMPLETATO) e crea i seguiti
@@ -217,14 +221,27 @@ def _passi_udienze_senza_esito(appuntamenti: list[dict[str, Any]], giorno_oggi: 
     """
     if not giorno_oggi:
         return []
-    trascorse = sorted({
+    from pct.note_127_ter.bozza import MODALITA_NOTE
+
+    sostituite = {
+        data_da(udienza.get("data")) for udienza in udienze_lette or ()
+        if udienza.get("modalita") == MODALITA_NOTE
+        and (udienza.get("documento_id") or (
+            (udienza.get("fonte") or {}).get("tipo") == "documento"
+            and (udienza.get("fonte") or {}).get("oggetto_id")
+        ))
+    }
+    date_in_agenda = Counter(
         giorno for appuntamento in appuntamenti or []
         if pulisci(appuntamento.get("tipo")).upper() == "UDIENZA"
         and pulisci(appuntamento.get("stato")).upper() in {"PROGRAMMATO", "CONFERMATO"}
         and (giorno := data_da(appuntamento.get("data_ora"))) and giorno < giorno_oggi
         # L'esito già scritto in un provvedimento del giudice (modello della causa, udienze_esito) non si chiede.
         and giorno not in esiti
-    })
+    )
+    # Un solo appuntamento in agenda può essere identificato con la sola data.
+    trascorse = sorted(giorno for giorno, numero in date_in_agenda.items()
+                       if giorno not in sostituite or numero > 1)
     if not trascorse:
         return []
     # Un passo solo, sull'ultima udienza: e' quella da cui dipendono rinvio e termini correnti.
@@ -254,9 +271,12 @@ def _passi_regia(regia: dict[str, Any], gia: list[Passo], ragionamento: dict[str
         if messaggio:
             passi.append(Passo(0, messaggio, "blocco della regia operativa", "", "presidio del fascicolo", (), HREF_PRESIDIO))
     azione_regia = pulisci(regia.get("next_action") or regia.get("nextAction"))
+    fase_deposito = regia.get("fase_deposito") or {}
+    informativa = fase_deposito.get("codice") == "non_richiesta" and azione_regia == pulisci(fase_deposito.get("motivo"))
     esito_acquisito = pulisci(regia.get("operational_state")) in {"deposito_acquisito", "deposito_accettato"} or bool(re.match(r"Deposito .+ accettato dalla cancelleria", azione_regia))
     profilo_superfluo = _rito_certo(ragionamento) and "profilo" in azione_regia.lower()
-    if azione_regia and not esito_acquisito and not profilo_superfluo and not any(azione_regia == passo.azione for passo in gia + passi):
+    if (azione_regia and not informativa and not esito_acquisito and not profilo_superfluo
+            and not any(azione_regia == passo.azione for passo in gia + passi)):
         passi.append(Passo(2, azione_regia, "indicazione della regia operativa", "", "presidio del fascicolo", (), HREF_PRESIDIO))
     return passi
 
@@ -277,18 +297,18 @@ def _passi_depositi(depositi_letti: dict[str, Any], verifiche: dict[str, Any], g
     if esito.get("esito") == "pec_non_configurata":
         passi.append(Passo(2, "Configurare la casella PEC dello studio per il controllo automatico delle ricevute dei depositi", f"{len(in_corso)} depositi in corso: senza la PEC il presidio non può leggere le ricevute", "", "presidio depositi", ("dm44_art13",), "/impostazioni"))
         return passi
-    if not verifiche.get("eseguita_il"):
+    if not verifiche.get("eseguita_il") or esito.get("esito") != "controllate" or not esito.get("controllati") or esito.get("errori"):
         return passi  # il presidio non ha ancora controllato: nessun compito all'avvocato
     controllo = verifiche.get("eseguita_il_it") or "ultimo controllo automatico"
     fermi = [voce for voce in in_corso if giorno_oggi and data_da(voce["data"]) and (giorno_oggi - data_da(voce["data"])).days >= GIORNI_ATTESA_RICEVUTE]
     if len(fermi) > 3:
         fonti = _FONTI_DEPOSITO.get(fermi[-1].get("canale", ""), _FONTI_DEPOSITO["PCT_TELEMATICO"])
-        passi.append(Passo(1, f"{len(fermi)} depositi senza esito della cancelleria dopo il controllo automatico delle ricevute", f"controllo del {controllo}; gli ultimi: " + ", ".join(f"«{voce['atto']}»" for voce in fermi[-3:]) + "; contattare la cancelleria o ripetere il deposito", "", "presidio depositi", fonti, HREF_COMUNICAZIONI))
+        passi.append(Passo(1, f"Riscontrare {len(fermi)} depositi con ricevute mancanti", f"Controllo del {controllo}. Ultime voci: " + ", ".join(f"«{voce['atto']}» ({voce['attesa']})" for voce in fermi[-3:]) + ". Confrontare gli identificativi degli invii e delle ricevute con il registro dell’ufficio.", "", "presidio depositi", fonti, HREF_COMUNICAZIONI))
         return passi
     for deposito in fermi:
         fonti = _FONTI_DEPOSITO.get(deposito.get("canale", ""), _FONTI_DEPOSITO["PCT_TELEMATICO"])
         giorni = (giorno_oggi - data_da(deposito["data"])).days
-        passi.append(Passo(1, f"Deposito «{deposito['atto']}» senza esito da {giorni} giorni nonostante il controllo automatico delle ricevute", f"{deposito['fase']}, {deposito['attesa']}; controllo del {controllo}: contattare la cancelleria o ripetere il deposito", "", "presidio depositi", fonti, HREF_COMUNICAZIONI))
+        passi.append(Passo(1, f"Deposito «{deposito['atto']}» senza riscontro da {giorni} giorni", f"{deposito['fase']}, {deposito['attesa']}. Ultimo controllo del {controllo}. Confrontare l’invio e le ricevute con il registro dell’ufficio.", "", "presidio depositi", fonti, HREF_COMUNICAZIONI))
     return passi
 
 
@@ -311,6 +331,9 @@ def _passi_notifiche(
     giorno_oggi: Any = None,
     depositi_letti: dict[str, Any] | None = None,
     ragionamento: dict[str, Any] | None = None,
+    *,
+    notifiche_gia_lette: set[tuple[str, Any]] | None = None,
+    pec_sentenze_gia_lette: set[str] | None = None,
 ) -> list[Passo]:
     from pct.procedura_fasi.notifica_ordinata import STATI_DA_VALUTARE, termine_di_notifica_ordinata
 
@@ -354,12 +377,24 @@ def _passi_notifiche(
         if ordinata and notifica_nel_modello:
             continue  # la notifica ordinata è un'unica conclusione del modello della causa, con il suo termine
         if ordinata and notifica.get("stato") in STATI_DA_VALUTARE:
+            if notifica.get("stato") == "DETECTED" and (fonte_pec, ordinata["data"]) in (notifiche_gia_lette or ()):
+                continue
             entro = data_it(ordinata["data"])
             passi.append(Passo(1, f"Completare la notifica ordinata dal giudice entro il {entro} («{notifica['atto']}»)",
                                f"«{ordinata['titolo']}»: notifica dovuta, verificare destinatari e prova di consegna"
                                + ("; termine proposto in bozza: confermarlo nello scadenziario" if ordinata["bozza"] else ""),
                                entro, "presidio notifiche", ("cpc_415", "l53_art3bis"), HREF_COMUNICAZIONI,
                                natura="perentorio" if ordinata.get("perentorio") else ""))
+            continue
+        if (
+            fonte_pec in (pec_sentenze_gia_lette or ())
+            and notifica.get("caso") == "judgment_to_notify_review"
+            and notifica.get("stato") == "DETECTED"
+            and not notifica.get("scadenza")
+            and not collegate
+            and not consegne.get("stesso_invio")
+            and not consegne.get("ricevute")
+        ):
             continue
         passi.append(Passo(1, f"{azione} («{notifica['atto']}»)", f"{notifica['stato_etichetta']}{fase}", notifica.get("scadenza", ""), "presidio notifiche", tuple(notifica.get("fonti_procedurali") or ("l53_art3bis",)), HREF_COMUNICAZIONI))
     return passi
@@ -640,14 +675,53 @@ def _scadenze_gia_lette(conclusioni: list[dict[str, Any]]) -> set[tuple[str, Any
 
 
 def _codice_scadenza(scadenza: dict[str, Any]) -> str:
+    from pct.note_127_ter.comunicazione import e_termine_note_127_ter
+
     titolo = pulisci(scadenza.get("titolo")).lower()
-    if _e_termine_note(scadenza) or "termine per note in sostituzione udienza" in titolo:
+    if _e_termine_note(scadenza) or e_termine_note_127_ter(titolo):
         return "note_127ter"
     if titolo.startswith("notifica di ricorso e decreto"):
         return "notifica_ricorso_decreto_415"
     if titolo.startswith("costituzione del resistente"):
         return "costituzione_convenuto"
     return ""
+
+
+def _bozze_deposito_lette(
+    scadenze: list[dict[str, Any]], conclusioni: list[dict[str, Any]], documenti: list[dict[str, Any]],
+) -> dict[tuple[str, str], str]:
+    """Collega la bozza alla prescrizione letta nell'allegato della stessa PEC."""
+    from pct.agenda_lavorazione import riferimenti_pec
+
+    pec_per_documento = {d.get("id"): d["pec_origine"] for d in documenti if d.get("id") and d.get("pec_origine")}
+    ordini = defaultdict(list)
+    for voce in conclusioni:
+        if voce.get("codice") != "deposito_ordinato":
+            continue
+        documento = (voce.get("letto") or {}).get("oggetto_id")
+        giorno = data_da((voce.get("termine") or {}).get("scadenza"))
+        if giorno and (pec := pec_per_documento.get(documento)):
+            ordini[pec, giorno.isoformat()].append(voce)
+
+    bozze = defaultdict(list)
+    for scadenza in scadenze:
+        sid = pulisci(scadenza.get("id"))
+        giorno = data_da(scadenza.get("data") or scadenza.get("data_scadenza"))
+        riferimenti = riferimenti_pec(scadenza)
+        if not (sid and giorno and len(riferimenti) == 1 and _bozza_del_giudice(scadenza)):
+            continue
+        (pec,) = riferimenti
+        if f"PEC_TERMINE_PROPOSTO:{pec}:PROVV_DEPOSITO" in str(scadenza.get("note") or "").splitlines():
+            bozze[pec, giorno.isoformat()].append(sid)
+
+    unite = {}
+    for identita, ids in bozze.items():
+        corrispondenti = ordini.get(identita, [])
+        if len(ids) == len(corrispondenti) == 1 and corrispondenti[0].get("stato") == "da_fare" and (
+            corrispondenti[0].get("onerato") in {"noi", "tutte_le_parti"}
+        ):
+            unite[corrispondenti[0]["letto"]["oggetto_id"], identita[1]] = ids[0]
+    return unite
 
 
 def prossimi_passi(
@@ -667,6 +741,8 @@ def prossimi_passi(
     appuntamenti: list[dict[str, Any]] | None = None,
     fascicolo_id: str = "",
     ragionamento: dict[str, Any] | None = None,
+    documenti: list[dict[str, Any]] | None = None,
+    pec_sentenze_gia_lette: set[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """I passi e lo stato dei passi (attivi o no, e perché).
 
@@ -684,9 +760,20 @@ def prossimi_passi(
         or pulisci(intestazione.get("stato_codice")).upper() in STATI_SENZA_PASSI
     )
     provvedimenti_consegnati = frozenset(notifiche_lette.get("provvedimenti_consegnati", ()))
+    conclusioni = (ragionamento or {}).get("conclusioni") or []
+    bozze_deposito = _bozze_deposito_lette(scadenze_correnti, conclusioni, documenti or [])
+    pec_per_documento = {d.get("id"): d["pec_origine"] for d in documenti or () if d.get("pec_origine")}
+    notifiche_gia_lette = {
+        (pec, giorno) for voce in conclusioni
+        if voce.get("codice") == "notifica_ricorso_decreto_415" and voce.get("stato") == "da_fare"
+        and voce.get("onerato") in {"noi", "tutte_le_parti"}
+        and (pec := pec_per_documento.get((voce.get("letto") or {}).get("oggetto_id")))
+        and (giorno := data_da((voce.get("termine") or {}).get("scadenza")))
+    }
     passi = passi_ragionamento(
         ragionamento, trattazione_conclusa=bool(chiusa_con_provvedimento),
         provvedimenti_consegnati=provvedimenti_consegnati,
+        bozze_deposito=bozze_deposito,
     ) if ragionamento else []
     stato = stato_passi(intestazione, documenti_letti, oggi, economico_letto,
                        ragionamento=ragionamento, controlli_aperti=bool(passi))
@@ -695,18 +782,25 @@ def prossimi_passi(
         # e sui suoi effetti rimangono nella lista condivisa con il Quadro.
         return _ordina(passi, giorno_oggi), stato
     verifiche = dict(verifiche or {})
-    scadenze_lette = _scadenze_gia_lette((ragionamento or {}).get("conclusioni") or [])
+    scadenze_lette = _scadenze_gia_lette(conclusioni)
+    bozze_unite = set(bozze_deposito.values())
     scadenze_da_proporre = [
         voce for voce in scadenze_correnti
-        if (_codice_scadenza(voce), data_da(voce.get("data") or voce.get("data_scadenza"))) not in scadenze_lette
+        if pulisci(voce.get("id")) not in bozze_unite
+        and (_codice_scadenza(voce), data_da(voce.get("data") or voce.get("data_scadenza"))) not in scadenze_lette
     ]
     passi.extend(_passi_scadenze(scadenze_da_proporre, giorno_oggi))
     passi.extend(passi_note_127_ter(scadenze_da_proporre, intestazione=intestazione, pec_letto=pec_letto, giorno_oggi=giorno_oggi))
     esiti = frozenset(d for voce in (ragionamento or {}).get("esiti_udienze") or [] if (d := data_da(voce.get("data"))))
-    passi.extend(_passi_udienze_senza_esito(list(appuntamenti or []), giorno_oggi, fase_letta.get("rito") or "", esiti))
+    passi.extend(_passi_udienze_senza_esito(
+        list(appuntamenti or []), giorno_oggi, fase_letta.get("rito") or "", esiti,
+        udienze_lette=(ragionamento or {}).get("udienze"),
+    ))
     passi.extend(_passi_regia(regia, passi, ragionamento))
     passi.extend(_passi_depositi(depositi_letti, verifiche, giorno_oggi))
-    passi.extend(_passi_notifiche(notifiche_lette, scadenze, giorno_oggi, depositi_letti, ragionamento))
+    passi.extend(_passi_notifiche(notifiche_lette, scadenze, giorno_oggi, depositi_letti, ragionamento,
+                                  notifiche_gia_lette=notifiche_gia_lette,
+                                  pec_sentenze_gia_lette=pec_sentenze_gia_lette))
     passi.extend(_passi_pec(pec_letto, giorno_oggi))
     passi.extend(_passi_conformita(conformita, ragionamento))
     for contraddizione in (ragionamento or {}).get("contraddizioni") or []:

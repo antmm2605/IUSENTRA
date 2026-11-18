@@ -29,6 +29,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache, wraps
 from html import escape as html_escape, unescape as html_unescape
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Mapping
 from urllib.parse import parse_qsl, quote, quote_plus, unquote, unquote_plus, urlencode, urljoin, urlparse, urlunparse
 from zoneinfo import ZoneInfo
@@ -112,6 +113,7 @@ from pct.uffici_competenti import ricerca_uffici_competenti
 from pct.uffici_giudiziari import risolvi_ufficio
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
+from pct.postgres_runtime_support import database_config_to_dsn
 from pct.workflow_commerciale import apri_fascicolo_automatico
 from web.services.react_agenda_bridge import build_react_agenda_payload
 from web.services.react_admin_database_bridge import (
@@ -158,7 +160,6 @@ from web.services.react_dashboard_build_context import (
     contesto_costruzione_panoramica,
     gestore_panoramica,
     misura_sorgente,
-    registra_tempi,
     server_timing_header,
 )
 from web.services.react_dashboard_health import (
@@ -1928,7 +1929,7 @@ def _count_agenda_oggi() -> int:
 
 
 def _count_fascicoli_attivi() -> int:
-    return len(_safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), []))
+    return len(_safe("fascicoli", _indice_fascicoli_operativo, []))
 
 
 def _crediti_panoramica():
@@ -1944,19 +1945,43 @@ def _parcelle_da_incassare() -> float | None:
     return round(float((crediti or {}).get("importo") or 0.0), 2)
 
 
+def _workspace_snapshot() -> dict[str, Any]:
+    path = _tenant_cfg_value("WORKSPACE_INTELLIGENCE_DB", "./intelligence/workspace_intelligence.json")
+    tenant = g.get("tenant")
+    dsn = database_config_to_dsn(getattr(tenant, "database", None)) if tenant is not None else None
+    return WorkspaceIntelligenteService.load_snapshot(path, postgres_dsn=dsn)
+
+
+def _indice_fascicoli_operativo() -> list[SimpleNamespace]:
+    rows = gestore_panoramica(_workspace_snapshot).get("case_index")
+    if not isinstance(rows, list):
+        raise LookupError("Indice dei fascicoli in preparazione nello studio.")
+    return [SimpleNamespace(**row) for row in rows]
+
+
 def _workspace_overview() -> dict[str, Any]:
-    service = WorkspaceIntelligenteService(
-        agenda=gestore_panoramica(get_agenda),
-        scadenziario=gestore_panoramica(get_scadenziario),
-        fascicoli=gestore_panoramica(get_fascicoli),
-        calendar_sync=gestore_panoramica(get_calendar_sync),
-        giurisprudenza=gestore_panoramica(get_giurisprudenza_readonly),
-        snapshot_path=str(current_app.config.get("WORKSPACE_INTELLIGENCE_DB", "")),
-    )
-    try:
-        return service.panoramica(horizon_days=14)
-    finally:
-        registra_tempi("workspace", getattr(service, "tempi_ultima_panoramica", None))
+    snapshot = gestore_panoramica(_workspace_snapshot)
+    overview = snapshot.get("overview") or {}
+    generated = _parse_datetime(snapshot.get("generated_at"))
+    if generated is None or generated.date() != oggi_rome():
+        segnala_sorgente_non_disponibile("workspace_intelligente")
+        overview = {}
+
+    scadenziario = gestore_panoramica(get_scadenziario)
+    urgenti = [row for row in scadenziario.imminenti(entro_giorni=3) if not esito_udienza_da_registrare(row)]
+    actions = [action for action in overview.get("actions", []) if action.get("href") != "/scadenziario"]
+    if urgenti:
+        actions.insert(0, WorkspaceIntelligenteService.azione_scadenze_urgenti(len(urgenti)))
+    return {
+        **overview,
+        "actions": actions[:4],
+        "urgent_deadlines": urgenti[:6],
+        "summary": {
+            **overview.get("summary", {}),
+            "scadenze_urgenti": len(urgenti),
+            "notifiche_scadenze": len(scadenziario.scadenze_da_notificare()),
+        },
+    }
 
 
 def _email_manager() -> GestioneEmailRicevute:
@@ -2006,24 +2031,29 @@ def _id_email_presidiate() -> set[str]:
 
 
 def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
-    from web.services.email_storage_runtime import create_email_mailbox as _crea_casella
+    from web.services.email_mailbox_readonly import dashboard_mailbox_reader
     from web.services.react_dashboard_email import quadro_cartella_arrivo
+
+    tenant_slug = str(getattr(g.get("tenant"), "slug", "") or "")
 
     def _quadro(config_key: str, default: str, factory: Callable[[], Any]) -> tuple[list[Any], set[str]]:
         # Solo le righe che la Panoramica mostra e gli identificativi dei non letti:
         # caricare tutta la casella costava circa 2 secondi (verifica di produzione V12).
         return quadro_cartella_arrivo(
-            _tenant_cfg_value(config_key, default), crea_casella=_crea_casella,
+            _tenant_cfg_value(config_key, default),
+            leggi_casella=lambda path: dashboard_mailbox_reader(path, expected_tenant=tenant_slug),
             gestore_completo=lambda: gestore_panoramica(factory), parse=_parse_datetime, limite=limit,
         )
 
-    pec_emails, pec_non_lette = _safe("pec", lambda: _quadro("EMAIL_CASELLA_DB", "./email/casella.json", _email_manager), ([], set()))
-    ordinary_emails, _ = _safe("email_ordinaria", lambda: _quadro("EMAIL_ORDINARIA_DB", "./email/ordinaria.json", _ordinary_email_manager), ([], set()))
+    pec_emails, pec_non_lette = misura_sorgente("email.pec", lambda: _safe(
+        "pec", lambda: _quadro("EMAIL_CASELLA_DB", "./email/casella.json", _email_manager), ([], set())))
+    ordinary_emails, _ = misura_sorgente("email.ordinaria", lambda: _safe(
+        "email_ordinaria", lambda: _quadro("EMAIL_ORDINARIA_DB", "./email/ordinaria.json", _ordinary_email_manager), ([], set())))
     pec_rows: list[dict[str, Any]] = []
     mail_rows: list[dict[str, Any]] = []
     # «Da esaminare» = non aperte e non ancora prese in carico dal presidio PEC: le ricevute di
     # accettazione e consegna e le comunicazioni già presidiate non sono lavoro per l'avvocato.
-    presidiate = _safe("pec_presidio", _id_email_presidiate, set())
+    presidiate = misura_sorgente("email.presidio", lambda: _safe("pec_presidio", _id_email_presidiate, set()))
     pec_unread = len(pec_non_lette - presidiate)
     for email in pec_emails:
         unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
@@ -2313,7 +2343,7 @@ def _expiring_quotes_count() -> int:
 
 def _high_priority_matters(limit: int = 4) -> list[dict[str, Any]]:
     scadenze = _safe("scadenziario", lambda: gestore_panoramica(get_scadenziario).tutte(solo_aperte=True), [])
-    fascicoli = _safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), [])
+    fascicoli = _safe("fascicoli", lambda: gestore_panoramica(_indice_fascicoli_operativo), [])
     by_id = {str(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -2647,7 +2677,7 @@ def _metrics(
 
 
 def _fascicoli_preview(limit: int = 5) -> list[dict[str, Any]]:
-    fascicoli = _safe("fascicoli", lambda: gestore_panoramica(get_fascicoli).tutti(archiviati=False), [])
+    fascicoli = _safe("fascicoli", lambda: gestore_panoramica(_indice_fascicoli_operativo), [])
     out: list[dict[str, Any]] = []
     for fascicolo in fascicoli[:limit]:
         out.append(
@@ -9104,6 +9134,7 @@ def _fascicoli_list_cache_key() -> tuple | None:
         ("secondary_sort", request.args.get("secondary_sort", "").strip()),
         ("group_by", request.args.get("group_by", "").strip()),
         ("view", (request.args.get("view", "") or request.args.get("vista", "")).strip()),
+        ("compact", "1" if _request_bool("compact") else "0"),
         ("alerts_only", "1" if (_request_bool("alerts_only") or _request_bool("alertsOnly")) else "0"),
         ("communications_only", "1" if _request_bool("communications_only") else "0"),
         ("payments_only", "1" if (_request_bool("payments_only") or _request_bool("paymentsOnly")) else "0"),
@@ -9150,6 +9181,7 @@ def fascicoli_react_list():
         secondary_sort=request.args.get("secondary_sort", ""),
         group_by=request.args.get("group_by", ""),
         view=request.args.get("view", "") or request.args.get("vista", ""),
+        compact=_request_bool("compact"),
         alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
         communications_only=_request_bool("communications_only"),
         payments_only=_request_bool("payments_only") or _request_bool("paymentsOnly"),
@@ -9298,8 +9330,14 @@ def _con_riscontri_processuali(payload: dict[str, Any], fascicolo_id: str, sezio
         return payload
     if not (_api_key_valida() or _session_user_can("fascicoli.leggi")):
         return payload
-    from web.services.riscontri_processuali_runtime import proietta_obblighi_notifica, riscontri_processuali
+    from web.services.riscontri_processuali_runtime import lettura_materializzata, proietta_obblighi_notifica, proietta_riscontri, riscontri_processuali
 
+    if sezione == "termini":
+        from web.services.pannelli_pronti_ricomposizione import allinea_presidio_udienze
+
+        lettura = lettura_materializzata(fascicolo_id)
+        allinea_presidio_udienze(payload, lettura, fascicolo_id)
+        return {**payload, "riscontriProcessuali": proietta_riscontri(lettura, sezione)}
     riscontri = riscontri_processuali(fascicolo_id, sezione)
     if sezione == "notifiche":
         return proietta_obblighi_notifica(payload, riscontri)
@@ -9313,21 +9351,25 @@ def fascicolo_react_conto_economico(id_fasc: str):
     if not (_api_key_valida() or _session_user_can("fatturazione.leggi") or _session_user_can("fascicoli.leggi")):
         return jsonify({"ok": False, "message": "Operazione non autorizzata."}), 403
     from web.services.fascicolo_conto_economico_runtime import conto_economico_fascicolo
+    from web.services.pannelli_pronti_runtime import AMBIENTE_RICALCOLO, _in_preparazione, calcolo_in_corso
+    from web.services.riscontri_processuali_runtime import (
+        chiarisci_spese_da_sentenza, lettura_materializzata, proietta_riscontri,
+    )
 
+    puo_leggere_fascicolo = _api_key_valida() or _session_user_can("fascicoli.leggi")
     try:
-        result = conto_economico_fascicolo(id_fasc)
+        lettura = lettura_materializzata(id_fasc) if puo_leggere_fascicolo else None
+        if puo_leggere_fascicolo and lettura is None and request.environ.get(AMBIENTE_RICALCOLO):
+            return _in_preparazione()
+        result = conto_economico_fascicolo(id_fasc, lettura=lettura or {})
     except Exception as exc:  # la pagina mostra il messaggio, non un errore del server
         current_app.logger.exception("Conto economico del fascicolo %s non disponibile: %s", id_fasc, exc)
         return jsonify({"ok": False, "message": "Conto economico non disponibile in questo momento."}), 200
-    from web.services.riscontri_processuali_runtime import chiarisci_spese_da_sentenza, lettura_materializzata
-
-    from web.services.riscontri_processuali_runtime import proietta_riscontri
-
-    puo_leggere_fascicolo = _api_key_valida() or _session_user_can("fascicoli.leggi")
-    lettura = lettura_materializzata(id_fasc) if puo_leggere_fascicolo else None
     chiarisci_spese_da_sentenza(result, lettura)
     if result.get("ok") and puo_leggere_fascicolo:
         result["riscontriProcessuali"] = proietta_riscontri(lettura, "economia")
+        if lettura is None and calcolo_in_corso():
+            result["aggiornamentoPendente"] = True
     response = redacted_json_response(result, 200 if result.get("ok") else 404)
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -9745,12 +9787,14 @@ from web.services.lettura_cache import LETTURA_CACHE as _LETTURA_CACHE, chiave_l
 
 def _lettura_cache_key(id_fasc: str) -> tuple:
     from pct.fascicolo_lettura import VERSIONE_LETTURA
+    from pct.ragionamento import VERSIONE as VERSIONE_RAGIONAMENTO
+    from web.services.pannelli_pronti_catalogo import impronta_del_pannello
     from web.services.pannelli_pronti_runtime import impronta_fascicolo_corrente
     from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
 
     # Un solo controllore: con i contatori delle fonti preparati la Lettura in cache vale finché vale l'impronta
     # delle fonti del fascicolo, la stessa dei pannelli pronti (documenti, letture, agenda, scadenze, giorno...).
-    impronta = impronta_fascicolo_corrente(str(id_fasc))
+    impronta = impronta_del_pannello("lettura", impronta_fascicolo_corrente(str(id_fasc)))
     if impronta:
         return _chiave_lettura(f"{_tenant_runtime_label()}@{APP_VERSION}@{VERSIONE_LETTURA}@impronta:{impronta}", str(id_fasc))
     registro = registro_corrente()
@@ -9758,7 +9802,7 @@ def _lettura_cache_key(id_fasc: str) -> tuple:
     # immediatamente visibile il completamento anche fra container diversi.
     ciclo = registro.impronta_fascicolo(tenant_corrente(), str(id_fasc), "motore_documenti")
     revisione = str(ciclo.get("aggiornato_il") or "")
-    tenant_versionato = f"{_tenant_runtime_label()}@{APP_VERSION}@{VERSIONE_LETTURA}@{revisione}"
+    tenant_versionato = f"{_tenant_runtime_label()}@{APP_VERSION}@{VERSIONE_LETTURA}@{VERSIONE_RAGIONAMENTO}@{revisione}"
     return _chiave_lettura(tenant_versionato, str(id_fasc))
 
 
@@ -9835,6 +9879,18 @@ def prepara_lettura_in_cache(id_fasc: str) -> bool:
 
     if conferma_termini_certi(id_fasc, lettura):
         lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc) or lettura
+    conclusioni = (lettura.get("ragionamento") or {}).get("conclusioni") or []
+    if any(v.get("stato") == "fatto" and (v.get("prova_deposito") or v.get("prova_notifica")) for v in conclusioni):
+        from web.services.consegna_presidi_runtime import riconcilia_adempimenti, riconcilia_notifiche_ordinate
+        from web.services.registro_letture_runtime import registro_corrente, tenant_corrente
+
+        fascicolo = _fascicolo_singolo_loader()().get(id_fasc)
+        if fascicolo is not None:
+            notifiche_riconciliate = riconcilia_notifiche_ordinate(fascicolo, lettura)
+            esito = riconcilia_adempimenti(fascicolo, registro_corrente(), tenant_corrente(), lettura=lettura)
+            if notifiche_riconciliate or esito["completate"]:
+                # La scrittura nello Scadenziario invalida i pannelli della generazione precedente.
+                return True
     risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
     _LETTURA_CACHE.set(chiave, risposta.get_data())
     return True
@@ -10967,14 +11023,25 @@ def _notiziario_studio_db():
     return get_request_studio_db(anchor)
 
 
+def _notiziario_read_settings(section: str) -> dict[str, Any]:
+    from pct.impostazioni_config_repository import load_settings_config_section
+    from web.services.studio_readonly import request_studio_reader
+
+    try:
+        anchor = tenant_data_path("FASCICOLI_DB", "./fascicoli/fascicoli.json", require_tenant=True)
+        with request_studio_reader(anchor) as database:
+            return load_settings_config_section(database, section, initialize_schema=False)
+    except (OSError, RuntimeError) as exc:
+        current_app.logger.warning("Notizie utili: impostazioni dello studio non disponibili: %s", exc)
+        return {}
+
+
 def _notiziario_valid_item_id(value: Any) -> bool:
     return bool(re.fullmatch(r"(?:\d+|official_[0-9a-f]{24})", str(value or "").strip()))
 
 
 def _notiziario_load_cache() -> dict[str, Any]:
-    from pct.impostazioni_config_repository import load_settings_config_section
-
-    stored = load_settings_config_section(_notiziario_studio_db(), _NOTIZIARIO_CACHE_SECTION)
+    stored = _notiziario_read_settings(_NOTIZIARIO_CACHE_SECTION)
     items = [
         dict(row) for row in stored.get("items", [])
         if isinstance(row, Mapping) and _notiziario_valid_item_id(row.get("id"))
@@ -11040,9 +11107,7 @@ def _notiziario_preferences_section() -> str:
 
 
 def _notiziario_load_interactions() -> dict[str, dict[str, Any]]:
-    from pct.impostazioni_config_repository import load_settings_config_section
-
-    stored = load_settings_config_section(_notiziario_studio_db(), _notiziario_preferences_section())
+    stored = _notiziario_read_settings(_notiziario_preferences_section())
     raw = stored.get("interactions") if isinstance(stored.get("interactions"), dict) else {}
     interactions: dict[str, dict[str, Any]] = {}
     for raw_id, raw_value in raw.items():
@@ -11101,39 +11166,11 @@ def _notiziario_public_url(row: Mapping[str, Any]) -> str:
 
 
 def _notiziario_case_options() -> list[dict[str, str]]:
-    """I fascicoli aperti da collegare a una notizia: solo numero e titolo.
+    """Etichette del menu derivate dallo stesso indice usato per la pertinenza."""
+    from web.services.notiziario_runtime import fascicoli_aperti
 
-    Si leggono dall'indice leggero (le sole colonne anagrafiche), non
-    dall'archivio intero: caricare ogni fascicolo con documenti e attivita' per
-    riempire un menu costava quasi un secondo di calcolo a ogni apertura della
-    Panoramica, e in quel tempo il server non rispondeva ad altro.
-    """
-    gestione = _fascicolo_singolo_loader()()
-    try:
-        righe = gestione.indice_leggero()
-    except Exception:
-        try:
-            righe = gestione.tutti(archiviati=False)
-        except TypeError:
-            righe = gestione.tutti()
-    options: list[tuple[str, dict[str, str]]] = []
-    for item in righe:
-        item_id = str(getattr(item, "id", "") or "").strip()
-        if not item_id:
-            continue
-        stato = str(getattr(getattr(item, "stato", ""), "value", getattr(item, "stato", "")) or "")
-        if stato.rsplit(".", 1)[-1].upper() == "ARCHIVIATO":
-            continue
-        numero_rg = str(getattr(item, "numero_rg", "") or "").strip()
-        anno_rg = str(getattr(item, "anno_rg", "") or "").strip()
-        rg = f"RG {numero_rg}/{anno_rg}" if numero_rg and anno_rg else (numero_rg or str(getattr(item, "numero", "") or "").strip())
-        title = str(getattr(item, "titolo", "") or getattr(item, "oggetto", "") or "Fascicolo").strip()
-        options.append((
-            str(getattr(item, "numero", "") or ""),
-            {"id": item_id, "label": f"{rg} - {title}" if rg else title},
-        ))
-    options.sort(key=lambda voce: voce[0], reverse=True)
-    return [voce for _, voce in options]
+    righe = _safe("fascicoli", _indice_fascicoli_operativo, [])
+    return [{"id": row["id"], "label": row["etichetta"]} for row in fascicoli_aperti(righe)]
 
 
 def _notiziario_item_payload(
@@ -11229,7 +11266,7 @@ def _notiziario_risposta_archivio(archivio):
     from web.services import notiziario_runtime as vista
 
     try:
-        righe = _fascicolo_singolo_loader()().indice_leggero()
+        righe = _indice_fascicoli_operativo()
     except Exception as exc:  # senza indice la pagina resta leggibile, senza fascicoli pertinenti
         current_app.logger.warning("Notizie utili: indice dei fascicoli non disponibile: %s", exc)
         righe = []
@@ -15281,14 +15318,12 @@ def redazione_atti_contesto_fascicolo(id_fascicolo: str):
             passi = (lettura or {}).get("prossimi_passi")
             payload["prossimoPassoFascicolo"] = riga_prossimo_passo(passi if isinstance(passi, list) else None)["testo"]
         if note := payload.get("noteScritte"):
+            from web.services.passaggi_runtime import chiave_bozza_note
             from web.services.riscontri_processuali_runtime import risultato_materializzato
 
             passaggi = risultato_materializzato(id_fascicolo, "passaggi") or {}
             payload["fontiConsultate"] = bool(passaggi)
-            note["passaggio"] = next((
-                chiave for chiave, bozza in (passaggi.get("bozzeNote") or {}).items()
-                if bozza.get("documento_id") == note["documentoId"] and bozza.get("termine") == note["termine"]
-            ), "")
+            note["passaggio"] = chiave_bozza_note(passaggi, note["documentoId"], note["termine"])
             if attende_fonti and not passaggi and richiedi_pannello_consultivo(id_fascicolo, "passaggi"):
                 return _in_preparazione()
         return _jsonify_redacted(payload)

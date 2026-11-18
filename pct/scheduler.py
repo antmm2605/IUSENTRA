@@ -2380,7 +2380,7 @@ def start_scheduler(app):
                 from pct.config_studio import GestioneConfigStudio
                 from pct.fascicoli import GestioneFascicoli
                 from pct.giurisprudenza import GestioneGiurisprudenza
-                from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
+                from pct.postgres_runtime_support import database_config_to_dsn
                 from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
                 from pct.workspace_intelligente import WorkspaceIntelligenteService
 
@@ -2405,7 +2405,7 @@ def start_scheduler(app):
                         calendar_sync=GestioneCalendarSync(db_path=target["calendar_sync_db"]),
                         giurisprudenza=GestioneGiurisprudenza(db_path=target["giurisprudenza_db"]),
                         snapshot_path=target["snapshot_db"],
-                        postgres_dsn=resolve_runtime_postgres_dsn(database=target.get("database")),
+                        postgres_dsn=database_config_to_dsn(target.get("database")) if target.get("paths") else None,
                     )
 
                     try:

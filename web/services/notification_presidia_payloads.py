@@ -58,6 +58,7 @@ NEXT_ACTIONS = {
     "DETECTED": "Esamina e conferma se la notifica è necessaria",
     "NEEDS_REVIEW": "Esamina e conferma se la notifica è necessaria",
     "ORIGINAL_TO_ACQUIRE": "Acquisisci originale dal fascicolo d’ufficio",
+    "ORIGINAL_ACQUIRED": "Verifica l’originale e prepara la relata",
     "NOTIFICATION_CONFIRMED": "Verifica destinatari e prepara relata",
     "RECIPIENTS_TO_VERIFY": "Verifica destinatari e pubblici elenchi",
     "READY_FOR_RELATA": "Prepara la relata",
@@ -75,6 +76,14 @@ NEXT_ACTIONS = {
     "NOT_REQUIRED": "Nessuna notifica da eseguire",
     "CANCELLED": "Presidio annullato",
 }
+
+
+def prossimo_passaggio_presidio(status: str, resolution_code: str, *, fallback: str) -> str:
+    if status == "NEEDS_REVIEW" and resolution_code == "SOURCE_CONTENT_REVIEW":
+        return "Acquisisci dal fascicolo d’ufficio l’originale del provvedimento indicato nella PEC"
+    return NEXT_ACTIONS.get(status, fallback)
+
+
 NOTIFICATION_CASE_LABELS = {
     "judgment_to_notify_review": "Sentenza da valutare per la notifica",
     "judgment_short_term_review": "Sentenza da valutare per l'impugnazione",
@@ -312,14 +321,16 @@ def _notification_case_label(value: Any) -> str:
     return NOTIFICATION_CASE_LABELS.get(case.casefold(), "Notifica legale da verificare")
 
 
-def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: list[Mapping[str, Any]], documents: list[Mapping[str, Any]], assignees: list[dict[str, str]], termini: dict[str, Any] | None = None) -> dict[str, Any]:
+def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: list[Mapping[str, Any]], documents: list[Mapping[str, Any]], assignees: list[dict[str, str]], termini: dict[tuple[str, str, str], Any] | None = None) -> dict[str, Any]:
     from web.services.notification_legal_terms import termine_per_presidio
 
     status = str(projection.get("status") or row.get("status") or "DETECTED")
     channel = str(projection.get("channel") or row.get("channel") or "pec").lower()
     fascicolo_id = str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")
     caso = str(projection.get("notificationCase") or row.get("notification_case") or "")
-    next_action = NEXT_ACTIONS.get(status, "Consulta il presidio")
+    resolution_code = str(row.get("resolution_code") or projection.get("resolutionCode") or "")
+    excluded_source = status == "CANCELLED" and resolution_code == "PROVVEDIMENTO_ALTRO_RUOLO"
+    next_action = prossimo_passaggio_presidio(status, resolution_code, fallback="Consulta il presidio")
     required = [item for item in recipients if item.get("required")]
     delivered = [
         item for item in required
@@ -345,15 +356,19 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
             )
     return {
         # Termine di legge già in scadenziario (art. 327 c.p.c.) per le sentenze: mai calcolato qui.
-        "legal_term": termine_per_presidio(caso, fascicolo_id, termini if termini is not None else {}),
+        "legal_term": None if excluded_source else termine_per_presidio(
+            caso, fascicolo_id, termini if termini is not None else {},
+            source_message_id=str(row.get("source_message_id") or ""),
+        ),
+        "excluded_source": excluded_source,
         "id": str(projection.get("id") or row.get("id") or ""),
         "practice": _practice_payload(str(projection.get("fascicoloId") or row.get("fascicolo_id") or "")),
         "document": _document_summary(documents),
         "source_effective_at": str(projection.get("sourceEffectiveAt") or row.get("source_effective_at") or ""),
         "source_message_id": str(row.get("source_message_id") or ""),
-        "explicit_due_at": projection.get("explicitDueAt") or row.get("explicit_due_at"),
+        "explicit_due_at": None if excluded_source else projection.get("explicitDueAt") or row.get("explicit_due_at"),
         "notification_case": str(projection.get("notificationCase") or row.get("notification_case") or ""),
-        "notification_case_label": _notification_case_label(
+        "notification_case_label": "Provvedimento di un altro procedimento" if excluded_source else _notification_case_label(
             projection.get("notificationCase") or row.get("notification_case")
         ),
         "channel": channel,
@@ -363,9 +378,9 @@ def _summary(projection: Mapping[str, Any], row: Mapping[str, Any], recipients: 
         "status_label": STATUS_LABELS.get(status, status),
         "priority": str(projection.get("priority") or row.get("priority") or "P1"),
         "confidence": float(projection.get("confidence") or row.get("confidence") or 0.0),
-        "detection_reason": str(row.get("detection_reason") or ""),
-        "rule_label": "Valutazione guidata da fonti normative",
-        "legal_sources": _legal_sources(row),
+        "detection_reason": str(row.get("resolution_reason") or "") if excluded_source else str(row.get("detection_reason") or ""),
+        "rule_label": "Confronto del ruolo nelle fonti" if excluded_source else "Valutazione guidata da fonti normative",
+        "legal_sources": [] if excluded_source else _legal_sources(row),
         "next_action": next_action,
         "consegne_pec": {
             "richieste": len(required), "collegate": len(delivered),
@@ -421,7 +436,7 @@ def build_presidia_list_payload(
     docs = _query_many(repo, "pec_legal_notification_documents", ids, "ORDER BY authoritative DESC, created_at DESC, id DESC")
     recipients = _query_many(repo, "pec_legal_notification_recipients", ids, "ORDER BY required DESC, updated_at DESC, id DESC")
     assignees = _user_options() if include_controls else []
-    termini: dict[str, Any] = {}
+    termini: dict[tuple[str, str, str], Any] = {}
     items = [_summary(item, rows.get(str(item["id"]), {}), recipients.get(str(item["id"]), []), docs.get(str(item["id"]), []), assignees, termini) for item in public["items"]]
     risultato = {
         "ok": True,
@@ -531,27 +546,6 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
         detail["recipients"] = [_public_recipient(item) for item in recipients]
         fascicolo_id = str(row.get("fascicolo_id") or "")
         source_message_id = str(row.get("source_message_id") or "")
-    try:
-        from web.services.notification_presidia_fascicolo_reconciliation import (
-            reconcile_presidio_with_fascicolo_notification_proof,
-        )
-
-        report = reconcile_presidio_with_fascicolo_notification_proof(
-            repo,
-            presidio_id,
-            actor=current_actor_id(),
-        )
-        if report.get("status") != str(row.get("status") or ""):
-            row, docs, recipients = _detail_rows(repo, presidio_id)
-            detail = _summary(_summary_projection(row), row, recipients, docs, assignees)
-            practice = detail.get("practice") if isinstance(detail.get("practice"), Mapping) else {}
-            detail["recipients"] = [_public_recipient(item) for item in recipients]
-            fascicolo_id = str(row.get("fascicolo_id") or "")
-            source_message_id = str(row.get("source_message_id") or "")
-    except Exception:
-        from flask import current_app
-        current_app.logger.exception("Riconciliazione delle prove di notifica non disponibile")
-        warnings.append({"code": "notification_proof_unavailable", "message": "Il confronto con le prove del fascicolo non è riuscito. Lo stato del presidio deve ancora essere verificato."})
     if permissions.get("can_view_evidence"):
         @cache
         def load_protocols() -> dict[tuple[str, str], list[dict[str, str]]]:
@@ -611,7 +605,7 @@ def build_presidio_detail_payload(repo: Any, presidio_id: str) -> dict[str, Any]
             from web.helpers import get_fascicoli
             from web.services.verifica_notifiche_runtime import verifica_fascicolo
 
-            fascicolo = get_fascicoli().get(fascicolo_id)
+            fascicolo = None if detail["excluded_source"] else get_fascicoli().get(fascicolo_id)
             if fascicolo is not None:
                 detail["notification_verification"] = verifica_fascicolo(fascicolo)
         except Exception:

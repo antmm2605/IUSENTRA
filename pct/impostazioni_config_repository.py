@@ -180,7 +180,7 @@ def ensure_settings_config_schema(studio_db: Any) -> None:
         pass
 
 
-def load_settings_config_section(studio_db: Any, section: str) -> dict[str, Any]:
+def load_settings_config_section(studio_db: Any, section: str, *, initialize_schema: bool = True) -> dict[str, Any]:
     """Legge una sezione dal backend SQL tenant, fonte operativa delle impostazioni."""
 
     if studio_db is None:
@@ -188,7 +188,8 @@ def load_settings_config_section(studio_db: Any, section: str) -> dict[str, Any]
     normalized = str(section or "").strip().lower()
     if not normalized:
         return {}
-    ensure_settings_config_schema(studio_db)
+    if initialize_schema:
+        ensure_settings_config_schema(studio_db)
     conn = getattr(studio_db, "conn", None)
     if conn is None:
         return {}

@@ -11,6 +11,7 @@ Con un archivio JSON esplicitamente configurato resta la lettura completa del ge
 
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from datetime import datetime
 from typing import Any, Callable
 
@@ -24,19 +25,17 @@ def _ordina(emails: list[Any], parse: Callable[[Any], datetime | None]) -> list[
 def quadro_cartella_arrivo(
     db_path: str,
     *,
-    crea_casella: Callable[..., Any],
+    leggi_casella: Callable[[str], AbstractContextManager],
     gestore_completo: Callable[[], Any],
     parse: Callable[[Any], datetime | None],
     limite: int,
 ) -> tuple[list[EmailRicevuta], set[str]]:
     """(messaggi più recenti in ordine di data, identificativi dei non letti) della posta in arrivo."""
-    from pct.email_sql_client import GestioneEmailSQL
-
-    casella = crea_casella(db_path, load_catalog=False, allow_initialize=False)
-    if isinstance(casella, GestioneEmailSQL):
-        quadro = casella.repository.riepilogo_cartella(CartellaEmail.INBOX, recenti=max(60, limite * 12))
-        recenti = [EmailRicevuta.from_dict(record) for record in quadro["recenti"]]
-        return _ordina(recenti, parse)[:limite], set(quadro["non_lette"])
+    with leggi_casella(db_path) as repository:
+        if repository is not None:
+            quadro = repository.riepilogo_cartella(CartellaEmail.INBOX, recenti=max(60, limite * 12))
+            recenti = [EmailRicevuta.from_dict(record) for record in quadro["recenti"]]
+            return _ordina(recenti, parse)[:limite], set(quadro["non_lette"])
     emails = gestore_completo().tutte(cartella=CartellaEmail.INBOX)
     non_lette = {str(getattr(email, "id", "") or "") for email in emails if getattr(email, "stato", "") == StatoEmail.NON_LETTA}
     return _ordina(emails, parse)[:limite], non_lette

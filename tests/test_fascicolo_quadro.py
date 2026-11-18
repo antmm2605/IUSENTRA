@@ -38,7 +38,8 @@ def test_conteggio_pec_unico():
     conteggio = conteggio_pec({"totale": 0, "da_controllare": []},
                               {"esiti": {"pec": {"esaminate": 1, "da_confermare": [{"id": "M1"}]}}})
     assert conteggio["collegate"] == 0 and conteggio["da_confermare"] == 1
-    assert conteggio["testo"] == "0 PEC collegate al fascicolo · 1 da confermare il collegamento"
+    # Righe del quadro dell'8080 (18/11/2026): le PEC sono quelle collegate dalla casella dello studio.
+    assert conteggio["testo"] == "0 PEC collegate dalla casella · 1 da confermare il collegamento"
 
 
 def test_righe_del_quadro():
@@ -54,7 +55,9 @@ def test_righe_del_quadro():
     assert notifiche["sezione"] == "sezione-comunicazioni"
     assert "da calcolare" in riga_notifiche(None, oggi=OGGI)["testo"]
     documenti = riga_documenti(43, 40, {"collegate": 0, "da_confermare": 1})
-    assert documenti["testo"] == "43 documenti · 40 da classificare · 1 PEC da confermare · 0 PEC collegate"
+    # Nessuna PEC collegata: la riga non riporta lo zero (righe del quadro dell'8080, 18/11/2026).
+    assert documenti["testo"] == "43 documenti · 40 da classificare · 1 PEC da confermare"
+    assert riga_documenti(3, 0, {"collegate": 2})["testo"] == "3 documenti · tutti classificati · 2 PEC collegate dalla casella"
 
 
 def test_quadro_notifica_con_data_trascorsa_chiede_la_prova():

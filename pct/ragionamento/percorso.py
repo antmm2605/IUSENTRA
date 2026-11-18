@@ -2,7 +2,7 @@
 
 from .modello import EventoCausa, Fonte
 from .regole.contesto import Contesto
-from .testo import giorno, pulito
+from .testo import data_it, giorno, pulito
 
 
 def ricostruisci_percorso(ctx: Contesto) -> list[EventoCausa]:
@@ -19,8 +19,10 @@ def ricostruisci_percorso(ctx: Contesto) -> list[EventoCausa]:
             registra(campo, data, descrizione, Fonte(ctx.fascicolo_id, brano=campo, data=data, tipo="fascicolo"),
                      "registrato")
 
+    documenti_invii_note = {oid for deposito in ctx.depositi if deposito.copia_in_chiaro_id
+                            for oid in (deposito.fonte_id, deposito.copia_in_chiaro_id)}
     for atto in ctx.della_causa():
-        if not atto.id:
+        if not atto.id or atto.id in documenti_invii_note:
             continue
         descrizione = atto.etichetta or atto.nome
         registra("atto", atto.data, descrizione, Fonte(atto.id, atto.nome, data=atto.data), "documentato")
@@ -37,6 +39,14 @@ def ricostruisci_percorso(ctx: Contesto) -> list[EventoCausa]:
             continue
         atto = ctx.atto(deposito.fonte_id)
         # Le copie EML sono tracce documentali. Il loro oggetto non prova un esito.
+        if deposito.copia_in_chiaro_id:
+            copia = ctx.atto(deposito.copia_in_chiaro_id)
+            if copia:
+                registra("deposito", deposito.data, f"Invio delle note per l’udienza del {data_it(deposito.udienza_note)}",
+                         Fonte(copia.id, copia.nome, "Note lette nella copia in chiaro della busta. "
+                               "La consegna e l’esito di cancelleria richiedono le relative ricevute.", deposito.data),
+                         "invio_documentato")
+                continue
         registra("deposito", deposito.data, deposito.titolo,
                  Fonte(deposito.fonte_id, atto.nome if atto else deposito.titolo, data=deposito.data,
                        tipo="documento" if atto else "registro_depositi"),

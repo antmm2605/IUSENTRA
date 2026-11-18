@@ -215,11 +215,14 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
             "campo": fatto.campo, "importo": importo, "valore": fatto.valore,
             "etichetta": fatto.etichetta, "titolo": fatto.valore_letto, "contesto": fatto.contesto,
             "verifica": fatto.verifica, "verifica_etichetta": etichetta_verifica(fatto.verifica),
+            "fascicolo_id": fatto.fascicolo_id,
             "documento_id": fatto.oggetto_id, "tipo": fatto.tipo, "origine": fatto.origine,
             "sha256": fatto.sha256,
             "identita_contenuto": next((str(p.get("dettaglio") or "") for p in fatto.prove
                                         if p.get("codice") == "impronta_contenuto_economico" and p.get("esito") == "ok"), "")
                                   or fatto.sha256 or fatto.id,
+            "identita_dispositivo": next((p for p in fatto.prove if p.get("codice") == "identita_dispositivo_sentenza"
+                                          and p.get("esito") == "ok"), {}),
             "norma": norma, "natura": natura, "fatto_id": fatto.id,
             "stato_prova": next((str(p.get("dettaglio") or "") for p in fatto.prove if p.get("codice") == "stato" and p.get("esito") == "ok"), ""),
             # Il giorno del versamento: la ricevuta lo porta, e all'avvocato
@@ -235,6 +238,14 @@ def importi_letti(fatti: Iterable[Fatto]) -> dict[str, dict[str, Any]]:
         if len(amounts) <= 1 and len({voce["identita_contenuto"] for voce in voci}) <= 1:
             continue
         current = dict(migliori[campo])
+        if campo == "liquidazione_giudice" and len(amounts) == 1 and len({v["fascicolo_id"] for v in voci}) == 1:
+            prove = [voce["identita_dispositivo"] for voce in voci]
+            date_e_impronte = {(p.get("data"), p.get("impronta")) for p in prove}
+            numeri = {p["numero"] for p in prove if p.get("numero")}
+            if len(date_e_impronte) == 1 and all(next(iter(date_e_impronte))) and len(numeri) <= 1:
+                current["copie_concordanti"] = list(voci)
+                migliori[campo] = current
+                continue
         current["discordanze"] = [dict(voce) for voce in voci]
         current["importi_letti"] = sorted(amounts)
         current["richiede_conferma"] = True

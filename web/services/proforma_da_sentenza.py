@@ -30,6 +30,7 @@ def dati_base_dalla_sentenza(fascicolo: Any) -> dict[str, Any] | None:
     from web.services.fascicolo_conto_economico_runtime import (
         crediti_da_sentenza,
         crediti_dalle_sentenze_lette,
+        crediti_pertinenti,
         sentenze_dall_archivio,
     )
 
@@ -39,8 +40,10 @@ def dati_base_dalla_sentenza(fascicolo: Any) -> dict[str, Any] | None:
         crediti_registrati = []
     try:
         crediti = [voce for voce in crediti_registrati if voce.get("confermato") and voce.get("fonti")]
-        if not crediti:
-            crediti = crediti_dalle_sentenze_lette(sentenze_dall_archivio(fascicolo))
+        tipo = getattr(fascicolo, "tipo", "")
+        if not crediti or str(getattr(tipo, "value", tipo)).casefold() == "amministrativo":
+            sentenze = sentenze_dall_archivio(fascicolo)
+            crediti = crediti_pertinenti(fascicolo, crediti, sentenze) or crediti_dalle_sentenze_lette(sentenze)
     except Exception:
         return None
     importi = {round(float(c["importo"]), 2) for c in crediti if c.get("importo")}

@@ -12,6 +12,8 @@ nessun OCR e nessuna estrazione vengono eseguiti in questo percorso.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+from dataclasses import replace
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -261,6 +263,37 @@ def context_factory_from_paths(
             except Exception:
                 return None
 
+        @cache
+        def repository_notifiche():
+            from web.services.notification_presidia_runtime import build_notification_presidio_repository
+
+            return _safe(lambda: build_notification_presidio_repository(read_only=True))
+
+        def aggiorna_segnale_notifica(signal):
+            from web.services.notification_presidia_payloads import prossimo_passaggio_presidio
+
+            repo = repository_notifiche()
+            if repo is None or not signal.source_id:
+                return signal
+            try:
+                row = repo.get_presidio(signal.source_id)
+            except KeyError:
+                return signal
+            if row["fascicolo_id"] != signal.fascicolo_id:
+                return signal
+            status = row["status"]
+            if status in {"PROOF_DEPOSITED", "CLOSED", "NOT_REQUIRED", "CANCELLED", "LEGACY_ASSUMED_HANDLED"}:
+                return None
+            return replace(
+                signal,
+                title=prossimo_passaggio_presidio(status, row.get("resolution_code") or "", fallback=signal.title),
+                reason=str(row.get("resolution_reason") or signal.reason),
+                confidence=float(row.get("confidence") or 0.0),
+                priority_hint=str(row.get("priority") or signal.priority_hint),
+                metadata={**signal.metadata, "notification_status": status,
+                          "needs_review": bool(row.get("human_review_required"))},
+            )
+
         return CollectorContext(
             tenant_id=str(tenant_label or "default").strip().lower() or "default",
             clock=clock,
@@ -274,6 +307,7 @@ def context_factory_from_paths(
             presidio_provider=presidio_provider_factory(paths, clock=clock),
             dirty_fascicoli=dirty,
             scadenza_reason_resolver=scadenza_reason_resolver(),
+            aggiorna_segnale_notifica=aggiorna_segnale_notifica,
         )
 
     return factory

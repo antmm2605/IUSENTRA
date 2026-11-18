@@ -11,6 +11,7 @@ import json
 import logging
 import sqlite3
 from datetime import date, timedelta
+from functools import lru_cache
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -80,7 +81,7 @@ def _fatti_del_fascicolo(fascicolo_id: str) -> list[Any]:
         return []
 
 
-def _testi_del_fascicolo(fascicolo_id: str) -> list[str]:
+def _testi_del_fascicolo(fascicolo_id: str) -> tuple[Any, dict[str, str]]:
     from web.helpers import get_fascicoli
     from web.services.archivio_letture_runtime import testi_indice_archivio
 
@@ -88,11 +89,11 @@ def _testi_del_fascicolo(fascicolo_id: str) -> list[str]:
         # Serve il fascicolo vero: le impronte dei testi si leggono dai suoi documenti (non basta l'identificativo).
         fascicolo = get_fascicoli().get(fascicolo_id)
         if fascicolo is None:
-            return []
-        return list(testi_indice_archivio(fascicolo).values())
+            return None, {}
+        return fascicolo, testi_indice_archivio(fascicolo)
     except Exception as exc:  # testi non disponibili: resta la data della comunicazione con l'avviso
         logger.warning("Testi del fascicolo %s non disponibili per il termine lungo: %s", fascicolo_id, exc)
-        return []
+        return None, {}
 
 
 def completa_termini_lunghi_runtime(db_path: Path | None, scadenziario: Any, *, oggi: date) -> dict[str, Any]:
@@ -122,8 +123,22 @@ def riconvalida_termini_lunghi_runtime(scadenziario: Any) -> dict[str, Any]:
     """Bozze nate dalla data della comunicazione: fonte certa dai documenti o decisione dell'avvocato."""
     from pct.riconvalida_termine_lungo import riconvalida_bozze
 
+    indicizzati = lru_cache(maxsize=1)(_testi_del_fascicolo)
+
+    def allegati_della_comunicazione(fascicolo_id: str, pec_id: str) -> list[str]:
+        fascicolo, testi = indicizzati(fascicolo_id)
+        return [
+            testi[documento.id] for documento in (getattr(fascicolo, "documenti", None) or ())
+            if documento.id in testi and getattr(documento, "fonte_documento", "") == "PEC_CANCELLERIA"
+            and str(getattr(documento, "msg_id_portale", "")).partition("#")[0] == pec_id
+        ]
+
     try:
-        return riconvalida_bozze(scadenziario, _fatti_del_fascicolo, _documenti_del_fascicolo, _testi_del_fascicolo)
+        return riconvalida_bozze(
+            scadenziario, _fatti_del_fascicolo, _documenti_del_fascicolo,
+            lambda fid: indicizzati(fid)[1].values(),
+            allegati_della_comunicazione=allegati_della_comunicazione,
+        )
     except Exception as exc:
         logger.warning("Bozze del termine lungo non riconvalidate: %s", exc)
         return {"errore": f"{type(exc).__name__}: {exc}"[:200]}

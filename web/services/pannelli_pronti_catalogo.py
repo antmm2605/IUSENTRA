@@ -9,12 +9,45 @@ anche durante le verifiche; l'impronta SQL rende visibili gli esiti successivi.
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
 # Versione dei risultati archiviati. L'identità del provvedimento è ora
 # presente anche nelle udienze della Lettura e guida la bozza delle note.
 VERSIONE_PANNELLI = "2.489.30:date-documentate-depositi-v45"
+
+# Queste viste proiettano fatti e assegnazioni documentali già registrati.
+PANNELLI_SENZA_DATA_DI_CONSULTAZIONE = frozenset({
+    "catalogazione-documentale", "letture-parti", "letture-prospetti",
+})
+
+
+def impronta_del_pannello(nome: str, fonti: str | None) -> str | None:
+    """Riconosce le revisioni dei motori che possono cambiare il risultato a fonti ferme."""
+    if not fonti:
+        return fonti
+    if nome == "relata":
+        return sha256(f"{fonti}\x1fprova-notifica-v3".encode()).hexdigest()
+    if nome == "quadro":
+        return sha256(f"{fonti}\x1fquadro-pec-casella-v1".encode()).hexdigest()
+    if nome == "scadenze":
+        return sha256(f"{fonti}\x1ffonti-processuali-v6".encode()).hexdigest()
+    if nome == "dettaglio":
+        return sha256(f"{fonti}\x1fnotifiche-pec-equivalenti-v1".encode()).hexdigest()
+    if nome == "passaggi":
+        return sha256(f"{fonti}\x1fbozze-campi-v4".encode()).hexdigest()
+    if nome == "catalogazione-documentale":
+        from pct.document_intelligence.catalog_resolver import RESOLVER_VERSION
+
+        return sha256(f"{fonti}\x1f{RESOLVER_VERSION}".encode()).hexdigest()
+    if nome not in {"lettura", "conto-economico"}:
+        return fonti
+    from pct.fascicolo_lettura import VERSIONE_LETTURA
+    from pct.ragionamento import VERSIONE
+
+    schema = "\x1flettura-economica-v1" if nome == "conto-economico" else ""
+    return sha256(f"{fonti}\x1f{VERSIONE_LETTURA}\x1f{VERSIONE}{schema}".encode()).hexdigest()
 
 # Parametri che non cambiano il payload: anti-cache dei browser e segnali della richiesta.
 PARAMETRI_IGNORATI_SEMPRE = frozenset({"_", "t", "ts", "nocache"})
@@ -55,6 +88,11 @@ def _redazione_contesto_valido(corpo: bytes) -> bool:
 def _passaggi_validi(corpo: bytes) -> bool:
     dati = _json(corpo)
     return esito_valido(corpo) and isinstance(dati, dict) and dati.get("lettura_in_preparazione") is False
+
+
+def _conto_valido(corpo: bytes) -> bool:
+    dati = _json(corpo)
+    return esito_valido(corpo) and isinstance(dati, dict) and not dati.get("aggiornamentoPendente")
 
 
 def _letture_valide(corpo: bytes) -> bool:
@@ -105,9 +143,11 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("obblighi-notifica", "api_v1_react.fascicolo_react_obblighi_notifica",
              percorso=_UI + "/obblighi-notifica", prima_apertura=True, dipende_da=("lettura",),
              ricomponi="obblighi_da_lettura"),
-    Pannello("attivita", "api_v1_react.fascicolo_react_attivita", percorso=_UI + "/attivita"),
+    Pannello("attivita", "api_v1_react.fascicolo_react_attivita", percorso=_UI + "/attivita",
+             dipende_da=("lettura",), ricomponi="attivita_da_lettura"),
     Pannello("depositi", "api_v1_react.fascicolo_react_depositi", percorso=_UI + "/depositi"),
-    Pannello("relata", "api_v1_react.fascicolo_react_relata", percorso=_UI + "/relata"),
+    Pannello("relata", "api_v1_react.fascicolo_react_relata", percorso=_UI + "/relata",
+             dipende_da=("lettura",), ricomponi="relata_da_lettura"),
     Pannello("lex", "api_v1_react.fascicolo_react_lex", percorso=_UI + "/lex"),
     Pannello("letture", "api_v1_react.fascicolo_react_letture", percorso=_UI + "/letture", parametri_ignorati=frozenset({"visto"}),
              memorizzabile=_letture_valide, ricomponi="novita_letture"),
@@ -115,14 +155,16 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("letture-prospetti", "api_v1_react.fascicolo_react_letture_prospetti", percorso=_UI + "/letture/prospetti"),
     Pannello("letture-sentenza", "api_v1_react.fascicolo_react_letture_sentenza", percorso=_UI + "/letture/sentenza", prima_apertura=True),
     Pannello("provenienza-ai", "api_v1_react.fascicolo_react_provenienza_ai", percorso=_UI + "/provenienza-ai"),
-    Pannello("conto-economico", "api_v1_react.fascicolo_react_conto_economico", percorso=_UI + "/conto-economico", prima_apertura=True, dipende_da=("lettura",)),
+    Pannello("conto-economico", "api_v1_react.fascicolo_react_conto_economico", percorso=_UI + "/conto-economico",
+             prima_apertura=True, memorizzabile=_conto_valido, dipende_da=("lettura",)),
     Pannello("checklist", "api_v1_react.fascicolo_regia_checklist", percorso=_UI + "/checklist"),
     Pannello("redazione-atti-contesto", "api_v1_react.redazione_atti_contesto_fascicolo",
              percorso="/api/v1/ui/redazione-atti/fascicoli/{fid}/contesto", parametro_fascicolo="id_fascicolo",
              prima_apertura=True, ricomponi="redazione_dal_conto", memorizzabile=_redazione_contesto_valido, dipende_da=("lettura", "conto-economico", "passaggi")),
     Pannello("catalogazione-documentale", "api_v1_documenti_ai.catalogazione_documentale_fascicolo", percorso=_UI + "/catalogazione-documentale",
-             parametro_fascicolo="fascicolo_id"),
-    Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo", percorso=_UI + "/guida-pratica"),
+             parametro_fascicolo="fascicolo_id", prima_apertura=True),
+    Pannello("guida-pratica", "api_v1_guida_pratica.guida_pratica_fascicolo",
+             percorso=_UI + "/guida-pratica?vista=scheda", prima_apertura=True, ricomponi="fase_della_guida"),
     Pannello("passaggi", "api_v1_passaggi.fascicolo_passaggi", percorso=_UI + "/passaggi",
              prima_apertura=True, memorizzabile=_passaggi_validi, dipende_da=("lettura",)),
 )

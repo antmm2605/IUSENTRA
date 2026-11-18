@@ -634,7 +634,12 @@ def segnala_scrittura_fascicolo(fascicolo_id: str) -> None:
         archivio = archivio_per_percorsi(dict(getattr(g, "data_paths", {}) or {}))
         if archivio is not None:
             archivio.invalida_fascicolo(fascicolo_id)
-            archivio.segnala_fonti_aggiornate(fascicolo_id)
+            if (archivio.segnala_fonti_aggiornate(fascicolo_id) and not request.environ.get(AMBIENTE_RICALCOLO)
+                    and not current_app.config.get("TESTING")):
+                # Il fascicolo appena scritto torna pronto subito, senza attendere il controllo al minuto.
+                from web.services.pannelli_pronti_calcolatore import sveglia_calcolatore
+
+                sveglia_calcolatore()
     except Exception as exc:
         logger.warning("Invalidazione dei pannelli dopo la scrittura non riuscita: %s", exc)
 

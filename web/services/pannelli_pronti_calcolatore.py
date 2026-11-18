@@ -88,9 +88,25 @@ def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, ten
         if voci:
             for chiave, valore in ricalcola(app, archivio, voci).items():
                 totale[chiave] += valore
+            _prepara_bozze(app, owner, voci)
             if solo_pannelli_prioritari:
                 break
     return totale
+
+
+def _prepara_bozze(app, owner, voci) -> None:
+    """Dopo la Lettura ricalcolata, le bozze dei prossimi passi (stesso processo a bassa priorità)."""
+    fascicoli = {voce.fascicolo_id for voce in voci if voce.pannello in {"lettura", "conto-economico"}}
+    if not fascicoli:
+        return
+    try:
+        from web.services.bozze_passi_runtime import giro as giro_bozze
+
+        esito = giro_bozze(app, fascicoli={str(getattr(owner, "slug", "") or "single-studio"): fascicoli})
+        if esito.get("create") or esito.get("aggiornate"):
+            logger.info("Bozze dei passi: %s", esito)
+    except Exception as exc:  # le bozze non fermano i pannelli
+        logger.warning("Bozze dei passi non preparate: %s", exc)
 
 
 def pannello_prioritario_richiesto(app) -> bool:

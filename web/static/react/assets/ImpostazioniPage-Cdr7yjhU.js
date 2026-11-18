@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-CQNMvy2i.js";export{e as ImpostazioniPage};

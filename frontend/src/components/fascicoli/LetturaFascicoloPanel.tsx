@@ -25,6 +25,8 @@ import {
   type SchedaProcedurale,
 } from './letturaFascicolo'
 import './letturaFascicolo.css'
+import { BozzaPassoLink } from './BozzaPassoLink'
+import { bozzeDelPasso, bozzeSenzaPasso, type BozzaPasso, type BozzePayload } from './bozzePassi'
 
 const EVENTI_VISIBILI = 6
 // I passaggi spiegabili si caricano a parte: non pesano sul pacchetto del fascicolo.
@@ -137,6 +139,19 @@ export function LetturaFascicoloPanel({
   }, [active, inCorso, load])
 
   const passi = useMemo(() => (lettura ? passiOrdinati(lettura) : []), [lettura])
+  // Le bozze dei passi le prepara il server in sfondo: qui si legge solo il loro registro.
+  const [bozze, setBozze] = useState<BozzaPasso[]>([])
+  const letturaGenerata = lettura?.generata_il || ''
+  useEffect(() => {
+    if (!active || !fascicoloId) return undefined
+    const controller = new AbortController()
+    fetch(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/bozze-passi`, { signal: controller.signal, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
+      .then((response) => (response.ok ? response.json() : {}))
+      .then((payload: BozzePayload) => { if (!controller.signal.aborted) setBozze(payload.ok && Array.isArray(payload.bozze) ? payload.bozze : []) })
+      .catch(() => { if (!controller.signal.aborted) setBozze([]) })
+    return () => controller.abort()
+  }, [active, fascicoloId, letturaGenerata, registroRevision])
+  const bozzeLibere = useMemo(() => bozzeSenzaPasso(bozze, passi), [bozze, passi])
   const cards = useMemo(() => (lettura ? presidiCards(lettura) : []), [lettura])
   const verifiche = useMemo(() => righeVerifiche(lettura?.verifiche, lettura?.pec?.conteggio), [lettura])
   const economico = useMemo(() => (lettura ? righeEconomico(lettura.economico) : []), [lettura])
@@ -201,12 +216,18 @@ export function LetturaFascicoloPanel({
           <h4><Scale size={16}/> Prossimi passaggi</h4>
           {(lettura.stato_passi.attivi || passi.length > 0) ? <span>{riassuntoStatoPassi(lettura)}</span> : null}
         </div>
+        {bozzeLibere.length ? (
+          <div className="iu-fas-lettura__bozze-libere">
+            <p>Bozze pronte per gli adempimenti ancora aperti, da rivedere e firmare: nessuna è stata inviata, depositata o notificata.</p>
+            {bozzeLibere.map((bozza) => <BozzaPassoLink bozza={bozza} key={bozza.chiave}/>)}
+          </div>
+        ) : null}
         {!lettura.stato_passi.attivi && !passi.length ? (
           <p className="iu-fas-lettura__nessun-passo">{lettura.stato_passi.motivo}</p>
         ) : passi.length ? (
           <ol className="iu-fas-lettura__lista">
             {passi.filter((passo) => !passo.scaduto).map((passo, indice) => (
-              <PassoRow key={`${passo.azione}-${indice}`} passo={passo} indice={indice} fontiAperte={fontiAperte.has(indice)} onToggleFonti={() => setFontiAperte((current) => { const next = new Set(current); if (next.has(indice)) next.delete(indice); else next.add(indice); return next })}/>
+              <PassoRow key={`${passo.azione}-${indice}`} passo={passo} bozze={bozzeDelPasso(bozze, passo)} indice={indice} fontiAperte={fontiAperte.has(indice)} onToggleFonti={() => setFontiAperte((current) => { const next = new Set(current); if (next.has(indice)) next.delete(indice); else next.add(indice); return next })}/>
             ))}
           </ol>
         ) : (
@@ -218,7 +239,7 @@ export function LetturaFascicoloPanel({
             <p>Controlla il documento e l’eventuale adempimento già eseguito prima di aggiornare lo stato.</p>
             <ol className="iu-fas-lettura__lista">
               {passi.filter((passo) => passo.scaduto).map((passo, indice) => (
-                <PassoRow key={`${passo.azione}-${indice}`} passo={passo} indice={indice} fontiAperte={fontiAperte.has(indice + 100)} onToggleFonti={() => setFontiAperte((current) => { const next = new Set(current); if (next.has(indice + 100)) next.delete(indice + 100); else next.add(indice + 100); return next })}/>
+                <PassoRow key={`${passo.azione}-${indice}`} passo={passo} bozze={bozzeDelPasso(bozze, passo)} indice={indice} fontiAperte={fontiAperte.has(indice + 100)} onToggleFonti={() => setFontiAperte((current) => { const next = new Set(current); if (next.has(indice + 100)) next.delete(indice + 100); else next.add(indice + 100); return next })}/>
               ))}
             </ol>
           </details>
@@ -403,7 +424,7 @@ export function LetturaFascicoloPanel({
   )
 }
 
-function PassoRow({ passo, indice, fontiAperte, onToggleFonti }: { passo: PassoLettura; indice: number; fontiAperte: boolean; onToggleFonti: () => void }) {
+function PassoRow({ passo, bozze, indice, fontiAperte, onToggleFonti }: { passo: PassoLettura; bozze: BozzaPasso[]; indice: number; fontiAperte: boolean; onToggleFonti: () => void }) {
   const urgenza = passo.scaduto ? { etichetta: 'Scaduta da verificare', tono: 'warning' as const } : etichettaUrgenza(passo.urgenza)
   const norma = normeDelPasso(passo)
   const calcolo = hrefCalcoloTermine(passo)
@@ -421,6 +442,7 @@ function PassoRow({ passo, indice, fontiAperte, onToggleFonti }: { passo: PassoL
           {norma ? <button type="button" className="iu-fas-lettura__norma" aria-expanded={fontiAperte} onClick={onToggleFonti} title="Mostra le fonti ufficiali"><Scale size={12}/> {norma}</button> : null}
           {calcolo ? <a className="iu-fas-lettura__calcolo" href={calcolo}><Calculator size={12}/> Calcola il termine</a> : null}
         </div>
+        {bozze.map((bozza) => <BozzaPassoLink bozza={bozza} key={bozza.chiave}/>)}
         {fontiAperte && passo.fonti.length ? <FontiList fonti={passo.fonti}/> : null}
       </div>
     </li>

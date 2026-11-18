@@ -2041,6 +2041,24 @@ def start_scheduler(app):
                 return {"ok": False, "job": "pannelli_pronti_ricalcolo", "error": str(e)}
 
     @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute="6-56/10"),
+        id="bozze_passi_preparazione",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=300,
+    )
+    def _bozze_passi_preparazione():
+        # Bozze dei prossimi passi dalle Letture già salvate: nessuna lettura di documenti, nessun invio.
+        with app.app_context():
+            try:
+                from web.services.bozze_passi_runtime import giro
+
+                return {"ok": True, "job": "bozze_passi_preparazione", **giro(app)}
+            except Exception as e:
+                logger.error("[scheduler] Preparazione delle bozze dei passi fallita: %s", e)
+                return {"ok": False, "job": "bozze_passi_preparazione", "error": str(e)}
+
+    @scheduler.scheduled_job(
         CronTrigger(timezone="Europe/Rome", day_of_week="sun", hour=0, minute=17),
         id="letture_recupero_completo",
         max_instances=1,

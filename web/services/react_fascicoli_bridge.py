@@ -1291,6 +1291,8 @@ _DOCUMENT_SOURCE_LABELS = {
     "CTU_LIQUIDAZIONE": "Liquidazione CTU",
     "DOCUMENTI_AI_SERVER": "Documenti dello studio",
     "EDITOR_AI_LEX": "Editor con Lex",
+    "BOZZA_PASSO": "Bozza da rivedere e firmare",
+    "BOZZA_NOTE_127_TER": "Bozza da rivedere e firmare",
     "NOTIFICA_LEGALE": "Notifica legale",
     "PAGOPA_RT_PEC": "Ricevuta PagoPA via PEC",
     "PEC_AUDIT_NOTIFICATION_RECEIPT": "Ricevuta PEC di notifica",

@@ -38,7 +38,11 @@ def _documenti(fascicolo: Any) -> list[dict[str, Any]]:
     catalogo = _sicuro(lambda: _sql_document_catalog_by_id(fascicolo), {})
     testi = _sicuro(lambda: testi_indice_archivio(fascicolo), {})
     righe = []
+    from pct.bozze_passi.modello import e_bozza_del_software
+
     for documento in list(getattr(fascicolo, "documenti", []) or []):
+        if e_bozza_del_software(documento):
+            continue  # una bozza preparata dal software non è un fatto della causa
         oid = _testo(getattr(documento, "id", ""))
         voce = catalogo.get(oid)
         righe.append({

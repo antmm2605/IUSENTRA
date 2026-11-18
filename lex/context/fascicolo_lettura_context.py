@@ -326,7 +326,11 @@ def _dati_del_fascicolo(fascicolo: Any, *, target: str, solo_cronologia: bool) -
     # The archive is the primary reading source, even while some objects await OCR.
     # Missing readings are explicit; an old text store must never replace them.
     archivio = _archivio(fascicolo)
-    documenti = [_documento_leggero(voce) for voce in list(getattr(fascicolo, "documenti", []) or [])]
+    from pct.bozze_passi.modello import e_bozza_del_software
+
+    # Le bozze preparate dal software per i passi non sono atti della causa: la Lettura non le legge.
+    documenti = [_documento_leggero(voce) for voce in list(getattr(fascicolo, "documenti", []) or [])
+                 if not e_bozza_del_software(voce)]
     letture = archivio.get("letture_documenti") or {}
     for documento in documenti:
         stato_doc = letture.get(documento["id"]) or {}

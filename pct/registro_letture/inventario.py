@@ -55,6 +55,10 @@ def oggetto_da_documento(documento: Any, fascicolo: Any, *, cifratura_attiva: bo
     identificativo = _testo(_campo(documento, "id"))
     if not identificativo or _testo(_campo(documento, "eliminato_il")):
         return None
+    from pct.bozze_passi.modello import FONTI_BOZZE_DEL_SOFTWARE
+
+    if _testo(_campo(documento, "fonte_documento")).upper() in FONTI_BOZZE_DEL_SOFTWARE:
+        return None  # bozze dei passi: i motori di lettura non ne traggono fatti della causa
     archivio = _sha(_campo(documento, "hash_sha256"))
     contenuto = _sha(_campo(documento, "hash_contenuto_sha256"))
     if contenuto and (contenuto != archivio or not cifratura_attiva):

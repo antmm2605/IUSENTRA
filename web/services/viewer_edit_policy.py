@@ -9,7 +9,7 @@ def prodotto_dallo_studio(documento) -> bool:
     esterno = any(getattr(documento, campo, "") for campo in (
         "id_documento_portale", "id_cat_portale", "msg_id_portale", "mittente_portale",
     ))
-    return not esterno and fonte in {"EDITOR_AI_LEX", "TEMPLATE_ATTI_COMPILATORE", "REDAZIONE_STUDIO"}
+    return not esterno and fonte in {"EDITOR_AI_LEX", "TEMPLATE_ATTI_COMPILATORE", "REDAZIONE_STUDIO", "BOZZA_PASSO"}
 
 
 def motivo_sola_lettura(documento) -> str:

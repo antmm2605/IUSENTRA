@@ -182,8 +182,17 @@ def test_sentenza_con_relata_nella_copia_notificata_non_resta_facoltativa():
     documenti = [DocumentoCatalogato("sent", "sentenza.pdf", "Sentenza", data="2026-09-30"),
                  DocumentoCatalogato("sent_not", "sentenza_originale_notificato.pdf", "Sentenza", data="2026-09-30")]
     prova = {"documento_id": "sent_not", "atto_documento_id": "sent_not", "relata": True, "consegna": False, "verificata": False}
-    (voce,) = _voci(documenti, {"notifica_estero": False, "prove_notifica": [prova], "sentenze": ["sent", "sent_not"],
-                                "nomi_documenti": {"sent_not": "sentenza_originale_notificato.pdf"}})
+    contesto = {"notifica_estero": False, "prove_notifica": [prova], "sentenze": ["sent", "sent_not"],
+                "nomi_documenti": {"sent_not": "sentenza_originale_notificato.pdf"}}
+    # Versione dell'8080 (18/11/2026): due sentenze si riuniscono solo con la stessa identità documentale
+    # (impronta del testo), non per la sola data. Qui le due copie hanno lo stesso testo.
+    voci = []
+    for documento in documenti:
+        voci.extend(o.to_dict() for o in obblighi_del_fascicolo([documento], [MINISTERO], contesto=contesto, oggi=OGGI))
+    stessa_sentenza = {"sent": "impronta-sentenza", "sent_not": "impronta-sentenza"}
+    (voce,) = una_voce_per_atto(riunisci_obblighi(voci, stessa_sentenza), contesto)
+    # Senza identità documentale due sentenze della stessa data restano distinte.
+    assert len(_voci(documenti, contesto)) == 2
     assert voce["regola"] == "sentenza_notifica_breve"
     assert voce["stato"] == STATO_DA_VERIFICARE
     assert "sentenza_originale_notificato.pdf" in voce["motivo"] and "termine breve" in voce["motivo"]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 from flask import Flask
@@ -57,7 +58,7 @@ def test_panoramica_legge_solo_righe_necessarie_della_casella_sql(tmp_path, monk
                         lambda *a, **k: (_ for _ in ()).throw(AssertionError("catalogo intero caricato")))
 
     recenti, non_lette = quadro_cartella_arrivo(
-        "ignorato", crea_casella=lambda *a, **k: casella,
+        "ignorato", leggi_casella=lambda _percorso: nullcontext(casella.repository),
         gestore_completo=lambda: (_ for _ in ()).throw(AssertionError("gestore completo")),
         parse=api_v1_react._parse_datetime, limite=5)
 
@@ -73,7 +74,7 @@ def test_panoramica_con_casella_json_usa_il_gestore(monkeypatch):
     posta = [SimpleNamespace(id="X", stato=StatoEmail.NON_LETTA, timestamp="2026-10-30T10:00:00"),
              SimpleNamespace(id="Y", stato=StatoEmail.LETTA, timestamp="2026-10-31T10:00:00")]
     recenti, non_lette = quadro_cartella_arrivo(
-        "casella.json", crea_casella=lambda *a, **k: SimpleNamespace(),
+        "casella.json", leggi_casella=lambda _percorso: nullcontext(None),
         gestore_completo=lambda: SimpleNamespace(tutte=lambda cartella: posta),
         parse=api_v1_react._parse_datetime, limite=5)
     assert [m.id for m in recenti] == ["Y", "X"] and non_lette == {"X"}

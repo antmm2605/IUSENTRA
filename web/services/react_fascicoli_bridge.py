@@ -7112,6 +7112,7 @@ def build_react_fascicoli_payload(
     duplicates_only: bool = False,
     payment_filters: dict[str, str] | None = None,
     field_filters: dict[str, str] | None = None,
+    compact: bool = False,
 ) -> dict[str, Any]:
     base_cache_key = _fascicoli_base_cache_key(
         query=query,
@@ -7249,6 +7250,9 @@ def build_react_fascicoli_payload(
     pagination = _pagination(page, page_size, len(sorted_items))
     start = (pagination["page"] - 1) * page_size
     items = sorted_items[start:start + page_size]
+    if compact:
+        # Come l'elenco SQL (fascicoli_list_payload): l'elenco operativo non porta le prove contabili di ogni pratica.
+        items = [{key: value for key, value in item.items() if key != "paymentSummary"} for item in items]
     # Vista economica e operativa usano le stesse righe: riepilogo e prossima scadenza hanno una sola regola.
     return {
         "source": "repository_reali",

@@ -383,7 +383,7 @@ def test_dettaglio_presidio_collega_documento_pst_gia_presente_nel_fascicolo(mon
 
 
 
-def test_dettaglio_presidio_riconcilia_prova_notifica_depositata_dal_fascicolo(monkeypatch, tmp_path) -> None:
+def test_dettaglio_presidio_non_si_chiude_con_la_sola_prova_generica_del_fascicolo(monkeypatch, tmp_path) -> None:
     repository = NotificationPresidioRepository(
         tmp_path / "pec_audit.sqlite",
         tenant_id="studio-legale-giuseppe-montagnese",
@@ -460,13 +460,11 @@ def test_dettaglio_presidio_riconcilia_prova_notifica_depositata_dal_fascicolo(m
 
     detail = payloads.build_presidio_detail_payload(repository, str(presidio["id"]))["presidio"]
 
-    assert detail["status"] == "PROOF_DEPOSITED"
-    assert detail["status_label"] == "Prova depositata"
-    assert detail["next_action"] == "Nessuna nuova relata: verifica la prova depositata"
-    confirm = next(action for action in detail["available_actions"] if action["id"] == "confirm")
-    assert confirm["enabled"] is False
-    assert "Non preparare una nuova relata" in confirm["disabled_reason"]
-    assert repository.get_presidio(str(presidio["id"]))["status"] == "PROOF_DEPOSITED"
+    # Versione dell'8080 (18/11/2026): una prova depositata nel fascicolo chiude il presidio solo se è la prova
+    # completa della stessa notifica (atto, destinatari, deposito). Il riepilogo generico della relata del
+    # fascicolo, qui senza invio né ricevute collegate al presidio, non basta: il presidio resta aperto.
+    assert detail["status"] == "ORIGINAL_ACQUIRED"
+    assert repository.get_presidio(str(presidio["id"]))["status"] == "ORIGINAL_ACQUIRED"
 
 
 def test_documenti_collegabili_espongono_nomi_leggibili_non_soli_id(monkeypatch) -> None:

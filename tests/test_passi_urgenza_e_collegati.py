@@ -303,3 +303,11 @@ def test_anticipazione_dell_udienza_non_e_un_adempimento_economico():
     assert ambito_del_passo(Passo(2, "Pianificare «Decreto anticipazione udienza n. r.g. 805/2026»", "", "15/12/2026",
                                   "scadenziario")) == "processuale"
     assert ambito_del_passo(Passo(3, "Recuperare le anticipazioni (€ 27,00)", "", "", "presidio economico")) == "economico"
+
+
+def test_contributo_da_verificare_diventa_il_dubbio_concreto_con_dovuto_e_versato():
+    presidio = {"codice": "da_verificare", "etichetta": "Da verificare", "dettaglio": "Manca la ricevuta.", "documento": None}
+    causa = ragiona(fonti({**LAVORO, "valore_causa": 1000}, [RICORSO_LAV], contributo=presidio))
+    cu = conclusione(causa, "contributo_unificato")
+    assert cu.stato == "dubbio" and "dovuti € 21,50" in cu.cosa and "non c'è la ricevuta" in cu.cosa
+    assert "art. 9, comma 1-bis" in cu.cosa and {"dpr115_art16", "dpr115_art248"} <= {n["id"] for n in cu.norme}

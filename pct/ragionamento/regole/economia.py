@@ -178,8 +178,11 @@ def _integrazione_contributo(ctx: Contesto, esito: dict[str, Any], fonte: Fonte,
                      else "nel fascicolo non c'è la ricevuta del versamento" if versato == 0
                      else f"risultano versati {format_euro_it(versato)}")
     differenza = round(dovuto - versato, 2)
-    cosa = (f"Contributo unificato: dovuti {format_euro_it(dovuto)} ({esito.get('norma')}), {versato_testo}: versare "
-            f"l'integrazione di {format_euro_it(differenza)} o depositare la ricevuta del contributo, se già versato")
+    da_fare = (f"versare l'integrazione di {format_euro_it(differenza)}" if versato else f"versare {format_euro_it(differenza)}")
+    alternative = "o depositare la ricevuta del contributo, se già versato"
+    if ctx.rito.codice == "lavoro" or semplice(ctx.fascicolo.get("tipo")) in {"lavoro", "previdenza"}:
+        alternative += ", o l'autocertificazione di esenzione per reddito (art. 9, comma 1-bis, D.P.R. 115/2002)"
+    cosa = f"Contributo unificato: dovuti {format_euro_it(dovuto)} ({esito.get('norma')}), {versato_testo}: {da_fare} {alternative}"
     perche = ("il contributo omesso o insufficiente è riscosso dall'ufficio con invito al pagamento o iscrizione a ruolo, "
               "con gli interessi legali e la sanzione (artt. 16 e 248 D.P.R. 115/2002)" if gia_depositato else
               "il contributo si versa con il deposito dell'atto introduttivo (art. 13 D.P.R. 115/2002)")

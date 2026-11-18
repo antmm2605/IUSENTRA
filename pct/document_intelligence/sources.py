@@ -131,9 +131,13 @@ def collect_fascicolo_document_sources(
     impronte: Any = None,
     allow_content_read: bool = True,
 ) -> list[DocumentAISource]:
+    from pct.bozze_passi.modello import e_bozza_del_software
+
     root = Path(documents_root)
     sources: list[DocumentAISource] = []
     for document in list(getattr(fascicolo, "documenti", []) or []):
+        if e_bozza_del_software(document):
+            continue  # le bozze dei passi non si catalogano né si leggono come atti della causa
         source = source_from_fascicolo_document(
             tenant_id=tenant_id,
             fascicolo_id=fascicolo_id,

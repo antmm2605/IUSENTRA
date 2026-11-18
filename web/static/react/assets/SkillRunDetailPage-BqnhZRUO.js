@@ -1,0 +1,1 @@
+import{rn as e}from"./lettura-fascicolo-_A6b--0B.js";import{t}from"./LegalSkillsReviewPage-J41ejfII.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as SkillRunDetailPage};

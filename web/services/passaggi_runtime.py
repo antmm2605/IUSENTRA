@@ -245,6 +245,15 @@ def apri_bozza_note(fascicolo_id: str, chiave: str, documento_id: str) -> dict[s
         preparata = (pannello.get("bozzeNote") or {}).get(chiave)
         if not preparata or preparata["documento_id"] != documento_id:
             raise ValueError("La bozza attuale dipende dal provvedimento. Attendi che la Lettura sia aggiornata.")
+        # La stessa bozza preparata in sfondo per il passo (pct.bozze_passi): si apre quella, senza doppioni.
+        from web.services.bozze_passi_runtime import archivio_corrente
+
+        archivio = archivio_corrente()
+        gia_pronta = next((v for v in (archivio.del_fascicolo(fascicolo_id) if archivio else [])
+                           if v.chiave == f"note_127ter:{preparata['termine']}"), None)
+        if gia_pronta and any(d.id == gia_pronta.documento_id for d in fascicolo.documenti):
+            return {"documentId": gia_pronta.documento_id,
+                    "openUrl": f"/fascicoli/{fascicolo_id}/documenti/{gia_pronta.documento_id}/editor"}
         doc = create_editor_document(
             fascicoli_repository=repository, fascicolo_id=fascicolo_id,
             title=preparata["titolo"] + " " + preparata["termine"],

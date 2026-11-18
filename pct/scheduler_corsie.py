@@ -59,6 +59,7 @@ LAVORI_INFRASTRUTTURA = frozenset({
     "fascicoli_list_projection",
     "receipt_query_projection",
     "pannelli_pronti_ricalcolo",
+    "bozze_passi_preparazione",
 })
 
 

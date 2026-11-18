@@ -14,10 +14,12 @@ import tarfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 
 ARTIFACTS = (
     ('pdfium', 'https://github.com/firecrawl/pdfium-rs/releases/download/native-v7988/firecrawl-pdfium-linux-x64.tgz', '6248189e07bbc33cdeb31976c539a88614307c8a19f3276dbd018efbe5b4a2a2'),
-    ('onnx', 'https://github.com/microsoft/onnxruntime/releases/download/v1.27.0/onnxruntime-linux-x64-1.27.0.tgz', '547e40a48f1fe73e3f812d7c88a948612c23f896b91e4e2ee1e232d7b468246f'),
+    # La wheel ufficiale Microsoft conserva la stessa versione del runtime C.
+    ('onnx', 'https://files.pythonhosted.org/packages/26/81/24dd9b31b0fb912ee19ca53ac1c9764bfd79d58a2ccef564eb693be831a5/onnxruntime-1.27.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl', '7c65a7438632d55dfbc8a02ee60bd6cf7dd9d1ba05a43d4b851452f32338e194'),
     ('models/pp-ocrv6_small_det.onnx', 'https://github.com/GreatV/oar-ocr/releases/download/v0.7.0/pp-ocrv6_small_det.onnx', 'd73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e'),
     ('models/pp-ocrv6_small_rec.onnx', 'https://github.com/GreatV/oar-ocr/releases/download/v0.7.0/pp-ocrv6_small_rec.onnx', '5435fd747c9e0efe15a96d0b378d5bd157e9492ed8fd80edf08f30d02fa24634'),
     ('models/ppocrv6_dict.txt', 'https://github.com/GreatV/oar-ocr/releases/download/v0.7.0/ppocrv6_dict.txt', 'b5f2bfe2bdd9448429e3e82b51c789775d9b42f2403d082b00662eb77e401c5d'),
@@ -56,6 +58,12 @@ def install(destination: Path) -> None:
             target.mkdir(parents=True, exist_ok=True)
             with tarfile.open(fileobj=io.BytesIO(data)) as archive:
                 archive.extractall(target, filter='data')
+        elif relative == 'onnx' and url.endswith('.whl'):
+            librerie = target / 'onnxruntime-linux-x64-1.27.0' / 'lib'
+            librerie.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                for nome in ('libonnxruntime.so.1.27.0', 'libonnxruntime_providers_shared.so'):
+                    (librerie / nome).write_bytes(archive.read('onnxruntime/capi/' + nome))
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)

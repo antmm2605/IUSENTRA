@@ -119,25 +119,53 @@ def _provvedimento_dice_udienza(del_giorno: list[Any]) -> bool:
 
 
 _TITOLO_OPPOSIZIONE = "Opposizione alla trattazione scritta"
+#: le righe che il presidio PEC scrive nella nota di una scadenza automatica (e quelle delle rettifiche automatiche)
+_RIGHE_AUTOMATICHE_PEC = ("Tipo evento:", "Decorrenza letta:", "Termine legale proposto", "Modalità udienza:",
+                          "Fonte modalità udienza:", "Orario udienza:", "Rettifica automatica della lettura:")
 
 
-def _udienza_pec_detta_opposizione(riga: Any, del_giorno: list[Any], oggi: date) -> Rettifica | None:
+def riga_pec_automatica(riga: Any, toccate: frozenset[str] | set[str] = frozenset()) -> bool:
+    """La scadenza è ancora quella creata dal presidio PEC: nota con il solo marcatore e le righe automatiche, e nessun
+    intervento di una persona nel registro di audit (modifica, completamento, eliminazione: ``toccate``).
+
+    Il responsabile non decide: il presidio scrive come responsabile l'utente con cui gira la sincronizzazione
+    («admin», «scheduler»), che non è una scelta dell'avvocato (verificato sui dati reali del 18/11/2026).
+    """
+    righe = str(getattr(riga, "note", "") or "").splitlines()
+    if not righe or not righe[0].startswith("PEC_AUDIT:") or str(getattr(riga, "id", "")) in toccate:
+        return False
+    return all(r.startswith(_RIGHE_AUTOMATICHE_PEC) for r in righe[1:] if r.strip())
+
+
+def _udienza_pec_detta_opposizione(riga: Any, del_giorno: list[Any], oggi: date,
+                                   toccate: frozenset[str] | set[str] = frozenset()) -> Rettifica | None:
     """L'udienza creata dal presidio PEC col titolo dell'opposizione ex art. 127-ter, quando il provvedimento la fissa in presenza.
 
     Caso reale (Tribunale di Locri, lavoro): il provvedimento dopo le note «rinvia all'udienza del 14.4.2027» (registro:
     «… 09:00 in presenza») e cita l'art. 127-ter solo nelle premesse; il presidio aveva dato all'udienza il nome e la
     perentorietà dell'opposizione (art. 127-ter, secondo comma, c.p.c.: cinque giorni dalla comunicazione, non il giorno
-    dell'udienza). Solo righe automatiche del presidio PEC, aperte, future, senza responsabile.
+    dell'udienza). Solo righe aperte e future; se una persona l'ha toccata (``riga_pec_automatica``) non si modifica:
+    si segnala la contraddizione con il provvedimento.
     """
     tipo = str(getattr(getattr(riga, "tipo", ""), "value", getattr(riga, "tipo", ""))).upper()
     note = str(getattr(riga, "note", "") or "")
     giorno = _giorno(getattr(riga, "data_scadenza", ""))
-    if (tipo != "UDIENZA" or _stato(riga) != "APERTO" or _testo(getattr(riga, "id_utente_responsabile", ""))
-            or not note.startswith("PEC_AUDIT:") or not _testo(getattr(riga, "titolo", "")).startswith(_TITOLO_OPPOSIZIONE)
+    if (tipo != "UDIENZA" or _stato(riga) != "APERTO" or not note.startswith("PEC_AUDIT:")
+            or not _testo(getattr(riga, "titolo", "")).startswith(_TITOLO_OPPOSIZIONE)
             or giorno < oggi.isoformat() or not _provvedimento_dice_udienza(del_giorno)):
         return None
     prove = [f for f in del_giorno if f.campo == "udienza" and _RE_IN_PRESENZA.search(_testo(f.contesto))]
     giorno_it = date.fromisoformat(giorno).strftime("%d/%m/%Y")
+    if not riga_pec_automatica(riga, toccate):
+        brano = next((_testo(f.contesto) for f in prove), "")
+        return Rettifica(
+            riga.id, "segnala",
+            f"Contraddizione: la scadenza «{_testo(getattr(riga, 'titolo', ''))}» del {giorno_it} è stata modificata a mano, "
+            f"ma il provvedimento e il registro dicono udienza in presenza il {giorno_it}"
+            + (f" («{brano[:160]}»)" if brano else "") + ": l'opposizione alla trattazione scritta (art. 127-ter, secondo "
+            "comma, c.p.c.) decorre dalla comunicazione. Decide l'avvocato.",
+            prove=[_prova(f) for f in prove[:3]],
+        )
     return Rettifica(
         riga.id, "aggiorna",
         "Il provvedimento fissa per il " + giorno_it + " un'udienza in presenza: non è il termine di opposizione alla "
@@ -147,11 +175,14 @@ def _udienza_pec_detta_opposizione(riga: Any, del_giorno: list[Any], oggi: date)
     )
 
 
-def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, oggi: date) -> list[Rettifica]:
+def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, oggi: date,
+                     toccate: frozenset[str] | set[str] = frozenset()) -> list[Rettifica]:
     """Le rettifiche delle scadenze automatiche intatte secondo i fatti correnti dell'archivio.
 
     Si annullano anche le proposte già decorse rimaste aperte senza fonte (es. il termine di un altro
     gruppo di cause); si aggiornano solo i termini futuri.
+
+    ``toccate`` sono gli id delle scadenze modificate da una persona secondo il registro di audit.
 
     ``fatti_correnti`` sono i fatti di categoria «data» delle fonti presenti con l'impronta corrente,
     con ogni verdetto (anche respinti): servono a dire perché un termine non c'è più.
@@ -165,7 +196,7 @@ def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, 
         giorno = _giorno(getattr(riga, "data_scadenza", ""))
         if not giorno:
             continue
-        udienza_pec = _udienza_pec_detta_opposizione(riga, per_giorno.get(giorno, []), oggi)
+        udienza_pec = _udienza_pec_detta_opposizione(riga, per_giorno.get(giorno, []), oggi, toccate)
         if udienza_pec is not None:
             piano.append(udienza_pec)
             continue

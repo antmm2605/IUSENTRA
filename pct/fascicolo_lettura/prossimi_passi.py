@@ -709,6 +709,12 @@ def prossimi_passi(
     passi.extend(_passi_notifiche(notifiche_lette, scadenze, giorno_oggi, depositi_letti, ragionamento))
     passi.extend(_passi_pec(pec_letto, giorno_oggi))
     passi.extend(_passi_conformita(conformita, ragionamento))
+    for contraddizione in (ragionamento or {}).get("contraddizioni") or []:
+        if contraddizione.get("controllo") == "udienza_detta_opposizione" and not contraddizione.get("sciolta"):
+            # Scadenziario e provvedimento si contraddicono: la correzione automatica non c'è stata (riga toccata a mano).
+            passi.append(Passo(1, "Correggere la scadenza: " + pulisci(contraddizione.get("descrizione")).rstrip("."),
+                               pulisci(contraddizione.get("come")), "", "ragionamento sul fascicolo", ("cpc_127ter",), HREF_SCADENZE,
+                               stato="da chiarire"))
     if not ragionamento:
         passi.extend(_passi_fase(fase_letta, depositi_letti, notifiche_lette, documenti_letti, intestazione=intestazione, scadenze=scadenze))
     passi.extend(_passi_documenti(documenti_letti, verifiche))
@@ -724,18 +730,20 @@ def prossimi_passi(
     return _ordina(passi, giorno_oggi), stato
 
 
-# Ordine di urgenza giuridica (richiesta dell'avvocato del 18/11/2026), uguale per ogni materia e rito:
-# 0. gli adempimenti processuali con scadenza, perentori e no, in un solo gruppo ordinato per data: un termine che
-#    scade prima viene prima, qualunque sia la sua natura; a parità di data prima il perentorio (la sua inosservanza
-#    produce la decadenza, artt. 152-153 c.p.c.; l'ordinatorio si proroga solo prima della scadenza, art. 154). Il
-#    termine già scaduto senza prova dell'adempimento resta in testa; i blocchi processuali senza data (deposito
-#    rifiutato, notifica fallita) valgono come un termine di oggi;
-# 1. gli adempimenti processuali senza scadenza (compreso l'esito d'udienza da registrare);
-# 2. i crediti da riscuotere e gli adempimenti economici;
-# 3. gli adempimenti amministrativi dello studio (anagrafica, preventivo, classificazione, profilo).
-# Il perentorio resta evidenziato nel campo «natura» del passo.
-GRUPPI_URGENZA = ("adempimento processuale con scadenza", "adempimento processuale senza scadenza",
-                  "adempimento economico", "adempimento amministrativo dello studio")
+# Ordine di urgenza giuridica (decisione dell'avvocato del 18/11/2026), uguale per ogni materia e rito:
+# 0. gli adempimenti processuali con scadenza ancora APERTA, perentori e no, per data (a parità di data prima il
+#    perentorio, artt. 152-153 c.p.c.): il prossimo passo è l'adempimento ancora eseguibile più vicino. Restano qui
+#    anche il termine scaduto da non più di GIORNI_SCADUTO_RECENTE giorni (c'è ancora spazio per i rimedi immediati:
+#    deposito tardivo con istanza, rimessione in termini, art. 153 c.p.c.) e i blocchi processuali senza data;
+# 1. «Scaduti: verificare se eseguiti»: i termini scaduti da più tempo senza prova dell'adempimento, con conseguenze
+#    e rimedi (artt. 153-154 c.p.c.), i perentori per primi e poi i più recenti;
+# 2. gli adempimenti processuali senza scadenza (compreso l'esito d'udienza da registrare);
+# 3. i crediti da riscuotere e gli adempimenti economici;
+# 4. gli adempimenti amministrativi dello studio (anagrafica, preventivo, classificazione, profilo).
+# Il perentorio resta evidenziato nel campo «natura»; il gruppo nel campo «gruppo».
+GIORNI_SCADUTO_RECENTE = 10
+GRUPPI_URGENZA = ("adempimento processuale con scadenza", "Scaduti: verificare se eseguiti",
+                  "adempimento processuale senza scadenza", "adempimento economico", "adempimento amministrativo dello studio")
 _FONTI_ECONOMICHE = {"presidio economico"}
 _FONTI_AMMINISTRATIVE = {"catalogazione", "presidio documentale"}
 _RE_AMMINISTRATIVO = re.compile(
@@ -758,27 +766,32 @@ def ambito_del_passo(passo: Passo) -> str:
     return "processuale"
 
 
-def gruppo_urgenza(passo: Passo) -> int:
+def gruppo_urgenza(passo: Passo, giorno_oggi: Any = None) -> int:
     ambito = ambito_del_passo(passo)
     if ambito == "economico":
-        return 2
-    if ambito == "amministrativo":
         return 3
+    if ambito == "amministrativo":
+        return 4
+    giorno = data_da(passo.entro)
     if passo.entro and passo.stato != "esito da registrare":
-        return 0
+        if not passo.scaduto or (giorno and giorno_oggi and (giorno_oggi - giorno).days <= GIORNI_SCADUTO_RECENTE):
+            return 0
+        return 1
     if not passo.entro and passo.urgenza == 0:
         # Blocco processuale senza data (deposito rifiutato, notifica fallita): va risolto subito, come un termine di oggi.
         return 0
-    return 1
+    return 2
 
 
-def _chiave_ordine(passo: Passo, oggi: int) -> tuple[Any, ...]:
-    gruppo = gruppo_urgenza(passo)
+def _chiave_ordine(passo: Passo, oggi: int, giorno_oggi: Any = None) -> tuple[Any, ...]:
+    gruppo = gruppo_urgenza(passo, giorno_oggi)
     giorno = data_da(passo.entro)
     ordinale = giorno.toordinal() if giorno else 10**7
     if gruppo == 0:
         # per scadenza (il blocco senza data vale come un termine di oggi); a parità di data prima il perentorio
         return gruppo, ordinale if giorno else oggi, 0 if passo.natura == "perentorio" else 1, passo.urgenza
+    if gruppo == 1:
+        return gruppo, 0 if passo.natura == "perentorio" else 1, -ordinale
     return gruppo, passo.urgenza, ordinale
 
 
@@ -790,7 +803,7 @@ def _ordina(passi: list[Passo], giorno_oggi: Any) -> list[dict[str, Any]]:
         if passo.scaduto and passo.stato == "da fare":
             passo.stato = "termine scaduto"
     oggi = giorno_oggi.toordinal() if giorno_oggi else 0
-    passi.sort(key=lambda passo: _chiave_ordine(passo, oggi))
+    passi.sort(key=lambda passo: _chiave_ordine(passo, oggi, giorno_oggi))
     visti: set[str] = set()
     unici: list[dict[str, Any]] = []
     for passo in passi:
@@ -798,7 +811,7 @@ def _ordina(passi: list[Passo], giorno_oggi: Any) -> list[dict[str, Any]]:
         if chiave in visti:
             continue
         visti.add(chiave)
-        unici.append(passo.come_dizionario())
+        unici.append({**passo.come_dizionario(), "gruppo": GRUPPI_URGENZA[gruppo_urgenza(passo, giorno_oggi)]})
     return unici
 
 

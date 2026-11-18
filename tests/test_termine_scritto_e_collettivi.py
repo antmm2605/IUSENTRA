@@ -423,8 +423,14 @@ def test_udienza_pec_con_il_titolo_dell_opposizione_si_rinomina():
     [r] = piano_rettifiche([riga], [presenza], oggi=date(2026, 11, 12))
     assert r.azione == "aggiorna" and not r.fatto_id
     assert r.campi == {"titolo": "Udienza del 14/04/2027 in presenza", "perentorio": False, "hearing_mode": "presenza"}
-    toccata = SimpleNamespace(**{**riga.__dict__, "id_utente_responsabile": "avv1"})
-    assert piano_rettifiche([toccata], [presenza], oggi=date(2026, 11, 12)) == []
+    # il responsabile scritto dall'automatismo («admin») non rende la riga dell'avvocato
+    con_admin = SimpleNamespace(**{**riga.__dict__, "id_utente_responsabile": "admin"})
+    assert [r.azione for r in piano_rettifiche([con_admin], [presenza], oggi=date(2026, 11, 12))] == ["aggiorna"]
+    # toccata dall'avvocato (registro di audit o nota scritta a mano): non si modifica, si segnala la contraddizione
+    [segnala] = piano_rettifiche([con_admin], [presenza], oggi=date(2026, 11, 12), toccate={"sp"})
+    assert segnala.azione == "segnala" and "09:00 in presenza" in segnala.motivo and not segnala.campi
+    a_mano = SimpleNamespace(**{**riga.__dict__, "note": riga.note + "\nNota dell'avvocato: verificare"})
+    assert [r.azione for r in piano_rettifiche([a_mano], [presenza], oggi=date(2026, 11, 12))] == ["segnala"]
     appuntamento = SimpleNamespace(id="A1", tipo="UDIENZA", external_provider="pec_audit", hearing_mode="note_scritte",
                                    luogo="Trattazione scritta", data_ora="2027-04-14T09:00:00", tribunale="Tribunale di Locri",
                                    titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)")

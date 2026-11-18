@@ -24,37 +24,56 @@ OGGI = date(2026, 11, 18)
 
 # --- 1. ordine di urgenza giuridica ------------------------------------------------------------------------------
 
-def test_processuali_per_scadenza_poi_economici_e_amministrativi():
+def test_prima_i_termini_aperti_poi_gli_scaduti_da_verificare_poi_economici_e_amministrativi():
     passi = [
         Passo(0, "Completa l'anagrafica cliente.", "blocco della regia operativa", "", "presidio del fascicolo"),
         Passo(3, "Formalizzare preventivo e conferimento d'incarico", "", "", "presidio economico", ambito="amministrativo"),
         Passo(2, "Riscuotere le spese liquidate dal giudice: € 376,00", "", "", "ragionamento sul fascicolo", ambito="economico"),
         Passo(2, "Depositare le note scritte entro il 16/12/2026", "art. 631 c.p.c.", "16/12/2026", "ragionamento sul fascicolo",
               natura="perentorio"),
-        Passo(1, "Completare la notifica ordinata entro il 20/11/2026", "", "20/11/2026", "presidio notifiche", natura=""),
-        Passo(1, "Notificare ricorso e decreto", "", "08/01/2027", "ragionamento sul fascicolo", natura=""),
+        Passo(1, "Completare la notifica ordinata entro il 20/11/2026", "", "20/11/2026", "presidio notifiche"),
+        Passo(1, "Notificare ricorso e decreto", "", "08/01/2027", "ragionamento sul fascicolo"),
         Passo(0, "Notificare il provvedimento al terzo", "", "24/04/2026", "ragionamento sul fascicolo"),
+        Passo(0, "Verificare la prova della notifica", "", "10/01/2026", "ragionamento sul fascicolo"),
+        Passo(0, "Depositare le graduatorie", "", "16/11/2026", "ragionamento sul fascicolo", natura="ordinatorio"),
         Passo(2, "Indicare che cosa comunica la PEC del 12/01/2026", "", "", "presidio PEC"),
     ]
-    ordinati = [p["azione"] for p in _ordina(passi, OGGI)]
-    assert ordinati == [
-        "Notificare il provvedimento al terzo",                # scaduto senza prova: in testa
-        "Completare la notifica ordinata entro il 20/11/2026",  # scade prima del perentorio: viene prima
-        "Depositare le note scritte entro il 16/12/2026",       # perentorio
-        "Notificare ricorso e decreto",                         # processuale che scade dopo
+    dati = _ordina(passi, OGGI)
+    assert [p["azione"] for p in dati] == [
+        "Depositare le graduatorie",                            # scaduto da 2 giorni: resta in testa (rimedi immediati)
+        "Completare la notifica ordinata entro il 20/11/2026",  # aperto, scade prima
+        "Depositare le note scritte entro il 16/12/2026",       # aperto, perentorio
+        "Notificare ricorso e decreto",                         # aperto, scade dopo
+        "Notificare il provvedimento al terzo",                 # scaduti: verificare se eseguiti (più recente prima)
+        "Verificare la prova della notifica",
         "Indicare che cosa comunica la PEC del 12/01/2026",      # processuale senza scadenza
         "Riscuotere le spese liquidate dal giudice: € 376,00",   # economico
         "Completa l'anagrafica cliente.",                        # amministrativo
-        "Formalizzare preventivo e conferimento d'incarico",     # amministrativo, urgenza minore
+        "Formalizzare preventivo e conferimento d'incarico",
     ]
-    dati = _ordina(passi, OGGI)
-    assert dati[2]["natura"] == "perentorio" and dati[2]["ambito"] == "processuale" and dati[0]["stato"] == "termine scaduto"
-    # a parità di data prima il perentorio
+    assert dati[4]["gruppo"] == "Scaduti: verificare se eseguiti" and dati[4]["stato"] == "termine scaduto"
+    assert dati[2]["natura"] == "perentorio" and dati[2]["gruppo"] == "adempimento processuale con scadenza"
     stesso_giorno = [Passo(1, "Ordinatorio del 16/12/2026", "", "16/12/2026", "scadenziario"),
                      Passo(2, "Perentorio del 16/12/2026", "", "16/12/2026", "scadenziario", natura="perentorio")]
     assert [p["azione"] for p in _ordina(stesso_giorno, OGGI)] == ["Perentorio del 16/12/2026", "Ordinatorio del 16/12/2026"]
-    senza_scaduti = [p for p in passi if p.azione != "Notificare il provvedimento al terzo"]
-    assert riga_prossimo_passo(_ordina(senza_scaduti, OGGI))["testo"].startswith("Completare la notifica ordinata entro il 20/11/2026")
+    # caso 312F9C60: senza scaduti recenti il prossimo passo è il termine aperto più vicino
+    senza_recenti = [p for p in passi if p.azione not in {"Depositare le graduatorie", "Completare la notifica ordinata entro il 20/11/2026"}]
+    assert riga_prossimo_passo(_ordina(senza_recenti, OGGI))["testo"].startswith("Depositare le note scritte entro il 16/12/2026")
+
+
+def test_scaduto_con_procedimento_proseguito_resta_un_dubbio_con_l_indizio():
+    from pct.fascicolo_lettura.ragionamento import passi as passi_modello, proseguito_dopo
+
+    causa = {"atti": [{"id": "P1", "autore": "giudice", "appartenenza": "causa", "data": "2025-11-24", "nome": "decreto.pdf"},
+                      {"id": "P2", "autore": "giudice", "appartenenza": "causa", "data": "2026-02-26", "nome": "verbale.pdf"}],
+             "esiti_udienze": [{"data": "2026-02-26", "nome": "verbale.pdf"}],
+             "conclusioni": [{"codice": "notifica_ordinata", "stato": "dubbio", "onerato": "noi", "cosa": "Notificare il decreto",
+                              "perche": "presupposto dell'udienza", "come": "PEC", "letto": {"oggetto_id": "P1"},
+                              "termine": {"scadenza": "2026-01-10", "scaduto": True, "perentorio": False, "rimedi": "art. 154 c.p.c."},
+                              "dubbi": [{"codice": "notifica_ordinata_da_correlare", "testo": "Tracce della notifica."}], "norme": []}]}
+    assert proseguito_dopo(causa, "2026-01-10", "P1").startswith("il procedimento è proseguito con l'udienza del 26/02/2026")
+    [passo] = passi_modello(causa)
+    assert "probabilmente avvenuto, manca la prova" in passo.motivo and passo.stato == "da chiarire"
 
 
 # --- 2. fascicoli collegati: titolo esecutivo e precetto ----------------------------------------------------------
@@ -322,3 +341,23 @@ def test_blocchi_anagrafici_della_regia_sono_amministrativi():
 
     for azione in ("Completa l'anagrafica cliente.", "Collega un cliente reale al fascicolo.", "Compila tribunale o ufficio competente."):
         assert ambito_del_passo(Passo(0, azione, "blocco della regia operativa", "", "presidio del fascicolo")) == "amministrativo"
+
+
+def test_scadenza_opposizione_contraddetta_dal_provvedimento_in_presenza():
+    rinvio = doc("RIN", "rinvio.pdf", "provvedimento", "Provvedimento", "Il Giudice del lavoro; rinvia all'udienza del 14.4.2027, "
+                 "ore 9.00. Manda alla cancelleria. Locri, 10/09/2026", data="2026-09-10")
+    scadenze = [{"titolo": "Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+                 "data": "2027-04-14", "stato": "APERTO"}]
+    causa = ragiona(replace(fonti({**LAVORO, "numero_rg": "1854"}, [RICORSO_LAV, rinvio], scadenze=scadenze), oggi=OGGI))
+    [x] = [c for c in causa.contraddizioni if c.controllo == "udienza_detta_opposizione"]
+    assert not x.sciolta and "14/04/2027" in x.come and "art. 127-ter" in x.come
+
+
+def test_contraddizione_dal_registro_che_dice_in_presenza():
+    scadenze = [{"titolo": "Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+                 "data": "2027-04-14", "stato": "APERTO"}]
+    fatti = [{"categoria": "data", "campo": "udienza", "tipo": "allegato_pec", "verifica": "verificata", "valore": "2027-04-14",
+              "contesto": "RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00 in presenza"}]
+    causa = ragiona(replace(fonti({**LAVORO, "numero_rg": "1854"}, [RICORSO_LAV], scadenze=scadenze, fatti=fatti), oggi=OGGI))
+    [x] = [c for c in causa.contraddizioni if c.controllo == "udienza_detta_opposizione"]
+    assert "09:00 in presenza" in x.come and not x.sciolta

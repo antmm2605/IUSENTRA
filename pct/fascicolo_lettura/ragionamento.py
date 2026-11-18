@@ -136,6 +136,24 @@ _AMBITI = {"spese_liquidate": "economico", "contributo_unificato": "economico"}
 _PASSI_TRATTAZIONE = frozenset({"note_127ter", "costituzione_convenuto", "costituzione_attore"})
 
 
+def proseguito_dopo(causa: dict[str, Any], scadenza: Any, fonte_id: Any = "") -> str:
+    """Il procedimento proseguito regolarmente dopo la scadenza: l'udienza tenuta (esito scritto in un provvedimento) o
+    il provvedimento del giudice successivo, diverso da quello che ha assegnato il termine. Stringa vuota se non c'è."""
+    giorno = str(scadenza or "")[:10]
+    if not giorno:
+        return ""
+    udienza = next((e for e in sorted(causa.get("esiti_udienze") or [], key=lambda e: e.get("data") or "")
+                    if (e.get("data") or "") > giorno), None)
+    if udienza:
+        return f"il procedimento è proseguito con l'udienza del {data_it(udienza['data'])} («{udienza.get('nome', '')}»)"
+    atto = next((a for a in sorted(causa.get("atti") or [], key=lambda a: a.get("data") or "")
+                 if a.get("autore") == "giudice" and a.get("appartenenza") == "causa" and (a.get("data") or "") > giorno
+                 and a.get("id") != fonte_id), None)
+    if atto:
+        return f"il procedimento è proseguito con il provvedimento «{atto.get('nome', '')}» del {data_it(atto.get('data'))}"
+    return ""
+
+
 def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedimenti_consegnati: frozenset[str] = frozenset()) -> list[Passo]:
     """I prossimi passi giuridici: esclude gli adempimenti di trattazione dopo il provvedimento conclusivo."""
 
@@ -160,6 +178,11 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
         if termine.get("scaduto") and termine.get("rimedi"):
             # Termine scaduto senza prova dell'adempimento: conseguenze e rimedi secondo la natura del termine.
             motivo = f"termine scaduto il {data_it(termine.get('scadenza'))}, nel fascicolo non risulta l'adempimento — {termine['rimedi']}; {motivo}"
+        if termine.get("scaduto"):
+            seguito = proseguito_dopo(causa, termine.get("scadenza"), (voce.get("letto") or {}).get("oggetto_id"))
+            if seguito:
+                # Il procedimento è andato avanti: indizio dell'adempimento, non prova (resta un dubbio, mai «fatto»).
+                motivo = f"{seguito}: l'adempimento è probabilmente avvenuto, manca la prova nel fascicolo; {motivo}"
         azione = _azione(voce)
         href = HREF.get(voce["codice"], "#udienze")
         prova_pec = next((d.get("fonte") for d in voce.get("dubbi") or []
@@ -196,4 +219,4 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
     return esito
 
 
-__all__ = ["passi", "vista"]
+__all__ = ["passi", "proseguito_dopo", "vista"]

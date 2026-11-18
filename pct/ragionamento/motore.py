@@ -136,7 +136,8 @@ def ragiona(fonti: FontiCausa) -> Causa:
     contributo = conclusione_contributo(ctx, fonti.fatti, fonti.pagamenti, stato_condiviso=fonti.contributo)
     if contributo:
         conclusioni.append(contributo)
-    contraddizioni, dubbi = controlla(ctx, conclusioni, errori, pagamenti=fonti.pagamenti, parcelle=fonti.parcelle, scadenze=fonti.scadenze)
+    contraddizioni, dubbi = controlla(ctx, conclusioni, errori, pagamenti=fonti.pagamenti, parcelle=fonti.parcelle, scadenze=fonti.scadenze,
+                                        fatti=fonti.fatti)
     depositi_collegati = {oid for d in depositi if d.accettato for oid in d.documenti_ids}
     for deposito in depositi:
         if deposito.stato_registro or not deposito.fonte_id or deposito.fonte_id in depositi_collegati:

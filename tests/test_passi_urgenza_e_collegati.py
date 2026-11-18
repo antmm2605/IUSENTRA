@@ -24,33 +24,37 @@ OGGI = date(2026, 11, 18)
 
 # --- 1. ordine di urgenza giuridica ------------------------------------------------------------------------------
 
-def test_prima_il_termine_perentorio_poi_processuale_economico_e_amministrativo():
+def test_processuali_per_scadenza_poi_economici_e_amministrativi():
     passi = [
         Passo(0, "Completa l'anagrafica cliente.", "blocco della regia operativa", "", "presidio del fascicolo"),
         Passo(3, "Formalizzare preventivo e conferimento d'incarico", "", "", "presidio economico", ambito="amministrativo"),
         Passo(2, "Riscuotere le spese liquidate dal giudice: € 376,00", "", "", "ragionamento sul fascicolo", ambito="economico"),
         Passo(2, "Depositare le note scritte entro il 16/12/2026", "art. 631 c.p.c.", "16/12/2026", "ragionamento sul fascicolo",
               natura="perentorio"),
+        Passo(1, "Completare la notifica ordinata entro il 20/11/2026", "", "20/11/2026", "presidio notifiche", natura=""),
         Passo(1, "Notificare ricorso e decreto", "", "08/01/2027", "ragionamento sul fascicolo", natura=""),
         Passo(0, "Notificare il provvedimento al terzo", "", "24/04/2026", "ragionamento sul fascicolo"),
         Passo(2, "Indicare che cosa comunica la PEC del 12/01/2026", "", "", "presidio PEC"),
     ]
     ordinati = [p["azione"] for p in _ordina(passi, OGGI)]
     assert ordinati == [
-        "Depositare le note scritte entro il 16/12/2026",      # perentorio
-        "Notificare il provvedimento al terzo",                # processuale con scadenza (già decorsa), per data
-        "Notificare ricorso e decreto",                        # processuale con scadenza
-        "Indicare che cosa comunica la PEC del 12/01/2026",     # processuale senza scadenza
-        "Riscuotere le spese liquidate dal giudice: € 376,00",  # economico
-        "Completa l'anagrafica cliente.",                       # amministrativo
-        "Formalizzare preventivo e conferimento d'incarico",    # amministrativo, urgenza minore
+        "Notificare il provvedimento al terzo",                # scaduto senza prova: in testa
+        "Completare la notifica ordinata entro il 20/11/2026",  # scade prima del perentorio: viene prima
+        "Depositare le note scritte entro il 16/12/2026",       # perentorio
+        "Notificare ricorso e decreto",                         # processuale che scade dopo
+        "Indicare che cosa comunica la PEC del 12/01/2026",      # processuale senza scadenza
+        "Riscuotere le spese liquidate dal giudice: € 376,00",   # economico
+        "Completa l'anagrafica cliente.",                        # amministrativo
+        "Formalizzare preventivo e conferimento d'incarico",     # amministrativo, urgenza minore
     ]
     dati = _ordina(passi, OGGI)
-    assert dati[0]["natura"] == "perentorio" and dati[0]["ambito"] == "processuale" and dati[1]["stato"] == "termine scaduto"
-    # un perentorio scaduto senza prova viene prima di quello ancora aperto (decadenza: art. 153 c.p.c.)
-    scaduto = Passo(1, "Depositare le note scritte entro il 16/10/2026", "", "16/10/2026", "ragionamento sul fascicolo", natura="perentorio")
-    assert _ordina(passi + [scaduto], OGGI)[0]["azione"] == "Depositare le note scritte entro il 16/10/2026"
-    assert riga_prossimo_passo(dati)["testo"].startswith("Depositare le note scritte entro il 16/12/2026")
+    assert dati[2]["natura"] == "perentorio" and dati[2]["ambito"] == "processuale" and dati[0]["stato"] == "termine scaduto"
+    # a parità di data prima il perentorio
+    stesso_giorno = [Passo(1, "Ordinatorio del 16/12/2026", "", "16/12/2026", "scadenziario"),
+                     Passo(2, "Perentorio del 16/12/2026", "", "16/12/2026", "scadenziario", natura="perentorio")]
+    assert [p["azione"] for p in _ordina(stesso_giorno, OGGI)] == ["Perentorio del 16/12/2026", "Ordinatorio del 16/12/2026"]
+    senza_scaduti = [p for p in passi if p.azione != "Notificare il provvedimento al terzo"]
+    assert riga_prossimo_passo(_ordina(senza_scaduti, OGGI))["testo"].startswith("Completare la notifica ordinata entro il 20/11/2026")
 
 
 # --- 2. fascicoli collegati: titolo esecutivo e precetto ----------------------------------------------------------

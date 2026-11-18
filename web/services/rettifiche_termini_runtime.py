@@ -82,6 +82,11 @@ def riconcilia_termini_riletti(fascicolo: Any, registro: Any, tenant: str, *, ap
                 scadenziario.aggiorna(scadenza.id, stato="ANNULLATO", trace_json=_traccia(scadenza, voce),
                                       note=scadenza.note + "\nRettifica automatica della lettura: " + rettifica.motivo)
                 esito["annullate"] += 1
+            elif not rettifica.fatto_id:
+                # Riga del presidio PEC (udienza titolata come opposizione ex art. 127-ter): la nota si integra, non si riscrive.
+                scadenziario.aggiorna(scadenza.id, trace_json=_traccia(scadenza, voce),
+                                      note=scadenza.note + "\nRettifica automatica della lettura: " + rettifica.motivo, **rettifica.campi)
+                esito["aggiornate"] += 1
             else:
                 righe = scadenza.note.splitlines()
                 # La nota resta nella forma automatica di tre righe: la riga punta al fatto corrente.

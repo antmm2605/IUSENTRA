@@ -102,6 +102,51 @@ def _motivo_respinto(fatti: list[Any]) -> str:
     return ""
 
 
+def _derivato_dal_presidio_pec(fatto: Any) -> bool:
+    """Fatto del motore PEC tratto dalla proposta del presidio (non dal testo di un provvedimento)."""
+    return getattr(fatto, "tipo", "") == "pec"
+
+
+def _provvedimento_dice_udienza(del_giorno: list[Any]) -> bool:
+    """Le letture del provvedimento (documento o allegato) danno per quel giorno un'udienza in presenza e nessun termine.
+
+    Serve la modalità scritta nel provvedimento o nel registro («… 09:00 in presenza», «sarà trattata in presenza»):
+    senza questa prova esplicita un termine per note proposto dal presidio non si toglie mai (un termine perentorio
+    non sparisce per una deduzione incerta)."""
+    primarie = [f for f in del_giorno if f.tipo in {"documento", "allegato_pec"} and f.verifica in _VERIFICHE_UTILI]
+    return (any(f.campo == "udienza" and _RE_IN_PRESENZA.search(_testo(f.contesto)) for f in primarie)
+            and not any(f.campo in {"termine", "costituzione"} for f in primarie))
+
+
+_TITOLO_OPPOSIZIONE = "Opposizione alla trattazione scritta"
+
+
+def _udienza_pec_detta_opposizione(riga: Any, del_giorno: list[Any], oggi: date) -> Rettifica | None:
+    """L'udienza creata dal presidio PEC col titolo dell'opposizione ex art. 127-ter, quando il provvedimento la fissa in presenza.
+
+    Caso reale (Tribunale di Locri, lavoro): il provvedimento dopo le note «rinvia all'udienza del 14.4.2027» (registro:
+    «… 09:00 in presenza») e cita l'art. 127-ter solo nelle premesse; il presidio aveva dato all'udienza il nome e la
+    perentorietà dell'opposizione (art. 127-ter, secondo comma, c.p.c.: cinque giorni dalla comunicazione, non il giorno
+    dell'udienza). Solo righe automatiche del presidio PEC, aperte, future, senza responsabile.
+    """
+    tipo = str(getattr(getattr(riga, "tipo", ""), "value", getattr(riga, "tipo", ""))).upper()
+    note = str(getattr(riga, "note", "") or "")
+    giorno = _giorno(getattr(riga, "data_scadenza", ""))
+    if (tipo != "UDIENZA" or _stato(riga) != "APERTO" or _testo(getattr(riga, "id_utente_responsabile", ""))
+            or not note.startswith("PEC_AUDIT:") or not _testo(getattr(riga, "titolo", "")).startswith(_TITOLO_OPPOSIZIONE)
+            or giorno < oggi.isoformat() or not _provvedimento_dice_udienza(del_giorno)):
+        return None
+    prove = [f for f in del_giorno if f.campo == "udienza" and _RE_IN_PRESENZA.search(_testo(f.contesto))]
+    giorno_it = date.fromisoformat(giorno).strftime("%d/%m/%Y")
+    return Rettifica(
+        riga.id, "aggiorna",
+        "Il provvedimento fissa per il " + giorno_it + " un'udienza in presenza: non è il termine di opposizione alla "
+        "trattazione scritta (art. 127-ter, secondo comma, c.p.c.), che decorre dalla comunicazione.",
+        campi={"titolo": f"Udienza del {giorno_it} in presenza", "perentorio": False, "hearing_mode": "presenza"},
+        prove=[_prova(f) for f in prove[:3]],
+    )
+
+
 def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, oggi: date) -> list[Rettifica]:
     """Le rettifiche delle scadenze automatiche intatte secondo i fatti correnti dell'archivio.
 
@@ -118,10 +163,20 @@ def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, 
     piano: list[Rettifica] = []
     for riga in scadenze:
         giorno = _giorno(getattr(riga, "data_scadenza", ""))
-        if not giorno or not riga_intatta(riga):
+        if not giorno:
+            continue
+        udienza_pec = _udienza_pec_detta_opposizione(riga, per_giorno.get(giorno, []), oggi)
+        if udienza_pec is not None:
+            piano.append(udienza_pec)
+            continue
+        if not riga_intatta(riga):
             continue
         del_giorno = per_giorno.get(giorno, [])
         termini = [f for f in del_giorno if f.campo in {"termine", "costituzione"} and f.verifica in _VERIFICHE_UTILI]
+        if termini and all(_derivato_dal_presidio_pec(f) for f in termini) and _provvedimento_dice_udienza(del_giorno):
+            # Il termine per le note che il presidio PEC aveva derivato dal testo del provvedimento è smentito dalla
+            # lettura del provvedimento stesso: per questa data dispone un'udienza in presenza, non le note.
+            termini = []
         if not termini:
             if any(f.campo in {"termine", "costituzione"} and f.verifica == "plausibile" for f in del_giorno):
                 continue  # un termine ancora da confermare: decide l'avvocato
@@ -129,7 +184,7 @@ def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, 
             udienze = [f for f in del_giorno if f.campo == "udienza" and f.verifica in _VERIFICHE_UTILI]
             if respinti and _motivo_respinto(respinti):
                 piano.append(Rettifica(riga.id, "annulla", _motivo_respinto(respinti), prove=[_prova(f) for f in respinti[:5]]))
-            elif udienze and not respinti:
+            elif udienze and (not respinti or _provvedimento_dice_udienza(del_giorno)):
                 piano.append(Rettifica(
                     riga.id, "annulla",
                     "Con la lettura corrente del provvedimento la data è l'udienza, non un termine: il termine "
@@ -168,7 +223,9 @@ def piano_rettifiche(scadenze: Iterable[Any], fatti_correnti: Iterable[Any], *, 
 
 # ---- agenda: la modalità d'udienza disposta per la causa ------------------------------------------
 
-_RE_IN_PRESENZA = re.compile(r"(?:trattat[ao]|si\s+terr[àa]|celebrat[ao]|svolger[àa])\s+in\s+presenza", re.I)
+_RE_IN_PRESENZA = re.compile(
+    r"(?:trattat[ao]|si\s+terr[àa]|celebrat[ao]|svolger[àa])\s+in\s+presenza|\budienza\b[^.|]{0,60}?\d{1,2}[:.]\d{2}\s+in\s+presenza",
+    re.I)
 _LUOGHI_AUTOMATICI = {"trattazione scritta", "modalità udienza da verificare", ""}
 
 
@@ -202,12 +259,17 @@ def piano_agenda(appuntamenti: Iterable[Any], fatti_correnti: Iterable[Any], *, 
         prove = _udienza_in_presenza(per_giorno.get(_giorno(getattr(appuntamento, "data_ora", "")), []))
         if not prove:
             continue
+        campi_titolo = {}
+        if _testo(getattr(appuntamento, "titolo", "")).startswith(_TITOLO_OPPOSIZIONE):
+            # L'udienza non è il termine di opposizione alla trattazione scritta (art. 127-ter, secondo comma, c.p.c.).
+            campi_titolo["titolo"] = ("Udienza del " + date.fromisoformat(_giorno(appuntamento.data_ora)).strftime("%d/%m/%Y")
+                                      + " in presenza")
         piano.append(Rettifica(
             appuntamento.id, "modalita",
             "Il provvedimento dispone per questa causa l'udienza in presenza; la trattazione scritta (art. 127-ter "
-            "c.p.c.) riguardava altre cause dello stesso provvedimento.",
+            "c.p.c.) riguardava altre cause dello stesso provvedimento o era richiamata solo nelle premesse.",
             campi={"hearing_mode": "presenza", "luogo": tribunale or _testo(getattr(appuntamento, "tribunale", "")),
-                   "remote_hearing_mode": "", "remote_hearing_platform": "", "remote_hearing_access_info": ""},
+                   "remote_hearing_mode": "", "remote_hearing_platform": "", "remote_hearing_access_info": "", **campi_titolo},
             prove=[_prova(f) for f in prove[:3]],
         ))
     return piano

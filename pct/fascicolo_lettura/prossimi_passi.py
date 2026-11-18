@@ -725,14 +725,16 @@ def prossimi_passi(
 
 
 # Ordine di urgenza giuridica (richiesta dell'avvocato del 18/11/2026), uguale per ogni materia e rito:
-# 0. termini perentori ancora aperti, per scadenza: la loro inosservanza produce la decadenza e non si
-#    rimedia con una proroga (artt. 152-153 c.p.c.);
-# 1. gli altri adempimenti processuali con scadenza aperta, per scadenza (termini ordinatori, art. 154 c.p.c.);
-# 2. gli adempimenti processuali con termine già scaduto (prima i perentori: rimessione in termini, art. 153,
-#    secondo comma, c.p.c.) e quelli senza scadenza;
-# 3. i crediti da riscuotere e gli adempimenti economici;
-# 4. gli adempimenti amministrativi dello studio (anagrafica, preventivo, classificazione, profilo).
-GRUPPI_URGENZA = ("termine perentorio", "adempimento processuale con scadenza", "adempimento processuale senza scadenza",
+# 0. gli adempimenti processuali con scadenza, perentori e no, in un solo gruppo ordinato per data: un termine che
+#    scade prima viene prima, qualunque sia la sua natura; a parità di data prima il perentorio (la sua inosservanza
+#    produce la decadenza, artt. 152-153 c.p.c.; l'ordinatorio si proroga solo prima della scadenza, art. 154). Il
+#    termine già scaduto senza prova dell'adempimento resta in testa; i blocchi processuali senza data (deposito
+#    rifiutato, notifica fallita) valgono come un termine di oggi;
+# 1. gli adempimenti processuali senza scadenza (compreso l'esito d'udienza da registrare);
+# 2. i crediti da riscuotere e gli adempimenti economici;
+# 3. gli adempimenti amministrativi dello studio (anagrafica, preventivo, classificazione, profilo).
+# Il perentorio resta evidenziato nel campo «natura» del passo.
+GRUPPI_URGENZA = ("adempimento processuale con scadenza", "adempimento processuale senza scadenza",
                   "adempimento economico", "adempimento amministrativo dello studio")
 _FONTI_ECONOMICHE = {"presidio economico"}
 _FONTI_AMMINISTRATIVE = {"catalogazione", "presidio documentale"}
@@ -759,26 +761,24 @@ def ambito_del_passo(passo: Passo) -> str:
 def gruppo_urgenza(passo: Passo) -> int:
     ambito = ambito_del_passo(passo)
     if ambito == "economico":
-        return 3
+        return 2
     if ambito == "amministrativo":
-        return 4
+        return 3
     if passo.entro and passo.stato != "esito da registrare":
-        return 0 if passo.natura == "perentorio" else 1
+        return 0
     if not passo.entro and passo.urgenza == 0:
         # Blocco processuale senza data (deposito rifiutato, notifica fallita): va risolto subito, come un termine di oggi.
         return 0
-    return 2
+    return 1
 
 
 def _chiave_ordine(passo: Passo, oggi: int) -> tuple[Any, ...]:
     gruppo = gruppo_urgenza(passo)
     giorno = data_da(passo.entro)
     ordinale = giorno.toordinal() if giorno else 10**7
-    if gruppo in {0, 1}:
-        # per scadenza; il blocco senza data vale come un termine di oggi
-        return gruppo, ordinale if giorno else oggi, passo.urgenza
-    if gruppo == 2:
-        return gruppo, passo.urgenza, ordinale
+    if gruppo == 0:
+        # per scadenza (il blocco senza data vale come un termine di oggi); a parità di data prima il perentorio
+        return gruppo, ordinale if giorno else oggi, 0 if passo.natura == "perentorio" else 1, passo.urgenza
     return gruppo, passo.urgenza, ordinale
 
 

@@ -395,3 +395,38 @@ def test_rilettura_mirata_delle_note_qualificate_prima_della_regola_sulle_premes
     gia = "motore+" + REGOLE_TERMINE_SCRITTO + "+note-antecedenti:v1"
     assert ("documento", "DOC1") in oggetti_da_rileggere(qualificato, {("documento", "DOC1"): gia})
     assert oggetti_da_rileggere(qualificato, {("documento", "DOC1"): gia + "+" + REGOLA_PREMESSE_127_TER}) == {}
+
+
+# ---- udienze PEC dette «opposizione» e termini PEC smentiti dal provvedimento (da fix-termini, caso reale di Locri) ----
+
+def test_termine_del_presidio_pec_smentito_solo_dalla_presenza_scritta():
+    pec = _fatto(valore="2027-04-14", etichetta="Deposito note in sostituzione udienza del 14/04/2027 (note_scritte)", tipo="pec", id="fat_p",
+                 prove=[{"codice": "modalita_note", "esito": "ok", "dettaglio": "note"}])
+    presenza = _fatto(campo="udienza", valore="2027-04-14", etichetta="Udienza del 14/04/2027", tipo="allegato_pec", id="fat_u",
+                      contesto="RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00 in presenza")
+    senza_modalita = _fatto(campo="udienza", valore="2027-04-14", etichetta="Udienza del 14/04/2027", tipo="documento", id="fat_d",
+                            contesto="rinvia all'udienza del 14.4.2027, ore di rito")
+    riga = _riga("Deposito note in sostituzione udienza del 14/04/2027 (note_scritte)", "2027-04-14")
+    assert [r.azione for r in piano_rettifiche([riga], [pec, presenza], oggi=date(2026, 11, 12))] == ["annulla"]
+    # senza la modalità scritta dal giudice il termine resta (mai sparire per una deduzione incerta)
+    assert piano_rettifiche([riga], [pec, senza_modalita], oggi=date(2026, 11, 12)) == []
+
+
+def test_udienza_pec_con_il_titolo_dell_opposizione_si_rinomina():
+    from pct.archivio_letture.rettifica_termini import piano_agenda
+
+    presenza = _fatto(campo="udienza", valore="2027-04-14", etichetta="Udienza del 14/04/2027", tipo="allegato_pec", id="fat_u",
+                      contesto="RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/04/2027 09:00 in presenza")
+    riga = SimpleNamespace(id="sp", titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)",
+                           data_scadenza="2027-04-14", stato="APERTO", tipo="UDIENZA", id_utente_responsabile="", perentorio=True,
+                           note="PEC_AUDIT:pec_x\nOrario udienza: 09:00")
+    [r] = piano_rettifiche([riga], [presenza], oggi=date(2026, 11, 12))
+    assert r.azione == "aggiorna" and not r.fatto_id
+    assert r.campi == {"titolo": "Udienza del 14/04/2027 in presenza", "perentorio": False, "hearing_mode": "presenza"}
+    toccata = SimpleNamespace(**{**riga.__dict__, "id_utente_responsabile": "avv1"})
+    assert piano_rettifiche([toccata], [presenza], oggi=date(2026, 11, 12)) == []
+    appuntamento = SimpleNamespace(id="A1", tipo="UDIENZA", external_provider="pec_audit", hearing_mode="note_scritte",
+                                   luogo="Trattazione scritta", data_ora="2027-04-14T09:00:00", tribunale="Tribunale di Locri",
+                                   titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)")
+    [modalita] = piano_agenda([appuntamento], [presenza])
+    assert modalita.campi["hearing_mode"] == "presenza" and modalita.campi["titolo"] == "Udienza del 14/04/2027 in presenza"

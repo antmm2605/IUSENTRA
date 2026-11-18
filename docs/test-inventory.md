@@ -13,14 +13,14 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Tipo test | Conteggio |
 | --- | --- |
 | API contract | 134 |
-| Backend | 195 |
+| Backend | 194 |
 | E2E | 15 |
 | Frontend static gate | 1 |
 | Frontend/UI | 451 |
 | RBAC | 180 |
 | Security | 64 |
 | Smoke CLI | 6 |
-| Tenant isolation | 319 |
+| Tenant isolation | 320 |
 
 ## Fasi pytest governate
 
@@ -1326,7 +1326,6 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Portale Cliente | Tenant isolation | tests/test_client_portal_access.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Portale Cliente | Tenant isolation | tests/test_client_portal_api.py | 401 anonimo, 403/RBAC, tenant, file, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Portale Cliente | Tenant isolation | tests/test_client_portal_repository.py | tenant, feature flag, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
-| Scadenze | Backend | tests/test_hetzner_scadenziario_cutover.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Backend | tests/test_scadenze_da_udienza.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Frontend/UI | tests/test_guardiano_scadenze.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Scadenze | Frontend/UI | tests/test_prossima_scadenza_unica.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -1339,6 +1338,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Scadenze | Frontend/UI | tests/test_scadenziario_reconciliation_display.py | audit | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Scadenze | RBAC | tests/test_polisweb_scadenze_registri.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | RBAC | tests/test_scadenziario_sql_concurrency.py | 403/RBAC, contratto, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Scadenze | Tenant isolation | tests/test_hetzner_scadenziario_cutover.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Tenant isolation | tests/test_scadenze_rettifiche_cas.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Tenant isolation | tests/test_scadenziario.py | 401 anonimo, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Scadenze | Tenant isolation | tests/test_scadenziario_draft_source_loading.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

@@ -732,7 +732,7 @@ def prossimi_passi(
 #    secondo comma, c.p.c.) e quelli senza scadenza;
 # 3. i crediti da riscuotere e gli adempimenti economici;
 # 4. gli adempimenti amministrativi dello studio (anagrafica, preventivo, classificazione, profilo).
-GRUPPI_URGENZA = ("termine perentorio", "adempimento processuale con scadenza", "adempimento processuale",
+GRUPPI_URGENZA = ("termine perentorio", "adempimento processuale con scadenza", "adempimento processuale senza scadenza",
                   "adempimento economico", "adempimento amministrativo dello studio")
 _FONTI_ECONOMICHE = {"presidio economico"}
 _FONTI_AMMINISTRATIVE = {"catalogazione", "presidio documentale"}
@@ -761,7 +761,7 @@ def gruppo_urgenza(passo: Passo) -> int:
         return 3
     if ambito == "amministrativo":
         return 4
-    if passo.entro and not passo.scaduto:
+    if passo.entro and passo.stato != "esito da registrare":
         return 0 if passo.natura == "perentorio" else 1
     if not passo.entro and passo.urgenza == 0:
         # Blocco processuale senza data (deposito rifiutato, notifica fallita): va risolto subito, come un termine di oggi.
@@ -769,15 +769,15 @@ def gruppo_urgenza(passo: Passo) -> int:
     return 2
 
 
-def _chiave_ordine(passo: Passo) -> tuple[Any, ...]:
+def _chiave_ordine(passo: Passo, oggi: int) -> tuple[Any, ...]:
     gruppo = gruppo_urgenza(passo)
     giorno = data_da(passo.entro)
     ordinale = giorno.toordinal() if giorno else 10**7
     if gruppo in {0, 1}:
-        return gruppo, ordinale if giorno else 0, passo.urgenza
+        # per scadenza; il blocco senza data vale come un termine di oggi
+        return gruppo, ordinale if giorno else oggi, passo.urgenza
     if gruppo == 2:
-        # prima i termini scaduti (i perentori per primi), poi gli adempimenti senza scadenza per urgenza
-        return gruppo, 0 if passo.scaduto else 1, 0 if passo.natura == "perentorio" else 1, passo.urgenza, ordinale
+        return gruppo, passo.urgenza, ordinale
     return gruppo, passo.urgenza, ordinale
 
 
@@ -788,7 +788,8 @@ def _ordina(passi: list[Passo], giorno_oggi: Any) -> list[dict[str, Any]]:
         passo.ambito = ambito_del_passo(passo)
         if passo.scaduto and passo.stato == "da fare":
             passo.stato = "termine scaduto"
-    passi.sort(key=_chiave_ordine)
+    oggi = giorno_oggi.toordinal() if giorno_oggi else 0
+    passi.sort(key=lambda passo: _chiave_ordine(passo, oggi))
     visti: set[str] = set()
     unici: list[dict[str, Any]] = []
     for passo in passi:

@@ -37,16 +37,19 @@ def test_prima_il_termine_perentorio_poi_processuale_economico_e_amministrativo(
     ]
     ordinati = [p["azione"] for p in _ordina(passi, OGGI)]
     assert ordinati == [
-        "Depositare le note scritte entro il 16/12/2026",      # perentorio aperto
-        "Notificare ricorso e decreto",                        # processuale con scadenza aperta
-        "Notificare il provvedimento al terzo",                # processuale scaduto
+        "Depositare le note scritte entro il 16/12/2026",      # perentorio
+        "Notificare il provvedimento al terzo",                # processuale con scadenza (già decorsa), per data
+        "Notificare ricorso e decreto",                        # processuale con scadenza
         "Indicare che cosa comunica la PEC del 12/01/2026",     # processuale senza scadenza
         "Riscuotere le spese liquidate dal giudice: € 376,00",  # economico
         "Completa l'anagrafica cliente.",                       # amministrativo
         "Formalizzare preventivo e conferimento d'incarico",    # amministrativo, urgenza minore
     ]
     dati = _ordina(passi, OGGI)
-    assert dati[0]["natura"] == "perentorio" and dati[0]["ambito"] == "processuale" and dati[2]["stato"] == "termine scaduto"
+    assert dati[0]["natura"] == "perentorio" and dati[0]["ambito"] == "processuale" and dati[1]["stato"] == "termine scaduto"
+    # un perentorio scaduto senza prova viene prima di quello ancora aperto (decadenza: art. 153 c.p.c.)
+    scaduto = Passo(1, "Depositare le note scritte entro il 16/10/2026", "", "16/10/2026", "ragionamento sul fascicolo", natura="perentorio")
+    assert _ordina(passi + [scaduto], OGGI)[0]["azione"] == "Depositare le note scritte entro il 16/10/2026"
     assert riga_prossimo_passo(dati)["testo"].startswith("Depositare le note scritte entro il 16/12/2026")
 
 

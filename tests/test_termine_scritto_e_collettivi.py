@@ -326,3 +326,72 @@ def test_una_citazione_di_altro_ufficio_non_esclude_il_ricorso():
     intestazione = Fatto(categoria="ruolo", campo="numero_ruolo", valore="1425/2026", tipo="documento",
                          oggetto_id="DECRETO", posizione=98, verifica="respinta", prove=prove)
     assert documenti_ufficio_incompatibile([citazione, intestazione]) == {"DECRETO"}
+
+
+# ---- premesse sull'art. 127-ter (art. 127-ter, primo comma, c.p.c.) ---------------------
+
+PROVVEDIMENTO_DOPO_LE_NOTE = (
+    "TRIBUNALE DI BETA - Controversie in materia di lavoro - N. R.G. 77/2026 - Provvedimento ex art. 127 ter c.p.c. "
+    "Il Giudice del lavoro; Richiamato l'art. 127 c.p.c., secondo cui il giudice può disporre che l'udienza si svolga "
+    "mediante collegamenti audiovisivi a distanza o sia sostituita dal deposito di note scritte; Letto l'art. 127-ter c.p.c. "
+    "che consente lo svolgimento dell'udienza mediante il deposito di note scritte; Visto il decreto con il quale è stata "
+    "disposta la sostituzione dell'udienza con il deposito di note scritte; Lette le note scritte tempestivamente depositate "
+    "dai procuratori costituiti; Dato atto dell'elevato carico del ruolo; rinvia all'udienza del 14.4.2027, ore di rito. "
+    "Manda alla cancelleria. Beta, 10/09/2026"
+)
+DECRETO_415_PREMESSA_E_FISSA = (
+    "Il giudice, Letto il ricorso che precede; visto l'art. 415 c.p.c.; visto l'art. 127 ter c.p.c. che consente la "
+    "sostituzione, con il deposito di note scritte, delle udienze civili, FISSA il termine per il deposito delle note in "
+    "sostituzione dell'udienza nel giorno 06/10/2026, alle ore 14.00. Assegna alla parte ricorrente termine di dieci giorni."
+)
+
+
+def test_premesse_sul_127_ter_non_dispongono_le_note():
+    from pct.provvedimenti.termine_scritto import dispone_note_scritte, dispone_udienza_remota
+
+    assert not dispone_note_scritte(PROVVEDIMENTO_DOPO_LE_NOTE)
+    assert not dispone_udienza_remota(PROVVEDIMENTO_DOPO_LE_NOTE)
+    assert dispone_note_scritte(VERBALE_631)
+    assert dispone_note_scritte("Il giudice dispone che l'udienza del 15/01/2027 sia sostituita dal deposito di note scritte.")
+    # dopo la premessa, il verbo dispositivo apre la parte che dispone
+    assert dispone_note_scritte(DECRETO_415_PREMESSA_E_FISSA)
+
+
+def test_motore_documenti_non_qualifica_note_dalle_premesse():
+    fatti = _date_lette(PROVVEDIMENTO_DOPO_LE_NOTE, _contesto("77", "2026"))
+    assert ("udienza", "2027-04-14") in fatti
+    assert not any("127-ter" in f.etichetta for f in fatti.values())
+
+
+def test_presidio_pec_non_vede_trattazione_scritta_nelle_premesse():
+    from pct.pec_legal_event_understanding import _hearing_mode
+    from pct.pec_pipeline import _unified_hearing_mode
+
+    assert _hearing_mode(PROVVEDIMENTO_DOPO_LE_NOTE, {}, []) != "note_scritte"
+    assert _hearing_mode(DECRETO_415_PREMESSA_E_FISSA, {}, []) == "note_scritte"
+    assert _unified_hearing_mode(PROVVEDIMENTO_DOPO_LE_NOTE.lower(), remote_detected=False) != "note_scritte"
+    assert _unified_hearing_mode(VERBALE_631.lower(), remote_detected=False) == "note_scritte"
+
+
+def test_modello_della_causa_legge_le_premesse_come_premesse():
+    from pct.ragionamento.modello import Atto
+    from pct.ragionamento.provvedimenti import leggi_provvedimento
+
+    dopo = leggi_provvedimento(Atto("P1", "provvedimento.pdf", "provvedimento", "Provvedimento", autore="giudice",
+                                    data="2026-09-10", testo=PROVVEDIMENTO_DOPO_LE_NOTE), "77/2026")
+    assert [u.modalita for u in dopo.udienze if u.data == "2027-04-14"] == ["presenza"]
+    assert not any(t.adempimento.startswith("Depositare le note") for t in dopo.termini)
+    decreto = leggi_provvedimento(Atto("P2", "decreto.pdf", "provvedimento", "Decreto", autore="giudice",
+                                       data="2026-07-01", testo=DECRETO_415_PREMESSA_E_FISSA), "77/2026")
+    assert any(t.adempimento.startswith("Depositare le note") and t.scadenza == "2026-10-06" for t in decreto.termini)
+
+
+def test_rilettura_mirata_delle_note_qualificate_prima_della_regola_sulle_premesse():
+    from pct.archivio_letture.riletture_mirate import REGOLA_PREMESSE_127_TER
+
+    qualificato = [_fatto(etichetta="Deposito note scritte ex art. 127-ter c.p.c. — 14/04/2027", valore="2027-04-14",
+                          contesto="rinvia all'udienza del 14.4.2027, ore di rito",
+                          prove=[{"codice": "istituto", "esito": "ok", "dettaglio": "note_127_ter"}])]
+    gia = "motore+" + REGOLE_TERMINE_SCRITTO + "+note-antecedenti:v1"
+    assert ("documento", "DOC1") in oggetti_da_rileggere(qualificato, {("documento", "DOC1"): gia})
+    assert oggetti_da_rileggere(qualificato, {("documento", "DOC1"): gia + "+" + REGOLA_PREMESSE_127_TER}) == {}

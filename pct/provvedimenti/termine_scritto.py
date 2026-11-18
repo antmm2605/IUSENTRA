@@ -148,6 +148,64 @@ def termine_note_127_ter(testo: str, date: list[DataLetta]) -> int | None:
     return restanti[0] if len(restanti) == 1 else None
 
 
+#: la sostituzione dell'udienza con le note, o il termine per le note, disposti dal provvedimento
+_RE_DISPONE_NOTE = re.compile(
+    r"sostitu\w*\W+(?:\w+\W+){0,6}?(?:deposito|note)|trattazione\s+scritta|deposito\s+(?:di\s+|delle\s+)?note\s+scritte|"
+    r"(?:assegn\w*|conced\w*|fiss\w*)\W+(?:\w+\W+){0,8}?termin\w*(?:\W+\w+){0,8}?\W+note|"
+    r"\bnote(?:\W+\w+){0,4}?\W+entro\b|\bnote\s+(?:\w+\s+){0,3}in\s+sost", re.I)
+#: le premesse del provvedimento («Visto…», «Letto…», «Rilevato…»): richiamano, non dispongono
+_RE_PREMESSA = re.compile(
+    r"^\W*(?:vist[oaie]|lett[oaie]|richiamat[oaie]|rilevat[oaie]|considerat[oaie]|ritenut[oaie]|preso\s+atto|"
+    r"premesso|atteso|osservat[oaie]|esaminat[oaie]|dato\s+atto\s+che\s+(?:è|e'|sono)\s+stat[aoie])\b", re.I)
+#: il verbo che, dopo le premesse, apre la parte che dispone («… visto l'art. 127-ter c.p.c., FISSA il termine …»)
+_RE_VERBO_DISPOSITIVO = re.compile(r"\b(?:fissa|assegna|dispone|sostituisce|rinvia|concede|ordina)\b", re.I)
+_RE_GIA_DISPOSTA = re.compile(
+    r"(?:è|e'|era|sono|erano)\s+stat[aoie]\s+(?:già\s+)?disposta|già\s+disposta|precedente\s+udienza|tempestivamente\s+depositate",
+    re.I)
+_RE_DISPONE_REMOTO = re.compile(
+    r"collegament\w*\s+audiovisiv|da\s+remoto|videoconferenza|mediante\s+(?:la\s+)?piattaforma|stanza\s+virtuale", re.I)
+
+
+def _frasi(testo: str) -> list[str]:
+    return re.split(r"(?<=[;:])\s+|(?<=[a-zà-ù]{2}[.!?])\s+(?=[A-ZÀ-Ù])", " ".join(str(testo or "").split()))
+
+
+def parte_dispositiva(frase: str) -> str:
+    """La frase senza la premessa: «Visto l'art. 127-ter …» non dispone; il verbo che segue («FISSA …») sì."""
+    if not _RE_PREMESSA.search(frase):
+        return frase
+    verbo = _RE_VERBO_DISPOSITIVO.search(frase)
+    return frase[verbo.start():] if verbo else ""
+
+
+def dispone_note_scritte(testo: str) -> bool:
+    """Il provvedimento dispone esso stesso la sostituzione dell'udienza con le note (art. 127-ter c.p.c.).
+
+    Le premesse che richiamano la norma o un decreto precedente («Letto l'art. 127-ter c.p.c. …», «Visto il
+    decreto con il quale è stata disposta la sostituzione dell'udienza …», «Lette le note scritte
+    tempestivamente depositate …») non dispongono nulla: il provvedimento che dopo le note «rinvia
+    all'udienza del 14.4.2027, ore di rito» fissa un'udienza in presenza, non un nuovo termine per note
+    (Tribunale di Locri, lavoro). Se però dopo la premessa un verbo dispositivo apre la parte che dispone
+    («visto l'art. 127 ter c.p.c. …, FISSA il termine per il deposito delle note», Tribunale di Vicenza,
+    decreto ex art. 415 c.p.c.), le note sono disposte. Art. 127-ter, primo comma, c.p.c.: è il
+    provvedimento del giudice che sostituisce l'udienza e assegna il termine.
+    """
+    for frase in _frasi(testo):
+        dispositiva = parte_dispositiva(frase)
+        if dispositiva and _RE_DISPONE_NOTE.search(dispositiva) and not _RE_GIA_DISPOSTA.search(dispositiva):
+            return True
+    return False
+
+
+def dispone_udienza_remota(testo: str) -> bool:
+    """Il provvedimento dispone l'udienza con collegamento audiovisivo (art. 127-bis c.p.c.), non la richiama in premessa."""
+    for frase in _frasi(testo):
+        dispositiva = parte_dispositiva(frase)
+        if dispositiva and _RE_DISPONE_REMOTO.search(dispositiva) and not _RE_GIA_DISPOSTA.search(dispositiva):
+            return True
+    return False
+
+
 _RE_DISERZIONE = re.compile(
     r"nessun[oa]\s+(?:delle\s+parti\s+)?(?:è\s+)?(?:present|compar)\w*|poich[ée]\s+nessuno|"
     r"mancata\s+comparizione(?:\s+delle)?\s+parti|assenza\s+di\s+tutte\s+le\s+parti|"
@@ -198,6 +256,6 @@ def rischio_estinzione(testo: str) -> RischioEstinzione | None:
 
 
 __all__ = [
-    "DataLetta", "RischioEstinzione", "data_udienza_sostituita_nel_brano", "perentorio_dichiarato", "rischio_estinzione", "termine_assegnato",
+    "DataLetta", "RischioEstinzione", "dispone_note_scritte", "dispone_udienza_remota", "parte_dispositiva", "data_udienza_sostituita_nel_brano", "perentorio_dichiarato", "rischio_estinzione", "termine_assegnato",
     "termine_note_127_ter", "udienza_tenuta_o_rinviata",
 ]

@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from pct.provvedimenti.collettivi import testo_per_il_ruolo
-from pct.provvedimenti.termine_scritto import rischio_estinzione
+from pct.provvedimenti.termine_scritto import parte_dispositiva, rischio_estinzione
 
 from .modello import Atto, Fonte, TermineAssegnato, Udienza
 from .testo import date_nel_testo, frasi, giorno, pulito, semplice
@@ -68,7 +68,9 @@ def periodi_della_causa(testo: str, rg: str) -> tuple[list[str], bool]:
 
 
 def _modalita(frase: str) -> str:
-    s = semplice(frase)
+    # «Visto l'art. 127-ter c.p.c. …» in premessa non sostituisce l'udienza: conta la parte che dispone
+    # (regola unica di pct/provvedimenti/termine_scritto.parte_dispositiva).
+    s = semplice(parte_dispositiva(frase))
     if re.search(r"127[\s-]*ter|note scritte|trattazione scritta|scambio di note", s):
         return "note_scritte"
     if re.search(r"127[\s-]*bis|collegamento audiovisivo|da remoto", s):
@@ -100,7 +102,8 @@ def _onerato(frase: str) -> str:
 def _adempimento(frase: str) -> tuple[str, str]:
     """Il codice e il testo dell'adempimento scritto nella frase; ("", "") se la frase non lo dice."""
     s = semplice(frase)
-    if re.search(r"127[\s-]*ter|note scritte|scambio di note", s) and re.search(r"deposit|sostitu|scambio", s):
+    dispositiva = semplice(parte_dispositiva(frase))
+    if re.search(r"127[\s-]*ter|note scritte|scambio di note", dispositiva) and re.search(r"deposit|sostitu|scambio", dispositiva):
         return "note_127ter", "Depositare le note scritte ex art. 127-ter c.p.c. (sole istanze e conclusioni)"
     if re.search(r"costituir|costituzione", s) and re.search(r"convenut|resistente", s):
         return "costituzione_convenuto", "Costituirsi in giudizio depositando la memoria difensiva"

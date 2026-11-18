@@ -19,7 +19,7 @@ from pct.registro_letture.fatti_repository import Fatto
 from .ancoraggio import VERSIONE_DATE_PROCESSUALI
 from .collaudo import Contesto, collauda_tutti
 from .motore_documenti import leggi_testo
-from .riletture_mirate import REGOLA_NOTE_ANTECEDENTI, REGOLE_TERMINE_SCRITTO
+from .riletture_mirate import REGOLA_NOTE_ANTECEDENTI, REGOLA_PREMESSE_127_TER, REGOLE_TERMINE_SCRITTO
 from .estrazione_importi import VERSIONE_ESTRAZIONE_IMPORTI
 from .estrazione_notifiche import VERSIONE_PROVE_NOTIFICA
 from pct.agenda_linguaggio import modalita_legale
@@ -31,6 +31,8 @@ VERSIONE_MOTORE_PEC_PRE_TERMINE_SCRITTO = VERSIONE_MOTORE_PEC
 VERSIONE_MOTORE_PEC += "+" + REGOLE_TERMINE_SCRITTO
 VERSIONE_MOTORE_PEC_PRE_NOTE_ANTECEDENTI = VERSIONE_MOTORE_PEC
 VERSIONE_MOTORE_PEC += "+" + REGOLA_NOTE_ANTECEDENTI
+VERSIONE_MOTORE_PEC_PRE_PREMESSE_127_TER = VERSIONE_MOTORE_PEC
+VERSIONE_MOTORE_PEC += "+" + REGOLA_PREMESSE_127_TER
 _RICEVUTE = (
     ("rac", "accettazione", re.compile(r"^\s*(?:accettazione|posta certificata:\s*accettazione)\b", re.IGNORECASE)),
     ("rdac", "consegna", re.compile(r"^\s*(?:consegna|avvenuta consegna|posta certificata:\s*(?:avvenuta )?consegna)\b", re.IGNORECASE)),

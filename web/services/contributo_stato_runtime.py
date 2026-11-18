@@ -128,6 +128,16 @@ def _voci_pst() -> dict[str, tuple[str, str]]:
     return voci
 
 
+_ATTO_INTRODUTTIVO = re.compile(r"ricors|istanz|atto|domanda", re.IGNORECASE)
+
+
+def _testi_atti_di_parte(fascicolo: Any, testi: Mapping[str, str]) -> list[str]:
+    """I testi già letti dell'istanza o del ricorso (la dichiarazione dell'art. 10, comma 6, sta nelle conclusioni)."""
+    scelti = [testi.get(_testo(getattr(d, "id", "")), "") for d in getattr(fascicolo, "documenti", []) or []
+              if _ATTO_INTRODUTTIVO.search(_testo(getattr(d, "nome", "")))]
+    return [t for t in scelti if t]
+
+
 def _data_documento(documento: Any) -> date | None:
     for campo in ("data_documento", "data_deposito_portale", "data_caricamento", "creato_il"):
         try:
@@ -165,6 +175,18 @@ def verifiche_contributo(fascicolo: Any, voce: Mapping[str, Any]) -> dict[str, A
         testi = testi_indice_archivio(fascicolo)
     except Exception as exc:
         logger.debug("Testi non disponibili per il contributo di %s: %s", getattr(fascicolo, "id", ""), exc)
+        testi = None
+    if cat == "volontaria_giurisdizione":
+        # Prima dell'importo dell'art. 13, comma 1, lett. b): le esenzioni dell'art. 10 D.P.R. 115/2002 e
+        # dell'art. 46-bis disp. att. c.c. per l'oggetto del procedimento (pct/contributo_esenzioni).
+        from pct.contributo_esenzioni import confronto_esente, descrizione_codice, esenzione_volontaria
+
+        codice = _testo(getattr(fascicolo, "codice_oggetto_pst", ""))
+        esenzione = esenzione_volontaria(codice_oggetto=codice, descrizione=descrizione_codice(codice),
+                                         testi=_testi_atti_di_parte(fascicolo, testi or {}))
+        if esenzione:
+            esito["confronto"] = confronto_esente(esenzione, letti)
+    if testi is None:
         return esito
     documenti = {_testo(getattr(d, "id", "")): d for d in getattr(fascicolo, "documenti", []) or []}
     depositi = {oid: d for oid, d in documenti.items() if any(t in _testo(getattr(d, "nome", "")).casefold() for t in _DEPOSITO)}

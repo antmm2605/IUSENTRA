@@ -78,6 +78,11 @@ class Passo:
     template: str = ""  # template del motore dei termini, se il passo ha un termine calcolabile
 
     scaduto: bool = False
+    # Campi aggiunti il 18/11/2026 (i precedenti restano invariati):
+    natura: str = ""  # «perentorio», «ordinatorio» o "" se il termine non è qualificato
+    ambito: str = ""  # «processuale», «economico», «amministrativo» (ordine di urgenza giuridica, vedi prossimi_passi._ordina)
+    stato: str = "da fare"  # «da fare», «termine scaduto», «da chiarire»
+    prova: str = ""  # la fonte che fonda il passo o il suo stato
 
     def come_dizionario(self) -> dict[str, Any]:
         from pct.procedura_fasi.fonti import fonti, norme
@@ -93,6 +98,10 @@ class Passo:
             "fonti": fonti(self.fonti),
             "href": self.href,
             "template": self.template,
+            "natura": self.natura,
+            "ambito": self.ambito,
+            "stato": self.stato,
+            "prova": self.prova,
         }
 
 

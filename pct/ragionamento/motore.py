@@ -32,10 +32,12 @@ from .regole.lavoro import conclusioni_lavoro
 from .regole.monitorio import conclusioni_monitorio
 from .regole.sentenza import conclusioni_sentenza
 from .regole.termini_assegnati import conclusioni_termini
+from .regole.titolo import conclusioni_titolo
+from .udienze_esito import esiti_udienze
 from .rito import determina_rito
 from .testo import pulito, rg_normale
 
-VERSIONE = "2026.11.16.ragionamento.v21-pubblicazione-liquidazione"
+VERSIONE = "2026.11.18.ragionamento.v22-passi-urgenza-collegati-esenzioni"
 ROMA = ZoneInfo("Europe/Rome")
 
 
@@ -123,9 +125,12 @@ def ragiona(fonti: FontiCausa) -> Causa:
         posizione=posizione, atti=atti, udienze=sorted(udienze, key=lambda u: u.data), termini=termini, ordini=ordini,
         notifiche=leggi_notifiche(atti), depositi=depositi, comunicazioni=comunicazioni(atti),
         oggi=oggi, fascicolo=dict(fonti.fascicolo), consegne_verificate=fonti.consegne_verificate,
-        notifiche_storiche=_riscontri_notifiche_storiche(fonti),
+        notifiche_storiche=_riscontri_notifiche_storiche(fonti), collegati=list(fonti.collegati or []),
     )
     conclusioni = conclusioni_termini(ctx) + conclusioni_lavoro(ctx) + conclusioni_monitorio(ctx) + conclusioni_sentenza(ctx)
+    titolo, collegamenti_titolo = conclusioni_titolo(ctx)
+    conclusioni += titolo
+    ctx.collegamenti_trovati.extend(collegamenti_titolo)
     economiche, economia = conclusioni_economia(ctx, fonti.pagamenti, fonti.parcelle)
     conclusioni += economiche
     contributo = conclusione_contributo(ctx, fonti.fatti, fonti.pagamenti, stato_condiviso=fonti.contributo)
@@ -160,6 +165,11 @@ def ragiona(fonti: FontiCausa) -> Causa:
         udienze=ctx.udienze, termini=termini, fase=determina_fase(ctx, conclusioni), conclusioni=conclusioni,
         contraddizioni=contraddizioni, dubbi=dubbi, economia={"origine_rg": origine_rg, "contributo_unificato": fonti.contributo, **economia}, oggi=oggi,
         impronta=fonti.impronta(), versione=VERSIONE, percorso=ricostruisci_percorso(ctx),
+        esiti_udienze=esiti_udienze(
+            [u.data for u in ctx.udienze] + [str(a.get("data") or "")[:10] for a in fonti.appuntamenti
+                                             if pulito(a.get("tipo")).upper() == "UDIENZA"],
+            atti, ctx.udienze, oggi),
+        collegati=ctx.collegamenti_trovati,
     )
 
 

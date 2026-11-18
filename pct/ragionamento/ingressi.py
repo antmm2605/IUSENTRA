@@ -40,12 +40,17 @@ class FontiCausa:
     consegne_verificate: dict[str, dict[str, str]] = field(default_factory=dict)
     # Lo stato già determinato dal presidio economico, con le sue fonti.
     contributo: dict[str, Any] | None = None
+    # Gli appuntamenti dell'agenda del fascicolo (tipo, data, stato): le udienze trascorse di cui cercare l'esito.
+    appuntamenti: list[dict[str, Any]] = field(default_factory=list)
+    # I fascicoli della stessa vicenda (stesso cliente): id, rg, ufficio, codice_oggetto, documenti (id, nome, etichetta,
+    # data, testo) — per riconoscere il titolo esecutivo e il precetto citati da un fascicolo all'altro.
+    collegati: list[dict[str, Any]] = field(default_factory=list)
 
     def impronta(self) -> str:
         """L'impronta delle fonti: se non cambia, il modello salvato resta valido."""
         dati = asdict(self)
         dati.pop("oggi", None)
-        for documento in dati["documenti"]:
+        for documento in dati["documenti"] + [d for c in dati.get("collegati") or [] for d in c.get("documenti") or []]:
             testo = documento.pop("testo", "") or ""
             documento["testo_sha"] = hashlib.sha256(testo.encode("utf-8")).hexdigest()
         grezzo = json.dumps(dati, sort_keys=True, ensure_ascii=False, default=str)

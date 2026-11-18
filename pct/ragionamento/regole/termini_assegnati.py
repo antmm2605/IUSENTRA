@@ -19,7 +19,7 @@ from ..eventi import comunicazione_di
 from ..modello import Atto, Conclusione, Dubbio, Fonte, TermineAssegnato
 from ..notifiche import notifiche_di
 from ..norme import norme
-from ..testo import data_it, date_nel_testo, giorno, semplice
+from ..testo import data_it, date_nel_testo, frasi, giorno, pulito, semplice
 from .calcolo import a_ritroso, esito, in_avanti
 from .contesto import Contesto, chi
 
@@ -175,11 +175,77 @@ def _scadenza(ctx: Contesto, termine: TermineAssegnato, codice: str) -> tuple[da
     return scadenza, {"termine": calcolo}, dubbi
 
 
+_PAROLE_VUOTE = {"depositare", "deposito", "ulteriore", "ulteriori", "parte", "ricorrente", "resistente", "proprio",
+                 "risulti", "nelle", "quali", "della", "delle", "degli", "nella"}
+_SOGGETTO = {"attiva": r"(?:parte\s+)?(?:ricorrente|attric\w*|attore|creditric\w*|istante|opponente)",
+             "passiva": r"(?:parte\s+)?(?:resistente|convenut\w*|debitric\w*|opposta)"}
+
+
+def _parole(testo: str) -> set[str]:
+    return {p for p in re.findall(r"[a-z]{5,}", semplice(testo))} - _PAROLE_VUOTE
+
+
+def _stesso_adempimento(a: TermineAssegnato, b: TermineAssegnato, codice: str) -> bool:
+    """Lo stesso adempimento assegnato da due provvedimenti: stesse note scritte, o deposito con le stesse parole."""
+    if codice == "note_127ter":
+        return True
+    pa, pb = _parole(a.adempimento), _parole(b.adempimento)
+    return bool(pa and pb) and len(pa & pb) / min(len(pa), len(pb)) >= 0.6
+
+
+def _attestato_dal_giudice(ctx: Contesto, codice: str, dal: str, al: str, fonte_id: str) -> str:
+    """Il provvedimento successivo del giudice dà atto dell'adempimento: «la parte ricorrente con le note del 21.10.2026 …
+    ha depositato …». È una fonte certa (il giudice attesta ciò che è nel fascicolo d'ufficio): l'adempimento è fatto,
+    qualunque giudizio il giudice dia poi sul suo contenuto. Solo la parte del cliente, solo date nel termine."""
+    soggetto = _SOGGETTO.get(ctx.posizione)
+    inizio, fine = giorno(dal), giorno(al)
+    if not soggetto or not inizio or not fine:
+        return ""
+    for atto in ctx.della_causa():
+        if atto.autore != "giudice" or atto.id == fonte_id or not atto.testo or not atto.data or atto.data <= dal:
+            continue
+        for _p, frase in frasi(atto.testo):
+            s = semplice(frase)
+            trovato = re.search(soggetto + r"[^.;]{0,60}?(?:con\s+(?:le\s+)?note|ha\s+depositat|ha\s+prodott|depositav)", s)
+            if not trovato:
+                continue
+            if codice == "note_127ter" and "note" not in s:
+                continue
+            for _i, _f, data in date_nel_testo(frase):
+                if inizio <= data <= fine:
+                    return (f"Il giudice dà atto del deposito della parte del {data_it(data)} nel provvedimento «{atto.nome}» "
+                            f"del {data_it(atto.data)}: «{pulito(frase)[trovato.start():][:220]}»")
+    return ""
+
+
+def _superato(ctx: Contesto, termine: TermineAssegnato, codice: str, scadenza: date | None) -> TermineAssegnato | None:
+    """Il termine poi riassegnato da un provvedimento successivo per lo stesso adempimento (artt. 153-154 c.p.c.)."""
+    atto = ctx.atto(termine.fonte.oggetto_id)
+    if not atto or not atto.data:
+        return None
+    for altro in ctx.termini:
+        if altro is termine or altro.fonte.oggetto_id == termine.fonte.oggetto_id:
+            continue
+        successivo = ctx.atto(altro.fonte.oggetto_id)
+        if not successivo or not successivo.data or successivo.data <= atto.data:
+            continue
+        if codice == "note_127ter" and scadenza and successivo.data < scadenza.isoformat():
+            continue  # le note di un'altra udienza: superano le precedenti solo se il giudice ha provveduto dopo
+        codice_altro = _codice_di(altro)
+        if codice_altro == codice and _stesso_adempimento(termine, altro, codice):
+            return altro
+    return None
+
+
+def _codice_di(termine: TermineAssegnato) -> str:
+    return next((k for k in _COME if termine.adempimento.startswith({"note_127ter": "Depositare le note",
+                 "notifica_ordinata": "Notificare", "costituzione_convenuto": "Costituirsi", "deposito_ordinato": "Depositare"}[k])), "")
+
+
 def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
     esito_: list[Conclusione] = []
     for termine in ctx.termini:
-        codice = next((k for k in _COME if termine.adempimento.startswith({"note_127ter": "Depositare le note",
-                       "notifica_ordinata": "Notificare", "costituzione_convenuto": "Costituirsi", "deposito_ordinato": "Depositare"}[k])), "")
+        codice = _codice_di(termine)
         onerato = chi(termine.onerato, ctx.posizione)
         if onerato == "terzo":
             continue
@@ -197,10 +263,25 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
                                 "la posizione del cliente (attore o convenuto) o la parte nominata nel provvedimento", termine.fonte))
         atto = ctx.atto(termine.fonte.oggetto_id)
         prova = _fatto(ctx, codice, termine.adempimento, atto.data if atto else "", scadenza.isoformat() if scadenza else "", termine.ora)
+        if not prova and onerato in {"noi", "tutte_le_parti"} and codice in {"note_127ter", "deposito_ordinato"} and atto and scadenza:
+            prova = _attestato_dal_giudice(ctx, codice, atto.data, scadenza.isoformat(), atto.id)
+        # Solo i depositi e le note si riassegnano (artt. 127-ter e 421 c.p.c.); gli ordini di notifica di provvedimenti
+        # diversi restano distinti, ciascuno con il suo destinatario.
+        riassegnato = (None if prova or onerato == "controparte" or codice not in {"note_127ter", "deposito_ordinato", ""}
+                       else _superato(ctx, termine, codice, scadenza))
         if onerato == "controparte":
             stato, motivo = "non_dovuto", f"termine della controparte ({termine.adempimento.lower()}): non è un nostro adempimento"
         elif prova:
             stato, motivo = "fatto", prova
+        elif riassegnato is not None:
+            # Lo stesso adempimento è stato riassegnato da un provvedimento successivo: vale il nuovo termine
+            # (un solo adempimento nel modello, non due passi quasi uguali).
+            successivo = ctx.atto(riassegnato.fonte.oggetto_id)
+            stato = "non_dovuto"
+            motivo = (f"Termine superato dal provvedimento «{successivo.nome if successivo else riassegnato.fonte.nome}» del "
+                      f"{data_it(successivo.data if successivo else riassegnato.fonte.data)}, che assegna di nuovo lo stesso "
+                      f"adempimento: vale il nuovo termine")
+            dubbi = []
         else:
             stato = "dubbio" if onerato == "ignoto" or (dubbi and not scadenza) else "da_fare"
             motivo = "Nelle fonti esaminate non risulta una prova dell'adempimento."

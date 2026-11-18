@@ -13,7 +13,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from pct.contributo_dovuto import categoria, confronta, contributo_dovuto
+from pct.contributo_dovuto import VOLONTARIA, categoria, confronta, contributo_dovuto
+from pct.contributo_esenzioni import confronto_esente, descrizione_codice, esenzione_volontaria
 from pct.formatting import format_euro_it
 from pct.percorso_pratica.giurisdizioni import AMMINISTRATIVO, giurisdizione_e_grado
 from pct.incasso_provato import pagamento_provato, pagato_deciso_dall_avvocato
@@ -54,6 +55,29 @@ def riscontro_incasso(voce: dict[str, Any], parcelle: list[dict[str, Any]]) -> s
     return ""
 
 
+_RE_INCARICO = re.compile(
+    r"\bprocura\s+(?:alle\s+liti|speciale|generale)\b|\b(?:giusta|in\s+virt[uù]\s+della|come\s+da)\s+procura\b|"
+    r"\bprocura\s+(?:in\s+calce|a\s+margine|allegata|in\s+atti)\b|\bmandato\s+(?:alle\s+liti|difensivo|professionale)\b|"
+    r"\bconferimento\s+(?:dell['’]\s*)?incarico\b|\bdifensore\s+per\s+mandato\b", re.I)
+
+
+def incarico_conferito(ctx: Contesto) -> dict[str, str] | None:
+    """La prova che il cliente ha conferito l'incarico allo studio: la procura alle liti (art. 83 c.p.c.) o il mandato.
+
+    La procura nel fascicolo o richiamata nell'atto dello studio («rappresentata e difesa … con procura allegata»)
+    prova il conferimento dell'incarico; resta distinto il patto scritto sul compenso, che l'art. 13, comma 2,
+    L. 247/2012 vuole «di regola» per iscritto.
+    """
+    for atto in ctx.atti:
+        if atto.natura == "procura" or re.search(r"\bprocura\b|\bmandato\b|incarico", semplice(atto.etichetta)):
+            return {"oggetto_id": atto.id, "nome": atto.nome, "prova": f"procura alle liti «{atto.nome}»"}
+    for atto in ctx.atti:
+        if atto.dello_studio and atto.testo and (m := _RE_INCARICO.search(atto.testo)):
+            return {"oggetto_id": atto.id, "nome": atto.nome,
+                    "prova": f"«{pulito(atto.testo[max(0, m.start() - 60):m.end() + 40])}» in «{atto.nome}»"}
+    return None
+
+
 def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcelle: list[dict[str, Any]]) -> tuple[list[Conclusione], dict[str, Any]]:
     from ..atti import priorita_fonte_sentenza
     from .sentenza import data_pubblicazione
@@ -89,13 +113,111 @@ def conclusioni_economia(ctx: Contesto, pagamenti: list[dict[str, Any]], parcell
             "nessuna prova d'incasso nel fascicolo (art. 2697 c.c.)", None, "", onerato="noi",
             motivo_senza_termine="Il sollecito di pagamento va distinto dai termini di prescrizione e di esecuzione.",
         ))
-    return risultato, {"liquidazioni": liquidazioni}
+    return risultato, {"liquidazioni": liquidazioni, "incarico": incarico_conferito(ctx)}
 
 
-def _contributo_dal_presidio(ctx: Contesto, esito: dict[str, Any]) -> Conclusione | None:
+def _confronto_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti: list[dict[str, Any]]):
+    """Categoria, dovuto, importi versati letti e confronto (regola unica di `pct/contributo_dovuto`)."""
+    cat = categoria(area=ctx.rito.area, padre=ctx.rito.padre, tipo_fascicolo=ctx.fascicolo.get("tipo"))
+    valore = float(ctx.fascicolo.get("valore_causa") or 0) or None
+    dovuto = contributo_dovuto(cat, valore, giudice_pace="giudice di pace" in semplice(ctx.ufficio)) if cat else None
+    versati = [float(f["valore"]) for f in fatti if f.get("campo") == "contributo_unificato" and f.get("categoria") == "importo"
+               and f.get("verifica") in {"verificata", "plausibile", "corretta"} and str(f.get("valore") or "").replace(".", "").isdigit()]
+    versati += [float(p["importo"]) for p in pagamenti if p.get("voce") == "contributo_unificato" and p.get("importo")]
+    if cat == VOLONTARIA:
+        # Prima dell'art. 13, comma 1, lett. b): le esenzioni dell'art. 10 D.P.R. 115/2002 e dell'art. 46-bis disp. att.
+        # c.c. per l'oggetto del procedimento (regola unica di pct/contributo_esenzioni).
+        testi = [a.testo for a in ctx.atti if a.testo and (a.natura in {"atto_principale", "istanza"} and a.appartenenza == "causa"
+                                                           or re.search(r"ricors|istanz", semplice(a.nome)))]
+        esenzione = esenzione_volontaria(codice_oggetto=ctx.rito.codice_oggetto,
+                                         descrizione=descrizione_codice(ctx.rito.codice_oggetto), testi=testi)
+        if esenzione:
+            return cat, None, versati, confronto_esente(esenzione, versati)
+    esito = confronta(versati, dovuto, cat=cat) if cat else {"esito": "indeterminato", "dettaglio": ""}
+    return cat, dovuto, versati, esito
+
+
+def _conclusione_esente(confronto: dict[str, Any], fonte: Fonte) -> Conclusione:
+    """Processo esente per legge: nessun versamento del contributo; resta solo il dubbio vero, se c'è."""
+    norma = str(confronto.get("norma") or "")
+    regole = norme("dpr115_art10", "dpr115_art30") + (norme("dispattcc_46bis") if "46-bis" in norma else [])
+    dubbio = str(confronto.get("dubbio") or "")
+    anticipazione = ("versati € 27 = anticipazione forfettaria dovuta (art. 30), corretto"
+                     if confronto.get("anticipazione") == "dovuta" and confronto.get("versato") else "")
+    cosa = f"Contributo unificato non dovuto ({norma})" + (f"; {anticipazione}" if anticipazione else "")
+    if "art. 10, comma 6" in dubbio:
+        cosa += ": nell'atto introduttivo manca la dichiarazione della ragione dell'esenzione (art. 10, comma 6)"
+    elif dubbio:
+        cosa += f": {dubbio}"
+    dubbi = [Dubbio("esenzione_da_completare", dubbio[:1].upper() + dubbio[1:] + ".",
+                    "la dichiarazione della ragione dell'esenzione nelle conclusioni dell'atto introduttivo o la ricevuta "
+                    "dell'anticipazione forfettaria", fonte)] if dubbio else []
+    return Conclusione(
+        "contributo_unificato", cosa, fonte, regole,
+        "nessun versamento del contributo: l'esenzione si dichiara nelle conclusioni dell'atto introduttivo "
+        "(art. 10, comma 6, D.P.R. 115/2002); se manca, la si integra con una nota depositata nel fascicolo",
+        f"{confronto.get('motivo')}: il processo non è soggetto al contributo unificato",
+        "dubbio" if dubbi else "non_dovuto", str(confronto.get("dettaglio") or ""), onerato="noi", dubbi=dubbi,
+        motivo_senza_termine="Processo esente: nessun termine di pagamento.",
+    )
+
+
+def _integrazione_contributo(ctx: Contesto, esito: dict[str, Any], fonte: Fonte, *, gia_depositato: bool) -> Conclusione:
+    """Versato meno del dovuto, con rito e valore certi: il dubbio concreto, con dovuto e versato (art. 13 D.P.R. 115/2002).
+
+    Il versamento di € 27 è l'anticipazione forfettaria dell'art. 30, non il contributo. Il fascicolo può non contenere
+    la ricevuta del contributo: per questo è un dubbio, non un ordine di pagare. Se il contributo manca davvero,
+    l'ufficio procede con l'invito al pagamento o con l'iscrizione a ruolo, con interessi e sanzione (artt. 16 e 248).
+    """
+    from pct.contributo_dovuto import ANTICIPAZIONE_FORFETTARIA, NORMA_ANTICIPAZIONE
+
+    dovuto, versato = float(esito["dovuto"]), float(esito.get("versato") or 0)
+    solo27 = versato == 0 and ANTICIPAZIONE_FORFETTARIA in {round(float(v), 2) for v in esito.get("letti") or ()}
+    versato_testo = (f"risultano versati {format_euro_it(ANTICIPAZIONE_FORFETTARIA)}, che sono l'anticipazione forfettaria "
+                     f"({NORMA_ANTICIPAZIONE}), non il contributo" if solo27 else f"risultano versati {format_euro_it(versato)}")
+    differenza = round(dovuto - versato, 2)
+    cosa = (f"Contributo unificato: dovuti {format_euro_it(dovuto)} ({esito.get('norma')}), {versato_testo}: versare "
+            f"l'integrazione di {format_euro_it(differenza)} o depositare la ricevuta del contributo, se già versato")
+    perche = ("il contributo omesso o insufficiente è riscosso dall'ufficio con invito al pagamento o iscrizione a ruolo, "
+              "con gli interessi legali e la sanzione (artt. 16 e 248 D.P.R. 115/2002)" if gia_depositato else
+              "il contributo si versa con il deposito dell'atto introduttivo (art. 13 D.P.R. 115/2002)")
+    dubbio = Dubbio("contributo_insufficiente", f"Dovuti {format_euro_it(dovuto)}, {versato_testo}.",
+                    "la ricevuta del contributo unificato o il titolo di esenzione dichiarato nelle conclusioni", fonte)
+    return Conclusione(
+        "contributo_unificato", cosa, fonte, norme("dpr115_art13", "dpr115_art30", "dpr115_art16", "dpr115_art248"),
+        "versamento con pagoPA della differenza e deposito telematico della ricevuta nel fascicolo",
+        perche, "dubbio", esito.get("dettaglio") or "", onerato="noi", dubbi=[dubbio],
+        motivo_senza_termine="Nessun termine assegnato: l'invito al pagamento dell'ufficio assegna un mese (art. 248 D.P.R. 115/2002).",
+    )
+
+
+def _contributo_dal_presidio(ctx: Contesto, esito: dict[str, Any], fatti: list[dict[str, Any]] | None = None,
+                             pagamenti: list[dict[str, Any]] | None = None) -> Conclusione | None:
     codice = esito.get("codice")
     if not codice:
         return None
+    if esito.get("esenzioneLegge") or ctx.rito.codice == "volontaria_giurisdizione":
+        _cat, _dovuto, versati, confronto = _confronto_contributo(ctx, fatti or [], pagamenti or [])
+        if confronto.get("esito") == "esente_per_legge":
+            documento = esito.get("documento") or {}
+            oid = str(documento.get("id") or "")
+            atto = ctx.atto(oid)
+            fonte = Fonte(oid or "economia", str(documento.get("nome") or "Contributo unificato"),
+                          ", ".join(f"€ {v:.2f}" for v in sorted(set(versati))) or "nessuna ricevuta letta",
+                          atto.data if atto else "", "documento" if oid else "economia")
+            return _conclusione_esente(confronto, fonte)
+    if codice == "da_verificare" and ctx.posizione == "attiva":
+        # Il presidio non ha deciso: il rito certo e le ricevute lette decidono con la regola del dovuto.
+        _cat, _dovuto, versati, confronto = _confronto_contributo(ctx, fatti or [], pagamenti or [])
+        if confronto.get("esito") == "insufficiente" and confronto.get("dovuto"):
+            documento = esito.get("documento") or {}
+            oid = str(documento.get("id") or "")
+            atto = ctx.atto(oid)
+            fonte = Fonte(oid or "economia", str(documento.get("nome") or "Contributo unificato"),
+                          ", ".join(f"€ {v:.2f}" for v in sorted(set(versati))), atto.data if atto else "",
+                          "documento" if oid else "economia")
+            gia = any(d.accettato for d in ctx.depositi) or bool(ctx.della_causa())
+            return _integrazione_contributo(ctx, {**confronto, "letti": versati}, fonte, gia_depositato=gia)
     documento = esito.get("documento") or {}
     oid = str(documento.get("id") or "")
     atto = ctx.atto(oid)
@@ -137,13 +259,11 @@ def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti
     if ctx.posizione != "attiva" and not posizione_da_verificare:
         return None
     if stato_condiviso is not None:
-        return _contributo_dal_presidio(ctx, stato_condiviso)
-    cat = categoria(area=ctx.rito.area, padre=ctx.rito.padre, tipo_fascicolo=ctx.fascicolo.get("tipo"))
-    valore = float(ctx.fascicolo.get("valore_causa") or 0) or None
-    dovuto = contributo_dovuto(cat, valore, giudice_pace="giudice di pace" in semplice(ctx.ufficio)) if cat else None
-    versati = [float(f["valore"]) for f in fatti if f.get("campo") == "contributo_unificato" and f.get("categoria") == "importo"
-               and f.get("verifica") in {"verificata", "plausibile", "corretta"} and str(f.get("valore") or "").replace(".", "").isdigit()]
-    versati += [float(p["importo"]) for p in pagamenti if p.get("voce") == "contributo_unificato" and p.get("importo")]
+        return _contributo_dal_presidio(ctx, stato_condiviso, fatti, pagamenti)
+    cat, dovuto, versati, esito = _confronto_contributo(ctx, fatti, pagamenti)
+    if esito.get("esito") == "esente_per_legge":
+        return _conclusione_esente(esito, Fonte("economia", "Contributo unificato", ", ".join(
+            f"€ {v:.2f}" for v in sorted(set(versati))) or "nessuna ricevuta letta", "", "economia"))
     esente = any(f.get("campo") == "esenzione_cu_dichiarata" and f.get("verifica") in {"verificata", "corretta"} for f in fatti)
     fonte = Fonte("economia", "Contributo unificato", ", ".join(f"€ {v:.2f}" for v in sorted(set(versati))) or "nessuna ricevuta letta",
                   "", "economia")
@@ -164,7 +284,6 @@ def conclusione_contributo(ctx: Contesto, fatti: list[dict[str, Any]], pagamenti
                            norme("dpr115_art9"), "dichiarazione di esenzione nelle conclusioni del ricorso",
                            "nelle controversie di lavoro il contributo non è dovuto sotto la soglia di reddito", "non_dovuto",
                            "autocertificazione dell'esenzione letta negli atti")
-    esito = confronta(versati, dovuto, cat=cat) if cat else {"esito": "indeterminato", "dettaglio": ""}
     stato = {"coincide": "fatto", "insufficiente": "da_fare"}.get(esito["esito"], "dubbio")
     importo = esito.get("dovuto") or (dovuto.importo if dovuto else None)
     gia_depositato = any(d.accettato for d in ctx.depositi) or semplice(ctx.fascicolo.get("stato")) in {"definito", "chiuso", "archiviato"}

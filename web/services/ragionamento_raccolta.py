@@ -187,6 +187,56 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
     return {atto: prova for atto, prova in per_atto.items() if atto not in ambigui}
 
 
+_MASSIMO_COLLEGATI = 8
+_DOCUMENTO_DELLA_VICENDA = ("decret", "ingiun", "precett", "pignor", "esecutor", "titolo")
+
+
+def _cliente(fascicolo: Any) -> str:
+    return " ".join(_testo(getattr(fascicolo, "nome_cliente", "") or getattr(fascicolo, "cliente", "")).casefold().split())
+
+
+def _collegati(fascicolo: Any) -> list[dict[str, Any]]:
+    """I fascicoli dello stesso cliente con i soli documenti della vicenda esecutiva (decreto, esecutorietà, precetto,
+    pignoramento), dai testi già salvati: la regola `pct/ragionamento/collegamenti` decide se sono collegati."""
+    from web.helpers import get_fascicoli
+    from web.services.archivio_letture_runtime import testi_indice_archivio
+
+    cliente = _cliente(fascicolo)
+    if not cliente:
+        return []
+    repo = get_fascicoli()
+    indice = getattr(repo, "identita_per_confronto_fascicoli", None) or getattr(repo, "indice_leggero", None)
+    righe = indice() if callable(indice) else repo.tutti()
+    fid = _testo(getattr(fascicolo, "id", ""))
+    candidati = [_testo(getattr(r, "id", "")) for r in righe
+                 if _testo(getattr(r, "id", "")) != fid and _cliente(r) == cliente][:_MASSIMO_COLLEGATI]
+    esito = []
+    for cid in candidati:
+        altro = _sicuro(lambda cid=cid: repo.get(cid), None)
+        if altro is None:
+            continue
+        testi = _sicuro(lambda altro=altro: testi_indice_archivio(altro), {})
+        documenti = []
+        for documento in list(getattr(altro, "documenti", []) or []):
+            oid = _testo(getattr(documento, "id", ""))
+            testo = testi.get(oid, "")
+            nome = _testo(getattr(documento, "nome", "") or getattr(documento, "nome_file", ""))
+            if testo and any(p in (nome + " " + testo[:600]).casefold() for p in _DOCUMENTO_DELLA_VICENDA):
+                documenti.append({"id": oid, "nome": nome, "data": _testo(getattr(documento, "data_documento", ""))[:10],
+                                  "testo": testo})
+        if documenti:
+            numero, anno = _testo(getattr(altro, "numero_rg", "")), _testo(getattr(altro, "anno_rg", ""))
+            esito.append({"id": cid, "rg": f"{numero}/{anno}" if numero and anno else "",
+                          "ufficio": _testo(getattr(altro, "tribunale", "")),
+                          "codice_oggetto": _testo(getattr(altro, "codice_oggetto_pst", "")), "documenti": documenti})
+    return esito
+
+
+def _appuntamenti(righe: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{"tipo": _testo(a.get("tipo")), "data": _testo(a.get("data_ora") or a.get("data"))[:10], "stato": _testo(a.get("stato"))}
+            for a in righe or [] if isinstance(a, dict)]
+
+
 def fonti_da_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> FontiCausa:
     """Le fonti del ragionamento dai dati che la Lettura ha già raccolto: si aggiungono solo i testi dell'indice."""
     from web.services.archivio_letture_runtime import testi_indice_archivio
@@ -219,6 +269,8 @@ def fonti_da_lettura(fascicolo: Any, dati: Any, fatti: list[dict[str, Any]]) -> 
         contributo=_stato_contributo(economico.get("presidio") or {}),
         consegne_verificate=_sicuro(lambda: _consegne_verificate(str(fascicolo.id)), {}),
         scadenze=[{"titolo": x.get("titolo"), "data": x.get("data"), "stato": x.get("stato")} for x in dati.scadenze],
+        appuntamenti=_appuntamenti(list(getattr(dati, "appuntamenti", []) or [])),
+        collegati=_sicuro(lambda: _collegati(fascicolo), []),
     )
 
 
@@ -330,6 +382,7 @@ def raccogli_fonti(fascicolo_id: str, *, oggi: date | None = None) -> FontiCausa
         consegne_verificate=_sicuro(lambda: _consegne_verificate(str(fascicolo.id)), {}),
         scadenze=_sicuro(lambda: _scadenze(str(fascicolo.id)), []),
         oggi=oggi,
+        collegati=_sicuro(lambda: _collegati(fascicolo), []),
     )
 
 

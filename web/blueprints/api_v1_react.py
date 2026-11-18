@@ -9830,6 +9830,11 @@ def prepara_lettura_in_cache(id_fasc: str) -> bool:
     if not lettura or bool((lettura.get("verifiche") or {}).get("in_corso")):
         return False
     salva_percorso_concluso(id_fasc, lettura)
+    # Le bozze che il modello della causa rende certe si confermano qui, in sfondo, con la prova.
+    from web.services.termini_certi_runtime import conferma_termini_certi
+
+    if conferma_termini_certi(id_fasc, lettura):
+        lettura = load_fascicolo_lettura_context(fascicolo_id=id_fasc) or lettura
     risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
     _LETTURA_CACHE.set(chiave, risposta.get_data())
     return True

@@ -423,9 +423,11 @@ def test_presidio_pec_entra_nella_lettura_con_termini_e_udienze_da_registrare():
     assert not any("comparsa conclusionale" in azione for azione in azioni)
     assert not any("udienza del 05/11/2026" in azione for azione in azioni)
     # La PEC che cita l'assistito: il presidio non collega omonimi, chiede conferma; l'evento incerto va confermato.
-    assert any(azione.startswith("Confermare l'evento che il presidio PEC propone per la PEC del 13/09/2026") for azione in azioni)
-    passo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"].startswith("Confermare l'evento"))
+    # Il dubbio resta scritto in chiaro: che cosa vi legge il presidio e perché non è certo (18/11/2026).
+    assert any(azione.startswith("Indicare che cosa comunica la PEC del 13/09/2026") for azione in azioni)
+    passo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"].startswith("Indicare che cosa comunica"))
     assert passo["href"] == "/email/?audit_id=M3" and passo["norma"] == "Specifiche tecniche DGSIA 7/8/2024, art. 21"
+    assert "comunicazione generica" in passo["motivo"] and passo["stato"] == "da chiarire"
     # La PEC per numero di ruolo non collegata chiede il collegamento, senza inventare un allarme di autenticità.
     assert any(azione.startswith("Confermare il collegamento della PEC del 12/09/2026") for azione in azioni)
     assert not any(azione.startswith("Verificare l'autenticità della PEC del 12/09/2026") for azione in azioni)
@@ -524,8 +526,14 @@ def test_presidio_economico_con_importi_e_parcelle_scadute():
 
     dati.economico = {"summary": {"preventivi_count": 0, "conferimenti_count": 0, "parcelle_count": 0, "totale_fatturato": 0, "totale_incassato": 0}, "parcelle": []}
     lettura = costruisci_lettura(dati)
+    # La procura alle liti nel fascicolo prova il conferimento dell'incarico (art. 83 c.p.c.): il passo non si propone.
+    assert not any(passo["azione"].startswith("Formalizzare preventivo") for passo in lettura["prossimi_passi"])
+    dati.documenti = [voce for voce in dati.documenti if voce["id"] != "P1"]
+    dati.catalogo = [voce for voce in dati.catalogo if voce.get("document_id") != "P1"]
+    lettura = costruisci_lettura(dati)
     passo = next(passo for passo in lettura["prossimi_passi"] if passo["azione"].startswith("Formalizzare preventivo"))
-    assert passo["norma"] == "L. 247/2012, art. 13"
+    assert passo["norma"] == "L. 247/2012, art. 13" and passo["ambito"] == "amministrativo"
+    assert lettura["prossimi_passi"][-1]["azione"].startswith("Formalizzare preventivo") or passo["urgenza"] == 3
     assert "Preventivo e conferimento d'incarico non risultano collegati" in lettura["narrativa"]
 
 

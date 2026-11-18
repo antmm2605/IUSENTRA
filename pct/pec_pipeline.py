@@ -2796,6 +2796,11 @@ def _unified_hearing_mode(all_text_lower: str, *, remote_detected: bool) -> str:
 
     text = all_text_lower or ""
     is_note = any(str(k).lower() in text for k in REMOTE_HEARING_NEGATIVE_CONTEXT_KEYWORDS)
+    if is_note and "sentenza a verbale" not in text:
+        # Le premesse che richiamano l'art. 127-ter non fanno della prossima udienza una trattazione scritta.
+        from pct.provvedimenti.termine_scritto import dispone_note_scritte
+
+        is_note = dispone_note_scritte(text)
     is_place = any(k in text for k in _HEARING_PLACE_KEYWORDS)
     is_mixed = any(k in text for k in _HEARING_MIXED_KEYWORDS)
     if is_mixed or (remote_detected and is_place):

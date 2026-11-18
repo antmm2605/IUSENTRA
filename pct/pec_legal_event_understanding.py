@@ -634,7 +634,11 @@ def _hearing_mode(text: str, remote_report: dict[str, Any], links: list[dict[str
     if explicit in {"presenza", "remoto", "mista", "note_scritte", "incerta"}:
         return explicit
     if any(token in lower for token in ("127-ter", "127 ter", "trattazione scritta", "note scritte")):
-        return "note_scritte"
+        # Le premesse che richiamano l'art. 127-ter non dispongono le note (pct/provvedimenti/termine_scritto).
+        from pct.provvedimenti.termine_scritto import dispone_note_scritte
+
+        if dispone_note_scritte(text):
+            return "note_scritte"
     if any(token in lower for token in ("udienza mista", "aula mvc", "parte in presenza e parte da remoto")):
         return "mista"
     if links or any(token in lower for token in ("da remoto", "collegamento audiovisivo", "videoconferenza", "teams", "id riunione", "meeting id")):
@@ -1133,6 +1137,12 @@ def _classify(
     for code, keywords in additional:
         if any(keyword in lower for keyword in keywords) and code not in events:
             events.append(code)
+    if "udienza_sostituita_da_note_scritte" in events and event != "udienza_sostituita_da_note_scritte":
+        # Il richiamo all'art. 127-ter nelle premesse non sostituisce l'udienza (pct/provvedimenti/termine_scritto).
+        from pct.provvedimenti.termine_scritto import dispone_note_scritte
+
+        if not dispone_note_scritte(text):
+            events.remove("udienza_sostituita_da_note_scritte")
     primary_event = event or (events[0] if events else "evento_ambiguo_revisione")
     judgment_decision = (
         _is_judgment_decision_text(text)

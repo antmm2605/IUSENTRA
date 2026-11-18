@@ -117,8 +117,14 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
             "contributo_unificato": economia.get("contributo_unificato"),
             "liquidazioni": [{k: v[k] for k in ("atto", "copie", "compensi", "distrazione") if k in v}
                              for v in economia.get("liquidazioni") or []],
+            "incarico": economia.get("incarico"),
         },
         "conclusioni": conclusioni,
+        # Le udienze trascorse con l'esito già scritto in un provvedimento del giudice, e i fascicoli collegati della
+        # stessa vicenda con la prova del collegamento (aggiunti il 18/11/2026).
+        "esiti_udienze": [{**e, "data_it": data_it(e.get("data")), "data_provvedimento_it": data_it(e.get("data_provvedimento"))}
+                          for e in causa.get("esiti_udienze") or []],
+        "collegati": list(causa.get("collegati") or []),
         "contraddizioni": [{"controllo": x["controllo"], "descrizione": x["descrizione"], "sciolta": x["sciolta"], "come": x["come"]}
                            for x in causa.get("contraddizioni") or []],
         "dubbi": [{"codice": d.get("codice", ""), "testo": d["testo"], "manca": d["manca"], "fonte": d.get("fonte")}
@@ -126,6 +132,7 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_AMBITI = {"spese_liquidate": "economico", "contributo_unificato": "economico"}
 _PASSI_TRATTAZIONE = frozenset({"note_127ter", "costituzione_convenuto", "costituzione_attore"})
 
 
@@ -150,6 +157,9 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
         motivo = voce["perche"] + (f" — {voce['come']}" if voce.get("come") else "")
         if voce["stato"] == "dubbio":
             motivo = "; ".join(d["testo"] for d in voce.get("dubbi") or []) or motivo
+        if termine.get("scaduto") and termine.get("rimedi"):
+            # Termine scaduto senza prova dell'adempimento: conseguenze e rimedi secondo la natura del termine.
+            motivo = f"termine scaduto il {data_it(termine.get('scadenza'))}, nel fascicolo non risulta l'adempimento — {termine['rimedi']}; {motivo}"
         azione = _azione(voce)
         href = HREF.get(voce["codice"], "#udienze")
         prova_pec = next((d.get("fonte") for d in voce.get("dubbi") or []
@@ -167,9 +177,15 @@ def passi(causa: dict[str, Any], *, trattazione_conclusa: bool = False, provvedi
             azione = "Verificare se le note già depositate riguardano questa udienza"
         elif voce.get("onerato") == "ignoto":
             azione = "Verificare se il termine riguarda il cliente: " + azione
+        natura = termine.get("natura") if termine.get("natura") in {"perentorio", "ordinatorio"} else (
+            {True: "perentorio", False: "ordinatorio"}.get(termine.get("perentorio"), ""))
+        letto = voce.get("letto") or {}
+        prova = " — ".join(filter(None, (letto.get("nome"), data_it(letto.get("data")))))
         esito.append(Passo(
             urgenza, azione, motivo, data_it(termine.get("scadenza")), "ragionamento sul fascicolo",
             tuple(n["id"] for n in voce.get("norme") or [] if n.get("id")), href,
+            natura=natura, ambito=_AMBITI.get(voce["codice"], "processuale"),
+            stato="da chiarire" if voce["stato"] == "dubbio" else "da fare", prova=prova,
         ))
     prossima = next((u for u in sorted(causa.get("udienze") or [], key=lambda u: u["data"]) if u["data"] >= (causa.get("oggi") or "")), None)
     if prossima and prossima.get("modalita") != "note_scritte":

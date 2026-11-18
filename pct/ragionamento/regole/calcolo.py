@@ -42,8 +42,9 @@ def esito(scadenza: date | None, *, oggi: date, perentorio: bool | None, decorre
             "termine perentorio scaduto: non si proroga (art. 153, primo comma, c.p.c.); si può chiedere la rimessione "
             "in termini solo provando di essere incorsi nella decadenza per causa non imputabile (art. 153, secondo comma, c.p.c.)"
             if perentorio else
-            "termine ordinatorio scaduto: non può più essere prorogato (art. 154 c.p.c.); verificare con il giudice le "
-            "conseguenze dell'adempimento tardivo"
+            "termine ordinatorio scaduto: la proroga si poteva chiedere solo prima della scadenza (art. 154 c.p.c.); se il "
+            "ritardo dipende da causa non imputabile si chiede la rimessione in termini (art. 153, secondo comma, c.p.c.); "
+            "altrimenti il giudice decide sulle prove in atti (art. 2697 c.c.)"
         )
     return termine
 

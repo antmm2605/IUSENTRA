@@ -181,6 +181,10 @@ class Causa:
     impronta: str = ""
     versione: str = ""
     percorso: list[EventoCausa] = field(default_factory=list)
+    # Le udienze trascorse il cui esito è scritto in un provvedimento del giudice (udienze_esito).
+    esiti_udienze: list[dict[str, str]] = field(default_factory=list)
+    # I fascicoli collegati della stessa vicenda, con la prova del collegamento (collegamenti).
+    collegati: list[dict[str, Any]] = field(default_factory=list)
 
     def come_dizionario(self) -> dict[str, Any]:
         dati = asdict(self)

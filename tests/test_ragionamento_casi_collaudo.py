@@ -109,9 +109,12 @@ def test_g3_ricevute_della_diffida_non_notificano_il_ricorso_e_obbligo_415():
     obbligo = conclusione(causa, "notifica_ricorso_decreto_415")
     assert obbligo.stato == "da_fare" and "ricevute correlate" in obbligo.prova_o_motivo
     assert "art. 415, commi 4–6, c.p.c." in norme_di(obbligo) and "Avvocatura dello Stato" in obbligo.come
-    # Il termine dalla pronuncia resta calcolabile. Quello a difesa richiede la destinazione.
-    assert obbligo.termine.scadenza == "2026-10-19" and "ordinatorio" in obbligo.termine.computo
-    assert any(d.codice == "destinazione_notifica_ignota" for d in obbligo.dubbi)
+    # Contro l'amministrazione la notifica si esegue in Italia (Avvocatura dello Stato): scaduti i dieci giorni ordinatori
+    # dalla pronuncia (19/10/2026), il termine che conta è l'ultimo giorno utile a difesa, 30 giorni prima dell'udienza
+    # sostituita dalle note del 09/02/2027 (art. 415, commi 4 e 5, c.p.c.; 18/11/2026).
+    assert obbligo.termine.scadenza == "2027-01-08" and "19/10/2026" in obbligo.termine.conseguenze
+    assert "ordinatorio" in obbligo.termine.conseguenze
+    assert not any(d.codice == "destinazione_notifica_ignota" for d in obbligo.dubbi)
     assert obbligo.termine.sospensione_feriale.startswith("non si applica")
     assert any(x.controllo == "prova_un_solo_atto" and "stragiudiziale" in x.descrizione for x in causa.contraddizioni)
 
@@ -247,7 +250,8 @@ def test_g9_note_scritte_alle_14_sono_un_termine_e_l_ordine_del_giudice_non_chie
     assert note.termine.scadenza == "2027-02-09" and "ore 14:00" in note.termine.computo and note.termine.perentorio
     assert [(u.data, u.modalita) for u in causa.udienze] == [("2027-02-09", "note_scritte")]
     obbligo = conclusione(causa, "notifica_ricorso_decreto_415")
-    assert {d.codice for d in obbligo.dubbi} == {"destinazione_notifica_ignota"}
+    # Contro l'amministrazione la notifica si esegue in Italia: nessun dubbio sulla destinazione (art. 415, ultimi commi).
+    assert {d.codice for d in obbligo.dubbi} == set()
     assert obbligo.letto.oggetto_id == "DEC"
 
 
@@ -349,9 +353,11 @@ def test_g14_liquidazione_delle_spese_nel_decreto_ingiuntivo():
 
 
 def test_g16_contributo_della_volontaria_giurisdizione_e_98_euro_non_27():
-    ricorso_vg = doc("RVG", "Istanza autorizzazione minore.pdf", "atto_principale", "Ricorso al giudice tutelare",
-                     "TRIBUNALE DI FIRENZE Ill.mo Giudice tutelare, la sig.ra Verdi, rappresentata e difesa dall'Avv. Mario Rossi. " * 3)
-    vg = {"codice_oggetto_pst": "413014", "tipo": "CIVILE", "tribunale": "Tribunale di Firenze", "numero_rg": "14848", "anno_rg": "2025"}
+    # Volontaria giurisdizione non esente (accettazione dell'eredità con beneficio d'inventario): € 98, art. 13, c. 1, lett. b).
+    ricorso_vg = doc("RVG", "Ricorso beneficio inventario.pdf", "atto_principale", "Ricorso",
+                     "TRIBUNALE DI FIRENZE Ill.mo Presidente, la sig.ra Verdi, rappresentata e difesa dall'Avv. Mario Rossi, "
+                     "chiede di accettare l'eredità con beneficio d'inventario. " * 3)
+    vg = {"codice_oggetto_pst": "420300", "tipo": "CIVILE", "tribunale": "Tribunale di Firenze", "numero_rg": "14848", "anno_rg": "2025"}
     solo27 = [{"voce": "contributo_unificato", "stato": "pagato", "importo": 27.0, "origine": "Document AI / fascicolo", "documento": "ricevuta"}]
     causa = ragiona(fonti(vg, [ricorso_vg], pagamenti=solo27))
     cu = conclusione(causa, "contributo_unificato")
@@ -360,6 +366,21 @@ def test_g16_contributo_della_volontaria_giurisdizione_e_98_euro_non_27():
     pagato = ragiona(fonti(vg, [ricorso_vg], pagamenti=solo27 + [{**solo27[0], "importo": 98.0}]))
     assert conclusione(pagato, "contributo_unificato").stato == "fatto"
 
+
+def test_g16_bis_istanza_dei_genitori_al_giudice_tutelare_esente_e_27_euro_corretti():
+    # Correzione del 18/11/2026: l'istanza per il figlio minore (art. 320 c.c.) riguarda la prole ed è esente dal
+    # contributo (art. 10, comma 2, D.P.R. 115/2002; circolare DAG 16/05/2024); i € 27 sono l'anticipazione dovuta (art. 30).
+    istanza = doc("IST", "Istanza_autorizzazione_minore.PDF", "istanza", "Istanza al giudice tutelare",
+                  "Giudice Tutelare. I sottoscritti Tizio e Caia, nella qualità di Genitori esercenti la potestà sul minore "
+                  "Sempronio, CHIEDONO di essere autorizzati a compiere gli atti in nome e per conto del minore.")
+    vg = {"codice_oggetto_pst": "413014", "tipo": "CIVILE", "tribunale": "Tribunale di Firenze", "numero_rg": "14848", "anno_rg": "2025"}
+    solo27 = [{"voce": "contributo_unificato", "stato": "pagato", "importo": 27.0, "origine": "Document AI / fascicolo", "documento": "ricevuta"}]
+    cu = conclusione(ragiona(fonti(vg, [istanza], pagamenti=solo27)), "contributo_unificato")
+    assert cu.cosa.startswith("Contributo unificato non dovuto (art. 10, comma 2, D.P.R. 115/2002)")
+    assert "anticipazione forfettaria dovuta (art. 30), corretto" in cu.cosa
+    # nell'istanza manca la dichiarazione della ragione dell'esenzione: è il solo dubbio vero (art. 10, comma 6)
+    assert cu.stato == "dubbio" and "esenzione_da_completare" in [d.codice for d in cu.dubbi]
+    assert {"dpr115_art10", "dpr115_art30"} <= {n["id"] for n in cu.norme}
 
 
 def test_contributo_dal_presidio_non_trasforma_la_nota_di_ruolo_in_ricevuta():
@@ -395,11 +416,15 @@ def test_liquidazione_resta_visibile_senza_attribuire_crediti_con_ruolo_ignoto()
 
 
 def test_volontaria_senza_parte_accertata_mostra_la_verifica_del_contributo():
-    causa = ragiona(fonti({"codice_oggetto_pst": "413014", "tipo": "CIVILE"}, [],
+    causa = ragiona(fonti({"codice_oggetto_pst": "420300", "tipo": "CIVILE"}, [],
                          pagamenti=[{"voce": "contributo_unificato", "importo": 27}]))
     cu = conclusione(causa, "contributo_unificato")
     assert cu.stato == "dubbio" and cu.onerato == "ignoto"
     assert "€ 98,00" in cu.cosa and "anticipazione forfettaria" in cu.prova_o_motivo
+    # le autorizzazioni nella tutela sono esenti (art. 10, comma 1, D.P.R. 115/2002; art. 46 disp. att. c.c.)
+    tutela = conclusione(ragiona(fonti({"codice_oggetto_pst": "413014", "tipo": "CIVILE"}, [],
+                                       pagamenti=[{"voce": "contributo_unificato", "importo": 27}])), "contributo_unificato")
+    assert tutela.stato == "non_dovuto" and "art. 46 disp. att. c.c." in tutela.cosa
 
 
 def test_relata_della_sentenza_senza_consegna_non_avvia_il_termine_breve():

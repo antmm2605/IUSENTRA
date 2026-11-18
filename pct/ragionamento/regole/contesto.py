@@ -30,6 +30,9 @@ class Contesto:
     consegne_verificate: dict[str, dict[str, str]] = field(default_factory=dict)
 
     notifiche_storiche: dict[str, tuple[str, str]] = field(default_factory=dict)
+    # I fascicoli della stessa vicenda (FontiCausa.collegati), per il titolo esecutivo e il precetto (collegamenti).
+    collegati: list[dict] = field(default_factory=list)
+    collegamenti_trovati: list[dict] = field(default_factory=list)
 
     def atto(self, oggetto_id: str) -> Atto | None:
         return next((a for a in self.atti if a.id == oggetto_id), None)

@@ -70,6 +70,40 @@ FONTI_RAGIONAMENTO: dict[str, dict[str, Any]] = {
         "favore suo gli onorari non riscossi e le spese che dichiara di avere anticipate."),
     "cpc_641_spese": _voce("art. 641, terzo comma, c.p.c.", "Decreto ingiuntivo: liquidazione delle spese", _CPC, "641",
         "Con lo stesso decreto il giudice liquida le spese e le competenze e ne ingiunge il pagamento."),
+    # Aggiunte del 18/11/2026: testo vigente nell'archivio Normattiva del software (c.p.c. aggiornato al 05/03/2026,
+    # D.P.R. 115/2002 al 12/11/2026), letto il 18/11/2026.
+    "cpc_154": {**_voce("art. 154 c.p.c.", "Prorogabilità del termine ordinatorio", _CPC, "154",
+        "Il giudice, prima della scadenza, può abbreviare o prorogare, anche d'ufficio, il termine che non sia stabilito a pena "
+        "di decadenza. La proroga non può avere una durata superiore al termine originario. Non può essere consentita proroga "
+        "ulteriore, se non per motivi particolarmente gravi e con provvedimento motivato."),
+        "verifica": "testo vigente nell'archivio Normattiva del software, letto il 18/11/2026"},
+    "dpr115_art16": {**_voce("art. 16 D.P.R. 115/2002", "Omesso o insufficiente pagamento del contributo unificato", _DPR115, "16",
+        "In caso di omesso o insufficiente pagamento del contributo unificato si applicano le disposizioni della parte VII, "
+        "titolo VII, e nell'importo iscritto a ruolo sono calcolati gli interessi al saggio legale, decorrenti dal deposito "
+        "dell'atto cui si collega il pagamento o l'integrazione del contributo (comma 1). In caso di omesso o parziale "
+        "pagamento si applica la sanzione dell'art. 71 del D.P.R. 131/1986 (comma 1-bis)."),
+        "verifica": "testo vigente nell'archivio Normattiva del software, letto il 18/11/2026"},
+    "dpr115_art248": {**_voce("art. 248 D.P.R. 115/2002", "Invito al pagamento del contributo unificato", _DPR115, "248",
+        "Entro trenta giorni dal deposito dell'atto cui si collega il pagamento o l'integrazione del contributo, l'ufficio "
+        "notifica alla parte l'invito al pagamento dell'importo dovuto, con l'avvertenza che in caso di mancato pagamento "
+        "entro un mese si procederà a iscrizione a ruolo con interessi e sanzione (comma 1). Nei procedimenti civili, in caso "
+        "di mancato pagamento entro trenta giorni dall'iscrizione a ruolo, l'ufficio procede all'iscrizione a ruolo "
+        "dell'importo dovuto con interessi e sanzione (comma 3-bis)."),
+        "verifica": "testo vigente nell'archivio Normattiva del software, letto il 18/11/2026"},
+    "dpr115_art10": {**_voce("art. 10 D.P.R. 115/2002", "Esenzioni dal contributo unificato", _DPR115, "10",
+        "Non è soggetto al contributo unificato il processo già esente, secondo previsione legislativa, dall'imposta di bollo o "
+        "da ogni spesa, tassa o diritto (comma 1). Non è soggetto al contributo il processo in materia di assegni per il "
+        "mantenimento della prole e quello comunque riguardante la stessa (comma 2). Non sono soggetti al contributo i processi "
+        "di cui al libro II, titolo IV-bis, capo III, sezioni III, IV e V, del codice di procedura civile (comma 3). La ragione "
+        "dell'esenzione deve risultare da apposita dichiarazione resa dalla parte nelle conclusioni dell'atto introduttivo "
+        "(comma 6)."),
+        "verifica": "testo vigente nell'archivio Normattiva del software (aggiornamento del 12/11/2026), letto il 18/11/2026"},
+    "dispattcc_46bis": {**_voce("art. 46-bis disp. att. c.c.", "Misure di protezione: esenzione dal contributo unificato",
+        "urn:nir:stato:regio.decreto:1942-03-30;318", "46bis",
+        "Gli atti e i provvedimenti relativi ai procedimenti previsti dal titolo XII del libro primo del codice non sono "
+        "soggetti all'obbligo di registrazione e sono esenti dal contributo unificato previsto dall'articolo 9 del D.P.R. "
+        "30 maggio 2002, n. 115."),
+        "verifica": "testo vigente nell'archivio Normattiva del software, letto il 18/11/2026"},
 }
 
 __all__ = ["FONTI_RAGIONAMENTO"]

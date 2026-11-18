@@ -42,7 +42,7 @@ from .prossimi_passi import prossimi_passi
 from .ragionamento import vista as vista_ragionamento
 
 ROME_TZ = ZoneInfo("Europe/Rome")
-VERSIONE_LETTURA = "2026.11.16.lettura-fascicolo.v41"
+VERSIONE_LETTURA = "2026.11.18.lettura-fascicolo.v42"
 
 
 def _lacune(lettura: dict[str, Any]) -> list[str]:
@@ -116,6 +116,24 @@ def _letture_in_corso(archivio_letto: dict[str, Any], documenti_letti: dict[str,
     return {"totale": totale, "fonti": list(fonti.values())}
 
 
+def pec_lette_dal_modello(documenti: list[dict[str, Any]], ragionamento: dict[str, Any] | None) -> frozenset[str]:
+    """Le PEC il cui contenuto il modello della causa ha già letto come atto certo: il provvedimento del giudice o la
+    comunicazione di cancelleria allegati (art. 136 c.p.c.; art. 45 disp. att. c.p.c.). L'evento è quello dell'atto
+    letto, con la sua prova: non si chiede all'avvocato di confermare la classificazione del presidio."""
+    atti = {}
+    for atto in (ragionamento or {}).get("atti") or []:
+        for oid in (atto.get("id"), *(atto.get("copie") or ())):
+            atti.setdefault(str(oid), atto)
+    lette = set()
+    for documento in documenti or []:
+        origine = pulisci(documento.get("pec_origine"))
+        atto = atti.get(str(documento.get("id") or ""))
+        if (origine.startswith("pec_") and atto and atto.get("appartenenza") == "causa"
+                and atto.get("autore") in {"giudice", "cancelleria"} and atto.get("natura") not in {"", "da_verificare"}):
+            lette.add(origine)
+    return frozenset(lette)
+
+
 def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     """La lettura completa del fascicolo, come dati e come testo."""
     oggi = dati.oggi or datetime.now(ROME_TZ).date()
@@ -137,7 +155,8 @@ def costruisci_lettura(dati: DatiLettura) -> dict[str, Any]:
     }
     notifiche_lette = notifiche(dati.notifiche, dati.attivita, fonti_provvedimenti=fonti_provvedimenti)
     notifiche_lette["prove_documentali"] = int((dati.archivio or {}).get("prove_notifica_documentali") or 0)
-    pec_letto = pec(dati.pec, oggi=oggi, eventi_riscontrati=frozenset(notifiche_lette["eventi_pec_riscontrati"]))
+    pec_letto = pec(dati.pec, oggi=oggi, eventi_riscontrati=frozenset(notifiche_lette["eventi_pec_riscontrati"])
+                    | pec_lette_dal_modello(dati.documenti, dati.ragionamento))
     pec_letto["conteggio"] = conteggio_pec(pec_letto, dati.verifiche)
     economico_letto = economico(dati.economico, oggi)
     archivio_letto = archivio(dati.archivio) if getattr(dati, "archivio", None) else {}

@@ -3,7 +3,11 @@
 Fase «salva»: per ogni fascicolo e pannello fa la richiesta GET come l'avvocato (il pannello si calcola e si salva
 con l'impronta delle fonti). Fase «confronta», in un processo nuovo e con i pannelli pronti disattivati: ricalcola
 da zero ogni pannello e lo confronta con il payload salvato, controllando che l'impronta salvata sia ancora quella
-attuale. Ammessi solo i campi di orario di generazione elencati in ``CAMPI_ORARIO``.
+attuale. Fase «ricalcola», in un processo nuovo: rifà da zero il calcolo del pannello come il calcolatore in sfondo
+(stesso percorso del salvataggio, cache interne escluse) e confronta il payload salvato prima con quello appena
+ricalcolato, a parità di impronta; serve a verificare i pannelli preparati dalla copertura, compresi quelli che
+salvano parti in più per la ricomposizione (per esempio il Quadro). Usare solo su una copia dei dati: il ricalcolo
+riscrive l'archivio dei pannelli. Ammessi solo i campi di orario di generazione elencati in ``CAMPI_ORARIO``.
 
 Uso (nel contenitore, su una copia dei dati):
   python -m scripts.pannelli_pronti_equivalenza --tenant <slug> --utente <id> --fase salva --report r.jsonl
@@ -22,11 +26,16 @@ CAMPI_ORARIO = frozenset({"generatedAt", "generated_at", "generato_il", "generat
                           "tempiMs"})
 
 
-def normalizza(valore):
+# Orari dei controlli della regia: il motore registra quando ha eseguito ogni verifica (ora del calcolo).
+CAMPI_ORARIO_DEI_CONTROLLI = frozenset({"lastCheck", "created_at"})
+
+
+def normalizza(valore, dentro_controlli=False):
     if isinstance(valore, dict):
-        return {k: ("<orario>" if k in CAMPI_ORARIO else normalizza(v)) for k, v in valore.items()}
+        return {k: ("<orario>" if k in CAMPI_ORARIO or (dentro_controlli and k in CAMPI_ORARIO_DEI_CONTROLLI)
+                    else normalizza(v, dentro_controlli or k == "validation")) for k, v in valore.items()}
     if isinstance(valore, list):
-        return [normalizza(v) for v in valore]
+        return [normalizza(v, dentro_controlli) for v in valore]
     return valore
 
 
@@ -49,6 +58,11 @@ def differenze(a, b, percorso="$", limite=8):
             trovate.extend(differenze(x, y, f"{percorso}[{indice}]", limite))
             if len(trovate) >= limite:
                 break
+    elif isinstance(a, str) and isinstance(b, str) and a != b:
+        # Testi lunghi: si mostra il punto in cui divergono.
+        punto = next((i for i, (x, y) in enumerate(zip(a, b)) if x != y), min(len(a), len(b)))
+        inizio = max(0, punto - 40)
+        trovate.append(f"{percorso} (dal carattere {punto}): {a[inizio:punto + 80]!r} ≠ {b[inizio:punto + 80]!r}")
     elif a != b:
         trovate.append(f"{percorso}: {str(a)[:80]!r} ≠ {str(b)[:80]!r}")
     return trovate[:limite]
@@ -58,7 +72,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tenant", required=True)
     parser.add_argument("--utente", required=True)
-    parser.add_argument("--fase", choices=("salva", "confronta"), required=True)
+    parser.add_argument("--fase", choices=("salva", "confronta", "ricalcola"), required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--fascicoli", default="")
     parser.add_argument("--pannelli", default="")
@@ -104,6 +118,11 @@ def main():
         for indice, fascicolo_id in enumerate(fascicoli):
             for pannello in pannelli:
                 url = pannello.percorso.format(fid=fascicolo_id)
+                if args.fase == "ricalcola":
+                    report.write(json.dumps(_ricalcola(client, archivio, fascicolo_id, pannello, url),
+                                            ensure_ascii=False) + "\n")
+                    report.flush()
+                    continue
                 inizio = time.monotonic()
                 risposta = client.get(url, headers={"Accept": "application/json"})
                 durata = int((time.monotonic() - inizio) * 1000)
@@ -128,6 +147,32 @@ def main():
                 report.write(json.dumps(riga, ensure_ascii=False) + "\n")
                 report.flush()
             print(f"{indice + 1}/{len(fascicoli)} {fascicolo_id}", file=sys.stderr, flush=True)
+
+
+def _ricalcola(client, archivio, fascicolo_id, pannello, url):
+    """Payload salvato prima contro payload ricalcolato da zero con lo stesso percorso del calcolo in sfondo."""
+    from web.services.pannelli_pronti_runtime import AMBIENTE_RICALCOLO
+
+    riga = {"fase": "ricalcola", "fascicolo": fascicolo_id, "pannello": pannello.nome}
+    prima = _voce_salvata(archivio, fascicolo_id, pannello)
+    if prima is None:
+        return {**riga, "confronto": "non salvato"}
+    inizio = time.monotonic()
+    risposta = client.get(url, headers={"Accept": "application/json"},
+                          environ_overrides={AMBIENTE_RICALCOLO: True, "REMOTE_ADDR": "127.0.0.1"})
+    riga.update(ms=int((time.monotonic() - inizio) * 1000), stato=risposta.status_code,
+                esito=risposta.headers.get("X-Iusentra-Pannello", ""))
+    dopo = archivio.voce(prima.chiave)
+    if risposta.headers.get("X-Iusentra-Pannello") != "calcolato" or dopo is None or dopo.calcolato_il == prima.calcolato_il:
+        return {**riga, "confronto": "ricalcolo non salvato"}
+    salvato = json.loads(bytes(prima.corpo).decode("utf-8"))
+    nuovo = json.loads(bytes(dopo.corpo).decode("utf-8"))
+    if pannello.ricomponi:  # le novità personali si ricompongono a ogni apertura
+        for dati in (salvato, nuovo):
+            (dati.get("letture") or {}).pop("novita", None) if isinstance(dati, dict) else None
+    diff = differenze(normalizza(salvato), normalizza(nuovo))
+    return {**riga, "confronto": "uguale" if not diff else "diverso", "differenze": diff,
+            "impronta_valida": prima.impronta == dopo.impronta}
 
 
 def _voce_salvata(archivio, fascicolo_id, pannello):

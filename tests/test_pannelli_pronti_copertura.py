@@ -304,3 +304,12 @@ def test_controlli_in_sfondo_usano_solo_indici_senza_leggere_i_payload(studio):
             assert "COVERING INDEX" in piano, (nome, piano)
     finally:
         conn.close()
+
+
+def test_ordine_di_calcolo_rispetta_le_dipendenze_del_catalogo():
+    from web.services.pannelli_pronti_catalogo import PANNELLI
+    from web.services.pannelli_pronti_sfondo import _ORDINE
+
+    for pannello in PANNELLI:
+        for fonte in pannello.dipende_da:
+            assert _ORDINE[fonte] < _ORDINE[pannello.nome], (fonte, pannello.nome)

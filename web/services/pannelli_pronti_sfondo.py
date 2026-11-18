@@ -34,11 +34,24 @@ VARIANTI_PER_PANNELLO = 2
 MINUTI_ATTESA_LETTURA = 5.0
 PANNELLI_PRIORITARI = ("lettura", "passaggi", "quadro", "obblighi-notifica", "scadenze")
 _NOMI_PANNELLI = frozenset(pannello.nome for pannello in PANNELLI)
-# I pannelli che leggono la Lettura o la sintesi delle notifiche seguono le loro fonti.
-_ORDINE = {nome: indice for indice, nome in enumerate(dict.fromkeys(
-    ["dettaglio", "lettura", "passaggi", "obblighi-notifica", "quadro", "scadenze", "documenti", "regia"]
-    + [p.nome for p in PANNELLI]))}
+# Ordine di calcolo: preferenza della prima apertura, ma ogni pannello dopo i pannelli che legge (``dipende_da`` del
+# catalogo). Così nello stesso giro una fonte si calcola prima di chi la legge e il dipendente non va ricalcolato.
+_PREFERENZA = ["dettaglio", "lettura", "passaggi", "obblighi-notifica", "conto-economico", "quadro", "scadenze",
+               "documenti", "regia"]
 
+
+def _ordine_con_dipendenze() -> dict[str, int]:
+    dipendenze = {p.nome: set(p.dipende_da) for p in PANNELLI}
+    da_ordinare = list(dict.fromkeys(_PREFERENZA + [p.nome for p in PANNELLI]))
+    ordinati: list[str] = []
+    while da_ordinare:
+        pronto = next((n for n in da_ordinare if dipendenze.get(n, set()) <= set(ordinati)), da_ordinare[0])
+        ordinati.append(pronto)
+        da_ordinare.remove(pronto)
+    return {nome: indice for indice, nome in enumerate(ordinati)}
+
+
+_ORDINE = _ordine_con_dipendenze()
 
 
 _PERCORSI = {p.nome: p.percorso for p in PANNELLI if p.percorso}

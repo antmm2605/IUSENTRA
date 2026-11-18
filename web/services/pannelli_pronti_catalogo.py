@@ -95,8 +95,10 @@ PANNELLI: tuple[Pannello, ...] = (
     Pannello("dettaglio", "api_v1_react.fascicolo_react_dettaglio", percorso=_UI, prima_apertura=True,
              parametri_ignorati=frozenset({"confirm_revision"}), ricomponi="lettura_del_dettaglio",
              domini_revisione=DOMINI_DETTAGLIO),
+    # Il Quadro legge la Lettura e il Conto economico già preparati: quando cambiano si ricalcola anche la parte
+    # salvata (alla consultazione le righe che ne derivano si ricompongono comunque dalle fonti correnti).
     Pannello("quadro", "api_v1_react.fascicolo_react_quadro", percorso=_UI + "/quadro", prima_apertura=True,
-             ricomponi="quadro_da_lettura"),
+             ricomponi="quadro_da_lettura", dipende_da=("lettura", "conto-economico")),
     Pannello("scadenze", "api_v1_react.fascicolo_react_scadenze", percorso=_UI + "/scadenze", prima_apertura=True, dipende_da=("lettura",)),
     Pannello("documenti", "api_v1_react.fascicolo_react_documenti", percorso=_UI + "/documenti", prima_apertura=True),
     Pannello("lettura", "api_v1_react.fascicolo_react_lettura", percorso=_UI + "/lettura", prima_apertura=True,

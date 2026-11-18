@@ -90,6 +90,7 @@ def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, ten
         archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)
         if archivio is None or fonti is None or not Path(archivio.percorso).exists():
             continue
+        archivio.prepara_indici()
         interrompi = None
         if solo_pannelli_prioritari:
             voci = da_ricalcolare(archivio, fonti, limite=lotto, solo_pannelli_prioritari=True, fascicolo_richiesto=fascicolo_id)
@@ -192,6 +193,7 @@ def avvia_se_serve(app) -> dict[str, object]:
         archivio, fonti = archivio_per_percorsi(data_paths), fonti_per_percorsi(data_paths)
         if archivio is None or fonti is None or not Path(archivio.percorso).exists():
             continue
+        archivio.prepara_indici()
         archivio.elimina_vecchie()
         superati += len(da_ricalcolare(archivio, fonti, limite=1)) or len(copertura(archivio, fonti, limite=1))
         if superati:

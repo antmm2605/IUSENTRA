@@ -39,7 +39,19 @@ _SCHEMA = (
     "CREATE INDEX IF NOT EXISTS idx_aperture_quando ON aperture(aperto_il)",
     "CREATE TABLE IF NOT EXISTS generazioni (fascicolo_id TEXT PRIMARY KEY, generazione INTEGER NOT NULL)",
 )
+# Indici di copertura per i controlli dello scheduler e del calcolatore: le colonne lette stanno dopo ``corpo`` (fino a
+# centinaia di KB per voce) e senza indice SQLite scorre le pagine di overflow di ogni payload a ogni controllo.
+# Si creano solo fuori dalle richieste web (``prepara_indici``): la prima creazione legge l'archivio una volta.
+_INDICI = (
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_stati ON pannelli(chiave, fascicolo_id, impronta, tentata)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_varianti ON pannelli(profilo, pannello, percorso, richieste)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_attesa ON pannelli(pannello, richiesto_il, richieste, calcolato_il, servito_il,"
+    " fascicolo_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pannelli_voci ON pannelli(fascicolo_id, richiesto_il, chiave, pannello, percorso, profilo,"
+    " impronta, tentata)",
+)
 _PREPARATI: set[str] = set()
+_INDICIZZATI: set[str] = set()
 _LOCK = threading.Lock()
 
 
@@ -170,6 +182,18 @@ class ArchivioPannelli:
 
     # ---- copertura di tutti i fascicoli (una query per tutto lo studio) ------------------------------------
 
+    def prepara_indici(self) -> None:
+        """Gli indici di copertura dei controlli in sfondo (una volta per processo; mai in una richiesta web)."""
+        if self.percorso in _INDICIZZATI:
+            return
+        try:
+            with self._conn(timeout=30) as conn:
+                for istruzione in _INDICI:
+                    conn.execute(istruzione)
+        except sqlite3.Error:
+            return  # archivio occupato: i controlli funzionano anche senza, si riprova al giro successivo
+        _INDICIZZATI.add(self.percorso)
+
     def generazioni(self) -> dict[str, int]:
         with self._lettura() as conn:
             if conn is None:
@@ -199,8 +223,9 @@ class ArchivioPannelli:
         with self._lettura() as conn:
             if conn is None:
                 return {}
+            # Un'impronta si registra solo con il payload (``salva``): senza corpo resta vuota.
             return {str(r[0]): (str(r[1]), str(r[2] or ""), str(r[3] or "")) for r in conn.execute(
-                "SELECT chiave, fascicolo_id, CASE WHEN corpo IS NULL THEN '' ELSE impronta END, tentata FROM pannelli")}
+                "SELECT chiave, fascicolo_id, impronta, tentata FROM pannelli")}
 
     def conteggi(self) -> dict[str, int]:
         with self._conn() as conn:

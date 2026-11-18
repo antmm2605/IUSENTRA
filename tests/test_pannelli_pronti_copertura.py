@@ -278,3 +278,21 @@ def test_dettaglio_alla_prima_apertura_senza_la_lettura_incorporata(monkeypatch)
         assert _json.loads(runtime._ricomponi(dettaglio, corpo, "F1"))["initialLettura"] == lettura
     with app.test_request_context("/api/v1/ui/fascicoli/F1?include=all"):
         assert _json.loads(runtime._ricomponi(dettaglio, corpo, "F1"))["initialLettura"] == lettura
+
+
+def test_controlli_in_sfondo_usano_solo_indici_senza_leggere_i_payload(studio):
+    """Le colonne lette dai controlli stanno dopo ``corpo``: con gli indici di copertura i payload non si leggono."""
+    _profilo(studio)
+    studio.archivio.prepara_indici()
+    conn = sqlite3.connect(studio.archivio.percorso)
+    try:
+        piani = {
+            "stati": "SELECT chiave, fascicolo_id, impronta, tentata FROM pannelli",
+            "varianti": "SELECT pannello, percorso, SUM(richieste) FROM pannelli WHERE profilo='p1' AND richieste>0 "
+                        "GROUP BY 1,2",
+        }
+        for nome, sql in piani.items():
+            piano = " ".join(str(r[-1]) for r in conn.execute("EXPLAIN QUERY PLAN " + sql))
+            assert "COVERING INDEX" in piano, (nome, piano)
+    finally:
+        conn.close()

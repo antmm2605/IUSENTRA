@@ -1995,6 +1995,23 @@ def aggiorna_esperienza_conclusi(app: Any, registro: RegistroLetture, tenant_id:
     return fatti
 
 
+_RINVIATA = object()
+
+
+def _se_libero(attivita: Callable[[], Any], ripiego: Any) -> Any:
+    """L'attività, oppure il ripiego se l'archivio è occupato da un altro motore («database is locked»).
+
+    Gli altri errori non si nascondono: un archivio occupato rinvia la sola attività al giro successivo (05/11/2026).
+    """
+    try:
+        return attivita()
+    except sqlite3.OperationalError as exc:
+        if not _archivio_occupato(exc):
+            raise
+        logger.warning("Archivio delle letture occupato: attività rinviata al giro successivo (%s)", exc)
+        return ripiego
+
+
 def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20, solo_prioritari: bool = False) -> dict[str, int]:
     """Il tick esistente riprende la sola coda SQL, senza enumerare i fascicoli."""
     targets = _studi_della_coda(app)
@@ -2002,14 +2019,11 @@ def riprendi_eventi_lettura(app: Any, *, limite_per_tenant: int = 20, solo_prior
 
     def se_libero(attivita: Callable[[], Any], ripiego: Any) -> Any:
         nonlocal rinvii
-        try:
-            return attivita()
-        except sqlite3.OperationalError as exc:
-            if not _archivio_occupato(exc):
-                raise
+        esito = _se_libero(attivita, _RINVIATA)
+        if esito is _RINVIATA:
             rinvii += 1
-            logger.warning("Archivio delle letture occupato: attività rinviata al giro successivo (%s)", exc)
             return ripiego
+        return esito
 
     for tenant_id, paths in targets:
         registro = registro_per_percorsi(paths)

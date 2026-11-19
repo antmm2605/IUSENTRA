@@ -32,7 +32,7 @@ FONTI_IMPUGNAZIONI: dict[str, dict[str, Any]] = {
     "cpa_54": {
         **_voce("art. 54, comma 2, c.p.a.", "Sospensione feriale", _CPA, "54",
                 "Dal 1° al 31 agosto è sospeso il decorso dei termini processuali."),
-        "verifica": "Riscontro sul computo del termine lungo, Consiglio di Stato, Adunanza plenaria, settembre 2022.",
+        "riscontro": "Riscontro sul computo del termine lungo, Consiglio di Stato, Adunanza plenaria, settembre 2022.",
     },
     "cpa_87": _voce(
         "art. 87, commi 2 e 3, c.p.a.", "Procedimenti in camera di consiglio", _CPA, "87",

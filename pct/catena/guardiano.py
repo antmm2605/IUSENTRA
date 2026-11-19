@@ -42,6 +42,11 @@ DUBBI_DEL_COMPUTO = frozenset({"destinazione_notifica_ignota", "pronuncia_ignota
 ONERATI_STUDIO = frozenset({"noi", "tutte_le_parti"})
 # Le nature con cui la Lettura qualifica un termine per adempiere (pct/fascicolo_lettura/ragionamento._termine).
 NATURE_DEL_TERMINE = frozenset({"perentorio", "ordinatorio", "non qualificato", ""})
+# Fasi in cui la causa è certamente pendente (atto introduttivo, udienza fissata): «Definito» qui va verificato. Le altre
+# fasi (provvedimenti presenti, esecutiva...) non bastano a dirlo: un'estinzione o una conciliazione non sono una
+# sentenza riconosciuta dal modello (misura del 19/11/2026, fascicolo con provvedimento di estinzione).
+FASI_DI_CAUSA_PENDENTE = frozenset({"preparatoria", "atto_introduttivo_presente", "atto_introduttivo_depositato",
+                                    "udienza_fissata"})
 # Fasi del modello (pct/ragionamento/fase.py) che portano una decisione della causa o un titolo definitivo.
 STATI_DECISIONE = frozenset({"decisa", "giudicato_da_verificare", "decreto_esecutivo", "decreto_notificato",
                              "istanza_esecutorieta", "precetto_notificato"})
@@ -59,6 +64,8 @@ RICALCOLO = "ricalcolo_pannelli"
 PREPARA_BOZZE = "prepara_bozze"
 RICONVALIDA_CICLO = "riconvalida_ciclo_letture"
 AGGIORNA_NORMA = "aggiorna_norma_scadenza"
+# I pannelli che portano i dati della catena (gli stessi che il calcolatore prepara per primi).
+PANNELLI_DELLA_CATENA = frozenset({"lettura", "passaggi", "conto-economico", "quadro", "obblighi-notifica", "scadenze"})
 RIPARAZIONI = (AGGIORNA_NORMA, CREA_SCADENZA, CONFERMA_BOZZA, SCARTA_BOZZA, ANNULLA_SCADENZA, CREA_UDIENZA, AGGIORNA_MODALITA,
                RICONCILIA_ADEMPIMENTI, RICALCOLO, PREPARA_BOZZE, RICONVALIDA_CICLO)
 
@@ -126,9 +133,16 @@ def data_it(valore: Any) -> str:
 
 
 def automatica(scadenza: dict[str, Any]) -> bool:
-    """Scritta dal software e mai presa in carico dall'avvocato (responsabile assegnato = decisione dell'avvocato)."""
+    """Scritta dal software e mai presa in carico da una persona dello studio.
+
+    Il responsabile conta come decisione dell'avvocato solo se è un utente dello studio (``responsabile_umano``,
+    calcolato dalla raccolta sugli utenti): i lavori automatici scrivono come responsabile «scheduler», «ripasso-2484»,
+    «document-presidio-backfill»... (misura del 19/11/2026). Senza l'informazione, ogni responsabile è una persona.
+    """
     note = str(scadenza.get("note") or "")
-    return any(s in note for s in SEGNI_AUTOMATICI) and not _t(scadenza.get("id_utente_responsabile"))
+    responsabile = _t(scadenza.get("id_utente_responsabile"))
+    umano = bool(scadenza["responsabile_umano"]) if "responsabile_umano" in scadenza else bool(responsabile)
+    return any(s in note for s in SEGNI_AUTOMATICI) and not umano
 
 
 def _stato(riga: dict[str, Any]) -> str:
@@ -211,6 +225,12 @@ def controlla_termini(stato: StatoFascicolo) -> list[Incoerenza]:
                 "documento_id": (voce.get("letto") or {}).get("documento_id"), "onerato": _onerato(voce),
                 "perentorio": (voce.get("termine") or {}).get("natura") == "perentorio"}
         if confermate:
+            doppie = [s for s in stesse if _stato(s) == "BOZZA" and automatica(s) and codice_scadenza(s) == codice]
+            if doppie:
+                esito.append(Incoerenza(
+                    "proposta_doppia", f"la proposta «{_t(doppie[0].get('titolo'))}» ripete un termine già nello scadenziario",
+                    f"«{_t(confermate[0].get('titolo'))}» del {data_it(giorno)} è già aperta: la proposta doppia si scarta",
+                    dati["norma"], SCARTA_BOZZA, {"scadenza_id": doppie[0].get("id"), "data": giorno, "codice_conclusione": codice}))
             nostra = next((s for s in confermate if MARCATORE + codice in str(s.get("note") or "") and automatica(s)), None)
             norma_scritta = next((r[len("Norma: "):] for r in str((nostra or {}).get("note") or "").splitlines()
                                   if r.startswith("Norma: ")), None)
@@ -299,12 +319,26 @@ def controlla_agenda(stato: StatoFascicolo) -> list[Incoerenza]:
     esito = []
     udienze_agenda = [a for a in stato.appuntamenti
                       if _t(a.get("tipo")).upper() == "UDIENZA" and _stato(a) not in {"ANNULLATO", "RINVIATO"}]
+    chiuse = [a for a in stato.appuntamenti if _t(a.get("tipo")).upper() == "UDIENZA" and _stato(a) in {"ANNULLATO", "RINVIATO"}]
+    # Art. 127-ter c.p.c.: il giorno di scadenza del termine per le note vale come udienza; la scadenza aperta delle
+    # note dello stesso giorno è la stessa udienza (pct/agenda_eventi_equivalenti.py).
+    note_aperte = {iso(s.get("data")) for s in stato.scadenze if _aperta(s) and codice_scadenza(s) == "note_127ter"}
     for u in _udienze(stato):
         if u["iso"] < stato.oggi.isoformat():
             continue
         dati = {"data": u["iso"], "ora": u.get("ora") or "", "modalita": u["modalita_codice"],
                 "documento": u.get("documento"), "documento_id": u.get("documento_id")}
         stesse = [a for a in udienze_agenda if iso(a.get("data") or a.get("data_ora")) == u["iso"]]
+        if not stesse and u["modalita_codice"] == "note_scritte" and u["iso"] in note_aperte:
+            continue
+        annullate = [a for a in chiuse if iso(a.get("data") or a.get("data_ora")) == u["iso"]]
+        if not stesse and annullate:
+            # Annullata o rinviata in agenda: può essere una decisione o un provvedimento successivo; non si ricrea.
+            esito.append(Incoerenza(
+                "udienza_annullata_in_agenda", f"l'udienza del {data_it(u['iso'])} risulta {_stato(annullate[0]).lower()} in agenda",
+                f"il modello la legge fissata in «{u.get('documento', '')}»: verificare il provvedimento successivo di rinvio "
+                "o di revoca", "", "", {**dati, "appuntamento_id": annullate[0].get("id")}))
+            continue
         if not stesse:
             esito.append(Incoerenza(
                 "udienza_non_in_agenda", f"l'udienza del {data_it(u['iso'])} non è in agenda",
@@ -367,7 +401,8 @@ def controlla_stato(stato: StatoFascicolo) -> list[Incoerenza]:
             "definito_con_udienza_futura", f"il fascicolo è «Definito» ma c'è un'udienza il {data_it(future[0]['iso'])}",
             "una causa con un'udienza fissata non è definita: va verificata la definizione o l'udienza", "",
             "", {"stato_fascicolo": codice, "data": future[0]["iso"]}))
-    elif codice == "DEFINITO" and fase and fase not in STATI_DECISIONE:
+    elif (codice == "DEFINITO" and fase in FASI_DI_CAUSA_PENDENTE
+          and any(isinstance(p, dict) for p in (stato.lettura or {}).get("prossimi_passi") or [])):
         esito.append(Incoerenza(
             "definito_senza_decisione", "il fascicolo è «Definito» ma non risulta una decisione della causa",
             f"la fase letta è «{(_ragionamento(stato).get('fase') or {}).get('descrizione') or fase}»", "",
@@ -401,6 +436,8 @@ def controlla_freschezza(stato: StatoFascicolo) -> list[Incoerenza]:
     """Ogni pannello salvato è calcolato sulle fonti attuali; altrimenti va ricalcolato (e si mostra «in aggiornamento»)."""
     esito = []
     for voce in stato.pannelli:
+        if voce.get("pannello") not in PANNELLI_DELLA_CATENA:
+            continue
         attesa = voce.get("attesa")
         if attesa and voce.get("salvata") and voce.get("salvata") != attesa and voce.get("tentata") != attesa:
             esito.append(Incoerenza(

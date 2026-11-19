@@ -120,8 +120,11 @@ def test_stato_del_fascicolo_coerente_con_la_causa_solo_avviso():
     esito = g.controlla(stato(lettura=lettura(udienze=[UDIENZA_NOTE], passi=[]), stato_fascicolo="DEFINITO",
                               appuntamenti=[{"id": "A", "tipo": "UDIENZA", "data": "2027-02-09", "stato": "", "modalita": "note_scritte"}]))
     assert codici(esito) == [("definito_con_udienza_futura", "")]
-    esito = g.controlla(stato(lettura=lettura(passi=[], fase="atto_introduttivo_depositato"), stato_fascicolo="DEFINITO"))
+    esito = g.controlla(stato(lettura=lettura(passi=[{"azione": "Depositare la memoria"}], fase="atto_introduttivo_depositato"),
+                              stato_fascicolo="DEFINITO"))
     assert codici(esito) == [("definito_senza_decisione", "")]
+    # Un provvedimento (estinzione, conciliazione) senza sentenza riconosciuta non basta a dire che la causa pende.
+    assert g.controlla(stato(lettura=lettura(passi=[{"azione": "x"}], fase="provvedimenti_presenti"), stato_fascicolo="DEFINITO")) == []
     assert g.controlla(stato(lettura=lettura(passi=[], fase="decisa"), stato_fascicolo="DEFINITO")) == []
     esito = g.controlla(stato(lettura=lettura(passi=[], fase="giudicato_da_verificare"), stato_fascicolo="IN_CORSO",
                               credito_incassato=True))
@@ -154,7 +157,7 @@ def test_chiave_stabile_e_registro_dei_controlli(tmp_path):
     assert prima[0].chiave == seconda[0].chiave
     registro = RegistroGuardiano(tmp_path / "g.sqlite")
     voce = {**prima[0].come_dizionario(), "esito_riparazione": "riparata: scadenza X creata"}
-    avviso = {**g.controlla(stato(lettura=lettura(passi=[], fase="preparatoria"), stato_fascicolo="DEFINITO"))[0].come_dizionario()}
+    avviso = {**g.controlla(stato(lettura=lettura(passi=[{"azione": "Depositare il ricorso"}], fase="preparatoria"), stato_fascicolo="DEFINITO"))[0].come_dizionario()}
     conteggi = registro.registra_giro("F1", origine="test", impronta="i1", esito="controllato", voci=[voce, avviso], versione=g.VERSIONE)
     assert conteggi == {"incoerenze": 2, "riparate": 1, "avvisi": 1}
     assert [a["codice"] for a in registro.avvisi("F1")] == ["definito_senza_decisione"]
@@ -170,7 +173,7 @@ def test_chiave_stabile_e_registro_dei_controlli(tmp_path):
 
 def test_in_aggiornamento_non_chiude_le_incoerenze(tmp_path):
     registro = RegistroGuardiano(tmp_path / "g.sqlite")
-    voce = g.controlla(stato(lettura=lettura(passi=[], fase="preparatoria"), stato_fascicolo="DEFINITO"))[0].come_dizionario()
+    voce = g.controlla(stato(lettura=lettura(passi=[{"azione": "Depositare il ricorso"}], fase="preparatoria"), stato_fascicolo="DEFINITO"))[0].come_dizionario()
     registro.registra_giro("F1", origine="test", impronta="i1", esito="controllato", voci=[voce], versione=g.VERSIONE)
     registro.registra_giro("F1", origine="test", impronta="i2", esito="in_aggiornamento", voci=[], versione=g.VERSIONE)
     assert [a["codice"] for a in registro.avvisi("F1")] == ["definito_senza_decisione"]
@@ -188,3 +191,30 @@ def test_la_scadenza_scritta_dal_guardiano_porta_la_stessa_norma_del_modello():
     assert codici(esito) == [("norma_diversa", g.AGGIORNA_NORMA)]
     giusta = {**nostra, "note": "RAGIONAMENTO:notifica_ricorso_decreto_415:abc\nFonte: x\nNorma: art. 415, commi 4–6, c.p.c."}
     assert g.controlla(stato(lettura=lettura([NOTIFICA]), scadenze=[giusta])) == []
+
+
+def test_responsabile_automatico_non_e_una_decisione_dell_avvocato():
+    """«ripasso-2484», «scheduler»: lavori del software, non persone (misura sui dati reali del 19/11/2026)."""
+    bozza = {"id": "S2", "titolo": "Costituzione del convenuto con memoria difensiva", "data": "2027-01-29", "stato": "BOZZA",
+             "note": "PEC_TERMINE_PROPOSTO:abc:LAV_416_COSTITUZIONE", "id_utente_responsabile": "ripasso-2484",
+             "responsabile_umano": False}
+    assert codici(g.controlla(stato(lettura=lettura([COSTITUZIONE]), scadenze=[bozza]))) == [("termine_della_controparte", g.SCARTA_BOZZA)]
+    umano = {**bozza, "responsabile_umano": True}
+    assert codici(g.controlla(stato(lettura=lettura([COSTITUZIONE]), scadenze=[umano]))) == [("termine_della_controparte", "")]
+
+
+def test_proposta_doppia_di_un_termine_gia_aperto_si_scarta():
+    aperta = {"id": "S1", "titolo": "Notificare ricorso e decreto", "data": "2027-01-08", "stato": "APERTO",
+              "note": "Obbligo di notifica letto dal documento"}
+    doppia = {"id": "S2", "titolo": "Notifica di ricorso e decreto", "data": "2027-01-08", "stato": "BOZZA", "note": PROPOSTA}
+    esito = g.controlla(stato(lettura=lettura([NOTIFICA]), scadenze=[aperta, doppia]))
+    assert codici(esito) == [("proposta_doppia", g.SCARTA_BOZZA)] and esito[0].dati["scadenza_id"] == "S2"
+
+
+def test_udienza_annullata_in_agenda_non_si_ricrea_e_le_note_valgono_come_udienza():
+    annullata = {"id": "A1", "tipo": "UDIENZA", "data": "2027-02-09", "stato": "ANNULLATO", "modalita": "note_scritte", "note": ""}
+    esito = g.controlla(stato(lettura=lettura(udienze=[UDIENZA_NOTE], passi=[]), appuntamenti=[annullata]))
+    assert codici(esito) == [("udienza_annullata_in_agenda", "")]
+    note = {"id": "S3", "titolo": "Deposito note scritte ex art. 127-ter c.p.c. - RG 1571/2026", "data": "2027-02-09",
+            "stato": "APERTO", "note": "PEC_AUDIT:x"}
+    assert g.controlla(stato(lettura=lettura(udienze=[UDIENZA_NOTE], passi=[]), scadenze=[note])) == []

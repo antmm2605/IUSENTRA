@@ -41,11 +41,28 @@ def _json(corpo: bytes | None) -> dict[str, Any] | None:
     return dati if isinstance(dati, dict) else None
 
 
-def scadenze(fascicolo_id: str) -> list[dict[str, Any]]:
+def utenti_dello_studio() -> frozenset[str] | None:
+    """Identificativi e nomi utente delle persone dello studio (None se non leggibili: ogni responsabile conta)."""
+    try:
+        from web.helpers import get_utenti
+
+        return frozenset(v for u in get_utenti().tutti() for v in (_t(u.id), _t(u.username)) if v)
+    except Exception as exc:
+        logger.debug("Utenti dello studio non disponibili: %s", exc)
+        return None
+
+
+def responsabile_umano(responsabile: Any, utenti: frozenset[str] | None) -> bool:
+    responsabile = _t(responsabile)
+    return bool(responsabile) and (utenti is None or responsabile in utenti)
+
+
+def scadenze(fascicolo_id: str, utenti: frozenset[str] | None = None) -> list[dict[str, Any]]:
     from web.helpers import get_scadenziario
 
     return [{"id": s.id, "titolo": s.titolo, "data": str(s.data_scadenza or "")[:10], "stato": _enum(s.stato),
              "note": s.note or "", "id_utente_responsabile": getattr(s, "id_utente_responsabile", "") or "",
+             "responsabile_umano": responsabile_umano(getattr(s, "id_utente_responsabile", ""), utenti),
              "perentorio": bool(getattr(s, "perentorio", False))}
             for s in get_scadenziario().tutte(id_fascicolo=str(fascicolo_id), solo_aperte=False)]
 
@@ -171,7 +188,8 @@ def stato_fascicolo(fascicolo: Any, data_paths: dict[str, Any], *, archivio: Any
     if archivio is not None:
         quadro = salvato(archivio, fid, "quadro", impronta) or (ultimo_salvato(archivio, fid, "quadro") if anche_superati else None)
     stato = StatoFascicolo(
-        fascicolo_id=fid, oggi=oggi, lettura=lettura, scadenze=scadenze(fid), appuntamenti=appuntamenti(fascicolo),
+        fascicolo_id=fid, oggi=oggi, lettura=lettura, scadenze=scadenze(fid, utenti_dello_studio()),
+        appuntamenti=appuntamenti(fascicolo),
         stato_fascicolo=_enum(getattr(fascicolo, "stato", "")).upper(), credito_incassato=credito_incassato(lettura),
         quadro=quadro, bozze=bozze(data_paths, fid), pannelli=pannelli,
         catalogo_dopo_letture=_sicuro(lambda: catalogo_dopo_letture(fid), []),

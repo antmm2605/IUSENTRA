@@ -48,6 +48,15 @@ def registro_corrente(data_paths: dict[str, Any] | None = None) -> RegistroGuard
 
 # --- riparazioni -------------------------------------------------------------------------------------------------
 
+def _riga(scadenza: Any) -> dict[str, Any]:
+    """La scadenza come la vede il guardiano, con il responsabile riconosciuto fra gli utenti dello studio."""
+    from web.services.catena_guardiano_raccolta import responsabile_umano, utenti_dello_studio
+
+    responsabile = getattr(scadenza, "id_utente_responsabile", "") or ""
+    return {"note": scadenza.note, "id_utente_responsabile": responsabile,
+            "responsabile_umano": responsabile_umano(responsabile, utenti_dello_studio())}
+
+
 def _tipo_termine(dati: dict[str, Any]):
     from pct.scadenziario import TipoTermine
 
@@ -93,7 +102,7 @@ def _conferma_bozza(contesto: dict[str, Any], voce: regole.Incoerenza) -> str:
               and regole.codice_scadenza({"titolo": s.titolo, "note": s.note}) in {voce.dati.get("codice_conclusione"), ""}]
     aperte = [s for s in stesse if s.stato == StatoTermine.APERTO]
     bozze = [s for s in stesse if s.stato == StatoTermine.BOZZA
-             and regole.automatica({"note": s.note, "id_utente_responsabile": getattr(s, "id_utente_responsabile", "")})]
+             and regole.automatica(_riga(s))]
     prova = (f"termine letto in «{voce.dati.get('documento') or ''}» e calcolato dal modello della causa: "
              f"scadenza {regole.data_it(voce.dati.get('data'))}")
     if not aperte and bozze:
@@ -125,8 +134,7 @@ def _annulla_scadenza(contesto: dict[str, Any], voce: regole.Incoerenza) -> str:
     scadenza = scadenziario.get(str(voce.dati.get("scadenza_id") or ""))
     if scadenza is None:
         return "riparata: la scadenza non c'è più"
-    riga = {"note": scadenza.note, "id_utente_responsabile": getattr(scadenza, "id_utente_responsabile", "")}
-    if not regole.automatica(riga):
+    if not regole.automatica(_riga(scadenza)):
         return "non riuscita: la scadenza è dell'avvocato"
     nota = (scadenza.note or "") + f"\nAnnullata dal {ATTORE}: {voce.descrizione} — {voce.perche}"
     scadenziario.aggiorna(scadenza.id, stato=StatoTermine.ANNULLATO, note=nota.strip())

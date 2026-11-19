@@ -93,6 +93,13 @@ LETTORI: dict[str, dict[str, Any]] = {
         "livello": "oggetto",
         "tipi": ("documento",),
     },
+    "ricevute_pec_gestore": {
+        "etichetta": "Ricevute PEC delle notifiche",
+        "descrizione": "Firma del gestore, dati di certificazione e relata delle notifiche PEC importate, per il registro delle notifiche",
+        "livello": "fascicolo",
+        "tipi": ("documento",),
+        "su_richiesta": True,
+    },
     "motore_pec": {
         "etichetta": "Motore PEC (archivio)",
         "descrizione": "Udienze, termini, ricevute ed eventi dei messaggi PEC e dei loro allegati per l'archivio",
@@ -173,6 +180,7 @@ _VERSIONI: dict[str, Callable[[], str]] = {
     "motore_documenti": _versione_motore_documenti,
     "motore_pec": _versione_motore_pec,
     "scadenze_pdf": lambda: "scadenze-pdf.v1",
+    "ricevute_pec_gestore": lambda: __import__("pct.ricevute_pec_gestore", fromlist=["VERSIONE"]).VERSIONE,
     "norme_citate": lambda: __import__("pct.notiziario.norme_fascicolo", fromlist=["VERSIONE"]).VERSIONE,
 }
 

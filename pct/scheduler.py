@@ -2059,6 +2059,25 @@ def start_scheduler(app):
                 return {"ok": False, "job": "bozze_passi_preparazione", "error": str(e)}
 
     @scheduler.scheduled_job(
+        CronTrigger(timezone="Europe/Rome", minute="9-49/20"),
+        id="notifiche_pec_storiche_registro",
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=600,
+    )
+    def _notifiche_pec_storiche_registro():
+        # Ricevute PEC storiche verificate (firma del gestore, daticert, relata): le notifiche provate entrano nel
+        # registro delle notifiche. Corsia lunga, piccoli lotti, solo fascicoli cambiati; nessun invio.
+        with app.app_context():
+            try:
+                from web.services.notifiche_pec_storiche_runtime import giro
+
+                return {"ok": True, "job": "notifiche_pec_storiche_registro", **giro(app)}
+            except Exception as e:
+                logger.error("[scheduler] Verifica delle ricevute PEC storiche fallita: %s", e)
+                return {"ok": False, "job": "notifiche_pec_storiche_registro", "error": str(e)}
+
+    @scheduler.scheduled_job(
         CronTrigger(timezone="Europe/Rome", day_of_week="sun", hour=0, minute=17),
         id="letture_recupero_completo",
         max_instances=1,

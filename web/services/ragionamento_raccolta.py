@@ -209,8 +209,29 @@ def _consegne_verificate(fascicolo_id: str) -> dict[str, dict[str, str]]:
             atto, giorno = str(caso["act_document_id"]), next(iter(date))
             if atto in per_atto and per_atto[atto]["data"] != giorno:
                 ambigui.add(atto)
-            per_atto[atto] = {"data": giorno, "riferimento": str(caso["bundle_id"])}
+            prova = {"data": giorno, "riferimento": str(caso["bundle_id"])}
+            if _copia_attestata_notificata(conn, caso["id"], atto):
+                # Notificata la copia attestata conforme del provvedimento: è la notifica del titolo
+                # (art. 475 c.p.c.; art. 196-octies disp. att. c.p.c.), da cui decorrono i 120 giorni
+                # dell'art. 14 D.L. 669/1996. La condanna la verifica la regola sul testo della sentenza.
+                prova["titolo_esecutivo"] = "verificato"
+            per_atto[atto] = prova
     return {atto: prova for atto, prova in per_atto.items() if atto not in ambigui}
+
+
+def _copia_attestata_notificata(conn: Any, caso_id: Any, atto: str) -> bool:
+    """Attestazione di conformità verificata, nella relata dello stesso caso, per l'atto notificato."""
+    try:
+        return conn.execute(
+            """SELECT 1 FROM conformity_attestations a JOIN notification_relata r
+                 ON r.notification_case_id=a.notification_case_id AND r.validation_status='VERIFIED'
+                AND r.contains_conformity_attestation=1
+               WHERE a.notification_case_id=? AND a.document_attested_id=? AND a.validation_status='VERIFIED'
+                 AND a.destination='NOTIFICA' LIMIT 1""",
+            (caso_id, atto),
+        ).fetchone() is not None
+    except Exception:  # registro senza la tabella delle attestazioni: nessun titolo dichiarato
+        return False
 
 
 _MASSIMO_COLLEGATI = 8

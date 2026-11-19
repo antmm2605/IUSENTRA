@@ -27,7 +27,7 @@ import hashlib
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import date
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 VERSIONE = "2026.11.19.guardiano.v1"
 
@@ -111,6 +111,9 @@ class StatoFascicolo:
     # Il modello riconosce gli atti dello studio dai nomi degli avvocati nelle Impostazioni: senza, la parte onerata
     # di un termine non è certa (un ricorso dello studio sembrerebbe della controparte).
     studio_con_avvocati: bool = True
+    # Rilettura del testo del provvedimento: (documento_id, codice) → date che il testo assegna (pct/catena/rilettura).
+    # Si chiama solo quando due fonti del software danno date diverse per lo stesso termine.
+    rileggi: Callable[[str, str], list[str] | None] | None = None
 
 
 # --- utilità ---------------------------------------------------------------------------------------------------
@@ -224,6 +227,14 @@ def controlla_termini(stato: StatoFascicolo) -> list[Incoerenza]:
                 "documento": (voce.get("letto") or {}).get("documento"),
                 "documento_id": (voce.get("letto") or {}).get("documento_id"), "onerato": _onerato(voce),
                 "perentorio": (voce.get("termine") or {}).get("natura") == "perentorio"}
+        # Le scadenze scritte dal guardiano stesso con un calcolo precedente si annullano come superate (sotto).
+        altre = [s for s in aperte if automatica(s) and codice_scadenza(s) == codice and iso(s.get("data")) != giorno
+                 and MARCATORE not in str(s.get("note") or "")]
+        if altre:
+            decisione = _decidi_sul_testo(stato, voce, dati, giorno, altre, bool(confermate or stesse))
+            if decisione is not None:
+                esito.extend(decisione)
+                continue
         if confermate:
             doppie = [s for s in stesse if _stato(s) == "BOZZA" and automatica(s) and codice_scadenza(s) == codice]
             if doppie:
@@ -264,6 +275,51 @@ def controlla_termini(stato: StatoFascicolo) -> list[Incoerenza]:
     esito.extend(_termini_della_controparte(stato, aperte))
     esito.extend(_opposizioni_che_sono_udienze(stato, aperte))
     return esito
+
+
+def _decidi_sul_testo(stato: StatoFascicolo, voce: dict[str, Any], dati: dict[str, Any], giorno: str,
+                      altre: list[dict[str, Any]], presente: bool) -> list[Incoerenza] | None:
+    """Due fonti, due date per lo stesso termine: decide il testo del provvedimento (regola della certezza).
+
+    Testo che conferma il modello → le altre proposte automatiche si annullano (e la scadenza si crea se manca);
+    testo che conferma l'altra data → il modello va corretto, avviso; testo ambiguo o illeggibile → scadenza alla
+    data anteriore con l'avviso «due date».
+    """
+    documento_id = str(dati.get("documento_id") or "")
+    try:
+        lette = stato.rileggi(documento_id, dati["codice_conclusione"]) if stato.rileggi and documento_id else None
+    except Exception:  # testo illeggibile: si tratta come ambiguo, mai un controllo che si ferma
+        lette = None
+    lette = sorted(set(lette or []))
+    altra = sorted(iso(s.get("data")) for s in altre)[0]
+    esito: list[Incoerenza] = []
+    if lette == [giorno]:
+        for s in altre:
+            esito.append(Incoerenza(
+                "data_smentita_dal_testo", f"«{_t(s.get('titolo'))}» del {data_it(s.get('data'))} non è la data del provvedimento",
+                f"il testo di «{dati['documento']}» porta il {data_it(giorno)}", dati["norma"],
+                SCARTA_BOZZA if _stato(s) == "BOZZA" else ANNULLA_SCADENZA,
+                {"scadenza_id": s.get("id"), "data": iso(s.get("data")), "codice_conclusione": dati["codice_conclusione"]}))
+        if not presente:
+            esito.append(Incoerenza(
+                "termine_certo_senza_scadenza", f"«{voce.get('cosa')}» entro il {data_it(giorno)} non è nello scadenziario",
+                f"riletto il testo di «{dati['documento']}»: la data è il {data_it(giorno)}", dati["norma"], CREA_SCADENZA, dati))
+        return esito
+    if len(lette) == 1 and lette[0] in {iso(s.get("data")) for s in altre}:
+        return [Incoerenza(
+            "modello_smentito_dal_testo", f"il modello calcola il {data_it(giorno)}, il provvedimento porta il {data_it(lette[0])}",
+            f"riletto il testo di «{dati['documento']}»: resta valida la scadenza del {data_it(lette[0])}; il calcolo del "
+            "modello va corretto", dati["norma"], "", {**dati, "data": lette[0]})]
+    anteriore = min(giorno, altra)
+    gia_aperta = (presente and anteriore == giorno) or any(
+        iso(s.get("data")) == anteriore and _stato(s) == "APERTO" for s in altre)
+    motivo = "il testo porta date diverse" if len(lette) > 1 else "il testo non è leggibile o non dice la data"
+    # Riparazione (la data anteriore nello scadenziario) e, sempre, l'avviso per l'avvocato.
+    return [Incoerenza(
+        "due_date", f"due date: {data_it(giorno)[:5]} contro {data_it(altra)[:5]}, {motivo}",
+        f"per «{voce.get('cosa')}» il modello e un'altra fonte del software non concordano: si registra la data "
+        f"anteriore, il {data_it(anteriore)}, e la verifica resta all'avvocato", dati["norma"],
+        "" if gia_aperta else CREA_SCADENZA, {**dati, "data": anteriore, "altra_data": altra, "avviso_anche": True})]
 
 
 def _termini_della_controparte(stato: StatoFascicolo, aperte: list[dict[str, Any]]) -> list[Incoerenza]:

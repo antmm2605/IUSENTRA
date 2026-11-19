@@ -218,3 +218,47 @@ def test_udienza_annullata_in_agenda_non_si_ricrea_e_le_note_valgono_come_udienz
     note = {"id": "S3", "titolo": "Deposito note scritte ex art. 127-ter c.p.c. - RG 1571/2026", "data": "2027-02-09",
             "stato": "APERTO", "note": "PEC_AUDIT:x"}
     assert g.controlla(stato(lettura=lettura(udienze=[UDIENZA_NOTE], passi=[]), scadenze=[note])) == []
+
+
+def _rilettura(date_lette):
+    return lambda _doc, _codice: date_lette
+
+
+NOTE = conclusione("note_127ter", "Depositare le note scritte", "2026-12-16")
+PROPOSTA_NOTE = {"id": "S7", "titolo": "Deposito note scritte ex art. 127-ter c.p.c.", "data": "2026-12-11", "stato": "BOZZA",
+                 "note": "PEC_TERMINE_PROPOSTO:abc:NOTE_127_TER"}
+
+
+def test_due_fonti_due_date_decide_il_testo_del_provvedimento():
+    # Il testo conferma il modello: la proposta dell'altra data si scarta e la scadenza giusta si crea.
+    esito = codici(g.controlla(stato(lettura=lettura([NOTE]), scadenze=[PROPOSTA_NOTE], rileggi=_rilettura(["2026-12-16"]))))
+    assert esito == [("data_smentita_dal_testo", g.SCARTA_BOZZA), ("termine_certo_senza_scadenza", g.CREA_SCADENZA)]
+    # Il testo conferma l'altra data: il modello va corretto, nessuna scrittura.
+    esito = codici(g.controlla(stato(lettura=lettura([NOTE]), scadenze=[PROPOSTA_NOTE], rileggi=_rilettura(["2026-12-11"]))))
+    assert esito == [("modello_smentito_dal_testo", "")]
+
+
+def test_testo_ambiguo_data_anteriore_con_avviso():
+    esito = g.controlla(stato(lettura=lettura([NOTE]), scadenze=[PROPOSTA_NOTE], rileggi=_rilettura(["2026-12-11", "2026-12-16"])))
+    (voce,) = esito
+    assert voce.codice == "due_date" and voce.dati["data"] == "2026-12-11" and voce.riparazione == g.CREA_SCADENZA
+    assert voce.descrizione.startswith("due date: 16/12 contro 11/12") and voce.dati["avviso_anche"]
+
+
+def test_rilettura_del_decreto_di_bergamo_note_cinque_giorni_prima():
+    """RG 2691/2026: «costituirsi almeno 10 giorni prima» e «depositare, sino a cinque giorni prima dell'udienza, note».
+
+    Le note si contano dai cinque giorni, non dai dieci della costituzione: data da rispettare a giorni liberi 16/12/2026
+    (decisione dell'avvocato del 29/10/2026), scadenza di legge a giorni pieni 17/12/2026.
+    """
+    from pct.catena.rilettura import date_dal_testo
+
+    testo = ("Il Giudice, Visto l'art. 415 c.p.c. FISSA per la discussione della causa l'udienza del 22/12/2026 alle ore 09:00, "
+             "avvertendo la parte convenuta che, per non incorrere nelle decadenze di legge, ha l'onere di costituirsi in "
+             "giudizio almeno 10 giorni prima dell'udienza, mediante deposito di memoria difensiva contenente gli elementi "
+             "indicati dagli artt. 416 e 418 c.p.c. * letto l'art. 127 ter c.p.c., DISPONE** che l'udienza abbia svolgimento "
+             "mediante lo scambio e il deposito in telematico di note scritte; INVITA le parti a depositare, sino a cinque "
+             "giorni prima dell'udienza, coincise note, con espresso consenso a tale modalità di trattazione. Si comunichi. "
+             "Bergamo, 10/11/2026 Il Giudice")
+    assert date_dal_testo(testo, rg="2691/2026", data_atto="2026-11-10", codice="note_127ter", rito_lavoro=True,
+                          oggi=date(2026, 11, 19)) == ["2026-12-16"]

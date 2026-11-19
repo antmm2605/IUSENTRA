@@ -670,7 +670,9 @@ def test_decreto_lavoro_usa_la_data_delle_note_per_i_termini_a_ritroso():
     causa = ragiona(fonti(LAVORO, [RICORSO_LAVORO, decreto, CONSEGNA_DIFFIDA]))
 
     assert conclusione(causa, "note_127ter").termine.scadenza == "2026-12-17"
-    assert conclusione(causa, "notifica_ordinata").termine.scadenza == "2026-11-17"
+    # Termine a ritroso dello studio: data da rispettare a giorni liberi (decisione dell'avvocato del 29/10/2026).
+    notifica = conclusione(causa, "notifica_ordinata")
+    assert notifica.termine.scadenza == "2026-11-16" and "giorni pieni: 17/11/2026" in notifica.termine.computo
     costituzione = conclusione(causa, "costituzione_convenuto")
     assert costituzione.termine.scadenza == "2026-12-07"
     assert costituzione.stato == "non_dovuto"

@@ -13,6 +13,8 @@ Sequenza (deterministica, nessuna lettura di file, nessun modello linguistico):
 
 from __future__ import annotations
 
+import re
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -35,9 +37,10 @@ from .regole.termini_assegnati import conclusioni_termini
 from .regole.titolo import conclusioni_titolo
 from .udienze_esito import esiti_udienze
 from .rito import determina_rito
-from .testo import pulito, rg_normale
+from .testo import pulito, rg_normale, semplice
 
-VERSIONE = "2026.11.18.ragionamento.v40-passi-urgenza-collegati-esenzioni+timbro-pat"
+# Al merge con fix-coerenza (v41) va presa una versione successiva a entrambe (v42 o oltre).
+VERSIONE = "2026.11.19.ragionamento.v41-catena-note-ritroso-644-posizione"
 ROMA = ZoneInfo("Europe/Rome")
 
 
@@ -68,6 +71,44 @@ def _rg(fonti: FontiCausa) -> tuple[str, str]:
     if len(letti) == 1:
         return next(iter(letti)), "letto negli atti e nelle ricevute di deposito"
     return "", "discordante" if letti else ""
+
+
+_AGISCE = re.compile(r"\b(?:ricorr\w*|cit[ao]\b|conviene|chiede|espone|propone|promuove|impugna|agisce|pignora)\b")
+_DIFESA = re.compile(r"rappresentat[oaie]\s+e\s+difes[oaie]|con\s+procura\s+(?:a\s+margine|in\s+calce|allegata)|giusta\s+procura")
+
+
+def _cliente_nell_atto(testo: str, cliente: str) -> bool:
+    """Il cliente del fascicolo è la parte che agisce, assistita da un difensore, nell'intestazione dell'atto."""
+    parole = [p for p in re.findall(r"[a-zà-ù]{3,}", semplice(cliente)) if p not in {"srl", "spa", "sas", "snc"}]
+    if not parole:
+        return False
+    inizio = semplice(testo[:2500])
+    posizioni = [inizio.find(p) for p in parole]
+    if any(i < 0 for i in posizioni):
+        return False
+    # «La sig.ra X, rappresentata e difesa dall'avv. Y, ricorre…»: il nome viene prima della difesa e del verbo con cui
+    # la parte agisce. Nell'atto della controparte il cliente compare dopo («ricorre contro X»).
+    nome = min(posizioni)
+    verbo = _AGISCE.search(inizio)
+    if verbo is None or verbo.start() < nome:
+        return False
+    return bool(_DIFESA.search(inizio[nome:verbo.start()]))
+
+
+def _atti_del_cliente(atti, cliente: str) -> None:
+    """L'atto introduttivo depositato per il cliente del fascicolo è dello studio, anche senza i nomi degli avvocati.
+
+    Il fascicolo è dello studio e il cliente è la parte che lo studio assiste: se l'atto introduttivo lo indica come
+    parte che agisce con un difensore (firma o procura), l'atto è dello studio. Il nome dell'avvocato nelle
+    Impostazioni resta una conferma in più (``atti._avvocati_nel_testo``). Collaudo della catena del 19/11/2026.
+    """
+    if not cliente:
+        return
+    for atto in atti:
+        if (atto.appartenenza == "causa" and atto.natura in {"atto_principale", "atto_esecutivo"} and not atto.dello_studio
+                and _cliente_nell_atto(atto.testo or "", cliente)):
+            atto.dello_studio = True
+            atto.autore = "studio"
 
 
 def _posizione(atti, rito, depositi) -> str:
@@ -117,6 +158,7 @@ def ragiona(fonti: FontiCausa) -> Causa:
     avvocati = [pulito(a) for a in (fonti.studio.get("avvocati") or [])] + [pulito(fonti.fascicolo.get("avvocato_referente"))]
     atti = leggi_atti(fonti.documenti, fonti.fatti, rg_causa=rg, avvocati=[a for a in avvocati if a])
     rito = determina_rito(fonti.fascicolo, [a.etichetta for a in atti if a.appartenenza == "causa"])
+    _atti_del_cliente(atti, pulito(fonti.fascicolo.get("cliente") or fonti.fascicolo.get("nome_cliente")))
     depositi = depositi_eseguiti(atti, fonti.depositi)
     posizione = _posizione(atti, rito, depositi)
     udienze, termini, ordini, errori = [], [], [], []

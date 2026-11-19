@@ -165,6 +165,26 @@ def studio_con_avvocati() -> bool:
     return bool((_studio() or {}).get("avvocati"))
 
 
+def rilettura(fascicolo: Any, lettura: dict[str, Any] | None, oggi: date):
+    """La rilettura del testo di un provvedimento del fascicolo (testi già indicizzati, nessuna lettura di file)."""
+    testi: dict[str, str] = {}
+    rito = (((lettura or {}).get("ragionamento") or {}).get("rito") or {}).get("codice")
+    numero, anno = _t(getattr(fascicolo, "numero_rg", "")), _t(getattr(fascicolo, "anno_rg", ""))
+
+    def rileggi(documento_id: str, codice: str) -> list[str] | None:
+        from pct.catena.rilettura import date_dal_testo
+        from web.services.archivio_letture_runtime import testi_indice_archivio
+
+        if not testi:
+            testi.update(testi_indice_archivio(fascicolo) or {})
+        testo = testi.get(documento_id)
+        if not testo:
+            return None
+        return date_dal_testo(testo, rg=f"{numero}/{anno}" if numero and anno else "", data_atto="", codice=codice,
+                              rito_lavoro=rito == "lavoro", oggi=oggi)
+    return rileggi
+
+
 def credito_incassato(lettura: dict[str, Any] | None) -> bool | None:
     """Liquidazione della sentenza incassata e nessun saldo aperto (pct/fascicolo_lettura/economico.py)."""
     economico = (lettura or {}).get("economico") or {}
@@ -193,7 +213,7 @@ def stato_fascicolo(fascicolo: Any, data_paths: dict[str, Any], *, archivio: Any
         stato_fascicolo=_enum(getattr(fascicolo, "stato", "")).upper(), credito_incassato=credito_incassato(lettura),
         quadro=quadro, bozze=bozze(data_paths, fid), pannelli=pannelli,
         catalogo_dopo_letture=_sicuro(lambda: catalogo_dopo_letture(fid), []),
-        studio_con_avvocati=_sicuro(studio_con_avvocati, True),
+        studio_con_avvocati=_sicuro(studio_con_avvocati, True), rileggi=rilettura(fascicolo, lettura, oggi),
     )
     return stato, impronta
 

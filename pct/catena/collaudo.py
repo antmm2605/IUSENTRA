@@ -63,6 +63,15 @@ ESECUZIONE = {"id": "C1", "numero_rg": "792", "anno_rg": "2025", "codice_oggetto
               "tribunale": "Tribunale di Palmi"}
 LAVORO = {"id": "C2", "numero_rg": "1571", "anno_rg": "2026", "codice_oggetto_pst": "222050", "tipo": "LAVORO",
           "controparte": "Ministero dell'Istruzione e del Merito", "tribunale": "Tribunale di Vicenza"}
+RICORSO_DI = _doc("RDI", "Ricorso per decreto ingiuntivo.pdf", "atto_principale", "Ricorso per decreto ingiuntivo",
+                  "GIUDICE DI PACE DI PALMI RICORSO PER DECRETO INGIUNTIVO L'Associazione Alfa, rappresentata dall'Avv. Mario Rossi. " * 3)
+DECRETO_DI = _doc("DI", "accoglimentoDecretoIngiuntivo.pdf", "provvedimento", "Decreto ingiuntivo",
+                  "Decreto ingiuntivo n. 1109/2026 RG n. 4202/2026\nUFFICIO DEL GIUDICE DI PACE DI PALMI DECRETO INGIUNTIVO Il "
+                  "Giudice di Pace, letto il ricorso depositato da ASSOCIAZIONE ALFA-Avv. MARIO ROSSI; INGIUNGE a BETA S.R.L. di "
+                  "pagare entro quaranta giorni dalla notifica la somma di € 2.400,00. AVVERTE la parte ingiunta che può proporre "
+                  "opposizione nel termine perentorio di quaranta giorni dalla notifica. Si comunichi. PALMI, 20-11-2026")
+MONITORIO = {"id": "C3", "numero_rg": "4202", "anno_rg": "2026", "codice_oggetto_pst": "010001", "tipo": "CIVILE",
+             "tribunale": "Giudice di Pace di Palmi"}
 PROPOSTA_COSTITUZIONE = {"id": "P1", "titolo": "Costituzione del convenuto con memoria difensiva", "data": "2027-01-29",
                          "stato": "BOZZA", "note": "PEC_TERMINE_PROPOSTO:x:LAV_416_COSTITUZIONE"}
 
@@ -80,6 +89,9 @@ CASI: tuple[Caso, ...] = (
           ("termine_certo_senza_scadenza", guardiano.CREA_SCADENZA, "2027-01-08"),
           ("termine_certo_senza_scadenza", guardiano.CREA_SCADENZA, "2027-02-09"),
           ("udienza_non_in_agenda", guardiano.CREA_UDIENZA, "2027-02-09")), scadenze=(PROPOSTA_COSTITUZIONE,)),
+    Caso("monitorio_644", "Decreto ingiuntivo dello studio: sessanta giorni dalla pronuncia del 20/11/2026 per notificarlo, "
+         "termine certo anche senza conoscere il luogo della notifica (art. 644 c.p.c.)", MONITORIO, (RICORSO_DI, DECRETO_DI),
+         date(2026, 11, 25), (("termine_certo_senza_scadenza", guardiano.CREA_SCADENZA, "2027-01-19"),)),
     Caso("studio_senza_avvocati", "Senza il nome dell'avvocato nelle Impostazioni la parte onerata non è certa: nessuna "
          "scrittura, un avviso", ESECUZIONE, (PIGNORAMENTO, VERBALE_631), date(2026, 11, 10),
          # L'udienza fissata non dipende dalla parte onerata: resta da mettere in agenda.

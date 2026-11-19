@@ -148,7 +148,8 @@ def _ricorso_di(ufficio, creditore, debitore, causale, importo, data):
 
 
 def _decreto_ingiuntivo(ufficio, numero, rg, creditore, debitore, importo, data, *, esecutivo=False):
-    return (f"Decreto ingiuntivo n {numero}.pdf", [
+    # Il nome con cui il portale consegna il decreto (PST: «accoglimentoDecretoIngiuntivo.pdf»).
+    return ("accoglimentoDecretoIngiuntivo.pdf", [
         f"Decreto ingiuntivo n. {numero} RG n. {rg}", f"{ufficio.upper()} DECRETO INGIUNTIVO",
         f"Il Giudice, letto il ricorso per la concessione del decreto ingiuntivo depositato da {creditore} - Avv. MARIO ROSSI;",
         f"INGIUNGE a {debitore} di pagare entro quaranta giorni dalla notifica del presente decreto la somma di euro {importo}.",
@@ -162,15 +163,11 @@ def _monitorio_decreto(scadenza):
     def attese(foto):
         notifica = _conclusione(foto, "notifica_decreto_ingiuntivo")
         # Il decreto diventa inefficace se non è notificato entro sessanta giorni dalla pronuncia (art. 644 c.p.c.).
-        assert notifica["stato"] in {"da_fare", "dubbio"}, notifica
-        if notifica.get("termine"):
-            assert notifica["termine"]["scadenza_iso"] == scadenza, notifica["termine"]
-            assert foto.scadenza_il(scadenza), foto.scadenze
-        else:
-            # Il motore non calcola i sessanta giorni finché non conosce il luogo della notifica (novanta all'estero,
-            # art. 644 c.p.c.): lo dichiara come dubbio. Limite segnalato nel rapporto del 19/11/2026: la scadenza
-            # prudenziale dei sessanta giorni dalla pronuncia non viene ancora proposta.
-            assert any(d["codice"] == "destinazione_monitorio_da_verificare" for d in notifica["dubbi"]), notifica
+        # Lo studio ricorrente: sessanta giorni dalla pronuncia, sempre (novanta solo all'estero), termine certo a suo
+        # carico e nello scadenziario (art. 644 c.p.c.).
+        assert notifica["stato"] == "da_fare" and notifica["onerato_codice"] == "noi", notifica
+        assert notifica["termine"]["scadenza_iso"] == scadenza, notifica["termine"]
+        assert foto.scadenza_il(scadenza), foto.scadenze
         assert any("644" in n["norma"] for n in notifica["norme"]), notifica["norme"]
         _fase(foto, "decreto_emesso", "notifica_decreto_da_verificare")
     return attese

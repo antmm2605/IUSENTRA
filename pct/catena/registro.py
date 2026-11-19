@@ -80,7 +80,8 @@ class RegistroGuardiano:
             viste = set()
             for voce in voci:
                 viste.add(voce["chiave"])
-                stato = RIPARATA if voce.get("esito_riparazione", "").startswith("riparata") else AVVISO if not voce.get(
+                stato = AVVISO if (voce.get("dati") or {}).get("avviso_anche") else RIPARATA if voce.get(
+                    "esito_riparazione", "").startswith("riparata") else AVVISO if not voce.get(
                     "riparazione") or voce.get("avviso") else APERTA
                 if stato == RIPARATA:
                     conteggi["riparate"] += 1

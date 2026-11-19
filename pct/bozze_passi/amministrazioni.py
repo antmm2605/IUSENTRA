@@ -67,4 +67,33 @@ def rappresentante(nome_esteso: str) -> str:
         "in persona del legale rappresentante pro tempore"
 
 
-__all__ = ["SIGLE_MINISTERI", "denominazione", "rappresentante"]
+# Nomi femminili con cui comincia la denominazione di un ente (preposizione «alla»).
+_FEMMINILI = {"regione", "provincia", "città", "citta", "azienda", "camera", "presidenza", "prefettura", "questura",
+              "corte", "banca", "società", "societa", "cassa", "fondazione", "direzione", "scuola", "unione", "comunità",
+              "comunita", "procura", "cancelleria", "giunta", "polizia", "guardia", "marina", "repubblica", "asl", "asp"}
+
+
+def preposizione_articolata(nome: str) -> str:
+    """«a» articolata davanti alla denominazione dell'ente: al Ministero, all'Agenzia, all'INPS, alla Regione, allo Stato.
+
+    Solo per le amministrazioni (le persone fisiche non vogliono l'articolo: «a Mario Rossi»)."""
+    parola = re.sub(r"[^\wÀ-ÿ']", "", (str(nome or "").split() or [""])[0])
+    bassa = parola.lower()
+    if not bassa:
+        return "a"
+    if bassa[0] in "aeiouàèéìòù" or (parola.isupper() and bassa[0] in "aeiou"):
+        return "all'"
+    if bassa in _FEMMINILI:
+        return "alla"
+    if re.match(r"s[bcdfghjklmnpqrstvwxyz]|z|gn|ps|x|y", bassa):
+        return "allo"
+    return "al"
+
+
+def destinatario_con_preposizione(nome: str) -> str:
+    """«al Ministero dell'Istruzione e del Merito», «all'Agenzia delle Entrate»: senza spazio dopo l'apostrofo."""
+    preposizione = preposizione_articolata(nome)
+    return f"{preposizione}{nome}" if preposizione.endswith("'") else f"{preposizione} {nome}"
+
+
+__all__ = ["SIGLE_MINISTERI", "denominazione", "destinatario_con_preposizione", "preposizione_articolata", "rappresentante"]

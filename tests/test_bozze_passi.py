@@ -486,3 +486,16 @@ def test_il_regime_fiscale_vale_solo_se_dichiarato_nella_scheda_dello_studio(tmp
     assert _regime_dichiarato(str(scheda)) == "RF19"
     scheda.write_text(json.dumps({"studio": {}}))
     assert _regime_dichiarato(str(scheda)) == ""  # il predefinito RF01 non è un dato dello studio
+
+
+def test_preposizione_articolata_davanti_all_amministrazione():
+    from pct.bozze_passi.amministrazioni import destinatario_con_preposizione
+
+    _r, precetto = bozze_del_fascicolo(_lettura_credito_pa(), oggi=OGGI, conto=_CONTO_DISTRATTE, studio=_STUDIO)
+    assert "al **Ministero dell'Istruzione e del Merito, in persona del Ministro pro tempore**," in precetto.testo
+    assert "\na **Ministero" not in "\n" + precetto.testo
+    attesi = {"Agenzia delle Entrate": "all'Agenzia delle Entrate", "Regione Calabria": "alla Regione Calabria",
+              "Comune di Taurianova": "al Comune di Taurianova", "INPS": "all'INPS", "Stato": "allo Stato",
+              "Ministero dell'Economia e delle Finanze": "al Ministero dell'Economia e delle Finanze"}
+    for nome, atteso in attesi.items():
+        assert destinatario_con_preposizione(nome) == atteso

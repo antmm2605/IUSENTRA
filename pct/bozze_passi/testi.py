@@ -16,7 +16,7 @@ from typing import Any
 from pct.fascicolo_lettura._testo import data_it, pulisci
 
 from .contesto import Contesto, euro, percentuale, provvedimento
-from .amministrazioni import denominazione, rappresentante
+from .amministrazioni import denominazione, preposizione_articolata, rappresentante
 from .modello import manca
 
 OGGETTO_PEC_L53 = "notificazione ai sensi della legge n. 53 del 1994"
@@ -217,6 +217,12 @@ def richiesta_pagamento_pa(ctx: Contesto, credito: dict[str, Any]) -> str:
     return _unisci(righe)
 
 
+def _al_destinatario(nome: str, *, pa: bool) -> str:
+    """«al **Ministero …**, », «all'**Agenzia …**, » per le amministrazioni; «a **Mario Rossi**, » per le persone."""
+    preposizione = preposizione_articolata(nome) if pa else "a"
+    return f"{preposizione}{'' if preposizione.endswith("'") else ' '}**{nome}**, "
+
+
 def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
     """Atto di precetto (artt. 474 e 480 c.p.c.; art. 654 c.p.c. sul decreto ingiuntivo esecutivo).
 
@@ -237,7 +243,8 @@ def precetto(ctx: Contesto, titolo: dict[str, Any]) -> str:
         (f"decorso il termine di centoventi giorni dalla notificazione del titolo, scaduto il {titolo['centoventi_giorni']} "
          "(art. 14, comma 1, D.L. 669/1996)," if pa and titolo.get("centoventi_giorni") else ""),
         "## Intima e fa precetto",
-        f"a **{debitore}**, " + (manca("sede dell'amministrazione presso cui notificare il precetto") if pa
+        # «al Ministero …», «all'Agenzia …», «alla Regione …» per le amministrazioni; «a Mario Rossi» per le persone.
+        _al_destinatario(debitore, pa=pa) + (manca("sede dell'amministrazione presso cui notificare il precetto") if pa
                                   else manca("residenza, sede o domicilio del debitore")) + ",",
         "di pagare entro dieci giorni dalla notificazione del presente atto le seguenti somme:",
         *[f"- {voce}" for voce in titolo.get("voci") or []],

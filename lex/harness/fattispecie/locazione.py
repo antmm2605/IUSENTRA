@@ -133,7 +133,7 @@ def analizza_sfratto_commerciale(c: Comprensione, f: Fatti) -> Analisi:
     from .strumenti import data_dopo, forma, importi_in, frase
 
     t = piano(f.testo)
-    a = Analisi("opposizione_sfratto_commerciale", "locazione", modello="LOC_006", forma=forma(c))
+    a = Analisi("opposizione_sfratto_commerciale", "locazione", modello="LOC_004", forma=forma(c))
     udienza = data_dopo(f, r"udienza di convalida fissata al") or data_dopo(f, r"udienza")
     canoni = (importi_in(frase(f, r"canoni non pagati|non pagati")) or [None])[-1]
     offerto = (importi_in(frase(f, r"pagare euro|puo pagare|dichiara di poter pagare")) or [None])[0]
@@ -226,7 +226,7 @@ def riconosci_indebito_locazione(c: Comprensione, f: Fatti) -> int:
 
 def analizza_indebito_locazione(c: Comprensione, f: Fatti) -> Analisi:
     from ..termini import termine_mesi
-    from .strumenti import data_di, forma, importi_in
+    from .strumenti import data_di, forma
 
     t = piano(f.testo)
     a = Analisi("restituzione_canone_non_registrato", "locazione", forma=forma(c))

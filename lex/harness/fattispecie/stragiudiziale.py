@@ -26,7 +26,7 @@ def riconosci_diffida_commerciale(c: Comprensione, f: Fatti) -> int:
 
 def analizza_diffida_commerciale(c: Comprensione, f: Fatti) -> Analisi:
     t = piano(f.testo)
-    a = Analisi("diffida_commerciale", "stragiudiziale — crediti fra imprese", modello="CIV_DIF_001", forma=forma(c))
+    a = Analisi("diffida_commerciale", "stragiudiziale — crediti fra imprese", modello="STR_001", forma=forma(c))
     fatture = _fatture(t)
     giorni = int((re.search(r"pagamento a (\d+) giorni", t) or [None, "0"])[1]) or None
     acconto_m = re.search(r"acconto di ([\d.]+)\s*euro[^.]{0,80}?fattura n\.\s*(\d+)", t)
@@ -103,7 +103,7 @@ def riconosci_sinistro(c: Comprensione, f: Fatti) -> int:
 
 def analizza_sinistro(c: Comprensione, f: Fatti) -> Analisi:
     t = piano(f.testo)
-    a = Analisi("sinistro_stradale", "stragiudiziale — responsabilità civile auto", forma=forma(c))
+    a = Analisi("sinistro_stradale", "stragiudiziale — responsabilità civile auto", modello="RCD_015", forma=forma(c))
     d_sin = (date_in(frase(f, r"tamponat|sinistro|incidente")) or [None])[0]
     lesioni = bool(re.search(r"frusta|distorsione|lesion|pronto soccorso", t))
     cai = bool(re.search(r"\bcai\b|constatazione amichevole", t))

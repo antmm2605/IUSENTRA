@@ -36,12 +36,13 @@ class RispostaHarness:
     affermazioni_tolte: list[str] = field(default_factory=list)
     citazioni_non_verificate: list[str] = field(default_factory=list)
     bozza: str = ""
+    registro: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {"answer": self.testo, "kind": self.tipo, "rule": self.regola, "confidence": self.affidabilita,
                 "sources": self.fonti, "verified_norms": self.norme_verificate,
                 "removed_claims": self.affermazioni_tolte, "unverified_citations": self.citazioni_non_verificate,
-                "draft": self.bozza, "deterministic": True}
+                "draft": self.bozza, "deterministic": True, "registro": self.registro}
 
 
 def _affidabilita(esito: EsitoControllo, punti: int) -> float:
@@ -95,4 +96,47 @@ def rispondi(domanda: str, *, oggi: date | None = None, comprensione: Comprensio
         if t and t.url:
             fonti.append({"title": f"Normattiva — {NORME[chiave].citazione}", "url": t.url})
     return RispostaHarness(testo, c.tipo, analisi.regola, _affidabilita(esito, len(analisi.punti())), fonti,
-                           esito.norme_verificate, esito.affermazioni_tolte, esito.citazioni_non_verificate, analisi.bozza)
+                           esito.norme_verificate, esito.affermazioni_tolte, esito.citazioni_non_verificate, analisi.bozza,
+                           registro(c, f, analisi, esito))
+
+
+def _punti(lista) -> list[dict[str, Any]]:
+    return [{"testo": p.testo, "fonti": [{"norma": NORME[r.chiave].citazione, "comma": r.comma, "ancora": r.ancora}
+                                          for r in p.rif]} for p in lista]
+
+
+def registro(c: Comprensione, f, a, esito: EsitoControllo) -> dict[str, Any]:
+    """Il registro della risposta: il risultato strutturato di ogni fase, con le fonti di ogni affermazione."""
+    from pathlib import Path
+
+    norme = []
+    for chiave in esito.norme_verificate:
+        t = testo_norma(chiave)
+        norme.append({"chiave": chiave, "citazione": NORME[chiave].citazione, "url": t.url if t else "",
+                      "aggiornamento_archivio": t.aggiornamento if t else "", "origine": t.origine if t else "",
+                      "vigente": bool(t and t.vigente)})
+    scheda = Path(__file__).resolve().parents[2] / "pct" / "template_atti_schede" / f"{a.modello}.json" if a.modello else None
+    return {
+        "1_comprensione": {"tipo": c.tipo, "atto": c.atto, "racconto_di_fatti": c.racconto, "motivi": c.motivi},
+        "2_fatti": {"data_di_oggi": f.oggi.strftime("%d/%m/%Y"), "parte_assistita": vars(f.assistita),
+                    "controparte": vars(f.controparte), "residenza_o_sede_controparte": f.residenza_convenuto,
+                    "luogo_immobile": f.luogo_immobile, "luogo_lavoro": f.luogo_lavoro,
+                    "importi": [{"valore": i.valore, "qualifica": i.qualifica} for i in f.importi],
+                    "eventi": [{"data": e.data.strftime("%d/%m/%Y"), "testo": e.testo[:200]} for e in f.eventi],
+                    "segnali": sorted(f.segnali), "fonte": "testo della richiesta"},
+        "3_qualificazione": {"regola": a.regola, "materia": a.materia},
+        "4_norme": norme,
+        "5_giurisprudenza": {"stato": "non consultata dall'harness: nessuna pronuncia è affermata senza lettura"},
+        "6_rimedio": {"forma": a.forma, "rimedio": a.rimedio, "conclusione": _punti(a.conclusione)},
+        "7_competenza": {"giudice": a.giudice, "valore": a.valore, "punti": _punti(a.competenza)},
+        "8_rito": _punti(a.rito),
+        "9_procedibilita": _punti(a.procedibilita),
+        "10_termini": _punti(a.termini),
+        "11_inquadramento": _punti(a.inquadramento),
+        "12_tranelli_e_avvertenze": list(a.avvertenze),
+        "13_dati_mancanti": list(a.dati_mancanti),
+        "14_modello_atto": {"scheda": a.modello, "presente_nel_catalogo": bool(scheda and scheda.is_file()),
+                            "bozza": bool(a.bozza)},
+        "15_controlli": {"affermazioni_non_verificate_escluse": esito.affermazioni_tolte,
+                         "citazioni_non_verificate": esito.citazioni_non_verificate, "dubbi": list(a.dubbi)},
+    }

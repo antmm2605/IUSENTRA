@@ -245,7 +245,7 @@ def riconosci_comparsa(c: Comprensione, f: Fatti) -> int:
 
 
 def analizza_comparsa(c: Comprensione, f: Fatti) -> Analisi:
-    a = Analisi("comparsa_risposta", "civile — difesa del convenuto", modello="CIV_ORD_015")
+    a = Analisi("comparsa_risposta", "civile — difesa del convenuto", modello="CIV_ORD_009")
     a.capito = ["Difesa del convenuto in una causa ordinaria di cognizione: comparsa di costituzione e risposta."]
     a.inquadramento = [
         Punto("Il convenuto si costituisce almeno settanta giorni prima dell'udienza di comparizione depositando la "

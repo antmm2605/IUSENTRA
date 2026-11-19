@@ -104,7 +104,7 @@ def analizza_opposizione_di(c: Comprensione, f: Fatti) -> Analisi:
     from .strumenti import date_in, forma
 
     t = piano(f.testo)
-    a = Analisi("opposizione_decreto_ingiuntivo", "monitorio", modello="MON_004", forma=forma(c))
+    a = Analisi("opposizione_decreto_ingiuntivo", "monitorio", modello="MON_011", forma=forma(c))
     m_not = re.search(r"(\d{1,2}/\d{1,2}/\d{4})\s*-\s*viene notificato[^.]{0,80}decreto ingiuntivo", t) or re.search(
         r"decreto ingiuntivo[^.]{0,80}notificat\w*[^.]{0,20}(\d{1,2}/\d{1,2}/\d{4})", t)
     notifica = date_in(m_not.group(1))[0] if m_not else None

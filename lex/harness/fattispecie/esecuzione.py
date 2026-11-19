@@ -26,7 +26,7 @@ def riconosci_opposizione_precetto(c: Comprensione, f: Fatti) -> int:
 
 def analizza_opposizione_precetto(c: Comprensione, f: Fatti) -> Analisi:
     t = piano(f.testo)
-    a = Analisi("opposizione_precetto", "esecuzione", modello="ESE_006", forma=forma(c))
+    a = Analisi("opposizione_precetto", "esecuzione", modello="ESE_019", forma=forma(c))
     notifica = _precetto_notificato(f)
     m = re.search(r"totale indicato nel precetto[^0-9]{0,20}([\d.]+(?:,\d+)?)\s*euro", t)
     valore = float(m.group(1).replace(".", "").replace(",", ".")) if m else None

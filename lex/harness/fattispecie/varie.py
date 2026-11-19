@@ -20,8 +20,7 @@ def riconosci_sequestro(c: Comprensione, f: Fatti) -> int:
 
 
 def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
-    t = piano(f.testo)
-    a = Analisi("sequestro_conservativo", "cautelare", forma=forma(c))
+    a = Analisi("sequestro_conservativo", "cautelare", modello="CAU_005", forma=forma(c))
     x = frase(f, r"ordinanza di accoglimento|accoglimento")
     pronuncia = (date_in(x) or [None])[0]
     fuori_udienza = "fuori udienza" in piano(x)
@@ -72,7 +71,7 @@ def riconosci_verbale_cds(c: Comprensione, f: Fatti) -> int:
 
 def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
     t = piano(f.testo)
-    a = Analisi("opposizione_verbale_cds", "giudice di pace — codice della strada", forma=forma(c))
+    a = Analisi("opposizione_verbale_cds", "giudice di pace — codice della strada", modello="GDP_004", forma=forma(c))
     accertamento = data_di(f, r"accerta|rilevamento")
     spedizione = data_di(f, r"consegna all ufficio postale|spedit|consegnat\w* (?:all|per la notifica)")
     notifica = data_di(f, r"e notificato|notificat\w* a [a-z]+ [a-z]+ a mezzo")
@@ -128,7 +127,7 @@ def riconosci_disconoscimento(c: Comprensione, f: Fatti) -> int:
 
 def analizza_disconoscimento(c: Comprensione, f: Fatti) -> Analisi:
     t = piano(f.testo)
-    a = Analisi("disconoscimento_paternita", "famiglia", modello="FAM_016", forma=forma(c))
+    a = Analisi("disconoscimento_paternita", "famiglia", forma=forma(c))
     nascita = data_di(f, r"\bnasce\b|nascita")
     conoscenza = data_di(f, r"test genetico|esito|scopre|apprende")
     m_luogo = re.search(r"vive con la madre a ([a-z]+)", t)

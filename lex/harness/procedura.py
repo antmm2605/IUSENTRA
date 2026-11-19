@@ -52,6 +52,11 @@ def giudice_per_valore(valore: float, *, circolazione: bool = False) -> tuple[st
         return "", [Punto("Il limite di valore del giudice di pace non si è potuto leggere dal testo vigente dell'art. 7 "
                           "c.p.c.: verificalo prima di scegliere il giudice.", [], False, "art. 7 c.p.c. non letto")]
     ancora = "circolazione di veicoli e di natanti" if circolazione else "beni mobili di valore non superiore"
+    controllo = _calcolatore_competenza(valore, circolazione)
+    if controllo and controllo != ("Giudice di pace" if valore <= limite else "Tribunale"):
+        return "", [Punto("La competenza per valore letta dall'art. 7 c.p.c. vigente non coincide con quella del calcolatore "
+                          f"di IUSENTRA ({controllo}): verificarla prima di scegliere il giudice.", [], False,
+                          "calcolatore della competenza discordante")]
     if valore <= limite:
         return "Giudice di pace", [Punto(
             f"Competente per valore è il giudice di pace: la causa ({euro(valore)}) non supera il limite di "
@@ -169,3 +174,17 @@ def ufficio(giudice: str, citta: str) -> str:
     if nome.lower() in _uffici():
         return nome.replace("Ufficio del Giudice di Pace", "Giudice di pace")
     return f"{giudice} nel cui circondario si trova {citta} [ufficio da verificare]"
+
+
+def _calcolatore_competenza(valore: float, circolazione: bool) -> str:
+    """Doppio controllo con il calcolatore della competenza per valore (pct/calcolatori/competenza_valore.py)."""
+    try:
+        from datetime import date
+
+        from pct.calcolatori import competenza_valore
+
+        esito = competenza_valore.calcola({"comp_materia": "danno_circolazione" if circolazione else "beni_mobili",
+                                           "comp_valore": valore, "comp_data_introduzione": date.today().isoformat()})
+        return str(esito.get("giudice_competente") or "")
+    except Exception:
+        return ""

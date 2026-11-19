@@ -233,7 +233,7 @@ def riconosci_querela(c: Comprensione, f: Fatti) -> int:
 
 
 def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
-    a = Analisi("termine_querela", "penale")
+    a = Analisi("termine_querela", "penale", modello="PEN_009")
     a.conclusione = [Punto("Salvo che la legge disponga altrimenti, il diritto di querela si esercita entro tre mesi dal "
                            "giorno della notizia del fatto che costituisce il reato.", [Rif("cp:124", "tre mesi")])]
     d = _prima_data(f)
@@ -290,7 +290,7 @@ def riconosci_tar(c: Comprensione, f: Fatti) -> int:
 
 
 def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
-    a = Analisi("ricorso_tar", "amministrativo")
+    a = Analisi("ricorso_tar", "amministrativo", modello="AMM_001")
     a.conclusione = [Punto("L'azione di annullamento davanti al TAR si propone nel termine di decadenza di sessanta giorni, "
                            "che decorre dalla notificazione, comunicazione o piena conoscenza del provvedimento.",
                            [Rif("cpa:29", "termine di decadenza di sessanta giorni"),
@@ -363,7 +363,7 @@ def riconosci_tributario(c: Comprensione, f: Fatti) -> int:
 
 
 def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
-    a = Analisi("ricorso_tributario", "tributario")
+    a = Analisi("ricorso_tributario", "tributario", modello="TRI_001")
     a.conclusione = [Punto("Il ricorso alla Corte di giustizia tributaria di primo grado si propone, a pena di "
                            "inammissibilità, entro sessanta giorni dalla notificazione dell'atto impugnato.",
                            [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")])]

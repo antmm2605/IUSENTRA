@@ -42,7 +42,13 @@ def payload_harness(domanda: str, *, risposta_certa: Callable[[str], str] | None
             testo += "\n\n" + _NOTA_LAVORO
         return _payload(domanda, testo, 0.9, "Calcolo e testo dai motori certi di IUSENTRA (termini, archivio Normattiva).",
                         [], "motori_certi")
+    from .scrittura import scrivi
+
+    stesura = scrivi(esito.testo)
+    if stesura.scrittore != "deterministico":
+        esito.testo = stesura.testo
     motivo = (f"Regola «{esito.regola}»: {len(esito.norme_verificate)} norme confrontate con il testo vigente"
+              + (f"; stesura di {stesura.scrittore} controllata" if stesura.accettata and stesura.scrittore != "deterministico" else "")
               + (f"; {len(esito.affermazioni_tolte)} affermazioni non verificate escluse" if esito.affermazioni_tolte else "")
               + (f"; {len(esito.citazioni_non_verificate)} riferimenti da controllare" if esito.citazioni_non_verificate else "")
               + ".")

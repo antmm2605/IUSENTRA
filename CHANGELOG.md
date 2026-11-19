@@ -1,3 +1,14 @@
+## 2.490.0 — Ragionamento da avvocato, bozze pronte e fascicoli che si aprono subito
+
+- Prossimi passi ordinati per urgenza di legge: prima i termini aperti (a parità di data il perentorio), poi gli scaduti da verificare con conseguenze e rimedi (artt. 153-154 c.p.c.), poi economici e amministrativi.
+- Fascicoli della stessa vicenda collegati: il pignoramento trova il titolo esecutivo nel fascicolo del decreto ingiuntivo; precetto e notifica del decreto risultano fatti con la prova.
+- Contributo unificato: esenzioni verificate prima dello scaglione (art. 10, commi 1-3 e 6, D.P.R. 115/2002; art. 46-bis disp. att. c.c.; circolare DAG 16/05/2024 per le istanze al giudice tutelare).
+- Tolte le conferme inutili: eventi PEC già letti dal provvedimento, preventivo quando la procura è negli atti, notifiche «da calcolare» nel Quadro.
+- Premesse che richiamano l'art. 127-ter non dispongono le note; udienze PEC dette «opposizione» rinominate quando il registro dice udienza in presenza.
+- Bozze pronte dei passi (note 127-ter, relata L. 53/1994, richiesta di pagamento alla P.A., precetto, nota di deposito), preparate in sfondo e mai inviate da sole.
+- Pannelli del fascicolo pronti per tutti i fascicoli non archiviati, calcolati in sfondo e verificati con l'impronta delle fonti.
+- Unite la versione locale dell'8080 e la copia di lavoro del 18-19/11 (ricevute, termine lungo prudenziale, spese compensate, guida).
+
 ## 2.489.33 — Quadro notifiche e sincronizzazione
 
 - Il Quadro distingue il termine ordinatorio decorso dalle scadenze urgenti.

@@ -8,7 +8,7 @@ from ..fatti import Fatti, data_it, euro
 from ..modello import Analisi, Punto, Rif
 from ..norme import piano
 from .. import procedura as P
-from ..termini import data_breve, termine_giorni
+from ..termini import data_breve, termine
 from .strumenti import data_di, data_dopo, forma, importi_in, frase
 
 
@@ -55,13 +55,16 @@ def analizza_opposizione_precetto(c: Comprensione, f: Fatti) -> Analisi:
     a.competenza = punti + [Punto("Per le opposizioni all'esecuzione è competente per territorio il giudice del luogo "
                                   "dell'esecuzione" + (f" ({citta})" if citta else "") + ".",
                                   [Rif("cpc:27", "luogo dell'esecuzione")])]
-    a.procedibilita = [Punto("Né negoziazione assistita né mediazione: entrambe escludono le opposizioni e i giudizi "
-                             "incidentali di cognizione relativi all'esecuzione forzata.",
-                             [Rif("dl132:3", "esecuzione forzata"), Rif("dlgs28:5", "esecuzione forzata")])]
+    a.procedibilita = [Punto("Né negoziazione assistita né mediazione: la negoziazione obbligatoria non si applica «nei "
+                             "procedimenti di opposizione o incidentali di cognizione relativi all'esecuzione forzata» (art. 3, "
+                             "comma 3, lett. c), d.l. 132/2014) e lo stesso esclude la mediazione obbligatoria (art. 5, comma 6, "
+                             "lett. e), d.lgs. 28/2010).",
+                             [Rif("dl132:3", "procedimenti di opposizione o incidentali di cognizione relativi all'esecuzione forzata", "3"),
+                              Rif("dlgs28:5", "procedimenti di opposizione o incidentali di cognizione relativi all'esecuzione forzata", "6")])]
     a.rito = [Punto("Opposizione all'esecuzione proposta prima dell'inizio dell'esecuzione: atto di citazione con i requisiti "
                     "dell'art. 163 c.p.c.", [Rif("cpc:615", "con citazione"), Rif("cpc:163", "citazione a comparire a udienza fissa")])]
     if notifica:
-        dieci = termine_giorni(notifica, 10, sospensione_feriale=False)
+        dieci = termine("ESE_PRECETTO_ADEMPIMENTO_10GG", notifica)
         a.termini = [Punto(f"Precetto notificato il {data_breve(notifica)}: il termine per adempiere di dieci giorni scade "
                            f"{data_breve(dieci)}; da quel momento il creditore può iniziare l'esecuzione.",
                            [Rif("cpc:480", "termine non minore di dieci giorni"), Rif("cpc:482", "dieci giorni dalla notificazione")])]
@@ -124,8 +127,8 @@ def analizza_termini_precetto(c: Comprensione, f: Fatti) -> Analisi:
               "l'esecuzione inizia con il pignoramento.", [Rif("cpc:481", "novanta giorni")]),
     ]
     if notifica:
-        dieci = termine_giorni(notifica, 10, sospensione_feriale=False)
-        novanta = termine_giorni(notifica, 90, sospensione_feriale=False)
+        dieci = termine("ESE_PRECETTO_ADEMPIMENTO_10GG", notifica)
+        novanta = termine("ESE_PRECETTO_EFFICACIA_90GG", notifica)
         a.termini = [
             Punto(f"Precetto notificato il {data_breve(notifica)}: il termine dilatorio di dieci giorni scade "
                   f"{data_breve(dieci)}; si può pignorare dal giorno successivo.", [Rif("cpc:482", "dieci giorni dalla notificazione")]),

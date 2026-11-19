@@ -40,7 +40,8 @@ _PARERE = (r"\bvaluta\w*|che azion|quale azion|come (?:procedo|posso|devo|agire)
            r"posso (?:chiedere|agire|ottenere|recedere|trattenere|sanare)|ha diritto|spett[ao]|e obbligatori|e necessari|"
            r"serve (?:la|il|una|un)\b|occorre|quale giudice|giudice competente|chi e competente|e competente|competen|\brito\b|"
            r"procedibil|mediazione|negoziazione|conviene|in che modo|quando posso|si puo|e possibile|indica la norma|"
-           r"che norma|quale norma|sana\w*|cosa prevede|che cosa prevede|\bpuo\b|\bpossono\b")
+           r"che norma|quale norma|sana\w*|cosa prevede|che cosa prevede|\bpuo\b|\bpossono\b|(?:che|quale|quali) tutel\w*|"
+           r"possiamo (?:chiedere|fare|ottenere|agire)")
 _TERMINE = r"entro quando|termin[ei] (?:per|di|breve|lungo)|entro quanto|quanto tempo|scadenza (?:per|del)|quando scade|\bentro\b.{0,30}\bdevo\b"
 _OGGETTI_GIURIDICI = (r"appell|cassazione|opposizion|ricors|querel|impugn|licenzia|precett|delibera|accertamento|provvediment|"
                       r"decreto|sentenz|reclamo|esecuzion|divorzi|separazion|sfratt|contratt|caparra|preliminare|risarciment|"

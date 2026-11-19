@@ -57,7 +57,8 @@ def test_competenza_per_valore(valore, circolazione, atteso):
 def test_ufficio_solo_se_esiste():
     assert P.ufficio("Tribunale", "Bari") == "Tribunale di Bari"
     assert P.ufficio("Giudice di pace", "Altamura") == "Giudice di pace di Altamura"
-    assert "da verificare" in P.ufficio("Tribunale", "Modugno")
+    assert P.ufficio("Tribunale", "Modugno") == "Tribunale di Bari (competente per Modugno)"   # circondario dal Ministero
+    assert "da verificare" in P.ufficio("Tribunale", "Paesefantasma")
 
 
 # ------------------------------------------------------------------ procedibilità
@@ -99,3 +100,60 @@ def test_fatti_dal_racconto_strutturato():
     assert f.oggi == date(2026, 11, 16)
     assert (f.assistita.nome, f.controparte.nome, f.residenza_convenuto) == ("Luca Ferrandina", "Giorgio Salvemini", "Bari")
     assert f.importo("caparra").valore == 25000
+
+
+# ------------------------------------------------------------------ regressioni dei difetti provati dalla revisione (19/11)
+def test_ricorso_gdp_verbale_cds_con_sospensione_feriale():
+    from lex.harness.termini import termine
+
+    assert termine("CDS_RICORSO_GDP_30GG", date(2026, 7, 20)) == date(2026, 9, 21)   # 19/09 sabato → 21/09
+
+
+@archivio
+def test_verbale_cds_risposta_con_termine_del_modello():
+    from lex.harness import rispondi
+
+    r = rispondi("La mia cliente Anna Rossi ha ricevuto un verbale per autovelox: accertamento del 10/05/2026 nel territorio "
+                 "del Comune di Bari, verbale notificato a Anna Rossi a mezzo posta il 20/07/2026. Prepara il ricorso al "
+                 "giudice di pace.")
+    assert "21/09/2026" in r.testo and "19/08/2026" not in r.testo
+
+
+@archivio
+def test_tutele_crescenti_solo_dal_7_marzo_2015_e_piccola_impresa():
+    from lex.harness import rispondi
+
+    prima = rispondi("Licenziamento per giustificato motivo oggettivo: la mia cliente Maria Bianchi è stata assunta il "
+                     "02/03/2015 da Alfa s.r.l., 40 dipendenti, retribuzione 2.000 euro; lettera ricevuta il 10/11/2026. "
+                     "Che tutela possiamo chiedere?")
+    assert "assunto prima del 7 marzo 2015" in prima.testo and "tutele crescenti e non" not in prima.testo
+    piccola = rispondi("Licenziamento per giustificato motivo oggettivo: la mia cliente Maria Bianchi è stata assunta il "
+                       "10/03/2018 da Alfa s.r.l., 10 dipendenti, retribuzione 2.000 euro; lettera ricevuta il 10/11/2026. "
+                       "Che tutela possiamo chiedere?")
+    assert "dimezzati" in piccola.testo and "massimo diciotto mensilità € 36.000" in piccola.testo
+
+
+@archivio
+def test_caparra_senza_importi_scritti_fissi():
+    from lex.harness import rispondi
+
+    r = rispondi("Redigi un atto di citazione per la mia cliente Anna Neri, promissaria acquirente: il promittente venditore "
+                 "Paolo Riva, residente a Bari, non si è presentato al rogito del 15/05/2026. Con il preliminare del "
+                 "10/01/2026 ha versato 10.000 euro a titolo di caparra confirmatoria per un appartamento in Bari.")
+    assert "€ 20.000" in r.testo and "supererebbe € 50.000" not in r.testo
+    assert "1284" in r.testo
+
+
+@archivio
+def test_appalto_con_consumatore_niente_negoziazione_e_garanzia_di_conformita():
+    from lex.harness import rispondi
+
+    r = rispondi("Il mio cliente Mario Verdi ha commissionato a Infissi Rossi s.r.l. la fornitura e posa di finestre nella sua "
+                 "abitazione di Monopoli, corrispettivo 7.000 euro. Consegna il 10/02/2026. Il 01/03/2026 scopre infiltrazioni; "
+                 "denuncia i vizi con PEC del 10/03/2026; costo di ripristino 2.500 euro. Che azione possiamo fare?")
+    assert "non è obbligatoria" in r.testo and "codice del consumo" in r.testo
+    assert "Giudice di pace di Monopoli" in r.testo
+
+
+def test_circondario_di_comune_non_sede():
+    assert P.ufficio("Tribunale", "Modugno").startswith("Tribunale di Bari")

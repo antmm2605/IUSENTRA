@@ -7,6 +7,7 @@ from ..comprensione import Comprensione
 from ..fatti import Fatti, data_it, euro
 from ..modello import Analisi, Punto, Rif
 from ..norme import piano
+from .. import procedura as P
 from ..termini import data_breve, termine_anni, termine_giorni
 from .strumenti import date_in, forma, frase
 
@@ -55,8 +56,8 @@ def analizza_diffida_commerciale(c: Comprensione, f: Fatti) -> Analisi:
     a.procedibilita = [
         Punto("Per il ricorso per decreto ingiuntivo non serve la negoziazione assistita.",
               [Rif("dl132:3", "procedimenti per ingiunzione, inclusa l'opposizione")]),
-        Punto("Se invece si agisse con causa ordinaria per il pagamento di somme non eccedenti 50.000 euro, l'invito alla "
-              "negoziazione assistita sarebbe condizione di procedibilità.",
+        Punto(f"Se invece si agisse con causa ordinaria per il pagamento di somme non eccedenti {euro(P.soglia_negoziazione() or 0)}, "
+              "l'invito alla negoziazione assistita sarebbe condizione di procedibilità.",
               [Rif("dl132:3", "pagamento a qualsiasi titolo di somme non eccedenti")]),
     ]
     for n, d, v in fatture:
@@ -81,7 +82,7 @@ def analizza_diffida_commerciale(c: Comprensione, f: Fatti) -> Analisi:
     if c.tipo == "redazione":
         a.bozza = "\n".join([
             "PEC — DIFFIDA E COSTITUZIONE IN MORA", f"Spett.le {f.controparte.nome or '[debitore]'}, sede legale [da completare]",
-            f"Oggetto: fatture " + ", ".join(f"n. {n} del {data_it(d)} ({euro(v)})" for n, d, v in fatture) + ".",
+            "Oggetto: fatture " + ", ".join(f"n. {n} del {data_it(d)} ({euro(v)})" for n, d, v in fatture) + ".",
             f"Per conto di {f.assistita.nome or '[creditore]'} vi intimo e diffido a pagare entro 15 giorni dal ricevimento "
             f"della presente la somma di {euro(residuo)} a saldo delle fatture indicate, oltre agli interessi moratori nella "
             "misura degli interessi legali di mora dal giorno successivo alla scadenza di ciascuna fattura (artt. 4 e 5 d.lgs. "
@@ -135,7 +136,8 @@ def analizza_sinistro(c: Comprensione, f: Fatti) -> Analisi:
         Punto("L'invito alla negoziazione avverte che la mancata risposta entro trenta giorni dalla ricezione o il rifiuto "
               "possono essere valutati dal giudice.", [Rif("dl132:4", "trenta giorni")]),
     ]
-    a.competenza = [Punto("Il giudice di pace è competente per il risarcimento del danno da circolazione fino a 25.000 euro.",
+    a.competenza = [Punto(f"Il giudice di pace è competente per il risarcimento del danno da circolazione fino a "
+                          f"{euro(P.limite_gdp_circolazione() or 0)}.",
                           [Rif("cpc:7", "purche il valore della controversia non superi venticinquemila euro")])]
     if d_sin:
         pres = termine_anni(d_sin, 2)

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-from datetime import timedelta
 
 from ..comprensione import Comprensione
 from ..fatti import Fatti, data_it, euro
@@ -87,8 +86,11 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
                  "adempimento il contratto è risoluto di diritto.")
         if giorni and ricevuta:
             from datetime import date as _d
+
+            from ..termini import termine_giorni
+
             g, m, y = (int(x) for x in ricevuta.split("/"))
-            scadenza = _d(y, m, g) + timedelta(days=giorni)
+            scadenza = termine_giorni(_d(y, m, g), giorni, sostanziale=True)
             punto += (f" Diffida ricevuta il {ricevuta} con termine di {giorni} giorni: termine scaduto il "
                       f"{data_it(scadenza)} senza adempimento.")
         a.inquadramento.append(Punto(punto, [Rif("cc:1454", "essere inferiore a quindici giorni"),
@@ -101,7 +103,7 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
     a.conclusione = [Punto(
         f"Azione consigliata: domanda di accertamento del legittimo recesso di {att} dal preliminare per inadempimento di "
         f"{conv} e di condanna di {conv} al pagamento di {euro(doppio)} (doppio della caparra di {euro(caparra.valore)}), "
-        "oltre interessi legali dalla domanda al saldo, davanti al GIUDICE_COMPETENTE.",
+        "oltre interessi dalla domanda al saldo al saggio dell'art. 1284, comma 4, c.c., davanti al GIUDICE_COMPETENTE.",
         [Rif("cc:1385", "esigere il doppio della caparra", "2"), Rif("cc:1224", "interessi legali")])]
     if not inadempiente_chi_ha_ricevuto:
         a.dubbi.append("Verifica chi ha versato la caparra e chi è inadempiente: il doppio spetta solo se inadempiente è "
@@ -116,11 +118,19 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
         a.giudice = P.ufficio(giudice, citta)
     for p in a.conclusione:
         p.testo = p.testo.replace("GIUDICE_COMPETENTE", a.giudice or "giudice competente [da verificare]")
+    soglia = P.soglia_negoziazione()
+    if soglia:
+        effetto = ("il valore della causa supererebbe la soglia di " + euro(soglia) + " delle somme «non eccedenti» e "
+                   "cambierebbe il quadro della negoziazione assistita") if doppio <= soglia else (
+                   "il valore crescerebbe oltre " + euro(doppio))
+        a.competenza.append(Punto(
+            f"Se oltre ai {euro(doppio)} si chiedessero interessi già maturati prima della domanda (o danni anteriori), si "
+            f"sommerebbero al capitale: {effetto}. Chiedendo gli interessi dalla domanda al saldo il valore resta {euro(doppio)}.",
+            [Rif("cpc:10", "gli interessi scaduti, le spese e i danni anteriori alla proposizione si sommano col capitale")]))
     a.competenza.append(Punto(
-        "Se oltre ai € " + f"{doppio:,.0f}".replace(",", ".") + " si chiedessero interessi già maturati prima della domanda "
-        "(o danni anteriori), si sommerebbero al capitale: il valore della causa supererebbe € 50.000 e cambierebbe il "
-        "quadro della negoziazione assistita (soglia delle somme «non eccedenti»). Chiedendo gli interessi dalla domanda al "
-        "saldo il valore resta € 50.000; in ogni caso la soluzione prudente è inviare comunque l'invito alla negoziazione.", [Rif("cpc:10", "gli interessi scaduti, le spese e i danni anteriori alla proposizione si sommano col capitale")]))
+        "Dalla proposizione della domanda giudiziale, se le parti non hanno pattuito il saggio, gli interessi legali sono "
+        "dovuti nella misura prevista dalla legislazione sui ritardi di pagamento nelle transazioni commerciali (d.lgs. "
+        "231/2002): va detto nelle conclusioni.", [Rif("cc:1284", "dal momento in cui e' proposta domanda giudiziale")]))
     # Procedibilità
     a.procedibilita = P.mediazione_obbligatoria(None)
     a.procedibilita.append(Punto(
@@ -161,7 +171,7 @@ def analizza_caparra(c: Comprensione, f: Fatti) -> Analisi:
         f"Inviare a {conv} (PEC o raccomandata) la dichiarazione di recesso ai sensi dell'art. 1385, comma 2, c.c., con la "
         f"richiesta di pagamento di {euro(doppio)}: fissa la data della mora per gli interessi (il recesso si può "
         "esercitare anche con l'atto introduttivo).",
-        f"Inviare l'invito alla convenzione di negoziazione assistita e attendere trenta giorni dalla ricezione "
+        "Inviare l'invito alla convenzione di negoziazione assistita e attendere trenta giorni dalla ricezione "
         "(o il rifiuto o il fallimento della negoziazione).",
         "Raccogliere i documenti da produrre: preliminare (clausola 6), contabile del bonifico, convocazione dal notaio "
         "con ricevuta, verbale di mancata comparizione, diffida con ricevuta, annuncio di vendita a terzi.",
@@ -222,9 +232,9 @@ def analizza_pagamento(c: Comprensione, f: Fatti) -> Analisi:
     a.competenza += punti
     a.giudice = giudice
     if f.ha("consumatore"):
-        a.competenza.append(Punto("Se l'attore è un consumatore e il convenuto un professionista, è inderogabilmente "
-                                  "competente il giudice del luogo di residenza o di domicilio del consumatore.",
-                                  [Rif("dlgs206:66bis", "residenza o di domicilio del consumatore")]))
+        a.competenza.append(Punto("Se l'attore è un consumatore e il convenuto un professionista, la causa si propone nel "
+                                  "foro di residenza o domicilio elettivo del consumatore: la clausola contraria è vessatoria.",
+                                  [Rif("dlgs206:33", "residenza o domicilio elettivo del consumatore")]))
     else:
         a.competenza += P.foro_convenuto(f)[1]
     a.procedibilita = []

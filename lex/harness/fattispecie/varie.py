@@ -9,8 +9,8 @@ from ..fatti import Fatti, data_it, euro
 from ..modello import Analisi, Punto, Rif
 from ..norme import piano
 from .. import procedura as P
-from ..termini import data_breve, termine_anni, termine_giorni, termine_mesi
-from .strumenti import data_di, date_in, forma, frase, importi_in
+from ..termini import data_breve, termine, termine_anni, termine_giorni, termine_mesi, tocca_agosto
+from .strumenti import data_di, data_dopo, date_in, forma, frase, importi_in
 
 
 # ------------------------------------------------------------------- sequestro conservativo ottenuto
@@ -39,8 +39,11 @@ def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
                Rif("cpc:669novies", "perde la sua efficacia")]),
     ]
     if pronuncia:
-        ese = termine_giorni(pronuncia, 30, sospensione_feriale=False)
-        mer = termine_giorni(pronuncia, 60, sospensione_feriale=False)
+        ese = termine("LEX_CAU_ESECUZIONE_675", pronuncia)
+        mer = termine("LEX_CAU_MERITO_669OCTIES", pronuncia)
+        if tocca_agosto(pronuncia, mer):
+            a.dubbi.append("Il termine per il merito attraversa agosto: l'applicazione della sospensione feriale al termine "
+                           "dell'art. 669-octies va verificata sulla giurisprudenza prima di contare su giorni in più.")
         a.termini = [Punto(f"Esecuzione del sequestro entro {data_breve(ese)} (trenta giorni dalla pronuncia"
                            + (", che per l'ordinanza fuori udienza coincide con il deposito" if fuori_udienza else "") + ").",
                            [Rif("cpc:675", "trenta giorni dalla pronuncia")]),
@@ -53,7 +56,7 @@ def analizza_sequestro(c: Comprensione, f: Fatti) -> Analisi:
     if residuo:
         a.conclusione = [Punto(f"Credito residuo da far valere nel merito: {euro(prestito)} prestati meno {euro(restituito)} "
                                f"restituiti = {euro(residuo)}.", [Rif("cc:1193", "dichiarare")])]
-        a.procedibilita = [Punto("Per la domanda di merito di pagamento di somme non eccedenti 50.000 euro serve l'invito alla "
+        a.procedibilita = [Punto(f"Per la domanda di merito di pagamento di somme non eccedenti {euro(P.soglia_negoziazione() or 0)} serve l'invito alla "
                                  "negoziazione assistita: va inviato subito, senza ritardare l'inizio del merito; la "
                                  "negoziazione non impedisce i provvedimenti cautelari.",
                                  [Rif("dl132:3", "pagamento a qualsiasi titolo di somme non eccedenti"),
@@ -74,7 +77,8 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
     a = Analisi("opposizione_verbale_cds", "giudice di pace — codice della strada", modello="GDP_004", forma=forma(c))
     accertamento = data_di(f, r"accerta|rilevamento")
     spedizione = data_di(f, r"consegna all ufficio postale|spedit|consegnat\w* (?:all|per la notifica)")
-    notifica = data_di(f, r"e notificato|notificat\w* a [a-z]+ [a-z]+ a mezzo")
+    notifica = (data_dopo(f, r"(?:verbale |e )notificat\w*(?: a [a-z]+ [a-z]+)?(?: a mezzo [a-z]+)?(?: il)?")
+                or data_di(f, r"e notificato|notificat\w* a [a-z]+ [a-z]+ a mezzo", ultima=True))
     comune = (re.search(r"territorio del comune di ([a-z ]+?)(?:,|\.| un )", t) or [None, ""])[1].strip().title()
     sanzione = (importi_in(frase(f, r"sanzione")) or [None])[0]
     a.rimedio = "ricorso in opposizione al verbale di accertamento al giudice di pace (art. 204-bis cod. strada e art. 7 d.lgs. 150/2011)"
@@ -100,8 +104,9 @@ def analizza_verbale_cds(c: Comprensione, f: Fatti) -> Analisi:
                                        "il verbale va annullato" + (f" (sanzione {euro(sanzione)})" if sanzione else "") + ".",
                                        [Rif("dlgs285:201", "entro novanta giorni dall'accertamento")]))
     if notifica:
-        ric = termine_giorni(notifica, 30, sospensione_feriale=False)
-        a.termini.append(Punto(f"Verbale notificato il {data_breve(notifica)}: ricorso al giudice di pace entro {data_breve(ric)}.",
+        ric = termine("CDS_RICORSO_GDP_30GG", notifica)
+        a.termini.append(Punto(f"Verbale notificato il {data_breve(notifica)}: ricorso al giudice di pace entro {data_breve(ric)} "
+                               "(termine processuale: sospensione feriale e proroga del sabato e dei festivi).",
                                [Rif("dlgs150:7", "entro trenta giorni")]))
     a.avvertenze = ["Non pagare e non proporre ricorso al prefetto: il ricorso al giudice di pace è inammissibile se è stato "
                     "presentato prima ricorso al prefetto."]

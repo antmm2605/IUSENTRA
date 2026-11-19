@@ -100,7 +100,7 @@ def riconosci_opposizione_di(c: Comprensione, f: Fatti) -> int:
 
 
 def analizza_opposizione_di(c: Comprensione, f: Fatti) -> Analisi:
-    from ..termini import data_breve, termine_anni, termine_giorni
+    from ..termini import data_breve, termine, termine_anni
     from .strumenti import date_in, forma
 
     t = piano(f.testo)
@@ -141,14 +141,14 @@ def analizza_opposizione_di(c: Comprensione, f: Fatti) -> Analisi:
             f"Chi ha più debiti verso la stessa persona può dichiarare, quando paga, quale intende soddisfare: il pagamento di "
             f"{euro(pagato[0])} va imputato alla fattura n. {pagato[1]}, come da causale.", [Rif("cc:1193", "dichiarare")]))
     if notifica:
-        lim = termine_giorni(notifica, 40)
+        lim = termine("CIV_OPPOSIZIONE_DI", notifica)
         a.termini = [Punto(f"Decreto notificato il {data_breve(notifica)}: opposizione entro {data_breve(lim)} (quaranta "
                            "giorni, termine processuale).", [Rif("cpc:641", "quaranta giorni")])]
         if lim >= f.oggi:
             a.avvertenze.append("Il termine è ancora aperto: l'opposizione tardiva (art. 650 c.p.c.) non serve.")
     dovuto = ingiunto - sum(v for *_, v in prescritte) - (pagato[0] if pagato else 0)
     a.conclusione = [Punto(f"Somma ingiunta {euro(ingiunto)}; non dovuti {euro(ingiunto - dovuto)}"
-                           + (f" (fattura prescritta e pagamento)" if prescritte and pagato else "") +
+                           + (" (fattura prescritta e pagamento)" if prescritte and pagato else "") +
                            f"; somma effettivamente dovuta in linea capitale {euro(dovuto)}. Chiedere la revoca del decreto e "
                            "l'accertamento della minor somma, senza contestare le forniture non contestabili.",
                            [Rif("cpc:645", "ufficio giudiziario al quale appartiene il giudice")])]

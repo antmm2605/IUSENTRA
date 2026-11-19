@@ -50,6 +50,7 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("cc:1224", f"art. 1224 {_CC}", "art. 1224 c.c.", "Danni nelle obbligazioni pecuniarie"),
     _n("cc:1351", f"art. 1351 {_CC}", "art. 1351 c.c.", "Contratto preliminare"),
     _n("cc:1385", f"art. 1385 {_CC}", "art. 1385 c.c.", "Caparra confirmatoria"),
+    _n("cc:1284", f"art. 1284 {_CC}", "art. 1284 c.c.", "Saggio degli interessi"),
     _n("cc:1453", f"art. 1453 {_CC}", "art. 1453 c.c.", "Risolubilità del contratto per inadempimento"),
     _n("cc:1455", f"art. 1455 {_CC}", "art. 1455 c.c.", "Importanza dell'inadempimento"),
     _n("cc:1454", f"art. 1454 {_CC}", "art. 1454 c.c.", "Diffida ad adempiere"),
@@ -176,6 +177,7 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dlgs28:8", "art. 8 d.lgs. 28/2010", "art. 8 d.lgs. 28/2010", "Procedimento"),
     _n("l392:27", "art. 27 l. 392/1978", "art. 27 l. 392/1978", "Durata della locazione non abitativa"),
     _n("l431:13", "art. 13 l. 431/1998", "art. 13 l. 431/1998", "Patti contrari alla legge"),
+    _n("l24:8", "art. 8 l. 24/2017", "art. 8 l. 24/2017", "Tentativo obbligatorio di conciliazione"),
     _n("l604:2", "art. 2 l. 604/1966", "art. 2 l. 604/1966", "Forma del licenziamento"),
     _n("l604:3", "art. 3 l. 604/1966", "art. 3 l. 604/1966", "Giustificato motivo"),
     _n("l604:5", "art. 5 l. 604/1966", "art. 5 l. 604/1966", "Onere della prova"),
@@ -185,6 +187,7 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dlgs23:1", "art. 1 d.lgs. 23/2015", "art. 1 d.lgs. 23/2015", "Campo di applicazione"),
     _n("dlgs23:3", "art. 3 d.lgs. 23/2015", "art. 3 d.lgs. 23/2015", "Licenziamento per giustificato motivo e giusta causa"),
     _n("dlgs23:6", "art. 6 d.lgs. 23/2015", "art. 6 d.lgs. 23/2015", "Offerta di conciliazione"),
+    _n("dlgs23:9", "art. 9 d.lgs. 23/2015", "art. 9 d.lgs. 23/2015", "Piccole imprese e organizzazioni di tendenza"),
     _n("dlgs23:11", "art. 11 d.lgs. 23/2015", "art. 11 d.lgs. 23/2015", "Rito applicabile"),
     _n("dlgs209:139", "art. 139 d.lgs. 209/2005", "art. 139 d.lgs. 209/2005", "Danno non patrimoniale per lesioni di lieve entità"),
     _n("dlgs209:144", "art. 144 d.lgs. 209/2005", "art. 144 d.lgs. 209/2005", "Azione diretta del danneggiato"),
@@ -202,6 +205,10 @@ NORME: dict[str, Norma] = {n.chiave: n for n in (
     _n("dlgs546:18", "art. 18 d.lgs. 546/1992", "art. 18 d.lgs. 546/1992", "Il ricorso"),
     _n("dlgs546:22", "art. 22 d.lgs. 546/1992", "art. 22 d.lgs. 546/1992", "Costituzione in giudizio del ricorrente"),
     _n("l241:21nonies", "art. 21-nonies l. 241/1990", "art. 21-nonies l. 241/1990", "Annullamento d'ufficio"),
+    _n("dlgs206:33", "art. 33 d.lgs. 206/2005", "art. 33 d.lgs. 206/2005 (codice del consumo)", "Clausole vessatorie nel contratto tra professionista e consumatore"),
+    _n("dlgs206:128", "art. 128 d.lgs. 206/2005", "art. 128 d.lgs. 206/2005 (codice del consumo)", "Ambito di applicazione e definizioni"),
+    _n("dlgs206:133", "art. 133 d.lgs. 206/2005", "art. 133 d.lgs. 206/2005 (codice del consumo)", "Termini"),
+    _n("dlgs206:135bis", "art. 135-bis d.lgs. 206/2005", "art. 135-bis d.lgs. 206/2005 (codice del consumo)", "Rimedi per il difetto di conformità"),
     _n("dpr1199:9", "art. 9 d.p.r. 1199/1971", "art. 9 d.P.R. 1199/1971", "Termine del ricorso straordinario"),
     _n("dpr115:30", "art. 30 d.p.r. 115/2002", "art. 30 d.P.R. 115/2002", "Anticipazione forfettaria"),
     _n("dpr115:13", "art. 13 d.p.r. 115/2002", "art. 13 d.P.R. 115/2002", "Contributo unificato"),
@@ -322,3 +329,20 @@ def comma_con(chiave: str, ancora: str, *, massimo: int = 600) -> str:
     fine = len(piano) if fine < 0 else fine + 1
     estratto = piano[inizio:fine].strip()
     return estratto if len(estratto) <= massimo else estratto[: massimo - 1].rstrip() + "…"
+
+
+def contiene_nel_comma(chiave: str, comma: str, ancora: str) -> tuple[bool, bool]:
+    """(ancora trovata, comma individuato). Se il testo ha i commi numerati («1.», «2.») l'ancora deve stare nel comma
+    indicato; se i commi non sono numerati (codici con capoversi) si controlla l'articolo e lo si dichiara."""
+    t = testo_norma(chiave)
+    if t is None or not ancora:
+        return False, False
+    try:
+        from web.services.ricerca_legale_norma_citata import testo_del_comma
+
+        parte = testo_del_comma(" ".join(t.testo.split()), comma) if comma else ""
+    except Exception:
+        parte = ""
+    if parte:
+        return normalizza(ancora) in normalizza(parte), True
+    return normalizza(ancora) in normalizza(t.testo), False

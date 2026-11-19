@@ -145,7 +145,7 @@ def leggi_fatti(testo: str, *, oggi: date | None = None) -> Fatti:
                          r"assistito|assistita|il mio cliente|la mia cliente|mio cliente|mia cliente|ricorrente)", grezzo)
     f.controparte = _parte(r"(?i:controparte|convenuto|resistente|debitore|conduttore moroso)", grezzo)
     if not f.controparte.nome:
-        f.controparte = _parte(r"(?i:verso|contro|nei confronti di|dipendente di|alle dipendenze di|il promittente venditore|"
+        f.controparte = _parte(r"(?i:verso|contro|nei confronti di|dipendente di|alle dipendenze di|commissionat\w* a|affidat\w* a|il promittente venditore|"
                                r"la promittente venditrice|il venditore|il conduttore|il locatore|il datore di lavoro)", grezzo)
         if f.controparte.nome and f.controparte.nome == f.assistita.nome:
             f.controparte = Parte()

@@ -78,8 +78,11 @@ def riconosci_licenziamento(c: Comprensione, f: Fatti) -> int:
 
 
 def _data_ricezione_licenziamento(f: Fatti):
-    from .strumenti import date_in, frase
+    from .strumenti import data_dopo, date_in, frase
 
+    diretta = data_dopo(f, r"(?:lettera|licenziamento|recesso)[^0-9.]{0,30}?(?:ricevut\w*|consegnat\w*|comunicat\w*)(?: il)?")
+    if diretta:
+        return diretta
     x = frase(f, r"licenzia\w*[^.]{0,200}(?:consegnat|ricev|comunicat|sottoscritt)|(?:consegnat|ricev)\w*[^.]{0,80}licenzia")
     d = date_in(x)
     return d[-1] if d else (f.eventi[0].data if f.eventi else None)
@@ -94,7 +97,9 @@ def analizza_licenziamento(c: Comprensione, f: Fatti) -> Analisi:
     ricezione = _data_ricezione_licenziamento(f)
     x_imp = frase(f, r"impugna\w*[^.]{0,60}(?:pec|raccomandat|lettera)|(?:pec|raccomandat)[^.]{0,60}impugna")
     impugnazione = (date_in(x_imp) or [None])[0] if x_imp and not re.search(r"\bnon\b|nessun", piano(x_imp)) else None
-    assunzione = data_di(f, r"assunt\w*")
+    from .strumenti import data_dopo
+
+    assunzione = data_dopo(f, r"assunt\w*(?: a tempo indeterminato)?(?: il| dal)?") or data_di(f, r"assunt\w*")
     m_dip = re.search(r"(\d+)\s+dipendenti", t)
     dipendenti = int(m_dip.group(1)) if m_dip else None
     m_ret = re.search(r"retribuzione[^.]{0,60}?(?:euro\s*)?([\d.]+(?:,\d+)?)\s*(?:euro)?", t)
@@ -112,6 +117,10 @@ def analizza_licenziamento(c: Comprensione, f: Fatti) -> Analisi:
               "del licenziamento.", [Rif("l604:6", "entro sessanta giorni dalla ricezione della sua comunicazione"),
                                      Rif("l604:6", "centottanta giorni"), Rif("l183:32", "invalidita del licenziamento")]),
     ]
+    a.termini.append(Punto("La sospensione feriale non si applica comunque alle controversie di lavoro: l'art. 3 l. 742/1969 "
+                       "esclude le cause dell'art. 92 dell'ordinamento giudiziario e le controversie di lavoro e di previdenza, "
+                       "richiamate con la numerazione del codice di rito anteriore alla l. 533/1973 (oggi artt. 409 ss. c.p.c.).",
+                       [Rif("l742:3", "controversie previste dagli articoli 429 e 459")]))
     scaduto = False
     if ricezione:
         lim = termine_giorni(ricezione, 60, sostanziale=True)
@@ -141,28 +150,55 @@ def analizza_licenziamento(c: Comprensione, f: Fatti) -> Analisi:
         a.dati_mancanti = ["conferma della data di ricezione e di eventuali comunicazioni scritte del sindacato",
                            "conteggi di TFR, ferie e ultime retribuzioni"]
         return a
-    if assunzione and assunzione.year >= 2015 and (assunzione.year > 2015 or assunzione.month >= 3):
-        a.inquadramento.append(Punto("Lavoratore assunto a tempo indeterminato dopo il 7 marzo 2015: si applicano le tutele "
-                                     "crescenti del d.lgs. 23/2015 e non l'art. 18 dello Statuto dei lavoratori.",
+    from datetime import date as _date
+
+    if assunzione and assunzione >= _date(2015, 3, 7):
+        # Art. 1 d.lgs. 23/2015: assunti a tempo indeterminato dalla data di entrata in vigore (07/03/2015).
+        piccola = dipendenti is not None and dipendenti <= 15
+        a.inquadramento.append(Punto("Lavoratore assunto a tempo indeterminato dal 7 marzo 2015, data di entrata in vigore "
+                                     "del d.lgs. 23/2015: si applicano le tutele crescenti e non l'art. 18 dello Statuto.",
                                      [Rif("dlgs23:1", "a decorrere dalla data di entrata in vigore")]))
-        a.inquadramento.append(Punto("Se non ricorrono gli estremi del giustificato motivo oggettivo, il giudice dichiara estinto "
-                                     "il rapporto e condanna al pagamento di un'indennità non inferiore a sei e non superiore a "
-                                     "trentasei mensilità dell'ultima retribuzione di riferimento per il TFR; nei casi di "
-                                     "insussistenza del fatto la tutela può essere la reintegrazione con indennità fino a dodici "
-                                     "mensilità (per il GMO dopo la pronuncia della Corte costituzionale indicata nella scheda, da "
-                                     "leggere prima di citarla).",
-                                     [Rif("dlgs23:3", "non inferiore a sei e non superiore a trentasei mensilita"),
-                                      Rif("dlgs23:3", "dodici mensilita")]))
+        if dipendenti is None:
+            a.dubbi.append("Numero dei dipendenti non indicato: serve per sapere se il datore supera le soglie dell'art. 18, "
+                           "commi 8 e 9, St. lav. (più di quindici nell'unità o nel comune, o più di sessanta in tutto).")
+        elif piccola:
+            a.inquadramento.append(Punto(
+                f"Datore con {dipendenti} dipendenti, sotto le soglie dell'art. 18, commi 8 e 9, St. lav. (da confermare "
+                "anche il totale nazionale, oltre sessanta): per le piccole imprese gli importi sono dimezzati e non si applica "
+                "la reintegrazione dell'art. 3, comma 2, salvo i licenziamenti nulli.",
+                [Rif("dlgs23:9", "dimezzat"), Rif("l300:18", "piu' di quindici")]))
+        else:
+            a.inquadramento.append(Punto(
+                "Se non ricorrono gli estremi del giustificato motivo oggettivo, il giudice dichiara estinto il rapporto e "
+                "condanna a un'indennità non inferiore a sei e non superiore a trentasei mensilità dell'ultima retribuzione "
+                "di riferimento per il TFR; nell'insussistenza del fatto la tutela può essere la reintegrazione con "
+                "un'indennità non superiore a dodici mensilità.",
+                [Rif("dlgs23:3", "non inferiore a sei e non superiore a trentasei mensilita"),
+                 Rif("dlgs23:3", "dodici mensilita")]))
         a.rito.append(Punto("Ai licenziamenti soggetti al d.lgs. 23/2015 non si applica il rito speciale della legge 92/2012: "
                             "ricorso ordinario nel rito del lavoro.", [Rif("dlgs23:11", "non si applicano")]))
         if retribuzione:
-            a.conclusione.append(Punto(f"Importi su retribuzione mensile di {euro(retribuzione)}: minimo sei mensilità "
-                                       f"{euro(6 * retribuzione)}; massimo dodici mensilità con la reintegrazione "
-                                       f"{euro(12 * retribuzione)}; massimo trentasei mensilità {euro(36 * retribuzione)}.",
-                                       [Rif("dlgs23:3", "non inferiore a sei e non superiore a trentasei mensilita")]))
+            calcolo = _indennita(retribuzione, assunzione, ricezione, piccola)
+            if piccola:
+                righe = (f"minimo tre mensilità {euro(3 * retribuzione)}; massimo diciotto mensilità {euro(18 * retribuzione)}")
+            else:
+                righe = (f"minimo sei mensilità {euro(6 * retribuzione)}; massimo dodici mensilità con la reintegrazione "
+                         f"{euro(12 * retribuzione)}; massimo trentasei mensilità {euro(36 * retribuzione)}")
+            a.conclusione.append(Punto(
+                f"Importi su retribuzione mensile di {euro(retribuzione)}: {righe}"
+                + (f". Parametro del calcolatore di IUSENTRA (anzianità {calcolo['anzianita']} anni): {calcolo['mensilita']} "
+                   f"mensilità, {euro(calcolo['importo'])}; la misura in concreto la determina il giudice" if calcolo else "") + ".",
+                [Rif("dlgs23:9", "dimezzat")] if piccola else [Rif("dlgs23:3", "non inferiore a sei e non superiore a trentasei mensilita")]))
+            a.dubbi.append("Le pronunce della Corte costituzionale sul d.lgs. 23/2015 (fra cui 194/2018, 150/2020, 183/2022, "
+                           "22/2024, 128/2024, 118/2025) incidono su criteri e tutele: vanno lette nell'archivio prima di "
+                           "citarle nell'atto.")
         if not re.search(r"offerta di conciliazione[^.]{0,40}ricevut", t) or "nessuna offerta" in t:
             a.inquadramento.append(Punto("Un'eventuale offerta di conciliazione del datore va valutata se arriva.",
                                          [Rif("dlgs23:6", "offerta")]))
+    elif assunzione:
+        a.inquadramento.append(Punto("Lavoratore assunto prima del 7 marzo 2015: si applica l'art. 18 dello Statuto dei "
+                                     "lavoratori, se il datore supera le soglie dimensionali.",
+                                     [Rif("l300:18", "piu' di quindici")]))
     if gmo:
         a.inquadramento.append(Punto("Il giustificato motivo oggettivo riguarda ragioni inerenti all'attività produttiva e "
                                      "all'organizzazione del lavoro; l'onere della prova spetta al datore. Una nuova assunzione "
@@ -209,3 +245,18 @@ def analizza_competenza_lavoro(c: Comprensione, f: Fatti) -> Analisi:
     a.conclusione = [Punto(f"È competente il {a.giudice}.", [Rif("cpc:413", "tribunale in funzione di giudice del lavoro"),
                                                          Rif("cpc:413", "e sorto il rapporto ovvero si trova l'azienda")])]
     return a
+
+
+def _indennita(retribuzione: float, assunzione, licenziamento, piccola: bool) -> dict | None:
+    """Calcolatore dell'indennità di licenziamento di IUSENTRA (strumenti_legali, artt. 3 e 9 d.lgs. 23/2015)."""
+    if not (assunzione and licenziamento):
+        return None
+    try:
+        from pct.strumenti_legali import GestioneStrumentiLegali
+
+        mesi = (licenziamento.year - assunzione.year) * 12 + licenziamento.month - assunzione.month - (licenziamento.day < assunzione.day)
+        return GestioneStrumentiLegali().calcola_indennita_licenziamento({
+            "lic_retribuzione_mensile": retribuzione, "lic_anni_servizio": mesi // 12, "lic_mesi_servizio": mesi % 12,
+            "lic_regime": "piccola_impresa" if piccola else "jobs_act"})
+    except Exception:
+        return None

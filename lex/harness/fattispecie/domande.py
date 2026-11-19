@@ -9,7 +9,7 @@ from ..fatti import Fatti, euro
 from ..modello import Analisi, Punto, Rif
 from ..norme import piano
 from .. import procedura as P
-from ..termini import data_breve, termine_giorni, termine_mesi
+from ..termini import data_breve, termine, termine_giorni, termine_mesi, tocca_agosto
 
 
 def _t(f: Fatti) -> str:
@@ -52,6 +52,12 @@ def riconosci_mediazione(c: Comprensione, f: Fatti) -> int:
 
 def _materia_mediazione(t: str) -> str | None:
     for nome, parola in (("condominio", "condomin"), ("locazione", "locazion"), ("diritti reali", "servitu|usucapion|proprieta"),
+                         ("diffamazione con la stampa o altro mezzo di pubblicità", "diffamazion"),
+                         ("patti di famiglia", "patto di famiglia|patti di famiglia"), ("affitto di aziende", "affitto d\\w* azienda"),
+                         ("associazione in partecipazione", "associazione in partecipazione"), ("consorzio", "consorzi"),
+                         ("franchising", "franchising"), ("somministrazione", "somministrazion"),
+                         ("società di persone", "societa di persone|\\bs\\.?n\\.?c\\b|\\bs\\.?a\\.?s\\b"),
+                         ("subfornitura", "subfornitur"),
                          ("successioni ereditarie", "eredit|successi"), ("divisione", "divisione"), ("comodato", "comodato"),
                          ("contratti assicurativi, bancari e finanziari", "banca|bancari|assicurat|finanziari|mutuo"),
                          ("responsabilità medica e sanitaria", "medic|sanitari|ospedal")):
@@ -101,50 +107,13 @@ def analizza_appello_lavoro(c: Comprensione, f: Fatti) -> Analisi:
     a.termini = [Punto("La sospensione feriale dei termini non si applica alle controversie di lavoro.",
                        [Rif("l742:3", "429")])]
     if d:
-        scad = termine_giorni(d, 30, sospensione_feriale=False)
+        scad = termine("LEX_LAV_APPELLO_434", d)
         a.conclusione.append(Punto(f"Sentenza notificata il {data_breve(d)}: appello entro {data_breve(scad)} (senza "
                                    "sospensione feriale).", [Rif("cpc:434", "trenta giorni dalla notificazione della sentenza")]))
     return a
 
 
 # ---------------------------------------------------------------------------------- esecuzione
-def riconosci_precetto(c: Comprensione, f: Fatti) -> int:
-    t = _t(f)
-    return 3 if "precett" in t else 0
-
-
-def analizza_precetto(c: Comprensione, f: Fatti) -> Analisi:
-    a = Analisi("precetto", "esecuzione", modello="ESE_001")
-    a.inquadramento = [
-        Punto("Il precetto è l'intimazione di adempiere l'obbligo risultante dal titolo esecutivo entro un termine non "
-              "minore di dieci giorni, con l'avvertimento che, in mancanza, si procederà a esecuzione forzata.",
-              [Rif("cpc:480", "termine non minore di dieci giorni")]),
-        Punto("Prima che sia decorso il termine indicato nel precetto non si può iniziare l'esecuzione forzata.",
-              [Rif("cpc:482", "prima che sia decorso il termine indicato nel precetto")]),
-    ]
-    a.conclusione = [Punto("Il precetto diventa inefficace se entro novanta giorni dalla notificazione non è iniziata "
-                           "l'esecuzione.", [Rif("cpc:481", "novanta giorni")])]
-    d = _prima_data(f)
-    if d and re.search(r"notificat", _t(f)):
-        a.conclusione.append(Punto(f"Precetto notificato il {data_breve(d)}: esecuzione da iniziare dopo dieci giorni e "
-                                   f"entro {data_breve(termine_giorni(d, 90))}.", [Rif("cpc:481", "novanta giorni")]))
-    if c.tipo == "redazione":
-        from ..bozze import ricorso_generico
-
-        cred = f.importi[0].valore if f.importi else None
-        a.bozza = ricorso_generico(
-            "Atto di precetto (art. 480 c.p.c.)", "", f, "intimazione di pagamento in forza di titolo esecutivo",
-            ["Titolo esecutivo: [sentenza/decreto, ufficio, numero, data] spedito in forma esecutiva e notificato il [da completare].",
-             "Somme dovute: capitale " + (euro(cred) if cred else "[da completare]") + ", interessi, spese liquidate e "
-             "successive, compensi del precetto: [da completare].",
-             "Avvertimento: il debitore può porre rimedio alla situazione di sovraindebitamento con un accordo di "
-             "composizione della crisi o un piano del consumatore, con l'ausilio di un organismo di composizione della crisi."],
-            "si intima di pagare entro dieci giorni dalla notificazione del presente atto le somme indicate, con "
-            "l'avvertimento che in mancanza si procederà a esecuzione forzata.", "titolo esecutivo in forma esecutiva.",
-            "artt. 479 e 480 c.p.c.")
-    return a
-
-
 def riconosci_opposizione_atti(c: Comprensione, f: Fatti) -> int:
     return 3 if re.search(r"opposizione agli atti esecutivi|617", _t(f)) else 0
 
@@ -156,7 +125,7 @@ def analizza_opposizione_atti(c: Comprensione, f: Fatti) -> Analisi:
                            [Rif("cpc:617", "venti giorni")])]
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine_giorni(d, 20))}.", [Rif("cpc:617", "venti giorni")]))
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: scadenza {data_breve(termine("ESE_OPPOSIZIONE_ATTI_617", d))}.", [Rif("cpc:617", "venti giorni")]))
     return a
 
 
@@ -175,9 +144,11 @@ def analizza_delibera(c: Comprensione, f: Fatti) -> Analisi:
     a.procedibilita = P.mediazione_obbligatoria("condominio")
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Dal {data_breve(d)}: trenta giorni scadono {data_breve(termine_giorni(d, 30))} "
-                                   "(calcolo con sospensione feriale e proroga dei festivi; verifica se il tuo caso è "
-                                   "termine sostanziale).", [Rif("cc:1137", "termine perentorio di trenta giorni")]))
+        a.conclusione.append(Punto(f"Dal {data_breve(d)}: trenta giorni scadono {data_breve(termine_giorni(d, 30, sostanziale=True))} "
+                                   "(termine di decadenza, calcolato senza sospensione feriale).", [Rif("cc:1137", "termine perentorio di trenta giorni")]))
+    if d and tocca_agosto(d, termine_giorni(d, 30, sostanziale=True)):
+        a.dubbi.append("Il termine attraversa agosto: se la sospensione feriale si applichi al termine dell'art. 1137 c.c. "
+                       "va verificato sulla giurisprudenza; per prudenza si rispetta la scadenza senza sospensione.")
     a.dubbi.append("La domanda di mediazione, comunicata alle altre parti, impedisce la decadenza per una sola volta: "
                    "depositala entro i trenta giorni.")
     return a
@@ -203,12 +174,14 @@ def analizza_consumatore(c: Comprensione, f: Fatti) -> Analisi:
     valore = max(i.valore for i in f.importi)
     a = Analisi("consumatore", "consumatori", valore=valore)
     giudice, punti = P.giudice_per_valore(valore)
-    a.competenza = punti + [Punto("Foro del consumatore: è inderogabilmente competente il giudice del luogo di residenza "
-                                  "o di domicilio del consumatore.", [Rif("dlgs206:66bis", "residenza o di domicilio del consumatore")])]
+    a.competenza = punti + [Punto("Foro del consumatore: nei contratti fra professionista e consumatore è vessatoria la "
+                                  "clausola che fissa un foro diverso da quello di residenza o domicilio elettivo del consumatore, "
+                                  "che resta quindi il foro della causa (per le controversie sulle Sezioni I-IV del capo sui diritti dei "
+                                  "consumatori nei contratti lo dice espressamente l'art. 66-bis).", [Rif("dlgs206:33", "residenza o domicilio elettivo del consumatore")])]
     a.procedibilita = P.negoziazione_pagamento(valore, consumatore=True)
     a.conclusione = [Punto(f"{giudice} del luogo di residenza o domicilio del consumatore; negoziazione assistita non "
                            "obbligatoria per i contratti fra professionisti e consumatori.",
-                           (punti[0].rif if punti else []) + [Rif("dlgs206:66bis", "residenza o di domicilio del consumatore"),
+                           (punti[0].rif if punti else []) + [Rif("dlgs206:33", "residenza o domicilio elettivo del consumatore"),
                                                               Rif("dl132:3", "contratti conclusi tra professionisti e consumatori")])]
     a.giudice = giudice
     return a
@@ -238,7 +211,7 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
                            "giorno della notizia del fatto che costituisce il reato.", [Rif("cp:124", "tre mesi")])]
     d = _prima_data(f)
     if d:
-        a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine_mesi(d, 3, sospensione_feriale=False))}.",
+        a.conclusione.append(Punto(f"Notizia del fatto il {data_breve(d)}: querela entro {data_breve(termine("LEX_PEN_QUERELA_124", d))}.",
                                    [Rif("cp:124", "tre mesi")]))
     a.dubbi.append("Alcuni reati hanno termini diversi stabiliti dalla legge: verifica la norma del reato specifico.")
     t = _t(f)
@@ -246,7 +219,7 @@ def analizza_querela(c: Comprensione, f: Fatti) -> Analisi:
 
     notizia = data_di(f, r"apprende|viene a sapere|ha saputo|notizia")
     if notizia:
-        lim = termine_mesi(notizia, 3, sospensione_feriale=False, sostanziale=True)
+        lim = termine("LEX_PEN_QUERELA_124", notizia)
         a.conclusione = [Punto(f"Il termine decorre dalla notizia del fatto ({notizia.strftime('%d/%m/%Y')}), non dalla "
                                f"pubblicazione: querela entro {data_breve(lim)}.", [Rif("cp:124", "tre mesi")])]
     if re.search(r"facebook|social|post|pubblic", t):
@@ -302,7 +275,7 @@ def analizza_tar(c: Comprensione, f: Fatti) -> Analisi:
     d = _data_di(f, r"notificat|comunicat") or _prima_data(f)
     if d:
         a.conclusione.append(Punto(f"Provvedimento notificato il {data_breve(d)}: ricorso da notificare entro "
-                                   f"{data_breve(termine_giorni(d, 60))} (sessanta giorni con la sospensione feriale).",
+                                   f"{data_breve(termine('LEX_AMM_RICORSO_29', d))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("cpa:29", "sessanta giorni"), Rif("l742:1", "giurisdizioni ordinarie ed a quelle amministrative")]))
     a.dubbi.append("Riti speciali (appalti, accesso agli atti, silenzio) hanno termini dimezzati o diversi: verifica il rito.")
     t = _t(f)
@@ -372,12 +345,12 @@ def analizza_tributario(c: Comprensione, f: Fatti) -> Analisi:
 
     d = _data_di(f, r"notifica\w*[^.]{0,80}avviso|avviso[^.]{0,40}notificat") or _prima_data(f)
     if d:
-        cost = termine_giorni(termine_giorni(d, 60), 30, sospensione_feriale=False)
+        cost = termine("LEX_TRIB_COSTITUZIONE_22", termine("LEX_TRIB_RICORSO_21", d))
         a.termini.append(Punto(f"Costituzione in giudizio entro trenta giorni dalla notifica del ricorso: se il ricorso è "
                                f"notificato l'ultimo giorno utile, entro {data_breve(cost)}.", [Rif("dlgs546:22", "trenta giorni")]))
     if d:
         a.conclusione.append(Punto(f"Atto notificato il {data_breve(d)}: ricorso da notificare entro "
-                                   f"{data_breve(termine_giorni(d, 60))} (sessanta giorni con la sospensione feriale).",
+                                   f"{data_breve(termine('LEX_TRIB_RICORSO_21', d))} (sessanta giorni con la sospensione feriale).",
                                    [Rif("dlgs546:21", "entro sessanta giorni dalla data di notificazione")]))
     t = _t(f)
     from .strumenti import data_di

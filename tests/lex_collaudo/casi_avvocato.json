@@ -200,34 +200,38 @@
    "domanda": "Data di oggi 10/11/2026 Parte assistita Paolo Divella (committente) Controparte Clima Sud Impianti S.n.c. di Ruggiero e Lomuscio (appaltatore) Richiesta dell'avvocato Prepara la citazione contro l'installatore: l'impianto di climatizzazione che ha montato al cliente non ha mai funzionato bene. Chiediamo riduzione del prezzo e danni. Fatti del fascicolo Contratto d'appalto del 15/01/2026 per la fornitura e posa di un impianto di climatizzazione multisplit nell'abitazione Divella a Monopoli; corrispettivo 9.800 euro, interamente pagato. Collaudo e consegna il 20/02/2026 (verbale firmato senza riserve). Il 10/03/2026, alla prima accensione in caldo, l'impianto andava in blocco e due split perdevano condensa: lo dicono la mail del cliente alla figlia del 10/03/2026 e le foto dello stesso giorno. Il cliente ha telefonato più volte all'impresa, ma non ci sono prove scritte né riconoscimenti dei vizi da parte dell'appaltatore. Prima contestazione scritta: PEC del 20/06/2026 all'impresa, che il 25/06/2026 ha risposto eccependo la tardività della denuncia. Perizia di parte del 10/09/2026: errata carica di refrigerante e pendenze errate degli scarichi; costo di ripristino 3.200 euro. Nessun altro atto.",
    "attese": {
     "rimedio": [
-     "parere",
-     "decadenza",
-     "riconoscimento"
+     "garanzia di conformita",
+     "codice del consumo"
     ],
     "giudice_rito": [
-     "giudice di pace"
+     "giudice di pace di monopoli"
     ],
     "norme": [
      "cc:1667",
      "cc:1668",
-     "cc:2697",
-     "cpc:7"
+     "dlgs206:128",
+     "dlgs206:133",
+     "dlgs206:135bis",
+     "dlgs206:33",
+     "cpc:7",
+     "dl132:3"
     ],
     "termini_importi": [
      "09/05/2026",
      "21/02/2028",
-     "tardiva",
+     "20/04/2028",
      "3\\.200"
     ],
     "avvertenze": [
-     "inadatta"
+     "decadenza",
+     "non e obbligatoria"
     ],
     "dati": [
-     "riconoscimento dei vizi",
-     "sede dell.impresa"
+     "telefonate"
     ],
-    "bozza": false
-   }
+    "bozza": true
+   },
+   "nota": "verifica del 19/11: contratto impresa-consumatore → garanzia di conformità (artt. 128, 133, 135-bis cod. cons.) senza onere di denuncia nel testo vigente; negoziazione esclusa; foro del consumatore (art. 33 c. 2 lett. u)"
   },
   {
    "id": "V7B_16",
@@ -372,28 +376,34 @@
      "1668"
     ],
     "giudice_rito": [
-     "giudice di pace|tribunale"
+     "giudice di pace di monopoli"
     ],
     "norme": [
      "cc:1667",
      "cc:1668",
      "cc:1669",
      "cc:2943",
+     "dlgs206:128",
+     "dlgs206:133",
+     "dlgs206:33",
      "dl132:3"
     ],
     "termini_importi": [
      "03/04/2026",
      "14/07/2027",
+     "14/09/2027",
      "6\\.900"
     ],
     "avvertenze": [
-     "non e applicabile|non si applica"
+     "non e applicabile|non si applica",
+     "non e obbligatoria"
     ],
     "dati": [
      "ricevuta di consegna"
     ],
     "bozza": false
-   }
+   },
+   "nota": "verifica del 19/11: consumatore → negoziazione esclusa (art. 3 c. 1 d.l. 132/2014), garanzia di conformità concorrente, giudice di pace (valore 6.900) del foro del consumatore"
   },
   {
    "id": "D4_1_02",

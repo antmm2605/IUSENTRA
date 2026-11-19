@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from .fatti import Fatti, euro
 from .modello import Punto, Rif
+import re
 from functools import lru_cache
 
 from .norme import importo_in_lettere_dopo
@@ -14,12 +15,16 @@ from .norme import importo_in_lettere_dopo
 # Materie dell'art. 5, comma 1, d.lgs. 28/2010 (mediazione obbligatoria): nome → parole letterali del testo vigente.
 MATERIE_MEDIAZIONE = {
     "condominio": "condominio", "diritti reali": "diritti reali", "divisione": "divisione",
-    "successioni ereditarie": "successioni ereditarie", "locazione": "locazione", "comodato": "comodato",
-    "affitto di aziende": "affitto di aziende", "responsabilità medica e sanitaria": "responsabilita medica e sanitaria",
+    "successioni ereditarie": "successioni ereditarie", "patti di famiglia": "patti di famiglia", "locazione": "locazione",
+    "comodato": "comodato", "affitto di aziende": "affitto di aziende",
+    "responsabilità medica e sanitaria": "responsabilita' medica e sanitaria",
+    "diffamazione con la stampa o altro mezzo di pubblicità": "diffamazione con il mezzo della stampa",
     "contratti assicurativi, bancari e finanziari": "contratti assicurativi, bancari e finanziari",
-    "contratti di opera": "opera", "somministrazione": "somministrazione", "franchising": "franchising",
-    "subfornitura": "subfornitura",
+    "associazione in partecipazione": "associazione in partecipazione", "consorzio": "consorzio",
+    "franchising": "franchising", "contratti di opera": "opera", "contratti di rete": "rete",
+    "somministrazione": "somministrazione", "società di persone": "societa' di persone", "subfornitura": "subfornitura",
 }
+_ELENCO_ART5 = "e' tenuto preliminarmente a esperire il procedimento di mediazione"
 
 
 def limite_gdp_beni_mobili() -> int | None:
@@ -88,14 +93,20 @@ def foro_convenuto(f: Fatti, *, obbligazione: bool = True) -> tuple[str, list[Pu
 
 def mediazione_obbligatoria(materia: str | None) -> list[Punto]:
     if materia and materia in MATERIE_MEDIAZIONE:
-        return [Punto(f"Mediazione obbligatoria: la controversia in materia di {materia} rientra nell'elenco dell'art. 5, "
-                      "comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di "
-                      "procedibilità della domanda.", [Rif("dlgs28:5", MATERIE_MEDIAZIONE[materia]),
-                                                     Rif("dlgs28:5", "condizione di procedibilita")])]
-    return [Punto("Mediazione: la domanda non rientra fra le materie dell'art. 5, comma 1, d.lgs. 28/2010 "
-                  "(condominio, diritti reali, divisione, successioni, locazione, comodato, contratti bancari e "
-                  "assicurativi e le altre elencate): non è condizione di procedibilità.",
-                  [Rif("dlgs28:5", "diritti reali")])]
+        punti = [Punto(f"Mediazione obbligatoria: la controversia in materia di {materia} rientra nell'elenco dell'art. 5, "
+                       "comma 1, d.lgs. 28/2010; l'esperimento del procedimento di mediazione è condizione di "
+                       "procedibilità della domanda.", [Rif("dlgs28:5", MATERIE_MEDIAZIONE[materia], "1"),
+                                                      Rif("dlgs28:5", "condizione di procedibilita", "2")])]
+        if materia == "responsabilità medica e sanitaria":
+            punti.append(Punto("Per la responsabilità sanitaria, in alternativa alla mediazione, si può proporre il ricorso per "
+                               "consulenza tecnica preventiva ai fini della composizione della lite.",
+                               [Rif("l24:8", "696-bis")]))
+        return punti
+    # Una negazione non si ancora a una parola dell'elenco: l'ancora è la regola del comma 1, e il confronto con le
+    # 21 materie dell'elenco è scritto nel registro.
+    return [Punto("Mediazione: la domanda non rientra fra le materie per cui chi agisce «è tenuto preliminarmente a "
+                  "esperire il procedimento di mediazione» (art. 5, comma 1, d.lgs. 28/2010: " + ", ".join(MATERIE_MEDIAZIONE)
+                  + "): non è condizione di procedibilità.", [Rif("dlgs28:5", _ELENCO_ART5, "1")])]
 
 
 def negoziazione_pagamento(valore: float, *, consumatore: bool = False, mediazione: bool = False,
@@ -162,15 +173,28 @@ def _uffici() -> frozenset[str]:
 
 
 def ufficio(giudice: str, citta: str) -> str:
-    """«Tribunale di Bari» solo se l'ufficio esiste nel bundle dei 648 uffici; altrimenti il circondario resta da verificare.
-
-    Il comune del fatto («Modugno») non è sempre sede di tribunale: la geografia giudiziaria (d.lgs. 155/2012) decide il
-    circondario, che qui non si indovina.
-    """
+    """Ufficio competente per il comune: banca dati degli uffici per comune del Ministero (pct/uffici_competenti),
+    che dà anche il circondario dei comuni che non sono sede (Modugno → Bari); in mancanza, il bundle dei 648 uffici."""
     if not citta:
         return giudice
-    nome = (f"Ufficio del Giudice di Pace di {citta}" if giudice.lower().startswith("giudice di pace")
-            else f"{giudice} di {citta}")
+    tipo = "giudice_pace" if giudice.lower().startswith("giudice di pace") else "tribunale"
+    try:
+        from pct.uffici_competenti import ricerca_uffici_competenti
+
+        esito = ricerca_uffici_competenti(citta, timeout=4.0)
+        uffici = [u for u in esito.get("offices", []) if u.get("kind") == tipo]
+        if uffici:
+            nome = str(uffici[0].get("name") or "")
+            m = re.match(r"(?i)^(?:tribunale(?: ordinario)?|(?:ufficio del )?giudice di pace) di (.+)$", nome.strip())
+            sede = m.group(1).title() if m else ""
+            if sede.lower() == citta.lower():
+                sede = citta
+            base = "Giudice di pace" if tipo == "giudice_pace" else giudice
+            if sede:
+                return f"{base} di {sede}" + ("" if sede.lower() == citta.lower() else f" (competente per {citta})")
+    except Exception:
+        pass
+    nome = (f"Ufficio del Giudice di Pace di {citta}" if tipo == "giudice_pace" else f"{giudice} di {citta}")
     if nome.lower() in _uffici():
         return nome.replace("Ufficio del Giudice di Pace", "Giudice di pace")
     return f"{giudice} nel cui circondario si trova {citta} [ufficio da verificare]"

@@ -142,19 +142,19 @@
    "domanda": "Un consumatore deve chiedere a un negozio di elettronica la restituzione di 3.000 euro per un televisore difettoso: quale giudice è competente e serve la negoziazione assistita?",
    "norme_attese": [
     "cpc:7",
-    "dlgs206:66bis",
+    "dlgs206:33",
     "dl132:3"
    ],
    "conclusione": [
     "giudice di pace",
-    "residenza o di domicilio del consumatore",
+    "residenza o domicilio elettivo del consumatore",
     "non e obbligatoria"
    ],
    "vietate": [
     "negoziazione assistita obbligatoria:"
    ],
    "percorso": "harness",
-   "nota": ""
+   "nota": "foro del consumatore: art. 33, comma 2, lett. u), cod. cons. (l'art. 66-bis vale per i contratti a distanza e fuori dei locali)"
   },
   {
    "id": "mediazione_condominio",

@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 
 from .modello import Analisi, Punto
-from .norme import NORME, contiene, testo_norma
+from .norme import NORME, contiene, contiene_nel_comma, testo_norma
 
 _SIGLE = {
     "c.c.": "cc", "c.p.c.": "cpc", "c.p.": "cp", "c.p.p.": "cpp", "c.p.a.": "cpa",
@@ -76,7 +76,15 @@ def _verifica_punto(p: Punto) -> None:
         if testo_norma(r.chiave) is None:
             p.verificato, p.motivo = False, f"{NORME[r.chiave].citazione}: testo vigente non leggibile dall'archivio"
             return
-        if not contiene(r.chiave, r.ancora):
+        if r.comma:
+            trovata, individuato = contiene_nel_comma(r.chiave, r.comma, r.ancora)
+            if not trovata:
+                p.verificato, p.motivo = False, (f"{NORME[r.chiave].citazione}, comma {r.comma}: il testo vigente non "
+                                                 f"contiene «{r.ancora}»")
+                return
+            if not individuato:
+                p.motivo = f"{NORME[r.chiave].citazione}: commi non numerati, ancora controllata sull'articolo"
+        elif not contiene(r.chiave, r.ancora):
             p.verificato, p.motivo = False, f"{NORME[r.chiave].citazione}: il testo vigente non contiene «{r.ancora}»"
             return
     p.verificato = True

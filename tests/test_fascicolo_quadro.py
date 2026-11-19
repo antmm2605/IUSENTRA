@@ -118,7 +118,7 @@ def test_endpoint_quadro_contratto(tmp_path: Path):
         assente = client.get("/api/v1/ui/fascicoli/NONESISTE/quadro", headers=HEADERS)
     assert risposta.status_code == 200
     dati = risposta.get_json()
-    assert dati["ok"] is True and set(dati) == {"ok", "stato", "righe", "generato_il", "esito_dispositivo", "lettura_precedente"}
+    assert dati["ok"] is True and set(dati) == {"ok", "stato", "righe", "generato_il", "esito_dispositivo", "lettura_precedente", "testata"}
     assert dati["stato"]["codice"] in {"in_corso", "definita", "da_archiviare", "archiviata", "sospesa"}
     assert [r["tema"] for r in dati["righe"]] == ["prossimo_passo", "termini", "economia", "notifiche", "documenti"]
     for voce in dati["righe"]:

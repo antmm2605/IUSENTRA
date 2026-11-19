@@ -209,6 +209,7 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
             riga_economia_materializzata,
             riga_notifiche_da_lettura,
             riga_termini_da_lettura,
+            testata_da_lettura,
         )
         from web.services.obblighi_notifica_sintesi import leggi as sintesi_obblighi
         from web.services.riscontri_processuali_runtime import lettura_consultiva
@@ -246,6 +247,7 @@ def _ricomponi(pannello: Pannello, corpo: bytes, fascicolo_id: str, *, quadro_pr
             richiedi_lettura_dal_quadro(fascicolo_id) if accoda_lettura else quadro_precedente
         )
         dati["esito_dispositivo"] = esito_dispositivo_da_lettura(lettura)
+        dati["testata"] = testata_da_lettura(lettura)
         dati["righe"] = list(righe.values())
         return json.dumps(dati, ensure_ascii=False).encode("utf-8")
     if pannello.ricomponi == "stato_presidi_lettura":

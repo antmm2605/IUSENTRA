@@ -18,7 +18,7 @@ from pct.ora_italiana import in_ora_italiana
 
 from ..eventi import _intestazione, comunicazione_di
 from ..modello import Atto, Conclusione, Dubbio, Fonte, TermineAssegnato
-from ..notifiche import notifiche_di
+from ..notifiche import costituzione_controparte, notifiche_di, scopo_raggiunto
 from ..norme import norme
 from ..testo import data_it, date_nel_testo, frasi, giorno, pulito, rg_normale, semplice
 from .calcolo import a_ritroso, esito, in_avanti
@@ -349,6 +349,16 @@ def _codice_di(termine: TermineAssegnato) -> str:
                  "notifica_ordinata": "Notificare", "costituzione_convenuto": "Costituirsi", "deposito_ordinato": "Depositare"}[k])), "")
 
 
+_INTRODUTTIVO = re.compile(r"\b(?:ricorso|citazione|atto introduttivo|decreto di fissazione|pedissequo decreto|decreto in calce)\b")
+_ALTRA_PARTE = re.compile(r"\b(?:integrazione del contraddittorio|chiamata|terz[oi]|litisconsort\w*|altr[ei] part[ei])\b")
+
+
+def _notifica_introduttivo(termine: TermineAssegnato) -> bool:
+    """L'ordine riguarda la notifica dell'atto introduttivo alla controparte, non a un terzo da chiamare in causa."""
+    brano = semplice(termine.fonte.brano)
+    return bool(_INTRODUTTIVO.search(brano)) and not _ALTRA_PARTE.search(brano)
+
+
 def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
     esito_: list[Conclusione] = []
     for termine in ctx.termini:
@@ -381,8 +391,16 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
             ctx, codice, termine.adempimento, atto.data if atto else "", scadenza.isoformat() if scadenza else "", termine.ora,
         )
         prova_notifica = {}
+        norme_scopo: tuple[str, ...] = ()
         if codice == "notifica_ordinata" and onerato == "noi" and atto and scadenza:
             prova, prova_notifica = _prova_rinnovazione(ctx, atto, termine, scadenza)
+        if not prova and codice == "notifica_ordinata" and onerato == "noi" and atto and _notifica_introduttivo(termine):
+            # La controparte si è costituita dopo l'ordine: la notifica dell'atto introduttivo ha raggiunto lo scopo
+            # (art. 156, terzo comma, c.p.c.), in ogni rito.
+            costituzione = costituzione_controparte(ctx.della_causa(), dal=atto.data)
+            if costituzione:
+                prova = scopo_raggiunto(costituzione)
+                norme_scopo = ("cpc_156",)
         if not prova and onerato in {"noi", "tutte_le_parti"} and codice in {"note_127ter", "deposito_ordinato"} and atto and scadenza:
             prova = _attestato_dal_giudice(ctx, codice, atto.data, scadenza.isoformat(), atto.id)
         # Solo i depositi e le note si riassegnano (artt. 127-ter e 421 c.p.c.); gli ordini di notifica di provvedimenti
@@ -461,7 +479,7 @@ def conclusioni_termini(ctx: Contesto) -> list[Conclusione]:
         if stato in {"fatto", "non_dovuto"}:
             # chi ha già adempiuto (o non deve) non ha dubbi sul computo: restano solo quelli sull'adempimento
             dubbi = [d for d in dubbi if d.codice not in {"comunicazione_non_trovata", "decorrenza_ignota", "adempimento_non_provato"}]
-        riferimenti = _NORME.get(codice, ()) + tuple(termine.norme)
+        riferimenti = _NORME.get(codice, ()) + tuple(termine.norme) + norme_scopo
         if codice == "notifica_ordinata" and ctx.rito.codice == "lavoro":
             brano = semplice(termine.fonte.brano)
             if "decreto" in brano and ("ricorso" in brano or "atto introduttivo" in brano):

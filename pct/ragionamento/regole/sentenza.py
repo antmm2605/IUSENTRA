@@ -65,7 +65,8 @@ def _dalla_notifica(ctx: Contesto, fonte: Fonte, base: str, condanna: bool, *, t
     lavoro = ctx.rito.codice == "lavoro"
     esiti: list[Conclusione] = []
     termine_breve = ""
-    for calcolo in termini_dalla_notifica(base, lavoro=lavoro, contro_pa=ctx.rito.contro_pa, condanna=condanna and titolo_verificato, oggi=ctx.oggi):
+    for calcolo in termini_dalla_notifica(base, lavoro=lavoro, contro_pa=ctx.rito.contro_pa, condanna=condanna and titolo_verificato,
+                                          oggi=ctx.oggi, esclusione_feriale=ctx.rito.motivo_feriale):
         scadenza = giorno(calcolo.get("deadline"))
         if calcolo["codice"] == "termine_breve_impugnazione":
             termine_breve = scadenza.isoformat() if scadenza else ""

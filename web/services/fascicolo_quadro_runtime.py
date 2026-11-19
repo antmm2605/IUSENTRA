@@ -101,7 +101,7 @@ def quadro_fascicolo(fascicolo: Any) -> dict[str, Any]:
     righe = [
         prossimo_passo_da_lettura(lettura),
         riga_termini_da_lettura(termini, lettura, oggi),
-        riga_economia_materializzata(fid, lettura, fascicolo=fascicolo),
+        riga_economia_materializzata(fid, lettura, fascicolo=fascicolo, oggi=oggi),
         riga_notifiche_da_lettura(sintesi, lettura, oggi),
         riga_documenti(len(getattr(fascicolo, "documenti", []) or []),
                        _sicuro(lambda: documenti_da_classificare(fascicolo), None, "catalogo"), pec),
@@ -110,7 +110,21 @@ def quadro_fascicolo(fascicolo: Any) -> dict[str, Any]:
             "lettura_mancante": lettura is None,
             "lettura_precedente": bool((lettura or {}).get("aggiornamento_pendente")),
             "esito_dispositivo": esito_dispositivo_da_lettura(lettura),
+            "testata": testata_da_lettura(lettura),
             "generato_il": datetime.now(ROME_TZ).replace(microsecond=0).isoformat()}
+
+
+def testata_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str] | None:
+    """Controparte, difensore e valore come li legge il modello della causa negli atti (pct/ragionamento/parti)."""
+    from pct.ragionamento.parti import etichetta_valore
+
+    parti = ((lettura or {}).get("ragionamento") or {}).get("parti") or {}
+    if not parti:
+        return None
+    valore = parti.get("valore") or {}
+    return {"controparte": _testo(parti.get("controparte")), "difensore_controparte": _testo(parti.get("difensore_controparte")),
+            "fonte_controparte": _testo(parti.get("fonte_controparte")), "valore": etichetta_valore(valore),
+            "fonte_valore": _testo(valore.get("fonte")), "norma_valore": _testo(valore.get("norma"))}
 
 
 def esito_dispositivo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str] | None:
@@ -122,8 +136,12 @@ def esito_dispositivo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, st
 
 
 def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | None, *,
-                                fascicolo: Any = None) -> dict[str, str] | None:
-    from pct.fascicolo_quadro import riga_economia
+                                fascicolo: Any = None, oggi: date | None = None) -> dict[str, str] | None:
+    """Il percorso economico completo (pct/quadro_economia): contributo dal modello della causa, compenso e incassi
+    dalla Fatturazione, spese liquidate dal Conto economico; le stesse fonti del Conto economico, nessuna rilettura."""
+    from pct.fascicolo_quadro import riga
+    from pct.quadro_economia import percorso_economico
+    from web.services.fascicolo_conto_economico_runtime import parcelle_del_fascicolo
     from web.services.riscontri_processuali_runtime import (
         chiarisci_spese_da_sentenza, risultato_materializzato, stato_contributo_da_lettura,
     )
@@ -131,33 +149,34 @@ def riga_economia_materializzata(fascicolo_id: str, lettura: dict[str, Any] | No
     conto = _sicuro(lambda: risultato_materializzato(fascicolo_id, "conto-economico"), {}, "conto economico") or {}
     chiarisci_spese_da_sentenza(conto, lettura)
     righe_conto = list(conto.get("righe") or [])
-    contributo = next((r.get("statoContributo") for r in righe_conto if r.get("voce") == "contributo_unificato"), None)
-    prossimo_economico = _testo((conto.get("percorso") or {}).get("prossimoPasso"))
-    if not conto:
-        stato_letto = stato_contributo_da_lettura(lettura)
-        corrente = lettura or {}
-        if not corrente.get("aggiornamento_pendente"):
-            percorso = corrente.get("percorso") or {}
-            spese = percorso.get("spese") or {}
-            if percorso.get("documento_id") and spese.get("regolazione") == "compensazione":
-                righe_conto = [{"voce": "sentenza", "stato": "Spese compensate"}]
-            if stato_letto or righe_conto:
-                return riga_economia(stato_letto, righe_conto)
-        if fascicolo is None:
-            return None
-        if lettura is not None:
-            # I riscontri sono già nella Lettura. Il conto espone il dettaglio
-            # economico quando è disponibile per questo profilo.
-            return {**riga_economia(None, []),
-                    "testo": "Apri il Conto economico per consultare importi, stato delle spese e fonti.",
-                    "livello": "info"}
+    corrente = lettura or {}
+    if not righe_conto and not corrente.get("aggiornamento_pendente"):
+        percorso = corrente.get("percorso") or {}
+        if percorso.get("documento_id") and (percorso.get("spese") or {}).get("regolazione") == "compensazione":
+            righe_conto = [{"voce": "sentenza", "stato": "Spese compensate"}]
+    presidio = next((r.get("statoContributo") for r in righe_conto if r.get("voce") == "contributo_unificato"), None)
+    presidio = presidio or stato_contributo_da_lettura(lettura)
+    if presidio is None and fascicolo is not None and lettura is None:
         from web.services.contributo_stato_runtime import stato_contributo_fascicolo
 
-        contributo = _sicuro(lambda: stato_contributo_fascicolo(fascicolo), None, "stato del contributo")
-        riga = riga_economia(contributo, [])
-        riga["testo"] += ". Apri il Conto economico per consultare importi, stato delle spese e fonti."
-        return riga
-    return riga_economia(contributo, righe_conto, prossimo_economico)
+        presidio = _sicuro(lambda: stato_contributo_fascicolo(fascicolo), None, "stato del contributo")
+    modello = corrente.get("ragionamento") or {}
+    conclusioni = modello.get("conclusioni") if isinstance(modello.get("conclusioni"), list) else None
+    if conclusioni is None and presidio is None and not righe_conto and fascicolo is None:
+        return None
+    parcelle = _sicuro(lambda: parcelle_del_fascicolo(fascicolo_id), None, "documenti economici")
+    if fascicolo is None:
+        from web.services.sentenza_economic_runtime import _fascicoli_repository_mirato
+
+        fascicolo = _sicuro(lambda: _fascicoli_repository_mirato().get(fascicolo_id), None, "voci economiche del fascicolo")
+    voci = dict(getattr(fascicolo, "pagamenti", {}) or {}) if fascicolo is not None else {}
+    testo, livello = percorso_economico(
+        conclusioni=conclusioni, atti=modello.get("atti") or [], righe_conto=righe_conto, parcelle=parcelle, voci=voci,
+        presidio_contributo=presidio, oggi=oggi or datetime.now(ROME_TZ).date())
+    prossimo = _testo((conto.get("percorso") or {}).get("prossimoPasso"))
+    if prossimo and livello != "ok":
+        testo += f". {prossimo}"
+    return riga("economia", testo, livello)
 
 
 def prossimo_passo_da_lettura(lettura: dict[str, Any] | None) -> dict[str, str]:
@@ -289,4 +308,4 @@ def riga_termini_da_lettura(agenda: list[dict[str, str]] | None, lettura: dict[s
     return riga_termine
 
 
-__all__ = ["conteggio_pec_fascicolo", "documenti_da_classificare", "quadro_fascicolo", "termini_futuri"]
+__all__ = ["conteggio_pec_fascicolo", "documenti_da_classificare", "quadro_fascicolo", "testata_da_lettura", "termini_futuri"]

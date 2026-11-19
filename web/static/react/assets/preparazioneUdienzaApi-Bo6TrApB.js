@@ -1,0 +1,1 @@
+import{bt as e}from"./lettura-fascicolo-DO6Q6Stb.js";var t=(t,n)=>e(t,n,{ok:!1,message:`Connessione interrotta: bozza e comando conservati per il recupero.`},{headers:{"X-Requested-With":`XMLHttpRequest`}});export{t};

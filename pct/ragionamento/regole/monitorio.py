@@ -16,7 +16,7 @@ import re
 from ..collegamenti import descrizione, esecuzione_nei_collegati, numero_del_decreto
 from ..modello import Conclusione, Dubbio, Fonte
 from ..norme import norme
-from ..notifiche import notifiche_di
+from ..notifiche import costituzione_controparte, notifiche_di, scopo_raggiunto
 from ..testo import data_it, date_nel_testo, giorno, pulito, semplice
 from .calcolo import in_avanti
 from .contesto import Contesto
@@ -128,6 +128,13 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
         prova_congiunta = True
         prova_decreto = {"data": data_consegna.isoformat(), "riferimento": riferimento_attestato}
         riferimento = riferimento_attestato
+    costituzione = None if prova_congiunta else costituzione_controparte(ctx.della_causa(), dal=decreto.data, opposizione=True)
+    if costituzione:
+        # Il debitore ha proposto opposizione o si è costituito: ricorso e decreto gli sono pervenuti (art. 156, comma 3,
+        # c.p.c.). La tempestività della notifica (art. 644 c.p.c.) resta un'eccezione del debitore, non un adempimento.
+        prova_congiunta = True
+        prova_decreto = {"data": costituzione.data, "riferimento": scopo_raggiunto(costituzione)}
+        riferimento = prova_decreto["riferimento"]
     da_verificare = bool(tracce or prova_decreto)
     dubbi = []
     if da_verificare and not prova_congiunta:
@@ -139,10 +146,12 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
     esito.append(Conclusione(
         "notifica_decreto_ingiuntivo", "Notifica di ricorso e decreto ingiuntivo eseguita" if prova_congiunta
         else "Verificare la notifica di ricorso e decreto ingiuntivo" if da_verificare
-        else "Notificare il ricorso e il decreto ingiuntivo al debitore", fonte, norme("cpc_643", "cpc_644", "l53_art3bis"),
+        else "Notificare il ricorso e il decreto ingiuntivo al debitore", fonte,
+        norme("cpc_643", "cpc_644", "l53_art3bis") + (norme("cpc_156") if costituzione else []),
         "notifica a mezzo PEC con relata quando applicabile, oppure tramite ufficiale giudiziario",
         "il decreto perde efficacia se non notificato nei termini dell'art. 644 c.p.c.",
         "fatto" if prova_congiunta else "dubbio" if da_verificare else "da_fare",
+        riferimento if costituzione else
         (f"Notificato il {data_it(prova_decreto['data'])}: {riferimento}." if attestata else
          f"Consegna verificata del {data_it(prova_decreto['data'])}, prova {riferimento}.") if prova_congiunta else "",
         None, "builtin-tmp-not-003", dubbi=dubbi,
@@ -153,7 +162,7 @@ def conclusioni_monitorio(ctx: Contesto) -> list[Conclusione]:
     opposizione = in_avanti(
         data_consegna, giorni, rito=ctx.rito, oggi=ctx.oggi, perentorio=True, evento="consegna di ricorso e decreto",
         norma="art. 641 c.p.c.", conseguenze="verificare se è stata proposta opposizione e se il giudice ha dichiarato l'esecutorietà",
-    ) if prova_congiunta and giorni else None
+    ) if prova_congiunta and giorni and data_consegna and not costituzione else None
     istanza = istanza_esecutorieta(ctx)
     esecutorieta = decreto_esecutivo(ctx, decreto)
     fonte_istanza = Fonte(istanza.id, istanza.nome, pulito(istanza.testo[:400]), istanza.data) if istanza else fonte

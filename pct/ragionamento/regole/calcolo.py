@@ -23,7 +23,7 @@ _CALCOLATORE = ItalianDeadlineCalculator()
 def _feriale(rito: Rito) -> str:
     if rito.sospensione_feriale:
         return "si applica (art. 1 L. 742/1969, dal 1° al 31 agosto)"
-    return "non si applica (controversia di lavoro, art. 3 L. 742/1969)"
+    return f"non si applica ({rito.motivo_feriale or 'controversia di lavoro, art. 3 L. 742/1969'})"
 
 
 def esito(scadenza: date | None, *, oggi: date, perentorio: bool | None, decorrenza: str = "", evento: str = "",

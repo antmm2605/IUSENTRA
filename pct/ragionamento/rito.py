@@ -4,7 +4,8 @@ Fonte primaria: il catalogo ufficiale dei codici oggetto (`pct/data/cataloghi/co
 XSD del PST): l'area e il codice padre dicono se la pratica è cognizione ordinaria, lavoro, monitorio,
 esecuzione o volontaria giurisdizione. Se il codice manca, decidono gli atti del catalogo (ricorso per
 decreto ingiuntivo, atto di pignoramento, ricorso ex art. 414 c.p.c.). La sospensione feriale dei termini
-non si applica alle controversie di lavoro (art. 3 L. 742/1969).
+non si applica alle materie dell'art. 3 L. 742/1969 e dell'art. 92 R.D. 12/1941 (`feriale.py`): lavoro e
+previdenza, cautelari, alimenti, sfratto, opposizione all'esecuzione, amministrazione di sostegno e le altre.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 
+from .feriale import esclusione_feriale
 from .modello import Rito
 from .testo import pulito, semplice
 
@@ -84,6 +86,7 @@ def contro_pa(*nomi: object) -> bool:
 
 
 def determina_rito(fascicolo: dict[str, Any], etichette_atti: Iterable[str]) -> Rito:
+    etichette_atti = list(etichette_atti)
     codice = pulito(fascicolo.get("codice_oggetto_pst")) or pulito(fascicolo.get("oggetto"))[:6]
     dal_codice, voce = rito_da_codice(codice)
     dagli_atti = rito_da_atti(etichette_atti)
@@ -96,11 +99,12 @@ def determina_rito(fascicolo: dict[str, Any], etichette_atti: Iterable[str]) -> 
     else:
         scelto, fonte = "ignoto", "nessun codice oggetto PST e nessun atto che dica il rito"
     pa = contro_pa(fascicolo.get("controparte"), fascicolo.get("titolo"), fascicolo.get("avvocato_controparte"))
+    escluso = esclusione_feriale(scelto, voce, etichette_atti)
     return Rito(
         codice=scelto, etichetta=ETICHETTE.get(scelto, scelto), fonte=fonte,
         codice_oggetto=pulito(voce.get("codice")), area=pulito(voce.get("area")),
         padre=pulito(voce.get("descrizionePadre") or voce.get("codicePadre")),
-        sospensione_feriale=scelto != "lavoro", contro_pa=pa,
+        sospensione_feriale=not escluso, contro_pa=pa, motivo_feriale=escluso,
     )
 
 

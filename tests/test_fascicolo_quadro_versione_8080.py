@@ -168,7 +168,12 @@ def test_quadro_mostra_le_spese_compensate_anche_prima_del_conto(monkeypatch):
         "percorso": {"documento_id": "S1", "spese": {"regolazione": "compensazione"}},
         "ragionamento": {"economia": {"contributo_unificato": {"codice": "esente", "etichetta": "Esente"}}},
     }
-    assert riga_economia_materializzata("F1", lettura)["testo"] == "Contributo unificato: Esente · spese compensate"
+    from web.services import fascicolo_conto_economico_runtime
+
+    monkeypatch.setattr(fascicolo_conto_economico_runtime, "parcelle_del_fascicolo", lambda _fid: [])
+    # 19/11/2026: la riga dà il percorso completo (contributo, compenso, spese) con la norma delle spese compensate
+    riga = riga_economia_materializzata("F1", lettura, fascicolo=object())
+    assert riga["testo"] == "Contributo unificato: Esente · compenso: proforma da preparare · spese di lite compensate (art. 92 c.p.c.)"
 
 
 def _fascicolo_esente(tmp_path: Path):
@@ -194,7 +199,7 @@ def test_endpoint_quadro_contratto(tmp_path: Path):
         assente = client.get("/api/v1/ui/fascicoli/NONESISTE/quadro", headers=HEADERS)
     assert risposta.status_code == 200
     dati = risposta.get_json()
-    assert dati["ok"] is True and set(dati) == {"ok", "stato", "righe", "generato_il", "esito_dispositivo", "lettura_precedente"}
+    assert dati["ok"] is True and set(dati) == {"ok", "stato", "righe", "generato_il", "esito_dispositivo", "lettura_precedente", "testata"}
     assert dati["stato"]["codice"] in {"in_corso", "definita", "da_archiviare", "archiviata", "sospesa"}
     assert [r["tema"] for r in dati["righe"]] == ["prossimo_passo", "termini", "economia", "notifiche", "documenti"]
     for voce in dati["righe"]:

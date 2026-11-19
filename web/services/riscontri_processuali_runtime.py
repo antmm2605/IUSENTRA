@@ -192,23 +192,26 @@ def stati_obblighi_da_lettura(obblighi: list[dict[str, Any]], lettura: dict[str,
     conclusioni = (lettura.get("ragionamento") or {}).get("conclusioni") or []
     storici = documenti_notifica_storica(conclusioni)
     stato = "riscontro_storico_precedente" if lettura.get("aggiornamento_pendente") else "riscontro_storico"
-    return [
+    from pct.fascicolo_quadro import allinea_al_modello
+
+    marcati = [
         {**voce, "stato": stato} if obbligo_di_notifica_storico(voce, storici) else voce
         for voce in obblighi
     ]
+    # Una sola verità per atto: dove il modello della causa conclude sulla notifica, vale il modello (2.490, coerenza).
+    modello = (lettura.get("ragionamento") or {}).get("conclusioni")
+    return allinea_al_modello(marcati, modello if isinstance(modello, list) and modello else None)
 
 
 def proietta_obblighi_notifica(payload: dict[str, Any], riscontri: dict[str, Any]) -> dict[str, Any]:
     """Le notifiche superate restano nei riscontri, con la fonte della Lettura."""
+    from pct.fascicolo_quadro import allinea_al_modello
+
     storici = documenti_notifica_storica(riscontri.get("conclusioni") or [])
-    return {
-        **payload,
-        "riscontriProcessuali": riscontri,
-        "obblighi": [
-            voce for voce in payload.get("obblighi") or []
-            if not obbligo_di_notifica_storico(voce, storici)
-        ],
-    }
+    obblighi = [voce for voce in payload.get("obblighi") or [] if not obbligo_di_notifica_storico(voce, storici)]
+    # Il pannello mostra per ogni atto lo stato del modello della causa, lo stesso del Quadro e dei prossimi passi.
+    conclusioni = riscontri.get("conclusioni") if riscontri.get("stato") == "pronto" else None
+    return {**payload, "riscontriProcessuali": riscontri, "obblighi": allinea_al_modello(obblighi, conclusioni, pannello=True)}
 
 
 def riscontri_processuali(fascicolo_id: str, sezione: str) -> dict[str, Any]:

@@ -1,0 +1,1 @@
+import{t as e}from"./ImpostazioniPage-D8HNrcde.js";export{e as ImpostazioniPage};

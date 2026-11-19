@@ -104,6 +104,41 @@ FONTI_RAGIONAMENTO: dict[str, dict[str, Any]] = {
         "soggetti all'obbligo di registrazione e sono esenti dal contributo unificato previsto dall'articolo 9 del D.P.R. "
         "30 maggio 2002, n. 115."),
         "verifica": "testo vigente nell'archivio Normattiva del software, letto il 18/11/2026"},
+    # Aggiunte del 19/11/2026: testo vigente letto su Normattiva (articolo «in vigore dal 21-4-1942», mai modificato).
+    "cpc_156": {**_voce("art. 156, terzo comma, c.p.c.", "Rilevanza della nullità: raggiungimento dello scopo", _CPC, "156",
+        "Non può essere pronunciata la nullità per inosservanza di forme di alcun atto del processo, se la nullità non è "
+        "comminata dalla legge. Può tuttavia essere pronunciata quando l'atto manca dei requisiti formali indispensabili per il "
+        "raggiungimento dello scopo. La nullità non può mai essere pronunciata, se l'atto ha raggiunto lo scopo a cui è destinato."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 21/04/1942), letto il 19/11/2026"},
+    "cpc_279": {**_voce("art. 279, secondo comma, c.p.c.", "Forma dei provvedimenti: sentenza definitiva e non definitiva", _CPC, "279",
+        "Il collegio pronuncia sentenza quando definisce il giudizio (decidendo questioni di giurisdizione, pregiudiziali di rito "
+        "o preliminari di merito, o totalmente il merito) e quando, decidendo alcune di quelle questioni, non definisce il "
+        "giudizio e impartisce distinti provvedimenti per l'ulteriore istruzione della causa (n. 4); i provvedimenti per "
+        "l'ulteriore istruzione sono dati con separata ordinanza."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 26/11/2024), letto il 19/11/2026"},
+    "cpc_115": {**_voce("art. 115 c.p.c.", "Disponibilità delle prove", _CPC, "115",
+        "Salvi i casi previsti dalla legge, il giudice deve porre a fondamento della decisione le prove proposte dalle parti o "
+        "dal pubblico ministero, nonché i fatti non specificatamente contestati dalla parte costituita."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 04/07/2009), letto il 19/11/2026"},
+    "cpc_14": {**_voce("art. 14 c.p.c.", "Cause relative a somme di danaro e a beni mobili", _CPC, "14",
+        "Nelle cause relative a somme di danaro o a beni mobili, il valore si determina in base alla somma indicata o al valore "
+        "dichiarato dall'attore; in mancanza di indicazione o dichiarazione, la causa si presume di competenza del giudice adito."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 21/04/1942), letto il 19/11/2026"},
+    "dpr115_art14": {**_voce("art. 14, comma 2, D.P.R. 115/2002", "Dichiarazione di valore ai fini del contributo unificato",
+        "urn:nir:presidente.repubblica:decreto:2002-05-30;115", "14",
+        "Il valore dei processi, determinato ai sensi del codice di procedura civile, senza tener conto degli interessi, deve "
+        "risultare da apposita dichiarazione resa dalla parte nelle conclusioni dell'atto introduttivo, anche nell'ipotesi di "
+        "prenotazione a debito."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 01/01/2025), letto il 19/11/2026"},
+    "dpr115_art13_c6": {**_voce("art. 13, comma 6, D.P.R. 115/2002", "Valore presunto senza dichiarazione",
+        "urn:nir:presidente.repubblica:decreto:2002-05-30;115", "13",
+        "Se manca la dichiarazione di cui all'articolo 14, il processo si presume del valore indicato al comma 1, lettera g)."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 01/01/2025), letto il 19/11/2026"},
+    "rd1611_art1": {**_voce("R.D. 1611/1933, art. 1", "Rappresentanza e difesa in giudizio delle Amministrazioni dello Stato",
+        "urn:nir:stato:regio.decreto:1933-10-30;1611", "1",
+        "La rappresentanza, il patrocinio e l'assistenza in giudizio delle Amministrazioni dello Stato, anche se organizzate ad "
+        "ordinamento autonomo, spettano all'Avvocatura dello Stato. Gli avvocati dello Stato non hanno bisogno di mandato."),
+        "verifica": "testo vigente su Normattiva (in vigore dal 27/12/1933), letto il 19/11/2026"},
 }
 
 __all__ = ["FONTI_RAGIONAMENTO"]

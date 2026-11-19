@@ -20,7 +20,9 @@ export type QuadroTema = 'prossimo_passo' | 'termini' | 'economia' | 'notifiche'
 export type QuadroLivello = 'ok' | 'info' | 'attenzione' | 'urgente'
 export type QuadroStatoPratica = { codice: string; etichetta: string; dettaglio: string }
 export type QuadroRiga = { tema: QuadroTema; titolo: string; testo: string; livello: QuadroLivello; sezione: SezioneFascicoloId }
-export type QuadroFascicoloDati = { stato: QuadroStatoPratica; righe: QuadroRiga[]; generatoIl: string; esitoDispositivo?: string; sentenzaId?: string; branoDispositivo?: string; letturaInPreparazione?: boolean; letturaPrecedente?: boolean; quadroInAggiornamento?: boolean }
+/** Controparte, difensore e valore letti negli atti dal modello della causa (pct/ragionamento/parti). */
+export type QuadroTestata = { controparte: string; difensoreControparte: string; fonteControparte: string; valore: string; fonteValore: string }
+export type QuadroFascicoloDati = { stato: QuadroStatoPratica; righe: QuadroRiga[]; generatoIl: string; testata?: QuadroTestata; esitoDispositivo?: string; sentenzaId?: string; branoDispositivo?: string; letturaInPreparazione?: boolean; letturaPrecedente?: boolean; quadroInAggiornamento?: boolean }
 export type QuadroLettura =
   | { fase: 'caricamento' }
   | { fase: 'pronto'; dati: QuadroFascicoloDati }
@@ -79,7 +81,12 @@ export function normalizzaQuadro(payload: unknown): QuadroFascicoloDati | null {
   righe.sort((a, b) => ORDINE_TEMI.indexOf(a.tema) - ORDINE_TEMI.indexOf(b.tema))
   const esito = record.esito_dispositivo && typeof record.esito_dispositivo === 'object'
     ? record.esito_dispositivo as Record<string, unknown> : {}
+  const testata = record.testata && typeof record.testata === 'object' ? record.testata as Record<string, unknown> : null
   return {
+    testata: testata ? {
+      controparte: testo(testata.controparte), difensoreControparte: testo(testata.difensore_controparte),
+      fonteControparte: testo(testata.fonte_controparte), valore: testo(testata.valore), fonteValore: testo(testata.fonte_valore),
+    } : undefined,
     letturaInPreparazione: record.lettura_in_preparazione === true,
     letturaPrecedente: record.lettura_precedente === true,
     quadroInAggiornamento: record.quadro_in_aggiornamento === true,

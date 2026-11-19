@@ -146,6 +146,15 @@ def vista(causa: dict[str, Any]) -> dict[str, Any]:
         "esiti_udienze": [{**e, "data_it": data_it(e.get("data")), "data_provvedimento_it": data_it(e.get("data_provvedimento"))}
                           for e in causa.get("esiti_udienze") or []],
         "collegati": list(causa.get("collegati") or []),
+        # Per le viste che leggono il modello senza ricalcolarlo (19/11/2026): gli atti in sintesi, le udienze con data ISO e
+        # fonte, la data del calcolo, le parti e il valore letti negli atti (riconvalida della definizione, quadro, testata).
+        "atti": [{k: a.get(k) for k in ("id", "nome", "natura", "etichetta", "autore", "data", "appartenenza",
+                                         "motivo_appartenenza", "sentenza", "dello_studio", "copie")}
+                 for a in causa.get("atti") or []],
+        "udienze_modello": [{"data": u.get("data"), "modalita": u.get("modalita"),
+                             "fonte": {"oggetto_id": (u.get("fonte") or {}).get("oggetto_id", "")}} for u in causa.get("udienze") or []],
+        "oggi": causa.get("oggi", ""),
+        "parti": dict(causa.get("parti") or {}),
         "contraddizioni": [{"controllo": x["controllo"], "descrizione": x["descrizione"], "sciolta": x["sciolta"], "come": x["come"]}
                            for x in causa.get("contraddizioni") or []],
         "dubbi": [{"codice": d.get("codice", ""), "testo": d["testo"], "manca": d["manca"], "fonte": d.get("fonte")}

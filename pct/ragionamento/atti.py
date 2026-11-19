@@ -107,6 +107,24 @@ def firmato_dal_giudice(testo: str) -> bool:
     return bool(_CHIUSURA_GIUDICE.search(coda)) and not re.search(r"\bAvv\.|\bavvocat", coda, re.I)
 
 
+_GIUDICE_IN_TESTA = re.compile(r"\bil\s+giudice\b[^.;]{0,80}\bnella\s+persona\s+del\b|\bil\s+giudice\b[^.;]{0,40}\b(?:visto|vista|visti|letto|letta|letti|rilevato|richiamato)\b")
+_ATTO_DI_PARTE_IN_TESTA = re.compile(r"\b(?:avv\.|avvocat\w*|nell['’]interesse\s+d\w*|comparsa\s+di\s+costituzione|"
+                                     r"rappresentat[oaie]\s+e\s+difes[oaie]|atto\s+di\s+citazione)")
+
+
+def provvedimento_scambiato_per_atto_di_parte(testo: str) -> bool:
+    """Un provvedimento che il catalogo ha preso per un atto di parte (per esempio il decreto ex art. 127-ter c.p.c.).
+
+    Servono insieme l'intestazione in cui il giudice parla in prima persona («Il Giudice del lavoro, nella persona
+    del dottor…», «Il Giudice, letto…»), senza nomi di difensori o titoli di atti di parte in testa, e la
+    sottoscrizione del giudice in calce (art. 132, ultimo comma, e art. 134 c.p.c.). Una comparsa o una memoria
+    portano in testa la parte e il difensore e si chiudono con la firma dell'avvocato: non passano.
+    """
+    testa = semplice(str(testo or "")[:900])
+    return (firmato_dal_giudice(testo) and bool(_GIUDICE_IN_TESTA.search(testa))
+            and not _ATTO_DI_PARTE_IN_TESTA.search(testa))
+
+
 def _autore(natura: str, etichetta: str, testo: str, dello_studio: bool) -> str:
     if natura == "certificato_cancelleria":
         return "cancelleria"
@@ -176,6 +194,9 @@ def leggi_atti(documenti: Iterable[dict[str, Any]], fatti: list[dict[str, Any]],
             natura, etichetta_mostrata = "provvedimento", ETICHETTA_DECRETO_415
         elif natura not in NATURE_GIUDICE | {"atto_principale", "atto_difensivo"} and not messaggio and firmato_dal_giudice(testo):
             natura, etichetta_mostrata = "provvedimento", "Provvedimento del giudice (riconosciuto dalla sottoscrizione)"
+        elif natura == "atto_difensivo" and not messaggio and provvedimento_scambiato_per_atto_di_parte(testo):
+            # Il catalogo l'ha preso per «Istanze e conclusioni»: è il giudice che parla in prima persona e sottoscrive.
+            natura, etichetta_mostrata = "provvedimento", "Provvedimento del giudice (riconosciuto da intestazione e sottoscrizione)"
         etichetta = semplice(etichetta_mostrata)
         dello_studio = _avvocati_nel_testo(testo, avvocati)
         autore = _autore(natura, etichetta, testo, dello_studio)
@@ -210,4 +231,4 @@ def leggi_atti(documenti: Iterable[dict[str, Any]], fatti: list[dict[str, Any]],
     return atti
 
 
-__all__ = ["NATURE_CONTORNO", "e_messaggio", "firmato_dal_giudice", "leggi_atti"]
+__all__ = ["NATURE_CONTORNO", "e_messaggio", "firmato_dal_giudice", "leggi_atti", "provvedimento_scambiato_per_atto_di_parte"]

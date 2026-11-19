@@ -24,6 +24,7 @@ from .fase import determina_fase
 from .ingressi import FontiCausa
 from .modello import Causa, Dubbio, Fonte
 from .notifiche import leggi_notifiche
+from .parti import parti_della_causa
 from .percorso import ricostruisci_percorso
 from .provvedimenti import leggi_provvedimento
 from .regole.contesto import Contesto
@@ -37,7 +38,7 @@ from .udienze_esito import esiti_udienze
 from .rito import determina_rito
 from .testo import pulito, rg_normale
 
-VERSIONE = "2026.11.18.ragionamento.v40-passi-urgenza-collegati-esenzioni+timbro-pat"
+VERSIONE = "2026.11.19.ragionamento.v41-coerenza-scopo-raggiunto-parti"
 ROMA = ZoneInfo("Europe/Rome")
 
 
@@ -192,6 +193,7 @@ def ragiona(fonti: FontiCausa) -> Causa:
                                              if pulito(a.get("tipo")).upper() == "UDIENZA"],
             atti, ctx.udienze, oggi),
         collegati=ctx.collegamenti_trovati,
+        parti=parti_della_causa(atti, posizione, dict(fonti.fascicolo)),
     )
 
 

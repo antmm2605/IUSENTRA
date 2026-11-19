@@ -1,0 +1,1 @@
+import{in as e}from"./lettura-fascicolo-C7RLgT4c.js";import{WizardProStepPage as t}from"./WizardProStepPage-B5CBkkCJ.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as WizardProCompletePage,r as default};

@@ -15,11 +15,19 @@ const dateFormatter = new Intl.DateTimeFormat('it-IT', {
   timeStyle: 'short'
 });
 
+// Anche le virgolette: i valori finiscono pure dentro gli attributi (class, data-id).
 function escapeHtml(str) {
   return String(str ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+// Una classe CSS composta da un valore dell'archivio accetta solo lettere, cifre, trattini e spazi.
+function classeSicura(value) {
+  return String(value ?? '').replace(/[^a-z0-9_ -]/gi, '');
 }
 
 function formatDate(value) {
@@ -30,7 +38,7 @@ function formatDate(value) {
 }
 
 function badge(label, cls = '') {
-  return `<span class="review-badge ${cls}">${escapeHtml(label)}</span>`;
+  return `<span class="review-badge ${classeSicura(cls)}">${escapeHtml(label)}</span>`;
 }
 
 function showToast(message) {
@@ -210,7 +218,7 @@ function renderDraftList(data) {
   }
 
   list.innerHTML = filtered.map((draft) => `
-    <button class="review-draft-item ${currentDraftId === draft.id ? 'is-active' : ''}" data-id="${draft.id}">
+    <button class="review-draft-item ${currentDraftId === draft.id ? 'is-active' : ''}" data-id="${escapeHtml(draft.id)}">
       <div class="review-draft-top">
         <div class="review-draft-title">${escapeHtml(draft.subbranch_code)}</div>
         ${badge(draft.status, `status-${String(draft.status).toLowerCase()}`)}

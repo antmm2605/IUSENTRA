@@ -436,3 +436,17 @@ def test_udienza_pec_con_il_titolo_dell_opposizione_si_rinomina():
                                    titolo="Opposizione alla trattazione scritta ex art. 127-ter c.p.c. (5 giorni dalla comunicazione)")
     [modalita] = piano_agenda([appuntamento], [presenza])
     assert modalita.campi["hearing_mode"] == "presenza" and modalita.campi["titolo"] == "Udienza del 14/04/2027 in presenza"
+
+
+def test_diserzione_scritta_senza_accenti_e_riconosciuta():
+    """«Poiche' nessuno e' presente»: dattiloscritti e testi senza accenti (collaudo della catena, 19/11/2026).
+
+    Senza questo il rinvio per diserzione (art. 631 c.p.c.) perdeva l'avviso di estinzione del processo esecutivo.
+    """
+    from pct.provvedimenti.termine_scritto import rischio_estinzione
+
+    testo = ("Il G.E. Poiche' nessuno e' presente rinvia all'udienza del 21.12.2026 che sostituisce con il deposito di "
+             "note scritte ex art. 127 ter c.p.c. entro il termine perentorio del 16.12.2026. Ai sensi dell'art. 631 c.p.c.")
+    assert rischio_estinzione(testo).norma == "art. 631 c.p.c."
+    assert rischio_estinzione("Nessuna delle parti e' comparsa. Il G.E. rinvia ex art. 631 c.p.c.").norma == "art. 631 c.p.c."
+    assert rischio_estinzione("Il giudice rinvia la causa per la precisazione delle conclusioni.") is None

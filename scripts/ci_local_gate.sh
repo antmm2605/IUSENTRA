@@ -245,6 +245,10 @@ if [ "$FAST" -eq 0 ]; then
   # Catalogazione dal titolo (141 regole con fonte Normattiva) e lettura del
   # fascicolo di Lex: sono il cuore del fascicolo e non hanno dipendenze lente.
   step "Pytest catalogo/lettura"   python3 -m pytest -q tests/test_document_catalog_titoli.py tests/test_document_catalog_fields.py tests/test_document_catalog_structural_identity.py tests/test_fascicolo_lettura.py tests/test_lex_lettura_fascicolo.py tests/test_procedura_fasi.py tests/test_fascicolo_pec_presidio.py tests/test_fascicolo_lettura_verifiche.py tests/test_fascicolo_bonifico_ricevuto.py tests/test_document_catalog_conferma.py --tb=short
+  # Catena del fascicolo (pct/catena): mappa confrontata col codice, guardiano, collaudo end-to-end di ogni materia.
+  # Se una catena si interrompe (un termine certo senza scadenza, un'udienza fuori agenda, una riparazione che non
+  # chiude) il gate è rosso.
+  step "Pytest catena del fascicolo" python3 -m pytest -q tests/test_catena_mappa.py tests/test_catena_guardiano.py tests/test_catena_guardiano_runtime.py tests/test_catena_collaudo_notturno.py tests/test_catena_collaudo_materie.py --tb=short
   # Job CI «E2E smoke», passo «Compilation sheets and complete document flow».
   step "Pytest schede e flusso documentale" env PCT_MULTI_TENANT=0 "$PY_BIN" -m pytest -q --no-cov tests/test_schede_compilazione.py tests/test_patch_24410_guardrails.py tests/test_redazione_guidata.py
   step "Pytest registry/gates"     python3 -m pytest -q tests/test_app_v2_page_registry.py tests/test_app_v2_test_plan_phase10.py tests/test_ci_cd_gates_phase11.py --tb=short

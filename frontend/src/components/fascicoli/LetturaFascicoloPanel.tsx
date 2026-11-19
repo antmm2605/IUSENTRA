@@ -27,6 +27,7 @@ import {
 } from './letturaFascicolo'
 import './letturaFascicolo.css'
 import { BozzaPassoLink } from './BozzaPassoLink'
+import { ControlloCatena } from './ControlloCatena'
 import { bozzeDelPasso, bozzeSenzaPasso, type BozzaPasso, type BozzePayload } from './bozzePassi'
 
 const EVENTI_VISIBILI = 6
@@ -221,6 +222,7 @@ export function LetturaFascicoloPanel({
         </div>
       </header>
       {error ? <p className="iu-fas-lettura__state iu-fas-lettura__state--error" role="alert"><AlertTriangle size={15}/> {error}</p> : null}
+      <ControlloCatena fascicoloId={fascicoloId} aggiornamento={`${letturaGenerata}-${registroRevision}`}/>
 
       <section className="iu-fas-lettura__passi" aria-label="Prossimi passaggi del fascicolo">
         <div className="iu-fas-lettura__section-head">

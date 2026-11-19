@@ -105,6 +105,7 @@ def giro(app, *, lotto: int = LOTTO, solo_pannelli_prioritari: bool = False, ten
             for chiave, valore in ricalcola(app, archivio, voci, interrompi=interrompi).items():
                 totale[chiave] += valore
             _prepara_bozze(app, owner, voci)
+            _guardiano(app, owner, voci)
             if solo_pannelli_prioritari:
                 break
     return totale
@@ -123,6 +124,22 @@ def _prepara_bozze(app, owner, voci) -> None:
             logger.info("Bozze dei passi: %s", esito)
     except Exception as exc:  # le bozze non fermano i pannelli
         logger.warning("Bozze dei passi non preparate: %s", exc)
+
+
+def _guardiano(app, owner, voci) -> None:
+    """Dopo la Lettura ricalcolata (qualunque fonte l'abbia superata), il guardiano della catena sullo stesso fascicolo:
+    riallinea scadenziario e agenda al modello, chiede i ricalcoli mancanti e registra gli avvisi (pct/catena)."""
+    fascicoli = {voce.fascicolo_id for voce in voci if voce.pannello in {"lettura", "conto-economico", "quadro"}}
+    if not fascicoli:
+        return
+    try:
+        from web.services.catena_guardiano_runtime import giro as giro_guardiano
+
+        esito = giro_guardiano(app, fascicoli={str(getattr(owner, "slug", "") or "single-studio"): fascicoli})
+        if esito.get("incoerenze"):
+            logger.info("Guardiano della catena: %s", esito)
+    except Exception as exc:  # il guardiano non ferma i pannelli
+        logger.warning("Guardiano della catena non eseguito: %s", exc)
 
 
 def pannello_prioritario_richiesto(app) -> bool:

@@ -9891,9 +9891,20 @@ def prepara_lettura_in_cache(id_fasc: str) -> bool:
             if notifiche_riconciliate or esito["completate"]:
                 # La scrittura nello Scadenziario invalida i pannelli della generazione precedente.
                 return True
+    _guardiano_dopo_lettura(id_fasc, lettura)
     risposta, _stato = _jsonify_public_payload({"ok": True, "lettura": lettura})
     _LETTURA_CACHE.set(chiave, risposta.get_data())
     return True
+
+
+def _guardiano_dopo_lettura(id_fasc: str, lettura: dict) -> None:
+    """Fine del ciclo delle letture: il guardiano della catena con la Lettura appena preparata (pct/catena)."""
+    try:
+        from web.services.catena_guardiano_runtime import controlla_fascicolo
+
+        controlla_fascicolo(id_fasc, origine="ciclo_letture", lettura=lettura)
+    except Exception as exc:  # il guardiano non ferma la Lettura
+        current_app.logger.warning("Guardiano della catena non eseguito per %s: %s", id_fasc, exc)
 
 
 @api_v1_react.get("/letture/panoramica")

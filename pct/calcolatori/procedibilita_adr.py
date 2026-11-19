@@ -37,6 +37,15 @@ Base normativa (testi verificati su Normattiva):
   può essere inferiore a un mese né superiore a tre, prorogabile di trenta
   giorni su accordo delle parti.
 
+- **Art. 8 L. 24/2017** (responsabilità sanitaria): chi intende agire per il
+  risarcimento è tenuto a proporre ricorso per consulenza tecnica preventiva
+  ex art. 696-bis c.p.c., condizione di procedibilità; in alternativa può
+  esperire la mediazione (comma 2) e in tal caso non si applica l'art. 3 D.L.
+  132/2014. Se la conciliazione non riesce o il procedimento non si chiude nel
+  termine perentorio di sei mesi dal deposito del ricorso, la domanda diventa
+  procedibile e gli effetti sono salvi se entro novanta giorni si deposita il
+  ricorso ex art. 281-undecies c.p.c. (comma 3).
+
 Perimetro dichiarato: il modulo qualifica la controversia secondo la materia e
 il procedimento indicati e ne ricava la condizione di procedibilità e i termini
 di legge. Non sostituisce la qualificazione giuridica della domanda, che resta
@@ -306,6 +315,8 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
     consumatore = clean_text(payload.get("adr_consumatore")).lower() in {"1", "si", "sì", "true"}
     valore = safe_float(payload.get("adr_valore"))
 
+    if materia == "responsabilita_medica":
+        return _calcola_responsabilita_sanitaria(materia, procedimento, valore, parse_date(payload.get("adr_data_avvio")))
     if materia in MATERIE_MEDIAZIONE:
         esito = _esito_mediazione(materia, procedimento)
         strumento = "mediazione" if esito["obbligatoria"] else "nessuno"
@@ -395,4 +406,87 @@ def calcola(payload: Mapping[str, Any]) -> Dict[str, Any]:
         "notes": note,
         "warnings": avvisi,
         "sources": list(FONTI),
+    }
+
+
+FONTE_L24 = {
+    "title": "Art. 8 L. 24/2017 — Tentativo obbligatorio di conciliazione (responsabilità sanitaria)",
+    "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:2017-03-08;24~art8",
+}
+
+
+def _calcola_responsabilita_sanitaria(
+    materia: str, procedimento: str, valore: float, avvio: Optional[date]
+) -> Dict[str, Any]:
+    """Art. 8 L. 24/2017: ATP conciliativo ex art. 696-bis c.p.c. oppure, in alternativa, la mediazione."""
+    regola = PROCEDIMENTI[procedimento]
+    if procedimento == "ctp_696bis":
+        motivo = (
+            "Il ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. è proprio lo strumento "
+            "che assolve la condizione di procedibilità dell'art. 8, commi 1 e 2, L. 24/2017."
+        )
+        strumento = "ctp_696bis"
+    elif regola["esclude_mediazione"] and regola["esclude_negoziazione"]:
+        motivo = f"Il procedimento «{regola['label']}» non richiede il tentativo preventivo di conciliazione."
+        strumento = "nessuno"
+    else:
+        motivo = (
+            "Risarcimento del danno da responsabilità sanitaria: chi intende agire deve prima proporre "
+            "ricorso per consulenza tecnica preventiva ex art. 696-bis c.p.c. (art. 8, comma 1, L. 24/2017); "
+            "in alternativa può esperire la mediazione (art. 8, comma 2, L. 24/2017; art. 5, comma 1, "
+            "D.Lgs. 28/2010). La presentazione dell'uno o dell'altra è condizione di procedibilità."
+        )
+        strumento = "ctp_o_mediazione"
+    passaggi: List[Dict[str, str]] = []
+    if strumento != "nessuno" and avvio:
+        sei_mesi = _aggiungi_mesi(avvio, 6)
+        passaggi = [
+            {"passaggio": "Deposito del ricorso ex art. 696-bis c.p.c. (o della domanda di mediazione)",
+             "data": fmt_date_it(avvio), "norma": "Art. 8, comma 1, L. 24/2017"},
+            {"passaggio": "Termine perentorio di conclusione del procedimento (6 mesi dal deposito del ricorso)",
+             "data": fmt_date_it(sei_mesi), "norma": "Art. 8, comma 3, L. 24/2017"},
+            {"passaggio": "Ricorso ex art. 281-undecies c.p.c. entro 90 giorni dalla scadenza dei 6 mesi "
+                          "(o dal deposito della relazione, se anteriore)",
+             "data": fmt_date_it(sei_mesi + timedelta(days=90)), "norma": "Art. 8, comma 3, L. 24/2017"},
+        ]
+    note = [motivo]
+    if strumento != "nessuno":
+        note.extend([
+            "Se la conciliazione non riesce o il procedimento non si conclude entro sei mesi dal deposito del "
+            "ricorso, la domanda diventa procedibile; gli effetti della domanda sono salvi se entro novanta "
+            "giorni dal deposito della relazione o dalla scadenza del termine si deposita il ricorso ex art. "
+            "281-undecies c.p.c. presso lo stesso giudice (art. 8, comma 3, L. 24/2017).",
+            "Scelta la via della mediazione, non si applica la negoziazione assistita dell'art. 3 D.L. 132/2014 "
+            "(art. 8, comma 2, L. 24/2017).",
+            "La partecipazione al procedimento di consulenza tecnica preventiva è obbligatoria per tutte le parti, "
+            "comprese le imprese di assicurazione (art. 8, comma 4, L. 24/2017).",
+        ])
+    avvisi = [
+        "L'improcedibilità è eccepita dal convenuto a pena di decadenza o rilevata d'ufficio non oltre la prima "
+        "udienza; il giudice assegna quindici giorni per presentare l'istanza o completare il procedimento "
+        "(art. 8, comma 2, L. 24/2017).",
+        "Le date dei passaggi sono calcolate a calendario comune: verificare l'eventuale sospensione feriale "
+        "sul termine di novanta giorni, che ha natura processuale.",
+        "La qualificazione della materia resta dell'avvocato: il modulo applica la regola alla materia "
+        "dichiarata, non la ricava dai fatti di causa.",
+    ]
+    etichette = {
+        "ctp_696bis": "Consulenza tecnica preventiva ex art. 696-bis c.p.c. (art. 8 L. 24/2017)",
+        "ctp_o_mediazione": "Consulenza tecnica preventiva ex art. 696-bis c.p.c. o, in alternativa, mediazione (art. 8 L. 24/2017)",
+        "nessuno": "Nessuna condizione di procedibilità",
+    }
+    return {
+        "materia": materia,
+        "materia_label": MATERIE_MEDIAZIONE[materia],
+        "procedimento": procedimento,
+        "procedimento_label": regola["label"],
+        "strumento": strumento,
+        "strumento_label": etichette[strumento],
+        "condizione_procedibilita": strumento != "nessuno",
+        "motivo": motivo,
+        "valore": round(valore, 2) if valore > 0 else 0.0,
+        "passaggi": passaggi,
+        "notes": note,
+        "warnings": avvisi,
+        "sources": [FONTE_L24] + list(FONTI),
     }

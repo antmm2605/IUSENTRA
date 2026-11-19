@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from pct.normative_tables import USURA_CATEGORIE_ETICHETTE
+
 CampoSchema = Dict[str, Any]
 
 
@@ -175,11 +177,11 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
     "interessi_acconti": {
         "azione": "Calcola interessi",
         "campi": [
-            _scelta("acc_tipo", "Tipo di interessi", [("legali", "Legali"), ("mora_commerciale", "Mora commerciale")]),
+            _scelta("acc_tipo", "Tipo di interessi", [("legali", "Legali"), ("mora_commerciale", "Mora commerciale"), ("legali_1284_4", "Dalla domanda giudiziale: saggio D.Lgs. 231/2002 (art. 1284, c. 4, c.c.)")], aiuto="Con l'art. 1284, c. 4, la data iniziale è quella della domanda giudiziale."),
             _numero("acc_capitale", "Capitale"),
             _data("acc_data_inizio", "Data iniziale"),
             _data("acc_data_fine", "Data finale"),
-            _testo("acc_acconti", "Acconti", aiuto="Una riga per acconto: data e importo, ad esempio 12/03/2025 1500,00"),
+            _righe("acc_acconti", "Acconti", aiuto="Una riga per acconto: data e importo, ad esempio 12/03/2025 1500,00"),
         ],
     },
     "assegno_mantenimento": {
@@ -444,10 +446,19 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
     "interessi": {
         "azione": "Calcola interessi",
         "campi": [
-            _scelta("int_tipo", "Regime", [("legali", "Interessi legali"), ("mora_commerciale", "Mora commerciale D.Lgs. 231/2002")]),
+            _scelta("int_tipo", "Regime", [
+                ("legali", "Interessi legali (art. 1284, c. 1, c.c.)"),
+                ("legali_1284_4", "Legali e, dalla domanda giudiziale, saggio D.Lgs. 231/2002 (art. 1284, c. 4, c.c.)"),
+                ("mora_commerciale", "Mora commerciale D.Lgs. 231/2002"),
+                ("convenzionale", "Tasso convenzionale pattuito (art. 1284, c. 3, c.c.)"),
+            ]),
             _numero("int_capitale", "Capitale"),
-            _data("int_data_inizio", "Dal"),
+            _data("int_data_inizio", "Dal", aiuto="Il giorno iniziale non si computa: gli interessi maturano dal giorno dopo."),
             _data("int_data_fine", "Al"),
+            _quando(_data("int_data_domanda", "Data della domanda giudiziale",
+                          aiuto="Notifica della citazione o deposito del ricorso: da qui il saggio del D.Lgs. 231/2002."),
+                    "int_tipo", "legali_1284_4"),
+            _quando(_numero("int_tasso", "Tasso annuo pattuito %"), "int_tipo", "convenzionale"),
             _quando(_data("int_data_contratto", "Data del contratto",
                           aiuto="Per i contratti anteriori al 01/01/2013 la maggiorazione resta di 7 punti (art. 3 D.Lgs. 192/2012)."),
                     "int_tipo", "mora_commerciale"),
@@ -509,7 +520,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             ),
             _intero("riv_anno_base", "Anno base", minimo=1947),
             _intero("riv_mese_base", "Mese base", minimo=1, massimo=12),
-            _intero("riv_anno_fine", "Anno finale", minimo=1947),
+            _intero("riv_anno_fine", "Anno finale (vuoto: ultimo indice pubblicato)", minimo=1947),
             _intero("riv_mese_fine", "Mese finale", minimo=1, massimo=12),
         ],
     },
@@ -517,7 +528,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
         "azione": "Aggiorna canone",
         "campi": [
             _numero("loc_canone", "Canone mensile"),
-            _intero("loc_perc_adeguamento", "Percentuale applicata", minimo=1, massimo=100, aiuto="75% è la quota ordinaria ex L. 431/1998."),
+            _intero("loc_perc_adeguamento", "Percentuale applicata", minimo=1, massimo=100, aiuto="75% è il limite dell'art. 32 L. 392/1978 (uso diverso); nell'abitativo vale quanto pattuito."),
             _intero("loc_anno_base", "Anno base", minimo=1947),
             _intero("loc_mese_base", "Mese base", minimo=1, massimo=12),
             _intero("loc_anno_fine", "Anno di aggiornamento", minimo=1947),
@@ -531,15 +542,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _scelta(
                 "usura_categoria",
                 "Categoria",
-                [
-                    ("aperture_credito_cc_fino_5000", "Aperture in c/c fino a € 5.000"),
-                    ("aperture_credito_cc_oltre_5000", "Aperture in c/c oltre € 5.000"),
-                    ("credito_personale", "Credito personale"),
-                    ("credito_finalizzato", "Credito finalizzato"),
-                    ("mutui_ipotecari_fisso", "Mutui ipotecari a tasso fisso"),
-                    ("mutui_ipotecari_variabile", "Mutui ipotecari a tasso variabile"),
-                    ("carte_credito_revolving", "Carte di credito revolving"),
-                ],
+                list(USURA_CATEGORIE_ETICHETTE.items()),
             ),
             _data("usura_data", "Data dell'operazione"),
         ],
@@ -649,10 +652,16 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
     "tfr": {
         "azione": "Calcola TFR",
         "campi": [
-            _numero("tfr_retribuzione_annua", "Retribuzione annua lorda"),
-            _intero("tfr_anni_servizio", "Anni di servizio"),
+            _numero("tfr_retribuzione_annua", "Retribuzione annua lorda",
+                    aiuto="Retribuzione utile ai fini del TFR (art. 2120, comma 2, c.c.)."),
+            _data("tfr_data_assunzione", "Data di assunzione",
+                  aiuto="Con le date la rivalutazione usa gli indici ISTAT FOI ufficiali anno per anno."),
+            _data("tfr_data_cessazione", "Data di cessazione"),
+            _intero("tfr_anni_servizio", "Anni di servizio", aiuto="Solo se non indichi le date."),
             _intero("tfr_mesi_servizio", "Mesi di servizio", massimo=11),
-            _numero("tfr_inflazione_perc", "Inflazione %"),
+            _numero("tfr_inflazione_perc", "Inflazione ipotetica %",
+                    aiuto="Usata solo senza date o per i mesi il cui indice ISTAT non è ancora pubblicato."),
+            _si_no("tfr_trattenuta_050", "Detrai lo 0,50% (art. 3, c. 15, L. 297/1982)"),
             _numero("tfr_anticipazioni", "Anticipazioni erogate"),
             _numero("tfr_montante_pregresso", "Montante pregresso da rivalutare"),
         ],
@@ -1106,7 +1115,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _scelta(
                 "istat_tipo",
                 "Indice",
-                [("FOI", "FOI (famiglie operai e impiegati)"), ("NIC", "NIC (intera collettività)")],
+                [("FOI", "FOI (famiglie operai e impiegati)")],
             ),
             _intero("istat_anni", "Anni da mostrare", minimo=1, massimo=15),
             _intero("istat_anno_fine", "Fino all'anno (vuoto: ultimo pubblicato)", minimo=1947, massimo=2100),
@@ -1155,7 +1164,7 @@ SCHEMI_CALCOLATORI: Dict[str, Dict[str, Any]] = {
             _numero("rivm_importo", "Importo da rivalutare"),
             _intero("rivm_anno_base", "Anno di partenza", minimo=1948),
             _intero("rivm_anno_target", "Anno di arrivo", minimo=1948),
-            _scelta("rivm_tipo", "Indice", [("FOI", "FOI (famiglie operai e impiegati)"), ("NIC", "NIC (intera collettività)")]),
+            _scelta("rivm_tipo", "Indice", [("FOI", "FOI (famiglie operai e impiegati)")]),
         ],
     },
     "rendimento_bot": {

@@ -71,6 +71,108 @@ NON_DISPONIBILI: dict[str, dict[str, str]] = {
         "label": "Apri il timesheet",
         "href": "/timesheet",
     },
+    # Collaudo utility del 19/11/2026: voci che aprivano un calcolatore di altra materia.
+    "danno_parentale_roma": {
+        "motivo": "Le tabelle del Tribunale di Roma per la perdita del rapporto parentale non sono caricate: "
+        "il calcolatore disponibile usa le tabelle di Milano 2024 a punti (Cass. 10579/2021).",
+        "label": "Perdita parentale (tabelle di Milano)",
+        "href": "/strumenti-legali/?tool=danno_parentale#funzione-operativa",
+    },
+    "calcolo_menomazioni_plurime": {
+        "motivo": "Il criterio per le menomazioni plurime (concorrenti o coesistenti) è medico-legale e non è "
+        "automatizzato: il danno biologico si calcola sulla percentuale complessiva già stimata.",
+        "label": "Danno biologico",
+        "href": "/strumenti-legali/?tool=danno_biologico#funzione-operativa",
+    },
+    "risarcimento_inail": {
+        "motivo": "L'indennizzo INAIL del danno biologico (art. 13 D.Lgs. 38/2000) usa tabelle proprie che il "
+        "gestionale non contiene: le tabelle civilistiche non vanno usate al suo posto.",
+        "label": "Catalogo delle funzioni",
+        "href": "/strumenti-operativi",
+    },
+    "calcolo_equo_indennizzo": {
+        "motivo": "L'equo indennizzo per causa di servizio (D.P.R. 461/2001) usa tabelle proprie che il "
+        "gestionale non contiene.",
+        "label": "Catalogo delle funzioni",
+        "href": "/strumenti-operativi",
+    },
+    "tabella_delle_menomazioni": {
+        "motivo": "Il barème medico-legale delle menomazioni non è caricato nel gestionale.",
+        "label": "Danno biologico",
+        "href": "/strumenti-legali/?tool=danno_biologico#funzione-operativa",
+    },
+    "calcolo_fine_pena": {
+        "motivo": "Il calcolo del fine pena (presofferto, liberazione anticipata, art. 54 L. 354/1975) non è "
+        "ancora disponibile.",
+        "label": "Pena e riti alternativi",
+        "href": "/strumenti-legali/?tool=pena_riti_alternativi#funzione-operativa",
+    },
+    "codice_di_procedura_penale": {
+        "motivo": "Il testo del codice di procedura penale si consulta in Codici e leggi.",
+        "label": "Apri Codici e leggi",
+        "href": "/ricerca-legale/codici",
+    },
+    "codice_di_procedura_civile": {
+        "motivo": "Il testo del codice di procedura civile si consulta in Codici e leggi.",
+        "label": "Apri Codici e leggi",
+        "href": "/ricerca-legale/codici",
+    },
+    "codice_della_strada": {
+        "motivo": "Il testo del Codice della strada (D.Lgs. 285/1992) si consulta in Codici e leggi.",
+        "label": "Apri Codici e leggi",
+        "href": "/ricerca-legale/codici",
+    },
+    "ricerca_codici_catastali": {
+        "motivo": "I codici catastali dei Comuni (codici Belfiore) si cercano nella Ricerca Comuni.",
+        "label": "Apri Ricerca Comuni",
+        "href": "/applicazioni/ricerca_comuni",
+    },
+    "calcolo_superficie_commerciale": {
+        "motivo": "Il calcolo della superficie catastale secondo l'allegato C al D.P.R. 138/1998 non è ancora "
+        "disponibile.",
+        "label": "Valore catastale",
+        "href": "/strumenti-legali/?tool=valore_catastale#funzione-operativa",
+    },
+    "compenso_curatore_fallimentare": {
+        "motivo": "Il compenso del curatore (D.M. 30/2012; art. 137 D.Lgs. 14/2019) non è ancora calcolato dal "
+        "gestionale: la fatturazione non sostituisce la liquidazione del tribunale.",
+        "label": "Catalogo delle funzioni",
+        "href": "/strumenti-operativi",
+    },
+    "compenso_delegati_vendite_giudiziarie": {
+        "motivo": "Il compenso del professionista delegato alle vendite (D.M. 227/2015) non è ancora calcolato "
+        "dal gestionale.",
+        "label": "Catalogo delle funzioni",
+        "href": "/strumenti-operativi",
+    },
+    "compenso_mediatore_familiare": {
+        "motivo": "Per il mediatore familiare non esiste una tariffa di legge: il compenso è pattuito con le parti.",
+        "label": "Fatturazione",
+        "href": "/fatturazione",
+    },
+    "calcolo_rimborso_chilometrico_aci": {
+        "motivo": "Le tabelle ACI dei costi chilometrici (pubblicate ogni anno in Gazzetta Ufficiale) non sono "
+        "caricate nel gestionale.",
+        "label": "Fatturazione",
+        "href": "/fatturazione",
+    },
+    "calcolatrice_online": {
+        "motivo": "Per i calcoli aritmetici usa il calcolatore per frazioni o il calcolo percentuali.",
+        "label": "Calcolatore per frazioni",
+        "href": "/applicazioni/calcolatore_per_frazioni",
+    },
+    "calcolo_assegno_unico_universale": {
+        "motivo": "L'importo dell'assegno unico (D.Lgs. 230/2021) dipende dall'ISEE e dagli importi rivalutati "
+        "ogni anno dall'INPS, che il gestionale non contiene.",
+        "label": "Catalogo delle funzioni",
+        "href": "/strumenti-operativi",
+    },
+    "rendimento_buoni_postali": {
+        "motivo": "I rendimenti dei buoni fruttiferi postali dipendono dalla serie e dal foglio informativo "
+        "di emissione, che il gestionale non contiene.",
+        "label": "Rendimento titoli",
+        "href": "/strumenti-legali/?tool=rendimento_bot#funzione-operativa",
+    },
 }
 
 # Voci del catalogo che aprono Strumenti forensi senza indicare lo strumento:
@@ -84,6 +186,11 @@ VOCI_SENZA_STRUMENTO: dict[str, tuple[str, dict[str, str]]] = {
     "tariffe_mediazione": ("indennita_mediazione", {}),
     "calcolo_compenso_a_ore": ("compenso_a_tempo", {}),
     "calcolo_ravvedimento_operoso": ("ravvedimento_operoso", {}),
+    # Collaudo utility del 19/11/2026: la voce apriva un calcolatore diverso da quello promesso.
+    "interessi_e_acconti": ("interessi_acconti", {}),
+    "interessi_a_tasso_fisso": ("interessi", {"int_tipo": "convenzionale"}),
+    "conversione_pena": ("pena_riti_alternativi", {}),
+    "tassa_registro_locazioni": ("cedolare_secca", {}),
 }
 
 APPLICAZIONI_IN_PAGINA = frozenset({*CALCOLI_IN_PAGINA, RICERCA_COMUNI, *NON_DISPONIBILI})

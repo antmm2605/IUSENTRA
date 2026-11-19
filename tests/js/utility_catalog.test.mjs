@@ -7,7 +7,7 @@ test('quote monetarie e percentuali leggibili senza cambiare il payload numerico
   const result = { quota: 1234.56, incidenza: 20.25, variazione: -2.125 }
   assert.deepEqual(righeRisultato(result, 'percentuali').map(item => item.value), ['€ 1.234,56', '20,25%', '-2,125%'])
   assert.equal(result.quota, 1234.56)
-  assert.equal(righeRisultato({ quota: 10 })[0].value, '10')
+  assert.equal(righeRisultato({ quota: 10 })[0].value, '10') // quota generica (millesimi, quote di riparto): resta un numero
 })
 
 const tool = { id: 'interessi', title: 'Interessi', subtitle: 'Calcolo', categoria: 'Credito' }
@@ -48,9 +48,9 @@ test('interessi: etichette italiane, euro, date e tassi anche nei periodi senza 
     segments: [{ days: 2, from: '2026-10-29', to: '2026-10-30', interest: 0.09, rate: 1.6, reference_rate: null }] }
   const before = JSON.stringify(result)
   const rows = Object.fromEntries(righeRisultato(result, 'interessi').map(row => [row.label, row.value.replace(/\u00a0/g, ' ')]))
-  assert.equal(rows['Capitale'], '1.000,00 €')
-  assert.equal(rows['Totale dovuto'], '1.000,09 €')
-  assert.equal(rows['Interessi totali'], '0,09 €')
+  assert.equal(rows['Capitale'], '€ 1.000,00')
+  assert.equal(rows['Totale dovuto'], '€ 1.000,09')
+  assert.equal(rows['Interessi totali'], '€ 0,09')
   assert.equal(rows['Data iniziale'], '29/10/2026')
   assert.equal(rows['Data finale'], '30/10/2026')
   assert.equal(rows['Regime'], 'Interessi legali')
@@ -59,6 +59,33 @@ test('interessi: etichette italiane, euro, date e tassi anche nei periodi senza 
   assert.equal(table.righe[0].from, '29/10/2026')
   assert.equal(table.righe[0].rate, '1,6%')
   assert.equal(table.righe[0].reference_rate, '')
-  assert.equal(table.righe[0].interest.replace(/\u00a0/g, ' '), '0,09 €')
+  assert.equal(table.righe[0].interest.replace(/\u00a0/g, ' '), '€ 0,09')
   assert.equal(JSON.stringify(result), before)
+})
+
+test('esito generico in italiano: Sì/No, date gg/mm/aaaa, euro, percentuali e codici nascosti (collaudo 19/11/2026)', () => {
+  const result = {
+    categoria: 'civile_ordinario', categoria_label: 'Civile ordinario',
+    scaduta: false, data_scadenza: '2026-03-16', totale_lordo: 6868.66, tasso_applicato: 15,
+    esito_classe: 'warning', rendered_html: '<div>x</div>', rendered_text: 'NOTA',
+    riepilogo: { totale_compenso: 8758.4, spese_generali: 1142.4 },
+  }
+  const righe = righeRisultato(result, 'generico')
+  const mappa = Object.fromEntries(righe.map((riga) => [riga.label, riga.value]))
+  assert.equal(mappa['Categoria'], 'Civile ordinario')
+  assert.equal(mappa['Scaduta'], 'No')
+  assert.equal(mappa['Data scadenza'], '16/03/2026')
+  assert.equal(mappa['Totale lordo'], '€ 6.868,66')
+  assert.equal(mappa['Tasso applicato'], '15%')
+  assert.equal(mappa['Riepilogo · Totale compenso'], '€ 8.758,40')
+  assert.ok(!righe.some((riga) => /html|classe|civile_ordinario/i.test(`${riga.label} ${riga.value}`)))
+})
+
+test('tabelle: «Dal» prima di «Al», date italiane e colonna leggibile al posto del doppione ISO', () => {
+  const [tabella] = tabelleRisultato({ segments: [{ to: '2025-12-31', from: '2025-01-02', days: 364, rate: 2, interest: 199.45 }] }, 'interessi')
+  assert.deepEqual(tabella.colonne.slice(0, 2), ['from', 'to'])
+  assert.equal(tabella.righe[0].from, '02/01/2025')
+  assert.equal(tabella.righe[0].rate, '2%')
+  const [rate] = tabelleRisultato({ preview_schedule: [{ scadenza: '2027-01-31', scadenza_it: '31/01/2027', rata_importo: 965.61 }] })
+  assert.deepEqual(rate.colonne, ['scadenza_it', 'rata_importo'])
 })

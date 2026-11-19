@@ -23,7 +23,8 @@ from typing import Any, Dict, List, Mapping
 
 from pct.calcolatori._base import (
     clean_text,
-    days_inclusive,
+    giorni_interesse,
+    tratto_interessi,
     messaggio_indice_istat_mancante,
     safe_float,
     safe_int,
@@ -88,10 +89,10 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
 
     semisomma = round((importo + importo_rivalutato) / 2.0, 2)
     for period in periods:
-        overlap_start = max(inizio, period.start)
-        overlap_end = min(fine, period.end)
-        if overlap_start > overlap_end:
+        tratto = tratto_interessi(inizio, fine, period.start, period.end)
+        if not tratto:
             continue
+        overlap_start, overlap_end, days = tratto
         if base_interessi == "originario":
             base = importo
         elif base_interessi == "semisomma":
@@ -100,7 +101,6 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
             coefficiente = _coefficiente(norme, tipo, indice_base, overlap_start.year, overlap_start.month,
                                          f"anno {overlap_start.year}")
             base = round(importo * coefficiente, 2)
-        days = days_inclusive(overlap_start, overlap_end)
         interesse = round(base * (period.rate / 100.0) * (days / year_denominator(overlap_start)), 2)
         totale_interessi += interesse
         covered += days
@@ -118,8 +118,8 @@ def calcola(payload: Mapping[str, Any], norme: Any) -> Dict[str, Any]:
         )
         sources[period.source.to_dict()["url"]] = period.source.to_dict()
 
-    total_days = days_inclusive(inizio, fine)
-    if covered == 0:
+    total_days = giorni_interesse(inizio, fine)
+    if covered == 0 and total_days > 0:
         raise ValueError("Il periodo richiesto non è coperto dalle tabelle dei tassi legali attualmente caricate.")
 
     warnings: List[str] = []

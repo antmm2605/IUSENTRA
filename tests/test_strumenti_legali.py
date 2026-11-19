@@ -325,11 +325,13 @@ def test_interessi_legali_2025_su_anno_intero(tmp_path):
         {
             "int_tipo": "legali",
             "int_capitale": "1000",
-            "int_data_inizio": "2025-01-01",
+            # Il giorno iniziale non si computa (art. 2963 c.c.): l'anno intero 2025 va dal 31/12/2024.
+            "int_data_inizio": "2024-12-31",
             "int_data_fine": "2025-12-31",
         }
     )
 
+    assert result["days"] == 365
     assert result["total_interest"] == 20.0
     assert result["total_amount"] == 1020.0
     assert len(result["segments"]) == 1
@@ -341,11 +343,13 @@ def test_interessi_mora_commerciale_2026_primo_semestre(tmp_path):
         {
             "int_tipo": "mora_commerciale",
             "int_capitale": "1000",
-            "int_data_inizio": "2026-01-01",
+            # Semestre intero (181 giorni): il giorno iniziale non si computa (art. 2963 c.c.).
+            "int_data_inizio": "2025-12-31",
             "int_data_fine": "2026-06-30",
         }
     )
 
+    assert result["segments"][0]["days"] == 181
     assert result["segments"][0]["reference_rate"] == 2.15
     assert result["segments"][0]["rate"] == 10.15
     assert result["total_interest"] == 50.33
@@ -372,8 +376,10 @@ def test_nota_precisazione_credito_generata_con_residuo(tmp_path):
         }
     )
 
-    assert result["totale_lordo"] == 1141.88
-    assert result["residuo"] == 1041.88
+    # Spese generali 15% sui compensi (art. 2, c. 2, D.M. 55/2014): 100 + 15 = 115; CPA 4% = 4,60;
+    # IVA 22% su 119,60 = 26,31; totale 1.000 + 10 + 5 + 115 + 4,60 + 26,31 = 1.160,91.
+    assert result["totale_lordo"] == 1160.91
+    assert result["residuo"] == 1060.91
     assert "NOTA DI PRECISAZIONE DEL CREDITO" in result["rendered_text"]
 
 
@@ -423,10 +429,15 @@ def test_tfr_calcola_quota_rivalutazione_e_totale(tmp_path):
         }
     )
 
+    # Art. 2120 c.c. e art. 3, c. 15, L. 297/1982 (conto a mano): quota 2.000 - 135 = 1.865;
+    # anno 1: 1.000 x 3% = 30 -> 2.895; anno 2: 2.895 x 3% = 86,85 -> 4.846,85;
+    # 6 mesi: 4.846,85 x (0,75% + 75% x 1%) = 72,70 -> 4.919,55 + 932,50 = 5.852,05.
     assert result["quota_annua"] == 2000.0
     assert result["quota_periodo"] == 5000.0
-    assert result["rivalutazione"] == 30.0
-    assert result["totale_lordo"] == 6030.0
+    assert result["trattenuta_periodo"] == 337.5
+    assert result["quota_accantonata_periodo"] == 4662.5
+    assert result["rivalutazione"] == 189.55
+    assert result["totale_lordo"] == 5852.05
 
 
 def test_onorari_forensi_restituisce_fasi_e_riepilogo(tmp_path):

@@ -327,6 +327,11 @@ PROFILI_TERMINE_BUILTIN: Dict[str, ProfiloTermine] = {
     "TERM_1_YEAR": ProfiloTermine("TERM_1_YEAR", "Termine 1 anno", UnitaTermine.ANNI.value, 1, exclude_initial_day=False, apply_ferial_suspension=False),
     "TERM_5_YEARS": ProfiloTermine("TERM_5_YEARS", "Termine 5 anni", UnitaTermine.ANNI.value, 5, exclude_initial_day=False, apply_ferial_suspension=False),
     "TERM_10_YEARS": ProfiloTermine("TERM_10_YEARS", "Termine 10 anni", UnitaTermine.ANNI.value, 10, exclude_initial_day=False, apply_ferial_suspension=False),
+    # Prescrizione (art. 2963 c.c.): termine sostanziale a calendario comune, senza sospensione feriale;
+    # se scade in giorno festivo e' prorogato al giorno seguente non festivo (comma 3), ma il sabato non e'
+    # festivo: la proroga del sabato vale solo per gli atti processuali (art. 155, comma 5, c.p.c.).
+    "PRESCR_5_YEARS": ProfiloTermine("PRESCR_5_YEARS", "Prescrizione 5 anni", UnitaTermine.ANNI.value, 5, exclude_initial_day=False, extend_if_final_saturday=False, apply_ferial_suspension=False),
+    "PRESCR_10_YEARS": ProfiloTermine("PRESCR_10_YEARS", "Prescrizione 10 anni", UnitaTermine.ANNI.value, 10, exclude_initial_day=False, extend_if_final_saturday=False, apply_ferial_suspension=False),
     "TERM_30_DAYS_NO_FERIAL": ProfiloTermine("TERM_30_DAYS_NO_FERIAL", "Termine 30 giorni senza sospensione feriale", UnitaTermine.GIORNI.value, 30, apply_ferial_suspension=False),
     "TERM_40_DAYS_BEFORE": ProfiloTermine("TERM_40_DAYS_BEFORE", "Termine 40 giorni prima dell'evento", UnitaTermine.GIORNI.value, 40, direzione="ritroso", termine_libero=True),
     "TERM_20_DAYS_BEFORE": ProfiloTermine("TERM_20_DAYS_BEFORE", "Termine 20 giorni prima dell'evento", UnitaTermine.GIORNI.value, 20, direzione="ritroso", termine_libero=True),
@@ -638,8 +643,8 @@ PRESET_TERMINI: Dict[str, Dict[str, Any]] = {
     "memoria_replica": {"label": "Memoria di replica", "giorni": 15, "tipo": "continui", "sospensione_feriale": True, "descrizione": "Art. 189, primo comma, n. 3, c.p.c. - entro 15 giorni prima dell'udienza di rimessione al collegio (cause instaurate dal 28/02/2023).", "profile_code": "TERM_15_DAYS_BEFORE", "direzione": "ritroso", "source_event_type": "udienza", "operational_lead_business_days": 1},
     "comparsa_conclusionale_190": {"label": "Comparsa conclusionale (rito previgente)", "giorni": 60, "tipo": "continui", "sospensione_feriale": True, "descrizione": "Art. 190 c.p.c. nel testo anteriore al D.Lgs. 149/2022, abrogato: solo per i procedimenti pendenti al 28/02/2023 - 60 giorni dalla rimessione della causa al collegio.", "profile_code": "TERM_60_DAYS", "source_event_type": "udienza", "operational_lead_business_days": 3},
     "memoria_replica_190": {"label": "Memoria di replica (rito previgente)", "giorni": 20, "tipo": "continui", "sospensione_feriale": True, "descrizione": "Art. 190 c.p.c. nel testo anteriore al D.Lgs. 149/2022, abrogato: solo per i procedimenti pendenti al 28/02/2023 - 20 giorni dalla scadenza del termine per le comparse conclusionali.", "profile_code": "TERM_20_DAYS", "source_event_type": "deposito", "operational_lead_business_days": 1},
-    "prescrizione_ordinaria": {"label": "Prescrizione ordinaria", "anni": 10, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2946 c.c. - 10 anni, computati secondo il calendario comune.", "profile_code": "TERM_10_YEARS", "source_event_type": "evento", "operational_lead_business_days": 30},
-    "prescrizione_breve_5anni": {"label": "Prescrizione breve (5 anni)", "anni": 5, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2948 c.c. - 5 anni, computati secondo il calendario comune.", "profile_code": "TERM_5_YEARS", "source_event_type": "evento", "operational_lead_business_days": 30},
+    "prescrizione_ordinaria": {"label": "Prescrizione ordinaria", "anni": 10, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2946 c.c. - 10 anni, computati secondo il calendario comune; proroga solo se l'ultimo giorno è festivo, non di sabato (art. 2963 c.c.).", "profile_code": "PRESCR_10_YEARS", "source_event_type": "evento", "operational_lead_business_days": 30},
+    "prescrizione_breve_5anni": {"label": "Prescrizione breve (5 anni)", "anni": 5, "tipo": "continui", "sospensione_feriale": False, "descrizione": "Art. 2948 c.c. - 5 anni, computati secondo il calendario comune; proroga solo se l'ultimo giorno è festivo, non di sabato (art. 2963 c.c.).", "profile_code": "PRESCR_5_YEARS", "source_event_type": "evento", "operational_lead_business_days": 30},
 }
 
 

@@ -478,7 +478,7 @@ ITEM_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "calcolo_inflazione": {"status": "guidata", "endpoint": "strumenti_legali.index", "params": {"tool": "rivalutazione_istat"}, "cta_label": "Apri calcolo inflazione"},
     "calcolo_interessi_legali": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "interessi"}, "cta_label": "Apri interessi legali"},
     "calcolo_interessi_di_mora": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "interessi"}, "cta_label": "Apri interessi di mora"},
-    "interessi_e_acconti": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "nota_credito"}, "cta_label": "Apri modulo credito"},
+    "interessi_e_acconti": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "interessi_acconti"}, "cta_label": "Apri interessi con acconti"},
     "interessi_1284_cc": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "interessi"}, "cta_label": "Apri interessi 1284 c.c."},
     "calcolo_maggior_danno": {"status": "guidata", "endpoint": "strumenti_legali.index", "params": {"tool": "interessi"}, "cta_label": "Apri area interessi"},
     "calcolo_ammortamento": {"status": "operativa", "endpoint": "strumenti_legali.index", "params": {"tool": "piano_ammortamento"}, "cta_label": "Apri piano ammortamento"},

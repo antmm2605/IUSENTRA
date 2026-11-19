@@ -40,17 +40,12 @@ LEGAL_SOURCES = (
     {
         "code": "art_155_cpc",
         "label": "Art. 155 c.p.c. - computo dei termini",
-        "url": "https://def.giustiziatributaria.gov.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+155",
+        "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443~art155",
     },
     {
         "code": "legge_742_1969",
         "label": "Legge 7 ottobre 1969, n. 742 - sospensione feriale",
         "url": "https://www.normattiva.it/eli/id/1969/11/06/069U0742/CONSOLIDATED/20241015",
-    },
-    {
-        "code": "agid_conservazione",
-        "label": "AgID - conservazione: autenticita, integrita, affidabilita, leggibilita e reperibilita",
-        "url": "https://www.agid.gov.it/it/piattaforme/conservazione",
     },
 )
 

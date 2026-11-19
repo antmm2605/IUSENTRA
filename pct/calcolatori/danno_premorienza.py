@@ -12,10 +12,19 @@ art. 1226 c.c.
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Dict, List, Mapping
 
 from pct.calcolatori._base import parse_date, safe_float, safe_int
 from pct.calcolatori.danno_biologico import premorienza, tabelle
+
+
+def _stesso_giorno(giorno: date, anno: int) -> date:
+    """Lo stesso giorno in un altro anno (il 29 febbraio diventa il 28 negli anni non bisestili)."""
+    try:
+        return giorno.replace(year=anno)
+    except ValueError:
+        return giorno.replace(year=anno, day=28)
 
 
 def _anni_sopravvivenza(payload: Mapping[str, Any]) -> tuple:
@@ -26,7 +35,13 @@ def _anni_sopravvivenza(payload: Mapping[str, Any]) -> tuple:
         if data_decesso < data_lesione:
             raise ValueError("La data del decesso non puo' precedere la data dell'evento lesivo.")
         giorni = (data_decesso - data_lesione).days
-        anni = max(1, -(-giorni // 365))  # anno iniziato = anno computato
+        # Anni di calendario fra le due date (anniversario per anniversario, cosi'
+        # i bisestili non aggiungono un anno): l'anno iniziato conta per intero.
+        compiuti = data_decesso.year - data_lesione.year
+        if (data_decesso.month, data_decesso.day) < (data_lesione.month, data_lesione.day):
+            compiuti -= 1
+        anniversario = _stesso_giorno(data_lesione, data_lesione.year + compiuti)
+        anni = max(1, compiuti + (1 if data_decesso > anniversario else 0))
         return anni, f"dal {data_lesione.strftime('%d/%m/%Y')} al {data_decesso.strftime('%d/%m/%Y')} ({giorni} giorni)"
     anni = safe_int(payload.get("pm_anni"))
     if anni <= 0:

@@ -474,3 +474,16 @@
 .iu-strumenti__riepilogo button { background: transparent; color: var(--iu-od-primary); border: 0; min-height: 32px; padding: 4px 8px; font: inherit; font-weight: 750; cursor: pointer; }
 .iu-strumento[hidden] { display: none; }
 @media (max-width: 600px) { .iu-strumenti__categorie { gap: 5px; } .iu-strumenti__categorie button { min-height: 36px; padding: 5px 8px; gap: 7px; } }
+
+/* Testo del documento prodotto dallo strumento (es. nota di precisazione del credito). */
+.iu-tool-result__documento {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--iu-border, #d9dee5);
+  border-radius: 8px;
+  background: var(--iu-surface-subtle, #f8fafc);
+  margin: 0 0 1rem;
+}

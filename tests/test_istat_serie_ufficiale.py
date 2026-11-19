@@ -52,7 +52,8 @@ def test_la_serie_copre_da_gennaio_2011_a_giugno_2026(norme):
     assert norme.istat_index("foi", 2010, 12) is None
     assert norme.istat_index("foi", 2022, 2) == 108.8
     ultimo = norme.istat_last_available("foi")
-    assert (ultimo["year"], ultimo["month"]) == (2026, 6)
+    # Luglio-ottobre 2026 dal servizio SDMX ISTAT, letti il 19/11/2026 (ottobre: 105,4, +5,4%).
+    assert (ultimo["year"], ultimo["month"]) == (2026, 10)
 
 
 # ── Cambio di base 2015=100 → 2025=100 ───────────────────────────────────

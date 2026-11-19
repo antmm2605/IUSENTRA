@@ -30,7 +30,7 @@ def test_i_casi_e_i_sinonimi_riguardano_strumenti_esistenti():
 
 
 def test_interessi_legali_dalla_domanda_con_dettaglio_e_fonti():
-    esito = risposta_certa("Calcola gli interessi legali su 10.000 euro dal 01/01/2024 al 31/12/2025")
+    esito = risposta_certa("Calcola gli interessi legali su 10.000 euro dal 31/12/2023 al 31/12/2025")
     assert esito is not None and esito.tipo == "calcolatore:interessi"
     assert "€ 450,00" in esito.testo and "2,5%" in esito.testo and "€ 250,00" in esito.testo
     assert "Regime: **legali**" not in esito.testo

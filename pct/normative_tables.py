@@ -453,6 +453,19 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
             "applicazione dal 1 luglio al 30 settembre 2026."
         ),
     ),
+    "mef_tassi_usura_2026_q4": FonteOperativa(
+        code="mef_tassi_usura_2026_q4",
+        title="G.U. n. 227/2026 - tassi soglia usura Q4 2026",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/vediMenuHTML?"
+            "atto.codiceRedazionale=26A05180&atto.dataPubblicazioneGazzetta=2026-09-30"
+            "&tipoSerie=serie_generale&tipoVigenza=originario"
+        ),
+        note=(
+            "D.M. MEF 28/09/2026: rilevazione 1 aprile - 30 giugno 2026, "
+            "applicazione dal 1 ottobre al 31 dicembre 2026."
+        ),
+    ),
     "interesse_legale_2026_dm": FonteOperativa(
         code="interesse_legale_2026_dm",
         title="G.U. n. 289/2025 - saggio degli interessi legali per il 2026",
@@ -892,33 +905,37 @@ def _normalize_usura_category(category: str) -> str:
     return USURA_CATEGORY_ALIASES.get(value, value)
 
 
+# Categorie dell'Allegato A dei decreti MEF trimestrali (classificazione D.M. MEF annuale).
+USURA_CATEGORIE_ETICHETTE: Dict[str, str] = {
+    "aperture_credito_cc_fino_5000": "Aperture di credito in conto corrente fino a € 5.000",
+    "aperture_credito_cc_oltre_5000": "Aperture di credito in conto corrente oltre € 5.000",
+    "scoperti_senza_affidamento_fino_1500": "Scoperti senza affidamento fino a € 1.500",
+    "scoperti_senza_affidamento_oltre_1500": "Scoperti senza affidamento oltre € 1.500",
+    "anticipi_sconti_crediti_fino_50000": "Anticipi su crediti e sconti fino a € 50.000",
+    "anticipi_sconti_crediti_50000_200000": "Anticipi su crediti e sconti da € 50.000 a € 200.000",
+    "anticipi_sconti_crediti_oltre_200000": "Anticipi su crediti e sconti oltre € 200.000",
+    "credito_personale": "Credito personale",
+    "credito_finalizzato": "Credito finalizzato",
+    "factoring_fino_50000": "Factoring fino a € 50.000",
+    "factoring_oltre_50000": "Factoring oltre € 50.000",
+    "leasing_immobiliare_fisso": "Leasing immobiliare a tasso fisso",
+    "leasing_immobiliare_variabile": "Leasing immobiliare a tasso variabile",
+    "leasing_aeronavale_autoveicoli_fino_25000": "Leasing aeronavale e su autoveicoli fino a € 25.000",
+    "leasing_aeronavale_autoveicoli_oltre_25000": "Leasing aeronavale e su autoveicoli oltre € 25.000",
+    "leasing_strumentale_fino_25000": "Leasing strumentale fino a € 25.000",
+    "leasing_strumentale_oltre_25000": "Leasing strumentale oltre € 25.000",
+    "mutui_ipotecari_fisso": "Mutui con garanzia ipotecaria a tasso fisso",
+    "mutui_ipotecari_variabile": "Mutui con garanzia ipotecaria a tasso variabile",
+    "cessione_quinto_fino_15000": "Cessione del quinto fino a € 15.000",
+    "cessione_quinto_oltre_15000": "Cessione del quinto oltre € 15.000",
+    "credito_revolving": "Credito revolving",
+    "carte_credito": "Finanziamenti con utilizzo di carte di credito",
+    "altri_finanziamenti": "Altri finanziamenti",
+}
+
+
 def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
-    labels = {
-        "aperture_credito_cc_fino_5000": "Aperture di credito in conto corrente fino a € 5.000",
-        "aperture_credito_cc_oltre_5000": "Aperture di credito in conto corrente oltre € 5.000",
-        "scoperti_senza_affidamento_fino_1500": "Scoperti senza affidamento fino a € 1.500",
-        "scoperti_senza_affidamento_oltre_1500": "Scoperti senza affidamento oltre € 1.500",
-        "anticipi_sconti_crediti_fino_50000": "Anticipi su crediti e sconti fino a € 50.000",
-        "anticipi_sconti_crediti_50000_200000": "Anticipi su crediti e sconti da € 50.000 a € 200.000",
-        "anticipi_sconti_crediti_oltre_200000": "Anticipi su crediti e sconti oltre € 200.000",
-        "credito_personale": "Credito personale",
-        "credito_finalizzato": "Credito finalizzato",
-        "factoring_fino_50000": "Factoring fino a € 50.000",
-        "factoring_oltre_50000": "Factoring oltre € 50.000",
-        "leasing_immobiliare_fisso": "Leasing immobiliare a tasso fisso",
-        "leasing_immobiliare_variabile": "Leasing immobiliare a tasso variabile",
-        "leasing_aeronavale_autoveicoli_fino_25000": "Leasing aeronavale e su autoveicoli fino a € 25.000",
-        "leasing_aeronavale_autoveicoli_oltre_25000": "Leasing aeronavale e su autoveicoli oltre € 25.000",
-        "leasing_strumentale_fino_25000": "Leasing strumentale fino a € 25.000",
-        "leasing_strumentale_oltre_25000": "Leasing strumentale oltre € 25.000",
-        "mutui_ipotecari_fisso": "Mutui con garanzia ipotecaria a tasso fisso",
-        "mutui_ipotecari_variabile": "Mutui con garanzia ipotecaria a tasso variabile",
-        "cessione_quinto_fino_15000": "Cessione del quinto fino a € 15.000",
-        "cessione_quinto_oltre_15000": "Cessione del quinto oltre € 15.000",
-        "credito_revolving": "Credito revolving",
-        "carte_credito": "Finanziamenti con utilizzo di carte di credito",
-        "altri_finanziamenti": "Altri finanziamenti",
-    }
+    labels = USURA_CATEGORIE_ETICHETTE
     quarters = [
         (
             "2026-Q1",
@@ -950,6 +967,40 @@ def _tasso_usura_rows_2026() -> List[Dict[str, Any]]:
                 ("credito_revolving", 15.77, 23.7125),
                 ("carte_credito", 11.76, 18.7000),
                 ("altri_finanziamenti", 14.54, 22.1750),
+            ],
+        ),
+        (
+            "2026-Q4",
+            "2026-10-01",
+            "2026-12-31",
+            "mef_tassi_usura_2026_q4",
+            [
+                # Allegato A al D.M. MEF 28/09/2026 (G.U. n. 227 del 30/09/2026, pag. 42),
+                # rilevazione 1 aprile - 30 giugno 2026.
+                ("aperture_credito_cc_fino_5000", 10.80, 17.5000),
+                ("aperture_credito_cc_oltre_5000", 9.12, 15.4000),
+                ("scoperti_senza_affidamento_fino_1500", 16.08, 24.0800),
+                ("scoperti_senza_affidamento_oltre_1500", 16.11, 24.1100),
+                ("anticipi_sconti_crediti_fino_50000", 8.30, 14.3750),
+                ("anticipi_sconti_crediti_50000_200000", 6.88, 12.6000),
+                ("anticipi_sconti_crediti_oltre_200000", 5.31, 10.6375),
+                ("credito_personale", 12.08, 19.1000),
+                ("credito_finalizzato", 11.30, 18.1250),
+                ("factoring_fino_50000", 6.58, 12.2250),
+                ("factoring_oltre_50000", 5.38, 10.7250),
+                ("leasing_immobiliare_fisso", 6.52, 12.1500),
+                ("leasing_immobiliare_variabile", 5.82, 11.2750),
+                ("leasing_aeronavale_autoveicoli_fino_25000", 9.51, 15.8875),
+                ("leasing_aeronavale_autoveicoli_oltre_25000", 8.40, 14.5000),
+                ("leasing_strumentale_fino_25000", 10.27, 16.8375),
+                ("leasing_strumentale_oltre_25000", 7.50, 13.3750),
+                ("mutui_ipotecari_fisso", 4.52, 9.6500),
+                ("mutui_ipotecari_variabile", 4.34, 9.4250),
+                ("cessione_quinto_fino_15000", 14.23, 21.7875),
+                ("cessione_quinto_oltre_15000", 9.88, 16.3500),
+                ("credito_revolving", 16.50, 24.5000),
+                ("carte_credito", 12.15, 19.1875),
+                ("altri_finanziamenti", 14.41, 22.0125),
             ],
         ),
         (
@@ -1540,6 +1591,8 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "mef_decreto_usura",
                 "mef_tassi_usura_2026_q1",
                 "mef_tassi_usura_2026_q2",
+                "mef_tassi_usura_2026_q3",
+                "mef_tassi_usura_2026_q4",
             ],
             "watch_source_ids": ["bancaditalia", "gazzetta_ufficiale"],
             "rows": _tasso_usura_rows_2026(),
@@ -1547,7 +1600,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "note": (
                     "Soglia = TEGM x 1,25 + 4 punti percentuali, con differenza massima "
                     "di 8 punti tra limite e tasso medio (L. 108/1996 come modificata "
-                    "dal D.L. 70/2011). Dati Q1/Q2 2026 letti dagli allegati ufficiali "
+                    "dal D.L. 70/2011). Dati Q1-Q4 2026 letti dagli allegati ufficiali "
                     "ai decreti MEF in Gazzetta Ufficiale. Aggiornare ogni trimestre da "
                     "https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/ "
                     "e relativo decreto MEF in "
@@ -1556,7 +1609,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "formula": "soglia = tegm * 1.25 + 4",
                 "aggiornamento": "trimestrale",
             },
-            "published_at": "2026-03-31",
+            "published_at": "2026-09-30",
             "effective_from": "2026-01-01",
         },
         # ── Tassi BCE ─────────────────────────────────────────────────────────
@@ -1822,6 +1875,13 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {"year": 2026, "month": 4, "index": 102.5, "variation_yoy": 2.6, "base": 2025},
                 {"year": 2026, "month": 5, "index": 102.8, "variation_yoy": 3.0, "base": 2025},
                 {"year": 2026, "month": 6, "index": 102.8, "variation_yoy": 2.9, "base": 2025},
+                # Luglio-ottobre 2026: servizio dati ufficiale ISTAT (esploradati.istat.it, SDMX,
+                # flusso 169_748_DF_DCSP_FOI1B2025_1, indice senza tabacchi), letto il 19/11/2026.
+                # Riscontro: ottobre 2026 105,4 x 1,214 = 127,96 = ottobre 2025 (121,4) x 1,054.
+                {"year": 2026, "month": 7, "index": 103.1, "variation_yoy": 2.8, "base": 2025},
+                {"year": 2026, "month": 8, "index": 103.7, "variation_yoy": 3.4, "base": 2025},
+                {"year": 2026, "month": 9, "index": 104.3, "variation_yoy": 4.0, "base": 2025},
+                {"year": 2026, "month": 10, "index": 105.4, "variation_yoy": 5.4, "base": 2025},
             ],
             "defaults": {
                 "base_year": 2015,
